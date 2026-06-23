@@ -193,9 +193,10 @@ TEST_CASE(keyboardModifiersMergedOnFocus) {
 }
 
 // Regression: a Lua `pass` bound to a *modifier* keycode must forward BOTH the press and the release
-// to the target window. Before the back-fill fix in CKeybindManager, the press was forwarded but the
-// release was dropped (the modmask guard skips a modifier key on release unless the bind is tracked in
-// m_pressedSpecialBinds), leaving a key bound to a modifier (e.g. a push-to-talk key) latched "on" forever.
+// to the target window. Unless the bind is recognized as a special dispatcher (tracked in
+// m_pressedSpecialBinds), the modmask guard in CKeybindManager skips a modifier key on release, so the
+// press was forwarded but the release was dropped - leaving a key bound to a modifier (e.g. a
+// push-to-talk key) latched "on" forever.
 TEST_CASE(luaPassForwardsModifierRelease) {
     NLog::log("{}Testing Lua pass forwards a held modifier's release", Colors::GREEN);
 
@@ -222,8 +223,9 @@ TEST_CASE(luaPassForwardsModifierRelease) {
     OK(getFromSocket("/eval hl.unbind('code:105')"));
 }
 
-// Guard against over-correction: a Lua `pass` on a *non-modifier* key (which already worked before the
-// fix, since the modmask guard does not skip non-modifier keys) must still forward both edges.
+// Complement to A1: a Lua `pass` on a *non-modifier* key must forward both edges too. A1 fails on release
+// via the modmask guard; this case fails via the non-special release suppression - both are only avoided
+// once the bind is recognized as a special dispatcher, so this confirms the fix covers non-modifier keys.
 TEST_CASE(luaPassForwardsNonModifierRelease) {
     NLog::log("{}Testing Lua pass still forwards a non-modifier key's release", Colors::GREEN);
 
@@ -249,10 +251,10 @@ TEST_CASE(luaPassForwardsNonModifierRelease) {
     OK(getFromSocket("/eval hl.unbind('code:31')"));
 }
 
-// The fix is not pass-specific: every Lua dispatcher that marks itself special mid-dispatch via
-// releasePending benefits from the same back-fill. Exercise that path through `send_shortcut`, which
-// forwards a configured key ('a') to the target. Bound to a modifier keycode it has the identical
-// dropped-release bug before the fix.
+// The fix is not pass-specific: every Lua dispatcher recognized as special (pass / global /
+// send_shortcut / mouse drag+resize) gets the same release handling. Exercise that through
+// `send_shortcut`, which forwards a configured key ('a') to the target. Bound to a modifier keycode it
+// has the identical dropped-release bug without the fix.
 TEST_CASE(luaSendShortcutForwardsModifierRelease) {
     NLog::log("{}Testing Lua send_shortcut forwards its release when bound to a modifier", Colors::GREEN);
 
@@ -277,10 +279,10 @@ TEST_CASE(luaSendShortcutForwardsModifierRelease) {
     OK(getFromSocket("/eval hl.unbind('code:105')"));
 }
 
-// Held-key path: while any other key stays down, m_pressedKeys never empties, so releasePending is not
-// reset between cycles and leaks into the next press. The `!SPECIALDISPATCHER` guard keeps the back-fill
-// and the top-of-loop add mutually exclusive there. Black-box check: each press/release cycle must still
-// forward exactly one press and one release - never zero (dropped) and never two (double-forwarded).
+// Held-key path: a modifier `pass` bind must forward exactly one press and one release per cycle even
+// while another, unrelated key stays held down for the whole test (historically this kept internal
+// release-tracking state from resetting between cycles). Black-box check: each press/release cycle
+// increments the counts by exactly one - never zero (dropped) and never two (double-forwarded).
 TEST_CASE(luaPassModifierReleaseWithHeldKey) {
     NLog::log("{}Testing Lua pass modifier release with an unrelated key held down", Colors::GREEN);
 

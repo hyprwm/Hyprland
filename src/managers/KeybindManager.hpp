@@ -59,9 +59,15 @@ struct SKeybind {
 
     std::string                     displayKey = "";
 
+    // Set once at bind creation for a lua bind whose dispatcher wraps a native-special handler
+    // (pass/global/send_shortcut/mouse). Folded into SPECIALDISPATCHER so these binds are tracked on press
+    // and released on key-up exactly like the native handlers. Legacy/native binds are matched by their
+    // handler string instead and leave this false - keep it after `devices` so the aggregate init in the
+    // legacy config path (which fills fields only up to `devices`) is unaffected.
+    bool wrapsSpecialDispatcher = false;
+
     // DO NOT INITIALIZE
-    bool shadowed       = false;
-    bool releasePending = false;
+    bool shadowed = false;
 };
 
 enum eFocusWindowMode : uint8_t {

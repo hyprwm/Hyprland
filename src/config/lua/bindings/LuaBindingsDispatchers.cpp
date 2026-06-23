@@ -181,9 +181,6 @@ static int dsp_pass(lua_State* L) {
     if (!PWINDOW)
         return Internal::dispatcherError(L, "hl.pass: window not found", WARN, C_NOTFOUND);
 
-    if (g_pKeybindManager->m_currentKeybind)
-        g_pKeybindManager->m_currentKeybind->releasePending = true;
-
     return Internal::checkResult(L, CA::pass(PWINDOW));
 }
 
@@ -209,9 +206,6 @@ static int dsp_event(lua_State* L) {
 }
 
 static int dsp_global(lua_State* L) {
-    if (g_pKeybindManager->m_currentKeybind)
-        g_pKeybindManager->m_currentKeybind->releasePending = true;
-
     return Internal::checkResult(L, CA::global(lua_tostring(L, lua_upvalueindex(1))));
 }
 
@@ -397,9 +391,6 @@ static int dsp_sendShortcut(lua_State* L) {
         if (!window)
             return Internal::dispatcherError(L, "send_shortcut: window not found", WARN, C_NOTFOUND);
     }
-
-    if (g_pKeybindManager->m_currentKeybind)
-        g_pKeybindManager->m_currentKeybind->releasePending = true;
 
     return Internal::checkResult(L, CA::pass(modMask, *keycodeResult, window));
 }
@@ -660,16 +651,10 @@ static int dsp_denyFromGroup(lua_State* L) {
 }
 
 static int dsp_mouseDrag(lua_State* L) {
-    if (g_pKeybindManager->m_currentKeybind)
-        g_pKeybindManager->m_currentKeybind->releasePending = true;
-
     return Internal::checkResult(L, CA::mouse("movewindow"));
 }
 
 static int dsp_mouseResize(lua_State* L) {
-    if (g_pKeybindManager->m_currentKeybind)
-        g_pKeybindManager->m_currentKeybind->releasePending = true;
-
     auto keepAspectRatio = Check::string(L, lua_upvalueindex(1));
     if (!keepAspectRatio)
         return Internal::configError(L, std::format("resize: bad argument 1: {}", keepAspectRatio.error()));
@@ -1275,6 +1260,15 @@ static int hlWorkspaceSwapMonitors(lua_State* L) {
     lua_pushstring(L, m2.c_str());
     lua_pushcclosure(L, dsp_swapActiveWorkspaces, 2);
     return 1;
+}
+
+bool Internal::dispatcherFunctionIsSpecial(lua_State* L, int idx) {
+    // These forward input to (or release it from) a target, so they must be released the instant the key
+    // goes up regardless of modifier state - the lua equivalents of the native pass/global/sendshortcut/mouse
+    // special handlers. lua_tocfunction sees through the hl.dsp.* closure to the underlying C dispatcher;
+    // a plain lua function (or any non-C-function value) returns nullptr and is never special.
+    const lua_CFunction fn = lua_tocfunction(L, idx);
+    return fn == dsp_pass || fn == dsp_global || fn == dsp_sendShortcut || fn == dsp_mouseDrag || fn == dsp_mouseResize;
 }
 
 void Internal::registerDispatcherBindings(lua_State* L) {

@@ -186,6 +186,10 @@ namespace Config::Lua::Bindings::Internal {
     void markDispatcherTable(lua_State* L);
     int  wrapDispatcher(lua_State* L);
     bool pushDispatcherFunction(lua_State* L, int idx);
+    // true if the function at `idx` is one of the native-special dispatchers (pass / global / send_shortcut /
+    // mouse drag+resize). Used to mark a lua bind's SKeybind::wrapsSpecialDispatcher at creation so it is
+    // tracked and released like a native special handler. A plain lua function is never special.
+    bool dispatcherFunctionIsSpecial(lua_State* L, int idx);
 
     template <typename T>
     SParseError parseTableField(lua_State* L, int tableIdx, const char* field, T& parser) {

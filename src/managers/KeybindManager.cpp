@@ -432,12 +432,6 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
         shadowKeybinds();
     }
 
-    if (m_pressedKeys.empty()) {
-        for (const auto& k : m_keybinds) {
-            k->releasePending = false; // reset this flag once we don't press any keys to avoid stale
-        }
-    }
-
     return !suppressEvent && !mouseBindWasActive;
 }
 
@@ -630,7 +624,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
     std::vector<SP<SKeybind>> bindsHit;
 
     for (auto& k : m_keybinds) {
-        const bool SPECIALDISPATCHER = k->handler == "global" || k->handler == "pass" || k->handler == "sendshortcut" || k->handler == "mouse" || k->releasePending;
+        const bool SPECIALDISPATCHER = k->handler == "global" || k->handler == "pass" || k->handler == "sendshortcut" || k->handler == "mouse" || k->wrapsSpecialDispatcher;
         const bool SPECIALTRIGGERED  = std::ranges::find_if(m_pressedSpecialBinds, [&](const auto& other) { return other == k; }) != m_pressedSpecialBinds.end();
         const bool IGNORECONDITIONS =
             SPECIALDISPATCHER && !pressed && SPECIALTRIGGERED; // ignore mods. Pass, global dispatchers should be released immediately once the key is released.
@@ -774,13 +768,12 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
     }
 
     for (const auto& k : bindsHit) {
-        const bool SPECIALDISPATCHER = k->handler == "global" || k->handler == "pass" || k->handler == "sendshortcut" || k->handler == "mouse" || k->releasePending;
+        const bool SPECIALDISPATCHER = k->handler == "global" || k->handler == "pass" || k->handler == "sendshortcut" || k->handler == "mouse" || k->wrapsSpecialDispatcher;
         const bool SPECIALTRIGGERED  = std::ranges::find_if(m_pressedSpecialBinds, [&](const auto& other) { return other == k; }) != m_pressedSpecialBinds.end();
 
         const auto DISPATCHER = m_dispatchers.find(k->mouse ? "mouse" : k->handler);
 
-        k->releasePending = false; // reset this flag if it's set
-        m_currentKeybind  = k;
+        m_currentKeybind = k;
 
         Hyprutils::Utils::CScopeGuard x([this] { m_currentKeybind.reset(); });
 
@@ -805,20 +798,6 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
                 res = DISPATCHER->second(k->arg);
 
             Config::Actions::state()->m_passPressed = -1;
-
-            // Back-fill m_pressedSpecialBinds for a bind that only became "special" mid-dispatch.
-            // Native special dispatchers (pass/global/sendshortcut/mouse) are known special up front, so the
-            // `else if (SPECIALDISPATCHER && pressed)` add above tracks them at press time. A Lua-wrapped dispatcher
-            // hides behind handler == "__lua" and instead sets k->releasePending from inside the dispatch call we
-            // just made - too late for that add to see it. Mirror the add here so SPECIALTRIGGERED, and thus
-            // IGNORECONDITIONS, holds on the release pass; otherwise the modmask guard in the selection loop skips
-            // the release of a modifier key and it never reaches the dispatcher.
-            // The two guards keep this mutually exclusive with the top-of-loop add (exactly one fires per press):
-            // !SPECIALDISPATCHER - if releasePending leaked from a prior cycle (a key held across the release skips
-            // the m_pressedKeys.empty() reset), the top-of-loop add already ran this iteration; !SPECIALTRIGGERED -
-            // don't re-add a bind that is already tracked.
-            if (pressed && k->releasePending && !SPECIALDISPATCHER && !SPECIALTRIGGERED)
-                m_pressedSpecialBinds.emplace_back(k);
 
             if (k->handler == "submap") {
                 found = true; // don't process keybinds on submap change.

@@ -819,11 +819,18 @@ std::string getBuiltSystemLibraryNames() {
 }
 
 bool truthy(const std::string& str) {
-    if (str == "1")
+    using std::operator""sv;
+
+    if (str == "1"sv)
         return true;
 
-    std::string cpy = str;
-    std::ranges::transform(cpy, cpy.begin(), ::tolower);
+    // clang-format off
+    auto str_view = str | std::views::transform([](unsigned char ch) -> char {
+        return static_cast<char>(std::tolower(ch));
+    });
 
-    return cpy.starts_with("true") || cpy.starts_with("yes") || cpy.starts_with("on");
+    return [&](auto&&... prefixes) -> bool {
+        return (... || std::ranges::starts_with(str_view, prefixes));
+    }("true"sv, "yes"sv, "on"sv);
+    // clang-format on
 }

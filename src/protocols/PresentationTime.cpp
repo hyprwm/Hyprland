@@ -196,6 +196,28 @@ void CPresentationProtocol::queueData(UP<CQueuedPresentationData>&& data) {
 bool CPresentationProtocol::queueData(WP<CWLSurfaceResource> surf, uint64_t commitSeq, std::vector<WP<CPresentationFeedback>>&& feedbacks, PHLMONITOR pMonitor, bool zeroCopy) {
     std::erase_if(feedbacks, [](const auto& feedback) { return !feedback; });
 
+    // A newer commit rendered for the same output supersedes an older commit
+    // that has only been queued for that output's next presentation event.
+    // This can happen when FIFO unlocks multiple surface states in one frame.
+    for (const auto& data : m_queue) {
+        if (!data->m_surface || data->m_surface != surf || data->m_commitSeq >= commitSeq || data->m_done || !data->hasMonitor(pMonitor))
+            continue;
+
+        data->detachMonitor(pMonitor);
+        if (data->hasMonitors())
+            continue;
+
+        for (const auto& feedback : data->m_feedbacks) {
+            if (feedback)
+                feedback->sendDiscarded();
+        }
+
+        data->m_done = true;
+    }
+
+    std::erase_if(m_queue, [](const auto& data) { return !data->m_surface || data->m_done; });
+    std::erase_if(m_feedbacks, [](const auto& feedback) { return !feedback->m_surface || feedback->m_done; });
+
     if (!surf || feedbacks.empty())
         return addPresentedMonitor(surf, commitSeq, pMonitor, zeroCopy);
 

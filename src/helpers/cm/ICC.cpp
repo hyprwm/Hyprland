@@ -231,6 +231,46 @@ static std::expected<void, std::string> buildIcc3DLut(cmsHPROFILE profile, SImag
     return {};
 }
 
+static constexpr cmsCIExyY buildPrimary(UniqueTransform& xform, std::array<float, 3> rgb) {
+    float xyz_data[3];
+    cmsDoTransform(xform.get(), rgb.data(), xyz_data, 1);
+
+    const cmsCIEXYZ xyz{xyz_data[0], xyz_data[1], xyz_data[2]};
+    cmsCIExyY       xyY;
+
+    cmsXYZ2xyY(&xyY, &xyz);
+    return xyY;
+}
+
+static std::expected<void, std::string> buildPrimaries(cmsHPROFILE profile, SImageDescription& image) {
+    const int             intent = INTENT_RELATIVE_COLORIMETRIC;
+    const cmsUInt32Number flags  = cmsFLAGS_BLACKPOINTCOMPENSATION | cmsFLAGS_HIGHRESPRECALC; // good quality precalc in LCMS
+
+    // float->float transform
+    UniqueTransform xform{cmsCreateTransform(profile, TYPE_RGB_FLT, cmsCreateXYZProfile(), TYPE_XYZ_FLT, intent, flags)};
+    if (!xform)
+        return std::unexpected("Failed to create ICC transform");
+
+    Log::logger->log(Log::DEBUG, "Building RGB Primaries");
+
+    const cmsCIExyY redXY   = buildPrimary(xform, {1.0f, 0.0f, 0.0f});
+    const cmsCIExyY greenXY = buildPrimary(xform, {0.0f, 1.0f, 0.0f});
+    const cmsCIExyY blueXY  = buildPrimary(xform, {0.0f, 0.0f, 1.0f});
+    const cmsCIExyY whiteXY = buildPrimary(xform, {1.0f, 1.0f, 1.0f});
+
+    image.primaries.red   = {.x = redXY.x, .y = redXY.y};
+    image.primaries.green = {.x = greenXY.x, .y = greenXY.y};
+    image.primaries.blue  = {.x = blueXY.x, .y = blueXY.y};
+    image.primaries.white = {.x = whiteXY.x, .y = whiteXY.y};
+
+    Log::logger->log(Log::DEBUG, "Got Red Primaries of: x{} y{}", redXY.x, redXY.y);
+    Log::logger->log(Log::DEBUG, "Got Greeen Primaries of: x{} y{}", greenXY.x, greenXY.y);
+    Log::logger->log(Log::DEBUG, "Got Blue Primaries of: x{} y{}", blueXY.x, blueXY.y);
+    Log::logger->log(Log::DEBUG, "Got White Primaries of: x{} y{}", whiteXY.x, whiteXY.y);
+
+    return {};
+}
+
 std::expected<SImageDescription, std::string> SImageDescription::fromICC(const std::filesystem::path& file) {
     static auto     PVCGTENABLED = CConfigValue<Config::INTEGER>("render:icc_vcgt_enabled");
 
@@ -258,6 +298,9 @@ std::expected<SImageDescription, std::string> SImageDescription::fromICC(const s
     Log::logger->log(Log::DEBUG, "ICC size: {} bytes", image.rawICC.size());
 
     if (const auto RET = buildIcc3DLut(prof, image); !RET)
+        return std::unexpected(RET.error());
+
+    if (const auto RET = buildPrimaries(prof, image); !RET)
         return std::unexpected(RET.error());
 
     if (*PVCGTENABLED) {

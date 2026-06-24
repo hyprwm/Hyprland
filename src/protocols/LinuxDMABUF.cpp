@@ -422,7 +422,7 @@ bool CLinuxDMABUFResource::good() {
 }
 
 void CLinuxDMABUFResource::sendMods() {
-    
+
     // per-spec, since v4, do not send these.
     if (m_resource->version() >= 4)
         return;

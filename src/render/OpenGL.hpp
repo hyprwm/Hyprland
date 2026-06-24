@@ -102,7 +102,7 @@ namespace Render::GL {
         SP<IFramebuffer>         outFB     = nullptr; // out to render to (if offloaded, etc)
 
         CRegion                  damage;
-        CRegion                  finalDamage; // damage used for funal off -> main
+        CRegion                  finalDamage; // damage used for final off -> main
 
         Render::SRenderModifData renderModif;
         float                    mouseZoomFactor    = 1.f;

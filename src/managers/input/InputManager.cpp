@@ -141,7 +141,10 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
     if (e.mouse)
         recheckMouseWarpOnMouseInput();
 
-    PROTO::relativePointer->sendRelativeMotion(sc<uint64_t>(e.timeMs) * 1000, delta, unaccel);
+    // an interactive move or resize is an exclusive grab, so don't feed relative motion to the window being
+    // dragged. a pointer-locked game would otherwise pan its camera from the drag itself.
+    if (!g_layoutManager->dragController()->target())
+        PROTO::relativePointer->sendRelativeMotion(sc<uint64_t>(e.timeMs) * 1000, delta, unaccel);
     g_pPointerManager->move(DELTA);
 
     mouseMoveUnified(e.timeMs, false, e.mouse);
@@ -1766,6 +1769,11 @@ bool CInputManager::isConstrained() {
         const auto WINDOW = Desktop::View::CWindow::fromView(OWNER);
 
         if (!WINDOW)
+            return false;
+
+        // a window being interactively moved or resized ignores its pointer lock. the lock would otherwise warp
+        // the cursor back to the constraint hint every frame, so the window could never be dragged (e.g. gamescope).
+        if (const auto DRAG = g_layoutManager->dragController()->target(); DRAG && DRAG->window() == WINDOW)
             return false;
 
         return !WINDOW->m_layoutFlags.cantLockCursor;

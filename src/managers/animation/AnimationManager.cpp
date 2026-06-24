@@ -76,7 +76,7 @@ static SAnimationContext& getContext(Hyprutils::Animation::CBaseAnimatedVariable
     }
 }
 
-static void damageWindowForPolicies(PHLWINDOW pWindow, bool entire, bool border, bool shadow) {
+static void damageWindowForPolicies(PHLWINDOW pWindow, bool entire, bool border, bool shadow, bool glow) {
     if (entire)
         g_pHyprRenderer->damageWindow(pWindow); // damageWindow already damages all decorations
     else {
@@ -86,6 +86,10 @@ static void damageWindowForPolicies(PHLWINDOW pWindow, bool entire, bool border,
         }
         if (shadow) {
             const auto PDECO = pWindow->getDecorationByType(DECORATION_SHADOW);
+            PDECO->damageEntire();
+        }
+        if (glow) {
+            const auto PDECO = pWindow->getDecorationByType(DECORATION_INNER_GLOW);
             PDECO->damageEntire();
         }
     }
@@ -175,6 +179,7 @@ void CHyprAnimationManager::tick() {
         bool         entire            = false;
         bool         border            = false;
         bool         shadow            = false;
+        bool         glow              = false;
         bool         trackWindowMotion = false;
     };
 
@@ -239,6 +244,7 @@ void CHyprAnimationManager::tick() {
             case AVARDAMAGE_ENTIRE: owner->entire = true; break;
             case AVARDAMAGE_BORDER: owner->border = true; break;
             case AVARDAMAGE_SHADOW: owner->shadow = true; break;
+            case AVARDAMAGE_GLOW: owner->glow = true; break;
             default: break;
         }
     }
@@ -254,7 +260,7 @@ void CHyprAnimationManager::tick() {
     // pre-damage each owner once (old state)
     for (const auto& owner : owners) {
         if (owner.window)
-            damageWindowForPolicies(owner.window, owner.entire, owner.border, owner.shadow);
+            damageWindowForPolicies(owner.window, owner.entire, owner.border, owner.shadow, owner.glow);
         else if (owner.workspace)
             preDamageWorkspace(owner.workspace, owner.monitor);
         else if (owner.layer) {
@@ -302,7 +308,7 @@ void CHyprAnimationManager::tick() {
     // post-damage each owner once (new state) + schedule frames
     for (const auto& owner : owners) {
         if (owner.window)
-            damageWindowForPolicies(owner.window, owner.entire, owner.border, owner.shadow);
+            damageWindowForPolicies(owner.window, owner.entire, owner.border, owner.shadow, owner.glow);
         else if (owner.workspace) {
             if (owner.entire) {
                 for (auto const& w : g_pCompositor->m_windows) {
@@ -417,11 +423,7 @@ std::string CHyprAnimationManager::styleValidInConfigVar(const std::string& conf
         }
 
         return "unknown style";
-    } else if (config == "borderangle") {
-        if (style == "loop" || style == "once")
-            return "";
-        return "unknown style";
-    } else if (config == "shadowangle") {
+    } else if (config.ends_with("angle")) {
         if (style == "loop" || style == "once")
             return "";
         return "unknown style";
@@ -444,7 +446,6 @@ std::string CHyprAnimationManager::styleValidInConfigVar(const std::string& conf
 
             return "";
         }
-        return "";
         return "unknown style";
     } else {
         return "animation has no styles";

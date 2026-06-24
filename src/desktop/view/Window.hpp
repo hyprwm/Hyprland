@@ -252,7 +252,10 @@ namespace Desktop::View {
         PHLANIMVAR<float>          m_shadowAngleAnimationProgress;
 
         // animated glow color
-        PHLANIMVAR<CHyprColor> m_realGlowColor;
+        Config::CGradientValueData m_realGlowColor;
+        Config::CGradientValueData m_realGlowColorPrevious;
+        PHLANIMVAR<float>          m_glowFadeAnimationProgress;
+        PHLANIMVAR<float>          m_glowAngleAnimationProgress;
 
         // animated tint
         PHLANIMVAR<float> m_dimPercent;
@@ -369,6 +372,7 @@ namespace Desktop::View {
         void                              updateWindowData(const Config::CWorkspaceRule&);
         void                              onBorderAngleAnimEnd(WP<Hyprutils::Animation::CBaseAnimatedVariable> pav);
         void                              onShadowAngleAnimEnd(WP<Hyprutils::Animation::CBaseAnimatedVariable> pav);
+        void                              onGlowAngleAnimEnd(WP<Hyprutils::Animation::CBaseAnimatedVariable> pav);
         bool                              isInCurvedCorner(double x, double y);
         bool                              hasPopupAt(const Vector2D& pos);
         int                               popupsCount();

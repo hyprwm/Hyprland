@@ -20,6 +20,7 @@
 #include "./gl/GLElementRenderer.hpp"
 #include "./gl/GLFramebuffer.hpp"
 #include "./gl/GLTexture.hpp"
+#include "render/types.hpp"
 
 #include <cstdint>
 #include <hyprutils/memory/SharedPtr.hpp>
@@ -104,6 +105,17 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
 
     if (m_renderMode == RENDER_MODE_FULL_FAKE)
         return;
+
+    if (m_renderMode == RENDER_MODE_TO_OVERLAY) {
+        const auto& plane = PMONITOR->m_output->getOverlayPlane();
+        if (plane.has_value()) {
+            PMONITOR->m_output->state->setPlaneEnabled(plane->index, true);
+            PMONITOR->m_output->state->setPlaneBuffer(plane->index, m_currentBuffer);
+            PMONITOR->m_output->state->setPlaneGeometry(plane->index, {{0,0}, PMONITOR->m_pixelSize});
+            PMONITOR->m_output->state->addPlaneDamage(plane->index, g_pHyprRenderer->m_renderData.damage); 
+        }
+        return;
+    }
 
     if (m_renderMode == RENDER_MODE_NORMAL)
         PMONITOR->m_output->state->setBuffer(m_currentBuffer);

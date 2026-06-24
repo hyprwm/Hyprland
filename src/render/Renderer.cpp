@@ -2,6 +2,7 @@
 #include "../Compositor.hpp"
 #include "../helpers/math/Math.hpp"
 #include <algorithm>
+#include <aquamarine/buffer/Buffer.hpp>
 #include <aquamarine/output/Output.hpp>
 #include <cmath>
 #include <filesystem>
@@ -320,10 +321,12 @@ bool IHyprRenderer::shouldRenderMonitor(PHLMONITOR monitor) {
     static auto PDAMAGETRACKINGMODE = CConfigValue<Config::INTEGER>("debug:damage_tracking");
     bool        hasChanged          = monitor->m_output->needsFrame || monitor->m_damage.hasChanged();
 
-    if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && monitor->m_forceFullFrames == 0)
-        return false;
+    return hasChanged || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || monitor->m_forceFullFrames != 0;
+}
 
-    return true;
+bool IHyprRenderer::shouldUseOverlay(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace) {
+    static auto POVER = CConfigValue<Config::INTEGER>("render:use_overlay_plane");
+    return *POVER;
 }
 
 void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {
@@ -1116,64 +1119,8 @@ void IHyprRenderer::renderSessionLockSurface(WP<SSessionLockSurface> pSurface, P
         &renderdata);
 }
 
-void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time, const Vector2D& translate, const float& scale) {
-    static auto PDIMSPECIAL      = CConfigValue<Config::FLOAT>("decoration:dim_special");
-    static auto PBLURSPECIAL     = CConfigValue<Config::INTEGER>("decoration:blur:special");
-    static auto PBLUR            = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
-    static auto PXPMODE          = CConfigValue<Config::INTEGER>("render:xp_mode");
-    static auto PSESSIONLOCKXRAY = CConfigValue<Config::INTEGER>("misc:session_lock_xray");
-
-    if UNLIKELY (!pMonitor)
-        return;
-
-    if UNLIKELY (g_pSessionLockManager->isSessionLocked() && !*PSESSIONLOCKXRAY) {
-        // We stop to render workspaces as soon as the lockscreen was sent the "locked" or "finished" (aka denied) event.
-        // In addition we make sure to stop rendering workspaces after misc:lockdead_screen_delay has passed.
-        if (g_pSessionLockManager->shallConsiderLockMissing() || g_pSessionLockManager->clientLocked() || g_pSessionLockManager->clientDenied())
-            return;
-    }
-
-    SRenderModifData RENDERMODIFDATA;
-    if (translate != Vector2D{0, 0})
-        RENDERMODIFDATA.modifs.emplace_back(SRenderModifData::eRenderModifType::RMOD_TYPE_TRANSLATE, translate);
-    if UNLIKELY (scale != 1.f)
-        RENDERMODIFDATA.modifs.emplace_back(SRenderModifData::eRenderModifType::RMOD_TYPE_SCALE, scale);
-
-    if UNLIKELY (!RENDERMODIFDATA.modifs.empty())
-        m_renderPass.add(makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{RENDERMODIFDATA}));
-
-    CScopeGuard x([&RENDERMODIFDATA] {
-        if (!RENDERMODIFDATA.modifs.empty()) {
-            g_pHyprRenderer->m_renderPass.add(makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{SRenderModifData{}}));
-        }
-    });
-
-    if UNLIKELY (!pWorkspace) {
-        // allow rendering without a workspace. In this case, just render layers.
-
-        renderBackground(pMonitor);
-
-        for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
-            renderLayer(ls.lock(), pMonitor, time);
-        }
-
-        Event::bus()->m_events.render.stage.emit(RENDER_POST_WALLPAPER);
-
-        for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
-            renderLayer(ls.lock(), pMonitor, time);
-        }
-
-        for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-            renderLayer(ls.lock(), pMonitor, time);
-        }
-
-        for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
-            renderLayer(ls.lock(), pMonitor, time);
-        }
-
-        return;
-    }
-
+void IHyprRenderer::renderBottomClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {
+    static auto PXPMODE = CConfigValue<Config::INTEGER>("render:xp_mode");
     if LIKELY (!*PXPMODE) {
         renderBackground(pMonitor);
 
@@ -1191,11 +1138,19 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     // pre window pass
     if (preBlurQueued(pMonitor))
         m_renderPass.add(makeUnique<CPreBlurElement>());
+}
 
+void IHyprRenderer::renderNormalClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {
     if UNLIKELY /* subjective? */ (pWorkspace->m_hasFullscreenWindow)
         renderWorkspaceWindowsFullscreen(pMonitor, pWorkspace, time);
     else
         renderWorkspaceWindows(pMonitor, pWorkspace, time);
+}
+
+void IHyprRenderer::renderTopClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time, const Vector2D& translate, const float& scale) {
+    static auto PDIMSPECIAL  = CConfigValue<Config::FLOAT>("decoration:dim_special");
+    static auto PBLURSPECIAL = CConfigValue<Config::INTEGER>("decoration:blur:special");
+    static auto PBLUR        = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
 
     // and then special
     if UNLIKELY (pMonitor->m_specialFade->value() != 0.F) {
@@ -1270,6 +1225,69 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     }
 
     renderDragIcon(pMonitor, time);
+}
+
+void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time, const Vector2D& translate, const float& scale,
+                                                 eRenderLayers layers) {
+    static auto PSESSIONLOCKXRAY = CConfigValue<Config::INTEGER>("misc:session_lock_xray");
+
+    if UNLIKELY (!pMonitor)
+        return;
+
+    if UNLIKELY (g_pSessionLockManager->isSessionLocked() && !*PSESSIONLOCKXRAY) {
+        // We stop to render workspaces as soon as the lockscreen was sent the "locked" or "finished" (aka denied) event.
+        // In addition we make sure to stop rendering workspaces after misc:lockdead_screen_delay has passed.
+        if (g_pSessionLockManager->shallConsiderLockMissing() || g_pSessionLockManager->clientLocked() || g_pSessionLockManager->clientDenied())
+            return;
+    }
+
+    SRenderModifData RENDERMODIFDATA;
+    if (translate != Vector2D{0, 0})
+        RENDERMODIFDATA.modifs.emplace_back(SRenderModifData::eRenderModifType::RMOD_TYPE_TRANSLATE, translate);
+    if UNLIKELY (scale != 1.f)
+        RENDERMODIFDATA.modifs.emplace_back(SRenderModifData::eRenderModifType::RMOD_TYPE_SCALE, scale);
+
+    if UNLIKELY (!RENDERMODIFDATA.modifs.empty())
+        m_renderPass.add(makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{RENDERMODIFDATA}));
+
+    CScopeGuard x([&RENDERMODIFDATA] {
+        if (!RENDERMODIFDATA.modifs.empty()) {
+            g_pHyprRenderer->m_renderPass.add(makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{SRenderModifData{}}));
+        }
+    });
+
+    if UNLIKELY (!pWorkspace) {
+        // allow rendering without a workspace. In this case, just render layers.
+
+        renderBackground(pMonitor);
+
+        for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
+            renderLayer(ls.lock(), pMonitor, time);
+        }
+
+        Event::bus()->m_events.render.stage.emit(RENDER_POST_WALLPAPER);
+
+        for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
+            renderLayer(ls.lock(), pMonitor, time);
+        }
+
+        for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+            renderLayer(ls.lock(), pMonitor, time);
+        }
+
+        for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
+            renderLayer(ls.lock(), pMonitor, time);
+        }
+
+        return;
+    }
+
+    if (layers & RL_BOTTOM)
+        renderBottomClientsForWorkspace(pMonitor, pWorkspace, time);
+    if (layers & RL_NORMAL)
+        renderNormalClientsForWorkspace(pMonitor, pWorkspace, time);
+    if (layers & RL_TOP)
+        renderTopClientsForWorkspace(pMonitor, pWorkspace, time, translate, scale);
 }
 
 SP<ITexture> IHyprRenderer::getBackground(PHLMONITOR pMonitor) {
@@ -1742,7 +1760,17 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     int bufferAge = 0;
 
     if (!buffer) {
-        m_currentBuffer = pMonitor->m_output->swapchain->next(&bufferAge);
+        if (m_renderMode == RENDER_MODE_TO_OVERLAY) {
+            const auto& plane = pMonitor->m_output->getOverlayPlane();
+            if (!plane->swapchain) {
+                Log::logger->log(Log::ERR, "Failed to acquire overlay swapchain for {}", pMonitor->m_name);
+                return false;
+            } else
+                Log::logger->log(Log::TRACE, "Got overlay swapchain for {}, plane id={}", pMonitor->m_name, plane->id);
+            pMonitor->m_state.updateSwapchain(plane->swapchain);
+            m_currentBuffer = plane->swapchain->next(&bufferAge);
+        } else
+            m_currentBuffer = pMonitor->m_output->swapchain->next(&bufferAge);
         if (!m_currentBuffer) {
             Log::logger->log(Log::ERR, "Failed to acquire swapchain buffer for {}", pMonitor->m_name);
             return false;
@@ -2113,7 +2141,24 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         m_renderData.useNearestNeighbor = false;
     }
 
-    CRegion damage, finalDamage;
+    CRegion damage, finalDamage, overlayDamage;
+
+    bool    usingOverlay = shouldUseOverlay(pMonitor, pMonitor->m_activeWorkspace);
+    if (usingOverlay) {
+        if (!beginRender(pMonitor, damage, RENDER_MODE_TO_OVERLAY)) {
+            Log::logger->log(Log::ERR, "renderer: couldn't beginRender() to overlay!");
+            usingOverlay = false;
+        }
+        CBox renderBox = {0, 0, sc<int>(pMonitor->m_pixelSize.x), sc<int>(pMonitor->m_pixelSize.y)};
+        renderWorkspace(pMonitor, pMonitor->m_activeWorkspace, NOW, renderBox, RL_OVERLAY);
+        endRender();
+    }
+    else {
+        const auto& plane = pMonitor->m_output->getOverlayPlane();
+        if (plane.has_value())
+            pMonitor->m_output->state->setPlaneEnabled(plane->index, false);
+    }
+
     if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL)) {
         Log::logger->log(Log::ERR, "renderer: couldn't beginRender()!");
         return;
@@ -2149,7 +2194,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
             renderCursor = false;
         } else {
             CBox renderBox = {0, 0, sc<int>(pMonitor->m_pixelSize.x), sc<int>(pMonitor->m_pixelSize.y)};
-            renderWorkspace(pMonitor, pMonitor->m_activeWorkspace, NOW, renderBox);
+            renderWorkspace(pMonitor, pMonitor->m_activeWorkspace, NOW, renderBox, usingOverlay ? RL_PRIMARY : RL_ALL);
 
             renderLockscreen(pMonitor, NOW, renderBox);
 
@@ -2466,7 +2511,7 @@ bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     return ok;
 }
 
-void IHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry) {
+void IHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry, eRenderLayers layers) {
     Vector2D translate = {geometry.x, geometry.y};
     float    scale     = sc<float>(geometry.width) / pMonitor->m_pixelSize.x;
 
@@ -2478,7 +2523,7 @@ void IHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace
         translate = Vector2D{};
     }
 
-    renderAllClientsForWorkspace(pMonitor, pWorkspace, now, translate, scale);
+    renderAllClientsForWorkspace(pMonitor, pWorkspace, now, translate, scale, layers);
 }
 
 void IHyprRenderer::sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now) {

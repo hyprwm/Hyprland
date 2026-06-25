@@ -12,6 +12,7 @@
 #include "../../layout/LayoutManager.hpp"
 #include "../../state/MonitorState.hpp"
 #include "../../state/WorkspaceState.hpp"
+#include "managers/fullscreen/FullscreenController.hpp"
 
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/string/VarList2.hpp>
@@ -159,7 +160,7 @@ static SDispatchResult renameworkspace(const std::string& args) {
 static SDispatchResult fullscreen(const std::string& args) {
     CVarList2             ARGS(args, 2, ' ');
 
-    const eFullscreenMode MODE = ARGS.size() > 0 && ARGS[0] == "1" ? FSMODE_MAXIMIZED : FSMODE_FULLSCREEN;
+    const Fullscreen::eFullscreenMode MODE = ARGS.size() > 0 && ARGS[0] == "1" ? Fullscreen::FSMODE_MAXIMIZED : Fullscreen::FSMODE_FULLSCREEN;
 
     if (ARGS.size() <= 1 || ARGS[1] == "toggle")
         return wrap(Actions::fullscreenWindow(MODE, true));
@@ -170,12 +171,12 @@ static SDispatchResult fullscreen(const std::string& args) {
     if (!PWINDOW)
         return {.success = false, .error = "Window not found"};
 
-    if (ARGS[1] == "set") {
-        if (!PWINDOW->isEffectiveInternalFSMode(MODE))
+    if (ARGS[1] == "set") { // ERSTARR TODO - both dispatch with same arguments - look into this. Need to modify this function to allow for not passing mode in any case
+        if (!g_pfullscreenController->isFullscreen(PWINDOW, MODE))
             return wrap(Actions::fullscreenWindow(MODE, true));
         return {};
     } else if (ARGS[1] == "unset") {
-        if (PWINDOW->isEffectiveInternalFSMode(MODE))
+        if (g_pfullscreenController->isFullscreen(PWINDOW, MODE))
             return wrap(Actions::fullscreenWindow(MODE, true));
         return {};
     }
@@ -198,8 +199,8 @@ static SDispatchResult fullscreenstate(const std::string& args) {
         clientMode = std::stoi(std::string(ARGS[1]));
     } catch (...) { clientMode = -1; }
 
-    eFullscreenMode im = internalMode != -1 ? sc<eFullscreenMode>(internalMode) : PWINDOW->m_fullscreenState.internal;
-    eFullscreenMode cm = clientMode != -1 ? sc<eFullscreenMode>(clientMode) : PWINDOW->m_fullscreenState.client;
+    Fullscreen::eFullscreenMode im = internalMode != -1 ? sc<Fullscreen::eFullscreenMode>(internalMode) : g_pfullscreenController->getFullscreenMode(PWINDOW).internal;
+    Fullscreen::eFullscreenMode cm = clientMode != -1 ? sc<Fullscreen::eFullscreenMode>(clientMode) : g_pfullscreenController->getFullscreenMode(PWINDOW).client;
 
     return wrap(Actions::fullscreenWindow(im, cm, true));
 }
@@ -275,7 +276,7 @@ static SDispatchResult swapwindow(const std::string& args) {
     const auto PLASTWINDOW = Desktop::focusState()->window();
     if (!PLASTWINDOW)
         return {.success = false, .error = "Window to swap with not found"};
-    if (PLASTWINDOW->isFullscreen()) // TODO: If scrolling, maybe make it possible
+    if (g_pfullscreenController->isFullscreen(PLASTWINDOW)) // TODO: If scrolling, maybe make it possible
         return {.success = false, .error = "Can't swap fullscreen window"};
 
     const auto PWINDOWTOCHANGETO = Desktop::viewState()->query().selector(args).runWindow();

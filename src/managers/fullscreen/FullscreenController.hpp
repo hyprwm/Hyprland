@@ -101,7 +101,7 @@ namespace Fullscreen {
         bool            isFullscreen( const PHLWINDOW window, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = std::nullopt);
         /// @warning considers both internal and client FS modes of window
         SFullscreenMode getFullscreenMode(const PHLWINDOW window);
-        bool            isFsManagedByLayoutHandler(const PHLWINDOW window); // TODO: use the handler to judge - delete this todo after implemented
+        bool            layoutManagedFS(const PHLWINDOW window); // TODO: use the handler to judge - delete this todo after implemented
 
         // ERSTARR TODO - if covering is true; need to check if floating algo has FS first, THEN the default handler of a layout handler. ONLY after that check the layout handler.
 
@@ -130,8 +130,7 @@ namespace Fullscreen {
 
         // ERSTARR TODO - MAKE THIS AN ACTUAL DOYXGEN DOC
         // set window's internal, client (either or both) FS modes. Also allows overriding if you want to FS a window using default FS handler or the layout FS handler it might have access to 
-        void setFullscreenMode(const PHLWINDOW window, const std::optional<eFullscreenMode> client = std::nullopt,
-                                     const std::optional<eFullscreenMode> internal = std::nullopt, std::optional<bool> layoutAware = std::nullopt);
+        void setFullscreenMode(const PHLWINDOW window, const std::optional<eFullscreenMode> internal = std::nullopt, const std::optional<eFullscreenMode> client = std::nullopt, std::optional<bool> layoutAware = std::nullopt);
 
         // Misc. Operations
 
@@ -161,6 +160,7 @@ namespace Fullscreen {
         // void setWindowFullscreenState(const PHLWINDOW window, SFullscreenMode state, bool force); // Probably redundant
     };
 
-    inline UP<CFullscreenController> g_pfullscreenController = makeUnique<CFullscreenController>();
-
-}
+    
+  }
+  
+inline UP<Fullscreen::CFullscreenController> g_pfullscreenController = makeUnique<Fullscreen::CFullscreenController>();

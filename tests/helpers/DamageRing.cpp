@@ -52,6 +52,14 @@ TEST(DamageRing, damageReturnsTrueForRegionInsideSize) {
     EXPECT_TRUE(ring.damage(rg));
 }
 
+TEST(DamageRing, damageReturnsTrueForBoxInsideSize) {
+    CDamageRing ring;
+    ring.setSize({200, 200});
+    ring.rotate();
+
+    EXPECT_TRUE(ring.damage(CBox{10, 10, 50, 50}));
+}
+
 TEST(DamageRing, damageReturnsFalseForEmptyRegion) {
     CDamageRing ring;
     ring.setSize({200, 200});
@@ -59,6 +67,18 @@ TEST(DamageRing, damageReturnsFalseForEmptyRegion) {
 
     CRegion empty;
     EXPECT_FALSE(ring.damage(empty));
+}
+
+TEST(DamageRing, damageReturnsFalseForInvalidBox) {
+    CDamageRing ring;
+    ring.setSize({200, 200});
+    ring.rotate();
+
+    EXPECT_FALSE(ring.damage(CBox{0, 0, 0, 50}));
+    EXPECT_FALSE(ring.damage(CBox{0, 0, 50, 0}));
+    EXPECT_FALSE(ring.damage(CBox{0, 0, -10, 50}));
+    EXPECT_FALSE(ring.damage(CBox{0, 0, 50, -10}));
+    EXPECT_FALSE(ring.hasChanged());
 }
 
 TEST(DamageRing, damageReturnsFalseForRegionOutsideSize) {

@@ -2053,7 +2053,7 @@ uint16_t CMonitor::isDSBlocked(bool full) {
     else if (surfaceIsHDR) {
         if (!inHDR())
             reasons |= DS_BLOCK_CM; // block HDR while monitor isn't in HDR mode
-    } else if (needsCM() && !canNoShaderCM(true))
+    } else if (*PNONSHADER != CM_NS_IGNORE && needsCM() && !canNoShaderCM(true))
         reasons |= DS_BLOCK_CM; // block SDR that needs shader CM
 
     return reasons;

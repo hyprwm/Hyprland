@@ -276,6 +276,7 @@ std::unordered_set<std::string> CLuaEventHandler::knownEvents() {
         "monitor.focused",
         "monitor.layout_changed",
         "workspace.active",
+        "workspace.special_active",
         "workspace.created",
         "workspace.removed",
         "workspace.move_to_monitor",

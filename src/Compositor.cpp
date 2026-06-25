@@ -22,6 +22,7 @@
 #include "managers/DonationNagManager.hpp"
 #include "managers/ANRManager.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
+#include "managers/fullscreen/FullscreenController.hpp"
 #include "managers/permissions/DynamicPermissionManager.hpp"
 #include "managers/screenshare/ScreenshareManager.hpp"
 #include "state/FallbackState.hpp"
@@ -807,13 +808,6 @@ void CCompositor::startCompositor() {
     // This blocks until we are done.
     Log::logger->log(Log::DEBUG, "Hyprland is ready, running the event loop!");
     g_pEventLoopManager->enterLoop();
-}
-
-void CCompositor::changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON) {
-    setWindowFullscreenClient(
-        PWINDOW,
-        sc<eFullscreenMode>(ON ? sc<uint8_t>(PWINDOW->m_fullscreenState.client) | sc<uint8_t>(MODE) : (sc<uint8_t>(PWINDOW->m_fullscreenState.client) & sc<uint8_t>(~MODE))),
-        PWINDOW->m_fullscreen_LayoutHandled);
 }
 
 PHLWINDOW CCompositor::getX11Parent(PHLWINDOW pWindow) {

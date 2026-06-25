@@ -4,6 +4,7 @@
 
 #include "../../Compositor.hpp"
 #include "../../managers/cursor/CursorShapeOverrideController.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../../desktop/state/FocusState.hpp"
 #include "../../desktop/state/WindowState.hpp"
 #include "../../desktop/view/Group.hpp"
@@ -39,19 +40,19 @@ bool CDragStateController::draggingTiled() const {
 
 bool CDragStateController::updateDragWindow() {
     const auto DRAGGINGTARGET = m_target.lock();
-    const bool WAS_FULLSCREEN = DRAGGINGTARGET->fullscreenMode() != FSMODE_NONE;
+    const bool WAS_FULLSCREEN = DRAGGINGTARGET->window() ? g_pfullscreenController->isFullscreen(DRAGGINGTARGET->window()) : false;
 
     if (m_dragThresholdReached) {
         if (WAS_FULLSCREEN) {
             Log::logger->log(Log::DEBUG, "Dragging a fullscreen window");
             auto window = DRAGGINGTARGET->window();
-            g_pCompositor->setWindowFullscreenInternal(window, FSMODE_NONE, window->m_fullscreen_LayoutHandled);
+            g_pfullscreenController->setFullscreenMode(window, Fullscreen::FSMODE_NONE);
         }
 
         const auto PWORKSPACE     = DRAGGINGTARGET->workspace();
         const auto DRAGGINGWINDOW = DRAGGINGTARGET->window();
 
-        if (PWORKSPACE->m_hasFullscreenWindow && (!DRAGGINGTARGET->floating() || !DRAGGINGWINDOW->isAllowedOverFullscreen())) {
+        if (g_pfullscreenController->hasFullscreen(PWORKSPACE) && (!DRAGGINGTARGET->floating() || !DRAGGINGWINDOW->isAllowedOverFullscreen())) {
             Log::logger->log(Log::DEBUG, "Rejecting drag on a fullscreen workspace. (window under fullscreen)");
             CKeybindManager::changeMouseBindMode(MBIND_INVALID);
             return true;

@@ -100,7 +100,6 @@ class CCompositor {
     void                   swapActiveWorkspaces(PHLMONITOR, PHLMONITOR);
     PHLMONITOR             getMonitorFromString(const std::string&);
     bool                   workspaceIDOutOfBounds(const WORKSPACEID&);
-    void                   changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON);
     PHLWINDOW              getX11Parent(PHLWINDOW);
     void                   addToFadingOutSafe(PHLLS);
     void                   removeFromFadingOutSafe(PHLLS);

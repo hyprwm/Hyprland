@@ -12,6 +12,7 @@
 #include "../../render/Renderer.hpp"
 #include "../../event/EventBus.hpp"
 #include "../../state/MonitorState.hpp"
+#include "managers/fullscreen/FullscreenController.hpp"
 
 #include <hyprgraphics/color/Color.hpp>
 #include <hyprutils/animation/AnimatedVariable.hpp>
@@ -329,7 +330,7 @@ void CHyprAnimationManager::tick() {
             }
         }
 
-        if (!owner.monitor->inFullscreenMode())
+        if (!g_pfullscreenController->hasFullscreen(owner.monitor))
             owner.monitor->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_ANIMATION);
     }
 

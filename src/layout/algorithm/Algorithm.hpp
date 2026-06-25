@@ -43,9 +43,6 @@ namespace Layout {
 
         void                          setTargetGeom(const CBox& box, SP<ITarget> target); // only for float
 
-        // ERSTARR TODO - THIS IS TO BE REMOVED
-        SP<ITarget>                   layoutFullscreenTarget() const;
-
         void                          updateFloatingAlgo(UP<IFloatingAlgorithm>&& algo);
         void                          updateTiledAlgo(UP<ITiledAlgorithm>&& algo);
 

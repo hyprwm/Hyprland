@@ -10,6 +10,7 @@
 #include "../../desktop/state/FocusState.hpp"
 #include "../../Compositor.hpp"
 #include "managers/EventManager.hpp"
+#include "managers/fullscreen/FullscreenController.hpp"
 
 #include <algorithm>
 
@@ -211,23 +212,24 @@ void CGroup::moveCurrent(bool next) {
 }
 
 void CGroup::setCurrent(size_t idx) {
-    if (idx == m_current)
+    if (idx == m_current || !m_target->window())
         return;
 
-    const auto FS_STATE  = m_target->fullscreenMode();
+    const bool IS_FULLSCREEN = g_pfullscreenController->isFullscreen(m_target->window());
+    const auto FS_MODE_INTERNAL  = g_pfullscreenController->getFullscreenModes(m_target->window()).internal;
     const auto WASFOCUS  = Desktop::focusState()->window() == current();
     auto       oldWindow = m_windows.at(m_current).lock();
 
-    if (FS_STATE != FSMODE_NONE)
-        g_pCompositor->setWindowFullscreenInternal(oldWindow, FSMODE_NONE, oldWindow->m_fullscreen_LayoutHandled);
+    if (IS_FULLSCREEN)
+        g_pfullscreenController->setFullscreenMode(oldWindow, Fullscreen::FSMODE_NONE);
 
     m_current = std::clamp(idx, sc<size_t>(0), m_windows.size() - 1);
     updateWindowVisibility();
 
     auto newWindow = m_windows.at(m_current).lock();
 
-    if (FS_STATE != FSMODE_NONE) {
-        g_pCompositor->setWindowFullscreenInternal(newWindow, FS_STATE, oldWindow->m_fullscreen_LayoutHandled);
+    if (IS_FULLSCREEN) {
+        g_pfullscreenController->setFullscreenMode(newWindow, FS_MODE_INTERNAL);
         newWindow->m_target->warpPositionSize();
         oldWindow->m_target->setPositionGlobal(newWindow->m_target->position()); // TODO: this is a hack and sucks
     }

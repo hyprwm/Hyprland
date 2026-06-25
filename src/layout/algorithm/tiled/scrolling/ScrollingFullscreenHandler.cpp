@@ -16,7 +16,7 @@ using namespace Fullscreen;
 using namespace Fullscreen::ScrollingFullscreenHandler;
 
 // ERSTARR TODO - this should work. need to rebuild to see if LSP gets the correct inheritence chain.
-CScrollingFullscreenHandler::CScrollingFullscreenHandler(WP<Layout::Tiled::CScrollingAlgorithm> algorithm) :
+CScrollingFullscreenHandler::CScrollingFullscreenHandler(Layout::Tiled::CScrollingAlgorithm* const algorithm) :
     IFullscreenHandler(algorithm), m_scrollingAlgorithm(algorithm) {
     if (!m_scrollingAlgorithm) {
         Log::logger->log(Log::CRIT, "CScrollingFullscreenHandler failed during construction: Owning layout algorithm does not exist!");
@@ -285,15 +285,6 @@ void CScrollingFullscreenHandler::setTargetFullscreenModeClient(const SP<Layout:
     }
 
     syncFullscreenTargets();
-}
-
-void CScrollingFullscreenHandler::moveFullscreenTargetToHandler(const SP<Layout::ITarget> target, const std::optional<bool> covering) {
-
-    // On hold for now. To standardise might just say "unfullscreen and refullscreen on target if covering" and let calls outside of the FS framework implement this
-}
-
-void CScrollingFullscreenHandler::moveFullscreenTargetOutOfHandler(const SP<Layout::ITarget> target) {
-    // On hold for now. To standardise might just say "unfullscreen and refullscreen on target if covering" and let calls outside of the FS framework implement this
 }
 
 

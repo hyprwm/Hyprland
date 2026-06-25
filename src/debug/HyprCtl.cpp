@@ -1,4 +1,5 @@
 #include "HyprCtl.hpp"
+#include "managers/fullscreen/FullscreenController.hpp"
 #include "output/Monitor.hpp"
 
 #include <algorithm>
@@ -423,7 +424,7 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
             sc<int>(w->m_realSize->goal().y), w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID, escapeJSONStrings(!w->m_workspace ? "" : w->m_workspace->m_name),
             (sc<int>(w->m_isFloating) == 1 ? "true" : "false"), w->monitorID(), escapeJSONStrings(w->m_class), escapeJSONStrings(w->m_title), escapeJSONStrings(w->m_initialClass),
             escapeJSONStrings(w->m_initialTitle), w->getPID(), (sc<int>(w->m_isX11) == 1 ? "true" : "false"), (w->m_pinned ? "true" : "false"),
-            sc<uint8_t>(w->m_fullscreenState.internal), sc<uint8_t>(w->m_fullscreenState.client), (w->m_allowedOverFullscreen ? "true" : "false"), getGroupedData(w, format),
+            sc<uint8_t>(g_pfullscreenController->getFullscreenModes(w).internal), sc<uint8_t>(g_pfullscreenController->getFullscreenModes(w).client), (w->m_allowedOverFullscreen ? "true" : "false"), getGroupedData(w, format),
             getTagsData(w, format), rc<uintptr_t>(w->m_swallowee.get()), getFocusHistoryID(w), (g_pInputManager->isWindowInhibiting(w, false) ? "true" : "false"),
             escapeJSONStrings(w->xdgTag().value_or("")), escapeJSONStrings(w->xdgDescription().value_or("")), escapeJSONStrings(NContentType::toString(w->getContentType())),
             w->m_stableID);
@@ -439,8 +440,8 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
             rc<uintptr_t>(w.get()), w->m_title, sc<int>(w->m_isMapped), sc<int>(w->isHidden()), sc<int>(w->visible()), sc<int>(w->acceptsInput()),
             sc<int>(w->m_realPosition->goal().x), sc<int>(w->m_realPosition->goal().y), sc<int>(w->m_realSize->goal().x), sc<int>(w->m_realSize->goal().y),
             w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID, (!w->m_workspace ? "" : w->m_workspace->m_name), sc<int>(w->m_isFloating), w->monitorID(), w->m_class,
-            w->m_title, w->m_initialClass, w->m_initialTitle, w->getPID(), sc<int>(w->m_isX11), sc<int>(w->m_pinned), sc<uint8_t>(w->m_fullscreenState.internal),
-            sc<uint8_t>(w->m_fullscreenState.client), sc<int>(w->m_allowedOverFullscreen), getGroupedData(w, format), getTagsData(w, format), rc<uintptr_t>(w->m_swallowee.get()),
+            w->m_title, w->m_initialClass, w->m_initialTitle, w->getPID(), sc<int>(w->m_isX11), sc<int>(w->m_pinned), sc<uint8_t>(g_pfullscreenController->getFullscreenModes(w).internal),
+            sc<uint8_t>(g_pfullscreenController->getFullscreenModes(w).client), sc<int>(w->m_allowedOverFullscreen), getGroupedData(w, format), getTagsData(w, format), rc<uintptr_t>(w->m_swallowee.get()),
             getFocusHistoryID(w), sc<int>(g_pInputManager->isWindowInhibiting(w, false)), w->xdgTag().value_or(""), w->xdgDescription().value_or(""),
             NContentType::toString(w->getContentType()), w->m_stableID);
     }
@@ -499,13 +500,13 @@ std::string CHyprCtl::getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat form
     "tiledLayout": "{}"
 }})#",
                            w->m_id, escapeJSONStrings(w->m_name), escapeJSONStrings(PMONITOR ? PMONITOR->m_name : "?"),
-                           escapeJSONStrings(PMONITOR ? std::to_string(PMONITOR->m_id) : "null"), w->getWindowCount(), w->m_hasFullscreenWindow ? "true" : "false",
+                           escapeJSONStrings(PMONITOR ? std::to_string(PMONITOR->m_id) : "null"), w->getWindowCount(), g_pfullscreenController->hasFullscreen(w) ? "true" : "false",
                            rc<uintptr_t>(PLASTW.get()), PLASTW ? escapeJSONStrings(PLASTW->m_title) : "", w->isPersistent() ? "true" : "false", escapeJSONStrings(layoutName));
     } else {
         return std::format("workspace ID {} ({}) on monitor {}:\n\tmonitorID: {}\n\twindows: {}\n\thasfullscreen: {}\n\tlastwindow: 0x{:x}\n\tlastwindowtitle: {}\n\tispersistent: "
                            "{}\n\ttiledLayout: {}\n\n",
                            w->m_id, w->m_name, PMONITOR ? PMONITOR->m_name : "?", PMONITOR ? std::to_string(PMONITOR->m_id) : "null", w->getWindowCount(),
-                           sc<int>(w->m_hasFullscreenWindow), rc<uintptr_t>(PLASTW.get()), PLASTW ? PLASTW->m_title : "", sc<int>(w->isPersistent()), layoutName);
+                           sc<int>(g_pfullscreenController->hasFullscreen(w)), rc<uintptr_t>(PLASTW.get()), PLASTW ? PLASTW->m_title : "", sc<int>(w->isPersistent()), layoutName);
     }
 }
 

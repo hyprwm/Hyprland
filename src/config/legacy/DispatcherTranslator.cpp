@@ -199,8 +199,8 @@ static SDispatchResult fullscreenstate(const std::string& args) {
         clientMode = std::stoi(std::string(ARGS[1]));
     } catch (...) { clientMode = -1; }
 
-    Fullscreen::eFullscreenMode im = internalMode != -1 ? sc<Fullscreen::eFullscreenMode>(internalMode) : g_pfullscreenController->getFullscreenMode(PWINDOW).internal;
-    Fullscreen::eFullscreenMode cm = clientMode != -1 ? sc<Fullscreen::eFullscreenMode>(clientMode) : g_pfullscreenController->getFullscreenMode(PWINDOW).client;
+    Fullscreen::eFullscreenMode im = internalMode != -1 ? sc<Fullscreen::eFullscreenMode>(internalMode) : g_pfullscreenController->getFullscreenModes(PWINDOW).internal;
+    Fullscreen::eFullscreenMode cm = clientMode != -1 ? sc<Fullscreen::eFullscreenMode>(clientMode) : g_pfullscreenController->getFullscreenModes(PWINDOW).client;
 
     return wrap(Actions::fullscreenWindow(im, cm, true));
 }

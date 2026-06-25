@@ -134,13 +134,6 @@ void CAlgorithm::moveTarget(const Vector2D& Δ, SP<ITarget> target) {
         m_floating->moveTarget(Δ, target);
 }
 
-SP<ITarget> CAlgorithm::layoutFullscreenTarget() const {
-    if (const auto TARGET = m_tiled->layoutFullscreenTarget(); TARGET)
-        return TARGET;
-
-    return m_floating->layoutFullscreenTarget();
-}
-
 void CAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
     auto swapFirst = [&a, &b](std::vector<WP<ITarget>>& targets) -> bool {
         auto ia = std::ranges::find(targets, a);

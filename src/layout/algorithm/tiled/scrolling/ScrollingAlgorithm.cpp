@@ -22,6 +22,7 @@
 #include "layout/algorithm/FloatingAlgorithm.hpp"
 #include "layout/algorithm/tiled/scrolling/ScrollingFullscreenHandler.hpp"
 #include "layout/target/Target.hpp"
+#include "managers/fullscreen/FullscreenController.hpp"
 
 #include <algorithm>
 #include <hyprutils/memory/UniquePtr.hpp>
@@ -488,7 +489,7 @@ void SScrollingData::recalculate(bool forceInstant) {
 
     // ERSTARR - THIS MIGHT BE NECESSARY OR REDUNDANT DEPENDING ON IF SSCROLLINGDATA:RECALC IS CALLED WHEN DEFAULT HANDLED FSING A WINDOW!
     // If the fullscreen window is default handled, return early.
-    if (const auto FULLSCREEN_WINDOW = Fullscreen::g_pfullscreenController->getFullscreenWindow(WORKSPACE); FULLSCREEN_WINDOW && !Fullscreen::g_pfullscreenController->isFsManagedByLayoutHandler(FULLSCREEN_WINDOW)) {
+    if (const auto FULLSCREEN_WINDOW = g_pfullscreenController->getFullscreenWindow(WORKSPACE); FULLSCREEN_WINDOW && !g_pfullscreenController->layoutManagedFS(FULLSCREEN_WINDOW)) {
         algorithm->m_scrollingFullscreenHandler->setNoMembersAboveFullscreen();
         return;
     }
@@ -508,7 +509,7 @@ void SScrollingData::recalculate(bool forceInstant) {
             const auto TDATA            = COL->targetDatas[j];
             const auto TARGET           = TDATA->target.lock();
             const auto TARGET_WORKSPACE = TARGET ? TARGET->workspace() : nullptr;
-            const auto TARGET_FS_MODE   = algorithm->m_scrollingFullscreenHandler->getFullscreenMode(TDATA->target.lock()).internal;
+            const auto TARGET_FS_MODE   = algorithm->m_scrollingFullscreenHandler->getFullscreenModes(TDATA->target.lock()).internal;
 
             // Target is FS
             // For a column to have a FS target, there must be only one target in column.
@@ -784,11 +785,6 @@ void CScrollingAlgorithm::newTarget(SP<ITarget> target) {
         }
     }
 
-    // ERSTARR TODO - ADJUST THIS! IT SHOULD BE FINE TO LEAVE THIS CODE HERE BUT USE HANDLER METHODS
-    // If the new was fullscreened using a different fullscreen handler then scrolling, reset its fullscreen state and fullscreen it using scrolling
-    if (target->fullscreenMode() != FSMODE_NONE && target->window() && target->window()->m_fullscreenHandler != Desktop::View::FULLSCREEN_HANDLER_SCROLLING)
-        g_pCompositor->setWindowFullscreenInternal(target->window(), target->fullscreenMode(), true);
-
     m_scrollingData->recalculate();
 }
 
@@ -803,8 +799,12 @@ void CScrollingAlgorithm::removeTarget(SP<ITarget> target) {
         return;
 
     // ERSTARR TODO - ADJUST THIS! IT SHOULD BE FINE TO LEAVE THIS CODE HERE BUT USE HANDLER METHODS
-    // remove the FS state of a tiled window when it is being floated
-    g_pCompositor->setWindowFullscreenInternal(target->window(), FSMODE_NONE);
+    // remove the FS state of a tiled window when it is being removed/floated -- This exception needs to exist for the float case.
+    if (m_scrollingFullscreenHandler->isFullscreen(target)) {
+        // ERSTARR TODO - mayhaps also set client to none?
+        g_pfullscreenController->setFullscreenMode(target->window(), Fullscreen::FSMODE_NONE);
+        // ERSTARR TODO - see what happens in upstream dwindle. If i float a FS, does it remain FS? if so, reFS using default behaviour here
+    }
 
     if (!m_scrollingData->next(DATA->column.lock()) && DATA->column->targetDatas.size() <= 1) {
         // move the view if this is the last column
@@ -2018,5 +2018,3 @@ float CScrollingAlgorithm::defaultColumnWidth() {
     static const auto PCOLWIDTH = CConfigValue<Config::FLOAT>("scrolling:column_width");
     return std::clamp(*PCOLWIDTH, MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH);
 }
-
-// void CScrollingAlgorithm::SScrollingFullscreenWindowHidingState::saveCurrentFsAndAllHiddenFloatingWindows(PHLWINDOW fullscreenWindow) {}

@@ -14,6 +14,7 @@
 #include "../../render/pass/ClearPassElement.hpp"
 #include "../../render/pass/RectPassElement.hpp"
 #include "helpers/cm/ColorManagement.hpp"
+#include "managers/fullscreen/FullscreenController.hpp"
 #include <hyprutils/math/Region.hpp>
 #include <hyprgraphics/egl/Egl.hpp>
 
@@ -282,7 +283,7 @@ void CScreenshareFrame::renderMonitor() {
                                           .translate(-m_session->m_captureBox.pos());
 
         // seems like rounding doesn't play well with how we manipulate the box position to render regions causing the window to leak through
-        const auto dontRound     = m_session->m_captureBox.pos() != Vector2D() || w->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
+        const auto dontRound     = m_session->m_captureBox.pos() != Vector2D() || g_pfullscreenController->getFullscreenModes(w).internal == Fullscreen::FSMODE_FULLSCREEN;
         const auto rounding      = dontRound ? 0 : w->rounding() * PMONITOR->m_scale;
         const auto roundingPower = dontRound ? 2.0f : w->roundingPower();
 

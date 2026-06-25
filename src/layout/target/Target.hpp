@@ -80,6 +80,5 @@ namespace Layout {
         bool        m_ghostSpace              = false; // ghost space means a target belongs to a space, but isn't sent to the layout
         Vector2D    m_pseudoSize              = {1280, 720};
         bool        m_wasTiling               = false;
-        bool        m_layoutManagedFullscreen = false;
     };
 };

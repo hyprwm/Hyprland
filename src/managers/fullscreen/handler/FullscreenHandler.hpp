@@ -28,7 +28,7 @@ namespace Fullscreen {
         // If layouts decide to have custom targets that may be able to be FSed, they must make another list, as well as helper functions for them. Controller will not be handling set/get for those; all handling must be done by layout's FS Handler
 
       public:
-        IFullscreenHandler(WP<Layout::IModeAlgorithm> algorithm);
+        IFullscreenHandler(Layout::IModeAlgorithm* const algorithm);
         virtual ~IFullscreenHandler() = default;
 
         IFullscreenHandler()                                     = delete;
@@ -57,16 +57,6 @@ namespace Fullscreen {
         virtual void setTargetFullscreenModeInternal(const SP<Layout::ITarget> target, const eFullscreenMode mode);
         virtual void setTargetFullscreenModeClient(const SP<Layout::ITarget> target, const eFullscreenMode mode);
 
-        // Target Movement Between FS Handlers
-
-        // the Target passed is guaranteed to be a FS Target
-        // Must rerender by the end
-        virtual void moveFullscreenTargetToHandler(const SP<Layout::ITarget> target, const std::optional<bool> covering = true);
-
-        // Must properly remove FS properties and state of the target in preparation for move to a new workspace with potentially a new handler.
-        // Simply removing the target from various lists should suffice. Re-render and re-decoration will be handled by the receiving handler.
-        virtual void moveFullscreenTargetOutOfHandler(const SP<Layout::ITarget> target);
-
         // Optional
 
         // FS target hiding behaviour
@@ -85,7 +75,7 @@ namespace Fullscreen {
 
       protected:
         // Handler will never outlive its algo because algo owns its handler with UP<>
-        const WP<Layout::IModeAlgorithm> m_algorithm;
+        Layout::IModeAlgorithm* const m_algorithm;
 
         SP<Layout::CSpace>            getSpace() const;
 

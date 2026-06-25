@@ -45,7 +45,7 @@ namespace Fullscreen::ScrollingFullscreenHandler {
       */
 
       public:
-        CScrollingFullscreenHandler(WP<Layout::Tiled::CScrollingAlgorithm> algorithm);
+        CScrollingFullscreenHandler(Layout::Tiled::CScrollingAlgorithm* const algorithm);
         virtual ~CScrollingFullscreenHandler();
 
         CScrollingFullscreenHandler()                                              = delete;
@@ -70,16 +70,6 @@ namespace Fullscreen::ScrollingFullscreenHandler {
 
         virtual void setTargetFullscreenModeInternal(const SP<Layout::ITarget> target, const eFullscreenMode mode);
         virtual void setTargetFullscreenModeClient(const SP<Layout::ITarget> target, const eFullscreenMode mode);
-
-        // Target Movement Between FS Handlers
-
-        // the Target passed is guaranteed to be a FS Target
-        // Must rerender by the end
-        virtual void moveFullscreenTargetToHandler(const SP<Layout::ITarget> target, const std::optional<bool> covering = true);
-
-        // Must properly remove FS properties and state of the Target in preparation for move to a new workspace with potentially a new handler.
-        // Simply removing the Target from various lists should suffice. Re-render and re-decoration will be handled by the receiving handler.
-        virtual void moveFullscreenTargetOutOfHandler(const SP<Layout::ITarget> target);
 
         // Optional
 
@@ -115,7 +105,7 @@ namespace Fullscreen::ScrollingFullscreenHandler {
 
             } m_fullscreenWindowHidingState;
 
-            const WP<Layout::Tiled::CScrollingAlgorithm> m_scrollingAlgorithm;
+            Layout::Tiled::CScrollingAlgorithm* const m_scrollingAlgorithm;
 
             /// Tracks FSed Targets (internal OR client)
             std::unordered_map<WP<Layout::ITarget>, SFullscreenScrollState> m_fsTargets;

@@ -8,6 +8,7 @@
 #include "../../../protocols/types/ContentType.hpp"
 #include "../../../config/shared/parserUtils/ParserUtils.hpp"
 #include "desktop/rule/windowRule/WindowRuleEffectContainer.hpp"
+#include "managers/fullscreen/FullscreenController.hpp"
 
 #include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/String.hpp>
@@ -412,7 +413,7 @@ bool CWindowRule::matches(PHLWINDOW w, bool allowEnvLookup) {
                     return false;
                 break;
             case RULE_PROP_FULLSCREEN:
-                if (!engine->match(w->m_fullscreenState.internal != 0))
+                if (!engine->match(g_pfullscreenController->isFullscreen(w)))
                     return false;
                 break;
             case RULE_PROP_PINNED:
@@ -432,11 +433,11 @@ bool CWindowRule::matches(PHLWINDOW w, bool allowEnvLookup) {
                     return false;
                 break;
             case RULE_PROP_FULLSCREENSTATE_INTERNAL:
-                if (!engine->match(w->m_fullscreenState.internal))
+                if (!engine->match(g_pfullscreenController->getFullscreenModes(w).internal))
                     return false;
                 break;
             case RULE_PROP_FULLSCREENSTATE_CLIENT:
-                if (!engine->match(w->m_fullscreenState.client))
+                if (!engine->match(g_pfullscreenController->getFullscreenModes(w).client))
                     return false;
                 break;
             case RULE_PROP_ON_WORKSPACE:

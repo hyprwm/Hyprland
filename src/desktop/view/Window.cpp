@@ -1395,13 +1395,13 @@ void CWindow::onUpdateState() {
 
         bool fs = requestsFS.value();
         if (m_isMapped) {
-            // If it wants FS, give it FSMODE_FULLSCREEN. If not, give it its old mode except if it was FSMODE_FULLSCREEN in which case unFS it
-            auto targetClientFsMode = g_pfullscreenController->getFullscreenModes(m_self.lock()).client;
             if (requestsFS.value())
-                targetClientFsMode = Fullscreen::FSMODE_FULLSCREEN;
-            else
-                targetClientFsMode = targetClientFsMode == Fullscreen::FSMODE_FULLSCREEN ? Fullscreen::FSMODE_NONE : targetClientFsMode;
-            g_pfullscreenController->setFullscreenMode(m_self.lock(), std::nullopt, targetClientFsMode);
+                g_pfullscreenController->setFullscreenMode(m_self.lock(), std::nullopt, Fullscreen::FSMODE_FULLSCREEN);
+            else {
+                // If window's fullscreen, un-fullscreen it. if it's not FS, let it keep its current FS mode
+                if (g_pfullscreenController->getFullscreenModes(m_self.lock()).client == Fullscreen::FSMODE_FULLSCREEN)
+                    g_pfullscreenController->setFullscreenMode(m_self.lock(), std::nullopt, Fullscreen::FSMODE_NONE);
+            }
         }
 
         if (!m_isMapped)
@@ -1410,22 +1410,18 @@ void CWindow::onUpdateState() {
 
     if (requestsMX.has_value() && !(m_suppressedEvents & SUPPRESS_MAXIMIZE)) {
         if (m_isMapped) {
-            auto window = m_self.lock();
+            auto       window    = m_self.lock();
 
             if (window->m_suppressNextMaximize) {
                 window->m_suppressNextMaximize = false;
                 return;
             }
 
-            auto clientFsMode = g_pfullscreenController->getFullscreenModes(window).client;
-
-            if (clientFsMode == Fullscreen::FSMODE_MAXIMIZED)
-                g_pfullscreenController->setFullscreenMode(window,std::nullopt, Fullscreen::FSMODE_MAXIMIZED);
-            else {
-                // if it is maximised, unmaximise it (FSMODE_NOONE). if not, let it keep its old val
-                clientFsMode = clientFsMode == Fullscreen::FSMODE_MAXIMIZED ? Fullscreen::FSMODE_NONE : clientFsMode;
-                g_pfullscreenController->setFullscreenMode(window, std::nullopt, clientFsMode);
-            }
+            const auto CLIENT_STATE = g_pfullscreenController->getFullscreenModes(window).client;
+            if (CLIENT_STATE == Fullscreen::FSMODE_MAXIMIZED)
+                g_pfullscreenController->setFullscreenMode(window, std::nullopt, Fullscreen::FSMODE_NONE);
+            else if (CLIENT_STATE == Fullscreen::FSMODE_NONE)
+                g_pfullscreenController->setFullscreenMode(window, std::nullopt, Fullscreen::FSMODE_MAXIMIZED);
         }
     }
 }

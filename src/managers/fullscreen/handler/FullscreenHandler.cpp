@@ -14,7 +14,7 @@
 
 using namespace Fullscreen;
 
-IFullscreenHandler::IFullscreenHandler(WP<Layout::IModeAlgorithm> algorithm) : m_algorithm(algorithm) {
+IFullscreenHandler::IFullscreenHandler(Layout::IModeAlgorithm* const algorithm) : m_algorithm(algorithm) {
     if (!m_algorithm) {
         Log::logger->log(Log::CRIT, "IFullscreenHandler failed during construction: Owning layout algorithm does not exist!");
         throw std::runtime_error("CScrollingFullscreenHandler: bad algorithm type");
@@ -122,15 +122,6 @@ void IFullscreenHandler::setTargetFullscreenModeClient(const SP<Layout::ITarget>
     }
 
     syncFullscreenTargets();
-}
-
-void IFullscreenHandler::moveFullscreenTargetToHandler(const SP<Layout::ITarget> target, const std::optional<bool> covering) {
-    // on hold for now.  maybe unFSing a window in one and FSing it again on the other workspace is the better choice
-}
-
-void IFullscreenHandler::moveFullscreenTargetOutOfHandler(const SP<Layout::ITarget> target) {
-
-    // on hold for now. maybe unFSing a window in one and FSing it again on the other workspace is the better choice
 }
 
 void IFullscreenHandler::setNoMembersAboveFullscreen() {

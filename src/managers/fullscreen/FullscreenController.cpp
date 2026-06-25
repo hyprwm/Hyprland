@@ -55,6 +55,8 @@ SFullscreenMode CFullscreenController::getFullscreenModes(const PHLWINDOW window
         
     const auto FS_HANDLER = getFSHandler(window);
 
+    if (!FS_HANDLER)
+        return SFullscreenMode{};
 
     return FS_HANDLER->getFullscreenModes(window->m_target);
 
@@ -91,7 +93,7 @@ bool CFullscreenController::layoutManagedFS(const PHLWINDOW window) {
 // Workspace
 
 bool CFullscreenController::hasFullscreen(const PHLWORKSPACE workspace, const std::optional<bool> covering) {
-    if(!workspace || !workspace->m_space || workspace->m_space->algorithm())
+    if(!workspace || !workspace->m_space || !workspace->m_space->algorithm() || !workspace->m_space->algorithm()->tiledAlgo() || !workspace->m_space->algorithm()->floatingAlgo())
         return false;
 
     // ASSUMPTION: Floating FS window layers ontop of Tiled Default Handled FS window which layers ontop of Tiled Layout Handled FS window
@@ -115,7 +117,7 @@ bool CFullscreenController::hasFullscreen(const PHLWORKSPACE workspace, const st
 
 
 PHLWINDOW CFullscreenController::getFullscreenWindow(const PHLWORKSPACE workspace, const std::optional<bool> covering) {
-    if(!workspace || !workspace->m_space || workspace->m_space->algorithm())
+    if(!workspace || !workspace->m_space || !workspace->m_space->algorithm())
         return nullptr;
 
     // ASSUMPTION: Floating FS window layers ontop of Tiled Default Handled FS window which layers ontop of Tiled Layout Handled FS window
@@ -139,7 +141,7 @@ PHLWINDOW CFullscreenController::getFullscreenWindow(const PHLWORKSPACE workspac
 
 }
 SFullscreenMode CFullscreenController::getFullscreenModes(const PHLWORKSPACE workspace, const std::optional<bool> covering) {
-    if(!workspace || !workspace->m_space || workspace->m_space->algorithm())
+    if(!workspace || !workspace->m_space || !workspace->m_space->algorithm())
         return SFullscreenMode{};
 
     // ASSUMPTION: Floating FS window layers ontop of Tiled Default Handled FS window which layers ontop of Tiled Layout Handled FS window
@@ -235,7 +237,7 @@ SFullscreenMode CFullscreenController::getFullscreenModes(const PHLMONITOR monit
 // Handler
 
 eFullscreenHandler CFullscreenController::getFullscreenHandlerName(const PHLWINDOW window) {
-    if(!window || !window->m_workspace || !window->m_workspace->m_space || window->m_workspace->m_space->algorithm())
+    if(!window || !window->m_workspace || !window->m_workspace->m_space || !window->m_workspace->m_space->algorithm())
         return FULLSCREEN_HANDLER_NONE; // ERSTARR TODO - LOG AN ERROR HERE TOO. HANDLER_NONE IS MORE THE DEFAULT 'NO-VALUE'
 
 
@@ -452,7 +454,7 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
 
 
 void CFullscreenController::setWindowFullscreenModeClient(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware) { // ERSTARR TODO - FORCE SHOULD BE REDUNADNT HERE
-    if (!window || !window->m_workspace || window->m_workspace->m_space || !window->m_workspace->m_space->algorithm())
+    if (!window || !window->m_workspace || !window->m_workspace->m_space || !window->m_workspace->m_space->algorithm())
         return;
 
     const auto FS_HANDLER = getFSHandler(window,layoutAware);
@@ -464,15 +466,10 @@ void CFullscreenController::setWindowFullscreenModeClient(const PHLWINDOW window
 }
 
 
-// // ERSTARR TODO - BETTER NAME!
-// void CFullscreenController::setWindowFullscreenState(const PHLWINDOW window, const SFullscreenMode state, const bool layoutAware, const bool force) {
-// }
-
 
 
 SP<IFullscreenHandler> CFullscreenController::getFSHandler(const PHLWINDOW window, std::optional<bool> layoutHandled) {
-    if (!window || !window->m_workspace || !window->m_workspace->m_space || !window->m_workspace->m_space->algorithm() ||
-        (window->m_isFloating ? !window->m_workspace->m_space->algorithm()->floatingAlgo() : !window->m_workspace->m_space->algorithm()->tiledAlgo()))
+    if (!window || !window->m_workspace || !window->m_workspace->m_space || !window->m_workspace->m_space->algorithm() || !window->m_workspace->m_space->algorithm()->floatingAlgo() || !window->m_workspace->m_space->algorithm()->tiledAlgo())
         return nullptr;
     
 
@@ -490,9 +487,3 @@ SP<IFullscreenHandler> CFullscreenController::getFSHandler(const PHLWINDOW windo
                                                     window->m_workspace->m_space->algorithm()->tiledAlgo()->IModeAlgorithm::getFSHandler()))
         .lock();
 }
-
-// Misc. Operations
-
-// void CFullscreenController::moveFullscreenWindowToWorkspace(const PHLWINDOW window, const PHLWORKSPACE workspace) {
-
-// }

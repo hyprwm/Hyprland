@@ -68,6 +68,7 @@ static bool windowMatchesQuery(const PHLWINDOW& w, const SWindowQuery& query) {
 }
 
 static void pushWindowsMatchingQuery(lua_State* L, const SWindowQuery& query) {
+    // TODO should use windowMatchesQuery(w, query).getwindows()
     lua_newtable(L);
 
     int i = 1;

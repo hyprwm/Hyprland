@@ -134,8 +134,6 @@ namespace Fullscreen {
 
         // Misc. Operations
 
-        // Probably redundant
-        // void moveFullscreenWindowToWorkspace(const PHLWINDOW window, const PHLWORKSPACE workspace);
 
       private:
 
@@ -146,8 +144,6 @@ namespace Fullscreen {
         // FS Mode Setter Helpers
         void setWindowFullscreenModeInternal(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware, const bool force);
         void setWindowFullscreenModeClient(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware);
-        // void setWindowFullscreenState(const PHLWINDOW window, const SFullscreenMode mode, const bool layoutAware, const bool force); // ERSTARR TODO - THIS SHOULD BE MADE REDUNDANT HOPEFULLY --
-                                                                                                                                     // OR KEEP IT, AND MAKE INTERNAL SETTER JUST THAT
 
 
         // FS Handler getters
@@ -157,7 +153,6 @@ namespace Fullscreen {
 
 
 
-        // void setWindowFullscreenState(const PHLWINDOW window, SFullscreenMode state, bool force); // Probably redundant
     };
 
     

@@ -15,7 +15,6 @@
 #include <algorithm>
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <ranges>
-#include <cstring>
 
 using namespace Hyprutils::Utils;
 
@@ -149,7 +148,7 @@ void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {
     if (PRESSEDARRSIZE > 0) {
         const auto PKEYS = wl_array_add(&keys, PRESSEDARRSIZE);
         if (PKEYS)
-            memcpy(PKEYS, PRESSED.data(), PRESSEDARRSIZE);
+            std::ranges::copy(PRESSED, sc<uint32_t*>(PKEYS));
     }
 
     auto client = surf->client();

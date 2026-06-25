@@ -60,7 +60,7 @@ namespace Fullscreen::ScrollingFullscreenHandler {
         virtual bool            hasFullscreen(const std::optional<bool> covering = true);
         virtual SP<Layout::ITarget>       getFullscreen(const std::optional<bool> covering = true);
         /// @warning Does NOT check if a target is fullscreen, merely returns its fullscreenMode
-        virtual SFullscreenMode getFullscreenMode(const SP<Layout::ITarget> target);
+        virtual SFullscreenMode getFullscreenModes(const SP<Layout::ITarget> target);
 
         // FS Request
 

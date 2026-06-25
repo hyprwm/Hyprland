@@ -79,11 +79,11 @@ bool CScrollingFullscreenHandler::isFullscreen(const SP<Layout::ITarget> target,
     // covering specific logic
 
     if (!covering.has_value()) {
-        return mode.has_value() ? getFullscreenMode(ITR->first.lock()).internal == mode.value() : true;
+        return mode.has_value() ? getFullscreenModes(ITR->first.lock()).internal == mode.value() : true;
     }
 
 
-    const auto FSMODE = getFullscreenMode(ITR->first.lock()).internal;
+    const auto FSMODE = getFullscreenModes(ITR->first.lock()).internal;
     if (mode.has_value() && mode.value() != FSMODE)
         return false;
 
@@ -103,7 +103,7 @@ SP<Layout::ITarget> CScrollingFullscreenHandler::getFullscreen(const std::option
     return nullptr;
 }
 
-SFullscreenMode CScrollingFullscreenHandler::getFullscreenMode(const SP<Layout::ITarget> target) {
+SFullscreenMode CScrollingFullscreenHandler::getFullscreenModes(const SP<Layout::ITarget> target) {
     const auto ITR = m_fsTargets.find(target);
 
     return ITR == m_fsTargets.end() ? SFullscreenMode{} : ITR->second.mode;
@@ -421,7 +421,7 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
     // layout handled tiled FS window is the only covering FS window
     if (COVERING_FULLSCREEN_WINDOW == LAYOUT_TILED_COVERING_FS_WINDOW) {
         if (!LAST_SCROLL_HANDLED_TILED_FS_WINDOW || LAST_SCROLL_HANDLED_TILED_FS_WINDOW != LAYOUT_TILED_COVERING_FS_WINDOW ||
-            getFullscreenMode(LAYOUT_TILED_COVERING_FS_TARGET).internal != LAST_SCROLL_HANDLED_TILED_FS_WINDOW_FS_MODE) {
+            getFullscreenModes(LAYOUT_TILED_COVERING_FS_TARGET).internal != LAST_SCROLL_HANDLED_TILED_FS_WINDOW_FS_MODE) {
             // we are newly scrolling onto this tiled layout handled FS window, or we are changing from maximised to fullscreen or vice versa while in the same FS window
             // redundancy - make sure the list is empty
             clear_hiddenFloatingWindowsUnderFSWindow();
@@ -497,7 +497,7 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
         }
 
         // TARGET exists propely but no longer FS
-        if ((!isFullscreen(TARGET) && getFullscreenMode(TARGET).client == FSMODE_NONE)) {
+        if ((!isFullscreen(TARGET) && getFullscreenModes(TARGET).client == FSMODE_NONE)) {
             const auto NEXT = std::next(it);
             // sets col width to prev value if present, then removes it from the handler (i.e. remove from list)
             removeFsTarget(TARGET, true);
@@ -506,8 +506,8 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
         }
 
         // if internal FS mode set, set its col width accordingly
-        if (getFullscreenMode(TARGET).internal != FSMODE_NONE) {
-            m_scrollingAlgorithm->dataFor(TARGET)->column->setColumnWidth((getFullscreenMode(TARGET).internal == FSMODE_FULLSCREEN ? fullscreenColumnWidth() : 1.F));
+        if (getFullscreenModes(TARGET).internal != FSMODE_NONE) {
+            m_scrollingAlgorithm->dataFor(TARGET)->column->setColumnWidth((getFullscreenModes(TARGET).internal == FSMODE_FULLSCREEN ? fullscreenColumnWidth() : 1.F));
             ++it;
             continue;
         }
@@ -588,7 +588,7 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
         LAST_FS_LAYOUTMANAGED_TILED_WINDOW &&
         (!CURRENT_FS_TDATA || (CURRENT_FS_TDATA && LAST_FS_LAYOUTMANAGED_TILED_WINDOW != CURRENT_FS_TDATA->target->window()))
         // check that LAST_FS_LAYOUTMANAGED_TILED_WINDOW was not unfullscreened (CScrollingAlgorithm::requestFullscreen() would have handled that)
-        && getFullscreenMode(LAST_FS_LAYOUTMANAGED_TILED_WINDOW->m_target).internal != FSMODE_NONE) {
+        && getFullscreenModes(LAST_FS_LAYOUTMANAGED_TILED_WINDOW->m_target).internal != FSMODE_NONE) {
 
         // send a regular tranche
         // ignore if DS is disabled.
@@ -631,7 +631,7 @@ void CScrollingFullscreenHandler::saveCurrentFsAndAllHiddenFloatingWindows(PHLWI
     // fullscreenWindow is assumed to be tiled, layout handled, covers the whole monitor or work area.
 
     m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow     = fullscreenWindow;
-    m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindowMode = getFullscreenMode(fullscreenWindow->m_target).internal;
+    m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindowMode = getFullscreenModes(fullscreenWindow->m_target).internal;
 
     const auto WORKSPACE = fullscreenWindow->m_workspace;
 

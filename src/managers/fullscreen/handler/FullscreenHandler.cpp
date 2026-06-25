@@ -49,7 +49,7 @@ SP<Layout::ITarget> IFullscreenHandler::getFullscreen(const std::optional<bool> 
     return nullptr;
 }
 
-SFullscreenMode IFullscreenHandler::getFullscreenMode(const SP<Layout::ITarget> target) {
+SFullscreenMode IFullscreenHandler::getFullscreenModes(const SP<Layout::ITarget> target) {
     const auto& ITR = m_fsTargets.find(target);
     return ITR == m_fsTargets.end() ? SFullscreenMode{} : ITR->second;
 }

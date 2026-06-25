@@ -278,7 +278,7 @@ namespace Monitor {
         void        updateSurfaceScaleTransformDetails();
         bool        updateTearing();
         uint16_t    isDSBlocked(bool full = false);
-        bool        attemptDirectScanout();
+        bool        attemptDirectScanout(bool commitSameBuffer = false);
         void        handleDSleave();
         bool        canAttemptDirectScanoutFast() const;
         bool        isMultiGPU();

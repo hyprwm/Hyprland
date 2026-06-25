@@ -47,7 +47,6 @@
 #include <aquamarine/output/Output.hpp>
 #include "debug/log/Logger.hpp"
 #include "notification/NotificationOverlay.hpp"
-#include "MonitorFrameScheduler.hpp"
 #include <hyprutils/memory/UniquePtr.hpp>
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -2051,17 +2050,16 @@ uint16_t CMonitor::isDSBlocked(bool full) {
 
     if (surfaceIsScRGB)
         reasons |= DS_BLOCK_CM; // block scRGB
-    else if (*PNONSHADER != CM_NS_IGNORE) {
-        if (!surfaceIsHDR && needsCM() && !canNoShaderCM(true))
-            reasons |= DS_BLOCK_CM; // block SDR that needs CM while non-shader CM isn't available
-        else if (surfaceIsHDR && !inHDR())
+    else if (surfaceIsHDR) {
+        if (!inHDR())
             reasons |= DS_BLOCK_CM; // block HDR while monitor isn't in HDR mode
-    }
+    } else if (needsCM() && !canNoShaderCM(true))
+        reasons |= DS_BLOCK_CM; // block SDR that needs shader CM
 
     return reasons;
 }
 
-bool CMonitor::attemptDirectScanout() {
+bool CMonitor::attemptDirectScanout(bool commitSameBuffer) {
     static const auto PSAME     = CConfigValue<Config::INTEGER>("debug:ds_handle_same_buffer");
     static const auto PSAMEFIFO = CConfigValue<Config::INTEGER>("debug:ds_handle_same_buffer_fifo");
 
@@ -2075,22 +2073,22 @@ bool CMonitor::attemptDirectScanout() {
 
     // #TODO this entire bit needs figuring out, vrr goes down the drain without it
     if (PBUFFER == m_output->state->state().buffer && *PSAME) {
-        PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
-
-        if (m_scanoutNeedsCursorUpdate) {
+        if (m_scanoutNeedsCursorUpdate || commitSameBuffer) {
             if (!m_state.test()) {
-                Log::logger->log(Log::TRACE, "attemptDirectScanout: failed basic test on cursor update");
+                Log::logger->log(Log::TRACE, "attemptDirectScanout: failed basic test on same-buffer update");
                 return false;
             }
 
             if (!m_output->commit()) {
-                Log::logger->log(Log::TRACE, "attemptDirectScanout: failed to commit cursor update");
+                Log::logger->log(Log::TRACE, "attemptDirectScanout: failed to commit same-buffer update");
                 m_lastScanout.reset();
                 return false;
             }
 
             m_scanoutNeedsCursorUpdate = false;
         }
+
+        PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
 
         //#TODO this entire bit is bootleg deluxe, above bit is to not make vrr go down the drain, returning early here means fifo gets forever locked.
         if (PSURFACE->m_fifo && !m_tearingState.activelyTearing && *PSAMEFIFO)
@@ -2195,6 +2193,7 @@ void CMonitor::handleDSleave() {
     Log::logger->log(Log::DEBUG, "Left a direct scanout.");
     m_lastScanout.reset();
     m_previousFSWindow.reset(); // recalc fs settings
+    m_needsHDRupdate        = true;
     m_directScanoutIsActive = false;
 
     // reset DRM format, but only if needed since it might modeset
@@ -2523,11 +2522,14 @@ bool CMonitor::canNoShaderCM(bool forDSmode) {
 
     Log::logger->log(Log::TRACE, "CM: can no shder compares src={} to output={}", SRC_DESC_VALUE, m_imageDescription->value());
 
-    // only primaries differ
+    const bool NEEDSLUMINANCEMATCH = forDSmode || inHDR();
+
+    // CTM can cover primaries. Direct scanout bypasses shader luminance conversion,
+    // and HDR non-shader CM already needs matching luminances.
     return (
         isCompatibleTF(SRC_DESC_VALUE.transferFunction, DST_DESC->value().transferFunction) //
         && SRC_DESC_VALUE.transferFunctionPower == DST_DESC->value().transferFunctionPower  //
-        && (!inHDR() || SRC_DESC_VALUE.luminances == DST_DESC->value().luminances)
+        && (!NEEDSLUMINANCEMATCH || SRC_DESC_VALUE.luminances == DST_DESC->value().luminances)
         // not used by shaders atm
         // && SRC_DESC_VALUE.masteringLuminances == m_imageDescription->value().masteringLuminances && SRC_DESC_VALUE.maxCLL == m_imageDescription->value().maxCLL && SRC_DESC_VALUE.maxFALL == m_imageDescription->value().maxFALL
     );

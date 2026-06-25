@@ -1704,9 +1704,7 @@ ActionResult Actions::cycleNext(const bool next, std::optional<bool> onlyTiled, 
     if (onlyTiled.value_or(false) != onlyFloating.value_or(false))
         tileOrFloatOnly = onlyFloating.value_or(false);
 
-    const auto& cycled = Desktop::windowState()->query().cycle(
-        window,
-        {.focusableOnly = true, .floating = tileOrFloatOnly, .previous = !next, .allowFullscreenBlocked = window->m_workspace && window->m_workspace->m_hasFullscreenWindow});
+    const auto& cycled = g_pCompositor->getWindowCycle(window, true, tileOrFloatOnly, false, !next, window->m_workspace && g_pfullscreenController->hasFullscreen(window->m_workspace));
 
     switchToWindow(cycled);
 

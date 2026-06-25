@@ -11,6 +11,7 @@
 #include "../../../state/WorkspaceState.hpp"
 #include "../../../devices/IKeyboard.hpp"
 #include "../../../desktop/rule/windowRule/WindowRule.hpp"
+#include "managers/fullscreen/FullscreenController.hpp"
 
 using namespace Config;
 using namespace Config::Lua;
@@ -497,11 +498,11 @@ static int dsp_floatWindow(lua_State* L) {
 
 static int dsp_fullscreenWindow(lua_State* L) {
     return Internal::checkResult(
-        L, CA::fullscreenWindow(sc<eFullscreenMode>((int)lua_tonumber(L, lua_upvalueindex(1))), lua_toboolean(L, lua_upvalueindex(2)), Internal::windowFromUpval(L, 3)));
+        L, CA::fullscreenWindow(sc<Fullscreen::eFullscreenMode>((int)lua_tonumber(L, lua_upvalueindex(1))), lua_toboolean(L, lua_upvalueindex(2)), Internal::windowFromUpval(L, 3)));
 }
 
 static int dsp_fullscreenWindowWithAction(lua_State* L) {
-    const auto mode        = sc<eFullscreenMode>((int)lua_tonumber(L, lua_upvalueindex(1)));
+    const auto mode        = sc<Fullscreen::eFullscreenMode>((int)lua_tonumber(L, lua_upvalueindex(1)));
     bool       layoutAware = lua_toboolean(L, lua_upvalueindex(2));
     const int  actionRaw   = (int)lua_tonumber(L, lua_upvalueindex(3));
     auto       maybeW      = Internal::windowFromUpval(L, 4);
@@ -513,7 +514,7 @@ static int dsp_fullscreenWindowWithAction(lua_State* L) {
     if (!target)
         return Internal::dispatcherError(L, "hl.window.fullscreen: no target", WARN, C_NOTARGET);
 
-    const bool currentlyMode = target->isEffectiveInternalFSMode(mode);
+    const bool currentlyMode = g_pfullscreenController->isFullscreen(target, mode);
 
     if (actionRaw == 1) {
         if (!currentlyMode)
@@ -531,8 +532,8 @@ static int dsp_fullscreenWindowWithAction(lua_State* L) {
 }
 
 static int dsp_fullscreenState(lua_State* L) {
-    const auto desiredInternal = sc<eFullscreenMode>((int)lua_tonumber(L, lua_upvalueindex(1)));
-    const auto desiredClient   = sc<eFullscreenMode>((int)lua_tonumber(L, lua_upvalueindex(2)));
+    const auto desiredInternal = sc<Fullscreen::eFullscreenMode>((int)lua_tonumber(L, lua_upvalueindex(1)));
+    const auto desiredClient   = sc<Fullscreen::eFullscreenMode>((int)lua_tonumber(L, lua_upvalueindex(2)));
     const int  actionRaw       = (int)lua_tonumber(L, lua_upvalueindex(3)); // 0: toggle, 1: set, 2: unset
     bool       layoutAware     = lua_toboolean(L, lua_upvalueindex(4));
     auto       maybeW          = Internal::windowFromUpval(L, 5);
@@ -541,7 +542,7 @@ static int dsp_fullscreenState(lua_State* L) {
     if (!target)
         return Internal::pushSuccessResult(L);
 
-    const auto CURRENT        = target->m_fullscreenState;
+    const auto CURRENT        = g_pfullscreenController->getFullscreenModes(target);
     const bool atDesiredState = CURRENT.internal == desiredInternal && CURRENT.client == desiredClient;
 
     if (actionRaw == 0) {
@@ -711,15 +712,15 @@ static int hlWindowFloat(lua_State* L) {
 }
 
 static int hlWindowFullscreen(lua_State* L) {
-    eFullscreenMode mode   = FSMODE_FULLSCREEN;
+    Fullscreen::eFullscreenMode mode   = Fullscreen::FSMODE_FULLSCREEN;
     int             action = 0; // 0: toggle, 1: set, 2: unset
     if (lua_istable(L, 1)) {
         auto m = Internal::tableOptStr(L, 1, "mode");
         if (m) {
             if (*m == "maximized" || *m == "1")
-                mode = FSMODE_MAXIMIZED;
+                mode = Fullscreen::FSMODE_MAXIMIZED;
             else if (*m == "fullscreen" || *m == "0")
-                mode = FSMODE_FULLSCREEN;
+                mode = Fullscreen::FSMODE_FULLSCREEN;
             else
                 return Internal::configError(L, "hl.window.fullscreen: invalid mode \"{}\" (expected fullscreen/maximized)", *m);
         }

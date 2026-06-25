@@ -16,6 +16,7 @@
 #include "../managers/input/InputManager.hpp"
 #include "../layout/LayoutManager.hpp"
 #include "../event/EventBus.hpp"
+#include "managers/fullscreen/FullscreenController.hpp"
 
 #include <string>
 #include <cstring>
@@ -953,7 +954,7 @@ SDispatchResult CKeybindManager::changeMouseBindMode(const eMouseBindMode MODE) 
         if (!PWINDOW)
             return SDispatchResult{.passEvent = true};
 
-        if (!PWINDOW->isFullscreen() && MODE == MBIND_MOVE) {
+        if (!g_pfullscreenController->isFullscreen(PWINDOW) && MODE == MBIND_MOVE) {
             if (PWINDOW->checkInputOnDecos(INPUT_TYPE_DRAG_START, MOUSECOORDS))
                 return SDispatchResult{.passEvent = false};
         }

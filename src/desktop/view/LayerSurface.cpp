@@ -15,6 +15,7 @@
 #include "../../managers/EventManager.hpp"
 #include "../../event/EventBus.hpp"
 #include "../../state/MonitorState.hpp"
+#include "managers/fullscreen/FullscreenController.hpp"
 
 using namespace Desktop;
 using namespace Desktop::View;
@@ -322,7 +323,7 @@ void CLayerSurface::onCommit() {
             m_aboveFullscreen = NEW_LAYER >= ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY;
 
             // if in fullscreen, only overlay can be above.
-            *m_alpha.get(LS_ALPHA_FADE) = PMONITOR->inFullscreenMode() ? (m_layer >= ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY ? 1.F : 0.F) : 1.F;
+            *m_alpha = (g_pfullscreenController->hasFullscreen(PMONITOR) && g_pfullscreenController->getFullscreenModes(PMONITOR).internal == Fullscreen::FSMODE_FULLSCREEN) ? (m_layer >= ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY ? 1.F : 0.F) : 1.F; // fullscreen
 
             if (m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
                 PMONITOR->m_blurFBDirty = true; // so that blur is recalc'd

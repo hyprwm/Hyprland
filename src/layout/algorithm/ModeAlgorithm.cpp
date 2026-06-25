@@ -10,7 +10,7 @@
 #include "desktop/view/LayerSurface.hpp"
 #include "layout/LayoutManager.hpp"
 #include "managers/animation/DesktopAnimationManager.hpp"
-#include "managers/fullscreen/handler/FullscreenHandler.hpp" // or wherever it ends up
+#include "managers/fullscreen/handler/FullscreenHandler.hpp"
 
 using namespace Layout;
 
@@ -46,7 +46,7 @@ std::optional<Vector2D> IModeAlgorithm::focalPointForDir(SP<ITarget> t, Math::eD
         return WS->m_monitor->logicalBox();
     };
 
-    const auto WINDOWIDEALBB = t->fullscreenMode() != FSMODE_NONE ? getFullscreenBB().value_or(t->window()->getWindowIdealBoundingBoxIgnoreReserved()) :
+    const auto WINDOWIDEALBB = m_defaultFullscreenHandler->isFullscreen(t) ? getFullscreenBB().value_or(t->window()->getWindowIdealBoundingBoxIgnoreReserved()) :
                                                                     t->window()->getWindowIdealBoundingBoxIgnoreReserved();
 
     switch (dir) {

@@ -5,6 +5,8 @@
 #include "../../../target/WindowTarget.hpp"
 #include "../../../LayoutManager.hpp"
 
+#include "managers/fullscreen/handler/FullscreenHandler.hpp"
+
 #include "../../../../config/ConfigValue.hpp"
 #include "../../../../desktop/state/FocusState.hpp"
 #include "../../../../desktop/history/WindowHistoryTracker.hpp"
@@ -132,7 +134,7 @@ void CMonocleAlgorithm::recalculate(eRecalculateReason reason) {
 
     const auto WORK_AREA = m_parent->space()->workArea();
 
-    if (m_parent->space()->workspace()->m_hasFullscreenWindow)
+    if (m_defaultFullscreenHandler->hasFullscreen())
         return;
 
     for (size_t i = 0; i < m_targetDatas.size(); ++i) {

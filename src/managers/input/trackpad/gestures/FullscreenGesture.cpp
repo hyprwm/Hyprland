@@ -3,7 +3,8 @@
 #include "../../../../Compositor.hpp"
 #include "../../../../desktop/state/FocusState.hpp"
 #include "../../../../render/Renderer.hpp"
-#include "../../../../animation/WorkspaceAnimationController.hpp"
+#include "../../../animation/DesktopAnimationManager.hpp"
+#include "managers/fullscreen/FullscreenController.hpp"
 
 constexpr const float MAX_DISTANCE = 250.F;
 
@@ -38,10 +39,11 @@ void CFullscreenTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureB
     m_posFrom  = m_window->m_realPosition->goal();
     m_sizeFrom = m_window->m_realSize->goal();
 
-    m_originalMode = m_window->m_fullscreenState.internal;
+    m_originalMode = g_pfullscreenController->getFullscreenModes(m_window.lock()).internal;
 
     // gesture fullscreen always uses layout specific fullscreen bahaviour if it exists
-    g_pCompositor->setWindowFullscreenInternal(m_window.lock(), m_window->m_fullscreenState.internal == FSMODE_NONE ? fsModeForMode(m_mode) : FSMODE_NONE, true);
+    // TODO add layoutAware flag to this too
+    g_pfullscreenController->setFullscreenMode(m_window.lock(), g_pfullscreenController->getFullscreenModes(m_window.lock()).internal == Fullscreen::FSMODE_NONE ? fsModeForMode(m_mode) : Fullscreen::FSMODE_NONE);
 
     m_posTo  = m_window->m_realPosition->goal();
     m_sizeTo = m_window->m_realSize->goal();
@@ -62,7 +64,7 @@ void CFullscreenTrackpadGesture::update(const ITrackpadGesture::STrackpadGesture
     m_window->m_realPosition->setValueAndWarp(lerpVal(m_posFrom, m_posTo, FADEPERCENT));
     m_window->m_realSize->setValueAndWarp(lerpVal(m_sizeFrom, m_sizeTo, FADEPERCENT));
 
-    Animation::Workspace::overrideFullscreenFadeAmount(m_window->m_workspace, m_originalMode == FSMODE_NONE ? 1.F - FADEPERCENT : FADEPERCENT, m_window.lock());
+    g_pDesktopAnimationManager->overrideFullscreenFadeAmount(m_window->m_workspace, m_originalMode == Fullscreen::FSMODE_NONE ? 1.F - FADEPERCENT : FADEPERCENT, m_window.lock());
 
     g_pDecorationPositioner->onWindowUpdate(m_window.lock());
 
@@ -78,9 +80,8 @@ void CFullscreenTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd
     if (COMPLETION < 0.2F) {
         // revert the animation
         g_pHyprRenderer->damageWindow(m_window.lock());
-        g_pDesktopAnimationManager->overrideFullscreenFadeAmount(m_window->m_workspace, m_originalMode == FSMODE_NONE ? 1.F : 0.F, m_window.lock());
-        // gesture fullscreen always uses layout specific fullscreen bahaviour if it exists
-        g_pCompositor->setWindowFullscreenInternal(m_window.lock(), m_window->m_fullscreenState.internal == FSMODE_NONE ? m_originalMode : FSMODE_NONE, true);
+        g_pDesktopAnimationManager->overrideFullscreenFadeAmount(m_window->m_workspace, m_originalMode == Fullscreen::FSMODE_NONE ? 1.F : 0.F, m_window.lock());
+        g_pfullscreenController->setFullscreenMode(m_window.lock(),g_pfullscreenController->getFullscreenModes(m_window.lock()).internal == Fullscreen::FSMODE_NONE ? m_originalMode : Fullscreen::FSMODE_NONE);
         return;
     }
 
@@ -92,14 +93,14 @@ void CFullscreenTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd
     // intermediate size. force a configure to the final size so the client matches its box.
     m_window->sendWindowSize(true);
 
-    Animation::Workspace::overrideFullscreenFadeAmount(m_window->m_workspace, m_originalMode == FSMODE_NONE ? 0.F : 1.F);
+    g_pDesktopAnimationManager->overrideFullscreenFadeAmount(m_window->m_workspace, m_originalMode == Fullscreen::FSMODE_NONE ? 0.F : 1.F);
 }
 
-eFullscreenMode CFullscreenTrackpadGesture::fsModeForMode(eMode mode) {
+Fullscreen::eFullscreenMode CFullscreenTrackpadGesture::fsModeForMode(eMode mode) {
     switch (mode) {
-        case MODE_FULLSCREEN: return FSMODE_FULLSCREEN;
-        case MODE_MAXIMIZE: return FSMODE_MAXIMIZED;
+        case MODE_FULLSCREEN: return Fullscreen::FSMODE_FULLSCREEN;
+        case MODE_MAXIMIZE: return Fullscreen::FSMODE_MAXIMIZED;
         default: break;
     }
-    return FSMODE_FULLSCREEN;
+    return Fullscreen::FSMODE_FULLSCREEN;
 }

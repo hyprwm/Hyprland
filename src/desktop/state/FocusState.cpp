@@ -8,7 +8,8 @@
 #include "../../managers/SeatManager.hpp"
 #include "../../xwayland/XSurface.hpp"
 #include "../../protocols/PointerConstraints.hpp"
-#include "animation/WorkspaceAnimationController.hpp"
+#include "managers/animation/DesktopAnimationManager.hpp"
+#include "managers/fullscreen/FullscreenController.hpp"
 #include "../../layout/LayoutManager.hpp"
 #include "../../event/EventBus.hpp"
 
@@ -28,8 +29,8 @@ struct SFullscreenWorkspaceFocusResult {
 };
 
 static SFullscreenWorkspaceFocusResult onFullscreenWorkspaceFocusWindow(PHLWINDOW pWindow, bool forceFSCycle) {
-    const auto FSWINDOW = pWindow->m_workspace->getFullscreenWindow();
-    const auto FSMODE   = pWindow->m_workspace->m_fullscreenMode;
+    const auto FSWINDOW = g_pfullscreenController->getFullscreenWindow(pWindow->m_workspace);
+    const auto FSMODE_INTERNAL   = g_pfullscreenController->getFullscreenModes(pWindow->m_workspace).internal;
 
     if (pWindow == FSWINDOW)
         return {}; // no conflict
@@ -52,14 +53,14 @@ static SFullscreenWorkspaceFocusResult onFullscreenWorkspaceFocusWindow(PHLWINDO
         case 2:
             // undo fs, unless we force a cycle
             if (!forceFSCycle) {
-                g_pCompositor->setWindowFullscreenInternal(FSWINDOW, FSMODE_NONE, FSWINDOW->m_fullscreen_LayoutHandled);
+                g_pfullscreenController->setFullscreenMode(FSWINDOW, Fullscreen::FSMODE_NONE);
                 break;
             }
             [[fallthrough]];
         case 1:
             // replace fullscreen
-            g_pCompositor->setWindowFullscreenInternal(FSWINDOW, FSMODE_NONE, FSWINDOW->m_fullscreen_LayoutHandled);
-            g_pCompositor->setWindowFullscreenInternal(pWindow, FSMODE, pWindow->m_fullscreen_LayoutHandled);
+                g_pfullscreenController->setFullscreenMode(FSWINDOW, Fullscreen::FSMODE_NONE);
+                g_pfullscreenController->setFullscreenMode(pWindow, FSMODE_INTERNAL);
             break;
 
         default: Log::logger->log(Log::ERR, "Invalid misc:on_focus_under_fullscreen mode: {}", *PONFOCUSUNDERFS); break;
@@ -73,15 +74,12 @@ void CFocusState::fullWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWL
         if (!pWindow->m_workspace)
             return;
 
-        // Don't cycle FS cycle if the current FS widow is default handled
-        const auto FSWINDOW = pWindow->m_workspace->getFullscreenWindow();
-        if (FSWINDOW && !FSWINDOW->m_target->layoutManagedFullscreen()) {
-            const auto CURRENT_FS_MODE = pWindow->m_workspace->m_hasFullscreenWindow ? pWindow->m_workspace->m_fullscreenMode : FSMODE_NONE;
-            if (CURRENT_FS_MODE != FSMODE_NONE) {
-                const auto RESULT = onFullscreenWorkspaceFocusWindow(pWindow, forceFSCycle);
-                if (RESULT.overrideFocusWindow)
-                    pWindow = RESULT.overrideFocusWindow;
-            }
+        // Check if workspace has FS window. If so, don't cycle FS unless FS window is default handled
+        const auto FSWINDOW = g_pfullscreenController->getFullscreenWindow(pWindow->m_workspace);
+        if (FSWINDOW && !g_pfullscreenController->layoutManagedFS(FSWINDOW)) {
+            const auto RESULT = onFullscreenWorkspaceFocusWindow(pWindow, forceFSCycle);
+            if (RESULT.overrideFocusWindow)
+                pWindow = RESULT.overrideFocusWindow;
         }
     }
 

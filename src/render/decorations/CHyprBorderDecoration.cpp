@@ -5,6 +5,7 @@
 #include "../pass/BorderPassElement.hpp"
 #include "../Renderer.hpp"
 #include "../../state/MonitorState.hpp"
+#include "managers/fullscreen/FullscreenController.hpp"
 
 CHyprBorderDecoration::CHyprBorderDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_window(pWindow) {
     ;
@@ -116,7 +117,7 @@ void CHyprBorderDecoration::updateWindow(PHLWINDOW) {
 }
 
 void CHyprBorderDecoration::damageEntire() {
-    if (!validMapped(m_window) || m_window->m_fullscreenState.internal == FSMODE_FULLSCREEN)
+    if (!validMapped(m_window) || g_pfullscreenController->getFullscreenModes(m_window.lock()).internal == Fullscreen::FSMODE_FULLSCREEN)
         return;
 
     const auto GLOBAL_BOX = assignedBoxGlobal();

@@ -1,5 +1,6 @@
 #include "Workspace.hpp"
 #include "desktop/DesktopTypes.hpp"
+#include "managers/fullscreen/FullscreenController.hpp"
 #include "view/Group.hpp"
 #include "view/LayerSurface.hpp"
 #include "state/FocusState.hpp"
@@ -369,15 +370,15 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
                 switch (FSSTATE) {
                     case -1: // no fullscreen
-                        if (m_hasFullscreenWindow)
+                        if (g_pfullscreenController->hasFullscreen(m_self.lock()))
                             return false;
                         break;
                     case 0: // fullscreen full
-                        if (!m_hasFullscreenWindow || m_fullscreenMode != FSMODE_FULLSCREEN)
+                        if (!g_pfullscreenController->hasFullscreen(m_self.lock()) || g_pfullscreenController->getFullscreenMode(m_self.lock()).internal != Fullscreen::FSMODE_FULLSCREEN)
                             return false;
                         break;
                     case 1: // maximized
-                        if (!m_hasFullscreenWindow || m_fullscreenMode != FSMODE_MAXIMIZED)
+                        if (!g_pfullscreenController->hasFullscreen(m_self.lock()) || g_pfullscreenController->getFullscreenMode(m_self.lock()).internal != Fullscreen::FSMODE_MAXIMIZED)
                             return false;
                         break;
                     default: break;
@@ -582,11 +583,6 @@ void CWorkspace::changeID(int64_t id) {
 }
 
 void CWorkspace::updateWindows() {
-    m_hasFullscreenWindow = std::ranges::any_of(m_space->targets(), [](const auto& t) { return t && t->isFullscreen(); });
-
-    if (!m_hasFullscreenWindow)
-        m_fullscreenMode = FSMODE_NONE;
-
     for (auto const& t : m_space->targets()) {
         if (t->window())
             t->window()->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ON_WORKSPACE);

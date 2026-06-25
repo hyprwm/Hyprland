@@ -12,7 +12,6 @@
 #include "../desktop/view/Window.hpp"
 #include "protocols/core/Output.hpp"
 #include <cstddef>
-#include <cstring>
 #include <ranges>
 
 void SXDGPositionerState::setAnchor(xdgPositionerAnchor edges) {
@@ -367,10 +366,8 @@ void CXDGToplevelResource::scheduleStateApplication() {
         wl_array arr;
         wl_array_init(&arr);
 
-        if (!m_pendingApply.states.empty()) {
-            wl_array_add(&arr, m_pendingApply.states.size() * sizeof(int));
-            memcpy(arr.data, m_pendingApply.states.data(), m_pendingApply.states.size() * sizeof(int));
-        }
+        if (const auto PSTATES = sc<int*>(wl_array_add(&arr, m_pendingApply.states.size() * sizeof(int))))
+            std::ranges::copy(m_pendingApply.states, PSTATES);
 
         m_resource->sendConfigure(m_pendingApply.size.x, m_pendingApply.size.y, &arr);
 

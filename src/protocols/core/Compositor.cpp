@@ -18,7 +18,6 @@
 #include "../../state/MonitorState.hpp"
 #include "protocols/types/SurfaceRole.hpp"
 #include "render/Texture.hpp"
-#include <cstring>
 
 using namespace NColorManagement;
 
@@ -731,15 +730,16 @@ void CWLSurfaceResource::updateCursorShm(CRegion damage) {
     int         rectsNum = 0;
     const auto* rects    = pixman_region32_rectangles(damage.pixman(), &rectsNum);
 
-    if (rectsNum == 1 && rects[0].x2 == buf->size.x && rects[0].y2 == buf->size.y)
-        memcpy(shmData.data(), pixelData, bufLen);
+    if (rectsNum == 1 && rects[0].x1 == 0 && rects[0].y1 == 0 && rects[0].x2 == buf->size.x && rects[0].y2 == buf->size.y)
+        std::ranges::copy_n(pixelData, bufLen, shmData.data());
     else {
-        damage.forEachRect([&pixelData, &shmData](const auto& box) {
+        const auto BUFSTRIDE = sc<size_t>(4 * buf->size.x);
+        damage.forEachRect([&pixelData, &shmData, BUFSTRIDE](const auto& box) {
             for (auto y = box.y1; y < box.y2; ++y) {
                 // bpp is 32 INSALLAH
-                auto begin = 4 * box.y1 * (box.x2 - box.x1) + box.x1;
-                auto len   = 4 * (box.x2 - box.x1);
-                memcpy(shmData.data() + begin, pixelData + begin, len);
+                auto begin = sc<size_t>(y) * BUFSTRIDE + sc<size_t>(4 * box.x1);
+                auto len   = sc<size_t>(4 * (box.x2 - box.x1));
+                std::ranges::copy_n(pixelData + begin, len, shmData.data() + begin);
             }
         });
     }

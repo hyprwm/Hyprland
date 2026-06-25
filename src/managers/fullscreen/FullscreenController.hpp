@@ -100,7 +100,7 @@ namespace Fullscreen {
         // ERSTARR TODO - note that passing mode = FSMODE_NONE will not fly. return false then in any case and log an error
         bool            isFullscreen( const PHLWINDOW window, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = std::nullopt);
         /// @warning considers both internal and client FS modes of window
-        SFullscreenMode getFullscreenMode(const PHLWINDOW window);
+        SFullscreenMode getFullscreenModes(const PHLWINDOW window);
         bool            layoutManagedFS(const PHLWINDOW window); // TODO: use the handler to judge - delete this todo after implemented
 
         // ERSTARR TODO - if covering is true; need to check if floating algo has FS first, THEN the default handler of a layout handler. ONLY after that check the layout handler.
@@ -111,7 +111,7 @@ namespace Fullscreen {
         /// @warning Returns the topmost covering FS window is there are several.
         /// @warning only cosiders internal mode of FS windows
         PHLWINDOW       getFullscreenWindow(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
-        SFullscreenMode getFullscreenMode(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
+        SFullscreenMode getFullscreenModes(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
 
         // Monitor
         /// @warning only cosiders internal mode of FS windows
@@ -119,7 +119,7 @@ namespace Fullscreen {
         /// @note Returns the topmost covering FS window is there are several.
         /// @warning only cosiders internal mode of FS windows
         PHLWINDOW       getFullscreenWindow(const PHLMONITOR monitor, const std::optional<bool> covering = true);
-        SFullscreenMode getFullscreenMode(const PHLMONITOR monitor, const std::optional<bool> covering = true);
+        SFullscreenMode getFullscreenModes(const PHLMONITOR monitor, const std::optional<bool> covering = true);
 
         // Handler
         /// @warning considers both internal and client FS modes of window

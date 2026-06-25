@@ -45,7 +45,8 @@ namespace Fullscreen {
         virtual bool                hasFullscreen(const std::optional<bool> covering = true);
         /// @warning only for internal FS mode
         virtual SP<Layout::ITarget> getFullscreen(const std::optional<bool> covering = true);
-        virtual SFullscreenMode     getFullscreenMode(const SP<Layout::ITarget> target);
+        /// @warning Doesn't check if target is FS - simply returns the tracked mode
+        virtual SFullscreenMode     getFullscreenModes(const SP<Layout::ITarget> target);
 
         // FS Request
         /// @note Only for setting internal FS mode. Prefer to call setTargetFullscreenModeClient() independently for client mode

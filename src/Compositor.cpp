@@ -935,7 +935,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint16_t prope
                 return nullptr;
 
             // for maximized windows, don't return a window if we are not directly on it.
-            if (g_pfullscreenController->getFullscreenMode(FS_WINDOW).internal != Fullscreen::FSMODE_MAXIMIZED || FS_WINDOW->getWindowBoxUnified(properties).containsPoint(pos))
+            if (g_pfullscreenController->getFullscreenModes(FS_WINDOW).internal != Fullscreen::FSMODE_MAXIMIZED || FS_WINDOW->getWindowBoxUnified(properties).containsPoint(pos))
                 return g_pfullscreenController->getFullscreenWindow(PWORKSPACE);
             else
                 return nullptr;
@@ -2170,7 +2170,7 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
         return;
 
     const bool FULLSCREEN     = g_pfullscreenController->isFullscreen(pWindow);
-    const auto FULLSCREENMODE = g_pfullscreenController->getFullscreenMode(pWindow).internal;
+    const auto FULLSCREENMODE = g_pfullscreenController->getFullscreenModes(pWindow).internal;
     const bool WASVISIBLE     = pWindow->m_workspace && pWindow->m_workspace->isVisible();
 
     if (FULLSCREEN)

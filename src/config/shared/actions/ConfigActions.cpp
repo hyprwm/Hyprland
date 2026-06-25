@@ -288,12 +288,12 @@ ActionResult Actions::fullscreenWindow(Fullscreen::eFullscreenMode internalMode,
 
     const Fullscreen::SFullscreenMode STATE = {.internal = internalMode, .client = clientMode};
 
-    if (g_pfullscreenController->getFullscreenMode(window).internal == STATE.internal && g_pfullscreenController->getFullscreenMode(window).client == STATE.client)
+    if (g_pfullscreenController->getFullscreenModes(window).internal == STATE.internal && g_pfullscreenController->getFullscreenModes(window).client == STATE.client)
         g_pfullscreenController->setFullscreenMode(window, Fullscreen::FSMODE_NONE, Fullscreen::FSMODE_NONE, layoutAware);
     else
         g_pfullscreenController->setFullscreenMode(window, STATE.internal, STATE.client, layoutAware);
     
-    const auto windowFsMode = g_pfullscreenController->getFullscreenMode(window);
+    const auto windowFsMode = g_pfullscreenController->getFullscreenModes(window);
 
     window->m_ruleApplicator->syncFullscreenOverride(Desktop::Types::COverridableVar(windowFsMode.internal == windowFsMode.client, Desktop::Types::PRIORITY_SET_PROP));
 
@@ -331,7 +331,7 @@ ActionResult Actions::moveToWorkspace(PHLWORKSPACE ws, bool silent, std::optiona
     } else {
         PHLMONITOR pMonitor = nullptr;
 
-        const auto FULLSCREENMODE = g_pfullscreenController->getFullscreenMode(window).internal;
+        const auto FULLSCREENMODE = g_pfullscreenController->getFullscreenModes(window).internal;
         g_pCompositor->moveWindowToWorkspaceSafe(window, ws);
         pMonitor = ws->m_monitor.lock();
         Desktop::focusState()->rawMonitorFocus(pMonitor);

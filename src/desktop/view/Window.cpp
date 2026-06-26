@@ -2295,11 +2295,11 @@ void CWindow::mapWindow() {
             m_workspace = pWorkspace;
             m_monitor   = pWorkspace->m_monitor;
 
-            if (m_monitor.lock()->m_activeSpecialWorkspace && !pWorkspace->m_isSpecialWorkspace)
+            if (m_monitor && m_monitor->m_activeSpecialWorkspace && !pWorkspace->m_isSpecialWorkspace)
                 workspaceSilent = true;
 
             if (!workspaceSilent) {
-                if (pWorkspace->m_isSpecialWorkspace)
+                if (pWorkspace->m_isSpecialWorkspace && pWorkspace->m_monitor)
                     pWorkspace->m_monitor->setSpecialWorkspace(pWorkspace);
                 else if (PMONITOR->activeWorkspaceID() != requestedWorkspaceID && !m_noInitialFocus) // NOLINTNEXTLINE
                     Config::Actions::changeWorkspace(requestedWorkspaceName);

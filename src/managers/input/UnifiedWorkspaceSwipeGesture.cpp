@@ -5,6 +5,8 @@
 #include "../../desktop/state/FocusState.hpp"
 #include "../../render/Renderer.hpp"
 #include "InputManager.hpp"
+#include "../../layout/space/Space.hpp"
+#include "../../layout/algorithm/Algorithm.hpp"
 
 bool CUnifiedWorkspaceSwipeGesture::isGestureInProgress() {
     return !!m_workspaceBegin;
@@ -24,7 +26,10 @@ void CUnifiedWorkspaceSwipeGesture::begin() {
     m_avgSpeed       = 0;
     m_speedPoints    = 0;
 
-    if (PWORKSPACE->m_hasFullscreenWindow) {
+    const auto FSWINDOW = PWORKSPACE->getFullscreenWindow(true);
+    const auto FSMODE   = FSWINDOW ? FSWINDOW->m_target->fullscreenMode() : PWORKSPACE->m_fullscreenMode;
+
+    if (FSMODE == FSMODE_FULLSCREEN) {
         for (auto const& ls : Desktop::focusState()->monitor()->m_layerSurfaceLayers[2]) {
             *ls->m_alpha = 1.f;
         }
@@ -306,7 +311,15 @@ void CUnifiedWorkspaceSwipeGesture::end() {
     g_pInputManager->refocus();
 
     // apply alpha
-    for (auto const& ls : Desktop::focusState()->monitor()->m_layerSurfaceLayers[2]) {
-        *ls->m_alpha = pSwitchedTo->m_hasFullscreenWindow && pSwitchedTo->m_fullscreenMode == FSMODE_FULLSCREEN ? 0.f : 1.f;
+    if (pSwitchedTo) {
+        const auto FSWINDOW = pSwitchedTo->getFullscreenWindow(true);
+        const auto FSMODE   = FSWINDOW ? FSWINDOW->m_target->fullscreenMode() : pSwitchedTo->m_fullscreenMode;
+        const bool HIDE     = FSMODE == FSMODE_FULLSCREEN &&
+            (!FSWINDOW || !FSWINDOW->m_target->layoutManagedFullscreen() ||
+             (pSwitchedTo->m_space && pSwitchedTo->m_space->algorithm() && pSwitchedTo->m_space->algorithm()->layoutFullscreenCoversMonitor()));
+
+        for (auto const& ls : Desktop::focusState()->monitor()->m_layerSurfaceLayers[2]) {
+            *ls->m_alpha = HIDE ? 0.f : 1.f;
+        }
     }
 }

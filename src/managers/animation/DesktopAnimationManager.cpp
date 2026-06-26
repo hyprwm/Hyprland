@@ -7,6 +7,7 @@
 #include "../../desktop/view/Window.hpp"
 #include "../../desktop/view/Group.hpp"
 #include "../../desktop/Workspace.hpp"
+#include "../../layout/target/Target.hpp"
 
 #include "../../config/shared/animation/AnimationTree.hpp"
 
@@ -489,9 +490,11 @@ void CDesktopAnimationManager::setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnim
     const auto PMONITOR = ws->m_monitor.lock();
 
     if (ws->m_id == PMONITOR->activeWorkspaceID() || ws->m_id == PMONITOR->activeSpecialWorkspaceID()) {
+        const auto FSWINDOW = ws->getFullscreenWindow(true);
+        const auto FSMODE   = FSWINDOW ? FSWINDOW->m_target->fullscreenMode() : ws->m_fullscreenMode;
         for (auto const& ls : PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
             if (!ls->m_fadingOut && !ls->m_aboveFullscreen)
-                *ls->m_alpha = FULLSCREEN && ws->m_fullscreenMode != FSMODE_MAXIMIZED ? 0.f : 1.f;
+                *ls->m_alpha = FULLSCREEN && FSMODE != FSMODE_MAXIMIZED ? 0.f : 1.f;
         }
     }
 }

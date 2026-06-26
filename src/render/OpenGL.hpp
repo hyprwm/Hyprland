@@ -102,7 +102,7 @@ namespace Render::GL {
         SP<IFramebuffer>         outFB     = nullptr; // out to render to (if offloaded, etc)
 
         CRegion                  damage;
-        CRegion                  finalDamage; // damage used for funal off -> main
+        CRegion                  finalDamage; // damage used for final off -> main
 
         Render::SRenderModifData renderModif;
         float                    mouseZoomFactor    = 1.f;
@@ -207,7 +207,9 @@ namespace Render::GL {
         void renderRoundedShadow(const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a = 1.0);
         void renderRoundedShadow(const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2,
                                  float lerp, float a = 1.0);
-        void renderInnerGlow(const CBox&, int round, float roundingPower, int range, const CHyprColor& color, int glowPower, float a = 1.0);
+        void renderInnerGlow(const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& color, int glowPower, float a = 1.0);
+        void renderInnerGlow(const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2, float lerp,
+                             int glowPower, float a = 1.0);
         void renderBorder(const CBox&, const Config::CGradientValueData&, SBorderRenderData data);
         void renderBorder(const CBox&, const Config::CGradientValueData&, const Config::CGradientValueData&, float lerp, SBorderRenderData data);
         void renderTextureMatte(SP<ITexture> tex, const CBox& pBox, SP<IFramebuffer> matte);

@@ -9,6 +9,7 @@ namespace Monitor {
     class CDamageRing {
       public:
         void    setSize(const Vector2D& size_);
+        bool    damage(const CBox& box);
         bool    damage(const CRegion& rg);
         void    damageEntire();
         void    rotate();

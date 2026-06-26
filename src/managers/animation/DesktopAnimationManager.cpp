@@ -254,7 +254,10 @@ void CDesktopAnimationManager::startAnimation(PHLWORKSPACE ws, eAnimationType ty
     const auto  PMONITOR      = ws->m_monitor.lock();
     const auto  ANIMSTYLE     = style.value_or(ws->m_alpha->getStyle());
 
-    float       movePerc = 100.f;
+    if (!PMONITOR)
+        return;
+
+    float movePerc = 100.f;
     // inverted for some reason. TODO: fix the cause
     bool vert = ANIMSTYLE.starts_with("slidevert") || ANIMSTYLE.starts_with("slidefadevert");
 

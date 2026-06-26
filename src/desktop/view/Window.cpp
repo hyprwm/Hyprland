@@ -101,7 +101,8 @@ PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
                                          AVARDAMAGE_SHADOW);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_shadowAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("shadowangle"), pWindow,
                                          AVARDAMAGE_SHADOW);
-    g_pAnimationManager->createAnimation(CHyprColor(), pWindow->m_realGlowColor, Config::animationTree()->getAnimationPropertyConfig("fadeGlow"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(0.f, pWindow->m_glowFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("fadeGlow"), pWindow, AVARDAMAGE_GLOW);
+    g_pAnimationManager->createAnimation(0.f, pWindow->m_glowAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("glowangle"), pWindow, AVARDAMAGE_GLOW);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_dimPercent, Config::animationTree()->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeOut"), pWindow,
                                          AVARDAMAGE_ENTIRE);
@@ -138,7 +139,8 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
                                          AVARDAMAGE_SHADOW);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_shadowAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("shadowangle"), pWindow,
                                          AVARDAMAGE_SHADOW);
-    g_pAnimationManager->createAnimation(CHyprColor(), pWindow->m_realGlowColor, Config::animationTree()->getAnimationPropertyConfig("fadeGlow"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(0.f, pWindow->m_glowFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("fadeGlow"), pWindow, AVARDAMAGE_GLOW);
+    g_pAnimationManager->createAnimation(0.f, pWindow->m_glowAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("glowangle"), pWindow, AVARDAMAGE_GLOW);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_dimPercent, Config::animationTree()->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeOut"), pWindow,
                                          AVARDAMAGE_ENTIRE);
@@ -748,7 +750,8 @@ void CWindow::onMap() {
     alpha(WINDOW_ALPHA_LAYOUT)->resetAllCallbacks();
     m_shadowFadeAnimationProgress->resetAllCallbacks();
     m_shadowAngleAnimationProgress->resetAllCallbacks();
-    m_realGlowColor->resetAllCallbacks();
+    m_glowFadeAnimationProgress->resetAllCallbacks();
+    m_glowAngleAnimationProgress->resetAllCallbacks();
     m_dimPercent->resetAllCallbacks();
     alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE)->resetAllCallbacks();
     alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE)->resetAllCallbacks();
@@ -768,6 +771,12 @@ void CWindow::onMap() {
         m_shadowAngleAnimationProgress->setValueAndWarp(0.f);
         m_shadowAngleAnimationProgress->setCallbackOnEnd([&](WP<CBaseAnimatedVariable> p) { onShadowAngleAnimEnd(p); }, false);
         *m_shadowAngleAnimationProgress = 1.f;
+    }
+
+    if (m_glowAngleAnimationProgress->enabled()) {
+        m_glowAngleAnimationProgress->setValueAndWarp(0.f);
+        m_glowAngleAnimationProgress->setCallbackOnEnd([&](WP<CBaseAnimatedVariable> p) { onGlowAngleAnimEnd(p); }, false);
+        *m_glowAngleAnimationProgress = 1.f;
     }
 
     m_realSize->setCallbackOnBegin(
@@ -849,6 +858,23 @@ void CWindow::onShadowAngleAnimEnd(WP<CBaseAnimatedVariable> pav) {
     *PANIMVAR = 1.f;
 
     PANIMVAR->setCallbackOnEnd([&](WP<CBaseAnimatedVariable> pav) { onShadowAngleAnimEnd(pav); }, false);
+}
+
+void CWindow::onGlowAngleAnimEnd(WP<CBaseAnimatedVariable> pav) {
+    if (!pav)
+        return;
+
+    if (pav->getStyle() != "loop" || !pav->enabled())
+        return;
+
+    const auto PANIMVAR = dc<CAnimatedVariable<float>*>(pav.get());
+
+    PANIMVAR->setCallbackOnEnd(nullptr);
+
+    PANIMVAR->setValueAndWarp(0);
+    *PANIMVAR = 1.f;
+
+    PANIMVAR->setCallbackOnEnd([&](WP<CBaseAnimatedVariable> pav) { onGlowAngleAnimEnd(pav); }, false);
 }
 
 void CWindow::setHidden(bool hidden) {
@@ -1207,6 +1233,12 @@ void CWindow::onFocusAnimUpdate() {
         m_shadowAngleAnimationProgress->setValueAndWarp(0.f);
         *m_shadowAngleAnimationProgress = 1.f;
     }
+
+    // glowangle once
+    if (m_glowAngleAnimationProgress->enabled() && !m_glowAngleAnimationProgress->isBeingAnimated()) {
+        m_glowAngleAnimationProgress->setValueAndWarp(0.f);
+        *m_glowAngleAnimationProgress = 1.f;
+    }
 }
 
 int CWindow::popupsCount() {
@@ -1350,7 +1382,12 @@ void CWindow::onUpdateState() {
     std::optional<MONITORID> requestsID = m_xdgSurface ? m_xdgSurface->m_toplevel->m_state.requestsFullscreenMonitor : MONITOR_INVALID;
     std::optional<bool>      requestsMX = m_xdgSurface ? m_xdgSurface->m_toplevel->m_state.requestsMaximize : m_xwaylandSurface->m_state.requestsMaximize;
 
-    if (requestsFS.has_value() && !(m_suppressedEvents & SUPPRESS_FULLSCREEN)) {
+    // a client re-asserting fullscreen every frame (notably gamescope) would snap the window back the instant
+    // the drag handler pulls it out of fullscreen, so ignore the request while this window is being dragged.
+    const auto DRAGTARGET         = g_layoutManager->dragController()->target();
+    const bool DRAGGINGTHISWINDOW = DRAGTARGET && DRAGTARGET->window() == m_self.lock();
+
+    if (requestsFS.has_value() && !(m_suppressedEvents & SUPPRESS_FULLSCREEN) && !DRAGGINGTHISWINDOW) {
         if (requestsID.has_value() && (requestsID.value() != MONITOR_INVALID) && !(m_suppressedEvents & SUPPRESS_FULLSCREEN_OUTPUT)) {
             if (m_isMapped) {
                 const auto monitor = State::monitorState()->query().id(requestsID.value()).run();
@@ -1821,8 +1858,8 @@ void CWindow::updateDecorationValues() {
     static auto PSHADOWCOL              = CConfigValue<Config::IComplexConfigValue>("decoration:shadow:color");
     static auto PSHADOWCOLINACTIVE      = CConfigValue<Config::IComplexConfigValue>("decoration:shadow:color_inactive");
     static auto PGLOW                   = CConfigValue<Config::INTEGER>("decoration:glow:enabled");
-    static auto PGLOWCOL                = CConfigValue<Config::INTEGER>("decoration:glow:color");
-    static auto PGLOWCOLINACTIVE        = CConfigValue<Config::INTEGER>("decoration:glow:color_inactive");
+    static auto PGLOWCOL                = CConfigValue<Config::IComplexConfigValue>("decoration:glow:color");
+    static auto PGLOWCOLINACTIVE        = CConfigValue<Config::IComplexConfigValue>("decoration:glow:color_inactive");
     static auto PDIMSTRENGTH            = CConfigValue<Config::FLOAT>("decoration:dim_strength");
     static auto PDIMENABLED             = CConfigValue<Config::INTEGER>("decoration:dim_inactive");
     static auto PDIMMODAL               = CConfigValue<Config::INTEGER>("decoration:dim_modal");
@@ -1852,15 +1889,9 @@ void CWindow::updateDecorationValues() {
     if (m_self == Desktop::focusState()->window()) {
         const auto* const ACTIVECOLOR = !m_group ? (!(m_groupRules & GROUP_DENY) ? ACTIVECOL : NOGROUPACTIVECOL) : (GROUPLOCKED ? GROUPACTIVELOCKEDCOL : GROUPACTIVECOL);
         setBorderColor(m_ruleApplicator->activeBorderColor().valueOr(*ACTIVECOLOR));
-
-        if (*PGLOW)
-            *m_realGlowColor = *PGLOWCOL;
     } else {
         const auto* const INACTIVECOLOR = !m_group ? (!(m_groupRules & GROUP_DENY) ? INACTIVECOL : NOGROUPINACTIVECOL) : (GROUPLOCKED ? GROUPINACTIVELOCKEDCOL : GROUPINACTIVECOL);
         setBorderColor(m_ruleApplicator->inactiveBorderColor().valueOr(*INACTIVECOLOR));
-
-        if (*PGLOW)
-            *m_realGlowColor = *PGLOWCOLINACTIVE;
     }
 
     // opacity
@@ -1910,6 +1941,32 @@ void CWindow::updateDecorationValues() {
     } else {
         Config::CGradientValueData transparent(CHyprColor(0, 0, 0, 0));
         m_realShadowColor = transparent;
+    }
+
+    // glow
+    if (!isX11OverrideRedirect() && !m_X11DoesntWantBorders) {
+        auto* const GLOWCOL         = sc<Config::CGradientValueData*>((PGLOWCOL.ptr()));
+        auto* const GLOWCOLINACTIVE = sc<Config::CGradientValueData*>((PGLOWCOLINACTIVE.ptr()));
+
+        auto        setGlowColor = [&](Config::CGradientValueData grad) -> void {
+            if (grad == m_realGlowColor)
+                return;
+
+            m_realGlowColorPrevious = m_realGlowColor;
+            m_realGlowColor         = grad;
+            m_glowFadeAnimationProgress->setValueAndWarp(0.f);
+            *m_glowFadeAnimationProgress = 1.f;
+        };
+
+        if (m_self == Desktop::focusState()->window())
+            setGlowColor(*GLOWCOL);
+        else {
+            const auto COLORINACTIVE = Config::mgr()->getConfigValue("decoration:glow:color_inactive");
+            setGlowColor(COLORINACTIVE.setByUser ? *GLOWCOLINACTIVE : *GLOWCOL);
+        }
+    } else {
+        Config::CGradientValueData transparent(CHyprColor(0, 0, 0, 0));
+        m_realGlowColor = transparent;
     }
 
     updateWindowDecos();

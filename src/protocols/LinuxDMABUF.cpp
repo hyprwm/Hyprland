@@ -422,6 +422,11 @@ bool CLinuxDMABUFResource::good() {
 }
 
 void CLinuxDMABUFResource::sendMods() {
+
+    // per-spec, since v4, do not send these.
+    if (m_resource->version() >= 4)
+        return;
+
     for (auto const& fmt : PROTO::linuxDma->m_formatTable->m_rendererTranche.formats) {
         m_resource->sendFormat(fmt.drmFormat);
 

@@ -487,10 +487,10 @@ static SDispatchResult                                       addLayerRule(std::s
 }
 
 static SDispatchResult checkLayerRule(std::string in) {
-    if (g_pCompositor->m_layers.size() != 3)
+    if (Desktop::layerState()->layers().size() != 3)
         return {.success = false, .error = "Layers under test not here"};
 
-    for (const auto& layer : g_pCompositor->m_layers) {
+    for (const auto& layer : Desktop::layerState()->layers()) {
         if (layer->m_namespace == "rule-layer") {
 
             if (!layer->m_ruleApplicator->m_otherProps.props.contains(layerRuleIDX))
@@ -536,7 +536,7 @@ static SDispatchResult checkPointerFocusLayer(std::string in) {
 }
 
 static SDispatchResult setPointerFocusLayer(std::string in) {
-    for (const auto& layer : g_pCompositor->m_layers) {
+    for (const auto& layer : Desktop::layerState()->layers()) {
         if (layer->m_namespace != in)
             continue;
 
@@ -555,7 +555,7 @@ static SDispatchResult setPointerFocusLayer(std::string in) {
 }
 
 static SDispatchResult softFocusWindowByClass(std::string in) {
-    for (const auto& window : g_pCompositor->m_windows) {
+    for (const auto& window : Desktop::windowState()->windows()) {
         if (window->m_class != in)
             continue;
 

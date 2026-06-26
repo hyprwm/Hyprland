@@ -9,6 +9,10 @@
 #include "managers/KeybindManager.hpp"
 #include "managers/SessionLockManager.hpp"
 #include "desktop/view/Window.hpp"
+#include "desktop/state/FadingOutState.hpp"
+#include "desktop/state/LayerState.hpp"
+#include "desktop/state/OtherViewState.hpp"
+#include "desktop/state/WindowState.hpp"
 #include "helpers/cm/ColorManagement.hpp"
 
 #include <aquamarine/backend/Backend.hpp>
@@ -39,42 +43,35 @@ class CCompositor {
         bool syncObjSupport = false;
     } m_drmRenderNode;
 
-    bool                                  m_initialized = false;
-    bool                                  m_safeMode    = false;
-    SP<Aquamarine::CBackend>              m_aqBackend;
+    bool                     m_initialized = false;
+    bool                     m_safeMode    = false;
+    SP<Aquamarine::CBackend> m_aqBackend;
 
-    std::string                           m_hyprTempDataRoot = "";
+    std::string              m_hyprTempDataRoot = "";
 
-    std::string                           m_wlDisplaySocket   = "";
-    std::string                           m_instanceSignature = "";
-    std::string                           m_instancePath      = "";
-    std::string                           m_currentSplash     = "error";
+    std::string              m_wlDisplaySocket   = "";
+    std::string              m_instanceSignature = "";
+    std::string              m_instancePath      = "";
+    std::string              m_currentSplash     = "error";
 
-    std::vector<PHLWINDOW>                m_windows;
-    std::vector<PHLLS>                    m_layers;
-    std::vector<PHLWINDOWREF>             m_windowsFadingOut;
-    std::vector<PHLLSREF>                 m_surfacesFadingOut;
-    std::vector<SP<Desktop::View::IView>> m_otherViews;
+    void                     initServer(std::string socketName, int socketFd);
+    void                     startCompositor();
+    void                     stopCompositor();
+    void                     cleanup();
+    void                     bumpNofile();
+    void                     restoreNofile();
+    bool                     setWatchdogFd(int fd);
 
-    void                                  initServer(std::string socketName, int socketFd);
-    void                                  startCompositor();
-    void                                  stopCompositor();
-    void                                  cleanup();
-    void                                  bumpNofile();
-    void                                  restoreNofile();
-    bool                                  setWatchdogFd(int fd);
-
-    bool                                  m_sessionActive          = true;
-    bool                                  m_dpmsStateOn            = true;
-    bool                                  m_isShuttingDown         = false;
-    bool                                  m_finalRequests          = false;
-    bool                                  m_desktopEnvSet          = false;
-    bool                                  m_wantsXwayland          = true;
-    bool                                  m_onlyConfigVerification = false;
+    bool                     m_sessionActive          = true;
+    bool                     m_dpmsStateOn            = true;
+    bool                     m_isShuttingDown         = false;
+    bool                     m_finalRequests          = false;
+    bool                     m_desktopEnvSet          = false;
+    bool                     m_wantsXwayland          = true;
+    bool                     m_onlyConfigVerification = false;
 
     // ------------------------------------------------- //
 
-    void                   removeWindowFromVectorSafe(PHLWINDOW);
     PHLWINDOW              vectorToWindowUnified(const Vector2D&, uint16_t properties, PHLWINDOW pIgnoreWindow = nullptr);
     SP<CWLSurfaceResource> vectorToLayerSurface(const Vector2D&, std::vector<PHLLSREF>*, Vector2D*, PHLLS*, bool aboveLockscreen = false);
     SP<CWLSurfaceResource> vectorToLayerPopupSurface(const Vector2D&, PHLMONITOR monitor, Vector2D*, PHLLS*);
@@ -104,9 +101,6 @@ class CCompositor {
     void                   setWindowFullscreenState(const PHLWINDOW PWINDOW, const Desktop::View::SFullscreenState state);
     void                   changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON);
     PHLWINDOW              getX11Parent(PHLWINDOW);
-    void                   addToFadingOutSafe(PHLLS);
-    void                   removeFromFadingOutSafe(PHLLS);
-    void                   addToFadingOutSafe(PHLWINDOW);
     PHLWINDOW              getWindowByRegex(const std::string&);
     void                   warpCursorTo(const Vector2D&, bool force = false);
     PHLLS                  getLayerSurfaceFromSurface(SP<CWLSurfaceResource>);

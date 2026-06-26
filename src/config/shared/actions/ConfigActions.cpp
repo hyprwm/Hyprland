@@ -49,7 +49,7 @@ static void updateRelativeCursorCoords() {
         return;
 
     if (Desktop::focusState()->window())
-        Desktop::focusState()->window()->m_relativeCursorCoordsOnLastWarp = g_pInputManager->getMouseCoordsInternal() - Desktop::focusState()->window()->m_position;
+        Desktop::focusState()->window()->m_relativeCursorCoordsOnLastWarp = g_pInputManager->getMouseCoordsInternal() - Desktop::focusState()->window()->layoutBox().pos();
 }
 
 static void switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool forceFSCycle = false) {
@@ -392,10 +392,12 @@ ActionResult Actions::moveFocus(Math::eDirection dir) {
     if (!PMONITOR)
         return actionError("Window has no monitor", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
+    const auto LASTWINDOWBOX = PLASTWINDOW->layoutBox();
+
     if (dir == Math::DIRECTION_LEFT || dir == Math::DIRECTION_RIGHT) {
-        if (STICKS(PLASTWINDOW->m_position.x, PMONITOR->m_position.x) && STICKS(PLASTWINDOW->m_size.x, PMONITOR->m_size.x))
+        if (STICKS(LASTWINDOWBOX.x, PMONITOR->m_position.x) && STICKS(LASTWINDOWBOX.w, PMONITOR->m_size.x))
             return {};
-    } else if (STICKS(PLASTWINDOW->m_position.y, PMONITOR->m_position.y) && STICKS(PLASTWINDOW->m_size.y, PMONITOR->m_size.y))
+    } else if (STICKS(LASTWINDOWBOX.y, PMONITOR->m_position.y) && STICKS(LASTWINDOWBOX.h, PMONITOR->m_size.y))
         return {};
 
     CBox box = PMONITOR->logicalBox();

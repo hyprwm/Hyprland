@@ -82,8 +82,8 @@ void CMasterAlgorithm::addTarget(SP<ITarget> target, bool firstMap) {
     float        lastSplitPercent   = *PMFACT;
 
     auto         OPENINGON = isWindowTiled(Desktop::focusState()->window()) && Desktop::focusState()->window()->m_workspace == PWORKSPACE ?
-        getNodeFromWindow(Desktop::focusState()->window()) :
-        getMasterNode();
+                getNodeFromWindow(Desktop::focusState()->window()) :
+                getMasterNode();
 
     const auto   MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
     eOrientation orientation = getDynamicOrientation();

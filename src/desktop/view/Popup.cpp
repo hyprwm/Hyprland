@@ -24,6 +24,7 @@ SP<CPopup> CPopup::create(PHLWINDOW pOwner) {
     popup->m_windowOwner = pOwner;
     popup->m_self        = popup;
     popup->initAllSignals();
+    popup->initView(popup, VIEW_TYPE_POPUP);
     return popup;
 }
 
@@ -32,6 +33,7 @@ SP<CPopup> CPopup::create(PHLLS pOwner) {
     popup->m_layerOwner = pOwner;
     popup->m_self       = popup;
     popup->initAllSignals();
+    popup->initView(popup, VIEW_TYPE_POPUP);
     return popup;
 }
 
@@ -48,6 +50,7 @@ SP<CPopup> CPopup::create(SP<CXDGPopupResource> resource, WP<CPopup> pOwner) {
     popup->reposition();
 
     popup->initAllSignals();
+    popup->initView(popup, VIEW_TYPE_POPUP);
     return popup;
 }
 
@@ -97,7 +100,19 @@ std::optional<CBox> CPopup::surfaceLogicalBox() const {
     if (!visible())
         return std::nullopt;
 
-    return CBox{coordsGlobal(), size()};
+    return geometricBox(GEOMETRIC_CURRENT);
+}
+
+Vector2D CPopup::position(eGeometricValueType) const {
+    return coordsGlobal();
+}
+
+Vector2D CPopup::size(eGeometricValueType) const {
+    return size();
+}
+
+CBox CPopup::geometricBox(eGeometricValueType t) const {
+    return {position(t), size(t)};
 }
 
 bool CPopup::desktopComponent() const {

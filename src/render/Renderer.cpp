@@ -333,8 +333,8 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
 
     // pre-filter renderable windows once for the tiled + floating passes
     std::vector<PHLWINDOW> windows;
-    windows.reserve(g_pCompositor->m_windows.size());
-    for (auto const& w : g_pCompositor->m_windows) {
+    windows.reserve(Desktop::windowState()->windows().size());
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (!shouldRenderWindow(w, pMonitor))
             continue;
 
@@ -376,7 +376,7 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
     }
 
     // TODO: this pass sucks
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         const auto PWORKSPACE = w->m_workspace;
 
         if (w->m_workspace != pWorkspace || !w->isFullscreen()) {
@@ -409,7 +409,7 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
     }
 
     // then render windows over fullscreen.
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         const bool shouldSkipWindow =
             w->workspaceID() != pWorkspaceWindow->workspaceID() || !w->m_isFloating || !w->shouldRenderOverFullscreen() || (!w->m_isMapped && !w->m_fadingOut) || w->isFullscreen();
 
@@ -436,9 +436,9 @@ void IHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
     Event::bus()->m_events.render.stage.emit(RENDER_PRE_WINDOWS);
 
     std::vector<PHLWINDOWREF> windows, tiledFadingOut;
-    windows.reserve(g_pCompositor->m_windows.size());
+    windows.reserve(Desktop::windowState()->windows().size());
 
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         const bool isNotRenderable = w->isHidden() || (!w->m_isMapped && !w->m_fadingOut);
 
         if (isNotRenderable)
@@ -1233,7 +1233,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     }
 
     // pinned always above
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (w->isHidden() && !w->m_isMapped && !w->m_fadingOut)
             continue;
 
@@ -1918,8 +1918,8 @@ SCMSettings IHyprRenderer::getCMSettings(const NColorManagement::PImageDescripti
     const bool  needsSDRmod     = modifySDR && isSDR2HDR(imageDescription->value(), targetImageDescription->value());
     const bool  needsHDRmod     = !needsSDRmod && isHDR2SDR(imageDescription->value(), targetImageDescription->value());
     const float maxLuminance    = needsHDRmod ?
-        imageDescription->value().getTFMaxLuminance(-1) :
-        (imageDescription->value().luminances.max > 0 ? imageDescription->value().luminances.max : imageDescription->value().luminances.reference);
+           imageDescription->value().getTFMaxLuminance(-1) :
+           (imageDescription->value().luminances.max > 0 ? imageDescription->value().luminances.max : imageDescription->value().luminances.reference);
     const auto  dstMaxLuminance = targetImageDescription->value().luminances.max > 0 ? targetImageDescription->value().luminances.max : 10000;
 
     auto        matrix = imageDescription->getPrimaries()->convertMatrix(targetImageDescription->getPrimaries());
@@ -1932,25 +1932,25 @@ SCMSettings IHyprRenderer::getCMSettings(const NColorManagement::PImageDescripti
     const bool needsTonemap = maxLuminance >= dstMaxLuminance * 1.01;
 
     auto       result = SCMSettings{
-        .sourceTF        = srcTF,
-        .targetTF        = targetImageDescription->value().transferFunction,
-        .srcTFRange      = {.min = imageDescription->value().getTFMinLuminance(needsSDRmod ? sdrMinLuminance : -1),
-                            .max = imageDescription->value().getTFMaxLuminance(needsSDRmod ? sdrMaxLuminance : -1)},
-        .dstTFRange      = {.min = targetImageDescription->value().getTFMinLuminance(needsSDRmod ? sdrMinLuminance : -1),
-                            .max = targetImageDescription->value().getTFMaxLuminance(needsSDRmod ? sdrMaxLuminance : -1)},
-        .srcRefLuminance = imageDescription->value().luminances.reference,
-        .dstRefLuminance = targetImageDescription->value().luminances.reference,
-        .convertMatrix   = matrix.mat(),
+              .sourceTF        = srcTF,
+              .targetTF        = targetImageDescription->value().transferFunction,
+              .srcTFRange      = {.min = imageDescription->value().getTFMinLuminance(needsSDRmod ? sdrMinLuminance : -1),
+                                  .max = imageDescription->value().getTFMaxLuminance(needsSDRmod ? sdrMaxLuminance : -1)},
+              .dstTFRange      = {.min = targetImageDescription->value().getTFMinLuminance(needsSDRmod ? sdrMinLuminance : -1),
+                                  .max = targetImageDescription->value().getTFMaxLuminance(needsSDRmod ? sdrMaxLuminance : -1)},
+              .srcRefLuminance = imageDescription->value().luminances.reference,
+              .dstRefLuminance = targetImageDescription->value().luminances.reference,
+              .convertMatrix   = matrix.mat(),
 
-        .needsTonemap            = tonemapMode != 0 && needsTonemap,
-        .tonemapMode             = tonemapMode,
-        .maxLuminance            = needsTonemap && tonemapMode == 2 ? dstMaxLuminance :
-                                                                      maxLuminance * targetImageDescription->value().luminances.reference / imageDescription->value().luminances.reference,
-        .dstMaxLuminance         = dstMaxLuminance,
-        .dstPrimaries2XYZ        = toXYZ.mat(),
-        .needsSDRmod             = needsMod,
-        .sdrSaturation           = needsSDRmod && m_renderData.pMonitor->m_sdrSaturation > 0 ? m_renderData.pMonitor->m_sdrSaturation : 1.0f,
-        .sdrBrightnessMultiplier = needsSDRmod && m_renderData.pMonitor->m_sdrBrightness > 0 ? m_renderData.pMonitor->m_sdrBrightness : 1.0f,
+              .needsTonemap            = tonemapMode != 0 && needsTonemap,
+              .tonemapMode             = tonemapMode,
+              .maxLuminance            = needsTonemap && tonemapMode == 2 ? dstMaxLuminance :
+                                                                            maxLuminance * targetImageDescription->value().luminances.reference / imageDescription->value().luminances.reference,
+              .dstMaxLuminance         = dstMaxLuminance,
+              .dstPrimaries2XYZ        = toXYZ.mat(),
+              .needsSDRmod             = needsMod,
+              .sdrSaturation           = needsSDRmod && m_renderData.pMonitor->m_sdrSaturation > 0 ? m_renderData.pMonitor->m_sdrSaturation : 1.0f,
+              .sdrBrightnessMultiplier = needsSDRmod && m_renderData.pMonitor->m_sdrBrightness > 0 ? m_renderData.pMonitor->m_sdrBrightness : 1.0f,
     };
 
     m_cmSettingsCache.push_back({
@@ -2086,7 +2086,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     pMonitor->m_renderingActive = true;
 
     // Most frames have no fading-out windows or layers for this monitor.
-    if (!g_pCompositor->m_windowsFadingOut.empty() || !g_pCompositor->m_surfacesFadingOut.empty())
+    if (!Desktop::fadingOutState()->windows().empty() || !Desktop::fadingOutState()->layers().empty())
         g_pCompositor->cleanupFadingOut(pMonitor->m_id);
 
     // TODO: this is getting called with extents being 0,0,0,0 should it be?
@@ -2274,30 +2274,30 @@ static hdr_output_metadata       createHDRMetadata(SImageDescription settings, P
 
     auto       colorimetry = settings.getPrimaries();
     auto       luminances  = settings.masteringLuminances.max > 0 ? settings.masteringLuminances :
-                                                                    (settings.luminances != SImageDescription::SPCLuminances{} ?
-                                                                         SImageDescription::SPCMasteringLuminances{.min = settings.luminances.min, .max = settings.luminances.max} :
-                                                                         SImageDescription::SPCMasteringLuminances{.min = monitor->minLuminance(), .max = monitor->maxLuminance(10000)});
+                                                                          (settings.luminances != SImageDescription::SPCLuminances{} ?
+                                                                               SImageDescription::SPCMasteringLuminances{.min = settings.luminances.min, .max = settings.luminances.max} :
+                                                                               SImageDescription::SPCMasteringLuminances{.min = monitor->minLuminance(), .max = monitor->maxLuminance(10000)});
 
     Log::logger->log(Log::TRACE, "ColorManagement primaries {},{} {},{} {},{} {},{}", colorimetry.red.x, colorimetry.red.y, colorimetry.green.x, colorimetry.green.y,
-                     colorimetry.blue.x, colorimetry.blue.y, colorimetry.white.x, colorimetry.white.y);
+                           colorimetry.blue.x, colorimetry.blue.y, colorimetry.white.x, colorimetry.white.y);
     Log::logger->log(Log::TRACE, "ColorManagement min {}, max {}, cll {}, fall {}", luminances.min, luminances.max, settings.maxCLL, settings.maxFALL);
     return hdr_output_metadata{
-        .metadata_type = 0,
-        .hdmi_metadata_type1 =
+              .metadata_type = 0,
+              .hdmi_metadata_type1 =
             hdr_metadata_infoframe{
-                .eotf          = eotf,
-                .metadata_type = 0,
-                .display_primaries =
-                    {
+                      .eotf          = eotf,
+                      .metadata_type = 0,
+                      .display_primaries =
+                          {
                         {.x = to16Bit(colorimetry.red.x), .y = to16Bit(colorimetry.red.y)},
                         {.x = to16Bit(colorimetry.green.x), .y = to16Bit(colorimetry.green.y)},
                         {.x = to16Bit(colorimetry.blue.x), .y = to16Bit(colorimetry.blue.y)},
                     },
-                .white_point                     = {.x = to16Bit(colorimetry.white.x), .y = to16Bit(colorimetry.white.y)},
-                .max_display_mastering_luminance = toNits(luminances.max),
-                .min_display_mastering_luminance = toNits(luminances.min * 10000),
-                .max_cll                         = toNits(settings.maxCLL > 0 ? settings.maxCLL : monitor->maxCLL()),
-                .max_fall                        = toNits(settings.maxFALL > 0 ? settings.maxFALL : monitor->maxFALL()),
+                      .white_point                     = {.x = to16Bit(colorimetry.white.x), .y = to16Bit(colorimetry.white.y)},
+                      .max_display_mastering_luminance = toNits(luminances.max),
+                      .min_display_mastering_luminance = toNits(luminances.min * 10000),
+                      .max_cll                         = toNits(settings.maxCLL > 0 ? settings.maxCLL : monitor->maxCLL()),
+                      .max_fall                        = toNits(settings.maxFALL > 0 ? settings.maxFALL : monitor->maxFALL()),
             },
     };
 }

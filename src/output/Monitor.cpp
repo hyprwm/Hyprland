@@ -1465,7 +1465,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
         g_pDesktopAnimationManager->startAnimation(pWorkspace, CDesktopAnimationManager::ANIMATION_TYPE_IN, ANIMTOLEFT, false, ANIMSTYLE);
 
         // move pinned windows
-        for (auto const& w : g_pCompositor->m_windows) {
+        for (auto const& w : Desktop::windowState()->windows()) {
             if (w->m_workspace == POLDWORKSPACE && w->m_pinned)
                 w->layoutTarget()->assignToSpace(pWorkspace->m_space);
         }
@@ -1498,7 +1498,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
     }
 
     // set all LSes as not above fullscreen on workspace changes
-    for (auto const& ls : g_pCompositor->m_layers) {
+    for (auto const& ls : Desktop::layerState()->layers()) {
         if (ls->m_monitor == m_self)
             ls->m_aboveFullscreen = false;
     }
@@ -1543,7 +1543,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
             g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", ",," + m_name});
 
             // Reset layer surface state when closing special workspace
-            for (auto const& ls : g_pCompositor->m_layers) {
+            for (auto const& ls : Desktop::layerState()->layers()) {
                 if (ls->m_monitor == m_self)
                     ls->m_aboveFullscreen = false;
             }
@@ -1591,7 +1591,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", ",," + PMONITOR->m_name});
 
         // Reset layer surfaces on the old monitor when special workspace is stolen
-        for (auto const& ls : g_pCompositor->m_layers) {
+        for (auto const& ls : Desktop::layerState()->layers()) {
             if (ls->m_monitor == PMONITOR)
                 ls->m_aboveFullscreen = false;
         }
@@ -1609,7 +1609,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     m_activeSpecialWorkspace->m_visible = true;
 
     // Reset layer surface state when opening special workspace
-    for (auto const& ls : g_pCompositor->m_layers) {
+    for (auto const& ls : Desktop::layerState()->layers()) {
         if (ls->m_monitor == m_self)
             ls->m_aboveFullscreen = false;
     }
@@ -1626,7 +1626,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     if (!wasActive)
         g_pDesktopAnimationManager->startAnimation(pWorkspace, CDesktopAnimationManager::ANIMATION_TYPE_IN, true);
 
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace == pWorkspace) {
             w->m_monitor = m_self;
             w->updateSurfaceScaleTransformDetails();
@@ -1690,7 +1690,7 @@ void CMonitor::moveTo(const Vector2D& pos) {
 
     const auto DELTA = pos - OLD_POSITION;
 
-    for (const auto& w : g_pCompositor->m_windows) {
+    for (const auto& w : Desktop::windowState()->windows()) {
         if (!validMapped(w) || !w->m_isFloating || w->m_monitor != m_self)
             continue;
 
@@ -1849,7 +1849,7 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
         }
     }
 
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (w == PCANDIDATE || (!w->m_isMapped && !w->m_fadingOut) || !w->visible())
             continue;
 
@@ -1940,7 +1940,7 @@ uint8_t CMonitor::isTearingBlocked(bool full) {
 }
 
 void CMonitor::updateSurfaceScaleTransformDetails() {
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_monitor == m_self)
             w->updateSurfaceScaleTransformDetails();
     }

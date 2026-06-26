@@ -171,7 +171,7 @@ void CMonitorRuleManager::ensureMonitorStatus() {
             m->m_activeMonitorRule.m_disabled ? m->onDisconnect() : m->onConnect(true);
     }
 
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         w->updateSurfaceScaleTransformDetails();
     }
 

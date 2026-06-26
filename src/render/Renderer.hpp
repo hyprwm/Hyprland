@@ -142,12 +142,12 @@ namespace Render {
         CHyprColor      getConvertedColor(const CHyprColor& color);
 
         virtual SP<IRenderbuffer>    getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer,
-                                                             uint32_t                fmt); // TODO? move to protected and fix CPointerManager::renderHWCursorBuffer
-        bool                         commitPendingAndDoExplicitSync(PHLMONITOR pMonitor);  // TODO? move to protected and fix CMonitorFrameScheduler::onPresented
-        SRenderData                  m_renderData;                                         // TODO? move to protected and fix CRenderPass
-        SP<ITexture>                 m_screencopyDeniedTexture;                            // TODO? make readonly
-        uint                         m_failedAssetsNo     = 0;                             // TODO? make readonly
-        bool                         m_reloadScreenShader = true;                          // at launch it can be set
+                                                             uint32_t                fmt);               // TODO? move to protected and fix CPointerManager::renderHWCursorBuffer
+        bool                         commitPendingAndDoExplicitSync(PHLMONITOR pMonitor); // TODO? move to protected and fix CMonitorFrameScheduler::onPresented
+        SRenderData                  m_renderData;                                        // TODO? move to protected and fix CRenderPass
+        SP<ITexture>                 m_screencopyDeniedTexture;                           // TODO? make readonly
+        uint                         m_failedAssetsNo     = 0;                            // TODO? make readonly
+        bool                         m_reloadScreenShader = true;                         // at launch it can be set
         CTimer                       m_globalTimer;
 
         void                         draw(WP<IPassElement> element, const CRegion& damage = {});

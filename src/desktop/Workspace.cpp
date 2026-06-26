@@ -410,7 +410,7 @@ MONITORID CWorkspace::monitorID() {
 }
 
 PHLWINDOW CWorkspace::getFullscreenWindow(bool includeLayoutHandledFullscreen) {
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace == m_self && w->isFullscreen()) { // isFullscreen algo gets layout managed fullscreens
             if (!includeLayoutHandledFullscreen && w->m_target->layoutManagedFullscreen())
                 continue;
@@ -490,7 +490,7 @@ int CWorkspace::getGroups(std::optional<bool> onlyTiled, std::optional<bool> onl
 }
 
 PHLWINDOW CWorkspace::getFirstWindow() {
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace == m_self && w->m_isMapped && w->acceptsInput())
             return w;
     }
@@ -501,7 +501,7 @@ PHLWINDOW CWorkspace::getFirstWindow() {
 PHLWINDOW CWorkspace::getTopLeftWindow() {
     const auto PMONITOR = m_monitor.lock();
 
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace != m_self || !w->m_isMapped || !w->acceptsInput())
             continue;
 
@@ -514,11 +514,11 @@ PHLWINDOW CWorkspace::getTopLeftWindow() {
 }
 
 bool CWorkspace::hasUrgentWindow() {
-    return std::ranges::any_of(g_pCompositor->m_windows, [this](const auto& w) { return w->m_workspace == m_self && w->m_isMapped && w->m_isUrgent; });
+    return std::ranges::any_of(Desktop::windowState()->windows(), [this](const auto& w) { return w->m_workspace == m_self && w->m_isMapped && w->m_isUrgent; });
 }
 
 void CWorkspace::updateWindowDecos() {
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace != m_self)
             continue;
 
@@ -529,7 +529,7 @@ void CWorkspace::updateWindowDecos() {
 void CWorkspace::updateWindowData() {
     const auto WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(m_self.lock());
 
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace != m_self)
             continue;
 
@@ -538,7 +538,7 @@ void CWorkspace::updateWindowData() {
 }
 
 void CWorkspace::forceReportSizesToWindows() {
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace != m_self || !w->m_isMapped || w->isHidden())
             continue;
 
@@ -595,11 +595,11 @@ bool CWorkspace::isPersistent() {
 
 void CWorkspace::setNoMembersAboveFullscreen() {
     // make all windows and layers on the same workspace under the fullscreen window
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace == m_self && !w->isFullscreen() && !w->m_fadingOut && !w->m_pinned)
             w->m_createdOverFullscreen = false;
     }
-    for (auto const& ls : g_pCompositor->m_layers) {
+    for (auto const& ls : Desktop::layerState()->layers()) {
         if (ls->m_monitor == m_monitor)
             ls->m_aboveFullscreen = false;
     }

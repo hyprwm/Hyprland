@@ -71,7 +71,7 @@ static void pushWindowsMatchingQuery(lua_State* L, const SWindowQuery& query) {
     lua_newtable(L);
 
     int i = 1;
-    for (const auto& w : g_pCompositor->m_windows) {
+    for (const auto& w : Desktop::windowState()->windows()) {
         if (!windowMatchesQuery(w, query))
             continue;
 

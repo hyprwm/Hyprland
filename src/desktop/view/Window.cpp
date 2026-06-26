@@ -116,6 +116,9 @@ PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
 
     pWindow->m_target = Layout::CWindowTarget::create(pWindow);
 
+    pWindow->initView(pWindow, VIEW_TYPE_WINDOW);
+    Event::bus()->m_events.window.create.emit(pWindow);
+
     return pWindow;
 }
 
@@ -155,6 +158,9 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
     pWindow->m_target = Layout::CWindowTarget::create(pWindow);
 
     pWindow->wlSurface()->assign(pWindow->m_xdgSurface->m_surface.lock(), pWindow);
+
+    pWindow->initView(pWindow, VIEW_TYPE_WINDOW);
+    Event::bus()->m_events.window.create.emit(pWindow);
 
     return pWindow;
 }
@@ -196,6 +202,7 @@ CWindow::~CWindow() {
         Desktop::focusState()->window().reset();
     }
 
+    Event::bus()->m_events.window.destroy.emit(m_self);
     m_events.destroy.emit();
 }
 
@@ -269,20 +276,33 @@ CBox CWindow::getFullWindowBoundingBox() const {
 
     auto maxExtents = getFullWindowExtents();
 
-    CBox finalBox = {m_realPosition->value().x - maxExtents.topLeft.x, m_realPosition->value().y - maxExtents.topLeft.y,
-                     m_realSize->value().x + maxExtents.topLeft.x + maxExtents.bottomRight.x, m_realSize->value().y + maxExtents.topLeft.y + maxExtents.bottomRight.y};
+    CBox finalBox = geometricBox(GEOMETRIC_CURRENT);
+    finalBox.addExtents(maxExtents);
 
     return finalBox;
+}
+
+bool CWindow::operator==(const CWindow& rhs) const {
+    return m_xdgSurface == rhs.m_xdgSurface && m_xwaylandSurface == rhs.m_xwaylandSurface && layoutBox() == rhs.layoutBox() && m_fadingOut == rhs.m_fadingOut;
+}
+
+CBox CWindow::layoutBox() const {
+    if (!m_target)
+        return {};
+
+    return m_target->position();
 }
 
 CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
     const auto PMONITOR = m_monitor.lock();
 
-    if (!PMONITOR || !m_workspace)
-        return {m_position, m_size};
+    const auto LAYOUTBOX = layoutBox();
 
-    auto POS  = m_position;
-    auto SIZE = m_size;
+    if (!PMONITOR || !m_workspace)
+        return LAYOUTBOX;
+
+    auto POS  = LAYOUTBOX.pos();
+    auto SIZE = LAYOUTBOX.size();
 
     if (isFullscreen() && (!layoutTarget() || !layoutTarget()->layoutManagedFullscreen())) {
         POS  = PMONITOR->m_position;
@@ -336,10 +356,7 @@ CBox CWindow::getWindowBoxUnified(uint64_t properties) {
             return {PMONITOR->m_position.x, PMONITOR->m_position.y, PMONITOR->m_size.x, PMONITOR->m_size.y};
     }
 
-    const auto POS  = m_realPosition->value();
-    const auto SIZE = m_realSize->value();
-
-    CBox       box{POS, SIZE};
+    CBox box = geometricBox(GEOMETRIC_CURRENT);
     box.addExtents(getWindowExtentsUnified(properties));
 
     return box;
@@ -582,7 +599,7 @@ PHLWINDOW CWindow::x11TransientFor() {
     if (s == m_xwaylandSurface)
         return nullptr; // dead-ass circle
 
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_xwaylandSurface != s)
             continue;
         return w;
@@ -1540,11 +1557,7 @@ void CWindow::onX11ConfigureRequest(CBox box) {
     else
         setHidden(true);
 
-    m_realPosition->setValueAndWarp(xwaylandPositionToReal(box.pos()));
-    m_realSize->setValueAndWarp(xwaylandSizeToReal(box.size()));
-
-    m_position = m_realPosition->goal();
-    m_size     = m_realSize->goal();
+    layoutTarget()->setPositionGlobal(CBox{xwaylandPositionToReal(box.pos()), xwaylandSizeToReal(box.size())});
 
     if (m_pendingReportedSize != box.size() || m_reportedPosition != box.pos()) {
         m_xwaylandSurface->configure(box);
@@ -1588,8 +1601,10 @@ void CWindow::warpCursor(bool force) {
     const auto  coords                 = m_relativeCursorCoordsOnLastWarp;
     m_relativeCursorCoordsOnLastWarp.x = -1; // reset m_vRelativeCursorCoordsOnLastWarp
 
-    if (*PERSISTENTWARPS && coords.x > 0 && coords.y > 0 && coords < m_size) // don't warp cursor outside the window
-        g_pCompositor->warpCursorTo(m_position + coords, force);
+    const auto BOX = layoutBox();
+
+    if (*PERSISTENTWARPS && coords.x > 0 && coords.y > 0 && coords < BOX.size()) // don't warp cursor outside the window
+        g_pCompositor->warpCursorTo(BOX.pos() + coords, force);
     else
         g_pCompositor->warpCursorTo(middle(), force);
 }
@@ -1612,7 +1627,7 @@ PHLWINDOW CWindow::getSwallowee() {
         if (!currentPid)
             break;
 
-        for (auto const& w : g_pCompositor->m_windows) {
+        for (auto const& w : Desktop::windowState()->windows()) {
             if (!w->m_isMapped || !w->acceptsInput())
                 continue;
 
@@ -2171,8 +2186,8 @@ void CWindow::mapWindow() {
 
         if (m_ruleApplicator->static_.fullscreenStateClient || m_ruleApplicator->static_.fullscreenStateInternal) {
             requestedFSState = Desktop::View::SFullscreenState{
-                .internal = sc<eFullscreenMode>(m_ruleApplicator->static_.fullscreenStateInternal.value_or(0)),
-                .client   = sc<eFullscreenMode>(m_ruleApplicator->static_.fullscreenStateClient.value_or(0)),
+                     .internal = sc<eFullscreenMode>(m_ruleApplicator->static_.fullscreenStateInternal.value_or(0)),
+                     .client   = sc<eFullscreenMode>(m_ruleApplicator->static_.fullscreenStateClient.value_or(0)),
             };
         }
 
@@ -2666,7 +2681,7 @@ void CWindow::unmapWindow() {
 
     m_fadingOut = true;
 
-    g_pCompositor->addToFadingOutSafe(m_self.lock());
+    Desktop::fadingOutState()->add(m_self.lock());
 
     if (!m_X11DoesntWantBorders)                                            // don't animate out if they weren't animated in.
         *m_realPosition = m_realPosition->value() + Vector2D(0.01f, 0.01f); // it has to be animated, otherwise CesktopAnimationManager will ignore it
@@ -2773,7 +2788,7 @@ void CWindow::destroyWindow() {
 
     if (!m_fadingOut) {
         Log::logger->log(Log::DEBUG, "Unmapped {} removed instantly", m_self.lock());
-        g_pCompositor->removeWindowFromVectorSafe(m_self.lock()); // most likely X11 unmanaged or sumn
+        Desktop::windowState()->removeSafe(m_self.lock()); // most likely X11 unmanaged or sumn
     }
 }
 
@@ -2830,13 +2845,7 @@ void CWindow::unmanagedSetGeometry() {
         Log::logger->log(Log::DEBUG, "Unmanaged window {} requests geometry update to {:j} {:j}", m_self.lock(), LOGICALPOS, m_xwaylandSurface->m_geometry.size());
 
         g_pHyprRenderer->damageWindow(m_self.lock());
-        m_realPosition->setValueAndWarp(Vector2D(LOGICALPOS.x, LOGICALPOS.y));
-
-        if (abs(std::floor(SIZ.x) - LOGICALGEOSIZE.x) > 2 || abs(std::floor(SIZ.y) - LOGICALGEOSIZE.y) > 2)
-            m_realSize->setValueAndWarp(LOGICALGEOSIZE);
-
-        m_position = m_realPosition->goal();
-        m_size     = m_realSize->goal();
+        layoutTarget()->setPositionGlobal(CBox{Vector2D(LOGICALPOS.x, LOGICALPOS.y), LOGICALGEOSIZE});
 
         m_workspace = State::monitorState()->query().vec(m_realPosition->value() + m_realSize->value() / 2.f).run()->m_activeWorkspace;
 

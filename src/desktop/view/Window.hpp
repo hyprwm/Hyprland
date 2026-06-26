@@ -21,6 +21,7 @@
 #include "../rule/windowRule/WindowRuleApplicator.hpp"
 #include "../../protocols/types/ContentType.hpp"
 #include "../../render/Framebuffer.hpp"
+#include "types/GeometricMovableAnimated.hpp"
 
 class CXDGSurfaceResource;
 class CXWaylandSurface;
@@ -112,7 +113,7 @@ namespace Desktop::View {
         eFullscreenMode client   = FSMODE_NONE;
     };
 
-    class CWindow : public IView {
+    class CWindow : public IView, public virtual CGeometricMovableAnimated {
       public:
         static PHLWINDOW create(SP<CXDGSurfaceResource>);
         static PHLWINDOW create(SP<CXWaylandSurface>);
@@ -131,6 +132,9 @@ namespace Desktop::View {
         virtual bool                desktopComponent() const;
         virtual std::optional<CBox> surfaceLogicalBox() const;
 
+        using CGeometricMovableAnimated::m_realPosition;
+        using CGeometricMovableAnimated::m_realSize;
+
         struct {
             CSignalT<> destroy;
             CSignalT<> unmap;
@@ -143,14 +147,6 @@ namespace Desktop::View {
         WP<CXWaylandSurface>    m_xwaylandSurface;
 
         SP<Layout::ITarget>     m_target;
-
-        // this is the position and size of the "bounding box"
-        Vector2D m_position = Vector2D(0, 0);
-        Vector2D m_size     = Vector2D(0, 0);
-
-        // this is the real position and size used to draw the thing
-        PHLANIMVAR<Vector2D> m_realPosition;
-        PHLANIMVAR<Vector2D> m_realSize;
 
         // for not spamming the protocols
         Vector2D                                     m_reportedPosition;
@@ -299,13 +295,11 @@ namespace Desktop::View {
         } m_layoutFlags;
 
         // For the list lookup
-        bool operator==(const CWindow& rhs) const {
-            return m_xdgSurface == rhs.m_xdgSurface && m_xwaylandSurface == rhs.m_xwaylandSurface && m_position == rhs.m_position && m_size == rhs.m_size &&
-                m_fadingOut == rhs.m_fadingOut;
-        }
+        bool operator==(const CWindow& rhs) const;
 
         // methods
         CBox                              getFullWindowBoundingBox() const;
+        CBox                              layoutBox() const;
         SBoxExtents                       getFullWindowExtents() const;
         CBox                              getWindowBoxUnified(uint64_t props);
         SBoxExtents                       getWindowExtentsUnified(uint64_t props);
@@ -418,7 +412,7 @@ namespace Desktop::View {
         void                              sendClose();
 
         CBox                              getWindowMainSurfaceBox() const {
-            return {m_realPosition->value().x, m_realPosition->value().y, m_realSize->value().x, m_realSize->value().y};
+            return geometricBox(GEOMETRIC_CURRENT);
         }
 
         // listeners

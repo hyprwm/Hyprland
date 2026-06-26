@@ -826,7 +826,7 @@ bool truthy(const std::string& str) {
 
     // clang-format off
     auto str_view = str | std::views::transform([](unsigned char ch) -> char {
-        return static_cast<char>(std::tolower(ch));
+        return sc<char>(std::tolower(ch));
     });
 
     return [&](auto&&... prefixes) -> bool {

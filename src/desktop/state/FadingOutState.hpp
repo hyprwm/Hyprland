@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../SharedDefs.hpp"
 #include "../../helpers/memory/Memory.hpp"
 #include "../DesktopTypes.hpp"
 
@@ -18,6 +19,7 @@ namespace Desktop {
         void                             add(PHLLS ls);
         void                             remove(PHLWINDOW w);
         void                             remove(PHLLS ls);
+        void                             cleanupForMonitor(const MONITORID& monid);
         void                             removeExpiredLayers();
         void                             clear();
 

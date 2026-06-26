@@ -522,7 +522,7 @@ static SDispatchResult checkPointerFocusLayer(std::string in) {
     const auto LAYER  = Desktop::View::CLayerSurface::fromView(VIEW);
 
     if (!LAYER) {
-        const auto WINDOW = g_pCompositor->getWindowFromSurface(POINTERSURF);
+        const auto WINDOW = Desktop::viewState()->query().type(Desktop::View::VIEW_TYPE_WINDOW).surface(POINTERSURF).runWindow();
         if (WINDOW)
             return {.success = false, .error = std::format("Pointer focus is a window surface with class '{}'", WINDOW->m_class)};
 

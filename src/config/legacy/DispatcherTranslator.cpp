@@ -44,7 +44,7 @@ static SDispatchResult wrap(ActionResult res) {
 static std::optional<PHLWINDOW> windowFromArg(const std::string& arg) {
     if (arg.empty() || arg == "active")
         return std::nullopt; // will use xtract(nullopt) -> focused window
-    return g_pCompositor->getWindowByRegex(arg);
+    return Desktop::viewState()->query().selector(arg).runWindow();
 }
 
 // helper: resolve workspace from string and optionally create it
@@ -82,11 +82,11 @@ static SDispatchResult forcekillactive(const std::string&) {
 }
 
 static SDispatchResult closewindow(const std::string& data) {
-    return wrap(Actions::closeWindow(g_pCompositor->getWindowByRegex(data)));
+    return wrap(Actions::closeWindow(Desktop::viewState()->query().selector(data).runWindow()));
 }
 
 static SDispatchResult killwindow(const std::string& data) {
-    return wrap(Actions::killWindow(g_pCompositor->getWindowByRegex(data)));
+    return wrap(Actions::killWindow(Desktop::viewState()->query().selector(data).runWindow()));
 }
 
 static SDispatchResult signalactive(const std::string& args) {
@@ -101,7 +101,7 @@ static SDispatchResult signalwindow(const std::string& args) {
     const auto WINDOWREGEX = args.substr(0, args.find_first_of(','));
     const auto SIGNAL      = args.substr(args.find_first_of(',') + 1);
 
-    const auto PWINDOW = g_pCompositor->getWindowByRegex(WINDOWREGEX);
+    const auto PWINDOW = Desktop::viewState()->query().selector(WINDOWREGEX).runWindow();
     if (!PWINDOW)
         return {.success = false, .error = "signalWindow: no window"};
 
@@ -209,7 +209,7 @@ static SDispatchResult movetoworkspace(const std::string& args) {
     std::string wsArgs  = args;
 
     if (args.contains(',')) {
-        PWINDOW = g_pCompositor->getWindowByRegex(args.substr(args.find_last_of(',') + 1));
+        PWINDOW = Desktop::viewState()->query().selector(args.substr(args.find_last_of(',') + 1)).runWindow();
         wsArgs  = args.substr(0, args.find_last_of(','));
     }
 
@@ -225,7 +225,7 @@ static SDispatchResult movetoworkspacesilent(const std::string& args) {
     std::string wsArgs  = args;
 
     if (args.contains(',')) {
-        PWINDOW = g_pCompositor->getWindowByRegex(args.substr(args.find_last_of(',') + 1));
+        PWINDOW = Desktop::viewState()->query().selector(args.substr(args.find_last_of(',') + 1)).runWindow();
         wsArgs  = args.substr(0, args.find_last_of(','));
     }
 
@@ -269,16 +269,16 @@ static SDispatchResult swapwindow(const std::string& args) {
     if (isDirection(args))
         return wrap(Actions::swapInDirection(Math::fromChar(args[0])));
 
-    // regex-based swap: resolve window and use swapInDirection? No - the old code used getWindowByRegex + switchTargets.
+    // regex-based swap: resolve window and use swapInDirection? No - the old code used selector lookup + switchTargets.
     // The new Actions don't have a "swap with specific window" variant.
-    // Fall through to the old swapActive logic via getWindowByRegex + layout switchTargets.
+    // Fall through to the old swapActive logic via selector lookup + layout switchTargets.
     const auto PLASTWINDOW = Desktop::focusState()->window();
     if (!PLASTWINDOW)
         return {.success = false, .error = "Window to swap with not found"};
     if (PLASTWINDOW->isFullscreen())
         return {.success = false, .error = "Can't swap fullscreen window"};
 
-    const auto PWINDOWTOCHANGETO = g_pCompositor->getWindowByRegex(args);
+    const auto PWINDOWTOCHANGETO = Desktop::viewState()->query().selector(args).runWindow();
     if (!PWINDOWTOCHANGETO || PWINDOWTOCHANGETO == PLASTWINDOW)
         return {.success = false, .error = std::format("Can't swap with {}, invalid window", args)};
 
@@ -447,7 +447,7 @@ static SDispatchResult movewindowpixel(const std::string& args) {
     const auto WINDOWREGEX = args.substr(args.find_first_of(',') + 1);
     const auto MOVECMD     = args.substr(0, args.find_first_of(','));
 
-    const auto PWINDOW = g_pCompositor->getWindowByRegex(WINDOWREGEX);
+    const auto PWINDOW = Desktop::viewState()->query().selector(WINDOWREGEX).runWindow();
     if (!PWINDOW)
         return {.success = false, .error = "moveWindow: no window"};
 
@@ -459,7 +459,7 @@ static SDispatchResult resizewindowpixel(const std::string& args) {
     const auto WINDOWREGEX = args.substr(args.find_first_of(',') + 1);
     const auto MOVECMD     = args.substr(0, args.find_first_of(','));
 
-    const auto PWINDOW = g_pCompositor->getWindowByRegex(WINDOWREGEX);
+    const auto PWINDOW = Desktop::viewState()->query().selector(WINDOWREGEX).runWindow();
     if (!PWINDOW)
         return {.success = false, .error = "resizeWindow: no window"};
 
@@ -491,7 +491,7 @@ static SDispatchResult cyclenext(const std::string& arg) {
 }
 
 static SDispatchResult focuswindow(const std::string& regexp) {
-    const auto PWINDOW = g_pCompositor->getWindowByRegex(regexp);
+    const auto PWINDOW = Desktop::viewState()->query().selector(regexp).runWindow();
     if (!PWINDOW)
         return {.success = false, .error = "No such window found"};
     return wrap(Actions::focus(PWINDOW));
@@ -504,7 +504,7 @@ static SDispatchResult tagwindow(const std::string& args) {
     if (vars.size() == 1)
         ; // use focused (nullptr)
     else if (vars.size() == 2)
-        PWINDOW = g_pCompositor->getWindowByRegex(std::string(vars[1]));
+        PWINDOW = Desktop::viewState()->query().selector(std::string(vars[1])).runWindow();
     else
         return {.success = false, .error = "Invalid number of arguments, expected 1 or 2"};
 
@@ -520,7 +520,7 @@ static SDispatchResult setsubmap(const std::string& submap) {
 }
 
 static SDispatchResult passDispatcher(const std::string& regexp) {
-    const auto PWINDOW = g_pCompositor->getWindowByRegex(regexp);
+    const auto PWINDOW = Desktop::viewState()->query().selector(regexp).runWindow();
     if (!PWINDOW)
         return {.success = false, .error = "pass: window not found"};
     return wrap(Actions::pass(PWINDOW));
@@ -578,7 +578,7 @@ static SDispatchResult sendshortcut(const std::string& args) {
         return {.success = false, .error = "sendshortcut: invalid key"};
 
     const std::string regexp  = std::string(ARGS[2]);
-    PHLWINDOW         PWINDOW = regexp.empty() ? nullptr : g_pCompositor->getWindowByRegex(regexp);
+    PHLWINDOW         PWINDOW = regexp.empty() ? nullptr : Desktop::viewState()->query().selector(regexp).runWindow();
 
     if (!regexp.empty() && !PWINDOW)
         return {.success = false, .error = "sendshortcut: window not found"};
@@ -682,7 +682,7 @@ static SDispatchResult alterzorder(const std::string& args) {
     const auto WINDOWREGEX = args.substr(args.find_first_of(',') + 1);
     const auto POSITION    = args.substr(0, args.find_first_of(','));
 
-    auto       PWINDOW = g_pCompositor->getWindowByRegex(WINDOWREGEX);
+    auto       PWINDOW = Desktop::viewState()->query().selector(WINDOWREGEX).runWindow();
     if (!PWINDOW && Desktop::focusState()->window() && Desktop::focusState()->window()->m_isFloating)
         PWINDOW = Desktop::focusState()->window();
 
@@ -735,7 +735,7 @@ static SDispatchResult moveintoorcreategroup(const std::string& args) {
 
 static SDispatchResult moveoutofgroup(const std::string& args) {
     if (args != "active" && args.length() > 1) {
-        auto PWINDOW = g_pCompositor->getWindowByRegex(args);
+        auto PWINDOW = Desktop::viewState()->query().selector(args).runWindow();
         return wrap(Actions::moveOutOfGroup(Math::DIRECTION_DEFAULT, PWINDOW));
     }
     return wrap(Actions::moveOutOfGroup(Math::DIRECTION_DEFAULT));
@@ -772,7 +772,7 @@ static SDispatchResult setprop(const std::string& args) {
     if (vars.size() < 3)
         return {.success = false, .error = "Not enough args"};
 
-    const auto PWINDOW = g_pCompositor->getWindowByRegex(std::string(vars[0]));
+    const auto PWINDOW = Desktop::viewState()->query().selector(std::string(vars[0])).runWindow();
     if (!PWINDOW)
         return {.success = false, .error = "Window not found"};
 

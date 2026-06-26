@@ -2087,7 +2087,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     // Most frames have no fading-out windows or layers for this monitor.
     if (!Desktop::fadingOutState()->windows().empty() || !Desktop::fadingOutState()->layers().empty())
-        g_pCompositor->cleanupFadingOut(pMonitor->m_id);
+        Desktop::fadingOutState()->cleanupForMonitor(pMonitor->m_id);
 
     // TODO: this is getting called with extents being 0,0,0,0 should it be?
     // potentially can save on resources.

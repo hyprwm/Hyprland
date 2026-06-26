@@ -81,7 +81,7 @@ void CDwindleAlgorithm::addTarget(SP<ITarget> target) {
 
     if ((PWORKSPACE == ACTIVE_MON->m_activeWorkspace || (PWORKSPACE->m_isSpecialWorkspace && PMONITOR->m_activeSpecialWorkspace)) && !*PUSEACTIVE) {
         OPENINGON = getNodeFromWindow(
-            g_pCompositor->vectorToWindowUnified(MOUSECOORDS, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::SKIP_FULLSCREEN_PRIORITY));
+            Desktop::viewState()->hitTest().windowAt(MOUSECOORDS, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::SKIP_FULLSCREEN_PRIORITY));
 
         if (!OPENINGON && g_pCompositor->isPointOnReservedArea(MOUSECOORDS, ACTIVE_MON))
             OPENINGON = getClosestNode(MOUSECOORDS);
@@ -685,7 +685,7 @@ Config::ErrorResult CDwindleAlgorithm::layoutMsg(const std::string_view& sv) {
     } else if (ARGS[0] == "movetoroot") {
         auto node = CURRENT_NODE;
         if (!ARGS[1].empty()) {
-            auto w = g_pCompositor->getWindowByRegex(std::string{ARGS[1]});
+            auto w = Desktop::viewState()->query().selector(std::string{ARGS[1]}).runWindow();
             if (w)
                 node = getNodeFromWindow(w);
         }

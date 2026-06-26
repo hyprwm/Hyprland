@@ -97,13 +97,13 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
             local                          = (TOUCH_COORDS - m_touchData.touchFocusWindow->m_realPosition->goal()) * m_touchData.touchFocusWindow->m_X11SurfaceScaledBy;
             m_touchData.touchSurfaceOrigin = m_touchData.touchFocusWindow->m_realPosition->goal();
         } else {
-            g_pCompositor->vectorWindowToSurface(TOUCH_COORDS, m_touchData.touchFocusWindow.lock(), local);
+            Desktop::viewState()->hitTest().windowSurfaceAt(TOUCH_COORDS, m_touchData.touchFocusWindow.lock(), local);
             m_touchData.touchSurfaceOrigin = TOUCH_COORDS - local;
         }
     } else if (!m_touchData.touchFocusLS.expired()) {
         PHLLS    foundSurf;
         Vector2D foundCoords;
-        auto     surf = g_pCompositor->vectorToLayerPopupSurface(TOUCH_COORDS, PMONITOR, &foundCoords, &foundSurf);
+        auto     surf = Desktop::viewState()->hitTest().layerPopupSurfaceAt(TOUCH_COORDS, PMONITOR, &foundCoords, &foundSurf);
         if (surf) {
             local                         = foundCoords;
             m_touchData.touchFocusSurface = surf;

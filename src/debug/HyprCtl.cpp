@@ -1452,7 +1452,7 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
     const auto WINREGEX = vars[1];
     const auto PROP     = vars[2];
 
-    const auto PWINDOW = g_pCompositor->getWindowByRegex(WINREGEX);
+    const auto PWINDOW = Desktop::viewState()->query().selector(WINREGEX).runWindow();
 
     if (!PWINDOW)
         return "window not found";
@@ -1716,7 +1716,7 @@ static std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string re
 
 static std::string decorationRequest(eHyprCtlOutputFormat format, std::string request) {
     CVarList   vars(request, 0, ' ');
-    const auto PWINDOW = g_pCompositor->getWindowByRegex(vars[1]);
+    const auto PWINDOW = Desktop::viewState()->query().selector(vars[1]).runWindow();
 
     if (!PWINDOW)
         return "none";

@@ -2413,8 +2413,8 @@ void CWindow::mapWindow() {
     }
 
     // check LS focus grab
-    const auto PFORCEFOCUS  = g_pCompositor->getForceFocus();
-    const auto PLSFROMFOCUS = g_pCompositor->getLayerSurfaceFromSurface(Desktop::focusState()->surface());
+    const auto PFORCEFOCUS  = Desktop::viewState()->query().forceFocus().runWindow();
+    const auto PLSFROMFOCUS = Desktop::viewState()->query().type(VIEW_TYPE_LAYER_SURFACE).surface(Desktop::focusState()->surface()).runLayer();
     if (PLSFROMFOCUS && PLSFROMFOCUS->m_layerSurface->m_current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE)
         m_noInitialFocus = true;
 
@@ -2642,8 +2642,8 @@ void CWindow::unmapWindow() {
 
         if (!candidate) {
             if (*FOCUSONCLOSE == 1)
-                candidate = (g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(),
-                                                                  Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING));
+                candidate = (Desktop::viewState()->hitTest().windowAt(g_pInputManager->getMouseCoordsInternal(),
+                                                                      Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING));
             else {
                 const auto CAND = g_layoutManager->getNextCandidate(m_workspace->m_space, layoutTarget());
                 if (CAND)

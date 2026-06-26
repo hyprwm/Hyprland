@@ -337,9 +337,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
         Desktop::focusState()->rawMonitorFocus(PMONITOR);
 
     // check for windows that have focus priority like our permission popups
-    pFoundWindow = g_pCompositor->vectorToWindowUnified(mouseCoords, Desktop::View::FOCUS_PRIORITY);
+    pFoundWindow = Desktop::viewState()->hitTest().windowAt(mouseCoords, Desktop::View::FOCUS_PRIORITY);
     if (pFoundWindow)
-        foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
+        foundSurface = Desktop::viewState()->hitTest().windowSurfaceAt(mouseCoords, pFoundWindow, surfaceCoords);
 
     if (!foundSurface && g_pSessionLockManager->isSessionLocked()) {
 
@@ -351,7 +351,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
         // search for interactable abovelock surfaces for pointer focus, or use session lock surface if not found
         for (auto& lsl : PMONITOR->m_layerSurfaceLayers | std::views::reverse) {
-            foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &lsl, &surfaceCoords, &pFoundLayerSurface, true);
+            foundSurface = Desktop::viewState()->hitTest().layerSurfaceAt(mouseCoords, &lsl, &surfaceCoords, &pFoundLayerSurface, true);
 
             if (foundSurface)
                 break;
@@ -377,7 +377,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     PHLWINDOW forcedFocus = m_forcedFocus.lock();
 
     if (!forcedFocus)
-        forcedFocus = g_pCompositor->getForceFocus();
+        forcedFocus = Desktop::viewState()->query().forceFocus().runWindow();
 
     if (forcedFocus && !foundSurface) {
         pFoundWindow = forcedFocus;
@@ -426,7 +426,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     // forced above all
     if (!g_pInputManager->m_exclusiveLSes.empty()) {
         if (!foundSurface)
-            foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &g_pInputManager->m_exclusiveLSes, &surfaceCoords, &pFoundLayerSurface);
+            foundSurface = Desktop::viewState()->hitTest().layerSurfaceAt(mouseCoords, &g_pInputManager->m_exclusiveLSes, &surfaceCoords, &pFoundLayerSurface);
 
         if (!foundSurface) {
             foundSurface = (*g_pInputManager->m_exclusiveLSes.begin())->wlSurface()->resource();
@@ -435,11 +435,12 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     }
 
     if (!foundSurface)
-        foundSurface = g_pCompositor->vectorToLayerPopupSurface(mouseCoords, PMONITOR, &surfaceCoords, &pFoundLayerSurface);
+        foundSurface = Desktop::viewState()->hitTest().layerPopupSurfaceAt(mouseCoords, PMONITOR, &surfaceCoords, &pFoundLayerSurface);
 
     // overlays are above fullscreen
     if (!foundSurface)
-        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &surfaceCoords, &pFoundLayerSurface);
+        foundSurface =
+            Desktop::viewState()->hitTest().layerSurfaceAt(mouseCoords, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &surfaceCoords, &pFoundLayerSurface);
 
     // also IME popups
     if (!foundSurface) {
@@ -452,7 +453,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
     // also top layers
     if (!foundSurface)
-        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords, &pFoundLayerSurface);
+        foundSurface =
+            Desktop::viewState()->hitTest().layerSurfaceAt(mouseCoords, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords, &pFoundLayerSurface);
 
     // then, we check if the workspace doesn't have a fullscreen window
     const auto PWORKSPACE = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
@@ -461,7 +463,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     PHLWINDOW  pWindowIdeal;
     const auto getWindowIdeal = [&]() -> const PHLWINDOW& {
         if (!windowIdealQueried) {
-            pWindowIdeal = g_pCompositor->vectorToWindowUnified(
+            pWindowIdeal = Desktop::viewState()->hitTest().windowAt(
                 mouseCoords, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING | Desktop::View::FOLLOW_MOUSE_CHECK);
             windowIdealQueried = true;
         }
@@ -495,7 +497,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
                 pFoundWindow = PWINDOWIDEAL;
 
             if (!pFoundWindow->m_isX11) {
-                foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
+                foundSurface = Desktop::viewState()->hitTest().windowSurfaceAt(mouseCoords, pFoundWindow, surfaceCoords);
                 surfacePos   = Vector2D(-1337, -1337);
             } else {
                 foundSurface = pFoundWindow->wlSurface()->resource();
@@ -519,8 +521,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
                 } else {
                     // if we have a maximized window, allow focusing on a bar or something if in reserved area.
                     if (g_pCompositor->isPointOnReservedArea(mouseCoords, PMONITOR)) {
-                        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM], &surfaceCoords,
-                                                                           &pFoundLayerSurface);
+                        foundSurface = Desktop::viewState()->hitTest().layerSurfaceAt(mouseCoords, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM],
+                                                                                      &surfaceCoords, &pFoundLayerSurface);
                     }
 
                     if (!foundSurface) {
@@ -542,7 +544,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
         if (pFoundWindow) {
             if (!pFoundWindow->m_isX11) {
-                foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
+                foundSurface = Desktop::viewState()->hitTest().windowSurfaceAt(mouseCoords, pFoundWindow, surfaceCoords);
                 if (!foundSurface) {
                     foundSurface = pFoundWindow->wlSurface()->resource();
                     surfacePos   = pFoundWindow->m_realPosition->value();
@@ -556,10 +558,12 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
     // then surfaces below
     if (!foundSurface)
-        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM], &surfaceCoords, &pFoundLayerSurface);
+        foundSurface =
+            Desktop::viewState()->hitTest().layerSurfaceAt(mouseCoords, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM], &surfaceCoords, &pFoundLayerSurface);
 
     if (!foundSurface)
-        foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND], &surfaceCoords, &pFoundLayerSurface);
+        foundSurface =
+            Desktop::viewState()->hitTest().layerSurfaceAt(mouseCoords, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND], &surfaceCoords, &pFoundLayerSurface);
 
     if (g_pPointerManager->softwareLockedFor(self) > 0 && !skipFrameSchedule) {
         if (const auto PMONITOR = Desktop::focusState()->monitor())
@@ -611,7 +615,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     bool allowKeyboardRefocus = true;
 
     if (!refocus && Desktop::focusState()->surface()) {
-        const auto PLS = g_pCompositor->getLayerSurfaceFromSurface(Desktop::focusState()->surface());
+        const auto PLS = Desktop::viewState()->query().type(Desktop::View::VIEW_TYPE_LAYER_SURFACE).surface(Desktop::focusState()->surface()).runLayer();
 
         if (PLS && PLS->m_layerSurface->m_current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE)
             allowKeyboardRefocus = false;
@@ -843,7 +847,7 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e, SP<I
         return;
 
     const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
-    const auto w           = g_pCompositor->vectorToWindowUnified(mouseCoords, Desktop::View::ALLOW_FLOATING | Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS);
+    const auto w           = Desktop::viewState()->hitTest().windowAt(mouseCoords, Desktop::View::ALLOW_FLOATING | Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS);
 
     if (w && !m_lastFocusOnLS && !g_pSessionLockManager->isSessionLocked() && w->checkInputOnDecos(INPUT_TYPE_BUTTON, mouseCoords, e))
         return;
@@ -913,7 +917,7 @@ void CInputManager::processMouseDownKill(const IPointer::SButtonEvent& e) {
     switch (e.state) {
         case WL_POINTER_BUTTON_STATE_PRESSED: {
             const auto PWINDOW =
-                g_pCompositor->vectorToWindowUnified(getMouseCoordsInternal(), Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
+                Desktop::viewState()->hitTest().windowAt(getMouseCoordsInternal(), Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
 
             if (!PWINDOW) {
                 Log::logger->log(Log::ERR, "Cannot kill invalid window!");
@@ -964,7 +968,7 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
 
     if (!m_lastFocusOnLS) {
         const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
-        const auto PWINDOW     = g_pCompositor->vectorToWindowUnified(MOUSECOORDS, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
+        const auto PWINDOW = Desktop::viewState()->hitTest().windowAt(MOUSECOORDS, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
 
         if (PWINDOW) {
             if (PWINDOW->checkInputOnDecos(INPUT_TYPE_AXIS, MOUSECOORDS, e))
@@ -989,7 +993,7 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
             }
 
             if (g_pSeatManager->m_state.pointerFocus) {
-                const auto PCURRWINDOW = g_pCompositor->getWindowFromSurface(g_pSeatManager->m_state.pointerFocus.lock());
+                const auto PCURRWINDOW = Desktop::viewState()->query().type(Desktop::View::VIEW_TYPE_WINDOW).surface(g_pSeatManager->m_state.pointerFocus.lock()).runWindow();
 
                 if (*PFOLLOWMOUSE == 1 && PCURRWINDOW && PWINDOW != PCURRWINDOW)
                     simulateMouseMovement();
@@ -1709,15 +1713,15 @@ bool CInputManager::refocusLastWindow(PHLMONITOR pMonitor) {
 
     // then any surfaces above windows on the same monitor
     if (!foundSurface) {
-        foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY],
-                                                           &surfaceCoords, &pFoundLayerSurface);
+        foundSurface = Desktop::viewState()->hitTest().layerSurfaceAt(g_pInputManager->getMouseCoordsInternal(), &pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY],
+                                                                      &surfaceCoords, &pFoundLayerSurface);
         if (pFoundLayerSurface && pFoundLayerSurface->m_interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND)
             foundSurface = nullptr;
     }
 
     if (!foundSurface) {
-        foundSurface = g_pCompositor->vectorToLayerSurface(g_pInputManager->getMouseCoordsInternal(), &pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP],
-                                                           &surfaceCoords, &pFoundLayerSurface);
+        foundSurface = Desktop::viewState()->hitTest().layerSurfaceAt(g_pInputManager->getMouseCoordsInternal(), &pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP],
+                                                                      &surfaceCoords, &pFoundLayerSurface);
         if (pFoundLayerSurface && pFoundLayerSurface->m_interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND)
             foundSurface = nullptr;
     }

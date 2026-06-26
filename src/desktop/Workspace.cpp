@@ -55,6 +55,11 @@ void CWorkspace::init(PHLWORKSPACE self) {
             m_lastFocusedWindow.reset();
     });
 
+    m_activeChangedHook = m_events.activeChanged.listen([this] {
+        if (const auto PMONITOR = m_monitor.lock(); PMONITOR)
+            PMONITOR->updateWorkspaceRuleBlur();
+    });
+
     m_space = Layout::CSpace::create(m_self.lock());
     m_space->setAlgorithmProvider(Layout::Supplementary::algoMatcher()->createAlgorithmForWorkspace(m_self.lock()));
 
@@ -535,6 +540,9 @@ void CWorkspace::updateWindowData() {
 
         w->updateWindowData(WORKSPACERULE.value_or(Config::CWorkspaceRule{}));
     }
+
+    if (const auto PMONITOR = m_monitor.lock(); PMONITOR)
+        PMONITOR->updateWorkspaceRuleBlur();
 }
 
 void CWorkspace::forceReportSizesToWindows() {
@@ -575,6 +583,9 @@ void CWorkspace::updateWindows() {
         if (t->window())
             t->window()->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ON_WORKSPACE);
     }
+
+    if (const auto PMONITOR = m_monitor.lock(); PMONITOR)
+        PMONITOR->updateWorkspaceRuleBlur();
 }
 
 void CWorkspace::setPersistent(bool persistent) {

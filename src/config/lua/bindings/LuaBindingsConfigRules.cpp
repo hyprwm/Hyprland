@@ -198,6 +198,8 @@ namespace {
          [](ILuaConfigValue* v, Config::CWorkspaceRule& r) { r.m_isDefault = *sc<const Config::BOOL*>(v->data()); }},
         {"persistent", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); },
          [](ILuaConfigValue* v, Config::CWorkspaceRule& r) { r.m_isPersistent = *sc<const Config::BOOL*>(v->data()); }},
+        {"blur", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); },
+         [](ILuaConfigValue* v, Config::CWorkspaceRule& r) { r.m_blur = *sc<const Config::BOOL*>(v->data()); }},
         {"gaps_in", []() -> ILuaConfigValue* { return new CLuaConfigCssGap(5); },
          [](ILuaConfigValue* v, Config::CWorkspaceRule& r) { r.m_gapsIn = *sc<const Config::CCssGapData*>(v->data()); }},
         {"gaps_out", []() -> ILuaConfigValue* { return new CLuaConfigCssGap(20); },

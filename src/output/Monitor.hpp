@@ -156,6 +156,9 @@ namespace Monitor {
         // for special fade/blur
         PHLANIMVAR<float> m_specialFade;
 
+        // for workspace rule background blur
+        PHLANIMVAR<float> m_workspaceRuleBlurAlpha;
+
         // for dpms off anim
         PHLANIMVAR<float> m_dpmsBlackOpacity;
         bool              m_pendingDpmsAnimation        = false;
@@ -270,6 +273,7 @@ namespace Monitor {
         void        changeWorkspace(const WORKSPACEID& id, bool internal = false, bool noMouseMove = false, bool noFocus = false);
         void        setSpecialWorkspace(const PHLWORKSPACE& pWorkspace);
         void        setSpecialWorkspace(const WORKSPACEID& id);
+        void        updateWorkspaceRuleBlur();
         WORKSPACEID activeWorkspaceID();
         WORKSPACEID activeSpecialWorkspaceID();
         void        scheduleDone();

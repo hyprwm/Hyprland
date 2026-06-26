@@ -880,6 +880,9 @@ void CWindow::onGlowAngleAnimEnd(WP<CBaseAnimatedVariable> pav) {
 void CWindow::setHidden(bool hidden) {
     m_hidden = hidden;
 
+    if (m_workspace)
+        m_workspace->updateWindows();
+
     if (hidden)
         m_events.hide.emit();
 

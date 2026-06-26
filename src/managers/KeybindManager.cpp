@@ -798,6 +798,8 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
 
             Config::Actions::state()->m_passPressed = sc<int>(pressed);
 
+            auto submapBefore = Config::Actions::state()->m_currentSubmap;
+
             // if the dispatchers says to pass event then we will
             if (k->handler == "mouse")
                 res = DISPATCHER->second((pressed ? "1" : "0") + k->arg);
@@ -810,8 +812,11 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
                 found = true; // don't process keybinds on submap change.
                 break;
             }
-            if (k->handler != "submap" && !k->submap.reset.empty()) // NOLINTNEXTLINE
-                Config::Actions::setSubmap(k->submap.reset);
+            if (k->handler != "submap" && !k->submap.reset.empty()) {
+                auto submapAfter = Config::Actions::state()->m_currentSubmap;
+                if (submapBefore == submapAfter)
+                    Config::Actions::setSubmap(k->submap.reset);
+            }
         }
 
         if (pressed && k->repeat) {

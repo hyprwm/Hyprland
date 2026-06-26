@@ -10,12 +10,15 @@
 #include <src/managers/SeatManager.hpp>
 #include <src/managers/input/trackpad/TrackpadGestures.hpp>
 #include <src/output/Monitor.hpp>
+#include <src/render/Renderer.hpp>
 #include <src/desktop/rule/windowRule/WindowRuleEffectContainer.hpp>
 #include <src/desktop/rule/layerRule/LayerRuleEffectContainer.hpp>
 #include <src/desktop/rule/windowRule/WindowRuleApplicator.hpp>
 #include <src/desktop/view/LayerSurface.hpp>
 #include <src/Compositor.hpp>
 #include <src/desktop/state/FocusState.hpp>
+#include <src/event/EventBus.hpp>
+#include <src/protocols/PresentationTime.hpp>
 #include <src/state/MonitorState.hpp>
 #include <src/layout/LayoutManager.hpp>
 #undef private
@@ -23,6 +26,7 @@
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/VarList.hpp>
+#include <map>
 using namespace Hyprutils::Utils;
 using namespace Hyprutils::String;
 
@@ -170,9 +174,15 @@ class CTestMouse : public IPointer {
     bool m_isVirtual = false;
 };
 
-SP<CTestMouse>         g_mouse;
-SP<CTestKeyboard>      g_keyboard;
-SP<CTestKeyboard>      g_keyboard2;
+SP<CTestMouse>    g_mouse;
+SP<CTestKeyboard> g_keyboard;
+SP<CTestKeyboard> g_keyboard2;
+
+struct SRenderStats {
+    std::map<std::string, uint64_t> windowRenders;
+};
+
+static SRenderStats    g_renderStats;
 
 static SDispatchResult pressAlt(std::string in) {
     g_pInputManager->m_lastMods = in == "1" ? HL_MODIFIER_ALT : 0;
@@ -584,6 +594,53 @@ static SDispatchResult floatingFocusOnFullscreen(std::string in) {
     return {};
 }
 
+static SDispatchResult resetRenderStats(std::string in) {
+    g_renderStats = {};
+    return {};
+}
+
+static SDispatchResult expectWindowRenderCountMax(std::string in) {
+    CVarList2 data(std::move(in));
+
+    if (data.size() < 2)
+        return {.success = false, .error = "invalid input"};
+
+    const std::string cls = std::string{data[0]};
+
+    uint64_t          max = 0;
+    try {
+        max = std::stoull(std::string{data[1]});
+    } catch (...) { return {.success = false, .error = "invalid input"}; }
+
+    const uint64_t count = g_renderStats.windowRenders.contains(cls) ? g_renderStats.windowRenders.at(cls) : 0;
+    if (count > max)
+        return {.success = false, .error = std::format("Expected at most {} renders for '{}', got {}", max, cls, count)};
+
+    return {};
+}
+
+static SDispatchResult expectPresentationPendingMax(std::string in) {
+    CVarList2 data(std::move(in));
+
+    if (data.size() < 2)
+        return {.success = false, .error = "invalid input"};
+
+    uint64_t maxFeedbacks = 0;
+    uint64_t maxQueued    = 0;
+    try {
+        maxFeedbacks = std::stoull(std::string{data[0]});
+        maxQueued    = std::stoull(std::string{data[1]});
+    } catch (...) { return {.success = false, .error = "invalid input"}; }
+
+    const uint64_t feedbacks = PROTO::presentation ? PROTO::presentation->m_feedbacks.size() : 0;
+    const uint64_t queued    = PROTO::presentation ? PROTO::presentation->m_queue.size() : 0;
+
+    if (feedbacks > maxFeedbacks || queued > maxQueued)
+        return {.success = false, .error = std::format("Expected presentation pending <= {}/{}, got {}/{}", maxFeedbacks, maxQueued, feedbacks, queued)};
+
+    return {};
+}
+
 static int luaResult(lua_State* L, const SDispatchResult& result) {
     if (result.success)
         return 0;
@@ -716,6 +773,22 @@ static int luaFloatingFocusOnFullscreen(lua_State* L) {
     return luaResult(L, ::floatingFocusOnFullscreen(""));
 }
 
+static int luaResetRenderStats(lua_State* L) {
+    return luaResult(L, ::resetRenderStats(""));
+}
+
+static int luaExpectWindowRenderCountMax(lua_State* L) {
+    const auto cls = std::string{luaL_checkstring(L, 1)};
+    const auto max = (int)luaL_checkinteger(L, 2);
+    return luaResult(L, ::expectWindowRenderCountMax(std::format("{},{}", cls, max)));
+}
+
+static int luaExpectPresentationPendingMax(lua_State* L) {
+    const auto feedbacks = (int)luaL_checkinteger(L, 1);
+    const auto queued    = (int)luaL_checkinteger(L, 2);
+    return luaResult(L, ::expectPresentationPendingMax(std::format("{},{}", feedbacks, queued)));
+}
+
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     PHANDLE = handle;
 
@@ -747,6 +820,20 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     addLuaFn("set_pointer_focus_layer", ::luaSetPointerFocusLayer);
     addLuaFn("window_soft_focus", ::luaSoftFocusWindowByClass);
     addLuaFn("floating_focus_on_fullscreen", ::luaFloatingFocusOnFullscreen);
+    addLuaFn("reset_render_stats", ::luaResetRenderStats);
+    addLuaFn("expect_window_render_count_max", ::luaExpectWindowRenderCountMax);
+    addLuaFn("expect_presentation_pending_max", ::luaExpectPresentationPendingMax);
+
+    static auto P = Event::bus()->m_events.render.stage.listen([](eRenderStage stage) {
+        if (stage != RENDER_PRE_WINDOW || !g_pHyprRenderer)
+            return;
+
+        const auto WINDOW = g_pHyprRenderer->m_renderData.currentWindow.lock();
+        if (!WINDOW)
+            return;
+
+        g_renderStats.windowRenders[WINDOW->m_class]++;
+    });
 
     // init mouse
     g_mouse = CTestMouse::create(false);

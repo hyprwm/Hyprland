@@ -50,7 +50,7 @@ CExtWorkspaceGroupResource::CExtWorkspaceGroupResource(WP<CExtWorkspaceManagerRe
 }
 
 bool CExtWorkspaceGroupResource::good() const {
-    return m_resource;
+    return !!m_resource;
 }
 
 WP<CExtWorkspaceGroupResource> CExtWorkspaceGroupResource::fromResource(wl_resource* resource) {
@@ -136,7 +136,7 @@ CExtWorkspaceResource::CExtWorkspaceResource(WP<CExtWorkspaceManagerResource> ma
 }
 
 bool CExtWorkspaceResource::good() const {
-    return m_resource;
+    return !!m_resource;
 }
 
 bool CExtWorkspaceResource::isActive() const {
@@ -248,7 +248,7 @@ void CExtWorkspaceManagerResource::init(WP<CExtWorkspaceManagerResource> self) {
 }
 
 bool CExtWorkspaceManagerResource::good() const {
-    return m_resource;
+    return !!m_resource;
 }
 
 void CExtWorkspaceManagerResource::scheduleDone() {

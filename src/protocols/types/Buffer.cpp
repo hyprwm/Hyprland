@@ -112,7 +112,7 @@ SP<IHLBuffer> CHLBufferReference::operator->() const {
 }
 
 CHLBufferReference::operator bool() const {
-    return m_buffer;
+    return !!m_buffer;
 }
 
 void CHLBufferReference::drop() {

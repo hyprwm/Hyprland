@@ -916,7 +916,7 @@ static std::string animationsRequest(eHyprCtlOutputFormat format, std::string re
         ret += "animations:\n";
 
         for (auto const& ac : Config::animationTree()->getAnimationConfig()) {
-            ret += std::format("\n\tname: {}\n\t\toverriden: {}\n\t\tbezier: {}\n\t\tenabled: {}\n\t\tspeed: {:.2f}\n\t\tstyle: {}\n", ac.first, sc<int>(ac.second->overridden),
+            ret += std::format("\n\tname: {}\n\t\toverridden: {}\n\t\tbezier: {}\n\t\tenabled: {}\n\t\tspeed: {:.2f}\n\t\tstyle: {}\n", ac.first, sc<int>(ac.second->overridden),
                                ac.second->internalBezier, ac.second->internalEnabled, ac.second->internalSpeed, ac.second->internalStyle);
         }
 

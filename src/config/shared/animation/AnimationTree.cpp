@@ -22,6 +22,7 @@ void CAnimationTreeController::reset() {
     m_animationTree.createNode("border", "global");
     m_animationTree.createNode("borderangle", "global");
     m_animationTree.createNode("shadowangle", "global");
+    m_animationTree.createNode("glowangle", "global");
     m_animationTree.createNode("workspaces", "global");
     m_animationTree.createNode("zoomFactor", "global");
     m_animationTree.createNode("monitorAdded", "global");
@@ -62,6 +63,7 @@ void CAnimationTreeController::reset() {
     m_animationTree.setConfigForNode("__internal_fadeCTM", 1, 5.f, "linear");
     m_animationTree.setConfigForNode("borderangle", 0, 1, "default");
     m_animationTree.setConfigForNode("shadowangle", 0, 1, "default");
+    m_animationTree.setConfigForNode("glowangle", 0, 1, "default");
 }
 
 const std::unordered_map<std::string, SP<Hyprutils::Animation::SAnimationPropertyConfig>>& CAnimationTreeController::getAnimationConfig() {

@@ -18,7 +18,7 @@ namespace State {
         virtual const std::vector<PHLWORKSPACEREF>& workspaceRefs() const override;
         virtual std::vector<SWorkspaceQueryable>    queryableWorkspaces() const override;
         auto                                        workspaces() const {
-            return std::views::filter(m_workspaces, [](const auto& e) { return e; });
+            return std::views::filter(m_workspaces, [](const auto& e) { return !!e; });
         }
         std::vector<PHLWORKSPACE>  workspacesCopy() const;
 

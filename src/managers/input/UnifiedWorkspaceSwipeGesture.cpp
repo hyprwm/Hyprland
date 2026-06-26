@@ -7,7 +7,7 @@
 #include "InputManager.hpp"
 
 bool CUnifiedWorkspaceSwipeGesture::isGestureInProgress() {
-    return m_workspaceBegin;
+    return !!m_workspaceBegin;
 }
 
 void CUnifiedWorkspaceSwipeGesture::begin() {

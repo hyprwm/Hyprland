@@ -124,7 +124,10 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
             m_pending.size = tfs / m_pending.scale;
         }
 
-        m_pending.damage.intersect(CBox{{}, m_pending.size});
+        if (m_pending.size.x <= 0 || m_pending.size.y <= 0)
+            m_pending.damage.clear();
+        else
+            m_pending.damage.intersect(CBox{{}, m_pending.size});
 
         m_events.precommit.emit();
         if (m_pending.rejected) {
@@ -207,12 +210,14 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         m_pending.updated.bits.input = true;
 
         if (!region) {
-            m_pending.input = CBox{{}, Vector2D{INT32_MAX - 1, INT32_MAX - 1}};
+            m_pending.inputIsInfinite = true;
+            m_pending.input.clear();
             return;
         }
 
-        auto RG         = CWLRegionResource::fromResource(region);
-        m_pending.input = RG->m_region;
+        auto RG                   = CWLRegionResource::fromResource(region);
+        m_pending.inputIsInfinite = false;
+        m_pending.input           = RG->m_region;
     });
 
     m_resource->setSetOpaqueRegion([this](CWlSurface* r, wl_resource* region) {
@@ -467,7 +472,7 @@ std::pair<SP<CWLSurfaceResource>, Vector2D> CWLSurfaceResource::at(const Vector2
             if (BOX.containsPoint(localCoords))
                 return {surf, localCoords - pos};
         } else {
-            const auto REGION = surf->m_current.input.copy().intersect(CBox{{}, surf->m_current.size}).translate(pos);
+            const auto REGION = surf->m_current.effectiveInputRegion().translate(pos);
             if (REGION.containsPoint(localCoords))
                 return {surf, localCoords - pos};
         }

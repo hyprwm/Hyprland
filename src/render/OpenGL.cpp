@@ -741,7 +741,7 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, SP<IFra
     g_pHyprRenderer->m_renderData.damage.set(damage_);
     g_pHyprRenderer->m_renderData.finalDamage.set(finalDamage.value_or(damage_));
 
-    m_fakeFrame = fb;
+    m_fakeFrame = !!fb;
 
     if (g_pHyprRenderer->m_reloadScreenShader) {
         g_pHyprRenderer->m_reloadScreenShader = false;
@@ -2440,7 +2440,11 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
     glBindVertexArray(0);
 }
 
-void CHyprOpenGLImpl::renderInnerGlow(const CBox& box, int round, float roundingPower, int range, const CHyprColor& color, int glowPower, float a) {
+void CHyprOpenGLImpl::renderInnerGlow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad, int glowPower, float a) {
+    renderInnerGlow(box, round, roundingPower, range, grad, Config::CGradientValueData{}, 0.f, glowPower, a);
+}
+void CHyprOpenGLImpl::renderInnerGlow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2,
+                                      float lerp, int glowPower, float a) {
     auto& m_renderData = g_pHyprRenderer->m_renderData;
     RASSERT(m_renderData.pMonitor, "Tried to render inner glow without begin()!");
     RASSERT((box.width > 0 && box.height > 0), "Tried to render inner glow with width/height < 0!");
@@ -2453,7 +2457,9 @@ void CHyprOpenGLImpl::renderInnerGlow(const CBox& box, int round, float rounding
     CBox newBox = box;
     g_pHyprRenderer->m_renderData.renderModif.applyToBox(newBox);
 
-    const auto  col = color;
+    static auto PGLOWPOWER = CConfigValue<Config::INTEGER>("decoration:glow:render_power");
+
+    const auto  GLOWPOWER = std::clamp(sc<int>(*PGLOWPOWER), 1, 4);
 
     const auto& glMatrix = g_pHyprRenderer->projectBoxToTarget(newBox);
 
@@ -2462,9 +2468,24 @@ void CHyprOpenGLImpl::renderInnerGlow(const CBox& box, int round, float rounding
     auto shader = useShader(getShaderVariant(SH_FRAG_INNER_GLOW, globalFeatures()));
 
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
-    const auto converted = g_pHyprRenderer->getConvertedColor(col.stripA());
-    shader->setUniformFloat4(SHADER_COLOR, converted.r, converted.g, converted.b, col.a * a);
-    shader->setUniformFloat4(SHADER_COLOR_SRGB, col.r, col.g, col.b, col.a * a);
+
+    CHyprColor color;
+    if (!grad1.m_colors.empty())
+        color = grad1.m_colors[0];
+
+    const auto converted = g_pHyprRenderer->getConvertedColor(color.stripA());
+    shader->setUniformFloat4(SHADER_COLOR, converted.r, converted.g, converted.b, color.a * a);
+    shader->setUniformFloat4(SHADER_COLOR_SRGB, color.r, color.g, color.b, color.a * a);
+
+    shader->setUniform4fv(SHADER_GRADIENT, grad1.m_colorsOkLabA.size() / 4, grad1.m_colorsOkLabA);
+    shader->setUniformInt(SHADER_GRADIENT_LENGTH, grad1.m_colorsOkLabA.size() / 4);
+    shader->setUniformFloat(SHADER_ANGLE, sc<int>(grad1.m_angle / (std::numbers::pi / 180.0)) % 360 * (std::numbers::pi / 180.0));
+    if (!grad2.m_colorsOkLabA.empty())
+        shader->setUniform4fv(SHADER_GRADIENT2, grad2.m_colorsOkLabA.size() / 4, grad2.m_colorsOkLabA);
+    shader->setUniformInt(SHADER_GRADIENT2_LENGTH, grad2.m_colorsOkLabA.size() / 4);
+    shader->setUniformFloat(SHADER_ANGLE2, sc<int>(grad2.m_angle / (std::numbers::pi / 180.0)) % 360 * (std::numbers::pi / 180.0));
+    shader->setUniformFloat(SHADER_ALPHA, a);
+    shader->setUniformFloat(SHADER_GRADIENT_LERP, lerp);
 
     const auto TOPLEFT     = Vector2D(round, round);
     const auto BOTTOMRIGHT = Vector2D(newBox.width - round, newBox.height - round);
@@ -2476,7 +2497,7 @@ void CHyprOpenGLImpl::renderInnerGlow(const CBox& box, int round, float rounding
     shader->setUniformFloat(SHADER_RADIUS, round);
     shader->setUniformFloat(SHADER_ROUNDING_POWER, roundingPower);
     shader->setUniformFloat(SHADER_RANGE, range);
-    shader->setUniformFloat(SHADER_SHADOW_POWER, glowPower);
+    shader->setUniformFloat(SHADER_SHADOW_POWER, GLOWPOWER);
 
     glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
 

@@ -68,12 +68,13 @@ namespace Desktop::View {
     };
 
     enum eSuppressEvents : uint8_t {
-        SUPPRESS_NONE               = 0,
-        SUPPRESS_FULLSCREEN         = 1 << 0,
-        SUPPRESS_MAXIMIZE           = 1 << 1,
-        SUPPRESS_ACTIVATE           = 1 << 2,
-        SUPPRESS_ACTIVATE_FOCUSONLY = 1 << 3,
-        SUPPRESS_FULLSCREEN_OUTPUT  = 1 << 4,
+        SUPPRESS_NONE                  = 0,
+        SUPPRESS_FULLSCREEN            = 1 << 0,
+        SUPPRESS_MAXIMIZE              = 1 << 1,
+        SUPPRESS_ACTIVATE              = 1 << 2,
+        SUPPRESS_ACTIVATE_FOCUSONLY    = 1 << 3,
+        SUPPRESS_FULLSCREEN_OUTPUT     = 1 << 4,
+        SUPPRESS_X11_CONFIGURE_REQUEST = 1 << 5,
     };
 
     enum eWindowAlpha : uint8_t {
@@ -251,7 +252,10 @@ namespace Desktop::View {
         PHLANIMVAR<float>          m_shadowAngleAnimationProgress;
 
         // animated glow color
-        PHLANIMVAR<CHyprColor> m_realGlowColor;
+        Config::CGradientValueData m_realGlowColor;
+        Config::CGradientValueData m_realGlowColorPrevious;
+        PHLANIMVAR<float>          m_glowFadeAnimationProgress;
+        PHLANIMVAR<float>          m_glowAngleAnimationProgress;
 
         // animated tint
         PHLANIMVAR<float> m_dimPercent;
@@ -368,6 +372,7 @@ namespace Desktop::View {
         void                              updateWindowData(const Config::CWorkspaceRule&);
         void                              onBorderAngleAnimEnd(WP<Hyprutils::Animation::CBaseAnimatedVariable> pav);
         void                              onShadowAngleAnimEnd(WP<Hyprutils::Animation::CBaseAnimatedVariable> pav);
+        void                              onGlowAngleAnimEnd(WP<Hyprutils::Animation::CBaseAnimatedVariable> pav);
         bool                              isInCurvedCorner(double x, double y);
         bool                              hasPopupAt(const Vector2D& pos);
         int                               popupsCount();

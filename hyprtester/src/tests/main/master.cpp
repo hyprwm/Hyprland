@@ -2,7 +2,9 @@
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <map>
 #include <string>
 #include <utility>
 #include <vector>
@@ -329,4 +331,64 @@ TEST_CASE(centerMasterColumnResize) {
     const double H0 = heightOf("slave1");
     OK(resizeY("slave1", 80));
     EXPECT_MAX_DELTA(heightOf("slave1"), H0, 2);
+}
+
+// In a centered master layout with three windows w1/w2/w3, return their classes ordered
+// visually left-to-right: { left slave, master (center), right slave }.
+static std::array<std::string, 3> detectCenterArrangement() {
+    std::vector<std::pair<int, std::string>> wins;
+    for (auto const& cls : {"w1", "w2", "w3"}) {
+        getFromSocket(std::format("/dispatch hl.dsp.focus({{ window = 'class:{}' }})", cls));
+        const auto at = Tests::getAttribute(getFromSocket("/activewindow"), "at");
+        wins.emplace_back(std::stoi(at.substr(0, at.find(','))), cls);
+    }
+    std::ranges::sort(wins, {}, &std::pair<int, std::string>::first);
+    return {wins[0].second, wins[1].second, wins[2].second};
+}
+
+// Drag the window currently playing role `pick` (one of "L"/"M"/"R", i.e. the left
+// slave, the master, or the right slave) and drop it on the left or right side of the
+// screen. Assert the windows end up in the expected left/center/right roles afterwards.
+SUBTEST(expectCenterDrop, const std::string& pick, bool dropRight, const std::string& expLeft, const std::string& expCenter, const std::string& expRight) {
+    // start from a fresh set of three windows
+    if (!Tests::killAllWindows())
+        FAIL_TEST("Could not clear windows{}", "");
+
+    for (auto const& win : {"w1", "w2", "w3"}) {
+        if (!Tests::spawnKitty(win))
+            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
+    }
+    Tests::waitUntilWindowsN(3);
+
+    const auto                         INITIAL = detectCenterArrangement();
+    std::map<std::string, std::string> role    = {
+        {"L", INITIAL[0]},
+        {"M", INITIAL[1]},
+        {"R", INITIAL[2]},
+    };
+
+    const double DROPX = dropRight ? 1800.0 : 100.0;
+    NLog::log("{}Picking up {} ({}) and dropping it on the {} side", Colors::YELLOW, pick, role[pick], dropRight ? "right" : "left");
+
+    OK(getFromSocket(std::format("/eval hl.plugin.test.drag_window('{}', {}, {})", role[pick], DROPX, 540)));
+
+    const auto FINAL = detectCenterArrangement();
+    EXPECT(FINAL[0], role[expLeft]);
+    EXPECT(FINAL[1], role[expCenter]);
+    EXPECT(FINAL[2], role[expRight]);
+}
+
+TEST_CASE(masterCenterDropAtCursor) {
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'master' } })"));
+    OK(getFromSocket("/eval hl.config({ master = { orientation = 'center', new_status = 'slave', drop_at_cursor = true, slave_count_for_center_master = 0, center_master_fallback "
+                     "= 'left' } })"));
+
+    NLog::log("{}Testing center master drop_at_cursor rearrangement", Colors::GREEN);
+
+    CALL_SUBTEST(expectCenterDrop, "L", false, "L", "M", "R");
+    CALL_SUBTEST(expectCenterDrop, "L", true, "R", "M", "L");
+    CALL_SUBTEST(expectCenterDrop, "M", false, "M", "L", "R");
+    CALL_SUBTEST(expectCenterDrop, "M", true, "R", "L", "M");
+    CALL_SUBTEST(expectCenterDrop, "R", false, "R", "M", "L");
+    CALL_SUBTEST(expectCenterDrop, "R", true, "L", "M", "R");
 }

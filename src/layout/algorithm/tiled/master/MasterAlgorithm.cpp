@@ -38,16 +38,23 @@ void CMasterAlgorithm::movedTarget(SP<ITarget> target, std::optional<Vector2D> f
 }
 
 void CMasterAlgorithm::addTarget(SP<ITarget> target, bool firstMap) {
-    static auto PNEWONACTIVE = CConfigValue<std::string>("master:new_on_active");
-    static auto PNEWONTOP    = CConfigValue<Config::INTEGER>("master:new_on_top");
-    static auto PNEWSTATUS   = CConfigValue<std::string>("master:new_status");
+    static auto PNEWONACTIVE      = CConfigValue<std::string>("master:new_on_active");
+    static auto PNEWONTOP         = CConfigValue<Config::INTEGER>("master:new_on_top");
+    static auto PNEWSTATUS        = CConfigValue<std::string>("master:new_status");
+    static auto PDROPATCURSOR     = CConfigValue<Config::INTEGER>("master:drop_at_cursor");
+    static auto PSLAVECOUNTCENTER = CConfigValue<Config::INTEGER>("master:slave_count_for_center_master");
 
     const auto  PWORKSPACE = m_parent->space()->workspace();
     const auto  PMONITOR   = PWORKSPACE->m_monitor;
 
     bool        dragOntoMaster = false;
 
-    if (g_layoutManager->dragController()->wasDraggingWindow()) {
+    const bool  DRAGMOVE = g_layoutManager->dragController()->mode() == MBIND_MOVE;
+
+    const bool  CENTERED         = getDynamicOrientation() == ORIENTATION_CENTER && getNodesNo() - getMastersNo() >= *PSLAVECOUNTCENTER;
+    const bool  CENTERCURSORDROP = *PDROPATCURSOR && DRAGMOVE && CENTERED;
+
+    if (g_layoutManager->dragController()->wasDraggingWindow() && (getNodesNo() > 1 || !*PDROPATCURSOR) && !CENTERCURSORDROP) {
         if (const auto n = getClosestNode(g_pInputManager->getMouseCoordsInternal()); n && n->isMaster)
             dragOntoMaster = true;
     }
@@ -78,15 +85,60 @@ void CMasterAlgorithm::addTarget(SP<ITarget> target, bool firstMap) {
         getNodeFromWindow(Desktop::focusState()->window()) :
         getMasterNode();
 
-    const auto   MOUSECOORDS   = g_pInputManager->getMouseCoordsInternal();
-    static auto  PDROPATCURSOR = CConfigValue<Config::INTEGER>("master:drop_at_cursor");
-    eOrientation orientation   = getDynamicOrientation();
-    const auto   NODEIT        = std::ranges::find(m_masterNodesData, PNODE);
+    const auto   MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
+    eOrientation orientation = getDynamicOrientation();
+    const auto   NODEIT      = std::ranges::find(m_masterNodesData, PNODE);
 
     bool         forceDropAsMaster = false;
     // if dragging window to move, drop it at the cursor position instead of bottom/top of stack
-    if (*PDROPATCURSOR && g_layoutManager->dragController()->mode() == MBIND_MOVE) {
-        if (WINDOWSONWORKSPACE > 2) {
+    if (*PDROPATCURSOR && DRAGMOVE) {
+        if (CENTERED) {
+            if (const auto PMASTER = getMasterNode(); PMASTER) {
+                const CBox MBOX = PMASTER->pTarget->position();
+                if (MOUSECOORDS.x >= MBOX.x && MOUSECOORDS.x <= MBOX.x + MBOX.w)
+                    forceDropAsMaster = true;
+                else {
+                    static auto CMFALLBACK = CConfigValue<std::string>("master:center_master_fallback");
+
+                    const bool  DROPRIGHT      = MOUSECOORDS.x > MBOX.middle().x;
+                    const bool  FIRSTSIDERIGHT = *CMFALLBACK == "right";
+
+                    auto&       v = m_masterNodesData;
+                    std::erase(v, PNODE);
+
+                    int slot     = 0;
+                    int slavesNo = 0;
+                    for (auto const& nd : v) {
+                        if (nd->isMaster)
+                            continue;
+                        const bool ndRight = (slavesNo % 2 == 0) == FIRSTSIDERIGHT;
+                        if (ndRight == DROPRIGHT && MOUSECOORDS.y > nd->pTarget->position().middle().y)
+                            ++slot;
+                        ++slavesNo;
+                    }
+
+                    const bool TARGETFIRSTSIDE = DROPRIGHT == FIRSTSIDERIGHT;
+                    const int  TOTALSLAVES     = slavesNo + 1;
+                    const int  TARGETCAP       = TARGETFIRSTSIDE ? (TOTALSLAVES + 1) / 2 : TOTALSLAVES / 2;
+                    if (TARGETCAP > 0)
+                        slot = std::min(slot, TARGETCAP - 1);
+                    const int   INSERTSLAVEPOS = TARGETCAP == 0 ? 0 : (TARGETFIRSTSIDE ? 2 * slot : 2 * slot + 1);
+
+                    std::size_t insertIndex = v.size();
+                    int         counted     = 0;
+                    for (std::size_t i = 0; i < v.size(); ++i) {
+                        if (counted == INSERTSLAVEPOS) {
+                            insertIndex = i;
+                            break;
+                        }
+                        if (!v[i]->isMaster)
+                            ++counted;
+                    }
+
+                    v.insert(v.begin() + sc<std::ptrdiff_t>(insertIndex), PNODE);
+                }
+            }
+        } else if (WINDOWSONWORKSPACE > 2) {
             auto&             v = m_masterNodesData;
 
             const std::size_t srcIndex = sc<std::size_t>(std::distance(v.begin(), NODEIT));

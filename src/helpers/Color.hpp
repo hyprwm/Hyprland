@@ -48,15 +48,15 @@ class CHyprColor {
 
 //NOLINTNEXTLINE
 namespace Colors {
-    static const CHyprColor WHITE      = CHyprColor(1.F, 1.F, 1.F, 1.F);
-    static const CHyprColor GREEN      = CHyprColor(0.F, 1.F, 0.F, 1.F);
-    static const CHyprColor BLUE       = CHyprColor(0.F, 0.F, 1.F, 1.F);
-    static const CHyprColor RED        = CHyprColor(1.F, 0.F, 0.F, 1.F);
-    static const CHyprColor ORANGE     = CHyprColor(1.F, 0.5F, 0.F, 1.F);
-    static const CHyprColor YELLOW     = CHyprColor(1.F, 1.F, 0.F, 1.F);
-    static const CHyprColor MAGENTA    = CHyprColor(1.F, 0.F, 1.F, 1.F);
-    static const CHyprColor PURPLE     = CHyprColor(0.5F, 0.F, 0.5F, 1.F);
-    static const CHyprColor LIME       = CHyprColor(0.5F, 1.F, 0.1F, 1.F);
-    static const CHyprColor LIGHT_BLUE = CHyprColor(0.1F, 1.F, 1.F, 1.F);
-    static const CHyprColor BLACK      = CHyprColor(0.F, 0.F, 0.F, 1.F);
+    inline const CHyprColor WHITE      = CHyprColor(1.F, 1.F, 1.F, 1.F);
+    inline const CHyprColor GREEN      = CHyprColor(0.F, 1.F, 0.F, 1.F);
+    inline const CHyprColor BLUE       = CHyprColor(0.F, 0.F, 1.F, 1.F);
+    inline const CHyprColor RED        = CHyprColor(1.F, 0.F, 0.F, 1.F);
+    inline const CHyprColor ORANGE     = CHyprColor(1.F, 0.5F, 0.F, 1.F);
+    inline const CHyprColor YELLOW     = CHyprColor(1.F, 1.F, 0.F, 1.F);
+    inline const CHyprColor MAGENTA    = CHyprColor(1.F, 0.F, 1.F, 1.F);
+    inline const CHyprColor PURPLE     = CHyprColor(0.5F, 0.F, 0.5F, 1.F);
+    inline const CHyprColor LIME       = CHyprColor(0.5F, 1.F, 0.1F, 1.F);
+    inline const CHyprColor LIGHT_BLUE = CHyprColor(0.1F, 1.F, 1.F, 1.F);
+    inline const CHyprColor BLACK      = CHyprColor(0.F, 0.F, 0.F, 1.F);
 };

@@ -428,7 +428,7 @@ std::string CHyprAnimationManager::styleValidInConfigVar(const std::string& conf
             return "";
         return "unknown style";
     } else if (config.starts_with("layers")) {
-        if (style.empty() || style == "fade" || style == "slide")
+        if (style.empty() || style == "fade" || style.starts_with("slide"))
             return "";
         else if (style.starts_with("popin")) {
             // try parsing

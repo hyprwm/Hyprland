@@ -22,6 +22,24 @@
 
 using namespace NColorManagement;
 
+static bool addSafeDamage(CRegion& damage, const CBox& box) {
+    if (box.w <= 0 || box.h <= 0)
+        return false;
+
+    static constexpr double DAMAGE_COORDINATE_LIMIT = INT32_MAX / 4.0;
+
+    const double            x1 = std::clamp(box.x, -DAMAGE_COORDINATE_LIMIT, DAMAGE_COORDINATE_LIMIT);
+    const double            y1 = std::clamp(box.y, -DAMAGE_COORDINATE_LIMIT, DAMAGE_COORDINATE_LIMIT);
+    const double            x2 = std::clamp(box.x + box.w, -DAMAGE_COORDINATE_LIMIT, DAMAGE_COORDINATE_LIMIT);
+    const double            y2 = std::clamp(box.y + box.h, -DAMAGE_COORDINATE_LIMIT, DAMAGE_COORDINATE_LIMIT);
+
+    if (x2 <= x1 || y2 <= y1)
+        return false;
+
+    damage.add(CBox{x1, y1, x2 - x1, y2 - y1});
+    return true;
+}
+
 class CDefaultSurfaceRole : public ISurfaceRole {
   public:
     virtual eSurfaceRole role() {
@@ -171,17 +189,12 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
     });
 
     m_resource->setDamage([this](CWlSurface* r, int32_t x, int32_t y, int32_t w, int32_t h) {
-        m_pending.updated.bits.damage = true;
-        m_pending.damage.add(CBox{x, y, w, h});
+        if (addSafeDamage(m_pending.damage, CBox{x, y, w, h}))
+            m_pending.updated.bits.damage = true;
     });
     m_resource->setDamageBuffer([this](CWlSurface* r, int32_t x, int32_t y, int32_t w, int32_t h) {
-        m_pending.updated.bits.damage = true;
-        const auto damageSize         = Vector2D(w, h);
-
-        if (damageSize > m_pending.bufferSize)
-            m_pending.bufferDamage.add(CBox{{x, y}, m_pending.bufferSize});
-        else
-            m_pending.bufferDamage.add(CBox{{x, y}, damageSize});
+        if (addSafeDamage(m_pending.bufferDamage, CBox{x, y, w, h}))
+            m_pending.updated.bits.damage = true;
     });
 
     m_resource->setSetBufferScale([this](CWlSurface* r, int32_t scale) {

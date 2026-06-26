@@ -132,6 +132,8 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         m_events.precommit.emit();
         if (m_pending.rejected) {
             m_pending.rejected = false;
+            if (PROTO::presentation)
+                PROTO::presentation->discardFeedbacks(m_pending.presentationFeedbacks);
             dropPendingBuffer();
             return;
         }
@@ -244,10 +246,21 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
 }
 
 CWLSurfaceResource::~CWLSurfaceResource() {
+    discardPresentationFeedbacks();
     m_events.destroy.emit();
 }
 
+void CWLSurfaceResource::discardPresentationFeedbacks() {
+    if (PROTO::presentation) {
+        PROTO::presentation->discardFeedbacks(m_pending.presentationFeedbacks);
+        PROTO::presentation->discardFeedbacks(m_current.presentationFeedbacks);
+        PROTO::presentation->discardFeedbacksForSurface(m_self);
+    }
+}
+
 void CWLSurfaceResource::destroy() {
+    discardPresentationFeedbacks();
+
     if (m_mapped) {
         m_events.unmap.emit();
         unmap();
@@ -592,6 +605,9 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
     if (!state.updated.all && m_mapped && state.fifoScheduled)
         return;
 
+    if (PROTO::presentation && state.updated.all)
+        PROTO::presentation->discardFeedbacks(m_current.presentationFeedbacks);
+
     auto lastTexture = m_current.texture;
     m_current.updateFrom(state);
 
@@ -761,7 +777,7 @@ void CWLSurfaceResource::updateCursorShm(CRegion damage) {
 void CWLSurfaceResource::presentFeedback(const Time::steady_tp& when, PHLMONITOR pMonitor, bool discarded) {
     frame(when);
 
-    auto FEEDBACK = makeUnique<CQueuedPresentationData>(m_self.lock());
+    auto FEEDBACK = makeUnique<CQueuedPresentationData>(m_self.lock(), std::move(m_current.presentationFeedbacks));
     FEEDBACK->attachMonitor(pMonitor);
     if (discarded)
         FEEDBACK->discarded();

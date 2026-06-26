@@ -8,10 +8,11 @@
 #include "../helpers/time/Time.hpp"
 
 class CWLSurfaceResource;
+class CPresentationFeedback;
 
 class CQueuedPresentationData {
   public:
-    CQueuedPresentationData(SP<CWLSurfaceResource> surf);
+    CQueuedPresentationData(SP<CWLSurfaceResource> surf, std::vector<WP<CPresentationFeedback>> feedbacks);
 
     void setPresentationType(bool zeroCopy);
     void attachMonitor(PHLMONITOR pMonitor);
@@ -22,10 +23,11 @@ class CQueuedPresentationData {
     bool m_done = false;
 
   private:
-    bool                   m_wasPresented = false;
-    bool                   m_zeroCopy     = false;
-    PHLMONITORREF          m_monitor;
-    WP<CWLSurfaceResource> m_surface;
+    bool                                   m_wasPresented = false;
+    bool                                   m_zeroCopy     = false;
+    PHLMONITORREF                          m_monitor;
+    WP<CWLSurfaceResource>                 m_surface;
+    std::vector<WP<CPresentationFeedback>> m_feedbacks;
 
     friend class CPresentationFeedback;
     friend class CPresentationProtocol;
@@ -38,6 +40,7 @@ class CPresentationFeedback {
     bool good();
 
     void sendQueued(WP<CQueuedPresentationData> data, const timespec& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags);
+    void sendDiscarded();
 
   private:
     UP<CWpPresentationFeedback> m_resource;
@@ -55,6 +58,8 @@ class CPresentationProtocol : public IWaylandProtocol {
 
     void         onPresented(PHLMONITOR pMonitor, const timespec& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags);
     void         queueData(UP<CQueuedPresentationData>&& data);
+    void         discardFeedbacks(std::vector<WP<CPresentationFeedback>>& feedbacks);
+    void         discardFeedbacksForSurface(WP<CWLSurfaceResource> surface);
     bool         hasPendingFeedbacks() const;
 
   private:
@@ -64,7 +69,7 @@ class CPresentationProtocol : public IWaylandProtocol {
 
     //
     std::vector<UP<CWpPresentation>>         m_managers;
-    std::vector<UP<CPresentationFeedback>>   m_feedbacks;
+    std::vector<SP<CPresentationFeedback>>   m_feedbacks;
     std::vector<UP<CQueuedPresentationData>> m_queue;
 
     friend class CPresentationFeedback;

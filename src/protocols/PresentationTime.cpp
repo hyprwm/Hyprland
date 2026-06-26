@@ -6,7 +6,8 @@
 #include "core/Output.hpp"
 #include <aquamarine/output/Output.hpp>
 
-CQueuedPresentationData::CQueuedPresentationData(SP<CWLSurfaceResource> surf) : m_surface(surf) {
+CQueuedPresentationData::CQueuedPresentationData(SP<CWLSurfaceResource> surf, std::vector<WP<CPresentationFeedback>> feedbacks) :
+    m_surface(surf), m_feedbacks(std::move(feedbacks)) {
     ;
 }
 
@@ -76,9 +77,23 @@ void CPresentationFeedback::sendQueued(WP<CQueuedPresentationData> data, const t
     m_done = true;
 }
 
+void CPresentationFeedback::sendDiscarded() {
+    if (m_done)
+        return;
+
+    m_resource->sendDiscarded();
+    m_done = true;
+}
+
 CPresentationProtocol::CPresentationProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    static auto P = Event::bus()->m_events.monitor.removed.listen(
-        [this](PHLMONITOR mon) { std::erase_if(m_queue, [mon](const auto& other) { return !other->m_surface || other->m_monitor == mon; }); });
+    static auto P = Event::bus()->m_events.monitor.removed.listen([this](PHLMONITOR mon) {
+        for (auto& data : m_queue) {
+            if (!data->m_surface || data->m_monitor == mon)
+                discardFeedbacks(data->m_feedbacks);
+        }
+
+        std::erase_if(m_queue, [mon](const auto& other) { return !other->m_surface || other->m_monitor == mon; });
+    });
 }
 
 void CPresentationProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
@@ -99,29 +114,36 @@ void CPresentationProtocol::destroyResource(CPresentationFeedback* feedback) {
 }
 
 void CPresentationProtocol::onGetFeedback(CWpPresentation* pMgr, wl_resource* surf, uint32_t id) {
-    const auto  CLIENT = pMgr->client();
-    const auto& RESOURCE =
-        m_feedbacks.emplace_back(makeUnique<CPresentationFeedback>(makeUnique<CWpPresentationFeedback>(CLIENT, pMgr->version(), id), CWLSurfaceResource::fromResource(surf))).get();
+    const auto CLIENT = pMgr->client();
+    const auto RESOURCE =
+        m_feedbacks.emplace_back(makeShared<CPresentationFeedback>(makeUnique<CWpPresentationFeedback>(CLIENT, pMgr->version(), id), CWLSurfaceResource::fromResource(surf)));
 
     if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
         m_feedbacks.pop_back();
         return;
     }
+
+    if (const auto SURFACE = CWLSurfaceResource::fromResource(surf); SURFACE)
+        SURFACE->m_pending.presentationFeedbacks.emplace_back(RESOURCE);
 }
 
 void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, const timespec& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags) {
-    for (auto const& feedback : m_feedbacks) {
-        if (!feedback->m_surface)
+    for (auto const& data : m_queue) {
+        if (!data->m_surface || !data->m_monitor) {
+            discardFeedbacks(data->m_feedbacks);
+            continue;
+        }
+
+        if (data->m_monitor != pMonitor)
             continue;
 
-        for (auto const& data : m_queue) {
-            if (!data->m_surface || data->m_surface != feedback->m_surface || (data->m_monitor && data->m_monitor != pMonitor))
+        for (auto const& feedback : data->m_feedbacks) {
+            const auto FEEDBACK = feedback.lock();
+            if (!FEEDBACK || FEEDBACK->m_done)
                 continue;
 
-            feedback->sendQueued(data, when, untilRefreshNs, seq, reportedFlags);
-            feedback->m_done = true;
-            break;
+            FEEDBACK->sendQueued(data, when, untilRefreshNs, seq, reportedFlags);
         }
     }
 
@@ -129,7 +151,7 @@ void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, const timespec& whe
         LOGM(Log::ERR, "FIXME: presentation has a feedback leak, and has grown to {} pending entries!!! Dropping!!!!!", m_feedbacks.size());
 
         // Move the elements from the 9000th position to the end of the vector.
-        std::vector<UP<CPresentationFeedback>> newFeedbacks;
+        std::vector<SP<CPresentationFeedback>> newFeedbacks;
         newFeedbacks.reserve(m_feedbacks.size() - 9000);
 
         for (auto it = m_feedbacks.begin() + 9000; it != m_feedbacks.end(); ++it) {
@@ -145,6 +167,34 @@ void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, const timespec& whe
 
 void CPresentationProtocol::queueData(UP<CQueuedPresentationData>&& data) {
     m_queue.emplace_back(std::move(data));
+}
+
+void CPresentationProtocol::discardFeedbacks(std::vector<WP<CPresentationFeedback>>& feedbacks) {
+    for (auto const& feedback : feedbacks) {
+        const auto FEEDBACK = feedback.lock();
+        if (!FEEDBACK)
+            continue;
+
+        FEEDBACK->sendDiscarded();
+    }
+
+    feedbacks.clear();
+    std::erase_if(m_feedbacks, [](const auto& other) { return !other->m_surface || other->m_done; });
+}
+
+void CPresentationProtocol::discardFeedbacksForSurface(WP<CWLSurfaceResource> surface) {
+    if (!surface)
+        return;
+
+    for (auto const& feedback : m_feedbacks) {
+        if (feedback->m_surface != surface)
+            continue;
+
+        feedback->sendDiscarded();
+    }
+
+    std::erase_if(m_queue, [surface](const auto& other) { return !other->m_surface || other->m_surface == surface; });
+    std::erase_if(m_feedbacks, [](const auto& other) { return !other->m_surface || other->m_done; });
 }
 
 bool CPresentationProtocol::hasPendingFeedbacks() const {

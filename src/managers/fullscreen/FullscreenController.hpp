@@ -42,45 +42,45 @@ namespace Fullscreen {
     };
 
     /*
-    FS Controller: To be used to set and get fullscreen state of windows in all parts of the codebase except Layout specific source files. The controller interfaces with the FSHandler of a window to facilitate
-    FS state handling.
+      FS Controller: To be used to set and get fullscreen state of windows in all parts of the codebase except Layout specific source files. The controller interfaces with the FSHandler of a window to facilitate
+      FS state handling.
 
-    FS Handlers: One default, One per Layout that wished to implement custom FS behaviour.
-      - If a Layout does not implement their own FS behaviour, thus doesn't have their own FS Handler; the Default FS handler is used.
-      - Stores the FS states of the windows they are responsible for.
+      FS Handlers: One default, One per Layout that wished to implement custom FS behaviour.
+        - If a Layout does not implement their own FS behaviour, thus doesn't have their own FS Handler; the Default FS handler is used.
+        - Stores the FS states of the windows they are responsible for.
 
-    A layout may decide to define their own FS behaviour. To do this, they should create a FS Handler class and tie it (UP<>) to their Layout Algorithm class.
-      - One LayoutAlgorithm object per workspace; therefore one FS Handler object per workspace.
+      A layout may decide to define their own FS behaviour. To do this, they should create a FS Handler class and tie it (UP<>) to their Layout Algorithm class.
+        - One LayoutAlgorithm object per workspace; therefore one FS Handler object per workspace.
 
-    Fullscreen/Maximise is a behaviour that is specific to Windows. If a layout wants to define a custom ITarget that also has a FS or FS-like behaviour, that's for the handler to handle.
-      it can get the underlying type and dispatch to internal helper, or it can handle in the virtual function, or whatever. If target has FS behaviour that can't be handled with the controller, handler needs to
-      handle those parts entirely (and besides in that case that behaviour would have to be isolated to CWeirdAlgorithm files anyway to not break encapsulation)
-
-
-    A window may either be layout handled or default handled.
-    Layout handled matters if window's algo has custom FS behaviour.
-    A window may still be explicitly default handled in such a workspace
-    
-    A window may not be a part of more than one FS handler
+      Fullscreen/Maximise is a behaviour that is specific to Windows. If a layout wants to define a custom ITarget that also has a FS or FS-like behaviour, that's for the handler to handle.
+        it can get the underlying type and dispatch to internal helper, or it can handle in the virtual function, or whatever. If target has FS behaviour that can't be handled with the controller, handler needs to
+        handle those parts entirely (and besides in that case that behaviour would have to be isolated to CWeirdAlgorithm files anyway to not break encapsulation)
 
 
-    Fullscreen Handlers
-    -------------------
-
-    There are 2 for layout algorithms on each workspace: floating and tiling. Hence, there are 2 FS handlers on each workspace.
-
-
-    Non-Covering Fullscreens
-    ------------------------
-
-    Layouts may have non-covering fullscreens. Currently this is a binary toggle (Either covering or not covering).
+      A window may either be layout handled or default handled.
+      Layout handled matters if window's algo has custom FS behaviour.
+      A window may still be explicitly default handled in such a workspace
+      
+      A window may not be a part of more than one FS handler
 
 
-    Fullscreen Modes
-    ----------------
+      Fullscreen Handlers
+      -------------------
 
-    Internal: what Hyprland considers to be fullscreen. Functions that check if a window is FS will use this value to judge.
-    Client:   what application considers to be fullscreen. Hyprland doesn't consider a window to be "fullscreen" but hints to the application that it is running in fullscreen mode.
+      There are 2 for layout algorithms on each workspace: floating and tiling. Hence, there are 2 FS handlers on each workspace.
+
+
+      Non-Covering Fullscreens
+      ------------------------
+
+      Layouts may have non-covering fullscreens. Currently this is a binary toggle (Either covering or not covering).
+
+
+      Fullscreen Modes
+      ----------------
+
+      Internal: what Hyprland considers to be fullscreen. Functions that check if a window is FS will use this value to judge.
+      Client:   what application considers to be fullscreen. Hyprland doesn't consider a window to be "fullscreen" but hints to the application that it is running in fullscreen mode.
 
     */
     class CFullscreenController {

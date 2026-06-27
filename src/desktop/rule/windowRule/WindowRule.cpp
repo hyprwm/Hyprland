@@ -4,11 +4,11 @@
 #include "../../../helpers/MiscFunctions.hpp"
 #include "../../../Compositor.hpp"
 #include "../../../managers/TokenManager.hpp"
+#include "../../../managers/fullscreen/FullscreenController.hpp"
 #include "../../../desktop/state/FocusState.hpp"
 #include "../../../protocols/types/ContentType.hpp"
 #include "../../../config/shared/parserUtils/ParserUtils.hpp"
 #include "desktop/rule/windowRule/WindowRuleEffectContainer.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
 
 #include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/String.hpp>

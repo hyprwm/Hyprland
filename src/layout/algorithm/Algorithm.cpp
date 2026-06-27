@@ -11,7 +11,6 @@
 #include "../../render/Renderer.hpp"
 
 #include "../../debug/log/Logger.hpp"
-#include <hyprutils/math/Box.hpp>
 
 using namespace Layout;
 

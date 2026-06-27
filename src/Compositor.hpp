@@ -98,8 +98,6 @@ class CCompositor {
     void                   updateAllWindowsAnimatedDecorationValues();
     void                   moveWorkspaceToMonitor(PHLWORKSPACE, PHLMONITOR, bool noWarpCursor = false);
     void                   swapActiveWorkspaces(PHLMONITOR, PHLMONITOR);
-    PHLMONITOR             getMonitorFromString(const std::string&);
-    bool                   workspaceIDOutOfBounds(const WORKSPACEID&);
     PHLWINDOW              getX11Parent(PHLWINDOW);
     void                   addToFadingOutSafe(PHLLS);
     void                   removeFromFadingOutSafe(PHLLS);

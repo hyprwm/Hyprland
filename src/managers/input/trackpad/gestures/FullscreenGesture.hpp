@@ -4,7 +4,7 @@
 
 #include "../../../../desktop/DesktopTypes.hpp"
 #include "../../../../desktop/Workspace.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
+#include "../../../../managers/fullscreen/FullscreenController.hpp"
 
 
 class CFullscreenTrackpadGesture : public ITrackpadGesture {

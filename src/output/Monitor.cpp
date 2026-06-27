@@ -1769,7 +1769,8 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
         return reasons;
     }
 
-    if (!g_pfullscreenController->hasFullscreen(m_self.lock()) && g_pfullscreenController->getFullscreenModes(m_self.lock()).internal == Fullscreen::FSMODE_FULLSCREEN) {
+    // Monitor considers only FSMODE_FULLSCREEN as FS
+    if (g_pfullscreenController->getFullscreenModes(m_self.lock()).internal != Fullscreen::FSMODE_FULLSCREEN) {
         reasons |= SC_WINDOWED;
         if (!full)
             return reasons;
@@ -2407,7 +2408,10 @@ bool CMonitor::inHDR() {
 
 
 std::optional<NColorManagement::PImageDescription> CMonitor::getFSImageDescription() {
-    // ERSTARR NOTE - this shhould work - but know that there was a check for hasFullscreen here
+    // ERSTARR NOTE - this shhould work
+    // if (!inFullscreenMode())
+    //     return {};
+
     const auto FS_WINDOW = g_pfullscreenController->getFullscreenModes(m_self.lock()).internal == Fullscreen::FSMODE_FULLSCREEN ?
         g_pfullscreenController->getFullscreenWindow(m_self.lock()) :
         nullptr;

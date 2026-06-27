@@ -15,13 +15,9 @@
 #include "../../../../managers/PointerManager.hpp"
 #include "../../../../managers/animation/DesktopAnimationManager.hpp"
 #include "../../../../event/EventBus.hpp"
-#include "config/shared/monitor/MonitorRuleManager.hpp"
-#include "debug/log/Logger.hpp"
-#include "desktop/Workspace.hpp"
-#include "layout/algorithm/FloatingAlgorithm.hpp"
+
+#include "../../../../managers/fullscreen/FullscreenController.hpp"
 #include "layout/algorithm/tiled/scrolling/ScrollingFullscreenHandler.hpp"
-#include "layout/target/Target.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
 
 #include <algorithm>
 #include <hyprutils/memory/UniquePtr.hpp>
@@ -435,7 +431,6 @@ SP<SColumnData> SScrollingData::atCenter() {
 }
 
 
-// ERSTARR TODO - MOVE THE FS RELATED LOGIC FROM THIS TO THE HANDLER - CALL HANDLER METHODS AND DON'T HAVE FS RELATED LOGIC HERE
 void SScrollingData::recalculate(bool forceInstant) {
     if (!algorithm->m_parent || !algorithm->m_parent->space() || !algorithm->m_parent->space()->workspace() || !algorithm->m_parent->space()->workspace()->m_monitor)
         return;
@@ -485,6 +480,8 @@ void SScrollingData::recalculate(bool forceInstant) {
         return {.logicalBox = logical, .visualBox = visual};
     };
 
+
+    // TODO refactor window size/pos logic below and extract FS specific logic into methods in the handler if feesbile
 
     // ERSTARR - THIS MIGHT BE NECESSARY OR REDUNDANT DEPENDING ON IF SSCROLLINGDATA:RECALC IS CALLED WHEN DEFAULT HANDLED FSING A WINDOW!
     // If the fullscreen window is default handled, return early.

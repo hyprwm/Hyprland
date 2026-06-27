@@ -10,9 +10,9 @@
 #include "../pass/RectPassElement.hpp"
 #include "../Renderer.hpp"
 #include "../../managers/input/InputManager.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../../layout/LayoutManager.hpp"
 #include "../../layout/supplementary/DragController.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
 
 using namespace Render;
 

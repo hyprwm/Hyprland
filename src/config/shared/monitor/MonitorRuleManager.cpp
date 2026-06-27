@@ -7,7 +7,7 @@
 #include "../../../render/Renderer.hpp"
 #include "../../../event/EventBus.hpp"
 #include "../../../managers/eventLoop/EventLoopManager.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
+#include "../../../managers/fullscreen/FullscreenController.hpp"
 #include "../../../state/MonitorLayoutController.hpp"
 #include "../../../state/MonitorState.hpp"
 
@@ -214,7 +214,7 @@ void CMonitorRuleManager::ensureVRR(PHLMONITOR pMonitor) {
 
         if (USEVRR == 1) {
             bool wantVRR = true;
-            if (PWORKSPACE && g_pfullscreenController->hasFullscreen(PWORKSPACE) && (g_pfullscreenController->getFullscreenModes(PWORKSPACE).internal == Fullscreen::FSMODE_FULLSCREEN))
+            if (PWORKSPACE && g_pfullscreenController->getFullscreenModes(PWORKSPACE).internal == Fullscreen::FSMODE_FULLSCREEN)
                 wantVRR = !g_pfullscreenController->getFullscreenWindow(PWORKSPACE)->m_ruleApplicator->noVRR().valueOrDefault();
 
             if (wantVRR) {
@@ -243,10 +243,11 @@ void CMonitorRuleManager::ensureVRR(PHLMONITOR pMonitor) {
             }
             return;
         } else if (USEVRR == 2 || USEVRR == 3) {
-            if (!PWORKSPACE)
-                return; // ???
+            // ERSTARR TODO - This should be redundant now. method calls will pick up !PWORKSPACE and return accordingly
+            // if (!PWORKSPACE)
+            //     return;
 
-            bool wantVRR = g_pfullscreenController->hasFullscreen(PWORKSPACE) && (g_pfullscreenController->getFullscreenModes(PWORKSPACE).internal == Fullscreen::FSMODE_FULLSCREEN);
+            bool wantVRR = g_pfullscreenController->getFullscreenModes(PWORKSPACE).internal == Fullscreen::FSMODE_FULLSCREEN;
             if (wantVRR && g_pfullscreenController->getFullscreenWindow(PWORKSPACE)->m_ruleApplicator->noVRR().valueOrDefault())
                 wantVRR = false;
 

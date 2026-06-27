@@ -9,10 +9,10 @@
 #include "../../managers/KeybindManager.hpp"
 #include "../../managers/SeatManager.hpp"
 #include "../../managers/input/InputManager.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../../layout/LayoutManager.hpp"
 #include "../../state/MonitorState.hpp"
 #include "../../state/WorkspaceState.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
 
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/string/VarList2.hpp>
@@ -158,6 +158,9 @@ static SDispatchResult renameworkspace(const std::string& args) {
 }
 
 static SDispatchResult fullscreen(const std::string& args) {
+    // ERSTARR TODO - Need to modify this function to allow for not passing mode
+
+    
     CVarList2             ARGS(args, 2, ' ');
 
     const Fullscreen::eFullscreenMode MODE = ARGS.size() > 0 && ARGS[0] == "1" ? Fullscreen::FSMODE_MAXIMIZED : Fullscreen::FSMODE_FULLSCREEN;
@@ -171,7 +174,7 @@ static SDispatchResult fullscreen(const std::string& args) {
     if (!PWINDOW)
         return {.success = false, .error = "Window not found"};
 
-    if (ARGS[1] == "set") { // ERSTARR TODO - both dispatch with same arguments - look into this. Need to modify this function to allow for not passing mode in any case
+    if (ARGS[1] == "set") {
         if (!g_pfullscreenController->isFullscreen(PWINDOW, MODE))
             return wrap(Actions::fullscreenWindow(MODE, true));
         return {};

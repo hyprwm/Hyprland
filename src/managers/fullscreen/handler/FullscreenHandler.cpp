@@ -1,16 +1,18 @@
-
 #include "FullscreenHandler.hpp"
-#include "Compositor.hpp"
-#include "debug/log/Logger.hpp"
-#include "desktop/DesktopTypes.hpp"
-#include "desktop/view/LayerSurface.hpp"
-#include "layout/algorithm/Algorithm.hpp"
-#include "layout/target/Target.hpp"
-#include "managers/animation/DesktopAnimationManager.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
-#include "output/Monitor.hpp"
-#include <algorithm>
-#include <iterator>
+
+#include "../../../managers/animation/DesktopAnimationManager.hpp"
+#include "../../../managers/fullscreen/FullscreenController.hpp"
+
+#include "../../../Compositor.hpp"
+#include "../../../debug/log/Logger.hpp"
+
+#include "../../../desktop/DesktopTypes.hpp"
+#include "../../../desktop/view/LayerSurface.hpp"
+
+#include "../../../layout/algorithm/Algorithm.hpp"
+#include "../../../layout/target/Target.hpp"
+
+#include "../../../output/Monitor.hpp"
 
 using namespace Fullscreen;
 
@@ -22,8 +24,9 @@ IFullscreenHandler::IFullscreenHandler(Layout::IModeAlgorithm* const algorithm) 
 };
 
 bool IFullscreenHandler::isFullscreen(const SP<Layout::ITarget> target, const std::optional<eFullscreenMode> mode, const std::optional<bool> covering) {
+    // Mode checking logic is the same as getFullscreenModes() - keep it in sync
 
-    if (mode.has_value() && mode.value() != FSMODE_NONE) {
+    if (mode.has_value() && mode.value() == FSMODE_NONE) {
         Log::logger->log(Log::ERR, "Passed mode = FSMODE_NONE into isFullscreen. This must never happpen.");
         return false;
     }
@@ -51,6 +54,10 @@ SP<Layout::ITarget> IFullscreenHandler::getFullscreen(const std::optional<bool> 
 
 SFullscreenMode IFullscreenHandler::getFullscreenModes(const SP<Layout::ITarget> target) {
     const auto& ITR = m_fsTargets.find(target);
+
+    if (!isFullscreen(target))
+        return SFullscreenMode{};
+
     return ITR == m_fsTargets.end() ? SFullscreenMode{} : ITR->second;
 }
 
@@ -148,6 +155,7 @@ void IFullscreenHandler::setNoMembersAboveFullscreen() {
 }
 
 void IFullscreenHandler::syncFullscreenTargets() {
+    // Mode checking logic is the same as getFullscreenModes() - keep it in sync
 
 
     // to prevent a rehash - just in case
@@ -155,10 +163,10 @@ void IFullscreenHandler::syncFullscreenTargets() {
 
 
     for (auto it = m_fsTargets.begin(); it != m_fsTargets.end(); ) {        
-        // target exipred
+        // target expired
         // window doesn't exist
-        // both modes are false
-        if (!it->first || !it->first->window() || (it->second.internal == FSMODE_NONE && it->second.client == FSMODE_NONE)) {
+        // target is not FS (internal or client)
+        if (!it->first || !it->first->window() || (!isFullscreen(it->first.lock()) && it->second.client == FSMODE_NONE)) {
             const auto NEXT = std::next(it);
             removeFsTarget(it->first.lock());
             it = NEXT;

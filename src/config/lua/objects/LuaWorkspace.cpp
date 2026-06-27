@@ -4,7 +4,7 @@
 #include "LuaGroup.hpp"
 #include "LuaObjectHelpers.hpp"
 
-#include "managers/fullscreen/FullscreenController.hpp"
+#include "../../../managers/fullscreen/FullscreenController.hpp"
 #include "../../../desktop/Workspace.hpp"
 #include "../../../desktop/view/Group.hpp"
 #include "../../../output/Monitor.hpp"

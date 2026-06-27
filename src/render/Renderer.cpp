@@ -10,7 +10,8 @@
 #include "../pointer/cursor/CursorManager.hpp"
 #include "../pointer/PointerManager.hpp"
 #include "../managers/input/InputManager.hpp"
-#include "../animation/AnimationManager.hpp"
+#include "../managers/animation/AnimationManager.hpp"
+#include "../managers/fullscreen/FullscreenController.hpp"
 #include "../desktop/view/Window.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "../desktop/view/GlobalViewMethods.hpp"
@@ -38,7 +39,6 @@
 #include "../state/MonitorState.hpp"
 #include "../state/WorkspaceState.hpp"
 #include "macros.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
 #include "pass/TexPassElement.hpp"
 #include "pass/ClearPassElement.hpp"
 #include "pass/RectPassElement.hpp"
@@ -408,6 +408,7 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
     // ERSTARR TODO - should no longer happen or at least not happen in the same way. breakpoint and test
     if (!pWorkspaceWindow) {
         // ?? happens sometimes...
+        // pWorkspace->m_hasFullscreenWindow = false;
         return; // this will produce one blank frame. Oh well.
     }
 

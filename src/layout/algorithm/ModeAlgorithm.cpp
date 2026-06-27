@@ -4,13 +4,7 @@
 #include "Algorithm.hpp"
 #include "../../output/Monitor.hpp"
 #include "../../desktop/view/Window.hpp"
-#include "Compositor.hpp"
-#include "debug/log/Logger.hpp"
-#include "desktop/Workspace.hpp"
-#include "desktop/view/LayerSurface.hpp"
-#include "layout/LayoutManager.hpp"
-#include "managers/animation/DesktopAnimationManager.hpp"
-#include "managers/fullscreen/handler/FullscreenHandler.hpp"
+#include "../../managers/fullscreen/handler/FullscreenHandler.hpp"
 
 using namespace Layout;
 

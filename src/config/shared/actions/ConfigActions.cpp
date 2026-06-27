@@ -14,6 +14,8 @@
 #include "../../../managers/EventManager.hpp"
 #include "../../../managers/KeybindManager.hpp"
 #include "../../../managers/input/InputManager.hpp"
+#include "../../../managers/fullscreen/FullscreenController.hpp"
+#include "../../../managers/XWaylandManager.hpp"
 #include "../../../layout/LayoutManager.hpp"
 #include "../../../layout/space/Space.hpp"
 #include "../../../render/Renderer.hpp"
@@ -22,14 +24,12 @@
 #include "../../../protocols/IdleNotify.hpp"
 #include "../../../protocols/GlobalShortcuts.hpp"
 #include "../../../event/EventBus.hpp"
-#include "../../../managers/XWaylandManager.hpp"
 #include "../../../layout/algorithm/Algorithm.hpp"
 #include "../../../layout/algorithm/tiled/master/MasterAlgorithm.hpp"
 #include "../../../layout/algorithm/tiled/monocle/MonocleAlgorithm.hpp"
 #include "../../../state/MonitorState.hpp"
 #include "../../../state/WorkspacePlacementController.hpp"
 #include "../../../state/WorkspaceState.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
 
 #include <numbers>
 #include <utility>
@@ -289,16 +289,16 @@ ActionResult Actions::fullscreenWindow(Fullscreen::eFullscreenMode internalMode,
 
     window->m_ruleApplicator->syncFullscreenOverride(Desktop::Types::COverridableVar(false, Desktop::Types::PRIORITY_SET_PROP));
 
-    const Fullscreen::SFullscreenMode STATE = {.internal = internalMode, .client = clientMode};
+    const Fullscreen::SFullscreenMode NEW_MODES = {.internal = internalMode, .client = clientMode};
 
-    if (g_pfullscreenController->getFullscreenModes(window).internal == STATE.internal && g_pfullscreenController->getFullscreenModes(window).client == STATE.client)
+    if (const auto PAST_FS_MODES = g_pfullscreenController->getFullscreenModes(window); PAST_FS_MODES.internal == NEW_MODES.internal && PAST_FS_MODES.client == NEW_MODES.client)
         g_pfullscreenController->setFullscreenMode(window, Fullscreen::FSMODE_NONE, Fullscreen::FSMODE_NONE, layoutAware);
     else
-        g_pfullscreenController->setFullscreenMode(window, STATE.internal, STATE.client, layoutAware);
+        g_pfullscreenController->setFullscreenMode(window, NEW_MODES.internal, NEW_MODES.client, layoutAware);
     
-    const auto windowFsMode = g_pfullscreenController->getFullscreenModes(window);
+    const auto WINDOW_FS_MODES = g_pfullscreenController->getFullscreenModes(window);
 
-    window->m_ruleApplicator->syncFullscreenOverride(Desktop::Types::COverridableVar(windowFsMode.internal == windowFsMode.client, Desktop::Types::PRIORITY_SET_PROP));
+    window->m_ruleApplicator->syncFullscreenOverride(Desktop::Types::COverridableVar(WINDOW_FS_MODES.internal == WINDOW_FS_MODES.client, Desktop::Types::PRIORITY_SET_PROP));
 
     return {};
 }
@@ -368,9 +368,10 @@ ActionResult Actions::moveFocus(Math::eDirection dir) {
         return {};
     }
 
-    // Moving focus to another window with scrolling FS shouldn't cycle window
+    // Moving focus to another window non-default handled FS window shouldn't cycle window
+    // ERSTARR TODO - Might be problematic when the window in dir is a layout managed FS window. Deps on if there's a downstream check to unFs that window and re-Fs it with default handler
     const auto PWINDOWTOCHANGETO = *PFULLCYCLE && g_pfullscreenController->isFullscreen(PLASTWINDOW) &&
-            g_pfullscreenController->getFullscreenHandlerName(PLASTWINDOW) != Fullscreen::FULLSCREEN_HANDLER_SCROLLING ?
+            !g_pfullscreenController->layoutManagedFS(PLASTWINDOW) ?
         g_pCompositor->getWindowCycle(PLASTWINDOW, true, {}, false, dir != Math::DIRECTION_DOWN && dir != Math::DIRECTION_RIGHT, true) :
         g_pCompositor->getWindowInDirection(PLASTWINDOW, dir);
 
@@ -386,7 +387,8 @@ ActionResult Actions::moveFocus(Math::eDirection dir) {
     }
 
     if (PWINDOWTOCHANGETO) {
-        switchToWindow(PWINDOWTOCHANGETO, *PFULLCYCLE && g_pfullscreenController->isFullscreen(PLASTWINDOW) && g_pfullscreenController->getFullscreenHandlerName(PLASTWINDOW) != Fullscreen::FULLSCREEN_HANDLER_SCROLLING);
+        // ERSTARR TODO - Might be problematic when the window in dir is a layout managed FS window. Deps on if there's a downstream check to unFs that window and re-Fs it with default handler
+        switchToWindow(PWINDOWTOCHANGETO, *PFULLCYCLE && g_pfullscreenController->isFullscreen(PLASTWINDOW) && !g_pfullscreenController->layoutManagedFS(PLASTWINDOW));
         return {};
     }
 

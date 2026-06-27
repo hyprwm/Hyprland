@@ -11,8 +11,8 @@
 #include "../../render/Renderer.hpp"
 #include "../../desktop/state/FloatState.hpp"
 #include "../../state/MonitorState.hpp"
-#include "desktop/Workspace.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
+#include "../../desktop/Workspace.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 
@@ -48,10 +48,9 @@ void CWindowTarget::updatePos(uint8_t flags) {
     if (!m_space)
         return;
 
-    // ERSTARR TODO - LOOK OVER THIS PART ENTIRELY
 
     // floating non-fs window
-    if (floating() && !g_pfullscreenController->isFullscreen(m_self->window())) {
+    if (m_window && floating() && !g_pfullscreenController->isFullscreen(m_window.lock())) {
         m_window->m_position = m_box.logicalBox.pos();
         m_window->m_size     = m_box.logicalBox.size();
 
@@ -93,7 +92,7 @@ void CWindowTarget::updatePos(uint8_t flags) {
     }
 
     // Layout handled FS window
-    if (m_window && g_pfullscreenController->isFullscreen(m_window.lock(), Fullscreen::FSMODE_FULLSCREEN) && g_pfullscreenController->layoutManagedFS(m_self->window())) {
+    if (m_window && g_pfullscreenController->isFullscreen(m_window.lock()) && g_pfullscreenController->layoutManagedFS(m_self->window())) {
         CBox nodeBox   = m_box.logicalBox;
         CBox visualBox = m_box.visualBox.empty() ? nodeBox : m_box.visualBox;
         nodeBox.round();

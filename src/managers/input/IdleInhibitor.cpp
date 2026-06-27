@@ -4,7 +4,7 @@
 #include "../../protocols/IdleInhibit.hpp"
 #include "../../protocols/IdleNotify.hpp"
 #include "../../protocols/core/Compositor.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 
 void CInputManager::newIdleInhibitor(std::any inhibitor) {
     const auto PINHIBIT = m_idleInhibitors.emplace_back(makeUnique<SIdleInhibitor>()).get();

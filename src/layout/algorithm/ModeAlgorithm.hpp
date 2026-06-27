@@ -49,7 +49,7 @@ namespace Layout {
 
         // optional: allow algorithms to own fullscreen semantics for a target.
 
-        // optional: expose an algorithm-owned FS handler. Each algorithm that implements its own FS handler must override this method to return its FS handler.
+        // optional: expose an algorithm-owned FS handler. Each algorithm that wishes to implement its own FS handler must override this method to return its FS handler.
 
         // FS handler is UP<> to the owning layout so no concerns of ownership
         virtual WP<Fullscreen::IFullscreenHandler> getFSHandler();

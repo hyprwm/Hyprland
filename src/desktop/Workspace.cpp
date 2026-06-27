@@ -1,6 +1,4 @@
 #include "Workspace.hpp"
-#include "desktop/DesktopTypes.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
 #include "view/Group.hpp"
 #include "view/LayerSurface.hpp"
 #include "state/FocusState.hpp"
@@ -10,8 +8,9 @@
 #include "../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../config/supplementary/executor/Executor.hpp"
 #include "../config/supplementary/propRefresher/PropRefresher.hpp"
-#include "animation/AnimationManager.hpp"
+#include "../managers/animation/AnimationManager.hpp"
 #include "../managers/EventManager.hpp"
+#include "../managers/fullscreen/FullscreenController.hpp"
 #include "../output/Monitor.hpp"
 #include "../state/MonitorState.hpp"
 #include "../state/WorkspacePlacementController.hpp"
@@ -24,6 +23,7 @@
 
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <hyprutils/string/String.hpp>
+
 using namespace Hyprutils::String;
 using namespace Desktop::View;
 

@@ -23,7 +23,7 @@ IFullscreenHandler::IFullscreenHandler(Layout::IModeAlgorithm* const algorithm) 
 
 bool IFullscreenHandler::isFullscreen(const SP<Layout::ITarget> target, const std::optional<eFullscreenMode> mode, const std::optional<bool> covering) {
 
-    if (mode.value() != FSMODE_NONE) {
+    if (mode.has_value() && mode.value() != FSMODE_NONE) {
         Log::logger->log(Log::ERR, "Passed mode = FSMODE_NONE into isFullscreen. This must never happpen.");
         return false;
     }

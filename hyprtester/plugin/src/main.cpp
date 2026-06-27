@@ -14,6 +14,7 @@
 #include <src/desktop/rule/layerRule/LayerRuleEffectContainer.hpp>
 #include <src/desktop/rule/windowRule/WindowRuleApplicator.hpp>
 #include <src/desktop/view/LayerSurface.hpp>
+#include <src/desktop/state/WindowState.hpp>
 #include <src/Compositor.hpp>
 #include <src/desktop/state/FocusState.hpp>
 #include <src/state/MonitorState.hpp>
@@ -74,7 +75,7 @@ static SDispatchResult dragWindow(std::string in) {
         y = std::stod(std::string{data[2]});
     } catch (...) { return {.success = false, .error = "invalid input"}; }
 
-    for (const auto& window : g_pCompositor->m_windows) {
+    for (const auto& window : Desktop::windowState()->windows()) {
         if (window->m_class != cls)
             continue;
 

@@ -700,12 +700,41 @@ void CScrollingAlgorithm::newTarget(SP<ITarget> target) {
         m_scrollingData->fitCol(col);
     } else {
         if (g_layoutManager->dragController()->wasDraggingWindow() && g_layoutManager->dragController()->draggingTiled()) {
-            if (droppingOn) {
-                const auto IDX = droppingColumn->idx(droppingOn->layoutTarget());
-                const auto TOP = droppingOn->getWindowIdealBoundingBoxIgnoreReserved().middle().y > g_pInputManager->getMouseCoordsInternal().y;
-                droppingColumn->add(target, TOP ? (IDX == 0 ? -1 : IDX - 1) : (IDX));
-            } else
+            // we are dropping a DnD on a different target.
+            // for scrolling, if we are close to the edge (30%, because I said so)
+            // make a new column, otherwise add.
+
+            const auto     MOUSE_POS    = g_pInputManager->getMouseCoordsInternal();
+            const auto     DROPPING_BOX = *droppingOn->logicalBox();
+
+            const auto     MOUSE_CMP_AXIS = m_scrollingData->controller->isPrimaryHorizontal() ? MOUSE_POS.x : MOUSE_POS.y;
+            const Vector2D DROPPING_RANGE =
+                m_scrollingData->controller->isPrimaryHorizontal() ? Vector2D{DROPPING_BOX.x, DROPPING_BOX.w} : Vector2D{DROPPING_BOX.y, DROPPING_BOX.h};
+
+            const float RANGE_THRESHOLD   = 0.3;
+            const bool  WITHIN_RANGE_LEFT = MOUSE_CMP_AXIS <= DROPPING_RANGE.x + (DROPPING_RANGE.y * RANGE_THRESHOLD);
+            const bool  WITHIN_RANGE      = WITHIN_RANGE_LEFT || MOUSE_CMP_AXIS >= DROPPING_RANGE.x + (DROPPING_RANGE.y * (1.F - RANGE_THRESHOLD));
+
+            if (!WITHIN_RANGE) {
+                // we are not within edge range, so we drop into the column
+
+                if (droppingOn) {
+                    const auto IDX = droppingColumn->idx(droppingOn->layoutTarget());
+                    const auto TOP = droppingOn->getWindowIdealBoundingBoxIgnoreReserved().middle().y > g_pInputManager->getMouseCoordsInternal().y;
+                    droppingColumn->add(target, TOP ? (IDX == 0 ? -1 : IDX - 1) : (IDX));
+                } else
+                    droppingColumn->add(target);
+            } else {
+                // we are within the edge drop, make a new column
+
+                if (WITHIN_RANGE_LEFT)
+                    droppingColumn = m_scrollingData->add(m_scrollingData->idx(droppingColumn) - 1);
+                else
+                    droppingColumn = m_scrollingData->add(m_scrollingData->idx(droppingColumn));
+
                 droppingColumn->add(target);
+            }
+
             m_scrollingData->fitCol(droppingColumn);
         } else {
             auto idx = m_scrollingData->idx(droppingColumn);

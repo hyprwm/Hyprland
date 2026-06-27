@@ -314,7 +314,7 @@ namespace Desktop::View {
         void                              updateToplevel();
         void                              updateSurfaceScaleTransformDetails(bool force = false);
         void                              moveToWorkspace(PHLWORKSPACE);
-        PHLWINDOW                         x11TransientFor();
+        PHLWINDOW                         x11Parent() const;
         void                              onUnmap();
         void                              onMap();
         void                              setHidden(bool hidden);

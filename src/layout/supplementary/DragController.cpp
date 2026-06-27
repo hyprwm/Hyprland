@@ -5,6 +5,7 @@
 #include "../../Compositor.hpp"
 #include "../../managers/cursor/CursorShapeOverrideController.hpp"
 #include "../../desktop/state/FocusState.hpp"
+#include "../../desktop/state/WindowState.hpp"
 #include "../../desktop/view/Group.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../state/MonitorState.hpp"
@@ -160,7 +161,7 @@ void CDragStateController::dragBegin(SP<ITarget> target, eMouseBindMode mode) {
 
     if (DRAGGINGTARGET->window()) {
         Desktop::focusState()->rawWindowFocus(DRAGGINGTARGET->window(), Desktop::FOCUS_REASON_DESKTOP_STATE_CHANGE);
-        g_pCompositor->changeWindowZOrder(DRAGGINGTARGET->window(), true);
+        Desktop::windowState()->raise(DRAGGINGTARGET->window());
     }
 }
 void CDragStateController::dragEnd() {

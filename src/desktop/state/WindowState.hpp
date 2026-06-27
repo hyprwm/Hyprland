@@ -3,6 +3,7 @@
 #include "../../helpers/memory/Memory.hpp"
 #include "../../helpers/signal/Signal.hpp"
 #include "../DesktopTypes.hpp"
+#include "WindowQuery.hpp"
 
 #include <vector>
 
@@ -14,8 +15,9 @@ namespace Desktop {
 
         const std::vector<PHLWINDOW>& windows() const;
 
-        void                          moveToTop(PHLWINDOW w);
-        void                          moveToBottom(PHLWINDOW w);
+        CWindowQuery                  query() const;
+        void                          raise(PHLWINDOW w);
+        void                          lower(PHLWINDOW w);
         void                          clear();
 
         // kept for compat with old code, should be removed ASAP
@@ -24,6 +26,10 @@ namespace Desktop {
 
       private:
         std::vector<PHLWINDOW> m_windows;
+
+        void                   moveToTop(PHLWINDOW w);
+        void                   moveToBottom(PHLWINDOW w);
+        void                   moveToZ(PHLWINDOW w, bool top);
 
         struct {
             CHyprSignalListener viewCreate, viewDestroy;

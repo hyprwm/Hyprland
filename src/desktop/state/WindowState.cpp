@@ -1,8 +1,10 @@
 #include "WindowState.hpp"
 #include "../../event/EventBus.hpp"
+#include "../../render/Renderer.hpp"
 #include "../view/Window.hpp"
 
 #include <algorithm>
+#include <ranges>
 
 using namespace Desktop;
 
@@ -29,6 +31,65 @@ void CWindowState::removeSafe(PHLWINDOW w) {
 
 const std::vector<PHLWINDOW>& CWindowState::windows() const {
     return m_windows;
+}
+
+CWindowQuery CWindowState::query() const {
+    return CWindowQuery{*this};
+}
+
+void CWindowState::raise(PHLWINDOW w) {
+    moveToZ(w, true);
+}
+
+void CWindowState::lower(PHLWINDOW w) {
+    moveToZ(w, false);
+}
+
+void CWindowState::moveToZ(PHLWINDOW w, bool top) {
+    if (!View::validMapped(w) || m_windows.empty())
+        return;
+
+    w->m_createdOverFullscreen = top;
+    w->updateFullscreenInputState();
+    *w->alpha(View::WINDOW_ALPHA_FULLSCREEN) = w->isBlockedByFullscreen() ? 0.F : 1.F;
+
+    if (w == (top ? m_windows.back() : m_windows.front()))
+        return;
+
+    auto moveSingleToZ = [&](PHLWINDOW pw) -> void {
+        if (top)
+            moveToTop(pw);
+        else
+            moveToBottom(pw);
+
+        if (pw->m_isMapped)
+            g_pHyprRenderer->damageMonitor(pw->m_monitor.lock());
+    };
+
+    if (!w->m_isX11) {
+        moveSingleToZ(w);
+        return;
+    }
+
+    // move X11 transient stack
+    std::vector<PHLWINDOW> toMove;
+
+    auto                   collectX11Stack = [&](PHLWINDOW pw, auto&& collectX11Stack) -> void {
+        if (top)
+            toMove.emplace_back(pw);
+        else
+            toMove.insert(toMove.begin(), pw);
+
+        for (auto const& other : m_windows) {
+            if (other->m_isMapped && !other->isHidden() && other->m_isX11 && other->x11Parent() == pw && other != pw && std::ranges::find(toMove, other) == toMove.end())
+                collectX11Stack(other, collectX11Stack);
+        }
+    };
+
+    collectX11Stack(w, collectX11Stack);
+    for (auto const& it : toMove) {
+        moveSingleToZ(it);
+    }
 }
 
 void CWindowState::moveToTop(PHLWINDOW w) {

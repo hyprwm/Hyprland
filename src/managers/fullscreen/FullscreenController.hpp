@@ -149,7 +149,7 @@ namespace Fullscreen {
         // FS Handler getters
 
         // if layoutHandled not passed; if window is FS, return the FS handler that it is using. If it is not, return layout handler
-        SP<IFullscreenHandler> getFSHandler(const PHLWINDOW window, std::optional<bool> layoutHandled = std::nullopt);
+        WP<IFullscreenHandler> getFSHandler(const PHLWINDOW window, std::optional<bool> layoutHandled = std::nullopt);
 
 
 

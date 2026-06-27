@@ -12,6 +12,8 @@
 #include "../../protocols/core/Compositor.hpp"
 #include "../../state/MonitorState.hpp"
 #include "RectPassElement.hpp"
+#include "TexPassElement.hpp"
+#include "SurfacePassElement.hpp"
 #include "macros.hpp"
 
 using namespace Render;
@@ -183,6 +185,57 @@ CRegion CRenderPass::render(const CRegion& damage_) {
 
     if (m_passElements.empty())
         return {};
+
+    // precompute background-effect blur: union all regions into one blur pass
+    if (pMonitor && !*PDEBUGPASS) {
+        auto    res = pMonitor->resources();
+        CRegion bgEffectUnion;
+
+        for (auto& el : m_passElements) {
+            if (el.discard)
+                continue;
+
+            if (el.element->type() == EK_TEXTURE) {
+                const auto& texEl = *static_cast<CTexPassElement*>(el.element.get());
+                if (!texEl.m_data.blockBlurOptimization.value_or(false) &&
+                    g_pHyprRenderer->shouldUseNewBlurOptimizations(texEl.m_data.currentLS.lock(), nullptr))
+                    continue;
+                const auto SB = Desktop::View::CWLSurface::fromResource(texEl.m_data.surface);
+                if (!SB || !SB->m_hasBackgroundEffect)
+                    continue;
+                bgEffectUnion.add(CRegion{texEl.m_data.box});
+            } else if (el.element->type() == EK_SURFACE) {
+                auto&      surfEl = *static_cast<CSurfacePassElement*>(el.element.get());
+                const auto SURF   = Desktop::View::CWLSurface::fromResource(surfEl.m_data.surface);
+                if (!SURF || !SURF->m_hasBackgroundEffect)
+                    continue;
+                const auto& TEXTURE = surfEl.m_data.texture;
+                if (!TEXTURE || !TEXTURE->ok())
+                    continue;
+                const float ALPHA         = surfEl.m_data.alpha * surfEl.m_data.fadeAlpha * SURF->m_alphaModifier;
+                const float OVERALL_ALPHA = SURF->m_overallOpacity;
+                if (!surfEl.m_data.blur || (TEXTURE->m_opaque && ALPHA >= 1.F && OVERALL_ALPHA >= 1.F))
+                    continue;
+                if (!surfEl.m_data.blockBlurOptimization &&
+                    g_pHyprRenderer->shouldUseNewBlurOptimizations(surfEl.m_data.pLS, surfEl.m_data.pWindow))
+                    continue;
+                CBox elBox = surfEl.getTexBox();
+                elBox.scale(pMonitor->m_scale);
+                elBox.round();
+                bgEffectUnion.add(CRegion{elBox});
+            } else
+                continue;
+        }
+
+        if (!bgEffectUnion.empty()) {
+            bgEffectUnion.expand(oneBlurRadius());
+            bgEffectUnion.intersect(m_damage);
+            if (!bgEffectUnion.empty()) {
+                res->m_effectBlurRegion = bgEffectUnion;
+                res->m_effectBlurTexture.reset();
+            }
+        }
+    }
 
     for (auto& el : m_passElements) {
         if (el.discard) {

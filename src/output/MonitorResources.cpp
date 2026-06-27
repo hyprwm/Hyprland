@@ -42,7 +42,9 @@ void CMonitorResources::setImageDescription(NColorManagement::PImageDescription 
 SP<Render::IFramebuffer> CMonitorResources::getUnusedWorkBuffer() {
     std::erase_if(m_workBuffers, [](const auto& res) { return res.lastUsed.getSeconds() >= MAX_UNUSED_SECONDS; });
 
-    auto found = std::ranges::find_if(m_workBuffers, [](const auto& res) { return res.buffer.strongRef() < 2; });
+    auto found = std::ranges::find_if(m_workBuffers, [this](const auto& res) {
+        return res.buffer.strongRef() < 2 && (!m_effectBlurTexture || res.buffer->getTexture() != m_effectBlurTexture);
+    });
     if (found != m_workBuffers.end()) {
         found->lastUsed.reset();
         return found->buffer;

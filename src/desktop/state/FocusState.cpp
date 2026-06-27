@@ -8,8 +8,8 @@
 #include "../../managers/SeatManager.hpp"
 #include "../../xwayland/XSurface.hpp"
 #include "../../protocols/PointerConstraints.hpp"
-#include "managers/animation/DesktopAnimationManager.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
+#include "../../managers/animation/DesktopAnimationManager.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../../layout/LayoutManager.hpp"
 #include "../../event/EventBus.hpp"
 

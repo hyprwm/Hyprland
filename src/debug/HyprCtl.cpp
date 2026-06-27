@@ -1,5 +1,4 @@
 #include "HyprCtl.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
 #include "output/Monitor.hpp"
 
 #include <algorithm>
@@ -69,6 +68,7 @@ using namespace Hyprutils::OS;
 #include "../Compositor.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../managers/XWaylandManager.hpp"
+#include "../managers/fullscreen/FullscreenController.hpp"
 #include "../plugins/PluginSystem.hpp"
 #include "../managers/animation/AnimationManager.hpp"
 #include "../notification/NotificationOverlay.hpp"

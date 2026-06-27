@@ -15,7 +15,7 @@
 #include "../../Compositor.hpp"
 #include "../../state/MonitorState.hpp"
 #include "desktop/DesktopTypes.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 #include "wlr-layer-shell-unstable-v1.hpp"
 
 #include <hyprutils/string/VarList.hpp>

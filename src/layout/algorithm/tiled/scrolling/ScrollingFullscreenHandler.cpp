@@ -1,21 +1,19 @@
-#include "Compositor.hpp"
-#include "config/shared/monitor/MonitorRuleManager.hpp"
+#include "../../../../Compositor.hpp"
+#include "../../../../config/shared/monitor/MonitorRuleManager.hpp"
+#include "../../../../render/Renderer.hpp"
+
+#include "../../../../managers/animation/DesktopAnimationManager.hpp"
+
+#include "../../../../managers/fullscreen/FullscreenController.hpp"
+#include "../../../../managers/fullscreen/handler/FullscreenHandler.hpp"
+
+#include "../../../../layout/algorithm/tiled/scrolling/ScrollingFullscreenHandler.hpp"
+#include "../../../../layout/algorithm/tiled/scrolling/ScrollingAlgorithm.hpp"
 #include "debug/log/Logger.hpp"
-#include "desktop/DesktopTypes.hpp"
-#include "managers/animation/DesktopAnimationManager.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
-#include "managers/fullscreen/handler/FullscreenHandler.hpp"
-#include "layout/algorithm/tiled/scrolling/ScrollingFullscreenHandler.hpp"
-#include "layout/algorithm/tiled/scrolling/ScrollingAlgorithm.hpp"
-#include "render/Renderer.hpp"
-#include <algorithm>
-#include <cstddef>
-#include <optional>
 
 using namespace Fullscreen;
 using namespace Fullscreen::ScrollingFullscreenHandler;
 
-// ERSTARR TODO - this should work. need to rebuild to see if LSP gets the correct inheritence chain.
 CScrollingFullscreenHandler::CScrollingFullscreenHandler(Layout::Tiled::CScrollingAlgorithm* const algorithm) :
     IFullscreenHandler(algorithm), m_scrollingAlgorithm(algorithm) {
     if (!m_scrollingAlgorithm) {
@@ -36,7 +34,6 @@ CScrollingFullscreenHandler::~CScrollingFullscreenHandler() {
 }
 
 
-// ERSTARR TODO - In all cases where target weakptr may be nullptr, i need to add a check!!!!!!
 // ERSTARR TODO - IN RECALCULATE'S FUNCTION, MUST NECESSARILY DISPATCH SYNCFULLSCREENS BEFORE AND AFTER(? ideally not necessary but meh) FS OPERATIONS
     //--> [optimise: if no FS change is made, just dispatching before should be enough]
 // ERSTARR TODO - Include all checks about what a FS target must be (in the list, only target in its column, etc...). The final list must be noted down in the header file
@@ -45,6 +42,8 @@ CScrollingFullscreenHandler::~CScrollingFullscreenHandler() {
 
 
 bool CScrollingFullscreenHandler::isFullscreen(const SP<Layout::ITarget> target, const std::optional<eFullscreenMode> mode, const std::optional<bool> covering) {
+    // Mode checking logic is the same as getFullscreenModes() - keep it in sync
+
 
     if (mode.has_value() && mode.value() == FSMODE_NONE) {
         Log::logger->log(Log::ERR, "Passed mode = FSMODE_NONE into isFullscreen. This must never happpen.");
@@ -79,11 +78,11 @@ bool CScrollingFullscreenHandler::isFullscreen(const SP<Layout::ITarget> target,
     // covering specific logic
 
     if (!covering.has_value()) {
-        return mode.has_value() ? getFullscreenModes(ITR->first.lock()).internal == mode.value() : true;
+        return mode.has_value() ? ITR->second.mode.internal == mode.value() : true;
     }
 
 
-    const auto FSMODE = getFullscreenModes(ITR->first.lock()).internal;
+    const auto FSMODE = ITR->second.mode.internal;
     if (mode.has_value() && mode.value() != FSMODE)
         return false;
 
@@ -113,7 +112,7 @@ SFullscreenMode CScrollingFullscreenHandler::getFullscreenModes(const SP<Layout:
 eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SFullscreenRequest& request) {
 
     if (!request.target || !getSpace() || !request.target->space() != getSpace() || !m_scrollingAlgorithm->dataFor(request.target) || !request.target->window() ||
-        !request.target->window()->m_workspace || !request.target->window()->m_workspace->m_monitor.lock())
+        !request.target->window()->m_workspace || !request.target->window()->m_workspace->m_monitor)
         return FULLSCREEN_REQUEST_FAILED;
 
     const auto TARGET = request.target;
@@ -288,7 +287,6 @@ void CScrollingFullscreenHandler::setTargetFullscreenModeClient(const SP<Layout:
 }
 
 
-// ERSTARR TODO - need to adjust the comments 
 void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
     if (!m_scrollingAlgorithm->m_parent || !getSpace() || !getSpace()->workspace() || !getSpace()->workspace()->m_monitor)
         return;
@@ -324,7 +322,7 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
         m_fullscreenWindowHidingState.hiddenFloatingWindowsUnderFSWindow.clear();
         if (!m_fullscreenWindowHidingState.hiddenFloatingWindowsUnderFSWindow.empty())
             Log::logger->log(
-                Log::ERR,
+                Log::WARN,
                 "hiddenFloatingWindowsUnderFSWindow.clear() failed. Will likely cause the mishandling of floating window hiding upon fullscreening on scrolling layout. This is an "
                 "error but is not critical.");
     };
@@ -355,7 +353,7 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
     // This should never happen
     if (!COVERING_FULLSCREEN_WINDOW && LAYOUT_TILED_COVERING_FS_WINDOW) {
         // This means that controller doesn't recognise tiled layout handled FS window as fullscreen.
-        Log::logger->log(Log::ERR,
+        Log::logger->log(Log::WARN,
                          "Workspace doesn't recognise a tiled layout handled fullscreen/maximised window as such! This is a an error! We will attempt to recover by ignoring "
                          "the request to setNoMembersAboveFullscreen");
         return;
@@ -375,7 +373,7 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
 
     // If the COVERING_FULLSCREEN_WINDOW is default handled (this should not dispatch to this method at all with the new FS framework but this check is redundancy)
     if (g_pfullscreenController->getFullscreenHandlerName(COVERING_FULLSCREEN_WINDOW) != FULLSCREEN_HANDLER_SCROLLING) {
-        Log::logger->log(Log::ERR,
+        Log::logger->log(Log::WARN,
                          "Default handled FS window called CScrollingFullscreenHandler::setNoMembersAboveFullscreen(). This should never happen: setNoMembersAboveFullscreen() "
                          "call should have been dispatched to default FS handler. This is a bug, but is not fatal. Recovering...");
 
@@ -386,7 +384,7 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
 
     // There's only a floating FS window
     if (COVERING_FULLSCREEN_WINDOW && !LAYOUT_TILED_COVERING_FS_WINDOW) {
-        Log::logger->log(Log::ERR,
+        Log::logger->log(Log::WARN,
                     "non-scroll-handled FS window called CScrollingFullscreenHandler::setNoMembersAboveFullscreen(). This should never happen: setNoMembersAboveFullscreen() "
                     "call should have been dispatched to default FS handler. This is a bug, but is not fatal. Recovering...");
 
@@ -399,7 +397,7 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
     // there is an FS window ontop of the layout handled tiled FS window
     // Case where COVERING_FULLSCREEN_WINDOW is handled above so this really should never happen. This is pure redundancy
     if (COVERING_FULLSCREEN_WINDOW != LAYOUT_TILED_COVERING_FS_WINDOW) {
-        Log::logger->log(Log::ERR,
+        Log::logger->log(Log::WARN,
                     "non-scroll-handled FS window called CScrollingFullscreenHandler::setNoMembersAboveFullscreen(). This should never happen: setNoMembersAboveFullscreen() "
                     "call should have been dispatched to default FS handler. This is a bug, but is not fatal. Recovering...");
         // same as default handling
@@ -465,29 +463,25 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
 
 void CScrollingFullscreenHandler::syncFullscreenTargets() {
 
-    // ERSTARR TODO - If we are to remove a target from the handler, DO IT VIA THE FUNCION! --> remves the target from the list after setting the col width to prev val is target still exists
-    // target->column->targetDatas.size() > 1 --> if you're gettin the col data from a target, that takes care of is it == 0 case - if there's a case which it may not be implicitly checked need to handler that
-        // actually probably se != 1 here
-
     // to prevent a rehash - just in case
     std::vector<std::pair<WP<Layout::ITarget>, SFullscreenMode>> toInsert;
 
     for (auto it = m_fsTargets.begin(); it != m_fsTargets.end(); ) {
         const auto TARGET = it->first.lock();
-        // stale entry
+
+        // TARGET expired
         // TARGET doesn't have a window
-        // TARGET does not have scrollingTargetData (all TARGETs in scrolling layout must)
-        // TARGET is not FS at all
         // TARGET's space is not the same as current space
+        // TARGET does not have scrollingTargetData (all TARGETs in scrolling layout must)
         if (!TARGET || !TARGET->window() || TARGET->space() != getSpace() || !m_scrollingAlgorithm->dataFor(TARGET)) {
             // simply erase from list. no need to re-set its prev col width as the TARGET is 'invalid'
             const auto NEXT = std::next(it);
-            removeFsTarget(it->first.lock(), true);
+            removeFsTarget(TARGET, true);
             it = NEXT;
             continue;
         }
 
-        // TARGET exists propely but no longer FS
+        // TARGET exists propely but is not FS (internal and client must be FSMODE_NONE for a target to be removed from handler)
         if ((!isFullscreen(TARGET) && getFullscreenModes(TARGET).client == FSMODE_NONE)) {
             const auto NEXT = std::next(it);
             // sets col width to prev value if present, then removes it from the handler (i.e. remove from list)
@@ -496,7 +490,7 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
             continue;
         }
 
-        // if internal FS mode set, set its col width accordingly
+        // if internal FS mode set, re-set its col width to its proper value
         if (getFullscreenModes(TARGET).internal != FSMODE_NONE) {
             m_scrollingAlgorithm->dataFor(TARGET)->column->setColumnWidth((getFullscreenModes(TARGET).internal == FSMODE_FULLSCREEN ? fullscreenColumnWidth() : 1.F));
             ++it;
@@ -505,17 +499,19 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
 
 
         // If ITarget's underlying type is CWindowGroupTarget; only store the current window, NOT the whole group
-        // This should never have happened to begin with // ERSTARR TODO - ADD A LOG FOR THIS AS IT SHOULDN'T HAVE HAPPENED - HERE AND IN DEFAULT HANDLER
+        // This should never have happened to begin with
+        // ERSTARR TODO - ADD A LOG FOR THIS AS IT SHOULDN'T HAVE HAPPENED - HERE AND IN DEFAULT HANDLER
         if (it->first->type() == Layout::TARGET_TYPE_GROUP) {
-            const SFullscreenMode MODE = SFullscreenMode{.internal = it->second.mode.internal, .client = it->second.mode.client};
+            Log::logger->log(Log::WARN, "Handler tracked a window group. This should have never happened. Recovering...");
+
+            const auto TARGET_FS_MODES = getFullscreenModes(it->first.lock());
             const auto WINDOWTARGET = it->first->window()->layoutTarget();
             const auto NEXT = std::next(it);
             removeFsTarget(it->first.lock(), true);
             it = NEXT;
-            toInsert.emplace_back(WINDOWTARGET,MODE);
+            toInsert.emplace_back(WINDOWTARGET,TARGET_FS_MODES);
             continue;
         }
-
 
         ++it;
     }
@@ -533,7 +529,7 @@ void CScrollingFullscreenHandler::removeFsTarget(SP<Layout::ITarget> target, con
 
     const auto ITR = m_fsTargets.find(target);
 
-    // order of null checks is deliberate. checks for expired window in m_fsWindows too
+    // order of checks is deliberate. checks for expired window in m_fsWindows too
     if (ITR == m_fsTargets.end()) {
         return;
     }
@@ -603,7 +599,6 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
     Config::monitorRuleMgr()->ensureVRR(MONITOR);
 
     // DSO and VRR must be above setNoMembersAboveFullscreen() because we need the last tiled layout managed fullscreen window before it is reset when no fullscreen
-
     // if covering FS, set. If not, unset.
     setNoMembersAboveFullscreen();
 

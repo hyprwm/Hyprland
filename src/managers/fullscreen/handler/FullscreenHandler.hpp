@@ -45,7 +45,7 @@ namespace Fullscreen {
         virtual bool                hasFullscreen(const std::optional<bool> covering = true);
         /// @warning only for internal FS mode
         virtual SP<Layout::ITarget> getFullscreen(const std::optional<bool> covering = true);
-        /// @warning Doesn't check if target is FS - simply returns the tracked mode
+        /// @note also checks if target isFullscreen()
         virtual SFullscreenMode     getFullscreenModes(const SP<Layout::ITarget> target);
 
         // FS Request
@@ -57,16 +57,29 @@ namespace Fullscreen {
         virtual void setTargetFullscreenModeInternal(const SP<Layout::ITarget> target, const eFullscreenMode mode);
         virtual void setTargetFullscreenModeClient(const SP<Layout::ITarget> target, const eFullscreenMode mode);
 
-        // Optional
 
-        // FS target hiding behaviour
+        // optional: FS target hiding behaviour
         virtual void setNoMembersAboveFullscreen();
 
-        // FS target State Syncing (cleaning up FS target list if exists, other self corrections and error mitigation)
+        /**
+        * @brief FS target State Syncing (cleaning up FS target list if exists, other self corrections and error mitigation)
+        *
+        *
+        * @note This function is responsible for performing clean-up on the FS handler, **NOT** on the targets themselves.
+        *This means that this function doesn't take care of unFSing non-FS-criterea-compliant targets; it merely untracks the target it if is offending.
+        *It is assumed that the target was/will be unFSed via the apropriate functions
+        
+        */
         virtual void syncFullscreenTargets();
 
         // Helpers
 
+        /**
+        * @brief Un-Tracks a target.
+        *
+        *  @note This does **NOT** un-FS a target - It untracks the target from the handler
+        *
+        */
         virtual void removeFsTarget(SP<Layout::ITarget> target, const bool recursionGuard = false);
 
         // Misc.

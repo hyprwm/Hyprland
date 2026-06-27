@@ -9,8 +9,8 @@
 #include "../../layout/LayoutManager.hpp"
 #include "../../desktop/state/FocusState.hpp"
 #include "../../Compositor.hpp"
-#include "managers/EventManager.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
+#include "../../managers/EventManager.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 
 #include <algorithm>
 

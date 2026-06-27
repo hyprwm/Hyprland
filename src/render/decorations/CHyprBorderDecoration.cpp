@@ -2,10 +2,10 @@
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../pass/BorderPassElement.hpp"
 #include "../Renderer.hpp"
 #include "../../state/MonitorState.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
 
 CHyprBorderDecoration::CHyprBorderDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_window(pWindow) {
     ;

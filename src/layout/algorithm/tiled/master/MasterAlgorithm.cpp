@@ -14,8 +14,8 @@
 #include "../../../../Compositor.hpp"
 #include "../../../../render/Renderer.hpp"
 #include "../../../../state/MonitorState.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
-#include "managers/fullscreen/handler/FullscreenHandler.hpp"
+#include "../../../../managers/fullscreen/FullscreenController.hpp"
+#include "../../../../managers/fullscreen/handler/FullscreenHandler.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <hyprutils/string/VarList2.hpp>
@@ -510,14 +510,12 @@ void CMasterAlgorithm::recalculate(eRecalculateReason reason) {
     calculateWorkspace();
 
     // TODO: Patch - make changes inside calculateWorkspace to make this part redundant
+    if (!m_parent->space()->workspace() || !m_parent->space()->workspace()->m_monitor)
+        return;
+
     const auto WORKSPACE = m_parent->space()->workspace();
-
-    if (!WORKSPACE)
-        return;
-
     const auto MONITOR = WORKSPACE->m_monitor;
-    if (!MONITOR)
-        return;
+
 
     if (m_defaultFullscreenHandler->hasFullscreen()) {
 

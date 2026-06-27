@@ -7,11 +7,11 @@
 #include "../../supplementary/executor/Executor.hpp"
 
 #include "../../../managers/SeatManager.hpp"
+#include "../../../managers/fullscreen/FullscreenController.hpp"
 #include "../../../state/MonitorState.hpp"
 #include "../../../state/WorkspaceState.hpp"
 #include "../../../devices/IKeyboard.hpp"
 #include "../../../desktop/rule/windowRule/WindowRule.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
 
 using namespace Config;
 using namespace Config::Lua;

@@ -16,7 +16,7 @@
 #include "../../../layout/space/Space.hpp"
 #include "../../../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 #include "../../../managers/input/InputManager.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
+#include "../../../managers/fullscreen/FullscreenController.hpp"
 
 #include <format>
 #include <string_view>

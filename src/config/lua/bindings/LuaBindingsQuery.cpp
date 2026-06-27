@@ -68,11 +68,11 @@ static bool windowMatchesQuery(const PHLWINDOW& w, const SWindowQuery& query) {
 }
 
 static void pushWindowsMatchingQuery(lua_State* L, const SWindowQuery& query) {
-    // TODO should use windowMatchesQuery(w, query).getwindows()
     lua_newtable(L);
 
     int i = 1;
-    for (const auto& w : Desktop::windowState()->windows()) {
+    // TODO should use getwindows()
+    for (const auto& w : g_pCompositor->m_windows) {
         if (!windowMatchesQuery(w, query))
             continue;
 

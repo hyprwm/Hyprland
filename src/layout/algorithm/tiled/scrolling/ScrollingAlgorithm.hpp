@@ -1,15 +1,14 @@
 #pragma once
 
 #include "../../TiledAlgorithm.hpp"
-#include "../../../../helpers/math/Direction.hpp"
 #include "ScrollTapeController.hpp"
-#include "../../../../helpers/signal/Signal.hpp"
-#include "desktop/Workspace.hpp"
-#include "layout/algorithm/tiled/scrolling/ScrollingFullscreenHandler.hpp"
-#include "layout/target/Target.hpp"
 
-#include <optional>
-#include <vector>
+
+
+namespace Fullscreen::ScrollingFullscreenHandler {
+    class CScrollingFullscreenHandler;
+}
+
 
 namespace Layout::Tiled {
     class CScrollingAlgorithm;

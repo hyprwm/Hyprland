@@ -8,6 +8,7 @@
 #include "../../config/ConfigValue.hpp"
 #include "../../config/shared/actions/ConfigActions.hpp"
 #include "../../config/legacy/ConfigManager.hpp"
+
 #include "../../desktop/view/WLSurface.hpp"
 #include "../../desktop/state/FocusState.hpp"
 #include "../../desktop/state/WindowState.hpp"
@@ -37,8 +38,8 @@
 #include "../../pointer/PointerController.hpp"
 #include "../../managers/SeatManager.hpp"
 #include "../../managers/KeybindManager.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
-#include "../../render/Renderer.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
+
 #include "../../managers/EventManager.hpp"
 #include "../../managers/permissions/DynamicPermissionManager.hpp"
 #include "../../state/MonitorState.hpp"
@@ -50,6 +51,8 @@
 #include "../../layout/LayoutManager.hpp"
 
 #include "../../event/EventBus.hpp"
+
+#include "../../render/Renderer.hpp"
 
 #include "trackpad/TrackpadGestures.hpp"
 #include "../../pointer/cursor/CursorShapeOverrideController.hpp"

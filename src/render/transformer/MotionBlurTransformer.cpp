@@ -4,7 +4,7 @@
 #include "../../desktop/view/Window.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../managers/eventLoop/EventLoopTimer.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../Renderer.hpp"
 
 #include <algorithm>

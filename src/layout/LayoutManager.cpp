@@ -1,7 +1,7 @@
 #include "LayoutManager.hpp"
 
-#include "managers/EventManager.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
+#include "../managers/EventManager.hpp"
+#include "../managers/fullscreen/FullscreenController.hpp"
 #include "space/Space.hpp"
 #include "target/Target.hpp"
 

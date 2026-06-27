@@ -1972,6 +1972,11 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
     } else
         PWINDOW->m_fullscreenState.internal = state.internal;
 
+    if (PWINDOW->isFullscreen())
+        PWORKSPACE->setFullscreenWindow(PWINDOW);
+    else
+        PWORKSPACE->clearFullscreenWindow(PWINDOW);
+
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "fullscreen", .data = std::to_string(sc<int>(NEW_EFFECTIVE_MODE) != FSMODE_NONE)});
     Event::bus()->m_events.window.fullscreen.emit(PWINDOW);
 

@@ -74,8 +74,8 @@ namespace Render {
         void                                damageRegion(const CRegion&);
         void                                damageMonitor(PHLMONITOR);
         void                                damageMirrorsWith(PHLMONITOR, const CRegion&);
-        bool                                shouldRenderWindow(PHLWINDOW, PHLMONITOR);
-        bool                                shouldRenderWindow(PHLWINDOW);
+        bool                                shouldRenderWindow(const PHLWINDOW&, const PHLMONITOR&);
+        bool                                shouldRenderWindow(const PHLWINDOW&);
         bool                                shouldRenderMonitor(PHLMONITOR);
         void                                ensureCursorRenderingMode();
         bool                                shouldRenderCursor();
@@ -256,30 +256,33 @@ namespace Render {
         void                               handleFullscreenSettings(PHLMONITOR pMonitor);
 
         // old private:
-        void arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);
-        void renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry);
-        void renderWorkspaceWindowsFullscreen(PHLMONITOR, PHLWORKSPACE, const Time::steady_tp&); // renders workspace windows (fullscreen) (tiled, floating, pinned, but no special)
-        void renderWorkspaceWindows(PHLMONITOR, PHLWORKSPACE, const Time::steady_tp&); // renders workspace windows (no fullscreen) (tiled, floating, pinned, but no special)
-        void renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
-        void renderWindow(PHLWINDOW, PHLMONITOR, const Time::steady_tp&, bool, eRenderPassMode, bool ignorePosition = false, bool standalone = false);
-        void renderLayer(PHLLS, PHLMONITOR, const Time::steady_tp&, bool popups = false, bool lockscreen = false);
-        void renderSessionLockSurface(WP<SSessionLockSurface>, PHLMONITOR, const Time::steady_tp&);
-        void renderDragIcon(PHLMONITOR, const Time::steady_tp&);
-        void renderIMEPopup(CInputPopup*, PHLMONITOR, const Time::steady_tp&);
-        void renderSessionLockPrimer(PHLMONITOR pMonitor);
-        void renderSessionLockMissing(PHLMONITOR pMonitor);
-        void renderBackground(PHLMONITOR pMonitor);
-        void requestBackgroundResource();
-        std::string                       resolveAssetPath(const std::string& file);
-        void                              initMissingAssetTexture();
-        void                              initAssets();
-        SP<ITexture>                      m_missingAssetTexture;
+        void         arrangeLayerArray(const PHLMONITOR&, const std::vector<PHLLSREF>&, bool, CBox*);
+        void         renderWorkspace(const PHLMONITOR& pMonitor, const PHLWORKSPACE& pWorkspace, const Time::steady_tp& now, const CBox& geometry);
+        void         renderWorkspaceWindowsFullscreen(const PHLMONITOR&, const PHLWORKSPACE&,
+                                                      const Time::steady_tp&); // renders workspace windows (fullscreen) (tiled, floating, pinned, but no special)
+        void         renderWorkspaceWindows(const PHLMONITOR&, const PHLWORKSPACE&,
+                                            const Time::steady_tp&); // renders workspace windows (no fullscreen) (tiled, floating, pinned, but no special)
+        void         renderAllClientsForWorkspace(const PHLMONITOR& pMonitor, const PHLWORKSPACE& pWorkspace, const Time::steady_tp& now, const Vector2D& translate = {0, 0},
+                                                  const float& scale = 1.f);
+        void         renderWindow(const PHLWINDOW&, const PHLMONITOR&, const Time::steady_tp&, bool, eRenderPassMode, bool ignorePosition = false, bool standalone = false);
+        void         renderLayer(const PHLLS&, const PHLMONITOR&, const Time::steady_tp&, bool popups = false, bool lockscreen = false);
+        void         renderSessionLockSurface(WP<SSessionLockSurface>, PHLMONITOR, const Time::steady_tp&);
+        void         renderDragIcon(const PHLMONITOR&, const Time::steady_tp&);
+        void         renderIMEPopup(CInputPopup*, PHLMONITOR, const Time::steady_tp&);
+        void         renderSessionLockPrimer(const PHLMONITOR& pMonitor);
+        void         renderSessionLockMissing(const PHLMONITOR& pMonitor);
+        void         renderBackground(const PHLMONITOR& pMonitor);
+        void         requestBackgroundResource();
+        std::string  resolveAssetPath(const std::string& file);
+        void         initMissingAssetTexture();
+        void         initAssets();
+        SP<ITexture> m_missingAssetTexture;
         ASP<Hyprgraphics::CImageResource> m_backgroundResource;
         bool                              m_backgroundResourceFailed = false;
 
-        bool                              shouldBlur(PHLLS ls);
-        bool                              shouldBlur(PHLWINDOW w);
-        bool                              shouldBlur(WP<Desktop::View::CPopup> p);
+        bool                              shouldBlur(const PHLLS& ls);
+        bool                              shouldBlur(const PHLWINDOW& w);
+        bool                              shouldBlur(const WP<Desktop::View::CPopup>& p);
 
         bool                              m_cursorHidden            = false;
         bool                              m_cursorHiddenByCondition = false;

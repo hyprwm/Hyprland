@@ -163,6 +163,13 @@ eFullscreenRequestResult CSpace::setFullscreen(SP<ITarget> t, eFullscreenMode cu
     if (REQUEST_RESULT != FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT)
         t->setFullscreenMode(mode);
 
+    if (const auto WORKSPACE = workspace()) {
+        if (const auto WINDOW = t->window(); WINDOW && t->fullscreenMode() != FSMODE_NONE)
+            WORKSPACE->setFullscreenWindow(WINDOW);
+        else
+            WORKSPACE->clearFullscreenWindow(WINDOW);
+    }
+
     if (REQUEST_RESULT == FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT) {
         if (const auto WORKSPACE = workspace()) {
             WORKSPACE->m_fullscreenMode      = FSMODE_NONE;

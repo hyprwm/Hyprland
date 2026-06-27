@@ -21,8 +21,13 @@
 
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <hyprutils/string/String.hpp>
+#include <bit>
 using namespace Hyprutils::String;
 using namespace Desktop::View;
+
+static eFullscreenMode effectiveFullscreenMode(eFullscreenMode mode) {
+    return sc<eFullscreenMode>(std::bit_floor(sc<uint8_t>(mode)));
+}
 
 PHLWORKSPACE CWorkspace::create(WORKSPACEID id, PHLMONITOR monitor, std::string name, bool special, bool isEmpty) {
     PHLWORKSPACE workspace = makeShared<CWorkspace>(id, monitor, name, special, isEmpty);
@@ -399,6 +404,7 @@ void CWorkspace::markInert() {
     m_id      = WORKSPACE_INVALID;
     m_visible = false;
     m_monitor.reset();
+    clearFullscreenWindow();
 }
 
 bool CWorkspace::inert() {
@@ -410,16 +416,54 @@ MONITORID CWorkspace::monitorID() {
 }
 
 PHLWINDOW CWorkspace::getFullscreenWindow(bool includeLayoutHandledFullscreen) {
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_workspace == m_self && w->isFullscreen()) { // isFullscreen algo gets layout managed fullscreens
-            if (!includeLayoutHandledFullscreen && w->m_target->layoutManagedFullscreen())
-                continue;
+    const auto WINDOW = m_fullscreenWindow.lock();
 
+    if (WINDOW && WINDOW->m_workspace == m_self && WINDOW->isFullscreen() && (includeLayoutHandledFullscreen || !WINDOW->m_target->layoutManagedFullscreen()))
+        return WINDOW;
+
+    PHLWINDOW layoutHandledFullscreen;
+    for (auto const& w : g_pCompositor->m_windows) {
+        if (w->m_workspace != m_self || !w->isFullscreen())
+            continue;
+
+        if (!w->m_target->layoutManagedFullscreen()) {
+            setFullscreenWindow(w);
             return w;
         }
+
+        if (includeLayoutHandledFullscreen && !layoutHandledFullscreen)
+            layoutHandledFullscreen = w;
     }
 
+    clearFullscreenWindow();
+
+    if (layoutHandledFullscreen) {
+        setFullscreenWindow(layoutHandledFullscreen);
+        return layoutHandledFullscreen;
+    }
+
+    m_hasFullscreenWindow = false;
+    m_fullscreenMode      = FSMODE_NONE;
     return nullptr;
+}
+
+void CWorkspace::setFullscreenWindow(const PHLWINDOW& window) {
+    if (!window || window->m_workspace != m_self || !window->isFullscreen())
+        return;
+
+    m_fullscreenWindow = window;
+
+    if (!window->m_target->layoutManagedFullscreen()) {
+        m_hasFullscreenWindow = true;
+        m_fullscreenMode      = effectiveFullscreenMode(window->m_fullscreenState.internal);
+    }
+}
+
+void CWorkspace::clearFullscreenWindow(const PHLWINDOW& window) {
+    if (window && m_fullscreenWindow.lock() != window)
+        return;
+
+    m_fullscreenWindow.reset();
 }
 
 bool CWorkspace::hasFullscreen() {
@@ -570,6 +614,24 @@ void CWorkspace::updateWindows() {
 
     if (!m_hasFullscreenWindow)
         m_fullscreenMode = FSMODE_NONE;
+
+    clearFullscreenWindow();
+    PHLWINDOW layoutHandledFullscreen;
+    for (auto const& w : g_pCompositor->m_windows) {
+        if (w->m_workspace != m_self || !w->isFullscreen())
+            continue;
+
+        if (!w->m_target->layoutManagedFullscreen()) {
+            setFullscreenWindow(w);
+            break;
+        }
+
+        if (!layoutHandledFullscreen)
+            layoutHandledFullscreen = w;
+    }
+
+    if (!m_fullscreenWindow)
+        setFullscreenWindow(layoutHandledFullscreen);
 
     for (auto const& t : m_space->targets()) {
         if (t->window())

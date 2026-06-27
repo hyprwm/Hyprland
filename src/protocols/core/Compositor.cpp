@@ -22,21 +22,17 @@
 
 using namespace NColorManagement;
 
-static bool addSafeDamage(CRegion& damage, const CBox& box) {
-    if (box.w <= 0 || box.h <= 0)
+static bool addSafeDamage(CRegion& damage, int32_t x, int32_t y, int32_t w, int32_t h) {
+    if (w <= 0 || h <= 0)
         return false;
 
-    static constexpr double DAMAGE_COORDINATE_LIMIT = INT32_MAX / 4.0;
+    const int64_t x2 = std::min<int64_t>(sc<int64_t>(x) + w, INT32_MAX);
+    const int64_t y2 = std::min<int64_t>(sc<int64_t>(y) + h, INT32_MAX);
 
-    const double            x1 = std::clamp(box.x, -DAMAGE_COORDINATE_LIMIT, DAMAGE_COORDINATE_LIMIT);
-    const double            y1 = std::clamp(box.y, -DAMAGE_COORDINATE_LIMIT, DAMAGE_COORDINATE_LIMIT);
-    const double            x2 = std::clamp(box.x + box.w, -DAMAGE_COORDINATE_LIMIT, DAMAGE_COORDINATE_LIMIT);
-    const double            y2 = std::clamp(box.y + box.h, -DAMAGE_COORDINATE_LIMIT, DAMAGE_COORDINATE_LIMIT);
-
-    if (x2 <= x1 || y2 <= y1)
+    if (x2 <= x || y2 <= y)
         return false;
 
-    damage.add(CBox{x1, y1, x2 - x1, y2 - y1});
+    damage.add(x, y, x2 - x, y2 - y);
     return true;
 }
 
@@ -189,11 +185,11 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
     });
 
     m_resource->setDamage([this](CWlSurface* r, int32_t x, int32_t y, int32_t w, int32_t h) {
-        if (addSafeDamage(m_pending.damage, CBox{x, y, w, h}))
+        if (addSafeDamage(m_pending.damage, x, y, w, h))
             m_pending.updated.bits.damage = true;
     });
     m_resource->setDamageBuffer([this](CWlSurface* r, int32_t x, int32_t y, int32_t w, int32_t h) {
-        if (addSafeDamage(m_pending.bufferDamage, CBox{x, y, w, h}))
+        if (addSafeDamage(m_pending.bufferDamage, x, y, w, h))
             m_pending.updated.bits.damage = true;
     });
 

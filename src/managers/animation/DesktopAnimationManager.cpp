@@ -267,7 +267,7 @@ void CDesktopAnimationManager::startAnimation(PHLWORKSPACE ws, eAnimationType ty
         if (!weak)
             return;
 
-        for (auto const& w : g_pCompositor->m_windows) {
+        for (auto const& w : Desktop::windowState()->windows()) {
             if (!validMapped(w) || w->workspaceID() != weak->m_id)
                 continue;
 
@@ -472,7 +472,7 @@ void CDesktopAnimationManager::setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnim
 
     const auto FULLSCREEN = type == ANIMATION_TYPE_IN;
 
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace == ws) {
             w->updateFullscreenInputState();
 
@@ -508,7 +508,7 @@ void CDesktopAnimationManager::setFullscreenFloatingFade(PHLWINDOW pWindow, floa
 }
 
 void CDesktopAnimationManager::overrideFullscreenFadeAmount(PHLWORKSPACE ws, float fade, PHLWINDOW exclude) {
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (w == exclude)
             continue;
 

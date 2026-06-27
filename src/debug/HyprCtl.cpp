@@ -451,7 +451,7 @@ static std::string clientsRequest(eHyprCtlOutputFormat format, std::string reque
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
 
-        for (auto const& w : g_pCompositor->m_windows) {
+        for (auto const& w : Desktop::windowState()->windows()) {
             if (!w->m_isMapped && !g_pHyprCtl->m_currentRequestParams.all)
                 continue;
 
@@ -462,7 +462,7 @@ static std::string clientsRequest(eHyprCtlOutputFormat format, std::string reque
 
         result += "]";
     } else {
-        for (auto const& w : g_pCompositor->m_windows) {
+        for (auto const& w : Desktop::windowState()->windows()) {
             if (!w->m_isMapped && !g_pHyprCtl->m_currentRequestParams.all)
                 continue;
 
@@ -1452,7 +1452,7 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
     const auto WINREGEX = vars[1];
     const auto PROP     = vars[2];
 
-    const auto PWINDOW = g_pCompositor->getWindowByRegex(WINREGEX);
+    const auto PWINDOW = Desktop::viewState()->query().selector(WINREGEX).runWindow();
 
     if (!PWINDOW)
         return "window not found";
@@ -1716,7 +1716,7 @@ static std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string re
 
 static std::string decorationRequest(eHyprCtlOutputFormat format, std::string request) {
     CVarList   vars(request, 0, ' ');
-    const auto PWINDOW = g_pCompositor->getWindowByRegex(vars[1]);
+    const auto PWINDOW = Desktop::viewState()->query().selector(vars[1]).runWindow();
 
     if (!PWINDOW)
         return "none";
@@ -2122,7 +2122,7 @@ std::string CHyprCtl::getReply(std::string request) {
                 m->m_blurFBDirty = true;
         }
 
-        for (auto const& w : g_pCompositor->m_windows) {
+        for (auto const& w : Desktop::windowState()->windows()) {
             if (!w->m_isMapped || !w->m_workspace || !w->m_workspace->isVisible())
                 continue;
 

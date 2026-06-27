@@ -74,7 +74,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
         NEWSURFACE->iMonitorID = PMONITOR->m_id;
         PROTO::fractional->sendScale(surface->surface(), PMONITOR->m_scale);
 
-        g_pCompositor->m_otherViews.emplace_back(Desktop::View::CSessionLock::create(surface));
+        NEWSURFACE->view = Desktop::View::CSessionLock::create(surface);
     });
 
     m_sessionLock->listeners.unlock = pLock->m_events.unlockAndDestroy.listen([this] {

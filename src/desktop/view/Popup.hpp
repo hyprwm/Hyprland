@@ -4,6 +4,7 @@
 #include <vector>
 #include "Subsurface.hpp"
 #include "View.hpp"
+#include "types/Geometric.hpp"
 #include "../../helpers/signal/Signal.hpp"
 #include "../../helpers/memory/Memory.hpp"
 #include "../../helpers/AnimatedVariable.hpp"
@@ -13,7 +14,7 @@ class CXDGPopupResource;
 
 namespace Desktop::View {
 
-    class CPopup : public IView {
+    class CPopup : public IView, public virtual IGeometric {
       public:
         // dummy head nodes
         static SP<CPopup> create(PHLWINDOW pOwner);
@@ -31,6 +32,9 @@ namespace Desktop::View {
         virtual std::optional<CBox>   logicalBox() const;
         virtual bool                  desktopComponent() const;
         virtual std::optional<CBox>   surfaceLogicalBox() const;
+        virtual Vector2D              position(eGeometricValueType) const override;
+        virtual Vector2D              size(eGeometricValueType) const override;
+        virtual CBox                  geometricBox(eGeometricValueType) const override;
 
         SP<Desktop::View::CWLSurface> getT1Owner() const;
         PHLLS                         layerOwner() const;

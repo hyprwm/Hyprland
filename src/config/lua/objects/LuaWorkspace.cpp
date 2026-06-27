@@ -51,7 +51,7 @@ static int workspaceGetWindows(lua_State* L) {
 
     lua_newtable(L);
     int idx = 1;
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace == ws) {
             Objects::CLuaWindow::push(L, w);
             lua_rawseti(L, -2, idx++);
@@ -73,7 +73,7 @@ static int workspaceGetGroups(lua_State* L) {
 
     std::vector<Desktop::View::CGroup*> pushedGroups;
 
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace != ws || !w->m_group)
             continue;
 

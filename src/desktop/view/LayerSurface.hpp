@@ -7,12 +7,13 @@
 #include "../rule/layerRule/LayerRuleApplicator.hpp"
 #include "../../helpers/AnimatedVariable.hpp"
 #include "../../render/Framebuffer.hpp"
+#include "types/GeometricMovableAnimated.hpp"
 
 class CLayerShellResource;
 
 namespace Desktop::View {
 
-    class CLayerSurface : public IView {
+    class CLayerSurface : public IView, public virtual CGeometricMovableAnimated {
       public:
         static PHLLS create(SP<CLayerShellResource>);
         static PHLLS fromView(SP<IView>);
@@ -32,11 +33,12 @@ namespace Desktop::View {
         bool                        isFadedOut();
         int                         popupsCount();
 
-        PHLANIMVAR<Vector2D>        m_realPosition;
-        PHLANIMVAR<Vector2D>        m_realSize;
-        PHLANIMVAR<float>           m_alpha;
+        using CGeometricMovableAnimated::m_realPosition;
+        using CGeometricMovableAnimated::m_realSize;
 
-        WP<CLayerShellResource>     m_layerSurface;
+        PHLANIMVAR<float>       m_alpha;
+
+        WP<CLayerShellResource> m_layerSurface;
 
         // the header providing the enum type cannot be imported here
         int                                     m_interactivity = 0;

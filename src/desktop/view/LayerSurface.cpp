@@ -38,6 +38,8 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
 
     pLS->m_alpha->setValueAndWarp(0.f);
 
+    pLS->initView(pLS, VIEW_TYPE_LAYER_SURFACE);
+
     if (!pMonitor) {
         Log::logger->log(Log::DEBUG, "LayerSurface {:x} (namespace {} layer {}) created on NO MONITOR ?!", rc<uintptr_t>(resource.get()), resource->m_layerNamespace,
                          sc<int>(pLS->m_layer));
@@ -104,7 +106,7 @@ std::optional<CBox> CLayerSurface::surfaceLogicalBox() const {
     if (!visible())
         return std::nullopt;
 
-    return CBox{m_realPosition->value(), m_realSize->value()};
+    return geometricBox(GEOMETRIC_CURRENT);
 }
 
 bool CLayerSurface::desktopComponent() const {
@@ -128,7 +130,7 @@ void CLayerSurface::onDestroy() {
             if (m_alpha)
                 g_pDesktopAnimationManager->startAnimation(m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_OUT);
             m_fadingOut = true;
-            g_pCompositor->addToFadingOutSafe(m_self.lock());
+            Desktop::fadingOutState()->add(m_self.lock());
         }
     }
 
@@ -170,7 +172,7 @@ void CLayerSurface::onMap() {
 
     // this layer might be re-mapped.
     m_fadingOut = false;
-    g_pCompositor->removeFromFadingOutSafe(m_self.lock());
+    Desktop::fadingOutState()->remove(m_self.lock());
 
     // fix if it changed its mon
     const auto PMONITOR = m_monitor.lock();
@@ -234,7 +236,7 @@ void CLayerSurface::onUnmap() {
     if (!m_monitor) {
         Log::logger->log(Log::WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");
 
-        g_pCompositor->addToFadingOutSafe(m_self.lock());
+        Desktop::fadingOutState()->add(m_self.lock());
 
         m_mapped = false;
         if (m_layerSurface && m_layerSurface->m_surface)
@@ -259,7 +261,7 @@ void CLayerSurface::onUnmap() {
     if (m_layerSurface && m_layerSurface->m_surface)
         m_layerSurface->m_surface->unmap();
 
-    g_pCompositor->addToFadingOutSafe(m_self.lock());
+    Desktop::fadingOutState()->add(m_self.lock());
 
     const auto PMONITOR = m_monitor.lock();
 

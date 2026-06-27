@@ -48,9 +48,6 @@ void CWindowTarget::updatePos() {
         return;
 
     if (floating() && fullscreenMode() != FSMODE_MAXIMIZED) {
-        m_window->m_position = m_box.logicalBox.pos();
-        m_window->m_size     = m_box.logicalBox.size();
-
         *m_window->m_realPosition = m_box.logicalBox.pos();
         *m_window->m_realSize     = m_box.logicalBox.size();
 
@@ -90,9 +87,6 @@ void CWindowTarget::updatePos() {
         nodeBox.round();
         visualBox.round();
 
-        m_window->m_size     = nodeBox.size();
-        m_window->m_position = nodeBox.pos();
-
         *m_window->m_realSize     = visualBox.size();
         *m_window->m_realPosition = visualBox.pos();
 
@@ -108,9 +102,6 @@ void CWindowTarget::updatePos() {
 
     CBox nodeBox = m_box.logicalBox;
     nodeBox.round();
-
-    m_window->m_size     = nodeBox.size();
-    m_window->m_position = nodeBox.pos();
 
     auto calcPos  = m_box.visualBox.pos();
     auto calcSize = m_box.visualBox.size();

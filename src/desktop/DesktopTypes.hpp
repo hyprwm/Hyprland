@@ -1,9 +1,13 @@
 #pragma once
 #include "../helpers/memory/Memory.hpp"
 
+#include <cstdint>
+
 class CWorkspace;
 
 namespace Desktop::View {
+    enum eViewType : uint8_t;
+    class IView;
     class CWindow;
     class CLayerSurface;
 }
@@ -26,6 +30,11 @@ using PHLWINDOWREF = WP<Desktop::View::CWindow>;
 using PHLLS = SP<Desktop::View::CLayerSurface>;
 /* Weak pointer to a layer surface */
 using PHLLSREF = WP<Desktop::View::CLayerSurface>;
+
+/* Shared pointer to a view */
+using PHLVIEW = SP<Desktop::View::IView>;
+/* Weak pointer to a view */
+using PHLVIEWREF = WP<Desktop::View::IView>;
 
 /* Shared pointer to a monitor */
 using PHLMONITOR = SP<Monitor::CMonitor>;

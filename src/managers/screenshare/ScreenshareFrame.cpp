@@ -236,7 +236,7 @@ void CScreenshareFrame::renderMonitor() {
         };
     };
 
-    for (auto const& l : g_pCompositor->m_layers) {
+    for (auto const& l : Desktop::layerState()->layers()) {
         if (!l->m_ruleApplicator->noScreenShare().valueOrDefault())
             continue;
 
@@ -259,7 +259,7 @@ void CScreenshareFrame::renderMonitor() {
             l->m_popupHead->breadthfirst(hidePopups(popupBaseOffset), nullptr);
     }
 
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (!w->m_ruleApplicator->noScreenShare().valueOrDefault())
             continue;
 

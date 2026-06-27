@@ -14,6 +14,7 @@
 #include <src/desktop/rule/layerRule/LayerRuleEffectContainer.hpp>
 #include <src/desktop/rule/windowRule/WindowRuleApplicator.hpp>
 #include <src/desktop/view/LayerSurface.hpp>
+#include <src/desktop/state/WindowState.hpp>
 #include <src/Compositor.hpp>
 #include <src/desktop/state/FocusState.hpp>
 #include <src/state/MonitorState.hpp>
@@ -74,7 +75,7 @@ static SDispatchResult dragWindow(std::string in) {
         y = std::stod(std::string{data[2]});
     } catch (...) { return {.success = false, .error = "invalid input"}; }
 
-    for (const auto& window : g_pCompositor->m_windows) {
+    for (const auto& window : Desktop::windowState()->windows()) {
         if (window->m_class != cls)
             continue;
 
@@ -487,10 +488,10 @@ static SDispatchResult                                       addLayerRule(std::s
 }
 
 static SDispatchResult checkLayerRule(std::string in) {
-    if (g_pCompositor->m_layers.size() != 3)
+    if (Desktop::layerState()->layers().size() != 3)
         return {.success = false, .error = "Layers under test not here"};
 
-    for (const auto& layer : g_pCompositor->m_layers) {
+    for (const auto& layer : Desktop::layerState()->layers()) {
         if (layer->m_namespace == "rule-layer") {
 
             if (!layer->m_ruleApplicator->m_otherProps.props.contains(layerRuleIDX))
@@ -522,7 +523,7 @@ static SDispatchResult checkPointerFocusLayer(std::string in) {
     const auto LAYER  = Desktop::View::CLayerSurface::fromView(VIEW);
 
     if (!LAYER) {
-        const auto WINDOW = g_pCompositor->getWindowFromSurface(POINTERSURF);
+        const auto WINDOW = Desktop::viewState()->query().type(Desktop::View::VIEW_TYPE_WINDOW).surface(POINTERSURF).runWindow();
         if (WINDOW)
             return {.success = false, .error = std::format("Pointer focus is a window surface with class '{}'", WINDOW->m_class)};
 
@@ -536,7 +537,7 @@ static SDispatchResult checkPointerFocusLayer(std::string in) {
 }
 
 static SDispatchResult setPointerFocusLayer(std::string in) {
-    for (const auto& layer : g_pCompositor->m_layers) {
+    for (const auto& layer : Desktop::layerState()->layers()) {
         if (layer->m_namespace != in)
             continue;
 
@@ -555,7 +556,7 @@ static SDispatchResult setPointerFocusLayer(std::string in) {
 }
 
 static SDispatchResult softFocusWindowByClass(std::string in) {
-    for (const auto& window : g_pCompositor->m_windows) {
+    for (const auto& window : Desktop::windowState()->windows()) {
         if (window->m_class != in)
             continue;
 

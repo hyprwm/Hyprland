@@ -62,8 +62,7 @@ void CXWM::handleCreate(xcb_create_notify_event_t* e) {
     Log::logger->log(Log::DEBUG, "[xwm] New XSurface at {:x} with xid of {}", rc<uintptr_t>(XSURF.get()), e->window);
 
     const auto WINDOW = Desktop::View::CWindow::create(XSURF);
-    g_pCompositor->m_windows.emplace_back(WINDOW);
-    WINDOW->m_self = WINDOW;
+    WINDOW->m_self    = WINDOW;
     Log::logger->log(Log::DEBUG, "[xwm] New XWayland window at {:x} for surf {:x}", rc<uintptr_t>(WINDOW.get()), rc<uintptr_t>(XSURF.get()));
 }
 

@@ -333,8 +333,8 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
 
     // pre-filter renderable windows once for the tiled + floating passes
     std::vector<PHLWINDOW> windows;
-    windows.reserve(g_pCompositor->m_windows.size());
-    for (auto const& w : g_pCompositor->m_windows) {
+    windows.reserve(Desktop::windowState()->windows().size());
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (!shouldRenderWindow(w, pMonitor))
             continue;
 
@@ -376,7 +376,7 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
     }
 
     // TODO: this pass sucks
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         const auto PWORKSPACE = w->m_workspace;
 
         if (w->m_workspace != pWorkspace || !w->isFullscreen()) {
@@ -409,7 +409,7 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
     }
 
     // then render windows over fullscreen.
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         const bool shouldSkipWindow =
             w->workspaceID() != pWorkspaceWindow->workspaceID() || !w->m_isFloating || !w->shouldRenderOverFullscreen() || (!w->m_isMapped && !w->m_fadingOut) || w->isFullscreen();
 
@@ -436,9 +436,9 @@ void IHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
     Event::bus()->m_events.render.stage.emit(RENDER_PRE_WINDOWS);
 
     std::vector<PHLWINDOWREF> windows, tiledFadingOut;
-    windows.reserve(g_pCompositor->m_windows.size());
+    windows.reserve(Desktop::windowState()->windows().size());
 
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         const bool isNotRenderable = w->isHidden() || (!w->m_isMapped && !w->m_fadingOut);
 
         if (isNotRenderable)
@@ -1233,7 +1233,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     }
 
     // pinned always above
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (w->isHidden() && !w->m_isMapped && !w->m_fadingOut)
             continue;
 
@@ -2086,8 +2086,8 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     pMonitor->m_renderingActive = true;
 
     // Most frames have no fading-out windows or layers for this monitor.
-    if (!g_pCompositor->m_windowsFadingOut.empty() || !g_pCompositor->m_surfacesFadingOut.empty())
-        g_pCompositor->cleanupFadingOut(pMonitor->m_id);
+    if (!Desktop::fadingOutState()->windows().empty() || !Desktop::fadingOutState()->layers().empty())
+        Desktop::fadingOutState()->cleanupForMonitor(pMonitor->m_id);
 
     // TODO: this is getting called with extents being 0,0,0,0 should it be?
     // potentially can save on resources.

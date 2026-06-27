@@ -177,7 +177,7 @@ static int dsp_submap(lua_State* L) {
 }
 
 static int dsp_pass(lua_State* L) {
-    const auto PWINDOW = g_pCompositor->getWindowByRegex(lua_tostring(L, lua_upvalueindex(1)));
+    const auto PWINDOW = Desktop::viewState()->query().selector(lua_tostring(L, lua_upvalueindex(1))).runWindow();
     if (!PWINDOW)
         return Internal::dispatcherError(L, "hl.pass: window not found", WARN, C_NOTFOUND);
 
@@ -393,7 +393,7 @@ static int dsp_sendShortcut(lua_State* L) {
 
     PHLWINDOW window = nullptr;
     if (!lua_isnil(L, lua_upvalueindex(3))) {
-        window = g_pCompositor->getWindowByRegex(lua_tostring(L, lua_upvalueindex(3)));
+        window = Desktop::viewState()->query().selector(lua_tostring(L, lua_upvalueindex(3))).runWindow();
         if (!window)
             return Internal::dispatcherError(L, "send_shortcut: window not found", WARN, C_NOTFOUND);
     }
@@ -415,7 +415,7 @@ static int dsp_sendKeyState(lua_State* L) {
 
     PHLWINDOW window = nullptr;
     if (!lua_isnil(L, lua_upvalueindex(4))) {
-        window = g_pCompositor->getWindowByRegex(lua_tostring(L, lua_upvalueindex(4)));
+        window = Desktop::viewState()->query().selector(lua_tostring(L, lua_upvalueindex(4))).runWindow();
         if (!window)
             return Internal::dispatcherError(L, "send_key_state: window not found", WARN, C_NOTFOUND);
     }
@@ -594,7 +594,7 @@ static int dsp_swapWithWindow(lua_State* L) {
     auto       source = Internal::windowFromUpval(L, 1);
 
     const auto targetSelector = lua_tostring(L, lua_upvalueindex(2));
-    const auto target         = g_pCompositor->getWindowByRegex(targetSelector);
+    const auto target         = Desktop::viewState()->query().selector(targetSelector).runWindow();
     if (!target)
         return Internal::dispatcherError(L, "hl.window.swap: target window not found", WARN, C_NOTFOUND);
 
@@ -1076,7 +1076,7 @@ static int dsp_focusMonitor(lua_State* L) {
 }
 
 static int dsp_focusWindowBySelector(lua_State* L) {
-    const auto PWINDOW = g_pCompositor->getWindowByRegex(lua_tostring(L, lua_upvalueindex(1)));
+    const auto PWINDOW = Desktop::viewState()->query().selector(lua_tostring(L, lua_upvalueindex(1))).runWindow();
     if (!PWINDOW)
         return Internal::dispatcherError(L, "hl.focus: window not found", WARN, C_NOTFOUND);
     return Internal::checkResult(L, CA::focus(PWINDOW));

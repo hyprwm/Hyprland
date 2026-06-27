@@ -21,6 +21,7 @@
 #include "LayerSurface.hpp"
 #include "../state/FocusState.hpp"
 #include "../state/FloatState.hpp"
+#include "../state/WindowState.hpp"
 #include "../history/WindowHistoryTracker.hpp"
 #include "../../Compositor.hpp"
 #include "../../render/decorations/CHyprDropShadowDecoration.hpp"
@@ -580,29 +581,16 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
     }
 }
 
-PHLWINDOW CWindow::x11TransientFor() {
-    if (!m_xwaylandSurface || !m_xwaylandSurface->m_parent)
+PHLWINDOW CWindow::x11Parent() const {
+    if (!m_isX11 || !m_xwaylandSurface || !m_xwaylandSurface->m_parent)
         return nullptr;
 
-    auto                              s = m_xwaylandSurface->m_parent;
-    std::vector<SP<CXWaylandSurface>> visited;
-    while (s) {
-        // break loops. Some X apps make them, and it seems like it's valid behavior?!?!?!
-        // TODO: we should reject loops being created in the first place.
-        if (std::ranges::find(visited.begin(), visited.end(), s) != visited.end())
-            break;
-
-        visited.emplace_back(s.lock());
-        s = s->m_parent;
-    }
-
-    if (s == m_xwaylandSurface)
-        return nullptr; // dead-ass circle
-
     for (auto const& w : Desktop::windowState()->windows()) {
-        if (w->m_xwaylandSurface != s)
+        if (!w->m_isX11)
             continue;
-        return w;
+
+        if (w->m_xwaylandSurface == m_xwaylandSurface->m_parent)
+            return w;
     }
 
     return nullptr;
@@ -1388,7 +1376,7 @@ void CWindow::activate(bool force) {
     }
 
     if (m_isFloating)
-        g_pCompositor->changeWindowZOrder(m_self.lock(), true);
+        Desktop::windowState()->raise(m_self.lock());
 
     Desktop::focusState()->fullWindowFocus(m_self.lock(), FOCUS_REASON_DESKTOP_STATE_CHANGE);
     warpCursor();
@@ -1589,7 +1577,7 @@ void CWindow::onX11ConfigureRequest(CBox box) {
         m_workspace = monitorByRequestedPosition->m_activeWorkspace;
     }
 
-    g_pCompositor->changeWindowZOrder(m_self.lock(), true);
+    Desktop::windowState()->raise(m_self.lock());
 
     m_createdOverFullscreen = true;
 
@@ -1794,7 +1782,7 @@ std::optional<std::string> CWindow::xdgDescription() {
 
 PHLWINDOW CWindow::parent() {
     if (m_isX11) {
-        auto t = x11TransientFor();
+        auto t = x11Parent();
 
         // don't return a parent that's not mapped
         if (!validMapped(t))
@@ -2385,7 +2373,7 @@ void CWindow::mapWindow() {
         // because the windows are animated on RealSize
         m_target->setPseudoSize(m_realSize->goal());
 
-        g_pCompositor->changeWindowZOrder(m_self.lock(), true);
+        Desktop::windowState()->raise(m_self.lock());
     } else {
         bool setPseudo = false;
 
@@ -2849,7 +2837,7 @@ void CWindow::unmanagedSetGeometry() {
 
         m_workspace = State::monitorState()->query().vec(m_realPosition->value() + m_realSize->value() / 2.f).run()->m_activeWorkspace;
 
-        g_pCompositor->changeWindowZOrder(m_self.lock(), true);
+        Desktop::windowState()->raise(m_self.lock());
         updateWindowDecos();
         g_pHyprRenderer->damageWindow(m_self.lock());
 

@@ -10,6 +10,7 @@
 #include "../../config/legacy/ConfigManager.hpp"
 #include "../../desktop/view/WLSurface.hpp"
 #include "../../desktop/state/FocusState.hpp"
+#include "../../desktop/state/WindowState.hpp"
 #include "../../protocols/CursorShape.hpp"
 #include "../../protocols/IdleInhibit.hpp"
 #include "../../protocols/RelativePointer.hpp"
@@ -893,7 +894,7 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e, SP<I
             // pointerFocus can target a surface without a Desktop::View (e.g. IME popups), so view() may be null.
             const auto PVIEW = HLSurf ? HLSurf->view() : nullptr;
             if (PVIEW && PVIEW->type() == Desktop::View::VIEW_TYPE_WINDOW)
-                g_pCompositor->changeWindowZOrder(dynamicPointerCast<Desktop::View::CWindow>(PVIEW), true);
+                Desktop::windowState()->raise(dynamicPointerCast<Desktop::View::CWindow>(PVIEW));
 
             break;
         }

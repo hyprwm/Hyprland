@@ -8,6 +8,7 @@
 #include "../../../../config/shared/actions/ConfigActions.hpp"
 #include "../../../../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../../../../desktop/state/FocusState.hpp"
+#include "../../../../desktop/state/WindowState.hpp"
 #include "../../../../output/Monitor.hpp"
 #include "../../../../Compositor.hpp"
 #include "../../../../render/Renderer.hpp"
@@ -464,7 +465,7 @@ void CMasterAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
 void CMasterAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent) {
     static auto PMONITORFALLBACK = CConfigValue<Config::INTEGER>("binds:window_direction_monitor_fallback");
 
-    const auto  PWINDOW2 = g_pCompositor->getWindowInDirection(t->window(), dir);
+    const auto  PWINDOW2 = Desktop::windowState()->query().inDirection(t->window(), dir);
 
     if (!t->window())
         return;

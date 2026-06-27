@@ -73,33 +73,23 @@ class CCompositor {
 
     // ------------------------------------------------- //
 
-    bool                isWindowActive(PHLWINDOW);
-    void                changeWindowZOrder(PHLWINDOW, bool);
-    PHLWINDOW           getWindowInDirection(PHLWINDOW, Math::eDirection);
-    PHLWINDOW           getWindowInDirection(const CBox& box, PHLWORKSPACE pWorkspace, Math::eDirection dir, bool floatingPreference, PHLWINDOW ignoreWindow = nullptr,
-                                             bool useVectorAngles = false);
-    PHLWINDOW           getWindowCycle(PHLWINDOW cur, bool focusableOnly = false, std::optional<bool> floating = std::nullopt, bool visible = false, bool prev = false,
-                                       bool allowFullscreenBlocked = false);
-    PHLWINDOW           getWindowCycleHist(PHLWINDOWREF cur, bool focusableOnly = false, std::optional<bool> floating = std::nullopt, bool visible = false, bool next = false,
-                                           bool allowFullscreenBlocked = false);
-    bool                isPointOnAnyMonitor(const Vector2D&);
-    bool                isPointOnReservedArea(const Vector2D& point, const PHLMONITOR monitor = nullptr);
-    std::optional<CBox> calculateX11WorkArea();
-    void                updateAllWindowsAnimatedDecorationValues();
-    void                moveWorkspaceToMonitor(PHLWORKSPACE, PHLMONITOR, bool noWarpCursor = false);
-    void                swapActiveWorkspaces(PHLMONITOR, PHLMONITOR);
-    void                setWindowFullscreenInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE);
-    void                setWindowFullscreenClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE);
-    void                setWindowFullscreenState(const PHLWINDOW PWINDOW, const Desktop::View::SFullscreenState state);
-    void                changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON);
-    PHLWINDOW           getX11Parent(PHLWINDOW);
-    void                warpCursorTo(const Vector2D&, bool force = false);
-    Vector2D            parseWindowVectorArgsRelative(const std::string&, const Vector2D&);
-    void                performUserChecks();
-    void                moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWorkspace);
-    void                setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, double scale);
-    void                setPreferredTransformForSurface(SP<CWLSurfaceResource> pSurface, wl_output_transform transform);
-    void                updateSuspendedStates();
+    bool                                isPointOnAnyMonitor(const Vector2D&);
+    bool                                isPointOnReservedArea(const Vector2D& point, const PHLMONITOR monitor = nullptr);
+    std::optional<CBox>                 calculateX11WorkArea();
+    void                                updateAllWindowsAnimatedDecorationValues();
+    void                                moveWorkspaceToMonitor(PHLWORKSPACE, PHLMONITOR, bool noWarpCursor = false);
+    void                                swapActiveWorkspaces(PHLMONITOR, PHLMONITOR);
+    void                                setWindowFullscreenInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE);
+    void                                setWindowFullscreenClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE);
+    void                                setWindowFullscreenState(const PHLWINDOW PWINDOW, const Desktop::View::SFullscreenState state);
+    void                                changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON);
+    void                                warpCursorTo(const Vector2D&, bool force = false);
+    Vector2D                            parseWindowVectorArgsRelative(const std::string&, const Vector2D&);
+    void                                performUserChecks();
+    void                                moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWorkspace);
+    void                                setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, double scale);
+    void                                setPreferredTransformForSurface(SP<CWLSurfaceResource> pSurface, wl_output_transform transform);
+    void                                updateSuspendedStates();
     std::optional<unsigned int>         getVTNr();
     bool                                isVRRActiveOnAnyMonitor() const;
 

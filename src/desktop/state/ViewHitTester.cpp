@@ -186,7 +186,7 @@ PHLWINDOW CViewHitTester::windowAt(const Vector2D& pos, uint16_t properties, PHL
                 if ((properties & INPUT_EXTENTS) && BORDER_GRAB_AREA > 0 && !w->isX11OverrideRedirect()) {
                     const auto WORKAREA                    = PWORKSPACE->m_space->workArea();
                     auto       isWindowCloseToWorkAreaEdge = [&](const Math::eDirection dir) -> bool {
-                        constexpr double STICK_THRESHOLD = 2.0; // This constant is taken from isAdjacent in CCompositor::getWindowInDirection
+                        constexpr double STICK_THRESHOLD = 2.0; // This constant is taken from isAdjacent in CWindowQuery::inDirection
                         double           aEdge           = -1;
                         double           bEdge           = -1;
 

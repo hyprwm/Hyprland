@@ -1,6 +1,7 @@
 #include "ConfigActions.hpp"
 #include "../parserUtils/ParserUtils.hpp"
 #include "../../../desktop/state/FocusState.hpp"
+#include "../../../desktop/state/WindowState.hpp"
 #include "../../../desktop/view/Window.hpp"
 #include "../../../desktop/view/Group.hpp"
 #include "../../../desktop/history/WindowHistoryTracker.hpp"
@@ -186,7 +187,7 @@ ActionResult Actions::floatWindow(eTogglableAction action, std::optional<PHLWIND
     g_layoutManager->changeFloatingMode(window->layoutTarget());
 
     if (window->m_isFloating)
-        g_pCompositor->changeWindowZOrder(window, true);
+        Desktop::windowState()->raise(window);
 
     if (window->m_workspace) {
         window->m_workspace->updateWindows();
@@ -362,8 +363,9 @@ ActionResult Actions::moveFocus(Math::eDirection dir) {
     }
 
     const auto PWINDOWTOCHANGETO = *PFULLCYCLE && PLASTWINDOW->isFullscreen() ?
-        g_pCompositor->getWindowCycle(PLASTWINDOW, true, {}, false, dir != Math::DIRECTION_DOWN && dir != Math::DIRECTION_RIGHT, true) :
-        g_pCompositor->getWindowInDirection(PLASTWINDOW, dir);
+        Desktop::windowState()->query().cycle(PLASTWINDOW,
+                                              {.focusableOnly = true, .previous = dir != Math::DIRECTION_DOWN && dir != Math::DIRECTION_RIGHT, .allowFullscreenBlocked = true}) :
+        Desktop::windowState()->query().inDirection(PLASTWINDOW, dir);
 
     if (*PGROUPCYCLE && PLASTWINDOW->m_group) {
         auto isTheOnlyGroupOnWs = !PWINDOWTOCHANGETO && State::monitorState()->monitors().size() == 1;
@@ -421,8 +423,13 @@ ActionResult Actions::moveFocus(Math::eDirection dir) {
         default: break;
     }
 
-    const auto PWINDOWCANDIDATE = g_pCompositor->getWindowInDirection(box, PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace,
-                                                                      dir, PLASTWINDOW->m_isFloating, PLASTWINDOW, PLASTWINDOW->m_isFloating);
+    const auto PWINDOWCANDIDATE =
+        Desktop::windowState()->query().inDirection({.origin             = box,
+                                                     .workspace          = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace,
+                                                     .direction          = dir,
+                                                     .floatingPreference = PLASTWINDOW->m_isFloating,
+                                                     .ignoreWindow       = PLASTWINDOW,
+                                                     .useVectorAngles    = PLASTWINDOW->m_isFloating});
     if (PWINDOWCANDIDATE)
         switchToWindow(PWINDOWCANDIDATE);
 
@@ -473,7 +480,7 @@ ActionResult Actions::swapInDirection(Math::eDirection dir, std::optional<PHLWIN
     if (window->isFullscreen())
         return actionError("Can't swap fullscreen window", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
-    const auto PWINDOWTOCHANGETO = g_pCompositor->getWindowInDirection(window, dir);
+    const auto PWINDOWTOCHANGETO = Desktop::windowState()->query().inDirection(window, dir);
 
     if (!PWINDOWTOCHANGETO || PWINDOWTOCHANGETO == window)
         return actionError("No window to swap with in that direction", eActionErrorLevel::INFO, eActionErrorCode::NOT_FOUND);
@@ -639,10 +646,10 @@ ActionResult Actions::swapNext(const bool next, std::optional<PHLWINDOW> w) {
     const auto PLASTCYCLED =
         validMapped(window->m_lastCycledWindow) && window->m_lastCycledWindow->m_workspace == window->m_workspace ? window->m_lastCycledWindow.lock() : nullptr;
 
-    auto toSwap = g_pCompositor->getWindowCycle(PLASTCYCLED ? PLASTCYCLED : window, true, std::nullopt, false, !next);
+    auto toSwap = Desktop::windowState()->query().cycle(PLASTCYCLED ? PLASTCYCLED : window, {.focusableOnly = true, .previous = !next});
 
     if (toSwap == window)
-        toSwap = g_pCompositor->getWindowCycle(window, true, std::nullopt, false, !next);
+        toSwap = Desktop::windowState()->query().cycle(window, {.focusableOnly = true, .previous = !next});
 
     if (!toSwap)
         return actionError("No window to swap with", eActionErrorLevel::INFO, eActionErrorCode::NOT_FOUND);
@@ -660,9 +667,9 @@ ActionResult Actions::alterZOrder(const std::string& mode, std::optional<PHLWIND
         return {};
 
     if (mode == "top")
-        g_pCompositor->changeWindowZOrder(window, true);
+        Desktop::windowState()->raise(window);
     else if (mode == "bottom")
-        g_pCompositor->changeWindowZOrder(window, false);
+        Desktop::windowState()->lower(window);
     else
         return std::unexpected(std::format("Bad z-order position: {}", mode));
 
@@ -1309,7 +1316,7 @@ ActionResult Actions::moveIntoGroup(Math::eDirection direction, std::optional<PH
     if (!window)
         return {};
 
-    auto PWINDOWINDIR = g_pCompositor->getWindowInDirection(window, direction);
+    auto PWINDOWINDIR = Desktop::windowState()->query().inDirection(window, direction);
 
     if (!PWINDOWINDIR || !PWINDOWINDIR->m_group)
         return {};
@@ -1371,7 +1378,7 @@ ActionResult Actions::moveWindowOrGroup(Math::eDirection direction, std::optiona
         return {};
     }
 
-    const auto PWINDOWINDIR = g_pCompositor->getWindowInDirection(window, direction);
+    const auto PWINDOWINDIR = Desktop::windowState()->query().inDirection(window, direction);
 
     const bool ISWINDOWGROUP       = !!window->m_group;
     const bool ISWINDOWGROUPLOCKED = ISWINDOWGROUP && window->m_group->locked();
@@ -1675,7 +1682,9 @@ ActionResult Actions::cycleNext(const bool next, std::optional<bool> onlyTiled, 
     if (onlyTiled.value_or(false) != onlyFloating.value_or(false))
         tileOrFloatOnly = onlyFloating.value_or(false);
 
-    const auto& cycled = g_pCompositor->getWindowCycle(window, true, tileOrFloatOnly, false, !next, window->m_workspace && window->m_workspace->m_hasFullscreenWindow);
+    const auto& cycled = Desktop::windowState()->query().cycle(
+        window,
+        {.focusableOnly = true, .floating = tileOrFloatOnly, .previous = !next, .allowFullscreenBlocked = window->m_workspace && window->m_workspace->m_hasFullscreenWindow});
 
     switchToWindow(cycled);
 
@@ -1698,7 +1707,7 @@ ActionResult Actions::moveIntoOrCreateGroup(Math::eDirection dir, std::optional<
     if (!PWINDOW)
         return {};
 
-    auto PWINDOWINDIR = g_pCompositor->getWindowInDirection(PWINDOW, dir);
+    auto PWINDOWINDIR = Desktop::windowState()->query().inDirection(PWINDOW, dir);
 
     if (!PWINDOWINDIR)
         return {};

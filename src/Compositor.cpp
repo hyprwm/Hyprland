@@ -1067,7 +1067,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
         g_layoutManager->recalculateMonitor(POLDMON);
         if (valid(POLDMON->m_activeWorkspace))
             g_pDesktopAnimationManager->setFullscreenFadeAnimation(POLDMON->m_activeWorkspace,
-                                                                   g_pfullscreenController->hasFullscreen(POLDMON) ? CDesktopAnimationManager::ANIMATION_TYPE_IN :
+                                                                   g_pfullscreenController->hasFullscreen(POLDMON->m_activeWorkspace) ? CDesktopAnimationManager::ANIMATION_TYPE_IN :
                                                                                                                      CDesktopAnimationManager::ANIMATION_TYPE_OUT);
         updateSuspendedStates();
     }

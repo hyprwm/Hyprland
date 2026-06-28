@@ -306,7 +306,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                                           wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
                                           wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
                     else
-                        count = getWindows(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
+                        count = getWindowCount(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
                                            wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
                                            wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
 
@@ -342,7 +342,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                         getGroups(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
                                   wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt, wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
                 else
-                    count = getWindows(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
+                    count = getWindowCount(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
                                        wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
                                        wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
 
@@ -496,11 +496,11 @@ PHLWINDOW CWorkspace::getTopLeftWindow() {
 }
 
 bool CWorkspace::hasUrgentWindow() {
-    return std::ranges::any_of(getWindows(), [this](const auto& w) { return w->m_isMapped && w->m_isUrgent; });
+    return std::ranges::any_of(Desktop::windowState()->windows(), [this](const auto& w) { return w->m_isMapped && w->m_isUrgent; });
 }
 
 void CWorkspace::updateWindowDecos() {
-    for (auto const& w : getWindows()) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         w->updateWindowDecos();
     }
 }

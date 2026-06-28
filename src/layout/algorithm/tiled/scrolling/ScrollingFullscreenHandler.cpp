@@ -624,7 +624,11 @@ void CScrollingFullscreenHandler::saveCurrentFsAndAllHiddenFloatingWindows(PHLWI
 
     const auto WORKSPACE = fullscreenWindow->m_workspace;
 
-    for (auto const& w : WORKSPACE->getWindows()) {
+    for (auto const& w : Desktop::windowState()->windows()) {
+        
+        if (!w && w->m_workspace != getSpace()->workspace())
+            continue;
+
         if (w != fullscreenWindow && !w->m_fadingOut && !w->m_pinned && w->m_isFloating)
             m_fullscreenWindowHidingState.hiddenFloatingWindowsUnderFSWindow.emplace(w);
     }

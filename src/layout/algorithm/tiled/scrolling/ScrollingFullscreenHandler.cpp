@@ -306,13 +306,13 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
         const auto MONITOR = WORKSPACE->m_monitor;
 
         // make all windows and layers on the same workspace under the fullscreen window
-        for (const auto& e : WORKSPACE->getWindows()) {
-            if (e && !isFullscreen(e->m_target) && !e->m_fadingOut && !e->m_pinned) {
-                e->m_allowedOverFullscreen = !SET;
-                e->updateFullscreenInputState();
+        for (auto const& w : Desktop::windowState()->windows()) {
+            if (w && w->m_workspace == getSpace()->workspace() && !isFullscreen(w->m_target) && !w->m_fadingOut && !w->m_pinned) {
+                w->m_allowedOverFullscreen = !SET;
+                w->updateFullscreenInputState();
             }
         }
-        for (auto const& ls : g_pCompositor->m_layers) {
+        for (auto const& ls : Desktop::layerState()->layers()) {
             if (ls->m_monitor == MONITOR)
                 ls->m_aboveFullscreen = !SET;
         }
@@ -426,14 +426,17 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
             // while those that were hidden under the scroll handled tiled FS window must remain under
 
             // make all windows and layers on the same workspace under the fullscreen window
-            for (auto const& w : WORKSPACE->getWindows()) {
+            for (auto const& w : Desktop::windowState()->windows()) {
+                if (!w || w->m_workspace != getSpace()->workspace())
+                    continue;
+                
                 if (w != COVERING_FULLSCREEN_WINDOW && !w->m_fadingOut && !w->m_pinned) {
                     // If it the window was hidden when the UNDERLYING_FS_WINDOW was FSed, or it is a tiled window; it remains hidden. else, it is allowed ontop of it
                     w->m_allowedOverFullscreen = w->m_isFloating && !m_fullscreenWindowHidingState.hiddenFloatingWindowsUnderFSWindow.contains(w);
                     w->updateFullscreenInputState();
                 }
             }
-            for (auto const& ls : g_pCompositor->m_layers) {
+            for (auto const& ls : Desktop::layerState()->layers()) {
                 if (ls->m_monitor == MONITOR)
                     ls->m_aboveFullscreen = false;
             }

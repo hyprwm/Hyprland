@@ -142,13 +142,13 @@ void IFullscreenHandler::setNoMembersAboveFullscreen() {
     const bool SET = !m_fsTargets.empty();
 
     // make all windows and layers on the same workspace under the fullscreen window
-    for (const auto& e : WORKSPACE->getWindows()) {
-        if (e && !isFullscreen(e->m_target) && !e->m_fadingOut && !e->m_pinned) {
-            e->m_allowedOverFullscreen = !SET;
-            e->updateFullscreenInputState();
+    for (auto const& w : Desktop::windowState()->windows()) {
+        if (w && w->m_workspace == m_algorithm->m_parent->space()->workspace() && !isFullscreen(w->m_target) && !w->m_fadingOut && !w->m_pinned) {
+            w->m_allowedOverFullscreen = !SET;
+            w->updateFullscreenInputState();
         }
     }
-    for (auto const& ls : g_pCompositor->m_layers) {
+    for (auto const& ls : Desktop::layerState()->layers()) {
         if (ls->m_monitor == MONITOR)
             ls->m_aboveFullscreen = !SET;
     }
@@ -212,4 +212,12 @@ SP<Layout::CSpace> IFullscreenHandler::getSpace() const {
     if (!m_algorithm || !m_algorithm->m_parent || !m_algorithm->m_parent->space())
         return nullptr;
     return m_algorithm->m_parent.lock()->space();
+}
+
+SP<Layout::CAlgorithm> IFullscreenHandler::getParent() const {
+    if (!m_algorithm || !m_algorithm->m_parent)
+        return nullptr;
+
+        
+    return m_algorithm->m_parent.lock();
 }

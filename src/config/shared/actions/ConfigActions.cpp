@@ -22,6 +22,7 @@
 #include "../../../protocols/IdleNotify.hpp"
 #include "../../../protocols/GlobalShortcuts.hpp"
 #include "../../../event/EventBus.hpp"
+#include "../../../managers/XWaylandManager.hpp"
 #include "../../../layout/algorithm/Algorithm.hpp"
 #include "../../../layout/algorithm/tiled/master/MasterAlgorithm.hpp"
 #include "../../../layout/algorithm/tiled/monocle/MonocleAlgorithm.hpp"
@@ -369,8 +370,9 @@ ActionResult Actions::moveFocus(Math::eDirection dir) {
     // ERSTARR TODO - Might be problematic when the window in dir is a layout managed FS window. Deps on if there's a downstream check to unFs that window and re-Fs it with default handler
     const auto PWINDOWTOCHANGETO = *PFULLCYCLE && g_pfullscreenController->isFullscreen(PLASTWINDOW) &&
             !g_pfullscreenController->layoutManagedFS(PLASTWINDOW) ?
-        g_pCompositor->getWindowCycle(PLASTWINDOW, true, {}, false, dir != Math::DIRECTION_DOWN && dir != Math::DIRECTION_RIGHT, true) :
-        g_pCompositor->getWindowInDirection(PLASTWINDOW, dir);
+        Desktop::windowState()->query().cycle(PLASTWINDOW,
+                                              {.focusableOnly = true, .previous = dir != Math::DIRECTION_DOWN && dir != Math::DIRECTION_RIGHT, .allowFullscreenBlocked = true}) :
+        Desktop::windowState()->query().inDirection(PLASTWINDOW, dir);
 
     if (*PGROUPCYCLE && PLASTWINDOW->m_group) {
         auto isTheOnlyGroupOnWs = !PWINDOWTOCHANGETO && State::monitorState()->monitors().size() == 1;
@@ -1688,7 +1690,9 @@ ActionResult Actions::cycleNext(const bool next, std::optional<bool> onlyTiled, 
     if (onlyTiled.value_or(false) != onlyFloating.value_or(false))
         tileOrFloatOnly = onlyFloating.value_or(false);
 
-    const auto& cycled = g_pCompositor->getWindowCycle(window, true, tileOrFloatOnly, false, !next, window->m_workspace && g_pfullscreenController->hasFullscreen(window->m_workspace));
+    const auto& cycled = Desktop::windowState()->query().cycle(
+        window,
+        {.focusableOnly = true, .floating = tileOrFloatOnly, .previous = !next, .allowFullscreenBlocked = window->m_workspace && g_pfullscreenController->hasFullscreen(window->m_workspace)});
 
     switchToWindow(cycled);
 

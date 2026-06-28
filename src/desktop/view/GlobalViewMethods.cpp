@@ -20,8 +20,8 @@ std::vector<SP<IView>> View::getViewsForWorkspace(PHLWORKSPACE ws) {
     if (!ws)
         return views;
 
-    for (const auto& w : ws->getWindows()) {
-        if (!w->aliveAndVisible())
+    for (const auto& w : Desktop::windowState()->windows()) {
+        if (!w->aliveAndVisible() || w->m_workspace != ws)
             continue;
 
         views.emplace_back(w);

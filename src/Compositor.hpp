@@ -73,45 +73,19 @@ class CCompositor {
 
     // ------------------------------------------------- //
 
-    void                   removeWindowFromVectorSafe(PHLWINDOW);
-    PHLWINDOW              vectorToWindowUnified(const Vector2D&, uint16_t properties, PHLWINDOW pIgnoreWindow = nullptr);
-    SP<CWLSurfaceResource> vectorToLayerSurface(const Vector2D&, std::vector<PHLLSREF>*, Vector2D*, PHLLS*, bool aboveLockscreen = false);
-    SP<CWLSurfaceResource> vectorToLayerPopupSurface(const Vector2D&, PHLMONITOR monitor, Vector2D*, PHLLS*);
-    SP<CWLSurfaceResource> vectorWindowToSurface(const Vector2D&, PHLWINDOW, Vector2D& sl);
-    Vector2D               vectorToSurfaceLocal(const Vector2D&, PHLWINDOW, SP<CWLSurfaceResource>);
-    PHLWINDOW              getWindowFromSurface(SP<CWLSurfaceResource>);
-    PHLWINDOW              getWindowFromHandle(uint32_t);
-    PHLWINDOW              getUrgentWindow();
-    bool                   isWindowActive(PHLWINDOW);
-    void                   changeWindowZOrder(PHLWINDOW, bool);
-    void                   cleanupFadingOut(const MONITORID& monid);
-    PHLWINDOW              getWindowInDirection(PHLWINDOW, Math::eDirection);
-    PHLWINDOW              getWindowInDirection(const CBox& box, PHLWORKSPACE pWorkspace, Math::eDirection dir, bool floatingPreference, PHLWINDOW ignoreWindow = nullptr,
-                                                bool useVectorAngles = false);
-    PHLWINDOW              getWindowCycle(PHLWINDOW cur, bool focusableOnly = false, std::optional<bool> floating = std::nullopt, bool visible = false, bool prev = false,
-                                          bool allowFullscreenBlocked = false);
-    PHLWINDOW              getWindowCycleHist(PHLWINDOWREF cur, bool focusableOnly = false, std::optional<bool> floating = std::nullopt, bool visible = false, bool next = false,
-                                              bool allowFullscreenBlocked = false);
-    bool                   isPointOnAnyMonitor(const Vector2D&);
-    bool                   isPointOnReservedArea(const Vector2D& point, const PHLMONITOR monitor = nullptr);
-    std::optional<CBox>    calculateX11WorkArea();
-    void                   updateAllWindowsAnimatedDecorationValues();
-    void                   moveWorkspaceToMonitor(PHLWORKSPACE, PHLMONITOR, bool noWarpCursor = false);
-    void                   swapActiveWorkspaces(PHLMONITOR, PHLMONITOR);
-    PHLWINDOW              getX11Parent(PHLWINDOW);
-    void                   addToFadingOutSafe(PHLLS);
-    void                   removeFromFadingOutSafe(PHLLS);
-    void                   addToFadingOutSafe(PHLWINDOW);
-    PHLWINDOW              getWindowByRegex(const std::string&);
-    void                   warpCursorTo(const Vector2D&, bool force = false);
-    PHLLS                  getLayerSurfaceFromSurface(SP<CWLSurfaceResource>);
-    Vector2D               parseWindowVectorArgsRelative(const std::string&, const Vector2D&);
-    void                   performUserChecks();
-    void                   moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWorkspace);
-    PHLWINDOW              getForceFocus();
-    void                   setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, double scale);
-    void                   setPreferredTransformForSurface(SP<CWLSurfaceResource> pSurface, wl_output_transform transform);
-    void                   updateSuspendedStates();
+    bool                                isPointOnAnyMonitor(const Vector2D&);
+    bool                                isPointOnReservedArea(const Vector2D& point, const PHLMONITOR monitor = nullptr);
+    std::optional<CBox>                 calculateX11WorkArea();
+    void                                updateAllWindowsAnimatedDecorationValues();
+    void                                moveWorkspaceToMonitor(PHLWORKSPACE, PHLMONITOR, bool noWarpCursor = false);
+    void                                swapActiveWorkspaces(PHLMONITOR, PHLMONITOR);
+    void                                warpCursorTo(const Vector2D&, bool force = false);
+    Vector2D                            parseWindowVectorArgsRelative(const std::string&, const Vector2D&);
+    void                                performUserChecks();
+    void                                moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWorkspace);
+    void                                setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, double scale);
+    void                                setPreferredTransformForSurface(SP<CWLSurfaceResource> pSurface, wl_output_transform transform);
+    void                                updateSuspendedStates();
     std::optional<unsigned int>         getVTNr();
     bool                                isVRRActiveOnAnyMonitor() const;
 

@@ -114,7 +114,7 @@ PHLWINDOW CWindowQuery::inDirection(const SWindowDirectionQuery& query) const {
                 if (!*PMONITORFALLBACK && query.workspace->m_monitor != w->m_monitor)
                     continue;
 
-                if (w->m_isFloating != floatingPreference)
+                if ((!w->isFullscreen() && w->m_isFloating) != floatingPreference)
                     continue;
 
                 // prioritize windows on the same workspace.

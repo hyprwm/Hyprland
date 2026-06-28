@@ -11,9 +11,7 @@ TEST_CASE(scrollFocusCycling) {
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
     for (auto const& win : {"a", "b", "c", "d"}) {
-        if (!Tests::spawnKitty(win)) {
-            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
-        }
+        SPAWN_KITTY(win);
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:a' })"));
@@ -58,9 +56,7 @@ TEST_CASE(scrollFocusWrapping) {
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
     for (auto const& win : {"a", "b", "c", "d"}) {
-        if (!Tests::spawnKitty(win)) {
-            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
-        }
+        SPAWN_KITTY(win);
     }
 
     // set wrap_focus to true
@@ -108,9 +104,7 @@ TEST_CASE(scrollSwapcolWrapping) {
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
     for (auto const& win : {"a", "b", "c", "d"}) {
-        if (!Tests::spawnKitty(win)) {
-            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
-        }
+        SPAWN_KITTY(win);
     }
 
     // set wrap_swapcol to true
@@ -127,13 +121,11 @@ TEST_CASE(scrollSwapcolWrapping) {
     }
 
     // clean up
-    NLog::log("{}Killing all windows", Colors::YELLOW);
+    NLog::yellow("Killing all windows");
     Tests::killAllWindows();
 
     for (auto const& win : {"a", "b", "c", "d"}) {
-        if (!Tests::spawnKitty(win)) {
-            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
-        }
+        SPAWN_KITTY(win);
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:d' })"));
@@ -146,13 +138,11 @@ TEST_CASE(scrollSwapcolWrapping) {
     }
 
     // clean up
-    NLog::log("{}Killing all windows", Colors::YELLOW);
+    NLog::yellow("Killing all windows");
     Tests::killAllWindows();
 
     for (auto const& win : {"a", "b", "c", "d"}) {
-        if (!Tests::spawnKitty(win)) {
-            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
-        }
+        SPAWN_KITTY(win);
     }
 
     // set wrap_swapcol to false
@@ -182,19 +172,14 @@ TEST_CASE(scrollSwapcolWrapping) {
 TEST_CASE(scrollWindowRule) {
     OK(getFromSocket("/eval hl.config({ general = { layout = 'scrolling' } })"));
 
-    NLog::log("{}Testing Scrolling Width", Colors::GREEN);
+    NLog::green("Testing Scrolling Width");
 
     // inject a new rule.
     OK(getFromSocket("/eval hl.window_rule({ name = 'scrolling-width', match = { class = 'kitty_scroll' } })"));
     OK(getFromSocket("/eval hl.window_rule({ name = 'scrolling-width', scrolling_width = 0.1 })"));
 
-    if (!Tests::spawnKitty("kitty_scroll")) {
-        FAIL_TEST("Could not spawn kitty with win class `kitty_scroll`");
-    }
-
-    if (!Tests::spawnKitty("kitty_scroll")) {
-        FAIL_TEST("Could not spawn kitty with win class `kitty_scroll`");
-    }
+    SPAWN_KITTY("kitty_scroll");
+    SPAWN_KITTY("kitty_scroll");
 
     ASSERT(Tests::windowCount(), 2);
 
@@ -206,11 +191,11 @@ TEST_CASE(scrollWindowRule) {
 TEST_CASE(scrollFullscreen) {
     OK(getFromSocket("/eval hl.config({ general = { layout = 'scrolling' } })"));
 
-    NLog::log("{}Testing Scrolling FS", Colors::GREEN);
+    NLog::green("Testing Scrolling FS");
 
-    ASSERT(!!Tests::spawnKitty("kitty_scroll_A"), true);
-    ASSERT(!!Tests::spawnKitty("kitty_scroll_B"), true);
-    ASSERT(!!Tests::spawnKitty("kitty_scroll_C"), true);
+    SPAWN_KITTY("kitty_scroll_A");
+    SPAWN_KITTY("kitty_scroll_B");
+    SPAWN_KITTY("kitty_scroll_C");
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = \"class:kitty_scroll_B\" })"));
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen()"));
@@ -248,11 +233,11 @@ TEST_CASE(scrollFullscreen) {
 TEST_CASE(scrollMaximize) {
     OK(getFromSocket("/eval hl.config({ general = { layout = 'scrolling' } })"));
 
-    NLog::log("{}Testing Scrolling Maximize", Colors::GREEN);
+    NLog::green("Testing Scrolling Maximize");
 
-    ASSERT(!!Tests::spawnKitty("kitty_scroll_A"), true);
-    ASSERT(!!Tests::spawnKitty("kitty_scroll_B"), true);
-    ASSERT(!!Tests::spawnKitty("kitty_scroll_C"), true);
+    SPAWN_KITTY("kitty_scroll_A");
+    SPAWN_KITTY("kitty_scroll_B");
+    SPAWN_KITTY("kitty_scroll_C");
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = \"class:kitty_scroll_B\" })"));
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({mode = 'maximized'})"));
@@ -296,33 +281,27 @@ TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocusFalse) {
      ---------------------------------------------------------------------------------
     */
 
-    NLog::log("{}Testing scrolling view behaviour: focuswindow dispatch SHOULD NOT move scrolling view when follow_focus = false", Colors::GREEN);
+    NLog::green("Testing scrolling view behaviour: focuswindow dispatch SHOULD NOT move scrolling view when follow_focus = false");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
     // ensure variables are correctly set for the test
     OK(getFromSocket("/eval hl.config({scrolling = {follow_focus = false}})"));
 
-    if (!Tests::spawnKitty("a")) {
-        FAIL_TEST("Could not spawn kitty with win class `a`");
-    }
+    SPAWN_KITTY("a");
 
     OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
 
-    if (!Tests::spawnKitty("b")) {
-        FAIL_TEST("Could not spawn kitty with win class `b`");
-    }
+    SPAWN_KITTY("b");
 
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:a'})"));
 
     // if the view does not move, we expect the x coordinate of the window of class "a" to be negative, as it would be to the left of the viewport
     const std::string posA  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const int         posAx = std::stoi(posA.substr(0, posA.find(',')));
-    if (posAx < 0) {
-        NLog::log("{}Passed: {}Expected the x coordinate of window of class \"a\" to be < 0, got {}.", Colors::GREEN, Colors::RESET, posAx);
-    } else {
-        FAIL_TEST("{}Failed: {}Expected the x coordinate of window of class \"a\" to be < 0, got {}.", Colors::RED, Colors::RESET, posAx);
-    }
+
+    if (posAx >= 0)
+        FAIL_TEST("Expected the x coordinate of window of class \"a\" to be < 0, got {}.", posAx);
 }
 
 TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocustrue) {
@@ -332,19 +311,15 @@ TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocustrue) {
      --------------------------------------------------------------------
     */
 
-    NLog::log("{}Testing scrolling view behaviour: focuswindow dispatch SHOULD move scrolling view when follow_focus = true", Colors::GREEN);
+    NLog::green("Testing scrolling view behaviour: focuswindow dispatch SHOULD move scrolling view when follow_focus = true");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
-    if (!Tests::spawnKitty("a")) {
-        FAIL_TEST("Could not spawn kitty with win class `a`");
-    }
+    SPAWN_KITTY("a");
 
     OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
 
-    if (!Tests::spawnKitty("b")) {
-        FAIL_TEST("Could not spawn kitty with win class `b`");
-    }
+    SPAWN_KITTY("b");
 
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:a'})"));
 
@@ -352,11 +327,9 @@ TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocustrue) {
     // If it is not, the view moved, which is what we expect to happen.
     const std::string posA  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const int         posAx = std::stoi(posA.substr(0, posA.find(',')));
-    if (posAx < 0) {
-        FAIL_TEST("{}Failed: {}Expected the x coordinate of window of class \"a\" to be >= 0, got {}.", Colors::RED, Colors::RESET, posAx);
-    } else {
-        NLog::log("{}Passed: {}Expected the x coordinate of window of class \"a\" to be >= 0, got {}.", Colors::GREEN, Colors::RESET, posAx);
-    }
+
+    if (posAx < 0)
+        FAIL_TEST("Expected the x coordinate of window of class \"a\" to be >= 0, got {}.", posAx);
 }
 
 TEST_CASE(testScrollingViewBehaviourFocusFallback) {
@@ -366,26 +339,19 @@ TEST_CASE(testScrollingViewBehaviourFocusFallback) {
      --------------------------------------------------------------------------------------------------------------------------
     */
 
-    NLog::log("{}Testing scrolling view behaviour: focus fallback from floating window to a tiled window should not move scrolling view", Colors::GREEN);
+    NLog::green("Testing scrolling view behaviour: focus fallback from floating window to a tiled window should not move scrolling view");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
     // ensure variables are correctly set for the test
     OK(getFromSocket("/eval hl.config({scrolling = {follow_focus = false}})"));
 
-    if (!Tests::spawnKitty("a")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `a`", Colors::RED);
-    }
+    SPAWN_KITTY("a");
 
     OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
 
-    if (!Tests::spawnKitty("b")) {
-        FAIL_TEST("{}Failed to spawn kitty with class `b`", Colors::RED);
-    }
-
-    if (!Tests::spawnKitty("c")) {
-        FAIL_TEST("{}Failed to spawn kitty with class `c`", Colors::RED);
-    }
+    SPAWN_KITTY("b");
+    SPAWN_KITTY("c");
 
     // make it (window of class:c) float - the view now mush have shifted to fit window class:b
     OK(getFromSocket("/dispatch hl.dsp.window.float({action = 'enable', window = 'class:c'})"));
@@ -406,21 +372,16 @@ TEST_CASE(testScrollingViewBehaviourFocusFallback) {
 
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
-    // test pass
-    if (std::stoi(currentWindowPosX) < 0) {
-        NLog ::log("{}Passed: {}Expected the x coordinate of window of class \"a\" to be < 0, got {}.", Colors ::GREEN, Colors::RESET, currentWindowPosX);
-    }
-    // test fail
-    else {
-        FAIL_TEST("{}Failed: {}Expected the x coordinate of window of class \"a\" to be < 0, got {}.", Colors::RED, Colors::RESET, currentWindowPosX);
-    }
+
+    if (std::stoi(currentWindowPosX) >= 0)
+        FAIL_TEST("Expected the x coordinate of window of class \"a\" to be < 0, got {}.", currentWindowPosX);
 }
 
 TEST_CASE(testScrollingViewBehaviourFocusFallbackWithGroups) {
 
     // same idea as testScrollingViewBehaviourFocusFallback, but with window of class "a" being grouped.
 
-    NLog::log("{}Testing scrolling view behaviour: focus fallback from floating window to a grouped tiled should not move scrolling view", Colors::GREEN);
+    NLog::green("Testing scrolling view behaviour: focus fallback from floating window to a grouped tiled should not move scrolling view");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -431,21 +392,14 @@ TEST_CASE(testScrollingViewBehaviourFocusFallbackWithGroups) {
     // only one tiled window will be grouped for the test
     OK(getFromSocket("/eval hl.config({group = {auto_group = false}})"));
 
-    if (!Tests::spawnKitty("a")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `a`", Colors::RED);
-    }
+    SPAWN_KITTY("a");
 
     // make it a grouped. There need not be any other windows in the group for this test
     OK(getFromSocket("/dispatch hl.dsp.group.toggle({window = 'class:a'})"));
     OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
 
-    if (!Tests::spawnKitty("b")) {
-        FAIL_TEST("{}Failed to spawn kitty with class `b`", Colors::RED);
-    }
-
-    if (!Tests::spawnKitty("c")) {
-        FAIL_TEST("{}Failed to spawn kitty with class `c`", Colors::RED);
-    }
+    SPAWN_KITTY("b");
+    SPAWN_KITTY("c");
 
     // make it float - the view now mush have shifted to fit window class:b
     OK(getFromSocket("/dispatch hl.dsp.window.float({action = 'enable', window = 'class:c'})"));
@@ -466,14 +420,8 @@ TEST_CASE(testScrollingViewBehaviourFocusFallbackWithGroups) {
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
 
-    // test pass
-    if (std::stoi(currentWindowPosX) < 0) {
-        NLog ::log("{}Passed: {}Expected the x coordinate of window of class \"a\" to be < 0, got {}.", Colors ::GREEN, Colors::RESET, currentWindowPosX);
-    }
-    // test fail
-    else {
-        FAIL_TEST("{}Failed: {}Expected the x coordinate of window of class \"a\" to be < 0, got {}.", Colors::RED, Colors::RESET, currentWindowPosX);
-    }
+    if (std::stoi(currentWindowPosX) >= 0)
+        FAIL_TEST("Expected the x coordinate of window of class \"a\" to be < 0, got {}.", currentWindowPosX);
 }
 
 TEST_CASE(testScrollingViewBehaviourWorkspaceChange) {
@@ -483,7 +431,7 @@ TEST_CASE(testScrollingViewBehaviourWorkspaceChange) {
      ---------------------------------------------------------------------------------------------------------------------------------------
     */
 
-    NLog::log("{}Testing scrolling view behaviour: changing to a scrolling workspace should not move scrolling view", Colors::GREEN);
+    NLog::green("Testing scrolling view behaviour: changing to a scrolling workspace should not move scrolling view");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -493,15 +441,11 @@ TEST_CASE(testScrollingViewBehaviourWorkspaceChange) {
     // switch to workspace 1 for this test
     OK(getFromSocket("/dispatch hl.dsp.focus({workspace = '1'})"));
 
-    if (!Tests::spawnKitty("a")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `a`", Colors::RED);
-    }
+    SPAWN_KITTY("a");
 
     OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
 
-    if (!Tests::spawnKitty("b")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `b`", Colors::RED);
-    }
+    SPAWN_KITTY("b");
 
     // does not move view when follow_focus = 0
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:a'})"));
@@ -514,14 +458,8 @@ TEST_CASE(testScrollingViewBehaviourWorkspaceChange) {
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
 
-    // test pass
-    if (std::stoi(currentWindowPosX) < 0) {
-        NLog ::log("{}Passed: {}window of class 'a' has negative x coordinates for its position: {}", Colors ::GREEN, Colors::RESET, currentWindowPosX);
-    }
-    // test fail
-    else {
-        FAIL_TEST("{}Failed: {}window of class 'a' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
-    }
+    if (std::stoi(currentWindowPosX) > 0)
+        FAIL_TEST("window of class 'a' does not have negative x coordinates for its position: {}", currentWindowPosX);
 }
 
 TEST_CASE(testScrollingViewBehaviourSpecialWorkspaceChange) {
@@ -531,7 +469,7 @@ TEST_CASE(testScrollingViewBehaviourSpecialWorkspaceChange) {
      -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
     */
 
-    NLog::log("{}Testing scrolling view behaviour: changing to a special scrolling workspace from a normal workspace should not move scrolling view", Colors::GREEN);
+    NLog::green("Testing scrolling view behaviour: changing to a special scrolling workspace from a normal workspace should not move scrolling view");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -541,15 +479,11 @@ TEST_CASE(testScrollingViewBehaviourSpecialWorkspaceChange) {
     // We'll test in this special workspace
     OK(getFromSocket("/dispatch hl.dsp.workspace.toggle_special('name:scroll_S')"));
 
-    if (!Tests::spawnKitty("a")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `a`", Colors::RED);
-    }
+    SPAWN_KITTY("a");
 
     OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
 
-    if (!Tests::spawnKitty("b")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `b`", Colors::RED);
-    }
+    SPAWN_KITTY("b");
 
     // does not move view when follow_focus = 0
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:a'})"));
@@ -564,14 +498,9 @@ TEST_CASE(testScrollingViewBehaviourSpecialWorkspaceChange) {
     // If the scrolling view did not move, the x value for `at:` of the currently focused windows, class:c, must be <0 (must be left of the viewport)
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
-    // test pass
-    if (std::stoi(currentWindowPosX) < 0) {
-        NLog ::log("{}Passed: {}window of class 'a' has negative x coordinates for its position: {}", Colors ::GREEN, Colors::RESET, currentWindowPosX);
-    }
-    // test fail
-    else {
-        FAIL_TEST("{}Failed: {}window of class 'a' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
-    }
+
+    if (std::stoi(currentWindowPosX) > 0)
+        FAIL_TEST("window of class 'a' does not have negative x coordinates for its position: {}", currentWindowPosX);
 }
 
 TEST_CASE(testScrollingViewBehaviourSpecialToSpecialWorkspaceChange) {
@@ -581,7 +510,7 @@ TEST_CASE(testScrollingViewBehaviourSpecialToSpecialWorkspaceChange) {
     This follows the same idea and dependencies as the test testScrollingViewBehaviourSpecialWorkspaceChange()
     */
 
-    NLog::log("{}Testing scrolling view behaviour: changing to a special scrolling workspace from another special workspace should not move scrolling view", Colors::GREEN);
+    NLog::green("Testing scrolling view behaviour: changing to a special scrolling workspace from another special workspace should not move scrolling view");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -591,15 +520,11 @@ TEST_CASE(testScrollingViewBehaviourSpecialToSpecialWorkspaceChange) {
     // We'll test in this special workspace
     OK(getFromSocket("/dispatch hl.dsp.workspace.toggle_special('name:scroll_S')"));
 
-    if (!Tests::spawnKitty("a")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `a`", Colors::RED);
-    }
+    SPAWN_KITTY("a");
 
     OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
 
-    if (!Tests::spawnKitty("b")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `b`", Colors::RED);
-    }
+    SPAWN_KITTY("b");
 
     // does not move view when follow_focus = 0
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:a'})"));
@@ -615,14 +540,9 @@ TEST_CASE(testScrollingViewBehaviourSpecialToSpecialWorkspaceChange) {
 
     const std::string currentWindowPosSPECIAL  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosSPECIALX = currentWindowPosSPECIAL.substr(0, currentWindowPosSPECIAL.find(','));
-    // test pass
-    if (std::stoi(currentWindowPosSPECIALX) < 0) {
-        NLog ::log("{}Passed: {}window of class 'a' has negative x coordinates for its position: {}", Colors ::GREEN, Colors::RESET, currentWindowPosSPECIALX);
-    }
-    // test fail
-    else {
-        FAIL_TEST("{}Failed: {}window of class 'a' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosSPECIALX);
-    }
+
+    if (std::stoi(currentWindowPosSPECIALX) > 0)
+        FAIL_TEST("window of class 'a' does not have negative x coordinates for its position: {}", currentWindowPosSPECIALX);
 }
 
 TEST_CASE(testScrollingViewBehaviourCloseWindowInGroup) {
@@ -632,7 +552,7 @@ TEST_CASE(testScrollingViewBehaviourCloseWindowInGroup) {
      -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     */
 
-    NLog::log("{}Testing scrolling view behaviour: closing a window in a group (> 1 window in group) should not move scrolling view", Colors::GREEN);
+    NLog::green("Testing scrolling view behaviour: closing a window in a group (> 1 window in group) should not move scrolling view");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -643,22 +563,16 @@ TEST_CASE(testScrollingViewBehaviourCloseWindowInGroup) {
     // We need 2 windows to be grouped, the third one not.
     OK(getFromSocket("/eval hl.config({group = {auto_group = false}})"));
 
-    if (!Tests::spawnKitty("a")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `a`", Colors::RED);
-    }
+    SPAWN_KITTY("a");
 
     OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
     OK(getFromSocket("/dispatch hl.dsp.group.toggle({window = 'class:a'})"));
 
-    if (!Tests::spawnKitty("b")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `b`", Colors::RED);
-    }
+    SPAWN_KITTY("b");
 
     OK(getFromSocket("/dispatch hl.dsp.window.move({ into_group = 'left' })"));
 
-    if (!Tests::spawnKitty("c")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `c`", Colors::RED);
-    }
+    SPAWN_KITTY("c");
 
     // switch focus to group. This will not move view when follow_focus = 0
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:b'})"));
@@ -671,14 +585,9 @@ TEST_CASE(testScrollingViewBehaviourCloseWindowInGroup) {
 
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
-    // test pass
-    if (std::stoi(currentWindowPosX) < 0) {
-        NLog ::log("{}Passed: {}window of class 'a' has negative x coordinates for its position: {}", Colors ::GREEN, Colors::RESET, currentWindowPosX);
-    }
-    // test fail
-    else {
-        FAIL_TEST("{}Failed: {}window of class 'a' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
-    }
+
+    if (std::stoi(currentWindowPosX) > 0)
+        FAIL_TEST("window of class 'a' does not have negative x coordinates for its position: {}", currentWindowPosX);
 }
 
 TEST_CASE(testScrollingViewBehaviourMoveWindowIntoGroupFollowFocusFalse) {
@@ -688,7 +597,7 @@ TEST_CASE(testScrollingViewBehaviourMoveWindowIntoGroupFollowFocusFalse) {
      -----------------------------------------------------------------------------------------------------------------
     */
 
-    NLog::log("{}Testing scrolling view behaviour: moving a window into a group SHOULD NOT move scrolling view if follow_focus = 0", Colors::GREEN);
+    NLog::green("Testing scrolling view behaviour: moving a window into a group SHOULD NOT move scrolling view if follow_focus = 0");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -696,20 +605,13 @@ TEST_CASE(testScrollingViewBehaviourMoveWindowIntoGroupFollowFocusFalse) {
     OK(getFromSocket("/eval hl.config({scrolling = {follow_focus = false}})"));
     OK(getFromSocket("/eval hl.config({group = {auto_group = false}})"));
 
-    if (!Tests::spawnKitty("a")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `a`", Colors::RED);
-    }
+    SPAWN_KITTY("a");
 
     OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
     OK(getFromSocket("/dispatch hl.dsp.group.toggle({window = 'class:a'})"));
 
-    if (!Tests::spawnKitty("b")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `b`", Colors::RED);
-    }
-
-    if (!Tests::spawnKitty("c")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `c`", Colors::RED);
-    }
+    SPAWN_KITTY("b");
+    SPAWN_KITTY("c");
 
     // focus class:b
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:b'})"));
@@ -721,14 +623,9 @@ TEST_CASE(testScrollingViewBehaviourMoveWindowIntoGroupFollowFocusFalse) {
 
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
-    // test pass
-    if (std::stoi(currentWindowPosX) < 0) {
-        NLog ::log("{}Passed: {}window of class 'b' has negative x coordinates for its position: {}", Colors ::GREEN, Colors::RESET, currentWindowPosX);
-    }
-    // test fail
-    else {
-        FAIL_TEST("{}Failed: {}window of class 'b' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
-    }
+
+    if (std::stoi(currentWindowPosX) > 0)
+        FAIL_TEST("window of class 'b' does not have negative x coordinates for its position: {}", currentWindowPosX);
 }
 
 TEST_CASE(testScrollingViewBehaviourMoveWindowInGroupFollowFocusTrue) {
@@ -738,27 +635,20 @@ TEST_CASE(testScrollingViewBehaviourMoveWindowInGroupFollowFocusTrue) {
     ------------------------------------------------------------------------------------------------------------
     */
 
-    NLog::log("{}Testing scrolling view behaviour: moving a window in a group SHOULD move scrolling view if follow_focus = true", Colors::GREEN);
+    NLog::green("Testing scrolling view behaviour: moving a window in a group SHOULD move scrolling view if follow_focus = true");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
     // ensure variables are correctly set for the test
     OK(getFromSocket("/eval hl.config({group = {auto_group = false}})"));
 
-    if (!Tests::spawnKitty("a")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `a`", Colors::RED);
-    }
+    SPAWN_KITTY("a");
 
     OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
     OK(getFromSocket("/dispatch hl.dsp.group.toggle({window = 'class:a'})"));
 
-    if (!Tests::spawnKitty("b")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `b`", Colors::RED);
-    }
-
-    if (!Tests::spawnKitty("c")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `c`", Colors::RED);
-    }
+    SPAWN_KITTY("b");
+    SPAWN_KITTY("c");
 
     // focus class:b
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:b'})"));
@@ -770,14 +660,9 @@ TEST_CASE(testScrollingViewBehaviourMoveWindowInGroupFollowFocusTrue) {
 
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
-    // test fail
-    if (std::stoi(currentWindowPosX) < 0) {
-        FAIL_TEST("{}window of class 'b' does not have x coordinates >= 0 for its position: {}", Colors::RED, currentWindowPosX);
-    }
-    // test pass
-    else {
-        NLog ::log("{}Passed: {}window of class 'b' has x coordinates >= 0 for its position: {}", Colors ::GREEN, Colors::RESET, currentWindowPosX);
-    }
+
+    if (std::stoi(currentWindowPosX) < 0)
+        FAIL_TEST("window of class 'b' does not have x coordinates >= 0 for its position: {}", currentWindowPosX);
 }
 
 TEST_CASE(testScrollingViewBehaviourNewLayer) {
@@ -787,55 +672,32 @@ TEST_CASE(testScrollingViewBehaviourNewLayer) {
      ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     */
 
-    NLog::log("{}Testing scrolling view behaviour: new program occupying another layer shouldn't move scrolling view", Colors::GREEN);
+    NLog::green("Testing scrolling view behaviour: new program occupying another layer shouldn't move scrolling view");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
     // ensure variables are correctly set for the test - this is to avoid unwanted view shifts when setting up the windows
     OK(getFromSocket("/eval hl.config({scrolling = {follow_focus = false}})"));
 
-    if (!Tests::spawnKitty("a")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `a`", Colors::RED);
-    }
+    SPAWN_KITTY("a");
 
     OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
 
-    if (!Tests::spawnKitty("b")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `b`", Colors::RED);
-    }
+    SPAWN_KITTY("b");
 
     // focus class:a - this does not move scrolling view when follow_focus = 0
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:a'})"));
 
-    NLog::log("{}Spawning kitty layer {}", Colors::YELLOW, "myLayer");
-    if (!Tests::spawnLayerKitty("myLayer")) {
-        FAIL_TEST("{}Error: {} layer did not spawn", Colors::RED, "myLayer");
-    }
+    NLog::yellow("Spawning kitty layer");
+    SPAWN_LAYER_KITTY("myLayer");
 
     // If the scrolling view did not move, class:a window's x coordinate for its `at:` value should be <0
 
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
-    // test pass
-    if (std::stoi(currentWindowPosX) < 0) {
-        NLog ::log("{}Passed: {}window of class 'a' has negative x coordinates for its position: {}", Colors ::GREEN, Colors::RESET, currentWindowPosX);
-    }
-    // test fail
-    else {
-        FAIL_TEST("{}Failed: {}window of class 'a' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
-    }
 
-    // TEST_CASE's own cleanup functions fail to kill all layers with this test. Manually do it
-
-    // kill all layers
-    NLog::log("{}Killing all layers", Colors::YELLOW);
-    Tests::killAllLayers();
-    ASSERT(Tests::layerCount(), 0);
-
-    // kill all windows
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
+    if (std::stoi(currentWindowPosX) > 0)
+        FAIL_TEST("window of class 'a' does not have negative x coordinates for its position: {}", currentWindowPosX);
 }
 
 TEST_CASE(testScrollingViewBehaviourMoveFocusFollowFocusFalse) {
@@ -845,22 +707,18 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusFollowFocusFalse) {
      ---------------------------------------------------------------------------------------
     */
 
-    NLog::log("{}Testing scrolling view behaviour: movefocus does not cause scrolling view to move if follow_focus = false", Colors::GREEN);
+    NLog::green("Testing scrolling view behaviour: movefocus does not cause scrolling view to move if follow_focus = false");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
     // ensure variables are correctly set for the test
     OK(getFromSocket("/eval hl.config({scrolling = {follow_focus = false}})"));
 
-    if (!Tests::spawnKitty("a")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `a`", Colors::RED);
-    }
+    SPAWN_KITTY("a");
 
     OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
 
-    if (!Tests::spawnKitty("b")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `b`", Colors::RED);
-    }
+    SPAWN_KITTY("b");
 
     // we expect that after dispatching this, scrolling view must not have moved
     OK(getFromSocket("/dispatch hl.dsp.focus({direction = 'left'})"));
@@ -868,14 +726,9 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusFollowFocusFalse) {
     // If the scrolling view did not move, class:a window's x coordinate for its `at:` value should be < 0.
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
-    // test pass
-    if (std::stoi(currentWindowPosX) < 0) {
-        NLog::log("{}Passed: {}window of class 'a' has negative x coordinates for its position: {}", Colors ::GREEN, Colors::RESET, currentWindowPosX);
-    }
-    // test fail
-    else {
-        FAIL_TEST("{}Failed: {}window of class 'a' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
-    }
+
+    if (std::stoi(currentWindowPosX) > 0)
+        FAIL_TEST("window of class 'a' does not have negative x coordinates for its position: {}", currentWindowPosX);
 }
 
 TEST_CASE(testScrollingViewBehaviourMoveFocusFollowFocusTrue) {
@@ -885,19 +738,15 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusFollowFocusTrue) {
      ----------------------------------------------------------------------------------
     */
 
-    NLog::log("{}Testing scrolling view behaviour: movefocus does cause scrolling view to move if follow_focus = true", Colors::GREEN);
+    NLog::green("Testing scrolling view behaviour: movefocus does cause scrolling view to move if follow_focus = true");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
-    if (!Tests::spawnKitty("a")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `a`", Colors::RED);
-    }
+    SPAWN_KITTY("a");
 
     OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
 
-    if (!Tests::spawnKitty("b")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `b`", Colors::RED);
-    }
+    SPAWN_KITTY("b");
 
     // we expect that after dispatching this, scrolling view must have moved since follow_focus = true
     OK(getFromSocket("/dispatch hl.dsp.focus({direction = 'left'})"));
@@ -906,14 +755,9 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusFollowFocusTrue) {
 
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
-    // test fail
-    if (std::stoi(currentWindowPosX) < 0) {
-        FAIL_TEST("{}Failed: {}window of class 'a' does not have x coordinates >= 0 for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
-    }
-    // test pass
-    else {
-        NLog ::log("{}Passed: {}window of class 'a' has x coordinates >= 0 for its position: {}", Colors ::GREEN, Colors::RESET, currentWindowPosX);
-    }
+
+    if (std::stoi(currentWindowPosX) < 0)
+        FAIL_TEST("window of class 'a' does not have x coordinates >= 0 for its position: {}", currentWindowPosX);
 }
 
 TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusFalse) {
@@ -923,7 +767,7 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusFalse) {
      -----------------------------------------------------------------------------------------------------------------------------------------------
     */
 
-    NLog::log("{}Testing scrolling view behaviour: movefocus within groups does not cause scrolling view to move if follow_focus = false", Colors::GREEN);
+    NLog::green("Testing scrolling view behaviour: movefocus within groups does not cause scrolling view to move if follow_focus = false");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -934,20 +778,13 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusFalse) {
     OK(getFromSocket("/eval hl.config({group = {auto_group = false}})"));
     OK(getFromSocket("/eval hl.config({scrolling = {follow_focus = false}})"));
 
-    if (!Tests::spawnKitty("a")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `a`", Colors::RED);
-    }
+    SPAWN_KITTY("a");
 
     OK(getFromSocket("/dispatch hl.dsp.group.toggle({window = 'class:a'})"));
     OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
 
-    if (!Tests::spawnKitty("b")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `b`", Colors::RED);
-    }
-
-    if (!Tests::spawnKitty("c")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `c`", Colors::RED);
-    }
+    SPAWN_KITTY("b");
+    SPAWN_KITTY("c");
 
     // focus class:b. This does not cause scrolling view to move when follow_focus = false
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:b'})"));
@@ -962,14 +799,9 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusFalse) {
 
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
-    // test pass
-    if (std::stoi(currentWindowPosX) < 0) {
-        NLog ::log("{}Passed: {}window of class 'a' has negative x coordinates for its position: {}", Colors ::GREEN, Colors::RESET, currentWindowPosX);
-    }
-    // test fail
-    else {
-        FAIL_TEST("{}Failed: {}window of class 'a' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
-    }
+
+    if (std::stoi(currentWindowPosX) > 0)
+        FAIL_TEST("window of class 'a' does not have negative x coordinates for its position: {}", currentWindowPosX);
 }
 
 TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusTrue) {
@@ -979,7 +811,7 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusTrue) {
      ------------------------------------------------------------------------------------------------------------------------------------------
     */
 
-    NLog::log("{}Testing scrolling view behaviour: movefocus within groups does causes scrolling view to move if follow_focus = true", Colors::GREEN);
+    NLog::green("Testing scrolling view behaviour: movefocus within groups does causes scrolling view to move if follow_focus = true");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -989,20 +821,13 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusTrue) {
     OK(getFromSocket("/eval hl.config({ binds = {movefocus_cycles_groupfirst = true}})"));
     OK(getFromSocket("/eval hl.config({group = {auto_group = false}})"));
 
-    if (!Tests::spawnKitty("a")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `a`", Colors::RED);
-    }
+    SPAWN_KITTY("a");
 
     OK(getFromSocket("/dispatch hl.dsp.group.toggle({window = 'class:a'})"));
     OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
 
-    if (!Tests::spawnKitty("b")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `b`", Colors::RED);
-    }
-
-    if (!Tests::spawnKitty("c")) {
-        FAIL_TEST("{}Failed to spawn kitty with win class `c`", Colors::RED);
-    }
+    SPAWN_KITTY("b");
+    SPAWN_KITTY("c");
 
     // focus class:b. This does not cause scrolling view to move when follow_focus = false
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:b'})"));
@@ -1017,14 +842,9 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusTrue) {
 
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
-    // test fail
-    if (std::stoi(currentWindowPosX) < 0) {
-        FAIL_TEST("{}Failed: {}window of class 'a' does not have x coordinates >= 0 for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
-    }
-    // test pass
-    else {
-        NLog ::log("{}Passed: {}window of class 'a' has x coordinates >= 0 for its position: {}", Colors ::GREEN, Colors::RESET, currentWindowPosX);
-    }
+
+    if (std::stoi(currentWindowPosX) < 0)
+        FAIL_TEST("window of class 'a' does not have x coordinates >= 0 for its position: {}", currentWindowPosX);
 }
 
 TEST_CASE(testScrollingViewBehaviourScheduledPropRefresh) {
@@ -1041,17 +861,11 @@ TEST_CASE(testScrollingViewBehaviourScheduledPropRefresh) {
 
     OK(getFromSocket("/eval hl.config({scrolling = {follow_focus = false}})"));
 
-    if (!Tests::spawnKitty("a")) {
-        FAIL_TEST("Could not spawn kitty with win class `a`");
-        return;
-    }
+    SPAWN_KITTY("a");
 
     OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
 
-    if (!Tests::spawnKitty("b")) {
-        FAIL_TEST("Could not spawn kitty with win class `b`");
-        return;
-    }
+    SPAWN_KITTY("b");
 
     // since follow_focus = false, viewport does not move
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:a' })"));
@@ -1066,14 +880,9 @@ TEST_CASE(testScrollingViewBehaviourScheduledPropRefresh) {
     // The viewport must not have moved: left corner cords of window should be < 0
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
-    // test pass
-    if (std::stoi(currentWindowPosX) < 0) {
-        NLog ::log("{}Passed: {}window of class 'a' has negative x coordinates for its position: {}", Colors ::GREEN, Colors::RESET, currentWindowPosX);
-    }
-    // test fail
-    else {
-        FAIL_TEST("{}Failed: {}window of class 'a' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
-    }
+
+    if (std::stoi(currentWindowPosX) > 0)
+        FAIL_TEST("window of class 'a' does not have negative x coordinates for its position: {}", currentWindowPosX);
 }
 
 TEST_CASE(testScrollInhibitor) {
@@ -1086,20 +895,13 @@ TEST_CASE(testScrollInhibitor) {
     // set current layout to scrolling
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
-    NLog::log("{}Testing inhibit_scroll", Colors::GREEN);
+    NLog::green("Testing inhibit_scroll");
 
-    if (!Tests::spawnKitty("a")) {
-        FAIL_TEST("Could not spawn kitty with win class `a`");
-        return;
-    }
+    SPAWN_KITTY("a");
 
     OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
 
-    if (!Tests::spawnKitty("b")) {
-        FAIL_TEST("Could not spawn kitty with win class `b`");
-        return;
-    }
-
+    SPAWN_KITTY("b");
     // Currently, we are focused on window class:b
 
     // enable scroll inhibitor
@@ -1113,12 +915,9 @@ TEST_CASE(testScrollInhibitor) {
     // if the view does not move, we expect the x coordinate of the window of class "a" to be negative, as it would be to the left of the viewport
     const std::string posA  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const int         posAx = std::stoi(posA.substr(0, posA.find(',')));
-    if (posAx < 0) {
-        NLog::log("{}Passed: {}Expected the x coordinate of window of class \"a\" to be < 0, got {}.", Colors::GREEN, Colors::RESET, posAx);
-    } else {
-        FAIL_TEST("{}Failed: {}Expected the x coordinate of window of class \"a\" to be < 0, got {}.", Colors::RED, Colors::RESET, posAx);
-        return;
-    }
+
+    if (posAx >= 0)
+        FAIL_TEST("Expected the x coordinate of window of class \"a\" to be < 0, got {}.", posAx);
 }
 
 TEST_CASE(layoutmsg_fit_into_view) {
@@ -1158,17 +957,13 @@ TEST_CASE(layoutRuleExpand) {
     OK(getFromSocket(
         "r/eval hl.config({ general = { layout = 'scrolling', gaps_in = 0, border_size = 0, gaps_out = 0 }, scrolling = {column_width = 0.5, fullscreen_on_one_column = true} })"));
 
-    if (!Tests::spawnKitty("a")) {
-        FAIL_TEST("Could not spawn kitty with win class `a`");
-    }
+    SPAWN_KITTY("a");
 
     const std::string sizeSingle  = Tests::getAttribute(getFromSocket("/activewindow"), "size");
     const int         sizeSingleX = std::stoi(sizeSingle.substr(0, sizeSingle.find(',')));
 
     for (auto const& win : {"b", "c"}) {
-        if (!Tests::spawnKitty(win)) {
-            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
-        }
+        SPAWN_KITTY(win);
     }
 
     OK(getFromSocket("dispatch hl.dsp.window.resize({x = 100, y = 500, window = 'class:a'})"));
@@ -1184,13 +979,8 @@ TEST_CASE(layoutRuleExpand) {
     const std::string sizeAfter  = Tests::getAttribute(getFromSocket("/activewindow"), "size");
     const int         sizeAfterX = std::stoi(sizeAfter.substr(0, sizeAfter.find(',')));
 
-    if (sizeAfterX >= sizeSingleX - 200) {
-        NLog::log("{}Passed: {}Expected the width of window of class \"b\" to take up all remaining space {}, got {}.", Colors::GREEN, Colors::RESET, sizeSingleX - 200,
-                  sizeAfterX);
-    } else {
-        FAIL_TEST("{}Failed: {}Expected the width of window of class \"b\" to take up all remaining space {}, got {}.", Colors::RED, Colors::RESET, sizeSingleX - 200, sizeAfterX);
-        return;
-    }
+    if (sizeAfterX < sizeSingleX - 200)
+        FAIL_TEST("Expected the width of window of class \"b\" to take up all remaining space {}, got {}.", sizeSingleX - 200, sizeAfterX);
 }
 TEST_CASE(scrollTapeOnClickOutOfWindow) {
     /*
@@ -1202,8 +992,8 @@ TEST_CASE(scrollTapeOnClickOutOfWindow) {
     OK(getFromSocket("r/eval hl.config({ scrolling = { follow_min_visible = 1.0, column_width = 0.6 } })"));
     OK(getFromSocket("r/eval hl.config({ input = { follow_mouse = 1 } })"));
 
-    ASSERT(!!Tests::spawnKitty("A"), true); // A should be at x negative
-    ASSERT(!!Tests::spawnKitty("B"), true);
+    SPAWN_KITTY("A"); // A should be at x negative
+    SPAWN_KITTY("B");
 
     OK(getFromSocket("/eval hl.plugin.test.window_soft_focus('A')"));     // soft focus A
     OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 0, y = 20 })")); // move cursor to the gap zone
@@ -1217,11 +1007,8 @@ TEST_CASE(scrollTapeOnClickOutOfWindow) {
     const auto posA  = Tests::getAttribute(active, "at");
     const auto posAx = std::stoi(posA.substr(0, posA.find(',')));
 
-    if (posAx < 0) {
-        NLog::log("{}Passed: {}Expected the x coordinate of window of class \"A\" to be < 0.", Colors::GREEN, Colors::RESET);
-    } else {
-        FAIL_TEST("{}Failed: {}Expected the x coordinate of window of class \"A\" to be < 0, got {}.", Colors::RED, Colors::RESET, posAx);
-    }
+    if (posAx >= 0)
+        FAIL_TEST("Expected the x coordinate of window of class \"A\" to be < 0, got {}.", posAx);
 }
 
 TEST_CASE(properFocusBehvaior) {
@@ -1235,16 +1022,16 @@ TEST_CASE(properFocusBehvaior) {
     auto        test = [&] {
         OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
 
-        Tests::spawnKitty("a");
+        SPAWN_KITTY("a");
         Tests::waitUntilWindowsN(1);
 
         OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-3' })"));
 
-        Tests::spawnKitty("b");
+        SPAWN_KITTY("b");
         OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:b' })"));
-        Tests::spawnKitty("c");
+        SPAWN_KITTY("c");
         OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:c' })"));
-        Tests::spawnKitty("d");
+        SPAWN_KITTY("d");
         OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:d' })"));
 
         Tests::waitUntilWindowsN(4);

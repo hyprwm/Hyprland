@@ -17,7 +17,7 @@ namespace Colors {
 
 namespace NLog {
     template <typename... Args>
-    //NOLINTNEXTLINE
+    // NOLINTNEXTLINE
     void log(std::format_string<Args...> fmt, Args&&... args) {
         std::string logMsg = "";
 
@@ -28,24 +28,23 @@ namespace NLog {
     }
 
     template <typename... Args>
-    //NOLINTNEXTLINE
-    void info(std::format_string<Args...> fmt, Args&&... args) {
-        std::string logMsg = "";
-
-        logMsg += std::format(fmt, std::forward<Args>(args)...);
-
-        std::println("{}{}{}", Colors::YELLOW, logMsg, Colors::RESET);
-        std::fflush(stdout);
+    // NOLINTNEXTLINE
+    void yellow(std::format_string<Args...> fmt, Args&&... args) {
+        auto msg = std::vformat(fmt.get(), std::make_format_args(args...));
+        log("{}{}", Colors::YELLOW, msg);
     }
 
     template <typename... Args>
-    //NOLINTNEXTLINE
-    void error(std::format_string<Args...> fmt, Args&&... args) {
-        std::string logMsg = "";
+    // NOLINTNEXTLINE
+    void green(std::format_string<Args...> fmt, Args&&... args) {
+        auto msg = std::vformat(fmt.get(), std::make_format_args(args...));
+        log("{}{}", Colors::GREEN, msg);
+    }
 
-        logMsg += std::format(fmt, std::forward<Args>(args)...);
-
-        std::println("{}{}{}", Colors::RED, logMsg, Colors::RESET);
-        std::fflush(stdout);
+    template <typename... Args>
+    // NOLINTNEXTLINE
+    void red(std::format_string<Args...> fmt, Args&&... args) {
+        auto msg = std::vformat(fmt.get(), std::make_format_args(args...));
+        log("{}{}", Colors::RED, msg);
     }
 }

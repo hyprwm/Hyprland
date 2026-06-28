@@ -13,6 +13,7 @@
 #include "../../state/MonitorState.hpp"
 #include "../../state/WorkspaceState.hpp"
 #include "../../xwayland/XWayland.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 
 #include <cmath>
 #include <ranges>
@@ -135,15 +136,15 @@ PHLWINDOW CViewHitTester::windowAt(const Vector2D& pos, uint16_t properties, PHL
         const WORKSPACEID WSPID      = special ? PMONITOR->activeSpecialWorkspaceID() : PMONITOR->activeWorkspaceID();
         const auto        PWORKSPACE = State::workspaceState()->query().id(WSPID).run();
 
-        if (PWORKSPACE->m_hasFullscreenWindow && !(properties & SKIP_FULLSCREEN_PRIORITY) && !ONLY_PRIORITY) {
-            const auto FS_WINDOW = PWORKSPACE->getFullscreenWindow();
+        if (g_pfullscreenController->hasFullscreen(PWORKSPACE) && !(properties & SKIP_FULLSCREEN_PRIORITY) && !ONLY_PRIORITY) {
+            const auto FS_WINDOW = g_pfullscreenController->getFullscreenWindow(PWORKSPACE);
 
             if (!FS_WINDOW)
                 return nullptr;
 
             // for maximized windows, don't return a window if we are not directly on it.
-            if (FS_WINDOW->m_fullscreenState.internal != FSMODE_MAXIMIZED || FS_WINDOW->getWindowBoxUnified(properties).containsPoint(pos))
-                return PWORKSPACE->getFullscreenWindow();
+            if (g_pfullscreenController->isFullscreen(FS_WINDOW, Fullscreen::FSMODE_MAXIMIZED) || FS_WINDOW->getWindowBoxUnified(properties).containsPoint(pos))
+                return g_pfullscreenController->getFullscreenWindow(PWORKSPACE);
             else
                 return nullptr;
         }

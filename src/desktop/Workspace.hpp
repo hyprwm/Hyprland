@@ -58,7 +58,6 @@ class CWorkspace {
     void                          markInert();
     void                          updateWindowDecos();
     void                          updateWindowData();
-    std::unordered_set<PHLWINDOW> getWindows(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {});
     int                           getWindowCount(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {});
     int                           getGroups(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {});
     bool                          hasUrgentWindow();

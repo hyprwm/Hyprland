@@ -224,7 +224,7 @@ namespace NColorManagement {
 
         eTransferFunction    transferFunction      = CM_TRANSFER_FUNCTION_GAMMA22;
         float                transferFunctionPower = 1.0f;
-        bool                 windowsScRGB          = false;
+        bool                 isWindows             = false;
 
         bool                 primariesNameSet = false;
         ePrimaries           primariesNamed   = CM_PRIMARIES_SRGB;
@@ -267,7 +267,7 @@ namespace NColorManagement {
             if (icc.present || d2.icc.present)
                 return false;
 
-            return windowsScRGB == d2.windowsScRGB && transferFunction == d2.transferFunction && transferFunctionPower == d2.transferFunctionPower &&
+            return isWindows == d2.isWindows && transferFunction == d2.transferFunction && transferFunctionPower == d2.transferFunctionPower &&
                 (primariesNameSet == d2.primariesNameSet && (primariesNameSet ? primariesNamed == d2.primariesNamed : primaries == d2.primaries)) &&
                 masteringPrimaries == d2.masteringPrimaries && luminances == d2.luminances && masteringLuminances == d2.masteringLuminances && maxCLL == d2.maxCLL &&
                 maxFALL == d2.maxFALL;
@@ -412,10 +412,19 @@ namespace NColorManagement {
 
     static const auto SCRGB_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
         .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_EXT_LINEAR,
-        .windowsScRGB     = true,
+        .isWindows        = true,
         .primariesNameSet = true,
         .primariesNamed   = NColorManagement::CM_PRIMARIES_SRGB,
         .primaries        = NColorPrimaries::BT709,
+        .luminances       = {.reference = 203},
+    });
+
+    static const auto BT2100_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
+        .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
+        .isWindows        = true,
+        .primariesNameSet = true,
+        .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
+        .primaries        = NColorPrimaries::BT2020,
         .luminances       = {.reference = 203},
     });
 

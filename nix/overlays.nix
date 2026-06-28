@@ -26,6 +26,8 @@ in
 
   # Packages for variations of Hyprland, all dependencies included.
   hyprland-packages = lib.composeManyExtensions [
+    # Overrides
+    self.overlays.wayland-protocols
     # Dependencies
     inputs.aquamarine.overlays.default
     inputs.hyprcursor.overlays.default
@@ -41,11 +43,14 @@ in
   ];
 
   # Hyprland with its internal dependencies.
-  hyprland = lib.composeManyExtensions (with self.overlays; [
-    udis86
-    glaze
-    hyprland-no-deps
-  ]);
+  hyprland = lib.composeManyExtensions (
+    with self.overlays;
+    [
+      udis86
+      glaze
+      hyprland-no-deps
+    ]
+  );
 
   # Hyprland without any dependencies.
   hyprland-no-deps =
@@ -131,5 +136,18 @@ in
       enableSSL = false;
       enableInterop = false;
     };
+  };
+
+  wayland-protocols = final: prev: {
+    wayland-protocols = prev.wayland-protocols.overrideAttrs (
+      finalAttrs: prevAttrs: {
+        version = "1.49";
+
+        src = final.fetchurl {
+          url = "https://gitlab.freedesktop.org/wayland/${finalAttrs.pname}/-/releases/${finalAttrs.version}/downloads/${finalAttrs.pname}-${finalAttrs.version}.tar.xz";
+          hash = "sha256-7EyPdJQtbf96zotM5HZPDvn/YYqTXZdOp37e4q0kCxQ=";
+        };
+      }
+    );
   };
 }

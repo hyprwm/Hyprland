@@ -395,6 +395,9 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
         window->m_pinFullscreened = true;
     }
 
+    // arm m_suppressNextMaximize to swallow the set_maximized echo on fullscreen exit
+    if (INTERNAL_FS_MODE_CHANGED && !window->m_isFloating && (getFullscreenModes(window).internal == FSMODE_FULLSCREEN) && mode != FSMODE_FULLSCREEN)
+        window->m_suppressNextMaximize = true;
 
 
     // this should be redundant now
@@ -440,7 +443,6 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
         ALGORITHM->recenter(window->m_target);
 
     ALGORITHM->recalculate(FULLSCREEN_REQUEST_RESULT == FULLSCREEN_REQUEST_DEFAULT_HANDLED ? Layout::RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN : Layout::RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN);
-
 
 }
 

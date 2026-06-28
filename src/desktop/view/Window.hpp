@@ -112,7 +112,7 @@ namespace Desktop::View {
         std::string  workspace;
     };
 
-    class CWindow : public IView {
+    class CWindow : public IView, public virtual CGeometricMovableAnimated {
       public:
         static PHLWINDOW create(SP<CXDGSurfaceResource>);
         static PHLWINDOW create(SP<CXWaylandSurface>);
@@ -160,17 +160,17 @@ namespace Desktop::View {
         Vector2D m_floatingOffset = Vector2D(0, 0);
 
         // for recovering relative cursor position
-        Vector2D m_relativeCursorCoordsOnLastWarp = Vector2D(-1, -1);
+        Vector2D         m_relativeCursorCoordsOnLastWarp = Vector2D(-1, -1);
 
-        bool     m_firstMap   = false; // for layouts
-        bool     m_isFloating = false;
+        bool             m_firstMap        = false; // for layouts
+        bool             m_isFloating      = false;
         bool     m_layoutHandledFullscreen = false; // if fullscreen was handled by the layout // ERSTARR TODO - Implement this: clients, activewindow, lua attribute
-        std::string   m_title        = "";
-        std::string   m_class        = "";
-        std::string   m_initialTitle = "";
-        std::string   m_initialClass = "";
-        PHLWORKSPACE  m_workspace;
-        PHLMONITORREF m_monitor, m_prevMonitor;
+        std::string      m_title           = "";
+        std::string      m_class           = "";
+        std::string      m_initialTitle    = "";
+        std::string      m_initialClass    = "";
+        PHLWORKSPACE     m_workspace;
+        PHLMONITORREF    m_monitor, m_prevMonitor;
 
         bool          m_isMapped = false;
 

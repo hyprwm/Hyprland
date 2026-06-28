@@ -48,12 +48,12 @@ void CWindowTarget::updatePos(uint8_t flags) {
     if (!m_space)
         return;
 
+    // Default Handled Fullscreen
+    if (fullscreenMode() == FSMODE_FULLSCREEN && !layoutManagedFullscreen())
+        return;
 
-    // floating non-fs window
-    if (m_window && floating() && !g_pfullscreenController->isFullscreen(m_window.lock())) {
-        m_window->m_position = m_box.logicalBox.pos();
-        m_window->m_size     = m_box.logicalBox.size();
 
+    if (floating() && fullscreenMode() != FSMODE_MAXIMIZED) {
         *m_window->m_realPosition = m_box.logicalBox.pos();
         *m_window->m_realSize     = m_box.logicalBox.size();
 
@@ -64,15 +64,12 @@ void CWindowTarget::updatePos(uint8_t flags) {
         return;
     }
 
-    // Default handled fullscreen window - tiled or floating
-    if (m_window && g_pfullscreenController->isFullscreen(m_window.lock(), Fullscreen::FSMODE_FULLSCREEN) && !g_pfullscreenController->layoutManagedFS(m_self->window())) {
-        *m_window->m_realPosition = m_box.logicalBox.pos();
-        *m_window->m_realSize     = m_box.logicalBox.size();
+    // Tiled is more complicated.
 
-        m_window->sendWindowSize();
-        m_window->updateWindowDecos();
-        return;
-    }
+    // Default handled Maximised Window
+    // if we are in maximized, force the box to be max work area.
+    if (fullscreenMode() == FSMODE_MAXIMIZED && !layoutManagedFullscreen())
+        ITarget::setPositionGlobal({.logicalBox = m_space->workArea(floating())});
 
     if (!m_space->workspace())
         return;
@@ -106,8 +103,6 @@ void CWindowTarget::updatePos(uint8_t flags) {
             m_window->sendWindowSize();
         return;
     }
-
-    // Default handled maximised window (Tiled or floating), Tiled non-FS windows
 
     g_pHyprRenderer->damageWindow(window());
 

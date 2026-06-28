@@ -50,6 +50,7 @@
 #include <aquamarine/output/Output.hpp>
 #include "debug/log/Logger.hpp"
 #include "notification/NotificationOverlay.hpp"
+#include "MonitorFrameScheduler.hpp"
 #include <hyprutils/memory/UniquePtr.hpp>
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -1474,8 +1475,8 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
         Animation::Workspace::startAnimation(pWorkspace, Animation::Workspace::ANIMATION_TYPE_IN, ANIMTOLEFT, false, ANIMSTYLE);
 
         // move pinned windows
-        for (auto const& w : POLDWORKSPACE->getWindows()) {
-            if (w->m_pinned)
+        for (auto const& w : Desktop::windowState()->windows()) {
+            if (w->m_workspace == POLDWORKSPACE && w->m_pinned)
                 w->layoutTarget()->assignToSpace(pWorkspace->m_space);
         }
 
@@ -1652,24 +1653,26 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     if (!wasActive)
         Animation::Workspace::startAnimation(pWorkspace, Animation::Workspace::ANIMATION_TYPE_IN, true);
 
-    for (auto const& w : pWorkspace->getWindows()) {
-        w->m_monitor = m_self;
-        w->updateSurfaceScaleTransformDetails();
-        w->setAnimationsToMove();
+    for (auto const& w : Desktop::windowState()->windows()) {
+        if (w->m_workspace == pWorkspace) {
+            w->m_monitor = m_self;
+            w->updateSurfaceScaleTransformDetails();
+            w->setAnimationsToMove();
 
-        const auto MIDDLE = w->middle();
-        if (w->m_isFloating && VECNOTINRECT(MIDDLE, m_position.x, m_position.y, m_position.x + m_size.x, m_position.y + m_size.y) && !w->isX11OverrideRedirect()) {
-            // if it's floating and the middle isn't on the current mon, move it to the center
-            const auto PMONFROMMIDDLE = State::monitorState()->query().vec(MIDDLE).run();
-            Vector2D   pos            = w->m_realPosition->goal();
-            if (VECNOTINRECT(MIDDLE, PMONFROMMIDDLE->m_position.x, PMONFROMMIDDLE->m_position.y, PMONFROMMIDDLE->m_position.x + PMONFROMMIDDLE->m_size.x,
-                             PMONFROMMIDDLE->m_position.y + PMONFROMMIDDLE->m_size.y)) {
-                // not on any monitor, center
-                pos = middle() - w->m_realSize->goal() / 2.f;
-            } else
-                pos = pos - PMONFROMMIDDLE->m_position + m_position;
+            const auto MIDDLE = w->middle();
+            if (w->m_isFloating && VECNOTINRECT(MIDDLE, m_position.x, m_position.y, m_position.x + m_size.x, m_position.y + m_size.y) && !w->isX11OverrideRedirect()) {
+                // if it's floating and the middle isn't on the current mon, move it to the center
+                const auto PMONFROMMIDDLE = State::monitorState()->query().vec(MIDDLE).run();
+                Vector2D   pos            = w->m_realPosition->goal();
+                if (VECNOTINRECT(MIDDLE, PMONFROMMIDDLE->m_position.x, PMONFROMMIDDLE->m_position.y, PMONFROMMIDDLE->m_position.x + PMONFROMMIDDLE->m_size.x,
+                                 PMONFROMMIDDLE->m_position.y + PMONFROMMIDDLE->m_size.y)) {
+                    // not on any monitor, center
+                    pos = middle() - w->m_realSize->goal() / 2.f;
+                } else
+                    pos = pos - PMONFROMMIDDLE->m_position + m_position;
 
-            w->layoutTarget()->setPositionGlobal(CBox{pos, w->layoutTarget()->position().size()});
+                w->layoutTarget()->setPositionGlobal(CBox{pos, w->layoutTarget()->position().size()});
+            }
         }
     }
 

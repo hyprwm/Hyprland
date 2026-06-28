@@ -513,7 +513,7 @@ void CDesktopAnimationManager::setFullscreenFloatingFade(PHLWINDOW pWindow, floa
 }
 
 void CDesktopAnimationManager::overrideFullscreenFadeAmount(PHLWORKSPACE ws, float fade, PHLWINDOW exclude) {
-    for (auto const& w : ws->getWindows()) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (w == exclude)
             continue;
 
@@ -521,8 +521,9 @@ void CDesktopAnimationManager::overrideFullscreenFadeAmount(PHLWORKSPACE ws, flo
             if (w->m_pinned || g_pfullscreenController->isFullscreen(w))
                 continue;
 
-        *w->alpha(WINDOW_ALPHA_FULLSCREEN) = fade;
-        w->updateFullscreenInputState();
+            *w->alpha(WINDOW_ALPHA_FULLSCREEN) = fade;
+            w->updateFullscreenInputState();
+        }
     }
 
     const auto PMONITOR = ws->m_monitor.lock();

@@ -7,7 +7,7 @@
 #include "../config/shared/animation/AnimationTree.hpp"
 #include "../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../config/supplementary/executor/Executor.hpp"
-#include "../managers/animation/AnimationManager.hpp"
+#include "managers/animation/AnimationManager.hpp"
 #include "../managers/EventManager.hpp"
 #include "../managers/fullscreen/FullscreenController.hpp"
 #include "../output/Monitor.hpp"
@@ -22,7 +22,6 @@
 
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <hyprutils/string/String.hpp>
-
 using namespace Hyprutils::String;
 using namespace Desktop::View;
 
@@ -307,9 +306,9 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                                           wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
                                           wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
                     else
-                        count = getWindowCount(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
-                                               wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
-                                               wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
+                        count = getWindows(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
+                                           wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
+                                           wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
 
                     if (count != from)
                         return false;
@@ -343,9 +342,9 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                         getGroups(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
                                   wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt, wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
                 else
-                    count = getWindowCount(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
-                                           wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
-                                           wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
+                    count = getWindows(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
+                                       wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
+                                       wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
 
                 if (std::clamp(count, from, to) != count)
                     return false;
@@ -426,35 +425,6 @@ bool CWorkspace::isVisibleNotCovered() {
     return PMONITOR->m_activeWorkspace->m_id == m_id;
 }
 
-std::unordered_set<PHLWINDOW> CWorkspace::getWindows(std::optional<bool> onlyTiled, std::optional<bool> onlyPinned, std::optional<bool> onlyVisible) {
-
-    std::unordered_set<PHLWINDOW> listOfWindowsInWorkspace;
-
-    if (!m_space) {
-        listOfWindowsInWorkspace.clear();
-        return listOfWindowsInWorkspace;
-    }
-
-    for (auto const& t : m_space->targets()) {
-        if (!t)
-            continue;
-
-        const auto visibilityFulfilled =
-            t->window() && !t->window()->isHidden() && !t->window()->isInputBlocked(INPUT_BLOCK_GROUP_INACTIVE | INPUT_BLOCK_MONOCLE_INACTIVE | INPUT_BLOCK_BELOW_FULLSCREEN);
-
-        if (onlyTiled.has_value() && t->floating() == onlyTiled.value())
-            continue;
-        if (onlyPinned.has_value() && (!t->window() || t->window()->m_pinned != onlyPinned.value()))
-            continue;
-        if (onlyVisible.has_value() && (!t->window() || visibilityFulfilled != onlyVisible.value()))
-            continue;
-        if (const auto WINDOW = t->window(); WINDOW)
-            listOfWindowsInWorkspace.emplace(WINDOW);
-    }
-
-    return listOfWindowsInWorkspace;
-}
-
 int CWorkspace::getWindowCount(std::optional<bool> onlyTiled, std::optional<bool> onlyPinned, std::optional<bool> onlyVisible) {
     int no = 0;
 
@@ -502,8 +472,8 @@ int CWorkspace::getGroups(std::optional<bool> onlyTiled, std::optional<bool> onl
 }
 
 PHLWINDOW CWorkspace::getFirstWindow() {
-    for (auto const& w : getWindows()) {
-        if (w->m_isMapped && w->acceptsInput())
+    for (auto const& w : Desktop::windowState()->windows()) {
+        if (w->m_workspace == m_self && w->m_isMapped && w->acceptsInput())
             return w;
     }
 
@@ -513,8 +483,8 @@ PHLWINDOW CWorkspace::getFirstWindow() {
 PHLWINDOW CWorkspace::getTopLeftWindow() {
     const auto PMONITOR = m_monitor.lock();
 
-    for (auto const& w : getWindows()) {
-        if (!w->m_isMapped || !w->acceptsInput())
+    for (auto const& w : Desktop::windowState()->windows()) {
+        if (w->m_workspace != m_self || !w->m_isMapped || !w->acceptsInput())
             continue;
 
         const auto WINDOWIDEALBB = w->getWindowIdealBoundingBoxIgnoreReserved();
@@ -538,13 +508,17 @@ void CWorkspace::updateWindowDecos() {
 void CWorkspace::updateWindowData() {
     const auto WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(m_self.lock());
 
-    for (auto const& w : getWindows())
+    for (auto const& w : Desktop::windowState()->windows()) {
+        if (w->m_workspace != m_self)
+            continue;
+
         w->updateWindowData(WORKSPACERULE.value_or(Config::CWorkspaceRule{}));
+    }
 }
 
 void CWorkspace::forceReportSizesToWindows() {
-    for (auto const& w : getWindows()) {
-        if (!w->m_isMapped || w->isHidden())
+    for (auto const& w : Desktop::windowState()->windows()) {
+        if (w->m_workspace != m_self || !w->m_isMapped || w->isHidden())
             continue;
 
         w->sendWindowSize(true);

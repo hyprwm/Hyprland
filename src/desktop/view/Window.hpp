@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <optional>
+#include <unordered_map>
 
 #include "View.hpp"
 #include "../../config/shared/complex/ComplexDataTypes.hpp"
@@ -449,10 +450,12 @@ namespace Desktop::View {
         void                  unmanagedSetGeometry();
 
         // For hidden windows and stuff
-        bool        m_hidden            = false;
-        bool        m_suspended         = false;
-        WORKSPACEID m_lastWorkspace     = WORKSPACE_INVALID;
-        uint32_t    m_inputBlockReasons = INPUT_BLOCK_NONE;
+        bool                                                        m_hidden            = false;
+        bool                                                        m_suspended         = false;
+        WORKSPACEID                                                 m_lastWorkspace     = WORKSPACE_INVALID;
+        uint32_t                                                    m_inputBlockReasons = INPUT_BLOCK_NONE;
+
+        std::optional<std::unordered_map<std::string, std::string>> m_cachedEnv;
     };
 
     inline bool valid(const PHLWINDOW& w) {

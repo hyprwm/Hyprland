@@ -100,8 +100,10 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
 
     const bool VISIBLE = visible();
 
-    if (VISIBLE != m_bLastVisibilityStatus)
+    if (VISIBLE != m_bLastVisibilityStatus) {
         g_pDecorationPositioner->repositionDeco(this);
+        m_bLastVisibilityStatus = VISIBLE;
+    }
 
     if (!VISIBLE)
         return;

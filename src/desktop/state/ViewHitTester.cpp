@@ -143,7 +143,7 @@ PHLWINDOW CViewHitTester::windowAt(const Vector2D& pos, uint16_t properties, PHL
                 return nullptr;
 
             // for maximized windows, don't return a window if we are not directly on it.
-            if (g_pfullscreenController->isFullscreen(FS_WINDOW, Fullscreen::FSMODE_MAXIMIZED) || FS_WINDOW->getWindowBoxUnified(properties).containsPoint(pos))
+            if (!g_pfullscreenController->isFullscreen(FS_WINDOW, Fullscreen::FSMODE_MAXIMIZED) || FS_WINDOW->getWindowBoxUnified(properties).containsPoint(pos))
                 return g_pfullscreenController->getFullscreenWindow(PWORKSPACE);
             else
                 return nullptr;

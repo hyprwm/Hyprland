@@ -28,8 +28,6 @@ namespace Layout {
       protected:
         ITiledAlgorithm() = default;
 
-        WP<CAlgorithm> m_parent;
-
         friend class Layout::CAlgorithm;
     };
 }

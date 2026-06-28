@@ -3,6 +3,7 @@
 #include "../../../managers/fullscreen/FullscreenController.hpp"
 #include "desktop/DesktopTypes.hpp"
 #include "helpers/memory/Memory.hpp"
+#include "layout/algorithm/Algorithm.hpp"
 #include "layout/algorithm/ModeAlgorithm.hpp"
 #include "layout/target/Target.hpp"
 #include <optional>
@@ -91,6 +92,8 @@ namespace Fullscreen {
         Layout::IModeAlgorithm* const m_algorithm;
 
         SP<Layout::CSpace>            getSpace() const;
+
+        SP<Layout::CAlgorithm>         getParent() const;
 
       private:
         /// Targetss with ONLY client FS mode set.

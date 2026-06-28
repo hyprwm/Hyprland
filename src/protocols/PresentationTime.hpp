@@ -16,6 +16,7 @@ class CQueuedPresentationData {
 
     void setPresentationType(bool zeroCopy);
     void attachMonitor(PHLMONITOR pMonitor);
+    void addFeedback(WP<CPresentationFeedback> feedback);
     void addFeedbacks(std::vector<WP<CPresentationFeedback>>&& feedbacks);
 
     void presented();
@@ -63,6 +64,7 @@ class CPresentationProtocol : public IWaylandProtocol {
 
     void         onPresented(PHLMONITOR pMonitor, const timespec& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags);
     void         queueData(UP<CQueuedPresentationData>&& data);
+    bool         addFeedback(WP<CWLSurfaceResource> surf, uint64_t commitSeq, WP<CPresentationFeedback> feedback);
     bool         queueData(WP<CWLSurfaceResource> surf, uint64_t commitSeq, std::vector<WP<CPresentationFeedback>>&& feedbacks, PHLMONITOR pMonitor, bool zeroCopy);
     bool         addPresentedMonitor(WP<CWLSurfaceResource> surf, uint64_t commitSeq, PHLMONITOR pMonitor, bool zeroCopy);
     void         discardFeedbacks(std::vector<WP<CPresentationFeedback>>& feedbacks);

@@ -4,6 +4,7 @@
 #include <cstring>
 #include <fcntl.h>
 #include <format>
+#include <iostream>
 #include <print>
 #include <string>
 #include <sys/mman.h>
@@ -305,8 +306,7 @@ int main() {
         return 1;
     }
 
-    std::array<char, 256> readBuf = {};
-    struct pollfd         fds[2]  = {{.fd = wl_display_get_fd(state.display), .events = POLLIN | POLLOUT}, {.fd = STDIN_FILENO, .events = POLLIN}};
+    struct pollfd fds[2] = {{.fd = wl_display_get_fd(state.display), .events = POLLIN | POLLOUT}, {.fd = STDIN_FILENO, .events = POLLIN}};
 
     while (poll(fds, 2, 50) >= 0) {
         if (fds[0].revents & POLLIN)
@@ -318,10 +318,8 @@ int main() {
         }
 
         if (fds[1].revents & POLLIN) {
-            const ssize_t BYTES = read(fds[1].fd, readBuf.data(), readBuf.size() - 1);
-            if (BYTES > 0) {
-                readBuf[BYTES] = 0;
-                const std::string REQUEST{readBuf.data()};
+            std::string REQUEST;
+            if (std::getline(std::cin, REQUEST)) {
                 if (REQUEST.contains("run"))
                     submitBurst(state);
                 else if (REQUEST.contains("destroy"))

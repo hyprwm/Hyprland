@@ -25,6 +25,13 @@ void CQueuedPresentationData::attachMonitor(PHLMONITOR pMonitor_) {
     m_monitors.emplace_back(pMonitor_);
 }
 
+void CQueuedPresentationData::addFeedback(WP<CPresentationFeedback> feedback) {
+    if (!feedback)
+        return;
+
+    m_feedbacks.emplace_back(std::move(feedback));
+}
+
 void CQueuedPresentationData::addFeedbacks(std::vector<WP<CPresentationFeedback>>&& feedbacks) {
     m_feedbacks.insert(m_feedbacks.end(), std::make_move_iterator(feedbacks.begin()), std::make_move_iterator(feedbacks.end()));
     std::erase_if(m_feedbacks, [](const auto& feedback) { return !feedback; });
@@ -72,15 +79,11 @@ void CPresentationFeedback::sendQueued(const CQueuedPresentationData& data, PHLM
 
     auto client = m_resource->client();
 
-    if (data.m_wasPresented) {
-        for (const auto& monitor : data.m_monitors) {
-            if (!monitor || !PROTO::outputs.contains(monitor->m_name))
-                continue;
-
-            if (auto outputResources = PROTO::outputs.at(monitor->m_name)->outputResourcesFrom(client); !outputResources.empty()) {
-                for (const auto& r : outputResources) {
-                    m_resource->sendSyncOutput(r->getResource()->resource());
-                }
+    if (data.m_wasPresented && pMonitor && PROTO::outputs.contains(pMonitor->m_name)) {
+        if (auto outputResources = PROTO::outputs.at(pMonitor->m_name)->outputResourcesFrom(client); !outputResources.empty()) {
+            for (const auto& r : outputResources) {
+                m_resource->sendSyncOutput(r->getResource()->resource());
+                break;
             }
         }
     }
@@ -191,6 +194,21 @@ void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, const timespec& whe
 
 void CPresentationProtocol::queueData(UP<CQueuedPresentationData>&& data) {
     m_queue.emplace_back(std::move(data));
+}
+
+bool CPresentationProtocol::addFeedback(WP<CWLSurfaceResource> surf, uint64_t commitSeq, WP<CPresentationFeedback> feedback) {
+    if (!surf || !feedback)
+        return false;
+
+    for (const auto& data : m_queue) {
+        if (!data->m_surface || data->m_surface != surf || data->m_commitSeq != commitSeq || data->m_done)
+            continue;
+
+        data->addFeedback(std::move(feedback));
+        return true;
+    }
+
+    return false;
 }
 
 bool CPresentationProtocol::queueData(WP<CWLSurfaceResource> surf, uint64_t commitSeq, std::vector<WP<CPresentationFeedback>>&& feedbacks, PHLMONITOR pMonitor, bool zeroCopy) {

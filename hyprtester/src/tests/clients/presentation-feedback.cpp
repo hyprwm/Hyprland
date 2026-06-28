@@ -103,12 +103,11 @@ std::string CClient::readUntil(const std::string& needle, int timeoutMs) {
         if (poll(&m_pollFd, 1, 100) != 1 || !(m_pollFd.revents & POLLIN))
             continue;
 
-        const ssize_t BYTES = read(m_readFd.get(), m_readBuf.data(), m_readBuf.size() - 1);
+        const ssize_t BYTES = read(m_readFd.get(), m_readBuf.data(), m_readBuf.size());
         if (BYTES <= 0)
             continue;
 
-        m_readBuf[BYTES] = 0;
-        m_output += m_readBuf.data();
+        m_output.append(m_readBuf.data(), static_cast<size_t>(BYTES));
     }
 
     return m_output;

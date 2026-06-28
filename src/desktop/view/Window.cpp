@@ -2513,7 +2513,7 @@ void CWindow::mapWindow() {
     // recalc the values for this window
     updateDecorationValues();
     // avoid this window being visible if it's not the current covering FS window in workspace
-    if (g_pfullscreenController->getFullscreenWindow(PWORKSPACE, true) != m_self.lock() && !m_isFloating)
+    if (PWORKSPACE && g_pfullscreenController->getFullscreenWindow(PWORKSPACE, true) != m_self.lock() && !m_isFloating)
         alpha(WINDOW_ALPHA_FULLSCREEN)->setValueAndWarp(0.f);
 
     if (g_pSeatManager->m_mouse.expired() || !g_pInputManager->isConstrained())

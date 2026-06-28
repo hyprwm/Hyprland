@@ -496,11 +496,14 @@ PHLWINDOW CWorkspace::getTopLeftWindow() {
 }
 
 bool CWorkspace::hasUrgentWindow() {
-    return std::ranges::any_of(Desktop::windowState()->windows(), [this](const auto& w) { return w->m_isMapped && w->m_isUrgent; });
+    return std::ranges::any_of(Desktop::windowState()->windows(), [this](const auto& w) { return w->m_workspace == m_self && w->m_isMapped && w->m_isUrgent; });
 }
 
 void CWorkspace::updateWindowDecos() {
     for (auto const& w : Desktop::windowState()->windows()) {
+        if (w->m_workspace != m_self)
+            continue;
+
         w->updateWindowDecos();
     }
 }

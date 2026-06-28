@@ -1186,7 +1186,7 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
     // make all windows and layers on the same workspace under the fullscreen window
     for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace == PWORKSPACE) {
-            if (!w->isFullscreen() && !w->m_fadingOut && !w->m_pinned)
+            if (!w->isFullscreen() && !w->m_pinned)
                 w->m_createdOverFullscreen = false;
 
             w->updateFullscreenInputState();

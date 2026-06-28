@@ -21,6 +21,8 @@
 #include "LayerSurface.hpp"
 #include "../state/FocusState.hpp"
 #include "../state/FloatState.hpp"
+#include "../state/FadingOutState.hpp"
+#include "../state/WindowFadeout.hpp"
 #include "../state/WindowState.hpp"
 #include "../history/WindowHistoryTracker.hpp"
 #include "../../Compositor.hpp"
@@ -212,7 +214,7 @@ eViewType CWindow::type() const {
 }
 
 bool CWindow::visible() const {
-    return !m_hidden && ((m_isMapped && m_wlSurface && m_wlSurface->resource()) || m_fadingOut) && visibleByAlpha();
+    return !m_hidden && m_isMapped && m_wlSurface && m_wlSurface->resource() && visibleByAlpha();
 }
 
 std::optional<CBox> CWindow::logicalBox() const {
@@ -228,9 +230,6 @@ std::optional<CBox> CWindow::surfaceLogicalBox() const {
 }
 
 SBoxExtents CWindow::getFullWindowExtents() const {
-    if (m_fadingOut)
-        return m_originalClosedExtents;
-
     const int BORDERSIZE = getRealBorderSize();
 
     if (m_ruleApplicator->dimAround().valueOrDefault()) {
@@ -284,7 +283,7 @@ CBox CWindow::getFullWindowBoundingBox() const {
 }
 
 bool CWindow::operator==(const CWindow& rhs) const {
-    return m_xdgSurface == rhs.m_xdgSurface && m_xwaylandSurface == rhs.m_xwaylandSurface && layoutBox() == rhs.layoutBox() && m_fadingOut == rhs.m_fadingOut;
+    return m_xdgSurface == rhs.m_xdgSurface && m_xwaylandSurface == rhs.m_xwaylandSurface && layoutBox() == rhs.layoutBox();
 }
 
 CBox CWindow::layoutBox() const {
@@ -1008,7 +1007,7 @@ bool CWindow::visibleByAlphaGoal() const {
 }
 
 bool CWindow::targetVisible() const {
-    return !m_hidden && ((m_isMapped && m_wlSurface && m_wlSurface->resource()) || m_fadingOut) && visibleByAlphaGoal();
+    return !m_hidden && m_isMapped && m_wlSurface && m_wlSurface->resource() && visibleByAlphaGoal();
 }
 
 // check if the point is "hidden" under a rounded corner of the window
@@ -2052,8 +2051,7 @@ void CWindow::mapWindow() {
     m_monitor       = PMONITOR;
     m_workspace     = PWORKSPACE;
     m_isMapped      = true;
-    m_readyToDelete = false;
-    m_fadingOut     = false;
+    m_animatingIn   = true;
     m_title         = fetchTitle();
     m_firstMap      = true;
     m_initialTitle  = m_title;
@@ -2533,16 +2531,10 @@ void CWindow::unmapWindow() {
 
     if (!wlSurface()->exists() || !m_isMapped) {
         Log::logger->log(Log::WARN, "{} unmapped without being mapped??", m_self.lock());
-        m_fadingOut = false;
         return;
     }
 
     const auto PMONITOR = m_monitor.lock();
-    if (PMONITOR) {
-        m_originalClosedPos     = m_realPosition->value() - PMONITOR->m_position;
-        m_originalClosedSize    = m_realSize->value();
-        m_originalClosedExtents = getFullWindowExtents();
-    }
 
     m_events.unmap.emit();
     g_pEventManager->postEvent(SHyprIPCEvent{"closewindow", std::format("{:x}", m_self.lock())});
@@ -2557,8 +2549,7 @@ void CWindow::unmapWindow() {
         g_pCompositor->setWindowFullscreenInternal(m_self.lock(), FSMODE_NONE);
 
     // Allow the renderer to catch the last frame.
-    if (g_pHyprRenderer->shouldRenderWindow(m_self.lock()))
-        g_pHyprRenderer->makeSnapshot(m_self.lock());
+    const auto SNAPSHOT = g_pHyprRenderer->shouldRenderWindow(m_self.lock()) ? g_pHyprRenderer->makeSnapshotFB(m_self.lock()) : nullptr;
 
     // swallowing
     if (const auto SWALLOWEE = m_swallowee.lock()) {
@@ -2667,15 +2658,15 @@ void CWindow::unmapWindow() {
         Log::logger->log(Log::DEBUG, "Unmapped was not focused, ignoring a refocus.");
     }
 
-    m_fadingOut = true;
-
-    Desktop::fadingOutState()->add(m_self.lock());
-
     if (!m_X11DoesntWantBorders)                                            // don't animate out if they weren't animated in.
         *m_realPosition = m_realPosition->value() + Vector2D(0.01f, 0.01f); // it has to be animated, otherwise CesktopAnimationManager will ignore it
 
+    const float FADEOUTALPHA = alphaValue(WINDOW_ALPHA_FADE) * alphaValue(WINDOW_ALPHA_FULLSCREEN) * alphaValue(WINDOW_ALPHA_LAYOUT);
+
     // anims
     g_pDesktopAnimationManager->startAnimation(m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+
+    Desktop::fadingOutState()->add(CWindowFadeout::create(m_self.lock(), SNAPSHOT, FADEOUTALPHA));
 
     // recheck idle inhibitors
     g_pInputManager->recheckIdleInhibitorStatus();
@@ -2765,8 +2756,6 @@ void CWindow::destroyWindow() {
 
     g_layoutManager->removeTarget(m_target);
 
-    m_readyToDelete = true;
-
     m_xdgSurface.reset();
 
     m_listeners.unmap.reset();
@@ -2774,10 +2763,8 @@ void CWindow::destroyWindow() {
     m_listeners.map.reset();
     m_listeners.commit.reset();
 
-    if (!m_fadingOut) {
-        Log::logger->log(Log::DEBUG, "Unmapped {} removed instantly", m_self.lock());
-        Desktop::windowState()->removeSafe(m_self.lock()); // most likely X11 unmanaged or sumn
-    }
+    Log::logger->log(Log::DEBUG, "Unmapped {} removed instantly", m_self.lock());
+    Desktop::windowState()->removeSafe(m_self.lock()); // most likely X11 unmanaged or sumn
 }
 
 void CWindow::activateX11() {

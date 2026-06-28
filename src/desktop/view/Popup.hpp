@@ -67,10 +67,7 @@ namespace Desktop::View {
         bool                      m_mapped = false;
 
         // fade in-out
-        PHLANIMVAR<float>        m_alpha;
-        bool                     m_fadingOut = false;
-
-        SP<Render::IFramebuffer> m_snapshotFB;
+        PHLANIMVAR<float> m_alpha;
 
       private:
         CPopup();

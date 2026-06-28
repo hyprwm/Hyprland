@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../SharedDefs.hpp"
+#include "Fadeout.hpp"
 #include "../../helpers/memory/Memory.hpp"
 #include "../DesktopTypes.hpp"
 
@@ -12,20 +12,14 @@ namespace Desktop {
         CFadingOutState()  = default;
         ~CFadingOutState() = default;
 
-        const std::vector<PHLWINDOWREF>& windows() const;
-        const std::vector<PHLLSREF>&     layers() const;
+        const std::vector<SP<IFadeout>>& fadeouts() const;
 
-        void                             add(PHLWINDOW w);
-        void                             add(PHLLS ls);
-        void                             remove(PHLWINDOW w);
-        void                             remove(PHLLS ls);
-        void                             cleanupForMonitor(const MONITORID& monid);
-        void                             removeExpiredLayers();
+        void                             add(SP<IFadeout> fadeout);
+        void                             cleanupForMonitor(PHLMONITOR monitor);
         void                             clear();
 
       private:
-        std::vector<PHLWINDOWREF> m_windows;
-        std::vector<PHLLSREF>     m_layers;
+        std::vector<SP<IFadeout>> m_fadeouts;
     };
 
     UP<CFadingOutState>& fadingOutState();

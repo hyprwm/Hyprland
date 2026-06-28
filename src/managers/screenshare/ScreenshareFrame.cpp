@@ -271,7 +271,7 @@ void CScreenshareFrame::renderMonitor() {
 
         const auto PWORKSPACE = w->m_workspace;
 
-        if UNLIKELY (!PWORKSPACE && !w->m_fadingOut && w->alphaValue(WINDOW_ALPHA_FADE) * w->alphaValue(WINDOW_ALPHA_FULLSCREEN) != 0.f)
+        if UNLIKELY (!PWORKSPACE && w->alphaValue(WINDOW_ALPHA_FADE) * w->alphaValue(WINDOW_ALPHA_FULLSCREEN) != 0.f)
             continue;
 
         const auto renderOffset     = PWORKSPACE && !w->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D{};

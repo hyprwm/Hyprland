@@ -596,7 +596,7 @@ bool CWorkspace::isPersistent() {
 void CWorkspace::setNoMembersAboveFullscreen() {
     // make all windows and layers on the same workspace under the fullscreen window
     for (auto const& w : Desktop::windowState()->windows()) {
-        if (w->m_workspace == m_self && !w->isFullscreen() && !w->m_fadingOut && !w->m_pinned)
+        if (w->m_workspace == m_self && !w->isFullscreen() && !w->m_pinned)
             w->m_createdOverFullscreen = false;
     }
     for (auto const& ls : Desktop::layerState()->layers()) {

@@ -80,6 +80,10 @@ constexpr const char* drmFormatToString(uint32_t drmFormat) {
 CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_name(output_->name), m_state(this), m_output(output_), m_imageDescription(getDefaultImageDescription()) {
     g_pAnimationManager->createAnimation(0.f, m_specialFade, Config::animationTree()->getAnimationPropertyConfig("specialWorkspaceIn"), AVARDAMAGE_NONE);
     m_specialFade->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
+    g_pAnimationManager->createAnimation(0.f, m_specialDim, Config::animationTree()->getAnimationPropertyConfig("specialWorkspaceIn"), AVARDAMAGE_NONE);
+    m_specialDim->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
+    g_pAnimationManager->createAnimation(0.f, m_specialBlur, Config::animationTree()->getAnimationPropertyConfig("specialWorkspaceIn"), AVARDAMAGE_NONE);
+    m_specialBlur->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
     static auto PZOOMFACTOR = CConfigValue<Config::FLOAT>("cursor:zoom_factor");
     g_pAnimationManager->createAnimation(*PZOOMFACTOR, m_cursorZoom, Config::animationTree()->getAnimationPropertyConfig("zoomFactor"), AVARDAMAGE_NONE);
     m_cursorZoom->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
@@ -442,7 +446,7 @@ void CMonitor::onDisconnect(bool destroy) {
 
     for (size_t i = 0; i < 4; ++i) {
         for (auto const& ls : m_layerSurfaceLayers[i]) {
-            if (ls->m_layerSurface && !ls->m_fadingOut)
+            if (ls->m_layerSurface)
                 ls->m_layerSurface->sendClosed();
         }
         m_layerSurfaceLayers[i].clear();
@@ -1527,10 +1531,18 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     if (m_activeSpecialWorkspace == pWorkspace)
         return;
 
-    const auto POLDSPECIAL = m_activeSpecialWorkspace;
+    const auto  POLDSPECIAL = m_activeSpecialWorkspace;
+
+    static auto PDIMSPECIAL  = CConfigValue<Config::FLOAT>("decoration:dim_special");
+    static auto PBLURSPECIAL = CConfigValue<Config::INTEGER>("decoration:blur:special");
+    static auto PBLUR        = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
 
     m_specialFade->setConfig(Config::animationTree()->getAnimationPropertyConfig(pWorkspace ? "specialWorkspaceIn" : "specialWorkspaceOut"));
     *m_specialFade = pWorkspace ? 1.F : 0.F;
+    m_specialDim->setConfig(Config::animationTree()->getAnimationPropertyConfig(pWorkspace ? "specialWorkspaceIn" : "specialWorkspaceOut"));
+    *m_specialDim = pWorkspace ? *PDIMSPECIAL : 0.F;
+    m_specialBlur->setConfig(Config::animationTree()->getAnimationPropertyConfig(pWorkspace ? "specialWorkspaceIn" : "specialWorkspaceOut"));
+    *m_specialBlur = pWorkspace && *PBLURSPECIAL && *PBLUR ? 1.F : 0.F;
 
     g_pHyprRenderer->damageMonitor(m_self.lock());
 
@@ -1850,7 +1862,7 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
     }
 
     for (auto const& w : Desktop::windowState()->windows()) {
-        if (w == PCANDIDATE || (!w->m_isMapped && !w->m_fadingOut) || !w->visible())
+        if (w == PCANDIDATE || !w->m_isMapped || !w->visible())
             continue;
 
         if (w->workspaceID() == PCANDIDATE->workspaceID() && w->m_isFloating && w->isAllowedOverFullscreen() && w->visibleOnMonitor(m_self.lock())) {

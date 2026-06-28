@@ -15,6 +15,7 @@
 #include "../desktop/view/LayerSurface.hpp"
 #include "../desktop/view/GlobalViewMethods.hpp"
 #include "../desktop/state/FocusState.hpp"
+#include "../desktop/state/FadingOutState.hpp"
 #include "../protocols/SessionLock.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/XDGShell.hpp"
@@ -226,11 +227,8 @@ bool IHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
     if (!pWindow->visibleOnMonitor(pMonitor))
         return false;
 
-    if (!pWindow->m_workspace && !pWindow->m_fadingOut)
+    if (!pWindow->m_workspace)
         return false;
-
-    if (!pWindow->m_workspace && pWindow->m_fadingOut)
-        return pWindow->workspaceID() == pMonitor->activeWorkspaceID() || pWindow->workspaceID() == pMonitor->activeSpecialWorkspaceID();
 
     if (pWindow->m_pinned)
         return true;
@@ -357,6 +355,7 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
 
         renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
     }
+    renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_WINDOW_TILED, pWorkspace);
 
     // and floating ones too
     for (auto const& w : windows) {
@@ -374,6 +373,7 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
 
         renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
     }
+    renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_WINDOW_FLOATING, pWorkspace);
 
     // TODO: this pass sucks
     for (auto const& w : Desktop::windowState()->windows()) {
@@ -411,7 +411,7 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
     // then render windows over fullscreen.
     for (auto const& w : Desktop::windowState()->windows()) {
         const bool shouldSkipWindow =
-            w->workspaceID() != pWorkspaceWindow->workspaceID() || !w->m_isFloating || !w->shouldRenderOverFullscreen() || (!w->m_isMapped && !w->m_fadingOut) || w->isFullscreen();
+            w->workspaceID() != pWorkspaceWindow->workspaceID() || !w->m_isFloating || !w->shouldRenderOverFullscreen() || !w->m_isMapped || w->isFullscreen();
 
         if (shouldSkipWindow)
             continue;
@@ -428,6 +428,7 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
 
         renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
     }
+    renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_WINDOW_OVER_FULLSCREEN, pWorkspace);
 }
 
 void IHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {
@@ -435,11 +436,11 @@ void IHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
 
     Event::bus()->m_events.render.stage.emit(RENDER_PRE_WINDOWS);
 
-    std::vector<PHLWINDOWREF> windows, tiledFadingOut;
+    std::vector<PHLWINDOWREF> windows;
     windows.reserve(Desktop::windowState()->windows().size());
 
     for (auto const& w : Desktop::windowState()->windows()) {
-        const bool isNotRenderable = w->isHidden() || (!w->m_isMapped && !w->m_fadingOut);
+        const bool isNotRenderable = w->isHidden() || !w->m_isMapped;
 
         if (isNotRenderable)
             continue;
@@ -467,13 +468,6 @@ void IHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
             continue;
         }
 
-        // render tiled fading out after others
-        if (w->m_fadingOut) {
-            tiledFadingOut.emplace_back(w);
-            w.reset();
-            continue;
-        }
-
         // render the bad boy
         renderWindow(w.lock(), pMonitor, time, true, RENDER_PASS_MAIN);
         w.reset();
@@ -484,10 +478,7 @@ void IHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
 
     lastWindow.reset();
 
-    // render tiled windows that are fading out after other tiled to not hide them behind
-    for (auto& w : tiledFadingOut) {
-        renderWindow(w.lock(), pMonitor, time, true, RENDER_PASS_MAIN);
-    }
+    renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_WINDOW_TILED, pWorkspace);
 
     // Non-floating popup
     for (auto& w : windows) {
@@ -528,6 +519,7 @@ void IHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
         // render the bad boy
         renderWindow(w.lock(), pMonitor, time, true, RENDER_PASS_ALL);
     }
+    renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_WINDOW_FLOATING, pWorkspace);
 }
 
 void IHyprRenderer::bindOffMain() {
@@ -559,12 +551,6 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
     if (!standalone && pWindow->effectiveAlpha() == 0.F && !pWindow->m_alpha.isBeingAnimated())
         return;
-
-    if (pWindow->m_fadingOut) {
-        if (pMonitor == pWindow->m_monitor) // TODO: fix this
-            renderSnapshot(pWindow);
-        return;
-    }
 
     if (!pWindow->m_isMapped)
         return;
@@ -789,11 +775,6 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
             pWindow->m_popupHead->breadthfirst(
                 [this, &renderdata](WP<Desktop::View::CPopup> popup, void* data) {
-                    if (popup->m_fadingOut) {
-                        renderSnapshot(popup);
-                        return;
-                    }
-
                     if (!popup->aliveAndVisible())
                         return;
 
@@ -953,6 +934,9 @@ void IHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
     if (!pLayer)
         return;
 
+    if (!pLayer->visible())
+        return;
+
     // skip rendering based on abovelock rule and make sure to not render abovelock layers twice
     if ((pLayer->m_ruleApplicator->aboveLock().valueOrDefault() && !lockscreen && g_pSessionLockManager->isSessionLocked()) ||
         (lockscreen && !pLayer->m_ruleApplicator->aboveLock().valueOrDefault()))
@@ -965,12 +949,6 @@ void IHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
         data.box   = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
         data.color = CHyprColor(0, 0, 0, *PDIMAROUND * pLayer->m_alpha->value());
         m_renderPass.add(makeUnique<CRectPassElement>(data));
-    }
-
-    if (pLayer->m_fadingOut) {
-        if (!popups)
-            renderSnapshot(pLayer);
-        return;
     }
 
     TRACY_GPU_ZONE("RenderLayer");
@@ -1117,9 +1095,6 @@ void IHyprRenderer::renderSessionLockSurface(WP<SSessionLockSurface> pSurface, P
 }
 
 void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time, const Vector2D& translate, const float& scale) {
-    static auto PDIMSPECIAL      = CConfigValue<Config::FLOAT>("decoration:dim_special");
-    static auto PBLURSPECIAL     = CConfigValue<Config::INTEGER>("decoration:blur:special");
-    static auto PBLUR            = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
     static auto PXPMODE          = CConfigValue<Config::INTEGER>("render:xp_mode");
     static auto PSESSIONLOCKXRAY = CConfigValue<Config::INTEGER>("misc:session_lock_xray");
 
@@ -1156,20 +1131,24 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
             renderLayer(ls.lock(), pMonitor, time);
         }
+        renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_BACKGROUND);
 
         Event::bus()->m_events.render.stage.emit(RENDER_POST_WALLPAPER);
 
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
             renderLayer(ls.lock(), pMonitor, time);
         }
+        renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_BOTTOM);
 
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
             renderLayer(ls.lock(), pMonitor, time);
         }
+        renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_TOP);
 
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
             renderLayer(ls.lock(), pMonitor, time);
         }
+        renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_OVERLAY);
 
         return;
     }
@@ -1180,12 +1159,14 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
             renderLayer(ls.lock(), pMonitor, time);
         }
+        renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_BACKGROUND);
 
         Event::bus()->m_events.render.stage.emit(RENDER_POST_WALLPAPER);
 
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
             renderLayer(ls.lock(), pMonitor, time);
         }
+        renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_BOTTOM);
     }
 
     // pre window pass
@@ -1198,27 +1179,22 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         renderWorkspaceWindows(pMonitor, pWorkspace, time);
 
     // and then special
-    if UNLIKELY (pMonitor->m_specialFade->value() != 0.F) {
-        const auto SPECIALANIMPROGRS = pMonitor->m_specialFade->getCurveValue();
-        const bool ANIMOUT           = !pMonitor->m_activeSpecialWorkspace;
+    if UNLIKELY (pMonitor->m_specialDim->value() != 0.F) {
+        CRectPassElement::SRectData data;
+        data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
+        data.color = CHyprColor(0, 0, 0, pMonitor->m_specialDim->value());
 
-        if (*PDIMSPECIAL != 0.f) {
-            CRectPassElement::SRectData data;
-            data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
-            data.color = CHyprColor(0, 0, 0, *PDIMSPECIAL * (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS));
+        m_renderPass.add(makeUnique<CRectPassElement>(data));
+    }
 
-            m_renderPass.add(makeUnique<CRectPassElement>(data));
-        }
+    if UNLIKELY (pMonitor->m_specialBlur->value() != 0.F) {
+        CRectPassElement::SRectData data;
+        data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
+        data.color = CHyprColor(0, 0, 0, 0);
+        data.blur  = true;
+        data.blurA = pMonitor->m_specialBlur->value();
 
-        if (*PBLURSPECIAL && *PBLUR) {
-            CRectPassElement::SRectData data;
-            data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
-            data.color = CHyprColor(0, 0, 0, 0);
-            data.blur  = true;
-            data.blurA = (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS);
-
-            m_renderPass.add(makeUnique<CRectPassElement>(data));
-        }
+        m_renderPass.add(makeUnique<CRectPassElement>(data));
     }
 
     // special
@@ -1234,7 +1210,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
 
     // pinned always above
     for (auto const& w : Desktop::windowState()->windows()) {
-        if (w->isHidden() && !w->m_isMapped && !w->m_fadingOut)
+        if (w->isHidden() && !w->m_isMapped)
             continue;
 
         if (!w->m_pinned || !w->m_isFloating)
@@ -1253,6 +1229,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
         renderLayer(ls.lock(), pMonitor, time);
     }
+    renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_TOP);
 
     // Render IME popups
     for (auto const& imep : g_pInputManager->m_relay.m_inputMethodPopups) {
@@ -1262,12 +1239,14 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
         renderLayer(ls.lock(), pMonitor, time);
     }
+    renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_OVERLAY);
 
     for (auto const& lsl : pMonitor->m_layerSurfaceLayers) {
         for (auto const& ls : lsl) {
             renderLayer(ls.lock(), pMonitor, time, true);
         }
     }
+    renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_POPUP);
 
     renderDragIcon(pMonitor, time);
 }
@@ -2086,8 +2065,8 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     pMonitor->m_renderingActive = true;
 
     // Most frames have no fading-out windows or layers for this monitor.
-    if (!Desktop::fadingOutState()->windows().empty() || !Desktop::fadingOutState()->layers().empty())
-        Desktop::fadingOutState()->cleanupForMonitor(pMonitor->m_id);
+    if (!Desktop::fadingOutState()->fadeouts().empty())
+        Desktop::fadingOutState()->cleanupForMonitor(pMonitor);
 
     // TODO: this is getting called with extents being 0,0,0,0 should it be?
     // potentially can save on resources.
@@ -2561,7 +2540,7 @@ void IHyprRenderer::arrangeLayerArray(PHLMONITOR pMonitor, const std::vector<PHL
     CBox full_area = {pMonitor->m_position.x, pMonitor->m_position.y, pMonitor->m_size.x, pMonitor->m_size.y};
 
     for (auto const& ls : layerSurfaces) {
-        if (!ls || ls->m_fadingOut || ls->m_readyToDelete || !ls->m_layerSurface || ls->m_noProcess)
+        if (!ls || !ls->m_mapped || !ls->m_layerSurface || ls->m_noProcess)
             continue;
 
         const auto PLAYER = ls->m_layerSurface;
@@ -3058,29 +3037,24 @@ void IHyprRenderer::addWindowToRenderUnfocused(PHLWINDOW window) {
         m_renderUnfocusedTimer->updateTimeout(std::chrono::milliseconds(1000 / *PFPS));
 }
 
-void IHyprRenderer::makeSnapshot(PHLWINDOW pWindow) {
+SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(PHLWINDOW pWindow) {
     // we trust the window is valid.
     const auto PMONITOR = pWindow->m_monitor.lock();
 
     if (!PMONITOR || !PMONITOR->m_output || PMONITOR->m_pixelSize.x <= 0 || PMONITOR->m_pixelSize.y <= 0)
-        return;
+        return nullptr;
 
     if (!shouldRenderWindow(pWindow))
-        return; // ignore, window is not being rendered
+        return nullptr; // ignore, window is not being rendered
 
     Log::logger->log(Log::DEBUG, "renderer: making a snapshot of {:x}", rc<uintptr_t>(pWindow.get()));
 
     // we need to "damage" the entire monitor
     // so that we render the entire window
     // this is temporary, doesn't mess with the actual damage
-    CRegion      fakeDamage{0, 0, sc<int>(PMONITOR->m_transformedSize.x), sc<int>(PMONITOR->m_transformedSize.y)};
+    CRegion    fakeDamage{0, 0, sc<int>(PMONITOR->m_transformedSize.x), sc<int>(PMONITOR->m_transformedSize.y)};
 
-    PHLWINDOWREF ref{pWindow};
-
-    if (!ref->m_snapshotFB)
-        ref->m_snapshotFB = createFB("window snapshot");
-
-    const auto PFRAMEBUFFER = ref->m_snapshotFB;
+    const auto PFRAMEBUFFER = createFB("window snapshot");
 
     PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
     PFRAMEBUFFER->setImageDescription(PMONITOR->workBufferImageDescription());
@@ -3103,26 +3077,24 @@ void IHyprRenderer::makeSnapshot(PHLWINDOW pWindow) {
     Log::logger->log(Log::DEBUG, "renderer: made a snapshot of {:x}", rc<uintptr_t>(pWindow.get()));
 
     m_bRenderingSnapshot = false;
+    return PFRAMEBUFFER;
 }
 
-void IHyprRenderer::makeSnapshot(PHLLS pLayer) {
+SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(PHLLS pLayer) {
     // we trust the window is valid.
     const auto PMONITOR = pLayer->m_monitor.lock();
 
     if (!PMONITOR || !PMONITOR->m_output || PMONITOR->m_pixelSize.x <= 0 || PMONITOR->m_pixelSize.y <= 0)
-        return;
+        return nullptr;
 
     Log::logger->log(Log::DEBUG, "renderer: making a snapshot of layer {:x}", rc<uintptr_t>(pLayer.get()));
 
     // we need to "damage" the entire monitor
     // so that we render the entire window
     // this is temporary, doesn't mess with the actual damage
-    CRegion fakeDamage{0, 0, sc<int>(PMONITOR->m_transformedSize.x), sc<int>(PMONITOR->m_transformedSize.y)};
+    CRegion    fakeDamage{0, 0, sc<int>(PMONITOR->m_transformedSize.x), sc<int>(PMONITOR->m_transformedSize.y)};
 
-    if (!pLayer->m_snapshotFB)
-        pLayer->m_snapshotFB = createFB("layer snapshot");
-
-    const auto PFRAMEBUFFER = pLayer->m_snapshotFB;
+    const auto PFRAMEBUFFER = createFB("layer snapshot");
 
     PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
     PFRAMEBUFFER->setImageDescription(PMONITOR->workBufferImageDescription());
@@ -3146,26 +3118,24 @@ void IHyprRenderer::makeSnapshot(PHLLS pLayer) {
     Log::logger->log(Log::DEBUG, "renderer: made a snapshot of layer {:x}", rc<uintptr_t>(pLayer.get()));
 
     m_bRenderingSnapshot = false;
+    return PFRAMEBUFFER;
 }
 
-void IHyprRenderer::makeSnapshot(WP<Desktop::View::CPopup> popup) {
+SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(WP<Desktop::View::CPopup> popup) {
     // we trust the window is valid.
     const auto PMONITOR = popup->getMonitor();
 
     if (!PMONITOR || !PMONITOR->m_output || PMONITOR->m_pixelSize.x <= 0 || PMONITOR->m_pixelSize.y <= 0)
-        return;
+        return nullptr;
 
     if (!popup->aliveAndVisible())
-        return;
+        return nullptr;
 
     Log::logger->log(Log::DEBUG, "renderer: making a snapshot of {:x}", rc<uintptr_t>(popup.get()));
 
-    CRegion fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
+    CRegion    fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
 
-    if (!popup->m_snapshotFB)
-        popup->m_snapshotFB = createFB("popup shapshot");
-
-    const auto PFRAMEBUFFER = popup->m_snapshotFB;
+    const auto PFRAMEBUFFER = createFB("popup shapshot");
 
     PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
     PFRAMEBUFFER->setImageDescription(PMONITOR->workBufferImageDescription());
@@ -3205,149 +3175,67 @@ void IHyprRenderer::makeSnapshot(WP<Desktop::View::CPopup> popup) {
     endRender();
 
     m_bRenderingSnapshot = false;
+    return PFRAMEBUFFER;
 }
 
-void IHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
-    static auto  PDIMAROUND = CConfigValue<Config::FLOAT>("decoration:dim_around");
-
-    PHLWINDOWREF ref{pWindow};
-
-    if (!ref->m_snapshotFB)
+void IHyprRenderer::renderFadeouts(PHLMONITOR monitor, Desktop::eFadeoutPlane plane, PHLWORKSPACE workspace) {
+    if (!monitor)
         return;
 
-    const auto FBDATA = ref->m_snapshotFB;
+    std::vector<SP<Desktop::IFadeout>> fadeouts;
+    for (auto const& fadeout : Desktop::fadingOutState()->fadeouts()) {
+        if (!fadeout || fadeout->monitor() != monitor || fadeout->plane() != plane)
+            continue;
 
-    if (!FBDATA->getTexture())
-        return;
+        if (fadeout->workspace() && fadeout->workspace() != workspace)
+            continue;
 
-    const auto PMONITOR = pWindow->m_monitor.lock();
-
-    CBox       windowBox;
-    // some mafs to figure out the correct box
-    // the originalClosedPos is relative to the monitor's pos
-    Vector2D scaleXY = Vector2D((PMONITOR->m_scale * pWindow->m_realSize->value().x / (pWindow->m_originalClosedSize.x * PMONITOR->m_scale)),
-                                (PMONITOR->m_scale * pWindow->m_realSize->value().y / (pWindow->m_originalClosedSize.y * PMONITOR->m_scale)));
-
-    windowBox.width  = PMONITOR->m_transformedSize.x * scaleXY.x;
-    windowBox.height = PMONITOR->m_transformedSize.y * scaleXY.y;
-    windowBox.x      = ((pWindow->m_realPosition->value().x - PMONITOR->m_position.x) * PMONITOR->m_scale) - ((pWindow->m_originalClosedPos.x * PMONITOR->m_scale) * scaleXY.x);
-    windowBox.y      = ((pWindow->m_realPosition->value().y - PMONITOR->m_position.y) * PMONITOR->m_scale) - ((pWindow->m_originalClosedPos.y * PMONITOR->m_scale) * scaleXY.y);
-
-    CRegion fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
-
-    if (*PDIMAROUND && pWindow->m_ruleApplicator->dimAround().valueOrDefault()) {
-        CRectPassElement::SRectData data;
-
-        data.box = {0, 0, m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y};
-        data.color =
-            CHyprColor(0, 0, 0, *PDIMAROUND * pWindow->alphaValue(WINDOW_ALPHA_FADE) * pWindow->alphaValue(WINDOW_ALPHA_FULLSCREEN) * pWindow->alphaValue(WINDOW_ALPHA_LAYOUT));
-
-        m_renderPass.add(makeUnique<CRectPassElement>(data));
+        fadeouts.emplace_back(fadeout);
     }
 
-    if (shouldBlur(pWindow)) {
-        CRectPassElement::SRectData data;
-        data.box           = CBox{pWindow->m_realPosition->value(), pWindow->m_realSize->value()}.translate(-PMONITOR->m_position).scale(PMONITOR->m_scale).round();
-        data.color         = CHyprColor{0, 0, 0, 0};
-        data.blur          = true;
-        data.blurA         = sqrt(pWindow->alphaValue(WINDOW_ALPHA_FADE) * pWindow->alphaValue(WINDOW_ALPHA_FULLSCREEN) *
-                                  pWindow->alphaValue(WINDOW_ALPHA_LAYOUT)); // sqrt makes the blur fadeout more realistic.
-        data.round         = pWindow->rounding();
-        data.roundingPower = pWindow->roundingPower();
-        data.xray          = pWindow->m_ruleApplicator->xray().valueOr(false);
+    std::ranges::sort(fadeouts, {}, [](const auto& fadeout) { return fadeout->zIndex(); });
 
-        m_renderPass.add(makeUnique<CRectPassElement>(data));
+    CRegion fakeDamage{0, 0, monitor->m_transformedSize.x, monitor->m_transformedSize.y};
+    for (auto const& fadeout : fadeouts) {
+        const auto FB = fadeout->framebuffer();
+        if (!FB || !FB->getTexture())
+            continue;
+
+        const auto EFFECTS = fadeout->effects();
+
+        if (EFFECTS.dimAroundAlpha > 0.F) {
+            CRectPassElement::SRectData data;
+            data.box   = {0, 0, monitor->m_transformedSize.x, monitor->m_transformedSize.y};
+            data.color = CHyprColor(0, 0, 0, EFFECTS.dimAroundAlpha);
+            m_renderPass.add(makeUnique<CRectPassElement>(data));
+        }
+
+        if (EFFECTS.preBlur) {
+            CRectPassElement::SRectData data;
+            data.box           = EFFECTS.preBlur->box;
+            data.color         = CHyprColor(0, 0, 0, 0);
+            data.blur          = true;
+            data.blurA         = EFFECTS.preBlur->alpha;
+            data.round         = EFFECTS.preBlur->round;
+            data.roundingPower = EFFECTS.preBlur->roundingPower;
+            data.xray          = EFFECTS.preBlur->xray;
+            m_renderPass.add(makeUnique<CRectPassElement>(data));
+        }
+
+        CTexPassElement::SRenderData data;
+        data.flipEndFrame          = true;
+        data.tex                   = FB->getTexture();
+        data.box                   = fadeout->renderBox();
+        data.a                     = fadeout->alpha();
+        data.damage                = fakeDamage;
+        data.blur                  = EFFECTS.textureBlur.enabled;
+        data.blurA                 = EFFECTS.textureBlur.alpha;
+        data.forceBlurBlend        = EFFECTS.textureBlur.forceBlend;
+        data.ignoreAlpha           = EFFECTS.textureBlur.ignoreAlpha;
+        data.blockBlurOptimization = EFFECTS.textureBlur.blockBlurOptimization;
+
+        m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
     }
-
-    CTexPassElement::SRenderData data;
-    data.flipEndFrame = true;
-    data.tex          = FBDATA->getTexture();
-    data.box          = windowBox;
-    data.a            = pWindow->alphaValue(WINDOW_ALPHA_FADE) * pWindow->alphaValue(WINDOW_ALPHA_FULLSCREEN) * pWindow->alphaValue(WINDOW_ALPHA_LAYOUT);
-    data.damage       = fakeDamage;
-
-    m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
-}
-
-void IHyprRenderer::renderSnapshot(PHLLS pLayer) {
-    if (!pLayer->m_snapshotFB)
-        return;
-
-    const auto FBDATA = pLayer->m_snapshotFB;
-
-    if (!FBDATA->getTexture())
-        return;
-
-    const auto PMONITOR = pLayer->m_monitor.lock();
-
-    CBox       layerBox;
-    // some mafs to figure out the correct box
-    // the originalClosedPos is relative to the monitor's pos
-    Vector2D scaleXY = Vector2D((PMONITOR->m_scale * pLayer->m_realSize->value().x / (pLayer->m_geometry.w * PMONITOR->m_scale)),
-                                (PMONITOR->m_scale * pLayer->m_realSize->value().y / (pLayer->m_geometry.h * PMONITOR->m_scale)));
-
-    layerBox.width  = PMONITOR->m_transformedSize.x * scaleXY.x;
-    layerBox.height = PMONITOR->m_transformedSize.y * scaleXY.y;
-    layerBox.x =
-        ((pLayer->m_realPosition->value().x - PMONITOR->m_position.x) * PMONITOR->m_scale) - (((pLayer->m_geometry.x - PMONITOR->m_position.x) * PMONITOR->m_scale) * scaleXY.x);
-    layerBox.y =
-        ((pLayer->m_realPosition->value().y - PMONITOR->m_position.y) * PMONITOR->m_scale) - (((pLayer->m_geometry.y - PMONITOR->m_position.y) * PMONITOR->m_scale) * scaleXY.y);
-
-    CRegion                      fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
-
-    const bool                   SHOULD_BLUR = shouldBlur(pLayer);
-
-    CTexPassElement::SRenderData data;
-    data.flipEndFrame = true;
-    data.tex          = FBDATA->getTexture();
-    data.box          = layerBox;
-    data.a            = pLayer->m_alpha->value();
-    data.damage       = fakeDamage;
-    data.blur         = SHOULD_BLUR;
-    data.blurA        = sqrt(pLayer->m_alpha->value()); // sqrt makes the blur fadeout more realistic.
-    if (SHOULD_BLUR)
-        data.ignoreAlpha = pLayer->m_ruleApplicator->ignoreAlpha().valueOr(0.01F) /* ignore the alpha 0 regions */;
-
-    m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
-}
-
-void IHyprRenderer::renderSnapshot(WP<Desktop::View::CPopup> popup) {
-    if (!popup->m_snapshotFB)
-        return;
-
-    static CConfigValue PBLURIGNOREA = CConfigValue<Config::FLOAT>("decoration:blur:popups_ignorealpha");
-
-    const auto          FBDATA = popup->m_snapshotFB;
-
-    if (!FBDATA->getTexture())
-        return;
-
-    const auto PMONITOR = popup->getMonitor();
-
-    if (!PMONITOR)
-        return;
-
-    CRegion                      fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
-
-    const bool                   SHOULD_BLUR = shouldBlur(popup);
-
-    CTexPassElement::SRenderData data;
-    data.flipEndFrame          = true;
-    data.tex                   = FBDATA->getTexture();
-    data.box                   = {{}, PMONITOR->m_transformedSize};
-    data.a                     = popup->m_alpha->value();
-    data.damage                = fakeDamage;
-    data.blur                  = SHOULD_BLUR;
-    data.blurA                 = sqrt(popup->m_alpha->value()); // sqrt makes the blur fadeout more realistic.
-    data.blockBlurOptimization = SHOULD_BLUR;                   // force no xray on this (popups never have xray)
-    if (SHOULD_BLUR) {
-        if (const auto PLAYER = popup->layerOwner(); PLAYER && PLAYER->m_ruleApplicator->ignoreAlpha().hasValue())
-            data.ignoreAlpha = std::max(PLAYER->m_ruleApplicator->ignoreAlpha().valueOrDefault(), 0.01F);
-        else
-            data.ignoreAlpha = std::max(*PBLURIGNOREA, 0.01F); /* ignore the alpha 0 regions */
-    }
-
-    m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }
 
 NColorManagement::PImageDescription IHyprRenderer::workBufferImageDescription() {

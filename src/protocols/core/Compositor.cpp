@@ -22,6 +22,20 @@
 
 using namespace NColorManagement;
 
+static bool addSafeDamage(CRegion& damage, int32_t x, int32_t y, int32_t w, int32_t h) {
+    if (w <= 0 || h <= 0)
+        return false;
+
+    const int64_t x2 = std::min<int64_t>(sc<int64_t>(x) + w, INT32_MAX);
+    const int64_t y2 = std::min<int64_t>(sc<int64_t>(y) + h, INT32_MAX);
+
+    if (x2 <= x || y2 <= y)
+        return false;
+
+    damage.add(x, y, x2 - x, y2 - y);
+    return true;
+}
+
 class CDefaultSurfaceRole : public ISurfaceRole {
   public:
     virtual eSurfaceRole role() {
@@ -171,17 +185,12 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
     });
 
     m_resource->setDamage([this](CWlSurface* r, int32_t x, int32_t y, int32_t w, int32_t h) {
-        m_pending.updated.bits.damage = true;
-        m_pending.damage.add(CBox{x, y, w, h});
+        if (addSafeDamage(m_pending.damage, x, y, w, h))
+            m_pending.updated.bits.damage = true;
     });
     m_resource->setDamageBuffer([this](CWlSurface* r, int32_t x, int32_t y, int32_t w, int32_t h) {
-        m_pending.updated.bits.damage = true;
-        const auto damageSize         = Vector2D(w, h);
-
-        if (damageSize > m_pending.bufferSize)
-            m_pending.bufferDamage.add(CBox{{x, y}, m_pending.bufferSize});
-        else
-            m_pending.bufferDamage.add(CBox{{x, y}, damageSize});
+        if (addSafeDamage(m_pending.bufferDamage, x, y, w, h))
+            m_pending.updated.bits.damage = true;
     });
 
     m_resource->setSetBufferScale([this](CWlSurface* r, int32_t scale) {

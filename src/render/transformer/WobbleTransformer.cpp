@@ -3,8 +3,9 @@
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../desktop/view/Window.hpp"
+#include "../../desktop/state/WindowState.hpp"
 #include "../../event/EventBus.hpp"
-#include "../../helpers/Monitor.hpp"
+#include "../../output/Monitor.hpp"
 #include "../../managers/animation/AnimationManager.hpp"
 #include "../OpenGL.hpp"
 #include "../Renderer.hpp"
@@ -26,7 +27,7 @@ static double              sourceOffsetForAxis(double min, double size, double m
 static void tickWobbles() {
     bool anyActive = false;
 
-    for (auto const& window : g_pCompositor->m_windows) {
+    for (auto const& window : Desktop::windowState()->windows()) {
         if (!window)
             continue;
 
@@ -228,7 +229,7 @@ void CWobbleTransformer::scheduleFrame() const {
         return;
 
     if (const auto PMONITOR = PWINDOW->m_monitor.lock())
-        g_pCompositor->scheduleFrameForMonitor(PMONITOR, Aquamarine::IOutput::AQ_SCHEDULE_ANIMATION);
+        PMONITOR->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_ANIMATION);
 }
 
 SSpringCurve CWobbleTransformer::spring() const {

@@ -6,10 +6,8 @@
 CSurfaceStateQueue::CSurfaceStateQueue(WP<CWLSurfaceResource> surf) : m_surface(std::move(surf)) {}
 
 void CSurfaceStateQueue::clear() {
-    if (PROTO::presentation) {
-        for (auto& state : m_queue)
-            PROTO::presentation->discardFeedbacks(state->presentationFeedbacks);
-    }
+    for (auto& state : m_queue)
+        PROTO::presentation->discardFeedbacks(state->presentationFeedbacks);
 
     m_queue.clear();
 }
@@ -23,8 +21,7 @@ void CSurfaceStateQueue::dropState(const WP<SSurfaceState>& state) {
     if (it == m_queue.end())
         return;
 
-    if (PROTO::presentation)
-        PROTO::presentation->discardFeedbacks((*it)->presentationFeedbacks);
+    PROTO::presentation->discardFeedbacks((*it)->presentationFeedbacks);
 
     m_queue.erase(it);
 }

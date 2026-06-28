@@ -79,7 +79,7 @@ struct SSurfaceState {
     std::vector<SP<CWLCallbackResource>> callbacks;
 
     // for wp_presentation feedbacks, tied to this commit.
-    std::vector<WP<CPresentationFeedback>> presentationFeedbacks;
+    std::vector<CPresentationFeedback*> presentationFeedbacks;
 
     // viewporter protocol surface state
     struct {

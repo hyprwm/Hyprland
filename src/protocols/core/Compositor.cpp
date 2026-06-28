@@ -132,8 +132,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         m_events.precommit.emit();
         if (m_pending.rejected) {
             m_pending.rejected = false;
-            if (PROTO::presentation)
-                PROTO::presentation->discardFeedbacks(m_pending.presentationFeedbacks);
+            PROTO::presentation->discardFeedbacks(m_pending.presentationFeedbacks);
             dropPendingBuffer();
             return;
         }
@@ -251,11 +250,9 @@ CWLSurfaceResource::~CWLSurfaceResource() {
 }
 
 void CWLSurfaceResource::discardPresentationFeedbacks() {
-    if (PROTO::presentation) {
-        PROTO::presentation->discardFeedbacks(m_pending.presentationFeedbacks);
-        PROTO::presentation->discardFeedbacks(m_current.presentationFeedbacks);
-        PROTO::presentation->discardFeedbacksForSurface(m_self);
-    }
+    PROTO::presentation->discardFeedbacks(m_pending.presentationFeedbacks);
+    PROTO::presentation->discardFeedbacks(m_current.presentationFeedbacks);
+    PROTO::presentation->discardFeedbacksForSurface(m_self);
 }
 
 void CWLSurfaceResource::destroy() {
@@ -605,7 +602,7 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
     if (!state.updated.all && m_mapped && state.fifoScheduled)
         return;
 
-    if (PROTO::presentation && state.updated.all)
+    if (state.updated.all)
         PROTO::presentation->discardFeedbacks(m_current.presentationFeedbacks);
 
     auto lastTexture = m_current.texture;

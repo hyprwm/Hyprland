@@ -110,8 +110,7 @@ SFullscreenMode CScrollingFullscreenHandler::getFullscreenModes(const SP<Layout:
 
 
 eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SFullscreenRequest& request) {
-
-    if (!request.target || !getSpace() || !request.target->space() != getSpace() || !m_scrollingAlgorithm->dataFor(request.target) || !request.target->window() ||
+    if (!request.target || !getSpace() || request.target->space() != getSpace() || !m_scrollingAlgorithm->dataFor(request.target) || !request.target->window() ||
         !request.target->window()->m_workspace || !request.target->window()->m_workspace->m_monitor)
         return FULLSCREEN_REQUEST_FAILED;
 

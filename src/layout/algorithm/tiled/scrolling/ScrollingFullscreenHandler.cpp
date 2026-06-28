@@ -626,7 +626,7 @@ void CScrollingFullscreenHandler::saveCurrentFsAndAllHiddenFloatingWindows(PHLWI
 
     for (auto const& w : Desktop::windowState()->windows()) {
         
-        if (!w && w->m_workspace != getSpace()->workspace())
+        if (!w || w->m_workspace != getSpace()->workspace())
             continue;
 
         if (w != fullscreenWindow && !w->m_fadingOut && !w->m_pinned && w->m_isFloating)

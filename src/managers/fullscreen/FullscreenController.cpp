@@ -350,6 +350,21 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, const std:
         targetInternalMode = internal.value_or(OLD_FS_MODE.internal);
         targetClientMode = client.value_or(OLD_FS_MODE.client);
     }
+    
+    if (window->m_ruleApplicator->syncFullscreen().valueOrDefault()) {
+
+        targetInternalMode = std::clamp(targetInternalMode, sc<eFullscreenMode>(0), FSMODE_MAX);
+        targetClientMode = targetInternalMode;
+
+
+    }
+    else {
+        
+        targetInternalMode = std::clamp(targetInternalMode, sc<eFullscreenMode>(0), FSMODE_MAX);
+        targetClientMode = std::clamp(targetClientMode, sc<eFullscreenMode>(0), FSMODE_MAX);
+
+
+    }
 
 
     targetInternalMode = std::clamp(targetInternalMode, sc<eFullscreenMode>(0), FSMODE_MAX);

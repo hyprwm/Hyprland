@@ -39,7 +39,10 @@ void CWindowTarget::setPositionGlobal(const STargetBox& box, uint8_t flags) {
     updatePos(flags);
 }
 
-void CWindowTarget::updatePos(uint8_t flags) {
+void CWindowTarget::updatePos() {
+
+    // ERSTARR TODO - LOOK OVER THIS AGAIN
+
     g_pHyprRenderer->damageWindow(m_window.lock());
     CScopeGuard x([this] { g_pHyprRenderer->damageWindow(m_window.lock()); });
 
@@ -48,12 +51,12 @@ void CWindowTarget::updatePos(uint8_t flags) {
     if (!m_space)
         return;
 
-    // Default Handled Fullscreen
-    if (fullscreenMode() == FSMODE_FULLSCREEN && !layoutManagedFullscreen())
+    // Default Handled Fullscreen - tiled or floating
+    if (m_window && g_pfullscreenController->isFullscreen(m_window.lock(), Fullscreen::FSMODE_FULLSCREEN) && !g_pfullscreenController->layoutManagedFS(m_window.lock()))
         return;
 
-
-    if (floating() && fullscreenMode() != FSMODE_MAXIMIZED) {
+    // Non-Maximised Floating Windows
+    if (floating() && m_window && g_pfullscreenController->getFullscreenModes(m_window.lock()).internal != Fullscreen::FSMODE_MAXIMIZED) {
         *m_window->m_realPosition = m_box.logicalBox.pos();
         *m_window->m_realSize     = m_box.logicalBox.size();
 
@@ -64,11 +67,10 @@ void CWindowTarget::updatePos(uint8_t flags) {
         return;
     }
 
-    // Tiled is more complicated.
 
-    // Default handled Maximised Window
+    // Default handled Maximised Window - tiled or floating
     // if we are in maximized, force the box to be max work area.
-    if (fullscreenMode() == FSMODE_MAXIMIZED && !layoutManagedFullscreen())
+    if (m_window && g_pfullscreenController->isFullscreen(m_window.lock(), Fullscreen::FSMODE_MAXIMIZED) && !g_pfullscreenController->layoutManagedFS(m_window.lock()))
         ITarget::setPositionGlobal({.logicalBox = m_space->workArea(floating())});
 
     if (!m_space->workspace())
@@ -103,6 +105,8 @@ void CWindowTarget::updatePos(uint8_t flags) {
             m_window->sendWindowSize();
         return;
     }
+
+    // non-FS tiled windows
 
     g_pHyprRenderer->damageWindow(window());
 

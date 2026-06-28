@@ -5,6 +5,7 @@
 #include "../view/Window.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../output/Monitor.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -31,7 +32,7 @@ PHLWINDOW CWindowQuery::inDirection(PHLWINDOW window, Math::eDirection direction
     if (!PMONITOR)
         return nullptr; // ??
 
-    const auto WINDOWIDEALBB = window->isFullscreen() ? CBox{PMONITOR->m_position, PMONITOR->m_size} : window->getWindowIdealBoundingBoxIgnoreReserved();
+    const auto WINDOWIDEALBB = g_pfullscreenController->isFullscreen(window) ? CBox{PMONITOR->m_position, PMONITOR->m_size} : window->getWindowIdealBoundingBoxIgnoreReserved();
     const auto PWORKSPACE    = window->m_workspace;
 
     if (!PWORKSPACE)
@@ -95,7 +96,7 @@ PHLWINDOW CWindowQuery::inDirection(const SWindowDirectionQuery& query) const {
 
         auto find = [&]() {
             for (auto const& w : m_state.windows()) {
-                if (w == query.ignoreWindow || !w->m_workspace || !w->m_isMapped || (!w->isFullscreen() && w->m_isFloating) || !w->m_workspace->isVisible())
+                if (w == query.ignoreWindow || !w->m_workspace || !w->m_isMapped || (!g_pfullscreenController->isFullscreen(w) && w->m_isFloating) || !w->m_workspace->isVisible())
                     continue;
 
                 if (w->isHidden())
@@ -107,7 +108,7 @@ PHLWINDOW CWindowQuery::inDirection(const SWindowDirectionQuery& query) const {
                 if (query.workspace->m_monitor == w->m_monitor && query.workspace != w->m_workspace)
                     continue;
 
-                if (query.workspace->m_hasFullscreenWindow && !w->isAllowedOverFullscreen())
+                if (g_pfullscreenController->hasFullscreen(query.workspace) && !w->isAllowedOverFullscreen())
                     continue;
 
                 if (!*PMONITORFALLBACK && query.workspace->m_monitor != w->m_monitor)
@@ -206,13 +207,13 @@ PHLWINDOW CWindowQuery::inDirection(const SWindowDirectionQuery& query) const {
         constexpr float THRESHOLD    = 0.3 * M_PI;
 
         for (auto const& w : m_state.windows()) {
-            if (w == query.ignoreWindow || !w->m_isMapped || !w->m_workspace || !w->acceptsInput() || (!w->isFullscreen() && !w->m_isFloating) || !w->m_workspace->isVisible())
+            if (w == query.ignoreWindow || !w->m_isMapped || !w->m_workspace || !w->acceptsInput() || (!g_pfullscreenController->isFullscreen(w) && !w->m_isFloating) || !w->m_workspace->isVisible())
                 continue;
 
             if (query.workspace->m_monitor == w->m_monitor && query.workspace != w->m_workspace)
                 continue;
 
-            if (query.workspace->m_hasFullscreenWindow && !w->isAllowedOverFullscreen())
+            if (g_pfullscreenController->hasFullscreen(query.workspace) && !w->isAllowedOverFullscreen())
                 continue;
 
             if (!*PMONITORFALLBACK && query.workspace->m_monitor != w->m_monitor)
@@ -231,8 +232,8 @@ PHLWINDOW CWindowQuery::inDirection(const SWindowDirectionQuery& query) const {
             }
         }
 
-        if (!leaderWindow && query.workspace->m_hasFullscreenWindow)
-            leaderWindow = query.workspace->getFullscreenWindow();
+        if (!leaderWindow && g_pfullscreenController->hasFullscreen(query.workspace))
+            leaderWindow = g_pfullscreenController->getFullscreenWindow(query.workspace);
     }
 
     if (leaderValue != -1)

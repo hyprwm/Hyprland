@@ -1270,8 +1270,7 @@ bool CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::
 
     if (changed) {
         const Vector2D DELTA = REALSIZE - NEWSIZE;
-        *m_realPosition      = m_realPosition->goal() + DELTA / 2.0;
-        *m_realSize          = NEWSIZE;
+        layoutTarget()->setPositionGlobal(CBox{m_realPosition->goal() + DELTA / 2.0, NEWSIZE});
     }
 
     return changed;

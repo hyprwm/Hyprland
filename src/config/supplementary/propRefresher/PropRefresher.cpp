@@ -88,6 +88,9 @@ void CPropRefresher::refreshProp(const bool execdAsScheduled) {
     if (m_propsTripped & REFRESH_WINDOW_STATES) {
         Desktop::Rule::ruleEngine()->updateAllRules();
 
+        for (auto const& w : Desktop::windowState()->windows())
+            w->uncacheWindowDecos();
+
         for (const auto& ws : State::workspaceState()->workspaces()) {
             if (!ws)
                 continue;

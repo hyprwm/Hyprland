@@ -2763,8 +2763,7 @@ void CWindow::destroyWindow() {
     m_listeners.map.reset();
     m_listeners.commit.reset();
 
-    Log::logger->log(Log::DEBUG, "Unmapped {} removed instantly", m_self.lock());
-    Desktop::windowState()->removeSafe(m_self.lock()); // most likely X11 unmanaged or sumn
+    Desktop::windowState()->removeSafe(m_self.lock());
 }
 
 void CWindow::activateX11() {

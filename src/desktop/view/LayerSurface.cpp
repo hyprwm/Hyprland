@@ -128,10 +128,6 @@ void CLayerSurface::onDestroy() {
     if (m_mapped) {
         Log::logger->log(Log::DEBUG, "Forcing an unmap of a LS that did a straight destroy!");
         onUnmap();
-    } else {
-        Log::logger->log(Log::DEBUG, "Removing LayerSurface that wasn't mapped.");
-        if (m_alpha)
-            g_pDesktopAnimationManager->startAnimation(m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_OUT);
     }
 
     m_popupHead.reset();
@@ -148,7 +144,6 @@ void CLayerSurface::onDestroy() {
         g_pHyprRenderer->damageBox(geomFixed);
     }
 
-    Desktop::layerState()->removeSafe(SELF);
     m_layerSurface.reset();
     if (m_wlSurface)
         m_wlSurface->unassign();
@@ -157,6 +152,8 @@ void CLayerSurface::onDestroy() {
     m_listeners.destroy.reset();
     m_listeners.map.reset();
     m_listeners.commit.reset();
+
+    Desktop::layerState()->removeSafe(SELF);
 }
 
 void CLayerSurface::onMap() {

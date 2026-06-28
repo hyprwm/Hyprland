@@ -2540,7 +2540,7 @@ void IHyprRenderer::arrangeLayerArray(PHLMONITOR pMonitor, const std::vector<PHL
     CBox full_area = {pMonitor->m_position.x, pMonitor->m_position.y, pMonitor->m_size.x, pMonitor->m_size.y};
 
     for (auto const& ls : layerSurfaces) {
-        if (!ls || !ls->m_mapped || !ls->m_layerSurface || ls->m_noProcess)
+        if (!ls || !ls->m_layerSurface || ls->m_noProcess)
             continue;
 
         const auto PLAYER = ls->m_layerSurface;

@@ -10,6 +10,7 @@
 #include "../../render/Renderer.hpp"
 #include "../../debug/log/Logger.hpp"
 #include "../../desktop/DesktopTypes.hpp"
+#include "../../desktop/view/Window.hpp"
 
 using namespace Fullscreen;
 
@@ -22,7 +23,7 @@ using namespace Fullscreen;
 
 // Window
 
-bool CFullscreenController::isFullscreen( const PHLWINDOW window, const std::optional<eFullscreenMode> mode, const std::optional<bool> covering) {
+bool CFullscreenController::isFullscreen(const PHLWINDOW window, const std::optional<eFullscreenMode> mode, const std::optional<bool> covering) {
     if(!window || !window->m_target || mode == FSMODE_NONE)
         return false;
 
@@ -327,14 +328,14 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, const std:
         // if syncing FS, this guarantees that it will be removed from the handler as both internal and client will be removed
         if (window->m_ruleApplicator->syncFullscreen().valueOrDefault()) {
             setWindowFullscreenModeClient(window, FSMODE_NONE, IS_LAYOUT_HANDLED);
-            setWindowFullscreenModeInternal(window, FSMODE_NONE, IS_LAYOUT_HANDLED, false);
+            setWindowFullscreenModeInternal(window, FSMODE_NONE, IS_LAYOUT_HANDLED);
         }
         // if not syncing FS, we need to move the unmodified FS value from the old one to the new one
         else {
 
             // remove window from the handler
             if (OLD_FS_MODE.internal != FSMODE_NONE)
-                setWindowFullscreenModeInternal(window, FSMODE_NONE, IS_LAYOUT_HANDLED, false);
+                setWindowFullscreenModeInternal(window, FSMODE_NONE, IS_LAYOUT_HANDLED);
             if (OLD_FS_MODE.client != FSMODE_NONE)
                 setWindowFullscreenModeClient(window, FSMODE_NONE, IS_LAYOUT_HANDLED);
             
@@ -373,12 +374,12 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, const std:
 
     // set new FS state in the correct handler
     setWindowFullscreenModeClient(window, targetClientMode, layoutAware.value_or(IS_LAYOUT_HANDLED));    
-    setWindowFullscreenModeInternal(window, targetInternalMode, layoutAware.value_or(IS_LAYOUT_HANDLED), false);
+    setWindowFullscreenModeInternal(window, targetInternalMode, layoutAware.value_or(IS_LAYOUT_HANDLED));
 
 }
 
 
-void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware, const bool force) {
+void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware) {
     
     if (!window || !validMapped(window) || !window->m_monitor || !window->m_workspace)
         return;
@@ -440,7 +441,7 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
 
     // Note for Vax: I'm not sure why we pass RULE_PROP_FULLSCREENSTATE_CLIENT here since it only checks for internal FS change (i didn't change the logic of this from upstream)?
       // Leaving this as-is for now even though it mentions client inside the setInternal function
-    if (!(force || INTERNAL_FS_MODE_CHANGED)) {
+    if (!INTERNAL_FS_MODE_CHANGED) {
         window->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
                                                      Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
         window->updateDecorationValues();

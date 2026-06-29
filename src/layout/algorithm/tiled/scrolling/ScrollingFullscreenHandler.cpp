@@ -9,7 +9,7 @@
 
 #include "../../../../layout/algorithm/tiled/scrolling/ScrollingFullscreenHandler.hpp"
 #include "../../../../layout/algorithm/tiled/scrolling/ScrollingAlgorithm.hpp"
-#include "debug/log/Logger.hpp"
+#include "../../../../layout/target/WindowGroupTarget.hpp"
 
 using namespace Fullscreen;
 using namespace Fullscreen::ScrollingFullscreenHandler;
@@ -41,7 +41,7 @@ CScrollingFullscreenHandler::~CScrollingFullscreenHandler() {
 
 
 
-bool CScrollingFullscreenHandler::isFullscreen(const SP<Layout::ITarget> target, const std::optional<eFullscreenMode> mode, const std::optional<bool> covering) {
+bool CScrollingFullscreenHandler::isFullscreen(SP<Layout::ITarget> target, const std::optional<eFullscreenMode> mode, const std::optional<bool> covering) {
     // Mode checking logic is the same as getFullscreenModes() - keep it in sync
 
 
@@ -52,6 +52,13 @@ bool CScrollingFullscreenHandler::isFullscreen(const SP<Layout::ITarget> target,
 
     if (!target)
         return false;
+
+    if (const auto WINDOW_GROUP_TARGET = dc<Layout::CWindowGroupTarget*>(target.get()); WINDOW_GROUP_TARGET && target->type() == Layout::TARGET_TYPE_GROUP) {
+        if (WINDOW_GROUP_TARGET->getGroup() && WINDOW_GROUP_TARGET->getGroup()->current() && WINDOW_GROUP_TARGET->getGroup()->current()->m_target)
+            target = WINDOW_GROUP_TARGET->getGroup()->current()->m_target;
+        else
+            return FULLSCREEN_REQUEST_FAILED;
+    }
 
 
     const auto ITR = m_fsTargets.find(target);
@@ -64,7 +71,7 @@ bool CScrollingFullscreenHandler::isFullscreen(const SP<Layout::ITarget> target,
         return false;
 
     // FS target must be the sole target in its column - covering or not
-    const auto TDATA = m_scrollingAlgorithm->dataFor(target);
+    const auto TDATA = m_scrollingAlgorithm->dataFor(target, true);
     if (!TDATA || !TDATA->column)
         return false;
 
@@ -102,7 +109,18 @@ SP<Layout::ITarget> CScrollingFullscreenHandler::getFullscreen(const std::option
     return nullptr;
 }
 
-SFullscreenMode CScrollingFullscreenHandler::getFullscreenModes(const SP<Layout::ITarget> target) {
+SFullscreenMode CScrollingFullscreenHandler::getFullscreenModes(SP<Layout::ITarget> target) {
+    if (!target)
+        return SFullscreenMode{};
+
+
+    if (const auto WINDOW_GROUP_TARGET = dc<Layout::CWindowGroupTarget*>(target.get()); WINDOW_GROUP_TARGET && target->type() == Layout::TARGET_TYPE_GROUP) {
+        if (WINDOW_GROUP_TARGET->getGroup() && WINDOW_GROUP_TARGET->getGroup()->current() && WINDOW_GROUP_TARGET->getGroup()->current()->m_target)
+            target = WINDOW_GROUP_TARGET->getGroup()->current()->m_target;
+        else
+            return SFullscreenMode{};
+    }
+
     const auto ITR = m_fsTargets.find(target);
 
     return ITR == m_fsTargets.end() ? SFullscreenMode{} : ITR->second.mode;
@@ -110,12 +128,12 @@ SFullscreenMode CScrollingFullscreenHandler::getFullscreenModes(const SP<Layout:
 
 
 eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SFullscreenRequest& request) {
-    if (!request.target || !getSpace() || request.target->space() != getSpace() || !m_scrollingAlgorithm->dataFor(request.target) || !request.target->window() ||
+    if (!request.target || !getSpace() || request.target->space() != getSpace() || !m_scrollingAlgorithm->dataFor(request.target, true) || !request.target->window() ||
         !request.target->window()->m_workspace || !request.target->window()->m_workspace->m_monitor)
         return FULLSCREEN_REQUEST_FAILED;
 
     const auto TARGET = request.target;
-    const auto TDATA  = m_scrollingAlgorithm->dataFor(request.target);
+    const auto TDATA  = m_scrollingAlgorithm->dataFor(request.target, true);
 
     const auto WINDOW    = TARGET->window();
     const auto WORKSPACE = WINDOW->m_workspace;
@@ -127,7 +145,7 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
 
         // more that one target in column
         if (CURRENTCOL && CURRENTCOL->targetDatas.size() > 1) {
-            const auto TDATA = m_scrollingAlgorithm->dataFor(TARGET);
+            const auto TDATA = m_scrollingAlgorithm->dataFor(TARGET, true);
             const auto currentIdx = m_scrollingAlgorithm->m_scrollingData->idx(CURRENTCOL);
 
             // acts like 'promote' layout dispatch
@@ -475,13 +493,16 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
         // TARGET doesn't have a window
         // TARGET's space is not the same as current space
         // TARGET does not have scrollingTargetData (all TARGETs in scrolling layout must)
-        if (!TARGET || !TARGET->window() || TARGET->space() != getSpace() || !m_scrollingAlgorithm->dataFor(TARGET)) {
+        if (!TARGET || !TARGET->window() || TARGET->space() != getSpace() || !m_scrollingAlgorithm->dataFor(TARGET, true)) {
             // simply erase from list. no need to re-set its prev col width as the TARGET is 'invalid'
             const auto NEXT = std::next(it);
             removeFsTarget(TARGET, true);
             it = NEXT;
             continue;
         }
+
+
+
 
         // TARGET exists propely but is not FS (internal and client must be FSMODE_NONE for a target to be removed from handler)
         if ((!isFullscreen(TARGET) && getFullscreenModes(TARGET).client == FSMODE_NONE)) {
@@ -492,28 +513,31 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
             continue;
         }
 
+        // TARGET is in a group, but is not the current window of the group OR If ITarget's underlying type is window group; only store the current window, NOT the whole group
+        // add the current window of the group's WindowTarget into the list and remove the current target
+        // This should never have happened to begin with
+        if (TARGET->type() == Layout::TARGET_TYPE_GROUP || (TARGET->window()->m_group && TARGET->window()->m_group->current()->m_target != TARGET)) {
+            Log::logger->log(Log::WARN, "Handler tracked a window group. This should have never happened. Recovering...");
+
+            const auto TARGET_FS_MODES = getFullscreenModes(it->first.lock());
+            const auto WINDOWTARGET    = (TARGET->window()->m_group ? (TARGET->window()->m_group->current() ? TARGET->window()->m_group->current()->m_target : nullptr) :
+                                                                      it->first->window()->layoutTarget());
+            const auto NEXT = std::next(it);
+            removeFsTarget(TARGET, true);
+            it = NEXT;
+            if (WINDOWTARGET)
+                toInsert.emplace_back(WINDOWTARGET,TARGET_FS_MODES);
+            continue;
+        }
+
+
         // if internal FS mode set, re-set its col width to its proper value
         if (getFullscreenModes(TARGET).internal != FSMODE_NONE) {
-            m_scrollingAlgorithm->dataFor(TARGET)->column->setColumnWidth((getFullscreenModes(TARGET).internal == FSMODE_FULLSCREEN ? fullscreenColumnWidth() : 1.F));
+            m_scrollingAlgorithm->dataFor(TARGET, true)->column->setColumnWidth((getFullscreenModes(TARGET).internal == FSMODE_FULLSCREEN ? fullscreenColumnWidth() : 1.F));
             ++it;
             continue;
         }
 
-
-        // If ITarget's underlying type is CWindowGroupTarget; only store the current window, NOT the whole group
-        // This should never have happened to begin with
-        // ERSTARR TODO - ADD A LOG FOR THIS AS IT SHOULDN'T HAVE HAPPENED - HERE AND IN DEFAULT HANDLER
-        if (it->first->type() == Layout::TARGET_TYPE_GROUP) {
-            Log::logger->log(Log::WARN, "Handler tracked a window group. This should have never happened. Recovering...");
-
-            const auto TARGET_FS_MODES = getFullscreenModes(it->first.lock());
-            const auto WINDOWTARGET = it->first->window()->layoutTarget();
-            const auto NEXT = std::next(it);
-            removeFsTarget(it->first.lock(), true);
-            it = NEXT;
-            toInsert.emplace_back(WINDOWTARGET,TARGET_FS_MODES);
-            continue;
-        }
 
         ++it;
     }
@@ -543,7 +567,7 @@ void CScrollingFullscreenHandler::removeFsTarget(SP<Layout::ITarget> target, con
 
 
     if (ITR->second.restoreColumnWidth.has_value()) {
-        const auto TDATA = m_scrollingAlgorithm->dataFor(target);
+        const auto TDATA = m_scrollingAlgorithm->dataFor(target, true);
         if (TDATA && TDATA->column)
             TDATA->column->setColumnWidth(ITR->second.restoreColumnWidth.value());        
     }

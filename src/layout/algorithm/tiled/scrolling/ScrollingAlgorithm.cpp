@@ -7,6 +7,7 @@
 
 #include "../../../../Compositor.hpp"
 #include "../../../../desktop/state/FocusState.hpp"
+#include "../../../../desktop/view/Group.hpp"
 #include "../../../../config/ConfigValue.hpp"
 #include "../../../../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../../../../render/Renderer.hpp"
@@ -1939,17 +1940,38 @@ SP<SScrollingTargetData> CScrollingAlgorithm::findBestNeighbor(SP<SScrollingTarg
     return nullptr;
 }
 
-SP<SScrollingTargetData> CScrollingAlgorithm::dataFor(SP<ITarget> t) const {
+SP<SScrollingTargetData> CScrollingAlgorithm::dataFor(SP<ITarget> t, bool stepIntoGroups) const {
     if (!t)
         return nullptr;
 
-    for (const auto& c : m_scrollingData->columns) {
-        for (const auto& d : c->targetDatas) {
-            if (d->target == t)
-                return d;
+    for (const auto& COL : m_scrollingData->columns) {
+        for (const auto& SCROLLING_DATA : COL->targetDatas) {
+
+            const auto TARGET = SCROLLING_DATA->target.lock();
+
+            if (stepIntoGroups) {
+                if (!SCROLLING_DATA->target)
+                    continue;
+                    
+                // if tracked target data is a group, search the contents of the group for the target
+                if (TARGET->type() == TARGET_TYPE_GROUP && TARGET->window()) {
+                    const auto WINDOW_GROUP = TARGET->window()->m_group; 
+                    if (WINDOW_GROUP) {
+                        for (const auto& window : WINDOW_GROUP->windows()) {
+                            if (window->m_target == t)
+                                return SCROLLING_DATA;
+                        }
+                    }
+                }
+                else if (TARGET == t)
+                    return SCROLLING_DATA;
+            }
+            else {
+                if (TARGET == t)
+                    return SCROLLING_DATA;
+            }
         }
     }
-
     return nullptr;
 }
 

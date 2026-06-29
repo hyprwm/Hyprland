@@ -13,6 +13,8 @@
 #include "../../../layout/target/Target.hpp"
 
 #include "../../../output/Monitor.hpp"
+#include "layout/target/WindowGroupTarget.hpp"
+#include <hyprutils/memory/Casts.hpp>
 
 using namespace Fullscreen;
 
@@ -23,12 +25,19 @@ IFullscreenHandler::IFullscreenHandler(Layout::IModeAlgorithm* const algorithm) 
     }
 };
 
-bool IFullscreenHandler::isFullscreen(const SP<Layout::ITarget> target, const std::optional<eFullscreenMode> mode, const std::optional<bool> covering) {
+bool IFullscreenHandler::isFullscreen(SP<Layout::ITarget> target, const std::optional<eFullscreenMode> mode, const std::optional<bool> covering) {
     // Mode checking logic is the same as getFullscreenModes() - keep it in sync
 
     if (mode.has_value() && mode.value() == FSMODE_NONE) {
         Log::logger->log(Log::ERR, "Passed mode = FSMODE_NONE into isFullscreen. This must never happpen.");
         return false;
+    }
+
+    if (const auto WINDOW_GROUP_TARGET = dc<Layout::CWindowGroupTarget*>(target.get()); WINDOW_GROUP_TARGET && target->type() == Layout::TARGET_TYPE_GROUP) {
+        if (WINDOW_GROUP_TARGET->getGroup() && WINDOW_GROUP_TARGET->getGroup()->current() && WINDOW_GROUP_TARGET->getGroup()->current()->m_target)
+            target = WINDOW_GROUP_TARGET->getGroup()->current()->m_target;
+        else
+            return FULLSCREEN_REQUEST_FAILED;
     }
 
     const auto& ITR = m_fsTargets.find(target);
@@ -52,7 +61,17 @@ SP<Layout::ITarget> IFullscreenHandler::getFullscreen(const std::optional<bool> 
     return nullptr;
 }
 
-SFullscreenMode IFullscreenHandler::getFullscreenModes(const SP<Layout::ITarget> target) {
+SFullscreenMode IFullscreenHandler::getFullscreenModes(SP<Layout::ITarget> target) {
+    if (!target)
+        return SFullscreenMode{};
+
+    if (const auto WINDOW_GROUP_TARGET = dc<Layout::CWindowGroupTarget*>(target.get()); WINDOW_GROUP_TARGET && target->type() == Layout::TARGET_TYPE_GROUP) {
+        if (WINDOW_GROUP_TARGET->getGroup() && WINDOW_GROUP_TARGET->getGroup()->current() && WINDOW_GROUP_TARGET->getGroup()->current()->m_target)
+            target = WINDOW_GROUP_TARGET->getGroup()->current()->m_target;
+        else
+            return SFullscreenMode{};
+    }
+
     const auto& ITR = m_fsTargets.find(target);
 
     if (!isFullscreen(target))

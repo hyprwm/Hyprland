@@ -1,14 +1,12 @@
 #pragma once
 
 #include "../../../managers/fullscreen/FullscreenController.hpp"
-#include "desktop/DesktopTypes.hpp"
 #include "helpers/memory/Memory.hpp"
 #include "layout/algorithm/Algorithm.hpp"
 #include "layout/algorithm/ModeAlgorithm.hpp"
 #include "layout/target/Target.hpp"
 #include <optional>
 #include <unordered_map>
-#include <utility>
 
 namespace Fullscreen {
 
@@ -41,13 +39,13 @@ namespace Fullscreen {
         // FS State Queries
 
         /// @warning only for internal FS mode
-        virtual bool                isFullscreen(const SP<Layout::ITarget> target, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = true);
+        virtual bool                isFullscreen(SP<Layout::ITarget> target, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = true);
         /// @warning only for internal FS mode
         virtual bool                hasFullscreen(const std::optional<bool> covering = true);
         /// @warning only for internal FS mode
         virtual SP<Layout::ITarget> getFullscreen(const std::optional<bool> covering = true);
         /// @note also checks if target isFullscreen()
-        virtual SFullscreenMode     getFullscreenModes(const SP<Layout::ITarget> target);
+        virtual SFullscreenMode     getFullscreenModes(SP<Layout::ITarget> target);
 
         // FS Request
         /// @note Only for setting internal FS mode. Prefer to call setTargetFullscreenModeClient() independently for client mode

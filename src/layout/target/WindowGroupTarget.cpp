@@ -83,3 +83,9 @@ void CWindowGroupTarget::onUpdateSpace() {
         w->m_target->onUpdateSpace();
     }
 }
+
+
+SP<Desktop::View::CGroup> CWindowGroupTarget::getGroup() {
+    return m_group.lock();
+}
+

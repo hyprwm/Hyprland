@@ -27,6 +27,9 @@ namespace Layout {
         virtual void                                                warpPositionSize();
         virtual void                                                onUpdateSpace();
 
+
+        SP<Desktop::View::CGroup>                                   getGroup();
+
       private:
         CWindowGroupTarget(SP<Desktop::View::CGroup> g);
 

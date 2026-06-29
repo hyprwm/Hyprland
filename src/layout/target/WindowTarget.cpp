@@ -93,15 +93,28 @@ void CWindowTarget::updatePos() {
         return;
     }
 
+
+
     // Layout handled FS window
-    if (m_window && g_pfullscreenController->isFullscreen(m_window.lock()) && g_pfullscreenController->layoutManagedFS(m_self->window())) {
+    
+    if (const auto FSMODES = g_pfullscreenController->getFullscreenModes(m_window.lock()); FSMODES.internal != Fullscreen::FSMODE_NONE && g_pfullscreenController->layoutManagedFS(m_self->window())) {
+
+
         CBox nodeBox   = m_box.logicalBox;
         CBox visualBox = m_box.visualBox.empty() ? nodeBox : m_box.visualBox;
         nodeBox.round();
         visualBox.round();
-
-        *m_window->m_realSize     = visualBox.size();
-        *m_window->m_realPosition = visualBox.pos();
+        if (FSMODES.internal == Fullscreen::FSMODE_FULLSCREEN) {
+            *m_window->m_realSize     = visualBox.size();
+            *m_window->m_realPosition = visualBox.pos();
+        }
+        else if (FSMODES.internal == Fullscreen::FSMODE_MAXIMIZED) {
+            // carve out reserved area - like in default maximised handling
+            
+            const auto RESERVED = m_window->getFullWindowReservedArea();
+            *m_window->m_realPosition  = visualBox.pos() + RESERVED.topLeft;
+            *m_window->m_realSize = visualBox.size() - (RESERVED.topLeft + RESERVED.bottomRight);
+        }
 
         m_window->updateWindowDecos();
         if (CONFIGURECLIENT)

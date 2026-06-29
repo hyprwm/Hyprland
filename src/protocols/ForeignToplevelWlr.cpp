@@ -45,7 +45,13 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         }
 
         if (output) {
-            const auto wpMonitor = CWLOutputResource::fromResource(output)->m_monitor;
+            const auto OUTPUT = CWLOutputResource::fromResource(output);
+            if UNLIKELY (!OUTPUT) {
+                LOGM(Log::ERR, "Client requested foreign toplevel output on an invalid output resource");
+                return;
+            }
+
+            const auto wpMonitor = OUTPUT->m_monitor;
 
             if (!wpMonitor.expired()) {
                 const auto monitor = wpMonitor.lock();

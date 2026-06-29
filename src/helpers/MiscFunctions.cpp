@@ -486,7 +486,7 @@ std::optional<std::string> cleanCmdForWorkspace(const std::string& inWorkspaceNa
 
             bool hadWorkspaceRule = false;
             rulesList.map([&](std::string& rule) {
-                if (rule.find("workspace") == 0) {
+                if (rule.starts_with("workspace")) {
                     rule             = workspaceRule;
                     hadWorkspaceRule = true;
                 }

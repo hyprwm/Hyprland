@@ -7,7 +7,6 @@
 #include "core/Seat.hpp"
 #include "core/Compositor.hpp"
 #include <algorithm>
-#include <cstring>
 
 CTabletPadStripV2Resource::CTabletPadStripV2Resource(SP<CZwpTabletPadStripV2> resource_, uint32_t id_) : m_id(id_), m_resource(resource_) {
     if UNLIKELY (!good())
@@ -50,8 +49,8 @@ void CTabletPadGroupV2Resource::sendData(SP<CTabletPad> pad, SP<Aquamarine::ITab
 
     wl_array buttonArr;
     wl_array_init(&buttonArr);
-    wl_array_add(&buttonArr, group->buttons.size() * sizeof(int));
-    memcpy(buttonArr.data, group->buttons.data(), group->buttons.size() * sizeof(int));
+    if (const auto PBUTTONS = sc<int*>(wl_array_add(&buttonArr, group->buttons.size() * sizeof(int))))
+        std::ranges::copy(group->buttons, PBUTTONS);
     m_resource->sendButtons(&buttonArr);
     wl_array_release(&buttonArr);
 

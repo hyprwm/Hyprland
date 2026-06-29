@@ -8,7 +8,7 @@
 #include "../render/OpenGL.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "render/Renderer.hpp"
-#include <cstring>
+#include <algorithm>
 
 using namespace Screenshare;
 
@@ -75,10 +75,8 @@ void CImageCopyCaptureSession::sendConstraints() {
 
         wl_array modsArr;
         wl_array_init(&modsArr);
-        if (!modifiers.empty()) {
-            wl_array_add(&modsArr, modifiers.size() * sizeof(uint64_t));
-            memcpy(modsArr.data, modifiers.data(), modifiers.size() * sizeof(uint64_t));
-        }
+        if (const auto PMODIFIERS = sc<uint64_t*>(wl_array_add(&modsArr, modifiers.size() * sizeof(uint64_t))))
+            std::ranges::copy(modifiers, PMODIFIERS);
         m_resource->sendDmabufFormat(format, &modsArr);
         wl_array_release(&modsArr);
     }
@@ -288,10 +286,8 @@ void CImageCopyCaptureCursorSession::sendConstraints() {
 
     wl_array modsArr;
     wl_array_init(&modsArr);
-    if (!modifiers.empty()) {
-        wl_array_add(&modsArr, modifiers.size() * sizeof(uint64_t));
-        memcpy(modsArr.data, modifiers.data(), modifiers.size() * sizeof(uint64_t));
-    }
+    if (const auto PMODIFIERS = sc<uint64_t*>(wl_array_add(&modsArr, modifiers.size() * sizeof(uint64_t))))
+        std::ranges::copy(modifiers, PMODIFIERS);
     m_sessionResource->sendDmabufFormat(format, &modsArr);
     wl_array_release(&modsArr);
 

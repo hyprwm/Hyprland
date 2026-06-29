@@ -51,10 +51,10 @@ namespace Fullscreen::ScrollingFullscreenHandler {
 
         // FS State Queries
 
-        virtual bool            isFullscreen(const SP<Layout::ITarget> target, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = true);
+        virtual bool            isFullscreen(SP<Layout::ITarget> target, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = true);
         virtual bool            hasFullscreen(const std::optional<bool> covering = true);
         virtual SP<Layout::ITarget>       getFullscreen(const std::optional<bool> covering = true);
-        virtual SFullscreenMode getFullscreenModes(const SP<Layout::ITarget> target);
+        virtual SFullscreenMode getFullscreenModes(SP<Layout::ITarget> target);
 
         // FS Request
 

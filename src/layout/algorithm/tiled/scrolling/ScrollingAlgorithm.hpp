@@ -129,7 +129,7 @@ namespace Layout::Tiled {
         double                   normalizedTapeOffset();
 
         CBox                     usableArea() const;
-        SP<SScrollingTargetData> dataFor(SP<ITarget> t) const;
+        SP<SScrollingTargetData> dataFor(SP<ITarget> t, bool stepIntoGroups = false) const;
 
         void                     inhibitScroll();
         void                     uninhibitScroll();

@@ -599,12 +599,12 @@ bool CPluginManager::updateHeaders(bool force) {
     if (ret.contains("CMake Error at")) {
         // missing deps, let the user know.
         std::string missing = ret.substr(ret.find("CMake Error at"));
-        if (const auto POS = missing.find_first_of('\n'); POS != std::string::npos)
-            missing.erase(0, POS + 1);
-        if (const auto POS = missing.find("-- Configuring incomplete"); POS != std::string::npos)
-            missing.erase(POS);
-        if (const auto POS = missing.find_last_of('\n'); POS != std::string::npos)
-            missing.erase(POS);
+        if (missing.contains('\n'))
+            missing.erase(0, missing.find_first_of('\n') + 1);
+        if (missing.contains("-- Configuring incomplete"))
+            missing.erase(missing.find("-- Configuring incomplete"));
+        if (missing.contains('\n'))
+            missing.erase(missing.find_last_of('\n'));
 
         std::println(stderr, "\n{}",
                      failureString("Could not configure the hyprland source, cmake complained:\n{}\n\n"

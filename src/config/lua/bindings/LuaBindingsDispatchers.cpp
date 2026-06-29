@@ -185,7 +185,7 @@ static int dsp_pass(lua_State* L) {
         return Internal::dispatcherError(L, "hl.pass: window not found", WARN, C_NOTFOUND);
 
     if (g_pKeybindManager->m_currentKeybind)
-        g_pKeybindManager->m_currentKeybind->releasePending = true;
+        g_pKeybindManager->m_dispatchForwardedInput = true;
 
     return Internal::checkResult(L, CA::pass(PWINDOW));
 }
@@ -213,7 +213,7 @@ static int dsp_event(lua_State* L) {
 
 static int dsp_global(lua_State* L) {
     if (g_pKeybindManager->m_currentKeybind)
-        g_pKeybindManager->m_currentKeybind->releasePending = true;
+        g_pKeybindManager->m_dispatchForwardedInput = true;
 
     return Internal::checkResult(L, CA::global(lua_tostring(L, lua_upvalueindex(1))));
 }
@@ -411,7 +411,7 @@ static int dsp_sendShortcut(lua_State* L) {
     }
 
     if (g_pKeybindManager->m_currentKeybind)
-        g_pKeybindManager->m_currentKeybind->releasePending = true;
+        g_pKeybindManager->m_dispatchForwardedInput = true;
 
     return Internal::checkResult(L, CA::pass(modMask, *keycodeResult, window));
 }
@@ -676,14 +676,14 @@ static int dsp_denyFromGroup(lua_State* L) {
 
 static int dsp_mouseDrag(lua_State* L) {
     if (g_pKeybindManager->m_currentKeybind)
-        g_pKeybindManager->m_currentKeybind->releasePending = true;
+        g_pKeybindManager->m_dispatchForwardedInput = true;
 
     return Internal::checkResult(L, CA::mouse("movewindow"));
 }
 
 static int dsp_mouseResize(lua_State* L) {
     if (g_pKeybindManager->m_currentKeybind)
-        g_pKeybindManager->m_currentKeybind->releasePending = true;
+        g_pKeybindManager->m_dispatchForwardedInput = true;
 
     auto keepAspectRatio = Check::string(L, lua_upvalueindex(1));
     if (!keepAspectRatio)

@@ -434,12 +434,6 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
         shadowKeybinds();
     }
 
-    if (m_pressedKeys.empty()) {
-        for (const auto& k : m_keybinds) {
-            k->releasePending = false; // reset this flag once we don't press any keys to avoid stale
-        }
-    }
-
     return !suppressEvent && !mouseBindWasActive;
 }
 
@@ -635,8 +629,12 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
         if (PROTO::inputCapture->isCaptured() && !k->allowInputCapture)
             continue;
 
-        const bool SPECIALDISPATCHER = k->handler == "global" || k->handler == "pass" || k->handler == "sendshortcut" || k->handler == "mouse" || k->releasePending;
-        const bool SPECIALTRIGGERED  = std::ranges::find_if(m_pressedSpecialBinds, [&](const auto& other) { return other == k; }) != m_pressedSpecialBinds.end();
+        const bool SPECIALTRIGGERED = std::ranges::find_if(m_pressedSpecialBinds, [&](const auto& other) { return other == k; }) != m_pressedSpecialBinds.end();
+        // A bind is "special" if it forwards an input edge and so must release on key-up ignoring mods: a native
+        // special handler, or any bind currently tracked in m_pressedSpecialBinds (SPECIALTRIGGERED). The latter is
+        // how a Lua-wrapped dispatcher is recognized on its release pass - it gets back-filled into that vec right
+        // after it forwards input on press (see the dispatch loop below).
+        const bool SPECIALDISPATCHER = k->handler == "global" || k->handler == "pass" || k->handler == "sendshortcut" || k->handler == "mouse" || SPECIALTRIGGERED;
         const bool IGNORECONDITIONS =
             SPECIALDISPATCHER && !pressed && SPECIALTRIGGERED; // ignore mods. Pass, global dispatchers should be released immediately once the key is released.
 
@@ -779,19 +777,18 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
     }
 
     for (const auto& k : bindsHit) {
-        const bool SPECIALDISPATCHER = k->handler == "global" || k->handler == "pass" || k->handler == "sendshortcut" || k->handler == "mouse" || k->releasePending;
         const bool SPECIALTRIGGERED  = std::ranges::find_if(m_pressedSpecialBinds, [&](const auto& other) { return other == k; }) != m_pressedSpecialBinds.end();
+        const bool SPECIALDISPATCHER = k->handler == "global" || k->handler == "pass" || k->handler == "sendshortcut" || k->handler == "mouse" || SPECIALTRIGGERED;
 
         const auto DISPATCHER = m_dispatchers.find(k->mouse ? "mouse" : k->handler);
 
-        k->releasePending = false; // reset this flag if it's set
-        m_currentKeybind  = k;
+        m_currentKeybind = k;
 
         Hyprutils::Utils::CScopeGuard x([this] { m_currentKeybind.reset(); });
 
         if (SPECIALTRIGGERED && !pressed)
             std::erase_if(m_pressedSpecialBinds, [&](const auto& other) { return other == k; });
-        else if (SPECIALDISPATCHER && pressed)
+        else if (SPECIALDISPATCHER && pressed && !SPECIALTRIGGERED)
             m_pressedSpecialBinds.emplace_back(k);
 
         // Should never happen, as we check in the ConfigManager, but oh well
@@ -802,6 +799,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
             Log::logger->log(Log::DEBUG, "Keybind triggered, calling dispatcher ({}, {}, {}, {})", modmask, key.keyName, key.keysym, DISPATCHER->first);
 
             Config::Actions::state()->m_passPressed = sc<int>(pressed);
+            m_dispatchForwardedInput                = false; // a special dispatcher (incl. a Lua-wrapped one) sets this during the call below
 
             auto submapBefore = Config::Actions::state()->m_currentSubmap;
 
@@ -813,18 +811,15 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
 
             Config::Actions::state()->m_passPressed = -1;
 
-            // Back-fill m_pressedSpecialBinds for a bind that only became "special" mid-dispatch.
-            // Native special dispatchers (pass/global/sendshortcut/mouse) are known special up front, so the
-            // `else if (SPECIALDISPATCHER && pressed)` add above tracks them at press time. A Lua-wrapped dispatcher
-            // hides behind handler == "__lua" and instead sets k->releasePending from inside the dispatch call we
-            // just made - too late for that add to see it. Mirror the add here so SPECIALTRIGGERED, and thus
-            // IGNORECONDITIONS, holds on the release pass; otherwise the modmask guard in the selection loop skips
-            // the release of a modifier key and it never reaches the dispatcher.
-            // The two guards keep this mutually exclusive with the top-of-loop add (exactly one fires per press):
-            // !SPECIALDISPATCHER - if releasePending leaked from a prior cycle (a key held across the release skips
-            // the m_pressedKeys.empty() reset), the top-of-loop add already ran this iteration; !SPECIALTRIGGERED -
-            // don't re-add a bind that is already tracked.
-            if (pressed && k->releasePending && !SPECIALDISPATCHER && !SPECIALTRIGGERED)
+            // Back-fill m_pressedSpecialBinds for a bind that only revealed itself as special mid-dispatch.
+            // Native special dispatchers are known up front and were tracked by the top-of-loop add. A Lua bind
+            // hides behind handler == "__lua"; its wrapped pass/global/send_shortcut/mouse only sets
+            // m_dispatchForwardedInput from inside the call we just made - too late for that add to see it. Track it
+            // now so on the release pass SPECIALTRIGGERED (and thus the IGNORECONDITIONS mod-guard bypass) holds,
+            // exactly like a native bind; otherwise the modmask guard skips a modifier key's release and it is never
+            // forwarded. !SPECIALTRIGGERED keeps it idempotent; no leak guard is needed since m_dispatchForwardedInput
+            // is transient, reset just above before every dispatch.
+            if (pressed && m_dispatchForwardedInput && !SPECIALTRIGGERED)
                 m_pressedSpecialBinds.emplace_back(k);
 
             if (k->handler == "submap") {

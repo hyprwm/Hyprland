@@ -65,8 +65,7 @@ struct SKeybind {
     std::string                     displayKey = "";
 
     // DO NOT INITIALIZE
-    bool shadowed       = false;
-    bool releasePending = false;
+    bool shadowed = false;
 };
 
 enum eFocusWindowMode : uint8_t {
@@ -141,6 +140,13 @@ class CKeybindManager {
     std::vector<SP<SKeybind>>                                                    m_keybinds;
 
     SP<SKeybind>                                                                 m_currentKeybind;
+
+    // Set by a special dispatcher (pass/global/send_shortcut/mouse drag+resize) while it runs, to signal that
+    // the current keybind forwarded an input edge and so must be released on key-up regardless of modifier
+    // state. Transient: cleared right before every dispatch in handleKeybinds and consumed immediately after, so
+    // it never persists across key events. Lets a Lua-wrapped special dispatcher (handler == "__lua") be tracked
+    // for release exactly like a native one, including when reached indirectly via hl.dispatch.
+    bool m_dispatchForwardedInput = false;
 
     //since we can't find keycode through keyname in xkb:
     //on sendshortcut call, we once search for keyname (e.g. "g") the correct keycode (e.g. 42)

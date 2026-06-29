@@ -249,10 +249,9 @@ TEST_CASE(luaPassForwardsNonModifierRelease) {
     OK(getFromSocket("/eval hl.unbind('code:31')"));
 }
 
-// The fix is not pass-specific: every Lua dispatcher that marks itself special mid-dispatch via
-// releasePending benefits from the same back-fill. Exercise that path through `send_shortcut`, which
-// forwards a configured key ('a') to the target. Bound to a modifier keycode it has the identical
-// dropped-release bug before the fix.
+// The fix is not pass-specific: every Lua dispatcher that forwards an input edge mid-dispatch is tracked
+// for release the same way. Exercise that path through `send_shortcut`, which forwards a configured key
+// ('a') to the target. Bound to a modifier keycode it has the identical dropped-release bug before the fix.
 TEST_CASE(luaSendShortcutForwardsModifierRelease) {
     NLog::log("{}Testing Lua send_shortcut forwards its release when bound to a modifier", Colors::GREEN);
 
@@ -277,10 +276,10 @@ TEST_CASE(luaSendShortcutForwardsModifierRelease) {
     OK(getFromSocket("/eval hl.unbind('code:105')"));
 }
 
-// Held-key path: while any other key stays down, m_pressedKeys never empties, so releasePending is not
-// reset between cycles and leaks into the next press. The `!SPECIALDISPATCHER` guard keeps the back-fill
-// and the top-of-loop add mutually exclusive there. Black-box check: each press/release cycle must still
-// forward exactly one press and one release - never zero (dropped) and never two (double-forwarded).
+// Held-key path: a modifier `pass` bind must forward exactly one press and one release per cycle even while
+// another, unrelated key is held down for the whole test - guarding against any cross-cycle bookkeeping leak.
+// Black-box check: each press/release cycle increments the counts by exactly one - never zero (dropped) and
+// never two (double-forwarded).
 TEST_CASE(luaPassModifierReleaseWithHeldKey) {
     NLog::log("{}Testing Lua pass modifier release with an unrelated key held down", Colors::GREEN);
 

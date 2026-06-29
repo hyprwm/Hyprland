@@ -209,7 +209,8 @@ bool CWLSurface::keyboardFocusable() const {
 }
 
 void CWLSurface::sendScale(float scale) const {
-    if (m_resource.expired())
+    // FIXME: huge band-aid for weird ass shit ass behavior where onUnmap can call with m_resource alive but underlying null
+    if (m_resource.expired() || !m_resource->good())
         return;
 
     m_resource->sendPreferredScale(sc<uint32_t>(std::ceil(scale)));
@@ -217,7 +218,7 @@ void CWLSurface::sendScale(float scale) const {
 }
 
 void CWLSurface::sendTransform(wl_output_transform xform) const {
-    if (m_resource.expired())
+    if (m_resource.expired() || !m_resource->good())
         return;
 
     m_resource->sendPreferredTransform(xform);

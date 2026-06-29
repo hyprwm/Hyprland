@@ -14,6 +14,7 @@
 #include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../render/OpenGL.hpp"
+#include "../../output/Monitor.hpp"
 #include "../../state/MonitorState.hpp"
 #include <array>
 #include <ranges>
@@ -470,13 +471,10 @@ Vector2D CPopup::size() const {
 }
 
 void CPopup::sendScale() {
-    float scale;
-    if (!m_windowOwner.expired())
-        scale = m_windowOwner->wlSurface()->m_lastScaleFloat;
-    else if (!m_layerOwner.expired())
-        scale = m_layerOwner->wlSurface()->m_lastScaleFloat;
-    else
-        UNREACHABLE();
+    const auto PMONITOR = getMonitor();
+
+    if (!PMONITOR)
+        return;
 
     // Walk the whole surface tree, not just the popup's root surface: a popup
     // can wrap its content in subsurfaces (e.g. Firefox/GTK render the popup
@@ -484,7 +482,16 @@ void CPopup::sendScale() {
     // those subsurfaces at the default 1.0 fractional scale, so under
     // fractional scaling the content renders at the wrong size and the input
     // geometry desyncs from the visible geometry. Mirrors CWindow::sendScale.
-    m_wlSurface->resource()->breadthfirst([scale](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) { g_pCompositor->setPreferredScaleForSurface(s, scale); }, nullptr);
+    m_wlSurface->resource()->breadthfirst(
+        [PMONITOR](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) {
+            const auto PSURFACE = CWLSurface::fromResource(s);
+
+            if (!PSURFACE)
+                return;
+
+            PSURFACE->sendScale(PMONITOR->m_scale);
+        },
+        nullptr);
 }
 
 void CPopup::bfHelper(std::span<const SP<CPopup>> nodes, std::function<void(SP<CPopup>, void*)> fn, void* data) {

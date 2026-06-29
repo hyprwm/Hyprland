@@ -10,6 +10,7 @@
 #include "../../../../desktop/state/FocusState.hpp"
 #include "../../../../desktop/state/WindowState.hpp"
 #include "../../../../output/Monitor.hpp"
+#include "../../../../pointer/PointerController.hpp"
 #include "../../../../Compositor.hpp"
 #include "../../../../render/Renderer.hpp"
 #include "../../../../state/MonitorState.hpp"
@@ -510,7 +511,7 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
             return;
 
         Desktop::focusState()->fullWindowFocus(target->window(), Desktop::FOCUS_REASON_KEYBIND);
-        g_pCompositor->warpCursorTo(target->position().middle());
+        Pointer::pointerController()->warpTo(target->position().middle());
 
         g_pInputManager->m_forcedFocus = target->window();
         g_pInputManager->simulateMouseMovement();

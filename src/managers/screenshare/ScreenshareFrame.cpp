@@ -1,5 +1,5 @@
 #include "ScreenshareManager.hpp"
-#include "../PointerManager.hpp"
+#include "../../pointer/PointerManager.hpp"
 #include "../input/InputManager.hpp"
 #include "../permissions/DynamicPermissionManager.hpp"
 #include "../../protocols/ColorManagement.hpp"
@@ -307,7 +307,7 @@ void CScreenshareFrame::renderMonitor() {
     if (m_overlayCursor) {
         CRegion  fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
         Vector2D cursorPos  = g_pInputManager->getMouseCoordsInternal() - PMONITOR->m_position - m_session->m_captureBox.pos() / PMONITOR->m_scale;
-        g_pPointerManager->renderSoftwareCursorsFor(PMONITOR, Time::steadyNow(), fakeDamage, cursorPos, true);
+        Pointer::mgr()->renderSoftwareCursorsFor(PMONITOR, Time::steadyNow(), fakeDamage, cursorPos, true);
     }
 }
 
@@ -350,7 +350,7 @@ void CScreenshareFrame::renderWindow() {
         return;
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
-    g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->m_self.lock(), NOW, fakeDamage, g_pInputManager->getMouseCoordsInternal() - PWINDOW->m_realPosition->value(), true);
+    Pointer::mgr()->renderSoftwareCursorsFor(PMONITOR->m_self.lock(), NOW, fakeDamage, g_pInputManager->getMouseCoordsInternal() - PWINDOW->m_realPosition->value(), true);
 }
 
 void CScreenshareFrame::render() {

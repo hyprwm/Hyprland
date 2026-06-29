@@ -9,7 +9,8 @@
 #include "../output/MonitorFrameScheduler.hpp"
 #include "../Compositor.hpp"
 #include "../managers/input/InputManager.hpp"
-#include "../managers/PointerManager.hpp"
+#include "../pointer/PointerManager.hpp"
+#include "../pointer/PointerController.hpp"
 
 #include <unordered_set>
 
@@ -83,7 +84,7 @@ static void checkDefaultCursorWarp(PHLMONITOR monitor) {
     // this is needed as a default if the monitor given in config above doesn't exist
     if (firstLaunch) {
         firstLaunch = false;
-        g_pCompositor->warpCursorTo(POS, true);
+        Pointer::pointerController()->warpTo(POS, true);
         g_pInputManager->refocus();
         return;
     }
@@ -91,15 +92,15 @@ static void checkDefaultCursorWarp(PHLMONITOR monitor) {
     if (!cursorDefaultDone && *PCURSORMONITOR != STRVAL_EMPTY) {
         if (*PCURSORMONITOR == monitor->m_name) {
             cursorDefaultDone = true;
-            g_pCompositor->warpCursorTo(POS, true);
+            Pointer::pointerController()->warpTo(POS, true);
             g_pInputManager->refocus();
             return;
         }
     }
 
     // modechange happened check if cursor is on that monitor and warp it to middle to not place it out of bounds if resolution changed.
-    if (State::monitorState()->query().vec(g_pPointerManager->position()).run() == monitor) {
-        g_pCompositor->warpCursorTo(POS, true);
+    if (State::monitorState()->query().vec(Pointer::mgr()->position()).run() == monitor) {
+        Pointer::pointerController()->warpTo(POS, true);
         g_pInputManager->refocus();
     }
 }

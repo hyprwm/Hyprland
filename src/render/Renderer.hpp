@@ -46,6 +46,9 @@ struct SSessionLockSurface;
 namespace Screenshare {
     class CScreenshareFrame;
 };
+namespace Pointer {
+    class CPointerManager;
+}
 
 namespace Render {
     using CScopeGuard = Hyprutils::Utils::CScopeGuard;
@@ -306,7 +309,7 @@ namespace Render {
         friend class CToplevelExportFrame;
         friend class Screenshare::CScreenshareFrame;
         friend class CInputManager;
-        friend class CPointerManager;
+        friend class Pointer::CPointerManager;
         friend class Monitor::CMonitor;
         friend class CMonitorFrameScheduler;
 

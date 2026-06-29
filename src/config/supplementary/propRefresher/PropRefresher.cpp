@@ -9,6 +9,7 @@
 #include "../../../layout/LayoutManager.hpp"
 #include "../../../layout/space/Space.hpp"
 #include "../../../desktop/rule/Engine.hpp"
+#include "../../../desktop/state/GlobalWindowController.hpp"
 #include "../../../state/MonitorState.hpp"
 #include "../../../state/WorkspacePlacementController.hpp"
 #include "../../../state/WorkspaceState.hpp"
@@ -97,7 +98,7 @@ void CPropRefresher::refreshProp(const bool execdAsScheduled) {
             ws->updateWindowDecos();
         }
 
-        g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+        Desktop::globalWindowController()->updateAllWindowsDecorations();
 
         for (auto const& m : State::monitorState()->monitors()) {
             if (!m)
@@ -121,7 +122,7 @@ void CPropRefresher::refreshProp(const bool execdAsScheduled) {
         }
 
         State::workspacePlacementController()->ensurePersistentWorkspacesPresent(
-            nullptr, [](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { g_pCompositor->moveWorkspaceToMonitor(ws, mon, noWarp); });
+            nullptr, [](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { State::workspacePlacementController()->moveWorkspaceToMonitor(ws, mon, noWarp); });
     }
 
     if (m_propsTripped & REFRESH_LAYOUTS) {

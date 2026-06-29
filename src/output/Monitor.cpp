@@ -18,7 +18,8 @@
 #include "../protocols/core/Output.hpp"
 #include "../protocols/Screencopy.hpp"
 #include "../protocols/ToplevelExport.hpp"
-#include "../managers/PointerManager.hpp"
+#include "../pointer/PointerManager.hpp"
+#include "../pointer/PointerController.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/core/DataDevice.hpp"
@@ -40,6 +41,7 @@
 #include "../state/WorkspaceState.hpp"
 #include "../helpers/time/Time.hpp"
 #include "../desktop/view/LayerSurface.hpp"
+#include "../desktop/state/GlobalWindowController.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../event/EventBus.hpp"
 #include "../helpers/Drm.hpp"
@@ -110,9 +112,9 @@ void CMonitor::onConnect(bool noRule) {
 
     g_pEventLoopManager->doLater([] {
         State::workspacePlacementController()->ensurePersistentWorkspacesPresent(
-            nullptr, [](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { g_pCompositor->moveWorkspaceToMonitor(ws, mon, noWarp); });
+            nullptr, [](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { State::workspacePlacementController()->moveWorkspaceToMonitor(ws, mon, noWarp); });
         State::workspacePlacementController()->ensureWorkspacesOnAssignedMonitors(
-            [](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { g_pCompositor->moveWorkspaceToMonitor(ws, mon, noWarp); });
+            [](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { State::workspacePlacementController()->moveWorkspaceToMonitor(ws, mon, noWarp); });
     });
 
     m_listeners.frame      = m_output->events.frame.listen([this] {
@@ -326,7 +328,7 @@ void CMonitor::onConnect(bool noRule) {
         const bool RECOVERY   = State::monitorState()->monitors().size() == 1 && ORPHANED; // temporarily recover orphaned workspaces
 
         if (RETURNING || RECOVERY) {
-            g_pCompositor->moveWorkspaceToMonitor(ws, m_self.lock());
+            State::workspacePlacementController()->moveWorkspaceToMonitor(ws, m_self.lock());
             g_pDesktopAnimationManager->startAnimation(ws, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
             if (RETURNING)
                 ws->m_lastMonitor = "";
@@ -364,7 +366,7 @@ void CMonitor::onConnect(bool noRule) {
         Log::logger->log(Log::DEBUG, "Monitor {} was on workspace {}, setting it to that", m_name, workspaceID);
         auto ws = State::workspaceState()->query().id(workspaceID).run();
         if (ws) {
-            g_pCompositor->moveWorkspaceToMonitor(ws, m_self.lock());
+            State::workspacePlacementController()->moveWorkspaceToMonitor(ws, m_self.lock());
             changeWorkspace(ws, true, false, false);
         }
     } else
@@ -427,7 +429,7 @@ void CMonitor::onDisconnect(bool destroy) {
         m_mirrorOf->m_mirrors.erase(std::ranges::find_if(m_mirrorOf->m_mirrors, [&](const auto& other) { return other == m_self; }));
 
         // unlock software for mirrored monitor
-        g_pPointerManager->unlockSoftwareForMonitor(m_mirrorOf.lock());
+        Pointer::mgr()->unlockSoftwareForMonitor(m_mirrorOf.lock());
         m_mirrorOf.reset();
     }
 
@@ -472,10 +474,10 @@ void CMonitor::onDisconnect(bool destroy) {
 
     if (BACKUPMON) {
         // snap cursor
-        g_pCompositor->warpCursorTo(BACKUPMON->m_position + BACKUPMON->m_transformedSize / 2.F, true);
+        Pointer::pointerController()->warpTo(BACKUPMON->m_position + BACKUPMON->m_transformedSize / 2.F, true);
 
         for (auto const& w : wspToMove) {
-            g_pCompositor->moveWorkspaceToMonitor(w, BACKUPMON);
+            State::workspacePlacementController()->moveWorkspaceToMonitor(w, BACKUPMON);
             g_pDesktopAnimationManager->startAnimation(w, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
         }
     } else {
@@ -1130,7 +1132,7 @@ void CMonitor::scheduleFrame(Aquamarine::IOutput::scheduleFrameReason reason) {
 }
 
 void CMonitor::addDamage(const pixman_region32_t* rg) {
-    if (m_cursorZoom->value() != 1.f && State::monitorState()->query().vec(g_pPointerManager->position()).run() == m_self) {
+    if (m_cursorZoom->value() != 1.f && State::monitorState()->query().vec(Pointer::mgr()->position()).run() == m_self) {
         m_damage.damageEntire();
         scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
     } else if (m_damage.damage(rg))
@@ -1142,7 +1144,7 @@ void CMonitor::addDamage(const CRegion& rg) {
 }
 
 void CMonitor::addDamage(const CBox& box) {
-    if (m_cursorZoom->value() != 1.f && State::monitorState()->query().vec(g_pPointerManager->position()).run() == m_self) {
+    if (m_cursorZoom->value() != 1.f && State::monitorState()->query().vec(Pointer::mgr()->position()).run() == m_self) {
         m_damage.damageEntire();
         scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
         return;
@@ -1307,7 +1309,7 @@ void CMonitor::setupDefaultWS(const Config::CMonitorRule& monitorRule) {
 
     if (PNEWWORKSPACE) {
         // workspace exists, move it to the newly connected monitor
-        g_pCompositor->moveWorkspaceToMonitor(PNEWWORKSPACE, m_self.lock());
+        State::workspacePlacementController()->moveWorkspaceToMonitor(PNEWWORKSPACE, m_self.lock());
         m_activeWorkspace = PNEWWORKSPACE;
         g_layoutManager->recalculateMonitor(m_self.lock());
         g_pDesktopAnimationManager->startAnimation(PNEWWORKSPACE, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
@@ -1348,7 +1350,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
             m_mirrorOf->m_mirrors.erase(std::ranges::find_if(m_mirrorOf->m_mirrors, [&](const auto& other) { return other == m_self; }));
 
             // unlock software for mirrored monitor
-            g_pPointerManager->unlockSoftwareForMonitor(m_mirrorOf.lock());
+            Pointer::mgr()->unlockSoftwareForMonitor(m_mirrorOf.lock());
         }
 
         m_mirrorOf.reset();
@@ -1371,7 +1373,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         }
 
         for (auto const& w : wspToMove) {
-            g_pCompositor->moveWorkspaceToMonitor(w, BACKUPMON);
+            State::workspacePlacementController()->moveWorkspaceToMonitor(w, BACKUPMON);
             g_pDesktopAnimationManager->startAnimation(w, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
         }
 
@@ -1386,7 +1388,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         Desktop::focusState()->rawMonitorFocus(State::monitorState()->monitors().front());
 
         // Software lock mirrored monitor
-        g_pPointerManager->lockSoftwareForMonitor(PMIRRORMON);
+        Pointer::mgr()->lockSoftwareForMonitor(PMIRRORMON);
     }
 
     m_events.modeChanged.emit();
@@ -1516,7 +1518,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
 
     Config::monitorRuleMgr()->ensureVRR(m_self.lock());
 
-    g_pCompositor->updateSuspendedStates();
+    Desktop::globalWindowController()->updateSuspendedStates();
 
     if (m_activeSpecialWorkspace)
         g_pDesktopAnimationManager->setFullscreenFadeAnimation(
@@ -1579,7 +1581,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
         Config::monitorRuleMgr()->ensureVRR(m_self.lock());
 
-        g_pCompositor->updateSuspendedStates();
+        Desktop::globalWindowController()->updateSuspendedStates();
 
         Event::bus()->m_events.workspace.specialActive.emit(nullptr, m_self.lock());
 
@@ -1680,7 +1682,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
     Config::monitorRuleMgr()->ensureVRR(m_self.lock());
 
-    g_pCompositor->updateSuspendedStates();
+    Desktop::globalWindowController()->updateSuspendedStates();
 
     Event::bus()->m_events.workspace.specialActive.emit(pWorkspace, m_self.lock());
 }
@@ -1937,7 +1939,7 @@ uint8_t CMonitor::isTearingBlocked(bool full) {
     }
 
     // TODO: remove this when kernel allows tearing + hw cursor updated
-    if (g_pPointerManager->hasVisibleHWCursor(m_self.lock()))
+    if (Pointer::mgr()->hasVisibleHWCursor(m_self.lock()))
         reasons |= TC_HW_CURSOR;
 
     if (m_solitaryClient.expired()) {
@@ -2015,7 +2017,7 @@ uint16_t CMonitor::isDSBlocked(bool full) {
             return reasons;
     }
 
-    if (g_pPointerManager->softwareLockedFor(m_self.lock())) {
+    if (Pointer::mgr()->softwareLockedFor(m_self.lock())) {
         reasons |= DS_BLOCK_SW;
         if (!full)
             return reasons;
@@ -2260,7 +2262,7 @@ bool CMonitor::shouldUseSoftwareCursors() {
     switch (*PNOHW) {
         case 0: return false;
         case 1: return true;
-        case 2: return g_pHyprRenderer->isNvidia() && (g_pHyprRenderer->isMgpu() || g_pCompositor->isVRRActiveOnAnyMonitor());
+        case 2: return g_pHyprRenderer->isNvidia() && (g_pHyprRenderer->isMgpu() || State::monitorLayoutController()->isVRRActiveOnAnyMonitor());
         default: break;
     }
 

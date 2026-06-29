@@ -1,7 +1,7 @@
 #include "DataDevice.hpp"
 #include <algorithm>
 #include "../../managers/SeatManager.hpp"
-#include "../../managers/PointerManager.hpp"
+#include "../../pointer/PointerManager.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../Compositor.hpp"
 #include "../../render/pass/TexPassElement.hpp"
@@ -10,7 +10,7 @@
 #include "../../xwayland/XWayland.hpp"
 #include "../../xwayland/Server.hpp"
 #include "../../managers/input/InputManager.hpp"
-#include "../../managers/cursor/CursorShapeOverrideController.hpp"
+#include "../../pointer/cursor/CursorShapeOverrideController.hpp"
 #include "../../output/Monitor.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../xwayland/Dnd.hpp"
@@ -561,7 +561,7 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
         abortDrag();
     }
 
-    Cursor::overrideController->setOverride("grabbing", Cursor::CURSOR_OVERRIDE_DND);
+    Pointer::Cursor::overrideController->setOverride("grabbing", Pointer::Cursor::CURSOR_OVERRIDE_DND);
     m_dnd.overriddenCursor = true;
 
     // For touch-initiated drags, anchor the drag icon to the touch point
@@ -752,7 +752,7 @@ void CWLDataDeviceProtocol::dropDrag() {
     if (m_dnd.focusedDevice->getX11()) {
         m_dnd.focusedDevice->sendLeave();
         if (m_dnd.overriddenCursor)
-            Cursor::overrideController->unsetOverride(Cursor::CURSOR_OVERRIDE_DND);
+            Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_DND);
         m_dnd.overriddenCursor = false;
         cleanupDndState(true, true, true);
         return;
@@ -761,7 +761,7 @@ void CWLDataDeviceProtocol::dropDrag() {
 
     m_dnd.focusedDevice->sendLeave();
     if (m_dnd.overriddenCursor)
-        Cursor::overrideController->unsetOverride(Cursor::CURSOR_OVERRIDE_DND);
+        Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_DND);
     m_dnd.overriddenCursor = false;
     cleanupDndState(false, false, false);
 }
@@ -802,7 +802,7 @@ void CWLDataDeviceProtocol::abortDrag() {
     cleanupDndState(false, false, false);
 
     if (m_dnd.overriddenCursor)
-        Cursor::overrideController->unsetOverride(Cursor::CURSOR_OVERRIDE_DND);
+        Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_DND);
     m_dnd.overriddenCursor = false;
 
     if (!m_dnd.focusedDevice && !m_dnd.currentSource)

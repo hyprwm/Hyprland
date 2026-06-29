@@ -9,7 +9,7 @@
 #include "../protocols/core/DataDevice.hpp"
 #include "../errorOverlay/Overlay.hpp"
 #include "KeybindManager.hpp"
-#include "PointerManager.hpp"
+#include "../pointer/PointerManager.hpp"
 #include "Compositor.hpp"
 #include "eventLoop/EventLoopManager.hpp"
 #include "debug/log/Logger.hpp"

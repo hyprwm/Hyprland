@@ -7,8 +7,8 @@
 #include <filesystem>
 #include "../config/ConfigValue.hpp"
 #include "../config/legacy/ConfigManager.hpp"
-#include "../managers/CursorManager.hpp"
-#include "../managers/PointerManager.hpp"
+#include "../pointer/cursor/CursorManager.hpp"
+#include "../pointer/PointerManager.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../managers/animation/AnimationManager.hpp"
 #include "../desktop/view/Window.hpp"
@@ -2077,15 +2077,15 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     static bool zoomLock = false;
     if (zoomLock && ZOOMFACTOR == 1.f) {
-        g_pPointerManager->unlockSoftwareAll();
+        Pointer::mgr()->unlockSoftwareAll();
         zoomLock = false;
     } else if (!zoomLock && ZOOMFACTOR != 1.f) {
-        g_pPointerManager->lockSoftwareAll();
+        Pointer::mgr()->lockSoftwareAll();
         zoomLock = true;
     }
 
     m_renderData.mouseZoomFactor = 1.f;
-    if (ZOOMFACTOR != 1.f && pMonitor == State::monitorState()->query().vec(g_pPointerManager->position()).run())
+    if (ZOOMFACTOR != 1.f && pMonitor == State::monitorState()->query().vec(Pointer::mgr()->position()).run())
         m_renderData.mouseZoomFactor = std::clamp(ZOOMFACTOR, 1.f, INFINITY);
 
     if (pMonitor->m_zoomAnimProgress->value() != 1) {
@@ -2169,7 +2169,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     if (renderCursor) {
         TRACY_GPU_ZONE("RenderCursor");
-        g_pPointerManager->renderSoftwareCursorsFor(pMonitor->m_self.lock(), NOW, m_renderData.damage);
+        Pointer::mgr()->renderSoftwareCursorsFor(pMonitor->m_self.lock(), NOW, m_renderData.damage);
     }
 
     if (pMonitor->m_dpmsBlackOpacity->value() != 0.F) {
@@ -2812,7 +2812,7 @@ void IHyprRenderer::setCursorSurface(SP<Desktop::View::CWLSurface> surf, int hot
     if (m_cursorHidden && !force)
         return;
 
-    g_pCursorManager->setCursorSurface(surf, {hotspotX, hotspotY});
+    Pointer::Cursor::mgr()->setCursorSurface(surf, {hotspotX, hotspotY});
 }
 
 void IHyprRenderer::setCursorFromName(const std::string& name, bool force) {
@@ -2863,7 +2863,7 @@ void IHyprRenderer::setCursorFromName(const std::string& name, bool force) {
     if (m_cursorHidden && !force)
         return;
 
-    g_pCursorManager->setCursorFromName(name);
+    Pointer::Cursor::mgr()->setCursorFromName(name);
 }
 
 void IHyprRenderer::ensureCursorRenderingMode() {
@@ -2899,10 +2899,10 @@ void IHyprRenderer::ensureCursorRenderingMode() {
         Log::logger->log(Log::DEBUG, "Showing the cursor (hl-mandated)");
 
     for (auto const& m : State::monitorState()->monitors()) {
-        if (!g_pPointerManager->softwareLockedFor(m))
+        if (!Pointer::mgr()->softwareLockedFor(m))
             continue;
 
-        g_pPointerManager->damageCursor(m, m->shouldSkipScheduleFrameOnMouseEvent());
+        Pointer::mgr()->damageCursor(m, m->shouldSkipScheduleFrameOnMouseEvent());
     }
 
     setCursorHidden(HIDE);
@@ -2916,7 +2916,7 @@ void IHyprRenderer::setCursorHidden(bool hide) {
     m_cursorHidden = hide;
 
     if (hide) {
-        g_pPointerManager->resetCursorImage();
+        Pointer::mgr()->resetCursorImage();
         return;
     }
 

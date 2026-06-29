@@ -341,14 +341,18 @@ void CWLSurfaceResource::leave(PHLMONITOR monitor) {
 }
 
 void CWLSurfaceResource::sendPreferredTransform(wl_output_transform t) {
-    if (m_resource->version() < 6)
+    if (m_resource->version() < 6 || (m_lastTransform && *m_lastTransform == t))
         return;
+
+    m_lastTransform = t;
     m_resource->sendPreferredBufferTransform(t);
 }
 
 void CWLSurfaceResource::sendPreferredScale(int32_t scale) {
-    if (m_resource->version() < 6)
+    if (m_resource->version() < 6 || scale == m_lastScale.value_or(-1))
         return;
+
+    m_lastScale = scale;
     m_resource->sendPreferredBufferScale(scale);
 }
 
@@ -510,7 +514,9 @@ void CWLSurfaceResource::unmap() {
     if UNLIKELY (!m_mapped)
         return;
 
-    m_mapped = false;
+    m_mapped        = false;
+    m_lastTransform = std::nullopt;
+    m_lastScale     = std::nullopt;
 
     // release the buffers.
     // this is necessary for XWayland to function correctly,

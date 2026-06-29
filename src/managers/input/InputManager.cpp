@@ -33,13 +33,15 @@
 #include "../../devices/VirtualKeyboard.hpp"
 #include "../../devices/TouchDevice.hpp"
 
-#include "../../managers/PointerManager.hpp"
+#include "../../pointer/PointerManager.hpp"
+#include "../../pointer/PointerController.hpp"
 #include "../../managers/SeatManager.hpp"
 #include "../../managers/KeybindManager.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../managers/EventManager.hpp"
 #include "../../managers/permissions/DynamicPermissionManager.hpp"
 #include "../../state/MonitorState.hpp"
+#include "../../state/MonitorLayoutController.hpp"
 
 #include "../../helpers/time/Time.hpp"
 #include "../../helpers/MiscFunctions.hpp"
@@ -49,7 +51,7 @@
 #include "../../event/EventBus.hpp"
 
 #include "trackpad/TrackpadGestures.hpp"
-#include "../cursor/CursorShapeOverrideController.hpp"
+#include "../../pointer/cursor/CursorShapeOverrideController.hpp"
 
 #include <aquamarine/input/Input.hpp>
 #include <hyprutils/string/VarList.hpp>
@@ -92,7 +94,7 @@ CInputManager::CInputManager() {
 
     m_listeners.setCursor = g_pSeatManager->m_events.setCursor.listen([this](const auto& event) { processMouseRequest(event); });
 
-    m_listeners.overrideChanged = Cursor::overrideController->m_events.overrideChanged.listen([this](const std::string& shape) {
+    m_listeners.overrideChanged = Pointer::Cursor::overrideController->m_events.overrideChanged.listen([this](const std::string& shape) {
         if (shape.empty()) {
             m_cursorImageOverridden = false;
             restoreCursorIconToApp();
@@ -146,7 +148,7 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
     // dragged. a pointer-locked game would otherwise pan its camera from the drag itself.
     if (!g_layoutManager->dragController()->target())
         PROTO::relativePointer->sendRelativeMotion(sc<uint64_t>(e.timeMs) * 1000, delta, unaccel);
-    g_pPointerManager->move(DELTA);
+    Pointer::mgr()->move(DELTA);
 
     mouseMoveUnified(e.timeMs, false, e.mouse);
 
@@ -162,7 +164,7 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
 }
 
 void CInputManager::onMouseWarp(IPointer::SMotionAbsoluteEvent e) {
-    g_pPointerManager->warpAbsolute(e.absolute, e.device);
+    Pointer::mgr()->warpAbsolute(e.absolute, e.device);
 
     mouseMoveUnified(e.timeMs);
 
@@ -278,7 +280,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     const auto solitary = PMONITOR->m_solitaryClient.lock();
     const auto self     = PMONITOR->m_self.lock();
 
-    if (!solitary && g_pHyprRenderer->shouldRenderCursor() && g_pPointerManager->softwareLockedFor(self) && !skipFrameSchedule)
+    if (!solitary && g_pHyprRenderer->shouldRenderCursor() && Pointer::mgr()->softwareLockedFor(self) && !skipFrameSchedule)
         PMONITOR->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_MOVE);
 
     // constraints
@@ -294,7 +296,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
         if (g_pSeatManager->m_state.pointerFocus != surf->resource())
             g_pSeatManager->setPointerFocus(surf->resource(), CLOSESTLOCAL);
 
-        g_pCompositor->warpCursorTo(CLOSEST, true);
+        Pointer::pointerController()->warpTo(CLOSEST, true);
         g_pSeatManager->sendPointerMotion(time, CLOSESTLOCAL);
         PROTO::relativePointer->sendRelativeMotion(sc<uint64_t>(time) * 1000, {}, {});
     };
@@ -308,7 +310,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
             if (CONSTRAINT) {
                 if (CONSTRAINT->isLocked()) {
                     const auto HINT = CONSTRAINT->logicPositionHint();
-                    g_pCompositor->warpCursorTo(HINT, true);
+                    Pointer::pointerController()->warpTo(HINT, true);
                 } else {
                     confineToRegion(CONSTRAINT->logicConstraintRegion(), SURF);
                 }
@@ -521,7 +523,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
                     }
                 } else {
                     // if we have a maximized window, allow focusing on a bar or something if in reserved area.
-                    if (g_pCompositor->isPointOnReservedArea(mouseCoords, PMONITOR)) {
+                    if (State::monitorLayoutController()->isPointOnReservedArea(mouseCoords, PMONITOR)) {
                         foundSurface = Desktop::viewState()->hitTest().layerSurfaceAt(mouseCoords, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM],
                                                                                       &surfaceCoords, &pFoundLayerSurface);
                     }
@@ -566,7 +568,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
         foundSurface =
             Desktop::viewState()->hitTest().layerSurfaceAt(mouseCoords, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND], &surfaceCoords, &pFoundLayerSurface);
 
-    if (g_pPointerManager->softwareLockedFor(self) > 0 && !skipFrameSchedule) {
+    if (Pointer::mgr()->softwareLockedFor(self) > 0 && !skipFrameSchedule) {
         if (const auto PMONITOR = Desktop::focusState()->monitor())
             PMONITOR->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_MOVE);
     }
@@ -649,11 +651,11 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
                 setCursorIconOnBorder(pFoundWindow);
             else if (m_borderIconDirection != BORDERICON_NONE) {
                 m_borderIconDirection = BORDERICON_NONE;
-                Cursor::overrideController->unsetOverride(Cursor::CURSOR_OVERRIDE_WINDOW_EDGE);
+                Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_WINDOW_EDGE);
             }
         } else if (m_borderIconDirection != BORDERICON_NONE) {
             m_borderIconDirection = BORDERICON_NONE;
-            Cursor::overrideController->unsetOverride(Cursor::CURSOR_OVERRIDE_WINDOW_EDGE);
+            Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_WINDOW_EDGE);
         }
 
         if (FOLLOWMOUSE != 1 && !refocus) {
@@ -707,7 +709,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     } else {
         if (*PRESIZEONBORDER && *PRESIZECURSORICON && m_borderIconDirection != BORDERICON_NONE) {
             m_borderIconDirection = BORDERICON_NONE;
-            Cursor::overrideController->unsetOverride(Cursor::CURSOR_OVERRIDE_WINDOW_EDGE);
+            Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_WINDOW_EDGE);
         }
 
         if (pFoundLayerSurface && (pFoundLayerSurface->m_layerSurface->m_current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) && FOLLOWMOUSE != 3 &&
@@ -827,7 +829,7 @@ void CInputManager::setClickMode(eClickBehaviorMode mode) {
             refocus();
 
             // set cursor
-            Cursor::overrideController->setOverride("crosshair", Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
+            Pointer::Cursor::overrideController->setOverride("crosshair", Pointer::Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
             break;
         default: break;
     }
@@ -938,7 +940,7 @@ void CInputManager::processMouseDownKill(const IPointer::SButtonEvent& e) {
 
     // reset click behavior mode
     m_clickBehavior = CLICKMODE_DEFAULT;
-    Cursor::overrideController->unsetOverride(Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
+    Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
 }
 
 void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
@@ -986,7 +988,7 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
                     const auto TEMPCURY = std::clamp(MOUSECOORDS.y, BOX.y, BOX.y + BOX.h - 1);
 
                     if (*POFFWINDOWAXIS == 3)
-                        g_pCompositor->warpCursorTo({TEMPCURX, TEMPCURY}, true);
+                        Pointer::pointerController()->warpTo({TEMPCURX, TEMPCURY}, true);
 
                     g_pSeatManager->sendPointerMotion(e.timeMs, Vector2D{TEMPCURX, TEMPCURY} - BOX.pos());
                     g_pSeatManager->sendPointerFrame();
@@ -1064,7 +1066,7 @@ void CInputManager::onPointerFrame() {
 }
 
 Vector2D CInputManager::getMouseCoordsInternal() {
-    return g_pPointerManager->position();
+    return Pointer::mgr()->position();
 }
 
 void CInputManager::newKeyboard(SP<IKeyboard> keeb) {
@@ -1294,7 +1296,7 @@ void CInputManager::setupMouse(SP<IPointer> mauz) {
                          sc<int>(libinput_device_config_accel_get_default_profile(LIBINPUTDEV)));
     }
 
-    g_pPointerManager->attachPointer(mauz);
+    Pointer::mgr()->attachPointer(mauz);
 
     mauz->m_connected = true;
 
@@ -1316,10 +1318,10 @@ void CInputManager::setPointerConfigs() {
         if (HASCONFIG) {
             const auto ENABLED = HASCONFIG && Config::mgr()->deviceConfigExplicitlySet(devname, "enabled") ? Config::mgr()->getDeviceInt(devname, "enabled") : true;
             if (ENABLED && !m->m_connected) {
-                g_pPointerManager->attachPointer(m);
+                Pointer::mgr()->attachPointer(m);
                 m->m_connected = true;
             } else if (!ENABLED && m->m_connected) {
-                g_pPointerManager->detachPointer(m);
+                Pointer::mgr()->detachPointer(m);
                 m->m_connected = false;
             }
 
@@ -1893,7 +1895,7 @@ void CInputManager::newTouchDevice(SP<Aquamarine::ITouch> pDevice) {
     }
 
     setTouchDeviceConfigs(PNEWDEV);
-    g_pPointerManager->attachTouch(PNEWDEV);
+    Pointer::mgr()->attachTouch(PNEWDEV);
 
     PNEWDEV->m_events.destroy.listenStatic([this, dev = PNEWDEV.get()] {
         auto PDEV = dev->m_self.lock();
@@ -2086,7 +2088,7 @@ void CInputManager::releaseAllMouseButtons() {
 void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
     // ignore X11 OR windows, they shouldn't be touched
     if (w->m_isX11 && w->isX11OverrideRedirect()) {
-        Cursor::overrideController->unsetOverride(Cursor::CURSOR_OVERRIDE_WINDOW_EDGE);
+        Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_WINDOW_EDGE);
         return;
     }
 
@@ -2170,15 +2172,15 @@ void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
     m_borderIconDirection = direction;
 
     switch (direction) {
-        case BORDERICON_NONE: Cursor::overrideController->unsetOverride(Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
-        case BORDERICON_UP: Cursor::overrideController->setOverride("top_side", Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
-        case BORDERICON_DOWN: Cursor::overrideController->setOverride("bottom_side", Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
-        case BORDERICON_LEFT: Cursor::overrideController->setOverride("left_side", Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
-        case BORDERICON_RIGHT: Cursor::overrideController->setOverride("right_side", Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
-        case BORDERICON_UP_LEFT: Cursor::overrideController->setOverride("top_left_corner", Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
-        case BORDERICON_DOWN_LEFT: Cursor::overrideController->setOverride("bottom_left_corner", Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
-        case BORDERICON_UP_RIGHT: Cursor::overrideController->setOverride("top_right_corner", Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
-        case BORDERICON_DOWN_RIGHT: Cursor::overrideController->setOverride("bottom_right_corner", Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
+        case BORDERICON_NONE: Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
+        case BORDERICON_UP: Pointer::Cursor::overrideController->setOverride("top_side", Pointer::Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
+        case BORDERICON_DOWN: Pointer::Cursor::overrideController->setOverride("bottom_side", Pointer::Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
+        case BORDERICON_LEFT: Pointer::Cursor::overrideController->setOverride("left_side", Pointer::Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
+        case BORDERICON_RIGHT: Pointer::Cursor::overrideController->setOverride("right_side", Pointer::Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
+        case BORDERICON_UP_LEFT: Pointer::Cursor::overrideController->setOverride("top_left_corner", Pointer::Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
+        case BORDERICON_DOWN_LEFT: Pointer::Cursor::overrideController->setOverride("bottom_left_corner", Pointer::Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
+        case BORDERICON_UP_RIGHT: Pointer::Cursor::overrideController->setOverride("top_right_corner", Pointer::Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
+        case BORDERICON_DOWN_RIGHT: Pointer::Cursor::overrideController->setOverride("bottom_right_corner", Pointer::Cursor::CURSOR_OVERRIDE_WINDOW_EDGE); break;
     }
 }
 
@@ -2186,7 +2188,7 @@ void CInputManager::recheckMouseWarpOnMouseInput() {
     static auto PWARPFORNONMOUSE = CConfigValue<Config::INTEGER>("cursor:warp_back_after_non_mouse_input");
 
     if (!m_lastInputMouse && *PWARPFORNONMOUSE)
-        g_pPointerManager->warpTo(m_lastMousePos);
+        Pointer::mgr()->warpTo(m_lastMousePos);
 }
 
 void CInputManager::onSwipeBegin(IPointer::SSwipeBeginEvent e) {

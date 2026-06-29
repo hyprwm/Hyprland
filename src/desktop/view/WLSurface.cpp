@@ -3,7 +3,10 @@
 #include "Window.hpp"
 #include "../../protocols/core/Compositor.hpp"
 #include "../../protocols/LayerShell.hpp"
+#include "../../protocols/FractionalScale.hpp"
 #include "../../render/Renderer.hpp"
+
+#include <cmath>
 
 using namespace Desktop;
 using namespace Desktop::View;
@@ -203,4 +206,19 @@ bool CWLSurface::keyboardFocusable() const {
     if (const auto LS = CLayerSurface::fromView(m_view.lock()); LS && LS->m_layerSurface)
         return LS->m_layerSurface->m_current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
     return false;
+}
+
+void CWLSurface::sendScale(float scale) const {
+    if (m_resource.expired())
+        return;
+
+    m_resource->sendPreferredScale(sc<uint32_t>(std::ceil(scale)));
+    PROTO::fractional->sendScale(m_resource.lock(), scale);
+}
+
+void CWLSurface::sendTransform(wl_output_transform xform) const {
+    if (m_resource.expired())
+        return;
+
+    m_resource->sendPreferredTransform(xform);
 }

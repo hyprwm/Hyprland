@@ -25,6 +25,7 @@
 #include "../../debug/HyprCtl.hpp"
 #include "../../layout/LayoutManager.hpp"
 #include "../../desktop/state/FocusState.hpp"
+#include "../../desktop/state/GlobalWindowController.hpp"
 #include "../../layout/space/Space.hpp"
 #include "../../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 #include "../../state/MonitorState.hpp"
@@ -1030,7 +1031,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     }
 
     // Update window border colors
-    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+    Desktop::globalWindowController()->updateAllWindowsDecorations();
 
     // manual crash
     if (std::any_cast<Hyprlang::INT>(m_config->getConfigValue("debug:manual_crash")) && !m_manualCrashInitiated) {
@@ -1096,7 +1097,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     }
 
     // Update window border colors
-    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+    Desktop::globalWindowController()->updateAllWindowsDecorations();
 
     // manual crash
     if (std::any_cast<Hyprlang::INT>(m_config->getConfigValue("debug:manual_crash")) && !m_manualCrashInitiated) {

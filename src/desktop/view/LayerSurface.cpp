@@ -445,11 +445,12 @@ void CLayerSurface::updateSurfaceScaleTransformDetails() {
     surf->breadthfirst(
         [PMONITOR](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) {
             const auto PSURFACE = CWLSurface::fromResource(s);
-            if (PSURFACE && PSURFACE->m_lastScaleFloat == PMONITOR->m_scale)
+
+            if (!PSURFACE)
                 return;
 
-            g_pCompositor->setPreferredScaleForSurface(s, PMONITOR->m_scale);
-            g_pCompositor->setPreferredTransformForSurface(s, PMONITOR->m_transform);
+            PSURFACE->sendScale(PMONITOR->m_scale);
+            PSURFACE->sendTransform(PMONITOR->m_transform);
         },
         nullptr);
 }

@@ -15,6 +15,10 @@ class CInputManager;
 class CPluginSystem;
 class IKeyboard;
 
+namespace Pointer {
+    class CPointerManager;
+}
+
 enum eMouseBindMode : int8_t;
 
 struct SSubmap {
@@ -179,7 +183,7 @@ class CKeybindManager {
     friend class Config::Legacy::CConfigManager;
     friend class Config::Lua::CConfigManager;
     friend class CWorkspace;
-    friend class CPointerManager;
+    friend class Pointer::CPointerManager;
 };
 
 inline UP<CKeybindManager> g_pKeybindManager;

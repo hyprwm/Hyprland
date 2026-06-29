@@ -12,7 +12,8 @@
 #include "../../../../render/Renderer.hpp"
 #include "../../../../state/MonitorState.hpp"
 #include "../../../../managers/input/InputManager.hpp"
-#include "../../../../managers/PointerManager.hpp"
+#include "../../../../pointer/PointerManager.hpp"
+#include "../../../../pointer/PointerController.hpp"
 #include "../../../../managers/animation/DesktopAnimationManager.hpp"
 #include "../../../../event/EventBus.hpp"
 
@@ -669,7 +670,7 @@ void CScrollingAlgorithm::focusOnInput(SP<ITarget> target, eInputMode input) {
     }
 
     // if click, but target is not under cursor, ignore
-    if (input == INPUT_MODE_CLICK && !g_pPointerManager->getCursorBoxGlobal().overlaps(target->position()))
+    if (input == INPUT_MODE_CLICK && !Pointer::mgr()->getCursorBoxGlobal().overlaps(target->position()))
         return;
 
     // if we moved via non-kb, and it's fully visible, ignore
@@ -1511,7 +1512,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
 
             focusTargetUpdate(COL->targetDatas.front()->target.lock());
             if (COL->targetDatas.front()->target->window())
-                g_pCompositor->warpCursorTo(COL->targetDatas.front()->target->window()->middle());
+                Pointer::pointerController()->warpTo(COL->targetDatas.front()->target->window()->middle());
 
             return {};
         } else if (ARGS[1] == "-col") {
@@ -1522,7 +1523,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
                     m_scrollingData->recalculate();
                     focusTargetUpdate((m_scrollingData->columns.back()->targetDatas.back())->target.lock());
                     if (m_scrollingData->columns.back()->targetDatas.back()->target->window())
-                        g_pCompositor->warpCursorTo((m_scrollingData->columns.back()->targetDatas.back())->target->window()->middle());
+                        Pointer::pointerController()->warpTo((m_scrollingData->columns.back()->targetDatas.back())->target->window()->middle());
                 }
 
                 return {};
@@ -1537,7 +1538,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
 
             focusTargetUpdate(COL->targetDatas.back()->target.lock());
             if (COL->targetDatas.front()->target->window())
-                g_pCompositor->warpCursorTo(COL->targetDatas.front()->target->window()->middle());
+                Pointer::pointerController()->warpTo(COL->targetDatas.front()->target->window()->middle());
 
             return {};
         }
@@ -1815,7 +1816,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
 
             focusTargetUpdate(PREV->target.lock());
             if (PREV->target->window())
-                g_pCompositor->warpCursorTo(PREV->target->window()->middle());
+                Pointer::pointerController()->warpTo(PREV->target->window()->middle());
         } else if (isNextInStrip) {
             // Move to next target within current strip
             auto NEXT = TDATA->column->next(TDATA);
@@ -1828,7 +1829,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
 
             focusTargetUpdate(NEXT->target.lock());
             if (NEXT->target->window())
-                g_pCompositor->warpCursorTo(NEXT->target->window()->middle());
+                Pointer::pointerController()->warpTo(NEXT->target->window()->middle());
         } else if (isPrevStrip) {
             // Move to previous strip
             auto PREV = m_scrollingData->prev(TDATA->column.lock());
@@ -1837,7 +1838,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
                     centerOrFit(TDATA->column.lock());
                     m_scrollingData->recalculate();
                     if (TDATA->target->window())
-                        g_pCompositor->warpCursorTo(TDATA->target->window()->middle());
+                        Pointer::pointerController()->warpTo(TDATA->target->window()->middle());
                     return {};
                 } else
                     PREV = (*PCONFWRAPFOCUS == 1) ? m_scrollingData->columns.back() : m_scrollingData->columns.front();
@@ -1849,7 +1850,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
                 centerOrFit(PREV);
                 m_scrollingData->recalculate();
                 if (pTargetData->target->window())
-                    g_pCompositor->warpCursorTo(pTargetData->target->window()->middle());
+                    Pointer::pointerController()->warpTo(pTargetData->target->window()->middle());
             }
         } else if (isNextStrip) {
             // Move to next strip
@@ -1859,7 +1860,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
                     centerOrFit(TDATA->column.lock());
                     m_scrollingData->recalculate();
                     if (TDATA->target->window())
-                        g_pCompositor->warpCursorTo(TDATA->target->window()->middle());
+                        Pointer::pointerController()->warpTo(TDATA->target->window()->middle());
                     return {};
                 } else
                     NEXT = (*PCONFWRAPFOCUS == 1) ? m_scrollingData->columns.front() : m_scrollingData->columns.back();
@@ -1871,7 +1872,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
                 centerOrFit(NEXT);
                 m_scrollingData->recalculate();
                 if (pTargetData->target->window())
-                    g_pCompositor->warpCursorTo(pTargetData->target->window()->middle());
+                    Pointer::pointerController()->warpTo(pTargetData->target->window()->middle());
             }
         }
     } else if (ARGS[0] == "promote" || ARGS[0] == "consume" || ARGS[0] == "expel" || ARGS[0] == "consume_or_expel") {

@@ -22,6 +22,7 @@
 #include "../state/FocusState.hpp"
 #include "../state/FloatState.hpp"
 #include "../state/FadingOutState.hpp"
+#include "../state/GlobalWindowController.hpp"
 #include "../state/WindowFadeout.hpp"
 #include "../state/WindowState.hpp"
 #include "../history/WindowHistoryTracker.hpp"
@@ -46,7 +47,6 @@
 #include "../../protocols/core/Compositor.hpp"
 #include "../../protocols/core/Subcompositor.hpp"
 #include "../../protocols/ContentType.hpp"
-#include "../../protocols/FractionalScale.hpp"
 #include "../../protocols/LayerShell.hpp"
 #include "../../xwayland/XWayland.hpp"
 #include "../../helpers/Color.hpp"
@@ -56,7 +56,7 @@
 #include "../../render/transformer/MotionBlurTransformer.hpp"
 #include "../../managers/EventManager.hpp"
 #include "../../managers/input/InputManager.hpp"
-#include "../../managers/PointerManager.hpp"
+#include "../../pointer/PointerController.hpp"
 #include "../../managers/animation/DesktopAnimationManager.hpp"
 #include "../../managers/KeybindManager.hpp"
 #include "../../layout/algorithm/Algorithm.hpp"
@@ -507,12 +507,12 @@ void CWindow::updateSurfaceScaleTransformDetails(bool force) {
     m_wlSurface->resource()->breadthfirst(
         [PMONITOR](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) {
             const auto PSURFACE = CWLSurface::fromResource(s);
-            if (PSURFACE && PSURFACE->m_lastScaleFloat == PMONITOR->m_scale)
+
+            if (!PSURFACE)
                 return;
 
-            PROTO::fractional->sendScale(s, PMONITOR->m_scale);
-            g_pCompositor->setPreferredScaleForSurface(s, PMONITOR->m_scale);
-            g_pCompositor->setPreferredTransformForSurface(s, PMONITOR->m_transform);
+            PSURFACE->sendScale(PMONITOR->m_scale);
+            PSURFACE->sendTransform(PMONITOR->m_transform);
         },
         nullptr);
 }
@@ -559,7 +559,7 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 
     setAnimationsToMove();
 
-    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+    Desktop::globalWindowController()->updateAllWindowsDecorations();
 
     if (valid(pWorkspace)) {
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "movewindow", .data = std::format("{:x},{}", rc<uintptr_t>(this), pWorkspace->m_name)});
@@ -731,7 +731,7 @@ void CWindow::onUnmap() {
         m_workspace->updateWindowData();
     }
 
-    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+    Desktop::globalWindowController()->updateAllWindowsDecorations();
 
     m_workspace.reset();
 
@@ -1394,7 +1394,7 @@ void CWindow::onUpdateState() {
         if (requestsID.has_value() && (requestsID.value() != MONITOR_INVALID) && !(m_suppressedEvents & SUPPRESS_FULLSCREEN_OUTPUT)) {
             if (m_isMapped) {
                 const auto monitor = State::monitorState()->query().id(requestsID.value()).run();
-                g_pCompositor->moveWindowToWorkspaceSafe(m_self.lock(), monitor->m_activeWorkspace);
+                Desktop::globalWindowController()->moveWindowToWorkspace(m_self.lock(), monitor->m_activeWorkspace);
                 Desktop::focusState()->rawMonitorFocus(monitor);
             }
 
@@ -1596,9 +1596,9 @@ void CWindow::warpCursor(bool force) {
     const auto BOX = layoutBox();
 
     if (*PERSISTENTWARPS && coords.x > 0 && coords.y > 0 && coords < BOX.size()) // don't warp cursor outside the window
-        g_pCompositor->warpCursorTo(BOX.pos() + coords, force);
+        Pointer::pointerController()->warpTo(BOX.pos() + coords, force);
     else
-        g_pCompositor->warpCursorTo(middle(), force);
+        Pointer::pointerController()->warpTo(middle(), force);
 }
 
 PHLWINDOW CWindow::getSwallowee() {

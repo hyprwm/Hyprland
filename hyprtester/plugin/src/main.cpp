@@ -6,7 +6,8 @@
 
 #define private public
 #include <src/managers/input/InputManager.hpp>
-#include <src/managers/PointerManager.hpp>
+#include <src/pointer/PointerManager.hpp>
+#include <src/pointer/PointerController.hpp>
 #include <src/managers/SeatManager.hpp>
 #include <src/managers/input/trackpad/TrackpadGestures.hpp>
 #include <src/output/Monitor.hpp>
@@ -83,7 +84,7 @@ static SDispatchResult dragWindow(std::string in) {
         if (!target)
             return {.success = false, .error = "Window has no layout target"};
 
-        g_pCompositor->warpCursorTo({x, y}, true);
+        Pointer::pointerController()->warpTo({x, y}, true);
         g_layoutManager->beginDragTarget(target, MBIND_MOVE);
         g_layoutManager->endDragTarget();
 

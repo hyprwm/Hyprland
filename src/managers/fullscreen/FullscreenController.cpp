@@ -267,10 +267,10 @@ eFullscreenHandler CFullscreenController::getFullscreenHandlerName(const PHLWIND
 
 
     // IMPORTANT: no layoutHandled value passed -> no recursion.
-    const auto LAYOUT_FS_HANDLER = getFSHandler(window, true).lock();
+    const auto LAYOUT_FS_HANDLER = getFSHandler(window, true);
 
     // IMPORTANT: no layoutHandled value passed -> no recursion.
-    const auto DEFAULT_FS_HANDLER = getFSHandler(window, false).lock();
+    const auto DEFAULT_FS_HANDLER = getFSHandler(window, false);
 
     if (!LAYOUT_FS_HANDLER || !DEFAULT_FS_HANDLER)
         return FULLSCREEN_HANDLER_NONE; // ERSTARR TODO - ERROR LOG

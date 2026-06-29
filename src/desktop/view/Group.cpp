@@ -13,6 +13,7 @@
 #include "../../managers/fullscreen/FullscreenController.hpp"
 
 #include <algorithm>
+#include <optional>
 
 using namespace Desktop;
 using namespace Desktop::View;
@@ -217,6 +218,7 @@ void CGroup::setCurrent(size_t idx) {
 
     const bool IS_FULLSCREEN = g_pfullscreenController->isFullscreen(m_target->window());
     const auto FS_MODE_INTERNAL  = g_pfullscreenController->getFullscreenModes(m_target->window()).internal;
+    const bool IS_LAYOUT_HANDLED = g_pfullscreenController->layoutManagedFS(m_target->window());
     const auto WASFOCUS  = Desktop::focusState()->window() == current();
     auto       oldWindow = m_windows.at(m_current).lock();
 
@@ -229,7 +231,7 @@ void CGroup::setCurrent(size_t idx) {
     auto newWindow = m_windows.at(m_current).lock();
 
     if (IS_FULLSCREEN) {
-        g_pfullscreenController->setFullscreenMode(newWindow, FS_MODE_INTERNAL);
+        g_pfullscreenController->setFullscreenMode(newWindow, FS_MODE_INTERNAL, std::nullopt, IS_LAYOUT_HANDLED);
         newWindow->m_target->warpPositionSize();
         oldWindow->m_target->setPositionGlobal(newWindow->m_target->position()); // TODO: this is a hack and sucks
     }

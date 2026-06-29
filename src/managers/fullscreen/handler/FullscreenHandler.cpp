@@ -187,7 +187,7 @@ void IFullscreenHandler::syncFullscreenTargets() {
         // target is not FS (internal or client)
         if (!it->first || !it->first->window() || (!isFullscreen(it->first.lock()) && it->second.client == FSMODE_NONE)) {
             const auto NEXT = std::next(it);
-            removeFsTarget(it->first.lock());
+            removeFsTarget(it->first.lock(), true);
             it = NEXT;
             continue;
         }
@@ -198,7 +198,7 @@ void IFullscreenHandler::syncFullscreenTargets() {
             const SFullscreenMode MODE = SFullscreenMode{.internal = it->second.internal, .client = it->second.client};
             const auto WINDOWTARGET = it->first->window()->layoutTarget();
             const auto NEXT = std::next(it);
-            removeFsTarget(it->first.lock());
+            removeFsTarget(it->first.lock(), true);
             it = NEXT;
             toInsert.emplace_back(WINDOWTARGET,MODE);
             continue;

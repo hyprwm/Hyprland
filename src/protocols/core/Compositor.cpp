@@ -770,17 +770,17 @@ void CWLSurfaceResource::queuePresentationFeedback(WP<CPresentationFeedback> fee
     if (!feedback)
         return;
 
-    if (!m_pending.presentationFeedbacks.empty() || m_pending.updatesPresentationContent()) {
-        m_pending.updated.bits.presentation = true;
-        m_pending.presentationFeedbacks.emplace_back(std::move(feedback));
-        return;
-    }
-
     if (m_current.commitSeq > 0) {
         if (PROTO::presentation->addFeedback(m_self, m_current.commitSeq, feedback))
             return;
 
         m_current.presentationFeedbacks.emplace_back(std::move(feedback));
+        return;
+    }
+
+    if (!m_pending.presentationFeedbacks.empty() || m_pending.updatesPresentationContent()) {
+        m_pending.updated.bits.presentation = true;
+        m_pending.presentationFeedbacks.emplace_back(std::move(feedback));
         return;
     }
 

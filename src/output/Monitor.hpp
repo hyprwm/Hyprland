@@ -155,6 +155,8 @@ namespace Monitor {
 
         // for special fade/blur
         PHLANIMVAR<float> m_specialFade;
+        PHLANIMVAR<float> m_specialDim;
+        PHLANIMVAR<float> m_specialBlur;
 
         // for dpms off anim
         PHLANIMVAR<float> m_dpmsBlackOpacity;

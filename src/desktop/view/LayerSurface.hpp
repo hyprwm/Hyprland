@@ -30,7 +30,6 @@ namespace Desktop::View {
         virtual bool                desktopComponent() const;
         virtual std::optional<CBox> surfaceLogicalBox() const;
 
-        bool                        isFadedOut();
         int                         popupsCount();
 
         using CGeometricMovableAnimated::m_realPosition;
@@ -48,8 +47,6 @@ namespace Desktop::View {
 
         PHLMONITORREF                           m_monitor;
 
-        bool                                    m_fadingOut       = false;
-        bool                                    m_readyToDelete   = false;
         bool                                    m_noProcess       = false;
         bool                                    m_aboveFullscreen = true;
 
@@ -61,8 +58,6 @@ namespace Desktop::View {
         Vector2D                                m_position;
         std::string                             m_namespace = "";
         SP<Desktop::View::CPopup>               m_popupHead;
-
-        SP<Render::IFramebuffer>                m_snapshotFB;
 
         pid_t                                   getPID();
         void                                    updateSurfaceScaleTransformDetails();

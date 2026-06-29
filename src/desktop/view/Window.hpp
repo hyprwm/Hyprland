@@ -216,11 +216,6 @@ namespace Desktop::View {
 
         // Fade in-out
         Desktop::Types::CMultiAVarContainer<float, eWindowAlpha, WINDOW_ALPHA_LAST> m_alpha;
-        bool                                                                        m_fadingOut     = false;
-        bool                                                                        m_readyToDelete = false;
-        Vector2D                                                                    m_originalClosedPos;  // these will be used for calculations later on in
-        Vector2D                                                                    m_originalClosedSize; // drawing the closing animations
-        SBoxExtents                                                                 m_originalClosedExtents;
         bool                                                                        m_animatingIn = false;
 
         // For pinned (sticky) windows
@@ -284,9 +279,6 @@ namespace Desktop::View {
 
         // Stable ID for ext_foreign_toplevel_list
         const uint64_t m_stableID = 0x2137;
-
-        // snapshots
-        SP<Render::IFramebuffer> m_snapshotFB;
 
         // ANR
         PHLANIMVAR<float> m_notRespondingTint;

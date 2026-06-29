@@ -61,8 +61,12 @@ void CSpecialWorkspaceGesture::begin(const ITrackpadGesture::STrackpadGestureBeg
     if (!m_specialWorkspace)
         return;
 
-    m_monitorDimFrom      = m_monitor->m_specialFade->begun();
-    m_monitorDimTo        = m_monitor->m_specialFade->goal();
+    m_monitorFadeFrom     = m_monitor->m_specialFade->begun();
+    m_monitorFadeTo       = m_monitor->m_specialFade->goal();
+    m_monitorDimFrom      = m_monitor->m_specialDim->begun();
+    m_monitorDimTo        = m_monitor->m_specialDim->goal();
+    m_monitorBlurFrom     = m_monitor->m_specialBlur->begun();
+    m_monitorBlurTo       = m_monitor->m_specialBlur->goal();
     m_workspaceAlphaFrom  = m_specialWorkspace->m_alpha->begun();
     m_workspaceAlphaTo    = m_specialWorkspace->m_alpha->goal();
     m_workspaceOffsetFrom = m_specialWorkspace->m_renderOffset->begun();
@@ -79,7 +83,9 @@ void CSpecialWorkspaceGesture::update(const ITrackpadGesture::STrackpadGestureUp
 
     const auto FADEPERCENT = m_animatingOut ? 1.F - std::clamp(m_lastDelta / MAX_DISTANCE, 0.F, 1.F) : std::clamp(m_lastDelta / MAX_DISTANCE, 0.F, 1.F);
 
-    m_monitor->m_specialFade->setValueAndWarp(lerpVal(m_monitorDimFrom, m_monitorDimTo, FADEPERCENT));
+    m_monitor->m_specialFade->setValueAndWarp(lerpVal(m_monitorFadeFrom, m_monitorFadeTo, FADEPERCENT));
+    m_monitor->m_specialDim->setValueAndWarp(lerpVal(m_monitorDimFrom, m_monitorDimTo, FADEPERCENT));
+    m_monitor->m_specialBlur->setValueAndWarp(lerpVal(m_monitorBlurFrom, m_monitorBlurTo, FADEPERCENT));
     m_specialWorkspace->m_alpha->setValueAndWarp(lerpVal(m_workspaceAlphaFrom, m_workspaceAlphaTo, FADEPERCENT));
     m_specialWorkspace->m_renderOffset->setValueAndWarp(lerpVal(m_workspaceOffsetFrom, m_workspaceOffsetTo, FADEPERCENT));
 }
@@ -98,7 +104,9 @@ void CSpecialWorkspaceGesture::end(const ITrackpadGesture::STrackpadGestureEnd& 
         if (m_animatingOut) {
             m_workspaceOffsetTo = m_workspaceOffsetFrom;
             m_workspaceAlphaTo  = m_workspaceAlphaFrom;
+            m_monitorFadeTo     = m_monitorFadeFrom;
             m_monitorDimTo      = m_monitorDimFrom;
+            m_monitorBlurTo     = m_monitorBlurFrom;
         }
     }
 
@@ -106,6 +114,8 @@ void CSpecialWorkspaceGesture::end(const ITrackpadGesture::STrackpadGestureEnd& 
         const auto CURR_WS_ALPHA  = m_specialWorkspace->m_alpha->value();
         const auto CURR_WS_OFFSET = m_specialWorkspace->m_renderOffset->value();
         const auto CURR_MON_FADE  = m_monitor->m_specialFade->value();
+        const auto CURR_MON_DIM   = m_monitor->m_specialDim->value();
+        const auto CURR_MON_BLUR  = m_monitor->m_specialBlur->value();
 
         m_monitor->setSpecialWorkspace(nullptr);
 
@@ -113,14 +123,20 @@ void CSpecialWorkspaceGesture::end(const ITrackpadGesture::STrackpadGestureEnd& 
         const auto GOAL_WS_OFFSET = m_specialWorkspace->m_renderOffset->goal();
 
         m_monitor->m_specialFade->setValueAndWarp(CURR_MON_FADE);
+        m_monitor->m_specialDim->setValueAndWarp(CURR_MON_DIM);
+        m_monitor->m_specialBlur->setValueAndWarp(CURR_MON_BLUR);
         m_specialWorkspace->m_alpha->setValueAndWarp(CURR_WS_ALPHA);
         m_specialWorkspace->m_renderOffset->setValueAndWarp(CURR_WS_OFFSET);
 
         *m_monitor->m_specialFade           = 0.F;
+        *m_monitor->m_specialDim            = 0.F;
+        *m_monitor->m_specialBlur           = 0.F;
         *m_specialWorkspace->m_alpha        = GOAL_WS_ALPHA;
         *m_specialWorkspace->m_renderOffset = GOAL_WS_OFFSET;
     } else {
-        *m_monitor->m_specialFade           = m_monitorDimTo;
+        *m_monitor->m_specialFade           = m_monitorFadeTo;
+        *m_monitor->m_specialDim            = m_monitorDimTo;
+        *m_monitor->m_specialBlur           = m_monitorBlurTo;
         *m_specialWorkspace->m_renderOffset = m_workspaceOffsetTo;
         *m_specialWorkspace->m_alpha        = m_workspaceAlphaTo;
     }

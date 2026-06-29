@@ -31,3 +31,8 @@ CBox CGeometricAnimated::geometricBox(eGeometricValueType t) const {
 
     std::unreachable();
 }
+
+void CGeometricAnimated::finishAnimation() {
+    m_realPosition->warp();
+    m_realSize->warp();
+}

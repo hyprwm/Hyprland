@@ -2,6 +2,8 @@
 #include "../../config/ConfigValue.hpp"
 #include "../../config/shared/animation/AnimationTree.hpp"
 #include "../../Compositor.hpp"
+#include "../state/FadingOutState.hpp"
+#include "../state/PopupFadeout.hpp"
 #include "../../protocols/LayerShell.hpp"
 #include "../../protocols/XDGShell.hpp"
 #include "../../protocols/core/Compositor.hpp"
@@ -74,9 +76,6 @@ eViewType CPopup::type() const {
 }
 
 bool CPopup::visible() const {
-    if (m_fadingOut && m_alpha->value() > 0.F)
-        return true;
-
     if (!m_mapped || !m_wlSurface->resource())
         return false;
 
@@ -185,11 +184,6 @@ void CPopup::onDestroy() {
     m_listeners.commit.reset();
     m_listeners.newPopup.reset();
 
-    if (m_fadingOut && m_alpha->isBeingAnimated()) {
-        Log::logger->log(Log::DEBUG, "popup {:x}: skipping full destroy, animating", rc<uintptr_t>(this));
-        return;
-    }
-
     fullyDestroy();
 }
 
@@ -272,12 +266,14 @@ void CPopup::onUnmap() {
 
     m_lastSize = MAX_DAMAGE_SIZE;
 
-    g_pHyprRenderer->makeSnapshot(m_self);
+    const auto SNAPSHOT    = g_pHyprRenderer->makeSnapshotFB(m_self);
+    const auto SOURCEALPHA = m_alpha->value();
 
-    m_fadingOut = true;
     m_alpha->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadePopupsOut"));
     m_alpha->setValueAndWarp(1.F);
     *m_alpha = 0.F;
+
+    Desktop::fadingOutState()->add(CPopupFadeout::create(m_self.lock(), SNAPSHOT, SOURCEALPHA));
 
     m_mapped = false;
 

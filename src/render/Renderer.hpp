@@ -22,6 +22,7 @@
 #include "./pass/TransformedWindowPassElement.hpp"
 #include "types.hpp"
 #include "../output/Monitor.hpp"
+#include "../desktop/state/Fadeout.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "Renderbuffer.hpp"
 #include "../helpers/time/Timer.hpp"
@@ -92,12 +93,10 @@ namespace Render {
         bool                                isSoftware();
         bool                                isMgpu();
         void                                addWindowToRenderUnfocused(PHLWINDOW window);
-        void                                makeSnapshot(PHLWINDOW);
-        void                                makeSnapshot(PHLLS);
-        void                                makeSnapshot(WP<Desktop::View::CPopup>);
-        void                                renderSnapshot(PHLWINDOW);
-        void                                renderSnapshot(PHLLS);
-        void                                renderSnapshot(WP<Desktop::View::CPopup>);
+        SP<IFramebuffer>                    makeSnapshotFB(PHLWINDOW);
+        SP<IFramebuffer>                    makeSnapshotFB(PHLLS);
+        SP<IFramebuffer>                    makeSnapshotFB(WP<Desktop::View::CPopup>);
+        void                                renderFadeouts(PHLMONITOR monitor, Desktop::eFadeoutPlane plane, PHLWORKSPACE workspace = nullptr);
         bool                                beginFullFakeRender(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb);
         bool                                beginRenderToBuffer(PHLMONITOR pMonitor, CRegion& damage, SP<IHLBuffer> buffer, bool simple = false);
         virtual void                        startRenderPass() {};

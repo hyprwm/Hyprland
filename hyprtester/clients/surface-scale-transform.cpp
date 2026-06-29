@@ -1,0 +1,278 @@
+#include <cstring>
+#include <algorithm>
+#include <fcntl.h>
+#include <format>
+#include <iostream>
+#include <string>
+#include <sys/mman.h>
+#include <unistd.h>
+
+#include <wayland-client.h>
+#include <wayland.hpp>
+#include <xdg-shell.hpp>
+#include <fractional-scale-v1.hpp>
+
+#include <hyprutils/memory/SharedPtr.hpp>
+
+using namespace Hyprutils::Memory;
+
+struct SSurfaceStats {
+    int rootScaleCount      = 0;
+    int rootTransformCount  = 0;
+    int rootFractionCount   = 0;
+    int childScaleCount     = 0;
+    int childTransformCount = 0;
+    int childFractionCount  = 0;
+
+    int rootScale      = -1;
+    int rootTransform  = -1;
+    int rootFraction   = -1;
+    int childScale     = -1;
+    int childTransform = -1;
+    int childFraction  = -1;
+};
+
+struct SWlState {
+    wl_display*                                  display = nullptr;
+
+    CSharedPointer<CCWlRegistry>                 registry;
+    CSharedPointer<CCWlCompositor>               compositor;
+    CSharedPointer<CCWlSubcompositor>            subcompositor;
+    CSharedPointer<CCWlShm>                      shm;
+    CSharedPointer<CCXdgWmBase>                  xdgShell;
+    CSharedPointer<CCWpFractionalScaleManagerV1> fractional;
+
+    CSharedPointer<CCWlSurface>                  surface;
+    CSharedPointer<CCXdgSurface>                 xdgSurface;
+    CSharedPointer<CCXdgToplevel>                xdgToplevel;
+    CSharedPointer<CCWpFractionalScaleV1>        rootFractional;
+    CSharedPointer<CCWlBuffer>                   rootBuffer;
+
+    CSharedPointer<CCWlSurface>                  childSurface;
+    CSharedPointer<CCWlSubsurface>               childSubsurface;
+    CSharedPointer<CCWpFractionalScaleV1>        childFractional;
+    CSharedPointer<CCWlBuffer>                   childBuffer;
+
+    SSurfaceStats                                stats;
+    bool                                         xrgb8888   = false;
+    bool                                         configured = false;
+};
+
+static void sendLine(const std::string& line) {
+    std::cout << line << std::endl;
+}
+
+static CSharedPointer<CCWlBuffer> createBuffer(SWlState& state, int width, int height) {
+    if (!state.xrgb8888)
+        return nullptr;
+
+    const int stride = width * 4;
+    const int size   = stride * height;
+    const int fd     = memfd_create("hyprtester-surface-scale", MFD_CLOEXEC);
+    if (fd < 0)
+        return nullptr;
+
+    if (ftruncate(fd, size) < 0) {
+        close(fd);
+        return nullptr;
+    }
+
+    void* data = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (data == MAP_FAILED) {
+        close(fd);
+        return nullptr;
+    }
+
+    std::memset(data, 0x33, size);
+    munmap(data, size);
+
+    auto pool   = makeShared<CCWlShmPool>(state.shm->sendCreatePool(fd, size));
+    auto buffer = makeShared<CCWlBuffer>(pool->sendCreateBuffer(0, width, height, stride, WL_SHM_FORMAT_XRGB8888));
+    pool->sendDestroy();
+    close(fd);
+
+    return buffer;
+}
+
+static void setSurfaceListeners(CSharedPointer<CCWlSurface> surface, SSurfaceStats& stats, bool child) {
+    surface->setPreferredBufferScale([&stats, child](CCWlSurface*, int32_t scale) {
+        if (child) {
+            stats.childScale = scale;
+            stats.childScaleCount++;
+        } else {
+            stats.rootScale = scale;
+            stats.rootScaleCount++;
+        }
+    });
+
+    surface->setPreferredBufferTransform([&stats, child](CCWlSurface*, uint32_t transform) {
+        if (child) {
+            stats.childTransform = transform;
+            stats.childTransformCount++;
+        } else {
+            stats.rootTransform = transform;
+            stats.rootTransformCount++;
+        }
+    });
+}
+
+static void setFractionalListener(CSharedPointer<CCWpFractionalScaleV1> fractional, SSurfaceStats& stats, bool child) {
+    fractional->setPreferredScale([&stats, child](CCWpFractionalScaleV1*, uint32_t scale) {
+        if (child) {
+            stats.childFraction = scale;
+            stats.childFractionCount++;
+        } else {
+            stats.rootFraction = scale;
+            stats.rootFractionCount++;
+        }
+    });
+}
+
+static bool bindRegistry(SWlState& state) {
+    state.registry = makeShared<CCWlRegistry>((wl_proxy*)wl_display_get_registry(state.display));
+
+    state.registry->setGlobal([&](CCWlRegistry*, uint32_t id, const char* name, uint32_t version) {
+        const std::string NAME = name;
+        if (NAME == "wl_compositor")
+            state.compositor =
+                makeShared<CCWlCompositor>((wl_proxy*)wl_registry_bind((wl_registry*)state.registry->resource(), id, &wl_compositor_interface, std::min<uint32_t>(version, 6)));
+        else if (NAME == "wl_subcompositor")
+            state.subcompositor = makeShared<CCWlSubcompositor>((wl_proxy*)wl_registry_bind((wl_registry*)state.registry->resource(), id, &wl_subcompositor_interface, 1));
+        else if (NAME == "wl_shm")
+            state.shm = makeShared<CCWlShm>((wl_proxy*)wl_registry_bind((wl_registry*)state.registry->resource(), id, &wl_shm_interface, 1));
+        else if (NAME == "xdg_wm_base")
+            state.xdgShell = makeShared<CCXdgWmBase>((wl_proxy*)wl_registry_bind((wl_registry*)state.registry->resource(), id, &xdg_wm_base_interface, 1));
+        else if (NAME == "wp_fractional_scale_manager_v1")
+            state.fractional =
+                makeShared<CCWpFractionalScaleManagerV1>((wl_proxy*)wl_registry_bind((wl_registry*)state.registry->resource(), id, &wp_fractional_scale_manager_v1_interface, 1));
+    });
+
+    state.registry->setGlobalRemove([](CCWlRegistry*, uint32_t) {});
+    wl_display_roundtrip(state.display);
+
+    return state.compositor && state.subcompositor && state.shm && state.xdgShell && state.fractional;
+}
+
+static bool setupToplevel(SWlState& state) {
+    state.shm->setFormat([&](CCWlShm*, uint32_t format) {
+        if (format == WL_SHM_FORMAT_XRGB8888)
+            state.xrgb8888 = true;
+    });
+
+    state.xdgShell->setPing([&](CCXdgWmBase*, uint32_t serial) { state.xdgShell->sendPong(serial); });
+
+    state.surface = makeShared<CCWlSurface>(state.compositor->sendCreateSurface());
+    setSurfaceListeners(state.surface, state.stats, false);
+
+    state.rootFractional = makeShared<CCWpFractionalScaleV1>(state.fractional->sendGetFractionalScale(state.surface->resource()));
+    setFractionalListener(state.rootFractional, state.stats, false);
+
+    state.xdgSurface  = makeShared<CCXdgSurface>(state.xdgShell->sendGetXdgSurface(state.surface->resource()));
+    state.xdgToplevel = makeShared<CCXdgToplevel>(state.xdgSurface->sendGetToplevel());
+
+    state.xdgToplevel->setClose([](CCXdgToplevel*) { exit(0); });
+    state.xdgToplevel->setConfigure([](CCXdgToplevel*, int32_t, int32_t, wl_array*) {});
+    state.xdgSurface->setConfigure([&](CCXdgSurface*, uint32_t serial) {
+        state.xdgSurface->sendAckConfigure(serial);
+        state.configured = true;
+        if (!state.rootBuffer)
+            state.rootBuffer = createBuffer(state, 320, 240);
+        state.surface->sendAttach(state.rootBuffer.get(), 0, 0);
+        state.surface->sendCommit();
+    });
+
+    state.xdgToplevel->sendSetTitle("surface scale transform test");
+    state.xdgToplevel->sendSetAppId("surface-scale-transform");
+    state.surface->sendCommit();
+
+    while (!state.configured && wl_display_dispatch(state.display) != -1) {
+        ;
+    }
+
+    wl_display_roundtrip(state.display);
+    return state.rootBuffer != nullptr;
+}
+
+static bool createChild(SWlState& state) {
+    if (state.childSurface)
+        return true;
+
+    state.childSurface = makeShared<CCWlSurface>(state.compositor->sendCreateSurface());
+    setSurfaceListeners(state.childSurface, state.stats, true);
+
+    state.childFractional = makeShared<CCWpFractionalScaleV1>(state.fractional->sendGetFractionalScale(state.childSurface->resource()));
+    setFractionalListener(state.childFractional, state.stats, true);
+
+    state.childSubsurface = makeShared<CCWlSubsurface>(state.subcompositor->sendGetSubsurface(state.childSurface.get(), state.surface.get()));
+    state.childSubsurface->sendSetPosition(10, 10);
+
+    state.childBuffer = createBuffer(state, 64, 64);
+    if (!state.childBuffer)
+        return false;
+
+    state.childSurface->sendAttach(state.childBuffer.get(), 0, 0);
+    state.childSurface->sendCommit();
+    state.surface->sendCommit();
+
+    wl_display_roundtrip(state.display);
+    return true;
+}
+
+static bool remapRoot(SWlState& state) {
+    state.configured = false;
+    state.surface->sendCommit();
+
+    for (int i = 0; i < 50 && !state.configured; ++i) {
+        if (wl_display_dispatch(state.display) == -1)
+            return false;
+    }
+
+    wl_display_roundtrip(state.display);
+    return state.configured;
+}
+
+static std::string report(const SSurfaceStats& stats) {
+    return std::format("root_scale={} root_scale_count={} root_transform={} root_transform_count={} root_fraction={} root_fraction_count={} child_scale={} child_scale_count={} "
+                       "child_transform={} child_transform_count={} child_fraction={} child_fraction_count={}",
+                       stats.rootScale, stats.rootScaleCount, stats.rootTransform, stats.rootTransformCount, stats.rootFraction, stats.rootFractionCount, stats.childScale,
+                       stats.childScaleCount, stats.childTransform, stats.childTransformCount, stats.childFraction, stats.childFractionCount);
+}
+
+static void handleCommand(SWlState& state, const std::string& command) {
+    wl_display_roundtrip(state.display);
+
+    if (command == "report")
+        sendLine(report(state.stats));
+    else if (command == "unmap") {
+        state.surface->sendAttach(nullptr, 0, 0);
+        state.surface->sendCommit();
+        state.configured = false;
+        wl_display_roundtrip(state.display);
+        sendLine("ok");
+    } else if (command == "remap") {
+        sendLine(remapRoot(state) ? "ok" : "error");
+    } else if (command == "subsurface")
+        sendLine(createChild(state) ? "ok" : "error");
+    else if (command == "exit")
+        exit(0);
+    else
+        sendLine("unknown");
+}
+
+int main() {
+    SWlState state;
+    state.display = wl_display_connect(nullptr);
+    if (!state.display)
+        return 1;
+
+    if (!bindRegistry(state) || !setupToplevel(state))
+        return 1;
+
+    sendLine("started");
+
+    std::string command;
+    while (std::getline(std::cin, command))
+        handleCommand(state, command);
+
+    return 0;
+}

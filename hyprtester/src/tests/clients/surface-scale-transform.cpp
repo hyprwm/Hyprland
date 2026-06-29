@@ -1,0 +1,146 @@
+#include "../../hyprctlCompat.hpp"
+#include "../../Log.hpp"
+#include "../../shared.hpp"
+#include "../shared.hpp"
+#include "build.hpp"
+#include "tests.hpp"
+
+#include <array>
+#include <chrono>
+#include <csignal>
+#include <hyprutils/os/FileDescriptor.hpp>
+#include <hyprutils/os/Process.hpp>
+#include <optional>
+#include <string>
+#include <sys/poll.h>
+#include <thread>
+#include <unistd.h>
+
+using namespace Hyprutils::Memory;
+using namespace Hyprutils::OS;
+
+#define SP CSharedPointer
+
+namespace {
+    class CClient {
+      public:
+        CClient();
+        ~CClient();
+
+        std::string command(const std::string& command);
+
+      private:
+        SP<CProcess>           m_proc;
+        std::array<char, 2048> m_readBuf;
+        CFileDescriptor        m_readFd, m_writeFd;
+        struct pollfd          m_fds = {};
+    };
+}
+
+CClient::CClient() {
+    m_proc = makeShared<CProcess>(binaryDir + "/surface-scale-transform", std::vector<std::string>{});
+    m_proc->addEnv("WAYLAND_DISPLAY", WLDISPLAY);
+
+    int pipeFds1[2], pipeFds2[2];
+    if (pipe(pipeFds1) != 0 || pipe(pipeFds2) != 0)
+        throw std::exception();
+
+    m_writeFd = CFileDescriptor(pipeFds1[1]);
+    m_proc->setStdinFD(pipeFds1[0]);
+
+    m_readFd = CFileDescriptor(pipeFds2[0]);
+    m_proc->setStdoutFD(pipeFds2[1]);
+
+    const int COUNT_BEFORE = Tests::windowCount();
+    m_proc->runAsync();
+
+    close(pipeFds1[0]);
+    close(pipeFds2[1]);
+
+    m_fds = {.fd = m_readFd.get(), .events = POLLIN};
+    if (poll(&m_fds, 1, 3000) != 1 || !(m_fds.revents & POLLIN))
+        throw std::exception();
+
+    m_readBuf.fill(0);
+    if (read(m_readFd.get(), m_readBuf.data(), m_readBuf.size() - 1) == -1)
+        throw std::exception();
+
+    const std::string ret = std::string{m_readBuf.data()};
+    if (!ret.contains("started")) {
+        NLog::log("{}Failed to start surface-scale-transform client, read {}", Colors::RED, ret);
+        throw std::exception();
+    }
+
+    int counter = 0;
+    while (Tests::processAlive(m_proc->pid()) && Tests::windowCount() == COUNT_BEFORE) {
+        counter++;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+        if (counter > 100)
+            throw std::exception();
+    }
+}
+
+CClient::~CClient() {
+    const std::string cmd = "exit\n";
+    write(m_writeFd.get(), cmd.c_str(), cmd.length());
+
+    if (m_proc)
+        kill(m_proc->pid(), SIGKILL);
+}
+
+std::string CClient::command(const std::string& command) {
+    const std::string cmd = command + "\n";
+    if ((size_t)write(m_writeFd.get(), cmd.c_str(), cmd.length()) != cmd.length())
+        return "";
+
+    if (poll(&m_fds, 1, 3000) != 1 || !(m_fds.revents & POLLIN))
+        return "";
+
+    const ssize_t bytesRead = read(m_fds.fd, m_readBuf.data(), m_readBuf.size() - 1);
+    if (bytesRead <= 0)
+        return "";
+
+    m_readBuf[bytesRead] = 0;
+    std::string ret      = std::string{m_readBuf.data()};
+    if (!ret.empty() && ret.back() == '\n')
+        ret.pop_back();
+    return ret;
+}
+
+TEST_CASE(surfaceScaleTransform) {
+    OK(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-2', mode = '1920x1080@60', position = '0x0', scale = '1.5', transform = 0 })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '260' })"));
+
+    std::optional<CClient> client;
+    try {
+        client.emplace();
+    } catch (...) { FAIL_TEST("Couldn't start the surface scale/transform client"); }
+
+    ASSERT_CONTAINS(client->command("report"), "root_scale=2");
+    ASSERT_CONTAINS(client->command("report"), "root_fraction=180");
+    ASSERT_CONTAINS(client->command("report"), "root_transform=0");
+
+    OK(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-2', mode = '1920x1080@60', position = '0x0', scale = '1.5', transform = 1 })"));
+    ASSERT_CONTAINS(client->command("report"), "root_transform=1");
+
+    const auto beforeUnmap = client->command("report");
+    ASSERT_CONTAINS(beforeUnmap, "root_scale_count=");
+
+    ASSERT(client->command("unmap"), "ok");
+    ASSERT(client->command("remap"), "ok");
+    const auto afterRemap = client->command("report");
+    EXPECT_CONTAINS(afterRemap, "root_scale=2");
+    EXPECT_CONTAINS(afterRemap, "root_fraction=180");
+    EXPECT_NOT(afterRemap, beforeUnmap);
+
+    ASSERT(client->command("subsurface"), "ok");
+    const auto withChild = client->command("report");
+    EXPECT_CONTAINS(withChild, "child_scale=2");
+    EXPECT_CONTAINS(withChild, "child_fraction=180");
+    EXPECT_CONTAINS(withChild, "child_transform=1");
+
+    OK(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-2', mode = '1920x1080@60', position = '0x0', scale = '1', transform = 0 })"));
+    Tests::killAllWindows();
+}

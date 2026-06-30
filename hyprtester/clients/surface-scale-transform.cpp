@@ -138,9 +138,13 @@ static bool bindRegistry(SWlState& state) {
                 makeShared<CCWlCompositor>((wl_proxy*)wl_registry_bind((wl_registry*)state.registry->resource(), id, &wl_compositor_interface, std::min<uint32_t>(version, 6)));
         else if (NAME == "wl_subcompositor")
             state.subcompositor = makeShared<CCWlSubcompositor>((wl_proxy*)wl_registry_bind((wl_registry*)state.registry->resource(), id, &wl_subcompositor_interface, 1));
-        else if (NAME == "wl_shm")
+        else if (NAME == "wl_shm") {
             state.shm = makeShared<CCWlShm>((wl_proxy*)wl_registry_bind((wl_registry*)state.registry->resource(), id, &wl_shm_interface, 1));
-        else if (NAME == "xdg_wm_base")
+            state.shm->setFormat([&](CCWlShm*, uint32_t format) {
+                if (format == WL_SHM_FORMAT_XRGB8888)
+                    state.xrgb8888 = true;
+            });
+        } else if (NAME == "xdg_wm_base")
             state.xdgShell = makeShared<CCXdgWmBase>((wl_proxy*)wl_registry_bind((wl_registry*)state.registry->resource(), id, &xdg_wm_base_interface, 1));
         else if (NAME == "wp_fractional_scale_manager_v1")
             state.fractional =
@@ -154,11 +158,6 @@ static bool bindRegistry(SWlState& state) {
 }
 
 static bool setupToplevel(SWlState& state) {
-    state.shm->setFormat([&](CCWlShm*, uint32_t format) {
-        if (format == WL_SHM_FORMAT_XRGB8888)
-            state.xrgb8888 = true;
-    });
-
     state.xdgShell->setPing([&](CCXdgWmBase*, uint32_t serial) { state.xdgShell->sendPong(serial); });
 
     state.surface = makeShared<CCWlSurface>(state.compositor->sendCreateSurface());

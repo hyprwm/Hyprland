@@ -420,6 +420,8 @@ TEST_CASE(workspacesCombined) {
 
     OK(getFromSocket("/reload"));
 
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+
     NLog::log("{}Spawning kittyProc on ws 1", Colors::YELLOW);
     auto kittyProcA = Tests::spawnKitty();
 

@@ -10,6 +10,7 @@
 #include <csignal>
 #include <hyprutils/os/FileDescriptor.hpp>
 #include <hyprutils/os/Process.hpp>
+#include <hyprutils/utils/ScopeGuard.hpp>
 #include <optional>
 #include <string>
 #include <sys/poll.h>
@@ -18,6 +19,7 @@
 
 using namespace Hyprutils::Memory;
 using namespace Hyprutils::OS;
+using namespace Hyprutils::Utils;
 
 #define SP CSharedPointer
 
@@ -109,6 +111,11 @@ std::string CClient::command(const std::string& command) {
 }
 
 TEST_CASE(surfaceScaleTransform) {
+    CScopeGuard guard = {[&]() {
+        OK(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-2', mode = '1920x1080@60', position = '0x0', scale = '1', transform = 0 })"));
+        Tests::killAllWindows();
+    }};
+
     OK(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-2', mode = '1920x1080@60', position = '0x0', scale = '1.5', transform = 0 })"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '260' })"));

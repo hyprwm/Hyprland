@@ -10,6 +10,7 @@
 #include "../../../../layout/algorithm/tiled/scrolling/ScrollingFullscreenHandler.hpp"
 #include "../../../../layout/algorithm/tiled/scrolling/ScrollingAlgorithm.hpp"
 #include "../../../../layout/target/WindowGroupTarget.hpp"
+#include "../../../../config/supplementary/propRefresher/PropRefresher.hpp"
 
 using namespace Fullscreen;
 using namespace Fullscreen::ScrollingFullscreenHandler;
@@ -590,6 +591,45 @@ eFullscreenHandler CScrollingFullscreenHandler::getFullscreenHandlerName() const
 
 
 void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layout::Tiled::SScrollingTargetData> CURRENT_FS_TDATA, const PHLMONITOR MONITOR, const bool TARGET_WORKSPACE_HAS_FS) {
+
+
+    // TODO Decouple FS logic from SScrollingData::recalculate() to avoid having to schedule a prop refresh: it has to be here and it's a mess because recalculate() handled scrolling
+    // onto/away from FS windows and this process doesn't call the controller's FS setters which are normally responsible for handling window rule checks.
+
+    /*
+        Handle window rules - those that only apply when there's a covering FS window
+        
+        Newly FSed or scrolling away from an FS window:
+            If there's a new FS window
+            If the old FS window is no longer FS (this function is responsible for calling the function that would sync that state so at this point, the old value is still saved as 'FS')
+
+        In prop refresh event's call of this function, this part should return false as the states above should be synced already.
+    */
+    if ((TARGET_WORKSPACE_HAS_FS && CURRENT_FS_TDATA && CURRENT_FS_TDATA->target && CURRENT_FS_TDATA->target->window() != m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow) || (m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow && !TARGET_WORKSPACE_HAS_FS)) {
+
+        
+        if (m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow) {
+            const auto LAST_FS_WINDOW = m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow.lock();
+            LAST_FS_WINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
+                                                    Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
+            LAST_FS_WINDOW->updateDecorationValues();
+            g_pDecorationPositioner->onWindowUpdate(LAST_FS_WINDOW);
+        }
+        if (CURRENT_FS_TDATA && CURRENT_FS_TDATA->target && CURRENT_FS_TDATA->target->window()) {
+            const auto LAST_FS_WINDOW = CURRENT_FS_TDATA->target->window();
+            LAST_FS_WINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
+                                        Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
+            LAST_FS_WINDOW->updateDecorationValues();
+            g_pDecorationPositioner->onWindowUpdate(LAST_FS_WINDOW);
+        }
+
+        // normally, FS controller's FS state setter's method of handling window rules should be used; but calling g_layoutManager->recalculateMonitor(MONITOR) here would lead to an inf recursion
+        // so we enqueue a prop refresh instead to handle this in the next event.
+        // Concern: if the user executes a premature prop refresh, this might cause another prop refresh to be enqueud - though this is unlikely and would only occur in the event of a bug
+
+        Config::Supplementary::refresher()->scheduleRefresh(Config::Supplementary::REFRESH_WINDOW_STATES | Config::Supplementary::REFRESH_MONITOR_STATES);
+
+    }
 
     /* Setting DSO and VRR */
 

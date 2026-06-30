@@ -109,6 +109,35 @@ static bool pollDisplay(SWlState& state, int timeoutMs) {
     return wl_display_dispatch_pending(state.display) != -1;
 }
 
+template <typename F>
+static bool waitForDisplayState(SWlState& state, F&& predicate, int attempts, int timeoutMs) {
+    for (int i = 0; i < attempts && !predicate(); ++i) {
+        if (!pollDisplay(state, timeoutMs))
+            return false;
+    }
+
+    return predicate();
+}
+
+static std::string bindError(const SWlState& state) {
+    std::string ret;
+
+    if (!state.compositor)
+        ret += " wl_compositor";
+    if (!state.subcompositor)
+        ret += " wl_subcompositor";
+    if (!state.shm)
+        ret += " wl_shm";
+    if (!state.xdgShell)
+        ret += " xdg_wm_base";
+    if (!state.fractional)
+        ret += " wp_fractional_scale_manager_v1";
+    if (state.shm && !state.xrgb8888)
+        ret += " xrgb8888";
+
+    return ret.empty() ? "dispatch" : ret.substr(1);
+}
+
 static CSharedPointer<CCWlBuffer> createBuffer(SWlState& state, int width, int height) {
     if (!state.xrgb8888)
         return nullptr;
@@ -201,15 +230,8 @@ static bool bindRegistry(SWlState& state) {
     });
 
     state.registry->setGlobalRemove([](CCWlRegistry*, uint32_t) {});
-    if (wl_display_roundtrip(state.display) == -1)
-        return false;
-
-    for (int i = 0; i < 10 && !state.xrgb8888; ++i) {
-        if (wl_display_roundtrip(state.display) == -1)
-            return false;
-    }
-
-    return state.compositor && state.subcompositor && state.shm && state.xdgShell && state.fractional && state.xrgb8888;
+    return waitForDisplayState(
+        state, [&state]() { return state.compositor && state.subcompositor && state.shm && state.xdgShell && state.fractional && state.xrgb8888; }, 100, 100);
 }
 
 static bool setupToplevel(SWlState& state) {
@@ -258,20 +280,13 @@ static bool setupToplevel(SWlState& state) {
     state.xdgToplevel->sendSetAppId("surface-scale-transform");
     state.surface->sendCommit();
 
-    for (int i = 0; i < 50 && !state.configured; ++i) {
-        if (!pollDisplay(state, 100)) {
-            state.setupError = "dispatch";
-            return false;
-        }
-    }
-
-    if (!state.configured) {
+    if (!waitForDisplayState(state, [&state]() { return state.configured; }, 100, 100)) {
         state.setupError = "timeout";
         return false;
     }
 
-    if (wl_display_roundtrip(state.display) == -1) {
-        state.setupError = "roundtrip";
+    if (!waitForDisplayState(state, [&state]() { return state.stats.rootScale != -1 && state.stats.rootTransform != -1 && state.stats.rootFraction != -1; }, 100, 100)) {
+        state.setupError = "surface-events";
         return false;
     }
 
@@ -302,14 +317,14 @@ static bool createChild(SWlState& state) {
     state.childSurface->sendCommit();
     state.surface->sendCommit();
 
-    wl_display_roundtrip(state.display);
-    return true;
+    return waitForDisplayState(state, [&state]() { return state.stats.childScale != -1 && state.stats.childTransform != -1 && state.stats.childFraction != -1; }, 100, 100);
 }
 
 static bool remapRoot(SWlState& state) {
     state.surface->sendAttach(state.rootBuffer.get(), 0, 0);
     state.surface->sendCommit();
-    return wl_display_roundtrip(state.display) != -1;
+
+    return pollDisplay(state, 100);
 }
 
 static std::string report(const SSurfaceStats& stats) {
@@ -320,7 +335,7 @@ static std::string report(const SSurfaceStats& stats) {
 }
 
 static void handleCommand(SWlState& state, const std::string& command) {
-    wl_display_roundtrip(state.display);
+    pollDisplay(state, 100);
 
     if (command == "report")
         sendLine(report(state.stats));
@@ -328,7 +343,7 @@ static void handleCommand(SWlState& state, const std::string& command) {
         state.surface->sendAttach(nullptr, 0, 0);
         state.surface->sendCommit();
         state.configured = false;
-        wl_display_roundtrip(state.display);
+        pollDisplay(state, 100);
         sendLine("ok");
     } else if (command == "remap") {
         sendLine(remapRoot(state) ? "ok" : "error");
@@ -349,7 +364,7 @@ int main() {
     }
 
     if (!bindRegistry(state)) {
-        sendLine("error bind");
+        sendLine(std::format("error bind {}", bindError(state)));
         return 1;
     }
 

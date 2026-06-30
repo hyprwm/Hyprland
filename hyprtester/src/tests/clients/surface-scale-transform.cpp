@@ -6,13 +6,16 @@
 #include "tests.hpp"
 
 #include <array>
+#include <cerrno>
 #include <chrono>
 #include <csignal>
+#include <cstring>
 #include <format>
 #include <hyprutils/os/FileDescriptor.hpp>
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <sys/poll.h>
 #include <unistd.h>
@@ -60,7 +63,7 @@ CClient::CClient() {
 
     int pipeFds1[2], pipeFds2[2];
     if (pipe(pipeFds1) != 0 || pipe(pipeFds2) != 0)
-        throw std::exception();
+        throw std::runtime_error(std::format("pipe failed: {}", strerror(errno)));
 
     m_writeFd = CFileDescriptor(pipeFds1[1]);
     m_proc->setStdinFD(pipeFds1[0]);
@@ -76,22 +79,30 @@ CClient::CClient() {
 
     m_fds         = {.fd = m_readFd.get(), .events = POLLIN};
     m_fds.revents = 0;
-    if (poll(&m_fds, 1, 10000) != 1 || !(m_fds.revents & POLLIN))
-        throw std::exception();
+    int pollRet   = 0;
+    do {
+        pollRet = poll(&m_fds, 1, 30000);
+    } while (pollRet == -1 && errno == EINTR);
+
+    if (pollRet != 1 || !(m_fds.revents & POLLIN))
+        throw std::runtime_error(std::format("startup stdout poll failed: ret={} revents={} alive={} pid={} binary={}", pollRet, m_fds.revents, Tests::processAlive(m_proc->pid()),
+                                             m_proc->pid(), binaryDir + "/surface-scale-transform"));
 
     m_readBuf.fill(0);
-    if (read(m_readFd.get(), m_readBuf.data(), m_readBuf.size() - 1) == -1)
-        throw std::exception();
+    const ssize_t bytesRead = read(m_readFd.get(), m_readBuf.data(), m_readBuf.size() - 1);
+    if (bytesRead <= 0)
+        throw std::runtime_error(std::format("startup stdout read failed: bytes={} errno={} ({}) revents={} alive={} pid={}", bytesRead, errno, strerror(errno), m_fds.revents,
+                                             Tests::processAlive(m_proc->pid()), m_proc->pid()));
 
     const std::string ret = std::string{m_readBuf.data()};
     if (!ret.contains("started")) {
         NLog::log("{}Failed to start surface-scale-transform client, read {}", Colors::RED, ret);
-        throw std::exception();
+        throw std::runtime_error(std::format("client reported '{}'", ret));
     }
 
     if (!waitForClientWindow(m_proc->pid(), 10000)) {
         NLog::log("{}Timed out waiting for surface-scale-transform window. count before: {}, count after: {}", Colors::RED, COUNT_BEFORE, Tests::windowCount());
-        throw std::exception();
+        throw std::runtime_error(std::format("window did not appear for pid {}, count before {}, count after {}", m_proc->pid(), COUNT_BEFORE, Tests::windowCount()));
     }
 }
 
@@ -138,6 +149,21 @@ static std::string waitCommandContains(CClient& client, const std::string& comma
     return ret;
 }
 
+static std::string waitCommandDiffers(CClient& client, const std::string& command, const std::string& previous) {
+    std::string ret;
+    const auto  deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+
+    while (std::chrono::steady_clock::now() < deadline) {
+        ret = client.command(command);
+        if (ret != previous)
+            return ret;
+
+        getFromSocket("/version");
+    }
+
+    return ret;
+}
+
 TEST_CASE(surfaceScaleTransform) {
     CScopeGuard guard = {[&]() {
         OK(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-2', mode = '1920x1080@60', position = '0x0', scale = '1', transform = 0 })"));
@@ -151,7 +177,7 @@ TEST_CASE(surfaceScaleTransform) {
     std::optional<CClient> client;
     try {
         client.emplace();
-    } catch (...) { FAIL_TEST("Couldn't start the surface scale/transform client"); }
+    } catch (const std::exception& e) { FAIL_TEST("Couldn't start the surface scale/transform client: {}", e.what()); }
 
     ASSERT_CONTAINS(client->command("report"), "root_scale=2");
     ASSERT_CONTAINS(client->command("report"), "root_fraction=180");
@@ -165,7 +191,7 @@ TEST_CASE(surfaceScaleTransform) {
 
     ASSERT(client->command("unmap"), "ok");
     ASSERT(client->command("remap"), "ok");
-    const auto afterRemap = client->command("report");
+    const auto afterRemap = waitCommandDiffers(*client, "report", beforeUnmap);
     EXPECT_CONTAINS(afterRemap, "root_scale=2");
     EXPECT_CONTAINS(afterRemap, "root_fraction=180");
     EXPECT_NOT(afterRemap, beforeUnmap);

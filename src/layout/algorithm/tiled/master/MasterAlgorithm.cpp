@@ -508,7 +508,7 @@ void CMasterAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir
 void CMasterAlgorithm::recalculate(eRecalculateReason reason) {
     calculateWorkspace();
 
-    // TODO: Patch - make changes inside calculateWorkspace to make this part redundant
+    // TODO: Re-Setting FS size/pos values after calculateWorkspace overwrote them: Patch - make changes inside calculateWorkspace to make this part redundant
     if (!m_parent->space()->workspace() || !m_parent->space()->workspace()->m_monitor)
         return;
 

@@ -560,6 +560,7 @@ void SScrollingData::recalculate(bool forceInstant) {
                 TDATA->layoutBox = controller->calculateTargetBox(i, j, USABLE, WORKAREA.pos(), *PFSONONE);
 
             if (TDATA->target)
+                // If individual window, sets windowTarget's pos. If group, sets windowGroupTarget's pos.
                 TDATA->target->setPositionGlobal(targetBoxWithGaps(TDATA->layoutBox, i, j, COL_HAS_FS_TARGET && TARGET_FS_MODE == Fullscreen::FSMODE_FULLSCREEN));
 
             if (forceInstant && TDATA->target)

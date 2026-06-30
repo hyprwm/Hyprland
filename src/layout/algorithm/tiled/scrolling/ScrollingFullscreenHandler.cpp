@@ -128,6 +128,11 @@ SFullscreenMode CScrollingFullscreenHandler::getFullscreenModes(SP<Layout::ITarg
 
 
 eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SFullscreenRequest& request) {
+
+    /*
+        Setting global position is done in SScrollingData::recalculate()
+    */
+
     if (!request.target || !getSpace() || request.target->space() != getSpace() || !m_scrollingAlgorithm->dataFor(request.target, true) || !request.target->window() ||
         !request.target->window()->m_workspace || !request.target->window()->m_workspace->m_monitor)
         return FULLSCREEN_REQUEST_FAILED;

@@ -72,7 +72,7 @@ namespace Fullscreen {
       Controller does NOT accept window groups as parameters - pass the current window instead.
       Handlers accept windowGroup targets for FS state getters (NOT for FS state setters), but they implicitly check the currently active window in the window group - not the group as a whole.
 
-
+      Important: window group targets have their own targetBox! this needs to be set separately from the window's
 
       Fullscreen Handlers
       -------------------

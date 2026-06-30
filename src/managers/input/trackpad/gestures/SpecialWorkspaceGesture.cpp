@@ -5,6 +5,8 @@
 #include "../../../../desktop/state/FocusState.hpp"
 #include "../../../../render/Renderer.hpp"
 
+#include <cmath>
+
 #include <hyprutils/memory/Casts.hpp>
 using namespace Hyprutils::Memory;
 
@@ -16,10 +18,6 @@ static Vector2D lerpVal(const Vector2D& from, const Vector2D& to, const float& t
         from.x + ((to.x - from.x) * t),
         from.y + ((to.y - from.y) * t),
     };
-}
-
-static float lerpVal(const float& from, const float& to, const float& t) {
-    return from + ((to - from) * t);
 }
 
 CSpecialWorkspaceGesture::CSpecialWorkspaceGesture(const std::string& workspaceName) : m_specialWorkspaceName(workspaceName) {
@@ -83,10 +81,10 @@ void CSpecialWorkspaceGesture::update(const ITrackpadGesture::STrackpadGestureUp
 
     const auto FADEPERCENT = m_animatingOut ? 1.F - std::clamp(m_lastDelta / MAX_DISTANCE, 0.F, 1.F) : std::clamp(m_lastDelta / MAX_DISTANCE, 0.F, 1.F);
 
-    m_monitor->m_specialFade->setValueAndWarp(lerpVal(m_monitorFadeFrom, m_monitorFadeTo, FADEPERCENT));
-    m_monitor->m_specialDim->setValueAndWarp(lerpVal(m_monitorDimFrom, m_monitorDimTo, FADEPERCENT));
-    m_monitor->m_specialBlur->setValueAndWarp(lerpVal(m_monitorBlurFrom, m_monitorBlurTo, FADEPERCENT));
-    m_specialWorkspace->m_alpha->setValueAndWarp(lerpVal(m_workspaceAlphaFrom, m_workspaceAlphaTo, FADEPERCENT));
+    m_monitor->m_specialFade->setValueAndWarp(std::lerp(m_monitorFadeFrom, m_monitorFadeTo, FADEPERCENT));
+    m_monitor->m_specialDim->setValueAndWarp(std::lerp(m_monitorDimFrom, m_monitorDimTo, FADEPERCENT));
+    m_monitor->m_specialBlur->setValueAndWarp(std::lerp(m_monitorBlurFrom, m_monitorBlurTo, FADEPERCENT));
+    m_specialWorkspace->m_alpha->setValueAndWarp(std::lerp(m_workspaceAlphaFrom, m_workspaceAlphaTo, FADEPERCENT));
     m_specialWorkspace->m_renderOffset->setValueAndWarp(lerpVal(m_workspaceOffsetFrom, m_workspaceOffsetTo, FADEPERCENT));
 }
 

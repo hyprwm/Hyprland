@@ -9,6 +9,8 @@
 #include "../../../../desktop/state/FocusState.hpp"
 #include "../../../../layout/target/Target.hpp"
 
+#include <cmath>
+
 using namespace Desktop::View;
 
 constexpr const float                   MAX_DISTANCE = 200.F;
@@ -21,10 +23,6 @@ static Vector2D lerpVal(const Vector2D& from, const Vector2D& to, const float& t
         from.x + ((to.x - from.x) * t),
         from.y + ((to.y - from.y) * t),
     };
-}
-
-static float lerpVal(const float& from, const float& to, const float& t) {
-    return from + ((to - from) * t);
 }
 
 void CCloseTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
@@ -63,7 +61,7 @@ void CCloseTrackpadGesture::update(const ITrackpadGesture::STrackpadGestureUpdat
 
     const auto FADEPERCENT = std::clamp(m_lastDelta / MAX_DISTANCE, 0.F, 1.F);
 
-    m_window->alpha(WINDOW_ALPHA_FADE)->setValueAndWarp(lerpVal(m_alphaFrom, m_alphaTo, FADEPERCENT));
+    m_window->alpha(WINDOW_ALPHA_FADE)->setValueAndWarp(std::lerp(m_alphaFrom, m_alphaTo, FADEPERCENT));
     m_window->m_realPosition->setValueAndWarp(lerpVal(m_posFrom, m_posTo, FADEPERCENT));
     m_window->m_realSize->setValueAndWarp(lerpVal(m_sizeFrom, m_sizeTo, FADEPERCENT));
 

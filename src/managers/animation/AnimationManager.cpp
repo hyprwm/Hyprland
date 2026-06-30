@@ -16,6 +16,7 @@
 #include <hyprgraphics/color/Color.hpp>
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <hyprutils/animation/AnimationManager.hpp>
+#include <cmath>
 
 static int wlTick(SP<CEventLoopTimer> self, void* data) {
     if (g_pAnimationManager)
@@ -56,15 +57,13 @@ static void updateColorVariable(CAnimatedVariable<CHyprColor>& av, const float P
     const auto&                L1 = av.begun().asOkLab();
     const auto&                L2 = av.goal().asOkLab();
 
-    static const auto          lerp = [](const float one, const float two, const float progress) -> float { return one + ((two - one) * progress); };
-
     const Hyprgraphics::CColor lerped = Hyprgraphics::CColor::SOkLab{
-        .l = lerp(L1.l, L2.l, POINTY),
-        .a = lerp(L1.a, L2.a, POINTY),
-        .b = lerp(L1.b, L2.b, POINTY),
+        .l = std::lerp(L1.l, L2.l, POINTY),
+        .a = std::lerp(L1.a, L2.a, POINTY),
+        .b = std::lerp(L1.b, L2.b, POINTY),
     };
 
-    av.value() = {lerped, lerp(av.begun().a, av.goal().a, POINTY)};
+    av.value() = {lerped, std::lerp(av.begun().a, av.goal().a, POINTY)};
 }
 
 static SAnimationContext& getContext(Hyprutils::Animation::CBaseAnimatedVariable* pAV) {

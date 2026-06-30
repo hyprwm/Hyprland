@@ -111,7 +111,7 @@ namespace Fullscreen {
         bool            isFullscreen(const PHLWINDOW window, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = std::nullopt);
         /// @warning considers both internal and client FS modes of window
         SFullscreenMode getFullscreenModes(const PHLWINDOW window);
-        bool            layoutManagedFS(const PHLWINDOW window); // TODO: use the handler to judge - delete this todo after implemented
+        bool            layoutManagedFS(const PHLWINDOW window);
 
         // ERSTARR TODO - if covering is true; need to check if floating algo has FS first, THEN the default handler of a layout handler. ONLY after that check the layout handler.
 

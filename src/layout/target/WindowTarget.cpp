@@ -43,9 +43,7 @@ void CWindowTarget::updatePos() {
     g_pHyprRenderer->damageWindow(m_window.lock());
     CScopeGuard x([this] { g_pHyprRenderer->damageWindow(m_window.lock()); });
 
-    const bool  CONFIGURECLIENT = !(flags & TARGET_UPDATE_NO_CLIENT_CONFIGURE);
-
-    if (!m_space)
+    if (!m_space || !m_window)
         return;
 
 
@@ -71,8 +69,9 @@ void CWindowTarget::updatePos() {
         return;
     }
 
-
-
+    // Default handled maximised window (Tiled or floating)
+    if (g_pfullscreenController->getFullscreenModes(m_window.lock()).internal == Fullscreen::FSMODE_MAXIMIZED && !g_pfullscreenController->layoutManagedFS(m_window.lock()))
+        ITarget::setPositionGlobal({.logicalBox = m_space->workArea(floating())});
 
 
 
@@ -122,10 +121,6 @@ void CWindowTarget::updatePos() {
             m_window->sendWindowSize();
         return;
     }
-
-    // Default handled maximised window (Tiled or floating)
-    if (g_pfullscreenController->getFullscreenModes(m_window.lock()).internal == Fullscreen::FSMODE_MAXIMIZED && !g_pfullscreenController->layoutManagedFS(m_window.lock()))
-        ITarget::setPositionGlobal({.logicalBox = m_space->workArea(floating())});
 
 
     // Tiled non-FS windows

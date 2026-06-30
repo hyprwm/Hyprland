@@ -85,6 +85,7 @@ eFullscreenRequestResult IFullscreenHandler::requestFullscreen(const SFullscreen
         return FULLSCREEN_REQUEST_FAILED;
 
     const auto TARGET    = request.target;
+    const auto GROUP_TARGET                         = request.target->window()->m_group ? request.target->window()->m_group->m_target : nullptr;
     const auto WINDOW    = TARGET->window();
     const auto WORKSPACE = TARGET->workspace();
     const auto MONITOR   = WORKSPACE->m_monitor;
@@ -92,13 +93,13 @@ eFullscreenRequestResult IFullscreenHandler::requestFullscreen(const SFullscreen
     setTargetFullscreenModeInternal(TARGET, request.mode);
 
     // save covering FS window if mode isn't FSMODE_NONE
-    // set window size and pos
+    // If individual window, sets windowTarget's pos. If group, sets windowGroupTarget's pos.
     if (request.mode == FSMODE_FULLSCREEN) {
         const CBox MONBOX = MONITOR->logicalBox();
-        TARGET->setPositionGlobal(MONBOX);
+        (GROUP_TARGET ? GROUP_TARGET : TARGET)->setPositionGlobal(MONBOX);
     } else if (request.mode == FSMODE_MAXIMIZED) {
         const CBox WORKAREA = WORKSPACE->m_space->workArea(TARGET->floating());
-        TARGET->setPositionGlobal(WORKAREA);
+        (GROUP_TARGET ? GROUP_TARGET : TARGET)->setPositionGlobal(WORKAREA);
     }
 
     setNoMembersAboveFullscreen();

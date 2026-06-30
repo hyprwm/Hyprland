@@ -1,10 +1,14 @@
 #include "SurfaceStateQueue.hpp"
 #include "../core/Compositor.hpp"
+#include "../PresentationTime.hpp"
 #include "SurfaceState.hpp"
 
 CSurfaceStateQueue::CSurfaceStateQueue(WP<CWLSurfaceResource> surf) : m_surface(std::move(surf)) {}
 
 void CSurfaceStateQueue::clear() {
+    for (auto& state : m_queue)
+        PROTO::presentation->discardFeedbacks(state->presentationFeedbacks);
+
     m_queue.clear();
 }
 
@@ -16,6 +20,8 @@ void CSurfaceStateQueue::dropState(const WP<SSurfaceState>& state) {
     auto it = find(state);
     if (it == m_queue.end())
         return;
+
+    PROTO::presentation->discardFeedbacks((*it)->presentationFeedbacks);
 
     m_queue.erase(it);
 }

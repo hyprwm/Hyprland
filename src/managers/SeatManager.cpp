@@ -216,7 +216,7 @@ void CSeatManager::sendKeyboardMods(uint32_t depressed, uint32_t latched, uint32
     }
 }
 
-void CSeatManager::setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& local) {
+void CSeatManager::setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& local, bool preserveButtons) {
     const bool dndActive = PROTO::data && PROTO::data->dndActive();
 
     if (m_state.pointerFocus == surf)
@@ -242,7 +242,7 @@ void CSeatManager::setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& 
         if (!p)
             continue;
 
-        p->sendLeave();
+        p->sendLeave(preserveButtons);
     }
 
     auto lastPointerFocusResource = m_state.pointerFocusResource;
@@ -318,6 +318,19 @@ void CSeatManager::sendPointerButton(uint32_t timeMs, uint32_t key, wl_pointer_b
             p->sendButton(timeMs, key, state_);
         }
     }
+}
+
+SP<CWLSurfaceResource> CSeatManager::preservedPointerButtonSurface(uint32_t button) const {
+    for (const auto& pointer : PROTO::seat->m_pointers) {
+        if (!pointer)
+            continue;
+
+        const auto SURFACE = pointer->preservedButtonSurface(button);
+        if (SURFACE)
+            return SURFACE;
+    }
+
+    return nullptr;
 }
 
 void CSeatManager::sendPointerFrame() {

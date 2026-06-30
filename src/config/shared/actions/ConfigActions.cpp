@@ -1431,23 +1431,24 @@ ActionResult Actions::denyWindowFromGroup(eTogglableAction action) {
 }
 
 ActionResult Actions::pass(std::optional<PHLWINDOW> w) {
-    auto window = xtract(w);
-    if (!window)
+    const auto& S                = *Config::Actions::state();
+    const auto  PRESERVEDSURFACE = S.m_lastCode == 0 && S.m_passPressed == 0 ? g_pSeatManager->preservedPointerButtonSurface(S.m_lastMouseCode) : nullptr;
+    auto        window           = xtract(w);
+    if (!window && !PRESERVEDSURFACE)
         return {};
 
     if (!g_pSeatManager->m_keyboard)
         return actionError("No keyboard connected", eActionErrorLevel::INFO, eActionErrorCode::NO_TARGET);
 
-    const auto& S             = *Config::Actions::state();
-    const auto  XWTOXW        = window->m_isX11 && Desktop::focusState()->window() && Desktop::focusState()->window()->m_isX11;
-    const auto  LASTMOUSESURF = g_pSeatManager->m_state.pointerFocus.lock();
-    const auto  LASTKBSURF    = g_pSeatManager->m_state.keyboardFocus.lock();
+    const auto XWTOXW        = window && window->m_isX11 && Desktop::focusState()->window() && Desktop::focusState()->window()->m_isX11;
+    const auto LASTMOUSESURF = g_pSeatManager->m_state.pointerFocus.lock();
+    const auto LASTKBSURF    = g_pSeatManager->m_state.keyboardFocus.lock();
 
     if (!XWTOXW) {
         if (S.m_lastCode != 0)
             g_pSeatManager->setKeyboardFocus(window->wlSurface()->resource());
         else
-            g_pSeatManager->setPointerFocus(window->wlSurface()->resource(), {1, 1});
+            g_pSeatManager->setPointerFocus(PRESERVEDSURFACE ? PRESERVEDSURFACE : window->wlSurface()->resource(), {1, 1}, true);
     }
 
     g_pSeatManager->sendKeyboardMods(g_pInputManager->getModsFromAllKBs(), 0, 0, 0);
@@ -1475,7 +1476,7 @@ ActionResult Actions::pass(std::optional<PHLWINDOW> w) {
     if (XWTOXW)
         return {};
 
-    if (window->m_isX11) {
+    if (window && window->m_isX11) {
         if (S.m_lastCode != 0) {
             g_pSeatManager->m_state.keyboardFocus.reset();
             g_pSeatManager->m_state.keyboardFocusResource.reset();
@@ -1485,37 +1486,37 @@ ActionResult Actions::pass(std::optional<PHLWINDOW> w) {
         }
     }
 
-    const auto SL = window->m_realPosition->goal() - g_pInputManager->getMouseCoordsInternal();
+    const auto SL = window ? window->m_realPosition->goal() - g_pInputManager->getMouseCoordsInternal() : Vector2D{};
 
     if (S.m_lastCode != 0)
         g_pSeatManager->setKeyboardFocus(LASTKBSURF);
     else
-        g_pSeatManager->setPointerFocus(LASTMOUSESURF, SL);
+        g_pSeatManager->setPointerFocus(LASTMOUSESURF, SL, true);
 
     return {};
 }
 
 ActionResult Actions::pass(uint32_t modMask, uint32_t key, std::optional<PHLWINDOW> w) {
-    auto        window = xtract(w);
+    const auto& S                = *Config::Actions::state();
+    const bool  isMouse          = key >= 272 && key < 0x160; // mouse button range
+    const auto  LASTSURFACE      = Desktop::focusState()->surface();
+    const auto  PRESERVEDSURFACE = isMouse && S.m_passPressed == 0 ? g_pSeatManager->preservedPointerButtonSurface(key) : nullptr;
+    auto        window           = xtract(w);
 
-    const auto& S           = *Config::Actions::state();
-    const bool  isMouse     = key >= 272 && key < 0x160; // mouse button range
-    const auto  LASTSURFACE = Desktop::focusState()->surface();
-
-    if (window) {
+    if (window || PRESERVEDSURFACE) {
         if (!g_pSeatManager->m_keyboard)
             return actionError("No keyboard connected", eActionErrorLevel::INFO, eActionErrorCode::NO_TARGET);
 
         if (!isMouse)
             g_pSeatManager->setKeyboardFocus(window->wlSurface()->resource());
         else
-            g_pSeatManager->setPointerFocus(window->wlSurface()->resource(), {1, 1});
+            g_pSeatManager->setPointerFocus(PRESERVEDSURFACE ? PRESERVEDSURFACE : window->wlSurface()->resource(), {1, 1}, true);
 
         // if wl -> xwl, activate destination
-        if (window->m_isX11 && Desktop::focusState()->window() && !Desktop::focusState()->window()->m_isX11)
+        if (window && window->m_isX11 && Desktop::focusState()->window() && !Desktop::focusState()->window()->m_isX11)
             g_pXWaylandManager->activateSurface(window->wlSurface()->resource(), true);
         // if xwl -> xwl, send to current
-        if (window->m_isX11 && Desktop::focusState()->window() && Desktop::focusState()->window()->m_isX11)
+        if (window && window->m_isX11 && Desktop::focusState()->window() && Desktop::focusState()->window()->m_isX11)
             window = nullptr;
     }
 
@@ -1543,10 +1544,10 @@ ActionResult Actions::pass(uint32_t modMask, uint32_t key, std::optional<PHLWIND
 
     g_pSeatManager->sendKeyboardMods(0, 0, 0, 0);
 
-    if (!window)
+    if (!window && !PRESERVEDSURFACE)
         return {};
 
-    if (window->m_isX11) {
+    if (window && window->m_isX11) {
         if (!isMouse) {
             g_pSeatManager->m_state.keyboardFocus.reset();
             g_pSeatManager->m_state.keyboardFocusResource.reset();
@@ -1556,12 +1557,12 @@ ActionResult Actions::pass(uint32_t modMask, uint32_t key, std::optional<PHLWIND
         }
     }
 
-    const auto SL = window->m_realPosition->goal() - g_pInputManager->getMouseCoordsInternal();
+    const auto SL = window ? window->m_realPosition->goal() - g_pInputManager->getMouseCoordsInternal() : Vector2D{};
 
     if (!isMouse)
         g_pSeatManager->setKeyboardFocus(LASTSURFACE);
     else
-        g_pSeatManager->setPointerFocus(LASTSURFACE, SL);
+        g_pSeatManager->setPointerFocus(LASTSURFACE, SL, true);
 
     return {};
 }

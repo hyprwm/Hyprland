@@ -40,12 +40,29 @@ void CWindowTarget::setPositionGlobal(const STargetBox& box, uint8_t flags) {
 }
 
 void CWindowTarget::updatePos() {
+
+    if (!m_window)
+        return;
+    
     g_pHyprRenderer->damageWindow(m_window.lock());
     CScopeGuard x([this] { g_pHyprRenderer->damageWindow(m_window.lock()); });
 
-    if (!m_space || !m_window)
+    if (!m_space || !m_space->workspace())
         return;
 
+    const auto PMONITOR         = m_space->workspace()->m_monitor;
+    const auto PWORKSPACE       = m_space->workspace();
+    const auto MONITOR_WORKAREA = m_space->workArea();
+
+    // get specific gaps and rules for this workspace,
+    // if user specified them in config
+    const auto WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(PWORKSPACE);
+
+    if (!validMapped(m_window)) {
+        if (m_window)
+            g_layoutManager->removeTarget(m_window->layoutTarget());
+        return;
+    }
 
     // Non-FS Floating Windows
     if (floating() && m_window && !g_pfullscreenController->isFullscreen(m_window.lock())) {
@@ -69,29 +86,6 @@ void CWindowTarget::updatePos() {
         return;
     }
 
-    // Default handled maximised window (Tiled or floating)
-    if (g_pfullscreenController->getFullscreenModes(m_window.lock()).internal == Fullscreen::FSMODE_MAXIMIZED && !g_pfullscreenController->layoutManagedFS(m_window.lock()))
-        ITarget::setPositionGlobal({.logicalBox = m_space->workArea(floating())});
-
-
-
-    if (!m_space->workspace())
-        return;
-
-    const auto PMONITOR         = m_space->workspace()->m_monitor;
-    const auto PWORKSPACE       = m_space->workspace();
-    const auto MONITOR_WORKAREA = m_space->workArea();
-
-    // get specific gaps and rules for this workspace,
-    // if user specified them in config
-    const auto WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(PWORKSPACE);
-
-    if (!validMapped(m_window)) {
-        if (m_window)
-            g_layoutManager->removeTarget(m_window->layoutTarget());
-        return;
-    }
-
 
 
     // Layout handled FS window
@@ -108,9 +102,8 @@ void CWindowTarget::updatePos() {
             *m_window->m_realPosition = visualBox.pos();
         }
         else if (FSMODES.internal == Fullscreen::FSMODE_MAXIMIZED) {
-            // carve out reserved area - like in default maximised handling
-            ITarget::setPositionGlobal({.logicalBox = m_space->workArea(floating())});
-
+            
+            // carve out reserved area - includes gaps_out
             const auto RESERVED = m_window->getFullWindowReservedArea();
             *m_window->m_realPosition  = visualBox.pos() + RESERVED.topLeft;
             *m_window->m_realSize = visualBox.size() - (RESERVED.topLeft + RESERVED.bottomRight);
@@ -122,7 +115,7 @@ void CWindowTarget::updatePos() {
         return;
     }
 
-
+    // Default handled maximised window (Tiled or floating)
     // Tiled non-FS windows
 
     g_pHyprRenderer->damageWindow(window());

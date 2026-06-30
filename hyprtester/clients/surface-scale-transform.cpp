@@ -1,3 +1,4 @@
+#include <cerrno>
 #include <cstring>
 #include <algorithm>
 #include <fcntl.h>
@@ -5,6 +6,7 @@
 #include <iostream>
 #include <string>
 #include <sys/mman.h>
+#include <sys/poll.h>
 #include <unistd.h>
 
 #include <wayland-client.h>
@@ -56,10 +58,55 @@ struct SWlState {
     SSurfaceStats                                stats;
     bool                                         xrgb8888   = false;
     bool                                         configured = false;
+    std::string                                  setupError;
 };
 
 static void sendLine(const std::string& line) {
     std::cout << line << std::endl;
+}
+
+static bool pollDisplay(SWlState& state, int timeoutMs) {
+    while (wl_display_prepare_read(state.display) != 0) {
+        if (wl_display_dispatch_pending(state.display) == -1)
+            return false;
+    }
+
+    if (wl_display_flush(state.display) == -1 && errno != EAGAIN) {
+        wl_display_cancel_read(state.display);
+        return false;
+    }
+
+    pollfd fd = {.fd = wl_display_get_fd(state.display), .events = POLLIN, .revents = 0};
+
+    int    ret = 0;
+    do {
+        ret = poll(&fd, 1, timeoutMs);
+    } while (ret == -1 && errno == EINTR);
+
+    if (ret == -1) {
+        wl_display_cancel_read(state.display);
+        return false;
+    }
+
+    if (ret == 0) {
+        wl_display_cancel_read(state.display);
+        return true;
+    }
+
+    if (fd.revents & (POLLERR | POLLHUP | POLLNVAL)) {
+        wl_display_cancel_read(state.display);
+        return false;
+    }
+
+    if (!(fd.revents & POLLIN)) {
+        wl_display_cancel_read(state.display);
+        return true;
+    }
+
+    if (wl_display_read_events(state.display) == -1)
+        return false;
+
+    return wl_display_dispatch_pending(state.display) != -1;
 }
 
 static CSharedPointer<CCWlBuffer> createBuffer(SWlState& state, int width, int height) {
@@ -130,6 +177,8 @@ static void setFractionalListener(CSharedPointer<CCWpFractionalScaleV1> fraction
 
 static bool bindRegistry(SWlState& state) {
     state.registry = makeShared<CCWlRegistry>((wl_proxy*)wl_display_get_registry(state.display));
+    if (!state.registry)
+        return false;
 
     state.registry->setGlobal([&](CCWlRegistry*, uint32_t id, const char* name, uint32_t version) {
         const std::string NAME = name;
@@ -152,10 +201,13 @@ static bool bindRegistry(SWlState& state) {
     });
 
     state.registry->setGlobalRemove([](CCWlRegistry*, uint32_t) {});
-    wl_display_roundtrip(state.display);
+    if (wl_display_roundtrip(state.display) == -1)
+        return false;
 
-    for (int i = 0; i < 10 && !state.xrgb8888; ++i)
-        wl_display_roundtrip(state.display);
+    for (int i = 0; i < 10 && !state.xrgb8888; ++i) {
+        if (wl_display_roundtrip(state.display) == -1)
+            return false;
+    }
 
     return state.compositor && state.subcompositor && state.shm && state.xdgShell && state.fractional && state.xrgb8888;
 }
@@ -164,13 +216,32 @@ static bool setupToplevel(SWlState& state) {
     state.xdgShell->setPing([&](CCXdgWmBase*, uint32_t serial) { state.xdgShell->sendPong(serial); });
 
     state.surface = makeShared<CCWlSurface>(state.compositor->sendCreateSurface());
+    if (!state.surface) {
+        state.setupError = "surface";
+        return false;
+    }
+
     setSurfaceListeners(state.surface, state.stats, false);
 
     state.rootFractional = makeShared<CCWpFractionalScaleV1>(state.fractional->sendGetFractionalScale(state.surface->resource()));
+    if (!state.rootFractional) {
+        state.setupError = "fractional";
+        return false;
+    }
+
     setFractionalListener(state.rootFractional, state.stats, false);
 
-    state.xdgSurface  = makeShared<CCXdgSurface>(state.xdgShell->sendGetXdgSurface(state.surface->resource()));
+    state.xdgSurface = makeShared<CCXdgSurface>(state.xdgShell->sendGetXdgSurface(state.surface->resource()));
+    if (!state.xdgSurface) {
+        state.setupError = "xdg-surface";
+        return false;
+    }
+
     state.xdgToplevel = makeShared<CCXdgToplevel>(state.xdgSurface->sendGetToplevel());
+    if (!state.xdgToplevel) {
+        state.setupError = "xdg";
+        return false;
+    }
 
     state.xdgToplevel->setClose([](CCXdgToplevel*) { exit(0); });
     state.xdgToplevel->setConfigure([](CCXdgToplevel*, int32_t, int32_t, wl_array*) {});
@@ -188,16 +259,25 @@ static bool setupToplevel(SWlState& state) {
     state.surface->sendCommit();
 
     for (int i = 0; i < 50 && !state.configured; ++i) {
-        if (wl_display_roundtrip(state.display) == -1)
+        if (!pollDisplay(state, 100)) {
+            state.setupError = "dispatch";
             return false;
-
-        usleep(100000);
+        }
     }
 
-    if (!state.configured)
+    if (!state.configured) {
+        state.setupError = "timeout";
         return false;
+    }
 
-    wl_display_roundtrip(state.display);
+    if (wl_display_roundtrip(state.display) == -1) {
+        state.setupError = "roundtrip";
+        return false;
+    }
+
+    if (!state.rootBuffer)
+        state.setupError = "buffer";
+
     return state.rootBuffer != nullptr;
 }
 
@@ -263,8 +343,10 @@ static void handleCommand(SWlState& state, const std::string& command) {
 int main() {
     SWlState state;
     state.display = wl_display_connect(nullptr);
-    if (!state.display)
+    if (!state.display) {
+        sendLine("error connect");
         return 1;
+    }
 
     if (!bindRegistry(state)) {
         sendLine("error bind");
@@ -272,7 +354,7 @@ int main() {
     }
 
     if (!setupToplevel(state)) {
-        sendLine("error setup");
+        sendLine(std::format("error setup {}", state.setupError));
         return 1;
     }
 

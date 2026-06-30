@@ -8,13 +8,13 @@
 #include <array>
 #include <chrono>
 #include <csignal>
+#include <format>
 #include <hyprutils/os/FileDescriptor.hpp>
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <optional>
 #include <string>
 #include <sys/poll.h>
-#include <thread>
 #include <unistd.h>
 
 using namespace Hyprutils::Memory;
@@ -39,6 +39,21 @@ namespace {
     };
 }
 
+static bool waitForClientWindow(pid_t pid, int timeoutMs) {
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeoutMs);
+    const auto needle   = std::format("pid: {}", pid);
+
+    while (Tests::processAlive(pid)) {
+        if (getFromSocket("/clients").contains(needle))
+            return true;
+
+        if (std::chrono::steady_clock::now() >= deadline)
+            return false;
+    }
+
+    return false;
+}
+
 CClient::CClient() {
     m_proc = makeShared<CProcess>(binaryDir + "/surface-scale-transform", std::vector<std::string>{});
     m_proc->addEnv("WAYLAND_DISPLAY", WLDISPLAY);
@@ -59,7 +74,8 @@ CClient::CClient() {
     close(pipeFds1[0]);
     close(pipeFds2[1]);
 
-    m_fds = {.fd = m_readFd.get(), .events = POLLIN};
+    m_fds         = {.fd = m_readFd.get(), .events = POLLIN};
+    m_fds.revents = 0;
     if (poll(&m_fds, 1, 10000) != 1 || !(m_fds.revents & POLLIN))
         throw std::exception();
 
@@ -73,13 +89,9 @@ CClient::CClient() {
         throw std::exception();
     }
 
-    int counter = 0;
-    while (Tests::processAlive(m_proc->pid()) && Tests::windowCount() == COUNT_BEFORE) {
-        counter++;
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-        if (counter > 100)
-            throw std::exception();
+    if (!waitForClientWindow(m_proc->pid(), 10000)) {
+        NLog::log("{}Timed out waiting for surface-scale-transform window. count before: {}, count after: {}", Colors::RED, COUNT_BEFORE, Tests::windowCount());
+        throw std::exception();
     }
 }
 
@@ -96,6 +108,7 @@ std::string CClient::command(const std::string& command) {
     if ((size_t)write(m_writeFd.get(), cmd.c_str(), cmd.length()) != cmd.length())
         return "";
 
+    m_fds.revents = 0;
     if (poll(&m_fds, 1, 10000) != 1 || !(m_fds.revents & POLLIN))
         return "";
 
@@ -112,13 +125,14 @@ std::string CClient::command(const std::string& command) {
 
 static std::string waitCommandContains(CClient& client, const std::string& command, const std::string& needle) {
     std::string ret;
+    const auto  deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
 
-    for (int i = 0; i < 50; ++i) {
+    while (std::chrono::steady_clock::now() < deadline) {
         ret = client.command(command);
         if (ret.contains(needle))
             return ret;
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        getFromSocket("/version");
     }
 
     return ret;

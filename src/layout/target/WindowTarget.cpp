@@ -110,7 +110,8 @@ void CWindowTarget::updatePos() {
         }
         else if (FSMODES.internal == Fullscreen::FSMODE_MAXIMIZED) {
             // carve out reserved area - like in default maximised handling
-            
+            ITarget::setPositionGlobal({.logicalBox = m_space->workArea(floating())});
+
             const auto RESERVED = m_window->getFullWindowReservedArea();
             *m_window->m_realPosition  = visualBox.pos() + RESERVED.topLeft;
             *m_window->m_realSize = visualBox.size() - (RESERVED.topLeft + RESERVED.bottomRight);
@@ -122,7 +123,12 @@ void CWindowTarget::updatePos() {
         return;
     }
 
-    // Default handled maximised window (Tiled or floating), Tiled non-FS windows
+    // Default handled maximised window (Tiled or floating)
+    if (g_pfullscreenController->getFullscreenModes(m_window.lock()).internal == Fullscreen::FSMODE_MAXIMIZED && !g_pfullscreenController->layoutManagedFS(m_window.lock()))
+        ITarget::setPositionGlobal({.logicalBox = m_space->workArea(floating())});
+
+
+    // Tiled non-FS windows
 
     g_pHyprRenderer->damageWindow(window());
 

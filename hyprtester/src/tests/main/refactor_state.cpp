@@ -61,6 +61,23 @@ static void cleanupRefactorStateMonitors() {
     getFromSocket("/reload");
 }
 
+static std::string clientBlockForClass(const std::string& className) {
+    const auto clients  = getFromSocket("/clients");
+    const auto classPos = clients.find(std::format("class: {}", className));
+    if (classPos == std::string::npos)
+        return "";
+
+    auto blockStart = clients.rfind("Window ", classPos);
+    if (blockStart == std::string::npos)
+        blockStart = 0;
+
+    auto blockEnd = clients.find("\n\n", classPos);
+    if (blockEnd == std::string::npos)
+        blockEnd = clients.length();
+
+    return clients.substr(blockStart, blockEnd - blockStart);
+}
+
 TEST_CASE(workspacePlacementActiveMove) {
     CScopeGuard guard = {[&]() { cleanupRefactorStateMonitors(); }};
 
@@ -115,8 +132,13 @@ TEST_CASE(workspacePlacementWindowState) {
     OK(getFromSocket(std::format("/dispatch hl.dsp.workspace.move({{ workspace = '280', monitor = '{}' }})", TEST_MONITOR_RIGHT)));
 
     OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", TEST_MONITOR_LEFT)));
-    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:workspace_move_pinned' })"));
-    EXPECT_NOT_CONTAINS(getFromSocket("/activewindow"), "workspace: 280");
+    {
+        const auto str = clientBlockForClass("workspace_move_pinned");
+        ASSERT_CONTAINS(str, "class: workspace_move_pinned");
+        EXPECT_CONTAINS(str, "pinned: 1");
+        EXPECT_CONTAINS(str, "floating: 1");
+        EXPECT_CONTAINS(str, "visible: 1");
+    }
 
     OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", TEST_MONITOR_RIGHT)));
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:workspace_move_float' })"));

@@ -154,7 +154,10 @@ static bool bindRegistry(SWlState& state) {
     state.registry->setGlobalRemove([](CCWlRegistry*, uint32_t) {});
     wl_display_roundtrip(state.display);
 
-    return state.compositor && state.subcompositor && state.shm && state.xdgShell && state.fractional;
+    for (int i = 0; i < 10 && !state.xrgb8888; ++i)
+        wl_display_roundtrip(state.display);
+
+    return state.compositor && state.subcompositor && state.shm && state.xdgShell && state.fractional && state.xrgb8888;
 }
 
 static bool setupToplevel(SWlState& state) {
@@ -184,9 +187,15 @@ static bool setupToplevel(SWlState& state) {
     state.xdgToplevel->sendSetAppId("surface-scale-transform");
     state.surface->sendCommit();
 
-    while (!state.configured && wl_display_dispatch(state.display) != -1) {
-        ;
+    for (int i = 0; i < 50 && !state.configured; ++i) {
+        if (wl_display_roundtrip(state.display) == -1)
+            return false;
+
+        usleep(100000);
     }
+
+    if (!state.configured)
+        return false;
 
     wl_display_roundtrip(state.display);
     return state.rootBuffer != nullptr;
@@ -218,16 +227,9 @@ static bool createChild(SWlState& state) {
 }
 
 static bool remapRoot(SWlState& state) {
-    state.configured = false;
+    state.surface->sendAttach(state.rootBuffer.get(), 0, 0);
     state.surface->sendCommit();
-
-    for (int i = 0; i < 50 && !state.configured; ++i) {
-        if (wl_display_dispatch(state.display) == -1)
-            return false;
-    }
-
-    wl_display_roundtrip(state.display);
-    return state.configured;
+    return wl_display_roundtrip(state.display) != -1;
 }
 
 static std::string report(const SSurfaceStats& stats) {
@@ -264,8 +266,15 @@ int main() {
     if (!state.display)
         return 1;
 
-    if (!bindRegistry(state) || !setupToplevel(state))
+    if (!bindRegistry(state)) {
+        sendLine("error bind");
         return 1;
+    }
+
+    if (!setupToplevel(state)) {
+        sendLine("error setup");
+        return 1;
+    }
 
     sendLine("started");
 

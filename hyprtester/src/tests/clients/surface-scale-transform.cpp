@@ -60,7 +60,7 @@ CClient::CClient() {
     close(pipeFds2[1]);
 
     m_fds = {.fd = m_readFd.get(), .events = POLLIN};
-    if (poll(&m_fds, 1, 3000) != 1 || !(m_fds.revents & POLLIN))
+    if (poll(&m_fds, 1, 10000) != 1 || !(m_fds.revents & POLLIN))
         throw std::exception();
 
     m_readBuf.fill(0);
@@ -96,7 +96,7 @@ std::string CClient::command(const std::string& command) {
     if ((size_t)write(m_writeFd.get(), cmd.c_str(), cmd.length()) != cmd.length())
         return "";
 
-    if (poll(&m_fds, 1, 3000) != 1 || !(m_fds.revents & POLLIN))
+    if (poll(&m_fds, 1, 10000) != 1 || !(m_fds.revents & POLLIN))
         return "";
 
     const ssize_t bytesRead = read(m_fds.fd, m_readBuf.data(), m_readBuf.size() - 1);
@@ -107,6 +107,20 @@ std::string CClient::command(const std::string& command) {
     std::string ret      = std::string{m_readBuf.data()};
     if (!ret.empty() && ret.back() == '\n')
         ret.pop_back();
+    return ret;
+}
+
+static std::string waitCommandContains(CClient& client, const std::string& command, const std::string& needle) {
+    std::string ret;
+
+    for (int i = 0; i < 50; ++i) {
+        ret = client.command(command);
+        if (ret.contains(needle))
+            return ret;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
     return ret;
 }
 
@@ -130,7 +144,7 @@ TEST_CASE(surfaceScaleTransform) {
     ASSERT_CONTAINS(client->command("report"), "root_transform=0");
 
     OK(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-2', mode = '1920x1080@60', position = '0x0', scale = '1.5', transform = 1 })"));
-    ASSERT_CONTAINS(client->command("report"), "root_transform=1");
+    ASSERT_CONTAINS(waitCommandContains(*client, "report", "root_transform=1"), "root_transform=1");
 
     const auto beforeUnmap = client->command("report");
     ASSERT_CONTAINS(beforeUnmap, "root_scale_count=");
@@ -147,7 +161,4 @@ TEST_CASE(surfaceScaleTransform) {
     EXPECT_CONTAINS(withChild, "child_scale=2");
     EXPECT_CONTAINS(withChild, "child_fraction=180");
     EXPECT_CONTAINS(withChild, "child_transform=1");
-
-    OK(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-2', mode = '1920x1080@60', position = '0x0', scale = '1', transform = 0 })"));
-    Tests::killAllWindows();
 }

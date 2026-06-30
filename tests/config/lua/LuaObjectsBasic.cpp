@@ -109,6 +109,7 @@ TEST(ConfigLuaObjects, keybindExposesMetadataAndRemoveMethods) {
     keybind->submapUniversal = false;
     keybind->deviceInclusive = true;
     keybind->devices         = {"kbd-a", "kbd-b"};
+    keybind->allowInputCapture = true;
 
     Objects::CLuaKeybind::push(L, keybind);
     lua_setglobal(L, "kb");
@@ -128,6 +129,7 @@ TEST(ConfigLuaObjects, keybindExposesMetadataAndRemoveMethods) {
         assert(kb.non_consuming == true)
         assert(kb.dont_inhibit == true)
         assert(type(kb.devices) == "table")
+        assert(kb.allow_input_capture == true)
 
         kb:remove()
         kb:unbind()

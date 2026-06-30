@@ -711,6 +711,12 @@ std::vector<SP<IValue>> Values::getConfigValues() {
 
         MS<Bool>("experimental:wp_cm_1_2", "Allow wp-cm-v1 version 2", false),
 
+		/*
+		 * inputcapture: 
+		 */
+        MS<Bool>("inputcapture:capture_modifiers", "If enabled, modifiers are also captured and sent to the program", false),
+        MS<Bool>("inputcapture:enforce_barriers", "If enabled, throw a wayland error when a invalid barrier is received", true),
+
         /*
          * quirks:
          */

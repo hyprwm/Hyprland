@@ -165,6 +165,8 @@ static int keybindIndex(lua_State* L) {
         lua_pushboolean(L, (*keybind)->deviceInclusive);
     else if (key == "devices")
         pushDeviceList(L, **keybind);
+    else if (key == "allow_input_capture")
+        lua_pushboolean(L, (*keybind)->allowInputCapture);
     else
         lua_pushnil(L);
 

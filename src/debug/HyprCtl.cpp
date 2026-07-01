@@ -44,7 +44,7 @@ using namespace Hyprutils::OS;
 #include "../config/shared/animation/AnimationTree.hpp"
 #include "../config/supplementary/jeremy/Jeremy.hpp"
 #include "../config/values/ConfigValues.hpp"
-#include "../managers/CursorManager.hpp"
+#include "../pointer/cursor/CursorManager.hpp"
 #include "../errorOverlay/Overlay.hpp"
 #include "../devices/IPointer.hpp"
 #include "../devices/IKeyboard.hpp"
@@ -1230,7 +1230,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
 
     if (COMMAND.contains("workspace"))
         State::workspacePlacementController()->ensurePersistentWorkspacesPresent(
-            nullptr, [](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { g_pCompositor->moveWorkspaceToMonitor(ws, mon, noWarp); });
+            nullptr, [](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { State::workspacePlacementController()->moveWorkspaceToMonitor(ws, mon, noWarp); });
 
     Log::logger->log(Log::DEBUG, "Hyprctl: keyword {} : {}", COMMAND, VALUE);
 
@@ -1333,7 +1333,7 @@ static std::string dispatchSetCursor(eHyprCtlOutputFormat format, std::string re
     if (size <= 0)
         return "size not positive";
 
-    if (!g_pCursorManager->changeTheme(theme, size))
+    if (!Pointer::Cursor::mgr()->changeTheme(theme, size))
         return "failed to set cursor";
 
     return "ok";

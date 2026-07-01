@@ -638,8 +638,9 @@ TEST_CASE(exactWindowSelectors) {
 // TODO: decompose this into multiple test cases
 TEST_CASE(windows) {
     // test on workspace "window"
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
     NLog::log("{}Switching to workspace `window`", Colors::YELLOW);
-    getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:window' })");
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:window' })"));
 
     SPAWN_KITTY("kitty_A");
 
@@ -1221,8 +1222,14 @@ TEST_CASE(pinnedRetainsPositionOnWorkspaceChange) {
 }
 
 TEST_CASE(monitorrule) {
+    if (getFromSocket("/monitors all").contains("HEADLESS-3"))
+        OK(getFromSocket("/output remove HEADLESS-3"));
+
     OK(getFromSocket("/output create headless HEADLESS-3"));
-    CScopeGuard guard([&] { OK(getFromSocket("/output remove HEADLESS-3")); });
+    CScopeGuard guard([&] {
+        if (getFromSocket("/monitors all").contains("HEADLESS-3"))
+            OK(getFromSocket("/output remove HEADLESS-3"));
+    });
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
     OK(getFromSocket("/eval hl.window_rule({ name = 'monitorrule', match = { class = 'monitor_kitty' }, monitor = 'HEADLESS-3' })"));

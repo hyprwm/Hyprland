@@ -4,6 +4,7 @@
 #include "../Compositor.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../desktop/state/FocusState.hpp"
+#include "../desktop/state/GlobalWindowController.hpp"
 #include "../render/Renderer.hpp"
 #include "../managers/EventManager.hpp"
 #include "../event/EventBus.hpp"
@@ -51,7 +52,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
                 const auto monitor = wpMonitor.lock();
 
                 if (PWINDOW->m_workspace != monitor->m_activeWorkspace) {
-                    g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, monitor->m_activeWorkspace);
+                    Desktop::globalWindowController()->moveWindowToWorkspace(PWINDOW, monitor->m_activeWorkspace);
                     Desktop::focusState()->rawMonitorFocus(monitor);
                 }
             }

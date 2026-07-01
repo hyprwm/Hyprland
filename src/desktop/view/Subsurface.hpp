@@ -78,6 +78,7 @@ namespace Desktop::View {
 
         void                                        initSignals();
         void                                        initExistingSubsurfaces(SP<CWLSurfaceResource> pSurface);
+        void                                        syncScaleTransform() const;
         void                                        checkSiblingDamage();
         void                                        damageLastArea();
     };

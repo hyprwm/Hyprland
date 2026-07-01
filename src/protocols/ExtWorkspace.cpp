@@ -6,6 +6,7 @@
 #include <utility>
 #include "core/Output.hpp"
 #include "../state/MonitorState.hpp"
+#include "../state/WorkspacePlacementController.hpp"
 #include "../state/WorkspaceState.hpp"
 
 CExtWorkspaceGroupResource::CExtWorkspaceGroupResource(WP<CExtWorkspaceManagerResource> manager, UP<CExtWorkspaceGroupHandleV1> resource, PHLMONITORREF monitor) :
@@ -203,7 +204,7 @@ void CExtWorkspaceResource::commit() {
         m_workspace->m_monitor->setSpecialWorkspace(nullptr);
 
     if (m_pendingState.targetMonitor && m_workspace && m_workspace->m_monitor != m_pendingState.targetMonitor)
-        g_pCompositor->moveWorkspaceToMonitor(m_workspace.lock(), m_pendingState.targetMonitor.lock(), true);
+        State::workspacePlacementController()->moveWorkspaceToMonitor(m_workspace.lock(), m_pendingState.targetMonitor.lock(), true);
 
     if (m_pendingState.activate && !isActive() && m_workspace)
         m_workspace->m_monitor->changeWorkspace(m_workspace.lock());

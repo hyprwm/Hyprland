@@ -250,8 +250,12 @@ void CLayerShellProtocol::onGetLayerSurface(CZwlrLayerShellV1* pMgr, uint32_t id
     Desktop::View::CLayerSurface::create(RESOURCE);
 
     if (PMONITOR) {
-        g_pCompositor->setPreferredScaleForSurface(SURF, PMONITOR->m_scale);
-        g_pCompositor->setPreferredTransformForSurface(SURF, PMONITOR->m_transform);
+        const auto PSURFACE = Desktop::View::CWLSurface::fromResource(SURF);
+
+        if (PSURFACE) {
+            PSURFACE->sendScale(PMONITOR->m_scale);
+            PSURFACE->sendTransform(PMONITOR->m_transform);
+        }
     }
 
     LOGM(Log::DEBUG, "New wlr_layer_surface {:x}", (uintptr_t)RESOURCE.get());

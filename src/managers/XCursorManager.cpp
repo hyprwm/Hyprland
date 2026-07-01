@@ -12,7 +12,7 @@ extern "C" {
 #include <gio/gsettingsschema.h>
 #include "config/ConfigValue.hpp"
 #include "helpers/CursorShapes.hpp"
-#include "../managers/CursorManager.hpp"
+#include "../pointer/cursor/CursorManager.hpp"
 #include "debug/log/Logger.hpp"
 #include "XCursorManager.hpp"
 #include <memory>

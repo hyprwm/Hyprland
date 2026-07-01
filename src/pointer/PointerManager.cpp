@@ -5,19 +5,18 @@
 #include "../config/legacy/ConfigManager.hpp"
 #include "../protocols/PointerGestures.hpp"
 #include "../protocols/RelativePointer.hpp"
-#include "../protocols/FractionalScale.hpp"
 #include "../protocols/IdleNotify.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/core/Seat.hpp"
 #include "debug/log/Logger.hpp"
-#include "eventLoop/EventLoopManager.hpp"
+#include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../render/pass/ClearPassElement.hpp"
 #include "../render/pass/TexPassElement.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../render/Renderer.hpp"
 #include "../render/OpenGL.hpp"
 #include "../desktop/state/FocusState.hpp"
-#include "SeatManager.hpp"
+#include "../managers/SeatManager.hpp"
 #include "../helpers/time/Time.hpp"
 #include "../helpers/Drm.hpp"
 #include "../event/EventBus.hpp"
@@ -31,6 +30,12 @@
 #include <hyprutils/utils/ScopeGuard.hpp>
 
 using namespace Hyprutils::Utils;
+using namespace Pointer;
+
+UP<CPointerManager>& Pointer::mgr() {
+    static UP<CPointerManager> p = makeUnique<CPointerManager>();
+    return p;
+}
 
 CPointerManager::CPointerManager() {
     m_hooks.monitorAdded = Event::bus()->m_events.monitor.added.listen([this](PHLMONITOR monitor) {
@@ -214,8 +219,7 @@ void CPointerManager::recheckEnteredOutputs() {
                 continue;
 
             m_currentCursorImage.surface->resource()->enter(s->monitor.lock());
-            PROTO::fractional->sendScale(m_currentCursorImage.surface->resource(), s->monitor->m_scale);
-            g_pCompositor->setPreferredScaleForSurface(m_currentCursorImage.surface->resource(), s->monitor->m_scale);
+            m_currentCursorImage.surface->sendScale(s->monitor->m_scale);
         } else if (s->entered && !overlaps) {
             s->entered = false;
 

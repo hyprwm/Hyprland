@@ -1016,8 +1016,14 @@ TEST_CASE(properFocusBehvaior) {
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
+    if (getFromSocket("/monitors all").contains("HEADLESS-3"))
+        OK(getFromSocket("/output remove HEADLESS-3"));
+
     OK(getFromSocket("/output create headless HEADLESS-3"));
-    CScopeGuard x([&] { OK(getFromSocket("/output remove HEADLESS-3")); });
+    CScopeGuard x([&] {
+        if (getFromSocket("/monitors all").contains("HEADLESS-3"))
+            OK(getFromSocket("/output remove HEADLESS-3"));
+    });
 
     auto        test = [&] {
         OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));

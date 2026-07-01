@@ -559,7 +559,7 @@ void CWorkspace::rename(const std::string& name) {
     if (WORKSPACERULE.m_isPersistent.value_or(false))
         State::workspacePlacementController()->ensurePersistentWorkspacesPresent(
             std::vector<Config::CWorkspaceRule>{WORKSPACERULE}, m_self.lock(),
-            [](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { g_pCompositor->moveWorkspaceToMonitor(ws, mon, noWarp); });
+            [](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { State::workspacePlacementController()->moveWorkspaceToMonitor(ws, mon, noWarp); });
 
     g_pEventManager->postEvent({.event = "renameworkspace", .data = std::to_string(m_id) + "," + m_name});
     m_events.renamed.emit();

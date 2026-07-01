@@ -95,9 +95,14 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
+#include <sys/ioctl.h>
 #include <malloc.h>
 #include <unistd.h>
 #include <xf86drm.h>
+
+#if defined(__linux__)
+#include <linux/vt.h>
+#endif
 
 using namespace Hyprutils::String;
 using namespace Aquamarine;
@@ -1138,6 +1143,9 @@ std::optional<unsigned int> CCompositor::getVTNr() {
             ttynum = vt;
 #endif
     }
+
+    if (ttynum == 0)
+        return std::nullopt;
 
     return ttynum;
 }

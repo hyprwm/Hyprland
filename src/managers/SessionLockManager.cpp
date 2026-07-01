@@ -216,6 +216,10 @@ bool CSessionLockManager::clientDenied() {
     return m_sessionLock && m_sessionLock->hasSentDenied;
 }
 
+void CSessionLockManager::forceUnlock() {
+    PROTO::sessionLock->forceUnlock();
+}
+
 bool CSessionLockManager::shallConsiderLockMissing() {
     if (!m_sessionLock)
         return true;

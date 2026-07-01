@@ -140,7 +140,7 @@ void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, const timespec& whe
     }
 
     std::erase_if(m_feedbacks, [](const auto& other) { return !other->m_surface || other->m_done; });
-    std::erase_if(m_queue, [pMonitor](const auto& other) { return !other->m_surface || other->m_monitor == pMonitor || !other->m_monitor || other->m_done; });
+    std::erase_if(m_queue, [pMonitor](const auto& other) { return !other->m_surface || other->m_monitor == pMonitor || !other->m_monitor; });
 }
 
 void CPresentationProtocol::queueData(UP<CQueuedPresentationData>&& data) {
@@ -149,4 +149,12 @@ void CPresentationProtocol::queueData(UP<CQueuedPresentationData>&& data) {
 
 bool CPresentationProtocol::hasPendingFeedbacks() const {
     return !m_feedbacks.empty();
+}
+
+WP<CPresentationFeedback> CPresentationProtocol::getFeedback(WP<CWLSurfaceResource> forSurface) {
+    const auto FB = std::ranges::find_if(m_feedbacks, [forSurface](const auto& fb) { return fb->m_surface == forSurface; });
+    if (FB == m_feedbacks.end())
+        return nullptr;
+
+    return *FB;
 }

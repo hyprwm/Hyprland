@@ -575,6 +575,10 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Int>("render:non_shader_cm_interop", "non_shader_cm interaction with ctm proto (hyprsunset and similar).", 2,
                 {.min = 0, .max = 2, .map = OptionMap{{"disable", 0}, {"enable", 1}, {"auto", 2}}}),
         MS<Int>("render:fp16_sdr_tf", "Internal workbuffer transfer function for fp16 in SDR mode", 0, {.min = 0, .max = 1, .map = OptionMap{{"monitor", 0}, {"linear", 1}}}),
+        MS<Int>("render:not_shown_fifo_lock",
+                "Control fifo locking for not shown surfaces. always - use fifo lock for any surface, ignore_unfocused - ignore render_unfocused windows, never - skip locking "
+                "invisible surfaces",
+                0, {.min = 0, .max = 2, .map = OptionMap{{"always", 0}, {"ignore_unfocused", 1}, {"never", 2}}}),
 
         /*
          * cursor:

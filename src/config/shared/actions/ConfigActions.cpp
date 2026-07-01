@@ -1043,6 +1043,18 @@ ActionResult Actions::renameWorkspace(PHLWORKSPACE ws, const std::string& s) {
     return {};
 }
 
+ActionResult Actions::changeWorkspaceID(PHLWORKSPACE ws, int64_t id) {
+    if (!ws || ws->m_id <= 0)
+        return actionError("Bad workspace", eActionErrorLevel::WARNING, eActionErrorCode::NO_TARGET);
+
+    if (!!State::workspaceState()->query().id(id).run())
+        return actionError("ID is taken", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
+
+    ws->changeID(id);
+
+    return {};
+}
+
 ActionResult Actions::moveToMonitor(PHLWORKSPACE ws, PHLMONITOR mon) {
     if (!ws)
         return actionError("Bad workspace", eActionErrorLevel::WARNING, eActionErrorCode::NO_TARGET);

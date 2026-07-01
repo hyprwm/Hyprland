@@ -791,3 +791,97 @@ TEST_CASE(workspacesFollowProperNoGaps) {
         ASSERT_CONTAINS(str, "workspace ID 101 (101)");
     }
 }
+
+TEST_CASE(workspaceRenameChangeID) {
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = \"100\" })"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        ASSERT_CONTAINS(str, "workspace ID 100 (100)");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.workspace.change_id({ workspace = \"100\", id = 101 })"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        ASSERT_CONTAINS(str, "workspace ID 101 (101)");
+    }
+
+    NOK(getFromSocket("/dispatch hl.dsp.workspace.change_id({ workspace = \"101\", id = -1 })"));
+    NOK(getFromSocket("/dispatch hl.dsp.workspace.change_id({ workspace = \"101\", id = \"abc\" })"));
+    NOK(getFromSocket("/dispatch hl.dsp.workspace.change_id({ workspace = \"101\" })"));
+    NOK(getFromSocket("/dispatch hl.dsp.workspace.change_id({ workspace = \"102\", id = 200 })"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        ASSERT_CONTAINS(str, "workspace ID 101 (101)");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.workspace.rename({ workspace = \"101\", name = \"vaxry_was_here\" })"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        ASSERT_CONTAINS(str, "workspace ID 101 (vaxry_was_here)");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.workspace.change_id({ workspace = \"101\", id = 102 })"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        ASSERT_CONTAINS(str, "workspace ID 102 (vaxry_was_here)");
+    }
+}
+
+TEST_CASE(workspaceChangeIDUpdatesRules) {
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = \"200\" })"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        ASSERT_CONTAINS(str, "workspace ID 200 (200)");
+    }
+
+    OK(getFromSocket("r/eval hl.workspace_rule({ workspace = '201', gaps_out = { top = 40, right = 40, bottom = 40, left = 40 } })"));
+
+    Tests::spawnKitty();
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 22,22");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.workspace.change_id({ workspace = \"200\", id = 201 })"));
+
+    Tests::sync();
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 42,42");
+    }
+}
+
+TEST_CASE(workspaceRenameUpdatesRules) {
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = \"200\" })"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        ASSERT_CONTAINS(str, "workspace ID 200 (200)");
+    }
+
+    OK(getFromSocket("r/eval hl.workspace_rule({ workspace = 'name:vaxry', gaps_out = { top = 40, right = 40, bottom = 40, left = 40 } })"));
+
+    Tests::spawnKitty();
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 22,22");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.workspace.rename({ workspace = \"200\", name = \"vaxry\" })"));
+
+    Tests::sync();
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 42,42");
+    }
+}

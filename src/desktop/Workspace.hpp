@@ -77,6 +77,7 @@ class CWorkspace {
     bool        isVisible();
     bool        isVisibleNotCovered();
     void        rename(const std::string& name = "");
+    void        changeID(int64_t id);
     void        forceReportSizesToWindows();
     void        updateWindows();
     void        setPersistent(bool persistent);
@@ -86,6 +87,7 @@ class CWorkspace {
     struct {
         CSignalT<> destroy;
         CSignalT<> renamed;
+        CSignalT<> idChanged;
         CSignalT<> monitorChanged;
         CSignalT<> activeChanged;
     } m_events;
@@ -98,6 +100,7 @@ class CWorkspace {
 
     SP<CWorkspace>      m_selfPersistent; // for persistent workspaces.
     bool                m_persistent = false;
+    bool                m_wasRenamed = false;
 };
 
 inline bool valid(const PHLWORKSPACE& ref) {

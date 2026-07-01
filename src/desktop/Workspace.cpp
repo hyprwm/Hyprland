@@ -7,6 +7,7 @@
 #include "../config/shared/animation/AnimationTree.hpp"
 #include "../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../config/supplementary/executor/Executor.hpp"
+#include "../config/supplementary/propRefresher/PropRefresher.hpp"
 #include "managers/animation/AnimationManager.hpp"
 #include "../managers/EventManager.hpp"
 #include "../output/Monitor.hpp"
@@ -553,16 +554,27 @@ void CWorkspace::rename(const std::string& name) {
     Log::logger->log(Log::DEBUG, "CWorkspace::rename: Renaming workspace {} to '{}'", m_id, name);
     m_name = name;
 
-    const auto WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(m_self.lock()).value_or(Config::CWorkspaceRule{});
-    setPersistent(WORKSPACERULE.m_isPersistent.value_or(false));
+    Config::Supplementary::refresher()->scheduleRefresh(Config::Supplementary::REFRESH_ALL);
 
-    if (WORKSPACERULE.m_isPersistent.value_or(false))
-        State::workspacePlacementController()->ensurePersistentWorkspacesPresent(
-            std::vector<Config::CWorkspaceRule>{WORKSPACERULE}, m_self.lock(),
-            [](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { State::workspacePlacementController()->moveWorkspaceToMonitor(ws, mon, noWarp); });
+    m_wasRenamed = true;
 
     g_pEventManager->postEvent({.event = "renameworkspace", .data = std::to_string(m_id) + "," + m_name});
     m_events.renamed.emit();
+}
+
+void CWorkspace::changeID(int64_t id) {
+    if (m_id <= 0)
+        return; // invalid
+
+    Log::logger->log(Log::DEBUG, "CWorkspace::changeID: Changing workspace id {} to {}", m_id, id);
+    m_id = id;
+
+    if (!m_wasRenamed)
+        m_name = std::format("{}", id);
+
+    Config::Supplementary::refresher()->scheduleRefresh(Config::Supplementary::REFRESH_ALL);
+
+    m_events.idChanged.emit();
 }
 
 void CWorkspace::updateWindows() {

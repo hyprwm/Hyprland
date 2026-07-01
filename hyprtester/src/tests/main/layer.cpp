@@ -58,3 +58,18 @@ TEST_CASE(layerPointerFocusPreservedOnKeyboardRefocus) {
     ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: pointer_focus_ws2\n");
     OK(getFromSocket(std::format("/eval hl.plugin.test.check_pointer_focus_layer('{}')", LAYER_NAMESPACE)));
 }
+
+TEST_CASE(windowRefocusRestoresKeyboardFocusAfterSurfaceFocusCleared) {
+    static constexpr const char* WINDOW_CLASS = "keyboard_refocus_target";
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+    ASSERT(!!Tests::spawnKitty(WINDOW_CLASS), true);
+    OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ window = 'class:{}' }})", WINDOW_CLASS)));
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), std::format("class: {}\n", WINDOW_CLASS));
+    OK(getFromSocket(std::format("/eval hl.plugin.test.check_keyboard_focus_window('{}')", WINDOW_CLASS)));
+
+    OK(getFromSocket("/eval hl.plugin.test.clear_surface_focus()"));
+    OK(getFromSocket(std::format("/eval hl.plugin.test.window_soft_focus('{}')", WINDOW_CLASS)));
+
+    OK(getFromSocket(std::format("/eval hl.plugin.test.check_keyboard_focus_window('{}')", WINDOW_CLASS)));
+}

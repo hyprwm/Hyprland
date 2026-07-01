@@ -61,7 +61,13 @@ void CPointerWarpProtocol::bindManager(wl_client* client, void* data, uint32_t v
         if (!surfbox.containsPoint(GLOBALPOS))
             return;
 
-        const auto PSEAT = CWLPointerResource::fromResource(pointer)->m_owner.lock();
+        const auto POINTER = CWLPointerResource::fromResource(pointer);
+        if UNLIKELY (!POINTER) {
+            LOGM(Log::ERR, "pointer_warp received an invalid pointer resource");
+            return;
+        }
+
+        const auto PSEAT = POINTER->m_owner.lock();
         if (!g_pSeatManager->serialValid(PSEAT, serial, false))
             return;
 

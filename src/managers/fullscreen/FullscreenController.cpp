@@ -63,8 +63,10 @@ SFullscreenMode CFullscreenController::getFullscreenModes(const PHLWINDOW window
         
     const auto FS_HANDLER = getFSHandler(window);
 
-    if (!FS_HANDLER || !FS_HANDLER->isFullscreen(window->m_target))
-        return SFullscreenMode{}; // ERSTARR TODO - ERROR LOG
+    // redundancy - If a widow's internal FS state is improperly set or there's a problem with its tracking the the handler, this will ensure that this isn't reflected to the callers of the controller.
+    // This error will self-correct on the next set-FS call that is handled by this handler
+    if (!FS_HANDLER || (!FS_HANDLER->isFullscreen(window->m_target) && FS_HANDLER->getFullscreenModes(window->m_target).client == FSMODE_NONE))
+        return SFullscreenMode{};
 
     return FS_HANDLER->getFullscreenModes(window->m_target);
 
@@ -308,7 +310,7 @@ eFullscreenHandler CFullscreenController::getFullscreenHandlerName(const PHLWIND
 // FS Mode Setters
 
 // ERSTARR TODO -> NEED TO HANDLE THE CASE WHERE A WINDOW IS IN A HANDLER WITH ONLY ITS CLIENT STATE LEFT -- TEST EXTENSIVELY THAT A WINDOW IS NOT STUCK IN A LIST WHERE IT SHOULD NOT BE
-void CFullscreenController::setFullscreenMode(const PHLWINDOW window, const std::optional<eFullscreenMode> internal, const std::optional<eFullscreenMode> client, std::optional<bool> layoutAware) {
+ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, const std::optional<eFullscreenMode> internal, const std::optional<eFullscreenMode> client, std::optional<bool> layoutAware) {
     if (!window)
         return;
 
@@ -389,8 +391,16 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, const std:
         if (targetInternalMode != targetClientMode)
             stateChanged = true;
 
-        targetInternalMode = std::clamp(targetInternalMode, sc<eFullscreenMode>(0), FSMODE_MAX);
-        targetClientMode = targetInternalMode;
+        // If only internal has value
+        if (internal.has_value() && !client.has_value()) {
+            targetInternalMode = std::clamp(targetInternalMode, sc<eFullscreenMode>(0), FSMODE_MAX);
+            targetClientMode = targetInternalMode;
+        }
+        // If only client has value or both have values
+        else {
+            targetClientMode = std::clamp(targetClientMode, sc<eFullscreenMode>(0), FSMODE_MAX);
+            targetInternalMode = targetClientMode;
+        }
 
 
     }
@@ -401,10 +411,6 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, const std:
 
 
     }
-
-
-    targetInternalMode = std::clamp(targetInternalMode, sc<eFullscreenMode>(0), FSMODE_MAX);
-    targetClientMode = std::clamp(targetClientMode, sc<eFullscreenMode>(0), FSMODE_MAX);
 
 
     // set new FS state in the correct handler: if specified, use that handler. If not, use the handler that was used before (if not FS, it'll use layout handler)
@@ -430,7 +436,7 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
 
     // there's no layout managed floating algo.
     const auto             WINDOW_FS_HANDLER        = getFSHandler(window, layoutAware);
-    const SFullscreenMode& WINDOW_FS_MODE           = getFullscreenModes(window);
+    const SFullscreenMode& WINDOW_FS_MODE           = getFullscreenModes(window); // DEBUG HERE HERE HERE HERE THE FS MODE ISN'T CORRECTLY OBTAINED!
     const bool             WINDOW_IS_INTERNAL_FS    = isFullscreen(window);
     const bool             INTERNAL_FS_MODE_CHANGED = !window->m_pinned && WINDOW_FS_MODE.internal != mode;
 

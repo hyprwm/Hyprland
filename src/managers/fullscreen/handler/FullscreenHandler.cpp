@@ -159,7 +159,7 @@ void IFullscreenHandler::setNoMembersAboveFullscreen() {
     const auto WORKSPACE = SPACE->workspace();
     const auto MONITOR = WORKSPACE->m_monitor;
 
-    const bool SET = !m_fsTargets.empty();
+    const bool SET = hasFullscreen(true);
 
     // make all windows and layers on the same workspace under the fullscreen window
     for (auto const& w : Desktop::windowState()->windows()) {

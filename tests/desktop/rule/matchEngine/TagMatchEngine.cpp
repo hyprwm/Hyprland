@@ -66,3 +66,30 @@ TEST(TagMatchEngine, tagRemoval) {
     CTagMatchEngine engine("myTag");
     EXPECT_FALSE(engine.match(keeper));
 }
+
+TEST(TagMatchEngine, matchesMultipleTags) {
+    CTagKeeper keeper;
+    keeper.applyTag("tag1");
+    keeper.applyTag("tag2");
+
+    CTagMatchEngine engine("tag1 + tag2");
+    EXPECT_TRUE(engine.match(keeper));
+
+    CTagMatchEngine engineWhitespace("  tag1   +    tag2  ");
+    EXPECT_TRUE(engineWhitespace.match(keeper));
+
+    CTagMatchEngine missingOne("tag1 + tag3");
+    EXPECT_FALSE(missingOne.match(keeper));
+}
+
+TEST(TagMatchEngine, multipleTagsNegative) {
+    CTagKeeper keeper;
+    keeper.applyTag("tag1");
+    keeper.applyTag("tag2");
+
+    CTagMatchEngine engineNegative("tag1 + negative:tag3");
+    EXPECT_TRUE(engineNegative.match(keeper));
+
+    CTagMatchEngine engineNegativeFail("tag1 + negative:tag2");
+    EXPECT_FALSE(engineNegativeFail.match(keeper));
+}

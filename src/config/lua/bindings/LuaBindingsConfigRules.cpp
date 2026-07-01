@@ -1112,8 +1112,21 @@ static int hlWindowRule(lua_State* L) {
                     matchVal = std::to_string(lua_tointeger(L, -1));
                 else if (lua_isstring(L, -1))
                     matchVal = lua_tostring(L, -1);
-                else {
-                    self->addError(std::format("{}: hl.window_rule: match value for '{}' must be string, bool, or number", sourceInfo, matchKey));
+                else if (lua_istable(L, -1) && matchKey == "tag") {
+                    int         tblIdx = lua_gettop(L);
+                    std::string combined;
+                    lua_pushnil(L);
+                    while (lua_next(L, tblIdx) != 0) {
+                        if (lua_isstring(L, -1)) {
+                            if (!combined.empty())
+                                combined += " + ";
+                            combined += lua_tostring(L, -1);
+                        }
+                        lua_pop(L, 1);
+                    }
+                    matchVal = combined;
+                } else {
+                    self->addError(std::format("{}: hl.window_rule: match value for '{}' must be string, bool, number, or table of strings", sourceInfo, matchKey));
                     lua_pop(L, 1);
                     continue;
                 }

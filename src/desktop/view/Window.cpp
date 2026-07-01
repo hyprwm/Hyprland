@@ -2824,16 +2824,20 @@ void CWindow::unmanagedSetGeometry() {
         Log::logger->log(Log::DEBUG, "Unmanaged window {} requests geometry update to {:j} {:j}", m_self.lock(), LOGICALPOS, m_xwaylandSurface->m_geometry.size());
 
         g_pHyprRenderer->damageWindow(m_self.lock());
+
+        m_reportedPosition    = m_xwaylandSurface->m_geometry.pos();
+        m_pendingReportedSize = m_xwaylandSurface->m_geometry.size();
         layoutTarget()->setPositionGlobal(CBox{Vector2D(LOGICALPOS.x, LOGICALPOS.y), LOGICALGEOSIZE});
+        // This is an X11-confirmed geometry update. Keeping the animation would leave
+        // animated effects, like shadows, briefly at the old geometry as phantoms.
+        m_realPosition->setValueAndWarp(m_realPosition->goal());
+        m_realSize->setValueAndWarp(m_realSize->goal());
 
         m_workspace = State::monitorState()->query().vec(m_realPosition->value() + m_realSize->value() / 2.f).run()->m_activeWorkspace;
 
         Desktop::windowState()->raise(m_self.lock());
         updateWindowDecos();
         g_pHyprRenderer->damageWindow(m_self.lock());
-
-        m_reportedPosition    = m_realPosition->goal();
-        m_pendingReportedSize = m_realSize->goal();
     }
 }
 

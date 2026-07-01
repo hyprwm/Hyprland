@@ -793,6 +793,12 @@ TEST_CASE(workspacesFollowProperNoGaps) {
 }
 
 TEST_CASE(workspaceRenameChangeID) {
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = \"150\" })"));
+    Tests::spawnKitty();
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = \"name:coce\" })"));
+    Tests::spawnKitty();
+
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = \"100\" })"));
 
     {
@@ -807,10 +813,12 @@ TEST_CASE(workspaceRenameChangeID) {
         ASSERT_CONTAINS(str, "workspace ID 101 (101)");
     }
 
-    NOK(getFromSocket("/dispatch hl.dsp.workspace.change_id({ workspace = \"101\", id = -1 })"));
-    NOK(getFromSocket("/dispatch hl.dsp.workspace.change_id({ workspace = \"101\", id = \"abc\" })"));
-    NOK(getFromSocket("/dispatch hl.dsp.workspace.change_id({ workspace = \"101\" })"));
-    NOK(getFromSocket("/dispatch hl.dsp.workspace.change_id({ workspace = \"102\", id = 200 })"));
+    NOK(getFromSocket("/dispatch hl.dsp.workspace.change_id({ workspace = \"101\", id = -1 })"));        // bad id
+    NOK(getFromSocket("/dispatch hl.dsp.workspace.change_id({ workspace = \"101\", id = \"abc\" })"));   // bad id
+    NOK(getFromSocket("/dispatch hl.dsp.workspace.change_id({ workspace = \"101\" })"));                 // no target
+    NOK(getFromSocket("/dispatch hl.dsp.workspace.change_id({ workspace = \"102\", id = 200 })"));       // source doesn't exist
+    NOK(getFromSocket("/dispatch hl.dsp.workspace.change_id({ workspace = \"101\", id = 150 })"));       // occupied
+    NOK(getFromSocket("/dispatch hl.dsp.workspace.change_id({ workspace = \"name:coce\", id = 105 })")); // bad source
 
     {
         auto str = getFromSocket("/activeworkspace");

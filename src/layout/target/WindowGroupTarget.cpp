@@ -60,26 +60,6 @@ PHLWINDOW CWindowGroupTarget::window() const {
     return m_group->current();
 }
 
-eFullscreenMode CWindowGroupTarget::fullscreenMode() {
-    return m_group->current()->m_fullscreenState.internal;
-}
-
-void CWindowGroupTarget::setFullscreenMode(eFullscreenMode mode) {
-    m_group->current()->m_fullscreenState.internal = mode;
-}
-
-bool CWindowGroupTarget::layoutManagedFullscreen() const {
-    return m_group->current()->m_target->layoutManagedFullscreen();
-}
-
-void CWindowGroupTarget::setLayoutManagedFullscreen(bool enabled) {
-    ITarget::setLayoutManagedFullscreen(enabled);
-
-    for (const auto& w : m_group->windows()) {
-        w->m_target->setLayoutManagedFullscreen(enabled);
-    }
-}
-
 std::optional<Vector2D> CWindowGroupTarget::minSize() {
     return m_group->current()->minSize();
 }
@@ -103,3 +83,9 @@ void CWindowGroupTarget::onUpdateSpace() {
         w->m_target->onUpdateSpace();
     }
 }
+
+
+SP<Desktop::View::CGroup> CWindowGroupTarget::getGroup() {
+    return m_group.lock();
+}
+

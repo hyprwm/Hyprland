@@ -21,15 +21,14 @@ namespace Layout {
         virtual bool                                                floating();
         virtual void                                                setFloating(bool x);
         virtual std::expected<SGeometryRequested, eGeometryFailure> desiredGeometry();
-        virtual eFullscreenMode                                     fullscreenMode();
-        virtual void                                                setFullscreenMode(eFullscreenMode mode);
         virtual std::optional<Vector2D>                             minSize();
         virtual std::optional<Vector2D>                             maxSize();
         virtual void                                                damageEntire();
         virtual void                                                warpPositionSize();
         virtual void                                                onUpdateSpace();
-        virtual bool                                                layoutManagedFullscreen() const;
-        virtual void                                                setLayoutManagedFullscreen(bool enabled);
+
+
+        SP<Desktop::View::CGroup>                                   getGroup();
 
       private:
         CWindowGroupTarget(SP<Desktop::View::CGroup> g);

@@ -37,6 +37,7 @@ namespace Layout {
         virtual eTargetType type() = 0;
 
         // position is within its space
+        virtual STargetBox   getPositionGlobal();
         virtual void         setPositionGlobal(const STargetBox& box);
         void                 setPositionGlobal(const CBox& box);
         virtual CBox         position() const;
@@ -57,15 +58,11 @@ namespace Layout {
         virtual void         setPseudoSize(const Vector2D& size);
         virtual Vector2D     pseudoSize();
         virtual void         swap(SP<ITarget> b);
-        virtual bool         layoutManagedFullscreen() const;
-        virtual void         setLayoutManagedFullscreen(bool enabled);
 
-        //
+
         virtual bool                                                floating()                              = 0;
         virtual void                                                setFloating(bool x)                     = 0;
         virtual std::expected<SGeometryRequested, eGeometryFailure> desiredGeometry()                       = 0;
-        virtual eFullscreenMode                                     fullscreenMode()                        = 0;
-        virtual void                                                setFullscreenMode(eFullscreenMode mode) = 0;
         virtual std::optional<Vector2D>                             minSize()                               = 0;
         virtual std::optional<Vector2D>                             maxSize()                               = 0;
         virtual void                                                damageEntire()                          = 0;
@@ -83,6 +80,5 @@ namespace Layout {
         bool        m_ghostSpace              = false; // ghost space means a target belongs to a space, but isn't sent to the layout
         Vector2D    m_pseudoSize              = {1280, 720};
         bool        m_wasTiling               = false;
-        bool        m_layoutManagedFullscreen = false;
     };
 };

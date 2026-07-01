@@ -4,16 +4,17 @@
 #include "../config/shared/actions/ConfigActions.hpp"
 #include "../devices/IKeyboard.hpp"
 #include "../managers/SeatManager.hpp"
+#include "../managers/input/InputManager.hpp"
+#include "../managers/fullscreen/FullscreenController.hpp"
 #include "../protocols/ShortcutsInhibit.hpp"
 #include "../protocols/Hotkey.hpp"
 #include "../protocols/core/DataDevice.hpp"
 #include "../errorOverlay/Overlay.hpp"
 #include "KeybindManager.hpp"
 #include "../pointer/PointerManager.hpp"
-#include "Compositor.hpp"
+#include "../Compositor.hpp"
 #include "eventLoop/EventLoopManager.hpp"
-#include "debug/log/Logger.hpp"
-#include "../managers/input/InputManager.hpp"
+#include "../debug/log/Logger.hpp"
 #include "../layout/LayoutManager.hpp"
 #include "../event/EventBus.hpp"
 
@@ -950,7 +951,7 @@ SDispatchResult CKeybindManager::changeMouseBindMode(const eMouseBindMode MODE) 
         if (!PWINDOW)
             return SDispatchResult{.passEvent = true};
 
-        if (!PWINDOW->isFullscreen() && MODE == MBIND_MOVE) {
+        if (!g_pfullscreenController->isFullscreen(PWINDOW) && MODE == MBIND_MOVE) {
             if (PWINDOW->checkInputOnDecos(INPUT_TYPE_DRAG_START, MOUSECOORDS))
                 return SDispatchResult{.passEvent = false};
         }

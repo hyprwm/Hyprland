@@ -108,11 +108,6 @@ namespace Desktop::View {
         std::string  workspace;
     };
 
-    struct SFullscreenState {
-        eFullscreenMode internal = FSMODE_NONE;
-        eFullscreenMode client   = FSMODE_NONE;
-    };
-
     class CWindow : public IView, public virtual CGeometricMovableAnimated {
       public:
         static PHLWINDOW create(SP<CXDGSurfaceResource>);
@@ -163,7 +158,7 @@ namespace Desktop::View {
 
         bool             m_firstMap        = false; // for layouts
         bool             m_isFloating      = false;
-        SFullscreenState m_fullscreenState = {.internal = FSMODE_NONE, .client = FSMODE_NONE};
+        bool     m_layoutHandledFullscreen = false; // if fullscreen was handled by the layout // ERSTARR TODO - Implement this: clients, activewindow, lua attribute
         std::string      m_title           = "";
         std::string      m_class           = "";
         std::string      m_initialTitle    = "";
@@ -171,12 +166,12 @@ namespace Desktop::View {
         PHLWORKSPACE     m_workspace;
         PHLMONITORREF    m_monitor, m_prevMonitor;
 
-        bool             m_isMapped = false;
+        bool          m_isMapped = false;
 
-        bool             m_requestsFloat = false;
+        bool          m_requestsFloat = false;
 
         // This is for fullscreen apps
-        bool m_createdOverFullscreen = false;
+        bool m_allowedOverFullscreen = true;
 
         // XWayland stuff
         bool  m_isX11                = false;
@@ -352,8 +347,6 @@ namespace Desktop::View {
         void                              activate(bool force = false);
         int                               surfacesCount();
         bool                              clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize);
-        bool                              isFullscreen() const;
-        bool                              isEffectiveInternalFSMode(const eFullscreenMode) const;
         int                               getRealBorderSize() const;
         float                             getScrollMouse();
         float                             getScrollTouchpad();

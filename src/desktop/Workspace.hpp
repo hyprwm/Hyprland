@@ -2,19 +2,13 @@
 
 #include "../helpers/AnimatedVariable.hpp"
 #include <string>
+#include <unordered_set>
 #include "DesktopTypes.hpp"
 #include "../helpers/MiscFunctions.hpp"
 #include "../helpers/signal/Signal.hpp"
 
 namespace Layout {
     class CSpace;
-};
-
-enum eFullscreenMode : int8_t {
-    FSMODE_NONE       = 0,
-    FSMODE_MAXIMIZED  = 1 << 0,
-    FSMODE_FULLSCREEN = 1 << 1,
-    FSMODE_MAX        = (1 << 2) - 1
 };
 
 class CWorkspace {
@@ -30,12 +24,9 @@ class CWorkspace {
 
     // Workspaces ID-based have IDs > 0
     // and workspaces name-based have IDs starting with -1337
-    WORKSPACEID     m_id   = WORKSPACE_INVALID;
-    std::string     m_name = "";
-    PHLMONITORREF   m_monitor;
-
-    bool            m_hasFullscreenWindow = false;
-    eFullscreenMode m_fullscreenMode      = FSMODE_NONE;
+    WORKSPACEID   m_id   = WORKSPACE_INVALID;
+    std::string   m_name = "";
+    PHLMONITORREF m_monitor;
 
     // for animations
     PHLANIMVAR<Vector2D>       m_renderOffset;
@@ -58,30 +49,27 @@ class CWorkspace {
     bool        m_wasCreatedEmpty = true;
 
     // Inert: destroyed and invalid. If this is true, release the ptr you have.
-    bool        inert();
-    MONITORID   monitorID();
-    PHLWINDOW   getLastFocusedWindow();
-    PHLWINDOW   getFocusCandidate();
-    std::string getConfigName();
-    bool        matchesStaticSelector(const std::string& selector);
-    void        markInert();
-    void        updateWindowDecos();
-    void        updateWindowData();
-    int         getWindowCount(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {});
-    int         getGroups(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {});
-    bool        hasUrgentWindow();
-    PHLWINDOW   getFirstWindow();
-    PHLWINDOW   getTopLeftWindow();
-    PHLWINDOW   getFullscreenWindow(bool includeLayoutHandledFullscreen = true);
-    bool        hasFullscreen();
-    bool        isVisible();
-    bool        isVisibleNotCovered();
-    void        rename(const std::string& name = "");
-    void        forceReportSizesToWindows();
-    void        updateWindows();
-    void        setPersistent(bool persistent);
-    bool        isPersistent();
-    void        setNoMembersAboveFullscreen();
+    bool                          inert();
+    MONITORID                     monitorID();
+    PHLWINDOW                     getLastFocusedWindow();
+    PHLWINDOW                     getFocusCandidate();
+    std::string                   getConfigName();
+    bool                          matchesStaticSelector(const std::string& selector);
+    void                          markInert();
+    void                          updateWindowDecos();
+    void                          updateWindowData();
+    int                           getWindowCount(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {});
+    int                           getGroups(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {});
+    bool                          hasUrgentWindow();
+    PHLWINDOW                     getFirstWindow();
+    PHLWINDOW                     getTopLeftWindow();
+    bool                          isVisible();
+    bool                          isVisibleNotCovered();
+    void                          rename(const std::string& name = "");
+    void                          forceReportSizesToWindows();
+    void                          updateWindows();
+    void                          setPersistent(bool persistent);
+    bool                          isPersistent();
 
     struct {
         CSignalT<> destroy;

@@ -14,6 +14,8 @@
 #include "../../../../Compositor.hpp"
 #include "../../../../render/Renderer.hpp"
 #include "../../../../state/MonitorState.hpp"
+#include "../../../../managers/fullscreen/FullscreenController.hpp"
+#include "../../../../managers/fullscreen/handler/FullscreenHandler.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <hyprutils/string/VarList2.hpp>
@@ -275,8 +277,11 @@ void CMasterAlgorithm::removeTarget(SP<ITarget> target) {
     if (!PNODE)
         return;
 
-    if (target->fullscreenMode() != FSMODE_NONE)
-        g_pCompositor->setWindowFullscreenInternal(target->window(), FSMODE_NONE);
+    if (m_defaultFullscreenHandler->isFullscreen(target)) {
+        auto window = target->window();
+        // ERSTARR TODO - mayhaps also set client to none?
+        g_pfullscreenController->setFullscreenMode(window, Fullscreen::FSMODE_NONE);
+    }
 
     if (PNODE->isMaster && (MASTERSLEFT <= 1 || *SMALLSPLIT == 1)) {
         // find a new master from top of the list
@@ -503,6 +508,27 @@ void CMasterAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir
 
 void CMasterAlgorithm::recalculate(eRecalculateReason reason) {
     calculateWorkspace();
+
+    // TODO: Re-Setting FS size/pos values after calculateWorkspace overwrote them: Patch - make changes inside calculateWorkspace to make this part redundant
+    if (!m_parent->space()->workspace() || !m_parent->space()->workspace()->m_monitor)
+        return;
+
+    const auto WORKSPACE = m_parent->space()->workspace();
+    const auto MONITOR = WORKSPACE->m_monitor;
+
+
+    if (m_defaultFullscreenHandler->hasFullscreen()) {
+
+        const auto& FULLSCREEN_TARGET = m_defaultFullscreenHandler->getFullscreen();
+
+        if (m_defaultFullscreenHandler->isFullscreen(FULLSCREEN_TARGET, Fullscreen::FSMODE_FULLSCREEN)) {
+            const CBox MONBOX = MONITOR->logicalBox();
+            FULLSCREEN_TARGET->setPositionGlobal(MONBOX);
+        } else if (m_defaultFullscreenHandler->isFullscreen(FULLSCREEN_TARGET, Fullscreen::FSMODE_MAXIMIZED)) {
+            const CBox WORKAREA = WORKSPACE->m_space->workArea(FULLSCREEN_TARGET->floating());
+            FULLSCREEN_TARGET->setPositionGlobal(WORKAREA);
+        }
+    }
 }
 
 Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
@@ -653,7 +679,7 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
         const auto PWINDOWTOSWAPWITH = getNextTarget(PWINDOW->layoutTarget(), true, !NOLOOP);
 
         if (PWINDOWTOSWAPWITH) {
-            g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
+            g_pfullscreenController->setFullscreenMode(PWINDOW, Fullscreen::FSMODE_NONE);
             g_layoutManager->switchTargets(PWINDOW->layoutTarget(), PWINDOWTOSWAPWITH);
             switchToWindow(PWINDOW->layoutTarget());
         }
@@ -670,7 +696,7 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
         const auto PWINDOWTOSWAPWITH = getNextTarget(PWINDOW->layoutTarget(), false, !NOLOOP);
 
         if (PWINDOWTOSWAPWITH) {
-            g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
+            g_pfullscreenController->setFullscreenMode(PWINDOW, Fullscreen::FSMODE_NONE);
             g_layoutManager->switchTargets(PWINDOW->layoutTarget(), PWINDOWTOSWAPWITH);
             switchToWindow(PWINDOW->layoutTarget());
         }
@@ -690,7 +716,7 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
         if (MASTERS + 2 > WINDOWS && *SMALLSPLIT == 0)
             return stateErr("nothing to do");
 
-        g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
+        g_pfullscreenController->setFullscreenMode(PWINDOW, Fullscreen::FSMODE_NONE);
 
         if (!PNODE || PNODE->isMaster) {
             // first non-master node
@@ -722,7 +748,7 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
         if (WINDOWS < 2 || MASTERS < 2)
             return stateErr("nothing to do");
 
-        g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
+        g_pfullscreenController->setFullscreenMode(PWINDOW, Fullscreen::FSMODE_NONE);
 
         if (!PNODE || !PNODE->isMaster) {
             // first non-master node
@@ -741,7 +767,7 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
         if (!PWINDOW)
             return noTarget("no window");
 
-        g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
+        g_pfullscreenController->setFullscreenMode(PWINDOW, Fullscreen::FSMODE_NONE);
 
         if (command == "orientationleft")
             m_workspaceData.explicitOrientation = ORIENTATION_LEFT;
@@ -963,7 +989,7 @@ void CMasterAlgorithm::runOrientationCycle(Hyprutils::String::CVarList2* vars, i
     if (!PWINDOW)
         return;
 
-    g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
+    g_pfullscreenController->setFullscreenMode(PWINDOW, Fullscreen::FSMODE_NONE);
 
     int nextOrPrev = 0;
     for (size_t i = 0; i < cycle.size(); ++i) {

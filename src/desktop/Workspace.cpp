@@ -9,6 +9,7 @@
 #include "../config/supplementary/executor/Executor.hpp"
 #include "managers/animation/AnimationManager.hpp"
 #include "../managers/EventManager.hpp"
+#include "../managers/fullscreen/FullscreenController.hpp"
 #include "../output/Monitor.hpp"
 #include "../state/MonitorState.hpp"
 #include "../state/WorkspacePlacementController.hpp"
@@ -306,8 +307,8 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                                           wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
                     else
                         count = getWindowCount(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
-                                               wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
-                                               wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
+                                           wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
+                                           wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
 
                     if (count != from)
                         return false;
@@ -342,8 +343,8 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                                   wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt, wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
                 else
                     count = getWindowCount(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
-                                           wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
-                                           wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
+                                       wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
+                                       wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
 
                 if (std::clamp(count, from, to) != count)
                     return false;
@@ -367,15 +368,15 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
                 switch (FSSTATE) {
                     case -1: // no fullscreen
-                        if (m_hasFullscreenWindow)
+                        if (g_pfullscreenController->hasFullscreen(m_self.lock()))
                             return false;
                         break;
                     case 0: // fullscreen full
-                        if (!m_hasFullscreenWindow || m_fullscreenMode != FSMODE_FULLSCREEN)
+                        if (g_pfullscreenController->getFullscreenModes(m_self.lock()).internal != Fullscreen::FSMODE_FULLSCREEN)
                             return false;
                         break;
                     case 1: // maximized
-                        if (!m_hasFullscreenWindow || m_fullscreenMode != FSMODE_MAXIMIZED)
+                        if (g_pfullscreenController->getFullscreenModes(m_self.lock()).internal != Fullscreen::FSMODE_MAXIMIZED)
                             return false;
                         break;
                     default: break;
@@ -407,25 +408,6 @@ bool CWorkspace::inert() {
 
 MONITORID CWorkspace::monitorID() {
     return m_monitor ? m_monitor->m_id : MONITOR_INVALID;
-}
-
-PHLWINDOW CWorkspace::getFullscreenWindow(bool includeLayoutHandledFullscreen) {
-    for (auto const& w : Desktop::windowState()->windows()) {
-        if (w->m_workspace == m_self && w->isFullscreen()) { // isFullscreen algo gets layout managed fullscreens
-            if (!includeLayoutHandledFullscreen && w->m_target->layoutManagedFullscreen())
-                continue;
-
-            return w;
-        }
-    }
-
-    return nullptr;
-}
-
-bool CWorkspace::hasFullscreen() {
-    if (m_hasFullscreenWindow)
-        return true;
-    return m_space && m_space->algorithm() && m_space->algorithm()->layoutFullscreenCoversMonitor();
 }
 
 bool CWorkspace::isVisible() {
@@ -566,11 +548,6 @@ void CWorkspace::rename(const std::string& name) {
 }
 
 void CWorkspace::updateWindows() {
-    m_hasFullscreenWindow = std::ranges::any_of(m_space->targets(), [](const auto& t) { return t && t->fullscreenMode() != FSMODE_NONE && !t->layoutManagedFullscreen(); });
-
-    if (!m_hasFullscreenWindow)
-        m_fullscreenMode = FSMODE_NONE;
-
     for (auto const& t : m_space->targets()) {
         if (t->window())
             t->window()->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ON_WORKSPACE);
@@ -591,16 +568,4 @@ void CWorkspace::setPersistent(bool persistent) {
 
 bool CWorkspace::isPersistent() {
     return m_persistent;
-}
-
-void CWorkspace::setNoMembersAboveFullscreen() {
-    // make all windows and layers on the same workspace under the fullscreen window
-    for (auto const& w : Desktop::windowState()->windows()) {
-        if (w->m_workspace == m_self && !w->isFullscreen() && !w->m_pinned)
-            w->m_createdOverFullscreen = false;
-    }
-    for (auto const& ls : Desktop::layerState()->layers()) {
-        if (ls->m_monitor == m_monitor)
-            ls->m_aboveFullscreen = false;
-    }
 }

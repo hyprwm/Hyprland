@@ -10,8 +10,6 @@
 #include <optional>
 #include <expected>
 
-enum eFullscreenMode : int8_t;
-
 namespace Layout {
     class ITarget;
     class CSpace;
@@ -40,11 +38,6 @@ namespace Layout {
         SNAP_RIGHT   = (1 << 3),
     };
 
-    enum eFullscreenRequestResult : uint8_t {
-        FULLSCREEN_REQUEST_DEFAULT = 0,
-        FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT,
-    };
-
     class CLayoutManager {
       public:
         CLayoutManager();
@@ -71,7 +64,6 @@ namespace Layout {
 
         Config::ErrorResult      layoutMsg(const std::string_view& sv);
 
-        eFullscreenRequestResult fullscreenRequestForTarget(SP<ITarget> target, eFullscreenMode currentEffectiveMode, eFullscreenMode effectiveMode);
 
         void                     switchTargets(SP<ITarget> a, SP<ITarget> b, bool preserveFocus = true);
 

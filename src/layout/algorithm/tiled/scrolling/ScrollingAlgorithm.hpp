@@ -1,12 +1,14 @@
 #pragma once
 
 #include "../../TiledAlgorithm.hpp"
-#include "../../../../helpers/math/Direction.hpp"
 #include "ScrollTapeController.hpp"
-#include "../../../../helpers/signal/Signal.hpp"
 
-#include <optional>
-#include <vector>
+
+
+namespace Fullscreen::ScrollingFullscreenHandler {
+    class CScrollingFullscreenHandler;
+}
+
 
 namespace Layout::Tiled {
     class CScrollingAlgorithm;
@@ -110,26 +112,27 @@ namespace Layout::Tiled {
         virtual void                     swapTargets(SP<ITarget> a, SP<ITarget> b);
         virtual void                     moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
 
-        virtual eFullscreenRequestResult requestFullscreen(const SFullscreenRequest& request);
-        virtual SP<ITarget>              layoutFullscreenTarget() const;
-        virtual bool                     layoutFullscreenCoversMonitor() const;
+        virtual WP<Fullscreen::IFullscreenHandler> getFSHandler();
 
-        void                             moveTape(float delta);
-        void                             moveTapeNormalized(double delta);
-        void                             snapToGrid();
-        SP<SColumnData>                  snapToProjectedOffset(double projectedNormalizedOffset);
-        void                             focusColumn(SP<SColumnData> column);
-        SP<SColumnData>                  getColumnAtViewportCenter();
-        SP<SColumnData>                  currentColumn();
 
-        double                           primaryViewportSize();
-        double                           normalizedTapeOffset();
 
-        CBox                             usableArea() const;
-        SP<SScrollingTargetData>         dataFor(SP<ITarget> t) const;
 
-        void                             inhibitScroll();
-        void                             uninhibitScroll();
+        void                     moveTape(float delta);
+        void                     moveTapeNormalized(double delta);
+        void                     snapToGrid();
+        SP<SColumnData>          snapToProjectedOffset(double projectedNormalizedOffset);
+        void                     focusColumn(SP<SColumnData> column);
+        SP<SColumnData>          getColumnAtViewportCenter();
+        SP<SColumnData>          currentColumn();
+
+        double                   primaryViewportSize();
+        double                   normalizedTapeOffset();
+
+        CBox                     usableArea() const;
+        SP<SScrollingTargetData> dataFor(SP<ITarget> t, bool stepIntoGroups = false) const;
+
+        void                     inhibitScroll();
+        void                     uninhibitScroll();
 
         enum eInputMode : uint8_t {
             INPUT_MODE_SOFT = 0,
@@ -144,26 +147,13 @@ namespace Layout::Tiled {
         CHyprSignalListener m_focusCallback;
         CHyprSignalListener m_mouseButtonCallback;
 
+        const UP<Fullscreen::ScrollingFullscreenHandler::CScrollingFullscreenHandler> m_scrollingFullscreenHandler;
+
         struct {
             std::vector<float> configuredWidths;
         } m_config;
 
         eScrollDirection getDynamicDirection();
-
-        struct SFullscreenScrollState {
-            WP<ITarget>          target;
-            std::optional<float> restoreColumnWidth;
-        };
-
-        void                                syncFullscreenTargets();
-        SFullscreenScrollState*             fullscreenStateForTarget(SP<ITarget> target, eFullscreenMode targetFullscreenMode);
-        SFullscreenScrollState*             fullscreenStateForData(SP<SScrollingTargetData> target, eFullscreenMode targetFullscreenMode);
-        SP<SScrollingTargetData>            fullscreenTargetDataForColumn(SP<SColumnData> col) const;
-        bool                                isFullscreenTarget(SP<SScrollingTargetData> target) const;
-        float                               fullscreenColumnWidth() const;
-        bool                                fullscreenColumnCoversMonitor(SP<SColumnData> col) const;
-        void                                updateFullscreenFade(bool coversMonitor);
-        void                                clearFullscreenTarget(std::vector<SFullscreenScrollState>& fullscreenTargetList, SP<ITarget> target = nullptr);
 
         SP<SScrollingTargetData>            findBestNeighbor(SP<SScrollingTargetData> pCurrent, SP<SColumnData> pTargetCol);
         SP<SScrollingTargetData>            closestNode(const Vector2D& posGlobglobgabgalab);
@@ -176,10 +166,7 @@ namespace Layout::Tiled {
 
         float                               defaultColumnWidth();
 
-        std::vector<SFullscreenScrollState> m_fullscreenTargets;
-        std::vector<SFullscreenScrollState> m_maximizeTargets;
-        bool                                m_lastFullscreenCover = false;
-
         friend struct SScrollingData;
+        friend class Fullscreen::ScrollingFullscreenHandler::CScrollingFullscreenHandler;
     };
 };

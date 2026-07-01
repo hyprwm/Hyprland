@@ -1,6 +1,7 @@
 #include "LayoutManager.hpp"
 
-#include "managers/EventManager.hpp"
+#include "../managers/EventManager.hpp"
+#include "../managers/fullscreen/FullscreenController.hpp"
 #include "space/Space.hpp"
 #include "target/Target.hpp"
 
@@ -102,12 +103,6 @@ void CLayoutManager::endDragTarget() {
     m_dragStateController->dragEnd();
 }
 
-eFullscreenRequestResult CLayoutManager::fullscreenRequestForTarget(SP<ITarget> target, eFullscreenMode currentEffectiveMode, eFullscreenMode effectiveMode) {
-    if (target && target->space())
-        return target->space()->setFullscreen(target, currentEffectiveMode, effectiveMode);
-
-    return FULLSCREEN_REQUEST_DEFAULT;
-}
 
 void CLayoutManager::switchTargets(SP<ITarget> a, SP<ITarget> b, bool preserveFocus) {
 
@@ -220,7 +215,7 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
     if (*SNAPWINDOWGAP) {
         const double GAPSIZE       = *SNAPWINDOWGAP;
         const auto   WSID          = DRAGGINGWINDOW->workspaceID();
-        const bool   HASFULLSCREEN = DRAGGINGWINDOW->m_workspace && DRAGGINGWINDOW->m_workspace->m_hasFullscreenWindow;
+        const bool   HASFULLSCREEN = DRAGGINGWINDOW->m_workspace && g_pfullscreenController->hasFullscreen(DRAGGINGWINDOW->m_workspace);
 
         const auto*  GAPSIN = *SNAPRESPECTGAPS ? sc<Config::CCssGapData*>(PGAPSIN.ptr()) : &GAPSNONE;
         const double GAPSX  = GAPSIN->m_left + GAPSIN->m_right;

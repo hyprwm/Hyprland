@@ -15,6 +15,7 @@
 #include "../../Compositor.hpp"
 #include "../../state/MonitorState.hpp"
 #include "desktop/DesktopTypes.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 #include "wlr-layer-shell-unstable-v1.hpp"
 
 #include <hyprutils/string/VarList.hpp>
@@ -472,29 +473,35 @@ void CDesktopAnimationManager::setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnim
 
     const auto FULLSCREEN = type == ANIMATION_TYPE_IN;
 
-    for (auto const& w : Desktop::windowState()->windows()) {
-        if (w->m_workspace == ws) {
-            w->updateFullscreenInputState();
+    // Because in at least one layout managed fullscreen (scrolling), an FS window can be layered ontop of another. We need to get the topmost one
+    const auto FULLSCREEN_WINDOW = g_pfullscreenController->getFullscreenWindow(ws);
 
-            if (w->m_pinned || w->isFullscreen())
+    for (auto const& w : Desktop::windowState()->windows()) {
+        if (w->m_workspace != ws)
+            continue;
+        w->updateFullscreenInputState();
+
+        if (w == FULLSCREEN_WINDOW) {
+            *w->alpha(WINDOW_ALPHA_FULLSCREEN) = 1.F;
+            continue;
+        }
+
+            if (w->m_pinned)
                 continue;
 
-            if (!FULLSCREEN)
-                *w->alpha(WINDOW_ALPHA_FULLSCREEN) = 1.F;
-            else if (!w->isFullscreen()) {
-                *w->alpha(WINDOW_ALPHA_FULLSCREEN) = w->isAllowedOverFullscreen() ? 1.f : 0.f;
-            }
+        if (!FULLSCREEN)
+            *w->alpha(WINDOW_ALPHA_FULLSCREEN) = 1.F;
+        else if (w != FULLSCREEN_WINDOW) {
+            *w->alpha(WINDOW_ALPHA_FULLSCREEN) = w->isAllowedOverFullscreen() ? 1.f : 0.f;
         }
     }
 
     const auto PMONITOR = ws->m_monitor.lock();
 
     if (ws->m_id == PMONITOR->activeWorkspaceID() || ws->m_id == PMONITOR->activeSpecialWorkspaceID()) {
-        const auto FSWINDOW = ws->getFullscreenWindow(true);
-        const auto FSMODE   = FSWINDOW ? FSWINDOW->m_target->fullscreenMode() : ws->m_fullscreenMode;
         for (auto const& ls : PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
             if (!ls->m_aboveFullscreen)
-                *ls->m_alpha = FULLSCREEN && FSMODE != FSMODE_MAXIMIZED ? 0.f : 1.f;
+                *ls->m_alpha = FULLSCREEN && g_pfullscreenController->getFullscreenModes(ws).internal != Fullscreen::FSMODE_MAXIMIZED ? 0.f : 1.f;
         }
     }
 }
@@ -513,7 +520,7 @@ void CDesktopAnimationManager::overrideFullscreenFadeAmount(PHLWORKSPACE ws, flo
             continue;
 
         if (w->m_workspace == ws) {
-            if (w->m_pinned || w->isFullscreen())
+            if (w->m_pinned || g_pfullscreenController->isFullscreen(w))
                 continue;
 
             *w->alpha(WINDOW_ALPHA_FULLSCREEN) = fade;

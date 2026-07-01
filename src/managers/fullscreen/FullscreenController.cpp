@@ -114,7 +114,7 @@ bool CFullscreenController::hasFullscreen(const PHLWORKSPACE workspace, const st
     // only one floating algo in hyprland so far, which is default handled.
     const auto FLOATING_FS_HANDLER      = workspace->m_space->algorithm()->floatingAlgo()->getFSHandler();
 
-    if (!FLOATING_FS_HANDLER || !TILED_FS_HANDLER)
+    if (!TILED_FS_HANDLER || !DEFAULT_TILED_FS_HANDLER || !FLOATING_FS_HANDLER)
         return false; // ERROR LOG!
 
     // check floating first
@@ -122,7 +122,7 @@ bool CFullscreenController::hasFullscreen(const PHLWORKSPACE workspace, const st
         return true;
     
     // check default handled tiled second
-    if (DEFAULT_TILED_FS_HANDLER->IFullscreenHandler::hasFullscreen(covering))
+    if (DEFAULT_TILED_FS_HANDLER->hasFullscreen(covering))
         return true;
 
     // check layout handled tiled last
@@ -144,7 +144,7 @@ PHLWINDOW CFullscreenController::getFullscreenWindow(const PHLWORKSPACE workspac
     // only one floating algo in hyprland so far, which is default handled
     const auto FLOATING_FS_HANDLER      = workspace->m_space->algorithm()->floatingAlgo()->getFSHandler();
 
-    if (!TILED_FS_HANDLER || !FLOATING_FS_HANDLER)
+    if (!TILED_FS_HANDLER || !DEFAULT_TILED_FS_HANDLER || !FLOATING_FS_HANDLER)
         return nullptr; // ERSTARR TODO - ERROR LOG
 
     // check floating first
@@ -152,7 +152,7 @@ PHLWINDOW CFullscreenController::getFullscreenWindow(const PHLWORKSPACE workspac
         return FSTARGET->window();
 
     // check default handled tiled second
-    if (const auto FSTARGET =  DEFAULT_TILED_FS_HANDLER->IFullscreenHandler::getFullscreen(covering); FSTARGET && DEFAULT_TILED_FS_HANDLER->isFullscreen(FSTARGET))
+    if (const auto FSTARGET =  DEFAULT_TILED_FS_HANDLER->getFullscreen(covering); FSTARGET && DEFAULT_TILED_FS_HANDLER->isFullscreen(FSTARGET))
         return FSTARGET->window();
 
     // check layout handled tiled last
@@ -174,7 +174,7 @@ SFullscreenMode CFullscreenController::getFullscreenModes(const PHLWORKSPACE wor
     // only one floating algo in hyprland so far, which is default handled
     const auto FLOATING_FS_HANDLER      = workspace->m_space->algorithm()->floatingAlgo()->getFSHandler();
 
-    if (!TILED_FS_HANDLER || !FLOATING_FS_HANDLER)
+    if (!TILED_FS_HANDLER || !DEFAULT_TILED_FS_HANDLER || !FLOATING_FS_HANDLER)
         return SFullscreenMode{}; // ERSTARR TODO - ERROR LOG
 
     // check floating first
@@ -182,8 +182,8 @@ SFullscreenMode CFullscreenController::getFullscreenModes(const PHLWORKSPACE wor
         return FLOATING_FS_HANDLER->getFullscreenModes(FSTARGET);
 
     // check default handled tiled second
-    if (const auto FSTARGET =  DEFAULT_TILED_FS_HANDLER->IFullscreenHandler::getFullscreen(covering); FSTARGET && DEFAULT_TILED_FS_HANDLER->IFullscreenHandler::isFullscreen(FSTARGET))
-        return DEFAULT_TILED_FS_HANDLER->IFullscreenHandler::getFullscreenModes(FSTARGET);
+    if (const auto FSTARGET =  DEFAULT_TILED_FS_HANDLER->getFullscreen(covering); FSTARGET && DEFAULT_TILED_FS_HANDLER->isFullscreen(FSTARGET))
+        return DEFAULT_TILED_FS_HANDLER->getFullscreenModes(FSTARGET);
 
     // check layout handled tiled last
     const auto FSTARGET = TILED_FS_HANDLER->getFullscreen(covering);

@@ -195,8 +195,8 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
                 targetColumnWidth = getTargetColumnWidthBeforeFullscreenOrMaximise(TARGET);
             else {
                 targetColumnWidth = CURRENT_COL ?
-                    CURRENT_COL->getColumnWidth() :
-                    0.5f; // 0.5f as the fallback - but it won't matter here since if current col doesn't exist here restoreColumnWidth will be = nullptr anyway
+                    // 0.5f as the fallback - but it won't matter here since if current col doesn't exist here restoreColumnWidth will be = nullptr anyway
+                    CURRENT_COL->getColumnWidth() : 0.5f; 
             }
 
             const auto ITR = m_fsTargets.find(TARGET);

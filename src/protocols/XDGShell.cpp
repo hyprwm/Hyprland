@@ -197,9 +197,14 @@ CXDGToplevelResource::CXDGToplevelResource(SP<CXdgToplevel> resource_, SP<CXDGSu
     });
 
     m_resource->setSetFullscreen([this](CXdgToplevel* r, wl_resource* output) {
-        if (output)
-            if (const auto PM = CWLOutputResource::fromResource(output)->m_monitor; PM)
-                m_state.requestsFullscreenMonitor = PM->m_id;
+        if (output) {
+            const auto OUTPUT = CWLOutputResource::fromResource(output);
+            if (OUTPUT) {
+                if (const auto PM = OUTPUT->m_monitor; PM)
+                    m_state.requestsFullscreenMonitor = PM->m_id;
+            } else
+                LOGM(Log::ERR, "Client requested fullscreen on an invalid output resource");
+        }
 
         m_state.requestsFullscreen = true;
         m_events.stateChanged.emit();

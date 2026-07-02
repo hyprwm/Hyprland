@@ -432,12 +432,6 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
         shadowKeybinds();
     }
 
-    if (m_pressedKeys.empty()) {
-        for (const auto& k : m_keybinds) {
-            k->releasePending = false; // reset this flag once we don't press any keys to avoid stale
-        }
-    }
-
     return !suppressEvent && !mouseBindWasActive;
 }
 
@@ -630,7 +624,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
     std::vector<SP<SKeybind>> bindsHit;
 
     for (auto& k : m_keybinds) {
-        const bool SPECIALDISPATCHER = k->handler == "global" || k->handler == "pass" || k->handler == "sendshortcut" || k->handler == "mouse" || k->releasePending;
+        const bool SPECIALDISPATCHER = k->handler == "global" || k->handler == "pass" || k->handler == "sendshortcut" || k->handler == "mouse" || k->wrapsSpecialDispatcher;
         const bool SPECIALTRIGGERED  = std::ranges::find_if(m_pressedSpecialBinds, [&](const auto& other) { return other == k; }) != m_pressedSpecialBinds.end();
         const bool IGNORECONDITIONS =
             SPECIALDISPATCHER && !pressed && SPECIALTRIGGERED; // ignore mods. Pass, global dispatchers should be released immediately once the key is released.
@@ -774,13 +768,12 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
     }
 
     for (const auto& k : bindsHit) {
-        const bool SPECIALDISPATCHER = k->handler == "global" || k->handler == "pass" || k->handler == "sendshortcut" || k->handler == "mouse" || k->releasePending;
+        const bool SPECIALDISPATCHER = k->handler == "global" || k->handler == "pass" || k->handler == "sendshortcut" || k->handler == "mouse" || k->wrapsSpecialDispatcher;
         const bool SPECIALTRIGGERED  = std::ranges::find_if(m_pressedSpecialBinds, [&](const auto& other) { return other == k; }) != m_pressedSpecialBinds.end();
 
         const auto DISPATCHER = m_dispatchers.find(k->mouse ? "mouse" : k->handler);
 
-        k->releasePending = false; // reset this flag if it's set
-        m_currentKeybind  = k;
+        m_currentKeybind = k;
 
         Hyprutils::Utils::CScopeGuard x([this] { m_currentKeybind.reset(); });
 

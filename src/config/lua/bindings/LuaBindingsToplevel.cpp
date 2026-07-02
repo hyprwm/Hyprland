@@ -144,6 +144,10 @@ static int hlBind(lua_State* L) {
     if (kb.catchAll && mgr->m_currentSubmap.empty())
         return Internal::configError(L, "hl.bind: catchall keybinds are only allowed in submaps.");
 
+    // detect a wrapped native-special dispatcher now, while the dispatcher function is still on the stack
+    // (luaL_ref below pops it). Lets the bind be tracked/released like a native pass/global/send_shortcut/mouse.
+    kb.wrapsSpecialDispatcher = Internal::dispatcherFunctionIsSpecial(L, -1);
+
     int ref       = luaL_ref(L, LUA_REGISTRYINDEX);
     kb.handler    = "__lua";
     kb.arg        = std::to_string(ref);

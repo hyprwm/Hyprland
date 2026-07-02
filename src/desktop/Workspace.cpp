@@ -122,13 +122,17 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
     if (selector.empty())
         return true;
 
-    if (isNumber(selector)) {
-        const auto& [wsid, wsname, isAutoID] = getWorkspaceIDNameFromString(selector);
+    if (selector.starts_with("id:")) {
 
-        if (wsid == WORKSPACE_INVALID)
+        const std::string WS_ID_STR = selector.substr(3);
+
+        if (!isNumber(WS_ID_STR)) {
+            Log::logger->log(Log::ERR, "id: is not numeric");
             return false;
+        }
+        const auto WS = g_pCompositor->getWorkspaceByID(std::stoi(WS_ID_STR));
 
-        return wsid == m_id;
+        return WS.get() == m_self.get();
 
     } else if (selector.starts_with("name:")) {
         return m_name == selector.substr(5);

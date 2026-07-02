@@ -211,6 +211,7 @@ namespace Monitor {
             DS_BLOCK_DMA       = (1 << 10),
             DS_BLOCK_FAILED    = (1 << 11),
             DS_BLOCK_CM        = (1 << 12),
+            DS_BLOCK_WINDOW    = (1 << 13),
 
             DS_CHECKS_COUNT = 14,
         };

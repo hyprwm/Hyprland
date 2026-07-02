@@ -96,6 +96,7 @@ namespace Config::Lua::Bindings::Internal {
         {"force_rgbx", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_FORCE_RGBX},
         {"sync_fullscreen", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_SYNC_FULLSCREEN},
         {"immediate", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_IMMEDIATE},
+        {"directscanout", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_DIRECT_SCANOUT},
         {"xray", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_XRAY},
         {"render_unfocused", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_RENDER_UNFOCUSED},
         {"no_screen_share", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_NO_SCREEN_SHARE},

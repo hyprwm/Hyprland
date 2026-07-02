@@ -1,0 +1,12 @@
+# Prevent codeowners-plus from adding a review status comment:
+# we only use it to request reviews, not to enforce approvals.
+#
+# Optional reviewers are still invited with a CC comment.
+disable_review_status_comments = true
+
+[enforcement]
+# Just request reviews, but do not enforce the approvals requirement.
+#
+# If `fail_check = true`, the codeowners-plus workflow will fail, unless sepcified reviewers
+# approve the PR.
+fail_check = false

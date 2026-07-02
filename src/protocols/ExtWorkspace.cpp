@@ -101,6 +101,13 @@ CExtWorkspaceResource::CExtWorkspaceResource(WP<CExtWorkspaceManagerResource> ma
             m_manager->scheduleDone();
     });
 
+    m_listeners.idChanged = m_workspace->m_events.idChanged.listen([this] {
+        m_resource->sendName(m_workspace->m_name.c_str());
+
+        if (m_manager)
+            m_manager->scheduleDone();
+    });
+
     m_resource->setOnDestroy([this](auto) { PROTO::extWorkspace->destroyWorkspace(m_self); });
     m_resource->setDestroy([this](auto) { PROTO::extWorkspace->destroyWorkspace(m_self); });
 

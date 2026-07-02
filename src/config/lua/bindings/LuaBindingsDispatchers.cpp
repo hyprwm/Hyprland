@@ -1193,6 +1193,16 @@ static int dsp_renameWorkspace(lua_State* L) {
     return Internal::checkResult(L, CA::renameWorkspace(PWS, name));
 }
 
+static int dsp_workspaceChangeID(lua_State* L) {
+    const auto PWS = State::workspaceState()->query().string(lua_tostring(L, lua_upvalueindex(1))).run();
+    if (!PWS)
+        return Internal::dispatcherError(L, "hl.workspace.change_id: no such workspace", WARN, C_NOTFOUND);
+    if (PWS->m_id <= 0)
+        return Internal::dispatcherError(L, "hl.workspace.change_id: cannot change id of workspace with a managed id", WARN, C_NOTFOUND);
+    int64_t id = lua_tonumber(L, lua_upvalueindex(2));
+    return Internal::checkResult(L, CA::changeWorkspaceID(PWS, id));
+}
+
 static int dsp_moveWorkspaceToMonitor(lua_State* L) {
     const auto WORKSPACEID = getWorkspaceIDNameFromString(lua_tostring(L, lua_upvalueindex(1))).id;
     if (WORKSPACEID == WORKSPACE_INVALID)
@@ -1243,6 +1253,22 @@ static int hlWorkspaceRename(lua_State* L) {
     else
         lua_pushnil(L);
     lua_pushcclosure(L, dsp_renameWorkspace, 2);
+    return 1;
+}
+
+static int hlWorkspaceChangeID(lua_State* L) {
+    if (!lua_istable(L, 1))
+        return Internal::configError(L, "hl.workspace.change_id: expected a table { workspace, id }");
+
+    const auto workspace = Internal::requireTableFieldWorkspaceSelector(L, 1, "workspace", "hl.workspace.change_id");
+    auto       newID     = Internal::requireTableFieldNum(L, 1, "id", "hl.workspace.change_id");
+
+    if (newID <= 0 || newID >= std::numeric_limits<uint32_t>::max())
+        return Internal::configError(L, "hl.workspace.change_id: bad id");
+
+    lua_pushstring(L, workspace.c_str());
+    lua_pushnumber(L, newID);
+    lua_pushcclosure(L, dsp_workspaceChangeID, 2);
     return 1;
 }
 
@@ -1327,6 +1353,7 @@ void Internal::registerDispatcherBindings(lua_State* L) {
         lua_newtable(L);
         Internal::markDispatcherTable(L);
         Internal::setFn(L, "rename", hlWorkspaceRename);
+        Internal::setFn(L, "change_id", hlWorkspaceChangeID);
         Internal::setFn(L, "move", hlWorkspaceMove);
         Internal::setFn(L, "swap_monitors", hlWorkspaceSwapMonitors);
         Internal::setFn(L, "toggle_special", hlWorkspaceToggleSpecial);

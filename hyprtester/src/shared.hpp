@@ -295,4 +295,5 @@ inline std::map<std::string, std::shared_ptr<CTestCase>> testCases;
             FAIL_TEST("Could not spawn layer kitty with class: {}", class_);                                                                                                       \
     } while (0)
 
-#define OK(x) ASSERT(x, "ok")
+#define OK(x)  ASSERT(x, "ok")
+#define NOK(x) ASSERT_NOT(x, "ok")

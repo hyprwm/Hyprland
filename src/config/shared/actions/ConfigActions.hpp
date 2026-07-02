@@ -68,6 +68,7 @@ namespace Config::Actions {
     ActionResult changeWorkspace(PHLWORKSPACE ws);
     ActionResult changeWorkspace(const std::string& ws);
     ActionResult renameWorkspace(PHLWORKSPACE ws, const std::string& s);
+    ActionResult changeWorkspaceID(PHLWORKSPACE ws, int64_t id);
     ActionResult moveToMonitor(PHLWORKSPACE ws, PHLMONITOR mon);
     ActionResult changeWorkspaceOnCurrentMonitor(PHLWORKSPACE ws);
     ActionResult toggleSpecial(PHLWORKSPACE special);

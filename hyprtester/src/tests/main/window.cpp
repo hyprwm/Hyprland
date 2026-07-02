@@ -300,6 +300,50 @@ TEST_CASE(windowFocusOnFullscreenConflict) {
     }
 }
 
+TEST_CASE(focusFloatingOrTilingUnderFullscreen) {
+    OK(getFromSocket("/eval hl.config({ misc = { focus_on_activate = true } })"));
+    OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 2 } })"));
+
+    ASSERT(!!Tests::spawnKitty("kitty_a"), true);
+    ASSERT(!!Tests::spawnKitty("kitty_b"), true);
+
+    ASSERT(isActiveWindow("kitty_b", '0'), true);
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set' })"));
+
+    // Test 1: focus floating from fullscreen tiled
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_a' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set' })"));
+    ASSERT(isActiveWindow("kitty_a", '2'), true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'floating' })"));
+    std::string active = getFromSocket("/activewindow");
+    EXPECT_CONTAINS(Tests::getAttribute(active, "class"), "kitty_b");
+    std::string kitty_a = getFromSocket("/clients");
+    // Assuming clients appear in the same order that they connected in
+    kitty_a = kitty_a.substr(0, kitty_a.size() - active.size());
+    ASSERT_COUNT_STRING(kitty_a, "class:", 1); // Check that the cut is right
+    EXPECT(Tests::getAttribute(kitty_a, "class") == "kitty_a", true);
+    // Remains fullscreen, since we just focused a floating window over it
+    EXPECT(Tests::getAttribute(kitty_a, "fullscreen") == "2", true);
+    EXPECT(Tests::getAttribute(kitty_a, "fullscreenClient") == "2", true);
+
+    // Test 2: focus tiled from fullscreen floating
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'tiled' })"));
+    active = getFromSocket("/activewindow");
+    EXPECT_CONTAINS(Tests::getAttribute(active, "class"), "kitty_a");
+    std::string kitty_b = getFromSocket("/clients");
+    // Assuming clients appear in the same order that they connected in
+    kitty_b = kitty_b.substr(active.size());
+    ASSERT_COUNT_STRING(kitty_b, "class:", 1); // Check that the cut is right
+    EXPECT(Tests::getAttribute(kitty_b, "class") == "kitty_b", true);
+    // Exited fullscreen, since we switched focus to a window under it
+    EXPECT(Tests::getAttribute(kitty_b, "fullscreen") == "0", true);
+    EXPECT(Tests::getAttribute(kitty_b, "fullscreen") == "0", true);
+}
+
 TEST_CASE(windowMaximizeSize) {
     SPAWN_KITTY("kitty_A");
 

@@ -8,12 +8,20 @@
 #include "../../helpers/AnimatedVariable.hpp"
 #include "../../render/Framebuffer.hpp"
 #include "types/GeometricMovableAnimated.hpp"
+#include "types/AlphaModifiable.hpp"
+#include "animationControllers/LayerSurfaceAnimationController.hpp"
 
 class CLayerShellResource;
 
 namespace Desktop::View {
 
-    class CLayerSurface : public IView, public virtual CGeometricMovableAnimated {
+    enum eLayerAlpha : uint8_t {
+        LS_ALPHA_FADE = 0,
+
+        LS_ALPHA_LAST,
+    };
+
+    class CLayerSurface : public virtual IView, public virtual CGeometricMovableAnimated, public virtual IAlphaModifiable {
       public:
         static PHLLS create(SP<CLayerShellResource>);
         static PHLLS fromView(SP<IView>);
@@ -24,18 +32,18 @@ namespace Desktop::View {
       public:
         virtual ~CLayerSurface();
 
-        virtual eViewType           type() const;
-        virtual bool                visible() const;
-        virtual std::optional<CBox> logicalBox() const;
-        virtual bool                desktopComponent() const;
-        virtual std::optional<CBox> surfaceLogicalBox() const;
+        virtual eViewType                                   type() const override;
+        virtual bool                                        visible() const override;
+        virtual std::optional<CBox>                         logicalBox() const override;
+        virtual bool                                        desktopComponent() const override;
+        virtual std::optional<CBox>                         surfaceLogicalBox() const override;
+        virtual Types::CMultiAVarContainer<float, uint8_t>& alpha() override;
+        virtual std::optional<uint8_t>                      alphaGenericToKey(eAlphaModifiableProp p) override;
 
-        int                         popupsCount();
+        int                                                 popupsCount();
 
         using CGeometricMovableAnimated::m_realPosition;
         using CGeometricMovableAnimated::m_realSize;
-
-        PHLANIMVAR<float>       m_alpha;
 
         WP<CLayerShellResource> m_layerSurface;
 
@@ -53,6 +61,8 @@ namespace Desktop::View {
         UP<Desktop::Rule::CLayerRuleApplicator> m_ruleApplicator;
 
         PHLLSREF                                m_self;
+
+        CLayerSurfaceAnimationController        m_animationController;
 
         CBox                                    m_geometry = {0, 0, 0, 0};
         Vector2D                                m_position;
@@ -77,6 +87,9 @@ namespace Desktop::View {
         } m_listeners;
 
         void registerCallbacks();
+
+        // fade in/out
+        Desktop::Types::CMultiAVarContainer<float, std::underlying_type_t<eLayerAlpha>> m_alpha;
 
         // For the list lookup
         bool operator==(const CLayerSurface& rhs) const {

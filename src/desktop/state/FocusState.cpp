@@ -8,7 +8,7 @@
 #include "../../managers/SeatManager.hpp"
 #include "../../xwayland/XSurface.hpp"
 #include "../../protocols/PointerConstraints.hpp"
-#include "managers/animation/DesktopAnimationManager.hpp"
+#include "animation/WorkspaceAnimationController.hpp"
 #include "../../layout/LayoutManager.hpp"
 #include "../../event/EventBus.hpp"
 
@@ -38,7 +38,7 @@ static SFullscreenWorkspaceFocusResult onFullscreenWorkspaceFocusWindow(PHLWINDO
         // if the window is floating, just bring it to the top
         pWindow->m_createdOverFullscreen = true;
         pWindow->updateFullscreenInputState();
-        g_pDesktopAnimationManager->setFullscreenFloatingFade(pWindow, 1.f);
+        Animation::Workspace::setFullscreenFloatingFade(pWindow, 1.F);
         g_pHyprRenderer->damageWindow(pWindow);
         return {};
     }

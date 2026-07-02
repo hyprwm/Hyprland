@@ -7,8 +7,7 @@
 #include "../../protocols/LayerShell.hpp"
 #include "../../protocols/core/Compositor.hpp"
 #include "../../managers/SeatManager.hpp"
-#include "../../managers/animation/AnimationManager.hpp"
-#include "../../managers/animation/DesktopAnimationManager.hpp"
+#include "../../animation/AnimationManager.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../config/shared/animation/AnimationTree.hpp"
 #include "../../output/Monitor.hpp"
@@ -33,13 +32,11 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     pLS->m_layer          = std::clamp(resource->m_current.layer, ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND, ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY);
     pLS->m_popupHead      = CPopup::create(pLS);
 
-    g_pAnimationManager->createAnimation(0.f, pLS->m_alpha, Config::animationTree()->getAnimationPropertyConfig("fadeLayersIn"), pLS, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(Vector2D(0, 0), pLS->m_realPosition, Config::animationTree()->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(Vector2D(0, 0), pLS->m_realSize, Config::animationTree()->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(0.f, pLS->m_alpha.get(LS_ALPHA_FADE), Config::animationTree()->getAnimationPropertyConfig("fadeLayersIn"), pLS, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(Vector2D(0, 0), pLS->m_realPosition, Config::animationTree()->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(Vector2D(0, 0), pLS->m_realSize, Config::animationTree()->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
 
     pLS->registerCallbacks();
-
-    pLS->m_alpha->setValueAndWarp(0.f);
 
     pLS->initView(pLS, VIEW_TYPE_LAYER_SURFACE);
 
@@ -69,13 +66,13 @@ PHLLS CLayerSurface::fromView(SP<IView> v) {
 }
 
 void CLayerSurface::registerCallbacks() {
-    m_alpha->setUpdateCallback([this](auto) {
+    m_alpha.get(LS_ALPHA_FADE)->setUpdateCallback([this](auto) {
         if (m_ruleApplicator->dimAround().valueOrDefault() && m_monitor)
             g_pHyprRenderer->damageMonitor(m_monitor.lock());
     });
 }
 
-CLayerSurface::CLayerSurface(SP<CLayerShellResource> resource_) : IView(CWLSurface::create()), m_layerSurface(resource_) {
+CLayerSurface::CLayerSurface(SP<CLayerShellResource> resource_) : IView(CWLSurface::create()), m_layerSurface(resource_), m_animationController(this), m_alpha(LS_ALPHA_LAST) {
     m_listeners.commit  = m_layerSurface->m_events.commit.listen([this] { onCommit(); });
     m_listeners.map     = m_layerSurface->m_events.map.listen([this] { onMap(); });
     m_listeners.unmap   = m_layerSurface->m_events.unmap.listen([this] { onUnmap(); });
@@ -207,7 +204,10 @@ void CLayerSurface::onMap() {
     CBox geomFixed = {m_geometry.x + PMONITOR->m_position.x, m_geometry.y + PMONITOR->m_position.y, m_geometry.width, m_geometry.height};
     g_pHyprRenderer->damageBox(geomFixed);
 
-    g_pDesktopAnimationManager->startAnimation(m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_IN);
+    m_realPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("layersIn"));
+    m_realSize->setConfig(Config::animationTree()->getAnimationPropertyConfig("layersIn"));
+    m_alpha.get(LS_ALPHA_FADE)->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeLayersIn"));
+    m_animationController.apply(m_animationController.animateIn());
 
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "openlayer", .data = m_namespace});
     Event::bus()->m_events.layer.opened.emit(m_self.lock());
@@ -230,7 +230,6 @@ void CLayerSurface::onUnmap() {
         if (m_layerSurface && m_layerSurface->m_surface)
             m_layerSurface->m_surface->unmap();
 
-        g_pDesktopAnimationManager->startAnimation(m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_OUT);
         return;
     }
 
@@ -239,10 +238,13 @@ void CLayerSurface::onUnmap() {
     m_realSize->warp();
 
     // make a snapshot and start fade
-    const auto SNAPSHOT    = g_pHyprRenderer->makeSnapshotFB(m_self.lock());
-    const auto SOURCEALPHA = m_alpha->value();
+    const auto SNAPSHOT    = !m_ruleApplicator->noanim().valueOrDefault() ? g_pHyprRenderer->makeSnapshotFB(m_self.lock()) : nullptr;
+    const auto SOURCEALPHA = m_alpha.getTotal();
 
-    g_pDesktopAnimationManager->startAnimation(m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+    // FIXME: this shouldn't be needed but it is because style is decided by the fuckin anim from this
+    m_realPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("layersOut"));
+    m_realSize->setConfig(Config::animationTree()->getAnimationPropertyConfig("layersOut"));
+    m_alpha.get(LS_ALPHA_FADE)->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeLayersOut"));
 
     Desktop::fadingOutState()->add(CLayerFadeout::create(m_self.lock(), SNAPSHOT, SOURCEALPHA));
 
@@ -320,7 +322,7 @@ void CLayerSurface::onCommit() {
             m_aboveFullscreen = NEW_LAYER >= ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY;
 
             // if in fullscreen, only overlay can be above.
-            *m_alpha = PMONITOR->inFullscreenMode() ? (m_layer >= ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY ? 1.F : 0.F) : 1.F;
+            *m_alpha.get(LS_ALPHA_FADE) = PMONITOR->inFullscreenMode() ? (m_layer >= ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY ? 1.F : 0.F) : 1.F;
 
             if (m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
                 PMONITOR->m_blurFBDirty = true; // so that blur is recalc'd
@@ -453,4 +455,20 @@ void CLayerSurface::updateSurfaceScaleTransformDetails() {
             PSURFACE->sendTransform(PMONITOR->m_transform);
         },
         nullptr);
+}
+
+Types::CMultiAVarContainer<float, uint8_t>& CLayerSurface::alpha() {
+    return m_alpha;
+}
+
+std::optional<uint8_t> CLayerSurface::alphaGenericToKey(eAlphaModifiableProp p) {
+    switch (p) {
+        case IAlphaModifiable::ALPHA_MODIFIABLE_FADE: return LS_ALPHA_FADE;
+
+        // this is here to suppress the warning
+        case IAlphaModifiable::ALPHA_MODIFIABLE_LAST: return std::nullopt;
+    }
+
+    static_assert(ALPHA_MODIFIABLE_LAST == 1);
+    UNREACHABLE();
 }

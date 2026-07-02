@@ -8,7 +8,7 @@
 #include "../../protocols/XDGShell.hpp"
 #include "../../protocols/core/Compositor.hpp"
 #include "../../managers/SeatManager.hpp"
-#include "../../managers/animation/AnimationManager.hpp"
+#include "../../animation/AnimationManager.hpp"
 #include "LayerSurface.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
@@ -63,7 +63,7 @@ SP<CPopup> CPopup::fromView(SP<IView> v) {
     return dynamicPointerCast<CPopup>(v);
 }
 
-CPopup::CPopup() : IView(CWLSurface::create()) {
+CPopup::CPopup() : IView(CWLSurface::create()), m_animationController(this), m_alpha(POPUP_ALPHA_LAST) {
     ;
 }
 
@@ -121,23 +121,24 @@ bool CPopup::desktopComponent() const {
 
 void CPopup::initAllSignals() {
 
-    g_pAnimationManager->createAnimation(0.f, m_alpha, Config::animationTree()->getAnimationPropertyConfig("fadePopupsIn"), AVARDAMAGE_NONE);
-    m_alpha->setUpdateCallback([this](auto) {
+    Animation::mgr()->createAnimation(0.f, m_alpha.get(POPUP_ALPHA_FADE), Config::animationTree()->getAnimationPropertyConfig("fadePopupsIn"), AVARDAMAGE_NONE);
+    m_alpha.get(POPUP_ALPHA_FADE)->setUpdateCallback([this](auto) {
         //
         g_pHyprRenderer->damageBox(CBox{coordsGlobal(), size()});
     });
-    m_alpha->setCallbackOnEnd(
-        [this](auto) {
-            if (inert()) {
-                g_pEventLoopManager->doLater([p = m_self] {
-                    if (!p)
-                        return;
-                    g_pHyprRenderer->damageBox(CBox{p->coordsGlobal(), p->size()});
-                    p->fullyDestroy();
-                });
-            }
-        },
-        false);
+    m_alpha.get(POPUP_ALPHA_FADE)
+        ->setCallbackOnEnd(
+            [this](auto) {
+                if (inert()) {
+                    g_pEventLoopManager->doLater([p = m_self] {
+                        if (!p)
+                            return;
+                        g_pHyprRenderer->damageBox(CBox{p->coordsGlobal(), p->size()});
+                        p->fullyDestroy();
+                    });
+                }
+            },
+            false);
 
     if (!m_resource) {
         if (!m_windowOwner.expired())
@@ -227,9 +228,9 @@ void CPopup::onMap() {
             m_layerOwner->m_monitor->m_blurFBDirty = true;
     }
 
-    m_alpha->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadePopupsIn"));
-    m_alpha->setValueAndWarp(0.F);
-    *m_alpha = 1.F;
+    m_alpha.get(POPUP_ALPHA_FADE)->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadePopupsIn"));
+    m_alpha.get(POPUP_ALPHA_FADE)->setValueAndWarp(0.F);
+    *m_alpha.get(POPUP_ALPHA_FADE) = 1.F;
 
     Log::logger->log(Log::DEBUG, "popup {:x}: mapped", rc<uintptr_t>(this));
 }
@@ -268,11 +269,11 @@ void CPopup::onUnmap() {
     m_lastSize = MAX_DAMAGE_SIZE;
 
     const auto SNAPSHOT    = g_pHyprRenderer->makeSnapshotFB(m_self);
-    const auto SOURCEALPHA = m_alpha->value();
+    const auto SOURCEALPHA = m_alpha.get(POPUP_ALPHA_FADE)->value();
 
-    m_alpha->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadePopupsOut"));
-    m_alpha->setValueAndWarp(1.F);
-    *m_alpha = 0.F;
+    m_alpha.get(POPUP_ALPHA_FADE)->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadePopupsOut"));
+    m_alpha.get(POPUP_ALPHA_FADE)->setValueAndWarp(1.F);
+    *m_alpha.get(POPUP_ALPHA_FADE) = 0.F;
 
     Desktop::fadingOutState()->add(CPopupFadeout::create(m_self.lock(), SNAPSHOT, SOURCEALPHA));
 
@@ -686,4 +687,20 @@ PHLMONITOR CPopup::getMonitor() const {
     if (!m_layerOwner.expired())
         return m_layerOwner->m_monitor.lock();
     return nullptr;
+}
+
+Types::CMultiAVarContainer<float, uint8_t>& CPopup::alpha() {
+    return m_alpha;
+}
+
+std::optional<uint8_t> CPopup::alphaGenericToKey(eAlphaModifiableProp p) {
+    switch (p) {
+        case IAlphaModifiable::ALPHA_MODIFIABLE_FADE: return POPUP_ALPHA_FADE;
+
+        // this is here to suppress the warning
+        case IAlphaModifiable::ALPHA_MODIFIABLE_LAST: return std::nullopt;
+    }
+
+    static_assert(ALPHA_MODIFIABLE_LAST == 1);
+    UNREACHABLE();
 }

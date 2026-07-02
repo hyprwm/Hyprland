@@ -1,26 +1,31 @@
 #include "AnimationManager.hpp"
-#include "../../Compositor.hpp"
-#include "../../config/ConfigManager.hpp"
-#include "../../desktop/DesktopTypes.hpp"
-#include "../../helpers/AnimatedVariable.hpp"
-#include "../../macros.hpp"
-#include "../../config/ConfigValue.hpp"
-#include "../../desktop/view/Window.hpp"
-#include "../../desktop/view/LayerSurface.hpp"
-#include "../eventLoop/EventLoopManager.hpp"
-#include "../../helpers/varlist/VarList.hpp"
-#include "../../render/Renderer.hpp"
-#include "../../event/EventBus.hpp"
-#include "../../state/MonitorState.hpp"
+#include "../Compositor.hpp"
+#include "../desktop/DesktopTypes.hpp"
+#include "../helpers/AnimatedVariable.hpp"
+#include "../macros.hpp"
+#include "../config/ConfigValue.hpp"
+#include "../desktop/view/Window.hpp"
+#include "../desktop/view/LayerSurface.hpp"
+#include "../managers/eventLoop/EventLoopManager.hpp"
+#include "../render/Renderer.hpp"
+#include "../event/EventBus.hpp"
+#include "../state/MonitorState.hpp"
 
 #include <hyprgraphics/color/Color.hpp>
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <hyprutils/animation/AnimationManager.hpp>
 #include <cmath>
 
+using namespace Animation;
+
+UP<CHyprAnimationManager>& Animation::mgr() {
+    static UP<CHyprAnimationManager> p = makeUnique<CHyprAnimationManager>();
+    return p;
+}
+
 static int wlTick(SP<CEventLoopTimer> self, void* data) {
-    if (g_pAnimationManager)
-        g_pAnimationManager->frameTick();
+    if (mgr())
+        mgr()->frameTick();
 
     return 0;
 }

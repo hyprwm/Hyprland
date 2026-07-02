@@ -2,7 +2,7 @@
 #include "../view/LayerSurface.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../config/shared/animation/AnimationTree.hpp"
-#include "../../managers/animation/AnimationManager.hpp"
+#include "../../animation/AnimationManager.hpp"
 #include "../../output/Monitor.hpp"
 #include "../../protocols/LayerShell.hpp"
 #include "../../render/Framebuffer.hpp"
@@ -73,10 +73,11 @@ SP<CLayerFadeout> CLayerFadeout::create(PHLLS layer, SP<Render::IFramebuffer> sn
 
     fadeout->m_marksBlurDirty = layer->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || layer->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM;
 
-    g_pAnimationManager->createAnimation(layer->m_realPosition->begun(), fadeout->m_realPosition, Config::animationTree()->getAnimationPropertyConfig("layersOut"),
-                                         AVARDAMAGE_NONE);
-    g_pAnimationManager->createAnimation(layer->m_realSize->begun(), fadeout->m_realSize, Config::animationTree()->getAnimationPropertyConfig("layersOut"), AVARDAMAGE_NONE);
-    g_pAnimationManager->createAnimation(sourceAlpha, fadeout->m_alpha, Config::animationTree()->getAnimationPropertyConfig("fadeLayersOut"), AVARDAMAGE_NONE);
+    const auto ANIMCTX = layer->m_animationController.animateOut();
+
+    Animation::mgr()->createAnimation(ANIMCTX.pos.from, fadeout->m_realPosition, Config::animationTree()->getAnimationPropertyConfig("layersOut"), AVARDAMAGE_NONE);
+    Animation::mgr()->createAnimation(ANIMCTX.size.from, fadeout->m_realSize, Config::animationTree()->getAnimationPropertyConfig("layersOut"), AVARDAMAGE_NONE);
+    Animation::mgr()->createAnimation(sourceAlpha, fadeout->m_alpha, Config::animationTree()->getAnimationPropertyConfig("fadeLayersOut"), AVARDAMAGE_NONE);
 
     const WP<CLayerFadeout> WEAK   = fadeout;
     const auto              DAMAGE = [WEAK](auto) {
@@ -90,13 +91,13 @@ SP<CLayerFadeout> CLayerFadeout::create(PHLLS layer, SP<Render::IFramebuffer> sn
     fadeout->m_realSize->setUpdateCallback(DAMAGE);
     fadeout->m_alpha->setUpdateCallback(DAMAGE);
 
-    fadeout->m_realPosition->setValueAndWarp(layer->m_realPosition->begun());
-    fadeout->m_realSize->setValueAndWarp(layer->m_realSize->begun());
+    fadeout->m_realPosition->setValueAndWarp(ANIMCTX.pos.from);
+    fadeout->m_realSize->setValueAndWarp(ANIMCTX.size.from);
     fadeout->m_alpha->setValueAndWarp(sourceAlpha);
 
-    *fadeout->m_realPosition = layer->m_realPosition->goal();
-    *fadeout->m_realSize     = layer->m_realSize->goal();
-    *fadeout->m_alpha        = 0.F;
+    *fadeout->m_realPosition = ANIMCTX.pos.to;
+    *fadeout->m_realSize     = ANIMCTX.size.to;
+    *fadeout->m_alpha        = ANIMCTX.alpha.to;
 
     return fadeout;
 }

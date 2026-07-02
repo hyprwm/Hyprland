@@ -1,11 +1,11 @@
 #include "CloseGesture.hpp"
 
 #include "../../../../Compositor.hpp"
-#include "../../../../managers/animation/DesktopAnimationManager.hpp"
 #include "../../../../render/Renderer.hpp"
 #include "../../../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../../../managers/eventLoop/EventLoopTimer.hpp"
 #include "../../../../config/ConfigValue.hpp"
+#include "../../../../config/shared/animation/AnimationTree.hpp"
 #include "../../../../desktop/state/FocusState.hpp"
 #include "../../../../layout/target/Target.hpp"
 
@@ -37,12 +37,15 @@ void CCloseTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin&
     m_posFrom   = m_window->m_realPosition->goal();
     m_sizeFrom  = m_window->m_realSize->goal();
 
-    g_pDesktopAnimationManager->startAnimation(m_window.lock(), CDesktopAnimationManager::ANIMATION_TYPE_OUT, true);
-    *m_window->alpha(WINDOW_ALPHA_FADE) = 0.f;
+    // FIXME: this shouldn't be needed but it is because style is decided by the fuckin anim from this
+    m_window->m_realPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsOut"));
+    m_window->m_realSize->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsOut"));
+    m_window->alpha(WINDOW_ALPHA_FADE)->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeOut"));
 
-    m_alphaTo = m_window->alphaGoal(WINDOW_ALPHA_FADE);
-    m_posTo   = m_window->m_realPosition->goal();
-    m_sizeTo  = m_window->m_realSize->goal();
+    const auto OUTCTX = m_window->m_animationController.animateOut();
+    m_alphaTo         = OUTCTX.alpha.to;
+    m_posTo           = OUTCTX.pos.to;
+    m_sizeTo          = OUTCTX.size.to;
 
     m_window->alpha(WINDOW_ALPHA_FADE)->setValueAndWarp(m_alphaFrom);
     m_window->m_realPosition->setValueAndWarp(m_posFrom);
@@ -81,6 +84,12 @@ void CCloseTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) 
     if (COMPLETION < 0.2F) {
         // revert the animation
         g_pHyprRenderer->damageWindow(m_window.lock());
+
+        // FIXME: this shouldn't be needed but it is because style is decided by the fuckin anim from this
+        m_window->m_realPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsMove"));
+        m_window->m_realSize->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsMove"));
+        m_window->alpha(WINDOW_ALPHA_FADE)->setConfig(Config::animationTree()->getAnimationPropertyConfig("fade"));
+
         *m_window->alpha(WINDOW_ALPHA_FADE) = m_alphaFrom;
         *m_window->m_realPosition           = m_posFrom;
         *m_window->m_realSize               = m_sizeFrom;

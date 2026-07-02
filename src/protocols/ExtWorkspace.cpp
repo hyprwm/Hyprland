@@ -151,7 +151,10 @@ bool CExtWorkspaceResource::isActive() const {
     if (!m_workspace)
         return false;
 
-    auto const& monitor      = m_workspace->m_monitor;
+    auto const& monitor = m_workspace->m_monitor;
+    if (!monitor)
+        return false;
+
     auto const& cmpWorkspace = m_workspace->m_isSpecialWorkspace ? monitor->m_activeSpecialWorkspace : monitor->m_activeWorkspace;
     return m_workspace == cmpWorkspace;
 }

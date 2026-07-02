@@ -286,6 +286,20 @@ eFullscreenHandler CFullscreenController::getFullscreenHandlerName(const PHLWIND
     return handlerName;
 }
 
+
+std::string CFullscreenController::getFullscreenHandlerNameAsString(const PHLWINDOW window) {
+    const auto FS_HANDLER_NAME = getFullscreenHandlerName(window);
+
+    switch (FS_HANDLER_NAME) {
+        case FULLSCREEN_HANDLER_NONE:      return "none";
+        case FULLSCREEN_HANDLER_DEFAULT:   return "default";
+        case FULLSCREEN_HANDLER_LAYOUT:    return "layout";
+        case FULLSCREEN_HANDLER_SCROLLING: return "scrolling";
+        default:                           return "unknown";
+    }
+}
+
+
 // FS Mode Setters
 
 // ERSTARR TODO -> NEED TO HANDLE THE CASE WHERE A WINDOW IS IN A HANDLER WITH ONLY ITS CLIENT STATE LEFT -- TEST EXTENSIVELY THAT A WINDOW IS NOT STUCK IN A LIST WHERE IT SHOULD NOT BE

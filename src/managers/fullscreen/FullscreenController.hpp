@@ -161,6 +161,8 @@ namespace Fullscreen {
         /// @warning considers both internal and client FS modes of window
         eFullscreenHandler getFullscreenHandlerName(const PHLWINDOW window); // CHECK the floating first. After that, check the default handler base class in layout handler. After that check the layout handler.
 
+        std::string        getFullscreenHandlerNameAsString(const PHLWINDOW window);
+
         // FS Mode Setter
 
 

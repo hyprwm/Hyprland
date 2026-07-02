@@ -19,6 +19,7 @@
 #include "../../../managers/fullscreen/FullscreenController.hpp"
 
 #include <format>
+#include <lua.h>
 #include <string_view>
 
 using namespace Config::Lua;
@@ -122,6 +123,8 @@ static int windowIndex(lua_State* L) {
         lua_pushinteger(L, sc<lua_Integer>(sc<uint8_t>(g_pfullscreenController->getFullscreenModes(w).client)));
     else if (key == "over_fullscreen")
         lua_pushboolean(L, w->m_allowedOverFullscreen);
+    else if (key == "fullscreen_handler")
+        lua_pushstring(L, g_pfullscreenController->getFullscreenHandlerNameAsString(w).c_str());
     else if (key == "group") {
         if (!w->m_group) {
             lua_pushnil(L);

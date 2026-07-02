@@ -301,6 +301,11 @@ eFullscreenHandler CFullscreenController::getFullscreenHandlerName(const PHLWIND
     eFullscreenMode targetInternalMode = internal.value_or(FSMODE_NONE);
     eFullscreenMode targetClientMode = client.value_or(FSMODE_NONE);
 
+    // clamp them for good measure
+    targetInternalMode = std::clamp(targetInternalMode, sc<eFullscreenMode>(0), FSMODE_FULLSCREEN);
+    targetClientMode   = std::clamp(targetClientMode, sc<eFullscreenMode>(0), targetClientMode);
+
+
 
 
     /*

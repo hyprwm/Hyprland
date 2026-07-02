@@ -295,8 +295,13 @@ ActionResult Actions::fullscreenWindow(Fullscreen::eFullscreenMode internalMode,
     if (const auto PAST_FS_MODES = g_pfullscreenController->getFullscreenModes(window); PAST_FS_MODES.internal == NEW_MODES.internal && PAST_FS_MODES.client == NEW_MODES.client)
         g_pfullscreenController->setFullscreenMode(window, Fullscreen::FSMODE_NONE, Fullscreen::FSMODE_NONE, layoutAware);
     else
-        g_pfullscreenController->setFullscreenMode(window, NEW_MODES.internal, NEW_MODES.client, layoutAware);
-    
+        g_pfullscreenController->setFullscreenMode(window,
+            // Internal mode: if -1, pass nullopt so FS setter uses old option
+            NEW_MODES.internal == -1 ? std::optional<Fullscreen::eFullscreenMode>(std::nullopt) : std::optional<Fullscreen::eFullscreenMode>(NEW_MODES.internal),
+            // Client mode: if -1, pass nullopt so FS setter uses old option
+            NEW_MODES.client == -1 ? std::optional<Fullscreen::eFullscreenMode>(std::nullopt) : std::optional<Fullscreen::eFullscreenMode>(NEW_MODES.client),
+            layoutAware);
+
     const auto WINDOW_FS_MODES = g_pfullscreenController->getFullscreenModes(window);
 
     window->m_ruleApplicator->syncFullscreenOverride(Desktop::Types::COverridableVar(WINDOW_FS_MODES.internal == WINDOW_FS_MODES.client, Desktop::Types::PRIORITY_SET_PROP));

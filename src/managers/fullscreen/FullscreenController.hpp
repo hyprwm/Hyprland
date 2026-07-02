@@ -16,7 +16,7 @@ namespace Fullscreen {
 
 
 
-    enum eFullscreenMode : uint8_t {
+    enum eFullscreenMode : int8_t {
         FSMODE_NONE = 0,
         FSMODE_MAXIMIZED,
         FSMODE_FULLSCREEN,

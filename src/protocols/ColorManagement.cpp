@@ -185,7 +185,17 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
 
         const auto OLD_RES = CColorManagementImageDescription::fromReference(ref);
         if (!OLD_RES) {
-            OLD_RES->resource()->sendFailed(WP_IMAGE_DESCRIPTION_V1_CAUSE_UNSUPPORTED, "Not found");
+            const auto RESOURCE = PROTO::colorManagement->m_imageDescriptions.emplace_back(
+                makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id), false));
+
+            if UNLIKELY (!RESOURCE->good()) {
+                r->noMemory();
+                PROTO::colorManagement->m_imageDescriptions.pop_back();
+                return;
+            }
+
+            RESOURCE->m_self = RESOURCE;
+            RESOURCE->resource()->sendFailed(WP_IMAGE_DESCRIPTION_V1_CAUSE_UNSUPPORTED, "Not found");
             return;
         }
 

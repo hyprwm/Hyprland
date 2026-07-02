@@ -107,7 +107,15 @@ TEST_CASE(groups) {
 
     // disable the groupbar for ease of testing for now
     NLog::log("{}Disable groupbar", Colors::YELLOW);
-    OK(getFromSocket("r/eval hl.config({ group = { groupbar = { enabled = 0 } } })"));
+    OK(getFromSocket("/eval hl.config({ group = { groupbar = { enabled = 0 } } })"));
+
+    // check the height of the window now
+    NLog::log("{}Recheck kitty dimensions", Colors::YELLOW);
+    {
+        auto str = getFromSocket("/clients");
+        EXPECT_CONTAINS(str, "at: 22,22");
+        EXPECT_CONTAINS(str, "size: 1876,1036");
+    }
 
     // kill all
     NLog::log("{}Kill windows", Colors::YELLOW);
@@ -483,4 +491,76 @@ TEST_CASE(groupsNoCrash) {
         auto curr = getFromSocket("/activewindow");
         EXPECT_CONTAINS(curr, "kittyA");
     }
+}
+
+TEST_CASE(groups_disable_when_only) {
+    ASSERT(Tests::windowCount(), 0);
+
+    NLog::log("{}Testing disable_when_only ", Colors::YELLOW);
+    auto kittyA = Tests::spawnKitty("kittyA");
+    if (!kittyA) {
+        FAIL_TEST("Could not spawn kitty");
+    }
+    ASSERT(Tests::windowCount(), 1);
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kittyA' })"));
+
+    // check kitty properties. One kitty should take the entire screen, minus the gaps.
+    NLog::log("{}Check kittyA dimensions", Colors::YELLOW);
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_COUNT_STRING(str, "at: 22,22", 1);
+        EXPECT_COUNT_STRING(str, "size: 1876,1036", 1);
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+    OK(getFromSocket("/eval hl.config({ group = { groupbar = { disable_when_only = true } } })"));
+
+    // check kittyA properties. groupbar should be hidden due to disable_when_only
+    NLog::log("{}Check kittyA dimensions", Colors::YELLOW);
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_COUNT_STRING(str, "at: 22,22", 1);
+        EXPECT_COUNT_STRING(str, "size: 1876,1036", 1);
+    }
+
+    auto kittyB = Tests::spawnKitty("kittyB");
+    if (!kittyB) {
+        FAIL_TEST("Could not spawn kitty");
+    }
+    ASSERT(Tests::windowCount(), 2);
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kittyB' })"));
+
+    // check kittyB properties. groupbar is visible
+    NLog::log("{}Check kittyB dimensions", Colors::YELLOW);
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "at: 22,43");
+        EXPECT_COUNT_STRING(str, "size: 1876,1015", 1);
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.kill()"));
+    Tests::waitUntilWindowsN(1);
+    ASSERT(Tests::windowCount(), 1);
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kittyA' })"));
+
+    // check kittyA properties. groupbar should be hidden due to disable_when_only
+    NLog::log("{}Check kittyA dimensions", Colors::YELLOW);
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_COUNT_STRING(str, "at: 22,22", 1);
+        EXPECT_COUNT_STRING(str, "size: 1876,1036", 1);
+    }
+
+    OK(getFromSocket("/eval hl.config({ group = { groupbar = { disable_when_only = false } } })"));
+
+    // check kittyA properties. groupbar should be visible due to disable_when_only == false
+    NLog::log("{}Check kittyA dimensions", Colors::YELLOW);
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_COUNT_STRING(str, "at: 22,43", 1);
+        EXPECT_COUNT_STRING(str, "size: 1876,1015", 1);
+    }
+
+    Tests::killAllWindows();
+    ASSERT(Tests::windowCount(), 0);
 }

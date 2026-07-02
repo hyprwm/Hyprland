@@ -328,6 +328,9 @@ static int hlExecCmd(lua_State* L) {
 }
 
 static int hlClearCrashedLockscreen(lua_State* L) {
+    if (!g_pSessionLockManager)
+        return Internal::configError(L, "hl.clear_crashed_lockscreen: sessionLockMgr not init'd yet");
+
     if (!g_pSessionLockManager->isSessionLocked())
         return Internal::configError(L, "hl.clear_crashed_lockscreen: session is not locked");
 

@@ -245,4 +245,6 @@ void CSessionLockProtocol::forceUnlock() {
     for (const auto& l : m_locks) {
         l->sendDenied();
     }
+
+    PROTO::lockNotify->onUnlocked();
 }

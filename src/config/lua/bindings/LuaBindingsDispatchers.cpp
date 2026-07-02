@@ -1,6 +1,7 @@
 #include "LuaBindingsInternal.hpp"
 
 #include <hyprutils/string/String.hpp>
+#include <optional>
 
 #include "Check.hpp"
 
@@ -546,7 +547,7 @@ static int dsp_fullscreenState(lua_State* L) {
     const bool atDesiredState = CURRENT.internal == desiredInternal && CURRENT.client == desiredClient;
 
     if (actionRaw == 0) {
-        return Internal::checkResult(L, CA::fullscreenWindow(desiredInternal, desiredClient, layoutAware, maybeW));
+        return Internal::checkResult(L, CA::fullscreenWindow(CURRENT.internal == desiredInternal ? Fullscreen::FSMODE_NONE : desiredInternal, CURRENT.client == desiredClient ? Fullscreen::FSMODE_NONE : desiredClient, layoutAware, maybeW));
     }
 
     if (actionRaw == 1) {

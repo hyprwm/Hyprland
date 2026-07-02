@@ -1296,6 +1296,8 @@ bool CWindow::onSpecialWorkspace() {
 }
 
 std::unordered_map<std::string, std::string> CWindow::getEnv() {
+    if (m_cachedEnv)
+        return *m_cachedEnv;
 
     const auto PID = getPID();
 
@@ -1320,6 +1322,8 @@ std::unordered_map<std::string, std::string> CWindow::getEnv() {
         buffer.resize(buffer.size() + 512, '\0');
         needle += 512;
     }
+
+    needle += ifs.gcount();
 #elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
     int    mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_ENV, sc<int>(PID)};
     size_t len    = 0;
@@ -1336,8 +1340,9 @@ std::unordered_map<std::string, std::string> CWindow::getEnv() {
 #endif
 
     if (needle <= 1)
-        return {};
+        return m_cachedEnv.emplace();
 
+    buffer.resize(needle + 1, '\0');
     std::replace(buffer.begin(), buffer.end() - 1, '\0', '\n');
 
     CVarList envs(std::string{buffer.data(), buffer.size() - 1}, 0, '\n', true);
@@ -1350,7 +1355,8 @@ std::unordered_map<std::string, std::string> CWindow::getEnv() {
         results[e.substr(0, EQ)] = e.substr(EQ + 1);
     }
 
-    return results;
+    m_cachedEnv = std::move(results);
+    return *m_cachedEnv;
 }
 
 void CWindow::activate(bool force) {

@@ -257,7 +257,7 @@ namespace Monitor {
         };
 
         // methods
-        void        onConnect(bool noRule);
+        void        onConnect(bool noRule, bool initialDPMSOff = false);
         void        onDisconnect(bool destroy = false);
         void        applyCMType(NCMType::eCMType cmType, NTransferFunction::eTF cmSdrEotf);
         void        addDamage(const pixman_region32_t* rg);

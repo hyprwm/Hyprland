@@ -1221,9 +1221,6 @@ ActionResult Actions::dpms(eTogglableAction action, std::optional<PHLMONITOR> mo
         return actionError("Invalid DPMS action");
 
     for (auto const& m : State::monitorState()->allMonitors()) {
-        if (!m->m_enabled)
-            continue;
-
         if (mon.has_value() && m != mon.value())
             continue;
 
@@ -1232,6 +1229,16 @@ ActionResult Actions::dpms(eTogglableAction action, std::optional<PHLMONITOR> mo
             case TOGGLE_ACTION_TOGGLE: enable = !m->m_dpmsStatus; break;
             case TOGGLE_ACTION_ENABLE: enable = true; break;
             case TOGGLE_ACTION_DISABLE: enable = false; break;
+        }
+
+        if (!m->m_enabled) {
+            if (enable && !m->m_dpmsStatus && m->m_output && !m->m_output->nonDesktop) {
+                m->m_dpmsStatus = true;
+                m->onConnect(false);
+            }
+
+            g_pCompositor->m_dpmsStateOn = enable;
+            continue;
         }
 
         m->setDPMS(enable);

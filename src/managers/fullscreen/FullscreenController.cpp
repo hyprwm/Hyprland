@@ -12,7 +12,9 @@
 #include "../../desktop/DesktopTypes.hpp"
 #include "../../desktop/view/Window.hpp"
 #include "event/EventBus.hpp"
+#include "layout/LayoutManager.hpp"
 #include "managers/EventManager.hpp"
+#include <optional>
 
 using namespace Fullscreen;
 
@@ -468,6 +470,16 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
         window->m_pinFullscreened = true;
     }
 
+    // If new window is not to be layout handled, current fullscreen window is not layout handled (layout handled fullscreens (implicitly means they will also be tiled)
+    // allow for floating FS windows to layer over them); replace fullscreen
+    if (hasFullscreen(WORKSPACE) && !isFullscreen(window) && !layoutAware) {
+        
+        const auto COVERING_FS_WINDOW = g_pfullscreenController->getFullscreenWindow(WORKSPACE, true);
+        if (!g_pfullscreenController->layoutManagedFS(COVERING_FS_WINDOW))
+            setFullscreenMode(COVERING_FS_WINDOW, FSMODE_NONE);
+    }
+
+
     // arm m_suppressNextMaximize to swallow the set_maximized echo on fullscreen exit
     if (INTERNAL_FS_MODE_CHANGED && !window->m_isFloating && (getFullscreenModes(window).internal == FSMODE_FULLSCREEN) && mode != FSMODE_FULLSCREEN)
         window->m_suppressNextMaximize = true;
@@ -485,7 +497,7 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
         window->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
                                                      Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
         window->updateDecorationValues();
-        g_layoutManager->recalculateMonitor(MONITOR);
+        g_layoutManager->recalculateMonitor(MONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN);
         return;
     }
 

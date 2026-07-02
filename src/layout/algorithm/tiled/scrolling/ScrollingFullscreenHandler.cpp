@@ -47,13 +47,14 @@ bool CScrollingFullscreenHandler::isFullscreen(SP<Layout::ITarget> target, const
 
 
     if (mode.has_value() && mode.value() == FSMODE_NONE) {
-        Log::logger->log(Log::ERR, "Passed mode = FSMODE_NONE into isFullscreen. This must never happpen.");
+        Log::logger->log(Log::ERR, "Passed mode = FSMODE_NONE into isFullscreen(). This must never happpen.");
         return false;
     }
 
     if (!target)
         return false;
 
+    // A window group's FS modes are considered to be owned by its current window
     if (const auto WINDOW_GROUP_TARGET = dc<Layout::CWindowGroupTarget*>(target.get()); WINDOW_GROUP_TARGET && target->type() == Layout::TARGET_TYPE_GROUP) {
         if (WINDOW_GROUP_TARGET->getGroup() && WINDOW_GROUP_TARGET->getGroup()->current() && WINDOW_GROUP_TARGET->getGroup()->current()->m_target)
             target = WINDOW_GROUP_TARGET->getGroup()->current()->m_target;
@@ -145,8 +146,10 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
     const auto WORKSPACE = WINDOW->m_workspace;
     const auto MONITOR   = WORKSPACE->m_monitor.lock();
 
+    const auto REQUESTED_MODE = request.mode;
+
     // lambda for expelling if there is more than one target in a column when FSing a target.
-    const auto expelIfMoreThanOneTargetInColDuringFS = [&](eFullscreenMode mode) -> void {
+    const auto expelIfMoreThanOneTargetInColDuringFS = [&]() -> void {
         const auto CURRENTCOL = TDATA->column.lock();
 
         // more that one target in column
@@ -165,7 +168,7 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
     // If we are scrolling away from an FS window that is not unFSed yet, we set its DSO and VRR in sScrollingDataRecalculateHelper()
     // If a window is being FS-ed, or we are scrolling onto a FSed window, we set its DSO and VRR in sScrollingDataRecalculateHelper()
 
-    if (request.mode == FSMODE_NONE) {
+    if (REQUESTED_MODE == FSMODE_NONE) {
 
         // send a regular tranche if we are exiting fullscreen.
         // ignore if DS is disabled.
@@ -183,7 +186,7 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
 
     // ERSTARR TODO much of the code below is repeated more then it has to; refactor
 
-    if (request.mode == FSMODE_FULLSCREEN) {
+    if (REQUESTED_MODE == FSMODE_FULLSCREEN) {
 
         // if current target isn't fullscreen, save its column width
         if (!isFullscreen(TARGET, FSMODE_FULLSCREEN)) {
@@ -208,7 +211,7 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
             }
         }
 
-        expelIfMoreThanOneTargetInColDuringFS(FSMODE_FULLSCREEN);
+        expelIfMoreThanOneTargetInColDuringFS();
 
         const auto  CURRENTCOL        = TDATA->column.lock();
         if (!CURRENTCOL || CURRENTCOL->targetDatas.size() > 1)
@@ -227,7 +230,7 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
 
         return FULLSCREEN_REQUEST_LAYOUT_HANDLED;
 
-    } else if (request.mode == FSMODE_MAXIMIZED) {
+    } else if (REQUESTED_MODE == FSMODE_MAXIMIZED) {
 
         if (!isFullscreen(TARGET, FSMODE_MAXIMIZED)) {
 
@@ -248,7 +251,7 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
             }
         }
 
-        expelIfMoreThanOneTargetInColDuringFS(FSMODE_MAXIMIZED);
+        expelIfMoreThanOneTargetInColDuringFS();
 
         const auto  CURRENTCOL        = TDATA->column.lock();
 
@@ -272,7 +275,7 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
     setTargetFullscreenModeInternal(TARGET, FSMODE_NONE);
     setNoMembersAboveFullscreen();
     // final check to see if the target was correctly FSed.
-    return (request.mode == FSMODE_NONE && !isFullscreen(TARGET)) ? FULLSCREEN_REQUEST_LAYOUT_HANDLED : FULLSCREEN_REQUEST_FAILED;
+    return (REQUESTED_MODE == FSMODE_NONE && !isFullscreen(TARGET)) ? FULLSCREEN_REQUEST_LAYOUT_HANDLED : FULLSCREEN_REQUEST_FAILED;
 }
 
 void CScrollingFullscreenHandler::setTargetFullscreenModeInternal(const SP<Layout::ITarget> target, const eFullscreenMode mode) {

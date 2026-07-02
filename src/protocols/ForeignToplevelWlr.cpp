@@ -79,8 +79,8 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
             return;
         
         // if window is client FSMODE_FULLSCREEN, unFS the window. If it isn't, let the window keep its FS mode
-        auto windowFsMode = g_pfullscreenController->getFullscreenModes(PWINDOW).client;
-        if (windowFsMode == Fullscreen::FSMODE_FULLSCREEN)
+        const auto WINDOW_CLIENT_FS_MODE = g_pfullscreenController->getFullscreenModes(PWINDOW).client;
+        if (WINDOW_CLIENT_FS_MODE == Fullscreen::FSMODE_FULLSCREEN)
             g_pfullscreenController->setFullscreenMode(PWINDOW, std::nullopt, Fullscreen::FSMODE_NONE);
     });
 

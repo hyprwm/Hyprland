@@ -3,11 +3,12 @@
 #include "../../../managers/animation/DesktopAnimationManager.hpp"
 #include "../../../managers/fullscreen/FullscreenController.hpp"
 
-#include "../../../Compositor.hpp"
 #include "../../../debug/log/Logger.hpp"
 
 #include "../../../desktop/DesktopTypes.hpp"
 #include "../../../desktop/view/LayerSurface.hpp"
+#include "../../../desktop/state/LayerState.hpp"
+#include "../../../desktop/state/WindowState.hpp"
 
 #include "../../../layout/algorithm/Algorithm.hpp"
 #include "../../../layout/target/Target.hpp"
@@ -28,11 +29,13 @@ IFullscreenHandler::IFullscreenHandler(Layout::IModeAlgorithm* const algorithm) 
 bool IFullscreenHandler::isFullscreen(SP<Layout::ITarget> target, const std::optional<eFullscreenMode> mode, const std::optional<bool> covering) {
     // Mode checking logic is the same as getFullscreenModes() - keep it in sync
 
+    // isFullscreen() queries FS state, negating it to check "is target not fullscreen" is the correct way to do this.
     if (mode.has_value() && mode.value() == FSMODE_NONE) {
         Log::logger->log(Log::ERR, "Passed mode = FSMODE_NONE into isFullscreen. This must never happpen.");
         return false;
     }
 
+    // A window group's FS modes are considered to be owned by its current window
     if (const auto WINDOW_GROUP_TARGET = dc<Layout::CWindowGroupTarget*>(target.get()); WINDOW_GROUP_TARGET && target->type() == Layout::TARGET_TYPE_GROUP) {
         if (WINDOW_GROUP_TARGET->getGroup() && WINDOW_GROUP_TARGET->getGroup()->current() && WINDOW_GROUP_TARGET->getGroup()->current()->m_target)
             target = WINDOW_GROUP_TARGET->getGroup()->current()->m_target;

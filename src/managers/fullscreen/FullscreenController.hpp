@@ -3,6 +3,7 @@
 #include "../../helpers/memory/Memory.hpp"
 #include "desktop/DesktopTypes.hpp"
 #include <optional>
+#include <unordered_set>
 
 
 
@@ -16,10 +17,9 @@ namespace Fullscreen {
 
 
     enum eFullscreenMode : uint8_t {
-      FSMODE_NONE       = 0,
-      FSMODE_MAXIMIZED  = 1 << 0,
-      FSMODE_FULLSCREEN = 1 << 1,
-      FSMODE_MAX        = (1 << 2) - 1
+        FSMODE_NONE = 0,
+        FSMODE_MAXIMIZED,
+        FSMODE_FULLSCREEN,
     };
 
     enum eFullscreenHandler : uint8_t {
@@ -94,6 +94,30 @@ namespace Fullscreen {
       Internal: what Hyprland considers to be fullscreen. Functions that check if a window is FS will use this value to judge.
       Client:   what application considers to be fullscreen. Hyprland doesn't consider a window to be "fullscreen" but hints to the application that it is running in fullscreen mode.
 
+      Fullscreen Mode Values
+      ----------------------
+
+      FSMODE_NONE:       Not a fullscreen
+      FSMODE_MAXIMISED:  Maximised window
+      FSMODE_FULLSCREEN: Fullscreen Window
+
+
+      
+
+      FSMODE_MAX
+      ----------
+      
+      FSMODE_MAX : When a client request FSMODE_FULLSCREEN and the current window's internal mode is FSMODE_MAXIMISED, it becomes FSMODE_MAX.
+
+
+      This is not an official FS mode, but handling of a special case:
+        e.g. maximised browser window -> fullscreen and unfullscreen window -> browser window should still be maximised
+
+
+      Effectively, it is treated as a Fullscreen window in all aspects but one: If this window is un-FSed, it will return to being maximised instead of un-FSed
+      
+      Handlers don't track this as an official mode
+
     */
     class CFullscreenController {
 
@@ -163,11 +187,13 @@ namespace Fullscreen {
         // if layoutHandled not passed; if window is FS, return the FS handler that it is using. If it is not, return layout handler
         WP<IFullscreenHandler> getFSHandler(const PHLWINDOW window, std::optional<bool> layoutHandled = std::nullopt);
 
+        /* FSMODE_MAX */
 
-
+        // List of FSMODE_MAX windows
+        std::unordered_set<WP<Desktop::View::CWindow>> m_fsModeMaxWindows;
     };
 
-    
+
   }
   
 inline UP<Fullscreen::CFullscreenController> g_pfullscreenController = makeUnique<Fullscreen::CFullscreenController>();

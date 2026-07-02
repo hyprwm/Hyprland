@@ -10,7 +10,7 @@
 #include "../ConfigErrors.hpp"
 
 namespace Fullscreen {
-    enum eFullscreenMode : int8_t;
+    enum eFullscreenMode : uint8_t;
 }
 
 namespace Config::Actions {

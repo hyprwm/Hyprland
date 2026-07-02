@@ -324,7 +324,7 @@ ActionResult Actions::moveToWorkspace(PHLWORKSPACE ws, bool silent, std::optiona
             if (const auto PATCOORDS =
                     Desktop::viewState()->hitTest().windowAt(OLDMIDDLE, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING, window);
                 PATCOORDS)
-                Desktop::focusState()->fullWindowFocus(PATCOORDS, Desktop::FOCUS_REASON_KEYBIND);
+                Desktop::focusState()->fullWindowFocus(PATCOORDS, Desktop::FOCUS_REASON_FOCUS_FALLBACK_MOVE_WINDOW_TO_WORKSPACE);
             else
                 g_pInputManager->refocus();
         }
@@ -346,7 +346,7 @@ ActionResult Actions::moveToWorkspace(PHLWORKSPACE ws, bool silent, std::optiona
 
         pMonitor->changeWorkspace(ws);
 
-        Desktop::focusState()->fullWindowFocus(window, Desktop::FOCUS_REASON_KEYBIND);
+        Desktop::focusState()->fullWindowFocus(window, Desktop::FOCUS_REASON_MOVE_WINDOW_TO_WORKSPACE);
         window->warpCursor();
     }
 

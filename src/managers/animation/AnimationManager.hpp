@@ -15,6 +15,7 @@ class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
 
     void         tick();
     void         frameTick();
+    void         requestTick();
     virtual void scheduleTick();
     virtual void onTicked();
 
@@ -55,8 +56,9 @@ class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
     float               m_lastTickTimeMs;
 
   private:
-    bool   m_tickScheduled = false;
-    bool   m_lastTickValid = false;
+    bool   m_tickScheduled       = false;
+    bool   m_manualTickRequested = false;
+    bool   m_lastTickValid       = false;
     CTimer m_lastTickTimer;
 };
 

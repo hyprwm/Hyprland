@@ -64,6 +64,8 @@ class CSessionLockManager {
     bool                    isSurfaceSessionLock(SP<CWLSurfaceResource>);
     bool                    anySessionLockSurfacesPresent();
 
+    void                    forceUnlock();
+
     void                    removeSessionLockSurface(SSessionLockSurface*);
 
     void                    onLockscreenRenderedOnMonitor(uint64_t id);

@@ -906,10 +906,13 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
 
         const auto         CURRENT_TTY = g_pCompositor->getVTNr();
 
-        if (!CURRENT_TTY.has_value() || *CURRENT_TTY == TTY)
+        if (CURRENT_TTY.has_value() && *CURRENT_TTY == TTY)
             return true;
 
-        Log::logger->log(Log::DEBUG, "Switching from VT {} to VT {}", *CURRENT_TTY, TTY);
+        if (CURRENT_TTY)
+            Log::logger->log(Log::DEBUG, "Switching from VT {} to VT {}", *CURRENT_TTY, TTY);
+        else
+            Log::logger->log(Log::DEBUG, "Switching from VT <unknown> to VT {}", TTY);
 
         g_pCompositor->m_aqBackend->session->switchVT(TTY);
     }

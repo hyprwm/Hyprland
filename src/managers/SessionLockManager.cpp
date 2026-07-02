@@ -216,6 +216,17 @@ bool CSessionLockManager::clientDenied() {
     return m_sessionLock && m_sessionLock->hasSentDenied;
 }
 
+void CSessionLockManager::forceUnlock() {
+    PROTO::sessionLock->forceUnlock();
+    m_sessionLock = {};
+
+    Desktop::focusState()->rawSurfaceFocus(nullptr);
+    for (auto const& m : State::monitorState()->monitors())
+        g_pHyprRenderer->damageMonitor(m);
+
+    g_pInputManager->refocus();
+}
+
 bool CSessionLockManager::shallConsiderLockMissing() {
     if (!m_sessionLock)
         return true;

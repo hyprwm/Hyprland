@@ -95,8 +95,7 @@ bool CFullscreenController::layoutManagedFS(const PHLWINDOW window) {
 
     // Layout Handled
     // If a window is not FS at all, we consider its handler to be layout if it is in a workspace with a layout that implements their custom FS behaviour.
-    // Change this condition hyprland gets layout handled floating FS windows
-    return FS_HANDLER_NAME > 1;
+    return FS_HANDLER_NAME & FULLSCREEN_HANDLER_LAYOUT;
 }
 
 
@@ -436,7 +435,7 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
 
     // there's no layout managed floating algo.
     const auto             WINDOW_FS_HANDLER        = getFSHandler(window, layoutAware);
-    const SFullscreenMode& WINDOW_FS_MODE           = getFullscreenModes(window); // DEBUG HERE HERE HERE HERE THE FS MODE ISN'T CORRECTLY OBTAINED!
+    const SFullscreenMode& WINDOW_FS_MODE           = getFullscreenModes(window);
     const bool             WINDOW_IS_INTERNAL_FS    = isFullscreen(window);
     const bool             INTERNAL_FS_MODE_CHANGED = !window->m_pinned && WINDOW_FS_MODE.internal != mode;
 

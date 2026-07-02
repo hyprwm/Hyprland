@@ -15,18 +15,20 @@ namespace Fullscreen {
 
 
 
-    enum eFullscreenMode : int8_t {
+    enum eFullscreenMode : uint8_t {
       FSMODE_NONE       = 0,
       FSMODE_MAXIMIZED  = 1 << 0,
       FSMODE_FULLSCREEN = 1 << 1,
       FSMODE_MAX        = (1 << 2) - 1
     };
 
-    enum eFullscreenHandler : int8_t {
+    enum eFullscreenHandler : uint8_t {
         FULLSCREEN_HANDLER_NONE = 0,
-        FULLSCREEN_HANDLER_DEFAULT,
-        // All layout FS handlers go below this line
-        FULLSCREEN_HANDLER_SCROLLING,
+        // Types of Handlers
+        FULLSCREEN_HANDLER_DEFAULT = 1 << 0,
+        FULLSCREEN_HANDLER_LAYOUT = 1 << 1,
+        // Specific Handlers
+        FULLSCREEN_HANDLER_SCROLLING = 1 << 2 | FULLSCREEN_HANDLER_LAYOUT,
     };
 
     enum eFullscreenRequestResult : uint8_t {

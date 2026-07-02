@@ -15,7 +15,6 @@
 #include <sys/utsname.h>
 #include <sys/un.h>
 #include <unistd.h>
-#include <sys/poll.h>
 #include <filesystem>
 #include <ranges>
 #include <sys/eventfd.h>
@@ -2028,6 +2027,13 @@ CHyprCtl::CHyprCtl() {
 }
 
 CHyprCtl::~CHyprCtl() {
+    for (auto const& client : m_clients) {
+        client->closed = true;
+        if (client->eventSource)
+            wl_event_source_remove(client->eventSource);
+    }
+    m_clients.clear();
+
     if (m_eventSource)
         wl_event_source_remove(m_eventSource);
     if (!m_socketPath.empty())
@@ -2212,97 +2218,232 @@ static bool isFollowUpRollingLogRequest(const std::string& request) {
     return request.contains("rollinglog") && request.contains("f");
 }
 
-static int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
+int CHyprCtl::onSocketEvent(int fd, uint32_t mask, void* data) {
     if (mask & WL_EVENT_ERROR || mask & WL_EVENT_HANGUP)
         return 0;
 
-    if (!g_pHyprCtl->m_socketFD.isValid())
+    if (!g_pHyprCtl || !g_pHyprCtl->m_socketFD.isValid())
         return 0;
 
-    sockaddr_in            clientAddress;
-    socklen_t              clientSize = sizeof(clientAddress);
+    g_pHyprCtl->acceptClient();
 
-    const auto             ACCEPTEDCONNECTION = accept4(g_pHyprCtl->m_socketFD.get(), rc<sockaddr*>(&clientAddress), &clientSize, SOCK_CLOEXEC);
+    return 0;
+}
 
-    std::array<char, 1024> readBuffer;
+int CHyprCtl::onClientEvent(int fd, uint32_t mask, void* data) {
+    if (g_pHyprCtl)
+        g_pHyprCtl->onClientEvent(sc<CHyprCtl::SHyprCtlClient*>(data), mask);
 
-    // try to get creds
-    CRED_T   creds;
-    uint32_t len = sizeof(creds);
-    if (getsockopt(ACCEPTEDCONNECTION, CRED_LVL, CRED_OPT, &creds, &len) == -1)
-        Log::logger->log(Log::ERR, "Hyprctl: failed to get peer creds");
-    else {
-        g_pHyprCtl->m_currentRequestParams.pid = creds.CRED_PID;
-        Log::logger->log(Log::DEBUG, "Hyprctl: new connection from pid {}", creds.CRED_PID);
-    }
+    return 0;
+}
 
-    //
-    pollfd pollfds[1] = {
-        {
-            .fd     = ACCEPTEDCONNECTION,
-            .events = POLLIN,
-        },
-    };
-
-    int ret = poll(pollfds, 1, 5000);
-
-    if (ret <= 0) {
-        close(ACCEPTEDCONNECTION);
-        return 0;
-    }
-
-    std::string request;
+void CHyprCtl::acceptClient() {
     while (true) {
-        readBuffer.fill(0);
-        auto messageSize = read(ACCEPTEDCONNECTION, readBuffer.data(), 1023);
-        if (messageSize < 1)
-            break;
-        std::string recvd = readBuffer.data();
-        request += recvd;
-        if (messageSize < 1023)
-            break;
+        sockaddr_in     clientAddress;
+        socklen_t       clientSize = sizeof(clientAddress);
+
+        CFileDescriptor acceptedConnection{accept4(m_socketFD.get(), rc<sockaddr*>(&clientAddress), &clientSize, SOCK_CLOEXEC | SOCK_NONBLOCK)};
+        if (!acceptedConnection.isValid()) {
+            if (errno != EAGAIN && errno != EWOULDBLOCK)
+                Log::logger->log(Log::ERR, "Hyprctl: failed to accept client: {}", strerror(errno));
+            return;
+        }
+
+        auto client = makeShared<SHyprCtlClient>();
+        client->fd  = std::move(acceptedConnection);
+
+        CRED_T   creds;
+        uint32_t len = sizeof(creds);
+        if (getsockopt(client->fd.get(), CRED_LVL, CRED_OPT, &creds, &len) == -1)
+            Log::logger->log(Log::ERR, "Hyprctl: failed to get peer creds");
+        else {
+            client->pid = creds.CRED_PID;
+            Log::logger->log(Log::DEBUG, "Hyprctl: new connection from pid {}", creds.CRED_PID);
+        }
+
+        client->eventSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, client->fd.get(), WL_EVENT_READABLE, CHyprCtl::onClientEvent, client.get());
+        if (!client->eventSource) {
+            Log::logger->log(Log::ERR, "Hyprctl: failed to add client fd to event loop");
+            continue;
+        }
+
+        m_clients.emplace_back(std::move(client));
+    }
+}
+
+SP<CHyprCtl::SHyprCtlClient> CHyprCtl::clientFromPtr(SHyprCtlClient* client) {
+    const auto IT = std::ranges::find_if(m_clients, [client](const auto& c) { return c.get() == client; });
+    if (IT == m_clients.end())
+        return nullptr;
+
+    return *IT;
+}
+
+void CHyprCtl::removeClient(SHyprCtlClient* client) {
+    const auto IT = std::ranges::find_if(m_clients, [client](const auto& c) { return c.get() == client; });
+    if (IT == m_clients.end())
+        return;
+
+    (*IT)->closed = true;
+    if ((*IT)->eventSource) {
+        wl_event_source_remove((*IT)->eventSource);
+        (*IT)->eventSource = nullptr;
     }
 
-    std::string reply = "";
+    m_clients.erase(IT);
+}
+
+void CHyprCtl::onClientEvent(SHyprCtlClient* client, uint32_t mask) {
+    if (!client)
+        return;
+
+    const auto CLIENT = clientFromPtr(client);
+    if (!CLIENT)
+        return;
+
+    if (mask & WL_EVENT_READABLE)
+        readClient(CLIENT);
+
+    if (CLIENT->closed)
+        return;
+
+    if (mask & (WL_EVENT_ERROR | WL_EVENT_HANGUP) && CLIENT->reply.empty() && !CLIENT->waitingForReply) {
+        removeClient(client);
+        return;
+    }
+
+    if (mask & WL_EVENT_WRITABLE) {
+        writeClientReply(CLIENT);
+    }
+}
+
+void CHyprCtl::readClient(const SP<SHyprCtlClient>& client) {
+    if (!client || client->waitingForReply || !client->reply.empty())
+        return;
+
+    std::array<char, 4096> readBuffer;
+    while (true) {
+        const auto MESSAGE_SIZE = read(client->fd.get(), readBuffer.data(), readBuffer.size());
+        if (MESSAGE_SIZE > 0) {
+            client->request.append(readBuffer.data(), sc<size_t>(MESSAGE_SIZE));
+            continue;
+        }
+
+        if (MESSAGE_SIZE == 0) {
+            if (!client->request.empty())
+                break;
+
+            removeClient(client.get());
+            return;
+        }
+
+        if (errno == EAGAIN || errno == EWOULDBLOCK)
+            break;
+
+        if (errno == EINTR)
+            continue;
+
+        Log::logger->log(Log::ERR, "Hyprctl: failed to read from client fd {}: {}", client->fd.get(), strerror(errno));
+        removeClient(client.get());
+        return;
+    }
+
+    if (!client->request.empty())
+        processClientRequest(client);
+}
+
+void CHyprCtl::processClientRequest(const SP<SHyprCtlClient>& client) {
+    if (!client || client->closed)
+        return;
+
+    const std::string request = client->request;
+    std::string       reply   = "";
+
+    m_currentRequestParams.pid = client->pid;
 
     try {
-        reply = g_pHyprCtl->getReply(request);
+        reply = getReply(request);
     } catch (std::exception& e) {
         Log::logger->log(Log::ERR, "Error in request: {}", e.what());
         reply = "Err: " + std::string(e.what());
     }
 
-    if (g_pHyprCtl->m_currentRequestParams.pendingPromise) {
-        // we have a promise pending
-        g_pHyprCtl->m_currentRequestParams.pendingPromise->then([ACCEPTEDCONNECTION, request](SP<CPromiseResult<std::string>> result) {
-            const auto RES = result->hasError() ? result->error() : result->result();
-            successWrite(ACCEPTEDCONNECTION, RES);
+    if (m_currentRequestParams.pendingPromise) {
+        auto promise               = m_currentRequestParams.pendingPromise;
+        client->waitingForReply    = true;
+        m_currentRequestParams.pid = 0;
+        m_currentRequestParams.pendingPromise.reset();
 
-            // No rollinglog or ensureMonitor here. These are only for plugins for now.
+        promise->then([client](SP<CPromiseResult<std::string>> result) {
+            if (!g_pHyprCtl || !client || client->closed)
+                return;
 
-            close(ACCEPTEDCONNECTION);
+            g_pHyprCtl->queueClientReply(client, result->hasError() ? result->error() : result->result());
         });
-
-        g_pHyprCtl->m_currentRequestParams.pendingPromise.reset();
-    } else {
-        successWrite(ACCEPTEDCONNECTION, reply);
-
-        if (isFollowUpRollingLogRequest(request)) {
-            Log::logger->log(Log::DEBUG, "Followup rollinglog request received. Starting thread to write to socket.");
-            Log::SRollingLogFollow::get().startFor(ACCEPTEDCONNECTION);
-            runWritingDebugLogThread(ACCEPTEDCONNECTION);
-            Log::logger->log(Log::DEBUG, Log::SRollingLogFollow::get().debugInfo());
-        } else
-            close(ACCEPTEDCONNECTION);
-
-        g_pHyprCtl->m_currentRequestParams.pid = 0;
+        return;
     }
 
-    return 0;
+    client->followRolling      = isFollowUpRollingLogRequest(request);
+    m_currentRequestParams.pid = 0;
+    queueClientReply(client, std::move(reply));
+}
+
+void CHyprCtl::queueClientReply(const SP<SHyprCtlClient>& client, std::string&& reply) {
+    if (!client || client->closed)
+        return;
+
+    client->reply           = std::move(reply);
+    client->replyWritten    = 0;
+    client->waitingForReply = false;
+
+    wl_event_source_fd_update(client->eventSource, WL_EVENT_WRITABLE);
+    writeClientReply(client);
+}
+
+void CHyprCtl::writeClientReply(const SP<SHyprCtlClient>& client) {
+    if (!client || client->closed)
+        return;
+
+    while (client->replyWritten < client->reply.size()) {
+        const size_t REMAINING = client->reply.size() - client->replyWritten;
+        const auto   WRITTEN   = write(client->fd.get(), client->reply.c_str() + client->replyWritten, REMAINING);
+
+        if (WRITTEN > 0) {
+            client->replyWritten += sc<size_t>(WRITTEN);
+            continue;
+        }
+
+        if (WRITTEN < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+            wl_event_source_fd_update(client->eventSource, WL_EVENT_WRITABLE);
+            return;
+        }
+
+        if (WRITTEN < 0 && errno == EINTR)
+            continue;
+
+        if (WRITTEN < 0)
+            Log::logger->log(Log::ERR, "Couldn't write to socket. Error: {}", strerror(errno));
+
+        removeClient(client.get());
+        return;
+    }
+
+    if (client->followRolling) {
+        const int FD = client->fd.take();
+        removeClient(client.get());
+
+        Log::logger->log(Log::DEBUG, "Followup rollinglog request received. Starting thread to write to socket.");
+        Log::SRollingLogFollow::get().startFor(FD);
+        runWritingDebugLogThread(FD);
+        Log::logger->log(Log::DEBUG, Log::SRollingLogFollow::get().debugInfo());
+        return;
+    }
+
+    removeClient(client.get());
 }
 
 void CHyprCtl::startHyprCtlSocket() {
-    m_socketFD = CFileDescriptor{socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0)};
+    m_socketFD = CFileDescriptor{socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK, 0)};
 
     if (!m_socketFD.isValid()) {
         Log::logger->log(Log::ERR, "Couldn't start the Hyprland Socket. (1) IPC will not work.");
@@ -2321,9 +2462,12 @@ void CHyprCtl::startHyprCtlSocket() {
     }
 
     // 10 max queued.
-    listen(m_socketFD.get(), 10);
+    if (listen(m_socketFD.get(), 10) < 0) {
+        Log::logger->log(Log::ERR, "Couldn't start the Hyprland Socket. (3) IPC will not work.");
+        return;
+    }
 
     Log::logger->log(Log::DEBUG, "Hypr socket started at {}", m_socketPath);
 
-    m_eventSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, m_socketFD.get(), WL_EVENT_READABLE, hyprCtlFDTick, nullptr);
+    m_eventSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, m_socketFD.get(), WL_EVENT_READABLE, CHyprCtl::onSocketEvent, nullptr);
 }

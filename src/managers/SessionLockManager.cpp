@@ -223,6 +223,8 @@ void CSessionLockManager::forceUnlock() {
     Desktop::focusState()->rawSurfaceFocus(nullptr);
     for (auto const& m : State::monitorState()->monitors())
         g_pHyprRenderer->damageMonitor(m);
+
+    g_pInputManager->refocus();
 }
 
 bool CSessionLockManager::shallConsiderLockMissing() {

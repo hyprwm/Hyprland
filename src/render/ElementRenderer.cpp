@@ -468,7 +468,18 @@ void IElementRenderer::drawTex(WP<CTexPassElement> element, const CRegion& damag
             inverseOpaque.translate(box.pos());
             m_renderData.renderModif.applyToRegion(inverseOpaque);
             inverseOpaque.intersect(element->m_data.damage);
-            element->m_data.blurredBG = g_pHyprRenderer->blurMainFramebuffer(element->m_data.a, &inverseOpaque);
+
+            auto PSURFACE  = Desktop::View::CWLSurface::fromResource(element->m_data.surface);
+            auto resources = m_renderData.pMonitor->resources();
+            if (PSURFACE && PSURFACE->m_hasBackgroundEffect) {
+                if (!resources->m_effectBlurTexture && !resources->m_effectBlurRegion.empty())
+                    resources->m_effectBlurTexture = g_pHyprRenderer->blurMainFramebuffer(1.F, &resources->m_effectBlurRegion);
+                if (resources->m_effectBlurTexture)
+                    element->m_data.blurredBG = resources->m_effectBlurTexture;
+                else
+                    element->m_data.blurredBG = g_pHyprRenderer->blurMainFramebuffer(element->m_data.a, &inverseOpaque);
+            } else
+                element->m_data.blurredBG = g_pHyprRenderer->blurMainFramebuffer(element->m_data.a, &inverseOpaque);
         } else
             element->m_data.blurredBG = m_renderData.pMonitor->resources()->m_blurFB->getTexture();
 

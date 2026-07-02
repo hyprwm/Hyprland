@@ -30,6 +30,8 @@ namespace Monitor {
 
         SP<Render::ITexture>     m_stencilTex; // TODO fix blur ignore alpha and remove
         SP<Render::IFramebuffer> m_blurFB;
+        SP<Render::ITexture>     m_effectBlurTexture;
+        CRegion                  m_effectBlurRegion;
 
       private:
         void                                initFB(SP<Render::IFramebuffer> fb);

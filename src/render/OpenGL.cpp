@@ -1912,6 +1912,8 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
 }
 
 void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
+    pMonitor->resources()->m_effectBlurTexture.reset();
+    pMonitor->resources()->m_effectBlurRegion.clear();
     static auto PBLURNEWOPTIMIZE = CConfigValue<Config::INTEGER>("decoration:blur:new_optimizations");
     static auto PBLURXRAY        = CConfigValue<Config::INTEGER>("decoration:blur:xray");
     static auto PBLUR            = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
@@ -1961,7 +1963,7 @@ void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
     };
 
     bool hasWindows = false;
-    for (auto const& w : Desktop::windowState()->windows()) {
+    for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_workspace == pMonitor->m_activeWorkspace && w->visible() && w->m_isMapped && (!w->m_isFloating || *PBLURXRAY)) {
 
             // check if window is valid

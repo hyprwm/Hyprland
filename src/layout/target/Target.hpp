@@ -42,7 +42,6 @@ namespace Layout {
         virtual eTargetType type() = 0;
 
         // position is within its space
-        virtual STargetBox   getPositionGlobal();
         virtual void         setPositionGlobal(const STargetBox& box);
         void                 setPositionGlobal(const CBox& box);
         virtual CBox         position() const;

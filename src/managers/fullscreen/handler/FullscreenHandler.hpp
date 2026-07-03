@@ -17,14 +17,16 @@ namespace Fullscreen {
     };
 
     class IFullscreenHandler {
-
-        // TODO : edit below comments into a coherent manual
-
-        // Default FS handler with overridable methods for layouts wishing to implement their own FS handlers
-
-        // std::optional<bool> covering has true as default argument because for the default fullscreen behaviour, there is no such thing we non-covering fullscreen. In any case this value is ignored in this handler
-
-        // If layouts decide to have custom targets that may be able to be FSed, they must make another list, as well as helper functions for them. Controller will not be handling set/get for those; all handling must be done by layout's FS Handler
+      
+      
+      // ERSTARR TODO : edit below comments into a coherent manual
+      /*
+        Default FS handler with overridable methods for layouts wishing to implement their own FS handlers
+        
+        std::optional<bool> covering has true as default argument because for the default fullscreen behaviour, there is no such thing we non-covering fullscreen. In any case this value is ignored in this handler
+        
+        If layouts decide to have custom targets that may be able to be FSed, they must make another list, as well as helper functions for them. Controller will not be handling set/get for those; all handling must be done by layout's FS Handler  
+      */
 
       public:
         IFullscreenHandler(Layout::IModeAlgorithm* const algorithm);
@@ -63,7 +65,6 @@ namespace Fullscreen {
         /**
         * @brief FS target State Syncing (cleaning up FS target list if exists, other self corrections and error mitigation)
         *
-        *
         * @note This function is responsible for performing clean-up on the FS handler, **NOT** on the targets themselves.
         *This means that this function doesn't take care of unFSing non-FS-criterea-compliant targets; it merely untracks the target it if is offending.
         *It is assumed that the target was/will be unFSed via the apropriate functions
@@ -77,7 +78,6 @@ namespace Fullscreen {
         * @brief Un-Tracks a target.
         *
         *  @note This does **NOT** un-FS a target - It untracks the target from the handler
-        *
         */
         virtual void removeFsTarget(SP<Layout::ITarget> target, const bool recursionGuard = false);
 

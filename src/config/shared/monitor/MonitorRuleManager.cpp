@@ -243,9 +243,6 @@ void CMonitorRuleManager::ensureVRR(PHLMONITOR pMonitor) {
             }
             return;
         } else if (USEVRR == 2 || USEVRR == 3) {
-            // ERSTARR TODO - This should be redundant now. method calls will pick up !PWORKSPACE and return accordingly
-            // if (!PWORKSPACE)
-            //     return;
 
             bool wantVRR = g_pfullscreenController->getFullscreenModes(PWORKSPACE).internal == Fullscreen::FSMODE_FULLSCREEN;
             if (wantVRR && g_pfullscreenController->getFullscreenWindow(PWORKSPACE)->m_ruleApplicator->noVRR().valueOrDefault())

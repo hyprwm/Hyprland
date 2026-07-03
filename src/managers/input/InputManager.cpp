@@ -52,8 +52,6 @@
 
 #include "../../event/EventBus.hpp"
 
-#include "../../render/Renderer.hpp"
-
 #include "trackpad/TrackpadGestures.hpp"
 #include "../../pointer/cursor/CursorShapeOverrideController.hpp"
 
@@ -498,10 +496,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
             pFoundWindow = g_pfullscreenController->getFullscreenWindow(PWORKSPACE);
 
+            // redundancy
             if (!pFoundWindow) {
-                // ERSTARR TODO - This should no longer happen - at least in the same way it used to. MUST TEST
-                // what the fuck, somehow happens occasionally??
-                // PWORKSPACE->m_hasFullscreenWindow = false;
                 return;
             }
 

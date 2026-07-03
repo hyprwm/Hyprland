@@ -19,7 +19,6 @@
 #include "../../../managers/fullscreen/FullscreenController.hpp"
 
 #include <format>
-#include <lua.h>
 #include <string_view>
 
 using namespace Config::Lua;

@@ -158,8 +158,6 @@ static SDispatchResult renameworkspace(const std::string& args) {
 }
 
 static SDispatchResult fullscreen(const std::string& args) {
-    // ERSTARR TODO - Need to modify this function to allow for not passing mode
-
     
     CVarList2             ARGS(args, 2, ' ');
 

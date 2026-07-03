@@ -13,7 +13,6 @@
 #include "../../managers/fullscreen/FullscreenController.hpp"
 
 #include <algorithm>
-#include <optional>
 
 using namespace Desktop;
 using namespace Desktop::View;

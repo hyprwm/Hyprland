@@ -279,7 +279,6 @@ void CMasterAlgorithm::removeTarget(SP<ITarget> target) {
 
     if (m_defaultFullscreenHandler->isFullscreen(target)) {
         auto window = target->window();
-        // ERSTARR TODO - mayhaps also set client to none?
         g_pfullscreenController->setFullscreenMode(window, Fullscreen::FSMODE_NONE);
     }
 
@@ -509,7 +508,8 @@ void CMasterAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir
 void CMasterAlgorithm::recalculate(eRecalculateReason reason) {
     calculateWorkspace();
 
-    // TODO: Re-Setting FS size/pos values after calculateWorkspace overwrote them: Patch - make changes inside calculateWorkspace to make this part redundant
+    // TODO: Re-Setting FS size/pos values after calculateWorkspace overwrote them.
+    // This is a patch - make changes inside calculateWorkspace to make this part redundant
     if (!m_parent->space()->workspace() || !m_parent->space()->workspace()->m_monitor)
         return;
 

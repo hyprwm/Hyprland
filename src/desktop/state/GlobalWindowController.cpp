@@ -6,7 +6,7 @@
 #include "../../output/Monitor.hpp"
 #include "../../layout/LayoutManager.hpp"
 #include "../../Compositor.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 
 using namespace Desktop;
 

@@ -122,7 +122,7 @@ void IFullscreenHandler::setTargetFullscreenModeInternal(const SP<Layout::ITarge
 
     // remember floating size if window exists and is floating
     if (target->window() && target->window()->m_isFloating && !isFullscreen(target))
-        target->rememberFloatingSize(target->getPositionGlobal().logicalBox.size());
+        target->rememberFloatingSize(target->position().size());
 
     if (mode == FSMODE_NONE) {
         if (ITR != m_fsTargets.end()) {

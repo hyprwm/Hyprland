@@ -15,7 +15,6 @@
 #include "../../../managers/KeybindManager.hpp"
 #include "../../../managers/input/InputManager.hpp"
 #include "../../../managers/fullscreen/FullscreenController.hpp"
-#include "../../../managers/XWaylandManager.hpp"
 #include "../../../layout/LayoutManager.hpp"
 #include "../../../layout/space/Space.hpp"
 #include "../../../render/Renderer.hpp"
@@ -344,7 +343,7 @@ ActionResult Actions::moveToWorkspace(PHLWORKSPACE ws, bool silent, std::optiona
         Desktop::globalWindowController()->moveWindowToWorkspace(window, ws);
         pMonitor = ws->m_monitor.lock();
         Desktop::focusState()->rawMonitorFocus(pMonitor);
-        g_pfullscreenController->setFullscreenMode(window, FULLSCREENMODE); // ERSTARR TODO - redundant call? moveWindowToWorkspaceSafe already does this
+        g_pfullscreenController->setFullscreenMode(window, FULLSCREENMODE);
 
         POLDWS->m_lastFocusedWindow = POLDWS->getFirstWindow();
 
@@ -375,7 +374,6 @@ ActionResult Actions::moveFocus(Math::eDirection dir) {
     }
 
     // Moving focus to another window non-default handled FS window shouldn't cycle window
-    // ERSTARR TODO - Might be problematic when the window in dir is a layout managed FS window. Deps on if there's a downstream check to unFs that window and re-Fs it with default handler
     const auto PWINDOWTOCHANGETO = *PFULLCYCLE && g_pfullscreenController->isFullscreen(PLASTWINDOW) &&
             !g_pfullscreenController->layoutManagedFS(PLASTWINDOW) ?
         Desktop::windowState()->query().cycle(PLASTWINDOW,
@@ -394,7 +392,6 @@ ActionResult Actions::moveFocus(Math::eDirection dir) {
     }
 
     if (PWINDOWTOCHANGETO) {
-        // ERSTARR TODO - Might be problematic when the window in dir is a layout managed FS window. Deps on if there's a downstream check to unFs that window and re-Fs it with default handler
         switchToWindow(PWINDOWTOCHANGETO, *PFULLCYCLE && g_pfullscreenController->isFullscreen(PLASTWINDOW) && !g_pfullscreenController->layoutManagedFS(PLASTWINDOW));
         return {};
     }

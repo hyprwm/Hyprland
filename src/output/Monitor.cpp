@@ -2433,9 +2433,6 @@ bool CMonitor::inHDR() {
 
 
 std::optional<NColorManagement::PImageDescription> CMonitor::getFSImageDescription() {
-    // ERSTARR NOTE - this shhould work
-    // if (!inFullscreenMode())
-    //     return {};
 
     const auto FS_WINDOW = g_pfullscreenController->getFullscreenModes(m_self.lock()).internal == Fullscreen::FSMODE_FULLSCREEN ?
         g_pfullscreenController->getFullscreenWindow(m_self.lock()) :

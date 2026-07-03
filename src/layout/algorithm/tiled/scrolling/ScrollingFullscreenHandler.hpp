@@ -22,8 +22,9 @@ namespace Fullscreen::ScrollingFullscreenHandler {
 
     class CScrollingFullscreenHandler : public IFullscreenHandler {
 
-      // TODO : edit below comments into a coherent manual
+      // ERSTARR TODO : edit below comments into a coherent manual
 
+    
       /*
         Scrolling FS Behaviour
         ----------------------

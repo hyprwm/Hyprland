@@ -273,7 +273,6 @@ void CDwindleAlgorithm::removeTarget(SP<ITarget> target) {
 
     if (m_defaultFullscreenHandler->isFullscreen(target)) {
         auto window = target->window();
-        // ERSTARR TODO - mayhaps also set client to none?
         g_pfullscreenController->setFullscreenMode(window, Fullscreen::FSMODE_NONE);
     }
     

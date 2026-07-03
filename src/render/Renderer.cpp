@@ -405,12 +405,8 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
         pWorkspaceWindow = w;
     }
 
-    // ERSTARR TODO - should no longer happen or at least not happen in the same way. breakpoint and test
-    if (!pWorkspaceWindow) {
-        // ?? happens sometimes...
-        // pWorkspace->m_hasFullscreenWindow = false;
+    if (!pWorkspaceWindow)
         return; // this will produce one blank frame. Oh well.
-    }
 
     // then render windows over fullscreen.
     for (auto const& w : Desktop::windowState()->windows()) {

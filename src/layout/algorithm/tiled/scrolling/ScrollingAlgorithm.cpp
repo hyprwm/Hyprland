@@ -21,8 +21,6 @@
 #include "../../../../managers/fullscreen/FullscreenController.hpp"
 #include "layout/algorithm/tiled/scrolling/ScrollingFullscreenHandler.hpp"
 
-#include <algorithm>
-#include <hyprutils/memory/UniquePtr.hpp>
 #include <hyprutils/string/VarList2.hpp>
 #include <hyprutils/string/VarList.hpp>
 #include <hyprutils/string/ConstVarList.hpp>
@@ -483,9 +481,6 @@ void SScrollingData::recalculate(bool forceInstant) {
     };
 
 
-    // TODO refactor window size/pos logic below and extract FS specific logic into methods in the handler if feesbile
-
-    // ERSTARR - THIS MIGHT BE NECESSARY OR REDUNDANT DEPENDING ON IF SSCROLLINGDATA:RECALC IS CALLED WHEN DEFAULT HANDLED FSING A WINDOW!
     // If the fullscreen window is default handled, return early.
     if (const auto FULLSCREEN_WINDOW = g_pfullscreenController->getFullscreenWindow(WORKSPACE); FULLSCREEN_WINDOW && !g_pfullscreenController->layoutManagedFS(FULLSCREEN_WINDOW)) {
         algorithm->m_scrollingFullscreenHandler->setNoMembersAboveFullscreen();
@@ -552,7 +547,7 @@ void SScrollingData::recalculate(bool forceInstant) {
                         }
                     }
                 }
-                // Target is FS but isn't Maximised or Fullscreen - This shouldn't be possible ERSTARR TODO - WHAT AND WHY
+                // Target is FS but isn't Maximised or Fullscreen - This shouldn't be possible
                 else
                     TDATA->layoutBox = CBox{WORKAREA.pos() - Vector2D{100000.0, 100000.0}, Vector2D{1.0, 1.0}};
             }
@@ -797,12 +792,9 @@ void CScrollingAlgorithm::removeTarget(SP<ITarget> target) {
     if (!DATA)
         return;
 
-    // ERSTARR TODO - ADJUST THIS! IT SHOULD BE FINE TO LEAVE THIS CODE HERE BUT USE HANDLER METHODS
     // remove the FS state of a tiled window when it is being removed/floated -- This exception needs to exist for the float case.
     if (m_scrollingFullscreenHandler->isFullscreen(target)) {
-        // ERSTARR TODO - mayhaps also set client to none?
         g_pfullscreenController->setFullscreenMode(target->window(), Fullscreen::FSMODE_NONE);
-        // ERSTARR TODO - see what happens in upstream dwindle. If i float a FS, does it remain FS? if so, reFS using default behaviour here
     }
 
     if (!m_scrollingData->next(DATA->column.lock()) && DATA->column->targetDatas.size() <= 1) {

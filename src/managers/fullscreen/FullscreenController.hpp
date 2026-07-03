@@ -127,7 +127,6 @@ namespace Fullscreen {
         ~CFullscreenController() = default;
 
         // TODO: make functions constant if they can be
-        // TODO: optional for covering. default is to be true since that's what's used almost everywhere. if nullopt, consider "if fullscreen", if false; fullscreen but not covering, if true only covering
 
         // Window
 
@@ -139,7 +138,6 @@ namespace Fullscreen {
         SFullscreenMode getFullscreenModes(const PHLWINDOW window);
         bool            layoutManagedFS(const PHLWINDOW window);
 
-        // ERSTARR TODO - if covering is true; need to check if floating algo has FS first, THEN the default handler of a layout handler. ONLY after that check the layout handler.
 
         // Workspace
         /// @warning only cosiders internal mode of FS windows
@@ -175,9 +173,6 @@ namespace Fullscreen {
 
       private:
 
-              // ERSTARR TODO - sync the internal and client -> in client dispatches to internal and internal follows the standard FS path
-
-        // ERSTARR TODO - FORCE SHOULD HOPEFULLY BE IRRELEVANT IF DONE WELL
 
         // FS Mode Setter Helpers
         void setWindowFullscreenModeInternal(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware);

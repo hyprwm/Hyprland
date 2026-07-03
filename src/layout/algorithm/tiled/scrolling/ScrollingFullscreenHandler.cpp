@@ -29,7 +29,6 @@ CScrollingFullscreenHandler::CScrollingFullscreenHandler(Layout::Tiled::CScrolli
 
 CScrollingFullscreenHandler::~CScrollingFullscreenHandler() {
 
-    // ERSTARR TODO - ADJUST THIS! FOR HANDLER
     for (auto it = m_fsTargets.begin(); it != m_fsTargets.end(); ) {
         const auto NEXT = std::next(it); // save next before removeFsTarget invalidates it
         removeFsTarget(it->first.lock());
@@ -82,7 +81,6 @@ bool CScrollingFullscreenHandler::isFullscreen(SP<Layout::ITarget> target, const
         return false;
 
     if (TDATA->column->targetDatas.size() != 1) {
-        // ERSTARR TODO - handle this in recalculate call. This, and resizing a FS target should dispel: this'll most likely be fine. Prob only need to handle moving a FS window to another column dispelling it
         Log::logger->log(Log::DEBUG, "column->targetDatas != 1 in a column with FS target");
         return false;
     }

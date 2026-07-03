@@ -21,10 +21,6 @@ using namespace Fullscreen;
 
 
 
-//  ERSTARR - IMPORTANT: Might wanna add a layoutHandled param to isFullscreen to avoid multiple redundant calls in calling both isFullscreen and isLayoutHandledFullscreen.
-
-
-
 // Window
 
 bool CFullscreenController::isFullscreen(const PHLWINDOW window, const std::optional<eFullscreenMode> mode, const std::optional<bool> covering) {
@@ -201,7 +197,6 @@ bool CFullscreenController::hasFullscreen(const PHLMONITOR monitor, const std::o
 
     return hasFullscreen(activeWorkspace);
 
-    // ERSTARR TODO - PRE THIS PR, MONITOR FS CHECKS SEEMS TO ONLY CONSIDER FS_MODE_FULLSCREEN. MAKE SURE THAN OUTSIDE YOU ALSO USE MODE TO ENFORCE THAT
 }
 PHLWINDOW CFullscreenController::getFullscreenWindow(const PHLMONITOR monitor, const std::optional<bool> covering) {
     if (!monitor || (!monitor->m_activeSpecialWorkspace && !monitor->m_activeWorkspace))
@@ -224,7 +219,6 @@ PHLWINDOW CFullscreenController::getFullscreenWindow(const PHLMONITOR monitor, c
     return getFullscreenWindow(activeWorkspace,covering);
 
 
-    // ERSTARR TODO - PRE THIS PR, MONITOR FS CHECKS SEEMS TO ONLY CONSIDER FS_MODE_FULLSCREEN. MAKE SURE THAN OUTSIDE YOU ALSO USE MODE TO ENFORCE THAT
 }
 
 SFullscreenMode CFullscreenController::getFullscreenModes(const PHLMONITOR monitor, const std::optional<bool> covering) {
@@ -302,7 +296,6 @@ std::string CFullscreenController::getFullscreenHandlerNameAsString(const PHLWIN
 
 // FS Mode Setters
 
-// ERSTARR TODO -> NEED TO HANDLE THE CASE WHERE A WINDOW IS IN A HANDLER WITH ONLY ITS CLIENT STATE LEFT -- TEST EXTENSIVELY THAT A WINDOW IS NOT STUCK IN A LIST WHERE IT SHOULD NOT BE
  void CFullscreenController::setFullscreenMode(const PHLWINDOW window, const std::optional<eFullscreenMode> internal, const std::optional<eFullscreenMode> client, std::optional<bool> layoutAware) {
     if (!window)
         return;

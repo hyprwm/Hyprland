@@ -257,11 +257,12 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
                 prop = prop.substr(2, prop.length() - 3);
 
-                int  wantsOnlyTiled    = -1;
+                int  wantsOnlyTiled    = -1;z
                 int  wantsOnlyPinned   = false;
                 bool wantsCountGroup   = false;
                 bool wantsCountVisible = false;
-
+                bool wantsGlobal       = false;
+                
                 int  flagCount = 0;
                 for (auto const& flag : prop) {
                     if (flag == 't' && wantsOnlyTiled == -1) {
@@ -278,6 +279,9 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                         flagCount++;
                     } else if (flag == 'v' && !wantsCountVisible) {
                         wantsCountVisible = true;
+                        flagCount++;
+                    } else if (flag == 'a' && !wantsGlobal) {
+                        wantsGlobal = true;
                         flagCount++;
                     } else {
                         break;

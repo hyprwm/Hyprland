@@ -257,7 +257,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
                 prop = prop.substr(2, prop.length() - 3);
 
-                int  wantsOnlyTiled    = -1;z
+                int  wantsOnlyTiled    = -1;
                 int  wantsOnlyPinned   = false;
                 bool wantsCountGroup   = false;
                 bool wantsCountVisible = false;

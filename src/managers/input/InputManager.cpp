@@ -52,6 +52,7 @@
 
 #include "../../event/EventBus.hpp"
 
+#include "../../render/Renderer.hpp"
 #include "trackpad/TrackpadGestures.hpp"
 #include "../../pointer/cursor/CursorShapeOverrideController.hpp"
 

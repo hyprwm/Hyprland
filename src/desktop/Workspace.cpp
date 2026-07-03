@@ -454,8 +454,8 @@ int CWorkspace::getWindowCount(std::optional<bool> onlyTiled, std::optional<bool
         if (!t)
             continue;
 
-        const auto visibilityFulfilled =
-            t->window() && !t->window()->isHidden() && !t->window()->isInputBlocked(INPUT_BLOCK_GROUP_INACTIVE | INPUT_BLOCK_MONOCLE_INACTIVE | INPUT_BLOCK_BELOW_FULLSCREEN);
+        const auto visibilityFulfilled = t->window() && !t->window()->isHidden() &&
+            !t->window()->isInputBlockedReasonAnyOf(INPUT_BLOCK_GROUP_INACTIVE | INPUT_BLOCK_MONOCLE_INACTIVE | INPUT_BLOCK_BELOW_FULLSCREEN);
 
         if (onlyTiled.has_value() && t->floating() == onlyTiled.value())
             continue;
@@ -474,8 +474,8 @@ int CWorkspace::getGroups(std::optional<bool> onlyTiled, std::optional<bool> onl
     for (auto const& g : Desktop::View::groups()) {
         const auto HEAD = g->head();
 
-        const auto visibilityFulfilled =
-            g->current() && !g->current()->isHidden() && !g->current()->isInputBlocked(INPUT_BLOCK_GROUP_INACTIVE | INPUT_BLOCK_MONOCLE_INACTIVE | INPUT_BLOCK_BELOW_FULLSCREEN);
+        const auto visibilityFulfilled = g->current() && !g->current()->isHidden() &&
+            !g->current()->isInputBlockedReasonAnyOf(INPUT_BLOCK_GROUP_INACTIVE | INPUT_BLOCK_MONOCLE_INACTIVE | INPUT_BLOCK_BELOW_FULLSCREEN);
 
         if (HEAD->workspaceID() != m_id || !HEAD->m_isMapped)
             continue;

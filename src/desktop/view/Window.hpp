@@ -301,31 +301,53 @@ namespace Desktop::View {
         bool operator==(const CWindow& rhs) const;
 
         // methods
-        CBox                              getFullWindowBoundingBox() const;
-        CBox                              layoutBox() const;
-        SBoxExtents                       getFullWindowExtents() const;
-        CBox                              getWindowBoxUnified(uint64_t props);
-        SBoxExtents                       getWindowExtentsUnified(uint64_t props);
-        CBox                              getWindowIdealBoundingBoxIgnoreReserved();
-        void                              addWindowDeco(UP<IHyprWindowDecoration> deco);
-        void                              updateWindowDecos();
-        void                              removeWindowDeco(IHyprWindowDecoration* deco);
-        void                              uncacheWindowDecos();
-        bool                              checkInputOnDecos(const eInputType, const Vector2D&, std::any = {});
-        pid_t                             getPID();
-        IHyprWindowDecoration*            getDecorationByType(eDecorationType);
-        void                              updateToplevel();
-        void                              updateSurfaceScaleTransformDetails(bool force = false);
-        void                              moveToWorkspace(PHLWORKSPACE);
-        PHLWINDOW                         x11Parent() const;
-        void                              onUnmap();
-        void                              onMap();
-        void                              setHidden(bool hidden);
-        bool                              isHidden() const;
-        void                              setInputBlocked(eWindowInputBlockReason reason, bool blocked);
-        bool                              isInputBlocked() const;
-        bool                              isInputBlocked(std::underlying_type_t<eWindowInputBlockReason> reasons) const;
-        bool                              isInputBlockedOnly(eWindowInputBlockReason reason) const;
+        CBox                   getFullWindowBoundingBox() const;
+        CBox                   layoutBox() const;
+        SBoxExtents            getFullWindowExtents() const;
+        CBox                   getWindowBoxUnified(uint64_t props);
+        SBoxExtents            getWindowExtentsUnified(uint64_t props);
+        CBox                   getWindowIdealBoundingBoxIgnoreReserved();
+        void                   addWindowDeco(UP<IHyprWindowDecoration> deco);
+        void                   updateWindowDecos();
+        void                   removeWindowDeco(IHyprWindowDecoration* deco);
+        void                   uncacheWindowDecos();
+        bool                   checkInputOnDecos(const eInputType, const Vector2D&, std::any = {});
+        pid_t                  getPID();
+        IHyprWindowDecoration* getDecorationByType(eDecorationType);
+        void                   updateToplevel();
+        void                   updateSurfaceScaleTransformDetails(bool force = false);
+        void                   moveToWorkspace(PHLWORKSPACE);
+        PHLWINDOW              x11Parent() const;
+        void                   onUnmap();
+        void                   onMap();
+        void                   setHidden(bool hidden);
+        bool                   isHidden() const;
+        void                   setInputBlocked(eWindowInputBlockReason reason, bool blocked);
+        /// Returns `true` if the input is blocked for this window for any reason.
+        bool isInputBlocked() const;
+        /// Returns `true` if any of the provided `reasons` is one of the reasons why input is blocked for this window.
+        bool isInputBlockedReasonAnyOf(std::underlying_type_t<eWindowInputBlockReason> reasons) const;
+        /**
+         * Returns `true` if all the reasons why input is blocked for this window are contained in the provided `reason`, i.e.,
+         * `reason` is the superset of reasons why input is blocked for this window.
+         *
+         * Note that the return value of `true` does not necessarily mean that input is blocked for all of the provided `reason`s,
+         * or that input is blocked at all! If input is not blocked, the function returns `true` regardless of the argument value.
+         *
+         * This function is a negation of `hasInputBlockedReasonsBesides`. They exist together for the sake of readability:
+         * when either of them is negated in a condition, the condition becomes hard to grasp.
+         */
+        bool noInputBlockedReasonsBesides(std::underlying_type_t<eWindowInputBlockReason> reason) const;
+        /**
+         * Returns `true` if there is a reason why input is blocked for this window that is not contained in the provided `reason`.
+         *
+         * Note that the return value of `false` does not mean that all the listed reasons are effective, or that the input is
+         * blocked at all! If input is not blocked, the function returns `false` regardless of the argument value.
+         *
+         * This function is a negation of `noInputBlockedReasonsBesides`. They exist together for the sake of readability:
+         * when either of them is negated in a condition, the condition becomes hard to grasp.
+         */
+        bool                              hasInputBlockedReasonsBesides(std::underlying_type_t<eWindowInputBlockReason> reason) const;
         bool                              acceptsInput() const;
         bool                              isAllowedOverFullscreen() const;
         bool                              isBlockedByFullscreen() const;

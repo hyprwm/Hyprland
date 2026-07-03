@@ -166,7 +166,7 @@ void IFullscreenHandler::setNoMembersAboveFullscreen() {
 
     // make all windows and layers on the same workspace under the fullscreen window
     for (auto const& w : Desktop::windowState()->windows()) {
-        if (w && w->m_workspace == getSpace()->workspace() && !isFullscreen(w->m_target) && !w->m_fadingOut && !w->m_pinned) {
+        if (w && w->m_workspace == getSpace()->workspace() && !isFullscreen(w->m_target) && !w->m_pinned) {
             w->m_allowedOverFullscreen = !SET;
             w->updateFullscreenInputState();
         }

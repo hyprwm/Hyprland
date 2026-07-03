@@ -4,7 +4,6 @@
 #include "../config/shared/actions/ConfigActions.hpp"
 #include "../devices/IKeyboard.hpp"
 #include "../managers/SeatManager.hpp"
-#include "../managers/input/InputManager.hpp"
 #include "../managers/fullscreen/FullscreenController.hpp"
 #include "../protocols/ShortcutsInhibit.hpp"
 #include "../protocols/Hotkey.hpp"
@@ -12,11 +11,12 @@
 #include "../errorOverlay/Overlay.hpp"
 #include "KeybindManager.hpp"
 #include "../pointer/PointerManager.hpp"
+#include "Compositor.hpp"
 #include "eventLoop/EventLoopManager.hpp"
-#include "../debug/log/Logger.hpp"
+#include "debug/log/Logger.hpp"
+#include "../managers/input/InputManager.hpp"
 #include "../layout/LayoutManager.hpp"
 #include "../event/EventBus.hpp"
-
 #include <string>
 #include <cstring>
 

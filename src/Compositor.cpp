@@ -815,21 +815,6 @@ void CCompositor::startCompositor() {
     g_pEventLoopManager->enterLoop();
 }
 
-PHLWINDOW CCompositor::getX11Parent(PHLWINDOW pWindow) {
-    if (!pWindow->m_isX11)
-        return nullptr;
-
-    for (auto const& w : m_windows) {
-        if (!w->m_isX11)
-            continue;
-
-        if (w->m_xwaylandSurface == pWindow->m_xwaylandSurface->m_parent)
-            return w;
-    }
-
-    return nullptr;
-}
-
 
 // returns a delta
 Vector2D CCompositor::parseWindowVectorArgsRelative(const std::string& args, const Vector2D& relativeTo) {

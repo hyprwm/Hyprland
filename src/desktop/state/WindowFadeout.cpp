@@ -4,7 +4,8 @@
 #include "../Workspace.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../config/shared/animation/AnimationTree.hpp"
-#include "../../animation/AnimationManager.hpp"
+#include "../../managers/animation/AnimationManager.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../../output/Monitor.hpp"
 #include "../../render/Framebuffer.hpp"
 #include "../../render/Renderer.hpp"
@@ -62,7 +63,7 @@ SP<CWindowFadeout> CWindowFadeout::create(PHLWINDOW window, SP<Render::IFramebuf
     fadeout->m_zIndex         = windowZIndex(window);
     fadeout->m_sourcePos      = window->m_realPosition->value() - MONITOR->m_position;
     fadeout->m_sourceSize     = window->m_realSize->value();
-    const bool OVERFULLSCREEN = window->m_isFloating && window->shouldRenderOverFullscreen() && window->m_workspace && window->m_workspace->m_hasFullscreenWindow;
+    const bool OVERFULLSCREEN = window->m_isFloating && window->shouldRenderOverFullscreen() && window->m_workspace && g_pfullscreenController->hasFullscreen(window->m_workspace, true);
     fadeout->m_plane          = !window->m_isFloating ? FADEOUT_PLANE_WINDOW_TILED : (OVERFULLSCREEN ? FADEOUT_PLANE_WINDOW_OVER_FULLSCREEN : FADEOUT_PLANE_WINDOW_FLOATING);
     fadeout->m_rounding       = window->rounding();
     fadeout->m_roundingPower  = window->roundingPower();

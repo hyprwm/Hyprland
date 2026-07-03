@@ -10,6 +10,7 @@
 #include "../config/supplementary/propRefresher/PropRefresher.hpp"
 #include "../managers/EventManager.hpp"
 #include "../managers/fullscreen/FullscreenController.hpp"
+#include "../managers/animation/AnimationManager.hpp"
 #include "../output/Monitor.hpp"
 #include "../state/MonitorState.hpp"
 #include "../state/WorkspacePlacementController.hpp"

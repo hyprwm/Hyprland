@@ -342,7 +342,7 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
 
         // make all windows and layers on the same workspace under the fullscreen window
         for (auto const& w : Desktop::windowState()->windows()) {
-            if (w && w->m_workspace == getSpace()->workspace() && !isFullscreen(w->m_target) && !w->m_fadingOut && !w->m_pinned) {
+            if (w && w->m_workspace == getSpace()->workspace() && !isFullscreen(w->m_target) && !w->m_pinned) {
                 w->m_allowedOverFullscreen = !SET;
                 w->updateFullscreenInputState();
             }
@@ -466,7 +466,7 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
                 if (!w || w->m_workspace != getSpace()->workspace())
                     continue;
                 
-                if (w != COVERING_FULLSCREEN_WINDOW && !w->m_fadingOut && !w->m_pinned) {
+                if (w != COVERING_FULLSCREEN_WINDOW && !w->m_pinned) {
                     // If it the window was hidden when the UNDERLYING_FS_WINDOW was FSed, or it is a tiled window; it remains hidden. else, it is allowed ontop of it
                     w->m_allowedOverFullscreen = w->m_isFloating && !m_fullscreenWindowHidingState.hiddenFloatingWindowsUnderFSWindow.contains(w);
                     w->updateFullscreenInputState();
@@ -710,7 +710,7 @@ void CScrollingFullscreenHandler::saveCurrentFsAndAllHiddenFloatingWindows(PHLWI
         if (!w || w->m_workspace != getSpace()->workspace())
             continue;
 
-        if (w != fullscreenWindow && !w->m_fadingOut && !w->m_pinned && w->m_isFloating)
+        if (w != fullscreenWindow && !w->m_pinned && w->m_isFloating)
             m_fullscreenWindowHidingState.hiddenFloatingWindowsUnderFSWindow.emplace(w);
     }
 }

@@ -203,7 +203,11 @@ bool CCursorshareSession::copy() {
             }
         }
 
-        outFB->readPixels(m_pendingFrame.buffer, 0, 0, m_bufferSize.x, m_bufferSize.y);
+        if (!outFB->readPixels(m_pendingFrame.buffer, 0, 0, m_bufferSize.x, m_bufferSize.y)) {
+            g_pHyprRenderer->m_renderData.pMonitor.reset();
+            LOGM(Log::ERR, "Can't copy: failed to read cursor pixels to shm");
+            return false;
+        }
 
         g_pHyprRenderer->m_renderData.pMonitor.reset();
 

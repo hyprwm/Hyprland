@@ -442,13 +442,23 @@ bool CScreenshareFrame::copyShm() {
 
     g_pHyprRenderer->endRender();
 
+    bool readSucceeded = true;
     m_damage.forEachRect([&](const auto& rect) {
+        if (!readSucceeded)
+            return;
+
         int width  = rect.x2 - rect.x1;
         int height = rect.y2 - rect.y1;
-        outFB->readPixels(m_buffer, rect.x1, rect.y1, width, height);
+        if (!outFB->readPixels(m_buffer, rect.x1, rect.y1, width, height))
+            readSucceeded = false;
     });
 
     g_pHyprRenderer->m_renderData.pMonitor.reset();
+
+    if (!readSucceeded) {
+        LOGM(Log::ERR, "Can't copy: failed to read pixels to shm");
+        return false;
+    }
 
     if (!m_copied) {
         LOGM(Log::TRACE, "Copied frame via shm");

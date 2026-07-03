@@ -4,6 +4,7 @@
 #include "macros.hpp"
 #include "../Framebuffer.hpp"
 #include <hyprgraphics/egl/Egl.hpp>
+#include <limits>
 
 using namespace Hyprgraphics::Egl;
 using namespace Render::GL;
@@ -109,12 +110,70 @@ void CGLFramebuffer::release() {
 }
 
 bool CGLFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uint32_t offsetY, uint32_t width, uint32_t height) {
-    auto shm                      = buffer->shm();
+    auto shm = buffer->shm();
+    if (!shm.success) {
+        LOGM(Log::ERR, "Can't copy: buffer is not shm");
+        return false;
+    }
+
     auto [pixelData, fmt, bufLen] = buffer->beginDataPtr(0); // no need for end, cuz it's shm
+    if (!pixelData) {
+        LOGM(Log::ERR, "Can't copy: failed to get shm data pointer");
+        return false;
+    }
 
     const auto PFORMAT = getPixelFormatFromDRM(shm.format);
     if (!PFORMAT) {
         LOGM(Log::ERR, "Can't copy: failed to find a pixel format");
+        return false;
+    }
+
+    const auto fbWidth    = sc<uint32_t>(m_size.x);
+    const auto fbHeight   = sc<uint32_t>(m_size.y);
+    const auto readWidth  = width > 0 ? width : fbWidth;
+    const auto readHeight = height > 0 ? height : fbHeight;
+
+    if (readWidth == 0 || readHeight == 0 || shm.stride <= 0) {
+        LOGM(Log::ERR, "Can't copy: invalid shm read dimensions");
+        return false;
+    }
+
+    if (offsetX > fbWidth || offsetY > fbHeight || readWidth > fbWidth - offsetX || readHeight > fbHeight - offsetY) {
+        LOGM(Log::ERR, "Can't copy: read rect exceeds framebuffer");
+        return false;
+    }
+
+    const auto shmWidth  = sc<uint32_t>(shm.size.x);
+    const auto shmHeight = sc<uint32_t>(shm.size.y);
+    if (offsetX > shmWidth || offsetY > shmHeight || readWidth > shmWidth - offsetX || readHeight > shmHeight - offsetY) {
+        LOGM(Log::ERR, "Can't copy: read rect exceeds shm buffer");
+        return false;
+    }
+
+    const auto strideBytes = sc<size_t>(shm.stride);
+    const auto rowOffset   = sc<size_t>(minStride(PFORMAT, offsetX));
+    const auto rowBytes    = sc<size_t>(minStride(PFORMAT, readWidth));
+
+    if (rowBytes == 0) {
+        LOGM(Log::ERR, "Can't copy: invalid shm row size");
+        return false;
+    }
+
+    if (rowOffset > std::numeric_limits<size_t>::max() - rowBytes || rowOffset + rowBytes > strideBytes) {
+        LOGM(Log::ERR, "Can't copy: shm stride is too small");
+        return false;
+    }
+
+    const auto lastRow = sc<size_t>(offsetY) + sc<size_t>(readHeight) - 1;
+    if (strideBytes > 0 && lastRow > std::numeric_limits<size_t>::max() / strideBytes) {
+        LOGM(Log::ERR, "Can't copy: shm row offset overflows");
+        return false;
+    }
+
+    const auto lastRowStart = lastRow * strideBytes;
+    const auto rowEnd       = rowOffset + rowBytes;
+    if (lastRowStart > std::numeric_limits<size_t>::max() - rowEnd || lastRowStart + rowEnd > bufLen) {
+        LOGM(Log::ERR, "Can't copy: shm buffer is too small");
         return false;
     }
 
@@ -124,8 +183,7 @@ bool CGLFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uin
 
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-    uint32_t    packStride = minStride(PFORMAT, m_size.x);
-    int         glFormat   = PFORMAT->glFormat;
+    int         glFormat = PFORMAT->glFormat;
 
     static auto stripSwizzleAlpha = [](std::array<GLint, 4> arr) {
         arr[3] = GL_ONE;
@@ -146,13 +204,12 @@ bool CGLFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uin
 
     // This could be optimized by using a pixel buffer object to make this async,
     // but really clients should just use a dma buffer anyways.
-    if (packStride == sc<uint32_t>(shm.stride)) {
-        glReadPixels(offsetX, offsetY, width > 0 ? width : m_size.x, height > 0 ? height : m_size.y, glFormat, PFORMAT->glType, pixelData);
+    if (rowOffset == 0 && rowBytes == strideBytes) {
+        glReadPixels(offsetX, offsetY, readWidth, readHeight, glFormat, PFORMAT->glType, pixelData + sc<size_t>(offsetY) * strideBytes);
     } else {
-        const auto h = height > 0 ? height : m_size.y;
-        for (size_t i = 0; i < h; ++i) {
-            uint32_t y = i;
-            glReadPixels(offsetX, offsetY + y, width > 0 ? width : m_size.x, 1, glFormat, PFORMAT->glType, pixelData + i * shm.stride);
+        for (uint32_t i = 0; i < readHeight; ++i) {
+            const auto y = offsetY + i;
+            glReadPixels(offsetX, y, readWidth, 1, glFormat, PFORMAT->glType, pixelData + sc<size_t>(y) * strideBytes + rowOffset);
         }
     }
 

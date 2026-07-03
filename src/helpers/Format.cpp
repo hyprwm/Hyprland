@@ -5,6 +5,10 @@
 #include "../macros.hpp"
 #include <xf86drm.h>
 #include <drm_fourcc.h>
+#include <hyprgraphics/egl/Egl.hpp>
+#include <limits>
+
+using namespace Hyprgraphics::Egl;
 
 SHMFormat NFormatUtils::drmToShm(DRMFormat drm) {
     switch (drm) {
@@ -44,6 +48,36 @@ bool NFormatUtils::isFormatYUV(uint32_t drmFormat) {
         case DRM_FORMAT_YUV444: return true;
         default: return false;
     }
+}
+
+bool NFormatUtils::isShmBufferLayoutValid(DRMFormat drmFormat, const Vector2D& size, int32_t stride, int32_t offset, size_t poolSize) {
+    if (offset < 0 || size.x <= 0 || size.y <= 0 || stride <= 0)
+        return false;
+
+    if (size.x > std::numeric_limits<uint32_t>::max() || size.y > std::numeric_limits<uint32_t>::max())
+        return false;
+
+    const auto PFORMAT = getPixelFormatFromDRM(drmFormat);
+    if (!PFORMAT)
+        return false;
+
+    const auto width        = sc<uint32_t>(size.x);
+    const auto height       = sc<size_t>(sc<uint32_t>(size.y));
+    const auto minStrideVal = sc<size_t>(Hyprgraphics::Egl::minStride(PFORMAT, width));
+
+    if (sc<size_t>(stride) < minStrideVal)
+        return false;
+
+    const auto strideBytes = sc<size_t>(stride);
+    if (height > 0 && strideBytes > std::numeric_limits<size_t>::max() / height)
+        return false;
+
+    const auto dataSize = strideBytes * height;
+    const auto offsetSz = sc<size_t>(offset);
+    if (offsetSz > std::numeric_limits<size_t>::max() - dataSize)
+        return false;
+
+    return offsetSz + dataSize <= poolSize;
 }
 
 std::string NFormatUtils::drmFormatName(DRMFormat drm) {

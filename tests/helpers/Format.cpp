@@ -5,6 +5,7 @@
 #include <drm_fourcc.h>
 #include <wayland-server-protocol.h>
 #include <hyprgraphics/egl/Egl.hpp>
+#include <limits>
 
 using namespace Hyprgraphics::Egl;
 using namespace NFormatUtils;
@@ -63,6 +64,24 @@ TEST(Helpers, formatMinStride) {
     // XRGB8888 = 4 bytes per pixel, 1920 wide = 7680 bytes stride
     EXPECT_EQ(minStride(fmt, 1920), 1920 * 4);
     EXPECT_EQ(minStride(fmt, 0), 0);
+}
+
+TEST(Helpers, formatShmBufferLayoutValid) {
+    const auto* fmt = getPixelFormatFromDRM(DRM_FORMAT_XRGB8888);
+    ASSERT_NE(fmt, nullptr);
+
+    const auto stride = static_cast<int32_t>(minStride(fmt, 64));
+    const auto size   = static_cast<size_t>(stride) * 64;
+
+    EXPECT_TRUE(isShmBufferLayoutValid(DRM_FORMAT_XRGB8888, {64, 64}, stride, 0, size));
+    EXPECT_TRUE(isShmBufferLayoutValid(DRM_FORMAT_XRGB8888, {64, 64}, stride, 16, size + 16));
+
+    EXPECT_FALSE(isShmBufferLayoutValid(DRM_FORMAT_XRGB8888, {64, 64}, stride - 1, 0, size));
+    EXPECT_FALSE(isShmBufferLayoutValid(DRM_FORMAT_XRGB8888, {64, 64}, stride, 1, size));
+    EXPECT_FALSE(isShmBufferLayoutValid(DRM_FORMAT_XRGB8888, {64, 64}, stride, -1, size));
+    EXPECT_FALSE(isShmBufferLayoutValid(0, {64, 64}, stride, 0, size));
+    EXPECT_FALSE(isShmBufferLayoutValid(DRM_FORMAT_XRGB8888, {0, 64}, stride, 0, size));
+    EXPECT_FALSE(isShmBufferLayoutValid(DRM_FORMAT_XRGB8888, {64, 64}, std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max(), 0));
 }
 
 TEST(Helpers, formatDrmFormatName) {

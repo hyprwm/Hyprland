@@ -151,6 +151,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
             //                  flag p to count only pinned windows, e.g. w[p1-2], w[pg4]
             //                  flag g to count groups instead of windows, e.g. w[t1-2], w[fg4]
             //                  flag v will count only visible windows
+            //                  flag a will count all windows with respect to the other flags
             // f - fullscreen state : f[-1], f[0], f[1], or f[2] for different fullscreen states
             //                        -1: no fullscreen, 0: fullscreen, 1: maximized, 2: fullscreen without sending fs state to window
 
@@ -305,14 +306,33 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                     }
 
                     int count;
-                    if (wantsCountGroup)
-                        count = getGroups(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
-                                          wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
-                                          wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
-                    else
-                        count = getWindowCount(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
-                                               wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
-                                               wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
+                    if (wantsGlobal) {
+                        count = 0;
+                    
+                        for (auto const& ws : State::workspaceState()->workspaces()) {
+                            if (!ws)
+                                continue;
+                    
+                            if (wantsCountGroup)
+                                count += ws->getGroups(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
+                                                  wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
+                                                  wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
+                            else
+                                count += ws->getWindowCount(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
+                                                       wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
+                                                       wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
+                        }
+                    
+                    } else {
+                        if (wantsCountGroup)
+                            count = getGroups(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
+                                              wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
+                                              wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
+                        else
+                            count = getWindowCount(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
+                                                   wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
+                                                   wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
+                    }
 
                     if (count != from)
                         return false;
@@ -341,14 +361,40 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                 }
 
                 WORKSPACEID count;
-                if (wantsCountGroup)
-                    count =
-                        getGroups(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
-                                  wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt, wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
-                else
-                    count = getWindowCount(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
-                                           wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
-                                           wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
+                if (wantsGlobal) {
+                    count = 0;
+                
+                    for (auto const& ws : State::workspaceState()->workspaces()) {
+                        if (!ws)
+                            continue;
+                
+                        if (wantsCountGroup)
+                            count += ws->getGroups(
+                                wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
+                                wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
+                                wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt
+                            );
+
+                        else
+                            count += ws->getWindowCount(
+                                wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
+                                wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
+                                wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt
+                            );
+                } else {
+                    if (wantsCountGroup)
+                        count = getGroups(
+                            wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
+                            wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
+                            wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt
+                        );
+                    else
+                        count = getWindowCount(
+                            wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
+                            wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
+                            wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt
+                        );
+                }
 
                 if (std::clamp(count, from, to) != count)
                     return false;

@@ -1528,22 +1528,28 @@ void CMonitor::changeWorkspace(const WORKSPACEID& id, bool internal, bool noMous
     changeWorkspace(State::workspaceState()->query().id(id).run(), internal, noMouseMove, noFocus);
 }
 
-void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
-    if (m_activeSpecialWorkspace == pWorkspace)
-        return;
-
-    const auto  POLDSPECIAL = m_activeSpecialWorkspace;
-
+void CMonitor::setSpecialWorkspaceVisualState(bool active) {
     static auto PDIMSPECIAL  = CConfigValue<Config::FLOAT>("decoration:dim_special");
     static auto PBLURSPECIAL = CConfigValue<Config::INTEGER>("decoration:blur:special");
     static auto PBLUR        = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
 
-    m_specialFade->setConfig(Config::animationTree()->getAnimationPropertyConfig(pWorkspace ? "specialWorkspaceIn" : "specialWorkspaceOut"));
-    *m_specialFade = pWorkspace ? 1.F : 0.F;
-    m_specialDim->setConfig(Config::animationTree()->getAnimationPropertyConfig(pWorkspace ? "specialWorkspaceIn" : "specialWorkspaceOut"));
-    *m_specialDim = pWorkspace ? *PDIMSPECIAL : 0.F;
-    m_specialBlur->setConfig(Config::animationTree()->getAnimationPropertyConfig(pWorkspace ? "specialWorkspaceIn" : "specialWorkspaceOut"));
-    *m_specialBlur = pWorkspace && *PBLURSPECIAL && *PBLUR ? 1.F : 0.F;
+    const auto  ANIM = active ? "specialWorkspaceIn" : "specialWorkspaceOut";
+
+    m_specialFade->setConfig(Config::animationTree()->getAnimationPropertyConfig(ANIM));
+    *m_specialFade = active ? 1.F : 0.F;
+    m_specialDim->setConfig(Config::animationTree()->getAnimationPropertyConfig(ANIM));
+    *m_specialDim = active ? *PDIMSPECIAL : 0.F;
+    m_specialBlur->setConfig(Config::animationTree()->getAnimationPropertyConfig(ANIM));
+    *m_specialBlur = active && *PBLURSPECIAL && *PBLUR ? 1.F : 0.F;
+}
+
+void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
+    if (m_activeSpecialWorkspace == pWorkspace)
+        return;
+
+    const auto POLDSPECIAL = m_activeSpecialWorkspace;
+
+    setSpecialWorkspaceVisualState(!!pWorkspace);
 
     g_pHyprRenderer->damageMonitor(m_self.lock());
 
@@ -1597,6 +1603,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     const auto PMONITOR = pWorkspace->m_monitor.lock();
 
     if (PMONITOR && PMONITOR->m_activeSpecialWorkspace == pWorkspace) {
+        PMONITOR->setSpecialWorkspaceVisualState(false);
         PMONITOR->m_activeSpecialWorkspace.reset();
         g_layoutManager->recalculateMonitor(PMONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE);
         g_pHyprRenderer->damageMonitor(PMONITOR);

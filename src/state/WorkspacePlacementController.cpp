@@ -250,6 +250,16 @@ void CWorkspacePlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspa
 
     const auto POLDMON = pWorkspace->m_monitor.lock();
 
+    if (pWorkspace->m_isSpecialWorkspace && POLDMON && POLDMON->m_activeSpecialWorkspace == pWorkspace) {
+        pMonitor->setSpecialWorkspace(pWorkspace);
+
+        g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspace", .data = pWorkspace->m_name + "," + pMonitor->m_name});
+        g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspacev2", .data = std::format("{},{},{}", pWorkspace->m_id, pWorkspace->m_name, pMonitor->m_name)});
+
+        Event::bus()->m_events.workspace.moveToMonitor.emit(pWorkspace, pMonitor);
+        return;
+    }
+
     const bool SWITCHINGISACTIVE = POLDMON ? POLDMON->m_activeWorkspace == pWorkspace : false;
 
     // fix old mon

@@ -393,6 +393,7 @@ namespace Monitor {
 
         void                    setupDefaultWS(const Config::CMonitorRule&);
         WORKSPACEID             findAvailableDefaultWS();
+        void                    setSpecialWorkspaceVisualState(bool active);
         void                    commitDPMSState(bool state);
         void                    scheduleModeRetry();
         void                    clearModeRetry();

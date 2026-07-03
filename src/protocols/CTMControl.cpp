@@ -4,7 +4,7 @@
 #include "core/Output.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../config/shared/animation/AnimationTree.hpp"
-#include "managers/animation/AnimationManager.hpp"
+#include "animation/AnimationManager.hpp"
 #include "../output/Monitor.hpp"
 #include "../helpers/MiscFunctions.hpp"
 #include "../state/MonitorState.hpp"
@@ -122,7 +122,7 @@ bool CHyprlandCTMControlProtocol::isCTMAnimationEnabled() {
 }
 
 CHyprlandCTMControlProtocol::SCTMData::SCTMData() {
-    g_pAnimationManager->createAnimation(0.f, progress, Config::animationTree()->getAnimationPropertyConfig("__internal_fadeCTM"), AVARDAMAGE_NONE);
+    Animation::mgr()->createAnimation(0.f, progress, Config::animationTree()->getAnimationPropertyConfig("__internal_fadeCTM"), AVARDAMAGE_NONE);
 }
 
 void CHyprlandCTMControlProtocol::setCTM(PHLMONITOR monitor, const Mat3x3& ctm) {

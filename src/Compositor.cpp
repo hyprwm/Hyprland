@@ -70,8 +70,8 @@
 #include "config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "render/OpenGL.hpp"
 #include "managers/input/InputManager.hpp"
-#include "managers/animation/AnimationManager.hpp"
-#include "managers/animation/DesktopAnimationManager.hpp"
+#include "animation/AnimationManager.hpp"
+#include "animation/WorkspaceAnimationController.hpp"
 #include "managers/EventManager.hpp"
 #include "managers/ProtocolManager.hpp"
 #include "managers/WelcomeManager.hpp"
@@ -283,8 +283,8 @@ static bool filterGlobals(const wl_client* client, const wl_global* global, void
 //
 void CCompositor::initServer(std::string socketName, int socketFd) {
     if (m_onlyConfigVerification) {
-        g_pKeybindManager   = makeUnique<CKeybindManager>();
-        g_pAnimationManager = makeUnique<CHyprAnimationManager>();
+        g_pKeybindManager = makeUnique<CKeybindManager>();
+        Animation::mgr();
         Config::initConfigManager();
         Config::mgr()->init();
 
@@ -494,8 +494,8 @@ void CCompositor::initAllSignals() {
                 m_sessionActive = true;
 
                 // Reset animation tick state to avoid stale timer issues after suspend/wake
-                if (g_pAnimationManager)
-                    g_pAnimationManager->resetTickState();
+                if (Animation::mgr())
+                    Animation::mgr()->resetTickState();
 
                 for (auto const& m : State::monitorState()->monitors()) {
                     m->m_activeMonitorRule = {}; // rules were lost
@@ -641,7 +641,7 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             g_pKeybindManager = makeUnique<CKeybindManager>();
 
             Log::logger->log(Log::DEBUG, "Creating the AnimationManager!");
-            g_pAnimationManager = makeUnique<CHyprAnimationManager>();
+            Animation::mgr();
 
             Log::logger->log(Log::DEBUG, "Creating the DynamicPermissionManager!");
             g_pDynamicPermissionManager = makeUnique<CDynamicPermissionManager>();
@@ -934,8 +934,8 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
     }
 
     if (!LAYOUT_HANDLED_FULLSCREEN)
-        g_pDesktopAnimationManager->setFullscreenFadeAnimation(
-            PWORKSPACE, PWORKSPACE->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+        Animation::Workspace::setFullscreenFadeAnimation(PWORKSPACE,
+                                                         PWORKSPACE->m_hasFullscreenWindow ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
 
     PWINDOW->sendWindowSize(true);
 

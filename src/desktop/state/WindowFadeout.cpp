@@ -4,7 +4,7 @@
 #include "../Workspace.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../config/shared/animation/AnimationTree.hpp"
-#include "../../managers/animation/AnimationManager.hpp"
+#include "../../animation/AnimationManager.hpp"
 #include "../../output/Monitor.hpp"
 #include "../../render/Framebuffer.hpp"
 #include "../../render/Renderer.hpp"
@@ -73,23 +73,29 @@ SP<CWindowFadeout> CWindowFadeout::create(PHLWINDOW window, SP<Render::IFramebuf
     if (*PDIMAROUND && window->m_ruleApplicator->dimAround().valueOrDefault())
         fadeout->m_effects.dimAroundAlpha = *PDIMAROUND;
 
-    g_pAnimationManager->createAnimation(window->m_realPosition->begun(), fadeout->m_realPosition, Config::animationTree()->getAnimationPropertyConfig("windowsOut"),
-                                         AVARDAMAGE_NONE);
-    g_pAnimationManager->createAnimation(window->m_realSize->begun(), fadeout->m_realSize, Config::animationTree()->getAnimationPropertyConfig("windowsOut"), AVARDAMAGE_NONE);
-    g_pAnimationManager->createAnimation(sourceAlpha, fadeout->m_alpha, Config::animationTree()->getAnimationPropertyConfig("fadeOut"), AVARDAMAGE_NONE);
+    const auto ANIMCTX = window->m_animationController.animateOut();
+
+    Animation::mgr()->createAnimation(ANIMCTX.pos.from, fadeout->m_realPosition, Config::animationTree()->getAnimationPropertyConfig("windowsOut"), AVARDAMAGE_NONE);
+    Animation::mgr()->createAnimation(ANIMCTX.size.from, fadeout->m_realSize, Config::animationTree()->getAnimationPropertyConfig("windowsOut"), AVARDAMAGE_NONE);
+    Animation::mgr()->createAnimation(sourceAlpha, fadeout->m_alpha, Config::animationTree()->getAnimationPropertyConfig("fadeOut"), AVARDAMAGE_NONE);
 
     const WP<CWindowFadeout> WEAK = fadeout;
     fadeout->m_realPosition->setUpdateCallback([WEAK](auto) { damageWeakFadeout(WEAK); });
     fadeout->m_realSize->setUpdateCallback([WEAK](auto) { damageWeakFadeout(WEAK); });
     fadeout->m_alpha->setUpdateCallback([WEAK](auto) { damageWeakFadeout(WEAK); });
 
-    fadeout->m_realPosition->setValueAndWarp(window->m_realPosition->begun());
-    fadeout->m_realSize->setValueAndWarp(window->m_realSize->begun());
+    fadeout->m_realPosition->setValueAndWarp(ANIMCTX.pos.from);
+    fadeout->m_realSize->setValueAndWarp(ANIMCTX.size.from);
     fadeout->m_alpha->setValueAndWarp(sourceAlpha);
 
-    *fadeout->m_realPosition = window->m_realPosition->goal();
-    *fadeout->m_realSize     = window->m_realSize->goal();
-    *fadeout->m_alpha        = 0.F;
+    *fadeout->m_realPosition = ANIMCTX.pos.to;
+    *fadeout->m_realSize     = ANIMCTX.size.to;
+    *fadeout->m_alpha        = ANIMCTX.alpha.to;
+
+    if (window->m_X11DoesntWantBorders) {
+        fadeout->m_realPosition->warp();
+        fadeout->m_realSize->warp();
+    }
 
     return fadeout;
 }

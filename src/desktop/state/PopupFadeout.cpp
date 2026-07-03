@@ -3,7 +3,7 @@
 #include "../view/Popup.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../config/shared/animation/AnimationTree.hpp"
-#include "../../managers/animation/AnimationManager.hpp"
+#include "../../animation/AnimationManager.hpp"
 #include "../../output/Monitor.hpp"
 #include "../../render/Framebuffer.hpp"
 #include "../../render/Renderer.hpp"
@@ -55,13 +55,15 @@ SP<CPopupFadeout> CPopupFadeout::create(SP<CPopup> popup, SP<Render::IFramebuffe
             fadeout->m_effects.textureBlur.ignoreAlpha = std::max(*PBLURIGNOREA, 0.01F);
     }
 
-    g_pAnimationManager->createAnimation(Vector2D{}, fadeout->m_realPosition, Config::animationTree()->getAnimationPropertyConfig("fadePopupsOut"), AVARDAMAGE_NONE);
-    g_pAnimationManager->createAnimation(MONITOR->m_transformedSize, fadeout->m_realSize, Config::animationTree()->getAnimationPropertyConfig("fadePopupsOut"), AVARDAMAGE_NONE);
-    g_pAnimationManager->createAnimation(sourceAlpha, fadeout->m_alpha, Config::animationTree()->getAnimationPropertyConfig("fadePopupsOut"), AVARDAMAGE_NONE);
+    const auto ANIMCTX = popup->m_animationController.animateOut();
+
+    Animation::mgr()->createAnimation(ANIMCTX.pos.from, fadeout->m_realPosition, Config::animationTree()->getAnimationPropertyConfig("fadePopupsOut"), AVARDAMAGE_NONE);
+    Animation::mgr()->createAnimation(ANIMCTX.size.from, fadeout->m_realSize, Config::animationTree()->getAnimationPropertyConfig("fadePopupsOut"), AVARDAMAGE_NONE);
+    Animation::mgr()->createAnimation(sourceAlpha, fadeout->m_alpha, Config::animationTree()->getAnimationPropertyConfig("fadePopupsOut"), AVARDAMAGE_NONE);
     const WP<CPopupFadeout> WEAK = fadeout;
     fadeout->m_alpha->setUpdateCallback([WEAK](auto) { damageWeakFadeout(WEAK); });
     fadeout->m_alpha->setValueAndWarp(sourceAlpha);
-    *fadeout->m_alpha = 0.F;
+    *fadeout->m_alpha = ANIMCTX.alpha.to;
 
     return fadeout;
 }

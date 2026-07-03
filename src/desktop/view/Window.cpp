@@ -39,7 +39,7 @@
 #include "../../state/MonitorState.hpp"
 #include "../../state/WorkspaceState.hpp"
 #include "../../managers/TokenManager.hpp"
-#include "../../managers/animation/AnimationManager.hpp"
+#include "../../animation/AnimationManager.hpp"
 #include "../../managers/ANRManager.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../managers/eventLoop/EventLoopTimer.hpp"
@@ -57,7 +57,6 @@
 #include "../../managers/EventManager.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../pointer/PointerController.hpp"
-#include "../../managers/animation/DesktopAnimationManager.hpp"
 #include "../../managers/KeybindManager.hpp"
 #include "../../layout/algorithm/Algorithm.hpp"
 #include "../../layout/space/Space.hpp"
@@ -91,27 +90,24 @@ PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
     pWindow->m_isX11          = true;
     pWindow->m_ruleApplicator = makeUnique<Desktop::Rule::CWindowRuleApplicator>(pWindow);
 
-    g_pAnimationManager->createAnimation(Vector2D(0, 0), pWindow->m_realPosition, Config::animationTree()->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(Vector2D(0, 0), pWindow->m_realSize, Config::animationTree()->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_borderFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("border"), pWindow, AVARDAMAGE_BORDER);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_borderAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("borderangle"), pWindow,
-                                         AVARDAMAGE_BORDER);
-    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FADE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_ACTIVE), Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FULLSCREEN), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_LAYOUT), Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_shadowFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("fadeShadow"), pWindow,
-                                         AVARDAMAGE_SHADOW);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_shadowAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("shadowangle"), pWindow,
-                                         AVARDAMAGE_SHADOW);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_glowFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("fadeGlow"), pWindow, AVARDAMAGE_GLOW);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_glowAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("glowangle"), pWindow, AVARDAMAGE_GLOW);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_dimPercent, Config::animationTree()->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeOut"), pWindow,
-                                         AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow,
-                                         AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_notRespondingTint, Config::animationTree()->getAnimationPropertyConfig("fade"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(Vector2D(0, 0), pWindow->m_realPosition, Config::animationTree()->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(Vector2D(0, 0), pWindow->m_realSize, Config::animationTree()->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_borderFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("border"), pWindow, AVARDAMAGE_BORDER);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_borderAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("borderangle"), pWindow, AVARDAMAGE_BORDER);
+    Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FADE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_ACTIVE), Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FULLSCREEN), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_LAYOUT), Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_shadowFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("fadeShadow"), pWindow, AVARDAMAGE_SHADOW);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_shadowAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("shadowangle"), pWindow, AVARDAMAGE_SHADOW);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_glowFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("fadeGlow"), pWindow, AVARDAMAGE_GLOW);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_glowAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("glowangle"), pWindow, AVARDAMAGE_GLOW);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_dimPercent, Config::animationTree()->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeOut"), pWindow,
+                                      AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow,
+                                      AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_notRespondingTint, Config::animationTree()->getAnimationPropertyConfig("fade"), pWindow, AVARDAMAGE_ENTIRE);
 
     pWindow->addWindowDeco(makeUnique<CHyprDropShadowDecoration>(pWindow));
     pWindow->addWindowDeco(makeUnique<CHyprBorderDecoration>(pWindow));
@@ -132,27 +128,24 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
     resource->m_toplevel->m_window = pWindow;
     pWindow->m_ruleApplicator      = makeUnique<Desktop::Rule::CWindowRuleApplicator>(pWindow);
 
-    g_pAnimationManager->createAnimation(Vector2D(0, 0), pWindow->m_realPosition, Config::animationTree()->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(Vector2D(0, 0), pWindow->m_realSize, Config::animationTree()->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_borderFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("border"), pWindow, AVARDAMAGE_BORDER);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_borderAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("borderangle"), pWindow,
-                                         AVARDAMAGE_BORDER);
-    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FADE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_ACTIVE), Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FULLSCREEN), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_LAYOUT), Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_shadowFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("fadeShadow"), pWindow,
-                                         AVARDAMAGE_SHADOW);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_shadowAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("shadowangle"), pWindow,
-                                         AVARDAMAGE_SHADOW);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_glowFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("fadeGlow"), pWindow, AVARDAMAGE_GLOW);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_glowAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("glowangle"), pWindow, AVARDAMAGE_GLOW);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_dimPercent, Config::animationTree()->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeOut"), pWindow,
-                                         AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow,
-                                         AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_notRespondingTint, Config::animationTree()->getAnimationPropertyConfig("fade"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(Vector2D(0, 0), pWindow->m_realPosition, Config::animationTree()->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(Vector2D(0, 0), pWindow->m_realSize, Config::animationTree()->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_borderFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("border"), pWindow, AVARDAMAGE_BORDER);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_borderAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("borderangle"), pWindow, AVARDAMAGE_BORDER);
+    Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FADE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_ACTIVE), Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FULLSCREEN), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_LAYOUT), Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_shadowFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("fadeShadow"), pWindow, AVARDAMAGE_SHADOW);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_shadowAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("shadowangle"), pWindow, AVARDAMAGE_SHADOW);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_glowFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("fadeGlow"), pWindow, AVARDAMAGE_GLOW);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_glowAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("glowangle"), pWindow, AVARDAMAGE_GLOW);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_dimPercent, Config::animationTree()->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeOut"), pWindow,
+                                      AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow,
+                                      AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_notRespondingTint, Config::animationTree()->getAnimationPropertyConfig("fade"), pWindow, AVARDAMAGE_ENTIRE);
 
     pWindow->addWindowDeco(makeUnique<CHyprDropShadowDecoration>(pWindow));
     pWindow->addWindowDeco(makeUnique<CHyprBorderDecoration>(pWindow));
@@ -168,7 +161,8 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
     return pWindow;
 }
 
-CWindow::CWindow(SP<CXDGSurfaceResource> resource) : IView(CWLSurface::create()), m_xdgSurface(resource), m_stableID(windowIDCounter++) {
+CWindow::CWindow(SP<CXDGSurfaceResource> resource) :
+    IView(CWLSurface::create()), m_xdgSurface(resource), m_stableID(windowIDCounter++), m_animationController(this), m_alpha(WINDOW_ALPHA_LAST) {
     m_listeners.map            = m_xdgSurface->m_events.map.listen([this] { mapWindow(); });
     m_listeners.ack            = m_xdgSurface->m_events.ack.listen([this](uint32_t d) { onAck(d); });
     m_listeners.unmap          = m_xdgSurface->m_events.unmap.listen([this] { unmapWindow(); });
@@ -178,7 +172,8 @@ CWindow::CWindow(SP<CXDGSurfaceResource> resource) : IView(CWLSurface::create())
     m_listeners.updateMetadata = m_xdgSurface->m_toplevel->m_events.metadataChanged.listen([this] { onUpdateMeta(); });
 }
 
-CWindow::CWindow(SP<CXWaylandSurface> surface) : IView(CWLSurface::create()), m_xwaylandSurface(surface), m_stableID(windowIDCounter++) {
+CWindow::CWindow(SP<CXWaylandSurface> surface) :
+    IView(CWLSurface::create()), m_xwaylandSurface(surface), m_stableID(windowIDCounter++), m_animationController(this), m_alpha(WINDOW_ALPHA_LAST) {
     m_listeners.map              = m_xwaylandSurface->m_events.map.listen([this] { mapWindow(); });
     m_listeners.unmap            = m_xwaylandSurface->m_events.unmap.listen([this] { unmapWindow(); });
     m_listeners.destroy          = m_xwaylandSurface->m_events.destroy.listen([this] { destroyWindow(); });
@@ -2499,7 +2494,10 @@ void CWindow::mapWindow() {
     layoutTarget()->recalc();
 
     // do animations
-    g_pDesktopAnimationManager->startAnimation(m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_IN);
+    m_realPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsIn"));
+    m_realSize->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsIn"));
+    alpha(WINDOW_ALPHA_FADE)->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeIn"));
+    m_animationController.apply(m_animationController.animateIn());
 
     m_realPosition->setCallbackOnEnd(setVector2DAnimToMove);
     m_realSize->setCallbackOnEnd(setVector2DAnimToMove);
@@ -2554,7 +2552,8 @@ void CWindow::unmapWindow() {
         g_pCompositor->setWindowFullscreenInternal(m_self.lock(), FSMODE_NONE);
 
     // Allow the renderer to catch the last frame.
-    const auto SNAPSHOT = g_pHyprRenderer->shouldRenderWindow(m_self.lock()) ? g_pHyprRenderer->makeSnapshotFB(m_self.lock()) : nullptr;
+    const auto SNAPSHOT =
+        g_pHyprRenderer->shouldRenderWindow(m_self.lock()) && !m_ruleApplicator->noAnim().valueOrDefault() ? g_pHyprRenderer->makeSnapshotFB(m_self.lock()) : nullptr;
 
     // swallowing
     if (const auto SWALLOWEE = m_swallowee.lock()) {
@@ -2668,8 +2667,10 @@ void CWindow::unmapWindow() {
 
     const float FADEOUTALPHA = alphaValue(WINDOW_ALPHA_FADE) * alphaValue(WINDOW_ALPHA_FULLSCREEN) * alphaValue(WINDOW_ALPHA_LAYOUT);
 
-    // anims
-    g_pDesktopAnimationManager->startAnimation(m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+    // FIXME: this shouldn't be needed but it is because style is decided by the fuckin anim from this
+    m_realPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsOut"));
+    m_realSize->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsOut"));
+    alpha(WINDOW_ALPHA_FADE)->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeOut"));
 
     Desktop::fadingOutState()->add(CWindowFadeout::create(m_self.lock(), SNAPSHOT, FADEOUTALPHA));
 
@@ -2906,4 +2907,20 @@ bool CWindow::canBeGroupedInto(SP<CGroup> group) {
 void CWindow::sendClose() {
     if (m_isMapped)
         g_pXWaylandManager->sendCloseWindow(m_self.lock());
+}
+
+Types::CMultiAVarContainer<float, uint8_t>& CWindow::alpha() {
+    return m_alpha;
+}
+
+std::optional<uint8_t> CWindow::alphaGenericToKey(eAlphaModifiableProp p) {
+    switch (p) {
+        case IAlphaModifiable::ALPHA_MODIFIABLE_FADE: return WINDOW_ALPHA_FADE;
+
+        // this is here to suppress the warning
+        case IAlphaModifiable::ALPHA_MODIFIABLE_LAST: return std::nullopt;
+    }
+
+    static_assert(ALPHA_MODIFIABLE_LAST == 1);
+    UNREACHABLE();
 }

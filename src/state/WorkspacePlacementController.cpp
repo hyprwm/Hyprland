@@ -19,7 +19,7 @@
 #include "../managers/EventManager.hpp"
 #include "../pointer/PointerManager.hpp"
 #include "../event/EventBus.hpp"
-#include "../managers/animation/DesktopAnimationManager.hpp"
+#include "../animation/WorkspaceAnimationController.hpp"
 #include "../render/Renderer.hpp"
 
 #include <ranges>
@@ -208,10 +208,10 @@ void CWorkspacePlacementController::swapActiveWorkspaces(PHLMONITOR pMonitorA, P
     g_pHyprRenderer->damageMonitor(pMonitorB);
     g_pHyprRenderer->damageMonitor(pMonitorA);
 
-    g_pDesktopAnimationManager->setFullscreenFadeAnimation(
-        PWORKSPACEB, PWORKSPACEB->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
-    g_pDesktopAnimationManager->setFullscreenFadeAnimation(
-        PWORKSPACEA, PWORKSPACEA->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+    Animation::Workspace::setFullscreenFadeAnimation(PWORKSPACEB,
+                                                     PWORKSPACEB->m_hasFullscreenWindow ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
+    Animation::Workspace::setFullscreenFadeAnimation(PWORKSPACEA,
+                                                     PWORKSPACEA->m_hasFullscreenWindow ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
 
     if (pMonitorA->m_id == Desktop::focusState()->monitor()->m_id || pMonitorB->m_id == Desktop::focusState()->monitor()->m_id) {
         const auto LASTWIN = pMonitorA->m_id == Desktop::focusState()->monitor()->m_id ? PWORKSPACEB->getLastFocusedWindow() : PWORKSPACEA->getLastFocusedWindow();
@@ -327,7 +327,7 @@ void CWorkspacePlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspa
 
         if (valid(pMonitor->m_activeWorkspace)) {
             pMonitor->m_activeWorkspace->m_visible = false;
-            g_pDesktopAnimationManager->startAnimation(pWorkspace, CDesktopAnimationManager::ANIMATION_TYPE_OUT, false);
+            Animation::Workspace::startAnimation(pWorkspace, Animation::Workspace::ANIMATION_TYPE_OUT, false);
         }
 
         if (*PHIDESPECIALONWORKSPACECHANGE)
@@ -346,7 +346,7 @@ void CWorkspacePlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspa
         g_layoutManager->recalculateMonitor(pMonitor);
         g_pHyprRenderer->damageMonitor(pMonitor);
 
-        g_pDesktopAnimationManager->startAnimation(pWorkspace, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
+        Animation::Workspace::startAnimation(pWorkspace, Animation::Workspace::ANIMATION_TYPE_IN, true, true);
         pWorkspace->m_visible = true;
 
         if (!noWarpCursor)
@@ -359,14 +359,13 @@ void CWorkspacePlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspa
     if (POLDMON) {
         g_layoutManager->recalculateMonitor(POLDMON);
         if (valid(POLDMON->m_activeWorkspace))
-            g_pDesktopAnimationManager->setFullscreenFadeAnimation(POLDMON->m_activeWorkspace,
-                                                                   POLDMON->m_activeWorkspace->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN :
-                                                                                                                       CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+            Animation::Workspace::setFullscreenFadeAnimation(
+                POLDMON->m_activeWorkspace, POLDMON->m_activeWorkspace->m_hasFullscreenWindow ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
         Desktop::globalWindowController()->updateSuspendedStates();
     }
 
-    g_pDesktopAnimationManager->setFullscreenFadeAnimation(
-        pWorkspace, pWorkspace->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+    Animation::Workspace::setFullscreenFadeAnimation(pWorkspace,
+                                                     pWorkspace->m_hasFullscreenWindow ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
     Desktop::globalWindowController()->updateSuspendedStates();
 
     // event

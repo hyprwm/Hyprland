@@ -69,7 +69,7 @@ using namespace Hyprutils::OS;
 #include "../managers/input/InputManager.hpp"
 #include "../managers/XWaylandManager.hpp"
 #include "../plugins/PluginSystem.hpp"
-#include "../managers/animation/AnimationManager.hpp"
+#include "../animation/AnimationManager.hpp"
 #include "../notification/NotificationOverlay.hpp"
 #include "../render/Renderer.hpp"
 #include "../render/OpenGL.hpp"
@@ -922,7 +922,7 @@ static std::string animationsRequest(eHyprCtlOutputFormat format, std::string re
 
         ret += "beziers:\n";
 
-        for (auto const& bz : g_pAnimationManager->getAllBeziers()) {
+        for (auto const& bz : Animation::mgr()->getAllBeziers()) {
             auto& controlPoints = bz.second->getControlPoints();
             ret += std::format("\n\tname: {}\n\t\tX0: {:.2f}\n\t\tY0: {:.2f}\n\t\tX1: {:.2f}\n\t\tY1: {:.2f}", bz.first, controlPoints[1].x, controlPoints[1].y, controlPoints[2].x,
                                controlPoints[2].y);
@@ -949,7 +949,7 @@ static std::string animationsRequest(eHyprCtlOutputFormat format, std::string re
 
         ret += ",\n[";
 
-        for (auto const& bz : g_pAnimationManager->getAllBeziers()) {
+        for (auto const& bz : Animation::mgr()->getAllBeziers()) {
             auto& controlPoints = bz.second->getControlPoints();
             ret += std::format(R"#(
 {{

@@ -4,7 +4,7 @@
 #include "../render/pass/RectPassElement.hpp"
 #include "../render/pass/TexPassElement.hpp"
 #include "../render/Renderer.hpp"
-#include "../managers/animation/AnimationManager.hpp"
+#include "../animation/AnimationManager.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../state/MonitorState.hpp"
 #include <algorithm>
@@ -188,7 +188,7 @@ void CMonitorOverlay::frameData(PHLMONITOR pMonitor) {
         if (m_lastAnimationTicks.size() > TICKLIMIT)
             m_lastAnimationTicks.pop_front();
 
-        m_lastAnimationTicks.push_back(g_pAnimationManager->m_lastTickTimeMs);
+        m_lastAnimationTicks.push_back(Animation::mgr()->m_lastTickTimeMs);
     }
 }
 

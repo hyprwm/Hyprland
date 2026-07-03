@@ -3,7 +3,7 @@
 #include "../../../../Compositor.hpp"
 #include "../../../../desktop/state/FocusState.hpp"
 #include "../../../../render/Renderer.hpp"
-#include "../../../animation/DesktopAnimationManager.hpp"
+#include "../../../../animation/WorkspaceAnimationController.hpp"
 
 constexpr const float MAX_DISTANCE = 250.F;
 
@@ -61,7 +61,7 @@ void CFullscreenTrackpadGesture::update(const ITrackpadGesture::STrackpadGesture
     m_window->m_realPosition->setValueAndWarp(lerpVal(m_posFrom, m_posTo, FADEPERCENT));
     m_window->m_realSize->setValueAndWarp(lerpVal(m_sizeFrom, m_sizeTo, FADEPERCENT));
 
-    g_pDesktopAnimationManager->overrideFullscreenFadeAmount(m_window->m_workspace, m_originalMode == FSMODE_NONE ? 1.F - FADEPERCENT : FADEPERCENT, m_window.lock());
+    Animation::Workspace::overrideFullscreenFadeAmount(m_window->m_workspace, m_originalMode == FSMODE_NONE ? 1.F - FADEPERCENT : FADEPERCENT, m_window.lock());
 
     g_pDecorationPositioner->onWindowUpdate(m_window.lock());
 
@@ -77,7 +77,7 @@ void CFullscreenTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd
     if (COMPLETION < 0.2F) {
         // revert the animation
         g_pHyprRenderer->damageWindow(m_window.lock());
-        g_pDesktopAnimationManager->overrideFullscreenFadeAmount(m_window->m_workspace, m_originalMode == FSMODE_NONE ? 1.F : 0.F, m_window.lock());
+        Animation::Workspace::overrideFullscreenFadeAmount(m_window->m_workspace, m_originalMode == FSMODE_NONE ? 1.F : 0.F, m_window.lock());
         g_pCompositor->setWindowFullscreenInternal(m_window.lock(), m_window->m_fullscreenState.internal == FSMODE_NONE ? m_originalMode : FSMODE_NONE);
         return;
     }
@@ -90,7 +90,7 @@ void CFullscreenTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd
     // intermediate size. force a configure to the final size so the client matches its box.
     m_window->sendWindowSize(true);
 
-    g_pDesktopAnimationManager->overrideFullscreenFadeAmount(m_window->m_workspace, m_originalMode == FSMODE_NONE ? 0.F : 1.F);
+    Animation::Workspace::overrideFullscreenFadeAmount(m_window->m_workspace, m_originalMode == FSMODE_NONE ? 0.F : 1.F);
 }
 
 eFullscreenMode CFullscreenTrackpadGesture::fsModeForMode(eMode mode) {

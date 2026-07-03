@@ -143,19 +143,22 @@ void main() {
     if (discardAlpha && pixColor.a <= discardAlphaValue)
         pixBlurAlphaMask = 0.0;
 #endif
-    vec3 blurredPixColor = mix(texture(blurredBG, v_texcoord * uvSize + uvOffset).rgb, pixColor.rgb, pixColor.a);
-    pixColor             = vec4(mix(pixColor.rgb, blurredPixColor, pixBlurAlphaMask), max(pixColor.a, pixBlurAlphaMask));
+    vec3 blurredPixColor = texture(blurredBG, v_texcoord * uvSize + uvOffset).rgb;
+    float pixBlurBgAlpha = (1.0 - pixColor.a) * pixBlurAlphaMask;
+    pixColor             = vec4(pixColor.rgb + blurredPixColor * pixBlurBgAlpha, pixColor.a + pixBlurBgAlpha);
 #else
 #if USE_BLUR_ALPHA_MASK
     if (pixColor.a <= 0.0)
         discard;
 #endif
 #if USE_DISCARD
-    pixColor = mix(pixColor, vec4(mix(texture(blurredBG, v_texcoord * uvSize + uvOffset).rgb, pixColor.rgb, pixColor.a), 1.0),
-                   discardAlpha && (pixColor.a <= discardAlphaValue) ? 0.0 : 1.0);
+    float pixBlurAlphaMask = discardAlpha && (pixColor.a <= discardAlphaValue) ? 0.0 : 1.0;
 #else
-    pixColor = vec4(mix(texture(blurredBG, v_texcoord * uvSize + uvOffset).rgb, pixColor.rgb, pixColor.a), 1.0);
+    float pixBlurAlphaMask = 1.0;
 #endif
+    vec3 blurredPixColor = texture(blurredBG, v_texcoord * uvSize + uvOffset).rgb;
+    float pixBlurBgAlpha = (1.0 - pixColor.a) * pixBlurAlphaMask;
+    pixColor             = vec4(pixColor.rgb + blurredPixColor * pixBlurBgAlpha, pixColor.a + pixBlurBgAlpha);
 #endif
 #endif
 
@@ -178,18 +181,21 @@ void main() {
     if (discardAlpha && mirrorColor.a <= discardAlphaValue)
         mirrorBlurAlphaMask = 0.0;
 #endif
-    vec3 blurredMirrorColor = mix(texture(blurredBG, v_texcoord * uvSize + uvOffset).rgb, mirrorColor.rgb, mirrorColor.a);
-    mirrorColor             = vec4(mix(mirrorColor.rgb, blurredMirrorColor, mirrorBlurAlphaMask), max(mirrorColor.a, mirrorBlurAlphaMask));
+    vec3 blurredMirrorColor = texture(blurredBG, v_texcoord * uvSize + uvOffset).rgb;
+    float mirrorBlurBgAlpha = (1.0 - mirrorColor.a) * mirrorBlurAlphaMask;
+    mirrorColor             = vec4(mirrorColor.rgb + blurredMirrorColor * mirrorBlurBgAlpha, mirrorColor.a + mirrorBlurBgAlpha);
 #else
 #if USE_BLUR_ALPHA_MASK
     if (mirrorColor.a > 0.0) {
 #endif
 #if USE_DISCARD
-        mirrorColor = mix(mirrorColor, vec4(mix(texture(blurredBG, v_texcoord * uvSize + uvOffset).rgb, mirrorColor.rgb, mirrorColor.a), 1.0),
-                          discardAlpha && (mirrorColor.a <= discardAlphaValue) ? 0.0 : 1.0);
+        float mirrorBlurAlphaMask = discardAlpha && (mirrorColor.a <= discardAlphaValue) ? 0.0 : 1.0;
 #else
-        mirrorColor = vec4(mix(texture(blurredBG, v_texcoord * uvSize + uvOffset).rgb, mirrorColor.rgb, mirrorColor.a), 1.0);
+        float mirrorBlurAlphaMask = 1.0;
 #endif
+        vec3 blurredMirrorColor = texture(blurredBG, v_texcoord * uvSize + uvOffset).rgb;
+        float mirrorBlurBgAlpha = (1.0 - mirrorColor.a) * mirrorBlurAlphaMask;
+        mirrorColor             = vec4(mirrorColor.rgb + blurredMirrorColor * mirrorBlurBgAlpha, mirrorColor.a + mirrorBlurBgAlpha);
 #if USE_BLUR_ALPHA_MASK
     } else
         mirrorColor = vec4(0.0);

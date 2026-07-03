@@ -54,7 +54,7 @@ bool CWobbleTransformer::shouldEnable(PHLWINDOW window) {
     if (!window)
         return false;
 
-    return *PENABLED && !window->isFullscreen() && !window->m_fadingOut;
+    return *PENABLED && !window->isFullscreen();
 }
 
 void CWobbleTransformer::ensureTickListener() {

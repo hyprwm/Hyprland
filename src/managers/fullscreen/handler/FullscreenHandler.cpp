@@ -96,7 +96,7 @@ eFullscreenRequestResult IFullscreenHandler::requestFullscreen(const SFullscreen
     setTargetFullscreenModeInternal(TARGET, request.mode);
 
     // save covering FS window if mode isn't FSMODE_NONE
-    // If individual window, sets windowTarget's pos. If group, sets windowGroupTarget's pos.
+    // If individual window, sets windowTarget's pos. If group, sets windowGroupTarget's pos - which will set all member target's positions in turn
     if (request.mode == FSMODE_FULLSCREEN) {
         const CBox MONBOX = MONITOR->logicalBox();
         (GROUP_TARGET ? GROUP_TARGET : TARGET)->setPositionGlobal(MONBOX);
@@ -121,7 +121,7 @@ void IFullscreenHandler::setTargetFullscreenModeInternal(const SP<Layout::ITarge
     const auto ITR = m_fsTargets.find(target);
 
     // remember floating size if window exists and is floating
-    if (target->window() && target->window()->m_isFloating && !isFullscreen(target))
+    if (target->window() && target->window()->m_isFloating && mode != FSMODE_NONE && !isFullscreen(target))
         target->rememberFloatingSize(target->position().size());
 
     if (mode == FSMODE_NONE) {

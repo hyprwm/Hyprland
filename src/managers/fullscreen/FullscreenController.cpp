@@ -521,7 +521,8 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
 
 
     if (mode == FSMODE_NONE && window->m_isFloating)
-        ALGORITHM->recenter(window->m_target);
+        // If window group, use the group target to set all member windows
+        ALGORITHM->recenter(window->layoutTarget());
 
     SPACE->recalculate(FULLSCREEN_REQUEST_RESULT == FULLSCREEN_REQUEST_DEFAULT_HANDLED ? Layout::RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN : Layout::RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN);
 

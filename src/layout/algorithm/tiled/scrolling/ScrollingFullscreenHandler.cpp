@@ -1,6 +1,9 @@
-#include "../../../../Compositor.hpp"
 #include "../../../../config/shared/monitor/MonitorRuleManager.hpp"
 #include "../../../../render/Renderer.hpp"
+
+#include "../../../../desktop/state/LayerState.hpp"
+#include "../../../../desktop/state/WindowState.hpp"
+
 
 #include "../../../../managers/animation/DesktopAnimationManager.hpp"
 
@@ -271,6 +274,11 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
 
         return FULLSCREEN_REQUEST_LAYOUT_HANDLED;
     }
+
+    // Because we use MONBOX for a fullscreen window, we need to offset the fact that it's larger than a 1.F column and thus leave the viewport a few pixels to the right when unFullscreened
+    if (request.currentMode == FSMODE_FULLSCREEN)
+        m_scrollingAlgorithm->m_scrollingData->controller->adjustOffset(MONITOR->logicalBox().x - WORKSPACE->m_space->workArea().x);
+    
 
     // UnFS target
     setTargetFullscreenModeInternal(TARGET, FSMODE_NONE);

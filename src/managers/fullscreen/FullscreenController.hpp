@@ -148,6 +148,9 @@ namespace Fullscreen {
         SFullscreenMode getFullscreenModes(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
 
         // Monitor
+
+        // Only considers FSMODE_FULLSCREEN as fullscreen
+
         /// @warning only cosiders internal mode of FS windows
         bool            hasFullscreen(const PHLMONITOR monitor, const std::optional<bool> covering = true);
         /// @note Returns the topmost covering FS window is there are several.

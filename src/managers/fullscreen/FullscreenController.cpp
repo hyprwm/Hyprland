@@ -195,7 +195,7 @@ bool CFullscreenController::hasFullscreen(const PHLMONITOR monitor, const std::o
     if (!activeWorkspace)
         return false;
 
-    return hasFullscreen(activeWorkspace);
+    return hasFullscreen(activeWorkspace) && getFullscreenModes(activeWorkspace).internal == FSMODE_FULLSCREEN;
 
 }
 PHLWINDOW CFullscreenController::getFullscreenWindow(const PHLMONITOR monitor, const std::optional<bool> covering) {
@@ -216,9 +216,11 @@ PHLWINDOW CFullscreenController::getFullscreenWindow(const PHLMONITOR monitor, c
     if (!activeWorkspace)
         return nullptr;
 
-    return getFullscreenWindow(activeWorkspace,covering);
+    const auto FS_WINDOW = getFullscreenWindow(activeWorkspace, covering);
 
 
+
+    return getFullscreenModes(FS_WINDOW).internal == FSMODE_FULLSCREEN ? getFullscreenWindow(activeWorkspace, covering) : nullptr;
 }
 
 SFullscreenMode CFullscreenController::getFullscreenModes(const PHLMONITOR monitor, const std::optional<bool> covering) {

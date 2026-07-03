@@ -1,6 +1,6 @@
 #include "FullscreenHandler.hpp"
 
-#include "../../../managers/animation/DesktopAnimationManager.hpp"
+#include "../../../animation/WorkspaceAnimationController.hpp"
 #include "../../../managers/fullscreen/FullscreenController.hpp"
 
 #include "../../../debug/log/Logger.hpp"

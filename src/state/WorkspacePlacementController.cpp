@@ -17,7 +17,6 @@
 #include "../layout/LayoutManager.hpp"
 #include "../layout/space/Space.hpp"
 #include "../managers/EventManager.hpp"
-#include "../managers/animation/DesktopAnimationManager.hpp"
 #include "../managers/fullscreen/FullscreenController.hpp"
 #include "../pointer/PointerManager.hpp"
 #include "../event/EventBus.hpp"

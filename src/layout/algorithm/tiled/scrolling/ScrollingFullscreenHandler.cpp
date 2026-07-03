@@ -1,11 +1,11 @@
 #include "../../../../config/shared/monitor/MonitorRuleManager.hpp"
 #include "../../../../render/Renderer.hpp"
 
+#include "../../../../animation/WorkspaceAnimationController.hpp"
+
+
 #include "../../../../desktop/state/LayerState.hpp"
 #include "../../../../desktop/state/WindowState.hpp"
-
-
-#include "../../../../managers/animation/DesktopAnimationManager.hpp"
 
 #include "../../../../managers/fullscreen/FullscreenController.hpp"
 #include "../../../../managers/fullscreen/handler/FullscreenHandler.hpp"

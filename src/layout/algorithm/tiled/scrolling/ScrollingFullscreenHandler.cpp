@@ -11,6 +11,7 @@
 #include "../../../../layout/algorithm/tiled/scrolling/ScrollingAlgorithm.hpp"
 #include "../../../../layout/target/WindowGroupTarget.hpp"
 #include "../../../../config/supplementary/propRefresher/PropRefresher.hpp"
+#include <optional>
 
 using namespace Fullscreen;
 using namespace Fullscreen::ScrollingFullscreenHandler;
@@ -194,7 +195,7 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
             float targetColumnWidth = 0.0F;
 
             // If the target was maximised, save the col width it had before being FSed at all
-            if (isFullscreen(TARGET, FSMODE_MAXIMIZED))
+            if (isFullscreen(TARGET, FSMODE_MAXIMIZED, std::nullopt))
                 targetColumnWidth = getTargetColumnWidthBeforeFullscreenOrMaximise(TARGET);
             else {
                 targetColumnWidth = CURRENT_COL ?
@@ -237,7 +238,7 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
             float targetColumnWidth = 0.0F;
 
             // If the target was fullscreened, save the col width it had before being FSed at all
-            if (isFullscreen(TARGET, FSMODE_FULLSCREEN))
+            if (isFullscreen(TARGET, FSMODE_FULLSCREEN, std::nullopt))
                 targetColumnWidth = getTargetColumnWidthBeforeFullscreenOrMaximise(TARGET);
             else
                 targetColumnWidth = CURRENT_COL->getColumnWidth();

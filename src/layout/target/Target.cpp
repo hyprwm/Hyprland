@@ -50,7 +50,6 @@ void ITarget::setSpaceGhost(const SP<CSpace>& space) {
     m_ghostSpace = true;
 }
 
-
 SP<CSpace> ITarget::space() const {
     return m_space;
 }

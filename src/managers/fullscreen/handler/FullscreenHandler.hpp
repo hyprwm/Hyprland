@@ -17,10 +17,9 @@ namespace Fullscreen {
     };
 
     class IFullscreenHandler {
-      
-      
-      // ERSTARR TODO : edit below comments into a coherent manual
-      /*
+
+        // ERSTARR TODO : edit below comments into a coherent manual
+        /*
         Default FS handler with overridable methods for layouts wishing to implement their own FS handlers
         
         std::optional<bool> covering has true as default argument because for the default fullscreen behaviour, there is no such thing we non-covering fullscreen. In any case this value is ignored in this handler
@@ -41,13 +40,13 @@ namespace Fullscreen {
         // FS State Queries
 
         /// @warning only for internal FS mode
-        virtual bool                isFullscreen(SP<Layout::ITarget> target, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = true);
+        virtual bool isFullscreen(SP<Layout::ITarget> target, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = true);
         /// @warning only for internal FS mode
-        virtual bool                hasFullscreen(const std::optional<bool> covering = true);
+        virtual bool hasFullscreen(const std::optional<bool> covering = true);
         /// @warning only for internal FS mode
         virtual SP<Layout::ITarget> getFullscreen(const std::optional<bool> covering = true);
         /// @note also checks if target isFullscreen()
-        virtual SFullscreenMode     getFullscreenModes(SP<Layout::ITarget> target);
+        virtual SFullscreenMode getFullscreenModes(SP<Layout::ITarget> target);
 
         // FS Request
         /// @note Only for setting internal FS mode. Prefer to call setTargetFullscreenModeClient() independently for client mode
@@ -57,7 +56,6 @@ namespace Fullscreen {
 
         virtual void setTargetFullscreenModeInternal(const SP<Layout::ITarget> target, const eFullscreenMode mode);
         virtual void setTargetFullscreenModeClient(const SP<Layout::ITarget> target, const eFullscreenMode mode);
-
 
         // optional: FS target hiding behaviour
         virtual void setNoMembersAboveFullscreen();
@@ -91,7 +89,7 @@ namespace Fullscreen {
 
         SP<Layout::CSpace>            getSpace() const;
 
-        SP<Layout::CAlgorithm>         getParent() const;
+        SP<Layout::CAlgorithm>        getParent() const;
 
       private:
         /// Targetss with ONLY client FS mode set.

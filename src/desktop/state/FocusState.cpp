@@ -29,8 +29,8 @@ struct SFullscreenWorkspaceFocusResult {
 };
 
 static SFullscreenWorkspaceFocusResult onFullscreenWorkspaceFocusWindow(PHLWINDOW pWindow, bool forceFSCycle) {
-    const auto FSWINDOW = g_pfullscreenController->getFullscreenWindow(pWindow->m_workspace);
-    const auto FSMODE_INTERNAL   = g_pfullscreenController->getFullscreenModes(pWindow->m_workspace).internal;
+    const auto FSWINDOW        = g_pfullscreenController->getFullscreenWindow(pWindow->m_workspace);
+    const auto FSMODE_INTERNAL = g_pfullscreenController->getFullscreenModes(pWindow->m_workspace).internal;
 
     if (pWindow == FSWINDOW)
         return {}; // no conflict
@@ -59,8 +59,8 @@ static SFullscreenWorkspaceFocusResult onFullscreenWorkspaceFocusWindow(PHLWINDO
             [[fallthrough]];
         case 1:
             // replace fullscreen
-                g_pfullscreenController->setFullscreenMode(FSWINDOW, Fullscreen::FSMODE_NONE);
-                g_pfullscreenController->setFullscreenMode(pWindow, FSMODE_INTERNAL);
+            g_pfullscreenController->setFullscreenMode(FSWINDOW, Fullscreen::FSMODE_NONE);
+            g_pfullscreenController->setFullscreenMode(pWindow, FSMODE_INTERNAL);
             break;
 
         default: Log::logger->log(Log::ERR, "Invalid misc:on_focus_under_fullscreen mode: {}", *PONFOCUSUNDERFS); break;

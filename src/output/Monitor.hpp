@@ -321,24 +321,24 @@ namespace Monitor {
         bool applyMonitorRuleSoft(Config::CMonitorRule&& pMonitorRule);
 
         //
-        const Mat3x3& getTransformMatrix();
-        const Mat3x3& getScaleMatrix();
+        const Mat3x3&                                               getTransformMatrix();
+        const Mat3x3&                                               getScaleMatrix();
 
-        void          debugLastPresentation(const std::string& message);
+        void                                                        debugLastPresentation(const std::string& message);
 
-        bool          supportsWideColor();
-        bool          supportsHDR();
-        float         minLuminance(float defaultValue = 0);
-        int           maxLuminance(int defaultValue = 80);
-        int           maxAvgLuminance(int defaultValue = 80);
-        float         maxFALL();
-        float         maxCLL();
+        bool                                                        supportsWideColor();
+        bool                                                        supportsHDR();
+        float                                                       minLuminance(float defaultValue = 0);
+        int                                                         maxLuminance(int defaultValue = 80);
+        int                                                         maxAvgLuminance(int defaultValue = 80);
+        float                                                       maxFALL();
+        float                                                       maxCLL();
 
-        bool          wantsWideColor();
-        bool          wantsHDR();
+        bool                                                        wantsWideColor();
+        bool                                                        wantsHDR();
 
-        bool          inHDR();
-        bool          gammaRampsInUse();
+        bool                                                        inHDR();
+        bool                                                        gammaRampsInUse();
 
         std::optional<NColorManagement::PImageDescription>          getFSImageDescription();
 

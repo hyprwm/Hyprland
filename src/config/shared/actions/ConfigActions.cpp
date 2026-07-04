@@ -69,7 +69,8 @@ static void switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool forceFSCycle = fals
     g_pInputManager->unconstrainMouse();
 
     // Only force scrolling offset move (FOCUS_REASON_SWITCH_TO_WINDOW_HARD) if the FS window is not layout managed
-    if (PLASTWINDOW && PLASTWINDOW->m_workspace == PWINDOWTOCHANGETO->m_workspace && (g_pfullscreenController->isFullscreen(PLASTWINDOW) && !g_pfullscreenController->layoutManagedFS(PLASTWINDOW)))
+    if (PLASTWINDOW && PLASTWINDOW->m_workspace == PWINDOWTOCHANGETO->m_workspace &&
+        (g_pfullscreenController->isFullscreen(PLASTWINDOW) && !g_pfullscreenController->layoutManagedFS(PLASTWINDOW)))
         Desktop::focusState()->fullWindowFocus(PWINDOWTOCHANGETO, Desktop::FOCUS_REASON_SWITCH_TO_WINDOW_HARD, nullptr, forceFSCycle);
     else {
         updateRelativeCursorCoords();
@@ -274,7 +275,7 @@ ActionResult Actions::fullscreenWindow(Fullscreen::eFullscreenMode mode, bool la
     if (!window)
         return {};
 
-    if (g_pfullscreenController->isFullscreen(window,mode))
+    if (g_pfullscreenController->isFullscreen(window, mode))
         g_pfullscreenController->setFullscreenMode(window, Fullscreen::FSMODE_NONE, std::nullopt, layoutAware);
     else
         g_pfullscreenController->setFullscreenMode(window, mode, std::nullopt, layoutAware);
@@ -294,12 +295,12 @@ ActionResult Actions::fullscreenWindow(Fullscreen::eFullscreenMode internalMode,
     if (const auto PAST_FS_MODES = g_pfullscreenController->getFullscreenModes(window); PAST_FS_MODES.internal == NEW_MODES.internal && PAST_FS_MODES.client == NEW_MODES.client)
         g_pfullscreenController->setFullscreenMode(window, Fullscreen::FSMODE_NONE, Fullscreen::FSMODE_NONE, layoutAware);
     else
-        g_pfullscreenController->setFullscreenMode(window,
+        g_pfullscreenController->setFullscreenMode(
+            window,
             // Internal mode: if -1, pass nullopt so FS setter uses old option
             NEW_MODES.internal == -1 ? std::optional<Fullscreen::eFullscreenMode>(std::nullopt) : std::optional<Fullscreen::eFullscreenMode>(NEW_MODES.internal),
             // Client mode: if -1, pass nullopt so FS setter uses old option
-            NEW_MODES.client == -1 ? std::optional<Fullscreen::eFullscreenMode>(std::nullopt) : std::optional<Fullscreen::eFullscreenMode>(NEW_MODES.client),
-            layoutAware);
+            NEW_MODES.client == -1 ? std::optional<Fullscreen::eFullscreenMode>(std::nullopt) : std::optional<Fullscreen::eFullscreenMode>(NEW_MODES.client), layoutAware);
 
     const auto WINDOW_FS_MODES = g_pfullscreenController->getFullscreenModes(window);
 
@@ -374,8 +375,7 @@ ActionResult Actions::moveFocus(Math::eDirection dir) {
     }
 
     // Moving focus to another window non-default handled FS window shouldn't cycle window
-    const auto PWINDOWTOCHANGETO = *PFULLCYCLE && g_pfullscreenController->isFullscreen(PLASTWINDOW) &&
-            !g_pfullscreenController->layoutManagedFS(PLASTWINDOW) ?
+    const auto PWINDOWTOCHANGETO = *PFULLCYCLE && g_pfullscreenController->isFullscreen(PLASTWINDOW) && !g_pfullscreenController->layoutManagedFS(PLASTWINDOW) ?
         Desktop::windowState()->query().cycle(PLASTWINDOW,
                                               {.focusableOnly = true, .previous = dir != Math::DIRECTION_DOWN && dir != Math::DIRECTION_RIGHT, .allowFullscreenBlocked = true}) :
         Desktop::windowState()->query().inDirection(PLASTWINDOW, dir);
@@ -879,7 +879,7 @@ ActionResult Actions::toggleGroup(std::optional<PHLWINDOW> w) {
         return {};
 
     if (g_pfullscreenController->isFullscreen(window)) // TODO maybe make it possible in scrolling FS
-        g_pfullscreenController->setFullscreenMode(window,Fullscreen::FSMODE_NONE);
+        g_pfullscreenController->setFullscreenMode(window, Fullscreen::FSMODE_NONE);
 
     if (!window->m_group)
         window->m_group = Desktop::View::CGroup::create({window});
@@ -1710,9 +1710,11 @@ ActionResult Actions::cycleNext(const bool next, std::optional<bool> onlyTiled, 
     if (onlyTiled.value_or(false) != onlyFloating.value_or(false))
         tileOrFloatOnly = onlyFloating.value_or(false);
 
-    const auto& cycled = Desktop::windowState()->query().cycle(
-        window,
-        {.focusableOnly = true, .floating = tileOrFloatOnly, .previous = !next, .allowFullscreenBlocked = window->m_workspace && g_pfullscreenController->hasFullscreen(window->m_workspace)});
+    const auto& cycled = Desktop::windowState()->query().cycle(window,
+                                                               {.focusableOnly          = true,
+                                                                .floating               = tileOrFloatOnly,
+                                                                .previous               = !next,
+                                                                .allowFullscreenBlocked = window->m_workspace && g_pfullscreenController->hasFullscreen(window->m_workspace)});
 
     switchToWindow(cycled);
 

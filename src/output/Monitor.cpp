@@ -1483,7 +1483,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
         if (!noFocus && !Desktop::focusState()->monitor()->m_activeSpecialWorkspace &&
             !(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
             static auto PFOLLOWMOUSE = CConfigValue<Config::INTEGER>("input:follow_mouse");
-            auto        pWindow      = g_pfullscreenController->hasFullscreen(pWorkspace) ? g_pfullscreenController->getFullscreenWindow(pWorkspace) : pWorkspace->getLastFocusedWindow();
+            auto pWindow = g_pfullscreenController->hasFullscreen(pWorkspace) ? g_pfullscreenController->getFullscreenWindow(pWorkspace) : pWorkspace->getLastFocusedWindow();
 
             if (!pWindow) {
                 if (*PFOLLOWMOUSE == 1)
@@ -1517,16 +1517,17 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
 
     g_pHyprRenderer->damageMonitor(m_self.lock());
 
-    g_pDesktopAnimationManager->setFullscreenFadeAnimation(
-        pWorkspace, g_pfullscreenController->hasFullscreen(pWorkspace) ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+    Animation::Workspace::setFullscreenFadeAnimation(
+        pWorkspace, g_pfullscreenController->hasFullscreen(pWorkspace) ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
 
     Config::monitorRuleMgr()->ensureVRR(m_self.lock());
 
     Desktop::globalWindowController()->updateSuspendedStates();
 
     if (m_activeSpecialWorkspace)
-        g_pDesktopAnimationManager->setFullscreenFadeAnimation(
-            m_activeSpecialWorkspace, g_pfullscreenController->hasFullscreen(m_activeSpecialWorkspace) ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+        Animation::Workspace::setFullscreenFadeAnimation(m_activeSpecialWorkspace,
+                                                         g_pfullscreenController->hasFullscreen(m_activeSpecialWorkspace) ? Animation::Workspace::ANIMATION_TYPE_IN :
+                                                                                                                            Animation::Workspace::ANIMATION_TYPE_OUT);
 }
 
 void CMonitor::changeWorkspace(const WORKSPACEID& id, bool internal, bool noMouseMove, bool noFocus) {
@@ -1586,8 +1587,8 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
                 g_pInputManager->refocus();
         }
 
-        g_pDesktopAnimationManager->setFullscreenFadeAnimation(
-            m_activeWorkspace, g_pfullscreenController->hasFullscreen(m_activeWorkspace) ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+        Animation::Workspace::setFullscreenFadeAnimation(
+            m_activeWorkspace, g_pfullscreenController->hasFullscreen(m_activeWorkspace) ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
 
         Config::monitorRuleMgr()->ensureVRR(m_self.lock());
 
@@ -1622,10 +1623,9 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         }
 
         const auto PACTIVEWORKSPACE = PMONITOR->m_activeWorkspace;
-        g_pDesktopAnimationManager->setFullscreenFadeAnimation(PACTIVEWORKSPACE,
-                                                               PACTIVEWORKSPACE && g_pfullscreenController->hasFullscreen(PACTIVEWORKSPACE) ?
-                                                                   CDesktopAnimationManager::ANIMATION_TYPE_IN :
-                                                                   CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+        Animation::Workspace::setFullscreenFadeAnimation(PACTIVEWORKSPACE,
+                                                         PACTIVEWORKSPACE && g_pfullscreenController->hasFullscreen(PACTIVEWORKSPACE) ? Animation::Workspace::ANIMATION_TYPE_IN :
+                                                                                                                                        Animation::Workspace::ANIMATION_TYPE_OUT);
 
         wasActive = true;
     }
@@ -1690,8 +1690,8 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
     g_pHyprRenderer->damageMonitor(m_self.lock());
 
-    g_pDesktopAnimationManager->setFullscreenFadeAnimation(
-        pWorkspace, g_pfullscreenController->hasFullscreen(pWorkspace) ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+    Animation::Workspace::setFullscreenFadeAnimation(
+        pWorkspace, g_pfullscreenController->hasFullscreen(pWorkspace) ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
 
     Config::monitorRuleMgr()->ensureVRR(m_self.lock());
 
@@ -2430,7 +2430,6 @@ bool CMonitor::wantsHDR() {
 bool CMonitor::inHDR() {
     return m_output->state->state().hdrMetadata.hdmi_metadata_type1.eotf == 2;
 }
-
 
 std::optional<NColorManagement::PImageDescription> CMonitor::getFSImageDescription() {
 

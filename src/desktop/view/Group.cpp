@@ -240,11 +240,11 @@ void CGroup::setCurrent(size_t idx) {
     if (idx == m_current || !m_target->window())
         return;
 
-    const bool IS_FULLSCREEN = g_pfullscreenController->isFullscreen(m_target->window());
+    const bool IS_FULLSCREEN     = g_pfullscreenController->isFullscreen(m_target->window());
     const auto FS_MODE_INTERNAL  = g_pfullscreenController->getFullscreenModes(m_target->window()).internal;
     const bool IS_LAYOUT_HANDLED = g_pfullscreenController->layoutManagedFS(m_target->window());
-    const auto WASFOCUS  = Desktop::focusState()->window() == current();
-    auto       oldWindow = m_windows.at(m_current).lock();
+    const auto WASFOCUS          = Desktop::focusState()->window() == current();
+    auto       oldWindow         = m_windows.at(m_current).lock();
 
     if (IS_FULLSCREEN)
         g_pfullscreenController->setFullscreenMode(oldWindow, Fullscreen::FSMODE_NONE);

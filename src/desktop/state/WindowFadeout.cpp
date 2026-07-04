@@ -56,19 +56,20 @@ SP<CWindowFadeout> CWindowFadeout::create(PHLWINDOW window, SP<Render::IFramebuf
     if (!MONITOR)
         return nullptr;
 
-    auto fadeout              = SP<CWindowFadeout>(new CWindowFadeout());
-    fadeout->m_monitor        = MONITOR;
-    fadeout->m_workspace      = window->m_workspace;
-    fadeout->m_framebuffer    = snapshot;
-    fadeout->m_zIndex         = windowZIndex(window);
-    fadeout->m_sourcePos      = window->m_realPosition->value() - MONITOR->m_position;
-    fadeout->m_sourceSize     = window->m_realSize->value();
-    const bool OVERFULLSCREEN = window->m_isFloating && window->shouldRenderOverFullscreen() && window->m_workspace && g_pfullscreenController->hasFullscreen(window->m_workspace, true);
-    fadeout->m_plane          = !window->m_isFloating ? FADEOUT_PLANE_WINDOW_TILED : (OVERFULLSCREEN ? FADEOUT_PLANE_WINDOW_OVER_FULLSCREEN : FADEOUT_PLANE_WINDOW_FLOATING);
-    fadeout->m_rounding       = window->rounding();
-    fadeout->m_roundingPower  = window->roundingPower();
-    fadeout->m_blur           = shouldBlurWindow(window);
-    fadeout->m_blurXray       = window->m_ruleApplicator->xray().valueOr(false);
+    auto fadeout           = SP<CWindowFadeout>(new CWindowFadeout());
+    fadeout->m_monitor     = MONITOR;
+    fadeout->m_workspace   = window->m_workspace;
+    fadeout->m_framebuffer = snapshot;
+    fadeout->m_zIndex      = windowZIndex(window);
+    fadeout->m_sourcePos   = window->m_realPosition->value() - MONITOR->m_position;
+    fadeout->m_sourceSize  = window->m_realSize->value();
+    const bool OVERFULLSCREEN =
+        window->m_isFloating && window->shouldRenderOverFullscreen() && window->m_workspace && g_pfullscreenController->hasFullscreen(window->m_workspace, true);
+    fadeout->m_plane         = !window->m_isFloating ? FADEOUT_PLANE_WINDOW_TILED : (OVERFULLSCREEN ? FADEOUT_PLANE_WINDOW_OVER_FULLSCREEN : FADEOUT_PLANE_WINDOW_FLOATING);
+    fadeout->m_rounding      = window->rounding();
+    fadeout->m_roundingPower = window->roundingPower();
+    fadeout->m_blur          = shouldBlurWindow(window);
+    fadeout->m_blurXray      = window->m_ruleApplicator->xray().valueOr(false);
 
     static auto PDIMAROUND = CConfigValue<Config::FLOAT>("decoration:dim_around");
     if (*PDIMAROUND && window->m_ruleApplicator->dimAround().valueOrDefault())

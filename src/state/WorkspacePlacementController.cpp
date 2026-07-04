@@ -210,10 +210,10 @@ void CWorkspacePlacementController::swapActiveWorkspaces(PHLMONITOR pMonitorA, P
     g_pHyprRenderer->damageMonitor(pMonitorB);
     g_pHyprRenderer->damageMonitor(pMonitorA);
 
-    g_pDesktopAnimationManager->setFullscreenFadeAnimation(
-        PWORKSPACEB, g_pfullscreenController->hasFullscreen(PWORKSPACEB) ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
-    g_pDesktopAnimationManager->setFullscreenFadeAnimation(
-        PWORKSPACEA, g_pfullscreenController->hasFullscreen(PWORKSPACEA) ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+    Animation::Workspace::setFullscreenFadeAnimation(
+        PWORKSPACEB, g_pfullscreenController->hasFullscreen(PWORKSPACEB) ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
+    Animation::Workspace::setFullscreenFadeAnimation(
+        PWORKSPACEA, g_pfullscreenController->hasFullscreen(PWORKSPACEA) ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
 
     if (pMonitorA->m_id == Desktop::focusState()->monitor()->m_id || pMonitorB->m_id == Desktop::focusState()->monitor()->m_id) {
         const auto LASTWIN = pMonitorA->m_id == Desktop::focusState()->monitor()->m_id ? PWORKSPACEB->getLastFocusedWindow() : PWORKSPACEA->getLastFocusedWindow();
@@ -366,14 +366,14 @@ void CWorkspacePlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspa
     if (POLDMON) {
         g_layoutManager->recalculateMonitor(POLDMON);
         if (valid(POLDMON->m_activeWorkspace))
-            g_pDesktopAnimationManager->setFullscreenFadeAnimation(POLDMON->m_activeWorkspace,
-                                                                   g_pfullscreenController->hasFullscreen(POLDMON->m_activeWorkspace) ? CDesktopAnimationManager::ANIMATION_TYPE_IN :
-                                                                                                                     CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+            Animation::Workspace::setFullscreenFadeAnimation(POLDMON->m_activeWorkspace,
+                                                             g_pfullscreenController->hasFullscreen(POLDMON->m_activeWorkspace) ? Animation::Workspace::ANIMATION_TYPE_IN :
+                                                                                                                                  Animation::Workspace::ANIMATION_TYPE_OUT);
         Desktop::globalWindowController()->updateSuspendedStates();
     }
 
-    g_pDesktopAnimationManager->setFullscreenFadeAnimation(
-        pWorkspace, g_pfullscreenController->hasFullscreen(pWorkspace) ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+    Animation::Workspace::setFullscreenFadeAnimation(
+        pWorkspace, g_pfullscreenController->hasFullscreen(pWorkspace) ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
     Desktop::globalWindowController()->updateSuspendedStates();
 
     // event

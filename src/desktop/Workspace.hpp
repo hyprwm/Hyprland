@@ -49,15 +49,15 @@ class CWorkspace {
     bool        m_wasCreatedEmpty = true;
 
     // Inert: destroyed and invalid. If this is true, release the ptr you have.
-    bool                          inert();
-    MONITORID                     monitorID();
-    PHLWINDOW                     getLastFocusedWindow();
-    PHLWINDOW                     getFocusCandidate();
-    std::string                   getConfigName();
-    bool                          matchesStaticSelector(const std::string& selector);
-    void                          markInert();
-    void                          updateWindowDecos();
-    void                          updateWindowData();
+    bool        inert();
+    MONITORID   monitorID();
+    PHLWINDOW   getLastFocusedWindow();
+    PHLWINDOW   getFocusCandidate();
+    std::string getConfigName();
+    bool        matchesStaticSelector(const std::string& selector);
+    void        markInert();
+    void        updateWindowDecos();
+    void        updateWindowData();
     int         getWindowCount(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {});
     int         getGroups(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {});
     bool        hasUrgentWindow();

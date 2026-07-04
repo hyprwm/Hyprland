@@ -53,7 +53,7 @@ bool IFullscreenHandler::isFullscreen(SP<Layout::ITarget> target, const std::opt
 }
 
 bool IFullscreenHandler::hasFullscreen(const std::optional<bool> covering) {
-    return std::ranges::any_of(m_fsTargets,[&](const auto& e){return (e.first && e.second.internal != FSMODE_NONE);});
+    return std::ranges::any_of(m_fsTargets, [&](const auto& e) { return (e.first && e.second.internal != FSMODE_NONE); });
 }
 
 SP<Layout::ITarget> IFullscreenHandler::getFullscreen(const std::optional<bool> covering) {
@@ -87,11 +87,11 @@ eFullscreenRequestResult IFullscreenHandler::requestFullscreen(const SFullscreen
     if (!request.target || !request.target->window() || !request.target->workspace() || !request.target->workspace()->m_monitor)
         return FULLSCREEN_REQUEST_FAILED;
 
-    const auto TARGET    = request.target;
-    const auto GROUP_TARGET                         = request.target->window()->m_group ? request.target->window()->m_group->m_target : nullptr;
-    const auto WINDOW    = TARGET->window();
-    const auto WORKSPACE = TARGET->workspace();
-    const auto MONITOR   = WORKSPACE->m_monitor;
+    const auto TARGET       = request.target;
+    const auto GROUP_TARGET = request.target->window()->m_group ? request.target->window()->m_group->m_target : nullptr;
+    const auto WINDOW       = TARGET->window();
+    const auto WORKSPACE    = TARGET->workspace();
+    const auto MONITOR      = WORKSPACE->m_monitor;
 
     setTargetFullscreenModeInternal(TARGET, request.mode);
 
@@ -158,9 +158,9 @@ void IFullscreenHandler::setNoMembersAboveFullscreen() {
     if (!getSpace() || !getSpace()->workspace() || !getSpace()->workspace()->m_monitor)
         return;
 
-    const auto SPACE = getSpace();
+    const auto SPACE     = getSpace();
     const auto WORKSPACE = SPACE->workspace();
-    const auto MONITOR = WORKSPACE->m_monitor;
+    const auto MONITOR   = WORKSPACE->m_monitor;
 
     const bool SET = hasFullscreen(true);
 
@@ -180,12 +180,10 @@ void IFullscreenHandler::setNoMembersAboveFullscreen() {
 void IFullscreenHandler::syncFullscreenTargets() {
     // Mode checking logic is the same as getFullscreenModes() - keep it in sync
 
-
     // to prevent a rehash - just in case
     std::vector<std::pair<WP<Layout::ITarget>, SFullscreenMode>> toInsert;
 
-
-    for (auto it = m_fsTargets.begin(); it != m_fsTargets.end(); ) {        
+    for (auto it = m_fsTargets.begin(); it != m_fsTargets.end();) {
         // target expired
         // window doesn't exist
         // target is not FS (internal or client)
@@ -199,12 +197,12 @@ void IFullscreenHandler::syncFullscreenTargets() {
         // If ITarget's underlying type is CWindowGroupTarget; only store the current window, NOT the whole group
         // This should never have happened to begin with
         if (it->first->type() == Layout::TARGET_TYPE_GROUP) {
-            const SFullscreenMode MODE = SFullscreenMode{.internal = it->second.internal, .client = it->second.client};
-            const auto WINDOWTARGET = it->first->window()->layoutTarget();
-            const auto NEXT = std::next(it);
+            const SFullscreenMode MODE         = SFullscreenMode{.internal = it->second.internal, .client = it->second.client};
+            const auto            WINDOWTARGET = it->first->window()->layoutTarget();
+            const auto            NEXT         = std::next(it);
             removeFsTarget(it->first.lock(), true);
             it = NEXT;
-            toInsert.emplace_back(WINDOWTARGET,MODE);
+            toInsert.emplace_back(WINDOWTARGET, MODE);
             continue;
         }
 
@@ -214,7 +212,6 @@ void IFullscreenHandler::syncFullscreenTargets() {
     for (const auto& e : toInsert) {
         m_fsTargets.emplace(e.first, e.second);
     }
-
 }
 
 void IFullscreenHandler::removeFsTarget(SP<Layout::ITarget> target, const bool recursionGuard) {
@@ -225,7 +222,6 @@ void IFullscreenHandler::removeFsTarget(SP<Layout::ITarget> target, const bool r
     if (!recursionGuard)
         syncFullscreenTargets();
 }
-
 
 eFullscreenHandler IFullscreenHandler::getFullscreenHandlerName() const {
     return FULLSCREEN_HANDLER_TYPE;
@@ -241,6 +237,5 @@ SP<Layout::CAlgorithm> IFullscreenHandler::getParent() const {
     if (!m_algorithm || !m_algorithm->m_parent)
         return nullptr;
 
-        
     return m_algorithm->m_parent.lock();
 }

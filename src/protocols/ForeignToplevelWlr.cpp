@@ -64,7 +64,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
                 }
             }
         }
-        
+
         g_pfullscreenController->setFullscreenMode(PWINDOW, std::nullopt, Fullscreen::FSMODE_FULLSCREEN);
         g_pHyprRenderer->damageWindow(PWINDOW);
     });
@@ -77,7 +77,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
 
         if UNLIKELY (PWINDOW->m_suppressedEvents & Desktop::View::SUPPRESS_FULLSCREEN)
             return;
-        
+
         // if window is client FSMODE_FULLSCREEN, unFS the window. If it isn't, let the window keep its FS mode
         const auto WINDOW_CLIENT_FS_MODE = g_pfullscreenController->getFullscreenModes(PWINDOW).client;
         if (WINDOW_CLIENT_FS_MODE == Fullscreen::FSMODE_FULLSCREEN)

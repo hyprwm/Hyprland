@@ -815,7 +815,6 @@ void CCompositor::startCompositor() {
     g_pEventLoopManager->enterLoop();
 }
 
-
 // returns a delta
 Vector2D CCompositor::parseWindowVectorArgsRelative(const std::string& args, const Vector2D& relativeTo) {
     if (!args.contains(' ') && !args.contains('\t'))

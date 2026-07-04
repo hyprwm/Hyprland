@@ -54,7 +54,6 @@ namespace Layout {
         // FS handler is UP<> to the owning layout so no concerns of ownership
         virtual WP<Fullscreen::IFullscreenHandler> getFSHandler();
 
-
         // Impl'd here: focal point for dir
         virtual std::optional<Vector2D> focalPointForDir(SP<ITarget> t, Math::eDirection dir);
 

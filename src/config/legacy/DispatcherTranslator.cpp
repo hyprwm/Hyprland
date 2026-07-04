@@ -158,8 +158,8 @@ static SDispatchResult renameworkspace(const std::string& args) {
 }
 
 static SDispatchResult fullscreen(const std::string& args) {
-    
-    CVarList2             ARGS(args, 2, ' ');
+
+    CVarList2                         ARGS(args, 2, ' ');
 
     const Fullscreen::eFullscreenMode MODE = ARGS.size() > 0 && ARGS[0] == "1" ? Fullscreen::FSMODE_MAXIMIZED : Fullscreen::FSMODE_FULLSCREEN;
 

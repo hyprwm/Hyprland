@@ -77,7 +77,7 @@ void CGlobalWindowController::moveWindowToWorkspace(PHLWINDOW pWindow, PHLWORKSP
     g_layoutManager->newTarget(pWindow->layoutTarget(), pWorkspace->m_space);
 
     if (FULLSCREEN)
-        g_pfullscreenController->setFullscreenMode(pWindow,FULLSCREENMODE);
+        g_pfullscreenController->setFullscreenMode(pWindow, FULLSCREENMODE);
 
     pWorkspace->updateWindows();
     if (pWindow->m_workspace)

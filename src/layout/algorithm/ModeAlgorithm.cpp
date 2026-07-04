@@ -21,7 +21,6 @@ std::optional<Vector2D> IModeAlgorithm::predictSizeForNewTarget() {
 WP<Fullscreen::IFullscreenHandler> IModeAlgorithm::getFSHandler() {
 
     return m_defaultFullscreenHandler;
-
 }
 
 std::optional<Vector2D> IModeAlgorithm::focalPointForDir(SP<ITarget> t, Math::eDirection dir) {
@@ -41,7 +40,7 @@ std::optional<Vector2D> IModeAlgorithm::focalPointForDir(SP<ITarget> t, Math::eD
     };
 
     const auto WINDOWIDEALBB = m_defaultFullscreenHandler->isFullscreen(t) ? getFullscreenBB().value_or(t->window()->getWindowIdealBoundingBoxIgnoreReserved()) :
-                                                                    t->window()->getWindowIdealBoundingBoxIgnoreReserved();
+                                                                             t->window()->getWindowIdealBoundingBoxIgnoreReserved();
 
     switch (dir) {
         case Math::DIRECTION_UP: focalPoint = WINDOWIDEALBB.pos() + Vector2D{WINDOWIDEALBB.size().x / 2.0, -1.0}; break;

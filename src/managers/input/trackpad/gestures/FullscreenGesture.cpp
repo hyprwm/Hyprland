@@ -80,8 +80,8 @@ void CFullscreenTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd
     if (COMPLETION < 0.2F) {
         // revert the animation
         g_pHyprRenderer->damageWindow(m_window.lock());
-        g_pDesktopAnimationManager->overrideFullscreenFadeAmount(m_window->m_workspace, m_originalMode == Fullscreen::FSMODE_NONE ? 1.F : 0.F, m_window.lock());
-        g_pfullscreenController->setFullscreenMode(m_window.lock(),!g_pfullscreenController->isFullscreen(m_window.lock()) ? m_originalMode : Fullscreen::FSMODE_NONE);
+        Animation::Workspace::overrideFullscreenFadeAmount(m_window->m_workspace, m_originalMode == Fullscreen::FSMODE_NONE ? 1.F : 0.F, m_window.lock());
+        g_pfullscreenController->setFullscreenMode(m_window.lock(), !g_pfullscreenController->isFullscreen(m_window.lock()) ? m_originalMode : Fullscreen::FSMODE_NONE);
         return;
     }
 

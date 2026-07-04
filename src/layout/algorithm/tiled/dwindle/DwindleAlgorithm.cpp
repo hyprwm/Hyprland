@@ -275,7 +275,7 @@ void CDwindleAlgorithm::removeTarget(SP<ITarget> target) {
         auto window = target->window();
         g_pfullscreenController->setFullscreenMode(window, Fullscreen::FSMODE_NONE);
     }
-    
+
     const auto PPARENT = PNODE->pParent;
 
     if (!PPARENT) {

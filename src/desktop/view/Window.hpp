@@ -160,16 +160,16 @@ namespace Desktop::View {
         Vector2D m_floatingOffset = Vector2D(0, 0);
 
         // for recovering relative cursor position
-        Vector2D         m_relativeCursorCoordsOnLastWarp = Vector2D(-1, -1);
+        Vector2D      m_relativeCursorCoordsOnLastWarp = Vector2D(-1, -1);
 
-        bool             m_firstMap        = false; // for layouts
-        bool             m_isFloating      = false;
-        std::string      m_title           = "";
-        std::string      m_class           = "";
-        std::string      m_initialTitle    = "";
-        std::string      m_initialClass    = "";
-        PHLWORKSPACE     m_workspace;
-        PHLMONITORREF    m_monitor, m_prevMonitor;
+        bool          m_firstMap     = false; // for layouts
+        bool          m_isFloating   = false;
+        std::string   m_title        = "";
+        std::string   m_class        = "";
+        std::string   m_initialTitle = "";
+        std::string   m_initialClass = "";
+        PHLWORKSPACE  m_workspace;
+        PHLMONITORREF m_monitor, m_prevMonitor;
 
         bool          m_isMapped = false;
 

@@ -514,8 +514,7 @@ void CMasterAlgorithm::recalculate(eRecalculateReason reason) {
         return;
 
     const auto WORKSPACE = m_parent->space()->workspace();
-    const auto MONITOR = WORKSPACE->m_monitor;
-
+    const auto MONITOR   = WORKSPACE->m_monitor;
 
     if (m_defaultFullscreenHandler->hasFullscreen()) {
 

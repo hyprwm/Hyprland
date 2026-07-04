@@ -43,7 +43,7 @@ void CWindowTarget::updatePos() {
 
     if (!m_window)
         return;
-    
+
     g_pHyprRenderer->damageWindow(m_window.lock());
     CScopeGuard x([this] { g_pHyprRenderer->damageWindow(m_window.lock()); });
 
@@ -86,12 +86,10 @@ void CWindowTarget::updatePos() {
         return;
     }
 
-
-
     // Layout handled FS window
-    
-    if (const auto FSMODES = g_pfullscreenController->getFullscreenModes(m_window.lock()); FSMODES.internal != Fullscreen::FSMODE_NONE && g_pfullscreenController->layoutManagedFS(m_self->window())) {
 
+    if (const auto FSMODES = g_pfullscreenController->getFullscreenModes(m_window.lock());
+        FSMODES.internal != Fullscreen::FSMODE_NONE && g_pfullscreenController->layoutManagedFS(m_self->window())) {
 
         CBox nodeBox   = m_box.logicalBox;
         CBox visualBox = m_box.visualBox.empty() ? nodeBox : m_box.visualBox;
@@ -100,13 +98,12 @@ void CWindowTarget::updatePos() {
         if (FSMODES.internal == Fullscreen::FSMODE_FULLSCREEN) {
             *m_window->m_realSize     = visualBox.size();
             *m_window->m_realPosition = visualBox.pos();
-        }
-        else if (FSMODES.internal == Fullscreen::FSMODE_MAXIMIZED) {
-            
+        } else if (FSMODES.internal == Fullscreen::FSMODE_MAXIMIZED) {
+
             // carve out reserved area - includes gaps_out
-            const auto RESERVED = m_window->getFullWindowReservedArea();
-            *m_window->m_realPosition  = visualBox.pos() + RESERVED.topLeft;
-            *m_window->m_realSize = visualBox.size() - (RESERVED.topLeft + RESERVED.bottomRight);
+            const auto RESERVED       = m_window->getFullWindowReservedArea();
+            *m_window->m_realPosition = visualBox.pos() + RESERVED.topLeft;
+            *m_window->m_realSize     = visualBox.size() - (RESERVED.topLeft + RESERVED.bottomRight);
         }
 
         m_window->updateWindowDecos();
@@ -208,8 +205,9 @@ void CWindowTarget::updatePos() {
 
     if (*PCLAMP_TILED) {
         Vector2D minSize = m_window->m_ruleApplicator->minSize().valueOr(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE});
-        Vector2D maxSize = g_pfullscreenController->isFullscreen(m_window.lock()) ? Vector2D{INFINITY, INFINITY} : m_window->m_ruleApplicator->maxSize().valueOr(Vector2D{INFINITY, INFINITY});
-        calcSize         = calcSize.clamp(minSize, maxSize);
+        Vector2D maxSize =
+            g_pfullscreenController->isFullscreen(m_window.lock()) ? Vector2D{INFINITY, INFINITY} : m_window->m_ruleApplicator->maxSize().valueOr(Vector2D{INFINITY, INFINITY});
+        calcSize = calcSize.clamp(minSize, maxSize);
 
         calcPos += (availableSpace - calcSize) / 2.0;
 

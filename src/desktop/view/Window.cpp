@@ -318,7 +318,7 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
     auto POS  = LAYOUTBOX.pos();
     auto SIZE = LAYOUTBOX.size();
 
-    if (g_pfullscreenController->isFullscreen(m_self.lock())&& (!layoutTarget() || !g_pfullscreenController->layoutManagedFS(m_self.lock()))) {
+    if (g_pfullscreenController->isFullscreen(m_self.lock()) && (!layoutTarget() || !g_pfullscreenController->layoutManagedFS(m_self.lock()))) {
         POS  = PMONITOR->m_position;
         SIZE = PMONITOR->m_size;
 
@@ -1426,7 +1426,7 @@ void CWindow::onUpdateState() {
 
     if (requestsMX.has_value() && !(m_suppressedEvents & SUPPRESS_MAXIMIZE)) {
         if (m_isMapped) {
-            auto       window    = m_self.lock();
+            auto window = m_self.lock();
 
             if (window->m_suppressNextMaximize) {
                 window->m_suppressNextMaximize = false;
@@ -1554,7 +1554,8 @@ void CWindow::onX11ConfigureRequest(CBox box) {
 
     g_pHyprRenderer->damageWindow(m_self.lock());
 
-    if (!m_isFloating || g_pfullscreenController->isFullscreen(m_self.lock()) || g_layoutManager->dragController()->target() == layoutTarget() || (m_suppressedEvents & Desktop::View::SUPPRESS_X11_CONFIGURE_REQUEST)) {
+    if (!m_isFloating || g_pfullscreenController->isFullscreen(m_self.lock()) || g_layoutManager->dragController()->target() == layoutTarget() ||
+        (m_suppressedEvents & Desktop::View::SUPPRESS_X11_CONFIGURE_REQUEST)) {
         sendWindowSize(true);
         g_pInputManager->refocus();
         g_pHyprRenderer->damageWindow(m_self.lock());
@@ -2133,7 +2134,7 @@ void CWindow::mapWindow() {
     m_X11ShouldntFocus = m_X11ShouldntFocus || (m_isX11 && isX11OverrideRedirect() && !m_xwaylandSurface->wantsFocus());
 
     // window rules
-    std::optional<Fullscreen::eFullscreenMode>     requestedInternalFSMode, requestedClientFSMode;
+    std::optional<Fullscreen::eFullscreenMode> requestedInternalFSMode, requestedClientFSMode;
     std::optional<Fullscreen::SFullscreenMode> requestedFSState;
     if (m_wantsInitialFullscreen || (m_isX11 && m_xwaylandSurface->m_fullscreen))
         requestedClientFSMode = Fullscreen::FSMODE_FULLSCREEN;
@@ -2193,7 +2194,7 @@ void CWindow::mapWindow() {
         m_pinned         = m_ruleApplicator->static_.pin.value_or(m_pinned);
 
         if (m_ruleApplicator->static_.fullscreenStateClient || m_ruleApplicator->static_.fullscreenStateInternal) {
-            requestedFSState = Fullscreen::SFullscreenMode {
+            requestedFSState = Fullscreen::SFullscreenMode{
                 .internal = sc<Fullscreen::eFullscreenMode>(m_ruleApplicator->static_.fullscreenStateInternal.value_or(0)),
                 .client   = sc<Fullscreen::eFullscreenMode>(m_ruleApplicator->static_.fullscreenStateClient.value_or(0)),
             };
@@ -2478,8 +2479,7 @@ void CWindow::mapWindow() {
             m_ruleApplicator->syncFullscreenOverride(Desktop::Types::COverridableVar(false, Desktop::Types::PRIORITY_WINDOW_RULE));
             // windowrule always uses layout specific fullscreen bahaviour if it exists
             g_pfullscreenController->setFullscreenMode(m_self.lock(), requestedFSState.value().internal, requestedFSState.value().client, true);
-        }
-        else if (requestedInternalFSMode.has_value() && requestedClientFSMode.has_value() && !m_ruleApplicator->syncFullscreen().valueOrDefault())
+        } else if (requestedInternalFSMode.has_value() && requestedClientFSMode.has_value() && !m_ruleApplicator->syncFullscreen().valueOrDefault())
             // windowrule always uses layout specific fullscreen bahaviour if it exists
             g_pfullscreenController->setFullscreenMode(m_self.lock(), requestedInternalFSMode, requestedClientFSMode, true);
         else if (requestedInternalFSMode.has_value() || requestedClientFSMode.has_value())
@@ -2555,8 +2555,8 @@ void CWindow::unmapWindow() {
 
     static auto PEXITRETAINSFS = CConfigValue<Config::INTEGER>("misc:exit_window_retains_fullscreen");
 
-    const auto  IS_CURRENT_WINDOW_FS = g_pfullscreenController->isFullscreen(m_self.lock());
-    const auto  CURRENT_WINDOW_FS_MODES        = g_pfullscreenController->getFullscreenModes(m_self.lock());
+    const auto  IS_CURRENT_WINDOW_FS    = g_pfullscreenController->isFullscreen(m_self.lock());
+    const auto  CURRENT_WINDOW_FS_MODES = g_pfullscreenController->getFullscreenModes(m_self.lock());
 
     if (!wlSurface()->exists() || !m_isMapped) {
         Log::logger->log(Log::WARN, "{} unmapped without being mapped??", m_self.lock());

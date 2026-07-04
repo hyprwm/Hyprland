@@ -5,16 +5,9 @@
 #include <optional>
 #include <unordered_set>
 
-
-
-
-
-
 namespace Fullscreen {
 
     class IFullscreenHandler;
-
-
 
     enum eFullscreenMode : int8_t {
         FSMODE_NONE = 0,
@@ -26,7 +19,7 @@ namespace Fullscreen {
         FULLSCREEN_HANDLER_NONE = 0,
         // Types of Handlers
         FULLSCREEN_HANDLER_DEFAULT = 1 << 0,
-        FULLSCREEN_HANDLER_LAYOUT = 1 << 1,
+        FULLSCREEN_HANDLER_LAYOUT  = 1 << 1,
         // Specific Handlers
         FULLSCREEN_HANDLER_SCROLLING = 1 << 2 | FULLSCREEN_HANDLER_LAYOUT,
     };
@@ -122,8 +115,7 @@ namespace Fullscreen {
     class CFullscreenController {
 
       public:
-
-        CFullscreenController() = default;
+        CFullscreenController()  = default;
         ~CFullscreenController() = default;
 
         // TODO: make functions constant if they can be
@@ -133,15 +125,14 @@ namespace Fullscreen {
         /// @param covering If passed can determine if a window must be covering or must be non-covering. If not passed, window can be either
         /// @warning only cosiders internal mode of FS windows
         // ERSTARR TODO - note that passing mode = FSMODE_NONE will not fly. return false then in any case and log an error
-        bool            isFullscreen(const PHLWINDOW window, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = std::nullopt);
+        bool isFullscreen(const PHLWINDOW window, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = std::nullopt);
         /// @warning considers both internal and client FS modes of window
         SFullscreenMode getFullscreenModes(const PHLWINDOW window);
         bool            layoutManagedFS(const PHLWINDOW window);
 
-
         // Workspace
         /// @warning only cosiders internal mode of FS windows
-        bool            hasFullscreen(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
+        bool hasFullscreen(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
         /// @warning Returns the topmost covering FS window is there are several.
         /// @warning only cosiders internal mode of FS windows
         PHLWINDOW       getFullscreenWindow(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
@@ -152,7 +143,7 @@ namespace Fullscreen {
         // Only considers FSMODE_FULLSCREEN as fullscreen
 
         /// @warning only cosiders internal mode of FS windows
-        bool            hasFullscreen(const PHLMONITOR monitor, const std::optional<bool> covering = true);
+        bool hasFullscreen(const PHLMONITOR monitor, const std::optional<bool> covering = true);
         /// @note Returns the topmost covering FS window is there are several.
         /// @warning only cosiders internal mode of FS windows
         PHLWINDOW       getFullscreenWindow(const PHLMONITOR monitor, const std::optional<bool> covering = true);
@@ -160,27 +151,24 @@ namespace Fullscreen {
 
         // Handler
         /// @warning considers both internal and client FS modes of window
-        eFullscreenHandler getFullscreenHandlerName(const PHLWINDOW window); // CHECK the floating first. After that, check the default handler base class in layout handler. After that check the layout handler.
+        eFullscreenHandler getFullscreenHandlerName(
+            const PHLWINDOW window); // CHECK the floating first. After that, check the default handler base class in layout handler. After that check the layout handler.
 
-        std::string        getFullscreenHandlerNameAsString(const PHLWINDOW window);
+        std::string getFullscreenHandlerNameAsString(const PHLWINDOW window);
 
         // FS Mode Setter
 
-
         // ERSTARR TODO - MAKE THIS AN ACTUAL DOYXGEN DOC
-        // set window's internal, client (either or both) FS modes. Also allows overriding if you want to FS a window using default FS handler or the layout FS handler it might have access to 
-        void setFullscreenMode(const PHLWINDOW window, const std::optional<eFullscreenMode> internal = std::nullopt, const std::optional<eFullscreenMode> client = std::nullopt, std::optional<bool> layoutAware = std::nullopt);
+        // set window's internal, client (either or both) FS modes. Also allows overriding if you want to FS a window using default FS handler or the layout FS handler it might have access to
+        void setFullscreenMode(const PHLWINDOW window, const std::optional<eFullscreenMode> internal = std::nullopt, const std::optional<eFullscreenMode> client = std::nullopt,
+                               std::optional<bool> layoutAware = std::nullopt);
 
         // Misc. Operations
 
-
       private:
-
-
         // FS Mode Setter Helpers
         void setWindowFullscreenModeInternal(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware);
         void setWindowFullscreenModeClient(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware);
-
 
         // FS Handler getters
 
@@ -193,7 +181,6 @@ namespace Fullscreen {
         std::unordered_set<WP<Desktop::View::CWindow>> m_fsModeMaxWindows;
     };
 
+}
 
-  }
-  
 inline UP<Fullscreen::CFullscreenController> g_pfullscreenController = makeUnique<Fullscreen::CFullscreenController>();

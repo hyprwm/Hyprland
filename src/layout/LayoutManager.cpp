@@ -103,7 +103,6 @@ void CLayoutManager::endDragTarget() {
     m_dragStateController->dragEnd();
 }
 
-
 void CLayoutManager::switchTargets(SP<ITarget> a, SP<ITarget> b, bool preserveFocus) {
 
     if (preserveFocus) {

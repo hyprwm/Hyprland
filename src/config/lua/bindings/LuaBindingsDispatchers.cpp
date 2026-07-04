@@ -498,7 +498,8 @@ static int dsp_floatWindow(lua_State* L) {
 
 static int dsp_fullscreenWindow(lua_State* L) {
     return Internal::checkResult(
-        L, CA::fullscreenWindow(sc<Fullscreen::eFullscreenMode>((int)lua_tonumber(L, lua_upvalueindex(1))), lua_toboolean(L, lua_upvalueindex(2)), Internal::windowFromUpval(L, 3)));
+        L,
+        CA::fullscreenWindow(sc<Fullscreen::eFullscreenMode>((int)lua_tonumber(L, lua_upvalueindex(1))), lua_toboolean(L, lua_upvalueindex(2)), Internal::windowFromUpval(L, 3)));
 }
 
 static int dsp_fullscreenWindowWithAction(lua_State* L) {
@@ -546,7 +547,9 @@ static int dsp_fullscreenState(lua_State* L) {
     const bool atDesiredState = CURRENT.internal == desiredInternal && CURRENT.client == desiredClient;
 
     if (actionRaw == 0) {
-        return Internal::checkResult(L, CA::fullscreenWindow(CURRENT.internal == desiredInternal ? Fullscreen::FSMODE_NONE : desiredInternal, CURRENT.client == desiredClient ? Fullscreen::FSMODE_NONE : desiredClient, layoutAware, maybeW));
+        return Internal::checkResult(L,
+                                     CA::fullscreenWindow(CURRENT.internal == desiredInternal ? Fullscreen::FSMODE_NONE : desiredInternal,
+                                                          CURRENT.client == desiredClient ? Fullscreen::FSMODE_NONE : desiredClient, layoutAware, maybeW));
     }
 
     if (actionRaw == 1) {
@@ -713,7 +716,7 @@ static int hlWindowFloat(lua_State* L) {
 
 static int hlWindowFullscreen(lua_State* L) {
     Fullscreen::eFullscreenMode mode   = Fullscreen::FSMODE_FULLSCREEN;
-    int             action = 0; // 0: toggle, 1: set, 2: unset
+    int                         action = 0; // 0: toggle, 1: set, 2: unset
     if (lua_istable(L, 1)) {
         auto m = Internal::tableOptStr(L, 1, "mode");
         if (m) {

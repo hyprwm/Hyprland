@@ -207,7 +207,8 @@ PHLWINDOW CWindowQuery::inDirection(const SWindowDirectionQuery& query) const {
         constexpr float THRESHOLD    = 0.3 * M_PI;
 
         for (auto const& w : m_state.windows()) {
-            if (w == query.ignoreWindow || !w->m_isMapped || !w->m_workspace || !w->acceptsInput() || (!g_pfullscreenController->isFullscreen(w) && !w->m_isFloating) || !w->m_workspace->isVisible())
+            if (w == query.ignoreWindow || !w->m_isMapped || !w->m_workspace || !w->acceptsInput() || (!g_pfullscreenController->isFullscreen(w) && !w->m_isFloating) ||
+                !w->m_workspace->isVisible())
                 continue;
 
             if (query.workspace->m_monitor == w->m_monitor && query.workspace != w->m_workspace)

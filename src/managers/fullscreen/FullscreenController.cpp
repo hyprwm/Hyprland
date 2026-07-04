@@ -18,15 +18,11 @@
 
 using namespace Fullscreen;
 
-
-
-
 // Window
 
 bool CFullscreenController::isFullscreen(const PHLWINDOW window, const std::optional<eFullscreenMode> mode, const std::optional<bool> covering) {
-    if(!window || !window->m_target || mode == FSMODE_NONE)
+    if (!window || !window->m_target || mode == FSMODE_NONE)
         return false;
-
 
     const auto FS_HANDLER = getFSHandler(window);
 
@@ -36,15 +32,12 @@ bool CFullscreenController::isFullscreen(const PHLWINDOW window, const std::opti
     }
 
     return FS_HANDLER->isFullscreen(window->m_target, mode, covering);
-
 }
 
-
 SFullscreenMode CFullscreenController::getFullscreenModes(const PHLWINDOW window) {
-    if(!window || !window->m_workspace || !window->m_workspace->m_space || !window->m_workspace->m_space->algorithm())
+    if (!window || !window->m_workspace || !window->m_workspace->m_space || !window->m_workspace->m_space->algorithm())
         return SFullscreenMode{};
 
-        
     const auto FS_HANDLER = getFSHandler(window);
 
     // If a widow's internal FS state is improperly set or there's a problem with its tracking the the handler, this will ensure that this isn't reflected to the callers of the controller.
@@ -53,17 +46,13 @@ SFullscreenMode CFullscreenController::getFullscreenModes(const PHLWINDOW window
         return SFullscreenMode{};
 
     return FS_HANDLER->getFullscreenModes(window->m_target);
-
 }
 
-
 bool CFullscreenController::layoutManagedFS(const PHLWINDOW window) {
-    if(!window)
+    if (!window)
         return false;
 
-
     const auto FS_HANDLER_NAME = getFullscreenHandlerName(window);
-
 
     if (FS_HANDLER_NAME == FULLSCREEN_HANDLER_NONE) {
         Log::logger->log(Log::ERR, "window {} doesn't have FS handler assinged. This should never happen", window->m_title);
@@ -75,22 +64,21 @@ bool CFullscreenController::layoutManagedFS(const PHLWINDOW window) {
     return FS_HANDLER_NAME & FULLSCREEN_HANDLER_LAYOUT;
 }
 
-
 // Workspace
 
 bool CFullscreenController::hasFullscreen(const PHLWORKSPACE workspace, const std::optional<bool> covering) {
-    if(!workspace || !workspace->m_space || !workspace->m_space->algorithm() || !workspace->m_space->algorithm()->tiledAlgo() || !workspace->m_space->algorithm()->floatingAlgo())
+    if (!workspace || !workspace->m_space || !workspace->m_space->algorithm() || !workspace->m_space->algorithm()->tiledAlgo() || !workspace->m_space->algorithm()->floatingAlgo())
         return false;
 
     // ASSUMPTION: Floating FS window layers ontop of Tiled Default Handled FS window which layers ontop of Tiled Layout Handled FS window
     // TODO: implement a way to get the topmost FS window so layouts can implement FS behaviour that may layer over Tiled Default Handled FS windows
 
-    const auto TILED_FS_HANDLER  = workspace->m_space->algorithm()->tiledAlgo()->getFSHandler();
+    const auto TILED_FS_HANDLER = workspace->m_space->algorithm()->tiledAlgo()->getFSHandler();
 
     const auto DEFAULT_TILED_FS_HANDLER = workspace->m_space->algorithm()->tiledAlgo()->IModeAlgorithm::getFSHandler();
 
     // only one floating algo in hyprland so far, which is default handled.
-    const auto FLOATING_FS_HANDLER      = workspace->m_space->algorithm()->floatingAlgo()->getFSHandler();
+    const auto FLOATING_FS_HANDLER = workspace->m_space->algorithm()->floatingAlgo()->getFSHandler();
 
     if (!TILED_FS_HANDLER || !DEFAULT_TILED_FS_HANDLER || !FLOATING_FS_HANDLER) {
         Log::logger->log(Log::ERR, "workspace ID:{} doesn't have FS handler assinged. This should never happen", workspace->m_id);
@@ -100,7 +88,7 @@ bool CFullscreenController::hasFullscreen(const PHLWORKSPACE workspace, const st
     // check floating first
     if (FLOATING_FS_HANDLER->hasFullscreen(covering))
         return true;
-    
+
     // check default handled tiled second
     if (DEFAULT_TILED_FS_HANDLER->hasFullscreen(covering))
         return true;
@@ -109,20 +97,19 @@ bool CFullscreenController::hasFullscreen(const PHLWORKSPACE workspace, const st
     return TILED_FS_HANDLER->hasFullscreen(covering);
 }
 
-
 PHLWINDOW CFullscreenController::getFullscreenWindow(const PHLWORKSPACE workspace, const std::optional<bool> covering) {
-    if(!workspace || !workspace->m_space || !workspace->m_space->algorithm())
+    if (!workspace || !workspace->m_space || !workspace->m_space->algorithm())
         return nullptr;
 
     // ASSUMPTION: Floating FS window layers ontop of Tiled Default Handled FS window which layers ontop of Tiled Layout Handled FS window
     // TODO: implement a way to get the topmost FS window so layouts can implement FS behaviour that may layer over Tiled Default Handled FS windows
 
-    const auto TILED_FS_HANDLER  = workspace->m_space->algorithm()->tiledAlgo()->getFSHandler();
+    const auto TILED_FS_HANDLER = workspace->m_space->algorithm()->tiledAlgo()->getFSHandler();
 
     const auto DEFAULT_TILED_FS_HANDLER = workspace->m_space->algorithm()->tiledAlgo()->IModeAlgorithm::getFSHandler();
-    
+
     // only one floating algo in hyprland so far, which is default handled
-    const auto FLOATING_FS_HANDLER      = workspace->m_space->algorithm()->floatingAlgo()->getFSHandler();
+    const auto FLOATING_FS_HANDLER = workspace->m_space->algorithm()->floatingAlgo()->getFSHandler();
 
     if (!TILED_FS_HANDLER || !DEFAULT_TILED_FS_HANDLER || !FLOATING_FS_HANDLER) {
         Log::logger->log(Log::ERR, "workspace ID:{} doesn't have FS handler assinged. This should never happen", workspace->m_id);
@@ -134,27 +121,26 @@ PHLWINDOW CFullscreenController::getFullscreenWindow(const PHLWORKSPACE workspac
         return FSTARGET->window();
 
     // check default handled tiled second
-    if (const auto FSTARGET =  DEFAULT_TILED_FS_HANDLER->getFullscreen(covering); FSTARGET && DEFAULT_TILED_FS_HANDLER->isFullscreen(FSTARGET))
+    if (const auto FSTARGET = DEFAULT_TILED_FS_HANDLER->getFullscreen(covering); FSTARGET && DEFAULT_TILED_FS_HANDLER->isFullscreen(FSTARGET))
         return FSTARGET->window();
 
     // check layout handled tiled last
     const auto FSTARGET = TILED_FS_HANDLER->getFullscreen(covering);
-    return FSTARGET && TILED_FS_HANDLER->isFullscreen(FSTARGET)? FSTARGET->window() : nullptr;
-
+    return FSTARGET && TILED_FS_HANDLER->isFullscreen(FSTARGET) ? FSTARGET->window() : nullptr;
 }
 SFullscreenMode CFullscreenController::getFullscreenModes(const PHLWORKSPACE workspace, const std::optional<bool> covering) {
-    if(!workspace || !workspace->m_space || !workspace->m_space->algorithm())
+    if (!workspace || !workspace->m_space || !workspace->m_space->algorithm())
         return SFullscreenMode{};
 
     // ASSUMPTION: Floating FS window layers ontop of Tiled Default Handled FS window which layers ontop of Tiled Layout Handled FS window
     // TODO: implement a way to get the topmost FS window so layouts can implement FS behaviour that may layer over Tiled Default Handled FS windows
 
-    const auto TILED_FS_HANDLER  = workspace->m_space->algorithm()->tiledAlgo()->getFSHandler();
+    const auto TILED_FS_HANDLER = workspace->m_space->algorithm()->tiledAlgo()->getFSHandler();
 
     const auto DEFAULT_TILED_FS_HANDLER = workspace->m_space->algorithm()->tiledAlgo()->IModeAlgorithm::getFSHandler();
 
     // only one floating algo in hyprland so far, which is default handled
-    const auto FLOATING_FS_HANDLER      = workspace->m_space->algorithm()->floatingAlgo()->getFSHandler();
+    const auto FLOATING_FS_HANDLER = workspace->m_space->algorithm()->floatingAlgo()->getFSHandler();
 
     if (!TILED_FS_HANDLER || !DEFAULT_TILED_FS_HANDLER || !FLOATING_FS_HANDLER) {
         Log::logger->log(Log::ERR, "workspace ID:{} doesn't have FS handler assinged. This should never happen", workspace->m_id);
@@ -166,7 +152,7 @@ SFullscreenMode CFullscreenController::getFullscreenModes(const PHLWORKSPACE wor
         return FLOATING_FS_HANDLER->getFullscreenModes(FSTARGET);
 
     // check default handled tiled second
-    if (const auto FSTARGET =  DEFAULT_TILED_FS_HANDLER->getFullscreen(covering); FSTARGET && DEFAULT_TILED_FS_HANDLER->isFullscreen(FSTARGET))
+    if (const auto FSTARGET = DEFAULT_TILED_FS_HANDLER->getFullscreen(covering); FSTARGET && DEFAULT_TILED_FS_HANDLER->isFullscreen(FSTARGET))
         return DEFAULT_TILED_FS_HANDLER->getFullscreenModes(FSTARGET);
 
     // check layout handled tiled last
@@ -180,15 +166,13 @@ bool CFullscreenController::hasFullscreen(const PHLMONITOR monitor, const std::o
     if (!monitor || (!monitor->m_activeSpecialWorkspace && !monitor->m_activeWorkspace))
         return false;
 
-
     PHLWORKSPACE activeWorkspace = nullptr;
 
     // Check special workspace first since it renders on top of regular workspaces
     if (const auto ACTIVE_SPECIAL_WORKSPACE = monitor->m_activeSpecialWorkspace; ACTIVE_SPECIAL_WORKSPACE) {
         activeWorkspace = ACTIVE_SPECIAL_WORKSPACE;
 
-    }
-    else if (const auto ACTIVE_WORKSPACE = monitor->m_activeWorkspace; ACTIVE_WORKSPACE) {
+    } else if (const auto ACTIVE_WORKSPACE = monitor->m_activeWorkspace; ACTIVE_WORKSPACE) {
         activeWorkspace = ACTIVE_WORKSPACE;
     }
 
@@ -196,7 +180,6 @@ bool CFullscreenController::hasFullscreen(const PHLMONITOR monitor, const std::o
         return false;
 
     return hasFullscreen(activeWorkspace) && getFullscreenModes(activeWorkspace).internal == FSMODE_FULLSCREEN;
-
 }
 PHLWINDOW CFullscreenController::getFullscreenWindow(const PHLMONITOR monitor, const std::optional<bool> covering) {
     if (!monitor || (!monitor->m_activeSpecialWorkspace && !monitor->m_activeWorkspace))
@@ -208,8 +191,7 @@ PHLWINDOW CFullscreenController::getFullscreenWindow(const PHLMONITOR monitor, c
     if (const auto ACTIVE_SPECIAL_WORKSPACE = monitor->m_activeSpecialWorkspace; ACTIVE_SPECIAL_WORKSPACE) {
         activeWorkspace = ACTIVE_SPECIAL_WORKSPACE;
 
-    }
-    else if (const auto ACTIVE_WORKSPACE = monitor->m_activeWorkspace; ACTIVE_WORKSPACE) {
+    } else if (const auto ACTIVE_WORKSPACE = monitor->m_activeWorkspace; ACTIVE_WORKSPACE) {
         activeWorkspace = ACTIVE_WORKSPACE;
     }
 
@@ -217,8 +199,6 @@ PHLWINDOW CFullscreenController::getFullscreenWindow(const PHLMONITOR monitor, c
         return nullptr;
 
     const auto FS_WINDOW = getFullscreenWindow(activeWorkspace, covering);
-
-
 
     return getFullscreenModes(FS_WINDOW).internal == FSMODE_FULLSCREEN ? getFullscreenWindow(activeWorkspace, covering) : nullptr;
 }
@@ -233,23 +213,21 @@ SFullscreenMode CFullscreenController::getFullscreenModes(const PHLMONITOR monit
     if (const auto ACTIVE_SPECIAL_WORKSPACE = monitor->m_activeSpecialWorkspace; ACTIVE_SPECIAL_WORKSPACE) {
         activeWorkspace = ACTIVE_SPECIAL_WORKSPACE;
 
-    }
-    else if (const auto ACTIVE_WORKSPACE = monitor->m_activeWorkspace; ACTIVE_WORKSPACE) {
+    } else if (const auto ACTIVE_WORKSPACE = monitor->m_activeWorkspace; ACTIVE_WORKSPACE) {
         activeWorkspace = ACTIVE_WORKSPACE;
     }
 
     if (!activeWorkspace)
         return SFullscreenMode{};
 
-    return  getFullscreenModes(activeWorkspace);
+    return getFullscreenModes(activeWorkspace);
 }
 
 // Handler
 
 eFullscreenHandler CFullscreenController::getFullscreenHandlerName(const PHLWINDOW window) {
-    if(!window || !window->m_workspace || !window->m_workspace->m_space || !window->m_workspace->m_space->algorithm())
+    if (!window || !window->m_workspace || !window->m_workspace->m_space || !window->m_workspace->m_space->algorithm())
         return FULLSCREEN_HANDLER_NONE;
-
 
     // IMPORTANT: no layoutHandled value passed -> infinite recursion.
     const auto LAYOUT_FS_HANDLER = getFSHandler(window, true);
@@ -269,10 +247,8 @@ eFullscreenHandler CFullscreenController::getFullscreenHandlerName(const PHLWIND
         handlerName = DEFAULT_FS_HANDLER->getFullscreenHandlerName();
     // Layout Handled
     else
-    // If a window is not FS at all, we consider its handler to be layout if it is in a workspace with a layout that implements their custom FS behaviour.
-     handlerName = LAYOUT_FS_HANDLER->getFullscreenHandlerName();
-    
-
+        // If a window is not FS at all, we consider its handler to be layout if it is in a workspace with a layout that implements their custom FS behaviour.
+        handlerName = LAYOUT_FS_HANDLER->getFullscreenHandlerName();
 
     if (handlerName == FULLSCREEN_HANDLER_NONE) {
         Log::logger->log(Log::ERR, "window {} doesn't have FS handler assinged. This should never happen", window->m_title);
@@ -282,40 +258,36 @@ eFullscreenHandler CFullscreenController::getFullscreenHandlerName(const PHLWIND
     return handlerName;
 }
 
-
 std::string CFullscreenController::getFullscreenHandlerNameAsString(const PHLWINDOW window) {
     const auto FS_HANDLER_NAME = getFullscreenHandlerName(window);
 
     switch (FS_HANDLER_NAME) {
-        case FULLSCREEN_HANDLER_NONE:      return "none";
-        case FULLSCREEN_HANDLER_DEFAULT:   return "default";
-        case FULLSCREEN_HANDLER_LAYOUT:    return "layout";
+        case FULLSCREEN_HANDLER_NONE: return "none";
+        case FULLSCREEN_HANDLER_DEFAULT: return "default";
+        case FULLSCREEN_HANDLER_LAYOUT: return "layout";
         case FULLSCREEN_HANDLER_SCROLLING: return "scrolling";
-        default:                           return "unknown";
+        default: return "unknown";
     }
 }
 
-
 // FS Mode Setters
 
- void CFullscreenController::setFullscreenMode(const PHLWINDOW window, const std::optional<eFullscreenMode> internal, const std::optional<eFullscreenMode> client, std::optional<bool> layoutAware) {
+void CFullscreenController::setFullscreenMode(const PHLWINDOW window, const std::optional<eFullscreenMode> internal, const std::optional<eFullscreenMode> client,
+                                              std::optional<bool> layoutAware) {
     if (!window)
         return;
 
     const bool SYNC_VALUES = window->m_ruleApplicator->syncFullscreen().valueOrDefault();
 
-    bool stateChanged = false;
+    bool       stateChanged = false;
 
     // if new values not provided, we need to use the old values.
     eFullscreenMode targetInternalMode = internal.value_or(FSMODE_NONE);
-    eFullscreenMode targetClientMode = client.value_or(FSMODE_NONE);
+    eFullscreenMode targetClientMode   = client.value_or(FSMODE_NONE);
 
     // clamp them for good measure
     targetInternalMode = std::clamp(targetInternalMode, sc<eFullscreenMode>(0), FSMODE_FULLSCREEN);
     targetClientMode   = std::clamp(targetClientMode, sc<eFullscreenMode>(0), targetClientMode);
-
-
-
 
     /*
     
@@ -328,37 +300,33 @@ std::string CFullscreenController::getFullscreenHandlerNameAsString(const PHLWIN
     */
     const bool WAS_LAYOUT_HANDLED = layoutManagedFS(window);
 
-    const auto TO_BE_USED_FS_HANDLER =  getFSHandler(window,layoutAware.value_or(WAS_LAYOUT_HANDLED));
+    const auto TO_BE_USED_FS_HANDLER = getFSHandler(window, layoutAware.value_or(WAS_LAYOUT_HANDLED));
     if (!TO_BE_USED_FS_HANDLER) {
         Log::logger->log(Log::ERR, "window {} doesn't have FS handler assinged. This should never happen", window->m_title);
         return;
     }
 
-
     /* Helper Lambdas */
     const auto saveClientInternalValues = [&](const SFullscreenMode& OLD_FS_MODES) {
-
         // If client requests FSMODE_FULLSCREEN when the underlying FS mode is FSMODE_MAXIMIZED
         if (client.value_or(FSMODE_NONE) == FSMODE_FULLSCREEN && OLD_FS_MODES.internal == FSMODE_MAXIMIZED) {
             m_fsModeMaxWindows.emplace(window);
         }
         // If client requests FSMODE_NONE and the window is FSMODE_MAX
-        else if (const auto IT = m_fsModeMaxWindows.find(window); client.value_or(FSMODE_MAXIMIZED) == FSMODE_NONE && (IT != m_fsModeMaxWindows.end() && IT->valid() && !IT->expired())) {
+        else if (const auto IT = m_fsModeMaxWindows.find(window);
+                 client.value_or(FSMODE_MAXIMIZED) == FSMODE_NONE && (IT != m_fsModeMaxWindows.end() && IT->valid() && !IT->expired())) {
             targetClientMode = FSMODE_MAXIMIZED;
             m_fsModeMaxWindows.erase(IT);
-        }
-        else {
+        } else {
             // save the old values if new ones aren't provided
             targetInternalMode = internal.value_or(OLD_FS_MODES.internal);
-            targetClientMode = client.value_or(OLD_FS_MODES.client);
+            targetClientMode   = client.value_or(OLD_FS_MODES.client);
         }
-
     };
 
-    const auto syncFsModeMaxWindows = [&](){
-
+    const auto syncFsModeMaxWindows = [&]() {
         for (auto it = m_fsModeMaxWindows.begin(); it != m_fsModeMaxWindows.end();) {
-            
+
             if (!it->valid() || it->expired() || getFullscreenModes(it->lock()).internal != FSMODE_FULLSCREEN) {
                 const auto NEXT = std::next(it);
                 m_fsModeMaxWindows.erase(it);
@@ -368,7 +336,6 @@ std::string CFullscreenController::getFullscreenHandlerNameAsString(const PHLWIN
             ++it;
         }
     };
-
 
     /*
         Handled moving the window from one handler to another if needed
@@ -380,12 +347,11 @@ std::string CFullscreenController::getFullscreenHandlerNameAsString(const PHLWIN
         // we need to remove the window from its old handler
 
         const auto ORIGINAL_FS_HANDLER = getFSHandler(window, WAS_LAYOUT_HANDLED);
-        const auto OLD_FS_MODES = ORIGINAL_FS_HANDLER->getFullscreenModes(window->m_target);
+        const auto OLD_FS_MODES        = ORIGINAL_FS_HANDLER->getFullscreenModes(window->m_target);
 
         stateChanged = true;
 
         saveClientInternalValues(OLD_FS_MODES);
-
 
         /* Remove Window from Old handler */
 
@@ -403,13 +369,12 @@ std::string CFullscreenController::getFullscreenHandlerNameAsString(const PHLWIN
                 setWindowFullscreenModeInternal(window, FSMODE_NONE, WAS_LAYOUT_HANDLED);
             if (OLD_FS_MODES.client != FSMODE_NONE)
                 setWindowFullscreenModeClient(window, FSMODE_NONE, WAS_LAYOUT_HANDLED);
-            
         }
 
     }
     // if window is FS and it's handled the same as before OR it's not FS at all
     else {
-    
+
         const auto OLD_FS_MODES = TO_BE_USED_FS_HANDLER->getFullscreenModes(window->m_target);
 
         // TODO if only one state changed, we can skip setting the other. It's more robust to set both but it's tecnically unnecessary
@@ -417,9 +382,8 @@ std::string CFullscreenController::getFullscreenHandlerNameAsString(const PHLWIN
             stateChanged = true;
 
         saveClientInternalValues(OLD_FS_MODES);
-
     }
-    
+
     if (SYNC_VALUES) {
 
         if (targetInternalMode != targetClientMode)
@@ -433,38 +397,34 @@ std::string CFullscreenController::getFullscreenHandlerNameAsString(const PHLWIN
         else {
             targetInternalMode = targetClientMode;
         }
-
-
     }
 
     // maybe todo: If only one state changed, we may skip setting the other. It's more robust to set both but it's tecnically unnecessary
-    
+
     // set new FS state in the correct handler: if specified, use that handler. If not, use the handler that was used before (if not FS, it'll use layout handler)
     if (stateChanged) {
-        setWindowFullscreenModeClient(window, targetClientMode, layoutAware.value_or(WAS_LAYOUT_HANDLED));    
+        setWindowFullscreenModeClient(window, targetClientMode, layoutAware.value_or(WAS_LAYOUT_HANDLED));
         setWindowFullscreenModeInternal(window, targetInternalMode, layoutAware.value_or(WAS_LAYOUT_HANDLED));
     }
     syncFsModeMaxWindows();
 }
 
-
 void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware) {
-    
+
     if (!window || !validMapped(window) || !window->m_monitor || !window->m_workspace || !window->m_workspace->m_space || !window->m_workspace->m_space->algorithm())
         return;
 
     const auto MONITOR   = window->m_monitor.lock();
     const auto WORKSPACE = window->m_workspace;
 
-    const auto SPACE = window->m_workspace->m_space;
+    const auto SPACE     = window->m_workspace->m_space;
     const auto ALGORITHM = window->m_workspace->m_space->algorithm();
 
-
     // there's no layout managed floating algo.
-    const auto             WINDOW_FS_HANDLER        = getFSHandler(window, layoutAware);
-    const SFullscreenMode  WINDOW_FS_MODE           = getFullscreenModes(window);
-    const bool             WINDOW_IS_INTERNAL_FS    = isFullscreen(window);
-    const bool             INTERNAL_FS_MODE_CHANGED = !window->m_pinned && WINDOW_FS_MODE.internal != mode;
+    const auto            WINDOW_FS_HANDLER        = getFSHandler(window, layoutAware);
+    const SFullscreenMode WINDOW_FS_MODE           = getFullscreenModes(window);
+    const bool            WINDOW_IS_INTERNAL_FS    = isFullscreen(window);
+    const bool            INTERNAL_FS_MODE_CHANGED = !window->m_pinned && WINDOW_FS_MODE.internal != mode;
 
     if (!WINDOW_FS_HANDLER) {
         Log::logger->log(Log::ERR, "window {} doesn't have FS handler assinged. This should never happen", window->m_title);
@@ -477,8 +437,6 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
     if (window->m_isFloating && WINDOW_FS_MODE.internal == FSMODE_NONE && mode != FSMODE_NONE)
         g_pHyprRenderer->damageWindow(window);
 
-
-
     if (*PALLOWPINFULLSCREEN && !window->m_pinFullscreened && !WINDOW_IS_INTERNAL_FS && window->m_pinned) {
         window->m_pinned          = false;
         window->m_pinFullscreened = true;
@@ -487,58 +445,50 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
     // If new window is not to be layout handled, current fullscreen window is not layout handled (layout handled fullscreens (implicitly means they will also be tiled)
     // allow for floating FS windows to layer over them); replace fullscreen
     if (hasFullscreen(WORKSPACE) && !isFullscreen(window) && !layoutAware) {
-        
+
         const auto COVERING_FS_WINDOW = g_pfullscreenController->getFullscreenWindow(WORKSPACE, true);
         if (!g_pfullscreenController->layoutManagedFS(COVERING_FS_WINDOW))
             setFullscreenMode(COVERING_FS_WINDOW, FSMODE_NONE);
     }
 
-
     // arm m_suppressNextMaximize to swallow the set_maximized echo on fullscreen exit
     if (INTERNAL_FS_MODE_CHANGED && !window->m_isFloating && (getFullscreenModes(window).internal == FSMODE_FULLSCREEN) && mode != FSMODE_FULLSCREEN)
         window->m_suppressNextMaximize = true;
-
 
     if (*PALLOWPINFULLSCREEN && window->m_pinFullscreened && WINDOW_IS_INTERNAL_FS && !window->m_pinned && mode == FSMODE_NONE) {
         window->m_pinned          = true;
         window->m_pinFullscreened = false;
     }
 
-
     // Note for Vax: I'm not sure why we pass RULE_PROP_FULLSCREENSTATE_CLIENT here since it only checks for internal FS change (i didn't change the logic of this from upstream)?
-      // Leaving this as-is for now even though it mentions client inside the setInternal function
+    // Leaving this as-is for now even though it mentions client inside the setInternal function
     if (!INTERNAL_FS_MODE_CHANGED) {
         window->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
-                                                     Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
+                                                    Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
         window->updateDecorationValues();
         g_layoutManager->recalculateMonitor(MONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN);
         return;
     }
 
-
     // Internal mode must be set by the handler; not setting it here because last FS mode should be made available to handlers
-    const eFullscreenRequestResult FULLSCREEN_REQUEST_RESULT = WINDOW_FS_HANDLER->requestFullscreen({.target = window->m_target, .currentMode = WINDOW_FS_MODE.internal, .mode = mode});
-
+    const eFullscreenRequestResult FULLSCREEN_REQUEST_RESULT =
+        WINDOW_FS_HANDLER->requestFullscreen({.target = window->m_target, .currentMode = WINDOW_FS_MODE.internal, .mode = mode});
 
     if (mode == FSMODE_NONE && window->m_isFloating)
         // If window group, use the group target to set all member windows
         ALGORITHM->recenter(window->layoutTarget());
 
-    SPACE->recalculate(FULLSCREEN_REQUEST_RESULT == FULLSCREEN_REQUEST_DEFAULT_HANDLED ? Layout::RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN : Layout::RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN);
-
-
-
-
+    SPACE->recalculate(FULLSCREEN_REQUEST_RESULT == FULLSCREEN_REQUEST_DEFAULT_HANDLED ? Layout::RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN :
+                                                                                         Layout::RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN);
 
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "fullscreen", .data = std::to_string(sc<int>(mode) != FSMODE_NONE)});
     Event::bus()->m_events.window.fullscreen.emit(window);
 
     window->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
-                                                 Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
+                                                Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
 
     window->updateDecorationValues();
     g_layoutManager->recalculateMonitor(MONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN);
-
 
     window->sendWindowSize(true);
 
@@ -547,20 +497,17 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
     // state later, it does it wrong
     WORKSPACE->updateWindows();
     WORKSPACE->m_space->recalculate(FULLSCREEN_REQUEST_RESULT == FULLSCREEN_REQUEST_DEFAULT_HANDLED ? Layout::RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN :
-                                                                                                       Layout::RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN);
+                                                                                                      Layout::RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN);
     WORKSPACE->forceReportSizesToWindows();
 
     g_pInputManager->recheckIdleInhibitorStatus();
-
 }
-
-
 
 void CFullscreenController::setWindowFullscreenModeClient(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware) {
     if (!window || !window->m_workspace || !window->m_workspace->m_space || !window->m_workspace->m_space->algorithm())
         return;
 
-    const auto FS_HANDLER = getFSHandler(window,layoutAware);
+    const auto FS_HANDLER = getFSHandler(window, layoutAware);
     if (!FS_HANDLER) {
         Log::logger->log(Log::ERR, "window {} doesn't have FS handler assinged. This should never happen", window->m_title);
         return;
@@ -569,17 +516,12 @@ void CFullscreenController::setWindowFullscreenModeClient(const PHLWINDOW window
     FS_HANDLER->setTargetFullscreenModeClient(window->m_target, mode);
 
     g_pXWaylandManager->setWindowFullscreen(window, mode == FSMODE_FULLSCREEN);
-
 }
 
-
-
-
 WP<IFullscreenHandler> CFullscreenController::getFSHandler(const PHLWINDOW window, std::optional<bool> layoutHandled) {
-    if (!window || !window->m_workspace || !window->m_workspace->m_space || !window->m_workspace->m_space->algorithm() || !window->m_workspace->m_space->algorithm()->floatingAlgo() || !window->m_workspace->m_space->algorithm()->tiledAlgo())
+    if (!window || !window->m_workspace || !window->m_workspace->m_space || !window->m_workspace->m_space->algorithm() ||
+        !window->m_workspace->m_space->algorithm()->floatingAlgo() || !window->m_workspace->m_space->algorithm()->tiledAlgo())
         return nullptr;
-    
-
 
     // if not value given, use the handler the window is currently using.
     if (!layoutHandled.has_value()) {
@@ -588,8 +530,8 @@ WP<IFullscreenHandler> CFullscreenController::getFSHandler(const PHLWINDOW windo
 
     // Layout Handled
     return (layoutHandled.value() ? (window->m_isFloating ? window->m_workspace->m_space->algorithm()->floatingAlgo()->getFSHandler() :
-                                                    window->m_workspace->m_space->algorithm()->tiledAlgo()->getFSHandler()) :
-                            // Default Handled
-                            (window->m_isFloating ? window->m_workspace->m_space->algorithm()->floatingAlgo()->IModeAlgorithm::getFSHandler() :
-                                                    window->m_workspace->m_space->algorithm()->tiledAlgo()->IModeAlgorithm::getFSHandler()));
+                                                            window->m_workspace->m_space->algorithm()->tiledAlgo()->getFSHandler()) :
+                                    // Default Handled
+                                    (window->m_isFloating ? window->m_workspace->m_space->algorithm()->floatingAlgo()->IModeAlgorithm::getFSHandler() :
+                                                            window->m_workspace->m_space->algorithm()->tiledAlgo()->IModeAlgorithm::getFSHandler()));
 }

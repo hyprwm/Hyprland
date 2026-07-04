@@ -67,6 +67,7 @@ namespace Fullscreen::ScrollingFullscreenHandler {
 
         // Helpers
 
+        virtual void setTargetSizeAndPosition(const SP<Layout::ITarget> target);
         virtual void setNoMembersAboveFullscreen();
         virtual void syncFullscreenTargets();
         virtual void removeFsTarget(SP<Layout::ITarget> target, const bool recursionGuard = false);

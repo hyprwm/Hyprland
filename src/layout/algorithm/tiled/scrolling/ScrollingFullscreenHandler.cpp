@@ -307,6 +307,12 @@ void CScrollingFullscreenHandler::setTargetFullscreenModeClient(const SP<Layout:
     syncFullscreenTargets();
 }
 
+void CScrollingFullscreenHandler::setTargetSizeAndPosition(const SP<Layout::ITarget> target) {
+    // We don't need to do anything explicitly here because in scrolling, pos/size setting as well as managing window/workspace rules are done in scrolling's recalculate()
+    ;
+}
+
+
 void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
     if (!m_scrollingAlgorithm->m_parent || !getSpace() || !getSpace()->workspace() || !getSpace()->workspace()->m_monitor)
         return;
@@ -600,20 +606,18 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
             LAST_FS_WINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
                                                                 Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
             LAST_FS_WINDOW->updateDecorationValues();
-            g_pDecorationPositioner->onWindowUpdate(LAST_FS_WINDOW);
+            
         }
         if (CURRENT_FS_TDATA && CURRENT_FS_TDATA->target && CURRENT_FS_TDATA->target->window()) {
             const auto LAST_FS_WINDOW = CURRENT_FS_TDATA->target->window();
             LAST_FS_WINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
                                                                 Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
             LAST_FS_WINDOW->updateDecorationValues();
-            g_pDecorationPositioner->onWindowUpdate(LAST_FS_WINDOW);
         }
 
         // normally, FS controller's FS state setter's method of handling window rules should be used; but calling g_layoutManager->recalculateMonitor(MONITOR) here would lead to an inf recursion
         // so we enqueue a prop refresh instead to handle this in the next event.
         // Concern: if the user executes a premature prop refresh, this might cause another prop refresh to be enqueud - though this is unlikely and would only occur in the event of a bug
-
         Config::Supplementary::refresher()->scheduleRefresh(Config::Supplementary::REFRESH_WINDOW_STATES | Config::Supplementary::REFRESH_MONITOR_STATES);
     }
 

@@ -426,6 +426,8 @@ namespace Desktop::View {
         std::optional<Vector2D>           calculateExpression(const Math::SExpressionVec2& expr);
         std::optional<Vector2D>           minSize();
         std::optional<Vector2D>           maxSize();
+        // Returns the highest level target of a group
+        // e.g. if the window is a part of a group, this returns the window group target
         SP<Layout::ITarget>               layoutTarget();
         bool                              canBeGroupedInto(SP<CGroup> group);
         void                              sendClose();

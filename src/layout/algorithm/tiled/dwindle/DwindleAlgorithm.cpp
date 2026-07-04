@@ -496,7 +496,12 @@ void CDwindleAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
 }
 
 void CDwindleAlgorithm::recalculate(eRecalculateReason reason) {
+    // avoid positon recalculation if we are in FS
+    if (m_parent && m_parent->space() && m_parent->space()->workspace() && Fullscreen::controller()->hasFullscreen(m_parent->space()->workspace(), true))
+        return;
+
     calculateWorkspace();
+
 }
 
 std::optional<Vector2D> CDwindleAlgorithm::predictSizeForNewTarget() {
@@ -602,7 +607,7 @@ void CDwindleAlgorithm::calculateWorkspace() {
     const auto PWORKSPACE = m_parent->space()->workspace();
     const auto PMONITOR   = PWORKSPACE->m_monitor;
 
-    if (!PMONITOR || Fullscreen::controller()->hasFullscreen(PWORKSPACE))
+    if (!PMONITOR)
         return;
 
     const auto TOPNODE = getMasterNode();

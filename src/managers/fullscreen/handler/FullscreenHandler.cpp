@@ -85,22 +85,12 @@ eFullscreenRequestResult IFullscreenHandler::requestFullscreen(const SFullscreen
         return FULLSCREEN_REQUEST_FAILED;
 
     const auto TARGET       = request.target;
-    const auto GROUP_TARGET = request.target->window()->m_group ? request.target->window()->m_group->m_target : nullptr;
     const auto WINDOW       = TARGET->window();
     const auto WORKSPACE    = TARGET->workspace();
-    const auto MONITOR      = WORKSPACE->m_monitor;
 
     setTargetFullscreenModeInternal(TARGET, request.mode);
 
-    // save covering FS window if mode isn't FSMODE_NONE
-    // If individual window, sets windowTarget's pos. If group, sets windowGroupTarget's pos - which will set all member target's positions in turn
-    if (request.mode == FSMODE_FULLSCREEN) {
-        const CBox MONBOX = MONITOR->logicalBox();
-        (GROUP_TARGET ? GROUP_TARGET : TARGET)->setPositionGlobal(MONBOX);
-    } else if (request.mode == FSMODE_MAXIMIZED) {
-        const CBox WORKAREA = WORKSPACE->m_space->workArea(TARGET->floating());
-        (GROUP_TARGET ? GROUP_TARGET : TARGET)->setPositionGlobal(WORKAREA);
-    }
+    setTargetSizeAndPosition(TARGET);
 
     setNoMembersAboveFullscreen();
 
@@ -149,6 +139,45 @@ void IFullscreenHandler::setTargetFullscreenModeClient(const SP<Layout::ITarget>
 
     syncFullscreenTargets();
 }
+
+
+void IFullscreenHandler::setTargetSizeAndPosition(const SP<Layout::ITarget> target) {
+
+    if (!target->window())
+        return;
+
+    // gets the window target if the target is a part of a group
+    const auto LAYOUT_TARGET = target->window()->layoutTarget();
+    const auto WINDOW = LAYOUT_TARGET->window();
+    const auto WORKSPACE    = LAYOUT_TARGET->workspace();
+    const auto MONITOR      = WORKSPACE->m_monitor.lock();
+
+    const auto TARGET_INTERNAL_MODE = getFullscreenModes(target).internal;
+
+
+    // It is assume that the target is a fullscreen window as considered by window/workspace rule matchers now.
+    // We update values like gaps_out so that window will get the correct size when FSed
+    WINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
+                                            Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
+
+
+    WINDOW->updateDecorationValues();
+    g_layoutManager->recalculateMonitor(MONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN);
+
+
+    // If individual window, it sets windowTarget's pos. If group, sets windowGroupTarget's pos - which will set all member target's positions in turn
+    if (TARGET_INTERNAL_MODE == FSMODE_FULLSCREEN) {
+        const CBox MONBOX = MONITOR->logicalBox();
+        LAYOUT_TARGET->setPositionGlobal(MONBOX);
+    } else if (TARGET_INTERNAL_MODE == FSMODE_MAXIMIZED) {
+        const CBox WORKAREA = WORKSPACE->m_space->workArea(LAYOUT_TARGET->floating());
+        LAYOUT_TARGET->setPositionGlobal(WORKAREA);
+    }
+
+    // If not FS, let the layout's recalculate() handle window pos/size
+}
+
+
 
 void IFullscreenHandler::setNoMembersAboveFullscreen() {
     if (!getSpace() || !getSpace()->workspace() || !getSpace()->workspace()->m_monitor)

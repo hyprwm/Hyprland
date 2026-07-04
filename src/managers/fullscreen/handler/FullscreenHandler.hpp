@@ -67,7 +67,18 @@ namespace Fullscreen {
         virtual void setTargetFullscreenModeInternal(const SP<Layout::ITarget> target, const eFullscreenMode mode);
         virtual void setTargetFullscreenModeClient(const SP<Layout::ITarget> target, const eFullscreenMode mode);
 
-        // optional: FS target hiding behaviour
+
+        // Helpers
+
+        /**
+        * @brief For settings window position and size.
+        *
+        * @note pass the window target even if target is a part of a group: function detects if a target is a part of a group and correctly dispatches the request to the group target
+        * @warning Handlers must take care to bring the FS target to a state where it will qualify as a FS window by window/workspace rule matchers before dispatching this.
+        */
+        virtual void setTargetSizeAndPosition(const SP<Layout::ITarget> target);
+
+        /// @note Optional: FS target hiding behaviour
         virtual void setNoMembersAboveFullscreen();
 
         /**
@@ -80,7 +91,6 @@ namespace Fullscreen {
         */
         virtual void syncFullscreenTargets();
 
-        // Helpers
 
         /**
         * @brief Un-Tracks a target.

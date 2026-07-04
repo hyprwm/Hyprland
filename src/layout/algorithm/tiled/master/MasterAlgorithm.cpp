@@ -506,28 +506,11 @@ void CMasterAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir
 }
 
 void CMasterAlgorithm::recalculate(eRecalculateReason reason) {
-    calculateWorkspace();
-
-    // TODO: Re-Setting FS size/pos values after calculateWorkspace overwrote them.
-    // This is a patch - make changes inside calculateWorkspace to make this part redundant
-    if (!m_parent->space()->workspace() || !m_parent->space()->workspace()->m_monitor)
+    // avoid positon recalculation if we are in FS
+    if (m_parent && m_parent->space() && m_parent->space()->workspace() && Fullscreen::controller()->hasFullscreen(m_parent->space()->workspace(), true))
         return;
-
-    const auto WORKSPACE = m_parent->space()->workspace();
-    const auto MONITOR   = WORKSPACE->m_monitor;
-
-    if (m_defaultFullscreenHandler->hasFullscreen()) {
-
-        const auto& FULLSCREEN_TARGET = m_defaultFullscreenHandler->getFullscreen();
-
-        if (m_defaultFullscreenHandler->isFullscreen(FULLSCREEN_TARGET, Fullscreen::FSMODE_FULLSCREEN)) {
-            const CBox MONBOX = MONITOR->logicalBox();
-            FULLSCREEN_TARGET->setPositionGlobal(MONBOX);
-        } else if (m_defaultFullscreenHandler->isFullscreen(FULLSCREEN_TARGET, Fullscreen::FSMODE_MAXIMIZED)) {
-            const CBox WORKAREA = WORKSPACE->m_space->workArea(FULLSCREEN_TARGET->floating());
-            FULLSCREEN_TARGET->setPositionGlobal(WORKAREA);
-        }
-    }
+    
+    calculateWorkspace();
 }
 
 Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {

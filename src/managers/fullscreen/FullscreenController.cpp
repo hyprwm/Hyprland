@@ -521,8 +521,7 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
         window->m_pinFullscreened = false;
     }
 
-    // Note for Vax: I'm not sure why we pass RULE_PROP_FULLSCREENSTATE_CLIENT here since it only checks for internal FS change (i didn't change the logic of this from upstream)?
-    // Leaving this as-is for now even though it mentions client inside the setInternal function
+    // Window/Workspace Rules
     if (!INTERNAL_FS_MODE_CHANGED) {
         window->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
                                                     Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
@@ -545,6 +544,7 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "fullscreen", .data = std::to_string(sc<int>(mode) != FSMODE_NONE)});
     Event::bus()->m_events.window.fullscreen.emit(window);
 
+    // todo possibly redundant as it's called by the FS handler?
     window->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
                                                 Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
 

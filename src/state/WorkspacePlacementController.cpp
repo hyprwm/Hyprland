@@ -250,6 +250,11 @@ void CWorkspacePlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspa
 
     const auto POLDMON = pWorkspace->m_monitor.lock();
 
+    if (pWorkspace->m_isSpecialWorkspace && POLDMON && POLDMON->m_activeSpecialWorkspace == pWorkspace) {
+        pMonitor->setSpecialWorkspace(pWorkspace);
+        return;
+    }
+
     const bool SWITCHINGISACTIVE = POLDMON ? POLDMON->m_activeWorkspace == pWorkspace : false;
 
     // fix old mon

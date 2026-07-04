@@ -58,6 +58,16 @@ namespace Fullscreen {
       A window may not be a part of more than one FS handler
 
 
+      Controller/Handler Error Resistance, Recovery and Correction
+      ------------------------------------------------
+
+      Handlers implement error correction when FS states are set.
+      TODO: They should also implement some error correction in FS state getters (noted in Default FS Controller Manual)
+
+      Controller implements error recovery (and correction where it's performant) when querying FS states
+      TODO: It should relegate this to the handlers
+
+
       Window Groups
       -------------
 
@@ -123,10 +133,10 @@ namespace Fullscreen {
         // Window
 
         /// @param covering If passed can determine if a window must be covering or must be non-covering. If not passed, window can be either
-        /// @warning only cosiders internal mode of FS windows
+        /// @note only cosiders internal mode of FS windows
         // ERSTARR TODO - note that passing mode = FSMODE_NONE will not fly. return false then in any case and log an error
         bool isFullscreen(const PHLWINDOW window, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = std::nullopt);
-        /// @warning considers both internal and client FS modes of window
+        /// @note considers both internal and client FS modes of window
         SFullscreenMode getFullscreenModes(const PHLWINDOW window);
         bool            layoutManagedFS(const PHLWINDOW window);
 
@@ -134,12 +144,11 @@ namespace Fullscreen {
         /// @warning only cosiders internal mode of FS windows
         bool hasFullscreen(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
         /// @warning Returns the topmost covering FS window is there are several.
-        /// @warning only cosiders internal mode of FS windows
+        /// @note only cosiders internal mode of FS windows
         PHLWINDOW       getFullscreenWindow(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
         SFullscreenMode getFullscreenModes(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
 
         // Monitor
-
         // Only considers FSMODE_FULLSCREEN as fullscreen
 
         /// @warning only cosiders internal mode of FS windows

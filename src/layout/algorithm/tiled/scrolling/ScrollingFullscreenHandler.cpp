@@ -62,9 +62,9 @@ bool CScrollingFullscreenHandler::isFullscreen(SP<Layout::ITarget> target, const
 
     // Check that the target fits the scrolling definition of FS target
 
-    // target must exist in list (if exists it didn't expire)
+    // target must exist in list, if exists; it didn't expire
     // target's internal mode must not be FSMODE_NONE
-    if (ITR == m_fsTargets.end() || ITR->second.mode.internal == FSMODE_NONE)
+    if (ITR == m_fsTargets.end() || !ITR->first || ITR->second.mode.internal == FSMODE_NONE)
         return false;
 
     // FS target must be the sole target in its column - covering or not

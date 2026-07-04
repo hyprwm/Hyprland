@@ -19,13 +19,24 @@ namespace Fullscreen {
     class IFullscreenHandler {
 
         // ERSTARR TODO : edit below comments into a coherent manual
+
         /*
         Default FS handler with overridable methods for layouts wishing to implement their own FS handlers
         
-        std::optional<bool> covering has true as default argument because for the default fullscreen behaviour, there is no such thing we non-covering fullscreen. In any case this value is ignored in this handler
-        
+        For future layout FS handlers, use this as a template for what each method should/should not do and which extra checks it should perform
+
         If layouts decide to have custom targets that may be able to be FSed, they must make another list, as well as helper functions for them. Controller will not be handling set/get for those; all handling must be done by layout's FS Handler  
-      */
+
+        TODO: implement proper error recovery and correction logic for FS queries as well. Only having this in controller doesn't cover algorithm targets calling the handlers directly
+          e.g. if mode is FSMODE_FULLSCREEN but isFullscreen() = false, call syncFullscreen() and try to self-correct 3 times before giving up, returning FSMODE_NONE and clearing the
+          erroneous FS target from the handler (log the corresponding errors too)
+
+
+        Default FS Handler Specific
+        ---------------------------
+          std::optional<bool> covering has true as default argument because for the default fullscreen behaviour, there is no such thing we non-covering fullscreen. In any case this value is ignored in this handler
+        
+        */
 
       public:
         IFullscreenHandler(Layout::IModeAlgorithm* const algorithm);
@@ -45,8 +56,7 @@ namespace Fullscreen {
         virtual bool hasFullscreen(const std::optional<bool> covering = true);
         /// @warning only for internal FS mode
         virtual SP<Layout::ITarget> getFullscreen(const std::optional<bool> covering = true);
-        /// @note also checks if target isFullscreen()
-        virtual SFullscreenMode getFullscreenModes(SP<Layout::ITarget> target);
+        virtual SFullscreenMode     getFullscreenModes(SP<Layout::ITarget> target);
 
         // FS Request
         /// @note Only for setting internal FS mode. Prefer to call setTargetFullscreenModeClient() independently for client mode

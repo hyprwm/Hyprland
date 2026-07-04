@@ -84,9 +84,9 @@ eFullscreenRequestResult IFullscreenHandler::requestFullscreen(const SFullscreen
     if (!request.target || !request.target->window() || !request.target->workspace() || !request.target->workspace()->m_monitor)
         return FULLSCREEN_REQUEST_FAILED;
 
-    const auto TARGET       = request.target;
-    const auto WINDOW       = TARGET->window();
-    const auto WORKSPACE    = TARGET->workspace();
+    const auto TARGET    = request.target;
+    const auto WINDOW    = TARGET->window();
+    const auto WORKSPACE = TARGET->workspace();
 
     setTargetFullscreenModeInternal(TARGET, request.mode);
 
@@ -140,7 +140,6 @@ void IFullscreenHandler::setTargetFullscreenModeClient(const SP<Layout::ITarget>
     syncFullscreenTargets();
 }
 
-
 void IFullscreenHandler::setTargetSizeAndPosition(const SP<Layout::ITarget> target) {
 
     if (!target->window())
@@ -148,22 +147,19 @@ void IFullscreenHandler::setTargetSizeAndPosition(const SP<Layout::ITarget> targ
 
     // gets the window target if the target is a part of a group
     const auto LAYOUT_TARGET = target->window()->layoutTarget();
-    const auto WINDOW = LAYOUT_TARGET->window();
-    const auto WORKSPACE    = LAYOUT_TARGET->workspace();
-    const auto MONITOR      = WORKSPACE->m_monitor.lock();
+    const auto WINDOW        = LAYOUT_TARGET->window();
+    const auto WORKSPACE     = LAYOUT_TARGET->workspace();
+    const auto MONITOR       = WORKSPACE->m_monitor.lock();
 
     const auto TARGET_INTERNAL_MODE = getFullscreenModes(target).internal;
-
 
     // It is assume that the target is a fullscreen window as considered by window/workspace rule matchers now.
     // We update values like gaps_out so that window will get the correct size when FSed
     WINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
-                                            Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-
+                                                Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
 
     WINDOW->updateDecorationValues();
     g_layoutManager->recalculateMonitor(MONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN);
-
 
     // If individual window, it sets windowTarget's pos. If group, sets windowGroupTarget's pos - which will set all member target's positions in turn
     if (TARGET_INTERNAL_MODE == FSMODE_FULLSCREEN) {
@@ -176,8 +172,6 @@ void IFullscreenHandler::setTargetSizeAndPosition(const SP<Layout::ITarget> targ
 
     // If not FS, let the layout's recalculate() handle window pos/size
 }
-
-
 
 void IFullscreenHandler::setNoMembersAboveFullscreen() {
     if (!getSpace() || !getSpace()->workspace() || !getSpace()->workspace()->m_monitor)

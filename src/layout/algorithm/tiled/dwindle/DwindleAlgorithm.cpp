@@ -501,7 +501,6 @@ void CDwindleAlgorithm::recalculate(eRecalculateReason reason) {
         return;
 
     calculateWorkspace();
-
 }
 
 std::optional<Vector2D> CDwindleAlgorithm::predictSizeForNewTarget() {

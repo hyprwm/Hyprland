@@ -312,7 +312,6 @@ void CScrollingFullscreenHandler::setTargetSizeAndPosition(const SP<Layout::ITar
     ;
 }
 
-
 void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
     if (!m_scrollingAlgorithm->m_parent || !getSpace() || !getSpace()->workspace() || !getSpace()->workspace()->m_monitor)
         return;
@@ -606,7 +605,6 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
             LAST_FS_WINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
                                                                 Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
             LAST_FS_WINDOW->updateDecorationValues();
-            
         }
         if (CURRENT_FS_TDATA && CURRENT_FS_TDATA->target && CURRENT_FS_TDATA->target->window()) {
             const auto LAST_FS_WINDOW = CURRENT_FS_TDATA->target->window();

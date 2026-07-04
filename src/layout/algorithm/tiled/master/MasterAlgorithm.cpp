@@ -509,7 +509,7 @@ void CMasterAlgorithm::recalculate(eRecalculateReason reason) {
     // avoid positon recalculation if we are in FS
     if (m_parent && m_parent->space() && m_parent->space()->workspace() && Fullscreen::controller()->hasFullscreen(m_parent->space()->workspace(), true))
         return;
-    
+
     calculateWorkspace();
 }
 

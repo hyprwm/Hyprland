@@ -67,7 +67,6 @@ namespace Fullscreen {
         virtual void setTargetFullscreenModeInternal(const SP<Layout::ITarget> target, const eFullscreenMode mode);
         virtual void setTargetFullscreenModeClient(const SP<Layout::ITarget> target, const eFullscreenMode mode);
 
-
         // Helpers
 
         /**
@@ -90,7 +89,6 @@ namespace Fullscreen {
         
         */
         virtual void syncFullscreenTargets();
-
 
         /**
         * @brief Un-Tracks a target.

@@ -90,7 +90,8 @@ static void checkDefaultCursorWarp(PHLMONITOR monitor) {
     }
 
     if (!cursorDefaultDone && *PCURSORMONITOR != STRVAL_EMPTY) {
-        if (*PCURSORMONITOR == monitor->m_name) {
+        const auto MONITOR = State::monitorState()->query().configString(*PCURSORMONITOR).run();
+        if (MONITOR && MONITOR->m_id == monitor->m_id) {
             cursorDefaultDone = true;
             Pointer::pointerController()->warpTo(POS, true);
             g_pInputManager->refocus();

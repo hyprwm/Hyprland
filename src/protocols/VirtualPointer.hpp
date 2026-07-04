@@ -47,6 +47,7 @@ class CVirtualPointerV1Resource {
     uint32_t                            m_axis = 0;
 
     std::array<IPointer::SAxisEvent, 2> m_axisEvents;
+    std::array<bool, 2>                 m_axisEventPending = {false, false};
 };
 
 class CVirtualPointerProtocol : public IWaylandProtocol {

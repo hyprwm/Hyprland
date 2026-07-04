@@ -245,7 +245,7 @@ void CPointerConstraintsProtocol::onNewConstraint(SP<CPointerConstraint> constra
 
     g_pInputManager->m_constraints.emplace_back(constraint);
 
-    if (Desktop::focusState()->surface() == OWNER->resource())
+    if (g_pSeatManager->m_state.pointerFocus == OWNER->resource())
         constraint->activate();
 }
 

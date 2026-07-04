@@ -309,7 +309,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     };
 
     if (!g_pSeatManager->m_mouse.expired()) {
-        const auto SURF = Desktop::View::CWLSurface::fromResource(Desktop::focusState()->surface());
+        const auto SURF = Desktop::View::CWLSurface::fromResource(g_pSeatManager->m_state.pointerFocus.lock());
 
         if (isConstrained()) {
             const auto CONSTRAINT = SURF ? SURF->constraint() : nullptr;
@@ -1818,21 +1818,32 @@ bool CInputManager::isConstrained() {
     return std::ranges::any_of(m_constraints, [](auto const& c) {
         const auto constraint = c.lock();
 
-        if (!constraint || !constraint->isActive() || constraint->owner()->resource() != Desktop::focusState()->surface())
+        if (!constraint || !constraint->isActive() || constraint->owner()->resource() != g_pSeatManager->m_state.pointerFocus)
             return false;
 
         const auto OWNER  = constraint->owner()->view();
-        const auto WINDOW = Desktop::View::CWindow::fromView(OWNER);
+        PHLWINDOW  window = nullptr;
 
-        if (!WINDOW)
+        switch (OWNER->type()) {
+            case Desktop::View::VIEW_TYPE_WINDOW: window = Desktop::View::CWindow::fromView(OWNER); break;
+            case Desktop::View::VIEW_TYPE_SUBSURFACE: {
+                const auto SUBSURFACE = Desktop::View::CSubsurface::fromView(OWNER);
+                if (SUBSURFACE)
+                    window = SUBSURFACE->windowParent();
+                break;
+            }
+            default: return false;
+        }
+
+        if (!window)
             return false;
 
         // a window being interactively moved or resized ignores its pointer lock. the lock would otherwise warp
         // the cursor back to the constraint hint every frame, so the window could never be dragged (e.g. gamescope).
-        if (const auto DRAG = g_layoutManager->dragController()->target(); DRAG && DRAG->window() == WINDOW)
+        if (const auto DRAG = g_layoutManager->dragController()->target(); DRAG && DRAG->window() == window)
             return false;
 
-        return !WINDOW->m_layoutFlags.cantLockCursor;
+        return !window->m_layoutFlags.cantLockCursor;
     });
 }
 

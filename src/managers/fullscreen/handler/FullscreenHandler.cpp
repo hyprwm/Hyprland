@@ -104,8 +104,7 @@ eFullscreenRequestResult IFullscreenHandler::requestFullscreen(const SFullscreen
 
     setNoMembersAboveFullscreen();
 
-    g_pDesktopAnimationManager->setFullscreenFadeAnimation(
-        WORKSPACE, request.mode == FSMODE_NONE ? CDesktopAnimationManager::ANIMATION_TYPE_OUT : CDesktopAnimationManager::ANIMATION_TYPE_IN);
+    Animation::Workspace::setFullscreenFadeAnimation(WORKSPACE, request.mode != FSMODE_NONE ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
 
     return FULLSCREEN_REQUEST_DEFAULT_HANDLED;
 }

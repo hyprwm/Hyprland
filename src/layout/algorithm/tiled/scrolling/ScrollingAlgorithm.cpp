@@ -479,7 +479,8 @@ void SScrollingData::recalculate(bool forceInstant) {
     };
 
     // If the fullscreen window is default handled, return early.
-    if (const auto FULLSCREEN_WINDOW = g_pfullscreenController->getFullscreenWindow(WORKSPACE); FULLSCREEN_WINDOW && !g_pfullscreenController->layoutManagedFS(FULLSCREEN_WINDOW)) {
+    if (const auto FULLSCREEN_WINDOW = Fullscreen::controller()->getFullscreenWindow(WORKSPACE);
+        FULLSCREEN_WINDOW && !Fullscreen::controller()->layoutManagedFS(FULLSCREEN_WINDOW)) {
         algorithm->m_scrollingFullscreenHandler->setNoMembersAboveFullscreen();
         return;
     }
@@ -790,7 +791,7 @@ void CScrollingAlgorithm::removeTarget(SP<ITarget> target) {
 
     // remove the FS state of a tiled window when it is being removed/floated -- This exception needs to exist for the float case.
     if (m_scrollingFullscreenHandler->isFullscreen(target)) {
-        g_pfullscreenController->setFullscreenMode(target->window(), Fullscreen::FSMODE_NONE);
+        Fullscreen::controller()->setFullscreenMode(target->window(), Fullscreen::FSMODE_NONE);
     }
 
     if (!m_scrollingData->next(DATA->column.lock()) && DATA->column->targetDatas.size() <= 1) {

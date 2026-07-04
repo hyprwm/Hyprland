@@ -117,7 +117,7 @@ void CHyprBorderDecoration::updateWindow(PHLWINDOW) {
 }
 
 void CHyprBorderDecoration::damageEntire() {
-    if (!validMapped(m_window) || g_pfullscreenController->getFullscreenModes(m_window.lock()).internal == Fullscreen::FSMODE_FULLSCREEN)
+    if (!validMapped(m_window) || Fullscreen::controller()->getFullscreenModes(m_window.lock()).internal == Fullscreen::FSMODE_FULLSCREEN)
         return;
 
     const auto GLOBAL_BOX = assignedBoxGlobal();

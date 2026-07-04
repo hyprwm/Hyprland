@@ -240,14 +240,14 @@ void CGroup::setCurrent(size_t idx) {
     if (idx == m_current || !m_target->window())
         return;
 
-    const bool IS_FULLSCREEN     = g_pfullscreenController->isFullscreen(m_target->window());
-    const auto FS_MODE_INTERNAL  = g_pfullscreenController->getFullscreenModes(m_target->window()).internal;
-    const bool IS_LAYOUT_HANDLED = g_pfullscreenController->layoutManagedFS(m_target->window());
+    const bool IS_FULLSCREEN     = Fullscreen::controller()->isFullscreen(m_target->window());
+    const auto FS_MODE_INTERNAL  = Fullscreen::controller()->getFullscreenModes(m_target->window()).internal;
+    const bool IS_LAYOUT_HANDLED = Fullscreen::controller()->layoutManagedFS(m_target->window());
     const auto WASFOCUS          = Desktop::focusState()->window() == current();
     auto       oldWindow         = m_windows.at(m_current).lock();
 
     if (IS_FULLSCREEN)
-        g_pfullscreenController->setFullscreenMode(oldWindow, Fullscreen::FSMODE_NONE);
+        Fullscreen::controller()->setFullscreenMode(oldWindow, Fullscreen::FSMODE_NONE);
 
     m_current = std::clamp(idx, sc<size_t>(0), m_windows.size() - 1);
     updateWindowVisibility();
@@ -255,7 +255,7 @@ void CGroup::setCurrent(size_t idx) {
     auto newWindow = m_windows.at(m_current).lock();
 
     if (IS_FULLSCREEN) {
-        g_pfullscreenController->setFullscreenMode(newWindow, FS_MODE_INTERNAL, std::nullopt, IS_LAYOUT_HANDLED);
+        Fullscreen::controller()->setFullscreenMode(newWindow, FS_MODE_INTERNAL, std::nullopt, IS_LAYOUT_HANDLED);
         newWindow->m_target->warpPositionSize();
         oldWindow->m_target->setPositionGlobal(newWindow->m_target->position()); // TODO: this is a hack and sucks
     }

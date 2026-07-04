@@ -437,7 +437,7 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPo
     static auto POUTERGAP         = CConfigValue<Config::INTEGER>("group:groupbar:gaps_out");
     static auto PINNERGAP         = CConfigValue<Config::INTEGER>("group:groupbar:gaps_in");
     static auto PMIDDLECLICKCLOSE = CConfigValue<Config::INTEGER>("group:groupbar:middle_click_close");
-    if (g_pfullscreenController->getFullscreenModes(m_window.lock()).internal == Fullscreen::FSMODE_FULLSCREEN)
+    if (Fullscreen::controller()->getFullscreenModes(m_window.lock()).internal == Fullscreen::FSMODE_FULLSCREEN)
         return true;
 
     const float BARRELATIVEX = pos.x - assignedBoxGlobal().x;

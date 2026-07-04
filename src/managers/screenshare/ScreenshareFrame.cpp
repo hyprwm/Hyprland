@@ -283,7 +283,7 @@ void CScreenshareFrame::renderMonitor() {
                                           .translate(-m_session->m_captureBox.pos());
 
         // seems like rounding doesn't play well with how we manipulate the box position to render regions causing the window to leak through
-        const auto dontRound     = m_session->m_captureBox.pos() != Vector2D() || g_pfullscreenController->isFullscreen(w, Fullscreen::FSMODE_FULLSCREEN);
+        const auto dontRound     = m_session->m_captureBox.pos() != Vector2D() || Fullscreen::controller()->isFullscreen(w, Fullscreen::FSMODE_FULLSCREEN);
         const auto rounding      = dontRound ? 0 : w->rounding() * PMONITOR->m_scale;
         const auto roundingPower = dontRound ? 2.0f : w->roundingPower();
 

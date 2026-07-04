@@ -362,7 +362,7 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
 
     */
 
-    const auto COVERING_FULLSCREEN_WINDOW      = g_pfullscreenController->getFullscreenWindow(WORKSPACE, true);
+    const auto COVERING_FULLSCREEN_WINDOW      = Fullscreen::controller()->getFullscreenWindow(WORKSPACE, true);
     const auto LAYOUT_TILED_COVERING_FS_TARGET = getFullscreen(true);
     const auto LAYOUT_TILED_COVERING_FS_WINDOW = LAYOUT_TILED_COVERING_FS_TARGET && LAYOUT_TILED_COVERING_FS_TARGET->window() ? LAYOUT_TILED_COVERING_FS_TARGET->window() : nullptr;
 
@@ -391,7 +391,7 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
     // Below cases should not happen; Default handled FS windows should dispatch to their own handler's setNoMembersAboveFullscreen(). The cases below are for redundancy and error recovery.
 
     // If the COVERING_FULLSCREEN_WINDOW is default handled (this should not dispatch to this method at all with the new FS framework but this check is redundancy)
-    if (g_pfullscreenController->getFullscreenHandlerName(COVERING_FULLSCREEN_WINDOW) != FULLSCREEN_HANDLER_SCROLLING) {
+    if (Fullscreen::controller()->getFullscreenHandlerName(COVERING_FULLSCREEN_WINDOW) != FULLSCREEN_HANDLER_SCROLLING) {
         // TODO - this will fire when default handling FS windows in scrolling workspace. When FS related logic is properly extracted from recalculate(), this will no longer fire when no errors occur.
         Log::logger->log(Log::WARN,
                          "Default handled FS window called CScrollingFullscreenHandler::setNoMembersAboveFullscreen(). This should never happen: setNoMembersAboveFullscreen() "

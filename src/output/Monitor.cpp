@@ -1161,8 +1161,8 @@ bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
     static auto PMINRR   = CConfigValue<Config::INTEGER>("cursor:min_refresh_rate");
 
     // skip scheduling extra frames for fullsreen apps with vrr
-    const auto FULLSCREEN_WINDOW  = g_pfullscreenController->getFullscreenModes(m_self.lock()).internal == Fullscreen::FSMODE_FULLSCREEN ?
-        g_pfullscreenController->getFullscreenWindow(m_self.lock()) :
+    const auto FULLSCREEN_WINDOW  = Fullscreen::controller()->getFullscreenModes(m_self.lock()).internal == Fullscreen::FSMODE_FULLSCREEN ?
+        Fullscreen::controller()->getFullscreenWindow(m_self.lock()) :
         nullptr;
     const bool shouldRenderCursor = g_pHyprRenderer->shouldRenderCursor();
     const bool noBreak            = FULLSCREEN_WINDOW && (*PNOBREAK == 1 || (*PNOBREAK == 2 && FULLSCREEN_WINDOW->getContentType() == CONTENT_TYPE_GAME));
@@ -1483,7 +1483,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
         if (!noFocus && !Desktop::focusState()->monitor()->m_activeSpecialWorkspace &&
             !(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
             static auto PFOLLOWMOUSE = CConfigValue<Config::INTEGER>("input:follow_mouse");
-            auto pWindow = g_pfullscreenController->hasFullscreen(pWorkspace) ? g_pfullscreenController->getFullscreenWindow(pWorkspace) : pWorkspace->getLastFocusedWindow();
+            auto pWindow = Fullscreen::controller()->hasFullscreen(pWorkspace) ? Fullscreen::controller()->getFullscreenWindow(pWorkspace) : pWorkspace->getLastFocusedWindow();
 
             if (!pWindow) {
                 if (*PFOLLOWMOUSE == 1)
@@ -1518,7 +1518,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
     g_pHyprRenderer->damageMonitor(m_self.lock());
 
     Animation::Workspace::setFullscreenFadeAnimation(
-        pWorkspace, g_pfullscreenController->hasFullscreen(pWorkspace) ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
+        pWorkspace, Fullscreen::controller()->hasFullscreen(pWorkspace) ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
 
     Config::monitorRuleMgr()->ensureVRR(m_self.lock());
 
@@ -1526,8 +1526,8 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
 
     if (m_activeSpecialWorkspace)
         Animation::Workspace::setFullscreenFadeAnimation(m_activeSpecialWorkspace,
-                                                         g_pfullscreenController->hasFullscreen(m_activeSpecialWorkspace) ? Animation::Workspace::ANIMATION_TYPE_IN :
-                                                                                                                            Animation::Workspace::ANIMATION_TYPE_OUT);
+                                                         Fullscreen::controller()->hasFullscreen(m_activeSpecialWorkspace) ? Animation::Workspace::ANIMATION_TYPE_IN :
+                                                                                                                             Animation::Workspace::ANIMATION_TYPE_OUT);
 }
 
 void CMonitor::changeWorkspace(const WORKSPACEID& id, bool internal, bool noMouseMove, bool noFocus) {
@@ -1588,7 +1588,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         }
 
         Animation::Workspace::setFullscreenFadeAnimation(
-            m_activeWorkspace, g_pfullscreenController->hasFullscreen(m_activeWorkspace) ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
+            m_activeWorkspace, Fullscreen::controller()->hasFullscreen(m_activeWorkspace) ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
 
         Config::monitorRuleMgr()->ensureVRR(m_self.lock());
 
@@ -1624,8 +1624,8 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
         const auto PACTIVEWORKSPACE = PMONITOR->m_activeWorkspace;
         Animation::Workspace::setFullscreenFadeAnimation(PACTIVEWORKSPACE,
-                                                         PACTIVEWORKSPACE && g_pfullscreenController->hasFullscreen(PACTIVEWORKSPACE) ? Animation::Workspace::ANIMATION_TYPE_IN :
-                                                                                                                                        Animation::Workspace::ANIMATION_TYPE_OUT);
+                                                         PACTIVEWORKSPACE && Fullscreen::controller()->hasFullscreen(PACTIVEWORKSPACE) ? Animation::Workspace::ANIMATION_TYPE_IN :
+                                                                                                                                         Animation::Workspace::ANIMATION_TYPE_OUT);
 
         wasActive = true;
     }
@@ -1691,7 +1691,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     g_pHyprRenderer->damageMonitor(m_self.lock());
 
     Animation::Workspace::setFullscreenFadeAnimation(
-        pWorkspace, g_pfullscreenController->hasFullscreen(pWorkspace) ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
+        pWorkspace, Fullscreen::controller()->hasFullscreen(pWorkspace) ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
 
     Config::monitorRuleMgr()->ensureVRR(m_self.lock());
 
@@ -1795,7 +1795,7 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
     }
 
     // Monitor considers only FSMODE_FULLSCREEN as FS
-    if (g_pfullscreenController->getFullscreenModes(m_self.lock()).internal != Fullscreen::FSMODE_FULLSCREEN) {
+    if (Fullscreen::controller()->getFullscreenModes(m_self.lock()).internal != Fullscreen::FSMODE_FULLSCREEN) {
         reasons |= SC_WINDOWED;
         if (!full)
             return reasons;
@@ -1843,8 +1843,8 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
             return reasons;
     }
 
-    const auto PCANDIDATE = g_pfullscreenController->getFullscreenModes(m_self.lock()).internal == Fullscreen::FSMODE_FULLSCREEN ?
-        g_pfullscreenController->getFullscreenWindow(m_self.lock()) :
+    const auto PCANDIDATE = Fullscreen::controller()->getFullscreenModes(m_self.lock()).internal == Fullscreen::FSMODE_FULLSCREEN ?
+        Fullscreen::controller()->getFullscreenWindow(m_self.lock()) :
         nullptr;
 
     if (!PCANDIDATE) {
@@ -1916,8 +1916,8 @@ void CMonitor::recheckSolitary() {
     if (isSolitaryBlocked())
         return;
 
-    m_solitaryClient = g_pfullscreenController->getFullscreenModes(m_self.lock()).internal == Fullscreen::FSMODE_FULLSCREEN ?
-        g_pfullscreenController->getFullscreenWindow(m_self.lock()) :
+    m_solitaryClient = Fullscreen::controller()->getFullscreenModes(m_self.lock()).internal == Fullscreen::FSMODE_FULLSCREEN ?
+        Fullscreen::controller()->getFullscreenWindow(m_self.lock()) :
         nullptr;
 }
 
@@ -2011,10 +2011,10 @@ uint16_t CMonitor::isDSBlocked(bool full) {
     }
 
     if (*PDIRECTSCANOUT == 2) {
-        const auto FSWINDOW = g_pfullscreenController->getFullscreenModes(m_self.lock()).internal == Fullscreen::FSMODE_FULLSCREEN ?
-            g_pfullscreenController->getFullscreenWindow(m_self.lock()) :
+        const auto FSWINDOW = Fullscreen::controller()->getFullscreenModes(m_self.lock()).internal == Fullscreen::FSMODE_FULLSCREEN ?
+            Fullscreen::controller()->getFullscreenWindow(m_self.lock()) :
             nullptr;
-        if (!PWORKSPACE || !FSWINDOW || g_pfullscreenController->getFullscreenModes(FSWINDOW).internal != Fullscreen::FSMODE_FULLSCREEN) {
+        if (!PWORKSPACE || !FSWINDOW || Fullscreen::controller()->getFullscreenModes(FSWINDOW).internal != Fullscreen::FSMODE_FULLSCREEN) {
             reasons |= DS_BLOCK_WINDOWED;
             if (!full)
                 return reasons;
@@ -2433,8 +2433,8 @@ bool CMonitor::inHDR() {
 
 std::optional<NColorManagement::PImageDescription> CMonitor::getFSImageDescription() {
 
-    const auto FS_WINDOW = g_pfullscreenController->getFullscreenModes(m_self.lock()).internal == Fullscreen::FSMODE_FULLSCREEN ?
-        g_pfullscreenController->getFullscreenWindow(m_self.lock()) :
+    const auto FS_WINDOW = Fullscreen::controller()->getFullscreenModes(m_self.lock()).internal == Fullscreen::FSMODE_FULLSCREEN ?
+        Fullscreen::controller()->getFullscreenWindow(m_self.lock()) :
         nullptr;
     if (!FS_WINDOW)
         return {};

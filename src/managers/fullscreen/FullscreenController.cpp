@@ -18,6 +18,14 @@
 
 using namespace Fullscreen;
 
+
+
+UP<CFullscreenController>& Fullscreen::controller() {
+    static UP<CFullscreenController> p = makeUnique<CFullscreenController>();
+    return p;
+}
+
+
 // Window
 
 bool CFullscreenController::isFullscreen(const PHLWINDOW window, const std::optional<eFullscreenMode> mode, const std::optional<bool> covering) {
@@ -446,8 +454,8 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
     // allow for floating FS windows to layer over them); replace fullscreen
     if (hasFullscreen(WORKSPACE) && !isFullscreen(window) && !layoutAware) {
 
-        const auto COVERING_FS_WINDOW = g_pfullscreenController->getFullscreenWindow(WORKSPACE, true);
-        if (!g_pfullscreenController->layoutManagedFS(COVERING_FS_WINDOW))
+        const auto COVERING_FS_WINDOW = Fullscreen::controller()->getFullscreenWindow(WORKSPACE, true);
+        if (!Fullscreen::controller()->layoutManagedFS(COVERING_FS_WINDOW))
             setFullscreenMode(COVERING_FS_WINDOW, FSMODE_NONE);
     }
 

@@ -181,6 +181,6 @@ namespace Fullscreen {
         std::unordered_set<WP<Desktop::View::CWindow>> m_fsModeMaxWindows;
     };
 
-}
+    UP<CFullscreenController>& controller();
 
-inline UP<Fullscreen::CFullscreenController> g_pfullscreenController = makeUnique<Fullscreen::CFullscreenController>();
+}

@@ -39,11 +39,11 @@ void CFullscreenTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureB
     m_posFrom  = m_window->m_realPosition->goal();
     m_sizeFrom = m_window->m_realSize->goal();
 
-    m_originalMode = g_pfullscreenController->getFullscreenModes(m_window.lock()).internal;
+    m_originalMode = Fullscreen::controller()->getFullscreenModes(m_window.lock()).internal;
 
     // gesture fullscreen always uses layout specific fullscreen bahaviour if it exists
     // TODO add layoutAware flag to this too
-    g_pfullscreenController->setFullscreenMode(m_window.lock(), !g_pfullscreenController->isFullscreen(m_window.lock()) ? fsModeForMode(m_mode) : Fullscreen::FSMODE_NONE);
+    Fullscreen::controller()->setFullscreenMode(m_window.lock(), !Fullscreen::controller()->isFullscreen(m_window.lock()) ? fsModeForMode(m_mode) : Fullscreen::FSMODE_NONE);
 
     m_posTo  = m_window->m_realPosition->goal();
     m_sizeTo = m_window->m_realSize->goal();
@@ -81,7 +81,7 @@ void CFullscreenTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd
         // revert the animation
         g_pHyprRenderer->damageWindow(m_window.lock());
         Animation::Workspace::overrideFullscreenFadeAmount(m_window->m_workspace, m_originalMode == Fullscreen::FSMODE_NONE ? 1.F : 0.F, m_window.lock());
-        g_pfullscreenController->setFullscreenMode(m_window.lock(), !g_pfullscreenController->isFullscreen(m_window.lock()) ? m_originalMode : Fullscreen::FSMODE_NONE);
+        Fullscreen::controller()->setFullscreenMode(m_window.lock(), !Fullscreen::controller()->isFullscreen(m_window.lock()) ? m_originalMode : Fullscreen::FSMODE_NONE);
         return;
     }
 

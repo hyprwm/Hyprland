@@ -136,15 +136,15 @@ PHLWINDOW CViewHitTester::windowAt(const Vector2D& pos, uint16_t properties, PHL
         const WORKSPACEID WSPID      = special ? PMONITOR->activeSpecialWorkspaceID() : PMONITOR->activeWorkspaceID();
         const auto        PWORKSPACE = State::workspaceState()->query().id(WSPID).run();
 
-        if (g_pfullscreenController->hasFullscreen(PWORKSPACE) && !(properties & SKIP_FULLSCREEN_PRIORITY) && !ONLY_PRIORITY) {
-            const auto FS_WINDOW = g_pfullscreenController->getFullscreenWindow(PWORKSPACE);
+        if (Fullscreen::controller()->hasFullscreen(PWORKSPACE) && !(properties & SKIP_FULLSCREEN_PRIORITY) && !ONLY_PRIORITY) {
+            const auto FS_WINDOW = Fullscreen::controller()->getFullscreenWindow(PWORKSPACE);
 
             if (!FS_WINDOW)
                 return nullptr;
 
             // for maximized windows, don't return a window if we are not directly on it.
-            if (!g_pfullscreenController->isFullscreen(FS_WINDOW, Fullscreen::FSMODE_MAXIMIZED) || FS_WINDOW->getWindowBoxUnified(properties).containsPoint(pos))
-                return g_pfullscreenController->getFullscreenWindow(PWORKSPACE);
+            if (!Fullscreen::controller()->isFullscreen(FS_WINDOW, Fullscreen::FSMODE_MAXIMIZED) || FS_WINDOW->getWindowBoxUnified(properties).containsPoint(pos))
+                return Fullscreen::controller()->getFullscreenWindow(PWORKSPACE);
             else
                 return nullptr;
         }

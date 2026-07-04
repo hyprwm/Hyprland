@@ -214,7 +214,7 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
     if (*SNAPWINDOWGAP) {
         const double GAPSIZE       = *SNAPWINDOWGAP;
         const auto   WSID          = DRAGGINGWINDOW->workspaceID();
-        const bool   HASFULLSCREEN = DRAGGINGWINDOW->m_workspace && g_pfullscreenController->hasFullscreen(DRAGGINGWINDOW->m_workspace);
+        const bool   HASFULLSCREEN = DRAGGINGWINDOW->m_workspace && Fullscreen::controller()->hasFullscreen(DRAGGINGWINDOW->m_workspace);
 
         const auto*  GAPSIN = *SNAPRESPECTGAPS ? sc<Config::CCssGapData*>(PGAPSIN.ptr()) : &GAPSNONE;
         const double GAPSX  = GAPSIN->m_left + GAPSIN->m_right;

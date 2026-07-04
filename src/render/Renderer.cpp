@@ -247,7 +247,7 @@ bool IHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
             return true;
 
         // if hidden behind fullscreen
-        if (g_pfullscreenController->hasFullscreen(PWINDOWWORKSPACE) && !pWindow->isAllowedOverFullscreen() &&
+        if (Fullscreen::controller()->hasFullscreen(PWINDOWWORKSPACE) && !pWindow->isAllowedOverFullscreen() &&
             pWindow->alphaValue(WINDOW_ALPHA_FADE) * pWindow->alphaValue(WINDOW_ALPHA_FULLSCREEN) == 0)
             return false;
 
@@ -263,7 +263,7 @@ bool IHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
 
     // if not, check if it maybe is active on a different monitor.
     if (pWindow->m_workspace && pWindow->m_workspace->isVisible() && pWindow->m_isFloating /* tiled windows can't be multi-ws */)
-        return !g_pfullscreenController->isFullscreen(pWindow); // Do not draw fullscreen windows on other monitors
+        return !Fullscreen::controller()->isFullscreen(pWindow); // Do not draw fullscreen windows on other monitors
 
     if (pMonitor->m_activeSpecialWorkspace == pWindow->m_workspace)
         return true;
@@ -342,7 +342,7 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
         if (w->alphaValue(WINDOW_ALPHA_FADE) * w->alphaValue(WINDOW_ALPHA_FULLSCREEN) == 0.f)
             continue;
 
-        if (g_pfullscreenController->isFullscreen(w))
+        if (Fullscreen::controller()->isFullscreen(w))
             continue;
 
         windows.emplace_back(w);
@@ -382,7 +382,7 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
     for (auto const& w : Desktop::windowState()->windows()) {
         const auto PWORKSPACE = w->m_workspace;
 
-        if (w->m_workspace != pWorkspace || !g_pfullscreenController->isFullscreen(w)) {
+        if (w->m_workspace != pWorkspace || !Fullscreen::controller()->isFullscreen(w)) {
             if (!(PWORKSPACE && (PWORKSPACE->m_renderOffset->isBeingAnimated() || PWORKSPACE->m_alpha->isBeingAnimated() || PWORKSPACE->m_forceRendering)))
                 continue;
 
@@ -390,14 +390,14 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
                 continue;
         }
 
-        if (!g_pfullscreenController->isFullscreen(w))
+        if (!Fullscreen::controller()->isFullscreen(w))
             continue;
 
         if (w->m_monitor == pWorkspace->m_monitor && pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
             continue;
 
         if (shouldRenderWindow(w, pMonitor))
-            renderWindow(w, pMonitor, time, g_pfullscreenController->getFullscreenModes(pWorkspace).internal != Fullscreen::FSMODE_FULLSCREEN, RENDER_PASS_ALL);
+            renderWindow(w, pMonitor, time, Fullscreen::controller()->getFullscreenModes(pWorkspace).internal != Fullscreen::FSMODE_FULLSCREEN, RENDER_PASS_ALL);
 
         if (w->m_workspace != pWorkspace)
             continue;
@@ -411,7 +411,7 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
     // then render windows over fullscreen.
     for (auto const& w : Desktop::windowState()->windows()) {
         const bool shouldSkipWindow = w->workspaceID() != pWorkspaceWindow->workspaceID() || !w->m_isFloating || !w->shouldRenderOverFullscreen() || !w->m_isMapped ||
-            g_pfullscreenController->isFullscreen(w);
+            Fullscreen::controller()->isFullscreen(w);
 
         if (shouldSkipWindow)
             continue;
@@ -587,12 +587,12 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     const bool USE_WORKSPACE_FADE_ALPHA = pWindow->m_monitorMovedFrom != -1 && (!PWORKSPACE || !PWORKSPACE->isVisible());
 
     renderdata.surface   = pWindow->wlSurface()->resource();
-    renderdata.dontRound = g_pfullscreenController->getFullscreenModes(pWindow).internal == Fullscreen::FSMODE_FULLSCREEN;
+    renderdata.dontRound = Fullscreen::controller()->getFullscreenModes(pWindow).internal == Fullscreen::FSMODE_FULLSCREEN;
     renderdata.fadeAlpha = pWindow->alphaValue(WINDOW_ALPHA_FADE) * pWindow->alphaValue(WINDOW_ALPHA_FULLSCREEN) * pWindow->alphaValue(WINDOW_ALPHA_LAYOUT) *
         (pWindow->m_pinned || USE_WORKSPACE_FADE_ALPHA ? 1.f : PWORKSPACE->m_alpha->value()) *
         (USE_WORKSPACE_FADE_ALPHA ? pWindow->alphaValue(WINDOW_ALPHA_MOVE_TO_WORKSPACE) : 1.F) * pWindow->alphaValue(WINDOW_ALPHA_MOVE_FROM_WORKSPACE);
     renderdata.alpha         = pWindow->alphaValue(WINDOW_ALPHA_ACTIVE);
-    renderdata.decorate      = decorate && !pWindow->m_X11DoesntWantBorders && g_pfullscreenController->getFullscreenModes(pWindow).internal != Fullscreen::FSMODE_FULLSCREEN;
+    renderdata.decorate      = decorate && !pWindow->m_X11DoesntWantBorders && Fullscreen::controller()->getFullscreenModes(pWindow).internal != Fullscreen::FSMODE_FULLSCREEN;
     renderdata.rounding      = standalone || renderdata.dontRound ? 0 : pWindow->rounding() * pMonitor->m_scale;
     renderdata.roundingPower = standalone || renderdata.dontRound ? 2.0f : pWindow->roundingPower();
     renderdata.blur          = !standalone && shouldBlur(pWindow);
@@ -628,7 +628,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     renderdata.pos.y += pWindow->m_floatingOffset.y;
 
     // if window is floating and we have a slide animation, clip it to its full bb
-    if (!ignorePosition && pWindow->m_isFloating && !g_pfullscreenController->isFullscreen(pWindow) && PWORKSPACE->m_renderOffset->isBeingAnimated() && !pWindow->m_pinned) {
+    if (!ignorePosition && pWindow->m_isFloating && !Fullscreen::controller()->isFullscreen(pWindow) && PWORKSPACE->m_renderOffset->isBeingAnimated() && !pWindow->m_pinned) {
         CRegion rg =
             pWindow->getFullWindowBoundingBox().translate(-pMonitor->m_position + PWORKSPACE->m_renderOffset->value() + pWindow->m_floatingOffset).scale(pMonitor->m_scale);
         renderdata.clipBox = rg.getExtents();
@@ -1173,7 +1173,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     if (preBlurQueued(pMonitor))
         m_renderPass.add(makeUnique<CPreBlurElement>());
 
-    if UNLIKELY /* subjective? */ (g_pfullscreenController->hasFullscreen(pWorkspace))
+    if UNLIKELY /* subjective? */ (Fullscreen::controller()->hasFullscreen(pWorkspace))
         renderWorkspaceWindowsFullscreen(pMonitor, pWorkspace, time);
     else
         renderWorkspaceWindows(pMonitor, pWorkspace, time);
@@ -1202,7 +1202,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         if (ws->m_alpha->value() <= 0.F || !ws->m_isSpecialWorkspace)
             continue;
 
-        if (g_pfullscreenController->hasFullscreen(ws.lock()))
+        if (Fullscreen::controller()->hasFullscreen(ws.lock()))
             renderWorkspaceWindowsFullscreen(pMonitor, ws.lock(), time);
         else
             renderWorkspaceWindows(pMonitor, ws.lock(), time);
@@ -2291,7 +2291,7 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
     bool        wantHDR       = configuredHDR;
 
     const auto  FULLSCREEN_WINDOW =
-        g_pfullscreenController->getFullscreenModes(pMonitor).internal == Fullscreen::FSMODE_FULLSCREEN ? g_pfullscreenController->getFullscreenWindow(pMonitor) : nullptr;
+        Fullscreen::controller()->getFullscreenModes(pMonitor).internal == Fullscreen::FSMODE_FULLSCREEN ? Fullscreen::controller()->getFullscreenWindow(pMonitor) : nullptr;
 
     if (pMonitor->supportsHDR()) {
         // HDR metadata determined by

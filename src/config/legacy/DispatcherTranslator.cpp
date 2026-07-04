@@ -173,11 +173,11 @@ static SDispatchResult fullscreen(const std::string& args) {
         return {.success = false, .error = "Window not found"};
 
     if (ARGS[1] == "set") {
-        if (!g_pfullscreenController->isFullscreen(PWINDOW, MODE))
+        if (!Fullscreen::controller()->isFullscreen(PWINDOW, MODE))
             return wrap(Actions::fullscreenWindow(MODE, true));
         return {};
     } else if (ARGS[1] == "unset") {
-        if (g_pfullscreenController->isFullscreen(PWINDOW, MODE))
+        if (Fullscreen::controller()->isFullscreen(PWINDOW, MODE))
             return wrap(Actions::fullscreenWindow(MODE, true));
         return {};
     }
@@ -200,8 +200,8 @@ static SDispatchResult fullscreenstate(const std::string& args) {
         clientMode = std::stoi(std::string(ARGS[1]));
     } catch (...) { clientMode = -1; }
 
-    Fullscreen::eFullscreenMode im = internalMode != -1 ? sc<Fullscreen::eFullscreenMode>(internalMode) : g_pfullscreenController->getFullscreenModes(PWINDOW).internal;
-    Fullscreen::eFullscreenMode cm = clientMode != -1 ? sc<Fullscreen::eFullscreenMode>(clientMode) : g_pfullscreenController->getFullscreenModes(PWINDOW).client;
+    Fullscreen::eFullscreenMode im = internalMode != -1 ? sc<Fullscreen::eFullscreenMode>(internalMode) : Fullscreen::controller()->getFullscreenModes(PWINDOW).internal;
+    Fullscreen::eFullscreenMode cm = clientMode != -1 ? sc<Fullscreen::eFullscreenMode>(clientMode) : Fullscreen::controller()->getFullscreenModes(PWINDOW).client;
 
     return wrap(Actions::fullscreenWindow(im, cm, true));
 }
@@ -277,7 +277,7 @@ static SDispatchResult swapwindow(const std::string& args) {
     const auto PLASTWINDOW = Desktop::focusState()->window();
     if (!PLASTWINDOW)
         return {.success = false, .error = "Window to swap with not found"};
-    if (g_pfullscreenController->isFullscreen(PLASTWINDOW)) // TODO: If scrolling, maybe make it possible
+    if (Fullscreen::controller()->isFullscreen(PLASTWINDOW)) // TODO: If scrolling, maybe make it possible
         return {.success = false, .error = "Can't swap fullscreen window"};
 
     const auto PWINDOWTOCHANGETO = Desktop::viewState()->query().selector(args).runWindow();

@@ -368,15 +368,15 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
                 switch (FSSTATE) {
                     case -1: // no fullscreen
-                        if (g_pfullscreenController->hasFullscreen(m_self.lock()))
+                        if (Fullscreen::controller()->hasFullscreen(m_self.lock()))
                             return false;
                         break;
                     case 0: // fullscreen full
-                        if (g_pfullscreenController->getFullscreenModes(m_self.lock()).internal != Fullscreen::FSMODE_FULLSCREEN)
+                        if (Fullscreen::controller()->getFullscreenModes(m_self.lock()).internal != Fullscreen::FSMODE_FULLSCREEN)
                             return false;
                         break;
                     case 1: // maximized
-                        if (g_pfullscreenController->getFullscreenModes(m_self.lock()).internal != Fullscreen::FSMODE_MAXIMIZED)
+                        if (Fullscreen::controller()->getFullscreenModes(m_self.lock()).internal != Fullscreen::FSMODE_MAXIMIZED)
                             return false;
                         break;
                     default: break;

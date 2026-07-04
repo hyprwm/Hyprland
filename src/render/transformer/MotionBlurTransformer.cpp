@@ -27,7 +27,7 @@ bool CMotionBlurTransformer::shouldEnable(PHLWINDOW window) {
     if (!window)
         return false;
 
-    return *PMBENABLED && *PMBSAMPLES > 1 && !g_pfullscreenController->isFullscreen(window);
+    return *PMBENABLED && *PMBSAMPLES > 1 && !Fullscreen::controller()->isFullscreen(window);
 }
 
 SP<Render::IFramebuffer> CMotionBlurTransformer::transform(SP<Render::IFramebuffer> in) {

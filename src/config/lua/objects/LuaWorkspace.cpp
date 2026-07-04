@@ -124,9 +124,9 @@ static int workspaceIndex(lua_State* L) {
     } else if (key == "has_urgent")
         lua_pushboolean(L, ws->hasUrgentWindow());
     else if (key == "fullscreen_mode")
-        lua_pushinteger(L, sc<lua_Integer>(g_pfullscreenController->getFullscreenModes(ws).internal));
+        lua_pushinteger(L, sc<lua_Integer>(Fullscreen::controller()->getFullscreenModes(ws).internal));
     else if (key == "has_fullscreen")
-        lua_pushboolean(L, g_pfullscreenController->hasFullscreen(ws));
+        lua_pushboolean(L, Fullscreen::controller()->hasFullscreen(ws));
     else if (key == "is_persistent")
         lua_pushboolean(L, ws->isPersistent());
     else if (key == "is_empty")
@@ -147,7 +147,7 @@ static int workspaceIndex(lua_State* L) {
         else
             lua_pushnil(L);
     } else if (key == "fullscreen_window") {
-        const auto fsWindow = g_pfullscreenController->getFullscreenWindow(ws);
+        const auto fsWindow = Fullscreen::controller()->getFullscreenWindow(ws);
         if (fsWindow)
             Objects::CLuaWindow::push(L, fsWindow);
         else

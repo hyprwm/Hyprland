@@ -64,7 +64,7 @@ SP<CWindowFadeout> CWindowFadeout::create(PHLWINDOW window, SP<Render::IFramebuf
     fadeout->m_sourcePos   = window->m_realPosition->value() - MONITOR->m_position;
     fadeout->m_sourceSize  = window->m_realSize->value();
     const bool OVERFULLSCREEN =
-        window->m_isFloating && window->shouldRenderOverFullscreen() && window->m_workspace && g_pfullscreenController->hasFullscreen(window->m_workspace, true);
+        window->m_isFloating && window->shouldRenderOverFullscreen() && window->m_workspace && Fullscreen::controller()->hasFullscreen(window->m_workspace, true);
     fadeout->m_plane         = !window->m_isFloating ? FADEOUT_PLANE_WINDOW_TILED : (OVERFULLSCREEN ? FADEOUT_PLANE_WINDOW_OVER_FULLSCREEN : FADEOUT_PLANE_WINDOW_FLOATING);
     fadeout->m_rounding      = window->rounding();
     fadeout->m_roundingPower = window->roundingPower();

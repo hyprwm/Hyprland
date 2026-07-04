@@ -117,13 +117,13 @@ static int windowIndex(lua_State* L) {
     else if (key == "pinned")
         lua_pushboolean(L, w->m_pinned);
     else if (key == "fullscreen")
-        lua_pushinteger(L, sc<lua_Integer>(sc<uint8_t>(g_pfullscreenController->getFullscreenModes(w).internal)));
+        lua_pushinteger(L, sc<lua_Integer>(sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w).internal)));
     else if (key == "fullscreen_client")
-        lua_pushinteger(L, sc<lua_Integer>(sc<uint8_t>(g_pfullscreenController->getFullscreenModes(w).client)));
+        lua_pushinteger(L, sc<lua_Integer>(sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w).client)));
     else if (key == "over_fullscreen")
         lua_pushboolean(L, w->m_allowedOverFullscreen);
     else if (key == "fullscreen_handler")
-        lua_pushstring(L, g_pfullscreenController->getFullscreenHandlerNameAsString(w).c_str());
+        lua_pushstring(L, Fullscreen::controller()->getFullscreenHandlerNameAsString(w).c_str());
     else if (key == "group") {
         if (!w->m_group) {
             lua_pushnil(L);

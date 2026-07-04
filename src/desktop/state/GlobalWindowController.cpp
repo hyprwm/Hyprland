@@ -43,12 +43,12 @@ void CGlobalWindowController::moveWindowToWorkspace(PHLWINDOW pWindow, PHLWORKSP
     if (pWindow->m_workspace == pWorkspace)
         return;
 
-    const bool FULLSCREEN     = g_pfullscreenController->isFullscreen(pWindow);
-    const auto FULLSCREENMODE = g_pfullscreenController->getFullscreenModes(pWindow).internal;
+    const bool FULLSCREEN     = Fullscreen::controller()->isFullscreen(pWindow);
+    const auto FULLSCREENMODE = Fullscreen::controller()->getFullscreenModes(pWindow).internal;
     const bool WASVISIBLE     = pWindow->m_workspace && pWindow->m_workspace->isVisible();
 
     if (FULLSCREEN)
-        g_pfullscreenController->setFullscreenMode(pWindow, Fullscreen::FSMODE_NONE);
+        Fullscreen::controller()->setFullscreenMode(pWindow, Fullscreen::FSMODE_NONE);
 
     const PHLWINDOW pFirstWindowOnWorkspace   = pWorkspace->getFirstWindow();
     const int       visibleWindowsOnWorkspace = pWorkspace->getWindowCount(true, std::nullopt, true);
@@ -77,7 +77,7 @@ void CGlobalWindowController::moveWindowToWorkspace(PHLWINDOW pWindow, PHLWORKSP
     g_layoutManager->newTarget(pWindow->layoutTarget(), pWorkspace->m_space);
 
     if (FULLSCREEN)
-        g_pfullscreenController->setFullscreenMode(pWindow, FULLSCREENMODE);
+        Fullscreen::controller()->setFullscreenMode(pWindow, FULLSCREENMODE);
 
     pWorkspace->updateWindows();
     if (pWindow->m_workspace)

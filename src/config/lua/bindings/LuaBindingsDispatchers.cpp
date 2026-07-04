@@ -515,7 +515,7 @@ static int dsp_fullscreenWindowWithAction(lua_State* L) {
     if (!target)
         return Internal::dispatcherError(L, "hl.window.fullscreen: no target", WARN, C_NOTARGET);
 
-    const bool currentlyMode = g_pfullscreenController->isFullscreen(target, mode);
+    const bool currentlyMode = Fullscreen::controller()->isFullscreen(target, mode);
 
     if (actionRaw == 1) {
         if (!currentlyMode)
@@ -543,7 +543,7 @@ static int dsp_fullscreenState(lua_State* L) {
     if (!target)
         return Internal::pushSuccessResult(L);
 
-    const auto CURRENT        = g_pfullscreenController->getFullscreenModes(target);
+    const auto CURRENT        = Fullscreen::controller()->getFullscreenModes(target);
     const bool atDesiredState = CURRENT.internal == desiredInternal && CURRENT.client == desiredClient;
 
     if (actionRaw == 0) {

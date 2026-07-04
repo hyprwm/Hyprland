@@ -273,7 +273,7 @@ void CDwindleAlgorithm::removeTarget(SP<ITarget> target) {
 
     if (m_defaultFullscreenHandler->isFullscreen(target)) {
         auto window = target->window();
-        g_pfullscreenController->setFullscreenMode(window, Fullscreen::FSMODE_NONE);
+        Fullscreen::controller()->setFullscreenMode(window, Fullscreen::FSMODE_NONE);
     }
 
     const auto PPARENT = PNODE->pParent;
@@ -602,7 +602,7 @@ void CDwindleAlgorithm::calculateWorkspace() {
     const auto PWORKSPACE = m_parent->space()->workspace();
     const auto PMONITOR   = PWORKSPACE->m_monitor;
 
-    if (!PMONITOR || g_pfullscreenController->hasFullscreen(PWORKSPACE))
+    if (!PMONITOR || Fullscreen::controller()->hasFullscreen(PWORKSPACE))
         return;
 
     const auto TOPNODE = getMasterNode();

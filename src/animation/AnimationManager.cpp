@@ -334,7 +334,7 @@ void CHyprAnimationManager::tick() {
             }
         }
 
-        if (!g_pfullscreenController->hasFullscreen(owner.monitor))
+        if (!Fullscreen::controller()->hasFullscreen(owner.monitor))
             owner.monitor->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_ANIMATION);
     }
 

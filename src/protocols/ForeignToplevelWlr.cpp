@@ -65,7 +65,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
             }
         }
 
-        g_pfullscreenController->setFullscreenMode(PWINDOW, std::nullopt, Fullscreen::FSMODE_FULLSCREEN);
+        Fullscreen::controller()->setFullscreenMode(PWINDOW, std::nullopt, Fullscreen::FSMODE_FULLSCREEN);
         g_pHyprRenderer->damageWindow(PWINDOW);
     });
 
@@ -79,9 +79,9 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
             return;
 
         // if window is client FSMODE_FULLSCREEN, unFS the window. If it isn't, let the window keep its FS mode
-        const auto WINDOW_CLIENT_FS_MODE = g_pfullscreenController->getFullscreenModes(PWINDOW).client;
+        const auto WINDOW_CLIENT_FS_MODE = Fullscreen::controller()->getFullscreenModes(PWINDOW).client;
         if (WINDOW_CLIENT_FS_MODE == Fullscreen::FSMODE_FULLSCREEN)
-            g_pfullscreenController->setFullscreenMode(PWINDOW, std::nullopt, Fullscreen::FSMODE_NONE);
+            Fullscreen::controller()->setFullscreenMode(PWINDOW, std::nullopt, Fullscreen::FSMODE_NONE);
     });
 
     m_resource->setSetMaximized([this](CZwlrForeignToplevelHandleV1* p) {
@@ -97,7 +97,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
             PWINDOW->m_wantsInitialFullscreen = true;
             return;
         }
-        g_pfullscreenController->setFullscreenMode(PWINDOW, std::nullopt, Fullscreen::FSMODE_MAXIMIZED);
+        Fullscreen::controller()->setFullscreenMode(PWINDOW, std::nullopt, Fullscreen::FSMODE_MAXIMIZED);
     });
 
     m_resource->setUnsetMaximized([this](CZwlrForeignToplevelHandleV1* p) {
@@ -110,8 +110,8 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
             return;
 
         // If window's client FS state is maximised, unmaximise it. If it isn't, let it keep its FS state
-        if (g_pfullscreenController->getFullscreenModes(PWINDOW).client == Fullscreen::FSMODE_MAXIMIZED)
-            g_pfullscreenController->setFullscreenMode(PWINDOW, std::nullopt, Fullscreen::FSMODE_NONE);
+        if (Fullscreen::controller()->getFullscreenModes(PWINDOW).client == Fullscreen::FSMODE_MAXIMIZED)
+            Fullscreen::controller()->setFullscreenMode(PWINDOW, std::nullopt, Fullscreen::FSMODE_NONE);
     });
 
     m_resource->setSetMinimized([this](CZwlrForeignToplevelHandleV1* p) {
@@ -203,9 +203,9 @@ void CForeignToplevelHandleWlr::sendState() {
         *p     = ZWLR_FOREIGN_TOPLEVEL_HANDLE_V1_STATE_ACTIVATED;
     }
 
-    if (g_pfullscreenController->isFullscreen(PWINDOW)) {
+    if (Fullscreen::controller()->isFullscreen(PWINDOW)) {
         auto p = sc<uint32_t*>(wl_array_add(&state, sizeof(uint32_t)));
-        if (g_pfullscreenController->getFullscreenModes(PWINDOW).internal == Fullscreen::FSMODE_FULLSCREEN)
+        if (Fullscreen::controller()->getFullscreenModes(PWINDOW).internal == Fullscreen::FSMODE_FULLSCREEN)
             *p = ZWLR_FOREIGN_TOPLEVEL_HANDLE_V1_STATE_FULLSCREEN;
         else
             *p = ZWLR_FOREIGN_TOPLEVEL_HANDLE_V1_STATE_MAXIMIZED;

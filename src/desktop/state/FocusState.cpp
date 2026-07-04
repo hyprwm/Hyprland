@@ -29,8 +29,8 @@ struct SFullscreenWorkspaceFocusResult {
 };
 
 static SFullscreenWorkspaceFocusResult onFullscreenWorkspaceFocusWindow(PHLWINDOW pWindow, bool forceFSCycle) {
-    const auto FSWINDOW        = g_pfullscreenController->getFullscreenWindow(pWindow->m_workspace);
-    const auto FSMODE_INTERNAL = g_pfullscreenController->getFullscreenModes(pWindow->m_workspace).internal;
+    const auto FSWINDOW        = Fullscreen::controller()->getFullscreenWindow(pWindow->m_workspace);
+    const auto FSMODE_INTERNAL = Fullscreen::controller()->getFullscreenModes(pWindow->m_workspace).internal;
 
     if (pWindow == FSWINDOW)
         return {}; // no conflict
@@ -53,14 +53,14 @@ static SFullscreenWorkspaceFocusResult onFullscreenWorkspaceFocusWindow(PHLWINDO
         case 2:
             // undo fs, unless we force a cycle
             if (!forceFSCycle) {
-                g_pfullscreenController->setFullscreenMode(FSWINDOW, Fullscreen::FSMODE_NONE);
+                Fullscreen::controller()->setFullscreenMode(FSWINDOW, Fullscreen::FSMODE_NONE);
                 break;
             }
             [[fallthrough]];
         case 1:
             // replace fullscreen
-            g_pfullscreenController->setFullscreenMode(FSWINDOW, Fullscreen::FSMODE_NONE);
-            g_pfullscreenController->setFullscreenMode(pWindow, FSMODE_INTERNAL);
+            Fullscreen::controller()->setFullscreenMode(FSWINDOW, Fullscreen::FSMODE_NONE);
+            Fullscreen::controller()->setFullscreenMode(pWindow, FSMODE_INTERNAL);
             break;
 
         default: Log::logger->log(Log::ERR, "Invalid misc:on_focus_under_fullscreen mode: {}", *PONFOCUSUNDERFS); break;
@@ -75,8 +75,8 @@ void CFocusState::fullWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWL
             return;
 
         // Check if workspace has FS window. If so, don't cycle FS unless FS window is default handled
-        const auto FSWINDOW = g_pfullscreenController->getFullscreenWindow(pWindow->m_workspace);
-        if (FSWINDOW && !g_pfullscreenController->layoutManagedFS(FSWINDOW)) {
+        const auto FSWINDOW = Fullscreen::controller()->getFullscreenWindow(pWindow->m_workspace);
+        if (FSWINDOW && !Fullscreen::controller()->layoutManagedFS(FSWINDOW)) {
             const auto RESULT = onFullscreenWorkspaceFocusWindow(pWindow, forceFSCycle);
             if (RESULT.overrideFocusWindow)
                 pWindow = RESULT.overrideFocusWindow;

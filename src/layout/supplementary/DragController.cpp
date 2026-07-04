@@ -81,18 +81,18 @@ bool CDragStateController::exclusiveDeviceGrab() const {
 
 bool CDragStateController::updateDragWindow() {
     const auto DRAGGINGTARGET = m_target.lock();
-    const bool WAS_FULLSCREEN = DRAGGINGTARGET->window() ? g_pfullscreenController->isFullscreen(DRAGGINGTARGET->window()) : false;
+    const bool WAS_FULLSCREEN = DRAGGINGTARGET->window() ? Fullscreen::controller()->isFullscreen(DRAGGINGTARGET->window()) : false;
 
     if (m_dragThresholdReached) {
         if (WAS_FULLSCREEN) {
             Log::logger->log(Log::DEBUG, "Dragging a fullscreen window");
-            g_pfullscreenController->setFullscreenMode(DRAGGINGTARGET->window(), Fullscreen::FSMODE_NONE);
+            Fullscreen::controller()->setFullscreenMode(DRAGGINGTARGET->window(), Fullscreen::FSMODE_NONE);
         }
 
         const auto PWORKSPACE     = DRAGGINGTARGET->workspace();
         const auto DRAGGINGWINDOW = DRAGGINGTARGET->window();
 
-        if (g_pfullscreenController->hasFullscreen(PWORKSPACE) && (!DRAGGINGTARGET->floating() || !DRAGGINGWINDOW->isAllowedOverFullscreen())) {
+        if (Fullscreen::controller()->hasFullscreen(PWORKSPACE) && (!DRAGGINGTARGET->floating() || !DRAGGINGWINDOW->isAllowedOverFullscreen())) {
             Log::logger->log(Log::DEBUG, "Rejecting drag on a fullscreen workspace. (window under fullscreen)");
             CKeybindManager::changeMouseBindMode(MBIND_INVALID);
             return true;

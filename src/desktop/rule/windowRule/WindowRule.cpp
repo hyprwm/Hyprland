@@ -413,7 +413,7 @@ bool CWindowRule::matches(PHLWINDOW w, bool allowEnvLookup) {
                     return false;
                 break;
             case RULE_PROP_FULLSCREEN:
-                if (!engine->match(g_pfullscreenController->isFullscreen(w)))
+                if (!engine->match(Fullscreen::controller()->isFullscreen(w)))
                     return false;
                 break;
             case RULE_PROP_PINNED:
@@ -433,11 +433,11 @@ bool CWindowRule::matches(PHLWINDOW w, bool allowEnvLookup) {
                     return false;
                 break;
             case RULE_PROP_FULLSCREENSTATE_INTERNAL:
-                if (!engine->match(g_pfullscreenController->getFullscreenModes(w).internal))
+                if (!engine->match(Fullscreen::controller()->getFullscreenModes(w).internal))
                     return false;
                 break;
             case RULE_PROP_FULLSCREENSTATE_CLIENT:
-                if (!engine->match(g_pfullscreenController->getFullscreenModes(w).client))
+                if (!engine->match(Fullscreen::controller()->getFullscreenModes(w).client))
                     return false;
                 break;
             case RULE_PROP_ON_WORKSPACE:

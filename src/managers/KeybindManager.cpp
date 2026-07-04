@@ -953,7 +953,7 @@ SDispatchResult CKeybindManager::changeMouseBindMode(const eMouseBindMode MODE) 
         if (!PWINDOW)
             return SDispatchResult{.passEvent = true};
 
-        if (!g_pfullscreenController->isFullscreen(PWINDOW) && MODE == MBIND_MOVE) {
+        if (!Fullscreen::controller()->isFullscreen(PWINDOW) && MODE == MBIND_MOVE) {
             if (PWINDOW->checkInputOnDecos(INPUT_TYPE_DRAG_START, MOUSECOORDS))
                 return SDispatchResult{.passEvent = false};
         }

@@ -483,8 +483,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     };
 
     const bool HAS_EXCLUSIVE_FULLSCREEN =
-        (g_pfullscreenController->hasFullscreen(PWORKSPACE) && g_pfullscreenController->getFullscreenModes(PWORKSPACE).internal == Fullscreen::FSMODE_FULLSCREEN) ||
-        (g_pfullscreenController->hasFullscreen(PMONITOR) && g_pfullscreenController->getFullscreenModes(PMONITOR).internal == Fullscreen::FSMODE_FULLSCREEN);
+        (Fullscreen::controller()->hasFullscreen(PWORKSPACE) && Fullscreen::controller()->getFullscreenModes(PWORKSPACE).internal == Fullscreen::FSMODE_FULLSCREEN) ||
+        (Fullscreen::controller()->hasFullscreen(PMONITOR) && Fullscreen::controller()->getFullscreenModes(PMONITOR).internal == Fullscreen::FSMODE_FULLSCREEN);
 
     if (HAS_EXCLUSIVE_FULLSCREEN) {
         const auto IS_LS_UNFOCUSABLE = pFoundLayerSurface &&
@@ -495,7 +495,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
             foundSurface       = nullptr;
             pFoundLayerSurface = nullptr;
 
-            pFoundWindow = g_pfullscreenController->getFullscreenWindow(PWORKSPACE);
+            pFoundWindow = Fullscreen::controller()->getFullscreenWindow(PWORKSPACE);
 
             // redundancy
             if (!pFoundWindow) {
@@ -520,7 +520,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
     // then windows
     if (!foundSurface) {
-        if (g_pfullscreenController->hasFullscreen(PWORKSPACE) && g_pfullscreenController->getFullscreenModes(PWORKSPACE).internal == Fullscreen::FSMODE_MAXIMIZED) {
+        if (Fullscreen::controller()->hasFullscreen(PWORKSPACE) && Fullscreen::controller()->getFullscreenModes(PWORKSPACE).internal == Fullscreen::FSMODE_MAXIMIZED) {
             if (!foundSurface) {
                 if (PMONITOR->m_activeSpecialWorkspace) {
                     const auto& PWINDOWIDEAL = getWindowIdeal();
@@ -528,7 +528,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
                         pFoundWindow = PWINDOWIDEAL;
 
                     if (pFoundWindow && !pFoundWindow->onSpecialWorkspace()) {
-                        pFoundWindow = g_pfullscreenController->getFullscreenWindow(PWORKSPACE);
+                        pFoundWindow = Fullscreen::controller()->getFullscreenWindow(PWORKSPACE);
                     }
                 } else {
                     // if we have a maximized window, allow focusing on a bar or something if in reserved area.
@@ -543,7 +543,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
                             pFoundWindow = PWINDOWIDEAL;
 
                         if (!(pFoundWindow && (pFoundWindow->m_isFloating && pFoundWindow->isAllowedOverFullscreen())))
-                            pFoundWindow = g_pfullscreenController->getFullscreenWindow(PWORKSPACE);
+                            pFoundWindow = Fullscreen::controller()->getFullscreenWindow(PWORKSPACE);
                     }
                 }
             }
@@ -656,7 +656,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     if (pFoundWindow) {
         // change cursor icon if hovering over border
         if (*PRESIZEONBORDER && *PRESIZECURSORICON) {
-            if (!g_pfullscreenController->isFullscreen(pFoundWindow) && !pFoundWindow->hasPopupAt(mouseCoords))
+            if (!Fullscreen::controller()->isFullscreen(pFoundWindow) && !pFoundWindow->hasPopupAt(mouseCoords))
                 setCursorIconOnBorder(pFoundWindow);
             else if (m_borderIconDirection != BORDERICON_NONE) {
                 m_borderIconDirection = BORDERICON_NONE;
@@ -867,7 +867,7 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e, SP<I
     // clicking on border triggers resize
     // TODO detect click on LS properly
     if (*PRESIZEONBORDER && !g_pSessionLockManager->isSessionLocked() && !m_lastFocusOnLS && e.state == WL_POINTER_BUTTON_STATE_PRESSED && (!w || !w->isX11OverrideRedirect())) {
-        if (w && !g_pfullscreenController->isFullscreen(w)) {
+        if (w && !Fullscreen::controller()->isFullscreen(w)) {
             const CBox real = {w->m_realPosition->value().x, w->m_realPosition->value().y, w->m_realSize->value().x, w->m_realSize->value().y};
             const CBox grab = {real.x - BORDER_GRAB_AREA, real.y - BORDER_GRAB_AREA, real.width + 2 * BORDER_GRAB_AREA, real.height + 2 * BORDER_GRAB_AREA};
 

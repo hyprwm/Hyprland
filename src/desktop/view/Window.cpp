@@ -2388,6 +2388,7 @@ void CWindow::mapWindow() {
     updateWindowData();
 
     if (m_isFloating) {
+        // all new floating windows are allowed over existing FS windows.
         m_allowedOverFullscreen = true;
 
         // set the pseudo size to the GOAL of our current size
@@ -2531,8 +2532,11 @@ void CWindow::mapWindow() {
     // recalc the values for this window
     updateDecorationValues();
     // avoid this window being visible if it's not the current covering FS window in workspace
-    if (PWORKSPACE && Fullscreen::controller()->hasFullscreen(PWORKSPACE) && Fullscreen::controller()->getFullscreenWindow(PWORKSPACE, true) != m_self.lock() && !m_isFloating)
+    if (PWORKSPACE && Fullscreen::controller()->hasFullscreen(PWORKSPACE) && Fullscreen::controller()->getFullscreenWindow(PWORKSPACE, true) != m_self.lock() && !m_isFloating) {
+        m_self->m_allowedOverFullscreen = false;
+        updateFullscreenInputState();
         alpha(WINDOW_ALPHA_FULLSCREEN)->setValueAndWarp(0.f);
+    }
 
     if (g_pSeatManager->m_mouse.expired() || !g_pInputManager->isConstrained())
         g_pInputManager->sendMotionEventsToFocused();

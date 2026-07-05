@@ -124,7 +124,7 @@ void CDwindleAlgorithm::addTarget(SP<ITarget> target) {
         }
     }
 
-    // if it's the first, it's easy. Make it fullscreen.
+    // if it's the first, it's easy. Make it maximise-sized.
     if (!OPENINGON || OPENINGON->pTarget.lock() == target) {
         PNODE->box = WORK_AREA;
         PNODE->pTarget->setPositionGlobal(PNODE->box);

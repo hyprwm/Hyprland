@@ -752,9 +752,9 @@ static int hlWindowFullscreen(lua_State* L) {
 
         }
     }
-    lua_pushnumber(L, (int)mode);
+    lua_pushnumber(L, (int)mode); // 1
 
-    lua_pushboolean(L, layoutAware);
+    lua_pushboolean(L, layoutAware); // 2
 
     if (action == 0) {
         Internal::pushWindowUpval(L, 1);

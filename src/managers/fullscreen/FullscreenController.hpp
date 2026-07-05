@@ -184,11 +184,9 @@ namespace Fullscreen {
 
         // Misc. Operations
 
-
         // In order to avoid re-setting an FS window's size over and over again if it's FS and already set to the correct value.
         // Different layout are allowed to implement custom sizes for their FS windows therefore we simply prevent re-setting the values
         bool m_windowPosSettingQueued = false;
-
 
       private:
         // FS Mode Setter Helpers

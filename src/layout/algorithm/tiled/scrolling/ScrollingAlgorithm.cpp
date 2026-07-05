@@ -510,8 +510,8 @@ void SScrollingData::recalculate(bool forceInstant) {
                 if (TARGET_FS_MODE == Fullscreen::FSMODE_FULLSCREEN) {
                     // Target is Covering Fullscreen
                     if (algorithm->m_scrollingFullscreenHandler->isFullscreen(TARGET, Fullscreen::FSMODE_FULLSCREEN, true)) {
-                        TDATA->layoutBox             = MONBOX;
-                        currentFsTdata               = TDATA;
+                        TDATA->layoutBox                     = MONBOX;
+                        currentFsTdata                       = TDATA;
                         targetWorkspaceHasCoveringFullscreen = true;
                     }
                     // Target is non-covering fullscreen
@@ -530,8 +530,8 @@ void SScrollingData::recalculate(bool forceInstant) {
                 else if (TARGET_FS_MODE == Fullscreen::FSMODE_MAXIMIZED) {
                     // Target is Covering Maximised
                     if (algorithm->m_scrollingFullscreenHandler->isFullscreen(TARGET, Fullscreen::FSMODE_MAXIMIZED, true)) {
-                        TDATA->layoutBox             = WORKAREA;
-                        currentFsTdata               = TDATA;
+                        TDATA->layoutBox                     = WORKAREA;
+                        currentFsTdata                       = TDATA;
                         targetWorkspaceHasCoveringFullscreen = true;
                     }
                     // Target is non-covering Maximied

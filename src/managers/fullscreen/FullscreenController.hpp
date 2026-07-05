@@ -68,6 +68,16 @@ namespace Fullscreen {
       TODO: It should relegate this to the handlers
 
 
+
+      FS window positon setting
+      -------------------------
+
+      It is done by the handlers. To avoid overriding the positons of FS windows, set m_windowPosSettingQueued before setting window positions.
+      
+      Make sure that when setting FS window's pos, the window is considered FS by the controller's FS state getter calls to ensure that 
+      window/workspace rules correctly apply and m_windowPosSettingQueued flag is correctly lowered when updatePos() is called
+
+
       Window Groups
       -------------
 
@@ -173,6 +183,12 @@ namespace Fullscreen {
                                std::optional<bool> layoutAware = std::nullopt);
 
         // Misc. Operations
+
+
+        // In order to avoid re-setting an FS window's size over and over again if it's FS and already set to the correct value.
+        // Different layout are allowed to implement custom sizes for their FS windows therefore we simply prevent re-setting the values
+        bool m_windowPosSettingQueued = false;
+
 
       private:
         // FS Mode Setter Helpers

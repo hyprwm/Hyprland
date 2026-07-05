@@ -486,7 +486,7 @@ void SScrollingData::recalculate(bool forceInstant) {
     };
 
     // Correctly setting workspace related attributes for the current workspace. Since there can only be one FS window that is currently covering monitor/work area, these values should only be set one (or not set at all). More than once indicates a bug.
-    bool targetWorkspaceHasFullscreen = false;
+    bool targetWorkspaceHasCoveringFullscreen = false;
 
     // Save if there is a currently FS window (i.e. the FS window covers monitor if fullscreen, or work area if maximised)
     SP<SScrollingTargetData> currentFsTdata = nullptr;
@@ -512,7 +512,7 @@ void SScrollingData::recalculate(bool forceInstant) {
                     if (algorithm->m_scrollingFullscreenHandler->isFullscreen(TARGET, Fullscreen::FSMODE_FULLSCREEN, true)) {
                         TDATA->layoutBox             = MONBOX;
                         currentFsTdata               = TDATA;
-                        targetWorkspaceHasFullscreen = true;
+                        targetWorkspaceHasCoveringFullscreen = true;
                     }
                     // Target is non-covering fullscreen
                     else {
@@ -532,7 +532,7 @@ void SScrollingData::recalculate(bool forceInstant) {
                     if (algorithm->m_scrollingFullscreenHandler->isFullscreen(TARGET, Fullscreen::FSMODE_MAXIMIZED, true)) {
                         TDATA->layoutBox             = WORKAREA;
                         currentFsTdata               = TDATA;
-                        targetWorkspaceHasFullscreen = true;
+                        targetWorkspaceHasCoveringFullscreen = true;
                     }
                     // Target is non-covering Maximied
                     else {
@@ -554,16 +554,19 @@ void SScrollingData::recalculate(bool forceInstant) {
             else
                 TDATA->layoutBox = controller->calculateTargetBox(i, j, USABLE, WORKAREA.pos(), *PFSONONE);
 
-            if (TDATA->target)
+            if (TDATA->target) {
+                if (targetWorkspaceHasCoveringFullscreen)
+                    Fullscreen::controller()->m_windowPosSettingQueued = true;
                 // If individual window, sets windowTarget's pos. If group, sets windowGroupTarget's pos - which will set all member target's positions in turn
                 TDATA->target->setPositionGlobal(targetBoxWithGaps(TDATA->layoutBox, i, j, COL_HAS_FS_TARGET && TARGET_FS_MODE == Fullscreen::FSMODE_FULLSCREEN));
+            }
 
             if (forceInstant && TDATA->target)
                 TDATA->target->warpPositionSize();
         }
     }
 
-    algorithm->m_scrollingFullscreenHandler->sScrollingDataRecalculateHelper(currentFsTdata, MONITOR, targetWorkspaceHasFullscreen);
+    algorithm->m_scrollingFullscreenHandler->sScrollingDataRecalculateHelper(currentFsTdata, MONITOR, targetWorkspaceHasCoveringFullscreen);
 }
 
 double SScrollingData::maxWidth() {

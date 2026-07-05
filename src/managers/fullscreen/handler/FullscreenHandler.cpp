@@ -164,9 +164,11 @@ void IFullscreenHandler::setTargetSizeAndPosition(const SP<Layout::ITarget> targ
     // If individual window, it sets windowTarget's pos. If group, sets windowGroupTarget's pos - which will set all member target's positions in turn
     if (TARGET_INTERNAL_MODE == FSMODE_FULLSCREEN) {
         const CBox MONBOX = MONITOR->logicalBox();
+        Fullscreen::controller()->m_windowPosSettingQueued = true;
         LAYOUT_TARGET->setPositionGlobal(MONBOX);
     } else if (TARGET_INTERNAL_MODE == FSMODE_MAXIMIZED) {
         const CBox WORKAREA = WORKSPACE->m_space->workArea(LAYOUT_TARGET->floating());
+        Fullscreen::controller()->m_windowPosSettingQueued = true;
         LAYOUT_TARGET->setPositionGlobal(WORKAREA);
     }
 

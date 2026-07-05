@@ -596,22 +596,26 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
 
         In prop refresh event's call of this function, this part should return false as the states above should be synced already.
     */
-    if ((TARGET_WORKSPACE_HAS_FS && CURRENT_FS_TDATA && CURRENT_FS_TDATA->target &&
-         CURRENT_FS_TDATA->target->window() != m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow) ||
-        (m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow && !TARGET_WORKSPACE_HAS_FS)) {
+    // Scrolling onto or have a new FS window
+    if ((TARGET_WORKSPACE_HAS_FS && CURRENT_FS_TDATA && CURRENT_FS_TDATA->target && CURRENT_FS_TDATA->target->window() &&
+         CURRENT_FS_TDATA->target->window() != m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow)) {
 
-        if (m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow) {
-            const auto LAST_FS_WINDOW = m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow.lock();
-            LAST_FS_WINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
-                                                                Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-            LAST_FS_WINDOW->updateDecorationValues();
-        }
-        if (CURRENT_FS_TDATA && CURRENT_FS_TDATA->target && CURRENT_FS_TDATA->target->window()) {
-            const auto LAST_FS_WINDOW = CURRENT_FS_TDATA->target->window();
-            LAST_FS_WINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
-                                                                Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-            LAST_FS_WINDOW->updateDecorationValues();
-        }
+        const auto LAST_FS_WINDOW = CURRENT_FS_TDATA->target->window();
+        LAST_FS_WINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
+                                                            Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
+        LAST_FS_WINDOW->updateDecorationValues();
+
+        // normally, FS controller's FS state setter's method of handling window rules should be used; but calling g_layoutManager->recalculateMonitor(MONITOR) here would lead to an inf recursion
+        // so we enqueue a prop refresh instead to handle this in the next event.
+        // Concern: if the user executes a premature prop refresh, this might cause another prop refresh to be enqueud - though this is unlikely and would only occur in the event of a bug
+        Config::Supplementary::refresher()->scheduleRefresh(Config::Supplementary::REFRESH_WINDOW_STATES | Config::Supplementary::REFRESH_MONITOR_STATES);
+    }
+    // Scrolling away from an FS window
+    else if (m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow && !TARGET_WORKSPACE_HAS_FS) {
+        const auto LAST_FS_WINDOW = m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow.lock();
+        LAST_FS_WINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
+                                                            Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
+        LAST_FS_WINDOW->updateDecorationValues();
 
         // normally, FS controller's FS state setter's method of handling window rules should be used; but calling g_layoutManager->recalculateMonitor(MONITOR) here would lead to an inf recursion
         // so we enqueue a prop refresh instead to handle this in the next event.

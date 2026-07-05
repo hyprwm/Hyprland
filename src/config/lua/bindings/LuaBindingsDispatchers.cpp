@@ -499,7 +499,7 @@ static int dsp_floatWindow(lua_State* L) {
 static int dsp_fullscreenWindow(lua_State* L) {
     return Internal::checkResult(
         L,
-        CA::fullscreenWindow(sc<Fullscreen::eFullscreenMode>((int)lua_tonumber(L, lua_upvalueindex(1))), lua_toboolean(L, lua_upvalueindex(2)), Internal::windowFromUpval(L, 3)));
+        CA::fullscreenWindow(sc<Fullscreen::eFullscreenMode>((int)lua_tonumber(L, lua_upvalueindex(1))), (bool)lua_toboolean(L, lua_upvalueindex(2)), Internal::windowFromUpval(L, 3)));
 }
 
 static int dsp_fullscreenWindowWithAction(lua_State* L) {
@@ -717,6 +717,7 @@ static int hlWindowFloat(lua_State* L) {
 static int hlWindowFullscreen(lua_State* L) {
     Fullscreen::eFullscreenMode mode   = Fullscreen::FSMODE_FULLSCREEN;
     int                         action = 0; // 0: toggle, 1: set, 2: unset
+    bool                        layoutAware = true; // layout specific fullscreen behaviour or not - default is true
     if (lua_istable(L, 1)) {
         auto m = Internal::tableOptStr(L, 1, "mode");
         if (m) {
@@ -739,12 +740,20 @@ static int hlWindowFullscreen(lua_State* L) {
             else
                 return Internal::configError(L, "hl.window.fullscreen: invalid action \"{}\" (expected toggle/set/unset)", *a);
         }
+
+        auto la = Internal::tableOptBool(L, 1, "layout_aware");
+        if (la) {
+            if (*la)
+                layoutAware = true;
+            else if (!*la)
+                layoutAware = false;
+            else
+                return Internal::configError(L, "hl.window.fullscreen: invalid action \"{}\" (expected true/false)", *la);
+
+        }
     }
     lua_pushnumber(L, (int)mode);
 
-    // layout specific fullscreen behaviour or not
-    auto ls          = Internal::tableOptBool(L, 1, "layout_aware");
-    bool layoutAware = ls ? *ls : true; // default is true
     lua_pushboolean(L, layoutAware);
 
     if (action == 0) {

@@ -1329,6 +1329,13 @@ void CInputManager::setPointerConfigs() {
                 m->m_connected = false;
             }
 
+            if (m->aq() && m->aq()->getLibinputHandle()) {
+                const auto LIBINPUTDEV = m->aq()->getLibinputHandle();
+                const auto mode        = ENABLED ? LIBINPUT_CONFIG_SEND_EVENTS_ENABLED : LIBINPUT_CONFIG_SEND_EVENTS_DISABLED;
+                if (libinput_device_config_send_events_get_mode(LIBINPUTDEV) != mode)
+                    libinput_device_config_send_events_set_mode(LIBINPUTDEV, mode);
+            }
+
             for (const auto tagString : CVarList2(Config::mgr()->getDeviceString(devname, "tags"))) {
                 m->m_deviceTags.emplace(std::string_view(tagString));
             }

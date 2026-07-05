@@ -79,7 +79,7 @@ void CWindowTarget::updatePos() {
     /* FS Handling */
 
     // If the FS window's pos is already set, early return. If not, unset the flag as we're setting it right now
-    if (m_window && Fullscreen::controller()->isFullscreen(m_window.lock())) {
+    if (m_window && Fullscreen::controller()->isFullscreen(m_window.lock(), std::nullopt, true)) {
         if (!Fullscreen::controller()->m_windowPosSettingQueued)
             return;
         Fullscreen::controller()->m_windowPosSettingQueued = false;

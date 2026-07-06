@@ -326,7 +326,7 @@ void CMonitor::onConnect(bool noRule) {
         const bool ORPHANED   = !CURRENTMON || std::ranges::none_of(State::monitorState()->monitors(), [&](const auto& mon) { return mon == CURRENTMON; });
         const bool RETURNING  = ws->m_lastMonitor == m_name;
         const bool RECOVERY =
-            ORPHANED && std::ranges::count_if(g_pCompositor->m_monitors, [](const auto& mon) { return !mon->m_isUnsafeFallback; }) == 1; // temporarily recover orphaned workspaces
+            ORPHANED && std::ranges::count_if(State::monitorState()->monitors(), [](const auto& mon) { return !mon->m_isUnsafeFallback; }) == 1; // temporarily recover orphaned workspaces
 
         if (RETURNING || RECOVERY) {
             State::workspacePlacementController()->moveWorkspaceToMonitor(ws, m_self.lock());

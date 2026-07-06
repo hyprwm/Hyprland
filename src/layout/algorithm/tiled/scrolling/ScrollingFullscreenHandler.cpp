@@ -588,9 +588,9 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
     // onto/away from FS windows and this process doesn't call the controller's FS setters which are normally responsible for handling window rule checks.
 
     /*
-        Handle window rules - those that only apply when there's a covering FS window
+        Handle window/workspace rules, decorations, etc...
         
-        Newly FSed or scrolling away from an FS window:
+        Handle if: Newly FSed or scrolling away from an FS window:
             If there's a new FS window
             If the old FS window is no longer FS (this function is responsible for calling the function that would sync that state so at this point, the old value is still saved as 'FS')
 

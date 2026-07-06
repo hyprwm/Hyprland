@@ -446,6 +446,13 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
 
     initManagers(STAGE_LATE);
 
+    m_listeners.lock = g_pSessionLockManager->m_events.lock.listen([this] { writeWatchdogFd("lock"); });
+
+    m_listeners.unlock = g_pSessionLockManager->m_events.unlock.listen([this] {
+        m_lockedCrash = false;
+        writeWatchdogFd("unlock");
+    });
+
     if (m_lockedCrash)
         g_pSessionLockManager->forceLock();
 

@@ -73,6 +73,11 @@ class CSessionLockManager {
 
     bool                    shallConsiderLockMissing();
 
+    struct {
+        CSignalT<> lock;
+        CSignalT<> unlock;
+    } m_events;
+
   private:
     UP<SSessionLock> m_sessionLock;
 

@@ -105,6 +105,11 @@ class CCompositor {
     wl_event_source*               m_critSigSource  = nullptr;
     rlimit                         m_originalNofile = {};
     Hyprutils::OS::CFileDescriptor m_watchdogWriteFd;
+
+    struct {
+        CHyprSignalListener lock;
+        CHyprSignalListener unlock;
+    } m_listeners;
 };
 
 inline UP<CCompositor> g_pCompositor;

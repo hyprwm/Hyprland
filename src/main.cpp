@@ -37,7 +37,8 @@ static void help() {
     --i-am-really-stupid         - Omits root user privileges check (why would you do that?)
     --verify-config              - Do not run Hyprland, only print if the config has any errors
     --version           -v       - Print this binary's version
-    --version-json               - Print this binary's version as json)#");
+    --version-json               - Print this binary's version as json
+    --locked-crash               - Hyprland crashed while locked)#");
 }
 
 static void reapZombieChildrenAutomatically() {
@@ -71,7 +72,7 @@ int main(int argc, char** argv) {
     std::string configPath;
     std::string socketName;
     int         socketFd   = -1;
-    bool        ignoreSudo = false, verifyConfig = false, safeMode = false;
+    bool        ignoreSudo = false, verifyConfig = false, safeMode = false, lockedCrash = false;
     int         watchdogFd = -1;
 
     if (argc > 1) {
@@ -176,6 +177,9 @@ int main(int argc, char** argv) {
                     help();
                     return 1;
                 }
+            } else if (value == "--locked-crash") {
+                lockedCrash = true;
+                continue;
             } else {
                 std::println(stderr, "[ ERROR ] Unknown option '{}' !", value);
                 help();
@@ -259,6 +263,9 @@ int main(int argc, char** argv) {
         watchdogOk = g_pCompositor->setWatchdogFd(watchdogFd);
     if (safeMode)
         g_pCompositor->m_safeMode = true;
+
+    if (lockedCrash)
+        g_pCompositor->m_lockedCrash = true;
 
     if (!watchdogOk && !verifyConfig)
         Log::logger->log(Log::WARN, "WARNING: Hyprland is being launched without start-hyprland. This is highly advised against.");

@@ -65,6 +65,7 @@ class CSessionLockManager {
     bool                    anySessionLockSurfacesPresent();
 
     void                    forceUnlock();
+    void                    forceLock();
 
     void                    removeSessionLockSurface(SSessionLockSurface*);
 

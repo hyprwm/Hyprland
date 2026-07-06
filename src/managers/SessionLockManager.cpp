@@ -78,6 +78,9 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
     });
 
     m_sessionLock->listeners.unlock = pLock->m_events.unlockAndDestroy.listen([this] {
+        g_pCompositor->m_lockedCrash = false;
+        g_pCompositor->writeWatchdogFd("unlock");
+
         m_sessionLock.reset();
         g_pInputManager->refocus();
 
@@ -92,6 +95,8 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
         for (auto const& m : State::monitorState()->monitors())
             g_pHyprRenderer->damageMonitor(m);
     });
+
+    g_pCompositor->writeWatchdogFd("lock");
 
     Desktop::focusState()->rawSurfaceFocus(nullptr);
     g_pSeatManager->setGrab(nullptr);
@@ -218,6 +223,8 @@ bool CSessionLockManager::clientDenied() {
 
 void CSessionLockManager::forceUnlock() {
     PROTO::sessionLock->forceUnlock();
+    g_pCompositor->m_lockedCrash = false;
+    g_pCompositor->writeWatchdogFd("unlock");
     m_sessionLock = {};
 
     Desktop::focusState()->rawSurfaceFocus(nullptr);
@@ -225,6 +232,10 @@ void CSessionLockManager::forceUnlock() {
         g_pHyprRenderer->damageMonitor(m);
 
     g_pInputManager->refocus();
+}
+
+void CSessionLockManager::forceLock() {
+    PROTO::sessionLock->forceLock();
 }
 
 bool CSessionLockManager::shallConsiderLockMissing() {

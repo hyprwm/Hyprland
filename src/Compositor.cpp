@@ -152,6 +152,14 @@ bool CCompositor::setWatchdogFd(int fd) {
     return m_watchdogWriteFd.isValid() && !m_watchdogWriteFd.isClosed();
 }
 
+bool CCompositor::writeWatchdogFd(std::string str) {
+    if (!m_watchdogWriteFd.isValid())
+        return false;
+    str += '\n';
+    auto w = write(m_watchdogWriteFd.get(), str.c_str(), str.size());
+    return w >= 0;
+}
+
 void CCompositor::bumpNofile() {
     if (!getrlimit(RLIMIT_NOFILE, &m_originalNofile))
         Log::logger->log(Log::DEBUG, "Old rlimit: soft -> {}, hard -> {}", m_originalNofile.rlim_cur, m_originalNofile.rlim_max);
@@ -438,6 +446,9 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
 
     initManagers(STAGE_LATE);
 
+    if (m_lockedCrash)
+        g_pSessionLockManager->forceLock();
+
     for (auto const& o : pendingOutputs) {
         State::monitorState()->add(o);
     }
@@ -551,8 +562,7 @@ void CCompositor::cleanup() {
     if (!m_wlDisplay)
         return;
 
-    if (m_watchdogWriteFd.isValid()) [[maybe_unused]]
-        auto w = write(m_watchdogWriteFd.get(), "end", 3);
+    writeWatchdogFd("end");
 
     signal(SIGABRT, SIG_DFL);
     signal(SIGSEGV, SIG_DFL);
@@ -805,7 +815,7 @@ void CCompositor::startCompositor() {
     Event::bus()->m_events.ready.emit();
 
     if (m_watchdogWriteFd.isValid()) {
-        if (write(m_watchdogWriteFd.get(), "vax", 3) < 0)
+        if (!writeWatchdogFd("vax"))
             Log::logger->log(Log::ERR, "startCompositor: failed to write to watchdogWriteFd {}: {}", m_watchdogWriteFd.get(), strerror(errno));
     }
 

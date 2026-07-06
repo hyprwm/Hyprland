@@ -46,6 +46,7 @@ class CCompositor {
 
     bool                     m_initialized = false;
     bool                     m_safeMode    = false;
+    bool                     m_lockedCrash = false;
     SP<Aquamarine::CBackend> m_aqBackend;
 
     std::string              m_hyprTempDataRoot = "";
@@ -62,6 +63,7 @@ class CCompositor {
     void                     bumpNofile();
     void                     restoreNofile();
     bool                     setWatchdogFd(int fd);
+    bool                     writeWatchdogFd(std::string);
 
     bool                     m_sessionActive          = true;
     bool                     m_dpmsStateOn            = true;

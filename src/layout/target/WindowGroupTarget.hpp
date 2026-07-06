@@ -14,7 +14,7 @@ namespace Layout {
 
         virtual eTargetType                                         type();
 
-        virtual void                                                setPositionGlobal(const STargetBox& box);
+        virtual void                                                setPositionGlobal(const STargetBox& box, uint8_t flags = TARGET_UPDATE_NONE);
         virtual void                                                assignToSpace(const SP<CSpace>& space, std::optional<Vector2D> focalPoint = std::nullopt);
         virtual PHLWINDOW                                           window() const;
 
@@ -34,7 +34,7 @@ namespace Layout {
       private:
         CWindowGroupTarget(SP<Desktop::View::CGroup> g);
 
-        void                      updatePos();
+        void                      updatePos(uint8_t flags = TARGET_UPDATE_NONE);
 
         WP<Desktop::View::CGroup> m_group;
     };

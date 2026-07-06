@@ -2832,11 +2832,10 @@ void CWindow::unmanagedSetGeometry() {
 
         m_reportedPosition    = m_xwaylandSurface->m_geometry.pos();
         m_pendingReportedSize = m_xwaylandSurface->m_geometry.size();
-        layoutTarget()->setPositionGlobal(CBox{Vector2D(LOGICALPOS.x, LOGICALPOS.y), LOGICALGEOSIZE});
+        layoutTarget()->setPositionGlobal(CBox{Vector2D(LOGICALPOS.x, LOGICALPOS.y), LOGICALGEOSIZE}, Layout::TARGET_UPDATE_NO_CLIENT_CONFIGURE);
         // This is an X11-confirmed geometry update. Keeping the animation would leave
         // animated effects, like shadows, briefly at the old geometry as phantoms.
-        m_realPosition->setValueAndWarp(m_realPosition->goal());
-        m_realSize->setValueAndWarp(m_realSize->goal());
+        layoutTarget()->warpPositionSize();
 
         m_workspace = State::monitorState()->query().vec(m_realPosition->value() + m_realSize->value() / 2.f).run()->m_activeWorkspace;
 

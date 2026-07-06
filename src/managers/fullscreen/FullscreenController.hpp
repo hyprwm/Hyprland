@@ -180,7 +180,7 @@ namespace Fullscreen {
 
         // ERSTARR TODO - MAKE THIS AN ACTUAL DOYXGEN DOC
         // set window's internal, client (either or both) FS modes. Also allows overriding if you want to FS a window using default FS handler or the layout FS handler it might have access to
-        void setFullscreenMode(const PHLWINDOW window, const std::optional<eFullscreenMode> internal = std::nullopt, const std::optional<eFullscreenMode> client = std::nullopt,
+        void setFullscreenMode(const PHLWINDOW window, std::optional<eFullscreenMode> internal = std::nullopt, std::optional<eFullscreenMode> client = std::nullopt,
                                std::optional<bool> layoutAware = std::nullopt);
 
         // Misc. Operations

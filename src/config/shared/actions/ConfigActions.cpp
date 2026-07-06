@@ -288,6 +288,11 @@ ActionResult Actions::fullscreenWindow(Fullscreen::eFullscreenMode internalMode,
     if (!window)
         return {};
 
+    // Clamp values to valid range
+    internalMode = std::clamp(internalMode, sc<Fullscreen::eFullscreenMode>(0), Fullscreen::FSMODE_FULLSCREEN);
+    clientMode = std::clamp(clientMode, sc<Fullscreen::eFullscreenMode>(0), Fullscreen::FSMODE_FULLSCREEN);
+
+
     window->m_ruleApplicator->syncFullscreenOverride(Desktop::Types::COverridableVar(false, Desktop::Types::PRIORITY_SET_PROP));
 
     const Fullscreen::SFullscreenMode NEW_MODES = {.internal = internalMode, .client = clientMode};

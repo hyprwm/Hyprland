@@ -367,7 +367,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_testFsFocusUnderFSWindow) {
     // Shared test among all default handled FS
 
 
-    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scroll' } })"));
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
 
     for (auto const& win : {"one", "two", "three"}) {
@@ -431,7 +431,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_newWindowTakesOverFullscreen) {
 
 
 
-    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scroll' } })"));
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
 
     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 0 } })"));
@@ -501,7 +501,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_exitWindowRetainsFullscreen) {
     // Shared test among all default handled FS
 
 
-    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scroll' } })"));
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
     OK(getFromSocket("/eval hl.config({ misc = { exit_window_retains_fullscreen = false } })"));
 
@@ -776,7 +776,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenNonInterference) {
     */
 
 
-    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scroll' } })"));
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
     
 
     Tests::spawnKitty("red");

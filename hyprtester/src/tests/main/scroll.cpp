@@ -188,6 +188,8 @@ TEST_CASE(scrollWindowRule) {
     ASSERT_CONTAINS(getFromSocket("/activewindow"), "size: 179,1036");
 }
 
+/* Fullscreen Tests */
+
 TEST_CASE(scrollFullscreen) {
     OK(getFromSocket("/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -244,7 +246,7 @@ TEST_CASE(scrollMaximize) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "size: 1870,1040");
+        ASSERT_CONTAINS(str, "size: 1866,1036");
         ASSERT_CONTAINS(str, "class: kitty_scroll_B");
         ASSERT_CONTAINS(str, "fullscreen: 1");
     }
@@ -268,11 +270,13 @@ TEST_CASE(scrollMaximize) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "size: 1870,1040");
+        ASSERT_CONTAINS(str, "size: 1866,1036");
         ASSERT_CONTAINS(str, "class: kitty_scroll_B");
         ASSERT_CONTAINS(str, "fullscreen: 1");
     }
 }
+
+/* Scroll viewport tests */
 
 TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocusFalse) {
 

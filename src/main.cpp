@@ -38,7 +38,7 @@ static void help() {
     --verify-config              - Do not run Hyprland, only print if the config has any errors
     --version           -v       - Print this binary's version
     --version-json               - Print this binary's version as json
-    --locked-crash               - Hyprland crashed while locked)#");
+    --locked-crash               - Used by start-hyprland)#");
 }
 
 static void reapZombieChildrenAutomatically() {

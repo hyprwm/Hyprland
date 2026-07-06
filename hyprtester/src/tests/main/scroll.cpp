@@ -7,6 +7,52 @@
 
 using namespace Hyprutils::Utils;
 
+
+
+
+// get the block from hyprctl clients where a class is located
+static std::string getClientBlock(const std::string& clients, const std::string& cls) {
+
+
+    // lambda fr finding the next block with `Window * ->`
+    const auto findNextBlockHeader = [&] (const std::string& s, size_t pos) -> size_t {
+
+        const auto NPOS = std::string::npos;
+        while (pos != NPOS) {
+            pos = s.find("Window ", pos);
+            if (pos == NPOS)
+                return NPOS;
+            size_t lineEnd  = s.find('\n', pos);
+            size_t arrowPos = s.find(" ->", pos);
+            if (arrowPos != NPOS && arrowPos < lineEnd)
+                return pos;
+            pos = (lineEnd != NPOS) ? lineEnd + 1 : NPOS;
+        }
+        return NPOS;
+    };
+
+
+
+    const std::string CLASS_TARGET = "class: " + cls + "\n";
+
+    // block by block till you find the class within a block
+    size_t blockStart = findNextBlockHeader(clients, 0);
+    while (blockStart != std::string::npos) {
+        size_t blockEnd = findNextBlockHeader(clients, blockStart + 1);
+        std::string block = clients.substr(blockStart, blockEnd == std::string::npos ? std::string::npos : blockEnd - blockStart);
+
+        if (block.contains(CLASS_TARGET))
+            return block;
+
+        blockStart = blockEnd;
+    }
+
+    return "";
+}
+
+
+
+
 TEST_CASE(scrollFocusCycling) {
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -282,6 +328,461 @@ TEST_CASE(scroll_LAYOUT_HANDLED_maximized) {
         ASSERT_CONTAINS(str, "class: kitty_scroll_B");
         ASSERT_CONTAINS(str, "fullscreen: 1");
     }
+}
+
+
+
+TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
+
+    /*
+    
+        Scrolling layout allows floating FS windows to 'layer over' tiled FS window.
+
+        If a floating window was open before a tiled window was FSed, hide it
+        If a floating window was opened after a tiled window was FSed, show it
+        
+        If a floating window was FSed ontop of the tiled window, hide all floating windows that were visible over the tiled FS window
+        If this floating window is unFSed, all floating windows that were ontop of the tiled FS window as well as the floating window that was just FS-unFSed must still show ontop of the tiled FS window
+        If we scroll onto another tiled FS window, hide them all. Scrolling back onto the prev tiled FS window doesn't cause them to reappear
+
+
+        Considerations for the test:
+            allowedOverFullscreen is used for floating windows' visibility. It's not always set for tiled ones, and don't implact their visibility.
+            visible depends on the alpha of a window, and for tiled ones in scrolling; sometimes fade animtaion are not used (scrolling btw 2 FS windows, FSing a floating window when there's a 
+            layout handled Tiled window) therefore in some cases, it is not a good indication of if the window is hidden or not (in the case of layering a floating window ontop of a tiled one for example,
+            it's more 'shadowed' and doesn't accept input than hidden).
+
+            acceptInput is a good metric when these two fail.
+
+            allowedOverFullscreen will be used for floating widows (save for floating windows that are fullscreen themselves)
+            visible will be used in all cases except where it's known not to be set and it's reason will be noted
+            acceptInput will be used for all cases
+
+
+    */
+    
+    OK(getFromSocket("/eval hl.config({ general = { layout = 'scrolling' } })"));
+
+
+
+    // Spawn a window, float it
+    Tests::spawnKitty("under");
+    OK(getFromSocket("/dispatch hl.dsp.window.float({action = 'enable', window = 'class:under'})"));
+
+
+
+    // FS 2 tiled windows - one fullscreen and one maximised
+    Tests::spawnKitty("tiledOne");
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({mode = 'fullscreen'})"));
+
+
+    // under should be hidden by now
+    {
+        auto clients = getFromSocket("/clients");
+        auto under = getClientBlock(clients, "under");
+        ASSERT_CONTAINS(under, "class: under");
+        ASSERT_CONTAINS(under, "floating: 1");
+        ASSERT_CONTAINS(under, "allowedOverFullscreen: 0");
+        ASSERT_CONTAINS(under, "acceptsInput: 0");
+        ASSERT_CONTAINS(under, "visible: 0");
+        ASSERT_CONTAINS(under, "fullscreen: 0");
+        ASSERT_CONTAINS(under, "fullscreenClient: 0");
+    }
+
+
+    Tests::spawnKitty("tiledTwo");
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({mode = 'maximized'})"));
+
+
+    // move view to tiledOne
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:tiledOne' })"));
+
+
+    // Check that tiledOne is visible - focus move is also tested here
+    {
+        auto clients = getFromSocket("/clients");
+        auto tiledOne = getClientBlock(clients, "tiledOne");
+        ASSERT_CONTAINS(tiledOne, "class: tiledOne");
+        ASSERT_CONTAINS(tiledOne, "floating: 0");
+        ASSERT_CONTAINS(tiledOne, "acceptsInput: 1");
+        ASSERT_CONTAINS(tiledOne, "visible: 1");
+        ASSERT_CONTAINS(tiledOne, "fullscreen: 2");
+        ASSERT_CONTAINS(tiledOne, "fullscreenClient: 2");
+    }
+
+    // Check that under is still hidden
+    {
+        auto clients = getFromSocket("/clients");
+        auto under = getClientBlock(clients, "under");
+        ASSERT_CONTAINS(under, "class: under");
+        ASSERT_CONTAINS(under, "floating: 1");
+        ASSERT_CONTAINS(under, "allowedOverFullscreen: 0");
+        ASSERT_CONTAINS(under, "acceptsInput: 0");
+        ASSERT_CONTAINS(under, "visible: 0");
+        ASSERT_CONTAINS(under, "fullscreen: 0");
+        ASSERT_CONTAINS(under, "fullscreenClient: 0");
+    }
+
+
+    // Window rule for spawing kittens as floating as we need it from now on
+    OK(getFromSocket("/eval hl.window_rule({ name = 'kittens float with certain size', match = {class = 'floating.*',}, float = true, size = {950, 500},})"));
+
+
+
+    // Spawn 2 floating windows
+    Tests::spawnKitty("floatingOne");
+    Tests::spawnKitty("floatingTwo");
+
+
+
+    // Check that both are allowedOverFullscreen
+    {
+        auto clients = getFromSocket("/clients");
+        auto floatingOne = getClientBlock(clients, "floatingOne");
+        ASSERT_CONTAINS(floatingOne, "class: floatingOne");
+        ASSERT_CONTAINS(floatingOne, "floating: 1");
+        ASSERT_CONTAINS(floatingOne, "allowedOverFullscreen: 1");
+        ASSERT_CONTAINS(floatingOne, "acceptsInput: 1");
+        ASSERT_CONTAINS(floatingOne, "visible: 1");
+        ASSERT_CONTAINS(floatingOne, "fullscreen: 0");
+        ASSERT_CONTAINS(floatingOne, "fullscreenClient: 0");
+    }
+    {
+        auto clients = getFromSocket("/clients");
+        auto floatingTwo = getClientBlock(clients, "floatingTwo");
+        ASSERT_CONTAINS(floatingTwo, "class: floatingTwo");
+        ASSERT_CONTAINS(floatingTwo, "floating: 1");
+        ASSERT_CONTAINS(floatingTwo, "allowedOverFullscreen: 1");
+        ASSERT_CONTAINS(floatingTwo, "acceptsInput: 1");
+        ASSERT_CONTAINS(floatingTwo, "visible: 1");
+        ASSERT_CONTAINS(floatingTwo, "fullscreen: 0");
+        ASSERT_CONTAINS(floatingTwo, "fullscreenClient: 0");
+    }
+
+
+    // FS one floating window
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:floatingOne' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({mode = 'maximized'})"));
+
+    // floatingTwo should now be hidden, as well as all others save for floatingOne
+
+    // floatingOne - visible
+    {
+        auto clients = getFromSocket("/clients");
+        auto floatingOne = getClientBlock(clients, "floatingOne");
+        ASSERT_CONTAINS(floatingOne, "class: floatingOne");
+        ASSERT_CONTAINS(floatingOne, "floating: 1");
+        // ASSERT_CONTAINS(floatingOne, "allowedOverFullscreen: 1"); The window itself is FS
+        ASSERT_CONTAINS(floatingOne, "acceptsInput: 1");
+        ASSERT_CONTAINS(floatingOne, "visible: 1");
+        ASSERT_CONTAINS(floatingOne, "fullscreen: 1");
+        ASSERT_CONTAINS(floatingOne, "fullscreenClient: 1");
+    }
+
+    // floatingTwo - hidden
+    {
+        auto clients = getFromSocket("/clients");
+        auto floatingTwo = getClientBlock(clients, "floatingTwo");
+        ASSERT_CONTAINS(floatingTwo, "class: floatingTwo");
+        ASSERT_CONTAINS(floatingTwo, "floating: 1");
+        ASSERT_CONTAINS(floatingTwo, "allowedOverFullscreen: 0");
+        ASSERT_CONTAINS(floatingTwo, "acceptsInput: 0");
+        ASSERT_CONTAINS(floatingTwo, "visible: 0");
+        ASSERT_CONTAINS(floatingTwo, "fullscreen: 0");
+        ASSERT_CONTAINS(floatingTwo, "fullscreenClient: 0");
+    }
+    // tiledOne - hidden
+    {
+        auto clients = getFromSocket("/clients");
+        auto tiledOne = getClientBlock(clients, "tiledOne");
+        ASSERT_CONTAINS(tiledOne, "class: tiledOne");
+        ASSERT_CONTAINS(tiledOne, "floating: 0");
+        ASSERT_CONTAINS(tiledOne, "acceptsInput: 0");
+        // Because the floating window 'layers over' the tiled FS window, it still shows as 'visible', but it does not accept input
+        // ASSERT_CONTAINS(tiledOne, "visible: 1");
+        ASSERT_CONTAINS(tiledOne, "fullscreen: 2");
+        ASSERT_CONTAINS(tiledOne, "fullscreenClient: 2");
+    }
+    // tiledTwo - hidden
+    {
+        auto clients = getFromSocket("/clients");
+        auto tiledTwo = getClientBlock(clients, "tiledTwo");
+        ASSERT_CONTAINS(tiledTwo, "class: tiledTwo");
+        ASSERT_CONTAINS(tiledTwo, "floating: 0");
+        ASSERT_CONTAINS(tiledTwo, "acceptsInput: 0");
+        // FS fade animation quirk when layering floating FS window ontop of tiled FS window 
+        // ASSERT_CONTAINS(tiledTwo, "visible: 0");
+        ASSERT_CONTAINS(tiledTwo, "fullscreen: 1");
+        ASSERT_CONTAINS(tiledTwo, "fullscreenClient: 1");
+    }
+    // under - hidden
+    {
+        auto clients = getFromSocket("/clients");
+        auto under = getClientBlock(clients, "under");
+        ASSERT_CONTAINS(under, "class: under");
+        ASSERT_CONTAINS(under, "floating: 1");
+        ASSERT_CONTAINS(under, "allowedOverFullscreen: 0");
+        ASSERT_CONTAINS(under, "acceptsInput: 0");
+        ASSERT_CONTAINS(under, "visible: 0");
+        ASSERT_CONTAINS(under, "fullscreen: 0");
+        ASSERT_CONTAINS(under, "fullscreenClient: 0");
+    }
+
+
+
+// Spawn a floating window - this should be ontop of floatingOne
+    Tests::spawnKitty("floatingThree");
+
+    // floatingThree - visible and allowedOverFullscreen (spawned while floatingOne FS is active)
+    {
+        auto clients = getFromSocket("/clients");
+        auto floatingThree = getClientBlock(clients, "floatingThree");
+        ASSERT_CONTAINS(floatingThree, "class: floatingThree");
+        ASSERT_CONTAINS(floatingThree, "floating: 1");
+        ASSERT_CONTAINS(floatingThree, "allowedOverFullscreen: 1");
+        ASSERT_CONTAINS(floatingThree, "acceptsInput: 1");
+        ASSERT_CONTAINS(floatingThree, "visible: 1");
+        ASSERT_CONTAINS(floatingThree, "fullscreen: 0");
+        ASSERT_CONTAINS(floatingThree, "fullscreenClient: 0");
+    }
+
+
+
+    // unFs floatingOne - floatingOne,Two,Three should be ontop of tiledOne and tiledTwo should still be hidden
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:floatingOne' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 0, client = 0, action = 'set', window = 'activewindow' })"));
+
+    // floatingOne - visible (unFSed)
+    {
+        auto clients = getFromSocket("/clients");
+        auto floatingOne = getClientBlock(clients, "floatingOne");
+        ASSERT_CONTAINS(floatingOne, "class: floatingOne");
+        ASSERT_CONTAINS(floatingOne, "floating: 1");
+        ASSERT_CONTAINS(floatingOne, "allowedOverFullscreen: 1");
+        ASSERT_CONTAINS(floatingOne, "acceptsInput: 1");
+        ASSERT_CONTAINS(floatingOne, "visible: 1");
+        ASSERT_CONTAINS(floatingOne, "fullscreen: 0");
+        ASSERT_CONTAINS(floatingOne, "fullscreenClient: 0");
+    }
+    // floatingTwo - visible
+    {
+        auto clients = getFromSocket("/clients");
+        auto floatingTwo = getClientBlock(clients, "floatingTwo");
+        ASSERT_CONTAINS(floatingTwo, "class: floatingTwo");
+        ASSERT_CONTAINS(floatingTwo, "floating: 1");
+        ASSERT_CONTAINS(floatingTwo, "allowedOverFullscreen: 1");
+        ASSERT_CONTAINS(floatingTwo, "acceptsInput: 1");
+        ASSERT_CONTAINS(floatingTwo, "visible: 1");
+        ASSERT_CONTAINS(floatingTwo, "fullscreen: 0");
+        ASSERT_CONTAINS(floatingTwo, "fullscreenClient: 0");
+    }
+    // floatingThree - visible
+    {
+        auto clients = getFromSocket("/clients");
+        auto floatingThree = getClientBlock(clients, "floatingThree");
+        ASSERT_CONTAINS(floatingThree, "class: floatingThree");
+        ASSERT_CONTAINS(floatingThree, "floating: 1");
+        ASSERT_CONTAINS(floatingThree, "allowedOverFullscreen: 1");
+        ASSERT_CONTAINS(floatingThree, "acceptsInput: 1");
+        ASSERT_CONTAINS(floatingThree, "visible: 1");
+        ASSERT_CONTAINS(floatingThree, "fullscreen: 0");
+        ASSERT_CONTAINS(floatingThree, "fullscreenClient: 0");
+    }
+    // tiledOne - Visisble
+    {
+        auto clients = getFromSocket("/clients");
+        auto tiledOne = getClientBlock(clients, "tiledOne");
+        ASSERT_CONTAINS(tiledOne, "class: tiledOne");
+        ASSERT_CONTAINS(tiledOne, "floating: 0");
+        ASSERT_CONTAINS(tiledOne, "acceptsInput: 1");
+        ASSERT_CONTAINS(tiledOne, "visible: 1");
+        ASSERT_CONTAINS(tiledOne, "fullscreen: 2");
+        ASSERT_CONTAINS(tiledOne, "fullscreenClient: 2");
+    }
+    // tiledTwo - still hidden
+    {
+        auto clients = getFromSocket("/clients");
+        auto tiledTwo = getClientBlock(clients, "tiledTwo");
+        ASSERT_CONTAINS(tiledTwo, "class: tiledTwo");
+        ASSERT_CONTAINS(tiledTwo, "floating: 0");
+        
+        ASSERT_CONTAINS(tiledTwo, "acceptsInput: 0");
+        // Fs fade animation didn't dispatch since we went from layered FS window to underlying FS window
+        // ASSERT_CONTAINS(tiledTwo, "visible: 0");
+
+        ASSERT_CONTAINS(tiledTwo, "fullscreen: 1");
+        ASSERT_CONTAINS(tiledTwo, "fullscreenClient: 1");
+    }
+    // under - still hidden
+    {
+        auto clients = getFromSocket("/clients");
+        auto under = getClientBlock(clients, "under");
+        ASSERT_CONTAINS(under, "class: under");
+        ASSERT_CONTAINS(under, "floating: 1");
+        ASSERT_CONTAINS(under, "allowedOverFullscreen: 0");
+        ASSERT_CONTAINS(under, "acceptsInput: 0");
+        ASSERT_CONTAINS(under, "visible: 0");
+        ASSERT_CONTAINS(under, "fullscreen: 0");
+        ASSERT_CONTAINS(under, "fullscreenClient: 0");
+    }
+
+
+
+    // Scroll onto tiledTwo - all but tiledTwo should be hidden
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:tiledTwo' })"));
+
+    // tiledTwo - now visible
+    {
+        auto clients = getFromSocket("/clients");
+        auto tiledTwo = getClientBlock(clients, "tiledTwo");
+        ASSERT_CONTAINS(tiledTwo, "class: tiledTwo");
+        ASSERT_CONTAINS(tiledTwo, "floating: 0");
+        ASSERT_CONTAINS(tiledTwo, "acceptsInput: 1");
+        ASSERT_CONTAINS(tiledTwo, "visible: 1");
+        ASSERT_CONTAINS(tiledTwo, "fullscreen: 1");
+        ASSERT_CONTAINS(tiledTwo, "fullscreenClient: 1");
+    }
+    // floatingOne - hidden
+    {
+        auto clients = getFromSocket("/clients");
+        auto floatingOne = getClientBlock(clients, "floatingOne");
+        ASSERT_CONTAINS(floatingOne, "class: floatingOne");
+        ASSERT_CONTAINS(floatingOne, "floating: 1");
+        ASSERT_CONTAINS(floatingOne, "allowedOverFullscreen: 0");
+        ASSERT_CONTAINS(floatingOne, "acceptsInput: 0");
+        ASSERT_CONTAINS(floatingOne, "visible: 0");
+        ASSERT_CONTAINS(floatingOne, "fullscreen: 0");
+        ASSERT_CONTAINS(floatingOne, "fullscreenClient: 0");
+    }
+    // floatingTwo - hidden
+    {
+        auto clients = getFromSocket("/clients");
+        auto floatingTwo = getClientBlock(clients, "floatingTwo");
+        ASSERT_CONTAINS(floatingTwo, "class: floatingTwo");
+        ASSERT_CONTAINS(floatingTwo, "floating: 1");
+        ASSERT_CONTAINS(floatingTwo, "allowedOverFullscreen: 0");
+        ASSERT_CONTAINS(floatingTwo, "acceptsInput: 0");
+        ASSERT_CONTAINS(floatingTwo, "visible: 0");
+        ASSERT_CONTAINS(floatingTwo, "fullscreen: 0");
+        ASSERT_CONTAINS(floatingTwo, "fullscreenClient: 0");
+    }
+    // floatingThree - hidden
+    {
+        auto clients = getFromSocket("/clients");
+        auto floatingThree = getClientBlock(clients, "floatingThree");
+        ASSERT_CONTAINS(floatingThree, "class: floatingThree");
+        ASSERT_CONTAINS(floatingThree, "floating: 1");
+        ASSERT_CONTAINS(floatingThree, "allowedOverFullscreen: 0");
+        ASSERT_CONTAINS(floatingThree, "acceptsInput: 0");
+        ASSERT_CONTAINS(floatingThree, "visible: 0");
+        ASSERT_CONTAINS(floatingThree, "fullscreen: 0");
+        ASSERT_CONTAINS(floatingThree, "fullscreenClient: 0");
+    }
+    // tiledOne - hidden
+    {
+        auto clients = getFromSocket("/clients");
+        auto tiledOne = getClientBlock(clients, "tiledOne");
+        ASSERT_CONTAINS(tiledOne, "class: tiledOne");
+        ASSERT_CONTAINS(tiledOne, "floating: 0");
+
+        ASSERT_CONTAINS(tiledOne, "acceptsInput: 0");
+        // Fade animation didn't dispatch because we are scrolling btw 2 FS windows
+        // ASSERT_CONTAINS(tiledTwo, "visible: 0"); 
+        ASSERT_CONTAINS(tiledOne, "fullscreen: 2");
+        ASSERT_CONTAINS(tiledOne, "fullscreenClient: 2");
+    }
+    // under - hidden
+    {
+        auto clients = getFromSocket("/clients");
+        auto under = getClientBlock(clients, "under");
+        ASSERT_CONTAINS(under, "class: under");
+        ASSERT_CONTAINS(under, "floating: 1");
+        ASSERT_CONTAINS(under, "allowedOverFullscreen: 0");
+        ASSERT_CONTAINS(under, "acceptsInput: 0");
+        ASSERT_CONTAINS(under, "visible: 0");
+        ASSERT_CONTAINS(under, "fullscreen: 0");
+        ASSERT_CONTAINS(under, "fullscreenClient: 0");
+    }
+
+
+
+    // Scroll onto tiledOne - all but tiledOne should be hidden, floatings do not reappear
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:tiledOne' })"));
+
+    // tiledOne - visible
+    {
+        auto clients = getFromSocket("/clients");
+        auto tiledOne = getClientBlock(clients, "tiledOne");
+        ASSERT_CONTAINS(tiledOne, "class: tiledOne");
+        ASSERT_CONTAINS(tiledOne, "floating: 0");
+        ASSERT_CONTAINS(tiledOne, "acceptsInput: 1");
+        ASSERT_CONTAINS(tiledOne, "visible: 1");
+        ASSERT_CONTAINS(tiledOne, "fullscreen: 2");
+        ASSERT_CONTAINS(tiledOne, "fullscreenClient: 2");
+    }
+    // floatingOne - hidden (scrolling back does not cause reappearance)
+    {
+        auto clients = getFromSocket("/clients");
+        auto floatingOne = getClientBlock(clients, "floatingOne");
+        ASSERT_CONTAINS(floatingOne, "class: floatingOne");
+        ASSERT_CONTAINS(floatingOne, "floating: 1");
+        ASSERT_CONTAINS(floatingOne, "allowedOverFullscreen: 0");
+        ASSERT_CONTAINS(floatingOne, "acceptsInput: 0");
+        ASSERT_CONTAINS(floatingOne, "visible: 0");
+        ASSERT_CONTAINS(floatingOne, "fullscreen: 0");
+        ASSERT_CONTAINS(floatingOne, "fullscreenClient: 0");
+    }
+    // floatingTwo - hidden
+    {
+        auto clients = getFromSocket("/clients");
+        auto floatingTwo = getClientBlock(clients, "floatingTwo");
+        ASSERT_CONTAINS(floatingTwo, "class: floatingTwo");
+        ASSERT_CONTAINS(floatingTwo, "floating: 1");
+        ASSERT_CONTAINS(floatingTwo, "allowedOverFullscreen: 0");\
+        ASSERT_CONTAINS(floatingTwo, "acceptsInput: 0");
+        ASSERT_CONTAINS(floatingTwo, "visible: 0");
+        ASSERT_CONTAINS(floatingTwo, "fullscreen: 0");
+        ASSERT_CONTAINS(floatingTwo, "fullscreenClient: 0");
+    }
+    // floatingThree - hidden
+    {
+        auto clients = getFromSocket("/clients");
+        auto floatingThree = getClientBlock(clients, "floatingThree");
+        ASSERT_CONTAINS(floatingThree, "class: floatingThree");
+        ASSERT_CONTAINS(floatingThree, "floating: 1");
+        ASSERT_CONTAINS(floatingThree, "allowedOverFullscreen: 0");
+        ASSERT_CONTAINS(floatingThree, "acceptsInput: 0");
+        ASSERT_CONTAINS(floatingThree, "visible: 0");
+        ASSERT_CONTAINS(floatingThree, "fullscreen: 0");
+        ASSERT_CONTAINS(floatingThree, "fullscreenClient: 0");
+    }
+    // tiledTwo - hidden
+    {
+        auto clients = getFromSocket("/clients");
+        auto tiledTwo = getClientBlock(clients, "tiledTwo");
+        ASSERT_CONTAINS(tiledTwo, "class: tiledTwo");
+        ASSERT_CONTAINS(tiledTwo, "floating: 0");
+        ASSERT_CONTAINS(tiledTwo, "acceptsInput: 0");
+        // FS fade anim didn't dispatch because we are scrolling btw FS columns
+        // ASSERT_CONTAINS(tiledTwo, "visible: 0");
+        ASSERT_CONTAINS(tiledTwo, "fullscreen: 1");
+        ASSERT_CONTAINS(tiledTwo, "fullscreenClient: 1");
+    }
+    // under - hidden
+    {
+        auto clients = getFromSocket("/clients");
+        auto under = getClientBlock(clients, "under");
+        ASSERT_CONTAINS(under, "class: under");
+        ASSERT_CONTAINS(under, "floating: 1");
+        ASSERT_CONTAINS(under, "allowedOverFullscreen: 0");
+        ASSERT_CONTAINS(under, "acceptsInput: 0");
+        ASSERT_CONTAINS(under, "visible: 0");
+        ASSERT_CONTAINS(under, "fullscreen: 0");
+        ASSERT_CONTAINS(under, "fullscreenClient: 0");
+    }
+
+
+
 }
 
 
@@ -587,7 +1088,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenPinnedWindows) {
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:cake'})"));
 
     // Try with fullscreen
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', layout_aware = false, })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', })"));
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "class: cake");
@@ -601,7 +1102,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenPinnedWindows) {
     // try with maximised
 
     // Try with fullscreen
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', layout_aware = false, })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', })"));
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "class: cake");
@@ -632,7 +1133,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenPinnedWindows) {
 
     // While syncing FS state, is not supposed to set either mode, setting only client is supposed to work
     // should suppress internal setting but allow client setting to go through
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 2, client = 2, action = 'set', window = 'activewindow', layout_aware = false, })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 2, client = 2, action = 'set', window = 'activewindow', })"));
     {
         auto str = getFromSocket("/clients");
         EXPECT_CONTAINS(str, "class: cake");
@@ -645,7 +1146,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenPinnedWindows) {
 
 
     // try with maximised too
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 1, client = 1, action = 'set', window = 'activewindow', layout_aware = false, })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 1, client = 1, action = 'set', window = 'activewindow', })"));
     {
         auto str = getFromSocket("/clients");
         EXPECT_CONTAINS(str, "class: cake");
@@ -660,7 +1161,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenPinnedWindows) {
 
 
     // re-set its FS values for the next test
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 0, client = 0, action = 'set', window = 'activewindow', layout_aware = false, })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 0, client = 0, action = 'set', window = 'activewindow', })"));
 
 
 
@@ -678,7 +1179,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenPinnedWindows) {
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:cake'})"));
 
     // Try with fullscreen
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', layout_aware = false, })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', })"));
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "class: cake");
@@ -695,7 +1196,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenPinnedWindows) {
     // try with maximised
 
     // Try with fullscreen
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', layout_aware = false, })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', })"));
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "class: cake");
@@ -712,7 +1213,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenPinnedWindows) {
     
     
     // unFs it, move to another workspace - expect it to follow
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 0, client = 0, action = 'set', window = 'activewindow', layout_aware = false, })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 0, client = 0, action = 'set', window = 'activewindow', })"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2' })"));
     {
         auto str = getFromSocket("/clients");
@@ -733,7 +1234,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenPinnedWindows) {
     
 
     // Try with fullscreen
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', layout_aware = false, })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', })"));
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "class: cake");
@@ -748,7 +1249,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenPinnedWindows) {
     // try with maximised
 
     // Try with fullscreen
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', layout_aware = false, })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', })"));
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "class: cake");

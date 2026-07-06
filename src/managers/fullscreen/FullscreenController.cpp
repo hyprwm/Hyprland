@@ -326,7 +326,6 @@ std::string CFullscreenController::getFullscreenHandlerNameAsString(const PHLWIN
     switch (FS_HANDLER_NAME) {
         case FULLSCREEN_HANDLER_NONE: return "none";
         case FULLSCREEN_HANDLER_DEFAULT: return "default";
-        case FULLSCREEN_HANDLER_LAYOUT: return "layout";
         case FULLSCREEN_HANDLER_SCROLLING: return "scrolling";
         default: return "unknown";
     }
@@ -525,7 +524,7 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
                 if (!(*PALLOWPINFULLSCREEN) && WANT_SYNC) {
                     targetClientMode = FSMODE_NONE;
                 }
-                
+
                 if (!window->m_pinFullscreened || targetInternalMode == FSMODE_NONE) {
                     window->m_pinned          = true;
                     window->m_pinFullscreened = false;

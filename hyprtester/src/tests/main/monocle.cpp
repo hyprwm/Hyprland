@@ -93,7 +93,7 @@ TEST_CASE(monocleFullscreenMaximiseDispatchers) {
 
 
 
-TEST_CASE(MonocleTestFsFocusUnderFSWindow) {
+TEST_CASE(monocleTestFsFocusUnderFSWindow) {
 
 
     // Shared test among all default handled FS
@@ -223,3 +223,50 @@ TEST_CASE(monocleNewWindowTakesOverFullscreen) {
     Tests::killAllWindows();
 }
 
+
+
+
+TEST_CASE(monocleExitWindowRetainsFullscreen) {
+
+    // Shared test among all default handled FS
+
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'monocle' } })"));
+
+    OK(getFromSocket("/eval hl.config({ misc = { exit_window_retains_fullscreen = false } })"));
+
+    Tests::spawnKitty("kitty_A");
+    Tests::spawnKitty("kitty_B");
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen' })"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.kill({ window = 'activewindow' })"));
+    Tests::waitUntilWindowsN(1);
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
+    }
+
+    Tests::spawnKitty("kitty_B");
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen' })"));
+    OK(getFromSocket("/eval hl.config({ misc = { exit_window_retains_fullscreen = true } })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.window.kill({ window = 'activewindow' })"));
+    Tests::waitUntilWindowsN(1);
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+    }
+
+    Tests::killAllWindows();
+}

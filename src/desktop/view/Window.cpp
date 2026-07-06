@@ -2473,8 +2473,10 @@ void CWindow::mapWindow() {
 
     if (!m_noInitialFocus && (requestedInternalFSMode.has_value() || requestedClientFSMode.has_value() || requestedFSState.has_value())) {
         // fix fullscreen on requested (basically do a switcheroo)
+        std::optional<bool> wasFullscreenLayoutHandled = std::nullopt;
         if (Fullscreen::controller()->hasFullscreen(m_workspace)) {
             auto fsWindow = Fullscreen::controller()->getFullscreenWindow(m_workspace);
+            wasFullscreenLayoutHandled = Fullscreen::controller()->layoutManagedFS(fsWindow);
             Fullscreen::controller()->setFullscreenMode(fsWindow, Fullscreen::FSMODE_NONE);
         }
         m_realPosition->warp();
@@ -2482,14 +2484,11 @@ void CWindow::mapWindow() {
         resetMotionBlur();
         if (requestedFSState.has_value()) {
             m_ruleApplicator->syncFullscreenOverride(Desktop::Types::COverridableVar(false, Desktop::Types::PRIORITY_WINDOW_RULE));
-            // windowrule always uses layout specific fullscreen bahaviour if it exists
-            Fullscreen::controller()->setFullscreenMode(m_self.lock(), requestedFSState.value().internal, requestedFSState.value().client, true);
+            Fullscreen::controller()->setFullscreenMode(m_self.lock(), requestedFSState.value().internal, requestedFSState.value().client, wasFullscreenLayoutHandled);
         } else if (requestedInternalFSMode.has_value() && requestedClientFSMode.has_value() && !m_ruleApplicator->syncFullscreen().valueOrDefault())
-            // windowrule always uses layout specific fullscreen bahaviour if it exists
-            Fullscreen::controller()->setFullscreenMode(m_self.lock(), requestedInternalFSMode, requestedClientFSMode, true);
+            Fullscreen::controller()->setFullscreenMode(m_self.lock(), requestedInternalFSMode, requestedClientFSMode, wasFullscreenLayoutHandled);
         else if (requestedInternalFSMode.has_value() || requestedClientFSMode.has_value())
-            // windowrule always uses layout specific fullscreen bahaviour if it exists
-            Fullscreen::controller()->setFullscreenMode(m_self.lock(), requestedInternalFSMode, requestedClientFSMode, true);
+            Fullscreen::controller()->setFullscreenMode(m_self.lock(), requestedInternalFSMode, requestedClientFSMode, wasFullscreenLayoutHandled);
     }
 
     // recheck idle inhibitors

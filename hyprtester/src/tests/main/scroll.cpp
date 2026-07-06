@@ -587,7 +587,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenPinnedWindows) {
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:cake'})"));
 
     // Try with fullscreen
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', layout_aware = false, })"));
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "class: cake");
@@ -601,7 +601,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenPinnedWindows) {
     // try with maximised
 
     // Try with fullscreen
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', layout_aware = false, })"));
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "class: cake");
@@ -632,7 +632,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenPinnedWindows) {
 
     // While syncing FS state, is not supposed to set either mode, setting only client is supposed to work
     // should suppress internal setting but allow client setting to go through
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 2, client = 2, action = 'set', window = 'activewindow' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 2, client = 2, action = 'set', window = 'activewindow', layout_aware = false, })"));
     {
         auto str = getFromSocket("/clients");
         EXPECT_CONTAINS(str, "class: cake");
@@ -645,7 +645,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenPinnedWindows) {
 
 
     // try with maximised too
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 1, client = 1, action = 'set', window = 'activewindow' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 1, client = 1, action = 'set', window = 'activewindow', layout_aware = false, })"));
     {
         auto str = getFromSocket("/clients");
         EXPECT_CONTAINS(str, "class: cake");
@@ -660,7 +660,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenPinnedWindows) {
 
 
     // re-set its FS values for the next test
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 0, client = 0, action = 'set', window = 'activewindow' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 0, client = 0, action = 'set', window = 'activewindow', layout_aware = false, })"));
 
 
 
@@ -678,7 +678,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenPinnedWindows) {
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:cake'})"));
 
     // Try with fullscreen
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', layout_aware = false, })"));
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "class: cake");
@@ -695,7 +695,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenPinnedWindows) {
     // try with maximised
 
     // Try with fullscreen
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', layout_aware = false, })"));
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "class: cake");
@@ -712,7 +712,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenPinnedWindows) {
     
     
     // unFs it, move to another workspace - expect it to follow
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 0, client = 0, action = 'set', window = 'activewindow' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 0, client = 0, action = 'set', window = 'activewindow', layout_aware = false, })"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2' })"));
     {
         auto str = getFromSocket("/clients");
@@ -733,7 +733,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenPinnedWindows) {
     
 
     // Try with fullscreen
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', layout_aware = false, })"));
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "class: cake");
@@ -748,7 +748,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenPinnedWindows) {
     // try with maximised
 
     // Try with fullscreen
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', layout_aware = false, })"));
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "class: cake");
@@ -759,6 +759,237 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenPinnedWindows) {
         EXPECT_CONTAINS(str, "size: 1916,1076");
     }
 }
+
+
+
+
+TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenNonInterference) {
+
+    // Shared test among all default handled FS
+
+    /*
+    
+    When a tiled/floating window is default handled FSed, it must not cause the windows under it to have moved/resized after it is unFSed
+
+    also tests if floating pos/size is properly restored after fS-unfs
+
+    */
+
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scroll' } })"));
+    
+
+    Tests::spawnKitty("red");
+    Tests::spawnKitty("crimson");
+    Tests::spawnKitty("blue");
+    Tests::spawnKitty("cyan");
+    Tests::spawnKitty("azure");
+    Tests::spawnKitty("green");
+
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:red' })"));
+
+
+    // Testing tiled first
+    {
+
+        // save all pos/size inc red
+
+        // save all pos/size
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:red' })"));
+        auto redPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
+        auto redSize = Tests::getAttribute(getFromSocket("/activewindow"), "size");
+
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:crimson' })"));
+        auto crimsonPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
+        auto crimsonSize = Tests::getAttribute(getFromSocket("/activewindow"), "size");
+
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:blue' })"));
+        auto bluePos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
+        auto blueSize = Tests::getAttribute(getFromSocket("/activewindow"), "size");
+
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:cyan' })"));
+        auto cyanPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
+        auto cyanSize = Tests::getAttribute(getFromSocket("/activewindow"), "size");
+
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:azure' })"));
+        auto azurePos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
+        auto azureSize = Tests::getAttribute(getFromSocket("/activewindow"), "size");
+
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:green' })"));
+        auto greenPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
+        auto greenSize = Tests::getAttribute(getFromSocket("/activewindow"), "size");
+
+
+
+        // FS and unFS red, then check all positions are unchanged
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:red' })"));
+        OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', layout_aware = false, })"));
+        OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', layout_aware = false, })"));
+
+        // red
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:red' })"));
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "at"),   redPos);
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "size"), redSize);
+
+        // crimson
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:crimson' })"));
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "at"),   crimsonPos);
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "size"), crimsonSize);
+
+        // blue
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:blue' })"));
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "at"),   bluePos);
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "size"), blueSize);
+
+        // cyan
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:cyan' })"));
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "at"),   cyanPos);
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "size"), cyanSize);
+
+        // azure
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:azure' })"));
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "at"),   azurePos);
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "size"), azureSize);
+
+        // green
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:green' })"));
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "at"),   greenPos);
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "size"), greenSize);
+    }
+
+
+
+    // test floating
+
+
+    {
+
+        // float red
+        OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:red' })"));
+
+
+        // save all pos/size (red's size will be its floating size)
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:red' })"));
+        auto redPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
+        auto redSize = Tests::getAttribute(getFromSocket("/activewindow"), "size");
+
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:crimson' })"));
+        auto crimsonPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
+        auto crimsonSize = Tests::getAttribute(getFromSocket("/activewindow"), "size");
+
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:blue' })"));
+        auto bluePos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
+        auto blueSize = Tests::getAttribute(getFromSocket("/activewindow"), "size");
+
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:cyan' })"));
+        auto cyanPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
+        auto cyanSize = Tests::getAttribute(getFromSocket("/activewindow"), "size");
+
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:azure' })"));
+        auto azurePos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
+        auto azureSize = Tests::getAttribute(getFromSocket("/activewindow"), "size");
+
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:green' })"));
+        auto greenPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
+        auto greenSize = Tests::getAttribute(getFromSocket("/activewindow"), "size");
+
+
+
+        // FS and unFS red, then check all positions are unchanged
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:red' })"));
+        OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', layout_aware = false, })"));
+        OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', layout_aware = false, })"));
+
+        // red
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:red' })"));
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "at"),   redPos);
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "size"), redSize);
+
+        // crimson
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:crimson' })"));
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "at"),   crimsonPos);
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "size"), crimsonSize);
+
+        // blue
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:blue' })"));
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "at"),   bluePos);
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "size"), blueSize);
+
+        // cyan
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:cyan' })"));
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "at"),   cyanPos);
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "size"), cyanSize);
+
+        // azure
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:azure' })"));
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "at"),   azurePos);
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "size"), azureSize);
+
+        // green
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:green' })"));
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "at"),   greenPos);
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "size"), greenSize);
+    }
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

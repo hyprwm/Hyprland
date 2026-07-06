@@ -1756,7 +1756,7 @@ void CMonitor::updateWorkspaceRuleBlur() {
 
     const auto  PWORKSPACE    = m_activeSpecialWorkspace ? m_activeSpecialWorkspace : m_activeWorkspace;
     const auto  WORKSPACERULE = PWORKSPACE ? Config::workspaceRuleMgr()->getWorkspaceRuleFor(PWORKSPACE) : std::nullopt;
-    const bool  SHOULD_BLUR   = WORKSPACERULE && WORKSPACERULE->m_blur.value_or(false) && PWORKSPACE->getWindows(std::nullopt, std::nullopt, true) > 0;
+    const bool  SHOULD_BLUR   = WORKSPACERULE && WORKSPACERULE->m_blur.value_or(false) && PWORKSPACE->getWindowCount(std::nullopt, std::nullopt, true) > 0;
     const float BLUR_ALPHA    = SHOULD_BLUR ? 1.F : 0.F;
 
     m_workspaceRuleBlurAlpha->setConfig(Config::animationTree()->getAnimationPropertyConfig(SHOULD_BLUR ? "fadeIn" : "fadeOut"));

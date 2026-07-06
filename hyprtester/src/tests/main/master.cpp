@@ -93,9 +93,18 @@ TEST_CASE(focusMasterPrevious) {
     }
 }
 
-/* Fullscreen Tests */
+
+/*
+    Fullscreen Tests
+
+    Tests with `Shared test among all default handled FS` comment are duplicated among all layouts to test each layout individually
+
+*/
 
 TEST_CASE(masterTestFsFocusUnderFSWindow) {
+
+    // Shared test among all default handled FS
+
     // Master will re-send data to fullscreen / maximized windows, which can interfere with misc:on_focus_under_fullscreen
     // check that it doesn't.
 
@@ -229,6 +238,79 @@ TEST_CASE(masterFullscreenMaximiseDispatchers) {
         EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
 }
+
+
+
+
+TEST_CASE(masterNewWindowTakesOverFullscreen) {
+
+    // Shared test among all default handled FS
+
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'master' } })"));
+
+
+    OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 0 } })"));
+
+    Tests::spawnKitty("kitty_A");
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen' })"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+        EXPECT_CONTAINS(str, "kitty_A");
+    }
+
+    Tests::spawnKitty("kitty_B");
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+        EXPECT_CONTAINS(str, "kitty_A");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_B' })"));
+
+    {
+        // should be ignored as per focus_under_fullscreen 0
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+        EXPECT_CONTAINS(str, "kitty_A");
+    }
+
+    OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 1 } })"));
+
+    Tests::spawnKitty("kitty_C");
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+        EXPECT_CONTAINS(str, "kitty_C");
+    }
+
+    OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 2 } })"));
+
+    Tests::spawnKitty("kitty_D");
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
+        EXPECT_CONTAINS(str, "kitty_D");
+    }
+
+    OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 0 } })"));
+
+    Tests::killAllWindows();
+}
+
+
+
 
 
 

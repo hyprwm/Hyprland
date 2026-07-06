@@ -1,26 +1,12 @@
 
-#include "managers/fullscreen/FullscreenController.hpp"
 
-/* Shared FS bevaiour tests and helpers */
-
-
-// TODO this should cover all default handled algos. simply set the layout to that algo and call these.
-// For scrolling, some apply some don't. Need to test extra features of scrolling too
+// Temp Dump for moving around FS tests and blueprint junkyard for ideas
 
 
 
+void testFsState() {
 
-
-
-
-// make a helper to use FS dispatchers with given mode programatically - most of the below should be tested with both maximised and fullscreen
-
-
-static void testFsState(Fullscreen::eFullscreenMode mode) {
-
-    // Fullscreen
-
-
+    // Tests::Fullscreen
 
     // Maximise
 
@@ -28,16 +14,21 @@ static void testFsState(Fullscreen::eFullscreenMode mode) {
 }
 
 
+void setFsStateGroups(){
+    // floating windows and all
+}
+
+
 
 // todo better name pls
-static void testFsUnderlyingWindowNonInterference() {
+void testFsUnderlyingWindowNonInterference() {
 
     // FS and unFS a window. Under deafult handled FS, all the window locations, sizes, etc... should remain exactly as they were before being FSed
 
 }
 
 
-static void testMovingFsBetweenWorkspaces() {
+void testMovingFsBetweenWorkspaces() {
 
     // move a FS window between 2 workspaces with the same FS Handler (default here)
 
@@ -47,7 +38,7 @@ static void testMovingFsBetweenWorkspaces() {
 
 
 
-static void testFloatUnfloatFsWindow() {
+void testFloatUnfloatFsWindow() {
 
 
     // float tiled FS window
@@ -66,9 +57,9 @@ static void testFloatUnfloatFsWindow() {
 }
 
 
-static void testWindowHidingUnderFs() {
+void testWindowHidingUnderFs() {
 
-    // check m_allowedOverFullscreen values of windows under FS.
+    // check m_allowedOverTests::Fullscreen values of windows under FS.
 
 
     // all other windows other than the FSed window should be under it upon FSing.
@@ -79,7 +70,7 @@ static void testWindowHidingUnderFs() {
 }
 
 
-static void testFsWindowSwitchingFsAnotherWindow() {
+void testFsWindowSwitchingFsAnotherWindow() {
     // Fs tiled window, open floating window, FS that. Fs should have cycled. unFs that window, no Fs windows should remain
 }
 
@@ -87,43 +78,146 @@ static void testFsWindowSwitchingFsAnotherWindow() {
 
 
 
-static void testFsWindowRule() {
+void testFsWindowRule() {
     // use gaps_out
 
     // other propes too need to think about how to test
 }
 
-static void testFsWorkspaceRule() {
+void testFsWorkspaceRule() {
     // use gaps_out
 
     // other propes too need to think about how to test
 }
 
 
-static void testFsCycleFsWithFocus() {
+void testFsCycleFsWithFocus() {
 
-    // movefocus_cycles_fullscreen = true
+    // movefocus_cycles_Tests::Fullscreen = true
 
 
-    // movefocus_cycles_fullscreen = false
+    // movefocus_cycles_Tests::Fullscreen = false
 }
 
 
 
-static void testFsPinnedWindows() {
+void testFsPinnedWindows() {
 
-    // allow_pin_fullscreen = true
+    // allow_pin_Tests::Fullscreen = true
 
-    // allow_pin_fullscreen = false
+    // allow_pin_Tests::Fullscreen = false
 }
 
 // todo rename this as this can be confused with a test for 'ability to focus on windows under FS' feature
-static void testFsFocusUnderFs() {
+void testFsFocusUnderFs() {
 
-    // on_focus_under_fullscreen = 0
-    // on_focus_under_fullscreen = 1
-    // on_focus_under_fullscreen = 2
+    // on_focus_under_Tests::Fullscreen = 0
+    // on_focus_under_Tests::Fullscreen = 1
+    // on_focus_under_Tests::Fullscreen = 2
+
 
 }
 
 
+// TEST_CASE(temp) {
+
+//     NLog::log("{}Testing new_window_takes_over_fullscreen", Colors::YELLOW);
+
+//     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 0 } })"));
+
+//     Tests::spawnKitty("kitty_A");
+
+//     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen' })"));
+
+//     {
+//         auto str = getFromSocket("/activewindow");
+//         EXPECT_CONTAINS(str, "fullscreen: 2");
+//         EXPECT_CONTAINS(str, "fullscreenClient: 2");
+//         EXPECT_CONTAINS(str, "kitty_A");
+//     }
+
+//     Tests::spawnKitty("kitty_B");
+
+//     {
+//         auto str = getFromSocket("/activewindow");
+//         EXPECT_CONTAINS(str, "fullscreen: 2");
+//         EXPECT_CONTAINS(str, "fullscreenClient: 2");
+//         EXPECT_CONTAINS(str, "kitty_A");
+//     }
+
+//     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_B' })"));
+
+//     {
+//         // should be ignored as per focus_under_fullscreen 0
+//         auto str = getFromSocket("/activewindow");
+//         EXPECT_CONTAINS(str, "fullscreen: 2");
+//         EXPECT_CONTAINS(str, "fullscreenClient: 2");
+//         EXPECT_CONTAINS(str, "kitty_A");
+//     }
+
+//     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 1 } })"));
+
+//     Tests::spawnKitty("kitty_C");
+
+//     {
+//         auto str = getFromSocket("/activewindow");
+//         EXPECT_CONTAINS(str, "fullscreen: 2");
+//         EXPECT_CONTAINS(str, "fullscreenClient: 2");
+//         EXPECT_CONTAINS(str, "kitty_C");
+//     }
+
+//     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 2 } })"));
+
+//     Tests::spawnKitty("kitty_D");
+
+//     {
+//         auto str = getFromSocket("/activewindow");
+//         EXPECT_CONTAINS(str, "fullscreen: 0");
+//         EXPECT_CONTAINS(str, "fullscreenClient: 0");
+//         EXPECT_CONTAINS(str, "kitty_D");
+//     }
+
+//     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 0 } })"));
+
+//     Tests::killAllWindows();
+
+//     NLog::log("{}Testing exit_window_retains_fullscreen", Colors::YELLOW);
+
+//     OK(getFromSocket("/eval hl.config({ misc = { exit_window_retains_fullscreen = false } })"));
+
+//     Tests::spawnKitty("kitty_A");
+//     Tests::spawnKitty("kitty_B");
+
+//     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen' })"));
+
+//     {
+//         auto str = getFromSocket("/activewindow");
+//         EXPECT_CONTAINS(str, "fullscreen: 2");
+//         EXPECT_CONTAINS(str, "fullscreenClient: 2");
+//     }
+
+//     OK(getFromSocket("/dispatch hl.dsp.window.kill({ window = 'activewindow' })"));
+//     Tests::waitUntilWindowsN(1);
+
+//     {
+//         auto str = getFromSocket("/activewindow");
+//         EXPECT_CONTAINS(str, "fullscreen: 0");
+//         EXPECT_CONTAINS(str, "fullscreenClient: 0");
+//     }
+
+//     Tests::spawnKitty("kitty_B");
+//     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen' })"));
+//     OK(getFromSocket("/eval hl.config({ misc = { exit_window_retains_fullscreen = true } })"));
+
+//     OK(getFromSocket("/dispatch hl.dsp.window.kill({ window = 'activewindow' })"));
+//     Tests::waitUntilWindowsN(1);
+
+//     {
+//         auto str = getFromSocket("/activewindow");
+//         EXPECT_CONTAINS(str, "fullscreen: 2");
+//         EXPECT_CONTAINS(str, "fullscreenClient: 2");
+//     }
+
+//     Tests::killAllWindows();
+
+// }

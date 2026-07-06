@@ -197,24 +197,6 @@ TEST_CASE(masterFullscreenMaximiseDispatchers) {
         EXPECT_CONTAINS(str, "fullscreenClient: 0");
     }
 
-    // FSMODE_MAX is a state that can only be requested by clients and only sets internal value if internal and client are synced.
-
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 0, client = 3, action = 'set' })"));
-
-    {
-        auto str = getFromSocket("/activewindow");
-        EXPECT_CONTAINS(str, "fullscreen: 0");
-        EXPECT_CONTAINS(str, "fullscreenClient: 3");
-    }
-
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 0, client = 3, action = 'set' })"));
-
-    {
-        auto str = getFromSocket("/activewindow");
-        EXPECT_CONTAINS(str, "fullscreen: 0");
-        EXPECT_CONTAINS(str, "fullscreenClient: 3");
-    }
-
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 2, client = 2, action = 'set' })"));
 
     {

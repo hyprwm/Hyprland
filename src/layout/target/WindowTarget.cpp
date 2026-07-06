@@ -85,10 +85,9 @@ void CWindowTarget::updatePos() {
         Fullscreen::controller()->m_windowPosSettingQueued = false;
     }
 
-
     // Default Handled FS (floating or tiling)
     if (const auto FSMODES = Fullscreen::controller()->getFullscreenModes(m_window.lock());
-    FSMODES.internal != Fullscreen::FSMODE_NONE && !Fullscreen::controller()->layoutManagedFS(m_self->window())) {
+        FSMODES.internal != Fullscreen::FSMODE_NONE && !Fullscreen::controller()->layoutManagedFS(m_self->window())) {
 
         // Fullscreen
         if (FSMODES.internal == Fullscreen::FSMODE_FULLSCREEN) {
@@ -104,7 +103,7 @@ void CWindowTarget::updatePos() {
             visualBox.round();
 
             // carve out reserved area - includes gaps_out
-            const auto RESERVED       = m_window->getFullWindowReservedArea();
+            const auto RESERVED = m_window->getFullWindowReservedArea();
 
             *m_window->m_realPosition = visualBox.pos() + RESERVED.topLeft;
             *m_window->m_realSize     = visualBox.size() - (RESERVED.topLeft + RESERVED.bottomRight);

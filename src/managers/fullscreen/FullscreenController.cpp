@@ -347,12 +347,10 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
         internal = std::clamp(internal.value(), sc<eFullscreenMode>(0), FSMODE_FULLSCREEN);
     if (client.has_value())
         client = std::clamp(client.value(), sc<eFullscreenMode>(0), FSMODE_FULLSCREEN);
-                               
 
     // if new values not provided, we need to use the old values.
     eFullscreenMode targetInternalMode = internal.value_or(FSMODE_NONE);
     eFullscreenMode targetClientMode   = client.value_or(FSMODE_NONE);
-
 
     /*
     

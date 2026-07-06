@@ -358,6 +358,224 @@ TEST_CASE(masterExitWindowRetainsFullscreen) {
 
 
 
+TEST_CASE(masterFullscreenPinnedWindows) {
+
+    // Shared test among all default handled FS
+
+    /*
+    
+    allow_pin_fullscreen -> Allow FSing a pinned window at all?
+
+    if true: FSed pinned window doesn't behave as pinned while it is FS but continues to behave as pinned when it's unFS 
+    if false: doesn't allow FSing it at all
+
+    */
+
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'master' } })"));
+    
+
+
+
+
+
+
+    Tests::spawnKitty("cake");
+
+    OK(getFromSocket("/dispatch hl.dsp.window.float({action = 'enable', window = 'class:cake'})"));
+
+    // resize to expected floating value: 200 x 200
+    OK(getFromSocket("/dispatch hl.dsp.window.resize({x = 200, y = 200, relative = false, window = 'class:cake'})"));
+
+    // Workspace we are testing on: 1
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+
+
+    // Pin the window
+    OK(getFromSocket("r/dispatch hl.dsp.window.pin({ window = 'class:cake' })"));
+
+    
+
+
+    // set to false, try to FS; expect the cake to be a lie (fail)
+    OK(getFromSocket("r/eval hl.config({ binds = { allow_pin_fullscreen = false } })"));
+    
+    OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:cake'})"));
+
+    // Try with fullscreen
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen' })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: cake");
+        EXPECT_CONTAINS(str, "pinned: 1");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
+        EXPECT_CONTAINS(str, "size: 200,200");
+    }
+
+
+    // try with maximised
+
+    // Try with fullscreen
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized' })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: cake");
+        EXPECT_CONTAINS(str, "pinned: 1");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
+        EXPECT_CONTAINS(str, "size: 200,200");
+    }
+
+
+    // Move to another workspace, expect it to follow
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2' })"));
+    {
+        auto str = getFromSocket("/clients");
+        EXPECT_CONTAINS(str, "class: cake");
+        EXPECT_CONTAINS(str, "pinned: 1");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
+        EXPECT_CONTAINS(str, "size: 200,200");
+        EXPECT_CONTAINS(str, "workspace: 2");
+    }
+
+
+
+    // Move back to primary testing workspace, assumed it'll follow since the last test passed
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+
+
+    // While syncing FS state, is not supposed to set either mode, setting only client is supposed to work
+    // should suppress internal setting but allow client setting to go through
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 2, client = 2, action = 'set', window = 'activewindow' })"));
+    {
+        auto str = getFromSocket("/clients");
+        EXPECT_CONTAINS(str, "class: cake");
+        EXPECT_CONTAINS(str, "pinned: 1");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+        EXPECT_CONTAINS(str, "size: 200,200");
+        EXPECT_CONTAINS(str, "workspace: 1");
+    }
+
+
+    // try with maximised too
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 1, client = 1, action = 'set', window = 'activewindow' })"));
+    {
+        auto str = getFromSocket("/clients");
+        EXPECT_CONTAINS(str, "class: cake");
+        EXPECT_CONTAINS(str, "pinned: 1");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 1");
+        EXPECT_CONTAINS(str, "size: 200,200");
+        EXPECT_CONTAINS(str, "workspace: 1");
+    }
+
+
+
+
+    // re-set its FS values for the next test
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 0, client = 0, action = 'set', window = 'activewindow' })"));
+
+
+
+
+
+
+
+
+
+
+
+    // set to true, try to FS; expect the cake to be real (succeed - happy birthday)
+    OK(getFromSocket("r/eval hl.config({ binds = { allow_pin_fullscreen = true } })"));
+    
+    OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:cake'})"));
+
+    // Try with fullscreen
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen' })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: cake");
+        // When it's pinned FS, this shows as 0
+        // TODO add the hyprctl output values "m_pinFullscreened", it already exists as a CWindow attribute
+        EXPECT_CONTAINS(str, "pinned: 0");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+        EXPECT_CONTAINS(str, "at: 0,0");
+        ASSERT_CONTAINS(str, "size: 1920,1080");
+    }
+
+
+    // try with maximised
+
+    // Try with fullscreen
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized' })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: cake");
+        // When it's pinned FS, this shows as 0
+        EXPECT_CONTAINS(str, "pinned: 0");
+        EXPECT_CONTAINS(str, "fullscreen: 1");
+        EXPECT_CONTAINS(str, "fullscreenClient: 1");
+        EXPECT_CONTAINS(str, "at: 2,2");
+        EXPECT_CONTAINS(str, "size: 1916,1076");
+    }
+
+
+    
+    
+    
+    // unFs it, move to another workspace - expect it to follow
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 0, client = 0, action = 'set', window = 'activewindow' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2' })"));
+    {
+        auto str = getFromSocket("/clients");
+        EXPECT_CONTAINS(str, "class: cake");
+        // After the FSed pinned window is unFSed, expect its pinned value to come back
+        EXPECT_CONTAINS(str, "pinned: 1");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
+        EXPECT_CONTAINS(str, "size: 200,200");
+        EXPECT_CONTAINS(str, "workspace: 2");
+    }
+
+
+
+    // set the variable to false, unpin it and expect it to be FS-able
+    OK(getFromSocket("r/eval hl.config({ binds = { allow_pin_fullscreen = false } })"));
+    OK(getFromSocket("r/dispatch hl.dsp.window.pin({ window = 'class:cake' })"));
+    
+
+    // Try with fullscreen
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen' })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: cake");
+        EXPECT_CONTAINS(str, "pinned: 0");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+        EXPECT_CONTAINS(str, "at: 0,0");
+        ASSERT_CONTAINS(str, "size: 1920,1080");
+    }
+
+
+    // try with maximised
+
+    // Try with fullscreen
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized' })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: cake");
+        EXPECT_CONTAINS(str, "pinned: 0");
+        EXPECT_CONTAINS(str, "fullscreen: 1");
+        EXPECT_CONTAINS(str, "fullscreenClient: 1");
+        EXPECT_CONTAINS(str, "at: 2,2");
+        EXPECT_CONTAINS(str, "size: 1916,1076");
+    }
+}
+
 
 
 

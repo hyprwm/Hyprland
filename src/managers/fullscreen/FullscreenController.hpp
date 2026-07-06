@@ -75,7 +75,8 @@ namespace Fullscreen {
       It is done by the handlers. To avoid overriding the positons of FS windows, set m_windowPosSettingQueued before setting window positions.
       
       Make sure that when setting FS window's pos, the window is considered FS by the controller's FS state getter calls to ensure that 
-      window/workspace rules correctly apply and m_windowPosSettingQueued flag is correctly lowered when updatePos() is called
+      window/workspace rules correctly apply, window decorations and other properties that may affect an FS window are refreshed,
+      and m_windowPosSettingQueued flag is correctly lowered when updatePos() is called
 
 
       Window Groups

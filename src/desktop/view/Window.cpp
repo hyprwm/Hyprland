@@ -2428,6 +2428,14 @@ void CWindow::mapWindow() {
     if (PLSFROMFOCUS && PLSFROMFOCUS->m_layerSurface->m_current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE)
         m_noInitialFocus = true;
 
+
+
+    // emit the hook event here after basic stuff has been initialized
+    // It must emit before FS operations so that window has decorations data
+    Event::bus()->m_events.window.open.emit(m_self.lock());
+
+
+
     if (Fullscreen::controller()->hasFullscreen(m_workspace) && !requestedInternalFSMode.has_value() && !requestedClientFSMode.has_value() && !m_isFloating) {
         if (*PNEWTAKESOVERFS == 0)
             m_noInitialFocus = true;
@@ -2511,9 +2519,6 @@ void CWindow::mapWindow() {
     m_firstMap = false;
 
     Log::logger->log(Log::DEBUG, "Map request dispatched, monitor {}, window pos: {:5j}, window size: {:5j}", PMONITOR->m_name, m_realPosition->goal(), m_realSize->goal());
-
-    // emit the hook event here after basic stuff has been initialized
-    Event::bus()->m_events.window.open.emit(m_self.lock());
 
     // apply data from default decos. Borders, shadows.
     g_pDecorationPositioner->forceRecalcFor(m_self.lock());

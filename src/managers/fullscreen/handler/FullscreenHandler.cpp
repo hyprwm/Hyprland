@@ -154,7 +154,7 @@ void IFullscreenHandler::setTargetSizeAndPosition(const SP<Layout::ITarget> targ
     const auto TARGET_INTERNAL_MODE = getFullscreenModes(target).internal;
 
     // It is assume that the target is a fullscreen window as considered by window/workspace rule matchers now.
-    // We update values like gaps_out so that window will get the correct size when FSed
+    // We update values like gaps_out, decorations, etc... so that window will get the correct size when FSed
     WINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
                                                 Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
 

@@ -31,15 +31,17 @@ eTargetType CWindowTarget::type() {
     return TARGET_TYPE_WINDOW;
 }
 
-void CWindowTarget::setPositionGlobal(const STargetBox& box) {
-    ITarget::setPositionGlobal(box);
+void CWindowTarget::setPositionGlobal(const STargetBox& box, uint8_t flags) {
+    ITarget::setPositionGlobal(box, flags);
 
-    updatePos();
+    updatePos(flags);
 }
 
-void CWindowTarget::updatePos() {
+void CWindowTarget::updatePos(uint8_t flags) {
     g_pHyprRenderer->damageWindow(m_window.lock());
     CScopeGuard x([this] { g_pHyprRenderer->damageWindow(m_window.lock()); });
+
+    const bool  CONFIGURECLIENT = !(flags & TARGET_UPDATE_NO_CLIENT_CONFIGURE);
 
     if (!m_space)
         return;
@@ -51,7 +53,8 @@ void CWindowTarget::updatePos() {
         *m_window->m_realPosition = m_box.logicalBox.pos();
         *m_window->m_realSize     = m_box.logicalBox.size();
 
-        m_window->sendWindowSize();
+        if (CONFIGURECLIENT)
+            m_window->sendWindowSize();
         m_window->updateWindowDecos();
 
         return;
@@ -91,7 +94,8 @@ void CWindowTarget::updatePos() {
         *m_window->m_realPosition = visualBox.pos();
 
         m_window->updateWindowDecos();
-        m_window->sendWindowSize();
+        if (CONFIGURECLIENT)
+            m_window->sendWindowSize();
         return;
     }
 
@@ -215,7 +219,8 @@ void CWindowTarget::updatePos() {
     }
 
     m_window->updateWindowDecos();
-    m_window->sendWindowSize();
+    if (CONFIGURECLIENT)
+        m_window->sendWindowSize();
 }
 
 void CWindowTarget::assignToSpace(const SP<CSpace>& space, std::optional<Vector2D> focalPoint) {

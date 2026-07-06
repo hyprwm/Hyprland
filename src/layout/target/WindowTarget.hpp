@@ -13,7 +13,7 @@ namespace Layout {
 
         virtual eTargetType                                         type();
 
-        virtual void                                                setPositionGlobal(const STargetBox& box);
+        virtual void                                                setPositionGlobal(const STargetBox& box, uint8_t flags = TARGET_UPDATE_NONE);
         virtual void                                                assignToSpace(const SP<CSpace>& space, std::optional<Vector2D> focalPoint = std::nullopt);
         virtual PHLWINDOW                                           window() const;
 
@@ -33,7 +33,7 @@ namespace Layout {
 
         Vector2D     clampSizeForDesired(const Vector2D& size) const;
 
-        void         updatePos();
+        void         updatePos(uint8_t flags = TARGET_UPDATE_NONE);
 
         PHLWINDOWREF m_window;
     };

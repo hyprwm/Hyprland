@@ -1342,3 +1342,72 @@ TEST_CASE(mouseResize) {
     EXPECT_CONTAINS(getFromSocket("/clients"), "size: 700,200");
 #undef RESET_WINDOW
 }
+
+
+TEST_CASE(getFullscreenHandler) {
+
+    // Correctly detect the FS handler of a window
+
+    // We will use scrolling as it has a layout handled FS
+
+
+
+    // First test that it's obtained properly in a default FS handled layout - dwindle
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'dwindle' } })"));
+
+    // Tiled
+    Tests::spawnKitty("cat");
+
+    // FS - check - unFS
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen()"));
+    EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "fullscreenHandler"), "default");
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen()"));
+
+    // Floating
+
+
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set' })"));
+
+    // FS - check - unFS
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen()"));
+    EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "fullscreenHandler"), "default");
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen()"));
+
+
+    // switch to scrolling layout
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
+
+
+    // Window still floating. There is no layout handled floating FS behaviour
+
+    // FS - check - unFS
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen()"));
+    EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "fullscreenHandler"), "default");
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen()"));
+
+    // tile the window, and explicitly default handle it
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'unset' })"));
+
+    // FS - check - unFS
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ layout_aware = false })"));
+    EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "fullscreenHandler"), "default");
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ layout_aware = false })"));
+
+
+
+
+
+    // check if layout handler is correctly ontaind
+
+    // FS - check - unFS
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen()"));
+    EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "fullscreenHandler"), "scrolling");
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen()"));
+
+
+
+
+
+}

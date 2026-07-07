@@ -1161,9 +1161,7 @@ bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
     static auto PMINRR   = CConfigValue<Config::INTEGER>("cursor:min_refresh_rate");
 
     // skip scheduling extra frames for fullsreen apps with vrr
-    const auto FULLSCREEN_WINDOW  = Fullscreen::controller()->getFullscreenModes(m_self.lock()).internal == Fullscreen::FSMODE_FULLSCREEN ?
-        Fullscreen::controller()->getFullscreenWindow(m_self.lock()) :
-        nullptr;
+    const auto FULLSCREEN_WINDOW  = Fullscreen::controller()->getFullscreenWindow(m_self.lock());
     const bool shouldRenderCursor = g_pHyprRenderer->shouldRenderCursor();
     const bool noBreak            = FULLSCREEN_WINDOW && (*PNOBREAK == 1 || (*PNOBREAK == 2 && FULLSCREEN_WINDOW->getContentType() == CONTENT_TYPE_GAME));
     const bool shouldSkip         = (!shouldRenderCursor || noBreak) && m_output->state->state().adaptiveSync;
@@ -1843,9 +1841,7 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
             return reasons;
     }
 
-    const auto PCANDIDATE = Fullscreen::controller()->getFullscreenModes(m_self.lock()).internal == Fullscreen::FSMODE_FULLSCREEN ?
-        Fullscreen::controller()->getFullscreenWindow(m_self.lock()) :
-        nullptr;
+    const auto PCANDIDATE = Fullscreen::controller()->getFullscreenWindow(m_self.lock());
 
     if (!PCANDIDATE) {
         reasons |= SC_CANDIDATE;
@@ -1916,9 +1912,7 @@ void CMonitor::recheckSolitary() {
     if (isSolitaryBlocked())
         return;
 
-    m_solitaryClient = Fullscreen::controller()->getFullscreenModes(m_self.lock()).internal == Fullscreen::FSMODE_FULLSCREEN ?
-        Fullscreen::controller()->getFullscreenWindow(m_self.lock()) :
-        nullptr;
+    m_solitaryClient = Fullscreen::controller()->getFullscreenWindow(m_self.lock());
 }
 
 uint8_t CMonitor::isTearingBlocked(bool full) {
@@ -2011,9 +2005,8 @@ uint16_t CMonitor::isDSBlocked(bool full) {
     }
 
     if (*PDIRECTSCANOUT == 2) {
-        const auto FSWINDOW = Fullscreen::controller()->getFullscreenModes(m_self.lock()).internal == Fullscreen::FSMODE_FULLSCREEN ?
-            Fullscreen::controller()->getFullscreenWindow(m_self.lock()) :
-            nullptr;
+        const auto FSWINDOW = Fullscreen::controller()->getFullscreenWindow(m_self.lock());
+
         if (!PWORKSPACE || !FSWINDOW || Fullscreen::controller()->getFullscreenModes(FSWINDOW).internal != Fullscreen::FSMODE_FULLSCREEN) {
             reasons |= DS_BLOCK_WINDOWED;
             if (!full)
@@ -2433,9 +2426,8 @@ bool CMonitor::inHDR() {
 
 std::optional<NColorManagement::PImageDescription> CMonitor::getFSImageDescription() {
 
-    const auto FS_WINDOW = Fullscreen::controller()->getFullscreenModes(m_self.lock()).internal == Fullscreen::FSMODE_FULLSCREEN ?
-        Fullscreen::controller()->getFullscreenWindow(m_self.lock()) :
-        nullptr;
+    const auto FS_WINDOW = Fullscreen::controller()->getFullscreenWindow(m_self.lock());
+
     if (!FS_WINDOW)
         return {};
 

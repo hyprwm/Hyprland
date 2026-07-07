@@ -2290,8 +2290,7 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
     const bool  configuredHDR = (pMonitor->m_cmType == NCMType::CM_HDR_EDID || pMonitor->m_cmType == NCMType::CM_HDR);
     bool        wantHDR       = configuredHDR;
 
-    const auto  FULLSCREEN_WINDOW =
-        Fullscreen::controller()->getFullscreenModes(pMonitor).internal == Fullscreen::FSMODE_FULLSCREEN ? Fullscreen::controller()->getFullscreenWindow(pMonitor) : nullptr;
+    const auto  FULLSCREEN_WINDOW = Fullscreen::controller()->getFullscreenWindow(pMonitor);
 
     if (pMonitor->supportsHDR()) {
         // HDR metadata determined by

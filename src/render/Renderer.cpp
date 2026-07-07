@@ -1070,11 +1070,12 @@ void IHyprRenderer::renderIMEPopup(CInputPopup* pPopup, PHLMONITOR pMonitor, con
 }
 
 void IHyprRenderer::renderSessionLockSurface(WP<SSessionLockSurface> pSurface, PHLMONITOR pMonitor, const Time::steady_tp& time) {
-    static auto PSESSIONLOCKBLUR = CConfigValue<Config::BOOL>("misc:session_lock_blur");
+    static auto                      PSESSIONLOCKXRAY = CConfigValue<Config::BOOL>("misc:session_lock_xray");
+    static auto                      PSESSIONLOCKBLUR = CConfigValue<Config::BOOL>("misc:session_lock_blur");
 
     CSurfacePassElement::SRenderData renderdata = {pMonitor, time, pMonitor->m_position, pMonitor->m_position};
 
-    renderdata.blur     = *PSESSIONLOCKBLUR;
+    renderdata.blur     = *PSESSIONLOCKBLUR && *PSESSIONLOCKXRAY;
     renderdata.surface  = pSurface->surface->surface();
     renderdata.decorate = false;
     renderdata.w        = pMonitor->m_size.x;

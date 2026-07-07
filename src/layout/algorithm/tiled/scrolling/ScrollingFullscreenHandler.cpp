@@ -38,9 +38,9 @@ CScrollingFullscreenHandler::~CScrollingFullscreenHandler() {
 bool CScrollingFullscreenHandler::isFullscreen(SP<Layout::ITarget> target, const std::optional<eFullscreenMode> mode, const std::optional<bool> covering) {
     // Mode checking logic is the same as getFullscreenModes() - keep it in sync
 
-    if (mode.has_value() && mode.value() == FSMODE_NONE) {
-        Log::logger->log(Log::ERR, "Passed mode = FSMODE_NONE into isFullscreen(). This must never happpen.");
-        return false;
+    if (mode.value_or(FSMODE_FULLSCREEN) == FSMODE_NONE) {
+        Log::logger->log(Log::ERR, "Passed mode = FSMODE_NONE into isFullscreen. This must never happpen. Negating the result instead");
+        !isFullscreen(target, std::nullopt, covering);
     }
 
     if (!target)
@@ -51,7 +51,7 @@ bool CScrollingFullscreenHandler::isFullscreen(SP<Layout::ITarget> target, const
         if (WINDOW_GROUP_TARGET->getGroup() && WINDOW_GROUP_TARGET->getGroup()->current() && WINDOW_GROUP_TARGET->getGroup()->current()->m_target)
             target = WINDOW_GROUP_TARGET->getGroup()->current()->m_target;
         else
-            return FULLSCREEN_REQUEST_FAILED;
+            return false;
     }
 
     const auto ITR = m_fsTargets.find(target);

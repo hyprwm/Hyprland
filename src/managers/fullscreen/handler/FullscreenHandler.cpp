@@ -33,9 +33,9 @@ bool IFullscreenHandler::isFullscreen(SP<Layout::ITarget> target, const std::opt
         return false;
 
     // isFullscreen() queries FS state; negating it to check "is target not fullscreen" is the correct way to do this.
-    if (mode.has_value() && mode.value() == FSMODE_NONE) {
-        Log::logger->log(Log::ERR, "Passed mode = FSMODE_NONE into isFullscreen. This must never happpen.");
-        return false;
+    if (mode.value_or(FSMODE_FULLSCREEN) == FSMODE_NONE) {
+        Log::logger->log(Log::ERR, "Passed mode = FSMODE_NONE into isFullscreen. This must never happpen. Negating the result instead");
+        !isFullscreen(target, std::nullopt, covering);
     }
 
     // A window group's FS modes are considered to be owned by its current window
@@ -43,7 +43,7 @@ bool IFullscreenHandler::isFullscreen(SP<Layout::ITarget> target, const std::opt
         if (WINDOW_GROUP_TARGET->getGroup() && WINDOW_GROUP_TARGET->getGroup()->current() && WINDOW_GROUP_TARGET->getGroup()->current()->m_target)
             target = WINDOW_GROUP_TARGET->getGroup()->current()->m_target;
         else
-            return FULLSCREEN_REQUEST_FAILED;
+            return false;
     }
 
     const auto& ITR = m_fsTargets.find(target);

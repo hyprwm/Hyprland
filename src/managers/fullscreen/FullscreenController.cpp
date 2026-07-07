@@ -31,6 +31,11 @@ bool CFullscreenController::isFullscreen(const PHLWINDOW window, const std::opti
     if (!window || !window->m_target || mode == FSMODE_NONE)
         return false;
 
+    if (mode.value_or(FSMODE_FULLSCREEN) == FSMODE_NONE) {
+        Log::logger->log(Log::ERR, "Passed mode = FSMODE_NONE into isFullscreen. This must never happpen. Negating the result instead");
+        !isFullscreen(window, std::nullopt, covering);
+    }
+
     const auto FS_HANDLER = getFSHandler(window);
 
     /* Error Correction - try once */

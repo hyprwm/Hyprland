@@ -129,7 +129,7 @@ bool CFullscreenController::hasFullscreen(const PHLWORKSPACE workspace, const st
 
     const auto returnBoolAfterErrorCorrection = [&](const WP<Fullscreen::IFullscreenHandler> FS_HANDLER) -> bool {
 
-        if (FS_HANDLER->isFullscreen(FS_HANDLER->getFullscreen(covering)))
+        if (FS_HANDLER->isFullscreen(FS_HANDLER->getFullscreen(covering), std::nullopt, covering))
             return true;
         else {
             FS_HANDLER->syncFullscreenTargets();
@@ -183,7 +183,7 @@ PHLWINDOW CFullscreenController::getFullscreenWindow(const PHLWORKSPACE workspac
         if (!FSTARGET)
             return nullptr;
         
-        if (FS_HANDLER->isFullscreen(FSTARGET))
+        if (FS_HANDLER->isFullscreen(FSTARGET, std::nullopt, covering))
             return FSTARGET->window();
         else {
             FS_HANDLER->syncFullscreenTargets();
@@ -228,7 +228,7 @@ SFullscreenMode CFullscreenController::getFullscreenModes(const PHLWORKSPACE wor
 
         auto fsModes = FS_HANDLER->getFullscreenModes(FSTARGET);
 
-        if (fsModes.internal != FSMODE_NONE && !FS_HANDLER->isFullscreen(FSTARGET)) {
+        if (fsModes.internal != FSMODE_NONE && !FS_HANDLER->isFullscreen(FSTARGET, std::nullopt, covering)) {
             FS_HANDLER->syncFullscreenTargets();
             return FS_HANDLER->getFullscreenModes(FSTARGET);
         } else {

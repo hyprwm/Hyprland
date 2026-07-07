@@ -1104,7 +1104,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenPinnedWindows) {
         EXPECT_CONTAINS(str, "fullscreen: 2");
         EXPECT_CONTAINS(str, "fullscreenClient: 2");
         EXPECT_CONTAINS(str, "at: 0,0");
-        ASSERT_CONTAINS(str, "size: 1920,1080");
+        EXPECT_CONTAINS(str, "size: 1920,1080");
     }
 
     // Try with maximised
@@ -1149,7 +1149,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenPinnedWindows) {
         EXPECT_CONTAINS(str, "fullscreen: 2");
         EXPECT_CONTAINS(str, "fullscreenClient: 2");
         EXPECT_CONTAINS(str, "at: 0,0");
-        ASSERT_CONTAINS(str, "size: 1920,1080");
+        EXPECT_CONTAINS(str, "size: 1920,1080");
     }
 
     // Try with maximised

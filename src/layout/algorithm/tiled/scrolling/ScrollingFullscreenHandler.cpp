@@ -487,7 +487,8 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
     std::vector<std::pair<WP<Layout::ITarget>, SFullscreenMode>> toInsert;
 
     for (auto it = m_fsTargets.begin(); it != m_fsTargets.end();) {
-        // WP<> segfaults sometimes if this isn't here
+
+        // Somehow happens sometimes and causes WP<> to segfault
         if (m_fsTargets.empty())
             return;
 

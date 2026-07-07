@@ -500,58 +500,41 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
 
     /*
         Handling Pinned windows - allow_pin_fullscreen
-
         Pinned windows can only be floating, therefore it is guaranteed that they will use the same FS handler within the workspace
-
-        Moving FSed pinned window to another workspace: move without minding that; it'll be Fs in the target workspace anyway and the next un-FS request will correctly handle it
-
-        changing the FS mode of an already FS window (from fullscreen to maximise and vice versa) also doesn't need special handling: let it keep its m_pinFullscreened value intact.
-
     */
     const bool WINDOW_IS_ALREADY_INTERNAL_FS_HANDLER_AGNOSTIC = OLD_FS_MODES.internal != FSMODE_NONE;
-    // Current window is a pinned window - in FS state or not -- must specially handle
     const bool  HANDLE_PINNED_WINDOW       = window->m_pinned || window->m_pinFullscreened;
-    bool        pinnedWinowGoingFullscreen = false;
+    std::optional<bool> pinnedWindowRequetsInternalFS = std::nullopt;
 
     static auto PALLOWPINFULLSCREEN = CConfigValue<Config::INTEGER>("binds:allow_pin_fullscreen");
-    if (*PALLOWPINFULLSCREEN && !window->m_pinFullscreened && !WINDOW_IS_ALREADY_INTERNAL_FS_HANDLER_AGNOSTIC && window->m_pinned) {
-        pinnedWinowGoingFullscreen = true;
+    if (*PALLOWPINFULLSCREEN && !window->m_pinFullscreened && window->m_pinned && !WINDOW_IS_ALREADY_INTERNAL_FS_HANDLER_AGNOSTIC) {
+        pinnedWindowRequetsInternalFS = true;
     }
     if (*PALLOWPINFULLSCREEN && window->m_pinFullscreened && WINDOW_IS_ALREADY_INTERNAL_FS_HANDLER_AGNOSTIC && !window->m_pinned && targetInternalMode == FSMODE_NONE) {
-        pinnedWinowGoingFullscreen = false;
+        pinnedWindowRequetsInternalFS = false;
     }
 
-    // maybe todo: If only one state changed, we may skip setting the other. It's more robust to set both but it's tecnically unnecessary
+    if (HANDLE_PINNED_WINDOW) {
 
-    // set new FS state in the correct handler: if specified, use that handler. If not, use the handler that was used before (if not FS, it'll use layout handler)
+        if (pinnedWindowRequetsInternalFS.value_or(false)) {
+            window->m_pinned          = false;
+            window->m_pinFullscreened = true;
+        }
+        else if (!pinnedWindowRequetsInternalFS.value_or(true)) {
+            window->m_pinned          = true;
+            window->m_pinFullscreened = false;
+        }
+        else if (!(*PALLOWPINFULLSCREEN)) {
+            if (WANT_SYNC)
+                stateChanged = false;
+            else
+                targetInternalMode = FSMODE_NONE;
+        }
+        
+    }
+
     if (stateChanged) {
 
-        // We have a pinned window to handle
-        if (HANDLE_PINNED_WINDOW) {
-
-            if (pinnedWinowGoingFullscreen) {
-                // we are FSing a window as normal, just save the fact that it's pinned
-                window->m_pinned          = false;
-                window->m_pinFullscreened = true;
-            }
-
-            else {
-                // We are unFSing a window or only changing its client state
-
-                // If allow_pin_fullscreen = false, setting only the client state is allowed if not dispatched via a sync_state FS request
-                if (!(*PALLOWPINFULLSCREEN) && WANT_SYNC) {
-                    targetClientMode = FSMODE_NONE;
-                }
-
-                if (!window->m_pinFullscreened || targetInternalMode == FSMODE_NONE) {
-                    window->m_pinned          = true;
-                    window->m_pinFullscreened = false;
-                }
-                // if pinned window is changing between FS modes leave pin state intact
-            }
-        }
-
-        // set states
         setWindowFullscreenModeClient(window, targetClientMode, layoutAware.value_or(WAS_LAYOUT_HANDLED));
         setWindowFullscreenModeInternal(window, targetInternalMode, layoutAware.value_or(WAS_LAYOUT_HANDLED));
     }
@@ -572,7 +555,7 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
     // there's no layout managed floating algo.
     const auto            WINDOW_FS_HANDLER        = getFSHandler(window, layoutAware);
     const SFullscreenMode WINDOW_FS_MODE           = getFullscreenModes(window);
-    const bool            INTERNAL_FS_MODE_CHANGED = !window->m_pinned && WINDOW_FS_MODE.internal != mode;
+    const bool            INTERNAL_FS_MODE_CHANGED = WINDOW_FS_MODE.internal != mode;
 
     if (!WINDOW_FS_HANDLER) {
         Log::logger->log(Log::ERR, "window {} doesn't have FS handler assinged. This should never happen", window->m_title);

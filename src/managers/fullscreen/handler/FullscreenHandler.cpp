@@ -209,7 +209,7 @@ void IFullscreenHandler::syncFullscreenTargets() {
 
     for (auto it = m_fsTargets.begin(); it != m_fsTargets.end();) {
 
-        // WP<> segfaults sometimes if this isn't here
+        // Somehow happens sometimes and causes WP<> to segfault
         if (m_fsTargets.empty())
             return;
 

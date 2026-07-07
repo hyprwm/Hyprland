@@ -116,6 +116,8 @@ static int windowIndex(lua_State* L) {
         lua_pushboolean(L, w->m_isX11);
     else if (key == "pinned")
         lua_pushboolean(L, w->m_pinned);
+    else if (key == "pinFullscreened")
+        lua_pushboolean(L, w->m_pinFullscreened);
     else if (key == "fullscreen")
         lua_pushinteger(L, sc<lua_Integer>(sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w).internal)));
     else if (key == "fullscreen_client")

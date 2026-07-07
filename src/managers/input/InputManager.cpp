@@ -497,7 +497,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
             pFoundWindow = Fullscreen::controller()->getFullscreenWindow(PWORKSPACE);
 
-            // redundancy
             if (!pFoundWindow) {
                 return;
             }

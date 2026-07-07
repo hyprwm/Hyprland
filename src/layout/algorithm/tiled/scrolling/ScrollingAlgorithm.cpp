@@ -448,7 +448,6 @@ void SScrollingData::recalculate(bool forceInstant) {
     auto* const       PGAPSIN       = sc<Config::CCssGapData*>((PGAPSINDATA.ptr()));
     const auto        GAPSIN        = (WORKSPACERULE && WORKSPACERULE->m_gapsIn.has_value()) ? WORKSPACERULE->m_gapsIn.value() : *PGAPSIN;
 
-    // If there is a **default handeld** fullscreen window, return early.
     if (const auto FULLSCREEN_WINDOW = Fullscreen::controller()->getFullscreenWindow(WORKSPACE);
         FULLSCREEN_WINDOW && !Fullscreen::controller()->layoutManagedFS(FULLSCREEN_WINDOW)) {
         algorithm->m_scrollingFullscreenHandler->setNoMembersAboveFullscreen();
@@ -485,9 +484,8 @@ void SScrollingData::recalculate(bool forceInstant) {
         return {.logicalBox = logical, .visualBox = visual};
     };
 
-    bool targetWorkspaceHasCoveringFullscreen = false;
+    bool                     targetWorkspaceHasCoveringFullscreen = false;
 
-    // Save if there is a currently FS window (i.e. the FS window covers monitor if fullscreen, or work area if maximised)
     SP<SScrollingTargetData> currentFsTdata = nullptr;
 
     for (size_t i = 0; i < columns.size(); ++i) {
@@ -943,7 +941,6 @@ void CScrollingAlgorithm::recalculate(eRecalculateReason reason) {
     if (!m_parent || !m_parent->space() || !m_parent->space()->workspace() || !m_parent->space()->workspace()->m_monitor)
         return;
 
-    // If there is a **default handeld** fullscreen window, return early.
     if (const auto FULLSCREEN_WINDOW = Fullscreen::controller()->getFullscreenWindow(m_parent->space()->workspace());
         FULLSCREEN_WINDOW && !Fullscreen::controller()->layoutManagedFS(FULLSCREEN_WINDOW)) {
         m_scrollingFullscreenHandler->setNoMembersAboveFullscreen();

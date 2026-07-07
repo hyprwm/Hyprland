@@ -81,7 +81,8 @@ namespace Fullscreen::ScrollingFullscreenHandler {
 
         // Internal helpers for Scrolling FS behaviour
 
-        void  saveCurrentFsAndAllHiddenFloatingWindows(PHLWINDOW window);
+        // fullscreenWindow is must be tiled, layout handled, and cover the whole monitor or work area.
+        void  saveCurrentFsAndAllHiddenFloatingWindows(PHLWINDOW fullscreenWindow);
 
         float fullscreenColumnWidth() const;
         bool  columnCoversMonitor(SP<Layout::Tiled::SColumnData> col) const;

@@ -58,12 +58,9 @@ bool CScrollingFullscreenHandler::isFullscreen(SP<Layout::ITarget> target, const
 
     // Check that the target fits the scrolling definition of FS target
 
-    // target must exist in list, if exists; it didn't expire
-    // target's internal mode must not be FSMODE_NONE
     if (ITR == m_fsTargets.end() || !ITR->first || ITR->second.mode.internal == FSMODE_NONE)
         return false;
 
-    // FS target must be the sole target in its column - covering or not
     const auto TDATA = m_scrollingAlgorithm->dataFor(target, true);
     if (!TDATA || !TDATA->column)
         return false;
@@ -72,8 +69,6 @@ bool CScrollingFullscreenHandler::isFullscreen(SP<Layout::ITarget> target, const
         Log::logger->log(Log::DEBUG, "column->targetDatas != 1 in a column with FS target");
         return false;
     }
-
-    // covering specific logic
 
     if (!covering.has_value()) {
         return mode.has_value() ? ITR->second.mode.internal == mode.value() : true;
@@ -171,12 +166,10 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
 
     if (REQUESTED_MODE == FSMODE_FULLSCREEN) {
 
-        // if current target isn't fullscreen, save its column width
         if (!isFullscreen(TARGET, FSMODE_FULLSCREEN)) {
 
             float targetColumnWidth = 0.0F;
 
-            // If the target was maximised, save the col width it had before being FSed at all
             if (isFullscreen(TARGET, FSMODE_MAXIMIZED, std::nullopt))
                 targetColumnWidth = getTargetColumnWidthBeforeFullscreenOrMaximise(TARGET);
             else {
@@ -203,7 +196,6 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
 
         CURRENTCOL->setColumnWidth(fullscreenColumnWidth());
 
-        // move new column into view
         m_scrollingAlgorithm->m_scrollingData->centerOrFitCol(CURRENTCOL);
 
         setTargetFullscreenModeInternal(TARGET, FSMODE_FULLSCREEN);
@@ -218,7 +210,6 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
 
             float targetColumnWidth = 0.0F;
 
-            // If the target was fullscreened, save the col width it had before being FSed at all
             if (isFullscreen(TARGET, FSMODE_FULLSCREEN, std::nullopt))
                 targetColumnWidth = getTargetColumnWidthBeforeFullscreenOrMaximise(TARGET);
             else
@@ -228,7 +219,6 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
             if (ITR != m_fsTargets.end()) {
                 ITR->second.restoreColumnWidth = CURRENT_COL ? std::optional<float>{targetColumnWidth} : std::nullopt;
             } else {
-                // redundancy as it should already be saved as FSMODE_MAXIMIZED by now.
                 m_fsTargets.emplace(TARGET, SFullscreenScrollState{.restoreColumnWidth = CURRENT_COL ? std::optional<float>{targetColumnWidth} : std::nullopt});
             }
         }
@@ -242,7 +232,6 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
 
         CURRENTCOL->setColumnWidth(1.F);
 
-        // move new column into view
         m_scrollingAlgorithm->m_scrollingData->centerOrFitCol(CURRENTCOL);
 
         setTargetFullscreenModeInternal(TARGET, FSMODE_MAXIMIZED);
@@ -259,7 +248,6 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
     // UnFS target
     setTargetFullscreenModeInternal(TARGET, FSMODE_NONE);
     setNoMembersAboveFullscreen();
-    // final check to see if the target was correctly FSed.
     return (REQUESTED_MODE == FSMODE_NONE && !isFullscreen(TARGET)) ? FULLSCREEN_REQUEST_LAYOUT_HANDLED : FULLSCREEN_REQUEST_FAILED;
 }
 
@@ -310,7 +298,7 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
     const auto MONITOR   = WORKSPACE->m_monitor;
 
     // This should be in sync with default FS handling of setting all members below FS (IFullscreenHandler::setNoMembersAboveFullscreen())
-    // for simply setting or unsetting no members above the FS window without scrolling specific logic
+    // For simply setting or unsetting no members above the FS window without scrolling specific logic
     const auto setNoMembersAboveFS_layoutUnaware = [&](const bool SET) {
         if (!getSpace() || !getSpace()->workspace() || !getSpace()->workspace()->m_monitor)
             return;
@@ -319,7 +307,6 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
         const auto WORKSPACE = SPACE->workspace();
         const auto MONITOR   = WORKSPACE->m_monitor;
 
-        // make all windows and layers on the same workspace under the fullscreen window
         for (auto const& w : Desktop::windowState()->windows()) {
             if (w && w->m_workspace == getSpace()->workspace() && !isFullscreen(w->m_target) && !w->m_pinned) {
                 w->m_allowedOverFullscreen = !SET;
@@ -342,19 +329,8 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
     };
 
     /*
-    There is no custom layout FS behaviour for floating FS windows (always uses default behaviour).
-
     In scrolling layout, a fully in view tiled FS window may exist underneath a fullscreen floating window. We must keep the floating windows that were opened ontop of the tiled FS window, as well as those
     ontop of the floating FS windows that were layered ontop of the tiled FS window.
-    
-    To this end, we maintain a list of floating windows that are allowed over the currently FSed window.
-
-    COVERING_FULLSCREEN_WINDOW = the covering FS window. If a covering floating FS window exists above a covering tiled FS window, this is the floating window.
-                               If a defaut handled tiled FS window exists above a layout handled tiled FS window, this is the default handled tiled FS window
-    LAYOUT_TILED_COVERING_FS_WINDOW = layout handled tiled covering FS window.
-
-    If in the future floating windows can also be layout handled this logic has to be redone
-
     */
 
     const auto COVERING_FULLSCREEN_WINDOW      = Fullscreen::controller()->getFullscreenWindow(WORKSPACE, true);
@@ -364,7 +340,6 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
     const auto LAST_SCROLL_HANDLED_TILED_FS_WINDOW         = m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow.lock();
     const auto LAST_SCROLL_HANDLED_TILED_FS_WINDOW_FS_MODE = m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindowMode;
 
-    // This should never happen
     if (!COVERING_FULLSCREEN_WINDOW && LAYOUT_TILED_COVERING_FS_WINDOW) {
         // This means that controller doesn't recognise tiled layout handled FS window as fullscreen.
         Log::logger->log(Log::WARN,
@@ -375,24 +350,16 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
 
     // There is no FS window; tiled or floating
     if (!COVERING_FULLSCREEN_WINDOW) {
-        // reset the struct
         m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow = nullptr;
         clear_hiddenFloatingWindowsUnderFSWindow();
-        // set all members as allowed over FS
         setNoMembersAboveFS_layoutUnaware(false);
         return;
     }
 
-    // Below cases should not happen; Default handled FS windows should dispatch to their own handler's setNoMembersAboveFullscreen(). The cases below are for redundancy and error recovery.
-
-    // If the COVERING_FULLSCREEN_WINDOW is default handled (this should not dispatch to this method at all with the new FS framework but this check is redundancy)
     if (Fullscreen::controller()->getFullscreenHandlerName(COVERING_FULLSCREEN_WINDOW) != FULLSCREEN_HANDLER_SCROLLING) {
-        // TODO - this will fire when default handling FS windows in scrolling workspace. When FS related logic is properly extracted from recalculate(), this will no longer fire when no errors occur.
-        Log::logger->log(Log::WARN,
-                         "Default handled FS window called CScrollingFullscreenHandler::setNoMembersAboveFullscreen(). This should never happen: setNoMembersAboveFullscreen() "
-                         "call should have been dispatched to default FS handler. This is a bug, but is not fatal. Recovering...");
+        // TODO - this will fire when default handling FS windows in scrolling workspace. When FS related logic is properly extracted from recalculate(), this will no longer fire when no errors occur, and can be turned into a WARN
+        Log::logger->log(Log::DEBUG, "Default handled FS window called CScrollingFullscreenHandler::setNoMembersAboveFullscreen(). Recovering...");
 
-        // same as default handling
         setNoMembersAboveFS_layoutUnaware(true);
         return;
     }
@@ -403,42 +370,31 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
                          "non-scroll-handled FS window called CScrollingFullscreenHandler::setNoMembersAboveFullscreen(). This should never happen: setNoMembersAboveFullscreen() "
                          "call should have been dispatched to default FS handler. This is a bug, but is not fatal. Recovering...");
 
-        // same as default handling
         clear_hiddenFloatingWindowsUnderFSWindow();
         setNoMembersAboveFS_layoutUnaware(true);
         return;
     }
 
-    // there is an FS window ontop of the layout handled tiled FS window
-    // Case where COVERING_FULLSCREEN_WINDOW is handled above so this really should never happen. This is pure redundancy
+    // There is an FS window ontop of the layout handled tiled FS window
     if (COVERING_FULLSCREEN_WINDOW != LAYOUT_TILED_COVERING_FS_WINDOW) {
         Log::logger->log(Log::WARN,
                          "non-scroll-handled FS window called CScrollingFullscreenHandler::setNoMembersAboveFullscreen(). This should never happen: setNoMembersAboveFullscreen() "
                          "call should have been dispatched to default FS handler. This is a bug, but is not fatal. Recovering...");
-        // same as default handling
         setNoMembersAboveFS_layoutUnaware(true);
         return;
     }
 
     // layout handled tiled FS window is the only covering FS window
     if (COVERING_FULLSCREEN_WINDOW == LAYOUT_TILED_COVERING_FS_WINDOW) {
+        // we are newly scrolling onto this tiled layout handled FS window, or we are changing from maximised to fullscreen or vice versa while in the same FS window
         if (!LAST_SCROLL_HANDLED_TILED_FS_WINDOW || LAST_SCROLL_HANDLED_TILED_FS_WINDOW != LAYOUT_TILED_COVERING_FS_WINDOW ||
             getFullscreenModes(LAYOUT_TILED_COVERING_FS_TARGET).internal != LAST_SCROLL_HANDLED_TILED_FS_WINDOW_FS_MODE) {
-            // we are newly scrolling onto this tiled layout handled FS window, or we are changing from maximised to fullscreen or vice versa while in the same FS window
-            // redundancy - make sure the list is empty
             clear_hiddenFloatingWindowsUnderFSWindow();
-            // save all floating window current on screen, then hide all
             saveCurrentFsAndAllHiddenFloatingWindows(LAYOUT_TILED_COVERING_FS_WINDOW);
             setNoMembersAboveFS_layoutUnaware(true);
             return;
         } else {
 
-            // we had a default handled FS window ontop of a fullscreened tiling window. The windows that were open after the scrolling handled tiled window was fullscreened must remain ontop of it, while those that
-            // were hidden when it was being unfullscreened must remain hidden ('below' it).
-            // i.e. windows that were opened after scroll handled tiled FS window and those opened ontop of the default handled FS window must remain ontop,
-            // while those that were hidden under the scroll handled tiled FS window must remain under
-
-            // make all windows and layers on the same workspace under the fullscreen window
             for (auto const& w : Desktop::windowState()->windows()) {
                 if (!w || w->m_workspace != getSpace()->workspace())
                     continue;
@@ -458,7 +414,6 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
         }
     }
 
-    // If the window was closed or otherwise not available anymore
     if (!LAST_SCROLL_HANDLED_TILED_FS_WINDOW) {
         if (LAYOUT_TILED_COVERING_FS_WINDOW)
             m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow = LAYOUT_TILED_COVERING_FS_WINDOW;
@@ -469,8 +424,6 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
         return;
     }
 
-    // If the function doesn't return till here, it's an error
-
     Log::logger->log(Log::ERR,
                      "setNoMembersAboveFullscreen() failed to correctly execute. Current FS window: {} Current Tiled layout handled FS window: {} Current last focused tiled "
                      "layout handled FS window: {}",
@@ -479,7 +432,7 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
 
 void CScrollingFullscreenHandler::syncFullscreenTargets() {
 
-    // to prevent a rehash - just in case
+    // to prevent a rehash
     std::vector<std::pair<WP<Layout::ITarget>, SFullscreenMode>> toInsert;
 
     for (auto it = m_fsTargets.begin(); it != m_fsTargets.end();) {
@@ -501,7 +454,6 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
 
         if ((!isFullscreen(TARGET) && getFullscreenModes(TARGET).client == FSMODE_NONE)) {
             const auto NEXT = std::next(it);
-            // sets col width to prev value if present, then removes it from the handler (i.e. remove from list)
             removeFsTarget(TARGET, true);
             it = NEXT;
             continue;
@@ -518,7 +470,7 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
             }
         }
 
-        // If ITarget's underlying type is CWindowGroupTarget; only store the current window, NOT the whole group - This should never have happened to begin with
+        // If ITarget's underlying type is CWindowGroupTarget; only store the current window, NOT the whole group
         if (TARGET->type() == Layout::TARGET_TYPE_GROUP || (TARGET->window()->m_group && TARGET->window()->m_group->current()->m_target != TARGET)) {
             Log::logger->log(Log::WARN, "Handler tracked a window group. This should have never happened. Recovering...");
 
@@ -584,15 +536,6 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
     // TODO Decouple FS logic from SScrollingData::recalculate() to avoid having to schedule a prop refresh: it has to be here and it's a mess because recalculate() handled scrolling
     // onto/away from FS windows and this process doesn't call the controller's FS setters which are normally responsible for handling window rule checks.
 
-    /*
-        Handle window/workspace rules, decorations, etc...
-        
-        Handle if: Newly FSed or scrolling away from an FS window:
-            If there's a new FS window
-            If the old FS window is no longer FS (this function is responsible for calling the function that would sync that state so at this point, the old value is still saved as 'FS')
-
-
-    */
     // Scrolling onto or have a new FS window
     if ((TARGET_WORKSPACE_HAS_FS && CURRENT_FS_TDATA && CURRENT_FS_TDATA->target && CURRENT_FS_TDATA->target->window() &&
          CURRENT_FS_TDATA->target->window() != m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow)) {
@@ -631,7 +574,7 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
         // check if LAST_FS_LAYOUTMANAGED_TILED_WINDOW exists, and that we either don't have a covering FS window, or if we do; it's not the same as LAST_FS_LAYOUTMANAGED_TILED_WINDOW
         LAST_FS_LAYOUTMANAGED_TILED_WINDOW &&
         (!CURRENT_FS_TDATA || (CURRENT_FS_TDATA && LAST_FS_LAYOUTMANAGED_TILED_WINDOW != CURRENT_FS_TDATA->target->window()))
-        // check that LAST_FS_LAYOUTMANAGED_TILED_WINDOW was not unfullscreened (CScrollingAlgorithm::requestFullscreen() would have handled that)
+        // check that LAST_FS_LAYOUTMANAGED_TILED_WINDOW was not unfullscreened (requestFullscreen() would have handled setting its DSO/VRR)
         && getFullscreenModes(LAST_FS_LAYOUTMANAGED_TILED_WINDOW->m_target).internal != FSMODE_NONE) {
 
         // send a regular tranche
@@ -655,20 +598,16 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
 
     Config::monitorRuleMgr()->ensureVRR(MONITOR);
 
-    // DSO and VRR must be above setNoMembersAboveFullscreen() because we need the last tiled layout managed fullscreen window before it is reset when no fullscreen
-    // if covering FS, set. If not, unset.
+    // DSO and VRR setting must run before setNoMembersAboveFullscreen() because we need the last tiled layout managed fullscreen window before it is reset when no fullscreen
     setNoMembersAboveFullscreen();
 
-    // Must be below setNoMembersAboveFullscreen() so it can properly set the windows' allowedOverFullscreen attributes
+    // Must run after setNoMembersAboveFullscreen() so it can properly set the windows' allowedOverFullscreen attributes
     updateFullscreenFade(TARGET_WORKSPACE_HAS_FS);
 }
 
 void CScrollingFullscreenHandler::saveCurrentFsAndAllHiddenFloatingWindows(PHLWINDOW fullscreenWindow) {
-
-    // we save all the floating windows that will be hidden under the fullscreen. We are using the same logic that is used to judge which window is to be hidden + a float check.
-    // This function must be updated whenever this logic is changed (setNoMembersAboveFullscreen())
-
-    // fullscreenWindow is assumed to be tiled, layout handled, covers the whole monitor or work area.
+    // We are using the same logic as setNoMembersAboveFullscreen() + a float check.
+    // keep logic here in sync with setNoMembersAboveFullscreen()
 
     m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow     = fullscreenWindow;
     m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindowMode = getFullscreenModes(fullscreenWindow->m_target).internal;

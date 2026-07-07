@@ -78,7 +78,7 @@ void CWindowTarget::updatePos() {
 
     /* FS Handling */
 
-    // If the FS window's pos is already set, early return. If not, unset the flag as we're setting it right now
+    // prevent re-setting an FS window's pos after it is set by the FS calls
     if (m_window && Fullscreen::controller()->isFullscreen(m_window.lock(), std::nullopt, true)) {
         if (!Fullscreen::controller()->m_windowPosSettingQueued)
             return;
@@ -89,20 +89,17 @@ void CWindowTarget::updatePos() {
     if (const auto FSMODES = Fullscreen::controller()->getFullscreenModes(m_window.lock());
         FSMODES.internal != Fullscreen::FSMODE_NONE && !Fullscreen::controller()->layoutManagedFS(m_self->window())) {
 
-        // Fullscreen
         if (FSMODES.internal == Fullscreen::FSMODE_FULLSCREEN) {
             *m_window->m_realPosition = m_box.logicalBox.pos();
             *m_window->m_realSize     = m_box.logicalBox.size();
 
-        }
-        // maximised
-        else if (FSMODES.internal == Fullscreen::FSMODE_MAXIMIZED) {
+        } else if (FSMODES.internal == Fullscreen::FSMODE_MAXIMIZED) {
             CBox nodeBox   = m_box.logicalBox;
             CBox visualBox = m_box.visualBox.empty() ? nodeBox : m_box.visualBox;
             nodeBox.round();
             visualBox.round();
 
-            // carve out reserved area - includes gaps_out
+            // Reserved area must be updated before this is called
             const auto RESERVED = m_window->getFullWindowReservedArea();
 
             *m_window->m_realPosition = visualBox.pos() + RESERVED.topLeft;
@@ -114,8 +111,7 @@ void CWindowTarget::updatePos() {
         return;
     }
 
-    // Layout handled FS window
-
+    // Layout handled FS
     if (const auto FSMODES = Fullscreen::controller()->getFullscreenModes(m_window.lock());
         FSMODES.internal != Fullscreen::FSMODE_NONE && Fullscreen::controller()->layoutManagedFS(m_self->window())) {
 
@@ -128,7 +124,7 @@ void CWindowTarget::updatePos() {
             *m_window->m_realPosition = visualBox.pos();
         } else if (FSMODES.internal == Fullscreen::FSMODE_MAXIMIZED) {
 
-            // carve out reserved area - includes gaps_out
+            // Reserved area must be updated before this is called
             const auto RESERVED       = m_window->getFullWindowReservedArea();
             *m_window->m_realPosition = visualBox.pos() + RESERVED.topLeft;
             *m_window->m_realSize     = visualBox.size() - (RESERVED.topLeft + RESERVED.bottomRight);

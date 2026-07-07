@@ -107,7 +107,6 @@ void IFullscreenHandler::setTargetFullscreenModeInternal(const SP<Layout::ITarge
 
     const auto ITR = m_fsTargets.find(target);
 
-    // remember floating size if window exists and is floating
     if (target->window() && target->window()->m_isFloating && mode != FSMODE_NONE && !isFullscreen(target))
         target->rememberFloatingSize(target->position().size());
 
@@ -154,8 +153,8 @@ void IFullscreenHandler::setTargetSizeAndPosition(const SP<Layout::ITarget> targ
 
     const auto TARGET_INTERNAL_MODE = getFullscreenModes(target).internal;
 
-    // It is assume that the target is a fullscreen window as considered by window/workspace rule matchers now.
-    // We update values like gaps_out, decorations, etc... so that window will get the correct size when FSed
+    // Target must be a fullscreen window as considered by window/workspace rule matchers by now.
+    // update all the values necessary for FS windows to get correct window dimensions and pos
     WINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
                                                 Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
     WINDOW->updateDecorationValues();
@@ -185,7 +184,6 @@ void IFullscreenHandler::setNoMembersAboveFullscreen() {
 
     const bool SET = hasFullscreen(true);
 
-    // make all windows and layers on the same workspace under the fullscreen window
     for (auto const& w : Desktop::windowState()->windows()) {
         if (w && w->m_workspace == getSpace()->workspace() && !isFullscreen(w->m_target) && !w->m_pinned) {
             w->m_allowedOverFullscreen = !SET;
@@ -201,7 +199,7 @@ void IFullscreenHandler::setNoMembersAboveFullscreen() {
 void IFullscreenHandler::syncFullscreenTargets() {
     // Mode checking logic is the same as getFullscreenModes() - keep it in sync
 
-    // to prevent a rehash - just in case
+    // to prevent a rehash
     std::vector<std::pair<WP<Layout::ITarget>, SFullscreenMode>> toInsert;
 
     for (auto it = m_fsTargets.begin(); it != m_fsTargets.end();) {
@@ -220,7 +218,7 @@ void IFullscreenHandler::syncFullscreenTargets() {
             continue;
         }
 
-        // If ITarget's underlying type is CWindowGroupTarget; only store the current window, NOT the whole group - This should never have happened to begin with
+        // If ITarget's underlying type is CWindowGroupTarget; only store the current window, NOT the whole group
         if (TARGET->type() == Layout::TARGET_TYPE_GROUP) {
             const SFullscreenMode MODE         = SFullscreenMode{.internal = it->second.internal, .client = it->second.client};
             const auto            WINDOWTARGET = TARGET->window()->layoutTarget();

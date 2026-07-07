@@ -216,8 +216,6 @@ void IFullscreenHandler::syncFullscreenTargets() {
         // Rigorously check if WP<> is valid
         const auto TARGET = !it->first.expired() && it->first.valid() && it->first ? it->first.lock() : nullptr;
 
-
-
         // target expired
         // window doesn't exist
         // target is not FS (internal or client)

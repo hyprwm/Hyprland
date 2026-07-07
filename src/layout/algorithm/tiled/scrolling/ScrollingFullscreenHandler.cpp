@@ -170,7 +170,6 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
 
     const auto CURRENT_COL = TDATA->column.lock();
 
-
     if (REQUESTED_MODE == FSMODE_FULLSCREEN) {
 
         // if current target isn't fullscreen, save its column width
@@ -491,7 +490,7 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
         // WP<> segfaults sometimes if this isn't here
         if (m_fsTargets.empty())
             return;
-        
+
         // Rigorously check if WP<> is valid
         const auto TARGET = !it->first.expired() && it->first.valid() && it->first ? it->first.lock() : nullptr;
 
@@ -527,7 +526,6 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
                 }
             }
         }
-
 
         // TARGET is in a group, but is not the current window of the group OR If ITarget's underlying type is window group; only store the current window, NOT the whole group
         // add the current window of the group's WindowTarget into the list and remove the current target

@@ -2473,7 +2473,7 @@ void CWindow::mapWindow() {
         // fix fullscreen on requested (basically do a switcheroo)
         std::optional<bool> wasFullscreenLayoutHandled = std::nullopt;
         if (Fullscreen::controller()->hasFullscreen(m_workspace)) {
-            auto fsWindow = Fullscreen::controller()->getFullscreenWindow(m_workspace);
+            auto fsWindow              = Fullscreen::controller()->getFullscreenWindow(m_workspace);
             wasFullscreenLayoutHandled = Fullscreen::controller()->layoutManagedFS(fsWindow);
             Fullscreen::controller()->setFullscreenMode(fsWindow, Fullscreen::FSMODE_NONE);
         }

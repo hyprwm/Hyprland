@@ -31,7 +31,7 @@ struct SFullscreenWorkspaceFocusResult {
 static SFullscreenWorkspaceFocusResult onFullscreenWorkspaceFocusWindow(PHLWINDOW pWindow, bool forceFSCycle) {
     const auto FSWINDOW        = Fullscreen::controller()->getFullscreenWindow(pWindow->m_workspace);
     const auto FSMODE_INTERNAL = Fullscreen::controller()->getFullscreenModes(pWindow->m_workspace).internal;
-    const auto LAYOUT_HANDLED = Fullscreen::controller()->layoutManagedFS(FSWINDOW);
+    const auto LAYOUT_HANDLED  = Fullscreen::controller()->layoutManagedFS(FSWINDOW);
 
     if (pWindow == FSWINDOW)
         return {}; // no conflict

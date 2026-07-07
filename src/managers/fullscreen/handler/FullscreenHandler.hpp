@@ -18,7 +18,6 @@ namespace Fullscreen {
 
     class IFullscreenHandler {
 
-
         /*
         Default FS handler with overridable methods for layouts wishing to implement their own FS handlers
         

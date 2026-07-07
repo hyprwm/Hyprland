@@ -139,12 +139,10 @@ namespace Fullscreen {
         CFullscreenController()  = default;
         ~CFullscreenController() = default;
 
-
         // Window
 
         /// @param covering If passed can determine if a window must be covering or must be non-covering. If not passed, window can be either
         /// @note only cosiders internal mode of FS windows
-        // ERSTARR TODO - note that passing mode = FSMODE_NONE will not fly. return false then in any case and log an error
         bool isFullscreen(const PHLWINDOW window, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = std::nullopt);
         /// @note considers both internal and client FS modes of window
         SFullscreenMode getFullscreenModes(const PHLWINDOW window);

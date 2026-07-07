@@ -157,7 +157,6 @@ TEST_CASE(misc) {
         auto str = getFromSocket("/monitors");
         ASSERT_NOT_CONTAINS(str, "special workspace: -");
     }
-
 }
 
 TEST_CASE(processesThatDieEarlyAreReaped) {

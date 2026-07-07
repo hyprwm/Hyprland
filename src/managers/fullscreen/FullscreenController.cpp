@@ -40,7 +40,6 @@ bool CFullscreenController::isFullscreen(const PHLWINDOW window, const std::opti
 
     /* Error Correction - try once */
     const auto returnBoolAfterErrorCorrection = [&](const WP<Fullscreen::IFullscreenHandler> FS_HANDLER, const WP<Desktop::View::CWindow> FS_WINDOW) -> bool {
-
         // FS window isn't found to begin with
         if (!FS_WINDOW || !FS_WINDOW->m_target)
             return false;
@@ -53,7 +52,6 @@ bool CFullscreenController::isFullscreen(const PHLWINDOW window, const std::opti
         }
         return false;
     };
-    
 
     if (!FS_HANDLER) {
         Log::logger->log(Log::ERR, "window {} doesn't have FS handler assinged. This should never happen", window->m_title);
@@ -64,7 +62,7 @@ bool CFullscreenController::isFullscreen(const PHLWINDOW window, const std::opti
 
     if (IS_FS)
         return returnBoolAfterErrorCorrection(FS_HANDLER, window);
-    
+
     return false;
 }
 
@@ -128,7 +126,6 @@ bool CFullscreenController::hasFullscreen(const PHLWORKSPACE workspace, const st
     /* Error Correction - try once */
 
     const auto returnBoolAfterErrorCorrection = [&](const WP<Fullscreen::IFullscreenHandler> FS_HANDLER) -> bool {
-
         if (FS_HANDLER->isFullscreen(FS_HANDLER->getFullscreen(covering), std::nullopt, covering))
             return true;
         else {
@@ -178,11 +175,10 @@ PHLWINDOW CFullscreenController::getFullscreenWindow(const PHLWORKSPACE workspac
     /* Error Correction - try once */
 
     const auto returnWindowAfterErrorCorrection = [&](WP<Fullscreen::IFullscreenHandler> FS_HANDLER, SP<Layout::ITarget> FSTARGET) -> PHLWINDOW {
-        
         // FS target isn't found to begin with
         if (!FSTARGET)
             return nullptr;
-        
+
         if (FS_HANDLER->isFullscreen(FSTARGET, std::nullopt, covering))
             return FSTARGET->window();
         else {
@@ -221,7 +217,6 @@ SFullscreenMode CFullscreenController::getFullscreenModes(const PHLWORKSPACE wor
 
     /* Error Correction - try once */
     const auto returnModesAfterErrorCorrection = [&](WP<Fullscreen::IFullscreenHandler> FS_HANDLER, SP<Layout::ITarget> FSTARGET) {
-
         // FS target isn't found to begin with
         if (!FSTARGET)
             return SFullscreenMode{};
@@ -405,7 +400,6 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
     const auto ORIGINAL_FS_HANDLER = getFSHandler(window, WAS_LAYOUT_HANDLED);
     const auto OLD_FS_MODES        = ORIGINAL_FS_HANDLER->getFullscreenModes(window->m_target);
 
-
     const auto TO_BE_USED_FS_HANDLER = getFSHandler(window, layoutAware.value_or(WAS_LAYOUT_HANDLED));
     if (!TO_BE_USED_FS_HANDLER) {
         Log::logger->log(Log::ERR, "window {} doesn't have FS handler assinged. This should never happen", window->m_title);
@@ -445,7 +439,6 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
             ++it;
         }
     };
-
 
     /*
         Handled moving the window from one handler to another if needed
@@ -489,11 +482,6 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
         saveClientInternalValues(OLD_FS_MODES);
     }
 
-
-
-
-
-
     // Handle fullscreen request SYNCing internal and client states
     if (WANT_SYNC) {
 
@@ -510,8 +498,6 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
         }
     }
 
-
-
     /*
         Handling Pinned windows - allow_pin_fullscreen
 
@@ -524,8 +510,8 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
     */
     const bool WINDOW_IS_ALREADY_INTERNAL_FS_HANDLER_AGNOSTIC = OLD_FS_MODES.internal != FSMODE_NONE;
     // Current window is a pinned window - in FS state or not -- must specially handle
-    const bool HANDLE_PINNED_WINDOW = window->m_pinned || window->m_pinFullscreened;
-    bool pinnedWinowGoingFullscreen = false;
+    const bool  HANDLE_PINNED_WINDOW       = window->m_pinned || window->m_pinFullscreened;
+    bool        pinnedWinowGoingFullscreen = false;
 
     static auto PALLOWPINFULLSCREEN = CConfigValue<Config::INTEGER>("binds:allow_pin_fullscreen");
     if (*PALLOWPINFULLSCREEN && !window->m_pinFullscreened && !WINDOW_IS_ALREADY_INTERNAL_FS_HANDLER_AGNOSTIC && window->m_pinned) {
@@ -535,16 +521,10 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
         pinnedWinowGoingFullscreen = false;
     }
 
-
-
-
-
-
     // maybe todo: If only one state changed, we may skip setting the other. It's more robust to set both but it's tecnically unnecessary
 
     // set new FS state in the correct handler: if specified, use that handler. If not, use the handler that was used before (if not FS, it'll use layout handler)
     if (stateChanged) {
-
 
         // We have a pinned window to handle
         if (HANDLE_PINNED_WINDOW) {
@@ -570,7 +550,6 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
                 // if pinned window is changing between FS modes leave pin state intact
             }
         }
-
 
         // set states
         setWindowFullscreenModeClient(window, targetClientMode, layoutAware.value_or(WAS_LAYOUT_HANDLED));
@@ -600,18 +579,17 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
         return;
     }
 
-    static auto PDIRECTSCANOUT      = CConfigValue<Config::INTEGER>("render:direct_scanout");
+    static auto PDIRECTSCANOUT = CConfigValue<Config::INTEGER>("render:direct_scanout");
 
     if (window->m_isFloating && WINDOW_FS_MODE.internal == FSMODE_NONE && mode != FSMODE_NONE)
         g_pHyprRenderer->damageWindow(window);
-
 
     // if the new window is not to be laytout handled, is not fullscreen yet, and there is already a covering FS window in the workspace
     if (hasFullscreen(WORKSPACE) && !isFullscreen(window) && !layoutAware) {
 
         // If the covering FS window is not layout handled, replace the covering FS with the current one.
         // If it is layout handled, !!Which implies that the covering FS window is tiling!!, layer the current FS window ontop of the covering FS window
-            // e.g. in scrolling, floating FS windows (which are always default handled) are allowed to layer over layout handled tiling FS windows 
+        // e.g. in scrolling, floating FS windows (which are always default handled) are allowed to layer over layout handled tiling FS windows
         const auto COVERING_FS_WINDOW = Fullscreen::controller()->getFullscreenWindow(WORKSPACE, true);
         if (!Fullscreen::controller()->layoutManagedFS(COVERING_FS_WINDOW))
             setFullscreenMode(COVERING_FS_WINDOW, FSMODE_NONE);
@@ -620,7 +598,7 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
     // arm m_suppressNextMaximize to swallow the set_maximized echo on fullscreen exit
     if (INTERNAL_FS_MODE_CHANGED && !window->m_isFloating && (getFullscreenModes(window).internal == FSMODE_FULLSCREEN) && mode != FSMODE_FULLSCREEN)
         window->m_suppressNextMaximize = true;
-    
+
     // Window/Workspace Rules, decorations, etc..
     if (!INTERNAL_FS_MODE_CHANGED) {
         window->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |

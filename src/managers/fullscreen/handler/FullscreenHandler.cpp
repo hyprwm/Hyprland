@@ -14,7 +14,7 @@
 #include "../../../layout/target/Target.hpp"
 
 #include "../../../output/Monitor.hpp"
-#include "layout/target/WindowGroupTarget.hpp"
+#include "../../../layout/target/WindowGroupTarget.hpp"
 #include <hyprutils/memory/Casts.hpp>
 
 using namespace Fullscreen;
@@ -158,9 +158,9 @@ void IFullscreenHandler::setTargetSizeAndPosition(const SP<Layout::ITarget> targ
     // We update values like gaps_out, decorations, etc... so that window will get the correct size when FSed
     WINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
                                                 Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-
     WINDOW->updateDecorationValues();
     g_layoutManager->recalculateMonitor(MONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN);
+    getSpace()->recalculate(Layout::RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN);
 
     if (TARGET_INTERNAL_MODE == FSMODE_FULLSCREEN) {
         const CBox MONBOX                                  = MONITOR->logicalBox();

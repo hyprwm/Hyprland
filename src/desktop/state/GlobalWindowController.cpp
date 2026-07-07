@@ -5,7 +5,6 @@
 #include "../view/Group.hpp"
 #include "../../output/Monitor.hpp"
 #include "../../layout/LayoutManager.hpp"
-#include "../../Compositor.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
 
 using namespace Desktop;
@@ -45,6 +44,7 @@ void CGlobalWindowController::moveWindowToWorkspace(PHLWINDOW pWindow, PHLWORKSP
 
     const bool FULLSCREEN     = Fullscreen::controller()->isFullscreen(pWindow);
     const auto FULLSCREENMODE = Fullscreen::controller()->getFullscreenModes(pWindow).internal;
+    const auto LAYOUT_AWARE   = FULLSCREEN ? Fullscreen::controller()->layoutManagedFS(pWindow) : false;
     const bool WASVISIBLE     = pWindow->m_workspace && pWindow->m_workspace->isVisible();
 
     if (FULLSCREEN)
@@ -77,7 +77,7 @@ void CGlobalWindowController::moveWindowToWorkspace(PHLWINDOW pWindow, PHLWORKSP
     g_layoutManager->newTarget(pWindow->layoutTarget(), pWorkspace->m_space);
 
     if (FULLSCREEN)
-        Fullscreen::controller()->setFullscreenMode(pWindow, FULLSCREENMODE);
+        Fullscreen::controller()->setFullscreenMode(pWindow, FULLSCREENMODE, std::nullopt, LAYOUT_AWARE);
 
     pWorkspace->updateWindows();
     if (pWindow->m_workspace)

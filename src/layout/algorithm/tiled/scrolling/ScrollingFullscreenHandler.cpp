@@ -591,13 +591,6 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
             If there's a new FS window
             If the old FS window is no longer FS (this function is responsible for calling the function that would sync that state so at this point, the old value is still saved as 'FS')
 
-        In prop refresh event's call of this function, this part should return false as the states above should be synced already.
-
-
-        Reason for scheduling a prop refresh: Normally, FS controller's FS state setter's method of handling window rules should be used; but calling g_layoutManager->recalculateMonitor(MONITOR) here would lead to an inf recursion
-        so we enqueue a prop refresh instead to handle this in the next event.
-        Concern: if the user executes a premature prop refresh, this might cause another prop refresh to be enqueud - though this is unlikely and would only occur in the event of a bug
-
 
     */
     // Scrolling onto or have a new FS window
@@ -609,6 +602,9 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
                                                             Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
         LAST_FS_WINDOW->updateDecorationValues();
 
+        // Normally, FS controller's FS state setter's method of handling window rules should be used; but calling g_layoutManager->recalculateMonitor(MONITOR) and getSpace()->recalculate()
+        // here would lead to an inf recursion
+        // Concern: if the user executes a premature prop refresh, this might cause another prop refresh to be enqueued if the variables in the if cond aren't properly updated by setNoMembersAboveFullscreen()
         Config::Supplementary::refresher()->scheduleRefresh(Config::Supplementary::REFRESH_WINDOW_STATES | Config::Supplementary::REFRESH_MONITOR_STATES);
     }
     // Scrolling away from an FS window

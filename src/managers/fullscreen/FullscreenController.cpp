@@ -530,6 +530,8 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
                                                     Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
         window->updateDecorationValues();
         g_layoutManager->recalculateMonitor(MONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN);
+        // Need to explicitly call as workspace may not be the currently focused one on the monitor (e.g. moving FS window between workspaces)
+        WORKSPACE->m_space->recalculate(layoutAware ? Layout::RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN : Layout::RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN);
         return;
     }
 
@@ -549,9 +551,9 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
 
     window->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
                                                 Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-
     window->updateDecorationValues();
     g_layoutManager->recalculateMonitor(MONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN);
+    WORKSPACE->m_space->recalculate(layoutAware ? Layout::RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN : Layout::RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN);
 
     window->sendWindowSize(true);
 

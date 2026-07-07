@@ -60,6 +60,7 @@ static std::expected<void, std::string> doWallpaper(const std::string_view& RHS)
     const std::string MONITOR  = std::string{args[0]};
     const auto&       PATH_RAW = args[1];
     const auto&       FIT      = args[2];
+    const auto&       SHADER   = args.size() > 3 ? args[3] : std::string_view{};
 
     if (PATH_RAW.empty())
         return std::unexpected("not enough args");
@@ -125,6 +126,11 @@ static std::expected<void, std::string> doWallpaper(const std::string_view& RHS)
     wallpaper->sendMonitorName(MONITOR.c_str());
     if (!FIT.empty())
         wallpaper->sendFitMode(fitFromString(FIT));
+    if (!SHADER.empty()) {
+        auto shaderPath = getFullPath(SHADER);
+        if (shaderPath)
+            wallpaper->sendShaderPath(shaderPath->c_str());
+    }
 
     wallpaper->sendApply();
 

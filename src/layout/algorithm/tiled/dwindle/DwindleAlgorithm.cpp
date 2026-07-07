@@ -335,10 +335,10 @@ void CDwindleAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRe
         SP<SDwindleNodeData> PHOUTER = nullptr;
         SP<SDwindleNodeData> PHINNER = nullptr;
 
-        const auto           LEFT   = corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT || DISPLAYRIGHT;
-        const auto           TOP    = corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT || DISPLAYBOTTOM;
-        const auto           RIGHT  = corner == CORNER_TOPRIGHT || corner == CORNER_BOTTOMRIGHT || DISPLAYLEFT;
-        const auto           BOTTOM = corner == CORNER_BOTTOMLEFT || corner == CORNER_BOTTOMRIGHT || DISPLAYTOP;
+        const auto           LEFT   = edgeLeft(corner) || DISPLAYRIGHT;
+        const auto           TOP    = edgeTop(corner) || DISPLAYBOTTOM;
+        const auto           RIGHT  = edgeRight(corner) || DISPLAYLEFT;
+        const auto           BOTTOM = edgeBottom(corner) || DISPLAYTOP;
         const auto           NONE   = corner == CORNER_NONE;
 
         for (auto PCURRENT = PNODE; PCURRENT && PCURRENT->pParent; PCURRENT = PCURRENT->pParent.lock()) {

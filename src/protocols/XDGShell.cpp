@@ -14,6 +14,22 @@
 #include <cstddef>
 #include <ranges>
 
+static bool xdgToplevelResizeEdgeValid(xdgToplevelResizeEdge edges) {
+    switch (edges) {
+        case XDG_TOPLEVEL_RESIZE_EDGE_NONE:
+        case XDG_TOPLEVEL_RESIZE_EDGE_TOP:
+        case XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM:
+        case XDG_TOPLEVEL_RESIZE_EDGE_LEFT:
+        case XDG_TOPLEVEL_RESIZE_EDGE_TOP_LEFT:
+        case XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM_LEFT:
+        case XDG_TOPLEVEL_RESIZE_EDGE_RIGHT:
+        case XDG_TOPLEVEL_RESIZE_EDGE_TOP_RIGHT:
+        case XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM_RIGHT: return true;
+    }
+
+    return false;
+}
+
 void SXDGPositionerState::setAnchor(xdgPositionerAnchor edges) {
     anchor.setTop(edges == XDG_POSITIONER_ANCHOR_TOP || edges == XDG_POSITIONER_ANCHOR_TOP_LEFT || edges == XDG_POSITIONER_ANCHOR_TOP_RIGHT);
     anchor.setLeft(edges == XDG_POSITIONER_ANCHOR_LEFT || edges == XDG_POSITIONER_ANCHOR_TOP_LEFT || edges == XDG_POSITIONER_ANCHOR_BOTTOM_LEFT);
@@ -172,6 +188,52 @@ CXDGToplevelResource::CXDGToplevelResource(SP<CXdgToplevel> resource_, SP<CXDGSu
     m_resource->setSetAppId([this](CXdgToplevel* r, const char* id) {
         m_state.appid = id;
         m_events.metadataChanged.emit();
+    });
+
+    m_resource->setMove([this](CXdgToplevel* r, wl_resource* seat, uint32_t serial) {
+        const auto SEAT = CWLSeatResource::fromResource(seat);
+        if (!SEAT || SEAT->client() != r->client()) {
+            LOGM(Log::DEBUG, "Ignoring xdg_toplevel.move with an invalid seat");
+            return;
+        }
+
+        const auto OWNER = m_owner.lock();
+        const auto SURF  = OWNER ? OWNER->m_surface.lock() : nullptr;
+        if (!g_pSeatManager->pointerButtonSerialValid(SEAT, serial, SURF)) {
+            LOGM(Log::DEBUG, "Ignoring xdg_toplevel.move with an invalid serial");
+            return;
+        }
+
+        m_events.requestMove.emit(SXDGToplevelMoveRequest{
+            .seat   = SEAT,
+            .serial = serial,
+        });
+    });
+
+    m_resource->setResize([this](CXdgToplevel* r, wl_resource* seat, uint32_t serial, xdgToplevelResizeEdge edges) {
+        if (!xdgToplevelResizeEdgeValid(edges)) {
+            r->error(XDG_TOPLEVEL_ERROR_INVALID_RESIZE_EDGE, "Invalid resize edge");
+            return;
+        }
+
+        const auto SEAT = CWLSeatResource::fromResource(seat);
+        if (!SEAT || SEAT->client() != r->client()) {
+            LOGM(Log::DEBUG, "Ignoring xdg_toplevel.resize with an invalid seat");
+            return;
+        }
+
+        const auto OWNER = m_owner.lock();
+        const auto SURF  = OWNER ? OWNER->m_surface.lock() : nullptr;
+        if (!g_pSeatManager->pointerButtonSerialValid(SEAT, serial, SURF)) {
+            LOGM(Log::DEBUG, "Ignoring xdg_toplevel.resize with an invalid serial");
+            return;
+        }
+
+        m_events.requestResize.emit(SXDGToplevelResizeRequest{
+            .seat   = SEAT,
+            .serial = serial,
+            .edges  = edges,
+        });
     });
 
     m_resource->setSetMaxSize([this](CXdgToplevel* r, int32_t x, int32_t y) {
@@ -337,6 +399,22 @@ uint32_t CXDGToplevelResource::setActive(bool active) {
         m_pendingApply.states.push_back(XDG_TOPLEVEL_STATE_ACTIVATED);
     else if (!active && set)
         std::erase(m_pendingApply.states, XDG_TOPLEVEL_STATE_ACTIVATED);
+
+    scheduleStateApplication();
+
+    return m_owner->scheduleConfigure();
+}
+
+uint32_t CXDGToplevelResource::setResizing(bool resizing) {
+    bool set = std::ranges::find(m_pendingApply.states, XDG_TOPLEVEL_STATE_RESIZING) != m_pendingApply.states.end();
+
+    if (resizing == set)
+        return m_owner->m_scheduledSerial;
+
+    if (resizing && !set)
+        m_pendingApply.states.push_back(XDG_TOPLEVEL_STATE_RESIZING);
+    else if (!resizing && set)
+        std::erase(m_pendingApply.states, XDG_TOPLEVEL_STATE_RESIZING);
 
     scheduleStateApplication();
 

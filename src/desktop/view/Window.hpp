@@ -27,6 +27,8 @@
 
 class CXDGSurfaceResource;
 class CXWaylandSurface;
+struct SXDGToplevelMoveRequest;
+struct SXDGToplevelResizeRequest;
 namespace Config {
     class CWorkspaceRule;
 }
@@ -462,6 +464,8 @@ namespace Desktop::View {
             CHyprSignalListener updateState;
             CHyprSignalListener updateMetadata;
             CHyprSignalListener resourceChange;
+            CHyprSignalListener xdgMoveRequest;
+            CHyprSignalListener xdgResizeRequest;
         } m_listeners;
 
       private:
@@ -471,6 +475,8 @@ namespace Desktop::View {
         void                  commitWindow();
         void                  destroyWindow();
         void                  activateX11();
+        void                  onXDGMoveRequest(const SXDGToplevelMoveRequest& request);
+        void                  onXDGResizeRequest(const SXDGToplevelResizeRequest& request);
         void                  unmanagedSetGeometry();
 
         // For hidden windows and stuff

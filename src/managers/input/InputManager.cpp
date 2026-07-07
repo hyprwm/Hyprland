@@ -426,6 +426,11 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
     g_layoutManager->moveMouse(getMouseCoordsInternal());
 
+    if (g_layoutManager->dragController()->exclusiveDeviceGrab()) {
+        g_pSeatManager->setPointerFocus(nullptr, {});
+        return;
+    }
+
     // forced above all
     if (!g_pInputManager->m_exclusiveLSes.empty()) {
         if (!foundSurface)

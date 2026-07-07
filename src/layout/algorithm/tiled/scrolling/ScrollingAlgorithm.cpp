@@ -827,7 +827,7 @@ void CScrollingAlgorithm::resizeTarget(const Vector2D& delta, SP<ITarget> target
     // set the offset because we'll prevent centering during a drag
     m_scrollingData->controller->setOffset(cameraOffset);
 
-    const bool RESIZING_LEFT = isPrimaryHoriz ? corner == CORNER_BOTTOMLEFT || corner == CORNER_TOPLEFT : corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT;
+    const bool RESIZING_LEFT = isPrimaryHoriz ? edgeLeft(corner) : edgeTop(corner);
 
     if (RESIZING_LEFT) {
         // resize from left edge (inner edge) - grow/shrink column width and adjust offset to keep RIGHT edge stationary
@@ -882,43 +882,26 @@ void CScrollingAlgorithm::resizeTarget(const Vector2D& delta, SP<ITarget> target
             }
         }
 
-        switch (corner) {
-            case CORNER_BOTTOMLEFT:
-            case CORNER_BOTTOMRIGHT: {
-                if (!NEXT_TD)
-                    break;
+        if (edgeBottom(corner) && NEXT_TD) {
+            float nextSize = CURR_COLUMN->getTargetSize(NEXT_TD);
+            float currSize = CURR_COLUMN->getTargetSize(CURR_TD);
 
-                float nextSize = CURR_COLUMN->getTargetSize(NEXT_TD);
-                float currSize = CURR_COLUMN->getTargetSize(CURR_TD);
-
-                if (nextSize <= MIN_ROW_HEIGHT && delta.y >= 0)
-                    break;
-
+            if (!(nextSize <= MIN_ROW_HEIGHT && delta.y >= 0)) {
                 float adjust = std::clamp((float)(delta.y / USABLE.h), (-currSize + MIN_ROW_HEIGHT), (nextSize - MIN_ROW_HEIGHT));
 
                 CURR_COLUMN->setTargetSize(NEXT_TD, std::clamp(nextSize - adjust, MIN_ROW_HEIGHT, MAX_ROW_HEIGHT));
                 CURR_COLUMN->setTargetSize(CURR_TD, std::clamp(currSize + adjust, MIN_ROW_HEIGHT, MAX_ROW_HEIGHT));
-                break;
             }
-            case CORNER_TOPLEFT:
-            case CORNER_TOPRIGHT: {
-                if (!PREV_TD)
-                    break;
+        } else if (edgeTop(corner) && PREV_TD) {
+            float prevSize = CURR_COLUMN->getTargetSize(PREV_TD);
+            float currSize = CURR_COLUMN->getTargetSize(CURR_TD);
 
-                float prevSize = CURR_COLUMN->getTargetSize(PREV_TD);
-                float currSize = CURR_COLUMN->getTargetSize(CURR_TD);
-
-                if ((prevSize <= MIN_ROW_HEIGHT && modDelta.y <= 0) || (currSize <= MIN_ROW_HEIGHT && delta.y >= 0))
-                    break;
-
+            if (!((prevSize <= MIN_ROW_HEIGHT && modDelta.y <= 0) || (currSize <= MIN_ROW_HEIGHT && delta.y >= 0))) {
                 float adjust = std::clamp((float)(modDelta.y / USABLE.h), -(prevSize - MIN_ROW_HEIGHT), (currSize - MIN_ROW_HEIGHT));
 
                 CURR_COLUMN->setTargetSize(PREV_TD, std::clamp(prevSize + adjust, MIN_ROW_HEIGHT, MAX_ROW_HEIGHT));
                 CURR_COLUMN->setTargetSize(CURR_TD, std::clamp(currSize - adjust, MIN_ROW_HEIGHT, MAX_ROW_HEIGHT));
-                break;
             }
-
-            default: break;
         }
     }
 

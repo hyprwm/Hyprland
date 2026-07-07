@@ -77,7 +77,23 @@ using namespace Desktop;
 using namespace Desktop::View;
 
 // I wish I had an elven wife instead of a windowIDCounter
-static uint64_t windowIDCounter = 0x18000000;
+static uint64_t            windowIDCounter = 0x18000000;
+
+static Layout::eRectCorner xdgResizeEdgeToCorner(xdgToplevelResizeEdge edges) {
+    switch (edges) {
+        case XDG_TOPLEVEL_RESIZE_EDGE_TOP: return Layout::CORNER_TOP;
+        case XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM: return Layout::CORNER_BOTTOM;
+        case XDG_TOPLEVEL_RESIZE_EDGE_LEFT: return Layout::CORNER_LEFT;
+        case XDG_TOPLEVEL_RESIZE_EDGE_TOP_LEFT: return Layout::CORNER_TOPLEFT;
+        case XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM_LEFT: return Layout::CORNER_BOTTOMLEFT;
+        case XDG_TOPLEVEL_RESIZE_EDGE_RIGHT: return Layout::CORNER_RIGHT;
+        case XDG_TOPLEVEL_RESIZE_EDGE_TOP_RIGHT: return Layout::CORNER_TOPRIGHT;
+        case XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM_RIGHT: return Layout::CORNER_BOTTOMRIGHT;
+        case XDG_TOPLEVEL_RESIZE_EDGE_NONE: return Layout::CORNER_NONE;
+    }
+
+    return Layout::CORNER_NONE;
+}
 
 //
 #define COMMA ,
@@ -163,13 +179,15 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
 
 CWindow::CWindow(SP<CXDGSurfaceResource> resource) :
     IView(CWLSurface::create()), m_xdgSurface(resource), m_stableID(windowIDCounter++), m_animationController(this), m_alpha(WINDOW_ALPHA_LAST) {
-    m_listeners.map            = m_xdgSurface->m_events.map.listen([this] { mapWindow(); });
-    m_listeners.ack            = m_xdgSurface->m_events.ack.listen([this](uint32_t d) { onAck(d); });
-    m_listeners.unmap          = m_xdgSurface->m_events.unmap.listen([this] { unmapWindow(); });
-    m_listeners.destroy        = m_xdgSurface->m_events.destroy.listen([this] { destroyWindow(); });
-    m_listeners.commit         = m_xdgSurface->m_events.commit.listen([this] { commitWindow(); });
-    m_listeners.updateState    = m_xdgSurface->m_toplevel->m_events.stateChanged.listen([this] { onUpdateState(); });
-    m_listeners.updateMetadata = m_xdgSurface->m_toplevel->m_events.metadataChanged.listen([this] { onUpdateMeta(); });
+    m_listeners.map              = m_xdgSurface->m_events.map.listen([this] { mapWindow(); });
+    m_listeners.ack              = m_xdgSurface->m_events.ack.listen([this](uint32_t d) { onAck(d); });
+    m_listeners.unmap            = m_xdgSurface->m_events.unmap.listen([this] { unmapWindow(); });
+    m_listeners.destroy          = m_xdgSurface->m_events.destroy.listen([this] { destroyWindow(); });
+    m_listeners.commit           = m_xdgSurface->m_events.commit.listen([this] { commitWindow(); });
+    m_listeners.updateState      = m_xdgSurface->m_toplevel->m_events.stateChanged.listen([this] { onUpdateState(); });
+    m_listeners.updateMetadata   = m_xdgSurface->m_toplevel->m_events.metadataChanged.listen([this] { onUpdateMeta(); });
+    m_listeners.xdgMoveRequest   = m_xdgSurface->m_toplevel->m_events.requestMove.listen([this](const auto& request) { onXDGMoveRequest(request); });
+    m_listeners.xdgResizeRequest = m_xdgSurface->m_toplevel->m_events.requestResize.listen([this](const auto& request) { onXDGResizeRequest(request); });
 }
 
 CWindow::CWindow(SP<CXWaylandSurface> surface) :
@@ -2797,6 +2815,20 @@ void CWindow::activateX11() {
         return;
 
     activate();
+}
+
+void CWindow::onXDGMoveRequest(const SXDGToplevelMoveRequest&) {
+    if (!m_isMapped || isHidden() || g_layoutManager->dragController()->target())
+        return;
+
+    g_layoutManager->beginDragTarget(layoutTarget(), MBIND_MOVE, std::nullopt, true);
+}
+
+void CWindow::onXDGResizeRequest(const SXDGToplevelResizeRequest& request) {
+    if (!m_isMapped || isHidden() || g_layoutManager->dragController()->target())
+        return;
+
+    g_layoutManager->beginDragTarget(layoutTarget(), MBIND_RESIZE, xdgResizeEdgeToCorner(request.edges), true);
 }
 
 void CWindow::unmanagedSetGeometry() {

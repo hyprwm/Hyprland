@@ -77,6 +77,9 @@ class CSeatManager {
     uint32_t nextSerial(SP<CWLSeatResource> seatResource);
     // pops the serial if it was valid, meaning it is consumed.
     bool                serialValid(SP<CWLSeatResource> seatResource, uint32_t serial, bool erase = true);
+    void                recordPointerButtonSerial(SP<CWLSeatResource> seatResource, uint32_t serial, SP<CWLSurfaceResource> surface, uint32_t button);
+    void                clearPointerButtonSerials(SP<CWLSeatResource> seatResource, SP<CWLSurfaceResource> surface, uint32_t button);
+    bool                pointerButtonSerialValid(SP<CWLSeatResource> seatResource, uint32_t serial, SP<CWLSurfaceResource> surface, bool erase = true);
 
     void                onSetCursor(SP<CWLSeatResource> seatResource, uint32_t serial, SP<CWLSurfaceResource> surf, const Vector2D& hotspot);
 
@@ -128,11 +131,18 @@ class CSeatManager {
     SP<CSeatGrab> m_seatGrab;
 
   private:
+    struct SPointerButtonSerial {
+        uint32_t               serial = 0;
+        uint32_t               button = 0;
+        WP<CWLSurfaceResource> surface;
+    };
+
     struct SSeatResourceContainer {
         SSeatResourceContainer(SP<CWLSeatResource>);
 
-        WP<CWLSeatResource>   resource;
-        std::vector<uint32_t> serials; // old -> new
+        WP<CWLSeatResource>               resource;
+        std::vector<uint32_t>             serials; // old -> new
+        std::vector<SPointerButtonSerial> pointerButtonSerials;
 
         struct {
             CHyprSignalListener destroy;

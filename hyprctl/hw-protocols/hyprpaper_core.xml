@@ -88,7 +88,7 @@
     <value idx="2" name="unknown_error" description="unknown error"/>
   </enum>
 
-  <object name="hyprpaper_wallpaper" version="1">
+  <object name="hyprpaper_wallpaper" version="2">
     <description summary="wallpaper object">
       This is an object describing a wallpaper
     </description>
@@ -146,6 +146,14 @@
       <description summary="Destroy this object">
         Destroys this object.
       </description>
+    </c2s>
+
+    <c2s name="shader_path" since="2">
+      <description summary="Set a custom transition shader">
+        Set a custom fragment shader used for the wallpaper transition animation.
+        If unset, the default transition shader is used.
+      </description>
+      <arg name="shader_path" type="varchar" summary="absolute path to .frag shader file"/>
     </c2s>
   </object>
 

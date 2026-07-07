@@ -521,8 +521,7 @@ void SScrollingData::recalculate(bool forceInstant) {
                             TDATA->layoutBox.w = MONBOX.w;
                         }
                     }
-                }
-                else if (TARGET_FS_MODE == Fullscreen::FSMODE_MAXIMIZED) {
+                } else if (TARGET_FS_MODE == Fullscreen::FSMODE_MAXIMIZED) {
                     // Target is Covering Maximised
                     if (algorithm->m_scrollingFullscreenHandler->isFullscreen(TARGET, Fullscreen::FSMODE_MAXIMIZED, true)) {
                         TDATA->layoutBox                     = WORKAREA;
@@ -544,8 +543,7 @@ void SScrollingData::recalculate(bool forceInstant) {
                 // Target is FS but isn't Maximised or Fullscreen - This shouldn't be possible
                 else
                     TDATA->layoutBox = CBox{WORKAREA.pos() - Vector2D{100000.0, 100000.0}, Vector2D{1.0, 1.0}};
-            }
-            else
+            } else
                 TDATA->layoutBox = controller->calculateTargetBox(i, j, USABLE, WORKAREA.pos(), *PFSONONE);
 
             if (TDATA->target) {

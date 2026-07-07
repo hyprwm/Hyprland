@@ -30,9 +30,9 @@ namespace Fullscreen {
 
         // FS State Queries
 
-        virtual bool isFullscreen(SP<Layout::ITarget> target, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = true);
+        virtual bool                isFullscreen(SP<Layout::ITarget> target, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = true);
 
-        virtual bool hasFullscreen(const std::optional<bool> covering = true);
+        virtual bool                hasFullscreen(const std::optional<bool> covering = true);
 
         virtual SP<Layout::ITarget> getFullscreen(const std::optional<bool> covering = true);
 
@@ -48,7 +48,6 @@ namespace Fullscreen {
         virtual void setTargetFullscreenModeClient(const SP<Layout::ITarget> target, const eFullscreenMode mode);
 
         // Helpers
-
 
         /**
         * @note pass the window target even if target is a part of a group: function detects if a target is a part of a group and correctly dispatches the request to the group target
@@ -67,7 +66,6 @@ namespace Fullscreen {
         virtual eFullscreenHandler getFullscreenHandlerName() const;
 
       protected:
-      
         // Handler will never outlive its algo because algo owns its handler with UP<>
         Layout::IModeAlgorithm* const m_algorithm;
 
@@ -76,12 +74,10 @@ namespace Fullscreen {
         SP<Layout::CAlgorithm>        getParent() const;
 
       private:
-
-      std::unordered_map<WP<Layout::ITarget>, SFullscreenMode> m_fsTargets;
+        std::unordered_map<WP<Layout::ITarget>, SFullscreenMode> m_fsTargets;
 
         // Must be defined by each layout's handler
         const eFullscreenHandler FULLSCREEN_HANDLER_TYPE = FULLSCREEN_HANDLER_DEFAULT;
-
     };
 
 }

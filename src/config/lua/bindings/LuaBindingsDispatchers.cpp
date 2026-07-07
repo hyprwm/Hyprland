@@ -716,7 +716,7 @@ static int hlWindowFloat(lua_State* L) {
 
 static int hlWindowFullscreen(lua_State* L) {
     Fullscreen::eFullscreenMode mode        = Fullscreen::FSMODE_FULLSCREEN;
-    int                         action      = 0;    // 0: toggle, 1: set, 2: unset
+    int                         action      = 0; // 0: toggle, 1: set, 2: unset
     bool                        layoutAware = true;
     if (lua_istable(L, 1)) {
         auto m = Internal::tableOptStr(L, 1, "mode");

@@ -68,7 +68,6 @@ static void switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool forceFSCycle = fals
 
     g_pInputManager->unconstrainMouse();
 
-
     if (PLASTWINDOW && PLASTWINDOW->m_workspace == PWINDOWTOCHANGETO->m_workspace &&
         (Fullscreen::controller()->isFullscreen(PLASTWINDOW) && !Fullscreen::controller()->layoutManagedFS(PLASTWINDOW)))
         Desktop::focusState()->fullWindowFocus(PWINDOWTOCHANGETO, Desktop::FOCUS_REASON_SWITCH_TO_WINDOW_HARD, nullptr, forceFSCycle);
@@ -299,8 +298,7 @@ ActionResult Actions::fullscreenWindow(Fullscreen::eFullscreenMode internalMode,
         Fullscreen::controller()->setFullscreenMode(window, Fullscreen::FSMODE_NONE, Fullscreen::FSMODE_NONE, layoutAware);
     else
         Fullscreen::controller()->setFullscreenMode(
-            window,
-            NEW_MODES.internal == -1 ? std::optional<Fullscreen::eFullscreenMode>(std::nullopt) : std::optional<Fullscreen::eFullscreenMode>(NEW_MODES.internal),
+            window, NEW_MODES.internal == -1 ? std::optional<Fullscreen::eFullscreenMode>(std::nullopt) : std::optional<Fullscreen::eFullscreenMode>(NEW_MODES.internal),
             NEW_MODES.client == -1 ? std::optional<Fullscreen::eFullscreenMode>(std::nullopt) : std::optional<Fullscreen::eFullscreenMode>(NEW_MODES.client), layoutAware);
 
     const auto WINDOW_FS_MODES = Fullscreen::controller()->getFullscreenModes(window);

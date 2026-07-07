@@ -383,9 +383,8 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
     const auto saveClientInternalValues = [&](const SFullscreenMode& OLD_FS_MODES) {
         if (client.value_or(FSMODE_NONE) == FSMODE_FULLSCREEN && OLD_FS_MODES.internal == FSMODE_MAXIMIZED) {
             m_fsModeMaxWindows.emplace(window);
-        }
-        else if (const auto IT = m_fsModeMaxWindows.find(window);
-                 client.value_or(FSMODE_MAXIMIZED) == FSMODE_NONE && (IT != m_fsModeMaxWindows.end() && IT->valid() && !IT->expired())) {
+        } else if (const auto IT = m_fsModeMaxWindows.find(window);
+                   client.value_or(FSMODE_MAXIMIZED) == FSMODE_NONE && (IT != m_fsModeMaxWindows.end() && IT->valid() && !IT->expired())) {
             targetClientMode = FSMODE_MAXIMIZED;
             m_fsModeMaxWindows.erase(IT);
         } else {
@@ -466,11 +465,11 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
         Handling Pinned windows - allow_pin_fullscreen
         Pinned windows can only be floating, therefore it is guaranteed that they will use the same FS handler within the workspace
     */
-    const bool WINDOW_IS_ALREADY_INTERNAL_FS_HANDLER_AGNOSTIC = OLD_FS_MODES.internal != FSMODE_NONE;
-    const bool  HANDLE_PINNED_WINDOW       = window->m_pinned || window->m_pinFullscreened;
-    std::optional<bool> pinnedWindowRequetsInternalFS = std::nullopt;
+    const bool          WINDOW_IS_ALREADY_INTERNAL_FS_HANDLER_AGNOSTIC = OLD_FS_MODES.internal != FSMODE_NONE;
+    const bool          HANDLE_PINNED_WINDOW                           = window->m_pinned || window->m_pinFullscreened;
+    std::optional<bool> pinnedWindowRequetsInternalFS                  = std::nullopt;
 
-    static auto PALLOWPINFULLSCREEN = CConfigValue<Config::INTEGER>("binds:allow_pin_fullscreen");
+    static auto         PALLOWPINFULLSCREEN = CConfigValue<Config::INTEGER>("binds:allow_pin_fullscreen");
     if (*PALLOWPINFULLSCREEN && !window->m_pinFullscreened && window->m_pinned && !WINDOW_IS_ALREADY_INTERNAL_FS_HANDLER_AGNOSTIC) {
         pinnedWindowRequetsInternalFS = true;
     }
@@ -483,18 +482,15 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
         if (pinnedWindowRequetsInternalFS.value_or(false)) {
             window->m_pinned          = false;
             window->m_pinFullscreened = true;
-        }
-        else if (!pinnedWindowRequetsInternalFS.value_or(true)) {
+        } else if (!pinnedWindowRequetsInternalFS.value_or(true)) {
             window->m_pinned          = true;
             window->m_pinFullscreened = false;
-        }
-        else if (!(*PALLOWPINFULLSCREEN)) {
+        } else if (!(*PALLOWPINFULLSCREEN)) {
             if (WANT_SYNC)
                 stateChanged = false;
             else
                 targetInternalMode = FSMODE_NONE;
         }
-        
     }
 
     if (stateChanged) {
@@ -510,11 +506,11 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
     if (!window || !validMapped(window) || !window->m_monitor || !window->m_workspace || !window->m_workspace->m_space || !window->m_workspace->m_space->algorithm())
         return;
 
-    const auto MONITOR   = window->m_monitor.lock();
-    const auto WORKSPACE = window->m_workspace;
+    const auto            MONITOR   = window->m_monitor.lock();
+    const auto            WORKSPACE = window->m_workspace;
 
-    const auto SPACE     = window->m_workspace->m_space;
-    const auto ALGORITHM = window->m_workspace->m_space->algorithm();
+    const auto            SPACE     = window->m_workspace->m_space;
+    const auto            ALGORITHM = window->m_workspace->m_space->algorithm();
 
     const auto            WINDOW_FS_HANDLER        = getFSHandler(window, layoutAware);
     const SFullscreenMode WINDOW_FS_MODE           = getFullscreenModes(window);

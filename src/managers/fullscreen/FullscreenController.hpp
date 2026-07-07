@@ -35,7 +35,6 @@ namespace Fullscreen {
         eFullscreenMode client   = FSMODE_NONE;
     };
 
-
     class CFullscreenController {
 
       public:
@@ -44,16 +43,16 @@ namespace Fullscreen {
 
         // Window
 
-        bool isFullscreen(const PHLWINDOW window, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = std::nullopt);
-      
+        bool            isFullscreen(const PHLWINDOW window, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = std::nullopt);
+
         SFullscreenMode getFullscreenModes(const PHLWINDOW window);
-      
+
         bool            layoutManagedFS(const PHLWINDOW window);
 
         // Workspace
 
         bool hasFullscreen(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
-      
+
         /// @note Returns the topmost covering FS window is there are several.
         PHLWINDOW       getFullscreenWindow(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
 
@@ -64,7 +63,7 @@ namespace Fullscreen {
 
         /// @warning only cosiders internal mode of FS windows
         bool hasFullscreen(const PHLMONITOR monitor, const std::optional<bool> covering = true);
-        
+
         /// @note Returns the topmost covering FS window is there are several.
         PHLWINDOW       getFullscreenWindow(const PHLMONITOR monitor, const std::optional<bool> covering = true);
 
@@ -72,9 +71,9 @@ namespace Fullscreen {
 
         // Handler
 
-        eFullscreenHandler getFullscreenHandlerName( const PHLWINDOW window);
+        eFullscreenHandler getFullscreenHandlerName(const PHLWINDOW window);
 
-        std::string getFullscreenHandlerNameAsString(const PHLWINDOW window);
+        std::string        getFullscreenHandlerNameAsString(const PHLWINDOW window);
 
         // FS Mode Setter
 
@@ -87,7 +86,6 @@ namespace Fullscreen {
         bool m_windowPosSettingQueued = false;
 
       private:
-      
         // FS Mode Setter Helpers
         void setWindowFullscreenModeInternal(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware);
         void setWindowFullscreenModeClient(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware);

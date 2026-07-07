@@ -149,7 +149,6 @@ PHLWINDOW CFullscreenController::getFullscreenWindow(const PHLWORKSPACE workspac
         return nullptr;
 
     // ASSUMPTION: Floating FS window layers ontop of Tiled Default Handled FS window which layers ontop of Tiled Layout Handled FS window
-    // TODO: implement a way to get the topmost FS window so layouts can implement FS behaviour that may layer over Tiled Default Handled FS windows
 
     const auto TILED_FS_HANDLER = workspace->m_space->algorithm()->tiledAlgo()->getFSHandler();
 
@@ -196,7 +195,6 @@ SFullscreenMode CFullscreenController::getFullscreenModes(const PHLWORKSPACE wor
         return SFullscreenMode{};
 
     // ASSUMPTION: Floating FS window layers ontop of Tiled Default Handled FS window which layers ontop of Tiled Layout Handled FS window
-    // TODO: implement a way to get the topmost FS window so layouts can implement FS behaviour that may layer over Tiled Default Handled FS windows
 
     const auto TILED_FS_HANDLER = workspace->m_space->algorithm()->tiledAlgo()->getFSHandler();
 
@@ -316,12 +314,9 @@ eFullscreenHandler CFullscreenController::getFullscreenHandlerName(const PHLWIND
 
     eFullscreenHandler handlerName = FULLSCREEN_HANDLER_NONE;
 
-    // if default handled - either internal or client must be set in default FS handler
     if (DEFAULT_FS_HANDLER->isFullscreen(window->m_target) || DEFAULT_FS_HANDLER->getFullscreenModes(window->m_target).client != FSMODE_NONE)
         handlerName = DEFAULT_FS_HANDLER->getFullscreenHandlerName();
-    // Layout Handled
     else
-        // If a window is not FS at all, we consider its handler to be layout if it is in a workspace with a layout that implements their custom FS behaviour.
         handlerName = LAYOUT_FS_HANDLER->getFullscreenHandlerName();
 
     if (handlerName == FULLSCREEN_HANDLER_NONE) {
@@ -352,13 +347,11 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
 
     bool       stateChanged = false;
 
-    // Clamp values to valid range
     if (internal.has_value())
         internal = std::clamp(internal.value(), sc<eFullscreenMode>(0), FSMODE_FULLSCREEN);
     if (client.has_value())
         client = std::clamp(client.value(), sc<eFullscreenMode>(0), FSMODE_FULLSCREEN);
 
-    // if new values not provided, we need to use the old values.
     eFullscreenMode targetInternalMode = internal.value_or(FSMODE_NONE);
     eFullscreenMode targetClientMode   = client.value_or(FSMODE_NONE);
 
@@ -421,14 +414,10 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
 
         /* Remove Window from Old handler */
 
-        // if syncing FS, this guarantees that it will be removed from the handler as both internal and client will be removed
         if (WANT_SYNC) {
             setWindowFullscreenModeClient(window, FSMODE_NONE, WAS_LAYOUT_HANDLED);
             setWindowFullscreenModeInternal(window, FSMODE_NONE, WAS_LAYOUT_HANDLED);
-        }
-
-        // if not syncing FS, we need to move the unmodified FS value from the old one to the new one
-        else {
+        } else {
             if (OLD_FS_MODES.internal != FSMODE_NONE)
                 setWindowFullscreenModeInternal(window, FSMODE_NONE, WAS_LAYOUT_HANDLED);
             if (OLD_FS_MODES.client != FSMODE_NONE)
@@ -451,12 +440,9 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
         if (targetInternalMode != targetClientMode)
             stateChanged = true;
 
-        // If only internal has value
         if (internal.has_value() && !client.has_value()) {
             targetClientMode = targetInternalMode;
-        }
-        // If only client has value or both have values - internal defers to client if both have values!
-        else {
+        } else {
             targetInternalMode = targetClientMode;
         }
     }

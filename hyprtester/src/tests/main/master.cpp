@@ -520,7 +520,6 @@ TEST_CASE(masterFullscreenPinnedWindows) {
         EXPECT_CONTAINS(str, "at: 2,2");
         EXPECT_CONTAINS(str, "size: 1916,1076");
     }
-
 }
 
 TEST_CASE(masterFullscreenNonInterference) {

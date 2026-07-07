@@ -1164,7 +1164,6 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenPinnedWindows) {
         EXPECT_CONTAINS(str, "at: 2,2");
         EXPECT_CONTAINS(str, "size: 1916,1076");
     }
-
 }
 
 TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenNonInterference) {

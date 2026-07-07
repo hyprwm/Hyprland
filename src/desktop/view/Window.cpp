@@ -2451,7 +2451,7 @@ void CWindow::mapWindow() {
 
             if (IS_LAST_IN_FS && SAME_GROUP) {
                 Desktop::focusState()->rawWindowFocus(m_self.lock(), FOCUS_REASON_NEW_WINDOW);
-                // FS a new window to replace the old FSed window, use the old's layoutAware FS behaviour
+                // FS a new window to replace the old FSed window, use the old's layoutAware
                 Fullscreen::controller()->setFullscreenMode(m_self.lock(), LAST_FS_MODE, std::nullopt, Fullscreen::controller()->layoutManagedFS(LAST_FOCUS_WINDOW));
             } else
                 Desktop::focusState()->fullWindowFocus(m_self.lock(), FOCUS_REASON_NEW_WINDOW);

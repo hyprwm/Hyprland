@@ -10,7 +10,7 @@ using namespace Hyprutils::Utils;
 // get the block from hyprctl clients where a class is located
 static std::string getClientBlock(const std::string& clients, const std::string& cls) {
 
-    // lambda fr finding the next block with `Window * ->`
+    // lambda for finding the next block with `Window * ->`
     const auto findNextBlockHeader = [&](const std::string& s, size_t pos) -> size_t {
         const auto NPOS = std::string::npos;
         while (pos != NPOS) {
@@ -1195,7 +1195,6 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenNonInterference) {
 
         // save all pos/size inc red
 
-        // save all pos/size
         OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:red' })"));
         auto redPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
         auto redSize = Tests::getAttribute(getFromSocket("/activewindow"), "size");

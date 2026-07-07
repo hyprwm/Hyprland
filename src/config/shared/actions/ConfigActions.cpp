@@ -68,7 +68,7 @@ static void switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool forceFSCycle = fals
 
     g_pInputManager->unconstrainMouse();
 
-    // Only force scrolling offset move (FOCUS_REASON_SWITCH_TO_WINDOW_HARD) if the FS window is not layout managed
+
     if (PLASTWINDOW && PLASTWINDOW->m_workspace == PWINDOWTOCHANGETO->m_workspace &&
         (Fullscreen::controller()->isFullscreen(PLASTWINDOW) && !Fullscreen::controller()->layoutManagedFS(PLASTWINDOW)))
         Desktop::focusState()->fullWindowFocus(PWINDOWTOCHANGETO, Desktop::FOCUS_REASON_SWITCH_TO_WINDOW_HARD, nullptr, forceFSCycle);
@@ -288,7 +288,6 @@ ActionResult Actions::fullscreenWindow(Fullscreen::eFullscreenMode internalMode,
     if (!window)
         return {};
 
-    // Clamp values to valid range
     internalMode = std::clamp(internalMode, sc<Fullscreen::eFullscreenMode>(0), Fullscreen::FSMODE_FULLSCREEN);
     clientMode   = std::clamp(clientMode, sc<Fullscreen::eFullscreenMode>(0), Fullscreen::FSMODE_FULLSCREEN);
 
@@ -301,9 +300,7 @@ ActionResult Actions::fullscreenWindow(Fullscreen::eFullscreenMode internalMode,
     else
         Fullscreen::controller()->setFullscreenMode(
             window,
-            // Internal mode: if -1, pass nullopt so FS setter uses old option
             NEW_MODES.internal == -1 ? std::optional<Fullscreen::eFullscreenMode>(std::nullopt) : std::optional<Fullscreen::eFullscreenMode>(NEW_MODES.internal),
-            // Client mode: if -1, pass nullopt so FS setter uses old option
             NEW_MODES.client == -1 ? std::optional<Fullscreen::eFullscreenMode>(std::nullopt) : std::optional<Fullscreen::eFullscreenMode>(NEW_MODES.client), layoutAware);
 
     const auto WINDOW_FS_MODES = Fullscreen::controller()->getFullscreenModes(window);
@@ -378,7 +375,6 @@ ActionResult Actions::moveFocus(Math::eDirection dir) {
         return {};
     }
 
-    // Moving focus to another window non-default handled FS window shouldn't cycle window
     const auto PWINDOWTOCHANGETO = *PFULLCYCLE && Fullscreen::controller()->isFullscreen(PLASTWINDOW) && !Fullscreen::controller()->layoutManagedFS(PLASTWINDOW) ?
         Desktop::windowState()->query().cycle(PLASTWINDOW,
                                               {.focusableOnly = true, .previous = dir != Math::DIRECTION_DOWN && dir != Math::DIRECTION_RIGHT, .allowFullscreenBlocked = true}) :
@@ -478,7 +474,7 @@ ActionResult Actions::moveInDirection(Math::eDirection dir, std::optional<PHLWIN
     if (!window)
         return {};
 
-    if (Fullscreen::controller()->isFullscreen(window)) // TODO: If scrolling, maybe make it possible
+    if (Fullscreen::controller()->isFullscreen(window))
         return actionError("Can't move fullscreen window", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     updateRelativeCursorCoords();
@@ -494,7 +490,7 @@ ActionResult Actions::swapInDirection(Math::eDirection dir, std::optional<PHLWIN
     if (!window)
         return {};
 
-    if (Fullscreen::controller()->isFullscreen(window)) // TODO: If scrolling, maybe make it possible
+    if (Fullscreen::controller()->isFullscreen(window))
         return actionError("Can't swap fullscreen window", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     const auto PWINDOWTOCHANGETO = Desktop::windowState()->query().inDirection(window, dir);
@@ -520,7 +516,7 @@ ActionResult Actions::swapWith(PHLWINDOW other, std::optional<PHLWINDOW> w) {
     if (other == window)
         return actionError("Can't swap a window with itself", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
-    if (Fullscreen::controller()->isFullscreen(window) || Fullscreen::controller()->isFullscreen(other)) // TODO: If scrolling, maybe make it possible
+    if (Fullscreen::controller()->isFullscreen(window) || Fullscreen::controller()->isFullscreen(other))
         return actionError("Can't swap fullscreen window", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     updateRelativeCursorCoords();
@@ -619,7 +615,7 @@ ActionResult Actions::move(const Vector2D& pos, bool relative, std::optional<PHL
     if (!window)
         return {};
 
-    if (Fullscreen::controller()->isFullscreen(window)) // TODO: If scrolling, maybe make it possible
+    if (Fullscreen::controller()->isFullscreen(window))
         return actionError("Window is fullscreen", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     const auto delta = relative ? pos : pos - window->m_realPosition->goal();
@@ -882,7 +878,7 @@ ActionResult Actions::toggleGroup(std::optional<PHLWINDOW> w) {
     if (!window)
         return {};
 
-    if (Fullscreen::controller()->isFullscreen(window)) // TODO maybe make it possible in scrolling FS
+    if (Fullscreen::controller()->isFullscreen(window))
         Fullscreen::controller()->setFullscreenMode(window, Fullscreen::FSMODE_NONE);
 
     if (!window->m_group)
@@ -1402,7 +1398,7 @@ ActionResult Actions::moveWindowOrGroup(Math::eDirection direction, std::optiona
     if (!window)
         return {};
 
-    if (Fullscreen::controller()->isFullscreen(window)) // TODO: should be possible to do
+    if (Fullscreen::controller()->isFullscreen(window))
         return {};
 
     if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_groupsLocked) {
@@ -1747,7 +1743,7 @@ ActionResult Actions::moveIntoOrCreateGroup(Math::eDirection dir, std::optional<
         return {};
 
     if (!PWINDOWINDIR->m_group) {
-        if (Fullscreen::controller()->isFullscreen(PWINDOWINDIR)) // TODO: If scrolling, maybe make it possible
+        if (Fullscreen::controller()->isFullscreen(PWINDOWINDIR))
             return {};
 
         PWINDOWINDIR->m_group = Desktop::View::CGroup::create({PWINDOWINDIR});

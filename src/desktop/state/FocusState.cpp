@@ -59,7 +59,7 @@ static SFullscreenWorkspaceFocusResult onFullscreenWorkspaceFocusWindow(PHLWINDO
             }
             [[fallthrough]];
         case 1:
-            // replace fullscreen using the layoutHandled mode from before
+            // replace fullscreen using the layoutHandled mode from prev FS window
             Fullscreen::controller()->setFullscreenMode(FSWINDOW, Fullscreen::FSMODE_NONE);
             Fullscreen::controller()->setFullscreenMode(pWindow, FSMODE_INTERNAL, std::nullopt, LAYOUT_HANDLED);
             break;
@@ -75,7 +75,6 @@ void CFocusState::fullWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWL
         if (!pWindow->m_workspace)
             return;
 
-        // Check if workspace has FS window. If so, don't cycle FS unless FS window is default handled
         const auto FSWINDOW = Fullscreen::controller()->getFullscreenWindow(pWindow->m_workspace);
         if (FSWINDOW && !Fullscreen::controller()->layoutManagedFS(FSWINDOW)) {
             const auto RESULT = onFullscreenWorkspaceFocusWindow(pWindow, forceFSCycle);

@@ -551,7 +551,6 @@ TEST_CASE(masterFullscreenNonInterference) {
 
         // save all pos/size inc red
 
-        // save all pos/size
         OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:red' })"));
         auto redPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
         auto redSize = Tests::getAttribute(getFromSocket("/activewindow"), "size");

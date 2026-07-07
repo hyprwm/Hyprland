@@ -220,10 +220,14 @@ bool CSessionLockManager::clientDenied() {
     return m_sessionLock && m_sessionLock->hasSentDenied;
 }
 
-void CSessionLockManager::forceUnlock() {
-    PROTO::sessionLock->forceUnlock();
+void CSessionLockManager::clearSessionLock() {
     m_events.unlock.emit();
     m_sessionLock = {};
+}
+
+void CSessionLockManager::forceUnlock() {
+    PROTO::sessionLock->forceUnlock();
+    clearSessionLock();
 
     Desktop::focusState()->rawSurfaceFocus(nullptr);
     for (auto const& m : State::monitorState()->monitors())

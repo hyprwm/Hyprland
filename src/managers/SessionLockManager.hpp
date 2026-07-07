@@ -87,6 +87,7 @@ class CSessionLockManager {
 
     void onNewSessionLock(SP<CSessionLock> pWlrLock);
     void removeSendLockedTimer();
+    void clearSessionLock();
 };
 
 inline UP<CSessionLockManager> g_pSessionLockManager;

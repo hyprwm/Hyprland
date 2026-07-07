@@ -29,6 +29,9 @@ IFullscreenHandler::IFullscreenHandler(Layout::IModeAlgorithm* const algorithm) 
 bool IFullscreenHandler::isFullscreen(SP<Layout::ITarget> target, const std::optional<eFullscreenMode> mode, const std::optional<bool> covering) {
     // Mode checking logic is the same as getFullscreenModes() - keep it in sync
 
+    if (!target)
+        return false;
+
     // isFullscreen() queries FS state; negating it to check "is target not fullscreen" is the correct way to do this.
     if (mode.has_value() && mode.value() == FSMODE_NONE) {
         Log::logger->log(Log::ERR, "Passed mode = FSMODE_NONE into isFullscreen. This must never happpen.");
@@ -205,23 +208,33 @@ void IFullscreenHandler::syncFullscreenTargets() {
     std::vector<std::pair<WP<Layout::ITarget>, SFullscreenMode>> toInsert;
 
     for (auto it = m_fsTargets.begin(); it != m_fsTargets.end();) {
+
+        // WP<> segfaults sometimes if this isn't here
+        if (m_fsTargets.empty())
+            return;
+
+        // Rigorously check if WP<> is valid
+        const auto TARGET = !it->first.expired() && it->first.valid() && it->first ? it->first.lock() : nullptr;
+
+
+
         // target expired
         // window doesn't exist
         // target is not FS (internal or client)
-        if (!it->first || !it->first->window() || (!isFullscreen(it->first.lock()) && it->second.client == FSMODE_NONE)) {
+        if (!TARGET || !TARGET->window() || (!isFullscreen(TARGET) && it->second.client == FSMODE_NONE)) {
             const auto NEXT = std::next(it);
-            removeFsTarget(it->first.lock(), true);
+            removeFsTarget(TARGET, true);
             it = NEXT;
             continue;
         }
 
         // If ITarget's underlying type is CWindowGroupTarget; only store the current window, NOT the whole group
         // This should never have happened to begin with
-        if (it->first->type() == Layout::TARGET_TYPE_GROUP) {
+        if (TARGET->type() == Layout::TARGET_TYPE_GROUP) {
             const SFullscreenMode MODE         = SFullscreenMode{.internal = it->second.internal, .client = it->second.client};
-            const auto            WINDOWTARGET = it->first->window()->layoutTarget();
+            const auto            WINDOWTARGET = TARGET->window()->layoutTarget();
             const auto            NEXT         = std::next(it);
-            removeFsTarget(it->first.lock(), true);
+            removeFsTarget(TARGET, true);
             it = NEXT;
             toInsert.emplace_back(WINDOWTARGET, MODE);
             continue;

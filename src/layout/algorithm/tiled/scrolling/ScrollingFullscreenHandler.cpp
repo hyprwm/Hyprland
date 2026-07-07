@@ -35,10 +35,6 @@ CScrollingFullscreenHandler::~CScrollingFullscreenHandler() {
     updateFullscreenFade(false);
 }
 
-// ERSTARR TODO - IN RECALCULATE'S FUNCTION, MUST NECESSARILY DISPATCH SYNCFULLSCREENS BEFORE AND AFTER(? ideally not necessary but meh) FS OPERATIONS
-//--> [optimise: if no FS change is made, just dispatching before should be enough]
-// ERSTARR TODO - Include all checks about what a FS target must be (in the list, only target in its column, etc...). The final list must be noted down in the header file
-
 bool CScrollingFullscreenHandler::isFullscreen(SP<Layout::ITarget> target, const std::optional<eFullscreenMode> mode, const std::optional<bool> covering) {
     // Mode checking logic is the same as getFullscreenModes() - keep it in sync
 
@@ -174,7 +170,6 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
 
     const auto CURRENT_COL = TDATA->column.lock();
 
-    // ERSTARR TODO much of the code below is repeated more then it has to; refactor
 
     if (REQUESTED_MODE == FSMODE_FULLSCREEN) {
 
@@ -493,7 +488,12 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
     std::vector<std::pair<WP<Layout::ITarget>, SFullscreenMode>> toInsert;
 
     for (auto it = m_fsTargets.begin(); it != m_fsTargets.end();) {
-        const auto TARGET = it->first.lock();
+        // WP<> segfaults sometimes if this isn't here
+        if (m_fsTargets.empty())
+            return;
+        
+        // Rigorously check if WP<> is valid
+        const auto TARGET = !it->first.expired() && it->first.valid() && it->first ? it->first.lock() : nullptr;
 
         // TARGET expired
         // TARGET doesn't have a window
@@ -515,6 +515,19 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
             it = NEXT;
             continue;
         }
+
+        // TARGET is not the only target in its column
+        // This might happen if the target was moved to another col, so we need to unFS it properly
+        if (const auto TARGET_WINDOW = TARGET->window(); TARGET_WINDOW && m_scrollingAlgorithm->dataFor(TARGET, false)->column) {
+            const auto STDATA = m_scrollingAlgorithm->dataFor(TARGET, true);
+            if (STDATA) {
+                const auto COL_DATA = m_scrollingAlgorithm->dataFor(TARGET, false)->column;
+                if (COL_DATA && getFullscreenModes(TARGET).internal != FSMODE_NONE && COL_DATA->targetDatas.size() != 1) {
+                    controller()->setFullscreenMode(TARGET_WINDOW, FSMODE_NONE, std::nullopt, true);
+                }
+            }
+        }
+
 
         // TARGET is in a group, but is not the current window of the group OR If ITarget's underlying type is window group; only store the current window, NOT the whole group
         // add the current window of the group's WindowTarget into the list and remove the current target

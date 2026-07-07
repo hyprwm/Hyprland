@@ -33,12 +33,34 @@ bool CFullscreenController::isFullscreen(const PHLWINDOW window, const std::opti
 
     const auto FS_HANDLER = getFSHandler(window);
 
+    /* Error Correction - try once */
+    const auto returnBoolAfterErrorCorrection = [&](const WP<Fullscreen::IFullscreenHandler> FS_HANDLER, const WP<Desktop::View::CWindow> FS_WINDOW) -> bool {
+
+        // FS window isn't found to begin with
+        if (!FS_WINDOW || !FS_WINDOW->m_target)
+            return false;
+
+        if (FS_WINDOW == FS_HANDLER->getFullscreen(covering)->window() && FS_HANDLER->getFullscreenModes(window->m_target).internal == mode)
+            return true;
+        else {
+            FS_HANDLER->syncFullscreenTargets();
+            return FS_HANDLER->isFullscreen(window->m_target, mode, covering);
+        }
+        return false;
+    };
+    
+
     if (!FS_HANDLER) {
         Log::logger->log(Log::ERR, "window {} doesn't have FS handler assinged. This should never happen", window->m_title);
         return false;
     }
 
-    return FS_HANDLER->isFullscreen(window->m_target, mode, covering);
+    const auto IS_FS = FS_HANDLER->isFullscreen(window->m_target, mode, covering);
+
+    if (IS_FS)
+        return returnBoolAfterErrorCorrection(FS_HANDLER, window);
+    
+    return false;
 }
 
 SFullscreenMode CFullscreenController::getFullscreenModes(const PHLWINDOW window) {
@@ -101,6 +123,7 @@ bool CFullscreenController::hasFullscreen(const PHLWORKSPACE workspace, const st
     /* Error Correction - try once */
 
     const auto returnBoolAfterErrorCorrection = [&](const WP<Fullscreen::IFullscreenHandler> FS_HANDLER) -> bool {
+
         if (FS_HANDLER->isFullscreen(FS_HANDLER->getFullscreen(covering)))
             return true;
         else {
@@ -150,6 +173,11 @@ PHLWINDOW CFullscreenController::getFullscreenWindow(const PHLWORKSPACE workspac
     /* Error Correction - try once */
 
     const auto returnWindowAfterErrorCorrection = [&](WP<Fullscreen::IFullscreenHandler> FS_HANDLER, SP<Layout::ITarget> FSTARGET) -> PHLWINDOW {
+        
+        // FS target isn't found to begin with
+        if (!FSTARGET)
+            return nullptr;
+        
         if (FS_HANDLER->isFullscreen(FSTARGET))
             return FSTARGET->window();
         else {
@@ -188,6 +216,11 @@ SFullscreenMode CFullscreenController::getFullscreenModes(const PHLWORKSPACE wor
 
     /* Error Correction - try once */
     const auto returnModesAfterErrorCorrection = [&](WP<Fullscreen::IFullscreenHandler> FS_HANDLER, SP<Layout::ITarget> FSTARGET) {
+
+        // FS target isn't found to begin with
+        if (!FSTARGET)
+            return SFullscreenMode{};
+
         auto fsModes = FS_HANDLER->getFullscreenModes(FSTARGET);
 
         if (fsModes.internal != FSMODE_NONE && !FS_HANDLER->isFullscreen(FSTARGET)) {

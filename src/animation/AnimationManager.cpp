@@ -7,7 +7,7 @@
 #include "../desktop/view/Window.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
+#include "../managers/fullscreen/FullscreenController.hpp"
 #include "../render/Renderer.hpp"
 #include "../event/EventBus.hpp"
 #include "../state/MonitorState.hpp"

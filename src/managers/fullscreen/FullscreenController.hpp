@@ -139,7 +139,6 @@ namespace Fullscreen {
         CFullscreenController()  = default;
         ~CFullscreenController() = default;
 
-        // TODO: make functions constant if they can be
 
         // Window
 
@@ -160,7 +159,7 @@ namespace Fullscreen {
         SFullscreenMode getFullscreenModes(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
 
         // Monitor
-        // Only considers FSMODE_FULLSCREEN as fullscreen
+        // FS windows must be fullscreen (FSMODE_FULLSCREEN) to be considered as FS by monitor
 
         /// @warning only cosiders internal mode of FS windows
         bool hasFullscreen(const PHLMONITOR monitor, const std::optional<bool> covering = true);
@@ -178,7 +177,6 @@ namespace Fullscreen {
 
         // FS Mode Setter
 
-        // ERSTARR TODO - MAKE THIS AN ACTUAL DOYXGEN DOC
         // set window's internal, client (either or both) FS modes. Also allows overriding if you want to FS a window using default FS handler or the layout FS handler it might have access to
         void setFullscreenMode(const PHLWINDOW window, std::optional<eFullscreenMode> internal = std::nullopt, std::optional<eFullscreenMode> client = std::nullopt,
                                std::optional<bool> layoutAware = std::nullopt);

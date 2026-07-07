@@ -18,7 +18,6 @@ namespace Fullscreen {
 
     class IFullscreenHandler {
 
-        // ERSTARR TODO : edit below comments into a coherent manual
 
         /*
         Default FS handler with overridable methods for layouts wishing to implement their own FS handlers
@@ -27,9 +26,9 @@ namespace Fullscreen {
 
         If layouts decide to have custom targets that may be able to be FSed, they must make another list, as well as helper functions for them. Controller will not be handling set/get for those; all handling must be done by layout's FS Handler  
 
-        TODO: implement proper error recovery and correction logic for FS queries as well. Only having this in controller doesn't cover algorithm targets calling the handlers directly
-          e.g. if mode is FSMODE_FULLSCREEN but isFullscreen() = false, call syncFullscreen() and try to self-correct 3 times before giving up, returning FSMODE_NONE and clearing the
-          erroneous FS target from the handler (log the corresponding errors too)
+        Different layouts have different critera for what a window must be/have to be considered FS. Generally these should be checked and self-correct in syncFullscreenTargets().
+
+        TODO: implement proper error recovery and correction logic for handler FS queries as well, OR preferably don't call the handler even from the algorithms and use the controller wherever possible
 
 
         Default FS Handler Specific
@@ -77,16 +76,18 @@ namespace Fullscreen {
         */
         virtual void setTargetSizeAndPosition(const SP<Layout::ITarget> target);
 
-        /// @note Optional: FS target hiding behaviour
+        /// @note Optional: FS member hiding behaviour
         virtual void setNoMembersAboveFullscreen();
 
         /**
         * @brief FS target State Syncing (cleaning up FS target list if exists, other self corrections and error mitigation)
         *
         * @note This function is responsible for performing clean-up on the FS handler, **NOT** on the targets themselves.
-        *This means that this function doesn't take care of unFSing non-FS-criterea-compliant targets; it merely untracks the target it if is offending.
-        *It is assumed that the target was/will be unFSed via the apropriate functions
-        
+        * This means that this function doesn't take care of unFSing non-FS-criterea-compliant targets; it merely untracks the target it if is offending.
+        * It is assumed that the target was/will be unFSed via the apropriate functions
+        * 
+        * It is possible for layouts that wish to implement target unFSing to do so, but they must take care as this function is designed to be
+        * called often in FS setter paths and is easy to infinite-recurse
         */
         virtual void syncFullscreenTargets();
 

@@ -33,7 +33,7 @@ void CLayoutManager::changeFloatingMode(SP<ITarget> target) {
         return;
 
     auto pastFsMode = Fullscreen::FSMODE_NONE;
-    // If chaning floating state of grouped window, unFS then re-FS to properly apply floating related properties
+    // If changing floating state of grouped window, unFS then re-FS to properly apply floating related properties
     if (Fullscreen::controller()->isFullscreen(target->window())) {
         pastFsMode = Fullscreen::controller()->getFullscreenModes(target->window()).internal;
         Fullscreen::controller()->setFullscreenMode(target->window(), Fullscreen::FSMODE_NONE);

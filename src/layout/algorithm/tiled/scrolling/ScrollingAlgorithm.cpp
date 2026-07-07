@@ -19,7 +19,7 @@
 #include "../../../../event/EventBus.hpp"
 
 #include "../../../../managers/fullscreen/FullscreenController.hpp"
-#include "layout/algorithm/tiled/scrolling/ScrollingFullscreenHandler.hpp"
+#include "../../../../layout/algorithm/tiled/scrolling/ScrollingFullscreenHandler.hpp"
 
 #include <hyprutils/string/VarList2.hpp>
 #include <hyprutils/string/VarList.hpp>

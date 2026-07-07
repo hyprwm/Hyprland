@@ -22,20 +22,13 @@ namespace Fullscreen::ScrollingFullscreenHandler {
 
     class CScrollingFullscreenHandler : public IFullscreenHandler {
 
-        // ERSTARR TODO : edit below comments into a coherent manual
-
         /*
         Scrolling FS Behaviour
         ----------------------
 
-        -> Scrolling layout permits multiple FS targets in a workspace, but there can only be one covering FS target.
+        Scrolling layout permits multiple FS targets in a workspace, but there can only be one covering FS target.
 
-
-          Scrolling FS target must have/be: ERSTARR TODO - COMPLETE THIS AND MAKE THIS CLEANER
-            - In the list
-              -> FSMODE != NONE (this should still always be checked)
-              -> WP<ITarget> != null
-            - be the only taget in its column
+        Check syncFullscreenTargets() for the critera scroll has for a target being considered fullscreen
         
       */
 

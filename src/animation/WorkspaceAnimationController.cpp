@@ -9,6 +9,7 @@
 #include "../desktop/view/Window.hpp"
 #include "../layout/target/Target.hpp"
 #include "../output/Monitor.hpp"
+#include "../managers/fullscreen/FullscreenController.hpp"
 #include "wlr-layer-shell-unstable-v1.hpp"
 
 #include <hyprutils/string/VarList.hpp>

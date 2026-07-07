@@ -953,9 +953,7 @@ bool CWindow::isAllowedOverFullscreen() const {
     if (!m_workspace)
         return false;
 
-    // Because in at least one layout managed fullscreen (scrolling), an FS window can be layered ontop of another. We need to get the topmost one
-    const auto FULLSCREEN_WINDOW = Fullscreen::controller()->getFullscreenWindow(m_workspace);
-    if (m_self == FULLSCREEN_WINDOW || m_pinned || m_allowedOverFullscreen)
+    if (m_self == Fullscreen::controller()->getFullscreenWindow(m_workspace, true) || m_pinned || m_allowedOverFullscreen)
         return true;
 
     const auto FSWINDOW = Fullscreen::controller()->getFullscreenWindow(m_workspace);

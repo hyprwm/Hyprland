@@ -1,4 +1,3 @@
-#include <ranges>
 
 #include "Compositor.hpp"
 #include "config/supplementary/executor/Executor.hpp"
@@ -7,11 +6,9 @@
 #include "desktop/state/FocusState.hpp"
 #include "desktop/history/WindowHistoryTracker.hpp"
 #include "desktop/history/WorkspaceHistoryTracker.hpp"
-#include "desktop/view/Group.hpp"
 #include "helpers/Splashes.hpp"
 #include "helpers/SystemInfo.hpp"
 #include "config/ConfigValue.hpp"
-#include "config/legacy/ConfigManager.hpp"
 #include "config/shared/inotify/ConfigWatcher.hpp"
 #include "config/shared/monitor/MonitorRuleManager.hpp"
 #include "pointer/cursor/CursorManager.hpp"
@@ -22,22 +19,16 @@
 #include "managers/DonationNagManager.hpp"
 #include "managers/ANRManager.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
 #include "managers/permissions/DynamicPermissionManager.hpp"
-#include "managers/screenshare/ScreenshareManager.hpp"
 #include "state/FallbackState.hpp"
-#include "state/MonitorPositionController.hpp"
 #include "state/MonitorState.hpp"
 #include "state/WorkspaceState.hpp"
-#include <algorithm>
 #include <aquamarine/output/Output.hpp>
-#include <bit>
 #include <ctime>
 #include <random>
 #include <print>
 #include <cstring>
 #include <filesystem>
-#include <unordered_set>
 #include "debug/HyprCtl.hpp"
 #include "debug/crash/CrashReporter.hpp"
 #include "render/GLRenderer.hpp"
@@ -47,32 +38,20 @@
 #endif
 #include "helpers/fs/FsUtils.hpp"
 #include "helpers/env/Env.hpp"
-#include "protocols/FractionalScale.hpp"
-#include "protocols/PointerConstraints.hpp"
-#include "protocols/LayerShell.hpp"
-#include "protocols/XDGShell.hpp"
-#include "protocols/XDGOutput.hpp"
 #include "protocols/SecurityContext.hpp"
 #include "protocols/ColorManagement.hpp"
-#include "protocols/core/Compositor.hpp"
-#include "protocols/core/Subcompositor.hpp"
-#include "desktop/view/LayerSurface.hpp"
-#include "layout/space/Space.hpp"
 #include "render/Renderer.hpp"
 #include "xwayland/XWayland.hpp"
 #include "helpers/ByteOperations.hpp"
-#include "render/decorations/CHyprGroupBarDecoration.hpp"
 
 #include "managers/KeybindManager.hpp"
 #include "managers/SessionLockManager.hpp"
 #include "managers/XWaylandManager.hpp"
 
 #include "config/ConfigManager.hpp"
-#include "config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "render/OpenGL.hpp"
 #include "managers/input/InputManager.hpp"
 #include "animation/AnimationManager.hpp"
-#include "animation/WorkspaceAnimationController.hpp"
 #include "managers/EventManager.hpp"
 #include "managers/ProtocolManager.hpp"
 #include "managers/WelcomeManager.hpp"
@@ -81,10 +60,8 @@
 #include "errorOverlay/Overlay.hpp"
 #include "notification/NotificationOverlay.hpp"
 #include "debug/Overlay.hpp"
-#include "output/MonitorFrameScheduler.hpp"
 #include "i18n/Engine.hpp"
 #include "layout/LayoutManager.hpp"
-#include "layout/target/WindowTarget.hpp"
 #include "event/EventBus.hpp"
 
 #include <hyprutils/string/String.hpp>

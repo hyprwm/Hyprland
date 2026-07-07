@@ -11,7 +11,6 @@
 #include "../../../../desktop/state/FocusState.hpp"
 #include "../../../../desktop/history/WindowHistoryTracker.hpp"
 #include "../../../../output/Monitor.hpp"
-#include "../../../../Compositor.hpp"
 #include "../../../../state/MonitorState.hpp"
 #include "../../../../event/EventBus.hpp"
 

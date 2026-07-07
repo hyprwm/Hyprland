@@ -41,8 +41,6 @@ void CFullscreenTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureB
 
     m_originalMode = Fullscreen::controller()->getFullscreenModes(m_window.lock()).internal;
 
-    // gesture fullscreen always uses layout specific fullscreen bahaviour if it exists
-    // TODO add layoutAware flag to this too
     Fullscreen::controller()->setFullscreenMode(m_window.lock(), !Fullscreen::controller()->isFullscreen(m_window.lock()) ? fsModeForMode(m_mode) : Fullscreen::FSMODE_NONE);
 
     m_posTo  = m_window->m_realPosition->goal();

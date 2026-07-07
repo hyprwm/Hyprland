@@ -32,7 +32,6 @@ bool IFullscreenHandler::isFullscreen(SP<Layout::ITarget> target, const std::opt
     if (!target)
         return false;
 
-    // isFullscreen() queries FS state; negating it to check "is target not fullscreen" is the correct way to do this.
     if (mode.value_or(FSMODE_FULLSCREEN) == FSMODE_NONE) {
         Log::logger->log(Log::ERR, "Passed mode = FSMODE_NONE into isFullscreen. This must never happpen. Negating the result instead");
         !isFullscreen(target, std::nullopt, covering);
@@ -48,7 +47,6 @@ bool IFullscreenHandler::isFullscreen(SP<Layout::ITarget> target, const std::opt
 
     const auto& ITR = m_fsTargets.find(target);
 
-    // not FS at all
     if (ITR == m_fsTargets.end())
         return false;
 
@@ -148,7 +146,7 @@ void IFullscreenHandler::setTargetSizeAndPosition(const SP<Layout::ITarget> targ
     if (!target->window())
         return;
 
-    // gets the window target if the target is a part of a group
+    // must set pos of the highest level target (i.e. if target a part of a group, must set that group's pos which will set the pos of all member targets)
     const auto LAYOUT_TARGET = target->window()->layoutTarget();
     const auto WINDOW        = LAYOUT_TARGET->window();
     const auto WORKSPACE     = LAYOUT_TARGET->workspace();
@@ -164,7 +162,6 @@ void IFullscreenHandler::setTargetSizeAndPosition(const SP<Layout::ITarget> targ
     WINDOW->updateDecorationValues();
     g_layoutManager->recalculateMonitor(MONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN);
 
-    // If individual window, it sets windowTarget's pos. If group, sets windowGroupTarget's pos - which will set all member target's positions in turn
     if (TARGET_INTERNAL_MODE == FSMODE_FULLSCREEN) {
         const CBox MONBOX                                  = MONITOR->logicalBox();
         Fullscreen::controller()->m_windowPosSettingQueued = true;
@@ -213,12 +210,9 @@ void IFullscreenHandler::syncFullscreenTargets() {
         if (m_fsTargets.empty())
             return;
 
-        // Rigorously check if WP<> is valid
+        // Rigorously check if WP<> is valid as WP<> randomly segfaults sometimes without this
         const auto TARGET = !it->first.expired() && it->first.valid() && it->first ? it->first.lock() : nullptr;
 
-        // target expired
-        // window doesn't exist
-        // target is not FS (internal or client)
         if (!TARGET || !TARGET->window() || (!isFullscreen(TARGET) && it->second.client == FSMODE_NONE)) {
             const auto NEXT = std::next(it);
             removeFsTarget(TARGET, true);
@@ -226,8 +220,7 @@ void IFullscreenHandler::syncFullscreenTargets() {
             continue;
         }
 
-        // If ITarget's underlying type is CWindowGroupTarget; only store the current window, NOT the whole group
-        // This should never have happened to begin with
+        // If ITarget's underlying type is CWindowGroupTarget; only store the current window, NOT the whole group - This should never have happened to begin with
         if (TARGET->type() == Layout::TARGET_TYPE_GROUP) {
             const SFullscreenMode MODE         = SFullscreenMode{.internal = it->second.internal, .client = it->second.client};
             const auto            WINDOWTARGET = TARGET->window()->layoutTarget();

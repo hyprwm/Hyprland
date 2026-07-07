@@ -22,16 +22,6 @@ namespace Fullscreen::ScrollingFullscreenHandler {
 
     class CScrollingFullscreenHandler : public IFullscreenHandler {
 
-        /*
-        Scrolling FS Behaviour
-        ----------------------
-
-        Scrolling layout permits multiple FS targets in a workspace, but there can only be one covering FS target.
-
-        Check syncFullscreenTargets() for the critera scroll has for a target being considered fullscreen
-        
-      */
-
       public:
         CScrollingFullscreenHandler(Layout::Tiled::CScrollingAlgorithm* const algorithm);
         virtual ~CScrollingFullscreenHandler();

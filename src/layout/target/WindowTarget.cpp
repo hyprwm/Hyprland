@@ -140,7 +140,8 @@ void CWindowTarget::updatePos() {
         return;
     }
 
-    // Tiled non-FS windows
+
+    /* Non-Fs Tiled Windows */
 
     g_pHyprRenderer->damageWindow(window());
 

@@ -138,7 +138,6 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
     const auto expelIfMoreThanOneTargetInColDuringFS = [&]() -> void {
         const auto CURRENTCOL = TDATA->column.lock();
 
-        // more that one target in column
         if (CURRENTCOL && CURRENTCOL->targetDatas.size() > 1) {
             const auto TDATA      = m_scrollingAlgorithm->dataFor(TARGET, true);
             const auto currentIdx = m_scrollingAlgorithm->m_scrollingData->idx(CURRENTCOL);
@@ -207,10 +206,8 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
         // move new column into view
         m_scrollingAlgorithm->m_scrollingData->centerOrFitCol(CURRENTCOL);
 
-        // set internal fullscreen mode
         setTargetFullscreenModeInternal(TARGET, FSMODE_FULLSCREEN);
 
-        // Hide all members below the FS target
         setNoMembersAboveFullscreen();
 
         return FULLSCREEN_REQUEST_LAYOUT_HANDLED;
@@ -244,13 +241,12 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
             return FULLSCREEN_REQUEST_FAILED;
 
         CURRENTCOL->setColumnWidth(1.F);
+
         // move new column into view
         m_scrollingAlgorithm->m_scrollingData->centerOrFitCol(CURRENTCOL);
 
-        // set internal fullscreen mode
         setTargetFullscreenModeInternal(TARGET, FSMODE_MAXIMIZED);
 
-        // Hide all members below the FS target
         setNoMembersAboveFullscreen();
 
         return FULLSCREEN_REQUEST_LAYOUT_HANDLED;
@@ -492,13 +488,9 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
         if (m_fsTargets.empty())
             return;
 
-        // Rigorously check if WP<> is valid
+        // Rigorously check if WP<> is valid as WP<> randomly segfaults sometimes without this
         const auto TARGET = !it->first.expired() && it->first.valid() && it->first ? it->first.lock() : nullptr;
 
-        // TARGET expired
-        // TARGET doesn't have a window
-        // TARGET's space is not the same as current space
-        // TARGET does not have scrollingTargetData (all TARGETs in scrolling layout must)
         if (!TARGET || !TARGET->window() || TARGET->space() != getSpace() || !m_scrollingAlgorithm->dataFor(TARGET, true)) {
             // simply erase from list. no need to re-set its prev col width as the TARGET is 'invalid'
             const auto NEXT = std::next(it);
@@ -507,7 +499,6 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
             continue;
         }
 
-        // TARGET exists propely but is not FS (internal and client must be FSMODE_NONE for a target to be removed from handler)
         if ((!isFullscreen(TARGET) && getFullscreenModes(TARGET).client == FSMODE_NONE)) {
             const auto NEXT = std::next(it);
             // sets col width to prev value if present, then removes it from the handler (i.e. remove from list)
@@ -516,7 +507,6 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
             continue;
         }
 
-        // TARGET is not the only target in its column
         // This might happen if the target was moved to another col, so we need to unFS it properly
         if (const auto TARGET_WINDOW = TARGET->window(); TARGET_WINDOW && m_scrollingAlgorithm->dataFor(TARGET, false)->column) {
             const auto STDATA = m_scrollingAlgorithm->dataFor(TARGET, true);
@@ -528,9 +518,7 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
             }
         }
 
-        // TARGET is in a group, but is not the current window of the group OR If ITarget's underlying type is window group; only store the current window, NOT the whole group
-        // add the current window of the group's WindowTarget into the list and remove the current target
-        // This should never have happened to begin with
+        // If ITarget's underlying type is CWindowGroupTarget; only store the current window, NOT the whole group - This should never have happened to begin with
         if (TARGET->type() == Layout::TARGET_TYPE_GROUP || (TARGET->window()->m_group && TARGET->window()->m_group->current()->m_target != TARGET)) {
             Log::logger->log(Log::WARN, "Handler tracked a window group. This should have never happened. Recovering...");
 
@@ -545,7 +533,6 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
             continue;
         }
 
-        // if internal FS mode set, re-set its col width to its proper value
         if (getFullscreenModes(TARGET).internal != FSMODE_NONE) {
             m_scrollingAlgorithm->dataFor(TARGET, true)->column->setColumnWidth((getFullscreenModes(TARGET).internal == FSMODE_FULLSCREEN ? fullscreenColumnWidth() : 1.F));
             ++it;
@@ -561,8 +548,6 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
 }
 
 void CScrollingFullscreenHandler::removeFsTarget(SP<Layout::ITarget> target, const bool recursionGuard) {
-
-    // remove from the list, set the value it had to the window if that target still exists
 
     const auto ITR = m_fsTargets.find(target);
 
@@ -607,6 +592,13 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
             If the old FS window is no longer FS (this function is responsible for calling the function that would sync that state so at this point, the old value is still saved as 'FS')
 
         In prop refresh event's call of this function, this part should return false as the states above should be synced already.
+
+
+        Reason for scheduling a prop refresh: Normally, FS controller's FS state setter's method of handling window rules should be used; but calling g_layoutManager->recalculateMonitor(MONITOR) here would lead to an inf recursion
+        so we enqueue a prop refresh instead to handle this in the next event.
+        Concern: if the user executes a premature prop refresh, this might cause another prop refresh to be enqueud - though this is unlikely and would only occur in the event of a bug
+
+
     */
     // Scrolling onto or have a new FS window
     if ((TARGET_WORKSPACE_HAS_FS && CURRENT_FS_TDATA && CURRENT_FS_TDATA->target && CURRENT_FS_TDATA->target->window() &&
@@ -617,9 +609,6 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
                                                             Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
         LAST_FS_WINDOW->updateDecorationValues();
 
-        // normally, FS controller's FS state setter's method of handling window rules should be used; but calling g_layoutManager->recalculateMonitor(MONITOR) here would lead to an inf recursion
-        // so we enqueue a prop refresh instead to handle this in the next event.
-        // Concern: if the user executes a premature prop refresh, this might cause another prop refresh to be enqueud - though this is unlikely and would only occur in the event of a bug
         Config::Supplementary::refresher()->scheduleRefresh(Config::Supplementary::REFRESH_WINDOW_STATES | Config::Supplementary::REFRESH_MONITOR_STATES);
     }
     // Scrolling away from an FS window
@@ -629,9 +618,6 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
                                                             Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
         LAST_FS_WINDOW->updateDecorationValues();
 
-        // normally, FS controller's FS state setter's method of handling window rules should be used; but calling g_layoutManager->recalculateMonitor(MONITOR) here would lead to an inf recursion
-        // so we enqueue a prop refresh instead to handle this in the next event.
-        // Concern: if the user executes a premature prop refresh, this might cause another prop refresh to be enqueud - though this is unlikely and would only occur in the event of a bug
         Config::Supplementary::refresher()->scheduleRefresh(Config::Supplementary::REFRESH_WINDOW_STATES | Config::Supplementary::REFRESH_MONITOR_STATES);
     }
 

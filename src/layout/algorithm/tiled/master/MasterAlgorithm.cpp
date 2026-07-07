@@ -278,8 +278,7 @@ void CMasterAlgorithm::removeTarget(SP<ITarget> target) {
         return;
 
     if (m_defaultFullscreenHandler->isFullscreen(target)) {
-        auto window = target->window();
-        Fullscreen::controller()->setFullscreenMode(window, Fullscreen::FSMODE_NONE);
+        Fullscreen::controller()->setFullscreenMode(target->window(), Fullscreen::FSMODE_NONE);
     }
 
     if (PNODE->isMaster && (MASTERSLEFT <= 1 || *SMALLSPLIT == 1)) {

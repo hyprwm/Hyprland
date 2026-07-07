@@ -606,7 +606,7 @@ void CDwindleAlgorithm::calculateWorkspace() {
     const auto PWORKSPACE = m_parent->space()->workspace();
     const auto PMONITOR   = PWORKSPACE->m_monitor;
 
-    if (!PMONITOR)
+    if (!PMONITOR || Fullscreen::controller()->hasFullscreen(PWORKSPACE))
         return;
 
     const auto TOPNODE = getMasterNode();

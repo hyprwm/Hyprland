@@ -485,7 +485,6 @@ void SScrollingData::recalculate(bool forceInstant) {
         return {.logicalBox = logical, .visualBox = visual};
     };
 
-    // Correctly setting workspace related attributes for the current workspace. Since there can only be one FS window that is currently covering monitor/work area, these values should only be set one (or not set at all). More than once indicates a bug.
     bool targetWorkspaceHasCoveringFullscreen = false;
 
     // Save if there is a currently FS window (i.e. the FS window covers monitor if fullscreen, or work area if maximised)
@@ -503,10 +502,7 @@ void SScrollingData::recalculate(bool forceInstant) {
             const auto TARGET_WORKSPACE = TARGET ? TARGET->workspace() : nullptr;
             const auto TARGET_FS_MODE   = algorithm->m_scrollingFullscreenHandler->getFullscreenModes(TDATA->target.lock()).internal;
 
-            // Target is FS
-            // For a column to have a FS target, there must be only one target in column.
             if (COL_HAS_FS_TARGET) {
-                // Target is Fullscreen
                 if (TARGET_FS_MODE == Fullscreen::FSMODE_FULLSCREEN) {
                     // Target is Covering Fullscreen
                     if (algorithm->m_scrollingFullscreenHandler->isFullscreen(TARGET, Fullscreen::FSMODE_FULLSCREEN, true)) {
@@ -526,7 +522,6 @@ void SScrollingData::recalculate(bool forceInstant) {
                         }
                     }
                 }
-                // Target is Maximised
                 else if (TARGET_FS_MODE == Fullscreen::FSMODE_MAXIMIZED) {
                     // Target is Covering Maximised
                     if (algorithm->m_scrollingFullscreenHandler->isFullscreen(TARGET, Fullscreen::FSMODE_MAXIMIZED, true)) {
@@ -550,14 +545,13 @@ void SScrollingData::recalculate(bool forceInstant) {
                 else
                     TDATA->layoutBox = CBox{WORKAREA.pos() - Vector2D{100000.0, 100000.0}, Vector2D{1.0, 1.0}};
             }
-            // Target isn't FS
             else
                 TDATA->layoutBox = controller->calculateTargetBox(i, j, USABLE, WORKAREA.pos(), *PFSONONE);
 
             if (TDATA->target) {
                 if (targetWorkspaceHasCoveringFullscreen)
                     Fullscreen::controller()->m_windowPosSettingQueued = true;
-                // If individual window, sets windowTarget's pos. If group, sets windowGroupTarget's pos - which will set all member target's positions in turn
+                // must set pos of the highest level target (i.e. if target a part of a group, must set that group's pos which will set the pos of all member targets)
                 TDATA->target->setPositionGlobal(targetBoxWithGaps(TDATA->layoutBox, i, j, COL_HAS_FS_TARGET && TARGET_FS_MODE == Fullscreen::FSMODE_FULLSCREEN));
             }
 
@@ -792,7 +786,7 @@ void CScrollingAlgorithm::removeTarget(SP<ITarget> target) {
     if (!DATA)
         return;
 
-    // remove the FS state of a tiled window when it is being removed/floated -- This exception needs to exist for the float case.
+    // remove the FS state of a tiled window when it is being removed/floated -- This exception needs to exist for the float case as it's default handled
     if (m_scrollingFullscreenHandler->isFullscreen(target)) {
         Fullscreen::controller()->setFullscreenMode(target->window(), Fullscreen::FSMODE_NONE);
     }

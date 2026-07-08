@@ -20,10 +20,8 @@
 using namespace Fullscreen;
 
 IFullscreenHandler::IFullscreenHandler(Layout::IModeAlgorithm* const algorithm) : m_algorithm(algorithm) {
-    if (!m_algorithm) {
+    if (!m_algorithm)
         Log::logger->log(Log::CRIT, "IFullscreenHandler failed during construction: Owning layout algorithm does not exist!");
-        throw std::runtime_error("CScrollingFullscreenHandler: bad algorithm type");
-    }
 };
 
 bool IFullscreenHandler::isFullscreen(SP<Layout::ITarget> target, const std::optional<eFullscreenMode> mode, const std::optional<bool> covering) {
@@ -33,7 +31,7 @@ bool IFullscreenHandler::isFullscreen(SP<Layout::ITarget> target, const std::opt
         return false;
 
     if (mode.value_or(FSMODE_FULLSCREEN) == FSMODE_NONE) {
-        Log::logger->log(Log::ERR, "Passed mode = FSMODE_NONE into isFullscreen. This must never happpen. Negating the result instead");
+        Log::logger->log(Log::ERR, "Passed mode = FSMODE_NONE into isFullscreen(). Negating the result instead");
         !isFullscreen(target, std::nullopt, covering);
     }
 
@@ -67,18 +65,20 @@ SP<Layout::ITarget> IFullscreenHandler::getFullscreen(const std::optional<bool> 
 
 SFullscreenMode IFullscreenHandler::getFullscreenModes(SP<Layout::ITarget> target) {
     if (!target)
-        return SFullscreenMode{};
+        return {};
 
     if (const auto WINDOW_GROUP_TARGET = dc<Layout::CWindowGroupTarget*>(target.get()); WINDOW_GROUP_TARGET && target->type() == Layout::TARGET_TYPE_GROUP) {
         if (WINDOW_GROUP_TARGET->getGroup() && WINDOW_GROUP_TARGET->getGroup()->current() && WINDOW_GROUP_TARGET->getGroup()->current()->m_target)
             target = WINDOW_GROUP_TARGET->getGroup()->current()->m_target;
         else
-            return SFullscreenMode{};
+            return {};
     }
 
-    const auto& ITR = m_fsTargets.find(target);
+    const auto ITR = m_fsTargets.find(target);
 
-    return ITR == m_fsTargets.end() ? SFullscreenMode{} : ITR->second;
+    if (ITR == m_fsTargets.end())
+        return {};
+    return ITR->second;
 }
 
 eFullscreenRequestResult IFullscreenHandler::requestFullscreen(const SFullscreenRequest& request) {

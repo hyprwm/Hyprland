@@ -19,10 +19,8 @@ using namespace Fullscreen;
 using namespace Fullscreen::ScrollingFullscreenHandler;
 
 CScrollingFullscreenHandler::CScrollingFullscreenHandler(Layout::Tiled::CScrollingAlgorithm* const algorithm) : IFullscreenHandler(algorithm), m_scrollingAlgorithm(algorithm) {
-    if (!m_scrollingAlgorithm) {
+    if (!m_scrollingAlgorithm)
         Log::logger->log(Log::CRIT, "CScrollingFullscreenHandler failed during construction: Owning layout algorithm does not exist!");
-        throw std::runtime_error("CScrollingFullscreenHandler: bad algorithm type");
-    }
 }
 
 CScrollingFullscreenHandler::~CScrollingFullscreenHandler() {
@@ -39,7 +37,7 @@ bool CScrollingFullscreenHandler::isFullscreen(SP<Layout::ITarget> target, const
     // Mode checking logic is the same as getFullscreenModes() - keep it in sync
 
     if (mode.value_or(FSMODE_FULLSCREEN) == FSMODE_NONE) {
-        Log::logger->log(Log::ERR, "Passed mode = FSMODE_NONE into isFullscreen. This must never happpen. Negating the result instead");
+        Log::logger->log(Log::ERR, "Passed mode = FSMODE_NONE into isFullscreen(). Negating the result instead");
         !isFullscreen(target, std::nullopt, covering);
     }
 
@@ -96,18 +94,20 @@ SP<Layout::ITarget> CScrollingFullscreenHandler::getFullscreen(const std::option
 
 SFullscreenMode CScrollingFullscreenHandler::getFullscreenModes(SP<Layout::ITarget> target) {
     if (!target)
-        return SFullscreenMode{};
+        return {};
 
     if (const auto WINDOW_GROUP_TARGET = dc<Layout::CWindowGroupTarget*>(target.get()); WINDOW_GROUP_TARGET && target->type() == Layout::TARGET_TYPE_GROUP) {
         if (WINDOW_GROUP_TARGET->getGroup() && WINDOW_GROUP_TARGET->getGroup()->current() && WINDOW_GROUP_TARGET->getGroup()->current()->m_target)
             target = WINDOW_GROUP_TARGET->getGroup()->current()->m_target;
         else
-            return SFullscreenMode{};
+            return {};
     }
 
     const auto ITR = m_fsTargets.find(target);
 
-    return ITR == m_fsTargets.end() ? SFullscreenMode{} : ITR->second.mode;
+    if (ITR == m_fsTargets.end())
+        return {};
+    return ITR->second.mode;
 }
 
 eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SFullscreenRequest& request) {
@@ -142,11 +142,11 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
         }
     };
 
-    /* Setting DSO and VRR */
+    /* Setting DS and VRR */
 
-    // If a window is being un-FSed, set its DSO and VRR in requestFullscreen()
-    // If we are scrolling away from an FS window that is not unFSed yet, we set its DSO and VRR in sScrollingDataRecalculateHelper()
-    // If a window is being FS-ed, or we are scrolling onto a FSed window, we set its DSO and VRR in sScrollingDataRecalculateHelper()
+    // If a window is being un-FSed, set its DS and VRR in requestFullscreen()
+    // If we are scrolling away from an FS window that is not unFSed yet, we set its DS and VRR in sScrollingDataRecalculateHelper()
+    // If a window is being FS-ed, or we are scrolling onto a FSed window, we set its DS and VRR in sScrollingDataRecalculateHelper()
 
     if (REQUESTED_MODE == FSMODE_NONE) {
 
@@ -560,11 +560,11 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
         Config::Supplementary::refresher()->scheduleRefresh(Config::Supplementary::REFRESH_WINDOW_STATES | Config::Supplementary::REFRESH_MONITOR_STATES);
     }
 
-    /* Setting DSO and VRR */
+    /* Setting DS and VRR */
 
-    // If a window is being un-FSed, set its DSO and VRR in requestFullscreen()
-    // If we are scrolling away from an FS window that is not unFSed yet, we set its DSO and VRR in sScrollingDataRecalculateHelper()
-    // If a window is being FS-ed, or we are scrolling onto a FSed window, we set its DSO and VRR in sScrollingDataRecalculateHelper()
+    // If a window is being un-FSed, set its DS and VRR in requestFullscreen()
+    // If we are scrolling away from an FS window that is not unFSed yet, we set its DS and VRR in sScrollingDataRecalculateHelper()
+    // If a window is being FS-ed, or we are scrolling onto a FSed window, we set its DS and VRR in sScrollingDataRecalculateHelper()
 
     static auto PDIRECTSCANOUT = CConfigValue<Config::INTEGER>("render:direct_scanout");
 
@@ -598,7 +598,7 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
 
     Config::monitorRuleMgr()->ensureVRR(MONITOR);
 
-    // DSO and VRR setting must run before setNoMembersAboveFullscreen() because we need the last tiled layout managed fullscreen window before it is reset when no fullscreen
+    // DS and VRR setting must run before setNoMembersAboveFullscreen() because we need the last tiled layout managed fullscreen window before it is reset when no fullscreen
     setNoMembersAboveFullscreen();
 
     // Must run after setNoMembersAboveFullscreen() so it can properly set the windows' allowedOverFullscreen attributes

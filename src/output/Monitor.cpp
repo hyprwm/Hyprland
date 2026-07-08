@@ -1702,6 +1702,17 @@ void CMonitor::setSpecialWorkspace(const WORKSPACEID& id) {
     setSpecialWorkspace(State::workspaceState()->query().id(id).run());
 }
 
+PHLWORKSPACE CMonitor::getCurrentWorkspace() {
+    const auto MONITOR = m_self.lock();
+    if (!MONITOR)
+        return nullptr;
+
+    if (MONITOR->m_activeSpecialWorkspace)
+        return MONITOR->m_activeSpecialWorkspace;
+
+    return MONITOR->m_activeWorkspace;
+}
+
 void CMonitor::moveTo(const Vector2D& pos) {
     if (m_position == pos)
         return;

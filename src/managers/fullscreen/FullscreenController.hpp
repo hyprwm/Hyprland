@@ -16,7 +16,7 @@ namespace Fullscreen {
     };
 
     enum eFullscreenHandler : uint8_t {
-        FULLSCREEN_HANDLER_NONE = 0,
+        FULLSCREEN_HANDLER_NONE = 0, // default/error case
         // Types of Handlers
         FULLSCREEN_HANDLER_DEFAULT = 1 << 0,
         FULLSCREEN_HANDLER_LAYOUT  = 1 << 1,
@@ -86,13 +86,21 @@ namespace Fullscreen {
         bool m_windowPosSettingQueued = false;
 
       private:
+        struct SSFsHandlersForWindow {
+            const WP<IFullscreenHandler> TILED_FS_HANDLER;
+            const WP<IFullscreenHandler> TILED_DEFAULT_FS_HANDLER;
+            const WP<IFullscreenHandler> FLOATING_FS_HANDLER;
+        };
+
         // FS Mode Setter Helpers
         void setWindowFullscreenModeInternal(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware);
         void setWindowFullscreenModeClient(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware);
 
         // FS Handler getters
 
-        WP<IFullscreenHandler> getFSHandler(const PHLWINDOW window, std::optional<bool> layoutHandled = std::nullopt);
+        WP<IFullscreenHandler> getFsHandler(const PHLWINDOW window, std::optional<bool> layoutHandled = std::nullopt);
+
+        SSFsHandlersForWindow  getFsHandlersForWorkspace(const PHLWORKSPACE workspace) const;
 
         // List of FSMODE_MAX windows
         std::unordered_set<WP<Desktop::View::CWindow>> m_fsModeMaxWindows;

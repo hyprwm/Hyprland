@@ -67,9 +67,9 @@ class CWLOutputProtocol : public IWaylandProtocol {
 
 namespace PROTO {
     inline std::unordered_map<std::string, SP<CWLOutputProtocol>> outputs;
-    // defunct globals that were replaced by a new global with the same name but still have
-    // client-bound resources. Destroying those resources server-side would fatally error the
-    // clients ("invalid object" on their in-flight wl_output.release); they are kept here
-    // until every client has released, then drop out via destroyResource.
+    // defunct globals that are gone but not yet unref'd by all clients. Destroying their
+    // still-bound resources server-side would fatally error the clients ("invalid object"
+    // on their in-flight wl_output.release); they are kept here until every client has
+    // released, then drop out via destroyResource.
     inline std::vector<SP<CWLOutputProtocol>> defunctOutputs;
 };

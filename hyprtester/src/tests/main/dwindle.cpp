@@ -33,9 +33,8 @@ TEST_CASE(dwindleIssue13349) {
     // exposed by #13349 as a regression from #12890
 
     for (auto const& win : {"a", "b", "c"}) {
-        if (!Tests::spawnKitty(win)) {
+        if (!Tests::spawnKitty(win))
             FAIL_TEST("Could not spawn kitty with win class `{}`", win);
-        }
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:c' })"));
@@ -120,9 +119,8 @@ TEST_CASE(dwindleRotateSplit) {
     OK(getFromSocket("r/eval hl.config({ general = { border_size = 0 } })"));
 
     for (auto const& win : {"a", "b"}) {
-        if (!Tests::spawnKitty(win)) {
+        if (!Tests::spawnKitty(win))
             FAIL_TEST("Could not spawn kitty with win class `{}`", win);
-        }
     }
 
     {
@@ -223,9 +221,8 @@ TEST_CASE(dwindleMoveAcrossToggledSplit) {
 
     OK(getFromSocket("/eval hl.config({ dwindle = { force_split = 2 } })"));
     for (auto const& win : {"a", "b"}) {
-        if (!Tests::spawnKitty(win)) {
+        if (!Tests::spawnKitty(win))
             FAIL_TEST("Could not spawn kitty with win class `{}`", win);
-        }
     }
     OK(getFromSocket("/dispatch hl.dsp.layout('togglesplit')"));
     // Window A, now on top, is to be moved
@@ -250,9 +247,8 @@ TEST_CASE(dwindleMoveSmallWindowAcrossSplit) {
     OK(getFromSocket("/eval hl.config({ dwindle = { force_split = 1 } })"));
     OK(getFromSocket("/eval hl.config({ dwindle = { default_split_ratio = 1.2 } })"));
     for (auto const& win : {"a", "b"}) {
-        if (!Tests::spawnKitty(win)) {
+        if (!Tests::spawnKitty(win))
             FAIL_TEST("Could not spawn kitty with win class `{}`", win);
-        }
     }
     // Window B, on the left, is the smaller one
 
@@ -353,9 +349,8 @@ TEST_CASE(dwindleTestFsFocusUnderFSWindow) {
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'dwindle' } })"));
 
     for (auto const& win : {"one", "two", "three"}) {
-        if (!Tests::spawnKitty(win)) {
+        if (!Tests::spawnKitty(win))
             FAIL_TEST("Could not spawn kitty with win class `{}`", win);
-        }
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:one' })"));

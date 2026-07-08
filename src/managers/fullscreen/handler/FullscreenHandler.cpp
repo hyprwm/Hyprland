@@ -111,14 +111,13 @@ void IFullscreenHandler::setTargetFullscreenModeInternal(const SP<Layout::ITarge
         target->rememberFloatingSize(target->position().size());
 
     if (mode == FSMODE_NONE) {
-        if (ITR != m_fsTargets.end()) {
+        if (ITR != m_fsTargets.end())
             ITR->second.internal = FSMODE_NONE;
-        }
-    } else if (ITR == m_fsTargets.end()) {
-        m_fsTargets.emplace(target, SFullscreenMode{.internal = mode});
-    } else {
-        ITR->second.internal = mode;
     }
+    else if (ITR == m_fsTargets.end())
+        m_fsTargets.emplace(target, SFullscreenMode{.internal = mode});
+    else
+        ITR->second.internal = mode;
 
     syncFullscreenTargets();
 }
@@ -128,14 +127,12 @@ void IFullscreenHandler::setTargetFullscreenModeClient(const SP<Layout::ITarget>
     const auto& ITR = m_fsTargets.find(target);
 
     if (mode == FSMODE_NONE) {
-        if (ITR != m_fsTargets.end()) {
+        if (ITR != m_fsTargets.end())
             ITR->second.client = FSMODE_NONE;
-        }
-    } else if (ITR == m_fsTargets.end()) {
+    } else if (ITR == m_fsTargets.end())
         m_fsTargets.emplace(target, SFullscreenMode{.client = mode});
-    } else {
+    else
         ITR->second.client = mode;
-    }
 
     syncFullscreenTargets();
 }

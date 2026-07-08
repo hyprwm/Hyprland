@@ -18,9 +18,8 @@ TEST_CASE(focusMasterPrevious) {
     NLog::log("{}Spawning 1 master and 3 slave windows", Colors::YELLOW);
     // order of windows set according to new_status = master (set in test.lua)
     for (auto const& win : {"slave1", "slave2", "slave3", "master"}) {
-        if (!Tests::spawnKitty(win)) {
+        if (!Tests::spawnKitty(win))
             FAIL_TEST("Could not spawn kitty with win class `{}`", win);
-        }
     }
     NLog::log("{}Ensuring focus is on master before testing", Colors::YELLOW);
     OK(getFromSocket("/dispatch hl.dsp.layout('focusmaster master')"));
@@ -110,9 +109,8 @@ TEST_CASE(masterTestFsFocusUnderFSWindow) {
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'master' } })"));
 
     for (auto const& win : {"master", "slave1", "slave2"}) {
-        if (!Tests::spawnKitty(win)) {
+        if (!Tests::spawnKitty(win))
             FAIL_TEST("Could not spawn kitty with win class `{}`", win);
-        }
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:master' })"));
@@ -700,9 +698,8 @@ TEST_CASE(rollFocus) {
     };
 
     for (auto const& win : windows) {
-        if (!Tests::spawnKitty(win)) {
+        if (!Tests::spawnKitty(win))
             FAIL_TEST("Could not spawn kitty with win class `{}`", win);
-        }
     }
 
     // focus master

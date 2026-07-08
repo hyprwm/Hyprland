@@ -283,9 +283,8 @@ SUBTEST(multimonFocus) {
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '7' })"));
 
     for (auto const& win : {"a", "b"}) {
-        if (!Tests::spawnKitty(win)) {
+        if (!Tests::spawnKitty(win))
             FAIL_TEST("Could not spawn kitty with win class `{}`", win);
-        }
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:a' })"));

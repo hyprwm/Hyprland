@@ -2435,9 +2435,8 @@ void CWindow::mapWindow() {
             m_noInitialFocus = true;
         else if (*PNEWTAKESOVERFS == 1)
             requestedInternalFSMode = Fullscreen::controller()->getFullscreenModes(m_workspace).internal;
-        else if (*PNEWTAKESOVERFS == 2) {
+        else if (*PNEWTAKESOVERFS == 2)
             Fullscreen::controller()->setFullscreenMode(Fullscreen::controller()->getFullscreenWindow(m_workspace), Fullscreen::FSMODE_NONE, std::nullopt);
-        }
     }
 
     if (!m_ruleApplicator->noFocus().valueOrDefault() && !m_noInitialFocus && (!isX11OverrideRedirect() || (m_isX11 && m_xwaylandSurface->wantsFocus())) && !workspaceSilent &&

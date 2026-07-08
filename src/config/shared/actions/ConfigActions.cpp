@@ -287,6 +287,9 @@ ActionResult Actions::fullscreenWindow(Fullscreen::eFullscreenMode internalMode,
     if (!window)
         return {};
 
+    const bool KEEP_INTERNAL = (internalMode == -1);
+    const bool KEEP_CLIENT = (clientMode == -1);
+
     internalMode = std::clamp(internalMode, sc<Fullscreen::eFullscreenMode>(0), Fullscreen::FSMODE_FULLSCREEN);
     clientMode   = std::clamp(clientMode, sc<Fullscreen::eFullscreenMode>(0), Fullscreen::FSMODE_FULLSCREEN);
 
@@ -298,8 +301,8 @@ ActionResult Actions::fullscreenWindow(Fullscreen::eFullscreenMode internalMode,
         Fullscreen::controller()->setFullscreenMode(window, Fullscreen::FSMODE_NONE, Fullscreen::FSMODE_NONE, layoutAware);
     else
         Fullscreen::controller()->setFullscreenMode(
-            window, NEW_MODES.internal == -1 ? std::optional<Fullscreen::eFullscreenMode>(std::nullopt) : std::optional<Fullscreen::eFullscreenMode>(NEW_MODES.internal),
-            NEW_MODES.client == -1 ? std::optional<Fullscreen::eFullscreenMode>(std::nullopt) : std::optional<Fullscreen::eFullscreenMode>(NEW_MODES.client), layoutAware);
+            window, KEEP_INTERNAL ? std::optional<Fullscreen::eFullscreenMode>(std::nullopt) : std::optional<Fullscreen::eFullscreenMode>(NEW_MODES.internal),
+            KEEP_CLIENT ? std::optional<Fullscreen::eFullscreenMode>(std::nullopt) : std::optional<Fullscreen::eFullscreenMode>(NEW_MODES.client), layoutAware);
 
     const auto WINDOW_FS_MODES = Fullscreen::controller()->getFullscreenModes(window);
 

@@ -783,9 +783,8 @@ void CScrollingAlgorithm::removeTarget(SP<ITarget> target) {
         return;
 
     // remove the FS state of a tiled window when it is being removed/floated -- This exception needs to exist for the float case as it's default handled
-    if (m_scrollingFullscreenHandler->isFullscreen(target)) {
+    if (m_scrollingFullscreenHandler->isFullscreen(target))
         Fullscreen::controller()->setFullscreenMode(target->window(), Fullscreen::FSMODE_NONE);
-    }
 
     if (!m_scrollingData->next(DATA->column.lock()) && DATA->column->targetDatas.size() <= 1) {
         // move the view if this is the last column

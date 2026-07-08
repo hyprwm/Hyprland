@@ -94,9 +94,8 @@ TEST_CASE(monocleTestFsFocusUnderFSWindow) {
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'monocle' } })"));
 
     for (auto const& win : {"one", "two", "three"}) {
-        if (!Tests::spawnKitty(win)) {
+        if (!Tests::spawnKitty(win))
             FAIL_TEST("Could not spawn kitty with win class `{}`", win);
-        }
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:one' })"));

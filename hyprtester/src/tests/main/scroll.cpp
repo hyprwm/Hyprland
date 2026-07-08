@@ -828,10 +828,9 @@ TEST_CASE(scroll_DEFAULT_HANDLED_testFsFocusUnderFSWindow) {
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
-    for (auto const& win : {"one", "two", "three"}) {
+    for (auto const& win : {"one", "two", "three"})
         if (!Tests::spawnKitty(win)) {
             FAIL_TEST("Could not spawn kitty with win class `{}`", win);
-        }
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:one' })"));

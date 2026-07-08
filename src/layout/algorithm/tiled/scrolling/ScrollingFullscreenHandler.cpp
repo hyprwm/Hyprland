@@ -68,9 +68,8 @@ bool CScrollingFullscreenHandler::isFullscreen(SP<Layout::ITarget> target, const
         return false;
     }
 
-    if (!covering.has_value()) {
+    if (!covering.has_value())
         return mode.has_value() ? ITR->second.mode.internal == mode.value() : true;
-    }
 
     const auto FSMODE = ITR->second.mode.internal;
     if (mode.has_value() && mode.value() != FSMODE)
@@ -180,12 +179,11 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
             }
 
             const auto ITR = m_fsTargets.find(TARGET);
-            if (ITR != m_fsTargets.end()) {
+            if (ITR != m_fsTargets.end())
                 ITR->second.restoreColumnWidth = CURRENT_COL ? std::optional<float>{targetColumnWidth} : std::nullopt;
-            } else {
+            else
                 // setting the mode will be done later
                 m_fsTargets.emplace(TARGET, SFullscreenScrollState{.restoreColumnWidth = CURRENT_COL ? std::optional<float>{targetColumnWidth} : std::nullopt});
-            }
         }
 
         expelIfMoreThanOneTargetInColDuringFS();
@@ -216,11 +214,10 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
                 targetColumnWidth = CURRENT_COL->getColumnWidth();
 
             const auto ITR = m_fsTargets.find(TARGET);
-            if (ITR != m_fsTargets.end()) {
+            if (ITR != m_fsTargets.end())
                 ITR->second.restoreColumnWidth = CURRENT_COL ? std::optional<float>{targetColumnWidth} : std::nullopt;
-            } else {
+            else
                 m_fsTargets.emplace(TARGET, SFullscreenScrollState{.restoreColumnWidth = CURRENT_COL ? std::optional<float>{targetColumnWidth} : std::nullopt});
-            }
         }
 
         expelIfMoreThanOneTargetInColDuringFS();
@@ -256,14 +253,13 @@ void CScrollingFullscreenHandler::setTargetFullscreenModeInternal(const SP<Layou
     const auto& ITR = m_fsTargets.find(target);
 
     if (mode == FSMODE_NONE) {
-        if (ITR != m_fsTargets.end()) {
+        if (ITR != m_fsTargets.end())
             ITR->second.mode.internal = FSMODE_NONE;
-        }
-    } else if (ITR == m_fsTargets.end()) {
-        m_fsTargets.emplace(target, SFullscreenScrollState{.mode = {.internal = mode}});
-    } else {
-        ITR->second.mode.internal = mode;
     }
+    else if (ITR == m_fsTargets.end())
+        m_fsTargets.emplace(target, SFullscreenScrollState{.mode = {.internal = mode}});
+    else
+        ITR->second.mode.internal = mode;
 
     syncFullscreenTargets();
 }
@@ -273,14 +269,13 @@ void CScrollingFullscreenHandler::setTargetFullscreenModeClient(const SP<Layout:
     const auto& ITR = m_fsTargets.find(target);
 
     if (mode == FSMODE_NONE) {
-        if (ITR != m_fsTargets.end()) {
+        if (ITR != m_fsTargets.end())
             ITR->second.mode.client = FSMODE_NONE;
-        }
-    } else if (ITR == m_fsTargets.end()) {
-        m_fsTargets.emplace(target, SFullscreenScrollState{.mode = {.client = mode}});
-    } else {
-        ITR->second.mode.client = mode;
     }
+    else if (ITR == m_fsTargets.end())
+        m_fsTargets.emplace(target, SFullscreenScrollState{.mode = {.client = mode}});
+    else
+        ITR->second.mode.client = mode;
 
     syncFullscreenTargets();
 }
@@ -464,9 +459,8 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
             const auto STDATA = m_scrollingAlgorithm->dataFor(TARGET, true);
             if (STDATA) {
                 const auto COL_DATA = m_scrollingAlgorithm->dataFor(TARGET, false)->column;
-                if (COL_DATA && getFullscreenModes(TARGET).internal != FSMODE_NONE && COL_DATA->targetDatas.size() != 1) {
+                if (COL_DATA && getFullscreenModes(TARGET).internal != FSMODE_NONE && COL_DATA->targetDatas.size() != 1)
                     controller()->setFullscreenMode(TARGET_WINDOW, FSMODE_NONE, std::nullopt, true);
-                }
             }
         }
 
@@ -504,9 +498,8 @@ void CScrollingFullscreenHandler::removeFsTarget(SP<Layout::ITarget> target, con
     const auto ITR = m_fsTargets.find(target);
 
     // order of checks is deliberate. checks for expired window in m_fsWindows too
-    if (ITR == m_fsTargets.end()) {
+    if (ITR == m_fsTargets.end())
         return;
-    }
 
     if (!target) {
         m_fsTargets.erase(ITR);

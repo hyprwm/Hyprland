@@ -277,9 +277,8 @@ void CMasterAlgorithm::removeTarget(SP<ITarget> target) {
     if (!PNODE)
         return;
 
-    if (m_defaultFullscreenHandler->isFullscreen(target)) {
+    if (m_defaultFullscreenHandler->isFullscreen(target))
         Fullscreen::controller()->setFullscreenMode(target->window(), Fullscreen::FSMODE_NONE);
-    }
 
     if (PNODE->isMaster && (MASTERSLEFT <= 1 || *SMALLSPLIT == 1)) {
         // find a new master from top of the list

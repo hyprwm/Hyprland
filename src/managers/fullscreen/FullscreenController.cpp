@@ -312,13 +312,14 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
 
     // handles FSMODE_MAX case. If nothing to handle on that front, saves the provided old values
     const auto saveClientInternalValues = [&](const SFullscreenMode& OLD_FS_MODES) {
-        if (client.value_or(FSMODE_NONE) == FSMODE_FULLSCREEN && OLD_FS_MODES.internal == FSMODE_MAXIMIZED) {
+        if (client.value_or(FSMODE_NONE) == FSMODE_FULLSCREEN && OLD_FS_MODES.internal == FSMODE_MAXIMIZED)
             m_fsModeMaxWindows.emplace(window);
-        } else if (const auto IT = m_fsModeMaxWindows.find(window);
+        else if (const auto IT = m_fsModeMaxWindows.find(window);
                    client.value_or(FSMODE_MAXIMIZED) == FSMODE_NONE && (IT != m_fsModeMaxWindows.end() && IT->valid() && !IT->expired())) {
             targetClientMode = FSMODE_MAXIMIZED;
             m_fsModeMaxWindows.erase(IT);
-        } else {
+        }
+        else {
             targetInternalMode = internal.value_or(OLD_FS_MODES.internal);
             targetClientMode   = client.value_or(OLD_FS_MODES.client);
         }
@@ -328,7 +329,11 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
     const auto syncFsModeMaxWindows = [&]() {
         for (auto it = m_fsModeMaxWindows.begin(); it != m_fsModeMaxWindows.end();) {
 
-            if (!m_fsModeMaxWindows.empty() || !it->valid() || it->expired() || getFullscreenModes(it->lock()).internal != FSMODE_FULLSCREEN) {
+            // Somehow happens sometimes and causes WP<> to segfault
+            if (m_fsModeMaxWindows.empty())
+                return;
+
+            if (!it->valid() || it->expired() || getFullscreenModes(it->lock()).internal != FSMODE_FULLSCREEN) {
                 const auto NEXT = std::next(it);
                 m_fsModeMaxWindows.erase(it);
                 it = NEXT;
@@ -376,11 +381,10 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
         if (targetInternalMode != targetClientMode)
             stateChanged = true;
 
-        if (internal.has_value() && !client.has_value()) {
+        if (internal.has_value() && !client.has_value())
             targetClientMode = targetInternalMode;
-        } else {
+        else
             targetInternalMode = targetClientMode;
-        }
     }
 
     /*
@@ -520,9 +524,8 @@ WP<IFullscreenHandler> CFullscreenController::getFsHandler(const PHLWINDOW windo
     if (!window)
         return nullptr;
 
-    if (!layoutHandled.has_value()) {
+    if (!layoutHandled.has_value())
         layoutHandled = layoutManagedFS(window);
-    }
 
     const auto HANDLERS = getFsHandlersForWorkspace(window->m_workspace);
 

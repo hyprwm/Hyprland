@@ -507,9 +507,8 @@ static int dsp_fullscreenWindowWithAction(lua_State* L) {
     bool       layoutAware = lua_toboolean(L, lua_upvalueindex(2));
     const int  actionRaw   = (int)lua_tonumber(L, lua_upvalueindex(3));
     auto       maybeW      = Internal::windowFromUpval(L, 4);
-    if (actionRaw == 0) {
+    if (actionRaw == 0)
         return Internal::checkResult(L, CA::fullscreenWindow(mode, layoutAware, maybeW));
-    }
 
     const auto target = maybeW.value_or(Desktop::focusState()->window());
     if (!target)
@@ -546,11 +545,10 @@ static int dsp_fullscreenState(lua_State* L) {
     const auto CURRENT        = Fullscreen::controller()->getFullscreenModes(target);
     const bool atDesiredState = CURRENT.internal == desiredInternal && CURRENT.client == desiredClient;
 
-    if (actionRaw == 0) {
+    if (actionRaw == 0)
         return Internal::checkResult(L,
                                      CA::fullscreenWindow(CURRENT.internal == desiredInternal ? Fullscreen::FSMODE_NONE : desiredInternal,
                                                           CURRENT.client == desiredClient ? Fullscreen::FSMODE_NONE : desiredClient, layoutAware, maybeW));
-    }
 
     if (actionRaw == 1) {
         if (!atDesiredState)

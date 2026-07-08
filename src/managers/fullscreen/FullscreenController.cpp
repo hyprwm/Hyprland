@@ -116,12 +116,12 @@ bool CFullscreenController::hasFullscreen(const PHLWORKSPACE workspace, const st
     };
 
     const auto HANDLERS = getFsHandlersForWorkspace(workspace);
-
     if (!HANDLERS.TILED_FS_HANDLER || !HANDLERS.TILED_DEFAULT_FS_HANDLER || !HANDLERS.FLOATING_FS_HANDLER)
         return false;
 
     if (HANDLERS.FLOATING_FS_HANDLER->hasFullscreen(covering))
         return returnBoolAfterErrorCorrection(HANDLERS.FLOATING_FS_HANDLER);
+
     if (HANDLERS.TILED_DEFAULT_FS_HANDLER->hasFullscreen(covering))
         return returnBoolAfterErrorCorrection(HANDLERS.TILED_DEFAULT_FS_HANDLER);
 
@@ -153,12 +153,12 @@ PHLWINDOW CFullscreenController::getFullscreenWindow(const PHLWORKSPACE workspac
     };
 
     const auto HANDLERS = getFsHandlersForWorkspace(workspace);
-
     if (!HANDLERS.TILED_FS_HANDLER || !HANDLERS.TILED_DEFAULT_FS_HANDLER || !HANDLERS.FLOATING_FS_HANDLER)
         return nullptr;
 
     if (const auto FSTARGET = HANDLERS.FLOATING_FS_HANDLER->getFullscreen(covering); FSTARGET)
         return returnWindowAfterErrorCorrection(HANDLERS.FLOATING_FS_HANDLER, FSTARGET);
+
     if (const auto FSTARGET = HANDLERS.TILED_DEFAULT_FS_HANDLER->getFullscreen(covering); FSTARGET)
         return returnWindowAfterErrorCorrection(HANDLERS.TILED_DEFAULT_FS_HANDLER, FSTARGET);
 
@@ -189,7 +189,6 @@ SFullscreenMode CFullscreenController::getFullscreenModes(const PHLWORKSPACE wor
     };
 
     const auto HANDLERS = getFsHandlersForWorkspace(workspace);
-
     if (!HANDLERS.TILED_FS_HANDLER || !HANDLERS.TILED_DEFAULT_FS_HANDLER || !HANDLERS.FLOATING_FS_HANDLER)
         return {};
 
@@ -315,11 +314,10 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
         if (client.value_or(FSMODE_NONE) == FSMODE_FULLSCREEN && OLD_FS_MODES.internal == FSMODE_MAXIMIZED)
             m_fsModeMaxWindows.emplace(window);
         else if (const auto IT = m_fsModeMaxWindows.find(window);
-                   client.value_or(FSMODE_MAXIMIZED) == FSMODE_NONE && (IT != m_fsModeMaxWindows.end() && IT->valid() && !IT->expired())) {
+                 client.value_or(FSMODE_MAXIMIZED) == FSMODE_NONE && (IT != m_fsModeMaxWindows.end() && IT->valid() && !IT->expired())) {
             targetClientMode = FSMODE_MAXIMIZED;
             m_fsModeMaxWindows.erase(IT);
-        }
-        else {
+        } else {
             targetInternalMode = internal.value_or(OLD_FS_MODES.internal);
             targetClientMode   = client.value_or(OLD_FS_MODES.client);
         }
@@ -528,12 +526,14 @@ WP<IFullscreenHandler> CFullscreenController::getFsHandler(const PHLWINDOW windo
         layoutHandled = layoutManagedFS(window);
 
     const auto HANDLERS = getFsHandlersForWorkspace(window->m_workspace);
+    if (!HANDLERS.TILED_FS_HANDLER || !HANDLERS.TILED_DEFAULT_FS_HANDLER || !HANDLERS.FLOATING_FS_HANDLER)
+        return nullptr;
 
     return (layoutHandled.value() ? (window->m_isFloating ? HANDLERS.FLOATING_FS_HANDLER : HANDLERS.TILED_FS_HANDLER) :
                                     (window->m_isFloating ? HANDLERS.FLOATING_FS_HANDLER : HANDLERS.TILED_DEFAULT_FS_HANDLER));
 }
 
-CFullscreenController::SSFsHandlersForWindow CFullscreenController::getFsHandlersForWorkspace(const PHLWORKSPACE workspace) const {
+CFullscreenController::SFsHandlersForWorkspace CFullscreenController::getFsHandlersForWorkspace(const PHLWORKSPACE workspace) const {
     if (!workspace || !workspace->m_space || !workspace->m_space->algorithm() || !workspace->m_space->algorithm()->floatingAlgo() || !workspace->m_space->algorithm()->tiledAlgo())
         return {};
 

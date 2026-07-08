@@ -86,7 +86,7 @@ namespace Fullscreen {
         bool m_windowPosSettingQueued = false;
 
       private:
-        struct SSFsHandlersForWindow {
+        struct SFsHandlersForWorkspace {
             const WP<IFullscreenHandler> TILED_FS_HANDLER;
             const WP<IFullscreenHandler> TILED_DEFAULT_FS_HANDLER;
             const WP<IFullscreenHandler> FLOATING_FS_HANDLER;
@@ -98,9 +98,9 @@ namespace Fullscreen {
 
         // FS Handler getters
 
-        WP<IFullscreenHandler> getFsHandler(const PHLWINDOW window, std::optional<bool> layoutHandled = std::nullopt);
+        WP<IFullscreenHandler>  getFsHandler(const PHLWINDOW window, std::optional<bool> layoutHandled = std::nullopt);
 
-        SSFsHandlersForWindow  getFsHandlersForWorkspace(const PHLWORKSPACE workspace) const;
+        SFsHandlersForWorkspace getFsHandlersForWorkspace(const PHLWORKSPACE workspace) const;
 
         // List of FSMODE_MAX windows
         std::unordered_set<WP<Desktop::View::CWindow>> m_fsModeMaxWindows;

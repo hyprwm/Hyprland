@@ -255,8 +255,7 @@ void CScrollingFullscreenHandler::setTargetFullscreenModeInternal(const SP<Layou
     if (mode == FSMODE_NONE) {
         if (ITR != m_fsTargets.end())
             ITR->second.mode.internal = FSMODE_NONE;
-    }
-    else if (ITR == m_fsTargets.end())
+    } else if (ITR == m_fsTargets.end())
         m_fsTargets.emplace(target, SFullscreenScrollState{.mode = {.internal = mode}});
     else
         ITR->second.mode.internal = mode;
@@ -271,8 +270,7 @@ void CScrollingFullscreenHandler::setTargetFullscreenModeClient(const SP<Layout:
     if (mode == FSMODE_NONE) {
         if (ITR != m_fsTargets.end())
             ITR->second.mode.client = FSMODE_NONE;
-    }
-    else if (ITR == m_fsTargets.end())
+    } else if (ITR == m_fsTargets.end())
         m_fsTargets.emplace(target, SFullscreenScrollState{.mode = {.client = mode}});
     else
         ITR->second.mode.client = mode;

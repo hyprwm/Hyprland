@@ -113,8 +113,7 @@ void IFullscreenHandler::setTargetFullscreenModeInternal(const SP<Layout::ITarge
     if (mode == FSMODE_NONE) {
         if (ITR != m_fsTargets.end())
             ITR->second.internal = FSMODE_NONE;
-    }
-    else if (ITR == m_fsTargets.end())
+    } else if (ITR == m_fsTargets.end())
         m_fsTargets.emplace(target, SFullscreenMode{.internal = mode});
     else
         ITR->second.internal = mode;

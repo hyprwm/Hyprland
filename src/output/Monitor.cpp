@@ -1707,6 +1707,7 @@ PHLWORKSPACE CMonitor::getCurrentWorkspace() {
     if (!MONITOR)
         return nullptr;
 
+    // Check special workspace first as it renders on top of regular workspaces
     if (MONITOR->m_activeSpecialWorkspace)
         return MONITOR->m_activeSpecialWorkspace;
 

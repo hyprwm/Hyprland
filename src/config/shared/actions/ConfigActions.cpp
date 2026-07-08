@@ -288,7 +288,7 @@ ActionResult Actions::fullscreenWindow(Fullscreen::eFullscreenMode internalMode,
         return {};
 
     const bool KEEP_INTERNAL = (internalMode == -1);
-    const bool KEEP_CLIENT = (clientMode == -1);
+    const bool KEEP_CLIENT   = (clientMode == -1);
 
     internalMode = std::clamp(internalMode, sc<Fullscreen::eFullscreenMode>(0), Fullscreen::FSMODE_FULLSCREEN);
     clientMode   = std::clamp(clientMode, sc<Fullscreen::eFullscreenMode>(0), Fullscreen::FSMODE_FULLSCREEN);

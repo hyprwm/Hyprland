@@ -831,7 +831,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_testFsFocusUnderFSWindow) {
     for (auto const& win : {"one", "two", "three"})
         if (!Tests::spawnKitty(win)) {
             FAIL_TEST("Could not spawn kitty with win class `{}`", win);
-    }
+        }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:one' })"));
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', layout_aware = false, })"));

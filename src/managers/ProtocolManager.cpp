@@ -87,6 +87,25 @@
 // * otherwise Hyprland might crash when exiting.                                             *
 // ********************************************************************************************
 
+// Retire the old wl_output global for `name` before a new one takes its map slot.
+// It must NOT be destroyed while clients still hold resources bound to it: destroying
+// them server-side makes each client's in-flight wl_output.release an "invalid object"
+// protocol error, fatally disconnecting every bound client (mass client kill on a fast
+// monitor unplug/replug, e.g. a power blip on an external screen).
+static void retireOutputGlobal(const std::string& name) {
+    if (!PROTO::outputs.contains(name))
+        return;
+
+    auto old = PROTO::outputs.at(name);
+    PROTO::outputs.erase(name);
+
+    if (!old->isDefunct())
+        old->remove();
+
+    if (old->hasBoundResources())
+        PROTO::defunctOutputs.emplace_back(old);
+}
+
 void CProtocolManager::onMonitorModeChange(PHLMONITOR pMonitor) {
     const bool ISMIRROR = pMonitor->isMirror();
 
@@ -97,8 +116,7 @@ void CProtocolManager::onMonitorModeChange(PHLMONITOR pMonitor) {
     if (ISMIRROR && PROTO::outputs.contains(pMonitor->m_name))
         PROTO::outputs.at(pMonitor->m_name)->remove();
     else if (!ISMIRROR && (!PROTO::outputs.contains(pMonitor->m_name) || PROTO::outputs.at(pMonitor->m_name)->isDefunct())) {
-        if (PROTO::outputs.contains(pMonitor->m_name))
-            PROTO::outputs.erase(pMonitor->m_name);
+        retireOutputGlobal(pMonitor->m_name);
         auto p = PROTO::outputs.emplace(pMonitor->m_name,
                                         makeShared<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", pMonitor->m_name), pMonitor->m_self.lock()));
         p.first->second->m_self = p.first->second;
@@ -124,8 +142,7 @@ CProtocolManager::CProtocolManager() {
         if (M->isMirror())
             return;
 
-        if (PROTO::outputs.contains(M->m_name))
-            PROTO::outputs.erase(M->m_name);
+        retireOutputGlobal(M->m_name);
 
         auto ref = makeShared<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", M->m_name), M->m_self.lock());
         PROTO::outputs.emplace(M->m_name, ref);
@@ -248,6 +265,7 @@ CProtocolManager::~CProtocolManager() {
 
     // Output
     PROTO::outputs.clear();
+    PROTO::defunctOutputs.clear();
 
     // Core
     PROTO::seat.reset();

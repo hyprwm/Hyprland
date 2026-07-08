@@ -43,7 +43,8 @@ class CWLOutputProtocol : public IWaylandProtocol {
 
     // will mark the protocol for removal, will be removed when no. of bound outputs is 0 (or when overwritten by a new global)
     void remove();
-    bool isDefunct(); // true if above was called
+    bool isDefunct();        // true if above was called
+    bool hasBoundResources(); // true if any client still holds a wl_output resource of ours
 
     struct {
         CSignalT<SP<CWLOutputResource>> outputBound;
@@ -66,4 +67,9 @@ class CWLOutputProtocol : public IWaylandProtocol {
 
 namespace PROTO {
     inline std::unordered_map<std::string, SP<CWLOutputProtocol>> outputs;
+    // defunct globals that were replaced by a new global with the same name but still have
+    // client-bound resources. Destroying those resources server-side would fatally error the
+    // clients ("invalid object" on their in-flight wl_output.release); they are kept here
+    // until every client has released, then drop out via destroyResource.
+    inline std::vector<SP<CWLOutputProtocol>> defunctOutputs;
 };

@@ -216,9 +216,8 @@ void CrashReporter::createAndSaveCrash(int sig) {
         // convert in memory address to VMA address
         Dl_info          info;
         struct link_map* linkMap;
-        if (dladdr1(CALLSTACK[i].adr, &info, rc<void**>(&linkMap), RTLD_DL_LINKMAP)) {
+        if (dladdr1(CALLSTACK[i].adr, &info, rc<void**>(&linkMap), RTLD_DL_LINKMAP))
             vmaAddr = rc<size_t>(CALLSTACK[i].adr) - linkMap->l_addr;
-        }
 #else
         // musl doesn't define dladdr1
 #endif

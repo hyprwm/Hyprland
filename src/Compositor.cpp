@@ -1,6 +1,7 @@
 #include <ranges>
 
 #include "Compositor.hpp"
+#include "config/lua/ConfigManager.hpp"
 #include "config/supplementary/executor/Executor.hpp"
 #include "debug/log/Logger.hpp"
 #include "desktop/DesktopTypes.hpp"
@@ -446,21 +447,36 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
 
     initManagers(STAGE_LATE);
 
-    if (m_lockedCrash)
-        g_pSessionLockManager->forceLock();
-
     m_listeners.lock = g_pSessionLockManager->m_events.lock.listen([this] {
-        if (m_lockedCrash) {
-            // Lock manager was restored
-            m_lockedCrash = false;
+        static int lock_count = 0;
+        // lock_count used to avoid triggering condition on initial forceLock()
+        if (m_startLocked && lock_count >= 1) {
+            // Lock manager has taken over
+            m_startLocked = false;
+            m_startLockedCommand.clear();
         }
+        lock_count++;
         writeWatchdogFd("lock");
     });
 
     m_listeners.unlock = g_pSessionLockManager->m_events.unlock.listen([this] {
-        m_lockedCrash = false;
+        m_startLocked = false;
         writeWatchdogFd("unlock");
     });
+
+    if (m_startLocked) {
+        g_pSessionLockManager->forceLock();
+
+        if (!m_startLockedCommand.empty()) {
+            if (Config::mgr()->type() != Config::CONFIG_LUA) {
+                Log::logger->log(Log::CRIT, "--locked [COMMAND] flag used with non lua config!");
+                throwError("--locked [COMMAND] used with non lua config!");
+            }
+
+            auto luaMgr = dynamicPointerCast<Config::Lua::CConfigManager>(WP<Config::IConfigManager>(Config::mgr()));
+            luaMgr->eval(std::format("hl.dispatch(hl.dsp.exec_cmd([[{}]]))", m_startLockedCommand), false);
+        }
+    }
 
     for (auto const& o : pendingOutputs) {
         State::monitorState()->add(o);

@@ -33,7 +33,7 @@ void CHyprlandInstance::runHyprlandThread(bool safeMode, bool lockedCrash) {
         argsStd.emplace_back("--safe-mode");
 
     if (lockedCrash)
-        argsStd.emplace_back("--locked-crash");
+        argsStd.emplace_back("--locked");
 
     for (const auto& a : g_state->rawArgvNoBinPath) {
         argsStd.emplace_back(a);

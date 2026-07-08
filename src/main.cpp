@@ -38,7 +38,7 @@ static void help() {
     --verify-config              - Do not run Hyprland, only print if the config has any errors
     --version           -v       - Print this binary's version
     --version-json               - Print this binary's version as json
-    --locked-crash               - Used by start-hyprland)#");
+    --locked [COMMAND]           - Launches locker on startup via the provided command)#");
 }
 
 static void reapZombieChildrenAutomatically() {
@@ -71,8 +71,9 @@ int main(int argc, char** argv) {
     // parse some args
     std::string configPath;
     std::string socketName;
+    std::string startLockedCommand;
     int         socketFd   = -1;
-    bool        ignoreSudo = false, verifyConfig = false, safeMode = false, lockedCrash = false;
+    bool        ignoreSudo = false, verifyConfig = false, safeMode = false, startLocked = false;
     int         watchdogFd = -1;
 
     if (argc > 1) {
@@ -177,8 +178,17 @@ int main(int argc, char** argv) {
                     help();
                     return 1;
                 }
-            } else if (value == "--locked-crash") {
-                lockedCrash = true;
+            } else if (value == "--locked") {
+                startLocked = true;
+
+                if (std::next(it) != args.end()) {
+                    startLockedCommand = *std::next(it);
+                    if (!startLockedCommand.starts_with("-"))
+                        it++;
+                    else
+                        startLockedCommand.clear();
+                }
+                std::println("startLockedCommand: {}", startLockedCommand);
                 continue;
             } else {
                 std::println(stderr, "[ ERROR ] Unknown option '{}' !", value);
@@ -264,8 +274,10 @@ int main(int argc, char** argv) {
     if (safeMode)
         g_pCompositor->m_safeMode = true;
 
-    if (lockedCrash)
-        g_pCompositor->m_lockedCrash = true;
+    if (startLocked) {
+        g_pCompositor->m_startLocked        = true;
+        g_pCompositor->m_startLockedCommand = startLockedCommand;
+    }
 
     if (!watchdogOk && !verifyConfig)
         Log::logger->log(Log::WARN, "WARNING: Hyprland is being launched without start-hyprland. This is highly advised against.");

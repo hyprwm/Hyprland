@@ -52,7 +52,7 @@ CSessionLockManager::CSessionLockManager() {
 void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
     static auto PALLOWRELOCK = CConfigValue<Config::INTEGER>("misc:allow_session_lock_restore");
 
-    if (PROTO::sessionLock->isLocked() && !*PALLOWRELOCK) {
+    if (PROTO::sessionLock->isLocked() && !*PALLOWRELOCK && g_pCompositor->m_startLockedCommand.empty()) {
         LOGM(Log::DEBUG, "Cannot re-lock, misc:allow_session_lock_restore is disabled");
         pLock->sendDenied();
         return;

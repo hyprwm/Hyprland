@@ -1680,13 +1680,16 @@ void IHyprRenderer::renderSessionLockPrimer(PHLMONITOR pMonitor) {
 }
 
 void IHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
+    if (g_pCompositor->m_startLocked && !g_pCompositor->m_startLockedCommand.empty())
+        return;
+
     const bool ANY_PRESENT = g_pSessionLockManager->anySessionLockSurfacesPresent();
 
     // ANY_PRESENT: render image2, without instructions. Lock still "alive", unless texture dead
     // else: render image, with instructions. Lock is gone.
     CBox                         monbox = {{}, pMonitor->m_pixelSize};
     CTexPassElement::SRenderData data;
-    if (g_pCompositor->m_lockedCrash)
+    if (g_pCompositor->m_startLocked && g_pCompositor->m_startLockedCommand.empty())
         data.tex = m_lockDead3Texture;
     else
         data.tex = (ANY_PRESENT) ? m_lockDead2Texture : m_lockDeadTexture;
@@ -2124,11 +2127,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     bool renderCursor = true;
 
-    if (g_pCompositor->m_lockedCrash) {
-        ensureLockTexturesRendered(true);
-        renderSessionLockPrimer(pMonitor);
-        renderSessionLockMissing(pMonitor);
-    } else if (pMonitor->m_solitaryClient && (!finalDamage.empty() || *PSOLDAMAGE))
+    if (pMonitor->m_solitaryClient && (!finalDamage.empty() || *PSOLDAMAGE))
         renderWindow(pMonitor->m_solitaryClient.lock(), pMonitor, NOW, false, RENDER_PASS_MAIN /* solitary = no popups */);
     else if (!finalDamage.empty()) {
         if (pMonitor->isMirror()) {

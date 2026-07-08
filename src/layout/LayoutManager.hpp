@@ -75,7 +75,7 @@ namespace Layout {
 
         void                    changeFloatingMode(SP<ITarget> target);
 
-        void                    beginDragTarget(SP<ITarget> target, eMouseBindMode mode);
+        void                    beginDragTarget(SP<ITarget> target, eMouseBindMode mode, std::optional<eRectCorner> forcedEdge = std::nullopt, bool exclusiveDeviceGrab = false);
         void                    moveMouse(const Vector2D& mousePos);
         void                    resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
         void                    moveTarget(const Vector2D& Δ, SP<ITarget> target);

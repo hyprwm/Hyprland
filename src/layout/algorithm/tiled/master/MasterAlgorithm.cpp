@@ -327,8 +327,8 @@ void CMasterAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRec
     const bool   DISPLAYTOP    = STICKS(PNODE->position.y, WORKAREA.y);
     const bool   DISPLAYLEFT   = STICKS(PNODE->position.x, WORKAREA.x);
 
-    const bool   LEFT = corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT;
-    const bool   TOP  = corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT;
+    const bool   LEFT = edgeLeft(corner);
+    const bool   TOP  = edgeTop(corner);
     const bool   NONE = corner == CORNER_NONE;
 
     const auto   MASTERS      = getMastersNo();

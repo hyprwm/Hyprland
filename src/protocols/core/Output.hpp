@@ -43,7 +43,7 @@ class CWLOutputProtocol : public IWaylandProtocol {
 
     // will mark the protocol for removal, will be removed when no. of bound outputs is 0 (or when overwritten by a new global)
     void remove();
-    bool isDefunct();        // true if above was called
+    bool isDefunct();         // true if above was called
     bool hasBoundResources(); // true if any client still holds a wl_output resource of ours
 
     struct {

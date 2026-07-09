@@ -38,7 +38,7 @@ static void help() {
     --verify-config              - Do not run Hyprland, only print if the config has any errors
     --version           -v       - Print this binary's version
     --version-json               - Print this binary's version as json
-    --locked [COMMAND]           - Launches locker on startup via the provided command)#");
+    --locked-cmd [COMMAND]       - Launches locker on startup via the provided command)#");
 }
 
 static void reapZombieChildrenAutomatically() {
@@ -178,17 +178,19 @@ int main(int argc, char** argv) {
                     help();
                     return 1;
                 }
+            } else if (value == "--locked-cmd") {
+                if (std::next(it) == args.end()) {
+                    help();
+                    return 1;
+                }
+
+                startLocked        = true;
+                startLockedCommand = *std::next(it);
+                it++;
+
+                continue;
             } else if (value == "--locked") {
                 startLocked = true;
-
-                if (std::next(it) != args.end()) {
-                    startLockedCommand = *std::next(it);
-                    if (!startLockedCommand.starts_with("-"))
-                        it++;
-                    else
-                        startLockedCommand.clear();
-                }
-                std::println("startLockedCommand: {}", startLockedCommand);
                 continue;
             } else {
                 std::println(stderr, "[ ERROR ] Unknown option '{}' !", value);

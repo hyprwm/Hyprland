@@ -1,7 +1,6 @@
 #include <ranges>
 
 #include "Compositor.hpp"
-#include "config/lua/ConfigManager.hpp"
 #include "config/supplementary/executor/Executor.hpp"
 #include "debug/log/Logger.hpp"
 #include "desktop/DesktopTypes.hpp"
@@ -467,15 +466,8 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
     if (m_startLocked) {
         g_pSessionLockManager->forceLock();
 
-        if (!m_startLockedCommand.empty()) {
-            if (Config::mgr()->type() != Config::CONFIG_LUA) {
-                Log::logger->log(Log::CRIT, "--locked [COMMAND] flag used with non lua config!");
-                throwError("--locked [COMMAND] used with non lua config!");
-            }
-
-            auto luaMgr = dynamicPointerCast<Config::Lua::CConfigManager>(WP<Config::IConfigManager>(Config::mgr()));
-            luaMgr->eval(std::format("hl.dispatch(hl.dsp.exec_cmd([[{}]]))", m_startLockedCommand), false);
-        }
+        if (!m_startLockedCommand.empty())
+            Config::Supplementary::executor()->spawn(m_startLockedCommand);
     }
 
     for (auto const& o : pendingOutputs) {

@@ -66,8 +66,8 @@ namespace Fullscreen::ScrollingFullscreenHandler {
       private:
         struct SScrollingFullscreenWindowHidingState {
 
-            PHLWINDOWREF                     lastTiledLayoutManagedFsWindow;
-            eFullscreenMode                  lastTiledLayoutManagedFsWindowMode;
+            PHLWINDOWREF                     lastTiledLayoutManagedFsWindow     = nullptr;
+            eFullscreenMode                  lastTiledLayoutManagedFsWindowMode = FSMODE_NONE;
             std::unordered_set<PHLWINDOWREF> hiddenFloatingWindowsUnderFSWindow;
 
         } m_fullscreenWindowHidingState;

@@ -579,12 +579,16 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
 
     // If we are scrolling onto, or have newly FSed a window
     if (CURRENT_FS_TDATA && CURRENT_FS_TDATA->target->window()) {
-        const auto CURRENTLY_FS_WINDOW = CURRENT_FS_TDATA->target->window();
-        // send a scanout tranche
-        // ignore if DS is disabled.
-        auto surf = CURRENTLY_FS_WINDOW->getSolitaryResource();
-        if (surf)
-            g_pHyprRenderer->setSurfaceScanoutMode(surf, MONITOR->m_self.lock());
+        const auto  CURRENTLY_FS_WINDOW = CURRENT_FS_TDATA->target->window();
+
+        static auto PDIRECTSCANOUT = CConfigValue<Config::INTEGER>("render:direct_scanout");
+        if (*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && CURRENTLY_FS_WINDOW->getContentType() == NContentType::CONTENT_TYPE_GAME)) {
+            // send a scanout tranche
+            // ignore if DS is disabled.
+            auto surf = CURRENTLY_FS_WINDOW->getSolitaryResource();
+            if (surf)
+                g_pHyprRenderer->setSurfaceScanoutMode(surf, MONITOR->m_self.lock());
+        }
     }
 
     Config::monitorRuleMgr()->ensureVRR(MONITOR);

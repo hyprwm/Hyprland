@@ -17,7 +17,7 @@ class CHyprlandInstance {
     bool run(bool safeMode = false, bool lockedCrash = false); // if returns false, restart.
     void forceQuit();
 
-    bool                           m_hyprlandLocked     = false;
+    bool m_hyprlandLocked = false;
 
   private:
     void                           runHyprlandThread(bool safeMode, bool lockedCrash);

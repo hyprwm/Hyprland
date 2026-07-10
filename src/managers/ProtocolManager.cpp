@@ -213,7 +213,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::imageCopyCapture   = makeUnique<CImageCopyCaptureProtocol>(&ext_image_copy_capture_manager_v1_interface, 1, "ImageCopyCapture");
 
     if (*PENABLECM)
-        PROTO::colorManagement = makeUnique<CColorManagementProtocol>(&wp_color_manager_v1_interface, *PCMV1_2 ? 2 : 1, "ColorManagement", *PDEBUGCM);
+        PROTO::colorManagement = makeUnique<CColorManagementProtocol>(&wp_color_manager_v1_interface, *PCMV1_2 ? 3 : 1, "ColorManagement", *PDEBUGCM);
 
     // ! please read the top of this file before adding another protocol
 

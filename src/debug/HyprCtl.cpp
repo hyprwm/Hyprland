@@ -406,7 +406,7 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     "pid": {},
     "xwayland": {},
     "pinned": {},
-    "pinFullscreened:" {},
+    "pinFullscreened": {},
     "fullscreen": {},
     "fullscreenClient": {},
     "fullscreenHandler": "{}",

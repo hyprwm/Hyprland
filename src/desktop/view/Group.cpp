@@ -91,7 +91,7 @@ bool CGroup::has(PHLWINDOW w) const {
     return std::ranges::contains(m_windows, w);
 }
 
-void CGroup::add(PHLWINDOW w) {
+void CGroup::add(PHLWINDOW w, std::optional<size_t> index) {
     static auto INSERT_AFTER_CURRENT = CConfigValue<Config::INTEGER>("group:insert_after_current");
 
     if (w->m_group) {
@@ -99,9 +99,13 @@ void CGroup::add(PHLWINDOW w) {
             return;
 
         const auto WINDOWS = w->m_group->windows();
-        for (const auto& w : WINDOWS) {
-            w->m_group->remove(w.lock());
-            add(w.lock());
+        for (size_t i = 0; i < WINDOWS.size(); ++i) {
+            const auto WINDOW = WINDOWS.at(i).lock();
+            if (!WINDOW)
+                continue;
+
+            WINDOW->m_group->remove(WINDOW);
+            add(WINDOW, index ? std::optional(*index + i) : std::nullopt);
         }
 
         return;
@@ -118,12 +122,15 @@ void CGroup::add(PHLWINDOW w) {
     w->m_target->setFloating(m_target->floating());
 
     // a window in a group lives on the group's monitor/workspace
-    if (const auto WS = m_target->workspace(); WS && w->m_monitor != WS->m_monitor) {
+    if (const auto WS = m_target->workspace(); WS && w->m_workspace != WS) {
         w->m_monitor = WS->m_monitor;
         w->moveToWorkspace(WS);
     }
 
-    if (*INSERT_AFTER_CURRENT) {
+    if (index) {
+        m_current = std::min(*index, m_windows.size());
+        m_windows.insert(m_windows.begin() + m_current, w);
+    } else if (*INSERT_AFTER_CURRENT) {
         m_windows.insert(m_windows.begin() + m_current + 1, w);
         m_current++;
     } else {

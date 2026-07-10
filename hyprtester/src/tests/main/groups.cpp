@@ -484,3 +484,39 @@ TEST_CASE(groupsNoCrash) {
         EXPECT_CONTAINS(curr, "kittyA");
     }
 }
+
+TEST_CASE(groupsLuaApi) {
+    NLog::log("{}Dispatching workspace `groups-lua-api`", Colors::YELLOW);
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:groups-lua-api' })"));
+    OK(getFromSocket("/eval hl.config({ group = { auto_group = false, insert_after_current = false, groupbar = { enabled = false } } })"));
+
+    auto kittyA = Tests::spawnKitty("luaGroupA");
+    auto kittyB = Tests::spawnKitty("luaGroupB");
+    auto kittyC = Tests::spawnKitty("luaGroupC");
+    auto kittyD = Tests::spawnKitty("luaGroupD");
+    auto kittyE = Tests::spawnKitty("luaGroupE");
+
+    if (!kittyA || !kittyB || !kittyC || !kittyD || !kittyE)
+        FAIL_TEST("Could not spawn kitty");
+
+    ASSERT(Tests::windowCount(), 5);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:luaGroupA' })"));
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+
+    NLog::log("{}Testing Lua group add/remove by object and index", Colors::YELLOW);
+    OK(getFromSocket("/eval local a=hl.get_window('class:luaGroupA') local b=hl.get_window('class:luaGroupB') local c=hl.get_window('class:luaGroupC') assert(a and b and c and "
+                     "a.group) local g=a.group g:add(b) assert(b.group == g) assert(g.size == 2) g:add(c, 1) assert(c.group == g) assert(g.members[1] == c) assert(g.size == 3) "
+                     "g:remove(1) assert(c.group == nil) assert(g.size == 2) g:remove(b) assert(b.group == nil) assert(g.size == 1)"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:luaGroupD' })"));
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+
+    NLog::log("{}Testing Lua group merge with insertion index", Colors::YELLOW);
+    OK(getFromSocket("/eval local a=hl.get_window('class:luaGroupA') local d=hl.get_window('class:luaGroupD') local e=hl.get_window('class:luaGroupE') assert(a and d and e and "
+                     "a.group and d.group) local g=a.group local source=d.group source:add(e) assert(source.size == 2) g:add(d, 1) assert(d.group == g) assert(e.group == g) "
+                     "assert(g.size == 3) assert(g.members[1] == d) assert(g.members[2] == e) assert(g.members[3] == a)"));
+
+    Tests::killAllWindows();
+    ASSERT(Tests::windowCount(), 0);
+}

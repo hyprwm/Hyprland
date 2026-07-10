@@ -530,7 +530,7 @@ def generate_stub(root: Path) -> str:
         "hl.monitor": "fun(spec: HL.MonitorSpec): nil",
         "hl.window_rule": "fun(spec: HL.WindowRuleSpec): HL.WindowRule",
         "hl.layer_rule": "fun(spec: HL.LayerRuleSpec): HL.LayerRule",
-        "hl.workspace_rule": "fun(spec: HL.WorkspaceRuleSpec): nil",
+        "hl.workspace_rule": "fun(spec: HL.WorkspaceRuleSpec): HL.WorkspaceRule",
         "hl.permission": "fun(spec: HL.PermissionSpec): nil",
         "hl.gesture": "fun(spec: HL.GestureSpec): nil",
         "hl.get_windows": "fun(filters?: HL.WindowQueryFilter): HL.Window[]",

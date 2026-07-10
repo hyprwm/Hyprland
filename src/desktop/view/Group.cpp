@@ -111,6 +111,15 @@ void CGroup::add(PHLWINDOW w, std::optional<size_t> index) {
         return;
     }
 
+    const auto FS_STATE              = m_target->fullscreenMode();
+    const auto OLD_FULLSCREEN_WINDOW = FS_STATE != FSMODE_NONE ? current() : nullptr;
+
+    if (w->isFullscreen())
+        g_pCompositor->setWindowFullscreenInternal(w, FSMODE_NONE);
+
+    if (OLD_FULLSCREEN_WINDOW)
+        g_pCompositor->setWindowFullscreenInternal(OLD_FULLSCREEN_WINDOW, FSMODE_NONE);
+
     if (w->layoutTarget()->space()) {
         // remove the target from a space if it is in one
         g_layoutManager->removeTarget(w->layoutTarget());
@@ -140,6 +149,15 @@ void CGroup::add(PHLWINDOW w, std::optional<size_t> index) {
 
     applyWindowDecosAndUpdates(w);
     updateWindowVisibility();
+
+    if (FS_STATE != FSMODE_NONE) {
+        g_pCompositor->setWindowFullscreenInternal(w, FS_STATE);
+        w->m_target->warpPositionSize();
+
+        if (OLD_FULLSCREEN_WINDOW)
+            OLD_FULLSCREEN_WINDOW->m_target->setPositionGlobal(w->m_target->position());
+    }
+
     m_target->recalc();
 }
 

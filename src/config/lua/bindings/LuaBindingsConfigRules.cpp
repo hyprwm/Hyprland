@@ -627,12 +627,15 @@ static int hlWorkspaceRule(lua_State* L) {
     const std::string sourceInfo = Internal::getSourceInfo(L);
 
     lua_getfield(L, 1, "workspace");
-    if (!lua_isstring(L, -1)) {
-        self->addError(std::format("{}: hl.workspace_rule: 'workspace' field is required and must be a string", sourceInfo));
+
+    const std::string wsStr = Internal::workspaceSelectorFromLuaSelectorOrObject(L, -1, "hl.workspace_rule").value_or("");
+
+    if (wsStr == "") {
+        self->addError(std::format("{}: hl.workspace_rule: 'workspace' field invalid. Must be a workspace object or selector string", sourceInfo));
         lua_pop(L, 1);
         return 0;
     }
-    const std::string wsStr = lua_tostring(L, -1);
+
     lua_pop(L, 1);
 
     bool enabled = true;

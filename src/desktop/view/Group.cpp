@@ -112,8 +112,9 @@ void CGroup::add(PHLWINDOW w, std::optional<size_t> index) {
         return;
     }
 
-    const auto FS_INTERNAL_MODE      = m_target->window() ? Fullscreen::controller()->getFullscreenModes(m_target->window()).internal : Fullscreen::FSMODE_NONE;
-    const auto OLD_FULLSCREEN_WINDOW = FS_INTERNAL_MODE != Fullscreen::FSMODE_NONE ? current() : nullptr;
+    const auto FS_INTERNAL_MODE            = m_target->window() ? Fullscreen::controller()->getFullscreenModes(m_target->window()).internal : Fullscreen::FSMODE_NONE;
+    const auto OLD_FULLSCREEN_WINDOW       = FS_INTERNAL_MODE != Fullscreen::FSMODE_NONE ? current() : nullptr;
+    const bool FS_WINDOW_IS_LAYOUT_HANDLED = FS_INTERNAL_MODE != Fullscreen::FSMODE_NONE ? Fullscreen::controller()->layoutManagedFS(m_target->window()) : false;
 
     if (Fullscreen::controller()->isFullscreen(w))
         Fullscreen::controller()->setFullscreenMode(w, Fullscreen::FSMODE_NONE);
@@ -152,7 +153,7 @@ void CGroup::add(PHLWINDOW w, std::optional<size_t> index) {
     updateWindowVisibility();
 
     if (FS_INTERNAL_MODE != Fullscreen::FSMODE_NONE) {
-        Fullscreen::controller()->setFullscreenMode(w, FS_INTERNAL_MODE);
+        Fullscreen::controller()->setFullscreenMode(w, FS_INTERNAL_MODE, std::nullopt, FS_WINDOW_IS_LAYOUT_HANDLED);
         w->m_target->warpPositionSize();
 
         if (OLD_FULLSCREEN_WINDOW)

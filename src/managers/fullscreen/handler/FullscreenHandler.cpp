@@ -1,6 +1,5 @@
 #include "FullscreenHandler.hpp"
 
-#include "../../../animation/WorkspaceAnimationController.hpp"
 #include "../../../managers/fullscreen/FullscreenController.hpp"
 
 #include "../../../debug/log/Logger.hpp"
@@ -12,9 +11,13 @@
 
 #include "../../../layout/algorithm/Algorithm.hpp"
 #include "../../../layout/target/Target.hpp"
-
-#include "../../../output/Monitor.hpp"
 #include "../../../layout/target/WindowGroupTarget.hpp"
+
+#include "../../../render/Renderer.hpp"
+#include "../../../animation/WorkspaceAnimationController.hpp"
+#include "../../../output/Monitor.hpp"
+
+#include "../../../config/shared/monitor/MonitorRuleManager.hpp"
 #include <hyprutils/memory/Casts.hpp>
 
 using namespace Fullscreen;
@@ -88,6 +91,7 @@ eFullscreenRequestResult IFullscreenHandler::requestFullscreen(const SFullscreen
     const auto TARGET    = request.target;
     const auto WINDOW    = TARGET->window();
     const auto WORKSPACE = TARGET->workspace();
+    const auto MONITOR   = WORKSPACE->m_monitor.lock();
 
     setTargetFullscreenModeInternal(TARGET, request.mode);
 
@@ -96,6 +100,17 @@ eFullscreenRequestResult IFullscreenHandler::requestFullscreen(const SFullscreen
     setNoMembersAboveFullscreen();
 
     Animation::Workspace::setFullscreenFadeAnimation(WORKSPACE, request.mode != FSMODE_NONE ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
+
+    // send a regular tranche if we are exiting fullscreen.
+    // ignore if DS is disabled.
+    static auto PDIRECTSCANOUT = CConfigValue<Config::INTEGER>("render:direct_scanout");
+
+    if (*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && WINDOW->getContentType() == NContentType::CONTENT_TYPE_GAME)) {
+        auto surf = WINDOW->getSolitaryResource();
+        if (surf)
+            g_pHyprRenderer->setSurfaceScanoutMode(surf, request.mode != FSMODE_NONE ? MONITOR : nullptr);
+    }
+    Config::monitorRuleMgr()->ensureVRR(MONITOR);
 
     return FULLSCREEN_REQUEST_DEFAULT_HANDLED;
 }

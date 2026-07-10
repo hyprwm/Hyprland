@@ -2556,9 +2556,9 @@ void CWindow::unmapWindow() {
 
     static auto PEXITRETAINSFS = CConfigValue<Config::INTEGER>("misc:exit_window_retains_fullscreen");
 
-    const auto  IS_CURRENT_WINDOW_FS    = Fullscreen::controller()->isFullscreen(m_self.lock());
-    const auto  CURRENT_WINDOW_FS_MODES = Fullscreen::controller()->getFullscreenModes(m_self.lock());
-
+    const bool  IS_CURRENT_WINDOW_FS      = Fullscreen::controller()->isFullscreen(m_self.lock());
+    const auto  CURRENT_WINDOW_FS_MODES   = Fullscreen::controller()->getFullscreenModes(m_self.lock());
+    const bool  CURRENT_FS_LAYOUT_HANDLED = IS_CURRENT_WINDOW_FS ? Fullscreen::controller()->layoutManagedFS(m_self.lock()) : false;
     if (!wlSurface()->exists() || !m_isMapped) {
         Log::logger->log(Log::WARN, "{} unmapped without being mapped??", m_self.lock());
         return;
@@ -2665,7 +2665,7 @@ void CWindow::unmapWindow() {
 
             if ((*PEXITRETAINSFS || candidate == nextInGroup) && IS_CURRENT_WINDOW_FS)
                 // set the candidate to the current window's FS state - use the current window's layoutAware FS behaviour
-                Fullscreen::controller()->setFullscreenMode(candidate, CURRENT_WINDOW_FS_MODES.internal, std::nullopt, Fullscreen::controller()->layoutManagedFS(m_self.lock()));
+                Fullscreen::controller()->setFullscreenMode(candidate, CURRENT_WINDOW_FS_MODES.internal, std::nullopt, CURRENT_FS_LAYOUT_HANDLED);
         }
 
         if (!candidate && m_workspace && m_workspace->getWindowCount() == 0)

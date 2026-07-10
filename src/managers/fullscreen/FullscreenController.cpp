@@ -442,8 +442,6 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
         return;
     }
 
-    static auto PDIRECTSCANOUT = CConfigValue<Config::INTEGER>("render:direct_scanout");
-
     if (window->m_isFloating && WINDOW_FS_MODE.internal == FSMODE_NONE && mode != FSMODE_NONE)
         g_pHyprRenderer->damageWindow(window);
 

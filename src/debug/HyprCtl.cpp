@@ -513,6 +513,7 @@ static std::string getWorkspaceRuleData(const Config::CWorkspaceRule& r, eHyprCt
     const auto boolToString = [](const bool b) -> std::string { return b ? "true" : "false"; };
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         const std::string monitor     = r.m_monitor.empty() ? "" : std::format(",\n    \"monitor\": \"{}\"", escapeJSONStrings(r.m_monitor));
+        const std::string enabled     = std::format(",\n    \"enabled\": {}", boolToString(r.isEnabled()));
         const std::string default_    = sc<bool>(r.m_isDefault) ? std::format(",\n    \"default\": {}", boolToString(r.m_isDefault.value())) : "";
         const std::string persistent  = sc<bool>(r.m_isPersistent) ? std::format(",\n    \"persistent\": {}", boolToString(r.m_isPersistent.value())) : "";
         const std::string gapsIn      = sc<bool>(r.m_gapsIn) ?
@@ -531,14 +532,15 @@ static std::string getWorkspaceRuleData(const Config::CWorkspaceRule& r, eHyprCt
             r.m_onCreatedEmptyRunCmd.has_value() ? std::format(",\n    \"onCreatedEmpty\": \"{}\"", escapeJSONStrings(r.m_onCreatedEmptyRunCmd.value())) : "";
 
         std::string result = std::format(R"#({{
-    "workspaceString": "{}"{}{}{}{}{}{}{}{}{}{}{}{}
+    "workspaceString": "{}"{}{}{}{}{}{}{}{}{}{}{}{}{}
 }})#",
-                                         escapeJSONStrings(r.m_workspaceString), monitor, default_, persistent, gapsIn, gapsOut, borderSize, border, rounding, decorate, shadow,
-                                         defaultName, onCreatedEmpty);
+                                         escapeJSONStrings(r.m_workspaceString), enabled, monitor, default_, persistent, gapsIn, gapsOut, borderSize, border, rounding, decorate,
+                                         shadow, defaultName, onCreatedEmpty);
 
         return result;
     } else {
         const std::string monitor        = std::format("\tmonitor: {}\n", r.m_monitor.empty() ? "<unset>" : escapeJSONStrings(r.m_monitor));
+        const std::string enabled        = std::format("\tenabled: {}\n", boolToString(r.isEnabled()));
         const std::string default_       = std::format("\tdefault: {}\n", sc<bool>(r.m_isDefault) ? boolToString(r.m_isDefault.value()) : "<unset>");
         const std::string persistent     = std::format("\tpersistent: {}\n", sc<bool>(r.m_isPersistent) ? boolToString(r.m_isPersistent.value()) : "<unset>");
         const std::string gapsIn         = sc<bool>(r.m_gapsIn) ?
@@ -557,8 +559,8 @@ static std::string getWorkspaceRuleData(const Config::CWorkspaceRule& r, eHyprCt
         const std::string defaultName    = std::format("\tdefaultName: {}\n", r.m_defaultName.value_or("<unset>"));
         const std::string onCreatedEmpty = std::format("\tonCreatedEmpty: {}\n", r.m_onCreatedEmptyRunCmd.value_or("<unset>"));
 
-        std::string result = std::format("Workspace rule {}:\n{}{}{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.m_workspaceString), monitor, default_, persistent, gapsIn, gapsOut,
-                                         borderSize, border, rounding, decorate, shadow, defaultName, onCreatedEmpty);
+        std::string result = std::format("Workspace rule {}:\n{}{}{}{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.m_workspaceString), enabled, monitor, default_, persistent, gapsIn,
+                                         gapsOut, borderSize, border, rounding, decorate, shadow, defaultName, onCreatedEmpty);
 
         return result;
     }
@@ -603,7 +605,7 @@ static std::string workspaceRulesRequest(eHyprCtlOutputFormat format, std::strin
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
         for (auto const& r : Config::workspaceRuleMgr()->getAllWorkspaceRules()) {
-            result += getWorkspaceRuleData(r, format);
+            result += getWorkspaceRuleData(*r, format);
             result += ",";
         }
 
@@ -611,7 +613,7 @@ static std::string workspaceRulesRequest(eHyprCtlOutputFormat format, std::strin
         result += "]";
     } else {
         for (auto const& r : Config::workspaceRuleMgr()->getAllWorkspaceRules()) {
-            result += getWorkspaceRuleData(r, format);
+            result += getWorkspaceRuleData(*r, format);
         }
     }
 

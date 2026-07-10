@@ -3,6 +3,7 @@
 
 #include "../objects/LuaLayerRule.hpp"
 #include "../objects/LuaWindowRule.hpp"
+#include "../objects/LuaWorkspaceRule.hpp"
 
 #include "../types/LuaConfigBool.hpp"
 #include "../types/LuaConfigCssGap.hpp"
@@ -647,7 +648,7 @@ static int hlWorkspaceRule(lua_State* L) {
     wsRule.m_workspaceString = wsStr;
     wsRule.m_workspaceName   = wsName;
     wsRule.m_workspaceId     = isAutoID ? WORKSPACE_INVALID : wsId;
-    wsRule.m_enabled         = enabled;
+    wsRule.setEnabled(enabled);
 
     lua_pushnil(L);
     while (lua_next(L, 1) != 0) {
@@ -721,11 +722,12 @@ static int hlWorkspaceRule(lua_State* L) {
         lua_pop(L, 1);
     }
 
-    Config::workspaceRuleMgr()->replaceOrAdd(std::move(wsRule));
+    const auto RULE = Config::workspaceRuleMgr()->replaceOrAdd(std::move(wsRule));
 
     Supplementary::refresher()->scheduleRefresh(Supplementary::REFRESH_MONITOR_STATES | Config::Supplementary::REFRESH_WINDOW_STATES);
 
-    return 0;
+    Objects::CLuaWorkspaceRule::push(L, RULE);
+    return 1;
 }
 
 static int hlGesture(lua_State* L) {

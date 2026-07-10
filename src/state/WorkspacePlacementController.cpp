@@ -35,16 +35,18 @@ void CWorkspacePlacementController::ensurePersistentWorkspacesPresent(PHLWORKSPA
     ensurePersistentWorkspacesPresent(Config::workspaceRuleMgr()->getAllWorkspaceRules(), pWorkspace, moveWorkspace);
 }
 
-void CWorkspacePlacementController::ensurePersistentWorkspacesPresent(const std::vector<Config::CWorkspaceRule>& rules, PHLWORKSPACE pWorkspace,
+void CWorkspacePlacementController::ensurePersistentWorkspacesPresent(const std::vector<SP<Config::CWorkspaceRule>>& rules, PHLWORKSPACE pWorkspace,
                                                                       const FMoveWorkspace& moveWorkspace) const {
     if (!Desktop::focusState()->monitor())
         return;
 
     std::vector<PHLWORKSPACE> persistentFound;
 
-    for (const auto& rule : rules) {
-        if (!rule.m_isPersistent.value_or(false))
+    for (const auto& rulePtr : rules) {
+        if (!rulePtr->isEnabled() || !rulePtr->m_isPersistent.value_or(false))
             continue;
+
+        const auto&  rule = *rulePtr;
 
         PHLWORKSPACE PWORKSPACE = nullptr;
         if (pWorkspace) {

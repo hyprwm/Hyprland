@@ -112,14 +112,14 @@ void CGroup::add(PHLWINDOW w, std::optional<size_t> index) {
         return;
     }
 
-    const auto FS_STATE              = m_target->fullscreenMode();
-    const auto OLD_FULLSCREEN_WINDOW = FS_STATE != FSMODE_NONE ? current() : nullptr;
+    const auto FS_INTERNAL_MODE      = m_target->window() ? Fullscreen::controller()->getFullscreenModes(m_target->window()).internal : Fullscreen::FSMODE_NONE;
+    const auto OLD_FULLSCREEN_WINDOW = FS_INTERNAL_MODE != Fullscreen::FSMODE_NONE ? current() : nullptr;
 
-    if (w->isFullscreen())
-        g_pCompositor->setWindowFullscreenInternal(w, FSMODE_NONE);
+    if (Fullscreen::controller()->isFullscreen(w))
+        Fullscreen::controller()->setFullscreenMode(w, Fullscreen::FSMODE_NONE);
 
     if (OLD_FULLSCREEN_WINDOW)
-        g_pCompositor->setWindowFullscreenInternal(OLD_FULLSCREEN_WINDOW, FSMODE_NONE);
+        Fullscreen::controller()->setFullscreenMode(OLD_FULLSCREEN_WINDOW, Fullscreen::FSMODE_NONE);
 
     if (w->layoutTarget()->space()) {
         // remove the target from a space if it is in one
@@ -151,8 +151,8 @@ void CGroup::add(PHLWINDOW w, std::optional<size_t> index) {
     applyWindowDecosAndUpdates(w);
     updateWindowVisibility();
 
-    if (FS_STATE != FSMODE_NONE) {
-        g_pCompositor->setWindowFullscreenInternal(w, FS_STATE);
+    if (FS_INTERNAL_MODE != Fullscreen::FSMODE_NONE) {
+        Fullscreen::controller()->setFullscreenMode(w, FS_INTERNAL_MODE);
         w->m_target->warpPositionSize();
 
         if (OLD_FULLSCREEN_WINDOW)

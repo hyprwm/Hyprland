@@ -42,8 +42,8 @@ namespace Layout {
         virtual eTargetType type() = 0;
 
         // position is within its space
-        virtual void                                                setPositionGlobal(const STargetBox& box);
-        void                                                        setPositionGlobal(const CBox& box);
+        virtual void                                                setPositionGlobal(const STargetBox& box, uint8_t flags = TARGET_UPDATE_NONE);
+        void                                                        setPositionGlobal(const CBox& box, uint8_t flags = TARGET_UPDATE_NONE);
         virtual CBox                                                position() const;
         virtual void                                                assignToSpace(const SP<CSpace>& space, std::optional<Vector2D> focalPoint = std::nullopt);
         virtual void                                                setSpaceGhost(const SP<CSpace>& space);

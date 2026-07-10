@@ -4,7 +4,7 @@
 #include "../Workspace.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../config/shared/animation/AnimationTree.hpp"
-#include "../../managers/animation/AnimationManager.hpp"
+#include "../../animation/AnimationManager.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../../output/Monitor.hpp"
 #include "../../render/Framebuffer.hpp"

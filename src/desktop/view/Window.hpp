@@ -112,7 +112,7 @@ namespace Desktop::View {
         std::string  workspace;
     };
 
-    class CWindow : public IView, public virtual CGeometricMovableAnimated {
+    class CWindow : public virtual IView, public virtual CGeometricMovableAnimated, public virtual IAlphaModifiable {
       public:
         static PHLWINDOW create(SP<CXDGSurfaceResource>);
         static PHLWINDOW create(SP<CXWaylandSurface>);

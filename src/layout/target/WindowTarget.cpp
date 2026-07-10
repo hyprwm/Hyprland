@@ -39,13 +39,15 @@ void CWindowTarget::setPositionGlobal(const STargetBox& box, uint8_t flags) {
     updatePos(flags);
 }
 
-void CWindowTarget::updatePos() {
+void CWindowTarget::updatePos(uint8_t flags) {
 
     if (!m_window)
         return;
 
     g_pHyprRenderer->damageWindow(m_window.lock());
     CScopeGuard x([this] { g_pHyprRenderer->damageWindow(m_window.lock()); });
+
+    const bool  CONFIGURECLIENT = !(flags & TARGET_UPDATE_NO_CLIENT_CONFIGURE);
 
     if (!m_space || !m_space->workspace())
         return;

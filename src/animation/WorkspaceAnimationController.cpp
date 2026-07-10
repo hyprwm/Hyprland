@@ -180,7 +180,7 @@ void Animation::Workspace::setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnimatio
         const auto FS_MODE_INTERNAL = FSWINDOW ? Fullscreen::controller()->getFullscreenModes(FSWINDOW).internal : Fullscreen::FSMODE_NONE;
         for (auto const& ls : PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
             if (!ls->m_aboveFullscreen)
-                *ls->alpha()[LS_ALPHA_FADE] = FULLSCREEN && FSMODE != FSMODE_MAXIMIZED ? 0.F : 1.F;
+                *ls->alpha()[LS_ALPHA_FADE] = FULLSCREEN && FS_MODE_INTERNAL != Fullscreen::FSMODE_MAXIMIZED ? 0.F : 1.F;
         }
     }
 }

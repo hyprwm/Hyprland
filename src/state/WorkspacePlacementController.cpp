@@ -20,6 +20,7 @@
 #include "../managers/fullscreen/FullscreenController.hpp"
 #include "../pointer/PointerManager.hpp"
 #include "../event/EventBus.hpp"
+#include "../animation/WorkspaceAnimationController.hpp"
 #include "../render/Renderer.hpp"
 
 #include <ranges>

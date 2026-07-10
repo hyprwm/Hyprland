@@ -7,7 +7,7 @@
 using namespace Layout;
 using namespace Hyprutils::Utils;
 
-void ITarget::setPositionGlobal(const STargetBox& box) {
+void ITarget::setPositionGlobal(const STargetBox& box, uint8_t) {
     m_box = box;
     m_box.logicalBox.round();
     m_box.visualBox.round();

@@ -10,7 +10,7 @@
 #include "../pointer/cursor/CursorManager.hpp"
 #include "../pointer/PointerManager.hpp"
 #include "../managers/input/InputManager.hpp"
-#include "../managers/animation/AnimationManager.hpp"
+#include "../animation/AnimationManager.hpp"
 #include "../managers/fullscreen/FullscreenController.hpp"
 #include "../desktop/view/Window.hpp"
 #include "../desktop/view/LayerSurface.hpp"

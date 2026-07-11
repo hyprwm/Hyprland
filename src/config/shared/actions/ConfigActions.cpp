@@ -964,7 +964,9 @@ ActionResult Actions::changeWorkspace(PHLWORKSPACE ws) {
             Desktop::focusState()->fullWindowFocus(pWindow, Desktop::FOCUS_REASON_KEYBIND);
             if (*PWORKSPACECENTERON == 1)
                 middle = pWindow->middle();
-        }
+        } else
+            Desktop::focusState()->rawWindowFocus(nullptr, Desktop::FOCUS_REASON_KEYBIND);
+
         Pointer::pointerController()->warpTo(middle);
     }
 

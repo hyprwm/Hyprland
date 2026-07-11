@@ -3,10 +3,12 @@
 #include "../../hyprctlCompat.hpp"
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
+#include <hyprutils/utils/ScopeGuard.hpp>
 #include "../shared.hpp"
 
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
+using namespace Hyprutils::Utils;
 
 #define UP CUniquePointer
 #define SP CSharedPointer
@@ -52,4 +54,41 @@ TEST_CASE(crossMonitorFullscreenFocus) {
 
     Tests::killAllWindows();
     OK(getFromSocket("/output remove HYPRTEST-2"));
+}
+
+TEST_CASE(crossMonitorEmptyWorkspaceUnfocusesWindow) {
+    getFromSocket("/output remove HYPRTEST-UNFOCUS");
+    OK(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-2', mode = '1920x1080@60', position = '0x0', scale = '1' })"));
+    OK(getFromSocket("/eval hl.monitor({ output = 'HYPRTEST-UNFOCUS', mode = '1920x1080@60', position = '1920x0', scale = '1' })"));
+    OK(getFromSocket("/output create headless HYPRTEST-UNFOCUS"));
+
+    CScopeGuard guard = {[&]() {
+        Tests::killAllWindows();
+        OK(getFromSocket("/output remove HYPRTEST-UNFOCUS"));
+    }};
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+    ASSERT(Tests::windowCount(), 0);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HYPRTEST-UNFOCUS' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2' })"));
+
+    auto kittyProc = Tests::spawnKitty("cross_monitor_ws2");
+    if (!kittyProc)
+        FAIL_TEST("Could not spawn kitty");
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "class: cross_monitor_ws2");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        ASSERT_CONTAINS(str, "workspace ID 1 ");
+    }
+
+    ASSERT(getFromSocket("/activewindow"), "Invalid");
 }

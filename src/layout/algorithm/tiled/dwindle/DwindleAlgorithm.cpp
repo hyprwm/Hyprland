@@ -587,8 +587,6 @@ void CDwindleAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection di
 
     t->window()->setAnimationsToMove();
 
-    removeTarget(t);
-
     if (PMONITORFOCAL != m_parent->space()->workspace()->m_monitor) {
         // move with a focal point
 
@@ -598,6 +596,7 @@ void CDwindleAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection di
         return;
     }
 
+    removeTarget(t);
     movedTarget(t, FOCAL_POINT);
 
     // restore focus to the previous position

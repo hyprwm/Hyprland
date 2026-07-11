@@ -752,6 +752,129 @@ TEST_CASE(workspacesCombined) {
     ASSERT(Tests::windowCount(), 0);
 }
 
+
+TEST_CASE() {
+
+
+    Tests::spawnKitty("kittycat");
+
+    // normal Workspace
+
+    // test both moving a window and focusing a workspace
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = 'id:2', silent = true })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'id:2' })"));
+    
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kittycat' })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "class: kittycat");
+        ASSERT_CONTAINS(str, "workspace: 2");
+ 
+    }
+
+
+    // Special Workspace
+
+    // test both moving a window and focusing a workspace
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = 'id:-99', silent = true })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'id:-99' })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kittycat' })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "class: kittycat");
+        ASSERT_CONTAINS(str, "workspace: -99");
+ 
+    }
+
+}
+
+TEST_CASE(workspaceMoveFocusWithWorkspaceObject) {
+
+
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'id:2' })"));
+
+    OK(getFromSocket("/eval 'local workspaceVar = hl.get_active_workspace()'"));
+    
+    // Spawn a window to prevent from it being destroyed
+    Tests::spawnKitty("doorstopper");
+    
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'id:1' })"));
+
+    Tests::spawnKitty("traveller");
+
+    // test both moving a window and focusing a workspace
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = workspaceVar, silent = true })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = workspaceVar })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:traveller' })"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "class: traveller");
+        ASSERT_CONTAINS(str, "workspace: 2");
+    }
+
+
+
+    // get rid of variable - clean start
+    OK(getFromSocket("/reload"));
+    
+
+    // Same test as above, but with a special workspace
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'id:-99' })"));
+
+    OK(getFromSocket("/eval 'local workspaceVar = hl.get_active_workspace()'"));
+    
+    // Spawn a window to prevent from it being destroyed
+    Tests::spawnKitty("doorstopper");
+    
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'id:1' })"));
+
+    Tests::spawnKitty("traveller");
+
+    // test both moving a window and focusing a workspace
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = workspaceVar, silent = true })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = workspaceVar })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:traveller' })"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "class: traveller");
+        ASSERT_CONTAINS(str, "workspace: -99");
+    }
+}
+
+
+
+TEST_CASE(workspaceRuleWithID) {
+
+    // normal
+
+
+    // special
+
+}
+
+
+TEST_CASE(workspaceRuleWithWorkspaceObject) {
+
+
+
+
+
+
+
+}
+
+
+
+
+
+
 TEST_CASE(workspacesFollowProperNoGaps) {
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = \"100\" })"));
     OK(getFromSocket(R"#(/eval hl.workspace_rule({ workspace = "w[tv1]", gaps_out = 0, gaps_in = 0 })

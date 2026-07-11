@@ -103,7 +103,7 @@ CMonitor::~CMonitor() {
         g_pHyprRenderer->glBackend()->destroyMonitorResources(m_self);
 }
 
-void CMonitor::onConnect(bool noRule) {
+void CMonitor::onConnect(bool noRule, bool initialDPMSOff) {
     Event::bus()->m_events.monitor.preAdded.emit(m_self.lock());
     CScopeGuard x = {[]() { State::monitorLayoutController()->arrange(); }};
 
@@ -272,7 +272,6 @@ void CMonitor::onConnect(bool noRule) {
 
     // if it's disabled, disable and ignore
     if (monitorRule.m_disabled) {
-
         m_output->state->resetExplicitFences();
         m_output->state->setEnabled(false);
 
@@ -294,6 +293,26 @@ void CMonitor::onConnect(bool noRule) {
 
             lease->offer(m_self.lock());
         }
+
+        return;
+    }
+
+    if (initialDPMSOff) {
+        Log::logger->log(Log::DEBUG, "Deferring monitor {} connect because DPMS is off", m_name);
+
+        m_dpmsStatus = false;
+        m_events.dpmsChanged.emit();
+
+        m_listeners.frame.reset();
+        m_listeners.presented.reset();
+        m_listeners.needsFrame.reset();
+        m_listeners.commit.reset();
+
+        m_output->state->resetExplicitFences();
+        m_output->state->setEnabled(false);
+
+        if (!m_state.commit())
+            Log::logger->log(Log::WARN, "state.commit() failed while deferring output {} for DPMS off", m_name);
 
         return;
     }

@@ -706,7 +706,7 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
 
                 for (auto const& layer : level) {
                     result +=
-                        std::format("\t\tLayer {:x}: xywh: {} {} {} {}, a: {} , namespace: {}, pid: {}\n", rc<uintptr_t>(layer.get()), layer->m_geometry.x, layer->m_geometry.y,
+                        std::format("\t\tLayer {:x}: xywh: {} {} {} {}, a: {}, namespace: {}, pid: {}\n", rc<uintptr_t>(layer.get()), layer->m_geometry.x, layer->m_geometry.y,
                                     layer->m_geometry.width, layer->m_geometry.height, sc<double>(layer->alpha().value()), layer->m_namespace, layer->getPID());
                 }
 

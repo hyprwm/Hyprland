@@ -669,10 +669,11 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
                     "y": {},
                     "w": {},
                     "h": {},
+                    "alpha": {},
                     "namespace": "{}",
                     "pid": {}
                 }},)#",
-                        rc<uintptr_t>(layer.get()), layer->m_geometry.x, layer->m_geometry.y, layer->m_geometry.width, layer->m_geometry.height,
+                        rc<uintptr_t>(layer.get()), layer->m_geometry.x, layer->m_geometry.y, layer->m_geometry.width, layer->m_geometry.height, sc<double>(layer->alpha().value()),
                         escapeJSONStrings(layer->m_namespace), layer->getPID());
                 }
 
@@ -704,8 +705,9 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
                 result += std::format("\tLayer level {} ({}):\n", layerLevel, levelNames[layerLevel]);
 
                 for (auto const& layer : level) {
-                    result += std::format("\t\tLayer {:x}: xywh: {} {} {} {}, namespace: {}, pid: {}\n", rc<uintptr_t>(layer.get()), layer->m_geometry.x, layer->m_geometry.y,
-                                          layer->m_geometry.width, layer->m_geometry.height, layer->m_namespace, layer->getPID());
+                    result +=
+                        std::format("\t\tLayer {:x}: xywh: {} {} {} {}, a: {} , namespace: {}, pid: {}\n", rc<uintptr_t>(layer.get()), layer->m_geometry.x, layer->m_geometry.y,
+                                    layer->m_geometry.width, layer->m_geometry.height, sc<double>(layer->alpha().value()), layer->m_namespace, layer->getPID());
                 }
 
                 layerLevel++;

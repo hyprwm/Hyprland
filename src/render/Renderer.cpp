@@ -3135,21 +3135,34 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(WP<Desktop::View::CPopup> popup) 
 
     Log::logger->log(Log::DEBUG, "renderer: making a snapshot of {:x}", rc<uintptr_t>(popup.get()));
 
-    CRegion    fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
+    const CBox EXTENTS    = popup->wlSurface()->resource()->extends();
+    const CBox LOGICALBOX = CBox{popup->coordsGlobal() + EXTENTS.pos() - PMONITOR->m_position, EXTENTS.size()}.scale(PMONITOR->m_scale).round();
 
-    const auto PFRAMEBUFFER = createFB("popup shapshot");
+    if (LOGICALBOX.width < 1 || LOGICALBOX.height < 1)
+        return nullptr;
 
-    PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
+    CRegion    fakeDamage{0, 0, LOGICALBOX.width, LOGICALBOX.height};
+    const auto PFRAMEBUFFER = createFB("popup snapshot");
+
+    PFRAMEBUFFER->alloc(LOGICALBOX.width, LOGICALBOX.height, DRM_FORMAT_ABGR8888);
+    if (const auto TEX = PFRAMEBUFFER->getTexture(); TEX)
+        TEX->m_transform = Math::wlTransformToHyprutils(PMONITOR->m_transform);
     PFRAMEBUFFER->setImageDescription(PMONITOR->workBufferImageDescription());
 
     beginFullFakeRender(PMONITOR, fakeDamage, PFRAMEBUFFER);
+
+    m_renderData.fbSize          = LOGICALBOX.size();
+    m_renderData.transformDamage = false;
+    setProjectionType(RPT_EXPORT);
+    setViewport(0, 0, LOGICALBOX.width, LOGICALBOX.height);
 
     m_bRenderingSnapshot = true;
 
     draw(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)});
 
     CSurfacePassElement::SRenderData renderdata;
-    renderdata.pos             = popup->coordsGlobal();
+    // place the extents' top-left at the framebuffer origin; getTexBox() computes pos + localPos - monitor pos
+    renderdata.pos             = PMONITOR->m_position - EXTENTS.pos();
     renderdata.alpha           = 1.F;
     renderdata.dontRound       = true; // don't round popups
     renderdata.pMonitor        = PMONITOR;
@@ -3177,6 +3190,7 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(WP<Desktop::View::CPopup> popup) 
     endRender();
 
     m_bRenderingSnapshot = false;
+
     return PFRAMEBUFFER;
 }
 

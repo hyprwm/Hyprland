@@ -44,6 +44,9 @@ SP<CPopupFadeout> CPopupFadeout::create(SP<CPopup> popup, SP<Render::IFramebuffe
     fadeout->m_monitor     = MONITOR;
     fadeout->m_framebuffer = snapshot;
 
+    const CBox EXTENTS   = popup->wlSurface()->resource()->extends();
+    fadeout->m_renderBox = CBox{popup->coordsGlobal() + EXTENTS.pos() - MONITOR->m_position, EXTENTS.size()}.scale(MONITOR->m_scale).round();
+
     static CConfigValue PBLURIGNOREA = CConfigValue<Config::FLOAT>("decoration:blur:popups_ignorealpha");
     if (shouldBlurPopup()) {
         fadeout->m_effects.textureBlur.enabled               = true;
@@ -81,8 +84,7 @@ int CPopupFadeout::zIndex() const {
 }
 
 CBox CPopupFadeout::renderBox() const {
-    const auto MONITOR = m_monitor.lock();
-    return MONITOR ? CBox{{}, MONITOR->m_transformedSize} : CBox{};
+    return m_renderBox;
 }
 
 float CPopupFadeout::alpha() const {

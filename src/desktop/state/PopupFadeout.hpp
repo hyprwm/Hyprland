@@ -21,5 +21,6 @@ namespace Desktop {
         PHLMONITORREF     m_monitor;
         int               m_zIndex = 0;
         PHLANIMVAR<float> m_alpha;
+        CBox              m_renderBox;
     };
 }

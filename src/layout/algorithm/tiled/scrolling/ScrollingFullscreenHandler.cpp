@@ -489,8 +489,7 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
             Log::logger->log(Log::WARN, "Handler tracked a window group. This should have never happened. Recovering...");
 
             const auto TARGET_FS_MODES = getFullscreenModes(it->first.lock());
-            const auto WINDOWTARGET    = (TARGET->window()->m_group ? (TARGET->window()->m_group->current() ? TARGET->window()->m_group->current()->m_target : nullptr) :
-                                                                      it->first->window()->layoutTarget());
+            const auto WINDOWTARGET    = TARGET->window()->m_target;
             const auto NEXT            = std::next(it);
             removeFsTarget(TARGET, true);
             it = NEXT;

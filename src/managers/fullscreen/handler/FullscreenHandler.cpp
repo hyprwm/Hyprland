@@ -222,22 +222,17 @@ void IFullscreenHandler::syncTargetSizeAndPosition() {
         const CBox MONBOX         = MONITOR->logicalBox();
         const CBox ROUNDED_MONBOX = MONITOR->logicalBox().round();
 
-        const auto CURRENT_REAL_POS_VALUE  = WINDOW.get()->m_realPosition->value();
-        const auto CURRENT_REAL_SIZE_VALUE = WINDOW.get()->m_realSize->value();
-
-        const auto CURRENT_REAP_POS_GOAL  = WINDOW.get()->m_realPosition->goal();
+        const auto CURRENT_REAL_POS_GOAL  = WINDOW.get()->m_realPosition->goal();
         const auto CURRENT_REAL_SIZE_GOAL = WINDOW.get()->m_realSize->goal();
 
         const auto EXPECTED_REAL_POS  = ROUNDED_MONBOX.pos();
         const auto EXPECTED_REAL_SIZE = ROUNDED_MONBOX.size();
 
-        // either current val or goal of current must be different than expected
-        if (!((CURRENT_REAL_POS_VALUE == EXPECTED_REAL_POS || CURRENT_REAP_POS_GOAL == EXPECTED_REAL_POS) &&
-              (CURRENT_REAL_SIZE_VALUE == EXPECTED_REAL_SIZE || CURRENT_REAL_SIZE_GOAL == EXPECTED_REAL_SIZE))) {
+        // No need to compare with current value also since it'll get overwritten by goal anyway
+        if (CURRENT_REAL_POS_GOAL != EXPECTED_REAL_POS || CURRENT_REAL_SIZE_GOAL != EXPECTED_REAL_SIZE) {
             controller()->m_windowPosSettingQueued = true;
             LAYOUT_TARGET->setPositionGlobal(MONBOX);
         }
-
     } else if (TARGET_INTERNAL_MODE == FSMODE_MAXIMIZED) {
 
         const auto WORK_AREA       = WORKSPACE->m_space->workArea(FS_TARGET->floating());
@@ -247,17 +242,13 @@ void IFullscreenHandler::syncTargetSizeAndPosition() {
         // Reserved area must be updated before this is called
         const auto RESERVED = WINDOW->getFullWindowReservedArea();
 
-        const auto CURRENT_REAL_POS_VALUE  = WINDOW.get()->m_realPosition->value();
-        const auto CURRENT_REAL_SIZE_VALUE = WINDOW.get()->m_realSize->value();
-
-        const auto CURRENT_REAP_POS_GOAL  = WINDOW.get()->m_realPosition->goal();
+        const auto CURRENT_REAL_POS_GOAL  = WINDOW.get()->m_realPosition->goal();
         const auto CURRENT_REAL_SIZE_GOAL = WINDOW.get()->m_realSize->goal();
 
         const auto EXPECTED_REAL_POS  = roundedWorkArea.pos() + RESERVED.topLeft;
         const auto EXPECTED_REAL_SIZE = roundedWorkArea.size() - (RESERVED.topLeft + RESERVED.bottomRight);
 
-        if (!((CURRENT_REAL_POS_VALUE == EXPECTED_REAL_POS || CURRENT_REAP_POS_GOAL == EXPECTED_REAL_POS) &&
-              (CURRENT_REAL_SIZE_VALUE == EXPECTED_REAL_SIZE || CURRENT_REAL_SIZE_GOAL == EXPECTED_REAL_SIZE))) {
+        if (CURRENT_REAL_POS_GOAL != EXPECTED_REAL_POS || CURRENT_REAL_SIZE_GOAL != EXPECTED_REAL_SIZE) {
             controller()->m_windowPosSettingQueued = true;
             LAYOUT_TARGET->setPositionGlobal(WORKSPACE->m_space->workArea(FS_TARGET->floating()));
         }

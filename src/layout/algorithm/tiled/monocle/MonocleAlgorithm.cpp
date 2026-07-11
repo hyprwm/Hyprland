@@ -128,12 +128,14 @@ void CMonocleAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRe
 }
 
 void CMonocleAlgorithm::recalculate(eRecalculateReason reason) {
-    if (m_targetDatas.empty())
+    if (m_targetDatas.empty() || !m_parent || !m_parent->space())
         return;
 
-    // avoid positon recalculation if we are in FS
-    if (m_parent && m_parent->space() && m_parent->space()->workspace() && Fullscreen::controller()->hasFullscreen(m_parent->space()->workspace(), true))
+    // Avoid further pos recalc if in fullscreen
+    if (Fullscreen::controller()->hasFullscreen(m_parent->space()->workspace(), true)) {
+        m_defaultFullscreenHandler->syncTargetSizeAndPosition();
         return;
+    }
 
     const auto WORK_AREA = m_parent->space()->workArea();
 

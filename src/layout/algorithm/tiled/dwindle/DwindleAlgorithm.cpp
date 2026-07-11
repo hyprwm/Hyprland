@@ -264,6 +264,9 @@ void CDwindleAlgorithm::movedTarget(SP<ITarget> target, std::optional<Vector2D> 
 }
 
 void CDwindleAlgorithm::removeTarget(SP<ITarget> target) {
+    if (!target)
+        return;
+
     const auto PNODE = getNodeFromTarget(target);
 
     if (!PNODE) {
@@ -271,7 +274,7 @@ void CDwindleAlgorithm::removeTarget(SP<ITarget> target) {
         return;
     }
 
-    if (m_defaultFullscreenHandler->isFullscreen(target)) {
+    if (Fullscreen::controller()->isFullscreen(target->window())) {
         auto window = target->window();
         Fullscreen::controller()->setFullscreenMode(window, Fullscreen::FSMODE_NONE);
     }
@@ -496,9 +499,14 @@ void CDwindleAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
 }
 
 void CDwindleAlgorithm::recalculate(eRecalculateReason reason) {
-    // avoid positon recalculation if we are in FS
-    if (m_parent && m_parent->space() && m_parent->space()->workspace() && Fullscreen::controller()->hasFullscreen(m_parent->space()->workspace(), true))
+    if (!m_parent || !m_parent->space())
         return;
+
+    // Avoid further pos recalc if in fullscreen
+    if (Fullscreen::controller()->hasFullscreen(m_parent->space()->workspace(), true)) {
+        m_defaultFullscreenHandler->syncTargetSizeAndPosition();
+        return;
+    }
 
     calculateWorkspace();
 }
@@ -606,7 +614,7 @@ void CDwindleAlgorithm::calculateWorkspace() {
     const auto PWORKSPACE = m_parent->space()->workspace();
     const auto PMONITOR   = PWORKSPACE->m_monitor;
 
-    if (!PMONITOR || Fullscreen::controller()->hasFullscreen(PWORKSPACE))
+    if (!PMONITOR || Fullscreen::controller()->hasFullscreen(PWORKSPACE, true))
         return;
 
     const auto TOPNODE = getMasterNode();
@@ -766,7 +774,7 @@ bool CDwindleAlgorithm::toggleSplit(SP<SDwindleNodeData> x) {
     if (!x || !x->pParent)
         return false;
 
-    if (m_defaultFullscreenHandler->isFullscreen(x->pTarget.lock()))
+    if (Fullscreen::controller()->isFullscreen(x->pTarget->window()))
         return false;
 
     x->pParent->splitTop = !x->pParent->splitTop;
@@ -777,7 +785,7 @@ bool CDwindleAlgorithm::toggleSplit(SP<SDwindleNodeData> x) {
 }
 
 bool CDwindleAlgorithm::swapSplit(SP<SDwindleNodeData> x) {
-    if (m_defaultFullscreenHandler->isFullscreen(x->pTarget.lock()) || !x->pParent)
+    if (Fullscreen::controller()->isFullscreen(x->pTarget->window()) || !x->pParent)
         return false;
 
     std::swap(x->pParent->children[0], x->pParent->children[1]);
@@ -791,7 +799,7 @@ void CDwindleAlgorithm::rotateSplit(SP<SDwindleNodeData> x, int angle) {
     if (!x || !x->pParent)
         return;
 
-    if (m_defaultFullscreenHandler->isFullscreen(x->pTarget.lock()))
+    if (Fullscreen::controller()->isFullscreen(x->pTarget->window()))
         return;
 
     // normalize the angle to multiples of 90 degrees
@@ -828,7 +836,7 @@ bool CDwindleAlgorithm::moveToRoot(SP<SDwindleNodeData> x, bool stable) {
     if (!x || !x->pParent)
         return false;
 
-    if (m_defaultFullscreenHandler->isFullscreen(x->pTarget.lock()))
+    if (Fullscreen::controller()->isFullscreen(x->pTarget->window()))
         return false;
 
     // already at root

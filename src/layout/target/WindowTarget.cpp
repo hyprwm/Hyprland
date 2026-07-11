@@ -109,7 +109,8 @@ void CWindowTarget::updatePos(uint8_t flags) {
         }
 
         m_window->updateWindowDecos();
-        m_window->sendWindowSize();
+        if (CONFIGURECLIENT)
+            m_window->sendWindowSize();
         return;
     }
 

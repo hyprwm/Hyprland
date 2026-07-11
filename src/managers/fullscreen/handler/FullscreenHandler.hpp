@@ -50,10 +50,17 @@ namespace Fullscreen {
         // Helpers
 
         /**
+        * @brief Updates window/workspace rules, decorations for the window.
+        * @warning Target must return true from FS query functions before dispatching this
+        */
+        virtual void updateTargetRulesAndDecos(const SP<Layout::ITarget> target);
+
+        /**
         * @note pass the window target even if target is a part of a group: function detects if a target is a part of a group and correctly dispatches the request to the group target
-        * @warning Handlers must take care to bring the FS target to a state where it will qualify as a FS window by window/workspace rule matchers before dispatching this.
         */
         virtual void setTargetSizeAndPosition(const SP<Layout::ITarget> target);
+
+        virtual void syncTargetSizeAndPosition();
 
         virtual void setNoMembersAboveFullscreen();
 

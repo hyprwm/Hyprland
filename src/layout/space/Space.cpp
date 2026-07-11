@@ -9,7 +9,6 @@
 #include "../../config/ConfigValue.hpp"
 #include "../../event/EventBus.hpp"
 #include "../../output/Monitor.hpp"
-#include "../../managers/fullscreen/FullscreenController.hpp"
 
 using namespace Layout;
 
@@ -102,17 +101,6 @@ void CSpace::recheckWorkArea() {
 
     reservedFloatGaps.applyip(floatWorkArea);
     reservedGaps.applyip(workArea);
-
-    if (m_parent && workArea != m_workArea) {
-        // unFs and reFS the window with the same properties to conform to the new work area's dimensions
-        const auto COVERING_FS_WINDOW = Fullscreen::controller()->getFullscreenWindow(m_parent.lock());
-        if (COVERING_FS_WINDOW) {
-            const auto FS_MODES          = Fullscreen::controller()->getFullscreenModes(COVERING_FS_WINDOW);
-            const auto IS_LAYOUT_HANDLED = Fullscreen::controller()->layoutManagedFS(COVERING_FS_WINDOW);
-            Fullscreen::controller()->setFullscreenMode(COVERING_FS_WINDOW, Fullscreen::FSMODE_NONE, Fullscreen::FSMODE_NONE);
-            Fullscreen::controller()->setFullscreenMode(COVERING_FS_WINDOW, FS_MODES.internal, FS_MODES.client, IS_LAYOUT_HANDLED);
-        }
-    }
 
     m_workArea         = workArea;
     m_floatingWorkArea = floatWorkArea;

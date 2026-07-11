@@ -278,8 +278,30 @@ void CScrollingFullscreenHandler::setTargetFullscreenModeClient(const SP<Layout:
     syncFullscreenTargets();
 }
 
+void CScrollingFullscreenHandler::updateTargetRulesAndDecos(const SP<Layout::ITarget> target) {
+    if (!target || !target->window() || !target->workspace() || !target->workspace()->m_monitor)
+        return;
+
+    const auto MONITOR = target->workspace()->m_monitor.lock();
+    const auto WINDOW  = target->window();
+
+    WINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
+                                                Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
+    WINDOW->updateDecorationValues();
+
+    // Normally, FS controller's FS state setter's method of handling window rules should be used; but calling g_layoutManager->recalculateMonitor(MONITOR) and getSpace()->recalculate()
+    // here would lead to an inf recursion
+    // Concern: if the user executes a premature prop refresh, this might cause another prop refresh to be enqueued if the variables in the if cond aren't properly updated by setNoMembersAboveFullscreen()
+    Config::Supplementary::refresher()->scheduleRefresh(Config::Supplementary::REFRESH_WINDOW_STATES | Config::Supplementary::REFRESH_MONITOR_STATES);
+}
+
 void CScrollingFullscreenHandler::setTargetSizeAndPosition(const SP<Layout::ITarget> target) {
     // We don't need to do anything explicitly here because in scrolling, pos/size setting as well as managing window/workspace rules are done in scrolling's recalculate()
+    ;
+}
+
+void CScrollingFullscreenHandler::syncTargetSizeAndPosition() {
+    // We don't need anything here as scrolling handled pos setting in its recalculate() anyway
     ;
 }
 
@@ -531,24 +553,17 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
     if ((TARGET_WORKSPACE_HAS_FS && CURRENT_FS_TDATA && CURRENT_FS_TDATA->target && CURRENT_FS_TDATA->target->window() &&
          CURRENT_FS_TDATA->target->window() != m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow)) {
 
-        const auto LAST_FS_WINDOW = CURRENT_FS_TDATA->target->window();
-        LAST_FS_WINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
-                                                            Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-        LAST_FS_WINDOW->updateDecorationValues();
+        // If window group, get the current window
+        const auto LAST_FS_WINDOW_TARGET = CURRENT_FS_TDATA->target->window()->m_target;
 
-        // Normally, FS controller's FS state setter's method of handling window rules should be used; but calling g_layoutManager->recalculateMonitor(MONITOR) and getSpace()->recalculate()
-        // here would lead to an inf recursion
-        // Concern: if the user executes a premature prop refresh, this might cause another prop refresh to be enqueued if the variables in the if cond aren't properly updated by setNoMembersAboveFullscreen()
-        Config::Supplementary::refresher()->scheduleRefresh(Config::Supplementary::REFRESH_WINDOW_STATES | Config::Supplementary::REFRESH_MONITOR_STATES);
+        updateTargetRulesAndDecos(LAST_FS_WINDOW_TARGET);
+
     }
     // Scrolling away from an FS window
     else if (m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow && !TARGET_WORKSPACE_HAS_FS) {
         const auto LAST_FS_WINDOW = m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow.lock();
-        LAST_FS_WINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
-                                                            Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-        LAST_FS_WINDOW->updateDecorationValues();
 
-        Config::Supplementary::refresher()->scheduleRefresh(Config::Supplementary::REFRESH_WINDOW_STATES | Config::Supplementary::REFRESH_MONITOR_STATES);
+        updateTargetRulesAndDecos(LAST_FS_WINDOW->m_target);
     }
 
     /* Setting DS and VRR */

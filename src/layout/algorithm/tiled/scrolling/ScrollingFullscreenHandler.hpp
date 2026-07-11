@@ -50,7 +50,16 @@ namespace Fullscreen::ScrollingFullscreenHandler {
 
         // Helpers
 
+        /**
+        * @brief Updates window/workspace rules, decorations for the window.
+        * @warning Target must return true from FS query functions before dispatching this
+        */
+        virtual void updateTargetRulesAndDecos(const SP<Layout::ITarget> target);
+
         virtual void setTargetSizeAndPosition(const SP<Layout::ITarget> target);
+
+        virtual void syncTargetSizeAndPosition();
+
         virtual void setNoMembersAboveFullscreen();
         virtual void syncFullscreenTargets();
         virtual void removeFsTarget(SP<Layout::ITarget> target, const bool recursionGuard = false);

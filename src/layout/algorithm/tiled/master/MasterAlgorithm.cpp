@@ -274,10 +274,10 @@ void CMasterAlgorithm::removeTarget(SP<ITarget> target) {
 
     const auto  PNODE = getNodeFromTarget(target);
 
-    if (!PNODE)
+    if (!PNODE || !target)
         return;
 
-    if (m_defaultFullscreenHandler->isFullscreen(target))
+    if (Fullscreen::controller()->isFullscreen(target->window()))
         Fullscreen::controller()->setFullscreenMode(target->window(), Fullscreen::FSMODE_NONE);
 
     if (PNODE->isMaster && (MASTERSLEFT <= 1 || *SMALLSPLIT == 1)) {
@@ -504,9 +504,13 @@ void CMasterAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir
 }
 
 void CMasterAlgorithm::recalculate(eRecalculateReason reason) {
-    // avoid positon recalculation if we are in FS
-    if (m_parent && m_parent->space() && m_parent->space()->workspace() && Fullscreen::controller()->hasFullscreen(m_parent->space()->workspace(), true))
+    if (!m_parent || !m_parent->space())
         return;
+    // Avoid further pos recalc if in fullscreen
+    if (Fullscreen::controller()->hasFullscreen(m_parent->space()->workspace(), true)) {
+        m_defaultFullscreenHandler->syncTargetSizeAndPosition();
+        return;
+    }
 
     calculateWorkspace();
 }

@@ -95,11 +95,16 @@ eFullscreenRequestResult IFullscreenHandler::requestFullscreen(const SFullscreen
 
     setTargetFullscreenModeInternal(TARGET, request.mode);
 
+    // Must run before setting pos/size so the values like gaps, border size, etc... are updated
+    updateTargetRulesAndDecos(TARGET);
+
     setTargetSizeAndPosition(TARGET);
 
     setNoMembersAboveFullscreen();
 
     Animation::Workspace::setFullscreenFadeAnimation(WORKSPACE, request.mode != FSMODE_NONE ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
+
+    /* Setting DS and VRR */
 
     // send a regular tranche if we are exiting fullscreen.
     // ignore if DS is disabled.
@@ -151,18 +156,12 @@ void IFullscreenHandler::setTargetFullscreenModeClient(const SP<Layout::ITarget>
     syncFullscreenTargets();
 }
 
-void IFullscreenHandler::setTargetSizeAndPosition(const SP<Layout::ITarget> target) {
-
-    if (!target->window())
+void IFullscreenHandler::updateTargetRulesAndDecos(const SP<Layout::ITarget> target) {
+    if (!target || !target->window() || !target->workspace() || !target->workspace()->m_monitor)
         return;
 
-    // must set pos of the highest level target (i.e. if target a part of a group, must set that group's pos which will set the pos of all member targets)
-    const auto LAYOUT_TARGET = target->window()->layoutTarget();
-    const auto WINDOW        = LAYOUT_TARGET->window();
-    const auto WORKSPACE     = LAYOUT_TARGET->workspace();
-    const auto MONITOR       = WORKSPACE->m_monitor.lock();
-
-    const auto TARGET_INTERNAL_MODE = getFullscreenModes(target).internal;
+    const auto MONITOR = target->workspace()->m_monitor.lock();
+    const auto WINDOW  = target->window();
 
     // Target must be a fullscreen window as considered by window/workspace rule matchers by now.
     // update all the values necessary for FS windows to get correct window dimensions and pos
@@ -171,18 +170,98 @@ void IFullscreenHandler::setTargetSizeAndPosition(const SP<Layout::ITarget> targ
     WINDOW->updateDecorationValues();
     g_layoutManager->recalculateMonitor(MONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN);
     getSpace()->recalculate(Layout::RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN);
+}
+
+void IFullscreenHandler::setTargetSizeAndPosition(const SP<Layout::ITarget> target) {
+    if (!target || !target->window() || !target->workspace() || !target->workspace()->m_monitor)
+        return;
+
+    const auto TARGET_INTERNAL_MODE = getFullscreenModes(target).internal;
+
+    // If not FS, let the layout's recalculate() handle window pos/size
+    if (TARGET_INTERNAL_MODE == FSMODE_NONE)
+        return;
+
+    const auto WORKSPACE = target->workspace();
+    const auto MONITOR   = WORKSPACE->m_monitor.lock();
+
+    // must set pos of the highest level target (i.e. if target a part of a group, must set that group's pos which will set the pos of all member targets)
+    const auto LAYOUT_TARGET = target->window()->layoutTarget();
 
     if (TARGET_INTERNAL_MODE == FSMODE_FULLSCREEN) {
         const CBox MONBOX                                  = MONITOR->logicalBox();
         Fullscreen::controller()->m_windowPosSettingQueued = true;
         LAYOUT_TARGET->setPositionGlobal(MONBOX);
     } else if (TARGET_INTERNAL_MODE == FSMODE_MAXIMIZED) {
-        const CBox WORKAREA                                = WORKSPACE->m_space->workArea(LAYOUT_TARGET->floating());
+        const CBox WORKAREA                                = WORKSPACE->m_space->workArea(target->floating());
         Fullscreen::controller()->m_windowPosSettingQueued = true;
         LAYOUT_TARGET->setPositionGlobal(WORKAREA);
     }
+}
+
+void IFullscreenHandler::syncTargetSizeAndPosition() {
+
+    // Expected Dimensions logic must be the same as updatePos(), and setting dimensions code must be the same as in setTargetSizeAndPosition(). Keep in sync
+
+    const auto FS_TARGET            = getFullscreen(true);
+    const auto TARGET_INTERNAL_MODE = getFullscreenModes(FS_TARGET).internal;
 
     // If not FS, let the layout's recalculate() handle window pos/size
+    if (!FS_TARGET || !FS_TARGET->window() || !FS_TARGET->workspace() || !FS_TARGET->workspace()->m_monitor || TARGET_INTERNAL_MODE == FSMODE_NONE)
+        return;
+
+    const auto WORKSPACE = FS_TARGET->workspace();
+    const auto MONITOR   = WORKSPACE->m_monitor.lock();
+    const auto WINDOW    = FS_TARGET->window();
+
+    // must set pos of the highest level target (i.e. if target a part of a group, must set that group's pos which will set the pos of all member targets)
+    const auto LAYOUT_TARGET = FS_TARGET->window()->layoutTarget();
+
+    if (TARGET_INTERNAL_MODE == FSMODE_FULLSCREEN) {
+
+        const CBox MONBOX         = MONITOR->logicalBox();
+        const CBox ROUNDED_MONBOX = MONITOR->logicalBox().round();
+
+        const auto CURRENT_REAL_POS_VALUE  = WINDOW.get()->m_realPosition->value();
+        const auto CURRENT_REAL_SIZE_VALUE = WINDOW.get()->m_realSize->value();
+
+        const auto CURRENT_REAP_POS_GOAL  = WINDOW.get()->m_realPosition->goal();
+        const auto CURRENT_REAL_SIZE_GOAL = WINDOW.get()->m_realSize->goal();
+
+        const auto EXPECTED_REAL_POS  = ROUNDED_MONBOX.pos();
+        const auto EXPECTED_REAL_SIZE = ROUNDED_MONBOX.size();
+
+        // either current val or goal of current must be different than expected
+        if (!((CURRENT_REAL_POS_VALUE == EXPECTED_REAL_POS || CURRENT_REAP_POS_GOAL == EXPECTED_REAL_POS) &&
+              (CURRENT_REAL_SIZE_VALUE == EXPECTED_REAL_SIZE || CURRENT_REAL_SIZE_GOAL == EXPECTED_REAL_SIZE))) {
+            controller()->m_windowPosSettingQueued = true;
+            LAYOUT_TARGET->setPositionGlobal(MONBOX);
+        }
+
+    } else if (TARGET_INTERNAL_MODE == FSMODE_MAXIMIZED) {
+
+        const auto WORK_AREA       = WORKSPACE->m_space->workArea(FS_TARGET->floating());
+        auto       roundedWorkArea = WORK_AREA;
+        roundedWorkArea.round();
+
+        // Reserved area must be updated before this is called
+        const auto RESERVED = WINDOW->getFullWindowReservedArea();
+
+        const auto CURRENT_REAL_POS_VALUE  = WINDOW.get()->m_realPosition->value();
+        const auto CURRENT_REAL_SIZE_VALUE = WINDOW.get()->m_realSize->value();
+
+        const auto CURRENT_REAP_POS_GOAL  = WINDOW.get()->m_realPosition->goal();
+        const auto CURRENT_REAL_SIZE_GOAL = WINDOW.get()->m_realSize->goal();
+
+        const auto EXPECTED_REAL_POS  = roundedWorkArea.pos() + RESERVED.topLeft;
+        const auto EXPECTED_REAL_SIZE = roundedWorkArea.size() - (RESERVED.topLeft + RESERVED.bottomRight);
+
+        if (!((CURRENT_REAL_POS_VALUE == EXPECTED_REAL_POS || CURRENT_REAP_POS_GOAL == EXPECTED_REAL_POS) &&
+              (CURRENT_REAL_SIZE_VALUE == EXPECTED_REAL_SIZE || CURRENT_REAL_SIZE_GOAL == EXPECTED_REAL_SIZE))) {
+            controller()->m_windowPosSettingQueued = true;
+            LAYOUT_TARGET->setPositionGlobal(WORKSPACE->m_space->workArea(FS_TARGET->floating()));
+        }
+    }
 }
 
 void IFullscreenHandler::setNoMembersAboveFullscreen() {
@@ -231,9 +310,10 @@ void IFullscreenHandler::syncFullscreenTargets() {
 
         // If ITarget's underlying type is CWindowGroupTarget; only store the current window, NOT the whole group
         if (TARGET->type() == Layout::TARGET_TYPE_GROUP) {
-            const SFullscreenMode MODE         = SFullscreenMode{.internal = it->second.internal, .client = it->second.client};
-            const auto            WINDOWTARGET = TARGET->window()->layoutTarget();
-            const auto            NEXT         = std::next(it);
+            const SFullscreenMode MODE = SFullscreenMode{.internal = it->second.internal, .client = it->second.client};
+            // gets the current window's target in the window group
+            const auto WINDOWTARGET = TARGET->window()->m_target;
+            const auto NEXT         = std::next(it);
             removeFsTarget(TARGET, true);
             it = NEXT;
             toInsert.emplace_back(WINDOWTARGET, MODE);

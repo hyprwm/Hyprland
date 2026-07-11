@@ -154,20 +154,24 @@ void Animation::Workspace::setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnimatio
     if (!ws)
         return;
 
-    const auto FULLSCREEN = type == ANIMATION_TYPE_IN;
-
+    const auto FULLSCREEN                 = type == ANIMATION_TYPE_IN;
+    const auto TOPMOST_COVERING_FS_WINDOW = Fullscreen::controller()->getFullscreenWindow(ws, true);
     for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace != ws)
             continue;
 
         w->updateFullscreenInputState();
 
-        if (w->m_pinned || Fullscreen::controller()->isFullscreen(w))
+        if (w->m_pinned)
             continue;
+
+        // If there are several covering FS windows layered ontop of each other, needed to ensure FS windows are not stuck being invisible below the topmost
+        if (TOPMOST_COVERING_FS_WINDOW == w)
+            *w->alpha(WINDOW_ALPHA_FULLSCREEN) = 1.F;
 
         if (!FULLSCREEN)
             *w->alpha(WINDOW_ALPHA_FULLSCREEN) = 1.F;
-        else if (!Fullscreen::controller()->isFullscreen(w))
+        else if (Fullscreen::controller()->getFullscreenWindow(ws, true) != w)
             *w->alpha(WINDOW_ALPHA_FULLSCREEN) = w->isAllowedOverFullscreen() ? 1.F : 0.F;
     }
 

@@ -43,6 +43,7 @@ namespace Fullscreen {
 
         // Window
 
+        /// @warning will return true for all covering fs windows is there are several
         bool            isFullscreen(const PHLWINDOW window, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = std::nullopt);
 
         SFullscreenMode getFullscreenModes(const PHLWINDOW window);
@@ -51,11 +52,13 @@ namespace Fullscreen {
 
         // Workspace
 
+        /// @warning only cosiders internal mode of FS windows
         bool hasFullscreen(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
 
-        /// @note Returns the topmost covering FS window is there are several.
-        PHLWINDOW       getFullscreenWindow(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
+        /// @warning Returns the topmost covering FS window is there are several.
+        PHLWINDOW getFullscreenWindow(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
 
+        /// @warning Will return the modes of the TOPMOST Covering FS Window if there are several
         SFullscreenMode getFullscreenModes(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
 
         // Monitor
@@ -64,9 +67,10 @@ namespace Fullscreen {
         /// @warning only cosiders internal mode of FS windows
         bool hasFullscreen(const PHLMONITOR monitor, const std::optional<bool> covering = true);
 
-        /// @note Returns the topmost covering FS window is there are several.
-        PHLWINDOW       getFullscreenWindow(const PHLMONITOR monitor, const std::optional<bool> covering = true);
+        /// @warning Returns the topmost covering FS window is there are several.
+        PHLWINDOW getFullscreenWindow(const PHLMONITOR monitor, const std::optional<bool> covering = true);
 
+        /// @warning Will return the modes of the TOPMOST Covering FS Window if there are several
         SFullscreenMode getFullscreenModes(const PHLMONITOR monitor, const std::optional<bool> covering = true);
 
         // Handler

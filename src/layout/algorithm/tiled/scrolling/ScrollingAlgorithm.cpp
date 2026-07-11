@@ -940,12 +940,6 @@ void CScrollingAlgorithm::recalculate(eRecalculateReason reason) {
     if (!m_parent || !m_parent->space() || !m_parent->space()->workspace() || !m_parent->space()->workspace()->m_monitor)
         return;
 
-    if (const auto FULLSCREEN_WINDOW = Fullscreen::controller()->getFullscreenWindow(m_parent->space()->workspace());
-        FULLSCREEN_WINDOW && !Fullscreen::controller()->layoutManagedFS(FULLSCREEN_WINDOW)) {
-        m_scrollingFullscreenHandler->setNoMembersAboveFullscreen();
-        return;
-    }
-
     if (Desktop::focusState()->window()) {
         const auto TARGET = Desktop::focusState()->window()->layoutTarget();
 

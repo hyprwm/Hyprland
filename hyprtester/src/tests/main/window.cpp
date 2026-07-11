@@ -1342,3 +1342,527 @@ TEST_CASE(mouseResize) {
     EXPECT_CONTAINS(getFromSocket("/clients"), "size: 700,200");
 #undef RESET_WINDOW
 }
+
+TEST_CASE(getFullscreenHandler) {
+
+    // Correctly detect the FS handler of a window
+
+    // We will use scrolling as it has a layout handled FS
+
+    // First test that it's obtained properly in a default FS handled layout - dwindle
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'dwindle' } })"));
+
+    // Tiled
+    Tests::spawnKitty("cat");
+
+    // FS - check - unFS
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen()"));
+    EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "fullscreenHandler"), "default");
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen()"));
+
+    // Floating
+
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set' })"));
+
+    // FS - check - unFS
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen()"));
+    EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "fullscreenHandler"), "default");
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen()"));
+
+    // switch to scrolling layout
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
+
+    // Window still floating. There is no layout handled floating FS behaviour
+
+    // FS - check - unFS
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen()"));
+    EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "fullscreenHandler"), "default");
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen()"));
+
+    // tile the window, and explicitly default handle it
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'unset' })"));
+
+    // FS - check - unFS
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ layout_aware = false })"));
+    EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "fullscreenHandler"), "default");
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ layout_aware = false })"));
+
+    // check if layout handler is correctly ontaind
+
+    // FS - check - unFS
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen()"));
+    EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "fullscreenHandler"), "scrolling");
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen()"));
+}
+
+TEST_CASE(sendFsWindowToAnotherWorkspace) {
+
+    /*
+    If default handled, will be moved as default handled to other workspace.
+    If layout handled, will be reFSed using target workspace's layout handled if exists
+
+    FS sizes are the same for all FS handlers so we share them
+
+    */
+
+    // Test Default Handled FS
+
+    // Establish 5 workspaces with layouts
+    OK(getFromSocket("/eval hl.workspace_rule({workspace = '1', layout = 'dwindle'})"));
+    OK(getFromSocket("/eval hl.workspace_rule({workspace = '2', layout = 'master'})"));
+    OK(getFromSocket("/eval hl.workspace_rule({workspace = '3', layout = 'monocle'})"));
+    OK(getFromSocket("/eval hl.workspace_rule({workspace = '4', layout = 'scrolling'})"));
+    OK(getFromSocket("/eval hl.workspace_rule({workspace = '5', layout = 'scrolling'})"));
+
+    // set gaps_out to a high value and establish a workspace rule to catch cases where maximised gets the wrong work area size
+    OK(getFromSocket("/eval hl.config({ general = { gaps_out = 20,}})"));
+    OK(getFromSocket("/eval hl.workspace_rule({ workspace = 'f[1]', gaps_out = 0, })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+
+    Tests::spawnKitty("traveller_1");
+
+    // Testing with Tiled window
+
+    /*
+    Test with default handled FS window
+    */
+
+    // Testing Fullscreen
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({mode = 'fullscreen'})"));
+
+    // dwindle
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 0,0");
+        ASSERT_CONTAINS(str, "size: 1920,1080");
+        ASSERT_CONTAINS(str, "workspace: 1");
+        ASSERT_CONTAINS(str, "fullscreen: 2");
+        ASSERT_CONTAINS(str, "fullscreenClient: 2");
+        ASSERT_CONTAINS(str, "fullscreenHandler: default");
+    }
+
+    // master - try with follow = false
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '2', follow = false })"));
+    // go to that workspace post move - expect FS window to be in focus
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 2 })"));
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 0,0");
+        ASSERT_CONTAINS(str, "size: 1920,1080");
+        ASSERT_CONTAINS(str, "workspace: 2");
+        ASSERT_CONTAINS(str, "fullscreen: 2");
+        ASSERT_CONTAINS(str, "fullscreenClient: 2");
+        ASSERT_CONTAINS(str, "fullscreenHandler: default");
+    }
+
+    // monocle
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '3' })"));
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 0,0");
+        ASSERT_CONTAINS(str, "size: 1920,1080");
+        ASSERT_CONTAINS(str, "workspace: 3");
+        ASSERT_CONTAINS(str, "fullscreen: 2");
+        ASSERT_CONTAINS(str, "fullscreenClient: 2");
+        ASSERT_CONTAINS(str, "fullscreenHandler: default");
+    }
+
+    // scroll
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '4' })"));
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 0,0");
+        ASSERT_CONTAINS(str, "size: 1920,1080");
+        ASSERT_CONTAINS(str, "workspace: 4");
+        ASSERT_CONTAINS(str, "fullscreen: 2");
+        ASSERT_CONTAINS(str, "fullscreenClient: 2");
+        ASSERT_CONTAINS(str, "fullscreenHandler: default");
+    }
+
+    // Try with follow = false for scroll since it's default to layout handled and vice versa and should be tested thoroughly
+
+    // monocle
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '3' })"));
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 0,0");
+        ASSERT_CONTAINS(str, "size: 1920,1080");
+        ASSERT_CONTAINS(str, "workspace: 3");
+        ASSERT_CONTAINS(str, "fullscreen: 2");
+        ASSERT_CONTAINS(str, "fullscreenClient: 2");
+        ASSERT_CONTAINS(str, "fullscreenHandler: default");
+    }
+
+    // scroll - try with follow = false
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '4', follow = false })"));
+    // go to that workspace post move - expect FS window to be in focus
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 4 })"));
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 0,0");
+        ASSERT_CONTAINS(str, "size: 1920,1080");
+        ASSERT_CONTAINS(str, "workspace: 4");
+        ASSERT_CONTAINS(str, "fullscreen: 2");
+        ASSERT_CONTAINS(str, "fullscreenClient: 2");
+        ASSERT_CONTAINS(str, "fullscreenHandler: default");
+    }
+
+    // before next test kill the window and make a new one on workspace 1 to get a fresh start
+
+    Tests::killAllWindows();
+    Tests::waitUntilWindowsN(0);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+    Tests::spawnKitty("traveller_2");
+
+    // Testing Maximised
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({mode = 'maximized'})"));
+
+    // dwindle
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 2,2");
+        ASSERT_CONTAINS(str, "size: 1916,1076");
+        ASSERT_CONTAINS(str, "workspace: 1");
+        ASSERT_CONTAINS(str, "fullscreen: 1");
+        ASSERT_CONTAINS(str, "fullscreenClient: 1");
+        ASSERT_CONTAINS(str, "fullscreenHandler: default");
+    }
+
+    // master - try with follow = false
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '2', follow = false })"));
+    // go to that workspace post move - expect FS window to be in focus
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 2 })"));
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 2,2");
+        ASSERT_CONTAINS(str, "size: 1916,1076");
+        ASSERT_CONTAINS(str, "workspace: 2");
+        ASSERT_CONTAINS(str, "fullscreen: 1");
+        ASSERT_CONTAINS(str, "fullscreenClient: 1");
+        ASSERT_CONTAINS(str, "fullscreenHandler: default");
+    }
+
+    // monocle
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '3' })"));
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 2,2");
+        ASSERT_CONTAINS(str, "size: 1916,1076");
+        ASSERT_CONTAINS(str, "workspace: 3");
+        ASSERT_CONTAINS(str, "fullscreen: 1");
+        ASSERT_CONTAINS(str, "fullscreenClient: 1");
+        ASSERT_CONTAINS(str, "fullscreenHandler: default");
+    }
+
+    // scroll
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '4' })"));
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 2,2");
+        ASSERT_CONTAINS(str, "size: 1916,1076");
+        ASSERT_CONTAINS(str, "workspace: 4");
+        ASSERT_CONTAINS(str, "fullscreen: 1");
+        ASSERT_CONTAINS(str, "fullscreenClient: 1");
+        ASSERT_CONTAINS(str, "fullscreenHandler: default");
+    }
+
+    // Try with follow = false for scroll since it's default to layout handled and vice versa and should be tested thoroughly
+
+    // monocle
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '3' })"));
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 2,2");
+        ASSERT_CONTAINS(str, "size: 1916,1076");
+        ASSERT_CONTAINS(str, "workspace: 3");
+        ASSERT_CONTAINS(str, "fullscreen: 1");
+        ASSERT_CONTAINS(str, "fullscreenClient: 1");
+        ASSERT_CONTAINS(str, "fullscreenHandler: default");
+    }
+
+    // scroll - try with follow = false
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '4', follow = false })"));
+    // go to that workspace post move - expect FS window to be in focus
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 4 })"));
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 2,2");
+        ASSERT_CONTAINS(str, "size: 1916,1076");
+        ASSERT_CONTAINS(str, "workspace: 4");
+        ASSERT_CONTAINS(str, "fullscreen: 1");
+        ASSERT_CONTAINS(str, "fullscreenClient: 1");
+        ASSERT_CONTAINS(str, "fullscreenHandler: default");
+    }
+
+    // Before next test kill the window and make a new one on workspace 1 to get a fresh start
+
+    Tests::killAllWindows();
+    Tests::waitUntilWindowsN(0);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+    Tests::spawnKitty("traveller_3");
+
+    /*
+    Test Layout Handled FS - Move btw scroll-scroll and scroll-dwindle
+    */
+
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '4' })"));
+
+    // fullscreen
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({mode = 'fullscreen'})"));
+
+    // scroll
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 0,0");
+        ASSERT_CONTAINS(str, "size: 1920,1080");
+        ASSERT_CONTAINS(str, "workspace: 4");
+        ASSERT_CONTAINS(str, "fullscreen: 2");
+        ASSERT_CONTAINS(str, "fullscreenClient: 2");
+        ASSERT_CONTAINS(str, "fullscreenHandler: scrolling");
+    }
+
+    // move to another scrolling workspace
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '5' })"));
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 0,0");
+        ASSERT_CONTAINS(str, "size: 1920,1080");
+        ASSERT_CONTAINS(str, "workspace: 5");
+        ASSERT_CONTAINS(str, "fullscreen: 2");
+        ASSERT_CONTAINS(str, "fullscreenClient: 2");
+        // both have layout handlers so expected to use that
+        ASSERT_CONTAINS(str, "fullscreenHandler: scrolling");
+    }
+
+    // dwindle
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '1' })"));
+    // go to that workspace post move - expect FS window to be in focus
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 0,0");
+        ASSERT_CONTAINS(str, "size: 1920,1080");
+        ASSERT_CONTAINS(str, "workspace: 1");
+        ASSERT_CONTAINS(str, "fullscreen: 2");
+        ASSERT_CONTAINS(str, "fullscreenClient: 2");
+        // No layout handler in dwindle so expect it to fall back to using the only available handler which is default
+        ASSERT_CONTAINS(str, "fullscreenHandler: default");
+    }
+
+    // scroll - try with follow = false
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '4', follow = false })"));
+    // go to that workspace post move - expect FS window to be in focus
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 4 })"));
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 0,0");
+        ASSERT_CONTAINS(str, "size: 1920,1080");
+        ASSERT_CONTAINS(str, "workspace: 4");
+        ASSERT_CONTAINS(str, "fullscreen: 2");
+        ASSERT_CONTAINS(str, "fullscreenClient: 2");
+        // It's not coming from a default handler so expect it to remain as such
+        ASSERT_CONTAINS(str, "fullscreenHandler: default");
+    }
+
+    // maximised
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({mode = 'maximized'})"));
+
+    // scroll
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 2,2");
+        ASSERT_CONTAINS(str, "size: 1916,1076");
+        ASSERT_CONTAINS(str, "workspace: 4");
+        ASSERT_CONTAINS(str, "fullscreen: 1");
+        ASSERT_CONTAINS(str, "fullscreenClient: 1");
+        ASSERT_CONTAINS(str, "fullscreenHandler: scrolling");
+    }
+
+    // move to another scrolling workspace
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '5' })"));
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 2,2");
+        ASSERT_CONTAINS(str, "size: 1916,1076");
+        ASSERT_CONTAINS(str, "workspace: 5");
+        ASSERT_CONTAINS(str, "fullscreen: 1");
+        ASSERT_CONTAINS(str, "fullscreenClient: 1");
+        // both have layout handlers so expected to use that
+        ASSERT_CONTAINS(str, "fullscreenHandler: scrolling");
+    }
+
+    // dwindle
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '1' })"));
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 2,2");
+        ASSERT_CONTAINS(str, "size: 1916,1076");
+        ASSERT_CONTAINS(str, "workspace: 1");
+        ASSERT_CONTAINS(str, "fullscreen: 1");
+        ASSERT_CONTAINS(str, "fullscreenClient: 1");
+        // No layout handler in dwindle so expect it to fall back to using the only available handler which is default
+        ASSERT_CONTAINS(str, "fullscreenHandler: default");
+    }
+
+    // scroll - try with follow = false
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '4', follow = false })"));
+    // go to that workspace post move - expect FS window to be in focus
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 4 })"));
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 2,2");
+        ASSERT_CONTAINS(str, "size: 1916,1076");
+        ASSERT_CONTAINS(str, "workspace: 4");
+        ASSERT_CONTAINS(str, "fullscreen: 1");
+        ASSERT_CONTAINS(str, "fullscreenClient: 1");
+        // It's coming from a default handler so expect it to remain as such
+        ASSERT_CONTAINS(str, "fullscreenHandler: default");
+    }
+
+    // Testing the same things but with floating
+    // floating has no layout handled Fs so just test moving a floating FS window around with maximised and fullscreen values changing between every move
+
+    Tests::killAllWindows();
+    Tests::waitUntilWindowsN(0);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+    Tests::spawnKitty("traveller_float");
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:traveller_float' })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({mode = 'fullscreen'})"));
+
+    // workspace 1 (dwindle) - fullscreen
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 0,0");
+        ASSERT_CONTAINS(str, "size: 1920,1080");
+        ASSERT_CONTAINS(str, "workspace: 1");
+        ASSERT_CONTAINS(str, "fullscreen: 2");
+        ASSERT_CONTAINS(str, "fullscreenClient: 2");
+        ASSERT_CONTAINS(str, "fullscreenHandler: default");
+        ASSERT_CONTAINS(str, "floating: 1");
+    }
+
+    // move to workspace 2 (master) - still fullscreen, then toggle to maximized
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '2' })"));
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 0,0");
+        ASSERT_CONTAINS(str, "size: 1920,1080");
+        ASSERT_CONTAINS(str, "workspace: 2");
+        ASSERT_CONTAINS(str, "fullscreen: 2");
+        ASSERT_CONTAINS(str, "fullscreenClient: 2");
+        ASSERT_CONTAINS(str, "fullscreenHandler: default");
+        ASSERT_CONTAINS(str, "floating: 1");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({mode = 'maximized'})"));
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 2,2");
+        ASSERT_CONTAINS(str, "size: 1916,1076");
+        ASSERT_CONTAINS(str, "workspace: 2");
+        ASSERT_CONTAINS(str, "fullscreen: 1");
+        ASSERT_CONTAINS(str, "fullscreenClient: 1");
+        ASSERT_CONTAINS(str, "fullscreenHandler: default");
+        ASSERT_CONTAINS(str, "floating: 1");
+    }
+
+    // move to workspace 3 (monocle) - still maximized, then toggle to fullscreen
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '3' })"));
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 2,2");
+        ASSERT_CONTAINS(str, "size: 1916,1076");
+        ASSERT_CONTAINS(str, "workspace: 3");
+        ASSERT_CONTAINS(str, "fullscreen: 1");
+        ASSERT_CONTAINS(str, "fullscreenClient: 1");
+        ASSERT_CONTAINS(str, "fullscreenHandler: default");
+        ASSERT_CONTAINS(str, "floating: 1");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({mode = 'fullscreen'})"));
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 0,0");
+        ASSERT_CONTAINS(str, "size: 1920,1080");
+        ASSERT_CONTAINS(str, "workspace: 3");
+        ASSERT_CONTAINS(str, "fullscreen: 2");
+        ASSERT_CONTAINS(str, "fullscreenClient: 2");
+        ASSERT_CONTAINS(str, "fullscreenHandler: default");
+        ASSERT_CONTAINS(str, "floating: 1");
+    }
+
+    // move to workspace 4 (scrolling) - still fullscreen, then toggle to maximized
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '4' })"));
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 0,0");
+        ASSERT_CONTAINS(str, "size: 1920,1080");
+        ASSERT_CONTAINS(str, "workspace: 4");
+        ASSERT_CONTAINS(str, "fullscreen: 2");
+        ASSERT_CONTAINS(str, "fullscreenClient: 2");
+        ASSERT_CONTAINS(str, "fullscreenHandler: default");
+        ASSERT_CONTAINS(str, "floating: 1");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({mode = 'maximized'})"));
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 2,2");
+        ASSERT_CONTAINS(str, "size: 1916,1076");
+        ASSERT_CONTAINS(str, "workspace: 4");
+        ASSERT_CONTAINS(str, "fullscreen: 1");
+        ASSERT_CONTAINS(str, "fullscreenClient: 1");
+        ASSERT_CONTAINS(str, "fullscreenHandler: default");
+        ASSERT_CONTAINS(str, "floating: 1");
+    }
+
+    // move to workspace 5 (scrolling) with follow = false - still maximized, then toggle to fullscreen
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '5', follow = false })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 5 })"));
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 2,2");
+        ASSERT_CONTAINS(str, "size: 1916,1076");
+        ASSERT_CONTAINS(str, "workspace: 5");
+        ASSERT_CONTAINS(str, "fullscreen: 1");
+        ASSERT_CONTAINS(str, "fullscreenClient: 1");
+        ASSERT_CONTAINS(str, "fullscreenHandler: default");
+        ASSERT_CONTAINS(str, "floating: 1");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({mode = 'fullscreen'})"));
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 0,0");
+        ASSERT_CONTAINS(str, "size: 1920,1080");
+        ASSERT_CONTAINS(str, "workspace: 5");
+        ASSERT_CONTAINS(str, "fullscreen: 2");
+        ASSERT_CONTAINS(str, "fullscreenClient: 2");
+        ASSERT_CONTAINS(str, "fullscreenHandler: default");
+        ASSERT_CONTAINS(str, "floating: 1");
+    }
+
+    // move back to workspace 1 (dwindle) with follow = false - still fullscreen
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '1', follow = false })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 1 })"));
+    {
+        const auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 0,0");
+        ASSERT_CONTAINS(str, "size: 1920,1080");
+        ASSERT_CONTAINS(str, "workspace: 1");
+        ASSERT_CONTAINS(str, "fullscreen: 2");
+        ASSERT_CONTAINS(str, "fullscreenClient: 2");
+        ASSERT_CONTAINS(str, "fullscreenHandler: default");
+        ASSERT_CONTAINS(str, "floating: 1");
+    }
+}

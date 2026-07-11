@@ -257,38 +257,39 @@ namespace Monitor {
         };
 
         // methods
-        void        onConnect(bool noRule);
-        void        onDisconnect(bool destroy = false);
-        void        applyCMType(NCMType::eCMType cmType, NTransferFunction::eTF cmSdrEotf);
-        void        addDamage(const pixman_region32_t* rg);
-        void        addDamage(const CRegion& rg);
-        void        addDamage(const CBox& box);
-        void        scheduleFrame(Aquamarine::IOutput::scheduleFrameReason reason = Aquamarine::IOutput::AQ_SCHEDULE_CLIENT_UNKNOWN);
-        bool        shouldSkipScheduleFrameOnMouseEvent();
-        void        setMirror(const std::string&);
-        bool        isMirror();
-        float       getDefaultScale();
-        void        changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal = false, bool noMouseMove = false, bool noFocus = false);
-        void        changeWorkspace(const WORKSPACEID& id, bool internal = false, bool noMouseMove = false, bool noFocus = false);
-        void        setSpecialWorkspace(const PHLWORKSPACE& pWorkspace);
-        void        setSpecialWorkspace(const WORKSPACEID& id);
-        WORKSPACEID activeWorkspaceID();
-        WORKSPACEID activeSpecialWorkspaceID();
-        void        scheduleDone();
-        uint32_t    isSolitaryBlocked(bool full = false);
-        void        recheckSolitary();
-        uint8_t     isTearingBlocked(bool full = false);
-        void        updateSurfaceScaleTransformDetails();
-        bool        updateTearing();
-        uint16_t    isDSBlocked(bool full = false);
-        bool        attemptDirectScanout();
-        void        handleDSleave();
-        bool        canAttemptDirectScanoutFast() const;
-        bool        isMultiGPU();
-        void        setCTM(const Mat3x3& ctm);
-        void        onCursorMovedOnMonitor();
-        void        setDPMS(bool on);
-        bool        shouldUseSoftwareCursors();
+        void         onConnect(bool noRule);
+        void         onDisconnect(bool destroy = false);
+        void         applyCMType(NCMType::eCMType cmType, NTransferFunction::eTF cmSdrEotf);
+        void         addDamage(const pixman_region32_t* rg);
+        void         addDamage(const CRegion& rg);
+        void         addDamage(const CBox& box);
+        void         scheduleFrame(Aquamarine::IOutput::scheduleFrameReason reason = Aquamarine::IOutput::AQ_SCHEDULE_CLIENT_UNKNOWN);
+        bool         shouldSkipScheduleFrameOnMouseEvent();
+        void         setMirror(const std::string&);
+        bool         isMirror();
+        float        getDefaultScale();
+        void         changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal = false, bool noMouseMove = false, bool noFocus = false);
+        void         changeWorkspace(const WORKSPACEID& id, bool internal = false, bool noMouseMove = false, bool noFocus = false);
+        void         setSpecialWorkspace(const PHLWORKSPACE& pWorkspace);
+        void         setSpecialWorkspace(const WORKSPACEID& id);
+        PHLWORKSPACE getCurrentWorkspace();
+        WORKSPACEID  activeWorkspaceID();
+        WORKSPACEID  activeSpecialWorkspaceID();
+        void         scheduleDone();
+        uint32_t     isSolitaryBlocked(bool full = false);
+        void         recheckSolitary();
+        uint8_t      isTearingBlocked(bool full = false);
+        void         updateSurfaceScaleTransformDetails();
+        bool         updateTearing();
+        uint16_t     isDSBlocked(bool full = false);
+        bool         attemptDirectScanout();
+        void         handleDSleave();
+        bool         canAttemptDirectScanoutFast() const;
+        bool         isMultiGPU();
+        void         setCTM(const Mat3x3& ctm);
+        void         onCursorMovedOnMonitor();
+        void         setDPMS(bool on);
+        bool         shouldUseSoftwareCursors();
 
         // IMonitorQueryable / IMonitorArrangeable
         virtual MONITORID                   id() const override;
@@ -321,29 +322,25 @@ namespace Monitor {
         bool applyMonitorRuleSoft(Config::CMonitorRule&& pMonitorRule);
 
         //
-        const Mat3x3& getTransformMatrix();
-        const Mat3x3& getScaleMatrix();
+        const Mat3x3&                                               getTransformMatrix();
+        const Mat3x3&                                               getScaleMatrix();
 
-        void          debugLastPresentation(const std::string& message);
+        void                                                        debugLastPresentation(const std::string& message);
 
-        bool          supportsWideColor();
-        bool          supportsHDR();
-        float         minLuminance(float defaultValue = 0);
-        int           maxLuminance(int defaultValue = 80);
-        int           maxAvgLuminance(int defaultValue = 80);
-        float         maxFALL();
-        float         maxCLL();
+        bool                                                        supportsWideColor();
+        bool                                                        supportsHDR();
+        float                                                       minLuminance(float defaultValue = 0);
+        int                                                         maxLuminance(int defaultValue = 80);
+        int                                                         maxAvgLuminance(int defaultValue = 80);
+        float                                                       maxFALL();
+        float                                                       maxCLL();
 
-        bool          wantsWideColor();
-        bool          wantsHDR();
+        bool                                                        wantsWideColor();
+        bool                                                        wantsHDR();
 
-        bool          inHDR();
-        bool          gammaRampsInUse();
+        bool                                                        inHDR();
+        bool                                                        gammaRampsInUse();
 
-        /// Has an active workspace with a real fullscreen window (includes special workspace)
-        bool inFullscreenMode();
-        /// Get fullscreen window from active or special workspace
-        PHLWINDOW                                                   getFullscreenWindow();
         std::optional<NColorManagement::PImageDescription>          getFSImageDescription();
 
         NColorManagement::SPCPRimaries                              getMasteringPrimaries();

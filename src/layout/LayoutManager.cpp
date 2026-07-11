@@ -1,6 +1,7 @@
 #include "LayoutManager.hpp"
 
-#include "managers/EventManager.hpp"
+#include "../managers/EventManager.hpp"
+#include "../managers/fullscreen/FullscreenController.hpp"
 #include "space/Space.hpp"
 #include "target/Target.hpp"
 
@@ -31,7 +32,17 @@ void CLayoutManager::changeFloatingMode(SP<ITarget> target) {
     if (!target->space())
         return;
 
+    auto pastFsMode = Fullscreen::FSMODE_NONE;
+    // If changing floating state of grouped window, unFS then re-FS to properly apply floating related properties
+    if (Fullscreen::controller()->isFullscreen(target->window())) {
+        pastFsMode = Fullscreen::controller()->getFullscreenModes(target->window()).internal;
+        Fullscreen::controller()->setFullscreenMode(target->window(), Fullscreen::FSMODE_NONE);
+    }
+
     target->space()->toggleTargetFloating(target);
+
+    if (pastFsMode != Fullscreen::FSMODE_NONE)
+        Fullscreen::controller()->setFullscreenMode(target->window(), pastFsMode);
 
     g_pEventManager->postEvent(SHyprIPCEvent({
         .event = "changefloatingmode",
@@ -100,13 +111,6 @@ void CLayoutManager::moveTarget(const Vector2D& Δ, SP<ITarget> target) {
 
 void CLayoutManager::endDragTarget() {
     m_dragStateController->dragEnd();
-}
-
-eFullscreenRequestResult CLayoutManager::fullscreenRequestForTarget(SP<ITarget> target, eFullscreenMode currentEffectiveMode, eFullscreenMode effectiveMode) {
-    if (target && target->space())
-        return target->space()->setFullscreen(target, currentEffectiveMode, effectiveMode);
-
-    return FULLSCREEN_REQUEST_DEFAULT;
 }
 
 void CLayoutManager::switchTargets(SP<ITarget> a, SP<ITarget> b, bool preserveFocus) {
@@ -220,7 +224,7 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
     if (*SNAPWINDOWGAP) {
         const double GAPSIZE       = *SNAPWINDOWGAP;
         const auto   WSID          = DRAGGINGWINDOW->workspaceID();
-        const bool   HASFULLSCREEN = DRAGGINGWINDOW->m_workspace && DRAGGINGWINDOW->m_workspace->m_hasFullscreenWindow;
+        const bool   HASFULLSCREEN = DRAGGINGWINDOW->m_workspace && Fullscreen::controller()->hasFullscreen(DRAGGINGWINDOW->m_workspace);
 
         const auto*  GAPSIN = *SNAPRESPECTGAPS ? sc<Config::CCssGapData*>(PGAPSIN.ptr()) : &GAPSNONE;
         const double GAPSX  = GAPSIN->m_left + GAPSIN->m_right;

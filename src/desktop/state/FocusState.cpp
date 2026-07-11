@@ -9,6 +9,7 @@
 #include "../../xwayland/XSurface.hpp"
 #include "../../protocols/PointerConstraints.hpp"
 #include "animation/WorkspaceAnimationController.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../../layout/LayoutManager.hpp"
 #include "../../event/EventBus.hpp"
 
@@ -28,15 +29,16 @@ struct SFullscreenWorkspaceFocusResult {
 };
 
 static SFullscreenWorkspaceFocusResult onFullscreenWorkspaceFocusWindow(PHLWINDOW pWindow, bool forceFSCycle) {
-    const auto FSWINDOW = pWindow->m_workspace->getFullscreenWindow();
-    const auto FSMODE   = pWindow->m_workspace->m_fullscreenMode;
+    const auto FSWINDOW        = Fullscreen::controller()->getFullscreenWindow(pWindow->m_workspace);
+    const auto FSMODE_INTERNAL = Fullscreen::controller()->getFullscreenModes(pWindow->m_workspace).internal;
+    const auto LAYOUT_HANDLED  = Fullscreen::controller()->layoutManagedFS(FSWINDOW);
 
     if (pWindow == FSWINDOW)
         return {}; // no conflict
 
     if (pWindow->m_isFloating) {
         // if the window is floating, just bring it to the top
-        pWindow->m_createdOverFullscreen = true;
+        pWindow->m_allowedOverFullscreen = true;
         pWindow->updateFullscreenInputState();
         Animation::Workspace::setFullscreenFloatingFade(pWindow, 1.F);
         g_pHyprRenderer->damageWindow(pWindow);
@@ -52,14 +54,14 @@ static SFullscreenWorkspaceFocusResult onFullscreenWorkspaceFocusWindow(PHLWINDO
         case 2:
             // undo fs, unless we force a cycle
             if (!forceFSCycle) {
-                g_pCompositor->setWindowFullscreenInternal(FSWINDOW, FSMODE_NONE);
+                Fullscreen::controller()->setFullscreenMode(FSWINDOW, Fullscreen::FSMODE_NONE);
                 break;
             }
             [[fallthrough]];
         case 1:
-            // replace fullscreen
-            g_pCompositor->setWindowFullscreenInternal(FSWINDOW, FSMODE_NONE);
-            g_pCompositor->setWindowFullscreenInternal(pWindow, FSMODE);
+            // replace fullscreen using the layoutHandled mode from prev FS window
+            Fullscreen::controller()->setFullscreenMode(FSWINDOW, Fullscreen::FSMODE_NONE);
+            Fullscreen::controller()->setFullscreenMode(pWindow, FSMODE_INTERNAL, std::nullopt, LAYOUT_HANDLED);
             break;
 
         default: Log::logger->log(Log::ERR, "Invalid misc:on_focus_under_fullscreen mode: {}", *PONFOCUSUNDERFS); break;
@@ -73,8 +75,8 @@ void CFocusState::fullWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWL
         if (!pWindow->m_workspace)
             return;
 
-        const auto CURRENT_FS_MODE = pWindow->m_workspace->m_hasFullscreenWindow ? pWindow->m_workspace->m_fullscreenMode : FSMODE_NONE;
-        if (CURRENT_FS_MODE != FSMODE_NONE) {
+        const auto FSWINDOW = Fullscreen::controller()->getFullscreenWindow(pWindow->m_workspace);
+        if (FSWINDOW && !Fullscreen::controller()->layoutManagedFS(FSWINDOW)) {
             const auto RESULT = onFullscreenWorkspaceFocusWindow(pWindow, forceFSCycle);
             if (RESULT.overrideFocusWindow)
                 pWindow = RESULT.overrideFocusWindow;

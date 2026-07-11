@@ -5,11 +5,12 @@
 #include "../../../target/WindowTarget.hpp"
 #include "../../../LayoutManager.hpp"
 
+#include "../../../../managers/fullscreen/handler/FullscreenHandler.hpp"
+
 #include "../../../../config/ConfigValue.hpp"
 #include "../../../../desktop/state/FocusState.hpp"
 #include "../../../../desktop/history/WindowHistoryTracker.hpp"
 #include "../../../../output/Monitor.hpp"
-#include "../../../../Compositor.hpp"
 #include "../../../../state/MonitorState.hpp"
 #include "../../../../event/EventBus.hpp"
 
@@ -127,8 +128,14 @@ void CMonocleAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRe
 }
 
 void CMonocleAlgorithm::recalculate(eRecalculateReason reason) {
-    if (m_targetDatas.empty())
+    if (m_targetDatas.empty() || !m_parent || !m_parent->space())
         return;
+
+    // Avoid further pos recalc if in fullscreen
+    if (Fullscreen::controller()->hasFullscreen(m_parent->space()->workspace(), true)) {
+        m_defaultFullscreenHandler->syncTargetSizeAndPosition();
+        return;
+    }
 
     const auto WORK_AREA = m_parent->space()->workArea();
 

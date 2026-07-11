@@ -4,6 +4,7 @@
 #include "../../desktop/view/Window.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../managers/eventLoop/EventLoopTimer.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../Renderer.hpp"
 
 #include <algorithm>
@@ -26,7 +27,7 @@ bool CMotionBlurTransformer::shouldEnable(PHLWINDOW window) {
     if (!window)
         return false;
 
-    return *PMBENABLED && *PMBSAMPLES > 1 && !window->isFullscreen();
+    return *PMBENABLED && *PMBSAMPLES > 1 && !Fullscreen::controller()->isFullscreen(window);
 }
 
 SP<Render::IFramebuffer> CMotionBlurTransformer::transform(SP<Render::IFramebuffer> in) {

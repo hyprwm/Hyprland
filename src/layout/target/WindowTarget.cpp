@@ -11,6 +11,8 @@
 #include "../../render/Renderer.hpp"
 #include "../../desktop/state/FloatState.hpp"
 #include "../../state/MonitorState.hpp"
+#include "../../desktop/Workspace.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 
@@ -38,36 +40,16 @@ void CWindowTarget::setPositionGlobal(const STargetBox& box, uint8_t flags) {
 }
 
 void CWindowTarget::updatePos(uint8_t flags) {
+
+    if (!m_window)
+        return;
+
     g_pHyprRenderer->damageWindow(m_window.lock());
     CScopeGuard x([this] { g_pHyprRenderer->damageWindow(m_window.lock()); });
 
     const bool  CONFIGURECLIENT = !(flags & TARGET_UPDATE_NO_CLIENT_CONFIGURE);
 
-    if (!m_space)
-        return;
-
-    if (fullscreenMode() == FSMODE_FULLSCREEN && !layoutManagedFullscreen())
-        return;
-
-    if (floating() && fullscreenMode() != FSMODE_MAXIMIZED) {
-        *m_window->m_realPosition = m_box.logicalBox.pos();
-        *m_window->m_realSize     = m_box.logicalBox.size();
-
-        if (CONFIGURECLIENT)
-            m_window->sendWindowSize();
-        m_window->updateWindowDecos();
-
-        return;
-    }
-
-    // Tiled is more complicated.
-
-    // if we are in maximized, force the box to be max work area.
-    // TODO: this shouldn't be here.
-    if (fullscreenMode() == FSMODE_MAXIMIZED && !layoutManagedFullscreen())
-        ITarget::setPositionGlobal({.logicalBox = m_space->workArea(floating())});
-
-    if (!m_space->workspace())
+    if (!m_space || !m_space->workspace())
         return;
 
     const auto PMONITOR         = m_space->workspace()->m_monitor;
@@ -84,14 +66,47 @@ void CWindowTarget::updatePos(uint8_t flags) {
         return;
     }
 
-    if ((fullscreenMode() == FSMODE_FULLSCREEN || fullscreenMode() == FSMODE_MAXIMIZED) && layoutManagedFullscreen()) {
-        CBox nodeBox   = m_box.logicalBox;
-        CBox visualBox = m_box.visualBox.empty() ? nodeBox : m_box.visualBox;
-        nodeBox.round();
-        visualBox.round();
+    // Non-FS Floating Windows
+    if (floating() && m_window && !Fullscreen::controller()->isFullscreen(m_window.lock())) {
+        *m_window->m_realPosition = m_box.logicalBox.pos();
+        *m_window->m_realSize     = m_box.logicalBox.size();
 
-        *m_window->m_realSize     = visualBox.size();
-        *m_window->m_realPosition = visualBox.pos();
+        if (CONFIGURECLIENT)
+            m_window->sendWindowSize();
+        m_window->updateWindowDecos();
+
+        return;
+    }
+
+    /* FS Handling */
+
+    // prevent re-setting an FS window's pos after it is set by the FS calls
+    if (m_window && Fullscreen::controller()->isFullscreen(m_window.lock(), std::nullopt, true)) {
+        if (!Fullscreen::controller()->m_windowPosSettingQueued)
+            return;
+        Fullscreen::controller()->m_windowPosSettingQueued = false;
+    }
+
+    // Default Handled FS (floating or tiling)
+    if (const auto FSMODES = Fullscreen::controller()->getFullscreenModes(m_window.lock());
+        FSMODES.internal != Fullscreen::FSMODE_NONE && !Fullscreen::controller()->layoutManagedFS(m_self->window())) {
+
+        if (FSMODES.internal == Fullscreen::FSMODE_FULLSCREEN) {
+            *m_window->m_realPosition = m_box.logicalBox.pos();
+            *m_window->m_realSize     = m_box.logicalBox.size();
+
+        } else if (FSMODES.internal == Fullscreen::FSMODE_MAXIMIZED) {
+            CBox nodeBox   = m_box.logicalBox;
+            CBox visualBox = m_box.visualBox.empty() ? nodeBox : m_box.visualBox;
+            nodeBox.round();
+            visualBox.round();
+
+            // Reserved area must be updated before this is called
+            const auto RESERVED = m_window->getFullWindowReservedArea();
+
+            *m_window->m_realPosition = visualBox.pos() + RESERVED.topLeft;
+            *m_window->m_realSize     = visualBox.size() - (RESERVED.topLeft + RESERVED.bottomRight);
+        }
 
         m_window->updateWindowDecos();
         if (CONFIGURECLIENT)
@@ -99,8 +114,32 @@ void CWindowTarget::updatePos(uint8_t flags) {
         return;
     }
 
-    if (fullscreenMode() == FSMODE_FULLSCREEN && !layoutManagedFullscreen())
+    // Layout handled FS
+    if (const auto FSMODES = Fullscreen::controller()->getFullscreenModes(m_window.lock());
+        FSMODES.internal != Fullscreen::FSMODE_NONE && Fullscreen::controller()->layoutManagedFS(m_self->window())) {
+
+        CBox nodeBox   = m_box.logicalBox;
+        CBox visualBox = m_box.visualBox.empty() ? nodeBox : m_box.visualBox;
+        nodeBox.round();
+        visualBox.round();
+        if (FSMODES.internal == Fullscreen::FSMODE_FULLSCREEN) {
+            *m_window->m_realSize     = visualBox.size();
+            *m_window->m_realPosition = visualBox.pos();
+        } else if (FSMODES.internal == Fullscreen::FSMODE_MAXIMIZED) {
+
+            // Reserved area must be updated before this is called
+            const auto RESERVED       = m_window->getFullWindowReservedArea();
+            *m_window->m_realPosition = visualBox.pos() + RESERVED.topLeft;
+            *m_window->m_realSize     = visualBox.size() - (RESERVED.topLeft + RESERVED.bottomRight);
+        }
+
+        m_window->updateWindowDecos();
+        if (CONFIGURECLIENT)
+            m_window->sendWindowSize();
         return;
+    }
+
+    /* Non-Fs Tiled Windows */
 
     g_pHyprRenderer->damageWindow(window());
 
@@ -132,7 +171,7 @@ void CWindowTarget::updatePos(uint8_t flags) {
 
         Vector2D          ratioPadding;
 
-        if ((*REQUESTEDRATIO).y != 0 && m_space->algorithm()->tiledTargets() <= 1 && fullscreenMode() == FSMODE_NONE) {
+        if ((*REQUESTEDRATIO).y != 0 && m_space->algorithm()->tiledTargets() <= 1 && m_window && !Fullscreen::controller()->isFullscreen(m_window.lock())) {
             const Vector2D originalSize = MONITOR_WORKAREA.size();
 
             const double   requestedRatio = (*REQUESTEDRATIO).x / (*REQUESTEDRATIO).y;
@@ -160,7 +199,7 @@ void CWindowTarget::updatePos(uint8_t flags) {
         calcSize = calcSize - GAPOFFSETTOPLEFT - GAPOFFSETBOTTOMRIGHT - ratioPadding;
     }
 
-    if (isPseudo() && fullscreenMode() == FSMODE_NONE) {
+    if (isPseudo() && m_window && !Fullscreen::controller()->isFullscreen(m_window.lock())) {
         // Calculate pseudo
         float scale = 1;
 
@@ -192,8 +231,9 @@ void CWindowTarget::updatePos(uint8_t flags) {
 
     if (*PCLAMP_TILED) {
         Vector2D minSize = m_window->m_ruleApplicator->minSize().valueOr(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE});
-        Vector2D maxSize = m_window->isFullscreen() ? Vector2D{INFINITY, INFINITY} : m_window->m_ruleApplicator->maxSize().valueOr(Vector2D{INFINITY, INFINITY});
-        calcSize         = calcSize.clamp(minSize, maxSize);
+        Vector2D maxSize =
+            Fullscreen::controller()->isFullscreen(m_window.lock()) ? Vector2D{INFINITY, INFINITY} : m_window->m_ruleApplicator->maxSize().valueOr(Vector2D{INFINITY, INFINITY});
+        calcSize = calcSize.clamp(minSize, maxSize);
 
         calcPos += (availableSpace - calcSize) / 2.0;
 
@@ -201,7 +241,7 @@ void CWindowTarget::updatePos(uint8_t flags) {
         calcPos.y = std::clamp(calcPos.y, MONITOR_WORKAREA.y, std::max(MONITOR_WORKAREA.y, MONITOR_WORKAREA.y + MONITOR_WORKAREA.h - calcSize.y));
     }
 
-    if (m_window->onSpecialWorkspace() && !m_window->isFullscreen()) {
+    if (m_window->onSpecialWorkspace() && m_window && !Fullscreen::controller()->isFullscreen(m_window.lock())) {
         // if special, we adjust the coords a bit
         static auto PSCALEFACTOR = CConfigValue<Config::FLOAT>("dwindle:special_scale_factor");
 
@@ -363,17 +403,6 @@ std::expected<SGeometryRequested, eGeometryFailure> CWindowTarget::desiredGeomet
 
 PHLWINDOW CWindowTarget::window() const {
     return m_window.lock();
-}
-
-eFullscreenMode CWindowTarget::fullscreenMode() {
-    return m_window->m_fullscreenState.internal;
-}
-
-void CWindowTarget::setFullscreenMode(eFullscreenMode mode) {
-    if (floating() && m_window->m_fullscreenState.internal == FSMODE_NONE)
-        rememberFloatingSize(m_box.logicalBox.size());
-
-    m_window->m_fullscreenState.internal = mode;
 }
 
 std::optional<Vector2D> CWindowTarget::minSize() {

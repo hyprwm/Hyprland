@@ -7,6 +7,7 @@
 #include "../desktop/view/Window.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
+#include "../managers/fullscreen/FullscreenController.hpp"
 #include "../render/Renderer.hpp"
 #include "../event/EventBus.hpp"
 #include "../state/MonitorState.hpp"
@@ -333,7 +334,7 @@ void CHyprAnimationManager::tick() {
             }
         }
 
-        if (!owner.monitor->inFullscreenMode())
+        if (!Fullscreen::controller()->hasFullscreen(owner.monitor))
             owner.monitor->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_ANIMATION);
     }
 

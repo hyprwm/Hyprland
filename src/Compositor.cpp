@@ -1,4 +1,3 @@
-#include <ranges>
 
 #include "Compositor.hpp"
 #include "config/supplementary/executor/Executor.hpp"
@@ -7,11 +6,9 @@
 #include "desktop/state/FocusState.hpp"
 #include "desktop/history/WindowHistoryTracker.hpp"
 #include "desktop/history/WorkspaceHistoryTracker.hpp"
-#include "desktop/view/Group.hpp"
 #include "helpers/Splashes.hpp"
 #include "helpers/SystemInfo.hpp"
 #include "config/ConfigValue.hpp"
-#include "config/legacy/ConfigManager.hpp"
 #include "config/shared/inotify/ConfigWatcher.hpp"
 #include "config/shared/monitor/MonitorRuleManager.hpp"
 #include "pointer/cursor/CursorManager.hpp"
@@ -23,20 +20,15 @@
 #include "managers/ANRManager.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
 #include "managers/permissions/DynamicPermissionManager.hpp"
-#include "managers/screenshare/ScreenshareManager.hpp"
 #include "state/FallbackState.hpp"
-#include "state/MonitorPositionController.hpp"
 #include "state/MonitorState.hpp"
 #include "state/WorkspaceState.hpp"
-#include <algorithm>
 #include <aquamarine/output/Output.hpp>
-#include <bit>
 #include <ctime>
 #include <random>
 #include <print>
 #include <cstring>
 #include <filesystem>
-#include <unordered_set>
 #include "debug/HyprCtl.hpp"
 #include "debug/crash/CrashReporter.hpp"
 #include "render/GLRenderer.hpp"
@@ -46,32 +38,20 @@
 #endif
 #include "helpers/fs/FsUtils.hpp"
 #include "helpers/env/Env.hpp"
-#include "protocols/FractionalScale.hpp"
-#include "protocols/PointerConstraints.hpp"
-#include "protocols/LayerShell.hpp"
-#include "protocols/XDGShell.hpp"
-#include "protocols/XDGOutput.hpp"
 #include "protocols/SecurityContext.hpp"
 #include "protocols/ColorManagement.hpp"
-#include "protocols/core/Compositor.hpp"
-#include "protocols/core/Subcompositor.hpp"
-#include "desktop/view/LayerSurface.hpp"
-#include "layout/space/Space.hpp"
 #include "render/Renderer.hpp"
 #include "xwayland/XWayland.hpp"
 #include "helpers/ByteOperations.hpp"
-#include "render/decorations/CHyprGroupBarDecoration.hpp"
 
 #include "managers/KeybindManager.hpp"
 #include "managers/SessionLockManager.hpp"
 #include "managers/XWaylandManager.hpp"
 
 #include "config/ConfigManager.hpp"
-#include "config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "render/OpenGL.hpp"
 #include "managers/input/InputManager.hpp"
 #include "animation/AnimationManager.hpp"
-#include "animation/WorkspaceAnimationController.hpp"
 #include "managers/EventManager.hpp"
 #include "managers/ProtocolManager.hpp"
 #include "managers/WelcomeManager.hpp"
@@ -80,10 +60,8 @@
 #include "errorOverlay/Overlay.hpp"
 #include "notification/NotificationOverlay.hpp"
 #include "debug/Overlay.hpp"
-#include "output/MonitorFrameScheduler.hpp"
 #include "i18n/Engine.hpp"
 #include "layout/LayoutManager.hpp"
-#include "layout/target/WindowTarget.hpp"
 #include "event/EventBus.hpp"
 
 #include <hyprutils/string/String.hpp>
@@ -812,156 +790,6 @@ void CCompositor::startCompositor() {
     // This blocks until we are done.
     Log::logger->log(Log::DEBUG, "Hyprland is ready, running the event loop!");
     g_pEventLoopManager->enterLoop();
-}
-
-void CCompositor::changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON) {
-    setWindowFullscreenClient(
-        PWINDOW,
-        sc<eFullscreenMode>(ON ? sc<uint8_t>(PWINDOW->m_fullscreenState.client) | sc<uint8_t>(MODE) : (sc<uint8_t>(PWINDOW->m_fullscreenState.client) & sc<uint8_t>(~MODE))));
-}
-
-// TODO: move fs functions to Desktop::
-void CCompositor::setWindowFullscreenInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE) {
-    if (!PWINDOW)
-        return;
-    if (PWINDOW->m_ruleApplicator->syncFullscreen().valueOrDefault())
-        setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = MODE, .client = MODE});
-    else
-        setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = MODE, .client = PWINDOW->m_fullscreenState.client});
-}
-
-void CCompositor::setWindowFullscreenClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE) {
-    if (PWINDOW->m_ruleApplicator->syncFullscreen().valueOrDefault())
-        setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = MODE, .client = MODE});
-    else
-        setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = PWINDOW->m_fullscreenState.internal, .client = MODE});
-}
-
-void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::View::SFullscreenState state) {
-    static auto PDIRECTSCANOUT      = CConfigValue<Config::INTEGER>("render:direct_scanout");
-    static auto PALLOWPINFULLSCREEN = CConfigValue<Config::INTEGER>("binds:allow_pin_fullscreen");
-
-    if (!validMapped(PWINDOW))
-        return;
-
-    state.internal = std::clamp(state.internal, sc<eFullscreenMode>(0), FSMODE_MAX);
-    state.client   = std::clamp(state.client, sc<eFullscreenMode>(0), FSMODE_MAX);
-
-    const auto PMONITOR   = PWINDOW->m_monitor.lock();
-    const auto PWORKSPACE = PWINDOW->m_workspace;
-
-    if (PWINDOW->m_isFloating && PWINDOW->m_fullscreenState.internal == FSMODE_NONE && state.internal != FSMODE_NONE)
-        g_pHyprRenderer->damageWindow(PWINDOW);
-
-    if (*PALLOWPINFULLSCREEN && !PWINDOW->m_pinFullscreened && !PWINDOW->isFullscreen() && PWINDOW->m_pinned) {
-        PWINDOW->m_pinned          = false;
-        PWINDOW->m_pinFullscreened = true;
-    }
-
-    if (PWORKSPACE->m_hasFullscreenWindow && !PWINDOW->isFullscreen())
-        setWindowFullscreenInternal(PWORKSPACE->getFullscreenWindow(), FSMODE_NONE);
-
-    const bool CHANGEINTERNAL = !PWINDOW->m_pinned && PWINDOW->m_fullscreenState.internal != state.internal;
-
-    // arm m_suppressNextMaximize to swallow the set_maximized echo on fullscreen exit
-    if (CHANGEINTERNAL && !PWINDOW->m_isFloating && (PWINDOW->m_fullscreenState.internal & FSMODE_FULLSCREEN) && !(state.internal & FSMODE_FULLSCREEN))
-        PWINDOW->m_suppressNextMaximize = true;
-
-    if (*PALLOWPINFULLSCREEN && PWINDOW->m_pinFullscreened && PWINDOW->isFullscreen() && !PWINDOW->m_pinned && state.internal == FSMODE_NONE) {
-        PWINDOW->m_pinned          = true;
-        PWINDOW->m_pinFullscreened = false;
-    }
-
-    // TODO: update the state on syncFullscreen changes
-    if (!CHANGEINTERNAL && PWINDOW->m_ruleApplicator->syncFullscreen().valueOrDefault())
-        return;
-
-    PWINDOW->m_fullscreenState.client = state.client;
-    g_pXWaylandManager->setWindowFullscreen(PWINDOW, state.client & FSMODE_FULLSCREEN);
-
-    if (!CHANGEINTERNAL) {
-        PWINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
-                                                     Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-        PWINDOW->updateDecorationValues();
-        g_layoutManager->recalculateMonitor(PMONITOR);
-        return;
-    }
-
-    // "Effective mode" is the fullscreen mode according to which a window is rendered.
-    // For fullscreen modes `FSMODE_NONE` (0), `FSMODE_MAXIMIZED` (1), and `FSMODE_FULLSCREEN` (2),
-    // the effective mode is the same as the fullscreen mode;
-    // for fullscreen mode `FSMODE_MAXIMIZED|FSMODE_FULLSCREEN` (a window is maximized then fullscreened),
-    // the effective mode is `FSMODE_FULLSCREEN` (2), since the window is rendered as a fullscreen window.
-    // But when the latter window exists fullscreen, it will return to `FSMODE_MAXIMIZED`, rather than `FSMODE_NONE`.
-    const eFullscreenMode OLD_EFFECTIVE_MODE = sc<eFullscreenMode>(std::bit_floor(sc<uint8_t>(PWINDOW->m_fullscreenState.internal)));
-    const eFullscreenMode NEW_EFFECTIVE_MODE = sc<eFullscreenMode>(std::bit_floor(sc<uint8_t>(state.internal)));
-
-    PWORKSPACE->m_fullscreenMode      = NEW_EFFECTIVE_MODE;
-    PWORKSPACE->m_hasFullscreenWindow = NEW_EFFECTIVE_MODE != FSMODE_NONE;
-
-    PWORKSPACE->setNoMembersAboveFullscreen();
-
-    const auto FULLSCREEN_REQUEST_RESULT = g_layoutManager->fullscreenRequestForTarget(PWINDOW->layoutTarget(), OLD_EFFECTIVE_MODE, NEW_EFFECTIVE_MODE);
-    const bool LAYOUT_HANDLED_FULLSCREEN = FULLSCREEN_REQUEST_RESULT == Layout::FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT;
-
-    if (LAYOUT_HANDLED_FULLSCREEN) {
-        PWORKSPACE->m_fullscreenMode      = FSMODE_NONE;
-        PWORKSPACE->m_hasFullscreenWindow = false;
-    } else
-        PWINDOW->m_fullscreenState.internal = state.internal;
-
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "fullscreen", .data = std::to_string(sc<int>(NEW_EFFECTIVE_MODE) != FSMODE_NONE)});
-    Event::bus()->m_events.window.fullscreen.emit(PWINDOW);
-
-    PWINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
-                                                 Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-
-    PWINDOW->updateDecorationValues();
-    g_layoutManager->recalculateMonitor(PMONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN);
-
-    // make all windows and layers on the same workspace under the fullscreen window
-    for (auto const& w : Desktop::windowState()->windows()) {
-        if (w->m_workspace == PWORKSPACE) {
-            if (!w->isFullscreen() && !w->m_pinned)
-                w->m_createdOverFullscreen = false;
-
-            w->updateFullscreenInputState();
-        }
-    }
-    for (auto const& ls : Desktop::layerState()->layers()) {
-        if (ls->m_monitor == PMONITOR)
-            ls->m_aboveFullscreen = false;
-    }
-
-    if (!LAYOUT_HANDLED_FULLSCREEN)
-        Animation::Workspace::setFullscreenFadeAnimation(PWORKSPACE,
-                                                         PWORKSPACE->m_hasFullscreenWindow ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
-
-    PWINDOW->sendWindowSize(true);
-
-    // recheck the work area again because visibility checks report 1 window on fs / maximize as tiled + visible
-    // because the windows below fs are not visible obviously but because we update fullscreen fade which sets that
-    // state later, it does it wrong
-    PWORKSPACE->updateWindows();
-    PWORKSPACE->m_space->recalculate(FULLSCREEN_REQUEST_RESULT == Layout::FULLSCREEN_REQUEST_DEFAULT ? Layout::RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN :
-                                                                                                       Layout::RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN);
-    PWORKSPACE->forceReportSizesToWindows();
-
-    g_pInputManager->recheckIdleInhibitorStatus();
-
-    // further updates require a monitor
-    if (!PMONITOR)
-        return;
-
-    // send a scanout tranche if we are entering fullscreen, and send a regular one if we aren't.
-    // ignore if DS is disabled.
-    if (!LAYOUT_HANDLED_FULLSCREEN && (*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && PWINDOW->getContentType() == CONTENT_TYPE_GAME))) {
-        auto surf = PWINDOW->getSolitaryResource();
-        if (surf)
-            g_pHyprRenderer->setSurfaceScanoutMode(surf, NEW_EFFECTIVE_MODE != FSMODE_NONE ? PMONITOR->m_self.lock() : nullptr);
-    }
-
-    Config::monitorRuleMgr()->ensureVRR(PMONITOR);
 }
 
 // returns a delta

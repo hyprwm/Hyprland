@@ -42,40 +42,35 @@ namespace Layout {
         virtual eTargetType type() = 0;
 
         // position is within its space
-        virtual void         setPositionGlobal(const STargetBox& box, uint8_t flags = TARGET_UPDATE_NONE);
-        void                 setPositionGlobal(const CBox& box, uint8_t flags = TARGET_UPDATE_NONE);
-        virtual CBox         position() const;
-        virtual void         assignToSpace(const SP<CSpace>& space, std::optional<Vector2D> focalPoint = std::nullopt);
-        virtual void         setSpaceGhost(const SP<CSpace>& space);
-        virtual SP<CSpace>   space() const;
-        virtual PHLWORKSPACE workspace() const;
-        virtual PHLWINDOW    window() const = 0;
-        virtual void         recalc();
-        virtual bool         wasTiling() const;
-        virtual void         setWasTiling(bool x);
+        virtual void                                                setPositionGlobal(const STargetBox& box, uint8_t flags = TARGET_UPDATE_NONE);
+        void                                                        setPositionGlobal(const CBox& box, uint8_t flags = TARGET_UPDATE_NONE);
+        virtual CBox                                                position() const;
+        virtual void                                                assignToSpace(const SP<CSpace>& space, std::optional<Vector2D> focalPoint = std::nullopt);
+        virtual void                                                setSpaceGhost(const SP<CSpace>& space);
+        virtual SP<CSpace>                                          space() const;
+        virtual PHLWORKSPACE                                        workspace() const;
+        virtual PHLWINDOW                                           window() const = 0;
+        virtual void                                                recalc();
+        virtual bool                                                wasTiling() const;
+        virtual void                                                setWasTiling(bool x);
 
-        virtual void         rememberFloatingSize(const Vector2D& size);
-        virtual Vector2D     lastFloatingSize() const;
+        virtual void                                                rememberFloatingSize(const Vector2D& size);
+        virtual Vector2D                                            lastFloatingSize() const;
 
-        virtual void         setPseudo(bool x);
-        virtual bool         isPseudo() const;
-        virtual void         setPseudoSize(const Vector2D& size);
-        virtual Vector2D     pseudoSize();
-        virtual void         swap(SP<ITarget> b);
-        virtual bool         layoutManagedFullscreen() const;
-        virtual void         setLayoutManagedFullscreen(bool enabled);
+        virtual void                                                setPseudo(bool x);
+        virtual bool                                                isPseudo() const;
+        virtual void                                                setPseudoSize(const Vector2D& size);
+        virtual Vector2D                                            pseudoSize();
+        virtual void                                                swap(SP<ITarget> b);
 
-        //
-        virtual bool                                                floating()                              = 0;
-        virtual void                                                setFloating(bool x)                     = 0;
-        virtual std::expected<SGeometryRequested, eGeometryFailure> desiredGeometry()                       = 0;
-        virtual eFullscreenMode                                     fullscreenMode()                        = 0;
-        virtual void                                                setFullscreenMode(eFullscreenMode mode) = 0;
-        virtual std::optional<Vector2D>                             minSize()                               = 0;
-        virtual std::optional<Vector2D>                             maxSize()                               = 0;
-        virtual void                                                damageEntire()                          = 0;
-        virtual void                                                warpPositionSize()                      = 0;
-        virtual void                                                onUpdateSpace()                         = 0;
+        virtual bool                                                floating()          = 0;
+        virtual void                                                setFloating(bool x) = 0;
+        virtual std::expected<SGeometryRequested, eGeometryFailure> desiredGeometry()   = 0;
+        virtual std::optional<Vector2D>                             minSize()           = 0;
+        virtual std::optional<Vector2D>                             maxSize()           = 0;
+        virtual void                                                damageEntire()      = 0;
+        virtual void                                                warpPositionSize()  = 0;
+        virtual void                                                onUpdateSpace()     = 0;
 
       protected:
         ITarget() = default;
@@ -84,10 +79,9 @@ namespace Layout {
         SP<CSpace>  m_space;
         WP<ITarget> m_self;
         Vector2D    m_floatingSize;
-        bool        m_pseudo                  = false;
-        bool        m_ghostSpace              = false; // ghost space means a target belongs to a space, but isn't sent to the layout
-        Vector2D    m_pseudoSize              = {1280, 720};
-        bool        m_wasTiling               = false;
-        bool        m_layoutManagedFullscreen = false;
+        bool        m_pseudo     = false;
+        bool        m_ghostSpace = false; // ghost space means a target belongs to a space, but isn't sent to the layout
+        Vector2D    m_pseudoSize = {1280, 720};
+        bool        m_wasTiling  = false;
     };
 };

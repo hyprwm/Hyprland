@@ -73,10 +73,6 @@ class CCompositor {
 
     // ------------------------------------------------- //
 
-    void                                setWindowFullscreenInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE);
-    void                                setWindowFullscreenClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE);
-    void                                setWindowFullscreenState(const PHLWINDOW PWINDOW, const Desktop::View::SFullscreenState state);
-    void                                changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON);
     Vector2D                            parseWindowVectorArgsRelative(const std::string&, const Vector2D&);
     void                                performUserChecks();
     std::optional<unsigned int>         getVTNr();

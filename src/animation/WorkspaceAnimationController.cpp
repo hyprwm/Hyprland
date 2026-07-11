@@ -9,6 +9,7 @@
 #include "../desktop/view/Window.hpp"
 #include "../layout/target/Target.hpp"
 #include "../output/Monitor.hpp"
+#include "../managers/fullscreen/FullscreenController.hpp"
 #include "wlr-layer-shell-unstable-v1.hpp"
 
 #include <hyprutils/string/VarList.hpp>
@@ -153,20 +154,24 @@ void Animation::Workspace::setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnimatio
     if (!ws)
         return;
 
-    const auto FULLSCREEN = type == ANIMATION_TYPE_IN;
-
+    const auto FULLSCREEN                 = type == ANIMATION_TYPE_IN;
+    const auto TOPMOST_COVERING_FS_WINDOW = Fullscreen::controller()->getFullscreenWindow(ws, true);
     for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace != ws)
             continue;
 
         w->updateFullscreenInputState();
 
-        if (w->m_pinned || w->isFullscreen())
+        if (w->m_pinned)
             continue;
+
+        // If there are several covering FS windows layered ontop of each other, needed to ensure FS windows are not stuck being invisible below the topmost
+        if (TOPMOST_COVERING_FS_WINDOW == w)
+            *w->alpha(WINDOW_ALPHA_FULLSCREEN) = 1.F;
 
         if (!FULLSCREEN)
             *w->alpha(WINDOW_ALPHA_FULLSCREEN) = 1.F;
-        else if (!w->isFullscreen())
+        else if (Fullscreen::controller()->getFullscreenWindow(ws, true) != w)
             *w->alpha(WINDOW_ALPHA_FULLSCREEN) = w->isAllowedOverFullscreen() ? 1.F : 0.F;
     }
 
@@ -175,11 +180,11 @@ void Animation::Workspace::setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnimatio
         return;
 
     if (ws->m_id == PMONITOR->activeWorkspaceID() || ws->m_id == PMONITOR->activeSpecialWorkspaceID()) {
-        const auto FSWINDOW = ws->getFullscreenWindow(true);
-        const auto FSMODE   = FSWINDOW ? FSWINDOW->m_target->fullscreenMode() : ws->m_fullscreenMode;
+        const auto FSWINDOW         = Fullscreen::controller()->getFullscreenWindow(ws, true);
+        const auto FS_MODE_INTERNAL = FSWINDOW ? Fullscreen::controller()->getFullscreenModes(FSWINDOW).internal : Fullscreen::FSMODE_NONE;
         for (auto const& ls : PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
             if (!ls->m_aboveFullscreen)
-                *ls->alpha()[LS_ALPHA_FADE] = FULLSCREEN && FSMODE != FSMODE_MAXIMIZED ? 0.F : 1.F;
+                *ls->alpha()[LS_ALPHA_FADE] = FULLSCREEN && FS_MODE_INTERNAL != Fullscreen::FSMODE_MAXIMIZED ? 0.F : 1.F;
         }
     }
 }
@@ -203,7 +208,7 @@ void Animation::Workspace::overrideFullscreenFadeAmount(PHLWORKSPACE ws, float f
         if (w->m_workspace != ws)
             continue;
 
-        if (w->m_pinned || w->isFullscreen())
+        if (w->m_pinned || Fullscreen::controller()->isFullscreen(w))
             continue;
 
         *w->alpha(WINDOW_ALPHA_FULLSCREEN) = fade;

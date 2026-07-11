@@ -112,11 +112,6 @@ namespace Desktop::View {
         std::string  workspace;
     };
 
-    struct SFullscreenState {
-        eFullscreenMode internal = FSMODE_NONE;
-        eFullscreenMode client   = FSMODE_NONE;
-    };
-
     class CWindow : public virtual IView, public virtual CGeometricMovableAnimated, public virtual IAlphaModifiable {
       public:
         static PHLWINDOW create(SP<CXDGSurfaceResource>);
@@ -165,24 +160,23 @@ namespace Desktop::View {
         Vector2D m_floatingOffset = Vector2D(0, 0);
 
         // for recovering relative cursor position
-        Vector2D         m_relativeCursorCoordsOnLastWarp = Vector2D(-1, -1);
+        Vector2D      m_relativeCursorCoordsOnLastWarp = Vector2D(-1, -1);
 
-        bool             m_firstMap        = false; // for layouts
-        bool             m_isFloating      = false;
-        SFullscreenState m_fullscreenState = {.internal = FSMODE_NONE, .client = FSMODE_NONE};
-        std::string      m_title           = "";
-        std::string      m_class           = "";
-        std::string      m_initialTitle    = "";
-        std::string      m_initialClass    = "";
-        PHLWORKSPACE     m_workspace;
-        PHLMONITORREF    m_monitor, m_prevMonitor;
+        bool          m_firstMap     = false; // for layouts
+        bool          m_isFloating   = false;
+        std::string   m_title        = "";
+        std::string   m_class        = "";
+        std::string   m_initialTitle = "";
+        std::string   m_initialClass = "";
+        PHLWORKSPACE  m_workspace;
+        PHLMONITORREF m_monitor, m_prevMonitor;
 
-        bool             m_isMapped = false;
+        bool          m_isMapped = false;
 
-        bool             m_requestsFloat = false;
+        bool          m_requestsFloat = false;
 
         // This is for fullscreen apps
-        bool m_createdOverFullscreen = false;
+        bool m_allowedOverFullscreen = true;
 
         // XWayland stuff
         bool  m_isX11                = false;
@@ -382,8 +376,6 @@ namespace Desktop::View {
         void                              activate(bool force = false);
         int                               surfacesCount();
         bool                              clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize);
-        bool                              isFullscreen() const;
-        bool                              isEffectiveInternalFSMode(const eFullscreenMode) const;
         int                               getRealBorderSize() const;
         float                             getScrollMouse();
         float                             getScrollTouchpad();
@@ -434,11 +426,13 @@ namespace Desktop::View {
         std::optional<Vector2D>           calculateExpression(const Math::SExpressionVec2& expr);
         std::optional<Vector2D>           minSize();
         std::optional<Vector2D>           maxSize();
-        SP<Layout::ITarget>               layoutTarget();
-        bool                              canBeGroupedInto(SP<CGroup> group);
-        void                              sendClose();
+        // Returns the highest level target of a window
+        // e.g. if the window is a part of a group, this returns the window group target
+        SP<Layout::ITarget> layoutTarget();
+        bool                canBeGroupedInto(SP<CGroup> group);
+        void                sendClose();
 
-        CBox                              getWindowMainSurfaceBox() const {
+        CBox                getWindowMainSurfaceBox() const {
             return geometricBox(GEOMETRIC_CURRENT);
         }
 

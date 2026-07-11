@@ -1614,6 +1614,7 @@ void IHyprRenderer::ensureLockTexturesRendered(bool load) {
         // this will cause a small hitch. I don't think we can do much, other than wasting VRAM and having this loaded all the time.
         m_lockDeadTexture  = loadAsset("lockdead.png");
         m_lockDead2Texture = loadAsset("lockdead2.png");
+        m_lockDead3Texture = loadAsset("lockdead.png");
 
         const auto VT = g_pCompositor->getVTNr();
 
@@ -1621,6 +1622,7 @@ void IHyprRenderer::ensureLockTexturesRendered(bool load) {
     } else {
         m_lockDeadTexture.reset();
         m_lockDead2Texture.reset();
+        m_lockDead3Texture.reset();
         m_lockTtyTextTexture.reset();
     }
 }
@@ -1676,13 +1678,19 @@ void IHyprRenderer::renderSessionLockPrimer(PHLMONITOR pMonitor) {
 }
 
 void IHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
+    if (g_pCompositor->m_startLocked && !g_pCompositor->m_startLockedCommand.empty())
+        return;
+
     const bool ANY_PRESENT = g_pSessionLockManager->anySessionLockSurfacesPresent();
 
     // ANY_PRESENT: render image2, without instructions. Lock still "alive", unless texture dead
     // else: render image, with instructions. Lock is gone.
     CBox                         monbox = {{}, pMonitor->m_pixelSize};
     CTexPassElement::SRenderData data;
-    data.tex = (ANY_PRESENT) ? m_lockDead2Texture : m_lockDeadTexture;
+    if (g_pCompositor->m_startLocked && g_pCompositor->m_startLockedCommand.empty())
+        data.tex = m_lockDead3Texture;
+    else
+        data.tex = (ANY_PRESENT) ? m_lockDead2Texture : m_lockDeadTexture;
     data.box = monbox;
     data.a   = 1;
 

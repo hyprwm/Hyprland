@@ -248,3 +248,13 @@ void CSessionLockProtocol::forceUnlock() {
 
     PROTO::lockNotify->onUnlocked();
 }
+
+void CSessionLockProtocol::forceLock() {
+    m_locked = true;
+
+    for (const auto& l : m_locks) {
+        l->sendLocked();
+    }
+
+    PROTO::lockNotify->onLocked();
+}

@@ -46,6 +46,7 @@ class CCompositor {
 
     bool                     m_initialized = false;
     bool                     m_safeMode    = false;
+    bool                     m_startLocked = false;
     SP<Aquamarine::CBackend> m_aqBackend;
 
     std::string              m_hyprTempDataRoot = "";
@@ -55,6 +56,8 @@ class CCompositor {
     std::string              m_instancePath      = "";
     std::string              m_currentSplash     = "error";
 
+    std::string              m_startLockedCommand = "";
+
     void                     initServer(std::string socketName, int socketFd);
     void                     startCompositor();
     void                     stopCompositor();
@@ -62,6 +65,7 @@ class CCompositor {
     void                     bumpNofile();
     void                     restoreNofile();
     bool                     setWatchdogFd(int fd);
+    bool                     writeWatchdogFd(std::string);
 
     bool                     m_sessionActive          = true;
     bool                     m_dpmsStateOn            = true;
@@ -99,6 +103,11 @@ class CCompositor {
     wl_event_source*               m_critSigSource  = nullptr;
     rlimit                         m_originalNofile = {};
     Hyprutils::OS::CFileDescriptor m_watchdogWriteFd;
+
+    struct {
+        CHyprSignalListener lock;
+        CHyprSignalListener unlock;
+    } m_listeners;
 };
 
 inline UP<CCompositor> g_pCompositor;

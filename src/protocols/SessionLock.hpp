@@ -74,6 +74,7 @@ class CSessionLockProtocol : public IWaylandProtocol {
 
     bool         isLocked();
     void         forceUnlock();
+    void         forceLock();
 
     struct {
         CSignalT<SP<CSessionLock>> newLock;

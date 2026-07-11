@@ -250,6 +250,7 @@ namespace Render {
 
         SP<ITexture>                       m_lockDeadTexture;
         SP<ITexture>                       m_lockDead2Texture;
+        SP<ITexture>                       m_lockDead3Texture;
         SP<ITexture>                       m_lockTtyTextTexture;
         CRenderPass*                       m_currentPass             = nullptr;
         bool                               m_monitorTransformEnabled = false; // do not modify directly

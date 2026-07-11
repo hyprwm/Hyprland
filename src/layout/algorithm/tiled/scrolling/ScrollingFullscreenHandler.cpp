@@ -475,10 +475,10 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
         }
 
         // This might happen if the target was moved to another col, so we need to unFS it properly
-        if (const auto TARGET_WINDOW = TARGET->window(); TARGET_WINDOW && m_scrollingAlgorithm->dataFor(TARGET, false)->column) {
+        if (const auto TARGET_WINDOW = TARGET->window(); TARGET_WINDOW && m_scrollingAlgorithm->dataFor(TARGET, true)->column) {
             const auto STDATA = m_scrollingAlgorithm->dataFor(TARGET, true);
             if (STDATA) {
-                const auto COL_DATA = m_scrollingAlgorithm->dataFor(TARGET, false)->column;
+                const auto COL_DATA = m_scrollingAlgorithm->dataFor(TARGET, true)->column;
                 if (COL_DATA && getFullscreenModes(TARGET).internal != FSMODE_NONE && COL_DATA->targetDatas.size() != 1)
                     controller()->setFullscreenMode(TARGET_WINDOW, FSMODE_NONE, std::nullopt, true);
             }

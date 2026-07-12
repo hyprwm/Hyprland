@@ -137,25 +137,26 @@ void CMonocleAlgorithm::recalculate(eRecalculateReason reason) {
         return;
     }
 
-    const auto WORK_AREA = m_parent->space()->workArea();
-
     for (size_t i = 0; i < m_targetDatas.size(); ++i) {
+
+        if (!m_targetDatas[i] || !m_targetDatas[i]->target || !m_targetDatas[i]->target->window())
+            continue;
+
         const auto& DATA   = m_targetDatas[i];
         const auto  TARGET = DATA->target.lock();
+        const auto  WINDOW = TARGET->window();
+        const auto  SPACE  = m_parent->space();
 
-        if (!TARGET)
-            continue;
-
-        const auto WINDOW = TARGET->window();
-        if (!WINDOW)
-            continue;
-
-        DATA->layoutBox = WORK_AREA;
-        TARGET->setPositionGlobal(WORK_AREA);
-
+        // Adjust visibility before setting pos so workspace rules like w[tv1] get the correct number of visible windows
         const bool SHOULD_BE_VISIBLE = ((int)i == m_currentVisibleIndex);
         WINDOW->setInputBlocked(Desktop::View::INPUT_BLOCK_MONOCLE_INACTIVE, !SHOULD_BE_VISIBLE);
         *WINDOW->alpha(Desktop::View::WINDOW_ALPHA_LAYOUT) = SHOULD_BE_VISIBLE ? 1.F : 0.F;
+
+        // Need to update work area for the above change to take affect on work area dimensions
+        SPACE->recheckWorkArea();
+        const auto WORK_AREA = m_parent->space()->workArea();
+        DATA->layoutBox      = WORK_AREA;
+        TARGET->setPositionGlobal(WORK_AREA);
     }
 }
 

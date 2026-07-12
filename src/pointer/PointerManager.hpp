@@ -175,9 +175,12 @@ namespace Pointer {
             int                     softwareLocks  = 0;
             bool                    hardwareFailed = false;
             CBox                    box; // logical
-            bool                    entered        = false;
-            bool                    hwApplied      = false;
-            bool                    cursorRendered = false;
+            bool                    entered             = false;
+            bool                    hwApplied           = false;
+            bool                    cursorRendered      = false;
+            bool                    initialPlaneCleared = false;
+            bool                    swRendered          = false;
+            CBox                    swRenderedBox; // logical, monitor local. valid only when swRendered
 
             SP<Aquamarine::IBuffer> cursorFrontBuffer;
         };

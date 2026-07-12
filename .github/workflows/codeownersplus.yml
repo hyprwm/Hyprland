@@ -5,7 +5,7 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  pull_request:
+  pull_request_target:
     # Note: to support more features of codeowners-plus, more event triggers
     # may be required. See https://github.com/marketplace/actions/codeowners-plus
     types: [opened, reopened, synchronize, ready_for_review]

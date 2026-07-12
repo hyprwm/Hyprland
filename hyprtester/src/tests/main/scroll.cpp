@@ -380,7 +380,6 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
 
     // under should be hidden by now
     {
-        Tests::sync(3);
         auto clients = getFromSocket("/clients");
         auto under   = getClientBlock(clients, "under");
         ASSERT_CONTAINS(under, "class: under");
@@ -414,7 +413,6 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
 
     // Check that under is still hidden
     {
-        Tests::sync(3);
         auto clients = getFromSocket("/clients");
         auto under   = getClientBlock(clients, "under");
         ASSERT_CONTAINS(under, "class: under");
@@ -520,7 +518,6 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
     }
     // under - hidden
     {
-        Tests::sync(3);
         auto clients = getFromSocket("/clients");
         auto under   = getClientBlock(clients, "under");
         ASSERT_CONTAINS(under, "class: under");
@@ -619,7 +616,6 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
     }
     // under - still hidden
     {
-        Tests::sync(3);
         auto clients = getFromSocket("/clients");
         auto under   = getClientBlock(clients, "under");
         ASSERT_CONTAINS(under, "class: under");
@@ -700,7 +696,6 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
     }
     // under - hidden
     {
-        Tests::sync(3);
         auto clients = getFromSocket("/clients");
         auto under   = getClientBlock(clients, "under");
         ASSERT_CONTAINS(under, "class: under");
@@ -781,7 +776,6 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
     }
     // under - hidden
     {
-        Tests::sync(3);
         auto clients = getFromSocket("/clients");
         auto under   = getClientBlock(clients, "under");
         ASSERT_CONTAINS(under, "class: under");

@@ -360,14 +360,10 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
 
         Considerations for the test:
             allowedOverFullscreen is used for floating windows' visibility. It's not always set for tiled ones, and don't implact their visibility.
-            visible depends on the alpha of a window, and for tiled ones in scrolling; sometimes fade animtaion are not used (scrolling btw 2 FS windows)
-            therefore in some cases, it is not a good indication of if the window is hidden or not.
 
-            acceptInput is a good metric when these two fail.
+            `visible` and `hidden` are not reliable since they are inconsistent. After they are fixed, they should be added to tested fields
 
-            allowedOverFullscreen will be used for floating widows (save for floating windows that are fullscreen themselves)
-            visible will be used in all cases except where it's known not to be set and it's reason will be noted
-            acceptInput will be used for all cases
+            acceptInput works since hidden windows don't accept input.
 
 
     */

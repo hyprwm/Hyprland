@@ -5,6 +5,77 @@
 #include <vector>
 #include "tests.hpp"
 
+TEST_CASE(monocleWorkspaceRule) {
+
+    OK(getFromSocket("/eval hl.config({ general = { layout = 'monocle' } })"));
+
+    // w[tv1]
+
+    // With monocle only having one tiled window in view at any time, this must
+
+    OK(getFromSocket("/eval hl.workspace_rule{ workspace = 'w[tv1]', gaps_out = 40}"));
+
+    // spawn 3 window, all should be compliant
+
+    Tests::spawnKitty("neutral_cat");
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: neutral_cat")
+        EXPECT_CONTAINS(str, "size: 1836,996")
+        EXPECT_CONTAINS(str, "at: 42,42")
+    }
+
+    Tests::spawnKitty("happy_cat");
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: happy_cat")
+        EXPECT_CONTAINS(str, "size: 1836,996")
+        EXPECT_CONTAINS(str, "at: 42,42")
+    }
+
+    Tests::spawnKitty("angry_cat");
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: angry_cat")
+        EXPECT_CONTAINS(str, "size: 1836,996")
+        EXPECT_CONTAINS(str, "at: 42,42")
+    }
+
+    // try closing a window, fallback window should be compliant
+
+    OK(getFromSocket("/dispatch hl.dsp.window.kill({ window = 'class:angry_cat' })"));
+    Tests::waitUntilWindowsN(2);
+
+    // focus fallback to happy_cat
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: happy_cat")
+        EXPECT_CONTAINS(str, "size: 1836,996")
+        EXPECT_CONTAINS(str, "at: 42,42")
+    }
+
+    // re-open a window after killing
+    Tests::spawnKitty("angry_cat");
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: angry_cat")
+        EXPECT_CONTAINS(str, "size: 1836,996")
+        EXPECT_CONTAINS(str, "at: 42,42")
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.kill({ window = 'class:angry_cat' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.kill({ window = 'class:happy_cat' })"));
+    Tests::waitUntilWindowsN(1);
+
+    // back to only one window on workspace
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: neutral_cat")
+        EXPECT_CONTAINS(str, "size: 1836,996")
+        EXPECT_CONTAINS(str, "at: 42,42")
+    }
+}
+
 /*
     Fullscreen Tests
 

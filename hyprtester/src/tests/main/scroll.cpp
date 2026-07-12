@@ -360,14 +360,10 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
 
         Considerations for the test:
             allowedOverFullscreen is used for floating windows' visibility. It's not always set for tiled ones, and don't implact their visibility.
-            visible depends on the alpha of a window, and for tiled ones in scrolling; sometimes fade animtaion are not used (scrolling btw 2 FS windows)
-            therefore in some cases, it is not a good indication of if the window is hidden or not.
 
-            acceptInput is a good metric when these two fail.
+            `visible` and `hidden` are not reliable since they are inconsistent. After they are fixed, they should be added to tested fields
 
-            allowedOverFullscreen will be used for floating widows (save for floating windows that are fullscreen themselves)
-            visible will be used in all cases except where it's known not to be set and it's reason will be noted
-            acceptInput will be used for all cases
+            acceptInput works since hidden windows don't accept input.
 
 
     */
@@ -388,9 +384,10 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         auto under   = getClientBlock(clients, "under");
         ASSERT_CONTAINS(under, "class: under");
         ASSERT_CONTAINS(under, "floating: 1");
+
         ASSERT_CONTAINS(under, "allowedOverFullscreen: 0");
         ASSERT_CONTAINS(under, "acceptsInput: 0");
-        ASSERT_CONTAINS(under, "visible: 0");
+
         ASSERT_CONTAINS(under, "fullscreen: 0");
         ASSERT_CONTAINS(under, "fullscreenClient: 0");
     }
@@ -407,11 +404,8 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         auto tiledOne = getClientBlock(clients, "tiledOne");
         ASSERT_CONTAINS(tiledOne, "class: tiledOne");
         ASSERT_CONTAINS(tiledOne, "floating: 0");
+
         ASSERT_CONTAINS(tiledOne, "acceptsInput: 1");
-        // This should be 1. Manual testing never fails, hidden: is 0, accepts input but this is still 0. Problem with how visible is judged.
-        // To compensate until investigation: test also hidden
-        // ASSERT_CONTAINS(tiledOne, "visible: 1");
-        ASSERT_CONTAINS(tiledOne, "hidden: 0");
 
         ASSERT_CONTAINS(tiledOne, "fullscreen: 2");
         ASSERT_CONTAINS(tiledOne, "fullscreenClient: 2");
@@ -423,9 +417,10 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         auto under   = getClientBlock(clients, "under");
         ASSERT_CONTAINS(under, "class: under");
         ASSERT_CONTAINS(under, "floating: 1");
+
         ASSERT_CONTAINS(under, "allowedOverFullscreen: 0");
         ASSERT_CONTAINS(under, "acceptsInput: 0");
-        ASSERT_CONTAINS(under, "visible: 0");
+
         ASSERT_CONTAINS(under, "fullscreen: 0");
         ASSERT_CONTAINS(under, "fullscreenClient: 0");
     }
@@ -437,15 +432,16 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
     Tests::spawnKitty("floatingOne");
     Tests::spawnKitty("floatingTwo");
 
-    // Check that both are allowedOverFullscreen
+    // Check that both are visible
     {
         auto clients     = getFromSocket("/clients");
         auto floatingOne = getClientBlock(clients, "floatingOne");
         ASSERT_CONTAINS(floatingOne, "class: floatingOne");
         ASSERT_CONTAINS(floatingOne, "floating: 1");
+
         ASSERT_CONTAINS(floatingOne, "allowedOverFullscreen: 1");
         ASSERT_CONTAINS(floatingOne, "acceptsInput: 1");
-        ASSERT_CONTAINS(floatingOne, "visible: 1");
+
         ASSERT_CONTAINS(floatingOne, "fullscreen: 0");
         ASSERT_CONTAINS(floatingOne, "fullscreenClient: 0");
     }
@@ -454,9 +450,10 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         auto floatingTwo = getClientBlock(clients, "floatingTwo");
         ASSERT_CONTAINS(floatingTwo, "class: floatingTwo");
         ASSERT_CONTAINS(floatingTwo, "floating: 1");
+
         ASSERT_CONTAINS(floatingTwo, "allowedOverFullscreen: 1");
         ASSERT_CONTAINS(floatingTwo, "acceptsInput: 1");
-        ASSERT_CONTAINS(floatingTwo, "visible: 1");
+
         ASSERT_CONTAINS(floatingTwo, "fullscreen: 0");
         ASSERT_CONTAINS(floatingTwo, "fullscreenClient: 0");
     }
@@ -473,9 +470,11 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         auto floatingOne = getClientBlock(clients, "floatingOne");
         ASSERT_CONTAINS(floatingOne, "class: floatingOne");
         ASSERT_CONTAINS(floatingOne, "floating: 1");
-        // ASSERT_CONTAINS(floatingOne, "allowedOverFullscreen: 1"); The window itself is FS
+
+        // The window itself is FS so allowedOverFullscreen = 0
+        ASSERT_CONTAINS(floatingOne, "allowedOverFullscreen: 0");
         ASSERT_CONTAINS(floatingOne, "acceptsInput: 1");
-        ASSERT_CONTAINS(floatingOne, "visible: 1");
+
         ASSERT_CONTAINS(floatingOne, "fullscreen: 1");
         ASSERT_CONTAINS(floatingOne, "fullscreenClient: 1");
     }
@@ -486,9 +485,10 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         auto floatingTwo = getClientBlock(clients, "floatingTwo");
         ASSERT_CONTAINS(floatingTwo, "class: floatingTwo");
         ASSERT_CONTAINS(floatingTwo, "floating: 1");
+
         ASSERT_CONTAINS(floatingTwo, "allowedOverFullscreen: 0");
         ASSERT_CONTAINS(floatingTwo, "acceptsInput: 0");
-        ASSERT_CONTAINS(floatingTwo, "visible: 0");
+
         ASSERT_CONTAINS(floatingTwo, "fullscreen: 0");
         ASSERT_CONTAINS(floatingTwo, "fullscreenClient: 0");
     }
@@ -498,9 +498,9 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         auto tiledOne = getClientBlock(clients, "tiledOne");
         ASSERT_CONTAINS(tiledOne, "class: tiledOne");
         ASSERT_CONTAINS(tiledOne, "floating: 0");
+
         ASSERT_CONTAINS(tiledOne, "acceptsInput: 0");
-        // Because the floating window 'layers over' the tiled FS window, it still shows as 'visible', but it does not accept input
-        // ASSERT_CONTAINS(tiledOne, "visible: 1");
+
         ASSERT_CONTAINS(tiledOne, "fullscreen: 2");
         ASSERT_CONTAINS(tiledOne, "fullscreenClient: 2");
     }
@@ -510,8 +510,9 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         auto tiledTwo = getClientBlock(clients, "tiledTwo");
         ASSERT_CONTAINS(tiledTwo, "class: tiledTwo");
         ASSERT_CONTAINS(tiledTwo, "floating: 0");
+
         ASSERT_CONTAINS(tiledTwo, "acceptsInput: 0");
-        ASSERT_CONTAINS(tiledTwo, "visible: 0");
+
         ASSERT_CONTAINS(tiledTwo, "fullscreen: 1");
         ASSERT_CONTAINS(tiledTwo, "fullscreenClient: 1");
     }
@@ -521,9 +522,10 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         auto under   = getClientBlock(clients, "under");
         ASSERT_CONTAINS(under, "class: under");
         ASSERT_CONTAINS(under, "floating: 1");
+
         ASSERT_CONTAINS(under, "allowedOverFullscreen: 0");
         ASSERT_CONTAINS(under, "acceptsInput: 0");
-        ASSERT_CONTAINS(under, "visible: 0");
+
         ASSERT_CONTAINS(under, "fullscreen: 0");
         ASSERT_CONTAINS(under, "fullscreenClient: 0");
     }
@@ -537,9 +539,10 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         auto floatingThree = getClientBlock(clients, "floatingThree");
         ASSERT_CONTAINS(floatingThree, "class: floatingThree");
         ASSERT_CONTAINS(floatingThree, "floating: 1");
+
         ASSERT_CONTAINS(floatingThree, "allowedOverFullscreen: 1");
         ASSERT_CONTAINS(floatingThree, "acceptsInput: 1");
-        ASSERT_CONTAINS(floatingThree, "visible: 1");
+
         ASSERT_CONTAINS(floatingThree, "fullscreen: 0");
         ASSERT_CONTAINS(floatingThree, "fullscreenClient: 0");
     }
@@ -554,9 +557,10 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         auto floatingOne = getClientBlock(clients, "floatingOne");
         ASSERT_CONTAINS(floatingOne, "class: floatingOne");
         ASSERT_CONTAINS(floatingOne, "floating: 1");
+
         ASSERT_CONTAINS(floatingOne, "allowedOverFullscreen: 1");
         ASSERT_CONTAINS(floatingOne, "acceptsInput: 1");
-        ASSERT_CONTAINS(floatingOne, "visible: 1");
+
         ASSERT_CONTAINS(floatingOne, "fullscreen: 0");
         ASSERT_CONTAINS(floatingOne, "fullscreenClient: 0");
     }
@@ -566,9 +570,10 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         auto floatingTwo = getClientBlock(clients, "floatingTwo");
         ASSERT_CONTAINS(floatingTwo, "class: floatingTwo");
         ASSERT_CONTAINS(floatingTwo, "floating: 1");
+
         ASSERT_CONTAINS(floatingTwo, "allowedOverFullscreen: 1");
         ASSERT_CONTAINS(floatingTwo, "acceptsInput: 1");
-        ASSERT_CONTAINS(floatingTwo, "visible: 1");
+
         ASSERT_CONTAINS(floatingTwo, "fullscreen: 0");
         ASSERT_CONTAINS(floatingTwo, "fullscreenClient: 0");
     }
@@ -578,9 +583,10 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         auto floatingThree = getClientBlock(clients, "floatingThree");
         ASSERT_CONTAINS(floatingThree, "class: floatingThree");
         ASSERT_CONTAINS(floatingThree, "floating: 1");
+
         ASSERT_CONTAINS(floatingThree, "allowedOverFullscreen: 1");
         ASSERT_CONTAINS(floatingThree, "acceptsInput: 1");
-        ASSERT_CONTAINS(floatingThree, "visible: 1");
+
         ASSERT_CONTAINS(floatingThree, "fullscreen: 0");
         ASSERT_CONTAINS(floatingThree, "fullscreenClient: 0");
     }
@@ -590,8 +596,9 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         auto tiledOne = getClientBlock(clients, "tiledOne");
         ASSERT_CONTAINS(tiledOne, "class: tiledOne");
         ASSERT_CONTAINS(tiledOne, "floating: 0");
+
         ASSERT_CONTAINS(tiledOne, "acceptsInput: 1");
-        ASSERT_CONTAINS(tiledOne, "visible: 1");
+
         ASSERT_CONTAINS(tiledOne, "fullscreen: 2");
         ASSERT_CONTAINS(tiledOne, "fullscreenClient: 2");
     }
@@ -603,7 +610,6 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         ASSERT_CONTAINS(tiledTwo, "floating: 0");
 
         ASSERT_CONTAINS(tiledTwo, "acceptsInput: 0");
-        ASSERT_CONTAINS(tiledTwo, "visible: 0");
 
         ASSERT_CONTAINS(tiledTwo, "fullscreen: 1");
         ASSERT_CONTAINS(tiledTwo, "fullscreenClient: 1");
@@ -614,9 +620,10 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         auto under   = getClientBlock(clients, "under");
         ASSERT_CONTAINS(under, "class: under");
         ASSERT_CONTAINS(under, "floating: 1");
+
         ASSERT_CONTAINS(under, "allowedOverFullscreen: 0");
         ASSERT_CONTAINS(under, "acceptsInput: 0");
-        ASSERT_CONTAINS(under, "visible: 0");
+
         ASSERT_CONTAINS(under, "fullscreen: 0");
         ASSERT_CONTAINS(under, "fullscreenClient: 0");
     }
@@ -630,11 +637,8 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         auto tiledTwo = getClientBlock(clients, "tiledTwo");
         ASSERT_CONTAINS(tiledTwo, "class: tiledTwo");
         ASSERT_CONTAINS(tiledTwo, "floating: 0");
+
         ASSERT_CONTAINS(tiledTwo, "acceptsInput: 1");
-        // This should be 1. Manual testing never fails, hidden: is 0, accepts input but this is still 0. Problem with how visible is judged.
-        // To compensate until investigation: test also hidden
-        // ASSERT_CONTAINS(tiledOne, "visible: 1");
-        ASSERT_CONTAINS(tiledTwo, "hidden: 0");
 
         ASSERT_CONTAINS(tiledTwo, "fullscreen: 1");
         ASSERT_CONTAINS(tiledTwo, "fullscreenClient: 1");
@@ -645,9 +649,10 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         auto floatingOne = getClientBlock(clients, "floatingOne");
         ASSERT_CONTAINS(floatingOne, "class: floatingOne");
         ASSERT_CONTAINS(floatingOne, "floating: 1");
+
         ASSERT_CONTAINS(floatingOne, "allowedOverFullscreen: 0");
         ASSERT_CONTAINS(floatingOne, "acceptsInput: 0");
-        ASSERT_CONTAINS(floatingOne, "visible: 0");
+
         ASSERT_CONTAINS(floatingOne, "fullscreen: 0");
         ASSERT_CONTAINS(floatingOne, "fullscreenClient: 0");
     }
@@ -657,9 +662,10 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         auto floatingTwo = getClientBlock(clients, "floatingTwo");
         ASSERT_CONTAINS(floatingTwo, "class: floatingTwo");
         ASSERT_CONTAINS(floatingTwo, "floating: 1");
+
         ASSERT_CONTAINS(floatingTwo, "allowedOverFullscreen: 0");
         ASSERT_CONTAINS(floatingTwo, "acceptsInput: 0");
-        ASSERT_CONTAINS(floatingTwo, "visible: 0");
+
         ASSERT_CONTAINS(floatingTwo, "fullscreen: 0");
         ASSERT_CONTAINS(floatingTwo, "fullscreenClient: 0");
     }
@@ -669,9 +675,10 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         auto floatingThree = getClientBlock(clients, "floatingThree");
         ASSERT_CONTAINS(floatingThree, "class: floatingThree");
         ASSERT_CONTAINS(floatingThree, "floating: 1");
+
         ASSERT_CONTAINS(floatingThree, "allowedOverFullscreen: 0");
         ASSERT_CONTAINS(floatingThree, "acceptsInput: 0");
-        ASSERT_CONTAINS(floatingThree, "visible: 0");
+
         ASSERT_CONTAINS(floatingThree, "fullscreen: 0");
         ASSERT_CONTAINS(floatingThree, "fullscreenClient: 0");
     }
@@ -683,8 +690,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         ASSERT_CONTAINS(tiledOne, "floating: 0");
 
         ASSERT_CONTAINS(tiledOne, "acceptsInput: 0");
-        // Fade animation didn't dispatch because we are scrolling btw 2 FS windows
-        // ASSERT_CONTAINS(tiledTwo, "visible: 0");
+
         ASSERT_CONTAINS(tiledOne, "fullscreen: 2");
         ASSERT_CONTAINS(tiledOne, "fullscreenClient: 2");
     }
@@ -694,9 +700,10 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         auto under   = getClientBlock(clients, "under");
         ASSERT_CONTAINS(under, "class: under");
         ASSERT_CONTAINS(under, "floating: 1");
+
         ASSERT_CONTAINS(under, "allowedOverFullscreen: 0");
         ASSERT_CONTAINS(under, "acceptsInput: 0");
-        ASSERT_CONTAINS(under, "visible: 0");
+
         ASSERT_CONTAINS(under, "fullscreen: 0");
         ASSERT_CONTAINS(under, "fullscreenClient: 0");
     }
@@ -710,11 +717,9 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         auto tiledOne = getClientBlock(clients, "tiledOne");
         ASSERT_CONTAINS(tiledOne, "class: tiledOne");
         ASSERT_CONTAINS(tiledOne, "floating: 0");
+
         ASSERT_CONTAINS(tiledOne, "acceptsInput: 1");
-        // This should be 1. Manual testing never fails, hidden: is 0, accepts input but this is still 0. Problem with how visible is judged.
-        // To compensate until investigation: test also hidden
-        // ASSERT_CONTAINS(tiledOne, "visible: 1");
-        ASSERT_CONTAINS(tiledOne, "hidden: 0");
+
         ASSERT_CONTAINS(tiledOne, "fullscreen: 2");
         ASSERT_CONTAINS(tiledOne, "fullscreenClient: 2");
     }
@@ -724,9 +729,10 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         auto floatingOne = getClientBlock(clients, "floatingOne");
         ASSERT_CONTAINS(floatingOne, "class: floatingOne");
         ASSERT_CONTAINS(floatingOne, "floating: 1");
+
         ASSERT_CONTAINS(floatingOne, "allowedOverFullscreen: 0");
         ASSERT_CONTAINS(floatingOne, "acceptsInput: 0");
-        ASSERT_CONTAINS(floatingOne, "visible: 0");
+
         ASSERT_CONTAINS(floatingOne, "fullscreen: 0");
         ASSERT_CONTAINS(floatingOne, "fullscreenClient: 0");
     }
@@ -736,9 +742,10 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         auto floatingTwo = getClientBlock(clients, "floatingTwo");
         ASSERT_CONTAINS(floatingTwo, "class: floatingTwo");
         ASSERT_CONTAINS(floatingTwo, "floating: 1");
+
         ASSERT_CONTAINS(floatingTwo, "allowedOverFullscreen: 0");
         ASSERT_CONTAINS(floatingTwo, "acceptsInput: 0");
-        ASSERT_CONTAINS(floatingTwo, "visible: 0");
+
         ASSERT_CONTAINS(floatingTwo, "fullscreen: 0");
         ASSERT_CONTAINS(floatingTwo, "fullscreenClient: 0");
     }
@@ -748,9 +755,10 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         auto floatingThree = getClientBlock(clients, "floatingThree");
         ASSERT_CONTAINS(floatingThree, "class: floatingThree");
         ASSERT_CONTAINS(floatingThree, "floating: 1");
+
         ASSERT_CONTAINS(floatingThree, "allowedOverFullscreen: 0");
         ASSERT_CONTAINS(floatingThree, "acceptsInput: 0");
-        ASSERT_CONTAINS(floatingThree, "visible: 0");
+
         ASSERT_CONTAINS(floatingThree, "fullscreen: 0");
         ASSERT_CONTAINS(floatingThree, "fullscreenClient: 0");
     }
@@ -760,9 +768,9 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         auto tiledTwo = getClientBlock(clients, "tiledTwo");
         ASSERT_CONTAINS(tiledTwo, "class: tiledTwo");
         ASSERT_CONTAINS(tiledTwo, "floating: 0");
+
         ASSERT_CONTAINS(tiledTwo, "acceptsInput: 0");
-        // FS fade anim didn't dispatch because we are scrolling btw FS columns
-        // ASSERT_CONTAINS(tiledTwo, "visible: 0");
+
         ASSERT_CONTAINS(tiledTwo, "fullscreen: 1");
         ASSERT_CONTAINS(tiledTwo, "fullscreenClient: 1");
     }
@@ -772,9 +780,10 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         auto under   = getClientBlock(clients, "under");
         ASSERT_CONTAINS(under, "class: under");
         ASSERT_CONTAINS(under, "floating: 1");
+
         ASSERT_CONTAINS(under, "allowedOverFullscreen: 0");
         ASSERT_CONTAINS(under, "acceptsInput: 0");
-        ASSERT_CONTAINS(under, "visible: 0");
+
         ASSERT_CONTAINS(under, "fullscreen: 0");
         ASSERT_CONTAINS(under, "fullscreenClient: 0");
     }

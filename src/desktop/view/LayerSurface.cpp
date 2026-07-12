@@ -84,6 +84,11 @@ CLayerSurface::~CLayerSurface() {
     if (m_wlSurface)
         m_wlSurface->unassign();
 
+    // the monitorState() is destroyed before the renderer during compositor cleanup,
+    // and render pass elements can keep this object alive until the renderer dies
+    if (!State::monitorState())
+        return;
+
     for (auto const& mon : State::monitorState()->allMonitors()) {
         for (auto& lsl : mon->m_layerSurfaceLayers) {
             std::erase_if(lsl, [this](auto& ls) { return ls.expired() || ls.get() == this; });

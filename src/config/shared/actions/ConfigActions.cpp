@@ -1699,7 +1699,7 @@ ActionResult Actions::cycleNext(const bool next, std::optional<bool> onlyTiled, 
 
             if (std::ranges::contains(LAYOUTS_WITH_CYCLE_NEXT, &typeid(*SPACE->algorithm()->tiledAlgo().get()))) {
                 // NOLINTNEXTLINE
-                Actions::layoutMessage(!next ? "cyclenext, b" : "cyclenext");
+                Actions::layoutMessage(!next ? "cycleprev" : "cyclenext");
                 return {};
             }
         }

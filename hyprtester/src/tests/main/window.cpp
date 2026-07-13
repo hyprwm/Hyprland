@@ -1270,8 +1270,9 @@ TEST_CASE(monitorrule) {
         OK(getFromSocket("/output remove HEADLESS-3"));
 
     OK(getFromSocket("/output create headless HEADLESS-3"));
+    const auto  MONALL = getFromSocket("/monitors all");
     CScopeGuard guard([&] {
-        if (getFromSocket("/monitors all").contains("HEADLESS-3"))
+        if (MONALL.contains("HEADLESS-3"))
             OK(getFromSocket("/output remove HEADLESS-3"));
     });
 
@@ -1280,7 +1281,8 @@ TEST_CASE(monitorrule) {
 
     Tests::spawnKitty("monitor_kitty");
     ASSERT(Tests::windowCount(), 1);
-    EXPECT_CONTAINS(getFromSocket("/activewindow"), "monitor: 2");
+    const auto MON_SRC_ID = Tests::getAttribute(getFromSocket("/activewindow"), "monitor");
+    ASSERT_CONTAINS(MONALL, "HEADLESS-3 (ID " + MON_SRC_ID);
     EXPECT_CONTAINS(getFromSocket("/activeworkspace"), "HEADLESS-3");
 
     Tests::killAllWindows();
@@ -1291,7 +1293,8 @@ TEST_CASE(monitorrule) {
 
     Tests::spawnKitty("silent_kitty");
     ASSERT(Tests::windowCount(), 1);
-    EXPECT_CONTAINS(getFromSocket("/clients"), "monitor: 2");
+    const auto SILENT_SRC_ID = Tests::getAttribute(getFromSocket("/clients"), "monitor");
+    ASSERT_CONTAINS(MONALL, "HEADLESS-3 (ID " + SILENT_SRC_ID);
     EXPECT_CONTAINS(getFromSocket("/activeworkspace"), "HEADLESS-2");
 }
 

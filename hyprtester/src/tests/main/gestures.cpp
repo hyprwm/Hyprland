@@ -72,7 +72,7 @@ TEST_CASE(live_gesture_callbacks) {
                     expect_eq(e.fingers, 6, 'swipe update fingers')
                     expect_vec(e.delta, -300, 0, 'swipe update delta')
                 end,
-                ['end'] = function(e)
+                finish = function(e)
                     __liveGesture.swipe.finish = __liveGesture.swipe.finish + 1
                     expect_eq(e.phase, 'end', 'swipe end phase')
                     expect_eq(e.type, 'swipe', 'swipe end type')
@@ -133,7 +133,7 @@ TEST_CASE(live_gesture_callbacks) {
                     __liveGesture.pinch.last_scale = e.scale
                     __liveGesture.pinch.last_rotation = e.rotation
                 end,
-                ['end'] = function(e)
+                finish = function(e)
                     __liveGesture.pinch.finish = __liveGesture.pinch.finish + 1
                     expect_eq(e.phase, 'end', 'pinch end phase')
                     expect_eq(e.type, 'pinch', 'pinch end type')

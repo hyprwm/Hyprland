@@ -838,21 +838,12 @@ static int hlGesture(lua_State* L) {
             }
             updateRef = *updateResult;
 
-            auto endResult = readCallback("end");
+            auto endResult = readCallback("finish");
             if (!endResult) {
                 lua_pop(L, 1);
                 return Internal::configError(L, std::format("hl.gesture: {}", endResult.error()));
             }
             endRef = *endResult;
-
-            if (endRef == LUA_NOREF) {
-                auto finishResult = readCallback("finish");
-                if (!finishResult) {
-                    lua_pop(L, 1);
-                    return Internal::configError(L, std::format("hl.gesture: {}", finishResult.error()));
-                }
-                endRef = *finishResult;
-            }
 
             if (startRef == LUA_NOREF && updateRef == LUA_NOREF && endRef == LUA_NOREF) {
                 lua_pop(L, 1);

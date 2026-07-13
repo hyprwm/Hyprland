@@ -223,7 +223,7 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
         }
 
         RESOURCE->m_allowGetInformation = OLD_RES->m_allowGetInformation;
-        RESOURCE->m_settings = OLD_RES->m_settings;
+        RESOURCE->m_settings            = OLD_RES->m_settings;
 
         RESOURCE->sendMaybeReady();
     });

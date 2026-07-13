@@ -2358,6 +2358,8 @@ void CHyprCtl::readClient(const SP<SHyprCtlClient>& client) {
 
     std::array<char, 4096> readBuffer;
     while (true) {
+        // The destination capacity is exactly readBuffer.size(), and MESSAGE_SIZE is checked before use.
+        // Flawfinder: ignore
         const auto MESSAGE_SIZE = read(client->fd.get(), readBuffer.data(), readBuffer.size());
         if (MESSAGE_SIZE > 0) {
             const auto SIZE = sc<size_t>(MESSAGE_SIZE);

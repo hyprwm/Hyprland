@@ -1125,6 +1125,21 @@ void CConfigManager::callLuaFn(int ref) {
     }
 }
 
+void CConfigManager::callLuaFn(int ref, const std::function<int(lua_State*)>& pushArgs, int timeoutMs, std::string_view context) {
+    if (ref == LUA_NOREF || ref == LUA_REFNIL)
+        return;
+
+    lua_rawgeti(m_lua, LUA_REGISTRYINDEX, ref);
+
+    const int nargs  = pushArgs ? pushArgs(m_lua) : 0;
+    const int status = guardedPCall(nargs, 0, 0, timeoutMs, context);
+
+    if (status != LUA_OK) {
+        addError(std::format("error in {}: {}", context, lua_tostring(m_lua, -1)));
+        lua_pop(m_lua, 1);
+    }
+}
+
 void CConfigManager::clearHeldLuaRefs() {
     for (const auto& r : m_heldLuaRefs) {
         luaL_unref(m_lua, LUA_REGISTRYINDEX, r);

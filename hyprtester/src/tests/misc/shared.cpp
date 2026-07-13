@@ -5,5 +5,6 @@
 
 // Test if Tests::spawnKitty works
 TEST_CASE(spawnKitty) {
-    ASSERT(!!Tests::spawnKitty("kitty"), true);
+    if (!Tests::spawnKitty("A"))
+        FAIL_TEST("Could not spawn kitty!");
 }

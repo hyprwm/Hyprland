@@ -1,16 +1,19 @@
 #include "LayerSurface.hpp"
 #include "../state/FocusState.hpp"
+#include "../state/FadingOutState.hpp"
+#include "../state/LayerState.hpp"
+#include "../state/LayerFadeout.hpp"
 #include "../../Compositor.hpp"
 #include "../../protocols/LayerShell.hpp"
 #include "../../protocols/core/Compositor.hpp"
 #include "../../managers/SeatManager.hpp"
-#include "../../managers/animation/AnimationManager.hpp"
-#include "../../managers/animation/DesktopAnimationManager.hpp"
+#include "../../animation/AnimationManager.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../config/shared/animation/AnimationTree.hpp"
 #include "../../output/Monitor.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../managers/EventManager.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../../event/EventBus.hpp"
 #include "../../state/MonitorState.hpp"
 
@@ -30,13 +33,11 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     pLS->m_layer          = std::clamp(resource->m_current.layer, ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND, ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY);
     pLS->m_popupHead      = CPopup::create(pLS);
 
-    g_pAnimationManager->createAnimation(0.f, pLS->m_alpha, Config::animationTree()->getAnimationPropertyConfig("fadeLayersIn"), pLS, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(Vector2D(0, 0), pLS->m_realPosition, Config::animationTree()->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(Vector2D(0, 0), pLS->m_realSize, Config::animationTree()->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(0.f, pLS->m_alpha.get(LS_ALPHA_FADE), Config::animationTree()->getAnimationPropertyConfig("fadeLayersIn"), pLS, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(Vector2D(0, 0), pLS->m_realPosition, Config::animationTree()->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(Vector2D(0, 0), pLS->m_realSize, Config::animationTree()->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
 
     pLS->registerCallbacks();
-
-    pLS->m_alpha->setValueAndWarp(0.f);
 
     pLS->initView(pLS, VIEW_TYPE_LAYER_SURFACE);
 
@@ -66,13 +67,13 @@ PHLLS CLayerSurface::fromView(SP<IView> v) {
 }
 
 void CLayerSurface::registerCallbacks() {
-    m_alpha->setUpdateCallback([this](auto) {
+    m_alpha.get(LS_ALPHA_FADE)->setUpdateCallback([this](auto) {
         if (m_ruleApplicator->dimAround().valueOrDefault() && m_monitor)
             g_pHyprRenderer->damageMonitor(m_monitor.lock());
     });
 }
 
-CLayerSurface::CLayerSurface(SP<CLayerShellResource> resource_) : IView(CWLSurface::create()), m_layerSurface(resource_) {
+CLayerSurface::CLayerSurface(SP<CLayerShellResource> resource_) : IView(CWLSurface::create()), m_layerSurface(resource_), m_animationController(this), m_alpha(LS_ALPHA_LAST) {
     m_listeners.commit  = m_layerSurface->m_events.commit.listen([this] { onCommit(); });
     m_listeners.map     = m_layerSurface->m_events.map.listen([this] { onMap(); });
     m_listeners.unmap   = m_layerSurface->m_events.unmap.listen([this] { onUnmap(); });
@@ -82,6 +83,11 @@ CLayerSurface::CLayerSurface(SP<CLayerShellResource> resource_) : IView(CWLSurfa
 CLayerSurface::~CLayerSurface() {
     if (m_wlSurface)
         m_wlSurface->unassign();
+
+    // the monitorState() is destroyed before the renderer during compositor cleanup,
+    // and render pass elements can keep this object alive until the renderer dies
+    if (!State::monitorState())
+        return;
 
     for (auto const& mon : State::monitorState()->allMonitors()) {
         for (auto& lsl : mon->m_layerSurfaceLayers) {
@@ -95,7 +101,7 @@ eViewType CLayerSurface::type() const {
 }
 
 bool CLayerSurface::visible() const {
-    return (m_mapped && m_layerSurface && m_layerSurface->m_mapped && m_wlSurface && m_wlSurface->resource()) || (m_fadingOut && m_alpha->value() > 0.F);
+    return m_mapped && m_layerSurface && m_layerSurface->m_mapped && m_wlSurface && m_wlSurface->resource();
 }
 
 std::optional<CBox> CLayerSurface::logicalBox() const {
@@ -116,22 +122,15 @@ bool CLayerSurface::desktopComponent() const {
 void CLayerSurface::onDestroy() {
     Log::logger->log(Log::DEBUG, "LayerSurface {:x} destroyed", rc<uintptr_t>(m_layerSurface.get()));
 
+    const auto SELF     = m_self.lock();
     const auto PMONITOR = m_monitor.lock();
 
     if (!PMONITOR)
         Log::logger->log(Log::WARN, "Layersurface destroyed on an invalid monitor (removed?)");
 
-    if (!m_fadingOut) {
-        if (m_mapped) {
-            Log::logger->log(Log::DEBUG, "Forcing an unmap of a LS that did a straight destroy!");
-            onUnmap();
-        } else {
-            Log::logger->log(Log::DEBUG, "Removing LayerSurface that wasn't mapped.");
-            if (m_alpha)
-                g_pDesktopAnimationManager->startAnimation(m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_OUT);
-            m_fadingOut = true;
-            Desktop::fadingOutState()->add(m_self.lock());
-        }
+    if (m_mapped) {
+        Log::logger->log(Log::DEBUG, "Forcing an unmap of a LS that did a straight destroy!");
+        onUnmap();
     }
 
     m_popupHead.reset();
@@ -148,7 +147,6 @@ void CLayerSurface::onDestroy() {
         g_pHyprRenderer->damageBox(geomFixed);
     }
 
-    m_readyToDelete = true;
     m_layerSurface.reset();
     if (m_wlSurface)
         m_wlSurface->unassign();
@@ -157,6 +155,8 @@ void CLayerSurface::onDestroy() {
     m_listeners.destroy.reset();
     m_listeners.map.reset();
     m_listeners.commit.reset();
+
+    Desktop::layerState()->removeSafe(SELF);
 }
 
 void CLayerSurface::onMap() {
@@ -169,10 +169,6 @@ void CLayerSurface::onMap() {
     m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ALL);
 
     m_layerSurface->m_surface->map();
-
-    // this layer might be re-mapped.
-    m_fadingOut = false;
-    Desktop::fadingOutState()->remove(m_self.lock());
 
     // fix if it changed its mon
     const auto PMONITOR = m_monitor.lock();
@@ -214,10 +210,10 @@ void CLayerSurface::onMap() {
     CBox geomFixed = {m_geometry.x + PMONITOR->m_position.x, m_geometry.y + PMONITOR->m_position.y, m_geometry.width, m_geometry.height};
     g_pHyprRenderer->damageBox(geomFixed);
 
-    g_pDesktopAnimationManager->startAnimation(m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_IN);
-
-    m_readyToDelete = false;
-    m_fadingOut     = false;
+    m_realPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("layersIn"));
+    m_realSize->setConfig(Config::animationTree()->getAnimationPropertyConfig("layersIn"));
+    m_alpha.get(LS_ALPHA_FADE)->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeLayersIn"));
+    m_animationController.apply(m_animationController.animateIn());
 
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "openlayer", .data = m_namespace});
     Event::bus()->m_events.layer.opened.emit(m_self.lock());
@@ -236,13 +232,10 @@ void CLayerSurface::onUnmap() {
     if (!m_monitor) {
         Log::logger->log(Log::WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");
 
-        Desktop::fadingOutState()->add(m_self.lock());
-
         m_mapped = false;
         if (m_layerSurface && m_layerSurface->m_surface)
             m_layerSurface->m_surface->unmap();
 
-        g_pDesktopAnimationManager->startAnimation(m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_OUT);
         return;
     }
 
@@ -251,17 +244,19 @@ void CLayerSurface::onUnmap() {
     m_realSize->warp();
 
     // make a snapshot and start fade
-    g_pHyprRenderer->makeSnapshot(m_self.lock());
+    const auto SNAPSHOT    = !m_ruleApplicator->noanim().valueOrDefault() ? g_pHyprRenderer->makeSnapshotFB(m_self.lock()) : nullptr;
+    const auto SOURCEALPHA = m_alpha.getTotal();
 
-    g_pDesktopAnimationManager->startAnimation(m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+    // FIXME: this shouldn't be needed but it is because style is decided by the fuckin anim from this
+    m_realPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("layersOut"));
+    m_realSize->setConfig(Config::animationTree()->getAnimationPropertyConfig("layersOut"));
+    m_alpha.get(LS_ALPHA_FADE)->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeLayersOut"));
 
-    m_fadingOut = true;
+    Desktop::fadingOutState()->add(CLayerFadeout::create(m_self.lock(), SNAPSHOT, SOURCEALPHA));
 
     m_mapped = false;
     if (m_layerSurface && m_layerSurface->m_surface)
         m_layerSurface->m_surface->unmap();
-
-    Desktop::fadingOutState()->add(m_self.lock());
 
     const auto PMONITOR = m_monitor.lock();
 
@@ -298,8 +293,7 @@ void CLayerSurface::onCommit() {
     if (!m_mapped) {
         // we're re-mapping if this is the case
         if (m_layerSurface->m_surface && !m_layerSurface->m_surface->m_current.texture) {
-            m_fadingOut = false;
-            m_geometry  = {};
+            m_geometry = {};
             g_pHyprRenderer->arrangeLayersForMonitor(monitorID());
         }
 
@@ -334,7 +328,7 @@ void CLayerSurface::onCommit() {
             m_aboveFullscreen = NEW_LAYER >= ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY;
 
             // if in fullscreen, only overlay can be above.
-            *m_alpha = PMONITOR->inFullscreenMode() ? (m_layer >= ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY ? 1.F : 0.F) : 1.F;
+            *m_alpha.get(LS_ALPHA_FADE) = Fullscreen::controller()->hasFullscreen(PMONITOR) ? (m_layer >= ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY ? 1.F : 0.F) : 1.F;
 
             if (m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
                 PMONITOR->m_blurFBDirty = true; // so that blur is recalc'd
@@ -419,15 +413,8 @@ void CLayerSurface::onCommit() {
     updateSurfaceScaleTransformDetails();
 }
 
-bool CLayerSurface::isFadedOut() {
-    if (!m_fadingOut)
-        return false;
-
-    return !m_realPosition->isBeingAnimated() && !m_realSize->isBeingAnimated() && !m_alpha->isBeingAnimated();
-}
-
 int CLayerSurface::popupsCount() {
-    if (!m_layerSurface || !m_mapped || m_fadingOut || !m_popupHead)
+    if (!m_layerSurface || !m_mapped || !m_popupHead)
         return 0;
 
     return m_popupHead->popupTreeCount();
@@ -466,11 +453,28 @@ void CLayerSurface::updateSurfaceScaleTransformDetails() {
     surf->breadthfirst(
         [PMONITOR](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) {
             const auto PSURFACE = CWLSurface::fromResource(s);
-            if (PSURFACE && PSURFACE->m_lastScaleFloat == PMONITOR->m_scale)
+
+            if (!PSURFACE)
                 return;
 
-            g_pCompositor->setPreferredScaleForSurface(s, PMONITOR->m_scale);
-            g_pCompositor->setPreferredTransformForSurface(s, PMONITOR->m_transform);
+            PSURFACE->sendScale(PMONITOR->m_scale);
+            PSURFACE->sendTransform(PMONITOR->m_transform);
         },
         nullptr);
+}
+
+Types::CMultiAVarContainer<float, uint8_t>& CLayerSurface::alpha() {
+    return m_alpha;
+}
+
+std::optional<uint8_t> CLayerSurface::alphaGenericToKey(eAlphaModifiableProp p) {
+    switch (p) {
+        case IAlphaModifiable::ALPHA_MODIFIABLE_FADE: return LS_ALPHA_FADE;
+
+        // this is here to suppress the warning
+        case IAlphaModifiable::ALPHA_MODIFIABLE_LAST: return std::nullopt;
+    }
+
+    static_assert(ALPHA_MODIFIABLE_LAST == 1);
+    UNREACHABLE();
 }

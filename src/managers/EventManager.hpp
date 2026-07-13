@@ -29,10 +29,12 @@ class CEventManager {
         Hyprutils::OS::CFileDescriptor fd;
         std::vector<SP<std::string>>   events;
         wl_event_source*               eventSource = nullptr;
+        size_t                         writeOffset = 0;
     };
 
     std::vector<SClient>::iterator findClientByFD(int fd);
     std::vector<SClient>::iterator removeClientByFD(int fd);
+    bool                           flushClient(SClient& client);
 
   private:
     Hyprutils::OS::CFileDescriptor m_socketFD;

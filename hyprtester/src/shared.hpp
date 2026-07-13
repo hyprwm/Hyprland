@@ -126,7 +126,7 @@ inline std::map<std::string, std::shared_ptr<CTestCase>> testCases;
 /// Prints a failure message and makrs the test as failed without terminating it
 #define MARK_TEST_FAILED(fmt, ...)                                                                                                                                                 \
     do {                                                                                                                                                                           \
-        NLog::log("{}Failed:{} " fmt ". Source: {}@{}.", Colors::RED, Colors::RESET __VA_OPT__(, ) __VA_ARGS__, __FILE__, __LINE__);                                               \
+        NLog::red("Failed:{} " fmt ". Source: {}@{}.", Colors::RESET __VA_OPT__(, ) __VA_ARGS__, __FILE__, __LINE__);                                                              \
         MARK_TEST_FAILED_SILENT();                                                                                                                                                 \
     } while (0)
 
@@ -147,7 +147,7 @@ inline std::map<std::string, std::shared_ptr<CTestCase>> testCases;
 #define LOG_OK(fmt, ...)                                                                                                                                                           \
     do {                                                                                                                                                                           \
         this->just_failed = false;                                                                                                                                                 \
-        NLog::log("{}OK:{} " fmt ". Source: {}@{}", Colors::GREEN, Colors::RESET, __VA_ARGS__, __FILE__, __LINE__);                                                                \
+        NLog::green("OK:{} " fmt ". Source: {}@{}", Colors::RESET, __VA_ARGS__, __FILE__, __LINE__);                                                                               \
     } while (0)
 
 // In case of failure:
@@ -195,8 +195,7 @@ inline std::map<std::string, std::shared_ptr<CTestCase>> testCases;
 
 #define EXPECT_CONTAINS(haystack, needle)                                                                                                                                          \
     if (const auto ASSERTED = needle; !std::string{haystack}.contains(ASSERTED)) {                                                                                                 \
-        NLog::log("{}Failed: {}{} should contain {} but doesn't. Source: {}@{}. Haystack is:\n{}", Colors::RED, Colors::RESET, #haystack, #needle, __FILE__, __LINE__,             \
-                  std::string{haystack});                                                                                                                                          \
+        NLog::red("Failed: {}{} should contain {} but doesn't. Source: {}@{}. Haystack is:\n{}", Colors::RESET, #haystack, #needle, __FILE__, __LINE__, std::string{haystack});    \
         MARK_TEST_FAILED_SILENT();                                                                                                                                                 \
     } else {                                                                                                                                                                       \
         LOG_OK("{} contains {}.", #haystack, #needle);                                                                                                                             \
@@ -204,8 +203,7 @@ inline std::map<std::string, std::shared_ptr<CTestCase>> testCases;
 
 #define EXPECT_NOT_CONTAINS(haystack, needle)                                                                                                                                      \
     if (std::string{haystack}.contains(needle)) {                                                                                                                                  \
-        NLog::log("{}Failed: {}{} shouldn't contain {} but does. Source: {}@{}. Haystack is:\n{}", Colors::RED, Colors::RESET, #haystack, #needle, __FILE__, __LINE__,             \
-                  std::string{haystack});                                                                                                                                          \
+        NLog::red("Failed: {}{} shouldn't contain {} but does. Source: {}@{}. Haystack is:\n{}", Colors::RESET, #haystack, #needle, __FILE__, __LINE__, std::string{haystack});    \
         MARK_TEST_FAILED_SILENT();                                                                                                                                                 \
     } else {                                                                                                                                                                       \
         LOG_OK("{} doesn't contain {}.", #haystack, #needle);                                                                                                                      \
@@ -213,8 +211,7 @@ inline std::map<std::string, std::shared_ptr<CTestCase>> testCases;
 
 #define EXPECT_STARTS_WITH(str, what)                                                                                                                                              \
     if (!std::string{str}.starts_with(what)) {                                                                                                                                     \
-        NLog::log("{}Failed: {}{} should start with {} but doesn't. Source: {}@{}. String is:\n{}", Colors::RED, Colors::RESET, #str, #what, __FILE__, __LINE__,                   \
-                  std::string{str});                                                                                                                                               \
+        NLog::red("Failed: {}{} should start with {} but doesn't. Source: {}@{}. String is:\n{}", Colors::RESET, #str, #what, __FILE__, __LINE__, std::string{str});               \
         MARK_TEST_FAILED_SILENT();                                                                                                                                                 \
     } else {                                                                                                                                                                       \
         LOG_OK("{} starts with {}.", #str, #what);                                                                                                                                 \
@@ -222,8 +219,7 @@ inline std::map<std::string, std::shared_ptr<CTestCase>> testCases;
 
 #define EXPECT_COUNT_STRING(str, what, no)                                                                                                                                         \
     if (Tests::countOccurrences(str, what) != no) {                                                                                                                                \
-        NLog::log("{}Failed: {}{} should contain {} {} times, but doesn't. Source: {}@{}. String is:\n{}", Colors::RED, Colors::RESET, #str, #what, no, __FILE__, __LINE__,        \
-                  std::string{str});                                                                                                                                               \
+        NLog::red("Failed: {}{} should contain {} {} times, but doesn't. Source: {}@{}. String is:\n{}", Colors::RESET, #str, #what, no, __FILE__, __LINE__, std::string{str});    \
         MARK_TEST_FAILED_SILENT();                                                                                                                                                 \
     } else {                                                                                                                                                                       \
         LOG_OK("{} contains {} {} times.", #str, #what, no);                                                                                                                       \
@@ -287,4 +283,17 @@ inline std::map<std::string, std::shared_ptr<CTestCase>> testCases;
             return;                                                                                                                                                                \
     } while (0)
 
-#define OK(x) ASSERT(x, "ok")
+#define SPAWN_KITTY(class_, ...)                                                                                                                                                   \
+    do {                                                                                                                                                                           \
+        if (!Tests::spawnKitty(class_ __VA_OPT__(, ) __VA_ARGS__))                                                                                                                 \
+            FAIL_TEST("Could not spawn kitty with class: {}", class_);                                                                                                             \
+    } while (0)
+
+#define SPAWN_LAYER_KITTY(class_, ...)                                                                                                                                             \
+    do {                                                                                                                                                                           \
+        if (!Tests::spawnLayerKitty(class_ __VA_OPT__(, ) __VA_ARGS__))                                                                                                            \
+            FAIL_TEST("Could not spawn layer kitty with class: {}", class_);                                                                                                       \
+    } while (0)
+
+#define OK(x)  ASSERT(x, "ok")
+#define NOK(x) ASSERT_NOT(x, "ok")

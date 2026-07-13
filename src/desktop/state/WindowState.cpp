@@ -49,7 +49,7 @@ void CWindowState::moveToZ(PHLWINDOW w, bool top) {
     if (!View::validMapped(w) || m_windows.empty())
         return;
 
-    w->m_createdOverFullscreen = top;
+    w->m_allowedOverFullscreen = top;
     w->updateFullscreenInputState();
     *w->alpha(View::WINDOW_ALPHA_FULLSCREEN) = w->isBlockedByFullscreen() ? 0.F : 1.F;
 

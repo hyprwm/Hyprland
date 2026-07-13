@@ -112,7 +112,7 @@ namespace SignalSafe {
                 d *= 10;
             }
 
-            while (num > 0) {
+            while (d > 0) {
                 char c = '0' + (num / d);
                 write(c);
                 num %= d;

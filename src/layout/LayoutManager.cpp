@@ -1,6 +1,7 @@
 #include "LayoutManager.hpp"
 
-#include "managers/EventManager.hpp"
+#include "../managers/EventManager.hpp"
+#include "../managers/fullscreen/FullscreenController.hpp"
 #include "space/Space.hpp"
 #include "target/Target.hpp"
 
@@ -31,7 +32,17 @@ void CLayoutManager::changeFloatingMode(SP<ITarget> target) {
     if (!target->space())
         return;
 
+    auto pastFsMode = Fullscreen::FSMODE_NONE;
+    // If changing floating state of grouped window, unFS then re-FS to properly apply floating related properties
+    if (Fullscreen::controller()->isFullscreen(target->window())) {
+        pastFsMode = Fullscreen::controller()->getFullscreenModes(target->window()).internal;
+        Fullscreen::controller()->setFullscreenMode(target->window(), Fullscreen::FSMODE_NONE);
+    }
+
     target->space()->toggleTargetFloating(target);
+
+    if (pastFsMode != Fullscreen::FSMODE_NONE)
+        Fullscreen::controller()->setFullscreenMode(target->window(), pastFsMode);
 
     g_pEventManager->postEvent(SHyprIPCEvent({
         .event = "changefloatingmode",
@@ -40,8 +51,8 @@ void CLayoutManager::changeFloatingMode(SP<ITarget> target) {
     Event::bus()->m_events.window.floating.emit(target->window());
 }
 
-void CLayoutManager::beginDragTarget(SP<ITarget> target, eMouseBindMode mode) {
-    m_dragStateController->dragBegin(target, mode);
+void CLayoutManager::beginDragTarget(SP<ITarget> target, eMouseBindMode mode, std::optional<eRectCorner> forcedEdge, bool exclusiveDeviceGrab) {
+    m_dragStateController->dragBegin(target, mode, forcedEdge, exclusiveDeviceGrab);
 }
 
 void CLayoutManager::moveMouse(const Vector2D& mousePos) {
@@ -51,9 +62,9 @@ void CLayoutManager::moveMouse(const Vector2D& mousePos) {
 void CLayoutManager::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner) {
     if (target->isPseudo()) {
         auto fixedΔ = Δ;
-        if (corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT)
+        if (edgeLeft(corner))
             fixedΔ.x = -fixedΔ.x;
-        if (corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT)
+        if (edgeTop(corner))
             fixedΔ.y = -fixedΔ.y;
 
         auto       newPseudoSize    = target->pseudoSize() + fixedΔ;
@@ -100,13 +111,6 @@ void CLayoutManager::moveTarget(const Vector2D& Δ, SP<ITarget> target) {
 
 void CLayoutManager::endDragTarget() {
     m_dragStateController->dragEnd();
-}
-
-eFullscreenRequestResult CLayoutManager::fullscreenRequestForTarget(SP<ITarget> target, eFullscreenMode currentEffectiveMode, eFullscreenMode effectiveMode) {
-    if (target && target->space())
-        return target->space()->setFullscreen(target, currentEffectiveMode, effectiveMode);
-
-    return FULLSCREEN_REQUEST_DEFAULT;
 }
 
 void CLayoutManager::switchTargets(SP<ITarget> a, SP<ITarget> b, bool preserveFocus) {
@@ -220,14 +224,14 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
     if (*SNAPWINDOWGAP) {
         const double GAPSIZE       = *SNAPWINDOWGAP;
         const auto   WSID          = DRAGGINGWINDOW->workspaceID();
-        const bool   HASFULLSCREEN = DRAGGINGWINDOW->m_workspace && DRAGGINGWINDOW->m_workspace->m_hasFullscreenWindow;
+        const bool   HASFULLSCREEN = DRAGGINGWINDOW->m_workspace && Fullscreen::controller()->hasFullscreen(DRAGGINGWINDOW->m_workspace);
 
         const auto*  GAPSIN = *SNAPRESPECTGAPS ? sc<Config::CCssGapData*>(PGAPSIN.ptr()) : &GAPSNONE;
         const double GAPSX  = GAPSIN->m_left + GAPSIN->m_right;
         const double GAPSY  = GAPSIN->m_top + GAPSIN->m_bottom;
 
-        for (auto& other : g_pCompositor->m_windows) {
-            if ((HASFULLSCREEN && !other->isAllowedOverFullscreen()) || other == DRAGGINGWINDOW || other->workspaceID() != WSID || !other->m_isMapped || other->m_fadingOut ||
+        for (auto& other : Desktop::windowState()->windows()) {
+            if ((HASFULLSCREEN && !other->isAllowedOverFullscreen()) || other == DRAGGINGWINDOW || other->workspaceID() != WSID || !other->m_isMapped ||
                 other->isX11OverrideRedirect())
                 continue;
 
@@ -237,19 +241,19 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
 
             // only snap windows if their ranges overlap in the opposite axis
             if (sourceY.start <= SURFBY.end && SURFBY.start <= sourceY.end) {
-                if (CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && canSnap(sourceX.start, SURFBX.end, GAPSIZE)) {
+                if (edgeLeft(CORNER) && canSnap(sourceX.start, SURFBX.end, GAPSIZE)) {
                     SNAP(sourceX.start, sourceX.end, SURFBX.end);
                     snaps |= SNAP_LEFT;
-                } else if (CORNER & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && canSnap(sourceX.end, SURFBX.start, GAPSIZE)) {
+                } else if (edgeRight(CORNER) && canSnap(sourceX.end, SURFBX.start, GAPSIZE)) {
                     SNAP(sourceX.end, sourceX.start, SURFBX.start);
                     snaps |= SNAP_RIGHT;
                 }
             }
             if (sourceX.start <= SURFBX.end && SURFBX.start <= sourceX.end) {
-                if (CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && canSnap(sourceY.start, SURFBY.end, GAPSIZE)) {
+                if (edgeTop(CORNER) && canSnap(sourceY.start, SURFBY.end, GAPSIZE)) {
                     SNAP(sourceY.start, sourceY.end, SURFBY.end);
                     snaps |= SNAP_UP;
-                } else if (CORNER & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && canSnap(sourceY.end, SURFBY.start, GAPSIZE)) {
+                } else if (edgeBottom(CORNER) && canSnap(sourceY.end, SURFBY.start, GAPSIZE)) {
                     SNAP(sourceY.end, sourceY.start, SURFBY.start);
                     snaps |= SNAP_DOWN;
                 }
@@ -258,20 +262,20 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
             // corner snapping
             if (sourceX.start == SURFBX.end || SURFBX.start == sourceX.end) {
                 const SRange SURFY = {SURFBY.start + GAPSY, SURFBY.end - GAPSY};
-                if (CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && !(snaps & SNAP_UP) && canSnap(sourceY.start, SURFY.start, GAPSIZE)) {
+                if (edgeTop(CORNER) && !(snaps & SNAP_UP) && canSnap(sourceY.start, SURFY.start, GAPSIZE)) {
                     SNAP(sourceY.start, sourceY.end, SURFY.start);
                     snaps |= SNAP_UP;
-                } else if (CORNER & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && !(snaps & SNAP_DOWN) && canSnap(sourceY.end, SURFY.end, GAPSIZE)) {
+                } else if (edgeBottom(CORNER) && !(snaps & SNAP_DOWN) && canSnap(sourceY.end, SURFY.end, GAPSIZE)) {
                     SNAP(sourceY.end, sourceY.start, SURFY.end);
                     snaps |= SNAP_DOWN;
                 }
             }
             if (sourceY.start == SURFBY.end || SURFBY.start == sourceY.end) {
                 const SRange SURFX = {SURFBX.start + GAPSX, SURFBX.end - GAPSX};
-                if (CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && !(snaps & SNAP_LEFT) && canSnap(sourceX.start, SURFX.start, GAPSIZE)) {
+                if (edgeLeft(CORNER) && !(snaps & SNAP_LEFT) && canSnap(sourceX.start, SURFX.start, GAPSIZE)) {
                     SNAP(sourceX.start, sourceX.end, SURFX.start);
                     snaps |= SNAP_LEFT;
-                } else if (CORNER & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && !(snaps & SNAP_RIGHT) && canSnap(sourceX.end, SURFX.end, GAPSIZE)) {
+                } else if (edgeRight(CORNER) && !(snaps & SNAP_RIGHT) && canSnap(sourceX.end, SURFX.end, GAPSIZE)) {
                     SNAP(sourceX.end, sourceX.start, SURFX.end);
                     snaps |= SNAP_RIGHT;
                 }
@@ -296,22 +300,22 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
         const bool   HAS_BOTTOM = MON->m_reservedArea.bottom() > 0;
         const bool   HAS_RIGHT  = MON->m_reservedArea.right() > 0;
 
-        if (CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) &&
+        if (edgeLeft(CORNER) &&
             ((HAS_LEFT && canSnap(sourceX.start, monX.start, GAPSIZE)) || canSnap(sourceX.start, (monX.start -= MON->m_reservedArea.left() + EXTENTDIFF->topLeft.x), GAPSIZE))) {
             SNAP(sourceX.start, sourceX.end, monX.start);
             snaps |= SNAP_LEFT;
         }
-        if (CORNER & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) &&
+        if (edgeRight(CORNER) &&
             ((HAS_RIGHT && canSnap(sourceX.end, monX.end, GAPSIZE)) || canSnap(sourceX.end, (monX.end += MON->m_reservedArea.right() + EXTENTDIFF->bottomRight.x), GAPSIZE))) {
             SNAP(sourceX.end, sourceX.start, monX.end);
             snaps |= SNAP_RIGHT;
         }
-        if (CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT) &&
+        if (edgeTop(CORNER) &&
             ((HAS_TOP && canSnap(sourceY.start, monY.start, GAPSIZE)) || canSnap(sourceY.start, (monY.start -= MON->m_reservedArea.top() + EXTENTDIFF->topLeft.y), GAPSIZE))) {
             SNAP(sourceY.start, sourceY.end, monY.start);
             snaps |= SNAP_UP;
         }
-        if (CORNER & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) &&
+        if (edgeBottom(CORNER) &&
             ((HAS_BOTTOM && canSnap(sourceY.end, monY.end, GAPSIZE)) || canSnap(sourceY.end, (monY.end += MON->m_reservedArea.bottom() + EXTENTDIFF->bottomRight.y), GAPSIZE))) {
             SNAP(sourceY.end, sourceY.start, monY.end);
             snaps |= SNAP_DOWN;
@@ -323,15 +327,15 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
     sourceY = {sourceY.start + EXTENTS.topLeft.y, sourceY.end - EXTENTS.bottomRight.y};
 
     if (MODE == MBIND_RESIZE_FORCE_RATIO) {
-        if ((CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) && snaps & SNAP_LEFT) || (CORNER & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) && snaps & SNAP_RIGHT)) {
+        if ((edgeLeft(CORNER) && snaps & SNAP_LEFT) || (edgeRight(CORNER) && snaps & SNAP_RIGHT)) {
             const double SIZEY = (sourceX.end - sourceX.start) * (BEGINSIZE.y / BEGINSIZE.x);
-            if (CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT))
+            if (edgeTop(CORNER))
                 sourceY.start = sourceY.end - SIZEY;
             else
                 sourceY.end = sourceY.start + SIZEY;
-        } else if ((CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT) && snaps & SNAP_UP) || (CORNER & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) && snaps & SNAP_DOWN)) {
+        } else if ((edgeTop(CORNER) && snaps & SNAP_UP) || (edgeBottom(CORNER) && snaps & SNAP_DOWN)) {
             const double SIZEX = (sourceY.end - sourceY.start) * (BEGINSIZE.x / BEGINSIZE.y);
-            if (CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT))
+            if (edgeLeft(CORNER))
                 sourceX.start = sourceX.end - SIZEX;
             else
                 sourceX.end = sourceX.start + SIZEX;

@@ -1,5 +1,3 @@
-#include <ranges>
-#include <re2/re2.h>
 
 #include "Compositor.hpp"
 #include "config/supplementary/executor/Executor.hpp"
@@ -8,36 +6,29 @@
 #include "desktop/state/FocusState.hpp"
 #include "desktop/history/WindowHistoryTracker.hpp"
 #include "desktop/history/WorkspaceHistoryTracker.hpp"
-#include "desktop/view/Group.hpp"
 #include "helpers/Splashes.hpp"
 #include "helpers/SystemInfo.hpp"
 #include "config/ConfigValue.hpp"
-#include "config/legacy/ConfigManager.hpp"
 #include "config/shared/inotify/ConfigWatcher.hpp"
 #include "config/shared/monitor/MonitorRuleManager.hpp"
-#include "managers/CursorManager.hpp"
+#include "pointer/cursor/CursorManager.hpp"
 #include "managers/TokenManager.hpp"
-#include "managers/PointerManager.hpp"
+#include "pointer/PointerManager.hpp"
 #include "managers/SeatManager.hpp"
 #include "managers/VersionKeeperManager.hpp"
 #include "managers/DonationNagManager.hpp"
 #include "managers/ANRManager.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
 #include "managers/permissions/DynamicPermissionManager.hpp"
-#include "managers/screenshare/ScreenshareManager.hpp"
 #include "state/FallbackState.hpp"
-#include "state/MonitorPositionController.hpp"
 #include "state/MonitorState.hpp"
 #include "state/WorkspaceState.hpp"
-#include <algorithm>
 #include <aquamarine/output/Output.hpp>
-#include <bit>
 #include <ctime>
 #include <random>
 #include <print>
 #include <cstring>
 #include <filesystem>
-#include <unordered_set>
 #include "debug/HyprCtl.hpp"
 #include "debug/crash/CrashReporter.hpp"
 #include "render/GLRenderer.hpp"
@@ -47,32 +38,20 @@
 #endif
 #include "helpers/fs/FsUtils.hpp"
 #include "helpers/env/Env.hpp"
-#include "protocols/FractionalScale.hpp"
-#include "protocols/PointerConstraints.hpp"
-#include "protocols/LayerShell.hpp"
-#include "protocols/XDGShell.hpp"
-#include "protocols/XDGOutput.hpp"
 #include "protocols/SecurityContext.hpp"
 #include "protocols/ColorManagement.hpp"
-#include "protocols/core/Compositor.hpp"
-#include "protocols/core/Subcompositor.hpp"
-#include "desktop/view/LayerSurface.hpp"
-#include "layout/space/Space.hpp"
 #include "render/Renderer.hpp"
 #include "xwayland/XWayland.hpp"
 #include "helpers/ByteOperations.hpp"
-#include "render/decorations/CHyprGroupBarDecoration.hpp"
 
 #include "managers/KeybindManager.hpp"
 #include "managers/SessionLockManager.hpp"
 #include "managers/XWaylandManager.hpp"
 
 #include "config/ConfigManager.hpp"
-#include "config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "render/OpenGL.hpp"
 #include "managers/input/InputManager.hpp"
-#include "managers/animation/AnimationManager.hpp"
-#include "managers/animation/DesktopAnimationManager.hpp"
+#include "animation/AnimationManager.hpp"
 #include "managers/EventManager.hpp"
 #include "managers/ProtocolManager.hpp"
 #include "managers/WelcomeManager.hpp"
@@ -81,10 +60,8 @@
 #include "errorOverlay/Overlay.hpp"
 #include "notification/NotificationOverlay.hpp"
 #include "debug/Overlay.hpp"
-#include "output/MonitorFrameScheduler.hpp"
 #include "i18n/Engine.hpp"
 #include "layout/LayoutManager.hpp"
-#include "layout/target/WindowTarget.hpp"
 #include "event/EventBus.hpp"
 
 #include <hyprutils/string/String.hpp>
@@ -96,9 +73,14 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
+#include <sys/ioctl.h>
 #include <malloc.h>
 #include <unistd.h>
 #include <xf86drm.h>
+
+#if defined(__linux__)
+#include <linux/vt.h>
+#endif
 
 using namespace Hyprutils::String;
 using namespace Aquamarine;
@@ -146,6 +128,14 @@ bool CCompositor::setWatchdogFd(int fd) {
     m_watchdogWriteFd = Hyprutils::OS::CFileDescriptor{fd};
     m_watchdogWriteFd.setFlags(m_watchdogWriteFd.getFlags() | FD_CLOEXEC);
     return m_watchdogWriteFd.isValid() && !m_watchdogWriteFd.isClosed();
+}
+
+bool CCompositor::writeWatchdogFd(std::string str) {
+    if (!m_watchdogWriteFd.isValid())
+        return false;
+    str += '\n';
+    auto w = write(m_watchdogWriteFd.get(), str.c_str(), str.size());
+    return w >= 0;
 }
 
 void CCompositor::bumpNofile() {
@@ -279,8 +269,8 @@ static bool filterGlobals(const wl_client* client, const wl_global* global, void
 //
 void CCompositor::initServer(std::string socketName, int socketFd) {
     if (m_onlyConfigVerification) {
-        g_pKeybindManager   = makeUnique<CKeybindManager>();
-        g_pAnimationManager = makeUnique<CHyprAnimationManager>();
+        g_pKeybindManager = makeUnique<CKeybindManager>();
+        Animation::mgr();
         Config::initConfigManager();
         Config::mgr()->init();
 
@@ -434,6 +424,30 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
 
     initManagers(STAGE_LATE);
 
+    m_listeners.lock = g_pSessionLockManager->m_events.lock.listen([this] {
+        static int lock_count = 0;
+        // lock_count used to avoid triggering condition on initial forceLock()
+        if (m_startLocked && lock_count >= 1) {
+            // Lock manager has taken over
+            m_startLocked = false;
+            m_startLockedCommand.clear();
+        }
+        lock_count++;
+        writeWatchdogFd("lock");
+    });
+
+    m_listeners.unlock = g_pSessionLockManager->m_events.unlock.listen([this] {
+        m_startLocked = false;
+        writeWatchdogFd("unlock");
+    });
+
+    if (m_startLocked) {
+        g_pSessionLockManager->forceLock();
+
+        if (!m_startLockedCommand.empty())
+            Config::Supplementary::executor()->spawn(m_startLockedCommand);
+    }
+
     for (auto const& o : pendingOutputs) {
         State::monitorState()->add(o);
     }
@@ -490,15 +504,15 @@ void CCompositor::initAllSignals() {
                 m_sessionActive = true;
 
                 // Reset animation tick state to avoid stale timer issues after suspend/wake
-                if (g_pAnimationManager)
-                    g_pAnimationManager->resetTickState();
+                if (Animation::mgr())
+                    Animation::mgr()->resetTickState();
 
                 for (auto const& m : State::monitorState()->monitors()) {
                     m->m_activeMonitorRule = {}; // rules were lost
                 }
 
                 Config::monitorRuleMgr()->scheduleReload();
-                g_pCursorManager->syncGsettings();
+                Pointer::Cursor::mgr()->syncGsettings();
             } else {
                 Log::logger->log(Log::DEBUG, "Session got deactivated!");
 
@@ -547,8 +561,7 @@ void CCompositor::cleanup() {
     if (!m_wlDisplay)
         return;
 
-    if (m_watchdogWriteFd.isValid()) [[maybe_unused]]
-        auto w = write(m_watchdogWriteFd.get(), "end", 3);
+    writeWatchdogFd("end");
 
     signal(SIGABRT, SIG_DFL);
     signal(SIGSEGV, SIG_DFL);
@@ -569,7 +582,10 @@ void CCompositor::cleanup() {
     g_pPluginSystem->unloadAllPlugins();
 
     State::workspaceState()->clear();
-    m_windows.clear();
+    Desktop::windowState()->clear();
+    Desktop::layerState()->clear();
+    Desktop::fadingOutState()->clear();
+    Desktop::otherViewState()->clear();
 
     for (auto const& m : State::monitorState()->monitors()) {
         g_pHyprOpenGL->destroyMonitorResources(m);
@@ -580,13 +596,15 @@ void CCompositor::cleanup() {
     wl_display_destroy_clients(g_pCompositor->m_wlDisplay);
 
     State::monitorState()->finish();
+    State::fallbackState().reset();
+    State::monitorState().reset();
 
     removeAllSignals();
 
     g_pInputManager.reset();
     g_pDynamicPermissionManager.reset();
     g_pDecorationPositioner.reset();
-    g_pCursorManager.reset();
+    Pointer::Cursor::mgr().reset();
     g_pPluginSystem.reset();
     Notification::overlay().reset();
     Debug::overlay().reset();
@@ -601,7 +619,7 @@ void CCompositor::cleanup() {
     ErrorOverlay::overlay().reset();
     g_pKeybindManager.reset();
     g_pXWaylandManager.reset();
-    g_pPointerManager.reset();
+    Pointer::mgr().reset();
     g_pSeatManager.reset();
     g_pHyprCtl.reset();
     g_pEventLoopManager.reset();
@@ -632,7 +650,7 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             g_pKeybindManager = makeUnique<CKeybindManager>();
 
             Log::logger->log(Log::DEBUG, "Creating the AnimationManager!");
-            g_pAnimationManager = makeUnique<CHyprAnimationManager>();
+            Animation::mgr();
 
             Log::logger->log(Log::DEBUG, "Creating the DynamicPermissionManager!");
             g_pDynamicPermissionManager = makeUnique<CDynamicPermissionManager>();
@@ -662,7 +680,7 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             Config::mgr()->init();
 
             Log::logger->log(Log::DEBUG, "Creating the PointerManager!");
-            g_pPointerManager = makeUnique<CPointerManager>();
+            Pointer::mgr() = makeUnique<Pointer::CPointerManager>();
 
             Log::logger->log(Log::DEBUG, "Creating the EventManager!");
             g_pEventManager = makeUnique<CEventManager>();
@@ -691,6 +709,11 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             Desktop::History::workspaceTracker();
 
             // init states
+            Desktop::windowState();
+            Desktop::layerState();
+            Desktop::fadingOutState();
+            Desktop::otherViewState();
+            Desktop::viewState();
             State::fallbackState();
 
         } break;
@@ -718,7 +741,7 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             g_pDecorationPositioner = makeUnique<CDecorationPositioner>();
 
             Log::logger->log(Log::DEBUG, "Creating the CursorManager!");
-            g_pCursorManager = makeUnique<CCursorManager>();
+            Pointer::Cursor::mgr() = makeUnique<Pointer::Cursor::CCursorManager>();
 
             Log::logger->log(Log::DEBUG, "Creating the VersionKeeper!");
             g_pVersionKeeperMgr = makeUnique<CVersionKeeperManager>();
@@ -791,1418 +814,13 @@ void CCompositor::startCompositor() {
     Event::bus()->m_events.ready.emit();
 
     if (m_watchdogWriteFd.isValid()) {
-        if (write(m_watchdogWriteFd.get(), "vax", 3) < 0)
+        if (!writeWatchdogFd("vax"))
             Log::logger->log(Log::ERR, "startCompositor: failed to write to watchdogWriteFd {}: {}", m_watchdogWriteFd.get(), strerror(errno));
     }
 
     // This blocks until we are done.
     Log::logger->log(Log::DEBUG, "Hyprland is ready, running the event loop!");
     g_pEventLoopManager->enterLoop();
-}
-
-void CCompositor::removeWindowFromVectorSafe(PHLWINDOW pWindow) {
-    if (!pWindow->m_fadingOut) {
-        Event::bus()->m_events.window.destroy.emit(pWindow);
-
-        std::erase_if(m_windows, [&](SP<Desktop::View::CWindow>& el) { return el == pWindow; });
-        std::erase_if(m_windowsFadingOut, [&](PHLWINDOWREF el) { return el.lock() == pWindow; });
-    }
-}
-
-PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint16_t properties, PHLWINDOW pIgnoreWindow) {
-    const auto PMONITOR = State::monitorState()->query().vec(pos).run();
-    if (!PMONITOR)
-        return nullptr;
-
-    static auto PRESIZEONBORDER      = CConfigValue<Config::INTEGER>("general:resize_on_border");
-    static auto PBORDERSIZE          = CConfigValue<Config::INTEGER>("general:border_size");
-    static auto PBORDERGRABEXTEND    = CConfigValue<Config::INTEGER>("general:extend_border_grab_area");
-    static auto PSPECIALFALLTHRU     = CConfigValue<Config::INTEGER>("input:special_fallthrough");
-    static auto PMODALPARENTBLOCKING = CConfigValue<Config::INTEGER>("general:modal_parent_blocking");
-    static auto PFOLLOWMOUSESHRINK   = CConfigValue<Config::INTEGER>("input:follow_mouse_shrink");
-    const auto  BORDER_GRAB_AREA     = *PRESIZEONBORDER ? *PBORDERSIZE + *PBORDERGRABEXTEND : 0;
-    const bool  ONLY_PRIORITY        = properties & Desktop::View::FOCUS_PRIORITY;
-    const bool  FOLLOW_MOUSE_CHECK   = properties & Desktop::View::FOLLOW_MOUSE_CHECK;
-    const auto  HITBOX_SHRINK        = FOLLOW_MOUSE_CHECK ? *PFOLLOWMOUSESHRINK : 0;
-    const auto  LASTFOCUSED          = Desktop::focusState()->window();
-
-    const auto  isShadowedByModal = [](PHLWINDOW w) -> bool {
-        return *PMODALPARENTBLOCKING && w->m_xdgSurface && w->m_xdgSurface->m_toplevel && w->m_xdgSurface->m_toplevel->anyChildModal();
-    };
-
-    // pinned windows on top of floating regardless
-    if (properties & Desktop::View::ALLOW_FLOATING) {
-        for (auto const& w : m_windows | std::views::reverse) {
-            if (ONLY_PRIORITY && !w->priorityFocus())
-                continue;
-
-            if (w->m_isFloating && w->m_isMapped && w->acceptsInput() && !w->m_X11ShouldntFocus && w->m_pinned && !w->m_ruleApplicator->noFocus().valueOrDefault() &&
-                w != pIgnoreWindow && !isShadowedByModal(w)) {
-                const auto BB  = w->getWindowBoxUnified(properties);
-                CBox       box = BB.copy().expand(!w->isX11OverrideRedirect() ? BORDER_GRAB_AREA : 0);
-                if (HITBOX_SHRINK > 0 && w != LASTFOCUSED)
-                    box = box.copy().expand(-HITBOX_SHRINK);
-                if (box.containsPoint(pos))
-                    return w;
-
-                if (!w->m_isX11) {
-                    if (w->hasPopupAt(pos))
-                        return w;
-                }
-            }
-        }
-    }
-
-    auto windowForWorkspace = [&](bool special) -> PHLWINDOW {
-        auto floating = [&](bool aboveFullscreen) -> PHLWINDOW {
-            for (auto const& w : m_windows | std::views::reverse) {
-
-                if (special && !w->onSpecialWorkspace()) // because special floating may creep up into regular
-                    continue;
-
-                if (!w->m_workspace)
-                    continue;
-
-                if (ONLY_PRIORITY && !w->priorityFocus())
-                    continue;
-
-                const auto PWINDOWMONITOR = w->m_monitor.lock();
-
-                // to avoid focusing windows behind special workspaces from other monitors
-                if (!*PSPECIALFALLTHRU && PWINDOWMONITOR && PWINDOWMONITOR->m_activeSpecialWorkspace && w->m_workspace != PWINDOWMONITOR->m_activeSpecialWorkspace) {
-                    const auto BB = w->getWindowBoxUnified(properties);
-                    if (BB.x >= PWINDOWMONITOR->m_position.x && BB.y >= PWINDOWMONITOR->m_position.y &&
-                        BB.x + BB.width <= PWINDOWMONITOR->m_position.x + PWINDOWMONITOR->m_size.x && BB.y + BB.height <= PWINDOWMONITOR->m_position.y + PWINDOWMONITOR->m_size.y)
-                        continue;
-                }
-
-                if (w->m_isFloating && w->m_isMapped && w->m_workspace->isVisible() && w->acceptsInput() && !w->m_pinned && !w->m_ruleApplicator->noFocus().valueOrDefault() &&
-                    w != pIgnoreWindow && (!aboveFullscreen || w->isAllowedOverFullscreen()) && !isShadowedByModal(w)) {
-                    // OR windows should add focus to parent
-                    if (w->m_X11ShouldntFocus && !w->isX11OverrideRedirect())
-                        continue;
-
-                    const auto BB  = w->getWindowBoxUnified(properties);
-                    CBox       box = BB.copy().expand(!w->isX11OverrideRedirect() ? BORDER_GRAB_AREA : 0);
-                    if (HITBOX_SHRINK > 0 && w != LASTFOCUSED)
-                        box = box.copy().expand(-HITBOX_SHRINK);
-                    if (box.containsPoint(pos)) {
-
-                        if (w->m_isX11 && w->isX11OverrideRedirect() && !w->m_xwaylandSurface->wantsFocus()) {
-                            // Override Redirect
-                            return Desktop::focusState()->window(); // we kinda trick everything here.
-                            // TODO: this is wrong, we should focus the parent, but idk how to get it considering it's nullptr in most cases.
-                        }
-
-                        return w;
-                    }
-
-                    if (!w->m_isX11) {
-                        if (w->hasPopupAt(pos))
-                            return w;
-                    }
-                }
-            }
-
-            return nullptr;
-        };
-
-        if (properties & Desktop::View::ALLOW_FLOATING) {
-            // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
-            auto found = floating(true);
-            if (found)
-                return found;
-        }
-
-        if (properties & Desktop::View::FLOATING_ONLY)
-            return floating(false);
-
-        const WORKSPACEID WSPID      = special ? PMONITOR->activeSpecialWorkspaceID() : PMONITOR->activeWorkspaceID();
-        const auto        PWORKSPACE = State::workspaceState()->query().id(WSPID).run();
-
-        if (PWORKSPACE->m_hasFullscreenWindow && !(properties & Desktop::View::SKIP_FULLSCREEN_PRIORITY) && !ONLY_PRIORITY) {
-            const auto FS_WINDOW = PWORKSPACE->getFullscreenWindow();
-
-            if (!FS_WINDOW)
-                return nullptr;
-
-            // for maximized windows, don't return a window if we are not directly on it.
-            if (FS_WINDOW->m_fullscreenState.internal != FSMODE_MAXIMIZED || FS_WINDOW->getWindowBoxUnified(properties).containsPoint(pos))
-                return PWORKSPACE->getFullscreenWindow();
-            else
-                return nullptr;
-        }
-
-        auto found = floating(false);
-        if (found)
-            return found;
-
-        // for windows, we need to check their extensions too, first.
-        for (auto const& w : m_windows) {
-            if (ONLY_PRIORITY && !w->priorityFocus())
-                continue;
-
-            if (special != w->onSpecialWorkspace())
-                continue;
-
-            if (!w->m_workspace)
-                continue;
-
-            if (!w->m_isX11 && !w->m_isFloating && w->m_isMapped && w->workspaceID() == WSPID && w->acceptsInput() && !w->m_X11ShouldntFocus &&
-                !w->m_ruleApplicator->noFocus().valueOrDefault() && w != pIgnoreWindow && !isShadowedByModal(w)) {
-                if (w->hasPopupAt(pos))
-                    return w;
-            }
-        }
-
-        for (auto const& w : m_windows) {
-            if (ONLY_PRIORITY && !w->priorityFocus())
-                continue;
-
-            if (special != w->onSpecialWorkspace())
-                continue;
-
-            if (!w->m_workspace)
-                continue;
-
-            if (!w->m_isFloating && w->m_isMapped && w->workspaceID() == WSPID && w->acceptsInput() && !w->m_X11ShouldntFocus && !w->m_ruleApplicator->noFocus().valueOrDefault() &&
-                w != pIgnoreWindow && !isShadowedByModal(w)) {
-                CBox box = (properties & Desktop::View::USE_PROP_TILED) ? w->getWindowBoxUnified(properties) : CBox{w->m_position, w->m_size};
-                if ((properties & Desktop::View::INPUT_EXTENTS) && BORDER_GRAB_AREA > 0 && !w->isX11OverrideRedirect()) {
-                    const auto WORKAREA                    = PWORKSPACE->m_space->workArea();
-                    auto       isWindowCloseToWorkAreaEdge = [&](const Math::eDirection dir) -> bool {
-                        constexpr double STICK_THRESHOLD = 2.0; // This constant is taken from isAdjacent in CCompositor::getWindowInDirection
-                        double           aEdge           = -1;
-                        double           bEdge           = -1;
-
-                        switch (dir) {
-                            case Math::DIRECTION_LEFT:
-                                aEdge = WORKAREA.x;
-                                bEdge = box.x;
-                                break;
-                            case Math::DIRECTION_RIGHT:
-                                aEdge = WORKAREA.x + WORKAREA.width;
-                                bEdge = box.x + box.width;
-                                break;
-                            case Math::DIRECTION_UP:
-                                aEdge = WORKAREA.y;
-                                bEdge = box.y;
-                                break;
-                            case Math::DIRECTION_DOWN:
-                                aEdge = WORKAREA.y + WORKAREA.height;
-                                bEdge = box.y + box.height;
-                                break;
-                            default: break;
-                        }
-                        const double delta = aEdge - bEdge;
-                        return std::abs(delta) < STICK_THRESHOLD;
-                    };
-
-                    if (isWindowCloseToWorkAreaEdge(Math::eDirection::DIRECTION_LEFT)) {
-                        box.x -= BORDER_GRAB_AREA;
-                        box.width += BORDER_GRAB_AREA;
-                    }
-
-                    if (isWindowCloseToWorkAreaEdge(Math::eDirection::DIRECTION_RIGHT))
-                        box.width += BORDER_GRAB_AREA;
-
-                    if (isWindowCloseToWorkAreaEdge(Math::eDirection::DIRECTION_UP)) {
-                        box.y -= BORDER_GRAB_AREA;
-                        box.height += BORDER_GRAB_AREA;
-                    }
-
-                    if (isWindowCloseToWorkAreaEdge(Math::eDirection::DIRECTION_DOWN))
-                        box.height += BORDER_GRAB_AREA;
-                }
-                if (HITBOX_SHRINK > 0 && w != LASTFOCUSED)
-                    box = box.copy().expand(-HITBOX_SHRINK);
-                if (box.containsPoint(pos))
-                    return w;
-            }
-        }
-
-        return nullptr;
-    };
-
-    // special workspace
-    if (PMONITOR->m_activeSpecialWorkspace && !*PSPECIALFALLTHRU)
-        return windowForWorkspace(true);
-
-    if (PMONITOR->m_activeSpecialWorkspace) {
-        const auto PWINDOW = windowForWorkspace(true);
-
-        if (PWINDOW)
-            return PWINDOW;
-    }
-
-    return windowForWorkspace(false);
-}
-
-SP<CWLSurfaceResource> CCompositor::vectorWindowToSurface(const Vector2D& pos, PHLWINDOW pWindow, Vector2D& sl) {
-
-    if (!validMapped(pWindow))
-        return nullptr;
-
-    RASSERT(!pWindow->m_isX11, "Cannot call vectorWindowToSurface on an X11 window!");
-
-    // try popups first
-    const auto PPOPUP = pWindow->m_popupHead->at(pos);
-
-    if (PPOPUP) {
-        const auto OFF = PPOPUP->coordsRelativeToParent();
-        sl             = pos - pWindow->m_realPosition->goal() - OFF;
-        return PPOPUP->wlSurface()->resource();
-    }
-
-    auto [surf, local] = pWindow->wlSurface()->resource()->at(pos - pWindow->m_realPosition->goal(), true);
-    if (surf) {
-        sl = local;
-        return surf;
-    }
-
-    return nullptr;
-}
-
-Vector2D CCompositor::vectorToSurfaceLocal(const Vector2D& vec, PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface) {
-    if (!validMapped(pWindow))
-        return {};
-
-    if (pWindow->m_isX11)
-        return vec - pWindow->m_realPosition->goal();
-
-    const auto PPOPUP = pWindow->m_popupHead->at(vec);
-    if (PPOPUP)
-        return vec - PPOPUP->coordsGlobal();
-
-    std::tuple<SP<CWLSurfaceResource>, Vector2D> iterData = {pSurface, {-1337, -1337}};
-
-    pWindow->wlSurface()->resource()->breadthfirst(
-        [](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) {
-            const auto PDATA = sc<std::tuple<SP<CWLSurfaceResource>, Vector2D>*>(data);
-            if (surf == std::get<0>(*PDATA))
-                std::get<1>(*PDATA) = offset;
-        },
-        &iterData);
-
-    CBox geom = pWindow->m_xdgSurface->m_current.geometry;
-
-    if (std::get<1>(iterData) == Vector2D{-1337, -1337})
-        return vec - pWindow->m_realPosition->goal();
-
-    return vec - pWindow->m_realPosition->goal() - std::get<1>(iterData) + Vector2D{geom.x, geom.y};
-}
-
-SP<CWLSurfaceResource> CCompositor::vectorToLayerPopupSurface(const Vector2D& pos, PHLMONITOR monitor, Vector2D* sCoords, PHLLS* ppLayerSurfaceFound) {
-    for (auto const& lsl : monitor->m_layerSurfaceLayers | std::views::reverse) {
-        for (auto const& ls : lsl | std::views::reverse) {
-            if (!ls->aliveAndVisible())
-                continue;
-
-            auto SURFACEAT = ls->m_popupHead->at(pos, true);
-
-            if (SURFACEAT) {
-                *ppLayerSurfaceFound = ls.lock();
-                *sCoords             = pos - SURFACEAT->coordsGlobal();
-                return SURFACEAT->wlSurface()->resource();
-            }
-        }
-    }
-
-    return nullptr;
-}
-
-SP<CWLSurfaceResource> CCompositor::vectorToLayerSurface(const Vector2D& pos, std::vector<PHLLSREF>* layerSurfaces, Vector2D* sCoords, PHLLS* ppLayerSurfaceFound,
-                                                         bool aboveLockscreen) {
-
-    for (auto const& ls : *layerSurfaces | std::views::reverse) {
-        if (!ls->aliveAndVisible() || (aboveLockscreen && ls->m_ruleApplicator->aboveLock().valueOrDefault() != 2))
-            continue;
-
-        auto [surf, local] = ls->m_layerSurface->m_surface->at(pos - ls->m_geometry.pos(), true);
-
-        if (surf) {
-            if (surf->m_current.input.empty())
-                continue;
-
-            *ppLayerSurfaceFound = ls.lock();
-
-            *sCoords = local;
-
-            return surf;
-        }
-    }
-
-    return nullptr;
-}
-
-PHLWINDOW CCompositor::getWindowFromSurface(SP<CWLSurfaceResource> pSurface) {
-    if (!pSurface || !pSurface->m_hlSurface)
-        return nullptr;
-
-    const auto VIEW = pSurface->m_hlSurface->view();
-
-    if (!VIEW || VIEW->type() != Desktop::View::VIEW_TYPE_WINDOW)
-        return nullptr;
-
-    return dynamicPointerCast<Desktop::View::CWindow>(VIEW);
-}
-
-PHLWINDOW CCompositor::getWindowFromHandle(uint32_t handle) {
-    for (auto const& w : m_windows) {
-        if (sc<uint32_t>(rc<uint64_t>(w.get()) & 0xFFFFFFFF) == handle) {
-            return w;
-        }
-    }
-
-    return nullptr;
-}
-
-PHLWINDOW CCompositor::getUrgentWindow() {
-    for (auto const& w : m_windows) {
-        if (w->m_isMapped && w->m_isUrgent)
-            return w;
-    }
-
-    return nullptr;
-}
-
-bool CCompositor::isWindowActive(PHLWINDOW pWindow) {
-    if (!Desktop::focusState()->window() && !Desktop::focusState()->surface())
-        return false;
-
-    if (!pWindow->m_isMapped)
-        return false;
-
-    const auto PSURFACE = pWindow->wlSurface()->resource();
-
-    return PSURFACE == Desktop::focusState()->surface() || pWindow == Desktop::focusState()->window();
-}
-
-void CCompositor::changeWindowZOrder(PHLWINDOW pWindow, bool top) {
-    if (!validMapped(pWindow))
-        return;
-
-    if (top)
-        pWindow->m_createdOverFullscreen = true;
-    else
-        pWindow->m_createdOverFullscreen = false;
-
-    pWindow->updateFullscreenInputState();
-    *pWindow->alpha(WINDOW_ALPHA_FULLSCREEN) = pWindow->isBlockedByFullscreen() ? 0.F : 1.F;
-
-    if (pWindow == (top ? m_windows.back() : m_windows.front()))
-        return;
-
-    auto moveToZ = [&](PHLWINDOW pw, bool top) -> void {
-        if (top) {
-            for (auto it = m_windows.begin(); it != m_windows.end(); ++it) {
-                if (*it == pw) {
-                    std::rotate(it, it + 1, m_windows.end());
-                    break;
-                }
-            }
-        } else {
-            for (auto it = m_windows.rbegin(); it != m_windows.rend(); ++it) {
-                if (*it == pw) {
-                    std::rotate(it, it + 1, m_windows.rend());
-                    break;
-                }
-            }
-        }
-
-        if (pw->m_isMapped)
-            g_pHyprRenderer->damageMonitor(pw->m_monitor.lock());
-    };
-
-    if (!pWindow->m_isX11)
-        moveToZ(pWindow, top);
-    else {
-        // move X11 window stack
-
-        std::vector<PHLWINDOW> toMove;
-
-        auto                   x11Stack = [&](PHLWINDOW pw, bool top, auto&& x11Stack) -> void {
-            if (top)
-                toMove.emplace_back(pw);
-            else
-                toMove.insert(toMove.begin(), pw);
-
-            for (auto const& w : m_windows) {
-                if (w->m_isMapped && !w->isHidden() && w->m_isX11 && w->x11TransientFor() == pw && w != pw && std::ranges::find(toMove, w) == toMove.end()) {
-                    x11Stack(w, top, x11Stack);
-                }
-            }
-        };
-
-        x11Stack(pWindow, top, x11Stack);
-        for (const auto& it : toMove) {
-            moveToZ(it, top);
-        }
-    }
-}
-
-void CCompositor::cleanupFadingOut(const MONITORID& monid) {
-    for (auto const& ww : m_windowsFadingOut) {
-
-        auto w = ww.lock();
-
-        if (!w)
-            continue;
-
-        if (w->monitorID() != monid && w->m_monitor)
-            continue;
-
-        if (!w->m_fadingOut || w->alphaValue(WINDOW_ALPHA_FADE) == 0.f) {
-
-            w->m_fadingOut = false;
-
-            if (!w->m_readyToDelete)
-                continue;
-
-            removeWindowFromVectorSafe(w);
-
-            w.reset();
-
-            Log::logger->log(Log::DEBUG, "Cleanup: destroyed a window");
-            return;
-        }
-    }
-
-    bool layersDirty = false;
-
-    for (auto const& lsr : m_surfacesFadingOut) {
-
-        auto ls = lsr.lock();
-
-        if (!ls) {
-            layersDirty = true;
-            continue;
-        }
-
-        if (ls->monitorID() != monid && ls->m_monitor)
-            continue;
-
-        // mark blur for recalc
-        if (ls->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || ls->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM) {
-            auto mon = State::monitorState()->query().id(monid).run();
-            if (mon)
-                mon->m_blurFBDirty = true;
-        }
-
-        if (ls->m_fadingOut && ls->m_readyToDelete && ls->isFadedOut()) {
-            for (auto const& m : State::monitorState()->monitors()) {
-                for (auto& lsl : m->m_layerSurfaceLayers) {
-                    if (!lsl.empty() && std::ranges::find_if(lsl, [&](auto& other) { return other == ls; }) != lsl.end()) {
-                        std::erase_if(lsl, [&](auto& other) { return other == ls || !other; });
-                    }
-                }
-            }
-
-            std::erase_if(m_surfacesFadingOut, [ls](const auto& el) { return el.lock() == ls; });
-            std::erase_if(m_layers, [ls](const auto& el) { return el == ls; });
-
-            ls.reset();
-
-            Log::logger->log(Log::DEBUG, "Cleanup: destroyed a layersurface");
-
-            return;
-        }
-    }
-
-    if (layersDirty)
-        std::erase_if(m_surfacesFadingOut, [](const auto& el) { return el.expired(); });
-}
-
-void CCompositor::addToFadingOutSafe(PHLLS pLS) {
-    const auto FOUND = std::ranges::find_if(m_surfacesFadingOut, [&](auto& other) { return other.lock() == pLS; });
-
-    if (FOUND != m_surfacesFadingOut.end())
-        return; // if it's already added, don't add it.
-
-    m_surfacesFadingOut.emplace_back(pLS);
-}
-
-void CCompositor::removeFromFadingOutSafe(PHLLS ls) {
-    std::erase(m_surfacesFadingOut, ls);
-}
-
-void CCompositor::addToFadingOutSafe(PHLWINDOW pWindow) {
-    const auto FOUND = std::ranges::find_if(m_windowsFadingOut, [&](PHLWINDOWREF& other) { return other.lock() == pWindow; });
-
-    if (FOUND != m_windowsFadingOut.end())
-        return; // if it's already added, don't add it.
-
-    m_windowsFadingOut.emplace_back(pWindow);
-}
-
-PHLWINDOW CCompositor::getWindowInDirection(PHLWINDOW pWindow, Math::eDirection dir) {
-    if (dir == Math::DIRECTION_DEFAULT)
-        return nullptr;
-
-    const auto PMONITOR = pWindow->m_monitor.lock();
-
-    if (!PMONITOR)
-        return nullptr; // ??
-
-    const auto WINDOWIDEALBB = pWindow->isFullscreen() ? CBox{PMONITOR->m_position, PMONITOR->m_size} : pWindow->getWindowIdealBoundingBoxIgnoreReserved();
-    const auto PWORKSPACE    = pWindow->m_workspace;
-
-    if (!PWORKSPACE)
-        return nullptr; // ??
-
-    return getWindowInDirection(WINDOWIDEALBB, PWORKSPACE, dir, pWindow->m_isFloating, pWindow, pWindow->m_isFloating);
-}
-
-PHLWINDOW CCompositor::getWindowInDirection(const CBox& box, PHLWORKSPACE pWorkspace, Math::eDirection dir, bool floatingPreference, PHLWINDOW ignoreWindow, bool useVectorAngles) {
-    if (dir == Math::DIRECTION_DEFAULT)
-        return nullptr;
-
-    // 0 -> history, 1 -> shared length
-    static auto PMETHOD          = CConfigValue<Config::INTEGER>("binds:focus_preferred_method");
-    static auto PMONITORFALLBACK = CConfigValue<Config::INTEGER>("binds:window_direction_monitor_fallback");
-
-    const auto  POSA  = box.pos();
-    const auto  SIZEA = box.size();
-
-    auto        leaderValue  = -1;
-    PHLWINDOW   leaderWindow = nullptr;
-
-    if (!useVectorAngles) {
-        // helper to check if two rectangles are adjacent along an axis, considering slight overlaps.
-        // returns true if: STICKS (delta <= 2) OR rectangles overlap but no more than 50% of the smaller dimension.
-        static auto isAdjacent = [](const double aMin, const double aMax, const double bMin, const double bMax) -> bool {
-            constexpr double STICK_THRESHOLD   = 2.0;
-            constexpr double MAX_OVERLAP_RATIO = 0.5;
-
-            const double     aEdge = aMin;
-            const double     bEdge = bMax;
-            const double     delta = aEdge - bEdge;
-
-            // old STICKS check for 2px
-            if (std::abs(delta) < STICK_THRESHOLD)
-                return true;
-
-            if (delta >= 0)
-                return false;
-
-            const double overlap = -delta;
-            const double sizeA   = aMax - aMin;
-            const double sizeB   = bMax - bMin;
-
-            // reject if one rectangle fully contains the other
-            if ((bMin <= aMin && bMax >= aMax) || (aMin <= bMin && aMax >= bMax))
-                return false;
-
-            // accept if overlap is at most 50% of the smaller dimension
-            return overlap <= std::min(sizeA, sizeB) * MAX_OVERLAP_RATIO;
-        };
-
-        auto find = [&]() {
-            for (auto const& w : m_windows) {
-                if (w == ignoreWindow || !w->m_workspace || !w->m_isMapped || (!w->isFullscreen() && w->m_isFloating) || !w->m_workspace->isVisible())
-                    continue;
-
-                if (w->isHidden())
-                    continue;
-
-                // check if the input is blocked by anything except BELOW_FULLSCREEN
-                if (w->isInputBlocked(INPUT_BLOCK_ALL & (~INPUT_BLOCK_BELOW_FULLSCREEN)))
-                    continue;
-
-                if (pWorkspace->m_monitor == w->m_monitor && pWorkspace != w->m_workspace)
-                    continue;
-
-                if (pWorkspace->m_hasFullscreenWindow && !w->isAllowedOverFullscreen())
-                    continue;
-
-                if (!*PMONITORFALLBACK && pWorkspace->m_monitor != w->m_monitor)
-                    continue;
-
-                if (w->m_isFloating != floatingPreference)
-                    continue;
-
-                // prioritize windows on the same workspace.
-                // this is especially important for scrolling layouts - we want to first move to a window
-                // on the same workspace before moving onto another.
-                const auto LEADER_IS_ON_SAME_WORKSPACE = leaderWindow && leaderWindow->m_workspace == pWorkspace;
-
-                if (LEADER_IS_ON_SAME_WORKSPACE && w->m_workspace != pWorkspace)
-                    continue;
-
-                const auto BWINDOWIDEALBB = w->getWindowIdealBoundingBoxIgnoreReserved();
-
-                const auto POSB  = Vector2D(BWINDOWIDEALBB.x, BWINDOWIDEALBB.y);
-                const auto SIZEB = Vector2D(BWINDOWIDEALBB.width, BWINDOWIDEALBB.height);
-
-                double     intersectLength = -1;
-
-                switch (dir) {
-                    case Math::DIRECTION_LEFT:
-                        if (isAdjacent(POSA.x, POSA.x + SIZEA.x, POSB.x, POSB.x + SIZEB.x))
-                            intersectLength = std::max(0.0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
-                        break;
-                    case Math::DIRECTION_RIGHT:
-                        if (isAdjacent(POSB.x, POSB.x + SIZEB.x, POSA.x, POSA.x + SIZEA.x))
-                            intersectLength = std::max(0.0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
-                        break;
-                    case Math::DIRECTION_UP:
-                        if (isAdjacent(POSA.y, POSA.y + SIZEA.y, POSB.y, POSB.y + SIZEB.y))
-                            intersectLength = std::max(0.0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
-                        break;
-                    case Math::DIRECTION_DOWN:
-                        if (isAdjacent(POSB.y, POSB.y + SIZEB.y, POSA.y, POSA.y + SIZEA.y))
-                            intersectLength = std::max(0.0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
-                        break;
-                    default: break;
-                }
-
-                // if we have a leader on another workspace, and this window is on the same workspace,
-                // override minimum requirements and always select this as the new leader
-                const bool OVERRIDE_MIN_REQ = leaderWindow && !LEADER_IS_ON_SAME_WORKSPACE && w->m_workspace == pWorkspace;
-
-                // ...as long as there is any intersect.
-                if (intersectLength <= 1)
-                    continue;
-
-                if (*PMETHOD == 0 /* history */) {
-                    // get idx
-                    int         windowIDX = -1;
-                    const auto& HISTORY   = Desktop::History::windowTracker()->fullHistory();
-                    for (int64_t i = HISTORY.size() - 1; i >= 0; --i) {
-                        if (HISTORY[i] == w) {
-                            windowIDX = i;
-                            break;
-                        }
-                    }
-
-                    if (windowIDX > leaderValue || OVERRIDE_MIN_REQ) {
-                        leaderValue  = windowIDX;
-                        leaderWindow = w;
-                    }
-                } else /* length */ {
-                    if (intersectLength > leaderValue || OVERRIDE_MIN_REQ) {
-                        leaderValue  = intersectLength;
-                        leaderWindow = w;
-                    }
-                }
-            }
-        };
-
-        // Find the window, then if we don't find one with preferred
-        // float status, try the opposite.
-        find();
-
-        if (!leaderWindow) {
-            floatingPreference = !floatingPreference;
-            find();
-        }
-
-    } else {
-        static const std::unordered_map<Math::eDirection, Vector2D> VECTORS = {
-            {Math::DIRECTION_RIGHT, {1, 0}}, {Math::DIRECTION_UP, {0, -1}}, {Math::DIRECTION_DOWN, {0, 1}}, {Math::DIRECTION_LEFT, {-1, 0}}};
-
-        //
-        auto vectorAngles = [](const Vector2D& a, const Vector2D& b) -> double {
-            double dot = (a.x * b.x) + (a.y * b.y);
-            double ang = std::acos(dot / (a.size() * b.size()));
-            return ang;
-        };
-
-        float           bestAngleAbs = 2.0 * M_PI;
-        constexpr float THRESHOLD    = 0.3 * M_PI;
-
-        for (auto const& w : m_windows) {
-            if (w == ignoreWindow || !w->m_isMapped || !w->m_workspace || !w->acceptsInput() || (!w->isFullscreen() && !w->m_isFloating) || !w->m_workspace->isVisible())
-                continue;
-
-            if (pWorkspace->m_monitor == w->m_monitor && pWorkspace != w->m_workspace)
-                continue;
-
-            if (pWorkspace->m_hasFullscreenWindow && !w->isAllowedOverFullscreen())
-                continue;
-
-            if (!*PMONITORFALLBACK && pWorkspace->m_monitor != w->m_monitor)
-                continue;
-
-            const auto DIST  = w->middle().distance(box.middle());
-            const auto ANGLE = vectorAngles(Vector2D{w->middle() - box.middle()}, VECTORS.at(dir));
-
-            if (ANGLE > M_PI_2)
-                continue; // if the angle is over 90 degrees, ignore. Wrong direction entirely.
-
-            if ((bestAngleAbs < THRESHOLD && DIST < leaderValue && ANGLE < THRESHOLD) || (ANGLE < bestAngleAbs && bestAngleAbs > THRESHOLD) || leaderValue == -1) {
-                leaderValue  = DIST;
-                bestAngleAbs = ANGLE;
-                leaderWindow = w;
-            }
-        }
-
-        if (!leaderWindow && pWorkspace->m_hasFullscreenWindow)
-            leaderWindow = pWorkspace->getFullscreenWindow();
-    }
-
-    if (leaderValue != -1)
-        return leaderWindow;
-
-    return nullptr;
-}
-
-template <typename WINDOWPTR>
-static bool isWorkspaceMatches(WINDOWPTR pWindow, const WINDOWPTR w, bool anyWorkspace) {
-    return anyWorkspace ? w->m_workspace && w->m_workspace->isVisible() : w->m_workspace == pWindow->m_workspace;
-}
-
-template <typename WINDOWPTR>
-static bool isFloatingMatches(WINDOWPTR w, std::optional<bool> floating) {
-    return !floating.has_value() || w->m_isFloating == floating.value();
-}
-
-template <typename WINDOWPTR>
-static bool acceptsInputForCycle(WINDOWPTR w, bool allowFullscreenBlocked) {
-    if (w->acceptsInput())
-        return true;
-
-    return allowFullscreenBlocked && !w->isHidden() && w->isInputBlockedOnly(INPUT_BLOCK_BELOW_FULLSCREEN);
-}
-
-template <typename WINDOWPTR>
-static bool isWindowAvailableForCycle(WINDOWPTR pWindow, WINDOWPTR w, bool focusableOnly, std::optional<bool> floating, bool anyWorkspace = false,
-                                      bool allowFullscreenBlocked = false) {
-    return isFloatingMatches(w, floating) &&
-        (w != pWindow && isWorkspaceMatches(pWindow, w, anyWorkspace) && w->m_isMapped && acceptsInputForCycle(w, allowFullscreenBlocked) &&
-         (!focusableOnly || !w->m_ruleApplicator->noFocus().valueOrDefault()));
-}
-
-template <typename Iterator>
-static PHLWINDOW getWindowPred(Iterator cur, Iterator end, Iterator begin, const std::function<bool(const PHLWINDOW&)> PRED) {
-    const auto IN_ONE_SIDE = std::find_if(cur, end, PRED);
-    if (IN_ONE_SIDE != end)
-        return *IN_ONE_SIDE;
-    const auto IN_OTHER_SIDE = std::find_if(begin, cur, PRED);
-    return *IN_OTHER_SIDE;
-}
-
-template <typename Iterator>
-static PHLWINDOW getWeakWindowPred(Iterator cur, Iterator end, Iterator begin, const std::function<bool(const PHLWINDOWREF&)> PRED) {
-    const auto IN_ONE_SIDE = std::find_if(cur, end, PRED);
-    if (IN_ONE_SIDE != end)
-        return IN_ONE_SIDE->lock();
-    const auto IN_OTHER_SIDE = std::find_if(begin, cur, PRED);
-    return IN_OTHER_SIDE->lock();
-}
-
-PHLWINDOW CCompositor::getWindowCycleHist(PHLWINDOWREF cur, bool focusableOnly, std::optional<bool> floating, bool visible, bool next, bool allowFullscreenBlocked) {
-    const auto FINDER = [&](const PHLWINDOWREF& w) { return isWindowAvailableForCycle(cur, w, focusableOnly, floating, visible, allowFullscreenBlocked); };
-    // also m_vWindowFocusHistory has reverse order, so when it is next - we need to reverse again
-    const auto& HISTORY = Desktop::History::windowTracker()->fullHistory();
-    return next ? getWeakWindowPred(std::ranges::find(HISTORY, cur), HISTORY.end(), HISTORY.begin(), FINDER) :
-                  getWeakWindowPred(std::ranges::find(HISTORY | std::views::reverse, cur), HISTORY.rend(), HISTORY.rbegin(), FINDER);
-}
-
-PHLWINDOW CCompositor::getWindowCycle(PHLWINDOW cur, bool focusableOnly, std::optional<bool> floating, bool visible, bool prev, bool allowFullscreenBlocked) {
-    const auto FINDER = [&](const PHLWINDOW& w) { return isWindowAvailableForCycle(cur, w, focusableOnly, floating, visible, allowFullscreenBlocked); };
-    return prev ? getWindowPred(std::ranges::find(m_windows | std::views::reverse, cur), m_windows.rend(), m_windows.rbegin(), FINDER) :
-                  getWindowPred(std::ranges::find(m_windows, cur), m_windows.end(), m_windows.begin(), FINDER);
-}
-
-bool CCompositor::isPointOnAnyMonitor(const Vector2D& point) {
-    return std::ranges::any_of(State::monitorState()->monitors(), [&](const PHLMONITOR& m) {
-        return VECINRECT(point, m->m_position.x, m->m_position.y, m->m_size.x + m->m_position.x, m->m_size.y + m->m_position.y);
-    });
-}
-
-bool CCompositor::isPointOnReservedArea(const Vector2D& point, const PHLMONITOR pMonitor) {
-    const auto PMONITOR = pMonitor ? pMonitor : State::monitorState()->query().vec(point).run();
-
-    auto       box = PMONITOR->logicalBox();
-    if (VECNOTINRECT(point, box.x - 1, box.y - 1, box.x + box.w + 1, box.y + box.h + 1))
-        return false;
-
-    PMONITOR->m_reservedArea.applyip(box);
-
-    return VECNOTINRECT(point, box.x, box.y, box.x + box.w, box.y + box.h);
-}
-
-std::optional<CBox> CCompositor::calculateX11WorkArea() {
-    static auto PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
-    // We more than likely won't be able to calculate one
-    // and even if we could this is minor
-    if (State::monitorState()->monitors().size() > 1 || State::monitorState()->monitors().empty())
-        return std::nullopt;
-
-    const auto M = State::monitorState()->monitors().front();
-
-    // we ignore monitor->m_position on purpose
-    CBox box = M->logicalBoxMinusReserved().translate(-M->m_position);
-    if ((*PXWLFORCESCALEZERO))
-        box.scale(M->m_scale);
-
-    return box.translate(M->m_xwaylandPosition);
-}
-
-void CCompositor::updateAllWindowsAnimatedDecorationValues() {
-    for (auto const& w : m_windows) {
-        if (!w->m_isMapped)
-            continue;
-
-        w->updateDecorationValues();
-    }
-}
-
-void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitorB) {
-    const auto PWORKSPACEA = pMonitorA->m_activeWorkspace;
-    const auto PWORKSPACEB = pMonitorB->m_activeWorkspace;
-
-    PWORKSPACEA->m_monitor = pMonitorB;
-    PWORKSPACEA->m_events.monitorChanged.emit();
-
-    for (auto const& w : m_windows) {
-        if (w->m_workspace == PWORKSPACEA) {
-            if (w->m_pinned) {
-                w->m_workspace = PWORKSPACEB;
-                continue;
-            }
-
-            w->m_monitor = pMonitorB;
-
-            // additionally, move floating and fs windows manually
-            if (w->m_isFloating)
-                w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(-pMonitorA->m_position + pMonitorB->m_position));
-
-            if (w->isFullscreen()) {
-                *w->m_realPosition = pMonitorB->m_position;
-                *w->m_realSize     = pMonitorB->m_size;
-            }
-
-            w->updateToplevel();
-        }
-    }
-
-    PWORKSPACEB->m_monitor = pMonitorA;
-    PWORKSPACEB->m_events.monitorChanged.emit();
-
-    for (auto const& w : m_windows) {
-        if (w->m_workspace == PWORKSPACEB) {
-            if (w->m_pinned) {
-                w->m_workspace = PWORKSPACEA;
-                continue;
-            }
-
-            w->m_monitor = pMonitorA;
-
-            // additionally, move floating and fs windows manually
-            if (w->m_isFloating)
-                w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(-pMonitorB->m_position + pMonitorA->m_position));
-
-            if (w->isFullscreen()) {
-                *w->m_realPosition = pMonitorA->m_position;
-                *w->m_realSize     = pMonitorA->m_size;
-            }
-
-            w->updateToplevel();
-        }
-    }
-
-    pMonitorA->m_activeWorkspace = PWORKSPACEB;
-    pMonitorB->m_activeWorkspace = PWORKSPACEA;
-
-    g_layoutManager->recalculateMonitor(pMonitorA);
-    g_layoutManager->recalculateMonitor(pMonitorB);
-
-    g_pHyprRenderer->damageMonitor(pMonitorB);
-    g_pHyprRenderer->damageMonitor(pMonitorA);
-
-    g_pDesktopAnimationManager->setFullscreenFadeAnimation(
-        PWORKSPACEB, PWORKSPACEB->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
-    g_pDesktopAnimationManager->setFullscreenFadeAnimation(
-        PWORKSPACEA, PWORKSPACEA->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
-
-    if (pMonitorA->m_id == Desktop::focusState()->monitor()->m_id || pMonitorB->m_id == Desktop::focusState()->monitor()->m_id) {
-        const auto LASTWIN = pMonitorA->m_id == Desktop::focusState()->monitor()->m_id ? PWORKSPACEB->getLastFocusedWindow() : PWORKSPACEA->getLastFocusedWindow();
-        Desktop::focusState()->fullWindowFocus(
-            LASTWIN ? LASTWIN :
-                      (g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(),
-                                                            Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING)),
-            Desktop::FOCUS_REASON_DESKTOP_STATE_CHANGE);
-
-        const auto PNEWWORKSPACE = pMonitorA->m_id == Desktop::focusState()->monitor()->m_id ? PWORKSPACEB : PWORKSPACEA;
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "workspace", .data = PNEWWORKSPACE->m_name});
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "workspacev2", .data = std::format("{},{}", PNEWWORKSPACE->m_id, PNEWWORKSPACE->m_name)});
-        Event::bus()->m_events.workspace.active.emit(PNEWWORKSPACE);
-    }
-
-    // events
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspace", .data = PWORKSPACEA->m_name + "," + pMonitorB->m_name});
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspacev2", .data = std::format("{},{},{}", PWORKSPACEA->m_id, PWORKSPACEA->m_name, pMonitorB->m_name)});
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspace", .data = PWORKSPACEB->m_name + "," + pMonitorA->m_name});
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspacev2", .data = std::format("{},{},{}", PWORKSPACEB->m_id, PWORKSPACEB->m_name, pMonitorA->m_name)});
-
-    Event::bus()->m_events.workspace.moveToMonitor.emit(PWORKSPACEA, pMonitorB);
-    Event::bus()->m_events.workspace.moveToMonitor.emit(PWORKSPACEB, pMonitorA);
-}
-
-void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMonitor, bool noWarpCursor) {
-    static auto PHIDESPECIALONWORKSPACECHANGE = CConfigValue<Config::INTEGER>("binds:hide_special_on_workspace_change");
-
-    if (!pWorkspace || !pMonitor)
-        return;
-
-    if (pWorkspace->m_monitor == pMonitor)
-        return;
-
-    Log::logger->log(Log::DEBUG, "moveWorkspaceToMonitor: Moving {} to monitor {}", pWorkspace->m_id, pMonitor->m_id);
-
-    const auto POLDMON = pWorkspace->m_monitor.lock();
-
-    const bool SWITCHINGISACTIVE = POLDMON ? POLDMON->m_activeWorkspace == pWorkspace : false;
-
-    // fix old mon
-    WORKSPACEID nextWorkspaceOnMonitorID = WORKSPACE_INVALID;
-    if (!SWITCHINGISACTIVE)
-        nextWorkspaceOnMonitorID = pWorkspace->m_id;
-    else {
-        PHLWORKSPACE newWorkspace; // for holding a ref to the new workspace that might be created
-
-        for (auto const& w : State::workspaceState()->workspaces()) {
-            if (w->m_monitor == POLDMON && w->m_id != pWorkspace->m_id && !w->m_isSpecialWorkspace) {
-                nextWorkspaceOnMonitorID = w->m_id;
-                break;
-            }
-        }
-
-        if (nextWorkspaceOnMonitorID == WORKSPACE_INVALID) {
-            nextWorkspaceOnMonitorID = 1;
-
-            while (State::workspaceState()->query().id(nextWorkspaceOnMonitorID).run() || [&]() -> bool {
-                const auto B = Config::workspaceRuleMgr()->getBoundMonitorForWS(std::to_string(nextWorkspaceOnMonitorID));
-                return B && B != POLDMON;
-            }())
-                nextWorkspaceOnMonitorID++;
-
-            Log::logger->log(Log::DEBUG, "moveWorkspaceToMonitor: Plugging gap with new {}", nextWorkspaceOnMonitorID);
-
-            if (POLDMON)
-                newWorkspace = State::workspaceState()->create(nextWorkspaceOnMonitorID, POLDMON->m_id);
-        }
-
-        Log::logger->log(Log::DEBUG, "moveWorkspaceToMonitor: Plugging gap with existing {}", nextWorkspaceOnMonitorID);
-        if (POLDMON)
-            POLDMON->changeWorkspace(nextWorkspaceOnMonitorID, false, true, true);
-    }
-
-    // move the workspace
-    pWorkspace->m_monitor = pMonitor;
-    pWorkspace->m_space->recheckWorkArea();
-    pWorkspace->m_events.monitorChanged.emit();
-
-    for (auto const& w : m_windows) {
-        if (w->m_workspace == pWorkspace) {
-            if (w->m_pinned) {
-                w->m_workspace = State::workspaceState()->query().id(nextWorkspaceOnMonitorID).run();
-                continue;
-            }
-
-            w->m_monitor = pMonitor;
-
-            // additionally, move floating and fs windows manually
-            if (w->m_isMapped && !w->isHidden()) {
-                if (POLDMON) {
-                    if (w->m_isFloating)
-                        w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(-POLDMON->m_position + pMonitor->m_position));
-
-                    if (w->isFullscreen()) {
-                        *w->m_realPosition = pMonitor->m_position;
-                        *w->m_realSize     = pMonitor->m_size;
-                    }
-                } else
-                    w->layoutTarget()->setPositionGlobal(CBox{Vector2D{
-                                                                  (pMonitor->m_size.x != 0) ? sc<int>(w->m_realPosition->goal().x) % sc<int>(pMonitor->m_size.x) : 0,
-                                                                  (pMonitor->m_size.y != 0) ? sc<int>(w->m_realPosition->goal().y) % sc<int>(pMonitor->m_size.y) : 0,
-                                                              },
-                                                              w->layoutTarget()->position().size()});
-            }
-
-            w->updateToplevel();
-        }
-    }
-
-    if (SWITCHINGISACTIVE && POLDMON == Desktop::focusState()->monitor()) { // if it was active, preserve its' status. If it wasn't, don't.
-        Log::logger->log(Log::DEBUG, "moveWorkspaceToMonitor: SWITCHINGISACTIVE, active {} -> {}", pMonitor->activeWorkspaceID(), pWorkspace->m_id);
-
-        if (valid(pMonitor->m_activeWorkspace)) {
-            pMonitor->m_activeWorkspace->m_visible = false;
-            g_pDesktopAnimationManager->startAnimation(pWorkspace, CDesktopAnimationManager::ANIMATION_TYPE_OUT, false);
-        }
-
-        if (*PHIDESPECIALONWORKSPACECHANGE)
-            pMonitor->setSpecialWorkspace(nullptr);
-
-        Desktop::focusState()->rawMonitorFocus(pMonitor);
-
-        auto oldWorkspace           = pMonitor->m_activeWorkspace;
-        pMonitor->m_activeWorkspace = pWorkspace;
-
-        if (oldWorkspace)
-            oldWorkspace->m_events.activeChanged.emit();
-
-        pWorkspace->m_events.activeChanged.emit();
-
-        g_layoutManager->recalculateMonitor(pMonitor);
-        g_pHyprRenderer->damageMonitor(pMonitor);
-
-        g_pDesktopAnimationManager->startAnimation(pWorkspace, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
-        pWorkspace->m_visible = true;
-
-        if (!noWarpCursor)
-            g_pPointerManager->warpTo(pMonitor->m_position + pMonitor->m_transformedSize / 2.F);
-
-        g_pInputManager->sendMotionEventsToFocused();
-    }
-
-    // finalize
-    if (POLDMON) {
-        g_layoutManager->recalculateMonitor(POLDMON);
-        if (valid(POLDMON->m_activeWorkspace))
-            g_pDesktopAnimationManager->setFullscreenFadeAnimation(POLDMON->m_activeWorkspace,
-                                                                   POLDMON->m_activeWorkspace->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN :
-                                                                                                                       CDesktopAnimationManager::ANIMATION_TYPE_OUT);
-        updateSuspendedStates();
-    }
-
-    g_pDesktopAnimationManager->setFullscreenFadeAnimation(
-        pWorkspace, pWorkspace->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
-    updateSuspendedStates();
-
-    // event
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspace", .data = pWorkspace->m_name + "," + pMonitor->m_name});
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspacev2", .data = std::format("{},{},{}", pWorkspace->m_id, pWorkspace->m_name, pMonitor->m_name)});
-
-    Event::bus()->m_events.workspace.moveToMonitor.emit(pWorkspace, pMonitor);
-}
-
-void CCompositor::changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON) {
-    setWindowFullscreenClient(
-        PWINDOW,
-        sc<eFullscreenMode>(ON ? sc<uint8_t>(PWINDOW->m_fullscreenState.client) | sc<uint8_t>(MODE) : (sc<uint8_t>(PWINDOW->m_fullscreenState.client) & sc<uint8_t>(~MODE))));
-}
-
-// TODO: move fs functions to Desktop::
-void CCompositor::setWindowFullscreenInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE) {
-    if (!PWINDOW)
-        return;
-    if (PWINDOW->m_ruleApplicator->syncFullscreen().valueOrDefault())
-        setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = MODE, .client = MODE});
-    else
-        setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = MODE, .client = PWINDOW->m_fullscreenState.client});
-}
-
-void CCompositor::setWindowFullscreenClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE) {
-    if (PWINDOW->m_ruleApplicator->syncFullscreen().valueOrDefault())
-        setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = MODE, .client = MODE});
-    else
-        setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = PWINDOW->m_fullscreenState.internal, .client = MODE});
-}
-
-void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::View::SFullscreenState state) {
-    static auto PDIRECTSCANOUT      = CConfigValue<Config::INTEGER>("render:direct_scanout");
-    static auto PALLOWPINFULLSCREEN = CConfigValue<Config::INTEGER>("binds:allow_pin_fullscreen");
-
-    if (!validMapped(PWINDOW))
-        return;
-
-    state.internal = std::clamp(state.internal, sc<eFullscreenMode>(0), FSMODE_MAX);
-    state.client   = std::clamp(state.client, sc<eFullscreenMode>(0), FSMODE_MAX);
-
-    const auto PMONITOR   = PWINDOW->m_monitor.lock();
-    const auto PWORKSPACE = PWINDOW->m_workspace;
-
-    if (PWINDOW->m_isFloating && PWINDOW->m_fullscreenState.internal == FSMODE_NONE && state.internal != FSMODE_NONE)
-        g_pHyprRenderer->damageWindow(PWINDOW);
-
-    if (*PALLOWPINFULLSCREEN && !PWINDOW->m_pinFullscreened && !PWINDOW->isFullscreen() && PWINDOW->m_pinned) {
-        PWINDOW->m_pinned          = false;
-        PWINDOW->m_pinFullscreened = true;
-    }
-
-    if (PWORKSPACE->m_hasFullscreenWindow && !PWINDOW->isFullscreen())
-        setWindowFullscreenInternal(PWORKSPACE->getFullscreenWindow(), FSMODE_NONE);
-
-    const bool CHANGEINTERNAL = !PWINDOW->m_pinned && PWINDOW->m_fullscreenState.internal != state.internal;
-
-    if (*PALLOWPINFULLSCREEN && PWINDOW->m_pinFullscreened && PWINDOW->isFullscreen() && !PWINDOW->m_pinned && state.internal == FSMODE_NONE) {
-        PWINDOW->m_pinned          = true;
-        PWINDOW->m_pinFullscreened = false;
-    }
-
-    // TODO: update the state on syncFullscreen changes
-    if (!CHANGEINTERNAL && PWINDOW->m_ruleApplicator->syncFullscreen().valueOrDefault())
-        return;
-
-    PWINDOW->m_fullscreenState.client = state.client;
-    g_pXWaylandManager->setWindowFullscreen(PWINDOW, state.client & FSMODE_FULLSCREEN);
-
-    if (!CHANGEINTERNAL) {
-        PWINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
-                                                     Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-        PWINDOW->updateDecorationValues();
-        g_layoutManager->recalculateMonitor(PMONITOR);
-        return;
-    }
-
-    // "Effective mode" is the fullscreen mode according to which a window is rendered.
-    // For fullscreen modes `FSMODE_NONE` (0), `FSMODE_MAXIMIZED` (1), and `FSMODE_FULLSCREEN` (2),
-    // the effective mode is the same as the fullscreen mode;
-    // for fullscreen mode `FSMODE_MAXIMIZED|FSMODE_FULLSCREEN` (a window is maximized then fullscreened),
-    // the effective mode is `FSMODE_FULLSCREEN` (2), since the window is rendered as a fullscreen window.
-    // But when the latter window exists fullscreen, it will return to `FSMODE_MAXIMIZED`, rather than `FSMODE_NONE`.
-    const eFullscreenMode OLD_EFFECTIVE_MODE = sc<eFullscreenMode>(std::bit_floor(sc<uint8_t>(PWINDOW->m_fullscreenState.internal)));
-    const eFullscreenMode NEW_EFFECTIVE_MODE = sc<eFullscreenMode>(std::bit_floor(sc<uint8_t>(state.internal)));
-
-    PWORKSPACE->m_fullscreenMode      = NEW_EFFECTIVE_MODE;
-    PWORKSPACE->m_hasFullscreenWindow = NEW_EFFECTIVE_MODE != FSMODE_NONE;
-
-    PWORKSPACE->setNoMembersAboveFullscreen();
-
-    const auto FULLSCREEN_REQUEST_RESULT = g_layoutManager->fullscreenRequestForTarget(PWINDOW->layoutTarget(), OLD_EFFECTIVE_MODE, NEW_EFFECTIVE_MODE);
-    const bool LAYOUT_HANDLED_FULLSCREEN = FULLSCREEN_REQUEST_RESULT == Layout::FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT;
-
-    if (LAYOUT_HANDLED_FULLSCREEN) {
-        PWORKSPACE->m_fullscreenMode      = FSMODE_NONE;
-        PWORKSPACE->m_hasFullscreenWindow = false;
-    } else
-        PWINDOW->m_fullscreenState.internal = state.internal;
-
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "fullscreen", .data = std::to_string(sc<int>(NEW_EFFECTIVE_MODE) != FSMODE_NONE)});
-    Event::bus()->m_events.window.fullscreen.emit(PWINDOW);
-
-    PWINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
-                                                 Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-
-    PWINDOW->updateDecorationValues();
-    g_layoutManager->recalculateMonitor(PMONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN);
-
-    // make all windows and layers on the same workspace under the fullscreen window
-    for (auto const& w : m_windows) {
-        if (w->m_workspace == PWORKSPACE) {
-            if (!w->isFullscreen() && !w->m_fadingOut && !w->m_pinned)
-                w->m_createdOverFullscreen = false;
-
-            w->updateFullscreenInputState();
-        }
-    }
-    for (auto const& ls : m_layers) {
-        if (ls->m_monitor == PMONITOR)
-            ls->m_aboveFullscreen = false;
-    }
-
-    if (!LAYOUT_HANDLED_FULLSCREEN)
-        g_pDesktopAnimationManager->setFullscreenFadeAnimation(
-            PWORKSPACE, PWORKSPACE->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
-
-    PWINDOW->sendWindowSize(true);
-
-    // recheck the work area again because visibility checks report 1 window on fs / maximize as tiled + visible
-    // because the windows below fs are not visible obviously but because we update fullscreen fade which sets that
-    // state later, it does it wrong
-    PWORKSPACE->updateWindows();
-    PWORKSPACE->m_space->recalculate(FULLSCREEN_REQUEST_RESULT == Layout::FULLSCREEN_REQUEST_DEFAULT ? Layout::RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN :
-                                                                                                       Layout::RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN);
-    PWORKSPACE->forceReportSizesToWindows();
-
-    g_pInputManager->recheckIdleInhibitorStatus();
-
-    // further updates require a monitor
-    if (!PMONITOR)
-        return;
-
-    // send a scanout tranche if we are entering fullscreen, and send a regular one if we aren't.
-    // ignore if DS is disabled.
-    if (!LAYOUT_HANDLED_FULLSCREEN && (*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && PWINDOW->getContentType() == CONTENT_TYPE_GAME))) {
-        auto surf = PWINDOW->getSolitaryResource();
-        if (surf)
-            g_pHyprRenderer->setSurfaceScanoutMode(surf, NEW_EFFECTIVE_MODE != FSMODE_NONE ? PMONITOR->m_self.lock() : nullptr);
-    }
-
-    Config::monitorRuleMgr()->ensureVRR(PMONITOR);
-}
-
-PHLWINDOW CCompositor::getX11Parent(PHLWINDOW pWindow) {
-    if (!pWindow->m_isX11)
-        return nullptr;
-
-    for (auto const& w : m_windows) {
-        if (!w->m_isX11)
-            continue;
-
-        if (w->m_xwaylandSurface == pWindow->m_xwaylandSurface->m_parent)
-            return w;
-    }
-
-    return nullptr;
-}
-
-PHLWINDOW CCompositor::getWindowByRegex(const std::string& regexp_) {
-    auto regexp = trim(regexp_);
-
-    if (regexp.starts_with("active"))
-        return Desktop::focusState()->window();
-    else if (regexp.starts_with("floating") || regexp.starts_with("tiled")) {
-        // first floating on the current ws
-        if (!Desktop::focusState()->window())
-            return nullptr;
-
-        const bool FLOAT = regexp.starts_with("floating");
-
-        for (auto const& w : m_windows) {
-            if (!w->m_isMapped || w->m_isFloating != FLOAT || w->m_workspace != Desktop::focusState()->window()->m_workspace || !w->acceptsInput())
-                continue;
-
-            return w;
-        }
-
-        return nullptr;
-    }
-
-    eFocusWindowMode mode = MODE_CLASS_REGEX;
-
-    std::string      regexCheck;
-    std::string      matchCheck;
-    if (regexp.starts_with("class:")) {
-        regexCheck = regexp.substr(6);
-    } else if (regexp.starts_with("initialclass:")) {
-        mode       = MODE_INITIAL_CLASS_REGEX;
-        regexCheck = regexp.substr(13);
-    } else if (regexp.starts_with("title:")) {
-        mode       = MODE_TITLE_REGEX;
-        regexCheck = regexp.substr(6);
-    } else if (regexp.starts_with("initialtitle:")) {
-        mode       = MODE_INITIAL_TITLE_REGEX;
-        regexCheck = regexp.substr(13);
-    } else if (regexp.starts_with("tag:")) {
-        mode       = MODE_TAG_REGEX;
-        regexCheck = regexp.substr(4);
-    } else if (regexp.starts_with("stableid:")) {
-        mode       = MODE_STABLE_ID;
-        matchCheck = regexp.substr(9);
-    } else if (regexp.starts_with("address:")) {
-        mode       = MODE_ADDRESS;
-        matchCheck = regexp.substr(8);
-    } else if (regexp.starts_with("pid:")) {
-        mode       = MODE_PID;
-        matchCheck = regexp.substr(4);
-    }
-
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (!w->m_isMapped)
-            continue;
-
-        switch (mode) {
-            case MODE_CLASS_REGEX: {
-                const auto windowClass = w->m_class;
-                if (!RE2::FullMatch(windowClass, regexCheck))
-                    continue;
-                break;
-            }
-            case MODE_INITIAL_CLASS_REGEX: {
-                const auto initialWindowClass = w->m_initialClass;
-                if (!RE2::FullMatch(initialWindowClass, regexCheck))
-                    continue;
-                break;
-            }
-            case MODE_TITLE_REGEX: {
-                const auto windowTitle = w->m_title;
-                if (!RE2::FullMatch(windowTitle, regexCheck))
-                    continue;
-                break;
-            }
-            case MODE_INITIAL_TITLE_REGEX: {
-                const auto initialWindowTitle = w->m_initialTitle;
-                if (!RE2::FullMatch(initialWindowTitle, regexCheck))
-                    continue;
-                break;
-            }
-            case MODE_TAG_REGEX: {
-                bool tagMatched = false;
-                for (auto const& t : w->m_ruleApplicator->m_tagKeeper.getTags()) {
-                    if (RE2::FullMatch(t, regexCheck)) {
-                        tagMatched = true;
-                        break;
-                    }
-                }
-                if (!tagMatched)
-                    continue;
-                break;
-            }
-            case MODE_STABLE_ID: {
-                std::string stable_id = std::format("{:x}", w->m_stableID);
-                if (matchCheck != stable_id)
-                    continue;
-                break;
-            }
-            case MODE_ADDRESS: {
-                std::string addr = std::format("0x{:x}", rc<uintptr_t>(w.get()));
-                if (matchCheck != addr)
-                    continue;
-                break;
-            }
-            case MODE_PID: {
-                std::string pid = std::format("{}", w->getPID());
-                if (matchCheck != pid)
-                    continue;
-                break;
-            }
-            default: break;
-        }
-
-        return w;
-    }
-
-    return nullptr;
-}
-
-void CCompositor::warpCursorTo(const Vector2D& pos, bool force) {
-
-    // warpCursorTo should only be used for warps that
-    // should be disabled with no_warps
-
-    static auto PNOWARPS = CConfigValue<Config::INTEGER>("cursor:no_warps");
-
-    if (*PNOWARPS && !force) {
-        const auto PMONITORNEW = State::monitorState()->query().vec(pos).run();
-        Desktop::focusState()->rawMonitorFocus(PMONITORNEW);
-        return;
-    }
-
-    g_pPointerManager->warpTo(pos);
-
-    const auto PMONITORNEW = State::monitorState()->query().vec(pos).run();
-    Desktop::focusState()->rawMonitorFocus(PMONITORNEW);
-}
-
-PHLLS CCompositor::getLayerSurfaceFromSurface(SP<CWLSurfaceResource> pSurface) {
-    std::pair<SP<CWLSurfaceResource>, bool> result = {pSurface, false};
-
-    for (auto const& ls : m_layers) {
-        if (!ls->aliveAndVisible())
-            continue;
-
-        if (ls->m_layerSurface->m_surface == pSurface)
-            return ls;
-
-        ls->m_layerSurface->m_surface->breadthfirst(
-            [&result](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) {
-                if (surf == result.first) {
-                    result.second = true;
-                    return;
-                }
-            },
-            nullptr);
-
-        if (result.second)
-            return ls;
-    }
-
-    return nullptr;
 }
 
 // returns a delta
@@ -2329,112 +947,6 @@ void CCompositor::openSafeModeBox() {
     });
 }
 
-void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWorkspace) {
-    if (!pWindow || !pWorkspace)
-        return;
-
-    if (pWindow->m_pinned && pWorkspace->m_isSpecialWorkspace)
-        return;
-
-    if (pWindow->m_workspace == pWorkspace)
-        return;
-
-    const bool FULLSCREEN     = pWindow->isFullscreen();
-    const auto FULLSCREENMODE = pWindow->m_fullscreenState.internal;
-    const bool WASVISIBLE     = pWindow->m_workspace && pWindow->m_workspace->isVisible();
-
-    if (FULLSCREEN)
-        setWindowFullscreenInternal(pWindow, FSMODE_NONE);
-
-    const PHLWINDOW pFirstWindowOnWorkspace   = pWorkspace->getFirstWindow();
-    const int       visibleWindowsOnWorkspace = pWorkspace->getWindows(true, std::nullopt, true);
-    const auto      POSTOMON                  = pWindow->m_realPosition->goal() - (pWindow->m_monitor ? pWindow->m_monitor->m_position : Vector2D{});
-    const auto      PWORKSPACEMONITOR         = pWorkspace->m_monitor.lock();
-
-    pWindow->moveToWorkspace(pWorkspace);
-    pWindow->m_monitor = pWorkspace->m_monitor;
-
-    static auto PGROUPONMOVETOWORKSPACE = CConfigValue<Config::INTEGER>("group:group_on_movetoworkspace");
-    if (*PGROUPONMOVETOWORKSPACE && visibleWindowsOnWorkspace == 1 && pFirstWindowOnWorkspace && pFirstWindowOnWorkspace != pWindow && pFirstWindowOnWorkspace->m_group &&
-        pWindow->canBeGroupedInto(pFirstWindowOnWorkspace->m_group)) {
-        pFirstWindowOnWorkspace->m_group->add(pWindow);
-    } else {
-        if (pWindow->m_isFloating)
-            pWindow->layoutTarget()->setPositionGlobal(CBox{POSTOMON + PWORKSPACEMONITOR->m_position, pWindow->layoutTarget()->position().size()});
-    }
-
-    pWindow->updateToplevel();
-    pWindow->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-    pWindow->uncacheWindowDecos();
-
-    if (pWindow->m_group)
-        pWindow->m_group->updateWorkspace(pWorkspace);
-
-    g_layoutManager->newTarget(pWindow->layoutTarget(), pWorkspace->m_space);
-
-    if (FULLSCREEN)
-        setWindowFullscreenInternal(pWindow, FULLSCREENMODE);
-
-    pWorkspace->updateWindows();
-    if (pWindow->m_workspace)
-        pWindow->m_workspace->updateWindows();
-    g_pCompositor->updateSuspendedStates();
-
-    if (!WASVISIBLE && pWindow->m_workspace && pWindow->m_workspace->isVisible()) {
-        pWindow->alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE)->setValueAndWarp(0.F);
-        *pWindow->alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE) = 1.F;
-    }
-}
-
-PHLWINDOW CCompositor::getForceFocus() {
-    for (auto const& w : m_windows) {
-        if (!w->m_isMapped || !w->acceptsInput() || !w->m_workspace || !w->m_workspace->isVisible())
-            continue;
-
-        if (!w->m_ruleApplicator->stayFocused().valueOrDefault())
-            continue;
-
-        return w;
-    }
-
-    return nullptr;
-}
-
-void CCompositor::setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, double scale) {
-    PROTO::fractional->sendScale(pSurface, scale);
-    pSurface->sendPreferredScale(std::ceil(scale));
-
-    const auto PSURFACE = Desktop::View::CWLSurface::fromResource(pSurface);
-    if (!PSURFACE) {
-        Log::logger->log(Log::WARN, "Orphaned CWLSurfaceResource {:x} in setPreferredScaleForSurface", rc<uintptr_t>(pSurface.get()));
-        return;
-    }
-
-    PSURFACE->m_lastScaleFloat = scale;
-    PSURFACE->m_lastScaleInt   = sc<int32_t>(std::ceil(scale));
-}
-
-void CCompositor::setPreferredTransformForSurface(SP<CWLSurfaceResource> pSurface, wl_output_transform transform) {
-    pSurface->sendPreferredTransform(transform);
-
-    const auto PSURFACE = Desktop::View::CWLSurface::fromResource(pSurface);
-    if (!PSURFACE) {
-        Log::logger->log(Log::WARN, "Orphaned CWLSurfaceResource {:x} in setPreferredTransformForSurface", rc<uintptr_t>(pSurface.get()));
-        return;
-    }
-
-    PSURFACE->m_lastTransform = transform;
-}
-
-void CCompositor::updateSuspendedStates() {
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (!w->m_isMapped)
-            continue;
-
-        w->setSuspended(w->isHidden() || !w->m_workspace || !w->m_workspace->isVisible());
-    }
-}
-
 PImageDescription CCompositor::getPreferredImageDescription() {
     if (!PROTO::colorManagement) {
         Log::logger->log(Log::ERR, "FIXME: color management protocol is not enabled, returning empty image description");
@@ -2491,9 +1003,8 @@ std::optional<unsigned int> CCompositor::getVTNr() {
 #endif
     }
 
-    return ttynum;
-}
+    if (ttynum == 0)
+        return std::nullopt;
 
-bool CCompositor::isVRRActiveOnAnyMonitor() const {
-    return std::ranges::any_of(State::monitorState()->monitors(), [](const PHLMONITOR& m) { return m->m_vrrActive; });
+    return ttynum;
 }

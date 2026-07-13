@@ -5,6 +5,9 @@
 #ifndef INNER_GLOW_GLSL
 #define INNER_GLOW_GLSL
 
+#include "cm_helpers.glsl"
+#include "gradient.glsl"
+
 float innerGlowAlpha(float distFromEdge, float range, float glowPower) {
     if (distFromEdge >= range)
         return 0.0;
@@ -24,8 +27,13 @@ float innerGlowSmin(float a, float b, float k) {
     return min(a, b) - h * h * h * k * (1.0 / 6.0);
 }
 
-vec4 getInnerGlow(vec4 pixColor, vec4 colorSRGB, vec2 v_texcoord, float radius, float roundingPower, vec2 topLeft, vec2 fullSize, float range, float glowPower, vec2 bottomRight) {
+vec4 getInnerGlow(vec4 pixColor, vec4 colorSRGB, vec2 v_texcoord, float radius, float roundingPower, vec2 topLeft, vec2 fullSize, float range, float glowPower, vec2 bottomRight,
+                  int gradientLength, vec4 gradient[10], float angle, int gradient2Length, vec4 gradient2[10], float angle2, float gradientLerp, float alpha) {
     vec2 pixCoord = fullSize * v_texcoord;
+
+    if (gradientLength > 0 || gradient2Length > 0)
+        pixColor = getColorForCoord(v_texcoord, gradientLength, gradient, angle, gradient2Length, gradient2, angle2, gradientLerp);
+    pixColor.a *= alpha;
 
     // clip to the rounded rectangle shape using actual SDF
     vec2  center  = fullSize * 0.5;

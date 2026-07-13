@@ -8,7 +8,7 @@ CXWayland::CXWayland(const bool wantsEnabled) {
     // Disable Xwayland and clean up if the user disabled it.
     if (!wantsEnabled) {
         Log::logger->log(Log::DEBUG, "XWayland has been disabled, cleaning up...");
-        for (auto& w : g_pCompositor->m_windows) {
+        for (auto& w : Desktop::windowState()->windows()) {
             if (!w->m_isX11)
                 continue;
             w->sendClose();

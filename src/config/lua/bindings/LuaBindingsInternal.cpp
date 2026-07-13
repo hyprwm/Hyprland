@@ -108,7 +108,7 @@ PHLWINDOW Internal::windowFromLuaSelectorOrObject(lua_State* L, int idx, const c
         return ref->lock();
 
     if (lua_isstring(L, idx) || lua_isnumber(L, idx))
-        return g_pCompositor->getWindowByRegex(argStr(L, idx));
+        return Desktop::viewState()->query().selector(argStr(L, idx)).runWindow();
 
     Internal::configError(L, "{}: expected a window object or selector", fnName);
     return nullptr;
@@ -317,7 +317,7 @@ std::optional<PHLWINDOW> Internal::windowFromUpval(lua_State* L, int idx) {
     if (lua_isnil(L, lua_upvalueindex(idx)))
         return std::nullopt;
 
-    return g_pCompositor->getWindowByRegex(lua_tostring(L, lua_upvalueindex(idx)));
+    return Desktop::viewState()->query().selector(lua_tostring(L, lua_upvalueindex(idx))).runWindow();
 }
 
 void Internal::pushWindowUpval(lua_State* L, int tableIdx) {

@@ -36,6 +36,7 @@ TEST(Helpers, isDirectionString) {
     EXPECT_FALSE(isDirection("leftover"));
     EXPECT_FALSE(isDirection("desc:Monitor"));
     EXPECT_FALSE(isDirection(""));
+    EXPECT_FALSE(isDirection("i_am_single"));
 }
 
 // normalizeAngleRad

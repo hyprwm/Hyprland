@@ -108,7 +108,7 @@ TEST_CASE(swallow) {
         ASSERT_CONTAINS(workspaces, "windows: 1\n");
     }
 
-    // Un-swallow the intial window
+    // Un-swallow the initial window
     OK(getFromSocket("/dispatch hl.dsp.window.toggle_swallow()"));
 
     {
@@ -134,7 +134,7 @@ TEST_CASE(swallow) {
         ASSERT_CONTAINS(workspaces, "windows: 3\n");
     }
 
-    // Re-swallow the intial window
+    // Re-swallow the initial window
     OK(getFromSocket("/dispatch hl.dsp.focus({ last = true })"));
     OK(getFromSocket("/dispatch hl.dsp.window.toggle_swallow()"));
 

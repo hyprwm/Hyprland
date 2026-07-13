@@ -21,8 +21,9 @@ namespace Config {
 
         // merge other into us
         void                               mergeLeft(const CWorkspaceRule& other);
+        void                               setEnabled(bool enabled);
+        bool                               isEnabled() const;
 
-        bool                               m_enabled         = true;
         std::string                        m_monitor         = "";
         std::string                        m_workspaceString = "";
         std::string                        m_workspaceName   = "";
@@ -42,5 +43,8 @@ namespace Config {
         std::optional<std::string>         m_layout;
         std::map<std::string, std::string> m_layoutopts;
         std::optional<std::string>         m_animationStyle;
+
+      private:
+        bool m_enabled = true;
     };
 };

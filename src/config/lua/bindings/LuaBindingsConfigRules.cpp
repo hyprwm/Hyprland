@@ -3,6 +3,7 @@
 
 #include "../objects/LuaLayerRule.hpp"
 #include "../objects/LuaWindowRule.hpp"
+#include "../objects/LuaWorkspaceRule.hpp"
 
 #include "../types/LuaConfigBool.hpp"
 #include "../types/LuaConfigCssGap.hpp"
@@ -26,7 +27,7 @@
 #include "../../../desktop/rule/windowRule/WindowRuleEffectContainer.hpp"
 #include "../../../layout/LayoutManager.hpp"
 #include "../../../layout/supplementary/WorkspaceAlgoMatcher.hpp"
-#include "../../../managers/animation/AnimationManager.hpp"
+#include "../../../animation/AnimationManager.hpp"
 #include "../../../managers/input/InputManager.hpp"
 #include "../../../managers/input/trackpad/TrackpadGestures.hpp"
 #include "../../../managers/input/trackpad/gestures/CloseGesture.hpp"
@@ -330,7 +331,7 @@ static int hlCurve(lua_State* L) {
         }
         lua_pop(L, 1);
 
-        g_pAnimationManager->addBezierWithName(name, Vector2D(coords[0], coords[1]), Vector2D(coords[2], coords[3]));
+        Animation::mgr()->addBezierWithName(name, Vector2D(coords[0], coords[1]), Vector2D(coords[2], coords[3]));
     } else if (curveType == "spring") {
 
         Hyprutils::Animation::SSpringCurve curve;
@@ -377,7 +378,7 @@ static int hlCurve(lua_State* L) {
                 return Internal::configError(L, std::format("hl.curve(\"{}\"): mass expects a number >= 0.5", name));
         }
 
-        g_pAnimationManager->addSpringWithName(name, curve);
+        Animation::mgr()->addSpringWithName(name, curve);
     } else
         return Internal::configError(L, std::format(R"(hl.curve("{}"): unknown curve type "{}", expected "bezier" or "spring")", name, curveType));
 
@@ -430,7 +431,7 @@ static int hlAnimation(lua_State* L) {
 
         const auto& bezierName = bezierParser.parsed();
 
-        if (!g_pAnimationManager->bezierExists(bezierName))
+        if (!Animation::mgr()->bezierExists(bezierName))
             return Internal::configError(L, std::format(R"(hl.animation("{}"): no such bezier "{}")", leaf, bezierName));
 
         curveName = bezierName;
@@ -442,7 +443,7 @@ static int hlAnimation(lua_State* L) {
 
         const auto& springName = springParser.parsed();
 
-        if (!g_pAnimationManager->springExists(springName))
+        if (!Animation::mgr()->springExists(springName))
             return Internal::configError(L, std::format(R"(hl.animation("{}"): no such spring "{}")", leaf, springName));
 
         curveName = "spring:" + springName;
@@ -463,7 +464,7 @@ static int hlAnimation(lua_State* L) {
     lua_pop(L, 1);
 
     if (!style.empty()) {
-        auto err = g_pAnimationManager->styleValidInConfigVar(leaf, style);
+        auto err = Animation::mgr()->styleValidInConfigVar(leaf, style);
         if (!err.empty())
             return Internal::configError(L, std::format("hl.animation(\"{}\"): {}", leaf, err));
     }
@@ -647,7 +648,7 @@ static int hlWorkspaceRule(lua_State* L) {
     wsRule.m_workspaceString = wsStr;
     wsRule.m_workspaceName   = wsName;
     wsRule.m_workspaceId     = isAutoID ? WORKSPACE_INVALID : wsId;
-    wsRule.m_enabled         = enabled;
+    wsRule.setEnabled(enabled);
 
     lua_pushnil(L);
     while (lua_next(L, 1) != 0) {
@@ -721,11 +722,12 @@ static int hlWorkspaceRule(lua_State* L) {
         lua_pop(L, 1);
     }
 
-    Config::workspaceRuleMgr()->replaceOrAdd(std::move(wsRule));
+    const auto RULE = Config::workspaceRuleMgr()->replaceOrAdd(std::move(wsRule));
 
     Supplementary::refresher()->scheduleRefresh(Supplementary::REFRESH_MONITOR_STATES | Config::Supplementary::REFRESH_WINDOW_STATES);
 
-    return 0;
+    Objects::CLuaWorkspaceRule::push(L, RULE);
+    return 1;
 }
 
 static int hlGesture(lua_State* L) {

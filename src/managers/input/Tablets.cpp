@@ -2,7 +2,7 @@
 #include "../../desktop/view/Window.hpp"
 #include "../../protocols/Tablet.hpp"
 #include "../../devices/Tablet.hpp"
-#include "../../managers/PointerManager.hpp"
+#include "../../pointer/PointerManager.hpp"
 #include "../../managers/SeatManager.hpp"
 #include "../../protocols/PointerConstraints.hpp"
 #include "../../protocols/core/DataDevice.hpp"
@@ -125,7 +125,7 @@ void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
 
         switch (e.tool->type) {
             case Aquamarine::ITabletTool::AQ_TABLET_TOOL_TYPE_MOUSE: {
-                g_pPointerManager->move(delta);
+                Pointer::mgr()->move(delta);
                 break;
             }
             default: {
@@ -135,9 +135,9 @@ void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
                     PTOOL->m_absolutePos.y = y;
 
                 if (PTAB->m_relativeInput)
-                    g_pPointerManager->move(delta);
+                    Pointer::mgr()->move(delta);
                 else
-                    g_pPointerManager->warpAbsolute(transformToActiveRegion({x, y}, PTAB->m_activeArea), PTAB);
+                    Pointer::mgr()->warpAbsolute(transformToActiveRegion({x, y}, PTAB->m_activeArea), PTAB);
 
                 break;
             }
@@ -186,9 +186,9 @@ void CInputManager::onTabletTip(CTablet::STipEvent e) {
     const auto POS   = e.tip;
 
     if (PTAB->m_relativeInput)
-        g_pPointerManager->move({0, 0});
+        Pointer::mgr()->move({0, 0});
     else
-        g_pPointerManager->warpAbsolute(transformToActiveRegion(POS, PTAB->m_activeArea), PTAB);
+        Pointer::mgr()->warpAbsolute(transformToActiveRegion(POS, PTAB->m_activeArea), PTAB);
 
     if (e.in)
         refocus();
@@ -254,7 +254,7 @@ void CInputManager::newTablet(SP<Aquamarine::ITablet> pDevice) {
         Log::logger->log(Log::ERR, "Tablet had no name???"); // logic error
     }
 
-    g_pPointerManager->attachTablet(PNEWTABLET);
+    Pointer::mgr()->attachTablet(PNEWTABLET);
 
     PNEWTABLET->m_events.destroy.listenStatic([this, tablet = PNEWTABLET.get()] {
         auto TABLET = tablet->m_self;

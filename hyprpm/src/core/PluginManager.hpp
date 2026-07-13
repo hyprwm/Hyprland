@@ -49,7 +49,7 @@ class CPluginManager {
     CPluginManager();
 
     bool                   addNewPluginRepo(const std::string& url, const std::string& rev);
-    bool                   removePluginRepo(const SPluginRepoIdentifier identifier);
+    bool                   removePluginRepo(const SPluginRepoIdentifier& identifier);
 
     eHeadersErrors         headersValid();
     bool                   updateHeaders(bool force = false);
@@ -57,8 +57,8 @@ class CPluginManager {
 
     void                   listAllPlugins();
 
-    bool                   enablePlugin(const SPluginRepoIdentifier identifier);
-    bool                   disablePlugin(const SPluginRepoIdentifier identifier);
+    bool                   enablePlugin(const SPluginRepoIdentifier& identifier);
+    bool                   disablePlugin(const SPluginRepoIdentifier& identifier);
     ePluginLoadStateReturn ensurePluginsLoadState(bool forceReload = false);
 
     bool                   loadUnloadPlugin(const std::string& path, bool load);

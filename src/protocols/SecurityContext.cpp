@@ -33,6 +33,8 @@ CSecurityContextSandboxedClient::CSecurityContextSandboxedClient(CFileDescriptor
     if (!m_client)
         return;
 
+    m_clientFD.setFlags(m_clientFD.getFlags() | FD_CLOEXEC);
+
     wl_list_init(&m_destroyListener.listener.link);
     m_destroyListener.listener.notify = ::onSecurityContextClientDestroy;
     m_destroyListener.parent          = this;
@@ -51,6 +53,9 @@ void CSecurityContextSandboxedClient::onDestroy() {
 CSecurityContext::CSecurityContext(SP<CWpSecurityContextV1> resource_, int listenFD_, int closeFD_) : m_listenFD(listenFD_), m_closeFD(closeFD_), m_resource(resource_) {
     if UNLIKELY (!good())
         return;
+
+    m_listenFD.setFlags(m_listenFD.getFlags() | FD_CLOEXEC);
+    m_closeFD.setFlags(m_closeFD.getFlags() | FD_CLOEXEC);
 
     m_resource->setDestroy([this](CWpSecurityContextV1* r) {
         LOGM(Log::DEBUG, "security_context at 0x{:x}: resource destroyed, keeping context until fd hangup", (uintptr_t)this);

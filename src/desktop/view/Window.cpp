@@ -21,6 +21,10 @@
 #include "LayerSurface.hpp"
 #include "../state/FocusState.hpp"
 #include "../state/FloatState.hpp"
+#include "../state/FadingOutState.hpp"
+#include "../state/GlobalWindowController.hpp"
+#include "../state/WindowFadeout.hpp"
+#include "../state/WindowState.hpp"
 #include "../history/WindowHistoryTracker.hpp"
 #include "../../Compositor.hpp"
 #include "../../render/decorations/CHyprDropShadowDecoration.hpp"
@@ -35,7 +39,7 @@
 #include "../../state/MonitorState.hpp"
 #include "../../state/WorkspaceState.hpp"
 #include "../../managers/TokenManager.hpp"
-#include "../../managers/animation/AnimationManager.hpp"
+#include "../../animation/AnimationManager.hpp"
 #include "../../managers/ANRManager.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../managers/eventLoop/EventLoopTimer.hpp"
@@ -43,7 +47,6 @@
 #include "../../protocols/core/Compositor.hpp"
 #include "../../protocols/core/Subcompositor.hpp"
 #include "../../protocols/ContentType.hpp"
-#include "../../protocols/FractionalScale.hpp"
 #include "../../protocols/LayerShell.hpp"
 #include "../../xwayland/XWayland.hpp"
 #include "../../helpers/Color.hpp"
@@ -53,9 +56,9 @@
 #include "../../render/transformer/MotionBlurTransformer.hpp"
 #include "../../managers/EventManager.hpp"
 #include "../../managers/input/InputManager.hpp"
-#include "../../managers/PointerManager.hpp"
-#include "../../managers/animation/DesktopAnimationManager.hpp"
+#include "../../pointer/PointerController.hpp"
 #include "../../managers/KeybindManager.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../../layout/algorithm/Algorithm.hpp"
 #include "../../layout/space/Space.hpp"
 #include "../../layout/LayoutManager.hpp"
@@ -75,7 +78,23 @@ using namespace Desktop;
 using namespace Desktop::View;
 
 // I wish I had an elven wife instead of a windowIDCounter
-static uint64_t windowIDCounter = 0x18000000;
+static uint64_t            windowIDCounter = 0x18000000;
+
+static Layout::eRectCorner xdgResizeEdgeToCorner(xdgToplevelResizeEdge edges) {
+    switch (edges) {
+        case XDG_TOPLEVEL_RESIZE_EDGE_TOP: return Layout::CORNER_TOP;
+        case XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM: return Layout::CORNER_BOTTOM;
+        case XDG_TOPLEVEL_RESIZE_EDGE_LEFT: return Layout::CORNER_LEFT;
+        case XDG_TOPLEVEL_RESIZE_EDGE_TOP_LEFT: return Layout::CORNER_TOPLEFT;
+        case XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM_LEFT: return Layout::CORNER_BOTTOMLEFT;
+        case XDG_TOPLEVEL_RESIZE_EDGE_RIGHT: return Layout::CORNER_RIGHT;
+        case XDG_TOPLEVEL_RESIZE_EDGE_TOP_RIGHT: return Layout::CORNER_TOPRIGHT;
+        case XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM_RIGHT: return Layout::CORNER_BOTTOMRIGHT;
+        case XDG_TOPLEVEL_RESIZE_EDGE_NONE: return Layout::CORNER_NONE;
+    }
+
+    return Layout::CORNER_NONE;
+}
 
 //
 #define COMMA ,
@@ -88,32 +107,33 @@ PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
     pWindow->m_isX11          = true;
     pWindow->m_ruleApplicator = makeUnique<Desktop::Rule::CWindowRuleApplicator>(pWindow);
 
-    g_pAnimationManager->createAnimation(Vector2D(0, 0), pWindow->m_realPosition, Config::animationTree()->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(Vector2D(0, 0), pWindow->m_realSize, Config::animationTree()->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_borderFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("border"), pWindow, AVARDAMAGE_BORDER);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_borderAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("borderangle"), pWindow,
-                                         AVARDAMAGE_BORDER);
-    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FADE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_ACTIVE), Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FULLSCREEN), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_LAYOUT), Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_shadowFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("fadeShadow"), pWindow,
-                                         AVARDAMAGE_SHADOW);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_shadowAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("shadowangle"), pWindow,
-                                         AVARDAMAGE_SHADOW);
-    g_pAnimationManager->createAnimation(CHyprColor(), pWindow->m_realGlowColor, Config::animationTree()->getAnimationPropertyConfig("fadeGlow"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_dimPercent, Config::animationTree()->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeOut"), pWindow,
-                                         AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow,
-                                         AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_notRespondingTint, Config::animationTree()->getAnimationPropertyConfig("fade"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(Vector2D(0, 0), pWindow->m_realPosition, Config::animationTree()->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(Vector2D(0, 0), pWindow->m_realSize, Config::animationTree()->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_borderFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("border"), pWindow, AVARDAMAGE_BORDER);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_borderAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("borderangle"), pWindow, AVARDAMAGE_BORDER);
+    Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FADE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_ACTIVE), Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FULLSCREEN), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_LAYOUT), Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_shadowFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("fadeShadow"), pWindow, AVARDAMAGE_SHADOW);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_shadowAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("shadowangle"), pWindow, AVARDAMAGE_SHADOW);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_glowFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("fadeGlow"), pWindow, AVARDAMAGE_GLOW);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_glowAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("glowangle"), pWindow, AVARDAMAGE_GLOW);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_dimPercent, Config::animationTree()->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeOut"), pWindow,
+                                      AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow,
+                                      AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_notRespondingTint, Config::animationTree()->getAnimationPropertyConfig("fade"), pWindow, AVARDAMAGE_ENTIRE);
 
     pWindow->addWindowDeco(makeUnique<CHyprDropShadowDecoration>(pWindow));
     pWindow->addWindowDeco(makeUnique<CHyprBorderDecoration>(pWindow));
     pWindow->addWindowDeco(makeUnique<CHyprInnerGlowDecoration>(pWindow));
 
     pWindow->m_target = Layout::CWindowTarget::create(pWindow);
+
+    pWindow->initView(pWindow, VIEW_TYPE_WINDOW);
+    Event::bus()->m_events.window.create.emit(pWindow);
 
     return pWindow;
 }
@@ -125,26 +145,24 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
     resource->m_toplevel->m_window = pWindow;
     pWindow->m_ruleApplicator      = makeUnique<Desktop::Rule::CWindowRuleApplicator>(pWindow);
 
-    g_pAnimationManager->createAnimation(Vector2D(0, 0), pWindow->m_realPosition, Config::animationTree()->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(Vector2D(0, 0), pWindow->m_realSize, Config::animationTree()->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_borderFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("border"), pWindow, AVARDAMAGE_BORDER);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_borderAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("borderangle"), pWindow,
-                                         AVARDAMAGE_BORDER);
-    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FADE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_ACTIVE), Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FULLSCREEN), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_LAYOUT), Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_shadowFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("fadeShadow"), pWindow,
-                                         AVARDAMAGE_SHADOW);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_shadowAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("shadowangle"), pWindow,
-                                         AVARDAMAGE_SHADOW);
-    g_pAnimationManager->createAnimation(CHyprColor(), pWindow->m_realGlowColor, Config::animationTree()->getAnimationPropertyConfig("fadeGlow"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_dimPercent, Config::animationTree()->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeOut"), pWindow,
-                                         AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow,
-                                         AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_notRespondingTint, Config::animationTree()->getAnimationPropertyConfig("fade"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(Vector2D(0, 0), pWindow->m_realPosition, Config::animationTree()->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(Vector2D(0, 0), pWindow->m_realSize, Config::animationTree()->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_borderFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("border"), pWindow, AVARDAMAGE_BORDER);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_borderAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("borderangle"), pWindow, AVARDAMAGE_BORDER);
+    Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FADE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_ACTIVE), Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FULLSCREEN), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_LAYOUT), Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_shadowFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("fadeShadow"), pWindow, AVARDAMAGE_SHADOW);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_shadowAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("shadowangle"), pWindow, AVARDAMAGE_SHADOW);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_glowFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("fadeGlow"), pWindow, AVARDAMAGE_GLOW);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_glowAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("glowangle"), pWindow, AVARDAMAGE_GLOW);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_dimPercent, Config::animationTree()->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeOut"), pWindow,
+                                      AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow,
+                                      AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(0.f, pWindow->m_notRespondingTint, Config::animationTree()->getAnimationPropertyConfig("fade"), pWindow, AVARDAMAGE_ENTIRE);
 
     pWindow->addWindowDeco(makeUnique<CHyprDropShadowDecoration>(pWindow));
     pWindow->addWindowDeco(makeUnique<CHyprBorderDecoration>(pWindow));
@@ -154,20 +172,27 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
 
     pWindow->wlSurface()->assign(pWindow->m_xdgSurface->m_surface.lock(), pWindow);
 
+    pWindow->initView(pWindow, VIEW_TYPE_WINDOW);
+    Event::bus()->m_events.window.create.emit(pWindow);
+
     return pWindow;
 }
 
-CWindow::CWindow(SP<CXDGSurfaceResource> resource) : IView(CWLSurface::create()), m_xdgSurface(resource), m_stableID(windowIDCounter++) {
-    m_listeners.map            = m_xdgSurface->m_events.map.listen([this] { mapWindow(); });
-    m_listeners.ack            = m_xdgSurface->m_events.ack.listen([this](uint32_t d) { onAck(d); });
-    m_listeners.unmap          = m_xdgSurface->m_events.unmap.listen([this] { unmapWindow(); });
-    m_listeners.destroy        = m_xdgSurface->m_events.destroy.listen([this] { destroyWindow(); });
-    m_listeners.commit         = m_xdgSurface->m_events.commit.listen([this] { commitWindow(); });
-    m_listeners.updateState    = m_xdgSurface->m_toplevel->m_events.stateChanged.listen([this] { onUpdateState(); });
-    m_listeners.updateMetadata = m_xdgSurface->m_toplevel->m_events.metadataChanged.listen([this] { onUpdateMeta(); });
+CWindow::CWindow(SP<CXDGSurfaceResource> resource) :
+    IView(CWLSurface::create()), m_xdgSurface(resource), m_stableID(windowIDCounter++), m_animationController(this), m_alpha(WINDOW_ALPHA_LAST) {
+    m_listeners.map              = m_xdgSurface->m_events.map.listen([this] { mapWindow(); });
+    m_listeners.ack              = m_xdgSurface->m_events.ack.listen([this](uint32_t d) { onAck(d); });
+    m_listeners.unmap            = m_xdgSurface->m_events.unmap.listen([this] { unmapWindow(); });
+    m_listeners.destroy          = m_xdgSurface->m_events.destroy.listen([this] { destroyWindow(); });
+    m_listeners.commit           = m_xdgSurface->m_events.commit.listen([this] { commitWindow(); });
+    m_listeners.updateState      = m_xdgSurface->m_toplevel->m_events.stateChanged.listen([this] { onUpdateState(); });
+    m_listeners.updateMetadata   = m_xdgSurface->m_toplevel->m_events.metadataChanged.listen([this] { onUpdateMeta(); });
+    m_listeners.xdgMoveRequest   = m_xdgSurface->m_toplevel->m_events.requestMove.listen([this](const auto& request) { onXDGMoveRequest(request); });
+    m_listeners.xdgResizeRequest = m_xdgSurface->m_toplevel->m_events.requestResize.listen([this](const auto& request) { onXDGResizeRequest(request); });
 }
 
-CWindow::CWindow(SP<CXWaylandSurface> surface) : IView(CWLSurface::create()), m_xwaylandSurface(surface), m_stableID(windowIDCounter++) {
+CWindow::CWindow(SP<CXWaylandSurface> surface) :
+    IView(CWLSurface::create()), m_xwaylandSurface(surface), m_stableID(windowIDCounter++), m_animationController(this), m_alpha(WINDOW_ALPHA_LAST) {
     m_listeners.map              = m_xwaylandSurface->m_events.map.listen([this] { mapWindow(); });
     m_listeners.unmap            = m_xwaylandSurface->m_events.unmap.listen([this] { unmapWindow(); });
     m_listeners.destroy          = m_xwaylandSurface->m_events.destroy.listen([this] { destroyWindow(); });
@@ -194,6 +219,7 @@ CWindow::~CWindow() {
         Desktop::focusState()->window().reset();
     }
 
+    Event::bus()->m_events.window.destroy.emit(m_self);
     m_events.destroy.emit();
 }
 
@@ -202,7 +228,7 @@ eViewType CWindow::type() const {
 }
 
 bool CWindow::visible() const {
-    return !m_hidden && ((m_isMapped && m_wlSurface && m_wlSurface->resource()) || m_fadingOut) && visibleByAlpha();
+    return !m_hidden && m_isMapped && m_wlSurface && m_wlSurface->resource() && visibleByAlpha();
 }
 
 std::optional<CBox> CWindow::logicalBox() const {
@@ -218,9 +244,6 @@ std::optional<CBox> CWindow::surfaceLogicalBox() const {
 }
 
 SBoxExtents CWindow::getFullWindowExtents() const {
-    if (m_fadingOut)
-        return m_originalClosedExtents;
-
     const int BORDERSIZE = getRealBorderSize();
 
     if (m_ruleApplicator->dimAround().valueOrDefault()) {
@@ -267,22 +290,35 @@ CBox CWindow::getFullWindowBoundingBox() const {
 
     auto maxExtents = getFullWindowExtents();
 
-    CBox finalBox = {m_realPosition->value().x - maxExtents.topLeft.x, m_realPosition->value().y - maxExtents.topLeft.y,
-                     m_realSize->value().x + maxExtents.topLeft.x + maxExtents.bottomRight.x, m_realSize->value().y + maxExtents.topLeft.y + maxExtents.bottomRight.y};
+    CBox finalBox = geometricBox(GEOMETRIC_CURRENT);
+    finalBox.addExtents(maxExtents);
 
     return finalBox;
+}
+
+bool CWindow::operator==(const CWindow& rhs) const {
+    return m_xdgSurface == rhs.m_xdgSurface && m_xwaylandSurface == rhs.m_xwaylandSurface && layoutBox() == rhs.layoutBox();
+}
+
+CBox CWindow::layoutBox() const {
+    if (!m_target)
+        return {};
+
+    return m_target->position();
 }
 
 CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
     const auto PMONITOR = m_monitor.lock();
 
+    const auto LAYOUTBOX = layoutBox();
+
     if (!PMONITOR || !m_workspace)
-        return {m_position, m_size};
+        return LAYOUTBOX;
 
-    auto POS  = m_position;
-    auto SIZE = m_size;
+    auto POS  = LAYOUTBOX.pos();
+    auto SIZE = LAYOUTBOX.size();
 
-    if (isFullscreen() && (!layoutTarget() || !layoutTarget()->layoutManagedFullscreen())) {
+    if (Fullscreen::controller()->isFullscreen(m_self.lock()) && (!layoutTarget() || !Fullscreen::controller()->layoutManagedFS(m_self.lock()))) {
         POS  = PMONITOR->m_position;
         SIZE = PMONITOR->m_size;
 
@@ -334,10 +370,7 @@ CBox CWindow::getWindowBoxUnified(uint64_t properties) {
             return {PMONITOR->m_position.x, PMONITOR->m_position.y, PMONITOR->m_size.x, PMONITOR->m_size.y};
     }
 
-    const auto POS  = m_realPosition->value();
-    const auto SIZE = m_realSize->value();
-
-    CBox       box{POS, SIZE};
+    CBox box = geometricBox(GEOMETRIC_CURRENT);
     box.addExtents(getWindowExtentsUnified(properties));
 
     return box;
@@ -488,12 +521,12 @@ void CWindow::updateSurfaceScaleTransformDetails(bool force) {
     m_wlSurface->resource()->breadthfirst(
         [PMONITOR](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) {
             const auto PSURFACE = CWLSurface::fromResource(s);
-            if (PSURFACE && PSURFACE->m_lastScaleFloat == PMONITOR->m_scale)
+
+            if (!PSURFACE)
                 return;
 
-            PROTO::fractional->sendScale(s, PMONITOR->m_scale);
-            g_pCompositor->setPreferredScaleForSurface(s, PMONITOR->m_scale);
-            g_pCompositor->setPreferredTransformForSurface(s, PMONITOR->m_transform);
+            PSURFACE->sendScale(PMONITOR->m_scale);
+            PSURFACE->sendTransform(PMONITOR->m_transform);
         },
         nullptr);
 }
@@ -540,7 +573,7 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 
     setAnimationsToMove();
 
-    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+    Desktop::globalWindowController()->updateAllWindowsDecorations();
 
     if (valid(pWorkspace)) {
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "movewindow", .data = std::format("{:x},{}", rc<uintptr_t>(this), pWorkspace->m_name)});
@@ -555,35 +588,22 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
         }
     }
 
-    if (OLDWORKSPACE && State::workspaceState()->isSpecial(OLDWORKSPACE->m_id) && OLDWORKSPACE->getWindows() == 0 && *PCLOSEONLASTSPECIAL) {
+    if (OLDWORKSPACE && State::workspaceState()->isSpecial(OLDWORKSPACE->m_id) && OLDWORKSPACE->getWindowCount() == 0 && *PCLOSEONLASTSPECIAL) {
         if (const auto PMONITOR = OLDWORKSPACE->m_monitor.lock(); PMONITOR)
             PMONITOR->setSpecialWorkspace(nullptr);
     }
 }
 
-PHLWINDOW CWindow::x11TransientFor() {
-    if (!m_xwaylandSurface || !m_xwaylandSurface->m_parent)
+PHLWINDOW CWindow::x11Parent() const {
+    if (!m_isX11 || !m_xwaylandSurface || !m_xwaylandSurface->m_parent)
         return nullptr;
 
-    auto                              s = m_xwaylandSurface->m_parent;
-    std::vector<SP<CXWaylandSurface>> visited;
-    while (s) {
-        // break loops. Some X apps make them, and it seems like it's valid behavior?!?!?!
-        // TODO: we should reject loops being created in the first place.
-        if (std::ranges::find(visited.begin(), visited.end(), s) != visited.end())
-            break;
-
-        visited.emplace_back(s.lock());
-        s = s->m_parent;
-    }
-
-    if (s == m_xwaylandSurface)
-        return nullptr; // dead-ass circle
-
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_xwaylandSurface != s)
+    for (auto const& w : Desktop::windowState()->windows()) {
+        if (!w->m_isX11)
             continue;
-        return w;
+
+        if (w->m_xwaylandSurface == m_xwaylandSurface->m_parent)
+            return w;
     }
 
     return nullptr;
@@ -701,13 +721,13 @@ void CWindow::onUnmap() {
     // if the special workspace now has 0 windows, it will be closed, and this
     // window will no longer pass render checks, cuz the workspace will be nuked.
     // throw it into the main one for the fadeout.
-    if (m_workspace->m_isSpecialWorkspace && m_workspace->getWindows() == 0) {
+    if (m_workspace->m_isSpecialWorkspace && m_workspace->getWindowCount() == 0) {
         const auto PMONITOR = m_monitor.lock();
         if (PMONITOR)
             m_lastWorkspace = PMONITOR->activeWorkspaceID();
     }
 
-    if (*PCLOSEONLASTSPECIAL && m_workspace && m_workspace->getWindows() == 0 && onSpecialWorkspace()) {
+    if (*PCLOSEONLASTSPECIAL && m_workspace && m_workspace->getWindowCount() == 0 && onSpecialWorkspace()) {
         const auto PMONITOR = m_monitor.lock();
         if (PMONITOR && PMONITOR->m_activeSpecialWorkspace && PMONITOR->m_activeSpecialWorkspace == m_workspace)
             PMONITOR->setSpecialWorkspace(nullptr);
@@ -725,7 +745,7 @@ void CWindow::onUnmap() {
         m_workspace->updateWindowData();
     }
 
-    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+    Desktop::globalWindowController()->updateAllWindowsDecorations();
 
     m_workspace.reset();
 
@@ -748,7 +768,8 @@ void CWindow::onMap() {
     alpha(WINDOW_ALPHA_LAYOUT)->resetAllCallbacks();
     m_shadowFadeAnimationProgress->resetAllCallbacks();
     m_shadowAngleAnimationProgress->resetAllCallbacks();
-    m_realGlowColor->resetAllCallbacks();
+    m_glowFadeAnimationProgress->resetAllCallbacks();
+    m_glowAngleAnimationProgress->resetAllCallbacks();
     m_dimPercent->resetAllCallbacks();
     alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE)->resetAllCallbacks();
     alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE)->resetAllCallbacks();
@@ -768,6 +789,12 @@ void CWindow::onMap() {
         m_shadowAngleAnimationProgress->setValueAndWarp(0.f);
         m_shadowAngleAnimationProgress->setCallbackOnEnd([&](WP<CBaseAnimatedVariable> p) { onShadowAngleAnimEnd(p); }, false);
         *m_shadowAngleAnimationProgress = 1.f;
+    }
+
+    if (m_glowAngleAnimationProgress->enabled()) {
+        m_glowAngleAnimationProgress->setValueAndWarp(0.f);
+        m_glowAngleAnimationProgress->setCallbackOnEnd([&](WP<CBaseAnimatedVariable> p) { onGlowAngleAnimEnd(p); }, false);
+        *m_glowAngleAnimationProgress = 1.f;
     }
 
     m_realSize->setCallbackOnBegin(
@@ -851,6 +878,23 @@ void CWindow::onShadowAngleAnimEnd(WP<CBaseAnimatedVariable> pav) {
     PANIMVAR->setCallbackOnEnd([&](WP<CBaseAnimatedVariable> pav) { onShadowAngleAnimEnd(pav); }, false);
 }
 
+void CWindow::onGlowAngleAnimEnd(WP<CBaseAnimatedVariable> pav) {
+    if (!pav)
+        return;
+
+    if (pav->getStyle() != "loop" || !pav->enabled())
+        return;
+
+    const auto PANIMVAR = dc<CAnimatedVariable<float>*>(pav.get());
+
+    PANIMVAR->setCallbackOnEnd(nullptr);
+
+    PANIMVAR->setValueAndWarp(0);
+    *PANIMVAR = 1.f;
+
+    PANIMVAR->setCallbackOnEnd([&](WP<CBaseAnimatedVariable> pav) { onGlowAngleAnimEnd(pav); }, false);
+}
+
 void CWindow::setHidden(bool hidden) {
     m_hidden = hidden;
 
@@ -888,12 +932,16 @@ bool CWindow::isInputBlocked() const {
     return m_inputBlockReasons != INPUT_BLOCK_NONE;
 }
 
-bool CWindow::isInputBlocked(std::underlying_type_t<eWindowInputBlockReason> reasons) const {
+bool CWindow::isInputBlockedReasonAnyOf(std::underlying_type_t<eWindowInputBlockReason> reasons) const {
     return (m_inputBlockReasons & reasons) != 0;
 }
 
-bool CWindow::isInputBlockedOnly(eWindowInputBlockReason reason) const {
-    return m_inputBlockReasons == reason;
+bool CWindow::noInputBlockedReasonsBesides(std::underlying_type_t<eWindowInputBlockReason> reason) const {
+    return (m_inputBlockReasons & ~reason) == 0;
+}
+
+bool CWindow::hasInputBlockedReasonsBesides(std::underlying_type_t<eWindowInputBlockReason> reason) const {
+    return (m_inputBlockReasons & ~reason) != 0;
 }
 
 bool CWindow::acceptsInput() const {
@@ -901,24 +949,19 @@ bool CWindow::acceptsInput() const {
 }
 
 bool CWindow::isAllowedOverFullscreen() const {
-    if (isFullscreen() || m_pinned || m_createdOverFullscreen)
-        return true;
 
     if (!m_workspace)
         return false;
 
-    const auto FSWINDOW = m_workspace->getFullscreenWindow();
+    if (m_self == Fullscreen::controller()->getFullscreenWindow(m_workspace, true) || m_pinned || m_allowedOverFullscreen)
+        return true;
+
+    const auto FSWINDOW = Fullscreen::controller()->getFullscreenWindow(m_workspace);
     return FSWINDOW && FSWINDOW->m_group && FSWINDOW->m_group->has(m_self.lock());
 }
 
 bool CWindow::isBlockedByFullscreen() const {
-    if (!m_workspace)
-        return false;
-
-    const auto ALGORITHM             = m_workspace->m_space ? m_workspace->m_space->algorithm() : nullptr;
-    const bool HAS_LAYOUT_FULLSCREEN = ALGORITHM && ALGORITHM->layoutFullscreenCoversMonitor();
-
-    if (!m_workspace->m_hasFullscreenWindow && !HAS_LAYOUT_FULLSCREEN)
+    if (!m_workspace || !Fullscreen::controller()->hasFullscreen(m_workspace))
         return false;
 
     return !isAllowedOverFullscreen();
@@ -977,7 +1020,7 @@ bool CWindow::visibleByAlphaGoal() const {
 }
 
 bool CWindow::targetVisible() const {
-    return !m_hidden && ((m_isMapped && m_wlSurface && m_wlSurface->resource()) || m_fadingOut) && visibleByAlphaGoal();
+    return !m_hidden && m_isMapped && m_wlSurface && m_wlSurface->resource() && visibleByAlphaGoal();
 }
 
 // check if the point is "hidden" under a rounded corner of the window
@@ -1096,7 +1139,7 @@ int CWindow::getRealBorderSize() const {
     if (!m_borderSizeCacheDirty)
         return m_cachedBorderSize;
 
-    if ((m_workspace && isEffectiveInternalFSMode(FSMODE_FULLSCREEN)) || !m_ruleApplicator->decorate().valueOrDefault()) {
+    if ((m_workspace && Fullscreen::controller()->getFullscreenModes(m_self.lock()).internal == Fullscreen::FSMODE_FULLSCREEN) || !m_ruleApplicator->decorate().valueOrDefault()) {
         m_cachedBorderSize     = 0;
         m_borderSizeCacheDirty = false;
         return 0;
@@ -1159,7 +1202,7 @@ void CWindow::setAnimationsToMove() {
 
 void CWindow::onWorkspaceAnimUpdate() {
     // clip box for animated offsets
-    if (!m_isFloating || m_pinned || isFullscreen()) {
+    if (!m_isFloating || m_pinned || Fullscreen::controller()->isFullscreen(m_self.lock())) {
         m_floatingOffset = Vector2D(0, 0);
         return;
     }
@@ -1207,6 +1250,12 @@ void CWindow::onFocusAnimUpdate() {
         m_shadowAngleAnimationProgress->setValueAndWarp(0.f);
         *m_shadowAngleAnimationProgress = 1.f;
     }
+
+    // glowangle once
+    if (m_glowAngleAnimationProgress->enabled() && !m_glowAngleAnimationProgress->isBeingAnimated()) {
+        m_glowAngleAnimationProgress->setValueAndWarp(0.f);
+        *m_glowAngleAnimationProgress = 1.f;
+    }
 }
 
 int CWindow::popupsCount() {
@@ -1227,25 +1276,16 @@ int CWindow::surfacesCount() {
 
 bool CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize) {
     const Vector2D REALSIZE = m_realSize->goal();
-    const Vector2D MAX      = isFullscreen() ? Vector2D{INFINITY, INFINITY} : maxSize.value_or(Vector2D{INFINITY, INFINITY});
+    const Vector2D MAX      = Fullscreen::controller()->isFullscreen(m_self.lock()) ? Vector2D{INFINITY, INFINITY} : maxSize.value_or(Vector2D{INFINITY, INFINITY});
     const Vector2D NEWSIZE  = REALSIZE.clamp(minSize.value_or(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}), MAX);
     const bool     changed  = !(NEWSIZE == REALSIZE);
 
     if (changed) {
         const Vector2D DELTA = REALSIZE - NEWSIZE;
-        *m_realPosition      = m_realPosition->goal() + DELTA / 2.0;
-        *m_realSize          = NEWSIZE;
+        layoutTarget()->setPositionGlobal(CBox{m_realPosition->goal() + DELTA / 2.0, NEWSIZE});
     }
 
     return changed;
-}
-
-bool CWindow::isFullscreen() const {
-    return m_fullscreenState.internal != FSMODE_NONE;
-}
-
-bool CWindow::isEffectiveInternalFSMode(const eFullscreenMode MODE) const {
-    return sc<eFullscreenMode>(std::bit_floor(sc<uint8_t>(m_fullscreenState.internal))) == MODE;
 }
 
 WORKSPACEID CWindow::workspaceID() {
@@ -1339,7 +1379,7 @@ void CWindow::activate(bool force) {
     }
 
     if (m_isFloating)
-        g_pCompositor->changeWindowZOrder(m_self.lock(), true);
+        Desktop::windowState()->raise(m_self.lock());
 
     Desktop::focusState()->fullWindowFocus(m_self.lock(), FOCUS_REASON_DESKTOP_STATE_CHANGE);
     warpCursor();
@@ -1350,11 +1390,16 @@ void CWindow::onUpdateState() {
     std::optional<MONITORID> requestsID = m_xdgSurface ? m_xdgSurface->m_toplevel->m_state.requestsFullscreenMonitor : MONITOR_INVALID;
     std::optional<bool>      requestsMX = m_xdgSurface ? m_xdgSurface->m_toplevel->m_state.requestsMaximize : m_xwaylandSurface->m_state.requestsMaximize;
 
-    if (requestsFS.has_value() && !(m_suppressedEvents & SUPPRESS_FULLSCREEN)) {
+    // a client re-asserting fullscreen every frame (notably gamescope) would snap the window back the instant
+    // the drag handler pulls it out of fullscreen, so ignore the request while this window is being dragged.
+    const auto DRAGTARGET         = g_layoutManager->dragController()->target();
+    const bool DRAGGINGTHISWINDOW = DRAGTARGET && DRAGTARGET->window() == m_self.lock();
+
+    if (requestsFS.has_value() && !(m_suppressedEvents & SUPPRESS_FULLSCREEN) && !DRAGGINGTHISWINDOW) {
         if (requestsID.has_value() && (requestsID.value() != MONITOR_INVALID) && !(m_suppressedEvents & SUPPRESS_FULLSCREEN_OUTPUT)) {
             if (m_isMapped) {
                 const auto monitor = State::monitorState()->query().id(requestsID.value()).run();
-                g_pCompositor->moveWindowToWorkspaceSafe(m_self.lock(), monitor->m_activeWorkspace);
+                Desktop::globalWindowController()->moveWindowToWorkspace(m_self.lock(), monitor->m_activeWorkspace);
                 Desktop::focusState()->rawMonitorFocus(monitor);
             }
 
@@ -1363,8 +1408,15 @@ void CWindow::onUpdateState() {
         }
 
         bool fs = requestsFS.value();
-        if (m_isMapped)
-            g_pCompositor->changeWindowFullscreenModeClient(m_self.lock(), FSMODE_FULLSCREEN, requestsFS.value());
+        if (m_isMapped) {
+            if (requestsFS.value())
+                Fullscreen::controller()->setFullscreenMode(m_self.lock(), std::nullopt, Fullscreen::FSMODE_FULLSCREEN);
+            else {
+                // If window's fullscreen, un-fullscreen it. if it's not FS, let it keep its current FS mode
+                if (Fullscreen::controller()->getFullscreenModes(m_self.lock()).client == Fullscreen::FSMODE_FULLSCREEN)
+                    Fullscreen::controller()->setFullscreenMode(m_self.lock(), std::nullopt, Fullscreen::FSMODE_NONE);
+            }
+        }
 
         if (!m_isMapped)
             m_wantsInitialFullscreen = fs;
@@ -1372,10 +1424,19 @@ void CWindow::onUpdateState() {
 
     if (requestsMX.has_value() && !(m_suppressedEvents & SUPPRESS_MAXIMIZE)) {
         if (m_isMapped) {
-            auto window    = m_self.lock();
-            auto state     = sc<int8_t>(window->m_fullscreenState.client);
-            bool maximized = (state & sc<uint8_t>(FSMODE_MAXIMIZED)) != 0;
-            g_pCompositor->changeWindowFullscreenModeClient(window, FSMODE_MAXIMIZED, !maximized);
+            auto window = m_self.lock();
+
+            if (window->m_suppressNextMaximize) {
+                window->m_suppressNextMaximize = false;
+                return;
+            }
+
+            const auto CLIENT_STATE = Fullscreen::controller()->getFullscreenModes(window).client;
+            // If window's maximised, unmaximise it. If it's not maximised, maximise it.
+            if (CLIENT_STATE == Fullscreen::FSMODE_MAXIMIZED)
+                Fullscreen::controller()->setFullscreenMode(window, std::nullopt, Fullscreen::FSMODE_NONE);
+            else if (CLIENT_STATE == Fullscreen::FSMODE_NONE)
+                Fullscreen::controller()->setFullscreenMode(window, std::nullopt, Fullscreen::FSMODE_MAXIMIZED);
         }
     }
 }
@@ -1491,7 +1552,8 @@ void CWindow::onX11ConfigureRequest(CBox box) {
 
     g_pHyprRenderer->damageWindow(m_self.lock());
 
-    if (!m_isFloating || isFullscreen() || g_layoutManager->dragController()->target() == layoutTarget() || (m_suppressedEvents & Desktop::View::SUPPRESS_X11_CONFIGURE_REQUEST)) {
+    if (!m_isFloating || Fullscreen::controller()->isFullscreen(m_self.lock()) || g_layoutManager->dragController()->target() == layoutTarget() ||
+        (m_suppressedEvents & Desktop::View::SUPPRESS_X11_CONFIGURE_REQUEST)) {
         sendWindowSize(true);
         g_pInputManager->refocus();
         g_pHyprRenderer->damageWindow(m_self.lock());
@@ -1503,11 +1565,7 @@ void CWindow::onX11ConfigureRequest(CBox box) {
     else
         setHidden(true);
 
-    m_realPosition->setValueAndWarp(xwaylandPositionToReal(box.pos()));
-    m_realSize->setValueAndWarp(xwaylandSizeToReal(box.size()));
-
-    m_position = m_realPosition->goal();
-    m_size     = m_realSize->goal();
+    layoutTarget()->setPositionGlobal(CBox{xwaylandPositionToReal(box.pos()), xwaylandSizeToReal(box.size())});
 
     if (m_pendingReportedSize != box.size() || m_reportedPosition != box.pos()) {
         m_xwaylandSurface->configure(box);
@@ -1539,9 +1597,9 @@ void CWindow::onX11ConfigureRequest(CBox box) {
         m_workspace = monitorByRequestedPosition->m_activeWorkspace;
     }
 
-    g_pCompositor->changeWindowZOrder(m_self.lock(), true);
+    Desktop::windowState()->raise(m_self.lock());
 
-    m_createdOverFullscreen = true;
+    m_allowedOverFullscreen = true;
 
     g_pHyprRenderer->damageWindow(m_self.lock());
 }
@@ -1551,10 +1609,12 @@ void CWindow::warpCursor(bool force) {
     const auto  coords                 = m_relativeCursorCoordsOnLastWarp;
     m_relativeCursorCoordsOnLastWarp.x = -1; // reset m_vRelativeCursorCoordsOnLastWarp
 
-    if (*PERSISTENTWARPS && coords.x > 0 && coords.y > 0 && coords < m_size) // don't warp cursor outside the window
-        g_pCompositor->warpCursorTo(m_position + coords, force);
+    const auto BOX = layoutBox();
+
+    if (*PERSISTENTWARPS && coords.x > 0 && coords.y > 0 && coords < BOX.size()) // don't warp cursor outside the window
+        Pointer::pointerController()->warpTo(BOX.pos() + coords, force);
     else
-        g_pCompositor->warpCursorTo(middle(), force);
+        Pointer::pointerController()->warpTo(middle(), force);
 }
 
 PHLWINDOW CWindow::getSwallowee() {
@@ -1575,7 +1635,7 @@ PHLWINDOW CWindow::getSwallowee() {
         if (!currentPid)
             break;
 
-        for (auto const& w : g_pCompositor->m_windows) {
+        for (auto const& w : Desktop::windowState()->windows()) {
             if (!w->m_isMapped || !w->acceptsInput())
                 continue;
 
@@ -1742,7 +1802,7 @@ std::optional<std::string> CWindow::xdgDescription() {
 
 PHLWINDOW CWindow::parent() {
     if (m_isX11) {
-        auto t = x11TransientFor();
+        auto t = x11Parent();
 
         // don't return a parent that's not mapped
         if (!validMapped(t))
@@ -1821,8 +1881,8 @@ void CWindow::updateDecorationValues() {
     static auto PSHADOWCOL              = CConfigValue<Config::IComplexConfigValue>("decoration:shadow:color");
     static auto PSHADOWCOLINACTIVE      = CConfigValue<Config::IComplexConfigValue>("decoration:shadow:color_inactive");
     static auto PGLOW                   = CConfigValue<Config::INTEGER>("decoration:glow:enabled");
-    static auto PGLOWCOL                = CConfigValue<Config::INTEGER>("decoration:glow:color");
-    static auto PGLOWCOLINACTIVE        = CConfigValue<Config::INTEGER>("decoration:glow:color_inactive");
+    static auto PGLOWCOL                = CConfigValue<Config::IComplexConfigValue>("decoration:glow:color");
+    static auto PGLOWCOLINACTIVE        = CConfigValue<Config::IComplexConfigValue>("decoration:glow:color_inactive");
     static auto PDIMSTRENGTH            = CConfigValue<Config::FLOAT>("decoration:dim_strength");
     static auto PDIMENABLED             = CConfigValue<Config::INTEGER>("decoration:dim_inactive");
     static auto PDIMMODAL               = CConfigValue<Config::INTEGER>("decoration:dim_modal");
@@ -1852,20 +1912,14 @@ void CWindow::updateDecorationValues() {
     if (m_self == Desktop::focusState()->window()) {
         const auto* const ACTIVECOLOR = !m_group ? (!(m_groupRules & GROUP_DENY) ? ACTIVECOL : NOGROUPACTIVECOL) : (GROUPLOCKED ? GROUPACTIVELOCKEDCOL : GROUPACTIVECOL);
         setBorderColor(m_ruleApplicator->activeBorderColor().valueOr(*ACTIVECOLOR));
-
-        if (*PGLOW)
-            *m_realGlowColor = *PGLOWCOL;
     } else {
         const auto* const INACTIVECOLOR = !m_group ? (!(m_groupRules & GROUP_DENY) ? INACTIVECOL : NOGROUPINACTIVECOL) : (GROUPLOCKED ? GROUPINACTIVELOCKEDCOL : GROUPINACTIVECOL);
         setBorderColor(m_ruleApplicator->inactiveBorderColor().valueOr(*INACTIVECOLOR));
-
-        if (*PGLOW)
-            *m_realGlowColor = *PGLOWCOLINACTIVE;
     }
 
     // opacity
     const auto PWORKSPACE = m_workspace;
-    if (isEffectiveInternalFSMode(FSMODE_FULLSCREEN)) {
+    if (Fullscreen::controller()->getFullscreenModes(m_self.lock()).internal == Fullscreen::FSMODE_FULLSCREEN) {
         *alpha(WINDOW_ALPHA_ACTIVE) = m_ruleApplicator->alphaFullscreen().valueOrDefault().applyAlpha(*PFULLSCREENALPHA);
     } else {
         if (m_self == Desktop::focusState()->window())
@@ -1910,6 +1964,32 @@ void CWindow::updateDecorationValues() {
     } else {
         Config::CGradientValueData transparent(CHyprColor(0, 0, 0, 0));
         m_realShadowColor = transparent;
+    }
+
+    // glow
+    if (!isX11OverrideRedirect() && !m_X11DoesntWantBorders) {
+        auto* const GLOWCOL         = sc<Config::CGradientValueData*>((PGLOWCOL.ptr()));
+        auto* const GLOWCOLINACTIVE = sc<Config::CGradientValueData*>((PGLOWCOLINACTIVE.ptr()));
+
+        auto        setGlowColor = [&](Config::CGradientValueData grad) -> void {
+            if (grad == m_realGlowColor)
+                return;
+
+            m_realGlowColorPrevious = m_realGlowColor;
+            m_realGlowColor         = grad;
+            m_glowFadeAnimationProgress->setValueAndWarp(0.f);
+            *m_glowFadeAnimationProgress = 1.f;
+        };
+
+        if (m_self == Desktop::focusState()->window())
+            setGlowColor(*GLOWCOL);
+        else {
+            const auto COLORINACTIVE = Config::mgr()->getConfigValue("decoration:glow:color_inactive");
+            setGlowColor(COLORINACTIVE.setByUser ? *GLOWCOLINACTIVE : *GLOWCOL);
+        }
+    } else {
+        Config::CGradientValueData transparent(CHyprColor(0, 0, 0, 0));
+        m_realGlowColor = transparent;
     }
 
     updateWindowDecos();
@@ -1976,8 +2056,8 @@ void CWindow::mapWindow() {
     static auto PAUTOGROUP         = CConfigValue<Config::INTEGER>("group:auto_group");
 
     const auto  LAST_FOCUS_WINDOW = Desktop::focusState()->window();
-    const bool  IS_LAST_IN_FS     = LAST_FOCUS_WINDOW ? LAST_FOCUS_WINDOW->m_fullscreenState.internal != FSMODE_NONE : false;
-    const auto  LAST_FS_MODE      = LAST_FOCUS_WINDOW ? LAST_FOCUS_WINDOW->m_fullscreenState.internal : FSMODE_NONE;
+    const bool  IS_LAST_IN_FS     = LAST_FOCUS_WINDOW ? Fullscreen::controller()->isFullscreen(LAST_FOCUS_WINDOW) : false;
+    const auto  LAST_FS_MODE      = LAST_FOCUS_WINDOW ? Fullscreen::controller()->getFullscreenModes(LAST_FOCUS_WINDOW).internal : Fullscreen::FSMODE_NONE;
 
     auto        PMONITOR = Desktop::focusState()->monitor();
     if (!Desktop::focusState()->monitor()) {
@@ -1992,8 +2072,7 @@ void CWindow::mapWindow() {
     m_monitor       = PMONITOR;
     m_workspace     = PWORKSPACE;
     m_isMapped      = true;
-    m_readyToDelete = false;
-    m_fadingOut     = false;
+    m_animatingIn   = true;
     m_title         = fetchTitle();
     m_firstMap      = true;
     m_initialTitle  = m_title;
@@ -2053,10 +2132,10 @@ void CWindow::mapWindow() {
     m_X11ShouldntFocus = m_X11ShouldntFocus || (m_isX11 && isX11OverrideRedirect() && !m_xwaylandSurface->wantsFocus());
 
     // window rules
-    std::optional<eFullscreenMode>                 requestedInternalFSMode, requestedClientFSMode;
-    std::optional<Desktop::View::SFullscreenState> requestedFSState;
+    std::optional<Fullscreen::eFullscreenMode> requestedInternalFSMode, requestedClientFSMode;
+    std::optional<Fullscreen::SFullscreenMode> requestedFSState;
     if (m_wantsInitialFullscreen || (m_isX11 && m_xwaylandSurface->m_fullscreen))
-        requestedClientFSMode = FSMODE_FULLSCREEN;
+        requestedClientFSMode = Fullscreen::FSMODE_FULLSCREEN;
     MONITORID requestedFSMonitor = m_wantsInitialFullscreenMonitor;
 
     auto      setStaticProps = [&]() {
@@ -2113,9 +2192,9 @@ void CWindow::mapWindow() {
         m_pinned         = m_ruleApplicator->static_.pin.value_or(m_pinned);
 
         if (m_ruleApplicator->static_.fullscreenStateClient || m_ruleApplicator->static_.fullscreenStateInternal) {
-            requestedFSState = Desktop::View::SFullscreenState{
-                .internal = sc<eFullscreenMode>(m_ruleApplicator->static_.fullscreenStateInternal.value_or(0)),
-                .client   = sc<eFullscreenMode>(m_ruleApplicator->static_.fullscreenStateClient.value_or(0)),
+            requestedFSState = Fullscreen::SFullscreenMode{
+                .internal = sc<Fullscreen::eFullscreenMode>(m_ruleApplicator->static_.fullscreenStateInternal.value_or(0)),
+                .client   = sc<Fullscreen::eFullscreenMode>(m_ruleApplicator->static_.fullscreenStateClient.value_or(0)),
             };
         }
 
@@ -2139,10 +2218,10 @@ void CWindow::mapWindow() {
         }
 
         if (m_ruleApplicator->static_.fullscreen.value_or(false))
-            requestedInternalFSMode = FSMODE_FULLSCREEN;
+            requestedInternalFSMode = Fullscreen::FSMODE_FULLSCREEN;
 
         if (m_ruleApplicator->static_.maximize.value_or(false))
-            requestedInternalFSMode = FSMODE_MAXIMIZED;
+            requestedInternalFSMode = Fullscreen::FSMODE_MAXIMIZED;
 
         if (!m_ruleApplicator->static_.group.empty()) {
             if (!(m_groupRules & Desktop::View::GROUP_OVERRIDE) && trim(m_ruleApplicator->static_.group) != "group") {
@@ -2218,7 +2297,7 @@ void CWindow::mapWindow() {
             workspaceSilent = true;
 
         auto joined = WORKSPACEARGS.join(" ", 0, workspaceSilent ? WORKSPACEARGS.size() - 1 : 0);
-        if (joined.starts_with("empty") && PWORKSPACE->getWindows() == 0) {
+        if (joined.starts_with("empty") && PWORKSPACE->getWindowCount() == 0) {
             requestedWorkspaceID   = PWORKSPACE->m_id;
             requestedWorkspaceName = PWORKSPACE->m_name;
         } else {
@@ -2238,11 +2317,11 @@ void CWindow::mapWindow() {
             m_workspace = pWorkspace;
             m_monitor   = pWorkspace->m_monitor;
 
-            if (m_monitor.lock()->m_activeSpecialWorkspace && !pWorkspace->m_isSpecialWorkspace)
+            if (m_monitor && m_monitor->m_activeSpecialWorkspace && !pWorkspace->m_isSpecialWorkspace)
                 workspaceSilent = true;
 
             if (!workspaceSilent) {
-                if (pWorkspace->m_isSpecialWorkspace)
+                if (pWorkspace->m_isSpecialWorkspace && pWorkspace->m_monitor)
                     pWorkspace->m_monitor->setSpecialWorkspace(pWorkspace);
                 else if (PMONITOR->activeWorkspaceID() != requestedWorkspaceID && !m_noInitialFocus) // NOLINTNEXTLINE
                     Config::Actions::changeWorkspace(requestedWorkspaceName);
@@ -2307,13 +2386,14 @@ void CWindow::mapWindow() {
     updateWindowData();
 
     if (m_isFloating) {
-        m_createdOverFullscreen = true;
+        // all new floating windows are allowed over existing FS windows.
+        m_allowedOverFullscreen = true;
 
         // set the pseudo size to the GOAL of our current size
         // because the windows are animated on RealSize
         m_target->setPseudoSize(m_realSize->goal());
 
-        g_pCompositor->changeWindowZOrder(m_self.lock(), true);
+        Desktop::windowState()->raise(m_self.lock());
     } else {
         bool setPseudo = false;
 
@@ -2341,18 +2421,22 @@ void CWindow::mapWindow() {
     }
 
     // check LS focus grab
-    const auto PFORCEFOCUS  = g_pCompositor->getForceFocus();
-    const auto PLSFROMFOCUS = g_pCompositor->getLayerSurfaceFromSurface(Desktop::focusState()->surface());
+    const auto PFORCEFOCUS  = Desktop::viewState()->query().forceFocus().runWindow();
+    const auto PLSFROMFOCUS = Desktop::viewState()->query().type(VIEW_TYPE_LAYER_SURFACE).surface(Desktop::focusState()->surface()).runLayer();
     if (PLSFROMFOCUS && PLSFROMFOCUS->m_layerSurface->m_current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE)
         m_noInitialFocus = true;
 
-    if (m_workspace->m_hasFullscreenWindow && !requestedInternalFSMode.has_value() && !requestedClientFSMode.has_value() && !m_isFloating) {
+    // emit the hook event here after basic stuff has been initialized
+    // It must emit before FS operations so that window has decorations data
+    Event::bus()->m_events.window.open.emit(m_self.lock());
+
+    if (Fullscreen::controller()->hasFullscreen(m_workspace) && !requestedInternalFSMode.has_value() && !requestedClientFSMode.has_value() && !m_isFloating) {
         if (*PNEWTAKESOVERFS == 0)
             m_noInitialFocus = true;
         else if (*PNEWTAKESOVERFS == 1)
-            requestedInternalFSMode = m_workspace->m_fullscreenMode;
+            requestedInternalFSMode = Fullscreen::controller()->getFullscreenModes(m_workspace).internal;
         else if (*PNEWTAKESOVERFS == 2)
-            g_pCompositor->setWindowFullscreenInternal(m_workspace->getFullscreenWindow(), FSMODE_NONE);
+            Fullscreen::controller()->setFullscreenMode(Fullscreen::controller()->getFullscreenWindow(m_workspace), Fullscreen::FSMODE_NONE, std::nullopt);
     }
 
     if (!m_ruleApplicator->noFocus().valueOrDefault() && !m_noInitialFocus && (!isX11OverrideRedirect() || (m_isX11 && m_xwaylandSurface->wantsFocus())) && !workspaceSilent &&
@@ -2366,7 +2450,8 @@ void CWindow::mapWindow() {
 
             if (IS_LAST_IN_FS && SAME_GROUP) {
                 Desktop::focusState()->rawWindowFocus(m_self.lock(), FOCUS_REASON_NEW_WINDOW);
-                g_pCompositor->setWindowFullscreenInternal(m_self.lock(), LAST_FS_MODE);
+                // FS a new window to replace the old FSed window, use the old's layoutAware
+                Fullscreen::controller()->setFullscreenMode(m_self.lock(), LAST_FS_MODE, std::nullopt, Fullscreen::controller()->layoutManagedFS(LAST_FOCUS_WINDOW));
             } else
                 Desktop::focusState()->fullWindowFocus(m_self.lock(), FOCUS_REASON_NEW_WINDOW);
         }
@@ -2379,28 +2464,28 @@ void CWindow::mapWindow() {
     }
 
     if (requestedClientFSMode.has_value() && (m_suppressedEvents & Desktop::View::SUPPRESS_FULLSCREEN))
-        requestedClientFSMode = sc<eFullscreenMode>(sc<uint8_t>(requestedClientFSMode.value_or(FSMODE_NONE)) & ~sc<uint8_t>(FSMODE_FULLSCREEN));
+        requestedClientFSMode = sc<Fullscreen::eFullscreenMode>(sc<uint8_t>(requestedClientFSMode.value_or(Fullscreen::FSMODE_NONE)) & ~sc<uint8_t>(Fullscreen::FSMODE_FULLSCREEN));
     if (requestedClientFSMode.has_value() && (m_suppressedEvents & Desktop::View::SUPPRESS_MAXIMIZE))
-        requestedClientFSMode = sc<eFullscreenMode>(sc<uint8_t>(requestedClientFSMode.value_or(FSMODE_NONE)) & ~sc<uint8_t>(FSMODE_MAXIMIZED));
+        requestedClientFSMode = sc<Fullscreen::eFullscreenMode>(sc<uint8_t>(requestedClientFSMode.value_or(Fullscreen::FSMODE_NONE)) & ~sc<uint8_t>(Fullscreen::FSMODE_MAXIMIZED));
 
     if (!m_noInitialFocus && (requestedInternalFSMode.has_value() || requestedClientFSMode.has_value() || requestedFSState.has_value())) {
         // fix fullscreen on requested (basically do a switcheroo)
-        if (m_workspace->m_hasFullscreenWindow)
-            g_pCompositor->setWindowFullscreenInternal(m_workspace->getFullscreenWindow(), FSMODE_NONE);
-
+        std::optional<bool> wasFullscreenLayoutHandled = std::nullopt;
+        if (Fullscreen::controller()->hasFullscreen(m_workspace)) {
+            auto fsWindow              = Fullscreen::controller()->getFullscreenWindow(m_workspace);
+            wasFullscreenLayoutHandled = Fullscreen::controller()->layoutManagedFS(fsWindow);
+            Fullscreen::controller()->setFullscreenMode(fsWindow, Fullscreen::FSMODE_NONE);
+        }
         m_realPosition->warp();
         m_realSize->warp();
         resetMotionBlur();
         if (requestedFSState.has_value()) {
             m_ruleApplicator->syncFullscreenOverride(Desktop::Types::COverridableVar(false, Desktop::Types::PRIORITY_WINDOW_RULE));
-            g_pCompositor->setWindowFullscreenState(m_self.lock(), requestedFSState.value());
+            Fullscreen::controller()->setFullscreenMode(m_self.lock(), requestedFSState.value().internal, requestedFSState.value().client, wasFullscreenLayoutHandled);
         } else if (requestedInternalFSMode.has_value() && requestedClientFSMode.has_value() && !m_ruleApplicator->syncFullscreen().valueOrDefault())
-            g_pCompositor->setWindowFullscreenState(m_self.lock(),
-                                                    Desktop::View::SFullscreenState{.internal = requestedInternalFSMode.value(), .client = requestedClientFSMode.value()});
-        else if (requestedInternalFSMode.has_value())
-            g_pCompositor->setWindowFullscreenInternal(m_self.lock(), requestedInternalFSMode.value());
-        else if (requestedClientFSMode.has_value())
-            g_pCompositor->setWindowFullscreenClient(m_self.lock(), requestedClientFSMode.value());
+            Fullscreen::controller()->setFullscreenMode(m_self.lock(), requestedInternalFSMode, requestedClientFSMode, wasFullscreenLayoutHandled);
+        else if (requestedInternalFSMode.has_value() || requestedClientFSMode.has_value())
+            Fullscreen::controller()->setFullscreenMode(m_self.lock(), requestedInternalFSMode, requestedClientFSMode, wasFullscreenLayoutHandled);
     }
 
     // recheck idle inhibitors
@@ -2427,25 +2512,28 @@ void CWindow::mapWindow() {
 
     Log::logger->log(Log::DEBUG, "Map request dispatched, monitor {}, window pos: {:5j}, window size: {:5j}", PMONITOR->m_name, m_realPosition->goal(), m_realSize->goal());
 
-    // emit the hook event here after basic stuff has been initialized
-    Event::bus()->m_events.window.open.emit(m_self.lock());
-
     // apply data from default decos. Borders, shadows.
     g_pDecorationPositioner->forceRecalcFor(m_self.lock());
     updateWindowDecos();
     layoutTarget()->recalc();
 
     // do animations
-    g_pDesktopAnimationManager->startAnimation(m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_IN);
+    m_realPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsIn"));
+    m_realSize->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsIn"));
+    alpha(WINDOW_ALPHA_FADE)->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeIn"));
+    m_animationController.apply(m_animationController.animateIn());
 
     m_realPosition->setCallbackOnEnd(setVector2DAnimToMove);
     m_realSize->setCallbackOnEnd(setVector2DAnimToMove);
 
     // recalc the values for this window
     updateDecorationValues();
-    // avoid this window being visible
-    if (PWORKSPACE->m_hasFullscreenWindow && !isFullscreen() && !m_isFloating)
+    // avoid this window being visible if it's not the current covering FS window in workspace
+    if (PWORKSPACE && Fullscreen::controller()->hasFullscreen(PWORKSPACE) && Fullscreen::controller()->getFullscreenWindow(PWORKSPACE, true) != m_self.lock() && !m_isFloating) {
+        m_self->m_allowedOverFullscreen = false;
+        updateFullscreenInputState();
         alpha(WINDOW_ALPHA_FULLSCREEN)->setValueAndWarp(0.f);
+    }
 
     if (g_pSeatManager->m_mouse.expired() || !g_pInputManager->isConstrained())
         g_pInputManager->sendMotionEventsToFocused();
@@ -2468,21 +2556,15 @@ void CWindow::unmapWindow() {
 
     static auto PEXITRETAINSFS = CConfigValue<Config::INTEGER>("misc:exit_window_retains_fullscreen");
 
-    const auto  CURRENTWINDOWFSSTATE = isFullscreen();
-    const auto  CURRENTFSMODE        = m_fullscreenState.internal;
-
+    const bool  IS_CURRENT_WINDOW_FS      = Fullscreen::controller()->isFullscreen(m_self.lock());
+    const auto  CURRENT_WINDOW_FS_MODES   = Fullscreen::controller()->getFullscreenModes(m_self.lock());
+    const bool  CURRENT_FS_LAYOUT_HANDLED = IS_CURRENT_WINDOW_FS ? Fullscreen::controller()->layoutManagedFS(m_self.lock()) : false;
     if (!wlSurface()->exists() || !m_isMapped) {
         Log::logger->log(Log::WARN, "{} unmapped without being mapped??", m_self.lock());
-        m_fadingOut = false;
         return;
     }
 
     const auto PMONITOR = m_monitor.lock();
-    if (PMONITOR) {
-        m_originalClosedPos     = m_realPosition->value() - PMONITOR->m_position;
-        m_originalClosedSize    = m_realSize->value();
-        m_originalClosedExtents = getFullWindowExtents();
-    }
 
     m_events.unmap.emit();
     g_pEventManager->postEvent(SHyprIPCEvent{"closewindow", std::format("{:x}", m_self.lock())});
@@ -2493,12 +2575,12 @@ void CWindow::unmapWindow() {
         Desktop::floatState()->remember(m_self.lock(), m_realSize->value());
     }
 
-    if (isFullscreen())
-        g_pCompositor->setWindowFullscreenInternal(m_self.lock(), FSMODE_NONE);
+    if (IS_CURRENT_WINDOW_FS)
+        Fullscreen::controller()->setFullscreenMode(m_self.lock(), Fullscreen::FSMODE_NONE, Fullscreen::FSMODE_NONE);
 
     // Allow the renderer to catch the last frame.
-    if (g_pHyprRenderer->shouldRenderWindow(m_self.lock()))
-        g_pHyprRenderer->makeSnapshot(m_self.lock());
+    const auto SNAPSHOT =
+        g_pHyprRenderer->shouldRenderWindow(m_self.lock()) && !m_ruleApplicator->noAnim().valueOrDefault() ? g_pHyprRenderer->makeSnapshotFB(m_self.lock()) : nullptr;
 
     // swallowing
     if (const auto SWALLOWEE = m_swallowee.lock()) {
@@ -2547,12 +2629,6 @@ void CWindow::unmapWindow() {
     if (layoutTarget() == g_layoutManager->dragController()->target())
         CKeybindManager::changeMouseBindMode(MBIND_INVALID);
 
-    // remove the fullscreen window status from workspace if we closed it
-    const auto PWORKSPACE = m_workspace;
-
-    if (PWORKSPACE->m_hasFullscreenWindow && isFullscreen())
-        PWORKSPACE->m_hasFullscreenWindow = false;
-
     if (m_group)
         m_group->remove(m_self.lock());
 
@@ -2570,8 +2646,8 @@ void CWindow::unmapWindow() {
 
         if (!candidate) {
             if (*FOCUSONCLOSE == 1)
-                candidate = (g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(),
-                                                                  Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING));
+                candidate = (Desktop::viewState()->hitTest().windowAt(g_pInputManager->getMouseCoordsInternal(),
+                                                                      Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING));
             else {
                 const auto CAND = g_layoutManager->getNextCandidate(m_workspace->m_space, layoutTarget());
                 if (CAND)
@@ -2587,11 +2663,12 @@ void CWindow::unmapWindow() {
             else
                 Desktop::focusState()->fullWindowFocus(candidate, m_self->m_isFloating ? FOCUS_REASON_UNMAP_WINDOW_FLOATING : FOCUS_REASON_UNMAP_WINDOW_TILING);
 
-            if ((*PEXITRETAINSFS || candidate == nextInGroup) && CURRENTWINDOWFSSTATE)
-                g_pCompositor->setWindowFullscreenInternal(candidate, CURRENTFSMODE);
+            if ((*PEXITRETAINSFS || candidate == nextInGroup) && IS_CURRENT_WINDOW_FS)
+                // set the candidate to the current window's FS state - use the current window's layoutAware FS behaviour
+                Fullscreen::controller()->setFullscreenMode(candidate, CURRENT_WINDOW_FS_MODES.internal, std::nullopt, CURRENT_FS_LAYOUT_HANDLED);
         }
 
-        if (!candidate && m_workspace && m_workspace->getWindows() == 0)
+        if (!candidate && m_workspace && m_workspace->getWindowCount() == 0)
             g_pInputManager->refocus();
 
         g_pInputManager->sendMotionEventsToFocused();
@@ -2607,15 +2684,17 @@ void CWindow::unmapWindow() {
         Log::logger->log(Log::DEBUG, "Unmapped was not focused, ignoring a refocus.");
     }
 
-    m_fadingOut = true;
-
-    g_pCompositor->addToFadingOutSafe(m_self.lock());
-
     if (!m_X11DoesntWantBorders)                                            // don't animate out if they weren't animated in.
         *m_realPosition = m_realPosition->value() + Vector2D(0.01f, 0.01f); // it has to be animated, otherwise CesktopAnimationManager will ignore it
 
-    // anims
-    g_pDesktopAnimationManager->startAnimation(m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+    const float FADEOUTALPHA = alphaValue(WINDOW_ALPHA_FADE) * alphaValue(WINDOW_ALPHA_FULLSCREEN) * alphaValue(WINDOW_ALPHA_LAYOUT);
+
+    // FIXME: this shouldn't be needed but it is because style is decided by the fuckin anim from this
+    m_realPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsOut"));
+    m_realSize->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsOut"));
+    alpha(WINDOW_ALPHA_FADE)->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeOut"));
+
+    Desktop::fadingOutState()->add(CWindowFadeout::create(m_self.lock(), SNAPSHOT, FADEOUTALPHA));
 
     // recheck idle inhibitors
     g_pInputManager->recheckIdleInhibitorStatus();
@@ -2656,7 +2735,7 @@ void CWindow::commitWindow() {
     if (m_isX11)
         m_reportedSize = m_pendingReportedSize;
 
-    if (!m_isX11 && !isFullscreen() && m_isFloating) {
+    if (!m_isX11 && !Fullscreen::controller()->isFullscreen(m_self.lock()) && m_isFloating) {
         const auto MINSIZE = m_xdgSurface->m_toplevel->layoutMinSize();
         const auto MAXSIZE = m_xdgSurface->m_toplevel->layoutMaxSize();
 
@@ -2705,8 +2784,6 @@ void CWindow::destroyWindow() {
 
     g_layoutManager->removeTarget(m_target);
 
-    m_readyToDelete = true;
-
     m_xdgSurface.reset();
 
     m_listeners.unmap.reset();
@@ -2714,10 +2791,7 @@ void CWindow::destroyWindow() {
     m_listeners.map.reset();
     m_listeners.commit.reset();
 
-    if (!m_fadingOut) {
-        Log::logger->log(Log::DEBUG, "Unmapped {} removed instantly", m_self.lock());
-        g_pCompositor->removeWindowFromVectorSafe(m_self.lock()); // most likely X11 unmanaged or sumn
-    }
+    Desktop::windowState()->removeSafe(m_self.lock());
 }
 
 void CWindow::activateX11() {
@@ -2743,6 +2817,20 @@ void CWindow::activateX11() {
     activate();
 }
 
+void CWindow::onXDGMoveRequest(const SXDGToplevelMoveRequest&) {
+    if (!m_isMapped || isHidden() || g_layoutManager->dragController()->target())
+        return;
+
+    g_layoutManager->beginDragTarget(layoutTarget(), MBIND_MOVE, std::nullopt, true);
+}
+
+void CWindow::onXDGResizeRequest(const SXDGToplevelResizeRequest& request) {
+    if (!m_isMapped || isHidden() || g_layoutManager->dragController()->target())
+        return;
+
+    g_layoutManager->beginDragTarget(layoutTarget(), MBIND_RESIZE, xdgResizeEdgeToCorner(request.edges), true);
+}
+
 void CWindow::unmanagedSetGeometry() {
     if (!m_isMapped || !m_xwaylandSurface || !m_xwaylandSurface->m_overrideRedirect)
         return;
@@ -2755,7 +2843,7 @@ void CWindow::unmanagedSetGeometry() {
     else
         setHidden(true);
 
-    if (isFullscreen() || !m_isFloating) {
+    if (Fullscreen::controller()->isFullscreen(m_self.lock()) || !m_isFloating) {
         sendWindowSize(true);
         g_pHyprRenderer->damageWindow(m_self.lock());
         return;
@@ -2773,22 +2861,19 @@ void CWindow::unmanagedSetGeometry() {
         Log::logger->log(Log::DEBUG, "Unmanaged window {} requests geometry update to {:j} {:j}", m_self.lock(), LOGICALPOS, m_xwaylandSurface->m_geometry.size());
 
         g_pHyprRenderer->damageWindow(m_self.lock());
-        m_realPosition->setValueAndWarp(Vector2D(LOGICALPOS.x, LOGICALPOS.y));
 
-        if (abs(std::floor(SIZ.x) - LOGICALGEOSIZE.x) > 2 || abs(std::floor(SIZ.y) - LOGICALGEOSIZE.y) > 2)
-            m_realSize->setValueAndWarp(LOGICALGEOSIZE);
-
-        m_position = m_realPosition->goal();
-        m_size     = m_realSize->goal();
+        m_reportedPosition    = m_xwaylandSurface->m_geometry.pos();
+        m_pendingReportedSize = m_xwaylandSurface->m_geometry.size();
+        layoutTarget()->setPositionGlobal(CBox{Vector2D(LOGICALPOS.x, LOGICALPOS.y), LOGICALGEOSIZE}, Layout::TARGET_UPDATE_NO_CLIENT_CONFIGURE);
+        // This is an X11-confirmed geometry update. Keeping the animation would leave
+        // animated effects, like shadows, briefly at the old geometry as phantoms.
+        layoutTarget()->warpPositionSize();
 
         m_workspace = State::monitorState()->query().vec(m_realPosition->value() + m_realSize->value() / 2.f).run()->m_activeWorkspace;
 
-        g_pCompositor->changeWindowZOrder(m_self.lock(), true);
+        Desktop::windowState()->raise(m_self.lock());
         updateWindowDecos();
         g_pHyprRenderer->damageWindow(m_self.lock());
-
-        m_reportedPosition    = m_realPosition->goal();
-        m_pendingReportedSize = m_realSize->goal();
     }
 }
 
@@ -2857,4 +2942,20 @@ bool CWindow::canBeGroupedInto(SP<CGroup> group) {
 void CWindow::sendClose() {
     if (m_isMapped)
         g_pXWaylandManager->sendCloseWindow(m_self.lock());
+}
+
+Types::CMultiAVarContainer<float, uint8_t>& CWindow::alpha() {
+    return m_alpha;
+}
+
+std::optional<uint8_t> CWindow::alphaGenericToKey(eAlphaModifiableProp p) {
+    switch (p) {
+        case IAlphaModifiable::ALPHA_MODIFIABLE_FADE: return WINDOW_ALPHA_FADE;
+
+        // this is here to suppress the warning
+        case IAlphaModifiable::ALPHA_MODIFIABLE_LAST: return std::nullopt;
+    }
+
+    static_assert(ALPHA_MODIFIABLE_LAST == 1);
+    UNREACHABLE();
 }

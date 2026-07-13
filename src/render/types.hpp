@@ -86,7 +86,7 @@ namespace Render {
         SP<IFramebuffer>          outFB     = nullptr; // out to render to (if offloaded, etc)
 
         CRegion                   damage;
-        CRegion                   finalDamage; // damage used for funal off -> main
+        CRegion                   finalDamage; // damage used for final off -> main
 
         SRenderModifData          renderModif;
         float                     mouseZoomFactor    = 1.f;

@@ -187,6 +187,9 @@ void IKeyboard::updateKeymapFD() {
             memcpy(keymapV1FDDest, m_xkbKeymapV1String.c_str(), m_xkbKeymapV1String.length());
             munmap(keymapV1FDDest, m_xkbKeymapV1String.length() + 1);
             m_xkbKeymapV1FD = std::move(roV1);
+
+            m_xkbKeymapFD.setFlags(m_xkbKeymapFD.getFlags() | FD_CLOEXEC);
+            m_xkbKeymapV1FD.setFlags(m_xkbKeymapV1FD.getFlags() | FD_CLOEXEC);
         }
     }
 

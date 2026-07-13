@@ -35,6 +35,16 @@ CRegion SSurfaceState::accumulateBufferDamage() {
     return bufferDamage;
 }
 
+CRegion SSurfaceState::effectiveInputRegion() const {
+    if (size.x <= 0 || size.y <= 0)
+        return {};
+
+    if (inputIsInfinite)
+        return CBox{{}, size};
+
+    return input.copy().intersect(CBox{{}, size});
+}
+
 void SSurfaceState::updateSynchronousTexture(SP<Render::ITexture> lastTexture) {
     auto [dataPtr, fmt, size] = buffer->beginDataPtr(0);
     if (dataPtr) {
@@ -92,8 +102,10 @@ void SSurfaceState::updateFrom(SSurfaceState& ref) {
         bufferDamage.clear();
     }
 
-    if (ref.updated.bits.input)
-        input = ref.input;
+    if (ref.updated.bits.input) {
+        input           = ref.input;
+        inputIsInfinite = ref.inputIsInfinite;
+    }
 
     if (ref.updated.bits.opaque)
         opaque = ref.opaque;

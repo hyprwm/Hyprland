@@ -30,7 +30,7 @@ CXDGSystemBellManagerResource::CXDGSystemBellManagerResource(UP<CXdgSystemBellV1
             return;
         }
 
-        for (const auto& w : g_pCompositor->m_windows) {
+        for (const auto& w : Desktop::windowState()->windows()) {
             if (!w->m_isMapped || w->m_isX11 || !w->m_xdgSurface || !w->wlSurface())
                 continue;
 

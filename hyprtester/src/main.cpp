@@ -65,17 +65,17 @@ namespace {
 static SP<CProcess> hyprlandProc;
 
 static bool         launchHyprland(Path configPath, Path binaryPath) {
-    NLog::info("Launching Hyprland");
+    NLog::yellow("Launching Hyprland");
     hyprlandProc = makeShared<CProcess>(binaryPath, std::vector<std::string>{"--config", configPath});
     hyprlandProc->addEnv("HYPRLAND_HEADLESS_ONLY", "1");
 
-    NLog::info("Launched async process");
+    NLog::yellow("Launched async process");
 
     return hyprlandProc->runAsync();
 }
 
 static bool hyprlandAlive() {
-    NLog::info("hyprlandAlive");
+    NLog::yellow("hyprlandAlive");
     return kill(hyprlandProc->pid(), 0) == 0 || errno != ESRCH;
 }
 
@@ -137,7 +137,7 @@ static SSettings parseSettings(const std::span<const char*> args) {
             settings.requestedTests.emplace_back(value);
         } else {
             std::println(stderr, "[ ERROR ] Unknown option '{}' !", *it);
-            helpAndDie(EXIT_SUCCESS);
+            helpAndDie(EXIT_FAILURE);
         }
     }
 
@@ -156,25 +156,25 @@ static bool preTestCleanup() {
     bool failed = false;
 
     if (!Tests::killAllWindows()) {
-        NLog::error("Internal failure: failed to kill all windows");
+        NLog::red("Internal failure: failed to kill all windows");
         failed = true;
     }
     if (!Tests::killAllLayers()) {
-        NLog::error("Internal failure: failed to kill all layers");
+        NLog::red("Internal failure: failed to kill all layers");
         failed = true;
     }
     if (getFromSocket("/reload") != "ok") {
-        NLog::error("Internal failure: failed to reload");
+        NLog::red("Internal failure: failed to reload");
         failed = true;
     }
     if (!getFromSocket("/activeworkspace").contains("workspace ID 1 (1)")) {
         if (getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })") != "ok") {
-            NLog::error("Internal failure: failed to switch to workspace 1");
+            NLog::red("Internal failure: failed to switch to workspace 1");
             failed = true;
         }
     }
     if (getFromSocket("/dispatch hl.dsp.cursor.move({ x = 960, y = 540 })") != "ok") {
-        NLog::error("Internal failure: failed to reset cursor position");
+        NLog::red("Internal failure: failed to reset cursor position");
         failed = true;
     }
 
@@ -186,7 +186,8 @@ static STestsRunResult runTests(std::vector<std::shared_ptr<CTestCase>>& testCas
 
     for (auto& tc : testCases) {
         // Clean up before every test
-        NLog::info("Cleaning up");
+        NLog::yellow("Cleaning up");
+
         if (!preTestCleanup()) // damn it, something really went wrong
             std::exit(1);
 
@@ -194,25 +195,25 @@ static STestsRunResult runTests(std::vector<std::shared_ptr<CTestCase>>& testCas
         tc->test();
 
         if (tc->failed) {
-            NLog::error("Test failed!: {}", tc->name());
+            NLog::red("Test failed!: {}", tc->name());
             res.failedNames.emplace_back(std::format("{}:{}", tc->groupName(), tc->name()));
         } else
-            NLog::log("{}Test passed: {}", Colors::GREEN, tc->name());
+            NLog::green("Test passed: {}", tc->name());
     }
 
     return res;
 }
 
 static void cleanupAndReport(const STestsRunResult& tInfo) {
-    NLog::info("dispatching exit");
+    NLog::green("dispatching exit");
     getFromSocket("/dispatch hl.dsp.exit()");
 
     NLog::log("\nSummary:\n\tPASSED: {}{}{}/{}", Colors::GREEN, tInfo.total - tInfo.failedNames.size(), Colors::RESET, tInfo.total);
     NLog::log("\tFAILED: {}{}{}/{}", Colors::RED, tInfo.failedNames.size(), Colors::RESET, tInfo.total);
     if (!tInfo.failedNames.empty()) {
-        NLog::log("{}Failed tests:", Colors::RED);
+        NLog::red("Failed tests:");
         for (const auto& name : tInfo.failedNames) {
-            NLog::log("{}\t- {}", Colors::RED, name);
+            NLog::red("\t- {}", name);
         }
     }
 
@@ -230,7 +231,7 @@ int main(int argc, char** argv, char** envp) {
         if (testCases.contains(test)) {
             requestedTestCases.push_back(testCases.at(test));
         } else {
-            NLog::log("{}ERROR: Unknown test name '{}'", Colors::RED, test);
+            NLog::red("ERROR: Unknown test name '{}'", Colors::RED, test);
             return EXIT_FAILURE;
         }
     }
@@ -242,47 +243,47 @@ int main(int argc, char** argv, char** envp) {
         std::ranges::copy(mainTestCases, std::back_inserter(requestedTestCases));
     }
 
-    NLog::info("launching hl");
+    NLog::yellow("launching hl");
     if (!launchHyprland(settings.configPath, settings.binaryPath)) {
-        NLog::error("well it failed");
+        NLog::red("well it failed");
         return 1;
     }
 
     // hyprland has launched, let's check if it's alive after 10s
     std::this_thread::sleep_for(std::chrono::milliseconds(10000));
-    NLog::info("slept for 10s");
+    NLog::yellow("slept for 10s");
     if (!hyprlandAlive()) {
-        NLog::error("Hyprland failed to launch!");
+        NLog::red("Hyprland failed to launch!");
         return 1;
     }
 
     // wonderful, we are in. Let's get the instance signature.
-    NLog::info("trying to get INSTANCES");
+    NLog::yellow("trying to get INSTANCES");
     const auto INSTANCES = instances();
     if (INSTANCES.empty()) {
-        NLog::error("Hyprland failed to launch (2)");
+        NLog::red("Hyprland failed to launch (2)");
         return 1;
     }
 
     HIS       = INSTANCES.back().id;
     WLDISPLAY = INSTANCES.back().wlSocket;
 
-    NLog::info("trying to get create headless output");
+    NLog::yellow("trying to get create headless output");
     const auto CREATE_HEADLESS_2 = getFromSocket("/output create headless HEADLESS-2");
     if (CREATE_HEADLESS_2 != "ok" && CREATE_HEADLESS_2 != "Name already taken") {
-        NLog::error("Failed to create HEADLESS-2: {}", CREATE_HEADLESS_2);
+        NLog::red("Failed to create HEADLESS-2: {}", CREATE_HEADLESS_2);
         getFromSocket("/dispatch hl.dsp.exit()");
         return 1;
     }
 
-    NLog::info("trying to load plugin");
+    NLog::yellow("trying to load plugin");
     if (const auto R = getFromSocket(std::format("/plugin load {}", settings.pluginPath.string())); R != "ok") {
-        NLog::error("Failed to load the test plugin: {}", R);
+        NLog::red("Failed to load the test plugin: {}", R);
         getFromSocket("/dispatch hl.dsp.exit()");
         return 1;
     }
 
-    NLog::info("Loaded plugin");
+    NLog::yellow("Loaded plugin");
 
     STestsRunResult result = runTests(requestedTestCases);
 

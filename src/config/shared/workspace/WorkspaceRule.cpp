@@ -46,3 +46,11 @@ void CWorkspaceRule::mergeLeft(const CWorkspaceRule& other) {
     if (other.m_animationStyle.has_value())
         m_animationStyle = other.m_animationStyle;
 }
+
+void CWorkspaceRule::setEnabled(bool enabled) {
+    m_enabled = enabled;
+}
+
+bool CWorkspaceRule::isEnabled() const {
+    return m_enabled;
+}

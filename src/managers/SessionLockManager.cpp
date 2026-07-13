@@ -52,7 +52,7 @@ CSessionLockManager::CSessionLockManager() {
 void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
     static auto PALLOWRELOCK = CConfigValue<Config::INTEGER>("misc:allow_session_lock_restore");
 
-    if (PROTO::sessionLock->isLocked() && !*PALLOWRELOCK) {
+    if (PROTO::sessionLock->isLocked() && !*PALLOWRELOCK && g_pCompositor->m_startLockedCommand.empty()) {
         LOGM(Log::DEBUG, "Cannot re-lock, misc:allow_session_lock_restore is disabled");
         pLock->sendDenied();
         return;
@@ -74,10 +74,12 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
         NEWSURFACE->iMonitorID = PMONITOR->m_id;
         PROTO::fractional->sendScale(surface->surface(), PMONITOR->m_scale);
 
-        g_pCompositor->m_otherViews.emplace_back(Desktop::View::CSessionLock::create(surface));
+        NEWSURFACE->view = Desktop::View::CSessionLock::create(surface);
     });
 
     m_sessionLock->listeners.unlock = pLock->m_events.unlockAndDestroy.listen([this] {
+        m_events.unlock.emit();
+
         m_sessionLock.reset();
         g_pInputManager->refocus();
 
@@ -92,6 +94,8 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
         for (auto const& m : State::monitorState()->monitors())
             g_pHyprRenderer->damageMonitor(m);
     });
+
+    m_events.lock.emit();
 
     Desktop::focusState()->rawSurfaceFocus(nullptr);
     g_pSeatManager->setGrab(nullptr);
@@ -214,6 +218,27 @@ bool CSessionLockManager::clientLocked() {
 
 bool CSessionLockManager::clientDenied() {
     return m_sessionLock && m_sessionLock->hasSentDenied;
+}
+
+void CSessionLockManager::clearSessionLock() {
+    m_events.unlock.emit();
+    m_sessionLock = {};
+}
+
+void CSessionLockManager::forceUnlock() {
+    PROTO::sessionLock->forceUnlock();
+    clearSessionLock();
+
+    Desktop::focusState()->rawSurfaceFocus(nullptr);
+    for (auto const& m : State::monitorState()->monitors())
+        g_pHyprRenderer->damageMonitor(m);
+
+    g_pInputManager->refocus();
+}
+
+void CSessionLockManager::forceLock() {
+    PROTO::sessionLock->forceLock();
+    m_events.lock.emit();
 }
 
 bool CSessionLockManager::shallConsiderLockMissing() {

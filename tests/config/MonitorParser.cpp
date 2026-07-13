@@ -10,6 +10,15 @@ TEST(Config, monitorParserName) {
     EXPECT_FALSE(parser.getError().has_value());
 }
 
+TEST(Config, monitorParserDefaults) {
+    // when a field's key is absent entirely
+    CMonitorRuleParser parser("DP-1");
+    EXPECT_EQ(parser.rule().m_resolution, Vector2D());                   // preferred
+    EXPECT_EQ(parser.rule().m_offset, Vector2D(-INT32_MAX, -INT32_MAX)); // auto
+    EXPECT_FLOAT_EQ(parser.rule().m_scale, -1.0f);                       // auto
+    EXPECT_FALSE(parser.getError().has_value());
+}
+
 TEST(Config, monitorParserModeStandard) {
     CMonitorRuleParser parser("DP-1");
     EXPECT_TRUE(parser.parseMode("1920x1080"));
@@ -42,6 +51,13 @@ TEST(Config, monitorParserModeKeywords) {
     CMonitorRuleParser p4("DP-1");
     EXPECT_TRUE(p4.parseMode("maxwidth"));
     EXPECT_EQ(p4.rule().m_resolution, Vector2D(-1, -3));
+}
+
+TEST(Config, monitorParserModeOmitted) {
+    CMonitorRuleParser parser("DP-1");
+    EXPECT_TRUE(parser.parseMode("")); // defaults to "preferred"
+    EXPECT_EQ(parser.rule().m_resolution, Vector2D());
+    EXPECT_FALSE(parser.getError().has_value());
 }
 
 TEST(Config, monitorParserModeInvalid) {
@@ -82,6 +98,14 @@ TEST(Config, monitorParserPositionAuto) {
     EXPECT_EQ(p5.rule().m_autoDir, DIR_AUTO_RIGHT);
 }
 
+TEST(Config, monitorParserPositionOmitted) {
+    CMonitorRuleParser parser("DP-1");
+    EXPECT_TRUE(parser.parsePosition("")); // defaults to "auto"
+    EXPECT_EQ(parser.rule().m_offset, Vector2D(-INT32_MAX, -INT32_MAX));
+    EXPECT_EQ(parser.rule().m_autoDir, DIR_AUTO_RIGHT);
+    EXPECT_FALSE(parser.getError().has_value());
+}
+
 TEST(Config, monitorParserPositionAutoCenter) {
     CMonitorRuleParser p1("DP-1");
     EXPECT_TRUE(p1.parsePosition("auto-center-right"));
@@ -116,6 +140,13 @@ TEST(Config, monitorParserScaleValid) {
     CMonitorRuleParser p4("DP-1");
     EXPECT_TRUE(p4.parseScale("0.25"));
     EXPECT_FLOAT_EQ(p4.rule().m_scale, 0.25f);
+}
+
+TEST(Config, monitorParserScaleOmitted) {
+    CMonitorRuleParser parser("DP-1");
+    EXPECT_TRUE(parser.parseScale("")); // defaults to "auto"
+    EXPECT_FLOAT_EQ(parser.rule().m_scale, -1.0f);
+    EXPECT_FALSE(parser.getError().has_value());
 }
 
 TEST(Config, monitorParserScaleInvalid) {

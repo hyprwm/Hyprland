@@ -112,72 +112,72 @@ namespace NColorManagement {
 
     namespace NColorPrimaries {
 
-        static const auto BT709 = SPCPRimaries{
+        inline const auto BT709 = SPCPRimaries{
             .red   = {.x = 0.64, .y = 0.33},
             .green = {.x = 0.30, .y = 0.60},
             .blue  = {.x = 0.15, .y = 0.06},
             .white = {.x = 0.3127, .y = 0.3290},
         };
 
-        static const auto DEFAULT_PRIMARIES = BT709;
+        inline const auto DEFAULT_PRIMARIES = BT709;
 
-        static const auto PAL_M = SPCPRimaries{
+        inline const auto PAL_M = SPCPRimaries{
             .red   = {.x = 0.67, .y = 0.33},
             .green = {.x = 0.21, .y = 0.71},
             .blue  = {.x = 0.14, .y = 0.08},
             .white = {.x = 0.310, .y = 0.316},
         };
 
-        static const auto PAL = SPCPRimaries{
+        inline const auto PAL = SPCPRimaries{
             .red   = {.x = 0.640, .y = 0.330},
             .green = {.x = 0.290, .y = 0.600},
             .blue  = {.x = 0.150, .y = 0.060},
             .white = {.x = 0.3127, .y = 0.3290},
         };
 
-        static const auto NTSC = SPCPRimaries{
+        inline const auto NTSC = SPCPRimaries{
             .red   = {.x = 0.630, .y = 0.340},
             .green = {.x = 0.310, .y = 0.595},
             .blue  = {.x = 0.155, .y = 0.070},
             .white = {.x = 0.3127, .y = 0.3290},
         };
 
-        static const auto GENERIC_FILM = SPCPRimaries{
+        inline const auto GENERIC_FILM = SPCPRimaries{
             .red   = {.x = 0.243, .y = 0.692},
             .green = {.x = 0.145, .y = 0.049},
             .blue  = {.x = 0.681, .y = 0.319}, // NOLINT(modernize-use-std-numbers)
             .white = {.x = 0.310, .y = 0.316},
         };
 
-        static const auto BT2020 = SPCPRimaries{
+        inline const auto BT2020 = SPCPRimaries{
             .red   = {.x = 0.708, .y = 0.292},
             .green = {.x = 0.170, .y = 0.797},
             .blue  = {.x = 0.131, .y = 0.046},
             .white = {.x = 0.3127, .y = 0.3290},
         };
 
-        static const auto CIE1931_XYZ = SPCPRimaries{
+        inline const auto CIE1931_XYZ = SPCPRimaries{
             .red   = {.x = 1.0, .y = 0.0},
             .green = {.x = 0.0, .y = 1.0},
             .blue  = {.x = 0.0, .y = 0.0},
             .white = {.x = 1.0 / 3.0, .y = 1.0 / 3.0},
         };
 
-        static const auto DCI_P3 = SPCPRimaries{
+        inline const auto DCI_P3 = SPCPRimaries{
             .red   = {.x = 0.680, .y = 0.320},
             .green = {.x = 0.265, .y = 0.690},
             .blue  = {.x = 0.150, .y = 0.060},
             .white = {.x = 0.314, .y = 0.351},
         };
 
-        static const auto DISPLAY_P3 = SPCPRimaries{
+        inline const auto DISPLAY_P3 = SPCPRimaries{
             .red   = {.x = 0.680, .y = 0.320},
             .green = {.x = 0.265, .y = 0.690},
             .blue  = {.x = 0.150, .y = 0.060},
             .white = {.x = 0.3127, .y = 0.3290},
         };
 
-        static const auto ADOBE_RGB = SPCPRimaries{
+        inline const auto ADOBE_RGB = SPCPRimaries{
             .red   = {.x = 0.6400, .y = 0.3300},
             .green = {.x = 0.2100, .y = 0.7100},
             .blue  = {.x = 0.1500, .y = 0.0600},
@@ -224,7 +224,7 @@ namespace NColorManagement {
 
         eTransferFunction    transferFunction      = CM_TRANSFER_FUNCTION_GAMMA22;
         float                transferFunctionPower = 1.0f;
-        bool                 windowsScRGB          = false;
+        bool                 isWindows             = false;
 
         bool                 primariesNameSet = false;
         ePrimaries           primariesNamed   = CM_PRIMARIES_SRGB;
@@ -267,7 +267,7 @@ namespace NColorManagement {
             if (icc.present || d2.icc.present)
                 return false;
 
-            return windowsScRGB == d2.windowsScRGB && transferFunction == d2.transferFunction && transferFunctionPower == d2.transferFunctionPower &&
+            return isWindows == d2.isWindows && transferFunction == d2.transferFunction && transferFunctionPower == d2.transferFunctionPower &&
                 (primariesNameSet == d2.primariesNameSet && (primariesNameSet ? primariesNamed == d2.primariesNamed : primaries == d2.primaries)) &&
                 masteringPrimaries == d2.masteringPrimaries && luminances == d2.luminances && masteringLuminances == d2.masteringLuminances && maxCLL == d2.maxCLL &&
                 maxFALL == d2.maxFALL;
@@ -386,7 +386,7 @@ namespace NColorManagement {
 
     PImageDescription getDefaultImageDescription();
 
-    static const auto DEFAULT_GAMMA22_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
+    inline const auto DEFAULT_GAMMA22_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
         .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22,
         .primariesNameSet = true,
         .primariesNamed   = NColorManagement::CM_PRIMARIES_SRGB,
@@ -394,7 +394,7 @@ namespace NColorManagement {
         .luminances       = {.min = SDR_MIN_LUMINANCE, .max = 80, .reference = 80},
     });
 
-    static const auto DEFAULT_SRGB_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
+    inline const auto DEFAULT_SRGB_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
         .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_SRGB,
         .primariesNameSet = true,
         .primariesNamed   = NColorManagement::CM_PRIMARIES_SRGB,
@@ -402,7 +402,7 @@ namespace NColorManagement {
         .luminances       = {.min = SDR_MIN_LUMINANCE, .max = 80, .reference = 80},
     });
 
-    static const auto DEFAULT_HDR_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
+    inline const auto DEFAULT_HDR_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
         .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
         .primariesNameSet = true,
         .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
@@ -410,16 +410,25 @@ namespace NColorManagement {
         .luminances       = {.min = HDR_MIN_LUMINANCE, .max = 10000, .reference = 203},
     });
 
-    static const auto SCRGB_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
+    inline const auto SCRGB_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
         .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_EXT_LINEAR,
-        .windowsScRGB     = true,
+        .isWindows        = true,
         .primariesNameSet = true,
         .primariesNamed   = NColorManagement::CM_PRIMARIES_SRGB,
         .primaries        = NColorPrimaries::BT709,
         .luminances       = {.reference = 203},
     });
 
-    static const auto LINEAR_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
+    inline const auto BT2100_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
+        .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
+        .isWindows        = true,
+        .primariesNameSet = true,
+        .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
+        .primaries        = NColorPrimaries::BT2020,
+        .luminances       = {.reference = 203},
+    });
+
+    inline const auto LINEAR_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
         .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_EXT_LINEAR,
         .primariesNameSet = true,
         .primariesNamed   = NColorManagement::CM_PRIMARIES_SRGB,
@@ -431,7 +440,7 @@ namespace NColorManagement {
     // not normalised to 0.0 - 1.0
     // luminance values should be set to default SDR settings in SDR mode and to output settings in HDR mode
     // keep srgb primaries to avoid conversions for image exports
-    static const auto LINEAR_NN_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
+    inline const auto LINEAR_NN_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
         .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_LINEAR,
         .primariesNameSet = true,
         .primariesNamed   = NColorManagement::CM_PRIMARIES_SRGB,

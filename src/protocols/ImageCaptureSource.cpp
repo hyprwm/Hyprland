@@ -68,7 +68,14 @@ void COutputImageCaptureSourceProtocol::bindManager(wl_client* client, void* dat
     RESOURCE->setDestroy([](CExtOutputImageCaptureSourceManagerV1* pMgr) { PROTO::imageCaptureSource->destroyResource(pMgr); });
     RESOURCE->setOnDestroy([](CExtOutputImageCaptureSourceManagerV1* pMgr) { PROTO::imageCaptureSource->destroyResource(pMgr); });
     RESOURCE->setCreateSource([](CExtOutputImageCaptureSourceManagerV1* pMgr, uint32_t id, wl_resource* output) {
-        PHLMONITOR pMonitor = CWLOutputResource::fromResource(output)->m_monitor.lock();
+        const auto OUTPUT = CWLOutputResource::fromResource(output);
+        if (!OUTPUT) {
+            LOGM(Log::ERR, "Client tried to create source from invalid output resource");
+            pMgr->error(-1, "invalid output resource");
+            return;
+        }
+
+        PHLMONITOR pMonitor = OUTPUT->m_monitor.lock();
         if (!pMonitor) {
             LOGM(Log::ERR, "Client tried to create source from invalid output resource");
             pMgr->error(-1, "invalid output resource");

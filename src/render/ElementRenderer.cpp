@@ -69,7 +69,7 @@ void IElementRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceRes
             uvTL = Vector2D(bufferSource.x / bufferSize.x, bufferSource.y / bufferSize.y);
             uvBR = Vector2D((bufferSource.x + bufferSource.width) / bufferSize.x, (bufferSource.y + bufferSource.height) / bufferSize.y);
 
-            if (uvBR.x < 0.01f || uvBR.y < 0.01f) {
+            if (uvBR.x < 0.00001f || uvBR.y < 0.00001f) {
                 uvTL = Vector2D();
                 uvBR = Vector2D(1, 1);
             }
@@ -188,7 +188,7 @@ void IElementRenderer::drawRect(WP<CRectPassElement> element, const CRegion& dam
 }
 
 void IElementRenderer::drawHints(WP<CRendererHintsPassElement> element, const CRegion& damage) {
-    const auto m_data = element->m_data;
+    const auto& m_data = element->m_data;
     if (m_data.renderModif.has_value())
         g_pHyprRenderer->m_renderData.renderModif = *m_data.renderModif;
 }
@@ -217,7 +217,7 @@ void IElementRenderer::drawClear(WP<CClearPassElement> element, const CRegion& d
 }
 
 void IElementRenderer::drawSurface(WP<CSurfacePassElement> element, const CRegion& damage) {
-    const auto                    m_data       = element->m_data;
+    const auto&                   m_data       = element->m_data;
     auto&                         m_renderData = g_pHyprRenderer->m_renderData;
 
     Hyprutils::Utils::CScopeGuard x = {[]() {
@@ -481,7 +481,7 @@ void IElementRenderer::drawTexMatte(WP<CTextureMatteElement> element, const CReg
     if (g_pHyprRenderer->m_renderData.damage.empty())
         return;
 
-    const auto m_data = element->m_data;
+    const auto& m_data = element->m_data;
     if (m_data.disableTransformAndModify) {
         g_pHyprRenderer->pushMonitorTransformEnabled(true);
         g_pHyprRenderer->m_renderData.renderModif.enabled = false;

@@ -1,10 +1,10 @@
 #include "LuaMonitor.hpp"
 #include "LuaWorkspace.hpp"
+#include "../../../state/WorkspaceState.hpp"
 #include "LuaObjectHelpers.hpp"
 
 #include "../bindings/LuaBindingsInternal.hpp"
-
-#include "../../../helpers/Monitor.hpp"
+#include "../../../output/Monitor.hpp"
 #include "../../../desktop/state/FocusState.hpp"
 
 #include <string_view>
@@ -42,7 +42,7 @@ static int monitorSetWorkspace(lua_State* L) {
     if (id.empty())
         return 0;
 
-    auto ws = g_pCompositor->getWorkspaceByName(id);
+    auto ws = State::workspaceState()->query().name(id).run();
     if (!ws)
         return 0;
 
@@ -60,7 +60,7 @@ static int monitorSetSpecialWorkspace(lua_State* L) {
         return 0;
     }
 
-    auto ws = g_pCompositor->getWorkspaceByName(*id);
+    auto ws = State::workspaceState()->query().name(*id).run();
     if (!ws)
         return 0;
 
@@ -86,6 +86,8 @@ static int monitorIndex(lua_State* L) {
         lua_pushstring(L, mon->m_name.c_str());
     else if (key == "description")
         lua_pushstring(L, mon->m_shortDescription.c_str());
+    else if (key == "serial")
+        lua_pushstring(L, mon->m_output->serial.c_str());
     else if (key == "width")
         lua_pushinteger(L, sc<int>(mon->m_pixelSize.x));
     else if (key == "height")
@@ -144,6 +146,25 @@ static int monitorIndex(lua_State* L) {
             Objects::CLuaMonitor::push(L, mirror);
             lua_rawseti(L, -2, i++);
         }
+    } else if (key == "available_modes") {
+        lua_newtable(L);
+
+        int i = 1;
+        for (const auto& mode : mon->m_output->modes) {
+            if (!mode)
+                continue;
+
+            lua_newtable(L);
+            lua_pushinteger(L, sc<int>(mode->pixelSize.x));
+            lua_setfield(L, -2, "width");
+            lua_pushinteger(L, sc<int>(mode->pixelSize.y));
+            lua_setfield(L, -2, "height");
+            lua_pushnumber(L, mode->refreshRate / 1000.0);
+            lua_setfield(L, -2, "refresh_rate");
+            lua_pushboolean(L, mode->preferred);
+            lua_setfield(L, -2, "preferred");
+            lua_rawseti(L, -2, i++);
+        }
     } else if (key == "focused")
         lua_pushboolean(L, mon == Desktop::focusState()->monitor());
     else if (key == "cm")
@@ -176,7 +197,7 @@ void Objects::CLuaMonitor::setup(lua_State* L) {
     registerMetatable(L, MT, monitorIndex, gcRef<PHLMONITORREF>, monitorEq, monitorToString);
 }
 
-void Objects::CLuaMonitor::push(lua_State* L, PHLMONITOR mon) {
+void Objects::CLuaMonitor::push(lua_State* L, PHLMONITORREF mon) {
     new (lua_newuserdata(L, sizeof(PHLMONITORREF))) PHLMONITORREF(mon ? mon->m_self : nullptr);
     luaL_getmetatable(L, MT);
     lua_setmetatable(L, -2);

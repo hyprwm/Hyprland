@@ -211,17 +211,16 @@ void CrashReporter::createAndSaveCrash(int sig) {
 
     std::string addrs = "";
     for (size_t i = 0; i < CALLSTACK.size(); ++i) {
+        size_t vmaAddr = (size_t)CALLSTACK[i].adr;
 #ifdef __GLIBC__
         // convert in memory address to VMA address
         Dl_info          info;
         struct link_map* linkMap;
-        dladdr1(CALLSTACK[i].adr, &info, rc<void**>(&linkMap), RTLD_DL_LINKMAP);
-        size_t vmaAddr = rc<size_t>(CALLSTACK[i].adr) - linkMap->l_addr;
+        if (dladdr1(CALLSTACK[i].adr, &info, rc<void**>(&linkMap), RTLD_DL_LINKMAP))
+            vmaAddr = rc<size_t>(CALLSTACK[i].adr) - linkMap->l_addr;
 #else
         // musl doesn't define dladdr1
-        size_t vmaAddr = (size_t)CALLSTACK[i].adr;
 #endif
-
         addrs += std::format("0x{:x} ", vmaAddr);
     }
 #ifdef __clang__

@@ -17,6 +17,16 @@ uniform float roundingPower;
 uniform float range;
 uniform float shadowPower;
 
+// Gradients are in OkLabA!!!! {l, a, b, alpha}
+uniform vec4  gradient[10];
+uniform vec4  gradient2[10];
+uniform int   gradientLength;
+uniform int   gradient2Length;
+uniform float angle;
+uniform float angle2;
+uniform float gradientLerp;
+uniform float alpha;
+
 #include "inner_glow.glsl"
 
 layout(location = 0) out vec4 fragColor;
@@ -30,7 +40,8 @@ void main() {
 #else
     fragColor =
 #endif
-    getInnerGlow(pixColor, colorSRGB, v_texcoord, radius, roundingPower, topLeft, fullSize, range, shadowPower, bottomRight);
+    getInnerGlow(pixColor, colorSRGB, v_texcoord, radius, roundingPower, topLeft, fullSize, range, shadowPower, bottomRight,
+                 gradientLength, gradient, angle, gradient2Length, gradient2, angle2, gradientLerp, alpha);
 #if USE_MIRROR
     fragColor   = pixColors[0];
     mirrorColor = pixColors[1];

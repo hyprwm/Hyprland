@@ -105,18 +105,8 @@ int CEventManager::onClientEvent(int fd, uint32_t mask) {
     if (mask & WL_EVENT_WRITABLE) {
         const auto CLIENTIT = findClientByFD(fd);
 
-        // send all queued events
-        while (!CLIENTIT->events.empty()) {
-            const auto& event = CLIENTIT->events.front();
-            if (write(CLIENTIT->fd.get(), event->c_str(), event->length()) < 0)
-                break;
-
-            CLIENTIT->events.erase(CLIENTIT->events.begin());
-        }
-
-        // stop polling when we sent all events
-        if (CLIENTIT->events.empty())
-            wl_event_source_fd_update(CLIENTIT->eventSource, 0);
+        if (!flushClient(*CLIENTIT))
+            removeClientByFD(fd);
     }
 
     return 0;
@@ -140,6 +130,36 @@ std::string CEventManager::formatEvent(const SHyprIPCEvent& event) const {
     return eventString;
 }
 
+bool CEventManager::flushClient(SClient& client) {
+    while (!client.events.empty()) {
+        const auto& event     = client.events.front();
+        const auto  REMAINING = event->length() - client.writeOffset;
+        const auto  WRITTEN   = write(client.fd.get(), event->c_str() + client.writeOffset, REMAINING);
+
+        if (WRITTEN > 0) {
+            client.writeOffset += sc<size_t>(WRITTEN);
+            if (client.writeOffset < event->length())
+                return true;
+
+            client.writeOffset = 0;
+            client.events.erase(client.events.begin());
+            continue;
+        }
+
+        if (WRITTEN < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
+            return true;
+
+        if (WRITTEN < 0 && errno == EINTR)
+            continue;
+
+        Log::logger->log(Log::ERR, "Socket2 fd {} failed writing event: {}", client.fd.get(), WRITTEN < 0 ? strerror(errno) : "write returned 0");
+        return false;
+    }
+
+    wl_event_source_fd_update(client.eventSource, 0);
+    return true;
+}
+
 void CEventManager::postEvent(const SHyprIPCEvent& event) {
     if (g_pCompositor->m_isShuttingDown) {
         Log::logger->log(Log::WARN, "Suppressed (shutting down) event of type {}, content: {}", event.event, event.data);
@@ -149,23 +169,23 @@ void CEventManager::postEvent(const SHyprIPCEvent& event) {
     const size_t MAX_QUEUED_EVENTS = 64;
     auto         sharedEvent       = makeShared<std::string>(formatEvent(event));
     for (auto it = m_clients.begin(); it != m_clients.end();) {
-        // try to send the event immediately if the queue is empty
         const auto QUEUESIZE = it->events.size();
-        if (QUEUESIZE > 0 || write(it->fd.get(), sharedEvent->c_str(), sharedEvent->length()) < 0) {
-            if (QUEUESIZE >= MAX_QUEUED_EVENTS) {
-                // too many events queued, remove the client
-                Log::logger->log(Log::ERR, "Socket2 fd {} overflowed event queue, removing", it->fd.get());
-                it = removeClientByFD(it->fd.get());
-                continue;
-            }
 
-            // queue it to send later if failed
-            it->events.push_back(sharedEvent);
-
-            // poll for write if queue was empty
-            if (QUEUESIZE == 0)
-                wl_event_source_fd_update(it->eventSource, WL_EVENT_WRITABLE);
+        if (QUEUESIZE >= MAX_QUEUED_EVENTS) {
+            Log::logger->log(Log::ERR, "Socket2 fd {} overflowed event queue, removing", it->fd.get());
+            it = removeClientByFD(it->fd.get());
+            continue;
         }
+
+        it->events.push_back(sharedEvent);
+
+        if (!flushClient(*it)) {
+            it = removeClientByFD(it->fd.get());
+            continue;
+        }
+
+        if (!it->events.empty() && QUEUESIZE == 0)
+            wl_event_source_fd_update(it->eventSource, WL_EVENT_WRITABLE);
 
         ++it;
     }

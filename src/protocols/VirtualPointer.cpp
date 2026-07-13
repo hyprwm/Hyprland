@@ -47,16 +47,17 @@ CVirtualPointerV1Resource::CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> r
             return;
         }
 
-        m_axis               = axis_;
-        m_axisEvents[m_axis] = IPointer::SAxisEvent{.timeMs = timeMs, .axis = sc<wl_pointer_axis>(m_axis), .delta = wl_fixed_to_double(value)};
+        m_axis                     = axis_;
+        m_axisEvents[m_axis]       = IPointer::SAxisEvent{.timeMs = timeMs, .axis = sc<wl_pointer_axis>(m_axis), .delta = wl_fixed_to_double(value)};
+        m_axisEventPending[m_axis] = true;
     });
 
     m_resource->setFrame([this](CZwlrVirtualPointerV1* r) {
-        for (auto& e : m_axisEvents) {
-            if (!e.timeMs)
+        for (size_t i = 0; i < m_axisEvents.size(); ++i) {
+            if (!m_axisEventPending[i])
                 continue;
-            m_events.axis.emit(e);
-            e.timeMs = 0;
+            m_events.axis.emit(m_axisEvents[i]);
+            m_axisEventPending[i] = false;
         }
 
         m_events.frame.emit();
@@ -75,6 +76,7 @@ CVirtualPointerV1Resource::CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> r
         m_axisEvents[m_axis].axis          = sc<wl_pointer_axis>(m_axis);
         m_axisEvents[m_axis].delta         = 0;
         m_axisEvents[m_axis].deltaDiscrete = 0;
+        m_axisEventPending[m_axis]         = true;
     });
 
     m_resource->setAxisDiscrete([this](CZwlrVirtualPointerV1* r, uint32_t timeMs, uint32_t axis_, wl_fixed_t value, int32_t discrete) {
@@ -88,6 +90,7 @@ CVirtualPointerV1Resource::CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> r
         m_axisEvents[m_axis].axis          = sc<wl_pointer_axis>(m_axis);
         m_axisEvents[m_axis].delta         = wl_fixed_to_double(value);
         m_axisEvents[m_axis].deltaDiscrete = discrete * 120;
+        m_axisEventPending[m_axis]         = true;
     });
 }
 

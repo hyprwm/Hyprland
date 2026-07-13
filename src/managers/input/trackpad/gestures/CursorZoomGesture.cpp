@@ -1,8 +1,9 @@
 #include "CursorZoomGesture.hpp"
 
 #include "../../../../Compositor.hpp"
-#include "../../../../helpers/Monitor.hpp"
+#include "../../../../output/Monitor.hpp"
 #include "../../../../managers/input/InputManager.hpp"
+#include "../../../../state/MonitorState.hpp"
 #include <hyprutils/string/Numeric.hpp>
 
 CCursorZoomTrackpadGesture::CCursorZoomTrackpadGesture(const std::string& first, const std::string& second) {
@@ -22,7 +23,7 @@ void CCursorZoomTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureB
         if (!e.pinch)
             return;
 
-        m_monitor = g_pCompositor->getMonitorFromCursor();
+        m_monitor = State::monitorState()->query().vec(g_pInputManager->getMouseCoordsInternal()).run();
         if (!m_monitor)
             return;
 
@@ -30,7 +31,7 @@ void CCursorZoomTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureB
         if (!PMONITOR)
             return;
 
-        m_zoomBegin = std::clamp(PMONITOR->m_cursorZoom->value(), 1.0F, 100.0F);
+        m_zoomBegin = std::clamp(PMONITOR->m_cursorZoom->goal(), 1.0F, 100.0F);
         PMONITOR->m_cursorZoom->setValueAndWarp(m_zoomBegin);
         PMONITOR->m_zoomController.pinAnchor(g_pInputManager->getMouseCoordsInternal() - PMONITOR->m_position);
         return;
@@ -39,11 +40,11 @@ void CCursorZoomTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureB
     if (m_mode == MODE_TOGGLE)
         m_zoomed = !m_zoomed;
 
-    for (auto const& m : g_pCompositor->m_monitors) {
+    for (auto const& m : State::monitorState()->monitors()) {
         switch (m_mode) {
             case MODE_TOGGLE:
                 static auto PZOOMFACTOR = CConfigValue<Config::FLOAT>("cursor:zoom_factor");
-                *m->m_cursorZoom        = m_zoomed ? m_zoomValue : *PZOOMFACTOR;
+                *m->m_cursorZoom        = std::clamp(m_zoomed ? m_zoomValue : *PZOOMFACTOR, 1.0F, 100.0F);
                 break;
             case MODE_MULT: *m->m_cursorZoom = std::clamp(m->m_cursorZoom->goal() * m_zoomValue, 1.0F, 100.0F); break;
             case MODE_LIVE: break;

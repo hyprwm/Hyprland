@@ -1,12 +1,14 @@
 #include "WindowRule.hpp"
 #include "../../view/Window.hpp"
-#include "../../../helpers/Monitor.hpp"
+#include "../../../output/Monitor.hpp"
 #include "../../../helpers/MiscFunctions.hpp"
 #include "../../../Compositor.hpp"
 #include "../../../managers/TokenManager.hpp"
+#include "../../../managers/fullscreen/FullscreenController.hpp"
 #include "../../../desktop/state/FocusState.hpp"
 #include "../../../protocols/types/ContentType.hpp"
 #include "../../../config/shared/parserUtils/ParserUtils.hpp"
+#include "desktop/rule/windowRule/WindowRuleEffectContainer.hpp"
 
 #include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/String.hpp>
@@ -14,6 +16,7 @@
 #include <hyprutils/string/VarList2.hpp>
 #include <algorithm>
 #include <format>
+#include <numbers>
 
 using namespace Desktop;
 using namespace Desktop::Rule;
@@ -161,14 +164,14 @@ static std::expected<SBorderColorRule, std::string> parseBorderColorRule(const s
                 if (!angle)
                     return std::unexpected(std::format("border_color rule \"{}\" has invalid angle \"{}\": {}", raw, token, numericParseError(angle.error())));
 
-                activeBorderGradient.m_angle = *angle * (PI / 180.0);
+                activeBorderGradient.m_angle = *angle * (std::numbers::pi / 180.0);
                 active                       = false;
             } else if (token.contains("deg")) {
                 auto angle = strToNumber<int>(token.substr(0, token.size() - 3));
                 if (!angle)
                     return std::unexpected(std::format("border_color rule \"{}\" has invalid angle \"{}\": {}", raw, token, numericParseError(angle.error())));
 
-                inactiveBorderGradient.m_angle = *angle * (PI / 180.0);
+                inactiveBorderGradient.m_angle = *angle * (std::numbers::pi / 180.0);
             } else {
                 auto color = parseBorderColorToken(raw, token);
                 if (!color)
@@ -279,6 +282,17 @@ static std::expected<WindowRuleEffectValue, std::string> parseWindowRuleEffect(C
         case WINDOW_RULE_EFFECT_SUPPRESSEVENT: return parseStringList(raw);
 
         case WINDOW_RULE_EFFECT_CONTENT: return sc<int64_t>(NContentType::fromString(raw));
+        case WINDOW_RULE_EFFECT_TONEMAP: {
+            if (raw == "1" || raw == "on")
+                return 1;
+            if (raw == "0" || raw == "off")
+                return 0;
+            if (raw == "clamp")
+                return 2;
+            if (raw == "limited")
+                return 3;
+            return 1;
+        };
 
         case WINDOW_RULE_EFFECT_NOCLOSEFOR:
         case WINDOW_RULE_EFFECT_BORDER_SIZE: {
@@ -399,7 +413,7 @@ bool CWindowRule::matches(PHLWINDOW w, bool allowEnvLookup) {
                     return false;
                 break;
             case RULE_PROP_FULLSCREEN:
-                if (!engine->match(w->m_fullscreenState.internal != 0))
+                if (!engine->match(Fullscreen::controller()->isFullscreen(w)))
                     return false;
                 break;
             case RULE_PROP_PINNED:
@@ -419,11 +433,11 @@ bool CWindowRule::matches(PHLWINDOW w, bool allowEnvLookup) {
                     return false;
                 break;
             case RULE_PROP_FULLSCREENSTATE_INTERNAL:
-                if (!engine->match(w->m_fullscreenState.internal))
+                if (!engine->match(Fullscreen::controller()->getFullscreenModes(w).internal))
                     return false;
                 break;
             case RULE_PROP_FULLSCREENSTATE_CLIENT:
-                if (!engine->match(w->m_fullscreenState.client))
+                if (!engine->match(Fullscreen::controller()->getFullscreenModes(w).client))
                     return false;
                 break;
             case RULE_PROP_ON_WORKSPACE:

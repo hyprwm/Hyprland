@@ -2,6 +2,7 @@
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../desktop/state/FocusState.hpp"
+#include "../../desktop/state/WindowState.hpp"
 #include "../../desktop/view/Group.hpp"
 #include <ranges>
 #include <pango/pangocairo.h>
@@ -9,6 +10,7 @@
 #include "../pass/RectPassElement.hpp"
 #include "../Renderer.hpp"
 #include "../../managers/input/InputManager.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../../layout/LayoutManager.hpp"
 #include "../../layout/supplementary/DragController.hpp"
 
@@ -406,7 +408,7 @@ bool CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
     // start a move drag on it
     g_layoutManager->dragController()->dragBegin(pWindow->layoutTarget(), MBIND_MOVE);
 
-    if (!g_pCompositor->isWindowActive(pWindow))
+    if (!Desktop::focusState()->isWindowActive(pWindow))
         Desktop::focusState()->rawWindowFocus(pWindow, Desktop::FOCUS_REASON_CLICK);
 
     return true;
@@ -435,7 +437,7 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPo
     static auto POUTERGAP         = CConfigValue<Config::INTEGER>("group:groupbar:gaps_out");
     static auto PINNERGAP         = CConfigValue<Config::INTEGER>("group:groupbar:gaps_in");
     static auto PMIDDLECLICKCLOSE = CConfigValue<Config::INTEGER>("group:groupbar:middle_click_close");
-    if (m_window->isEffectiveInternalFSMode(FSMODE_FULLSCREEN))
+    if (Fullscreen::controller()->getFullscreenModes(m_window.lock()).internal == Fullscreen::FSMODE_FULLSCREEN)
         return true;
 
     const float BARRELATIVEX = pos.x - assignedBoxGlobal().x;
@@ -465,7 +467,7 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPo
     const auto TABPAD   = !*PSTACKED && (BARRELATIVEX - (m_barWidth + *PINNERGAP) * WINDOWINDEX > m_barWidth);
     const auto STACKPAD = *PSTACKED && (BARRELATIVEY - (m_barHeight + *POUTERGAP) * WINDOWINDEX < *POUTERGAP);
     if (TABPAD || STACKPAD) {
-        if (!g_pCompositor->isWindowActive(m_window.lock()))
+        if (!Desktop::focusState()->isWindowActive(m_window.lock()))
             Desktop::focusState()->rawWindowFocus(m_window.lock(), Desktop::FOCUS_REASON_CLICK);
         return true;
     }
@@ -475,11 +477,11 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPo
     if (pWindow != m_window)
         pWindow->m_group->setCurrent(pWindow);
 
-    if (!g_pCompositor->isWindowActive(pWindow) && *PFOLLOWMOUSE != 3)
+    if (!Desktop::focusState()->isWindowActive(pWindow) && *PFOLLOWMOUSE != 3)
         Desktop::focusState()->rawWindowFocus(pWindow, Desktop::FOCUS_REASON_CLICK);
 
     if (pWindow->m_isFloating)
-        g_pCompositor->changeWindowZOrder(pWindow, true);
+        Desktop::windowState()->raise(pWindow);
 
     return true;
 }

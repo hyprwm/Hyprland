@@ -71,7 +71,7 @@ CManifest::CManifest(const eManifestType type, const std::string& path) {
             for (auto&& pin : *pins) {
                 auto pinArr = pin.as_array();
                 if (pinArr && pinArr->get(1))
-                    m_repository.commitPins.push_back(std::make_pair<>(pinArr->get(0)->as_string()->get(), pinArr->get(1)->as_string()->get()));
+                    m_repository.commitPins.emplace_back(pinArr->get(0)->as_string()->get(), pinArr->get(1)->as_string()->get());
             }
         }
 

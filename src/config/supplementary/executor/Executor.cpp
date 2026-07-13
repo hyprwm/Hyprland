@@ -7,7 +7,7 @@
 #include "../../../desktop/rule/Engine.hpp"
 #include "../../../desktop/state/FocusState.hpp"
 #include "../../../managers/TokenManager.hpp"
-#include "../../../helpers/Monitor.hpp"
+#include "../../../output/Monitor.hpp"
 
 #include <hyprutils/string/String.hpp>
 #include <chrono>
@@ -163,8 +163,8 @@ static std::vector<std::pair<std::string, std::string>> getHyprlandLaunchEnv(PHL
             pInitialWorkspace = PMONITOR->m_activeWorkspace;
     }
 
-    result.push_back(std::make_pair<>("HL_INITIAL_WORKSPACE_TOKEN",
-                                      g_pTokenManager->registerNewToken(Desktop::View::SInitialWorkspaceToken{{}, pInitialWorkspace->getConfigName()}, std::chrono::months(1337))));
+    result.emplace_back("HL_INITIAL_WORKSPACE_TOKEN",
+                        g_pTokenManager->registerNewToken(Desktop::View::SInitialWorkspaceToken{{}, pInitialWorkspace->getConfigName()}, std::chrono::months(1337)));
 
     return result;
 }

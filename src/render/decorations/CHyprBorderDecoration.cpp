@@ -2,8 +2,10 @@
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../pass/BorderPassElement.hpp"
 #include "../Renderer.hpp"
+#include "../../state/MonitorState.hpp"
 
 CHyprBorderDecoration::CHyprBorderDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_window(pWindow) {
     ;
@@ -115,10 +117,13 @@ void CHyprBorderDecoration::updateWindow(PHLWINDOW) {
 }
 
 void CHyprBorderDecoration::damageEntire() {
-    if (!validMapped(m_window) || m_window->m_fullscreenState.internal == FSMODE_FULLSCREEN)
+    if (!validMapped(m_window) || Fullscreen::controller()->getFullscreenModes(m_window.lock()).internal == Fullscreen::FSMODE_FULLSCREEN)
         return;
 
     const auto GLOBAL_BOX = assignedBoxGlobal();
+    if (GLOBAL_BOX.w <= 0 || GLOBAL_BOX.h <= 0)
+        return;
+
     const auto ROUNDING   = m_window->rounding();
     const auto BORDERSIZE = m_window->getRealBorderSize() + 1;
 
@@ -128,7 +133,7 @@ void CHyprBorderDecoration::damageEntire() {
 
     const CBox borderExtents = borderRegion.getExtents();
 
-    for (auto const& m : g_pCompositor->m_monitors) {
+    for (auto const& m : State::monitorState()->monitors()) {
         const CBox monitorBox = {m->m_position, m->m_size};
         if (borderExtents.intersection(monitorBox).empty())
             continue;

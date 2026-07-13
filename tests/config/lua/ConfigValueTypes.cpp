@@ -151,7 +151,7 @@ TEST(ConfigLuaValueTypes, stringValidatorAndEmptyPush) {
     CLuaState        S;
     const auto       L = S.get();
 
-    CLuaConfigString validated("default", std::optional<std::function<std::expected<void, std::string>(const STRING&)>>{[](const STRING& s) -> std::expected<void, std::string> {
+    CLuaConfigString validated("default", std::function<std::expected<void, std::string>(const STRING&)>{[](const STRING& s) -> std::expected<void, std::string> {
                                    if (s.starts_with("ok:"))
                                        return {};
                                    return std::unexpected("must start with ok:");
@@ -203,7 +203,7 @@ TEST(ConfigLuaValueTypes, vec2ParseValidateAndPush) {
     CLuaState      S;
     const auto     L = S.get();
 
-    CLuaConfigVec2 value({0, 0}, std::optional<std::function<std::expected<void, std::string>(const VEC2&)>>{[](const VEC2& v) -> std::expected<void, std::string> {
+    CLuaConfigVec2 value({0, 0}, std::function<std::expected<void, std::string>(const VEC2&)>{[](const VEC2& v) -> std::expected<void, std::string> {
                              if (v.x < 0 || v.y < 0)
                                  return std::unexpected("must be non-negative");
                              return {};

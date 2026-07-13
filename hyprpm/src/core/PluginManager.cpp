@@ -16,6 +16,7 @@
 #include <fstream>
 #include <algorithm>
 #include <format>
+#include <string_view>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -53,6 +54,10 @@ static std::string getTempRoot() {
     const auto STR = ENV + std::string{"/hyprpm/"};
 
     return STR;
+}
+
+static bool isValidHash(std::string_view sv) {
+    return std::ranges::all_of(sv, [](const char& c) { return std::isdigit(c) || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'); });
 }
 
 CPluginManager::CPluginManager() {
@@ -274,9 +279,14 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
             if (hl != HLVER.hash)
                 continue;
 
+            if (plugin.contains("'") || !isValidHash(plugin)) {
+                std::println(stderr, "\n{}", failureString("Plugin has a malformed manifest: bad commit pin"));
+                return false;
+            }
+
             progress.printMessageAbove(successString("commit pin {} matched hl, resetting", plugin));
 
-            execAndGet("cd " + m_szWorkingPluginDirectory + " && git reset --hard --recurse-submodules " + plugin);
+            execAndGet("cd " + m_szWorkingPluginDirectory + " && git reset --hard --recurse-submodules '" + plugin + "'");
 
             ret = execAndGet("git -C " + m_szWorkingPluginDirectory + " submodule update --init");
             if (m_bVerbose)
@@ -379,7 +389,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
     return true;
 }
 
-bool CPluginManager::removePluginRepo(const SPluginRepoIdentifier identifier) {
+bool CPluginManager::removePluginRepo(const SPluginRepoIdentifier& identifier) {
     if (!DataState::pluginRepoExists(identifier)) {
         std::println(stderr, "\n{}", failureString("Could not remove the repository. Repository is not installed."));
         return false;
@@ -449,10 +459,21 @@ eHeadersErrors CPluginManager::headersValid() {
     if (HASHPOS == std::string::npos || HASHPOS + 23 >= verHeaderContent.length())
         return HEADERS_CORRUPTED;
 
-    std::string hash = verHeaderContent.substr(HASHPOS + 23);
-    hash             = hash.substr(0, hash.find_first_of('\n'));
-    hash             = hash.substr(hash.find_first_of('"') + 1);
-    hash             = hash.substr(0, hash.find_first_of('"'));
+    std::string_view hash = verHeaderContent;
+    hash.remove_prefix(HASHPOS + 23);
+    hash = hash.substr(0, hash.find_first_of('\n'));
+
+    const auto FIRSTQUOTE = hash.find_first_of('"');
+    if (FIRSTQUOTE == std::string_view::npos)
+        return HEADERS_CORRUPTED;
+
+    hash.remove_prefix(FIRSTQUOTE + 1);
+
+    const auto SECONDQUOTE = hash.find_first_of('"');
+    if (SECONDQUOTE == std::string_view::npos)
+        return HEADERS_CORRUPTED;
+
+    hash = hash.substr(0, SECONDQUOTE);
 
     if (hash != HLVER.hash)
         return HEADERS_MISMATCHED;
@@ -578,9 +599,12 @@ bool CPluginManager::updateHeaders(bool force) {
     if (ret.contains("CMake Error at")) {
         // missing deps, let the user know.
         std::string missing = ret.substr(ret.find("CMake Error at"));
-        missing             = ret.substr(ret.find_first_of('\n') + 1);
-        missing             = missing.substr(0, missing.find("-- Configuring incomplete"));
-        missing             = missing.substr(0, missing.find_last_of('\n'));
+        if (missing.contains('\n'))
+            missing.erase(0, missing.find_first_of('\n') + 1);
+        if (missing.contains("-- Configuring incomplete"))
+            missing.erase(missing.find("-- Configuring incomplete"));
+        if (missing.contains('\n'))
+            missing.erase(missing.find_last_of('\n'));
 
         std::println(stderr, "\n{}",
                      failureString("Could not configure the hyprland source, cmake complained:\n{}\n\n"
@@ -751,9 +775,14 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
                 if (hl != HLVER.hash)
                     continue;
 
+                if (plugin.contains("'") || !isValidHash(plugin)) {
+                    std::println(stderr, "\n{}", failureString("Plugin has a malformed manifest: bad commit pin"));
+                    return false;
+                }
+
                 progress.printMessageAbove(successString("commit pin {} matched hl, resetting", plugin));
 
-                execAndGet("cd " + m_szWorkingPluginDirectory + " && git reset --hard --recurse-submodules " + plugin);
+                execAndGet("cd " + m_szWorkingPluginDirectory + " && git reset --hard --recurse-submodules '" + plugin + "'");
             }
         }
 
@@ -836,7 +865,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
     return true;
 }
 
-bool CPluginManager::enablePlugin(const SPluginRepoIdentifier identifier) {
+bool CPluginManager::enablePlugin(const SPluginRepoIdentifier& identifier) {
     bool ret = false;
 
     switch (identifier.type) {
@@ -849,7 +878,7 @@ bool CPluginManager::enablePlugin(const SPluginRepoIdentifier identifier) {
     return ret;
 }
 
-bool CPluginManager::disablePlugin(const SPluginRepoIdentifier identifier) {
+bool CPluginManager::disablePlugin(const SPluginRepoIdentifier& identifier) {
     bool ret = DataState::setPluginEnabled(identifier, false);
     if (ret)
         std::println("{}", successString("Disabled {}", identifier.name));
@@ -1085,7 +1114,7 @@ static std::expected<std::string, std::string> getNixDevelopFromPath(const std::
     if (ec || fullStorePath.empty() || !fullStorePath.starts_with("/nix"))
         return std::unexpected("couldn't get a real path for hyprpm");
 
-    fullStorePath = fullStorePath.substr(0, fullStorePath.length() - std::string_view{"/bin/hyprpm"}.length());
+    fullStorePath.resize(fullStorePath.length() - std::string_view{"/bin/hyprpm"}.length());
 
     auto deriver = trim(execAndGet(std::format("echo \"$(nix-store --query --deriver '{}')\"", fullStorePath)));
 

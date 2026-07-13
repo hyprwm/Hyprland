@@ -4,6 +4,7 @@
 
 #include "../../../../desktop/DesktopTypes.hpp"
 #include "../../../../desktop/Workspace.hpp"
+#include "../../../../managers/fullscreen/FullscreenController.hpp"
 
 class CFullscreenTrackpadGesture : public ITrackpadGesture {
   public:
@@ -26,8 +27,8 @@ class CFullscreenTrackpadGesture : public ITrackpadGesture {
         MODE_MAXIMIZE,
     };
 
-    eMode           m_mode         = MODE_FULLSCREEN;
-    eFullscreenMode m_originalMode = FSMODE_NONE;
+    eMode                       m_mode         = MODE_FULLSCREEN;
+    Fullscreen::eFullscreenMode m_originalMode = Fullscreen::FSMODE_NONE;
 
-    eFullscreenMode fsModeForMode(eMode mode);
+    Fullscreen::eFullscreenMode fsModeForMode(eMode mode);
 };

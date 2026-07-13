@@ -176,7 +176,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
                      {.refresh = Supplementary::REFRESH_WINDOW_STATES}),
         MS<Gradient>("general:col.nogroup_border_active", "active border color for window that cannot be added to a group", CHyprColor{0xffff00ff},
                      {.refresh = Supplementary::REFRESH_WINDOW_STATES}),
-        MS<String>("general:layout", "which layout to use. [dwindle/master]", "dwindle", {.refresh = Supplementary::REFRESH_LAYOUTS}),
+        MS<String>("general:layout", "which layout to use. [dwindle/master/scrolling/monocle/lua:<name>]", "dwindle", {.refresh = Supplementary::REFRESH_LAYOUTS}),
         MS<Bool>("general:no_focus_fallback", "if true, will not fall back to the next available window when moving focus in a direction where no window was found", false),
         MS<Bool>("general:resize_on_border", "enables resizing windows by clicking and dragging on borders and gaps", false),
         MS<Int>("general:extend_border_grab_area", "extends the area around the border where you can click and drag on, only used when general:resize_on_border is on.", 15,
@@ -209,8 +209,9 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Int>("decoration:shadow:render_power", "in what power to render the falloff (more power, the faster the falloff)", 3,
                 {.min = 1, .max = 4, .refresh = Supplementary::REFRESH_WINDOW_STATES}),
         MS<Bool>("decoration:shadow:sharp", "whether the shadow should be sharp or not.", false, {.refresh = Supplementary::REFRESH_WINDOW_STATES}),
-        MS<Color>("decoration:shadow:color", "shadow's color. Alpha dictates shadow's opacity.", 0xee1a1a1a, {.refresh = Supplementary::REFRESH_WINDOW_STATES}),
-        MS<Color>("decoration:shadow:color_inactive", "inactive shadow color. (if not set, will fall back to col.shadow)", -1, {.refresh = Supplementary::REFRESH_WINDOW_STATES}),
+        MS<Gradient>("decoration:shadow:color", "shadow's color. Alpha dictates shadow's opacity.", CHyprColor{0xee1a1a1a}, {.refresh = Supplementary::REFRESH_WINDOW_STATES}),
+        MS<Gradient>("decoration:shadow:color_inactive", "inactive shadow color. (if not set, will fall back to col.shadow)", -1,
+                     {.refresh = Supplementary::REFRESH_WINDOW_STATES}),
         MS<Vec2>("decoration:shadow:offset", "shadow's rendering offset.", Config::VEC2{},
                  {.validator = vec2Range(-250, -250, 250, 250), .refresh = Supplementary::REFRESH_WINDOW_STATES}),
         MS<Float>("decoration:shadow:scale", "shadow's scale.", 1, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_WINDOW_STATES}),
@@ -218,9 +219,9 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Int>("decoration:glow:range", "glow range (size) in layout px", 10, {.min = 0, .max = 100, .refresh = Supplementary::REFRESH_WINDOW_STATES}),
         MS<Int>("decoration:glow:render_power", "in what power to render the falloff (more power, the faster the falloff)", 3,
                 {.min = 1, .max = 4, .refresh = Supplementary::REFRESH_WINDOW_STATES}),
-        MS<Color>("decoration:glow:color", "glow's color. Alpha dictates glow's opacity.", 0xee33ccff, {.refresh = Supplementary::REFRESH_WINDOW_STATES}),
-        MS<Color>("decoration:glow:color_inactive", "inactive glow color. (if not set, will fall back to decoration:glow:color)", 0x0033ccff,
-                  {.refresh = Supplementary::REFRESH_WINDOW_STATES}),
+        MS<Gradient>("decoration:glow:color", "glow's color. Alpha dictates glow's opacity.", CHyprColor{0xee33ccff}, {.refresh = Supplementary::REFRESH_WINDOW_STATES}),
+        MS<Gradient>("decoration:glow:color_inactive", "inactive glow color. (if not set, will fall back to decoration:glow:color)", -1,
+                     {.refresh = Supplementary::REFRESH_WINDOW_STATES}),
         MS<Bool>("decoration:dim_modal", "enables dimming of parents of modal windows", true, {.refresh = Supplementary::REFRESH_WINDOW_STATES}),
         MS<Bool>("decoration:dim_inactive", "enables dimming of inactive windows", false, {.refresh = Supplementary::REFRESH_WINDOW_STATES}),
         MS<Float>("decoration:dim_strength", "how much inactive windows should be dimmed", 0.5, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_WINDOW_STATES}),
@@ -708,7 +709,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
          * experimental:
          */
 
-        MS<Bool>("experimental:wp_cm_1_2", "Allow wp-cm-v1 version 2", false),
+        MS<Bool>("experimental:wp_cm_1_2", "Allow wp-cm-v1 version 2", true),
 
         /*
          * quirks:

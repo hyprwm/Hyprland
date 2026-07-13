@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <vector>
 #include "../helpers/signal/Signal.hpp"
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 
 class CExtWorkspaceManagerResource;
 
@@ -70,6 +70,7 @@ class CExtWorkspaceResource {
         CHyprSignalListener activeChanged;
         CHyprSignalListener monitorChanged;
         CHyprSignalListener renamed;
+        CHyprSignalListener idChanged;
     } m_listeners;
 
     friend class CExtWorkspaceManagerResource;

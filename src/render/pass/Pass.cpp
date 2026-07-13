@@ -10,6 +10,7 @@
 #include "../../render/Renderer.hpp"
 #include "../../desktop/state/FocusState.hpp"
 #include "../../protocols/core/Compositor.hpp"
+#include "../../state/MonitorState.hpp"
 #include "RectPassElement.hpp"
 #include "macros.hpp"
 
@@ -24,7 +25,7 @@ bool CRenderPass::single() const {
 }
 
 void CRenderPass::add(UP<IPassElement>&& el) {
-    m_passElements.emplace_back(makeUnique<SPassElementData>(CRegion{}, std::move(el)));
+    m_passElements.emplace_back(SPassElementData{.element = std::move(el)});
 }
 
 void CRenderPass::simplify(bool willBlur, const CRegion& liveBlurRegion) {
@@ -36,29 +37,32 @@ void CRenderPass::simplify(bool willBlur, const CRegion& liveBlurRegion) {
     CRegion newDamage = m_damage.copy().intersect(CBox{{}, pMonitor->m_transformedSize});
     for (auto& el : m_passElements | std::views::reverse) {
 
-        if (newDamage.empty() && !el->element->undiscardable()) {
-            el->discard = true;
+        if (newDamage.empty() && !el.element->undiscardable()) {
+            el.discard = true;
             continue;
         }
 
-        el->elementDamage = newDamage;
-        auto bb1          = el->element->boundingBox();
-        if (!bb1 || newDamage.empty())
+        auto bb1 = el.element->boundingBox();
+        if (!bb1 || newDamage.empty()) {
+            el.elementDamage = newDamage;
             continue;
+        }
 
         auto bb = bb1->scale(pMonitor->m_scale);
 
         // drop if empty
         if (CRegion copy = newDamage.copy(); copy.intersect(bb).empty()) {
-            el->discard = true;
+            el.discard = true;
             continue;
         }
 
-        auto opaque = el->element->opaqueRegion();
+        el.elementDamage = newDamage;
+
+        auto opaque = el.element->opaqueRegion();
 
         if (!opaque.empty()) {
             // scale and rounding is very particular so we have to use CBoxes scale and round functions
-            if (opaque.getRects().size() == 1)
+            if (pixman_region32_n_rects(opaque.pixman()) == 1)
                 opaque = opaque.getExtents().scale(pMonitor->m_scale).round();
             else {
                 CRegion scaledRegion;
@@ -85,10 +89,10 @@ void CRenderPass::simplify(bool willBlur, const CRegion& liveBlurRegion) {
 
     if (*PDEBUGPASS) {
         for (auto& el2 : m_passElements) {
-            if (!el2->element->needsLiveBlurCached)
+            if (!el2.element->needsLiveBlurCached)
                 continue;
 
-            const auto BB = el2->element->boundingBox();
+            const auto BB = el2.element->boundingBox();
             RASSERT(BB, "No bounding box for an element with live blur is illegal");
 
             m_totalLiveBlurRegion.add(BB->copy().scale(pMonitor->m_scale));
@@ -108,20 +112,20 @@ CRegion CRenderPass::render(const CRegion& damage_) {
     bool    willBlur = false, willDisableSimplification = false, willPrecomputeBlur = false;
     CRegion blurRegion;
     for (auto& el : m_passElements) {
-        el->element->needsLiveBlurCached       = el->element->needsLiveBlur();
-        el->element->needsPrecomputeBlurCached = el->element->needsPrecomputeBlur();
+        el.element->needsLiveBlurCached       = el.element->needsLiveBlur();
+        el.element->needsPrecomputeBlurCached = el.element->needsPrecomputeBlur();
 
-        if (el->element->needsLiveBlurCached) {
+        if (el.element->needsLiveBlurCached) {
             willBlur      = true;
-            const auto BB = el->element->boundingBox();
+            const auto BB = el.element->boundingBox();
             RASSERT(BB, "No bounding box for an element with live blur is illegal");
             blurRegion.add(*BB);
         }
 
-        if (el->element->needsPrecomputeBlurCached)
+        if (el.element->needsPrecomputeBlurCached)
             willPrecomputeBlur = true;
 
-        if (el->element->disableSimplification())
+        if (el.element->disableSimplification())
             willDisableSimplification = true;
     }
 
@@ -169,7 +173,7 @@ CRegion CRenderPass::render(const CRegion& damage_) {
 
     if (g_pHyprRenderer->m_renderData.noSimplify || willDisableSimplification) {
         for (auto& el : m_passElements) {
-            el->elementDamage = m_damage;
+            el.elementDamage = m_damage;
         }
     } else
         simplify(willBlur, liveBlurRegion);
@@ -181,19 +185,19 @@ CRegion CRenderPass::render(const CRegion& damage_) {
         return {};
 
     for (auto& el : m_passElements) {
-        if (el->discard) {
-            el->element->discard();
+        if (el.discard) {
+            el.element->discard();
             continue;
         }
 
-        g_pHyprRenderer->m_renderData.damage = el->elementDamage;
-        g_pHyprRenderer->draw(el->element, el->elementDamage);
+        g_pHyprRenderer->m_renderData.damage = el.elementDamage;
+        g_pHyprRenderer->draw(el.element, el.elementDamage);
     }
 
     if (*PDEBUGPASS) {
         renderDebugData();
         g_pEventLoopManager->doLater([] {
-            for (auto& m : g_pCompositor->m_monitors) {
+            for (auto& m : State::monitorState()->monitors()) {
                 g_pHyprRenderer->damageMonitor(m);
             }
         });
@@ -261,8 +265,7 @@ void CRenderPass::renderDebugData() {
         renderHLSurface(m_debugData.lastWindowText, Desktop::focusState()->window()->wlSurface()->resource(), Colors::LIGHT_BLUE.modifyA(0.1F));
 
     if (g_pSeatManager->m_state.pointerFocus) {
-        if (g_pSeatManager->m_state.pointerFocus->m_current.input.intersect(CBox{{}, g_pSeatManager->m_state.pointerFocus->m_current.size}).getExtents().size() !=
-            g_pSeatManager->m_state.pointerFocus->m_current.size) {
+        if (g_pSeatManager->m_state.pointerFocus->m_current.effectiveInputRegion().getExtents().size() != g_pSeatManager->m_state.pointerFocus->m_current.size) {
             auto hlSurface = Desktop::View::CWLSurface::fromResource(g_pSeatManager->m_state.pointerFocus.lock());
             if (hlSurface) {
                 auto BOX = hlSurface->getSurfaceBoxGlobal();
@@ -273,7 +276,7 @@ void CRenderPass::renderDebugData() {
         }
     }
 
-    const auto DISCARDED_ELEMENTS = std::ranges::count_if(m_passElements, [](const auto& e) { return e->discard; });
+    const auto DISCARDED_ELEMENTS = std::ranges::count_if(m_passElements, [](const auto& e) { return e.discard; });
     auto tex = g_pHyprRenderer->renderText(std::format("occlusion layers: {}\npass elements: {} ({} discarded)\nviewport: {:X0}", m_occludedRegions.size(), m_passElements.size(),
                                                        DISCARDED_ELEMENTS, pMonitor->m_pixelSize),
                                            Colors::WHITE, 12);
@@ -290,8 +293,8 @@ void CRenderPass::renderDebugData() {
     auto        yn   = [](const bool val) -> const char* { return val ? "yes" : "no"; };
     auto        tick = [](const bool val) -> const char* { return val ? "✔" : "✖"; };
     for (const auto& el : m_passElements | std::views::reverse) {
-        passStructure += std::format("{} {} (bb: {} op: {}, pb: {}, lb: {})\n", tick(!el->discard), el->element->passName(), yn(el->element->boundingBox().has_value()),
-                                     yn(!el->element->opaqueRegion().empty()), yn(el->element->needsPrecomputeBlurCached), yn(el->element->needsLiveBlurCached));
+        passStructure += std::format("{} {} (bb: {} op: {}, pb: {}, lb: {})\n", tick(!el.discard), el.element->passName(), yn(el.element->boundingBox().has_value()),
+                                     yn(!el.element->opaqueRegion().empty()), yn(el.element->needsPrecomputeBlurCached), yn(el.element->needsLiveBlurCached));
     }
 
     if (!passStructure.empty())
@@ -318,5 +321,5 @@ float CRenderPass::oneBlurRadius() {
 }
 
 void CRenderPass::removeAllOfType(const std::string& type) {
-    std::erase_if(m_passElements, [&type](const auto& e) { return e->element->passName() == type; });
+    std::erase_if(m_passElements, [&type](const auto& e) { return e.element->passName() == type; });
 }

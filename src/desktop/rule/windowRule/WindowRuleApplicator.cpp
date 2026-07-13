@@ -5,7 +5,9 @@
 #include "../../view/Window.hpp"
 #include "../../types/OverridableVar.hpp"
 #include "../../../event/EventBus.hpp"
+#include "desktop/rule/windowRule/WindowRuleEffectContainer.hpp"
 
+#include <string>
 #include <tuple>
 
 using namespace Desktop;
@@ -157,7 +159,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                 break;
             }
             case WINDOW_RULE_EFFECT_TAG: {
-                m_dynamicTags.emplace_back(std::make_pair<>(effect, rule->getPropertiesMask()));
+                m_dynamicTags.emplace_back(effect, rule->getPropertiesMask());
                 m_tagKeeper.applyTag(effect, true);
                 result.tagsChanged = true;
                 break;
@@ -340,6 +342,11 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
             }
             case WINDOW_RULE_EFFECT_NO_AUTO_HDR: {
                 m_noAutoHDR.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
+                m_noAutoHDR.second |= rule->getPropertiesMask();
+                break;
+            }
+            case WINDOW_RULE_EFFECT_TONEMAP: {
+                m_tonemap.first.set(std::get<int64_t>(value), Types::PRIORITY_WINDOW_RULE);
                 m_noAutoHDR.second |= rule->getPropertiesMask();
                 break;
             }

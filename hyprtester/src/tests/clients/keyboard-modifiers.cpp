@@ -99,6 +99,9 @@ CClient::CClient() {
 }
 
 CClient::~CClient() {
+    getFromSocket("/eval hl.plugin.test.set_mods(0, 0, 0, 0, 0)");
+    getFromSocket("/eval hl.plugin.test.set_mods(1, 0, 0, 0, 0)");
+
     std::string cmd = "exit\n";
     write(this->writeFd.get(), cmd.c_str(), cmd.length());
 

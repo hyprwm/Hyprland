@@ -7,6 +7,7 @@
 #include <vector>
 #include <unordered_map>
 #include <optional>
+#include <span>
 
 namespace Desktop::Rule {
     enum eRuleProperty : uint32_t {
@@ -40,9 +41,8 @@ namespace Desktop::Rule {
         RULE_TYPE_LAYER,
     };
 
-    std::optional<eRuleProperty>    matchPropFromString(const std::string& s);
-    std::optional<eRuleProperty>    matchPropFromString(const std::string_view& s);
-    const std::vector<std::string>& allMatchPropStrings();
+    std::optional<eRuleProperty>      matchPropFromString(std::string_view s);
+    std::span<const std::string_view> allMatchPropStrings();
 
     class IRule {
       public:

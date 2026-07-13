@@ -5,7 +5,9 @@
 #include "../managers/TokenManager.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../desktop/history/WorkspaceHistoryTracker.hpp"
-#include "Monitor.hpp"
+#include "../output/Monitor.hpp"
+#include "../state/MonitorState.hpp"
+#include "../state/WorkspaceState.hpp"
 #include "../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "fs/FsUtils.hpp"
 #include <optional>
@@ -111,12 +113,9 @@ std::optional<float> getPlusMinusKeywordResult(std::string source, float relativ
     }
 }
 
-bool isDirection(const std::string& arg) {
-    return arg == "l" || arg == "r" || arg == "u" || arg == "d" || arg == "t" || arg == "b";
-}
-
-bool isDirection(const char& arg) {
-    return arg == 'l' || arg == 'r' || arg == 'u' || arg == 'd' || arg == 't' || arg == 'b';
+bool isDirection(std::string_view sv) {
+    return sv == "l" || sv == "r" || sv == "u" || sv == "d" || sv == "t" || sv == "b" || sv == "left" || sv == "right" || sv == "up" || sv == "down" || sv == "top" ||
+        sv == "bottom";
 }
 
 static bool isAutoIDdWorkspace(WORKSPACEID id) {
@@ -131,18 +130,18 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
 
         if (in.length() > 8) {
             const auto NAME = in.substr(8);
-            const auto WS   = g_pCompositor->getWorkspaceByName("special:" + NAME);
+            const auto WS   = State::workspaceState()->query().name("special:" + NAME).run();
 
-            return {WS ? WS->m_id : g_pCompositor->getNewSpecialID(), "special:" + NAME};
+            return {WS ? WS->m_id : State::workspaceState()->newSpecialID(), "special:" + NAME};
         }
 
         result.id = SPECIAL_WORKSPACE_START;
         return result;
     } else if (in.starts_with("name:")) {
         const auto WORKSPACENAME = in.substr(in.find_first_of(':') + 1);
-        const auto WORKSPACE     = g_pCompositor->getWorkspaceByName(WORKSPACENAME);
+        const auto WORKSPACE     = State::workspaceState()->query().name(WORKSPACENAME).run();
         if (!WORKSPACE) {
-            result.id = g_pCompositor->getNextAvailableNamedWorkspace();
+            result.id = State::workspaceState()->nextAvailableNamedWorkspace();
         } else {
             result.id = WORKSPACE->m_id;
         }
@@ -158,16 +157,19 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
         std::set<WORKSPACEID> invalidWSes;
         if (same_mon) {
             for (auto const& rule : Config::workspaceRuleMgr()->getAllWorkspaceRules()) {
-                const auto PMONITOR = g_pCompositor->getMonitorFromString(rule.m_monitor);
+                if (!rule->isEnabled())
+                    continue;
+
+                const auto PMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(rule->m_monitor).run();
                 if (PMONITOR && (PMONITOR->m_id != Desktop::focusState()->monitor()->m_id))
-                    invalidWSes.insert(rule.m_workspaceId);
+                    invalidWSes.insert(rule->m_workspaceId);
             }
         }
 
         WORKSPACEID id = next ? Desktop::focusState()->monitor()->activeWorkspaceID() : 0;
         while (++id < LONG_MAX) {
-            const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(id);
-            if (!invalidWSes.contains(id) && (!PWORKSPACE || PWORKSPACE->getWindows() == 0)) {
+            const auto PWORKSPACE = State::workspaceState()->query().id(id).run();
+            if (!invalidWSes.contains(id) && (!PWORKSPACE || PWORKSPACE->getWindowCount() == 0)) {
                 result.id = id;
                 return result;
             }
@@ -187,7 +189,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
         if (PREVWORKSPACEIDNAME.id == -1)
             return {WORKSPACE_INVALID};
 
-        const auto PLASTWORKSPACE = g_pCompositor->getWorkspaceByID(PREVWORKSPACEIDNAME.id);
+        const auto PLASTWORKSPACE = State::workspaceState()->query().id(PREVWORKSPACEIDNAME.id).run();
 
         if (!PLASTWORKSPACE) {
             Log::logger->log(Log::DEBUG, "previous workspace {} doesn't exist yet", PREVWORKSPACEIDNAME.id);
@@ -231,25 +233,28 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             std::set<WORKSPACEID> invalidWSes;
 
             // Collect all the workspaces we can't jump to.
-            for (auto const& ws : g_pCompositor->getWorkspaces()) {
+            for (auto const& ws : State::workspaceState()->workspaces()) {
                 if (ws->m_isSpecialWorkspace || (ws->m_monitor != Desktop::focusState()->monitor())) {
                     // Can't jump to this workspace
                     invalidWSes.insert(ws->m_id);
                 }
             }
             for (auto const& rule : Config::workspaceRuleMgr()->getAllWorkspaceRules()) {
-                const auto PMONITOR = g_pCompositor->getMonitorFromString(rule.m_monitor);
+                if (!rule->isEnabled())
+                    continue;
+
+                const auto PMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(rule->m_monitor).run();
                 if (!PMONITOR || PMONITOR->m_id == Desktop::focusState()->monitor()->m_id) {
                     // Can't be invalid
                     continue;
                 }
                 // WS is bound to another monitor, can't jump to this
-                invalidWSes.insert(rule.m_workspaceId);
+                invalidWSes.insert(rule->m_workspaceId);
             }
 
             // Prepare all named workspaces in case when we need them
             std::vector<WORKSPACEID> namedWSes;
-            for (auto const& ws : g_pCompositor->getWorkspaces()) {
+            for (auto const& ws : State::workspaceState()->workspaces()) {
                 if (ws->m_isSpecialWorkspace || (ws->m_monitor != Desktop::focusState()->monitor()) || ws->m_id >= 0)
                     continue;
 
@@ -366,9 +371,9 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 result.id = finalWSID;
             }
 
-            const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(result.id);
+            const auto PWORKSPACE = State::workspaceState()->query().id(result.id).run();
             if (PWORKSPACE)
-                result.name = g_pCompositor->getWorkspaceByID(result.id)->m_name;
+                result.name = PWORKSPACE->m_name;
             else
                 result.name = std::to_string(result.id);
 
@@ -393,7 +398,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             int                      remains = sc<int>(result.id);
 
             std::vector<WORKSPACEID> validWSes;
-            for (auto const& ws : g_pCompositor->getWorkspaces()) {
+            for (auto const& ws : State::workspaceState()->workspaces()) {
                 if (ws->m_isSpecialWorkspace || (ws->m_monitor != Desktop::focusState()->monitor() && !onAllMonitors))
                     continue;
 
@@ -439,7 +444,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             }
 
             result.id   = validWSes[currentItem];
-            result.name = g_pCompositor->getWorkspaceByID(validWSes[currentItem])->m_name;
+            result.name = State::workspaceState()->query().id(validWSes[currentItem]).run()->m_name;
         } else {
             if (in[0] == '+' || in[0] == '-') {
                 if (Desktop::focusState()->monitor()) {
@@ -456,7 +461,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 result.id = std::max(std::stoi(in), 1);
             else {
                 // maybe name
-                const auto PWORKSPACE = g_pCompositor->getWorkspaceByName(in);
+                const auto PWORKSPACE = State::workspaceState()->query().name(in).run();
                 if (PWORKSPACE)
                     result.id = PWORKSPACE->m_id;
             }
@@ -487,7 +492,7 @@ std::optional<std::string> cleanCmdForWorkspace(const std::string& inWorkspaceNa
 
             bool hadWorkspaceRule = false;
             rulesList.map([&](std::string& rule) {
-                if (rule.find("workspace") == 0) {
+                if (rule.starts_with("workspace")) {
                     rule             = workspaceRule;
                     hadWorkspaceRule = true;
                 }
@@ -598,6 +603,8 @@ std::vector<SCallstackFrameInfo> getBacktrace() {
 
     btSize    = backtrace(bt, 1024);
     btSymbols = backtrace_symbols(bt, btSize);
+
+    callstack.reserve(btSize);
 
     for (auto i = 0; i < btSize; ++i) {
         callstack.emplace_back(SCallstackFrameInfo{bt[i], std::string{btSymbols[i]}});
@@ -820,11 +827,18 @@ std::string getBuiltSystemLibraryNames() {
 }
 
 bool truthy(const std::string& str) {
-    if (str == "1")
+    using std::operator""sv;
+
+    if (str == "1"sv)
         return true;
 
-    std::string cpy = str;
-    std::ranges::transform(cpy, cpy.begin(), ::tolower);
+    // clang-format off
+    auto str_view = str | std::views::transform([](unsigned char ch) -> char {
+        return sc<char>(std::tolower(ch));
+    });
 
-    return cpy.starts_with("true") || cpy.starts_with("yes") || cpy.starts_with("on");
+    return [&](auto&&... prefixes) -> bool {
+        return (... || std::ranges::starts_with(str_view, prefixes));
+    }("true"sv, "yes"sv, "on"sv);
+    // clang-format on
 }

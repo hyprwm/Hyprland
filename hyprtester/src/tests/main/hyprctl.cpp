@@ -2,14 +2,9 @@
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
 #include <cstdint>
-#include <print>
 #include <string>
-#include <thread>
-#include <chrono>
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
-#include <csignal>
-#include <cerrno>
 #include "../shared.hpp"
 
 using namespace Hyprutils::OS;
@@ -170,4 +165,9 @@ TEST_CASE(hyprctlJsonErrors) {
     jqProc.addEnv("HYPRLAND_INSTANCE_SIGNATURE", HIS);
     jqProc.runSync();
     EXPECT(jqProc.exitCode(), 0);
+}
+
+TEST_CASE(hyprctlREPL) {
+    EXPECT(getCommandStdOut("hyprctl repl 'print(type(hl))'"), "table");
+    EXPECT(getCommandStdOut("hyprctl eval 'print(type(hl))'"), "ok");
 }

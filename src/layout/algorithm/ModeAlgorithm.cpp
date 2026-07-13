@@ -2,10 +2,13 @@
 
 #include "../space/Space.hpp"
 #include "Algorithm.hpp"
-#include "../../helpers/Monitor.hpp"
+#include "../../output/Monitor.hpp"
 #include "../../desktop/view/Window.hpp"
+#include "../../managers/fullscreen/handler/FullscreenHandler.hpp"
 
 using namespace Layout;
+
+IModeAlgorithm::IModeAlgorithm() : m_defaultFullscreenHandler(makeUnique<Fullscreen::IFullscreenHandler>(this)) {}
 
 Config::ErrorResult IModeAlgorithm::layoutMsg(const std::string_view& sv) {
     return {};
@@ -15,17 +18,9 @@ std::optional<Vector2D> IModeAlgorithm::predictSizeForNewTarget() {
     return std::nullopt;
 }
 
-eFullscreenRequestResult IModeAlgorithm::requestFullscreen(const SFullscreenRequest& request) {
-    (void)request;
-    return FULLSCREEN_REQUEST_DEFAULT;
-}
+WP<Fullscreen::IFullscreenHandler> IModeAlgorithm::getFSHandler() {
 
-SP<ITarget> IModeAlgorithm::layoutFullscreenTarget() const {
-    return nullptr;
-}
-
-bool IModeAlgorithm::layoutFullscreenCoversMonitor() const {
-    return false;
+    return m_defaultFullscreenHandler;
 }
 
 std::optional<Vector2D> IModeAlgorithm::focalPointForDir(SP<ITarget> t, Math::eDirection dir) {
@@ -44,8 +39,8 @@ std::optional<Vector2D> IModeAlgorithm::focalPointForDir(SP<ITarget> t, Math::eD
         return WS->m_monitor->logicalBox();
     };
 
-    const auto WINDOWIDEALBB = t->fullscreenMode() != FSMODE_NONE ? getFullscreenBB().value_or(t->window()->getWindowIdealBoundingBoxIgnoreReserved()) :
-                                                                    t->window()->getWindowIdealBoundingBoxIgnoreReserved();
+    const auto WINDOWIDEALBB = m_defaultFullscreenHandler->isFullscreen(t) ? getFullscreenBB().value_or(t->window()->getWindowIdealBoundingBoxIgnoreReserved()) :
+                                                                             t->window()->getWindowIdealBoundingBoxIgnoreReserved();
 
     switch (dir) {
         case Math::DIRECTION_UP: focalPoint = WINDOWIDEALBB.pos() + Vector2D{WINDOWIDEALBB.size().x / 2.0, -1.0}; break;

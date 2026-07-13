@@ -8,9 +8,14 @@
 #include "../../../../config/shared/actions/ConfigActions.hpp"
 #include "../../../../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../../../../desktop/state/FocusState.hpp"
-#include "../../../../helpers/Monitor.hpp"
+#include "../../../../desktop/state/WindowState.hpp"
+#include "../../../../output/Monitor.hpp"
+#include "../../../../pointer/PointerController.hpp"
 #include "../../../../Compositor.hpp"
 #include "../../../../render/Renderer.hpp"
+#include "../../../../state/MonitorState.hpp"
+#include "../../../../managers/fullscreen/FullscreenController.hpp"
+#include "../../../../managers/fullscreen/handler/FullscreenHandler.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <hyprutils/string/VarList2.hpp>
@@ -18,6 +23,15 @@
 using namespace Layout;
 using namespace Layout::Tiled;
 using namespace Hyprutils::String;
+
+// Center-master slaves alternate left/right columns starting on the fallback side, so an odd
+// count puts the extra slave there: left by default, right when extraToRight. calculateWorkspace
+// and resizeTarget must both split via this or they disagree for odd counts. Returns {left, right}.
+static std::pair<int, int> centerSlaveColumns(int slaveCount, bool extraToRight) {
+    const int LARGER  = 1 + (slaveCount - 1) / 2; // ceil, holds the odd one
+    const int SMALLER = slaveCount - LARGER;
+    return extraToRight ? std::pair{SMALLER, LARGER} : std::pair{LARGER, SMALLER};
+}
 
 void CMasterAlgorithm::newTarget(SP<ITarget> target) {
     addTarget(target, true);
@@ -28,16 +42,23 @@ void CMasterAlgorithm::movedTarget(SP<ITarget> target, std::optional<Vector2D> f
 }
 
 void CMasterAlgorithm::addTarget(SP<ITarget> target, bool firstMap) {
-    static auto PNEWONACTIVE = CConfigValue<std::string>("master:new_on_active");
-    static auto PNEWONTOP    = CConfigValue<Config::INTEGER>("master:new_on_top");
-    static auto PNEWSTATUS   = CConfigValue<std::string>("master:new_status");
+    static auto PNEWONACTIVE      = CConfigValue<std::string>("master:new_on_active");
+    static auto PNEWONTOP         = CConfigValue<Config::INTEGER>("master:new_on_top");
+    static auto PNEWSTATUS        = CConfigValue<std::string>("master:new_status");
+    static auto PDROPATCURSOR     = CConfigValue<Config::INTEGER>("master:drop_at_cursor");
+    static auto PSLAVECOUNTCENTER = CConfigValue<Config::INTEGER>("master:slave_count_for_center_master");
 
     const auto  PWORKSPACE = m_parent->space()->workspace();
     const auto  PMONITOR   = PWORKSPACE->m_monitor;
 
     bool        dragOntoMaster = false;
 
-    if (g_layoutManager->dragController()->wasDraggingWindow()) {
+    const bool  DRAGMOVE = g_layoutManager->dragController()->mode() == MBIND_MOVE;
+
+    const bool  CENTERED         = getDynamicOrientation() == ORIENTATION_CENTER && getNodesNo() - getMastersNo() >= *PSLAVECOUNTCENTER;
+    const bool  CENTERCURSORDROP = *PDROPATCURSOR && DRAGMOVE && CENTERED;
+
+    if (g_layoutManager->dragController()->wasDraggingWindow() && (getNodesNo() > 1 || !*PDROPATCURSOR) && !CENTERCURSORDROP) {
         if (const auto n = getClosestNode(g_pInputManager->getMouseCoordsInternal()); n && n->isMaster)
             dragOntoMaster = true;
     }
@@ -68,15 +89,60 @@ void CMasterAlgorithm::addTarget(SP<ITarget> target, bool firstMap) {
         getNodeFromWindow(Desktop::focusState()->window()) :
         getMasterNode();
 
-    const auto   MOUSECOORDS   = g_pInputManager->getMouseCoordsInternal();
-    static auto  PDROPATCURSOR = CConfigValue<Config::INTEGER>("master:drop_at_cursor");
-    eOrientation orientation   = getDynamicOrientation();
-    const auto   NODEIT        = std::ranges::find(m_masterNodesData, PNODE);
+    const auto   MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
+    eOrientation orientation = getDynamicOrientation();
+    const auto   NODEIT      = std::ranges::find(m_masterNodesData, PNODE);
 
     bool         forceDropAsMaster = false;
     // if dragging window to move, drop it at the cursor position instead of bottom/top of stack
-    if (*PDROPATCURSOR && g_layoutManager->dragController()->mode() == MBIND_MOVE) {
-        if (WINDOWSONWORKSPACE > 2) {
+    if (*PDROPATCURSOR && DRAGMOVE) {
+        if (CENTERED) {
+            if (const auto PMASTER = getMasterNode(); PMASTER) {
+                const CBox MBOX = PMASTER->pTarget->position();
+                if (MOUSECOORDS.x >= MBOX.x && MOUSECOORDS.x <= MBOX.x + MBOX.w)
+                    forceDropAsMaster = true;
+                else {
+                    static auto CMFALLBACK = CConfigValue<std::string>("master:center_master_fallback");
+
+                    const bool  DROPRIGHT      = MOUSECOORDS.x > MBOX.middle().x;
+                    const bool  FIRSTSIDERIGHT = *CMFALLBACK == "right";
+
+                    auto&       v = m_masterNodesData;
+                    std::erase(v, PNODE);
+
+                    int slot     = 0;
+                    int slavesNo = 0;
+                    for (auto const& nd : v) {
+                        if (nd->isMaster)
+                            continue;
+                        const bool ndRight = (slavesNo % 2 == 0) == FIRSTSIDERIGHT;
+                        if (ndRight == DROPRIGHT && MOUSECOORDS.y > nd->pTarget->position().middle().y)
+                            ++slot;
+                        ++slavesNo;
+                    }
+
+                    const bool TARGETFIRSTSIDE = DROPRIGHT == FIRSTSIDERIGHT;
+                    const int  TOTALSLAVES     = slavesNo + 1;
+                    const int  TARGETCAP       = TARGETFIRSTSIDE ? (TOTALSLAVES + 1) / 2 : TOTALSLAVES / 2;
+                    if (TARGETCAP > 0)
+                        slot = std::min(slot, TARGETCAP - 1);
+                    const int   INSERTSLAVEPOS = TARGETCAP == 0 ? 0 : (TARGETFIRSTSIDE ? 2 * slot : 2 * slot + 1);
+
+                    std::size_t insertIndex = v.size();
+                    int         counted     = 0;
+                    for (std::size_t i = 0; i < v.size(); ++i) {
+                        if (counted == INSERTSLAVEPOS) {
+                            insertIndex = i;
+                            break;
+                        }
+                        if (!v[i]->isMaster)
+                            ++counted;
+                    }
+
+                    v.insert(v.begin() + sc<std::ptrdiff_t>(insertIndex), PNODE);
+                }
+            }
+        } else if (WINDOWSONWORKSPACE > 2) {
             auto&             v = m_masterNodesData;
 
             const std::size_t srcIndex = sc<std::size_t>(std::distance(v.begin(), NODEIT));
@@ -208,11 +274,11 @@ void CMasterAlgorithm::removeTarget(SP<ITarget> target) {
 
     const auto  PNODE = getNodeFromTarget(target);
 
-    if (!PNODE)
+    if (!PNODE || !target)
         return;
 
-    if (target->fullscreenMode() != FSMODE_NONE)
-        g_pCompositor->setWindowFullscreenInternal(target->window(), FSMODE_NONE);
+    if (Fullscreen::controller()->isFullscreen(target->window()))
+        Fullscreen::controller()->setFullscreenMode(target->window(), Fullscreen::FSMODE_NONE);
 
     if (PNODE->isMaster && (MASTERSLEFT <= 1 || *SMALLSPLIT == 1)) {
         // find a new master from top of the list
@@ -263,8 +329,8 @@ void CMasterAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRec
     const bool   DISPLAYTOP    = STICKS(PNODE->position.y, WORKAREA.y);
     const bool   DISPLAYLEFT   = STICKS(PNODE->position.x, WORKAREA.x);
 
-    const bool   LEFT = corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT;
-    const bool   TOP  = corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT;
+    const bool   LEFT = edgeLeft(corner);
+    const bool   TOP  = edgeTop(corner);
     const bool   NONE = corner == CORNER_NONE;
 
     const auto   MASTERS      = getMastersNo();
@@ -308,8 +374,18 @@ void CMasterAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRec
     const auto RESIZEDELTA = isStackVertical ? Δ.y : Δ.x;
 
     auto       nodesInSameColumn = PNODE->isMaster ? MASTERS : STACKWINDOWS;
-    if (orientation == ORIENTATION_CENTER && !PNODE->isMaster)
-        nodesInSameColumn = DISPLAYRIGHT ? (nodesInSameColumn + 1) / 2 : nodesInSameColumn / 2;
+    if (orientation == ORIENTATION_CENTER && !PNODE->isMaster) {
+        static auto CMFALLBACK   = CConfigValue<std::string>("master:center_master_fallback");
+        const bool  EXTRATORIGHT = *CMFALLBACK == "right";
+
+        // slaves alternate columns from the fallback side, so even slave index == fallback side
+        const auto NODEIT     = std::ranges::find(m_masterNodesData, PNODE);
+        const int  SLAVEINDEX = std::count_if(m_masterNodesData.begin(), NODEIT, [](const auto& n) { return !n->isMaster; });
+        const bool ONLEFT     = (SLAVEINDEX % 2 == 0) != EXTRATORIGHT;
+
+        const auto [SLAVESLEFT, SLAVESRIGHT] = centerSlaveColumns(STACKWINDOWS, EXTRATORIGHT);
+        nodesInSameColumn                    = ONLEFT ? SLAVESLEFT : SLAVESRIGHT;
+    }
 
     const auto SIZE = isStackVertical ? WORKAREA.h / nodesInSameColumn : WORKAREA.w / nodesInSameColumn;
 
@@ -392,7 +468,7 @@ void CMasterAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
 void CMasterAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent) {
     static auto PMONITORFALLBACK = CConfigValue<Config::INTEGER>("binds:window_direction_monitor_fallback");
 
-    const auto  PWINDOW2 = g_pCompositor->getWindowInDirection(t->window(), dir);
+    const auto  PWINDOW2 = Desktop::windowState()->query().inDirection(t->window(), dir);
 
     if (!t->window())
         return;
@@ -401,7 +477,7 @@ void CMasterAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir
 
     if (!PWINDOW2 && t->space() && t->space()->workspace()) {
         // try to find a monitor in dir
-        const auto PMONINDIR = g_pCompositor->getMonitorInDirection(t->space()->workspace()->m_monitor.lock(), dir);
+        const auto PMONINDIR = State::monitorState()->query().relativeTo(t->space()->workspace()->m_monitor.lock()).inDirection(dir).run();
         if (PMONINDIR)
             targetWs = PMONINDIR->m_activeWorkspace;
     } else
@@ -428,6 +504,14 @@ void CMasterAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir
 }
 
 void CMasterAlgorithm::recalculate(eRecalculateReason reason) {
+    if (!m_parent || !m_parent->space())
+        return;
+    // Avoid further pos recalc if in fullscreen
+    if (Fullscreen::controller()->hasFullscreen(m_parent->space()->workspace(), true)) {
+        m_defaultFullscreenHandler->syncTargetSizeAndPosition();
+        return;
+    }
+
     calculateWorkspace();
 }
 
@@ -437,7 +521,7 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
             return;
 
         Desktop::focusState()->fullWindowFocus(target->window(), Desktop::FOCUS_REASON_KEYBIND);
-        g_pCompositor->warpCursorTo(target->position().middle());
+        Pointer::pointerController()->warpTo(target->position().middle());
 
         g_pInputManager->m_forcedFocus = target->window();
         g_pInputManager->simulateMouseMovement();
@@ -579,7 +663,7 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
         const auto PWINDOWTOSWAPWITH = getNextTarget(PWINDOW->layoutTarget(), true, !NOLOOP);
 
         if (PWINDOWTOSWAPWITH) {
-            g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
+            Fullscreen::controller()->setFullscreenMode(PWINDOW, Fullscreen::FSMODE_NONE);
             g_layoutManager->switchTargets(PWINDOW->layoutTarget(), PWINDOWTOSWAPWITH);
             switchToWindow(PWINDOW->layoutTarget());
         }
@@ -596,7 +680,7 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
         const auto PWINDOWTOSWAPWITH = getNextTarget(PWINDOW->layoutTarget(), false, !NOLOOP);
 
         if (PWINDOWTOSWAPWITH) {
-            g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
+            Fullscreen::controller()->setFullscreenMode(PWINDOW, Fullscreen::FSMODE_NONE);
             g_layoutManager->switchTargets(PWINDOW->layoutTarget(), PWINDOWTOSWAPWITH);
             switchToWindow(PWINDOW->layoutTarget());
         }
@@ -616,7 +700,7 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
         if (MASTERS + 2 > WINDOWS && *SMALLSPLIT == 0)
             return stateErr("nothing to do");
 
-        g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
+        Fullscreen::controller()->setFullscreenMode(PWINDOW, Fullscreen::FSMODE_NONE);
 
         if (!PNODE || PNODE->isMaster) {
             // first non-master node
@@ -648,7 +732,7 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
         if (WINDOWS < 2 || MASTERS < 2)
             return stateErr("nothing to do");
 
-        g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
+        Fullscreen::controller()->setFullscreenMode(PWINDOW, Fullscreen::FSMODE_NONE);
 
         if (!PNODE || !PNODE->isMaster) {
             // first non-master node
@@ -667,7 +751,7 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
         if (!PWINDOW)
             return noTarget("no window");
 
-        g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
+        Fullscreen::controller()->setFullscreenMode(PWINDOW, Fullscreen::FSMODE_NONE);
 
         if (command == "orientationleft")
             m_workspaceData.explicitOrientation = ORIENTATION_LEFT;
@@ -889,7 +973,7 @@ void CMasterAlgorithm::runOrientationCycle(Hyprutils::String::CVarList2* vars, i
     if (!PWINDOW)
         return;
 
-    g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
+    Fullscreen::controller()->setFullscreenMode(PWINDOW, Fullscreen::FSMODE_NONE);
 
     int nextOrPrev = 0;
     for (size_t i = 0; i < cycle.size(); ++i) {
@@ -1162,22 +1246,16 @@ void CMasterAlgorithm::calculateWorkspace() {
             nextY += HEIGHT;
         }
     } else { // slaves for centered master window(s)
-        const float WIDTH       = ((*PIGNORERESERVED ? UNRESERVED_WIDTH : WORKAREA.w) - PMASTERNODE->size.x) / 2.0;
-        float       heightLeft  = 0;
-        float       heightLeftL = WORKAREA.h;
-        float       heightLeftR = WORKAREA.h;
-        float       nextX       = 0;
-        float       nextY       = 0;
-        float       nextYL      = 0;
-        float       nextYR      = 0;
-        bool        onRight     = *CMFALLBACK == "right";
-        int         slavesLeftL = 1 + (slavesLeft - 1) / 2;
-        int         slavesLeftR = slavesLeft - slavesLeftL;
-
-        if (onRight) {
-            slavesLeftR = 1 + (slavesLeft - 1) / 2;
-            slavesLeftL = slavesLeft - slavesLeftR;
-        }
+        const float WIDTH               = ((*PIGNORERESERVED ? UNRESERVED_WIDTH : WORKAREA.w) - PMASTERNODE->size.x) / 2.0;
+        float       heightLeft          = 0;
+        float       heightLeftL         = WORKAREA.h;
+        float       heightLeftR         = WORKAREA.h;
+        float       nextX               = 0;
+        float       nextY               = 0;
+        float       nextYL              = 0;
+        float       nextYR              = 0;
+        bool        onRight             = *CMFALLBACK == "right";
+        auto [slavesLeftL, slavesLeftR] = centerSlaveColumns(slavesLeft, onRight);
 
         const float slaveAverageHeightL     = WORKAREA.h / slavesLeftL;
         const float slaveAverageHeightR     = WORKAREA.h / slavesLeftR;

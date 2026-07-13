@@ -6,6 +6,7 @@
 #include "../objects/LuaNotification.hpp"
 #include "../objects/LuaTimer.hpp"
 #include "../objects/LuaWindowRule.hpp"
+#include "../objects/LuaWorkspaceRule.hpp"
 
 using namespace Config;
 using namespace Config::Lua;
@@ -56,6 +57,7 @@ void Internal::registerBindingsImpl(lua_State* L, CConfigManager* mgr) {
     Objects::CLuaEventSubscription{}.setup(L);
     Objects::CLuaWindowRule{}.setup(L);
     Objects::CLuaLayerRule{}.setup(L);
+    Objects::CLuaWorkspaceRule{}.setup(L);
     Objects::CLuaKeybind{}.setup(L);
     Objects::CLuaNotification{}.setup(L);
 

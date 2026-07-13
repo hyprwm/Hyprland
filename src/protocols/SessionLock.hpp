@@ -6,7 +6,6 @@
 #include "ext-session-lock-v1.hpp"
 #include "../helpers/signal/Signal.hpp"
 
-class CMonitor;
 class CSessionLock;
 class CWLSurfaceResource;
 
@@ -74,6 +73,8 @@ class CSessionLockProtocol : public IWaylandProtocol {
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
     bool         isLocked();
+    void         forceUnlock();
+    void         forceLock();
 
     struct {
         CSignalT<SP<CSessionLock>> newLock;

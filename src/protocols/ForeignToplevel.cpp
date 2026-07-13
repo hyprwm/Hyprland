@@ -33,7 +33,7 @@ CForeignToplevelList::CForeignToplevelList(SP<CExtForeignToplevelListV1> resourc
         LOGM(Log::DEBUG, "CForeignToplevelList: finished");
     });
 
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (!PROTO::foreignToplevel->windowValidForForeign(w))
             continue;
 
@@ -69,8 +69,8 @@ void CForeignToplevelList::onMap(PHLWINDOW pWindow) {
     LOGM(Log::DEBUG, "Newly mapped window gets an identifier of {}", IDENTIFIER);
     m_resource->sendToplevel(newHandle->m_resource.get());
     newHandle->m_resource->sendIdentifier(IDENTIFIER.c_str());
-    newHandle->m_resource->sendAppId(pWindow->m_initialClass.c_str());
-    newHandle->m_resource->sendTitle(pWindow->m_initialTitle.c_str());
+    newHandle->m_resource->sendAppId(pWindow->m_class.c_str());
+    newHandle->m_resource->sendTitle(pWindow->m_title.c_str());
     newHandle->m_resource->sendDone();
 
     m_handles.emplace_back(std::move(newHandle));
@@ -147,6 +147,15 @@ CForeignToplevelProtocol::CForeignToplevelProtocol(const wl_interface* iface, co
 
         for (auto const& m : m_managers) {
             m->onTitle(window);
+        }
+    });
+
+    static auto P3 = Event::bus()->m_events.window.class_.listen([this](PHLWINDOW window) {
+        if (!windowValidForForeign(window))
+            return;
+
+        for (auto const& m : m_managers) {
+            m->onClass(window);
         }
     });
 }

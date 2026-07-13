@@ -5,10 +5,12 @@
 #include "../../desktop/view/LayerSurface.hpp"
 #include "../../desktop/state/FocusState.hpp"
 #include "../../config/ConfigValue.hpp"
-#include "../../helpers/Monitor.hpp"
+#include "../../output/Monitor.hpp"
+#include "../../state/MonitorState.hpp"
 #include "../../devices/ITouch.hpp"
 #include "../../event/EventBus.hpp"
 #include "../SeatManager.hpp"
+#include "../../protocols/core/DataDevice.hpp"
 #include "debug/log/Logger.hpp"
 #include "UnifiedWorkspaceSwipeGesture.hpp"
 
@@ -28,7 +30,7 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
     if (info.cancelled)
         return;
 
-    auto PMONITOR = g_pCompositor->getMonitorFromName(!e.device->m_boundOutput.empty() ? e.device->m_boundOutput : "");
+    auto PMONITOR = State::monitorState()->query().name(!e.device->m_boundOutput.empty() ? e.device->m_boundOutput : "").run();
 
     PMONITOR = PMONITOR ? PMONITOR : Desktop::focusState()->monitor();
 
@@ -36,6 +38,8 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
         Desktop::focusState()->rawMonitorFocus(PMONITOR);
 
     const auto TOUCH_COORDS = PMONITOR->m_position + (e.pos * PMONITOR->m_size);
+
+    m_touchData.lastTouchPos = TOUCH_COORDS;
 
     refocus(TOUCH_COORDS);
 
@@ -93,13 +97,13 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
             local                          = (TOUCH_COORDS - m_touchData.touchFocusWindow->m_realPosition->goal()) * m_touchData.touchFocusWindow->m_X11SurfaceScaledBy;
             m_touchData.touchSurfaceOrigin = m_touchData.touchFocusWindow->m_realPosition->goal();
         } else {
-            g_pCompositor->vectorWindowToSurface(TOUCH_COORDS, m_touchData.touchFocusWindow.lock(), local);
+            Desktop::viewState()->hitTest().windowSurfaceAt(TOUCH_COORDS, m_touchData.touchFocusWindow.lock(), local);
             m_touchData.touchSurfaceOrigin = TOUCH_COORDS - local;
         }
     } else if (!m_touchData.touchFocusLS.expired()) {
         PHLLS    foundSurf;
         Vector2D foundCoords;
-        auto     surf = g_pCompositor->vectorToLayerPopupSurface(TOUCH_COORDS, PMONITOR, &foundCoords, &foundSurf);
+        auto     surf = Desktop::viewState()->hitTest().layerPopupSurfaceAt(TOUCH_COORDS, PMONITOR, &foundCoords, &foundSurf);
         if (surf) {
             local                         = foundCoords;
             m_touchData.touchFocusSurface = surf;
@@ -137,6 +141,12 @@ void CInputManager::onTouchMove(ITouch::SMotionEvent e) {
 
     m_lastCursorMovement.reset();
 
+    // Cache the global touch position so listeners (in particular the dnd
+    // touchMove listener emitted just below) and renderers can resolve where
+    // the finger currently is in layout coordinates.
+    if (const auto PMONITOR = Desktop::focusState()->monitor(); PMONITOR)
+        m_touchData.lastTouchPos = PMONITOR->m_position + (e.pos * PMONITOR->m_size);
+
     Event::SCallbackInfo info;
     Event::bus()->m_events.input.touch.motion.emit(e, info);
     if (info.cancelled)
@@ -168,8 +178,16 @@ void CInputManager::onTouchMove(ITouch::SMotionEvent e) {
             g_pUnifiedWorkspaceSwipe->update(SWIPEDISTANCE * (1 - (VERTANIMS ? e.pos.y : e.pos.x)));
         return;
     }
+    // During a drag-and-drop session, repick the surface under the finger so
+    // wl_data_device enter/leave/offer follow the touch point, the same way
+    // cursor motion drives pointer focus during mouse drags. Touch events are
+    // not delivered to surfaces during the drag (mouse drags work likewise).
+    if (PROTO::data->dndActive()) {
+        refocus(m_touchData.lastTouchPos);
+        return;
+    }
     if (m_touchData.touchFocusLockSurface) {
-        const auto PMONITOR     = g_pCompositor->getMonitorFromID(m_touchData.touchFocusLockSurface->iMonitorID);
+        const auto PMONITOR     = State::monitorState()->query().id(m_touchData.touchFocusLockSurface->iMonitorID).run();
         const auto TOUCH_COORDS = PMONITOR->m_position + (e.pos * PMONITOR->m_size);
         const auto LOCAL        = TOUCH_COORDS - PMONITOR->m_position;
         g_pSeatManager->sendTouchMotion(e.timeMs, e.touchID, LOCAL);

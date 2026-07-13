@@ -1,15 +1,14 @@
 #include "tests.hpp"
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
-#include <print>
-#include <thread>
-#include <chrono>
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
-#include <csignal>
-#include <cerrno>
 #include "../shared.hpp"
+
+#include <chrono>
+#include <string>
+#include <thread>
 
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
@@ -17,6 +16,17 @@ using namespace Hyprutils::Utils;
 
 #define UP CUniquePointer
 #define SP CSharedPointer
+
+static bool waitForMonitorListed(const char* name, bool listed) {
+    for (int i = 0; i < 50; ++i) {
+        if (getFromSocket("/monitors").contains(name) == listed)
+            return true;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    return false;
+}
 
 // All the `SUBTEST`s below are supposed to be independent `TEST_CASE`s.
 // But if isolated trivially, some of them fail.
@@ -288,9 +298,8 @@ SUBTEST(multimonFocus) {
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '7' })"));
 
     for (auto const& win : {"a", "b"}) {
-        if (!Tests::spawnKitty(win)) {
+        if (!Tests::spawnKitty(win))
             FAIL_TEST("Could not spawn kitty with win class `{}`", win);
-        }
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:a' })"));
@@ -425,6 +434,8 @@ TEST_CASE(workspacesCombined) {
 
     OK(getFromSocket("/reload"));
 
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+
     NLog::log("{}Spawning kittyProc on ws 1", Colors::YELLOW);
     auto kittyProcA = Tests::spawnKitty();
 
@@ -538,7 +549,7 @@ TEST_CASE(workspacesCombined) {
 
     // add a new monitor
     NLog::log("{}Adding a new monitor", Colors::YELLOW);
-    ASSERT(getFromSocket("/output create headless"), "ok");
+    ASSERT(getFromSocket("/output create headless HEADLESS-3"), "ok");
 
     // should take workspace 2
     {
@@ -792,5 +803,185 @@ TEST_CASE(workspacesFollowProperNoGaps) {
     {
         auto str = getFromSocket("/activeworkspace");
         ASSERT_CONTAINS(str, "workspace ID 101 (101)");
+    }
+}
+
+TEST_CASE(workspacesSmartGapsDirectionalMoveAcrossMonitors) {
+    static constexpr const char* LEFT_OUTPUT  = "HSG-L";
+    static constexpr const char* RIGHT_OUTPUT = "HSG-R";
+
+    CScopeGuard                  guard = {[&]() {
+        Tests::killAllWindows();
+        getFromSocket(std::string("/output remove ") + RIGHT_OUTPUT);
+        getFromSocket(std::string("/output remove ") + LEFT_OUTPUT);
+        OK(getFromSocket("/reload"));
+    }};
+
+    getFromSocket(std::string("/output remove ") + RIGHT_OUTPUT);
+    ASSERT(waitForMonitorListed(RIGHT_OUTPUT, false), true);
+    getFromSocket(std::string("/output remove ") + LEFT_OUTPUT);
+    ASSERT(waitForMonitorListed(LEFT_OUTPUT, false), true);
+
+    OK(getFromSocket(R"#(/eval hl.monitor({ output = "HSG-L", mode = "1920x1080@60", position = "20000x0", scale = "1" })
+hl.monitor({ output = "HSG-R", mode = "1920x1080@60", position = "21920x0", scale = "1" })
+    )#"));
+
+    OK(getFromSocket(std::string("/output create headless ") + LEFT_OUTPUT));
+    ASSERT(waitForMonitorListed(LEFT_OUTPUT, true), true);
+    OK(getFromSocket(std::string("/output create headless ") + RIGHT_OUTPUT));
+    ASSERT(waitForMonitorListed(RIGHT_OUTPUT, true), true);
+
+    OK(getFromSocket(R"#(/eval hl.config({
+    general = { layout = "dwindle", gaps_out = 20, gaps_in = 5, border_size = 2 },
+    binds = { window_direction_monitor_fallback = true },
+})
+hl.workspace_rule({ workspace = "w[tv1]", gaps_out = 0, gaps_in = 0 })
+hl.window_rule({
+    name = "smart-gaps-single-tiled-no-border",
+    match = { float = false, workspace = "w[tv1]" },
+    border_size = 0,
+    rounding = 0,
+})
+    )#"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HSG-L' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '230' })"));
+    ASSERT(!!Tests::spawnKitty("smart_gaps_src_a"), true);
+    ASSERT(!!Tests::spawnKitty("smart_gaps_src_b"), true);
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "class: smart_gaps_src_b");
+        ASSERT_CONTAINS(str, "size: 931,1036");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HSG-R' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '231' })"));
+    ASSERT(!!Tests::spawnKitty("smart_gaps_dst"), true);
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "class: smart_gaps_dst");
+        ASSERT_CONTAINS(str, "size: 1920,1080");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:smart_gaps_src_b' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ direction = 'right' })"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "class: smart_gaps_src_b");
+        ASSERT_CONTAINS(str, "size: 931,1036");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HSG-L' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:smart_gaps_src_a' })"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "class: smart_gaps_src_a");
+        ASSERT_CONTAINS(str, "size: 1920,1080");
+    }
+}
+
+TEST_CASE(workspaceRenameChangeID) {
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = \"150\" })"));
+    Tests::spawnKitty();
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = \"name:coce\" })"));
+    Tests::spawnKitty();
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = \"100\" })"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        ASSERT_CONTAINS(str, "workspace ID 100 (100)");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.workspace.change_id({ workspace = \"100\", id = 101 })"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        ASSERT_CONTAINS(str, "workspace ID 101 (101)");
+    }
+
+    NOK(getFromSocket("/dispatch hl.dsp.workspace.change_id({ workspace = \"101\", id = -1 })"));        // bad id
+    NOK(getFromSocket("/dispatch hl.dsp.workspace.change_id({ workspace = \"101\", id = \"abc\" })"));   // bad id
+    NOK(getFromSocket("/dispatch hl.dsp.workspace.change_id({ workspace = \"101\" })"));                 // no target
+    NOK(getFromSocket("/dispatch hl.dsp.workspace.change_id({ workspace = \"102\", id = 200 })"));       // source doesn't exist
+    NOK(getFromSocket("/dispatch hl.dsp.workspace.change_id({ workspace = \"101\", id = 150 })"));       // occupied
+    NOK(getFromSocket("/dispatch hl.dsp.workspace.change_id({ workspace = \"name:coce\", id = 105 })")); // bad source
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        ASSERT_CONTAINS(str, "workspace ID 101 (101)");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.workspace.rename({ workspace = \"101\", name = \"vaxry_was_here\" })"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        ASSERT_CONTAINS(str, "workspace ID 101 (vaxry_was_here)");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.workspace.change_id({ workspace = \"101\", id = 102 })"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        ASSERT_CONTAINS(str, "workspace ID 102 (vaxry_was_here)");
+    }
+}
+
+TEST_CASE(workspaceChangeIDUpdatesRules) {
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = \"200\" })"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        ASSERT_CONTAINS(str, "workspace ID 200 (200)");
+    }
+
+    OK(getFromSocket("r/eval hl.workspace_rule({ workspace = '201', gaps_out = { top = 40, right = 40, bottom = 40, left = 40 } })"));
+
+    Tests::spawnKitty();
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 22,22");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.workspace.change_id({ workspace = \"200\", id = 201 })"));
+
+    Tests::sync();
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 42,42");
+    }
+}
+
+TEST_CASE(workspaceRenameUpdatesRules) {
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = \"200\" })"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        ASSERT_CONTAINS(str, "workspace ID 200 (200)");
+    }
+
+    OK(getFromSocket("r/eval hl.workspace_rule({ workspace = 'name:vaxry', gaps_out = { top = 40, right = 40, bottom = 40, left = 40 } })"));
+
+    Tests::spawnKitty();
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 22,22");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.workspace.rename({ workspace = \"200\", name = \"vaxry\" })"));
+
+    Tests::sync();
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "at: 42,42");
     }
 }

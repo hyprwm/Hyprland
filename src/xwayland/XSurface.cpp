@@ -78,7 +78,7 @@ void CXWaylandSurface::recheckSupportedProps() {
 }
 
 void CXWaylandSurface::ensureListeners() {
-    bool connected = m_listeners.destroySurface;
+    bool connected = !!m_listeners.destroySurface;
 
     if (connected && !m_surface) {
         m_listeners.destroySurface.reset();

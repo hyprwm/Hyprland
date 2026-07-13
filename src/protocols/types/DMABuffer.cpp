@@ -87,7 +87,7 @@ void CDMABuffer::closeFDs() {
     m_attrs.planes = 0;
 }
 
-CFileDescriptor CDMABuffer::exportSyncFile() {
+std::vector<CFileDescriptor> CDMABuffer::exportSyncFiles() {
     if (!good())
         return {};
 
@@ -113,19 +113,6 @@ CFileDescriptor CDMABuffer::exportSyncFile() {
             syncFds.emplace_back(std::move(fence));
     }
 
-    if (syncFds.empty())
-        return {};
-
-    CFileDescriptor syncFd;
-    for (auto& fd : syncFds) {
-        if (!syncFd.isValid()) {
-            syncFd = std::move(fd);
-            continue;
-        }
-
-        syncFd = DRM::mergeFence(syncFd, fd);
-    }
-
-    return syncFd;
+    return syncFds;
 #endif
 }

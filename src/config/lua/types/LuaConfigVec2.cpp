@@ -6,7 +6,7 @@
 using namespace Config;
 using namespace Config::Lua;
 
-CLuaConfigVec2::CLuaConfigVec2(Config::VEC2 def, std::optional<std::function<std::expected<void, std::string>(const Config::VEC2&)>>&& validator) :
+CLuaConfigVec2::CLuaConfigVec2(Config::VEC2 def, std::function<std::expected<void, std::string>(const Config::VEC2&)>&& validator) :
     m_default(def), m_data(def), m_validator(std::move(validator)) {
     ;
 }
@@ -51,8 +51,8 @@ SParseError CLuaConfigVec2::parse(lua_State* s) {
         vec = {x, y};
     }
 
-    if (m_validator.has_value()) {
-        auto res = m_validator.value()(vec);
+    if (m_validator) {
+        auto res = m_validator(vec);
         if (!res)
             return {.errorCode = PARSE_ERROR_BAD_VALUE, .message = res.error()};
     }

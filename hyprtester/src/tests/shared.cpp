@@ -11,9 +11,6 @@
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
 
-// Almost everywhere `Tests::spawnKitty` is used, the return value is immediately tested against `nullptr`
-// and the test fails if it is.
-
 CUniquePointer<CProcess> Tests::spawnKitty(const std::string& class_, const std::vector<std::string> args) {
     const auto               COUNT_BEFORE = windowCount();
 
@@ -95,6 +92,11 @@ int Tests::countOccurrences(const std::string& in, const std::string& what) {
     }
 
     return cnt;
+}
+
+void Tests::sync(int rounds) {
+    for (int i = 0; i < rounds; ++i)
+        getFromSocket("/version");
 }
 
 bool Tests::killAllWindows() {

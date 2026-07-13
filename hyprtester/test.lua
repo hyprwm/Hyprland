@@ -205,6 +205,8 @@ hl.define_submap("submap1", function()
     hl.bind("i", hl.dsp.submap("submap3"))
     hl.bind("o", hl.dsp.exec_cmd(terminal))
     hl.bind("p", hl.dsp.submap("reset"))
+    hl.bind("mouse_down", hl.dsp.exec_cmd("touch /tmp/hyprtester-keybinds.txt"))
+    hl.bind("mouse:272", hl.dsp.exec_cmd("touch /tmp/hyprtester-keybinds.txt"))
 end)
 
 hl.define_submap("submap2", "submap1", function()

@@ -52,6 +52,7 @@ namespace Config::Lua {
     class CConfigManager : public Config::IConfigManager {
       public:
         CConfigManager();
+        virtual ~CConfigManager() override;
 
         virtual eConfigManagerType               type() override;
 
@@ -95,7 +96,7 @@ namespace Config::Lua {
         std::expected<void, std::string>         registerLuaLayoutProvider(std::string name, lua_State* L, int providerTableIdx);
 
         // execute an arbitrary lua string on the current state.
-        std::optional<std::string> eval(const std::string& code);
+        std::optional<std::string> eval(const std::string& code, bool repl = false);
 
         int                        guardedPCall(int nargs, int nresults, int errfunc, int timeoutMs, std::string_view context);
 
@@ -112,6 +113,7 @@ namespace Config::Lua {
 
         bool                       isFirstLaunch() const;
         bool                       isDynamicParse() const;
+        bool                       isREPL() const;
 
         std::string                m_currentSubmap;
         std::string                m_currentSubmapReset;
@@ -135,7 +137,7 @@ namespace Config::Lua {
         };
 
         std::unordered_map<std::string, SDeviceConfig> m_deviceConfigs;
-        std::vector<std::string>                       m_errors, m_configPaths;
+        std::vector<std::string>                       m_errors, m_configPaths, m_prints;
         std::vector<Config::SConfigError>              m_evalIssues;
 
         // named window/layer rules for merge-on-redeclaration
@@ -157,7 +159,8 @@ namespace Config::Lua {
 
         static void                                  watchdogHook(lua_State* L, lua_Debug* ar);
 
-        lua_State*                                   m_lua = nullptr;
+        lua_State*                                   m_lua          = nullptr;
+        bool                                         m_ownsLuaState = false;
 
         bool                                         m_lastConfigVerificationWasSuccessful = true;
         bool                                         m_isFirstLaunch                       = true;
@@ -165,6 +168,7 @@ namespace Config::Lua {
         bool                                         m_watchdogActive                      = false;
         bool                                         m_isParsingConfig                     = false;
         bool                                         m_isEvaluating                        = false;
+        bool                                         m_isREPL                              = false;
 
         std::chrono::steady_clock::time_point        m_watchdogDeadline;
         std::string                                  m_watchdogContext;

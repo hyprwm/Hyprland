@@ -7,7 +7,7 @@
 
 using namespace Render::GL;
 
-static bool compareFloat(auto a, auto b) {
+static bool compareFloat(const auto& a, const auto& b) {
     if (a.size() != b.size())
         return false;
 
@@ -145,6 +145,7 @@ void CShader::getUniformLocations() {
     m_uniformLocations[SHADER_CONVERT_MATRIX]       = getUniform("convertMatrix");
     m_uniformLocations[SHADER_LUT_3D]               = getUniform("iccLut3D");
     m_uniformLocations[SHADER_LUT_SIZE]             = getUniform("iccLutSize");
+    m_uniformLocations[SHADER_TONEMAP_MODE]         = getUniform("tonemapMode");
     //
     m_uniformLocations[SHADER_TEX]                    = getUniform("tex");
     m_uniformLocations[SHADER_BLURRED_BG]             = getUniform("blurredBG");
@@ -250,6 +251,7 @@ void CShader::createVao() {
 
     m_uniformLocations[SHADER_SHADER_VAO] = shaderVao;
     m_uniformLocations[SHADER_SHADER_VBO] = shaderVbo;
+    m_usesCustomUV                        = false;
 
     RASSERT(m_uniformLocations[SHADER_SHADER_VAO] >= 0, "SHADER_SHADER_VAO could not be created");
     RASSERT(m_uniformLocations[SHADER_SHADER_VBO] >= 0, "SHADER_SHADER_VBO_POS could not be created");
@@ -372,7 +374,7 @@ void CShader::setUniformfv(eShaderUniform location, GLsizei count, const std::ve
     auto& cached = uniformStatus.at(location);
 
     if (cached.index() != 0) {
-        auto val = std::get<SUniformVData>(cached);
+        const auto& val = std::get<SUniformVData>(cached);
         if (val.count == count && compareFloat(val.value, value))
             return;
     }
@@ -433,4 +435,12 @@ int CShader::getInitialTime() const {
 
 void CShader::setInitialTime(int time) {
     m_initialTime = time;
+}
+
+bool CShader::usesCustomUV() const {
+    return m_usesCustomUV;
+}
+
+void CShader::setUsesCustomUV(bool usesCustomUV) {
+    m_usesCustomUV = usesCustomUV;
 }

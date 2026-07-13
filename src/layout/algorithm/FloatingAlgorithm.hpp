@@ -27,8 +27,6 @@ namespace Layout {
       protected:
         IFloatingAlgorithm() = default;
 
-        WP<CAlgorithm> m_parent;
-
         friend class Layout::CAlgorithm;
     };
 }

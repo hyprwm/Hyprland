@@ -27,6 +27,7 @@ if (NOT glaze_FOUND)
 endif()
 
 add_executable(hyprpm ${SRCFILES})
+set_target_properties(hyprpm PROPERTIES CXX_VISIBILITY_PRESET hidden)
 
 target_link_libraries(hyprpm PUBLIC PkgConfig::hyprpm_deps glaze::glaze)
 

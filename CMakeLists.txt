@@ -249,7 +249,7 @@ set_source_files_properties(${CMAKE_SOURCE_DIR}/src/version.h PROPERTIES GENERAT
 
 set(XKBCOMMON_MINIMUM_VERSION 1.11.0)
 set(WAYLAND_SERVER_MINIMUM_VERSION 1.22.91)
-set(WAYLAND_SERVER_PROTOCOLS_MINIMUM_VERSION 1.47)
+set(WAYLAND_SERVER_PROTOCOLS_MINIMUM_VERSION 1.49)
 set(LIBINPUT_MINIMUM_VERSION 1.29)
 
 pkg_check_modules(
@@ -537,6 +537,7 @@ protocolnew("protocols" "wlr-virtual-pointer-unstable-v1" true)
 protocolnew("protocols" "input-method-unstable-v2" true)
 protocolnew("protocols" "wlr-output-management-unstable-v1" true)
 protocolnew("protocols" "kde-server-decoration" true)
+protocolnew("protocols" "vicinae-hotkey-v1" true)
 protocolnew("protocols" "wlr-data-control-unstable-v1" true)
 protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-focus-grab-v1" true)
 protocolnew("protocols" "wlr-layer-shell-unstable-v1" true)

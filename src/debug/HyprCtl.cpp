@@ -1,5 +1,5 @@
 #include "HyprCtl.hpp"
-#include "helpers/Monitor.hpp"
+#include "output/Monitor.hpp"
 
 #include <algorithm>
 #include <format>
@@ -44,7 +44,7 @@ using namespace Hyprutils::OS;
 #include "../config/shared/animation/AnimationTree.hpp"
 #include "../config/supplementary/jeremy/Jeremy.hpp"
 #include "../config/values/ConfigValues.hpp"
-#include "../managers/CursorManager.hpp"
+#include "../pointer/cursor/CursorManager.hpp"
 #include "../errorOverlay/Overlay.hpp"
 #include "../devices/IPointer.hpp"
 #include "../devices/IKeyboard.hpp"
@@ -60,13 +60,17 @@ using namespace Hyprutils::OS;
 #include "../desktop/rule/Engine.hpp"
 #include "../desktop/history/WindowHistoryTracker.hpp"
 #include "../desktop/state/FocusState.hpp"
+#include "../state/MonitorState.hpp"
+#include "../state/WorkspacePlacementController.hpp"
+#include "../state/WorkspaceState.hpp"
 #include "../version.h"
 
 #include "../Compositor.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../managers/XWaylandManager.hpp"
+#include "../managers/fullscreen/FullscreenController.hpp"
 #include "../plugins/PluginSystem.hpp"
-#include "../managers/animation/AnimationManager.hpp"
+#include "../animation/AnimationManager.hpp"
 #include "../notification/NotificationOverlay.hpp"
 #include "../render/Renderer.hpp"
 #include "../render/OpenGL.hpp"
@@ -131,18 +135,18 @@ static std::string availableModesForOutput(PHLMONITOR pMonitor, eHyprCtlOutputFo
     return result;
 }
 
-const std::array<const char*, CMonitor::SC_CHECKS_COUNT> SOLITARY_REASONS_JSON = {
+const std::array<const char*, Monitor::CMonitor::SC_CHECKS_COUNT> SOLITARY_REASONS_JSON = {
     "\"UNKNOWN\"",   "\"NOTIFICATION\"", "\"LOCK\"",      "\"WORKSPACE\"", "\"WINDOWED\"", "\"DND\"",        "\"SPECIAL\"",  "\"ALPHA\"",       "\"OFFSET\"",
     "\"CANDIDATE\"", "\"OPAQUE\"",       "\"TRANSFORM\"", "\"OVERLAYS\"",  "\"FLOAT\"",    "\"WORKSPACES\"", "\"SURFACES\"", "\"CONFIGERROR\"",
 };
 
-const std::array<const char*, CMonitor::SC_CHECKS_COUNT> SOLITARY_REASONS_TEXT = {
+const std::array<const char*, Monitor::CMonitor::SC_CHECKS_COUNT> SOLITARY_REASONS_TEXT = {
     "unknown reason",    "notification",     "session lock",     "invalid workspace", "windowed mode", "dnd active",
     "special workspace", "alpha channel",    "workspace offset", "missing candidate", "not opaque",    "surface transformations",
     "other overlays",    "floating windows", "other workspaces", "subsurfaces",       "config error",
 };
 
-std::string CHyprCtl::getSolitaryBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
+std::string CHyprCtl::getSolitaryBlockedReason(PHLMONITOR m, eHyprCtlOutputFormat format) {
     const auto reasons = m->isSolitaryBlocked(true);
     if (!reasons)
         return "null";
@@ -150,7 +154,7 @@ std::string CHyprCtl::getSolitaryBlockedReason(Hyprutils::Memory::CSharedPointer
     std::string reasonStr = "";
     const auto  TEXTS     = format == eHyprCtlOutputFormat::FORMAT_JSON ? SOLITARY_REASONS_JSON : SOLITARY_REASONS_TEXT;
 
-    for (uint32_t i = 0; i < CMonitor::SC_CHECKS_COUNT; i++) {
+    for (uint32_t i = 0; i < Monitor::CMonitor::SC_CHECKS_COUNT; i++) {
         if (reasons & (1 << i)) {
             if (reasonStr != "")
                 reasonStr += ",";
@@ -161,17 +165,17 @@ std::string CHyprCtl::getSolitaryBlockedReason(Hyprutils::Memory::CSharedPointer
     return format == eHyprCtlOutputFormat::FORMAT_JSON ? "[" + reasonStr + "]" : reasonStr;
 }
 
-const std::array<const char*, CMonitor::DS_CHECKS_COUNT> DS_REASONS_JSON = {
+const std::array<const char*, Monitor::CMonitor::DS_CHECKS_COUNT> DS_REASONS_JSON = {
     "\"UNKNOWN\"",   "\"USER\"",    "\"WINDOWED\"",  "\"CONTENT\"", "\"MIRROR\"", "\"RECORD\"", "\"SW\"",
     "\"CANDIDATE\"", "\"SURFACE\"", "\"TRANSFORM\"", "\"DMA\"",     "\"FAILED\"", "\"CM\"",
 };
 
-const std::array<const char*, CMonitor::DS_CHECKS_COUNT> DS_REASONS_TEXT = {
+const std::array<const char*, Monitor::CMonitor::DS_CHECKS_COUNT> DS_REASONS_TEXT = {
     "unknown reason",    "user settings",   "windowed mode",           "content type",   "monitor mirrors",   "screen record/screenshot", "software renders/cursors",
     "missing candidate", "invalid surface", "surface transformations", "invalid buffer", "activation failed", "color management",
 };
 
-std::string CHyprCtl::getDSBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
+std::string CHyprCtl::getDSBlockedReason(PHLMONITOR m, eHyprCtlOutputFormat format) {
     const auto reasons = m->isDSBlocked(true);
     if (!reasons)
         return "null";
@@ -179,7 +183,7 @@ std::string CHyprCtl::getDSBlockedReason(Hyprutils::Memory::CSharedPointer<CMoni
     std::string reasonStr = "";
     const auto  TEXTS     = format == eHyprCtlOutputFormat::FORMAT_JSON ? DS_REASONS_JSON : DS_REASONS_TEXT;
 
-    for (int i = 0; i < CMonitor::DS_CHECKS_COUNT; i++) {
+    for (int i = 0; i < Monitor::CMonitor::DS_CHECKS_COUNT; i++) {
         if (reasons & (1 << i)) {
             if (reasonStr != "")
                 reasonStr += ",";
@@ -190,22 +194,22 @@ std::string CHyprCtl::getDSBlockedReason(Hyprutils::Memory::CSharedPointer<CMoni
     return format == eHyprCtlOutputFormat::FORMAT_JSON ? "[" + reasonStr + "]" : reasonStr;
 }
 
-const std::array<const char*, CMonitor::TC_CHECKS_COUNT> TEARING_REASONS_JSON = {
+const std::array<const char*, Monitor::CMonitor::TC_CHECKS_COUNT> TEARING_REASONS_JSON = {
     "\"UNKNOWN\"", "\"NOT_TORN\"", "\"USER\"", "\"ZOOM\"", "\"SUPPORT\"", "\"CANDIDATE\"", "\"WINDOW\"", "\"HW_CURSOR\"",
 };
 
-const std::array<const char*, CMonitor::TC_CHECKS_COUNT> TEARING_REASONS_TEXT = {"unknown reason",           "next frame is not torn", "user settings",   "zoom",
-                                                                                 "not supported by monitor", "missing candidate",      "window settings", "hw cursor"};
+const std::array<const char*, Monitor::CMonitor::TC_CHECKS_COUNT> TEARING_REASONS_TEXT = {"unknown reason",           "next frame is not torn", "user settings",   "zoom",
+                                                                                          "not supported by monitor", "missing candidate",      "window settings", "hw cursor"};
 
-std::string                                              CHyprCtl::getTearingBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
+std::string                                                       CHyprCtl::getTearingBlockedReason(PHLMONITOR m, eHyprCtlOutputFormat format) {
     const auto reasons = m->isTearingBlocked(true);
-    if (!reasons || (reasons == CMonitor::TC_NOT_TORN && m->m_tearingState.activelyTearing))
+    if (!reasons || (reasons == Monitor::CMonitor::TC_NOT_TORN && m->m_tearingState.activelyTearing))
         return "null";
 
     std::string reasonStr = "";
     const auto  TEXTS     = format == eHyprCtlOutputFormat::FORMAT_JSON ? TEARING_REASONS_JSON : TEARING_REASONS_TEXT;
 
-    for (int i = 0; i < CMonitor::TC_CHECKS_COUNT; i++) {
+    for (int i = 0; i < Monitor::CMonitor::TC_CHECKS_COUNT; i++) {
         if (reasons & (1 << i)) {
             if (reasonStr != "")
                 reasonStr += ",";
@@ -216,7 +220,7 @@ std::string                                              CHyprCtl::getTearingBlo
     return format == eHyprCtlOutputFormat::FORMAT_JSON ? "[" + reasonStr + "]" : reasonStr;
 }
 
-std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
+std::string CHyprCtl::getMonitorData(PHLMONITOR m, eHyprCtlOutputFormat format) {
     std::string result;
     if (!m->m_output || m->m_id == -1)
         return "";
@@ -320,7 +324,7 @@ static std::string monitorsRequest(eHyprCtlOutputFormat format, std::string requ
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
 
-        for (auto const& m : allMonitors ? g_pCompositor->m_realMonitors : g_pCompositor->m_monitors) {
+        for (auto const& m : allMonitors ? State::monitorState()->allMonitors() : State::monitorState()->monitors()) {
             result += CHyprCtl::getMonitorData(m, format);
         }
 
@@ -328,7 +332,7 @@ static std::string monitorsRequest(eHyprCtlOutputFormat format, std::string requ
 
         result += "]";
     } else {
-        for (auto const& m : allMonitors ? g_pCompositor->m_realMonitors : g_pCompositor->m_monitors) {
+        for (auto const& m : allMonitors ? State::monitorState()->allMonitors() : State::monitorState()->monitors()) {
             if (!m->m_output || m->m_id == -1)
                 continue;
 
@@ -402,9 +406,11 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     "pid": {},
     "xwayland": {},
     "pinned": {},
+    "pinFullscreened": {},
     "fullscreen": {},
     "fullscreenClient": {},
-    "overFullscreen": {},
+    "fullscreenHandler": "{}",
+    "allowedOverFullscreen": {},
     "grouped": [{}],
     "tags": [{}],
     "swallowing": "0x{:x}",
@@ -420,26 +426,29 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
             sc<int>(w->m_realSize->goal().y), w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID, escapeJSONStrings(!w->m_workspace ? "" : w->m_workspace->m_name),
             (sc<int>(w->m_isFloating) == 1 ? "true" : "false"), w->monitorID(), escapeJSONStrings(w->m_class), escapeJSONStrings(w->m_title), escapeJSONStrings(w->m_initialClass),
             escapeJSONStrings(w->m_initialTitle), w->getPID(), (sc<int>(w->m_isX11) == 1 ? "true" : "false"), (w->m_pinned ? "true" : "false"),
-            sc<uint8_t>(w->m_fullscreenState.internal), sc<uint8_t>(w->m_fullscreenState.client), (w->m_createdOverFullscreen ? "true" : "false"), getGroupedData(w, format),
-            getTagsData(w, format), rc<uintptr_t>(w->m_swallowed.get()), getFocusHistoryID(w), (g_pInputManager->isWindowInhibiting(w, false) ? "true" : "false"),
-            escapeJSONStrings(w->xdgTag().value_or("")), escapeJSONStrings(w->xdgDescription().value_or("")), escapeJSONStrings(NContentType::toString(w->getContentType())),
-            w->m_stableID);
+            (w->m_pinFullscreened ? "true" : "false"), sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w).internal),
+            sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w).client), escapeJSONStrings(Fullscreen::controller()->getFullscreenHandlerNameAsString(w)),
+            (w->m_allowedOverFullscreen ? "true" : "false"), getGroupedData(w, format), getTagsData(w, format), rc<uintptr_t>(w->m_swallowee.get()), getFocusHistoryID(w),
+            (g_pInputManager->isWindowInhibiting(w, false) ? "true" : "false"), escapeJSONStrings(w->xdgTag().value_or("")), escapeJSONStrings(w->xdgDescription().value_or("")),
+            escapeJSONStrings(NContentType::toString(w->getContentType())), w->m_stableID);
     } else {
         return std::format(
             "Window {:x} -> {}:\n\tmapped: {}\n\thidden: {}\n\tvisible: {}\n\tacceptsInput: {}\n\tat: {},{}\n\tsize: {},{}\n\tworkspace: {} ({})\n\tfloating: {}\n\tmonitor: "
             "{}\n\tclass: {}\n\ttitle: "
             "{}\n\tinitialClass: {}\n\tinitialTitle: {}\n\tpid: "
-            "{}\n\txwayland: {}\n\tpinned: "
-            "{}\n\tfullscreen: {}\n\tfullscreenClient: {}\n\toverFullscreen: {}\n\tgrouped: {}\n\ttags: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\tinhibitingIdle: "
+            "{}\n\txwayland: {}\n\tpinned: {}\n\tpinFullscreened: "
+            "{}\n\tfullscreen: {}\n\tfullscreenClient: {}\n\tfullscreenHandler: {}\n\tallowedOverFullscreen: {}\n\tgrouped: {}\n\ttags: {}\n\tswallowing: {:x}\n\tfocusHistoryID: "
+            "{}\n\tinhibitingIdle: "
             "{}\n\txdgTag: "
             "{}\n\txdgDescription: {}\n\tcontentType: {}\n\tstableID: {:x}\n\n",
             rc<uintptr_t>(w.get()), w->m_title, sc<int>(w->m_isMapped), sc<int>(w->isHidden()), sc<int>(w->visible()), sc<int>(w->acceptsInput()),
             sc<int>(w->m_realPosition->goal().x), sc<int>(w->m_realPosition->goal().y), sc<int>(w->m_realSize->goal().x), sc<int>(w->m_realSize->goal().y),
             w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID, (!w->m_workspace ? "" : w->m_workspace->m_name), sc<int>(w->m_isFloating), w->monitorID(), w->m_class,
-            w->m_title, w->m_initialClass, w->m_initialTitle, w->getPID(), sc<int>(w->m_isX11), sc<int>(w->m_pinned), sc<uint8_t>(w->m_fullscreenState.internal),
-            sc<uint8_t>(w->m_fullscreenState.client), sc<int>(w->m_createdOverFullscreen), getGroupedData(w, format), getTagsData(w, format), rc<uintptr_t>(w->m_swallowed.get()),
-            getFocusHistoryID(w), sc<int>(g_pInputManager->isWindowInhibiting(w, false)), w->xdgTag().value_or(""), w->xdgDescription().value_or(""),
-            NContentType::toString(w->getContentType()), w->m_stableID);
+            w->m_title, w->m_initialClass, w->m_initialTitle, w->getPID(), sc<int>(w->m_isX11), sc<int>(w->m_pinned), sc<int>(w->m_pinFullscreened),
+            sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w).internal), sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w).client),
+            Fullscreen::controller()->getFullscreenHandlerNameAsString(w), sc<int>(w->m_allowedOverFullscreen), getGroupedData(w, format), getTagsData(w, format),
+            rc<uintptr_t>(w->m_swallowee.get()), getFocusHistoryID(w), sc<int>(g_pInputManager->isWindowInhibiting(w, false)), w->xdgTag().value_or(""),
+            w->xdgDescription().value_or(""), NContentType::toString(w->getContentType()), w->m_stableID);
     }
 }
 
@@ -448,7 +457,7 @@ static std::string clientsRequest(eHyprCtlOutputFormat format, std::string reque
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
 
-        for (auto const& w : g_pCompositor->m_windows) {
+        for (auto const& w : Desktop::windowState()->windows()) {
             if (!w->m_isMapped && !g_pHyprCtl->m_currentRequestParams.all)
                 continue;
 
@@ -459,7 +468,7 @@ static std::string clientsRequest(eHyprCtlOutputFormat format, std::string reque
 
         result += "]";
     } else {
-        for (auto const& w : g_pCompositor->m_windows) {
+        for (auto const& w : Desktop::windowState()->windows()) {
             if (!w->m_isMapped && !g_pHyprCtl->m_currentRequestParams.all)
                 continue;
 
@@ -496,13 +505,14 @@ std::string CHyprCtl::getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat form
     "tiledLayout": "{}"
 }})#",
                            w->m_id, escapeJSONStrings(w->m_name), escapeJSONStrings(PMONITOR ? PMONITOR->m_name : "?"),
-                           escapeJSONStrings(PMONITOR ? std::to_string(PMONITOR->m_id) : "null"), w->getWindows(), w->m_hasFullscreenWindow ? "true" : "false",
-                           rc<uintptr_t>(PLASTW.get()), PLASTW ? escapeJSONStrings(PLASTW->m_title) : "", w->isPersistent() ? "true" : "false", escapeJSONStrings(layoutName));
+                           escapeJSONStrings(PMONITOR ? std::to_string(PMONITOR->m_id) : "null"), w->getWindowCount(),
+                           Fullscreen::controller()->hasFullscreen(w) ? "true" : "false", rc<uintptr_t>(PLASTW.get()), PLASTW ? escapeJSONStrings(PLASTW->m_title) : "",
+                           w->isPersistent() ? "true" : "false", escapeJSONStrings(layoutName));
     } else {
         return std::format("workspace ID {} ({}) on monitor {}:\n\tmonitorID: {}\n\twindows: {}\n\thasfullscreen: {}\n\tlastwindow: 0x{:x}\n\tlastwindowtitle: {}\n\tispersistent: "
                            "{}\n\ttiledLayout: {}\n\n",
-                           w->m_id, w->m_name, PMONITOR ? PMONITOR->m_name : "?", PMONITOR ? std::to_string(PMONITOR->m_id) : "null", w->getWindows(),
-                           sc<int>(w->m_hasFullscreenWindow), rc<uintptr_t>(PLASTW.get()), PLASTW ? PLASTW->m_title : "", sc<int>(w->isPersistent()), layoutName);
+                           w->m_id, w->m_name, PMONITOR ? PMONITOR->m_name : "?", PMONITOR ? std::to_string(PMONITOR->m_id) : "null", w->getWindowCount(),
+                           sc<int>(Fullscreen::controller()->hasFullscreen(w)), rc<uintptr_t>(PLASTW.get()), PLASTW ? PLASTW->m_title : "", sc<int>(w->isPersistent()), layoutName);
     }
 }
 
@@ -510,6 +520,7 @@ static std::string getWorkspaceRuleData(const Config::CWorkspaceRule& r, eHyprCt
     const auto boolToString = [](const bool b) -> std::string { return b ? "true" : "false"; };
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         const std::string monitor     = r.m_monitor.empty() ? "" : std::format(",\n    \"monitor\": \"{}\"", escapeJSONStrings(r.m_monitor));
+        const std::string enabled     = std::format(",\n    \"enabled\": {}", boolToString(r.isEnabled()));
         const std::string default_    = sc<bool>(r.m_isDefault) ? std::format(",\n    \"default\": {}", boolToString(r.m_isDefault.value())) : "";
         const std::string persistent  = sc<bool>(r.m_isPersistent) ? std::format(",\n    \"persistent\": {}", boolToString(r.m_isPersistent.value())) : "";
         const std::string gapsIn      = sc<bool>(r.m_gapsIn) ?
@@ -528,14 +539,15 @@ static std::string getWorkspaceRuleData(const Config::CWorkspaceRule& r, eHyprCt
             r.m_onCreatedEmptyRunCmd.has_value() ? std::format(",\n    \"onCreatedEmpty\": \"{}\"", escapeJSONStrings(r.m_onCreatedEmptyRunCmd.value())) : "";
 
         std::string result = std::format(R"#({{
-    "workspaceString": "{}"{}{}{}{}{}{}{}{}{}{}{}{}
+    "workspaceString": "{}"{}{}{}{}{}{}{}{}{}{}{}{}{}
 }})#",
-                                         escapeJSONStrings(r.m_workspaceString), monitor, default_, persistent, gapsIn, gapsOut, borderSize, border, rounding, decorate, shadow,
-                                         defaultName, onCreatedEmpty);
+                                         escapeJSONStrings(r.m_workspaceString), enabled, monitor, default_, persistent, gapsIn, gapsOut, borderSize, border, rounding, decorate,
+                                         shadow, defaultName, onCreatedEmpty);
 
         return result;
     } else {
         const std::string monitor        = std::format("\tmonitor: {}\n", r.m_monitor.empty() ? "<unset>" : escapeJSONStrings(r.m_monitor));
+        const std::string enabled        = std::format("\tenabled: {}\n", boolToString(r.isEnabled()));
         const std::string default_       = std::format("\tdefault: {}\n", sc<bool>(r.m_isDefault) ? boolToString(r.m_isDefault.value()) : "<unset>");
         const std::string persistent     = std::format("\tpersistent: {}\n", sc<bool>(r.m_isPersistent) ? boolToString(r.m_isPersistent.value()) : "<unset>");
         const std::string gapsIn         = sc<bool>(r.m_gapsIn) ?
@@ -554,8 +566,8 @@ static std::string getWorkspaceRuleData(const Config::CWorkspaceRule& r, eHyprCt
         const std::string defaultName    = std::format("\tdefaultName: {}\n", r.m_defaultName.value_or("<unset>"));
         const std::string onCreatedEmpty = std::format("\tonCreatedEmpty: {}\n", r.m_onCreatedEmptyRunCmd.value_or("<unset>"));
 
-        std::string result = std::format("Workspace rule {}:\n{}{}{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.m_workspaceString), monitor, default_, persistent, gapsIn, gapsOut,
-                                         borderSize, border, rounding, decorate, shadow, defaultName, onCreatedEmpty);
+        std::string result = std::format("Workspace rule {}:\n{}{}{}{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.m_workspaceString), enabled, monitor, default_, persistent, gapsIn,
+                                         gapsOut, borderSize, border, rounding, decorate, shadow, defaultName, onCreatedEmpty);
 
         return result;
     }
@@ -579,7 +591,7 @@ static std::string workspacesRequest(eHyprCtlOutputFormat format, std::string re
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
-        for (auto const& w : g_pCompositor->getWorkspaces()) {
+        for (auto const& w : State::workspaceState()->workspaces()) {
             result += CHyprCtl::getWorkspaceData(w.lock(), format);
             result += ",";
         }
@@ -587,7 +599,7 @@ static std::string workspacesRequest(eHyprCtlOutputFormat format, std::string re
         trimTrailingComma(result);
         result += "]";
     } else {
-        for (auto const& w : g_pCompositor->getWorkspaces()) {
+        for (auto const& w : State::workspaceState()->workspaces()) {
             result += CHyprCtl::getWorkspaceData(w.lock(), format);
         }
     }
@@ -600,7 +612,7 @@ static std::string workspaceRulesRequest(eHyprCtlOutputFormat format, std::strin
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
         for (auto const& r : Config::workspaceRuleMgr()->getAllWorkspaceRules()) {
-            result += getWorkspaceRuleData(r, format);
+            result += getWorkspaceRuleData(*r, format);
             result += ",";
         }
 
@@ -608,7 +620,7 @@ static std::string workspaceRulesRequest(eHyprCtlOutputFormat format, std::strin
         result += "]";
     } else {
         for (auto const& r : Config::workspaceRuleMgr()->getAllWorkspaceRules()) {
-            result += getWorkspaceRuleData(r, format);
+            result += getWorkspaceRuleData(*r, format);
         }
     }
 
@@ -635,7 +647,7 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "{\n";
 
-        for (auto const& mon : g_pCompositor->m_monitors) {
+        for (auto const& mon : State::monitorState()->monitors()) {
             result += std::format(
                 R"#("{}": {{
     "levels": {{
@@ -657,11 +669,12 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
                     "y": {},
                     "w": {},
                     "h": {},
+                    "alpha": {},
                     "namespace": "{}",
                     "pid": {}
                 }},)#",
                         rc<uintptr_t>(layer.get()), layer->m_geometry.x, layer->m_geometry.y, layer->m_geometry.width, layer->m_geometry.height,
-                        escapeJSONStrings(layer->m_namespace), layer->getPID());
+                        std::clamp(sc<double>(layer->alpha().goal()), 0.0, 1.0), escapeJSONStrings(layer->m_namespace), layer->getPID());
                 }
 
                 trimTrailingComma(result);
@@ -684,7 +697,7 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
         result += "\n}\n";
 
     } else {
-        for (auto const& mon : g_pCompositor->m_monitors) {
+        for (auto const& mon : State::monitorState()->monitors()) {
             result += std::format("Monitor {}:\n", mon->m_name);
             int                                     layerLevel = 0;
             static const std::array<std::string, 4> levelNames = {"background", "bottom", "top", "overlay"};
@@ -692,8 +705,9 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
                 result += std::format("\tLayer level {} ({}):\n", layerLevel, levelNames[layerLevel]);
 
                 for (auto const& layer : level) {
-                    result += std::format("\t\tLayer {:x}: xywh: {} {} {} {}, namespace: {}, pid: {}\n", rc<uintptr_t>(layer.get()), layer->m_geometry.x, layer->m_geometry.y,
-                                          layer->m_geometry.width, layer->m_geometry.height, layer->m_namespace, layer->getPID());
+                    result += std::format("\t\tLayer {:x}: xywh: {} {} {} {}, a: {}, namespace: {}, pid: {}\n", rc<uintptr_t>(layer.get()), layer->m_geometry.x,
+                                          layer->m_geometry.y, layer->m_geometry.width, layer->m_geometry.height, std::clamp(sc<double>(layer->alpha().goal()), 0.0, 1.0),
+                                          layer->m_namespace, layer->getPID());
                 }
 
                 layerLevel++;
@@ -913,13 +927,13 @@ static std::string animationsRequest(eHyprCtlOutputFormat format, std::string re
         ret += "animations:\n";
 
         for (auto const& ac : Config::animationTree()->getAnimationConfig()) {
-            ret += std::format("\n\tname: {}\n\t\toverriden: {}\n\t\tbezier: {}\n\t\tenabled: {}\n\t\tspeed: {:.2f}\n\t\tstyle: {}\n", ac.first, sc<int>(ac.second->overridden),
+            ret += std::format("\n\tname: {}\n\t\toverridden: {}\n\t\tbezier: {}\n\t\tenabled: {}\n\t\tspeed: {:.2f}\n\t\tstyle: {}\n", ac.first, sc<int>(ac.second->overridden),
                                ac.second->internalBezier, ac.second->internalEnabled, ac.second->internalSpeed, ac.second->internalStyle);
         }
 
         ret += "beziers:\n";
 
-        for (auto const& bz : g_pAnimationManager->getAllBeziers()) {
+        for (auto const& bz : Animation::mgr()->getAllBeziers()) {
             auto& controlPoints = bz.second->getControlPoints();
             ret += std::format("\n\tname: {}\n\t\tX0: {:.2f}\n\t\tY0: {:.2f}\n\t\tX1: {:.2f}\n\t\tY1: {:.2f}", bz.first, controlPoints[1].x, controlPoints[1].y, controlPoints[2].x,
                                controlPoints[2].y);
@@ -946,7 +960,7 @@ static std::string animationsRequest(eHyprCtlOutputFormat format, std::string re
 
         ret += ",\n[";
 
-        for (auto const& bz : g_pAnimationManager->getAllBeziers()) {
+        for (auto const& bz : Animation::mgr()->getAllBeziers()) {
             auto& controlPoints = bz.second->getControlPoints();
             ret += std::format(R"#(
 {{
@@ -1096,7 +1110,7 @@ static std::string evalRequest(eHyprCtlOutputFormat format, std::string request)
     // strip the command name ("eval ") from the request
     auto code = request.substr(request.find_first_of(' ') + 1);
 
-    auto err = luaMgr->eval(code);
+    auto err = luaMgr->eval(code, request.starts_with("repl "));
     if (err)
         return *err;
 
@@ -1194,7 +1208,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
         g_pHyprRenderer->m_reloadScreenShader = true;
 
     if (COMMAND.contains("blur") || COMMAND == "source") {
-        for (auto const& m : g_pCompositor->m_monitors) {
+        for (auto const& m : State::monitorState()->monitors()) {
             if (m)
                 m->m_blurFBDirty = true;
         }
@@ -1206,7 +1220,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
     // decorations will probably need a repaint
     if (COMMAND.contains("decoration:") || COMMAND.contains("border") || COMMAND == "workspace" || COMMAND.contains("zoom_factor") || COMMAND == "source") {
         static auto PZOOMFACTOR = CConfigValue<Config::FLOAT>("cursor:zoom_factor");
-        for (auto const& m : g_pCompositor->m_monitors) {
+        for (auto const& m : State::monitorState()->monitors()) {
             *(m->m_cursorZoom) = *PZOOMFACTOR;
             g_pHyprRenderer->damageMonitor(m);
             if (m->m_activeWorkspace)
@@ -1220,13 +1234,14 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
     if (COMMAND.contains("layerrule") || COMMAND.contains("layerrule[")) {
         mgr->reloadRules();
         // Damage all monitors to redraw static layers.
-        for (auto const& m : g_pCompositor->m_monitors) {
+        for (auto const& m : State::monitorState()->monitors()) {
             g_pHyprRenderer->damageMonitor(m);
         }
     }
 
     if (COMMAND.contains("workspace"))
-        g_pCompositor->ensurePersistentWorkspacesPresent();
+        State::workspacePlacementController()->ensurePersistentWorkspacesPresent(
+            nullptr, [](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { State::workspacePlacementController()->moveWorkspaceToMonitor(ws, mon, noWarp); });
 
     Log::logger->log(Log::DEBUG, "Hyprctl: keyword {} : {}", COMMAND, VALUE);
 
@@ -1329,7 +1344,7 @@ static std::string dispatchSetCursor(eHyprCtlOutputFormat format, std::string re
     if (size <= 0)
         return "size not positive";
 
-    if (!g_pCursorManager->changeTheme(theme, size))
+    if (!Pointer::Cursor::mgr()->changeTheme(theme, size))
         return "failed to set cursor";
 
     return "ok";
@@ -1448,7 +1463,7 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
     const auto WINREGEX = vars[1];
     const auto PROP     = vars[2];
 
-    const auto PWINDOW = g_pCompositor->getWindowByRegex(WINREGEX);
+    const auto PWINDOW = Desktop::viewState()->query().selector(WINREGEX).runWindow();
 
     if (!PWINDOW)
         return "window not found";
@@ -1712,7 +1727,7 @@ static std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string re
 
 static std::string decorationRequest(eHyprCtlOutputFormat format, std::string request) {
     CVarList   vars(request, 0, ' ');
-    const auto PWINDOW = g_pCompositor->getWindowByRegex(vars[1]);
+    const auto PWINDOW = Desktop::viewState()->query().selector(vars[1]).runWindow();
 
     if (!PWINDOW)
         return "none";
@@ -1747,14 +1762,14 @@ static std::string dispatchOutput(eHyprCtlOutputFormat format, std::string reque
     bool       added = false;
 
     if (!vars[3].empty()) {
-        for (auto const& m : g_pCompositor->m_realMonitors) {
+        for (auto const& m : State::monitorState()->allMonitors()) {
             if (m->m_name == vars[3])
                 return "Name already taken";
         }
     }
 
     if (MODE == "create" || MODE == "add") {
-        if (g_pCompositor->getMonitorFromName(vars[3]))
+        if (State::monitorState()->query().name(vars[3]).run())
             return "A real monitor already uses that name.";
 
         for (auto const& impl : g_pCompositor->m_aqBackend->getImplementations() | std::views::reverse) {
@@ -1777,7 +1792,7 @@ static std::string dispatchOutput(eHyprCtlOutputFormat format, std::string reque
             return "no backend replied to the request";
 
     } else if (MODE == "destroy" || MODE == "remove") {
-        const auto PMONITOR = g_pCompositor->getMonitorFromName(vars[2]);
+        const auto PMONITOR = State::monitorState()->query().name(vars[2]).run();
 
         if (!PMONITOR)
             return "output not found";
@@ -2019,7 +2034,7 @@ CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"decorations", false, decorationRequest});
     registerCommand(SHyprCtlCommand{"[[BATCH]]", false, dispatchBatch});
     registerCommand(SHyprCtlCommand{"eval", false, evalRequest});
-
+    registerCommand(SHyprCtlCommand{"repl", false, evalRequest});
     startHyprCtlSocket();
 }
 
@@ -2113,19 +2128,19 @@ std::string CHyprCtl::getReply(std::string request) {
 
         g_pHyprRenderer->m_reloadScreenShader = true;
 
-        for (auto const& m : g_pCompositor->m_monitors) {
+        for (auto const& m : State::monitorState()->monitors()) {
             if (m)
                 m->m_blurFBDirty = true;
         }
 
-        for (auto const& w : g_pCompositor->m_windows) {
+        for (auto const& w : Desktop::windowState()->windows()) {
             if (!w->m_isMapped || !w->m_workspace || !w->m_workspace->isVisible())
                 continue;
 
             Desktop::Rule::ruleEngine()->updateAllRules();
         }
 
-        for (const auto& ws : g_pCompositor->getWorkspaces()) {
+        for (const auto& ws : State::workspaceState()->workspaces()) {
             if (!ws)
                 continue;
 
@@ -2134,7 +2149,7 @@ std::string CHyprCtl::getReply(std::string request) {
             ws->updateWindowDecos();
         }
 
-        for (auto const& m : g_pCompositor->m_monitors) {
+        for (auto const& m : State::monitorState()->monitors()) {
             g_pHyprRenderer->damageMonitor(m);
         }
     }

@@ -124,14 +124,11 @@ CFileDescriptor DRM::mergeFence(const CFileDescriptor& fd1, const CFileDescripto
 
     CFileDescriptor mergedFence;
 #ifdef __linux__
-    const std::string      name = "merged release fence";
     struct sync_merge_data data{
-        .name  = {}, // zero-initialize name[]
+        .name  = "merged release fence",
         .fd2   = fd2.get(),
         .fence = -1,
     };
-
-    std::ranges::copy_n(name.c_str(), std::min(name.size() + 1, sizeof(data.name)), data.name);
 
     if (doIoctl(fd1.get(), SYNC_IOC_MERGE, &data) == 0)
         mergedFence = CFileDescriptor(data.fence);

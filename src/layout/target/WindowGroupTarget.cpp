@@ -23,15 +23,15 @@ eTargetType CWindowGroupTarget::type() {
     return TARGET_TYPE_GROUP;
 }
 
-void CWindowGroupTarget::setPositionGlobal(const STargetBox& box) {
-    ITarget::setPositionGlobal(box);
+void CWindowGroupTarget::setPositionGlobal(const STargetBox& box, uint8_t flags) {
+    ITarget::setPositionGlobal(box, flags);
 
-    updatePos();
+    updatePos(flags);
 }
 
-void CWindowGroupTarget::updatePos() {
+void CWindowGroupTarget::updatePos(uint8_t flags) {
     for (const auto& w : m_group->windows()) {
-        w->m_target->setPositionGlobal(m_box);
+        w->m_target->setPositionGlobal(m_box, flags);
     }
 }
 
@@ -60,26 +60,6 @@ PHLWINDOW CWindowGroupTarget::window() const {
     return m_group->current();
 }
 
-eFullscreenMode CWindowGroupTarget::fullscreenMode() {
-    return m_group->current()->m_fullscreenState.internal;
-}
-
-void CWindowGroupTarget::setFullscreenMode(eFullscreenMode mode) {
-    m_group->current()->m_fullscreenState.internal = mode;
-}
-
-bool CWindowGroupTarget::layoutManagedFullscreen() const {
-    return m_group->current()->m_target->layoutManagedFullscreen();
-}
-
-void CWindowGroupTarget::setLayoutManagedFullscreen(bool enabled) {
-    ITarget::setLayoutManagedFullscreen(enabled);
-
-    for (const auto& w : m_group->windows()) {
-        w->m_target->setLayoutManagedFullscreen(enabled);
-    }
-}
-
 std::optional<Vector2D> CWindowGroupTarget::minSize() {
     return m_group->current()->minSize();
 }
@@ -102,4 +82,8 @@ void CWindowGroupTarget::onUpdateSpace() {
     for (const auto& w : m_group->windows()) {
         w->m_target->onUpdateSpace();
     }
+}
+
+SP<Desktop::View::CGroup> CWindowGroupTarget::getGroup() {
+    return m_group.lock();
 }

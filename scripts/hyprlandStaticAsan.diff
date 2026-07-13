@@ -1,13 +1,14 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index f26a5c3c..3dfef333 100644
+index 400b8e10..24ab0916 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -143,6 +143,8 @@ if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
-     message(STATUS "Enabling ASan")
+@@ -305,6 +305,9 @@ if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
  
-     target_link_libraries(Hyprland asan)
+     target_link_libraries(hyprland_lib PUBLIC asan)
+     target_compile_options(hyprland_lib PUBLIC -fsanitize=address)
++
 +    pkg_check_modules(ffidep REQUIRED IMPORTED_TARGET libffi)
-+    target_link_libraries(Hyprland ${CMAKE_SOURCE_DIR}/libwayland-server.a PkgConfig::ffidep)
-     target_compile_options(Hyprland PUBLIC -fsanitize=address)
++    target_link_libraries(hyprland_lib PUBLIC ${CMAKE_SOURCE_DIR}/libwayland-server.a PkgConfig::ffidep)
    endif()
  
+   add_compile_options(-fno-pie -fno-builtin -fno-omit-frame-pointer)

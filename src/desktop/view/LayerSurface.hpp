@@ -7,12 +7,21 @@
 #include "../rule/layerRule/LayerRuleApplicator.hpp"
 #include "../../helpers/AnimatedVariable.hpp"
 #include "../../render/Framebuffer.hpp"
+#include "types/GeometricMovableAnimated.hpp"
+#include "types/AlphaModifiable.hpp"
+#include "animationControllers/LayerSurfaceAnimationController.hpp"
 
 class CLayerShellResource;
 
 namespace Desktop::View {
 
-    class CLayerSurface : public IView {
+    enum eLayerAlpha : uint8_t {
+        LS_ALPHA_FADE = 0,
+
+        LS_ALPHA_LAST,
+    };
+
+    class CLayerSurface : public virtual IView, public virtual CGeometricMovableAnimated, public virtual IAlphaModifiable {
       public:
         static PHLLS create(SP<CLayerShellResource>);
         static PHLLS fromView(SP<IView>);
@@ -23,20 +32,20 @@ namespace Desktop::View {
       public:
         virtual ~CLayerSurface();
 
-        virtual eViewType           type() const;
-        virtual bool                visible() const;
-        virtual std::optional<CBox> logicalBox() const;
-        virtual bool                desktopComponent() const;
-        virtual std::optional<CBox> surfaceLogicalBox() const;
+        virtual eViewType                                   type() const override;
+        virtual bool                                        visible() const override;
+        virtual std::optional<CBox>                         logicalBox() const override;
+        virtual bool                                        desktopComponent() const override;
+        virtual std::optional<CBox>                         surfaceLogicalBox() const override;
+        virtual Types::CMultiAVarContainer<float, uint8_t>& alpha() override;
+        virtual std::optional<uint8_t>                      alphaGenericToKey(eAlphaModifiableProp p) override;
 
-        bool                        isFadedOut();
-        int                         popupsCount();
+        int                                                 popupsCount();
 
-        PHLANIMVAR<Vector2D>        m_realPosition;
-        PHLANIMVAR<Vector2D>        m_realSize;
-        PHLANIMVAR<float>           m_alpha;
+        using CGeometricMovableAnimated::m_realPosition;
+        using CGeometricMovableAnimated::m_realSize;
 
-        WP<CLayerShellResource>     m_layerSurface;
+        WP<CLayerShellResource> m_layerSurface;
 
         // the header providing the enum type cannot be imported here
         int                                     m_interactivity = 0;
@@ -46,8 +55,6 @@ namespace Desktop::View {
 
         PHLMONITORREF                           m_monitor;
 
-        bool                                    m_fadingOut       = false;
-        bool                                    m_readyToDelete   = false;
         bool                                    m_noProcess       = false;
         bool                                    m_aboveFullscreen = true;
 
@@ -55,12 +62,12 @@ namespace Desktop::View {
 
         PHLLSREF                                m_self;
 
+        CLayerSurfaceAnimationController        m_animationController;
+
         CBox                                    m_geometry = {0, 0, 0, 0};
         Vector2D                                m_position;
         std::string                             m_namespace = "";
         SP<Desktop::View::CPopup>               m_popupHead;
-
-        SP<Render::IFramebuffer>                m_snapshotFB;
 
         pid_t                                   getPID();
         void                                    updateSurfaceScaleTransformDetails();
@@ -81,6 +88,9 @@ namespace Desktop::View {
 
         void registerCallbacks();
 
+        // fade in/out
+        Desktop::Types::CMultiAVarContainer<float, std::underlying_type_t<eLayerAlpha>> m_alpha;
+
         // For the list lookup
         bool operator==(const CLayerSurface& rhs) const {
             return m_layerSurface == rhs.m_layerSurface && m_monitor == rhs.m_monitor;
@@ -95,13 +105,13 @@ namespace Desktop::View {
         return !!l;
     }
 
-    inline bool validMapped(PHLLS l) {
+    inline bool validMapped(const PHLLS& l) {
         if (!valid(l))
             return false;
         return l->aliveAndVisible();
     }
 
-    inline bool validMapped(PHLLSREF l) {
+    inline bool validMapped(const PHLLSREF& l) {
         if (!valid(l))
             return false;
         return l->aliveAndVisible();

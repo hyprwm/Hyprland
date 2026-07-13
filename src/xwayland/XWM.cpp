@@ -62,8 +62,7 @@ void CXWM::handleCreate(xcb_create_notify_event_t* e) {
     Log::logger->log(Log::DEBUG, "[xwm] New XSurface at {:x} with xid of {}", rc<uintptr_t>(XSURF.get()), e->window);
 
     const auto WINDOW = Desktop::View::CWindow::create(XSURF);
-    g_pCompositor->m_windows.emplace_back(WINDOW);
-    WINDOW->m_self = WINDOW;
+    WINDOW->m_self    = WINDOW;
     Log::logger->log(Log::DEBUG, "[xwm] New XWayland window at {:x} for surf {:x}", rc<uintptr_t>(WINDOW.get()), rc<uintptr_t>(XSURF.get()));
 }
 
@@ -1551,7 +1550,7 @@ bool SXSelection::sendData(xcb_selection_request_event_t* e, std::string mime) {
             }
 
             if (!MIMES.empty())
-                mimeList = mimeList.substr(0, mimeList.size() - 2);
+                mimeList.resize(mimeList.size() - 2);
 
             Log::logger->log(Log::TRACE, "[xwm] X MIME supported: {}", mimeList);
         }

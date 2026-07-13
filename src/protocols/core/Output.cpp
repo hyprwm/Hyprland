@@ -14,13 +14,16 @@ CWLOutputResource::CWLOutputResource(SP<CWlOutput> resource_, PHLMONITOR pMonito
     if (!m_monitor)
         return;
 
+    // route through the owning protocol object, not a name lookup: after a monitor
+    // unplug/replug PROTO::outputs.at(name) is a *new* global, and releases meant for the
+    // old defunct one would never drain it.
     m_resource->setOnDestroy([this](CWlOutput* r) {
-        if (m_monitor && PROTO::outputs.contains(m_monitor->m_name))
-            PROTO::outputs.at(m_monitor->m_name)->destroyResource(this);
+        if (m_owner)
+            m_owner->destroyResource(this);
     });
     m_resource->setRelease([this](CWlOutput* r) {
-        if (m_monitor && PROTO::outputs.contains(m_monitor->m_name))
-            PROTO::outputs.at(m_monitor->m_name)->destroyResource(this);
+        if (m_owner)
+            m_owner->destroyResource(this);
     });
 
     if (m_resource->version() >= 4) {
@@ -115,8 +118,19 @@ void CWLOutputProtocol::bindManager(wl_client* client, void* data, uint32_t ver,
 void CWLOutputProtocol::destroyResource(CWLOutputResource* resource) {
     std::erase_if(m_outputs, [&](const auto& other) { return other.get() == resource; });
 
-    if (m_outputs.empty() && m_defunct)
-        PROTO::outputs.erase(m_name);
+    if (m_outputs.empty() && m_defunct) {
+        // only erase the map entry if it is actually us: a new global with the same name may
+        // have replaced us (monitor replug), in which case we live in defunctOutputs.
+        // NOTE: either erase drops the last ref to `this` — nothing may run after it.
+        if (PROTO::outputs.contains(m_name) && PROTO::outputs.at(m_name).get() == this)
+            PROTO::outputs.erase(m_name);
+        else
+            std::erase_if(PROTO::defunctOutputs, [this](const auto& other) { return other.get() == this; });
+    }
+}
+
+bool CWLOutputProtocol::hasBoundResources() {
+    return !m_outputs.empty();
 }
 
 std::vector<SP<CWLOutputResource>> CWLOutputProtocol::outputResourcesFrom(wl_client* client) {

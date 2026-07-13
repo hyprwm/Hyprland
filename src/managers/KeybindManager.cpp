@@ -4,19 +4,19 @@
 #include "../config/shared/actions/ConfigActions.hpp"
 #include "../devices/IKeyboard.hpp"
 #include "../managers/SeatManager.hpp"
+#include "../managers/fullscreen/FullscreenController.hpp"
 #include "../protocols/ShortcutsInhibit.hpp"
 #include "../protocols/Hotkey.hpp"
 #include "../protocols/core/DataDevice.hpp"
 #include "../errorOverlay/Overlay.hpp"
 #include "KeybindManager.hpp"
-#include "PointerManager.hpp"
+#include "../pointer/PointerManager.hpp"
 #include "Compositor.hpp"
 #include "eventLoop/EventLoopManager.hpp"
 #include "debug/log/Logger.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../layout/LayoutManager.hpp"
 #include "../event/EventBus.hpp"
-
 #include <string>
 #include <cstring>
 
@@ -906,10 +906,13 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
 
         const auto         CURRENT_TTY = g_pCompositor->getVTNr();
 
-        if (!CURRENT_TTY.has_value() || *CURRENT_TTY == TTY)
+        if (CURRENT_TTY.has_value() && *CURRENT_TTY == TTY)
             return true;
 
-        Log::logger->log(Log::DEBUG, "Switching from VT {} to VT {}", *CURRENT_TTY, TTY);
+        if (CURRENT_TTY)
+            Log::logger->log(Log::DEBUG, "Switching from VT {} to VT {}", *CURRENT_TTY, TTY);
+        else
+            Log::logger->log(Log::DEBUG, "Switching from VT <unknown> to VT {}", TTY);
 
         g_pCompositor->m_aqBackend->session->switchVT(TTY);
     }
@@ -944,12 +947,13 @@ SDispatchResult CKeybindManager::changeMouseBindMode(const eMouseBindMode MODE) 
             return {};
 
         const auto      MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
-        const PHLWINDOW PWINDOW = g_pCompositor->vectorToWindowUnified(MOUSECOORDS, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
+        const PHLWINDOW PWINDOW =
+            Desktop::viewState()->hitTest().windowAt(MOUSECOORDS, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
 
         if (!PWINDOW)
             return SDispatchResult{.passEvent = true};
 
-        if (!PWINDOW->isFullscreen() && MODE == MBIND_MOVE) {
+        if (!Fullscreen::controller()->isFullscreen(PWINDOW) && MODE == MBIND_MOVE) {
             if (PWINDOW->checkInputOnDecos(INPUT_TYPE_DRAG_START, MOUSECOORDS))
                 return SDispatchResult{.passEvent = false};
         }

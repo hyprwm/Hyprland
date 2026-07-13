@@ -10,6 +10,7 @@
 #include "../devices/ITouch.hpp"
 
 #include "../desktop/DesktopTypes.hpp"
+#include "../desktop/view/View.hpp"
 
 #include "../SharedDefs.hpp"
 #include <unordered_map>
@@ -21,6 +22,12 @@ namespace Desktop {
 namespace Event {
     struct SCallbackInfo {
         bool cancelled = false; /* on cancellable events, will cancel the event. */
+    };
+
+    struct SViewDestroyEvent {
+        PHLVIEWREF               view;
+        Desktop::View::eViewType type    = Desktop::View::VIEW_TYPE_WINDOW;
+        uintptr_t                address = 0;
     };
 
     class CEventBus {
@@ -68,9 +75,10 @@ namespace Event {
             Event<> exit;
 
             struct {
+                Event<PHLWINDOW>                        create;
                 Event<PHLWINDOW>                        open;
                 Event<PHLWINDOW>                        openEarly;
-                Event<PHLWINDOW>                        destroy;
+                Event<PHLWINDOWREF>                     destroy;
                 Event<PHLWINDOW>                        close;
                 Event<PHLWINDOW>                        kill;
                 Event<PHLWINDOW, Desktop::eFocusReason> active;
@@ -89,6 +97,11 @@ namespace Event {
                 Event<PHLLS> closed;
                 Event<PHLLS> updateRules;
             } layer;
+
+            struct {
+                Event<PHLVIEW>           create;
+                Event<SViewDestroyEvent> destroy;
+            } view;
 
             struct {
                 struct {

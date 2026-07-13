@@ -93,7 +93,7 @@ CLuaEventHandler::CLuaEventHandler(lua_State* L) : m_lua(L) {
     m_listeners.push_back(bus()->m_events.window.open.listen([this](PHLWINDOW w) { dispatch("window.open", 1, [&](lua_State* L) { CLuaWindow::push(L, w); }); }));
     m_listeners.push_back(bus()->m_events.window.openEarly.listen([this](PHLWINDOW w) { dispatch("window.open_early", 1, [&](lua_State* L) { CLuaWindow::push(L, w); }); }));
     m_listeners.push_back(bus()->m_events.window.close.listen([this](PHLWINDOW w) { dispatch("window.close", 1, [&](lua_State* L) { CLuaWindow::push(L, w); }); }));
-    m_listeners.push_back(bus()->m_events.window.destroy.listen([this](PHLWINDOW w) { dispatch("window.destroy", 1, [&](lua_State* L) { CLuaWindow::push(L, w); }); }));
+    m_listeners.push_back(bus()->m_events.window.destroy.listen([this](PHLWINDOWREF w) { dispatch("window.destroy", 1, [&](lua_State* L) { CLuaWindow::push(L, w.lock()); }); }));
     m_listeners.push_back(bus()->m_events.window.kill.listen([this](PHLWINDOW w) { dispatch("window.kill", 1, [&](lua_State* L) { CLuaWindow::push(L, w); }); }));
     m_listeners.push_back(bus()->m_events.window.active.listen([this](PHLWINDOW w, Desktop::eFocusReason r) {
         dispatch("window.active", 2, [&](lua_State* L) {
@@ -173,6 +173,14 @@ CLuaEventHandler::CLuaEventHandler(lua_State* L) : m_lua(L) {
         auto ret = removeCustomEvent(name);
         if (!ret)
             Log::logger->log(Log::ERR, "failed to unregister plugin event for lua {}: {}", name, ret.error());
+    }));
+
+    m_listeners.push_back(bus()->m_events.input.keyboard.key.listen([this](const IKeyboard::SKeyEvent& keyEvent, const SCallbackInfo& _) {
+        dispatch("input.keyboard.key", 3, [&](lua_State* L) {
+            lua_pushinteger(L, keyEvent.keycode + 8); // Because to xkbcommon it's +8 from libinput
+            lua_pushinteger(L, keyEvent.timeMs);
+            lua_pushinteger(L, keyEvent.state);
+        });
     }));
 }
 
@@ -276,6 +284,7 @@ std::unordered_set<std::string> CLuaEventHandler::knownEvents() {
         "monitor.focused",
         "monitor.layout_changed",
         "workspace.active",
+        "workspace.special_active",
         "workspace.created",
         "workspace.removed",
         "workspace.move_to_monitor",
@@ -285,6 +294,7 @@ std::unordered_set<std::string> CLuaEventHandler::knownEvents() {
         "screenshare.state",
         "hyprland.start",
         "hyprland.shutdown",
+        "input.keyboard.key",
     };
     for (auto& kv : Event::bus()->m_events.plugin)
         EVENTS.emplace(kv.first);

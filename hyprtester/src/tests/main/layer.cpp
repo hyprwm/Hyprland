@@ -19,6 +19,20 @@ static bool spawnLayer(const std::string& namespace_, const std::vector<std::str
     return true;
 }
 
+static std::string getLayerLine(const std::string& layers, const std::string& target) {
+
+    auto pos = layers.find("namespace: " + target);
+    if (pos == std::string::npos)
+        return "";
+
+    auto start = layers.rfind('\n', pos);
+    start      = (start == std::string::npos) ? 0 : start + 1;
+
+    auto end = layers.find('\n', pos);
+
+    return layers.substr(start, end - start);
+}
+
 TEST_CASE(plugin_layerrules) {
 
     EXPECT(spawnLayer("rule-layer"), true);
@@ -57,4 +71,54 @@ TEST_CASE(layerPointerFocusPreservedOnKeyboardRefocus) {
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2' })"));
     ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: pointer_focus_ws2\n");
     OK(getFromSocket(std::format("/eval hl.plugin.test.check_pointer_focus_layer('{}')", LAYER_NAMESPACE)));
+}
+
+TEST_CASE(layerVisibilityOnFs) {
+
+    // For default handled fullscreen
+
+    static constexpr const char* LAYER_NAMESPACE = "bar-like-layer";
+
+    ASSERT(spawnLayer(LAYER_NAMESPACE, {"--edge=top", "--layer=top", "--lines=48px", "--focus-policy=not-allowed"}), true);
+
+    Tests::spawnKitty("cat");
+
+    {
+        auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
+        EXPECT_CONTAINS(str, "a: 1")
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 0");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', action = 'set', window = 'class:cat' })"));
+
+    {
+
+        auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
+        EXPECT_CONTAINS(str, "a: 1")
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 1");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', action = 'unset', window = 'class:cat' })"));
+
+    {
+        auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
+        EXPECT_CONTAINS(str, "a: 1")
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 0");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set', window = 'class:cat' })"));
+
+    {
+        auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
+        EXPECT_CONTAINS(str, "a: 0")
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 2");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'unset', window = 'class:cat' })"));
+
+    {
+        auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
+        EXPECT_CONTAINS(str, "a: 1")
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 0");
+    }
 }

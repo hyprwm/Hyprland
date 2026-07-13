@@ -262,6 +262,8 @@ customStdenv.mkDerivation (finalAttrs: {
       install hyprtester/pointer-scroll -t $out/bin
       install hyprtester/shortcut-inhibitor -t $out/bin
       install hyprtester/keyboard-modifiers -t $out/bin
+      install hyprtester/surface-scale-transform -t $out/bin
+      install hyprtester/xdg-interactive -t $out/bin
       install hyprland_gtests -t $out/bin
       install hyprtester/child-window -t $out/bin
     ''}

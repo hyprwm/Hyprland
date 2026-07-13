@@ -6,6 +6,7 @@
 #include "../../../space/Space.hpp"
 
 #include "../../../../Compositor.hpp"
+#include "../../../../desktop/state/WindowState.hpp"
 #include "../../../../output/Monitor.hpp"
 #include "../../../../state/MonitorState.hpp"
 
@@ -111,7 +112,7 @@ void CDefaultFloatingAlgorithm::newTarget(SP<ITarget> target) {
         }
 
         if (!PWINDOW->isX11OverrideRedirect())
-            g_pCompositor->changeWindowZOrder(PWINDOW, true);
+            Desktop::windowState()->raise(PWINDOW);
         else {
             PWINDOW->m_pendingReportedSize = PWINDOW->m_realSize->goal();
             PWINDOW->m_reportedSize        = PWINDOW->m_pendingReportedSize;

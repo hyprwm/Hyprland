@@ -2,6 +2,7 @@
 
 #include <config/lua/objects/LuaEventSubscription.hpp>
 #include <config/lua/objects/LuaKeybind.hpp>
+#include <config/lua/objects/LuaWorkspaceRule.hpp>
 
 #include <managers/KeybindManager.hpp>
 #include <event/EventBus.hpp>
@@ -77,6 +78,28 @@ TEST(ConfigLuaObjects, keybindCanToggleEnabledFromLua) {
               LUA_OK);
 
     EXPECT_FALSE(keybind->enabled);
+}
+
+TEST(ConfigLuaObjects, workspaceRuleCanToggleEnabledFromLua) {
+    CLuaState  S;
+    const auto L = S.get();
+
+    Objects::CLuaWorkspaceRule{}.setup(L);
+
+    auto rule = makeShared<Config::CWorkspaceRule>();
+    rule->setEnabled(true);
+
+    Objects::CLuaWorkspaceRule::push(L, rule);
+    lua_setglobal(L, "rule");
+
+    ASSERT_EQ(luaL_dostring(L, R"(
+        assert(rule:is_enabled() == true)
+        rule:set_enabled(false)
+        assert(rule:is_enabled() == false)
+    )"),
+              LUA_OK);
+
+    EXPECT_FALSE(rule->isEnabled());
 }
 
 TEST(ConfigLuaObjects, keybindExposesMetadataAndRemoveMethods) {

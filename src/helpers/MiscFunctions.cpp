@@ -157,16 +157,19 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
         std::set<WORKSPACEID> invalidWSes;
         if (same_mon) {
             for (auto const& rule : Config::workspaceRuleMgr()->getAllWorkspaceRules()) {
-                const auto PMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(rule.m_monitor).run();
+                if (!rule->isEnabled())
+                    continue;
+
+                const auto PMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(rule->m_monitor).run();
                 if (PMONITOR && (PMONITOR->m_id != Desktop::focusState()->monitor()->m_id))
-                    invalidWSes.insert(rule.m_workspaceId);
+                    invalidWSes.insert(rule->m_workspaceId);
             }
         }
 
         WORKSPACEID id = next ? Desktop::focusState()->monitor()->activeWorkspaceID() : 0;
         while (++id < LONG_MAX) {
             const auto PWORKSPACE = State::workspaceState()->query().id(id).run();
-            if (!invalidWSes.contains(id) && (!PWORKSPACE || PWORKSPACE->getWindows() == 0)) {
+            if (!invalidWSes.contains(id) && (!PWORKSPACE || PWORKSPACE->getWindowCount() == 0)) {
                 result.id = id;
                 return result;
             }
@@ -237,13 +240,16 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 }
             }
             for (auto const& rule : Config::workspaceRuleMgr()->getAllWorkspaceRules()) {
-                const auto PMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(rule.m_monitor).run();
+                if (!rule->isEnabled())
+                    continue;
+
+                const auto PMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(rule->m_monitor).run();
                 if (!PMONITOR || PMONITOR->m_id == Desktop::focusState()->monitor()->m_id) {
                     // Can't be invalid
                     continue;
                 }
                 // WS is bound to another monitor, can't jump to this
-                invalidWSes.insert(rule.m_workspaceId);
+                invalidWSes.insert(rule->m_workspaceId);
             }
 
             // Prepare all named workspaces in case when we need them
@@ -486,7 +492,7 @@ std::optional<std::string> cleanCmdForWorkspace(const std::string& inWorkspaceNa
 
             bool hadWorkspaceRule = false;
             rulesList.map([&](std::string& rule) {
-                if (rule.find("workspace") == 0) {
+                if (rule.starts_with("workspace")) {
                     rule             = workspaceRule;
                     hadWorkspaceRule = true;
                 }
@@ -597,6 +603,8 @@ std::vector<SCallstackFrameInfo> getBacktrace() {
 
     btSize    = backtrace(bt, 1024);
     btSymbols = backtrace_symbols(bt, btSize);
+
+    callstack.reserve(btSize);
 
     for (auto i = 0; i < btSize; ++i) {
         callstack.emplace_back(SCallstackFrameInfo{bt[i], std::string{btSymbols[i]}});
@@ -819,11 +827,18 @@ std::string getBuiltSystemLibraryNames() {
 }
 
 bool truthy(const std::string& str) {
-    if (str == "1")
+    using std::operator""sv;
+
+    if (str == "1"sv)
         return true;
 
-    std::string cpy = str;
-    std::ranges::transform(cpy, cpy.begin(), ::tolower);
+    // clang-format off
+    auto str_view = str | std::views::transform([](unsigned char ch) -> char {
+        return sc<char>(std::tolower(ch));
+    });
 
-    return cpy.starts_with("true") || cpy.starts_with("yes") || cpy.starts_with("on");
+    return [&](auto&&... prefixes) -> bool {
+        return (... || std::ranges::starts_with(str_view, prefixes));
+    }("true"sv, "yes"sv, "on"sv);
+    // clang-format on
 }

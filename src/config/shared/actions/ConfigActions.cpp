@@ -1,16 +1,20 @@
 #include "ConfigActions.hpp"
 #include "../parserUtils/ParserUtils.hpp"
 #include "../../../desktop/state/FocusState.hpp"
+#include "../../../desktop/state/GlobalWindowController.hpp"
+#include "../../../desktop/state/WindowState.hpp"
 #include "../../../desktop/view/Window.hpp"
 #include "../../../desktop/view/Group.hpp"
 #include "../../../desktop/history/WindowHistoryTracker.hpp"
 #include "../../../desktop/history/WorkspaceHistoryTracker.hpp"
 #include "../../../Compositor.hpp"
 #include "../../../managers/SeatManager.hpp"
-#include "../../../managers/PointerManager.hpp"
+#include "../../../pointer/PointerManager.hpp"
+#include "../../../pointer/PointerController.hpp"
 #include "../../../managers/EventManager.hpp"
 #include "../../../managers/KeybindManager.hpp"
 #include "../../../managers/input/InputManager.hpp"
+#include "../../../managers/fullscreen/FullscreenController.hpp"
 #include "../../../layout/LayoutManager.hpp"
 #include "../../../layout/space/Space.hpp"
 #include "../../../render/Renderer.hpp"
@@ -24,6 +28,7 @@
 #include "../../../layout/algorithm/tiled/master/MasterAlgorithm.hpp"
 #include "../../../layout/algorithm/tiled/monocle/MonocleAlgorithm.hpp"
 #include "../../../state/MonitorState.hpp"
+#include "../../../state/WorkspacePlacementController.hpp"
 #include "../../../state/WorkspaceState.hpp"
 
 #include <numbers>
@@ -49,7 +54,7 @@ static void updateRelativeCursorCoords() {
         return;
 
     if (Desktop::focusState()->window())
-        Desktop::focusState()->window()->m_relativeCursorCoordsOnLastWarp = g_pInputManager->getMouseCoordsInternal() - Desktop::focusState()->window()->m_position;
+        Desktop::focusState()->window()->m_relativeCursorCoordsOnLastWarp = g_pInputManager->getMouseCoordsInternal() - Desktop::focusState()->window()->layoutBox().pos();
 }
 
 static void switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool forceFSCycle = false) {
@@ -63,7 +68,8 @@ static void switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool forceFSCycle = fals
 
     g_pInputManager->unconstrainMouse();
 
-    if (PLASTWINDOW && PLASTWINDOW->m_workspace == PWINDOWTOCHANGETO->m_workspace && PLASTWINDOW->isFullscreen())
+    if (PLASTWINDOW && PLASTWINDOW->m_workspace == PWINDOWTOCHANGETO->m_workspace &&
+        (Fullscreen::controller()->isFullscreen(PLASTWINDOW) && !Fullscreen::controller()->layoutManagedFS(PLASTWINDOW)))
         Desktop::focusState()->fullWindowFocus(PWINDOWTOCHANGETO, Desktop::FOCUS_REASON_SWITCH_TO_WINDOW_HARD, nullptr, forceFSCycle);
     else {
         updateRelativeCursorCoords();
@@ -112,7 +118,7 @@ static bool tryMoveFocusToMonitor(PHLMONITOR monitor) {
         }
     } else {
         Desktop::focusState()->rawWindowFocus(nullptr, Desktop::FOCUS_REASON_KEYBIND);
-        g_pCompositor->warpCursorTo(monitor->middle());
+        Pointer::pointerController()->warpTo(monitor->middle());
     }
     Desktop::focusState()->rawMonitorFocus(monitor);
 
@@ -186,14 +192,14 @@ ActionResult Actions::floatWindow(eTogglableAction action, std::optional<PHLWIND
     g_layoutManager->changeFloatingMode(window->layoutTarget());
 
     if (window->m_isFloating)
-        g_pCompositor->changeWindowZOrder(window, true);
+        Desktop::windowState()->raise(window);
 
     if (window->m_workspace) {
         window->m_workspace->updateWindows();
         window->m_workspace->updateWindowData();
     }
 
-    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+    Desktop::globalWindowController()->updateAllWindowsDecorations();
 
     return {};
 }
@@ -220,7 +226,7 @@ ActionResult Actions::pinWindow(eTogglableAction action, std::optional<PHLWINDOW
     if (!window)
         return {};
 
-    if (!window->m_isFloating || window->isFullscreen())
+    if (!window->m_isFloating || Fullscreen::controller()->isFullscreen(window))
         return actionError("Window does not qualify to be pinned", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     bool wantPin = false;
@@ -253,7 +259,7 @@ ActionResult Actions::pinWindow(eTogglableAction action, std::optional<PHLWINDOW
 
     const auto PWORKSPACE = window->m_workspace;
     PWORKSPACE->m_lastFocusedWindow =
-        g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS);
+        Desktop::viewState()->hitTest().windowAt(g_pInputManager->getMouseCoordsInternal(), Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS);
 
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "pin", .data = std::format("{:x},{}", rc<uintptr_t>(window.get()), sc<int>(window->m_pinned))});
     Event::bus()->m_events.window.pin.emit(window);
@@ -263,35 +269,44 @@ ActionResult Actions::pinWindow(eTogglableAction action, std::optional<PHLWINDOW
     return {};
 }
 
-ActionResult Actions::fullscreenWindow(eFullscreenMode mode, std::optional<PHLWINDOW> w) {
+ActionResult Actions::fullscreenWindow(Fullscreen::eFullscreenMode mode, bool layoutAware, std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
         return {};
 
-    if (window->isEffectiveInternalFSMode(mode))
-        g_pCompositor->setWindowFullscreenInternal(window, FSMODE_NONE);
+    if (Fullscreen::controller()->isFullscreen(window, mode))
+        Fullscreen::controller()->setFullscreenMode(window, Fullscreen::FSMODE_NONE, std::nullopt, layoutAware);
     else
-        g_pCompositor->setWindowFullscreenInternal(window, mode);
+        Fullscreen::controller()->setFullscreenMode(window, mode, std::nullopt, layoutAware);
 
     return {};
 }
 
-ActionResult Actions::fullscreenWindow(eFullscreenMode internalMode, eFullscreenMode clientMode, std::optional<PHLWINDOW> w) {
+ActionResult Actions::fullscreenWindow(Fullscreen::eFullscreenMode internalMode, Fullscreen::eFullscreenMode clientMode, bool layoutAware, std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
         return {};
 
+    const bool KEEP_INTERNAL = (internalMode == -1);
+    const bool KEEP_CLIENT   = (clientMode == -1);
+
+    internalMode = std::clamp(internalMode, sc<Fullscreen::eFullscreenMode>(0), Fullscreen::FSMODE_FULLSCREEN);
+    clientMode   = std::clamp(clientMode, sc<Fullscreen::eFullscreenMode>(0), Fullscreen::FSMODE_FULLSCREEN);
+
     window->m_ruleApplicator->syncFullscreenOverride(Desktop::Types::COverridableVar(false, Desktop::Types::PRIORITY_SET_PROP));
 
-    const Desktop::View::SFullscreenState STATE = {.internal = internalMode, .client = clientMode};
+    const Fullscreen::SFullscreenMode NEW_MODES = {.internal = internalMode, .client = clientMode};
 
-    if (window->m_fullscreenState.internal == STATE.internal && window->m_fullscreenState.client == STATE.client)
-        g_pCompositor->setWindowFullscreenState(window, Desktop::View::SFullscreenState{.internal = FSMODE_NONE, .client = FSMODE_NONE});
+    if (const auto PAST_FS_MODES = Fullscreen::controller()->getFullscreenModes(window); PAST_FS_MODES.internal == NEW_MODES.internal && PAST_FS_MODES.client == NEW_MODES.client)
+        Fullscreen::controller()->setFullscreenMode(window, Fullscreen::FSMODE_NONE, Fullscreen::FSMODE_NONE, layoutAware);
     else
-        g_pCompositor->setWindowFullscreenState(window, STATE);
+        Fullscreen::controller()->setFullscreenMode(
+            window, KEEP_INTERNAL ? std::optional<Fullscreen::eFullscreenMode>(std::nullopt) : std::optional<Fullscreen::eFullscreenMode>(NEW_MODES.internal),
+            KEEP_CLIENT ? std::optional<Fullscreen::eFullscreenMode>(std::nullopt) : std::optional<Fullscreen::eFullscreenMode>(NEW_MODES.client), layoutAware);
 
-    window->m_ruleApplicator->syncFullscreenOverride(
-        Desktop::Types::COverridableVar(window->m_fullscreenState.internal == window->m_fullscreenState.client, Desktop::Types::PRIORITY_SET_PROP));
+    const auto WINDOW_FS_MODES = Fullscreen::controller()->getFullscreenModes(window);
+
+    window->m_ruleApplicator->syncFullscreenOverride(Desktop::Types::COverridableVar(WINDOW_FS_MODES.internal == WINDOW_FS_MODES.client, Desktop::Types::PRIORITY_SET_PROP));
 
     return {};
 }
@@ -314,11 +329,11 @@ ActionResult Actions::moveToWorkspace(PHLWORKSPACE ws, bool silent, std::optiona
 
     if (silent) {
         const auto OLDMIDDLE = window->middle();
-        g_pCompositor->moveWindowToWorkspaceSafe(window, ws);
+        Desktop::globalWindowController()->moveWindowToWorkspace(window, ws);
 
         if (window == Desktop::focusState()->window()) {
             if (const auto PATCOORDS =
-                    g_pCompositor->vectorToWindowUnified(OLDMIDDLE, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING, window);
+                    Desktop::viewState()->hitTest().windowAt(OLDMIDDLE, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING, window);
                 PATCOORDS)
                 Desktop::focusState()->fullWindowFocus(PATCOORDS, Desktop::FOCUS_REASON_KEYBIND);
             else
@@ -327,11 +342,11 @@ ActionResult Actions::moveToWorkspace(PHLWORKSPACE ws, bool silent, std::optiona
     } else {
         PHLMONITOR pMonitor = nullptr;
 
-        const auto FULLSCREENMODE = window->m_fullscreenState.internal;
-        g_pCompositor->moveWindowToWorkspaceSafe(window, ws);
+        const auto FULLSCREENMODE = Fullscreen::controller()->getFullscreenModes(window).internal;
+        Desktop::globalWindowController()->moveWindowToWorkspace(window, ws);
         pMonitor = ws->m_monitor.lock();
         Desktop::focusState()->rawMonitorFocus(pMonitor);
-        g_pCompositor->setWindowFullscreenInternal(window, FULLSCREENMODE);
+        Fullscreen::controller()->setFullscreenMode(window, FULLSCREENMODE);
 
         POLDWS->m_lastFocusedWindow = POLDWS->getFirstWindow();
 
@@ -361,9 +376,10 @@ ActionResult Actions::moveFocus(Math::eDirection dir) {
         return {};
     }
 
-    const auto PWINDOWTOCHANGETO = *PFULLCYCLE && PLASTWINDOW->isFullscreen() ?
-        g_pCompositor->getWindowCycle(PLASTWINDOW, true, {}, false, dir != Math::DIRECTION_DOWN && dir != Math::DIRECTION_RIGHT, true) :
-        g_pCompositor->getWindowInDirection(PLASTWINDOW, dir);
+    const auto PWINDOWTOCHANGETO = *PFULLCYCLE && Fullscreen::controller()->isFullscreen(PLASTWINDOW) && !Fullscreen::controller()->layoutManagedFS(PLASTWINDOW) ?
+        Desktop::windowState()->query().cycle(PLASTWINDOW,
+                                              {.focusableOnly = true, .previous = dir != Math::DIRECTION_DOWN && dir != Math::DIRECTION_RIGHT, .allowFullscreenBlocked = true}) :
+        Desktop::windowState()->query().inDirection(PLASTWINDOW, dir);
 
     if (*PGROUPCYCLE && PLASTWINDOW->m_group) {
         auto isTheOnlyGroupOnWs = !PWINDOWTOCHANGETO && State::monitorState()->monitors().size() == 1;
@@ -377,7 +393,7 @@ ActionResult Actions::moveFocus(Math::eDirection dir) {
     }
 
     if (PWINDOWTOCHANGETO) {
-        switchToWindow(PWINDOWTOCHANGETO, *PFULLCYCLE && PLASTWINDOW->isFullscreen());
+        switchToWindow(PWINDOWTOCHANGETO, *PFULLCYCLE && Fullscreen::controller()->isFullscreen(PLASTWINDOW) && !Fullscreen::controller()->layoutManagedFS(PLASTWINDOW));
         return {};
     }
 
@@ -392,10 +408,12 @@ ActionResult Actions::moveFocus(Math::eDirection dir) {
     if (!PMONITOR)
         return actionError("Window has no monitor", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
+    const auto LASTWINDOWBOX = PLASTWINDOW->layoutBox();
+
     if (dir == Math::DIRECTION_LEFT || dir == Math::DIRECTION_RIGHT) {
-        if (STICKS(PLASTWINDOW->m_position.x, PMONITOR->m_position.x) && STICKS(PLASTWINDOW->m_size.x, PMONITOR->m_size.x))
+        if (STICKS(LASTWINDOWBOX.x, PMONITOR->m_position.x) && STICKS(LASTWINDOWBOX.w, PMONITOR->m_size.x))
             return {};
-    } else if (STICKS(PLASTWINDOW->m_position.y, PMONITOR->m_position.y) && STICKS(PLASTWINDOW->m_size.y, PMONITOR->m_size.y))
+    } else if (STICKS(LASTWINDOWBOX.y, PMONITOR->m_position.y) && STICKS(LASTWINDOWBOX.h, PMONITOR->m_size.y))
         return {};
 
     CBox box = PMONITOR->logicalBox();
@@ -419,8 +437,13 @@ ActionResult Actions::moveFocus(Math::eDirection dir) {
         default: break;
     }
 
-    const auto PWINDOWCANDIDATE = g_pCompositor->getWindowInDirection(box, PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace,
-                                                                      dir, PLASTWINDOW->m_isFloating, PLASTWINDOW, PLASTWINDOW->m_isFloating);
+    const auto PWINDOWCANDIDATE =
+        Desktop::windowState()->query().inDirection({.origin             = box,
+                                                     .workspace          = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace,
+                                                     .direction          = dir,
+                                                     .floatingPreference = PLASTWINDOW->m_isFloating,
+                                                     .ignoreWindow       = PLASTWINDOW,
+                                                     .useVectorAngles    = PLASTWINDOW->m_isFloating});
     if (PWINDOWCANDIDATE)
         switchToWindow(PWINDOWCANDIDATE);
 
@@ -452,7 +475,7 @@ ActionResult Actions::moveInDirection(Math::eDirection dir, std::optional<PHLWIN
     if (!window)
         return {};
 
-    if (window->isFullscreen())
+    if (Fullscreen::controller()->isFullscreen(window))
         return actionError("Can't move fullscreen window", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     updateRelativeCursorCoords();
@@ -468,10 +491,10 @@ ActionResult Actions::swapInDirection(Math::eDirection dir, std::optional<PHLWIN
     if (!window)
         return {};
 
-    if (window->isFullscreen())
+    if (Fullscreen::controller()->isFullscreen(window))
         return actionError("Can't swap fullscreen window", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
-    const auto PWINDOWTOCHANGETO = g_pCompositor->getWindowInDirection(window, dir);
+    const auto PWINDOWTOCHANGETO = Desktop::windowState()->query().inDirection(window, dir);
 
     if (!PWINDOWTOCHANGETO || PWINDOWTOCHANGETO == window)
         return actionError("No window to swap with in that direction", eActionErrorLevel::INFO, eActionErrorCode::NOT_FOUND);
@@ -494,7 +517,7 @@ ActionResult Actions::swapWith(PHLWINDOW other, std::optional<PHLWINDOW> w) {
     if (other == window)
         return actionError("Can't swap a window with itself", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
-    if (window->isFullscreen() || other->isFullscreen())
+    if (Fullscreen::controller()->isFullscreen(window) || Fullscreen::controller()->isFullscreen(other))
         return actionError("Can't swap fullscreen window", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     updateRelativeCursorCoords();
@@ -522,7 +545,7 @@ ActionResult Actions::focusCurrentOrLast() {
 
 ActionResult Actions::focusUrgentOrLast() {
     const auto& HISTORY       = Desktop::History::windowTracker()->fullHistory();
-    const auto  PWINDOWURGENT = g_pCompositor->getUrgentWindow();
+    const auto  PWINDOWURGENT = Desktop::viewState()->query().urgent().runWindow();
     const auto  PWINDOWPREV   = Desktop::focusState()->window() ? (HISTORY.size() < 2 ? nullptr : HISTORY[1].lock()) : (HISTORY.empty() ? nullptr : HISTORY[0].lock());
 
     if (!PWINDOWURGENT && !PWINDOWPREV)
@@ -535,7 +558,7 @@ ActionResult Actions::focusUrgentOrLast() {
 
 ActionResult Actions::center(std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
-    if (!window || !window->m_isFloating || window->isFullscreen())
+    if (!window || !window->m_isFloating || Fullscreen::controller()->isFullscreen(window))
         return actionError("No floating window found", eActionErrorLevel::INFO, eActionErrorCode::NOT_FOUND);
 
     const auto PMONITOR = window->m_monitor.lock();
@@ -554,13 +577,13 @@ ActionResult Actions::moveCursorToCorner(int corner, std::optional<PHLWINDOW> w)
         return actionError("Corner must be 0 - 3", eActionErrorLevel::ERROR, eActionErrorCode::INVALID_ARGUMENT);
 
     switch (corner) {
-        case 0: g_pCompositor->warpCursorTo({window->m_realPosition->value().x, window->m_realPosition->value().y + window->m_realSize->value().y}, true); break;
+        case 0: Pointer::pointerController()->warpTo({window->m_realPosition->value().x, window->m_realPosition->value().y + window->m_realSize->value().y}, true); break;
         case 1:
-            g_pCompositor->warpCursorTo({window->m_realPosition->value().x + window->m_realSize->value().x, window->m_realPosition->value().y + window->m_realSize->value().y},
-                                        true);
+            Pointer::pointerController()->warpTo(
+                {window->m_realPosition->value().x + window->m_realSize->value().x, window->m_realPosition->value().y + window->m_realSize->value().y}, true);
             break;
-        case 2: g_pCompositor->warpCursorTo({window->m_realPosition->value().x + window->m_realSize->value().x, window->m_realPosition->value().y}, true); break;
-        case 3: g_pCompositor->warpCursorTo({window->m_realPosition->value().x, window->m_realPosition->value().y}, true); break;
+        case 2: Pointer::pointerController()->warpTo({window->m_realPosition->value().x + window->m_realSize->value().x, window->m_realPosition->value().y}, true); break;
+        case 3: Pointer::pointerController()->warpTo({window->m_realPosition->value().x, window->m_realPosition->value().y}, true); break;
         default: break;
     }
 
@@ -572,7 +595,7 @@ ActionResult Actions::resize(const Vector2D& size, bool relative, std::optional<
     if (!window)
         return {};
 
-    if (window->isFullscreen())
+    if (Fullscreen::controller()->isFullscreen(window))
         return actionError("Window is fullscreen", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     if (!relative && (size.x < 1 || size.y < 1))
@@ -593,7 +616,7 @@ ActionResult Actions::move(const Vector2D& pos, bool relative, std::optional<PHL
     if (!window)
         return {};
 
-    if (window->isFullscreen())
+    if (Fullscreen::controller()->isFullscreen(window))
         return actionError("Window is fullscreen", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     const auto delta = relative ? pos : pos - window->m_realPosition->goal();
@@ -637,10 +660,10 @@ ActionResult Actions::swapNext(const bool next, std::optional<PHLWINDOW> w) {
     const auto PLASTCYCLED =
         validMapped(window->m_lastCycledWindow) && window->m_lastCycledWindow->m_workspace == window->m_workspace ? window->m_lastCycledWindow.lock() : nullptr;
 
-    auto toSwap = g_pCompositor->getWindowCycle(PLASTCYCLED ? PLASTCYCLED : window, true, std::nullopt, false, !next);
+    auto toSwap = Desktop::windowState()->query().cycle(PLASTCYCLED ? PLASTCYCLED : window, {.focusableOnly = true, .previous = !next});
 
     if (toSwap == window)
-        toSwap = g_pCompositor->getWindowCycle(window, true, std::nullopt, false, !next);
+        toSwap = Desktop::windowState()->query().cycle(window, {.focusableOnly = true, .previous = !next});
 
     if (!toSwap)
         return actionError("No window to swap with", eActionErrorLevel::INFO, eActionErrorCode::NOT_FOUND);
@@ -658,9 +681,9 @@ ActionResult Actions::alterZOrder(const std::string& mode, std::optional<PHLWIND
         return {};
 
     if (mode == "top")
-        g_pCompositor->changeWindowZOrder(window, true);
+        Desktop::windowState()->raise(window);
     else if (mode == "bottom")
-        g_pCompositor->changeWindowZOrder(window, false);
+        Desktop::windowState()->lower(window);
     else
         return std::unexpected(std::format("Bad z-order position: {}", mode));
 
@@ -838,7 +861,7 @@ ActionResult Actions::setProp(const std::string& PROP, const std::string& VAL, s
 
     } catch (std::exception& e) { return std::unexpected(std::format("Error parsing prop value: {}", std::string(e.what()))); }
 
-    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+    Desktop::globalWindowController()->updateAllWindowsDecorations();
 
     if (PROP == "no_vrr")
         Config::monitorRuleMgr()->ensureVRR();
@@ -856,8 +879,8 @@ ActionResult Actions::toggleGroup(std::optional<PHLWINDOW> w) {
     if (!window)
         return {};
 
-    if (window->isFullscreen())
-        g_pCompositor->setWindowFullscreenInternal(window, FSMODE_NONE);
+    if (Fullscreen::controller()->isFullscreen(window))
+        Fullscreen::controller()->setFullscreenMode(window, Fullscreen::FSMODE_NONE);
 
     if (!window->m_group)
         window->m_group = Desktop::View::CGroup::create({window});
@@ -941,8 +964,10 @@ ActionResult Actions::changeWorkspace(PHLWORKSPACE ws) {
             Desktop::focusState()->fullWindowFocus(pWindow, Desktop::FOCUS_REASON_KEYBIND);
             if (*PWORKSPACECENTERON == 1)
                 middle = pWindow->middle();
-        }
-        g_pCompositor->warpCursorTo(middle);
+        } else
+            Desktop::focusState()->rawWindowFocus(nullptr, Desktop::FOCUS_REASON_KEYBIND);
+
+        Pointer::pointerController()->warpTo(middle);
     }
 
     if (!g_pInputManager->m_lastFocusOnLS) {
@@ -1031,13 +1056,25 @@ ActionResult Actions::renameWorkspace(PHLWORKSPACE ws, const std::string& s) {
     return {};
 }
 
+ActionResult Actions::changeWorkspaceID(PHLWORKSPACE ws, int64_t id) {
+    if (!ws || ws->m_id <= 0)
+        return actionError("Bad workspace", eActionErrorLevel::WARNING, eActionErrorCode::NO_TARGET);
+
+    if (!!State::workspaceState()->query().id(id).run())
+        return actionError("ID is taken", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
+
+    ws->changeID(id);
+
+    return {};
+}
+
 ActionResult Actions::moveToMonitor(PHLWORKSPACE ws, PHLMONITOR mon) {
     if (!ws)
         return actionError("Bad workspace", eActionErrorLevel::WARNING, eActionErrorCode::NO_TARGET);
     if (!mon)
         return actionError("Bad monitor", eActionErrorLevel::WARNING, eActionErrorCode::NO_TARGET);
 
-    g_pCompositor->moveWorkspaceToMonitor(ws, mon);
+    State::workspacePlacementController()->moveWorkspaceToMonitor(ws, mon);
 
     return {};
 }
@@ -1056,10 +1093,10 @@ ActionResult Actions::changeWorkspaceOnCurrentMonitor(PHLWORKSPACE ws) {
             return actionError("Workspace has no monitor", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
         if (POLDMONITOR->activeWorkspaceID() == ws->m_id) {
-            g_pCompositor->swapActiveWorkspaces(POLDMONITOR, PCURRMONITOR);
+            State::workspacePlacementController()->swapActiveWorkspaces(POLDMONITOR, PCURRMONITOR);
             return {};
         } else {
-            g_pCompositor->moveWorkspaceToMonitor(ws, PCURRMONITOR, true);
+            State::workspacePlacementController()->moveWorkspaceToMonitor(ws, PCURRMONITOR, true);
         }
     }
 
@@ -1125,7 +1162,7 @@ ActionResult Actions::swapActiveWorkspaces(PHLMONITOR mon1, PHLMONITOR mon2) {
     if (mon1 == mon2)
         return {};
 
-    g_pCompositor->swapActiveWorkspaces(mon1, mon2);
+    State::workspacePlacementController()->swapActiveWorkspaces(mon1, mon2);
 
     return {};
 }
@@ -1138,7 +1175,7 @@ ActionResult Actions::layoutMessage(const std::string& msg) {
 }
 
 ActionResult Actions::moveCursor(const Vector2D& pos) {
-    g_pCompositor->warpCursorTo(pos, true);
+    Pointer::pointerController()->warpTo(pos, true);
     g_pInputManager->simulateMouseMovement();
     return {};
 }
@@ -1193,6 +1230,9 @@ ActionResult Actions::toggleSwallow() {
 }
 
 ActionResult Actions::dpms(eTogglableAction action, std::optional<PHLMONITOR> mon) {
+    if (action > TOGGLE_ACTION_DISABLE)
+        return actionError("Invalid DPMS action");
+
     for (auto const& m : State::monitorState()->allMonitors()) {
         if (!m->m_enabled)
             continue;
@@ -1200,7 +1240,7 @@ ActionResult Actions::dpms(eTogglableAction action, std::optional<PHLMONITOR> mo
         if (mon.has_value() && m != mon.value())
             continue;
 
-        bool enable;
+        bool enable = false;
         switch (action) {
             case TOGGLE_ACTION_TOGGLE: enable = !m->m_dpmsStatus; break;
             case TOGGLE_ACTION_ENABLE: enable = true; break;
@@ -1211,7 +1251,7 @@ ActionResult Actions::dpms(eTogglableAction action, std::optional<PHLMONITOR> mo
         g_pCompositor->m_dpmsStateOn = enable;
     }
 
-    g_pPointerManager->recheckEnteredOutputs();
+    Pointer::mgr()->recheckEnteredOutputs();
 
     return {};
 }
@@ -1234,7 +1274,7 @@ ActionResult Actions::lockGroups(eTogglableAction action) {
     }
 
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "lockgroups", .data = g_pKeybindManager->m_groupsLocked ? "1" : "0"});
-    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+    Desktop::globalWindowController()->updateAllWindowsDecorations();
 
     return {};
 }
@@ -1307,7 +1347,7 @@ ActionResult Actions::moveIntoGroup(Math::eDirection direction, std::optional<PH
     if (!window)
         return {};
 
-    auto PWINDOWINDIR = g_pCompositor->getWindowInDirection(window, direction);
+    auto PWINDOWINDIR = Desktop::windowState()->query().inDirection(window, direction);
 
     if (!PWINDOWINDIR || !PWINDOWINDIR->m_group)
         return {};
@@ -1361,7 +1401,7 @@ ActionResult Actions::moveWindowOrGroup(Math::eDirection direction, std::optiona
     if (!window)
         return {};
 
-    if (window->isFullscreen())
+    if (Fullscreen::controller()->isFullscreen(window))
         return {};
 
     if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_groupsLocked) {
@@ -1369,7 +1409,7 @@ ActionResult Actions::moveWindowOrGroup(Math::eDirection direction, std::optiona
         return {};
     }
 
-    const auto PWINDOWINDIR = g_pCompositor->getWindowInDirection(window, direction);
+    const auto PWINDOWINDIR = Desktop::windowState()->query().inDirection(window, direction);
 
     const bool ISWINDOWGROUP       = !!window->m_group;
     const bool ISWINDOWGROUPLOCKED = ISWINDOWGROUP && window->m_group->locked();
@@ -1642,7 +1682,7 @@ ActionResult Actions::cycleNext(const bool next, std::optional<bool> onlyTiled, 
 
     if (!window) {
         const auto PWS = Desktop::focusState()->monitor()->m_activeWorkspace;
-        if (PWS && PWS->getWindows() > 0) {
+        if (PWS && PWS->getWindowCount() > 0) {
             const auto PFIRST = PWS->getFirstWindow();
             switchToWindow(PFIRST);
         }
@@ -1673,7 +1713,11 @@ ActionResult Actions::cycleNext(const bool next, std::optional<bool> onlyTiled, 
     if (onlyTiled.value_or(false) != onlyFloating.value_or(false))
         tileOrFloatOnly = onlyFloating.value_or(false);
 
-    const auto& cycled = g_pCompositor->getWindowCycle(window, true, tileOrFloatOnly, false, !next, window->m_workspace && window->m_workspace->m_hasFullscreenWindow);
+    const auto& cycled = Desktop::windowState()->query().cycle(window,
+                                                               {.focusableOnly          = true,
+                                                                .floating               = tileOrFloatOnly,
+                                                                .previous               = !next,
+                                                                .allowFullscreenBlocked = window->m_workspace && Fullscreen::controller()->hasFullscreen(window->m_workspace)});
 
     switchToWindow(cycled);
 
@@ -1696,13 +1740,13 @@ ActionResult Actions::moveIntoOrCreateGroup(Math::eDirection dir, std::optional<
     if (!PWINDOW)
         return {};
 
-    auto PWINDOWINDIR = g_pCompositor->getWindowInDirection(PWINDOW, dir);
+    auto PWINDOWINDIR = Desktop::windowState()->query().inDirection(PWINDOW, dir);
 
     if (!PWINDOWINDIR)
         return {};
 
     if (!PWINDOWINDIR->m_group) {
-        if (PWINDOWINDIR->isFullscreen())
+        if (Fullscreen::controller()->isFullscreen(PWINDOWINDIR))
             return {};
 
         PWINDOWINDIR->m_group = Desktop::View::CGroup::create({PWINDOWINDIR});

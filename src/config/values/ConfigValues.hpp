@@ -38,7 +38,7 @@ namespace Config::Values {
                     allowed += std::format("\"{}\", ", e);
                 }
 
-                allowed = allowed.substr(0, allowed.size() - 2);
+                allowed.resize(allowed.size() - 2);
 
                 return std::unexpected(std::format("bad value \"{}\", allowed values are: {}", v, allowed));
             }

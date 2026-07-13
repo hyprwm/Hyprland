@@ -136,17 +136,19 @@ class CWLSurfaceResource {
     std::pair<SP<CWLSurfaceResource>, Vector2D> at(const Vector2D& localCoords, bool allowsInput = false);
 
   private:
-    SP<CWlSurface>         m_resource;
-    wl_client*             m_client = nullptr;
+    SP<CWlSurface>                     m_resource;
+    wl_client*                         m_client        = nullptr;
+    std::optional<wl_output_transform> m_lastTransform = std::nullopt;
+    std::optional<int>                 m_lastScale     = std::nullopt;
 
-    void                   destroy();
-    void                   releaseBuffers(bool onlyCurrent = true);
-    void                   dropPendingBuffer();
-    void                   dropCurrentBuffer();
-    void                   discardPresentationFeedbacks();
-    void                   bfHelper(std::span<const SP<CWLSurfaceResource>> nodes, std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
-    SP<CWLSurfaceResource> findFirstPreorderHelper(SP<CWLSurfaceResource> root, std::function<bool(SP<CWLSurfaceResource>)> fn);
-    void                   updateCursorShm(CRegion damage = CBox{0, 0, INT16_MAX, INT16_MAX});
+    void                               destroy();
+    void                               releaseBuffers(bool onlyCurrent = true);
+    void                               dropPendingBuffer();
+    void                               dropCurrentBuffer();
+    void                               discardPresentationFeedbacks();
+    void                               bfHelper(std::span<const SP<CWLSurfaceResource>> nodes, std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
+    SP<CWLSurfaceResource>             findFirstPreorderHelper(SP<CWLSurfaceResource> root, std::function<bool(SP<CWLSurfaceResource>)> fn);
+    void                               updateCursorShm(CRegion damage = CBox{0, 0, INT16_MAX, INT16_MAX});
 
     friend class CWLPointerResource;
 };

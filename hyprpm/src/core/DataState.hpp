@@ -15,11 +15,11 @@ namespace DataState {
     std::vector<std::filesystem::path> getPluginStates();
     void                               ensureStateStoreExists();
     void                               addNewPluginRepo(const SPluginRepository& repo);
-    void                               removePluginRepo(const SPluginRepoIdentifier identifier);
-    bool                               pluginRepoExists(const SPluginRepoIdentifier identifier);
+    void                               removePluginRepo(const SPluginRepoIdentifier& identifier);
+    bool                               pluginRepoExists(const SPluginRepoIdentifier& identifier);
     void                               updateGlobalState(const SGlobalState& state);
     void                               purgeAllCache();
     SGlobalState                       getGlobalState();
-    bool                               setPluginEnabled(const SPluginRepoIdentifier identifier, bool enabled);
+    bool                               setPluginEnabled(const SPluginRepoIdentifier& identifier, bool enabled);
     std::vector<SPluginRepository>     getAllRepositories();
 };

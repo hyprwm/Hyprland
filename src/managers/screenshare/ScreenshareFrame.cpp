@@ -1,5 +1,5 @@
 #include "ScreenshareManager.hpp"
-#include "../PointerManager.hpp"
+#include "../../pointer/PointerManager.hpp"
 #include "../input/InputManager.hpp"
 #include "../permissions/DynamicPermissionManager.hpp"
 #include "../../protocols/ColorManagement.hpp"
@@ -14,6 +14,7 @@
 #include "../../render/pass/ClearPassElement.hpp"
 #include "../../render/pass/RectPassElement.hpp"
 #include "helpers/cm/ColorManagement.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 #include <hyprutils/math/Region.hpp>
 #include <hyprgraphics/egl/Egl.hpp>
 
@@ -236,7 +237,7 @@ void CScreenshareFrame::renderMonitor() {
         };
     };
 
-    for (auto const& l : g_pCompositor->m_layers) {
+    for (auto const& l : Desktop::layerState()->layers()) {
         if (!l->m_ruleApplicator->noScreenShare().valueOrDefault())
             continue;
 
@@ -259,7 +260,7 @@ void CScreenshareFrame::renderMonitor() {
             l->m_popupHead->breadthfirst(hidePopups(popupBaseOffset), nullptr);
     }
 
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (!w->m_ruleApplicator->noScreenShare().valueOrDefault())
             continue;
 
@@ -271,7 +272,7 @@ void CScreenshareFrame::renderMonitor() {
 
         const auto PWORKSPACE = w->m_workspace;
 
-        if UNLIKELY (!PWORKSPACE && !w->m_fadingOut && w->alphaValue(WINDOW_ALPHA_FADE) * w->alphaValue(WINDOW_ALPHA_FULLSCREEN) != 0.f)
+        if UNLIKELY (!PWORKSPACE && w->alphaValue(WINDOW_ALPHA_FADE) * w->alphaValue(WINDOW_ALPHA_FULLSCREEN) != 0.f)
             continue;
 
         const auto renderOffset     = PWORKSPACE && !w->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D{};
@@ -282,7 +283,7 @@ void CScreenshareFrame::renderMonitor() {
                                           .translate(-m_session->m_captureBox.pos());
 
         // seems like rounding doesn't play well with how we manipulate the box position to render regions causing the window to leak through
-        const auto dontRound     = m_session->m_captureBox.pos() != Vector2D() || w->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
+        const auto dontRound     = m_session->m_captureBox.pos() != Vector2D() || Fullscreen::controller()->isFullscreen(w, Fullscreen::FSMODE_FULLSCREEN);
         const auto rounding      = dontRound ? 0 : w->rounding() * PMONITOR->m_scale;
         const auto roundingPower = dontRound ? 2.0f : w->roundingPower();
 
@@ -307,7 +308,7 @@ void CScreenshareFrame::renderMonitor() {
     if (m_overlayCursor) {
         CRegion  fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
         Vector2D cursorPos  = g_pInputManager->getMouseCoordsInternal() - PMONITOR->m_position - m_session->m_captureBox.pos() / PMONITOR->m_scale;
-        g_pPointerManager->renderSoftwareCursorsFor(PMONITOR, Time::steadyNow(), fakeDamage, cursorPos, true);
+        Pointer::mgr()->renderSoftwareCursorsFor(PMONITOR, Time::steadyNow(), fakeDamage, cursorPos, true);
     }
 }
 
@@ -350,7 +351,7 @@ void CScreenshareFrame::renderWindow() {
         return;
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
-    g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->m_self.lock(), NOW, fakeDamage, g_pInputManager->getMouseCoordsInternal() - PWINDOW->m_realPosition->value(), true);
+    Pointer::mgr()->renderSoftwareCursorsFor(PMONITOR->m_self.lock(), NOW, fakeDamage, g_pInputManager->getMouseCoordsInternal() - PWINDOW->m_realPosition->value(), true);
 }
 
 void CScreenshareFrame::render() {
@@ -442,13 +443,23 @@ bool CScreenshareFrame::copyShm() {
 
     g_pHyprRenderer->endRender();
 
+    bool readSucceeded = true;
     m_damage.forEachRect([&](const auto& rect) {
+        if (!readSucceeded)
+            return;
+
         int width  = rect.x2 - rect.x1;
         int height = rect.y2 - rect.y1;
-        outFB->readPixels(m_buffer, rect.x1, rect.y1, width, height);
+        if (!outFB->readPixels(m_buffer, rect.x1, rect.y1, width, height))
+            readSucceeded = false;
     });
 
     g_pHyprRenderer->m_renderData.pMonitor.reset();
+
+    if (!readSucceeded) {
+        LOGM(Log::ERR, "Can't copy: failed to read pixels to shm");
+        return false;
+    }
 
     if (!m_copied) {
         LOGM(Log::TRACE, "Copied frame via shm");

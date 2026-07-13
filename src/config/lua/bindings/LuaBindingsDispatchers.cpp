@@ -7,6 +7,7 @@
 #include "../../supplementary/executor/Executor.hpp"
 
 #include "../../../managers/SeatManager.hpp"
+#include "../../../managers/fullscreen/FullscreenController.hpp"
 #include "../../../state/MonitorState.hpp"
 #include "../../../state/WorkspaceState.hpp"
 #include "../../../devices/IKeyboard.hpp"
@@ -177,7 +178,7 @@ static int dsp_submap(lua_State* L) {
 }
 
 static int dsp_pass(lua_State* L) {
-    const auto PWINDOW = g_pCompositor->getWindowByRegex(lua_tostring(L, lua_upvalueindex(1)));
+    const auto PWINDOW = Desktop::viewState()->query().selector(lua_tostring(L, lua_upvalueindex(1))).runWindow();
     if (!PWINDOW)
         return Internal::dispatcherError(L, "hl.pass: window not found", WARN, C_NOTFOUND);
 
@@ -393,7 +394,7 @@ static int dsp_sendShortcut(lua_State* L) {
 
     PHLWINDOW window = nullptr;
     if (!lua_isnil(L, lua_upvalueindex(3))) {
-        window = g_pCompositor->getWindowByRegex(lua_tostring(L, lua_upvalueindex(3)));
+        window = Desktop::viewState()->query().selector(lua_tostring(L, lua_upvalueindex(3))).runWindow();
         if (!window)
             return Internal::dispatcherError(L, "send_shortcut: window not found", WARN, C_NOTFOUND);
     }
@@ -415,7 +416,7 @@ static int dsp_sendKeyState(lua_State* L) {
 
     PHLWINDOW window = nullptr;
     if (!lua_isnil(L, lua_upvalueindex(4))) {
-        window = g_pCompositor->getWindowByRegex(lua_tostring(L, lua_upvalueindex(4)));
+        window = Desktop::viewState()->query().selector(lua_tostring(L, lua_upvalueindex(4))).runWindow();
         if (!window)
             return Internal::dispatcherError(L, "send_key_state: window not found", WARN, C_NOTFOUND);
     }
@@ -496,33 +497,34 @@ static int dsp_floatWindow(lua_State* L) {
 }
 
 static int dsp_fullscreenWindow(lua_State* L) {
-    return Internal::checkResult(L, CA::fullscreenWindow(sc<eFullscreenMode>((int)lua_tonumber(L, lua_upvalueindex(1))), Internal::windowFromUpval(L, 2)));
+    return Internal::checkResult(L,
+                                 CA::fullscreenWindow(sc<Fullscreen::eFullscreenMode>((int)lua_tonumber(L, lua_upvalueindex(1))), (bool)lua_toboolean(L, lua_upvalueindex(2)),
+                                                      Internal::windowFromUpval(L, 3)));
 }
 
 static int dsp_fullscreenWindowWithAction(lua_State* L) {
-    const auto mode      = sc<eFullscreenMode>((int)lua_tonumber(L, lua_upvalueindex(1)));
-    const int  actionRaw = (int)lua_tonumber(L, lua_upvalueindex(2));
-    auto       maybeW    = Internal::windowFromUpval(L, 3);
-
-    if (actionRaw == 0) {
-        return Internal::checkResult(L, CA::fullscreenWindow(mode, maybeW));
-    }
+    const auto mode        = sc<Fullscreen::eFullscreenMode>((int)lua_tonumber(L, lua_upvalueindex(1)));
+    bool       layoutAware = lua_toboolean(L, lua_upvalueindex(2));
+    const int  actionRaw   = (int)lua_tonumber(L, lua_upvalueindex(3));
+    auto       maybeW      = Internal::windowFromUpval(L, 4);
+    if (actionRaw == 0)
+        return Internal::checkResult(L, CA::fullscreenWindow(mode, layoutAware, maybeW));
 
     const auto target = maybeW.value_or(Desktop::focusState()->window());
     if (!target)
         return Internal::dispatcherError(L, "hl.window.fullscreen: no target", WARN, C_NOTARGET);
 
-    const bool currentlyMode = target->isEffectiveInternalFSMode(mode);
+    const bool currentlyMode = Fullscreen::controller()->isFullscreen(target, mode);
 
     if (actionRaw == 1) {
         if (!currentlyMode)
-            return Internal::checkResult(L, CA::fullscreenWindow(mode, maybeW));
+            return Internal::checkResult(L, CA::fullscreenWindow(mode, layoutAware, maybeW));
         return Internal::pushSuccessResult(L);
     }
 
     if (actionRaw == 2) {
         if (currentlyMode)
-            return Internal::checkResult(L, CA::fullscreenWindow(mode, maybeW));
+            return Internal::checkResult(L, CA::fullscreenWindow(mode, layoutAware, maybeW));
         return Internal::pushSuccessResult(L);
     }
 
@@ -530,31 +532,33 @@ static int dsp_fullscreenWindowWithAction(lua_State* L) {
 }
 
 static int dsp_fullscreenState(lua_State* L) {
-    const auto desiredInternal = sc<eFullscreenMode>((int)lua_tonumber(L, lua_upvalueindex(1)));
-    const auto desiredClient   = sc<eFullscreenMode>((int)lua_tonumber(L, lua_upvalueindex(2)));
+    const auto desiredInternal = sc<Fullscreen::eFullscreenMode>((int)lua_tonumber(L, lua_upvalueindex(1)));
+    const auto desiredClient   = sc<Fullscreen::eFullscreenMode>((int)lua_tonumber(L, lua_upvalueindex(2)));
     const int  actionRaw       = (int)lua_tonumber(L, lua_upvalueindex(3)); // 0: toggle, 1: set, 2: unset
-    auto       maybeW          = Internal::windowFromUpval(L, 4);
+    bool       layoutAware     = lua_toboolean(L, lua_upvalueindex(4));
+    auto       maybeW          = Internal::windowFromUpval(L, 5);
 
     const auto target = maybeW.value_or(Desktop::focusState()->window());
     if (!target)
         return Internal::pushSuccessResult(L);
 
-    const auto CURRENT        = target->m_fullscreenState;
+    const auto CURRENT        = Fullscreen::controller()->getFullscreenModes(target);
     const bool atDesiredState = CURRENT.internal == desiredInternal && CURRENT.client == desiredClient;
 
-    if (actionRaw == 0) {
-        return Internal::checkResult(L, CA::fullscreenWindow(desiredInternal, desiredClient, maybeW));
-    }
+    if (actionRaw == 0)
+        return Internal::checkResult(L,
+                                     CA::fullscreenWindow(CURRENT.internal == desiredInternal ? Fullscreen::FSMODE_NONE : desiredInternal,
+                                                          CURRENT.client == desiredClient ? Fullscreen::FSMODE_NONE : desiredClient, layoutAware, maybeW));
 
     if (actionRaw == 1) {
         if (!atDesiredState)
-            return Internal::checkResult(L, CA::fullscreenWindow(desiredInternal, desiredClient, maybeW));
+            return Internal::checkResult(L, CA::fullscreenWindow(desiredInternal, desiredClient, layoutAware, maybeW));
         return Internal::pushSuccessResult(L);
     }
 
     if (actionRaw == 2) {
         if (atDesiredState)
-            return Internal::checkResult(L, CA::fullscreenWindow(desiredInternal, desiredClient, maybeW));
+            return Internal::checkResult(L, CA::fullscreenWindow(desiredInternal, desiredClient, layoutAware, maybeW));
         return Internal::pushSuccessResult(L);
     }
 
@@ -594,7 +598,7 @@ static int dsp_swapWithWindow(lua_State* L) {
     auto       source = Internal::windowFromUpval(L, 1);
 
     const auto targetSelector = lua_tostring(L, lua_upvalueindex(2));
-    const auto target         = g_pCompositor->getWindowByRegex(targetSelector);
+    const auto target         = Desktop::viewState()->query().selector(targetSelector).runWindow();
     if (!target)
         return Internal::dispatcherError(L, "hl.window.swap: target window not found", WARN, C_NOTFOUND);
 
@@ -709,15 +713,16 @@ static int hlWindowFloat(lua_State* L) {
 }
 
 static int hlWindowFullscreen(lua_State* L) {
-    eFullscreenMode mode   = FSMODE_FULLSCREEN;
-    int             action = 0; // 0: toggle, 1: set, 2: unset
+    Fullscreen::eFullscreenMode mode        = Fullscreen::FSMODE_FULLSCREEN;
+    int                         action      = 0; // 0: toggle, 1: set, 2: unset
+    bool                        layoutAware = true;
     if (lua_istable(L, 1)) {
         auto m = Internal::tableOptStr(L, 1, "mode");
         if (m) {
             if (*m == "maximized" || *m == "1")
-                mode = FSMODE_MAXIMIZED;
+                mode = Fullscreen::FSMODE_MAXIMIZED;
             else if (*m == "fullscreen" || *m == "0")
-                mode = FSMODE_FULLSCREEN;
+                mode = Fullscreen::FSMODE_FULLSCREEN;
             else
                 return Internal::configError(L, "hl.window.fullscreen: invalid mode \"{}\" (expected fullscreen/maximized)", *m);
         }
@@ -733,15 +738,28 @@ static int hlWindowFullscreen(lua_State* L) {
             else
                 return Internal::configError(L, "hl.window.fullscreen: invalid action \"{}\" (expected toggle/set/unset)", *a);
         }
+
+        auto la = Internal::tableOptBool(L, 1, "layout_aware");
+        if (la) {
+            if (*la)
+                layoutAware = true;
+            else if (!*la)
+                layoutAware = false;
+            else
+                return Internal::configError(L, "hl.window.fullscreen: invalid action \"{}\" (expected true/false)", *la);
+        }
     }
-    lua_pushnumber(L, (int)mode);
+    lua_pushnumber(L, (int)mode); // 1
+
+    lua_pushboolean(L, layoutAware); // 2
+
     if (action == 0) {
         Internal::pushWindowUpval(L, 1);
-        lua_pushcclosure(L, dsp_fullscreenWindow, 2);
+        lua_pushcclosure(L, dsp_fullscreenWindow, 3);
     } else {
         lua_pushnumber(L, action);
         Internal::pushWindowUpval(L, 1);
-        lua_pushcclosure(L, dsp_fullscreenWindowWithAction, 3);
+        lua_pushcclosure(L, dsp_fullscreenWindowWithAction, 4);
     }
     return 1;
 }
@@ -767,11 +785,15 @@ static int hlWindowFullscreenState(lua_State* L) {
     if (!im || !cm)
         return Internal::configError(L, "hl.window.fullscreen_state: 'internal' and 'client' are required");
 
+    auto ls          = Internal::tableOptBool(L, 1, "layout_aware");
+    bool layoutAware = ls ? *ls : true;
+
     lua_pushnumber(L, (int)*im);
     lua_pushnumber(L, (int)*cm);
     lua_pushnumber(L, action);
+    lua_pushboolean(L, layoutAware);
     Internal::pushWindowUpval(L, 1);
-    lua_pushcclosure(L, dsp_fullscreenState, 4);
+    lua_pushcclosure(L, dsp_fullscreenState, 5);
     return 1;
 }
 
@@ -1076,7 +1098,7 @@ static int dsp_focusMonitor(lua_State* L) {
 }
 
 static int dsp_focusWindowBySelector(lua_State* L) {
-    const auto PWINDOW = g_pCompositor->getWindowByRegex(lua_tostring(L, lua_upvalueindex(1)));
+    const auto PWINDOW = Desktop::viewState()->query().selector(lua_tostring(L, lua_upvalueindex(1))).runWindow();
     if (!PWINDOW)
         return Internal::dispatcherError(L, "hl.focus: window not found", WARN, C_NOTFOUND);
     return Internal::checkResult(L, CA::focus(PWINDOW));
@@ -1193,6 +1215,16 @@ static int dsp_renameWorkspace(lua_State* L) {
     return Internal::checkResult(L, CA::renameWorkspace(PWS, name));
 }
 
+static int dsp_workspaceChangeID(lua_State* L) {
+    const auto PWS = State::workspaceState()->query().string(lua_tostring(L, lua_upvalueindex(1))).run();
+    if (!PWS)
+        return Internal::dispatcherError(L, "hl.workspace.change_id: no such workspace", WARN, C_NOTFOUND);
+    if (PWS->m_id <= 0)
+        return Internal::dispatcherError(L, "hl.workspace.change_id: cannot change id of workspace with a managed id", WARN, C_NOTFOUND);
+    int64_t id = lua_tonumber(L, lua_upvalueindex(2));
+    return Internal::checkResult(L, CA::changeWorkspaceID(PWS, id));
+}
+
 static int dsp_moveWorkspaceToMonitor(lua_State* L) {
     const auto WORKSPACEID = getWorkspaceIDNameFromString(lua_tostring(L, lua_upvalueindex(1))).id;
     if (WORKSPACEID == WORKSPACE_INVALID)
@@ -1243,6 +1275,22 @@ static int hlWorkspaceRename(lua_State* L) {
     else
         lua_pushnil(L);
     lua_pushcclosure(L, dsp_renameWorkspace, 2);
+    return 1;
+}
+
+static int hlWorkspaceChangeID(lua_State* L) {
+    if (!lua_istable(L, 1))
+        return Internal::configError(L, "hl.workspace.change_id: expected a table { workspace, id }");
+
+    const auto workspace = Internal::requireTableFieldWorkspaceSelector(L, 1, "workspace", "hl.workspace.change_id");
+    auto       newID     = Internal::requireTableFieldNum(L, 1, "id", "hl.workspace.change_id");
+
+    if (newID <= 0 || newID >= std::numeric_limits<uint32_t>::max())
+        return Internal::configError(L, "hl.workspace.change_id: bad id");
+
+    lua_pushstring(L, workspace.c_str());
+    lua_pushnumber(L, newID);
+    lua_pushcclosure(L, dsp_workspaceChangeID, 2);
     return 1;
 }
 
@@ -1327,6 +1375,7 @@ void Internal::registerDispatcherBindings(lua_State* L) {
         lua_newtable(L);
         Internal::markDispatcherTable(L);
         Internal::setFn(L, "rename", hlWorkspaceRename);
+        Internal::setFn(L, "change_id", hlWorkspaceChangeID);
         Internal::setFn(L, "move", hlWorkspaceMove);
         Internal::setFn(L, "swap_monitors", hlWorkspaceSwapMonitors);
         Internal::setFn(L, "toggle_special", hlWorkspaceToggleSpecial);

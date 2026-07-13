@@ -89,3 +89,30 @@ TEST(WorkspaceRuleManager, defaultWorkspaceSkipsNonMatchingMonitor) {
 
     EXPECT_EQ(manager.getDefaultWorkspaceFor(monitor), "");
 }
+
+TEST(WorkspaceRuleManager, disabledDefaultWorkspaceIsSkipped) {
+    Config::CWorkspaceRuleManager manager;
+    auto                          rule = manager.add(defaultWorkspaceRule("4", "DP-1"));
+    rule->setEnabled(false);
+
+    CWorkspaceRuleTestMonitor monitor;
+    monitor.m_name = "DP-1";
+
+    EXPECT_EQ(manager.getDefaultWorkspaceFor(monitor), "");
+}
+
+TEST(WorkspaceRuleManager, replaceOrAddKeepsExistingSharedRule) {
+    Config::CWorkspaceRule first = defaultWorkspaceRule("4", "DP-1");
+    first.m_isPersistent         = true;
+
+    Config::CWorkspaceRule second = defaultWorkspaceRule("4", "DP-2");
+    second.m_isPersistent         = false;
+
+    Config::CWorkspaceRuleManager manager;
+    const auto                    firstPtr  = manager.replaceOrAdd(std::move(first));
+    const auto                    secondPtr = manager.replaceOrAdd(std::move(second));
+
+    EXPECT_EQ(firstPtr, secondPtr);
+    EXPECT_EQ(firstPtr->m_monitor, "DP-2");
+    EXPECT_FALSE(firstPtr->m_isPersistent.value_or(true));
+}

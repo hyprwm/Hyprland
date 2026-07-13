@@ -1,5 +1,5 @@
 #include "ScreenshareManager.hpp"
-#include "../PointerManager.hpp"
+#include "../../pointer/PointerManager.hpp"
 #include "../../protocols/core/Seat.hpp"
 #include "../permissions/DynamicPermissionManager.hpp"
 #include "../../render/Renderer.hpp"
@@ -12,7 +12,7 @@ using namespace Screenshare;
 
 CCursorshareSession::CCursorshareSession(wl_client* client, WP<CWLPointerResource> pointer) : m_client(client), m_pointer(pointer) {
     m_listeners.pointerDestroyed = m_pointer->m_events.destroyed.listen([this] { stop(); });
-    m_listeners.cursorChanged    = g_pPointerManager->m_events.cursorChanged.listen([this] {
+    m_listeners.cursorChanged    = Pointer::mgr()->m_events.cursorChanged.listen([this] {
         calculateConstraints();
         m_events.constraintsChanged.emit();
 
@@ -43,7 +43,7 @@ void CCursorshareSession::stop() {
 }
 
 void CCursorshareSession::calculateConstraints() {
-    const auto& cursorImage = g_pPointerManager->currentCursorImage();
+    const auto& cursorImage = Pointer::mgr()->currentCursorImage();
     m_constraintsChanged    = true;
 
     // cursor is hidden, keep the previous constraints and render 0 alpha
@@ -115,13 +115,13 @@ eScreenshareError CCursorshareSession::share(PHLMONITOR monitor, SP<IHLBuffer> b
 void CCursorshareSession::render() {
     const auto  PERM = g_pDynamicPermissionManager->clientPermissionMode(m_client, PERMISSION_TYPE_CURSOR_POS);
 
-    const auto& cursorImage = g_pPointerManager->currentCursorImage();
+    const auto& cursorImage = Pointer::mgr()->currentCursorImage();
 
     // TODO: implement a monitor independent render mode to buffer that does this in CHyprRenderer::begin() or something like that
     g_pHyprRenderer->m_renderData.transformDamage = false;
     g_pHyprRenderer->setViewport(0, 0, m_bufferSize.x, m_bufferSize.y);
 
-    bool overlaps = g_pPointerManager->getCursorBoxGlobal().overlaps(m_pendingFrame.sourceBoxCallback());
+    bool overlaps = Pointer::mgr()->getCursorBoxGlobal().overlaps(m_pendingFrame.sourceBoxCallback());
     g_pHyprRenderer->startRenderPass();
     if (PERM != PERMISSION_RULE_ALLOW_MODE_ALLOW || !overlaps) {
         // render black when not allowed
@@ -203,7 +203,11 @@ bool CCursorshareSession::copy() {
             }
         }
 
-        outFB->readPixels(m_pendingFrame.buffer, 0, 0, m_bufferSize.x, m_bufferSize.y);
+        if (!outFB->readPixels(m_pendingFrame.buffer, 0, 0, m_bufferSize.x, m_bufferSize.y)) {
+            g_pHyprRenderer->m_renderData.pMonitor.reset();
+            LOGM(Log::ERR, "Can't copy: failed to read cursor pixels to shm");
+            return false;
+        }
 
         g_pHyprRenderer->m_renderData.pMonitor.reset();
 

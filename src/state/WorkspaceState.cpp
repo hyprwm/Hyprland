@@ -83,9 +83,9 @@ WORKSPACEID CWorkspaceStateTracker::nextAvailableNamedWorkspace() const {
 
     // Give priority to persistent workspaces to avoid any conflicts between them.
     for (auto const& rule : Config::workspaceRuleMgr()->getAllWorkspaceRules()) {
-        if (!rule.m_isPersistent.value_or(false))
+        if (!rule->isEnabled() || !rule->m_isPersistent.value_or(false))
             continue;
-        persistentWorkspaceIDs.push_back(rule.m_workspaceId);
+        persistentWorkspaceIDs.push_back(rule->m_workspaceId);
     }
 
     return CWorkspaceQueryCore::nextAvailableNamedWorkspace(queryableWorkspaces(), persistentWorkspaceIDs);

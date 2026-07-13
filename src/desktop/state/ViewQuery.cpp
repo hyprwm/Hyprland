@@ -106,7 +106,8 @@ PHLWINDOW CViewQuery::bySelector() const {
         const bool FLOAT = regexp.starts_with("floating");
 
         for (auto const& w : m_tracker.windows()) {
-            if (!w->m_isMapped || w->m_isFloating != FLOAT || w->m_workspace != focusState()->window()->m_workspace || !w->acceptsInput())
+            if (!w->m_isMapped || w->m_isFloating != FLOAT || w->m_workspace != focusState()->window()->m_workspace ||
+                w->hasInputBlockedReasonsBesides(Desktop::View::INPUT_BLOCK_BELOW_FULLSCREEN))
                 continue;
 
             return w;

@@ -3,7 +3,9 @@
 #include <algorithm>
 #include "../Compositor.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../managers/fullscreen/FullscreenController.hpp"
 #include "../desktop/state/FocusState.hpp"
+#include "../desktop/state/GlobalWindowController.hpp"
 #include "../render/Renderer.hpp"
 #include "../managers/EventManager.hpp"
 #include "../event/EventBus.hpp"
@@ -45,19 +47,25 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         }
 
         if (output) {
-            const auto wpMonitor = CWLOutputResource::fromResource(output)->m_monitor;
+            const auto OUTPUT = CWLOutputResource::fromResource(output);
+            if UNLIKELY (!OUTPUT) {
+                LOGM(Log::ERR, "Client requested foreign toplevel output on an invalid output resource");
+                return;
+            }
+
+            const auto wpMonitor = OUTPUT->m_monitor;
 
             if (!wpMonitor.expired()) {
                 const auto monitor = wpMonitor.lock();
 
                 if (PWINDOW->m_workspace != monitor->m_activeWorkspace) {
-                    g_pCompositor->moveWindowToWorkspaceSafe(PWINDOW, monitor->m_activeWorkspace);
+                    Desktop::globalWindowController()->moveWindowToWorkspace(PWINDOW, monitor->m_activeWorkspace);
                     Desktop::focusState()->rawMonitorFocus(monitor);
                 }
             }
         }
 
-        g_pCompositor->changeWindowFullscreenModeClient(PWINDOW, FSMODE_FULLSCREEN, true);
+        Fullscreen::controller()->setFullscreenMode(PWINDOW, std::nullopt, Fullscreen::FSMODE_FULLSCREEN);
         g_pHyprRenderer->damageWindow(PWINDOW);
     });
 
@@ -70,7 +78,10 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         if UNLIKELY (PWINDOW->m_suppressedEvents & Desktop::View::SUPPRESS_FULLSCREEN)
             return;
 
-        g_pCompositor->changeWindowFullscreenModeClient(PWINDOW, FSMODE_FULLSCREEN, false);
+        // if window is client FSMODE_FULLSCREEN, unFS the window. If it isn't, let the window keep its FS mode
+        const auto WINDOW_CLIENT_FS_MODE = Fullscreen::controller()->getFullscreenModes(PWINDOW).client;
+        if (WINDOW_CLIENT_FS_MODE == Fullscreen::FSMODE_FULLSCREEN)
+            Fullscreen::controller()->setFullscreenMode(PWINDOW, std::nullopt, Fullscreen::FSMODE_NONE);
     });
 
     m_resource->setSetMaximized([this](CZwlrForeignToplevelHandleV1* p) {
@@ -86,8 +97,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
             PWINDOW->m_wantsInitialFullscreen = true;
             return;
         }
-
-        g_pCompositor->changeWindowFullscreenModeClient(PWINDOW, FSMODE_MAXIMIZED, true);
+        Fullscreen::controller()->setFullscreenMode(PWINDOW, std::nullopt, Fullscreen::FSMODE_MAXIMIZED);
     });
 
     m_resource->setUnsetMaximized([this](CZwlrForeignToplevelHandleV1* p) {
@@ -99,7 +109,9 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         if UNLIKELY (PWINDOW->m_suppressedEvents & Desktop::View::SUPPRESS_MAXIMIZE)
             return;
 
-        g_pCompositor->changeWindowFullscreenModeClient(PWINDOW, FSMODE_MAXIMIZED, false);
+        // If window's client FS state is maximised, unmaximise it. If it isn't, let it keep its FS state
+        if (Fullscreen::controller()->getFullscreenModes(PWINDOW).client == Fullscreen::FSMODE_MAXIMIZED)
+            Fullscreen::controller()->setFullscreenMode(PWINDOW, std::nullopt, Fullscreen::FSMODE_NONE);
     });
 
     m_resource->setSetMinimized([this](CZwlrForeignToplevelHandleV1* p) {
@@ -191,9 +203,9 @@ void CForeignToplevelHandleWlr::sendState() {
         *p     = ZWLR_FOREIGN_TOPLEVEL_HANDLE_V1_STATE_ACTIVATED;
     }
 
-    if (PWINDOW->isFullscreen()) {
+    if (Fullscreen::controller()->isFullscreen(PWINDOW)) {
         auto p = sc<uint32_t*>(wl_array_add(&state, sizeof(uint32_t)));
-        if (PWINDOW->isEffectiveInternalFSMode(FSMODE_FULLSCREEN))
+        if (Fullscreen::controller()->getFullscreenModes(PWINDOW).internal == Fullscreen::FSMODE_FULLSCREEN)
             *p = ZWLR_FOREIGN_TOPLEVEL_HANDLE_V1_STATE_FULLSCREEN;
         else
             *p = ZWLR_FOREIGN_TOPLEVEL_HANDLE_V1_STATE_MAXIMIZED;

@@ -2,8 +2,8 @@
 #include "decorations/CHyprInnerGlowDecoration.hpp"
 #include <aquamarine/output/Output.hpp>
 #include "../config/ConfigValue.hpp"
-#include "../managers/CursorManager.hpp"
-#include "../managers/PointerManager.hpp"
+#include "../pointer/cursor/CursorManager.hpp"
+#include "../pointer/PointerManager.hpp"
 #include "../protocols/SessionLock.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/PresentationTime.hpp"

@@ -1,25 +1,32 @@
 #include "AnimationManager.hpp"
-#include "../../Compositor.hpp"
-#include "../../config/ConfigManager.hpp"
-#include "../../desktop/DesktopTypes.hpp"
-#include "../../helpers/AnimatedVariable.hpp"
-#include "../../macros.hpp"
-#include "../../config/ConfigValue.hpp"
-#include "../../desktop/view/Window.hpp"
-#include "../../desktop/view/LayerSurface.hpp"
-#include "../eventLoop/EventLoopManager.hpp"
-#include "../../helpers/varlist/VarList.hpp"
-#include "../../render/Renderer.hpp"
-#include "../../event/EventBus.hpp"
-#include "../../state/MonitorState.hpp"
+#include "../Compositor.hpp"
+#include "../desktop/DesktopTypes.hpp"
+#include "../helpers/AnimatedVariable.hpp"
+#include "../macros.hpp"
+#include "../config/ConfigValue.hpp"
+#include "../desktop/view/Window.hpp"
+#include "../desktop/view/LayerSurface.hpp"
+#include "../managers/eventLoop/EventLoopManager.hpp"
+#include "../managers/fullscreen/FullscreenController.hpp"
+#include "../render/Renderer.hpp"
+#include "../event/EventBus.hpp"
+#include "../state/MonitorState.hpp"
 
 #include <hyprgraphics/color/Color.hpp>
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <hyprutils/animation/AnimationManager.hpp>
+#include <cmath>
+
+using namespace Animation;
+
+UP<CHyprAnimationManager>& Animation::mgr() {
+    static UP<CHyprAnimationManager> p = makeUnique<CHyprAnimationManager>();
+    return p;
+}
 
 static int wlTick(SP<CEventLoopTimer> self, void* data) {
-    if (g_pAnimationManager)
-        g_pAnimationManager->frameTick();
+    if (mgr())
+        mgr()->frameTick();
 
     return 0;
 }
@@ -56,15 +63,13 @@ static void updateColorVariable(CAnimatedVariable<CHyprColor>& av, const float P
     const auto&                L1 = av.begun().asOkLab();
     const auto&                L2 = av.goal().asOkLab();
 
-    static const auto          lerp = [](const float one, const float two, const float progress) -> float { return one + ((two - one) * progress); };
-
     const Hyprgraphics::CColor lerped = Hyprgraphics::CColor::SOkLab{
-        .l = lerp(L1.l, L2.l, POINTY),
-        .a = lerp(L1.a, L2.a, POINTY),
-        .b = lerp(L1.b, L2.b, POINTY),
+        .l = std::lerp(L1.l, L2.l, POINTY),
+        .a = std::lerp(L1.a, L2.a, POINTY),
+        .b = std::lerp(L1.b, L2.b, POINTY),
     };
 
-    av.value() = {lerped, lerp(av.begun().a, av.goal().a, POINTY)};
+    av.value() = {lerped, std::lerp(av.begun().a, av.goal().a, POINTY)};
 }
 
 static SAnimationContext& getContext(Hyprutils::Animation::CBaseAnimatedVariable* pAV) {
@@ -329,7 +334,7 @@ void CHyprAnimationManager::tick() {
             }
         }
 
-        if (!owner.monitor->inFullscreenMode())
+        if (!Fullscreen::controller()->hasFullscreen(owner.monitor))
             owner.monitor->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_ANIMATION);
     }
 

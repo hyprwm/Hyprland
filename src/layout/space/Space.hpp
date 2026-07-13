@@ -20,7 +20,7 @@ namespace Layout {
         RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN,
         RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN,
         RECALCULATE_REASON_INVALIDATE_MONITOR_GEOMETRIES,
-        RECALCULATE_REASON_RENDER_MOINTOR,
+        RECALCULATE_REASON_RENDER_MONITOR,
     };
 
     eRecalculateReason recalcMonitorReasonToRecalcReason(CLayoutManager::eRecalculateMonitorReason reason);
@@ -43,7 +43,6 @@ namespace Layout {
 
         void                            setAlgorithmProvider(SP<CAlgorithm> algo);
         void                            recheckWorkArea();
-        eFullscreenRequestResult        setFullscreen(SP<ITarget> t, eFullscreenMode currentEffectiveMode, eFullscreenMode mode);
 
         void                            moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
 

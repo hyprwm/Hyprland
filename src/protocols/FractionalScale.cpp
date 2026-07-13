@@ -68,10 +68,12 @@ bool CFractionalScaleProtocol::hasKnownScale(SP<CWLSurfaceResource> surf) {
 CFractionalScaleAddon::CFractionalScaleAddon(SP<CWpFractionalScaleV1> resource_, SP<CWLSurfaceResource> surf_) : m_resource(resource_), m_surface(surf_) {
     m_resource->setDestroy([this](CWpFractionalScaleV1* self) { PROTO::fractional->removeAddon(this); });
     m_resource->setOnDestroy([this](CWpFractionalScaleV1* self) { PROTO::fractional->removeAddon(this); });
+
+    m_listeners.surfaceUnmap = m_surface->m_events.unmap.listen([this]() { m_scale = std::nullopt; });
 }
 
 void CFractionalScaleAddon::setScale(const float& scale) {
-    if (m_scale == scale)
+    if (m_scale && m_scale == scale)
         return;
 
     m_scale = scale;

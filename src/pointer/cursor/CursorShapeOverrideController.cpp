@@ -2,7 +2,8 @@
 
 #include <ranges>
 
-using namespace Cursor;
+using namespace Pointer;
+using namespace Pointer::Cursor;
 
 void CShapeOverrideController::setOverride(const std::string& name, eCursorShapeOverrideGroup group) {
     if (m_overrides[group] == name)

@@ -53,7 +53,7 @@ static bool debug, started, shouldExit;
 template <typename... Args>
 //NOLINTNEXTLINE
 static void clientLog(std::format_string<Args...> fmt, Args&&... args) {
-    std::println("{}", std::vformat(fmt.get(), std::make_format_args(args...)));
+    std::println("{}", std::format(fmt, std::forward<Args>(args)...));
     std::fflush(stdout);
 }
 
@@ -62,7 +62,7 @@ template <typename... Args>
 static void debugLog(std::format_string<Args...> fmt, Args&&... args) {
     if (!debug)
         return;
-    std::println("{}", std::vformat(fmt.get(), std::make_format_args(args...)));
+    std::println("{}", std::format(fmt, std::forward<Args>(args)...));
     std::fflush(stdout);
 }
 

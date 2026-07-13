@@ -1,0 +1,33 @@
+name: 'Code Owners'
+
+concurrency:
+  group: codeowners-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request_target:
+    # Note: to support more features of codeowners-plus, more event triggers
+    # may be required. See https://github.com/marketplace/actions/codeowners-plus
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: read       # required for @actions/checkout
+  pull-requests: write # required to request reviewers and leave comments
+
+jobs:
+  codeowners:
+    name: 'Run Codeowners Plus'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout Code Repository'
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: 'Codeowners Plus'
+        uses: multimediallc/codeowners-plus@v1.9.1
+        with:
+          github-token: '${{ secrets.GITHUB_TOKEN }}'
+          pr: '${{ github.event.pull_request.number }}'
+          verbose: true
+          quiet: ${{ github.event.pull_request.draft }}

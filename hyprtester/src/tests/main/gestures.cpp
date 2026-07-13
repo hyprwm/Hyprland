@@ -1,14 +1,10 @@
 #include "tests.hpp"
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
-#include <print>
 #include <thread>
-#include <chrono>
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
 #include <hyprutils/string/Numeric.hpp>
-#include <csignal>
-#include <cerrno>
 #include "../shared.hpp"
 
 using namespace Hyprutils::OS;

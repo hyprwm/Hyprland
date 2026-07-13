@@ -26,10 +26,14 @@ namespace Config::Supplementary {
     class CPropRefresher {
       public:
         void scheduleRefresh(PropRefreshBits reason);
+        int  executeScheduledRefreshImmediately();
 
       private:
-        bool            m_scheduled = false;
-        PropRefreshBits m_propsTripped;
+        void            refreshProp(const bool execdAsScheduled);
+
+        bool            m_scheduled           = false;
+        uint64_t        m_scheduledRefreshSeq = 0; // 0 if no refresh event scheduled
+        PropRefreshBits m_propsTripped        = 0;
     };
 
     UP<CPropRefresher>& refresher();

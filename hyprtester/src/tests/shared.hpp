@@ -4,8 +4,6 @@
 #include <hyprutils/memory/WeakPtr.hpp>
 #include <sys/types.h>
 
-#include "../Log.hpp"
-
 //NOLINTNEXTLINE
 namespace Tests {
     Hyprutils::Memory::CUniquePointer<Hyprutils::OS::CProcess> spawnKitty(const std::string& class_ = "", const std::vector<std::string> args = {});
@@ -13,6 +11,7 @@ namespace Tests {
     bool                                                       processAlive(pid_t pid);
     int                                                        windowCount();
     int                                                        countOccurrences(const std::string& in, const std::string& what);
+    void                                                       sync(int rounds = 3);
     bool                                                       killAllWindows();
     void                                                       waitUntilWindowsN(int n);
     int                                                        layerCount();

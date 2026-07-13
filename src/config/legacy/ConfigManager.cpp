@@ -18,13 +18,18 @@
 #include "../../protocols/LayerShell.hpp"
 #include "../../xwayland/XWayland.hpp"
 #include "../../protocols/OutputManagement.hpp"
-#include "../../managers/animation/AnimationManager.hpp"
+#include "../../animation/AnimationManager.hpp"
 #include "../../desktop/rule/Engine.hpp"
 #include "../../desktop/rule/windowRule/WindowRule.hpp"
 #include "../../desktop/rule/layerRule/LayerRule.hpp"
 #include "../../debug/HyprCtl.hpp"
 #include "../../layout/LayoutManager.hpp"
-
+#include "../../desktop/state/FocusState.hpp"
+#include "../../desktop/state/GlobalWindowController.hpp"
+#include "../../layout/space/Space.hpp"
+#include "../../layout/supplementary/WorkspaceAlgoMatcher.hpp"
+#include "../../state/MonitorState.hpp"
+#include "../../state/WorkspaceState.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../errorOverlay/Overlay.hpp"
 #include "../../managers/input/InputManager.hpp"
@@ -72,6 +77,7 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <numbers>
 #include <ranges>
 #include <unordered_set>
 #include <hyprutils/string/String.hpp>
@@ -111,7 +117,7 @@ static Hyprlang::CParseResult configHandleGradientSet(const char* VALUE, void** 
         if (var.find("deg") != std::string::npos) {
             // last arg
             try {
-                DATA->m_angle = std::stoi(std::string(var.substr(0, var.find("deg")))) * (PI / 180.0); // radians
+                DATA->m_angle = std::stoi(std::string(var.substr(0, var.find("deg")))) * (std::numbers::pi / 180.0); // radians
             } catch (...) {
                 Log::logger->log(Log::WARN, "Error parsing gradient {}", V);
                 parseError = "Error parsing gradient " + V;
@@ -757,8 +763,8 @@ std::string CConfigManager::verify() {
 
 std::optional<std::string> CConfigManager::resetHLConfig() {
     g_pKeybindManager->clearKeybinds();
-    g_pAnimationManager->removeAllBeziers();
-    g_pAnimationManager->addBezierWithName("linear", Vector2D(0.0, 0.0), Vector2D(1.0, 1.0));
+    Animation::mgr()->removeAllBeziers();
+    Animation::mgr()->addBezierWithName("linear", Vector2D(0.0, 0.0), Vector2D(1.0, 1.0));
     g_pTrackpadGestures->clearGestures();
 
     Config::animationTree()->reset();
@@ -962,7 +968,7 @@ Hyprlang::CParseResult CConfigManager::reloadRules() {
 }
 
 void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         w->uncacheWindowDecos();
     }
 
@@ -1017,7 +1023,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
 #endif
 
     // Updates dynamic window and workspace rules
-    for (auto const& w : g_pCompositor->getWorkspaces()) {
+    for (auto const& w : State::workspaceState()->workspaces()) {
         if (w->inert())
             continue;
         w->updateWindows();
@@ -1025,7 +1031,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     }
 
     // Update window border colors
-    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+    Desktop::globalWindowController()->updateAllWindowsDecorations();
 
     // manual crash
     if (std::any_cast<Hyprlang::INT>(m_config->getConfigValue("debug:manual_crash")) && !m_manualCrashInitiated) {
@@ -1044,11 +1050,11 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
                          "Further logs will be written to {}",
                          g_pCompositor->m_instancePath + (ISDEBUG ? "/hyprlandd.log" : "/hyprland.log"));
 
-    for (auto const& m : g_pCompositor->m_monitors) {
+    for (auto const& m : State::monitorState()->monitors()) {
         // mark blur dirty
         m->m_blurFBDirty = true;
 
-        g_pCompositor->scheduleFrameForMonitor(m);
+        m->scheduleFrame();
 
         // Force the compositor to fully re-render all monitors
         m->m_forceFullFrames = 2;
@@ -1085,13 +1091,13 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
 
     // invalidate layouts if they changed
     if (COMMAND == "monitor" || COMMAND.contains("gaps_") || COMMAND.starts_with("dwindle:") || COMMAND.starts_with("master:")) {
-        for (auto const& m : g_pCompositor->m_monitors) {
+        for (auto const& m : State::monitorState()->monitors()) {
             g_layoutManager->recalculateMonitor(m);
         }
     }
 
     // Update window border colors
-    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+    Desktop::globalWindowController()->updateAllWindowsDecorations();
 
     // manual crash
     if (std::any_cast<Hyprlang::INT>(m_config->getConfigValue("debug:manual_crash")) && !m_manualCrashInitiated) {
@@ -1412,7 +1418,7 @@ std::optional<std::string> CConfigManager::handleBezier(const std::string& comma
     if (!ARGS[5].empty())
         return "too many arguments";
 
-    g_pAnimationManager->addBezierWithName(bezierName, Vector2D(p1x, p1y), Vector2D(p2x, p2y));
+    Animation::mgr()->addBezierWithName(bezierName, Vector2D(p1x, p1y), Vector2D(p2x, p2y));
 
     return {};
 }
@@ -1457,13 +1463,13 @@ std::optional<std::string> CConfigManager::handleAnimation(const std::string& co
 
     std::string bezierName = ARGS[3];
 
-    if (!g_pAnimationManager->bezierExists(bezierName))
+    if (!Animation::mgr()->bezierExists(bezierName))
         return "no such bezier";
 
     Config::animationTree()->setConfigForNode(ANIMNAME, enabledInt, speed, ARGS[3], ARGS[4]);
 
     if (!ARGS[4].empty()) {
-        auto ERR = g_pAnimationManager->styleValidInConfigVar(ANIMNAME, ARGS[4]);
+        auto ERR = Animation::mgr()->styleValidInConfigVar(ANIMNAME, ARGS[4]);
 
         if (!ERR.empty())
             return ERR;

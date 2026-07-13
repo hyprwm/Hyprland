@@ -2,11 +2,14 @@
 
 #include "../../../debug/log/Logger.hpp"
 #include "../../../protocols/OutputManagement.hpp"
-#include "../../../helpers/Monitor.hpp"
+#include "../../../output/Monitor.hpp"
 #include "../../../Compositor.hpp"
 #include "../../../render/Renderer.hpp"
 #include "../../../event/EventBus.hpp"
 #include "../../../managers/eventLoop/EventLoopManager.hpp"
+#include "../../../managers/fullscreen/FullscreenController.hpp"
+#include "../../../state/MonitorLayoutController.hpp"
+#include "../../../state/MonitorState.hpp"
 
 #include <ranges>
 
@@ -20,7 +23,7 @@ UP<CMonitorRuleManager>& Config::monitorRuleMgr() {
 CMonitorRuleManager::CMonitorRuleManager() {
     m_listeners.preChecksRender = Event::bus()->m_events.render.preChecks.listen([this](PHLMONITOR m) {
         if (m_reloadScheduled)
-            performMonitorReload();
+            ensureMonitorStatus();
 
         m_reloadScheduled = false;
     });
@@ -79,6 +82,16 @@ CMonitorRule CMonitorRuleManager::get(const PHLMONITOR PMONITOR) {
         return rule;
     };
 
+    if (PMONITOR->m_isUnsafeFallback) {
+        CMonitorRule fallbackRule;
+        fallbackRule.m_autoDir    = DIR_AUTO_RIGHT;
+        fallbackRule.m_name       = PMONITOR->m_name;
+        fallbackRule.m_resolution = Vector2D{1920, 1080};
+        fallbackRule.m_offset     = Vector2D{-INT32_MAX, -INT32_MAX};
+        fallbackRule.m_scale      = 1;
+        return fallbackRule;
+    }
+
     for (auto const& r : m_rules | std::views::reverse) {
         if (PMONITOR->matchesStaticSelector(r.m_name))
             return applyWlrOutputConfig(r);
@@ -117,48 +130,63 @@ void CMonitorRuleManager::scheduleReload() {
     m_reloadScheduled = true;
 }
 
-void CMonitorRuleManager::performMonitorReload() {
-    bool overAgain = false;
+void CMonitorRuleManager::ensureMonitorStatus() {
+    std::vector<PHLMONITOR> monsForRefresh;
 
-    for (auto const& m : g_pCompositor->m_realMonitors) {
-        if (!m->m_output || m->m_isUnsafeFallback)
+    for (auto const& m : State::monitorState()->allMonitors()) {
+        if (!m || !m->m_output || m->m_isUnsafeFallback)
+            continue;
+
+        auto rule = get(m);
+
+        auto cmp = rule.compare(m->m_activeMonitorRule);
+
+        if (cmp == COMPARISON_FULL_MATCH)
             continue;
 
         m->m_splash = nullptr;
 
-        auto rule = get(m);
+        monsForRefresh.emplace_back(m);
 
-        if (!m->applyMonitorRule(Config::CMonitorRule{rule})) {
-            overAgain = true;
-            break;
+        if (cmp == COMPARISON_SOFT_MISMATCH) {
+            m->applyMonitorRuleSoft(Config::CMonitorRule{rule});
+            continue;
         }
 
-        // ensure mirror
-        m->setMirror(rule.m_mirrorOf);
+        if (!m->applyMonitorRule(Config::CMonitorRule{rule})) {
+            Log::logger->log(Log::ERR, "[MonitorRuleManager] failed to apply rule to {}!", m->m_name);
+            continue;
+        }
+    }
+
+    m_reloadScheduled = false;
+
+    if (monsForRefresh.empty())
+        return;
+
+    for (const auto& m : monsForRefresh) {
+        if (!m->m_output)
+            continue;
+
+        if (m->m_enabled == m->m_activeMonitorRule.m_disabled)
+            m->m_activeMonitorRule.m_disabled ? m->onDisconnect() : m->onConnect(true);
+    }
+
+    for (auto const& w : Desktop::windowState()->windows()) {
+        w->updateSurfaceScaleTransformDetails();
+    }
+
+    State::monitorLayoutController()->arrange();
+    State::monitorLayoutController()->checkOverlapsAndNotify();
+
+    for (const auto& m : monsForRefresh) {
+        if (!m->m_output)
+            continue;
 
         g_pHyprRenderer->arrangeLayersForMonitor(m->m_id);
     }
 
-    if (overAgain)
-        performMonitorReload();
-
-    m_reloadScheduled = false;
-
-    ensureVRR();
-
     Event::bus()->m_events.monitor.layoutChanged.emit();
-}
-
-void CMonitorRuleManager::ensureMonitorStatus() {
-    for (auto const& rm : g_pCompositor->m_realMonitors) {
-        if (!rm->m_output || rm->m_isUnsafeFallback)
-            continue;
-
-        auto rule = get(rm);
-
-        if (rule.m_disabled == rm->m_enabled)
-            rm->applyMonitorRule(std::move(rule));
-    }
 }
 
 void CMonitorRuleManager::ensureVRR(PHLMONITOR pMonitor) {
@@ -186,8 +214,8 @@ void CMonitorRuleManager::ensureVRR(PHLMONITOR pMonitor) {
 
         if (USEVRR == 1) {
             bool wantVRR = true;
-            if (PWORKSPACE && PWORKSPACE->m_hasFullscreenWindow && (PWORKSPACE->m_fullscreenMode & FSMODE_FULLSCREEN))
-                wantVRR = !PWORKSPACE->getFullscreenWindow()->m_ruleApplicator->noVRR().valueOrDefault();
+            if (PWORKSPACE && Fullscreen::controller()->getFullscreenModes(PWORKSPACE).internal == Fullscreen::FSMODE_FULLSCREEN)
+                wantVRR = !Fullscreen::controller()->getFullscreenWindow(PWORKSPACE)->m_ruleApplicator->noVRR().valueOrDefault();
 
             if (wantVRR) {
                 if (!m->m_vrrActive) {
@@ -215,15 +243,13 @@ void CMonitorRuleManager::ensureVRR(PHLMONITOR pMonitor) {
             }
             return;
         } else if (USEVRR == 2 || USEVRR == 3) {
-            if (!PWORKSPACE)
-                return; // ???
 
-            bool wantVRR = PWORKSPACE->m_hasFullscreenWindow && (PWORKSPACE->m_fullscreenMode & FSMODE_FULLSCREEN);
-            if (wantVRR && PWORKSPACE->getFullscreenWindow()->m_ruleApplicator->noVRR().valueOrDefault())
+            bool wantVRR = Fullscreen::controller()->getFullscreenModes(PWORKSPACE).internal == Fullscreen::FSMODE_FULLSCREEN;
+            if (wantVRR && Fullscreen::controller()->getFullscreenWindow(PWORKSPACE)->m_ruleApplicator->noVRR().valueOrDefault())
                 wantVRR = false;
 
             if (wantVRR && USEVRR == 3) {
-                const auto contentType = PWORKSPACE->getFullscreenWindow()->getContentType();
+                const auto contentType = Fullscreen::controller()->getFullscreenWindow(PWORKSPACE)->getContentType();
                 wantVRR                = contentType == NContentType::CONTENT_TYPE_GAME || contentType == NContentType::CONTENT_TYPE_VIDEO;
             }
 
@@ -252,7 +278,7 @@ void CMonitorRuleManager::ensureVRR(PHLMONITOR pMonitor) {
         return;
     }
 
-    for (auto const& m : g_pCompositor->m_monitors) {
+    for (auto const& m : State::monitorState()->monitors()) {
         ensureVRRForDisplay(m);
     }
 }

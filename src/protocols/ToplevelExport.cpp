@@ -18,7 +18,7 @@ CToplevelExportClient::CToplevelExportClient(SP<CHyprlandToplevelExportManagerV1
     m_resource->setOnDestroy([this](CHyprlandToplevelExportManagerV1* pMgr) { PROTO::toplevelExport->destroyResource(this); });
     m_resource->setDestroy([this](CHyprlandToplevelExportManagerV1* pMgr) { PROTO::toplevelExport->destroyResource(this); });
     m_resource->setCaptureToplevel([this](CHyprlandToplevelExportManagerV1* pMgr, uint32_t frame, int32_t overlayCursor, uint32_t handle) {
-        captureToplevel(frame, overlayCursor, g_pCompositor->getWindowFromHandle(handle));
+        captureToplevel(frame, overlayCursor, Desktop::viewState()->query().handle(handle).runWindow());
     });
     m_resource->setCaptureToplevelWithWlrToplevelHandle([this](CHyprlandToplevelExportManagerV1* pMgr, uint32_t frame, int32_t overlayCursor, wl_resource* handle) {
         captureToplevel(frame, overlayCursor, PROTO::foreignToplevelWlr->windowFromHandleResource(handle));
@@ -76,7 +76,14 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
     auto       bufSize = m_frame->bufferSize();
 
     const auto PSHMINFO = getPixelFormatFromDRM(format);
-    const auto stride   = minStride(PSHMINFO, bufSize.x);
+
+    if (!PSHMINFO) {
+        LOGM(Log::ERR, "No pixel format for drm format");
+        m_resource->sendFailed();
+        return;
+    }
+
+    const auto stride = minStride(PSHMINFO, bufSize.x);
     m_resource->sendBuffer(NFormatUtils::drmToShm(format), bufSize.x, bufSize.y, stride);
 
     if LIKELY (format != DRM_FORMAT_INVALID)

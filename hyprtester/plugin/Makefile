@@ -1,6 +1,7 @@
 CXXFLAGS = -shared -fPIC -g -std=c++2b -Wno-c++11-narrowing
 INCLUDES = `pkg-config --cflags pixman-1 libdrm pangocairo libinput libudev wayland-server xkbcommon`
 LIBS = `pkg-config --libs pangocairo`
+LUA_FLAGS = $(if $(strip $(LUA_INCLUDES)),-I$(LUA_INCLUDES),)
 
 SRC = src/main.cpp
 TARGET = hyprtestplugin.so
@@ -8,7 +9,7 @@ TARGET = hyprtestplugin.so
 all: $(TARGET)
 
 $(TARGET): $(SRC)
-	$(CXX) $(CXXFLAGS) -I../.. -I../../protocols $(INCLUDES) -I${LUA_INCLUDES} $^ $> -o $@ $(LIBS) -O2
+	$(CXX) $(CXXFLAGS) -I../.. -I../../src -I../../protocols $(INCLUDES) $(LUA_FLAGS) $^ -o $@ $(LIBS) -O2
 
 clean:
 	rm -f ./$(TARGET)

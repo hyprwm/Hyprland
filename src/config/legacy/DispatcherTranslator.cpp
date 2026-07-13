@@ -4,12 +4,15 @@
 #include "../supplementary/executor/Executor.hpp"
 #include "../../Compositor.hpp"
 #include "../../desktop/state/FocusState.hpp"
-#include "../../helpers/Monitor.hpp"
+#include "../../output/Monitor.hpp"
 #include "../../desktop/view/Group.hpp"
 #include "../../managers/KeybindManager.hpp"
 #include "../../managers/SeatManager.hpp"
 #include "../../managers/input/InputManager.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../../layout/LayoutManager.hpp"
+#include "../../state/MonitorState.hpp"
+#include "../../state/WorkspaceState.hpp"
 
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/string/VarList2.hpp>
@@ -42,7 +45,7 @@ static SDispatchResult wrap(ActionResult res) {
 static std::optional<PHLWINDOW> windowFromArg(const std::string& arg) {
     if (arg.empty() || arg == "active")
         return std::nullopt; // will use xtract(nullopt) -> focused window
-    return g_pCompositor->getWindowByRegex(arg);
+    return Desktop::viewState()->query().selector(arg).runWindow();
 }
 
 // helper: resolve workspace from string and optionally create it
@@ -50,11 +53,11 @@ static PHLWORKSPACE resolveWorkspace(const std::string& args) {
     const auto& [id, name, isAutoID] = getWorkspaceIDNameFromString(args);
     if (id == WORKSPACE_INVALID)
         return nullptr;
-    auto ws = g_pCompositor->getWorkspaceByID(id);
+    auto ws = State::workspaceState()->query().id(id).run();
     if (!ws) {
         const auto PMONITOR = Desktop::focusState()->monitor();
         if (PMONITOR)
-            ws = g_pCompositor->createNewWorkspace(id, PMONITOR->m_id, name, false);
+            ws = State::workspaceState()->create(id, PMONITOR->m_id, name, false);
     }
     return ws;
 }
@@ -80,11 +83,11 @@ static SDispatchResult forcekillactive(const std::string&) {
 }
 
 static SDispatchResult closewindow(const std::string& data) {
-    return wrap(Actions::closeWindow(g_pCompositor->getWindowByRegex(data)));
+    return wrap(Actions::closeWindow(Desktop::viewState()->query().selector(data).runWindow()));
 }
 
 static SDispatchResult killwindow(const std::string& data) {
-    return wrap(Actions::killWindow(g_pCompositor->getWindowByRegex(data)));
+    return wrap(Actions::killWindow(Desktop::viewState()->query().selector(data).runWindow()));
 }
 
 static SDispatchResult signalactive(const std::string& args) {
@@ -99,7 +102,7 @@ static SDispatchResult signalwindow(const std::string& args) {
     const auto WINDOWREGEX = args.substr(0, args.find_first_of(','));
     const auto SIGNAL      = args.substr(args.find_first_of(',') + 1);
 
-    const auto PWINDOW = g_pCompositor->getWindowByRegex(WINDOWREGEX);
+    const auto PWINDOW = Desktop::viewState()->query().selector(WINDOWREGEX).runWindow();
     if (!PWINDOW)
         return {.success = false, .error = "signalWindow: no window"};
 
@@ -141,12 +144,12 @@ static SDispatchResult renameworkspace(const std::string& args) {
         if (FIRSTSPACEPOS != std::string::npos) {
             int         wsid = std::stoi(args.substr(0, FIRSTSPACEPOS));
             std::string name = args.substr(FIRSTSPACEPOS + 1);
-            const auto  PWS  = g_pCompositor->getWorkspaceByID(wsid);
+            const auto  PWS  = State::workspaceState()->query().id(wsid).run();
             if (!PWS)
                 return {.success = false, .error = "No such workspace"};
             return wrap(Actions::renameWorkspace(PWS, name));
         } else {
-            const auto PWS = g_pCompositor->getWorkspaceByID(std::stoi(args));
+            const auto PWS = State::workspaceState()->query().id(std::stoi(args)).run();
             if (!PWS)
                 return {.success = false, .error = "No such workspace"};
             return wrap(Actions::renameWorkspace(PWS, ""));
@@ -155,12 +158,13 @@ static SDispatchResult renameworkspace(const std::string& args) {
 }
 
 static SDispatchResult fullscreen(const std::string& args) {
-    CVarList2             ARGS(args, 2, ' ');
 
-    const eFullscreenMode MODE = ARGS.size() > 0 && ARGS[0] == "1" ? FSMODE_MAXIMIZED : FSMODE_FULLSCREEN;
+    CVarList2                         ARGS(args, 2, ' ');
+
+    const Fullscreen::eFullscreenMode MODE = ARGS.size() > 0 && ARGS[0] == "1" ? Fullscreen::FSMODE_MAXIMIZED : Fullscreen::FSMODE_FULLSCREEN;
 
     if (ARGS.size() <= 1 || ARGS[1] == "toggle")
-        return wrap(Actions::fullscreenWindow(MODE));
+        return wrap(Actions::fullscreenWindow(MODE, true));
 
     // "set" means enable, "unset" means disable - but the Action toggles.
     // We need to check current state ourselves.
@@ -169,12 +173,12 @@ static SDispatchResult fullscreen(const std::string& args) {
         return {.success = false, .error = "Window not found"};
 
     if (ARGS[1] == "set") {
-        if (!PWINDOW->isEffectiveInternalFSMode(MODE))
-            return wrap(Actions::fullscreenWindow(MODE));
+        if (!Fullscreen::controller()->isFullscreen(PWINDOW, MODE))
+            return wrap(Actions::fullscreenWindow(MODE, true));
         return {};
     } else if (ARGS[1] == "unset") {
-        if (PWINDOW->isEffectiveInternalFSMode(MODE))
-            return wrap(Actions::fullscreenWindow(MODE));
+        if (Fullscreen::controller()->isFullscreen(PWINDOW, MODE))
+            return wrap(Actions::fullscreenWindow(MODE, true));
         return {};
     }
 
@@ -196,10 +200,10 @@ static SDispatchResult fullscreenstate(const std::string& args) {
         clientMode = std::stoi(std::string(ARGS[1]));
     } catch (...) { clientMode = -1; }
 
-    eFullscreenMode im = internalMode != -1 ? sc<eFullscreenMode>(internalMode) : PWINDOW->m_fullscreenState.internal;
-    eFullscreenMode cm = clientMode != -1 ? sc<eFullscreenMode>(clientMode) : PWINDOW->m_fullscreenState.client;
+    Fullscreen::eFullscreenMode im = internalMode != -1 ? sc<Fullscreen::eFullscreenMode>(internalMode) : Fullscreen::controller()->getFullscreenModes(PWINDOW).internal;
+    Fullscreen::eFullscreenMode cm = clientMode != -1 ? sc<Fullscreen::eFullscreenMode>(clientMode) : Fullscreen::controller()->getFullscreenModes(PWINDOW).client;
 
-    return wrap(Actions::fullscreenWindow(im, cm));
+    return wrap(Actions::fullscreenWindow(im, cm, true));
 }
 
 static SDispatchResult movetoworkspace(const std::string& args) {
@@ -207,7 +211,7 @@ static SDispatchResult movetoworkspace(const std::string& args) {
     std::string wsArgs  = args;
 
     if (args.contains(',')) {
-        PWINDOW = g_pCompositor->getWindowByRegex(args.substr(args.find_last_of(',') + 1));
+        PWINDOW = Desktop::viewState()->query().selector(args.substr(args.find_last_of(',') + 1)).runWindow();
         wsArgs  = args.substr(0, args.find_last_of(','));
     }
 
@@ -223,7 +227,7 @@ static SDispatchResult movetoworkspacesilent(const std::string& args) {
     std::string wsArgs  = args;
 
     if (args.contains(',')) {
-        PWINDOW = g_pCompositor->getWindowByRegex(args.substr(args.find_last_of(',') + 1));
+        PWINDOW = Desktop::viewState()->query().selector(args.substr(args.find_last_of(',') + 1)).runWindow();
         wsArgs  = args.substr(0, args.find_last_of(','));
     }
 
@@ -248,7 +252,7 @@ static SDispatchResult movewindow(const std::string& args) {
     auto cleanArgs = silent ? args.substr(0, args.length() - 7) : args;
 
     if (cleanArgs.starts_with("mon:")) {
-        const auto PNEWMONITOR = g_pCompositor->getMonitorFromString(cleanArgs.substr(4));
+        const auto PNEWMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(cleanArgs.substr(4)).run();
         if (!PNEWMONITOR)
             return {.success = false, .error = std::format("Monitor {} not found", cleanArgs.substr(4))};
 
@@ -267,16 +271,16 @@ static SDispatchResult swapwindow(const std::string& args) {
     if (isDirection(args))
         return wrap(Actions::swapInDirection(Math::fromChar(args[0])));
 
-    // regex-based swap: resolve window and use swapInDirection? No - the old code used getWindowByRegex + switchTargets.
+    // regex-based swap: resolve window and use swapInDirection? No - the old code used selector lookup + switchTargets.
     // The new Actions don't have a "swap with specific window" variant.
-    // Fall through to the old swapActive logic via getWindowByRegex + layout switchTargets.
+    // Fall through to the old swapActive logic via selector lookup + layout switchTargets.
     const auto PLASTWINDOW = Desktop::focusState()->window();
     if (!PLASTWINDOW)
         return {.success = false, .error = "Window to swap with not found"};
-    if (PLASTWINDOW->isFullscreen())
+    if (Fullscreen::controller()->isFullscreen(PLASTWINDOW))
         return {.success = false, .error = "Can't swap fullscreen window"};
 
-    const auto PWINDOWTOCHANGETO = g_pCompositor->getWindowByRegex(args);
+    const auto PWINDOWTOCHANGETO = Desktop::viewState()->query().selector(args).runWindow();
     if (!PWINDOWTOCHANGETO || PWINDOWTOCHANGETO == PLASTWINDOW)
         return {.success = false, .error = std::format("Can't swap with {}, invalid window", args)};
 
@@ -323,7 +327,7 @@ static SDispatchResult movegroupwindow(const std::string& args) {
 }
 
 static SDispatchResult focusmonitor(const std::string& args) {
-    const auto PMONITOR = g_pCompositor->getMonitorFromString(args);
+    const auto PMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(args).run();
     if (!PMONITOR)
         return {.success = false, .error = "Monitor not found"};
     return wrap(Actions::focusMonitor(PMONITOR));
@@ -358,7 +362,7 @@ static SDispatchResult exitHyprland(const std::string&) {
 }
 
 static SDispatchResult movecurrentworkspacetomonitor(const std::string& args) {
-    const auto PMONITOR = g_pCompositor->getMonitorFromString(args);
+    const auto PMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(args).run();
     if (!PMONITOR)
         return {.success = false, .error = "Monitor not found"};
 
@@ -376,7 +380,7 @@ static SDispatchResult moveworkspacetomonitor(const std::string& args) {
     std::string wsStr  = args.substr(0, args.find_first_of(' '));
     std::string monStr = args.substr(args.find_first_of(' ') + 1);
 
-    const auto  PMONITOR = g_pCompositor->getMonitorFromString(monStr);
+    const auto  PMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(monStr).run();
     if (!PMONITOR)
         return {.success = false, .error = "Monitor not found"};
 
@@ -384,7 +388,7 @@ static SDispatchResult moveworkspacetomonitor(const std::string& args) {
     if (WORKSPACEID == WORKSPACE_INVALID)
         return {.success = false, .error = "Invalid workspace"};
 
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(WORKSPACEID);
+    const auto PWORKSPACE = State::workspaceState()->query().id(WORKSPACEID).run();
     if (!PWORKSPACE)
         return {.success = false, .error = "Workspace not found"};
 
@@ -400,14 +404,14 @@ static SDispatchResult focusworkspaceoncurrentmonitor(const std::string& args) {
 
 static SDispatchResult togglespecialworkspace(const std::string& args) {
     const auto& [workspaceID, workspaceName, isAutoID] = getWorkspaceIDNameFromString("special:" + args);
-    if (workspaceID == WORKSPACE_INVALID || !g_pCompositor->isWorkspaceSpecial(workspaceID))
+    if (workspaceID == WORKSPACE_INVALID || !State::workspaceState()->isSpecial(workspaceID))
         return {.success = false, .error = "Invalid special workspace"};
 
-    auto ws = g_pCompositor->getWorkspaceByID(workspaceID);
+    auto ws = State::workspaceState()->query().id(workspaceID).run();
     if (!ws) {
         const auto PMONITOR = Desktop::focusState()->monitor();
         if (PMONITOR)
-            ws = g_pCompositor->createNewWorkspace(workspaceID, PMONITOR->m_id, workspaceName);
+            ws = State::workspaceState()->create(workspaceID, PMONITOR->m_id, workspaceName);
     }
 
     if (!ws)
@@ -445,7 +449,7 @@ static SDispatchResult movewindowpixel(const std::string& args) {
     const auto WINDOWREGEX = args.substr(args.find_first_of(',') + 1);
     const auto MOVECMD     = args.substr(0, args.find_first_of(','));
 
-    const auto PWINDOW = g_pCompositor->getWindowByRegex(WINDOWREGEX);
+    const auto PWINDOW = Desktop::viewState()->query().selector(WINDOWREGEX).runWindow();
     if (!PWINDOW)
         return {.success = false, .error = "moveWindow: no window"};
 
@@ -457,7 +461,7 @@ static SDispatchResult resizewindowpixel(const std::string& args) {
     const auto WINDOWREGEX = args.substr(args.find_first_of(',') + 1);
     const auto MOVECMD     = args.substr(0, args.find_first_of(','));
 
-    const auto PWINDOW = g_pCompositor->getWindowByRegex(WINDOWREGEX);
+    const auto PWINDOW = Desktop::viewState()->query().selector(WINDOWREGEX).runWindow();
     if (!PWINDOW)
         return {.success = false, .error = "resizeWindow: no window"};
 
@@ -489,7 +493,7 @@ static SDispatchResult cyclenext(const std::string& arg) {
 }
 
 static SDispatchResult focuswindow(const std::string& regexp) {
-    const auto PWINDOW = g_pCompositor->getWindowByRegex(regexp);
+    const auto PWINDOW = Desktop::viewState()->query().selector(regexp).runWindow();
     if (!PWINDOW)
         return {.success = false, .error = "No such window found"};
     return wrap(Actions::focus(PWINDOW));
@@ -502,7 +506,7 @@ static SDispatchResult tagwindow(const std::string& args) {
     if (vars.size() == 1)
         ; // use focused (nullptr)
     else if (vars.size() == 2)
-        PWINDOW = g_pCompositor->getWindowByRegex(std::string(vars[1]));
+        PWINDOW = Desktop::viewState()->query().selector(std::string(vars[1])).runWindow();
     else
         return {.success = false, .error = "Invalid number of arguments, expected 1 or 2"};
 
@@ -518,7 +522,7 @@ static SDispatchResult setsubmap(const std::string& submap) {
 }
 
 static SDispatchResult passDispatcher(const std::string& regexp) {
-    const auto PWINDOW = g_pCompositor->getWindowByRegex(regexp);
+    const auto PWINDOW = Desktop::viewState()->query().selector(regexp).runWindow();
     if (!PWINDOW)
         return {.success = false, .error = "pass: window not found"};
     return wrap(Actions::pass(PWINDOW));
@@ -576,7 +580,7 @@ static SDispatchResult sendshortcut(const std::string& args) {
         return {.success = false, .error = "sendshortcut: invalid key"};
 
     const std::string regexp  = std::string(ARGS[2]);
-    PHLWINDOW         PWINDOW = regexp.empty() ? nullptr : g_pCompositor->getWindowByRegex(regexp);
+    PHLWINDOW         PWINDOW = regexp.empty() ? nullptr : Desktop::viewState()->query().selector(regexp).runWindow();
 
     if (!regexp.empty() && !PWINDOW)
         return {.success = false, .error = "sendshortcut: window not found"};
@@ -638,7 +642,7 @@ static SDispatchResult dpmsDispatcher(const std::string& arg) {
     std::optional<PHLMONITOR> mon = std::nullopt;
     if (arg.find_first_of(' ') != std::string::npos) {
         auto port = arg.substr(arg.find_first_of(' ') + 1);
-        auto pMon = g_pCompositor->getMonitorFromString(port);
+        auto pMon = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(port).run();
         if (pMon)
             mon = pMon;
     }
@@ -654,8 +658,8 @@ static SDispatchResult swapactiveworkspaces(const std::string& args) {
     const auto MON1 = args.substr(0, args.find_first_of(' '));
     const auto MON2 = args.substr(args.find_first_of(' ') + 1);
 
-    const auto PMON1 = g_pCompositor->getMonitorFromString(MON1);
-    const auto PMON2 = g_pCompositor->getMonitorFromString(MON2);
+    const auto PMON1 = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(MON1).run();
+    const auto PMON2 = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(MON2).run();
 
     if (!PMON1 || !PMON2)
         return {.success = false, .error = "Monitor not found"};
@@ -680,7 +684,7 @@ static SDispatchResult alterzorder(const std::string& args) {
     const auto WINDOWREGEX = args.substr(args.find_first_of(',') + 1);
     const auto POSITION    = args.substr(0, args.find_first_of(','));
 
-    auto       PWINDOW = g_pCompositor->getWindowByRegex(WINDOWREGEX);
+    auto       PWINDOW = Desktop::viewState()->query().selector(WINDOWREGEX).runWindow();
     if (!PWINDOW && Desktop::focusState()->window() && Desktop::focusState()->window()->m_isFloating)
         PWINDOW = Desktop::focusState()->window();
 
@@ -733,7 +737,7 @@ static SDispatchResult moveintoorcreategroup(const std::string& args) {
 
 static SDispatchResult moveoutofgroup(const std::string& args) {
     if (args != "active" && args.length() > 1) {
-        auto PWINDOW = g_pCompositor->getWindowByRegex(args);
+        auto PWINDOW = Desktop::viewState()->query().selector(args).runWindow();
         return wrap(Actions::moveOutOfGroup(Math::DIRECTION_DEFAULT, PWINDOW));
     }
     return wrap(Actions::moveOutOfGroup(Math::DIRECTION_DEFAULT));
@@ -770,7 +774,7 @@ static SDispatchResult setprop(const std::string& args) {
     if (vars.size() < 3)
         return {.success = false, .error = "Not enough args"};
 
-    const auto PWINDOW = g_pCompositor->getWindowByRegex(std::string(vars[0]));
+    const auto PWINDOW = Desktop::viewState()->query().selector(std::string(vars[0])).runWindow();
     if (!PWINDOW)
         return {.success = false, .error = "Window not found"};
 

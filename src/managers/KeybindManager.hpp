@@ -15,6 +15,10 @@ class CInputManager;
 class CPluginSystem;
 class IKeyboard;
 
+namespace Pointer {
+    class CPointerManager;
+}
+
 enum eMouseBindMode : int8_t;
 
 struct SSubmap {
@@ -70,6 +74,7 @@ enum eFocusWindowMode : uint8_t {
     MODE_TITLE_REGEX,
     MODE_INITIAL_TITLE_REGEX,
     MODE_TAG_REGEX,
+    MODE_STABLE_ID,
     MODE_ADDRESS,
     MODE_PID,
     MODE_ACTIVE_WINDOW
@@ -123,6 +128,7 @@ class CKeybindManager {
     void                                                                         removeKeybind(const std::string& displayKeys);
     uint32_t                                                                     stringToModMask(std::string);
     uint32_t                                                                     keycodeToModifier(xkb_keycode_t);
+    SP<SKeybind>                                                                 findConflictingKeybind(xkb_keysym_t keysym, uint32_t modmask);
     void                                                                         clearKeybinds();
     void                                                                         shadowKeybinds(const xkb_keysym_t& doesntHave = 0, const uint32_t doesntHaveCode = 0);
     SSubmap                                                                      getCurrentSubmap();
@@ -143,41 +149,41 @@ class CKeybindManager {
 
     static SDispatchResult                         changeMouseBindMode(const eMouseBindMode mode);
 
+    std::vector<SPressedKeyWithMods>               m_pressedKeys;
+
   private:
-    std::vector<SPressedKeyWithMods> m_pressedKeys;
+    std::vector<WP<SKeybind>> m_activeKeybinds;
+    WP<SKeybind>              m_lastLongPressKeybind;
 
-    std::vector<WP<SKeybind>>        m_activeKeybinds;
-    WP<SKeybind>                     m_lastLongPressKeybind;
+    SP<CEventLoopTimer>       m_longPressTimer;
+    SP<CEventLoopTimer>       m_repeatKeyTimer;
+    uint32_t                  m_repeatKeyRate = 50;
 
-    SP<CEventLoopTimer>              m_longPressTimer;
-    SP<CEventLoopTimer>              m_repeatKeyTimer;
-    uint32_t                         m_repeatKeyRate = 50;
+    std::vector<WP<SKeybind>> m_pressedSpecialBinds;
 
-    std::vector<WP<SKeybind>>        m_pressedSpecialBinds;
+    CTimer                    m_scrollTimer;
 
-    CTimer                           m_scrollTimer;
+    SDispatchResult           handleKeybinds(const uint32_t, const SPressedKeyWithMods&, bool, SP<IKeyboard>, SP<IHID>);
 
-    SDispatchResult                  handleKeybinds(const uint32_t, const SPressedKeyWithMods&, bool, SP<IKeyboard>, SP<IHID>);
+    std::set<KeybindKey>      m_mkKeys = {};
+    std::set<KeybindKey>      m_mkMods = {};
+    eMultiKeyCase             mkBindMatches(const SP<SKeybind>);
+    eMultiKeyCase             mkKeysymSetMatches(const std::vector<KeybindKey>&, const std::set<KeybindKey>&);
 
-    std::set<KeybindKey>             m_mkKeys = {};
-    std::set<KeybindKey>             m_mkMods = {};
-    eMultiKeyCase                    mkBindMatches(const SP<SKeybind>);
-    eMultiKeyCase                    mkKeysymSetMatches(const std::vector<KeybindKey>&, const std::set<KeybindKey>&);
+    bool                      handleInternalKeybinds(xkb_keysym_t);
+    bool                      handleVT(xkb_keysym_t);
 
-    bool                             handleInternalKeybinds(xkb_keysym_t);
-    bool                             handleVT(xkb_keysym_t);
+    xkb_state*                m_xkbTranslationState = nullptr;
 
-    xkb_state*                       m_xkbTranslationState = nullptr;
-
-    void                             updateXKBTranslationState();
-    bool                             ensureMouseBindState();
+    void                      updateXKBTranslationState();
+    bool                      ensureMouseBindState();
 
     friend class CCompositor;
     friend class CInputManager;
     friend class Config::Legacy::CConfigManager;
     friend class Config::Lua::CConfigManager;
     friend class CWorkspace;
-    friend class CPointerManager;
+    friend class Pointer::CPointerManager;
 };
 
 inline UP<CKeybindManager> g_pKeybindManager;

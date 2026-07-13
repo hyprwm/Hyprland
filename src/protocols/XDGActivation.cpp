@@ -78,7 +78,7 @@ void CXDGActivationProtocol::bindManager(wl_client* client, void* data, uint32_t
         m_sentTokens.erase(TOKEN);
 
         SP<CWLSurfaceResource> surf    = CWLSurfaceResource::fromResource(surface);
-        const auto             PWINDOW = g_pCompositor->getWindowFromSurface(surf);
+        const auto             PWINDOW = Desktop::viewState()->query().type(Desktop::View::VIEW_TYPE_WINDOW).surface(surf).runWindow();
 
         if UNLIKELY (!PWINDOW) {
             LOGM(Log::WARN, "activate event for non-window or gone surface with token {}, ignoring", token);

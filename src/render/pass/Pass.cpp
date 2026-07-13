@@ -10,6 +10,7 @@
 #include "../../render/Renderer.hpp"
 #include "../../desktop/state/FocusState.hpp"
 #include "../../protocols/core/Compositor.hpp"
+#include "../../state/MonitorState.hpp"
 #include "RectPassElement.hpp"
 #include "macros.hpp"
 
@@ -196,7 +197,7 @@ CRegion CRenderPass::render(const CRegion& damage_) {
     if (*PDEBUGPASS) {
         renderDebugData();
         g_pEventLoopManager->doLater([] {
-            for (auto& m : g_pCompositor->m_monitors) {
+            for (auto& m : State::monitorState()->monitors()) {
                 g_pHyprRenderer->damageMonitor(m);
             }
         });
@@ -264,8 +265,7 @@ void CRenderPass::renderDebugData() {
         renderHLSurface(m_debugData.lastWindowText, Desktop::focusState()->window()->wlSurface()->resource(), Colors::LIGHT_BLUE.modifyA(0.1F));
 
     if (g_pSeatManager->m_state.pointerFocus) {
-        if (g_pSeatManager->m_state.pointerFocus->m_current.input.intersect(CBox{{}, g_pSeatManager->m_state.pointerFocus->m_current.size}).getExtents().size() !=
-            g_pSeatManager->m_state.pointerFocus->m_current.size) {
+        if (g_pSeatManager->m_state.pointerFocus->m_current.effectiveInputRegion().getExtents().size() != g_pSeatManager->m_state.pointerFocus->m_current.size) {
             auto hlSurface = Desktop::View::CWLSurface::fromResource(g_pSeatManager->m_state.pointerFocus.lock());
             if (hlSurface) {
                 auto BOX = hlSurface->getSurfaceBoxGlobal();

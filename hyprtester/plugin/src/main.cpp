@@ -6,16 +6,19 @@
 
 #define private public
 #include <src/managers/input/InputManager.hpp>
-#include <src/managers/PointerManager.hpp>
+#include <src/pointer/PointerManager.hpp>
+#include <src/pointer/PointerController.hpp>
 #include <src/managers/SeatManager.hpp>
 #include <src/managers/input/trackpad/TrackpadGestures.hpp>
-#include <src/helpers/Monitor.hpp>
+#include <src/output/Monitor.hpp>
 #include <src/desktop/rule/windowRule/WindowRuleEffectContainer.hpp>
 #include <src/desktop/rule/layerRule/LayerRuleEffectContainer.hpp>
 #include <src/desktop/rule/windowRule/WindowRuleApplicator.hpp>
 #include <src/desktop/view/LayerSurface.hpp>
+#include <src/desktop/state/WindowState.hpp>
 #include <src/Compositor.hpp>
 #include <src/desktop/state/FocusState.hpp>
+#include <src/state/MonitorState.hpp>
 #include <src/layout/LayoutManager.hpp>
 #undef private
 
@@ -55,6 +58,40 @@ static SDispatchResult snapMove(std::string in) {
     PLASTWINDOW->layoutTarget()->setPositionGlobal(CBox{pos, size});
 
     return {};
+}
+
+// Perform a full move-drag of the window with the given class and drop it at (x, y).
+static SDispatchResult dragWindow(std::string in) {
+    CVarList2 data(std::move(in));
+
+    if (data.size() < 3)
+        return {.success = false, .error = "invalid input"};
+
+    const std::string cls = std::string{data[0]};
+
+    double            x;
+    double            y;
+    try {
+        x = std::stod(std::string{data[1]});
+        y = std::stod(std::string{data[2]});
+    } catch (...) { return {.success = false, .error = "invalid input"}; }
+
+    for (const auto& window : Desktop::windowState()->windows()) {
+        if (window->m_class != cls)
+            continue;
+
+        const auto target = window->layoutTarget();
+        if (!target)
+            return {.success = false, .error = "Window has no layout target"};
+
+        Pointer::pointerController()->warpTo({x, y}, true);
+        g_layoutManager->beginDragTarget(target, MBIND_MOVE);
+        g_layoutManager->endDragTarget();
+
+        return {};
+    }
+
+    return {.success = false, .error = std::format("No window with class '{}'", cls)};
 }
 
 class CTestKeyboard : public IKeyboard {
@@ -251,7 +288,7 @@ static SDispatchResult expectCursorZoom(std::string in) {
             return {.success = false, .error = "invalid input"};
     }
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromVector(g_pInputManager->getMouseCoordsInternal());
+    const auto PMONITOR = State::monitorState()->query().vec(g_pInputManager->getMouseCoordsInternal()).run();
 
     if (!PMONITOR)
         return {.success = false, .error = "No monitor under cursor"};
@@ -452,10 +489,10 @@ static SDispatchResult                                       addLayerRule(std::s
 }
 
 static SDispatchResult checkLayerRule(std::string in) {
-    if (g_pCompositor->m_layers.size() != 3)
+    if (Desktop::layerState()->layers().size() != 3)
         return {.success = false, .error = "Layers under test not here"};
 
-    for (const auto& layer : g_pCompositor->m_layers) {
+    for (const auto& layer : Desktop::layerState()->layers()) {
         if (layer->m_namespace == "rule-layer") {
 
             if (!layer->m_ruleApplicator->m_otherProps.props.contains(layerRuleIDX))
@@ -487,7 +524,7 @@ static SDispatchResult checkPointerFocusLayer(std::string in) {
     const auto LAYER  = Desktop::View::CLayerSurface::fromView(VIEW);
 
     if (!LAYER) {
-        const auto WINDOW = g_pCompositor->getWindowFromSurface(POINTERSURF);
+        const auto WINDOW = Desktop::viewState()->query().type(Desktop::View::VIEW_TYPE_WINDOW).surface(POINTERSURF).runWindow();
         if (WINDOW)
             return {.success = false, .error = std::format("Pointer focus is a window surface with class '{}'", WINDOW->m_class)};
 
@@ -501,7 +538,7 @@ static SDispatchResult checkPointerFocusLayer(std::string in) {
 }
 
 static SDispatchResult setPointerFocusLayer(std::string in) {
-    for (const auto& layer : g_pCompositor->m_layers) {
+    for (const auto& layer : Desktop::layerState()->layers()) {
         if (layer->m_namespace != in)
             continue;
 
@@ -520,7 +557,7 @@ static SDispatchResult setPointerFocusLayer(std::string in) {
 }
 
 static SDispatchResult softFocusWindowByClass(std::string in) {
-    for (const auto& window : g_pCompositor->m_windows) {
+    for (const auto& window : Desktop::windowState()->windows()) {
         if (window->m_class != in)
             continue;
 
@@ -543,8 +580,8 @@ static SDispatchResult floatingFocusOnFullscreen(std::string in) {
     if (PLASTWINDOW->alphaTotalGoal() != 1.F)
         return {.success = false, .error = "floating window doesnt restore it opacity when focused on fullscreen workspace"};
 
-    if (!PLASTWINDOW->m_createdOverFullscreen)
-        return {.success = false, .error = "floating window doesnt get flagged as createdOverFullscreen"};
+    if (!PLASTWINDOW->m_allowedOverFullscreen)
+        return {.success = false, .error = "floating window doesnt get flagged as allowedOverFullscreen"};
 
     return {};
 }
@@ -563,6 +600,13 @@ static int luaTest(lua_State* L) {
 
 static int luaSnapMove(lua_State* L) {
     return luaResult(L, ::snapMove(""));
+}
+
+static int luaDragWindow(lua_State* L) {
+    const auto cls = std::string{luaL_checkstring(L, 1)};
+    const auto x   = (double)luaL_checknumber(L, 2);
+    const auto y   = (double)luaL_checknumber(L, 3);
+    return luaResult(L, ::dragWindow(std::format("{},{},{}", cls, x, y)));
 }
 
 static int luaVkb(lua_State* L) {
@@ -684,6 +728,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     addLuaFn("test", ::luaTest);
     addLuaFn("snapmove", ::luaSnapMove);
+    addLuaFn("drag_window", ::luaDragWindow);
     addLuaFn("vkb", ::luaVkb);
     addLuaFn("alt", ::luaAlt);
     addLuaFn("gesture", ::luaGesture);

@@ -4,7 +4,8 @@
 #include "../../protocols/FractionalScale.hpp"
 #include "../../protocols/InputMethodV2.hpp"
 #include "../../protocols/core/Compositor.hpp"
-#include "../../helpers/Monitor.hpp"
+#include "../../output/Monitor.hpp"
+#include "../../state/MonitorState.hpp"
 #include "../../render/Renderer.hpp"
 
 CInputPopup::CInputPopup(SP<CInputMethodPopupV2> popup_) : m_popup(popup_) {
@@ -35,7 +36,7 @@ void CInputPopup::onMap() {
     updateBox();
     damageEntire();
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromVector(globalBox().middle());
+    const auto PMONITOR = State::monitorState()->query().vec(globalBox().middle()).run();
 
     if (!PMONITOR)
         return;
@@ -104,7 +105,7 @@ void CInputPopup::updateBox() {
 
     Vector2D   currentPopupSize = m_surface->getViewporterCorrectedSize() / m_surface->resource()->m_current.scale;
 
-    PHLMONITOR pMonitor = g_pCompositor->getMonitorFromVector(parentBox.middle());
+    PHLMONITOR pMonitor = State::monitorState()->query().vec(parentBox.middle()).run();
 
     Vector2D   popupOffset(0, 0);
 
@@ -134,8 +135,8 @@ void CInputPopup::updateBox() {
 
     damageSurface();
 
-    if (const auto PM = g_pCompositor->getMonitorFromCursor(); PM && PM->m_id != m_lastMonitor) {
-        const auto PML = g_pCompositor->getMonitorFromID(m_lastMonitor);
+    if (const auto PM = State::monitorState()->query().vec(g_pInputManager->getMouseCoordsInternal()).run(); PM && PM->m_id != m_lastMonitor) {
+        const auto PML = State::monitorState()->query().id(m_lastMonitor).run();
 
         if (PML)
             m_surface->resource()->leave(PML->m_self.lock());

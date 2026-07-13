@@ -1,12 +1,16 @@
 #include "UnifiedWorkspaceSwipeGesture.hpp"
 
 #include "../../Compositor.hpp"
+#include "../../state/WorkspaceState.hpp"
 #include "../../desktop/state/FocusState.hpp"
 #include "../../render/Renderer.hpp"
 #include "InputManager.hpp"
+#include "../../layout/space/Space.hpp"
+#include "../../layout/algorithm/Algorithm.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 
 bool CUnifiedWorkspaceSwipeGesture::isGestureInProgress() {
-    return m_workspaceBegin;
+    return !!m_workspaceBegin;
 }
 
 void CUnifiedWorkspaceSwipeGesture::begin() {
@@ -23,9 +27,12 @@ void CUnifiedWorkspaceSwipeGesture::begin() {
     m_avgSpeed       = 0;
     m_speedPoints    = 0;
 
-    if (PWORKSPACE->m_hasFullscreenWindow) {
+    const auto FSWINDOW         = Fullscreen::controller()->getFullscreenWindow(PWORKSPACE);
+    const auto INTERNAL_FS_MODE = FSWINDOW ? Fullscreen::controller()->getFullscreenModes(FSWINDOW).internal : Fullscreen::FSMODE_NONE;
+
+    if (INTERNAL_FS_MODE == Fullscreen::FSMODE_FULLSCREEN) {
         for (auto const& ls : Desktop::focusState()->monitor()->m_layerSurfaceLayers[2]) {
-            *ls->m_alpha = 1.f;
+            *ls->alpha()[Desktop::View::LS_ALPHA_FADE] = 1.F;
         }
     }
 }
@@ -66,7 +73,7 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
     m_delta = std::clamp(m_delta, sc<double>(-SWIPEDISTANCE), sc<double>(SWIPEDISTANCE));
 
     if ((m_workspaceBegin->m_id == workspaceIDLeft && *PSWIPENEW && (m_delta < 0)) ||
-        (m_delta > 0 && m_workspaceBegin->getWindows() == 0 && workspaceIDRight <= m_workspaceBegin->m_id) || (m_delta < 0 && m_workspaceBegin->m_id <= workspaceIDLeft)) {
+        (m_delta > 0 && m_workspaceBegin->getWindowCount() == 0 && workspaceIDRight <= m_workspaceBegin->m_id) || (m_delta < 0 && m_workspaceBegin->m_id <= workspaceIDLeft)) {
 
         m_delta = 0;
         g_pHyprRenderer->damageMonitor(m_monitor.lock());
@@ -82,7 +89,7 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
     }
 
     if (m_delta < 0) {
-        const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceIDLeft);
+        const auto PWORKSPACE = State::workspaceState()->query().id(workspaceIDLeft).run();
 
         if (workspaceIDLeft > m_workspaceBegin->m_id || !PWORKSPACE) {
             if (*PSWIPENEW) {
@@ -104,7 +111,7 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
         PWORKSPACE->m_alpha->setValueAndWarp(1.f);
 
         if (workspaceIDLeft != workspaceIDRight && workspaceIDRight != m_workspaceBegin->m_id) {
-            const auto PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight);
+            const auto PWORKSPACER = State::workspaceState()->query().id(workspaceIDRight).run();
 
             if (PWORKSPACER) {
                 PWORKSPACER->m_forceRendering = false;
@@ -122,7 +129,7 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
 
         PWORKSPACE->updateWindowDecos();
     } else {
-        const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(workspaceIDRight);
+        const auto PWORKSPACE = State::workspaceState()->query().id(workspaceIDRight).run();
 
         if (workspaceIDRight < m_workspaceBegin->m_id || !PWORKSPACE) {
             if (*PSWIPENEW) {
@@ -144,7 +151,7 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
         PWORKSPACE->m_alpha->setValueAndWarp(1.f);
 
         if (workspaceIDLeft != workspaceIDRight && workspaceIDLeft != m_workspaceBegin->m_id) {
-            const auto PWORKSPACEL = g_pCompositor->getWorkspaceByID(workspaceIDLeft);
+            const auto PWORKSPACEL = State::workspaceState()->query().id(workspaceIDLeft).run();
 
             if (PWORKSPACEL) {
                 PWORKSPACEL->m_forceRendering = false;
@@ -198,8 +205,8 @@ void CUnifiedWorkspaceSwipeGesture::end() {
     if (workspaceIDRight <= m_workspaceBegin->m_id && *PSWIPENEW)
         workspaceIDRight = getWorkspaceIDNameFromString("r+1").id;
 
-    auto         PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight); // not guaranteed if PSWIPENEW || PSWIPENUMBER
-    auto         PWORKSPACEL = g_pCompositor->getWorkspaceByID(workspaceIDLeft);  // not guaranteed if PSWIPENUMBER
+    auto         PWORKSPACER = State::workspaceState()->query().id(workspaceIDRight).run(); // not guaranteed if PSWIPENEW || PSWIPENUMBER
+    auto         PWORKSPACEL = State::workspaceState()->query().id(workspaceIDLeft).run();  // not guaranteed if PSWIPENUMBER
 
     const auto   RENDEROFFSETMIDDLE = m_workspaceBegin->m_renderOffset->value();
     const auto   XDISTANCE          = m_monitor->m_size.x + *PWORKSPACEGAP;
@@ -244,8 +251,8 @@ void CUnifiedWorkspaceSwipeGesture::end() {
         if (PWORKSPACEL)
             m_monitor->changeWorkspace(workspaceIDLeft);
         else {
-            m_monitor->changeWorkspace(g_pCompositor->createNewWorkspace(workspaceIDLeft, m_monitor->m_id));
-            PWORKSPACEL = g_pCompositor->getWorkspaceByID(workspaceIDLeft);
+            m_monitor->changeWorkspace(State::workspaceState()->create(workspaceIDLeft, m_monitor->m_id));
+            PWORKSPACEL = State::workspaceState()->query().id(workspaceIDLeft).run();
         }
 
         PWORKSPACEL->m_renderOffset->setValue(RENDEROFFSET);
@@ -270,8 +277,8 @@ void CUnifiedWorkspaceSwipeGesture::end() {
         if (PWORKSPACER)
             m_monitor->changeWorkspace(workspaceIDRight);
         else {
-            m_monitor->changeWorkspace(g_pCompositor->createNewWorkspace(workspaceIDRight, m_monitor->m_id));
-            PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight);
+            m_monitor->changeWorkspace(State::workspaceState()->create(workspaceIDRight, m_monitor->m_id));
+            PWORKSPACER = State::workspaceState()->query().id(workspaceIDRight).run();
         }
 
         PWORKSPACER->m_renderOffset->setValue(RENDEROFFSET);
@@ -305,7 +312,15 @@ void CUnifiedWorkspaceSwipeGesture::end() {
     g_pInputManager->refocus();
 
     // apply alpha
-    for (auto const& ls : Desktop::focusState()->monitor()->m_layerSurfaceLayers[2]) {
-        *ls->m_alpha = pSwitchedTo->m_hasFullscreenWindow && pSwitchedTo->m_fullscreenMode == FSMODE_FULLSCREEN ? 0.f : 1.f;
+    if (pSwitchedTo) {
+        const auto FSWINDOW         = Fullscreen::controller()->getFullscreenWindow(pSwitchedTo);
+        const auto FS_MODE_INTERNAL = FSWINDOW ? Fullscreen::controller()->getFullscreenModes(FSWINDOW).internal : Fullscreen::FSMODE_NONE;
+        const bool HIDE             = FS_MODE_INTERNAL == Fullscreen::FSMODE_FULLSCREEN &&
+            (!FSWINDOW || !Fullscreen::controller()->layoutManagedFS(FSWINDOW) ||
+             (pSwitchedTo->m_space && pSwitchedTo->m_space->algorithm() && Fullscreen::controller()->hasFullscreen(pSwitchedTo, true)));
+
+        for (auto const& ls : Desktop::focusState()->monitor()->m_layerSurfaceLayers[2]) {
+            *ls->alpha()[Desktop::View::LS_ALPHA_FADE] = HIDE ? 0.F : 1.F;
+        }
     }
 }

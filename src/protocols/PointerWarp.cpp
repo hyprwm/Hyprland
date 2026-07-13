@@ -3,7 +3,7 @@
 #include "core/Seat.hpp"
 #include "../desktop/view/WLSurface.hpp"
 #include "../managers/SeatManager.hpp"
-#include "../managers/PointerManager.hpp"
+#include "../pointer/PointerManager.hpp"
 #include "../desktop/view/Window.hpp"
 #include "desktop/view/LayerSurface.hpp"
 #include <hyprutils/math/Box.hpp>
@@ -32,7 +32,12 @@ void CPointerWarpProtocol::bindManager(wl_client* client, void* data, uint32_t v
 
         CBox surfbox;
 
-        auto VIEW   = Desktop::View::CWLSurface::fromResource(PSURFACE)->view();
+        auto HLSURF = Desktop::View::CWLSurface::fromResource(PSURFACE);
+
+        if (!HLSURF)
+            return;
+
+        auto VIEW   = HLSURF->view();
         auto WINDOW = Desktop::View::CWindow::fromView(VIEW);
         if (WINDOW)
             surfbox = WINDOW->getWindowMainSurfaceBox();
@@ -56,13 +61,19 @@ void CPointerWarpProtocol::bindManager(wl_client* client, void* data, uint32_t v
         if (!surfbox.containsPoint(GLOBALPOS))
             return;
 
-        const auto PSEAT = CWLPointerResource::fromResource(pointer)->m_owner.lock();
+        const auto POINTER = CWLPointerResource::fromResource(pointer);
+        if UNLIKELY (!POINTER) {
+            LOGM(Log::ERR, "pointer_warp received an invalid pointer resource");
+            return;
+        }
+
+        const auto PSEAT = POINTER->m_owner.lock();
         if (!g_pSeatManager->serialValid(PSEAT, serial, false))
             return;
 
         LOGM(Log::DEBUG, "warped pointer to {}", GLOBALPOS);
 
-        g_pPointerManager->warpTo(GLOBALPOS);
+        Pointer::mgr()->warpTo(GLOBALPOS);
         g_pSeatManager->sendPointerMotion(Time::millis(Time::steadyNow()), LOCALPOS);
     });
 }

@@ -14,7 +14,7 @@
 
 #include "../../../Compositor.hpp"
 #include "../../../helpers/MiscFunctions.hpp"
-#include "../../../helpers/Monitor.hpp"
+#include "../../../output/Monitor.hpp"
 #include "../../../desktop/state/FocusState.hpp"
 #include "../../../desktop/rule/windowRule/WindowRuleEffectContainer.hpp"
 #include "../../../managers/KeybindManager.hpp"
@@ -39,14 +39,14 @@ namespace Desktop::Rule {
 namespace Config::Lua::Bindings::Internal {
 
     struct SWindowRuleEffectDesc {
-        const char*                       name;
-        std::function<ILuaConfigValue*()> factory;
-        uint16_t                          effect;
+        const char* name;
+        ILuaConfigValue* (*factory)();
+        uint16_t effect;
     };
 
     using WE = Desktop::Rule::eWindowRuleEffect;
 
-    inline const SWindowRuleEffectDesc WINDOW_RULE_EFFECT_DESCS[] = {
+    inline constexpr SWindowRuleEffectDesc WINDOW_RULE_EFFECT_DESCS[] = {
         {"float", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_FLOAT},
         {"tile", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_TILE},
         {"fullscreen", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_FULLSCREEN},
@@ -103,6 +103,7 @@ namespace Config::Lua::Bindings::Internal {
         {"no_auto_hdr", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_NO_AUTO_HDR},
         {"stay_focused", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_STAY_FOCUSED},
         {"confine_pointer", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_CONFINE_POINTER},
+        {"tonemap", []() -> ILuaConfigValue* { return new CLuaConfigString(STRVAL_EMPTY); }, WE::WINDOW_RULE_EFFECT_TONEMAP},
     };
 
     std::string                                        argStr(lua_State* L, int idx);

@@ -7,6 +7,6 @@ namespace Config::Lua::Objects {
     class CLuaMonitor : public ILuaObjectWrapper {
       public:
         void        setup(lua_State* L) override;
-        static void push(lua_State* L, PHLMONITOR mon);
+        static void push(lua_State* L, PHLMONITORREF mon);
     };
 }

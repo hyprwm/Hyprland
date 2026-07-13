@@ -6,6 +6,7 @@
 #include "../../protocols/core/Subcompositor.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../managers/input/InputManager.hpp"
+#include "../../output/Monitor.hpp"
 
 using namespace Desktop;
 using namespace Desktop::View;
@@ -17,6 +18,7 @@ SP<CSubsurface> CSubsurface::create(PHLWINDOW pOwner) {
 
     subsurface->initSignals();
     subsurface->initExistingSubsurfaces(pOwner->wlSurface()->resource());
+    subsurface->initView(subsurface, VIEW_TYPE_SUBSURFACE);
     return subsurface;
 }
 
@@ -26,6 +28,7 @@ SP<CSubsurface> CSubsurface::create(WP<Desktop::View::CPopup> pOwner) {
     subsurface->m_self        = subsurface;
     subsurface->initSignals();
     subsurface->initExistingSubsurfaces(pOwner->wlSurface()->resource());
+    subsurface->initView(subsurface, VIEW_TYPE_SUBSURFACE);
     return subsurface;
 }
 
@@ -38,6 +41,8 @@ SP<CSubsurface> CSubsurface::create(SP<CWLSubsurfaceResource> pSubsurface, PHLWI
     subsurface->wlSurface()->assign(pSubsurface->m_surface.lock(), subsurface);
     subsurface->initSignals();
     subsurface->initExistingSubsurfaces(pSubsurface->m_surface.lock());
+    subsurface->initView(subsurface, VIEW_TYPE_SUBSURFACE);
+    subsurface->syncScaleTransform();
     return subsurface;
 }
 
@@ -50,6 +55,8 @@ SP<CSubsurface> CSubsurface::create(SP<CWLSubsurfaceResource> pSubsurface, WP<De
     subsurface->wlSurface()->assign(pSubsurface->m_surface.lock(), subsurface);
     subsurface->initSignals();
     subsurface->initExistingSubsurfaces(pSubsurface->m_surface.lock());
+    subsurface->initView(subsurface, VIEW_TYPE_SUBSURFACE);
+    subsurface->syncScaleTransform();
     return subsurface;
 }
 
@@ -93,7 +100,22 @@ std::optional<CBox> CSubsurface::surfaceLogicalBox() const {
     if (!visible())
         return std::nullopt;
 
-    return CBox{coordsGlobal(), m_lastSize};
+    return geometricBox(GEOMETRIC_CURRENT);
+}
+
+Vector2D CSubsurface::position(eGeometricValueType) const {
+    return coordsGlobal();
+}
+
+Vector2D CSubsurface::size(eGeometricValueType) const {
+    if (m_wlSurface && m_wlSurface->resource())
+        return m_wlSurface->resource()->m_current.size;
+
+    return m_lastSize;
+}
+
+CBox CSubsurface::geometricBox(eGeometricValueType t) const {
+    return {position(t), size(t)};
 }
 
 void CSubsurface::initSignals() {
@@ -280,6 +302,21 @@ void CSubsurface::initExistingSubsurfaces(SP<CWLSurfaceResource> pSurface) {
             continue;
         onNewSubsurface(s.lock());
     }
+}
+
+void CSubsurface::syncScaleTransform() const {
+    PHLMONITOR pMonitor;
+
+    if (!m_windowParent.expired())
+        pMonitor = m_windowParent->m_monitor.lock();
+    else if (m_popupParent)
+        pMonitor = m_popupParent->getMonitor();
+
+    if (!pMonitor)
+        return;
+
+    m_wlSurface->sendScale(pMonitor->m_scale);
+    m_wlSurface->sendTransform(pMonitor->m_transform);
 }
 
 Vector2D CSubsurface::size() {

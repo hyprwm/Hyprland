@@ -51,7 +51,7 @@ CANRManager::CANRManager() {
             d->dialogSaidWait  = false;
         }
 
-        std::erase_if(m_data, [&window](auto& w) { return w == window; });
+        std::erase_if(m_data, [&window](auto& anrData) { return !anrData || anrData->fitsWindow(window); });
     });
 
     m_timer->updateTimeout(TIMER_TIMEOUT);
@@ -69,7 +69,7 @@ void CANRManager::onTick() {
     for (auto& data : m_data) {
         PHLWINDOW firstWindow;
         int       count = 0;
-        for (const auto& w : g_pCompositor->m_windows) {
+        for (const auto& w : Desktop::windowState()->windows()) {
             if (!w->m_isMapped)
                 continue;
 
@@ -88,7 +88,7 @@ void CANRManager::onTick() {
             if (!data->isRunning() && !data->dialogSaidWait) {
                 data->runDialog(firstWindow->m_title, firstWindow->m_class, data->getPID());
 
-                for (const auto& w : g_pCompositor->m_windows) {
+                for (const auto& w : Desktop::windowState()->windows()) {
                     if (!w->m_isMapped)
                         continue;
 
@@ -192,7 +192,7 @@ void CANRManager::SANRData::runDialog(const std::string& appName, const std::str
 
     dialogBox = CAsyncDialogBox::create(I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_TITLE, {}), DESCRIPTION_STR, OPTIONS);
 
-    for (const auto& w : g_pCompositor->m_windows) {
+    for (const auto& w : Desktop::windowState()->windows()) {
         if (!w->m_isMapped)
             continue;
 

@@ -1,14 +1,20 @@
 #include "Workspace.hpp"
 #include "view/Group.hpp"
 #include "view/LayerSurface.hpp"
+#include "state/FocusState.hpp"
 #include "../Compositor.hpp"
 #include "../config/shared/parserUtils/ParserUtils.hpp"
 #include "../config/shared/animation/AnimationTree.hpp"
 #include "../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../config/supplementary/executor/Executor.hpp"
-#include "managers/animation/AnimationManager.hpp"
+#include "../config/supplementary/propRefresher/PropRefresher.hpp"
+#include "animation/AnimationManager.hpp"
 #include "../managers/EventManager.hpp"
-#include "../helpers/Monitor.hpp"
+#include "../managers/fullscreen/FullscreenController.hpp"
+#include "../output/Monitor.hpp"
+#include "../state/MonitorState.hpp"
+#include "../state/WorkspacePlacementController.hpp"
+#include "../state/WorkspaceState.hpp"
 #include "../layout/algorithm/Algorithm.hpp"
 #include "../layout/space/Space.hpp"
 #include "../layout/target/Target.hpp"
@@ -23,7 +29,7 @@ using namespace Desktop::View;
 PHLWORKSPACE CWorkspace::create(WORKSPACEID id, PHLMONITOR monitor, std::string name, bool special, bool isEmpty) {
     PHLWORKSPACE workspace = makeShared<CWorkspace>(id, monitor, name, special, isEmpty);
     workspace->init(workspace);
-    g_pCompositor->registerWorkspace(workspace);
+    State::workspaceState()->add(workspace);
     return workspace;
 }
 
@@ -35,10 +41,10 @@ CWorkspace::CWorkspace(WORKSPACEID id, PHLMONITOR monitor, std::string name, boo
 void CWorkspace::init(PHLWORKSPACE self) {
     m_self = self;
 
-    g_pAnimationManager->createAnimation(
-        Vector2D(0, 0), m_renderOffset, Config::animationTree()->getAnimationPropertyConfig(m_isSpecialWorkspace ? "specialWorkspaceIn" : "workspacesIn"), self, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, m_alpha, Config::animationTree()->getAnimationPropertyConfig(m_isSpecialWorkspace ? "specialWorkspaceIn" : "workspacesIn"), self,
-                                         AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(Vector2D(0, 0), m_renderOffset,
+                                      Config::animationTree()->getAnimationPropertyConfig(m_isSpecialWorkspace ? "specialWorkspaceIn" : "workspacesIn"), self, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(1.f, m_alpha, Config::animationTree()->getAnimationPropertyConfig(m_isSpecialWorkspace ? "specialWorkspaceIn" : "workspacesIn"), self,
+                                      AVARDAMAGE_ENTIRE);
 
     const auto RULEFORTHIS = Config::workspaceRuleMgr()->getWorkspaceRuleFor(self).value_or(Config::CWorkspaceRule{});
     if (RULEFORTHIS.m_defaultName.has_value())
@@ -216,7 +222,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
                 prop = prop.substr(2, prop.length() - 3);
 
-                const auto PMONITOR = g_pCompositor->getMonitorFromString(prop);
+                const auto PMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(prop).run();
 
                 if (!(PMONITOR ? PMONITOR == m_monitor : false))
                     return false;
@@ -301,9 +307,9 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                                           wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
                                           wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
                     else
-                        count = getWindows(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
-                                           wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
-                                           wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
+                        count = getWindowCount(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
+                                               wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
+                                               wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
 
                     if (count != from)
                         return false;
@@ -337,9 +343,9 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                         getGroups(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
                                   wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt, wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
                 else
-                    count = getWindows(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
-                                       wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
-                                       wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
+                    count = getWindowCount(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
+                                           wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
+                                           wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
 
                 if (std::clamp(count, from, to) != count)
                     return false;
@@ -363,15 +369,15 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
                 switch (FSSTATE) {
                     case -1: // no fullscreen
-                        if (m_hasFullscreenWindow)
+                        if (Fullscreen::controller()->hasFullscreen(m_self.lock()))
                             return false;
                         break;
                     case 0: // fullscreen full
-                        if (!m_hasFullscreenWindow || m_fullscreenMode != FSMODE_FULLSCREEN)
+                        if (Fullscreen::controller()->getFullscreenModes(m_self.lock()).internal != Fullscreen::FSMODE_FULLSCREEN)
                             return false;
                         break;
                     case 1: // maximized
-                        if (!m_hasFullscreenWindow || m_fullscreenMode != FSMODE_MAXIMIZED)
+                        if (Fullscreen::controller()->getFullscreenModes(m_self.lock()).internal != Fullscreen::FSMODE_MAXIMIZED)
                             return false;
                         break;
                     default: break;
@@ -405,25 +411,6 @@ MONITORID CWorkspace::monitorID() {
     return m_monitor ? m_monitor->m_id : MONITOR_INVALID;
 }
 
-PHLWINDOW CWorkspace::getFullscreenWindow(bool includeLayoutHandledFullscreen) {
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_workspace == m_self && w->isFullscreen()) { // isFullscreen algo gets layout managed fullscreens
-            if (!includeLayoutHandledFullscreen && w->m_target->layoutManagedFullscreen())
-                continue;
-
-            return w;
-        }
-    }
-
-    return nullptr;
-}
-
-bool CWorkspace::hasFullscreen() {
-    if (m_hasFullscreenWindow)
-        return true;
-    return m_space && m_space->algorithm() && m_space->algorithm()->layoutFullscreenCoversMonitor();
-}
-
 bool CWorkspace::isVisible() {
     return m_visible;
 }
@@ -439,7 +426,7 @@ bool CWorkspace::isVisibleNotCovered() {
     return PMONITOR->m_activeWorkspace->m_id == m_id;
 }
 
-int CWorkspace::getWindows(std::optional<bool> onlyTiled, std::optional<bool> onlyPinned, std::optional<bool> onlyVisible) {
+int CWorkspace::getWindowCount(std::optional<bool> onlyTiled, std::optional<bool> onlyPinned, std::optional<bool> onlyVisible) {
     int no = 0;
 
     if (!m_space)
@@ -449,8 +436,8 @@ int CWorkspace::getWindows(std::optional<bool> onlyTiled, std::optional<bool> on
         if (!t)
             continue;
 
-        const auto visibilityFulfilled =
-            t->window() && !t->window()->isHidden() && !t->window()->isInputBlocked(INPUT_BLOCK_GROUP_INACTIVE | INPUT_BLOCK_MONOCLE_INACTIVE | INPUT_BLOCK_BELOW_FULLSCREEN);
+        const auto visibilityFulfilled = t->window() && !t->window()->isHidden() &&
+            !t->window()->isInputBlockedReasonAnyOf(INPUT_BLOCK_GROUP_INACTIVE | INPUT_BLOCK_MONOCLE_INACTIVE | INPUT_BLOCK_BELOW_FULLSCREEN);
 
         if (onlyTiled.has_value() && t->floating() == onlyTiled.value())
             continue;
@@ -469,8 +456,8 @@ int CWorkspace::getGroups(std::optional<bool> onlyTiled, std::optional<bool> onl
     for (auto const& g : Desktop::View::groups()) {
         const auto HEAD = g->head();
 
-        const auto visibilityFulfilled =
-            g->current() && !g->current()->isHidden() && !g->current()->isInputBlocked(INPUT_BLOCK_GROUP_INACTIVE | INPUT_BLOCK_MONOCLE_INACTIVE | INPUT_BLOCK_BELOW_FULLSCREEN);
+        const auto visibilityFulfilled = g->current() && !g->current()->isHidden() &&
+            !g->current()->isInputBlockedReasonAnyOf(INPUT_BLOCK_GROUP_INACTIVE | INPUT_BLOCK_MONOCLE_INACTIVE | INPUT_BLOCK_BELOW_FULLSCREEN);
 
         if (HEAD->workspaceID() != m_id || !HEAD->m_isMapped)
             continue;
@@ -486,7 +473,7 @@ int CWorkspace::getGroups(std::optional<bool> onlyTiled, std::optional<bool> onl
 }
 
 PHLWINDOW CWorkspace::getFirstWindow() {
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace == m_self && w->m_isMapped && w->acceptsInput())
             return w;
     }
@@ -497,7 +484,7 @@ PHLWINDOW CWorkspace::getFirstWindow() {
 PHLWINDOW CWorkspace::getTopLeftWindow() {
     const auto PMONITOR = m_monitor.lock();
 
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace != m_self || !w->m_isMapped || !w->acceptsInput())
             continue;
 
@@ -510,11 +497,11 @@ PHLWINDOW CWorkspace::getTopLeftWindow() {
 }
 
 bool CWorkspace::hasUrgentWindow() {
-    return std::ranges::any_of(g_pCompositor->m_windows, [this](const auto& w) { return w->m_workspace == m_self && w->m_isMapped && w->m_isUrgent; });
+    return std::ranges::any_of(Desktop::windowState()->windows(), [this](const auto& w) { return w->m_workspace == m_self && w->m_isMapped && w->m_isUrgent; });
 }
 
 void CWorkspace::updateWindowDecos() {
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace != m_self)
             continue;
 
@@ -525,7 +512,7 @@ void CWorkspace::updateWindowDecos() {
 void CWorkspace::updateWindowData() {
     const auto WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(m_self.lock());
 
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace != m_self)
             continue;
 
@@ -534,7 +521,7 @@ void CWorkspace::updateWindowData() {
 }
 
 void CWorkspace::forceReportSizesToWindows() {
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace != m_self || !w->m_isMapped || w->isHidden())
             continue;
 
@@ -543,28 +530,36 @@ void CWorkspace::forceReportSizesToWindows() {
 }
 
 void CWorkspace::rename(const std::string& name) {
-    if (g_pCompositor->isWorkspaceSpecial(m_id))
+    if (State::workspaceState()->isSpecial(m_id))
         return;
 
     Log::logger->log(Log::DEBUG, "CWorkspace::rename: Renaming workspace {} to '{}'", m_id, name);
     m_name = name;
 
-    const auto WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(m_self.lock()).value_or(Config::CWorkspaceRule{});
-    setPersistent(WORKSPACERULE.m_isPersistent.value_or(false));
+    Config::Supplementary::refresher()->scheduleRefresh(Config::Supplementary::REFRESH_ALL);
 
-    if (WORKSPACERULE.m_isPersistent.value_or(false))
-        g_pCompositor->ensurePersistentWorkspacesPresent(std::vector<Config::CWorkspaceRule>{WORKSPACERULE}, m_self.lock());
+    m_wasRenamed = true;
 
     g_pEventManager->postEvent({.event = "renameworkspace", .data = std::to_string(m_id) + "," + m_name});
     m_events.renamed.emit();
 }
 
+void CWorkspace::changeID(int64_t id) {
+    if (m_id <= 0)
+        return; // invalid
+
+    Log::logger->log(Log::DEBUG, "CWorkspace::changeID: Changing workspace id {} to {}", m_id, id);
+    m_id = id;
+
+    if (!m_wasRenamed)
+        m_name = std::format("{}", id);
+
+    Config::Supplementary::refresher()->scheduleRefresh(Config::Supplementary::REFRESH_ALL);
+
+    m_events.idChanged.emit();
+}
+
 void CWorkspace::updateWindows() {
-    m_hasFullscreenWindow = std::ranges::any_of(m_space->targets(), [](const auto& t) { return t && t->fullscreenMode() != FSMODE_NONE && !t->layoutManagedFullscreen(); });
-
-    if (!m_hasFullscreenWindow)
-        m_fullscreenMode = FSMODE_NONE;
-
     for (auto const& t : m_space->targets()) {
         if (t->window())
             t->window()->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ON_WORKSPACE);
@@ -585,16 +580,4 @@ void CWorkspace::setPersistent(bool persistent) {
 
 bool CWorkspace::isPersistent() {
     return m_persistent;
-}
-
-void CWorkspace::setNoMembersAboveFullscreen() {
-    // make all windows and layers on the same workspace under the fullscreen window
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_workspace == m_self && !w->isFullscreen() && !w->m_fadingOut && !w->m_pinned)
-            w->m_createdOverFullscreen = false;
-    }
-    for (auto const& ls : g_pCompositor->m_layers) {
-        if (ls->m_monitor == m_monitor)
-            ls->m_aboveFullscreen = false;
-    }
 }

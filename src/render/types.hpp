@@ -86,7 +86,7 @@ namespace Render {
         SP<IFramebuffer>          outFB     = nullptr; // out to render to (if offloaded, etc)
 
         CRegion                   damage;
-        CRegion                   finalDamage; // damage used for funal off -> main
+        CRegion                   finalDamage; // damage used for final off -> main
 
         SRenderModifData          renderModif;
         float                     mouseZoomFactor    = 1.f;
@@ -121,6 +121,7 @@ namespace Render {
         std::array<std::array<double, 3>, 3> convertMatrix;
 
         bool                                 needsTonemap    = false;
+        int                                  tonemapMode     = 1; // 1 - default, 2 - clamp, 3 - limited
         float                                maxLuminance    = 80;
         float                                dstMaxLuminance = 80;
         std::array<std::array<double, 3>, 3> dstPrimaries2XYZ;

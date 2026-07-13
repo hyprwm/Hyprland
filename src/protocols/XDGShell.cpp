@@ -5,15 +5,30 @@
 #include "../managers/SeatManager.hpp"
 #include "../managers/ANRManager.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 #include "core/Seat.hpp"
 #include "core/Compositor.hpp"
 #include "../desktop/DesktopTypes.hpp"
 #include "../desktop/view/Window.hpp"
 #include "protocols/core/Output.hpp"
 #include <cstddef>
-#include <cstring>
 #include <ranges>
+
+static bool xdgToplevelResizeEdgeValid(xdgToplevelResizeEdge edges) {
+    switch (edges) {
+        case XDG_TOPLEVEL_RESIZE_EDGE_NONE:
+        case XDG_TOPLEVEL_RESIZE_EDGE_TOP:
+        case XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM:
+        case XDG_TOPLEVEL_RESIZE_EDGE_LEFT:
+        case XDG_TOPLEVEL_RESIZE_EDGE_TOP_LEFT:
+        case XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM_LEFT:
+        case XDG_TOPLEVEL_RESIZE_EDGE_RIGHT:
+        case XDG_TOPLEVEL_RESIZE_EDGE_TOP_RIGHT:
+        case XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM_RIGHT: return true;
+    }
+
+    return false;
+}
 
 void SXDGPositionerState::setAnchor(xdgPositionerAnchor edges) {
     anchor.setTop(edges == XDG_POSITIONER_ANCHOR_TOP || edges == XDG_POSITIONER_ANCHOR_TOP_LEFT || edges == XDG_POSITIONER_ANCHOR_TOP_RIGHT);
@@ -175,6 +190,52 @@ CXDGToplevelResource::CXDGToplevelResource(SP<CXdgToplevel> resource_, SP<CXDGSu
         m_events.metadataChanged.emit();
     });
 
+    m_resource->setMove([this](CXdgToplevel* r, wl_resource* seat, uint32_t serial) {
+        const auto SEAT = CWLSeatResource::fromResource(seat);
+        if (!SEAT || SEAT->client() != r->client()) {
+            LOGM(Log::DEBUG, "Ignoring xdg_toplevel.move with an invalid seat");
+            return;
+        }
+
+        const auto OWNER = m_owner.lock();
+        const auto SURF  = OWNER ? OWNER->m_surface.lock() : nullptr;
+        if (!g_pSeatManager->pointerButtonSerialValid(SEAT, serial, SURF)) {
+            LOGM(Log::DEBUG, "Ignoring xdg_toplevel.move with an invalid serial");
+            return;
+        }
+
+        m_events.requestMove.emit(SXDGToplevelMoveRequest{
+            .seat   = SEAT,
+            .serial = serial,
+        });
+    });
+
+    m_resource->setResize([this](CXdgToplevel* r, wl_resource* seat, uint32_t serial, xdgToplevelResizeEdge edges) {
+        if (!xdgToplevelResizeEdgeValid(edges)) {
+            r->error(XDG_TOPLEVEL_ERROR_INVALID_RESIZE_EDGE, "Invalid resize edge");
+            return;
+        }
+
+        const auto SEAT = CWLSeatResource::fromResource(seat);
+        if (!SEAT || SEAT->client() != r->client()) {
+            LOGM(Log::DEBUG, "Ignoring xdg_toplevel.resize with an invalid seat");
+            return;
+        }
+
+        const auto OWNER = m_owner.lock();
+        const auto SURF  = OWNER ? OWNER->m_surface.lock() : nullptr;
+        if (!g_pSeatManager->pointerButtonSerialValid(SEAT, serial, SURF)) {
+            LOGM(Log::DEBUG, "Ignoring xdg_toplevel.resize with an invalid serial");
+            return;
+        }
+
+        m_events.requestResize.emit(SXDGToplevelResizeRequest{
+            .seat   = SEAT,
+            .serial = serial,
+            .edges  = edges,
+        });
+    });
+
     m_resource->setSetMaxSize([this](CXdgToplevel* r, int32_t x, int32_t y) {
         m_pending.maxSize = {x, y};
         m_events.sizeLimitsChanged.emit();
@@ -198,9 +259,14 @@ CXDGToplevelResource::CXDGToplevelResource(SP<CXdgToplevel> resource_, SP<CXDGSu
     });
 
     m_resource->setSetFullscreen([this](CXdgToplevel* r, wl_resource* output) {
-        if (output)
-            if (const auto PM = CWLOutputResource::fromResource(output)->m_monitor; PM)
-                m_state.requestsFullscreenMonitor = PM->m_id;
+        if (output) {
+            const auto OUTPUT = CWLOutputResource::fromResource(output);
+            if (OUTPUT) {
+                if (const auto PM = OUTPUT->m_monitor; PM)
+                    m_state.requestsFullscreenMonitor = PM->m_id;
+            } else
+                LOGM(Log::ERR, "Client requested fullscreen on an invalid output resource");
+        }
 
         m_state.requestsFullscreen = true;
         m_events.stateChanged.emit();
@@ -339,6 +405,22 @@ uint32_t CXDGToplevelResource::setActive(bool active) {
     return m_owner->scheduleConfigure();
 }
 
+uint32_t CXDGToplevelResource::setResizing(bool resizing) {
+    bool set = std::ranges::find(m_pendingApply.states, XDG_TOPLEVEL_STATE_RESIZING) != m_pendingApply.states.end();
+
+    if (resizing == set)
+        return m_owner->m_scheduledSerial;
+
+    if (resizing && !set)
+        m_pendingApply.states.push_back(XDG_TOPLEVEL_STATE_RESIZING);
+    else if (!resizing && set)
+        std::erase(m_pendingApply.states, XDG_TOPLEVEL_STATE_RESIZING);
+
+    scheduleStateApplication();
+
+    return m_owner->scheduleConfigure();
+}
+
 uint32_t CXDGToplevelResource::setSuspeneded(bool sus) {
     if (m_resource->version() < 6)
         return m_owner->scheduleConfigure(); // SUSPENDED is since 6
@@ -367,10 +449,8 @@ void CXDGToplevelResource::scheduleStateApplication() {
         wl_array arr;
         wl_array_init(&arr);
 
-        if (!m_pendingApply.states.empty()) {
-            wl_array_add(&arr, m_pendingApply.states.size() * sizeof(int));
-            memcpy(arr.data, m_pendingApply.states.data(), m_pendingApply.states.size() * sizeof(int));
-        }
+        if (const auto PSTATES = sc<int*>(wl_array_add(&arr, m_pendingApply.states.size() * sizeof(int))))
+            std::ranges::copy(m_pendingApply.states, PSTATES);
 
         m_resource->sendConfigure(m_pendingApply.size.x, m_pendingApply.size.y, &arr);
 
@@ -481,7 +561,7 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
 
         LOGM(Log::DEBUG, "xdg_surface {:x} gets a toplevel {:x}", (uintptr_t)m_owner.get(), (uintptr_t)RESOURCE.get());
 
-        PHLWINDOW createdWindow = g_pCompositor->m_windows.emplace_back(Desktop::View::CWindow::create(m_self.lock()));
+        PHLWINDOW createdWindow = Desktop::View::CWindow::create(m_self.lock());
 
         if (RESOURCE->m_parent && RESOURCE->m_parent->m_window->m_pinned)
             createdWindow->m_pinned = true;
@@ -644,7 +724,7 @@ CBox CXDGPositionerRules::getPosition(CBox constraint, const Vector2D& parentCoo
         if (effectiveX2 > constraint.extent().x)
             width -= effectiveX2 - constraint.extent().x;
 
-        return std::make_pair(effectiveX, width);
+        return std::pair{effectiveX, width};
     };
 
     auto calcRemainingHeight = [&](double effectiveY) {
@@ -659,7 +739,7 @@ CBox CXDGPositionerRules::getPosition(CBox constraint, const Vector2D& parentCoo
         if (effectiveY2 > constraint.extent().y)
             height -= effectiveY2 - constraint.extent().y;
 
-        return std::make_pair(effectiveY, height);
+        return std::pair{effectiveY, height};
     };
 
     auto effectiveX = calcEffectiveX(gravity, anchorX);

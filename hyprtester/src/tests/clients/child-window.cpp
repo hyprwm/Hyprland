@@ -1,4 +1,5 @@
 #include "../../hyprctlCompat.hpp"
+#include "../../Log.hpp"
 #include "../shared.hpp"
 #include "tests.hpp"
 #include "build.hpp"

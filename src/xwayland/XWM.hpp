@@ -74,7 +74,6 @@ class CXCBConnection {
         if (m_connection) {
             Log::logger->log(Log::DEBUG, "Disconnecting XCB connection {:x}", rc<uintptr_t>(m_connection));
             xcb_disconnect(m_connection);
-            m_connection = nullptr;
         } else
             Log::logger->log(Log::ERR, "Double xcb_disconnect attempt");
     }

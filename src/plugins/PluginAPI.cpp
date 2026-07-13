@@ -8,6 +8,7 @@
 #include "../notification/NotificationOverlay.hpp"
 #include "../layout/target/Target.hpp"
 #include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
+#include "event/EventBus.hpp"
 #include <dlfcn.h>
 #include <filesystem>
 
@@ -39,7 +40,7 @@ APICALL SP<HOOK_CALLBACK_FN> HyprlandAPI::registerCallbackDynamic(HANDLE handle,
         return nullptr;
 
     //auto PFN = g_pHookSystem->hookDynamic(event, fn, handle);
-    //PLUGIN->m_registeredCallbacks.emplace_back(std::make_pair<>(event, WP<HOOK_CALLBACK_FN>(PFN)));
+    //PLUGIN->m_registeredCallbacks.emplace_back(event, WP<HOOK_CALLBACK_FN>(PFN));
     return nullptr;
 }
 
@@ -161,7 +162,7 @@ APICALL bool HyprlandAPI::removeWindowDecoration(HANDLE handle, IHyprWindowDecor
     if (!PLUGIN)
         return false;
 
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         for (auto const& d : w->m_windowDecorations) {
             if (d.get() == pDecoration) {
                 w->removeWindowDeco(pDecoration);
@@ -491,6 +492,36 @@ APICALL bool HyprlandAPI::removeLuaFunction(HANDLE handle, const std::string& na
     auto ret = dynamicPointerCast<Config::Lua::CConfigManager>(WP<Config::IConfigManager>(Config::mgr()))->unregisterPluginLuaFunction(handle, namespace_, name);
     if (!ret) {
         Log::logger->log(Log::ERR, "failed to unregister lua plugin function {}.{}: {}", namespace_, name, ret.error());
+        return false;
+    }
+
+    return true;
+}
+
+APICALL bool HyprlandAPI::addEvent(HANDLE handle, SP<Event::CEventBus::CCustomEvent> event) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return false;
+
+    const auto ret = Event::bus()->addPluginEvent(event);
+    if (!ret) {
+        Log::logger->log(Log::ERR, ret.error());
+        return false;
+    }
+
+    return true;
+}
+
+APICALL bool HyprlandAPI::removeEvent(HANDLE handle, const std::string& name) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return false;
+
+    const auto ret = Event::bus()->removePluginEvent(name);
+    if (!ret) {
+        Log::logger->log(Log::ERR, ret.error());
         return false;
     }
 

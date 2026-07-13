@@ -2,12 +2,13 @@
 
 #include "../../../../desktop/state/FocusState.hpp"
 #include "../../../../desktop/Workspace.hpp"
-#include "../../../../helpers/Monitor.hpp"
+#include "../../../../output/Monitor.hpp"
 #include "../../../../layout/LayoutManager.hpp"
 #include "../../../../layout/algorithm/Algorithm.hpp"
 #include "../../../../layout/algorithm/tiled/scrolling/ScrollingAlgorithm.hpp"
 #include "../../../../layout/space/Space.hpp"
 #include "../../../../config/ConfigValue.hpp"
+#include "../../../../pointer/PointerController.hpp"
 #include "../../../../Compositor.hpp"
 
 #include <algorithm>
@@ -137,7 +138,7 @@ void CScrollMoveTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd
     const auto NEW_FOCUS = Desktop::focusState()->window();
 
     if (*PSNAPCURSOR && CURRENT_FOCUS != NEW_FOCUS && NEW_FOCUS)
-        g_pCompositor->warpCursorTo(NEW_FOCUS->middle());
+        Pointer::pointerController()->warpTo(NEW_FOCUS->middle());
 
     m_wasScrollingLayout = false;
     m_hasLastUpdate      = false;

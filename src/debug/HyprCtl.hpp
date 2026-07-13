@@ -4,6 +4,7 @@
 #include "../helpers/MiscFunctions.hpp"
 #include "../helpers/defer/Promise.hpp"
 #include "../desktop/view/Window.hpp"
+#include "../desktop/DesktopTypes.hpp"
 #include <functional>
 #include <sys/types.h>
 #include <hyprutils/os/FileDescriptor.hpp>
@@ -34,10 +35,10 @@ class CHyprCtl {
 
     static std::string getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format);
     static std::string getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat format);
-    static std::string getSolitaryBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format);
-    static std::string getDSBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format);
-    static std::string getTearingBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format);
-    static std::string getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format);
+    static std::string getSolitaryBlockedReason(PHLMONITOR m, eHyprCtlOutputFormat format);
+    static std::string getDSBlockedReason(PHLMONITOR m, eHyprCtlOutputFormat format);
+    static std::string getTearingBlockedReason(PHLMONITOR m, eHyprCtlOutputFormat format);
+    static std::string getMonitorData(PHLMONITOR m, eHyprCtlOutputFormat format);
 
   private:
     void                             startHyprCtlSocket();

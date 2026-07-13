@@ -11,13 +11,23 @@
 #include "../devices/IKeyboard.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../state/MonitorState.hpp"
 #include "wlr-layer-shell-unstable-v1.hpp"
 #include <algorithm>
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <ranges>
-#include <cstring>
 
 using namespace Hyprutils::Utils;
+
+static bool surfaceInTree(SP<CWLSurfaceResource> root, SP<CWLSurfaceResource> surface) {
+    if (!root || !surface)
+        return false;
+
+    if (root == surface)
+        return true;
+
+    return !!root->findFirstPreorder([surface](SP<CWLSurfaceResource> candidate) { return candidate == surface; });
+}
 
 CSeatManager::CSeatManager() {
     m_listeners.newSeatResource = PROTO::seat->m_events.newSeatResource.listen([this](const auto& resource) { onNewSeatResource(resource); });
@@ -73,6 +83,57 @@ bool CSeatManager::serialValid(SP<CWLSeatResource> seatResource, uint32_t serial
                 container->serials.erase(it);
             return true;
         }
+    }
+
+    return false;
+}
+
+void CSeatManager::recordPointerButtonSerial(SP<CWLSeatResource> seatResource, uint32_t serial, SP<CWLSurfaceResource> surface, uint32_t button) {
+    if (!seatResource || !surface || !serial)
+        return;
+
+    auto container = containerForResource(seatResource);
+
+    ASSERT(container);
+
+    container->pointerButtonSerials.emplace_back(SPointerButtonSerial{
+        .serial  = serial,
+        .button  = button,
+        .surface = surface,
+    });
+
+    if (container->pointerButtonSerials.size() > MAX_SERIAL_STORE_LEN)
+        container->pointerButtonSerials.erase(container->pointerButtonSerials.begin());
+}
+
+void CSeatManager::clearPointerButtonSerials(SP<CWLSeatResource> seatResource, SP<CWLSurfaceResource> surface, uint32_t button) {
+    if (!seatResource || !surface)
+        return;
+
+    auto container = containerForResource(seatResource);
+
+    ASSERT(container);
+
+    std::erase_if(container->pointerButtonSerials, [surface, button](const auto& serial) { return serial.button == button && surfaceInTree(surface, serial.surface.lock()); });
+}
+
+bool CSeatManager::pointerButtonSerialValid(SP<CWLSeatResource> seatResource, uint32_t serial, SP<CWLSurfaceResource> surface, bool erase) {
+    if (!seatResource || !surface || !serial)
+        return false;
+
+    auto container = containerForResource(seatResource);
+
+    ASSERT(container);
+
+    for (auto it = container->pointerButtonSerials.begin(); it != container->pointerButtonSerials.end(); ++it) {
+        if (it->serial != serial)
+            continue;
+
+        const bool VALID = surfaceInTree(surface, it->surface.lock());
+        if (erase)
+            container->pointerButtonSerials.erase(it);
+
+        return VALID;
     }
 
     return false;
@@ -146,9 +207,11 @@ void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {
     static_assert(std::is_same_v<std::decay_t<decltype(PRESSED)>::value_type, uint32_t>, "Element type different from keycode type uint32_t");
 
     const auto PRESSEDARRSIZE = PRESSED.size() * sizeof(uint32_t);
-    const auto PKEYS          = wl_array_add(&keys, PRESSEDARRSIZE);
-    if (PKEYS)
-        memcpy(PKEYS, PRESSED.data(), PRESSEDARRSIZE);
+    if (PRESSEDARRSIZE > 0) {
+        const auto PKEYS = wl_array_add(&keys, PRESSEDARRSIZE);
+        if (PKEYS)
+            std::ranges::copy(PRESSED, sc<uint32_t*>(PKEYS));
+    }
 
     auto client = surf->client();
     for (auto const& r : m_seatResources | std::views::reverse) {
@@ -661,7 +724,7 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
         } else {
             static auto PFOLLOWMOUSE = CConfigValue<Config::INTEGER>("input:follow_mouse");
             if (*PFOLLOWMOUSE == 0 || *PFOLLOWMOUSE == 2 || *PFOLLOWMOUSE == 3) {
-                const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
+                const auto PMONITOR = State::monitorState()->query().vec(g_pInputManager->getMouseCoordsInternal()).run();
 
                 // If this was a popup grab, focus its parent window to maintain context
                 if (validMapped(parentWindow)) {
@@ -701,7 +764,7 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
             if (candidate && candidate->m_workspace && candidate->m_workspace->isVisibleNotCovered())
                 Desktop::focusState()->rawWindowFocus(candidate, Desktop::FOCUS_REASON_FFM);
             else {
-                const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
+                const auto PMONITOR = State::monitorState()->query().vec(g_pInputManager->getMouseCoordsInternal()).run();
                 g_pInputManager->refocusLastWindow(PMONITOR);
             }
         }

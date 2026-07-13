@@ -16,7 +16,7 @@
 #include "../helpers/TransferFunction.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../config/legacy/ConfigManager.hpp"
-#include "../managers/PointerManager.hpp"
+#include "../pointer/PointerManager.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../protocols/LayerShell.hpp"
@@ -25,7 +25,7 @@
 #include "../helpers/cm/ColorManagement.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
-#include "../managers/CursorManager.hpp"
+#include "../pointer/cursor/CursorManager.hpp"
 #include "../helpers/fs/FsUtils.hpp"
 #include "../helpers/env/Env.hpp"
 #include "../helpers/MainLoopExecutor.hpp"
@@ -33,6 +33,7 @@
 #include "../event/EventBus.hpp"
 #include "../managers/screenshare/ScreenshareManager.hpp"
 #include "../notification/NotificationOverlay.hpp"
+#include "../state/MonitorState.hpp"
 #include "errorOverlay/Overlay.hpp"
 #include "helpers/Color.hpp"
 #include "macros.hpp"
@@ -437,7 +438,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >
     });
 
     static auto P3 = Event::bus()->m_events.input.touch.down.listen([](ITouch::SDownEvent e, Event::SCallbackInfo&) {
-        auto PMONITOR = g_pCompositor->getMonitorFromName(!e.device->m_boundOutput.empty() ? e.device->m_boundOutput : "");
+        auto PMONITOR = State::monitorState()->query().name(!e.device->m_boundOutput.empty() ? e.device->m_boundOutput : "").run();
 
         PMONITOR = PMONITOR ? PMONITOR : Desktop::focusState()->monitor();
 
@@ -582,7 +583,7 @@ void CHyprOpenGLImpl::initDRMFormats() {
         Log::logger->log(Log::DEBUG, "EGL: GPU Supports Format {} (0x{:x})", fmtName ? fmtName : "?unknown?", fmt);
         for (auto const& mod : mods) {
             auto modName = drmGetFormatModifierName(mod);
-            modifierData.emplace_back(std::make_pair<>(mod, modName ? modName : "?unknown?"));
+            modifierData.emplace_back(mod, modName ? modName : "?unknown?");
             free(modName); // NOLINT(cppcoreguidelines-no-malloc)
         }
         free(fmtName); // NOLINT(cppcoreguidelines-no-malloc)
@@ -740,7 +741,7 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, SP<IFra
     g_pHyprRenderer->m_renderData.damage.set(damage_);
     g_pHyprRenderer->m_renderData.finalDamage.set(finalDamage.value_or(damage_));
 
-    m_fakeFrame = fb;
+    m_fakeFrame = !!fb;
 
     if (g_pHyprRenderer->m_reloadScreenShader) {
         g_pHyprRenderer->m_reloadScreenShader = false;
@@ -874,7 +875,7 @@ void CHyprOpenGLImpl::end() {
 
 static const std::vector<std::string> SHADER_INCLUDES = {
     "defines.h",   "constants.h",     "cm_helpers.glsl",  "rounding.glsl", "CM.glsl",    "tonemap.glsl",    "gain.glsl",        "border.glsl",
-    "shadow.glsl", "inner_glow.glsl", "blurprepare.glsl", "blur1.glsl",    "blur2.glsl", "blurFinish.glsl", "motion_blur.glsl",
+    "shadow.glsl", "inner_glow.glsl", "blurprepare.glsl", "blur1.glsl",    "blur2.glsl", "blurFinish.glsl", "motion_blur.glsl", "gradient.glsl",
 };
 
 // order matters, see ePreparedFragmentShader
@@ -1160,11 +1161,12 @@ void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const NColorManagement:
     shader->setUniformFloat(SHADER_DST_REF_LUMINANCE, settings.dstRefLuminance);
     shader->setUniformFloat(SHADER_MAX_LUMINANCE, settings.maxLuminance);
     shader->setUniformFloat(SHADER_DST_MAX_LUMINANCE, settings.dstMaxLuminance);
+    shader->setUniformInt(SHADER_TONEMAP_MODE, settings.tonemapMode);
     shader->setUniformFloat(SHADER_SDR_SATURATION, settings.sdrSaturation);
     shader->setUniformFloat(SHADER_SDR_BRIGHTNESS, settings.sdrBrightnessMultiplier);
 
     if (!targetImageDescription->value().icc.present) {
-        const auto cacheKey = std::make_pair(imageDescription->id(), targetImageDescription->id());
+        const auto cacheKey = std::pair{imageDescription->id(), targetImageDescription->id()};
         if (!primariesConversionCache.contains(cacheKey)) {
             const auto&                  mat             = settings.convertMatrix;
             const std::array<GLfloat, 9> glConvertMatrix = {
@@ -1172,7 +1174,7 @@ void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const NColorManagement:
                 mat[0][1], mat[1][1], mat[2][1], //
                 mat[0][2], mat[1][2], mat[2][2], //
             };
-            primariesConversionCache.insert(std::make_pair(cacheKey, glConvertMatrix));
+            primariesConversionCache.emplace(cacheKey, glConvertMatrix);
         }
         shader->setUniformMatrix3fv(SHADER_CONVERT_MATRIX, 1, false, primariesConversionCache[cacheKey]);
 
@@ -1236,7 +1238,7 @@ WP<CShader> CHyprOpenGLImpl::renderToOutputInternal() {
     shader->setUniformInt(SHADER_POINTER_KILLING, g_pInputManager->getClickMode() == CLICKMODE_KILL);
     shader->setUniformInt(SHADER_POINTER_SHAPE, g_pHyprRenderer->m_lastCursorData.shape);
     shader->setUniformInt(SHADER_POINTER_SHAPE_PREVIOUS, g_pHyprRenderer->m_lastCursorData.shapePrevious);
-    shader->setUniformFloat(SHADER_POINTER_SIZE, g_pCursorManager->getScaledSize());
+    shader->setUniformFloat(SHADER_POINTER_SIZE, Pointer::Cursor::mgr()->getScaledSize());
 
     if (*PDT == 0) {
         PHLMONITORREF pMonitor = m_renderData.pMonitor;
@@ -1390,8 +1392,11 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
         if (TARGET_IMAGE_DESCRIPTION->value().icc.present)
             shaderFeatures |= SH_FEAT_ICC;
         else {
-            if (settings.needsTonemap)
+            if (settings.needsTonemap) {
                 shaderFeatures |= SH_FEAT_TONEMAP;
+                if (settings.tonemapMode == 3)
+                    shaderFeatures |= SH_FEAT_ALT_TONEMAP;
+            }
 
             if (!data.finalMonitorCM && settings.needsSDRmod)
                 shaderFeatures |= SH_FEAT_SDR_MOD;
@@ -1679,6 +1684,16 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<ITexture> tex, const CBox& box, SP<I
     tex->unbind();
 }
 
+static SCMSettings blurIntermediateCMSettings(bool toIntermediate) {
+    const auto WORKBUFFER   = g_pHyprRenderer->workBufferImageDescription();
+    const auto INTERMEDIATE = getDefaultImageDescription();
+
+    auto       settings = toIntermediate ? g_pHyprRenderer->getCMSettings(WORKBUFFER, INTERMEDIATE) : g_pHyprRenderer->getCMSettings(INTERMEDIATE, WORKBUFFER);
+    auto&      range    = toIntermediate ? settings.dstTFRange : settings.srcTFRange;
+    range.max           = std::max(range.max, sc<float>(WORKBUFFER->value().luminances.max));
+    return settings;
+}
+
 // This probably isn't the fastest
 // but it works... well, I guess?
 //
@@ -1740,7 +1755,9 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
         const bool skipCM = !m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
         if (!skipCM) {
             shader = useShader(getShaderVariant(SH_FRAG_BLURPREPARE, SH_FEAT_CM));
-            passCMUniforms(shader, g_pHyprRenderer->workBufferImageDescription(), getDefaultImageDescription());
+
+            passCMUniforms(shader, g_pHyprRenderer->workBufferImageDescription(), getDefaultImageDescription(), false, -1.F, -1,
+                           blurIntermediateCMSettings(/* toIntermediate */ true));
             shader->setUniformFloat(SHADER_SDR_SATURATION,
                                     m_renderData.pMonitor->m_sdrSaturation > 0 &&
                                             g_pHyprRenderer->workBufferImageDescription()->value().transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
@@ -1861,7 +1878,9 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
         const bool skipCM = !m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
         if (!skipCM) {
             shader = useShader(getShaderVariant(SH_FRAG_BLURFINISH, SH_FEAT_CM));
-            passCMUniforms(shader, getDefaultImageDescription(), g_pHyprRenderer->workBufferImageDescription());
+
+            passCMUniforms(shader, getDefaultImageDescription(), g_pHyprRenderer->workBufferImageDescription(), false, -1.F, -1,
+                           blurIntermediateCMSettings(/* toIntermediate */ false));
             shader->setUniformFloat(SHADER_SDR_SATURATION,
                                     m_renderData.pMonitor->m_sdrSaturation > 0 &&
                                             g_pHyprRenderer->workBufferImageDescription()->value().transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
@@ -1956,7 +1975,7 @@ void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
     };
 
     bool hasWindows = false;
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace == pMonitor->m_activeWorkspace && w->visible() && w->m_isMapped && (!w->m_isFloating || *PBLURXRAY)) {
 
             // check if window is valid
@@ -1968,7 +1987,7 @@ void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
         }
     }
 
-    for (auto const& m : g_pCompositor->m_monitors) {
+    for (auto const& m : State::monitorState()->monitors()) {
         for (auto const& lsl : m->m_layerSurfaceLayers) {
             for (auto const& ls : lsl) {
                 if (!ls->m_layerSurface || ls->m_ruleApplicator->xray().valueOrDefault() != 1)
@@ -2125,6 +2144,26 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
     scissor(nullptr);
 }
 
+static ShaderFeatureFlags getDecoFeatures() {
+    const bool IS_ICC   = g_pHyprRenderer->workBufferImageDescription()->value().icc.present;
+    const auto settings = g_pHyprRenderer->getCMSettings(g_pHyprRenderer->workBufferImageDescription(), getDefaultImageDescription(), nullptr, true,
+                                                         g_pHyprRenderer->m_renderData.pMonitor->m_sdrMinLuminance, g_pHyprRenderer->m_renderData.pMonitor->m_sdrMaxLuminance);
+
+    ShaderFeatureFlags features = SH_FEAT_ROUNDING | SH_FEAT_CM | globalFeatures();
+    if (IS_ICC)
+        features |= SH_FEAT_ICC;
+    else {
+        if (settings.needsTonemap) {
+            features |= SH_FEAT_TONEMAP;
+            if (settings.tonemapMode == 3)
+                features |= SH_FEAT_ALT_TONEMAP;
+        }
+        if (settings.needsSDRmod)
+            features |= SH_FEAT_SDR_MOD;
+    }
+    return features;
+}
+
 void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValueData& grad, SBorderRenderData data) {
     auto& m_renderData = g_pHyprRenderer->m_renderData;
     RASSERT((box.width > 0 && box.height > 0), "Tried to render rect with width/height < 0!");
@@ -2159,10 +2198,9 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValue
 
     WP<CShader> shader;
 
-    const bool  IS_ICC = g_pHyprRenderer->workBufferImageDescription()->value().icc.present;
     const bool  skipCM = !m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
     if (!skipCM) {
-        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING | SH_FEAT_CM | (IS_ICC ? SH_FEAT_ICC : SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD) | globalFeatures()));
+        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, getDecoFeatures()));
         passCMUniforms(shader, getDefaultImageDescription());
     } else
         shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING | globalFeatures()));
@@ -2244,10 +2282,9 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValue
     blend(true);
 
     WP<CShader> shader;
-    const bool  IS_ICC = g_pHyprRenderer->workBufferImageDescription()->value().icc.present;
     const bool  skipCM = !m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
     if (!skipCM) {
-        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING | SH_FEAT_CM | (IS_ICC ? SH_FEAT_ICC : SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD) | globalFeatures()));
+        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, getDecoFeatures()));
         passCMUniforms(shader, getDefaultImageDescription());
     } else
         shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING | globalFeatures()));
@@ -2299,7 +2336,12 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValue
     blend(BLEND);
 }
 
-void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roundingPower, int range, const CHyprColor& color, float a) {
+void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad, float a) {
+    renderRoundedShadow(box, round, roundingPower, range, grad, Config::CGradientValueData{}, 0.f, a);
+}
+
+void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
+                                          const Config::CGradientValueData& grad2, float lerp, float a) {
     auto& m_renderData = g_pHyprRenderer->m_renderData;
     RASSERT(m_renderData.pMonitor, "Tried to render shadow without begin()!");
     RASSERT((box.width > 0 && box.height > 0), "Tried to render shadow with width/height < 0!");
@@ -2316,8 +2358,6 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
 
     const auto  SHADOWPOWER = std::clamp(sc<int>(*PSHADOWPOWER), 1, 4);
 
-    const auto  col = color;
-
     const auto& glMatrix = g_pHyprRenderer->projectBoxToTarget(newBox);
 
     blend(true);
@@ -2329,9 +2369,24 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
     if (needsCM)
         shader->setUniformInt(SHADER_SOURCE_TF, TF);
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
-    const auto converted = g_pHyprRenderer->getConvertedColor(col.stripA());
-    shader->setUniformFloat4(SHADER_COLOR, converted.r, converted.g, converted.b, col.a * a);
-    shader->setUniformFloat4(SHADER_COLOR_SRGB, col.r, col.g, col.b, col.a * a);
+
+    CHyprColor color;
+    if (!grad1.m_colors.empty())
+        color = grad1.m_colors[0];
+
+    const auto converted = g_pHyprRenderer->getConvertedColor(color.stripA());
+    shader->setUniformFloat4(SHADER_COLOR, converted.r, converted.g, converted.b, color.a);
+    shader->setUniformFloat4(SHADER_COLOR_SRGB, color.r, color.g, color.b, color.a);
+
+    shader->setUniform4fv(SHADER_GRADIENT, grad1.m_colorsOkLabA.size() / 4, grad1.m_colorsOkLabA);
+    shader->setUniformInt(SHADER_GRADIENT_LENGTH, grad1.m_colorsOkLabA.size() / 4);
+    shader->setUniformFloat(SHADER_ANGLE, sc<int>(grad1.m_angle / (std::numbers::pi / 180.0)) % 360 * (std::numbers::pi / 180.0));
+    if (!grad2.m_colorsOkLabA.empty())
+        shader->setUniform4fv(SHADER_GRADIENT2, grad2.m_colorsOkLabA.size() / 4, grad2.m_colorsOkLabA);
+    shader->setUniformInt(SHADER_GRADIENT2_LENGTH, grad2.m_colorsOkLabA.size() / 4);
+    shader->setUniformFloat(SHADER_ANGLE2, sc<int>(grad2.m_angle / (std::numbers::pi / 180.0)) % 360 * (std::numbers::pi / 180.0));
+    shader->setUniformFloat(SHADER_ALPHA, a);
+    shader->setUniformFloat(SHADER_GRADIENT_LERP, lerp);
 
     const auto TOPLEFT     = Vector2D(range + round, range + round);
     const auto BOTTOMRIGHT = Vector2D(newBox.width - (range + round), newBox.height - (range + round));
@@ -2399,7 +2454,11 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
     glBindVertexArray(0);
 }
 
-void CHyprOpenGLImpl::renderInnerGlow(const CBox& box, int round, float roundingPower, int range, const CHyprColor& color, int glowPower, float a) {
+void CHyprOpenGLImpl::renderInnerGlow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad, int glowPower, float a) {
+    renderInnerGlow(box, round, roundingPower, range, grad, Config::CGradientValueData{}, 0.f, glowPower, a);
+}
+void CHyprOpenGLImpl::renderInnerGlow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2,
+                                      float lerp, int glowPower, float a) {
     auto& m_renderData = g_pHyprRenderer->m_renderData;
     RASSERT(m_renderData.pMonitor, "Tried to render inner glow without begin()!");
     RASSERT((box.width > 0 && box.height > 0), "Tried to render inner glow with width/height < 0!");
@@ -2412,7 +2471,9 @@ void CHyprOpenGLImpl::renderInnerGlow(const CBox& box, int round, float rounding
     CBox newBox = box;
     g_pHyprRenderer->m_renderData.renderModif.applyToBox(newBox);
 
-    const auto  col = color;
+    static auto PGLOWPOWER = CConfigValue<Config::INTEGER>("decoration:glow:render_power");
+
+    const auto  GLOWPOWER = std::clamp(sc<int>(*PGLOWPOWER), 1, 4);
 
     const auto& glMatrix = g_pHyprRenderer->projectBoxToTarget(newBox);
 
@@ -2421,9 +2482,24 @@ void CHyprOpenGLImpl::renderInnerGlow(const CBox& box, int round, float rounding
     auto shader = useShader(getShaderVariant(SH_FRAG_INNER_GLOW, globalFeatures()));
 
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
-    const auto converted = g_pHyprRenderer->getConvertedColor(col.stripA());
-    shader->setUniformFloat4(SHADER_COLOR, converted.r, converted.g, converted.b, col.a * a);
-    shader->setUniformFloat4(SHADER_COLOR_SRGB, col.r, col.g, col.b, col.a * a);
+
+    CHyprColor color;
+    if (!grad1.m_colors.empty())
+        color = grad1.m_colors[0];
+
+    const auto converted = g_pHyprRenderer->getConvertedColor(color.stripA());
+    shader->setUniformFloat4(SHADER_COLOR, converted.r, converted.g, converted.b, color.a * a);
+    shader->setUniformFloat4(SHADER_COLOR_SRGB, color.r, color.g, color.b, color.a * a);
+
+    shader->setUniform4fv(SHADER_GRADIENT, grad1.m_colorsOkLabA.size() / 4, grad1.m_colorsOkLabA);
+    shader->setUniformInt(SHADER_GRADIENT_LENGTH, grad1.m_colorsOkLabA.size() / 4);
+    shader->setUniformFloat(SHADER_ANGLE, sc<int>(grad1.m_angle / (std::numbers::pi / 180.0)) % 360 * (std::numbers::pi / 180.0));
+    if (!grad2.m_colorsOkLabA.empty())
+        shader->setUniform4fv(SHADER_GRADIENT2, grad2.m_colorsOkLabA.size() / 4, grad2.m_colorsOkLabA);
+    shader->setUniformInt(SHADER_GRADIENT2_LENGTH, grad2.m_colorsOkLabA.size() / 4);
+    shader->setUniformFloat(SHADER_ANGLE2, sc<int>(grad2.m_angle / (std::numbers::pi / 180.0)) % 360 * (std::numbers::pi / 180.0));
+    shader->setUniformFloat(SHADER_ALPHA, a);
+    shader->setUniformFloat(SHADER_GRADIENT_LERP, lerp);
 
     const auto TOPLEFT     = Vector2D(round, round);
     const auto BOTTOMRIGHT = Vector2D(newBox.width - round, newBox.height - round);
@@ -2435,7 +2511,7 @@ void CHyprOpenGLImpl::renderInnerGlow(const CBox& box, int round, float rounding
     shader->setUniformFloat(SHADER_RADIUS, round);
     shader->setUniformFloat(SHADER_ROUNDING_POWER, roundingPower);
     shader->setUniformFloat(SHADER_RANGE, range);
-    shader->setUniformFloat(SHADER_SHADOW_POWER, glowPower);
+    shader->setUniformFloat(SHADER_SHADOW_POWER, GLOWPOWER);
 
     glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
 

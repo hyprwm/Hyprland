@@ -4,8 +4,9 @@
 #include "../render/pass/RectPassElement.hpp"
 #include "../render/pass/TexPassElement.hpp"
 #include "../render/Renderer.hpp"
-#include "../managers/animation/AnimationManager.hpp"
+#include "../animation/AnimationManager.hpp"
 #include "../desktop/state/FocusState.hpp"
+#include "../state/MonitorState.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -187,7 +188,7 @@ void CMonitorOverlay::frameData(PHLMONITOR pMonitor) {
         if (m_lastAnimationTicks.size() > TICKLIMIT)
             m_lastAnimationTicks.pop_front();
 
-        m_lastAnimationTicks.push_back(g_pAnimationManager->m_lastTickTimeMs);
+        m_lastAnimationTicks.push_back(Animation::mgr()->m_lastTickTimeMs);
     }
 }
 
@@ -374,10 +375,10 @@ void COverlay::createWarningTexture(float maxW) {
 }
 
 void COverlay::draw() {
-    if (g_pCompositor->m_monitors.empty())
+    if (State::monitorState()->monitors().empty())
         return;
 
-    const auto PMONITOR = g_pCompositor->m_monitors.front();
+    const auto PMONITOR = State::monitorState()->monitors().front();
     if (!PMONITOR)
         return;
 
@@ -396,7 +397,7 @@ void COverlay::draw() {
         Vector2D fullSize                = {};
         int      monitorsWithOverlayData = 0;
 
-        for (const auto& m : g_pCompositor->m_monitors) {
+        for (const auto& m : State::monitorState()->monitors()) {
             const Vector2D size = m_monitorOverlays[m].size();
             if (size.x <= 0 || size.y <= 0)
                 continue;
@@ -429,7 +430,7 @@ void COverlay::draw() {
         }
     }
 
-    for (auto const& monitor : g_pCompositor->m_monitors) {
+    for (auto const& monitor : State::monitorState()->monitors()) {
         bool monitorUpdated = false;
         offsetY += m_monitorOverlays[monitor].draw(offsetY, monitorUpdated);
         cacheUpdated = cacheUpdated || monitorUpdated;
@@ -497,7 +498,7 @@ void COverlay::draw() {
     }
 
     if (m_frameTimer.getMillis() >= OVERLAY_REFRESH_INTERVAL_MS) {
-        g_pCompositor->scheduleFrameForMonitor(PMONITOR);
+        PMONITOR->scheduleFrame();
         m_frameTimer.reset();
     }
 }

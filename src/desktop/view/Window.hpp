@@ -21,9 +21,14 @@
 #include "../rule/windowRule/WindowRuleApplicator.hpp"
 #include "../../protocols/types/ContentType.hpp"
 #include "../../render/Framebuffer.hpp"
+#include "types/GeometricMovableAnimated.hpp"
+#include "types/AlphaModifiable.hpp"
+#include "animationControllers/WindowAnimationController.hpp"
 
 class CXDGSurfaceResource;
 class CXWaylandSurface;
+struct SXDGToplevelMoveRequest;
+struct SXDGToplevelResizeRequest;
 namespace Config {
     class CWorkspaceRule;
 }
@@ -68,12 +73,13 @@ namespace Desktop::View {
     };
 
     enum eSuppressEvents : uint8_t {
-        SUPPRESS_NONE               = 0,
-        SUPPRESS_FULLSCREEN         = 1 << 0,
-        SUPPRESS_MAXIMIZE           = 1 << 1,
-        SUPPRESS_ACTIVATE           = 1 << 2,
-        SUPPRESS_ACTIVATE_FOCUSONLY = 1 << 3,
-        SUPPRESS_FULLSCREEN_OUTPUT  = 1 << 4,
+        SUPPRESS_NONE                  = 0,
+        SUPPRESS_FULLSCREEN            = 1 << 0,
+        SUPPRESS_MAXIMIZE              = 1 << 1,
+        SUPPRESS_ACTIVATE              = 1 << 2,
+        SUPPRESS_ACTIVATE_FOCUSONLY    = 1 << 3,
+        SUPPRESS_FULLSCREEN_OUTPUT     = 1 << 4,
+        SUPPRESS_X11_CONFIGURE_REQUEST = 1 << 5,
     };
 
     enum eWindowAlpha : uint8_t {
@@ -106,12 +112,7 @@ namespace Desktop::View {
         std::string  workspace;
     };
 
-    struct SFullscreenState {
-        eFullscreenMode internal = FSMODE_NONE;
-        eFullscreenMode client   = FSMODE_NONE;
-    };
-
-    class CWindow : public IView {
+    class CWindow : public virtual IView, public virtual CGeometricMovableAnimated, public virtual IAlphaModifiable {
       public:
         static PHLWINDOW create(SP<CXDGSurfaceResource>);
         static PHLWINDOW create(SP<CXWaylandSurface>);
@@ -124,11 +125,16 @@ namespace Desktop::View {
       public:
         virtual ~CWindow();
 
-        virtual eViewType           type() const;
-        virtual bool                visible() const;
-        virtual std::optional<CBox> logicalBox() const;
-        virtual bool                desktopComponent() const;
-        virtual std::optional<CBox> surfaceLogicalBox() const;
+        virtual eViewType                                   type() const override;
+        virtual bool                                        visible() const override;
+        virtual std::optional<CBox>                         logicalBox() const override;
+        virtual bool                                        desktopComponent() const override;
+        virtual std::optional<CBox>                         surfaceLogicalBox() const override;
+        virtual Types::CMultiAVarContainer<float, uint8_t>& alpha() override;
+        virtual std::optional<uint8_t>                      alphaGenericToKey(eAlphaModifiableProp p) override;
+
+        using CGeometricMovableAnimated::m_realPosition;
+        using CGeometricMovableAnimated::m_realSize;
 
         struct {
             CSignalT<> destroy;
@@ -143,14 +149,6 @@ namespace Desktop::View {
 
         SP<Layout::ITarget>     m_target;
 
-        // this is the position and size of the "bounding box"
-        Vector2D m_position = Vector2D(0, 0);
-        Vector2D m_size     = Vector2D(0, 0);
-
-        // this is the real position and size used to draw the thing
-        PHLANIMVAR<Vector2D> m_realPosition;
-        PHLANIMVAR<Vector2D> m_realSize;
-
         // for not spamming the protocols
         Vector2D                                     m_reportedPosition;
         Vector2D                                     m_reportedSize;
@@ -162,24 +160,23 @@ namespace Desktop::View {
         Vector2D m_floatingOffset = Vector2D(0, 0);
 
         // for recovering relative cursor position
-        Vector2D         m_relativeCursorCoordsOnLastWarp = Vector2D(-1, -1);
+        Vector2D      m_relativeCursorCoordsOnLastWarp = Vector2D(-1, -1);
 
-        bool             m_firstMap        = false; // for layouts
-        bool             m_isFloating      = false;
-        SFullscreenState m_fullscreenState = {.internal = FSMODE_NONE, .client = FSMODE_NONE};
-        std::string      m_title           = "";
-        std::string      m_class           = "";
-        std::string      m_initialTitle    = "";
-        std::string      m_initialClass    = "";
-        PHLWORKSPACE     m_workspace;
-        PHLMONITORREF    m_monitor, m_prevMonitor;
+        bool          m_firstMap     = false; // for layouts
+        bool          m_isFloating   = false;
+        std::string   m_title        = "";
+        std::string   m_class        = "";
+        std::string   m_initialTitle = "";
+        std::string   m_initialClass = "";
+        PHLWORKSPACE  m_workspace;
+        PHLMONITORREF m_monitor, m_prevMonitor;
 
-        bool             m_isMapped = false;
+        bool          m_isMapped = false;
 
-        bool             m_requestsFloat = false;
+        bool          m_requestsFloat = false;
 
         // This is for fullscreen apps
-        bool m_createdOverFullscreen = false;
+        bool m_allowedOverFullscreen = true;
 
         // XWayland stuff
         bool  m_isX11                = false;
@@ -198,6 +195,11 @@ namespace Desktop::View {
         // bitfield suppressEvents
         uint64_t m_suppressedEvents = SUPPRESS_NONE;
 
+        // Armed on FSMODE_FULLSCREEN exit to swallow the set_maximized that clients send to restore state.
+        // Hyprland sends XDG_TOPLEVEL_STATE_MAXIMIZED to tiled windows to suppress CSD.
+        // Clients echoing it back would enter FSMODE_MAXIMIZED.
+        bool m_suppressNextMaximize = false;
+
         // desktop components
         SP<Desktop::View::CSubsurface> m_subsurfaceHead;
         SP<Desktop::View::CPopup>      m_popupHead;
@@ -213,13 +215,7 @@ namespace Desktop::View {
         mutable bool m_borderSizeCacheDirty = true;
 
         // Fade in-out
-        Desktop::Types::CMultiAVarContainer<float, eWindowAlpha, WINDOW_ALPHA_LAST> m_alpha;
-        bool                                                                        m_fadingOut     = false;
-        bool                                                                        m_readyToDelete = false;
-        Vector2D                                                                    m_originalClosedPos;  // these will be used for calculations later on in
-        Vector2D                                                                    m_originalClosedSize; // drawing the closing animations
-        SBoxExtents                                                                 m_originalClosedExtents;
-        bool                                                                        m_animatingIn = false;
+        bool m_animatingIn = false;
 
         // For pinned (sticky) windows
         bool m_pinned = false;
@@ -245,10 +241,16 @@ namespace Desktop::View {
         std::vector<UP<Render::IWindowTransformer>> m_transformers;
 
         // animated shadow color
-        PHLANIMVAR<CHyprColor> m_realShadowColor;
+        Config::CGradientValueData m_realShadowColor;
+        Config::CGradientValueData m_realShadowColorPrevious;
+        PHLANIMVAR<float>          m_shadowFadeAnimationProgress;
+        PHLANIMVAR<float>          m_shadowAngleAnimationProgress;
 
         // animated glow color
-        PHLANIMVAR<CHyprColor> m_realGlowColor;
+        Config::CGradientValueData m_realGlowColor;
+        Config::CGradientValueData m_realGlowColorPrevious;
+        PHLANIMVAR<float>          m_glowFadeAnimationProgress;
+        PHLANIMVAR<float>          m_glowAngleAnimationProgress;
 
         // animated tint
         PHLANIMVAR<float> m_dimPercent;
@@ -257,9 +259,10 @@ namespace Desktop::View {
         int m_monitorMovedFrom = -1; // -1 means not moving
 
         // swallowing
-        PHLWINDOWREF m_swallowed;
+        PHLWINDOWREF m_swallowee;
         bool         m_currentlySwallowed = false;
         bool         m_groupSwallowed     = false;
+        bool         m_hasSwallower       = false;
 
         // for toplevel monitor events
         MONITORID m_lastSurfaceMonitorID = -1;
@@ -276,14 +279,14 @@ namespace Desktop::View {
         // Stable ID for ext_foreign_toplevel_list
         const uint64_t m_stableID = 0x2137;
 
-        // snapshots
-        SP<Render::IFramebuffer> m_snapshotFB;
-
         // ANR
         PHLANIMVAR<float> m_notRespondingTint;
 
         // For the noclosefor windowrule
         Time::steady_tp m_closeableSince = Time::steadyNow();
+
+        // Desktop anim controller
+        CWindowAnimationController m_animationController;
 
         // layout-settable flags. These are reset when layout changes.
         struct {
@@ -291,36 +294,56 @@ namespace Desktop::View {
         } m_layoutFlags;
 
         // For the list lookup
-        bool operator==(const CWindow& rhs) const {
-            return m_xdgSurface == rhs.m_xdgSurface && m_xwaylandSurface == rhs.m_xwaylandSurface && m_position == rhs.m_position && m_size == rhs.m_size &&
-                m_fadingOut == rhs.m_fadingOut;
-        }
+        bool operator==(const CWindow& rhs) const;
 
         // methods
-        CBox                              getFullWindowBoundingBox() const;
-        SBoxExtents                       getFullWindowExtents() const;
-        CBox                              getWindowBoxUnified(uint64_t props);
-        SBoxExtents                       getWindowExtentsUnified(uint64_t props);
-        CBox                              getWindowIdealBoundingBoxIgnoreReserved();
-        void                              addWindowDeco(UP<IHyprWindowDecoration> deco);
-        void                              updateWindowDecos();
-        void                              removeWindowDeco(IHyprWindowDecoration* deco);
-        void                              uncacheWindowDecos();
-        bool                              checkInputOnDecos(const eInputType, const Vector2D&, std::any = {});
-        pid_t                             getPID();
-        IHyprWindowDecoration*            getDecorationByType(eDecorationType);
-        void                              updateToplevel();
-        void                              updateSurfaceScaleTransformDetails(bool force = false);
-        void                              moveToWorkspace(PHLWORKSPACE);
-        PHLWINDOW                         x11TransientFor();
-        void                              onUnmap();
-        void                              onMap();
-        void                              setHidden(bool hidden);
-        bool                              isHidden() const;
-        void                              setInputBlocked(eWindowInputBlockReason reason, bool blocked);
-        bool                              isInputBlocked() const;
-        bool                              isInputBlocked(std::underlying_type_t<eWindowInputBlockReason> reasons) const;
-        bool                              isInputBlockedOnly(eWindowInputBlockReason reason) const;
+        CBox                   getFullWindowBoundingBox() const;
+        CBox                   layoutBox() const;
+        SBoxExtents            getFullWindowExtents() const;
+        CBox                   getWindowBoxUnified(uint64_t props);
+        SBoxExtents            getWindowExtentsUnified(uint64_t props);
+        CBox                   getWindowIdealBoundingBoxIgnoreReserved();
+        void                   addWindowDeco(UP<IHyprWindowDecoration> deco);
+        void                   updateWindowDecos();
+        void                   removeWindowDeco(IHyprWindowDecoration* deco);
+        void                   uncacheWindowDecos();
+        bool                   checkInputOnDecos(const eInputType, const Vector2D&, std::any = {});
+        pid_t                  getPID();
+        IHyprWindowDecoration* getDecorationByType(eDecorationType);
+        void                   updateToplevel();
+        void                   updateSurfaceScaleTransformDetails(bool force = false);
+        void                   moveToWorkspace(PHLWORKSPACE);
+        PHLWINDOW              x11Parent() const;
+        void                   onUnmap();
+        void                   onMap();
+        void                   setHidden(bool hidden);
+        bool                   isHidden() const;
+        void                   setInputBlocked(eWindowInputBlockReason reason, bool blocked);
+        /// Returns `true` if the input is blocked for this window for any reason.
+        bool isInputBlocked() const;
+        /// Returns `true` if any of the provided `reasons` is one of the reasons why input is blocked for this window.
+        bool isInputBlockedReasonAnyOf(std::underlying_type_t<eWindowInputBlockReason> reasons) const;
+        /**
+         * Returns `true` if all the reasons why input is blocked for this window are contained in the provided `reason`, i.e.,
+         * `reason` is the superset of reasons why input is blocked for this window.
+         *
+         * Note that the return value of `true` does not necessarily mean that input is blocked for all of the provided `reason`s,
+         * or that input is blocked at all! If input is not blocked, the function returns `true` regardless of the argument value.
+         *
+         * This function is a negation of `hasInputBlockedReasonsBesides`. They exist together for the sake of readability:
+         * when either of them is negated in a condition, the condition becomes hard to grasp.
+         */
+        bool noInputBlockedReasonsBesides(std::underlying_type_t<eWindowInputBlockReason> reason) const;
+        /**
+         * Returns `true` if there is a reason why input is blocked for this window that is not contained in the provided `reason`.
+         *
+         * Note that the return value of `false` does not mean that all the listed reasons are effective, or that the input is
+         * blocked at all! If input is not blocked, the function returns `false` regardless of the argument value.
+         *
+         * This function is a negation of `noInputBlockedReasonsBesides`. They exist together for the sake of readability:
+         * when either of them is negated in a condition, the condition becomes hard to grasp.
+         */
+        bool                              hasInputBlockedReasonsBesides(std::underlying_type_t<eWindowInputBlockReason> reason) const;
         bool                              acceptsInput() const;
         bool                              isAllowedOverFullscreen() const;
         bool                              isBlockedByFullscreen() const;
@@ -353,8 +376,6 @@ namespace Desktop::View {
         void                              activate(bool force = false);
         int                               surfacesCount();
         bool                              clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize);
-        bool                              isFullscreen() const;
-        bool                              isEffectiveInternalFSMode(const eFullscreenMode) const;
         int                               getRealBorderSize() const;
         float                             getScrollMouse();
         float                             getScrollTouchpad();
@@ -363,6 +384,8 @@ namespace Desktop::View {
         void                              updateWindowData();
         void                              updateWindowData(const Config::CWorkspaceRule&);
         void                              onBorderAngleAnimEnd(WP<Hyprutils::Animation::CBaseAnimatedVariable> pav);
+        void                              onShadowAngleAnimEnd(WP<Hyprutils::Animation::CBaseAnimatedVariable> pav);
+        void                              onGlowAngleAnimEnd(WP<Hyprutils::Animation::CBaseAnimatedVariable> pav);
         bool                              isInCurvedCorner(double x, double y);
         bool                              hasPopupAt(const Vector2D& pos);
         int                               popupsCount();
@@ -380,7 +403,7 @@ namespace Desktop::View {
         std::string                       fetchTitle();
         std::string                       fetchClass();
         void                              warpCursor(bool force = false);
-        PHLWINDOW                         getSwallower();
+        PHLWINDOW                         getSwallowee();
         bool                              isX11OverrideRedirect();
         bool                              isModal();
         Vector2D                          realToReportSize();
@@ -403,12 +426,14 @@ namespace Desktop::View {
         std::optional<Vector2D>           calculateExpression(const Math::SExpressionVec2& expr);
         std::optional<Vector2D>           minSize();
         std::optional<Vector2D>           maxSize();
-        SP<Layout::ITarget>               layoutTarget();
-        bool                              canBeGroupedInto(SP<CGroup> group);
-        void                              sendClose();
+        // Returns the highest level target of a window
+        // e.g. if the window is a part of a group, this returns the window group target
+        SP<Layout::ITarget> layoutTarget();
+        bool                canBeGroupedInto(SP<CGroup> group);
+        void                sendClose();
 
-        CBox                              getWindowMainSurfaceBox() const {
-            return {m_realPosition->value().x, m_realPosition->value().y, m_realSize->value().x, m_realSize->value().y};
+        CBox                getWindowMainSurfaceBox() const {
+            return geometricBox(GEOMETRIC_CURRENT);
         }
 
         // listeners
@@ -433,6 +458,8 @@ namespace Desktop::View {
             CHyprSignalListener updateState;
             CHyprSignalListener updateMetadata;
             CHyprSignalListener resourceChange;
+            CHyprSignalListener xdgMoveRequest;
+            CHyprSignalListener xdgResizeRequest;
         } m_listeners;
 
       private:
@@ -442,30 +469,33 @@ namespace Desktop::View {
         void                  commitWindow();
         void                  destroyWindow();
         void                  activateX11();
+        void                  onXDGMoveRequest(const SXDGToplevelMoveRequest& request);
+        void                  onXDGResizeRequest(const SXDGToplevelResizeRequest& request);
         void                  unmanagedSetGeometry();
 
         // For hidden windows and stuff
-        bool        m_hidden            = false;
-        bool        m_suspended         = false;
-        WORKSPACEID m_lastWorkspace     = WORKSPACE_INVALID;
-        uint32_t    m_inputBlockReasons = INPUT_BLOCK_NONE;
+        bool                                                                             m_hidden            = false;
+        bool                                                                             m_suspended         = false;
+        WORKSPACEID                                                                      m_lastWorkspace     = WORKSPACE_INVALID;
+        uint32_t                                                                         m_inputBlockReasons = INPUT_BLOCK_NONE;
+        Desktop::Types::CMultiAVarContainer<float, std::underlying_type_t<eWindowAlpha>> m_alpha;
     };
 
-    inline bool valid(PHLWINDOW w) {
+    inline bool valid(const PHLWINDOW& w) {
         return w.get();
     }
 
-    inline bool valid(PHLWINDOWREF w) {
+    inline bool valid(const PHLWINDOWREF& w) {
         return !w.expired();
     }
 
-    inline bool validMapped(PHLWINDOW w) {
+    inline bool validMapped(const PHLWINDOW& w) {
         if (!valid(w))
             return false;
         return w->m_isMapped;
     }
 
-    inline bool validMapped(PHLWINDOWREF w) {
+    inline bool validMapped(const PHLWINDOWREF& w) {
         if (!valid(w))
             return false;
         return w->m_isMapped;

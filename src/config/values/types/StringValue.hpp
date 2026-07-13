@@ -4,14 +4,13 @@
 
 #include "../../ConfigValue.hpp"
 
-#include <optional>
 #include <functional>
 #include <expected>
 
 namespace Config::Values {
     struct SStringValueOptions {
-        std::optional<std::function<std::expected<void, std::string>(const Config::STRING&)>> validator = std::nullopt;
-        Supplementary::PropRefreshBits                                                        refresh   = 0;
+        std::function<std::expected<void, std::string>(const Config::STRING&)> validator = {};
+        Supplementary::PropRefreshBits                                         refresh   = 0;
     };
 
     class CStringValue : public IValue {
@@ -27,8 +26,8 @@ namespace Config::Values {
         Config::STRING                defaultVal() const;
 
       private:
-        CConfigValue<Config::STRING>                                                       m_val;
-        std::optional<std::function<std::expected<void, std::string>(const std::string&)>> m_validator;
-        Config::STRING                                                                     m_default = "[[EMPTY]]";
+        CConfigValue<Config::STRING>                                        m_val;
+        std::function<std::expected<void, std::string>(const std::string&)> m_validator;
+        Config::STRING                                                      m_default = "[[EMPTY]]";
     };
 }

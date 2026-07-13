@@ -58,6 +58,7 @@
   commit,
   revCount,
   date,
+  readline,
   # deprecated flags
   enableNvidiaPatches ? false,
   nvidiaPatches ? false,
@@ -204,6 +205,7 @@ customStdenv.mkDerivation (finalAttrs: {
       wayland
       wayland-protocols
       wayland-scanner
+      readline
     ]
     (optionals customStdenv.hostPlatform.isBSD [ epoll-shim ])
     (optionals customStdenv.hostPlatform.isMusl [ libexecinfo ])
@@ -260,6 +262,8 @@ customStdenv.mkDerivation (finalAttrs: {
       install hyprtester/pointer-scroll -t $out/bin
       install hyprtester/shortcut-inhibitor -t $out/bin
       install hyprtester/keyboard-modifiers -t $out/bin
+      install hyprtester/surface-scale-transform -t $out/bin
+      install hyprtester/xdg-interactive -t $out/bin
       install hyprland_gtests -t $out/bin
       install hyprtester/child-window -t $out/bin
     ''}

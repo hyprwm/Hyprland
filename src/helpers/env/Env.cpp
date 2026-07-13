@@ -1,16 +1,10 @@
 #include "Env.hpp"
 
 #include <cstdlib>
-#include <string_view>
 
-bool Env::envEnabled(const std::string& env) {
-    auto ret = getenv(env.c_str());
-    if (!ret)
-        return false;
-
-    const std::string_view sv = ret;
-
-    return !sv.empty() && sv != "0";
+bool Env::envEnabled(const char* env) {
+    const auto ret = getenv(env);
+    return ret && ret[0] != '\0' && !(ret[0] == '0' && ret[1] == '\0');
 }
 
 bool Env::isTrace() {

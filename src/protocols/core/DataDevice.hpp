@@ -10,6 +10,7 @@
 
 #include <vector>
 #include <cstdint>
+#include <optional>
 #include "../WaylandProtocol.hpp"
 #include <wayland-server-protocol.h>
 #include "wayland.hpp"
@@ -25,7 +26,6 @@ class CWLDataSourceResource;
 class CWLDataOfferResource;
 
 class CWLSurfaceResource;
-class CMonitor;
 
 class CWLDataOfferResource : public IDataOffer {
   public:
@@ -169,13 +169,14 @@ class CWLDataDeviceProtocol : public IWaylandProtocol {
     void onDndPointerFocus();
 
     struct {
-        WP<IDataDevice>        focusedDevice;
-        WP<IDataSource>        currentSource;
-        WP<CWLSurfaceResource> dndSurface;
-        WP<CWLSurfaceResource> originSurface;
-        bool                   overriddenCursor = false;
-        CHyprSignalListener    dndSurfaceDestroy;
-        CHyprSignalListener    dndSurfaceCommit;
+        WP<IDataDevice>         focusedDevice;
+        WP<IDataSource>         currentSource;
+        WP<CWLSurfaceResource>  dndSurface;
+        WP<CWLSurfaceResource>  originSurface;
+        std::optional<Vector2D> touchPos;
+        bool                    overriddenCursor = false;
+        CHyprSignalListener     dndSurfaceDestroy;
+        CHyprSignalListener     dndSurfaceCommit;
 
         // for ending a dnd
         CHyprSignalListener mouseMove;

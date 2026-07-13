@@ -66,6 +66,13 @@ void CReservedArea::applyip(CBox& other) const {
     other.h -= m_topLeft.y + m_bottomRight.y;
 }
 
+void CReservedArea::setStatic(const CReservedArea& area) {
+    m_initialTopLeft     = area.m_initialTopLeft;
+    m_initialBottomRight = area.m_initialBottomRight;
+    m_ok                 = area.m_ok;
+    calculate();
+}
+
 bool CReservedArea::operator==(const CReservedArea& other) const {
     return other.m_bottomRight == m_bottomRight && other.m_topLeft == m_topLeft;
 }

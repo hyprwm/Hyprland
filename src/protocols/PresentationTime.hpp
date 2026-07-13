@@ -68,9 +68,9 @@ class CPresentationProtocol : public IWaylandProtocol {
     void onGetFeedback(CWpPresentation* pMgr, wl_resource* surf, uint32_t id);
 
     //
-    std::vector<UP<CWpPresentation>>          m_managers;
-    std::vector<SP<CPresentationFeedback>>    m_feedbacks;
-    std::vector<UP<CQueuedPresentationData>>  m_queue;
+    std::vector<UP<CWpPresentation>>         m_managers;
+    std::vector<SP<CPresentationFeedback>>   m_feedbacks;
+    std::vector<UP<CQueuedPresentationData>> m_queue;
 
     friend class CPresentationFeedback;
 };

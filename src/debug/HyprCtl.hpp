@@ -9,6 +9,8 @@
 #include <sys/types.h>
 #include <hyprutils/os/FileDescriptor.hpp>
 
+class CEventLoopTimer;
+
 // exposed for main.cpp
 std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request);
 std::string versionRequest(eHyprCtlOutputFormat format, std::string request);
@@ -53,6 +55,7 @@ class CHyprCtl {
         bool                           followRolling   = false;
         bool                           waitingForReply = false;
         bool                           closed          = false;
+        SP<CEventLoopTimer>            requestTimeout;
     };
 
     static int                       onSocketEvent(int fd, uint32_t mask, void* data);

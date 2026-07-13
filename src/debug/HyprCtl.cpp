@@ -43,7 +43,7 @@ using namespace Hyprutils::OS;
 #include "../config/shared/animation/AnimationTree.hpp"
 #include "../config/supplementary/jeremy/Jeremy.hpp"
 #include "../config/values/ConfigValues.hpp"
-#include "../managers/CursorManager.hpp"
+#include "../pointer/cursor/CursorManager.hpp"
 #include "../errorOverlay/Overlay.hpp"
 #include "../devices/IPointer.hpp"
 #include "../devices/IKeyboard.hpp"
@@ -66,9 +66,11 @@ using namespace Hyprutils::OS;
 
 #include "../Compositor.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../managers/XWaylandManager.hpp"
+#include "../managers/fullscreen/FullscreenController.hpp"
 #include "../plugins/PluginSystem.hpp"
-#include "../managers/animation/AnimationManager.hpp"
+#include "../animation/AnimationManager.hpp"
 #include "../notification/NotificationOverlay.hpp"
 #include "../render/Renderer.hpp"
 #include "../render/OpenGL.hpp"
@@ -404,9 +406,11 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     "pid": {},
     "xwayland": {},
     "pinned": {},
+    "pinFullscreened": {},
     "fullscreen": {},
     "fullscreenClient": {},
-    "overFullscreen": {},
+    "fullscreenHandler": "{}",
+    "allowedOverFullscreen": {},
     "grouped": [{}],
     "tags": [{}],
     "swallowing": "0x{:x}",
@@ -422,26 +426,29 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
             sc<int>(w->m_realSize->goal().y), w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID, escapeJSONStrings(!w->m_workspace ? "" : w->m_workspace->m_name),
             (sc<int>(w->m_isFloating) == 1 ? "true" : "false"), w->monitorID(), escapeJSONStrings(w->m_class), escapeJSONStrings(w->m_title), escapeJSONStrings(w->m_initialClass),
             escapeJSONStrings(w->m_initialTitle), w->getPID(), (sc<int>(w->m_isX11) == 1 ? "true" : "false"), (w->m_pinned ? "true" : "false"),
-            sc<uint8_t>(w->m_fullscreenState.internal), sc<uint8_t>(w->m_fullscreenState.client), (w->m_createdOverFullscreen ? "true" : "false"), getGroupedData(w, format),
-            getTagsData(w, format), rc<uintptr_t>(w->m_swallowee.get()), getFocusHistoryID(w), (g_pInputManager->isWindowInhibiting(w, false) ? "true" : "false"),
-            escapeJSONStrings(w->xdgTag().value_or("")), escapeJSONStrings(w->xdgDescription().value_or("")), escapeJSONStrings(NContentType::toString(w->getContentType())),
-            w->m_stableID);
+            (w->m_pinFullscreened ? "true" : "false"), sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w).internal),
+            sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w).client), escapeJSONStrings(Fullscreen::controller()->getFullscreenHandlerNameAsString(w)),
+            (w->m_allowedOverFullscreen ? "true" : "false"), getGroupedData(w, format), getTagsData(w, format), rc<uintptr_t>(w->m_swallowee.get()), getFocusHistoryID(w),
+            (g_pInputManager->isWindowInhibiting(w, false) ? "true" : "false"), escapeJSONStrings(w->xdgTag().value_or("")), escapeJSONStrings(w->xdgDescription().value_or("")),
+            escapeJSONStrings(NContentType::toString(w->getContentType())), w->m_stableID);
     } else {
         return std::format(
             "Window {:x} -> {}:\n\tmapped: {}\n\thidden: {}\n\tvisible: {}\n\tacceptsInput: {}\n\tat: {},{}\n\tsize: {},{}\n\tworkspace: {} ({})\n\tfloating: {}\n\tmonitor: "
             "{}\n\tclass: {}\n\ttitle: "
             "{}\n\tinitialClass: {}\n\tinitialTitle: {}\n\tpid: "
-            "{}\n\txwayland: {}\n\tpinned: "
-            "{}\n\tfullscreen: {}\n\tfullscreenClient: {}\n\toverFullscreen: {}\n\tgrouped: {}\n\ttags: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\tinhibitingIdle: "
+            "{}\n\txwayland: {}\n\tpinned: {}\n\tpinFullscreened: "
+            "{}\n\tfullscreen: {}\n\tfullscreenClient: {}\n\tfullscreenHandler: {}\n\tallowedOverFullscreen: {}\n\tgrouped: {}\n\ttags: {}\n\tswallowing: {:x}\n\tfocusHistoryID: "
+            "{}\n\tinhibitingIdle: "
             "{}\n\txdgTag: "
             "{}\n\txdgDescription: {}\n\tcontentType: {}\n\tstableID: {:x}\n\n",
             rc<uintptr_t>(w.get()), w->m_title, sc<int>(w->m_isMapped), sc<int>(w->isHidden()), sc<int>(w->visible()), sc<int>(w->acceptsInput()),
             sc<int>(w->m_realPosition->goal().x), sc<int>(w->m_realPosition->goal().y), sc<int>(w->m_realSize->goal().x), sc<int>(w->m_realSize->goal().y),
             w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID, (!w->m_workspace ? "" : w->m_workspace->m_name), sc<int>(w->m_isFloating), w->monitorID(), w->m_class,
-            w->m_title, w->m_initialClass, w->m_initialTitle, w->getPID(), sc<int>(w->m_isX11), sc<int>(w->m_pinned), sc<uint8_t>(w->m_fullscreenState.internal),
-            sc<uint8_t>(w->m_fullscreenState.client), sc<int>(w->m_createdOverFullscreen), getGroupedData(w, format), getTagsData(w, format), rc<uintptr_t>(w->m_swallowee.get()),
-            getFocusHistoryID(w), sc<int>(g_pInputManager->isWindowInhibiting(w, false)), w->xdgTag().value_or(""), w->xdgDescription().value_or(""),
-            NContentType::toString(w->getContentType()), w->m_stableID);
+            w->m_title, w->m_initialClass, w->m_initialTitle, w->getPID(), sc<int>(w->m_isX11), sc<int>(w->m_pinned), sc<int>(w->m_pinFullscreened),
+            sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w).internal), sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w).client),
+            Fullscreen::controller()->getFullscreenHandlerNameAsString(w), sc<int>(w->m_allowedOverFullscreen), getGroupedData(w, format), getTagsData(w, format),
+            rc<uintptr_t>(w->m_swallowee.get()), getFocusHistoryID(w), sc<int>(g_pInputManager->isWindowInhibiting(w, false)), w->xdgTag().value_or(""),
+            w->xdgDescription().value_or(""), NContentType::toString(w->getContentType()), w->m_stableID);
     }
 }
 
@@ -498,13 +505,14 @@ std::string CHyprCtl::getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat form
     "tiledLayout": "{}"
 }})#",
                            w->m_id, escapeJSONStrings(w->m_name), escapeJSONStrings(PMONITOR ? PMONITOR->m_name : "?"),
-                           escapeJSONStrings(PMONITOR ? std::to_string(PMONITOR->m_id) : "null"), w->getWindows(), w->m_hasFullscreenWindow ? "true" : "false",
-                           rc<uintptr_t>(PLASTW.get()), PLASTW ? escapeJSONStrings(PLASTW->m_title) : "", w->isPersistent() ? "true" : "false", escapeJSONStrings(layoutName));
+                           escapeJSONStrings(PMONITOR ? std::to_string(PMONITOR->m_id) : "null"), w->getWindowCount(),
+                           Fullscreen::controller()->hasFullscreen(w) ? "true" : "false", rc<uintptr_t>(PLASTW.get()), PLASTW ? escapeJSONStrings(PLASTW->m_title) : "",
+                           w->isPersistent() ? "true" : "false", escapeJSONStrings(layoutName));
     } else {
         return std::format("workspace ID {} ({}) on monitor {}:\n\tmonitorID: {}\n\twindows: {}\n\thasfullscreen: {}\n\tlastwindow: 0x{:x}\n\tlastwindowtitle: {}\n\tispersistent: "
                            "{}\n\ttiledLayout: {}\n\n",
-                           w->m_id, w->m_name, PMONITOR ? PMONITOR->m_name : "?", PMONITOR ? std::to_string(PMONITOR->m_id) : "null", w->getWindows(),
-                           sc<int>(w->m_hasFullscreenWindow), rc<uintptr_t>(PLASTW.get()), PLASTW ? PLASTW->m_title : "", sc<int>(w->isPersistent()), layoutName);
+                           w->m_id, w->m_name, PMONITOR ? PMONITOR->m_name : "?", PMONITOR ? std::to_string(PMONITOR->m_id) : "null", w->getWindowCount(),
+                           sc<int>(Fullscreen::controller()->hasFullscreen(w)), rc<uintptr_t>(PLASTW.get()), PLASTW ? PLASTW->m_title : "", sc<int>(w->isPersistent()), layoutName);
     }
 }
 
@@ -512,6 +520,7 @@ static std::string getWorkspaceRuleData(const Config::CWorkspaceRule& r, eHyprCt
     const auto boolToString = [](const bool b) -> std::string { return b ? "true" : "false"; };
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         const std::string monitor     = r.m_monitor.empty() ? "" : std::format(",\n    \"monitor\": \"{}\"", escapeJSONStrings(r.m_monitor));
+        const std::string enabled     = std::format(",\n    \"enabled\": {}", boolToString(r.isEnabled()));
         const std::string default_    = sc<bool>(r.m_isDefault) ? std::format(",\n    \"default\": {}", boolToString(r.m_isDefault.value())) : "";
         const std::string persistent  = sc<bool>(r.m_isPersistent) ? std::format(",\n    \"persistent\": {}", boolToString(r.m_isPersistent.value())) : "";
         const std::string gapsIn      = sc<bool>(r.m_gapsIn) ?
@@ -530,14 +539,15 @@ static std::string getWorkspaceRuleData(const Config::CWorkspaceRule& r, eHyprCt
             r.m_onCreatedEmptyRunCmd.has_value() ? std::format(",\n    \"onCreatedEmpty\": \"{}\"", escapeJSONStrings(r.m_onCreatedEmptyRunCmd.value())) : "";
 
         std::string result = std::format(R"#({{
-    "workspaceString": "{}"{}{}{}{}{}{}{}{}{}{}{}{}
+    "workspaceString": "{}"{}{}{}{}{}{}{}{}{}{}{}{}{}
 }})#",
-                                         escapeJSONStrings(r.m_workspaceString), monitor, default_, persistent, gapsIn, gapsOut, borderSize, border, rounding, decorate, shadow,
-                                         defaultName, onCreatedEmpty);
+                                         escapeJSONStrings(r.m_workspaceString), enabled, monitor, default_, persistent, gapsIn, gapsOut, borderSize, border, rounding, decorate,
+                                         shadow, defaultName, onCreatedEmpty);
 
         return result;
     } else {
         const std::string monitor        = std::format("\tmonitor: {}\n", r.m_monitor.empty() ? "<unset>" : escapeJSONStrings(r.m_monitor));
+        const std::string enabled        = std::format("\tenabled: {}\n", boolToString(r.isEnabled()));
         const std::string default_       = std::format("\tdefault: {}\n", sc<bool>(r.m_isDefault) ? boolToString(r.m_isDefault.value()) : "<unset>");
         const std::string persistent     = std::format("\tpersistent: {}\n", sc<bool>(r.m_isPersistent) ? boolToString(r.m_isPersistent.value()) : "<unset>");
         const std::string gapsIn         = sc<bool>(r.m_gapsIn) ?
@@ -556,8 +566,8 @@ static std::string getWorkspaceRuleData(const Config::CWorkspaceRule& r, eHyprCt
         const std::string defaultName    = std::format("\tdefaultName: {}\n", r.m_defaultName.value_or("<unset>"));
         const std::string onCreatedEmpty = std::format("\tonCreatedEmpty: {}\n", r.m_onCreatedEmptyRunCmd.value_or("<unset>"));
 
-        std::string result = std::format("Workspace rule {}:\n{}{}{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.m_workspaceString), monitor, default_, persistent, gapsIn, gapsOut,
-                                         borderSize, border, rounding, decorate, shadow, defaultName, onCreatedEmpty);
+        std::string result = std::format("Workspace rule {}:\n{}{}{}{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.m_workspaceString), enabled, monitor, default_, persistent, gapsIn,
+                                         gapsOut, borderSize, border, rounding, decorate, shadow, defaultName, onCreatedEmpty);
 
         return result;
     }
@@ -602,7 +612,7 @@ static std::string workspaceRulesRequest(eHyprCtlOutputFormat format, std::strin
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
         for (auto const& r : Config::workspaceRuleMgr()->getAllWorkspaceRules()) {
-            result += getWorkspaceRuleData(r, format);
+            result += getWorkspaceRuleData(*r, format);
             result += ",";
         }
 
@@ -610,7 +620,7 @@ static std::string workspaceRulesRequest(eHyprCtlOutputFormat format, std::strin
         result += "]";
     } else {
         for (auto const& r : Config::workspaceRuleMgr()->getAllWorkspaceRules()) {
-            result += getWorkspaceRuleData(r, format);
+            result += getWorkspaceRuleData(*r, format);
         }
     }
 
@@ -659,11 +669,12 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
                     "y": {},
                     "w": {},
                     "h": {},
+                    "alpha": {},
                     "namespace": "{}",
                     "pid": {}
                 }},)#",
                         rc<uintptr_t>(layer.get()), layer->m_geometry.x, layer->m_geometry.y, layer->m_geometry.width, layer->m_geometry.height,
-                        escapeJSONStrings(layer->m_namespace), layer->getPID());
+                        std::clamp(sc<double>(layer->alpha().goal()), 0.0, 1.0), escapeJSONStrings(layer->m_namespace), layer->getPID());
                 }
 
                 trimTrailingComma(result);
@@ -694,8 +705,9 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
                 result += std::format("\tLayer level {} ({}):\n", layerLevel, levelNames[layerLevel]);
 
                 for (auto const& layer : level) {
-                    result += std::format("\t\tLayer {:x}: xywh: {} {} {} {}, namespace: {}, pid: {}\n", rc<uintptr_t>(layer.get()), layer->m_geometry.x, layer->m_geometry.y,
-                                          layer->m_geometry.width, layer->m_geometry.height, layer->m_namespace, layer->getPID());
+                    result += std::format("\t\tLayer {:x}: xywh: {} {} {} {}, a: {}, namespace: {}, pid: {}\n", rc<uintptr_t>(layer.get()), layer->m_geometry.x,
+                                          layer->m_geometry.y, layer->m_geometry.width, layer->m_geometry.height, std::clamp(sc<double>(layer->alpha().goal()), 0.0, 1.0),
+                                          layer->m_namespace, layer->getPID());
                 }
 
                 layerLevel++;
@@ -921,7 +933,7 @@ static std::string animationsRequest(eHyprCtlOutputFormat format, std::string re
 
         ret += "beziers:\n";
 
-        for (auto const& bz : g_pAnimationManager->getAllBeziers()) {
+        for (auto const& bz : Animation::mgr()->getAllBeziers()) {
             auto& controlPoints = bz.second->getControlPoints();
             ret += std::format("\n\tname: {}\n\t\tX0: {:.2f}\n\t\tY0: {:.2f}\n\t\tX1: {:.2f}\n\t\tY1: {:.2f}", bz.first, controlPoints[1].x, controlPoints[1].y, controlPoints[2].x,
                                controlPoints[2].y);
@@ -948,7 +960,7 @@ static std::string animationsRequest(eHyprCtlOutputFormat format, std::string re
 
         ret += ",\n[";
 
-        for (auto const& bz : g_pAnimationManager->getAllBeziers()) {
+        for (auto const& bz : Animation::mgr()->getAllBeziers()) {
             auto& controlPoints = bz.second->getControlPoints();
             ret += std::format(R"#(
 {{
@@ -1229,7 +1241,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
 
     if (COMMAND.contains("workspace"))
         State::workspacePlacementController()->ensurePersistentWorkspacesPresent(
-            nullptr, [](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { g_pCompositor->moveWorkspaceToMonitor(ws, mon, noWarp); });
+            nullptr, [](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { State::workspacePlacementController()->moveWorkspaceToMonitor(ws, mon, noWarp); });
 
     Log::logger->log(Log::DEBUG, "Hyprctl: keyword {} : {}", COMMAND, VALUE);
 
@@ -1332,7 +1344,7 @@ static std::string dispatchSetCursor(eHyprCtlOutputFormat format, std::string re
     if (size <= 0)
         return "size not positive";
 
-    if (!g_pCursorManager->changeTheme(theme, size))
+    if (!Pointer::Cursor::mgr()->changeTheme(theme, size))
         return "failed to set cursor";
 
     return "ok";
@@ -2029,6 +2041,8 @@ CHyprCtl::CHyprCtl() {
 CHyprCtl::~CHyprCtl() {
     for (auto const& client : m_clients) {
         client->closed = true;
+        if (client->requestTimeout)
+            client->requestTimeout->cancel();
         if (client->eventSource)
             wl_event_source_remove(client->eventSource);
     }
@@ -2218,6 +2232,8 @@ static bool isFollowUpRollingLogRequest(const std::string& request) {
     return request.contains("rollinglog") && request.contains("f");
 }
 
+static constexpr size_t HYPRCTL_MAX_REQUEST_SIZE = 1024 * 1024;
+
 int CHyprCtl::onSocketEvent(int fd, uint32_t mask, void* data) {
     if (mask & WL_EVENT_ERROR || mask & WL_EVENT_HANGUP)
         return 0;
@@ -2267,6 +2283,20 @@ void CHyprCtl::acceptClient() {
             continue;
         }
 
+        const WP<SHyprCtlClient> CLIENTREF = client;
+        client->requestTimeout             = makeShared<CEventLoopTimer>(
+            std::chrono::seconds(5),
+            [CLIENTREF](SP<CEventLoopTimer>, void*) {
+                const auto CLIENT = CLIENTREF.lock();
+                if (!g_pHyprCtl || !CLIENT || CLIENT->closed)
+                    return;
+
+                Log::logger->log(Log::WARN, "Hyprctl: closing idle client fd {} before receiving a request", CLIENT->fd.get());
+                g_pHyprCtl->removeClient(CLIENT.get());
+            },
+            nullptr);
+        g_pEventLoopManager->addTimer(client->requestTimeout);
+
         m_clients.emplace_back(std::move(client));
     }
 }
@@ -2285,6 +2315,11 @@ void CHyprCtl::removeClient(SHyprCtlClient* client) {
         return;
 
     (*IT)->closed = true;
+    if ((*IT)->requestTimeout) {
+        g_pEventLoopManager->removeTimer((*IT)->requestTimeout);
+        (*IT)->requestTimeout.reset();
+    }
+
     if ((*IT)->eventSource) {
         wl_event_source_remove((*IT)->eventSource);
         (*IT)->eventSource = nullptr;
@@ -2307,7 +2342,7 @@ void CHyprCtl::onClientEvent(SHyprCtlClient* client, uint32_t mask) {
     if (CLIENT->closed)
         return;
 
-    if (mask & (WL_EVENT_ERROR | WL_EVENT_HANGUP) && CLIENT->reply.empty() && !CLIENT->waitingForReply) {
+    if (mask & (WL_EVENT_ERROR | WL_EVENT_HANGUP)) {
         removeClient(client);
         return;
     }
@@ -2325,7 +2360,16 @@ void CHyprCtl::readClient(const SP<SHyprCtlClient>& client) {
     while (true) {
         const auto MESSAGE_SIZE = read(client->fd.get(), readBuffer.data(), readBuffer.size());
         if (MESSAGE_SIZE > 0) {
-            client->request.append(readBuffer.data(), sc<size_t>(MESSAGE_SIZE));
+            const auto SIZE = sc<size_t>(MESSAGE_SIZE);
+            if (SIZE > readBuffer.size() || client->request.size() > HYPRCTL_MAX_REQUEST_SIZE - SIZE) {
+                Log::logger->log(Log::ERR, "Hyprctl: request from pid {} exceeded {} bytes", client->pid, HYPRCTL_MAX_REQUEST_SIZE);
+                removeClient(client.get());
+                return;
+            }
+
+            client->request.append(readBuffer.data(), SIZE);
+            if (client->requestTimeout)
+                client->requestTimeout->updateTimeout(std::chrono::seconds(5));
             continue;
         }
 
@@ -2355,6 +2399,11 @@ void CHyprCtl::readClient(const SP<SHyprCtlClient>& client) {
 void CHyprCtl::processClientRequest(const SP<SHyprCtlClient>& client) {
     if (!client || client->closed)
         return;
+
+    if (client->requestTimeout) {
+        g_pEventLoopManager->removeTimer(client->requestTimeout);
+        client->requestTimeout.reset();
+    }
 
     const std::string request = client->request;
     std::string       reply   = "";

@@ -6,7 +6,7 @@
 #include <array>
 #include <string>
 
-namespace Cursor {
+namespace Pointer::Cursor {
     enum eCursorShapeOverrideGroup : uint8_t {
         // unknown group - lowest priority
         CURSOR_OVERRIDE_UNKNOWN = 0,

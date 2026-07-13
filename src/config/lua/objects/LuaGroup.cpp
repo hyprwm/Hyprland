@@ -3,14 +3,58 @@
 #include "LuaObjectHelpers.hpp"
 
 #include "../../../desktop/view/Group.hpp"
+#include "../../../desktop/view/Window.hpp"
 
+#include <optional>
 #include <string_view>
 
 using namespace Config::Lua;
 
-static constexpr const char* MT = "HL.Group";
+static constexpr const char*     MT        = "HL.Group";
+static constexpr const char*     WINDOW_MT = "HL.Window";
 
-static int                   groupEq(lua_State* L) {
+static SP<Desktop::View::CGroup> groupFromSelf(lua_State* L, const char* fnName) {
+    auto*      ref   = sc<WP<Desktop::View::CGroup>*>(luaL_checkudata(L, 1, MT));
+    const auto group = ref->lock();
+    if (!group)
+        Config::Lua::Bindings::Internal::configError(L, "{}: group object is expired", fnName);
+
+    return group;
+}
+
+static PHLWINDOW windowFromArg(lua_State* L, int idx, const char* fnName) {
+    auto* ref = sc<PHLWINDOWREF*>(luaL_testudata(L, idx, WINDOW_MT));
+    if (!ref) {
+        Config::Lua::Bindings::Internal::configError(L, "{}: expected a window object", fnName);
+        return nullptr;
+    }
+
+    const auto window = ref->lock();
+    if (!window)
+        Config::Lua::Bindings::Internal::configError(L, "{}: window object is expired", fnName);
+
+    return window;
+}
+
+static std::optional<size_t> indexFromArg(lua_State* L, int idx, size_t max, const char* fnName) {
+    if (lua_gettop(L) < idx || lua_isnil(L, idx))
+        return std::nullopt;
+
+    if (!lua_isinteger(L, idx)) {
+        Config::Lua::Bindings::Internal::configError(L, "{}: index must be an integer", fnName);
+        return std::nullopt;
+    }
+
+    const auto index = lua_tointeger(L, idx);
+    if (index < 1 || sc<size_t>(index) > max) {
+        Config::Lua::Bindings::Internal::configError(L, "{}: index out of range", fnName);
+        return std::nullopt;
+    }
+
+    return sc<size_t>(index - 1);
+}
+
+static int groupEq(lua_State* L) {
     const auto* lhs = sc<WP<Desktop::View::CGroup>*>(luaL_checkudata(L, 1, MT));
     const auto* rhs = sc<WP<Desktop::View::CGroup>*>(luaL_checkudata(L, 2, MT));
 
@@ -30,6 +74,66 @@ static int groupToString(lua_State* L) {
     return 1;
 }
 
+static int groupAdd(lua_State* L) {
+    constexpr const char* FN = "HL.Group:add";
+
+    const auto            group = groupFromSelf(L, FN);
+    if (!group)
+        return 0;
+
+    const auto window = windowFromArg(L, 2, FN);
+    if (!window)
+        return 0;
+
+    std::optional<size_t> index;
+    if (lua_gettop(L) >= 3) {
+        index = indexFromArg(L, 3, group->size() + 1, FN);
+        if (!index && !lua_isnil(L, 3))
+            return 0;
+    }
+
+    if (window->m_group == group)
+        return 0;
+
+    if (group->denied())
+        return Config::Lua::Bindings::Internal::configError(L, "{}: target group is denied", FN);
+
+    if (!window->canBeGroupedInto(group))
+        return Config::Lua::Bindings::Internal::configError(L, "{}: window cannot be added to group", FN);
+
+    group->add(window, index);
+
+    return 0;
+}
+
+static int groupRemove(lua_State* L) {
+    constexpr const char* FN = "HL.Group:remove";
+
+    const auto            group = groupFromSelf(L, FN);
+    if (!group)
+        return 0;
+
+    PHLWINDOW window;
+    if (lua_isinteger(L, 2)) {
+        const auto index = indexFromArg(L, 2, group->size(), FN);
+        if (!index)
+            return 0;
+
+        window = group->fromIndex(*index);
+    } else
+        window = windowFromArg(L, 2, FN);
+
+    if (!window)
+        return 0;
+
+    if (!group->has(window))
+        return Config::Lua::Bindings::Internal::configError(L, "{}: window is not a group member", FN);
+
+    group->remove(window);
+
+    return 0;
+}
+
 static int groupIndex(lua_State* L) {
     auto*      ref   = sc<WP<Desktop::View::CGroup>*>(luaL_checkudata(L, 1, MT));
     const auto group = ref->lock();
@@ -41,7 +145,11 @@ static int groupIndex(lua_State* L) {
 
     const std::string_view key = luaL_checkstring(L, 2);
 
-    if (key == "locked")
+    if (key == "add")
+        lua_pushcfunction(L, groupAdd);
+    else if (key == "remove")
+        lua_pushcfunction(L, groupRemove);
+    else if (key == "locked")
         lua_pushboolean(L, group->locked());
     else if (key == "denied")
         lua_pushboolean(L, group->denied());

@@ -10,7 +10,7 @@
 #include "../render/pass/TexPassElement.hpp"
 #include "../event/EventBus.hpp"
 #include "../state/MonitorState.hpp"
-#include "../managers/animation/AnimationManager.hpp"
+#include "../animation/AnimationManager.hpp"
 #include "../render/Renderer.hpp"
 
 using namespace Notification;
@@ -208,7 +208,7 @@ CBox CNotificationOverlay::drawNotifications(PHLMONITOR pMonitor) {
     const auto  MONSIZE = pMonitor->m_transformedSize;
 
     static auto fontFamily = CConfigValue<std::string>("misc:font_family");
-    const auto  PBEZIER    = g_pAnimationManager->getBezier("default");
+    const auto  PBEZIER    = Animation::mgr()->getBezier("default");
 
     for (auto const& notif : m_notifications) {
         ensureNotificationCache(*notif, pMonitor, *fontFamily);

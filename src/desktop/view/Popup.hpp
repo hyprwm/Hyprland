@@ -2,9 +2,12 @@
 
 #include <span>
 #include <vector>
+#include <cstdint>
 #include "Subsurface.hpp"
 #include "View.hpp"
 #include "types/Geometric.hpp"
+#include "types/AlphaModifiable.hpp"
+#include "animationControllers/PopupAnimationController.hpp"
 #include "../../helpers/signal/Signal.hpp"
 #include "../../helpers/memory/Memory.hpp"
 #include "../../helpers/AnimatedVariable.hpp"
@@ -14,7 +17,13 @@ class CXDGPopupResource;
 
 namespace Desktop::View {
 
-    class CPopup : public IView, public virtual IGeometric {
+    enum ePopupAlpha : uint8_t {
+        POPUP_ALPHA_FADE = 0,
+
+        POPUP_ALPHA_LAST,
+    };
+
+    class CPopup : public virtual IView, public virtual IGeometric, public virtual IAlphaModifiable {
       public:
         // dummy head nodes
         static SP<CPopup> create(PHLWINDOW pOwner);
@@ -27,33 +36,35 @@ namespace Desktop::View {
 
         virtual ~CPopup();
 
-        virtual eViewType             type() const;
-        virtual bool                  visible() const;
-        virtual std::optional<CBox>   logicalBox() const;
-        virtual bool                  desktopComponent() const;
-        virtual std::optional<CBox>   surfaceLogicalBox() const;
-        virtual Vector2D              position(eGeometricValueType) const override;
-        virtual Vector2D              size(eGeometricValueType) const override;
-        virtual CBox                  geometricBox(eGeometricValueType) const override;
+        virtual eViewType                                   type() const override;
+        virtual bool                                        visible() const override;
+        virtual std::optional<CBox>                         logicalBox() const override;
+        virtual bool                                        desktopComponent() const override;
+        virtual std::optional<CBox>                         surfaceLogicalBox() const override;
+        virtual Vector2D                                    position(eGeometricValueType) const override;
+        virtual Vector2D                                    size(eGeometricValueType) const override;
+        virtual CBox                                        geometricBox(eGeometricValueType) const override;
+        virtual Types::CMultiAVarContainer<float, uint8_t>& alpha() override;
+        virtual std::optional<uint8_t>                      alphaGenericToKey(eAlphaModifiableProp p) override;
 
-        SP<Desktop::View::CWLSurface> getT1Owner() const;
-        PHLLS                         layerOwner() const;
-        Vector2D                      coordsRelativeToParent() const;
-        Vector2D                      coordsGlobal() const;
-        PHLMONITOR                    getMonitor() const;
+        SP<Desktop::View::CWLSurface>                       getT1Owner() const;
+        PHLLS                                               layerOwner() const;
+        Vector2D                                            coordsRelativeToParent() const;
+        Vector2D                                            coordsGlobal() const;
+        PHLMONITOR                                          getMonitor() const;
 
-        Vector2D                      size() const;
+        Vector2D                                            size() const;
 
-        void                          onNewPopup(SP<CXDGPopupResource> popup);
-        void                          onDestroy();
-        void                          onMap();
-        void                          onUnmap();
-        void                          onCommit(bool ignoreSiblings = false);
-        void                          onReposition();
+        void                                                onNewPopup(SP<CXDGPopupResource> popup);
+        void                                                onDestroy();
+        void                                                onMap();
+        void                                                onUnmap();
+        void                                                onCommit(bool ignoreSiblings = false);
+        void                                                onReposition();
 
-        void                          recheckTree();
+        void                                                recheckTree();
 
-        bool                          inert() const;
+        bool                                                inert() const;
 
         // will also loop over this node
         void                      breadthfirst(std::function<void(SP<Desktop::View::CPopup>, void*)> fn, void* data);
@@ -66,11 +77,7 @@ namespace Desktop::View {
         WP<Desktop::View::CPopup> m_self;
         bool                      m_mapped = false;
 
-        // fade in-out
-        PHLANIMVAR<float>        m_alpha;
-        bool                     m_fadingOut = false;
-
-        SP<Render::IFramebuffer> m_snapshotFB;
+        CPopupAnimationController m_animationController;
 
       private:
         CPopup();
@@ -95,6 +102,9 @@ namespace Desktop::View {
         mutable bool              m_treeExtentsCacheDirty    = true;
         mutable int               m_cachedTreePopupCount     = 0;
         mutable bool              m_treePopupCountCacheDirty = true;
+
+        // fade in/out
+        Desktop::Types::CMultiAVarContainer<float, std::underlying_type_t<ePopupAlpha>> m_alpha;
 
         //
         std::vector<SP<Desktop::View::CPopup>> m_children;

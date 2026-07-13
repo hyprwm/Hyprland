@@ -39,6 +39,8 @@ namespace Desktop::View {
         Vector2D               getViewporterCorrectedSize() const;
         CRegion                computeDamage() const; // logical coordinates. May be wrong if the surface is unassigned
         bool                   keyboardFocusable() const;
+        void                   sendScale(float scale) const;
+        void                   sendTransform(wl_output_transform xform) const;
 
         SP<IView>              view() const;
 
@@ -49,11 +51,6 @@ namespace Desktop::View {
 
         // allow stretching. Useful for plugins.
         bool m_fillIgnoreSmall = false;
-
-        // track surface data and avoid dupes
-        float               m_lastScaleFloat = 0;
-        int                 m_lastScaleInt   = 0;
-        wl_output_transform m_lastTransform  = sc<wl_output_transform>(-1);
 
         //
         CWLSurface& operator=(SP<CWLSurfaceResource> pSurface) {

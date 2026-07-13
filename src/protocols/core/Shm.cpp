@@ -16,7 +16,7 @@ CWLSHMBuffer::CWLSHMBuffer(WP<CWLSHMPoolResource> pool_, uint32_t id, int32_t of
     if UNLIKELY (!pool_)
         return;
 
-    if UNLIKELY (!pool_->m_pool->m_data)
+    if UNLIKELY (!pool_->m_pool || pool_->m_pool->m_data == MAP_FAILED)
         return;
 
     size     = size_;
@@ -63,7 +63,7 @@ Aquamarine::SSHMAttrs CWLSHMBuffer::shm() {
 }
 
 std::tuple<uint8_t*, uint32_t, size_t> CWLSHMBuffer::beginDataPtr(uint32_t flags) {
-    return {sc<uint8_t*>(m_pool->m_data) + m_offset, m_fmt, m_stride * size.y};
+    return {sc<uint8_t*>(m_pool->m_data) + m_offset, m_fmt, sc<size_t>(m_stride) * sc<size_t>(size.y)};
 }
 
 void CWLSHMBuffer::endDataPtr() {
@@ -71,7 +71,7 @@ void CWLSHMBuffer::endDataPtr() {
 }
 
 bool CWLSHMBuffer::good() {
-    return true;
+    return m_resource && m_resource->good() && m_pool && m_pool->m_data != MAP_FAILED;
 }
 
 void CWLSHMBuffer::update(const CRegion& damage) {
@@ -138,7 +138,7 @@ CWLSHMPoolResource::CWLSHMPoolResource(UP<CWlShmPool>&& resource_, CFileDescript
     });
 
     m_resource->setCreateBuffer([this](CWlShmPool* r, uint32_t id, int32_t offset, int32_t w, int32_t h, int32_t stride, uint32_t fmt) {
-        if UNLIKELY (!m_pool || !m_pool->m_data) {
+        if UNLIKELY (!m_pool || m_pool->m_data == MAP_FAILED) {
             r->error(-1, "The provided shm pool failed to allocate properly");
             return;
         }
@@ -150,6 +150,11 @@ CWLSHMPoolResource::CWLSHMPoolResource(UP<CWlShmPool>&& resource_, CFileDescript
 
         if UNLIKELY (offset < 0 || w <= 0 || h <= 0 || stride <= 0) {
             r->error(WL_SHM_ERROR_INVALID_STRIDE, "Invalid stride, w, h, or offset");
+            return;
+        }
+
+        if UNLIKELY (!NFormatUtils::isShmBufferLayoutValid(NFormatUtils::shmToDRM(fmt), {w, h}, stride, offset, m_pool->m_size)) {
+            r->error(WL_SHM_ERROR_INVALID_STRIDE, "Buffer would exceed pool size or has an invalid stride");
             return;
         }
 

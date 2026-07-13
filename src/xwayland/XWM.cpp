@@ -1550,7 +1550,7 @@ bool SXSelection::sendData(xcb_selection_request_event_t* e, std::string mime) {
             }
 
             if (!MIMES.empty())
-                mimeList = mimeList.substr(0, mimeList.size() - 2);
+                mimeList.resize(mimeList.size() - 2);
 
             Log::logger->log(Log::TRACE, "[xwm] X MIME supported: {}", mimeList);
         }

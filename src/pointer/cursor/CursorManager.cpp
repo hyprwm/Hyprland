@@ -1,11 +1,19 @@
 #include "CursorManager.hpp"
-#include "Compositor.hpp"
-#include "../config/ConfigValue.hpp"
-#include "PointerManager.hpp"
-#include "../xwayland/XWayland.hpp"
-#include "../output/Monitor.hpp"
-#include "../event/EventBus.hpp"
-#include "../state/MonitorState.hpp"
+#include "../../Compositor.hpp"
+#include "../../config/ConfigValue.hpp"
+#include "../PointerManager.hpp"
+#include "../../xwayland/XWayland.hpp"
+#include "../../output/Monitor.hpp"
+#include "../../event/EventBus.hpp"
+#include "../../state/MonitorState.hpp"
+
+using namespace Pointer;
+using namespace Pointer::Cursor;
+
+UP<CCursorManager>& Pointer::Cursor::mgr() {
+    static UP<CCursorManager> p = makeUnique<CCursorManager>();
+    return p;
+}
 
 static int cursorAnimTimer(SP<CEventLoopTimer> self, void* data) {
     const auto cursorMgr = sc<CCursorManager*>(data);
@@ -131,16 +139,16 @@ SP<Aquamarine::IBuffer> CCursorManager::getCursorBuffer() {
 
 void CCursorManager::setCursorSurface(SP<Desktop::View::CWLSurface> surf, const Vector2D& hotspot) {
     if (!surf || !surf->resource())
-        g_pPointerManager->resetCursorImage();
+        Pointer::mgr()->resetCursorImage();
     else
-        g_pPointerManager->setCursorSurface(surf, hotspot);
+        Pointer::mgr()->setCursorSurface(surf, hotspot);
 
     m_ourBufferConnected = false;
 }
 
 void CCursorManager::setCursorBuffer(SP<CCursorBuffer> buf, const Vector2D& hotspot, const float& scale) {
     m_cursorBuffers.emplace_back(buf);
-    g_pPointerManager->setCursorBuffer(getCursorBuffer(), hotspot, scale);
+    Pointer::mgr()->setCursorBuffer(getCursorBuffer(), hotspot, scale);
     if (m_cursorBuffers.size() > 1)
         std::erase_if(m_cursorBuffers, [this](const auto& buf) { return buf.get() == m_cursorBuffers.front().get(); });
 

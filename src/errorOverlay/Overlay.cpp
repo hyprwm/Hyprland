@@ -4,7 +4,7 @@
 #include "../config/shared/animation/AnimationTree.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../event/EventBus.hpp"
-#include "../managers/animation/AnimationManager.hpp"
+#include "../animation/AnimationManager.hpp"
 #include "../render/Renderer.hpp"
 #include "../render/pass/BorderPassElement.hpp"
 #include "../render/pass/RectPassElement.hpp"
@@ -57,7 +57,7 @@ UP<COverlay>& ErrorOverlay::overlay() {
 }
 
 COverlay::COverlay() {
-    g_pAnimationManager->createAnimation(0.f, m_fadeOpacity, Config::animationTree()->getAnimationPropertyConfig("fadeIn"), AVARDAMAGE_NONE);
+    Animation::mgr()->createAnimation(0.f, m_fadeOpacity, Config::animationTree()->getAnimationPropertyConfig("fadeIn"), AVARDAMAGE_NONE);
 
     static auto P = Event::bus()->m_events.monitor.focused.listen([&](PHLMONITOR mon) {
         if (!m_isCreated)

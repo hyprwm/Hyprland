@@ -4,6 +4,7 @@
 #include "LuaGroup.hpp"
 #include "LuaObjectHelpers.hpp"
 
+#include "../../../managers/fullscreen/FullscreenController.hpp"
 #include "../../../desktop/Workspace.hpp"
 #include "../../../desktop/view/Group.hpp"
 #include "../../../output/Monitor.hpp"
@@ -112,7 +113,7 @@ static int workspaceIndex(lua_State* L) {
         else
             lua_pushnil(L);
     } else if (key == "windows")
-        lua_pushinteger(L, sc<lua_Integer>(ws->getWindows()));
+        lua_pushinteger(L, sc<lua_Integer>(ws->getWindowCount()));
     else if (key == "visible")
         lua_pushboolean(L, ws->isVisible());
     else if (key == "special")
@@ -123,13 +124,13 @@ static int workspaceIndex(lua_State* L) {
     } else if (key == "has_urgent")
         lua_pushboolean(L, ws->hasUrgentWindow());
     else if (key == "fullscreen_mode")
-        lua_pushinteger(L, sc<lua_Integer>(ws->m_fullscreenMode));
+        lua_pushinteger(L, sc<lua_Integer>(Fullscreen::controller()->getFullscreenModes(ws).internal));
     else if (key == "has_fullscreen")
-        lua_pushboolean(L, ws->m_hasFullscreenWindow);
+        lua_pushboolean(L, Fullscreen::controller()->hasFullscreen(ws));
     else if (key == "is_persistent")
         lua_pushboolean(L, ws->isPersistent());
     else if (key == "is_empty")
-        lua_pushboolean(L, ws->getWindows() == 0);
+        lua_pushboolean(L, ws->getWindowCount() == 0);
     else if (key == "config_name")
         lua_pushstring(L, ws->getConfigName().c_str());
     else if (key == "tiled_layout") {
@@ -146,7 +147,7 @@ static int workspaceIndex(lua_State* L) {
         else
             lua_pushnil(L);
     } else if (key == "fullscreen_window") {
-        const auto fsWindow = ws->getFullscreenWindow();
+        const auto fsWindow = Fullscreen::controller()->getFullscreenWindow(ws);
         if (fsWindow)
             Objects::CLuaWindow::push(L, fsWindow);
         else

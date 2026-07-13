@@ -1325,6 +1325,8 @@ std::unordered_map<std::string, std::string> CWindow::getEnv() {
         buffer.resize(buffer.size() + 512, '\0');
         needle += 512;
     }
+
+    needle += ifs.gcount();
 #elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
     int    mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_ENV, sc<int>(PID)};
     size_t len    = 0;
@@ -1343,6 +1345,7 @@ std::unordered_map<std::string, std::string> CWindow::getEnv() {
     if (needle <= 1)
         return {};
 
+    buffer.resize(needle + 1, '\0');
     std::replace(buffer.begin(), buffer.end() - 1, '\0', '\n');
 
     CVarList envs(std::string{buffer.data(), buffer.size() - 1}, 0, '\n', true);

@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <optional>
+#include <unordered_map>
 
 #include "View.hpp"
 #include "../../config/shared/complex/ComplexDataTypes.hpp"

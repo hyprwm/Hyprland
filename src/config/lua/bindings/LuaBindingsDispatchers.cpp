@@ -376,10 +376,12 @@ static std::expected<uint32_t, std::string> resolveKeycode(const std::string& ke
         return g_pKeybindManager->m_keyToCodeCache[KEYPAIRSTRING];
 
     xkb_keymap*   km          = KB->m_xkbKeymap;
-    xkb_state*    ks          = KB->m_xkbState;
+    xkb_state*    ks          = xkb_state_new(km);
     xkb_keycode_t keycode_min = xkb_keymap_min_keycode(km);
     xkb_keycode_t keycode_max = xkb_keymap_max_keycode(km);
     uint32_t      keycode     = 0;
+
+    xkb_state_update_mask(ks, 0, 0, 0, 0, 0, KB->m_modifiersState.group);
 
     for (xkb_keycode_t kc = keycode_min; kc <= keycode_max; ++kc) {
         xkb_keysym_t sym = xkb_state_key_get_one_sym(ks, kc);
@@ -388,6 +390,8 @@ static std::expected<uint32_t, std::string> resolveKeycode(const std::string& ke
             g_pKeybindManager->m_keyToCodeCache[KEYPAIRSTRING] = keycode;
         }
     }
+
+    xkb_state_unref(ks);
 
     if (!keycode)
         return std::unexpected("key not found");

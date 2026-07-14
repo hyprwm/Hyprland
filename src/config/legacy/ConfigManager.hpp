@@ -107,7 +107,6 @@ namespace Config::Legacy {
 
         std::string                m_configCurrentPath;
 
-        bool                       m_isLaunchingExecOnce                 = false; // For exec-once to skip initial ws tracking
         bool                       m_lastConfigVerificationWasSuccessful = true;
 
       private:

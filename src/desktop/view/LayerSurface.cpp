@@ -34,8 +34,8 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     pLS->m_popupHead      = CPopup::create(pLS);
 
     Animation::mgr()->createAnimation(0.f, pLS->m_alpha.get(LS_ALPHA_FADE), Config::animationTree()->getAnimationPropertyConfig("fadeLayersIn"), pLS, AVARDAMAGE_ENTIRE);
-    Animation::mgr()->createAnimation(Vector2D(0, 0), pLS->m_realPosition, Config::animationTree()->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
-    Animation::mgr()->createAnimation(Vector2D(0, 0), pLS->m_realSize, Config::animationTree()->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(Vector2D(0, 0), pLS->positionAnimation(), Config::animationTree()->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(Vector2D(0, 0), pLS->sizeAnimation(), Config::animationTree()->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
 
     pLS->registerCallbacks();
 

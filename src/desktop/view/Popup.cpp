@@ -422,9 +422,9 @@ Vector2D CPopup::localToGlobal(const Vector2D& rel) const {
 
 Vector2D CPopup::t1ParentCoords() const {
     if (!m_windowOwner.expired())
-        return m_windowOwner->m_realPosition->value();
+        return m_windowOwner->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
     if (!m_layerOwner.expired())
-        return m_layerOwner->m_realPosition->value();
+        return m_layerOwner->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
 
     ASSERT(false);
     return {};

@@ -563,7 +563,8 @@ ActionResult Actions::center(std::optional<PHLWINDOW> w) {
 
     const auto PMONITOR = window->m_monitor.lock();
 
-    window->layoutTarget()->setPositionGlobal(CBox{PMONITOR->logicalBoxMinusReserved().middle() - window->m_realSize->goal() / 2.F, window->layoutTarget()->position().size()});
+    window->layoutTarget()->setPositionGlobal(
+        CBox{PMONITOR->logicalBoxMinusReserved().middle() - window->size(Desktop::View::IGeometric::GEOMETRIC_GOAL) / 2.F, window->layoutTarget()->position().size()});
 
     return {};
 }
@@ -576,14 +577,13 @@ ActionResult Actions::moveCursorToCorner(int corner, std::optional<PHLWINDOW> w)
     if (corner < 0 || corner > 3)
         return actionError("Corner must be 0 - 3", eActionErrorLevel::ERROR, eActionErrorCode::INVALID_ARGUMENT);
 
+    const auto BOX = window->geometricBox(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+
     switch (corner) {
-        case 0: Pointer::pointerController()->warpTo({window->m_realPosition->value().x, window->m_realPosition->value().y + window->m_realSize->value().y}, true); break;
-        case 1:
-            Pointer::pointerController()->warpTo(
-                {window->m_realPosition->value().x + window->m_realSize->value().x, window->m_realPosition->value().y + window->m_realSize->value().y}, true);
-            break;
-        case 2: Pointer::pointerController()->warpTo({window->m_realPosition->value().x + window->m_realSize->value().x, window->m_realPosition->value().y}, true); break;
-        case 3: Pointer::pointerController()->warpTo({window->m_realPosition->value().x, window->m_realPosition->value().y}, true); break;
+        case 0: Pointer::pointerController()->warpTo({BOX.x, BOX.y + BOX.h}, true); break;
+        case 1: Pointer::pointerController()->warpTo({BOX.x + BOX.w, BOX.y + BOX.h}, true); break;
+        case 2: Pointer::pointerController()->warpTo({BOX.x + BOX.w, BOX.y}, true); break;
+        case 3: Pointer::pointerController()->warpTo(BOX.pos(), true); break;
         default: break;
     }
 
@@ -601,11 +601,11 @@ ActionResult Actions::resize(const Vector2D& size, bool relative, std::optional<
     if (!relative && (size.x < 1 || size.y < 1))
         return actionError("Invalid size", eActionErrorLevel::ERROR, eActionErrorCode::INVALID_ARGUMENT);
 
-    const auto delta = relative ? size : size - window->m_realSize->goal();
+    const auto delta = relative ? size : size - window->size(Desktop::View::IGeometric::GEOMETRIC_GOAL);
 
     g_layoutManager->resizeTarget(delta, window->layoutTarget());
 
-    if (window->m_realSize->goal().x > 1 && window->m_realSize->goal().y > 1)
+    if (window->size(Desktop::View::IGeometric::GEOMETRIC_GOAL).x > 1 && window->size(Desktop::View::IGeometric::GEOMETRIC_GOAL).y > 1)
         window->setHidden(false);
 
     return {};
@@ -619,7 +619,7 @@ ActionResult Actions::move(const Vector2D& pos, bool relative, std::optional<PHL
     if (Fullscreen::controller()->isFullscreen(window))
         return actionError("Window is fullscreen", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
-    const auto delta = relative ? pos : pos - window->m_realPosition->goal();
+    const auto delta = relative ? pos : pos - window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
 
     g_layoutManager->moveTarget(delta, window->layoutTarget());
 
@@ -1513,7 +1513,7 @@ ActionResult Actions::pass(std::optional<PHLWINDOW> w) {
         }
     }
 
-    const auto SL = window->m_realPosition->goal() - g_pInputManager->getMouseCoordsInternal();
+    const auto SL = window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL) - g_pInputManager->getMouseCoordsInternal();
 
     if (S.m_lastCode != 0)
         g_pSeatManager->setKeyboardFocus(LASTKBSURF);
@@ -1584,7 +1584,7 @@ ActionResult Actions::pass(uint32_t modMask, uint32_t key, std::optional<PHLWIND
         }
     }
 
-    const auto SL = window->m_realPosition->goal() - g_pInputManager->getMouseCoordsInternal();
+    const auto SL = window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL) - g_pInputManager->getMouseCoordsInternal();
 
     if (!isMouse)
         g_pSeatManager->setKeyboardFocus(LASTSURFACE);

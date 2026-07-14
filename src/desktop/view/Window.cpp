@@ -107,8 +107,8 @@ PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
     pWindow->m_isX11          = true;
     pWindow->m_ruleApplicator = makeUnique<Desktop::Rule::CWindowRuleApplicator>(pWindow);
 
-    Animation::mgr()->createAnimation(Vector2D(0, 0), pWindow->m_realPosition, Config::animationTree()->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
-    Animation::mgr()->createAnimation(Vector2D(0, 0), pWindow->m_realSize, Config::animationTree()->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(Vector2D(0, 0), pWindow->positionAnimation(), Config::animationTree()->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(Vector2D(0, 0), pWindow->sizeAnimation(), Config::animationTree()->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
     Animation::mgr()->createAnimation(0.f, pWindow->m_borderFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("border"), pWindow, AVARDAMAGE_BORDER);
     Animation::mgr()->createAnimation(0.f, pWindow->m_borderAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("borderangle"), pWindow, AVARDAMAGE_BORDER);
     Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FADE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
@@ -145,8 +145,8 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
     resource->m_toplevel->m_window = pWindow;
     pWindow->m_ruleApplicator      = makeUnique<Desktop::Rule::CWindowRuleApplicator>(pWindow);
 
-    Animation::mgr()->createAnimation(Vector2D(0, 0), pWindow->m_realPosition, Config::animationTree()->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
-    Animation::mgr()->createAnimation(Vector2D(0, 0), pWindow->m_realSize, Config::animationTree()->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(Vector2D(0, 0), pWindow->positionAnimation(), Config::animationTree()->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(Vector2D(0, 0), pWindow->sizeAnimation(), Config::animationTree()->getAnimationPropertyConfig("windowsIn"), pWindow, AVARDAMAGE_ENTIRE);
     Animation::mgr()->createAnimation(0.f, pWindow->m_borderFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("border"), pWindow, AVARDAMAGE_BORDER);
     Animation::mgr()->createAnimation(0.f, pWindow->m_borderAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("borderangle"), pWindow, AVARDAMAGE_BORDER);
     Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FADE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
@@ -2045,7 +2045,7 @@ static void setVector2DAnimToMove(WP<CBaseAnimatedVariable> pav) {
     if (animvar->m_Context.pWindow) {
         animvar->m_Context.pWindow->m_animatingIn = false;
 
-        if (!animvar->m_Context.pWindow->m_realPosition->isBeingAnimated() && !animvar->m_Context.pWindow->m_realSize->isBeingAnimated())
+        if (!animvar->m_Context.pWindow->positionAnimation()->isBeingAnimated() && !animvar->m_Context.pWindow->sizeAnimation()->isBeingAnimated())
             animvar->m_Context.pWindow->resetMotionBlur();
     }
 }

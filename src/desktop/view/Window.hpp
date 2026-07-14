@@ -134,9 +134,6 @@ namespace Desktop::View {
         virtual Types::CMultiAVarContainer<float, uint8_t>& alpha() override;
         virtual std::optional<uint8_t>                      alphaGenericToKey(eAlphaModifiableProp p) override;
 
-        using CGeometricMovableAnimated::m_realPosition;
-        using CGeometricMovableAnimated::m_realSize;
-
         struct {
             CSignalT<> destroy;
             CSignalT<> unmap;

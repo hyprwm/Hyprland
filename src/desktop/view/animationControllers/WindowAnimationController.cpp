@@ -121,7 +121,7 @@ static void applySlide(Animation::SViewAnimationContext& ctx, CWindow* window, c
 }
 
 static void applyWindowStyle(Animation::SViewAnimationContext& ctx, CWindow* window, const bool close) {
-    std::string animStyle = window->m_realPosition->getStyle();
+    std::string animStyle = window->positionAnimation()->getStyle();
     std::ranges::transform(animStyle, animStyle.begin(), ::tolower);
 
     CVarList animList(animStyle, 0, 's');
@@ -155,10 +155,10 @@ CWindowAnimationController::CWindowAnimationController(CWindow* parent) : m_pare
 Animation::SViewAnimationContext CWindowAnimationController::animateIn() const {
     Animation::SViewAnimationContext ctx;
 
-    ctx.pos.from  = m_parent->m_realPosition->goal();
-    ctx.pos.to    = m_parent->m_realPosition->goal();
-    ctx.size.from = m_parent->m_realSize->goal();
-    ctx.size.to   = m_parent->m_realSize->goal();
+    ctx.pos.from  = m_parent->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
+    ctx.pos.to    = m_parent->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
+    ctx.size.from = m_parent->size(Desktop::View::IGeometric::GEOMETRIC_GOAL);
+    ctx.size.to   = m_parent->size(Desktop::View::IGeometric::GEOMETRIC_GOAL);
     ctx.alpha     = {.from = 0.F, .to = 1.F};
 
     // Do not apply movement anims to X11 ORs
@@ -171,10 +171,10 @@ Animation::SViewAnimationContext CWindowAnimationController::animateIn() const {
 Animation::SViewAnimationContext CWindowAnimationController::animateOut() const {
     Animation::SViewAnimationContext ctx;
 
-    ctx.pos.from  = m_parent->m_realPosition->value();
-    ctx.pos.to    = m_parent->m_realPosition->goal();
-    ctx.size.from = m_parent->m_realSize->value();
-    ctx.size.to   = m_parent->m_realSize->goal();
+    ctx.pos.from  = m_parent->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+    ctx.pos.to    = m_parent->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
+    ctx.size.from = m_parent->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+    ctx.size.to   = m_parent->size(Desktop::View::IGeometric::GEOMETRIC_GOAL);
 
     ctx.alpha = {.from = m_parent->alpha(WINDOW_ALPHA_FADE)->value(), .to = 0.F};
 
@@ -186,11 +186,11 @@ Animation::SViewAnimationContext CWindowAnimationController::animateOut() const 
 }
 
 void CWindowAnimationController::apply(const Animation::SViewAnimationContext& ctx) const {
-    m_parent->m_realPosition->setValueAndWarp(ctx.pos.from);
-    m_parent->m_realSize->setValueAndWarp(ctx.size.from);
+    m_parent->positionAnimation()->setValueAndWarp(ctx.pos.from);
+    m_parent->sizeAnimation()->setValueAndWarp(ctx.size.from);
     m_parent->alpha(WINDOW_ALPHA_FADE)->setValueAndWarp(ctx.alpha.from);
 
-    *m_parent->m_realPosition           = ctx.pos.to;
-    *m_parent->m_realSize               = ctx.size.to;
+    m_parent->move(ctx.pos.to);
+    m_parent->resize(ctx.size.to);
     *m_parent->alpha(WINDOW_ALPHA_FADE) = ctx.alpha.to;
 }

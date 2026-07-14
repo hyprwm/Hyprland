@@ -52,8 +52,8 @@ void CHyprInnerGlowDecoration::damageEntire() {
 
 void CHyprInnerGlowDecoration::updateWindow(PHLWINDOW pWindow) {
     const auto PWINDOW = m_window.lock();
-    m_lastWindowPos    = PWINDOW->m_realPosition->value();
-    m_lastWindowSize   = PWINDOW->m_realSize->value();
+    m_lastWindowPos    = PWINDOW->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+    m_lastWindowSize   = PWINDOW->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
 }
 
 void CHyprInnerGlowDecoration::draw(PHLMONITOR pMonitor, float const& a) {

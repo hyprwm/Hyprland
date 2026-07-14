@@ -8,15 +8,18 @@ namespace Desktop::View {
       public:
         virtual ~CGeometricMovableAnimated() = default;
 
-        virtual Vector2D position(eGeometricValueType) const override;
-        virtual Vector2D size(eGeometricValueType) const override;
-        virtual CBox     geometricBox(eGeometricValueType) const override;
+        virtual Vector2D      position(eGeometricValueType) const override;
+        virtual Vector2D      size(eGeometricValueType) const override;
+        virtual CBox          geometricBox(eGeometricValueType) const override;
 
-        virtual void     move(const Vector2D& x) override;
-        virtual void     resize(const Vector2D& x) override;
-        virtual void     setBox(const CBox& x) override;
+        virtual void          move(const Vector2D& x) override;
+        virtual void          resize(const Vector2D& x) override;
+        virtual void          setBox(const CBox& x) override;
 
-        virtual void     finishAnimation();
+        virtual void          finishAnimation();
+
+        PHLANIMVAR<Vector2D>& positionAnimation();
+        PHLANIMVAR<Vector2D>& sizeAnimation();
 
       protected:
         CGeometricMovableAnimated() = default;

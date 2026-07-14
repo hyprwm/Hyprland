@@ -387,7 +387,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
     if (forcedFocus && !foundSurface) {
         pFoundWindow = forcedFocus;
-        surfacePos   = pFoundWindow->m_realPosition->value();
+        surfacePos   = pFoundWindow->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
         foundSurface = pFoundWindow->wlSurface()->resource();
     }
 
@@ -441,7 +441,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
         if (!foundSurface) {
             foundSurface = (*g_pInputManager->m_exclusiveLSes.begin())->wlSurface()->resource();
-            surfacePos   = (*g_pInputManager->m_exclusiveLSes.begin())->m_realPosition->goal();
+            surfacePos   = (*g_pInputManager->m_exclusiveLSes.begin())->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
         }
     }
 
@@ -512,7 +512,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
                 surfacePos   = Vector2D(-1337, -1337);
             } else {
                 foundSurface = pFoundWindow->wlSurface()->resource();
-                surfacePos   = pFoundWindow->m_realPosition->value();
+                surfacePos   = pFoundWindow->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
             }
         }
     }
@@ -558,11 +558,11 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
                 foundSurface = Desktop::viewState()->hitTest().windowSurfaceAt(mouseCoords, pFoundWindow, surfaceCoords);
                 if (!foundSurface) {
                     foundSurface = pFoundWindow->wlSurface()->resource();
-                    surfacePos   = pFoundWindow->m_realPosition->value();
+                    surfacePos   = pFoundWindow->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
                 }
             } else {
                 foundSurface = pFoundWindow->wlSurface()->resource();
-                surfacePos   = pFoundWindow->m_realPosition->value();
+                surfacePos   = pFoundWindow->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
             }
         }
     }
@@ -867,7 +867,7 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e, SP<I
     // TODO detect click on LS properly
     if (*PRESIZEONBORDER && !g_pSessionLockManager->isSessionLocked() && !m_lastFocusOnLS && e.state == WL_POINTER_BUTTON_STATE_PRESSED && (!w || !w->isX11OverrideRedirect())) {
         if (w && !Fullscreen::controller()->isFullscreen(w)) {
-            const CBox real = {w->m_realPosition->value().x, w->m_realPosition->value().y, w->m_realSize->value().x, w->m_realSize->value().y};
+            const CBox real = w->geometricBox(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
             const CBox grab = {real.x - BORDER_GRAB_AREA, real.y - BORDER_GRAB_AREA, real.width + 2 * BORDER_GRAB_AREA, real.height + 2 * BORDER_GRAB_AREA};
 
             if ((grab.containsPoint(mouseCoords) && (!real.containsPoint(mouseCoords) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y))) && !w->hasPopupAt(mouseCoords)) {

@@ -168,10 +168,8 @@ void CWorkspacePlacementController::swapActiveWorkspaces(PHLMONITOR pMonitorA, P
             if (w->m_isFloating)
                 w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(-pMonitorA->m_position + pMonitorB->m_position));
 
-            if (Fullscreen::controller()->isFullscreen(w)) {
-                *w->m_realPosition = pMonitorB->m_position;
-                *w->m_realSize     = pMonitorB->m_size;
-            }
+            if (Fullscreen::controller()->isFullscreen(w))
+                w->setBox({pMonitorB->m_position, pMonitorB->m_size});
 
             w->updateToplevel();
         }
@@ -193,10 +191,8 @@ void CWorkspacePlacementController::swapActiveWorkspaces(PHLMONITOR pMonitorA, P
             if (w->m_isFloating)
                 w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(-pMonitorB->m_position + pMonitorA->m_position));
 
-            if (Fullscreen::controller()->isFullscreen(w)) {
-                *w->m_realPosition = pMonitorA->m_position;
-                *w->m_realSize     = pMonitorA->m_size;
-            }
+            if (Fullscreen::controller()->isFullscreen(w))
+                w->setBox({pMonitorA->m_position, pMonitorA->m_size});
 
             w->updateToplevel();
         }
@@ -314,16 +310,15 @@ void CWorkspacePlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspa
                     if (w->m_isFloating)
                         w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(-POLDMON->m_position + pMonitor->m_position));
 
-                    if (Fullscreen::controller()->isFullscreen(w)) {
-                        *w->m_realPosition = pMonitor->m_position;
-                        *w->m_realSize     = pMonitor->m_size;
-                    }
+                    if (Fullscreen::controller()->isFullscreen(w))
+                        w->setBox({pMonitor->m_position, pMonitor->m_size});
                 } else
-                    w->layoutTarget()->setPositionGlobal(CBox{Vector2D{
-                                                                  (pMonitor->m_size.x != 0) ? sc<int>(w->m_realPosition->goal().x) % sc<int>(pMonitor->m_size.x) : 0,
-                                                                  (pMonitor->m_size.y != 0) ? sc<int>(w->m_realPosition->goal().y) % sc<int>(pMonitor->m_size.y) : 0,
-                                                              },
-                                                              w->layoutTarget()->position().size()});
+                    w->layoutTarget()->setPositionGlobal(
+                        CBox{Vector2D{
+                                 (pMonitor->m_size.x != 0) ? sc<int>(w->position(Desktop::View::IGeometric::GEOMETRIC_GOAL).x) % sc<int>(pMonitor->m_size.x) : 0,
+                                 (pMonitor->m_size.y != 0) ? sc<int>(w->position(Desktop::View::IGeometric::GEOMETRIC_GOAL).y) % sc<int>(pMonitor->m_size.y) : 0,
+                             },
+                             w->layoutTarget()->position().size()});
             }
 
             w->updateToplevel();

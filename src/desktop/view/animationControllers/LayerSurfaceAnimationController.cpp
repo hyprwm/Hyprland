@@ -121,7 +121,7 @@ Animation::SViewAnimationContext CLayerSurfaceAnimationController::animateIn() c
     ctx.size.to   = m_parent->m_geometry.size();
     ctx.alpha     = {.from = 0.F, .to = 1.F};
 
-    const auto ANIMSTYLE = m_parent->m_ruleApplicator->animationStyle().valueOr(m_parent->m_realPosition->getStyle());
+    const auto ANIMSTYLE = m_parent->m_ruleApplicator->animationStyle().valueOr(m_parent->positionAnimation()->getStyle());
     if (ANIMSTYLE.starts_with("slide"))
         applySlide(ctx, m_parent, ANIMSTYLE, true);
     else if (ANIMSTYLE.starts_with("popin"))
@@ -139,7 +139,7 @@ Animation::SViewAnimationContext CLayerSurfaceAnimationController::animateOut() 
     ctx.size.to   = m_parent->m_geometry.size();
     ctx.alpha     = {.from = m_parent->alpha()[LS_ALPHA_FADE]->value(), .to = 0.F};
 
-    const auto ANIMSTYLE = m_parent->m_ruleApplicator->animationStyle().valueOr(m_parent->m_realPosition->getStyle());
+    const auto ANIMSTYLE = m_parent->m_ruleApplicator->animationStyle().valueOr(m_parent->positionAnimation()->getStyle());
     if (ANIMSTYLE.starts_with("slide"))
         applySlide(ctx, m_parent, ANIMSTYLE, false);
     else if (ANIMSTYLE.starts_with("popin"))
@@ -149,11 +149,11 @@ Animation::SViewAnimationContext CLayerSurfaceAnimationController::animateOut() 
 }
 
 void CLayerSurfaceAnimationController::apply(const Animation::SViewAnimationContext& ctx) const {
-    m_parent->m_realPosition->setValueAndWarp(ctx.pos.from);
-    m_parent->m_realSize->setValueAndWarp(ctx.size.from);
+    m_parent->positionAnimation()->setValueAndWarp(ctx.pos.from);
+    m_parent->sizeAnimation()->setValueAndWarp(ctx.size.from);
     m_parent->alpha()[LS_ALPHA_FADE]->setValueAndWarp(ctx.alpha.from);
 
-    *m_parent->m_realPosition         = ctx.pos.to;
-    *m_parent->m_realSize             = ctx.size.to;
+    m_parent->move(ctx.pos.to);
+    m_parent->resize(ctx.size.to);
     *m_parent->alpha()[LS_ALPHA_FADE] = ctx.alpha.to;
 }

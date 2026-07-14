@@ -815,10 +815,10 @@ void CScrollingAlgorithm::resizeTarget(const Vector2D& delta, SP<ITarget> target
     const auto DATA = dataFor(target);
 
     if (!DATA) {
-        const auto PWINDOW   = target->window();
-        *PWINDOW->m_realSize = (PWINDOW->m_realSize->goal() + delta)
-                                   .clamp(PWINDOW->m_ruleApplicator->minSize().valueOr(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}),
-                                          PWINDOW->m_ruleApplicator->maxSize().valueOr(Vector2D{INFINITY, INFINITY}));
+        const auto PWINDOW = target->window();
+        PWINDOW->resize((PWINDOW->size(Desktop::View::IGeometric::GEOMETRIC_GOAL) + delta)
+                            .clamp(PWINDOW->m_ruleApplicator->minSize().valueOr(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}),
+                                   PWINDOW->m_ruleApplicator->maxSize().valueOr(Vector2D{INFINITY, INFINITY})));
         PWINDOW->updateWindowDecos();
         return;
     }

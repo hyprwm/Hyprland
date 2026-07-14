@@ -1661,11 +1661,11 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
             if (w->m_isFloating && VECNOTINRECT(MIDDLE, m_position.x, m_position.y, m_position.x + m_size.x, m_position.y + m_size.y) && !w->isX11OverrideRedirect()) {
                 // if it's floating and the middle isn't on the current mon, move it to the center
                 const auto PMONFROMMIDDLE = State::monitorState()->query().vec(MIDDLE).run();
-                Vector2D   pos            = w->m_realPosition->goal();
+                Vector2D   pos            = w->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
                 if (VECNOTINRECT(MIDDLE, PMONFROMMIDDLE->m_position.x, PMONFROMMIDDLE->m_position.y, PMONFROMMIDDLE->m_position.x + PMONFROMMIDDLE->m_size.x,
                                  PMONFROMMIDDLE->m_position.y + PMONFROMMIDDLE->m_size.y)) {
                     // not on any monitor, center
-                    pos = middle() - w->m_realSize->goal() / 2.f;
+                    pos = middle() - w->size(Desktop::View::IGeometric::GEOMETRIC_GOAL) / 2.f;
                 } else
                     pos = pos - PMONFROMMIDDLE->m_position + m_position;
 
@@ -1866,8 +1866,8 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
             return reasons;
     }
 
-    if (PCANDIDATE->m_realSize->value() != m_size || PCANDIDATE->m_realPosition->value() != m_position || PCANDIDATE->m_realPosition->isBeingAnimated() ||
-        PCANDIDATE->m_realSize->isBeingAnimated()) {
+    if (PCANDIDATE->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT) != m_size || PCANDIDATE->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT) != m_position ||
+        PCANDIDATE->positionAnimation()->isBeingAnimated() || PCANDIDATE->sizeAnimation()->isBeingAnimated()) {
         reasons |= SC_TRANSFORM;
         if (!full)
             return reasons;

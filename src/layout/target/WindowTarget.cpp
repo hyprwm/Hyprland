@@ -68,8 +68,7 @@ void CWindowTarget::updatePos(uint8_t flags) {
 
     // Non-FS Floating Windows
     if (floating() && m_window && !Fullscreen::controller()->isFullscreen(m_window.lock())) {
-        *m_window->m_realPosition = m_box.logicalBox.pos();
-        *m_window->m_realSize     = m_box.logicalBox.size();
+        m_window->setBox(m_box.logicalBox);
 
         if (CONFIGURECLIENT)
             m_window->sendWindowSize();
@@ -92,8 +91,7 @@ void CWindowTarget::updatePos(uint8_t flags) {
         FSMODES.internal != Fullscreen::FSMODE_NONE && !Fullscreen::controller()->layoutManagedFS(m_self->window())) {
 
         if (FSMODES.internal == Fullscreen::FSMODE_FULLSCREEN) {
-            *m_window->m_realPosition = m_box.logicalBox.pos();
-            *m_window->m_realSize     = m_box.logicalBox.size();
+            m_window->setBox(m_box.logicalBox);
 
         } else if (FSMODES.internal == Fullscreen::FSMODE_MAXIMIZED) {
             CBox nodeBox   = m_box.logicalBox;
@@ -104,8 +102,7 @@ void CWindowTarget::updatePos(uint8_t flags) {
             // Reserved area must be updated before this is called
             const auto RESERVED = m_window->getFullWindowReservedArea();
 
-            *m_window->m_realPosition = visualBox.pos() + RESERVED.topLeft;
-            *m_window->m_realSize     = visualBox.size() - (RESERVED.topLeft + RESERVED.bottomRight);
+            m_window->setBox({visualBox.pos() + RESERVED.topLeft, visualBox.size() - (RESERVED.topLeft + RESERVED.bottomRight)});
         }
 
         m_window->updateWindowDecos();
@@ -123,14 +120,12 @@ void CWindowTarget::updatePos(uint8_t flags) {
         nodeBox.round();
         visualBox.round();
         if (FSMODES.internal == Fullscreen::FSMODE_FULLSCREEN) {
-            *m_window->m_realSize     = visualBox.size();
-            *m_window->m_realPosition = visualBox.pos();
+            m_window->setBox(visualBox);
         } else if (FSMODES.internal == Fullscreen::FSMODE_MAXIMIZED) {
 
             // Reserved area must be updated before this is called
-            const auto RESERVED       = m_window->getFullWindowReservedArea();
-            *m_window->m_realPosition = visualBox.pos() + RESERVED.topLeft;
-            *m_window->m_realSize     = visualBox.size() - (RESERVED.topLeft + RESERVED.bottomRight);
+            const auto RESERVED = m_window->getFullWindowReservedArea();
+            m_window->setBox({visualBox.pos() + RESERVED.topLeft, visualBox.size() - (RESERVED.topLeft + RESERVED.bottomRight)});
         }
 
         m_window->updateWindowDecos();
@@ -248,14 +243,12 @@ void CWindowTarget::updatePos(uint8_t flags) {
         CBox        wb = {calcPos + (calcSize - calcSize * *PSCALEFACTOR) / 2.f, calcSize * *PSCALEFACTOR};
         wb.round(); // avoid rounding mess
 
-        *m_window->m_realPosition = wb.pos();
-        *m_window->m_realSize     = wb.size();
+        m_window->setBox(wb);
     } else {
         CBox wb = {calcPos, calcSize};
         wb.round(); // avoid rounding mess
 
-        *m_window->m_realSize     = wb.size();
-        *m_window->m_realPosition = wb.pos();
+        m_window->setBox(wb);
     }
 
     m_window->updateWindowDecos();
@@ -376,8 +369,9 @@ std::expected<SGeometryRequested, eGeometryFailure> CWindowTarget::desiredGeomet
         // middle of parent if available
         if (!m_window->m_isX11) {
             if (const auto PARENT = m_window->parent(); PARENT) {
-                const auto POS = PARENT->m_realPosition->goal() + PARENT->m_realSize->goal() / 2.F - DESIRED_GEOM.size() / 2.F;
-                requested.pos  = POS;
+                const auto POS =
+                    PARENT->position(Desktop::View::IGeometric::GEOMETRIC_GOAL) + PARENT->size(Desktop::View::IGeometric::GEOMETRIC_GOAL) / 2.F - DESIRED_GEOM.size() / 2.F;
+                requested.pos = POS;
             }
         }
     } else {
@@ -418,8 +412,7 @@ void CWindowTarget::damageEntire() {
 }
 
 void CWindowTarget::warpPositionSize() {
-    m_window->m_realSize->warp();
-    m_window->m_realPosition->warp();
+    m_window->finishAnimation();
     m_window->updateWindowDecos();
 }
 

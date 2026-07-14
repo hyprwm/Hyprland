@@ -222,8 +222,8 @@ void IFullscreenHandler::syncTargetSizeAndPosition() {
         const CBox MONBOX         = MONITOR->logicalBox();
         const CBox ROUNDED_MONBOX = MONITOR->logicalBox().round();
 
-        const auto CURRENT_REAL_POS_GOAL  = WINDOW.get()->m_realPosition->goal();
-        const auto CURRENT_REAL_SIZE_GOAL = WINDOW.get()->m_realSize->goal();
+        const auto CURRENT_REAL_POS_GOAL  = WINDOW.get()->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
+        const auto CURRENT_REAL_SIZE_GOAL = WINDOW.get()->size(Desktop::View::IGeometric::GEOMETRIC_GOAL);
 
         const auto EXPECTED_REAL_POS  = ROUNDED_MONBOX.pos();
         const auto EXPECTED_REAL_SIZE = ROUNDED_MONBOX.size();
@@ -242,8 +242,8 @@ void IFullscreenHandler::syncTargetSizeAndPosition() {
         // Reserved area must be updated before this is called
         const auto RESERVED = WINDOW->getFullWindowReservedArea();
 
-        const auto CURRENT_REAL_POS_GOAL  = WINDOW.get()->m_realPosition->goal();
-        const auto CURRENT_REAL_SIZE_GOAL = WINDOW.get()->m_realSize->goal();
+        const auto CURRENT_REAL_POS_GOAL  = WINDOW.get()->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
+        const auto CURRENT_REAL_SIZE_GOAL = WINDOW.get()->size(Desktop::View::IGeometric::GEOMETRIC_GOAL);
 
         const auto EXPECTED_REAL_POS  = roundedWorkArea.pos() + RESERVED.topLeft;
         const auto EXPECTED_REAL_SIZE = roundedWorkArea.size() - (RESERVED.topLeft + RESERVED.bottomRight);

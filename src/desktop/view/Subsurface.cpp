@@ -289,7 +289,7 @@ Vector2D CSubsurface::coordsGlobal() const {
     Vector2D coords = coordsRelativeToParent();
 
     if (!m_windowParent.expired())
-        coords += m_windowParent->m_realPosition->value();
+        coords += m_windowParent->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
     else if (m_popupParent)
         coords += m_popupParent->coordsGlobal();
 

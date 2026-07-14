@@ -429,7 +429,7 @@ static SDispatchResult resizeactive(const std::string& args) {
     if (!PWINDOW)
         return {.success = false, .error = "No window found"};
 
-    const auto SIZ = g_pCompositor->parseWindowVectorArgsRelative(args, PWINDOW->m_realSize->goal());
+    const auto SIZ = g_pCompositor->parseWindowVectorArgsRelative(args, PWINDOW->size(Desktop::View::IGeometric::GEOMETRIC_GOAL));
     if (SIZ.x < 1 || SIZ.y < 1)
         return {.success = false, .error = "Invalid size"};
 
@@ -441,7 +441,7 @@ static SDispatchResult moveactive(const std::string& args) {
     if (!PWINDOW)
         return {.success = false, .error = "No window found"};
 
-    const auto POS = g_pCompositor->parseWindowVectorArgsRelative(args, PWINDOW->m_realPosition->goal());
+    const auto POS = g_pCompositor->parseWindowVectorArgsRelative(args, PWINDOW->position(Desktop::View::IGeometric::GEOMETRIC_GOAL));
     return wrap(Actions::move(POS));
 }
 
@@ -453,7 +453,7 @@ static SDispatchResult movewindowpixel(const std::string& args) {
     if (!PWINDOW)
         return {.success = false, .error = "moveWindow: no window"};
 
-    const auto POS = g_pCompositor->parseWindowVectorArgsRelative(MOVECMD, PWINDOW->m_realPosition->goal());
+    const auto POS = g_pCompositor->parseWindowVectorArgsRelative(MOVECMD, PWINDOW->position(Desktop::View::IGeometric::GEOMETRIC_GOAL));
     return wrap(Actions::move(POS, false, PWINDOW));
 }
 
@@ -465,7 +465,7 @@ static SDispatchResult resizewindowpixel(const std::string& args) {
     if (!PWINDOW)
         return {.success = false, .error = "resizeWindow: no window"};
 
-    const auto SIZ = g_pCompositor->parseWindowVectorArgsRelative(MOVECMD, PWINDOW->m_realSize->goal());
+    const auto SIZ = g_pCompositor->parseWindowVectorArgsRelative(MOVECMD, PWINDOW->size(Desktop::View::IGeometric::GEOMETRIC_GOAL));
     if (SIZ.x < 1 || SIZ.y < 1)
         return {.success = false, .error = "Invalid size"};
 

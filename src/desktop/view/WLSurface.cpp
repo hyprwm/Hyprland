@@ -61,7 +61,7 @@ Vector2D CWLSurface::correctSmallVec() const {
     const auto O    = dynamicPointerCast<CWindow>(m_view.lock());
     const auto REP  = O->getReportedSize();
 
-    return Vector2D{(REP.x - SIZE.x) / 2, (REP.y - SIZE.y) / 2}.clamp({}, {INFINITY, INFINITY}) * (O->m_realSize->value() / REP);
+    return Vector2D{(REP.x - SIZE.x) / 2, (REP.y - SIZE.y) / 2}.clamp({}, {INFINITY, INFINITY}) * (O->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT) / REP);
 }
 
 Vector2D CWLSurface::correctSmallVecBuf() const {

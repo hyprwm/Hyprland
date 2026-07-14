@@ -111,6 +111,7 @@ void CPresentationProtocol::onManagerResourceDestroy(wl_resource* res) {
 
 void CPresentationProtocol::destroyResource(CPresentationFeedback* feedback) {
     feedback->m_done = true;
+    std::erase_if(m_feedbacks, [&](const auto& other) { return other.get() == feedback; });
 }
 
 void CPresentationProtocol::onGetFeedback(CWpPresentation* pMgr, wl_resource* surf, uint32_t id) {

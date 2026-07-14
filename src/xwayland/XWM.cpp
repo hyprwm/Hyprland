@@ -631,6 +631,11 @@ void CXWM::handleSelectionNotify(xcb_selection_notify_event_t* e) {
 
     SXSelection* sel = getSelection(e->selection);
 
+    if (!sel) {
+        Log::logger->log(Log::WARN, "[xwm] Ignoring selection notify for unknown selection {}", e->selection);
+        return;
+    }
+
     if (e->property == XCB_ATOM_NONE) {
         auto it = std::ranges::find_if(sel->transfers, [](const auto& t) { return !t->propertyReply; });
         if (it != sel->transfers.end()) {
@@ -771,6 +776,11 @@ bool CXWM::handleSelectionXFixesNotify(xcb_xfixes_selection_notify_event_t* e) {
 
     // IMPORTANT: mind the g_pSeatManager below
     SXSelection* sel = getSelection(e->selection);
+
+    if (!sel) {
+        Log::logger->log(Log::WARN, "[xwm] Ignoring XFixes notify for unknown selection {}", e->selection);
+        return true;
+    }
 
     if (sel == &m_dndSelection)
         return true;

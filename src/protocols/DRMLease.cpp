@@ -74,14 +74,14 @@ CDRMLeaseResource::CDRMLeaseResource(SP<CWpDrmLeaseV1> resource_, SP<CDRMLeaseRe
         m->m_monitor->m_isBeingLeased = true;
     }
 
-    m_listeners.destroyLease = m_lease->events.destroy.listen([this] {
+    m_listeners.destroyLease = m_lease->events.destroy.listen([this, fd = m_lease->leaseFD] {
         for (auto const& m : m_requested) {
             if (m && m->m_monitor)
                 m->m_monitor->m_isBeingLeased = false;
         }
 
         m_resource->sendFinished();
-        LOGM(Log::DEBUG, "Revoking lease for fd {}", m_lease->leaseFD);
+        LOGM(Log::DEBUG, "Revoking lease for fd {}", fd);
     });
 
     LOGM(Log::DEBUG, "Granting lease, sending fd {}", m_lease->leaseFD);

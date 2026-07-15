@@ -8,10 +8,11 @@
 #include <sys/syscall.h>
 #include <algorithm>
 #include <cerrno>
+#include <chrono>
 #include <cstring>
 #include <optional>
 
-#include <gio/gio.h>
+#include <sdbus-c++/sdbus-c++.h>
 #include <hyprutils/memory/Casts.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 #endif
@@ -96,35 +97,10 @@ static bool installSigxcpuHandler() {
     return true;
 }
 
-constexpr const char* RTKIT_SERVICE         = "org.freedesktop.RealtimeKit1";
-constexpr const char* RTKIT_OBJECT          = "/org/freedesktop/RealtimeKit1";
-constexpr const char* RTKIT_INTERFACE       = "org.freedesktop.RealtimeKit1";
-constexpr gint        RTKIT_DBUS_TIMEOUT_MS = 2000; // GDBus defaults to 25s, a wedged rtkit must not stall startup
-
-// Reads rtkit's RTTimeUSecMax property (int64, µs): the largest RLIMIT_RTTIME it grants under.
-// Doubles as the liveness probe for rtkit itself.
-static std::optional<int64_t> rtkitGetRttimeMax(GDBusConnection* conn) {
-    GError*   error = nullptr;
-    GVariant* ret =
-        g_dbus_connection_call_sync(conn, RTKIT_SERVICE, RTKIT_OBJECT, "org.freedesktop.DBus.Properties", "Get", g_variant_new("(ss)", RTKIT_INTERFACE, "RTTimeUSecMax"),
-                                    G_VARIANT_TYPE("(v)"), G_DBUS_CALL_FLAGS_NONE, RTKIT_DBUS_TIMEOUT_MS, nullptr, &error);
-    if (!ret) {
-        Log::logger->log(Log::DEBUG, "rtkit: failed to read RTTimeUSecMax: {}", error->message);
-        g_error_free(error);
-        return std::nullopt;
-    }
-
-    GVariant* value = nullptr;
-    g_variant_get(ret, "(v)", &value);
-
-    std::optional<int64_t> result;
-    if (g_variant_is_of_type(value, G_VARIANT_TYPE_INT64))
-        result = g_variant_get_int64(value);
-
-    g_variant_unref(value);
-    g_variant_unref(ret);
-    return result;
-}
+constexpr const char* RTKIT_SERVICE      = "org.freedesktop.RealtimeKit1";
+constexpr const char* RTKIT_OBJECT       = "/org/freedesktop/RealtimeKit1";
+constexpr const char* RTKIT_INTERFACE    = "org.freedesktop.RealtimeKit1";
+constexpr auto        RTKIT_DBUS_TIMEOUT = std::chrono::seconds(2); // D-Bus defaults to 25s, a wedged rtkit must not stall startup
 
 // The realtime budget must exceed the longest CPU burst the compositor makes without blocking
 // (the RTTIME counter resets whenever the thread blocks, which normally happens every frame), or
@@ -213,54 +189,40 @@ static bool configureRttimeLimit(rlim_t maxUs) {
 // and grants SCHED_RR with SCHED_RESET_ON_FORK set, so fork children reset to SCHED_OTHER
 // kernel-side.
 static bool tryRtkit(int prio) {
-    GError* error   = nullptr;
-    gchar*  address = g_dbus_address_get_for_bus_sync(G_BUS_TYPE_SYSTEM, nullptr, &error);
-    if (!address) {
-        Log::logger->log(Log::DEBUG, "rtkit: no system bus: {}", error->message);
-        g_error_free(error);
+    try {
+        auto connection = sdbus::createSystemBusConnection();
+        auto proxy      = sdbus::createProxy(*connection, sdbus::ServiceName{RTKIT_SERVICE}, sdbus::ObjectPath{RTKIT_OBJECT});
+
+        // read RTTimeUSecMax, the largest RLIMIT_RTTIME rtkit grants under.
+        // Also probes rtkit's liveness before touching RLIMIT_RTTIME: lowering
+        // the hard limit must not happen unless rtkit is actually there to
+        // grant us realtime in exchange
+        sdbus::Variant maxVar;
+        proxy->callMethod("Get")
+            .onInterface("org.freedesktop.DBus.Properties")
+            .withTimeout(RTKIT_DBUS_TIMEOUT)
+            .withArguments(RTKIT_INTERFACE, "RTTimeUSecMax")
+            .storeResultsTo(maxVar);
+
+        const auto maxUs = maxVar.get<int64_t>();
+        if (maxUs <= 0) {
+            Log::logger->log(Log::DEBUG, "rtkit: no usable RTTimeUSecMax, not requesting realtime");
+            return false;
+        }
+
+        if (!configureRttimeLimit(sc<rlim_t>(maxUs)))
+            return false;
+
+        // fails with a polkit denial for sessions that aren't active locally (e.g. ssh),
+        // which is fine because realtime is best-effort. the armed RLIMIT_RTTIME must stay,
+        // hard limits cannot be raised back.
+        proxy->callMethod("MakeThreadRealtime").onInterface(RTKIT_INTERFACE).withTimeout(RTKIT_DBUS_TIMEOUT).withArguments(sc<uint64_t>(gettid()), sc<uint32_t>(prio));
+
+        return true;
+    } catch (const sdbus::Error& e) {
+        Log::logger->log(Log::DEBUG, "rtkit: {}", e.what());
         return false;
     }
-
-    // a private connection instead of g_bus_get_sync, so it can be fully torn down after this one-shot call
-    GDBusConnection* conn = g_dbus_connection_new_for_address_sync(
-        address, sc<GDBusConnectionFlags>(G_DBUS_CONNECTION_FLAGS_AUTHENTICATION_CLIENT | G_DBUS_CONNECTION_FLAGS_MESSAGE_BUS_CONNECTION), nullptr, nullptr, &error);
-    g_free(address);
-    if (!conn) {
-        Log::logger->log(Log::DEBUG, "rtkit: failed to connect to the system bus: {}", error->message);
-        g_error_free(error);
-        return false;
-    }
-
-    Hyprutils::Utils::CScopeGuard closeConn([conn] {
-        g_dbus_connection_close_sync(conn, nullptr, nullptr);
-        g_object_unref(conn);
-    });
-
-    // probe rtkit's config before touching RLIMIT_RTTIME: lowering the hard limit must not
-    // happen unless rtkit is actually there to grant us realtime in exchange
-    const auto maxUs = rtkitGetRttimeMax(conn);
-    if (!maxUs || *maxUs <= 0) {
-        Log::logger->log(Log::DEBUG, "rtkit: no usable RTTimeUSecMax, not requesting realtime");
-        return false;
-    }
-
-    if (!configureRttimeLimit(sc<rlim_t>(*maxUs)))
-        return false;
-
-    // fails with a polkit denial for sessions that aren't active locally (e.g. ssh),
-    // which is fine because realtime is best-effort. the armed RLIMIT_RTTIME must stay,
-    // hard limits cannot be raised back.
-    GVariant* reply =
-        g_dbus_connection_call_sync(conn, RTKIT_SERVICE, RTKIT_OBJECT, RTKIT_INTERFACE, "MakeThreadRealtime", g_variant_new("(tu)", sc<guint64>(gettid()), sc<guint32>(prio)),
-                                    nullptr, G_DBUS_CALL_FLAGS_NONE, RTKIT_DBUS_TIMEOUT_MS, nullptr, &error);
-    if (!reply) {
-        Log::logger->log(Log::DEBUG, "rtkit: MakeThreadRealtime failed: {}", error->message);
-        g_error_free(error);
-        return false;
-    }
-
-    g_variant_unref(reply);
-    return true;
 }
 
 #endif

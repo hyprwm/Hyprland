@@ -395,7 +395,7 @@ PHLLS CPopup::layerOwner() const {
 Vector2D CPopup::coordsRelativeToParent() const {
     Vector2D offset;
 
-    if (!m_resource)
+    if (!m_resource || m_resource->m_surface.expired())
         return m_lastPos;
 
     WP<CPopup> current = m_self;
@@ -559,6 +559,10 @@ const CBox& CPopup::popupTreeExtents() const {
     for (size_t i = 0; i < popups.size(); ++i) {
         const auto& popup = popups[i];
         if (!popup)
+            continue;
+
+        // a popup whose xdg surface has been destroyed but the XDDGPopupResource not yet recevied onDestroy()
+        if (popup->m_resource && popup->m_resource->m_surface.expired())
             continue;
 
         if (popup->wlSurface() && popup->wlSurface()->resource()) {

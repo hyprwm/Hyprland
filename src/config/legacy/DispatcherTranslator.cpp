@@ -789,6 +789,10 @@ static SDispatchResult forceidle(const std::string& args) {
     return wrap(Actions::forceIdle(duration.value()));
 }
 
+static SDispatchResult releaseInputCapture(const std::string& args) {
+    return wrap(Actions::releaseInputCapture());
+}
+
 CDispatcherTranslator::CDispatcherTranslator() {
     m_dispMap["exec"]                           = ::exec;
     m_dispMap["execr"]                          = ::execr;
@@ -860,4 +864,5 @@ CDispatcherTranslator::CDispatcherTranslator() {
     m_dispMap["global"]                         = ::globalDispatcher;
     m_dispMap["setprop"]                        = ::setprop;
     m_dispMap["forceidle"]                      = ::forceidle;
+    m_dispMap["releaseinputcapture"]            = ::releaseInputCapture;
 }

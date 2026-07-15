@@ -54,7 +54,7 @@ void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverrid
 
         children[0]->recalcSizePosRecursive(force);
         children[1]->recalcSizePosRecursive(force);
-    } else
+    } else if (!pTarget.expired())
         pTarget->setPositionGlobal(box);
 }
 

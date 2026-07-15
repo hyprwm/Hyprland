@@ -44,6 +44,7 @@
 #include "../desktop/view/LayerSurface.hpp"
 #include "../desktop/state/GlobalWindowController.hpp"
 #include "../desktop/state/FocusState.hpp"
+#include "../desktop/state/FadingOutState.hpp"
 #include "../event/EventBus.hpp"
 #include "../helpers/Drm.hpp"
 #include "MonitorFrameScheduler.hpp"
@@ -1885,6 +1886,15 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
             if (!full)
                 return reasons;
         }
+    }
+
+    for (auto const& fadeout : Desktop::fadingOutState()->fadeouts()) {
+        if (!fadeout || fadeout->monitor() != m_self)
+            continue;
+
+        reasons |= SC_FADEOUT;
+        if (!full)
+            return reasons;
     }
 
     for (auto const& w : Desktop::windowState()->windows()) {

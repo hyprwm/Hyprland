@@ -236,8 +236,9 @@ namespace Monitor {
             SC_WORKSPACES   = (1 << 14),
             SC_SURFACES     = (1 << 15),
             SC_ERRORBAR     = (1 << 16),
+            SC_FADEOUT      = (1 << 17),
 
-            SC_CHECKS_COUNT = 17,
+            SC_CHECKS_COUNT = 18,
         };
 
         // keep in sync with HyprCtl

@@ -402,8 +402,11 @@ Vector2D CPopup::coordsRelativeToParent() const {
     offset -= current->m_resource->m_surface->m_current.geometry.pos();
 
     while (current->m_parent && current->m_resource) {
+        const auto SURFACE = current->wlSurface();
+        if (!SURFACE || !SURFACE->resource())
+            return m_lastPos;
 
-        offset += current->wlSurface()->resource()->m_current.offset;
+        offset += SURFACE->resource()->m_current.offset;
         offset += current->m_resource->m_geometry.pos();
 
         current = current->m_parent;

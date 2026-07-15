@@ -28,10 +28,9 @@ static std::optional<dev_t> devIDFromFD(int fd) {
 CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vector<std::pair<PHLMONITORREF, SDMABUFTranche>> tranches_) :
     m_rendererTranche(_rendererTranche), m_monitorTranches(tranches_) {
 
-    static const auto                       PSKIP_NON_KMS = CConfigValue<Config::INTEGER>("quirks:skip_non_kms_dmabuf_formats");
+    static const auto                    PSKIP_NON_KMS = CConfigValue<Config::INTEGER>("quirks:skip_non_kms_dmabuf_formats");
 
-    std::vector<SDMABUFFormatTableEntry>    formatsVec;
-    std::set<std::pair<uint32_t, uint64_t>> formats;
+    std::vector<SDMABUFFormatTableEntry> formatsVec;
 
     // insert formats into vec if they got inserted into set, meaning they're unique
     size_t i = 0;
@@ -50,7 +49,7 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
                     continue;
                 }
             }
-            auto [_, inserted] = formats.emplace(fmt.drmFormat, mod);
+            auto [_, inserted] = m_formats.emplace(fmt.drmFormat, mod);
             if (inserted) {
                 // if it was inserted into set, then its unique and will have a new index in vec
                 m_rendererTranche.indices.push_back(i++);
@@ -76,7 +75,7 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
                 // apparently these can implode on planes, so don't use them
                 if (mod == DRM_FORMAT_MOD_INVALID || mod == DRM_FORMAT_MOD_LINEAR)
                     continue;
-                auto [_, inserted] = formats.emplace(fmt.drmFormat, mod);
+                auto [_, inserted] = m_formats.emplace(fmt.drmFormat, mod);
                 if (inserted) {
                     tranche.indices.push_back(i++);
                     formatsVec.push_back(SDMABUFFormatTableEntry{
@@ -108,6 +107,10 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
     munmap(arr, m_tableSize);
 
     m_tableFD = std::move(fds[1]);
+}
+
+bool CDMABUFFormatTable::contains(uint32_t fmt, uint64_t modifier) const {
+    return m_formats.contains({fmt, modifier});
 }
 
 CLinuxDMABuffer::CLinuxDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs attrs) {
@@ -186,13 +189,6 @@ CLinuxDMABUFParamsResource::CLinuxDMABUFParamsResource(UP<CZwpLinuxBufferParamsV
         if (flags > 0) {
             r->sendFailed();
             LOGM(Log::ERR, "DMABUF flags are not supported");
-            return;
-        }
-
-        if (m_resource->version() >= 4 && std::ranges::none_of(PROTO::linuxDma->m_formatTable->m_rendererTranche.formats, [this, fmt](const auto format) {
-                return format.drmFormat == fmt && std::ranges::any_of(format.modifiers, [this](const auto mod) { return !mod || mod == m_attrs->modifier; });
-            })) {
-            r->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_INVALID_FORMAT, "format + modifier pair is not supported");
             return;
         }
 
@@ -307,6 +303,12 @@ bool CLinuxDMABUFParamsResource::verify() {
 
     if UNLIKELY (m_attrs->size.x < 1 || m_attrs->size.y < 1) {
         m_resource->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_INVALID_DIMENSIONS, "x/y < 1");
+        return false;
+    }
+
+    // Starting from version 4, the invalid_format protocol error is sent if the format + modifier pair was not advertised as supported.
+    if (m_resource->version() >= 4 && !PROTO::linuxDma->m_formatTable->contains(m_attrs->format, m_attrs->modifier)) {
+        m_resource->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_INVALID_FORMAT, "format + modifier pair is not supported");
         return false;
     }
 

@@ -143,7 +143,7 @@ eScreenshareError CScreenshareFrame::share(SP<IHLBuffer> buffer, const CRegion& 
 }
 
 void CScreenshareFrame::copy() {
-    if (done())
+    if (done() || m_copyInFlight)
         return;
 
     // tell client to send presented timestamp
@@ -404,8 +404,15 @@ bool CScreenshareFrame::copyDmabuf() {
 
     g_pHyprRenderer->m_renderData.blockScreenShader = true;
 
+    m_copyInFlight = true;
+
     g_pHyprRenderer->endRender([self = m_self]() {
-        if (!self || self.expired() || self->m_copied)
+        if (!self || self.expired())
+            return;
+
+        self->m_copyInFlight = false;
+
+        if (self->m_copied)
             return;
 
         LOGM(Log::TRACE, "Copied frame via dma");

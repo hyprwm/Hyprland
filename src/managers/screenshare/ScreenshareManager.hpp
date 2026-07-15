@@ -174,6 +174,7 @@ namespace Screenshare {
         Vector2D                m_bufferSize = Vector2D(0, 0);
         CRegion                 m_damage; // damage in buffer coords
         bool                    m_shared = false, m_copied = false, m_failed = false;
+        bool                    m_copyInFlight  = false; // a dmabuf copy is issued and waiting on its fence
         bool                    m_overlayCursor = true;
         bool                    m_isFirst       = false;
 

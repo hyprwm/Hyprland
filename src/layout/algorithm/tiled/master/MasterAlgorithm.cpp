@@ -784,11 +784,11 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
             ratio = std::stof(std::string{exact ? vars[2] : vars[1]});
         } catch (...) { return invalidArg("bad ratio"); }
 
-        const auto PNODE = getNodeFromWindow(PWINDOW);
-
         const auto PMASTER = getMasterNode();
+        if (!PMASTER)
+            return stateErr("no master node");
 
-        float      newRatio = exact ? ratio : PMASTER->percMaster + ratio;
+        float newRatio      = exact ? ratio : PMASTER->percMaster + ratio;
         PMASTER->percMaster = std::clamp(newRatio, 0.05f, 0.95f);
 
         recalculate();
@@ -1348,8 +1348,10 @@ SP<ITarget> CMasterAlgorithm::getNextTarget(SP<ITarget> t, bool next, bool loop)
         return nullptr;
 
     const auto PNODE = getNodeFromTarget(t);
+    if (!PNODE)
+        return nullptr;
 
-    auto       nodes = m_masterNodesData;
+    auto nodes = m_masterNodesData;
     if (!next)
         std::ranges::reverse(nodes);
 

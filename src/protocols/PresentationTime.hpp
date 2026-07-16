@@ -69,7 +69,7 @@ class CPresentationProtocol : public IWaylandProtocol {
 
     //
     std::vector<UP<CWpPresentation>>         m_managers;
-    std::vector<SP<CPresentationFeedback>>   m_feedbacks;
+    std::vector<UP<CPresentationFeedback>>   m_feedbacks;
     std::vector<UP<CQueuedPresentationData>> m_queue;
 
     friend class CPresentationFeedback;

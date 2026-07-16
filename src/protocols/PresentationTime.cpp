@@ -116,8 +116,8 @@ void CPresentationProtocol::destroyResource(CPresentationFeedback* feedback) {
 
 void CPresentationProtocol::onGetFeedback(CWpPresentation* pMgr, wl_resource* surf, uint32_t id) {
     const auto CLIENT = pMgr->client();
-    const auto RESOURCE =
-        m_feedbacks.emplace_back(makeShared<CPresentationFeedback>(makeUnique<CWpPresentationFeedback>(CLIENT, pMgr->version(), id), CWLSurfaceResource::fromResource(surf)));
+    const auto& RESOURCE =
+        m_feedbacks.emplace_back(makeUnique<CPresentationFeedback>(makeUnique<CWpPresentationFeedback>(CLIENT, pMgr->version(), id), CWLSurfaceResource::fromResource(surf)));
 
     if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
@@ -152,7 +152,7 @@ void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, const timespec& whe
         LOGM(Log::ERR, "FIXME: presentation has a feedback leak, and has grown to {} pending entries!!! Dropping!!!!!", m_feedbacks.size());
 
         // Move the elements from the 9000th position to the end of the vector.
-        std::vector<SP<CPresentationFeedback>> newFeedbacks;
+        std::vector<UP<CPresentationFeedback>> newFeedbacks;
         newFeedbacks.reserve(m_feedbacks.size() - 9000);
 
         for (auto it = m_feedbacks.begin() + 9000; it != m_feedbacks.end(); ++it) {

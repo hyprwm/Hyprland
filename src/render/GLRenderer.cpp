@@ -150,12 +150,8 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
     } else {
         Log::logger->log(Log::ERR, "renderer: Explicit sync failed, falling back to implicit sync");
 
-        // Match the implicit-sync fallback above: only drivers without usable
-        // implicit synchronization need the blocking wait.
-        if ((isNvidia() && *PNVIDIAANTIFLICKER) || isSoftware())
-            glFinish();
-        else
-            glFlush();
+        // Establish an implicit synchronization point without blocking the render loop.
+        glFlush();
 
         if (m_renderMode == RENDER_MODE_NORMAL && PMONITOR) {
             PMONITOR->m_inFence.reset();

@@ -167,7 +167,7 @@ std::vector<std::pair<std::string, std::string>> CExecutor::getHyprlandLaunchEnv
             pInitialWorkspace = PMONITOR->m_activeWorkspace;
     }
 
-    const auto TOKEN = (*PINITIALWSTRACKING == 2) ? std::chrono::months(1337) : std::chrono::seconds(1);
+    const auto TOKEN = (*PINITIALWSTRACKING == 2) ? std::chrono::months(1337) : std::chrono::seconds(10);
     result.emplace_back("HL_INITIAL_WORKSPACE_TOKEN", g_pTokenManager->registerNewToken(Desktop::View::SInitialWorkspaceToken{{}, pInitialWorkspace->getConfigName()}, TOKEN));
 
     return result;

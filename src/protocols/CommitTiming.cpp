@@ -151,7 +151,7 @@ void CCommitTimingProtocol::onMonitorPresent(PHLMONITOR m, const Time::steady_tp
             continue;
 
         const auto& OUTPUTS = timer->m_surface->m_enteredOutputs;
-        if (std::ranges::none_of(OUTPUTS, [&m](const auto& mon) { return mon == m; }))
+        if (OUTPUTS.size() != 1 || OUTPUTS[0] != m)
             continue;
 
         timer->releaseDueStates(UPCOMING_FLIP);

@@ -2,6 +2,7 @@
 #include <fcntl.h>
 #include <sys/utsname.h>
 #include <link.h>
+#include <alloca.h>
 #include <ctime>
 #include <cerrno>
 #include <sys/stat.h>
@@ -125,9 +126,10 @@ void CrashReporter::createAndSaveCrash(int sig) {
     if (g_pPluginSystem && g_pPluginSystem->pluginCount() > 0) {
         finalCrashReport += "Hyprland seems to be running with plugins. This crash might not be Hyprland's fault.\nPlugins:\n";
 
-        const size_t          count = g_pPluginSystem->pluginCount();
-        std::vector<CPlugin*> plugins(count);
-        g_pPluginSystem->sigGetPlugins(plugins.data(), count);
+        // async-signal-safe: use stack array instead of std::vector (heap allocation deadlocks if crash in malloc)
+        const size_t          count = std::min(g_pPluginSystem->pluginCount(), size_t{64});
+        CPlugin*              plugins[64];
+        g_pPluginSystem->sigGetPlugins(plugins, count);
 
         for (size_t i = 0; i < count; i++) {
             auto p = plugins[i];

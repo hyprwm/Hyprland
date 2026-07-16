@@ -1,6 +1,7 @@
 #include "InputManager.hpp"
 #include "../../Compositor.hpp"
 #include <aquamarine/output/Output.hpp>
+#include <cmath>
 #include <cstdint>
 #include <hyprutils/math/Vector2D.hpp>
 #include <ranges>
@@ -988,7 +989,7 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
     PROTO::inputCapture->axis(e.axis, e.delta);
     if (e.source == 0)
         PROTO::inputCapture->axisValue120(e.axis, e.delta);
-    else if (e.delta == 0)
+    else if (std::abs(e.delta) < 0.5)
         PROTO::inputCapture->axisStop(e.axis);
     PROTO::inputCapture->frame();
 

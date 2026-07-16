@@ -62,7 +62,6 @@ int CEis::pollEvents() {
         eis_event* e = eis_get_event(m_eisCtx);
 
         if (!e) {
-            eis_event_unref(e);
             break;
         }
 

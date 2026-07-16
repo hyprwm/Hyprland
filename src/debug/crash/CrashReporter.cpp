@@ -247,5 +247,9 @@ void CrashReporter::createAndSaveCrash(int sig) {
 
     finalCrashReport += "\n\nLog tail:\n";
 
-    finalCrashReport += Log::logger->rolling();
+    try {
+        finalCrashReport += Log::logger->rolling();
+    } catch (...) {
+        finalCrashReport += "<Log tail unavailable — logger mutex contention>\n";
+    }
 }

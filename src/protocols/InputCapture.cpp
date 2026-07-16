@@ -308,12 +308,12 @@ void CInputCaptureResource::frame() {
 }
 
 static bool isLineIntersect(double p0X, double p0Y, double p1X, double p1Y, double p2X, double p2Y, double p3X, double p3Y) {
-    float s1X = p1X - p0X;
-    float s1Y = p1Y - p0Y;
-    float s2X = p3X - p2X;
-    float s2Y = p3Y - p2Y;
-    float s   = (-s1Y * (p0X - p2X) + s1X * (p0Y - p2Y)) / (-s2X * s1Y + s1X * s2Y);
-    float t   = (s2X * (p0Y - p2Y) - s2Y * (p0X - p2X)) / (-s2X * s1Y + s1X * s2Y);
+    double s1X = p1X - p0X;
+    double s1Y = p1Y - p0Y;
+    double s2X = p3X - p2X;
+    double s2Y = p3Y - p2Y;
+    double s   = (-s1Y * (p0X - p2X) + s1X * (p0Y - p2Y)) / (-s2X * s1Y + s1X * s2Y);
+    double t   = (s2X * (p0Y - p2Y) - s2Y * (p0X - p2X)) / (-s2X * s1Y + s1X * s2Y);
 
     return s >= 0 && s <= 1 && t >= 0 && t <= 1;
 }

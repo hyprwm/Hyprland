@@ -49,3 +49,11 @@ void CGeometricMovableAnimated::finishAnimation() {
     m_realPosition->warp();
     m_realSize->warp();
 }
+
+PHLANIMVAR<Vector2D>& CGeometricMovableAnimated::positionAnimation() {
+    return m_realPosition;
+}
+
+PHLANIMVAR<Vector2D>& CGeometricMovableAnimated::sizeAnimation() {
+    return m_realSize;
+}

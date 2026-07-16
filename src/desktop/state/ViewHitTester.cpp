@@ -13,6 +13,7 @@
 #include "../../state/MonitorState.hpp"
 #include "../../state/WorkspaceState.hpp"
 #include "../../xwayland/XWayland.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 
 #include <cmath>
 #include <ranges>
@@ -135,15 +136,15 @@ PHLWINDOW CViewHitTester::windowAt(const Vector2D& pos, uint16_t properties, PHL
         const WORKSPACEID WSPID      = special ? PMONITOR->activeSpecialWorkspaceID() : PMONITOR->activeWorkspaceID();
         const auto        PWORKSPACE = State::workspaceState()->query().id(WSPID).run();
 
-        if (PWORKSPACE->m_hasFullscreenWindow && !(properties & SKIP_FULLSCREEN_PRIORITY) && !ONLY_PRIORITY) {
-            const auto FS_WINDOW = PWORKSPACE->getFullscreenWindow();
+        if (Fullscreen::controller()->hasFullscreen(PWORKSPACE) && !(properties & SKIP_FULLSCREEN_PRIORITY) && !ONLY_PRIORITY) {
+            const auto FS_WINDOW = Fullscreen::controller()->getFullscreenWindow(PWORKSPACE);
 
             if (!FS_WINDOW)
                 return nullptr;
 
             // for maximized windows, don't return a window if we are not directly on it.
-            if (FS_WINDOW->m_fullscreenState.internal != FSMODE_MAXIMIZED || FS_WINDOW->getWindowBoxUnified(properties).containsPoint(pos))
-                return PWORKSPACE->getFullscreenWindow();
+            if (!Fullscreen::controller()->isFullscreen(FS_WINDOW, Fullscreen::FSMODE_MAXIMIZED) || FS_WINDOW->getWindowBoxUnified(properties).containsPoint(pos))
+                return Fullscreen::controller()->getFullscreenWindow(PWORKSPACE);
             else
                 return nullptr;
         }
@@ -264,11 +265,11 @@ SP<CWLSurfaceResource> CViewHitTester::windowSurfaceAt(const Vector2D& pos, PHLW
 
     if (PPOPUP) {
         const auto OFF = PPOPUP->coordsRelativeToParent();
-        surfaceLocal   = pos - window->m_realPosition->goal() - OFF;
+        surfaceLocal   = pos - window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL) - OFF;
         return PPOPUP->wlSurface()->resource();
     }
 
-    auto [surf, local] = window->wlSurface()->resource()->at(pos - window->m_realPosition->goal(), true);
+    auto [surf, local] = window->wlSurface()->resource()->at(pos - window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL), true);
     if (surf) {
         surfaceLocal = local;
         return surf;
@@ -282,7 +283,7 @@ Vector2D CViewHitTester::surfaceLocalAt(const Vector2D& pos, PHLWINDOW window, S
         return {};
 
     if (window->m_isX11)
-        return pos - window->m_realPosition->goal();
+        return pos - window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
 
     const auto PPOPUP = window->m_popupHead->at(pos);
     if (PPOPUP)
@@ -301,9 +302,9 @@ Vector2D CViewHitTester::surfaceLocalAt(const Vector2D& pos, PHLWINDOW window, S
     CBox geom = window->m_xdgSurface->m_current.geometry;
 
     if (std::get<1>(iterData) == Vector2D{-1337, -1337})
-        return pos - window->m_realPosition->goal();
+        return pos - window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
 
-    return pos - window->m_realPosition->goal() - std::get<1>(iterData) + Vector2D{geom.x, geom.y};
+    return pos - window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL) - std::get<1>(iterData) + Vector2D{geom.x, geom.y};
 }
 
 SP<CWLSurfaceResource> CViewHitTester::layerPopupSurfaceAt(const Vector2D& pos, PHLMONITOR monitor, Vector2D* surfaceCoords, PHLLS* layerFound) const {

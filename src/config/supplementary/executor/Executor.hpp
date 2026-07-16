@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <optional>
+#include <utility>
 #include <cstdint>
 #include "../../../helpers/signal/Signal.hpp"
 #include "../../../helpers/memory/Memory.hpp"
@@ -36,9 +37,10 @@ namespace Config::Supplementary {
         std::optional<uint64_t> spawnWithRules(std::string, PHLWORKSPACE pInitialWorkspace = nullptr);
 
       private:
-        std::vector<SExecRequest> m_execOnce, m_execShutdown;
+        std::vector<SExecRequest>                        m_execOnce, m_execShutdown;
 
-        void                      applyRuleToProc(SP<Desktop::Rule::CWindowRule> rule, int64_t pid, const std::string& token);
+        void                                             applyRuleToProc(SP<Desktop::Rule::CWindowRule> rule, int64_t pid, const std::string& token);
+        std::vector<std::pair<std::string, std::string>> getHyprlandLaunchEnv(PHLWORKSPACE pInitialWorkspace);
 
         struct {
             CHyprSignalListener init;
@@ -46,6 +48,7 @@ namespace Config::Supplementary {
         } m_listeners;
 
         bool m_firstExecDispatched = false;
+        bool m_isLaunchingExecOnce = false;
     };
 
     UP<CExecutor>& executor();

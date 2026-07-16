@@ -433,7 +433,9 @@ std::vector<SP<IValue>> Values::getConfigValues() {
          * group:groupbar:
          */
 
-        MS<Bool>("group:groupbar:enabled", "enables groupbars", true),
+        MS<Bool>("group:groupbar:enabled", "enables groupbars", true, {.refresh = Supplementary::REFRESH_WINDOW_STATES}),
+        MS<Bool>("group:groupbar:disable_when_only", "disable if contains single window. Considered only if enabled == true", false,
+                 {.refresh = Supplementary::REFRESH_WINDOW_STATES}),
         MS<String>("group:groupbar:font_family", "font used to display groupbar titles", "[[EMPTY]]"),
         MS<FontWeight>("group:groupbar:font_weight_active", "weight of the font used to display active groupbar titles"),
         MS<FontWeight>("group:groupbar:font_weight_inactive", "weight of the font used to display inactive groupbar titles"),
@@ -709,7 +711,13 @@ std::vector<SP<IValue>> Values::getConfigValues() {
          * experimental:
          */
 
-        MS<Bool>("experimental:wp_cm_1_2", "Allow wp-cm-v1 version 2", false),
+        MS<Bool>("experimental:wp_cm_1_2", "Allow wp-cm-v1 version 2", true),
+
+        /*
+		 * input_capture: 
+		 */
+        MS<Bool>("input-capture:capture_modifiers", "If enabled, modifiers are also captured and sent to the program", false),
+        MS<Bool>("input-capture:enforce_barriers", "If enabled, throw a wayland error when a invalid barrier is received", true),
 
         /*
          * quirks:

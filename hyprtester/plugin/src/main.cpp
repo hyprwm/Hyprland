@@ -6,7 +6,8 @@
 
 #define private public
 #include <src/managers/input/InputManager.hpp>
-#include <src/managers/PointerManager.hpp>
+#include <src/pointer/PointerManager.hpp>
+#include <src/pointer/PointerController.hpp>
 #include <src/managers/SeatManager.hpp>
 #include <src/managers/input/trackpad/TrackpadGestures.hpp>
 #include <src/output/Monitor.hpp>
@@ -49,8 +50,8 @@ static SDispatchResult snapMove(std::string in) {
     if (!PLASTWINDOW->m_isFloating)
         return {.success = false, .error = "Window must be floating"};
 
-    Vector2D pos  = PLASTWINDOW->m_realPosition->goal();
-    Vector2D size = PLASTWINDOW->m_realSize->goal();
+    Vector2D pos  = PLASTWINDOW->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
+    Vector2D size = PLASTWINDOW->size(Desktop::View::IGeometric::GEOMETRIC_GOAL);
 
     g_layoutManager->performSnap(pos, size, PLASTWINDOW->layoutTarget(), MBIND_MOVE, -1, size);
 
@@ -83,7 +84,7 @@ static SDispatchResult dragWindow(std::string in) {
         if (!target)
             return {.success = false, .error = "Window has no layout target"};
 
-        g_pCompositor->warpCursorTo({x, y}, true);
+        Pointer::pointerController()->warpTo({x, y}, true);
         g_layoutManager->beginDragTarget(target, MBIND_MOVE);
         g_layoutManager->endDragTarget();
 
@@ -579,8 +580,8 @@ static SDispatchResult floatingFocusOnFullscreen(std::string in) {
     if (PLASTWINDOW->alphaTotalGoal() != 1.F)
         return {.success = false, .error = "floating window doesnt restore it opacity when focused on fullscreen workspace"};
 
-    if (!PLASTWINDOW->m_createdOverFullscreen)
-        return {.success = false, .error = "floating window doesnt get flagged as createdOverFullscreen"};
+    if (!PLASTWINDOW->m_allowedOverFullscreen)
+        return {.success = false, .error = "floating window doesnt get flagged as allowedOverFullscreen"};
 
     return {};
 }

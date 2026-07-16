@@ -95,13 +95,13 @@ asan:
 	ASAN_OPTIONS="detect_odr_violation=0,log_path=asan.log" HYPRLAND_NO_CRASHREPORTER=1 ./build/Hyprland -c ~/.config/hypr/hyprland.lua
 
 format-check:
-	@find src hyprctl hyprpm start tests -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" \) \
+	@find src hyprctl hyprpm start tests hyprtester -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" \) \
 		! -path "src/render/shaders/Shaders.hpp" \
 		! -path "hyprctl/hw-protocols/*" | \
 		xargs clang-format --dry-run --Werror
 
 format-fix:
-	@find src hyprctl hyprpm start tests -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" \) \
+	@find src hyprctl hyprpm start tests hyprtester -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" \) \
 		! -path "src/render/shaders/Shaders.hpp" \
 		! -path "hyprctl/hw-protocols/*" | \
 		xargs clang-format -i

@@ -4,6 +4,7 @@
 #include "../../protocols/IdleInhibit.hpp"
 #include "../../protocols/IdleNotify.hpp"
 #include "../../protocols/core/Compositor.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 
 void CInputManager::newIdleInhibitor(std::any inhibitor) {
     const auto PINHIBIT = m_idleInhibitors.emplace_back(makeUnique<SIdleInhibitor>()).get();
@@ -68,7 +69,8 @@ bool CInputManager::isWindowInhibiting(const PHLWINDOW& w, bool onlyHl) {
     if (w->m_ruleApplicator->idleInhibitMode().valueOrDefault() == Desktop::Rule::IDLEINHIBIT_FOCUS && Desktop::focusState()->isWindowActive(w))
         return true;
 
-    if (w->m_ruleApplicator->idleInhibitMode().valueOrDefault() == Desktop::Rule::IDLEINHIBIT_FULLSCREEN && w->isFullscreen() && w->m_workspace && w->m_workspace->isVisible())
+    if (w->m_ruleApplicator->idleInhibitMode().valueOrDefault() == Desktop::Rule::IDLEINHIBIT_FULLSCREEN && Fullscreen::controller()->isFullscreen(w) && w->m_workspace &&
+        w->m_workspace->isVisible())
         return true;
 
     if (onlyHl)

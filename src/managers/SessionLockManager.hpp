@@ -64,11 +64,19 @@ class CSessionLockManager {
     bool                    isSurfaceSessionLock(SP<CWLSurfaceResource>);
     bool                    anySessionLockSurfacesPresent();
 
+    void                    forceUnlock();
+    void                    forceLock();
+
     void                    removeSessionLockSurface(SSessionLockSurface*);
 
     void                    onLockscreenRenderedOnMonitor(uint64_t id);
 
     bool                    shallConsiderLockMissing();
+
+    struct {
+        CSignalT<> lock;
+        CSignalT<> unlock;
+    } m_events;
 
   private:
     UP<SSessionLock> m_sessionLock;
@@ -79,6 +87,7 @@ class CSessionLockManager {
 
     void onNewSessionLock(SP<CSessionLock> pWlrLock);
     void removeSendLockedTimer();
+    void clearSessionLock();
 };
 
 inline UP<CSessionLockManager> g_pSessionLockManager;

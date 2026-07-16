@@ -22,6 +22,7 @@
 #include "./pass/TransformedWindowPassElement.hpp"
 #include "types.hpp"
 #include "../output/Monitor.hpp"
+#include "../desktop/state/Fadeout.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "Renderbuffer.hpp"
 #include "../helpers/time/Timer.hpp"
@@ -45,6 +46,9 @@ struct SSessionLockSurface;
 namespace Screenshare {
     class CScreenshareFrame;
 };
+namespace Pointer {
+    class CPointerManager;
+}
 
 namespace Render {
     using CScopeGuard = Hyprutils::Utils::CScopeGuard;
@@ -92,12 +96,10 @@ namespace Render {
         bool                                isSoftware();
         bool                                isMgpu();
         void                                addWindowToRenderUnfocused(PHLWINDOW window);
-        void                                makeSnapshot(PHLWINDOW);
-        void                                makeSnapshot(PHLLS);
-        void                                makeSnapshot(WP<Desktop::View::CPopup>);
-        void                                renderSnapshot(PHLWINDOW);
-        void                                renderSnapshot(PHLLS);
-        void                                renderSnapshot(WP<Desktop::View::CPopup>);
+        SP<IFramebuffer>                    makeSnapshotFB(PHLWINDOW);
+        SP<IFramebuffer>                    makeSnapshotFB(PHLLS);
+        SP<IFramebuffer>                    makeSnapshotFB(WP<Desktop::View::CPopup>);
+        void                                renderFadeouts(PHLMONITOR monitor, Desktop::eFadeoutPlane plane, PHLWORKSPACE workspace = nullptr);
         bool                                beginFullFakeRender(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb);
         bool                                beginRenderToBuffer(PHLMONITOR pMonitor, CRegion& damage, SP<IHLBuffer> buffer, bool simple = false);
         virtual void                        startRenderPass() {};
@@ -248,6 +250,7 @@ namespace Render {
 
         SP<ITexture>                       m_lockDeadTexture;
         SP<ITexture>                       m_lockDead2Texture;
+        SP<ITexture>                       m_lockDead3Texture;
         SP<ITexture>                       m_lockTtyTextTexture;
         CRenderPass*                       m_currentPass             = nullptr;
         bool                               m_monitorTransformEnabled = false; // do not modify directly
@@ -307,7 +310,7 @@ namespace Render {
         friend class CToplevelExportFrame;
         friend class Screenshare::CScreenshareFrame;
         friend class CInputManager;
-        friend class CPointerManager;
+        friend class Pointer::CPointerManager;
         friend class Monitor::CMonitor;
         friend class CMonitorFrameScheduler;
 

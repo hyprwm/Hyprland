@@ -21,7 +21,9 @@ class CSpecialWorkspaceGesture : public ITrackpadGesture {
     float         m_lastDelta    = 0.F;
 
     // animated properties, kinda sucks
+    float    m_monitorFadeFrom = 0.F, m_monitorFadeTo = 0.F;
     float    m_monitorDimFrom = 0.F, m_monitorDimTo = 0.F;
+    float    m_monitorBlurFrom = 0.F, m_monitorBlurTo = 0.F;
     float    m_workspaceAlphaFrom = 0.F, m_workspaceAlphaTo = 0.F;
     Vector2D m_workspaceOffsetFrom = {}, m_workspaceOffsetTo = {};
 };

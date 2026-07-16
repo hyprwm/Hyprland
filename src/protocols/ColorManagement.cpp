@@ -21,6 +21,9 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
     m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_SET_MASTERING_DISPLAY_PRIMARIES);
     m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_EXTENDED_TARGET_VOLUME);
 
+    if (m_resource->version() >= 3)
+        m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_WINDOWS_BT2100);
+
     if (PROTO::colorManagement->m_debug) {
         m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_ICC_V2_V4);
         m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_SET_TF_POWER);
@@ -162,6 +165,7 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
 
         RESOURCE->m_self = RESOURCE;
     });
+
     m_resource->setCreateWindowsScrgb([](CWpColorManagerV1* r, uint32_t id) {
         LOGM(Log::WARN, "New Windows scRGB description id={}", id);
 
@@ -180,17 +184,29 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
         RESOURCE->sendMaybeReady();
     });
 
-    m_resource->setGetImageDescription([](CWpColorManagerV1* r, uint32_t id, wl_resource* ref) {
-        LOGM(Log::TRACE, "Get image description for reference={}, id={}", (uintptr_t)ref, id);
+    m_resource->setCreateWindowsBt2100([](CWpColorManagerV1* r, uint32_t id) {
+        LOGM(Log::WARN, "New Windows BT2100 description id={}", id);
 
-        const auto OLD_RES = CColorManagementImageDescription::fromReference(ref);
-        if (!OLD_RES) {
-            OLD_RES->resource()->sendFailed(WP_IMAGE_DESCRIPTION_V1_CAUSE_UNSUPPORTED, "Not found");
+        const auto RESOURCE = PROTO::colorManagement->m_imageDescriptions.emplace_back(
+            makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id), false));
+
+        if UNLIKELY (!RESOURCE->good()) {
+            r->noMemory();
+            PROTO::colorManagement->m_imageDescriptions.pop_back();
             return;
         }
 
+        RESOURCE->m_self     = RESOURCE;
+        RESOURCE->m_settings = BT2100_IMAGE_DESCRIPTION;
+
+        RESOURCE->sendMaybeReady();
+    });
+
+    m_resource->setGetImageDescription([](CWpColorManagerV1* r, uint32_t id, wl_resource* ref) {
+        LOGM(Log::TRACE, "Get image description for reference={}, id={}", (uintptr_t)ref, id);
+
         const auto RESOURCE = PROTO::colorManagement->m_imageDescriptions.emplace_back(
-            makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id), OLD_RES->m_allowGetInformation));
+            makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id), false));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
@@ -200,7 +216,14 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
 
         RESOURCE->m_self = RESOURCE;
 
-        RESOURCE->m_settings = OLD_RES->m_settings;
+        const auto OLD_RES = CColorManagementImageDescription::fromReference(ref);
+        if UNLIKELY (!OLD_RES) {
+            RESOURCE->resource()->sendFailed(WP_IMAGE_DESCRIPTION_V1_CAUSE_UNSUPPORTED, "Reference image description was not found");
+            return;
+        }
+
+        RESOURCE->m_allowGetInformation = OLD_RES->m_allowGetInformation;
+        RESOURCE->m_settings            = OLD_RES->m_settings;
 
         RESOURCE->sendMaybeReady();
     });
@@ -357,9 +380,7 @@ bool CColorManagementSurface::isHDR() {
 }
 
 bool CColorManagementSurface::isWindowsScRGB() {
-    return m_imageDescription->value().windowsScRGB ||
-        // autodetect scRGB, might be incorrect
-        (m_imageDescription->value().primariesNamed == CM_PRIMARIES_SRGB && m_imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_EXT_LINEAR);
+    return m_imageDescription->value().primariesNamed == CM_PRIMARIES_SRGB && m_imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_EXT_LINEAR;
 }
 
 CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorManagementSurfaceFeedbackV1> resource, SP<CWLSurfaceResource> surface_) :

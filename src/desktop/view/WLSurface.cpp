@@ -3,7 +3,10 @@
 #include "Window.hpp"
 #include "../../protocols/core/Compositor.hpp"
 #include "../../protocols/LayerShell.hpp"
+#include "../../protocols/FractionalScale.hpp"
 #include "../../render/Renderer.hpp"
+
+#include <cmath>
 
 using namespace Desktop;
 using namespace Desktop::View;
@@ -58,7 +61,7 @@ Vector2D CWLSurface::correctSmallVec() const {
     const auto O    = dynamicPointerCast<CWindow>(m_view.lock());
     const auto REP  = O->getReportedSize();
 
-    return Vector2D{(REP.x - SIZE.x) / 2, (REP.y - SIZE.y) / 2}.clamp({}, {INFINITY, INFINITY}) * (O->m_realSize->value() / REP);
+    return Vector2D{(REP.x - SIZE.x) / 2, (REP.y - SIZE.y) / 2}.clamp({}, {INFINITY, INFINITY}) * (O->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT) / REP);
 }
 
 Vector2D CWLSurface::correctSmallVecBuf() const {
@@ -203,4 +206,20 @@ bool CWLSurface::keyboardFocusable() const {
     if (const auto LS = CLayerSurface::fromView(m_view.lock()); LS && LS->m_layerSurface)
         return LS->m_layerSurface->m_current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
     return false;
+}
+
+void CWLSurface::sendScale(float scale) const {
+    // FIXME: huge band-aid for weird ass shit ass behavior where onUnmap can call with m_resource alive but underlying null
+    if (m_resource.expired() || !m_resource->good())
+        return;
+
+    m_resource->sendPreferredScale(sc<uint32_t>(std::ceil(scale)));
+    PROTO::fractional->sendScale(m_resource.lock(), scale);
+}
+
+void CWLSurface::sendTransform(wl_output_transform xform) const {
+    if (m_resource.expired() || !m_resource->good())
+        return;
+
+    m_resource->sendPreferredTransform(xform);
 }

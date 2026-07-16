@@ -6,6 +6,7 @@
 #include "../protocols/PrimarySelection.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/LayerShell.hpp"
+#include "../protocols/InputCapture.hpp"
 #include "../Compositor.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../devices/IKeyboard.hpp"
@@ -18,6 +19,16 @@
 #include <ranges>
 
 using namespace Hyprutils::Utils;
+
+static bool surfaceInTree(SP<CWLSurfaceResource> root, SP<CWLSurfaceResource> surface) {
+    if (!root || !surface)
+        return false;
+
+    if (root == surface)
+        return true;
+
+    return !!root->findFirstPreorder([surface](SP<CWLSurfaceResource> candidate) { return candidate == surface; });
+}
 
 CSeatManager::CSeatManager() {
     m_listeners.newSeatResource = PROTO::seat->m_events.newSeatResource.listen([this](const auto& resource) { onNewSeatResource(resource); });
@@ -78,6 +89,57 @@ bool CSeatManager::serialValid(SP<CWLSeatResource> seatResource, uint32_t serial
     return false;
 }
 
+void CSeatManager::recordPointerButtonSerial(SP<CWLSeatResource> seatResource, uint32_t serial, SP<CWLSurfaceResource> surface, uint32_t button) {
+    if (!seatResource || !surface || !serial)
+        return;
+
+    auto container = containerForResource(seatResource);
+
+    ASSERT(container);
+
+    container->pointerButtonSerials.emplace_back(SPointerButtonSerial{
+        .serial  = serial,
+        .button  = button,
+        .surface = surface,
+    });
+
+    if (container->pointerButtonSerials.size() > MAX_SERIAL_STORE_LEN)
+        container->pointerButtonSerials.erase(container->pointerButtonSerials.begin());
+}
+
+void CSeatManager::clearPointerButtonSerials(SP<CWLSeatResource> seatResource, SP<CWLSurfaceResource> surface, uint32_t button) {
+    if (!seatResource || !surface)
+        return;
+
+    auto container = containerForResource(seatResource);
+
+    ASSERT(container);
+
+    std::erase_if(container->pointerButtonSerials, [surface, button](const auto& serial) { return serial.button == button && surfaceInTree(surface, serial.surface.lock()); });
+}
+
+bool CSeatManager::pointerButtonSerialValid(SP<CWLSeatResource> seatResource, uint32_t serial, SP<CWLSurfaceResource> surface, bool erase) {
+    if (!seatResource || !surface || !serial)
+        return false;
+
+    auto container = containerForResource(seatResource);
+
+    ASSERT(container);
+
+    for (auto it = container->pointerButtonSerials.begin(); it != container->pointerButtonSerials.end(); ++it) {
+        if (it->serial != serial)
+            continue;
+
+        const bool VALID = surfaceInTree(surface, it->surface.lock());
+        if (erase)
+            container->pointerButtonSerials.erase(it);
+
+        return VALID;
+    }
+
+    return false;
+}
+
 void CSeatManager::updateCapabilities(uint32_t capabilities) {
     PROTO::seat->updateCapabilities(capabilities);
 }
@@ -107,6 +169,7 @@ void CSeatManager::updateActiveKeyboardData() {
     if (m_keyboard)
         PROTO::seat->updateRepeatInfo(m_keyboard->m_repeatRate, m_keyboard->m_repeatDelay);
     PROTO::seat->updateKeymap();
+    PROTO::inputCapture->updateKeymap();
 }
 
 void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {

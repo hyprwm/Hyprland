@@ -119,7 +119,7 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
     // fast path: if size unchanged and no recalc needed, skip the expensive work below.
     // needsReposition is only true for newly-added decoration entries, so if the deco count
     // matches what we've cached, no new decos were added and we can skip the all_of scan too.
-    if (WINDOWDATA->lastWindowSize == pWindow->m_realSize->value() && !WINDOWDATA->needsRecalc) {
+    if (WINDOWDATA->lastWindowSize == pWindow->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT) && !WINDOWDATA->needsRecalc) {
         const auto expectedDecos = pWindow->m_windowDecorations.size();
         if (WINDOWDATA->positioningDatas.size() == expectedDecos && std::ranges::all_of(WINDOWDATA->positioningDatas, [](const auto& data) { return !data->needsReposition; }))
             return;
@@ -141,9 +141,9 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
         wd->positioningInfo = wd->pDecoration->getPositioningInfo();
     }
 
-    WINDOWDATA->lastWindowSize = pWindow->m_realSize->value();
+    WINDOWDATA->lastWindowSize = pWindow->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
     WINDOWDATA->needsRecalc    = false;
-    const bool EPHEMERAL       = pWindow->m_realSize->isBeingAnimated();
+    const bool EPHEMERAL       = pWindow->sizeAnimation()->isBeingAnimated();
 
     std::ranges::sort(datas, [](const auto& a, const auto& b) { return a->positioningInfo.priority > b->positioningInfo.priority; });
 

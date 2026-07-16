@@ -7,6 +7,7 @@
 #include "InputManager.hpp"
 #include "../../layout/space/Space.hpp"
 #include "../../layout/algorithm/Algorithm.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 
 bool CUnifiedWorkspaceSwipeGesture::isGestureInProgress() {
     return !!m_workspaceBegin;
@@ -26,12 +27,12 @@ void CUnifiedWorkspaceSwipeGesture::begin() {
     m_avgSpeed       = 0;
     m_speedPoints    = 0;
 
-    const auto FSWINDOW = PWORKSPACE->getFullscreenWindow(true);
-    const auto FSMODE   = FSWINDOW ? FSWINDOW->m_target->fullscreenMode() : PWORKSPACE->m_fullscreenMode;
+    const auto FSWINDOW         = Fullscreen::controller()->getFullscreenWindow(PWORKSPACE);
+    const auto INTERNAL_FS_MODE = FSWINDOW ? Fullscreen::controller()->getFullscreenModes(FSWINDOW).internal : Fullscreen::FSMODE_NONE;
 
-    if (FSMODE == FSMODE_FULLSCREEN) {
+    if (INTERNAL_FS_MODE == Fullscreen::FSMODE_FULLSCREEN) {
         for (auto const& ls : Desktop::focusState()->monitor()->m_layerSurfaceLayers[2]) {
-            *ls->m_alpha = 1.f;
+            *ls->alpha()[Desktop::View::LS_ALPHA_FADE] = 1.F;
         }
     }
 }
@@ -72,7 +73,7 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
     m_delta = std::clamp(m_delta, sc<double>(-SWIPEDISTANCE), sc<double>(SWIPEDISTANCE));
 
     if ((m_workspaceBegin->m_id == workspaceIDLeft && *PSWIPENEW && (m_delta < 0)) ||
-        (m_delta > 0 && m_workspaceBegin->getWindows() == 0 && workspaceIDRight <= m_workspaceBegin->m_id) || (m_delta < 0 && m_workspaceBegin->m_id <= workspaceIDLeft)) {
+        (m_delta > 0 && m_workspaceBegin->getWindowCount() == 0 && workspaceIDRight <= m_workspaceBegin->m_id) || (m_delta < 0 && m_workspaceBegin->m_id <= workspaceIDLeft)) {
 
         m_delta = 0;
         g_pHyprRenderer->damageMonitor(m_monitor.lock());
@@ -312,14 +313,14 @@ void CUnifiedWorkspaceSwipeGesture::end() {
 
     // apply alpha
     if (pSwitchedTo) {
-        const auto FSWINDOW = pSwitchedTo->getFullscreenWindow(true);
-        const auto FSMODE   = FSWINDOW ? FSWINDOW->m_target->fullscreenMode() : pSwitchedTo->m_fullscreenMode;
-        const bool HIDE     = FSMODE == FSMODE_FULLSCREEN &&
-            (!FSWINDOW || !FSWINDOW->m_target->layoutManagedFullscreen() ||
-             (pSwitchedTo->m_space && pSwitchedTo->m_space->algorithm() && pSwitchedTo->m_space->algorithm()->layoutFullscreenCoversMonitor()));
+        const auto FSWINDOW         = Fullscreen::controller()->getFullscreenWindow(pSwitchedTo);
+        const auto FS_MODE_INTERNAL = FSWINDOW ? Fullscreen::controller()->getFullscreenModes(FSWINDOW).internal : Fullscreen::FSMODE_NONE;
+        const bool HIDE             = FS_MODE_INTERNAL == Fullscreen::FSMODE_FULLSCREEN &&
+            (!FSWINDOW || !Fullscreen::controller()->layoutManagedFS(FSWINDOW) ||
+             (pSwitchedTo->m_space && pSwitchedTo->m_space->algorithm() && Fullscreen::controller()->hasFullscreen(pSwitchedTo, true)));
 
         for (auto const& ls : Desktop::focusState()->monitor()->m_layerSurfaceLayers[2]) {
-            *ls->m_alpha = HIDE ? 0.f : 1.f;
+            *ls->alpha()[Desktop::View::LS_ALPHA_FADE] = HIDE ? 0.F : 1.F;
         }
     }
 }

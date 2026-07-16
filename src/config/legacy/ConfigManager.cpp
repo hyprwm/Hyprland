@@ -18,13 +18,14 @@
 #include "../../protocols/LayerShell.hpp"
 #include "../../xwayland/XWayland.hpp"
 #include "../../protocols/OutputManagement.hpp"
-#include "../../managers/animation/AnimationManager.hpp"
+#include "../../animation/AnimationManager.hpp"
 #include "../../desktop/rule/Engine.hpp"
 #include "../../desktop/rule/windowRule/WindowRule.hpp"
 #include "../../desktop/rule/layerRule/LayerRule.hpp"
 #include "../../debug/HyprCtl.hpp"
 #include "../../layout/LayoutManager.hpp"
 #include "../../desktop/state/FocusState.hpp"
+#include "../../desktop/state/GlobalWindowController.hpp"
 #include "../../layout/space/Space.hpp"
 #include "../../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 #include "../../state/MonitorState.hpp"
@@ -762,8 +763,8 @@ std::string CConfigManager::verify() {
 
 std::optional<std::string> CConfigManager::resetHLConfig() {
     g_pKeybindManager->clearKeybinds();
-    g_pAnimationManager->removeAllBeziers();
-    g_pAnimationManager->addBezierWithName("linear", Vector2D(0.0, 0.0), Vector2D(1.0, 1.0));
+    Animation::mgr()->removeAllBeziers();
+    Animation::mgr()->addBezierWithName("linear", Vector2D(0.0, 0.0), Vector2D(1.0, 1.0));
     g_pTrackpadGestures->clearGestures();
 
     Config::animationTree()->reset();
@@ -1030,7 +1031,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     }
 
     // Update window border colors
-    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+    Desktop::globalWindowController()->updateAllWindowsDecorations();
 
     // manual crash
     if (std::any_cast<Hyprlang::INT>(m_config->getConfigValue("debug:manual_crash")) && !m_manualCrashInitiated) {
@@ -1096,7 +1097,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     }
 
     // Update window border colors
-    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+    Desktop::globalWindowController()->updateAllWindowsDecorations();
 
     // manual crash
     if (std::any_cast<Hyprlang::INT>(m_config->getConfigValue("debug:manual_crash")) && !m_manualCrashInitiated) {
@@ -1417,7 +1418,7 @@ std::optional<std::string> CConfigManager::handleBezier(const std::string& comma
     if (!ARGS[5].empty())
         return "too many arguments";
 
-    g_pAnimationManager->addBezierWithName(bezierName, Vector2D(p1x, p1y), Vector2D(p2x, p2y));
+    Animation::mgr()->addBezierWithName(bezierName, Vector2D(p1x, p1y), Vector2D(p2x, p2y));
 
     return {};
 }
@@ -1462,13 +1463,13 @@ std::optional<std::string> CConfigManager::handleAnimation(const std::string& co
 
     std::string bezierName = ARGS[3];
 
-    if (!g_pAnimationManager->bezierExists(bezierName))
+    if (!Animation::mgr()->bezierExists(bezierName))
         return "no such bezier";
 
     Config::animationTree()->setConfigForNode(ANIMNAME, enabledInt, speed, ARGS[3], ARGS[4]);
 
     if (!ARGS[4].empty()) {
-        auto ERR = g_pAnimationManager->styleValidInConfigVar(ANIMNAME, ARGS[4]);
+        auto ERR = Animation::mgr()->styleValidInConfigVar(ANIMNAME, ARGS[4]);
 
         if (!ERR.empty())
             return ERR;
@@ -1493,23 +1494,24 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     // bind[fl]=SUPER,G,exec,dmenu_run <args>
 
     // flags
-    bool       locked          = false;
-    bool       release         = false;
-    bool       repeat          = false;
-    bool       mouse           = false;
-    bool       nonConsuming    = false;
-    bool       autoConsuming   = false;
-    bool       transparent     = false;
-    bool       ignoreMods      = false;
-    bool       multiKey        = false;
-    bool       longPress       = false;
-    bool       hasDescription  = false;
-    bool       dontInhibit     = false;
-    bool       click           = false;
-    bool       drag            = false;
-    bool       submapUniversal = false;
-    bool       isPerDevice     = false;
-    const auto BINDARGS        = command.substr(4);
+    bool       locked            = false;
+    bool       release           = false;
+    bool       repeat            = false;
+    bool       mouse             = false;
+    bool       nonConsuming      = false;
+    bool       autoConsuming     = false;
+    bool       transparent       = false;
+    bool       ignoreMods        = false;
+    bool       multiKey          = false;
+    bool       longPress         = false;
+    bool       hasDescription    = false;
+    bool       dontInhibit       = false;
+    bool       click             = false;
+    bool       drag              = false;
+    bool       submapUniversal   = false;
+    bool       isPerDevice       = false;
+    bool       allowInputCapture = false;
+    const auto BINDARGS          = command.substr(4);
 
     for (auto const& arg : BINDARGS) {
         switch (arg) {
@@ -1535,6 +1537,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
                 break;
             case 'u': submapUniversal = true; break;
             case 'k': isPerDevice = true; break;
+            case 'x': allowInputCapture = true; break;
             default: return "bind: invalid flag";
         }
     }
@@ -1644,7 +1647,8 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
                                                drag,
                                                submapUniversal,
                                                deviceInclusive,
-                                               devices});
+                                               devices,
+                                               allowInputCapture});
     }
 
     return {};
@@ -1903,6 +1907,8 @@ std::optional<std::string> CConfigManager::handlePermission(const std::string& c
         type = PERMISSION_TYPE_PLUGIN;
     else if (data[1] == "keyboard" || data[1] == "keeb")
         type = PERMISSION_TYPE_KEYBOARD;
+    else if (data[1] == "input-capture")
+        type = PERMISSION_TYPE_INPUT_CAPTURE;
 
     if (data[2] == "ask")
         mode = PERMISSION_RULE_ALLOW_MODE_ASK;

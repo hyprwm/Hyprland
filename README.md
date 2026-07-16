@@ -126,9 +126,9 @@ easy IPC, much more QoL stuff than other compositors and more...
 
 <!----------------------------------{ Images }--------------------------------->
 
-[Preview A]: https://i.ibb.co/XxFY75Mk/greerggergerhtrytghjnyhjn.png
-[Preview B]: https://i.ibb.co/C1yTb0r/falf.png
-[Preview C]: https://i.ibb.co/2Yc4q835/hyprland-preview-b.png
+[Preview A]: ./assets/prev1.png
+[Preview B]: ./assets/prev2.png
+[Preview C]: ./assets/prev3.png
 
 
 <!----------------------------------{ Badges }--------------------------------->

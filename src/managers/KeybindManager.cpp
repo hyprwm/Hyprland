@@ -4,19 +4,20 @@
 #include "../config/shared/actions/ConfigActions.hpp"
 #include "../devices/IKeyboard.hpp"
 #include "../managers/SeatManager.hpp"
+#include "../managers/fullscreen/FullscreenController.hpp"
+#include "../protocols/InputCapture.hpp"
 #include "../protocols/ShortcutsInhibit.hpp"
 #include "../protocols/Hotkey.hpp"
 #include "../protocols/core/DataDevice.hpp"
 #include "../errorOverlay/Overlay.hpp"
 #include "KeybindManager.hpp"
-#include "PointerManager.hpp"
+#include "../pointer/PointerManager.hpp"
 #include "Compositor.hpp"
 #include "eventLoop/EventLoopManager.hpp"
 #include "debug/log/Logger.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../layout/LayoutManager.hpp"
 #include "../event/EventBus.hpp"
-
 #include <string>
 #include <cstring>
 
@@ -107,7 +108,8 @@ CKeybindManager::CKeybindManager() {
                              "event",
                              "global",
                              "setprop",
-                             "forceidle"}) {
+                             "forceidle",
+                             "releaseinputcapture"}) {
         m_dispatchers[name] = [n = std::string(name)](std::string args) -> SDispatchResult { return Config::Legacy::translator()->run(n, args); };
     }
 
@@ -372,7 +374,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
 
     // handleInternalKeybinds returns true when the key should be suppressed,
     // while this function returns true when the key event should be sent
-    if (handleInternalKeybinds(internalKeysym))
+    if (!PROTO::inputCapture->isCaptured() && handleInternalKeybinds(internalKeysym))
         return false;
 
     const auto MODS = g_pInputManager->getModsFromAllKBs();
@@ -630,6 +632,9 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
     std::vector<SP<SKeybind>> bindsHit;
 
     for (auto& k : m_keybinds) {
+        if (PROTO::inputCapture->isCaptured() && !k->allowInputCapture)
+            continue;
+
         const bool SPECIALDISPATCHER = k->handler == "global" || k->handler == "pass" || k->handler == "sendshortcut" || k->handler == "mouse" || k->releasePending;
         const bool SPECIALTRIGGERED  = std::ranges::find_if(m_pressedSpecialBinds, [&](const auto& other) { return other == k; }) != m_pressedSpecialBinds.end();
         const bool IGNORECONDITIONS =
@@ -906,10 +911,13 @@ bool CKeybindManager::handleVT(xkb_keysym_t keysym) {
 
         const auto         CURRENT_TTY = g_pCompositor->getVTNr();
 
-        if (!CURRENT_TTY.has_value() || *CURRENT_TTY == TTY)
+        if (CURRENT_TTY.has_value() && *CURRENT_TTY == TTY)
             return true;
 
-        Log::logger->log(Log::DEBUG, "Switching from VT {} to VT {}", *CURRENT_TTY, TTY);
+        if (CURRENT_TTY)
+            Log::logger->log(Log::DEBUG, "Switching from VT {} to VT {}", *CURRENT_TTY, TTY);
+        else
+            Log::logger->log(Log::DEBUG, "Switching from VT <unknown> to VT {}", TTY);
 
         g_pCompositor->m_aqBackend->session->switchVT(TTY);
     }
@@ -950,7 +958,7 @@ SDispatchResult CKeybindManager::changeMouseBindMode(const eMouseBindMode MODE) 
         if (!PWINDOW)
             return SDispatchResult{.passEvent = true};
 
-        if (!PWINDOW->isFullscreen() && MODE == MBIND_MOVE) {
+        if (!Fullscreen::controller()->isFullscreen(PWINDOW) && MODE == MBIND_MOVE) {
             if (PWINDOW->checkInputOnDecos(INPUT_TYPE_DRAG_START, MOUSECOORDS))
                 return SDispatchResult{.passEvent = false};
         }

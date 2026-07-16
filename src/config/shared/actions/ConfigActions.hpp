@@ -9,6 +9,10 @@
 #include "../../../helpers/math/Direction.hpp"
 #include "../ConfigErrors.hpp"
 
+namespace Fullscreen {
+    enum eFullscreenMode : int8_t;
+}
+
 namespace Config::Actions {
     struct SActionResult {
         bool passEvent = false;
@@ -37,8 +41,9 @@ namespace Config::Actions {
     ActionResult floatWindow(eTogglableAction action, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult pseudoWindow(eTogglableAction action, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult pinWindow(eTogglableAction action, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
-    ActionResult fullscreenWindow(eFullscreenMode mode, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
-    ActionResult fullscreenWindow(eFullscreenMode internalMode, eFullscreenMode clientMode, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
+    ActionResult fullscreenWindow(Fullscreen::eFullscreenMode mode, bool layoutAware, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
+    ActionResult fullscreenWindow(Fullscreen::eFullscreenMode internalMode, Fullscreen::eFullscreenMode clientMode, bool layoutAware,
+                                  std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult moveToWorkspace(PHLWORKSPACE ws, bool silent, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult moveFocus(Math::eDirection dir);
     ActionResult focus(PHLWINDOW window);
@@ -68,6 +73,7 @@ namespace Config::Actions {
     ActionResult changeWorkspace(PHLWORKSPACE ws);
     ActionResult changeWorkspace(const std::string& ws);
     ActionResult renameWorkspace(PHLWORKSPACE ws, const std::string& s);
+    ActionResult changeWorkspaceID(PHLWORKSPACE ws, int64_t id);
     ActionResult moveToMonitor(PHLWORKSPACE ws, PHLMONITOR mon);
     ActionResult changeWorkspaceOnCurrentMonitor(PHLWORKSPACE ws);
     ActionResult toggleSpecial(PHLWORKSPACE special);
@@ -97,6 +103,8 @@ namespace Config::Actions {
     ActionResult moveWindowOrGroup(Math::eDirection direction, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult denyWindowFromGroup(eTogglableAction action);
     ActionResult moveIntoOrCreateGroup(Math::eDirection dir, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
+
+    ActionResult releaseInputCapture();
 
     class CActionState {
       public:

@@ -1,6 +1,7 @@
 #include <re2/re2.h>
 
 #include <cctype>
+#include <cerrno>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <cstdio>
@@ -51,6 +52,24 @@ void log(const std::string_view str) {
         return;
 
     std::println("{}", str);
+}
+
+static bool writeAll(const int fd, std::string_view data) {
+    size_t totalWritten = 0;
+    while (totalWritten < data.size()) {
+        const auto written = write(fd, data.data() + totalWritten, data.size() - totalWritten);
+        if (written > 0) {
+            totalWritten += sc<size_t>(written);
+            continue;
+        }
+
+        if (written < 0 && errno == EINTR)
+            continue;
+
+        return false;
+    }
+
+    return true;
 }
 
 static int getUID() {
@@ -217,9 +236,7 @@ int request(std::string_view arg, int minArgs = 0, bool needRoll = false) {
         return 4;
     }
 
-    auto sizeWritten = write(SERVERSOCKET, arg.data(), arg.size());
-
-    if (sizeWritten < 0) {
+    if (!writeAll(SERVERSOCKET, arg)) {
         log("Couldn't write (5)");
         return 5;
     }
@@ -234,21 +251,23 @@ int request(std::string_view arg, int minArgs = 0, bool needRoll = false) {
     // read all data until server closes the connection
     // this handles partial writes on the server side under high load
     while (true) {
-        sizeWritten = read(SERVERSOCKET, buffer, BUFFER_SIZE);
+        const auto sizeRead = read(SERVERSOCKET, buffer, BUFFER_SIZE);
 
-        if (sizeWritten < 0) {
+        if (sizeRead < 0) {
+            if (errno == EINTR)
+                continue;
             if (errno == EWOULDBLOCK)
                 log("Hyprland IPC didn't respond in time\n");
             log("Couldn't read (6)");
             return 6;
         }
 
-        if (sizeWritten == 0) {
+        if (sizeRead == 0) {
             // server closed connection, we're done
             break;
         }
 
-        reply += std::string(buffer, sizeWritten);
+        reply.append(buffer, sc<size_t>(sizeRead));
     }
 
     close(SERVERSOCKET);
@@ -289,25 +308,26 @@ int requestIPC(std::string_view filename, std::string_view arg) {
     arg = arg.substr(arg.find_first_of('/') + 1); // strip flags
     arg = arg.substr(arg.find_first_of(' ') + 1); // strip "hyprpaper"
 
-    auto sizeWritten = write(SERVERSOCKET, arg.data(), arg.size());
-
-    if (sizeWritten < 0) {
+    if (!writeAll(SERVERSOCKET, arg)) {
         log("Couldn't write (4)");
         return 4;
     }
     constexpr size_t BUFFER_SIZE         = 8192;
     char             buffer[BUFFER_SIZE] = {0};
 
-    sizeWritten = read(SERVERSOCKET, buffer, BUFFER_SIZE);
+    ssize_t          sizeRead = 0;
+    do {
+        sizeRead = read(SERVERSOCKET, buffer, BUFFER_SIZE);
+    } while (sizeRead < 0 && errno == EINTR);
 
-    if (sizeWritten < 0) {
+    if (sizeRead < 0) {
         log("Couldn't read (5)");
         return 5;
     }
 
     close(SERVERSOCKET);
 
-    log(std::string(buffer));
+    log(std::string(buffer, sc<size_t>(sizeRead)));
 
     return 0;
 }

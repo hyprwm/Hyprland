@@ -17,7 +17,7 @@ IView::~IView() {
     if (!m_initialized)
         return;
 
-    Event::bus()->m_events.view.destroy.emit({.view = m_self, .type = m_type, .address = m_address});
+    Event::bus()->m_events.view.destroy.emit({.view = m_self, .type = m_type});
 }
 
 void IView::initView(WP<IView> self, eViewType type) {

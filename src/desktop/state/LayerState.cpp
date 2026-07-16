@@ -19,7 +19,7 @@ CLayerState::CLayerState() {
         if (event.type != View::VIEW_TYPE_LAYER_SURFACE)
             return;
 
-        std::erase_if(m_layers, [&](auto& x) { return !x || rc<uintptr_t>(sc<View::IView*>(x.get())) == event.address; });
+        std::erase_if(m_layers, [&](auto& x) { return !x || rc<uintptr_t>(dc<View::IView*>(x.get())) == event.address; });
     });
 }
 

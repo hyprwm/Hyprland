@@ -2,6 +2,8 @@
 
 #include <vector>
 #include <cstdint>
+#include <set>
+#include <utility>
 #include "WaylandProtocol.hpp"
 #include "wayland.hpp"
 #include "linux-dmabuf-v1.hpp"
@@ -51,10 +53,13 @@ class CDMABUFFormatTable {
     CDMABUFFormatTable(SDMABUFTranche rendererTranche, std::vector<std::pair<PHLMONITORREF, SDMABUFTranche>> tranches);
     ~CDMABUFFormatTable() = default;
 
+    bool                                                  contains(uint32_t fmt, uint64_t modifier) const;
+
     Hyprutils::OS::CFileDescriptor                        m_tableFD;
     size_t                                                m_tableSize = 0;
     SDMABUFTranche                                        m_rendererTranche;
     std::vector<std::pair<PHLMONITORREF, SDMABUFTranche>> m_monitorTranches;
+    std::set<std::pair<uint32_t, uint64_t>>               m_formats;
 };
 
 class CLinuxDMABUFParamsResource {

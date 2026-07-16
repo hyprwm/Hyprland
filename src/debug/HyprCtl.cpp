@@ -2232,7 +2232,8 @@ static bool isFollowUpRollingLogRequest(const std::string& request) {
     return request.contains("rollinglog") && request.contains("f");
 }
 
-static constexpr size_t HYPRCTL_MAX_REQUEST_SIZE = 1024 * 1024;
+static constexpr size_t                    HYPRCTL_MAX_REQUEST_SIZE   = 1024 * 1024;
+static constexpr std::chrono::milliseconds HYPRCTL_LEGACY_FRAME_GRACE = std::chrono::milliseconds(10);
 
 int                     CHyprCtl::onSocketEvent(int fd, uint32_t mask, void* data) {
     if (mask & WL_EVENT_ERROR || mask & WL_EVENT_HANGUP)
@@ -2291,8 +2292,14 @@ void CHyprCtl::acceptClient() {
                 if (!g_pHyprCtl || !CLIENT || CLIENT->closed)
                     return;
 
-                Log::logger->log(Log::WARN, "Hyprctl: closing idle client fd {} before receiving a request", CLIENT->fd.get());
-                g_pHyprCtl->removeClient(CLIENT.get());
+                if (CLIENT->request.empty()) {
+                    Log::logger->log(Log::WARN, "Hyprctl: closing idle client fd {} before receiving a request", CLIENT->fd.get());
+                    g_pHyprCtl->removeClient(CLIENT.get());
+                    return;
+                }
+
+                // Clients predating request terminators need a short quiet period as their frame boundary.
+                g_pHyprCtl->processClientRequest(CLIENT);
             },
             nullptr);
         g_pEventLoopManager->addTimer(client->requestTimeout);
@@ -2363,7 +2370,7 @@ void CHyprCtl::readClient(const SP<SHyprCtlClient>& client) {
         const auto MESSAGE_SIZE = read(client->fd.get(), readBuffer.data(), readBuffer.size());
         if (MESSAGE_SIZE > 0) {
             const auto SIZE = sc<size_t>(MESSAGE_SIZE);
-            if (SIZE > readBuffer.size() || client->request.size() > HYPRCTL_MAX_REQUEST_SIZE - SIZE) {
+            if (SIZE > readBuffer.size() || client->request.size() + SIZE > HYPRCTL_MAX_REQUEST_SIZE + 1) {
                 Log::logger->log(Log::ERR, "Hyprctl: request from pid {} exceeded {} bytes", client->pid, HYPRCTL_MAX_REQUEST_SIZE);
                 removeClient(client.get());
                 return;
@@ -2372,19 +2379,37 @@ void CHyprCtl::readClient(const SP<SHyprCtlClient>& client) {
             client->request.append(readBuffer.data(), SIZE);
             if (client->requestTimeout)
                 client->requestTimeout->updateTimeout(std::chrono::seconds(5));
+
+            if (const auto REQUEST_END = client->request.find('\0'); REQUEST_END != std::string::npos) {
+                if (REQUEST_END != client->request.size() - 1) {
+                    Log::logger->log(Log::ERR, "Hyprctl: request from pid {} contained data after its terminator", client->pid);
+                    removeClient(client.get());
+                    return;
+                }
+
+                client->request.resize(REQUEST_END);
+                processClientRequest(client);
+                return;
+            }
+
             continue;
         }
 
         if (MESSAGE_SIZE == 0) {
-            if (!client->request.empty())
-                break;
+            if (!client->request.empty()) {
+                processClientRequest(client);
+                return;
+            }
 
             removeClient(client.get());
             return;
         }
 
-        if (errno == EAGAIN || errno == EWOULDBLOCK)
-            break;
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            if (!client->request.empty() && client->requestTimeout)
+                client->requestTimeout->updateTimeout(HYPRCTL_LEGACY_FRAME_GRACE);
+            return;
+        }
 
         if (errno == EINTR)
             continue;
@@ -2393,9 +2418,6 @@ void CHyprCtl::readClient(const SP<SHyprCtlClient>& client) {
         removeClient(client.get());
         return;
     }
-
-    if (!client->request.empty())
-        processClientRequest(client);
 }
 
 void CHyprCtl::processClientRequest(const SP<SHyprCtlClient>& client) {

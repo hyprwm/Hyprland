@@ -13,6 +13,7 @@
 #include <pwd.h>
 #include <unistd.h>
 #include <algorithm>
+#include <cerrno>
 #include <csignal>
 #include <ranges>
 #include <optional>
@@ -51,6 +52,24 @@ void log(const std::string_view str) {
         return;
 
     std::println("{}", str);
+}
+
+static bool writeAll(const int fd, std::string_view data) {
+    size_t totalWritten = 0;
+    while (totalWritten < data.size()) {
+        const auto written = write(fd, data.data() + totalWritten, data.size() - totalWritten);
+        if (written > 0) {
+            totalWritten += sc<size_t>(written);
+            continue;
+        }
+
+        if (written < 0 && errno == EINTR)
+            continue;
+
+        return false;
+    }
+
+    return true;
 }
 
 static int getUID() {
@@ -217,9 +236,10 @@ int request(std::string_view arg, int minArgs = 0, bool needRoll = false) {
         return 4;
     }
 
-    auto sizeWritten = write(SERVERSOCKET, arg.data(), arg.size());
+    std::string framedArg{arg};
+    framedArg.push_back('\0');
 
-    if (sizeWritten < 0) {
+    if (!writeAll(SERVERSOCKET, framedArg)) {
         log("Couldn't write (5)");
         return 5;
     }
@@ -230,6 +250,7 @@ int request(std::string_view arg, int minArgs = 0, bool needRoll = false) {
     std::string      reply               = "";
     constexpr size_t BUFFER_SIZE         = 8192;
     char             buffer[BUFFER_SIZE] = {0};
+    ssize_t          sizeWritten         = 0;
 
     // read all data until server closes the connection
     // this handles partial writes on the server side under high load

@@ -1,4 +1,5 @@
 #include "HyprlandSocket.hpp"
+#include <cerrno>
 #include <pwd.h>
 #include <sys/socket.h>
 #include "../helpers/StringUtils.hpp"
@@ -9,6 +10,24 @@
 #include <hyprutils/memory/Casts.hpp>
 
 using namespace Hyprutils::Memory;
+
+static bool writeAll(const int fd, std::string_view data) {
+    size_t totalWritten = 0;
+    while (totalWritten < data.size()) {
+        const auto written = write(fd, data.data() + totalWritten, data.size() - totalWritten);
+        if (written > 0) {
+            totalWritten += sc<size_t>(written);
+            continue;
+        }
+
+        if (written < 0 && errno == EINTR)
+            continue;
+
+        return false;
+    }
+
+    return true;
+}
 
 static int getUID() {
     const auto UID   = getuid();
@@ -54,9 +73,10 @@ std::string NHyprlandSocket::send(const std::string& cmd) {
         return "";
     }
 
-    auto sizeWritten = write(SERVERSOCKET, cmd.c_str(), cmd.length());
+    std::string framedCmd{cmd};
+    framedCmd.push_back('\0');
 
-    if (sizeWritten < 0) {
+    if (!writeAll(SERVERSOCKET, framedCmd)) {
         std::println("{}", failureString("Couldn't write (5)"));
         return "";
     }
@@ -65,7 +85,7 @@ std::string NHyprlandSocket::send(const std::string& cmd) {
     constexpr size_t BUFFER_SIZE         = 8192;
     char             buffer[BUFFER_SIZE] = {0};
 
-    sizeWritten = read(SERVERSOCKET, buffer, BUFFER_SIZE);
+    auto             sizeWritten = read(SERVERSOCKET, buffer, BUFFER_SIZE);
 
     if (sizeWritten < 0) {
         std::println("{}", failureString("Couldn't read (6)"));

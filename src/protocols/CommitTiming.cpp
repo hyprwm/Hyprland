@@ -29,8 +29,11 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
 
         if (delay.count() <= 0) {
             m_surface->m_pending.pendingTimeout.reset();
-        } else
-            m_surface->m_pending.pendingTimeout = delay;
+            m_surface->m_pending.commitTimingTarget.reset();
+        } else {
+            m_surface->m_pending.pendingTimeout     = delay;
+            m_surface->m_pending.commitTimingTarget = Time::steady_tp{std::chrono::seconds((((uint64_t)tvHi) << 32) | tvLo) + std::chrono::nanoseconds(tvNsec)};
+        }
     });
 
     m_listeners.surfaceStateCommit = m_surface->m_events.stateCommit2.listen([this](auto state) {
@@ -39,11 +42,7 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
 
         m_surface->m_stateQueue.lock(state, LOCK_REASON_TIMER);
 
-        // record the absolute target so onMonitorPresent can release the lock on the first vblank at or after
-        // it. Otherwise the wall clock timer releases it at the target, missing that vblank and delaying
-        // presentation by one refresh cycle.
         std::erase_if(m_pendingTimedStates, [](const WP<SSurfaceState>& ws) { return !ws; });
-        state->commitTimingTarget = Time::steadyNow() + *state->pendingTimeout;
         m_pendingTimedStates.emplace_back(state);
 
         if (!state->timer) {

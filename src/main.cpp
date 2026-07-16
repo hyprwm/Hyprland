@@ -286,8 +286,11 @@ int main(int argc, char** argv) {
 
     g_pCompositor->initServer(socketName, socketFd);
 
-    if (verifyConfig)
-        return !Config::mgr()->configVerifPassed();
+    if (verifyConfig) {
+        const auto verify = Config::mgr()->configVerifPassed();
+        Config::mgr().reset();
+        return !verify;
+    }
 
     Log::logger->log(Log::DEBUG, "Hyprland init finished.");
 

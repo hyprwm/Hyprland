@@ -3,7 +3,7 @@
 
 #include "initHelpers.hpp"
 
-#if defined(__linux__)
+#ifdef HAS_RTKIT
 #include <sys/resource.h>
 #include <sys/syscall.h>
 #include <algorithm>
@@ -24,7 +24,7 @@ bool NInit::isSudo() {
 // setcap or a security wrapper) or a nonzero RLIMIT_RTPRIO (e.g. a "realtime" group
 // entry in limits.conf).
 static bool trySchedDirect(int prio) {
-#if defined(__linux__)
+#ifdef HAS_RTKIT
     // SCHED_RESET_ON_FORK keeps children from inheriting realtime, the same kernel mechanism
     // rtkit's grants use. Raw syscall because not every libc exposes the per-thread Linux
     // semantics of sched_setscheduler (musl returns ENOSYS).
@@ -45,7 +45,7 @@ static bool trySchedDirect(int prio) {
 #endif
 }
 
-#if defined(__linux__)
+#ifdef HAS_RTKIT
 
 // Cached for the SIGXCPU handler: it must demote the RT thread specifically, but a
 // process-directed signal can be delivered to any thread.
@@ -163,7 +163,7 @@ void NInit::gainRealTime() {
     const int minPrio = sched_get_priority_min(SCHED_RR);
     bool      gained  = false;
 
-#if defined(__linux__)
+#ifdef HAS_RTKIT
     if (!installSigxcpuHandler())
         return;
 #endif
@@ -172,7 +172,7 @@ void NInit::gainRealTime() {
     if (gained)
         Log::logger->log(Log::DEBUG, "Gained realtime scheduling directly");
 
-#if defined(__linux__)
+#ifdef HAS_RTKIT
     if (!gained && (gained = tryRtkit(minPrio)))
         Log::logger->log(Log::DEBUG, "Gained realtime scheduling via rtkit");
 #endif
@@ -186,7 +186,7 @@ void NInit::gainRealTime() {
     // CAP_SYS_NICE due to how the security wrapper works.
     prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_LOWER, CAP_SYS_NICE, 0, 0);
 
-#if !defined(__linux__)
+#ifndef HAS_RTKIT
     // spawned children must not inherit RT, on Linux the kernel handles this via
     // SCHED_RESET_ON_FORK on both promotion paths
     pthread_atfork(nullptr, nullptr, []() {

@@ -21,7 +21,7 @@ CWindowState::CWindowState() {
         if (event.type != View::VIEW_TYPE_WINDOW)
             return;
 
-        std::erase_if(m_windows, [&](auto& x) { return !x || dynamicPointerCast<View::IView>(x->m_self); });
+        std::erase_if(m_windows, [&](auto& x) { return !x || event.view == dynamicPointerCast<View::IView>(x->m_self); });
     });
 }
 

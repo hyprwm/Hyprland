@@ -115,7 +115,7 @@ void CPresentationProtocol::destroyResource(CPresentationFeedback* feedback) {
 }
 
 void CPresentationProtocol::onGetFeedback(CWpPresentation* pMgr, wl_resource* surf, uint32_t id) {
-    const auto CLIENT = pMgr->client();
+    const auto  CLIENT = pMgr->client();
     const auto& RESOURCE =
         m_feedbacks.emplace_back(makeUnique<CPresentationFeedback>(makeUnique<CWpPresentationFeedback>(CLIENT, pMgr->version(), id), CWLSurfaceResource::fromResource(surf)));
 

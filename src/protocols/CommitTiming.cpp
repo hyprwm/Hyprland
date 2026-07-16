@@ -132,11 +132,11 @@ bool CCommitTimingManagerResource::good() {
 
 CCommitTimingProtocol::CCommitTimingProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     static auto P = Event::bus()->m_events.monitor.added.listen([this](PHLMONITOR M) {
-        M->m_events.presented.listenStatic([this, m = PHLMONITORREF{M}](const Time::steady_tp& presentTime) {
-            if (!m || !PROTO::commitTiming)
+        M->m_events.presented.listenStatic([this, m = PHLMONITORREF{M}](const std::optional<Time::steady_tp>& presentTime) {
+            if (!m || !PROTO::commitTiming || !presentTime)
                 return;
 
-            onMonitorPresent(m.lock(), presentTime);
+            onMonitorPresent(m.lock(), *presentTime);
         });
     });
 }

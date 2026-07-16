@@ -183,13 +183,13 @@ namespace Monitor {
         } m_tearingState;
 
         struct {
-            CSignalT<>                commit;
-            CSignalT<>                destroy;
-            CSignalT<>                connect;
-            CSignalT<>                disconnect;
-            CSignalT<>                dpmsChanged;
-            CSignalT<>                modeChanged;
-            CSignalT<Time::steady_tp> presented;
+            CSignalT<>                               commit;
+            CSignalT<>                               destroy;
+            CSignalT<>                               connect;
+            CSignalT<>                               disconnect;
+            CSignalT<>                               dpmsChanged;
+            CSignalT<>                               modeChanged;
+            CSignalT<std::optional<Time::steady_tp>> presented;
         } m_events;
 
         std::array<std::vector<PHLLSREF>, 4> m_layerSurfaceLayers;

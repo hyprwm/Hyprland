@@ -196,7 +196,7 @@ void CMonitor::onConnect(bool noRule) {
 
         m_frameScheduler->onPresented();
 
-        m_events.presented.emit(ts ? Time::fromTimespec(ts) : Time::steadyNow());
+        m_events.presented.emit(ts ? std::optional<Time::steady_tp>{Time::fromTimespec(ts)} : std::nullopt);
     });
 
     m_listeners.destroy = m_output->events.destroy.listen([this] {

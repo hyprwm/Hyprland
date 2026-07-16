@@ -2188,11 +2188,13 @@ bool CMonitor::attemptDirectScanout() {
     if (g_pHyprRenderer->explicitSyncSupported() && isMultiGPU()) {
         auto sync = g_pHyprRenderer->createSyncFDManager();
 
-        if (sync->fd().isValid()) {
+        if (sync && sync->isValid()) {
             m_inFence = sync->takeFd();
             m_output->state->setExplicitInFence(m_inFence.get());
-        } else
+        } else {
+            m_inFence.reset();
             m_output->state->resetExplicitFences(); // good luck.
+        }
     } else
         m_output->state->resetExplicitFences();
 

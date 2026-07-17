@@ -502,7 +502,9 @@ bool CPluginManager::updateHeaders(bool force) {
         std::filesystem::permissions(getTempRoot(), std::filesystem::perms::owner_all, std::filesystem::perm_options::replace);
     }
 
-    if (!force && headersValid() == HEADERS_OK) {
+    const auto CURRENTHEADERS = headersValid();
+
+    if (!force && (CURRENTHEADERS == HEADERS_OK || CURRENTHEADERS == HEADERS_ABI_MISMATCH)) {
         std::println("\n{}", successString("Headers up to date."));
         return true;
     }
@@ -641,15 +643,11 @@ bool CPluginManager::updateHeaders(bool force) {
 
     auto HEADERSVALID = headersValid();
 
-    if (HEADERSVALID == HEADERS_OK || HEADERSVALID == HEADERS_MISMATCHED || HEADERSVALID == HEADERS_ABI_MISMATCH) {
+    if (HEADERSVALID == HEADERS_OK || HEADERSVALID == HEADERS_ABI_MISMATCH) {
         progress.printMessageAbove(successString("installed headers"));
         progress.m_iSteps           = 5;
         progress.m_szCurrentMessage = "Done!";
         progress.print();
-
-        auto GLOBALSTATE               = DataState::getGlobalState();
-        GLOBALSTATE.headersAbiCompiled = HLVER.abiHash;
-        DataState::updateGlobalState(GLOBALSTATE);
 
         std::print("\n");
     } else {
@@ -668,19 +666,23 @@ bool CPluginManager::updateHeaders(bool force) {
 }
 
 bool CPluginManager::updatePlugins(bool forceUpdateAll) {
-    if (headersValid() != HEADERS_OK) {
+    const auto HEADERSVALID = headersValid();
+
+    if (HEADERSVALID != HEADERS_OK && HEADERSVALID != HEADERS_ABI_MISMATCH) {
         std::println("{}", failureString("headers are not up-to-date, please run hyprpm update."));
         return false;
     }
 
+    const auto HLVER = getHyprlandVersion(false);
     const auto REPOS = DataState::getAllRepositories();
 
     if (REPOS.size() < 1) {
+        auto GLOBALSTATE               = DataState::getGlobalState();
+        GLOBALSTATE.headersAbiCompiled = HLVER.abiHash;
+        DataState::updateGlobalState(GLOBALSTATE);
         std::println("{}", failureString("No repos to update."));
         return true;
     }
-
-    const auto   HLVER = getHyprlandVersion(false);
 
     CProgressBar progress;
     progress.m_iMaxSteps        = (REPOS.size() * 2) + 2;
@@ -690,6 +692,18 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
 
     const std::string USERNAME = getpwuid(getuid())->pw_name;
     m_szWorkingPluginDirectory = getTempRoot() + USERNAME;
+
+    std::vector<std::string> failedRepos;
+
+    const auto               markRepoFailed = [&](const SPluginRepository& repo, bool advanceProgress) {
+        failedRepos.emplace_back(repo.name);
+        std::filesystem::remove_all(m_szWorkingPluginDirectory);
+
+        if (advanceProgress) {
+            progress.m_iSteps++;
+            progress.print();
+        }
+    };
 
     for (auto const& repo : REPOS) {
         bool update = forceUpdateAll;
@@ -707,8 +721,9 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
         std::string ret = execAndGet(std::format("cd {} && git clone --recursive '{}' {}", getTempRoot(), repo.url, USERNAME));
 
         if (!std::filesystem::exists(m_szWorkingPluginDirectory + "/.git")) {
-            std::println("{}", failureString("could not clone repo: shell returned: {}", ret));
-            return false;
+            std::println(stderr, "\n{}", failureString("could not clone repo: shell returned: {}", ret));
+            markRepoFailed(repo, true);
+            continue;
         }
 
         if (!repo.rev.empty()) {
@@ -718,7 +733,8 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
             if (ret.compare(0, 6, "fatal:") == 0) {
                 std::println(stderr, "\n{}", failureString("could not check out revision {}: shell returned:\n{}", repo.rev, ret));
 
-                return false;
+                markRepoFailed(repo, true);
+                continue;
             }
         }
 
@@ -758,11 +774,13 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
 
         if (!pManifest) {
             std::println(stderr, "\n{}", failureString("The provided plugin repository does not have a valid manifest"));
+            markRepoFailed(repo, false);
             continue;
         }
 
         if (!pManifest->m_good) {
             std::println(stderr, "\n{}", failureString("The provided plugin repository has a bad manifest"));
+            markRepoFailed(repo, false);
             continue;
         }
 
@@ -771,27 +789,38 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
 
             progress.printMessageAbove(infoString("Manifest has {} pins, checking", pManifest->m_repository.commitPins.size()));
 
+            bool commitPinFailed = false;
+
             for (auto const& [hl, plugin] : pManifest->m_repository.commitPins) {
                 if (hl != HLVER.hash)
                     continue;
 
                 if (plugin.contains("'") || !isValidHash(plugin)) {
                     std::println(stderr, "\n{}", failureString("Plugin has a malformed manifest: bad commit pin"));
-                    return false;
+                    markRepoFailed(repo, false);
+                    commitPinFailed = true;
+                    break;
                 }
 
                 progress.printMessageAbove(successString("commit pin {} matched hl, resetting", plugin));
 
                 execAndGet("cd " + m_szWorkingPluginDirectory + " && git reset --hard --recurse-submodules '" + plugin + "'");
             }
+
+            if (commitPinFailed)
+                continue;
         }
+
+        bool anyPluginFailedToBuild = false;
+        bool anyPluginSkipped       = false;
 
         for (auto& p : pManifest->m_plugins) {
             std::string out;
 
             if (p.since > HLVER.commits && HLVER.commits >= 1000 /* for shallow clones, we can't check this. 1000 is an arbitrary number I chose. */) {
                 progress.printMessageAbove(failureString("Not building {}: your Hyprland version is too old.\n", p.name));
-                p.failed = true;
+                p.failed         = true;
+                anyPluginSkipped = true;
                 continue;
             }
 
@@ -820,7 +849,8 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
                              "If you are on -git, update first.\n"
                              "Try re-running with -v to see more verbose output.",
                              failureString("Plugin {} failed to build.", p.name));
-                p.failed = true;
+                p.failed               = true;
+                anyPluginFailedToBuild = true;
                 continue;
             }
 
@@ -833,17 +863,35 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
         execAndGet("cd " + m_szWorkingPluginDirectory +
                    " && git pull --recurse-submodules && git reset --hard --recurse-submodules"); // repo hash in the state.toml has to match head and not any pin
         std::string repohash = execAndGet("cd " + m_szWorkingPluginDirectory + " && git rev-parse HEAD");
-        if (repohash.length() > 0)
+        if (!repohash.empty())
             repohash.pop_back();
-        newrepo.hash = repohash;
+        // a build failure must not record the fetched hash: the next update would consider the
+        // repo up-to-date and never retry the build. An empty hash never matches, so it retries.
+        newrepo.hash = anyPluginFailedToBuild ? "" : repohash;
         for (auto const& p : pManifest->m_plugins) {
             const auto OLDPLUGINIT = std::ranges::find_if(repo.plugins, [&](const auto& other) { return other.name == p.name; });
-            newrepo.plugins.emplace_back(SPlugin{p.name, m_szWorkingPluginDirectory + "/" + p.output, OLDPLUGINIT != repo.plugins.end() ? OLDPLUGINIT->enabled : false});
+            newrepo.plugins.emplace_back(SPlugin{.name     = p.name,
+                                                 .filename = m_szWorkingPluginDirectory + "/" + p.output,
+                                                 .enabled  = OLDPLUGINIT != repo.plugins.end() ? OLDPLUGINIT->enabled : false,
+                                                 .failed   = p.failed});
         }
         DataState::removePluginRepo(SPluginRepoIdentifier::fromName(newrepo.name));
         DataState::addNewPluginRepo(newrepo);
 
         std::filesystem::remove_all(m_szWorkingPluginDirectory);
+
+        if (anyPluginFailedToBuild) {
+            failedRepos.emplace_back(repo.name);
+            progress.printMessageAbove(failureString("updated {}, but some plugins failed to build", repo.name));
+            continue;
+        }
+
+        if (anyPluginSkipped) {
+            // skipping is a persistent condition (hyprland too old for the plugin), so it deliberately
+            // does not fail the update: that would force a full rebuild on every subsequent update
+            progress.printMessageAbove(statusString("!", Colors::YELLOW, "updated {}, but some plugins were skipped: they require a newer Hyprland", repo.name));
+            continue;
+        }
 
         progress.printMessageAbove(successString("updated {}", repo.name));
     }
@@ -852,17 +900,30 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
     progress.m_szCurrentMessage = "Updating global state...";
     progress.print();
 
-    auto GLOBALSTATE               = DataState::getGlobalState();
-    GLOBALSTATE.headersAbiCompiled = HLVER.abiHash;
-    DataState::updateGlobalState(GLOBALSTATE);
+    if (failedRepos.empty()) {
+        auto GLOBALSTATE               = DataState::getGlobalState();
+        GLOBALSTATE.headersAbiCompiled = HLVER.abiHash;
+        DataState::updateGlobalState(GLOBALSTATE);
+    }
 
     progress.m_iSteps++;
-    progress.m_szCurrentMessage = "Done!";
+    progress.m_szCurrentMessage = failedRepos.empty() ? "Done!" : "Done with errors";
     progress.print();
 
     std::print("\n");
 
-    return true;
+    if (!failedRepos.empty()) {
+        std::string failedRepoNames;
+        for (const auto& name : failedRepos) {
+            if (!failedRepoNames.empty())
+                failedRepoNames += ", ";
+            failedRepoNames += name;
+        }
+
+        std::println(stderr, "{}", failureString("failed to update the following repositories: {}", failedRepoNames));
+    }
+
+    return failedRepos.empty();
 }
 
 bool CPluginManager::enablePlugin(const SPluginRepoIdentifier& identifier) {
@@ -963,6 +1024,11 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState(bool forceReload) 
         for (auto const& p : r.plugins) {
             if (!p.enabled)
                 continue;
+
+            if (p.failed) {
+                std::println("{}", infoString("Not loading {}: it was not built", p.name));
+                continue;
+            }
 
             if (!forceReload && std::ranges::find_if(loadedPlugins, [&](const auto& other) { return other == p.name; }) != loadedPlugins.end())
                 continue;

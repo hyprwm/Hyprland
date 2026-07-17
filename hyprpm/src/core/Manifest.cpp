@@ -9,7 +9,14 @@ static bool validManifestName(const std::string_view& n) {
 }
 
 CManifest::CManifest(const eManifestType type, const std::string& path) {
-    auto manifest = toml::parse_file(path);
+    toml::table manifest;
+
+    try {
+        manifest = toml::parse_file(path);
+    } catch (const toml::parse_error&) {
+        m_good = false;
+        return;
+    }
 
     if (type == MANIFEST_HYPRLOAD) {
         for (auto const& [key, val] : manifest) {

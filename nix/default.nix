@@ -43,7 +43,6 @@
   pciutils,
   python3,
   re2,
-  sdbus-cpp_2,
   systemd,
   tomlplusplus,
   udis86-hyprland,
@@ -203,7 +202,6 @@ customStdenv.mkDerivation (finalAttrs: {
       pango
       pciutils
       re2
-      sdbus-cpp_2
       tomlplusplus
       udis86-hyprland
       wayland

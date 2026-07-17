@@ -7,6 +7,12 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <chrono>
+#include <filesystem>
+#include <format>
+#include <fstream>
+
 extern "C" {
 #include <lualib.h>
 #include <lauxlib.h>
@@ -22,6 +28,17 @@ namespace Config::Lua {
             mgr.m_lua = L;
             lua_pushlightuserdata(L, &mgr);
             lua_setfield(L, LUA_REGISTRYINDEX, "hl_lua_manager");
+        }
+
+        static void initializeOwnedLuaState(CConfigManager& mgr, const std::filesystem::path& mainConfigPath) {
+            mgr.m_mainConfigPath = mainConfigPath.string();
+            mgr.m_configPaths.clear();
+            mgr.m_configPaths.emplace_back(mgr.m_mainConfigPath);
+            mgr.reinitLuaState();
+        }
+
+        static lua_State* luaState(CConfigManager& mgr) {
+            return mgr.m_lua;
         }
     };
 }
@@ -49,6 +66,70 @@ namespace {
     int testPluginFn(lua_State* L) {
         lua_pushstring(L, "pong");
         return 1;
+    }
+
+    class CTempDir {
+      public:
+        CTempDir() {
+            const auto NOW = std::chrono::steady_clock::now().time_since_epoch().count();
+            m_path         = std::filesystem::temp_directory_path() / std::format("hyprland-lua-require-{}", NOW);
+            std::filesystem::create_directories(m_path);
+        }
+
+        ~CTempDir() {
+            std::error_code ec;
+            std::filesystem::remove_all(m_path, ec);
+        }
+
+        const std::filesystem::path& path() const {
+            return m_path;
+        }
+
+      private:
+        std::filesystem::path m_path;
+    };
+
+    class CScopedCompositor {
+      public:
+        CScopedCompositor() : m_prevCompositor(std::move(g_pCompositor)), m_prevKeybindManager(std::move(g_pKeybindManager)) {
+            g_pCompositor     = makeUnique<CCompositor>(true);
+            g_pKeybindManager = makeUnique<CKeybindManager>();
+        }
+
+        ~CScopedCompositor() {
+            g_pKeybindManager = std::move(m_prevKeybindManager);
+            g_pCompositor     = std::move(m_prevCompositor);
+        }
+
+      private:
+        UP<CCompositor>     m_prevCompositor;
+        UP<CKeybindManager> m_prevKeybindManager;
+    };
+
+    std::string luaString(const std::string& value) {
+        std::string out = "\"";
+        for (const auto& c : value) {
+            if (c == '\\' || c == '"')
+                out += '\\';
+            out += c;
+        }
+        out += '"';
+        return out;
+    }
+
+    void writeFile(const std::filesystem::path& path, const std::string& content) {
+        std::filesystem::create_directories(path.parent_path());
+        std::ofstream file(path);
+        file << content;
+    }
+
+    std::string normalizedPath(const std::filesystem::path& path) {
+        return path.lexically_normal().string();
+    }
+
+    void expectTracked(CConfigManager& mgr, const std::filesystem::path& path) {
+        const auto& paths = mgr.getConfigPaths();
+        EXPECT_NE(std::ranges::find(paths, normalizedPath(path)), paths.end());
     }
 }
 
@@ -253,4 +334,129 @@ TEST(ConfigLuaBindingsInternal, pluginLuaFnIsUnloadedWithoutDanglingCall) {
               LUA_OK);
 
     g_pCompositor = std::move(PREVCOMPOSITOR);
+}
+
+TEST(ConfigLuaRequire, absolutePathLoadsAndTracksFile) {
+    CScopedCompositor compositor;
+    CTempDir          tmp;
+    const auto        mainConfig = tmp.path() / "hyprland.lua";
+    const auto        module     = tmp.path() / "absolute.lua";
+    writeFile(mainConfig, "");
+    writeFile(module, "return { value = 42 }");
+
+    CConfigManager mgr;
+    CConfigManagerPluginLuaTestAccessor::initializeOwnedLuaState(mgr, mainConfig);
+    const auto L = CConfigManagerPluginLuaTestAccessor::luaState(mgr);
+
+    const auto CODE = "mod = require(" + luaString(module.string()) + ")";
+    ASSERT_EQ(luaL_dostring(L, CODE.c_str()), LUA_OK) << lua_tostring(L, -1);
+
+    lua_getglobal(L, "mod");
+    ASSERT_TRUE(lua_istable(L, -1));
+    lua_getfield(L, -1, "value");
+    EXPECT_EQ(lua_tointeger(L, -1), 42);
+    lua_pop(L, 2);
+
+    expectTracked(mgr, module);
+}
+
+TEST(ConfigLuaRequire, relativePathResolvesFromConfigDirectory) {
+    CScopedCompositor compositor;
+    CTempDir          tmp;
+    const auto        mainConfig = tmp.path() / "hyprland.lua";
+    const auto        module     = tmp.path() / "modules" / "relative.lua";
+    writeFile(mainConfig, "");
+    writeFile(module, "return 'relative-ok'");
+
+    CConfigManager mgr;
+    CConfigManagerPluginLuaTestAccessor::initializeOwnedLuaState(mgr, mainConfig);
+    const auto L = CConfigManagerPluginLuaTestAccessor::luaState(mgr);
+
+    ASSERT_EQ(luaL_dostring(L, R"(
+        mod = require("./modules/relative.lua")
+    )"),
+              LUA_OK)
+        << lua_tostring(L, -1);
+
+    lua_getglobal(L, "mod");
+    ASSERT_TRUE(lua_isstring(L, -1));
+    EXPECT_STREQ(lua_tostring(L, -1), "relative-ok");
+    lua_pop(L, 1);
+
+    expectTracked(mgr, module);
+}
+
+TEST(ConfigLuaRequire, wildcardLoadsSortedTableAndTracksFilesAndDirectory) {
+    CScopedCompositor compositor;
+    CTempDir          tmp;
+    const auto        mainConfig = tmp.path() / "hyprland.lua";
+    const auto        modulesDir = tmp.path() / "modules";
+    const auto        moduleA    = modulesDir / "a.lua";
+    const auto        moduleB    = modulesDir / "b.lua";
+    writeFile(mainConfig, "");
+    writeFile(moduleB, "return 'b'");
+    writeFile(moduleA, "return 'a'");
+
+    CConfigManager mgr;
+    CConfigManagerPluginLuaTestAccessor::initializeOwnedLuaState(mgr, mainConfig);
+    const auto L = CConfigManagerPluginLuaTestAccessor::luaState(mgr);
+
+    ASSERT_EQ(luaL_dostring(L, R"(
+        mods = require("./modules/*")
+        assert(#mods == 2)
+        assert(mods[1] == "a")
+        assert(mods[2] == "b")
+    )"),
+              LUA_OK)
+        << lua_tostring(L, -1);
+
+    expectTracked(mgr, modulesDir);
+    expectTracked(mgr, moduleA);
+    expectTracked(mgr, moduleB);
+}
+
+TEST(ConfigLuaRequire, wildcardNoMatchIsCatchableError) {
+    CScopedCompositor compositor;
+    CTempDir          tmp;
+    const auto        mainConfig = tmp.path() / "hyprland.lua";
+    writeFile(mainConfig, "");
+
+    CConfigManager mgr;
+    CConfigManagerPluginLuaTestAccessor::initializeOwnedLuaState(mgr, mainConfig);
+    const auto L = CConfigManagerPluginLuaTestAccessor::luaState(mgr);
+
+    ASSERT_EQ(luaL_dostring(L, R"(
+        ok, err = pcall(require, "./missing/*")
+        assert(ok == false)
+        assert(type(err) == "string")
+        assert(string.find(err, "module './missing/*' not found", 1, true) ~= nil)
+    )"),
+              LUA_OK)
+        << lua_tostring(L, -1);
+}
+
+TEST(ConfigLuaRequire, normalModuleRequireStillUsesConfigDirectoryPackagePath) {
+    CScopedCompositor compositor;
+    CTempDir          tmp;
+    const auto        mainConfig = tmp.path() / "hyprland.lua";
+    const auto        module     = tmp.path() / "colors.lua";
+    writeFile(mainConfig, "");
+    writeFile(module, "return 'normal-ok'");
+
+    CConfigManager mgr;
+    CConfigManagerPluginLuaTestAccessor::initializeOwnedLuaState(mgr, mainConfig);
+    const auto L = CConfigManagerPluginLuaTestAccessor::luaState(mgr);
+
+    ASSERT_EQ(luaL_dostring(L, R"(
+        mod = require("colors")
+    )"),
+              LUA_OK)
+        << lua_tostring(L, -1);
+
+    lua_getglobal(L, "mod");
+    ASSERT_TRUE(lua_isstring(L, -1));
+    EXPECT_STREQ(lua_tostring(L, -1), "normal-ok");
+    lua_pop(L, 1);
+
+    expectTracked(mgr, module);
 }

@@ -1,5 +1,23 @@
 -- Hyprtester Lua config
 
+local function config_dir()
+    local source = debug.getinfo(1, "S").source
+    local path = source:sub(1, 1) == "@" and source:sub(2) or source
+
+    if path:sub(1, 1) ~= "/" then
+        path = os.getenv("PWD") .. "/" .. path
+    end
+
+    return path:match("^(.*)/[^/]*$") or "."
+end
+
+local requireAbsolute = require(config_dir() .. "/lua-require/absolute.lua")
+local requireRelative = require("./lua-require/relative.lua")
+local requireWildcard = require("./lua-require/wildcard/*")
+
+_G.hyprtester_lua_require_result = table.concat({ requireAbsolute, requireRelative, requireWildcard[1], requireWildcard[2] }, ":")
+assert(_G.hyprtester_lua_require_result == "absolute:relative:a:b")
+
 hl.monitor({ output = "HEADLESS-1", mode = "1920x1080@60", position = "auto-right", scale = "1" })
 hl.monitor({ output = "HEADLESS-2", mode = "1920x1080@60", position = "auto-right", scale = "1" })
 hl.monitor({ output = "HEADLESS-3", mode = "1920x1080@60", position = "auto-right", scale = "1" })
@@ -325,4 +343,3 @@ hl.layout.register("grid", {
         end
     end,
 })
-

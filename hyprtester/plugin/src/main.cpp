@@ -125,16 +125,7 @@ class CTestKeyboard : public IKeyboard {
     }
 
     void setMods(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group) {
-        m_modifiersState.depressed = depressed;
-        m_modifiersState.latched   = latched;
-        m_modifiersState.locked    = locked;
-        m_modifiersState.group     = group;
-        m_keyboardEvents.modifiers.emit(IKeyboard::SModifiersEvent{
-            .depressed = depressed,
-            .latched   = latched,
-            .locked    = locked,
-            .group     = group,
-        });
+        updateModifiers(depressed, latched, locked, group);
     }
 
     void destroy() {

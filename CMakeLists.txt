@@ -130,6 +130,20 @@ set(GLES_VERSION "GLES3")
 find_package(OpenGL REQUIRED COMPONENTS ${GLES_VERSION})
 find_package(glslang CONFIG REQUIRED)
 
+find_package(glaze 7...<8 QUIET)
+if(NOT glaze_FOUND)
+  set(GLAZE_VERSION v7.2.0)
+  message(STATUS "glaze dependency not found, retrieving ${GLAZE_VERSION} with FetchContent")
+  include(FetchContent)
+  FetchContent_Declare(
+    glaze
+    GIT_REPOSITORY https://github.com/stephenberry/glaze.git
+    GIT_TAG ${GLAZE_VERSION}
+    GIT_SHALLOW TRUE
+    EXCLUDE_FROM_ALL)
+  FetchContent_MakeAvailable(glaze)
+endif()
+
 set(AQUAMARINE_MINIMUM_VERSION 0.9.3)
 set(HYPRLANG_MINIMUM_VERSION 0.6.7)
 set(HYPRCURSOR_MINIMUM_VERSION 0.1.7)
@@ -294,6 +308,7 @@ target_link_libraries(Hyprland hyprland_lib)
 
 target_include_directories(hyprland_lib PUBLIC ${deps_INCLUDE_DIRS} ${LUA_INCLUDE_DIRS})
 target_include_directories(Hyprland PUBLIC ${deps_INCLUDE_DIRS} ${LUA_INCLUDE_DIRS})
+target_link_libraries(hyprland_lib PRIVATE glaze::glaze)
 
 set(USE_GPROF OFF)
 

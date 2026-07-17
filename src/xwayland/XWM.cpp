@@ -229,9 +229,16 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
     };
 
     auto handleWMName = [&]() {
-        if (reply->type != HYPRATOMS["UTF8_STRING"] && reply->type != HYPRATOMS["TEXT"] && reply->type != XCB_ATOM_STRING)
+        auto& cachedName = atom == HYPRATOMS["_NET_WM_NAME"] ? XSURF->m_netWmName : XSURF->m_wmName;
+
+        if (reply->type == XCB_ATOM_NONE)
+            cachedName.reset();
+        else if (reply->type == HYPRATOMS["UTF8_STRING"] || reply->type == HYPRATOMS["TEXT"] || reply->type == XCB_ATOM_STRING)
+            cachedName = std::string{value, valueLen};
+        else
             return;
-        XSURF->m_state.title = std::string{value, valueLen};
+
+        XSURF->m_state.title = XSURF->m_netWmName.value_or(XSURF->m_wmName.value_or(""));
         XSURF->m_events.metadataChanged.emit();
     };
 

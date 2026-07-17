@@ -146,6 +146,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         m_events.precommit.emit();
         if (m_pending.rejected) {
             m_pending.rejected = false;
+            PROTO::presentation->discardFeedbacks(m_pending.presentationFeedbacks);
             dropPendingBuffer();
             return;
         }
@@ -253,10 +254,19 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
 }
 
 CWLSurfaceResource::~CWLSurfaceResource() {
+    discardPresentationFeedbacks();
     m_events.destroy.emit();
 }
 
+void CWLSurfaceResource::discardPresentationFeedbacks() {
+    PROTO::presentation->discardFeedbacks(m_pending.presentationFeedbacks);
+    PROTO::presentation->discardFeedbacks(m_current.presentationFeedbacks);
+    PROTO::presentation->discardFeedbacksForSurface(m_self);
+}
+
 void CWLSurfaceResource::destroy() {
+    discardPresentationFeedbacks();
+
     if (m_mapped) {
         m_events.unmap.emit();
         unmap();
@@ -514,6 +524,10 @@ void CWLSurfaceResource::unmap() {
     if UNLIKELY (!m_mapped)
         return;
 
+    // unmapped content will never be displayed: terminate outstanding feedbacks,
+    // or clients blocking on them (present_wait) stall forever.
+    discardPresentationFeedbacks();
+
     m_mapped        = false;
     m_lastTransform = std::nullopt;
     m_lastScale     = std::nullopt;
@@ -606,6 +620,9 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
     // wl_surface#3.commit()
     if (!state.updated.all && m_mapped && state.fifoScheduled)
         return;
+
+    if (state.updated.all)
+        PROTO::presentation->discardFeedbacks(m_current.presentationFeedbacks);
 
     auto lastTexture = m_current.texture;
     m_current.updateFrom(state);
@@ -777,7 +794,7 @@ void CWLSurfaceResource::updateCursorShm(CRegion damage) {
 void CWLSurfaceResource::presentFeedback(const Time::steady_tp& when, PHLMONITOR pMonitor, bool discarded) {
     frame(when);
 
-    auto FEEDBACK = makeUnique<CQueuedPresentationData>(m_self.lock());
+    auto FEEDBACK = makeUnique<CQueuedPresentationData>(m_self.lock(), std::move(m_current.presentationFeedbacks));
     FEEDBACK->attachMonitor(pMonitor);
     if (discarded)
         FEEDBACK->discarded();

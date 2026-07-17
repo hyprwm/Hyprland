@@ -11,6 +11,7 @@ namespace Render {
 }
 class CDRMSyncPointState;
 class CWLCallbackResource;
+class CPresentationFeedback;
 
 enum eLockReason : uint8_t {
     LOCK_REASON_NONE  = 0,
@@ -76,6 +77,9 @@ struct SSurfaceState {
 
     // for wl_surface::frame callbacks.
     std::vector<SP<CWLCallbackResource>> callbacks;
+
+    // for wp_presentation feedbacks, tied to this commit.
+    std::vector<WP<CPresentationFeedback>> presentationFeedbacks;
 
     // viewporter protocol surface state
     struct {

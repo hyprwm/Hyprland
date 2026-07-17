@@ -74,7 +74,7 @@ class CSeatManager {
 
     void     resendEnterEvents();
 
-    uint32_t nextSerial(SP<CWLSeatResource> seatResource);
+    uint32_t nextSerial(SP<CWLSeatResource> seatResource, bool enter = false);
     // pops the serial if it was valid, meaning it is consumed.
     bool                serialValid(SP<CWLSeatResource> seatResource, uint32_t serial, bool erase = true);
     void                recordPointerButtonSerial(SP<CWLSeatResource> seatResource, uint32_t serial, SP<CWLSurfaceResource> surface, uint32_t button);
@@ -141,7 +141,8 @@ class CSeatManager {
         SSeatResourceContainer(SP<CWLSeatResource>);
 
         WP<CWLSeatResource>               resource;
-        std::vector<uint32_t>             serials; // old -> new
+        uint32_t                          enterSerial; // remember this forever
+        std::vector<uint32_t>             serials;     // old -> new
         std::vector<SPointerButtonSerial> pointerButtonSerials;
 
         struct {

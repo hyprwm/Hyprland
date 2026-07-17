@@ -504,6 +504,8 @@ std::vector<SP<IValue>> Values::getConfigValues() {
                 {.min = 0, .max = 2, .map = OptionMap{{"ignore", 0}, {"take_over", 1}, {"exit_fullscreen", 2}}}),
         MS<Bool>("misc:exit_window_retains_fullscreen", "if true, closing a fullscreen window makes the next focused window fullscreen", false),
         MS<Int>("misc:initial_workspace_tracking", "if enabled, windows will open on the workspace they were invoked on.", 1, {.min = 0, .max = 2}),
+        MS<Int>("misc:initial_workspace_token_timeout", "the time in seconds a window has to open on its invoked workspace before the tracking token expires.", 10,
+                {.min = 1, .max = 3600}),
         MS<Bool>("misc:middle_click_paste", "whether to enable middle-click-paste (aka primary selection)", true),
         MS<Int>("misc:render_unfocused_fps", "the maximum limit for renderunfocused windows' fps in the background", 15, {.min = 1, .max = 120}),
         MS<Bool>("misc:disable_xdg_env_checks", "disable the warning if XDG environment is externally managed", false),

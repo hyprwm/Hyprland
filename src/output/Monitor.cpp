@@ -146,20 +146,19 @@ void CMonitor::onConnect(bool noRule) {
             }
         }
 
-        timespec* ts = event.when;
+        timespec ts{};
+        auto     flags = event.flags;
 
-        if (ts && ts->tv_sec <= 2) {
+        if (event.when && event.when->tv_sec > 2) {
             // drop this timestamp, it's not valid. Likely drm is cringe. We can't push it further because
             // a) it's wrong, b) our translations aren't 100% accurate and risk underflows
-            ts = nullptr;
+            ts = *event.when;
+        } else {
+            clock_gettime(CLOCK_MONOTONIC, &ts);
+            flags &= ~Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_CLOCK;
         }
 
-        if (!ts) {
-            timespec mono{};
-            clock_gettime(CLOCK_MONOTONIC, &mono);
-            PROTO::presentation->onPresented(m_self.lock(), mono, event.refresh, event.seq, event.flags & ~Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_CLOCK);
-        } else
-            PROTO::presentation->onPresented(m_self.lock(), *ts, event.refresh, event.seq, event.flags);
+        PROTO::presentation->onPresented(m_self.lock(), ts, event.refresh, event.seq, flags);
 
         if (m_zoomAnimFrameCounter < 5) {
             m_zoomAnimFrameCounter++;
@@ -196,7 +195,7 @@ void CMonitor::onConnect(bool noRule) {
 
         m_frameScheduler->onPresented();
 
-        m_events.presented.emit(ts ? std::optional<Time::steady_tp>{Time::fromTimespec(ts)} : std::nullopt);
+        m_events.presented.emit(Time::fromTimespec(&ts));
     });
 
     m_listeners.destroy = m_output->events.destroy.listen([this] {

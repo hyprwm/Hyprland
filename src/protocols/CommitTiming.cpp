@@ -25,14 +25,19 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
             return;
         }
 
-        const auto delay = Time::till({.tv_sec = (((uint64_t)tvHi) << 32) | (uint64_t)tvLo, .tv_nsec = tvNsec});
+        const timespec target{
+            .tv_sec  = sc<time_t>((sc<uint64_t>(tvHi) << 32) | sc<uint64_t>(tvLo)),
+            .tv_nsec = sc<long>(tvNsec),
+        };
+
+        const auto delay = Time::till(target);
 
         if (delay.count() <= 0) {
             m_surface->m_pending.pendingTimeout.reset();
             m_surface->m_pending.commitTimingTarget.reset();
         } else {
             m_surface->m_pending.pendingTimeout     = delay;
-            m_surface->m_pending.commitTimingTarget = Time::steady_tp{std::chrono::seconds((((uint64_t)tvHi) << 32) | tvLo) + std::chrono::nanoseconds(tvNsec)};
+            m_surface->m_pending.commitTimingTarget = Time::fromTimespec(&target);
         }
     });
 
@@ -131,11 +136,11 @@ bool CCommitTimingManagerResource::good() {
 
 CCommitTimingProtocol::CCommitTimingProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     static auto P = Event::bus()->m_events.monitor.added.listen([this](PHLMONITOR M) {
-        M->m_events.presented.listenStatic([this, m = PHLMONITORREF{M}](const std::optional<Time::steady_tp>& presentTime) {
-            if (!m || !PROTO::commitTiming || !presentTime)
+        M->m_events.presented.listenStatic([this, m = PHLMONITORREF{M}](const Time::steady_tp& presentTime) {
+            if (!m || !PROTO::commitTiming)
                 return;
 
-            onMonitorPresent(m.lock(), *presentTime);
+            onMonitorPresent(m.lock(), presentTime);
         });
     });
 }

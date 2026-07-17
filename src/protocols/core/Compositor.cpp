@@ -524,6 +524,10 @@ void CWLSurfaceResource::unmap() {
     if UNLIKELY (!m_mapped)
         return;
 
+    // unmapped content will never be displayed: terminate outstanding feedbacks,
+    // or clients blocking on them (present_wait) stall forever.
+    discardPresentationFeedbacks();
+
     m_mapped        = false;
     m_lastTransform = std::nullopt;
     m_lastScale     = std::nullopt;

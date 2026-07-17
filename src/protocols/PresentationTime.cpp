@@ -139,8 +139,7 @@ void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, const timespec& whe
         if (data->m_monitor != pMonitor)
             continue;
 
-        for (auto const& feedbackRef : data->m_feedbacks) {
-            const auto feedback = feedbackRef.lock();
+        for (auto const& feedback : data->m_feedbacks) {
             if (!feedback || feedback->m_done)
                 continue;
 
@@ -171,8 +170,7 @@ void CPresentationProtocol::queueData(UP<CQueuedPresentationData>&& data) {
 }
 
 void CPresentationProtocol::discardFeedbacks(std::vector<WP<CPresentationFeedback>>& feedbacks) {
-    for (auto const& feedbackRef : feedbacks) {
-        const auto feedback = feedbackRef.lock();
+    for (auto const& feedback : feedbacks) {
         if (!feedback || feedback->m_done)
             continue;
 

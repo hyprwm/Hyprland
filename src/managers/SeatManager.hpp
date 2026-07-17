@@ -141,8 +141,8 @@ class CSeatManager {
         SSeatResourceContainer(SP<CWLSeatResource>);
 
         WP<CWLSeatResource>               resource;
-        uint32_t                          enterSerial; // remember this forever
-        std::vector<uint32_t>             serials;     // old -> new
+        uint32_t                          enterSerial = 0; // remember this forever
+        std::vector<uint32_t>             serials;         // old -> new
         std::vector<SPointerButtonSerial> pointerButtonSerials;
 
         struct {

@@ -62,9 +62,9 @@ uint32_t CSeatManager::nextSerial(SP<CWLSeatResource> seatResource, bool enter) 
 
     auto serial = wl_display_next_serial(g_pCompositor->m_wlDisplay);
 
-    if (enter) {
+    if (enter)
         container->enterSerial = serial;
-    } else {
+    else {
         container->serials.emplace_back(serial);
 
         if (container->serials.size() > MAX_SERIAL_STORE_LEN)

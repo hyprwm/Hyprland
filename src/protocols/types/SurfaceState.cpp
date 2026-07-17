@@ -80,6 +80,7 @@ void SSurfaceState::reset() {
     fifoScheduled = false;
 
     pendingTimeout.reset();
+    commitTimingTarget.reset();
     timer.reset(); // CEventLoopManager::nudgeTimers should handle it eventually
 }
 

@@ -101,6 +101,7 @@ struct SSurfaceState {
 
     // commit timing
     std::optional<Time::steady_dur> pendingTimeout;
+    std::optional<Time::steady_tp>  commitTimingTarget;
     SP<CEventLoopTimer>             timer;
 
     // helpers

@@ -52,7 +52,7 @@ SP<CSeatManager::SSeatResourceContainer> CSeatManager::containerForResource(SP<C
     return nullptr;
 }
 
-uint32_t CSeatManager::nextSerial(SP<CWLSeatResource> seatResource) {
+uint32_t CSeatManager::nextSerial(SP<CWLSeatResource> seatResource, bool enter) {
     if (!seatResource)
         return 0;
 
@@ -62,10 +62,14 @@ uint32_t CSeatManager::nextSerial(SP<CWLSeatResource> seatResource) {
 
     auto serial = wl_display_next_serial(g_pCompositor->m_wlDisplay);
 
-    container->serials.emplace_back(serial);
+    if (enter)
+        container->enterSerial = serial;
+    else {
+        container->serials.emplace_back(serial);
 
-    if (container->serials.size() > MAX_SERIAL_STORE_LEN)
-        container->serials.erase(container->serials.begin());
+        if (container->serials.size() > MAX_SERIAL_STORE_LEN)
+            container->serials.erase(container->serials.begin());
+    }
 
     return serial;
 }
@@ -77,6 +81,9 @@ bool CSeatManager::serialValid(SP<CWLSeatResource> seatResource, uint32_t serial
     auto container = containerForResource(seatResource);
 
     ASSERT(container);
+
+    if (container->enterSerial == serial)
+        return true;
 
     for (auto it = container->serials.begin(); it != container->serials.end(); ++it) {
         if (*it == serial) {

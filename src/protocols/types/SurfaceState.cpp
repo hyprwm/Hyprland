@@ -73,7 +73,6 @@ void SSurfaceState::reset() {
     bufferDamage.clear();
 
     callbacks.clear();
-    presentationFeedbacks.clear();
     lockMask = LOCK_REASON_NONE;
 
     barrierSet    = false;
@@ -132,12 +131,6 @@ void SSurfaceState::updateFrom(SSurfaceState& ref) {
     if (ref.updated.bits.frame) {
         callbacks.insert(callbacks.end(), std::make_move_iterator(ref.callbacks.begin()), std::make_move_iterator(ref.callbacks.end()));
         ref.callbacks.clear();
-    }
-
-    if (!ref.presentationFeedbacks.empty()) {
-        presentationFeedbacks.insert(presentationFeedbacks.end(), std::make_move_iterator(ref.presentationFeedbacks.begin()),
-                                     std::make_move_iterator(ref.presentationFeedbacks.end()));
-        ref.presentationFeedbacks.clear();
     }
 
     if (ref.barrierSet)

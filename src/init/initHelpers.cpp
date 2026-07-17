@@ -19,6 +19,12 @@ bool NInit::isSudo() {
     return getuid() != geteuid() || !geteuid();
 }
 
+// NixOS-specific fix to prevent all children from inheriting
+// CAP_SYS_NICE due to how the security wrapper works.
+void NInit::lowerAmbientCaps() {
+    prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_LOWER, CAP_SYS_NICE, 0, 0);
+}
+
 // Asks the kernel directly to put the calling thread on SCHED_RR. Only succeeds if
 // the process is privileged to go realtime on its own: CAP_SYS_NICE (e.g. granted via
 // setcap or a security wrapper) or a nonzero RLIMIT_RTPRIO (e.g. a "realtime" group
@@ -57,6 +63,8 @@ static pid_t mainThreadTid = 0;
 // thread blocks (i.e. every frame), so this only fires on a genuinely runaway compositor.
 // Only async-signal-safe calls in here: raw syscalls and write().
 static void handleSigxcpu(int /* signo */) {
+    const int savedErrno = errno;
+
     // realtime was granted with SCHED_RESET_ON_FORK set (on both paths), keep it as clearing it
     // needs CAP_SYS_NICE and the kernel rejects the whole call with EPERM otherwise.
     const struct sched_param param = {.sched_priority = 0};
@@ -67,6 +75,8 @@ static void handleSigxcpu(int /* signo */) {
         constexpr char MSG[] = "Realtime budget exceeded (SIGXCPU), failed to drop realtime scheduling\n";
         std::ignore          = write(STDERR_FILENO, MSG, sizeof(MSG) - 1);
     }
+
+    errno = savedErrno;
 }
 
 // Installs handleSigxcpu. Must happen before the thread can go realtime, and stays installed for
@@ -181,10 +191,6 @@ void NInit::gainRealTime() {
         Log::logger->log(Log::WARN, "Failed to gain realtime scheduling");
         return;
     }
-
-    // NixOS-specific fix to prevent all children from inheriting
-    // CAP_SYS_NICE due to how the security wrapper works.
-    prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_LOWER, CAP_SYS_NICE, 0, 0);
 
 #ifndef HAS_RTKIT
     // spawned children must not inherit RT, on Linux the kernel handles this via

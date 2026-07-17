@@ -252,10 +252,9 @@ int main(int argc, char** argv) {
 
 
 )#");
-
-        if (!Env::envEnabled("HYPRLAND_NO_RT"))
-            NInit::gainRealTime();
     }
+
+    NInit::lowerAmbientCaps();
 
     // let's init the compositor.
     // it initializes basic Wayland stuff in the constructor.

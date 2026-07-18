@@ -704,12 +704,14 @@ if(BUILD_TESTING OR WITH_TESTS)
   include(GoogleTest)
   file(GLOB_RECURSE TESTFILES "tests/*.cpp")
   add_executable(hyprland_gtests ${TESTFILES})
+  target_sources(hyprland_gtests PRIVATE hyprctl/src/Socket.cpp)
   target_compile_options(hyprland_gtests PRIVATE --coverage)
   target_link_options(hyprland_gtests PRIVATE --coverage)
   target_include_directories(
     hyprland_gtests
     PUBLIC "./include"
-    PRIVATE "./src" "./src/include" "./protocols" "${CMAKE_BINARY_DIR}")
+    PRIVATE "./src" "./src/include" "./protocols" "./hyprctl/src"
+            "${CMAKE_BINARY_DIR}")
 
   target_link_libraries(hyprland_gtests hyprland_lib GTest::gtest_main)
 

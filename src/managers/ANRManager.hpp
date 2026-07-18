@@ -38,6 +38,7 @@ class CANRManager {
 
         bool                 dialogSaidWait = false;
         SP<CAsyncDialogBox>  dialogBox;
+        WP<SANRData>         self;
 
         void                 runDialog(const std::string& appName, const std::string appClass, pid_t dialogWmPID);
         bool                 isRunning();

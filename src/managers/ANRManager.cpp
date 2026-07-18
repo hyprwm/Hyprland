@@ -36,7 +36,9 @@ CANRManager::CANRManager() {
                 return;
         }
 
-        m_data.emplace_back(makeShared<SANRData>(window));
+        const auto DATA = makeShared<SANRData>(window);
+        DATA->self      = DATA;
+        m_data.emplace_back(DATA);
     });
 
     static auto P1 = Event::bus()->m_events.window.close.listen([this](PHLWINDOW window) {
@@ -191,6 +193,10 @@ void CANRManager::SANRData::runDialog(const std::string& appName, const std::str
     const auto DESCRIPTION_STR      = I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_CONTENT, {{"title", TITLE_STR}, {"class", CLASS_STR}});
 
     dialogBox = CAsyncDialogBox::create(I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_TITLE, {}), DESCRIPTION_STR, OPTIONS);
+    if (!dialogBox) {
+        Log::logger->log(Log::ERR, "CANRManager::SANRData::runDialog: failed to create dialog");
+        return;
+    }
 
     for (const auto& w : Desktop::windowState()->windows()) {
         if (!w->m_isMapped)
@@ -205,7 +211,18 @@ void CANRManager::SANRData::runDialog(const std::string& appName, const std::str
         break;
     }
 
-    dialogBox->open()->then([dialogWmPID, this, OPTION_TERMINATE_STR, OPTION_WAIT_STR](SP<CPromiseResult<std::string>> r) {
+    const auto promise = dialogBox->open();
+    if (!promise) {
+        Log::logger->log(Log::ERR, "CANRManager::SANRData::runDialog: failed to open dialog");
+        dialogBox.reset();
+        return;
+    }
+
+    promise->then([dialogWmPID, weakSelf = self, OPTION_TERMINATE_STR, OPTION_WAIT_STR](SP<CPromiseResult<std::string>> r) {
+        const auto SELF = weakSelf.lock();
+        if (!SELF)
+            return;
+
         if (r->hasError()) {
             Log::logger->log(Log::ERR, "CANRManager::SANRData::runDialog: error spawning dialog");
             return;
@@ -216,7 +233,7 @@ void CANRManager::SANRData::runDialog(const std::string& appName, const std::str
         if (result.starts_with(OPTION_TERMINATE_STR))
             ::kill(dialogWmPID, SIGKILL);
         else if (result.starts_with(OPTION_WAIT_STR))
-            dialogSaidWait = true;
+            SELF->dialogSaidWait = true;
         else
             Log::logger->log(Log::ERR, "CANRManager::SANRData::runDialog: lambda: unrecognized result: {}", result);
     });

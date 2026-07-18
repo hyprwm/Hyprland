@@ -7,28 +7,34 @@
 #include "../../render/Texture.hpp"
 #include "../../render/Renderer.hpp"
 
-#include <hyprutils/utils/ScopeGuard.hpp>
-using namespace Hyprutils::Utils;
-
 #include <lcms2.h>
 
 using namespace NColorManagement;
 
 static std::vector<uint8_t> readBinary(const std::filesystem::path& file) {
+    static constexpr std::streamoff MAX_ICC_FILE_SIZE = 64 * 1024 * 1024;
+
+    std::error_code                 ec;
+    if (!std::filesystem::is_regular_file(file, ec) || ec)
+        return {};
+
     std::ifstream ifs(file, std::ios::binary);
     if (!ifs.good())
         return {};
 
     ifs.seekg(0, std::ios::end);
-    size_t len = ifs.tellg();
-    ifs.seekg(0, std::ios::beg);
-
-    if (len <= 0)
+    const auto end = ifs.tellg();
+    if (end <= std::streampos{0} || end > std::streampos{MAX_ICC_FILE_SIZE})
         return {};
 
-    std::vector<uint8_t> buf;
-    buf.resize(len);
-    ifs.read(reinterpret_cast<char*>(buf.data()), len);
+    const auto len = sc<size_t>(end);
+    ifs.seekg(0, std::ios::beg);
+    if (!ifs.good())
+        return {};
+
+    std::vector<uint8_t> buf(len);
+    if (!ifs.read(reinterpret_cast<char*>(buf.data()), sc<std::streamsize>(len)))
+        return {};
 
     return buf;
 }
@@ -77,7 +83,7 @@ static std::expected<std::optional<SVCGTTable16>, std::string> readVCGT16(cmsHPR
 
     Log::logger->log(Log::DEBUG, "readVCGT16: table has {} channels, {} entries, and entry size of {}", table.channels, table.entries, table.entrySize);
 
-    if (table.channels != 3 || table.entrySize != 2 || table.entries == 0)
+    if (table.channels != 3 || table.entrySize != 2 || table.entries < 2)
         return std::unexpected("invalid vcgt table size");
 
     size_t tableBytes = (size_t)table.channels * (size_t)table.entries * (size_t)table.entrySize;
@@ -247,7 +253,11 @@ static std::expected<void, std::string> buildPrimaries(cmsHPROFILE profile, SIma
     const cmsUInt32Number flags  = cmsFLAGS_BLACKPOINTCOMPENSATION | cmsFLAGS_HIGHRESPRECALC; // good quality precalc in LCMS
 
     // float->float transform
-    UniqueTransform xform{cmsCreateTransform(profile, TYPE_RGB_FLT, cmsCreateXYZProfile(), TYPE_XYZ_FLT, intent, flags)};
+    UniqueProfile destination{cmsCreateXYZProfile()};
+    if (!destination)
+        return std::unexpected("Failed to create XYZ profile");
+
+    UniqueTransform xform{cmsCreateTransform(profile, TYPE_RGB_FLT, destination.get(), TYPE_XYZ_FLT, intent, flags)};
     if (!xform)
         return std::unexpected("Failed to create ICC transform");
 
@@ -272,8 +282,6 @@ static std::expected<void, std::string> buildPrimaries(cmsHPROFILE profile, SIma
 }
 
 std::expected<SImageDescription, std::string> SImageDescription::fromICC(const std::filesystem::path& file) {
-    static auto     PVCGTENABLED = CConfigValue<Config::INTEGER>("render:icc_vcgt_enabled");
-
     std::error_code ec;
     if (!std::filesystem::exists(file, ec) || ec)
         return std::unexpected("Invalid file");
@@ -284,27 +292,26 @@ std::expected<SImageDescription, std::string> SImageDescription::fromICC(const s
     if (image.rawICC.empty())
         return std::unexpected("Failed to read file");
 
-    cmsHPROFILE prof = cmsOpenProfileFromFile(file.string().c_str(), "r");
+    UniqueProfile prof{cmsOpenProfileFromMem(image.rawICC.data(), sc<cmsUInt32Number>(image.rawICC.size()))};
     if (!prof)
         return std::unexpected("CMS failed to open icc file");
 
-    CScopeGuard x([&prof] { cmsCloseProfile(prof); });
-
     // only handle RGB (typical display profiles)
-    if (cmsGetColorSpace(prof) != cmsSigRgbData)
+    if (cmsGetColorSpace(prof.get()) != cmsSigRgbData)
         return std::unexpected("Only RGB display profiles are supported");
 
     Log::logger->log(Log::DEBUG, "============= Begin ICC load =============");
     Log::logger->log(Log::DEBUG, "ICC size: {} bytes", image.rawICC.size());
 
-    if (const auto RET = buildIcc3DLut(prof, image); !RET)
+    if (const auto RET = buildIcc3DLut(prof.get(), image); !RET)
         return std::unexpected(RET.error());
 
-    if (const auto RET = buildPrimaries(prof, image); !RET)
+    if (const auto RET = buildPrimaries(prof.get(), image); !RET)
         return std::unexpected(RET.error());
 
+    static auto PVCGTENABLED = CConfigValue<Config::INTEGER>("render:icc_vcgt_enabled");
     if (*PVCGTENABLED) {
-        auto vcgtRes = readVCGT16(prof);
+        auto vcgtRes = readVCGT16(prof.get());
         if (!vcgtRes)
             return std::unexpected(vcgtRes.error());
 

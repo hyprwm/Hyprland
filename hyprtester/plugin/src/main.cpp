@@ -9,6 +9,8 @@
 #include <src/pointer/PointerManager.hpp>
 #include <src/pointer/PointerController.hpp>
 #include <src/managers/SeatManager.hpp>
+#include <src/protocols/core/Compositor.hpp>
+#include <src/protocols/core/Seat.hpp>
 #include <src/managers/input/trackpad/TrackpadGestures.hpp>
 #include <src/output/Monitor.hpp>
 #include <src/desktop/rule/windowRule/WindowRuleEffectContainer.hpp>

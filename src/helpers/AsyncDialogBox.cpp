@@ -87,6 +87,7 @@ void CAsyncDialogBox::onWrite(int fd, uint32_t mask) {
         std::erase_if(asyncDialogBoxes, [this](const auto& e) { return e.first == m_dialogPid; });
 
         wl_event_source_remove(m_readEventSource);
+        m_readEventSource = nullptr;
         m_selfReference.reset();
         return;
     }
@@ -108,9 +109,10 @@ SP<CPromise<std::string>> CAsyncDialogBox::open() {
         return nullptr;
     }
 
-    m_pipeReadFd = CFileDescriptor(outPipe[0]);
+    m_pipeReadFd                = CFileDescriptor(outPipe[0]);
+    CFileDescriptor pipeWriteFd = CFileDescriptor(outPipe[1]);
 
-    proc.setStdoutFD(outPipe[1]);
+    proc.setStdoutFD(pipeWriteFd.get());
 
     m_readEventSource = wl_event_loop_add_fd(g_pEventLoopManager->m_wayland.loop, m_pipeReadFd.get(), WL_EVENT_READABLE, ::onFdWrite, this);
 
@@ -127,14 +129,13 @@ SP<CPromise<std::string>> CAsyncDialogBox::open() {
     if (!proc.runAsync()) {
         Log::logger->log(Log::ERR, "CAsyncDialogBox::open: failed to run async");
         wl_event_source_remove(m_readEventSource);
+        m_readEventSource = nullptr;
+        m_selfReference.reset();
         return nullptr;
     }
 
     m_dialogPid = proc.pid();
     asyncDialogBoxes.emplace_back(m_dialogPid, m_selfWeakReference);
-
-    // close the write fd, only the dialog owns it now
-    close(outPipe[1]);
 
     auto promise = CPromise<std::string>::make([this](SP<CPromiseResolver<std::string>> r) { m_promiseResolver = r; });
 

@@ -916,7 +916,18 @@ void CCompositor::openSafeModeBox() {
                                                  OPT_OK,
                                              });
 
-    box->open()->then([OPT_LOAD, OPT_OK, OPT_OPEN, this](SP<CPromiseResult<std::string>> result) {
+    if (!box) {
+        Log::logger->log(Log::ERR, "CCompositor::openSafeModeBox: failed to create safe mode dialog");
+        return;
+    }
+
+    const auto promise = box->open();
+    if (!promise) {
+        Log::logger->log(Log::ERR, "CCompositor::openSafeModeBox: failed to open safe mode dialog");
+        return;
+    }
+
+    promise->then([OPT_LOAD, OPT_OK, OPT_OPEN, this](SP<CPromiseResult<std::string>> result) {
         if (result->hasError())
             return;
 

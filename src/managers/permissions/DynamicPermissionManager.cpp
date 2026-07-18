@@ -272,8 +272,7 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
     } else
         options = {DENY, ALLOW};
 
-    rule->m_dialogBox             = CAsyncDialogBox::create(I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_TITLE), description, options);
-    rule->m_dialogBox->m_priority = true;
+    rule->m_dialogBox = CAsyncDialogBox::create(I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_TITLE), description, options);
 
     if (!rule->m_dialogBox) {
         Log::logger->log(Log::ERR, "CDynamicPermissionManager::askForPermission: hyprland-guiutils likely missing, cannot ask! Disabling permission control...");
@@ -281,7 +280,15 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
         return;
     }
 
-    rule->m_promise = rule->m_dialogBox->open();
+    rule->m_dialogBox->m_priority = true;
+    rule->m_promise               = rule->m_dialogBox->open();
+    if (!rule->m_promise) {
+        Log::logger->log(Log::ERR, "CDynamicPermissionManager::askForPermission: failed to open permission dialog. Disabling permission control...");
+        rule->m_allowMode = PERMISSION_RULE_ALLOW_MODE_ALLOW;
+        rule->m_dialogBox.reset();
+        return;
+    }
+
     rule->m_promise->then([r = WP<CDynamicPermissionRule>(rule), binaryPath, ALLOW, ALLOW_AND_REMEMBER, ALLOW_ONCE, DENY](SP<CPromiseResult<std::string>> pr) {
         if (!r)
             return;

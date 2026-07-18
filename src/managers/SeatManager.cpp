@@ -215,11 +215,12 @@ void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {
     const auto& PRESSED = g_pInputManager->getKeysFromAllKBs();
     static_assert(std::is_same_v<std::decay_t<decltype(PRESSED)>::value_type, uint32_t>, "Element type different from keycode type uint32_t");
 
-    const auto PRESSEDARRSIZE = PRESSED.size() * sizeof(uint32_t);
-    if (PRESSEDARRSIZE > 0) {
-        const auto PKEYS = wl_array_add(&keys, PRESSEDARRSIZE);
-        if (PKEYS)
-            std::ranges::copy(PRESSED, sc<uint32_t*>(PKEYS));
+    for (const auto KEY : PRESSED) {
+        const auto PKEY = sc<uint32_t*>(wl_array_add(&keys, sizeof(KEY)));
+        if (!PKEY)
+            break;
+
+        *PKEY = KEY;
     }
 
     auto client = surf->client();

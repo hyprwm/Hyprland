@@ -31,6 +31,8 @@ namespace Layout::Floating {
 
         void updateTarget(SP<ITarget>);
 
+        CBox setPositionGlobal(SP<ITarget> t, const CBox& box);
+
         struct SWindowData {
             CBox lastBox;
         };

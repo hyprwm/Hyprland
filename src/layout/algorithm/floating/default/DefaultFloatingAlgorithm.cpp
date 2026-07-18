@@ -5,6 +5,7 @@
 #include "../../../target/WindowTarget.hpp"
 #include "../../../space/Space.hpp"
 
+#include "../../../../config/ConfigValue.hpp"
 #include "../../../../Compositor.hpp"
 #include "../../../../desktop/state/WindowState.hpp"
 #include "../../../../output/Monitor.hpp"
@@ -216,7 +217,7 @@ void CDefaultFloatingAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> tar
     pos.w += Δ.x;
     pos.h += Δ.y;
     pos.translate(-Δ / 2.F);
-    target->setPositionGlobal(pos);
+    setPositionGlobal(target, pos);
 
     if (g_layoutManager->dragController()->target() == target)
         target->warpPositionSize();
@@ -227,7 +228,7 @@ void CDefaultFloatingAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> tar
 void CDefaultFloatingAlgorithm::moveTarget(const Vector2D& Δ, SP<ITarget> target) {
     auto pos = target->position();
     pos.translate(Δ);
-    target->setPositionGlobal(pos);
+    setPositionGlobal(target, pos);
 
     if (g_layoutManager->dragController()->target() == target)
         target->warpPositionSize();
@@ -237,8 +238,8 @@ void CDefaultFloatingAlgorithm::moveTarget(const Vector2D& Δ, SP<ITarget> targe
 
 void CDefaultFloatingAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
     auto posABackup = a->position();
-    a->setPositionGlobal(b->position());
-    b->setPositionGlobal(posABackup);
+    setPositionGlobal(a, b->position());
+    setPositionGlobal(b, posABackup);
 
     updateTarget(a);
     updateTarget(b);
@@ -258,7 +259,7 @@ void CDefaultFloatingAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDire
         default: Log::logger->log(Log::ERR, "Invalid direction in CDefaultFloatingAlgorithm::moveTargetInDirection"); break;
     }
 
-    t->setPositionGlobal(pos);
+    setPositionGlobal(t, pos);
 
     updateTarget(t);
 }
@@ -273,11 +274,31 @@ void CDefaultFloatingAlgorithm::recenter(SP<ITarget> t) {
 }
 
 void CDefaultFloatingAlgorithm::setTargetGeom(const CBox& geom, SP<ITarget> target) {
-    target->setPositionGlobal(geom);
+    setPositionGlobal(target, geom);
 
     updateTarget(target);
 }
 
 void CDefaultFloatingAlgorithm::updateTarget(SP<ITarget> t) {
     m_datas[t] = {.lastBox = t->position()};
+}
+
+CBox CDefaultFloatingAlgorithm::setPositionGlobal(SP<ITarget> t, const CBox& box) {
+    CBox        adjustedBox;
+
+    static auto PFORCEONSCREEN = CConfigValue<Config::INTEGER>("misc:float_force_onscreen");
+    switch (*PFORCEONSCREEN) {
+        // No no limits, we'll reach for the sky
+        default:
+        case 0: adjustedBox = box.copy(); break;
+
+        // Must be partially visible
+        case 1: adjustedBox = fitBoxInWorkArea(box, t, false); break;
+
+        // Must be fully in-bounds
+        case 2: adjustedBox = fitBoxInWorkArea(box, t, true); break;
+    }
+
+    t->setPositionGlobal(adjustedBox);
+    return adjustedBox;
 }

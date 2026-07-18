@@ -105,30 +105,27 @@ static void preDamageWorkspace(PHLWORKSPACE pWorkspace, PHLMONITOR pMonitor) {
     if (pWorkspace->m_isSpecialWorkspace)
         g_pHyprRenderer->damageMonitor(pMonitor);
 
-    // TODO: just make this into a damn callback already vax...
+    // Damage each workspace window at most once. Full damage is needed for
+    // special workspaces and floating windows spanning monitor edges.
     for (auto const& w : Desktop::windowState()->windows()) {
-        if (!w->m_isMapped || w->isHidden() || w->m_workspace != pWorkspace)
+        if (!w->m_isMapped || w->m_workspace != pWorkspace)
             continue;
 
-        if (w->m_isFloating && !w->m_pinned) {
+        const bool HIDDEN          = w->isHidden();
+        bool       forceFullDamage = !HIDDEN && pWorkspace->m_isSpecialWorkspace;
+        if (!HIDDEN && w->m_isFloating && !w->m_pinned) {
             // still doing the full damage hack for floating because sometimes when the window
             // goes through multiple monitors the last rendered frame is missing damage somehow??
             const CBox windowBoxNoOffset = w->getFullWindowBoundingBox();
             const CBox monitorBox        = {pMonitor->m_position, pMonitor->m_size};
             if (windowBoxNoOffset.intersection(monitorBox) != windowBoxNoOffset) // on edges between multiple monitors
-                g_pHyprRenderer->damageWindow(w, true);
+                forceFullDamage = true;
         }
 
-        if (pWorkspace->m_isSpecialWorkspace)
-            g_pHyprRenderer->damageWindow(w, true); // hack for special too because it can cross multiple monitors
-    }
-
-    // damage any workspace window that is on any monitor
-    for (auto const& w : Desktop::windowState()->windows()) {
-        if (!validMapped(w) || w->m_workspace != pWorkspace || w->m_pinned)
-            continue;
-
-        g_pHyprRenderer->damageWindow(w);
+        if (forceFullDamage)
+            g_pHyprRenderer->damageWindow(w, true);
+        else if (!w->m_pinned)
+            g_pHyprRenderer->damageWindow(w);
     }
 }
 

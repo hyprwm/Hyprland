@@ -91,16 +91,20 @@ void CDefaultFloatingAlgorithm::newTarget(SP<ITarget> target) {
     if (!posOverridden && (!DESIRED_GEOM || !DESIRED_GEOM->pos))
         windowGeometry = CBox{WORK_AREA.middle() - windowGeometry.size() / 2.F, windowGeometry.size()};
 
-    if (posOverridden                                                                           // pos is overridden by a rule
-        || (DESIRED_GEOM && DESIRED_GEOM->pos && target->window() && target->window()->m_isX11) // X11 window with a geom
-        || WORK_AREA.containsPoint(windowGeometry.middle()))                                    // geometry within work area
-        target->setPositionGlobal(windowGeometry);
-    else {
+    if (!posOverridden                                                                           // pos is overridden by a rule
+        && !(DESIRED_GEOM && DESIRED_GEOM->pos && target->window() && target->window()->m_isX11) // X11 window with a geom
+    ) {
         const auto POS   = WORK_AREA.middle() - windowGeometry.size() / 2.f;
         windowGeometry.x = POS.x;
         windowGeometry.y = POS.y;
+    }
 
-        target->setPositionGlobal(windowGeometry);
+    static auto PFORCEONSCREEN = CConfigValue<Config::INTEGER>("misc:new_float_force_onscreen");
+    switch (*PFORCEONSCREEN) {
+        default:
+        case 0: target->setPositionGlobal(windowGeometry); break;
+        case 1: target->setPositionGlobal(fitBoxInWorkArea(windowGeometry, target, false)); break;
+        case 2: target->setPositionGlobal(fitBoxInWorkArea(windowGeometry, target, true)); break;
     }
 
     // TODO: not very OOP, is it?

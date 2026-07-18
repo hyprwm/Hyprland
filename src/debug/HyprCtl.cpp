@@ -2241,7 +2241,7 @@ static bool isFollowUpRollingLogRequest(const std::string& request) {
 static constexpr size_t                    HYPRCTL_MAX_REQUEST_SIZE   = 1024 * 1024;
 static constexpr std::chrono::milliseconds HYPRCTL_LEGACY_FRAME_GRACE = std::chrono::milliseconds(10);
 
-int                     CHyprCtl::onSocketEvent(int fd, uint32_t mask, void* data) {
+int CHyprCtl::onSocketEvent(int fd, uint32_t mask, void* data) {
     if (mask & WL_EVENT_ERROR || mask & WL_EVENT_HANGUP)
         return 0;
 

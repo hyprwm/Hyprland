@@ -81,6 +81,24 @@ constexpr const char* drmFormatToString(uint32_t drmFormat) {
     }
 }
 
+static uint64_t monotonicNs(const timespec& ts) {
+    return sc<uint64_t>(ts.tv_sec) * 1000000000ULL + sc<uint64_t>(ts.tv_nsec);
+}
+
+static std::optional<uint64_t> refreshIntervalNsFromPresentEvent(const Aquamarine::IOutput::SPresentEvent& event, float refreshRate) {
+    if (event.refresh > 0)
+        return event.refresh;
+
+    if (refreshRate <= 0)
+        return std::nullopt;
+
+    const auto REFRESHNS = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(1.0 / refreshRate)).count();
+    if (REFRESHNS <= 0)
+        return std::nullopt;
+
+    return sc<uint64_t>(REFRESHNS);
+}
+
 CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_name(output_->name), m_state(this), m_output(output_), m_imageDescription(getDefaultImageDescription()) {
     Animation::mgr()->createAnimation(0.f, m_specialFade, Config::animationTree()->getAnimationPropertyConfig("specialWorkspaceIn"), AVARDAMAGE_NONE);
     m_specialFade->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
@@ -160,6 +178,18 @@ void CMonitor::onConnect(bool noRule) {
         }
 
         PROTO::presentation->onPresented(m_self.lock(), ts, event.refresh, event.seq, flags);
+
+        static const auto PMAINBUFFERDEADLINE = CConfigValue<Config::BOOL>("render:main_buffer_deadline");
+
+        if (*PMAINBUFFERDEADLINE) {
+            const auto REFRESHINTERVAL = refreshIntervalNsFromPresentEvent(event, m_refreshRate);
+            if (REFRESHINTERVAL) {
+                m_estimatedNextVblankNs  = monotonicNs(ts) + *REFRESHINTERVAL;
+                m_hasEstimatedNextVblank = true;
+            } else
+                m_hasEstimatedNextVblank = false;
+        } else
+            m_hasEstimatedNextVblank = false;
 
         if (m_zoomAnimFrameCounter < 5) {
             m_zoomAnimFrameCounter++;

@@ -517,6 +517,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Bool>("misc:screencopy_force_8b", "forces 8 bit screencopy", true),
         MS<Bool>("misc:disable_scale_notification", "disables notification popup when a monitor fails to set a suitable scale", false),
         MS<Bool>("misc:size_limits_tiled", "whether to apply minsize and maxsize rules to tiled windows", false),
+        MS<Int>("misc:float_force_onscreen", "whether existing floating windows must remain fully/partially on-screen", 0),
 
         /*
          * binds:

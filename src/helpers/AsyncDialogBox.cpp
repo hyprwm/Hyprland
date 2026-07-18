@@ -40,6 +40,10 @@ bool CAsyncDialogBox::isPriorityDialogBox(pid_t pid) {
     return false;
 }
 
+bool CAsyncDialogBox::hasPriorityDialogBox() {
+    return std::ranges::any_of(asyncDialogBoxes, [](const auto& entry) { return entry.second && entry.second->m_priority; });
+}
+
 CAsyncDialogBox::CAsyncDialogBox(const std::string& title, const std::string& description, std::vector<std::string> buttons) :
     m_title(title), m_description(description), m_buttons(buttons) {
     ;

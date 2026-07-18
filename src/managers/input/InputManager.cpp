@@ -1691,8 +1691,10 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
     if (*PSENDMOD) {
         PROTO::inputCapture->modifiers(MODS.depressed, MODS.latched, MODS.locked, MODS.group);
 
-        if (PROTO::inputCapture->isCaptured())
+        if (PROTO::inputCapture->isCaptured()) {
+            m_lastMods = shareModsFromAllKBs(MODS.depressed);
             return;
+        }
     }
 
     // use merged mods states when sending to ime or when sending to seat with no ime

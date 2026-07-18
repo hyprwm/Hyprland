@@ -173,19 +173,35 @@ void CDefaultFloatingAlgorithm::movedTarget(SP<ITarget> target, std::optional<Ve
     updateTarget(target);
 }
 
-CBox CDefaultFloatingAlgorithm::fitBoxInWorkArea(const CBox& box, SP<ITarget> t) {
+CBox CDefaultFloatingAlgorithm::fitBoxInWorkArea(const CBox& box, SP<ITarget> t, bool fully) {
     const auto WORK_AREA = m_parent->space()->workArea(true);
     const auto EXTENTS   = t->window() ? t->window()->getWindowExtentsUnified(Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS) : SBoxExtents{};
     CBox       targetBox = box.copy().addExtents(EXTENTS);
 
-    targetBox.x = std::max(targetBox.x, WORK_AREA.x);
-    targetBox.y = std::max(targetBox.y, WORK_AREA.y);
+    if (fully) {
+        targetBox.x = std::max(targetBox.x, WORK_AREA.x);
+        targetBox.y = std::max(targetBox.y, WORK_AREA.y);
 
-    if (targetBox.x + targetBox.w > WORK_AREA.x + WORK_AREA.w)
-        targetBox.x = WORK_AREA.x + WORK_AREA.w - targetBox.w;
+        if (targetBox.x + targetBox.w > WORK_AREA.x + WORK_AREA.w)
+            targetBox.x = WORK_AREA.x + WORK_AREA.w - targetBox.w;
 
-    if (targetBox.y + targetBox.h > WORK_AREA.y + WORK_AREA.h)
-        targetBox.y = WORK_AREA.y + WORK_AREA.h - targetBox.h;
+        if (targetBox.y + targetBox.h > WORK_AREA.y + WORK_AREA.h)
+            targetBox.y = WORK_AREA.y + WORK_AREA.h - targetBox.h;
+
+    } else {
+        // If we'd move offscreen, place centerpoint on nearest edge instead
+        if (targetBox.intersection(WORK_AREA).empty()) {
+
+            targetBox.x = std::max(targetBox.x, WORK_AREA.x - (targetBox.w / 2.F));
+            targetBox.y = std::max(targetBox.y, WORK_AREA.y - (targetBox.h / 2.F));
+
+            if (targetBox.x > WORK_AREA.x + WORK_AREA.w)
+                targetBox.x = WORK_AREA.x + WORK_AREA.w - (targetBox.w / 2.F);
+
+            if (targetBox.y > WORK_AREA.y + WORK_AREA.h)
+                targetBox.y = WORK_AREA.y + WORK_AREA.h - (targetBox.h / 2.F);
+        }
+    }
 
     return targetBox.addExtents(SBoxExtents{.topLeft = -EXTENTS.topLeft, .bottomRight = -EXTENTS.bottomRight});
 }

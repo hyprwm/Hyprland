@@ -281,8 +281,7 @@ void CHyprAnimationManager::tick() {
         if (!PAV)
             continue;
 
-        const auto LOCK = PAV.lock();
-        bool       warp = !*PANIMENABLED || !PAV->enabled();
+        bool warp = !*PANIMENABLED || !PAV->enabled();
 
         switch (PAV->m_Type) {
             case AVARTYPE_FLOAT: {

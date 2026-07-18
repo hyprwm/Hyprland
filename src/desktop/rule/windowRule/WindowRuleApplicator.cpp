@@ -49,8 +49,8 @@ std::unordered_set<CWindowRuleEffectContainer::storageType> CWindowRuleApplicato
                    std::pair{std::ref(m_noShadow), [this] { return noShadowEffect(); }}, std::pair{std::ref(m_noShortcutsInhibit), [this] { return noShortcutsInhibitEffect(); }},
                    std::pair{std::ref(m_opaque), [this] { return opaqueEffect(); }}, std::pair{std::ref(m_dimAround), [this] { return dimAroundEffect(); }},
                    std::pair{std::ref(m_RGBX), [this] { return RGBXEffect(); }}, std::pair{std::ref(m_syncFullscreen), [this] { return syncFullscreenEffect(); }},
-                   std::pair{std::ref(m_tearing), [this] { return tearingEffect(); }}, std::pair{std::ref(m_xray), [this] { return xrayEffect(); }},
-                   std::pair{std::ref(m_renderUnfocused), [this] { return renderUnfocusedEffect(); }},
+                   std::pair{std::ref(m_tearing), [this] { return tearingEffect(); }}, std::pair{std::ref(m_directScanout), [this] { return directScanoutEffect(); }},
+                   std::pair{std::ref(m_xray), [this] { return xrayEffect(); }}, std::pair{std::ref(m_renderUnfocused), [this] { return renderUnfocusedEffect(); }},
                    std::pair{std::ref(m_noFollowMouse), [this] { return noFollowMouseEffect(); }}, std::pair{std::ref(m_noScreenShare), [this] { return noScreenShareEffect(); }},
                    std::pair{std::ref(m_noVRR), [this] { return noVRREffect(); }}, std::pair{std::ref(m_noAutoHDR), [this] { return noAutoHDREffect(); }},
                    std::pair{std::ref(m_persistentSize), [this] { return persistentSizeEffect(); }}, std::pair{std::ref(m_stayFocused), [this] { return stayFocusedEffect(); }},
@@ -61,7 +61,6 @@ std::unordered_set<CWindowRuleEffectContainer::storageType> CWindowRuleApplicato
                    std::pair{std::ref(m_animationStyle), [this] { return animationStyleEffect(); }}, std::pair{std::ref(m_maxSize), [this] { return maxSizeEffect(); }},
                    std::pair{std::ref(m_minSize), [this] { return minSizeEffect(); }}, std::pair{std::ref(m_activeBorderColor), [this] { return activeBorderColorEffect(); }},
                    std::pair{std::ref(m_inactiveBorderColor), [this] { return inactiveBorderColorEffect(); }}));
-
     if (prio == Types::PRIORITY_WINDOW_RULE) {
         std::erase_if(m_dynamicTags, [props, this](const auto& el) {
             const bool REMOVE = el.second & props;
@@ -368,6 +367,11 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
             case WINDOW_RULE_EFFECT_SCROLL_TOUCHPAD: {
                 m_scrollTouchpad.first.set(std::get<float>(value), Types::PRIORITY_WINDOW_RULE);
                 m_scrollTouchpad.second |= rule->getPropertiesMask();
+                break;
+            }
+            case WINDOW_RULE_EFFECT_DIRECT_SCANOUT: {
+                m_directScanout.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
+                m_directScanout.second |= rule->getPropertiesMask();
                 break;
             }
         }

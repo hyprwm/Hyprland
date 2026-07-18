@@ -17,6 +17,7 @@ class CAsyncDialogBox {
     static SP<CAsyncDialogBox> create(const std::string& title, const std::string& description, std::vector<std::string> buttons);
     static bool                isAsyncDialogBox(pid_t pid);
     static bool                isPriorityDialogBox(pid_t pid);
+    static bool                hasPriorityDialogBox();
 
     CAsyncDialogBox(const CAsyncDialogBox&)                     = delete;
     CAsyncDialogBox(CAsyncDialogBox&&)                          = delete;

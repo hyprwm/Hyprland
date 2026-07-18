@@ -217,6 +217,31 @@ TEST(MonitorQueryCore, configRelativeNegativeWraps) {
     EXPECT_EQ(std::move(State::CMonitorQueryCore{monitors}).relativeTo(queryable(first)).configString("-1").run(), queryable(third));
 }
 
+TEST(MonitorQueryCore, configRelativeReturnsNullForEmptyMonitorList) {
+    std::vector<SP<Monitor::IMonitorQueryable>> monitors;
+
+    EXPECT_FALSE(std::move(State::CMonitorQueryCore{monitors}).configString("+1").run());
+}
+
+TEST(MonitorQueryCore, configRelativeHandlesExtremeOffsets) {
+    const auto first    = testMonitor(0, "DP-1", {0, 0});
+    const auto second   = testMonitor(1, "DP-2", {100, 0});
+    const auto third    = testMonitor(2, "DP-3", {200, 0});
+    auto       monitors = queryables({first, second, third});
+
+    EXPECT_EQ(std::move(State::CMonitorQueryCore{monitors}).relativeTo(queryable(first)).configString("+9223372036854775807").run(), queryable(second));
+    EXPECT_EQ(std::move(State::CMonitorQueryCore{monitors}).relativeTo(queryable(first)).configString("-9223372036854775808").run(), queryable(second));
+}
+
+TEST(MonitorQueryCore, configRelativeRejectsOverflowingOffsets) {
+    const auto first    = testMonitor(0, "DP-1", {0, 0});
+    const auto second   = testMonitor(1, "DP-2", {100, 0});
+    auto       monitors = queryables({first, second});
+
+    EXPECT_FALSE(std::move(State::CMonitorQueryCore{monitors}).relativeTo(queryable(first)).configString("+9223372036854775808").run());
+    EXPECT_FALSE(std::move(State::CMonitorQueryCore{monitors}).relativeTo(queryable(first)).configString("-9223372036854775809").run());
+}
+
 TEST(MonitorQueryCore, configNumericId) {
     const auto first    = testMonitor(0, "DP-1", {0, 0});
     const auto second   = testMonitor(1, "DP-2", {100, 0});

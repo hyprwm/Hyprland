@@ -101,6 +101,7 @@ WORKSPACEID CWorkspaceQueryCore::nextAvailableNamedWorkspace(std::span<const SWo
 bool CWorkspaceQueryCore::idOutOfBounds(std::span<const SWorkspaceQueryable> workspaces, const WORKSPACEID& id) {
     WORKSPACEID lowestID  = INT64_MAX;
     WORKSPACEID highestID = INT64_MIN;
+    bool        hasBounds = false;
 
     for (const auto& w : workspaces) {
         if (w.inert || w.special)
@@ -108,7 +109,8 @@ bool CWorkspaceQueryCore::idOutOfBounds(std::span<const SWorkspaceQueryable> wor
 
         lowestID  = std::min(w.id, lowestID);
         highestID = std::max(w.id, highestID);
+        hasBounds = true;
     }
 
-    return std::clamp(id, lowestID, highestID) != id;
+    return hasBounds && (id < lowestID || id > highestID);
 }

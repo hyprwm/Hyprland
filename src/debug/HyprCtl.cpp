@@ -22,6 +22,7 @@
 
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <typeindex>
 #include <numeric>
 
@@ -66,6 +67,7 @@ using namespace Hyprutils::OS;
 #include "../version.h"
 
 #include "../Compositor.hpp"
+#include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../managers/XWaylandManager.hpp"
 #include "../managers/fullscreen/FullscreenController.hpp"
@@ -2045,8 +2047,20 @@ CHyprCtl::CHyprCtl() {
 }
 
 CHyprCtl::~CHyprCtl() {
-    if (m_eventSource)
+    for (const auto& client : m_clients) {
+        client->closed = true;
+        if (client->timeout)
+            client->timeout->cancel();
+        if (client->eventSource)
+            wl_event_source_remove(client->eventSource);
+    }
+    m_clients.clear();
+
+    if (m_eventSource) {
         wl_event_source_remove(m_eventSource);
+        m_eventSource = nullptr;
+    }
+    m_socketFD.reset();
     if (!m_socketPath.empty())
         unlink(m_socketPath.c_str());
 }
@@ -2167,39 +2181,33 @@ std::string CHyprCtl::makeDynamicCall(const std::string& input) {
     return getReply(input);
 }
 
-static bool successWrite(int fd, const std::string& data, bool needLog = true) {
-    size_t                 totalWritten = 0;
-    size_t                 remaining    = data.length();
-    size_t                 waitsDone    = 0;
-    constexpr const size_t MAX_WAITS    = 20; // 2000µs = 2ms
+static bool successWrite(int fd, std::string_view data) {
+    size_t written = 0;
+    while (true) {
+        const auto RESULT = NHyprCtlSocket::writeReply(fd, data, written);
+        if (RESULT == NHyprCtlSocket::eWriteResult::WRITE_COMPLETE)
+            return true;
 
-    while (totalWritten < data.length()) {
-        ssize_t written = write(fd, data.c_str() + totalWritten, remaining);
+        if (RESULT == NHyprCtlSocket::eWriteResult::WRITE_ERROR) {
+            Log::logger->log(Log::ERR, "Couldn't write to socket. Error: {}", strerror(errno));
+            return false;
+        }
 
-        if (waitsDone > MAX_WAITS) {
+        pollfd pollFD = {
+            .fd     = fd,
+            .events = POLLOUT,
+        };
+
+        int pollResult = 0;
+        do {
+            pollResult = poll(&pollFD, 1, 100);
+        } while (pollResult < 0 && errno == EINTR);
+
+        if (pollResult <= 0) {
             Log::logger->log(Log::ERR, "Couldn't write to socket. Buffer was full and the client couldn't read in time.");
             return false;
         }
-
-        if (written < 0) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                // socket buffer full, wait a bit and retry
-                std::this_thread::sleep_for(std::chrono::microseconds(100));
-                waitsDone++;
-                continue;
-            }
-            if (needLog)
-                Log::logger->log(Log::ERR, "Couldn't write to socket. Error: {}", strerror(errno));
-            return false;
-        }
-
-        waitsDone = 0;
-
-        totalWritten += written;
-        remaining -= written;
     }
-
-    return true;
 }
 
 static void runWritingDebugLogThread(const int conn) {
@@ -2229,97 +2237,291 @@ static bool isFollowUpRollingLogRequest(const std::string& request) {
     return request.contains("rollinglog") && request.contains("f");
 }
 
-static int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
-    if (mask & WL_EVENT_ERROR || mask & WL_EVENT_HANGUP)
+static constexpr size_t                    HYPRCTL_MAX_CLIENTS         = 64;
+static constexpr std::chrono::milliseconds HYPRCTL_LEGACY_FRAME_GRACE  = std::chrono::milliseconds(10);
+static constexpr std::chrono::seconds      HYPRCTL_REQUEST_TIMEOUT     = std::chrono::seconds(5);
+static constexpr std::chrono::seconds      HYPRCTL_ASYNC_REPLY_TIMEOUT = std::chrono::seconds(30);
+static constexpr std::chrono::seconds      HYPRCTL_WRITE_TIMEOUT       = std::chrono::seconds(5);
+
+int                                        CHyprCtl::onSocketEvent(int fd, uint32_t mask, void* data) {
+    if (!g_pHyprCtl)
         return 0;
+
+    if (mask & (WL_EVENT_ERROR | WL_EVENT_HANGUP)) {
+        Log::logger->log(Log::ERR, "Hyprctl: listener socket failed");
+        if (g_pHyprCtl->m_eventSource) {
+            wl_event_source_remove(g_pHyprCtl->m_eventSource);
+            g_pHyprCtl->m_eventSource = nullptr;
+        }
+        g_pHyprCtl->m_socketFD.reset();
+        if (!g_pHyprCtl->m_socketPath.empty()) {
+            unlink(g_pHyprCtl->m_socketPath.c_str());
+            g_pHyprCtl->m_socketPath.clear();
+        }
+        return 0;
+    }
 
     if (!g_pHyprCtl->m_socketFD.isValid())
         return 0;
 
-    sockaddr_in            clientAddress;
-    socklen_t              clientSize = sizeof(clientAddress);
+    g_pHyprCtl->acceptClients();
 
-    const auto             ACCEPTEDCONNECTION = accept4(g_pHyprCtl->m_socketFD.get(), rc<sockaddr*>(&clientAddress), &clientSize, SOCK_CLOEXEC);
+    return 0;
+}
 
-    std::array<char, 1024> readBuffer;
+int CHyprCtl::onClientEvent(int fd, uint32_t mask, void* data) {
+    if (g_pHyprCtl)
+        g_pHyprCtl->onClientEvent(sc<SHyprCtlClient*>(data), mask);
 
-    // try to get creds
-    CRED_T   creds;
-    uint32_t len = sizeof(creds);
-    if (getsockopt(ACCEPTEDCONNECTION, CRED_LVL, CRED_OPT, &creds, &len) == -1)
-        Log::logger->log(Log::ERR, "Hyprctl: failed to get peer creds");
-    else {
-        g_pHyprCtl->m_currentRequestParams.pid = creds.CRED_PID;
-        Log::logger->log(Log::DEBUG, "Hyprctl: new connection from pid {}", creds.CRED_PID);
-    }
+    return 0;
+}
 
-    //
-    pollfd pollfds[1] = {
-        {
-            .fd     = ACCEPTEDCONNECTION,
-            .events = POLLIN,
-        },
-    };
-
-    int ret = poll(pollfds, 1, 5000);
-
-    if (ret <= 0) {
-        close(ACCEPTEDCONNECTION);
-        return 0;
-    }
-
-    std::string request;
+void CHyprCtl::acceptClients() {
     while (true) {
-        readBuffer.fill(0);
-        auto messageSize = read(ACCEPTEDCONNECTION, readBuffer.data(), 1023);
-        if (messageSize < 1)
-            break;
-        std::string recvd = readBuffer.data();
-        request += recvd;
-        if (messageSize < 1023)
-            break;
+        CFileDescriptor acceptedConnection{accept4(m_socketFD.get(), nullptr, nullptr, SOCK_CLOEXEC | SOCK_NONBLOCK)};
+        if (!acceptedConnection.isValid()) {
+            if (errno == EINTR)
+                continue;
+            if (errno != EAGAIN && errno != EWOULDBLOCK)
+                Log::logger->log(Log::ERR, "Hyprctl: failed to accept client: {}", strerror(errno));
+            return;
+        }
+
+        if (m_clients.size() >= HYPRCTL_MAX_CLIENTS) {
+            Log::logger->log(Log::WARN, "Hyprctl: rejecting client because {} clients are already connected", HYPRCTL_MAX_CLIENTS);
+            continue;
+        }
+
+        auto client = makeShared<SHyprCtlClient>();
+        client->fd  = std::move(acceptedConnection);
+
+        CRED_T   creds = {};
+        uint32_t len   = sizeof(creds);
+        if (getsockopt(client->fd.get(), CRED_LVL, CRED_OPT, &creds, &len) == -1) {
+            client->pid = 0;
+            Log::logger->log(Log::ERR, "Hyprctl: failed to get peer creds");
+        } else {
+            client->pid = creds.CRED_PID;
+            Log::logger->log(Log::DEBUG, "Hyprctl: new connection from pid {}", creds.CRED_PID);
+        }
+
+        client->eventSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, client->fd.get(), WL_EVENT_READABLE, CHyprCtl::onClientEvent, client.get());
+        if (!client->eventSource) {
+            Log::logger->log(Log::ERR, "Hyprctl: failed to add client fd to event loop");
+            continue;
+        }
+
+        const WP<SHyprCtlClient> CLIENTREF = client;
+        client->timeout                    = makeShared<CEventLoopTimer>(
+            HYPRCTL_REQUEST_TIMEOUT,
+            [CLIENTREF](SP<CEventLoopTimer>, void*) {
+                const auto CLIENT = CLIENTREF.lock();
+                if (!g_pHyprCtl || !CLIENT || CLIENT->closed)
+                    return;
+
+                if (CLIENT->waitingForReply) {
+                    Log::logger->log(Log::WARN, "Hyprctl: asynchronous request from pid {} timed out", CLIENT->pid);
+                    CLIENT->asyncTimedOut = true;
+                    g_pHyprCtl->queueClientReply(CLIENT, std::string{"error: asynchronous request timed out"});
+                    return;
+                }
+
+                if (!CLIENT->reply.empty()) {
+                    Log::logger->log(Log::WARN, "Hyprctl: client from pid {} timed out while receiving its reply", CLIENT->pid);
+                    g_pHyprCtl->removeClient(CLIENT.get());
+                    return;
+                }
+
+                if (CLIENT->request.payload.empty() && !CLIENT->request.explicitlyFramed) {
+                    Log::logger->log(Log::WARN, "Hyprctl: closing idle client fd {} before receiving a request", CLIENT->fd.get());
+                    g_pHyprCtl->removeClient(CLIENT.get());
+                    return;
+                }
+
+                if (CLIENT->request.explicitlyFramed) {
+                    Log::logger->log(Log::WARN, "Hyprctl: explicitly framed request from pid {} did not terminate", CLIENT->pid);
+                    g_pHyprCtl->queueClientReply(CLIENT, std::string{"error: incomplete request framing"});
+                    return;
+                }
+
+                // Legacy clients do not send a terminator, so a short quiet period is their frame boundary.
+                g_pHyprCtl->processClientRequest(CLIENT);
+            },
+            nullptr);
+        g_pEventLoopManager->addTimer(client->timeout);
+
+        m_clients.emplace_back(std::move(client));
+    }
+}
+
+SP<CHyprCtl::SHyprCtlClient> CHyprCtl::clientFromPtr(SHyprCtlClient* client) {
+    const auto IT = std::ranges::find_if(m_clients, [client](const auto& candidate) { return candidate.get() == client; });
+    if (IT == m_clients.end())
+        return nullptr;
+
+    return *IT;
+}
+
+void CHyprCtl::removeClient(SHyprCtlClient* client) {
+    const auto IT = std::ranges::find_if(m_clients, [client](const auto& candidate) { return candidate.get() == client; });
+    if (IT == m_clients.end())
+        return;
+
+    (*IT)->closed = true;
+    if ((*IT)->timeout) {
+        g_pEventLoopManager->removeTimer((*IT)->timeout);
+        (*IT)->timeout.reset();
     }
 
-    std::string reply = "";
+    if ((*IT)->eventSource) {
+        wl_event_source_remove((*IT)->eventSource);
+        (*IT)->eventSource = nullptr;
+    }
+
+    (*IT)->fd.reset();
+    m_clients.erase(IT);
+}
+
+void CHyprCtl::onClientEvent(SHyprCtlClient* client, uint32_t mask) {
+    const auto CLIENT = clientFromPtr(client);
+    if (!CLIENT)
+        return;
+
+    if (mask & (WL_EVENT_READABLE | WL_EVENT_HANGUP))
+        readClient(CLIENT);
+
+    if (CLIENT->closed)
+        return;
+
+    if (mask & (WL_EVENT_ERROR | WL_EVENT_HANGUP)) {
+        removeClient(client);
+        return;
+    }
+
+    if (mask & WL_EVENT_WRITABLE)
+        writeClientReply(CLIENT);
+}
+
+void CHyprCtl::readClient(const SP<SHyprCtlClient>& client) {
+    if (!client || client->waitingForReply || !client->reply.empty())
+        return;
+
+    switch (NHyprCtlSocket::readRequest(client->fd.get(), client->request)) {
+        case NHyprCtlSocket::eReadResult::READ_COMPLETE: processClientRequest(client); break;
+        case NHyprCtlSocket::eReadResult::READ_CLOSED: removeClient(client.get()); break;
+        case NHyprCtlSocket::eReadResult::READ_TOO_LARGE:
+            Log::logger->log(Log::WARN, "Hyprctl: request from pid {} exceeded {} bytes", client->pid, NHyprCtlSocket::MAX_REQUEST_SIZE);
+            queueClientReply(client, std::string{"error: request exceeds maximum size"});
+            break;
+        case NHyprCtlSocket::eReadResult::READ_INVALID:
+            Log::logger->log(Log::WARN, "Hyprctl: request from pid {} contained data after its terminator", client->pid);
+            queueClientReply(client, std::string{"error: invalid request framing"});
+            break;
+        case NHyprCtlSocket::eReadResult::READ_ERROR:
+            Log::logger->log(Log::ERR, "Hyprctl: failed to read from client fd {}: {}", client->fd.get(), strerror(errno));
+            removeClient(client.get());
+            break;
+        case NHyprCtlSocket::eReadResult::READ_INCOMPLETE:
+            if (client->timeout && (!client->request.payload.empty() || client->request.explicitlyFramed))
+                client->timeout->updateTimeout(client->request.explicitlyFramed ? HYPRCTL_REQUEST_TIMEOUT : HYPRCTL_LEGACY_FRAME_GRACE);
+            break;
+    }
+}
+
+void CHyprCtl::processClientRequest(const SP<SHyprCtlClient>& client) {
+    if (!client || client->closed)
+        return;
+
+    if (client->timeout)
+        client->timeout->updateTimeout(std::nullopt);
+
+    wl_event_source_fd_update(client->eventSource, 0);
+
+    std::string request = std::move(client->request.payload);
+    std::string reply;
+
+    client->followRolling = isFollowUpRollingLogRequest(request);
+
+    m_currentRequestParams.pid = client->pid;
 
     try {
-        reply = g_pHyprCtl->getReply(request);
+        reply = getReply(std::move(request));
     } catch (std::exception& e) {
         Log::logger->log(Log::ERR, "Error in request: {}", e.what());
         reply = "Err: " + std::string(e.what());
     }
 
-    if (g_pHyprCtl->m_currentRequestParams.pendingPromise) {
-        // we have a promise pending
-        g_pHyprCtl->m_currentRequestParams.pendingPromise->then([ACCEPTEDCONNECTION, request](SP<CPromiseResult<std::string>> result) {
-            const auto RES = result->hasError() ? result->error() : result->result();
-            successWrite(ACCEPTEDCONNECTION, RES);
+    if (m_currentRequestParams.pendingPromise) {
+        auto promise               = m_currentRequestParams.pendingPromise;
+        client->waitingForReply    = true;
+        m_currentRequestParams.pid = 0;
+        m_currentRequestParams.pendingPromise.reset();
+        if (client->timeout)
+            client->timeout->updateTimeout(HYPRCTL_ASYNC_REPLY_TIMEOUT);
 
-            // No rollinglog or ensureMonitor here. These are only for plugins for now.
+        promise->then([client](SP<CPromiseResult<std::string>> result) {
+            if (!g_pHyprCtl || !client || client->closed || client->asyncTimedOut)
+                return;
 
-            close(ACCEPTEDCONNECTION);
+            g_pHyprCtl->queueClientReply(client, result->hasError() ? result->error() : result->result());
         });
-
-        g_pHyprCtl->m_currentRequestParams.pendingPromise.reset();
-    } else {
-        successWrite(ACCEPTEDCONNECTION, reply);
-
-        if (isFollowUpRollingLogRequest(request)) {
-            Log::logger->log(Log::DEBUG, "Followup rollinglog request received. Starting thread to write to socket.");
-            Log::SRollingLogFollow::get().startFor(ACCEPTEDCONNECTION);
-            runWritingDebugLogThread(ACCEPTEDCONNECTION);
-            Log::logger->log(Log::DEBUG, Log::SRollingLogFollow::get().debugInfo());
-        } else
-            close(ACCEPTEDCONNECTION);
-
-        g_pHyprCtl->m_currentRequestParams.pid = 0;
+        return;
     }
 
-    return 0;
+    m_currentRequestParams.pid = 0;
+    queueClientReply(client, std::move(reply));
+}
+
+void CHyprCtl::queueClientReply(const SP<SHyprCtlClient>& client, std::string&& reply) {
+    if (!client || client->closed)
+        return;
+
+    client->request         = {};
+    client->reply           = std::move(reply);
+    client->replyWritten    = 0;
+    client->waitingForReply = false;
+    if (client->timeout)
+        client->timeout->updateTimeout(HYPRCTL_WRITE_TIMEOUT);
+
+    wl_event_source_fd_update(client->eventSource, WL_EVENT_WRITABLE);
+    writeClientReply(client);
+}
+
+void CHyprCtl::writeClientReply(const SP<SHyprCtlClient>& client) {
+    if (!client || client->closed)
+        return;
+
+    const auto WRITTEN_BEFORE = client->replyWritten;
+    const auto RESULT         = NHyprCtlSocket::writeReply(client->fd.get(), client->reply, client->replyWritten);
+    if (RESULT == NHyprCtlSocket::eWriteResult::WRITE_BLOCKED) {
+        if (client->timeout && client->replyWritten > WRITTEN_BEFORE)
+            client->timeout->updateTimeout(HYPRCTL_WRITE_TIMEOUT);
+        wl_event_source_fd_update(client->eventSource, WL_EVENT_WRITABLE);
+        return;
+    }
+
+    if (RESULT == NHyprCtlSocket::eWriteResult::WRITE_ERROR) {
+        Log::logger->log(Log::ERR, "Couldn't write to socket. Error: {}", strerror(errno));
+        removeClient(client.get());
+        return;
+    }
+
+    if (client->followRolling) {
+        const int FD = client->fd.take();
+        removeClient(client.get());
+
+        Log::logger->log(Log::DEBUG, "Followup rollinglog request received. Starting thread to write to socket.");
+        Log::SRollingLogFollow::get().startFor(FD);
+        runWritingDebugLogThread(FD);
+        Log::logger->log(Log::DEBUG, Log::SRollingLogFollow::get().debugInfo());
+        return;
+    }
+
+    removeClient(client.get());
 }
 
 void CHyprCtl::startHyprCtlSocket() {
-    m_socketFD = CFileDescriptor{socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0)};
+    m_socketFD = CFileDescriptor{socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK, 0)};
 
     if (!m_socketFD.isValid()) {
         Log::logger->log(Log::ERR, "Couldn't start the Hyprland Socket. (1) IPC will not work.");
@@ -2330,17 +2532,39 @@ void CHyprCtl::startHyprCtlSocket() {
 
     m_socketPath = g_pCompositor->m_instancePath + "/.socket.sock";
 
+    if (m_socketPath.size() >= sizeof(SERVERADDRESS.sun_path)) {
+        Log::logger->log(Log::ERR, "Couldn't start the Hyprland Socket: path is too long. IPC will not work.");
+        m_socketFD.reset();
+        m_socketPath.clear();
+        return;
+    }
+
     snprintf(SERVERADDRESS.sun_path, sizeof(SERVERADDRESS.sun_path), "%s", m_socketPath.c_str());
 
     if (bind(m_socketFD.get(), rc<sockaddr*>(&SERVERADDRESS), SUN_LEN(&SERVERADDRESS)) < 0) {
         Log::logger->log(Log::ERR, "Couldn't start the Hyprland Socket. (2) IPC will not work.");
+        m_socketFD.reset();
+        m_socketPath.clear();
         return;
     }
 
     // 10 max queued.
-    listen(m_socketFD.get(), 10);
+    if (listen(m_socketFD.get(), 10) < 0) {
+        Log::logger->log(Log::ERR, "Couldn't start the Hyprland Socket. (3) IPC will not work.");
+        m_socketFD.reset();
+        unlink(m_socketPath.c_str());
+        m_socketPath.clear();
+        return;
+    }
+
+    m_eventSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, m_socketFD.get(), WL_EVENT_READABLE, CHyprCtl::onSocketEvent, nullptr);
+    if (!m_eventSource) {
+        Log::logger->log(Log::ERR, "Couldn't add the Hyprland Socket to the event loop. IPC will not work.");
+        m_socketFD.reset();
+        unlink(m_socketPath.c_str());
+        m_socketPath.clear();
+        return;
+    }
 
     Log::logger->log(Log::DEBUG, "Hypr socket started at {}", m_socketPath);
-
-    m_eventSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, m_socketFD.get(), WL_EVENT_READABLE, hyprCtlFDTick, nullptr);
 }

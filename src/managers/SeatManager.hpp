@@ -56,7 +56,7 @@ class CSeatManager {
     void     sendKeyboardKey(uint32_t timeMs, uint32_t key, wl_keyboard_key_state state);
     void     sendKeyboardMods(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group);
 
-    void     setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& local);
+    void     setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& local, bool preserveButtons = false);
     void     sendPointerMotion(uint32_t timeMs, const Vector2D& local);
     void     sendPointerButton(uint32_t timeMs, uint32_t key, wl_pointer_button_state state);
     void     sendPointerFrame();

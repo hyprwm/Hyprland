@@ -140,14 +140,13 @@ static bool isCursorPos(int x, int y) {
     int cursorX = std::stoi(res.substr(0, it - 1));
     int cursorY = std::stoi(res.substr(it + 1));
 
-    // somehow this is always gives 1 less than surfbox->pos()??
     res = getFromSocket("/activewindow");
     it  = res.find("at: ") + 4;
     res = res.substr(it, res.find_first_of('\n', it) - it);
 
     it          = res.find_first_of(',');
-    int clientX = cursorX - std::stoi(res.substr(0, it)) + 1;
-    int clientY = cursorY - std::stoi(res.substr(it + 1)) + 1;
+    int clientX = cursorX - std::stoi(res.substr(0, it));
+    int clientY = cursorY - std::stoi(res.substr(it + 1));
 
     return clientX == x && clientY == y;
 }

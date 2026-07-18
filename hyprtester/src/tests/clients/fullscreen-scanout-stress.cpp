@@ -189,12 +189,11 @@ std::optional<std::string> CStressClient::readLine(int timeoutMs) {
         if (poll(&fds, 1, std::max(remaining, 1)) != 1 || !(fds.revents & POLLIN))
             continue;
 
-        const ssize_t bytesRead = read(fds.fd, readBuf.data(), readBuf.size() - 1);
+        const ssize_t bytesRead = readChunk(fds.fd, readBuf);
         if (bytesRead <= 0)
             continue;
 
-        readBuf[bytesRead] = 0;
-        pendingOutput += readBuf.data();
+        pendingOutput.append(readBuf.data(), sc<size_t>(bytesRead));
     }
 
     return std::nullopt;

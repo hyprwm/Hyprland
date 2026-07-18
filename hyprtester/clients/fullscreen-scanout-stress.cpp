@@ -337,11 +337,10 @@ int main(int argc, char** argv) {
         }
 
         if (fds[1].revents & POLLIN) {
-            const ssize_t bytesRead = read(fds[1].fd, readBuf.data(), readBuf.size() - 1);
+            const ssize_t bytesRead = readChunk(fds[1].fd, readBuf);
             if (bytesRead <= 0)
                 continue;
 
-            readBuf[bytesRead] = 0;
             parseRequest(state, std::string_view{readBuf.data(), static_cast<size_t>(bytesRead)});
         }
     }

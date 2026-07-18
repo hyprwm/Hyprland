@@ -143,7 +143,7 @@ eScreenshareError CScreenshareFrame::share(SP<IHLBuffer> buffer, const CRegion& 
 }
 
 void CScreenshareFrame::copy() {
-    if (done())
+    if (done() || m_copyInFlight)
         return;
 
     // tell client to send presented timestamp
@@ -244,8 +244,8 @@ void CScreenshareFrame::renderMonitor() {
         if UNLIKELY (!l->visible())
             continue;
 
-        const auto REALPOS  = l->m_realPosition->value();
-        const auto REALSIZE = l->m_realSize->value();
+        const auto REALPOS  = l->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+        const auto REALSIZE = l->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
 
         const auto noScreenShareBox = CBox{REALPOS.x, REALPOS.y, std::max(REALSIZE.x, 5.0), std::max(REALSIZE.y, 5.0)}
                                           .translate(-PMONITOR->m_position)
@@ -276,8 +276,9 @@ void CScreenshareFrame::renderMonitor() {
             continue;
 
         const auto renderOffset     = PWORKSPACE && !w->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D{};
-        const auto REALPOS          = w->m_realPosition->value() + renderOffset;
-        const auto noScreenShareBox = CBox{REALPOS.x, REALPOS.y, std::max(w->m_realSize->value().x, 5.0), std::max(w->m_realSize->value().y, 5.0)}
+        const auto REALSIZE         = w->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+        const auto REALPOS          = w->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT) + renderOffset;
+        const auto noScreenShareBox = CBox{REALPOS.x, REALPOS.y, std::max(REALSIZE.x, 5.0), std::max(REALSIZE.y, 5.0)}
                                           .translate(-PMONITOR->m_position)
                                           .scale(PMONITOR->m_scale)
                                           .translate(-m_session->m_captureBox.pos());
@@ -351,7 +352,8 @@ void CScreenshareFrame::renderWindow() {
         return;
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
-    Pointer::mgr()->renderSoftwareCursorsFor(PMONITOR->m_self.lock(), NOW, fakeDamage, g_pInputManager->getMouseCoordsInternal() - PWINDOW->m_realPosition->value(), true);
+    Pointer::mgr()->renderSoftwareCursorsFor(PMONITOR->m_self.lock(), NOW, fakeDamage,
+                                             g_pInputManager->getMouseCoordsInternal() - PWINDOW->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT), true);
 }
 
 void CScreenshareFrame::render() {
@@ -402,8 +404,15 @@ bool CScreenshareFrame::copyDmabuf() {
 
     g_pHyprRenderer->m_renderData.blockScreenShader = true;
 
+    m_copyInFlight = true;
+
     g_pHyprRenderer->endRender([self = m_self]() {
-        if (!self || self.expired() || self->m_copied)
+        if (!self || self.expired())
+            return;
+
+        self->m_copyInFlight = false;
+
+        if (self->m_copied)
             return;
 
         LOGM(Log::TRACE, "Copied frame via dma");

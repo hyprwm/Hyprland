@@ -58,7 +58,7 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
     float                     m_barWidth;
     float                     m_barHeight;
 
-    bool                      m_bLastVisibilityStatus = true;
+    std::optional<bool>       m_bLastVisibilityStatus;
 
     CTitleTex*                textureFromTitle(const std::string&);
     void                      invalidateTextures();

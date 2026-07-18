@@ -26,6 +26,19 @@ static bool                  waitForMonitorAvailable(const std::string& name) {
     return false;
 }
 
+static bool waitForMonitorEnabled(const std::string& name) {
+    // "/monitors" without "all" lists only enabled monitors,
+    //  an output can exist but is disabled
+    for (int i = 0; i < 50; ++i) {
+        if (getFromSocket("/monitors").contains(name))
+            return true;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    return false;
+}
+
 static bool ensureOutputPresent(const std::string& name) {
     if (getFromSocket("/monitors all").contains(name))
         return true;
@@ -46,6 +59,9 @@ static bool prepareRefactorStateMonitors() {
 
     if (getFromSocket(std::format("/eval hl.monitor({{ output = '{}', disabled = false, mode = '1920x1080@60', position = '1920x0', scale = '1', transform = 0 }})",
                                   TEST_MONITOR_RIGHT)) != "ok")
+        return false;
+
+    if (!waitForMonitorEnabled(TEST_MONITOR_LEFT) || !waitForMonitorEnabled(TEST_MONITOR_RIGHT))
         return false;
 
     Tests::sync();

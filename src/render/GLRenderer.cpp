@@ -148,9 +148,17 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
             PMONITOR->m_output->state->setExplicitInFence(PMONITOR->m_inFence.get());
         }
     } else {
-        Log::logger->log(Log::ERR, "renderer: Explicit sync failed, releasing resources");
+        Log::logger->log(Log::ERR, "renderer: Explicit sync failed, falling back to implicit sync");
 
-        m_usedAsyncBuffers.clear(); // release all buffer refs and hope implicit sync works
+        // Establish an implicit synchronization point without blocking the render loop.
+        glFlush();
+
+        if (m_renderMode == RENDER_MODE_NORMAL && PMONITOR) {
+            PMONITOR->m_inFence.reset();
+            PMONITOR->m_output->state->resetExplicitFences();
+        }
+
+        m_usedAsyncBuffers.clear();
         if (renderingDoneCallback)
             renderingDoneCallback();
     }

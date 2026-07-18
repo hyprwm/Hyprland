@@ -27,6 +27,7 @@
 #include "../../protocols/core/DataDevice.hpp"
 #include "../../protocols/core/Compositor.hpp"
 #include "../../protocols/XDGShell.hpp"
+#include "../../protocols/InputCapture.hpp"
 
 #include "../../devices/Mouse.hpp"
 #include "../../devices/VirtualPointer.hpp"
@@ -152,6 +153,9 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
     if (!g_layoutManager->dragController()->target())
         PROTO::relativePointer->sendRelativeMotion(sc<uint64_t>(e.timeMs) * 1000, delta, unaccel);
     Pointer::mgr()->move(DELTA);
+
+    if (PROTO::inputCapture->isCaptured())
+        return;
 
     mouseMoveUnified(e.timeMs, false, e.mouse);
 
@@ -387,7 +391,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
     if (forcedFocus && !foundSurface) {
         pFoundWindow = forcedFocus;
-        surfacePos   = pFoundWindow->m_realPosition->value();
+        surfacePos   = pFoundWindow->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
         foundSurface = pFoundWindow->wlSurface()->resource();
     }
 
@@ -441,7 +445,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
         if (!foundSurface) {
             foundSurface = (*g_pInputManager->m_exclusiveLSes.begin())->wlSurface()->resource();
-            surfacePos   = (*g_pInputManager->m_exclusiveLSes.begin())->m_realPosition->goal();
+            surfacePos   = (*g_pInputManager->m_exclusiveLSes.begin())->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
         }
     }
 
@@ -512,7 +516,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
                 surfacePos   = Vector2D(-1337, -1337);
             } else {
                 foundSurface = pFoundWindow->wlSurface()->resource();
-                surfacePos   = pFoundWindow->m_realPosition->value();
+                surfacePos   = pFoundWindow->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
             }
         }
     }
@@ -558,11 +562,11 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
                 foundSurface = Desktop::viewState()->hitTest().windowSurfaceAt(mouseCoords, pFoundWindow, surfaceCoords);
                 if (!foundSurface) {
                     foundSurface = pFoundWindow->wlSurface()->resource();
-                    surfacePos   = pFoundWindow->m_realPosition->value();
+                    surfacePos   = pFoundWindow->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
                 }
             } else {
                 foundSurface = pFoundWindow->wlSurface()->resource();
-                surfacePos   = pFoundWindow->m_realPosition->value();
+                surfacePos   = pFoundWindow->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
             }
         }
     }
@@ -744,6 +748,11 @@ void CInputManager::onMouseButton(IPointer::SButtonEvent e, SP<IPointer> mouse) 
     if (e.mouse)
         recheckMouseWarpOnMouseInput();
 
+    PROTO::inputCapture->button(e.button, e.state);
+
+    if (PROTO::inputCapture->isCaptured())
+        return;
+
     m_lastCursorMovement.reset();
 
     if (e.state == WL_POINTER_BUTTON_STATE_PRESSED) {
@@ -867,7 +876,7 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e, SP<I
     // TODO detect click on LS properly
     if (*PRESIZEONBORDER && !g_pSessionLockManager->isSessionLocked() && !m_lastFocusOnLS && e.state == WL_POINTER_BUTTON_STATE_PRESSED && (!w || !w->isX11OverrideRedirect())) {
         if (w && !Fullscreen::controller()->isFullscreen(w)) {
-            const CBox real = {w->m_realPosition->value().x, w->m_realPosition->value().y, w->m_realSize->value().x, w->m_realSize->value().y};
+            const CBox real = w->geometricBox(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
             const CBox grab = {real.x - BORDER_GRAB_AREA, real.y - BORDER_GRAB_AREA, real.width + 2 * BORDER_GRAB_AREA, real.height + 2 * BORDER_GRAB_AREA};
 
             if ((grab.containsPoint(mouseCoords) && (!real.containsPoint(mouseCoords) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y))) && !w->hasPopupAt(mouseCoords)) {
@@ -976,7 +985,14 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
     if (e.mouse)
         recheckMouseWarpOnMouseInput();
 
-    bool passEvent = g_pKeybindManager->onAxisEvent(e, pointer);
+    PROTO::inputCapture->axis(e.axis, e.delta);
+    if (e.source == 0)
+        PROTO::inputCapture->axisValue120(e.axis, e.delta);
+    else if (e.delta == 0)
+        PROTO::inputCapture->axisStop(e.axis);
+    PROTO::inputCapture->frame();
+
+    bool passEvent = !PROTO::inputCapture->isCaptured() && g_pKeybindManager->onAxisEvent(e, pointer);
 
     if (!passEvent)
         return;
@@ -1070,6 +1086,11 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
 }
 
 void CInputManager::onPointerFrame() {
+    PROTO::inputCapture->frame();
+
+    if (PROTO::inputCapture->isCaptured())
+        return;
+
     if (!m_pointerAxisFramePending)
         return;
 
@@ -1604,10 +1625,12 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
     if (info.cancelled)
         return;
 
-    bool passEvent = DISALLOWACTION;
+    PROTO::inputCapture->key(event.keycode, event.state);
+
+    bool passEvent = DISALLOWACTION && !PROTO::inputCapture->isCaptured();
 
     if (!DISALLOWACTION)
-        passEvent = g_pKeybindManager->onKeyEvent(event, pKeyboard);
+        passEvent = g_pKeybindManager->onKeyEvent(event, pKeyboard) && !PROTO::inputCapture->isCaptured();
 
     if (passEvent) {
         auto state   = event.state;
@@ -1654,6 +1677,7 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
 }
 
 void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
+    static auto PSENDMOD = CConfigValue<Hyprlang::INT>("input-capture:capture_modifiers");
     if (!pKeyboard->m_enabled)
         return;
 
@@ -1662,8 +1686,14 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
     const auto IME    = m_relay.m_inputMethod.lock();
     const bool HASIME = IME && IME->hasGrab();
     const bool USEIME = HASIME && !DISALLOWACTION;
+    auto       MODS   = pKeyboard->m_modifiersState;
 
-    auto       MODS = pKeyboard->m_modifiersState;
+    if (*PSENDMOD) {
+        PROTO::inputCapture->modifiers(MODS.depressed, MODS.latched, MODS.locked, MODS.group);
+
+        if (PROTO::inputCapture->isCaptured())
+            return;
+    }
 
     // use merged mods states when sending to ime or when sending to seat with no ime
     // if passing from ime, send mods directly without merging

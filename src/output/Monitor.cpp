@@ -44,6 +44,7 @@
 #include "../desktop/view/LayerSurface.hpp"
 #include "../desktop/state/GlobalWindowController.hpp"
 #include "../desktop/state/FocusState.hpp"
+#include "../desktop/state/FadingOutState.hpp"
 #include "../event/EventBus.hpp"
 #include "../helpers/Drm.hpp"
 #include "MonitorFrameScheduler.hpp"
@@ -146,20 +147,19 @@ void CMonitor::onConnect(bool noRule) {
             }
         }
 
-        timespec* ts = event.when;
+        timespec ts{};
+        auto     flags = event.flags;
 
-        if (ts && ts->tv_sec <= 2) {
+        if (event.when && event.when->tv_sec > 2) {
             // drop this timestamp, it's not valid. Likely drm is cringe. We can't push it further because
             // a) it's wrong, b) our translations aren't 100% accurate and risk underflows
-            ts = nullptr;
+            ts = *event.when;
+        } else {
+            clock_gettime(CLOCK_MONOTONIC, &ts);
+            flags &= ~Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_CLOCK;
         }
 
-        if (!ts) {
-            timespec mono{};
-            clock_gettime(CLOCK_MONOTONIC, &mono);
-            PROTO::presentation->onPresented(m_self.lock(), mono, event.refresh, event.seq, event.flags & ~Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_CLOCK);
-        } else
-            PROTO::presentation->onPresented(m_self.lock(), *ts, event.refresh, event.seq, event.flags);
+        PROTO::presentation->onPresented(m_self.lock(), ts, event.refresh, event.seq, flags);
 
         if (m_zoomAnimFrameCounter < 5) {
             m_zoomAnimFrameCounter++;
@@ -196,7 +196,7 @@ void CMonitor::onConnect(bool noRule) {
 
         m_frameScheduler->onPresented();
 
-        m_events.presented.emit();
+        m_events.presented.emit(Time::fromTimespec(&ts));
     });
 
     m_listeners.destroy = m_output->events.destroy.listen([this] {
@@ -1661,11 +1661,11 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
             if (w->m_isFloating && VECNOTINRECT(MIDDLE, m_position.x, m_position.y, m_position.x + m_size.x, m_position.y + m_size.y) && !w->isX11OverrideRedirect()) {
                 // if it's floating and the middle isn't on the current mon, move it to the center
                 const auto PMONFROMMIDDLE = State::monitorState()->query().vec(MIDDLE).run();
-                Vector2D   pos            = w->m_realPosition->goal();
+                Vector2D   pos            = w->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
                 if (VECNOTINRECT(MIDDLE, PMONFROMMIDDLE->m_position.x, PMONFROMMIDDLE->m_position.y, PMONFROMMIDDLE->m_position.x + PMONFROMMIDDLE->m_size.x,
                                  PMONFROMMIDDLE->m_position.y + PMONFROMMIDDLE->m_size.y)) {
                     // not on any monitor, center
-                    pos = middle() - w->m_realSize->goal() / 2.f;
+                    pos = middle() - w->size(Desktop::View::IGeometric::GEOMETRIC_GOAL) / 2.f;
                 } else
                     pos = pos - PMONFROMMIDDLE->m_position + m_position;
 
@@ -1866,8 +1866,8 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
             return reasons;
     }
 
-    if (PCANDIDATE->m_realSize->value() != m_size || PCANDIDATE->m_realPosition->value() != m_position || PCANDIDATE->m_realPosition->isBeingAnimated() ||
-        PCANDIDATE->m_realSize->isBeingAnimated()) {
+    if (PCANDIDATE->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT) != m_size || PCANDIDATE->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT) != m_position ||
+        PCANDIDATE->positionAnimation()->isBeingAnimated() || PCANDIDATE->sizeAnimation()->isBeingAnimated()) {
         reasons |= SC_TRANSFORM;
         if (!full)
             return reasons;
@@ -1885,6 +1885,15 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
             if (!full)
                 return reasons;
         }
+    }
+
+    for (auto const& fadeout : Desktop::fadingOutState()->fadeouts()) {
+        if (!fadeout || fadeout->monitor() != m_self)
+            continue;
+
+        reasons |= SC_FADEOUT;
+        if (!full)
+            return reasons;
     }
 
     for (auto const& w : Desktop::windowState()->windows()) {
@@ -2178,11 +2187,13 @@ bool CMonitor::attemptDirectScanout() {
     if (g_pHyprRenderer->explicitSyncSupported() && isMultiGPU()) {
         auto sync = g_pHyprRenderer->createSyncFDManager();
 
-        if (sync->fd().isValid()) {
+        if (sync && sync->isValid()) {
             m_inFence = sync->takeFd();
             m_output->state->setExplicitInFence(m_inFence.get());
-        } else
+        } else {
+            m_inFence.reset();
             m_output->state->resetExplicitFences(); // good luck.
+        }
     } else
         m_output->state->resetExplicitFences();
 

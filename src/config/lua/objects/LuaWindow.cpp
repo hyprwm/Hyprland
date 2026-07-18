@@ -79,15 +79,15 @@ static int windowIndex(lua_State* L) {
         lua_pushboolean(L, w->acceptsInput());
     else if (key == "at") {
         lua_newtable(L);
-        lua_pushinteger(L, sc<int>(w->m_realPosition->goal().x));
+        lua_pushinteger(L, sc<int>(w->position(Desktop::View::IGeometric::GEOMETRIC_GOAL).x));
         lua_setfield(L, -2, "x");
-        lua_pushinteger(L, sc<int>(w->m_realPosition->goal().y));
+        lua_pushinteger(L, sc<int>(w->position(Desktop::View::IGeometric::GEOMETRIC_GOAL).y));
         lua_setfield(L, -2, "y");
     } else if (key == "size") {
         lua_newtable(L);
-        lua_pushinteger(L, sc<int>(w->m_realSize->goal().x));
+        lua_pushinteger(L, sc<int>(w->size(Desktop::View::IGeometric::GEOMETRIC_GOAL).x));
         lua_setfield(L, -2, "x");
-        lua_pushinteger(L, sc<int>(w->m_realSize->goal().y));
+        lua_pushinteger(L, sc<int>(w->size(Desktop::View::IGeometric::GEOMETRIC_GOAL).y));
         lua_setfield(L, -2, "y");
     } else if (key == "workspace") {
         if (w->m_workspace)
@@ -239,6 +239,8 @@ static int windowIndex(lua_State* L) {
         }
     } else if (key == "active") {
         lua_pushboolean(L, w == Desktop::focusState()->window());
+    } else if (key == "tearing_hint") {
+        lua_pushboolean(L, w->m_tearingHint);
     } else
         lua_pushnil(L);
 

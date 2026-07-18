@@ -85,22 +85,20 @@ std::string NHyprlandSocket::send(const std::string& cmd) {
     constexpr size_t BUFFER_SIZE         = 8192;
     char             buffer[BUFFER_SIZE] = {0};
 
-    auto             sizeWritten = read(SERVERSOCKET, buffer, BUFFER_SIZE);
+    while (true) {
+        const auto sizeRead = read(SERVERSOCKET, buffer, BUFFER_SIZE);
+        if (sizeRead < 0) {
+            if (errno == EINTR)
+                continue;
 
-    if (sizeWritten < 0) {
-        std::println("{}", failureString("Couldn't read (6)"));
-        return "";
-    }
-
-    reply += std::string(buffer, sizeWritten);
-
-    while (sizeWritten == BUFFER_SIZE) {
-        sizeWritten = read(SERVERSOCKET, buffer, BUFFER_SIZE);
-        if (sizeWritten < 0) {
-            std::println("{}", failureString("Couldn't read (7)"));
+            std::println("{}", failureString("Couldn't read (6)"));
             return "";
         }
-        reply += std::string(buffer, sizeWritten);
+
+        if (sizeRead == 0)
+            break;
+
+        reply.append(buffer, sc<size_t>(sizeRead));
     }
 
     close(SERVERSOCKET);

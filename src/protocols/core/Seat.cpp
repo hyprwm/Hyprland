@@ -179,7 +179,7 @@ void CWLPointerResource::sendEnter(SP<CWLSurfaceResource> surface, const Vector2
 
     const auto fixedLocal = fixPosWithWlFixed(local);
 
-    m_resource->sendEnter(g_pSeatManager->nextSerial(m_owner.lock()), surface->getResource().get(), wl_fixed_from_double(fixedLocal.x), wl_fixed_from_double(fixedLocal.y));
+    m_resource->sendEnter(g_pSeatManager->nextSerial(m_owner.lock(), true), surface->getResource().get(), wl_fixed_from_double(fixedLocal.x), wl_fixed_from_double(fixedLocal.y));
 }
 
 void CWLPointerResource::sendLeave() {

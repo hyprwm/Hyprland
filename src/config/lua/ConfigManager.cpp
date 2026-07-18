@@ -5,8 +5,10 @@
 
 #include <algorithm>
 #include <cctype>
+#include <filesystem>
 #include <functional>
 #include <fstream>
+#include <glob.h>
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/string/Numeric.hpp>
 
@@ -37,6 +39,7 @@
 #include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../managers/input/trackpad/TrackpadGestures.hpp"
 #include "../../notification/NotificationOverlay.hpp"
+#include "../../helpers/MiscFunctions.hpp"
 
 using namespace Config;
 using namespace Config::Lua;
@@ -53,6 +56,211 @@ static bool isValidLuaIdentifier(const std::string& value) {
         return false;
 
     return std::ranges::all_of(value, [](const char& c) { return std::isalnum(c) || c == '_'; });
+}
+
+static std::string normalizedConfigPath(const std::string& path) {
+    if (path.empty())
+        return path;
+
+    return std::filesystem::path(path).lexically_normal().string();
+}
+
+static void trackConfigPath(CConfigManager* mgr, const std::string& path) {
+    if (!mgr || path.empty())
+        return;
+
+    const auto NORMALIZED = normalizedConfigPath(path);
+    if (std::ranges::find(mgr->m_configPaths, NORMALIZED) == mgr->m_configPaths.end())
+        mgr->m_configPaths.emplace_back(NORMALIZED);
+}
+
+static bool isExplicitRequirePath(std::string_view moduleName) {
+    return moduleName.starts_with('/') || moduleName.starts_with("./") || moduleName.starts_with("../") || moduleName.starts_with("~/");
+}
+
+static bool hasGlobMeta(std::string_view value) {
+    return value.find_first_of("*?[") != std::string_view::npos;
+}
+
+static std::string resolveRequirePath(CConfigManager* mgr, const std::string& rawPath) {
+    if (!mgr)
+        return rawPath;
+
+    return absolutePath(rawPath, mgr->getMainConfigPath());
+}
+
+static std::optional<std::string> resolveExplicitLuaRequireFile(CConfigManager* mgr, const std::string& moduleName) {
+    std::vector<std::string> candidates;
+
+    const auto               BASE = resolveRequirePath(mgr, moduleName);
+    candidates.emplace_back(BASE);
+
+    if (!BASE.ends_with(".lua"))
+        candidates.emplace_back(BASE + ".lua");
+
+    candidates.emplace_back((std::filesystem::path(BASE) / "init.lua").string());
+
+    for (const auto& candidate : candidates) {
+        std::error_code ec;
+        const auto      STATUS = std::filesystem::status(candidate, ec);
+        if (!ec && std::filesystem::is_regular_file(STATUS))
+            return normalizedConfigPath(candidate);
+    }
+
+    return std::nullopt;
+}
+
+static void trackWildcardParentDirectory(CConfigManager* mgr, const std::string& pattern) {
+    const auto META = pattern.find_first_of("*?[");
+    if (META == std::string::npos)
+        return;
+
+    const auto SLASH = pattern.substr(0, META).find_last_of('/');
+    if (SLASH == std::string::npos)
+        return;
+
+    std::string parent = SLASH == 0 ? "/" : pattern.substr(0, SLASH);
+    if (parent.empty())
+        parent = ".";
+
+    std::error_code ec;
+    const auto      STATUS = std::filesystem::status(parent, ec);
+    if (!ec && std::filesystem::is_directory(STATUS))
+        trackConfigPath(mgr, parent);
+}
+
+static std::expected<std::vector<std::string>, std::string> expandRequireWildcard(CConfigManager* mgr, const std::string& moduleName) {
+    const auto PATTERN = resolveRequirePath(mgr, moduleName);
+    trackWildcardParentDirectory(mgr, PATTERN);
+
+    glob_t    globBuf    = {};
+    const int GLOBRESULT = glob(PATTERN.c_str(), GLOB_TILDE, nullptr, &globBuf);
+    if (GLOBRESULT != 0) {
+        globfree(&globBuf);
+        if (GLOBRESULT == GLOB_NOMATCH)
+            return std::unexpected("found no match");
+        if (GLOBRESULT == GLOB_ABORTED)
+            return std::unexpected("read error");
+        return std::unexpected("out of memory");
+    }
+
+    std::vector<std::string> paths;
+    for (size_t i = 0; i < globBuf.gl_pathc; ++i) {
+        std::string     path = globBuf.gl_pathv[i];
+        std::error_code ec;
+        const auto      STATUS = std::filesystem::status(path, ec);
+        if (!ec && std::filesystem::is_regular_file(STATUS))
+            paths.emplace_back(normalizedConfigPath(path));
+    }
+
+    globfree(&globBuf);
+
+    std::ranges::sort(paths);
+    paths.erase(std::ranges::unique(paths).begin(), paths.end());
+
+    if (paths.empty())
+        return std::unexpected("found no regular file matches");
+
+    return paths;
+}
+
+static bool pushPackageLoaded(lua_State* L, const std::string& moduleName) {
+    const int stackTop = lua_gettop(L);
+
+    lua_getglobal(L, "package");
+    if (!lua_istable(L, -1)) {
+        lua_settop(L, stackTop);
+        return false;
+    }
+
+    lua_getfield(L, -1, "loaded");
+    if (!lua_istable(L, -1)) {
+        lua_settop(L, stackTop);
+        return false;
+    }
+
+    lua_pushstring(L, moduleName.c_str());
+    lua_gettable(L, -2);
+    if (!lua_toboolean(L, -1)) {
+        lua_settop(L, stackTop);
+        return false;
+    }
+
+    lua_remove(L, stackTop + 2); // loaded
+    lua_remove(L, stackTop + 1); // package
+    return true;
+}
+
+static void setPackageLoaded(lua_State* L, const std::string& moduleName, int valueIdx) {
+    const int absValueIdx = lua_absindex(L, valueIdx);
+
+    lua_getglobal(L, "package");
+    if (!lua_istable(L, -1)) {
+        lua_pop(L, 1);
+        return;
+    }
+
+    lua_getfield(L, -1, "loaded");
+    if (!lua_istable(L, -1)) {
+        lua_pop(L, 2);
+        return;
+    }
+
+    lua_pushstring(L, moduleName.c_str());
+    lua_pushvalue(L, absValueIdx);
+    lua_settable(L, -3);
+    lua_pop(L, 2);
+}
+
+static int requireWildcard(lua_State* L, CConfigManager* mgr, const std::string& moduleName) {
+    if (pushPackageLoaded(L, moduleName))
+        return 1;
+
+    const auto PATHS = expandRequireWildcard(mgr, moduleName);
+    if (!PATHS)
+        return luaL_error(L, "module '%s' not found: wildcard %s", moduleName.c_str(), PATHS.error().c_str());
+
+    lua_newtable(L);
+    const int resultIdx = lua_gettop(L);
+    size_t    resultI   = 1;
+
+    for (const auto& path : *PATHS) {
+        trackConfigPath(mgr, path);
+
+        lua_pushvalue(L, lua_upvalueindex(1));
+        lua_pushstring(L, path.c_str());
+
+        const int status = lua_pcall(L, 1, LUA_MULTRET, 0);
+        if (status == LUA_OK) {
+            const int nresults = lua_gettop(L) - resultIdx;
+            if (nresults > 0 && !lua_isnil(L, resultIdx + 1))
+                lua_pushvalue(L, resultIdx + 1);
+            else
+                lua_pushboolean(L, true);
+            lua_rawseti(L, resultIdx, resultI++);
+            lua_pop(L, nresults);
+            continue;
+        }
+
+        std::string err;
+        {
+            size_t      len = 0;
+            const char* str = luaL_tolstring(L, -1, &len);
+            if (str)
+                err.assign(str, len);
+            lua_pop(L, 1);
+        }
+        lua_pop(L, 1); // error object
+
+        if (mgr)
+            mgr->addError(std::format("require(\"{}\"): {}", path, err));
+
+        lua_newtable(L);
+        lua_rawseti(L, resultIdx, resultI++);
+    }
+
+    setPackageLoaded(L, moduleName, resultIdx);
+    return 1;
 }
 
 static int pluginLuaFunctionDispatcher(lua_State* L) {
@@ -94,8 +302,8 @@ static void trackRequiredLuaModulePath(lua_State* L, CConfigManager* mgr, const 
 
     if (lua_pcall(L, 2, 2, 0) == LUA_OK && lua_isstring(L, -2)) {
         const auto* resolvedPath = lua_tostring(L, -2);
-        if (resolvedPath && std::ranges::find(mgr->m_configPaths, resolvedPath) == mgr->m_configPaths.end())
-            mgr->m_configPaths.emplace_back(resolvedPath);
+        if (resolvedPath)
+            trackConfigPath(mgr, resolvedPath);
     }
 
     lua_settop(L, stackTop);
@@ -107,6 +315,9 @@ static int safeLuaRequire(lua_State* L) {
     std::string moduleName;
     if (lua_isstring(L, 1))
         moduleName = lua_tostring(L, 1);
+
+    if (isExplicitRequirePath(moduleName) && hasGlobMeta(moduleName))
+        return requireWildcard(L, CConfigManager::fromLuaState(L), moduleName);
 
     lua_pushvalue(L, lua_upvalueindex(1));
     lua_insert(L, 1);
@@ -349,12 +560,29 @@ void CConfigManager::reinitLuaState() {
         m_lua,
         [](lua_State* L) -> int {
             // upvalue 1: original searcher, upvalue 2: CConfigManager*
+            auto*       self = sc<CConfigManager*>(lua_touserdata(L, lua_upvalueindex(2)));
+            std::string moduleName;
+            if (lua_isstring(L, 1))
+                moduleName = lua_tostring(L, 1);
+
+            if (isExplicitRequirePath(moduleName) && !hasGlobMeta(moduleName)) {
+                const auto resolved = resolveExplicitLuaRequireFile(self, moduleName);
+                if (resolved) {
+                    trackConfigPath(self, *resolved);
+
+                    if (luaL_loadfile(L, resolved->c_str()) != LUA_OK)
+                        return luaL_error(L, "error loading module '%s' from file '%s':\n\t%s", moduleName.c_str(), resolved->c_str(), lua_tostring(L, -1));
+
+                    lua_pushstring(L, resolved->c_str());
+                    return 2;
+                }
+            }
+
             lua_pushvalue(L, lua_upvalueindex(1));
             lua_pushvalue(L, 1); // module name
             lua_call(L, 1, 2);   // -> loader?, filename?
             if (lua_isfunction(L, -2) && lua_isstring(L, -1)) {
-                auto* self = sc<CConfigManager*>(lua_touserdata(L, lua_upvalueindex(2)));
-                self->m_configPaths.emplace_back(lua_tostring(L, -1));
+                trackConfigPath(self, lua_tostring(L, -1));
             }
             return 2;
         },
@@ -1121,6 +1349,21 @@ void CConfigManager::callLuaFn(int ref) {
 
     if (status != LUA_OK) {
         addError(std::format("error in callLuaFn: {}", lua_tostring(m_lua, -1)));
+        lua_pop(m_lua, 1);
+    }
+}
+
+void CConfigManager::callLuaFn(int ref, const std::function<int(lua_State*)>& pushArgs, int timeoutMs, std::string_view context) {
+    if (ref == LUA_NOREF || ref == LUA_REFNIL)
+        return;
+
+    lua_rawgeti(m_lua, LUA_REGISTRYINDEX, ref);
+
+    const int nargs  = pushArgs ? pushArgs(m_lua) : 0;
+    const int status = guardedPCall(nargs, 0, 0, timeoutMs, context);
+
+    if (status != LUA_OK) {
+        addError(std::format("error in {}: {}", context, lua_tostring(m_lua, -1)));
         lua_pop(m_lua, 1);
     }
 }

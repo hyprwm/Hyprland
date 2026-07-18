@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <optional>
+#include <unordered_map>
 
 #include "View.hpp"
 #include "../../config/shared/complex/ComplexDataTypes.hpp"
@@ -132,9 +133,6 @@ namespace Desktop::View {
         virtual std::optional<CBox>                         surfaceLogicalBox() const override;
         virtual Types::CMultiAVarContainer<float, uint8_t>& alpha() override;
         virtual std::optional<uint8_t>                      alphaGenericToKey(eAlphaModifiableProp p) override;
-
-        using CGeometricMovableAnimated::m_realPosition;
-        using CGeometricMovableAnimated::m_realSize;
 
         struct {
             CSignalT<> destroy;

@@ -137,13 +137,13 @@ static std::string availableModesForOutput(PHLMONITOR pMonitor, eHyprCtlOutputFo
 
 const std::array<const char*, Monitor::CMonitor::SC_CHECKS_COUNT> SOLITARY_REASONS_JSON = {
     "\"UNKNOWN\"",   "\"NOTIFICATION\"", "\"LOCK\"",      "\"WORKSPACE\"", "\"WINDOWED\"", "\"DND\"",        "\"SPECIAL\"",  "\"ALPHA\"",       "\"OFFSET\"",
-    "\"CANDIDATE\"", "\"OPAQUE\"",       "\"TRANSFORM\"", "\"OVERLAYS\"",  "\"FLOAT\"",    "\"WORKSPACES\"", "\"SURFACES\"", "\"CONFIGERROR\"",
+    "\"CANDIDATE\"", "\"OPAQUE\"",       "\"TRANSFORM\"", "\"OVERLAYS\"",  "\"FLOAT\"",    "\"WORKSPACES\"", "\"SURFACES\"", "\"CONFIGERROR\"", "\"FADEOUT\"",
 };
 
 const std::array<const char*, Monitor::CMonitor::SC_CHECKS_COUNT> SOLITARY_REASONS_TEXT = {
     "unknown reason",    "notification",     "session lock",     "invalid workspace", "windowed mode", "dnd active",
     "special workspace", "alpha channel",    "workspace offset", "missing candidate", "not opaque",    "surface transformations",
-    "other overlays",    "floating windows", "other workspaces", "subsurfaces",       "config error",
+    "other overlays",    "floating windows", "other workspaces", "subsurfaces",       "config error",  "fadeout in progress",
 };
 
 std::string CHyprCtl::getSolitaryBlockedReason(PHLMONITOR m, eHyprCtlOutputFormat format) {
@@ -419,18 +419,20 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     "xdgTag": "{}",
     "xdgDescription": "{}",
     "contentType": "{}",
+    "tearingHint": {},
     "stableId": "{:x}"
 }},)#",
             rc<uintptr_t>(w.get()), (w->m_isMapped ? "true" : "false"), (w->isHidden() ? "true" : "false"), (w->visible() ? "true" : "false"),
-            (w->acceptsInput() ? "true" : "false"), sc<int>(w->m_realPosition->goal().x), sc<int>(w->m_realPosition->goal().y), sc<int>(w->m_realSize->goal().x),
-            sc<int>(w->m_realSize->goal().y), w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID, escapeJSONStrings(!w->m_workspace ? "" : w->m_workspace->m_name),
-            (sc<int>(w->m_isFloating) == 1 ? "true" : "false"), w->monitorID(), escapeJSONStrings(w->m_class), escapeJSONStrings(w->m_title), escapeJSONStrings(w->m_initialClass),
-            escapeJSONStrings(w->m_initialTitle), w->getPID(), (sc<int>(w->m_isX11) == 1 ? "true" : "false"), (w->m_pinned ? "true" : "false"),
-            (w->m_pinFullscreened ? "true" : "false"), sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w).internal),
+            (w->acceptsInput() ? "true" : "false"), sc<int>(w->position(Desktop::View::IGeometric::GEOMETRIC_GOAL).x),
+            sc<int>(w->position(Desktop::View::IGeometric::GEOMETRIC_GOAL).y), sc<int>(w->size(Desktop::View::IGeometric::GEOMETRIC_GOAL).x),
+            sc<int>(w->size(Desktop::View::IGeometric::GEOMETRIC_GOAL).y), w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID,
+            escapeJSONStrings(!w->m_workspace ? "" : w->m_workspace->m_name), (sc<int>(w->m_isFloating) == 1 ? "true" : "false"), w->monitorID(), escapeJSONStrings(w->m_class),
+            escapeJSONStrings(w->m_title), escapeJSONStrings(w->m_initialClass), escapeJSONStrings(w->m_initialTitle), w->getPID(), (sc<int>(w->m_isX11) == 1 ? "true" : "false"),
+            (w->m_pinned ? "true" : "false"), (w->m_pinFullscreened ? "true" : "false"), sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w).internal),
             sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w).client), escapeJSONStrings(Fullscreen::controller()->getFullscreenHandlerNameAsString(w)),
             (w->m_allowedOverFullscreen ? "true" : "false"), getGroupedData(w, format), getTagsData(w, format), rc<uintptr_t>(w->m_swallowee.get()), getFocusHistoryID(w),
             (g_pInputManager->isWindowInhibiting(w, false) ? "true" : "false"), escapeJSONStrings(w->xdgTag().value_or("")), escapeJSONStrings(w->xdgDescription().value_or("")),
-            escapeJSONStrings(NContentType::toString(w->getContentType())), w->m_stableID);
+            escapeJSONStrings(NContentType::toString(w->getContentType())), (w->m_tearingHint ? "true" : "false"), w->m_stableID);
     } else {
         return std::format(
             "Window {:x} -> {}:\n\tmapped: {}\n\thidden: {}\n\tvisible: {}\n\tacceptsInput: {}\n\tat: {},{}\n\tsize: {},{}\n\tworkspace: {} ({})\n\tfloating: {}\n\tmonitor: "
@@ -440,15 +442,16 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
             "{}\n\tfullscreen: {}\n\tfullscreenClient: {}\n\tfullscreenHandler: {}\n\tallowedOverFullscreen: {}\n\tgrouped: {}\n\ttags: {}\n\tswallowing: {:x}\n\tfocusHistoryID: "
             "{}\n\tinhibitingIdle: "
             "{}\n\txdgTag: "
-            "{}\n\txdgDescription: {}\n\tcontentType: {}\n\tstableID: {:x}\n\n",
+            "{}\n\txdgDescription: {}\n\tcontentType: {}\n\ttearingHint: {}\n\tstableID: {:x}\n\n",
             rc<uintptr_t>(w.get()), w->m_title, sc<int>(w->m_isMapped), sc<int>(w->isHidden()), sc<int>(w->visible()), sc<int>(w->acceptsInput()),
-            sc<int>(w->m_realPosition->goal().x), sc<int>(w->m_realPosition->goal().y), sc<int>(w->m_realSize->goal().x), sc<int>(w->m_realSize->goal().y),
+            sc<int>(w->position(Desktop::View::IGeometric::GEOMETRIC_GOAL).x), sc<int>(w->position(Desktop::View::IGeometric::GEOMETRIC_GOAL).y),
+            sc<int>(w->size(Desktop::View::IGeometric::GEOMETRIC_GOAL).x), sc<int>(w->size(Desktop::View::IGeometric::GEOMETRIC_GOAL).y),
             w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID, (!w->m_workspace ? "" : w->m_workspace->m_name), sc<int>(w->m_isFloating), w->monitorID(), w->m_class,
             w->m_title, w->m_initialClass, w->m_initialTitle, w->getPID(), sc<int>(w->m_isX11), sc<int>(w->m_pinned), sc<int>(w->m_pinFullscreened),
             sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w).internal), sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w).client),
             Fullscreen::controller()->getFullscreenHandlerNameAsString(w), sc<int>(w->m_allowedOverFullscreen), getGroupedData(w, format), getTagsData(w, format),
             rc<uintptr_t>(w->m_swallowee.get()), getFocusHistoryID(w), sc<int>(g_pInputManager->isWindowInhibiting(w, false)), w->xdgTag().value_or(""),
-            w->xdgDescription().value_or(""), NContentType::toString(w->getContentType()), w->m_stableID);
+            w->xdgDescription().value_or(""), NContentType::toString(w->getContentType()), sc<int>(w->m_tearingHint), w->m_stableID);
     }
 }
 
@@ -1039,6 +1042,8 @@ static std::string bindsRequest(eHyprCtlOutputFormat format, std::string request
                 ret += "a";
             if (kb->hasDescription)
                 ret += "d";
+            if (kb->allowInputCapture)
+                ret += "x";
 
             ret += std::format("\n\tmodmask: {}\n\tsubmap: {}\n\tkey: {}\n\tkeycode: {}\n\tcatchall: {}\n\tdescription: {}\n\tdispatcher: {}\n\targ: {}\n\n", kb->modmask,
                                kb->submap.name, kb->key.empty() ? kb->displayKey : kb->key, kb->keycode, kb->catchAll, kb->description, kb->handler, kb->arg);
@@ -1065,13 +1070,14 @@ static std::string bindsRequest(eHyprCtlOutputFormat format, std::string request
     "keycode": {},
     "catch_all": {},
     "description": "{}",
+    "allow_input_capture": {},
     "dispatcher": "{}",
     "arg": "{}"
 }},)#",
                 kb->locked ? "true" : "false", kb->mouse ? "true" : "false", kb->release ? "true" : "false", kb->repeat ? "true" : "false", kb->longPress ? "true" : "false",
-                kb->nonConsuming ? "true" : "false", kb->autoConsuming ? "true" : "false", kb->hasDescription ? "true" : "false", kb->modmask, escapeJSONStrings(kb->submap.name),
-                kb->submapUniversal, escapeJSONStrings(kb->key), kb->keycode, kb->catchAll ? "true" : "false", escapeJSONStrings(kb->description), escapeJSONStrings(kb->handler),
-                escapeJSONStrings(kb->arg));
+                kb->nonConsuming ? "true" : "false", kb->autoConsuming ? "true" : "false", kb->allowInputCapture ? "true" : "false", kb->hasDescription ? "true" : "false",
+                kb->modmask, escapeJSONStrings(kb->submap.name), kb->submapUniversal, escapeJSONStrings(kb->key), kb->keycode, kb->catchAll ? "true" : "false",
+                escapeJSONStrings(kb->description), escapeJSONStrings(kb->handler), escapeJSONStrings(kb->arg));
         }
         trimTrailingComma(ret);
         ret += "]";

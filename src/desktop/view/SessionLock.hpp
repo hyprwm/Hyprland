@@ -9,7 +9,7 @@
 class CSessionLockSurface;
 
 namespace Desktop::View {
-    class CSessionLock : public IView, public virtual IGeometric {
+    class CSessionLock : public virtual IView, public virtual IGeometric {
       public:
         static SP<CSessionLock> create(SP<CSessionLockSurface> resource);
 

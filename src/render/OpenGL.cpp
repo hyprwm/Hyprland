@@ -758,18 +758,12 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, SP<IFra
     g_pHyprRenderer->m_renderData.outFB  = fb ? fb : dc<CHyprGLRenderer*>(g_pHyprRenderer.get())->m_currentRenderbuffer->getFB();
 
     if UNLIKELY (g_pHyprRenderer->m_renderData.pMonitor->needsUnmodifiedCopy() && !m_fakeFrame) {
-        if (!g_pHyprRenderer->m_renderData.pMonitor->resources()->m_mirrorTex) {
-            GLenum buffers[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
-            glDrawBuffers(2, buffers);
+        if (!g_pHyprRenderer->m_renderData.pMonitor->resources()->m_mirrorTex)
             g_pHyprRenderer->m_renderData.pMonitor->resources()->enableMirror();
-        }
         g_pHyprRenderer->m_renderData.mainFB->enableMirror(g_pHyprRenderer->m_renderData.pMonitor->resources()->m_mirrorTex);
     } else {
-        if (g_pHyprRenderer->m_renderData.pMonitor->resources()->m_mirrorTex) {
-            GLenum buffers[] = {GL_COLOR_ATTACHMENT0};
-            glDrawBuffers(1, buffers);
+        if (g_pHyprRenderer->m_renderData.pMonitor->resources()->m_mirrorTex)
             g_pHyprRenderer->m_renderData.pMonitor->resources()->disableMirror();
-        }
         g_pHyprRenderer->m_renderData.mainFB->disableMirror();
     }
 

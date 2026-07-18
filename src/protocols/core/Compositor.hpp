@@ -145,6 +145,7 @@ class CWLSurfaceResource {
     void                               releaseBuffers(bool onlyCurrent = true);
     void                               dropPendingBuffer();
     void                               dropCurrentBuffer();
+    void                               discardPresentationFeedbacks();
     void                               bfHelper(std::span<const SP<CWLSurfaceResource>> nodes, std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
     SP<CWLSurfaceResource>             findFirstPreorderHelper(SP<CWLSurfaceResource> root, std::function<bool(SP<CWLSurfaceResource>)> fn);
     void                               updateCursorShm(CRegion damage = CBox{0, 0, INT16_MAX, INT16_MAX});

@@ -108,30 +108,31 @@ TEST(ConfigLuaObjects, keybindExposesMetadataAndRemoveMethods) {
 
     Objects::CLuaKeybind{}.setup(L);
 
-    auto keybind             = makeShared<SKeybind>();
-    keybind->enabled         = true;
-    keybind->description     = "Close active window";
-    keybind->hasDescription  = true;
-    keybind->displayKey      = "SUPER + Q";
-    keybind->submap.name     = "default";
-    keybind->handler         = "exec";
-    keybind->arg             = "kitty";
-    keybind->modmask         = HL_MODIFIER_META;
-    keybind->key             = "Q";
-    keybind->keycode         = 24;
-    keybind->repeat          = true;
-    keybind->locked          = true;
-    keybind->release         = false;
-    keybind->nonConsuming    = true;
-    keybind->transparent     = false;
-    keybind->ignoreMods      = false;
-    keybind->longPress       = false;
-    keybind->dontInhibit     = true;
-    keybind->click           = false;
-    keybind->drag            = false;
-    keybind->submapUniversal = false;
-    keybind->deviceInclusive = true;
-    keybind->devices         = {"kbd-a", "kbd-b"};
+    auto keybind               = makeShared<SKeybind>();
+    keybind->enabled           = true;
+    keybind->description       = "Close active window";
+    keybind->hasDescription    = true;
+    keybind->displayKey        = "SUPER + Q";
+    keybind->submap.name       = "default";
+    keybind->handler           = "exec";
+    keybind->arg               = "kitty";
+    keybind->modmask           = HL_MODIFIER_META;
+    keybind->key               = "Q";
+    keybind->keycode           = 24;
+    keybind->repeat            = true;
+    keybind->locked            = true;
+    keybind->release           = false;
+    keybind->nonConsuming      = true;
+    keybind->transparent       = false;
+    keybind->ignoreMods        = false;
+    keybind->longPress         = false;
+    keybind->dontInhibit       = true;
+    keybind->click             = false;
+    keybind->drag              = false;
+    keybind->submapUniversal   = false;
+    keybind->deviceInclusive   = true;
+    keybind->devices           = {"kbd-a", "kbd-b"};
+    keybind->allowInputCapture = true;
 
     Objects::CLuaKeybind::push(L, keybind);
     lua_setglobal(L, "kb");
@@ -151,6 +152,7 @@ TEST(ConfigLuaObjects, keybindExposesMetadataAndRemoveMethods) {
         assert(kb.non_consuming == true)
         assert(kb.dont_inhibit == true)
         assert(type(kb.devices) == "table")
+        assert(kb.allow_input_capture == true)
 
         kb:remove()
         kb:unbind()

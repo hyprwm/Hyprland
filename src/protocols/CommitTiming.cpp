@@ -1,7 +1,10 @@
 #include "CommitTiming.hpp"
 #include "core/Compositor.hpp"
+#include "../output/Monitor.hpp"
+#include "../event/EventBus.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../managers/eventLoop/EventLoopTimer.hpp"
+#include <algorithm>
 
 CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<CWLSurfaceResource> surface) : m_resource(std::move(resource_)), m_surface(surface) {
     if UNLIKELY (!m_resource->resource())
@@ -22,12 +25,20 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
             return;
         }
 
-        const auto delay = Time::till({.tv_sec = (((uint64_t)tvHi) << 32) | (uint64_t)tvLo, .tv_nsec = tvNsec});
+        const timespec target{
+            .tv_sec  = sc<time_t>((sc<uint64_t>(tvHi) << 32) | sc<uint64_t>(tvLo)),
+            .tv_nsec = sc<long>(tvNsec),
+        };
+
+        const auto delay = Time::till(target);
 
         if (delay.count() <= 0) {
             m_surface->m_pending.pendingTimeout.reset();
-        } else
-            m_surface->m_pending.pendingTimeout = delay;
+            m_surface->m_pending.commitTimingTarget.reset();
+        } else {
+            m_surface->m_pending.pendingTimeout     = delay;
+            m_surface->m_pending.commitTimingTarget = Time::fromTimespec(&target);
+        }
     });
 
     m_listeners.surfaceStateCommit = m_surface->m_events.stateCommit2.listen([this](auto state) {
@@ -35,6 +46,9 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
             return;
 
         m_surface->m_stateQueue.lock(state, LOCK_REASON_TIMER);
+
+        std::erase_if(m_pendingTimedStates, [](const WP<SSurfaceState>& ws) { return !ws; });
+        m_pendingTimedStates.emplace_back(state);
 
         if (!state->timer) {
             state->timer = makeShared<CEventLoopTimer>(
@@ -51,6 +65,22 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
             state->timer->updateTimeout(state->pendingTimeout);
 
         state->pendingTimeout.reset();
+    });
+}
+
+void CCommitTimerResource::releaseDueStates(const Time::steady_tp& upcomingFlip) {
+    if (!m_surface)
+        return;
+
+    std::erase_if(m_pendingTimedStates, [this, &upcomingFlip](const WP<SSurfaceState>& ws) {
+        if (!ws)
+            return true;
+
+        if (!ws->commitTimingTarget.has_value() || *ws->commitTimingTarget > upcomingFlip)
+            return false; // not due yet, keep waiting
+
+        m_surface->m_stateQueue.unlock(ws, LOCK_REASON_TIMER);
+        return true;
     });
 }
 
@@ -105,7 +135,31 @@ bool CCommitTimingManagerResource::good() {
 }
 
 CCommitTimingProtocol::CCommitTimingProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    ;
+    static auto P = Event::bus()->m_events.monitor.added.listen([this](PHLMONITOR M) {
+        M->m_events.presented.listenStatic([this, m = PHLMONITORREF{M}](const Time::steady_tp& presentTime) {
+            if (!m || !PROTO::commitTiming)
+                return;
+
+            onMonitorPresent(m.lock(), presentTime);
+        });
+    });
+}
+
+void CCommitTimingProtocol::onMonitorPresent(PHLMONITOR m, const Time::steady_tp& presentTime) {
+    if (!m || m->m_refreshRate <= 0.F)
+        return;
+
+    const auto UPCOMING_FLIP = presentTime + std::chrono::nanoseconds(static_cast<int64_t>(1'000'000'000.0 / m->m_refreshRate));
+    for (const auto& timer : m_timers) {
+        if (!timer->m_surface)
+            continue;
+
+        const auto& OUTPUTS = timer->m_surface->m_enteredOutputs;
+        if (OUTPUTS.size() != 1 || OUTPUTS[0] != m)
+            continue;
+
+        timer->releaseDueStates(UPCOMING_FLIP);
+    }
 }
 
 void CCommitTimingProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {

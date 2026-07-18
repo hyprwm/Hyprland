@@ -6,6 +6,7 @@
 #include <string>
 #include <optional>
 #include <chrono>
+#include <functional>
 #include <string_view>
 #include <unordered_map>
 #include <expected>
@@ -93,6 +94,7 @@ namespace Config::Lua {
 
         void                                     registerLuaRef(int ref);
         void                                     callLuaFn(int ref);
+        void                                     callLuaFn(int ref, const std::function<int(lua_State*)>& pushArgs, int timeoutMs, std::string_view context);
         std::expected<void, std::string>         registerLuaLayoutProvider(std::string name, lua_State* L, int providerTableIdx);
 
         // execute an arbitrary lua string on the current state.

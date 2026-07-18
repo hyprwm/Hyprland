@@ -25,6 +25,7 @@
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/DRMSyncobj.hpp"
 #include "../protocols/LinuxDMABUF.hpp"
+#include "../protocols/InputCapture.hpp"
 #include "../errorOverlay/Overlay.hpp"
 #include "../debug/Overlay.hpp"
 #include "../notification/NotificationOverlay.hpp"
@@ -269,10 +270,10 @@ bool IHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
         return true;
 
     // if window is tiled and it's flying in, don't render on other mons (for slide)
-    if (!pWindow->m_isFloating && pWindow->m_realPosition->isBeingAnimated() && pWindow->m_animatingIn && pWindow->m_monitor != pMonitor)
+    if (!pWindow->m_isFloating && pWindow->positionAnimation()->isBeingAnimated() && pWindow->m_animatingIn && pWindow->m_monitor != pMonitor)
         return false;
 
-    if (pWindow->m_realPosition->isBeingAnimated()) {
+    if (pWindow->positionAnimation()->isBeingAnimated()) {
         if (PWINDOWWORKSPACE && !PWINDOWWORKSPACE->m_isSpecialWorkspace && PWINDOWWORKSPACE->m_renderOffset->isBeingAnimated())
             return false;
         // render window if window and monitor intersect
@@ -557,12 +558,13 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
     TRACY_GPU_ZONE("RenderWindow");
 
-    const auto                       PWORKSPACE = pWindow->m_workspace;
-    const auto                       REALPOS    = pWindow->m_realPosition->value() + (pWindow->m_pinned ? Vector2D{} : PWORKSPACE->m_renderOffset->value());
-    static auto                      PDIMAROUND = CConfigValue<Config::FLOAT>("decoration:dim_around");
+    const auto  PWORKSPACE = pWindow->m_workspace;
+    const auto  REALPOS    = pWindow->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT) + (pWindow->m_pinned ? Vector2D{} : PWORKSPACE->m_renderOffset->value());
+    static auto PDIMAROUND = CConfigValue<Config::FLOAT>("decoration:dim_around");
 
     CSurfacePassElement::SRenderData renderdata = {pMonitor, time};
-    CBox                             textureBox = {REALPOS.x, REALPOS.y, std::max(pWindow->m_realSize->value().x, 5.0), std::max(pWindow->m_realSize->value().y, 5.0)};
+    const auto                       REALSIZE   = pWindow->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+    CBox                             textureBox = {REALPOS.x, REALPOS.y, std::max(REALSIZE.x, 5.0), std::max(REALSIZE.y, 5.0)};
 
     renderdata.pos.x = textureBox.x;
     renderdata.pos.y = textureBox.y;
@@ -953,8 +955,8 @@ void IHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
 
     TRACY_GPU_ZONE("RenderLayer");
 
-    const auto                       REALPOS = pLayer->m_realPosition->value();
-    const auto                       REALSIZ = pLayer->m_realSize->value();
+    const auto                       REALPOS = pLayer->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+    const auto                       REALSIZ = pLayer->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
 
     CSurfacePassElement::SRenderData renderdata = {pMonitor, time, REALPOS};
     renderdata.fadeAlpha                        = pLayer->alpha()[LS_ALPHA_FADE]->value();
@@ -1068,9 +1070,12 @@ void IHyprRenderer::renderIMEPopup(CInputPopup* pPopup, PHLMONITOR pMonitor, con
 }
 
 void IHyprRenderer::renderSessionLockSurface(WP<SSessionLockSurface> pSurface, PHLMONITOR pMonitor, const Time::steady_tp& time) {
+    static auto                      PSESSIONLOCKXRAY = CConfigValue<Config::BOOL>("misc:session_lock_xray");
+    static auto                      PSESSIONLOCKBLUR = CConfigValue<Config::BOOL>("misc:session_lock_blur");
+
     CSurfacePassElement::SRenderData renderdata = {pMonitor, time, pMonitor->m_position, pMonitor->m_position};
 
-    renderdata.blur     = false;
+    renderdata.blur     = *PSESSIONLOCKBLUR && *PSESSIONLOCKXRAY;
     renderdata.surface  = pSurface->surface->surface();
     renderdata.decorate = false;
     renderdata.w        = pMonitor->m_size.x;
@@ -2034,7 +2039,9 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
             pMonitor->m_activeWorkspace->m_space->recalculate(Layout::RECALCULATE_REASON_RENDER_MONITOR);
     }
 
-    if (!pMonitor->m_output->needsFrame && pMonitor->m_forceFullFrames == 0)
+    // needsFrame can be cleared by commits that didnt consume our damage like a
+    // commit while a pageflip was in flight, so pending damage must keep the frame alive.
+    if (!pMonitor->m_output->needsFrame && pMonitor->m_forceFullFrames == 0 && !pMonitor->m_damage.hasChanged())
         return;
 
     // tearing and DS first
@@ -2209,8 +2216,6 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     if (!pMonitor->m_mirrors.empty())
         damageMirrorsWith(pMonitor, frameDamage);
 
-    pMonitor->m_renderingActive = false;
-
     Event::bus()->m_events.render.stage.emit(RENDER_POST);
 
     pMonitor->m_output->state->addDamage(frameDamage);
@@ -2220,6 +2225,9 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     if (commit)
         commitPendingAndDoExplicitSync(pMonitor);
+
+    // cleared only after the commit
+    pMonitor->m_renderingActive = false;
 
     if (shouldTear)
         pMonitor->m_tearingState.busy = true;
@@ -2627,8 +2635,7 @@ void IHyprRenderer::arrangeLayerArray(PHLMONITOR pMonitor, const std::vector<PHL
         if (Vector2D{box.width, box.height} != OLDSIZE)
             ls->m_layerSurface->configure(box.size());
 
-        *ls->m_realPosition = box.pos();
-        *ls->m_realSize     = box.size();
+        ls->setBox(box);
     }
 }
 
@@ -2895,7 +2902,7 @@ void IHyprRenderer::ensureCursorRenderingMode() {
     m_cursorHiddenByCondition =
         m_cursorHiddenConditions.hiddenOnTimeout || m_cursorHiddenConditions.hiddenOnTouch || m_cursorHiddenConditions.hiddenOnTablet || m_cursorHiddenConditions.hiddenOnKeyboard;
 
-    const bool HIDE = m_cursorHiddenByCondition || (*PINVISIBLE != 0);
+    const bool HIDE = m_cursorHiddenByCondition || (*PINVISIBLE != 0) || PROTO::inputCapture->isCaptured();
 
     if (HIDE == m_cursorHidden)
         return;

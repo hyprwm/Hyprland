@@ -46,8 +46,8 @@ void CHyprDropShadowDecoration::damageEntire() {
         return; // disabled
 
     const auto PWINDOW = m_window.lock();
-    const auto pos     = PWINDOW->m_realPosition->value();
-    const auto size    = PWINDOW->m_realSize->value();
+    const auto pos     = PWINDOW->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+    const auto size    = PWINDOW->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
 
     CBox       shadowBox = {pos.x - m_extents.topLeft.x, pos.y - m_extents.topLeft.y, pos.x + size.x + m_extents.bottomRight.x, pos.y + size.y + m_extents.bottomRight.y};
 
@@ -75,8 +75,8 @@ void CHyprDropShadowDecoration::damageEntire() {
 void CHyprDropShadowDecoration::updateWindow(PHLWINDOW pWindow) {
     const auto PWINDOW = m_window.lock();
 
-    m_lastWindowPos  = PWINDOW->m_realPosition->value();
-    m_lastWindowSize = PWINDOW->m_realSize->value();
+    m_lastWindowPos  = PWINDOW->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+    m_lastWindowSize = PWINDOW->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
 
     m_lastWindowBox          = {m_lastWindowPos.x, m_lastWindowPos.y, m_lastWindowSize.x, m_lastWindowSize.y};
     m_lastWindowBoxWithDecos = g_pDecorationPositioner->getBoxWithIncludedDecos(pWindow);

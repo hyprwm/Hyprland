@@ -183,13 +183,13 @@ namespace Monitor {
         } m_tearingState;
 
         struct {
-            CSignalT<> commit;
-            CSignalT<> destroy;
-            CSignalT<> connect;
-            CSignalT<> disconnect;
-            CSignalT<> dpmsChanged;
-            CSignalT<> modeChanged;
-            CSignalT<> presented;
+            CSignalT<>                commit;
+            CSignalT<>                destroy;
+            CSignalT<>                connect;
+            CSignalT<>                disconnect;
+            CSignalT<>                dpmsChanged;
+            CSignalT<>                modeChanged;
+            CSignalT<Time::steady_tp> presented;
         } m_events;
 
         std::array<std::vector<PHLLSREF>, 4> m_layerSurfaceLayers;
@@ -236,8 +236,9 @@ namespace Monitor {
             SC_WORKSPACES   = (1 << 14),
             SC_SURFACES     = (1 << 15),
             SC_ERRORBAR     = (1 << 16),
+            SC_FADEOUT      = (1 << 17),
 
-            SC_CHECKS_COUNT = 17,
+            SC_CHECKS_COUNT = 18,
         };
 
         // keep in sync with HyprCtl

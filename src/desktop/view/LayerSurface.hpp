@@ -42,10 +42,7 @@ namespace Desktop::View {
 
         int                                                 popupsCount();
 
-        using CGeometricMovableAnimated::m_realPosition;
-        using CGeometricMovableAnimated::m_realSize;
-
-        WP<CLayerShellResource> m_layerSurface;
+        WP<CLayerShellResource>                             m_layerSurface;
 
         // the header providing the enum type cannot be imported here
         int                                     m_interactivity = 0;

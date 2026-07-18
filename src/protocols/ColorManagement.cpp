@@ -205,14 +205,8 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
     m_resource->setGetImageDescription([](CWpColorManagerV1* r, uint32_t id, wl_resource* ref) {
         LOGM(Log::TRACE, "Get image description for reference={}, id={}", (uintptr_t)ref, id);
 
-        const auto OLD_RES = CColorManagementImageDescription::fromReference(ref);
-        if (!OLD_RES) {
-            OLD_RES->resource()->sendFailed(WP_IMAGE_DESCRIPTION_V1_CAUSE_UNSUPPORTED, "Not found");
-            return;
-        }
-
         const auto RESOURCE = PROTO::colorManagement->m_imageDescriptions.emplace_back(
-            makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id), OLD_RES->m_allowGetInformation));
+            makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id), false));
 
         if UNLIKELY (!RESOURCE->good()) {
             r->noMemory();
@@ -222,7 +216,14 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
 
         RESOURCE->m_self = RESOURCE;
 
-        RESOURCE->m_settings = OLD_RES->m_settings;
+        const auto OLD_RES = CColorManagementImageDescription::fromReference(ref);
+        if UNLIKELY (!OLD_RES) {
+            RESOURCE->resource()->sendFailed(WP_IMAGE_DESCRIPTION_V1_CAUSE_UNSUPPORTED, "Reference image description was not found");
+            return;
+        }
+
+        RESOURCE->m_allowGetInformation = OLD_RES->m_allowGetInformation;
+        RESOURCE->m_settings            = OLD_RES->m_settings;
 
         RESOURCE->sendMaybeReady();
     });

@@ -50,8 +50,14 @@ void CConfigWatcher::setWatchList(const std::vector<std::string>& paths) {
 
     // add new paths
     for (const auto& path : paths) {
+        std::error_code ecDir;
+        const bool      isDirectory   = std::filesystem::is_directory(path, ecDir);
+        const uint32_t  fileMask      = IN_CLOSE_WRITE | IN_DONT_FOLLOW;
+        const uint32_t  directoryMask = fileMask | IN_CREATE | IN_DELETE | IN_MOVED_TO | IN_MOVED_FROM;
+        const uint32_t  mask          = isDirectory ? directoryMask : fileMask;
+
         m_watches.emplace_back(SInotifyWatch{
-            .wd   = inotify_add_watch(m_inotifyFd.get(), path.c_str(), IN_CLOSE_WRITE | IN_DONT_FOLLOW),
+            .wd   = inotify_add_watch(m_inotifyFd.get(), path.c_str(), mask),
             .file = path,
         });
 

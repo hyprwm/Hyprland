@@ -43,11 +43,11 @@ void CFloatTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin&
 
     g_layoutManager->changeFloatingMode(m_window->layoutTarget());
 
-    m_posFrom  = m_window->m_realPosition->begun();
-    m_sizeFrom = m_window->m_realSize->begun();
+    m_posFrom  = m_window->positionAnimation()->begun();
+    m_sizeFrom = m_window->sizeAnimation()->begun();
 
-    m_posTo  = m_window->m_realPosition->goal();
-    m_sizeTo = m_window->m_realSize->goal();
+    m_posTo  = m_window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
+    m_sizeTo = m_window->size(Desktop::View::IGeometric::GEOMETRIC_GOAL);
 
     m_lastDelta = 0.F;
 }
@@ -62,8 +62,8 @@ void CFloatTrackpadGesture::update(const ITrackpadGesture::STrackpadGestureUpdat
 
     const auto FADEPERCENT = std::clamp(m_lastDelta / MAX_DISTANCE, 0.F, 1.F);
 
-    m_window->m_realPosition->setValueAndWarp(lerpVal(m_posFrom, m_posTo, FADEPERCENT));
-    m_window->m_realSize->setValueAndWarp(lerpVal(m_sizeFrom, m_sizeTo, FADEPERCENT));
+    m_window->positionAnimation()->setValueAndWarp(lerpVal(m_posFrom, m_posTo, FADEPERCENT));
+    m_window->sizeAnimation()->setValueAndWarp(lerpVal(m_sizeFrom, m_sizeTo, FADEPERCENT));
 
     g_pDecorationPositioner->onWindowUpdate(m_window.lock());
 
@@ -83,8 +83,8 @@ void CFloatTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) 
         return;
     }
 
-    *m_window->m_realPosition = m_posTo;
-    *m_window->m_realSize     = m_sizeTo;
+    m_window->move(m_posTo);
+    m_window->resize(m_sizeTo);
 
     // the gesture warps m_realSize->goal() around during update(), which races the deferred
     // sendWindowSize() queued when the size animation began and can leave the client configured to

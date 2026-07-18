@@ -274,7 +274,8 @@ bool DataState::setPluginEnabled(const SPluginRepoIdentifier& identifier, bool e
 
             const auto FAILED = STATE[key]["failed"].value_or(false);
 
-            if (FAILED)
+            // a plugin that failed to build cannot be enabled, but can always be disabled
+            if (FAILED && enabled)
                 return false;
 
             auto modifiedState = STATE;

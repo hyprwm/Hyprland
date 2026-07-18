@@ -50,8 +50,8 @@ static SDispatchResult snapMove(std::string in) {
     if (!PLASTWINDOW->m_isFloating)
         return {.success = false, .error = "Window must be floating"};
 
-    Vector2D pos  = PLASTWINDOW->m_realPosition->goal();
-    Vector2D size = PLASTWINDOW->m_realSize->goal();
+    Vector2D pos  = PLASTWINDOW->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
+    Vector2D size = PLASTWINDOW->size(Desktop::View::IGeometric::GEOMETRIC_GOAL);
 
     g_layoutManager->performSnap(pos, size, PLASTWINDOW->layoutTarget(), MBIND_MOVE, -1, size);
 

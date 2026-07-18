@@ -25,6 +25,8 @@ CExecutor::CExecutor() {
         if (m_firstExecDispatched)
             return;
 
+        m_isLaunchingExecOnce = true;
+
         // update dbus env
         if (g_pCompositor->m_aqBackend->hasSession())
             spawnRaw(
@@ -48,6 +50,8 @@ CExecutor::CExecutor() {
         }
 
         m_execOnce.clear(); // free some kb of memory :P
+
+        m_isLaunchingExecOnce = false;
 
         // set input, fixes some certain issues
         g_pInputManager->setKeyboardLayout();
@@ -144,10 +148,11 @@ std::optional<uint64_t> CExecutor::spawnWithRules(std::string args, PHLWORKSPACE
     return spawnRawProc(args, pInitialWorkspace, execToken);
 }
 
-static std::vector<std::pair<std::string, std::string>> getHyprlandLaunchEnv(PHLWORKSPACE pInitialWorkspace) {
-    static auto PINITIALWSTRACKING = CConfigValue<Config::INTEGER>("misc:initial_workspace_tracking");
+std::vector<std::pair<std::string, std::string>> CExecutor::getHyprlandLaunchEnv(PHLWORKSPACE pInitialWorkspace) {
+    static auto PINITIALWSTRACKING        = CConfigValue<Config::INTEGER>("misc:initial_workspace_tracking");
+    static auto PINITIALWSTRACKINGTIMEOUT = CConfigValue<Config::INTEGER>("misc:initial_workspace_token_timeout");
 
-    if (!*PINITIALWSTRACKING)
+    if (!*PINITIALWSTRACKING || m_isLaunchingExecOnce)
         return {};
 
     const auto PMONITOR = Desktop::focusState()->monitor();
@@ -163,8 +168,8 @@ static std::vector<std::pair<std::string, std::string>> getHyprlandLaunchEnv(PHL
             pInitialWorkspace = PMONITOR->m_activeWorkspace;
     }
 
-    result.emplace_back("HL_INITIAL_WORKSPACE_TOKEN",
-                        g_pTokenManager->registerNewToken(Desktop::View::SInitialWorkspaceToken{{}, pInitialWorkspace->getConfigName()}, std::chrono::months(1337)));
+    const auto TIMEOUT = (*PINITIALWSTRACKING == 2) ? std::chrono::seconds(std::chrono::months(1337)) : std::chrono::seconds(*PINITIALWSTRACKINGTIMEOUT);
+    result.emplace_back("HL_INITIAL_WORKSPACE_TOKEN", g_pTokenManager->registerNewToken(Desktop::View::SInitialWorkspaceToken{{}, pInitialWorkspace->getConfigName()}, TIMEOUT));
 
     return result;
 }

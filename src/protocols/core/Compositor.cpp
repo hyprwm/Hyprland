@@ -146,6 +146,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         m_events.precommit.emit();
         if (m_pending.rejected) {
             m_pending.rejected = false;
+            PROTO::presentation->discardFeedbacks(m_pending.presentationFeedbacks);
             dropPendingBuffer();
             return;
         }
@@ -253,10 +254,19 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
 }
 
 CWLSurfaceResource::~CWLSurfaceResource() {
+    discardPresentationFeedbacks();
     m_events.destroy.emit();
 }
 
+void CWLSurfaceResource::discardPresentationFeedbacks() {
+    PROTO::presentation->discardFeedbacks(m_pending.presentationFeedbacks);
+    PROTO::presentation->discardFeedbacks(m_current.presentationFeedbacks);
+    PROTO::presentation->discardFeedbacksForSurface(m_self);
+}
+
 void CWLSurfaceResource::destroy() {
+    discardPresentationFeedbacks();
+
     if (m_mapped) {
         m_events.unmap.emit();
         unmap();
@@ -514,6 +524,10 @@ void CWLSurfaceResource::unmap() {
     if UNLIKELY (!m_mapped)
         return;
 
+    // unmapped content will never be displayed: terminate outstanding feedbacks,
+    // or clients blocking on them (present_wait) stall forever.
+    discardPresentationFeedbacks();
+
     m_mapped        = false;
     m_lastTransform = std::nullopt;
     m_lastScale     = std::nullopt;
@@ -606,6 +620,9 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
     // wl_surface#3.commit()
     if (!state.updated.all && m_mapped && state.fifoScheduled)
         return;
+
+    if (state.updated.all)
+        PROTO::presentation->discardFeedbacks(m_current.presentationFeedbacks);
 
     auto lastTexture = m_current.texture;
     m_current.updateFrom(state);
@@ -762,10 +779,11 @@ void CWLSurfaceResource::updateCursorShm(CRegion damage) {
     if (rectsNum == 1 && rects[0].x2 == buf->size.x && rects[0].y2 == buf->size.y)
         memcpy(shmData.data(), pixelData, bufLen);
     else {
-        damage.forEachRect([&pixelData, &shmData](const auto& box) {
+        const auto stride = shmAttrs.stride;
+        damage.forEachRect([&pixelData, &shmData, stride](const auto& box) {
             for (auto y = box.y1; y < box.y2; ++y) {
                 // bpp is 32 INSALLAH
-                auto begin = 4 * box.y1 * (box.x2 - box.x1) + box.x1;
+                auto begin = y * stride + 4 * box.x1;
                 auto len   = 4 * (box.x2 - box.x1);
                 memcpy(shmData.data() + begin, pixelData + begin, len);
             }
@@ -776,7 +794,7 @@ void CWLSurfaceResource::updateCursorShm(CRegion damage) {
 void CWLSurfaceResource::presentFeedback(const Time::steady_tp& when, PHLMONITOR pMonitor, bool discarded) {
     frame(when);
 
-    auto FEEDBACK = makeUnique<CQueuedPresentationData>(m_self.lock());
+    auto FEEDBACK = makeUnique<CQueuedPresentationData>(m_self.lock(), std::move(m_current.presentationFeedbacks));
     FEEDBACK->attachMonitor(pMonitor);
     if (discarded)
         FEEDBACK->discarded();

@@ -433,7 +433,9 @@ std::vector<SP<IValue>> Values::getConfigValues() {
          * group:groupbar:
          */
 
-        MS<Bool>("group:groupbar:enabled", "enables groupbars", true),
+        MS<Bool>("group:groupbar:enabled", "enables groupbars", true, {.refresh = Supplementary::REFRESH_WINDOW_STATES}),
+        MS<Bool>("group:groupbar:disable_when_only", "disable if contains single window. Considered only if enabled == true", false,
+                 {.refresh = Supplementary::REFRESH_WINDOW_STATES}),
         MS<String>("group:groupbar:font_family", "font used to display groupbar titles", "[[EMPTY]]"),
         MS<FontWeight>("group:groupbar:font_weight_active", "weight of the font used to display active groupbar titles"),
         MS<FontWeight>("group:groupbar:font_weight_inactive", "weight of the font used to display inactive groupbar titles"),
@@ -495,12 +497,15 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Bool>("misc:mouse_move_focuses_monitor", "Whether mouse moving into a different monitor should focus it", true),
         MS<Bool>("misc:allow_session_lock_restore", "if true, will allow you to restart a lockscreen app in case it crashes.", false),
         MS<Bool>("misc:session_lock_xray", "keep rendering workspaces below your lockscreen", false),
+        MS<Bool>("misc:session_lock_blur", "Enable blur for lockscreen. You probably want to enable `session_lock_xray`.", false),
         MS<Color>("misc:background_color", "change the background color.", 0xff111111),
         MS<Bool>("misc:close_special_on_empty", "close the special workspace if the last window is removed", true),
         MS<Int>("misc:on_focus_under_fullscreen", "if there is a fullscreen or maximized window, decide whether a tiled window requested to focus should replace it.", 2,
                 {.min = 0, .max = 2, .map = OptionMap{{"ignore", 0}, {"take_over", 1}, {"exit_fullscreen", 2}}}),
         MS<Bool>("misc:exit_window_retains_fullscreen", "if true, closing a fullscreen window makes the next focused window fullscreen", false),
         MS<Int>("misc:initial_workspace_tracking", "if enabled, windows will open on the workspace they were invoked on.", 1, {.min = 0, .max = 2}),
+        MS<Int>("misc:initial_workspace_token_timeout", "the time in seconds a window has to open on its invoked workspace before the tracking token expires.", 10,
+                {.min = 1, .max = 3600}),
         MS<Bool>("misc:middle_click_paste", "whether to enable middle-click-paste (aka primary selection)", true),
         MS<Int>("misc:render_unfocused_fps", "the maximum limit for renderunfocused windows' fps in the background", 15, {.min = 1, .max = 120}),
         MS<Bool>("misc:disable_xdg_env_checks", "disable the warning if XDG environment is externally managed", false),
@@ -710,6 +715,12 @@ std::vector<SP<IValue>> Values::getConfigValues() {
          */
 
         MS<Bool>("experimental:wp_cm_1_2", "Allow wp-cm-v1 version 2", true),
+
+        /*
+		 * input_capture: 
+		 */
+        MS<Bool>("input-capture:capture_modifiers", "If enabled, modifiers are also captured and sent to the program", false),
+        MS<Bool>("input-capture:enforce_barriers", "If enabled, throw a wayland error when a invalid barrier is received", true),
 
         /*
          * quirks:

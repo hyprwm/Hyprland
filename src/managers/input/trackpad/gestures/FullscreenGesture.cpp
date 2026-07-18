@@ -36,15 +36,15 @@ void CFullscreenTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureB
     if (!m_window)
         return;
 
-    m_posFrom  = m_window->m_realPosition->goal();
-    m_sizeFrom = m_window->m_realSize->goal();
+    m_posFrom  = m_window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
+    m_sizeFrom = m_window->size(Desktop::View::IGeometric::GEOMETRIC_GOAL);
 
     m_originalMode = Fullscreen::controller()->getFullscreenModes(m_window.lock()).internal;
 
     Fullscreen::controller()->setFullscreenMode(m_window.lock(), !Fullscreen::controller()->isFullscreen(m_window.lock()) ? fsModeForMode(m_mode) : Fullscreen::FSMODE_NONE);
 
-    m_posTo  = m_window->m_realPosition->goal();
-    m_sizeTo = m_window->m_realSize->goal();
+    m_posTo  = m_window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
+    m_sizeTo = m_window->size(Desktop::View::IGeometric::GEOMETRIC_GOAL);
 
     m_lastDelta = 0.F;
 }
@@ -59,8 +59,8 @@ void CFullscreenTrackpadGesture::update(const ITrackpadGesture::STrackpadGesture
 
     const auto FADEPERCENT = std::clamp(m_lastDelta / MAX_DISTANCE, 0.F, 1.F);
 
-    m_window->m_realPosition->setValueAndWarp(lerpVal(m_posFrom, m_posTo, FADEPERCENT));
-    m_window->m_realSize->setValueAndWarp(lerpVal(m_sizeFrom, m_sizeTo, FADEPERCENT));
+    m_window->positionAnimation()->setValueAndWarp(lerpVal(m_posFrom, m_posTo, FADEPERCENT));
+    m_window->sizeAnimation()->setValueAndWarp(lerpVal(m_sizeFrom, m_sizeTo, FADEPERCENT));
 
     Animation::Workspace::overrideFullscreenFadeAmount(m_window->m_workspace, m_originalMode == Fullscreen::FSMODE_NONE ? 1.F - FADEPERCENT : FADEPERCENT, m_window.lock());
 
@@ -83,8 +83,8 @@ void CFullscreenTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd
         return;
     }
 
-    *m_window->m_realPosition = m_posTo;
-    *m_window->m_realSize     = m_sizeTo;
+    m_window->move(m_posTo);
+    m_window->resize(m_sizeTo);
 
     // the gesture warps m_realSize->goal() around during update(), which races the deferred
     // sendWindowSize() queued when fullscreen began and can leave the client configured to an

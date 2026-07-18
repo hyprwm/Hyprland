@@ -19,7 +19,10 @@ CLayerState::CLayerState() {
         if (event.type != View::VIEW_TYPE_LAYER_SURFACE)
             return;
 
-        std::erase_if(m_layers, [&](auto& x) { return !x || event.view == dynamicPointerCast<View::IView>(x->m_self); });
+        // A CLayerSurface is always an IView via a static upcast, so compare control-block identity directly.
+        // Must NOT dereference x->m_self here: this event is emitted from ~IView, by which point CLayerSurface's
+        // members (incl. m_self) are already destroyed. PHLVIEWREF{x} only reads x's own impl_/data pointer.
+        std::erase_if(m_layers, [&](auto& x) { return !x || event.view == PHLVIEWREF{x}; });
     });
 }
 

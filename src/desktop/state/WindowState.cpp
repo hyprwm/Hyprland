@@ -21,7 +21,10 @@ CWindowState::CWindowState() {
         if (event.type != View::VIEW_TYPE_WINDOW)
             return;
 
-        std::erase_if(m_windows, [&](auto& x) { return !x || event.view == dynamicPointerCast<View::IView>(x->m_self); });
+        // A CWindow is always an IView via a static upcast, so compare control-block identity directly.
+        // Must NOT dereference x->m_self here: this event is emitted from ~IView, by which point CWindow's
+        // members (incl. m_self) are already destroyed. PHLVIEWREF{x} only reads x's own impl_/data pointer.
+        std::erase_if(m_windows, [&](auto& x) { return !x || event.view == PHLVIEWREF{x}; });
     });
 }
 

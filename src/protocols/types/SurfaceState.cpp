@@ -135,7 +135,7 @@ void SSurfaceState::updateFrom(SSurfaceState& ref) {
         ref.callbacks.clear();
     }
 
-    if (!ref.presentationFeedbacks.empty()) {
+    if (ref.updated.bits.presentation) {
         presentationFeedbacks.insert(presentationFeedbacks.end(), std::make_move_iterator(ref.presentationFeedbacks.begin()),
                                      std::make_move_iterator(ref.presentationFeedbacks.end()));
         ref.presentationFeedbacks.clear();

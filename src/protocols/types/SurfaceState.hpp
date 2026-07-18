@@ -54,6 +54,7 @@ struct SSurfaceState {
             bool acked : 1;
             bool frame : 1;
             bool fifo : 1;
+            bool presentation : 1;
         } bits;
     } updated;
 

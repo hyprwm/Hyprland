@@ -210,6 +210,11 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
     });
 
     m_resource->setSetBufferScale([this](CWlSurface* r, int32_t scale) {
+        if (scale <= 0) {
+            r->error(WL_SURFACE_ERROR_INVALID_SCALE, "buffer scale must be positive");
+            return;
+        }
+
         if (scale == m_pending.scale)
             return;
 
@@ -221,6 +226,11 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
     });
 
     m_resource->setSetBufferTransform([this](CWlSurface* r, uint32_t tr) {
+        if (tr > WL_OUTPUT_TRANSFORM_FLIPPED_270) {
+            r->error(WL_SURFACE_ERROR_INVALID_TRANSFORM, "invalid buffer transform");
+            return;
+        }
+
         if (tr == m_pending.transform)
             return;
 

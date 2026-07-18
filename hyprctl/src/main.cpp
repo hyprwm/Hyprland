@@ -28,9 +28,12 @@
 #include <cstdarg>
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/memory/Casts.hpp>
+#include <hyprutils/os/FileDescriptor.hpp>
 using namespace Hyprutils::String;
 using namespace Hyprutils::Memory;
+using namespace Hyprutils::OS;
 
+#include "Socket.hpp"
 #include "Strings.hpp"
 #include "hyprpaper/Hyprpaper.hpp"
 
@@ -52,24 +55,6 @@ void log(const std::string_view str) {
         return;
 
     std::println("{}", str);
-}
-
-static bool writeAll(const int fd, std::string_view data) {
-    size_t totalWritten = 0;
-    while (totalWritten < data.size()) {
-        const auto written = write(fd, data.data() + totalWritten, data.size() - totalWritten);
-        if (written > 0) {
-            totalWritten += sc<size_t>(written);
-            continue;
-        }
-
-        if (written < 0 && errno == EINTR)
-            continue;
-
-        return false;
-    }
-
-    return true;
 }
 
 static int getUID() {
@@ -199,15 +184,14 @@ int rollingRead(const int socket) {
 }
 
 int request(std::string_view arg, int minArgs = 0, bool needRoll = false) {
-    const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
+    CFileDescriptor SERVERSOCKET{socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0)};
 
-    if (SERVERSOCKET < 0) {
+    if (!SERVERSOCKET.isValid()) {
         log("Couldn't open a socket (1)");
         return 1;
     }
 
-    auto t = timeval{.tv_sec = 5, .tv_usec = 0};
-    if (setsockopt(SERVERSOCKET, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(struct timeval)) < 0) {
+    if (!HyprCtl::Socket::setTimeouts(SERVERSOCKET.get(), 5)) {
         log("Couldn't set socket timeout (2)");
         return 2;
     }
@@ -227,50 +211,43 @@ int request(std::string_view arg, int minArgs = 0, bool needRoll = false) {
     sockaddr_un serverAddress = {0};
     serverAddress.sun_family  = AF_UNIX;
 
-    std::string socketPath = getRuntimeDir() + "/" + instanceSignature + "/.socket.sock";
+    const std::string socketPath = getRuntimeDir() + "/" + instanceSignature + "/.socket.sock";
+    if (socketPath.size() >= sizeof(serverAddress.sun_path)) {
+        log("Socket path is too long (4)");
+        return 4;
+    }
 
-    strncpy(serverAddress.sun_path, socketPath.c_str(), sizeof(serverAddress.sun_path) - 1);
+    std::ranges::copy(socketPath, serverAddress.sun_path);
 
-    if (connect(SERVERSOCKET, rc<sockaddr*>(&serverAddress), SUN_LEN(&serverAddress)) < 0) {
+    if (connect(SERVERSOCKET.get(), rc<sockaddr*>(&serverAddress), SUN_LEN(&serverAddress)) < 0) {
         log("Couldn't connect to " + socketPath + ". (4)");
         return 4;
     }
 
-    if (!writeAll(SERVERSOCKET, arg)) {
+    const auto REQUEST = HyprCtl::Socket::frameRequest(arg);
+    if (!HyprCtl::Socket::writeAll(SERVERSOCKET.get(), REQUEST)) {
         log("Couldn't write (5)");
         return 5;
     }
 
-    if (needRoll)
-        return rollingRead(SERVERSOCKET);
-
-    std::string      reply               = "";
-    constexpr size_t BUFFER_SIZE         = 8192;
-    char             buffer[BUFFER_SIZE] = {0};
-
-    // read all data until server closes the connection
-    // this handles partial writes on the server side under high load
-    while (true) {
-        const auto sizeRead = read(SERVERSOCKET, buffer, BUFFER_SIZE);
-
-        if (sizeRead < 0) {
-            if (errno == EINTR)
-                continue;
-            if (errno == EWOULDBLOCK)
-                log("Hyprland IPC didn't respond in time\n");
-            log("Couldn't read (6)");
-            return 6;
-        }
-
-        if (sizeRead == 0) {
-            // server closed connection, we're done
-            break;
-        }
-
-        reply.append(buffer, sc<size_t>(sizeRead));
+    if (shutdown(SERVERSOCKET.get(), SHUT_WR) < 0 && errno != ENOTCONN) {
+        log("Couldn't finish writing (5)");
+        return 5;
     }
 
-    close(SERVERSOCKET);
+    if (needRoll)
+        return rollingRead(SERVERSOCKET.take());
+
+    std::string reply;
+    const auto  READ_RESULT = HyprCtl::Socket::readAll(SERVERSOCKET.get(), reply);
+    if (READ_RESULT == HyprCtl::Socket::eReadResult::TIMEOUT) {
+        log("Hyprland IPC didn't respond in time (6)");
+        return 6;
+    }
+    if (READ_RESULT == HyprCtl::Socket::eReadResult::ERROR) {
+        log("Couldn't read (6)");
+        return 6;
+    }
 
     log(reply);
 
@@ -308,7 +285,7 @@ int requestIPC(std::string_view filename, std::string_view arg) {
     arg = arg.substr(arg.find_first_of('/') + 1); // strip flags
     arg = arg.substr(arg.find_first_of(' ') + 1); // strip "hyprpaper"
 
-    if (!writeAll(SERVERSOCKET, arg)) {
+    if (!HyprCtl::Socket::writeAll(SERVERSOCKET, arg)) {
         log("Couldn't write (4)");
         return 4;
     }

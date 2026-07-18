@@ -16,13 +16,15 @@ CXDataSource::CXDataSource(SXSelection& sel_) : m_selection(sel_) {
     if (!reply)
         return;
 
-    if (reply->type != XCB_ATOM_ATOM) {
+    const auto valueLength = xcb_get_property_value_length(reply);
+    if (reply->type != XCB_ATOM_ATOM || reply->format != 32 || valueLength < 0 || valueLength % sizeof(xcb_atom_t) != 0) {
         free(reply); // NOLINT(cppcoreguidelines-no-malloc)
         return;
     }
 
-    auto value = sc<xcb_atom_t*>(xcb_get_property_value(reply));
-    for (uint32_t i = 0; i < reply->value_len; i++) {
+    const auto value = sc<const xcb_atom_t*>(xcb_get_property_value(reply));
+    const auto count = sc<size_t>(valueLength) / sizeof(xcb_atom_t);
+    for (size_t i = 0; i < count; i++) {
         if (value[i] == HYPRATOMS["UTF8_STRING"])
             m_mimeTypes.emplace_back("text/plain;charset=utf-8");
         else if (value[i] == HYPRATOMS["TEXT"])

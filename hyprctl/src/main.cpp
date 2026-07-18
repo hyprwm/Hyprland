@@ -14,6 +14,7 @@
 #include <pwd.h>
 #include <unistd.h>
 #include <algorithm>
+#include <cerrno>
 #include <csignal>
 #include <ranges>
 #include <optional>
@@ -236,7 +237,10 @@ int request(std::string_view arg, int minArgs = 0, bool needRoll = false) {
         return 4;
     }
 
-    if (!writeAll(SERVERSOCKET, arg)) {
+    std::string framedArg{arg};
+    framedArg.push_back('\0');
+
+    if (!writeAll(SERVERSOCKET, framedArg)) {
         log("Couldn't write (5)");
         return 5;
     }

@@ -9,6 +9,8 @@
 #include <sys/types.h>
 #include <hyprutils/os/FileDescriptor.hpp>
 
+class CEventLoopTimer;
+
 // exposed for main.cpp
 std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request);
 std::string versionRequest(eHyprCtlOutputFormat format, std::string request);
@@ -41,11 +43,37 @@ class CHyprCtl {
     static std::string getMonitorData(PHLMONITOR m, eHyprCtlOutputFormat format);
 
   private:
-    void                             startHyprCtlSocket();
+    void startHyprCtlSocket();
+
+    struct SHyprCtlClient {
+        Hyprutils::OS::CFileDescriptor fd;
+        wl_event_source*               eventSource     = nullptr;
+        std::string                    request         = "";
+        std::string                    reply           = "";
+        size_t                         replyWritten    = 0;
+        pid_t                          pid             = 0;
+        bool                           followRolling   = false;
+        bool                           waitingForReply = false;
+        bool                           closed          = false;
+        SP<CEventLoopTimer>            requestTimeout;
+    };
+
+    static int                       onSocketEvent(int fd, uint32_t mask, void* data);
+    static int                       onClientEvent(int fd, uint32_t mask, void* data);
+
+    void                             acceptClient();
+    void                             onClientEvent(SHyprCtlClient* client, uint32_t mask);
+    void                             readClient(const SP<SHyprCtlClient>& client);
+    void                             processClientRequest(const SP<SHyprCtlClient>& client);
+    void                             queueClientReply(const SP<SHyprCtlClient>& client, std::string&& reply);
+    void                             writeClientReply(const SP<SHyprCtlClient>& client);
+    void                             removeClient(SHyprCtlClient* client);
+    SP<SHyprCtlClient>               clientFromPtr(SHyprCtlClient* client);
 
     std::vector<SP<SHyprCtlCommand>> m_commands;
     wl_event_source*                 m_eventSource = nullptr;
     std::string                      m_socketPath;
+    std::vector<SP<SHyprCtlClient>>  m_clients;
 };
 
 inline UP<CHyprCtl> g_pHyprCtl;

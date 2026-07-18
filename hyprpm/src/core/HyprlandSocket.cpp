@@ -73,7 +73,10 @@ std::string NHyprlandSocket::send(const std::string& cmd) {
         return "";
     }
 
-    if (!writeAll(SERVERSOCKET, cmd)) {
+    std::string framedCmd{cmd};
+    framedCmd.push_back('\0');
+
+    if (!writeAll(SERVERSOCKET, framedCmd)) {
         std::println("{}", failureString("Couldn't write (5)"));
         return "";
     }

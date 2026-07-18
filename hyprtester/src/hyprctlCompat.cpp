@@ -17,6 +17,24 @@
 #include <hyprutils/memory/Casts.hpp>
 using namespace Hyprutils::Memory;
 
+static bool writeAll(const int fd, std::string_view data) {
+    size_t totalWritten = 0;
+    while (totalWritten < data.size()) {
+        const auto written = write(fd, data.data() + totalWritten, data.size() - totalWritten);
+        if (written > 0) {
+            totalWritten += sc<size_t>(written);
+            continue;
+        }
+
+        if (written < 0 && errno == EINTR)
+            continue;
+
+        return false;
+    }
+
+    return true;
+}
+
 static int getUID() {
     const auto UID   = getuid();
     const auto PWUID = getpwuid(UID);
@@ -102,9 +120,10 @@ std::string getFromSocket(const std::string& cmd) {
         return "";
     }
 
-    auto sizeWritten = write(SERVERSOCKET, cmd.c_str(), cmd.length());
+    std::string framedCmd{cmd};
+    framedCmd.push_back('\0');
 
-    if (sizeWritten < 0) {
+    if (!writeAll(SERVERSOCKET, framedCmd)) {
         std::println("Couldn't write (4)");
         return "";
     }
@@ -112,7 +131,7 @@ std::string getFromSocket(const std::string& cmd) {
     std::string reply        = "";
     char        buffer[8192] = {0};
 
-    sizeWritten = read(SERVERSOCKET, buffer, 8192);
+    auto        sizeWritten = read(SERVERSOCKET, buffer, 8192);
 
     if (sizeWritten < 0) {
         if (errno == EWOULDBLOCK)

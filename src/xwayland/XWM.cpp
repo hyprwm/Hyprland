@@ -1,6 +1,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
+#include <span>
 #include <string>
 #include <xcb/xfixes.h>
 #include <xcb/xproto.h>
@@ -43,6 +45,17 @@ struct SFreeDeleter {
 
 template <typename T>
 using XCBReplyPtr = std::unique_ptr<T, SFreeDeleter>;
+
+static std::optional<std::span<const xcb_atom_t>> atomProperty(const xcb_get_property_reply_t* reply) {
+    if (reply->type != XCB_ATOM_ATOM || reply->format != 32)
+        return std::nullopt;
+
+    const auto valueLength = xcb_get_property_value_length(reply);
+    if (valueLength < 0 || valueLength % sizeof(xcb_atom_t) != 0)
+        return std::nullopt;
+
+    return std::span<const xcb_atom_t>{rc<const xcb_atom_t*>(xcb_get_property_value(reply)), sc<size_t>(valueLength) / sizeof(xcb_atom_t)};
+}
 
 SP<CXWaylandSurface> CXWM::windowForXID(xcb_window_t wid) {
     for (auto const& s : m_surfaces) {
@@ -243,14 +256,31 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
     };
 
     auto handleWindowType = [&]() {
-        auto* atomsArr = rc<const xcb_atom_t*>(value);
-        XSURF->m_atoms.assign(atomsArr, atomsArr + reply->value_len);
+        if (reply->type == XCB_ATOM_NONE) {
+            XSURF->m_atoms.clear();
+            return;
+        }
+
+        const auto atoms = atomProperty(reply);
+        if (!atoms)
+            return;
+
+        XSURF->m_atoms.assign(atoms->begin(), atoms->end());
     };
 
     auto handleWMState = [&]() {
-        auto* atoms = rc<const xcb_atom_t*>(value);
-        for (uint32_t i = 0; i < reply->value_len; i++) {
-            if (atoms[i] == HYPRATOMS["_NET_WM_STATE_MODAL"])
+        if (reply->type == XCB_ATOM_NONE) {
+            XSURF->m_modal = false;
+            return;
+        }
+
+        const auto atoms = atomProperty(reply);
+        if (!atoms)
+            return;
+
+        XSURF->m_modal = false;
+        for (const auto atom : *atoms) {
+            if (atom == HYPRATOMS["_NET_WM_STATE_MODAL"])
                 XSURF->m_modal = true;
         }
     };
@@ -330,10 +360,16 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
     };
 
     auto handleWMProtocols = [&]() {
-        if (reply->type != XCB_ATOM_ATOM)
+        if (reply->type == XCB_ATOM_NONE) {
+            XSURF->m_protocols.clear();
             return;
-        auto* atoms = rc<const xcb_atom_t*>(value);
-        XSURF->m_protocols.assign(atoms, atoms + reply->value_len);
+        }
+
+        const auto atoms = atomProperty(reply);
+        if (!atoms)
+            return;
+
+        XSURF->m_protocols.assign(atoms->begin(), atoms->end());
     };
 
     if (atom == XCB_ATOM_WM_CLASS)

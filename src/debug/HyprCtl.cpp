@@ -1612,7 +1612,7 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
         return windowPropToString(PWINDOW->m_ruleApplicator->syncFullscreen());
     else if (PROP == "immediate")
         return windowPropToString(PWINDOW->m_ruleApplicator->tearing());
-    else if (PROP == "directscanout")
+    else if (PROP == "direct_scanout")
         return windowPropToString(PWINDOW->m_ruleApplicator->directScanout());
     else if (PROP == "xray")
         return windowPropToString(PWINDOW->m_ruleApplicator->xray());

@@ -827,7 +827,7 @@ ActionResult Actions::setProp(const std::string& PROP, const std::string& VAL, s
             parsePropTrivial(PWINDOW->m_ruleApplicator->syncFullscreen(), VAL);
         else if (PROP == "immediate")
             parsePropTrivial(PWINDOW->m_ruleApplicator->tearing(), VAL);
-        else if (PROP == "directscanout")
+        else if (PROP == "direct_scanout")
             parsePropTrivial(PWINDOW->m_ruleApplicator->directScanout(), VAL);
         else if (PROP == "xray")
             parsePropTrivial(PWINDOW->m_ruleApplicator->xray(), VAL);

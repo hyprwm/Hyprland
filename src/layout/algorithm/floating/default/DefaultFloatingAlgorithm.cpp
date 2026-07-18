@@ -149,6 +149,8 @@ void CDefaultFloatingAlgorithm::movedTarget(SP<ITarget> target, std::optional<Ve
         LAST_SIZE          = DESIRED ? DESIRED->size : DEFAULT_SIZE;
     }
 
+    CBox wantPos;
+
     if (target->wasTiling()) {
         // Avoid floating toggles that don't change size, they aren't easily visible to the user
         if (std::abs(LAST_SIZE.x - CURRENT_SIZE.x) < 5 && std::abs(LAST_SIZE.y - CURRENT_SIZE.y) < 5)
@@ -157,8 +159,8 @@ void CDefaultFloatingAlgorithm::movedTarget(SP<ITarget> target, std::optional<Ve
         // calculate new position
         const auto OLD_CENTER = target->position().middle();
 
-        // put around the current center, fit in workArea
-        target->setPositionGlobal(fitBoxInWorkArea(CBox{OLD_CENTER - LAST_SIZE / 2.F, LAST_SIZE}, target));
+        // put around the current center
+        wantPos = CBox{OLD_CENTER - LAST_SIZE / 2.F, LAST_SIZE};
 
     } else {
         // calculate new position
@@ -167,9 +169,10 @@ void CDefaultFloatingAlgorithm::movedTarget(SP<ITarget> target, std::optional<Ve
         const auto MON_FROM_OLD = State::monitorState()->query().vec(OLD_POS).run();
         const auto NEW_POS      = MON_FROM_OLD ? OLD_POS - MON_FROM_OLD->m_position + THIS_MON_POS : OLD_POS;
 
-        // put around the current center, fit in workArea
-        target->setPositionGlobal(fitBoxInWorkArea(CBox{NEW_POS, LAST_SIZE}, target));
+        wantPos = CBox{NEW_POS, LAST_SIZE};
     }
+
+    setPositionGlobal(target, wantPos);
 
     updateTarget(target);
 }

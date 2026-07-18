@@ -9,6 +9,7 @@
 #include <aquamarine/input/Input.hpp>
 #include <hyprutils/string/VarList.hpp>
 #include <cstring>
+#include <limits>
 
 using namespace Hyprutils::OS;
 using namespace Hyprutils::String;
@@ -328,7 +329,7 @@ std::optional<uint32_t> IKeyboard::getLEDs() {
     uint32_t leds = 0;
     for (uint32_t i = 0; i < std::min(sc<size_t>(LED_COUNT), m_ledIndexes.size()); ++i) {
         if (xkb_state_led_index_is_active(m_xkbState, m_ledIndexes[i]))
-            leds |= (1 << i);
+            leds |= (uint32_t{1} << i);
     }
 
     return leds;
@@ -360,13 +361,13 @@ uint32_t IKeyboard::getModifiers() {
     uint32_t modMask = m_modifiersState.depressed | m_modifiersState.latched;
     uint32_t mods    = 0;
     for (size_t i = 0; i < m_modIndexes.size(); ++i) {
-        if (m_modIndexes[i] == XKB_MOD_INVALID)
+        if (m_modIndexes[i] == XKB_MOD_INVALID || m_modIndexes[i] >= std::numeric_limits<uint32_t>::digits)
             continue;
 
-        if (!(modMask & (1 << m_modIndexes[i])))
+        if (!(modMask & (uint32_t{1} << m_modIndexes[i])))
             continue;
 
-        mods |= (1 << i);
+        mods |= (uint32_t{1} << i);
     }
 
     return mods;

@@ -5,6 +5,7 @@
 #include <format>
 #include <fstream>
 #include <iterator>
+#include <limits>
 #include <netinet/in.h>
 #include <cstdio>
 #include <cstdlib>
@@ -155,7 +156,7 @@ std::string CHyprCtl::getSolitaryBlockedReason(PHLMONITOR m, eHyprCtlOutputForma
     const auto  TEXTS     = format == eHyprCtlOutputFormat::FORMAT_JSON ? SOLITARY_REASONS_JSON : SOLITARY_REASONS_TEXT;
 
     for (uint32_t i = 0; i < Monitor::CMonitor::SC_CHECKS_COUNT; i++) {
-        if (reasons & (1 << i)) {
+        if (reasons & (uint32_t{1} << i)) {
             if (reasonStr != "")
                 reasonStr += ",";
             reasonStr += TEXTS[i];
@@ -184,7 +185,7 @@ std::string CHyprCtl::getDSBlockedReason(PHLMONITOR m, eHyprCtlOutputFormat form
     const auto  TEXTS     = format == eHyprCtlOutputFormat::FORMAT_JSON ? DS_REASONS_JSON : DS_REASONS_TEXT;
 
     for (int i = 0; i < Monitor::CMonitor::DS_CHECKS_COUNT; i++) {
-        if (reasons & (1 << i)) {
+        if (reasons & (uint32_t{1} << i)) {
             if (reasonStr != "")
                 reasonStr += ",";
             reasonStr += TEXTS[i];
@@ -210,7 +211,7 @@ std::string                                                       CHyprCtl::getT
     const auto  TEXTS     = format == eHyprCtlOutputFormat::FORMAT_JSON ? TEARING_REASONS_JSON : TEARING_REASONS_TEXT;
 
     for (int i = 0; i < Monitor::CMonitor::TC_CHECKS_COUNT; i++) {
-        if (reasons & (1 << i)) {
+        if (reasons & (uint32_t{1} << i)) {
             if (reasonStr != "")
                 reasonStr += ",";
             reasonStr += TEXTS[i];
@@ -751,10 +752,10 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
     auto        getModState = [](SP<IKeyboard> keyboard, const char* xkbModName) -> bool {
         auto IDX = xkb_keymap_mod_get_index(keyboard->m_xkbKeymap, xkbModName);
 
-        if (IDX == XKB_MOD_INVALID)
+        if (IDX == XKB_MOD_INVALID || IDX >= std::numeric_limits<uint32_t>::digits)
             return false;
 
-        return (keyboard->m_modifiersState.locked & (1 << IDX)) > 0;
+        return (keyboard->m_modifiersState.locked & (uint32_t{1} << IDX)) > 0;
     };
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {

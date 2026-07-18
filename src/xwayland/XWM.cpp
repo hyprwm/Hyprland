@@ -172,18 +172,18 @@ void CXWM::handleUnmapNotify(xcb_unmap_notify_event_t* e) {
     xcb_flush(getConnection());
 }
 
-static bool lookupParentExists(SP<CXWaylandSurface> XSURF, SP<CXWaylandSurface> prospectiveChild) {
+static bool parentChainContains(SP<CXWaylandSurface> surface, const SP<CXWaylandSurface>& candidate) {
     std::vector<SP<CXWaylandSurface>> visited;
 
-    while (XSURF->m_parent) {
-        if (XSURF->m_parent == prospectiveChild)
+    while (surface) {
+        if (surface == candidate)
             return true;
-        visited.emplace_back(XSURF);
 
-        XSURF = XSURF->m_parent.lock();
-
-        if (std::ranges::find(visited, XSURF) != visited.end())
+        if (std::ranges::find(visited, surface) != visited.end())
             return false;
+
+        visited.emplace_back(surface);
+        surface = surface->m_parent.lock();
     }
 
     return false;
@@ -280,18 +280,40 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
     };
 
     auto handleTransientFor = [&]() {
-        if (reply->type != XCB_ATOM_WINDOW)
+        const auto clearParent = [&]() {
+            if (const auto PARENT = XSURF->m_parent.lock())
+                std::erase_if(PARENT->m_children, [&XSURF](const auto& child) { return !child || child.lock() == XSURF; });
+
+            XSURF->m_parent.reset();
+            XSURF->m_transient = false;
+        };
+
+        if (reply->type == XCB_ATOM_NONE) {
+            clearParent();
             return;
-        const auto XID     = rc<const xcb_window_t*>(value);
-        XSURF->m_transient = XID;
-        if (!XID)
+        }
+
+        xcb_window_t XID = XCB_WINDOW_NONE;
+        if (!xcb_icccm_get_wm_transient_for_from_reply(&XID, reply))
             return;
 
-        if (const auto NEWXSURF = windowForXID(*XID); NEWXSURF && !lookupParentExists(XSURF, NEWXSURF)) {
-            XSURF->m_parent = NEWXSURF;
-            NEWXSURF->m_children.emplace_back(XSURF);
-        } else
+        clearParent();
+        if (XID == XCB_WINDOW_NONE)
+            return;
+
+        XSURF->m_transient = true;
+
+        const auto NEWXSURF = windowForXID(XID);
+        if (!NEWXSURF)
+            return;
+
+        if (parentChainContains(NEWXSURF, XSURF)) {
             Log::logger->log(Log::DEBUG, "[xwm] Denying transient because it would create a loop");
+            return;
+        }
+
+        XSURF->m_parent = NEWXSURF;
+        NEWXSURF->m_children.emplace_back(XSURF);
     };
 
     auto handleSizeHints = [&]() {

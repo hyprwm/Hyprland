@@ -367,20 +367,28 @@ void CShader::setUniformMatrix4x2fv(eShaderUniform location, GLsizei count, GLbo
     GLCALL(glUniformMatrix4x2fv(m_uniformLocations[location], count, transpose, value.data()));
 }
 
-void CShader::setUniformfv(eShaderUniform location, GLsizei count, const std::vector<float>& value, GLsizei vec_size) {
+void CShader::setUniformfv(eShaderUniform location, GLsizei count, std::span<const float> value, GLsizei vecSize) {
     if (m_uniformLocations.at(location) == -1)
         return;
 
-    auto& cached = uniformStatus.at(location);
-
-    if (cached.index() != 0) {
-        const auto& val = std::get<SUniformVData>(cached);
-        if (val.count == count && compareFloat(val.value, value))
-            return;
+    if (count < 0 || vecSize <= 0 || sc<size_t>(count) > value.size() / sc<size_t>(vecSize)) {
+        Log::logger->log(Log::ERR, "Refusing invalid uniform vector upload: count {}, vector size {}, value count {}", count, vecSize, value.size());
+        return;
     }
 
-    cached = SUniformVData{.count = count, .value = value};
-    switch (vec_size) {
+    auto& cached = uniformStatus.at(location);
+
+    if (auto* val = std::get_if<SUniformVData>(&cached)) {
+        if (val->count == count && compareFloat(val->value, value))
+            return;
+
+        val->count = count;
+        val->value.assign(value.begin(), value.end());
+    } else {
+        cached = SUniformVData{.count = count, .value = {value.begin(), value.end()}};
+    }
+
+    switch (vecSize) {
         case 1: GLCALL(glUniform1fv(m_uniformLocations[location], count, value.data())); break;
         case 2: GLCALL(glUniform2fv(m_uniformLocations[location], count, value.data())); break;
         case 4: GLCALL(glUniform4fv(m_uniformLocations[location], count, value.data())); break;
@@ -388,12 +396,24 @@ void CShader::setUniformfv(eShaderUniform location, GLsizei count, const std::ve
     }
 }
 
+void CShader::setUniform1fv(eShaderUniform location, GLsizei count, std::span<const float> value) {
+    setUniformfv(location, count, value, 1);
+}
+
 void CShader::setUniform1fv(eShaderUniform location, GLsizei count, const std::vector<float>& value) {
     setUniformfv(location, count, value, 1);
 }
 
+void CShader::setUniform2fv(eShaderUniform location, GLsizei count, std::span<const float> value) {
+    setUniformfv(location, count, value, 2);
+}
+
 void CShader::setUniform2fv(eShaderUniform location, GLsizei count, const std::vector<float>& value) {
     setUniformfv(location, count, value, 2);
+}
+
+void CShader::setUniform4fv(eShaderUniform location, GLsizei count, std::span<const float> value) {
+    setUniformfv(location, count, value, 4);
 }
 
 void CShader::setUniform4fv(eShaderUniform location, GLsizei count, const std::vector<float>& value) {

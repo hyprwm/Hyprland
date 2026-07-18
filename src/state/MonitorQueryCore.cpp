@@ -5,6 +5,7 @@
 #include "../macros.hpp"
 
 #include <algorithm>
+#include <cstdint>
 #include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/String.hpp>
 #include <utility>
@@ -202,38 +203,35 @@ SP<Monitor::IMonitorQueryable> CMonitorQueryCore::fromConfigString(std::string_v
     else if (isDirection(sv))
         return directionLookup(m_relativeTo, Math::fromChar(sv[0]));
     else if (sv[0] == '+' || sv[0] == '-') {
+        if (m_monitors.empty())
+            return nullptr;
+
         if (m_monitors.size() == 1)
             return *m_monitors.begin();
 
-        const auto OFFSET = sv[0] == '-' ? sv : sv.substr(1);
+        const auto OFFSET       = sv[0] == '-' ? sv : sv.substr(1);
+        const auto PARSEDOFFSET = strToNumber<int64_t>(OFFSET);
 
-        if (!isNumber(std::string{OFFSET})) {
-            Log::logger->log(Log::ERR, "Error in CMonitorQueryCore::fromConfigString: Not a number in relative.");
+        if (!PARSEDOFFSET) {
+            Log::logger->log(Log::ERR, "Error in CMonitorQueryCore::fromConfigString: Invalid relative offset.");
             return nullptr;
         }
 
-        int offsetLeft = strToNumber<int>(OFFSET).value_or(0);
-        offsetLeft     = offsetLeft < 0 ? -((-offsetLeft) % m_monitors.size()) : offsetLeft % m_monitors.size();
+        const auto MONITORCOUNT = sc<int64_t>(m_monitors.size());
+        const auto OFFSETLEFT   = *PARSEDOFFSET % MONITORCOUNT;
 
-        int currentPlace = 0;
-        for (int i = 0; i < sc<int>(m_monitors.size()); i++) {
+        int64_t    currentPlace = 0;
+        for (int64_t i = 0; i < MONITORCOUNT; i++) {
             if (m_monitors[i] == m_relativeTo) {
                 currentPlace = i;
                 break;
             }
         }
 
-        currentPlace += offsetLeft;
+        currentPlace = (currentPlace + OFFSETLEFT) % MONITORCOUNT;
 
         if (currentPlace < 0)
-            currentPlace = m_monitors.size() + currentPlace;
-        else
-            currentPlace = currentPlace % m_monitors.size();
-
-        if (currentPlace != std::clamp(currentPlace, 0, sc<int>(m_monitors.size()) - 1)) {
-            Log::logger->log(Log::WARN, "Error in CMonitorQueryCore::fromConfigString: Vaxry's code sucks.");
-            currentPlace = std::clamp(currentPlace, 0, sc<int>(m_monitors.size()) - 1);
-        }
+            currentPlace += MONITORCOUNT;
 
         return m_monitors[currentPlace];
     } else if (isNumber(std::string{sv})) {

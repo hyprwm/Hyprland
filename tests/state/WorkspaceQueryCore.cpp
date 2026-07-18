@@ -144,3 +144,13 @@ TEST(WorkspaceQueryCore, idOutOfBoundsIgnoresSpecialAndInertWorkspaces) {
     EXPECT_TRUE(State::CWorkspaceQueryCore::idOutOfBounds(workspaces, 0));
     EXPECT_TRUE(State::CWorkspaceQueryCore::idOutOfBounds(workspaces, 6));
 }
+
+TEST(WorkspaceQueryCore, idOutOfBoundsHasNoBoundsWithoutRegularWorkspaces) {
+    std::vector<State::SWorkspaceQueryable> workspaces = {
+        workspace(1, "stale", false, true),
+        workspace(SPECIAL_WORKSPACE_START, "special:special", true),
+    };
+
+    EXPECT_FALSE(State::CWorkspaceQueryCore::idOutOfBounds(workspaces, 1));
+    EXPECT_FALSE(State::CWorkspaceQueryCore::idOutOfBounds({}, 1));
+}

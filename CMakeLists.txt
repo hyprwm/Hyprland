@@ -715,6 +715,14 @@ if(BUILD_TESTING OR WITH_TESTS)
 
   gtest_discover_tests(hyprland_gtests)
 
+  add_executable(hyprpm_socket_gtests hyprpm/tests/HyprlandSocket.cpp
+                                      hyprpm/src/core/HyprlandSocket.cpp)
+  target_compile_options(hyprpm_socket_gtests PRIVATE --coverage)
+  target_link_options(hyprpm_socket_gtests PRIVATE --coverage)
+  target_link_libraries(hyprpm_socket_gtests PkgConfig::hyprutils_dep
+                                             GTest::gtest_main)
+  gtest_discover_tests(hyprpm_socket_gtests)
+
   # Enable coverage in main hyprland lib
   target_compile_options(hyprland_lib PRIVATE --coverage)
   target_link_options(hyprland_lib PRIVATE --coverage)
@@ -732,7 +740,7 @@ if(BUILD_TESTING)
   enable_testing()
   add_custom_target(tests)
 
-  add_dependencies(tests hyprland_gtests)
+  add_dependencies(tests hyprland_gtests hyprpm_socket_gtests)
 
 else()
   message(STATUS "Testing is disabled")

@@ -256,7 +256,7 @@ namespace Render {
         bool                               m_monitorTransformEnabled = false; // do not modify directly
         std::stack<bool>                   m_monitorTransformStack;
 
-        void                               handleFullscreenSettings(PHLMONITOR pMonitor);
+        bool                               handleFullscreenSettings(PHLMONITOR pMonitor, bool directScanout = false);
 
         // old private:
         void arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);

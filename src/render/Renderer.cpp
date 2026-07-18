@@ -1987,6 +1987,74 @@ void IHyprRenderer::renderMirrored() {
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }
 
+static bool hdrMetadataEquals(const hdr_output_metadata& lhs, const hdr_output_metadata& rhs) {
+    const auto& l = lhs.hdmi_metadata_type1;
+    const auto& r = rhs.hdmi_metadata_type1;
+
+    if (lhs.metadata_type != rhs.metadata_type || l.eotf != r.eotf || l.metadata_type != r.metadata_type || l.white_point.x != r.white_point.x ||
+        l.white_point.y != r.white_point.y || l.max_display_mastering_luminance != r.max_display_mastering_luminance ||
+        l.min_display_mastering_luminance != r.min_display_mastering_luminance || l.max_cll != r.max_cll || l.max_fall != r.max_fall)
+        return false;
+
+    for (size_t i = 0; i < 3; ++i) {
+        if (l.display_primaries[i].x != r.display_primaries[i].x || l.display_primaries[i].y != r.display_primaries[i].y)
+            return false;
+    }
+
+    return true;
+}
+
+class CDirectScanoutStateRollback {
+  public:
+    explicit CDirectScanoutStateRollback(PHLMONITOR monitor) :
+        m_monitor(monitor), m_previousFSWindow(monitor->m_previousFSWindow), m_needsHDRupdate(monitor->m_needsHDRupdate), m_noShaderCTM(monitor->m_noShaderCTM),
+        m_ctmUpdated(monitor->m_ctmUpdated) {
+        const auto& STATE = m_monitor->m_output->state->state();
+
+        m_hdrMetadata    = STATE.hdrMetadata;
+        m_contentType    = STATE.contentType;
+        m_ctm            = STATE.ctm;
+        m_wideColorGamut = STATE.wideColorGamut;
+    }
+
+    ~CDirectScanoutStateRollback() {
+        rollback();
+    }
+
+    void disarm() {
+        m_disarmed = true;
+    }
+
+    void rollback() {
+        if (m_disarmed || !m_monitor)
+            return;
+
+        m_monitor->m_output->state->setHDRMetadata(m_hdrMetadata);
+        m_monitor->m_output->state->setContentType(m_contentType);
+        m_monitor->m_output->state->setCTM(m_ctm);
+        m_monitor->m_output->state->setWideColorGamut(m_wideColorGamut);
+
+        m_monitor->m_previousFSWindow = m_previousFSWindow;
+        m_monitor->m_needsHDRupdate   = m_needsHDRupdate;
+        m_monitor->m_noShaderCTM      = m_noShaderCTM;
+        m_monitor->m_ctmUpdated       = m_ctmUpdated;
+
+        m_disarmed = true;
+    }
+
+  private:
+    PHLMONITOR          m_monitor;
+    hdr_output_metadata m_hdrMetadata    = {};
+    uint16_t            m_contentType    = 0;
+    Mat3x3              m_ctm            = Mat3x3::identity();
+    bool                m_wideColorGamut = false;
+    PHLWINDOWREF        m_previousFSWindow;
+    bool                m_needsHDRupdate = false;
+    bool                m_noShaderCTM    = false;
+    bool                m_ctmUpdated     = false;
+    bool                m_disarmed       = false;
+};
+
 void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     if (!pMonitor)
         return;
@@ -2049,17 +2117,30 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     const bool canAttemptDirectScanout = pMonitor->canAttemptDirectScanoutFast();
 
     if (canAttemptDirectScanout) {
-        if (pMonitor->attemptDirectScanout()) {
-            if (!pMonitor->needsACopyFB())
-                pMonitor->resources()->markMirrorFBStale();
+        if (!pMonitor->isDSBlocked()) {
+            CDirectScanoutStateRollback scanoutStateRollback{pMonitor};
 
-            if (!pMonitor->m_directScanoutIsActive) {
-                pMonitor->m_previousFSWindow.reset(); // recalc fs settings
-                pMonitor->m_directScanoutIsActive = true;
+            if (!pMonitor->m_directScanoutIsActive)
+                pMonitor->m_previousFSWindow.reset(); // recalc fs settings for the scanout output state
+
+            const bool colorStateChanged = handleFullscreenSettings(pMonitor, true);
+
+            if (pMonitor->attemptDirectScanout(colorStateChanged)) {
+                scanoutStateRollback.disarm();
+
+                if (!pMonitor->needsACopyFB())
+                    pMonitor->resources()->markMirrorFBStale();
+
+                if (!pMonitor->m_directScanoutIsActive)
+                    pMonitor->m_directScanoutIsActive = true;
+
+                return;
             }
-            handleFullscreenSettings(pMonitor);
-            return;
-        } else if (!pMonitor->m_lastScanout.expired() || pMonitor->m_directScanoutIsActive)
+
+            scanoutStateRollback.rollback();
+        }
+
+        if (!pMonitor->m_lastScanout.expired() || pMonitor->m_directScanoutIsActive)
             pMonitor->handleDSleave();
     }
 
@@ -2297,11 +2378,17 @@ static hdr_output_metadata       createHDRMetadata(SImageDescription settings, P
     };
 }
 
-void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
+bool IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor, bool directScanout) {
     static auto PCT        = CConfigValue<Config::INTEGER>("render:send_content_type");
     static auto PAUTOHDR   = CConfigValue<Config::INTEGER>("render:cm_auto_hdr");
     static auto PNONSHADER = CConfigValue<Config::INTEGER>("render:non_shader_cm");
     static auto PNSINTEROP = CConfigValue<Config::INTEGER>("render:non_shader_cm_interop");
+
+    const auto& INITIAL_STATE = pMonitor->m_output->state->state();
+    const auto  INITIAL_HDR   = INITIAL_STATE.hdrMetadata;
+    const auto  INITIAL_CT    = INITIAL_STATE.contentType;
+    const auto  INITIAL_CTM   = INITIAL_STATE.ctm;
+    const bool  INITIAL_WCG   = INITIAL_STATE.wideColorGamut;
 
     const bool  configuredHDR = (pMonitor->m_cmType == NCMType::CM_HDR_EDID || pMonitor->m_cmType == NCMType::CM_HDR);
     bool        wantHDR       = configuredHDR;
@@ -2324,7 +2411,7 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
                 wantHDR                 = *PAUTOHDR && surfaceIsHDR;
                 if (FULLSCREEN_WINDOW && FULLSCREEN_WINDOW->m_ruleApplicator->noAutoHDR().valueOrDefault())
                     wantHDR = configuredHDR;
-                if (surfaceIsHDR && !SURF->m_colorManagement->isWindowsScRGB() && !pMonitor->m_lastScanout.expired()) {
+                if (surfaceIsHDR && !SURF->m_colorManagement->isWindowsScRGB() && (directScanout || !pMonitor->m_lastScanout.expired())) {
                     // DS HDR
                     bool needsHdrMetadataUpdate =
                         SURF->m_colorManagement->needsHdrMetadataUpdate() || pMonitor->m_previousFSWindow != FULLSCREEN_WINDOW || pMonitor->m_needsHDRupdate;
@@ -2343,12 +2430,14 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
         }
 
         // Do it here instead of disabling the block above to allow hdr -> hdr metadata changes in fullscreen
-        if (!*PAUTOHDR && !pMonitor->m_lastScanout)
+        if (!*PAUTOHDR && !directScanout && !pMonitor->m_lastScanout)
             wantHDR = configuredHDR;
 
         if (!hdrIsHandled) {
-            if (pMonitor->inHDR() != wantHDR) {
-                if (*PAUTOHDR && !(pMonitor->inHDR() && configuredHDR)) {
+            const bool needsHdrMetadataUpdate = pMonitor->m_needsHDRupdate || pMonitor->inHDR() != wantHDR;
+
+            if (needsHdrMetadataUpdate) {
+                if (!directScanout && *PAUTOHDR && !(pMonitor->inHDR() && configuredHDR)) {
                     // modify or restore monitor image description for auto-hdr
                     // FIXME ok for now, will need some other logic if monitor image description can be modified some other way
                     const auto targetCM      = wantHDR ? (*PAUTOHDR == 2 ? NCMType::CM_HDR_EDID : NCMType::CM_HDR) : pMonitor->m_cmType;
@@ -2360,7 +2449,7 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
                 Log::logger->log(Log::INFO, wantHDR ? "[CM] Updating HDR metadata from monitor" : "[CM] Restoring SDR mode");
                 pMonitor->m_output->state->setHDRMetadata(wantHDR ? createHDRMetadata(pMonitor->m_imageDescription->value(), pMonitor) : NO_HDR_METADATA);
             }
-            pMonitor->m_needsHDRupdate = true;
+            pMonitor->m_needsHDRupdate = false;
         }
     }
 
@@ -2390,8 +2479,8 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
         if (FULLSCREEN_WINDOW) {
             if (*PNONSHADER == CM_NS_IGNORE)
                 resetCTM = true;
-            else if (const auto FS_DESC = pMonitor->getFSImageDescription(); pMonitor->needsCM() && pMonitor->canNoShaderCM(!pMonitor->m_lastScanout.expired()) &&
-                     FS_DESC.has_value() && (*PNONSHADER != CM_NS_ONDEMAND || !pMonitor->m_lastScanout.expired())) {
+            else if (const auto FS_DESC = pMonitor->getFSImageDescription(); pMonitor->needsCM() && pMonitor->canNoShaderCM(directScanout || !pMonitor->m_lastScanout.expired()) &&
+                     FS_DESC.has_value() && (*PNONSHADER != CM_NS_ONDEMAND || directScanout || !pMonitor->m_lastScanout.expired())) {
                 Log::logger->log(Log::INFO, "[CM] Updating fullscreen CTM");
                 pMonitor->m_noShaderCTM = true;
                 pMonitor->m_ctmUpdated  = false;
@@ -2437,6 +2526,10 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
     }
 
     pMonitor->m_previousFSWindow = FULLSCREEN_WINDOW;
+
+    const auto& FINAL_STATE = pMonitor->m_output->state->state();
+    return !hdrMetadataEquals(INITIAL_HDR, FINAL_STATE.hdrMetadata) || INITIAL_CT != FINAL_STATE.contentType || INITIAL_CTM != FINAL_STATE.ctm ||
+        INITIAL_WCG != FINAL_STATE.wideColorGamut;
 }
 
 bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {

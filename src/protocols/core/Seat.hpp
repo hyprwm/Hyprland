@@ -73,21 +73,22 @@ class CWLPointerResource {
     CWLPointerResource(SP<CWlPointer> resource_, SP<CWLSeatResource> owner_);
     ~CWLPointerResource();
 
-    bool                good();
-    int                 version();
-    void                sendEnter(SP<CWLSurfaceResource> surface, const Vector2D& local);
-    void                sendLeave();
-    void                sendMotion(uint32_t timeMs, const Vector2D& local);
-    void                sendButton(uint32_t timeMs, uint32_t button, wl_pointer_button_state state);
-    void                sendAxis(uint32_t timeMs, wl_pointer_axis axis, double value);
-    void                sendFrame();
-    void                sendAxisSource(wl_pointer_axis_source source);
-    void                sendAxisStop(uint32_t timeMs, wl_pointer_axis axis);
-    void                sendAxisDiscrete(wl_pointer_axis axis, int32_t discrete);
-    void                sendAxisValue120(wl_pointer_axis axis, int32_t value120);
-    void                sendAxisRelativeDirection(wl_pointer_axis axis, wl_pointer_axis_relative_direction direction);
+    bool                   good();
+    int                    version();
+    void                   sendEnter(SP<CWLSurfaceResource> surface, const Vector2D& local);
+    void                   sendLeave(bool preserveButtons = false);
+    void                   sendMotion(uint32_t timeMs, const Vector2D& local);
+    void                   sendButton(uint32_t timeMs, uint32_t button, wl_pointer_button_state state);
+    void                   sendAxis(uint32_t timeMs, wl_pointer_axis axis, double value);
+    void                   sendFrame();
+    void                   sendAxisSource(wl_pointer_axis_source source);
+    void                   sendAxisStop(uint32_t timeMs, wl_pointer_axis axis);
+    void                   sendAxisDiscrete(wl_pointer_axis axis, int32_t discrete);
+    void                   sendAxisValue120(wl_pointer_axis axis, int32_t value120);
+    void                   sendAxisRelativeDirection(wl_pointer_axis axis, wl_pointer_axis_relative_direction direction);
+    SP<CWLSurfaceResource> preservedButtonSurface(uint32_t button) const;
 
-    WP<CWLSeatResource> m_owner;
+    WP<CWLSeatResource>    m_owner;
 
     struct {
         CSignalT<> destroyed;
@@ -99,14 +100,18 @@ class CWLPointerResource {
   private:
     SP<CWlPointer>         m_resource;
     WP<CWLSurfaceResource> m_currentSurface;
+    WP<CWLSurfaceResource> m_preservedButtonSurface;
     WP<CWLPointerResource> m_self;
 
     std::vector<uint32_t>  m_pressedButtons;
+    std::vector<uint32_t>  m_preservedButtons;
 
+    void                   clearPreservedButtons();
     Vector2D               fixPosWithWlFixed(const Vector2D& pos);
 
     struct {
         CHyprSignalListener destroySurface;
+        CHyprSignalListener destroyPreservedButtonSurface;
     } m_listeners;
 
     friend class CWLSeatResource;

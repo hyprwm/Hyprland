@@ -9,6 +9,8 @@
 #include <src/pointer/PointerManager.hpp>
 #include <src/pointer/PointerController.hpp>
 #include <src/managers/SeatManager.hpp>
+#include <src/protocols/core/Compositor.hpp>
+#include <src/protocols/core/Seat.hpp>
 #include <src/managers/input/trackpad/TrackpadGestures.hpp>
 #include <src/output/Monitor.hpp>
 #include <src/desktop/rule/windowRule/WindowRuleEffectContainer.hpp>
@@ -383,6 +385,91 @@ static SDispatchResult click(std::string in) {
         .state  = pressed ? WL_POINTER_BUTTON_STATE_PRESSED : WL_POINTER_BUTTON_STATE_RELEASED,
         .mouse  = true,
     });
+
+    return {};
+}
+
+static SDispatchResult pointerButtonPreservation(std::string in) {
+    CVarList2 data(std::move(in));
+    if (data.size() < 2)
+        return {.success = false, .error = "expected two window classes"};
+
+    PHLWINDOW first;
+    PHLWINDOW second;
+    for (const auto& window : Desktop::windowState()->windows()) {
+        if (window->m_class == data[0])
+            first = window;
+        else if (window->m_class == data[1])
+            second = window;
+    }
+
+    if (!first || !second)
+        return {.success = false, .error = "test windows were not found"};
+
+    const auto FIRSTSURFACE  = first->wlSurface()->resource();
+    const auto SECONDSURFACE = second->wlSurface()->resource();
+    if (!FIRSTSURFACE || !SECONDSURFACE || FIRSTSURFACE->client() != SECONDSURFACE->client())
+        return {.success = false, .error = "test windows must share a Wayland client"};
+
+    SP<CWLPointerResource> pointer;
+    for (const auto& candidate : PROTO::seat->m_pointers) {
+        if (candidate && candidate->m_owner && candidate->m_owner->client() == FIRSTSURFACE->client()) {
+            pointer = candidate;
+            break;
+        }
+    }
+
+    if (!pointer)
+        return {.success = false, .error = "test client has no pointer resource"};
+
+    constexpr uint32_t PRESERVED_BUTTON = 272;
+    constexpr uint32_t CURRENT_BUTTON   = 273;
+    const auto         ORIGINAL_FOCUS   = g_pSeatManager->m_state.pointerFocus.lock();
+
+    CScopeGuard        cleanup([&] {
+        if (const auto preserved = g_pSeatManager->preservedPointerButtonSurface(PRESERVED_BUTTON); preserved) {
+            g_pSeatManager->setPointerFocus(preserved, {}, true);
+            g_pSeatManager->sendPointerButton(sc<uint32_t>(Time::millis(Time::steadyNow())), PRESERVED_BUTTON, WL_POINTER_BUTTON_STATE_RELEASED);
+        }
+
+        g_pSeatManager->setPointerFocus(ORIGINAL_FOCUS, {});
+    });
+
+    g_pSeatManager->setPointerFocus(FIRSTSURFACE, {});
+    g_pSeatManager->sendPointerButton(sc<uint32_t>(Time::millis(Time::steadyNow())), PRESERVED_BUTTON, WL_POINTER_BUTTON_STATE_PRESSED);
+    g_pSeatManager->setPointerFocus(SECONDSURFACE, {}, true);
+
+    if (g_pSeatManager->preservedPointerButtonSurface(PRESERVED_BUTTON) != FIRSTSURFACE)
+        return {.success = false, .error = "passed button was not preserved for its original surface"};
+
+    g_pSeatManager->sendPointerButton(sc<uint32_t>(Time::millis(Time::steadyNow())), CURRENT_BUTTON, WL_POINTER_BUTTON_STATE_PRESSED);
+    g_pSeatManager->setPointerFocus(nullptr, {});
+
+    if (!pointer->m_pressedButtons.empty())
+        return {.success = false, .error = "ordinary focus loss did not release current-surface buttons"};
+    if (pointer->m_preservedButtons != std::vector<uint32_t>{PRESERVED_BUTTON})
+        return {.success = false, .error = "ordinary focus loss changed the preserved button set"};
+
+    const auto RELEASESURFACE = g_pSeatManager->preservedPointerButtonSurface(PRESERVED_BUTTON);
+    g_pSeatManager->setPointerFocus(RELEASESURFACE, {}, true);
+    g_pSeatManager->sendPointerButton(sc<uint32_t>(Time::millis(Time::steadyNow())), PRESERVED_BUTTON, WL_POINTER_BUTTON_STATE_RELEASED);
+
+    if (g_pSeatManager->preservedPointerButtonSurface(PRESERVED_BUTTON) || !pointer->m_pressedButtons.empty() || !pointer->m_preservedButtons.empty())
+        return {.success = false, .error = "matching release did not clear preserved button state"};
+
+    g_pSeatManager->setPointerFocus(FIRSTSURFACE, {});
+    g_pSeatManager->sendPointerButton(sc<uint32_t>(Time::millis(Time::steadyNow())), PRESERVED_BUTTON, WL_POINTER_BUTTON_STATE_PRESSED);
+    g_pSeatManager->setPointerFocus(SECONDSURFACE, {}, true);
+    g_pSeatManager->sendPointerButton(sc<uint32_t>(Time::millis(Time::steadyNow())), CURRENT_BUTTON, WL_POINTER_BUTTON_STATE_PRESSED);
+
+    // This is the same helper used by the preserved surface's destroy listener.
+    pointer->clearPreservedButtons();
+    if (pointer->m_pressedButtons != std::vector<uint32_t>{CURRENT_BUTTON} || !pointer->m_preservedButtons.empty())
+        return {.success = false, .error = "destroying a preserved surface changed current-surface buttons"};
+
+    g_pSeatManager->setPointerFocus(nullptr, {});
+    if (!pointer->m_pressedButtons.empty())
+        return {.success = false, .error = "current-surface button remained pressed after focus loss"};
 
     return {};
 }

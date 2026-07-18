@@ -224,6 +224,7 @@ class CInputManager {
         CHyprSignalListener newVirtualKeyboard;
         CHyprSignalListener newVirtualMouse;
         CHyprSignalListener setCursor;
+        CHyprSignalListener pointerFocusChange;
         CHyprSignalListener overrideChanged;
     } m_listeners;
 

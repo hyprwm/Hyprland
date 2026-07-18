@@ -167,6 +167,13 @@ void CWLPointerResource::sendEnter(SP<CWLSurfaceResource> surface, const Vector2
     if (!(PROTO::seat->m_currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_POINTER))
         return;
 
+    if (m_preservedButtonSurface == surface) {
+        m_pressedButtons.insert(m_pressedButtons.end(), m_preservedButtons.begin(), m_preservedButtons.end());
+        m_preservedButtons.clear();
+        m_preservedButtonSurface.reset();
+        m_listeners.destroyPreservedButtonSurface.reset();
+    }
+
     if (m_currentSurface) {
         LOGM(Log::WARN, "requested CWLPointerResource::sendEnter without sendLeave first.");
         sendLeave();
@@ -182,7 +189,7 @@ void CWLPointerResource::sendEnter(SP<CWLSurfaceResource> surface, const Vector2
     m_resource->sendEnter(g_pSeatManager->nextSerial(m_owner.lock(), true), surface->getResource().get(), wl_fixed_from_double(fixedLocal.x), wl_fixed_from_double(fixedLocal.y));
 }
 
-void CWLPointerResource::sendLeave() {
+void CWLPointerResource::sendLeave(bool preserveButtons) {
     if (!m_owner || !m_currentSurface || !m_currentSurface->getResource()->resource())
         return;
 
@@ -191,15 +198,24 @@ void CWLPointerResource::sendLeave() {
 
     // release all buttons unless we have a dnd going on in which case
     // the events shall be lost.
-    if (!PROTO::data->dndActive()) {
-        for (auto const& b : m_pressedButtons) {
+    if (!preserveButtons && !PROTO::data->dndActive()) {
+        const auto PRESSEDBUTTONS = m_pressedButtons;
+        for (auto const& b : PRESSEDBUTTONS) {
             sendButton(Time::millis(Time::steadyNow()), b, WL_POINTER_BUTTON_STATE_RELEASED);
         }
     }
 
-    m_pressedButtons.clear();
+    if (!preserveButtons)
+        m_pressedButtons.clear();
 
     m_resource->sendLeave(g_pSeatManager->nextSerial(m_owner.lock()), m_currentSurface->getResource().get());
+
+    if (preserveButtons && !m_preservedButtonSurface && !m_pressedButtons.empty()) {
+        m_preservedButtonSurface                  = m_currentSurface;
+        m_preservedButtons                        = std::move(m_pressedButtons);
+        m_listeners.destroyPreservedButtonSurface = m_currentSurface->m_events.destroy.listen([this] { clearPreservedButtons(); });
+    }
+
     m_currentSurface.reset();
     m_listeners.destroySurface.reset();
 }
@@ -245,6 +261,19 @@ void CWLPointerResource::sendButton(uint32_t timeMs, uint32_t button, wl_pointer
         g_pSeatManager->recordPointerButtonSerial(m_owner.lock(), SERIAL, m_currentSurface.lock(), button);
 
     m_resource->sendButton(SERIAL, timeMs, button, state);
+}
+
+SP<CWLSurfaceResource> CWLPointerResource::preservedButtonSurface(uint32_t button) const {
+    if (std::ranges::find(m_preservedButtons, button) == m_preservedButtons.end())
+        return nullptr;
+
+    return m_preservedButtonSurface.lock();
+}
+
+void CWLPointerResource::clearPreservedButtons() {
+    m_preservedButtons.clear();
+    m_preservedButtonSurface.reset();
+    m_listeners.destroyPreservedButtonSurface.reset();
 }
 
 void CWLPointerResource::sendAxis(uint32_t timeMs, wl_pointer_axis axis, double value) {

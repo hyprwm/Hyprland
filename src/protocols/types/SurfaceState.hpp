@@ -109,8 +109,9 @@ struct SSurfaceState {
     SP<CEventLoopTimer>             timer;
 
     // helpers
-    CRegion accumulateBufferDamage();       // transforms state.damage and merges it into state.bufferDamage
-    CRegion effectiveInputRegion() const;   // materializes the input region clipped to the current surface size
+    CRegion accumulateBufferDamage();     // transforms state.damage and merges it into state.bufferDamage
+    CRegion effectiveInputRegion() const; // materializes the input region clipped to the current surface size
+    bool    inputContainsPoint(const Vector2D& point, const Vector2D& offset = {}) const;
     void    updateFrom(SSurfaceState& ref); // updates this state based on a reference state.
     void    reset();                        // resets pending state after commit
 };

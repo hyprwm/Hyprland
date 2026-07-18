@@ -4,6 +4,14 @@
 #include "render/Renderer.hpp"
 #include "render/Texture.hpp"
 
+#include <algorithm>
+#include <cmath>
+#include <limits>
+
+static bool isInInt32Range(const double value) {
+    return std::isfinite(value) && value >= std::numeric_limits<int32_t>::min() && value <= std::numeric_limits<int32_t>::max();
+}
+
 Vector2D SSurfaceState::sourceSize() {
     if UNLIKELY (!texture)
         return {};
@@ -36,13 +44,50 @@ CRegion SSurfaceState::accumulateBufferDamage() {
 }
 
 CRegion SSurfaceState::effectiveInputRegion() const {
-    if (size.x <= 0 || size.y <= 0)
+    if (!isInInt32Range(size.x) || !isInInt32Range(size.y) || size.x <= 0 || size.y <= 0)
         return {};
 
-    if (inputIsInfinite)
-        return CBox{{}, size};
+    const auto width  = sc<int32_t>(size.x);
+    const auto height = sc<int32_t>(size.y);
 
-    return input.copy().intersect(CBox{{}, size});
+    if (inputIsInfinite)
+        return CRegion{0, 0, width, height};
+
+    return input.copy().intersect(0, 0, width, height);
+}
+
+bool SSurfaceState::inputContainsPoint(const Vector2D& point, const Vector2D& offset) const {
+    if (!isInInt32Range(point.x) || !isInInt32Range(point.y) || !isInInt32Range(offset.x) || !isInInt32Range(offset.y) || !isInInt32Range(size.x) || !isInInt32Range(size.y) ||
+        size.x <= 0 || size.y <= 0)
+        return false;
+
+    // Pixman truncates region translations and query coordinates separately.
+    const auto localX = sc<int64_t>(sc<int32_t>(point.x)) - sc<int32_t>(offset.x);
+    const auto localY = sc<int64_t>(sc<int32_t>(point.y)) - sc<int32_t>(offset.y);
+    const auto width  = sc<int32_t>(size.x);
+    const auto height = sc<int32_t>(size.y);
+
+    if (localX < 0 || localY < 0 || localX >= width || localY >= height)
+        return false;
+
+    if (!inputIsInfinite && !input.containsPoint({sc<int32_t>(localX), sc<int32_t>(localY)}))
+        return false;
+
+    int64_t x1 = 0, y1 = 0, x2 = width, y2 = height;
+    if (!inputIsInfinite) {
+        const auto extents = pixman_region32_extents(input.pixman());
+        x1                 = std::max<int64_t>(0, extents->x1);
+        y1                 = std::max<int64_t>(0, extents->y1);
+        x2                 = std::min<int64_t>(width, extents->x2);
+        y2                 = std::min<int64_t>(height, extents->y2);
+    }
+
+    const auto offsetX = sc<int32_t>(offset.x);
+    const auto offsetY = sc<int32_t>(offset.y);
+    const auto intMin  = std::numeric_limits<int32_t>::min();
+    const auto intMax  = std::numeric_limits<int32_t>::max();
+
+    return offsetX + x1 >= intMin && offsetY + y1 >= intMin && offsetX + x2 <= intMax && offsetY + y2 <= intMax;
 }
 
 void SSurfaceState::updateSynchronousTexture(SP<Render::ITexture> lastTexture) {

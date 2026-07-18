@@ -635,8 +635,7 @@ int CPopup::popupTreeCount() const {
 }
 
 SP<CPopup> CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
-    thread_local std::vector<SP<CPopup>> popups;
-    popups.clear();
+    std::vector<SP<CPopup>> popups;
 
     popups.emplace_back(m_self.lock());
 
@@ -646,6 +645,9 @@ SP<CPopup> CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
             continue;
 
         for (const auto& c : popup->m_children) {
+            if (!c)
+                continue;
+
             popups.emplace_back(c->m_self.lock());
         }
     }
@@ -667,20 +669,14 @@ SP<CPopup> CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
                 size = p->size();
 
             const auto BOX = CBox{p->coordsGlobal() + offset, size};
-            if (BOX.containsPoint(globalCoords)) {
-                popups.clear();
+            if (BOX.containsPoint(globalCoords))
                 return p;
-            }
         } else {
-            const auto REGION = p->wlSurface()->resource()->m_current.effectiveInputRegion().translate(p->coordsGlobal());
-            if (REGION.containsPoint(globalCoords)) {
-                popups.clear();
+            if (p->wlSurface()->resource()->m_current.inputContainsPoint(globalCoords, p->coordsGlobal()))
                 return p;
-            }
         }
     }
 
-    popups.clear();
     return {};
 }
 

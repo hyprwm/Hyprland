@@ -492,13 +492,14 @@ std::pair<SP<CWLSurfaceResource>, Vector2D> CWLSurfaceResource::at(const Vector2
     for (auto const& [surf, pos] : surfs | std::views::reverse) {
         if (!allowsInput) {
             const auto BOX = CBox{pos, surf->m_current.size};
-            if (BOX.containsPoint(localCoords))
-                return {surf, localCoords - pos};
+            if (!BOX.containsPoint(localCoords))
+                continue;
         } else {
-            const auto REGION = surf->m_current.effectiveInputRegion().translate(pos);
-            if (REGION.containsPoint(localCoords))
-                return {surf, localCoords - pos};
+            if (!surf->m_current.inputContainsPoint(localCoords, pos))
+                continue;
         }
+
+        return {surf, localCoords - pos};
     }
 
     return {nullptr, {}};

@@ -2,6 +2,7 @@
 
 #include "../defines.hpp"
 #include <array>
+#include <span>
 #include <variant>
 
 enum eShaderUniform : uint8_t {
@@ -110,6 +111,9 @@ class CShader {
     void   setUniform1fv(eShaderUniform location, GLsizei count, const std::vector<float>& value);
     void   setUniform2fv(eShaderUniform location, GLsizei count, const std::vector<float>& value);
     void   setUniform4fv(eShaderUniform location, GLsizei count, const std::vector<float>& value);
+    void   setUniform1fv(eShaderUniform location, GLsizei count, std::span<const float> value);
+    void   setUniform2fv(eShaderUniform location, GLsizei count, std::span<const float> value);
+    void   setUniform4fv(eShaderUniform location, GLsizei count, std::span<const float> value);
     void   destroy();
     GLuint program() const;
     GLint  getUniformLocation(eShaderUniform location) const;
@@ -152,5 +156,5 @@ class CShader {
     GLuint compileShader(const GLuint&, std::string, bool dynamic = false, bool silent = false);
     void   getUniformLocations();
     void   createVao();
-    void   setUniformfv(eShaderUniform location, GLsizei count, const std::vector<float>& value, GLsizei vec_size);
+    void   setUniformfv(eShaderUniform location, GLsizei count, std::span<const float> value, GLsizei vecSize);
 };

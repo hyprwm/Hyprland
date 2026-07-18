@@ -1240,19 +1240,20 @@ WP<CShader> CHyprOpenGLImpl::renderToOutputInternal() {
         p                      = p.transform(Math::wlTransformToHyprutils(pMonitor->m_transform), pMonitor->m_pixelSize);
         shader->setUniformFloat2(SHADER_POINTER, p.x / pMonitor->m_pixelSize.x, p.y / pMonitor->m_pixelSize.y);
 
-        std::vector<float> pressedPos = m_pressedHistoryPositions | std::views::transform([&](const Vector2D& vec) {
-                                            Vector2D pPressed = ((vec - pMonitor->m_position) * pMonitor->m_scale);
-                                            pPressed          = pPressed.transform(Math::wlTransformToHyprutils(pMonitor->m_transform), pMonitor->m_pixelSize);
-                                            return std::array<float, 2>{pPressed.x / pMonitor->m_pixelSize.x, pPressed.y / pMonitor->m_pixelSize.y};
-                                        }) |
-            std::views::join | std::ranges::to<std::vector<float>>();
+        std::array<float, POINTER_PRESSED_HISTORY_LENGTH * 2uz> pressedPos = {};
+        for (size_t i = 0; i < m_pressedHistoryPositions.size(); ++i) {
+            Vector2D pPressed     = ((m_pressedHistoryPositions[i] - pMonitor->m_position) * pMonitor->m_scale);
+            pPressed              = pPressed.transform(Math::wlTransformToHyprutils(pMonitor->m_transform), pMonitor->m_pixelSize);
+            pressedPos[i * 2]     = pPressed.x / pMonitor->m_pixelSize.x;
+            pressedPos[i * 2 + 1] = pPressed.y / pMonitor->m_pixelSize.y;
+        }
 
-        shader->setUniform2fv(SHADER_POINTER_PRESSED_POSITIONS, pressedPos.size(), pressedPos);
+        shader->setUniform2fv(SHADER_POINTER_PRESSED_POSITIONS, sc<GLsizei>(pressedPos.size() / 2), pressedPos);
 
-        std::vector<float> pressedTime =
-            m_pressedHistoryTimers | std::views::transform([](const CTimer& timer) { return timer.getSeconds(); }) | std::ranges::to<std::vector<float>>();
+        std::array<float, POINTER_PRESSED_HISTORY_LENGTH> pressedTime = {};
+        std::ranges::transform(m_pressedHistoryTimers, pressedTime.begin(), [](const CTimer& timer) { return timer.getSeconds(); });
 
-        shader->setUniform1fv(SHADER_POINTER_PRESSED_TIMES, pressedTime.size(), pressedTime);
+        shader->setUniform1fv(SHADER_POINTER_PRESSED_TIMES, sc<GLsizei>(pressedTime.size()), pressedTime);
 
         shader->setUniformInt(SHADER_POINTER_PRESSED_KILLED, m_pressedHistoryKilled);
         shader->setUniformInt(SHADER_POINTER_PRESSED_TOUCHED, m_pressedHistoryTouched);
@@ -1263,11 +1264,11 @@ WP<CShader> CHyprOpenGLImpl::renderToOutputInternal() {
     } else {
         shader->setUniformFloat2(SHADER_POINTER, 0.f, 0.f);
 
-        static const std::vector<float> pressedPosDefault(POINTER_PRESSED_HISTORY_LENGTH * 2uz, 0.f);
-        static const std::vector<float> pressedTimeDefault(POINTER_PRESSED_HISTORY_LENGTH, 0.f);
+        static constexpr std::array<float, POINTER_PRESSED_HISTORY_LENGTH * 2uz> pressedPosDefault  = {};
+        static constexpr std::array<float, POINTER_PRESSED_HISTORY_LENGTH>       pressedTimeDefault = {};
 
-        shader->setUniform2fv(SHADER_POINTER_PRESSED_POSITIONS, pressedPosDefault.size(), pressedPosDefault);
-        shader->setUniform1fv(SHADER_POINTER_PRESSED_TIMES, pressedTimeDefault.size(), pressedTimeDefault);
+        shader->setUniform2fv(SHADER_POINTER_PRESSED_POSITIONS, sc<GLsizei>(pressedPosDefault.size() / 2), pressedPosDefault);
+        shader->setUniform1fv(SHADER_POINTER_PRESSED_TIMES, sc<GLsizei>(pressedTimeDefault.size()), pressedTimeDefault);
         shader->setUniformInt(SHADER_POINTER_PRESSED_KILLED, 0);
 
         shader->setUniformFloat(SHADER_POINTER_LAST_ACTIVE, 0.f);

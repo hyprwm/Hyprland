@@ -99,6 +99,7 @@ endfunction()
 
 protocolnew("staging/pointer-warp" "pointer-warp-v1" false)
 protocolnew("staging/fractional-scale" "fractional-scale-v1" false)
+protocolnew("stable/presentation-time" "presentation-time" false)
 protocolnew("stable/xdg-shell" "xdg-shell" false)
 protocolnew("unstable/keyboard-shortcuts-inhibit" "keyboard-shortcuts-inhibit-unstable-v1" false)
 
@@ -109,3 +110,4 @@ clientNew("child-window" PROTOS "xdg-shell")
 clientNew("xdg-interactive" PROTOS "xdg-shell")
 clientNew("shortcut-inhibitor" PROTOS "xdg-shell" "keyboard-shortcuts-inhibit-unstable-v1")
 clientNew("keyboard-modifiers" PROTOS "xdg-shell")
+clientNew("fullscreen-scanout-stress" PROTOS "xdg-shell" "presentation-time")

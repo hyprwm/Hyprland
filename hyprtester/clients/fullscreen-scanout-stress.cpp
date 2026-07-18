@@ -292,6 +292,13 @@ static void parseRequest(SWlState& state, std::string_view request) {
     }
 }
 
+template <size_t N>
+static ssize_t readChunk(int fd, std::array<char, N>& buffer) {
+    // The destination capacity is exactly buffer.size(), and callers use only the returned byte count.
+    // Flawfinder: ignore
+    return read(fd, buffer.data(), buffer.size());
+}
+
 int main(int argc, char** argv) {
     SWlState state;
     state.appId = argc > 1 ? argv[1] : "fullscreen-scanout-stress";

@@ -213,11 +213,7 @@ void CWLPointerResource::sendLeave(bool preserveButtons) {
     if (preserveButtons && !m_preservedButtonSurface && !m_pressedButtons.empty()) {
         m_preservedButtonSurface                  = m_currentSurface;
         m_preservedButtons                        = std::move(m_pressedButtons);
-        m_listeners.destroyPreservedButtonSurface = m_currentSurface->m_events.destroy.listen([this] {
-            m_preservedButtons.clear();
-            m_preservedButtonSurface.reset();
-            m_listeners.destroyPreservedButtonSurface.reset();
-        });
+        m_listeners.destroyPreservedButtonSurface = m_currentSurface->m_events.destroy.listen([this] { clearPreservedButtons(); });
     }
 
     m_currentSurface.reset();
@@ -272,6 +268,12 @@ SP<CWLSurfaceResource> CWLPointerResource::preservedButtonSurface(uint32_t butto
         return nullptr;
 
     return m_preservedButtonSurface.lock();
+}
+
+void CWLPointerResource::clearPreservedButtons() {
+    m_preservedButtons.clear();
+    m_preservedButtonSurface.reset();
+    m_listeners.destroyPreservedButtonSurface.reset();
 }
 
 void CWLPointerResource::sendAxis(uint32_t timeMs, wl_pointer_axis axis, double value) {

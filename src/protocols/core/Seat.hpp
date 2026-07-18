@@ -106,6 +106,7 @@ class CWLPointerResource {
     std::vector<uint32_t>  m_pressedButtons;
     std::vector<uint32_t>  m_preservedButtons;
 
+    void                   clearPreservedButtons();
     Vector2D               fixPosWithWlFixed(const Vector2D& pos);
 
     struct {

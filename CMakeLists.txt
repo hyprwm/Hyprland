@@ -9,6 +9,14 @@ project(
   DESCRIPTION "A Modern C++ Wayland Compositor"
   VERSION ${VER})
 
+if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
+  set(HYPRLAND_BUILD_TESTING_DEFAULT ON)
+else()
+  set(HYPRLAND_BUILD_TESTING_DEFAULT OFF)
+endif()
+option(BUILD_TESTING "Build the testing tree" ${HYPRLAND_BUILD_TESTING_DEFAULT})
+option(WITH_COVERAGE "Enable test coverage instrumentation" OFF)
+
 include(CTest)
 include(CheckIncludeFile)
 include(GNUInstallDirs)
@@ -87,11 +95,9 @@ message(
 if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
   message(STATUS "Configuring Hyprland in Debug with CMake")
   add_compile_definitions(HYPRLAND_DEBUG)
-  set(BUILD_TESTING ON)
 else()
   add_compile_options(-O3)
   message(STATUS "Configuring Hyprland in Release with CMake")
-  set(BUILD_TESTING OFF)
 endif()
 
 add_compile_definitions(HYPRLAND_VERSION="${HYPRLAND_VERSION}")
@@ -112,7 +118,7 @@ add_compile_options(
   -Wno-gnu-zero-variadic-macro-arguments
   -Wno-narrowing
   -Wno-pointer-arith
-  -Wno-clobbered
+  $<$<CXX_COMPILER_ID:GNU>:-Wno-clobbered>
   -frtti
   -fmacro-prefix-map=${CMAKE_SOURCE_DIR}/=)
 
@@ -695,6 +701,7 @@ install(
 
 if(BUILD_TESTING OR WITH_TESTS)
   message(STATUS "Building tests")
+  enable_testing()
 
   # hyprtester
   add_subdirectory(hyprtester)
@@ -702,10 +709,8 @@ if(BUILD_TESTING OR WITH_TESTS)
   # GTest
   find_package(GTest CONFIG REQUIRED)
   include(GoogleTest)
-  file(GLOB_RECURSE TESTFILES "tests/*.cpp")
+  file(GLOB_RECURSE TESTFILES CONFIGURE_DEPENDS "tests/*.cpp")
   add_executable(hyprland_gtests ${TESTFILES})
-  target_compile_options(hyprland_gtests PRIVATE --coverage)
-  target_link_options(hyprland_gtests PRIVATE --coverage)
   target_include_directories(
     hyprland_gtests
     PUBLIC "./include"
@@ -715,21 +720,21 @@ if(BUILD_TESTING OR WITH_TESTS)
 
   gtest_discover_tests(hyprland_gtests)
 
-  # Enable coverage in main hyprland lib
-  target_compile_options(hyprland_lib PRIVATE --coverage)
-  target_link_options(hyprland_lib PRIVATE --coverage)
-  target_link_libraries(hyprland_lib PUBLIC gcov)
+  if(WITH_COVERAGE)
+    target_compile_options(hyprland_gtests PRIVATE --coverage)
+    target_link_options(hyprland_gtests PRIVATE --coverage)
 
-  # Enable coverage in hyprland exe
-  target_compile_options(Hyprland PRIVATE --coverage)
-  target_link_options(Hyprland PRIVATE --coverage)
-  target_link_libraries(Hyprland gcov)
+    target_compile_options(hyprland_lib PRIVATE --coverage)
+    target_link_options(hyprland_lib PRIVATE --coverage)
+
+    target_compile_options(Hyprland PRIVATE --coverage)
+    target_link_options(Hyprland PRIVATE --coverage)
+  endif()
 endif()
 
-if(BUILD_TESTING)
+if(BUILD_TESTING OR WITH_TESTS)
   message(STATUS "Testing is enabled")
 
-  enable_testing()
   add_custom_target(tests)
 
   add_dependencies(tests hyprland_gtests)

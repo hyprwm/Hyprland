@@ -63,7 +63,7 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
 
         // only lock once its mapped and visible
         if (m_surface->m_mapped) {
-            bool shouldLock = *PINVIS == 0; // always
+            bool shouldLock = *PINVIS == 0 || !m_surface->m_hlSurface; // always && unknown
             if (!shouldLock && m_surface->m_hlSurface) {
                 const auto& view = m_surface->m_hlSurface->view();
                 if (view) {
@@ -77,7 +77,8 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
                         shouldLock = false; // ignore render_unfocused
                     else
                         shouldLock = true;
-                }
+                } else
+                    shouldLock = true;
             }
             if (shouldLock)
                 m_surface->m_stateQueue.lock(state, LOCK_REASON_FIFO);

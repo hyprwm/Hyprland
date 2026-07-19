@@ -2,6 +2,7 @@
 #include "core/Compositor.hpp"
 #include "../desktop/view/Window.hpp"
 #include "../ipc/s2/S2.hpp"
+#include "../event/EventBus.hpp"
 #include "../Compositor.hpp"
 
 #include "../config/ConfigManager.hpp"
@@ -77,6 +78,7 @@ namespace {
             .event = "bell",
             .data  = data,
         });
+        Event::bus()->m_events.bell.ring.emit();
     }
 
     class CBellAudioContext {

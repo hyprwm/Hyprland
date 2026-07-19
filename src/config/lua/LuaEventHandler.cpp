@@ -183,6 +183,8 @@ CLuaEventHandler::CLuaEventHandler(lua_State* L) : m_lua(L) {
             lua_pushinteger(L, keyEvent.state);
         });
     }));
+
+    m_listeners.push_back(bus()->m_events.bell.ring.listen([this] { dispatch("bell.ring", 0, [](lua_State* L) {}); }));
 }
 
 CLuaEventHandler::~CLuaEventHandler() {
@@ -296,6 +298,7 @@ std::unordered_set<std::string> CLuaEventHandler::knownEvents() {
         "hyprland.start",
         "hyprland.shutdown",
         "input.keyboard.key",
+        "bell.ring",
     };
     for (auto& kv : Event::bus()->m_events.plugin)
         EVENTS.emplace(kv.first);

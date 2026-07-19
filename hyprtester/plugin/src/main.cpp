@@ -452,6 +452,26 @@ static SDispatchResult nullfocus(std::string in) {
     return {};
 }
 
+static SDispatchResult clearSurfaceFocus(std::string in) {
+    Desktop::focusState()->m_focusSurface.reset();
+    return {};
+}
+
+static SDispatchResult checkKeyboardFocusWindow(std::string in) {
+    const auto KBSURF = g_pSeatManager->m_state.keyboardFocus.lock();
+    if (!KBSURF)
+        return {.success = false, .error = "No keyboard focus"};
+
+    const auto PWINDOW = Desktop::focusState()->window();
+    if (!PWINDOW)
+        return {.success = false, .error = "Keyboard focus surface is not a window"};
+
+    if (PWINDOW->m_class != in)
+        return {.success = false, .error = std::format("Keyboard focus window class is '{}', expected '{}'", PWINDOW->m_class, in)};
+
+    return {};
+}
+
 static Desktop::Rule::CWindowRuleEffectContainer::storageType windowRuleIDX = 0;
 
 //
@@ -686,6 +706,14 @@ static int luaNullfocus(lua_State* L) {
     return luaResult(L, ::nullfocus(""));
 }
 
+static int luaClearSurfaceFocus(lua_State* L) {
+    return luaResult(L, ::clearSurfaceFocus(""));
+}
+
+static int luaCheckKeyboardFocusWindow(lua_State* L) {
+    return luaResult(L, ::checkKeyboardFocusWindow(luaL_checkstring(L, 1)));
+}
+
 static int luaAddWindowRule(lua_State* L) {
     return luaResult(L, ::addWindowRule(""));
 }
@@ -741,6 +769,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     addLuaFn("keybind2", ::luaKeybind2);
     addLuaFn("set_mods", ::luaSetMods);
     addLuaFn("nullfocus", ::luaNullfocus);
+    addLuaFn("clear_surface_focus", ::luaClearSurfaceFocus);
+    addLuaFn("check_keyboard_focus_window", ::luaCheckKeyboardFocusWindow);
     addLuaFn("add_window_rule", ::luaAddWindowRule);
     addLuaFn("check_window_rule", ::luaCheckWindowRule);
     addLuaFn("add_layer_rule", ::luaAddLayerRule);

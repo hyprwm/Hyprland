@@ -600,6 +600,8 @@ static int hlPermission(lua_State* L) {
         type = PERMISSION_TYPE_PLUGIN;
     else if (typeStr == "keyboard" || typeStr == "keeb")
         type = PERMISSION_TYPE_KEYBOARD;
+    else if (typeStr == "input-capture")
+        type = PERMISSION_TYPE_INPUT_CAPTURE;
 
     if (modeStr == "ask")
         mode = PERMISSION_RULE_ALLOW_MODE_ASK;

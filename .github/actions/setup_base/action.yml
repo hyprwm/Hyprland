@@ -29,6 +29,7 @@ runs:
           hyprcursor \
           jq \
           libc++ \
+          libcanberra \
           libdisplay-info \
           libdrm \
           libei \

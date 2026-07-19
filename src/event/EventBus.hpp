@@ -186,6 +186,10 @@ namespace Event {
                 Event<const std::string&> submap;
             } keybinds;
 
+            struct {
+                Event<> ring;
+            } bell;
+
             Event<SP<CCustomEvent>>                           pluginEventAdded;
             Event<std::string>                                pluginEventRemoved;
             std::unordered_map<std::string, SP<CCustomEvent>> plugin;

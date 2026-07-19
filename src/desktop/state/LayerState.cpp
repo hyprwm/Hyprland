@@ -14,13 +14,6 @@ CLayerState::CLayerState() {
 
         m_layers.emplace_back(LAYER);
     });
-
-    m_listeners.viewDestroy = Event::bus()->m_events.view.destroy.listen([this](const Event::SViewDestroyEvent& event) {
-        if (event.type != View::VIEW_TYPE_LAYER_SURFACE)
-            return;
-
-        std::erase_if(m_layers, [&](auto& x) { return !x || event.view == dynamicPointerCast<View::IView>(x->m_self); });
-    });
 }
 
 const std::vector<PHLLS>& CLayerState::layers() const {

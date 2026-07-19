@@ -22,27 +22,27 @@ using Hyprutils::Math::Vector2D;
 using namespace Hyprutils::Memory;
 
 struct SWlState {
-    wl_display*                    display;
-    CSharedPointer<CCWlRegistry>   registry;
+    wl_display*                                display;
+    CSharedPointer<CCWlRegistry>               registry;
 
-    CSharedPointer<CCWlCompositor> wlCompositor;
-    CSharedPointer<CCWlSeat>       wlSeat;
-    CSharedPointer<CCWlShm>        wlShm;
-    CSharedPointer<CCXdgWmBase>    xdgShell;
+    CSharedPointer<CCWlCompositor>             wlCompositor;
+    CSharedPointer<CCWlSeat>                   wlSeat;
+    CSharedPointer<CCWlShm>                    wlShm;
+    CSharedPointer<CCXdgWmBase>                xdgShell;
 
-    CSharedPointer<CCWlShmPool>    shmPool;
-    CSharedPointer<CCWlBuffer>     shmBuf;
-    int                            shmFd;
-    size_t                         shmBufSize;
-    bool                           xrgb8888_support = false;
+    CSharedPointer<CCWlShmPool>                shmPool;
+    CSharedPointer<CCWlBuffer>                 shmBuf;
+    int                                        shmFd;
+    size_t                                     shmBufSize;
+    bool                                       xrgb8888_support = false;
 
-    CSharedPointer<CCWlSurface>    surf;
-    CSharedPointer<CCXdgSurface>   xdgSurf;
-    CSharedPointer<CCXdgToplevel>  xdgToplevel;
-    Vector2D                       geom;
+    CSharedPointer<CCWlSurface>                surf;
+    CSharedPointer<CCXdgSurface>               xdgSurf;
+    CSharedPointer<CCXdgToplevel>              xdgToplevel;
+    Vector2D                                   geom;
 
-    CSharedPointer<CCWlKeyboard>   keyboard;
-    uint32_t                       lastLocked = 0;
+    CSharedPointer<CCWlKeyboard>               keyboard;
+    uint32_t                                   lastLocked = 0;
 
     std::vector<std::pair<uint32_t, uint32_t>> keyEvents;
 };

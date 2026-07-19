@@ -52,14 +52,13 @@ class CPresentationProtocol : public IWaylandProtocol {
   public:
     CPresentationProtocol(const wl_interface* iface, const int& ver, const std::string& name);
 
-    virtual void              bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+    virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-    void                      onPresented(PHLMONITOR pMonitor, const timespec& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags);
-    void                      queueData(UP<CQueuedPresentationData>&& data);
-    void                      discardFeedbacks(std::vector<WP<CPresentationFeedback>>& feedbacks);
-    void                      discardFeedbacksForSurface(WP<CWLSurfaceResource> surface);
-    bool                      hasPendingFeedbacks() const;
-    WP<CPresentationFeedback> getFeedback(WP<CWLSurfaceResource> forSurface);
+    void         onPresented(PHLMONITOR pMonitor, const timespec& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags);
+    void         queueData(UP<CQueuedPresentationData>&& data);
+    void         discardFeedbacks(std::vector<WP<CPresentationFeedback>>& feedbacks);
+    void         discardFeedbacksForSurface(WP<CWLSurfaceResource> surface);
+    bool         hasPendingFeedbacks() const;
 
   private:
     void onManagerResourceDestroy(wl_resource* res);

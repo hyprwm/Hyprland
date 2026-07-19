@@ -201,11 +201,3 @@ void CPresentationProtocol::discardFeedbacksForSurface(WP<CWLSurfaceResource> su
 bool CPresentationProtocol::hasPendingFeedbacks() const {
     return !m_feedbacks.empty();
 }
-
-WP<CPresentationFeedback> CPresentationProtocol::getFeedback(WP<CWLSurfaceResource> forSurface) {
-    const auto FB = std::ranges::find_if(m_feedbacks, [forSurface](const auto& fb) { return fb->m_surface == forSurface; });
-    if (FB == m_feedbacks.end())
-        return nullptr;
-
-    return *FB;
-}

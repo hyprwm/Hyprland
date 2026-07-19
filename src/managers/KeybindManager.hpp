@@ -141,12 +141,12 @@ class CKeybindManager {
 
     SP<SKeybind>                                                                 m_currentKeybind;
 
-    // Set by a special dispatcher (pass/global/send_shortcut/mouse drag+resize) while it runs, to signal that
-    // the current keybind forwarded an input edge and so must be released on key-up regardless of modifier
-    // state. Transient: cleared right before every dispatch in handleKeybinds and consumed immediately after, so
-    // it never persists across key events. Lets a Lua-wrapped special dispatcher (handler == "__lua") be tracked
-    // for release exactly like a native one, including when reached indirectly via hl.dispatch.
-    bool m_dispatchForwardedInput = false;
+    // Called by a special dispatcher (pass/global/send_shortcut/mouse drag+resize) while it runs to declare that
+    // the current keybind forwarded an input edge, and so must be released on key-up regardless of modifier state.
+    // Records m_currentKeybind in m_pressedSpecialBinds itself, so a Lua-wrapped dispatcher (handler == "__lua") is
+    // tracked for release exactly like a native one - including when reached indirectly via hl.dispatch. No-op off
+    // the press edge (the release edge is consumed by the dispatch loop) and idempotent if already tracked.
+    void trackForwardedInput();
 
     //since we can't find keycode through keyname in xkb:
     //on sendshortcut call, we once search for keyname (e.g. "g") the correct keycode (e.g. 42)

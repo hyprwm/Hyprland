@@ -593,6 +593,20 @@ SSubmap CKeybindManager::getCurrentSubmap() {
     return SSubmap{.name = Config::Actions::state()->m_currentSubmap};
 }
 
+void CKeybindManager::trackForwardedInput() {
+    // Only meaningful mid-dispatch, on the press edge: the bind must be in m_pressedSpecialBinds when its release
+    // event arrives so the selection loop's IGNORECONDITIONS bypasses the modmask guard. The release edge runs
+    // through the dispatch loop's erase instead, so ignore it here (else this would re-add after that erase).
+    if (!m_currentKeybind || Config::Actions::state()->m_passPressed != 1)
+        return;
+
+    // idempotent: a nested hl.dispatch can reach the same bind twice within one press
+    if (std::ranges::find_if(m_pressedSpecialBinds, [&](const auto& other) { return other == m_currentKeybind; }) != m_pressedSpecialBinds.end())
+        return;
+
+    m_pressedSpecialBinds.emplace_back(m_currentKeybind);
+}
+
 SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWithMods& key, bool pressed, SP<IKeyboard> keyboard, SP<IHID> device) {
     static auto     PDISABLEINHIBIT = CConfigValue<Config::INTEGER>("binds:disable_keybind_grabbing");
     static auto     PDRAGTHRESHOLD  = CConfigValue<Config::INTEGER>("binds:drag_threshold");
@@ -799,7 +813,6 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
             Log::logger->log(Log::DEBUG, "Keybind triggered, calling dispatcher ({}, {}, {}, {})", modmask, key.keyName, key.keysym, DISPATCHER->first);
 
             Config::Actions::state()->m_passPressed = sc<int>(pressed);
-            m_dispatchForwardedInput                = false; // a special dispatcher (incl. a Lua-wrapped one) sets this during the call below
 
             auto submapBefore = Config::Actions::state()->m_currentSubmap;
 
@@ -810,17 +823,6 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
                 res = DISPATCHER->second(k->arg);
 
             Config::Actions::state()->m_passPressed = -1;
-
-            // Back-fill m_pressedSpecialBinds for a bind that only revealed itself as special mid-dispatch.
-            // Native special dispatchers are known up front and were tracked by the top-of-loop add. A Lua bind
-            // hides behind handler == "__lua"; its wrapped pass/global/send_shortcut/mouse only sets
-            // m_dispatchForwardedInput from inside the call we just made - too late for that add to see it. Track it
-            // now so on the release pass SPECIALTRIGGERED (and thus the IGNORECONDITIONS mod-guard bypass) holds,
-            // exactly like a native bind; otherwise the modmask guard skips a modifier key's release and it is never
-            // forwarded. !SPECIALTRIGGERED keeps it idempotent; no leak guard is needed since m_dispatchForwardedInput
-            // is transient, reset just above before every dispatch.
-            if (pressed && m_dispatchForwardedInput && !SPECIALTRIGGERED)
-                m_pressedSpecialBinds.emplace_back(k);
 
             if (k->handler == "submap") {
                 found = true; // don't process keybinds on submap change.

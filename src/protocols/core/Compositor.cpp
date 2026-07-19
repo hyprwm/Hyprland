@@ -621,7 +621,8 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
     if (!state.updated.all && m_mapped && state.fifoScheduled)
         return;
 
-    if (state.updated.all)
+    // only a new buffer supersedes the current, not yet presented content.
+    if (state.updated.bits.buffer)
         PROTO::presentation->discardFeedbacks(m_current.presentationFeedbacks);
 
     auto lastTexture = m_current.texture;

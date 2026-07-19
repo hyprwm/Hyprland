@@ -125,8 +125,10 @@ void CPresentationProtocol::onGetFeedback(CWpPresentation* pMgr, wl_resource* su
         return;
     }
 
-    if (const auto SURFACE = CWLSurfaceResource::fromResource(surf); SURFACE)
+    if (const auto SURFACE = CWLSurfaceResource::fromResource(surf); SURFACE) {
         SURFACE->m_pending.presentationFeedbacks.emplace_back(RESOURCE);
+        SURFACE->m_pending.updated.bits.presentation = true;
+    }
 }
 
 void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, const timespec& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags) {

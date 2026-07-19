@@ -520,7 +520,7 @@ def generate_stub(root: Path) -> str:
 
     api_signatures: dict[str, str] = {
         "hl.on": "fun(event: HL.EventName, cb: fun(...)): HL.EventSubscription",
-        "hl.bind": "fun(keys: string, dispatcher: HL.Dispatcher|function, opts?: HL.BindOptions): HL.Keybind",
+        "hl.bind": "fun(keys: string|string[], dispatcher: HL.Dispatcher|function, opts?: HL.BindOptions): HL.Keybind",
         "hl.dispatch": "fun(dispatcher: HL.Dispatcher|function): any",
         "hl.define_submap": "fun(name: string, reset_or_fn: string|function, fn?: function): nil",
         "hl.timer": "fun(callback: function, opts: HL.TimerOptions): HL.Timer",

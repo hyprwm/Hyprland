@@ -115,6 +115,8 @@ namespace {
              p.rule().m_enable10bit = *sc<const Config::INTEGER*>(v->data()) == 10;
              return true;
          }},
+        {"colorrange", []() -> ILuaConfigValue* { return new CLuaConfigString("auto"); },
+         [](ILuaConfigValue* v, CMonitorRuleParser& p) { return p.parseColorRange(*sc<const Config::STRING*>(v->data())); }},
         {"cm", []() -> ILuaConfigValue* { return new CLuaConfigString("srgb"); },
          [](ILuaConfigValue* v, CMonitorRuleParser& p) { return p.parseCM(*sc<const Config::STRING*>(v->data())); }},
         {"sdr_eotf", []() -> ILuaConfigValue* { return new CLuaConfigString("default"); },

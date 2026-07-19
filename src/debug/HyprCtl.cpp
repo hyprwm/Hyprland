@@ -120,6 +120,16 @@ static std::string formatToString(uint32_t drmFormat) {
     return "Invalid";
 }
 
+static std::string colorRangeToString(Aquamarine::eOutputColorRange range) {
+    switch (range) {
+        case Aquamarine::AQ_OUTPUT_COLOR_RANGE_FULL: return "full";
+        case Aquamarine::AQ_OUTPUT_COLOR_RANGE_LIMITED: return "limited";
+        default: break;
+    }
+
+    return "auto";
+}
+
 static std::string availableModesForOutput(PHLMONITOR pMonitor, eHyprCtlOutputFormat format) {
     std::string result;
 
@@ -264,6 +274,7 @@ std::string CHyprCtl::getMonitorData(PHLMONITOR m, eHyprCtlOutputFormat format) 
     "directScanoutBlockedBy": {},
     "disabled": {},
     "currentFormat": "{}",
+    "colorRange": "{}",
     "mirrorOf": "{}",
     "availableModes": [{}],
     "colorManagementPreset": "{}",
@@ -283,9 +294,9 @@ std::string CHyprCtl::getMonitorData(PHLMONITOR m, eHyprCtlOutputFormat format) 
             (m == Desktop::focusState()->monitor() ? "true" : "false"), (m->m_dpmsStatus ? "true" : "false"), (m->m_output->state->state().adaptiveSync ? "true" : "false"),
             rc<uint64_t>(m->m_solitaryClient.get()), getSolitaryBlockedReason(m, format), (m->m_tearingState.activelyTearing ? "true" : "false"),
             getTearingBlockedReason(m, format), rc<uint64_t>(m->m_lastScanout.get()), getDSBlockedReason(m, format), (m->m_enabled ? "false" : "true"),
-            formatToString(m->m_output->state->state().drmFormat), m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format),
-            (NCMType::toString(m->m_cmType)), (m->m_sdrBrightness), (m->m_sdrSaturation), (m->m_sdrMinLuminance), (m->m_sdrMaxLuminance),
-            (!m->shouldUseSoftwareCursors() ? "true" : "false"));
+            formatToString(m->m_output->state->state().drmFormat), colorRangeToString(m->m_output->state->state().colorRange),
+            m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format), (NCMType::toString(m->m_cmType)), (m->m_sdrBrightness),
+            (m->m_sdrSaturation), (m->m_sdrMinLuminance), (m->m_sdrMaxLuminance), (!m->shouldUseSoftwareCursors() ? "true" : "false"));
 
     } else {
         result += std::format(
@@ -293,7 +304,7 @@ std::string CHyprCtl::getMonitorData(PHLMONITOR m, eHyprCtlOutputFormat format) 
             "special workspace: {} ({})\n\treserved: {} {} {} {}\n\tscale: {:.2f}\n\ttransform: {}\n\tfocused: {}\n\t"
             "dpmsStatus: {}\n\tvrr: {}\n\tsolitary: {:x}\n\tsolitaryBlockedBy: {}\n\tactivelyTearing: {}\n\ttearingBlockedBy: {}\n\tdirectScanoutTo: "
             "{:x}\n\tdirectScanoutBlockedBy: {}\n\tdisabled: "
-            "{}\n\tcurrentFormat: {}\n\tmirrorOf: "
+            "{}\n\tcurrentFormat: {}\n\tcolorRange: {}\n\tmirrorOf: "
             "{}\n\tavailableModes: {}\n\tcolorManagementPreset: {}\n\tsdrBrightness: {:.2f}\n\tsdrSaturation: {:.2f}\n\tsdrMinLuminance: {:.2f}\n\tsdrMaxLuminance: "
             "{}\n\thardwareCursorsInUse: {}\n\n",
             m->m_name, m->m_id, sc<int>(m->m_pixelSize.x), sc<int>(m->m_pixelSize.y), m->m_refreshRate, sc<int>(m->m_position.x), sc<int>(m->m_position.y), m->m_shortDescription,
@@ -303,8 +314,8 @@ std::string CHyprCtl::getMonitorData(PHLMONITOR m, eHyprCtlOutputFormat format) 
             sc<int>(m->m_transform), (m == Desktop::focusState()->monitor() ? "yes" : "no"), sc<int>(m->m_dpmsStatus), m->m_output->state->state().adaptiveSync,
             rc<uint64_t>(m->m_solitaryClient.get()), getSolitaryBlockedReason(m, format), m->m_tearingState.activelyTearing, getTearingBlockedReason(m, format),
             rc<uint64_t>(m->m_lastScanout.get()), getDSBlockedReason(m, format), !m->m_enabled, formatToString(m->m_output->state->state().drmFormat),
-            m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format), (NCMType::toString(m->m_cmType)), (m->m_sdrBrightness),
-            (m->m_sdrSaturation), (m->m_sdrMinLuminance), (m->m_sdrMaxLuminance), (!m->shouldUseSoftwareCursors()));
+            colorRangeToString(m->m_output->state->state().colorRange), m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format),
+            (NCMType::toString(m->m_cmType)), (m->m_sdrBrightness), (m->m_sdrSaturation), (m->m_sdrMinLuminance), (m->m_sdrMaxLuminance), (!m->shouldUseSoftwareCursors()));
     }
 
     return result;

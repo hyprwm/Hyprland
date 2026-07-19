@@ -654,6 +654,7 @@ bool CMonitor::applyMonitorRuleSoft(Config::CMonitorRule&& pMonitorRule) {
     m_transform         = m_activeMonitorRule.m_transform;
     m_supportsWideColor = m_activeMonitorRule.m_supportsWideColor;
     m_supportsHDR       = m_activeMonitorRule.m_supportsHDR;
+    m_colorrange        = m_activeMonitorRule.m_colorRange;
 
     if (m_activeMonitorRule.m_iccFile.empty()) {
         // only apply explicit cm settings if we have no icc file
@@ -1047,6 +1048,9 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
             }
         }
     }
+
+    //#TODO does this need any sort fail checking like above? it doesnt seem to be a modeset, more of a hint to the driver.
+    m_output->state->setColorRange(RULE->m_colorRange);
 
     m_output->scheduleFrame();
 

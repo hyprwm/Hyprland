@@ -420,10 +420,11 @@ namespace Monitor {
             CHyprSignalListener commit;
         } m_listeners;
 
-        int   m_supportsWideColor = 0;
-        int   m_supportsHDR       = 0;
-        float m_minLuminance      = -1.0f;
-        int   m_maxLuminance      = -1;
-        int   m_maxAvgLuminance   = -1;
+        int                           m_supportsWideColor = 0;
+        int                           m_supportsHDR       = 0;
+        float                         m_minLuminance      = -1.0f;
+        int                           m_maxLuminance      = -1;
+        int                           m_maxAvgLuminance   = -1;
+        Aquamarine::eOutputColorRange m_colorrange        = Aquamarine::AQ_OUTPUT_COLOR_RANGE_AUTO;
     };
 }

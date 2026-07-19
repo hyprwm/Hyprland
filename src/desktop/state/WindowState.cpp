@@ -16,16 +16,6 @@ CWindowState::CWindowState() {
 
         m_windows.emplace_back(WINDOW);
     });
-
-    m_listeners.viewDestroy = Event::bus()->m_events.view.destroy.listen([this](const Event::SViewDestroyEvent& event) {
-        if (event.type != View::VIEW_TYPE_WINDOW)
-            return;
-
-        // A CWindow is always an IView via a static upcast, so compare control-block identity directly.
-        // Must NOT dereference x->m_self here: this event is emitted from ~IView, by which point CWindow's
-        // members (incl. m_self) are already destroyed. PHLVIEWREF{x} only reads x's own impl_/data pointer.
-        std::erase_if(m_windows, [&](auto& x) { return !x || event.view == PHLVIEWREF{x}; });
-    });
 }
 
 void CWindowState::removeSafe(PHLWINDOW w) {

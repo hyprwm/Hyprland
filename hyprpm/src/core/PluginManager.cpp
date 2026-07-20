@@ -673,8 +673,9 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
         return false;
     }
 
-    const auto HLVER = getHyprlandVersion(false);
-    const auto REPOS = DataState::getAllRepositories();
+    const auto HLVER           = getHyprlandVersion(false);
+    const auto REPOS           = DataState::getAllRepositories();
+    const auto ABI_INVALIDATED = DataState::getGlobalState().headersAbiCompiled != HLVER.abiHash;
 
     if (REPOS.size() < 1) {
         auto GLOBALSTATE               = DataState::getGlobalState();
@@ -697,6 +698,8 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
 
     const auto               markRepoFailed = [&](const SPluginRepository& repo, bool advanceProgress) {
         failedRepos.emplace_back(repo.name);
+        if (ABI_INVALIDATED)
+            DataState::markPluginRepoFailed(SPluginRepoIdentifier::fromName(repo.name));
         std::filesystem::remove_all(m_szWorkingPluginDirectory);
 
         if (advanceProgress) {
@@ -900,11 +903,9 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
     progress.m_szCurrentMessage = "Updating global state...";
     progress.print();
 
-    if (failedRepos.empty()) {
-        auto GLOBALSTATE               = DataState::getGlobalState();
-        GLOBALSTATE.headersAbiCompiled = HLVER.abiHash;
-        DataState::updateGlobalState(GLOBALSTATE);
-    }
+    auto GLOBALSTATE               = DataState::getGlobalState();
+    GLOBALSTATE.headersAbiCompiled = HLVER.abiHash;
+    DataState::updateGlobalState(GLOBALSTATE);
 
     progress.m_iSteps++;
     progress.m_szCurrentMessage = failedRepos.empty() ? "Done!" : "Done with errors";
@@ -983,7 +984,7 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState(bool forceReload) 
     auto       enabled = [REPOS](const std::string& plugin) -> bool {
         for (auto const& r : REPOS) {
             for (auto const& p : r.plugins) {
-                if (p.name == plugin && p.enabled)
+                if (p.name == plugin && p.enabled && !p.failed)
                     return true;
             }
         }

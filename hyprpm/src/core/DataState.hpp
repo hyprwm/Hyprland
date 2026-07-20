@@ -17,6 +17,7 @@ namespace DataState {
     void                               addNewPluginRepo(const SPluginRepository& repo);
     void                               removePluginRepo(const SPluginRepoIdentifier& identifier);
     bool                               pluginRepoExists(const SPluginRepoIdentifier& identifier);
+    void                               markPluginRepoFailed(const SPluginRepoIdentifier& identifier);
     void                               updateGlobalState(const SGlobalState& state);
     void                               purgeAllCache();
     SGlobalState                       getGlobalState();

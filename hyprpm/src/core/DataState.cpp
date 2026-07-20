@@ -170,6 +170,35 @@ void DataState::removePluginRepo(const SPluginRepoIdentifier& identifier) {
     }
 }
 
+void DataState::markPluginRepoFailed(const SPluginRepoIdentifier& identifier) {
+    ensureStateStoreExists();
+
+    for (const auto& stateFile : getPluginStates()) {
+        auto       STATE  = toml::parse_file(stateFile.c_str());
+        const auto NAME   = STATE["repository"]["name"].value_or("");
+        const auto AUTHOR = STATE["repository"]["author"].value_or("");
+        const auto URL    = STATE["repository"]["url"].value_or("");
+
+        if (!identifier.matches(URL, NAME, AUTHOR))
+            continue;
+
+        STATE["repository"].as_table()->insert_or_assign("hash", "");
+
+        for (auto& [key, value] : STATE) {
+            if (key == "repository")
+                continue;
+
+            value.as_table()->insert_or_assign("failed", true);
+        }
+
+        std::stringstream ss;
+        ss << STATE;
+        if (!writeState(ss.str(), stateFile.string()))
+            Debug::die("{}", failureString("Failed to write plugin state"));
+        return;
+    }
+}
+
 void DataState::updateGlobalState(const SGlobalState& state) {
     ensureStateStoreExists();
 

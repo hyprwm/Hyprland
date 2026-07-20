@@ -35,7 +35,7 @@ namespace {
         if (value == "none")
             return {.mode = eBellSoundMode::NONE};
 
-        const auto resolvedPath = absolutePath(value, Config::mgr()->getMainConfigPath());
+        const auto      resolvedPath = absolutePath(value, Config::mgr()->getMainConfigPath());
 
         std::error_code ec;
         if (!std::filesystem::exists(resolvedPath, ec) || ec || !std::filesystem::is_regular_file(resolvedPath, ec) || ec) {
@@ -100,12 +100,7 @@ namespace {
                 return nullptr;
             }
 
-            result = ca_context_change_props(
-                m_context,
-                CA_PROP_APPLICATION_NAME, "Hyprland",
-                CA_PROP_APPLICATION_ID, "org.hyprland.Hyprland",
-                nullptr
-            );
+            result = ca_context_change_props(m_context, CA_PROP_APPLICATION_NAME, "Hyprland", CA_PROP_APPLICATION_ID, "org.hyprland.Hyprland", nullptr);
 
             if (result < 0)
                 Log::logger->log(Log::WARN, "bell: failed to set canberra context properties: {}", ca_strerror(result));
@@ -142,21 +137,9 @@ namespace {
         int result = 0;
 
         if (config.mode == eBellSoundMode::DEFAULT) {
-            result = ca_context_play(
-                CONTEXT,
-                0,
-                CA_PROP_EVENT_ID, "bell-window-system",
-                CA_PROP_EVENT_DESCRIPTION, "Wayland system bell",
-                nullptr
-            );
+            result = ca_context_play(CONTEXT, 0, CA_PROP_EVENT_ID, "bell-window-system", CA_PROP_EVENT_DESCRIPTION, "Wayland system bell", nullptr);
         } else {
-            result = ca_context_play(
-                CONTEXT,
-                0,
-                CA_PROP_MEDIA_FILENAME, config.filePath.c_str(),
-                CA_PROP_EVENT_DESCRIPTION, "Wayland system bell",
-                nullptr
-            );
+            result = ca_context_play(CONTEXT, 0, CA_PROP_MEDIA_FILENAME, config.filePath.c_str(), CA_PROP_EVENT_DESCRIPTION, "Wayland system bell", nullptr);
         }
 
         if (result < 0)
@@ -178,9 +161,7 @@ CXDGSystemBellManagerResource::CXDGSystemBellManagerResource(UP<CXdgSystemBellV1
     m_resource->setDestroy([this](CXdgSystemBellV1* r) { PROTO::xdgBell->destroyResource(this); });
     m_resource->setOnDestroy([this](CXdgSystemBellV1* r) { PROTO::xdgBell->destroyResource(this); });
 
-    m_resource->setRing([](CXdgSystemBellV1* r, wl_resource* surface) {
-        handleBell(surface);
-    });
+    m_resource->setRing([](CXdgSystemBellV1* r, wl_resource* surface) { handleBell(surface); });
 }
 
 bool CXDGSystemBellManagerResource::good() {
@@ -192,9 +173,7 @@ CXDGSystemBellProtocol::CXDGSystemBellProtocol(const wl_interface* iface, const 
 }
 
 void CXDGSystemBellProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = WP<CXDGSystemBellManagerResource>{
-        m_managers.emplace_back(makeUnique<CXDGSystemBellManagerResource>(makeUnique<CXdgSystemBellV1>(client, ver, id)))
-    };
+    const auto RESOURCE = WP<CXDGSystemBellManagerResource>{m_managers.emplace_back(makeUnique<CXDGSystemBellManagerResource>(makeUnique<CXdgSystemBellV1>(client, ver, id)))};
 
     if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);

@@ -90,6 +90,7 @@ namespace Event {
                 Event<PHLWINDOW>                        floating;
                 Event<PHLWINDOW>                        updateRules;
                 Event<PHLWINDOW, PHLWORKSPACE>          moveToWorkspace;
+                Event<PHLWINDOW>                        bell;
             } window;
 
             struct {
@@ -186,10 +187,6 @@ namespace Event {
             struct {
                 Event<const std::string&> submap;
             } keybinds;
-
-            struct {
-                Event<> ring;
-            } bell;
 
             Event<SP<CCustomEvent>>                           pluginEventAdded;
             Event<std::string>                                pluginEventRemoved;

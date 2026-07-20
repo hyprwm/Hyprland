@@ -6,6 +6,7 @@
 #include "../state/MonitorState.hpp"
 #include "../desktop/view/View.hpp"
 #include "../render/Renderer.hpp"
+#include <algorithm>
 #include <hyprutils/memory/WeakPtr.hpp>
 
 CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> surface) : m_resource(std::move(resource_)), m_surface(surface) {
@@ -68,7 +69,10 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
                 const auto& view = m_surface->m_hlSurface->view();
                 if (view) {
                     const auto& window    = view->type() == Desktop::View::VIEW_TYPE_WINDOW ? dynamicPointerCast<Desktop::View::CWindow>(view) : nullptr;
-                    const bool  isVisible = (view && view->visible() && (!window || g_pHyprRenderer->shouldRenderWindow(window)));
+                    const bool  isVisible = (view && view->visible() && //
+                                             (!window || std::ranges::any_of(State::monitorState()->monitors(), [window](const auto& mon) {
+                                                return g_pHyprRenderer->shouldRenderWindow(window, mon);
+                                             })));
                     if (isVisible)
                         shouldLock = true;
                     else if (*PINVIS == 2) // never

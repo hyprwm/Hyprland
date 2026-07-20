@@ -42,7 +42,7 @@ CXDGOutputProtocol::CXDGOutputProtocol(const wl_interface* iface, const int& ver
 }
 
 void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32_t id, wl_resource* outputResource) {
-    const auto  OUTPUT   = CWLOutputResource::fromResource(outputResource);
+    const auto OUTPUT = CWLOutputResource::fromResource(outputResource);
     if UNLIKELY (!OUTPUT) {
         // wl_output may be invalid if the monitor was just removed;
         // skip zxdg_output creation rather than dereferencing null.

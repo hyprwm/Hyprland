@@ -149,9 +149,7 @@ void CWLOutputProtocol::remove() {
     // valid so in-flight client requests succeed. Hold a self-keepalive SP
     // so the protocol outlives the PROTO::outputs erase that happens when a
     // new monitor with the same name is added.
-    m_zombieOutputs.insert(m_zombieOutputs.end(),
-                          std::make_move_iterator(m_outputs.begin()),
-                          std::make_move_iterator(m_outputs.end()));
+    m_zombieOutputs.insert(m_zombieOutputs.end(), std::make_move_iterator(m_outputs.begin()), std::make_move_iterator(m_outputs.end()));
     m_outputs.clear();
     m_selfKeepalive = m_self.lock();
 

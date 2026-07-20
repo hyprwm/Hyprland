@@ -47,7 +47,7 @@ class CWLOutputProtocol : public IWaylandProtocol {
     // protocol stays alive past the PROTO::outputs erase in monitor.added.
     // wl_global_destroy is deferred until the last zombie is destroyed,
     // closing the race with in-flight client requests during DPMS cycles.
-    SP<CWLOutputProtocol>              m_selfKeepalive;
+    SP<CWLOutputProtocol> m_selfKeepalive;
 
     // will mark the protocol for removal, will be removed when no. of bound outputs is 0 (or when overwritten by a new global)
     void remove();

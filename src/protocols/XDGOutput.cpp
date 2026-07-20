@@ -12,6 +12,7 @@
 #define OUTPUT_DESCRIPTION_SINCE_VERSION         2
 
 //
+//
 
 void CXDGOutputProtocol::onManagerResourceDestroy(wl_resource* res) {
     std::erase_if(m_managerResources, [&](const auto& other) { return other->resource() == res; });
@@ -42,6 +43,12 @@ CXDGOutputProtocol::CXDGOutputProtocol(const wl_interface* iface, const int& ver
 
 void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32_t id, wl_resource* outputResource) {
     const auto  OUTPUT   = CWLOutputResource::fromResource(outputResource);
+    if UNLIKELY (!OUTPUT) {
+        // wl_output may be invalid if the monitor was just removed;
+        // skip zxdg_output creation rather than dereferencing null.
+        LOGM(Log::ERR, "onManagerGetXDGOutput: invalid wl_output resource");
+        return;
+    }
     const auto  PMONITOR = OUTPUT->m_monitor.lock();
     const auto  CLIENT   = mgr->client();
 
@@ -94,6 +101,7 @@ void CXDGOutputProtocol::updateAllOutputs() {
     }
 }
 
+//
 //
 
 CXDGOutput::CXDGOutput(SP<CZxdgOutputV1> resource_, PHLMONITOR monitor_) : m_monitor(monitor_), m_resource(resource_) {

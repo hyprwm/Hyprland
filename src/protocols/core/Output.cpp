@@ -15,12 +15,12 @@ CWLOutputResource::CWLOutputResource(SP<CWlOutput> resource_, PHLMONITOR pMonito
         return;
 
     m_resource->setOnDestroy([this](CWlOutput* r) {
-        if (m_monitor && PROTO::outputs.contains(m_monitor->m_name))
-            PROTO::outputs.at(m_monitor->m_name)->destroyResource(this);
+        if (m_owner)
+            m_owner->destroyResource(this);
     });
     m_resource->setRelease([this](CWlOutput* r) {
-        if (m_monitor && PROTO::outputs.contains(m_monitor->m_name))
-            PROTO::outputs.at(m_monitor->m_name)->destroyResource(this);
+        if (m_owner)
+            m_owner->destroyResource(this);
     });
 
     if (m_resource->version() >= 4) {
@@ -70,14 +70,13 @@ SP<CWlOutput> CWLOutputResource::getResource() {
 }
 
 void CWLOutputResource::updateState() {
-    if (!m_monitor || (m_owner && m_owner->m_defunct))
+    if (!m_monitor || (m_owner && m_owner->isDefunct()))
         return;
 
     if (m_resource->version() >= 2)
         m_resource->sendScale(std::ceil(m_monitor->m_scale));
 
     m_resource->sendMode(WL_OUTPUT_MODE_CURRENT, m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y, m_monitor->m_refreshRate * 1000.0);
-
     m_resource->sendGeometry(0, 0, m_monitor->m_output->physicalSize.x, m_monitor->m_output->physicalSize.y, m_monitor->m_output->subpixel, m_monitor->m_output->make.c_str(),
                              m_monitor->m_output->model.c_str(), m_monitor->m_transform);
 
@@ -114,9 +113,16 @@ void CWLOutputProtocol::bindManager(wl_client* client, void* data, uint32_t ver,
 
 void CWLOutputProtocol::destroyResource(CWLOutputResource* resource) {
     std::erase_if(m_outputs, [&](const auto& other) { return other.get() == resource; });
+    std::erase_if(m_zombieOutputs, [&](const auto& other) { return other.get() == resource; });
 
-    if (m_outputs.empty() && m_defunct)
-        PROTO::outputs.erase(m_name);
+    if (m_outputs.empty() && m_zombieOutputs.empty() && m_defunct) {
+        m_selfKeepalive.reset();
+        // Guard against a successor protocol that has taken over the same
+        // name slot in PROTO::outputs. A delayed zombie cleanup must not
+        // erase the new monitor's protocol from the map.
+        if (auto it = PROTO::outputs.find(m_name); it != PROTO::outputs.end() && it->second.get() == this)
+            PROTO::outputs.erase(it);
+    }
 }
 
 std::vector<SP<CWLOutputResource>> CWLOutputProtocol::outputResourcesFrom(wl_client* client) {
@@ -137,6 +143,20 @@ void CWLOutputProtocol::remove() {
         return;
 
     m_defunct = true;
+
+    // Move per-client wl_output resources to a zombie list instead of
+    // letting them be invalidated by wl_global_destroy. The wl_global stays
+    // valid so in-flight client requests succeed. Hold a self-keepalive SP
+    // so the protocol outlives the PROTO::outputs erase that happens when a
+    // new monitor with the same name is added.
+    m_zombieOutputs.insert(m_zombieOutputs.end(),
+                          std::make_move_iterator(m_outputs.begin()),
+                          std::make_move_iterator(m_outputs.end()));
+    m_outputs.clear();
+    m_selfKeepalive = m_self.lock();
+
+    m_listeners.modeChanged.reset();
+
     removeGlobal();
 }
 
@@ -151,4 +171,17 @@ void CWLOutputProtocol::sendDone() {
     for (auto const& r : m_outputs) {
         r->m_resource->sendDone();
     }
+}
+
+void CWLOutputProtocol::onDisplayDestroy() {
+    // Do NOT call wl_global_destroy while zombie outputs are alive.
+    // wl_global_destroy invalidates all client resources bound to this global,
+    // causing "invalid object N" errors on in-flight client requests. The
+    // wl_global is leaked in this case, but destroyResource will release
+    // m_selfKeepalive once the last zombie is gone, the SP will drop, and a
+    // subsequent destructor run will call wl_global_destroy normally
+    // because both lists will be empty.
+    if (!m_outputs.empty() || !m_zombieOutputs.empty())
+        return;
+    IWaylandProtocol::onDisplayDestroy();
 }

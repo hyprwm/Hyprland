@@ -219,7 +219,11 @@ bool CSessionLockManager::shallConsiderLockMissing() {
     if (!m_sessionLock)
         return true;
 
-    static auto LOCKDEAD_SCREEN_DELAY = CConfigValue<Config::INTEGER>("misc:lockdead_screen_delay");
+    // Lock client is still connected — surfaces may be temporarily gone
+    // during DPMS output recreation, not a real crash. Don't show lockdead.
+    if (m_sessionLock->lock && m_sessionLock->lock->good())
+        return false;
 
+    static auto LOCKDEAD_SCREEN_DELAY = CConfigValue<Config::INTEGER>("misc:lockdead_screen_delay");
     return m_sessionLock->lockTimer.getMillis() > *LOCKDEAD_SCREEN_DELAY;
 }

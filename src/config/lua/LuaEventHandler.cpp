@@ -113,6 +113,7 @@ CLuaEventHandler::CLuaEventHandler(lua_State* L) : m_lua(L) {
             CLuaWorkspace::push(L, ws);
         });
     }));
+    m_listeners.push_back(bus()->m_events.window.bell.listen([this](PHLWINDOW w) { dispatch("window.bell", 1, [&](lua_State* L) { CLuaWindow::push(L, w); }); }));
 
     m_listeners.push_back(bus()->m_events.layer.opened.listen([this](PHLLS ls) { dispatch("layer.opened", 1, [&](lua_State* L) { CLuaLayerSurface::push(L, ls); }); }));
     m_listeners.push_back(bus()->m_events.layer.closed.listen([this](PHLLS ls) { dispatch("layer.closed", 1, [&](lua_State* L) { CLuaLayerSurface::push(L, ls); }); }));
@@ -182,8 +183,6 @@ CLuaEventHandler::CLuaEventHandler(lua_State* L) : m_lua(L) {
             lua_pushinteger(L, keyEvent.state);
         });
     }));
-
-    m_listeners.push_back(bus()->m_events.bell.ring.listen([this] { dispatch("bell.ring", 0, [](lua_State* L) {}); }));
 }
 
 CLuaEventHandler::~CLuaEventHandler() {
@@ -279,6 +278,7 @@ std::unordered_set<std::string> CLuaEventHandler::knownEvents() {
         "window.fullscreen",
         "window.update_rules",
         "window.move_to_workspace",
+        "window.bell",
         "layer.opened",
         "layer.closed",
         "monitor.added",
@@ -297,7 +297,6 @@ std::unordered_set<std::string> CLuaEventHandler::knownEvents() {
         "hyprland.start",
         "hyprland.shutdown",
         "input.keyboard.key",
-        "bell.ring",
     };
     for (auto& kv : Event::bus()->m_events.plugin)
         EVENTS.emplace(kv.first);

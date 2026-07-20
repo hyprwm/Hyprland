@@ -54,31 +54,30 @@ namespace {
         return parseBellSoundConfigValue(*PBELLSOUND);
     }
 
-    std::string getBellEventData(wl_resource* surface) {
+    PHLWINDOW getBellEventData(wl_resource* surface) {
         if (!surface)
-            return "";
+            return nullptr;
 
         const auto SURFACE = CWLSurfaceResource::fromResource(surface);
         if (!SURFACE)
-            return "";
+            return nullptr;
 
         for (const auto& w : Desktop::windowState()->windows()) {
             if (!w->m_isMapped || w->m_isX11 || !w->m_xdgSurface || !w->wlSurface())
                 continue;
 
             if (w->wlSurface()->resource() == SURFACE)
-                return std::format("{:x}", rc<uintptr_t>(w.get()));
+                return w;
         }
 
-        return "";
+        return nullptr;
     }
 
-    void emitBellEvent(const std::string& data) {
-        g_pEventManager->postEvent(SHyprIPCEvent{
-            .event = "bell",
-            .data  = data,
-        });
-        Event::bus()->m_events.bell.ring.emit();
+    void emitBellEvent(PHLWINDOW window) {
+        std::string address = window ? std::format("{:x}", rc<uintptr_t>(window.get())) : "";
+
+        g_pEventManager->postEvent(SHyprIPCEvent{.event = "bell", .data = address});
+        Event::bus()->m_events.window.bell.emit(window);
     }
 
     class CBellAudioContext {
@@ -158,10 +157,10 @@ CXDGSystemBellManagerResource::CXDGSystemBellManagerResource(UP<CXdgSystemBellV1
     if UNLIKELY (!good())
         return;
 
-    m_resource->setDestroy([this](CXdgSystemBellV1* r) { PROTO::xdgBell->destroyResource(this); });
-    m_resource->setOnDestroy([this](CXdgSystemBellV1* r) { PROTO::xdgBell->destroyResource(this); });
+    m_resource->setDestroy([this](CXdgSystemBellV1*) { PROTO::xdgBell->destroyResource(this); });
+    m_resource->setOnDestroy([this](CXdgSystemBellV1*) { PROTO::xdgBell->destroyResource(this); });
 
-    m_resource->setRing([](CXdgSystemBellV1* r, wl_resource* surface) { handleBell(surface); });
+    m_resource->setRing([](CXdgSystemBellV1*, wl_resource* surface) { handleBell(surface); });
 }
 
 bool CXDGSystemBellManagerResource::good() {

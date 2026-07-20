@@ -2758,7 +2758,8 @@ void CWindow::commitWindow() {
     }
 
     // tearing: if solitary, redraw it. This still might be a single surface window
-    if (PMONITOR && PMONITOR->m_solitaryClient.lock() == m_self.lock() && canBeTorn() && PMONITOR->m_tearingState.canTear && wlSurface()->resource()->m_current.texture) {
+    if (PMONITOR && PMONITOR->m_solitaryClient.lock() == m_self.lock() && canBeTorn() && PMONITOR->m_tearingState.canTear && wlSurface()->resource()->m_current.texture &&
+        !PMONITOR->isTearingBlocked()) {
         CRegion damageBox{wlSurface()->resource()->m_current.accumulateBufferDamage()};
 
         if (!damageBox.empty()) {

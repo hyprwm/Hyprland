@@ -566,22 +566,25 @@ CBox CWLSurfaceResource::extends() {
 }
 
 void CWLSurfaceResource::scheduleState(WP<SSurfaceState> state) {
-    auto whenReadable = [this, surf = m_self](auto state, auto reason) {
+    auto whenReadable = [this, surf = m_self](WP<SSurfaceState> state) {
         if (!surf || !state)
             return;
 
-        m_stateQueue.unlock(state, reason);
+        m_stateQueue.unlockFence(state);
     };
 
     if (state->updated.bits.acquire) {
-        // wait on acquire point for this surface, from explicit sync protocol
-        if (!state->acquire.addWaiter([state, whenReadable]() { whenReadable(state, LOCK_REASON_FENCE); })) {
-            Log::logger->log(Log::ERR, "Failed to addWaiter in CWLSurfaceResource::scheduleState");
-            whenReadable(state, LOCK_REASON_FENCE);
+        auto waiter = state->acquire.addWaiter([state, whenReadable]() { whenReadable(state); });
+        // the waiter may have fired (and dropped this state), so re check.
+        if (state) {
+            state->acquireWaiter = waiter;
+            // a null waiter means it either fired immediately or failed to register
+            if (!waiter)
+                whenReadable(state);
         }
     } else if (state->buffer && state->buffer->isSynchronous()) {
         // synchronous (shm) buffers can be read immediately
-        m_stateQueue.unlock(state, LOCK_REASON_FENCE);
+        m_stateQueue.unlockFence(state);
     } else if (state->buffer && !state->buffer->m_syncFds.empty()) {
         // async buffer and is dmabuf, then we can wait on implicit fences
         drainSyncFds(state, LOCK_REASON_FENCE);
@@ -599,16 +602,19 @@ void CWLSurfaceResource::drainSyncFds(WP<SSurfaceState> state, eLockReason reaso
     if (!fds.empty()) {
         auto fd = std::move(fds.front());
         fds.erase(fds.begin());
-        g_pEventLoopManager->doOnReadable(std::move(fd), [this, surf = m_self, state, reason]() {
+        auto waiter = g_pEventLoopManager->doOnReadable(std::move(fd), [this, surf = m_self, state, reason]() {
             if (!surf || !state)
                 return;
 
             drainSyncFds(state, reason);
         });
+
+        if (state)
+            state->acquireWaiter = waiter;
         return;
     }
 
-    m_stateQueue.unlock(state, reason);
+    m_stateQueue.unlockFence(state);
 }
 
 void CWLSurfaceResource::commitState(SSurfaceState& state) {

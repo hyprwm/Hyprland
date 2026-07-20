@@ -16,6 +16,7 @@ class CSurfaceStateQueue {
     void              dropState(const WP<SSurfaceState>& state);
     void              lock(const WP<SSurfaceState>& state, eLockReason reason);
     void              unlock(const WP<SSurfaceState>& state, eLockReason reason);
+    void              unlockFence(const WP<SSurfaceState>& state);
     void              unlockFirst(eLockReason reason);
     void              tryProcess();
 

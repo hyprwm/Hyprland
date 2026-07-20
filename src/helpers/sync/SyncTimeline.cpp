@@ -64,22 +64,20 @@ std::optional<bool> CSyncTimeline::check(uint64_t point, uint32_t flags) {
     return ret == 0;
 }
 
-bool CSyncTimeline::addWaiter(std::function<void()>&& waiter, uint64_t point, uint32_t flags) {
+WP<SReadableWaiter> CSyncTimeline::addWaiter(std::function<void()>&& waiter, uint64_t point, uint32_t flags) {
     auto eventFd = CFileDescriptor(eventfd(0, EFD_CLOEXEC));
 
     if (!eventFd.isValid()) {
         Log::logger->log(Log::ERR, "CSyncTimeline::addWaiter: failed to acquire an eventfd");
-        return false;
+        return {};
     }
 
     if (drmSyncobjEventfd(m_drmFD, m_handle, point, eventFd.get(), flags)) {
         Log::logger->log(Log::ERR, "CSyncTimeline::addWaiter: drmSyncobjEventfd failed");
-        return false;
+        return {};
     }
 
-    g_pEventLoopManager->doOnReadable(std::move(eventFd), std::move(waiter));
-
-    return true;
+    return g_pEventLoopManager->doOnReadable(std::move(eventFd), std::move(waiter));
 }
 
 CFileDescriptor CSyncTimeline::exportAsSyncFileFD(uint64_t src) {

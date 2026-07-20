@@ -1,6 +1,8 @@
 #include "SurfaceState.hpp"
 #include "helpers/Format.hpp"
 #include "protocols/types/Buffer.hpp"
+#include "protocols/PresentationTime.hpp"
+#include "managers/eventLoop/EventLoopManager.hpp"
 #include "render/Renderer.hpp"
 #include "render/Texture.hpp"
 
@@ -83,6 +85,89 @@ void SSurfaceState::reset() {
     pendingTimeout.reset();
     commitTimingTarget.reset();
     timer.reset(); // CEventLoopManager::nudgeTimers should handle it eventually
+}
+
+bool SSurfaceState::isLocked() const {
+    return lockMask != LOCK_REASON_NONE;
+}
+
+bool SSurfaceState::fenceSignaled() const {
+    if (buffer) {
+        for (const auto& fd : buffer->m_syncFds) {
+            if (!fd.isReadable())
+                return false;
+        }
+    }
+
+    if (acquireWaiter && !acquireWaiter->fd.isReadable())
+        return false;
+
+    return true;
+}
+
+void SSurfaceState::cancelFenceWaiter() {
+    if (acquireWaiter && g_pEventLoopManager)
+        g_pEventLoopManager->removeReadableWaiter(acquireWaiter);
+    acquireWaiter.reset();
+}
+
+void SSurfaceState::mergeFrom(SSurfaceState& ref) {
+    updated.all |= ref.updated.all;
+
+    if (ref.updated.bits.buffer) {
+        if (!presentationFeedbacks.empty())
+            PROTO::presentation->discardFeedbacks(presentationFeedbacks);
+
+        buffer     = ref.buffer;
+        texture    = ref.texture;
+        size       = ref.size;
+        bufferSize = ref.bufferSize;
+    }
+
+    if (ref.updated.bits.damage) {
+        damage.add(ref.damage);
+        bufferDamage.add(ref.bufferDamage);
+    }
+
+    if (ref.updated.bits.input) {
+        input           = ref.input;
+        inputIsInfinite = ref.inputIsInfinite;
+    }
+
+    if (ref.updated.bits.opaque)
+        opaque = ref.opaque;
+
+    if (ref.updated.bits.offset)
+        offset = ref.offset;
+
+    if (ref.updated.bits.scale)
+        scale = ref.scale;
+
+    if (ref.updated.bits.transform)
+        transform = ref.transform;
+
+    if (ref.updated.bits.viewport)
+        viewport = ref.viewport;
+
+    if (ref.updated.bits.acquire)
+        acquire = ref.acquire;
+
+    if (ref.updated.bits.acked)
+        ackedSize = ref.ackedSize;
+
+    if (ref.updated.bits.frame) {
+        callbacks.insert(callbacks.end(), std::make_move_iterator(ref.callbacks.begin()), std::make_move_iterator(ref.callbacks.end()));
+        ref.callbacks.clear();
+    }
+
+    if (ref.updated.bits.presentation) {
+        presentationFeedbacks.insert(presentationFeedbacks.end(), std::make_move_iterator(ref.presentationFeedbacks.begin()),
+                                     std::make_move_iterator(ref.presentationFeedbacks.end()));
+        ref.presentationFeedbacks.clear();
+    }
+
+    if (ref.barrierSet)
+        barrierSet = ref.barrierSet;
 }
 
 void SSurfaceState::updateFrom(SSurfaceState& ref) {

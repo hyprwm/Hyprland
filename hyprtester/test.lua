@@ -343,3 +343,6 @@ hl.layout.register("grid", {
         end
     end,
 })
+
+-- this is here to guard a crash, see #15521
+hl.dispatch(hl.dsp.submap("reset"))

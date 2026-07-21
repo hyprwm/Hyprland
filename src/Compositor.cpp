@@ -675,6 +675,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             Log::logger->log(Log::DEBUG, "Creating the TokenManager!");
             g_pTokenManager = makeUnique<CTokenManager>();
 
+            Log::logger->log(Log::DEBUG, "Creating the EventManager!");
+            g_pEventManager = makeUnique<CEventManager>();
+
             // create executor
             Config::Supplementary::executor();
 
@@ -682,9 +685,6 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Log::logger->log(Log::DEBUG, "Creating the PointerManager!");
             Pointer::mgr() = makeUnique<Pointer::CPointerManager>();
-
-            Log::logger->log(Log::DEBUG, "Creating the EventManager!");
-            g_pEventManager = makeUnique<CEventManager>();
 
             Log::logger->log(Log::DEBUG, "Creating the AsyncResourceGatherer!");
             g_pAsyncResourceGatherer = makeUnique<Hyprgraphics::CAsyncResourceGatherer>();

@@ -9,6 +9,7 @@
 #include "../../managers/KeybindManager.hpp"
 #include "../../managers/SeatManager.hpp"
 #include "../../managers/input/InputManager.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../../layout/LayoutManager.hpp"
 #include "../../state/MonitorState.hpp"
 #include "../../state/WorkspaceState.hpp"
@@ -157,12 +158,13 @@ static SDispatchResult renameworkspace(const std::string& args) {
 }
 
 static SDispatchResult fullscreen(const std::string& args) {
-    CVarList2             ARGS(args, 2, ' ');
 
-    const eFullscreenMode MODE = ARGS.size() > 0 && ARGS[0] == "1" ? FSMODE_MAXIMIZED : FSMODE_FULLSCREEN;
+    CVarList2                         ARGS(args, 2, ' ');
+
+    const Fullscreen::eFullscreenMode MODE = ARGS.size() > 0 && ARGS[0] == "1" ? Fullscreen::FSMODE_MAXIMIZED : Fullscreen::FSMODE_FULLSCREEN;
 
     if (ARGS.size() <= 1 || ARGS[1] == "toggle")
-        return wrap(Actions::fullscreenWindow(MODE));
+        return wrap(Actions::fullscreenWindow(MODE, true));
 
     // "set" means enable, "unset" means disable - but the Action toggles.
     // We need to check current state ourselves.
@@ -171,12 +173,12 @@ static SDispatchResult fullscreen(const std::string& args) {
         return {.success = false, .error = "Window not found"};
 
     if (ARGS[1] == "set") {
-        if (!PWINDOW->isEffectiveInternalFSMode(MODE))
-            return wrap(Actions::fullscreenWindow(MODE));
+        if (!Fullscreen::controller()->isFullscreen(PWINDOW, MODE))
+            return wrap(Actions::fullscreenWindow(MODE, true));
         return {};
     } else if (ARGS[1] == "unset") {
-        if (PWINDOW->isEffectiveInternalFSMode(MODE))
-            return wrap(Actions::fullscreenWindow(MODE));
+        if (Fullscreen::controller()->isFullscreen(PWINDOW, MODE))
+            return wrap(Actions::fullscreenWindow(MODE, true));
         return {};
     }
 
@@ -198,10 +200,10 @@ static SDispatchResult fullscreenstate(const std::string& args) {
         clientMode = std::stoi(std::string(ARGS[1]));
     } catch (...) { clientMode = -1; }
 
-    eFullscreenMode im = internalMode != -1 ? sc<eFullscreenMode>(internalMode) : PWINDOW->m_fullscreenState.internal;
-    eFullscreenMode cm = clientMode != -1 ? sc<eFullscreenMode>(clientMode) : PWINDOW->m_fullscreenState.client;
+    Fullscreen::eFullscreenMode im = internalMode != -1 ? sc<Fullscreen::eFullscreenMode>(internalMode) : Fullscreen::controller()->getFullscreenModes(PWINDOW).internal;
+    Fullscreen::eFullscreenMode cm = clientMode != -1 ? sc<Fullscreen::eFullscreenMode>(clientMode) : Fullscreen::controller()->getFullscreenModes(PWINDOW).client;
 
-    return wrap(Actions::fullscreenWindow(im, cm));
+    return wrap(Actions::fullscreenWindow(im, cm, true));
 }
 
 static SDispatchResult movetoworkspace(const std::string& args) {
@@ -275,7 +277,7 @@ static SDispatchResult swapwindow(const std::string& args) {
     const auto PLASTWINDOW = Desktop::focusState()->window();
     if (!PLASTWINDOW)
         return {.success = false, .error = "Window to swap with not found"};
-    if (PLASTWINDOW->isFullscreen())
+    if (Fullscreen::controller()->isFullscreen(PLASTWINDOW))
         return {.success = false, .error = "Can't swap fullscreen window"};
 
     const auto PWINDOWTOCHANGETO = Desktop::viewState()->query().selector(args).runWindow();
@@ -427,7 +429,7 @@ static SDispatchResult resizeactive(const std::string& args) {
     if (!PWINDOW)
         return {.success = false, .error = "No window found"};
 
-    const auto SIZ = g_pCompositor->parseWindowVectorArgsRelative(args, PWINDOW->m_realSize->goal());
+    const auto SIZ = g_pCompositor->parseWindowVectorArgsRelative(args, PWINDOW->size(Desktop::View::IGeometric::GEOMETRIC_GOAL));
     if (SIZ.x < 1 || SIZ.y < 1)
         return {.success = false, .error = "Invalid size"};
 
@@ -439,7 +441,7 @@ static SDispatchResult moveactive(const std::string& args) {
     if (!PWINDOW)
         return {.success = false, .error = "No window found"};
 
-    const auto POS = g_pCompositor->parseWindowVectorArgsRelative(args, PWINDOW->m_realPosition->goal());
+    const auto POS = g_pCompositor->parseWindowVectorArgsRelative(args, PWINDOW->position(Desktop::View::IGeometric::GEOMETRIC_GOAL));
     return wrap(Actions::move(POS));
 }
 
@@ -451,7 +453,7 @@ static SDispatchResult movewindowpixel(const std::string& args) {
     if (!PWINDOW)
         return {.success = false, .error = "moveWindow: no window"};
 
-    const auto POS = g_pCompositor->parseWindowVectorArgsRelative(MOVECMD, PWINDOW->m_realPosition->goal());
+    const auto POS = g_pCompositor->parseWindowVectorArgsRelative(MOVECMD, PWINDOW->position(Desktop::View::IGeometric::GEOMETRIC_GOAL));
     return wrap(Actions::move(POS, false, PWINDOW));
 }
 
@@ -463,7 +465,7 @@ static SDispatchResult resizewindowpixel(const std::string& args) {
     if (!PWINDOW)
         return {.success = false, .error = "resizeWindow: no window"};
 
-    const auto SIZ = g_pCompositor->parseWindowVectorArgsRelative(MOVECMD, PWINDOW->m_realSize->goal());
+    const auto SIZ = g_pCompositor->parseWindowVectorArgsRelative(MOVECMD, PWINDOW->size(Desktop::View::IGeometric::GEOMETRIC_GOAL));
     if (SIZ.x < 1 || SIZ.y < 1)
         return {.success = false, .error = "Invalid size"};
 
@@ -787,6 +789,10 @@ static SDispatchResult forceidle(const std::string& args) {
     return wrap(Actions::forceIdle(duration.value()));
 }
 
+static SDispatchResult releaseInputCapture(const std::string& args) {
+    return wrap(Actions::releaseInputCapture());
+}
+
 CDispatcherTranslator::CDispatcherTranslator() {
     m_dispMap["exec"]                           = ::exec;
     m_dispMap["execr"]                          = ::execr;
@@ -858,4 +864,5 @@ CDispatcherTranslator::CDispatcherTranslator() {
     m_dispMap["global"]                         = ::globalDispatcher;
     m_dispMap["setprop"]                        = ::setprop;
     m_dispMap["forceidle"]                      = ::forceidle;
+    m_dispMap["releaseinputcapture"]            = ::releaseInputCapture;
 }

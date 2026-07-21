@@ -10,6 +10,7 @@ namespace Desktop::View {
     class IView;
     class CWindow;
     class CLayerSurface;
+    class CPopup;
 }
 
 namespace Monitor {

@@ -10,7 +10,7 @@ class CWLSubsurfaceResource;
 
 namespace Desktop::View {
     class CPopup;
-    class CSubsurface : public IView, public virtual IGeometric {
+    class CSubsurface : public virtual IView, public virtual IGeometric {
       public:
         // root dummy nodes
         static SP<CSubsurface> create(PHLWINDOW pOwner);
@@ -78,6 +78,7 @@ namespace Desktop::View {
 
         void                                        initSignals();
         void                                        initExistingSubsurfaces(SP<CWLSurfaceResource> pSurface);
+        void                                        syncScaleTransform() const;
         void                                        checkSiblingDamage();
         void                                        damageLastArea();
     };

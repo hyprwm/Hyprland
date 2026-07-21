@@ -9,6 +9,7 @@
 
 class CWLSurfaceResource;
 class CEventLoopTimer;
+struct SSurfaceState;
 
 class CCommitTimerResource {
   public:
@@ -19,6 +20,12 @@ class CCommitTimerResource {
   private:
     UP<CWpCommitTimerV1>   m_resource;
     WP<CWLSurfaceResource> m_surface;
+
+    // states this timer has TIMER-locked and not yet released; drained by the per-present path.
+    std::vector<WP<SSurfaceState>> m_pendingTimedStates;
+
+    // release the TIMER lock on any queued state whose target is at or before the upcoming flip.
+    void releaseDueStates(const Time::steady_tp& upcomingFlip);
 
     struct {
         CHyprSignalListener surfaceStateCommit;
@@ -48,7 +55,7 @@ class CCommitTimingProtocol : public IWaylandProtocol {
   private:
     void destroyResource(CCommitTimingManagerResource* resource);
     void destroyResource(CCommitTimerResource* resource);
-
+    void onMonitorPresent(PHLMONITOR m, const Time::steady_tp& presentTime);
     //
     std::vector<UP<CCommitTimingManagerResource>> m_managers;
     std::vector<UP<CCommitTimerResource>>         m_timers;

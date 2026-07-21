@@ -2,6 +2,7 @@
 
 #include <config/lua/objects/LuaEventSubscription.hpp>
 #include <config/lua/objects/LuaKeybind.hpp>
+#include <config/lua/objects/LuaWorkspaceRule.hpp>
 
 #include <managers/KeybindManager.hpp>
 #include <event/EventBus.hpp>
@@ -79,36 +80,59 @@ TEST(ConfigLuaObjects, keybindCanToggleEnabledFromLua) {
     EXPECT_FALSE(keybind->enabled);
 }
 
+TEST(ConfigLuaObjects, workspaceRuleCanToggleEnabledFromLua) {
+    CLuaState  S;
+    const auto L = S.get();
+
+    Objects::CLuaWorkspaceRule{}.setup(L);
+
+    auto rule = makeShared<Config::CWorkspaceRule>();
+    rule->setEnabled(true);
+
+    Objects::CLuaWorkspaceRule::push(L, rule);
+    lua_setglobal(L, "rule");
+
+    ASSERT_EQ(luaL_dostring(L, R"(
+        assert(rule:is_enabled() == true)
+        rule:set_enabled(false)
+        assert(rule:is_enabled() == false)
+    )"),
+              LUA_OK);
+
+    EXPECT_FALSE(rule->isEnabled());
+}
+
 TEST(ConfigLuaObjects, keybindExposesMetadataAndRemoveMethods) {
     CLuaState  S;
     const auto L = S.get();
 
     Objects::CLuaKeybind{}.setup(L);
 
-    auto keybind             = makeShared<SKeybind>();
-    keybind->enabled         = true;
-    keybind->description     = "Close active window";
-    keybind->hasDescription  = true;
-    keybind->displayKey      = "SUPER + Q";
-    keybind->submap.name     = "default";
-    keybind->handler         = "exec";
-    keybind->arg             = "kitty";
-    keybind->modmask         = HL_MODIFIER_META;
-    keybind->key             = "Q";
-    keybind->keycode         = 24;
-    keybind->repeat          = true;
-    keybind->locked          = true;
-    keybind->release         = false;
-    keybind->nonConsuming    = true;
-    keybind->transparent     = false;
-    keybind->ignoreMods      = false;
-    keybind->longPress       = false;
-    keybind->dontInhibit     = true;
-    keybind->click           = false;
-    keybind->drag            = false;
-    keybind->submapUniversal = false;
-    keybind->deviceInclusive = true;
-    keybind->devices         = {"kbd-a", "kbd-b"};
+    auto keybind               = makeShared<SKeybind>();
+    keybind->enabled           = true;
+    keybind->description       = "Close active window";
+    keybind->hasDescription    = true;
+    keybind->displayKey        = "SUPER + Q";
+    keybind->submap.name       = "default";
+    keybind->handler           = "exec";
+    keybind->arg               = "kitty";
+    keybind->modmask           = HL_MODIFIER_META;
+    keybind->key               = "Q";
+    keybind->keycode           = 24;
+    keybind->repeat            = true;
+    keybind->locked            = true;
+    keybind->release           = false;
+    keybind->nonConsuming      = true;
+    keybind->transparent       = false;
+    keybind->ignoreMods        = false;
+    keybind->longPress         = false;
+    keybind->dontInhibit       = true;
+    keybind->click             = false;
+    keybind->drag              = false;
+    keybind->submapUniversal   = false;
+    keybind->deviceInclusive   = true;
+    keybind->devices           = {"kbd-a", "kbd-b"};
+    keybind->allowInputCapture = true;
 
     Objects::CLuaKeybind::push(L, keybind);
     lua_setglobal(L, "kb");
@@ -128,6 +152,7 @@ TEST(ConfigLuaObjects, keybindExposesMetadataAndRemoveMethods) {
         assert(kb.non_consuming == true)
         assert(kb.dont_inhibit == true)
         assert(type(kb.devices) == "table")
+        assert(kb.allow_input_capture == true)
 
         kb:remove()
         kb:unbind()

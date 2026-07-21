@@ -16,6 +16,7 @@
 #include "../../../layout/space/Space.hpp"
 #include "../../../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 #include "../../../managers/input/InputManager.hpp"
+#include "../../../managers/fullscreen/FullscreenController.hpp"
 
 #include <format>
 #include <string_view>
@@ -78,15 +79,15 @@ static int windowIndex(lua_State* L) {
         lua_pushboolean(L, w->acceptsInput());
     else if (key == "at") {
         lua_newtable(L);
-        lua_pushinteger(L, sc<int>(w->m_realPosition->goal().x));
+        lua_pushinteger(L, sc<int>(w->position(Desktop::View::IGeometric::GEOMETRIC_GOAL).x));
         lua_setfield(L, -2, "x");
-        lua_pushinteger(L, sc<int>(w->m_realPosition->goal().y));
+        lua_pushinteger(L, sc<int>(w->position(Desktop::View::IGeometric::GEOMETRIC_GOAL).y));
         lua_setfield(L, -2, "y");
     } else if (key == "size") {
         lua_newtable(L);
-        lua_pushinteger(L, sc<int>(w->m_realSize->goal().x));
+        lua_pushinteger(L, sc<int>(w->size(Desktop::View::IGeometric::GEOMETRIC_GOAL).x));
         lua_setfield(L, -2, "x");
-        lua_pushinteger(L, sc<int>(w->m_realSize->goal().y));
+        lua_pushinteger(L, sc<int>(w->size(Desktop::View::IGeometric::GEOMETRIC_GOAL).y));
         lua_setfield(L, -2, "y");
     } else if (key == "workspace") {
         if (w->m_workspace)
@@ -115,12 +116,16 @@ static int windowIndex(lua_State* L) {
         lua_pushboolean(L, w->m_isX11);
     else if (key == "pinned")
         lua_pushboolean(L, w->m_pinned);
+    else if (key == "pin_fullscreened")
+        lua_pushboolean(L, w->m_pinFullscreened);
     else if (key == "fullscreen")
-        lua_pushinteger(L, sc<lua_Integer>(sc<uint8_t>(w->m_fullscreenState.internal)));
+        lua_pushinteger(L, sc<lua_Integer>(sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w).internal)));
     else if (key == "fullscreen_client")
-        lua_pushinteger(L, sc<lua_Integer>(sc<uint8_t>(w->m_fullscreenState.client)));
-    else if (key == "over_fullscreen")
-        lua_pushboolean(L, w->m_createdOverFullscreen);
+        lua_pushinteger(L, sc<lua_Integer>(sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w).client)));
+    else if (key == "allowed_over_fullscreen")
+        lua_pushboolean(L, w->m_allowedOverFullscreen);
+    else if (key == "fullscreen_handler")
+        lua_pushstring(L, Fullscreen::controller()->getFullscreenHandlerNameAsString(w).c_str());
     else if (key == "group") {
         if (!w->m_group) {
             lua_pushnil(L);
@@ -234,6 +239,8 @@ static int windowIndex(lua_State* L) {
         }
     } else if (key == "active") {
         lua_pushboolean(L, w == Desktop::focusState()->window());
+    } else if (key == "tearing_hint") {
+        lua_pushboolean(L, w->m_tearingHint);
     } else
         lua_pushnil(L);
 

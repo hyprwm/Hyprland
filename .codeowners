@@ -1,0 +1,10 @@
+# Reference: https://github.com/marketplace/actions/codeowners-plus#codeowners-file-spec
+
+# Fallback: request Vaxry's review
+* @vaxerski
+
+# CI: request @fufexan's review
+.github/workflows/** @fufexan
+
+# Hyprtester (framework): CC @kolayne
+? hyprtester/src/* @kolayne

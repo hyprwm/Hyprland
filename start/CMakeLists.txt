@@ -11,8 +11,10 @@ find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(starthyprland_deps REQUIRED IMPORTED_TARGET hyprutils>=0.10.3)
 
-find_package(glaze 7...<8 QUIET)
-if (NOT glaze_FOUND)
+if (NOT TARGET glaze::glaze)
+    find_package(glaze 7...<8 QUIET)
+endif()
+if (NOT glaze_FOUND AND NOT TARGET glaze::glaze)
     set(GLAZE_VERSION v7.2.0)
     message(STATUS "start: glaze dependency not found, retrieving ${GLAZE_VERSION} with FetchContent")
     include(FetchContent)

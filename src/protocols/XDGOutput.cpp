@@ -41,7 +41,13 @@ CXDGOutputProtocol::CXDGOutputProtocol(const wl_interface* iface, const int& ver
 }
 
 void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32_t id, wl_resource* outputResource) {
-    const auto  OUTPUT   = CWLOutputResource::fromResource(outputResource);
+    const auto OUTPUT = CWLOutputResource::fromResource(outputResource);
+    if UNLIKELY (!OUTPUT) {
+        LOGM(Log::ERR, "New xdg_output from client {:x} has invalid wl_output resource", (uintptr_t)mgr->client());
+        mgr->error(-1, "Invalid output resource");
+        return;
+    }
+
     const auto  PMONITOR = OUTPUT->m_monitor.lock();
     const auto  CLIENT   = mgr->client();
 

@@ -18,10 +18,7 @@ COtherViewState::COtherViewState() {
         if (event.type != View::VIEW_TYPE_LOCK_SCREEN)
             return;
 
-        std::erase_if(m_views, [&](const auto& view) {
-            const auto VIEW = view.lock();
-            return !VIEW || rc<uintptr_t>(VIEW.get()) == event.address;
-        });
+        std::erase_if(m_views, [&](const auto& view) { return !view || event.view == view; });
     });
 }
 

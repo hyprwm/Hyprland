@@ -3,7 +3,6 @@
 #include "MonitorPositionController.hpp"
 #include "MonitorState.hpp"
 
-#include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../debug/log/Logger.hpp"
 #include "../event/EventBus.hpp"
@@ -71,7 +70,7 @@ void CMonitorLayoutController::arrange() const {
     Event::bus()->m_events.monitor.layoutChanged.emit();
 
 #ifndef NO_XWAYLAND
-    const auto box = g_pCompositor->calculateX11WorkArea();
+    const auto box = calculateUnifiedX11WorkArea();
     if (g_pXWayland && g_pXWayland->m_wm) {
         if (box)
             g_pXWayland->m_wm->updateWorkArea(box->x, box->y, box->w, box->h);
@@ -80,4 +79,43 @@ void CMonitorLayoutController::arrange() const {
     }
 
 #endif
+}
+
+bool CMonitorLayoutController::isPointOnAnyMonitor(const Vector2D& point) {
+    return std::ranges::any_of(State::monitorState()->monitors(), [&](const PHLMONITOR& m) {
+        return VECINRECT(point, m->m_position.x, m->m_position.y, m->m_size.x + m->m_position.x, m->m_size.y + m->m_position.y);
+    });
+}
+
+bool CMonitorLayoutController::isPointOnReservedArea(const Vector2D& point, const PHLMONITOR pMonitor) {
+    const auto PMONITOR = pMonitor ? pMonitor : State::monitorState()->query().vec(point).run();
+
+    auto       box = PMONITOR->logicalBox();
+    if (VECNOTINRECT(point, box.x - 1, box.y - 1, box.x + box.w + 1, box.y + box.h + 1))
+        return false;
+
+    PMONITOR->m_reservedArea.applyip(box);
+
+    return VECNOTINRECT(point, box.x, box.y, box.x + box.w, box.y + box.h);
+}
+
+std::optional<CBox> CMonitorLayoutController::calculateUnifiedX11WorkArea() const {
+    static auto PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
+    // We more than likely won't be able to calculate one
+    // and even if we could this is minor
+    if (State::monitorState()->monitors().size() > 1 || State::monitorState()->monitors().empty())
+        return std::nullopt;
+
+    const auto M = State::monitorState()->monitors().front();
+
+    // we ignore monitor->m_position on purpose
+    CBox box = M->logicalBoxMinusReserved().translate(-M->m_position);
+    if ((*PXWLFORCESCALEZERO))
+        box.scale(M->m_scale);
+
+    return box.translate(M->m_xwaylandPosition);
+}
+
+bool CMonitorLayoutController::isVRRActiveOnAnyMonitor() const {
+    return std::ranges::any_of(State::monitorState()->monitors(), [](const PHLMONITOR& m) { return m->m_vrrActive; });
 }

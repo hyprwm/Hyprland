@@ -130,10 +130,24 @@ set(GLES_VERSION "GLES3")
 find_package(OpenGL REQUIRED COMPONENTS ${GLES_VERSION})
 find_package(glslang CONFIG REQUIRED)
 
+find_package(glaze 7...<8 QUIET)
+if(NOT glaze_FOUND)
+  set(GLAZE_VERSION v7.2.0)
+  message(STATUS "glaze dependency not found, retrieving ${GLAZE_VERSION} with FetchContent")
+  include(FetchContent)
+  FetchContent_Declare(
+    glaze
+    GIT_REPOSITORY https://github.com/stephenberry/glaze.git
+    GIT_TAG ${GLAZE_VERSION}
+    GIT_SHALLOW TRUE
+    EXCLUDE_FROM_ALL)
+  FetchContent_MakeAvailable(glaze)
+endif()
+
 set(AQUAMARINE_MINIMUM_VERSION 0.9.3)
 set(HYPRLANG_MINIMUM_VERSION 0.6.7)
 set(HYPRCURSOR_MINIMUM_VERSION 0.1.7)
-set(HYPRUTILS_MINIMUM_VERSION 0.13.1)
+set(HYPRUTILS_MINIMUM_VERSION 0.14.0)
 set(HYPRGRAPHICS_MINIMUM_VERSION 0.5.1)
 
 pkg_check_modules(aquamarine_dep REQUIRED IMPORTED_TARGET aquamarine>=${AQUAMARINE_MINIMUM_VERSION})
@@ -249,11 +263,10 @@ set_source_files_properties(${CMAKE_SOURCE_DIR}/src/version.h PROPERTIES GENERAT
 
 set(XKBCOMMON_MINIMUM_VERSION 1.11.0)
 set(WAYLAND_SERVER_MINIMUM_VERSION 1.22.91)
-set(WAYLAND_SERVER_PROTOCOLS_MINIMUM_VERSION 1.47)
+set(WAYLAND_SERVER_PROTOCOLS_MINIMUM_VERSION 1.49)
 set(LIBINPUT_MINIMUM_VERSION 1.29)
 
-pkg_check_modules(
-  deps
+pkg_check_modules(deps
   REQUIRED
   IMPORTED_TARGET GLOBAL
   xkbcommon>=${XKBCOMMON_MINIMUM_VERSION}
@@ -267,6 +280,7 @@ pkg_check_modules(
   xcursor
   libdrm
   libinput>=${LIBINPUT_MINIMUM_VERSION}
+  libeis-1.0
   gbm
   gio-2.0
   re2
@@ -294,6 +308,7 @@ target_link_libraries(Hyprland hyprland_lib)
 
 target_include_directories(hyprland_lib PUBLIC ${deps_INCLUDE_DIRS} ${LUA_INCLUDE_DIRS})
 target_include_directories(Hyprland PUBLIC ${deps_INCLUDE_DIRS} ${LUA_INCLUDE_DIRS})
+target_link_libraries(hyprland_lib PRIVATE glaze::glaze)
 
 set(USE_GPROF OFF)
 
@@ -358,6 +373,15 @@ check_include_file("sys/inotify.h" HAS_INOTIFY)
 pkg_check_modules(inotify IMPORTED_TARGET libinotify)
 if(NOT HAS_INOTIFY AND inotify_FOUND)
   target_link_libraries(hyprland_lib PUBLIC PkgConfig::inotify)
+endif()
+
+# sdbus-c++ is used to ask rtkit for realtime scheduling which is Linux-only
+if(NO_RTKIT OR NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  message(STATUS "rtkit realtime scheduling is disabled!")
+else()
+  pkg_check_modules(sdbus_dep REQUIRED IMPORTED_TARGET sdbus-c++>=2.0.0)
+  target_link_libraries(hyprland_lib PUBLIC PkgConfig::sdbus_dep)
+  add_compile_definitions(HAS_RTKIT)
 endif()
 
 if(NO_XWAYLAND)
@@ -514,7 +538,7 @@ else()
   target_link_libraries(hyprland_lib PUBLIC OpenGL::EGL OpenGL::GLES3 glslang::glslang glslang::glslang-default-resource-limits glslang::SPIRV Threads::Threads)
 endif()
 
-pkg_check_modules(hyprland_protocols_dep hyprland-protocols>=0.6.4)
+pkg_check_modules(hyprland_protocols_dep hyprland-protocols>=0.7.0)
 if(hyprland_protocols_dep_FOUND)
   pkg_get_variable(HYPRLAND_PROTOCOLS hyprland-protocols pkgdatadir)
   message(STATUS "hyprland-protocols dependency set to ${HYPRLAND_PROTOCOLS}")
@@ -593,6 +617,8 @@ protocolnew("staging/ext-image-capture-source" "ext-image-capture-source-v1" fal
 protocolnew("staging/ext-image-copy-capture" "ext-image-copy-capture-v1" false)
 protocolnew("staging/ext-background-effect" "ext-background-effect-v1" false)
 
+protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-input-capture-v1"
+            true)
 protocolwayland()
 
 # tools

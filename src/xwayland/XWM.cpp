@@ -229,9 +229,16 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
     };
 
     auto handleWMName = [&]() {
-        if (reply->type != HYPRATOMS["UTF8_STRING"] && reply->type != HYPRATOMS["TEXT"] && reply->type != XCB_ATOM_STRING)
+        auto& cachedName = atom == HYPRATOMS["_NET_WM_NAME"] ? XSURF->m_netWmName : XSURF->m_wmName;
+
+        if (reply->type == XCB_ATOM_NONE)
+            cachedName.reset();
+        else if (reply->type == HYPRATOMS["UTF8_STRING"] || reply->type == HYPRATOMS["TEXT"] || reply->type == XCB_ATOM_STRING)
+            cachedName = std::string{value, valueLen};
+        else
             return;
-        XSURF->m_state.title = std::string{value, valueLen};
+
+        XSURF->m_state.title = XSURF->m_netWmName.value_or(XSURF->m_wmName.value_or(""));
         XSURF->m_events.metadataChanged.emit();
     };
 
@@ -249,10 +256,16 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
     };
 
     auto handleWMHints = [&]() {
-        if (reply->value_len == 0)
+        if (reply->type == XCB_ATOM_NONE || reply->value_len == 0) {
+            XSURF->m_hints.reset();
             return;
-        XSURF->m_hints = makeUnique<xcb_icccm_wm_hints_t>();
-        xcb_icccm_get_wm_hints_from_reply(XSURF->m_hints.get(), reply);
+        }
+
+        auto hints = makeUnique<xcb_icccm_wm_hints_t>();
+        if (!xcb_icccm_get_wm_hints_from_reply(hints.get(), reply))
+            return;
+
+        XSURF->m_hints = std::move(hints);
         if (!(XSURF->m_hints->flags & XCB_ICCCM_WM_HINT_INPUT))
             XSURF->m_hints->input = true;
     };
@@ -282,12 +295,20 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
     };
 
     auto handleSizeHints = [&]() {
-        if (reply->type != HYPRATOMS["WM_SIZE_HINTS"] || reply->value_len == 0)
+        if (reply->type == XCB_ATOM_NONE || reply->value_len == 0) {
+            XSURF->m_sizeHints.reset();
+            return;
+        }
+
+        if (reply->type != HYPRATOMS["WM_SIZE_HINTS"])
             return;
 
-        XSURF->m_sizeHints = makeUnique<xcb_size_hints_t>();
-        std::memset(XSURF->m_sizeHints.get(), 0, sizeof(xcb_size_hints_t));
-        xcb_icccm_get_wm_size_hints_from_reply(XSURF->m_sizeHints.get(), reply);
+        auto sizeHints = makeUnique<xcb_size_hints_t>();
+        std::memset(sizeHints.get(), 0, sizeof(xcb_size_hints_t));
+        if (!xcb_icccm_get_wm_size_hints_from_reply(sizeHints.get(), reply))
+            return;
+
+        XSURF->m_sizeHints = std::move(sizeHints);
 
         const int32_t FLAGS   = XSURF->m_sizeHints->flags;
         const bool    HASMIN  = FLAGS & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE;
@@ -631,6 +652,11 @@ void CXWM::handleSelectionNotify(xcb_selection_notify_event_t* e) {
 
     SXSelection* sel = getSelection(e->selection);
 
+    if (!sel) {
+        Log::logger->log(Log::WARN, "[xwm] Ignoring selection notify for unknown selection {}", e->selection);
+        return;
+    }
+
     if (e->property == XCB_ATOM_NONE) {
         auto it = std::ranges::find_if(sel->transfers, [](const auto& t) { return !t->propertyReply; });
         if (it != sel->transfers.end()) {
@@ -771,6 +797,11 @@ bool CXWM::handleSelectionXFixesNotify(xcb_xfixes_selection_notify_event_t* e) {
 
     // IMPORTANT: mind the g_pSeatManager below
     SXSelection* sel = getSelection(e->selection);
+
+    if (!sel) {
+        Log::logger->log(Log::WARN, "[xwm] Ignoring XFixes notify for unknown selection {}", e->selection);
+        return true;
+    }
 
     if (sel == &m_dndSelection)
         return true;
@@ -1550,7 +1581,7 @@ bool SXSelection::sendData(xcb_selection_request_event_t* e, std::string mime) {
             }
 
             if (!MIMES.empty())
-                mimeList = mimeList.substr(0, mimeList.size() - 2);
+                mimeList.resize(mimeList.size() - 2);
 
             Log::logger->log(Log::TRACE, "[xwm] X MIME supported: {}", mimeList);
         }

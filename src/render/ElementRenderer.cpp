@@ -225,15 +225,19 @@ void IElementRenderer::drawSurface(WP<CSurfacePassElement> element, const CRegio
         g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
     }};
 
-    if (!m_data.texture)
+    if (!m_data.texture) {
+        element->discard();
         return;
+    }
 
     const auto& TEXTURE = m_data.texture;
 
     // this is bad, probably has been logged elsewhere. Means the texture failed
     // uploading to the GPU.
-    if (!TEXTURE->ok())
+    if (!TEXTURE->ok()) {
+        element->discard();
         return;
+    }
 
     const auto INTERACTIVERESIZEINPROGRESS = m_data.pWindow && g_layoutManager->dragController()->target() && g_layoutManager->dragController()->mode() == MBIND_RESIZE;
     TRACY_GPU_ZONE("RenderSurface");
@@ -259,15 +263,17 @@ void IElementRenderer::drawSurface(WP<CSurfacePassElement> element, const CRegio
     const bool MISALIGNEDFSV1 = std::floor(m_data.pMonitor->m_scale) != m_data.pMonitor->m_scale /* Fractional */ && m_data.surface->m_current.scale == 1 /* fs protocol */ &&
         windowBox.size() != m_data.surface->m_current.bufferSize /* misaligned */ && DELTALESSTHAN(windowBox.width, m_data.surface->m_current.bufferSize.x, 3) &&
         DELTALESSTHAN(windowBox.height, m_data.surface->m_current.bufferSize.y, 3) /* off by one-or-two */ &&
-        (!m_data.pWindow || (!m_data.pWindow->m_realSize->isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */ &&
-        (!m_data.pLS || (!m_data.pLS->m_realSize->isBeingAnimated())); /* not LS or not animated */
+        (!m_data.pWindow || (!m_data.pWindow->sizeAnimation()->isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */ &&
+        (!m_data.pLS || (!m_data.pLS->sizeAnimation()->isBeingAnimated())); /* not LS or not animated */
 
     calculateUVForSurface(m_data.pWindow, m_data.surface, m_data.pMonitor->m_self.lock(), m_data.mainSurface, windowBox.size(), PROJSIZEUNSCALED, MISALIGNEDFSV1);
 
     auto cancelRender = false;
     auto clipRegion   = element->visibleRegion(cancelRender);
-    if (cancelRender)
+    if (cancelRender) {
+        element->discard();
         return;
+    }
 
     // check for fractional scale surfaces misaligning the buffer size
     // in those cases it's better to just force nearest neighbor
@@ -380,6 +386,9 @@ void IElementRenderer::drawSurface(WP<CSurfacePassElement> element, const CRegio
     }
 
     g_pHyprRenderer->blend(true);
+
+    if (!g_pHyprRenderer->m_bBlockSurfaceFeedback)
+        element->m_data.surface->presentFeedback(element->m_data.when, element->m_data.pMonitor->m_self.lock());
 };
 
 void IElementRenderer::preDrawSurface(WP<CSurfacePassElement> element, const CRegion& damage) {
@@ -390,9 +399,6 @@ void IElementRenderer::preDrawSurface(WP<CSurfacePassElement> element, const CRe
     m_renderData.currentWindow = element->m_data.pWindow;
 
     drawSurface(element, damage);
-
-    if (!g_pHyprRenderer->m_bBlockSurfaceFeedback)
-        element->m_data.surface->presentFeedback(element->m_data.when, element->m_data.pMonitor->m_self.lock());
 
     // add async (dmabuf) buffers to usedBuffers so we can handle release later
     // sync (shm) buffers will be released in commitState, so no need to track them here

@@ -179,7 +179,7 @@ void CWLPointerResource::sendEnter(SP<CWLSurfaceResource> surface, const Vector2
 
     const auto fixedLocal = fixPosWithWlFixed(local);
 
-    m_resource->sendEnter(g_pSeatManager->nextSerial(m_owner.lock()), surface->getResource().get(), wl_fixed_from_double(fixedLocal.x), wl_fixed_from_double(fixedLocal.y));
+    m_resource->sendEnter(g_pSeatManager->nextSerial(m_owner.lock(), true), surface->getResource().get(), wl_fixed_from_double(fixedLocal.x), wl_fixed_from_double(fixedLocal.y));
 }
 
 void CWLPointerResource::sendLeave() {
@@ -236,7 +236,15 @@ void CWLPointerResource::sendButton(uint32_t timeMs, uint32_t button, wl_pointer
     else if (state == WL_POINTER_BUTTON_STATE_PRESSED)
         m_pressedButtons.emplace_back(button);
 
-    m_resource->sendButton(g_pSeatManager->nextSerial(m_owner.lock()), timeMs, button, state);
+    if (state == WL_POINTER_BUTTON_STATE_RELEASED)
+        g_pSeatManager->clearPointerButtonSerials(m_owner.lock(), m_currentSurface.lock(), button);
+
+    const auto SERIAL = g_pSeatManager->nextSerial(m_owner.lock());
+
+    if (state == WL_POINTER_BUTTON_STATE_PRESSED)
+        g_pSeatManager->recordPointerButtonSerial(m_owner.lock(), SERIAL, m_currentSurface.lock(), button);
+
+    m_resource->sendButton(SERIAL, timeMs, button, state);
 }
 
 void CWLPointerResource::sendAxis(uint32_t timeMs, wl_pointer_axis axis, double value) {
@@ -443,6 +451,8 @@ CWLSeatResource::CWLSeatResource(SP<CWlSeat> resource_) : m_resource(resource_) 
     if UNLIKELY (!good())
         return;
 
+    m_resource->setData(this);
+
     m_resource->setOnDestroy([this](CWlSeat* r) {
         m_events.destroy.emit();
         PROTO::seat->destroyResource(this);
@@ -500,6 +510,18 @@ CWLSeatResource::CWLSeatResource(SP<CWlSeat> resource_) : m_resource(resource_) 
 
 CWLSeatResource::~CWLSeatResource() {
     m_events.destroy.emit();
+}
+
+SP<CWLSeatResource> CWLSeatResource::fromResource(wl_resource* res) {
+    if (!res)
+        return nullptr;
+
+    const auto WLSEAT = sc<CWlSeat*>(wl_resource_get_user_data(res));
+    if (!WLSEAT)
+        return nullptr;
+
+    auto data = sc<CWLSeatResource*>(WLSEAT->data());
+    return data ? data->m_self.lock() : nullptr;
 }
 
 void CWLSeatResource::sendCapabilities(uint32_t caps) {

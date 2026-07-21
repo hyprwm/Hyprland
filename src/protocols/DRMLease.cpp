@@ -10,6 +10,15 @@
 #include <fcntl.h>
 using namespace Hyprutils::OS;
 
+static SP<CDRMLeaseProtocol> leaseForParent(const WP<CDRMLeaseDeviceResource>& parent) {
+    const auto PARENT = parent.lock();
+    if (!PARENT)
+        return nullptr;
+
+    const auto IT = PROTO::lease.find(PARENT->m_deviceName);
+    return IT == PROTO::lease.end() ? nullptr : IT->second;
+}
+
 CDRMLeaseResource::CDRMLeaseResource(SP<CWpDrmLeaseV1> resource_, SP<CDRMLeaseRequestResource> request) : m_resource(resource_) {
     if UNLIKELY (!good())
         return;
@@ -18,12 +27,12 @@ CDRMLeaseResource::CDRMLeaseResource(SP<CWpDrmLeaseV1> resource_, SP<CDRMLeaseRe
     m_requested = request->m_requested;
 
     m_resource->setOnDestroy([this](CWpDrmLeaseV1* r) {
-        if (m_parent && PROTO::lease.contains(m_parent->m_deviceName))
-            PROTO::lease.at(m_parent->m_deviceName)->destroyResource(this);
+        if (const auto LEASE = leaseForParent(m_parent); LEASE)
+            LEASE->destroyResource(this);
     });
     m_resource->setDestroy([this](CWpDrmLeaseV1* r) {
-        if (m_parent && PROTO::lease.contains(m_parent->m_deviceName))
-            PROTO::lease.at(m_parent->m_deviceName)->destroyResource(this);
+        if (const auto LEASE = leaseForParent(m_parent); LEASE)
+            LEASE->destroyResource(this);
     });
 
     for (auto const& m : m_requested) {
@@ -65,14 +74,14 @@ CDRMLeaseResource::CDRMLeaseResource(SP<CWpDrmLeaseV1> resource_, SP<CDRMLeaseRe
         m->m_monitor->m_isBeingLeased = true;
     }
 
-    m_listeners.destroyLease = m_lease->events.destroy.listen([this] {
+    m_listeners.destroyLease = m_lease->events.destroy.listen([this, fd = m_lease->leaseFD] {
         for (auto const& m : m_requested) {
             if (m && m->m_monitor)
                 m->m_monitor->m_isBeingLeased = false;
         }
 
         m_resource->sendFinished();
-        LOGM(Log::DEBUG, "Revoking lease for fd {}", m_lease->leaseFD);
+        LOGM(Log::DEBUG, "Revoking lease for fd {}", fd);
     });
 
     LOGM(Log::DEBUG, "Granting lease, sending fd {}", m_lease->leaseFD);
@@ -97,8 +106,8 @@ CDRMLeaseRequestResource::CDRMLeaseRequestResource(WP<CDRMLeaseDeviceResource> p
         return;
 
     m_resource->setOnDestroy([this](CWpDrmLeaseRequestV1* r) {
-        if (m_parent && PROTO::lease.contains(m_parent->m_deviceName))
-            PROTO::lease.at(m_parent->m_deviceName)->destroyResource(this);
+        if (const auto LEASE = leaseForParent(m_parent); LEASE)
+            LEASE->destroyResource(this);
     });
 
     m_resource->setRequestConnector([this](CWpDrmLeaseRequestV1* r, wl_resource* conn) {
@@ -114,9 +123,13 @@ CDRMLeaseRequestResource::CDRMLeaseRequestResource(WP<CDRMLeaseDeviceResource> p
             return;
         }
 
-        auto& lease = PROTO::lease.at(m_parent->m_deviceName);
+        const auto LEASE = leaseForParent(m_parent);
+        if (!LEASE) {
+            m_resource->error(WP_DRM_LEASE_REQUEST_V1_ERROR_WRONG_DEVICE, "Lease device no longer available");
+            return;
+        }
 
-        if (std::ranges::find(lease->m_connectors.begin(), lease->m_connectors.end(), CONNECTOR) == lease->m_connectors.end()) {
+        if (std::ranges::find(LEASE->m_connectors.begin(), LEASE->m_connectors.end(), CONNECTOR) == LEASE->m_connectors.end()) {
             m_resource->error(WP_DRM_LEASE_REQUEST_V1_ERROR_WRONG_DEVICE, "Connector requested for wrong device");
             return;
         }
@@ -130,16 +143,22 @@ CDRMLeaseRequestResource::CDRMLeaseRequestResource(WP<CDRMLeaseDeviceResource> p
             return;
         }
 
+        const auto LEASE = leaseForParent(m_parent);
+        if (!LEASE) {
+            m_resource->error(WP_DRM_LEASE_REQUEST_V1_ERROR_WRONG_DEVICE, "Lease device no longer available");
+            return;
+        }
+
         auto RESOURCE = makeShared<CDRMLeaseResource>(makeShared<CWpDrmLeaseV1>(m_resource->client(), m_resource->version(), id), m_self.lock());
         if UNLIKELY (!RESOURCE) {
             m_resource->noMemory();
             return;
         }
 
-        PROTO::lease.at(m_parent->m_deviceName)->m_leases.emplace_back(RESOURCE);
+        LEASE->m_leases.emplace_back(RESOURCE);
 
         // per protocol, after submit, this is dead.
-        PROTO::lease.at(m_parent->m_deviceName)->destroyResource(this);
+        LEASE->destroyResource(this);
     });
 }
 
@@ -158,12 +177,12 @@ CDRMLeaseConnectorResource::CDRMLeaseConnectorResource(WP<CDRMLeaseDeviceResourc
         return;
 
     m_resource->setOnDestroy([this](CWpDrmLeaseConnectorV1* r) {
-        if (m_parent && PROTO::lease.contains(m_parent->m_deviceName))
-            PROTO::lease.at(m_parent->m_deviceName)->destroyResource(this);
+        if (const auto LEASE = leaseForParent(m_parent); LEASE)
+            LEASE->destroyResource(this);
     });
     m_resource->setDestroy([this](CWpDrmLeaseConnectorV1* r) {
-        if (m_parent && PROTO::lease.contains(m_parent->m_deviceName))
-            PROTO::lease.at(m_parent->m_deviceName)->destroyResource(this);
+        if (const auto LEASE = leaseForParent(m_parent); LEASE)
+            LEASE->destroyResource(this);
     });
 
     m_resource->setData(this);

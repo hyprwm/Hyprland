@@ -6,7 +6,8 @@
 
 #define private public
 #include <src/managers/input/InputManager.hpp>
-#include <src/managers/PointerManager.hpp>
+#include <src/pointer/PointerManager.hpp>
+#include <src/pointer/PointerController.hpp>
 #include <src/managers/SeatManager.hpp>
 #include <src/managers/input/trackpad/TrackpadGestures.hpp>
 #include <src/output/Monitor.hpp>
@@ -49,8 +50,8 @@ static SDispatchResult snapMove(std::string in) {
     if (!PLASTWINDOW->m_isFloating)
         return {.success = false, .error = "Window must be floating"};
 
-    Vector2D pos  = PLASTWINDOW->m_realPosition->goal();
-    Vector2D size = PLASTWINDOW->m_realSize->goal();
+    Vector2D pos  = PLASTWINDOW->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
+    Vector2D size = PLASTWINDOW->size(Desktop::View::IGeometric::GEOMETRIC_GOAL);
 
     g_layoutManager->performSnap(pos, size, PLASTWINDOW->layoutTarget(), MBIND_MOVE, -1, size);
 
@@ -83,7 +84,7 @@ static SDispatchResult dragWindow(std::string in) {
         if (!target)
             return {.success = false, .error = "Window has no layout target"};
 
-        g_pCompositor->warpCursorTo({x, y}, true);
+        Pointer::pointerController()->warpTo({x, y}, true);
         g_layoutManager->beginDragTarget(target, MBIND_MOVE);
         g_layoutManager->endDragTarget();
 
@@ -451,6 +452,26 @@ static SDispatchResult nullfocus(std::string in) {
     return {};
 }
 
+static SDispatchResult clearSurfaceFocus(std::string in) {
+    Desktop::focusState()->m_focusSurface.reset();
+    return {};
+}
+
+static SDispatchResult checkKeyboardFocusWindow(std::string in) {
+    const auto KBSURF = g_pSeatManager->m_state.keyboardFocus.lock();
+    if (!KBSURF)
+        return {.success = false, .error = "No keyboard focus"};
+
+    const auto PWINDOW = Desktop::focusState()->window();
+    if (!PWINDOW)
+        return {.success = false, .error = "Keyboard focus surface is not a window"};
+
+    if (PWINDOW->m_class != in)
+        return {.success = false, .error = std::format("Keyboard focus window class is '{}', expected '{}'", PWINDOW->m_class, in)};
+
+    return {};
+}
+
 static Desktop::Rule::CWindowRuleEffectContainer::storageType windowRuleIDX = 0;
 
 //
@@ -579,8 +600,8 @@ static SDispatchResult floatingFocusOnFullscreen(std::string in) {
     if (PLASTWINDOW->alphaTotalGoal() != 1.F)
         return {.success = false, .error = "floating window doesnt restore it opacity when focused on fullscreen workspace"};
 
-    if (!PLASTWINDOW->m_createdOverFullscreen)
-        return {.success = false, .error = "floating window doesnt get flagged as createdOverFullscreen"};
+    if (!PLASTWINDOW->m_allowedOverFullscreen)
+        return {.success = false, .error = "floating window doesnt get flagged as allowedOverFullscreen"};
 
     return {};
 }
@@ -685,6 +706,14 @@ static int luaNullfocus(lua_State* L) {
     return luaResult(L, ::nullfocus(""));
 }
 
+static int luaClearSurfaceFocus(lua_State* L) {
+    return luaResult(L, ::clearSurfaceFocus(""));
+}
+
+static int luaCheckKeyboardFocusWindow(lua_State* L) {
+    return luaResult(L, ::checkKeyboardFocusWindow(luaL_checkstring(L, 1)));
+}
+
 static int luaAddWindowRule(lua_State* L) {
     return luaResult(L, ::addWindowRule(""));
 }
@@ -740,6 +769,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     addLuaFn("keybind2", ::luaKeybind2);
     addLuaFn("set_mods", ::luaSetMods);
     addLuaFn("nullfocus", ::luaNullfocus);
+    addLuaFn("clear_surface_focus", ::luaClearSurfaceFocus);
+    addLuaFn("check_keyboard_focus_window", ::luaCheckKeyboardFocusWindow);
     addLuaFn("add_window_rule", ::luaAddWindowRule);
     addLuaFn("check_window_rule", ::luaCheckWindowRule);
     addLuaFn("add_layer_rule", ::luaAddLayerRule);

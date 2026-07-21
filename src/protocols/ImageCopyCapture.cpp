@@ -1,14 +1,14 @@
 #include "ImageCopyCapture.hpp"
 #include "../managers/screenshare/ScreenshareManager.hpp"
 #include "../managers/permissions/DynamicPermissionManager.hpp"
-#include "../managers/PointerManager.hpp"
+#include "../pointer/PointerManager.hpp"
 #include "./core/Seat.hpp"
 #include "LinuxDMABUF.hpp"
 #include "../desktop/view/Window.hpp"
 #include "../render/OpenGL.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "render/Renderer.hpp"
-#include <cstring>
+#include <algorithm>
 
 using namespace Screenshare;
 
@@ -75,10 +75,8 @@ void CImageCopyCaptureSession::sendConstraints() {
 
         wl_array modsArr;
         wl_array_init(&modsArr);
-        if (!modifiers.empty()) {
-            wl_array_add(&modsArr, modifiers.size() * sizeof(uint64_t));
-            memcpy(modsArr.data, modifiers.data(), modifiers.size() * sizeof(uint64_t));
-        }
+        if (const auto PMODIFIERS = sc<uint64_t*>(wl_array_add(&modsArr, modifiers.size() * sizeof(uint64_t))))
+            std::ranges::copy(modifiers, PMODIFIERS);
         m_resource->sendDmabufFormat(format, &modsArr);
         wl_array_release(&modsArr);
     }
@@ -288,10 +286,8 @@ void CImageCopyCaptureCursorSession::sendConstraints() {
 
     wl_array modsArr;
     wl_array_init(&modsArr);
-    if (!modifiers.empty()) {
-        wl_array_add(&modsArr, modifiers.size() * sizeof(uint64_t));
-        memcpy(modsArr.data, modifiers.data(), modifiers.size() * sizeof(uint64_t));
-    }
+    if (const auto PMODIFIERS = sc<uint64_t*>(wl_array_add(&modsArr, modifiers.size() * sizeof(uint64_t))))
+        std::ranges::copy(modifiers, PMODIFIERS);
     m_sessionResource->sendDmabufFormat(format, &modsArr);
     wl_array_release(&modsArr);
 
@@ -315,7 +311,7 @@ void CImageCopyCaptureCursorSession::sendCursorEvents() {
 
     const auto PMONITOR  = m_source->m_monitor.expired() ? m_source->m_window->m_monitor.lock() : m_source->m_monitor.lock();
     CBox       sourceBox = m_source->logicalBox();
-    bool       overlaps  = g_pPointerManager->getCursorBoxGlobal().overlaps(sourceBox);
+    bool       overlaps  = Pointer::mgr()->getCursorBoxGlobal().overlaps(sourceBox);
 
     if (m_entered && !overlaps) {
         m_entered = false;
@@ -329,13 +325,13 @@ void CImageCopyCaptureCursorSession::sendCursorEvents() {
     if (!overlaps)
         return;
 
-    Vector2D pos = g_pPointerManager->position() - sourceBox.pos();
+    Vector2D pos = Pointer::mgr()->position() - sourceBox.pos();
     if (pos != m_pos) {
         m_pos = pos;
         m_resource->sendPosition(m_pos.x, m_pos.y);
     }
 
-    Vector2D hotspot = g_pPointerManager->hotspot();
+    Vector2D hotspot = Pointer::mgr()->hotspot();
     if (hotspot != m_hotspot) {
         m_hotspot = hotspot;
         m_resource->sendHotspot(m_hotspot.x, m_hotspot.y);

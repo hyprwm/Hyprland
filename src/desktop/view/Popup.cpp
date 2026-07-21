@@ -2,16 +2,19 @@
 #include "../../config/ConfigValue.hpp"
 #include "../../config/shared/animation/AnimationTree.hpp"
 #include "../../Compositor.hpp"
+#include "../state/FadingOutState.hpp"
+#include "../state/PopupFadeout.hpp"
 #include "../../protocols/LayerShell.hpp"
 #include "../../protocols/XDGShell.hpp"
 #include "../../protocols/core/Compositor.hpp"
 #include "../../managers/SeatManager.hpp"
-#include "../../managers/animation/AnimationManager.hpp"
+#include "../../animation/AnimationManager.hpp"
 #include "LayerSurface.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../render/OpenGL.hpp"
+#include "../../output/Monitor.hpp"
 #include "../../state/MonitorState.hpp"
 #include <array>
 #include <ranges>
@@ -60,7 +63,7 @@ SP<CPopup> CPopup::fromView(SP<IView> v) {
     return dynamicPointerCast<CPopup>(v);
 }
 
-CPopup::CPopup() : IView(CWLSurface::create()) {
+CPopup::CPopup() : IView(CWLSurface::create()), m_animationController(this), m_alpha(POPUP_ALPHA_LAST) {
     ;
 }
 
@@ -74,9 +77,6 @@ eViewType CPopup::type() const {
 }
 
 bool CPopup::visible() const {
-    if (m_fadingOut && m_alpha->value() > 0.F)
-        return true;
-
     if (!m_mapped || !m_wlSurface->resource())
         return false;
 
@@ -121,23 +121,24 @@ bool CPopup::desktopComponent() const {
 
 void CPopup::initAllSignals() {
 
-    g_pAnimationManager->createAnimation(0.f, m_alpha, Config::animationTree()->getAnimationPropertyConfig("fadePopupsIn"), AVARDAMAGE_NONE);
-    m_alpha->setUpdateCallback([this](auto) {
+    Animation::mgr()->createAnimation(0.f, m_alpha.get(POPUP_ALPHA_FADE), Config::animationTree()->getAnimationPropertyConfig("fadePopupsIn"), AVARDAMAGE_NONE);
+    m_alpha.get(POPUP_ALPHA_FADE)->setUpdateCallback([this](auto) {
         //
         g_pHyprRenderer->damageBox(CBox{coordsGlobal(), size()});
     });
-    m_alpha->setCallbackOnEnd(
-        [this](auto) {
-            if (inert()) {
-                g_pEventLoopManager->doLater([p = m_self] {
-                    if (!p)
-                        return;
-                    g_pHyprRenderer->damageBox(CBox{p->coordsGlobal(), p->size()});
-                    p->fullyDestroy();
-                });
-            }
-        },
-        false);
+    m_alpha.get(POPUP_ALPHA_FADE)
+        ->setCallbackOnEnd(
+            [this](auto) {
+                if (inert()) {
+                    g_pEventLoopManager->doLater([p = m_self] {
+                        if (!p)
+                            return;
+                        g_pHyprRenderer->damageBox(CBox{p->coordsGlobal(), p->size()});
+                        p->fullyDestroy();
+                    });
+                }
+            },
+            false);
 
     if (!m_resource) {
         if (!m_windowOwner.expired())
@@ -185,11 +186,6 @@ void CPopup::onDestroy() {
     m_listeners.commit.reset();
     m_listeners.newPopup.reset();
 
-    if (m_fadingOut && m_alpha->isBeingAnimated()) {
-        Log::logger->log(Log::DEBUG, "popup {:x}: skipping full destroy, animating", rc<uintptr_t>(this));
-        return;
-    }
-
     fullyDestroy();
 }
 
@@ -232,9 +228,9 @@ void CPopup::onMap() {
             m_layerOwner->m_monitor->m_blurFBDirty = true;
     }
 
-    m_alpha->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadePopupsIn"));
-    m_alpha->setValueAndWarp(0.F);
-    *m_alpha = 1.F;
+    m_alpha.get(POPUP_ALPHA_FADE)->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadePopupsIn"));
+    m_alpha.get(POPUP_ALPHA_FADE)->setValueAndWarp(0.F);
+    *m_alpha.get(POPUP_ALPHA_FADE) = 1.F;
 
     Log::logger->log(Log::DEBUG, "popup {:x}: mapped", rc<uintptr_t>(this));
 }
@@ -272,12 +268,14 @@ void CPopup::onUnmap() {
 
     m_lastSize = MAX_DAMAGE_SIZE;
 
-    g_pHyprRenderer->makeSnapshot(m_self);
+    const auto SNAPSHOT    = g_pHyprRenderer->makeSnapshotFB(m_self);
+    const auto SOURCEALPHA = m_alpha.get(POPUP_ALPHA_FADE)->value();
 
-    m_fadingOut = true;
-    m_alpha->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadePopupsOut"));
-    m_alpha->setValueAndWarp(1.F);
-    *m_alpha = 0.F;
+    m_alpha.get(POPUP_ALPHA_FADE)->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadePopupsOut"));
+    m_alpha.get(POPUP_ALPHA_FADE)->setValueAndWarp(1.F);
+    *m_alpha.get(POPUP_ALPHA_FADE) = 0.F;
+
+    Desktop::fadingOutState()->add(CPopupFadeout::create(m_self.lock(), SNAPSHOT, SOURCEALPHA));
 
     m_mapped = false;
 
@@ -397,15 +395,18 @@ PHLLS CPopup::layerOwner() const {
 Vector2D CPopup::coordsRelativeToParent() const {
     Vector2D offset;
 
-    if (!m_resource)
+    if (!m_resource || m_resource->m_surface.expired())
         return m_lastPos;
 
     WP<CPopup> current = m_self;
     offset -= current->m_resource->m_surface->m_current.geometry.pos();
 
     while (current->m_parent && current->m_resource) {
+        const auto SURFACE = current->wlSurface();
+        if (!SURFACE || !SURFACE->resource())
+            return m_lastPos;
 
-        offset += current->wlSurface()->resource()->m_current.offset;
+        offset += SURFACE->resource()->m_current.offset;
         offset += current->m_resource->m_geometry.pos();
 
         current = current->m_parent;
@@ -424,9 +425,9 @@ Vector2D CPopup::localToGlobal(const Vector2D& rel) const {
 
 Vector2D CPopup::t1ParentCoords() const {
     if (!m_windowOwner.expired())
-        return m_windowOwner->m_realPosition->value();
+        return m_windowOwner->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
     if (!m_layerOwner.expired())
-        return m_layerOwner->m_realPosition->value();
+        return m_layerOwner->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
 
     ASSERT(false);
     return {};
@@ -474,13 +475,10 @@ Vector2D CPopup::size() const {
 }
 
 void CPopup::sendScale() {
-    float scale;
-    if (!m_windowOwner.expired())
-        scale = m_windowOwner->wlSurface()->m_lastScaleFloat;
-    else if (!m_layerOwner.expired())
-        scale = m_layerOwner->wlSurface()->m_lastScaleFloat;
-    else
-        UNREACHABLE();
+    const auto PMONITOR = getMonitor();
+
+    if (!PMONITOR)
+        return;
 
     // Walk the whole surface tree, not just the popup's root surface: a popup
     // can wrap its content in subsurfaces (e.g. Firefox/GTK render the popup
@@ -488,7 +486,16 @@ void CPopup::sendScale() {
     // those subsurfaces at the default 1.0 fractional scale, so under
     // fractional scaling the content renders at the wrong size and the input
     // geometry desyncs from the visible geometry. Mirrors CWindow::sendScale.
-    m_wlSurface->resource()->breadthfirst([scale](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) { g_pCompositor->setPreferredScaleForSurface(s, scale); }, nullptr);
+    m_wlSurface->resource()->breadthfirst(
+        [PMONITOR](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) {
+            const auto PSURFACE = CWLSurface::fromResource(s);
+
+            if (!PSURFACE)
+                return;
+
+            PSURFACE->sendScale(PMONITOR->m_scale);
+        },
+        nullptr);
 }
 
 void CPopup::bfHelper(std::span<const SP<CPopup>> nodes, std::function<void(SP<CPopup>, void*)> fn, void* data) {
@@ -555,6 +562,10 @@ const CBox& CPopup::popupTreeExtents() const {
     for (size_t i = 0; i < popups.size(); ++i) {
         const auto& popup = popups[i];
         if (!popup)
+            continue;
+
+        // a popup whose xdg surface has been destroyed but the XDDGPopupResource not yet recevied onDestroy()
+        if (popup->m_resource && popup->m_resource->m_surface.expired())
             continue;
 
         if (popup->wlSurface() && popup->wlSurface()->resource()) {
@@ -683,4 +694,20 @@ PHLMONITOR CPopup::getMonitor() const {
     if (!m_layerOwner.expired())
         return m_layerOwner->m_monitor.lock();
     return nullptr;
+}
+
+Types::CMultiAVarContainer<float, uint8_t>& CPopup::alpha() {
+    return m_alpha;
+}
+
+std::optional<uint8_t> CPopup::alphaGenericToKey(eAlphaModifiableProp p) {
+    switch (p) {
+        case IAlphaModifiable::ALPHA_MODIFIABLE_FADE: return POPUP_ALPHA_FADE;
+
+        // this is here to suppress the warning
+        case IAlphaModifiable::ALPHA_MODIFIABLE_LAST: return std::nullopt;
+    }
+
+    static_assert(ALPHA_MODIFIABLE_LAST == 1);
+    UNREACHABLE();
 }

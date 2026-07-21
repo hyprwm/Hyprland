@@ -13,6 +13,12 @@
 #include <unistd.h>
 #include <wayland-server-core.h>
 
+// libei does not guarantee a client name
+static const char* getClientName(eis_client* client) {
+    const char* name = client ? eis_client_get_name(client) : nullptr;
+    return name ? name : "<unnamed>";
+}
+
 CEis::CEis(std::string socketName) {
     Log::logger->log(Log::INFO, "[EIS] Init socket: {}", socketName);
 
@@ -83,16 +89,16 @@ int CEis::onEvent(eis_event* e) {
     switch (eis_event_get_type(e)) {
         case EIS_EVENT_CLIENT_CONNECT:
             eisClient = eis_event_get_client(e);
-            Log::logger->log(Log::INFO, "[EIS] {} client connected: {}", eis_client_is_sender(eisClient) ? "Sender" : "Receiver", eis_client_get_name(eisClient));
+            Log::logger->log(Log::INFO, "[EIS] {} client connected: {}", eis_client_is_sender(eisClient) ? "Sender" : "Receiver", getClientName(eisClient));
 
             if (eis_client_is_sender(eisClient)) {
-                Log::logger->log(Log::WARN, "[EIS] Unexpected sender client {} connected to input capture session", eis_client_get_name(eisClient));
+                Log::logger->log(Log::WARN, "[EIS] Unexpected sender client {} connected to input capture session", getClientName(eisClient));
                 eis_client_disconnect(eisClient);
                 return 0;
             }
 
             if (m_client.m_handle) {
-                Log::logger->log(Log::WARN, "[EIS] Unexpected additional client {} connected to input capture session", eis_client_get_name(eisClient));
+                Log::logger->log(Log::WARN, "[EIS] Unexpected additional client {} connected to input capture session", getClientName(eisClient));
                 eis_client_disconnect(eisClient);
                 return 0;
             }
@@ -112,7 +118,7 @@ int CEis::onEvent(eis_event* e) {
             break;
         case EIS_EVENT_CLIENT_DISCONNECT:
             eisClient = eis_event_get_client(e);
-            Log::logger->log(Log::INFO, "[EIS] {} disconnected", eis_client_get_name(eisClient));
+            Log::logger->log(Log::INFO, "[EIS] {} disconnected", getClientName(eisClient));
             eis_client_disconnect(eisClient);
 
             eis_seat_unref(m_client.m_seat);

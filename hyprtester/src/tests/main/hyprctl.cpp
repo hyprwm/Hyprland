@@ -167,6 +167,28 @@ TEST_CASE(hyprctlJsonErrors) {
     EXPECT(jqProc.exitCode(), 0);
 }
 
+TEST_CASE(hyprctlBindsJson) {
+    EXPECT(getFromSocket("/eval hl.bind('SUPER + F12', hl.dsp.exec_cmd('true'), { description = 'hyprctl binds JSON regression', allow_input_capture = false })"), "ok");
+
+    CProcess jqProc("bash", {"-c", R"(hyprctl -j binds | jq -e '
+        type == "array" and
+        ([.[] | select(.key == "F12")] | length == 1) and
+        any(.[];
+            .key == "F12" and
+            .has_description == true and
+            (.description | type) == "string" and
+            .description == "hyprctl binds JSON regression" and
+            (.allow_input_capture | type) == "boolean" and
+            .allow_input_capture == false
+        )
+    ')"});
+    jqProc.addEnv("HYPRLAND_INSTANCE_SIGNATURE", HIS);
+    jqProc.runSync();
+    EXPECT(jqProc.exitCode(), 0);
+
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + F12')"), "ok");
+}
+
 TEST_CASE(hyprctlREPL) {
     EXPECT(getCommandStdOut("hyprctl repl 'print(type(hl))'"), "table");
     EXPECT(getCommandStdOut("hyprctl eval 'print(type(hl))'"), "ok");

@@ -912,8 +912,8 @@ void CScrollingAlgorithm::resizeTarget(const Vector2D& delta, SP<ITarget> target
             float nextSize = CURR_COLUMN->getTargetSize(NEXT_TD);
             float currSize = CURR_COLUMN->getTargetSize(CURR_TD);
 
-            if (!(nextSize <= MIN_ROW_HEIGHT && delta.y >= 0)) {
-                float adjust = std::clamp((float)(delta.y / USABLE.h), (-currSize + MIN_ROW_HEIGHT), (nextSize - MIN_ROW_HEIGHT));
+            if (!(nextSize <= MIN_ROW_HEIGHT && modDelta.y >= 0)) {
+                float adjust = std::clamp((float)(modDelta.y / USABLE.h), (-currSize + MIN_ROW_HEIGHT), (nextSize - MIN_ROW_HEIGHT));
 
                 CURR_COLUMN->setTargetSize(NEXT_TD, std::clamp(nextSize - adjust, MIN_ROW_HEIGHT, MAX_ROW_HEIGHT));
                 CURR_COLUMN->setTargetSize(CURR_TD, std::clamp(currSize + adjust, MIN_ROW_HEIGHT, MAX_ROW_HEIGHT));

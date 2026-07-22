@@ -3,7 +3,7 @@
 #include "../debug/HyprCtl.hpp"
 #include "../plugins/PluginSystem.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
-#include "../config/legacy/ConfigManager.hpp"
+#include "../config/ConfigManager.hpp"
 #include "../config/lua/ConfigManager.hpp"
 #include "../notification/NotificationOverlay.hpp"
 #include "../layout/target/Target.hpp"
@@ -175,53 +175,15 @@ APICALL bool HyprlandAPI::removeWindowDecoration(HANDLE handle, IHyprWindowDecor
 }
 
 APICALL bool HyprlandAPI::addConfigValue(HANDLE handle, const std::string& name, const Hyprlang::CConfigValue& value) {
-    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
-
-    if (Config::mgr()->type() != Config::CONFIG_LEGACY)
-        return false;
-
-    if (!g_pPluginSystem->m_allowConfigVars)
-        return false;
-
-    if (!PLUGIN)
-        return false;
-
-    if (!name.starts_with("plugin:"))
-        return false;
-
-    Config::Legacy::mgr()->addPluginConfigVar(handle, name, value);
-    return true;
+    return false;
 }
 
 APICALL bool HyprlandAPI::addConfigKeyword(HANDLE handle, const std::string& name, Hyprlang::PCONFIGHANDLERFUNC fn, Hyprlang::SHandlerOptions opts) {
-    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
-
-    if (Config::mgr()->type() != Config::CONFIG_LEGACY)
-        return false;
-
-    if (!g_pPluginSystem->m_allowConfigVars)
-        return false;
-
-    if (!PLUGIN)
-        return false;
-
-    Config::Legacy::mgr()->addPluginKeyword(handle, name, fn, opts);
-    return true;
+    return false;
 }
 
 APICALL Hyprlang::CConfigValue* HyprlandAPI::getConfigValue(HANDLE handle, const std::string& name) {
-    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
-
-    if (Config::mgr()->type() != Config::CONFIG_LEGACY)
-        return nullptr;
-
-    if (!PLUGIN)
-        return nullptr;
-
-    if (name.starts_with("plugin:"))
-        return Config::Legacy::mgr()->getHyprlangConfigValuePtr(name.substr(7), "plugin");
-
-    return Config::Legacy::mgr()->getHyprlangConfigValuePtr(name);
+    return nullptr;
 }
 
 APICALL void* HyprlandAPI::getFunctionAddressFromSignature(HANDLE handle, const std::string& sig) {
@@ -234,44 +196,15 @@ APICALL void* HyprlandAPI::getFunctionAddressFromSignature(HANDLE handle, const 
 }
 
 APICALL bool HyprlandAPI::addDispatcher(HANDLE handle, const std::string& name, std::function<void(std::string)> handler) {
-    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
-
-    if (!PLUGIN)
-        return false;
-
-    PLUGIN->m_registeredDispatchers.push_back(name);
-
-    g_pKeybindManager->m_dispatchers[name] = [handler](std::string arg1) -> SDispatchResult {
-        handler(arg1);
-        return {};
-    };
-
-    return true;
+    return false;
 }
 
 APICALL bool HyprlandAPI::addDispatcherV2(HANDLE handle, const std::string& name, std::function<SDispatchResult(std::string)> handler) {
-    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
-
-    if (!PLUGIN)
-        return false;
-
-    PLUGIN->m_registeredDispatchers.push_back(name);
-
-    g_pKeybindManager->m_dispatchers[name] = handler;
-
-    return true;
+    return false;
 }
 
 APICALL bool HyprlandAPI::removeDispatcher(HANDLE handle, const std::string& name) {
-    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
-
-    if (!PLUGIN)
-        return false;
-
-    std::erase_if(g_pKeybindManager->m_dispatchers, [&](const auto& other) { return other.first == name; });
-    std::erase_if(PLUGIN->m_registeredDispatchers, [&](const auto& other) { return other == name; });
-
-    return true;
+    return false;
 }
 
 APICALL bool addNotificationV2(HANDLE handle, const std::unordered_map<std::string, std::any>& data) {

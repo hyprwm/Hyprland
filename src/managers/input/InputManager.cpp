@@ -7,7 +7,7 @@
 #include <algorithm>
 #include "../../config/ConfigValue.hpp"
 #include "../../config/shared/actions/ConfigActions.hpp"
-#include "../../config/legacy/ConfigManager.hpp"
+#include "../../config/ConfigManager.hpp"
 
 #include "../../desktop/view/WLSurface.hpp"
 #include "../../desktop/state/FocusState.hpp"

@@ -1,7 +1,7 @@
 #include "VirtualKeyboard.hpp"
 #include "../defines.hpp"
 #include "../protocols/VirtualKeyboard.hpp"
-#include "../config/legacy/ConfigManager.hpp"
+#include "../config/ConfigManager.hpp"
 #include <wayland-server-protocol.h>
 
 SP<CVirtualKeyboard> CVirtualKeyboard::create(SP<CVirtualKeyboardV1Resource> keeb) {

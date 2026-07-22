@@ -1,6 +1,5 @@
 #include "ConfigManager.hpp"
 #include "supplementary/jeremy/Jeremy.hpp"
-#include "legacy/ConfigManager.hpp"
 #include "lua/ConfigManager.hpp"
 #include "../debug/log/Logger.hpp"
 
@@ -28,27 +27,10 @@ bool Config::initConfigManager() {
 
     if (CFG_PATH->type == Supplementary::Jeremy::CONFIG_TYPE_REGULAR) {
         Log::logger->log(Log::DEBUG, "[cfg] Regular config at {}", filePath.string());
-
-        std::error_code ec;
-        if (filePath.extension() == ".lua") {
-            // we have lua!
-            Log::logger->log(Log::DEBUG, "[cfg] Using lua config found at {}", filePath.string());
-            g_mgr = makeUnique<Lua::CConfigManager>();
-        } else {
-            filePath.replace_extension(".conf");
-            Log::logger->log(Log::DEBUG, "[cfg] Lua config not found, using legacy config at {}", filePath.string());
-            g_mgr = makeUnique<Legacy::CConfigManager>();
-        }
+        g_mgr = makeUnique<Lua::CConfigManager>();
     } else {
-        Log::logger->log(Log::DEBUG, "[cfg] Config is either explicit or special.");
-
-        if (filePath.extension() == ".lua") {
-            Log::logger->log(Log::DEBUG, "[cfg] Config is lua, loading lua mgr");
-            g_mgr = makeUnique<Lua::CConfigManager>();
-        } else {
-            Log::logger->log(Log::DEBUG, "[cfg] Config is NOT lua, loading regular mgr");
-            g_mgr = makeUnique<Legacy::CConfigManager>();
-        }
+        Log::logger->log(Log::DEBUG, "[cfg] Config is either explicit or special");
+        g_mgr = makeUnique<Lua::CConfigManager>();
     }
 
     RASSERT(g_mgr, "failed to create a suitable config manager");
@@ -77,7 +59,6 @@ UP<IConfigManager>& Config::mgr() {
 const char* Config::typeToString(eConfigManagerType t) {
     switch (t) {
         case CONFIG_LUA: return "lua";
-        case CONFIG_LEGACY: return "hyprlang";
         default: return "error";
     }
 }

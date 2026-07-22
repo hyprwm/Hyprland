@@ -14,6 +14,7 @@
 
 #include "types/LuaConfigUtils.hpp"
 #include "types/LuaConfigBool.hpp"
+#include "bindings/LuaBindingsInternal.hpp"
 
 #include "../values/ConfigValues.hpp"
 
@@ -1351,6 +1352,49 @@ void CConfigManager::callLuaFn(int ref) {
         addError(std::format("error in callLuaFn: {}", lua_tostring(m_lua, -1)));
         lua_pop(m_lua, 1);
     }
+}
+
+static SDispatchResult dispatchResultFromLua(lua_State* L, int idx) {
+    SDispatchResult result;
+
+    if (!lua_istable(L, idx))
+        return result;
+
+    lua_getfield(L, idx, "pass_event");
+    result.passEvent = lua_toboolean(L, -1);
+    lua_pop(L, 1);
+
+    lua_getfield(L, idx, "ok");
+    if (lua_isboolean(L, -1))
+        result.success = lua_toboolean(L, -1);
+    lua_pop(L, 1);
+
+    if (!result.success) {
+        lua_getfield(L, idx, "error");
+        if (lua_isstring(L, -1))
+            result.error = lua_tostring(L, -1);
+        lua_pop(L, 1);
+    }
+
+    return result;
+}
+
+SDispatchResult CConfigManager::callLuaFnBind(int ref) {
+    lua_rawgeti(m_lua, LUA_REGISTRYINDEX, ref);
+
+    int status = guardedPCall(0, 1, 0, CConfigManager::LUA_TIMEOUT_KEYBIND_CALLBACK_MS, "keybind callback");
+
+    if (status != LUA_OK) {
+        Config::Lua::Bindings::Internal::reportError(m_lua,
+                                                     Config::Actions::SActionError{std::format("error in keybind lambda: {}", lua_tostring(m_lua, -1)),
+                                                                                   Config::Actions::eActionErrorLevel::ERROR, Config::Actions::eActionErrorCode::LUA_ERROR});
+        lua_pop(m_lua, 1);
+        return {.success = false, .error = "lua keybind error"};
+    }
+
+    auto result = dispatchResultFromLua(m_lua, -1);
+    lua_pop(m_lua, 1);
+    return result;
 }
 
 void CConfigManager::callLuaFn(int ref, const std::function<int(lua_State*)>& pushArgs, int timeoutMs, std::string_view context) {

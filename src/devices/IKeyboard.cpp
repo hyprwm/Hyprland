@@ -1,6 +1,6 @@
 #include "IKeyboard.hpp"
 #include "../defines.hpp"
-#include "../config/legacy/ConfigManager.hpp"
+#include "../config/ConfigManager.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../managers/SeatManager.hpp"
 #include "../helpers/MiscFunctions.hpp"

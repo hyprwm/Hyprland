@@ -6,7 +6,7 @@
 #include <cmath>
 #include <filesystem>
 #include "../config/ConfigValue.hpp"
-#include "../config/legacy/ConfigManager.hpp"
+#include "../config/ConfigManager.hpp"
 #include "../pointer/cursor/CursorManager.hpp"
 #include "../pointer/PointerManager.hpp"
 #include "../managers/input/InputManager.hpp"

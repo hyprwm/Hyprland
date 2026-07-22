@@ -103,10 +103,6 @@ enum eMultiKeyCase : uint8_t {
     MK_FULL_MATCH
 };
 
-namespace Config::Legacy {
-    class CConfigManager;
-}
-
 namespace Config::Lua {
     class CConfigManager;
 }
@@ -116,31 +112,29 @@ class CKeybindManager {
     CKeybindManager();
     ~CKeybindManager();
 
-    bool                                                                         onKeyEvent(std::any, SP<IKeyboard>);
-    bool                                                                         onAxisEvent(const IPointer::SAxisEvent&, SP<IPointer>);
-    bool                                                                         onMouseEvent(const IPointer::SButtonEvent&, SP<IPointer>);
-    void                                                                         resizeWithBorder(const IPointer::SButtonEvent&);
-    void                                                                         onSwitchEvent(const std::string&);
-    void                                                                         onSwitchOnEvent(const std::string&);
-    void                                                                         onSwitchOffEvent(const std::string&);
+    bool                      onKeyEvent(std::any, SP<IKeyboard>);
+    bool                      onAxisEvent(const IPointer::SAxisEvent&, SP<IPointer>);
+    bool                      onMouseEvent(const IPointer::SButtonEvent&, SP<IPointer>);
+    void                      resizeWithBorder(const IPointer::SButtonEvent&);
+    void                      onSwitchEvent(const std::string&);
+    void                      onSwitchOnEvent(const std::string&);
+    void                      onSwitchOffEvent(const std::string&);
 
-    SP<SKeybind>                                                                 addKeybind(SKeybind);
-    void                                                                         removeKeybind(uint32_t, const SParsedKey&);
-    void                                                                         removeKeybind(const std::string& displayKeys);
-    uint32_t                                                                     stringToModMask(std::string);
-    uint32_t                                                                     keycodeToModifier(xkb_keycode_t);
-    SP<SKeybind>                                                                 findConflictingKeybind(xkb_keysym_t keysym, uint32_t modmask);
-    void                                                                         clearKeybinds();
-    void                                                                         shadowKeybinds(const xkb_keysym_t& doesntHave = 0, const uint32_t doesntHaveCode = 0);
-    SSubmap                                                                      getCurrentSubmap();
+    SP<SKeybind>              addKeybind(SKeybind);
+    void                      removeKeybind(uint32_t, const SParsedKey&);
+    void                      removeKeybind(const std::string& displayKeys);
+    uint32_t                  stringToModMask(std::string);
+    uint32_t                  keycodeToModifier(xkb_keycode_t);
+    SP<SKeybind>              findConflictingKeybind(xkb_keysym_t keysym, uint32_t modmask);
+    void                      clearKeybinds();
+    void                      shadowKeybinds(const xkb_keysym_t& doesntHave = 0, const uint32_t doesntHaveCode = 0);
+    SSubmap                   getCurrentSubmap();
 
-    std::unordered_map<std::string, std::function<SDispatchResult(std::string)>> m_dispatchers;
+    bool                      m_groupsLocked = false;
 
-    bool                                                                         m_groupsLocked = false;
+    std::vector<SP<SKeybind>> m_keybinds;
 
-    std::vector<SP<SKeybind>>                                                    m_keybinds;
-
-    SP<SKeybind>                                                                 m_currentKeybind;
+    SP<SKeybind>              m_currentKeybind;
 
     //since we can't find keycode through keyname in xkb:
     //on sendshortcut call, we once search for keyname (e.g. "g") the correct keycode (e.g. 42)
@@ -178,11 +172,11 @@ class CKeybindManager {
 
     void                      updateXKBTranslationState();
     bool                      ensureMouseBindState();
+    void                      callBindDispatcher(const SP<SKeybind>);
     static SDispatchResult    releaseInputCapture(std::string);
 
     friend class CCompositor;
     friend class CInputManager;
-    friend class Config::Legacy::CConfigManager;
     friend class Config::Lua::CConfigManager;
     friend class CWorkspace;
     friend class Pointer::CPointerManager;

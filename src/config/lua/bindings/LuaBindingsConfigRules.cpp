@@ -32,7 +32,6 @@
 #include "../../../managers/input/trackpad/TrackpadGestures.hpp"
 #include "../../../managers/input/trackpad/gestures/CloseGesture.hpp"
 #include "../../../managers/input/trackpad/gestures/CursorZoomGesture.hpp"
-#include "../../../managers/input/trackpad/gestures/DispatcherGesture.hpp"
 #include "../../../managers/input/trackpad/gestures/FloatGesture.hpp"
 #include "../../../managers/input/trackpad/gestures/FullscreenGesture.hpp"
 #include "../../../managers/input/trackpad/gestures/LuaFunctionGesture.hpp"

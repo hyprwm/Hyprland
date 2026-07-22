@@ -33,7 +33,6 @@ using namespace Hyprutils::OS;
 #include <aquamarine/input/Input.hpp>
 
 #include "../config/shared/complex/ComplexDataTypes.hpp"
-#include "../config/legacy/ConfigManager.hpp"
 #include "../config/lua/ConfigManager.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../config/shared/parserUtils/ParserUtils.hpp"
@@ -1140,121 +1139,7 @@ static std::string dispatchRequest(eHyprCtlOutputFormat format, std::string in) 
         return ret + "\n\n → Note: dispatch in lua is a shorthand for hl.dispatch(...), your syntax might need to be updated.";
     }
 
-    const auto DISPATCHSTR = in.substr(0, in.find_first_of(' '));
-
-    auto       DISPATCHARG = std::string();
-    if (sc<int>(in.find_first_of(' ')) != -1)
-        DISPATCHARG = in.substr(in.find_first_of(' ') + 1);
-
-    const auto DISPATCHER = g_pKeybindManager->m_dispatchers.find(DISPATCHSTR);
-    if (DISPATCHER == g_pKeybindManager->m_dispatchers.end())
-        return "Invalid dispatcher";
-
-    SDispatchResult res = DISPATCHER->second(DISPATCHARG);
-
-    Log::logger->log(Log::DEBUG, "Hyprctl: dispatcher {} : {}{}", DISPATCHSTR, DISPATCHARG, res.success ? "" : " -> " + res.error);
-
-    return res.success ? "ok" : res.error;
-}
-
-static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) {
-
-    if (Config::mgr()->type() != Config::CONFIG_LEGACY)
-        return "keyword can't work with non-legacy parsers. Use eval.";
-
-    WP<Config::Legacy::CConfigManager> mgr = dynamicPointerCast<Config::Legacy::CConfigManager>(WP<Config::IConfigManager>(Config::mgr()));
-
-    // Find the first space to strip the keyword keyword
-    auto const firstSpacePos = in.find_first_of(' ');
-    if (firstSpacePos == std::string::npos) // Handle the case where there's no space found (invalid input)
-        return "Invalid input: no space found";
-
-    // Strip the keyword
-    in = in.substr(firstSpacePos + 1);
-
-    // Find the next space for the COMMAND and VALUE
-    auto const secondSpacePos = in.find_first_of(' ');
-    if (secondSpacePos == std::string::npos) // Handle the case where there's no second space (invalid input)
-        return "Invalid input: command and value not properly formatted";
-
-    // Extract COMMAND and VALUE
-    const auto COMMAND = in.substr(0, secondSpacePos);
-    const auto VALUE   = in.substr(secondSpacePos + 1);
-
-    // If COMMAND is empty, handle accordingly
-    if (COMMAND.empty())
-        return "Invalid input: command is empty";
-
-    g_pHyprCtl->m_currentRequestParams.isDynamicKeyword = true;
-
-    std::string retval = mgr->parseKeyword(COMMAND, VALUE);
-
-    g_pHyprCtl->m_currentRequestParams.isDynamicKeyword = false;
-
-    if (COMMAND == "source") {
-        Config::monitorRuleMgr()->scheduleReload();
-        g_pEventLoopManager->doLater([mgr] { mgr->reloadRules(); });
-    }
-
-    // if we are executing a dynamic source we have to reload everything, so every if will have a check for source.
-    if (COMMAND.contains("monitor"))
-        g_pEventLoopManager->doLater([] { Config::monitorRuleMgr()->scheduleReload(); });
-
-    if (COMMAND.contains("input") || COMMAND.contains("device") || COMMAND == "source") {
-        g_pInputManager->setKeyboardLayout();     // update kb layout
-        g_pInputManager->setPointerConfigs();     // update mouse cfgs
-        g_pInputManager->setTouchDeviceConfigs(); // update touch device cfgs
-        g_pInputManager->setTabletConfigs();      // update tablets
-    }
-
-    if (COMMAND.contains("general:layout") || (COMMAND.contains("workspace") && VALUE.contains("layout:")))
-        Layout::Supplementary::algoMatcher()->updateWorkspaceLayouts();
-
-    if (COMMAND.contains("decoration:screen_shader") || COMMAND == "source")
-        g_pHyprRenderer->m_reloadScreenShader = true;
-
-    if (COMMAND.contains("blur") || COMMAND == "source") {
-        for (auto const& m : State::monitorState()->monitors()) {
-            if (m)
-                m->m_blurFBDirty = true;
-        }
-    }
-
-    if (COMMAND.contains("misc:disable_autoreload"))
-        Config::watcher()->update();
-
-    // decorations will probably need a repaint
-    if (COMMAND.contains("decoration:") || COMMAND.contains("border") || COMMAND == "workspace" || COMMAND.contains("zoom_factor") || COMMAND == "source") {
-        static auto PZOOMFACTOR = CConfigValue<Config::FLOAT>("cursor:zoom_factor");
-        for (auto const& m : State::monitorState()->monitors()) {
-            *(m->m_cursorZoom) = *PZOOMFACTOR;
-            g_pHyprRenderer->damageMonitor(m);
-            if (m->m_activeWorkspace)
-                m->m_activeWorkspace->m_space->recalculate();
-        }
-    }
-
-    if (COMMAND.contains("windowrule ") || COMMAND.contains("windowrule["))
-        mgr->reloadRules();
-
-    if (COMMAND.contains("layerrule") || COMMAND.contains("layerrule[")) {
-        mgr->reloadRules();
-        // Damage all monitors to redraw static layers.
-        for (auto const& m : State::monitorState()->monitors()) {
-            g_pHyprRenderer->damageMonitor(m);
-        }
-    }
-
-    if (COMMAND.contains("workspace"))
-        State::workspacePlacementController()->ensurePersistentWorkspacesPresent(
-            nullptr, [](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { State::workspacePlacementController()->moveWorkspaceToMonitor(ws, mon, noWarp); });
-
-    Log::logger->log(Log::DEBUG, "Hyprctl: keyword {} : {}", COMMAND, VALUE);
-
-    if (retval.empty())
-        return "ok";
-
-    return retval;
+    return "current config provider doesn't support dispatch";
 }
 
 static std::string reloadRequest(eHyprCtlOutputFormat format, std::string request) {
@@ -2034,7 +1919,6 @@ CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"switchxkblayout", false, switchXKBLayoutRequest});
     registerCommand(SHyprCtlCommand{"output", false, dispatchOutput});
     registerCommand(SHyprCtlCommand{"dispatch", false, dispatchRequest});
-    registerCommand(SHyprCtlCommand{"keyword", false, dispatchKeyword});
     registerCommand(SHyprCtlCommand{"setcursor", false, dispatchSetCursor});
     registerCommand(SHyprCtlCommand{"getoption", false, dispatchGetOption});
     registerCommand(SHyprCtlCommand{"decorations", false, decorationRequest});

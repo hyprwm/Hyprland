@@ -92,7 +92,7 @@ PHLWORKSPACE Internal::workspaceFromLuaSelectorOrObject(lua_State* L, int idx, c
     }
 
     if (lua_isstring(L, idx) || lua_isnumber(L, idx))
-        return State::workspaceState()->query().string(argStr(L, idx)).run();
+        return resolveWorkspaceStr(argStr(L, idx));
 
     Internal::configError(L, "{}: expected a workspace object or selector", fnName);
     return nullptr;

@@ -64,6 +64,7 @@ class CDRMSyncobjTimelineResource {
 
     bool                                   good();
 
+    WP<CDRMSyncobjTimelineResource>        m_self;
     Hyprutils::OS::CFileDescriptor         m_fd;
     SP<CSyncTimeline>                      m_timeline;
 

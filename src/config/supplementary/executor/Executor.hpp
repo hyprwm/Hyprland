@@ -40,6 +40,7 @@ namespace Config::Supplementary {
         std::vector<SExecRequest>                        m_execOnce, m_execShutdown;
 
         void                                             applyRuleToProc(SP<Desktop::Rule::CWindowRule> rule, int64_t pid, const std::string& token);
+        std::optional<uint64_t>                          spawnWithRules(std::string, PHLWORKSPACE, SP<Desktop::Rule::CWindowRule> rule);
         std::vector<std::pair<std::string, std::string>> getHyprlandLaunchEnv(PHLWORKSPACE pInitialWorkspace);
 
         struct {

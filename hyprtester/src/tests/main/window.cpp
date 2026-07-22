@@ -1229,6 +1229,80 @@ TEST_CASE(execRulesTagMutation) {
     Tests::killAllWindows();
 }
 
+TEST_CASE(execRulesDescendantProcess) {
+    OK(getFromSocket("/dispatch hl.dsp.exec_cmd('kitty --class kitty_exec_workspace & wait', { workspace = '2 silent' })"));
+
+    Tests::waitUntilWindowsN(1);
+
+    EXPECT_CONTAINS(getFromSocket("/getprop class:kitty_exec_workspace no_focus"), "false");
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_exec_workspace' })"));
+
+    {
+        const auto active = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(active, "class: kitty_exec_workspace");
+        EXPECT_CONTAINS(active, "workspace: 2");
+    }
+
+    OK(getFromSocket(
+        "/dispatch hl.dsp.exec_cmd('[workspace 3; border_size 7] kitty --class kitty_exec_special & wait', { workspace = 'special:exec_rules silent', no_initial_focus = true, "
+        "no_focus = true })"));
+
+    Tests::waitUntilWindowsN(2);
+
+    EXPECT_CONTAINS(getFromSocket("/getprop class:kitty_exec_special no_focus"), "true");
+    EXPECT_CONTAINS(getFromSocket("/getprop class:kitty_exec_special border_size"), "7");
+
+    {
+        const auto active = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(active, "class: kitty_exec_workspace");
+        EXPECT_CONTAINS(active, "workspace: 2");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.set_prop({ window = 'class:kitty_exec_special', prop = 'no_focus', value = 'false' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_exec_special' })"));
+
+    {
+        const auto active = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(active, "class: kitty_exec_special");
+        EXPECT_CONTAINS(active, "special:exec_rules");
+    }
+
+    Tests::killAllWindows();
+}
+
+TEST_CASE(execRulesPendingIsolation) {
+    OK(getFromSocket(
+        "/eval do hl.exec_cmd('sleep 1 && kitty --class kitty_exec_first', { workspace = '2 silent' }); "
+        "hl.exec_cmd('sleep 2 && kitty --class kitty_exec_second', { workspace = 'special:exec_rules_pending silent', no_initial_focus = true, no_focus = true }) end"));
+
+    Tests::waitUntilWindowsN(1);
+
+    EXPECT_CONTAINS(getFromSocket("/getprop class:kitty_exec_first no_focus"), "false");
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_exec_first' })"));
+
+    {
+        const auto active = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(active, "class: kitty_exec_first");
+        EXPECT_CONTAINS(active, "workspace: 2");
+    }
+
+    Tests::waitUntilWindowsN(2);
+
+    EXPECT_CONTAINS(getFromSocket("/getprop class:kitty_exec_first no_focus"), "false");
+    EXPECT_CONTAINS(getFromSocket("/getprop class:kitty_exec_second no_focus"), "true");
+
+    OK(getFromSocket("/dispatch hl.dsp.window.set_prop({ window = 'class:kitty_exec_second', prop = 'no_focus', value = 'false' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_exec_second' })"));
+
+    {
+        const auto active = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(active, "class: kitty_exec_second");
+        EXPECT_CONTAINS(active, "special:exec_rules_pending");
+    }
+
+    Tests::killAllWindows();
+}
+
 TEST_CASE(pinnedRetainsPositionOnWorkspaceChange) {
     ASSERT(!!Tests::spawnKitty("a"), true);
 

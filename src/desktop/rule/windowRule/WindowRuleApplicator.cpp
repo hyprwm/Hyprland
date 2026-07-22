@@ -557,6 +557,9 @@ void CWindowRuleApplicator::propertiesChanged(std::underlying_type_t<eRuleProper
 
         const auto WR = reinterpretPointerCast<CWindowRule>(r);
 
+        if (WR->isExecRule())
+            continue;
+
         if (!(WR->getPropertiesMask() & props) && !setsIntersect(WR->effectsSet(), effectsNeedingRecheck))
             continue;
 

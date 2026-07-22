@@ -77,6 +77,7 @@ namespace Event {
                 Event<PHLWINDOW>                        create;
                 Event<PHLWINDOW>                        open;
                 Event<PHLWINDOW>                        openEarly;
+                Event<PHLWINDOW>                        openLate;
                 Event<PHLWINDOWREF>                     destroy;
                 Event<PHLWINDOW>                        close;
                 Event<PHLWINDOW>                        kill;

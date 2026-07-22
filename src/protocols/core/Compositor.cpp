@@ -795,17 +795,19 @@ void CWLSurfaceResource::presentFeedback(const Time::steady_tp& when, PHLMONITOR
     if (m_current.presentationFeedbacks.empty())
         return;
 
+    // discarded content will never be scanned out, so there is no present event coming.
+    if (discarded) {
+        PROTO::presentation->discardFeedbacks(m_current.presentationFeedbacks);
+        return;
+    }
+
     auto FEEDBACK = makeUnique<CQueuedPresentationData>(m_self.lock(), std::move(m_current.presentationFeedbacks));
     FEEDBACK->attachMonitor(pMonitor);
-    if (discarded)
-        FEEDBACK->discarded();
-    else {
-        FEEDBACK->presented();
-        if (!pMonitor->m_lastScanout.expired()) {
-            const auto WINDOW = m_hlSurface ? Desktop::View::CWindow::fromView(m_hlSurface->view()) : nullptr;
-            if (WINDOW == pMonitor->m_lastScanout)
-                FEEDBACK->setPresentationType(true);
-        }
+    FEEDBACK->presented();
+    if (!pMonitor->m_lastScanout.expired()) {
+        const auto WINDOW = m_hlSurface ? Desktop::View::CWindow::fromView(m_hlSurface->view()) : nullptr;
+        if (WINDOW == pMonitor->m_lastScanout)
+            FEEDBACK->setPresentationType(true);
     }
     PROTO::presentation->queueData(std::move(FEEDBACK));
 }

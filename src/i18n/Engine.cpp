@@ -788,6 +788,7 @@ I18n::CI18nEngine::CI18nEngine() {
     registerEntry("it_IT", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Schermo {name}: la gamma di colori ampia è abilitata ma lo schermo non è in modalità 10-bit.");
     registerEntry("it_IT", TXT_KEY_NOTIF_NO_WATCHDOG,
                   "Hyprland è stato avviato senza start-hyprland. Ciò è assolutamente sconsigliato a meno che tu non sia in un ambiente di debug.");
+    registerEntry("it_IT", TXT_KEY_NOTIF_OUTDATED_CONFIG, "Le configurazioni in hyprlang (hyprland.conf) non saranno più supportate a partire da Hyprland 0.57.");
 
     registerEntry("it_IT", TXT_KEY_SAFE_MODE_TITLE, "Modalità sicura");
     registerEntry(

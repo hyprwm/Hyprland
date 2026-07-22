@@ -434,12 +434,6 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
         shadowKeybinds();
     }
 
-    if (m_pressedKeys.empty()) {
-        for (const auto& k : m_keybinds) {
-            k->releasePending = false; // reset this flag once we don't press any keys to avoid stale
-        }
-    }
-
     return !suppressEvent && !mouseBindWasActive;
 }
 
@@ -599,6 +593,20 @@ SSubmap CKeybindManager::getCurrentSubmap() {
     return SSubmap{.name = Config::Actions::state()->m_currentSubmap};
 }
 
+void CKeybindManager::trackForwardedInput() {
+    // Only meaningful mid-dispatch, on the press edge: the bind must be in m_pressedSpecialBinds when its release
+    // event arrives so the selection loop's IGNORECONDITIONS bypasses the modmask guard. The release edge runs
+    // through the dispatch loop's erase instead, so ignore it here (else this would re-add after that erase).
+    if (!m_currentKeybind || Config::Actions::state()->m_passPressed != 1)
+        return;
+
+    // idempotent: a nested hl.dispatch can reach the same bind twice within one press
+    if (std::ranges::find_if(m_pressedSpecialBinds, [&](const auto& other) { return other == m_currentKeybind; }) != m_pressedSpecialBinds.end())
+        return;
+
+    m_pressedSpecialBinds.emplace_back(m_currentKeybind);
+}
+
 SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWithMods& key, bool pressed, SP<IKeyboard> keyboard, SP<IHID> device) {
     static auto     PDISABLEINHIBIT = CConfigValue<Config::INTEGER>("binds:disable_keybind_grabbing");
     static auto     PDRAGTHRESHOLD  = CConfigValue<Config::INTEGER>("binds:drag_threshold");
@@ -635,8 +643,12 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
         if (PROTO::inputCapture->isCaptured() && !k->allowInputCapture)
             continue;
 
-        const bool SPECIALDISPATCHER = k->handler == "global" || k->handler == "pass" || k->handler == "sendshortcut" || k->handler == "mouse" || k->releasePending;
-        const bool SPECIALTRIGGERED  = std::ranges::find_if(m_pressedSpecialBinds, [&](const auto& other) { return other == k; }) != m_pressedSpecialBinds.end();
+        const bool SPECIALTRIGGERED = std::ranges::find_if(m_pressedSpecialBinds, [&](const auto& other) { return other == k; }) != m_pressedSpecialBinds.end();
+        // A bind is "special" if it forwards an input edge and so must release on key-up ignoring mods: a native
+        // special handler, or any bind currently tracked in m_pressedSpecialBinds (SPECIALTRIGGERED). The latter is
+        // how a Lua-wrapped dispatcher is recognized on its release pass - it gets back-filled into that vec right
+        // after it forwards input on press (see the dispatch loop below).
+        const bool SPECIALDISPATCHER = k->handler == "global" || k->handler == "pass" || k->handler == "sendshortcut" || k->handler == "mouse" || SPECIALTRIGGERED;
         const bool IGNORECONDITIONS =
             SPECIALDISPATCHER && !pressed && SPECIALTRIGGERED; // ignore mods. Pass, global dispatchers should be released immediately once the key is released.
 
@@ -779,19 +791,18 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
     }
 
     for (const auto& k : bindsHit) {
-        const bool SPECIALDISPATCHER = k->handler == "global" || k->handler == "pass" || k->handler == "sendshortcut" || k->handler == "mouse" || k->releasePending;
         const bool SPECIALTRIGGERED  = std::ranges::find_if(m_pressedSpecialBinds, [&](const auto& other) { return other == k; }) != m_pressedSpecialBinds.end();
+        const bool SPECIALDISPATCHER = k->handler == "global" || k->handler == "pass" || k->handler == "sendshortcut" || k->handler == "mouse" || SPECIALTRIGGERED;
 
         const auto DISPATCHER = m_dispatchers.find(k->mouse ? "mouse" : k->handler);
 
-        k->releasePending = false; // reset this flag if it's set
-        m_currentKeybind  = k;
+        m_currentKeybind = k;
 
         Hyprutils::Utils::CScopeGuard x([this] { m_currentKeybind.reset(); });
 
         if (SPECIALTRIGGERED && !pressed)
             std::erase_if(m_pressedSpecialBinds, [&](const auto& other) { return other == k; });
-        else if (SPECIALDISPATCHER && pressed)
+        else if (SPECIALDISPATCHER && pressed && !SPECIALTRIGGERED)
             m_pressedSpecialBinds.emplace_back(k);
 
         // Should never happen, as we check in the ConfigManager, but oh well

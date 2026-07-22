@@ -32,13 +32,10 @@ std::expected<SConfigStateReply, std::string> Jeremy::getMainConfigPath() {
         if (const auto CFG_ENV = getenv("HYPRLAND_CONFIG"); CFG_ENV)
             return SConfigStateReply{.path = CFG_ENV, .type = CONFIG_TYPE_EXPLICIT};
 
-        const auto LUA_PATHS  = Hyprutils::Path::findConfig(ISDEBUG ? "hyprlandd" : "hyprland", "lua");
-        const auto CONF_PATHS = Hyprutils::Path::findConfig(ISDEBUG ? "hyprlandd" : "hyprland", "conf");
+        const auto LUA_PATHS = Hyprutils::Path::findConfig(ISDEBUG ? "hyprlandd" : "hyprland", "lua");
 
         if (LUA_PATHS.first.has_value())
             return SConfigStateReply{.path = LUA_PATHS.first.value(), .type = CONFIG_TYPE_REGULAR};
-        else if (CONF_PATHS.first.has_value())
-            return SConfigStateReply{.path = CONF_PATHS.first.value(), .type = CONFIG_TYPE_REGULAR};
         else if (LUA_PATHS.second.has_value()) {
             auto CONFIGPATH = Hyprutils::Path::fullConfigPath(LUA_PATHS.second.value(), ISDEBUG ? "hyprlandd" : "hyprland", "lua");
             return SConfigStateReply{.path = CONFIGPATH, .type = CONFIG_TYPE_REGULAR};

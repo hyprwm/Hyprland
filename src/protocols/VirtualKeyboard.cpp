@@ -2,7 +2,7 @@
 #include <filesystem>
 #include <sys/mman.h>
 #include "../config/ConfigValue.hpp"
-#include "../config/legacy/ConfigManager.hpp"
+#include "../config/ConfigManager.hpp"
 #include "../devices/IKeyboard.hpp"
 #include "../helpers/time/Time.hpp"
 #include "../helpers/MiscFunctions.hpp"

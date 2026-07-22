@@ -1,7 +1,7 @@
 #include "defines.hpp"
 #include "debug/log/Logger.hpp"
 #include "Compositor.hpp"
-#include "config/legacy/ConfigManager.hpp"
+#include "config/ConfigManager.hpp"
 #include "init/initHelpers.hpp"
 #include "debug/HyprCtl.hpp"
 #include "helpers/env/Env.hpp"

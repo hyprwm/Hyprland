@@ -25,8 +25,7 @@ namespace Config {
     };
 
     enum eConfigManagerType : uint8_t {
-        CONFIG_LEGACY = 0,
-        CONFIG_LUA
+        CONFIG_LUA,
     };
 
     const char* typeToString(eConfigManagerType t);

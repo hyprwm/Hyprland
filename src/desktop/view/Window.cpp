@@ -2661,9 +2661,10 @@ void CWindow::unmapWindow() {
 
         if (candidate != Desktop::focusState()->window() && candidate) {
             if (candidate == nextInGroup)
-                Desktop::focusState()->rawWindowFocus(candidate, FOCUS_REASON_UNMAP_GROUPED_WINDOW);
+                Desktop::focusState()->rawWindowFocus(candidate, FOCUS_REASON_FOCUS_FALLBACK_UNMAP_GROUPED_WINDOW);
             else
-                Desktop::focusState()->fullWindowFocus(candidate, m_self->m_isFloating ? FOCUS_REASON_UNMAP_WINDOW_FLOATING : FOCUS_REASON_UNMAP_WINDOW_TILING);
+                Desktop::focusState()->fullWindowFocus(candidate,
+                                                       m_self->m_isFloating ? FOCUS_REASON_FOCUS_FALLBACK_UNMAP_WINDOW_FLOATING : FOCUS_REASON_FOCUS_FALLBACK_UNMAP_WINDOW_TILING);
 
             if ((*PEXITRETAINSFS || candidate == nextInGroup) && IS_CURRENT_WINDOW_FS)
                 // set the candidate to the current window's FS state - use the current window's layoutAware FS behaviour

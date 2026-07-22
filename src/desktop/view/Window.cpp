@@ -2551,6 +2551,8 @@ void CWindow::mapWindow() {
         if (*PXWLFORCESCALEZERO)
             m_X11SurfaceScaledBy = PMONITOR->m_scale;
     }
+
+    Event::bus()->m_events.window.openLate.emit(m_self.lock());
 }
 
 void CWindow::unmapWindow() {

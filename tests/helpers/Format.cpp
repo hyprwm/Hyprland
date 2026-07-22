@@ -91,8 +91,11 @@ TEST(Helpers, formatDrmFormatName) {
 }
 
 TEST(Helpers, formatAlphaFormat) {
-    EXPECT_EQ(alphaFormat(DRM_FORMAT_XRGB8888), DRM_FORMAT_ARGB8888);
-    EXPECT_EQ(alphaFormat(DRM_FORMAT_XBGR8888), DRM_FORMAT_ABGR8888);
-    // Format without alpha stripped entry returns DRM_FORMAT_INVALID (0)
-    EXPECT_EQ(alphaFormat(DRM_FORMAT_ARGB8888), 0u);
+    const auto* xrgb = getPixelFormatFromDRM(DRM_FORMAT_XRGB8888);
+    EXPECT_EQ(xrgb->alphaAdded, DRM_FORMAT_ARGB8888);
+    const auto* xbgr = getPixelFormatFromDRM(DRM_FORMAT_XRGB8888);
+    EXPECT_EQ(xbgr->alphaAdded, DRM_FORMAT_ABGR8888);
+    // Format without alphaAdded entry returns DRM_FORMAT_INVALID (0)
+    const auto* gr88 = getPixelFormatFromDRM(DRM_FORMAT_GR88);
+    EXPECT_EQ(gr88->alphaAdded, 0u);
 }

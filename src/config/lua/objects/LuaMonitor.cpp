@@ -56,7 +56,7 @@ static int monitorSetSpecialWorkspace(lua_State* L) {
     const auto id  = Internal::tableOptWorkspaceSelector(L, 2, "workspace", "HLMonitor.set_special_workspace");
 
     if (!id) {
-        (*ref)->setSpecialWorkspace(WORKSPACE_INVALID);
+        (*ref)->setSpecialWorkspace(WORKSPACE_INVALID, true);
         return 0;
     }
 
@@ -64,7 +64,7 @@ static int monitorSetSpecialWorkspace(lua_State* L) {
     if (!ws)
         return 0;
 
-    (*ref)->setSpecialWorkspace(ws->m_id);
+    (*ref)->setSpecialWorkspace(ws->m_id, true);
 
     return 0;
 }

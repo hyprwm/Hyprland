@@ -1547,7 +1547,7 @@ void CMonitor::setSpecialWorkspaceVisualState(bool active) {
     *m_specialBlur = active && *PBLURSPECIAL && *PBLUR ? 1.F : 0.F;
 }
 
-void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
+void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace, bool noFocus) {
     if (m_activeSpecialWorkspace == pWorkspace)
         return;
 
@@ -1578,7 +1578,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
         g_layoutManager->recalculateMonitor(m_self.lock(), Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE);
 
-        if (!(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
+        if (!noFocus && !(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
             if (const auto PLAST = m_activeWorkspace->getLastFocusedWindow(); PLAST)
                 Desktop::focusState()->fullWindowFocus(PLAST, Desktop::FOCUS_REASON_TOGGLE_SPECIAL_WORKSPACE);
             else
@@ -1676,7 +1676,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
     g_layoutManager->recalculateMonitor(m_self.lock(), Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE);
 
-    if (!(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
+    if (!noFocus && !(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
         if (const auto PLAST = pWorkspace->getLastFocusedWindow(); PLAST)
             Desktop::focusState()->fullWindowFocus(PLAST, Desktop::FOCUS_REASON_TOGGLE_SPECIAL_WORKSPACE);
         else
@@ -1698,8 +1698,8 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     Event::bus()->m_events.workspace.specialActive.emit(pWorkspace, m_self.lock());
 }
 
-void CMonitor::setSpecialWorkspace(const WORKSPACEID& id) {
-    setSpecialWorkspace(State::workspaceState()->query().id(id).run());
+void CMonitor::setSpecialWorkspace(const WORKSPACEID& id, bool noFocus) {
+    setSpecialWorkspace(State::workspaceState()->query().id(id).run(), noFocus);
 }
 
 PHLWORKSPACE CMonitor::getCurrentWorkspace() {

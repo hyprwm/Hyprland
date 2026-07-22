@@ -618,18 +618,8 @@ void CWLSurfaceResource::drainSyncFds(WP<SSurfaceState> state, eLockReason reaso
 }
 
 void CWLSurfaceResource::commitState(SSurfaceState& state) {
-    // TODO might be incorrect. needed for VRR with FIFO to avoid same buffer extra frames for second commit when it's used in this way:
-    // wp_fifo_v1#43.set_barrier()
-    // wp_fifo_v1#43.wait_barrier()
-    // wl_surface#3.commit()
-    // wp_fifo_v1#43.wait_barrier()
-    // wl_surface#3.commit()
-    if (!state.updated.all && m_mapped && state.fifoScheduled)
+    if (!state.updated.all && m_mapped)
         return;
-
-    // only a new buffer supersedes the current, not yet presented content.
-    if (state.updated.bits.buffer)
-        PROTO::presentation->discardFeedbacks(m_current.presentationFeedbacks);
 
     auto lastTexture = m_current.texture;
     m_current.updateFrom(state);

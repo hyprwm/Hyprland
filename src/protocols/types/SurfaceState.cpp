@@ -78,9 +78,9 @@ void SSurfaceState::reset() {
     presentationFeedbacks.clear();
     lockMask = LOCK_REASON_NONE;
 
-    barrierSet    = false;
-    surfaceLocked = false;
-    fifoScheduled = false;
+    barrierSet            = false;
+    barrierWait           = false;
+    waitingOnPresentation = false;
 
     pendingTimeout.reset();
     commitTimingTarget.reset();
@@ -165,15 +165,15 @@ void SSurfaceState::mergeFrom(SSurfaceState& ref) {
                                      std::make_move_iterator(ref.presentationFeedbacks.end()));
         ref.presentationFeedbacks.clear();
     }
-
-    if (ref.barrierSet)
-        barrierSet = ref.barrierSet;
 }
 
 void SSurfaceState::updateFrom(SSurfaceState& ref) {
     updated = ref.updated;
 
     if (ref.updated.bits.buffer) {
+        if (!presentationFeedbacks.empty())
+            PROTO::presentation->discardFeedbacks(presentationFeedbacks);
+
         buffer     = ref.buffer;
         texture    = ref.texture;
         size       = ref.size;
@@ -226,6 +226,7 @@ void SSurfaceState::updateFrom(SSurfaceState& ref) {
         ref.presentationFeedbacks.clear();
     }
 
-    if (ref.barrierSet)
-        barrierSet = ref.barrierSet;
+    if (ref.updated.bits.fifo) {
+        waitingOnPresentation = true;
+    }
 }

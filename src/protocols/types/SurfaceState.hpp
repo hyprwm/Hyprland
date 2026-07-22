@@ -102,9 +102,9 @@ struct SSurfaceState {
     void                 updateSynchronousTexture(SP<Render::ITexture> lastTexture);
 
     // fifo
-    bool barrierSet    = false;
-    bool surfaceLocked = false;
-    bool fifoScheduled = false;
+    bool barrierSet            = false;
+    bool barrierWait           = false;
+    bool waitingOnPresentation = false;
 
     // commit timing
     std::optional<Time::steady_dur> pendingTimeout;

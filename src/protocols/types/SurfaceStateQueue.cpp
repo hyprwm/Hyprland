@@ -94,10 +94,6 @@ void CSurfaceStateQueue::tryProcess() {
     while (!m_queue.empty()) {
         auto& front = m_queue.front();
 
-        // a FIFO barrier only holds the front until the current state's barrier clears
-        if (front->lockMask & LOCK_REASON_FIFO && !m_surface->m_current.barrierSet)
-            front->lockMask &= ~LOCK_REASON_FIFO;
-
         if (front->isLocked())
             break;
 

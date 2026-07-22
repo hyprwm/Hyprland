@@ -226,7 +226,6 @@ void SSurfaceState::updateFrom(SSurfaceState& ref) {
         ref.presentationFeedbacks.clear();
     }
 
-    if (ref.updated.bits.fifo) {
+    if (ref.barrierSet)
         waitingOnPresentation = true;
-    }
 }

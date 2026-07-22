@@ -1,6 +1,7 @@
 #include "Fifo.hpp"
 #include "Compositor.hpp"
 #include "core/Compositor.hpp"
+#include "core/Subcompositor.hpp"
 #include "../output/Monitor.hpp"
 #include "../event/EventBus.hpp"
 #include "../state/MonitorState.hpp"
@@ -63,6 +64,16 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
 
         if (!state->barrierSet && !state->barrierWait)
             return;
+
+        // the barrier constraint must be ignored for a subsurface in synchronized mode.
+        if (m_surface->m_role->role() == SURFACE_ROLE_SUBSURFACE) {
+            const auto sub = dynamicPointerCast<CSubsurfaceRole>(m_surface->m_role);
+            if (sub) {
+                const auto subsurface = sub->m_subsurface.lock();
+                if (subsurface && subsurface->m_sync)
+                    return;
+            }
+        }
 
         // check if entered outputs yet, and they are not tearing.
         if (!checkMonitors())

@@ -46,7 +46,8 @@ static int monitorSetWorkspace(lua_State* L) {
     if (!ws)
         return 0;
 
-    (*ref)->changeWorkspace(ws->m_id);
+    const auto DO_FOCUS = *ref == Desktop::focusState()->monitor();
+    (*ref)->changeWorkspace(ws->m_id, false, true, !DO_FOCUS);
 
     return 0;
 }

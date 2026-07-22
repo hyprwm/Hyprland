@@ -46,7 +46,7 @@ static int monitorSetWorkspace(lua_State* L) {
     if (!ws)
         return 0;
 
-    (*ref)->changeWorkspace(ws->m_id);
+    (*ref)->changeWorkspace(ws->m_id, false, true, true);
 
     return 0;
 }

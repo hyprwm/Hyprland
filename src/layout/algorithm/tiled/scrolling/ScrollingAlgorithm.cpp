@@ -20,6 +20,7 @@
 
 #include "../../../../managers/fullscreen/FullscreenController.hpp"
 #include "../../../../layout/algorithm/tiled/scrolling/ScrollingFullscreenHandler.hpp"
+#include "layout/target/Target.hpp"
 
 #include <hyprutils/string/VarList2.hpp>
 #include <hyprutils/string/VarList.hpp>
@@ -548,7 +549,13 @@ void SScrollingData::recalculate(bool forceInstant) {
                 if (targetWorkspaceHasCoveringFullscreen)
                     Fullscreen::controller()->m_windowPosSettingQueued = true;
                 // must set pos of the highest level target (i.e. if target a part of a group, must set that group's pos which will set the pos of all member targets)
-                TDATA->target->setPositionGlobal(targetBoxWithGaps(TDATA->layoutBox, i, j, COL_HAS_FS_TARGET && TARGET_FS_MODE == Fullscreen::FSMODE_FULLSCREEN));
+                const auto TARGET_FS_MODE = Fullscreen::controller()->getFullscreenModes(TARGET->window()).internal;
+                TDATA->target->setPositionGlobal(targetBoxWithGaps(TDATA->layoutBox, i, j, COL_HAS_FS_TARGET && TARGET_FS_MODE == Fullscreen::FSMODE_FULLSCREEN),
+                                                 TARGET_FS_MODE != Fullscreen::FSMODE_NONE ?
+                                                     (TARGET_FS_MODE == Fullscreen::FSMODE_FULLSCREEN ? (TARGET_UPDATE_LAYOUT_HANDLED_FS | TARGET_UPDATE_FULLSCREEN) :
+                                                                                                        (TARGET_UPDATE_LAYOUT_HANDLED_FS | TARGET_UPDATE_MAXIMISED)) :
+                                                     TARGET_UPDATE_NONE);
+                Fullscreen::controller()->m_windowPosSettingQueued = false;
             }
 
             if (forceInstant && TDATA->target)

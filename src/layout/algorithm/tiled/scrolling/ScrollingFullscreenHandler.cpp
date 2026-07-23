@@ -284,10 +284,20 @@ void CScrollingFullscreenHandler::updateTargetRulesAndDecos(const SP<Layout::ITa
 
     const auto MONITOR = target->workspace()->m_monitor.lock();
     const auto WINDOW  = target->window();
-
-    WINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
-                                                Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-    WINDOW->updateDecorationValues();
+    
+    // If window is in a group, we need to update these values for ALL members of the group.
+    if (WINDOW->m_group) {
+        for (const auto& gm : WINDOW->m_group->windows()) {
+            gm->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
+                                                        Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
+            gm->updateDecorationValues();
+        }
+    }
+    else {
+        WINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
+                                                    Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
+        WINDOW->updateDecorationValues();
+    }
 
     // Normally, FS controller's FS state setter's method of handling window rules should be used; but calling g_layoutManager->recalculateMonitor(MONITOR) and getSpace()->recalculate()
     // here would lead to an inf recursion

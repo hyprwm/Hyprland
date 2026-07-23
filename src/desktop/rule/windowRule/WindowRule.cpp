@@ -9,6 +9,8 @@
 #include "../../../protocols/types/ContentType.hpp"
 #include "../../../config/shared/parserUtils/ParserUtils.hpp"
 #include "desktop/rule/windowRule/WindowRuleEffectContainer.hpp"
+#include "../../../layout/target/Target.hpp"
+
 
 #include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/String.hpp>
@@ -413,7 +415,8 @@ bool CWindowRule::matches(PHLWINDOW w, bool allowEnvLookup) {
                     return false;
                 break;
             case RULE_PROP_FULLSCREEN:
-                if (!engine->match(Fullscreen::controller()->isFullscreen(w)))
+                // FS states of a group are owned by the current window of the group
+                if (!engine->match(Fullscreen::controller()->isFullscreen(w->layoutTarget()->window())))
                     return false;
                 break;
             case RULE_PROP_PINNED:
@@ -433,11 +436,13 @@ bool CWindowRule::matches(PHLWINDOW w, bool allowEnvLookup) {
                     return false;
                 break;
             case RULE_PROP_FULLSCREENSTATE_INTERNAL:
-                if (!engine->match(Fullscreen::controller()->getFullscreenModes(w).internal))
+                // FS states of a group are owned by the current window of the group
+                if (!engine->match(Fullscreen::controller()->getFullscreenModes(w->layoutTarget()->window()).internal))
                     return false;
                 break;
             case RULE_PROP_FULLSCREENSTATE_CLIENT:
-                if (!engine->match(Fullscreen::controller()->getFullscreenModes(w).client))
+                // FS states of a group are owned by the current window of the group
+                if (!engine->match(Fullscreen::controller()->getFullscreenModes(w->layoutTarget()->window()).client))
                     return false;
                 break;
             case RULE_PROP_ON_WORKSPACE:

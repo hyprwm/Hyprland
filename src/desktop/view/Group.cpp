@@ -258,7 +258,6 @@ void CGroup::setCurrent(size_t idx) {
     if (IS_FULLSCREEN) {
         Fullscreen::controller()->setFullscreenMode(newWindow, FS_MODE_INTERNAL, std::nullopt, IS_LAYOUT_HANDLED);
         newWindow->m_target->warpPositionSize();
-        oldWindow->m_target->setPositionGlobal(newWindow->m_target->position()); // TODO: this is a hack and sucks
     }
 
     if (WASFOCUS)

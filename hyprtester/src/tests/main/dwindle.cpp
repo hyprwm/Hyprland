@@ -848,7 +848,7 @@ TEST_CASE(defaultHandledFsfocusInDirection) {
 
     /*
             This test serves as a test for all layouts that use deafult FS behaviour
-        */
+    */
 
     Tests::spawnKitty("normal1");
     Tests::spawnKitty("fs");
@@ -932,7 +932,7 @@ TEST_CASE(defaultHandledFsfocusInDirection) {
         EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
 
-    // if movefocus_cycles_fullscreen = true, standard behaviour of the config option won't be followed but focus will move in the firection specified as if window was not FS
+    // if movefocus_cycles_fullscreen = true
 
     OK(getFromSocket("r/eval hl.config({ binds = { movefocus_cycles_fullscreen = true } })"));
 

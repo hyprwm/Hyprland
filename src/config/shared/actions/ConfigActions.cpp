@@ -367,6 +367,8 @@ ActionResult Actions::moveToWorkspace(PHLWORKSPACE ws, bool silent, std::optiona
 
 ActionResult Actions::moveFocus(Math::eDirection dir) {
     static auto PFULLCYCLE       = CConfigValue<Config::INTEGER>("binds:movefocus_cycles_fullscreen");
+    static auto PNEWTAKESOVERFS    = CConfigValue<Config::INTEGER>("misc:on_focus_under_fullscreen");
+
     static auto PGROUPCYCLE      = CConfigValue<Config::INTEGER>("binds:movefocus_cycles_groupfirst");
     static auto PMONITORFALLBACK = CConfigValue<Config::INTEGER>("binds:window_direction_monitor_fallback");
 
@@ -394,7 +396,7 @@ ActionResult Actions::moveFocus(Math::eDirection dir) {
     }
 
     if (PWINDOWTOCHANGETO) {
-        switchToWindow(PWINDOWTOCHANGETO, *PFULLCYCLE && Fullscreen::controller()->isFullscreen(PLASTWINDOW) && !Fullscreen::controller()->layoutManagedFS(PLASTWINDOW));
+        switchToWindow(PWINDOWTOCHANGETO, (*PFULLCYCLE && *PNEWTAKESOVERFS == 1) && Fullscreen::controller()->isFullscreen(PLASTWINDOW) && !Fullscreen::controller()->layoutManagedFS(PLASTWINDOW));
         return {};
     }
 

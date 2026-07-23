@@ -985,3 +985,25 @@ TEST_CASE(workspaceRenameUpdatesRules) {
         ASSERT_CONTAINS(str, "at: 42,42");
     }
 }
+
+TEST_CASE(luaGetWorkspace) {
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:test' })"));
+    {
+        auto str = getFromSocket("/activeworkspace");
+        ASSERT_CONTAINS(str, "workspace ID -1337 (test)");
+    }
+    Tests::spawnKitty();
+
+    ASSERT(getFromSocket("r/repl hl.get_workspace('name:test')"), "HL.Workspace(-1337:test)");
+    ASSERT(getFromSocket("r/repl hl.get_workspace('name:test') == hl.get_active_workspace()"), "true");
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 1})"));
+    {
+        auto str = getFromSocket("/activeworkspace");
+        ASSERT_CONTAINS(str, "workspace ID 1 (1)");
+    }
+
+    ASSERT(getFromSocket("r/repl hl.get_workspace('e-1')"), "HL.Workspace(-1337:test)");
+    ASSERT(getFromSocket("r/repl hl.get_workspace('r+1')"), "nil");
+    ASSERT(getFromSocket("r/repl hl.get_workspace(42)"), "nil");
+}

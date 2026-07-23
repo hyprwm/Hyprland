@@ -165,9 +165,21 @@ void IFullscreenHandler::updateTargetRulesAndDecos(const SP<Layout::ITarget> tar
 
     // Target must be a fullscreen window as considered by window/workspace rule matchers by now.
     // update all the values necessary for FS windows to get correct window dimensions and pos
-    WINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
-                                                Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-    WINDOW->updateDecorationValues();
+
+    // If window is in a group, we need to update these values for ALL members of the group.
+    if (WINDOW->m_group) {
+        for (const auto& gm : WINDOW->m_group->windows()) {
+            gm->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
+                                                        Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
+            gm->updateDecorationValues();
+
+        }
+    }
+    else {
+            WINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
+                                                        Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
+            WINDOW->updateDecorationValues();
+    }
     g_layoutManager->recalculateMonitor(MONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN);
     getSpace()->recalculate(Layout::RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN);
 }
@@ -191,12 +203,13 @@ void IFullscreenHandler::setTargetSizeAndPosition(const SP<Layout::ITarget> targ
     if (TARGET_INTERNAL_MODE == FSMODE_FULLSCREEN) {
         const CBox MONBOX                                  = MONITOR->logicalBox();
         Fullscreen::controller()->m_windowPosSettingQueued = true;
-        LAYOUT_TARGET->setPositionGlobal(MONBOX);
+        LAYOUT_TARGET->setPositionGlobal(MONBOX, Layout::TARGET_UPDATE_DEFAULT_HANDLED_FS | Layout::TARGET_UPDATE_FULLSCREEN);
     } else if (TARGET_INTERNAL_MODE == FSMODE_MAXIMIZED) {
         const CBox WORKAREA                                = WORKSPACE->m_space->workArea(target->floating());
         Fullscreen::controller()->m_windowPosSettingQueued = true;
-        LAYOUT_TARGET->setPositionGlobal(WORKAREA);
+        LAYOUT_TARGET->setPositionGlobal(WORKAREA, Layout::TARGET_UPDATE_DEFAULT_HANDLED_FS | Layout::TARGET_UPDATE_MAXIMISED);
     }
+    Fullscreen::controller()->m_windowPosSettingQueued = false;
 }
 
 void IFullscreenHandler::syncTargetSizeAndPosition() {
@@ -231,7 +244,7 @@ void IFullscreenHandler::syncTargetSizeAndPosition() {
         // No need to compare with current value also since it'll get overwritten by goal anyway
         if (CURRENT_REAL_POS_GOAL != EXPECTED_REAL_POS || CURRENT_REAL_SIZE_GOAL != EXPECTED_REAL_SIZE) {
             controller()->m_windowPosSettingQueued = true;
-            LAYOUT_TARGET->setPositionGlobal(MONBOX);
+            LAYOUT_TARGET->setPositionGlobal(MONBOX, Layout::TARGET_UPDATE_DEFAULT_HANDLED_FS | Layout::TARGET_UPDATE_FULLSCREEN);
         }
     } else if (TARGET_INTERNAL_MODE == FSMODE_MAXIMIZED) {
 
@@ -250,9 +263,10 @@ void IFullscreenHandler::syncTargetSizeAndPosition() {
 
         if (CURRENT_REAL_POS_GOAL != EXPECTED_REAL_POS || CURRENT_REAL_SIZE_GOAL != EXPECTED_REAL_SIZE) {
             controller()->m_windowPosSettingQueued = true;
-            LAYOUT_TARGET->setPositionGlobal(WORKSPACE->m_space->workArea(FS_TARGET->floating()));
+            LAYOUT_TARGET->setPositionGlobal(WORKSPACE->m_space->workArea(FS_TARGET->floating()), Layout::TARGET_UPDATE_DEFAULT_HANDLED_FS | Layout::TARGET_UPDATE_MAXIMISED);
         }
     }
+    Fullscreen::controller()->m_windowPosSettingQueued = false;
 }
 
 void IFullscreenHandler::setNoMembersAboveFullscreen() {

@@ -548,6 +548,7 @@ void CWorkspace::changeID(int64_t id) {
     if (m_id <= 0)
         return; // invalid
 
+    const auto OLD_ID = m_id;
     Log::logger->log(Log::DEBUG, "CWorkspace::changeID: Changing workspace id {} to {}", m_id, id);
     m_id = id;
 
@@ -556,6 +557,7 @@ void CWorkspace::changeID(int64_t id) {
 
     Config::Supplementary::refresher()->scheduleRefresh(Config::Supplementary::REFRESH_ALL);
 
+    g_pEventManager->postEvent({.event = "changeworkspaceid", .data = std::to_string(OLD_ID) + "," + std::to_string(m_id)});
     m_events.idChanged.emit();
 }
 

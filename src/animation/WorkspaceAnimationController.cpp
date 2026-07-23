@@ -166,10 +166,8 @@ void Animation::Workspace::setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnimatio
             continue;
 
         // If there are several covering FS windows layered ontop of each other, needed to ensure FS windows are not stuck being invisible below the topmost
-        if (TOPMOST_COVERING_FS_WINDOW == w) {
+        if (TOPMOST_COVERING_FS_WINDOW == w)
             *w->alpha(WINDOW_ALPHA_FULLSCREEN) = 1.F;
-            continue;
-        }
 
         if (!FULLSCREEN)
             *w->alpha(WINDOW_ALPHA_FULLSCREEN) = 1.F;

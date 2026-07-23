@@ -2195,8 +2195,8 @@ void CWindow::mapWindow() {
 
         if (m_ruleApplicator->static_.fullscreenStateClient || m_ruleApplicator->static_.fullscreenStateInternal) {
             requestedFSState = Fullscreen::SFullscreenMode{
-                .internal = sc<Fullscreen::eFullscreenMode>(m_ruleApplicator->static_.fullscreenStateInternal.value_or(0)),
-                .client   = sc<Fullscreen::eFullscreenMode>(m_ruleApplicator->static_.fullscreenStateClient.value_or(0)),
+                     .internal = sc<Fullscreen::eFullscreenMode>(m_ruleApplicator->static_.fullscreenStateInternal.value_or(0)),
+                     .client   = sc<Fullscreen::eFullscreenMode>(m_ruleApplicator->static_.fullscreenStateClient.value_or(0)),
             };
         }
 
@@ -2826,11 +2826,17 @@ void CWindow::onXDGMoveRequest(const SXDGToplevelMoveRequest&) {
     if (!m_isMapped || isHidden() || g_layoutManager->dragController()->target())
         return;
 
+    if (m_ruleApplicator->noXdgDrags().valueOrDefault())
+        return;
+
     g_layoutManager->beginDragTarget(layoutTarget(), MBIND_MOVE, std::nullopt, true);
 }
 
 void CWindow::onXDGResizeRequest(const SXDGToplevelResizeRequest& request) {
     if (!m_isMapped || isHidden() || g_layoutManager->dragController()->target())
+        return;
+
+    if (m_ruleApplicator->noXdgDrags().valueOrDefault())
         return;
 
     g_layoutManager->beginDragTarget(layoutTarget(), MBIND_RESIZE, xdgResizeEdgeToCorner(request.edges), true);

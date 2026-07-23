@@ -81,8 +81,6 @@ static const float MATRICES[8][6] = {{// normal
                                      {// flipped + rotation 270°
                                       0, -1, 1, -1, 0, 1}};
 
-class CKeybindManager;
-
 class CInputManager {
   public:
     CInputManager();
@@ -189,7 +187,9 @@ class CInputManager {
 
     // for shared mods
     const std::vector<uint32_t>& getKeysFromAllKBs();
-    uint32_t                     getModsFromAllKBs();
+    Input::ModifierMask          getModsFromAllKBs();
+    Input::ModifierMask          xkbModsToHyprland(SP<IKeyboard> relative, uint32_t mask);
+    uint32_t                     hyprlandModsToXkb(SP<IKeyboard> relative, Input::ModifierMask mask);
 
     // for virtual keyboards: whether we should respect them as normal ones
     bool        shouldIgnoreVirtualKeyboard(SP<IKeyboard>);
@@ -267,8 +267,13 @@ class CInputManager {
     bool m_focusHeldByButtons   = false;
     bool m_refocusHeldByButtons = false;
 
+    struct SHeldPointerButton {
+        uint32_t     button = 0;
+        WP<IPointer> pointer;
+    };
+
     // for releasing mouse buttons
-    std::list<uint32_t> m_currentlyHeldButtons;
+    std::list<SHeldPointerButton> m_currentlyHeldButtons;
 
     // idle inhibitors
     struct SIdleInhibitor {
@@ -301,11 +306,10 @@ class CInputManager {
     bool                  m_pointerAxisFramePending = false;
 
     bool                  shareKeyFromAllKBs(uint32_t key, bool pressed);
-    uint32_t              shareModsFromAllKBs(uint32_t depressed);
+    Input::ModifierMask   shareModsFromAllKBs(Input::ModifierMask mask);
     std::vector<uint32_t> m_pressed;
-    uint32_t              m_lastMods = 0;
+    Input::ModifierMask   m_lastMods = Input::HL_MODIFIER_NONE;
 
-    friend class CKeybindManager;
     friend class Desktop::View::CWLSurface;
     friend class CWorkspaceSwipeGesture;
 };

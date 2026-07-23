@@ -26,6 +26,7 @@
 #include "../../../desktop/rule/windowRule/WindowRule.hpp"
 #include "../../../desktop/rule/windowRule/WindowRuleEffectContainer.hpp"
 #include "../../../layout/LayoutManager.hpp"
+#include "../../../keybinds/Resolver.hpp"
 #include "../../../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 #include "../../../animation/AnimationManager.hpp"
 #include "../../../managers/input/InputManager.hpp"
@@ -876,7 +877,7 @@ static int hlGesture(lua_State* L) {
 
 #undef GET_ACTION_STRING
 
-    uint32_t modMask = 0;
+    Input::ModifierMask modMask = Input::HL_MODIFIER_NONE;
     lua_getfield(L, 1, "mods");
     if (!lua_isnil(L, -1)) {
         CLuaConfigString modsParser("");
@@ -885,7 +886,7 @@ static int hlGesture(lua_State* L) {
             lua_pop(L, 1);
             return Internal::configError(L, std::format("hl.gesture: field \"mods\": {}", modsErr.message));
         }
-        modMask = g_pKeybindManager->stringToModMask(modsParser.parsed());
+        modMask = Keybinds::modMaskFromString(modsParser.parsed());
     }
     lua_pop(L, 1);
 

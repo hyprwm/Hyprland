@@ -16,6 +16,7 @@
 #include <src/desktop/rule/windowRule/WindowRuleApplicator.hpp>
 #include <src/desktop/view/LayerSurface.hpp>
 #include <src/desktop/state/WindowState.hpp>
+#include <src/keybinds/Key.hpp>
 #include <src/Compositor.hpp>
 #include <src/desktop/state/FocusState.hpp>
 #include <src/state/MonitorState.hpp>
@@ -168,7 +169,7 @@ SP<CTestKeyboard>      g_keyboard;
 SP<CTestKeyboard>      g_keyboard2;
 
 static SDispatchResult pressAlt(std::string in) {
-    g_pInputManager->m_lastMods = in == "1" ? HL_MODIFIER_ALT : 0;
+    g_pInputManager->m_lastMods = in == "1" ? Input::HL_MODIFIER_ALT : Input::HL_MODIFIER_NONE;
 
     return {.success = true};
 }
@@ -393,9 +394,9 @@ static SDispatchResult keybind(std::string in) {
         key      = std::stoul(std::string{data[2]}) - 8; // xkb offset
     } catch (...) { return {.success = false, .error = "invalid input"}; }
 
-    uint32_t modifierMask = 0;
+    Input::ModifierMask modifierMask = Input::HL_MODIFIER_NONE;
     if (modifier > 0)
-        modifierMask = 1 << (modifier - 1);
+        modifierMask = sc<Input::ModifierMask>(1 << (modifier - 1));
     g_pInputManager->m_lastMods = modifierMask;
     g_keyboard->sendKey(key, press);
 
@@ -413,9 +414,9 @@ static SDispatchResult keybind2(std::string in) {
         key      = std::stoul(std::string{data[2]}) - 8;
     } catch (...) { return {.success = false, .error = "invalid input"}; }
 
-    uint32_t modifierMask = 0;
+    Input::ModifierMask modifierMask = Input::HL_MODIFIER_NONE;
     if (modifier > 0)
-        modifierMask = 1 << (modifier - 1);
+        modifierMask = sc<Input::ModifierMask>(1 << (modifier - 1));
     g_pInputManager->m_lastMods = modifierMask;
     g_keyboard2->sendKey(key, press);
 
@@ -437,7 +438,7 @@ static SDispatchResult keybindModmask(std::string in) {
         key          = std::stoul(std::string{data[2]}) - 8; // xkb offset
     } catch (...) { return {.success = false, .error = "invalid input"}; }
 
-    g_pInputManager->m_lastMods = modifierMask;
+    g_pInputManager->m_lastMods = g_pInputManager->xkbModsToHyprland(g_keyboard, modifierMask);
     g_keyboard->setMods(modifierMask, 0, 0, 0);
     g_keyboard->sendKey(key, press);
 

@@ -161,7 +161,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
 
         rect.scale(pMonitor->m_scale).round();
 
-        const bool        GROUPLOCKED  = m_window->m_group->locked() || g_pKeybindManager->m_groupsLocked;
+        const bool        GROUPLOCKED  = m_window->m_group->locked() || Desktop::windowState()->groupsLocked();
         const auto* const PCOLACTIVE   = GROUPLOCKED ? GROUPCOLACTIVELOCKED : GROUPCOLACTIVE;
         const auto* const PCOLINACTIVE = GROUPLOCKED ? GROUPCOLINACTIVELOCKED : GROUPCOLINACTIVE;
 

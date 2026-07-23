@@ -5,6 +5,7 @@
 #include "../managers/SeatManager.hpp"
 #include "../helpers/MiscFunctions.hpp"
 #include "../errorOverlay/Overlay.hpp"
+#include "../keybinds/Key.hpp"
 #include <sys/mman.h>
 #include <aquamarine/input/Input.hpp>
 #include <hyprutils/string/VarList.hpp>
@@ -356,20 +357,36 @@ void IKeyboard::updateLEDs(uint32_t leds) {
     aq()->updateLEDs(leds);
 }
 
-uint32_t IKeyboard::getModifiers() {
-    uint32_t modMask = m_modifiersState.depressed | m_modifiersState.latched;
-    uint32_t mods    = 0;
-    for (size_t i = 0; i < m_modIndexes.size(); ++i) {
-        if (m_modIndexes[i] == XKB_MOD_INVALID)
-            continue;
+Input::ModifierMask IKeyboard::getModifiers() {
+    uint32_t modMask     = m_modifiersState.depressed | m_modifiersState.latched;
+    auto     getModState = [this, xkb = &modMask](const char* xkbModName) -> bool {
+        auto IDX = xkb_keymap_mod_get_index(m_xkbKeymap, xkbModName);
 
-        if (!(modMask & (1 << m_modIndexes[i])))
-            continue;
+        if (IDX == XKB_MOD_INVALID)
+            return false;
 
-        mods |= (1 << i);
-    }
+        return (*xkb & (sc<uint32_t>(1) << IDX)) > 0;
+    };
 
-    return mods;
+    Input::ModifierMask hl = Input::HL_MODIFIER_NONE;
+    if (getModState(XKB_MOD_NAME_ALT))
+        hl |= Input::HL_MODIFIER_ALT;
+    if (getModState(XKB_MOD_NAME_CTRL))
+        hl |= Input::HL_MODIFIER_CTRL;
+    if (getModState(XKB_MOD_NAME_SHIFT))
+        hl |= Input::HL_MODIFIER_SHIFT;
+    if (getModState(XKB_MOD_NAME_CAPS))
+        hl |= Input::HL_MODIFIER_CAPS;
+    if (getModState(XKB_MOD_NAME_MOD2))
+        hl |= Input::HL_MODIFIER_MOD2;
+    if (getModState(XKB_MOD_NAME_MOD3))
+        hl |= Input::HL_MODIFIER_MOD3;
+    if (getModState(XKB_MOD_NAME_MOD4))
+        hl |= Input::HL_MODIFIER_META;
+    if (getModState(XKB_MOD_NAME_MOD5))
+        hl |= Input::HL_MODIFIER_MOD5;
+
+    return hl;
 }
 
 void IKeyboard::updateModifiers(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group) {

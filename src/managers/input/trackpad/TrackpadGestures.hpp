@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../../devices/IPointer.hpp"
+#include "../../../input/Keys.hpp"
 
 #include "gestures/ITrackpadGesture.hpp"
 #include "GestureTypes.hpp"
@@ -11,9 +12,9 @@
 class CTrackpadGestures {
   public:
     void                             clearGestures();
-    std::expected<void, std::string> addGesture(UP<ITrackpadGesture>&& gesture, size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask, float deltaScale,
-                                                bool disableInhibit);
-    std::expected<void, std::string> removeGesture(size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask, float deltaScale, bool disableInhibit);
+    std::expected<void, std::string> addGesture(UP<ITrackpadGesture>&& gesture, size_t fingerCount, eTrackpadGestureDirection direction, Input::ModifierMask modMask,
+                                                float deltaScale, bool disableInhibit);
+    std::expected<void, std::string> removeGesture(size_t fingerCount, eTrackpadGestureDirection direction, Input::ModifierMask modMask, float deltaScale, bool disableInhibit);
 
     void                             gestureBegin(const IPointer::SSwipeBeginEvent& e);
     void                             gestureUpdate(const IPointer::SSwipeUpdateEvent& e);
@@ -30,7 +31,7 @@ class CTrackpadGestures {
     struct SGestureData {
         UP<ITrackpadGesture>      gesture;
         size_t                    fingerCount      = 0;
-        uint32_t                  modMask          = 0;
+        Input::ModifierMask       modMask          = Input::HL_MODIFIER_NONE;
         eTrackpadGestureDirection direction        = TRACKPAD_GESTURE_DIR_NONE; // configured dir
         float                     deltaScale       = 1.F;
         bool                      disableInhibit   = false;

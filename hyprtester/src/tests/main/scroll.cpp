@@ -1000,6 +1000,33 @@ TEST_CASE(scroll_LAYOUT_HANDLED_layerVisibilityOnFs) {
     }
 }
 
+
+
+TEST_CASE(scroll_LAYOUT_HANDLED_focusDirectionMovesFocusFollowFocusTrue) {
+
+    // if movefocus_cycles_fullscreen = false, all focus({direction}) is disallowed from moving focus from FS window
+
+    // if movefocus_cycles_fullscreen = true, standard behaviour of the config option won't be followed but focus will move in the firection specified as if window was not FS
+
+
+
+
+
+
+
+
+    // assume movefocus_cycles_fullscreen = true for below
+
+    // if on_focus_under_fullscreen = 0 focus({direction}) is disallowed from moving focus from FS window
+
+    // if on_focus_under_fullscreen = 1/2, standard behaviour of the config option won't be followed but focus will move in the firection specified as if window was not FS
+
+
+
+}
+
+
+
 TEST_CASE(scroll_DEFAULT_HANDLED_fullscreenMaximiseDispatchers) {
 
     // Shared test among all default handled FS

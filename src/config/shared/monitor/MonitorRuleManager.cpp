@@ -12,6 +12,7 @@
 #include "../../../state/MonitorState.hpp"
 
 #include <ranges>
+#include <hyprutils/utils/ScopeGuard.hpp>
 
 using namespace Config;
 
@@ -131,7 +132,9 @@ void CMonitorRuleManager::scheduleReload() {
 }
 
 void CMonitorRuleManager::ensureMonitorStatus() {
-    std::vector<PHLMONITOR> monsForRefresh;
+    std::vector<PHLMONITOR>       monsForRefresh;
+
+    Hyprutils::Utils::CScopeGuard x([this] { m_events.stateReloaded.emit(); });
 
     for (auto const& m : State::monitorState()->allMonitors()) {
         if (!m || !m->m_output || m->m_isUnsafeFallback)

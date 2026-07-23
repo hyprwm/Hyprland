@@ -30,6 +30,14 @@ CWindowQuery CWindowState::query() const {
     return CWindowQuery{*this};
 }
 
+bool CWindowState::groupsLocked() const {
+    return m_groupsLocked;
+}
+
+void CWindowState::setGroupsLocked(bool locked) {
+    m_groupsLocked = locked;
+}
+
 void CWindowState::raise(PHLWINDOW w) {
     moveToZ(w, true);
 }

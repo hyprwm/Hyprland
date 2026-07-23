@@ -16,6 +16,8 @@ namespace Desktop {
         const std::vector<PHLWINDOW>& windows() const;
 
         CWindowQuery                  query() const;
+        bool                          groupsLocked() const;
+        void                          setGroupsLocked(bool locked);
         void                          raise(PHLWINDOW w);
         void                          lower(PHLWINDOW w);
         void                          clear();
@@ -26,6 +28,7 @@ namespace Desktop {
 
       private:
         std::vector<PHLWINDOW> m_windows;
+        bool                   m_groupsLocked = false;
 
         void                   moveToTop(PHLWINDOW w);
         void                   moveToBottom(PHLWINDOW w);

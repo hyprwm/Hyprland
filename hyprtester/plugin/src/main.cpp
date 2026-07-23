@@ -16,6 +16,7 @@
 #include <src/desktop/rule/windowRule/WindowRuleApplicator.hpp>
 #include <src/desktop/view/LayerSurface.hpp>
 #include <src/desktop/state/WindowState.hpp>
+#include <src/keybinds/Key.hpp>
 #include <src/Compositor.hpp>
 #include <src/desktop/state/FocusState.hpp>
 #include <src/state/MonitorState.hpp>
@@ -177,7 +178,7 @@ SP<CTestKeyboard>      g_keyboard;
 SP<CTestKeyboard>      g_keyboard2;
 
 static SDispatchResult pressAlt(std::string in) {
-    g_pInputManager->m_lastMods = in == "1" ? HL_MODIFIER_ALT : 0;
+    g_pInputManager->m_lastMods = in == "1" ? Keybinds::HL_MODIFIER_ALT : 0;
 
     return {.success = true};
 }

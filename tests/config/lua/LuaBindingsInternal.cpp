@@ -91,19 +91,19 @@ namespace {
 
     class CScopedCompositor {
       public:
-        CScopedCompositor() : m_prevCompositor(std::move(g_pCompositor)), m_prevKeybindManager(std::move(g_pKeybindManager)) {
-            g_pCompositor     = makeUnique<CCompositor>(true);
-            g_pKeybindManager = makeUnique<CKeybindManager>();
+        CScopedCompositor() : m_prevCompositor(std::move(g_pCompositor)), m_prevKeybindManager(std::move(Keybinds::mgr())) {
+            g_pCompositor   = makeUnique<CCompositor>(true);
+            Keybinds::mgr() = makeUnique<Keybinds::CKeybindManager>();
         }
 
         ~CScopedCompositor() {
-            g_pKeybindManager = std::move(m_prevKeybindManager);
-            g_pCompositor     = std::move(m_prevCompositor);
+            Keybinds::mgr() = std::move(m_prevKeybindManager);
+            g_pCompositor   = std::move(m_prevCompositor);
         }
 
       private:
-        UP<CCompositor>     m_prevCompositor;
-        UP<CKeybindManager> m_prevKeybindManager;
+        UP<CCompositor>               m_prevCompositor;
+        UP<Keybinds::CKeybindManager> m_prevKeybindManager;
     };
 
     std::string luaString(const std::string& value) {

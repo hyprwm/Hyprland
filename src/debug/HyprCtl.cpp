@@ -2,6 +2,7 @@
 #include "output/Monitor.hpp"
 
 #include <algorithm>
+#include <array>
 #include <format>
 #include <fstream>
 #include <iterator>
@@ -53,6 +54,7 @@ using namespace Hyprutils::OS;
 #include "../debug/log/RollingLogFollow.hpp"
 #include "../config/ConfigManager.hpp"
 #include "../helpers/MiscFunctions.hpp"
+#include "../keybinds/Manager.hpp"
 #include "../helpers/SystemInfo.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "../desktop/view/Group.hpp"
@@ -1022,35 +1024,63 @@ static std::string globalShortcutsRequest(eHyprCtlOutputFormat format, std::stri
     return ret;
 }
 
+static std::string bindFlagNames(const Keybinds::CBind& bind) {
+    static constexpr auto FLAGS = std::to_array<std::pair<Keybinds::eBindFlags, std::string_view>>({
+        {Keybinds::BIND_FLAG_LOCKED, "locked"},
+        {Keybinds::BIND_FLAG_RELEASE, "release"},
+        {Keybinds::BIND_FLAG_REPEAT, "repeat"},
+        {Keybinds::BIND_FLAG_LONG_PRESS, "long_press"},
+        {Keybinds::BIND_FLAG_NON_CONSUMING, "non_consuming"},
+        {Keybinds::BIND_FLAG_AUTO_CONSUMING, "auto_consuming"},
+        {Keybinds::BIND_FLAG_TRANSPARENT, "transparent"},
+        {Keybinds::BIND_FLAG_IGNORE_MODS, "ignore_mods"},
+        {Keybinds::BIND_FLAG_DONT_INHIBIT, "dont_inhibit"},
+        {Keybinds::BIND_FLAG_CLICK, "click"},
+        {Keybinds::BIND_FLAG_DRAG, "drag"},
+        {Keybinds::BIND_FLAG_SUBMAP_UNIVERSAL, "submap_universal"},
+        {Keybinds::BIND_FLAG_ALLOW_INPUT_CAPTURE, "allow_input_capture"},
+        {Keybinds::BIND_FLAG_DEVICE_INCLUSIVE, "device_inclusive"},
+        {Keybinds::BIND_FLAG_CATCH_ALL, "catch_all"},
+        {Keybinds::BIND_FLAG_MOUSE, "mouse"},
+    });
+
+    std::string           result;
+    for (const auto& [flag, name] : FLAGS) {
+        if (!bind.hasFlag(flag))
+            continue;
+
+        if (!result.empty())
+            result += ", ";
+        result += name;
+    }
+
+    return result;
+}
+
 static std::string bindsRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string ret = "";
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
-        for (auto const& kb : g_pKeybindManager->m_keybinds) {
-            ret += "bind";
-            if (kb->locked)
-                ret += "l";
-            if (kb->mouse)
-                ret += "m";
-            if (kb->release)
-                ret += "r";
-            if (kb->repeat)
-                ret += "e";
-            if (kb->nonConsuming)
-                ret += "n";
-            if (kb->autoConsuming)
-                ret += "a";
-            if (kb->hasDescription)
-                ret += "d";
-            if (kb->allowInputCapture)
-                ret += "x";
+        for (const auto& kb : Keybinds::mgr()->registry().binds()) {
+            const auto& METADATA  = kb->metadata();
+            const auto  KEYS      = kb->keys();
+            const auto  KEY_NAMES = kb->keyNames();
+            const auto  KEYCODE   = KEYS.empty() ? std::nullopt : KEYS.back().keycode();
+            const auto  KEY       = kb->hasFlag(Keybinds::BIND_FLAG_CATCH_ALL) || KEYCODE || KEY_NAMES.empty() ? std::string{} : KEY_NAMES.back();
 
-            ret += std::format("\n\tmodmask: {}\n\tsubmap: {}\n\tkey: {}\n\tkeycode: {}\n\tcatchall: {}\n\tdescription: {}\n\tdispatcher: {}\n\targ: {}\n\n", kb->modmask,
-                               kb->submap.name, kb->key.empty() ? kb->displayKey : kb->key, kb->keycode, kb->catchAll, kb->description, kb->handler, kb->arg);
+            ret += std::format("bind\n\tflags: {}\n\tmodmask: {}\n\tsubmap: {}\n\tkey: {}\n\tkeycode: {}\n\tcatchall: {}\n\tdescription: {}\n\tdispatcher: {}\n\targ: {}\n\n",
+                               bindFlagNames(*kb), kb->modifierMask(), METADATA.submap, KEY.empty() ? METADATA.displayKey : KEY, KEYCODE.value_or(0),
+                               kb->hasFlag(Keybinds::BIND_FLAG_CATCH_ALL), METADATA.description.value_or(""), METADATA.handler, METADATA.argument);
         }
     } else {
         // json
         ret += "[";
-        for (auto const& kb : g_pKeybindManager->m_keybinds) {
+        for (const auto& kb : Keybinds::mgr()->registry().binds()) {
+            const auto& METADATA  = kb->metadata();
+            const auto  KEYS      = kb->keys();
+            const auto  KEY_NAMES = kb->keyNames();
+            const auto  KEYCODE   = KEYS.empty() ? std::nullopt : KEYS.back().keycode();
+            const auto  KEY       = kb->hasFlag(Keybinds::BIND_FLAG_CATCH_ALL) || KEYCODE || KEY_NAMES.empty() ? std::string{} : KEY_NAMES.back();
+
             ret += std::format(
                 R"#(
 {{
@@ -1073,10 +1103,13 @@ static std::string bindsRequest(eHyprCtlOutputFormat format, std::string request
     "dispatcher": "{}",
     "arg": "{}"
 }},)#",
-                kb->locked ? "true" : "false", kb->mouse ? "true" : "false", kb->release ? "true" : "false", kb->repeat ? "true" : "false", kb->longPress ? "true" : "false",
-                kb->nonConsuming ? "true" : "false", kb->autoConsuming ? "true" : "false", kb->hasDescription ? "true" : "false", kb->modmask, escapeJSONStrings(kb->submap.name),
-                kb->submapUniversal, escapeJSONStrings(kb->key), kb->keycode, kb->catchAll ? "true" : "false", escapeJSONStrings(kb->description),
-                kb->allowInputCapture ? "true" : "false", escapeJSONStrings(kb->handler), escapeJSONStrings(kb->arg));
+                kb->hasFlag(Keybinds::BIND_FLAG_LOCKED) ? "true" : "false", kb->hasFlag(Keybinds::BIND_FLAG_MOUSE) ? "true" : "false",
+                kb->hasFlag(Keybinds::BIND_FLAG_RELEASE) ? "true" : "false", kb->hasFlag(Keybinds::BIND_FLAG_REPEAT) ? "true" : "false",
+                kb->hasFlag(Keybinds::BIND_FLAG_LONG_PRESS) ? "true" : "false", kb->hasFlag(Keybinds::BIND_FLAG_NON_CONSUMING) ? "true" : "false",
+                kb->hasFlag(Keybinds::BIND_FLAG_AUTO_CONSUMING) ? "true" : "false", METADATA.description ? "true" : "false", kb->modifierMask(), escapeJSONStrings(METADATA.submap),
+                kb->hasFlag(Keybinds::BIND_FLAG_SUBMAP_UNIVERSAL) ? "true" : "false", escapeJSONStrings(KEY), KEYCODE.value_or(0),
+                kb->hasFlag(Keybinds::BIND_FLAG_CATCH_ALL) ? "true" : "false", escapeJSONStrings(METADATA.description.value_or("")),
+                kb->hasFlag(Keybinds::BIND_FLAG_ALLOW_INPUT_CAPTURE) ? "true" : "false", escapeJSONStrings(METADATA.handler), escapeJSONStrings(METADATA.argument));
         }
         trimTrailingComma(ret);
         ret += "]";
@@ -1866,7 +1899,7 @@ static std::string getDescriptions(eHyprCtlOutputFormat format, std::string requ
 }
 
 static std::string submapRequest(eHyprCtlOutputFormat format, std::string request) {
-    std::string submap = g_pKeybindManager->getCurrentSubmap().name;
+    std::string submap{Keybinds::mgr()->currentSubmap()};
     if (submap.empty())
         submap = "default";
 

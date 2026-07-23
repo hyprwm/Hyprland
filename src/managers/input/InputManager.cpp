@@ -38,7 +38,8 @@
 #include "../../pointer/PointerManager.hpp"
 #include "../../pointer/PointerController.hpp"
 #include "../../managers/SeatManager.hpp"
-#include "../../managers/KeybindManager.hpp"
+#include "../../keybinds/Manager.hpp"
+#include "../../keybinds/Resolver.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
 
 #include "../../managers/EventManager.hpp"
@@ -750,17 +751,24 @@ void CInputManager::onMouseButton(IPointer::SButtonEvent e, SP<IPointer> mouse) 
 
     PROTO::inputCapture->button(e.button, e.state);
 
-    if (PROTO::inputCapture->isCaptured())
+    if (PROTO::inputCapture->isCaptured()) {
+        Keybinds::mgr()->onMouseEvent(e, mouse, true);
+        if (e.state == WL_POINTER_BUTTON_STATE_RELEASED)
+            std::erase_if(m_currentlyHeldButtons, [&](const auto& held) { return held.button == e.button && held.pointer.lock() == mouse; });
         return;
+    }
 
     m_lastCursorMovement.reset();
 
     if (e.state == WL_POINTER_BUTTON_STATE_PRESSED) {
-        m_currentlyHeldButtons.push_back(e.button);
+        m_currentlyHeldButtons.emplace_back(e.button, mouse);
     } else {
-        if (std::ranges::find_if(m_currentlyHeldButtons, [&](const auto& other) { return other == e.button; }) == m_currentlyHeldButtons.end())
+        if (std::ranges::find_if(m_currentlyHeldButtons, [&](const auto& held) { return held.button == e.button && held.pointer.lock() == mouse; }) ==
+            m_currentlyHeldButtons.end()) {
+            Keybinds::mgr()->onMouseEvent(e, mouse);
             return;
-        std::erase_if(m_currentlyHeldButtons, [&](const auto& other) { return other == e.button; });
+        }
+        std::erase_if(m_currentlyHeldButtons, [&](const auto& held) { return held.button == e.button && held.pointer.lock() == mouse; });
     }
 
     switch (m_clickBehavior) {
@@ -856,7 +864,7 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e, SP<I
 
     // notify the keybind manager
     static auto PPASSMOUSE        = CConfigValue<Config::INTEGER>("binds:pass_mouse_when_bound");
-    const auto  PASS              = g_pKeybindManager->onMouseEvent(e, mouse);
+    const auto  PASS              = Keybinds::mgr()->onMouseEvent(e, mouse);
     static auto PFOLLOWMOUSE      = CConfigValue<Config::INTEGER>("input:follow_mouse");
     static auto PRESIZEONBORDER   = CConfigValue<Config::INTEGER>("general:resize_on_border");
     static auto PBORDERSIZE       = CConfigValue<Config::INTEGER>("general:border_size");
@@ -880,7 +888,8 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e, SP<I
             const CBox grab = {real.x - BORDER_GRAB_AREA, real.y - BORDER_GRAB_AREA, real.width + 2 * BORDER_GRAB_AREA, real.height + 2 * BORDER_GRAB_AREA};
 
             if ((grab.containsPoint(mouseCoords) && (!real.containsPoint(mouseCoords) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y))) && !w->hasPopupAt(mouseCoords)) {
-                g_pKeybindManager->resizeWithBorder(e);
+                if (!g_layoutManager->dragController()->target())
+                    g_layoutManager->beginDragTarget(w->layoutTarget(), MBIND_RESIZE);
                 return;
             }
         }
@@ -992,7 +1001,8 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
         PROTO::inputCapture->axisStop(e.axis);
     PROTO::inputCapture->frame();
 
-    bool passEvent = !PROTO::inputCapture->isCaptured() && g_pKeybindManager->onAxisEvent(e, pointer);
+    const bool BIND_PASSES = Keybinds::mgr()->onAxisEvent(e, pointer);
+    bool       passEvent   = !PROTO::inputCapture->isCaptured() && BIND_PASSES;
 
     if (!passEvent)
         return;
@@ -1177,7 +1187,7 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
 
         if (PKEEB == g_pSeatManager->m_keyboard) {
             g_pSeatManager->updateActiveKeyboardData();
-            g_pKeybindManager->m_keyToCodeCache.clear();
+            Keybinds::resolver()->clearKeycodeCache();
         }
 
         g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEEB->m_hlName + "," + LAYOUT});
@@ -1201,7 +1211,7 @@ void CInputManager::setKeyboardLayout() {
     for (auto const& k : m_keyboards)
         applyConfigToKeyboard(k);
 
-    g_pKeybindManager->updateXKBTranslationState();
+    Keybinds::mgr()->updateXKBTranslationState();
 }
 
 void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
@@ -1530,6 +1540,7 @@ static void removeFromHIDs(WP<IHID> hid) {
 void CInputManager::destroyKeyboard(SP<IKeyboard> pKeyboard) {
     Log::logger->log(Log::DEBUG, "Keyboard at {:x} removed", rc<uintptr_t>(pKeyboard.get()));
 
+    Keybinds::mgr()->onDeviceRemoved(pKeyboard);
     std::erase_if(m_keyboards, [pKeyboard](const auto& other) { return other == pKeyboard; });
 
     if (!m_keyboards.empty()) {
@@ -1554,6 +1565,16 @@ void CInputManager::destroyKeyboard(SP<IKeyboard> pKeyboard) {
 void CInputManager::destroyPointer(SP<IPointer> mouse) {
     Log::logger->log(Log::DEBUG, "Pointer at {:x} removed", rc<uintptr_t>(mouse.get()));
 
+    Keybinds::mgr()->onDeviceRemoved(mouse);
+    for (auto it = m_currentlyHeldButtons.begin(); it != m_currentlyHeldButtons.end();) {
+        if (it->pointer.lock() != mouse) {
+            ++it;
+            continue;
+        }
+
+        g_pSeatManager->sendPointerButton(Time::millis(Time::steadyNow()), it->button, WL_POINTER_BUTTON_STATE_RELEASED);
+        it = m_currentlyHeldButtons.erase(it);
+    }
     std::erase_if(m_pointers, [mouse](const auto& other) { return other == mouse; });
 
     g_pSeatManager->setMouse(!m_pointers.empty() ? m_pointers.front() : nullptr);
@@ -1630,7 +1651,7 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
     bool passEvent = DISALLOWACTION && !PROTO::inputCapture->isCaptured();
 
     if (!DISALLOWACTION)
-        passEvent = g_pKeybindManager->onKeyEvent(event, pKeyboard) && !PROTO::inputCapture->isCaptured();
+        passEvent = Keybinds::mgr()->onKeyEvent(event, pKeyboard) && !PROTO::inputCapture->isCaptured();
 
     if (passEvent) {
         auto state   = event.state;
@@ -2094,14 +2115,14 @@ void CInputManager::newSwitch(SP<Aquamarine::ISwitch> pDevice) {
 
         Log::logger->log(Log::DEBUG, "Switch {} fired, triggering binds.", NAME);
 
-        g_pKeybindManager->onSwitchEvent(NAME);
+        Keybinds::mgr()->onSwitchEvent(NAME);
 
         if (event.enable) {
             Log::logger->log(Log::DEBUG, "Switch {} turn on, triggering binds.", NAME);
-            g_pKeybindManager->onSwitchOnEvent(NAME);
+            Keybinds::mgr()->onSwitchOnEvent(NAME);
         } else {
             Log::logger->log(Log::DEBUG, "Switch {} turn off, triggering binds.", NAME);
-            g_pKeybindManager->onSwitchOffEvent(NAME);
+            Keybinds::mgr()->onSwitchOffEvent(NAME);
         }
     });
 }
@@ -2130,7 +2151,7 @@ void CInputManager::releaseAllMouseButtons() {
         return;
 
     for (auto const& mb : buttonsCopy) {
-        g_pSeatManager->sendPointerButton(Time::millis(Time::steadyNow()), mb, WL_POINTER_BUTTON_STATE_RELEASED);
+        g_pSeatManager->sendPointerButton(Time::millis(Time::steadyNow()), mb.button, WL_POINTER_BUTTON_STATE_RELEASED);
     }
 
     m_currentlyHeldButtons.clear();

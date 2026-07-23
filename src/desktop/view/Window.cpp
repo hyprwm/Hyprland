@@ -57,7 +57,6 @@
 #include "../../managers/EventManager.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../pointer/PointerController.hpp"
-#include "../../managers/KeybindManager.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../../layout/algorithm/Algorithm.hpp"
 #include "../../layout/space/Space.hpp"
@@ -1910,7 +1909,7 @@ void CWindow::updateDecorationValues() {
 
     const bool IS_SHADOWED_BY_MODAL = m_xdgSurface && m_xdgSurface->m_toplevel && m_xdgSurface->m_toplevel->anyChildModal();
 
-    const bool GROUPLOCKED = m_group ? m_group->locked() || g_pKeybindManager->m_groupsLocked : g_pKeybindManager->m_groupsLocked;
+    const bool GROUPLOCKED = m_group ? m_group->locked() || Desktop::windowState()->groupsLocked() : Desktop::windowState()->groupsLocked();
     if (m_self == Desktop::focusState()->window()) {
         const auto* const ACTIVECOLOR = !m_group ? (!(m_groupRules & GROUP_DENY) ? ACTIVECOL : NOGROUPACTIVECOL) : (GROUPLOCKED ? GROUPACTIVELOCKEDCOL : GROUPACTIVECOL);
         setBorderColor(m_ruleApplicator->activeBorderColor().valueOr(*ACTIVECOLOR));
@@ -2631,7 +2630,7 @@ void CWindow::unmapWindow() {
     }
 
     if (layoutTarget() == g_layoutManager->dragController()->target())
-        CKeybindManager::changeMouseBindMode(MBIND_INVALID);
+        g_layoutManager->endDragTarget();
 
     if (m_group)
         m_group->remove(m_self.lock());
@@ -2935,7 +2934,7 @@ bool CWindow::canBeGroupedInto(SP<CGroup> group) {
     static auto ALLOWGROUPMERGE       = CConfigValue<Config::INTEGER>("group:merge_groups_on_drag");
     bool        isGroup               = !!m_group;
     bool        disallowDragIntoGroup = g_layoutManager->dragController()->wasDraggingWindow() && isGroup && !sc<bool>(*ALLOWGROUPMERGE);
-    return !g_pKeybindManager->m_groupsLocked           // global group lock disengaged
+    return !Desktop::windowState()->groupsLocked()      // global group lock disengaged
         && ((m_groupRules & GROUP_INVADE && m_firstMap) // window ignore local group locks, or
             || (!group->locked()                        //      target unlocked
                 && !(m_group && m_group->locked())))    //      source unlocked or isn't group

@@ -1,24 +1,24 @@
 #include "Hotkey.hpp"
 #include "../Compositor.hpp"
 #include "../devices/IKeyboard.hpp"
-#include "../managers/KeybindManager.hpp"
+#include "../keybinds/Manager.hpp"
 #include "../event/EventBus.hpp"
 
 #include <xkbcommon/xkbcommon-keysyms.h>
 #include <format>
 
-static constexpr uint32_t RELEVANT_MODS = HL_MODIFIER_SHIFT | HL_MODIFIER_CTRL | HL_MODIFIER_ALT | HL_MODIFIER_META;
+static constexpr uint32_t RELEVANT_MODS = Keybinds::HL_MODIFIER_SHIFT | Keybinds::HL_MODIFIER_CTRL | Keybinds::HL_MODIFIER_ALT | Keybinds::HL_MODIFIER_META;
 
 static uint32_t           protoModsToHL(uint32_t mods) {
     uint32_t out = 0;
     if (mods & VICINAE_HOTKEY_MANAGER_V1_MODIFIERS_SHIFT)
-        out |= HL_MODIFIER_SHIFT;
+        out |= Keybinds::HL_MODIFIER_SHIFT;
     if (mods & VICINAE_HOTKEY_MANAGER_V1_MODIFIERS_CTRL)
-        out |= HL_MODIFIER_CTRL;
+        out |= Keybinds::HL_MODIFIER_CTRL;
     if (mods & VICINAE_HOTKEY_MANAGER_V1_MODIFIERS_ALT)
-        out |= HL_MODIFIER_ALT;
+        out |= Keybinds::HL_MODIFIER_ALT;
     if (mods & VICINAE_HOTKEY_MANAGER_V1_MODIFIERS_SUPER)
-        out |= HL_MODIFIER_META;
+        out |= Keybinds::HL_MODIFIER_META;
     return out;
 }
 
@@ -29,15 +29,16 @@ static bool isFunctionKey(xkb_keysym_t sym) {
 static bool isValidTrigger(xkb_keysym_t sym, uint32_t modmask) {
     if (isFunctionKey(sym))
         return true;
-    return modmask & (HL_MODIFIER_CTRL | HL_MODIFIER_ALT | HL_MODIFIER_META);
+    return modmask & (Keybinds::HL_MODIFIER_CTRL | Keybinds::HL_MODIFIER_ALT | Keybinds::HL_MODIFIER_META);
 }
 
-static std::string keybindLabel(const SP<SKeybind>& k) {
-    if (!k->description.empty())
-        return k->description;
-    if (!k->arg.empty())
-        return k->handler + ", " + k->arg;
-    return k->handler;
+static std::string keybindLabel(const Keybinds::PBind& bind) {
+    const auto& METADATA = bind->metadata();
+    if (METADATA.description && !METADATA.description->empty())
+        return *METADATA.description;
+    if (!METADATA.argument.empty())
+        return METADATA.handler + ", " + METADATA.argument;
+    return METADATA.handler;
 }
 
 CVicinaeHotkeyManager::CVicinaeHotkeyManager(SP<CVicinaeHotkeyManagerV1> resource_) : m_resource(resource_) {
@@ -117,7 +118,7 @@ void CHotkeyProtocol::onBind(SP<CVicinaeHotkeyManagerV1> mgr, uint32_t id, xkb_k
         return;
     }
 
-    if (const auto CONFLICT = g_pKeybindManager->findConflictingKeybind(keysym, hk->modmask)) {
+    if (const auto CONFLICT = Keybinds::mgr()->findConflictingBind(keysym, hk->modmask)) {
         hk->resource->sendDenied(VICINAE_HOTKEY_V1_DENY_REASON_ALREADY_BOUND,
                                  std::format("the combination is reserved by a compositor keybind ({})", keybindLabel(CONFLICT)).c_str());
         return;
@@ -164,7 +165,7 @@ void CHotkeyProtocol::revokeConflicting() {
     for (const auto& hk : m_hotkeys) {
         if (!hk->bound)
             continue;
-        const auto CONFLICT = g_pKeybindManager->findConflictingKeybind(hk->keysym, hk->modmask);
+        const auto CONFLICT = Keybinds::mgr()->findConflictingBind(hk->keysym, hk->modmask);
         if (!CONFLICT)
             continue;
 

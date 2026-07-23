@@ -8,7 +8,9 @@
 
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
-static std::string flagFile = "/tmp/hyprtester-keybinds.txt";
+static std::string flagFile           = "/tmp/hyprtester-keybinds.txt";
+static std::string shortChordFlagFile = "/tmp/hyprtester-keybinds-short-chord.txt";
+static std::string longChordFlagFile  = "/tmp/hyprtester-keybinds-long-chord.txt";
 
 static std::string pluginKeybindCmd(bool pressed, uint32_t modifier, uint32_t key) {
     return "/eval hl.plugin.test.keybind(" + std::to_string(pressed ? 1 : 0) + ", " + std::to_string(modifier) + ", " + std::to_string(key) + ")";
@@ -48,6 +50,19 @@ static bool attemptCheckFlag(int attempts, int intervalMs) {
     for (int i = 0; i < attempts; i++) {
         if (checkFlag())
             return true;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(intervalMs));
+    }
+
+    return false;
+}
+
+static bool attemptCheckFile(const std::string& file, int attempts, int intervalMs) {
+    for (int i = 0; i < attempts; ++i) {
+        if (std::filesystem::exists(file)) {
+            std::filesystem::remove(file);
+            return true;
+        }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(intervalMs));
     }
@@ -116,6 +131,94 @@ SUBTEST(bindKey) {
     // release keybind
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
     EXPECT(getFromSocket("/eval hl.unbind('Y')"), "ok");
+}
+
+SUBTEST(overlappingChords) {
+    std::filesystem::remove(shortChordFlagFile);
+    std::filesystem::remove(longChordFlagFile);
+
+    EXPECT(getFromSocket("/eval hl.bind('SUPER + Q + K', hl.dsp.exec_cmd('touch " + longChordFlagFile + "'))"), "ok");
+    EXPECT(getFromSocket("/eval hl.bind('SUPER + K', hl.dsp.exec_cmd('touch " + shortChordFlagFile + "'))"), "ok");
+
+    OK(getFromSocket(pluginKeybindCmd(true, 7, 24)));
+    OK(getFromSocket(pluginKeybindCmd(true, 7, 45)));
+    EXPECT(attemptCheckFile(longChordFlagFile, 20, 50), true);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    EXPECT(std::filesystem::exists(shortChordFlagFile), false);
+    OK(getFromSocket(pluginKeybindCmd(false, 7, 45)));
+    OK(getFromSocket(pluginKeybindCmd(false, 0, 24)));
+
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + Q + K'); hl.unbind('SUPER + K')"), "ok");
+    std::filesystem::remove(shortChordFlagFile);
+    std::filesystem::remove(longChordFlagFile);
+
+    EXPECT(getFromSocket("/eval hl.bind('SUPER + Q', hl.dsp.exec_cmd('touch " + shortChordFlagFile + "'))"), "ok");
+    EXPECT(getFromSocket("/eval hl.bind('SUPER + Q + K', hl.dsp.exec_cmd('touch " + longChordFlagFile + "'))"), "ok");
+
+    OK(getFromSocket(pluginKeybindCmd(true, 7, 24)));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    EXPECT(std::filesystem::exists(shortChordFlagFile), false);
+    OK(getFromSocket(pluginKeybindCmd(true, 7, 45)));
+    EXPECT(attemptCheckFile(longChordFlagFile, 20, 50), true);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    EXPECT(std::filesystem::exists(shortChordFlagFile), false);
+    OK(getFromSocket(pluginKeybindCmd(false, 7, 45)));
+    OK(getFromSocket(pluginKeybindCmd(false, 0, 24)));
+
+    std::filesystem::remove(longChordFlagFile);
+    OK(getFromSocket(pluginKeybindCmd(true, 7, 24)));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    EXPECT(std::filesystem::exists(shortChordFlagFile), false);
+    OK(getFromSocket(pluginKeybindCmd(false, 0, 24)));
+    EXPECT(attemptCheckFile(shortChordFlagFile, 20, 50), true);
+
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + Q'); hl.unbind('SUPER + Q + K')"), "ok");
+    std::filesystem::remove(shortChordFlagFile);
+    std::filesystem::remove(longChordFlagFile);
+
+    EXPECT(getFromSocket("/eval hl.bind('SUPER + Q', hl.dsp.exec_cmd('touch " + shortChordFlagFile + "'))"), "ok");
+    EXPECT(getFromSocket("/eval hl.bind('SUPER + Q + K', hl.dsp.exec_cmd('touch " + longChordFlagFile + "'), { release = true })"), "ok");
+
+    OK(getFromSocket(pluginKeybindCmd(true, 7, 24)));
+    OK(getFromSocket(pluginKeybindCmd(true, 7, 45)));
+    OK(getFromSocket(pluginKeybindCmd(false, 7, 24)));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    EXPECT(std::filesystem::exists(shortChordFlagFile), false);
+    OK(getFromSocket(pluginKeybindCmd(false, 0, 45)));
+    EXPECT(attemptCheckFile(longChordFlagFile, 20, 50), true);
+    EXPECT(std::filesystem::exists(shortChordFlagFile), false);
+
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + Q'); hl.unbind('SUPER + Q + K')"), "ok");
+    std::filesystem::remove(shortChordFlagFile);
+    std::filesystem::remove(longChordFlagFile);
+
+    EXPECT(getFromSocket("/eval hl.bind('SUPER + K', hl.dsp.exec_cmd('touch " + shortChordFlagFile + "'), { release = true })"), "ok");
+    EXPECT(getFromSocket("/eval hl.bind('SUPER + Q + K', hl.dsp.exec_cmd('touch " + longChordFlagFile + "'), { release = true })"), "ok");
+
+    OK(getFromSocket(pluginKeybindCmd(true, 7, 45)));
+    OK(getFromSocket(pluginKeybindCmd(false, 0, 45)));
+    EXPECT(attemptCheckFile(shortChordFlagFile, 20, 50), true);
+    EXPECT(std::filesystem::exists(longChordFlagFile), false);
+
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + K'); hl.unbind('SUPER + Q + K')"), "ok");
+    std::filesystem::remove(shortChordFlagFile);
+    std::filesystem::remove(longChordFlagFile);
+
+    EXPECT(getFromSocket("/eval hl.bind('SUPER + Q', hl.dsp.exec_cmd('touch " + shortChordFlagFile + "'))"), "ok");
+    EXPECT(getFromSocket("/eval hl.bind('SUPER + Q + K', hl.dsp.exec_cmd('touch " + longChordFlagFile + "'))"), "ok");
+    EXPECT(getFromSocket("/eval hl.bind('SUPER + Q + K + L', hl.dsp.exec_cmd('true'))"), "ok");
+
+    OK(getFromSocket(pluginKeybindCmd(true, 7, 24)));
+    OK(getFromSocket(pluginKeybindCmd(true, 7, 45)));
+    OK(getFromSocket(pluginKeybindCmd(false, 7, 24)));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    EXPECT(std::filesystem::exists(shortChordFlagFile), false);
+    OK(getFromSocket(pluginKeybindCmd(false, 0, 45)));
+    EXPECT(attemptCheckFile(longChordFlagFile, 20, 50), true);
+
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + Q'); hl.unbind('SUPER + Q + K'); hl.unbind('SUPER + Q + K + L')"), "ok");
+    std::filesystem::remove(shortChordFlagFile);
+    std::filesystem::remove(longChordFlagFile);
 }
 
 SUBTEST(longPress) {
@@ -624,6 +727,7 @@ SUBTEST(unbind) {
 TEST_CASE(keybinds) {
     CALL_SUBTEST(bind);
     CALL_SUBTEST(bindKey);
+    CALL_SUBTEST(overlappingChords);
     CALL_SUBTEST(longPress);
     CALL_SUBTEST(keyLongPress);
     CALL_SUBTEST(longPressRelease);

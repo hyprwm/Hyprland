@@ -27,9 +27,11 @@ namespace Layout::Floating {
         virtual void recenter(SP<ITarget> t);
 
       private:
-        CBox fitBoxInWorkArea(const CBox& box, SP<ITarget> t);
+        CBox fitBoxInWorkArea(const CBox& box, SP<ITarget> t, bool fully = true);
 
         void updateTarget(SP<ITarget>);
+
+        CBox setPositionGlobal(SP<ITarget> t, const CBox& box);
 
         struct SWindowData {
             CBox lastBox;

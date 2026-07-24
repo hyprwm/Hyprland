@@ -793,7 +793,8 @@ void CWLSurfaceResource::updateCursorShm(CRegion damage) {
 }
 
 void CWLSurfaceResource::presentFeedback(const Time::steady_tp& when, PHLMONITOR pMonitor, bool discarded) {
-    frame(when);
+    if (!discarded)
+        frame(when);
 
     // if it's empty then CPresentationProtocol::m_feedbacks doesn't contain any feedback listeners for this surface and frame
     if (m_current.presentationFeedbacks.empty())

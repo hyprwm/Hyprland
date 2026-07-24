@@ -1987,6 +1987,27 @@ void IHyprRenderer::renderMirrored() {
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }
 
+bool IHyprRenderer::renderDirectScanout(PHLMONITOR pMonitor) {
+    const bool canAttemptDirectScanout = pMonitor->canAttemptDirectScanoutFast();
+
+    if (canAttemptDirectScanout) {
+        if (pMonitor->attemptDirectScanout()) {
+            if (!pMonitor->needsACopyFB())
+                pMonitor->resources()->markMirrorFBStale();
+
+            if (!pMonitor->m_directScanoutIsActive) {
+                pMonitor->m_previousFSWindow.reset(); // recalc fs settings
+                pMonitor->m_directScanoutIsActive = true;
+            }
+            handleFullscreenSettings(pMonitor);
+            return true;
+        } else if (!pMonitor->m_lastScanout.expired() || pMonitor->m_directScanoutIsActive)
+            pMonitor->handleDSleave();
+    }
+
+    return false;
+}
+
 void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     if (!pMonitor)
         return;
@@ -2004,9 +2025,6 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         Log::logger->log(Log::ERR, "Refusing to render a monitor because of an invalid pixel size: {}", pMonitor->m_pixelSize);
         return;
     }
-
-    if (!g_pCompositor->m_sessionActive)
-        return;
 
     if (!*PDAMAGEBLINK)
         damageBlinkCleanup = 0;
@@ -2041,23 +2059,9 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         return;
 
     // tearing and DS first
-    bool       shouldTear              = pMonitor->updateTearing();
-    const bool canAttemptDirectScanout = pMonitor->canAttemptDirectScanoutFast();
-
-    if (canAttemptDirectScanout) {
-        if (pMonitor->attemptDirectScanout()) {
-            if (!pMonitor->needsACopyFB())
-                pMonitor->resources()->markMirrorFBStale();
-
-            if (!pMonitor->m_directScanoutIsActive) {
-                pMonitor->m_previousFSWindow.reset(); // recalc fs settings
-                pMonitor->m_directScanoutIsActive = true;
-            }
-            handleFullscreenSettings(pMonitor);
-            return;
-        } else if (!pMonitor->m_lastScanout.expired() || pMonitor->m_directScanoutIsActive)
-            pMonitor->handleDSleave();
-    }
+    bool shouldTear = pMonitor->updateTearing();
+    if (renderDirectScanout(pMonitor))
+        return;
 
     Event::bus()->m_events.render.pre.emit(pMonitor);
 

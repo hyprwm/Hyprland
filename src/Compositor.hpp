@@ -6,7 +6,7 @@
 
 #include "helpers/math/Direction.hpp"
 #include "managers/XWaylandManager.hpp"
-#include "managers/KeybindManager.hpp"
+#include "keybinds/Manager.hpp"
 #include "managers/SessionLockManager.hpp"
 #include "desktop/view/Window.hpp"
 #include "desktop/state/FadingOutState.hpp"

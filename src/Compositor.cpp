@@ -45,7 +45,7 @@
 #include "xwayland/XWayland.hpp"
 #include "helpers/ByteOperations.hpp"
 
-#include "managers/KeybindManager.hpp"
+#include "keybinds/Manager.hpp"
 #include "managers/SessionLockManager.hpp"
 #include "managers/XWaylandManager.hpp"
 
@@ -270,7 +270,7 @@ static bool filterGlobals(const wl_client* client, const wl_global* global, void
 //
 void CCompositor::initServer(std::string socketName, int socketFd) {
     if (m_onlyConfigVerification) {
-        g_pKeybindManager = makeUnique<CKeybindManager>();
+        Keybinds::mgr();
         Animation::mgr();
         Config::initConfigManager();
         Config::mgr()->init();
@@ -615,10 +615,10 @@ void CCompositor::cleanup() {
     g_pProtocolManager.reset();
     g_pHyprOpenGL.reset();
     Render::g_pShaderLoader.reset();
+    Keybinds::mgr().reset();
     Config::mgr().reset();
     g_layoutManager.reset();
     ErrorOverlay::overlay().reset();
-    g_pKeybindManager.reset();
     g_pXWaylandManager.reset();
     Pointer::mgr().reset();
     g_pSeatManager.reset();
@@ -648,7 +648,7 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             g_pEventLoopManager = makeUnique<CEventLoopManager>(m_wlDisplay, m_wlEventLoop);
 
             Log::logger->log(Log::DEBUG, "Creating the KeybindManager!");
-            g_pKeybindManager = makeUnique<CKeybindManager>();
+            Keybinds::mgr();
 
             Log::logger->log(Log::DEBUG, "Creating the AnimationManager!");
             Animation::mgr();

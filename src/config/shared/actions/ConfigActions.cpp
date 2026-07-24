@@ -12,7 +12,7 @@
 #include "../../../pointer/PointerManager.hpp"
 #include "../../../pointer/PointerController.hpp"
 #include "../../../managers/EventManager.hpp"
-#include "../../../managers/KeybindManager.hpp"
+#include "../../../keybinds/Manager.hpp"
 #include "../../../managers/input/InputManager.hpp"
 #include "../../../managers/fullscreen/FullscreenController.hpp"
 #include "../../../layout/LayoutManager.hpp"
@@ -188,7 +188,7 @@ ActionResult Actions::floatWindow(eTogglableAction action, std::optional<PHLWIND
         return {};
 
     if (g_layoutManager->dragController()->target())
-        CKeybindManager::changeMouseBindMode(MBIND_INVALID);
+        g_layoutManager->endDragTarget();
 
     g_layoutManager->changeFloatingMode(window->layoutTarget());
 
@@ -1269,12 +1269,12 @@ ActionResult Actions::event(const std::string& data) {
 
 ActionResult Actions::lockGroups(eTogglableAction action) {
     switch (action) {
-        case TOGGLE_ACTION_TOGGLE: g_pKeybindManager->m_groupsLocked = !g_pKeybindManager->m_groupsLocked; break;
-        case TOGGLE_ACTION_ENABLE: g_pKeybindManager->m_groupsLocked = true; break;
-        case TOGGLE_ACTION_DISABLE: g_pKeybindManager->m_groupsLocked = false; break;
+        case TOGGLE_ACTION_TOGGLE: Desktop::windowState()->setGroupsLocked(!Desktop::windowState()->groupsLocked()); break;
+        case TOGGLE_ACTION_ENABLE: Desktop::windowState()->setGroupsLocked(true); break;
+        case TOGGLE_ACTION_DISABLE: Desktop::windowState()->setGroupsLocked(false); break;
     }
 
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "lockgroups", .data = g_pKeybindManager->m_groupsLocked ? "1" : "0"});
+    g_pEventManager->postEvent(SHyprIPCEvent{.event = "lockgroups", .data = Desktop::windowState()->groupsLocked() ? "1" : "0"});
     Desktop::globalWindowController()->updateAllWindowsDecorations();
 
     return {};
@@ -1341,7 +1341,7 @@ static void moveWindowOutOfGroupHelper(PHLWINDOW pWindow, Math::eDirection direc
 ActionResult Actions::moveIntoGroup(Math::eDirection direction, std::optional<PHLWINDOW> w) {
     static auto PIGNOREGROUPLOCK = CConfigValue<Config::INTEGER>("binds:ignore_group_lock");
 
-    if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_groupsLocked)
+    if (!*PIGNOREGROUPLOCK && Desktop::windowState()->groupsLocked())
         return {};
 
     auto window = xtract(w);
@@ -1364,7 +1364,7 @@ ActionResult Actions::moveIntoGroup(Math::eDirection direction, std::optional<PH
 ActionResult Actions::moveOutOfGroup(Math::eDirection direction, std::optional<PHLWINDOW> w) {
     static auto PIGNOREGROUPLOCK = CConfigValue<Config::INTEGER>("binds:ignore_group_lock");
 
-    if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_groupsLocked)
+    if (!*PIGNOREGROUPLOCK && Desktop::windowState()->groupsLocked())
         return actionError("Groups locked", eActionErrorLevel::INFO, eActionErrorCode::INVALID_STATE);
 
     auto window = xtract(w);
@@ -1405,7 +1405,7 @@ ActionResult Actions::moveWindowOrGroup(Math::eDirection direction, std::optiona
     if (Fullscreen::controller()->isFullscreen(window))
         return {};
 
-    if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_groupsLocked) {
+    if (!*PIGNOREGROUPLOCK && Desktop::windowState()->groupsLocked()) {
         g_layoutManager->moveInDirection(window->layoutTarget(), dirToString(direction));
         return {};
     }
@@ -1636,26 +1636,46 @@ ActionResult Actions::global(const std::string& action) {
 ActionResult Actions::mouse(const std::string& action) {
     const bool PRESSED = Config::Actions::state()->m_passPressed == 1;
 
-    if (!PRESSED)
-        return SActionResult{.passEvent = CKeybindManager::changeMouseBindMode(MBIND_INVALID).passEvent};
-
-    if (action == "movewindow")
-        return SActionResult{.passEvent = CKeybindManager::changeMouseBindMode(MBIND_MOVE).passEvent};
-
-    // resizewindow with optional ratio mode
-    try {
-        const auto SPACEPOS = action.find(' ');
-        if (SPACEPOS != std::string::npos) {
-            switch (std::stoi(action.substr(SPACEPOS + 1))) {
-                case 1: return SActionResult{.passEvent = CKeybindManager::changeMouseBindMode(MBIND_RESIZE_FORCE_RATIO).passEvent};
-                case 2: return SActionResult{.passEvent = CKeybindManager::changeMouseBindMode(MBIND_RESIZE_BLOCK_RATIO).passEvent};
-                default: break;
-            }
-        }
-    } catch (...) { /* stoi failed, fall through to default resize */
+    if (!PRESSED) {
+        if (g_layoutManager->dragController()->target())
+            g_layoutManager->endDragTarget();
+        return {};
     }
 
-    return SActionResult{.passEvent = CKeybindManager::changeMouseBindMode(MBIND_RESIZE).passEvent};
+    if (g_layoutManager->dragController()->target())
+        return {};
+
+    eMouseBindMode mode = MBIND_RESIZE;
+
+    if (action == "movewindow")
+        mode = MBIND_MOVE;
+
+    // resizewindow with optional ratio mode
+    else {
+        try {
+            const auto SPACEPOS = action.find(' ');
+            if (SPACEPOS != std::string::npos) {
+                switch (std::stoi(action.substr(SPACEPOS + 1))) {
+                    case 1: mode = MBIND_RESIZE_FORCE_RATIO; break;
+                    case 2: mode = MBIND_RESIZE_BLOCK_RATIO; break;
+                    default: break;
+                }
+            }
+        } catch (...) { /* stoi failed, fall through to default resize */
+        }
+    }
+
+    const auto      MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
+    const PHLWINDOW PWINDOW = Desktop::viewState()->hitTest().windowAt(MOUSECOORDS, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
+
+    if (!PWINDOW)
+        return SActionResult{.passEvent = true};
+
+    if (!Fullscreen::controller()->isFullscreen(PWINDOW) && mode == MBIND_MOVE && PWINDOW->checkInputOnDecos(INPUT_TYPE_DRAG_START, MOUSECOORDS))
+        return {};
+
+    g_layoutManager->beginDragTarget(PWINDOW->layoutTarget(), mode);
+    return {};
 }
 
 ActionResult Actions::setSubmap(const std::string& submap) {
@@ -1666,13 +1686,11 @@ ActionResult Actions::setSubmap(const std::string& submap) {
         return {};
     }
 
-    for (const auto& k : g_pKeybindManager->m_keybinds) {
-        if (k->submap.name == submap) {
-            Config::Actions::state()->m_currentSubmap = submap;
-            g_pEventManager->postEvent(SHyprIPCEvent{.event = "submap", .data = submap});
-            Event::bus()->m_events.keybinds.submap.emit(submap);
-            return {};
-        }
+    if (Keybinds::mgr()->registry().hasSubmap(submap)) {
+        Config::Actions::state()->m_currentSubmap = submap;
+        g_pEventManager->postEvent(SHyprIPCEvent{.event = "submap", .data = submap});
+        Event::bus()->m_events.keybinds.submap.emit(submap);
+        return {};
     }
 
     return std::unexpected(std::format("Cannot set submap {}, submap doesn't exist (wasn't registered!)", submap));
@@ -1728,7 +1746,7 @@ ActionResult Actions::cycleNext(const bool next, std::optional<bool> onlyTiled, 
 ActionResult Actions::moveIntoOrCreateGroup(Math::eDirection dir, std::optional<PHLWINDOW> w) {
     static auto PIGNOREGROUPLOCK = CConfigValue<Hyprlang::INT>("binds:ignore_group_lock");
 
-    if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_groupsLocked)
+    if (!*PIGNOREGROUPLOCK && Desktop::windowState()->groupsLocked())
         return {};
 
     if (dir == Math::DIRECTION_DEFAULT) {

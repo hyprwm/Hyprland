@@ -28,7 +28,7 @@
 #include "../../event/EventBus.hpp"
 #include "../../Compositor.hpp"
 #include "../../managers/input/InputManager.hpp"
-#include "../../managers/KeybindManager.hpp"
+#include "../../keybinds/Manager.hpp"
 #include "../../output/Monitor.hpp"
 #include "../../layout/space/Space.hpp"
 #include "../../layout/supplementary/WorkspaceAlgoMatcher.hpp"
@@ -427,8 +427,15 @@ CConfigManager::~CConfigManager() {
     clearLuaLayoutProviders();
     clearHeldLuaRefs();
 
+    if (m_luaStateLifetime)
+        m_luaStateLifetime->state = nullptr;
+
     if (m_lua && m_ownsLuaState)
         lua_close(m_lua);
+}
+
+SP<SLuaStateLifetime> CConfigManager::luaStateLifetime() const {
+    return m_luaStateLifetime;
 }
 
 CConfigManager* CConfigManager::fromLuaState(lua_State* L) {
@@ -511,13 +518,17 @@ void CConfigManager::reinitLuaState() {
     cleanTimers();
     clearLuaLayoutProviders();
 
+    if (m_luaStateLifetime)
+        m_luaStateLifetime->state = nullptr;
+
     if (m_lua && m_ownsLuaState) {
         lua_close(m_lua);
     }
     m_lua = nullptr;
 
-    m_lua          = luaL_newstate();
-    m_ownsLuaState = true;
+    m_lua              = luaL_newstate();
+    m_ownsLuaState     = true;
+    m_luaStateLifetime = makeShared<SLuaStateLifetime>(m_lua);
     luaL_openlibs(m_lua);
 
     lua_getglobal(m_lua, "debug");
@@ -705,13 +716,8 @@ void CConfigManager::reload() {
     m_eventHandler->clearEvents();
     clearHeldLuaRefs();
 
-    if (g_pKeybindManager) {
-        for (const auto& kb : g_pKeybindManager->m_keybinds) {
-            if (kb->handler == "__lua")
-                luaL_unref(m_lua, LUA_REGISTRYINDEX, std::stoi(kb->arg));
-        }
-        g_pKeybindManager->clearKeybinds();
-    }
+    if (Keybinds::mgr())
+        Keybinds::mgr()->clearBinds();
 
     // refresh lua state so we get rid of any stale state
     reinitLuaState();
@@ -764,7 +770,7 @@ void CConfigManager::postConfigReload() {
         w->uncacheWindowDecos();
     }
 
-    const bool emergencyModeTripped = !m_errors.empty() && g_pKeybindManager->m_keybinds.empty();
+    const bool emergencyModeTripped = !m_errors.empty() && Keybinds::mgr()->registry().empty();
 
     if (emergencyModeTripped)
         luaL_dostring(m_lua, EMERGENCY_PCALL);
@@ -1367,6 +1373,10 @@ static SDispatchResult dispatchResultFromLua(lua_State* L, int idx) {
     lua_getfield(L, idx, "ok");
     if (lua_isboolean(L, -1))
         result.success = lua_toboolean(L, -1);
+    lua_pop(L, 1);
+
+    lua_getfield(L, idx, "request_release");
+    result.requestRelease = lua_toboolean(L, -1);
     lua_pop(L, 1);
 
     if (!result.success) {

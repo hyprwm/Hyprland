@@ -1,24 +1,21 @@
 #include "LuaBindingsInternal.hpp"
 
-#include <hyprutils/string/String.hpp>
 #include <lua.h>
 
 #include "Check.hpp"
 
 #include "../../supplementary/executor/Executor.hpp"
 
-#include "../../../managers/SeatManager.hpp"
 #include "../../../managers/fullscreen/FullscreenController.hpp"
 #include "../../../state/MonitorState.hpp"
 #include "../../../state/WorkspaceState.hpp"
-#include "../../../devices/IKeyboard.hpp"
 #include "../../../desktop/rule/windowRule/WindowRule.hpp"
+#include "../../../keybinds/Resolver.hpp"
 #include "config/shared/actions/ConfigActions.hpp"
 
 using namespace Config;
 using namespace Config::Lua;
 using namespace Config::Lua::Bindings;
-using namespace Hyprutils::String;
 
 namespace CA = Config::Actions;
 
@@ -32,7 +29,19 @@ static constexpr auto C_NOTARGET = CA::eActionErrorCode::NO_TARGET;
 static constexpr auto C_UNAVAIL  = CA::eActionErrorCode::UNAVAILABLE;
 static constexpr auto C_EXECFAIL = CA::eActionErrorCode::EXECUTION_FAILED;
 
-static int            dsp_moveCursorToCorner(lua_State* L) {
+static int            requestBindRelease(lua_State* L, int results) {
+    if (CA::state()->m_bindInvocationDepth > 0 && CA::state()->m_passPressed == 1)
+        CA::state()->m_requestBindRelease = true;
+
+    if (results != 1 || !lua_istable(L, -1))
+        return results;
+
+    lua_pushboolean(L, true);
+    lua_setfield(L, -2, "request_release");
+    return results;
+}
+
+static int dsp_moveCursorToCorner(lua_State* L) {
     return Internal::checkResult(L, CA::moveCursorToCorner((int)lua_tonumber(L, lua_upvalueindex(1)), Internal::windowFromUpval(L, 2)));
 }
 
@@ -184,10 +193,7 @@ static int dsp_pass(lua_State* L) {
     if (!PWINDOW)
         return Internal::dispatcherError(L, "hl.pass: window not found", WARN, C_NOTFOUND);
 
-    if (g_pKeybindManager->m_currentKeybind)
-        g_pKeybindManager->m_currentKeybind->releasePending = true;
-
-    return Internal::checkResult(L, CA::pass(PWINDOW));
+    return requestBindRelease(L, Internal::checkResult(L, CA::pass(PWINDOW)));
 }
 
 static int dsp_layoutMsg(lua_State* L) {
@@ -212,10 +218,7 @@ static int dsp_event(lua_State* L) {
 }
 
 static int dsp_global(lua_State* L) {
-    if (g_pKeybindManager->m_currentKeybind)
-        g_pKeybindManager->m_currentKeybind->releasePending = true;
-
-    return Internal::checkResult(L, CA::global(lua_tostring(L, lua_upvalueindex(1))));
+    return requestBindRelease(L, Internal::checkResult(L, CA::global(lua_tostring(L, lua_upvalueindex(1)))));
 }
 
 static int dsp_forceRendererReload(lua_State* L) {
@@ -350,56 +353,11 @@ static int hlReleaseInputCapture(lua_State* L) {
     return 1;
 }
 
-static std::expected<uint32_t, std::string> resolveKeycode(const std::string& key) {
-    if (isNumber(key) && std::stoi(key) > 9)
-        return (uint32_t)std::stoi(key);
-
-    if (key.starts_with("code:") && isNumber(key.substr(5)))
-        return (uint32_t)std::stoi(key.substr(5));
-
-    if (key.starts_with("mouse:") && isNumber(key.substr(6))) {
-        uint32_t code = std::stoi(key.substr(6));
-        if (code < 272)
-            return std::unexpected("invalid mouse button");
-        return code;
-    }
-
-    const auto KEYSYM = xkb_keysym_from_name(key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
-
-    const auto KB = g_pSeatManager->m_keyboard;
-    if (!KB)
-        return std::unexpected("no keyboard");
-
-    const auto KEYPAIRSTRING = std::format("{}{}", rc<uintptr_t>(KB.get()), key);
-
-    if (g_pKeybindManager->m_keyToCodeCache.contains(KEYPAIRSTRING))
-        return g_pKeybindManager->m_keyToCodeCache[KEYPAIRSTRING];
-
-    xkb_keymap*   km          = KB->m_xkbKeymap;
-    xkb_state*    ks          = KB->m_xkbState;
-    xkb_keycode_t keycode_min = xkb_keymap_min_keycode(km);
-    xkb_keycode_t keycode_max = xkb_keymap_max_keycode(km);
-    uint32_t      keycode     = 0;
-
-    for (xkb_keycode_t kc = keycode_min; kc <= keycode_max; ++kc) {
-        xkb_keysym_t sym = xkb_state_key_get_one_sym(ks, kc);
-        if (sym == KEYSYM) {
-            keycode                                            = kc;
-            g_pKeybindManager->m_keyToCodeCache[KEYPAIRSTRING] = keycode;
-        }
-    }
-
-    if (!keycode)
-        return std::unexpected("key not found");
-
-    return keycode;
-}
-
 static int dsp_sendShortcut(lua_State* L) {
-    const uint32_t    modMask = g_pKeybindManager->stringToModMask(lua_tostring(L, lua_upvalueindex(1)));
+    const uint32_t    modMask = Keybinds::modMaskFromString(lua_tostring(L, lua_upvalueindex(1)));
     const std::string key     = lua_tostring(L, lua_upvalueindex(2));
 
-    auto              keycodeResult = resolveKeycode(key);
+    auto              keycodeResult = Keybinds::resolver()->resolveKeycode(key);
     if (!keycodeResult)
         return Internal::dispatcherError(L, std::format("send_shortcut: {}", keycodeResult.error()), ERR, C_INVARG);
 
@@ -410,18 +368,15 @@ static int dsp_sendShortcut(lua_State* L) {
             return Internal::dispatcherError(L, "send_shortcut: window not found", WARN, C_NOTFOUND);
     }
 
-    if (g_pKeybindManager->m_currentKeybind)
-        g_pKeybindManager->m_currentKeybind->releasePending = true;
-
-    return Internal::checkResult(L, CA::pass(modMask, *keycodeResult, window));
+    return requestBindRelease(L, Internal::checkResult(L, CA::pass(modMask, *keycodeResult, window)));
 }
 
 static int dsp_sendKeyState(lua_State* L) {
-    const uint32_t    modMask  = g_pKeybindManager->stringToModMask(lua_tostring(L, lua_upvalueindex(1)));
+    const uint32_t    modMask  = Keybinds::modMaskFromString(lua_tostring(L, lua_upvalueindex(1)));
     const std::string key      = lua_tostring(L, lua_upvalueindex(2));
     const uint32_t    keyState = (uint32_t)lua_tonumber(L, lua_upvalueindex(3));
 
-    auto              keycodeResult = resolveKeycode(key);
+    auto              keycodeResult = Keybinds::resolver()->resolveKeycode(key);
     if (!keycodeResult)
         return Internal::dispatcherError(L, std::format("send_key_state: {}", keycodeResult.error()), ERR, C_INVARG);
 
@@ -675,21 +630,15 @@ static int dsp_denyFromGroup(lua_State* L) {
 }
 
 static int dsp_mouseDrag(lua_State* L) {
-    if (g_pKeybindManager->m_currentKeybind)
-        g_pKeybindManager->m_currentKeybind->releasePending = true;
-
-    return Internal::checkResult(L, CA::mouse("movewindow"));
+    return requestBindRelease(L, Internal::checkResult(L, CA::mouse("movewindow")));
 }
 
 static int dsp_mouseResize(lua_State* L) {
-    if (g_pKeybindManager->m_currentKeybind)
-        g_pKeybindManager->m_currentKeybind->releasePending = true;
-
     auto keepAspectRatio = Check::string(L, lua_upvalueindex(1));
     if (!keepAspectRatio)
         return Internal::configError(L, std::format("resize: bad argument 1: {}", keepAspectRatio.error()));
 
-    return Internal::checkResult(L, CA::mouse("resizewindow " + *keepAspectRatio));
+    return requestBindRelease(L, Internal::checkResult(L, CA::mouse("resizewindow " + *keepAspectRatio)));
 }
 
 static int hlWindowClose(lua_State* L) {

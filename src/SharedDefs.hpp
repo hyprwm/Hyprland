@@ -50,8 +50,9 @@ struct SHyprCtlCommand {
 };
 
 struct SDispatchResult {
-    bool        passEvent = false;
-    bool        success   = true;
+    bool        passEvent      = false;
+    bool        success        = true;
+    bool        requestRelease = false;
     std::string error;
 };
 

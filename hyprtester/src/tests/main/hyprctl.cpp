@@ -168,7 +168,9 @@ TEST_CASE(hyprctlJsonErrors) {
 }
 
 TEST_CASE(hyprctlBindsJson) {
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + F12', hl.dsp.exec_cmd('true'), { description = 'hyprctl binds JSON regression', allow_input_capture = false })"), "ok");
+    EXPECT(getFromSocket("/eval hl.bind('SUPER + F12', hl.dsp.exec_cmd('true'), { description = 'hyprctl binds JSON regression', locked = true, repeating = true, "
+                         "allow_input_capture = false })"),
+           "ok");
 
     CProcess jqProc("bash", {"-c", R"(hyprctl -j binds | jq -e '
         type == "array" and
@@ -185,6 +187,18 @@ TEST_CASE(hyprctlBindsJson) {
     jqProc.addEnv("HYPRLAND_INSTANCE_SIGNATURE", HIS);
     jqProc.runSync();
     EXPECT(jqProc.exitCode(), 0);
+
+    const auto BINDS    = getFromSocket("/binds");
+    const auto DESC_POS = BINDS.find("description: hyprctl binds JSON regression");
+    EXPECT(DESC_POS != std::string::npos, true);
+    if (DESC_POS != std::string::npos) {
+        const auto BIND_POS = BINDS.rfind("bind\n", DESC_POS);
+        EXPECT(BIND_POS != std::string::npos, true);
+        if (BIND_POS != std::string::npos) {
+            const auto BLOCK = BINDS.substr(BIND_POS, DESC_POS - BIND_POS);
+            EXPECT(BLOCK.contains("\tflags: locked, repeat\n"), true);
+        }
+    }
 
     EXPECT(getFromSocket("/eval hl.unbind('SUPER + F12')"), "ok");
 }

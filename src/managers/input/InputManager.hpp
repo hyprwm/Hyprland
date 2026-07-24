@@ -81,8 +81,6 @@ static const float MATRICES[8][6] = {{// normal
                                      {// flipped + rotation 270°
                                       0, -1, 1, -1, 0, 1}};
 
-class CKeybindManager;
-
 class CInputManager {
   public:
     CInputManager();
@@ -267,8 +265,13 @@ class CInputManager {
     bool m_focusHeldByButtons   = false;
     bool m_refocusHeldByButtons = false;
 
+    struct SHeldPointerButton {
+        uint32_t     button = 0;
+        WP<IPointer> pointer;
+    };
+
     // for releasing mouse buttons
-    std::list<uint32_t> m_currentlyHeldButtons;
+    std::list<SHeldPointerButton> m_currentlyHeldButtons;
 
     // idle inhibitors
     struct SIdleInhibitor {
@@ -305,7 +308,6 @@ class CInputManager {
     std::vector<uint32_t> m_pressed;
     uint32_t              m_lastMods = 0;
 
-    friend class CKeybindManager;
     friend class Desktop::View::CWLSurface;
     friend class CWorkspaceSwipeGesture;
 };

@@ -317,7 +317,8 @@ void CMonitor::onConnect(bool noRule) {
 
     Log::logger->log(Log::DEBUG, "Added new monitor with name {} at {:j0} with size {:j0}, pointer {:x}", m_name, m_position, m_pixelSize, rc<uintptr_t>(m_output.get()));
 
-    setupDefaultWS(monitorRule);
+    if (!isMirror())
+        setupDefaultWS(monitorRule);
 
     for (auto const& ws : State::workspaceState()->workspacesCopy()) {
         if (!valid(ws))

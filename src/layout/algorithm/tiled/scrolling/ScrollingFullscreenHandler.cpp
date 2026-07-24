@@ -554,25 +554,13 @@ eFullscreenHandler CScrollingFullscreenHandler::getFullscreenHandlerName() const
 
 void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layout::Tiled::SScrollingTargetData> CURRENT_FS_TDATA, const PHLMONITOR MONITOR,
                                                                   const bool TARGET_WORKSPACE_HAS_FS) {
-
     // TODO Decouple FS logic from SScrollingData::recalculate() to avoid having to schedule a prop refresh: it has to be here and it's a mess because recalculate() handled scrolling
     // onto/away from FS windows and this process doesn't call the controller's FS setters which are normally responsible for handling window rule checks.
-
-    // Scrolling onto or have a new FS window
-    if ((TARGET_WORKSPACE_HAS_FS && CURRENT_FS_TDATA && CURRENT_FS_TDATA->target && CURRENT_FS_TDATA->target->window() &&
-         CURRENT_FS_TDATA->target->window() != m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow)) {
-
-        // If window group, get the current window
-        const auto LAST_FS_WINDOW_TARGET = CURRENT_FS_TDATA->target->window()->m_target;
-
-        updateTargetRulesAndDecos(LAST_FS_WINDOW_TARGET);
-
-    }
+    
     // Scrolling away from an FS window
-    else if (m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow && !TARGET_WORKSPACE_HAS_FS) {
-        const auto LAST_FS_WINDOW = m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow.lock();
-
-        updateTargetRulesAndDecos(LAST_FS_WINDOW->m_target);
+    if (m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow && !TARGET_WORKSPACE_HAS_FS) {
+        const auto LAST_FS_TARGET = m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow->m_target;
+        updateTargetRulesAndDecos(LAST_FS_TARGET);
     }
 
     /* Setting DS and VRR */

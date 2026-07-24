@@ -546,10 +546,12 @@ void SScrollingData::recalculate(bool forceInstant) {
                 TDATA->layoutBox = controller->calculateTargetBox(i, j, USABLE, WORKAREA.pos(), *PFSONONE);
 
             if (TDATA->target) {
-                if (targetWorkspaceHasCoveringFullscreen)
+                if (targetWorkspaceHasCoveringFullscreen) {
+                    // Scrolling onto or have a new FS window
+                    algorithm->m_scrollingFullscreenHandler->updateTargetRulesAndDecos(TARGET);
                     Fullscreen::controller()->m_windowPosSettingQueued = true;
+                }
                 // must set pos of the highest level target (i.e. if target a part of a group, must set that group's pos which will set the pos of all member targets)
-                const auto TARGET_FS_MODE = Fullscreen::controller()->getFullscreenModes(TARGET->window()).internal;
                 TDATA->target->setPositionGlobal(targetBoxWithGaps(TDATA->layoutBox, i, j, COL_HAS_FS_TARGET && TARGET_FS_MODE == Fullscreen::FSMODE_FULLSCREEN),
                                                  TARGET_FS_MODE != Fullscreen::FSMODE_NONE ?
                                                      (TARGET_FS_MODE == Fullscreen::FSMODE_FULLSCREEN ? (TARGET_UPDATE_LAYOUT_HANDLED_FS | TARGET_UPDATE_FULLSCREEN) :

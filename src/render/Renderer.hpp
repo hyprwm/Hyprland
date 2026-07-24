@@ -69,6 +69,9 @@ namespace Render {
         virtual eType                       type() = 0;
         WP<Render::GL::CHyprOpenGLImpl>     glBackend();
 
+        void                                applyCursorZoom(PHLMONITOR pMonitor, SRenderData& data);
+        void                                renderDamageBlink(PHLMONITOR pMonitor, int& damageBlinkCleanup);
+        bool                                renderDirectScanout(PHLMONITOR pMonitor);
         void                                renderMonitor(PHLMONITOR pMonitor, bool commit = true);
         void                                arrangeLayersForMonitor(const MONITORID&);
         void                                damageSurface(SP<CWLSurfaceResource>, double, double, double scale = 1.0);

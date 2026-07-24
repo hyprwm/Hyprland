@@ -80,8 +80,9 @@ bool CDragStateController::exclusiveDeviceGrab() const {
 }
 
 bool CDragStateController::updateDragWindow() {
-    const auto DRAGGINGTARGET = m_target.lock();
-    const bool WAS_FULLSCREEN = DRAGGINGTARGET->window() ? Fullscreen::controller()->isFullscreen(DRAGGINGTARGET->window()) : false;
+    const auto  DRAGGINGTARGET = m_target.lock();
+    const bool  WAS_FULLSCREEN = DRAGGINGTARGET->window() ? Fullscreen::controller()->isFullscreen(DRAGGINGTARGET->window()) : false;
+    static auto PDRAGCENTER    = CConfigValue<Config::BOOL>("binds:drag_center_window");
 
     if (m_dragThresholdReached) {
         if (WAS_FULLSCREEN) {
@@ -103,14 +104,17 @@ bool CDragStateController::updateDragWindow() {
     m_draggingWindowOriginalFloatSize = DRAGGINGTARGET->lastFloatingSize();
 
     if (WAS_FULLSCREEN && DRAGGINGTARGET->floating() && m_dragThresholdReached) {
-        const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
-        DRAGGINGTARGET->setPositionGlobal(CBox{MOUSECOORDS - DRAGGINGTARGET->position().size() / 2.F, DRAGGINGTARGET->position().size()});
+        if (*PDRAGCENTER) {
+            const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
+            DRAGGINGTARGET->setPositionGlobal(CBox{MOUSECOORDS - DRAGGINGTARGET->position().size() / 2.F, DRAGGINGTARGET->position().size()});
+        }
     } else if (!DRAGGINGTARGET->floating() && m_dragMode == MBIND_MOVE) {
         Vector2D MINSIZE = DRAGGINGTARGET->minSize().value_or(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE});
         DRAGGINGTARGET->rememberFloatingSize((DRAGGINGTARGET->position().size() * 0.8489).clamp(MINSIZE, Vector2D{}).floor());
 
         if (m_dragThresholdReached) {
-            DRAGGINGTARGET->setPositionGlobal(CBox{g_pInputManager->getMouseCoordsInternal() - DRAGGINGTARGET->position().size() / 2.F, DRAGGINGTARGET->position().size()});
+            if (*PDRAGCENTER)
+                DRAGGINGTARGET->setPositionGlobal(CBox{g_pInputManager->getMouseCoordsInternal() - DRAGGINGTARGET->position().size() / 2.F, DRAGGINGTARGET->position().size()});
             g_layoutManager->changeFloatingMode(DRAGGINGTARGET);
             m_draggingTiled = true;
         }

@@ -539,6 +539,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Bool>("binds:allow_pin_fullscreen", "Allows fullscreen to pinned windows, and restore their pinned status afterwards", false),
         MS<Int>("binds:drag_threshold", "Movement threshold in pixels for window dragging and c/g bind flags. 0 to disable.", 0,
                 {.min = 0, .max = std::numeric_limits<int>::max()}),
+        MS<Bool>("binds:drag_center_window", "If enabled, dragging a tiled or fullscreen window will center it on the cursor when it becomes floating.", true),
 
         /*
          * xwayland:
@@ -721,7 +722,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Bool>("experimental:wp_cm_1_2", "Allow wp-cm-v1 version 2", true),
 
         /*
-		 * input_capture: 
+		 * input_capture:
 		 */
         MS<Bool>("input-capture:capture_modifiers", "If enabled, modifiers are also captured and sent to the program", false),
         MS<Bool>("input-capture:enforce_barriers", "If enabled, throw a wayland error when a invalid barrier is received", true),

@@ -12,6 +12,7 @@ namespace Render {
 class CDRMSyncPointState;
 class CWLCallbackResource;
 class CPresentationFeedback;
+struct SReadableWaiter;
 
 enum eLockReason : uint8_t {
     LOCK_REASON_NONE  = 0,
@@ -92,17 +93,18 @@ struct SSurfaceState {
     Vector2D sourceSize();
 
     // drm syncobj protocol surface state
-    CDRMSyncPointState acquire;
-    eLockReason        lockMask = LOCK_REASON_NONE;
+    CDRMSyncPointState  acquire;
+    WP<SReadableWaiter> acquireWaiter;
+    eLockReason         lockMask = LOCK_REASON_NONE;
 
     // texture of surface content, used for rendering
     SP<Render::ITexture> texture;
     void                 updateSynchronousTexture(SP<Render::ITexture> lastTexture);
 
     // fifo
-    bool barrierSet    = false;
-    bool surfaceLocked = false;
-    bool fifoScheduled = false;
+    bool barrierSet            = false;
+    bool barrierWait           = false;
+    bool waitingOnPresentation = false;
 
     // commit timing
     std::optional<Time::steady_dur> pendingTimeout;
@@ -114,4 +116,9 @@ struct SSurfaceState {
     CRegion effectiveInputRegion() const;   // materializes the input region clipped to the current surface size
     void    updateFrom(SSurfaceState& ref); // updates this state based on a reference state.
     void    reset();                        // resets pending state after commit
+
+    bool    isLocked() const;
+    bool    fenceSignaled() const;
+    void    mergeFrom(SSurfaceState& ref);
+    void    cancelFenceWaiter();
 };

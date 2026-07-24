@@ -73,7 +73,7 @@ static int configWatcherWrite(int fd, uint32_t mask, void* data) {
 }
 
 static int handleWaiterFD(int fd, uint32_t mask, void* data) {
-    auto waiter = sc<CEventLoopManager::SReadableWaiter*>(data);
+    auto waiter = sc<SReadableWaiter*>(data);
 
     if (!waiter) {
         Log::logger->log(Log::ERR, "handleWaiterFD: failed casting waiter");
@@ -250,14 +250,24 @@ UP<SEventLoopDoLaterLock> CEventLoopManager::doLaterLock(const std::function<voi
     return makeUnique<SEventLoopDoLaterLock>(doLater(fn));
 }
 
-void CEventLoopManager::doOnReadable(CFileDescriptor fd, std::function<void()>&& fn) {
+WP<SReadableWaiter> CEventLoopManager::doOnReadable(CFileDescriptor fd, std::function<void()>&& fn) {
     if (!fd.isValid() || fd.isReadable()) {
         fn();
-        return;
+        return nullptr;
     }
 
     auto& waiter   = m_readableWaiters.emplace_back(makeUnique<SReadableWaiter>(nullptr, std::move(fd), std::move(fn)));
     waiter->source = wl_event_loop_add_fd(g_pEventLoopManager->m_wayland.loop, waiter->fd.get(), WL_EVENT_READABLE, ::handleWaiterFD, waiter.get());
+
+    return waiter;
+}
+
+void CEventLoopManager::removeReadableWaiter(const WP<SReadableWaiter>& waiter) {
+    if (!waiter)
+        return;
+
+    // erasing the owning UP runs ~SReadableWaiter, which removes the wl_event_source.
+    std::erase_if(m_readableWaiters, [&waiter](const UP<SReadableWaiter>& w) { return waiter == w; });
 }
 
 void CEventLoopManager::syncPollFDs() {

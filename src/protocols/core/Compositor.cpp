@@ -566,22 +566,25 @@ CBox CWLSurfaceResource::extends() {
 }
 
 void CWLSurfaceResource::scheduleState(WP<SSurfaceState> state) {
-    auto whenReadable = [this, surf = m_self](auto state, auto reason) {
+    auto whenReadable = [this, surf = m_self](WP<SSurfaceState> state) {
         if (!surf || !state)
             return;
 
-        m_stateQueue.unlock(state, reason);
+        m_stateQueue.unlockFence(state);
     };
 
     if (state->updated.bits.acquire) {
-        // wait on acquire point for this surface, from explicit sync protocol
-        if (!state->acquire.addWaiter([state, whenReadable]() { whenReadable(state, LOCK_REASON_FENCE); })) {
-            Log::logger->log(Log::ERR, "Failed to addWaiter in CWLSurfaceResource::scheduleState");
-            whenReadable(state, LOCK_REASON_FENCE);
+        auto waiter = state->acquire.addWaiter([state, whenReadable]() { whenReadable(state); });
+        // the waiter may have fired (and dropped this state), so re check.
+        if (state) {
+            state->acquireWaiter = waiter;
+            // a null waiter means it either fired immediately or failed to register
+            if (!waiter)
+                whenReadable(state);
         }
     } else if (state->buffer && state->buffer->isSynchronous()) {
         // synchronous (shm) buffers can be read immediately
-        m_stateQueue.unlock(state, LOCK_REASON_FENCE);
+        m_stateQueue.unlockFence(state);
     } else if (state->buffer && !state->buffer->m_syncFds.empty()) {
         // async buffer and is dmabuf, then we can wait on implicit fences
         drainSyncFds(state, LOCK_REASON_FENCE);
@@ -599,31 +602,24 @@ void CWLSurfaceResource::drainSyncFds(WP<SSurfaceState> state, eLockReason reaso
     if (!fds.empty()) {
         auto fd = std::move(fds.front());
         fds.erase(fds.begin());
-        g_pEventLoopManager->doOnReadable(std::move(fd), [this, surf = m_self, state, reason]() {
+        auto waiter = g_pEventLoopManager->doOnReadable(std::move(fd), [this, surf = m_self, state, reason]() {
             if (!surf || !state)
                 return;
 
             drainSyncFds(state, reason);
         });
+
+        if (state)
+            state->acquireWaiter = waiter;
         return;
     }
 
-    m_stateQueue.unlock(state, reason);
+    m_stateQueue.unlockFence(state);
 }
 
 void CWLSurfaceResource::commitState(SSurfaceState& state) {
-    // TODO might be incorrect. needed for VRR with FIFO to avoid same buffer extra frames for second commit when it's used in this way:
-    // wp_fifo_v1#43.set_barrier()
-    // wp_fifo_v1#43.wait_barrier()
-    // wl_surface#3.commit()
-    // wp_fifo_v1#43.wait_barrier()
-    // wl_surface#3.commit()
-    if (!state.updated.all && m_mapped && state.fifoScheduled)
+    if (!state.updated.all && m_mapped)
         return;
-
-    // only a new buffer supersedes the current, not yet presented content.
-    if (state.updated.bits.buffer)
-        PROTO::presentation->discardFeedbacks(m_current.presentationFeedbacks);
 
     auto lastTexture = m_current.texture;
     m_current.updateFrom(state);
@@ -799,17 +795,19 @@ void CWLSurfaceResource::presentFeedback(const Time::steady_tp& when, PHLMONITOR
     if (m_current.presentationFeedbacks.empty())
         return;
 
+    // discarded content will never be scanned out, so there is no present event coming.
+    if (discarded) {
+        PROTO::presentation->discardFeedbacks(m_current.presentationFeedbacks);
+        return;
+    }
+
     auto FEEDBACK = makeUnique<CQueuedPresentationData>(m_self.lock(), std::move(m_current.presentationFeedbacks));
     FEEDBACK->attachMonitor(pMonitor);
-    if (discarded)
-        FEEDBACK->discarded();
-    else {
-        FEEDBACK->presented();
-        if (!pMonitor->m_lastScanout.expired()) {
-            const auto WINDOW = m_hlSurface ? Desktop::View::CWindow::fromView(m_hlSurface->view()) : nullptr;
-            if (WINDOW == pMonitor->m_lastScanout)
-                FEEDBACK->setPresentationType(true);
-        }
+    FEEDBACK->presented();
+    if (!pMonitor->m_lastScanout.expired()) {
+        const auto WINDOW = m_hlSurface ? Desktop::View::CWindow::fromView(m_hlSurface->view()) : nullptr;
+        if (WINDOW == pMonitor->m_lastScanout)
+            FEEDBACK->setPresentationType(true);
     }
     PROTO::presentation->queueData(std::move(FEEDBACK));
 }

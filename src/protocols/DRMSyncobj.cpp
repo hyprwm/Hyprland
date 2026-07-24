@@ -27,7 +27,7 @@ UP<CSyncReleaser> CDRMSyncPointState::createSyncRelease() {
     return makeUnique<CSyncReleaser>(m_timeline, m_point);
 }
 
-bool CDRMSyncPointState::addWaiter(std::function<void()>&& waiter) {
+WP<SReadableWaiter> CDRMSyncPointState::addWaiter(std::function<void()>&& waiter) {
     m_acquireCommitted = true;
     return m_timeline->addWaiter(std::move(waiter), m_point, 0u);
 }
@@ -134,12 +134,9 @@ CDRMSyncobjTimelineResource::CDRMSyncobjTimelineResource(UP<CWpLinuxDrmSyncobjTi
 }
 
 WP<CDRMSyncobjTimelineResource> CDRMSyncobjTimelineResource::fromResource(wl_resource* res) {
-    for (const auto& r : PROTO::sync->m_timelines) {
-        if (r && r->m_resource && r->m_resource->resource() == res)
-            return r;
-    }
-
-    return {};
+    auto resource = sc<CWpLinuxDrmSyncobjTimelineV1*>(wl_resource_get_user_data(res));
+    auto data     = resource ? sc<CDRMSyncobjTimelineResource*>(resource->data()) : nullptr;
+    return data ? data->m_self : WP<CDRMSyncobjTimelineResource>{};
 }
 
 bool CDRMSyncobjTimelineResource::good() {
@@ -191,6 +188,8 @@ CDRMSyncobjManagerResource::CDRMSyncobjManagerResource(UP<CWpLinuxDrmSyncobjMana
             PROTO::sync->m_timelines.pop_back();
             return;
         }
+
+        RESOURCE->m_self = RESOURCE;
 
         LOGM(Log::DEBUG, "New linux_drm_timeline at {:x}", (uintptr_t)RESOURCE.get());
     });

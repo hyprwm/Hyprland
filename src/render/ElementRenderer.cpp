@@ -401,9 +401,11 @@ void IElementRenderer::preDrawSurface(WP<CSurfacePassElement> element, const CRe
     drawSurface(element, damage);
 
     // add async (dmabuf) buffers to usedBuffers so we can handle release later
-    // sync (shm) buffers will be released in commitState, so no need to track them here
-    if (element->m_data.surface->m_current.buffer && !element->m_data.surface->m_current.buffer->isSynchronous())
-        g_pHyprRenderer->m_usedAsyncBuffers.emplace_back(element->m_data.surface->m_current.buffer);
+    // sync (shm) buffers will be released in commitState, so no need to track them here.
+    if (element->m_data.surface->m_current.buffer && !element->m_data.surface->m_current.buffer->isSynchronous() &&
+        std::ranges::none_of(g_pHyprRenderer->m_usedAsyncBuffers,
+                             [&](const auto& e) { return e.first == element->m_data.surface && e.second == element->m_data.surface->m_current.buffer; }))
+        g_pHyprRenderer->m_usedAsyncBuffers.emplace_back(element->m_data.surface, element->m_data.surface->m_current.buffer);
 
     m_renderData.clipBox            = {};
     m_renderData.useNearestNeighbor = false;

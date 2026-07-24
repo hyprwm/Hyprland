@@ -2060,13 +2060,9 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     if (Animation::mgr())
         Animation::mgr()->frameTick();
 
-    {
-        static bool once = true;
-        if (once) {
-            Event::bus()->m_events.start.emit();
-            once = false;
-        }
-    }
+    static bool firstFrame = true;
+    if (std::exchange(firstFrame, false))
+        Event::bus()->m_events.start.emit();
 
     if (pMonitor->m_scheduledRecalc) {
         pMonitor->m_scheduledRecalc = false;

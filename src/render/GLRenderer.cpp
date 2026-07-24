@@ -126,17 +126,27 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
 
     auto eglSync = createSyncFDManager();
     if LIKELY (eglSync && eglSync->isValid()) {
-        for (auto const& buf : m_usedAsyncBuffers) {
-            for (const auto& releaser : buf->m_syncReleasers) {
+        std::vector<CHLBufferReference> bufs;
+        for (auto& buf : m_usedAsyncBuffers) {
+            if (buf.first.expired() || buf.second.first.expired()) // monitor or surface is gone.
+                continue;
+
+            if (buf.first != PMONITOR)
+                continue;
+
+            for (const auto& releaser : buf.second.second->m_syncReleasers) {
                 releaser->addSyncFileFd(eglSync->fd());
             }
+
+            bufs.emplace_back(std::move(buf.second.second));
         }
 
         // release buffer refs with release points now, since syncReleaser handles actual buffer release based on EGLSync
-        std::erase_if(m_usedAsyncBuffers, [](const auto& buf) { return !buf->m_syncReleasers.empty(); });
+        std::erase_if(m_usedAsyncBuffers, [](const auto& buf) { return buf.first.expired() || buf.second.first.expired() || !buf.second.second; });
+        std::erase_if(bufs, [](const auto& buf) { return !buf->m_syncReleasers.empty(); });
 
         // release buffer refs without release points when EGLSync sync_file/fence is signalled
-        g_pEventLoopManager->doOnReadable(eglSync->fd().duplicate(), [renderingDoneCallback, prevbfs = std::move(m_usedAsyncBuffers)]() mutable {
+        g_pEventLoopManager->doOnReadable(eglSync->fd().duplicate(), [renderingDoneCallback, prevbfs = std::move(bufs)]() mutable {
             prevbfs.clear();
             if (renderingDoneCallback)
                 renderingDoneCallback();

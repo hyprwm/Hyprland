@@ -11,7 +11,6 @@
 #include "desktop/rule/windowRule/WindowRuleEffectContainer.hpp"
 #include "../../../layout/target/Target.hpp"
 
-
 #include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/string/VarList.hpp>

@@ -284,16 +284,15 @@ void CScrollingFullscreenHandler::updateTargetRulesAndDecos(const SP<Layout::ITa
 
     const auto MONITOR = target->workspace()->m_monitor.lock();
     const auto WINDOW  = target->window();
-    
+
     // If window is in a group, we need to update these values for ALL members of the group.
     if (WINDOW->m_group) {
         for (const auto& gm : WINDOW->m_group->windows()) {
             gm->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
-                                                        Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
+                                                    Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
             gm->updateDecorationValues();
         }
-    }
-    else {
+    } else {
         WINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
                                                     Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
         WINDOW->updateDecorationValues();
@@ -556,7 +555,7 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
                                                                   const bool TARGET_WORKSPACE_HAS_FS) {
     // TODO Decouple FS logic from SScrollingData::recalculate() to avoid having to schedule a prop refresh: it has to be here and it's a mess because recalculate() handled scrolling
     // onto/away from FS windows and this process doesn't call the controller's FS setters which are normally responsible for handling window rule checks.
-    
+
     // Scrolling away from an FS window
     if (m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow && !TARGET_WORKSPACE_HAS_FS) {
         const auto LAST_FS_TARGET = m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow->m_target;

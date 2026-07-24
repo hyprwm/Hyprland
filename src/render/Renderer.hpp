@@ -123,8 +123,6 @@ namespace Render {
         wl_event_source*                    m_crashingLoop       = nullptr;
         wl_event_source*                    m_cursorTicker       = nullptr;
 
-        std::vector<std::pair<PHLMONITORREF, std::pair<WP<CWLSurfaceResource>, CHLBufferReference>>> m_usedAsyncBuffers;
-
         struct {
             int                                          hotspotX      = 0;
             int                                          hotspotY      = 0;

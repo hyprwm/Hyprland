@@ -1987,6 +1987,29 @@ void IHyprRenderer::renderMirrored() {
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }
 
+void IHyprRenderer::applyCursorZoom(PHLMONITOR pMonitor, SRenderData& data) {
+    static bool zoomLock   = false;
+    const float ZOOMFACTOR = pMonitor->m_cursorZoom->value();
+
+    if (zoomLock && ZOOMFACTOR == 1.f) {
+        Pointer::mgr()->unlockSoftwareAll();
+        zoomLock = false;
+    } else if (!zoomLock && ZOOMFACTOR != 1.f) {
+        Pointer::mgr()->lockSoftwareAll();
+        zoomLock = true;
+    }
+
+    m_renderData.mouseZoomFactor = 1.f;
+    if (ZOOMFACTOR != 1.f && pMonitor == State::monitorState()->query().vec(Pointer::mgr()->position()).run())
+        m_renderData.mouseZoomFactor = std::clamp(ZOOMFACTOR, 1.f, INFINITY);
+
+    if (pMonitor->m_zoomAnimProgress->value() != 1) {
+        m_renderData.mouseZoomFactor    = 2.0 - pMonitor->m_zoomAnimProgress->value(); // 2x zoom -> 1x zoom
+        m_renderData.mouseZoomUseMouse  = false;
+        m_renderData.useNearestNeighbor = false;
+    }
+}
+
 bool IHyprRenderer::renderDirectScanout(PHLMONITOR pMonitor) {
     const bool canAttemptDirectScanout = pMonitor->canAttemptDirectScanoutFast();
 
@@ -2018,8 +2041,6 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     static auto PVFR                = CConfigValue<Config::INTEGER>("debug:vfr");
 
     static int  damageBlinkCleanup = 0; // because double-buffered
-
-    const float ZOOMFACTOR = pMonitor->m_cursorZoom->value();
 
     if (pMonitor->m_pixelSize.x < 1 || pMonitor->m_pixelSize.y < 1) {
         Log::logger->log(Log::ERR, "Refusing to render a monitor because of an invalid pixel size: {}", pMonitor->m_pixelSize);
@@ -2088,24 +2109,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     TRACY_GPU_ZONE("Render");
 
-    static bool zoomLock = false;
-    if (zoomLock && ZOOMFACTOR == 1.f) {
-        Pointer::mgr()->unlockSoftwareAll();
-        zoomLock = false;
-    } else if (!zoomLock && ZOOMFACTOR != 1.f) {
-        Pointer::mgr()->lockSoftwareAll();
-        zoomLock = true;
-    }
-
-    m_renderData.mouseZoomFactor = 1.f;
-    if (ZOOMFACTOR != 1.f && pMonitor == State::monitorState()->query().vec(Pointer::mgr()->position()).run())
-        m_renderData.mouseZoomFactor = std::clamp(ZOOMFACTOR, 1.f, INFINITY);
-
-    if (pMonitor->m_zoomAnimProgress->value() != 1) {
-        m_renderData.mouseZoomFactor    = 2.0 - pMonitor->m_zoomAnimProgress->value(); // 2x zoom -> 1x zoom
-        m_renderData.mouseZoomUseMouse  = false;
-        m_renderData.useNearestNeighbor = false;
-    }
+    applyCursorZoom(pMonitor, m_renderData);
 
     CRegion damage, finalDamage;
     if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL)) {

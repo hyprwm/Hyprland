@@ -107,6 +107,10 @@ UP<COverlay>& Debug::overlay() {
 
 COverlay::COverlay() {
     m_frameTimer.reset();
+    m_renderStart        = std::chrono::high_resolution_clock::now();
+    m_renderEnd          = std::chrono::high_resolution_clock::now();
+    m_renderStartOverlay = std::chrono::high_resolution_clock::now();
+    m_endRenderOverlay   = std::chrono::high_resolution_clock::now();
 }
 
 void CMonitorOverlay::renderData(PHLMONITOR pMonitor, float durationUs) {
@@ -342,6 +346,45 @@ void COverlay::renderDataNoOverlay(PHLMONITOR pMonitor, float durationUs) {
         return;
 
     m_monitorOverlays[pMonitor].renderDataNoOverlay(pMonitor, durationUs);
+}
+
+void COverlay::renderStart(PHLMONITOR pMonitor) {
+    static auto PDEBUGOVERLAY = CConfigValue<Config::INTEGER>("debug:overlay");
+
+    if (!*PDEBUGOVERLAY)
+        return;
+
+    m_renderStart = std::chrono::high_resolution_clock::now();
+    frameData(pMonitor);
+}
+
+void COverlay::renderOverlay(PHLMONITOR pMonitor) {
+    static auto PDEBUGOVERLAY = CConfigValue<Config::INTEGER>("debug:overlay");
+
+    if (!*PDEBUGOVERLAY)
+        return;
+
+    if (!State::monitorState()->monitors().empty() && pMonitor == State::monitorState()->monitors().front()) {
+        m_renderStartOverlay = std::chrono::high_resolution_clock::now();
+        Debug::overlay()->draw();
+        m_endRenderOverlay = std::chrono::high_resolution_clock::now();
+    }
+}
+
+void COverlay::renderEnd(PHLMONITOR pMonitor) {
+    static auto PDEBUGOVERLAY = CConfigValue<Config::INTEGER>("debug:overlay");
+
+    if (!*PDEBUGOVERLAY)
+        return;
+
+    const float durationUs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - m_renderStart).count() / 1000.f;
+    Debug::overlay()->renderData(pMonitor, durationUs);
+
+    if (pMonitor == State::monitorState()->monitors().front()) {
+        const float noOverlayUs = durationUs - std::chrono::duration_cast<std::chrono::nanoseconds>(m_endRenderOverlay - m_renderStartOverlay).count() / 1000.f;
+        Debug::overlay()->renderDataNoOverlay(pMonitor, noOverlayUs);
+    } else
+        Debug::overlay()->renderDataNoOverlay(pMonitor, durationUs);
 }
 
 void COverlay::frameData(PHLMONITOR pMonitor) {

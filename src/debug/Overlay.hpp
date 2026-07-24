@@ -69,16 +69,23 @@ namespace Debug {
         void draw();
         void renderData(PHLMONITOR, float durationUs);
         void renderDataNoOverlay(PHLMONITOR, float durationUs);
+        void renderStart(PHLMONITOR pMonitor);
+        void renderOverlay(PHLMONITOR pMonitor);
+        void renderEnd(PHLMONITOR pMonitor);
         void frameData(PHLMONITOR);
 
       private:
-        std::map<PHLMONITORREF, CMonitorOverlay> m_monitorOverlays;
-        CBox                                     m_lastDrawnBox;
-        CTimer                                   m_frameTimer;
+        std::map<PHLMONITORREF, CMonitorOverlay>       m_monitorOverlays;
+        CBox                                           m_lastDrawnBox;
+        CTimer                                         m_frameTimer;
+        std::chrono::high_resolution_clock::time_point m_renderStart;
+        std::chrono::high_resolution_clock::time_point m_renderEnd;
+        std::chrono::high_resolution_clock::time_point m_renderStartOverlay;
+        std::chrono::high_resolution_clock::time_point m_endRenderOverlay;
 
-        void                                     createWarningTexture(float maxW);
-        SP<Render::ITexture>                     m_warningTexture;
-        float                                    m_warningTextureMaxW = 0;
+        void                                           createWarningTexture(float maxW);
+        SP<Render::ITexture>                           m_warningTexture;
+        float                                          m_warningTextureMaxW = 0;
 
         friend class CHyprMonitorDebugOverlay;
         friend class Render::IHyprRenderer;

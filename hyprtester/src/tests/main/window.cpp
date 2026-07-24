@@ -1943,3 +1943,83 @@ TEST_CASE(sendFsWindowToAnotherWorkspace) {
         ASSERT_CONTAINS(str, "floating: 1");
     }
 }
+
+TEST_CASE(windowRuleBorderColors) {
+    // Setting global border colors to check against
+    OK(getFromSocket("/eval hl.config({ general = { col = { active_border = { colors = { 'rgba(00ff00ff)', 'rgba(ffffffff)' }, angle = 45 } } } })"));
+    OK(getFromSocket("/eval hl.config({ general = { col = { inactive_border = { colors = { 'rgba(ff0000ff)', 'rgba(ffffffff)' }, angle = 45 } } } })"));
+
+    // Testing setting only the 'active_border' option
+    OK(getFromSocket("/eval hl.window_rule({ name = 'active-border-kitty', match = { class = 'active_border_kitty' } })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'active-border-kitty', active_border = { colors = { 'rgba(ff00ffff)', 'rgba(000000ff)' }, angle = 90 } })"));
+
+    SPAWN_KITTY("active_border_kitty");
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:active_border_kitty' })"));
+
+    {
+        auto str = getFromSocket("/getprop active active_border_color");
+        EXPECT_CONTAINS(str, "ffff00ff");
+        EXPECT_CONTAINS(str, "ff000000");
+        EXPECT_CONTAINS(str, "90deg");
+    }
+
+    // We expect the inactive color to be the global one
+    {
+        auto str = getFromSocket("/getprop active inactive_border_color");
+        EXPECT_CONTAINS(str, "ffff0000");
+        EXPECT_CONTAINS(str, "ffffffff");
+        EXPECT_CONTAINS(str, "45deg");
+    }
+
+    Tests::killAllWindows();
+
+    // Testing setting only the 'inactive_border' option
+    OK(getFromSocket("/eval hl.window_rule({ name = 'inactive-border-kitty', match = { class = 'inactive_border_kitty' } })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'inactive-border-kitty', inactive_border = { colors = { 'rgba(ffff00ff)', 'rgba(000000ff)' }, angle = 90 } })"));
+
+    SPAWN_KITTY("inactive_border_kitty");
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:inactive_border_kitty' })"));
+
+    // We expect the active color to be the global one
+    {
+        auto str = getFromSocket("/getprop active active_border_color");
+        EXPECT_CONTAINS(str, "ff00ff00");
+        EXPECT_CONTAINS(str, "ffffffff");
+        EXPECT_CONTAINS(str, "45deg");
+    }
+
+    {
+        auto str = getFromSocket("/getprop active inactive_border_color");
+        EXPECT_CONTAINS(str, "ffffff00");
+        EXPECT_CONTAINS(str, "ff000000");
+        EXPECT_CONTAINS(str, "90deg");
+    }
+
+    Tests::killAllWindows();
+
+    // Testing setting both options
+    OK(getFromSocket("/eval hl.window_rule({ name = 'border-color-kitty', match = { class = 'double_border_kitty' } })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'border-color-kitty', active_border = { colors = { 'rgba(ff00ffff)', 'rgba(000000ff)' }, angle = 90 } })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'border-color-kitty', inactive_border = { colors = { 'rgba(ffff00ff)', 'rgba(000000ff)' }, angle = 90 } })"));
+
+    SPAWN_KITTY("double_border_kitty");
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:double_border_kitty' })"));
+
+    {
+        auto str = getFromSocket("/getprop active active_border_color");
+        EXPECT_CONTAINS(str, "ffff00ff");
+        EXPECT_CONTAINS(str, "ff000000");
+        EXPECT_CONTAINS(str, "90deg");
+    }
+
+    {
+        auto str = getFromSocket("/getprop active inactive_border_color");
+        EXPECT_CONTAINS(str, "ffffff00");
+        EXPECT_CONTAINS(str, "ff000000");
+        EXPECT_CONTAINS(str, "90deg");
+    }
+
+}

@@ -75,6 +75,7 @@ namespace Render {
         void                                renderDamageBlink(PHLMONITOR pMonitor, int& damageBlinkCleanup);
         bool                                renderDirectScanout(PHLMONITOR pMonitor);
         void                                renderMonitor(PHLMONITOR pMonitor, bool commit = true);
+        void                                endRenderMonitor(PHLMONITOR pMonitor, bool commit, bool shouldTear);
         void                                arrangeLayersForMonitor(const MONITORID&);
         void                                damageSurface(SP<CWLSurfaceResource>, double, double, double scale = 1.0);
         void                                damageWindow(PHLWINDOW, bool forceFull = false);

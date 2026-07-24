@@ -646,8 +646,7 @@ void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::
     auto state = stateFor(pMonitor);
 
     if (!state->hardwareFailed && state->softwareLocks == 0 && !screencopy) {
-        if (m_currentCursorImage.surface)
-            m_currentCursorImage.surface->resource()->frame(now);
+        sendCursorSurfaceFrame(now);
         return;
     }
 
@@ -690,6 +689,10 @@ void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::
         state->swRenderedBox = logicalBox;
     }
 
+    sendCursorSurfaceFrame(now);
+}
+
+void CPointerManager::sendCursorSurfaceFrame(const Time::steady_tp& now) {
     if (m_currentCursorImage.surface)
         m_currentCursorImage.surface->resource()->frame(now);
 }

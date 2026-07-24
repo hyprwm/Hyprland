@@ -541,7 +541,11 @@ void COverlay::draw() {
     }
 
     if (m_frameTimer.getMillis() >= OVERLAY_REFRESH_INTERVAL_MS) {
-        PMONITOR->scheduleFrame();
+        if (m_lastDrawnBox.width > 0 && m_lastDrawnBox.height > 0)
+            g_pHyprRenderer->damageBox(m_lastDrawnBox);
+        else
+            PMONITOR->scheduleFrame();
+
         m_frameTimer.reset();
     }
 }

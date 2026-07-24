@@ -2074,6 +2074,28 @@ bool IHyprRenderer::renderDirectScanout(PHLMONITOR pMonitor) {
     return false;
 }
 
+// if the monitor image actually needs to be redrawn. If it doesnt, the buffer currently
+// being scanned out is still a correct picture of the monitor, and there is no point in acquiring
+// a new swapchain buffer and running a render pass over it.
+static bool monitorNeedsRedraw(PHLMONITOR pMonitor, int damageBlinkCleanup) {
+    static auto PDAMAGETRACKINGMODE = CConfigValue<Config::INTEGER>("debug:damage_tracking");
+    static auto PSOLDAMAGE          = CConfigValue<Config::INTEGER>("debug:render_solitary_wo_damage");
+
+    // these all redraw the entire monitor every frame by definition
+    if (*PDAMAGETRACKINGMODE != DAMAGE_TRACKING_FULL || pMonitor->m_forceFullFrames > 0 || damageBlinkCleanup > 0)
+        return true;
+
+    if (pMonitor->m_damage.hasChanged())
+        return true;
+
+    if (pMonitor->m_solitaryClient && *PSOLDAMAGE)
+        return true;
+
+    // mirrors and screenshare consumers read the mirror FB, which is only refreshed as a side
+    // effect of rendering, so keep rendering while it's stale.
+    return pMonitor->needsACopyFB() && !pMonitor->resources()->pendingMirrorFBDamage().empty();
+}
+
 void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     if (!pMonitor)
         return;
@@ -2089,7 +2111,6 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     static auto PDAMAGETRACKINGMODE = CConfigValue<Config::INTEGER>("debug:damage_tracking");
     static auto PDAMAGEBLINK        = CConfigValue<Config::INTEGER>("debug:damage_blink");
     static auto PSOLDAMAGE          = CConfigValue<Config::INTEGER>("debug:render_solitary_wo_damage");
-    static auto PVFR                = CConfigValue<Config::INTEGER>("debug:vfr");
 
     static int  damageBlinkCleanup = 0; // because double-buffered
 
@@ -2125,12 +2146,29 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     Event::bus()->m_events.render.pre.emit(pMonitor);
 
-    if (!shouldRenderMonitor(pMonitor) && damageBlinkCleanup == 0)
+    pMonitor->m_renderingActive = true;
+
+    // a frame was scheduled, but nothing on this monitor changed, a hw cursor plane update, a
+    // client that only wants frame events, a bare scheduleFrame(). the scanned out buffer is still
+    // correct, so push the pending output state without rendering anything.
+    if (!monitorNeedsRedraw(pMonitor, damageBlinkCleanup)) {
+        const auto NOW = Time::steadyNow();
+
+        if (!pMonitor->isMirror()) {
+            if (pMonitor->m_activeWorkspace)
+                sendFrameEventsToWorkspace(pMonitor, pMonitor->m_activeWorkspace, NOW);
+            if (pMonitor->m_activeSpecialWorkspace)
+                sendFrameEventsToWorkspace(pMonitor, pMonitor->m_activeSpecialWorkspace, NOW);
+        }
+
+        // an animated hw cursor keeps animating off its own frame callback
+        Pointer::mgr()->sendCursorSurfaceFrame(NOW);
+
+        endRenderMonitor(pMonitor, commit, shouldTear);
         return;
+    }
 
     Event::bus()->m_events.render.stage.emit(RENDER_PRE);
-
-    pMonitor->m_renderingActive = true;
 
     // Most frames have no fading-out windows or layers for this monitor.
     if (!Desktop::fadingOutState()->fadeouts().empty())
@@ -2146,6 +2184,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     CRegion damage, finalDamage;
     if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL)) {
         Log::logger->log(Log::ERR, "renderer: couldn't beginRender()!");
+        pMonitor->m_renderingActive = false;
         return;
     }
 
@@ -2245,6 +2284,14 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     Event::bus()->m_events.render.stage.emit(RENDER_POST);
 
     pMonitor->m_output->state->addDamage(frameDamage);
+
+    endRenderMonitor(pMonitor, commit, shouldTear);
+}
+
+void IHyprRenderer::endRenderMonitor(PHLMONITOR pMonitor, bool commit, bool shouldTear) {
+    static auto PDAMAGEBLINK = CConfigValue<Config::INTEGER>("debug:damage_blink");
+    static auto PVFR         = CConfigValue<Config::INTEGER>("debug:vfr");
+
     auto presentationMode = shouldTear ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE : Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC;
     if (pMonitor->m_output->state->state().presentationMode != presentationMode)
         pMonitor->m_output->state->setPresentationMode(presentationMode);

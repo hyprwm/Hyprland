@@ -189,7 +189,7 @@ std::optional<std::string> Internal::workspaceSelectorFromLuaSelectorOrObject(lu
             return std::nullopt;
         }
 
-        return std::to_string(ws->m_id);
+        return "id:" + std::to_string(ws->m_id);
     }
 
     if (lua_isstring(L, idx) || lua_isnumber(L, idx))

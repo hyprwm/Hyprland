@@ -123,7 +123,14 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
     if (selector.empty())
         return true;
 
-    if (isNumber(selector)) {
+    if (selector.starts_with("id:")) {
+
+        // id:###
+        if (!isNumber(selector.substr(3))) {
+            Log::logger->log(Log::ERR, "id: is not numeric");
+            return false;
+        }
+
         const auto& [wsid, wsname, isAutoID] = getWorkspaceIDNameFromString(selector);
 
         if (wsid == WORKSPACE_INVALID)
@@ -135,7 +142,15 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
         return m_name == selector.substr(5);
     } else if (selector.starts_with("special")) {
         return m_name == selector;
-    } else {
+    } else if (isNumber(selector)) {
+        const auto& [wsid, wsname, isAutoID] = getWorkspaceIDNameFromString(selector);
+
+        if (wsid == WORKSPACE_INVALID)
+            return false;
+
+        return wsid == m_id;
+    }
+    else {
         // parse selector
 
         for (size_t i = 0; i < selector.length(); ++i) {

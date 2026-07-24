@@ -146,6 +146,28 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             result.id = WORKSPACE->m_id;
         }
         result.name = WORKSPACENAME;
+    } else if (in.starts_with("id:")) {
+        const std::string WORKSPACEIDSTRING = in.substr(in.find_first_of(':') + 1);
+
+        if (isNumber(WORKSPACEIDSTRING)) {
+            const int  WORKSPACEID = std::stoi(WORKSPACEIDSTRING);
+            const auto WORKSPACE   = State::workspaceState()->query().id(WORKSPACEID).run();
+
+            if (!WORKSPACE) {
+                const auto NEXT_AVAILABLE_WORKSPACE_ID = State::workspaceState()->nextAvailableNamedWorkspace();
+                const auto NEXT_AVAILABLE_WORKSPACE    = State::workspaceState()->query().id(NEXT_AVAILABLE_WORKSPACE_ID).run();
+
+                result.id   = NEXT_AVAILABLE_WORKSPACE_ID;
+                result.name = NEXT_AVAILABLE_WORKSPACE ? NEXT_AVAILABLE_WORKSPACE->m_name : "";
+            } else {
+                result.id   = WORKSPACE->m_id;
+                result.name = WORKSPACE->m_name;
+            }
+            return result;
+        } else {
+            Log::logger->log(Log::ERR, "id: is not numeric");
+            return {WORKSPACE_INVALID};
+        }
     } else if (in.starts_with("empty")) {
         const bool same_mon = in.substr(5).contains("m");
         const bool next     = in.substr(5).contains("n");

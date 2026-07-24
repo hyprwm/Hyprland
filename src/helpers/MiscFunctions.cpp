@@ -30,6 +30,7 @@
 #include <hyprutils/string/VarList.hpp>
 #include <hyprutils/os/Process.hpp>
 #include "../version.h"
+#include <charconv>
 
 using namespace Hyprutils::String;
 using namespace Hyprutils::OS;
@@ -457,9 +458,16 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                     Log::logger->log(Log::ERR, "Relative workspace on no mon!");
                     return {WORKSPACE_INVALID};
                 }
-            } else if (isNumber(in))
-                result.id = std::max(std::stoi(in), 1);
-            else {
+            } else if (isNumber(in)) {
+                WORKSPACEID workspaceID = 0;
+
+                const auto [ptr, ec] = std::from_chars(in.data(), in.data() + in.size(), workspaceID);
+
+                if (ec != std::errc{} || ptr != in.data() + in.size())
+                    return {WORKSPACE_INVALID};
+
+                result.id = std::max<WORKSPACEID>(workspaceID, 1);
+            } else {
                 // maybe name
                 const auto PWORKSPACE = State::workspaceState()->query().name(in).run();
                 if (PWORKSPACE)

@@ -21,6 +21,11 @@ namespace Layout {
     enum eTargetUpdateFlags : uint8_t {
         TARGET_UPDATE_NONE                = 0,
         TARGET_UPDATE_NO_CLIENT_CONFIGURE = 1 << 0,
+        // FS handlers and modes
+        TARGET_UPDATE_DEFAULT_HANDLED_FS = 1 << 2,
+        TARGET_UPDATE_LAYOUT_HANDLED_FS  = 1 << 3,
+        TARGET_UPDATE_FULLSCREEN         = 1 << 4,
+        TARGET_UPDATE_MAXIMISED          = 1 << 5,
     };
 
     class CSpace;

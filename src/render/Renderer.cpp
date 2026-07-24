@@ -2010,6 +2010,20 @@ void IHyprRenderer::applyCursorZoom(PHLMONITOR pMonitor, SRenderData& data) {
     }
 }
 
+void IHyprRenderer::renderDamageBlink(PHLMONITOR pMonitor, int& damageBlinkCleanup) {
+    if (damageBlinkCleanup == 0) {
+        CRectPassElement::SRectData data;
+        data.box   = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
+        data.color = CHyprColor(1.0, 0.0, 1.0, 100.0 / 255.0);
+        m_renderPass.add(makeUnique<CRectPassElement>(data));
+        damageBlinkCleanup = 1;
+    } else {
+        damageBlinkCleanup++;
+        if (damageBlinkCleanup > 3)
+            damageBlinkCleanup = 0;
+    }
+}
+
 bool IHyprRenderer::renderDirectScanout(PHLMONITOR pMonitor) {
     const bool canAttemptDirectScanout = pMonitor->canAttemptDirectScanoutFast();
 
@@ -2149,17 +2163,8 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
             // for drawing the debug overlay
             Debug::overlay()->renderOverlay(pMonitor);
 
-            if (*PDAMAGEBLINK && damageBlinkCleanup == 0) {
-                CRectPassElement::SRectData data;
-                data.box   = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
-                data.color = CHyprColor(1.0, 0.0, 1.0, 100.0 / 255.0);
-                m_renderPass.add(makeUnique<CRectPassElement>(data));
-                damageBlinkCleanup = 1;
-            } else if (*PDAMAGEBLINK) {
-                damageBlinkCleanup++;
-                if (damageBlinkCleanup > 3)
-                    damageBlinkCleanup = 0;
-            }
+            if (*PDAMAGEBLINK)
+                renderDamageBlink(pMonitor, damageBlinkCleanup);
         }
     } else if (!pMonitor->isMirror()) {
         if (pMonitor->m_activeWorkspace)

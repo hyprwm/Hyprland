@@ -70,6 +70,7 @@ namespace Render {
         WP<Render::GL::CHyprOpenGLImpl>     glBackend();
 
         void                                applyCursorZoom(PHLMONITOR pMonitor, SRenderData& data);
+        void                                renderDamageBlink(PHLMONITOR pMonitor, int& damageBlinkCleanup);
         bool                                renderDirectScanout(PHLMONITOR pMonitor);
         void                                renderMonitor(PHLMONITOR pMonitor, bool commit = true);
         void                                arrangeLayersForMonitor(const MONITORID&);

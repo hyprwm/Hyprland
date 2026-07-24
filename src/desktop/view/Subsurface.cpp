@@ -322,3 +322,7 @@ void CSubsurface::syncScaleTransform() const {
 Vector2D CSubsurface::size() {
     return m_wlSurface->resource()->m_current.size;
 }
+
+PHLWINDOW CSubsurface::windowParent() {
+    return m_windowParent.lock();
+}

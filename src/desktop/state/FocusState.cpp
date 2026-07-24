@@ -232,8 +232,6 @@ void CFocusState::rawSurfaceFocus(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWi
         return;
     }
 
-    const auto PLASTSURF = m_focusSurface.lock();
-
     // Unfocus last surface if should
     if (m_focusSurface && !pWindowOwner)
         g_pXWaylandManager->activateSurface(m_focusSurface.lock(), false);
@@ -259,15 +257,6 @@ void CFocusState::rawSurfaceFocus(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWi
     m_focusSurface = pSurface;
 
     Event::bus()->m_events.input.keyboard.focus.emit(pSurface);
-
-    const auto SURF    = Desktop::View::CWLSurface::fromResource(pSurface);
-    const auto OLDSURF = Desktop::View::CWLSurface::fromResource(PLASTSURF);
-
-    if (OLDSURF && OLDSURF->constraint())
-        OLDSURF->constraint()->deactivate();
-
-    if (SURF && SURF->constraint())
-        SURF->constraint()->activate();
 }
 
 void CFocusState::rawMonitorFocus(PHLMONITOR pMonitor) {

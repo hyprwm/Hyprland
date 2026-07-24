@@ -38,6 +38,8 @@ namespace Desktop::View {
 
         Vector2D                       size();
 
+        PHLWINDOW                      windowParent();
+
         void                           onCommit();
         void                           onDestroy();
         void                           onNewSubsurface(SP<CWLSubsurfaceResource> pSubsurface);

@@ -2035,6 +2035,14 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     if (!pMonitor)
         return;
 
+    if (pMonitor->m_pixelSize.x < 1 || pMonitor->m_pixelSize.y < 1) {
+        Log::logger->log(Log::ERR, "Refusing to render a monitor because of an invalid pixel size: {}", pMonitor->m_pixelSize);
+        return;
+    }
+
+    if (!g_pCompositor->m_sessionActive)
+        return;
+
     static auto PDAMAGETRACKINGMODE = CConfigValue<Config::INTEGER>("debug:damage_tracking");
     static auto PDAMAGEBLINK        = CConfigValue<Config::INTEGER>("debug:damage_blink");
     static auto PSOLDAMAGE          = CConfigValue<Config::INTEGER>("debug:render_solitary_wo_damage");
@@ -2042,18 +2050,10 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     static int  damageBlinkCleanup = 0; // because double-buffered
 
-    if (pMonitor->m_pixelSize.x < 1 || pMonitor->m_pixelSize.y < 1) {
-        Log::logger->log(Log::ERR, "Refusing to render a monitor because of an invalid pixel size: {}", pMonitor->m_pixelSize);
-        return;
-    }
-
     if (!*PDAMAGEBLINK)
         damageBlinkCleanup = 0;
 
     Debug::overlay()->renderStart(pMonitor);
-
-    if (!g_pCompositor->m_sessionActive)
-        return;
 
     Event::bus()->m_events.render.preChecks.emit(pMonitor);
 
@@ -2082,15 +2082,8 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     Event::bus()->m_events.render.pre.emit(pMonitor);
 
-    const auto NOW = Time::steadyNow();
-
     if (!shouldRenderMonitor(pMonitor) && damageBlinkCleanup == 0)
         return;
-
-    if (*PDAMAGETRACKINGMODE == -1) {
-        Log::logger->log(Log::CRIT, "Damage tracking mode -1 ????");
-        return;
-    }
 
     Event::bus()->m_events.render.stage.emit(RENDER_PRE);
 
@@ -2130,7 +2123,8 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     Event::bus()->m_events.render.stage.emit(RENDER_BEGIN);
 
-    bool renderCursor = true;
+    bool       renderCursor = true;
+    const auto NOW          = Time::steadyNow();
 
     if (pMonitor->m_solitaryClient && (!finalDamage.empty() || *PSOLDAMAGE))
         renderWindow(pMonitor->m_solitaryClient.lock(), pMonitor, NOW, false, RENDER_PASS_MAIN /* solitary = no popups */);

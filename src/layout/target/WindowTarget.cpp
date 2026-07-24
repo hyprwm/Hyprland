@@ -13,7 +13,6 @@
 #include "../../state/MonitorState.hpp"
 #include "../../desktop/Workspace.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
-#include "layout/target/Target.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 

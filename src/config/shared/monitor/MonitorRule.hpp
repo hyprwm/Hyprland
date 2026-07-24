@@ -1,5 +1,6 @@
 #pragma once
 
+#include <aquamarine/output/Output.hpp>
 #include <string>
 #include <optional>
 #include <cstdint>
@@ -36,29 +37,30 @@ namespace Config {
         CMonitorRule()  = default;
         ~CMonitorRule() = default;
 
-        eMonitorRuleComparisonResult compare(const CMonitorRule& other) const;
+        eMonitorRuleComparisonResult  compare(const CMonitorRule& other) const;
 
-        eAutoDirs                    m_autoDir       = DIR_AUTO_NONE;
-        std::string                  m_name          = "";
-        Vector2D                     m_resolution    = Vector2D();
-        Vector2D                     m_offset        = Vector2D(-INT32_MAX, -INT32_MAX);
-        float                        m_scale         = -1;
-        float                        m_refreshRate   = 60; // Hz
-        bool                         m_disabled      = false;
-        wl_output_transform          m_transform     = WL_OUTPUT_TRANSFORM_NORMAL;
-        std::string                  m_mirrorOf      = "";
-        bool                         m_enable10bit   = false;
-        NCMType::eCMType             m_cmType        = NCMType::CM_SRGB;
-        NTransferFunction::eTF       m_sdrEotf       = NTransferFunction::TF_DEFAULT;
-        float                        m_sdrSaturation = 1.F; // SDR -> HDR
-        float                        m_sdrBrightness = 1.F; // SDR -> HDR
-        Desktop::CReservedArea       m_reservedArea;
-        std::string                  m_iccFile;
+        eAutoDirs                     m_autoDir       = DIR_AUTO_NONE;
+        std::string                   m_name          = "";
+        Vector2D                      m_resolution    = Vector2D();
+        Vector2D                      m_offset        = Vector2D(-INT32_MAX, -INT32_MAX);
+        float                         m_scale         = -1;
+        float                         m_refreshRate   = 60; // Hz
+        bool                          m_disabled      = false;
+        wl_output_transform           m_transform     = WL_OUTPUT_TRANSFORM_NORMAL;
+        std::string                   m_mirrorOf      = "";
+        bool                          m_enable10bit   = false;
+        Aquamarine::eOutputColorRange m_colorRange    = Aquamarine::AQ_OUTPUT_COLOR_RANGE_AUTO;
+        NCMType::eCMType              m_cmType        = NCMType::CM_SRGB;
+        NTransferFunction::eTF        m_sdrEotf       = NTransferFunction::TF_DEFAULT;
+        float                         m_sdrSaturation = 1.F; // SDR -> HDR
+        float                         m_sdrBrightness = 1.F; // SDR -> HDR
+        Desktop::CReservedArea        m_reservedArea;
+        std::string                   m_iccFile;
 
-        int                          m_supportsWideColor = 0;    // 0 - auto, 1 - force enable, -1 - force disable
-        int                          m_supportsHDR       = 0;    // 0 - auto, 1 - force enable, -1 - force disable
-        float                        m_sdrMinLuminance   = 0.2F; // SDR -> HDR
-        int                          m_sdrMaxLuminance   = 80;   // SDR -> HDR
+        int                           m_supportsWideColor = 0;    // 0 - auto, 1 - force enable, -1 - force disable
+        int                           m_supportsHDR       = 0;    // 0 - auto, 1 - force enable, -1 - force disable
+        float                         m_sdrMinLuminance   = 0.2F; // SDR -> HDR
+        int                           m_sdrMaxLuminance   = 80;   // SDR -> HDR
 
         // Incorrect values will result in reduced luminance range or incorrect tonemapping. Shouldn't damage the HW. Use with care in case of a faulty monitor firmware.
         float              m_minLuminance    = -1.F; // >= 0 overrides EDID

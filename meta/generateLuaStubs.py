@@ -556,6 +556,12 @@ def generate_stub(root: Path) -> str:
         "hl.notification.get": "fun(): HL.Notification[]",
         "hl.layout.register": "fun(name: string, provider: HL.LayoutProvider): nil",
         "hl.exec_cmd": "fun(cmd: string, rules?: table<string, string|number|boolean>): nil",
+        "hl.get_loaded_plugins": "fun(): HL.PLugin[]",
+        "hl.is_key_down": "fun(key: number|string): boolean",
+        "hl.version": "fun(): string",
+        "hl.clear_crashed_lockscreen": "fun(): nil",
+        "hl.exec_scheduled_prop_refresh_immediately": "fun(): nil",
+        "hl.unbind": "fun(key: string): nil"
     }
     api_signatures.update(query_overrides)
 
@@ -723,6 +729,19 @@ def generate_stub(root: Path) -> str:
                 ("color", "string", True),
                 ("icon", "integer|string", True),
                 ("font_size", "number", True),
+            ],
+        )
+    )
+    lines.append("")
+
+    lines.extend(
+        emit_class_block(
+            "HL.PLugin",
+            [
+                ("name", "string", True),
+                ("author", "string", True),
+                ("version", "string", True),
+                ("description", "string", True),
             ],
         )
     )

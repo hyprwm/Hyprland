@@ -108,7 +108,20 @@ PHLWINDOW CWindowQuery::inDirection(const SWindowDirectionQuery& query) const {
                 if (query.workspace->m_monitor == w->m_monitor && query.workspace != w->m_workspace)
                     continue;
 
-                if (Fullscreen::controller()->hasFullscreen(query.workspace) && !w->isAllowedOverFullscreen())
+                // Because we can't blanket ban finding window in direction if workspace has fullscreen, we need to only seek window if config options focus to wander away from FSed window
+                if ((Fullscreen::controller()->hasFullscreen(query.workspace)) && !w->isAllowedOverFullscreen()) {
+                    if (!Fullscreen::controller()->layoutManagedFS(Fullscreen::controller()->getFullscreenWindow(query.workspace)))
+                        continue;
+                    // Let layout handled fullscreens not block seeking window in direction
+                    static auto PONFOCUSUNDERFS = CConfigValue<Config::INTEGER>("misc:on_focus_under_fullscreen");
+                    static auto PFULLCYCLE      = CConfigValue<Config::BOOL>("binds:movefocus_cycles_fullscreen");
+                    if (!(*PFULLCYCLE) || *PONFOCUSUNDERFS == 0)
+                        continue;
+                }
+
+                if ((Fullscreen::controller()->hasFullscreen(query.workspace) &&
+                     !Fullscreen::controller()->layoutManagedFS(Fullscreen::controller()->getFullscreenWindow(query.workspace))) &&
+                    !w->isAllowedOverFullscreen())
                     continue;
 
                 if (!*PMONITORFALLBACK && query.workspace->m_monitor != w->m_monitor)

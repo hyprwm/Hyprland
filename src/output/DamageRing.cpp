@@ -1,6 +1,9 @@
 #include "DamageRing.hpp"
 
+#include <hyprutils/memory/Casts.hpp>
+
 using namespace Monitor;
+using namespace Hyprutils::Memory;
 
 void CDamageRing::setSize(const Vector2D& size_) {
     if (size_ == m_size)
@@ -56,8 +59,17 @@ CRegion CDamageRing::getBufferDamage(int age) {
     }
 
     // don't return a ludicrous amount of rects
-    if (pixman_region32_n_rects(damage.pixman()) > 8)
-        return damage.getExtents();
+    if (pixman_region32_n_rects(damage.pixman()) > DAMAGE_RING_MAX_RECTS) {
+        const auto EXTENTS = damage.getExtents();
+
+        // but only when the bounding box is not much bigger than the rects it replaces.
+        // scattered damage would otherwise shade most of the screen to save a few draws.
+        double rectsArea = 0;
+        damage.forEachRect([&rectsArea](const auto& RECT) { rectsArea += sc<double>(RECT.x2 - RECT.x1) * (RECT.y2 - RECT.y1); });
+
+        if (EXTENTS.w * EXTENTS.h <= rectsArea * DAMAGE_RING_EXTENTS_FACTOR)
+            return EXTENTS;
+    }
 
     return damage;
 }

@@ -1,7 +1,7 @@
 # Reference: https://github.com/marketplace/actions/codeowners-plus#codeowners-file-spec
 
-# Fallback: request Vaxry's review
-* @vaxerski
+# Fallback: request kolayne's review
+* @kolayne
 
 # CI: request @fufexan's review
 .github/workflows/** @fufexan

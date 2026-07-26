@@ -95,6 +95,12 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
     m_resource->setOnDestroy([this](CWlSurface* r) { destroy(); });
 
     m_resource->setAttach([this](CWlSurface* r, wl_resource* buffer, int32_t x, int32_t y) {
+        // version is 5 or higher, passing any non-zero x or y is a protocol violation
+        if (m_resource->version() >= 5 && (x != 0 || y != 0)) {
+            r->error(WL_SURFACE_ERROR_INVALID_OFFSET, "attach x and y must be 0 since version 5");
+            return;
+        }
+
         m_pending.updated.bits.buffer = true;
         m_pending.updated.bits.offset = true;
 
@@ -134,6 +140,15 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         else if (m_pending.viewport.hasSource)
             m_pending.size = m_pending.viewport.source.size();
         else {
+            // without a viewport, at commit time the supplied
+            // buffer size must be an integer multiple of the buffer_scale. If
+            // that's not the case, an invalid_size error is sent.
+            if (sc<int>(m_pending.bufferSize.x) % m_pending.scale != 0 || sc<int>(m_pending.bufferSize.y) % m_pending.scale != 0) {
+                r->error(WL_SURFACE_ERROR_INVALID_SIZE, "buffer size is not an integer multiple of the buffer scale");
+                dropPendingBuffer();
+                return;
+            }
+
             Vector2D tfs   = m_pending.transform % 2 == 1 ? Vector2D{m_pending.bufferSize.y, m_pending.bufferSize.x} : m_pending.bufferSize;
             m_pending.size = tfs / m_pending.scale;
         }
@@ -195,6 +210,11 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
     });
 
     m_resource->setSetBufferScale([this](CWlSurface* r, int32_t scale) {
+        if (scale <= 0) {
+            r->error(WL_SURFACE_ERROR_INVALID_SCALE, "buffer scale must be positive");
+            return;
+        }
+
         if (scale == m_pending.scale)
             return;
 
@@ -206,6 +226,11 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
     });
 
     m_resource->setSetBufferTransform([this](CWlSurface* r, uint32_t tr) {
+        if (tr > WL_OUTPUT_TRANSFORM_FLIPPED_270) {
+            r->error(WL_SURFACE_ERROR_INVALID_TRANSFORM, "invalid buffer transform");
+            return;
+        }
+
         if (tr == m_pending.transform)
             return;
 

@@ -125,7 +125,7 @@ CWLPointerResource::CWLPointerResource(SP<CWlPointer> resource_, SP<CWLSeatResou
         auto surfResource = surf ? CWLSurfaceResource::fromResource(surf) : nullptr;
 
         if (surfResource && surfResource->m_role->role() != SURFACE_ROLE_CURSOR && surfResource->m_role->role() != SURFACE_ROLE_UNASSIGNED) {
-            r->error(-1, "Cursor surface already has a different role");
+            r->error(WL_POINTER_ERROR_ROLE, "Cursor surface already has a different role");
             return;
         }
 
@@ -288,7 +288,9 @@ void CWLPointerResource::sendAxisStop(uint32_t timeMs, wl_pointer_axis axis) {
 }
 
 void CWLPointerResource::sendAxisDiscrete(wl_pointer_axis axis, int32_t discrete) {
-    if (!m_owner || !m_currentSurface || m_resource->version() < 5)
+    // This event is deprecated with wl_pointer version 8 - this event is not
+    // sent to clients supporting version 8 or later.
+    if (!m_owner || !m_currentSurface || m_resource->version() < 5 || m_resource->version() >= 8)
         return;
 
     if (!(PROTO::seat->m_currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_POINTER))

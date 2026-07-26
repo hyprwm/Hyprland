@@ -1,0 +1,58 @@
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > [!IMPORTANT]
+        > Please do **not** use AI to report bugs. Fill this report with your own words. We don't care about your poor grammar.
+        > It's much more clear to us if you don't use AI and instead write a clear, concise report yourself.
+  - type: input
+    attributes:
+      label: Hyprland version
+      description: |
+        You can obtain this from `hyprctl version` if running Hyprland, and `Hyprland --version` if you can't. **Do NOT** write "latest".
+      placeholder: |
+        v0.xx.x
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What's the bug?
+      description: |
+        What went wrong?
+      placeholder: |
+        I wanted to do...
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Reproduction steps
+      description: |
+        How can a maintainer / other user verify?
+      placeholder: |
+        1. Do this...
+        2. Do that...
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Attachments
+      description: |
+        Please attach any logs, crash reports or images that can help clarify the issue. With crashes, always attach a crash report from $XDG_CACHE_HOME/hyprland.
+        You can attach by dragging and dropping files into the textbox below.
+      placeholder: |
+        attachments...
+    validations:
+      required: false
+  - type: checkboxes
+    attributes:
+      label: "I acknowledge that:"
+      options:
+        - label: |
+            I have searched **all** (open and closed) discussions and issues and my problem is not there.
+          required: true
+        - label: |
+            I have read the [Code of Conduct](https://github.com/hyprwm/.github/blob/main/policies/CODE_OF_CONDUCT.md) and agree to follow it.
+          required: true
+        - label: |
+            I wrote this request with my own hands, my own keyboard, and in my own words.
+          required: true

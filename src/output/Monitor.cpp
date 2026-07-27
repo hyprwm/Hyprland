@@ -1503,9 +1503,11 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
 
         g_layoutManager->recalculateMonitor(m_self.lock(), Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_WORKSPACE_CHANGE);
 
-        IPC::Socket2::sock()->postEvent({"workspace", pWorkspace->m_name});
-        IPC::Socket2::sock()->postEvent({"workspacev2", std::format("{},{}", pWorkspace->m_id, pWorkspace->m_name)});
-        Event::bus()->m_events.workspace.active.emit(pWorkspace);
+        if (!noFocus) {
+            IPC::Socket2::sock()->postEvent({"workspace", pWorkspace->m_name});
+            IPC::Socket2::sock()->postEvent({"workspacev2", std::format("{},{}", pWorkspace->m_id, pWorkspace->m_name)});
+            Event::bus()->m_events.workspace.active.emit(pWorkspace);
+        }
     }
 
     // set all LSes as not above fullscreen on workspace changes

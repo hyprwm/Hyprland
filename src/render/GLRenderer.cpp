@@ -117,7 +117,7 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
         else
             glFlush(); // mark an implicit sync point
 
-        m_usedAsyncBuffers.clear(); // release all buffer refs and hope implicit sync works
+        PMONITOR->m_usedAsyncBuffers.clear(); // release all buffer refs and hope implicit sync works
         if (renderingDoneCallback)
             renderingDoneCallback();
 
@@ -126,22 +126,25 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
 
     auto eglSync = createSyncFDManager();
     if LIKELY (eglSync && eglSync->isValid()) {
-        for (auto const& buf : m_usedAsyncBuffers) {
-            for (const auto& releaser : buf->m_syncReleasers) {
+        for (auto& buf : PMONITOR->m_usedAsyncBuffers) {
+            if (buf.first.expired()) // surface is gone.
+                continue;
+
+            for (const auto& releaser : buf.second->m_syncReleasers) {
                 releaser->addSyncFileFd(eglSync->fd());
             }
         }
 
         // release buffer refs with release points now, since syncReleaser handles actual buffer release based on EGLSync
-        std::erase_if(m_usedAsyncBuffers, [](const auto& buf) { return !buf->m_syncReleasers.empty(); });
+        std::erase_if(PMONITOR->m_usedAsyncBuffers, [](const auto& buf) { return buf.first.expired() || !buf.second->m_syncReleasers.empty(); });
 
         // release buffer refs without release points when EGLSync sync_file/fence is signalled
-        g_pEventLoopManager->doOnReadable(eglSync->fd().duplicate(), [renderingDoneCallback, prevbfs = std::move(m_usedAsyncBuffers)]() mutable {
+        g_pEventLoopManager->doOnReadable(eglSync->fd().duplicate(), [renderingDoneCallback, prevbfs = std::move(PMONITOR->m_usedAsyncBuffers)]() mutable {
             prevbfs.clear();
             if (renderingDoneCallback)
                 renderingDoneCallback();
         });
-        m_usedAsyncBuffers.clear();
+        PMONITOR->m_usedAsyncBuffers.clear();
 
         if (m_renderMode == RENDER_MODE_NORMAL) {
             PMONITOR->m_inFence = eglSync->takeFd();
@@ -158,7 +161,7 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
             PMONITOR->m_output->state->resetExplicitFences();
         }
 
-        m_usedAsyncBuffers.clear();
+        PMONITOR->m_usedAsyncBuffers.clear();
         if (renderingDoneCallback)
             renderingDoneCallback();
     }

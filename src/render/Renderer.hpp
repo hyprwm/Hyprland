@@ -7,6 +7,8 @@
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <list>
 #include <optional>
+#include <vector>
+#include <utility>
 #include "OpenGL.hpp"
 #include "./SyncFDManager.hpp"
 #include "./pass/Pass.hpp"
@@ -120,8 +122,6 @@ namespace Render {
         float                               m_crashingDistort    = 0.5f;
         wl_event_source*                    m_crashingLoop       = nullptr;
         wl_event_source*                    m_cursorTicker       = nullptr;
-
-        std::vector<CHLBufferReference>     m_usedAsyncBuffers;
 
         struct {
             int                                          hotspotX      = 0;

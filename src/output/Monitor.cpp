@@ -276,6 +276,7 @@ void CMonitor::onConnect(bool noRule) {
 
         m_output->state->resetExplicitFences();
         m_output->state->setEnabled(false);
+        m_usedAsyncBuffers.clear();
 
         if (!m_state.commit())
             Log::logger->log(Log::ERR, "Couldn't commit disabled state on output {}", m_name);
@@ -2334,6 +2335,7 @@ void CMonitor::setDPMS(bool on) {
 
                 // commit DPMS to disable the monitor, it's fully black now
                 commitDPMSState(false);
+                m_usedAsyncBuffers.clear();
             },
             true);
     }
@@ -2342,6 +2344,8 @@ void CMonitor::setDPMS(bool on) {
 void CMonitor::commitDPMSState(bool state) {
     m_output->state->resetExplicitFences();
     m_output->state->setEnabled(state);
+    if (!state)
+        m_usedAsyncBuffers.clear();
 
     if (!m_state.commit()) {
         Log::logger->log(Log::ERR, "Couldn't commit output {} for DPMS = {}, will retry.", m_name, state);
@@ -2357,6 +2361,9 @@ void CMonitor::commitDPMSState(bool state) {
 
                 m_output->state->resetExplicitFences();
                 m_output->state->setEnabled(m_dpmsStatus);
+                if (!m_dpmsStatus)
+                    m_usedAsyncBuffers.clear();
+
                 if (!m_state.commit()) {
                     Log::logger->log(Log::ERR, "Couldn't retry committing output {} for DPMS = {}", m_name, m_dpmsStatus);
                     return;

@@ -43,9 +43,10 @@ static int monitorSetWorkspace(lua_State* L) {
     if (id.empty())
         return 0;
 
-    auto ws = State::workspaceState()->query().name(id).run();
+    const auto& [resolvedID, name, _] = getWorkspaceIDNameFromString(id);
+    auto        ws                    = State::workspaceState()->query().id(resolvedID).run();
     if (!ws)
-        return 0;
+        ws = State::workspaceState()->create(resolvedID, (*ref)->m_id, name);
 
     State::workspacePlacementController()->moveWorkspaceToMonitor(ws, ref->lock(), true, false);
     (*ref)->changeWorkspace(ws, false, true, Desktop::focusState()->monitor() != *ref);
@@ -62,9 +63,10 @@ static int monitorSetSpecialWorkspace(lua_State* L) {
         return 0;
     }
 
-    auto ws = State::workspaceState()->query().name(*id).run();
+    const auto& [resolvedID, name, _] = getWorkspaceIDNameFromString(*id);
+    auto        ws                    = State::workspaceState()->query().id(resolvedID).run();
     if (!ws)
-        return 0;
+        ws = State::workspaceState()->create(resolvedID, (*ref)->m_id, name);
 
     (*ref)->setSpecialWorkspace(ws->m_id, true);
 

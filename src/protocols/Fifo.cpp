@@ -1,6 +1,7 @@
 #include "Fifo.hpp"
 #include "Compositor.hpp"
 #include "core/Compositor.hpp"
+#include "core/Subcompositor.hpp"
 #include "../output/Monitor.hpp"
 #include "../event/EventBus.hpp"
 #include "../state/MonitorState.hpp"
@@ -8,6 +9,28 @@
 #include "../render/Renderer.hpp"
 #include <algorithm>
 #include <hyprutils/memory/WeakPtr.hpp>
+
+// what nvidia says about the empty extra barrier commit.
+/*
+ * If the window is not visible (occluded, monitor on standby,
+ * etc), then we could be waiting for an indefinite amount of time
+ * for the compositor to send a wp_presentation_feedback::presented
+ * or discarded event.
+ *
+ * But, wp_fifo_v1 is required to unblock in finite time, so we can
+ * send an extra dummy commit with a wp_fifo_v1::wait_barrier.
+ *
+ * If the window is visible, then the compositor will send a
+ * presented event as normal, and if the window is not visible,
+ * then the second commit will trigger a discarded event.
+ *
+ * Note that the compositor may trigger a discarded event
+ * immediately, so we use wp_commit_timer_v1 above to try to
+ * throttle things to a sane rate.
+ *
+ * Ugly as this is, Mesa relies on the same behavior, so it's
+ * probably safe to treat this as the "intended" behavior.
+*/
 
 CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> surface) : m_resource(std::move(resource_)), m_surface(surface) {
     if UNLIKELY (!m_resource->resource())
@@ -23,8 +46,7 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
             return;
         }
 
-        m_surface->m_pending.barrierSet        = true;
-        m_surface->m_pending.updated.bits.fifo = true;
+        m_surface->m_pending.barrierSet = true;
     });
 
     m_resource->setWaitBarrier([this](CWpFifoV1* r) {
@@ -33,59 +55,61 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
             return;
         }
 
-        if (!m_surface->m_current.barrierSet) {
-            // that might mean an empty commit with a barrier_set alone
-            static const auto PPEND = CConfigValue<Config::INTEGER>("debug:fifo_pending_workaround");
-            if (!m_surface->m_pending.fifoScheduled)
-                m_surface->m_pending.fifoScheduled = checkMonitors(*PPEND);
-
-            return;
-        }
-
-        m_surface->m_pending.surfaceLocked = true;
+        m_surface->m_pending.barrierWait = true;
     });
 
     m_listeners.surfaceStateCommit = m_surface->m_events.stateCommit.listen([this](auto state) {
-        if (!state || !state->surfaceLocked)
+        if (!state)
             return;
 
-        static const auto PPEND  = CConfigValue<Config::INTEGER>("debug:fifo_pending_workaround");
-        static const auto PINVIS = CConfigValue<Hyprlang::INT>("render:not_shown_fifo_lock");
-
-        //#TODO:
-        // this feels wrong, but if we have no pending frames, presented might never come because
-        // we are waiting on the barrier to unlock and no damage is around.
-        // unlock on timeout instead?
-        if (!state->fifoScheduled)
-            state->fifoScheduled = checkMonitors(*PPEND);
-
-        if (!state->fifoScheduled)
+        if (!state->barrierSet && !state->barrierWait)
             return;
 
-        // only lock once its mapped and visible
-        if (m_surface->m_mapped) {
-            bool shouldLock = *PINVIS == 0 || !m_surface->m_hlSurface; // always && unknown
-            if (!shouldLock && m_surface->m_hlSurface) {
-                const auto& view = m_surface->m_hlSurface->view();
-                if (view) {
-                    const auto& window    = view->type() == Desktop::View::VIEW_TYPE_WINDOW ? dynamicPointerCast<Desktop::View::CWindow>(view) : nullptr;
-                    const bool  isVisible = (view && view->visible() && //
-                                             (!window || std::ranges::any_of(State::monitorState()->monitors(), [window](const auto& mon) {
-                                                return g_pHyprRenderer->shouldRenderWindow(window, mon);
-                                             })));
-                    if (isVisible)
-                        shouldLock = true;
-                    else if (*PINVIS == 2) // never
-                        shouldLock = false;
-                    else if (window && window->m_ruleApplicator->renderUnfocused().valueOr(false))
-                        shouldLock = false; // ignore render_unfocused
-                    else
-                        shouldLock = true;
-                } else
-                    shouldLock = true;
+        // the barrier constraint must be ignored for a subsurface in synchronized mode.
+        if (m_surface->m_role->role() == SURFACE_ROLE_SUBSURFACE) {
+            const auto sub = dynamicPointerCast<CSubsurfaceRole>(m_surface->m_role);
+            if (sub) {
+                const auto subsurface = sub->m_subsurface.lock();
+                if (subsurface && subsurface->m_sync)
+                    return;
             }
-            if (shouldLock)
+        }
+
+        // check if entered outputs yet, and they are not tearing.
+        if (!checkMonitors())
+            return;
+
+        // only lock once its mapped and visible and actually has something waiting for a presentation.
+        if (m_surface->m_mapped && m_surface->m_current.waitingOnPresentation) {
+            bool shouldLock = false;
+            if (state->barrierSet && state->barrierWait) {
+                static const auto PINVIS = CConfigValue<Hyprlang::INT>("render:not_shown_fifo_lock");
+                shouldLock               = *PINVIS == 0 || !m_surface->m_hlSurface; // always && unknown
+                if (!shouldLock && m_surface->m_hlSurface) {
+                    const auto& view = m_surface->m_hlSurface->view();
+                    if (view) {
+                        const auto& window    = view->type() == Desktop::View::VIEW_TYPE_WINDOW ? dynamicPointerCast<Desktop::View::CWindow>(view) : nullptr;
+                        const bool  isVisible = (view && view->visible() && //
+                                                 (!window || std::ranges::any_of(State::monitorState()->monitors(), [window](const auto& mon) {
+                                                    return g_pHyprRenderer->shouldRenderWindow(window, mon);
+                                                 })));
+                        if (isVisible)
+                            shouldLock = true;
+                        else if (*PINVIS == 2) // never
+                            shouldLock = false;
+                        else if (window && window->m_ruleApplicator->renderUnfocused().valueOr(false))
+                            shouldLock = false; // ignore render_unfocused
+                        else
+                            shouldLock = true;
+                    } else
+                        shouldLock = true;
+                }
+            }
+
+            if (shouldLock) {
+                state->updated.bits.fifo = true;
                 m_surface->m_stateQueue.lock(state, LOCK_REASON_FIFO);
+            }
         }
     });
 }
@@ -99,11 +123,12 @@ bool CFifoResource::good() {
 }
 
 void CFifoResource::presented() {
-    m_surface->m_current.barrierSet = false;
+    m_surface->m_current.waitingOnPresentation = false;
     m_surface->m_stateQueue.unlockFirst(LOCK_REASON_FIFO);
 }
 
-bool CFifoResource::checkMonitors(bool needsSchedule) {
+bool CFifoResource::checkMonitors() {
+    bool allowFifo = false;
     if (m_surface->m_enteredOutputs.empty() && m_surface->m_hlSurface) {
         for (auto& m : State::monitorState()->monitors()) {
             if (!m || !m->m_enabled)
@@ -114,8 +139,7 @@ bool CFifoResource::checkMonitors(bool needsSchedule) {
                 if (m->m_tearingState.activelyTearing)
                     return false; // dont fifo lock on tearing.
 
-                if (needsSchedule)
-                    m->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
+                allowFifo = true; // intersects.
             }
         }
     } else {
@@ -126,12 +150,11 @@ bool CFifoResource::checkMonitors(bool needsSchedule) {
             if (m->m_tearingState.activelyTearing)
                 return false; // dont fifo lock on tearing.
 
-            if (needsSchedule)
-                m->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
+            allowFifo = true;
         }
     }
 
-    return true;
+    return allowFifo;
 }
 
 CFifoManagerResource::CFifoManagerResource(UP<CWpFifoManagerV1>&& resource_) : m_resource(std::move(resource_)) {

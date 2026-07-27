@@ -6,6 +6,7 @@
 #include "../bindings/LuaBindingsInternal.hpp"
 #include "../../../output/Monitor.hpp"
 #include "../../../desktop/state/FocusState.hpp"
+#include "../../../state/WorkspacePlacementController.hpp"
 
 #include <string_view>
 
@@ -46,8 +47,8 @@ static int monitorSetWorkspace(lua_State* L) {
     if (!ws)
         return 0;
 
-    const auto DO_FOCUS = *ref == Desktop::focusState()->monitor();
-    (*ref)->changeWorkspace(ws->m_id, false, true, !DO_FOCUS);
+    State::workspacePlacementController()->moveWorkspaceToMonitor(ws, ref->lock(), true, false);
+    (*ref)->changeWorkspace(ws, false, true, Desktop::focusState()->monitor() != *ref);
 
     return 0;
 }

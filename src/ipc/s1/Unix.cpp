@@ -196,11 +196,11 @@ bool CUnixPeer::flush() {
 }
 
 bool CUnixPeer::shouldClose() const {
-    return m_state == eState::WRITING && m_output.empty() && m_replyMode == eReplyMode::CLOSE;
+    return m_state == eState::WRITING && m_output.empty() && m_replyMode == REPLY_MODE_CLOSE;
 }
 
 bool CUnixPeer::shouldFollow() const {
-    return m_state == eState::WRITING && m_output.empty() && m_replyMode == eReplyMode::FOLLOW;
+    return m_state == eState::WRITING && m_output.empty() && m_replyMode == REPLY_MODE_FOLLOW;
 }
 
 bool CUnixPeer::isFollowing() const {

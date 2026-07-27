@@ -149,13 +149,13 @@ int main(int argc, char** argv) {
 
                 return 0;
             } else if (value == "-v" || value == "--version") {
-                std::println("{}", IPC::Socket1::version(IPC::Socket1::eOutputFormat::NORMAL));
+                std::println("{}", IPC::Socket1::version(IPC::Socket1::eOutputFormat::FORMAT_NORMAL));
                 return 0;
             } else if (value == "--version-json") {
-                std::println("{}", IPC::Socket1::version(IPC::Socket1::eOutputFormat::JSON));
+                std::println("{}", IPC::Socket1::version(IPC::Socket1::eOutputFormat::FORMAT_JSON));
                 return 0;
             } else if (value == "--systeminfo") {
-                std::println("{}", IPC::Socket1::systemInfo(IPC::Socket1::eOutputFormat::NORMAL));
+                std::println("{}", IPC::Socket1::systemInfo(IPC::Socket1::eOutputFormat::FORMAT_NORMAL));
                 return 0;
             } else if (value == "--verify-config") {
                 verifyConfig = true;

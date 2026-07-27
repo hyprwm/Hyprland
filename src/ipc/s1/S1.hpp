@@ -11,26 +11,24 @@
 #include <vector>
 
 namespace IPC::Socket1 {
-    enum class eOutputFormat : uint8_t {
-        NORMAL = 0,
-        JSON,
-        FORMAT_NORMAL = NORMAL,
-        FORMAT_JSON   = JSON,
+    enum eOutputFormat : uint8_t {
+        FORMAT_NORMAL = 0,
+        FORMAT_JSON,
     };
 
-    enum class eCommandMatch : uint8_t {
-        EXACT = 0,
-        PREFIX,
+    enum eCommandMatch : uint8_t {
+        COMMAND_MATCH_EXACT = 0,
+        COMMAND_MATCH_PREFIX,
     };
 
-    enum class eReplyMode : uint8_t {
-        CLOSE = 0,
-        FOLLOW,
+    enum eReplyMode : uint8_t {
+        REPLY_MODE_CLOSE = 0,
+        REPLY_MODE_FOLLOW,
     };
 
     struct SRequest {
         std::string   command;
-        eOutputFormat format        = eOutputFormat::NORMAL;
+        eOutputFormat format        = FORMAT_NORMAL;
         bool          refresh       = false;
         bool          all           = false;
         bool          includeConfig = false;
@@ -42,17 +40,17 @@ namespace IPC::Socket1 {
         using TResult = std::variant<std::string, SP<CPromise<std::string>>>;
 
         SResponse();
-        SResponse(std::string response, eReplyMode mode = eReplyMode::CLOSE);
-        SResponse(const char* response, eReplyMode mode = eReplyMode::CLOSE);
-        SResponse(SP<CPromise<std::string>> promise, eReplyMode mode = eReplyMode::CLOSE);
+        SResponse(std::string response, eReplyMode mode = REPLY_MODE_CLOSE);
+        SResponse(const char* response, eReplyMode mode = REPLY_MODE_CLOSE);
+        SResponse(SP<CPromise<std::string>> promise, eReplyMode mode = REPLY_MODE_CLOSE);
 
         TResult    result;
-        eReplyMode mode = eReplyMode::CLOSE;
+        eReplyMode mode = REPLY_MODE_CLOSE;
     };
 
     struct SCommand {
         std::string                               name;
-        eCommandMatch                             match = eCommandMatch::EXACT;
+        eCommandMatch                             match = COMMAND_MATCH_EXACT;
         std::function<SResponse(const SRequest&)> handler;
     };
 

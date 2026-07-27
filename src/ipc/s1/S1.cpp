@@ -64,7 +64,7 @@ SRequest CSocket1::parseRequest(std::string request, pid_t pid) const {
         ++separator;
 
         if (character == 'j')
-            parsed.format = eOutputFormat::JSON;
+            parsed.format = FORMAT_JSON;
         else if (character == 'r')
             parsed.refresh = true;
         else if (character == 'a')
@@ -87,7 +87,7 @@ SResponse CSocket1::dispatchSingle(std::string request, pid_t pid) {
     SP<SCommand> matched;
 
     for (const auto& command : m_commands) {
-        if (command->match == eCommandMatch::EXACT && command->name == parsed.command) {
+        if (command->match == COMMAND_MATCH_EXACT && command->name == parsed.command) {
             matched = command;
             break;
         }
@@ -95,7 +95,7 @@ SResponse CSocket1::dispatchSingle(std::string request, pid_t pid) {
 
     if (!matched) {
         for (const auto& command : m_commands) {
-            if (command->match == eCommandMatch::PREFIX && parsed.command.starts_with(command->name)) {
+            if (command->match == COMMAND_MATCH_PREFIX && parsed.command.starts_with(command->name)) {
                 matched = command;
                 break;
             }
@@ -156,7 +156,7 @@ SResponse CSocket1::dispatchBatch(std::string request, pid_t pid) {
     bool hasDeferred = false;
     for (auto& command : commands) {
         auto response = dispatchSingle(std::move(command), pid);
-        if (response.mode == eReplyMode::FOLLOW)
+        if (response.mode == REPLY_MODE_FOLLOW)
             return "follow mode is unavailable in batch requests";
 
         hasDeferred |= std::holds_alternative<SP<CPromise<std::string>>>(response.result);

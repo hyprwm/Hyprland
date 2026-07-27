@@ -58,7 +58,7 @@ namespace IPC::Socket1 {
         std::string                    m_output;
         size_t                         m_writeOffset = 0;
         eState                         m_state       = eState::READING;
-        eReplyMode                     m_replyMode   = eReplyMode::CLOSE;
+        eReplyMode                     m_replyMode   = REPLY_MODE_CLOSE;
     };
 
     class CUnixImpl : public IImplementation {

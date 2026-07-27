@@ -46,7 +46,7 @@ std::string SystemInfo::getStatus(eOutputFormat fmt) {
         default: backendStr = "error"; break;
     }
 
-    if (fmt == eOutputFormat::JSON) {
+    if (fmt == IPC::Socket1::FORMAT_JSON) {
 
         return std::format(R"#(
 {{
@@ -69,7 +69,7 @@ std::string SystemInfo::getVersion(eOutputFormat fmt) {
     auto commitMsg = trim(GIT_COMMIT_MESSAGE);
     std::ranges::replace(commitMsg, '#', ' ');
 
-    if (fmt == eOutputFormat::NORMAL) {
+    if (fmt == IPC::Socket1::FORMAT_NORMAL) {
         std::string result = std::format("Hyprland {} built from branch {} at commit {} {} ({}).\n"
                                          "Date: {}\n"
                                          "Tag: {}, commits: {}\n",
@@ -146,7 +146,7 @@ std::string SystemInfo::getVersion(eOutputFormat fmt) {
 }
 
 std::string SystemInfo::getSystemInfo() {
-    std::string result = getVersion(eOutputFormat::NORMAL);
+    std::string result = getVersion(IPC::Socket1::FORMAT_NORMAL);
 
     static auto check   = [](bool y) -> std::string { return y ? "✔️" : "❌"; };
     static auto backend = [](Aquamarine::eBackendType t) -> std::string {
@@ -251,7 +251,7 @@ std::string SystemInfo::getSystemInfo() {
     }
 
     result += "\n\nState:\n";
-    result += getStatus(eOutputFormat::NORMAL);
+    result += getStatus(IPC::Socket1::FORMAT_NORMAL);
 
     result += "\n\n";
 

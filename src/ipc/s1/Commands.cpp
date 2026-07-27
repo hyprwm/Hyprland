@@ -70,9 +70,6 @@ using namespace Render::GL;
 using namespace IPC::Socket1;
 using eHyprCtlOutputFormat = eOutputFormat;
 
-static constexpr auto FORMAT_NORMAL = eOutputFormat::NORMAL;
-static constexpr auto FORMAT_JSON   = eOutputFormat::JSON;
-
 class CCommandFormatter {
   public:
     static std::string getWindowData(PHLWINDOW window, eOutputFormat format);
@@ -1322,7 +1319,7 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
     if (!PWINDOW)
         return "window not found";
 
-    const bool FORMNORM = format == FORMAT_NORMAL;
+    const bool FORMNORM = format == IPC::Socket1::FORMAT_NORMAL;
 
     auto       sizeToString = [&](bool max) -> std::string {
         auto sizeValue = PWINDOW->m_ruleApplicator->minSize().valueOr(Vector2D(MIN_WINDOW_SIZE, MIN_WINDOW_SIZE));
@@ -1859,48 +1856,48 @@ static SCommand legacyCommand(std::string name, eCommandMatch match, F handler) 
 }
 
 void IPC::Socket1::registerBuiltinCommands(CSocket1& socket) {
-    socket.registerCommand(legacyCommand("workspaces", eCommandMatch::EXACT, workspacesRequest));
-    socket.registerCommand(legacyCommand("workspacerules", eCommandMatch::EXACT, workspaceRulesRequest));
-    socket.registerCommand(legacyCommand("activeworkspace", eCommandMatch::EXACT, activeWorkspaceRequest));
-    socket.registerCommand(SCommand{.name = "clients", .match = eCommandMatch::EXACT, .handler = [](const SRequest& request) { return clientsRequest(request); }});
-    socket.registerCommand(legacyCommand("kill", eCommandMatch::EXACT, killRequest));
-    socket.registerCommand(legacyCommand("activewindow", eCommandMatch::EXACT, activeWindowRequest));
-    socket.registerCommand(legacyCommand("layers", eCommandMatch::EXACT, layersRequest));
-    socket.registerCommand(legacyCommand("version", eCommandMatch::EXACT, versionRequest));
-    socket.registerCommand(legacyCommand("devices", eCommandMatch::EXACT, devicesRequest));
-    socket.registerCommand(legacyCommand("splash", eCommandMatch::EXACT, splashRequest));
-    socket.registerCommand(legacyCommand("cursorpos", eCommandMatch::EXACT, cursorPosRequest));
-    socket.registerCommand(legacyCommand("binds", eCommandMatch::EXACT, bindsRequest));
-    socket.registerCommand(legacyCommand("globalshortcuts", eCommandMatch::EXACT, globalShortcutsRequest));
-    socket.registerCommand(SCommand{.name = "systeminfo", .match = eCommandMatch::EXACT, .handler = [](const SRequest& request) { return systemInfoRequest(request); }});
-    socket.registerCommand(legacyCommand("animations", eCommandMatch::EXACT, animationsRequest));
+    socket.registerCommand(legacyCommand("workspaces", COMMAND_MATCH_EXACT, workspacesRequest));
+    socket.registerCommand(legacyCommand("workspacerules", COMMAND_MATCH_EXACT, workspaceRulesRequest));
+    socket.registerCommand(legacyCommand("activeworkspace", COMMAND_MATCH_EXACT, activeWorkspaceRequest));
+    socket.registerCommand(SCommand{.name = "clients", .match = COMMAND_MATCH_EXACT, .handler = [](const SRequest& request) { return clientsRequest(request); }});
+    socket.registerCommand(legacyCommand("kill", COMMAND_MATCH_EXACT, killRequest));
+    socket.registerCommand(legacyCommand("activewindow", COMMAND_MATCH_EXACT, activeWindowRequest));
+    socket.registerCommand(legacyCommand("layers", COMMAND_MATCH_EXACT, layersRequest));
+    socket.registerCommand(legacyCommand("version", COMMAND_MATCH_EXACT, versionRequest));
+    socket.registerCommand(legacyCommand("devices", COMMAND_MATCH_EXACT, devicesRequest));
+    socket.registerCommand(legacyCommand("splash", COMMAND_MATCH_EXACT, splashRequest));
+    socket.registerCommand(legacyCommand("cursorpos", COMMAND_MATCH_EXACT, cursorPosRequest));
+    socket.registerCommand(legacyCommand("binds", COMMAND_MATCH_EXACT, bindsRequest));
+    socket.registerCommand(legacyCommand("globalshortcuts", COMMAND_MATCH_EXACT, globalShortcutsRequest));
+    socket.registerCommand(SCommand{.name = "systeminfo", .match = COMMAND_MATCH_EXACT, .handler = [](const SRequest& request) { return systemInfoRequest(request); }});
+    socket.registerCommand(legacyCommand("animations", COMMAND_MATCH_EXACT, animationsRequest));
     socket.registerCommand(SCommand{
         .name    = "rollinglog",
-        .match   = eCommandMatch::EXACT,
-        .handler = [](const SRequest& request) { return SResponse{rollinglogRequest(request.format, request.command), request.follow ? eReplyMode::FOLLOW : eReplyMode::CLOSE}; },
+        .match   = COMMAND_MATCH_EXACT,
+        .handler = [](const SRequest& request) { return SResponse{rollinglogRequest(request.format, request.command), request.follow ? REPLY_MODE_FOLLOW : REPLY_MODE_CLOSE}; },
     });
-    socket.registerCommand(legacyCommand("configerrors", eCommandMatch::EXACT, configErrorsRequest));
-    socket.registerCommand(legacyCommand("locked", eCommandMatch::EXACT, getIsLocked));
-    socket.registerCommand(legacyCommand("descriptions", eCommandMatch::EXACT, getDescriptions));
-    socket.registerCommand(legacyCommand("submap", eCommandMatch::EXACT, submapRequest));
-    socket.registerCommand(legacyCommand("status", eCommandMatch::EXACT, statusRequest));
+    socket.registerCommand(legacyCommand("configerrors", COMMAND_MATCH_EXACT, configErrorsRequest));
+    socket.registerCommand(legacyCommand("locked", COMMAND_MATCH_EXACT, getIsLocked));
+    socket.registerCommand(legacyCommand("descriptions", COMMAND_MATCH_EXACT, getDescriptions));
+    socket.registerCommand(legacyCommand("submap", COMMAND_MATCH_EXACT, submapRequest));
+    socket.registerCommand(legacyCommand("status", COMMAND_MATCH_EXACT, statusRequest));
 
-    socket.registerCommand(legacyCommand("reloadshaders", eCommandMatch::PREFIX, reloadShaders));
-    socket.registerCommand(legacyCommand("monitors", eCommandMatch::PREFIX, monitorsRequest));
-    socket.registerCommand(legacyCommand("reload", eCommandMatch::PREFIX, reloadRequest));
-    socket.registerCommand(SCommand{.name = "plugin", .match = eCommandMatch::PREFIX, .handler = dispatchPlugin});
-    socket.registerCommand(legacyCommand("notify", eCommandMatch::PREFIX, dispatchNotify));
-    socket.registerCommand(legacyCommand("dismissnotify", eCommandMatch::PREFIX, dispatchDismissNotify));
-    socket.registerCommand(legacyCommand("getprop", eCommandMatch::PREFIX, dispatchGetProp));
-    socket.registerCommand(legacyCommand("seterror", eCommandMatch::PREFIX, dispatchSeterror));
-    socket.registerCommand(legacyCommand("switchxkblayout", eCommandMatch::PREFIX, switchXKBLayoutRequest));
-    socket.registerCommand(legacyCommand("output", eCommandMatch::PREFIX, dispatchOutput));
-    socket.registerCommand(legacyCommand("dispatch", eCommandMatch::PREFIX, dispatchRequest));
-    socket.registerCommand(legacyCommand("setcursor", eCommandMatch::PREFIX, dispatchSetCursor));
-    socket.registerCommand(legacyCommand("getoption", eCommandMatch::PREFIX, dispatchGetOption));
-    socket.registerCommand(legacyCommand("decorations", eCommandMatch::PREFIX, decorationRequest));
-    socket.registerCommand(legacyCommand("eval", eCommandMatch::PREFIX, evalRequest));
-    socket.registerCommand(legacyCommand("repl", eCommandMatch::PREFIX, evalRequest));
+    socket.registerCommand(legacyCommand("reloadshaders", COMMAND_MATCH_PREFIX, reloadShaders));
+    socket.registerCommand(legacyCommand("monitors", COMMAND_MATCH_PREFIX, monitorsRequest));
+    socket.registerCommand(legacyCommand("reload", COMMAND_MATCH_PREFIX, reloadRequest));
+    socket.registerCommand(SCommand{.name = "plugin", .match = COMMAND_MATCH_PREFIX, .handler = dispatchPlugin});
+    socket.registerCommand(legacyCommand("notify", COMMAND_MATCH_PREFIX, dispatchNotify));
+    socket.registerCommand(legacyCommand("dismissnotify", COMMAND_MATCH_PREFIX, dispatchDismissNotify));
+    socket.registerCommand(legacyCommand("getprop", COMMAND_MATCH_PREFIX, dispatchGetProp));
+    socket.registerCommand(legacyCommand("seterror", COMMAND_MATCH_PREFIX, dispatchSeterror));
+    socket.registerCommand(legacyCommand("switchxkblayout", COMMAND_MATCH_PREFIX, switchXKBLayoutRequest));
+    socket.registerCommand(legacyCommand("output", COMMAND_MATCH_PREFIX, dispatchOutput));
+    socket.registerCommand(legacyCommand("dispatch", COMMAND_MATCH_PREFIX, dispatchRequest));
+    socket.registerCommand(legacyCommand("setcursor", COMMAND_MATCH_PREFIX, dispatchSetCursor));
+    socket.registerCommand(legacyCommand("getoption", COMMAND_MATCH_PREFIX, dispatchGetOption));
+    socket.registerCommand(legacyCommand("decorations", COMMAND_MATCH_PREFIX, decorationRequest));
+    socket.registerCommand(legacyCommand("eval", COMMAND_MATCH_PREFIX, evalRequest));
+    socket.registerCommand(legacyCommand("repl", COMMAND_MATCH_PREFIX, evalRequest));
 }
 
 void IPC::Socket1::refreshState() {

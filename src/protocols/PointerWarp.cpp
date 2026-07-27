@@ -75,6 +75,7 @@ void CPointerWarpProtocol::bindManager(wl_client* client, void* data, uint32_t v
 
         Pointer::mgr()->warpTo(GLOBALPOS);
         g_pSeatManager->sendPointerMotion(Time::millis(Time::steadyNow()), LOCALPOS);
+        g_pSeatManager->sendPointerFrame();
     });
 }
 

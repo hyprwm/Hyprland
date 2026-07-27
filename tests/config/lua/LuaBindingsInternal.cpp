@@ -127,6 +127,18 @@ namespace {
         return path.lexically_normal().string();
     }
 
+    std::string packagePath(lua_State* L) {
+        lua_getglobal(L, "package");
+        lua_getfield(L, -1, "path");
+
+        std::string path;
+        if (const auto* value = lua_tostring(L, -1); value)
+            path = value;
+
+        lua_pop(L, 2);
+        return path;
+    }
+
     void expectTracked(CConfigManager& mgr, const std::filesystem::path& path) {
         const auto& paths = mgr.getConfigPaths();
         EXPECT_NE(std::ranges::find(paths, normalizedPath(path)), paths.end());
@@ -459,4 +471,21 @@ TEST(ConfigLuaRequire, normalModuleRequireStillUsesConfigDirectoryPackagePath) {
     lua_pop(L, 1);
 
     expectTracked(mgr, module);
+}
+
+TEST(ConfigLuaRequire, packagePathPreservesLuaDefaultsAfterConfigDirectory) {
+    CScopedCompositor compositor;
+    CLuaState         defaultState;
+    CTempDir          tmp;
+    const auto        mainConfig = tmp.path() / "hyprland.lua";
+    writeFile(mainConfig, "");
+
+    const auto defaultPath = packagePath(defaultState.get());
+    ASSERT_FALSE(defaultPath.empty());
+
+    CConfigManager mgr;
+    CConfigManagerPluginLuaTestAccessor::initializeOwnedLuaState(mgr, mainConfig);
+
+    const auto configPath = (tmp.path() / "?.lua").string() + ";" + (tmp.path() / "?/init.lua").string();
+    EXPECT_EQ(packagePath(CConfigManagerPluginLuaTestAccessor::luaState(mgr)), configPath + ";" + defaultPath);
 }

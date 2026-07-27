@@ -28,6 +28,7 @@ jobs:
           repo: ${{ github.repository }}
           vouched-repo: ${{ github.repository_owner }}/.github
           vouched-file: VOUCHED.td
+          template-file: .github/vouch_pr_message.md
           require-vouch: true
           auto-close: true
           dry-run: false

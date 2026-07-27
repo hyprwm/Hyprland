@@ -435,9 +435,8 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
 
     m_window->m_group->add(pDraggedWindow, WINDOWINDEX);
 
-    if (!pDraggedWindow->getDecorationByType(DECORATION_GROUPBAR)) {
+    if (!pDraggedWindow->getDecorationByType(DECORATION_GROUPBAR))
         pDraggedWindow->addWindowDeco(makeUnique<CHyprGroupBarDecoration>(pDraggedWindow));
-    }
 
     Desktop::focusState()->fullWindowFocus(pDraggedWindow->m_target->window(), Desktop::FOCUS_REASON_DESKTOP_STATE_CHANGE);
 

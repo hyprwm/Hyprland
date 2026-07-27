@@ -556,7 +556,7 @@ def generate_stub(root: Path) -> str:
         "hl.notification.get": "fun(): HL.Notification[]",
         "hl.layout.register": "fun(name: string, provider: HL.LayoutProvider): nil",
         "hl.exec_cmd": "fun(cmd: string, rules?: table<string, string|number|boolean>): nil",
-        "hl.get_loaded_plugins": "fun(): HL.PLugin[]",
+        "hl.get_loaded_plugins": "fun(): HL.Plugin[]",
         "hl.is_key_down": "fun(key: number|string): boolean",
         "hl.version": "fun(): string",
         "hl.clear_crashed_lockscreen": "fun(): nil",
@@ -736,7 +736,7 @@ def generate_stub(root: Path) -> str:
 
     lines.extend(
         emit_class_block(
-            "HL.PLugin",
+            "HL.Plugin",
             [
                 ("name", "string", True),
                 ("author", "string", True),

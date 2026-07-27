@@ -30,6 +30,7 @@
 #include <print>
 #include <cstring>
 #include <filesystem>
+#include <fstream>
 #include "ipc/s1/S1.hpp"
 #include "debug/crash/CrashReporter.hpp"
 #include "render/GLRenderer.hpp"

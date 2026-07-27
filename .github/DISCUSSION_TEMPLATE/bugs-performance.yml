@@ -14,15 +14,13 @@ body:
         v0.xx.x
     validations:
       required: true
-  - type: dropdown
+  - type: input
     attributes:
-      label: Is this a regression? (used to work, doesn't anymore)
-      multiple: false
-      options:
-        - Yes
-        - No
-    validations:
-      required: true
+      label: Is this a regression?
+      description: |
+        A regression means something used to work, but doesn't anymore. When did it work?
+      placeholder: |
+        Yes, used to work in 0.xx / No / Don't know...
   - type: textarea
     attributes:
       label: What's the bug?

@@ -1,157 +1,13 @@
 #include "XDGBell.hpp"
+#include "../helpers/BellSound.hpp"
 #include "core/Compositor.hpp"
+#include "../desktop/state/ViewState.hpp"
+#include "../desktop/state/ViewQuery.hpp"
 #include "../desktop/view/Window.hpp"
 #include "../ipc/s2/S2.hpp"
 #include "../event/EventBus.hpp"
-#include "../Compositor.hpp"
-
-#include "../config/ConfigManager.hpp"
-#include "../config/ConfigValue.hpp"
-#include "../helpers/MiscFunctions.hpp"
-#include "../debug/log/Logger.hpp"
-
-#include <canberra.h>
-
-#include <filesystem>
 #include <format>
 #include <string>
-
-namespace {
-    enum class eBellSoundMode : uint8_t {
-        DEFAULT,
-        NONE,
-        FILE,
-    };
-
-    struct SBellSoundConfig {
-        eBellSoundMode mode = eBellSoundMode::DEFAULT;
-        std::string    filePath;
-    };
-
-    SBellSoundConfig parseBellSoundConfigValue(const std::string& value) {
-        if (value.empty() || value == "default")
-            return {.mode = eBellSoundMode::DEFAULT};
-
-        if (value == "none")
-            return {.mode = eBellSoundMode::NONE};
-
-        const auto      resolvedPath = absolutePath(value, Config::mgr()->getMainConfigPath());
-
-        std::error_code ec;
-        if (!std::filesystem::exists(resolvedPath, ec) || ec || !std::filesystem::is_regular_file(resolvedPath, ec) || ec) {
-            Log::logger->log(Log::WARN, "bell: configured custom sound path '{}' is invalid, falling back to default bell sound", resolvedPath);
-            return {.mode = eBellSoundMode::DEFAULT};
-        }
-
-        return {
-            .mode     = eBellSoundMode::FILE,
-            .filePath = resolvedPath,
-        };
-    }
-
-    SBellSoundConfig getBellSoundConfig() {
-        static auto PBELLSOUND = CConfigValue<std::string>("misc:bell_sound");
-        return parseBellSoundConfigValue(*PBELLSOUND);
-    }
-
-    PHLWINDOW getBellEventData(wl_resource* surface) {
-        if (!surface)
-            return nullptr;
-
-        const auto SURFACE = CWLSurfaceResource::fromResource(surface);
-        if (!SURFACE)
-            return nullptr;
-
-        for (const auto& w : Desktop::windowState()->windows()) {
-            if (!w->m_isMapped || w->m_isX11 || !w->m_xdgSurface || !w->wlSurface())
-                continue;
-
-            if (w->wlSurface()->resource() == SURFACE)
-                return w;
-        }
-
-        return nullptr;
-    }
-
-    void emitBellEvent(PHLWINDOW window) {
-        std::string address = window ? std::format("{:x}", rc<uintptr_t>(window.get())) : "";
-
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "bell", .data = address});
-        Event::bus()->m_events.window.bell.emit(window);
-    }
-
-    class CBellAudioContext {
-      public:
-        ~CBellAudioContext() {
-            if (m_context)
-                ca_context_destroy(m_context);
-        }
-
-        ca_context* get() {
-            if (m_attemptedInit)
-                return m_context;
-
-            m_attemptedInit = true;
-
-            int result = ca_context_create(&m_context);
-            if (result < 0) {
-                Log::logger->log(Log::WARN, "bell: failed to create canberra context: {}", ca_strerror(result));
-                return nullptr;
-            }
-
-            result = ca_context_change_props(m_context, CA_PROP_APPLICATION_NAME, "Hyprland", CA_PROP_APPLICATION_ID, "org.hyprland.Hyprland", nullptr);
-
-            if (result < 0)
-                Log::logger->log(Log::WARN, "bell: failed to set canberra context properties: {}", ca_strerror(result));
-
-            result = ca_context_open(m_context);
-            if (result < 0) {
-                Log::logger->log(Log::WARN, "bell: failed to open canberra context: {}", ca_strerror(result));
-                ca_context_destroy(m_context);
-                m_context = nullptr;
-                return nullptr;
-            }
-
-            return m_context;
-        }
-
-      private:
-        bool        m_attemptedInit = false;
-        ca_context* m_context       = nullptr;
-    };
-
-    CBellAudioContext& getAudioContext() {
-        static CBellAudioContext context;
-        return context;
-    }
-
-    void playBellSound(const SBellSoundConfig& config) {
-        if (config.mode == eBellSoundMode::NONE)
-            return;
-
-        auto* const CONTEXT = getAudioContext().get();
-        if (!CONTEXT)
-            return;
-
-        int result = 0;
-
-        if (config.mode == eBellSoundMode::DEFAULT) {
-            result = ca_context_play(CONTEXT, 0, CA_PROP_EVENT_ID, "bell-window-system", CA_PROP_EVENT_DESCRIPTION, "Wayland system bell", nullptr);
-        } else {
-            result = ca_context_play(CONTEXT, 0, CA_PROP_MEDIA_FILENAME, config.filePath.c_str(), CA_PROP_EVENT_DESCRIPTION, "Wayland system bell", nullptr);
-        }
-
-        if (result < 0)
-            Log::logger->log(Log::WARN, "bell: failed to play sound: {}", ca_strerror(result));
-    }
-
-    void handleBell(wl_resource* surface) {
-        const auto bellData = getBellEventData(surface);
-
-        emitBellEvent(bellData);
-        playBellSound(getBellSoundConfig());
-    }
-}
 
 CXDGSystemBellManagerResource::CXDGSystemBellManagerResource(UP<CXdgSystemBellV1>&& resource) : m_resource(std::move(resource)) {
     if UNLIKELY (!good())
@@ -160,7 +16,15 @@ CXDGSystemBellManagerResource::CXDGSystemBellManagerResource(UP<CXdgSystemBellV1
     m_resource->setDestroy([this](CXdgSystemBellV1*) { PROTO::xdgBell->destroyResource(this); });
     m_resource->setOnDestroy([this](CXdgSystemBellV1*) { PROTO::xdgBell->destroyResource(this); });
 
-    m_resource->setRing([](CXdgSystemBellV1*, wl_resource* surface) { handleBell(surface); });
+    m_resource->setRing([](CXdgSystemBellV1*, wl_resource* surface) {
+        const auto WINDOW  = Desktop::viewState()->query().surface(CWLSurfaceResource::fromResource(surface)).type(Desktop::View::VIEW_TYPE_WINDOW).runWindow();
+        const auto ADDRESS = WINDOW ? std::format("{:x}", rc<uintptr_t>(WINDOW.get())) : "";
+
+        g_pEventManager->postEvent(SHyprIPCEvent{.event = "bell", .data = ADDRESS});
+        Event::bus()->m_events.window.bell.emit(WINDOW);
+
+        CBellSound::play();
+    });
 }
 
 bool CXDGSystemBellManagerResource::good() {

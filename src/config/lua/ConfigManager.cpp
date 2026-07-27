@@ -535,7 +535,14 @@ void CConfigManager::reinitLuaState() {
     std::filesystem::path configDir = std::filesystem::path(m_mainConfigPath).parent_path();
     const std::string     luaPath   = (configDir / "?.lua").string() + ";" + (configDir / "?/init.lua").string();
     lua_getglobal(m_lua, "package");
-    lua_pushstring(m_lua, luaPath.c_str());
+    lua_getfield(m_lua, -1, "path");
+    std::string combinedLuaPath = luaPath;
+    if (const auto* originalLuaPath = lua_tostring(m_lua, -1); originalLuaPath && *originalLuaPath) {
+        combinedLuaPath += ';';
+        combinedLuaPath += originalLuaPath;
+    }
+    lua_pop(m_lua, 1);
+    lua_pushlstring(m_lua, combinedLuaPath.data(), combinedLuaPath.size());
     lua_setfield(m_lua, -2, "path");
     lua_pop(m_lua, 1);
 

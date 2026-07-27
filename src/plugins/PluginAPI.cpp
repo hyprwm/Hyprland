@@ -1,6 +1,6 @@
 #include "PluginAPI.hpp"
 #include "../Compositor.hpp"
-#include "../debug/HyprCtl.hpp"
+#include "../ipc/s1/S1.hpp"
 #include "../plugins/PluginSystem.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../config/ConfigManager.hpp"
@@ -58,9 +58,9 @@ APICALL bool HyprlandAPI::unregisterCallback(HANDLE handle, SP<HOOK_CALLBACK_FN>
 
 APICALL std::string HyprlandAPI::invokeHyprctlCommand(const std::string& call, const std::string& args, const std::string& format) {
     if (args.empty())
-        return g_pHyprCtl->makeDynamicCall(format + "/" + call);
+        return IPC::Socket1::sock()->invoke(format + "/" + call);
     else
-        return g_pHyprCtl->makeDynamicCall(format + "/" + call + " " + args);
+        return IPC::Socket1::sock()->invoke(format + "/" + call + " " + args);
 }
 
 APICALL bool HyprlandAPI::addLayout(HANDLE handle, const std::string& name, IHyprLayout* layout) {
@@ -352,18 +352,18 @@ APICALL SVersionInfo HyprlandAPI::getHyprlandVersion(HANDLE handle) {
     return {GIT_COMMIT_HASH, GIT_TAG, GIT_DIRTY != std::string(""), GIT_BRANCH, GIT_COMMIT_MESSAGE, GIT_COMMITS};
 }
 
-APICALL SP<SHyprCtlCommand> HyprlandAPI::registerHyprCtlCommand(HANDLE handle, SHyprCtlCommand cmd) {
+APICALL SP<IPC::Socket1::SCommand> HyprlandAPI::registerHyprCtlCommand(HANDLE handle, IPC::Socket1::SCommand cmd) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
     if (!PLUGIN)
         return nullptr;
 
-    auto PTR = g_pHyprCtl->registerCommand(cmd);
+    auto PTR = IPC::Socket1::sock()->registerCommand(std::move(cmd));
     PLUGIN->m_registeredHyprctlCommands.push_back(PTR);
     return PTR;
 }
 
-APICALL bool HyprlandAPI::unregisterHyprCtlCommand(HANDLE handle, SP<SHyprCtlCommand> cmd) {
+APICALL bool HyprlandAPI::unregisterHyprCtlCommand(HANDLE handle, SP<IPC::Socket1::SCommand> cmd) {
 
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
@@ -371,7 +371,7 @@ APICALL bool HyprlandAPI::unregisterHyprCtlCommand(HANDLE handle, SP<SHyprCtlCom
         return false;
 
     std::erase_if(PLUGIN->m_registeredHyprctlCommands, [&](const auto& other) { return !other || other == cmd; });
-    g_pHyprCtl->unregisterCommand(cmd);
+    IPC::Socket1::sock()->unregisterCommand(cmd);
 
     return true;
 }

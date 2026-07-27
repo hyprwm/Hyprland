@@ -1,21 +1,13 @@
-#include "HyprCtl.hpp"
-#include "output/Monitor.hpp"
+#include "Commands.hpp"
+#include "../../output/Monitor.hpp"
 
 #include <algorithm>
 #include <format>
 #include <fstream>
 #include <iterator>
-#include <netinet/in.h>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <sys/utsname.h>
-#include <sys/un.h>
-#include <unistd.h>
-#include <sys/poll.h>
 #include <filesystem>
 #include <ranges>
 #include <sys/eventfd.h>
@@ -27,80 +19,69 @@
 
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/string/VarList.hpp>
-#include <hyprutils/os/FileDescriptor.hpp>
 using namespace Hyprutils::String;
-using namespace Hyprutils::OS;
 #include <aquamarine/input/Input.hpp>
 
-#include "../config/shared/complex/ComplexDataTypes.hpp"
-#include "../config/lua/ConfigManager.hpp"
-#include "../config/ConfigValue.hpp"
-#include "../config/shared/parserUtils/ParserUtils.hpp"
-#include "../config/shared/complex/ComplexDataTypes.hpp"
-#include "../config/shared/inotify/ConfigWatcher.hpp"
-#include "../config/shared/workspace/WorkspaceRuleManager.hpp"
-#include "../config/shared/monitor/MonitorRuleManager.hpp"
-#include "../config/shared/animation/AnimationTree.hpp"
-#include "../config/supplementary/jeremy/Jeremy.hpp"
-#include "../config/values/ConfigValues.hpp"
-#include "../pointer/cursor/CursorManager.hpp"
-#include "../errorOverlay/Overlay.hpp"
-#include "../devices/IPointer.hpp"
-#include "../devices/IKeyboard.hpp"
-#include "../devices/ITouch.hpp"
-#include "../devices/Tablet.hpp"
-#include "../protocols/GlobalShortcuts.hpp"
-#include "../debug/log/RollingLogFollow.hpp"
-#include "../config/ConfigManager.hpp"
-#include "../helpers/MiscFunctions.hpp"
-#include "../helpers/SystemInfo.hpp"
-#include "../desktop/view/LayerSurface.hpp"
-#include "../desktop/view/Group.hpp"
-#include "../desktop/rule/Engine.hpp"
-#include "../desktop/history/WindowHistoryTracker.hpp"
-#include "../desktop/state/FocusState.hpp"
-#include "../state/MonitorState.hpp"
-#include "../state/WorkspacePlacementController.hpp"
-#include "../state/WorkspaceState.hpp"
-#include "../version.h"
+#include "../../config/shared/complex/ComplexDataTypes.hpp"
+#include "../../config/lua/ConfigManager.hpp"
+#include "../../config/ConfigValue.hpp"
+#include "../../config/shared/parserUtils/ParserUtils.hpp"
+#include "../../config/shared/inotify/ConfigWatcher.hpp"
+#include "../../config/shared/workspace/WorkspaceRuleManager.hpp"
+#include "../../config/shared/monitor/MonitorRuleManager.hpp"
+#include "../../config/shared/animation/AnimationTree.hpp"
+#include "../../config/supplementary/jeremy/Jeremy.hpp"
+#include "../../config/values/ConfigValues.hpp"
+#include "../../pointer/cursor/CursorManager.hpp"
+#include "../../errorOverlay/Overlay.hpp"
+#include "../../devices/IPointer.hpp"
+#include "../../devices/IKeyboard.hpp"
+#include "../../devices/ITouch.hpp"
+#include "../../devices/Tablet.hpp"
+#include "../../protocols/GlobalShortcuts.hpp"
+#include "../../config/ConfigManager.hpp"
+#include "../../helpers/MiscFunctions.hpp"
+#include "../../helpers/SystemInfo.hpp"
+#include "../../desktop/view/LayerSurface.hpp"
+#include "../../desktop/view/Group.hpp"
+#include "../../desktop/rule/Engine.hpp"
+#include "../../desktop/history/WindowHistoryTracker.hpp"
+#include "../../desktop/state/FocusState.hpp"
+#include "../../state/MonitorState.hpp"
+#include "../../state/WorkspacePlacementController.hpp"
+#include "../../state/WorkspaceState.hpp"
+#include "../../version.h"
 
-#include "../Compositor.hpp"
-#include "../managers/input/InputManager.hpp"
-#include "../managers/XWaylandManager.hpp"
-#include "../managers/fullscreen/FullscreenController.hpp"
-#include "../plugins/PluginSystem.hpp"
-#include "../animation/AnimationManager.hpp"
-#include "../notification/NotificationOverlay.hpp"
-#include "../render/Renderer.hpp"
-#include "../render/OpenGL.hpp"
-#include "../layout/space/Space.hpp"
-#include "../layout/algorithm/Algorithm.hpp"
-#include "../layout/algorithm/TiledAlgorithm.hpp"
-#include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
+#include "../../Compositor.hpp"
+#include "../../managers/input/InputManager.hpp"
+#include "../../managers/XWaylandManager.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
+#include "../../plugins/PluginSystem.hpp"
+#include "../../animation/AnimationManager.hpp"
+#include "../../notification/NotificationOverlay.hpp"
+#include "../../render/Renderer.hpp"
+#include "../../render/OpenGL.hpp"
+#include "../../layout/space/Space.hpp"
+#include "../../layout/algorithm/Algorithm.hpp"
+#include "../../layout/algorithm/TiledAlgorithm.hpp"
+#include "../../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 
 using namespace Render::GL;
+using namespace IPC::Socket1;
+using eHyprCtlOutputFormat = eOutputFormat;
 
-#if defined(__DragonFly__) || defined(__FreeBSD__)
-#include <sys/ucred.h>
-#define CRED_T   xucred
-#define CRED_LVL SOL_LOCAL
-#define CRED_OPT LOCAL_PEERCRED
-#define CRED_PID cr_pid
-#elif defined(__NetBSD__)
-#define CRED_T   unpcbid
-#define CRED_LVL SOL_LOCAL
-#define CRED_OPT LOCAL_PEEREID
-#define CRED_PID unp_pid
-#else
-#if defined(__OpenBSD__)
-#define CRED_T sockpeercred
-#else
-#define CRED_T ucred
-#endif
-#define CRED_LVL SOL_SOCKET
-#define CRED_OPT SO_PEERCRED
-#define CRED_PID pid
-#endif
+static constexpr auto FORMAT_NORMAL = eOutputFormat::NORMAL;
+static constexpr auto FORMAT_JSON   = eOutputFormat::JSON;
+
+class CCommandFormatter {
+  public:
+    static std::string getWindowData(PHLWINDOW window, eOutputFormat format);
+    static std::string getWorkspaceData(PHLWORKSPACE workspace, eOutputFormat format);
+    static std::string getSolitaryBlockedReason(PHLMONITOR monitor, eOutputFormat format);
+    static std::string getDSBlockedReason(PHLMONITOR monitor, eOutputFormat format);
+    static std::string getTearingBlockedReason(PHLMONITOR monitor, eOutputFormat format);
+    static std::string getMonitorData(PHLMONITOR monitor, eOutputFormat format);
+};
 
 static void trimTrailingComma(std::string& str) {
     if (!str.empty() && str.back() == ',')
@@ -145,7 +126,7 @@ const std::array<const char*, Monitor::CMonitor::SC_CHECKS_COUNT> SOLITARY_REASO
     "other overlays",    "floating windows", "other workspaces", "subsurfaces",       "config error",  "fadeout in progress",
 };
 
-std::string CHyprCtl::getSolitaryBlockedReason(PHLMONITOR m, eHyprCtlOutputFormat format) {
+std::string CCommandFormatter::getSolitaryBlockedReason(PHLMONITOR m, eHyprCtlOutputFormat format) {
     const auto reasons = m->isSolitaryBlocked(true);
     if (!reasons)
         return "null";
@@ -174,7 +155,7 @@ const std::array<const char*, Monitor::CMonitor::DS_CHECKS_COUNT> DS_REASONS_TEX
     "missing candidate", "invalid surface", "surface transformations", "invalid buffer", "activation failed", "color management",
 };
 
-std::string CHyprCtl::getDSBlockedReason(PHLMONITOR m, eHyprCtlOutputFormat format) {
+std::string CCommandFormatter::getDSBlockedReason(PHLMONITOR m, eHyprCtlOutputFormat format) {
     const auto reasons = m->isDSBlocked(true);
     if (!reasons)
         return "null";
@@ -200,7 +181,7 @@ const std::array<const char*, Monitor::CMonitor::TC_CHECKS_COUNT> TEARING_REASON
 const std::array<const char*, Monitor::CMonitor::TC_CHECKS_COUNT> TEARING_REASONS_TEXT = {"unknown reason",           "next frame is not torn", "user settings",   "zoom",
                                                                                           "not supported by monitor", "missing candidate",      "window settings", "hw cursor"};
 
-std::string                                                       CHyprCtl::getTearingBlockedReason(PHLMONITOR m, eHyprCtlOutputFormat format) {
+std::string                                                       CCommandFormatter::getTearingBlockedReason(PHLMONITOR m, eHyprCtlOutputFormat format) {
     const auto reasons = m->isTearingBlocked(true);
     if (!reasons || (reasons == Monitor::CMonitor::TC_NOT_TORN && m->m_tearingState.activelyTearing))
         return "null";
@@ -219,7 +200,7 @@ std::string                                                       CHyprCtl::getT
     return format == eHyprCtlOutputFormat::FORMAT_JSON ? "[" + reasonStr + "]" : reasonStr;
 }
 
-std::string CHyprCtl::getMonitorData(PHLMONITOR m, eHyprCtlOutputFormat format) {
+std::string CCommandFormatter::getMonitorData(PHLMONITOR m, eHyprCtlOutputFormat format) {
     std::string result;
     if (!m->m_output || m->m_id == -1)
         return "";
@@ -324,7 +305,7 @@ static std::string monitorsRequest(eHyprCtlOutputFormat format, std::string requ
         result += "[";
 
         for (auto const& m : allMonitors ? State::monitorState()->allMonitors() : State::monitorState()->monitors()) {
-            result += CHyprCtl::getMonitorData(m, format);
+            result += CCommandFormatter::getMonitorData(m, format);
         }
 
         trimTrailingComma(result);
@@ -335,7 +316,7 @@ static std::string monitorsRequest(eHyprCtlOutputFormat format, std::string requ
             if (!m->m_output || m->m_id == -1)
                 continue;
 
-            result += CHyprCtl::getMonitorData(m, format);
+            result += CCommandFormatter::getMonitorData(m, format);
         }
     }
 
@@ -372,7 +353,7 @@ static std::string getGroupedData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     return result.str();
 }
 
-std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
+std::string CCommandFormatter::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     auto getFocusHistoryID = [](PHLWINDOW wnd) -> int {
         const auto& HISTORY = Desktop::History::windowTracker()->fullHistory();
         for (size_t i = 0; i < HISTORY.size(); ++i) {
@@ -454,16 +435,17 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     }
 }
 
-static std::string clientsRequest(eHyprCtlOutputFormat format, std::string request) {
+static std::string clientsRequest(const SRequest& request) {
+    const auto  format = request.format;
     std::string result = "";
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
 
         for (auto const& w : Desktop::windowState()->windows()) {
-            if (!w->m_isMapped && !g_pHyprCtl->m_currentRequestParams.all)
+            if (!w->m_isMapped && !request.all)
                 continue;
 
-            result += CHyprCtl::getWindowData(w, format);
+            result += CCommandFormatter::getWindowData(w, format);
         }
 
         trimTrailingComma(result);
@@ -471,10 +453,10 @@ static std::string clientsRequest(eHyprCtlOutputFormat format, std::string reque
         result += "]";
     } else {
         for (auto const& w : Desktop::windowState()->windows()) {
-            if (!w->m_isMapped && !g_pHyprCtl->m_currentRequestParams.all)
+            if (!w->m_isMapped && !request.all)
                 continue;
 
-            result += CHyprCtl::getWindowData(w, format);
+            result += CCommandFormatter::getWindowData(w, format);
         }
 
         if (result.empty())
@@ -483,7 +465,7 @@ static std::string clientsRequest(eHyprCtlOutputFormat format, std::string reque
     return result;
 }
 
-std::string CHyprCtl::getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat format) {
+std::string CCommandFormatter::getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat format) {
     const auto  PLASTW   = w->getLastFocusedWindow();
     const auto  PMONITOR = w->m_monitor.lock();
 
@@ -585,7 +567,7 @@ static std::string activeWorkspaceRequest(eHyprCtlOutputFormat format, std::stri
     if (!valid(w))
         return "internal error";
 
-    return CHyprCtl::getWorkspaceData(w, format);
+    return CCommandFormatter::getWorkspaceData(w, format);
 }
 
 static std::string workspacesRequest(eHyprCtlOutputFormat format, std::string request) {
@@ -594,7 +576,7 @@ static std::string workspacesRequest(eHyprCtlOutputFormat format, std::string re
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
         for (auto const& w : State::workspaceState()->workspaces()) {
-            result += CHyprCtl::getWorkspaceData(w.lock(), format);
+            result += CCommandFormatter::getWorkspaceData(w.lock(), format);
             result += ",";
         }
 
@@ -602,7 +584,7 @@ static std::string workspacesRequest(eHyprCtlOutputFormat format, std::string re
         result += "]";
     } else {
         for (auto const& w : State::workspaceState()->workspaces()) {
-            result += CHyprCtl::getWorkspaceData(w.lock(), format);
+            result += CCommandFormatter::getWorkspaceData(w.lock(), format);
         }
     }
 
@@ -635,7 +617,7 @@ static std::string activeWindowRequest(eHyprCtlOutputFormat format, std::string 
     if (!validMapped(PWINDOW))
         return format == eHyprCtlOutputFormat::FORMAT_JSON ? "{}" : "Invalid";
 
-    auto result = CHyprCtl::getWindowData(PWINDOW, format);
+    auto result = CCommandFormatter::getWindowData(PWINDOW, format);
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON)
         result.pop_back();
@@ -1085,25 +1067,32 @@ static std::string bindsRequest(eHyprCtlOutputFormat format, std::string request
     return ret;
 }
 
-std::string versionRequest(eHyprCtlOutputFormat format, std::string request) {
+std::string IPC::Socket1::version(eOutputFormat format) {
     return Helpers::SystemInfo::getVersion(format);
+}
+
+static std::string versionRequest(eHyprCtlOutputFormat format, std::string request) {
+    return version(format);
 }
 
 static std::string statusRequest(eHyprCtlOutputFormat format, std::string request) {
     return Helpers::SystemInfo::getStatus(format);
 }
 
-std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) {
-
+std::string IPC::Socket1::systemInfo(eOutputFormat format, bool includeConfig) {
     auto result = Helpers::SystemInfo::getSystemInfo();
 
-    if (g_pHyprCtl && g_pHyprCtl->m_currentRequestParams.sysInfoConfig) {
+    if (includeConfig) {
         result += "\n\n======Config-Start======\n";
         result += Config::mgr()->getConfigString();
         result += "\n======Config-End========\n";
     }
 
     return result;
+}
+
+static std::string systemInfoRequest(const SRequest& request) {
+    return systemInfo(request.format, request.includeConfig);
 }
 
 static std::string evalRequest(eHyprCtlOutputFormat format, std::string request) {
@@ -1189,32 +1178,6 @@ static std::string cursorPosRequest(eHyprCtlOutputFormat format, std::string req
     }
 
     return "error";
-}
-
-static std::string dispatchBatch(eHyprCtlOutputFormat format, std::string request) {
-    // split by ; ignores ; inside [] and adds ; on last command
-
-    request                     = request.substr(9);
-    std::string       reply     = "";
-    const std::string DELIMITER = "\n\n\n";
-    int               bracket   = 0;
-    size_t            idx       = 0;
-
-    for (size_t i = 0; i <= request.size(); ++i) {
-        char ch = (i < request.size()) ? request[i] : ';';
-        if (ch == '[')
-            ++bracket;
-        else if (ch == ']')
-            --bracket;
-        else if (ch == ';' && bracket == 0) {
-            if (idx < i)
-                reply += g_pHyprCtl->getReply(trim(request.substr(idx, i - idx))).append(DELIMITER);
-            idx = i + 1;
-            continue;
-        }
-    }
-
-    return reply.substr(0, std::max(sc<int>(reply.size() - DELIMITER.size()), 0));
 }
 
 static std::string dispatchSetCursor(eHyprCtlOutputFormat format, std::string request) {
@@ -1697,21 +1660,21 @@ static std::string dispatchOutput(eHyprCtlOutputFormat format, std::string reque
     return "ok";
 }
 
-static std::string dispatchPlugin(eHyprCtlOutputFormat format, std::string request) {
-    CVarList vars(request, 0, ' ');
+static SResponse dispatchPlugin(const SRequest& request) {
+    CVarList vars(request.command, 0, ' ');
 
     if (vars.size() < 2)
         return "not enough args";
 
     const auto OPERATION = vars[1];
-    const auto PATH      = vars[2];
 
     if (OPERATION == "load") {
         if (vars.size() < 3)
             return "not enough args";
 
-        g_pHyprCtl->m_currentRequestParams.pendingPromise = CPromise<std::string>::make([PATH](SP<CPromiseResolver<std::string>> resolver) {
-            g_pPluginSystem->loadPlugin(PATH)->then([resolver, PATH](SP<CPromiseResult<CPlugin*>> result) {
+        const std::string PATH    = vars[2];
+        auto              promise = CPromise<std::string>::make([PATH, pid = request.pid](SP<CPromiseResolver<std::string>> resolver) {
+            g_pPluginSystem->loadPlugin(PATH, SPECIAL_PID_TYPE_NONE, pid)->then([resolver](SP<CPromiseResult<CPlugin*>> result) {
                 if (result->hasError()) {
                     resolver->reject(result->error());
                     return;
@@ -1721,12 +1684,13 @@ static std::string dispatchPlugin(eHyprCtlOutputFormat format, std::string reque
             });
         });
 
-        return "ok";
+        return promise;
     } else if (OPERATION == "unload") {
         if (vars.size() < 3)
             return "not enough args";
 
-        const auto PLUGIN = g_pPluginSystem->getPluginByPath(PATH);
+        const std::string PATH   = vars[2];
+        const auto        PLUGIN = g_pPluginSystem->getPluginByPath(PATH);
 
         if (!PLUGIN)
             return "plugin not loaded";
@@ -1736,7 +1700,7 @@ static std::string dispatchPlugin(eHyprCtlOutputFormat format, std::string reque
         const auto  PLUGINS = g_pPluginSystem->getAllPlugins();
         std::string result  = "";
 
-        if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
+        if (request.format == eHyprCtlOutputFormat::FORMAT_JSON) {
             result += "[";
 
             if (PLUGINS.empty())
@@ -1885,346 +1849,92 @@ static std::string reloadShaders(eHyprCtlOutputFormat format, std::string reques
         return format == FORMAT_JSON ? "{\"ok\": false}" : "error";
 }
 
-CHyprCtl::CHyprCtl() {
-    registerCommand(SHyprCtlCommand{"workspaces", true, workspacesRequest});
-    registerCommand(SHyprCtlCommand{"workspacerules", true, workspaceRulesRequest});
-    registerCommand(SHyprCtlCommand{"activeworkspace", true, activeWorkspaceRequest});
-    registerCommand(SHyprCtlCommand{"clients", true, clientsRequest});
-    registerCommand(SHyprCtlCommand{"kill", true, killRequest});
-    registerCommand(SHyprCtlCommand{"activewindow", true, activeWindowRequest});
-    registerCommand(SHyprCtlCommand{"layers", true, layersRequest});
-    registerCommand(SHyprCtlCommand{"version", true, versionRequest});
-    registerCommand(SHyprCtlCommand{"devices", true, devicesRequest});
-    registerCommand(SHyprCtlCommand{"splash", true, splashRequest});
-    registerCommand(SHyprCtlCommand{"cursorpos", true, cursorPosRequest});
-    registerCommand(SHyprCtlCommand{"binds", true, bindsRequest});
-    registerCommand(SHyprCtlCommand{"globalshortcuts", true, globalShortcutsRequest});
-    registerCommand(SHyprCtlCommand{"systeminfo", true, systemInfoRequest});
-    registerCommand(SHyprCtlCommand{"animations", true, animationsRequest});
-    registerCommand(SHyprCtlCommand{"rollinglog", true, rollinglogRequest});
-    registerCommand(SHyprCtlCommand{"configerrors", true, configErrorsRequest});
-    registerCommand(SHyprCtlCommand{"locked", true, getIsLocked});
-    registerCommand(SHyprCtlCommand{"descriptions", true, getDescriptions});
-    registerCommand(SHyprCtlCommand{"submap", true, submapRequest});
-    registerCommand(SHyprCtlCommand{"status", true, statusRequest});
-
-    registerCommand(SHyprCtlCommand{.name = "reloadshaders", .exact = false, .fn = reloadShaders});
-    registerCommand(SHyprCtlCommand{"monitors", false, monitorsRequest});
-    registerCommand(SHyprCtlCommand{"reload", false, reloadRequest});
-    registerCommand(SHyprCtlCommand{"plugin", false, dispatchPlugin});
-    registerCommand(SHyprCtlCommand{"notify", false, dispatchNotify});
-    registerCommand(SHyprCtlCommand{"dismissnotify", false, dispatchDismissNotify});
-    registerCommand(SHyprCtlCommand{"getprop", false, dispatchGetProp});
-    registerCommand(SHyprCtlCommand{"seterror", false, dispatchSeterror});
-    registerCommand(SHyprCtlCommand{"switchxkblayout", false, switchXKBLayoutRequest});
-    registerCommand(SHyprCtlCommand{"output", false, dispatchOutput});
-    registerCommand(SHyprCtlCommand{"dispatch", false, dispatchRequest});
-    registerCommand(SHyprCtlCommand{"setcursor", false, dispatchSetCursor});
-    registerCommand(SHyprCtlCommand{"getoption", false, dispatchGetOption});
-    registerCommand(SHyprCtlCommand{"decorations", false, decorationRequest});
-    registerCommand(SHyprCtlCommand{"[[BATCH]]", false, dispatchBatch});
-    registerCommand(SHyprCtlCommand{"eval", false, evalRequest});
-    registerCommand(SHyprCtlCommand{"repl", false, evalRequest});
-    startHyprCtlSocket();
+template <typename F>
+static SCommand legacyCommand(std::string name, eCommandMatch match, F handler) {
+    return SCommand{
+        .name    = std::move(name),
+        .match   = match,
+        .handler = [handler](const SRequest& request) { return SResponse{handler(request.format, request.command)}; },
+    };
 }
 
-CHyprCtl::~CHyprCtl() {
-    if (m_eventSource)
-        wl_event_source_remove(m_eventSource);
-    if (!m_socketPath.empty())
-        unlink(m_socketPath.c_str());
+void IPC::Socket1::registerBuiltinCommands(CSocket1& socket) {
+    socket.registerCommand(legacyCommand("workspaces", eCommandMatch::EXACT, workspacesRequest));
+    socket.registerCommand(legacyCommand("workspacerules", eCommandMatch::EXACT, workspaceRulesRequest));
+    socket.registerCommand(legacyCommand("activeworkspace", eCommandMatch::EXACT, activeWorkspaceRequest));
+    socket.registerCommand(SCommand{.name = "clients", .match = eCommandMatch::EXACT, .handler = [](const SRequest& request) { return clientsRequest(request); }});
+    socket.registerCommand(legacyCommand("kill", eCommandMatch::EXACT, killRequest));
+    socket.registerCommand(legacyCommand("activewindow", eCommandMatch::EXACT, activeWindowRequest));
+    socket.registerCommand(legacyCommand("layers", eCommandMatch::EXACT, layersRequest));
+    socket.registerCommand(legacyCommand("version", eCommandMatch::EXACT, versionRequest));
+    socket.registerCommand(legacyCommand("devices", eCommandMatch::EXACT, devicesRequest));
+    socket.registerCommand(legacyCommand("splash", eCommandMatch::EXACT, splashRequest));
+    socket.registerCommand(legacyCommand("cursorpos", eCommandMatch::EXACT, cursorPosRequest));
+    socket.registerCommand(legacyCommand("binds", eCommandMatch::EXACT, bindsRequest));
+    socket.registerCommand(legacyCommand("globalshortcuts", eCommandMatch::EXACT, globalShortcutsRequest));
+    socket.registerCommand(SCommand{.name = "systeminfo", .match = eCommandMatch::EXACT, .handler = [](const SRequest& request) { return systemInfoRequest(request); }});
+    socket.registerCommand(legacyCommand("animations", eCommandMatch::EXACT, animationsRequest));
+    socket.registerCommand(SCommand{
+        .name    = "rollinglog",
+        .match   = eCommandMatch::EXACT,
+        .handler = [](const SRequest& request) { return SResponse{rollinglogRequest(request.format, request.command), request.follow ? eReplyMode::FOLLOW : eReplyMode::CLOSE}; },
+    });
+    socket.registerCommand(legacyCommand("configerrors", eCommandMatch::EXACT, configErrorsRequest));
+    socket.registerCommand(legacyCommand("locked", eCommandMatch::EXACT, getIsLocked));
+    socket.registerCommand(legacyCommand("descriptions", eCommandMatch::EXACT, getDescriptions));
+    socket.registerCommand(legacyCommand("submap", eCommandMatch::EXACT, submapRequest));
+    socket.registerCommand(legacyCommand("status", eCommandMatch::EXACT, statusRequest));
+
+    socket.registerCommand(legacyCommand("reloadshaders", eCommandMatch::PREFIX, reloadShaders));
+    socket.registerCommand(legacyCommand("monitors", eCommandMatch::PREFIX, monitorsRequest));
+    socket.registerCommand(legacyCommand("reload", eCommandMatch::PREFIX, reloadRequest));
+    socket.registerCommand(SCommand{.name = "plugin", .match = eCommandMatch::PREFIX, .handler = dispatchPlugin});
+    socket.registerCommand(legacyCommand("notify", eCommandMatch::PREFIX, dispatchNotify));
+    socket.registerCommand(legacyCommand("dismissnotify", eCommandMatch::PREFIX, dispatchDismissNotify));
+    socket.registerCommand(legacyCommand("getprop", eCommandMatch::PREFIX, dispatchGetProp));
+    socket.registerCommand(legacyCommand("seterror", eCommandMatch::PREFIX, dispatchSeterror));
+    socket.registerCommand(legacyCommand("switchxkblayout", eCommandMatch::PREFIX, switchXKBLayoutRequest));
+    socket.registerCommand(legacyCommand("output", eCommandMatch::PREFIX, dispatchOutput));
+    socket.registerCommand(legacyCommand("dispatch", eCommandMatch::PREFIX, dispatchRequest));
+    socket.registerCommand(legacyCommand("setcursor", eCommandMatch::PREFIX, dispatchSetCursor));
+    socket.registerCommand(legacyCommand("getoption", eCommandMatch::PREFIX, dispatchGetOption));
+    socket.registerCommand(legacyCommand("decorations", eCommandMatch::PREFIX, decorationRequest));
+    socket.registerCommand(legacyCommand("eval", eCommandMatch::PREFIX, evalRequest));
+    socket.registerCommand(legacyCommand("repl", eCommandMatch::PREFIX, evalRequest));
 }
 
-SP<SHyprCtlCommand> CHyprCtl::registerCommand(SHyprCtlCommand cmd) {
-    return m_commands.emplace_back(makeShared<SHyprCtlCommand>(cmd));
-}
+void IPC::Socket1::refreshState() {
+    Config::monitorRuleMgr()->scheduleReload();
+    Layout::Supplementary::algoMatcher()->updateWorkspaceLayouts();
 
-void CHyprCtl::unregisterCommand(const SP<SHyprCtlCommand>& cmd) {
-    std::erase(m_commands, cmd);
-}
+    g_pInputManager->setKeyboardLayout();
+    g_pInputManager->setPointerConfigs();
+    g_pInputManager->setTouchDeviceConfigs();
+    g_pInputManager->setTabletConfigs();
 
-std::string CHyprCtl::getReply(std::string request) {
-    auto format                          = eHyprCtlOutputFormat::FORMAT_NORMAL;
-    bool reloadAll                       = false;
-    m_currentRequestParams.all           = false;
-    m_currentRequestParams.sysInfoConfig = false;
+    g_pHyprRenderer->m_reloadScreenShader = true;
 
-    // process flags for non-batch requests
-    if (!request.starts_with("[[BATCH]]") && request.contains("/")) {
-        long unsigned int sepIndex = 0;
-        for (const auto& c : request) {
-            if (c == '/') { // stop at separator
-                break;
-            }
-
-            // after whitespace assume the first word as a keyword,
-            // so its value can have slashes (e.g., a path)
-            if (c == ' ') {
-                sepIndex = request.size();
-                break;
-            }
-
-            sepIndex++;
-
-            if (c == 'j')
-                format = eHyprCtlOutputFormat::FORMAT_JSON;
-            else if (c == 'r')
-                reloadAll = true;
-            else if (c == 'a')
-                m_currentRequestParams.all = true;
-            else if (c == 'c')
-                m_currentRequestParams.sysInfoConfig = true;
-        }
-
-        if (sepIndex < request.size())
-            request = request.substr(sepIndex + 1); // remove flags and separator so we can compare the rest of the string
+    for (const auto& monitor : State::monitorState()->monitors()) {
+        if (monitor)
+            monitor->m_blurFBDirty = true;
     }
 
-    std::string result = "";
-
-    // parse exact cmds first, then non-exact.
-    for (auto const& cmd : m_commands) {
-        if (!cmd->exact)
+    for (const auto& window : Desktop::windowState()->windows()) {
+        if (!window->m_isMapped || !window->m_workspace || !window->m_workspace->isVisible())
             continue;
 
-        if (cmd->name == request) {
-            result = cmd->fn(format, request);
-            break;
-        }
+        Desktop::Rule::ruleEngine()->updateAllRules();
     }
 
-    if (result.empty())
-        for (auto const& cmd : m_commands) {
-            if (cmd->exact)
-                continue;
+    for (const auto& workspace : State::workspaceState()->workspaces()) {
+        if (!workspace)
+            continue;
 
-            if (request.starts_with(cmd->name)) {
-                result = cmd->fn(format, request);
-                break;
-            }
-        }
-
-    if (result.empty())
-        return "unknown request";
-
-    if (reloadAll) {
-        Config::monitorRuleMgr()->scheduleReload();
-        Layout::Supplementary::algoMatcher()->updateWorkspaceLayouts();
-
-        g_pInputManager->setKeyboardLayout();     // update kb layout
-        g_pInputManager->setPointerConfigs();     // update mouse cfgs
-        g_pInputManager->setTouchDeviceConfigs(); // update touch device cfgs
-        g_pInputManager->setTabletConfigs();      // update tablets
-
-        g_pHyprRenderer->m_reloadScreenShader = true;
-
-        for (auto const& m : State::monitorState()->monitors()) {
-            if (m)
-                m->m_blurFBDirty = true;
-        }
-
-        for (auto const& w : Desktop::windowState()->windows()) {
-            if (!w->m_isMapped || !w->m_workspace || !w->m_workspace->isVisible())
-                continue;
-
-            Desktop::Rule::ruleEngine()->updateAllRules();
-        }
-
-        for (const auto& ws : State::workspaceState()->workspaces()) {
-            if (!ws)
-                continue;
-
-            ws->updateWindows();
-            ws->updateWindowData();
-            ws->updateWindowDecos();
-        }
-
-        for (auto const& m : State::monitorState()->monitors()) {
-            g_pHyprRenderer->damageMonitor(m);
-        }
+        workspace->updateWindows();
+        workspace->updateWindowData();
+        workspace->updateWindowDecos();
     }
 
-    return result;
-}
-
-std::string CHyprCtl::makeDynamicCall(const std::string& input) {
-    return getReply(input);
-}
-
-static bool successWrite(int fd, const std::string& data, bool needLog = true) {
-    size_t                 totalWritten = 0;
-    size_t                 remaining    = data.length();
-    size_t                 waitsDone    = 0;
-    constexpr const size_t MAX_WAITS    = 20; // 2000µs = 2ms
-
-    while (totalWritten < data.length()) {
-        ssize_t written = write(fd, data.c_str() + totalWritten, remaining);
-
-        if (waitsDone > MAX_WAITS) {
-            Log::logger->log(Log::ERR, "Couldn't write to socket. Buffer was full and the client couldn't read in time.");
-            return false;
-        }
-
-        if (written < 0) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                // socket buffer full, wait a bit and retry
-                std::this_thread::sleep_for(std::chrono::microseconds(100));
-                waitsDone++;
-                continue;
-            }
-            if (needLog)
-                Log::logger->log(Log::ERR, "Couldn't write to socket. Error: {}", strerror(errno));
-            return false;
-        }
-
-        waitsDone = 0;
-
-        totalWritten += written;
-        remaining -= written;
-    }
-
-    return true;
-}
-
-static void runWritingDebugLogThread(const int conn) {
-    using namespace std::chrono_literals;
-    Log::logger->log(Log::DEBUG, "In followlog thread, got connection, start writing: {}", conn);
-    //will be finished, when reading side close connection
-    std::thread([conn]() {
-        while (Log::SRollingLogFollow::get().isRunning()) {
-            if (Log::SRollingLogFollow::get().isEmpty(conn)) {
-                std::this_thread::sleep_for(1000ms);
-                continue;
-            }
-
-            auto line = Log::SRollingLogFollow::get().getLog(conn);
-            if (!successWrite(conn, line))
-                // We cannot write, when connection is closed. So thread will successfully exit by itself
-                break;
-
-            std::this_thread::sleep_for(100ms);
-        }
-        close(conn);
-        Log::SRollingLogFollow::get().stopFor(conn);
-    }).detach();
-}
-
-static bool isFollowUpRollingLogRequest(const std::string& request) {
-    return request.contains("rollinglog") && request.contains("f");
-}
-
-static int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
-    if (mask & WL_EVENT_ERROR || mask & WL_EVENT_HANGUP)
-        return 0;
-
-    if (!g_pHyprCtl->m_socketFD.isValid())
-        return 0;
-
-    sockaddr_in            clientAddress;
-    socklen_t              clientSize = sizeof(clientAddress);
-
-    const auto             ACCEPTEDCONNECTION = accept4(g_pHyprCtl->m_socketFD.get(), rc<sockaddr*>(&clientAddress), &clientSize, SOCK_CLOEXEC);
-
-    std::array<char, 1024> readBuffer;
-
-    // try to get creds
-    CRED_T   creds;
-    uint32_t len = sizeof(creds);
-    if (getsockopt(ACCEPTEDCONNECTION, CRED_LVL, CRED_OPT, &creds, &len) == -1)
-        Log::logger->log(Log::ERR, "Hyprctl: failed to get peer creds");
-    else {
-        g_pHyprCtl->m_currentRequestParams.pid = creds.CRED_PID;
-        Log::logger->log(Log::DEBUG, "Hyprctl: new connection from pid {}", creds.CRED_PID);
-    }
-
-    //
-    pollfd pollfds[1] = {
-        {
-            .fd     = ACCEPTEDCONNECTION,
-            .events = POLLIN,
-        },
-    };
-
-    int ret = poll(pollfds, 1, 5000);
-
-    if (ret <= 0) {
-        close(ACCEPTEDCONNECTION);
-        return 0;
-    }
-
-    std::string request;
-    while (true) {
-        readBuffer.fill(0);
-        auto messageSize = read(ACCEPTEDCONNECTION, readBuffer.data(), 1023);
-        if (messageSize < 1)
-            break;
-        std::string recvd = readBuffer.data();
-        request += recvd;
-        if (messageSize < 1023)
-            break;
-    }
-
-    std::string reply = "";
-
-    try {
-        reply = g_pHyprCtl->getReply(request);
-    } catch (std::exception& e) {
-        Log::logger->log(Log::ERR, "Error in request: {}", e.what());
-        reply = "Err: " + std::string(e.what());
-    }
-
-    if (g_pHyprCtl->m_currentRequestParams.pendingPromise) {
-        // we have a promise pending
-        g_pHyprCtl->m_currentRequestParams.pendingPromise->then([ACCEPTEDCONNECTION, request](SP<CPromiseResult<std::string>> result) {
-            const auto RES = result->hasError() ? result->error() : result->result();
-            successWrite(ACCEPTEDCONNECTION, RES);
-
-            // No rollinglog or ensureMonitor here. These are only for plugins for now.
-
-            close(ACCEPTEDCONNECTION);
-        });
-
-        g_pHyprCtl->m_currentRequestParams.pendingPromise.reset();
-    } else {
-        successWrite(ACCEPTEDCONNECTION, reply);
-
-        if (isFollowUpRollingLogRequest(request)) {
-            Log::logger->log(Log::DEBUG, "Followup rollinglog request received. Starting thread to write to socket.");
-            Log::SRollingLogFollow::get().startFor(ACCEPTEDCONNECTION);
-            runWritingDebugLogThread(ACCEPTEDCONNECTION);
-            Log::logger->log(Log::DEBUG, Log::SRollingLogFollow::get().debugInfo());
-        } else
-            close(ACCEPTEDCONNECTION);
-
-        g_pHyprCtl->m_currentRequestParams.pid = 0;
-    }
-
-    return 0;
-}
-
-void CHyprCtl::startHyprCtlSocket() {
-    m_socketFD = CFileDescriptor{socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0)};
-
-    if (!m_socketFD.isValid()) {
-        Log::logger->log(Log::ERR, "Couldn't start the Hyprland Socket. (1) IPC will not work.");
-        return;
-    }
-
-    sockaddr_un SERVERADDRESS = {.sun_family = AF_UNIX};
-
-    m_socketPath = g_pCompositor->m_instancePath + "/.socket.sock";
-
-    snprintf(SERVERADDRESS.sun_path, sizeof(SERVERADDRESS.sun_path), "%s", m_socketPath.c_str());
-
-    if (bind(m_socketFD.get(), rc<sockaddr*>(&SERVERADDRESS), SUN_LEN(&SERVERADDRESS)) < 0) {
-        Log::logger->log(Log::ERR, "Couldn't start the Hyprland Socket. (2) IPC will not work.");
-        return;
-    }
-
-    // 10 max queued.
-    listen(m_socketFD.get(), 10);
-
-    Log::logger->log(Log::DEBUG, "Hypr socket started at {}", m_socketPath);
-
-    m_eventSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, m_socketFD.get(), WL_EVENT_READABLE, hyprCtlFDTick, nullptr);
+    for (const auto& monitor : State::monitorState()->monitors())
+        g_pHyprRenderer->damageMonitor(monitor);
 }

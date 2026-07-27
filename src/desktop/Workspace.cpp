@@ -9,7 +9,7 @@
 #include "../config/supplementary/executor/Executor.hpp"
 #include "../config/supplementary/propRefresher/PropRefresher.hpp"
 #include "animation/AnimationManager.hpp"
-#include "../managers/EventManager.hpp"
+#include "../ipc/s2/S2.hpp"
 #include "../managers/fullscreen/FullscreenController.hpp"
 #include "../output/Monitor.hpp"
 #include "../state/MonitorState.hpp"
@@ -69,17 +69,17 @@ void CWorkspace::init(PHLWORKSPACE self) {
         if (auto cmd = WORKSPACERULE.m_onCreatedEmptyRunCmd)
             Config::Supplementary::executor()->spawnWithRules(*cmd, self);
 
-    g_pEventManager->postEvent({.event = "createworkspace", .data = m_name});
-    g_pEventManager->postEvent({.event = "createworkspacev2", .data = std::format("{},{}", m_id, m_name)});
+    IPC::Socket2::sock()->postEvent({.event = "createworkspace", .data = m_name});
+    IPC::Socket2::sock()->postEvent({.event = "createworkspacev2", .data = std::format("{},{}", m_id, m_name)});
     Event::bus()->m_events.workspace.created.emit(self);
 }
 
 CWorkspace::~CWorkspace() {
     Log::logger->log(Log::DEBUG, "Destroying workspace ID {}", m_id);
 
-    if (g_pEventManager) {
-        g_pEventManager->postEvent({.event = "destroyworkspace", .data = m_name});
-        g_pEventManager->postEvent({.event = "destroyworkspacev2", .data = std::format("{},{}", m_id, m_name)});
+    if (IPC::Socket2::sock()) {
+        IPC::Socket2::sock()->postEvent({.event = "destroyworkspace", .data = m_name});
+        IPC::Socket2::sock()->postEvent({.event = "destroyworkspacev2", .data = std::format("{},{}", m_id, m_name)});
     }
 
     Event::bus()->m_events.workspace.removed.emit(m_self);
@@ -540,7 +540,7 @@ void CWorkspace::rename(const std::string& name) {
 
     m_wasRenamed = true;
 
-    g_pEventManager->postEvent({.event = "renameworkspace", .data = std::to_string(m_id) + "," + m_name});
+    IPC::Socket2::sock()->postEvent({.event = "renameworkspace", .data = std::to_string(m_id) + "," + m_name});
     m_events.renamed.emit();
 }
 
@@ -557,7 +557,7 @@ void CWorkspace::changeID(int64_t id) {
 
     Config::Supplementary::refresher()->scheduleRefresh(Config::Supplementary::REFRESH_ALL);
 
-    g_pEventManager->postEvent({.event = "changeworkspaceid", .data = std::to_string(OLD_ID) + "," + std::to_string(m_id)});
+    IPC::Socket2::sock()->postEvent({.event = "changeworkspaceid", .data = std::to_string(OLD_ID) + "," + std::to_string(m_id)});
     m_events.idChanged.emit();
 }
 

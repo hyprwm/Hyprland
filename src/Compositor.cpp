@@ -30,7 +30,7 @@
 #include <print>
 #include <cstring>
 #include <filesystem>
-#include "debug/HyprCtl.hpp"
+#include "ipc/s1/S1.hpp"
 #include "debug/crash/CrashReporter.hpp"
 #include "render/GLRenderer.hpp"
 #include "render/ShaderLoader.hpp"
@@ -53,7 +53,7 @@
 #include "render/OpenGL.hpp"
 #include "managers/input/InputManager.hpp"
 #include "animation/AnimationManager.hpp"
-#include "managers/EventManager.hpp"
+#include "ipc/s2/S2.hpp"
 #include "managers/ProtocolManager.hpp"
 #include "managers/WelcomeManager.hpp"
 #include "render/AsyncResourceGatherer.hpp"
@@ -609,7 +609,7 @@ void CCompositor::cleanup() {
     g_pPluginSystem.reset();
     Notification::overlay().reset();
     Debug::overlay().reset();
-    g_pEventManager.reset();
+    IPC::Socket2::sock().reset();
     g_pSessionLockManager.reset();
     g_pHyprRenderer.reset();
     g_pProtocolManager.reset();
@@ -622,7 +622,7 @@ void CCompositor::cleanup() {
     g_pXWaylandManager.reset();
     Pointer::mgr().reset();
     g_pSeatManager.reset();
-    g_pHyprCtl.reset();
+    IPC::Socket1::sock().reset();
     g_pEventLoopManager.reset();
     g_pVersionKeeperMgr.reset();
     g_pDonationNagManager.reset();
@@ -675,8 +675,7 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             Log::logger->log(Log::DEBUG, "Creating the TokenManager!");
             g_pTokenManager = makeUnique<CTokenManager>();
 
-            Log::logger->log(Log::DEBUG, "Creating the EventManager!");
-            g_pEventManager = makeUnique<CEventManager>();
+            IPC::Socket2::sock();
 
             // create executor
             Config::Supplementary::executor();
@@ -719,8 +718,8 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
         } break;
         case STAGE_LATE: {
-            Log::logger->log(Log::DEBUG, "Creating CHyprCtl");
-            g_pHyprCtl = makeUnique<CHyprCtl>();
+            Log::logger->log(Log::DEBUG, "Creating Socket1");
+            IPC::Socket1::sock() = makeUnique<IPC::Socket1::CSocket1>();
 
             Log::logger->log(Log::DEBUG, "Creating the InputManager!");
             g_pInputManager = makeUnique<CInputManager>();

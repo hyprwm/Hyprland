@@ -12,7 +12,7 @@
 #include "../../config/shared/animation/AnimationTree.hpp"
 #include "../../output/Monitor.hpp"
 #include "../../managers/input/InputManager.hpp"
-#include "../../managers/EventManager.hpp"
+#include "../../ipc/s2/S2.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../../event/EventBus.hpp"
 #include "../../state/MonitorState.hpp"
@@ -215,7 +215,7 @@ void CLayerSurface::onMap() {
     m_alpha.get(LS_ALPHA_FADE)->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeLayersIn"));
     m_animationController.apply(m_animationController.animateIn());
 
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "openlayer", .data = m_namespace});
+    IPC::Socket2::sock()->postEvent({.event = "openlayer", .data = m_namespace});
     Event::bus()->m_events.layer.opened.emit(m_self.lock());
 
     updateSurfaceScaleTransformDetails();
@@ -224,7 +224,7 @@ void CLayerSurface::onMap() {
 void CLayerSurface::onUnmap() {
     Log::logger->log(Log::DEBUG, "LayerSurface {:x} unmapped", rc<uintptr_t>(m_layerSurface.get()));
 
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "closelayer", .data = m_layerSurface->m_layerNamespace});
+    IPC::Socket2::sock()->postEvent({.event = "closelayer", .data = m_layerSurface->m_layerNamespace});
     Event::bus()->m_events.layer.closed.emit(m_self.lock());
 
     std::erase_if(g_pInputManager->m_exclusiveLSes, [this](const auto& other) { return !other || other == m_self; });

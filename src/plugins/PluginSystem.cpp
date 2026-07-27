@@ -3,7 +3,6 @@
 #include <dlfcn.h>
 #include <ranges>
 #include "../config/ConfigManager.hpp"
-#include "../debug/HyprCtl.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../managers/permissions/DynamicPermissionManager.hpp"
 #include "../notification/NotificationOverlay.hpp"
@@ -14,12 +13,9 @@ CPluginSystem::CPluginSystem() {
     g_pFunctionHookSystem = makeUnique<CHookSystem>();
 }
 
-SP<CPromise<CPlugin*>> CPluginSystem::loadPlugin(const std::string& path, eSpecialPidTypes pidType) {
+SP<CPromise<CPlugin*>> CPluginSystem::loadPlugin(const std::string& path, eSpecialPidTypes pidType, pid_t requesterPid) {
 
-    pid_t pid = 0;
-
-    if (g_pHyprCtl->m_currentRequestParams.pid > 0)
-        pid = g_pHyprCtl->m_currentRequestParams.pid;
+    const auto pid = requesterPid;
 
     return CPromise<CPlugin*>::make([path, pid, pidType, this](SP<CPromiseResolver<CPlugin*>> resolver) {
         const auto PERM = g_pDynamicPermissionManager->clientPermissionModeWithString(pidType != SPECIAL_PID_TYPE_NONE ? pidType : pid, path, PERMISSION_TYPE_PLUGIN);

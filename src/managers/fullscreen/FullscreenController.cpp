@@ -1,7 +1,7 @@
 #include "FullscreenController.hpp"
 
 #include "../../managers/fullscreen/handler/FullscreenHandler.hpp"
-#include "../../managers/EventManager.hpp"
+#include "../../ipc/s2/S2.hpp"
 
 #include "../../layout/algorithm/Algorithm.hpp"
 #include "../../layout/algorithm/FloatingAlgorithm.hpp"
@@ -479,7 +479,7 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
     SPACE->recalculate(FULLSCREEN_REQUEST_RESULT == FULLSCREEN_REQUEST_DEFAULT_HANDLED ? Layout::RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN :
                                                                                          Layout::RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN);
 
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "fullscreen", .data = std::to_string(sc<int>(mode) != FSMODE_NONE)});
+    IPC::Socket2::sock()->postEvent({.event = "fullscreen", .data = std::to_string(sc<int>(mode) != FSMODE_NONE)});
     Event::bus()->m_events.window.fullscreen.emit(window);
 
     window->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |

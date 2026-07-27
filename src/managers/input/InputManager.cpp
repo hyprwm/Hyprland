@@ -41,7 +41,7 @@
 #include "../../managers/KeybindManager.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
 
-#include "../../managers/EventManager.hpp"
+#include "../../ipc/s2/S2.hpp"
 #include "../../managers/permissions/DynamicPermissionManager.hpp"
 #include "../../state/MonitorState.hpp"
 #include "../../state/MonitorLayoutController.hpp"
@@ -944,7 +944,7 @@ void CInputManager::processMouseDownKill(const IPointer::SButtonEvent& e) {
                 break;
             }
 
-            g_pEventManager->postEvent(SHyprIPCEvent({.event = "kill", .data = std::format("{:x}", rc<uintptr_t>(PWINDOW.m_data))}));
+            IPC::Socket2::sock()->postEvent({.event = "kill", .data = std::format("{:x}", rc<uintptr_t>(PWINDOW.m_data))});
             Event::bus()->m_events.window.kill.emit(PWINDOW);
 
             // kill the mf
@@ -1180,7 +1180,7 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
             g_pKeybindManager->m_keyToCodeCache.clear();
         }
 
-        g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEEB->m_hlName + "," + LAYOUT});
+        IPC::Socket2::sock()->postEvent({"activelayout", PKEEB->m_hlName + "," + LAYOUT});
         Event::bus()->m_events.input.keyboard.layout.emit(PKEEB, LAYOUT);
     });
 
@@ -1281,7 +1281,7 @@ void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
 
     const auto LAYOUTSTR = pKeyboard->getActiveLayout();
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->m_hlName + "," + LAYOUTSTR});
+    IPC::Socket2::sock()->postEvent({"activelayout", pKeyboard->m_hlName + "," + LAYOUTSTR});
     Event::bus()->m_events.input.keyboard.layout.emit(pKeyboard, LAYOUTSTR);
 
     Log::logger->log(Log::DEBUG, "Set the keyboard layout to {} and variant to {} for keyboard \"{}\"", pKeyboard->m_currentRules.layout, pKeyboard->m_currentRules.variant,
@@ -1722,7 +1722,7 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
 
         Log::logger->log(Log::DEBUG, "LAYOUT CHANGED TO {} GROUP {}", LAYOUT, MODS.group);
 
-        g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->m_hlName + "," + LAYOUT});
+        IPC::Socket2::sock()->postEvent({"activelayout", pKeyboard->m_hlName + "," + LAYOUT});
         Event::bus()->m_events.input.keyboard.layout.emit(pKeyboard, LAYOUT);
     }
 }

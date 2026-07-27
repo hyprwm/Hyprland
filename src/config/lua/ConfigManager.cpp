@@ -36,7 +36,7 @@
 #include "../../errorOverlay/Overlay.hpp"
 #include "../../xwayland/XWayland.hpp"
 #include "../../plugins/PluginSystem.hpp"
-#include "../../managers/EventManager.hpp"
+#include "../../ipc/s2/S2.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../managers/input/trackpad/TrackpadGestures.hpp"
 #include "../../notification/NotificationOverlay.hpp"
@@ -844,8 +844,8 @@ void CConfigManager::postConfigReload() {
     Config::Supplementary::refresher()->scheduleRefresh(Supplementary::REFRESH_ALL);
 
     Event::bus()->m_events.config.reloaded.emit();
-    if (g_pEventManager)
-        g_pEventManager->postEvent(SHyprIPCEvent{"configreloaded", ""});
+    if (IPC::Socket2::sock())
+        IPC::Socket2::sock()->postEvent({"configreloaded", ""});
 }
 
 void CConfigManager::addError(std::string&& str) {

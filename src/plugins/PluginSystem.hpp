@@ -27,7 +27,7 @@ class CPlugin {
     std::vector<IHyprWindowDecoration*> m_registeredDecorations;
     //std::vector<std::pair<std::string, WP<HOOK_CALLBACK_FN>>> m_registeredCallbacks;
     std::vector<std::string>                m_registeredDispatchers;
-    std::vector<WP<SHyprCtlCommand>>        m_registeredHyprctlCommands;
+    std::vector<WP<IPC::Socket1::SCommand>> m_registeredHyprctlCommands;
     std::vector<std::string>                m_registeredAlgos;
     std::vector<WP<Config::Values::IValue>> m_registeredApiValues;
 };
@@ -36,7 +36,7 @@ class CPluginSystem {
   public:
     CPluginSystem();
 
-    SP<CPromise<CPlugin*>> loadPlugin(const std::string& path, eSpecialPidTypes pidType = SPECIAL_PID_TYPE_NONE);
+    SP<CPromise<CPlugin*>> loadPlugin(const std::string& path, eSpecialPidTypes pidType = SPECIAL_PID_TYPE_NONE, pid_t requesterPid = 0);
     void                   unloadPlugin(const CPlugin* plugin, bool eject = false);
     void                   unloadAllPlugins();
     void                   updateConfigPlugins(const std::vector<std::string>& plugins, bool& changed);

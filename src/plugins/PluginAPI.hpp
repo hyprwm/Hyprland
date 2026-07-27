@@ -24,6 +24,7 @@ Feel like the API is missing something you'd like to use in your plugin? Open an
 #include "HookSystem.hpp"
 #include "../SharedDefs.hpp"
 #include "../defines.hpp"
+#include "../ipc/s1/S1.hpp"
 #include "../version.h"
 #include "../config/values/types/IValue.hpp"
 #include "../event/EventBus.hpp"
@@ -329,14 +330,14 @@ namespace HyprlandAPI {
 
         returns: Pointer. Nullptr on fail.
     */
-    APICALL SP<SHyprCtlCommand> registerHyprCtlCommand(HANDLE handle, SHyprCtlCommand cmd);
+    APICALL SP<IPC::Socket1::SCommand> registerHyprCtlCommand(HANDLE handle, IPC::Socket1::SCommand cmd);
 
     /*
         Unregisters a hyprctl command
 
         returns: true on success. False otherwise.
     */
-    APICALL bool unregisterHyprCtlCommand(HANDLE handle, SP<SHyprCtlCommand> cmd);
+    APICALL bool unregisterHyprCtlCommand(HANDLE handle, SP<IPC::Socket1::SCommand> cmd);
 
     /*
         Add a new config value. Keep the pointer, you can use it for retrieving the value.

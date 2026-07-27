@@ -2,40 +2,27 @@
 
 #include <shared_mutex>
 #include <unordered_map>
-#include <format>
-#include <vector>
+#include <utility>
 
 namespace Log {
     struct SRollingLogFollow {
         std::unordered_map<int, std::string> m_socketToRollingLogFollowQueue;
         std::shared_mutex                    m_mutex;
-        bool                                 m_running                  = false;
-        static constexpr size_t              ROLLING_LOG_FOLLOW_TOO_BIG = 8192;
+        bool                                 m_running = false;
 
-        // Returns true if the queue is empty for the given socket
-        bool isEmpty(int socket) {
-            std::shared_lock<std::shared_mutex> r(m_mutex);
-            return m_socketToRollingLogFollowQueue[socket].empty();
-        }
-
-        std::string debugInfo() {
-            std::shared_lock<std::shared_mutex> r(m_mutex);
-            return std::format("RollingLogFollow, got {} connections", m_socketToRollingLogFollowQueue.size());
-        }
-
-        std::string getLog(int socket) {
+        std::string                          takeLog(int socket) {
             std::unique_lock<std::shared_mutex> w(m_mutex);
 
-            const std::string                   ret = m_socketToRollingLogFollowQueue[socket];
-            m_socketToRollingLogFollowQueue[socket] = "";
+            const auto                          queue = m_socketToRollingLogFollowQueue.find(socket);
+            if (queue == m_socketToRollingLogFollowQueue.end())
+                return {};
 
-            return ret;
+            return std::exchange(queue->second, {});
         };
 
         void addLog(const std::string_view& log) {
             std::unique_lock<std::shared_mutex> w(m_mutex);
             m_running = true;
-            std::vector<int> to_erase;
             for (const auto& p : m_socketToRollingLogFollowQueue) {
                 m_socketToRollingLogFollowQueue[p.first] += log;
                 m_socketToRollingLogFollowQueue[p.first] += "\n";

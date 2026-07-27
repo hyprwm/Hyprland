@@ -7,7 +7,7 @@
 #include "../desktop/state/FocusState.hpp"
 #include "../desktop/state/GlobalWindowController.hpp"
 #include "../render/Renderer.hpp"
-#include "../managers/EventManager.hpp"
+#include "../ipc/s2/S2.hpp"
 #include "../event/EventBus.hpp"
 #include "../state/MonitorState.hpp"
 
@@ -123,7 +123,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         if UNLIKELY (!PWINDOW->m_isMapped)
             return;
 
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "minimized", .data = std::format("{:x},1", rc<uintptr_t>(PWINDOW.get()))});
+        IPC::Socket2::sock()->postEvent({.event = "minimized", .data = std::format("{:x},1", rc<uintptr_t>(PWINDOW.get()))});
     });
 
     m_resource->setUnsetMinimized([this](CZwlrForeignToplevelHandleV1* p) {
@@ -135,7 +135,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         if UNLIKELY (!PWINDOW->m_isMapped)
             return;
 
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "minimized", .data = std::format("{:x},0", rc<uintptr_t>(PWINDOW.get()))});
+        IPC::Socket2::sock()->postEvent({.event = "minimized", .data = std::format("{:x},0", rc<uintptr_t>(PWINDOW.get()))});
     });
 
     m_resource->setClose([this](CZwlrForeignToplevelHandleV1* p) {

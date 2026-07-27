@@ -54,7 +54,7 @@
 #include "../../managers/XWaylandManager.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../render/transformer/MotionBlurTransformer.hpp"
-#include "../../managers/EventManager.hpp"
+#include "../../ipc/s2/S2.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../pointer/PointerController.hpp"
 #include "../../managers/KeybindManager.hpp"
@@ -576,8 +576,8 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
     Desktop::globalWindowController()->updateAllWindowsDecorations();
 
     if (valid(pWorkspace)) {
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "movewindow", .data = std::format("{:x},{}", rc<uintptr_t>(this), pWorkspace->m_name)});
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "movewindowv2", .data = std::format("{:x},{},{}", rc<uintptr_t>(this), pWorkspace->m_id, pWorkspace->m_name)});
+        IPC::Socket2::sock()->postEvent({.event = "movewindow", .data = std::format("{:x},{}", rc<uintptr_t>(this), pWorkspace->m_name)});
+        IPC::Socket2::sock()->postEvent({.event = "movewindowv2", .data = std::format("{:x},{},{}", rc<uintptr_t>(this), pWorkspace->m_id, pWorkspace->m_name)});
         Event::bus()->m_events.window.moveToWorkspace.emit(m_self.lock(), pWorkspace);
     }
 
@@ -1368,7 +1368,7 @@ void CWindow::activate(bool force) {
 
     m_isUrgent = true;
 
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "urgent", .data = std::format("{:x}", rc<uintptr_t>(this))});
+    IPC::Socket2::sock()->postEvent({.event = "urgent", .data = std::format("{:x}", rc<uintptr_t>(this))});
     Event::bus()->m_events.window.urgent.emit(m_self.lock());
 
     if (!force &&
@@ -1449,13 +1449,13 @@ void CWindow::onUpdateMeta() {
 
     if (m_title != NEWTITLE) {
         m_title = NEWTITLE;
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "windowtitle", .data = std::format("{:x}", rc<uintptr_t>(this))});
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "windowtitlev2", .data = std::format("{:x},{}", rc<uintptr_t>(this), m_title)});
+        IPC::Socket2::sock()->postEvent({.event = "windowtitle", .data = std::format("{:x}", rc<uintptr_t>(this))});
+        IPC::Socket2::sock()->postEvent({.event = "windowtitlev2", .data = std::format("{:x},{}", rc<uintptr_t>(this), m_title)});
         Event::bus()->m_events.window.title.emit(m_self.lock());
 
         if (m_self == Desktop::focusState()->window()) { // if it's the active, let's post an event to update others
-            g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindow", .data = m_class + "," + m_title});
-            g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindowv2", .data = std::format("{:x}", rc<uintptr_t>(this))});
+            IPC::Socket2::sock()->postEvent({.event = "activewindow", .data = m_class + "," + m_title});
+            IPC::Socket2::sock()->postEvent({.event = "activewindowv2", .data = std::format("{:x}", rc<uintptr_t>(this))});
 
             // no need for a hook event
         }
@@ -1471,8 +1471,8 @@ void CWindow::onUpdateMeta() {
         Event::bus()->m_events.window.class_.emit(m_self.lock());
 
         if (m_self == Desktop::focusState()->window()) { // if it's the active, let's post an event to update others
-            g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindow", .data = m_class + "," + m_title});
-            g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindowv2", .data = std::format("{:x}", rc<uintptr_t>(this))});
+            IPC::Socket2::sock()->postEvent({.event = "activewindow", .data = m_class + "," + m_title});
+            IPC::Socket2::sock()->postEvent({.event = "activewindowv2", .data = std::format("{:x}", rc<uintptr_t>(this))});
 
             // no need for a hook event
         }
@@ -2366,7 +2366,7 @@ void CWindow::mapWindow() {
     }
 
     // emit the IPC event before the layout might focus the window to avoid a focus event first
-    g_pEventManager->postEvent(SHyprIPCEvent{"openwindow", std::format("{:x},{},{},{}", m_self.lock(), PWORKSPACE->m_name, m_class, m_title)});
+    IPC::Socket2::sock()->postEvent({"openwindow", std::format("{:x},{},{},{}", m_self.lock(), PWORKSPACE->m_name, m_class, m_title)});
     Event::bus()->m_events.window.openEarly.emit(m_self.lock());
 
     if (*PAUTOGROUP                                                                        // auto_group enabled
@@ -2571,7 +2571,7 @@ void CWindow::unmapWindow() {
     const auto PMONITOR = m_monitor.lock();
 
     m_events.unmap.emit();
-    g_pEventManager->postEvent(SHyprIPCEvent{"closewindow", std::format("{:x}", m_self.lock())});
+    IPC::Socket2::sock()->postEvent({"closewindow", std::format("{:x}", m_self.lock())});
     Event::bus()->m_events.window.close.emit(m_self.lock());
 
     if (m_isFloating && !m_isX11 && m_ruleApplicator->persistentSize().valueOrDefault()) {
@@ -2679,8 +2679,8 @@ void CWindow::unmapWindow() {
 
         // CWindow::onUnmap will remove this window's active status, but we can't really do it above.
         if (m_self.lock() == Desktop::focusState()->window() || !Desktop::focusState()->window()) {
-            g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","});
-            g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ""});
+            IPC::Socket2::sock()->postEvent({"activewindow", ","});
+            IPC::Socket2::sock()->postEvent({"activewindowv2", ""});
 
             Event::bus()->m_events.window.active.emit(m_self.lock(), FOCUS_REASON_OTHER);
         }

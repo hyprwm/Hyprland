@@ -2,7 +2,7 @@
 #include "../../render/OpenGL.hpp"
 #include "../../Compositor.hpp"
 #include "../../render/Renderer.hpp"
-#include "../EventManager.hpp"
+#include "../../ipc/s2/S2.hpp"
 #include "../eventLoop/EventLoopManager.hpp"
 #include "../../event/EventBus.hpp"
 
@@ -137,15 +137,15 @@ void CScreenshareSession::calculateConstraints() {
 void CScreenshareSession::screenshareEvents(bool startSharing) {
     if (startSharing && !m_sharing) {
         m_sharing = true;
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "screencast", .data = std::format("1,{}", m_type)});
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "screencastv2", .data = std::format("1,{},{}", m_type, m_name)});
+        IPC::Socket2::sock()->postEvent({.event = "screencast", .data = std::format("1,{}", m_type)});
+        IPC::Socket2::sock()->postEvent({.event = "screencastv2", .data = std::format("1,{},{}", m_type, m_name)});
         LOGM(Log::INFO, "Started screenshare session for ({}): {}", m_type, m_name);
 
         Event::bus()->m_events.screenshare.state.emit(true, m_type, m_name);
     } else if (!startSharing && m_sharing) {
         m_sharing = false;
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "screencast", .data = std::format("0,{}", m_type)});
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "screencastv2", .data = std::format("0,{},{}", m_type, m_name)});
+        IPC::Socket2::sock()->postEvent({.event = "screencast", .data = std::format("0,{}", m_type)});
+        IPC::Socket2::sock()->postEvent({.event = "screencastv2", .data = std::format("0,{},{}", m_type, m_name)});
         LOGM(Log::INFO, "Stopped screenshare session for ({}): {}", m_type, m_name);
 
         Event::bus()->m_events.screenshare.state.emit(false, m_type, m_name);

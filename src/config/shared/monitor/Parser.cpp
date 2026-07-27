@@ -231,6 +231,20 @@ bool CMonitorRuleParser::parseBitdepth(const std::string& value) {
     return true;
 }
 
+bool CMonitorRuleParser::parseColorRange(const std::string& value) {
+    if (value == "auto")
+        m_rule.m_colorRange = Aquamarine::AQ_OUTPUT_COLOR_RANGE_AUTO;
+    else if (value == "full")
+        m_rule.m_colorRange = Aquamarine::AQ_OUTPUT_COLOR_RANGE_FULL;
+    else if (value == "limited")
+        m_rule.m_colorRange = Aquamarine::AQ_OUTPUT_COLOR_RANGE_LIMITED;
+    else {
+        m_error += "invalid colorrange ";
+        return false;
+    }
+    return true;
+}
+
 bool CMonitorRuleParser::parseCM(const std::string& value) {
     auto parsedCM = NCMType::fromString(value);
     if (!parsedCM.has_value()) {

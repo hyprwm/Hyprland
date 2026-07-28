@@ -37,16 +37,19 @@ static int monitorToString(lua_State* L) {
 }
 
 static int monitorSetWorkspace(lua_State* L) {
-    auto*      ref = sc<PHLMONITORREF*>(luaL_checkudata(L, 1, MT));
-    const auto id  = Internal::requireTableFieldWorkspaceSelector(L, 2, "workspace", "HLMonitor.set_workspace");
+    auto*      ref      = sc<PHLMONITORREF*>(luaL_checkudata(L, 1, MT));
+    const auto selector = Internal::requireTableFieldWorkspaceSelector(L, 2, "workspace", "HLMonitor.set_workspace");
 
-    if (id.empty())
+    if (selector.empty())
         return 0;
 
-    const auto& [resolvedID, name, _] = getWorkspaceIDNameFromString(id);
-    auto        ws                    = State::workspaceState()->query().id(resolvedID).run();
+    const auto& [id, name, _] = getWorkspaceIDNameFromString(selector);
+    if (id == WORKSPACE_INVALID || State::workspaceState()->isSpecial(id))
+        return 0;
+
+    auto ws = State::workspaceState()->query().id(id).run();
     if (!ws)
-        ws = State::workspaceState()->create(resolvedID, (*ref)->m_id, name);
+        ws = State::workspaceState()->create(id, (*ref)->m_id, name);
 
     State::workspacePlacementController()->moveWorkspaceToMonitor(ws, ref->lock(), true, false);
     (*ref)->changeWorkspace(ws, false, true, Desktop::focusState()->monitor() != *ref);
@@ -55,18 +58,21 @@ static int monitorSetWorkspace(lua_State* L) {
 }
 
 static int monitorSetSpecialWorkspace(lua_State* L) {
-    auto*      ref = sc<PHLMONITORREF*>(luaL_checkudata(L, 1, MT));
-    const auto id  = Internal::tableOptWorkspaceSelector(L, 2, "workspace", "HLMonitor.set_special_workspace");
+    auto*      ref      = sc<PHLMONITORREF*>(luaL_checkudata(L, 1, MT));
+    const auto selector = Internal::workspaceSelectorFromLuaSelectorOrObject(L, 2, "HLMonitor.set_special_workspace");
 
-    if (!id) {
+    if (!selector) {
         (*ref)->setSpecialWorkspace(WORKSPACE_INVALID, true);
         return 0;
     }
 
-    const auto& [resolvedID, name, _] = getWorkspaceIDNameFromString(*id);
-    auto        ws                    = State::workspaceState()->query().id(resolvedID).run();
+    const auto& [id, name, _] = getWorkspaceIDNameFromString(*selector);
+    if (id == WORKSPACE_INVALID || !State::workspaceState()->isSpecial(id))
+        return 0;
+
+    auto ws = State::workspaceState()->query().id(id).run();
     if (!ws)
-        ws = State::workspaceState()->create(resolvedID, (*ref)->m_id, name);
+        ws = State::workspaceState()->create(id, (*ref)->m_id, name);
 
     (*ref)->setSpecialWorkspace(ws->m_id, true);
 

@@ -3,11 +3,9 @@
 #include "core/Compositor.hpp"
 #include "../desktop/state/ViewState.hpp"
 #include "../desktop/state/ViewQuery.hpp"
-#include "../desktop/view/Window.hpp"
 #include "../ipc/s2/S2.hpp"
 #include "../event/EventBus.hpp"
 #include <format>
-#include <string>
 
 CXDGSystemBellManagerResource::CXDGSystemBellManagerResource(UP<CXdgSystemBellV1>&& resource) : m_resource(std::move(resource)) {
     if UNLIKELY (!good())
@@ -20,7 +18,7 @@ CXDGSystemBellManagerResource::CXDGSystemBellManagerResource(UP<CXdgSystemBellV1
         const auto WINDOW  = Desktop::viewState()->query().surface(CWLSurfaceResource::fromResource(surface)).type(Desktop::View::VIEW_TYPE_WINDOW).runWindow();
         const auto ADDRESS = WINDOW ? std::format("{:x}", rc<uintptr_t>(WINDOW.get())) : "";
 
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "bell", .data = ADDRESS});
+        IPC::Socket2::sock()->postEvent({.event = "bell", .data = ADDRESS});
         Event::bus()->m_events.window.bell.emit(WINDOW);
 
         CBellSound::play();

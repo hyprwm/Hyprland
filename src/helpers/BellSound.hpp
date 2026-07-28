@@ -12,8 +12,6 @@ class CBellSound {
     ~CBellSound();
 
     void         onNewConfig();
-
-    int          validateCustomSound();
     void         initializeSoundContext();
 
     bool         m_muted   = false;

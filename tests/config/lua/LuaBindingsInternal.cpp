@@ -158,12 +158,16 @@ TEST(ConfigLuaBindingsInternal, parseDirectionAliases) {
 }
 
 TEST(ConfigLuaBindingsInternal, parseToggleAliases) {
-    EXPECT_EQ(Internal::parseToggleStr(""), Config::Actions::TOGGLE_ACTION_TOGGLE);
-    EXPECT_EQ(Internal::parseToggleStr("toggle"), Config::Actions::TOGGLE_ACTION_TOGGLE);
-    EXPECT_EQ(Internal::parseToggleStr("enable"), Config::Actions::TOGGLE_ACTION_ENABLE);
-    EXPECT_EQ(Internal::parseToggleStr("on"), Config::Actions::TOGGLE_ACTION_ENABLE);
-    EXPECT_EQ(Internal::parseToggleStr("disable"), Config::Actions::TOGGLE_ACTION_DISABLE);
-    EXPECT_EQ(Internal::parseToggleStr("off"), Config::Actions::TOGGLE_ACTION_DISABLE);
+    EXPECT_EQ(Internal::parseToggleStr("").value(), Config::Actions::TOGGLE_ACTION_TOGGLE);
+    EXPECT_EQ(Internal::parseToggleStr("toggle").value(), Config::Actions::TOGGLE_ACTION_TOGGLE);
+    EXPECT_EQ(Internal::parseToggleStr("enable").value(), Config::Actions::TOGGLE_ACTION_ENABLE);
+    EXPECT_EQ(Internal::parseToggleStr("on").value(), Config::Actions::TOGGLE_ACTION_ENABLE);
+    EXPECT_EQ(Internal::parseToggleStr("disable").value(), Config::Actions::TOGGLE_ACTION_DISABLE);
+    EXPECT_EQ(Internal::parseToggleStr("off").value(), Config::Actions::TOGGLE_ACTION_DISABLE);
+
+    const auto invalid = Internal::parseToggleStr("enabel");
+    ASSERT_FALSE(invalid);
+    EXPECT_EQ(invalid.error(), "invalid toggle action \"enabel\" (expected toggle/on/off/enable/disable)");
 }
 
 TEST(ConfigLuaBindingsInternal, argStrConvertsStringsAndNumbers) {

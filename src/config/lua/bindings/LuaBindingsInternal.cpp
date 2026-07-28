@@ -312,14 +312,14 @@ Math::eDirection Internal::parseDirectionStr(const std::string& str) {
     return Math::DIRECTION_DEFAULT;
 }
 
-CA::eTogglableAction Internal::parseToggleStr(const std::string& str) {
+Internal::ToggleActionResult Internal::parseToggleStr(const std::string& str) {
     if (str.empty() || str == "toggle")
         return CA::TOGGLE_ACTION_TOGGLE;
     if (str == "enable" || str == "on")
         return CA::TOGGLE_ACTION_ENABLE;
     if (str == "disable" || str == "off")
         return CA::TOGGLE_ACTION_DISABLE;
-    return CA::TOGGLE_ACTION_TOGGLE;
+    return std::unexpected(std::format("invalid toggle action \"{}\" (expected toggle/on/off/enable/disable)", str));
 }
 
 std::optional<PHLWINDOW> Internal::windowFromUpval(lua_State* L, int idx) {
@@ -454,9 +454,27 @@ CA::eTogglableAction Internal::tableToggleAction(lua_State* L, int idx, const ch
     if (!lua_istable(L, idx))
         return CA::TOGGLE_ACTION_TOGGLE;
 
-    if (const auto action = tableOptStr(L, idx, field); action.has_value())
-        return parseToggleStr(*action);
+    idx = lua_absindex(L, idx);
+    lua_getfield(L, idx, field);
+    if (lua_isnil(L, -1)) {
+        lua_pop(L, 1);
+        return CA::TOGGLE_ACTION_TOGGLE;
+    }
 
+    if (lua_type(L, -1) != LUA_TSTRING) {
+        lua_pop(L, 1);
+        configError(L, std::format("toggle action '{}' must be a string", field));
+        return CA::TOGGLE_ACTION_TOGGLE;
+    }
+
+    const std::string action = lua_tostring(L, -1);
+    lua_pop(L, 1);
+
+    const auto parsed = parseToggleStr(action);
+    if (parsed)
+        return *parsed;
+
+    configError(L, parsed.error());
     return CA::TOGGLE_ACTION_TOGGLE;
 }
 

@@ -20,6 +20,7 @@
 #include "../../../managers/KeybindManager.hpp"
 #include "../../shared/actions/ConfigActions.hpp"
 
+#include <expected>
 #include <functional>
 #include <optional>
 #include <format>
@@ -37,6 +38,8 @@ namespace Desktop::Rule {
 }
 
 namespace Config::Lua::Bindings::Internal {
+
+    using ToggleActionResult = std::expected<Config::Actions::eTogglableAction, std::string>;
 
     struct SWindowRuleEffectDesc {
         const char* name;
@@ -132,7 +135,7 @@ namespace Config::Lua::Bindings::Internal {
     std::string                                        requireTableFieldWindowSelector(lua_State* L, int idx, const char* field, const char* fnName);
 
     Math::eDirection                                   parseDirectionStr(const std::string& str);
-    Config::Actions::eTogglableAction                  parseToggleStr(const std::string& str);
+    ToggleActionResult                                 parseToggleStr(const std::string& str);
 
     std::optional<PHLWINDOW>                           windowFromUpval(lua_State* L, int idx);
     void                                               pushWindowUpval(lua_State* L, int tableIdx);

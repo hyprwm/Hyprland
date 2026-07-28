@@ -638,23 +638,23 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     return buf;
 }
 
-void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::steady_tp& now, CRegion& damage, std::optional<Vector2D> overridePos, bool forceRender,
-                                               bool actuallyForceRender) {
+void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::steady_tp& now, CRegion& damage, std::optional<Vector2D> overridePos, bool screencopy,
+                                               bool forceRender) {
     if (!hasCursor())
         return;
 
     auto state = stateFor(pMonitor);
 
-    if (!state->hardwareFailed && state->softwareLocks == 0 && !forceRender) {
+    if (!state->hardwareFailed && state->softwareLocks == 0 && !screencopy) {
         if (m_currentCursorImage.surface)
             m_currentCursorImage.surface->resource()->frame(now);
         return;
     }
 
-    // don't render cursor if forced but we are already using sw cursors for the monitor
+    // don't render cursor on screencopy if using sw cursors
     // otherwise we draw the cursor again for screencopy when using sw cursors
     // unless this is toplevel capture and we *actually* have to force render cursors
-    if (forceRender && !actuallyForceRender && (state->hardwareFailed || state->softwareLocks != 0))
+    if (screencopy && !forceRender && (state->hardwareFailed || state->softwareLocks != 0))
         return;
 
     auto box = state->box.copy();
@@ -685,7 +685,7 @@ void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::
     g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 
     // to erase the leftover in updateCursorBackend()
-    if (!forceRender) {
+    if (!screencopy) {
         state->swRendered    = true;
         state->swRenderedBox = logicalBox;
     }

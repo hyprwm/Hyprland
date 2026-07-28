@@ -24,7 +24,7 @@
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/core/DataDevice.hpp"
 #include "../render/Renderer.hpp"
-#include "../managers/EventManager.hpp"
+#include "../ipc/s2/S2.hpp"
 #include "../managers/screenshare/ScreenshareManager.hpp"
 #include "../animation/AnimationManager.hpp"
 #include "../animation/WorkspaceAnimationController.hpp"
@@ -385,8 +385,8 @@ void CMonitor::onConnect(bool noRule) {
 
     m_events.connect.emit();
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"monitoradded", m_name});
-    g_pEventManager->postEvent(SHyprIPCEvent{"monitoraddedv2", std::format("{},{},{}", m_id, m_name, m_shortDescription)});
+    IPC::Socket2::sock()->postEvent({"monitoradded", m_name});
+    IPC::Socket2::sock()->postEvent({"monitoraddedv2", std::format("{},{},{}", m_id, m_name, m_shortDescription)});
     Event::bus()->m_events.monitor.added.emit(m_self.lock());
 }
 
@@ -395,8 +395,8 @@ void CMonitor::onDisconnect(bool destroy) {
     CScopeGuard x = {[this]() {
         if (g_pCompositor->m_isShuttingDown)
             return;
-        g_pEventManager->postEvent(SHyprIPCEvent{"monitorremoved", m_name});
-        g_pEventManager->postEvent(SHyprIPCEvent{"monitorremovedv2", std::format("{},{},{}", m_id, m_name, m_shortDescription)});
+        IPC::Socket2::sock()->postEvent({"monitorremoved", m_name});
+        IPC::Socket2::sock()->postEvent({"monitorremovedv2", std::format("{},{},{}", m_id, m_name, m_shortDescription)});
         Event::bus()->m_events.monitor.removed.emit(m_self.lock());
         State::monitorLayoutController()->scheduleRecheck();
     }};
@@ -1503,8 +1503,8 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
 
         g_layoutManager->recalculateMonitor(m_self.lock(), Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_WORKSPACE_CHANGE);
 
-        g_pEventManager->postEvent(SHyprIPCEvent{"workspace", pWorkspace->m_name});
-        g_pEventManager->postEvent(SHyprIPCEvent{"workspacev2", std::format("{},{}", pWorkspace->m_id, pWorkspace->m_name)});
+        IPC::Socket2::sock()->postEvent({"workspace", pWorkspace->m_name});
+        IPC::Socket2::sock()->postEvent({"workspacev2", std::format("{},{}", pWorkspace->m_id, pWorkspace->m_name)});
         Event::bus()->m_events.workspace.active.emit(pWorkspace);
     }
 
@@ -1565,8 +1565,8 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         if (m_activeSpecialWorkspace) {
             m_activeSpecialWorkspace->m_visible = false;
             Animation::Workspace::startAnimation(m_activeSpecialWorkspace, Animation::Workspace::ANIMATION_TYPE_OUT, false);
-            g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + m_name});
-            g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", ",," + m_name});
+            IPC::Socket2::sock()->postEvent({"activespecial", "," + m_name});
+            IPC::Socket2::sock()->postEvent({"activespecialv2", ",," + m_name});
 
             // Reset layer surface state when closing special workspace
             for (auto const& ls : Desktop::layerState()->layers()) {
@@ -1614,8 +1614,8 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         PMONITOR->m_activeSpecialWorkspace.reset();
         g_layoutManager->recalculateMonitor(PMONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE);
         g_pHyprRenderer->damageMonitor(PMONITOR);
-        g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + PMONITOR->m_name});
-        g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", ",," + PMONITOR->m_name});
+        IPC::Socket2::sock()->postEvent({"activespecial", "," + PMONITOR->m_name});
+        IPC::Socket2::sock()->postEvent({"activespecialv2", ",," + PMONITOR->m_name});
 
         // Reset layer surfaces on the old monitor when special workspace is stolen
         for (auto const& ls : Desktop::layerState()->layers()) {
@@ -1686,8 +1686,8 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
             g_pInputManager->refocus();
     }
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", pWorkspace->m_name + "," + m_name});
-    g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", std::to_string(pWorkspace->m_id) + "," + pWorkspace->m_name + "," + m_name});
+    IPC::Socket2::sock()->postEvent({"activespecial", pWorkspace->m_name + "," + m_name});
+    IPC::Socket2::sock()->postEvent({"activespecialv2", std::to_string(pWorkspace->m_id) + "," + pWorkspace->m_name + "," + m_name});
 
     g_pHyprRenderer->damageMonitor(m_self.lock());
 

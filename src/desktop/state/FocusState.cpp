@@ -3,7 +3,7 @@
 #include "../../Compositor.hpp"
 #include "../../protocols/XDGShell.hpp"
 #include "../../render/Renderer.hpp"
-#include "../../managers/EventManager.hpp"
+#include "../../ipc/s2/S2.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../managers/SeatManager.hpp"
 #include "../../xwayland/XSurface.hpp"
@@ -136,8 +136,8 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLS
 
         g_pSeatManager->setKeyboardFocus(nullptr);
 
-        g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","});
-        g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ""});
+        IPC::Socket2::sock()->postEvent({"activewindow", ","});
+        IPC::Socket2::sock()->postEvent({"activewindowv2", ""});
 
         Event::bus()->m_events.window.active.emit(nullptr, reason);
 
@@ -206,8 +206,8 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLS
         pWindow->m_isUrgent = false;
 
     // Send an event
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindow", .data = pWindow->m_class + "," + pWindow->m_title});
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindowv2", .data = std::format("{:x}", rc<uintptr_t>(pWindow.get()))});
+    IPC::Socket2::sock()->postEvent({.event = "activewindow", .data = pWindow->m_class + "," + pWindow->m_title});
+    IPC::Socket2::sock()->postEvent({.event = "activewindowv2", .data = std::format("{:x}", rc<uintptr_t>(pWindow.get()))});
 
     Event::bus()->m_events.window.active.emit(pWindow, reason);
 
@@ -240,8 +240,8 @@ void CFocusState::rawSurfaceFocus(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWi
 
     if (!pSurface) {
         g_pSeatManager->setKeyboardFocus(nullptr);
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindow", .data = ","});
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindowv2", .data = ""});
+        IPC::Socket2::sock()->postEvent({.event = "activewindow", .data = ","});
+        IPC::Socket2::sock()->postEvent({.event = "activewindowv2", .data = ""});
         Event::bus()->m_events.input.keyboard.focus.emit(nullptr);
         m_focusSurface.reset();
         return;
@@ -284,8 +284,8 @@ void CFocusState::rawMonitorFocus(PHLMONITOR pMonitor) {
     const auto WORKSPACE_ID   = PWORKSPACE ? std::to_string(PWORKSPACE->m_id) : std::to_string(WORKSPACE_INVALID);
     const auto WORKSPACE_NAME = PWORKSPACE ? PWORKSPACE->m_name : "?";
 
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "focusedmon", .data = pMonitor->m_name + "," + WORKSPACE_NAME});
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "focusedmonv2", .data = pMonitor->m_name + "," + WORKSPACE_ID});
+    IPC::Socket2::sock()->postEvent({.event = "focusedmon", .data = pMonitor->m_name + "," + WORKSPACE_NAME});
+    IPC::Socket2::sock()->postEvent({.event = "focusedmonv2", .data = pMonitor->m_name + "," + WORKSPACE_ID});
 
     Event::bus()->m_events.monitor.focused.emit(pMonitor);
     m_focusMonitor = pMonitor;

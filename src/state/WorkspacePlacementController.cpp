@@ -16,7 +16,7 @@
 #include "../layout/target/Target.hpp"
 #include "../layout/LayoutManager.hpp"
 #include "../layout/space/Space.hpp"
-#include "../managers/EventManager.hpp"
+#include "../ipc/s2/S2.hpp"
 #include "../managers/fullscreen/FullscreenController.hpp"
 #include "../pointer/PointerManager.hpp"
 #include "../event/EventBus.hpp"
@@ -221,16 +221,16 @@ void CWorkspacePlacementController::swapActiveWorkspaces(PHLMONITOR pMonitorA, P
             Desktop::FOCUS_REASON_DESKTOP_STATE_CHANGE);
 
         const auto PNEWWORKSPACE = pMonitorA->m_id == Desktop::focusState()->monitor()->m_id ? PWORKSPACEB : PWORKSPACEA;
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "workspace", .data = PNEWWORKSPACE->m_name});
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "workspacev2", .data = std::format("{},{}", PNEWWORKSPACE->m_id, PNEWWORKSPACE->m_name)});
+        IPC::Socket2::sock()->postEvent({.event = "workspace", .data = PNEWWORKSPACE->m_name});
+        IPC::Socket2::sock()->postEvent({.event = "workspacev2", .data = std::format("{},{}", PNEWWORKSPACE->m_id, PNEWWORKSPACE->m_name)});
         Event::bus()->m_events.workspace.active.emit(PNEWWORKSPACE);
     }
 
     // events
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspace", .data = PWORKSPACEA->m_name + "," + pMonitorB->m_name});
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspacev2", .data = std::format("{},{},{}", PWORKSPACEA->m_id, PWORKSPACEA->m_name, pMonitorB->m_name)});
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspace", .data = PWORKSPACEB->m_name + "," + pMonitorA->m_name});
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspacev2", .data = std::format("{},{},{}", PWORKSPACEB->m_id, PWORKSPACEB->m_name, pMonitorA->m_name)});
+    IPC::Socket2::sock()->postEvent({.event = "moveworkspace", .data = PWORKSPACEA->m_name + "," + pMonitorB->m_name});
+    IPC::Socket2::sock()->postEvent({.event = "moveworkspacev2", .data = std::format("{},{},{}", PWORKSPACEA->m_id, PWORKSPACEA->m_name, pMonitorB->m_name)});
+    IPC::Socket2::sock()->postEvent({.event = "moveworkspace", .data = PWORKSPACEB->m_name + "," + pMonitorA->m_name});
+    IPC::Socket2::sock()->postEvent({.event = "moveworkspacev2", .data = std::format("{},{},{}", PWORKSPACEB->m_id, PWORKSPACEB->m_name, pMonitorA->m_name)});
 
     Event::bus()->m_events.workspace.moveToMonitor.emit(PWORKSPACEA, pMonitorB);
     Event::bus()->m_events.workspace.moveToMonitor.emit(PWORKSPACEB, pMonitorA);
@@ -373,8 +373,8 @@ void CWorkspacePlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspa
     Desktop::globalWindowController()->updateSuspendedStates();
 
     // event
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspace", .data = pWorkspace->m_name + "," + pMonitor->m_name});
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspacev2", .data = std::format("{},{},{}", pWorkspace->m_id, pWorkspace->m_name, pMonitor->m_name)});
+    IPC::Socket2::sock()->postEvent({.event = "moveworkspace", .data = pWorkspace->m_name + "," + pMonitor->m_name});
+    IPC::Socket2::sock()->postEvent({.event = "moveworkspacev2", .data = std::format("{},{},{}", pWorkspace->m_id, pWorkspace->m_name, pMonitor->m_name)});
 
     Event::bus()->m_events.workspace.moveToMonitor.emit(pWorkspace, pMonitor);
 }

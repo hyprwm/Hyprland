@@ -2,10 +2,10 @@
 
 #include <string>
 
-#include "../SharedDefs.hpp"
+#include "../ipc/s1/S1.hpp"
 
 namespace Helpers::SystemInfo {
     std::string getSystemInfo();
-    std::string getVersion(eHyprCtlOutputFormat fmt);
-    std::string getStatus(eHyprCtlOutputFormat fmt);
+    std::string getVersion(IPC::Socket1::eOutputFormat fmt);
+    std::string getStatus(IPC::Socket1::eOutputFormat fmt);
 };

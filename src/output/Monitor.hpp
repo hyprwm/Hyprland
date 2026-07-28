@@ -194,7 +194,7 @@ namespace Monitor {
 
         std::array<std::vector<PHLLSREF>, 4> m_layerSurfaceLayers;
 
-        // keep in sync with HyprCtl
+        // keep in sync with socket1 output
         enum eDSBlockReason : uint16_t {
             DS_OK = 0,
 
@@ -215,7 +215,7 @@ namespace Monitor {
             DS_CHECKS_COUNT = 14,
         };
 
-        // keep in sync with HyprCtl
+        // keep in sync with socket1 output
         enum eSolitaryCheck : uint32_t {
             SC_OK = 0,
 
@@ -241,7 +241,7 @@ namespace Monitor {
             SC_CHECKS_COUNT = 18,
         };
 
-        // keep in sync with HyprCtl
+        // keep in sync with socket1 output
         enum eTearingCheck : uint8_t {
             TC_OK = 0,
 

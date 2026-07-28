@@ -20,13 +20,14 @@ using namespace Helpers::SystemInfo;
 using namespace Helpers;
 using namespace Hyprutils::String;
 using namespace Render::GL;
+using namespace IPC::Socket1;
 
 static void trimTrailingComma(std::string& str) {
     if (!str.empty() && str.back() == ',')
         str.pop_back();
 }
 
-std::string SystemInfo::getStatus(eHyprCtlOutputFormat fmt) {
+std::string SystemInfo::getStatus(eOutputFormat fmt) {
     Aquamarine::eBackendType backendType = Aquamarine::eBackendType::AQ_BACKEND_NULL;
 
     for (const auto& i : g_pCompositor->m_aqBackend->getImplementations()) {
@@ -45,7 +46,7 @@ std::string SystemInfo::getStatus(eHyprCtlOutputFormat fmt) {
         default: backendStr = "error"; break;
     }
 
-    if (fmt == eHyprCtlOutputFormat::FORMAT_JSON) {
+    if (fmt == IPC::Socket1::FORMAT_JSON) {
 
         return std::format(R"#(
 {{
@@ -63,12 +64,12 @@ backend: {}
                        Config::typeToString(Config::mgr()->type()), backendStr);
 }
 
-std::string SystemInfo::getVersion(eHyprCtlOutputFormat fmt) {
+std::string SystemInfo::getVersion(eOutputFormat fmt) {
 
     auto commitMsg = trim(GIT_COMMIT_MESSAGE);
     std::ranges::replace(commitMsg, '#', ' ');
 
-    if (fmt == eHyprCtlOutputFormat::FORMAT_NORMAL) {
+    if (fmt == IPC::Socket1::FORMAT_NORMAL) {
         std::string result = std::format("Hyprland {} built from branch {} at commit {} {} ({}).\n"
                                          "Date: {}\n"
                                          "Tag: {}, commits: {}\n",
@@ -145,7 +146,7 @@ std::string SystemInfo::getVersion(eHyprCtlOutputFormat fmt) {
 }
 
 std::string SystemInfo::getSystemInfo() {
-    std::string result = getVersion(eHyprCtlOutputFormat::FORMAT_NORMAL);
+    std::string result = getVersion(IPC::Socket1::FORMAT_NORMAL);
 
     static auto check   = [](bool y) -> std::string { return y ? "✔️" : "❌"; };
     static auto backend = [](Aquamarine::eBackendType t) -> std::string {
@@ -250,7 +251,7 @@ std::string SystemInfo::getSystemInfo() {
     }
 
     result += "\n\nState:\n";
-    result += getStatus(FORMAT_NORMAL);
+    result += getStatus(IPC::Socket1::FORMAT_NORMAL);
 
     result += "\n\n";
 

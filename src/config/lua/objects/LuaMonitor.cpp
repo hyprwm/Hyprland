@@ -43,7 +43,7 @@ static int monitorSetWorkspace(lua_State* L) {
     if (!selector)
         return 0;
 
-    const auto& [id, name, _] = getWorkspaceIDNameFromString(*selector);
+    const auto& [id, name, _] = getWorkspaceIDNameFromString(*selector, ref->lock());
     if (id == WORKSPACE_INVALID || State::workspaceState()->isSpecial(id))
         return 0;
 
@@ -70,7 +70,7 @@ static int monitorSetSpecialWorkspace(lua_State* L) {
         return 0;
     }
 
-    const auto& [id, name, _] = getWorkspaceIDNameFromString(*selector);
+    const auto& [id, name, _] = getWorkspaceIDNameFromString(*selector, ref->lock());
     if (id == WORKSPACE_INVALID || !State::workspaceState()->isSpecial(id))
         return 0;
 

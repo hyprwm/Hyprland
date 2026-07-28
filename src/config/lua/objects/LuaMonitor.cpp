@@ -38,12 +38,12 @@ static int monitorToString(lua_State* L) {
 
 static int monitorSetWorkspace(lua_State* L) {
     auto*      ref      = sc<PHLMONITORREF*>(luaL_checkudata(L, 1, MT));
-    const auto selector = Internal::requireTableFieldWorkspaceSelector(L, 2, "workspace", "HLMonitor.set_workspace");
+    const auto selector = Internal::workspaceSelectorFromLuaSelectorOrObject(L, 2, "HLMonitor.set_workspace");
 
-    if (selector.empty())
+    if (!selector)
         return 0;
 
-    const auto& [id, name, _] = getWorkspaceIDNameFromString(selector);
+    const auto& [id, name, _] = getWorkspaceIDNameFromString(*selector);
     if (id == WORKSPACE_INVALID || State::workspaceState()->isSpecial(id))
         return 0;
 
@@ -58,8 +58,12 @@ static int monitorSetWorkspace(lua_State* L) {
 }
 
 static int monitorSetSpecialWorkspace(lua_State* L) {
-    auto*      ref      = sc<PHLMONITORREF*>(luaL_checkudata(L, 1, MT));
-    const auto selector = Internal::workspaceSelectorFromLuaSelectorOrObject(L, 2, "HLMonitor.set_special_workspace");
+    auto*                      ref = sc<PHLMONITORREF*>(luaL_checkudata(L, 1, MT));
+    std::optional<std::string> selector;
+    if (lua_isstring(L, 2) || lua_isnumber(L, 2))
+        selector = std::format("special:{}", Internal::argStr(L, 2));
+    else
+        selector = Internal::workspaceSelectorFromLuaSelectorOrObject(L, 2, "HLMonitor.set_special_workspace");
 
     if (!selector) {
         (*ref)->setSpecialWorkspace(WORKSPACE_INVALID, true);

@@ -13,6 +13,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check out template
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github/vouch_pr_message.md
+          sparse-checkout-cone-mode: false
+
       - name: Verify central Vouch list
         env:
           GH_TOKEN: ${{ github.token }}

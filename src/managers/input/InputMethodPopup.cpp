@@ -160,9 +160,19 @@ CBox CInputPopup::globalBox() {
 }
 
 bool CInputPopup::isVecInPopup(const Vector2D& point) {
-    return globalBox().containsPoint(point);
+    return m_popup->m_mapped && globalBox().containsPoint(point);
 }
 
 SP<CWLSurfaceResource> CInputPopup::getSurface() {
     return m_surface->resource();
+}
+
+bool CInputPopup::shouldBeRendered() {
+    const auto OWNER = queryOwner();
+
+    if (!OWNER)
+        return false;
+
+    const auto KB_FOCUS = g_pSeatManager->m_state.keyboardFocus;
+    return KB_FOCUS && KB_FOCUS == OWNER->resource();
 }

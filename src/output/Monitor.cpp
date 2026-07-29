@@ -2673,14 +2673,10 @@ bool CMonitorState::commit(bool updateSwapChain) {
             return false;
     }
 
-    if (m_owner->m_output->pendingPageFlip()) {
-        // cant commit this, this will early return in AQ anyways. next renderMonitor or frame will pick it up.
-        return false;
-    }
-
     Event::bus()->m_events.monitor.preCommit.emit(m_owner->m_self.lock());
 
-    if (updateSwapChain)
+    // a modeset needs a buffer matching the new mode
+    if (updateSwapChain || m_owner->m_output->state->needsReconfig())
         ensureBufferPresent();
 
     bool ret = m_owner->m_output->commit();

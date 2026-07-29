@@ -10,6 +10,7 @@
 #include <vector>
 #include <utility>
 #include "OpenGL.hpp"
+#include "blur/Provider.hpp"
 #include "./SyncFDManager.hpp"
 #include "./pass/Pass.hpp"
 #include "./pass/BorderPassElement.hpp"
@@ -187,33 +188,38 @@ namespace Render {
         virtual void                    disableScissor()                                                                                                         = 0;
         virtual void                    blend(bool enabled)                                                                                                      = 0;
         virtual void                    drawShadow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a) = 0;
-        virtual void drawShadow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2,
-                                float lerp, float a)                                                                                                             = 0;
-        virtual void drawGlow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a)                      = 0;
-        virtual void drawGlow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2,
-                              float lerp, float a)                                                                                                               = 0;
-        virtual void setViewport(int x, int y, int width, int height)                                                                                            = 0;
+        virtual void     drawShadow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2,
+                                    float lerp, float a)                                                                                                         = 0;
+        virtual void     drawGlow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a)                  = 0;
+        virtual void     drawGlow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2,
+                                  float lerp, float a)                                                                                                           = 0;
+        virtual void     setViewport(int x, int y, int width, int height)                                                                                        = 0;
 
-        bool         preBlurQueued(PHLMONITORREF pMonitor);
-        void         pushMonitorTransformEnabled(bool enabled);
-        void         popMonitorTransformEnabled();
-        bool         monitorTransformEnabled();
-        void         sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now);
+        bool             preBlurQueued(PHLMONITORREF pMonitor);
+        void             pushMonitorTransformEnabled(bool enabled);
+        void             popMonitorTransformEnabled();
+        bool             monitorTransformEnabled();
+        void             sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now);
 
-        void         setProjectionType(const Vector2D& fbSize);
-        void         setProjectionType(eRenderProjectionType projectionType);
-        Mat3x3       getBoxProjection(const CBox& box, std::optional<eTransform> transform = std::nullopt);
-        Mat3x3       projectBoxToTarget(const CBox& box, std::optional<eTransform> transform = std::nullopt);
+        void             setProjectionType(const Vector2D& fbSize);
+        void             setProjectionType(eRenderProjectionType projectionType);
+        Mat3x3           getBoxProjection(const CBox& box, std::optional<eTransform> transform = std::nullopt);
+        Mat3x3           projectBoxToTarget(const CBox& box, std::optional<eTransform> transform = std::nullopt);
 
-        SP<ITexture> blurMainFramebuffer(float a, CRegion* originalDamage);
-        virtual SP<ITexture> blurFramebuffer(SP<IFramebuffer> source, float a, CRegion* originalDamage) = 0;
-        void                 preBlurForCurrentMonitor(CRegion* fakeDamage);
+        SP<IFramebuffer> blurMainFramebuffer(float strength, const CRegion& originalDamage, const Render::SBlurContext& context = {});
+        virtual SP<IFramebuffer> blurFramebuffer(SP<IFramebuffer> source, float strength, const CRegion& originalDamage, const Render::SBlurContext& context = {}) = 0;
+        virtual void             refreshBlurProvider()                                                                                                             = 0;
+        virtual void             expandBlurDamage(CRegion& damage, float multiplier = 1.F) const                                                                   = 0;
+        virtual bool             blurProviderIsAnimated() const                                                                                                    = 0;
+        virtual bool             blurProviderRequiresLiveBlur() const                                                                                              = 0;
+        void                     scheduleFrameForAnimatedBlur(const CRegion& damage, bool usesPrecomputedBlur);
+        void                     preBlurForCurrentMonitor(const CRegion& fakeDamage);
 
-        SCMSettings          getCMSettings(const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
-                                           SP<CWLSurfaceResource> surface = nullptr, bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1,
-                                           bool shouldUseSurface = false);
-        void                 clearCMSettingsCache();
-        virtual bool         reloadShaders(const std::string& path = "") = 0;
+        SCMSettings              getCMSettings(const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
+                                               SP<CWLSurfaceResource> surface = nullptr, bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1,
+                                               bool shouldUseSurface = false);
+        void                     clearCMSettingsCache();
+        virtual bool             reloadShaders(const std::string& path = "") = 0;
 
       protected:
         virtual void              renderOffToMain(SP<IFramebuffer> off)                                         = 0;

@@ -52,6 +52,7 @@ namespace Config {
 }
 
 namespace Render::GL {
+    class CDualKawaseBlurProvider;
 
     CBox resolveBlurUV(const CBox& destinationBox, const Vector2D& textureSize, const std::optional<CBox>& sourceBox = std::nullopt);
 
@@ -153,12 +154,14 @@ namespace Render::GL {
         ~CHyprOpenGLImpl();
 
         struct SRectRenderData {
-            const CRegion* damage        = nullptr;
-            int            round         = 0;
-            float          roundingPower = 2.F;
-            bool           blur          = false;
-            float          blurA         = 1.F;
-            bool           xray          = false;
+            const CRegion*      damage        = nullptr;
+            int                 round         = 0;
+            float               roundingPower = 2.F;
+            bool                blur          = false;
+            float               blurA         = 1.F;
+            bool                xray          = false;
+            std::optional<CBox> blurPatternBox;
+            PHLWINDOWREF        blurOwner;
         };
 
         struct STextureRenderData {
@@ -232,8 +235,6 @@ namespace Render::GL {
         void scissor(const int x, const int y, const int w, const int h, bool transform = true);
 
         void destroyMonitorResources(PHLMONITORREF);
-
-        void preRender(PHLMONITOR);
 
         bool saveBufferForMirror(const CBox&);
 
@@ -348,22 +349,19 @@ namespace Render::GL {
         //
         std::optional<std::vector<uint64_t>> getModsForFormat(EGLint format);
 
-        // returns the out FB, can be either Mirror or MirrorSwap
-        SP<IFramebuffer> blurFramebufferWithDamage(float a, CRegion* damage, CGLFramebuffer& source);
-
-        void             passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
-                                        bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance, const SCMSettings& settings);
-        void             passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
-                                        bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
-        void             passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription);
-        void             passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription, const SCMSettings& settings);
-        void             renderRectInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
-        void             renderRectWithBlurInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
-        void             renderRectWithDamageInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
-        WP<CShader>      renderToOutputInternal();
-        WP<CShader>      renderToFBInternal(SP<ITexture> tex, const STextureRenderData& data, eTextureType texType, const CBox& newBox);
-        void             renderTextureInternal(SP<ITexture>, const CBox&, const STextureRenderData& data);
-        void             renderTextureWithBlurInternal(SP<ITexture>, const CBox&, const STextureRenderData& data);
+        void        passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
+                                   bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance, const SCMSettings& settings);
+        void        passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
+                                   bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
+        void        passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription);
+        void        passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription, const SCMSettings& settings);
+        void        renderRectInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
+        void        renderRectWithBlurInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
+        void        renderRectWithDamageInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
+        WP<CShader> renderToOutputInternal();
+        WP<CShader> renderToFBInternal(SP<ITexture> tex, const STextureRenderData& data, eTextureType texType, const CBox& newBox);
+        void        renderTextureInternal(SP<ITexture>, const CBox&, const STextureRenderData& data);
+        void        renderTextureWithBlurInternal(SP<ITexture>, const CBox&, const STextureRenderData& data);
 
         friend class IHyprRenderer;
         friend class CHyprGLRenderer;
@@ -371,6 +369,7 @@ namespace Render::GL {
         friend class CTexPassElement;
         friend class CPreBlurElement;
         friend class CSurfacePassElement;
+        friend class CDualKawaseBlurProvider;
     };
 
     inline UP<CHyprOpenGLImpl> g_pHyprOpenGL;

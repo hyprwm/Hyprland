@@ -317,7 +317,10 @@ void IElementRenderer::drawSurface(WP<CSurfacePassElement> element, const CRegio
     // is a subsurface that does NOT cover the entire frame. In such cases, we probably should fall back
     // to what we do for misaligned surfaces (blur the entire thing and then render shit without blur)
     if (m_data.surfaceCounter == 0 && !m_data.popup) {
-        if (BLUR)
+        if (BLUR) {
+            CBox blurPatternBox = {m_data.pos.x - m_data.pMonitor->m_position.x, m_data.pos.y - m_data.pMonitor->m_position.y, m_data.w, m_data.h};
+            blurPatternBox.scale(m_data.pMonitor->m_scale).round();
+
             drawElement(makeShared<CTexPassElement>(CTexPassElement::SRenderData{
                             .tex                   = TEXTURE,
                             .box                   = windowBox,
@@ -327,6 +330,7 @@ void IElementRenderer::drawSurface(WP<CSurfacePassElement> element, const CRegio
                             .round                 = rounding,
                             .roundingPower         = roundingPower,
                             .blur                  = true,
+                            .blurPatternBox        = blurPatternBox,
                             .blockBlurOptimization = m_data.blockBlurOptimization,
                             .allowCustomUV         = true,
                             .surface               = m_data.surface,
@@ -336,9 +340,10 @@ void IElementRenderer::drawSurface(WP<CSurfacePassElement> element, const CRegio
                             .discardOpacity        = m_data.discardOpacity,
                             .clipRegion            = clipRegion,
                             .currentLS             = m_data.pLS,
+                            .blurOwner             = m_data.pWindow,
                         }),
-                        surfaceDamage());
-        else
+                        surfaceDamage().intersect(windowBox));
+        } else
             drawElement(makeShared<CTexPassElement>(CTexPassElement::SRenderData{
                             .tex            = TEXTURE,
                             .box            = windowBox,
@@ -489,15 +494,18 @@ void IElementRenderer::drawTex(WP<CTexPassElement> element, const CRegion& damag
             inverseOpaque = {0, 0, element->m_data.box.width, element->m_data.box.height};
 
         inverseOpaque.scale(m_renderData.pMonitor->m_scale);
-        element->m_data.blockBlurOptimization = element->m_data.blockBlurOptimization.value_or(false) ||
-            !g_pHyprRenderer->shouldUseNewBlurOptimizations(element->m_data.currentLS.lock(), m_renderData.currentWindow.lock());
+        element->m_data.blockBlurOptimization = element->usesLiveBlur();
 
         //   vvv TODO: layered blur fbs?
+        SP<IFramebuffer> blurredFB;
         if (element->m_data.blockBlurOptimization.value_or(false)) {
             inverseOpaque.translate(box.pos());
             m_renderData.renderModif.applyToRegion(inverseOpaque);
             inverseOpaque.intersect(element->m_data.damage);
-            element->m_data.blurredBG = g_pHyprRenderer->blurMainFramebuffer(element->m_data.a, &inverseOpaque);
+            auto patternBox = element->m_data.blurPatternBox.value_or(box);
+            m_renderData.renderModif.applyToBox(patternBox);
+            blurredFB                 = g_pHyprRenderer->blurMainFramebuffer(element->m_data.a, inverseOpaque, {.patternBox = patternBox, .owner = element->m_data.blurOwner});
+            element->m_data.blurredBG = blurredFB->getTexture();
         } else
             element->m_data.blurredBG = m_renderData.pMonitor->resources()->m_blurFB->getTexture();
 
@@ -679,7 +687,9 @@ void IElementRenderer::drawTransformedWindow(WP<CTransformedWindowPassElement> e
     if (element->m_data.blur) {
         data.blur                  = true;
         data.forceBlurBlend        = true;
+        data.blurPatternBox        = element->m_data.currentBox.copy().scale(pMonitor->m_scale).round();
         data.blockBlurOptimization = true;
+        data.blurOwner             = element->m_data.window;
         data.blurA                 = element->m_data.blurA;
         data.blurAlphaMatte        = blurAlphaMatte;
         data.discardMode           = 0;

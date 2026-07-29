@@ -676,12 +676,14 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
             CBox wb = {renderdata.pos.x - pMonitor->m_position.x, renderdata.pos.y - pMonitor->m_position.y, renderdata.w, renderdata.h};
             wb.scale(pMonitor->m_scale).round();
             CRectPassElement::SRectData data;
-            data.color = CHyprColor(0, 0, 0, 0);
-            data.box   = wb;
-            data.round = renderdata.dontRound ? 0 : renderdata.rounding - 1;
-            data.blur  = true;
-            data.blurA = renderdata.fadeAlpha;
-            data.xray  = shouldUseNewBlurOptimizations(nullptr, pWindow);
+            data.color          = CHyprColor(0, 0, 0, 0);
+            data.box            = wb;
+            data.round          = renderdata.dontRound ? 0 : renderdata.rounding - 1;
+            data.blur           = true;
+            data.blurA          = renderdata.fadeAlpha;
+            data.xray           = shouldUseNewBlurOptimizations(nullptr, pWindow);
+            data.blurPatternBox = wb;
+            data.blurOwner      = pWindow;
             addPassElement(makeUnique<CRectPassElement>(data));
             renderdata.blur = false;
         }
@@ -885,7 +887,7 @@ bool IHyprRenderer::preBlurQueued(PHLMONITORREF pMonitor) {
 
     if (!pMonitor)
         return false;
-    return m_renderData.pMonitor->m_blurFBDirty && *PBLURNEWOPTIMIZE && *PBLUR && m_renderData.pMonitor->m_blurFBShouldRender;
+    return pMonitor->m_blurFBDirty && *PBLURNEWOPTIMIZE && *PBLUR && pMonitor->m_blurFBShouldRender;
 }
 
 void IHyprRenderer::pushMonitorTransformEnabled(bool enabled) {
@@ -1528,6 +1530,9 @@ bool IHyprRenderer::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindo
     if (!getBlurTexture(m_renderData.pMonitor))
         return false;
 
+    if (blurProviderRequiresLiveBlur())
+        return false;
+
     if (pWindow && pWindow->m_ruleApplicator->xray().hasValue() && !pWindow->m_ruleApplicator->xray().valueOrDefault())
         return false;
 
@@ -1845,19 +1850,31 @@ Mat3x3 IHyprRenderer::projectBoxToTarget(const CBox& box, std::optional<eTransfo
         .multiply(getBoxProjection(box, transform));
 }
 
-SP<ITexture> IHyprRenderer::blurMainFramebuffer(float a, CRegion* originalDamage) {
+SP<IFramebuffer> IHyprRenderer::blurMainFramebuffer(float strength, const CRegion& originalDamage, const SBlurContext& context) {
     if (!m_renderData.currentFB->getTexture()) {
         Log::logger->log(Log::ERR, "BUG THIS: null fb texture while attempting to blur main fb?! (introspection off?!)");
-        return m_renderData.pMonitor->resources()->m_blurFB->getTexture(); // return something to sample from at least
+        return m_renderData.pMonitor->resources()->m_blurFB; // return something to sample from at least
     }
 
     auto guard = bindTempFB(m_renderData.currentFB); // blurFramebuffer messes with FB bindings
-    return blurFramebuffer(m_renderData.currentFB, a, originalDamage);
+    return blurFramebuffer(m_renderData.currentFB, strength, originalDamage, context);
 }
 
-void IHyprRenderer::preBlurForCurrentMonitor(CRegion* fakeDamage) {
+void IHyprRenderer::scheduleFrameForAnimatedBlur(const CRegion& damage, bool usesPrecomputedBlur) {
+    const auto monitor = m_renderData.pMonitor;
+    if (m_renderMode != RENDER_MODE_NORMAL || !monitor || monitor->isMirror() || damage.empty())
+        return;
 
-    const auto blurredTex = blurMainFramebuffer(1, fakeDamage);
+    if (usesPrecomputedBlur)
+        monitor->m_blurFBDirty = true;
+
+    monitor->addDamage(damage);
+}
+
+void IHyprRenderer::preBlurForCurrentMonitor(const CRegion& fakeDamage) {
+
+    const auto blurredFB  = blurMainFramebuffer(1, fakeDamage);
+    const auto blurredTex = blurredFB->getTexture();
 
     // render onto blurFB
     auto       guard          = bindTempFB(m_renderData.pMonitor->resources()->m_blurFB);
@@ -1872,9 +1889,9 @@ void IHyprRenderer::preBlurForCurrentMonitor(CRegion* fakeDamage) {
         CTexPassElement::SRenderData{
             .tex    = blurredTex,
             .box    = CBox{0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y},
-            .damage = *fakeDamage,
+            .damage = fakeDamage,
         },
-        *fakeDamage); // .noAA = true
+        fakeDamage); // .noAA = true
 
     popMonitorTransformEnabled();
 

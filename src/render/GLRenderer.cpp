@@ -10,18 +10,25 @@
 #include "../protocols/core/DataDevice.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../debug/Overlay.hpp"
+#include "../desktop/state/WindowState.hpp"
+#include "../desktop/view/Window.hpp"
+#include "../event/EventBus.hpp"
 #include "../output/Monitor.hpp"
 #include "pass/TexPassElement.hpp"
 #include "pass/SurfacePassElement.hpp"
 #include "../debug/log/Logger.hpp"
 #include "../protocols/types/ContentType.hpp"
+#include "../state/MonitorState.hpp"
 #include "OpenGL.hpp"
 #include "Renderer.hpp"
 #include "./gl/GLElementRenderer.hpp"
 #include "./gl/GLFramebuffer.hpp"
 #include "./gl/GLTexture.hpp"
+#include "./gl/blur/Factory.hpp"
+#include "./gl/blur/Provider.hpp"
 
 #include <cstdint>
+#include <ranges>
 #include <hyprutils/memory/SharedPtr.hpp>
 #include <hyprutils/memory/UniquePtr.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -36,7 +43,12 @@ extern "C" {
 #include <xf86drm.h>
 }
 
-CHyprGLRenderer::CHyprGLRenderer() : IHyprRenderer(), m_elementRenderer(makeUnique<CGLElementRenderer>()) {}
+CHyprGLRenderer::CHyprGLRenderer() : IHyprRenderer(), m_elementRenderer(makeUnique<CGLElementRenderer>()) {
+    refreshBlurProvider();
+    m_preRenderListener = Event::bus()->m_events.render.pre.listen([this](PHLMONITOR monitor) { preRender(monitor); });
+}
+
+CHyprGLRenderer::~CHyprGLRenderer() = default;
 
 IHyprRenderer::eType CHyprGLRenderer::type() {
     return RT_GL;
@@ -308,9 +320,95 @@ void CHyprGLRenderer::drawGlow(const CBox& box, int round, float roundingPower, 
     g_pHyprOpenGL->renderInnerGlow(box, round, roundingPower, range, grad1, grad2, lerp, 0, a);
 }
 
-SP<ITexture> CHyprGLRenderer::blurFramebuffer(SP<IFramebuffer> source, float a, CRegion* originalDamage) {
-    auto src = GLFB(source);
-    return g_pHyprOpenGL->blurFramebufferWithDamage(a, originalDamage, *src)->getTexture();
+SP<IFramebuffer> CHyprGLRenderer::blurFramebuffer(SP<IFramebuffer> source, float strength, const CRegion& originalDamage, const SBlurContext& context) {
+    RASSERT(m_blur, "Cannot blur without a blur provider");
+    return m_blur->blur(source, strength, originalDamage, context);
+}
+
+void CHyprGLRenderer::refreshBlurProvider() {
+    static auto PBLURTYPE = CConfigValue<Config::INTEGER>("decoration:blur:variant");
+
+    const auto  type = sc<eBlurType>(*PBLURTYPE);
+    if (m_blur && m_blur->type() == type)
+        return;
+
+    m_blur = createBlurProvider(type, *g_pHyprOpenGL);
+}
+
+void CHyprGLRenderer::expandBlurDamage(CRegion& damage, float multiplier) const {
+    RASSERT(m_blur, "Cannot expand blur damage without a blur provider");
+    m_blur->expandDamage(damage, multiplier);
+}
+
+bool CHyprGLRenderer::blurProviderIsAnimated() const {
+    return m_blur && m_blur->isAnimated();
+}
+
+bool CHyprGLRenderer::blurProviderRequiresLiveBlur() const {
+    return m_blur && m_blur->requiresLiveBlur();
+}
+
+void CHyprGLRenderer::preRender(PHLMONITOR pMonitor) {
+    static auto PBLURNEWOPTIMIZE = CConfigValue<Config::INTEGER>("decoration:blur:new_optimizations");
+    static auto PBLURXRAY        = CConfigValue<Config::INTEGER>("decoration:blur:xray");
+    static auto PBLUR            = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
+
+    if (!*PBLURNEWOPTIMIZE || !pMonitor->m_blurFBDirty || !*PBLUR)
+        return;
+
+    if (!pMonitor->m_solitaryClient.expired())
+        return;
+
+    auto windowShouldBeBlurred = [](PHLWINDOW pWindow) -> bool {
+        if (!pWindow || pWindow->m_ruleApplicator->noBlur().valueOrDefault())
+            return false;
+
+        if (pWindow->wlSurface()->small() && !pWindow->wlSurface()->m_fillIgnoreSmall)
+            return true;
+
+        const auto  PSURFACE   = pWindow->wlSurface()->resource();
+        const auto  PWORKSPACE = pWindow->m_workspace;
+        const float A          = pWindow->alphaValue(Desktop::View::WINDOW_ALPHA_FADE) * pWindow->alphaValue(Desktop::View::WINDOW_ALPHA_FULLSCREEN) *
+            pWindow->alphaValue(Desktop::View::WINDOW_ALPHA_LAYOUT) * pWindow->alphaValue(Desktop::View::WINDOW_ALPHA_ACTIVE) * PWORKSPACE->m_alpha->value();
+
+        if (A < 1.F)
+            return true;
+
+        pixman_box32_t surfbox = {0, 0, PSURFACE->m_current.size.x, PSURFACE->m_current.size.y};
+        CRegion        inverseOpaque;
+        CRegion        opaqueRegion{PSURFACE->m_current.opaque};
+        inverseOpaque.set(opaqueRegion).invert(&surfbox).intersect(0, 0, PSURFACE->m_current.size.x, PSURFACE->m_current.size.y);
+        return !inverseOpaque.empty();
+    };
+
+    bool hasWindows = false;
+    for (const auto& w : Desktop::windowState()->windows()) {
+        if (w->m_workspace != pMonitor->m_activeWorkspace || !w->visible() || !w->m_isMapped || (w->m_isFloating && !*PBLURXRAY) || !windowShouldBeBlurred(w))
+            continue;
+
+        hasWindows = true;
+        break;
+    }
+
+    if (!hasWindows) {
+        for (const auto& m : State::monitorState()->monitors()) {
+            for (const auto& layer : m->m_layerSurfaceLayers) {
+                if (std::ranges::any_of(layer, [](const auto& ls) { return ls->m_layerSurface && ls->m_ruleApplicator->xray().valueOrDefault() == 1; })) {
+                    hasWindows = true;
+                    break;
+                }
+            }
+
+            if (hasWindows)
+                break;
+        }
+    }
+
+    if (!hasWindows)
+        return;
+
+    g_pHyprRenderer->damageMonitor(pMonitor);
+    pMonitor->m_blurFBShouldRender = true;
 }
 
 void CHyprGLRenderer::setViewport(int x, int y, int width, int height) {

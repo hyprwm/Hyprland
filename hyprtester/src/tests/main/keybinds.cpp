@@ -1,5 +1,6 @@
 #include <filesystem>
 #include <linux/input-event-codes.h>
+#include <format>
 #include <thread>
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
@@ -11,15 +12,15 @@ using namespace Hyprutils::Memory;
 static std::string flagFile = "/tmp/hyprtester-keybinds.txt";
 
 static std::string pluginKeybindCmd(bool pressed, uint32_t modifier, uint32_t key) {
-    return "/eval hl.plugin.test.keybind(" + std::to_string(pressed ? 1 : 0) + ", " + std::to_string(modifier) + ", " + std::to_string(key) + ")";
+    return std::format("/eval hl.plugin.test.keybind({}, {}, {})", pressed ? 1 : 0, modifier, key);
 }
 
 static std::string pluginScrollCmd(int delta) {
-    return "/eval hl.plugin.test.scroll(" + std::to_string(delta) + ")";
+    return std::format("/eval hl.plugin.test.scroll({})", delta);
 }
 
 static std::string pluginClickCmd(bool pressed, uint32_t button) {
-    return "/eval hl.plugin.test.click(" + std::to_string(button) + ", " + std::to_string(pressed ? 1 : 0) + ")";
+    return std::format("/eval hl.plugin.test.click({}, {})", button, pressed ? 1 : 0);
 }
 
 // Because i don't feel like changing someone elses code.
@@ -96,7 +97,7 @@ static CUniquePointer<CProcess> spawnRemoteControlKitty() {
 
 SUBTEST(bind) {
     EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'))"), "ok");
+    EXPECT(getFromSocket(std::format("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch {}'))", flagFile)), "ok");
     // press keybind
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
     // await flag
@@ -108,7 +109,7 @@ SUBTEST(bind) {
 
 SUBTEST(bindKey) {
     EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.bind('Y', hl.dsp.exec_cmd('touch " + flagFile + "'))"), "ok");
+    EXPECT(getFromSocket(std::format("/eval hl.bind('Y', hl.dsp.exec_cmd('touch {}'))", flagFile)), "ok");
     // press keybind
     OK(getFromSocket(pluginKeybindCmd(true, 0, 29)));
     // await flag
@@ -120,7 +121,7 @@ SUBTEST(bindKey) {
 
 SUBTEST(longPress) {
     EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { long_press = true })"), "ok");
+    EXPECT(getFromSocket(std::format("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch {}'), {{ long_press = true }})", flagFile)), "ok");
     EXPECT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
     // press keybind
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
@@ -136,7 +137,7 @@ SUBTEST(longPress) {
 }
 SUBTEST(keyLongPress) {
     EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.bind('Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { long_press = true })"), "ok");
+    EXPECT(getFromSocket(std::format("/eval hl.bind('Y', hl.dsp.exec_cmd('touch {}'), {{ long_press = true }})", flagFile)), "ok");
     EXPECT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
     // press keybind
     OK(getFromSocket(pluginKeybindCmd(true, 0, 29)));
@@ -153,7 +154,7 @@ SUBTEST(keyLongPress) {
 
 SUBTEST(longPressRelease) {
     EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { long_press = true })"), "ok");
+    EXPECT(getFromSocket(std::format("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch {}'), {{ long_press = true }})", flagFile)), "ok");
     EXPECT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
     // press keybind
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
@@ -169,7 +170,7 @@ SUBTEST(longPressRelease) {
 }
 SUBTEST(longPressOnlyKeyRelease) {
     EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { long_press = true })"), "ok");
+    EXPECT(getFromSocket(std::format("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch {}'), {{ long_press = true }})", flagFile)), "ok");
     EXPECT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
     // press keybind
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
@@ -187,7 +188,7 @@ SUBTEST(longPressOnlyKeyRelease) {
 
 SUBTEST(repeat) {
     EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { repeating = true })"), "ok");
+    EXPECT(getFromSocket(std::format("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch {}'), {{ repeating = true }})", flagFile)), "ok");
     EXPECT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
     // press keybind
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
@@ -217,7 +218,7 @@ SUBTEST(keyRepeat) {
     }
     EXPECT(ok, true);
 
-    EXPECT(getFromSocket("/eval hl.bind('Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { repeating = true })"), "ok");
+    EXPECT(getFromSocket(std::format("/eval hl.bind('Y', hl.dsp.exec_cmd('touch {}'), {{ repeating = true }})", flagFile)), "ok");
     EXPECT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
     // press keybind
     OK(getFromSocket(pluginKeybindCmd(true, 0, 29)));
@@ -247,7 +248,7 @@ SUBTEST(repeatRelease) {
     }
 
     EXPECT(ok, true);
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { repeating = true })"), "ok");
+    EXPECT(getFromSocket(std::format("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch {}'), {{ repeating = true }})", flagFile)), "ok");
     EXPECT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
     // press keybind
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
@@ -269,7 +270,7 @@ SUBTEST(repeatRelease) {
 
 SUBTEST(repeatOnlyKeyRelease) {
     EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { repeating = true })"), "ok");
+    EXPECT(getFromSocket(std::format("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch {}'), {{ repeating = true }})", flagFile)), "ok");
     EXPECT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
     // press keybind
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
@@ -515,7 +516,7 @@ SUBTEST(bindsAfterScroll) {
     NLog::log("{}Testing binds after scroll", Colors::GREEN);
 
     clearFlag();
-    OK(getFromSocket("/eval hl.bind('ALT + w', hl.dsp.exec_cmd('touch " + flagFile + "'))"));
+    OK(getFromSocket(std::format("/eval hl.bind('ALT + w', hl.dsp.exec_cmd('touch {}'))", flagFile)));
 
     // press keybind before scroll
     OK(getFromSocket(pluginKeybindCmd(true, 0, 108))); // Alt_R press
@@ -544,7 +545,7 @@ SUBTEST(submapUniversal) {
     NLog::log("{}Testing submap universal", Colors::GREEN);
 
     EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { submap_universal = true })"), "ok");
+    EXPECT(getFromSocket(std::format("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch {}'), {{ submap_universal = true }})", flagFile)), "ok");
     EXPECT_CONTAINS(getFromSocket("/submap"), "default");
 
     // keybind works on default submap
@@ -573,7 +574,8 @@ SUBTEST(perDeviceKeybind) {
 
     // Inclusive
     EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { device = { inclusive = true, list = { 'test-keyboard-1' } } })"), "ok");
+    EXPECT(getFromSocket(std::format("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch {}'), {{ device = {{ inclusive = true, list = {{ 'test-keyboard-1' }} }} }})", flagFile)),
+           "ok");
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
     EXPECT(attemptCheckFlag(20, 50), true);
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
@@ -581,7 +583,8 @@ SUBTEST(perDeviceKeybind) {
 
     // Exclusive
     EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { device = { inclusive = false, list = { 'test-keyboard-1' } } })"), "ok");
+    EXPECT(getFromSocket(std::format("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch {}'), {{ device = {{ inclusive = false, list = {{ 'test-keyboard-1' }} }} }})", flagFile)),
+           "ok");
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
     EXPECT(attemptCheckFlag(20, 50), false);
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
@@ -589,8 +592,9 @@ SUBTEST(perDeviceKeybind) {
 
     // With description
     EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile +
-                         "'), { description = 'test description', device = { inclusive = true, list = { 'test-keyboard-1' } } })"),
+    EXPECT(getFromSocket(std::format(
+               "/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch {}'), {{ description = 'test description', device = {{ inclusive = true, list = {{ 'test-keyboard-1' }} }} }})",
+               flagFile)),
            "ok");
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
     EXPECT(attemptCheckFlag(20, 50), true);
@@ -599,7 +603,7 @@ SUBTEST(perDeviceKeybind) {
 
     // Tags
     EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { device = { inclusive = true, list = { 'test-tag' } } })"), "ok");
+    EXPECT(getFromSocket(std::format("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch {}'), {{ device = {{ inclusive = true, list = {{ 'test-tag' }} }} }})", flagFile)), "ok");
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
     EXPECT(attemptCheckFlag(20, 50), true);
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
@@ -611,7 +615,8 @@ SUBTEST(unbind) {
 
     // unbind should normalize the string: no spaces, lowercase OK
     EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { device = { inclusive = true, list = { 'test-keyboard-1' } } })"), "ok");
+    EXPECT(getFromSocket(std::format("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch {}'), {{ device = {{ inclusive = true, list = {{ 'test-keyboard-1' }} }} }})", flagFile)),
+           "ok");
     EXPECT(getFromSocket("/eval hl.unbind('   super     +   y      ')"), "ok");
 
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));

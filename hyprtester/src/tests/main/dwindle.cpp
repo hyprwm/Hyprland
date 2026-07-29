@@ -3,6 +3,8 @@
 #include "../../hyprctlCompat.hpp"
 #include "tests.hpp"
 
+#include <format>
+
 TEST_CASE(dwindleFloatClamp) {
     for (auto const& win : {"a", "b", "c"}) {
         if (!Tests::spawnKitty(win)) {
@@ -202,7 +204,7 @@ TEST_CASE(dwindleForceSplitOnMoveToWorkspace) {
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
     ASSERT(!!Tests::spawnKitty("kitty"), true);
-    std::string posBefore = "at: " + Tests::getAttribute(getFromSocket("/activewindow"), "at");
+    std::string posBefore = std::format("at: {}", Tests::getAttribute(getFromSocket("/activewindow"), "at"));
 
     OK(getFromSocket("/eval hl.config({ dwindle = { force_split = 2 } })"));
     OK(getFromSocket("/dispatch hl.dsp.cursor.move_to_corner({ corner = 3 })")); // top left
@@ -228,8 +230,8 @@ TEST_CASE(dwindleMoveAcrossToggledSplit) {
     // Window A, now on top, is to be moved
 
     auto origWinB   = getFromSocket("/activewindow");
-    auto expectPos  = "at: " + Tests::getAttribute(origWinB, "at");
-    auto expectSize = "size: " + Tests::getAttribute(origWinB, "size");
+    auto expectPos  = std::format("at: {}", Tests::getAttribute(origWinB, "at"));
+    auto expectSize = std::format("size: {}", Tests::getAttribute(origWinB, "size"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:a' })"));
 
     OK(getFromSocket("/dispatch hl.dsp.window.move({ direction = 'down' })"));
@@ -252,7 +254,7 @@ TEST_CASE(dwindleMoveSmallWindowAcrossSplit) {
     }
     // Window B, on the left, is the smaller one
 
-    auto posBefore = "at: " + Tests::getAttribute(getFromSocket("/activewindow"), "at");
+    auto posBefore = std::format("at: {}", Tests::getAttribute(getFromSocket("/activewindow"), "at"));
 
     OK(getFromSocket("/dispatch hl.dsp.window.move({ direction = 'right' })"));
 

@@ -206,7 +206,7 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLS
         pWindow->m_isUrgent = false;
 
     // Send an event
-    IPC::Socket2::sock()->postEvent({.event = "activewindow", .data = pWindow->m_class + "," + pWindow->m_title});
+    IPC::Socket2::sock()->postEvent({.event = "activewindow", .data = std::format("{},{}", pWindow->m_class, pWindow->m_title)});
     IPC::Socket2::sock()->postEvent({.event = "activewindowv2", .data = std::format("{:x}", rc<uintptr_t>(pWindow.get()))});
 
     Event::bus()->m_events.window.active.emit(pWindow, reason);
@@ -284,8 +284,8 @@ void CFocusState::rawMonitorFocus(PHLMONITOR pMonitor) {
     const auto WORKSPACE_ID   = PWORKSPACE ? std::to_string(PWORKSPACE->m_id) : std::to_string(WORKSPACE_INVALID);
     const auto WORKSPACE_NAME = PWORKSPACE ? PWORKSPACE->m_name : "?";
 
-    IPC::Socket2::sock()->postEvent({.event = "focusedmon", .data = pMonitor->m_name + "," + WORKSPACE_NAME});
-    IPC::Socket2::sock()->postEvent({.event = "focusedmonv2", .data = pMonitor->m_name + "," + WORKSPACE_ID});
+    IPC::Socket2::sock()->postEvent({.event = "focusedmon", .data = std::format("{},{}", pMonitor->m_name, WORKSPACE_NAME)});
+    IPC::Socket2::sock()->postEvent({.event = "focusedmonv2", .data = std::format("{},{}", pMonitor->m_name, WORKSPACE_ID)});
 
     Event::bus()->m_events.monitor.focused.emit(pMonitor);
     m_focusMonitor = pMonitor;

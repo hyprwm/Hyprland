@@ -390,7 +390,7 @@ static int hlOn(lua_State* L) {
         const auto& known = CLuaEventHandler::knownEvents();
         std::string list;
         for (const auto& e : known) {
-            list += e + ", ";
+            list += std::format("{}, ", e);
         }
         list.pop_back();
         list.pop_back();

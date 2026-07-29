@@ -921,7 +921,7 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
     std::error_code ec;
     if (!std::filesystem::is_regular_file(absPath, ec)) {
         if (ec)
-            ErrorOverlay::overlay()->queueError("Screen shader parser: Failed to check screen shader path: " + ec.message());
+            ErrorOverlay::overlay()->queueError(std::format("Screen shader parser: Failed to check screen shader path: {}", ec.message()));
         else
             ErrorOverlay::overlay()->queueError("Screen shader parser: Screen shader path is not a regular file");
         return;

@@ -21,7 +21,7 @@ static bool spawnLayer(const std::string& namespace_, const std::vector<std::str
 
 static std::string getLayerLine(const std::string& layers, const std::string& target) {
 
-    auto pos = layers.find("namespace: " + target);
+    auto pos = layers.find(std::format("namespace: {}", target));
     if (pos == std::string::npos)
         return "";
 

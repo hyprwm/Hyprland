@@ -689,7 +689,7 @@ static int dsp_mouseResize(lua_State* L) {
     if (!keepAspectRatio)
         return Internal::configError(L, std::format("resize: bad argument 1: {}", keepAspectRatio.error()));
 
-    return Internal::checkResult(L, CA::mouse("resizewindow " + *keepAspectRatio));
+    return Internal::checkResult(L, CA::mouse(std::format("resizewindow {}", *keepAspectRatio)));
 }
 
 static int hlWindowClose(lua_State* L) {
@@ -1202,7 +1202,7 @@ static int hlNoop(lua_State* L) {
 
 static int dsp_toggleSpecial(lua_State* L) {
     std::string name                                   = lua_isnil(L, lua_upvalueindex(1)) ? "" : lua_tostring(L, lua_upvalueindex(1));
-    const auto& [workspaceID, workspaceName, isAutoID] = getWorkspaceIDNameFromString("special:" + name);
+    const auto& [workspaceID, workspaceName, isAutoID] = getWorkspaceIDNameFromString(std::format("special:{}", name));
     if (workspaceID == WORKSPACE_INVALID || !State::workspaceState()->isSpecial(workspaceID))
         return Internal::dispatcherError(L, "Invalid special workspace", ERR, C_INVARG);
 

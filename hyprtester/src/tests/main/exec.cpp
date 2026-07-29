@@ -32,7 +32,7 @@ TEST_CASE(processSpawning) {
             continue;
         }
 
-        const std::string sleepParentComm = Tests::execAndGet("cat \"/proc/$(ps -o ppid:1= -p " + sleepPidS + ")/comm\"");
+        const std::string sleepParentComm = Tests::execAndGet(std::format("cat \"/proc/$(ps -o ppid:1= -p {})/comm\"", sleepPidS));
         NLog::log("{}Expecting that sleep's parent is Hyprland", Colors::YELLOW);
         EXPECT_CONTAINS(sleepParentComm, "Hyprland");
 

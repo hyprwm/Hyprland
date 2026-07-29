@@ -27,10 +27,10 @@ CVersionKeeperManager::CVersionKeeperManager() {
     if (!DATAROOT)
         return;
 
-    auto LASTVER = NFsUtils::readFileAsString(*DATAROOT + "/" + VERSION_FILE_NAME);
+    auto LASTVER = NFsUtils::readFileAsString(std::format("{}/{}", *DATAROOT, VERSION_FILE_NAME));
 
     if (!LASTVER) {
-        NFsUtils::writeToFile(*DATAROOT + "/" + VERSION_FILE_NAME, "0.0.0");
+        NFsUtils::writeToFile(std::format("{}/{}", *DATAROOT, VERSION_FILE_NAME), "0.0.0");
         LASTVER = "0.0.0";
         return;
     }
@@ -40,7 +40,7 @@ CVersionKeeperManager::CVersionKeeperManager() {
         return;
     }
 
-    NFsUtils::writeToFile(*DATAROOT + "/" + VERSION_FILE_NAME, HYPRLAND_VERSION);
+    NFsUtils::writeToFile(std::format("{}/{}", *DATAROOT, VERSION_FILE_NAME), HYPRLAND_VERSION);
 
     if (*PNONOTIFY) {
         Log::logger->log(Log::DEBUG, "CVersionKeeperManager: updated, but update news is disabled in the config :(");

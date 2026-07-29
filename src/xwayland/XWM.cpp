@@ -1577,7 +1577,7 @@ bool SXSelection::sendData(xcb_selection_request_event_t* e, std::string mime) {
         if (Env::isTrace()) {
             std::string mimeList = "";
             for (const auto& m : MIMES) {
-                mimeList += "'" + m + "', ";
+                mimeList += std::format("'{}', ", m);
             }
 
             if (!MIMES.empty())

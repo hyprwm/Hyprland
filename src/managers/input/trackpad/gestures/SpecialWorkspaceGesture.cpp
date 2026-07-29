@@ -31,7 +31,7 @@ void CSpecialWorkspaceGesture::begin(const ITrackpadGesture::STrackpadGestureBeg
     m_lastDelta = 0.F;
     m_monitor.reset();
 
-    m_specialWorkspace = State::workspaceState()->query().name("special:" + m_specialWorkspaceName).run();
+    m_specialWorkspace = State::workspaceState()->query().name(std::format("special:{}", m_specialWorkspaceName)).run();
 
     if (m_specialWorkspace) {
         m_animatingOut = m_specialWorkspace->isVisible();
@@ -50,7 +50,7 @@ void CSpecialWorkspaceGesture::begin(const ITrackpadGesture::STrackpadGestureBeg
 
         m_animatingOut = false;
 
-        const auto& [workspaceID, workspaceName, isAutoID] = getWorkspaceIDNameFromString("special:" + m_specialWorkspaceName);
+        const auto& [workspaceID, workspaceName, isAutoID] = getWorkspaceIDNameFromString(std::format("special:{}", m_specialWorkspaceName));
         const auto WS                                      = State::workspaceState()->create(workspaceID, m_monitor->m_id, workspaceName);
         m_monitor->setSpecialWorkspace(WS);
         m_specialWorkspace = WS;

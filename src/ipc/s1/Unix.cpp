@@ -239,7 +239,7 @@ void CUnixImpl::start(FRequestHandler&& handler) {
     }
 
     sockaddr_un address = {.sun_family = AF_UNIX};
-    m_socketPath        = g_pCompositor->m_instancePath + "/.socket.sock";
+    m_socketPath        = std::format("{}/.socket.sock", g_pCompositor->m_instancePath);
 
     if (m_socketPath.size() > sizeof(address.sun_path) - 1) {
         Log::logger->log(Log::ERR, "[Socket1::Unix] socket path is too long");

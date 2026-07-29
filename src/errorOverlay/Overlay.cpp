@@ -92,7 +92,7 @@ void COverlay::queueCreate(std::string message, const Config::CGradientValueData
 }
 
 void COverlay::queueError(std::string err) {
-    queueCreate(err + "\nHyprland may not work correctly.", CHyprColor(1.0, 50.0 / 255.0, 50.0 / 255.0, 1.0));
+    queueCreate(std::format("{}\nHyprland may not work correctly.", err), CHyprColor(1.0, 50.0 / 255.0, 50.0 / 255.0, 1.0));
 }
 
 void COverlay::createQueued() {

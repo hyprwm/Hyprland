@@ -191,7 +191,7 @@ CCompositor::CCompositor(bool onlyConfig) : m_onlyConfigVerification(onlyConfig)
 
     setMallocThreshold();
 
-    m_hyprTempDataRoot = std::string{getenv("XDG_RUNTIME_DIR")} + "/hypr";
+    m_hyprTempDataRoot = std::format("{}/hypr", getenv("XDG_RUNTIME_DIR"));
 
     if (m_hyprTempDataRoot.starts_with("/hypr")) {
         std::println("Bailing out, $XDG_RUNTIME_DIR is invalid");
@@ -216,7 +216,7 @@ CCompositor::CCompositor(bool onlyConfig) : m_onlyConfigVerification(onlyConfig)
         throw std::runtime_error("CCompositor() failed");
     }
 
-    m_instancePath = m_hyprTempDataRoot + "/" + m_instanceSignature;
+    m_instancePath = std::format("{}/{}", m_hyprTempDataRoot, m_instanceSignature);
 
     if (std::filesystem::exists(m_instancePath)) {
         std::println("Bailing out, {} exists??", m_instancePath);
@@ -393,7 +393,7 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
     } else {
         // get socket, avoid using 0
         for (int candidate = 1; candidate <= 32; candidate++) {
-            const auto CANDIDATESTR = ("wayland-" + std::to_string(candidate));
+            const auto CANDIDATESTR = std::format("wayland-{}", candidate);
             const auto RETVAL       = wl_display_add_socket(m_wlDisplay, CANDIDATESTR.c_str());
             if (RETVAL >= 0) {
                 m_wlDisplaySocket = CANDIDATESTR;
@@ -764,7 +764,7 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 }
 
 void CCompositor::createLockFile() {
-    const auto    PATH = m_instancePath + "/hyprland.lock";
+    const auto    PATH = std::format("{}/hyprland.lock", m_instancePath);
 
     std::ofstream ofs(PATH, std::ios::trunc);
 
@@ -774,7 +774,7 @@ void CCompositor::createLockFile() {
 }
 
 void CCompositor::removeLockFile() {
-    const auto PATH = m_instancePath + "/hyprland.lock";
+    const auto PATH = std::format("{}/hyprland.lock", m_instancePath);
 
     if (std::filesystem::exists(PATH))
         std::filesystem::remove(PATH);

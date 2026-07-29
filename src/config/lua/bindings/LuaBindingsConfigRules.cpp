@@ -447,7 +447,7 @@ static int hlAnimation(lua_State* L) {
         if (!Animation::mgr()->springExists(springName))
             return Internal::configError(L, std::format(R"(hl.animation("{}"): no such spring "{}")", leaf, springName));
 
-        curveName = "spring:" + springName;
+        curveName = std::format("spring:{}", springName);
     } else
         return Internal::configError(L, std::format(R"(hl.animation("{}"): bezier or spring is required)", leaf));
 
@@ -521,9 +521,9 @@ static int hlEnv(lua_State* L) {
     if (dbus) {
         std::string CMD;
 #ifdef USES_SYSTEMD
-        CMD = "systemctl --user import-environment '" + name + "' && hash dbus-update-activation-environment 2>/dev/null && ";
+        CMD = std::format("systemctl --user import-environment '{}' && hash dbus-update-activation-environment 2>/dev/null && ", name);
 #endif
-        CMD += "dbus-update-activation-environment --systemd '" + name + "'";
+        CMD += std::format("dbus-update-activation-environment --systemd '{}'", name);
         if (mgr->isFirstLaunch())
             Config::Supplementary::executor()->addExecOnce({CMD, false});
         else

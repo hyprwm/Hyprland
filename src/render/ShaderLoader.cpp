@@ -124,7 +124,7 @@ std::string CShaderLoader::processSource(const std::string& source, glslang_stag
 
     while (std::getline(stream, line)) {
         if (!line.starts_with("#line "))
-            code += line + "\n";
+            code += std::format("{}\n", line);
     }
 
     glslang_shader_delete(shader);
@@ -175,12 +175,12 @@ std::string CShaderLoader::loadShader(const std::string& filename) {
     }
     const auto home = Hyprutils::Path::getHome();
     if (home.has_value()) {
-        const auto src = NFsUtils::readFileAsString(home.value() + "/hypr/shaders/" + filename);
+        const auto src = NFsUtils::readFileAsString(std::format("{}/hypr/shaders/{}", home.value(), filename));
         if (src.has_value())
             return src.value();
     }
     for (auto& e : ASSET_PATHS) {
-        const auto src = NFsUtils::readFileAsString(std::string{e} + "/hypr/shaders/" + filename);
+        const auto src = NFsUtils::readFileAsString(std::format("{}/hypr/shaders/{}", e, filename));
         if (src.has_value())
             return src.value();
     }

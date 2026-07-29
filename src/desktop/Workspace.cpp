@@ -114,7 +114,7 @@ std::string CWorkspace::getConfigName() {
     if (m_id > 0)
         return std::to_string(m_id);
 
-    return "name:" + m_name;
+    return std::format("name:{}", m_name);
 }
 
 bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
@@ -540,7 +540,7 @@ void CWorkspace::rename(const std::string& name) {
 
     m_wasRenamed = true;
 
-    IPC::Socket2::sock()->postEvent({.event = "renameworkspace", .data = std::to_string(m_id) + "," + m_name});
+    IPC::Socket2::sock()->postEvent({.event = "renameworkspace", .data = std::format("{},{}", m_id, m_name)});
     m_events.renamed.emit();
 }
 
@@ -557,7 +557,7 @@ void CWorkspace::changeID(int64_t id) {
 
     Config::Supplementary::refresher()->scheduleRefresh(Config::Supplementary::REFRESH_ALL);
 
-    IPC::Socket2::sock()->postEvent({.event = "changeworkspaceid", .data = std::to_string(OLD_ID) + "," + std::to_string(m_id)});
+    IPC::Socket2::sock()->postEvent({.event = "changeworkspaceid", .data = std::format("{},{}", OLD_ID, m_id)});
     m_events.idChanged.emit();
 }
 

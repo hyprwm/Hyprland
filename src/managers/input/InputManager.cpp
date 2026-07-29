@@ -346,6 +346,16 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     if (PMONITOR != Desktop::focusState()->monitor() && (*PMOUSEFOCUSMON || refocus) && m_forcedFocus.expired())
         Desktop::focusState()->rawMonitorFocus(PMONITOR);
 
+    // IME popups essentially always exist on the top - they are transient,
+    // and pretty much always need to be visible and accessible.
+    if (!foundSurface) {
+        auto popup = g_pInputManager->m_relay.popupFromCoords(mouseCoords);
+        if (popup) {
+            foundSurface = popup->getSurface();
+            surfacePos   = popup->globalBox().pos();
+        }
+    }
+
     // check for windows that have focus priority like our permission popups
     pFoundWindow = Desktop::viewState()->hitTest().windowAt(mouseCoords, Desktop::View::FOCUS_PRIORITY);
     if (pFoundWindow)
@@ -456,15 +466,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     if (!foundSurface)
         foundSurface =
             Desktop::viewState()->hitTest().layerSurfaceAt(mouseCoords, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &surfaceCoords, &pFoundLayerSurface);
-
-    // also IME popups
-    if (!foundSurface) {
-        auto popup = g_pInputManager->m_relay.popupFromCoords(mouseCoords);
-        if (popup) {
-            foundSurface = popup->getSurface();
-            surfacePos   = popup->globalBox().pos();
-        }
-    }
 
     // also top layers
     if (!foundSurface)

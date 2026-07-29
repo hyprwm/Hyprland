@@ -1280,7 +1280,8 @@ void IHyprRenderer::renderIME(PHLMONITOR pMonitor, const Time::steady_tp& now, c
 
     // Render IME popups above everything
     for (auto const& imep : g_pInputManager->m_relay.m_inputMethodPopups) {
-        renderIMEPopup(imep.get(), pMonitor, now);
+        if (imep->shouldBeRendered())
+            renderIMEPopup(imep.get(), pMonitor, now);
     }
 }
 

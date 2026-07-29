@@ -1236,15 +1236,15 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     }
     renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_TOP);
 
-    // Render IME popups
-    for (auto const& imep : g_pInputManager->m_relay.m_inputMethodPopups) {
-        renderIMEPopup(imep.get(), pMonitor, time);
-    }
-
     for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
         renderLayer(ls.lock(), pMonitor, time);
     }
     renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_OVERLAY);
+
+    // Render IME popups
+    for (auto const& imep : g_pInputManager->m_relay.m_inputMethodPopups) {
+        renderIMEPopup(imep.get(), pMonitor, time);
+    }
 
     for (auto const& lsl : pMonitor->m_layerSurfaceLayers) {
         for (auto const& ls : lsl) {

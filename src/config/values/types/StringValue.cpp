@@ -26,3 +26,7 @@ Config::STRING CStringValue::value() const {
 Config::STRING CStringValue::defaultVal() const {
     return m_default;
 }
+
+std::function<std::expected<void, std::string>(const Config::STRING&)> CStringValue::validator() const {
+    return m_validator;
+}

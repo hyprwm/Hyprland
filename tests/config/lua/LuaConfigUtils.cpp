@@ -22,10 +22,33 @@
 
 #include <gtest/gtest.h>
 
+extern "C" {
+#include <lauxlib.h>
+}
+
 using namespace Config;
 using namespace Config::Lua;
 
 namespace {
+    class CLuaState {
+      public:
+        CLuaState() : m_lua(luaL_newstate()) {
+            ;
+        }
+
+        ~CLuaState() {
+            if (m_lua)
+                lua_close(m_lua);
+        }
+
+        lua_State* get() const {
+            return m_lua;
+        }
+
+      private:
+        lua_State* m_lua = nullptr;
+    };
+
     class CUnsupportedValue : public Values::IValue {
       public:
         CUnsupportedValue() : Values::IValue(0) {
@@ -102,6 +125,80 @@ TEST(ConfigLuaUtils, fromGenericValueCopiesRefreshBits) {
     auto       out = fromGenericValue(makeShared<Values::CIntValue>("a", "", 1, Values::SIntValueOptions{.refresh = REFRESH}));
     ASSERT_NE(out.get(), nullptr);
     EXPECT_EQ(out->refreshBits(), REFRESH);
+}
+
+TEST(ConfigLuaUtils, fromGenericValueCopiesValidationMetadata) {
+    CLuaState  state;
+    const auto lua = state.get();
+
+    {
+        auto out = fromGenericValue(
+            makeShared<Values::CIntValue>("a", "", 1, Values::SIntValueOptions{.min = 0, .max = 2, .map = std::unordered_map<std::string, INTEGER>{{"mapped", 2}}}));
+        auto value = dynamic_cast<CLuaConfigInt*>(out.get());
+        ASSERT_NE(value, nullptr);
+
+        lua_pushstring(lua, "mapped");
+        EXPECT_EQ(value->parse(lua).errorCode, PARSE_ERROR_OK);
+        lua_pop(lua, 1);
+
+        lua_pushinteger(lua, 3);
+        EXPECT_EQ(value->parse(lua).errorCode, PARSE_ERROR_OUT_OF_RANGE);
+        lua_pop(lua, 1);
+    }
+
+    {
+        auto out   = fromGenericValue(makeShared<Values::CFloatValue>("a", "", 0.F, Values::SFloatValueOptions{.min = -1.F, .max = 1.F}));
+        auto value = dynamic_cast<CLuaConfigFloat*>(out.get());
+        ASSERT_NE(value, nullptr);
+
+        lua_pushnumber(lua, -2.F);
+        EXPECT_EQ(value->parse(lua).errorCode, PARSE_ERROR_OUT_OF_RANGE);
+        lua_pop(lua, 1);
+    }
+
+    {
+        auto out = fromGenericValue(
+            makeShared<Values::CStringValue>("a", "", "valid", Values::SStringValueOptions{.validator = [](const STRING& value) -> std::expected<void, std::string> {
+                                                 if (value == "valid")
+                                                     return {};
+                                                 return std::unexpected("invalid value");
+                                             }}));
+        auto value = dynamic_cast<CLuaConfigString*>(out.get());
+        ASSERT_NE(value, nullptr);
+
+        lua_pushstring(lua, "invalid");
+        EXPECT_EQ(value->parse(lua).errorCode, PARSE_ERROR_BAD_VALUE);
+        lua_pop(lua, 1);
+    }
+
+    {
+        auto out =
+            fromGenericValue(makeShared<Values::CVec2Value>("a", "", VEC2{}, Values::SVec2ValueOptions{.validator = [](const VEC2& value) -> std::expected<void, std::string> {
+                                                                if (value.x >= 0 && value.y >= 0)
+                                                                    return {};
+                                                                return std::unexpected("negative component");
+                                                            }}));
+        auto value = dynamic_cast<CLuaConfigVec2*>(out.get());
+        ASSERT_NE(value, nullptr);
+
+        lua_createtable(lua, 2, 0);
+        lua_pushnumber(lua, -1);
+        lua_rawseti(lua, -2, 1);
+        lua_pushnumber(lua, 0);
+        lua_rawseti(lua, -2, 2);
+        EXPECT_EQ(value->parse(lua).errorCode, PARSE_ERROR_BAD_VALUE);
+        lua_pop(lua, 1);
+    }
+
+    {
+        auto out   = fromGenericValue(makeShared<Values::CCssGapValue>("a", "", 1, Values::SCssGapValueOptions{.min = 0, .max = 2}));
+        auto value = dynamic_cast<CLuaConfigCssGap*>(out.get());
+        ASSERT_NE(value, nullptr);
+
+        lua_pushinteger(lua, 3);
+        EXPECT_EQ(value->parse(lua).errorCode, PARSE_ERROR_OUT_OF_RANGE);
+        lua_pop(lua, 1);
+    }
 }
 
 TEST(ConfigLuaUtils, typedAccessorsReadStoredValues) {

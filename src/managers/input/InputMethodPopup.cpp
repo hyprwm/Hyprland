@@ -160,7 +160,7 @@ CBox CInputPopup::globalBox() {
 }
 
 bool CInputPopup::isVecInPopup(const Vector2D& point) {
-    return globalBox().containsPoint(point);
+    return m_popup->m_mapped && globalBox().containsPoint(point);
 }
 
 SP<CWLSurfaceResource> CInputPopup::getSurface() {

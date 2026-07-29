@@ -357,9 +357,11 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     }
 
     // check for windows that have focus priority like our permission popups
-    pFoundWindow = Desktop::viewState()->hitTest().windowAt(mouseCoords, Desktop::View::FOCUS_PRIORITY);
-    if (pFoundWindow)
-        foundSurface = Desktop::viewState()->hitTest().windowSurfaceAt(mouseCoords, pFoundWindow, surfaceCoords);
+    if (!foundSurface) {
+        pFoundWindow = Desktop::viewState()->hitTest().windowAt(mouseCoords, Desktop::View::FOCUS_PRIORITY);
+        if (pFoundWindow)
+            foundSurface = Desktop::viewState()->hitTest().windowSurfaceAt(mouseCoords, pFoundWindow, surfaceCoords);
+    }
 
     if (!foundSurface && g_pSessionLockManager->isSessionLocked()) {
 

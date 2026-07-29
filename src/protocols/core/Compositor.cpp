@@ -166,6 +166,16 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
             return;
         }
 
+        // a synced subsurface caches its state until the parent commits, so make sure that
+        // commit isnt dropped as empty. mark the t1 parent.
+        if (m_role->role() == SURFACE_ROLE_SUBSURFACE) {
+            const auto SUB = sc<CSubsurfaceRole*>(m_role.get())->m_subsurface.lock();
+            if (SUB && SUB->m_sync && SUB->m_parent) {
+                if (const auto PARENT = SUB->t1Parent())
+                    PARENT->m_pending.updated.bits.subsurface = true;
+            }
+        }
+
         // null buffer attached
         if (!m_pending.buffer && m_pending.updated.bits.buffer) {
             commitState(m_pending);

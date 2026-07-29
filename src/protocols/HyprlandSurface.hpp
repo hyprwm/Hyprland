@@ -25,6 +25,7 @@ class CHyprlandSurface {
     CRegion                m_visibleRegion;
 
     void                   destroy();
+    void                   markPending();
 
     struct {
         CHyprSignalListener surfaceCommitted;

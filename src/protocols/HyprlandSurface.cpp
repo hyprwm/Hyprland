@@ -36,6 +36,7 @@ void CHyprlandSurface::setResource(SP<CHyprlandSurfaceV1> resource) {
         }
 
         m_opacity = fOpacity;
+        markPending();
     });
 
     m_resource->setSetVisibleRegion([this](CHyprlandSurfaceV1* resource, wl_resource* region) {
@@ -44,11 +45,13 @@ void CHyprlandSurface::setResource(SP<CHyprlandSurfaceV1> resource) {
                 m_visibleRegionChanged = true;
 
             m_visibleRegion.clear();
+            markPending();
             return;
         }
 
         m_visibleRegionChanged = true;
         m_visibleRegion        = CWLRegionResource::fromResource(region)->m_region;
+        markPending();
     });
 
     m_listeners.surfaceCommitted = m_surface->m_events.commit.listen([this] {
@@ -81,9 +84,15 @@ void CHyprlandSurface::destroy() {
         m_visibleRegionChanged = true;
 
     m_visibleRegion.clear();
+    markPending();
 
     if (!m_surface)
         PROTO::hyprlandSurface->destroySurface(this);
+}
+
+void CHyprlandSurface::markPending() {
+    if (m_surface)
+        m_surface->m_pending.updated.bits.hyprlandSurface = true;
 }
 
 CHyprlandSurfaceProtocol::CHyprlandSurfaceProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {

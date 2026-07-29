@@ -1,0 +1,12 @@
+  > binding to global: wl_seat (version 9) with id 1
+  > binding to global: wl_compositor (version 6) with id 3
+  > binding to global: wl_shm (version 2) with id 5
+  > binding to global: xdg_wm_base (version 7) with id 37
+started
+modifiers: depressed=0 latched=0 locked=0 group=0
+0
+modifiers: depressed=0 latched=0 locked=0 group=0
+modifiers: depressed=0 latched=0 locked=18 group=0
+18
+modifiers: depressed=0 latched=0 locked=0 group=0
+modifiers: depressed=0 latched=0 locked=0 group=0

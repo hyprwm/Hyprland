@@ -33,7 +33,8 @@ static const std::vector<std::string> EFFECT_STRINGS = {
     "rounding_power",         //
     "persistent_size",        //
     "animation",              //
-    "border_color",           //
+    "active_border",          //
+    "inactive_border",        //
     "idle_inhibit",           //
     "opacity",                //
     "tag",                    //

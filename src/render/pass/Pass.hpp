@@ -33,14 +33,11 @@ namespace Render {
         std::vector<SPassElementData> m_passElements;
 
         void                          simplify(bool willBlur, const CRegion& liveBlurRegion);
-        float                         oneBlurRadius();
         void                          renderDebugData();
 
         struct {
             bool         present = false;
             SP<ITexture> keyboardFocusText, pointerFocusText, lastWindowText;
         } m_debugData;
-
-        friend class CHyprOpenGLImpl;
     };
 }

@@ -41,7 +41,7 @@ inline eLockReason operator~(eLockReason a) {
 
 struct SSurfaceState {
     union {
-        uint16_t all = 0;
+        uint32_t all = 0;
         struct {
             bool buffer : 1;
             bool damage : 1;
@@ -56,6 +56,12 @@ struct SSurfaceState {
             bool frame : 1;
             bool fifo : 1;
             bool presentation : 1;
+            bool xdgshell : 1;
+            bool layershell : 1;
+            bool subsurface : 1;
+            bool alphaModifier : 1;
+            bool hyprlandSurface : 1;
+            bool backgroundEffect : 1;
         } bits;
     } updated;
 

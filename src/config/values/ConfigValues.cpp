@@ -450,7 +450,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Bool>("group:groupbar:scrolling", "whether scrolling in the groupbar changes group active window", true),
         MS<Bool>("group:groupbar:middle_click_close", "whether middle clicking the groupbar closes the clicked window", true),
         MS<Int>("group:groupbar:rounding", "how much to round the groupbar", 1, {.min = 0, .max = 20}),
-        MS<Float>("group:groupbar:rounding_power", "rounding power of groupbar corners (2 is a circle)", 2, {.min = 2, .max = 10}),
+        MS<Float>("group:groupbar:rounding_power", "rounding power of groupbar corners (2 is a circle)", 2, {.min = 1, .max = 10}),
         MS<Int>("group:groupbar:gradient_rounding", "how much to round the groupbar gradient", 2, {.min = 0, .max = 20}),
         MS<Float>("group:groupbar:gradient_rounding_power", "rounding power of groupbar gradient corners (2 is a circle)", 2, {.min = 2, .max = 10}),
         MS<Bool>("group:groupbar:round_only_edges", "if yes, will only round at the groupbar edges", true),

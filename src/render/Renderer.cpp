@@ -2151,6 +2151,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     // a frame was scheduled, but nothing on this monitor changed, a hw cursor plane update, a
     // client that only wants frame events, a bare scheduleFrame(). the scanned out buffer is still
     // correct, so push the pending output state without rendering anything.
+    bool updateSwapChain = false;
     if (!monitorNeedsRedraw(pMonitor, damageBlinkCleanup)) {
         const auto NOW = Time::steadyNow();
 
@@ -2164,9 +2165,12 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         // an animated hw cursor keeps animating off its own frame callback
         Pointer::mgr()->sendCursorSurfaceFrame(NOW);
 
-        endRenderMonitor(pMonitor, commit, shouldTear);
+        pMonitor->output()->state->resetExplicitFences();
+        pMonitor->m_inFence.reset();
+        endRenderMonitor(pMonitor, commit, shouldTear, updateSwapChain);
         return;
-    }
+    } else
+        updateSwapChain = true;
 
     Event::bus()->m_events.render.stage.emit(RENDER_PRE);
 
@@ -2285,10 +2289,10 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     pMonitor->m_output->state->addDamage(frameDamage);
 
-    endRenderMonitor(pMonitor, commit, shouldTear);
+    endRenderMonitor(pMonitor, commit, shouldTear, updateSwapChain);
 }
 
-void IHyprRenderer::endRenderMonitor(PHLMONITOR pMonitor, bool commit, bool shouldTear) {
+void IHyprRenderer::endRenderMonitor(PHLMONITOR pMonitor, bool commit, bool shouldTear, bool updateSwapChain) {
     static auto PDAMAGEBLINK = CConfigValue<Config::INTEGER>("debug:damage_blink");
     static auto PVFR         = CConfigValue<Config::INTEGER>("debug:vfr");
 
@@ -2297,7 +2301,7 @@ void IHyprRenderer::endRenderMonitor(PHLMONITOR pMonitor, bool commit, bool shou
         pMonitor->m_output->state->setPresentationMode(presentationMode);
 
     if (commit)
-        commitPendingAndDoExplicitSync(pMonitor);
+        commitPendingAndDoExplicitSync(pMonitor, updateSwapChain);
 
     // cleared only after the commit
     pMonitor->m_renderingActive = false;
@@ -2503,15 +2507,15 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
     pMonitor->m_previousFSWindow = FULLSCREEN_WINDOW;
 }
 
-bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
+bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor, bool updateSwapChain) {
     handleFullscreenSettings(pMonitor);
 
-    bool ok = pMonitor->m_state.commit();
+    bool ok = pMonitor->m_state.commit(updateSwapChain);
     if (!ok) {
         if (pMonitor->m_inFence.isValid()) {
             Log::logger->log(Log::TRACE, "Monitor state commit failed, retrying without a fence");
             pMonitor->m_output->state->resetExplicitFences();
-            ok = pMonitor->m_state.commit();
+            ok = pMonitor->m_state.commit(updateSwapChain);
         }
 
         if (!ok) {

@@ -99,7 +99,7 @@ TEST(Config, fluidJarSettingsAreBounded) {
     constexpr std::array SETTINGS = {
         SFluidJarSetting{"decoration:blur:fluid_jar:speed", 1.F, 0.F, 10.F},     SFluidJarSetting{"decoration:blur:fluid_jar:fill_amount", 0.4F, 0.F, 1.F},
         SFluidJarSetting{"decoration:blur:fluid_jar:mass", 1.F, 0.1F, 10.F},     SFluidJarSetting{"decoration:blur:fluid_jar:precision", 1.F, 0.5F, 8.F},
-        SFluidJarSetting{"decoration:blur:fluid_jar:turbulence", 1.F, 0.F, 5.F}, SFluidJarSetting{"decoration:blur:fluid_jar:distortion", 1.F, 0.F, 4.F},
+        SFluidJarSetting{"decoration:blur:fluid_jar:turbulence", 1.F, 0.F, 5.F}, SFluidJarSetting{"decoration:blur:fluid_jar:distortion", 1.F, 0.F, 10.F},
     };
 
     for (const auto& setting : SETTINGS) {

@@ -913,6 +913,7 @@ const std::array<std::string, SH_FRAG_LAST> FRAG_SHADERS = {
     "fluidjarhistoryresample.frag",
     "fluidjartrackingresample.frag",
     "fluidjarfinish.frag",
+    "prismfinish.frag",
 };
 
 bool CHyprOpenGLImpl::initShaders(const std::string& path) {

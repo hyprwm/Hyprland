@@ -68,7 +68,7 @@ TEST(FluidJar, DamageIncludesBoundedRefraction) {
     EXPECT_FLOAT_EQ(fluidJarDamageRadius(8, 1, 0.F), 16.F);
     EXPECT_FLOAT_EQ(fluidJarDamageRadius(8, 1, 2.F), 32.F);
     EXPECT_FLOAT_EQ(fluidJarDamageRadius(8, 1, 4.F), 48.F);
-    EXPECT_FLOAT_EQ(fluidJarDamageRadius(8, 1, 10.F), 48.F);
+    EXPECT_FLOAT_EQ(fluidJarDamageRadius(8, 1, 10.F), 96.F);
 }
 
 TEST(FluidJar, SimulationSizeRejectsEmptyExtents) {

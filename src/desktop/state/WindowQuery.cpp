@@ -108,6 +108,9 @@ PHLWINDOW CWindowQuery::inDirection(const SWindowDirectionQuery& query) const {
                 if (query.workspace->m_monitor == w->m_monitor && query.workspace != w->m_workspace)
                     continue;
 
+                if (Fullscreen::controller()->hasFullscreen(query.workspace) && !w->isAllowedOverFullscreen())
+                    continue;
+
                 if (!*PMONITORFALLBACK && query.workspace->m_monitor != w->m_monitor)
                     continue;
 

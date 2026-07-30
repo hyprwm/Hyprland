@@ -39,7 +39,10 @@ bool CFullscreenController::isFullscreen(const PHLWINDOW window, const std::opti
         if (!FS_WINDOW || !FS_WINDOW->m_target)
             return false;
 
-        if (FS_WINDOW == FS_HANDLER->getFullscreen(covering)->window() && FS_HANDLER->getFullscreenModes(window->m_target).internal == mode)
+        const auto FS_TARGET     = FS_HANDLER->getFullscreen(covering);
+        const auto INTERNAL_MODE = FS_HANDLER->getFullscreenModes(window->m_target).internal;
+
+        if (FS_TARGET && FS_WINDOW == FS_TARGET->window() && INTERNAL_MODE != FSMODE_NONE && (!mode.has_value() || INTERNAL_MODE == mode.value()))
             return true;
         else {
             FS_HANDLER->syncFullscreenTargets();
@@ -75,7 +78,7 @@ SFullscreenMode CFullscreenController::getFullscreenModes(const PHLWINDOW window
     auto fsModes = FS_HANDLER->getFullscreenModes(window->m_target);
 
     /* Error correction - try once*/
-    if (fsModes.internal != FSMODE_NONE && !FS_HANDLER->isFullscreen(window->m_target)) {
+    if (fsModes.internal != FSMODE_NONE && !FS_HANDLER->isFullscreen(window->m_target, std::nullopt, std::nullopt)) {
         FS_HANDLER->syncFullscreenTargets();
         return FS_HANDLER->getFullscreenModes(window->m_target);
     }

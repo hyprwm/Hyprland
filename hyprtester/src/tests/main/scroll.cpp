@@ -344,6 +344,67 @@ TEST_CASE(scroll_LAYOUT_HANDLED_maximized) {
     }
 }
 
+TEST_CASE(scroll_LAYOUT_HANDLED_fullscreenRetainsGeometryWhileScrolling) {
+    OK(getFromSocket("/eval hl.config({ general = { layout = 'scrolling' } })"));
+
+    SPAWN_KITTY("kitty_scroll_A");
+    SPAWN_KITTY("kitty_scroll_B");
+    SPAWN_KITTY("kitty_scroll_C");
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_scroll_B' })"));
+
+    const auto REGULAR_SIZE = Tests::getAttribute(getFromSocket("/activewindow"), "size");
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 2, client = 0, action = 'set' })"));
+
+    const auto FULLSCREEN_POS = Tests::getAttribute(getFromSocket("/activewindow"), "at");
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_scroll_A' })"));
+
+    {
+        const auto WINDOW = getClientBlock(getFromSocket("/clients"), "kitty_scroll_B");
+        ASSERT_CONTAINS(WINDOW, "fullscreen: 2");
+        ASSERT_CONTAINS(WINDOW, "fullscreenClient: 0");
+        ASSERT_CONTAINS(WINDOW, "fullscreenHandler: scrolling");
+        ASSERT_CONTAINS(WINDOW, "size: 1920,1080");
+        ASSERT_NOT(Tests::getAttribute(WINDOW, "at"), FULLSCREEN_POS);
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 0, client = 0, action = 'set', window = 'class:kitty_scroll_B' })"));
+
+    {
+        const auto WINDOW = getClientBlock(getFromSocket("/clients"), "kitty_scroll_B");
+        ASSERT_CONTAINS(WINDOW, "fullscreen: 0");
+        ASSERT(Tests::getAttribute(WINDOW, "size"), REGULAR_SIZE);
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_scroll_B' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 1, client = 0, action = 'set' })"));
+
+    const auto MAXIMIZED_POS  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
+    const auto MAXIMIZED_SIZE = Tests::getAttribute(getFromSocket("/activewindow"), "size");
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_scroll_C' })"));
+
+    {
+        const auto WINDOW = getClientBlock(getFromSocket("/clients"), "kitty_scroll_B");
+        ASSERT_CONTAINS(WINDOW, "fullscreen: 1");
+        ASSERT_CONTAINS(WINDOW, "fullscreenClient: 0");
+        ASSERT_CONTAINS(WINDOW, "fullscreenHandler: scrolling");
+        ASSERT(Tests::getAttribute(WINDOW, "size"), MAXIMIZED_SIZE);
+        ASSERT_NOT(Tests::getAttribute(WINDOW, "at"), MAXIMIZED_POS);
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_scroll_B' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+
+    {
+        const auto WINDOW = getClientBlock(getFromSocket("/clients"), "kitty_scroll_B");
+        ASSERT_CONTAINS(WINDOW, "fullscreen: 0");
+        ASSERT_CONTAINS(WINDOW, "fullscreenClient: 0");
+    }
+}
+
 TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
 
     /*

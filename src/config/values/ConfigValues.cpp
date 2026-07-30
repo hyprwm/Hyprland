@@ -268,34 +268,34 @@ std::vector<SP<IValue>> Values::getConfigValues() {
                   {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),
 
         // specific blur stuff
-        MS<Float>("decoration:blur:glass:refraction", "maximum refraction displacement for glass blur types in pixels", 3.F,
+        MS<Float>("decoration:blur:glass:refraction", "maximum refraction displacement for glass blur types in pixels", 20.F,
                   {.min = 0, .max = 20, .refresh = Supplementary::REFRESH_BLUR_FB}),
-        MS<Float>("decoration:blur:glass:size", "pattern size for glass blur types in pixels", 48.F, {.min = 4, .max = 512, .refresh = Supplementary::REFRESH_BLUR_FB}),
-        MS<Float>("decoration:blur:glass:roughness", "strength of the glass relief shading", 0.4F, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:glass:size", "pattern size for glass blur types in pixels", 40.F, {.min = 4, .max = 512, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:glass:roughness", "strength of the glass relief shading", 1.F, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),
 
-        MS<Float>("decoration:blur:drops:speed", "animation speed for drops blur. 0 disables the animation. Enabling may significantly increase GPU usage.", 0.F,
+        MS<Float>("decoration:blur:drops:speed", "animation speed for drops blur. 0 disables the animation. Enabling will significantly increase GPU usage.", 3.F,
                   {.min = 0, .max = 10, .refresh = Supplementary::REFRESH_BLUR_FB}),
 
-        MS<Float>("decoration:blur:ripple:strength", "maximum refraction displacement of click ripples in pixels", 6.F,
+        MS<Float>("decoration:blur:ripple:strength", "maximum refraction displacement of click ripples in pixels", 30.F,
                   {.min = 0, .max = 32, .refresh = Supplementary::REFRESH_BLUR_FB}),
-        MS<Float>("decoration:blur:ripple:radius", "maximum radius of click ripples in pixels", 180.F, {.min = 1, .max = 1000, .refresh = Supplementary::REFRESH_BLUR_FB}),
-        MS<Float>("decoration:blur:ripple:width", "width of click ripple waves in pixels", 24.F, {.min = 1, .max = 200, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:ripple:radius", "maximum radius of click ripples in pixels", 400.F, {.min = 1, .max = 1000, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:ripple:width", "width of click ripple waves in pixels", 32.F, {.min = 1, .max = 200, .refresh = Supplementary::REFRESH_BLUR_FB}),
         MS<Float>("decoration:blur:ripple:duration", "duration of click ripples in seconds", 0.45F, {.min = 0.05, .max = 5, .refresh = Supplementary::REFRESH_BLUR_FB}),
 
-        MS<Float>("decoration:blur:water:strength", "maximum refraction displacement and injection strength for water blur in pixels", 12.F,
+        MS<Float>("decoration:blur:water:strength", "maximum refraction displacement and injection strength for water blur in pixels", 32.F,
                   {.min = 0, .max = 32, .refresh = Supplementary::REFRESH_BLUR_FB}),
-        MS<Float>("decoration:blur:water:radius", "pointer radius for water blur in pixels", 180.F, {.min = 1, .max = 1000, .refresh = Supplementary::REFRESH_BLUR_FB}),
-        MS<Float>("decoration:blur:water:speed", "propagation speed for water blur", 1.F, {.min = 0, .max = 10, .refresh = Supplementary::REFRESH_BLUR_FB}),
-        MS<Float>("decoration:blur:water:damping", "decay damping for water blur", 0.995F, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:water:radius", "pointer radius for water blur in pixels", 20.F, {.min = 1, .max = 1000, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:water:speed", "propagation speed for water blur", 0.76F, {.min = 0, .max = 10, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:water:damping", "decay damping for water blur", 0.95F, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),
         MS<Float>("decoration:blur:water:duration", "maximum water blur animation duration in seconds", 12.F, {.min = 0.5, .max = 60, .refresh = Supplementary::REFRESH_BLUR_FB}),
 
         MS<Color>("decoration:blur:fluid_jar:color", "fluid color for fluid jar blur", 0xCC3399FF, {.refresh = Supplementary::REFRESH_BLUR_FB}),
-        MS<Float>("decoration:blur:fluid_jar:speed", "animation speed for fluid jar blur", 1.F, {.min = 0, .max = 10, .refresh = Supplementary::REFRESH_BLUR_FB}),
-        MS<Float>("decoration:blur:fluid_jar:fill_amount", "fill amount for fluid jar blur", 0.4F, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),
-        MS<Float>("decoration:blur:fluid_jar:mass", "inertial mass for fluid jar blur", 1.F, {.min = 0.1, .max = 10, .refresh = Supplementary::REFRESH_BLUR_FB}),
-        MS<Float>("decoration:blur:fluid_jar:precision", "fluid simulation precision multiplier", 1.F, {.min = 0.5, .max = 8, .refresh = Supplementary::REFRESH_BLUR_FB}),
-        MS<Float>("decoration:blur:fluid_jar:turbulence", "interior fluid turbulence multiplier", 1.F, {.min = 0, .max = 5, .refresh = Supplementary::REFRESH_BLUR_FB}),
-        MS<Float>("decoration:blur:fluid_jar:distortion", "fluid refraction distortion multiplier", 1.F, {.min = 0, .max = 10, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:fluid_jar:speed", "animation speed for fluid jar blur", 3.7F, {.min = 0, .max = 10, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:fluid_jar:fill_amount", "fill amount for fluid jar blur", 0.5F, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:fluid_jar:mass", "inertial mass for fluid jar blur", 1.4F, {.min = 0.1, .max = 10, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:fluid_jar:precision", "fluid simulation precision multiplier. 2x is a good compromise. 4x is expensive. 8x is extreme and unnecessary.", 2.F, {.min = 0.5, .max = 8, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:fluid_jar:turbulence", "interior fluid turbulence multiplier", 1.2F, {.min = 0, .max = 5, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:fluid_jar:distortion", "fluid refraction distortion multiplier", 8.F, {.min = 0, .max = 10, .refresh = Supplementary::REFRESH_BLUR_FB}),
 
         /*
          * motion_blur:

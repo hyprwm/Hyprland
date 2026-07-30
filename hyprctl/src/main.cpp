@@ -582,6 +582,7 @@ int main(int argc, char** argv) {
                     line.append(input);
                 } else
                     line.assign(input);
+                free(input);
                 if (!line.empty()) {
                     exitStatus = request(std::format("/repl {}", line), 0, false, true);
                     // check for incomplete-line error, retry
@@ -589,10 +590,9 @@ int main(int argc, char** argv) {
                         continuing = true;
                     else {
                         continuing = false;
-                        add_history(input);
+                        add_history(line.c_str());
                     }
                 }
-                free(input);
             }
         }
     } else {

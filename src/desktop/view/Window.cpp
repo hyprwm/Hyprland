@@ -2692,6 +2692,9 @@ void CWindow::unmapWindow() {
             }
         }
 
+        if (candidate && PMONITOR && PMONITOR->m_activeSpecialWorkspace && candidate->m_workspace != PMONITOR->m_activeSpecialWorkspace)
+            candidate = nullptr;
+
         Log::logger->log(Log::DEBUG, "On closed window, new focused candidate is {}", candidate);
 
         if (candidate != Desktop::focusState()->window() && candidate) {
@@ -2705,7 +2708,7 @@ void CWindow::unmapWindow() {
                 Fullscreen::controller()->setFullscreenMode(candidate, CURRENT_WINDOW_FS_MODES.internal, std::nullopt, CURRENT_FS_LAYOUT_HANDLED);
         }
 
-        if (!candidate && m_workspace && m_workspace->getWindowCount() == 0)
+        if (!candidate && m_workspace && (m_workspace->getWindowCount() == 0 || PMONITOR->m_activeSpecialWorkspace))
             g_pInputManager->refocus();
 
         g_pInputManager->sendMotionEventsToFocused();

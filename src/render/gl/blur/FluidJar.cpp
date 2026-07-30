@@ -37,7 +37,7 @@ static constexpr int    INITIAL_TRACK_STEPS   = 4;
 static constexpr int    INITIAL_VISUAL_STEPS  = 4;
 static constexpr float  MAX_REFRACTION        = 8.F;
 static constexpr float  MAX_TURBULENCE        = 5.F;
-static constexpr float  MAX_DISTORTION        = 4.F;
+static constexpr float  MAX_DISTORTION        = 10.F;
 static constexpr double ANIMATION_PERIOD      = 200.0 * std::numbers::pi;
 
 static void             bindNearestTexture(SP<CGLFramebuffer> buffer, GLenum unit) {

@@ -19,6 +19,7 @@ namespace Render {
         BLUR_DROPS       = 3,
         BLUR_WATER       = 4,
         BLUR_FLUID_JAR   = 5,
+        BLUR_PRISM       = 6,
     };
 
     // "Jaki kurwa provident????"

@@ -238,7 +238,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Bool>("decoration:blur:enabled", "enable window background blur", true, {.refresh = Supplementary::REFRESH_BLUR_FB}),
         MS<Int>("decoration:blur:variant", "set the blur variant", 0,
                 {.min = 0,
-                 .max = 5,
+                 .max = 6,
                  .map =
                      OptionMap{
                          {"kawase", 0},
@@ -247,6 +247,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
                          {"drops", 3},
                          {"water", 4},
                          {"fluid_jar", 5},
+                         {"prism", 6},
                      },
                  .refresh = Supplementary::REFRESH_BLUR_FB}),
         MS<Int>("decoration:blur:size", "blur size (distance)", 8, {.min = 0, .max = 100, .refresh = Supplementary::REFRESH_BLUR_FB}),
@@ -293,7 +294,8 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Float>("decoration:blur:fluid_jar:speed", "animation speed for fluid jar blur", 3.7F, {.min = 0, .max = 10, .refresh = Supplementary::REFRESH_BLUR_FB}),
         MS<Float>("decoration:blur:fluid_jar:fill_amount", "fill amount for fluid jar blur", 0.5F, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),
         MS<Float>("decoration:blur:fluid_jar:mass", "inertial mass for fluid jar blur", 1.4F, {.min = 0.1, .max = 10, .refresh = Supplementary::REFRESH_BLUR_FB}),
-        MS<Float>("decoration:blur:fluid_jar:precision", "fluid simulation precision multiplier. 2x is a good compromise. 4x is expensive. 8x is extreme and unnecessary.", 2.F, {.min = 0.5, .max = 8, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:fluid_jar:precision", "fluid simulation precision multiplier. 2x is a good compromise. 4x is expensive. 8x is extreme and unnecessary.", 2.F,
+                  {.min = 0.5, .max = 8, .refresh = Supplementary::REFRESH_BLUR_FB}),
         MS<Float>("decoration:blur:fluid_jar:turbulence", "interior fluid turbulence multiplier", 1.2F, {.min = 0, .max = 5, .refresh = Supplementary::REFRESH_BLUR_FB}),
         MS<Float>("decoration:blur:fluid_jar:distortion", "fluid refraction distortion multiplier", 8.F, {.min = 0, .max = 10, .refresh = Supplementary::REFRESH_BLUR_FB}),
 

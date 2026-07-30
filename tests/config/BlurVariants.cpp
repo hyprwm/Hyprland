@@ -22,10 +22,10 @@ TEST(Config, blurVariantsMatchRendererTypes) {
 
     EXPECT_EQ(INT_VALUE->defaultVal(), sc<Config::INTEGER>(eBlurType::BLUR_DUAL_KAWASE));
     EXPECT_EQ(*INT_VALUE->m_min, sc<Config::INTEGER>(eBlurType::BLUR_DUAL_KAWASE));
-    EXPECT_EQ(*INT_VALUE->m_max, sc<Config::INTEGER>(eBlurType::BLUR_FLUID_JAR));
+    EXPECT_EQ(*INT_VALUE->m_max, sc<Config::INTEGER>(eBlurType::BLUR_PRISM));
 
     const auto& MAP = *INT_VALUE->m_map;
-    EXPECT_EQ(MAP.size(), 6);
+    EXPECT_EQ(MAP.size(), 7);
     EXPECT_EQ(MAP.at("kawase"), sc<Config::INTEGER>(eBlurType::BLUR_DUAL_KAWASE));
     EXPECT_EQ(MAP.at("frost"), sc<Config::INTEGER>(eBlurType::BLUR_FROST));
     EXPECT_FALSE(MAP.contains("fluted"));
@@ -34,9 +34,10 @@ TEST(Config, blurVariantsMatchRendererTypes) {
     EXPECT_EQ(MAP.at("drops"), sc<Config::INTEGER>(eBlurType::BLUR_DROPS));
     EXPECT_EQ(MAP.at("water"), sc<Config::INTEGER>(eBlurType::BLUR_WATER));
     EXPECT_EQ(MAP.at("fluid_jar"), sc<Config::INTEGER>(eBlurType::BLUR_FLUID_JAR));
+    EXPECT_EQ(MAP.at("prism"), sc<Config::INTEGER>(eBlurType::BLUR_PRISM));
 }
 
-TEST(Config, dropsAnimationIsOptIn) {
+TEST(Config, dropsAnimationSpeedIsBounded) {
     const auto VALUE = std::ranges::find_if(CONFIG_VALUES, [](const auto& value) { return std::string_view{value->name()} == "decoration:blur:drops:speed"; });
     ASSERT_NE(VALUE, CONFIG_VALUES.end());
 
@@ -45,7 +46,7 @@ TEST(Config, dropsAnimationIsOptIn) {
     ASSERT_TRUE(FLOAT_VALUE->m_min.has_value());
     ASSERT_TRUE(FLOAT_VALUE->m_max.has_value());
 
-    EXPECT_FLOAT_EQ(FLOAT_VALUE->defaultVal(), 0.F);
+    EXPECT_FLOAT_EQ(FLOAT_VALUE->defaultVal(), 3.F);
     EXPECT_FLOAT_EQ(*FLOAT_VALUE->m_min, 0.F);
     EXPECT_FLOAT_EQ(*FLOAT_VALUE->m_max, 10.F);
 }
@@ -59,8 +60,8 @@ TEST(Config, waterSettingsAreBounded) {
     };
 
     constexpr std::array SETTINGS = {
-        SWaterSetting{"decoration:blur:water:strength", 12.F, 0.F, 32.F},  SWaterSetting{"decoration:blur:water:radius", 180.F, 1.F, 1000.F},
-        SWaterSetting{"decoration:blur:water:speed", 1.F, 0.F, 10.F},      SWaterSetting{"decoration:blur:water:damping", 0.995F, 0.F, 1.F},
+        SWaterSetting{"decoration:blur:water:strength", 32.F, 0.F, 32.F},  SWaterSetting{"decoration:blur:water:radius", 20.F, 1.F, 1000.F},
+        SWaterSetting{"decoration:blur:water:speed", 0.76F, 0.F, 10.F},    SWaterSetting{"decoration:blur:water:damping", 0.95F, 0.F, 1.F},
         SWaterSetting{"decoration:blur:water:duration", 12.F, 0.5F, 60.F},
     };
 
@@ -97,9 +98,9 @@ TEST(Config, fluidJarSettingsAreBounded) {
     };
 
     constexpr std::array SETTINGS = {
-        SFluidJarSetting{"decoration:blur:fluid_jar:speed", 1.F, 0.F, 10.F},     SFluidJarSetting{"decoration:blur:fluid_jar:fill_amount", 0.4F, 0.F, 1.F},
-        SFluidJarSetting{"decoration:blur:fluid_jar:mass", 1.F, 0.1F, 10.F},     SFluidJarSetting{"decoration:blur:fluid_jar:precision", 1.F, 0.5F, 8.F},
-        SFluidJarSetting{"decoration:blur:fluid_jar:turbulence", 1.F, 0.F, 5.F}, SFluidJarSetting{"decoration:blur:fluid_jar:distortion", 1.F, 0.F, 10.F},
+        SFluidJarSetting{"decoration:blur:fluid_jar:speed", 3.7F, 0.F, 10.F},     SFluidJarSetting{"decoration:blur:fluid_jar:fill_amount", 0.5F, 0.F, 1.F},
+        SFluidJarSetting{"decoration:blur:fluid_jar:mass", 1.4F, 0.1F, 10.F},     SFluidJarSetting{"decoration:blur:fluid_jar:precision", 2.F, 0.5F, 8.F},
+        SFluidJarSetting{"decoration:blur:fluid_jar:turbulence", 1.2F, 0.F, 5.F}, SFluidJarSetting{"decoration:blur:fluid_jar:distortion", 8.F, 0.F, 10.F},
     };
 
     for (const auto& setting : SETTINGS) {

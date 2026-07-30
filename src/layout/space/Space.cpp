@@ -92,7 +92,7 @@ void CSpace::recheckWorkArea() {
         PFLOATGAPS = PGAPSOUT;
 
     auto                   gapsOut   = WORKSPACERULE.m_gapsOut.value_or(*PGAPSOUT);
-    auto                   gapsFloat = WORKSPACERULE.m_gapsOut.value_or(*PFLOATGAPS);
+    auto                   gapsFloat = WORKSPACERULE.m_floatGaps.value_or(*PFLOATGAPS);
 
     Desktop::CReservedArea reservedGaps{gapsOut.m_top, gapsOut.m_right, gapsOut.m_bottom, gapsOut.m_left};
     Desktop::CReservedArea reservedFloatGaps{gapsFloat.m_top, gapsFloat.m_right, gapsFloat.m_bottom, gapsFloat.m_left};

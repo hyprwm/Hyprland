@@ -191,7 +191,8 @@ CCompositor::CCompositor(bool onlyConfig) : m_onlyConfigVerification(onlyConfig)
 
     setMallocThreshold();
 
-    m_hyprTempDataRoot = std::format("{}/hypr", getenv("XDG_RUNTIME_DIR"));
+    const auto* XDG_RUNTIME_DIR = getenv("XDG_RUNTIME_DIR");
+    m_hyprTempDataRoot          = std::format("{}/hypr", XDG_RUNTIME_DIR ? XDG_RUNTIME_DIR : "");
 
     if (m_hyprTempDataRoot.starts_with("/hypr")) {
         std::println("Bailing out, $XDG_RUNTIME_DIR is invalid");

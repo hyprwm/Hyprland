@@ -225,7 +225,7 @@ int request(std::string_view arg, int minArgs = 0, bool needRoll = false) {
     sockaddr_un serverAddress = {0};
     serverAddress.sun_family  = AF_UNIX;
 
-    std::string socketPath = std::format("{}/{}.socket.sock", getRuntimeDir(), instanceSignature);
+    std::string socketPath = std::format("{}/{}/.socket.sock", getRuntimeDir(), instanceSignature);
 
     strncpy(serverAddress.sun_path, socketPath.c_str(), sizeof(serverAddress.sun_path) - 1);
 

@@ -54,7 +54,7 @@ std::vector<SInstanceData> instances() {
         } catch (std::exception& e) { continue; }
 
         // read file
-        std::ifstream ifs(std::format("{}/hyprland.lock", el.path()));
+        std::ifstream ifs(std::format("{}/hyprland.lock", el.path().string()));
 
         int           i = 0;
         for (std::string line; std::getline(ifs, line); ++i) {

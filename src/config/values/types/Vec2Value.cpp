@@ -26,3 +26,7 @@ Config::VEC2 CVec2Value::value() const {
 Config::VEC2 CVec2Value::defaultVal() const {
     return m_default;
 }
+
+std::function<std::expected<void, std::string>(const Config::VEC2&)> CVec2Value::validator() const {
+    return m_validator;
+}

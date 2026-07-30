@@ -162,7 +162,7 @@ void CInputMethodRelay::onKeyboardFocus(SP<CWLSurfaceResource> pSurface) {
 
 CInputPopup* CInputMethodRelay::popupFromCoords(const Vector2D& point) {
     for (auto const& p : m_inputMethodPopups) {
-        if (p->isVecInPopup(point))
+        if (p->shouldBeRendered() && p->isVecInPopup(point))
             return p.get();
     }
 

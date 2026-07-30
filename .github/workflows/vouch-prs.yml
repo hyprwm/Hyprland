@@ -17,9 +17,6 @@ jobs:
         uses: actions/checkout@v6
         with:
           persist-credentials: false
-          sparse-checkout: |
-            .github/vouch_pr_message.md
-          sparse-checkout-cone-mode: false
 
       - name: Verify central Vouch list
         env:
@@ -35,7 +32,7 @@ jobs:
           pr-number: ${{ github.event.pull_request.number }}
           repo: ${{ github.repository }}
           vouched-repo: ${{ github.repository_owner }}/.github
-          vouched-file: VOUCHED.td
+          vouched-file: vouch/VOUCHED.td
           template-file: .github/vouch_pr_message.md
           require-vouch: true
           auto-close: true

@@ -22,6 +22,7 @@ class CAlphaModifier {
     float                         m_alpha = 1.0;
 
     void                          destroy();
+    void                          markPending();
 
     struct {
         CHyprSignalListener surfaceCommitted;

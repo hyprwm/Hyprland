@@ -31,10 +31,12 @@ void CBackgroundEffect::setResource(SP<CExtBackgroundEffectSurfaceV1> resource) 
 
         if (!region) {
             m_blurRegion.clear();
+            markPending();
             return;
         }
 
         m_blurRegion = CWLRegionResource::fromResource(region)->m_region;
+        markPending();
     });
 
     m_listeners.surfaceCommitted = m_surface->m_events.commit.listen([this] {
@@ -68,9 +70,15 @@ void CBackgroundEffect::setResource(SP<CExtBackgroundEffectSurfaceV1> resource) 
     });
 }
 
+void CBackgroundEffect::markPending() {
+    if (m_surface)
+        m_surface->m_pending.updated.bits.backgroundEffect = true;
+}
+
 void CBackgroundEffect::destroy() {
     m_resource.reset();
     m_blurRegion.clear();
+    markPending();
     // The spec requires effect removal to be double-buffered: state is cleared on next wl_surface commit.
     // If the surface is already destroyed, clean up immediately.
     if (!m_surface)

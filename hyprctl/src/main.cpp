@@ -37,6 +37,12 @@ using namespace Hyprutils::Memory;
 #include <readline/readline.h>
 #include <readline/history.h>
 
+#define LUA_ERRSYNTAX 3
+#define LUA_EOFMARK "<eof>"
+
+#define xstr(a) str(a)
+#define str(a) #a
+
 std::string instanceSignature;
 bool        quiet = false;
 
@@ -196,7 +202,7 @@ int rollingRead(const int socket) {
     return 0;
 }
 
-int request(std::string_view arg, int minArgs = 0, bool needRoll = false) {
+int request(std::string_view arg, int minArgs = 0, bool needRoll = false, bool isRepl = false) {
     const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
 
     if (SERVERSOCKET < 0) {
@@ -270,7 +276,11 @@ int request(std::string_view arg, int minArgs = 0, bool needRoll = false) {
 
     close(SERVERSOCKET);
 
-    log(reply);
+    // lua interactive REPL: check for incomplete-line error
+    if (isRepl && reply.starts_with("error: " xstr(LUA_ERRSYNTAX) " ") && reply.ends_with(LUA_EOFMARK))
+        return 8;
+    else
+        log(reply);
 
     if (reply.starts_with("error:"))
         return 7;
@@ -563,11 +573,24 @@ int main(int argc, char** argv) {
         } else {
             // interactive REPL mode
             char* input = nullptr;
-            while ((input = readline("> ")) != nullptr) {
-                std::string line(input);
+            bool continuing = false;
+            std::string line;
+            while ((input = readline(continuing ? ">> " : "> ")) != nullptr) {
+                // extend line if incomplete, replace otherwise
+                if (continuing) {
+                    line.append("\n");
+                    line.append(input);
+                } else
+                    line.assign(input);
                 if (!line.empty()) {
-                    exitStatus = request(std::format("/repl {}", line));
-                    add_history(input);
+                    exitStatus = request(std::format("/repl {}", line), 0, false, true);
+                    // check for incomplete-line error, retry
+                    if (exitStatus == 8)
+                        continuing = true;
+                    else {
+                        continuing = false;
+                        add_history(input);
+                    }
                 }
                 free(input);
             }

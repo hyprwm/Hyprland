@@ -783,7 +783,7 @@ def generate_stub(root: Path) -> str:
         class_name = namespace_class_name(path)
         fields: list[tuple[str, str, bool]] = []
 
-        full_prefix = f"hl.{".".join(path) if path else ""}"
+        full_prefix = ".".join(["hl", *path])
 
         for method in sorted(node.methods):
             full_name = f"{full_prefix}.{method}"

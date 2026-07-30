@@ -38,10 +38,10 @@ using namespace Hyprutils::Memory;
 #include <readline/history.h>
 
 #define LUA_ERRSYNTAX 3
-#define LUA_EOFMARK "<eof>"
+#define LUA_EOFMARK   "<eof>"
 
 #define xstr(a) str(a)
-#define str(a) #a
+#define str(a)  #a
 
 std::string instanceSignature;
 bool        quiet = false;
@@ -572,8 +572,8 @@ int main(int argc, char** argv) {
             exitStatus = request(fullRequest, 1);
         } else {
             // interactive REPL mode
-            char* input = nullptr;
-            bool continuing = false;
+            char*       input      = nullptr;
+            bool        continuing = false;
             std::string line;
             while ((input = readline(continuing ? ">> " : "> ")) != nullptr) {
                 // extend line if incomplete, replace otherwise

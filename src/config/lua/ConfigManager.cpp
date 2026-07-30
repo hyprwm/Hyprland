@@ -893,7 +893,8 @@ std::optional<std::string> CConfigManager::eval(const std::string& code, bool re
         m_isEvaluating = false;
         m_isREPL       = false;
     });
-    const auto errCode = luaL_loadstring(m_lua, code.starts_with("return") ? code.c_str() : std::format("return {};", code).c_str());
+
+    const auto                    errCode = luaL_loadstring(m_lua, code.starts_with("return") ? code.c_str() : std::format("return {};", code).c_str());
     if (errCode != LUA_OK) {
         lua_pop(m_lua, 1);
         if (luaL_loadstring(m_lua, code.c_str()) != LUA_OK) {

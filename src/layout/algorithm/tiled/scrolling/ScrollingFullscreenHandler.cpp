@@ -487,7 +487,8 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
             const auto STDATA = m_scrollingAlgorithm->dataFor(TARGET, true);
             if (STDATA) {
                 const auto COL_DATA = m_scrollingAlgorithm->dataFor(TARGET, true)->column;
-                if (COL_DATA && isFullscreen(TARGET, std::nullopt, std::nullopt) && COL_DATA->targetDatas.size() != 1) {
+                // use TARGET_FS_MODES.internal != FSMODE_NONE here because isFullscreen() would catch that target isn't alone in col and return false
+                if (COL_DATA && TARGET_FS_MODES.internal != FSMODE_NONE && COL_DATA->targetDatas.size() != 1) {
                     // Empty the list now so the unFS operation has an updated tracked FS target list it can check
                     for (const auto& e : toInsert) {
                         m_fsTargets.emplace(e.first, e.second);

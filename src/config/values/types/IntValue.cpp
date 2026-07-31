@@ -3,7 +3,7 @@
 using namespace Config::Values;
 
 CIntValue::CIntValue(const char* name, const char* description, Config::INTEGER def, SIntValueOptions&& options) :
-    IValue(options.refresh), m_min(options.min), m_max(options.max), m_map(std::move(options.map)), m_default(def) {
+    IValue(options.refresh, options.deprecationNotice), m_min(options.min), m_max(options.max), m_map(std::move(options.map)), m_default(def) {
     m_name        = name;
     m_description = description;
 }

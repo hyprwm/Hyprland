@@ -3,7 +3,7 @@
 using namespace Config::Values;
 
 CVec2Value::CVec2Value(const char* name, const char* description, Config::VEC2 def, SVec2ValueOptions&& options) :
-    IValue(options.refresh), m_validator(std::move(options.validator)), m_default(def) {
+    IValue(options.refresh, options.deprecationNotice), m_validator(std::move(options.validator)), m_default(def) {
     m_name        = name;
     m_description = description;
 }

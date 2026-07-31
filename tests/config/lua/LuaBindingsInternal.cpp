@@ -4,6 +4,7 @@
 #include <Compositor.hpp>
 
 #include <config/lua/types/LuaConfigInt.hpp>
+#include <config/values/types/IntValue.hpp>
 
 #include <gtest/gtest.h>
 
@@ -300,6 +301,36 @@ TEST(ConfigLuaBindingsInternal, pluginBindingIsTableWithLoadFunction) {
     lua_pop(L, 1);
 
     lua_pop(L, 2);
+}
+
+TEST(ConfigLuaBindingsInternal, deprecationNoticesOnlyIncludeUsedDeprecatedValues) {
+    CScopedCompositor compositor;
+    CLuaState         state;
+    const auto        lua = state.get();
+
+    CConfigManager    mgr;
+    CConfigManagerPluginLuaTestAccessor::initializeLuaState(mgr, lua);
+
+    lua_newtable(lua);
+    Internal::registerConfigRuleBindings(lua, &mgr);
+    lua_setglobal(lua, "hl");
+
+    const auto HANDLE = reinterpret_cast<void*>(0x1BADB002);
+    ASSERT_TRUE(mgr.registerPluginValue(HANDLE, makeShared<Config::Values::CIntValue>("test:ordinary", "", 0)).has_value());
+    ASSERT_TRUE(
+        mgr.registerPluginValue(HANDLE, makeShared<Config::Values::CIntValue>("test:deprecated", "", 0, Config::Values::SIntValueOptions{.deprecationNotice = "use replacement"}))
+            .has_value());
+
+    EXPECT_TRUE(mgr.deprecationNotices().empty());
+
+    ASSERT_EQ(luaL_dostring(lua, "hl.config({ test = { ordinary = 1 } })"), LUA_OK) << lua_tostring(lua, -1);
+    EXPECT_TRUE(mgr.deprecationNotices().empty());
+
+    ASSERT_EQ(luaL_dostring(lua, "hl.config({ test = { deprecated = 1 } })"), LUA_OK) << lua_tostring(lua, -1);
+
+    const auto notices = mgr.deprecationNotices();
+    ASSERT_EQ(notices.size(), 1);
+    EXPECT_EQ(notices.front(), "test.deprecated: use replacement");
 }
 
 TEST(ConfigLuaBindingsInternal, pluginLuaFnIsUnloadedWithoutDanglingCall) {

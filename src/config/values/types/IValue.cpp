@@ -3,7 +3,7 @@
 using namespace Config::Values;
 using namespace Config;
 
-IValue::IValue(Supplementary::PropRefreshBits refreshProps) : m_refreshProps(refreshProps) {
+IValue::IValue(Supplementary::PropRefreshBits refreshProps, const char* deprecationNotice) : m_deprecationNotice(deprecationNotice), m_refreshProps(refreshProps) {
     ;
 }
 
@@ -17,4 +17,8 @@ const char* IValue::description() const {
 
 Supplementary::PropRefreshBits IValue::refreshBits() const {
     return m_refreshProps;
+}
+
+std::optional<const char*> IValue::deprecationNotice() const {
+    return m_deprecationNotice ? std::optional<const char*>{m_deprecationNotice} : std::nullopt;
 }

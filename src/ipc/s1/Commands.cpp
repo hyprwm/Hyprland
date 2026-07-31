@@ -1076,6 +1076,34 @@ static std::string statusRequest(eHyprCtlOutputFormat format, std::string reques
     return Helpers::SystemInfo::getStatus(format);
 }
 
+static std::string deprecatedConfigRequest(eHyprCtlOutputFormat format, std::string request) {
+    const auto  OPTS = Config::mgr()->deprecationNotices();
+
+    std::string ret = "";
+
+    if (format == IPC::Socket1::FORMAT_JSON) {
+        ret += "[";
+        for (const auto& o : OPTS) {
+            ret += std::format("\"{}\", ", escapeJSONStrings(o));
+        }
+        if (!OPTS.empty()) {
+            ret.pop_back();
+            ret.pop_back();
+        }
+
+        ret += "]";
+    } else {
+        if (!OPTS.empty()) {
+            for (const auto& o : OPTS) {
+                ret += std::format("{}\n", o);
+            }
+        } else
+            ret = "all good!";
+    }
+
+    return ret;
+}
+
 std::string IPC::Socket1::systemInfo(eOutputFormat format, bool includeConfig) {
     auto result = Helpers::SystemInfo::getSystemInfo();
 
@@ -1881,6 +1909,7 @@ void IPC::Socket1::registerBuiltinCommands(CSocket1& socket) {
     socket.registerCommand(legacyCommand("descriptions", COMMAND_MATCH_EXACT, getDescriptions));
     socket.registerCommand(legacyCommand("submap", COMMAND_MATCH_EXACT, submapRequest));
     socket.registerCommand(legacyCommand("status", COMMAND_MATCH_EXACT, statusRequest));
+    socket.registerCommand(legacyCommand("deprecated-config", COMMAND_MATCH_EXACT, deprecatedConfigRequest));
 
     socket.registerCommand(legacyCommand("reloadshaders", COMMAND_MATCH_PREFIX, reloadShaders));
     socket.registerCommand(legacyCommand("monitors", COMMAND_MATCH_PREFIX, monitorsRequest));

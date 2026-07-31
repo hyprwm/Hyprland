@@ -84,6 +84,8 @@ namespace Config::Lua {
         virtual std::expected<void, std::string> registerPluginValue(void* handle, SP<Config::Values::IValue> value) override;
         virtual void                             onPluginUnload(void* handle) override;
 
+        virtual std::vector<std::string>         deprecationNotices() const override;
+
         int                                      invokePluginLuaFunctionByID(uint64_t id, lua_State* L);
 
         std::expected<void, std::string>         registerPluginLuaFunction(void* handle, const std::string& namespace_, const std::string& name, PLUGIN_LUA_FN fn);

@@ -7,7 +7,8 @@
 
 namespace Config::Values {
     struct SGradientValueOptions {
-        Supplementary::PropRefreshBits refresh = 0;
+        Supplementary::PropRefreshBits refresh           = 0;
+        const char*                    deprecationNotice = nullptr;
     };
 
     class CGradientValue : public IValue {

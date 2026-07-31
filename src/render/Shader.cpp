@@ -248,6 +248,9 @@ void CShader::getUniformLocations() {
     m_uniformLocations[SHADER_FLUIDJAR_HISTORY_TRANSFORM]  = getUniform("fluidJarHistoryTransform");
     m_uniformLocations[SHADER_FLUIDJAR_HISTORY_FALLBACK]   = getUniform("fluidJarHistoryFallback");
     m_uniformLocations[SHADER_FLUIDJAR_EXTENT]             = getUniform("fluidJarExtent");
+    m_uniformLocations[SHADER_FLUIDJAR_OUTPUT_TRANSFORM]   = getUniform("fluidJarOutputTransform");
+    m_uniformLocations[SHADER_FLUIDJAR_OUTPUT_OFFSET]      = getUniform("fluidJarOutputOffset");
+    m_uniformLocations[SHADER_FLUIDJAR_LOGICAL_SIZE]       = getUniform("fluidJarLogicalSize");
     m_uniformLocations[SHADER_FLUIDJAR_COLOR]              = getUniform("fluidJarColor");
     m_uniformLocations[SHADER_FLUIDJAR_REFRACTION]         = getUniform("fluidJarRefraction");
     m_uniformLocations[SHADER_FLUIDJAR_TRANSFER_FUNCTION]  = getUniform("fluidJarTransferFunction");

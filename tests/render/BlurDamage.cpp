@@ -71,6 +71,49 @@ TEST(FluidJar, DamageIncludesBoundedRefraction) {
     EXPECT_FLOAT_EQ(fluidJarDamageRadius(8, 1, 10.F), 96.F);
 }
 
+TEST(FluidJar, OutputTransformsMapFramebufferToLogicalCoordinates) {
+    const std::array<SFluidJarOutputTransform, 8> expected = {
+        SFluidJarOutputTransform{.xAxis = {1, 0}, .yAxis = {0, 1}, .offset = {0, 0}},   SFluidJarOutputTransform{.xAxis = {0, -1}, .yAxis = {1, 0}, .offset = {0, 1}},
+        SFluidJarOutputTransform{.xAxis = {-1, 0}, .yAxis = {0, -1}, .offset = {1, 1}}, SFluidJarOutputTransform{.xAxis = {0, 1}, .yAxis = {-1, 0}, .offset = {1, 0}},
+        SFluidJarOutputTransform{.xAxis = {-1, 0}, .yAxis = {0, 1}, .offset = {1, 0}},  SFluidJarOutputTransform{.xAxis = {0, 1}, .yAxis = {1, 0}, .offset = {0, 0}},
+        SFluidJarOutputTransform{.xAxis = {1, 0}, .yAxis = {0, -1}, .offset = {0, 1}},  SFluidJarOutputTransform{.xAxis = {0, -1}, .yAxis = {-1, 0}, .offset = {1, 1}},
+    };
+
+    for (size_t i = 0; i < expected.size(); ++i) {
+        const auto transform = fluidJarOutputTransform(sc<eTransform>(i));
+        EXPECT_EQ(transform.xAxis, expected[i].xAxis);
+        EXPECT_EQ(transform.yAxis, expected[i].yAxis);
+        EXPECT_EQ(transform.offset, expected[i].offset);
+    }
+}
+
+TEST(FluidJar, OutputTransformsKeepTheFloorAtLogicalBottom) {
+    const std::array<Vector2D, 8> outputBottomCenters = {
+        Vector2D{0.5, 1.0}, Vector2D{0.0, 0.5}, Vector2D{0.5, 0.0}, Vector2D{1.0, 0.5}, Vector2D{0.5, 1.0}, Vector2D{1.0, 0.5}, Vector2D{0.5, 0.0}, Vector2D{0.0, 0.5},
+    };
+
+    for (size_t i = 0; i < outputBottomCenters.size(); ++i) {
+        const auto transform = fluidJarOutputTransform(sc<eTransform>(i));
+        const auto point     = outputBottomCenters[i];
+        const auto logical   = transform.xAxis * point.x + transform.yAxis * point.y + transform.offset;
+        EXPECT_EQ(logical, Vector2D(0.5, 1.0));
+    }
+}
+
+TEST(FluidJar, OutputTransformVectorsRoundTrip) {
+    constexpr Vector2D LOGICAL_VECTOR = {0.25, -0.75};
+
+    for (int i = 0; i < 8; ++i) {
+        const auto     transform    = fluidJarOutputTransform(sc<eTransform>(i));
+        const Vector2D outputVector = {
+            transform.xAxis.x * LOGICAL_VECTOR.x + transform.xAxis.y * LOGICAL_VECTOR.y,
+            transform.yAxis.x * LOGICAL_VECTOR.x + transform.yAxis.y * LOGICAL_VECTOR.y,
+        };
+        const auto logicalVector = transform.xAxis * outputVector.x + transform.yAxis * outputVector.y;
+        EXPECT_EQ(logicalVector, LOGICAL_VECTOR);
+    }
+}
+
 TEST(FluidJar, SimulationSizeRejectsEmptyExtents) {
     EXPECT_EQ(fluidJarSimulationSize({0, 100}), Vector2D());
     EXPECT_EQ(fluidJarSimulationSize({100, 0}), Vector2D());

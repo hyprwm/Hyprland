@@ -18,6 +18,12 @@ namespace Render::GL {
         Vector2D velocityScale  = {1, 1};
     };
 
+    struct SFluidJarOutputTransform {
+        Vector2D xAxis  = {1, 0};
+        Vector2D yAxis  = {0, 1};
+        Vector2D offset = {};
+    };
+
     class CFluidJarBlurProvider final : public CDualKawaseBlurProvider {
       public:
         explicit CFluidJarBlurProvider(CHyprOpenGLImpl& impl);
@@ -101,6 +107,7 @@ namespace Render::GL {
     int                        fluidJarInitialParticleCount(const Vector2D& simulationSize, float fillAmount);
     int                        fluidJarResizedParticleCount(int oldParticleCount, const Vector2D& simulationSize);
     float                      fluidJarDamageRadius(int64_t size, int64_t passes, float distortion = 1.F);
+    SFluidJarOutputTransform   fluidJarOutputTransform(eTransform transform);
     SFluidJarGeometryTransform fluidJarGeometryTransform(const CBox& oldExtent, const CBox& newExtent, const Vector2D& oldSimulationSize, const Vector2D& newSimulationSize,
                                                          bool preserveWorldPosition = true);
     std::array<float, 3>       fluidJarWallVelocities(const CBox& oldExtent, const CBox& newExtent, const Vector2D& simulationSize, float elapsed, float speed = 1.F);

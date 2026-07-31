@@ -41,6 +41,7 @@ namespace Desktop::View {
         virtual std::optional<uint8_t>                      alphaGenericToKey(eAlphaModifiableProp p) override;
 
         int                                                 popupsCount();
+        bool                                                shouldBlur() const;
 
         WP<CLayerShellResource>                             m_layerSurface;
 

@@ -66,7 +66,7 @@ float CDualKawaseBlurProvider::damageRadius() const {
     static auto PBLURSIZE   = CConfigValue<Config::INTEGER>("decoration:blur:size");
     static auto PBLURPASSES = CConfigValue<Config::INTEGER>("decoration:blur:passes");
 
-    return dualKawaseDamageRadius(*PBLURSIZE, *PBLURPASSES);
+    return dualKawaseDamageRadius(std::clamp<Config::INTEGER>(*PBLURSIZE, 1, 40), std::clamp<Config::INTEGER>(*PBLURPASSES, 1, 8));
 }
 
 SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(SP<CGLFramebuffer> source, float strength, const CRegion& originalDamage, const SBlurContext& context) {

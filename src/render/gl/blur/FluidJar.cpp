@@ -568,7 +568,7 @@ void CFluidJarBlurProvider::scheduleNextFrame(const SState& state) const {
 }
 
 void CFluidJarBlurProvider::pruneStates() {
-    std::erase_if(m_states, [](const auto& state) { return state.window.expired(); });
+    std::erase_if(m_states, [](const auto& state) { return state.window.expired() || !state.window->shouldBlur(); });
 }
 
 Vector2D Render::GL::fluidJarSimulationSize(const Vector2D& extent, float precision) {

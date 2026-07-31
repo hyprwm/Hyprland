@@ -63,6 +63,7 @@ namespace Desktop::View {
         void                                                onReposition();
 
         void                                                recheckTree();
+        bool                                                shouldBlur() const;
 
         bool                                                inert() const;
 

@@ -127,6 +127,29 @@ TEST(ConfigLuaUtils, fromGenericValueCopiesRefreshBits) {
     EXPECT_EQ(out->refreshBits(), REFRESH);
 }
 
+TEST(ConfigValues, valueOptionsCopyDeprecationNotice) {
+    constexpr const char* NOTICE = "use another option";
+
+    const auto            checkNotice = [NOTICE](const Values::IValue& value) {
+        const auto notice = value.deprecationNotice();
+        ASSERT_TRUE(notice.has_value());
+        EXPECT_STREQ(*notice, NOTICE);
+    };
+
+    checkNotice(*makeShared<Values::CBoolValue>("a", "", false, Values::SBoolValueOptions{.deprecationNotice = NOTICE}));
+    checkNotice(*makeShared<Values::CColorValue>("a", "", 0, Values::SColorValueOptions{.deprecationNotice = NOTICE}));
+    checkNotice(*makeShared<Values::CCssGapValue>("a", "", 0, Values::SCssGapValueOptions{.deprecationNotice = NOTICE}));
+    checkNotice(*makeShared<Values::CFloatValue>("a", "", 0.F, Values::SFloatValueOptions{.deprecationNotice = NOTICE}));
+    checkNotice(*makeShared<Values::CFontWeightValue>("a", "", 400, Values::SFontWeightValueOptions{.deprecationNotice = NOTICE}));
+    checkNotice(*makeShared<Values::CGradientValue>("a", "", CHyprColor(0), Values::SGradientValueOptions{.deprecationNotice = NOTICE}));
+    checkNotice(*makeShared<Values::CIntValue>("a", "", 0, Values::SIntValueOptions{.deprecationNotice = NOTICE}));
+    checkNotice(*makeShared<Values::CStringValue>("a", "", "", Values::SStringValueOptions{.deprecationNotice = NOTICE}));
+    checkNotice(*makeShared<Values::CVec2Value>("a", "", VEC2{}, Values::SVec2ValueOptions{.deprecationNotice = NOTICE}));
+
+    const auto defaultValue = makeShared<Values::CBoolValue>("a", "", false);
+    EXPECT_FALSE(defaultValue->deprecationNotice().has_value());
+}
+
 TEST(ConfigLuaUtils, fromGenericValueCopiesValidationMetadata) {
     CLuaState  state;
     const auto lua = state.get();

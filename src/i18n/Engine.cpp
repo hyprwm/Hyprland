@@ -251,6 +251,12 @@ I18n::CI18nEngine::CI18nEngine() {
     registerEntry("en_US", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM shader reload failed, falling back to rgba/rgbx.");
     registerEntry("en_US", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: wide color gamut is enabled but the display is not in 10-bit mode.");
     registerEntry("en_US", TXT_KEY_NOTIF_NO_WATCHDOG, "Hyprland was started without start-hyprland. This is strongly discouraged unless you are in a debugging environment.");
+    registerEntry("en_US", TXT_KEY_NOTIF_DEPRECATED_CONFIG_OPTS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        int assetsNo = std::stoi(vars.at("count"));
+        if (assetsNo <= 1)
+            return "You are using {count} deprecated config option. Run hyprctl deprecated-config to see more information.";
+        return "You are using {count} deprecated config options. Run hyprctl deprecated-config to see more information.";
+    });
 
     registerEntry("en_US", TXT_KEY_SAFE_MODE_TITLE, "Safe Mode");
     registerEntry("en_US", TXT_KEY_SAFE_MODE_DESCRIPTION,
@@ -833,6 +839,7 @@ I18n::CI18nEngine::CI18nEngine() {
     registerEntry("ja_JP", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM シェーダのリロードに失敗したため、rgba/rgbx を使用します。");
     registerEntry("ja_JP", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "広色域が有効なモニタ {name} を使用していますが、画面表示の設定は 10 ビットになっていません。");
     registerEntry("ja_JP", TXT_KEY_NOTIF_NO_WATCHDOG, "start-hyprland なしで Hyprland を実行しています。これは、デバッグ目的以外ではおすすめしません。");
+    registerEntry("ja_JP", TXT_KEY_NOTIF_DEPRECATED_CONFIG_OPTS, "廃止済みのオプションが{count}件使用されています。詳細は、hyprctl deprecated-configで確認してください。");
 
     registerEntry("ja_JP", TXT_KEY_SAFE_MODE_TITLE, "セーフモード");
     registerEntry("ja_JP", TXT_KEY_SAFE_MODE_DESCRIPTION,
@@ -1174,6 +1181,18 @@ I18n::CI18nEngine::CI18nEngine() {
     registerEntry("pl_PL", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Nie udało się przeładować shader'a CM, użyto rgba/rgbx.");
     registerEntry("pl_PL", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: skonfigurowano szeroką głębię barw, ale monitor nie jest w trybie 10-bit.");
     registerEntry("pl_PL", TXT_KEY_NOTIF_NO_WATCHDOG, "Hyprland został uruchomiony bez start-hyprland. Nie jest to zalecane, chyba, że jest to środowisko do debugowania.");
+    registerEntry("pl_PL", TXT_KEY_NOTIF_DEPRECATED_CONFIG_OPTS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        int opts = std::stoi(vars.at("count"));
+        if (opts == 1)
+            return "1 przestarzała opcja konfiguracji jest w użyciu. Sprawdź hyprctl deprecated-config po więcej informacji.";
+
+        int last    = opts % 10;
+        int lastTwo = opts % 100;
+        if (last >= 2 && last <= 4 && !(lastTwo >= 12 && lastTwo <= 14))
+            return "{count} przestarzałe opcje konfiguracji są w użyciu. Sprawdź hyprctl deprecated-config po więcej informacji.";
+
+        return "{count} przestarzałych opcji konfiguracji jest w użyciu. Sprawdź hyprctl deprecated-config po więcej informacji.";
+    });
 
     registerEntry("pl_PL", TXT_KEY_SAFE_MODE_TITLE, "Tryb Bezpieczny");
     registerEntry("pl_PL", TXT_KEY_SAFE_MODE_DESCRIPTION,

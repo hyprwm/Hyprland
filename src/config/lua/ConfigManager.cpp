@@ -1442,3 +1442,19 @@ void CConfigManager::reregisterLuaPluginFns() {
             Log::logger->log(Log::ERR, "[lua] failed to reregister plugin fn for {}.{}: {}", fn.namespace_, fn.name, ret.error());
     }
 }
+
+std::vector<std::string> CConfigManager::deprecationNotices() const {
+    std::vector<std::string> accum;
+
+    for (const auto& v : m_configValues) {
+        if (!v.second->setByUser())
+            continue;
+
+        if (!v.second->deprecationNotice())
+            continue;
+
+        accum.emplace_back(std::format("{}: {}", v.first, *v.second->deprecationNotice()));
+    }
+
+    return accum;
+}

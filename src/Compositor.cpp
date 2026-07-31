@@ -901,6 +901,11 @@ void CCompositor::performUserChecks() {
                                                  CHyprColor{1.0, 0.1, 0.1, 1.0}, 15000, ICON_ERROR);
     }
 
+    if (const auto N = Config::mgr()->deprecationNotices(); !N.empty()) {
+        Notification::overlay()->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_DEPRECATED_CONFIG_OPTS, {{"count", std::to_string(N.size())}}), CHyprColor{},
+                                                 12000, ICON_WARNING);
+    }
+
     if (!m_watchdogWriteFd.isValid() && !*PNOWATCHDOG)
         Notification::overlay()->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_NO_WATCHDOG), CHyprColor{1.0, 0.1, 0.1, 1.0}, 15000, ICON_WARNING);
 

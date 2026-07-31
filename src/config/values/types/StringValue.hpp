@@ -9,8 +9,9 @@
 
 namespace Config::Values {
     struct SStringValueOptions {
-        std::function<std::expected<void, std::string>(const Config::STRING&)> validator = {};
-        Supplementary::PropRefreshBits                                         refresh   = 0;
+        std::function<std::expected<void, std::string>(const Config::STRING&)> validator         = {};
+        Supplementary::PropRefreshBits                                         refresh           = 0;
+        const char*                                                            deprecationNotice = nullptr;
     };
 
     class CStringValue : public IValue {

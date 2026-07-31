@@ -7,7 +7,8 @@
 
 namespace Config::Values {
     struct SFontWeightValueOptions {
-        Supplementary::PropRefreshBits refresh = 0;
+        Supplementary::PropRefreshBits refresh           = 0;
+        const char*                    deprecationNotice = nullptr;
     };
 
     class CFontWeightValue : public IValue {

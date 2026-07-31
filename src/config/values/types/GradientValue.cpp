@@ -2,7 +2,8 @@
 
 using namespace Config::Values;
 
-CGradientValue::CGradientValue(const char* name, const char* description, CHyprColor def, SGradientValueOptions&& options) : IValue(options.refresh), m_default(def) {
+CGradientValue::CGradientValue(const char* name, const char* description, CHyprColor def, SGradientValueOptions&& options) :
+    IValue(options.refresh, options.deprecationNotice), m_default(def) {
     m_name        = name;
     m_description = description;
 }

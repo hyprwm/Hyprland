@@ -3,7 +3,7 @@
 using namespace Config::Values;
 
 CFloatValue::CFloatValue(const char* name, const char* description, Config::FLOAT def, SFloatValueOptions&& options) :
-    IValue(options.refresh), m_min(options.min), m_max(options.max), m_default(def) {
+    IValue(options.refresh, options.deprecationNotice), m_min(options.min), m_max(options.max), m_default(def) {
     m_name        = name;
     m_description = description;
 }

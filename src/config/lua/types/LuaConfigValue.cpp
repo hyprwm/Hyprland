@@ -40,3 +40,11 @@ Config::STRING ILuaConfigValue::asString() {
     RASSERT(false, "Lua config value cannot be read as string");
     return {};
 }
+
+std::optional<const char*> ILuaConfigValue::deprecationNotice() const {
+    return m_deprecated ? std::optional<const char*>{m_deprecated} : std::nullopt;
+}
+
+void ILuaConfigValue::setDeprecated(const char* x) {
+    m_deprecated = x;
+}

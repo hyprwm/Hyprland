@@ -9,8 +9,9 @@
 
 namespace Config::Values {
     struct SVec2ValueOptions {
-        std::function<std::expected<void, std::string>(const Config::VEC2&)> validator = {};
-        Supplementary::PropRefreshBits                                       refresh   = 0;
+        std::function<std::expected<void, std::string>(const Config::VEC2&)> validator         = {};
+        Supplementary::PropRefreshBits                                       refresh           = 0;
+        const char*                                                          deprecationNotice = nullptr;
     };
 
     class CVec2Value : public IValue {

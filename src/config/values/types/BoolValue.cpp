@@ -2,7 +2,7 @@
 
 using namespace Config::Values;
 
-CBoolValue::CBoolValue(const char* name, const char* description, bool def, SBoolValueOptions&& options) : IValue(options.refresh), m_default(def) {
+CBoolValue::CBoolValue(const char* name, const char* description, bool def, SBoolValueOptions&& options) : IValue(options.refresh, options.deprecationNotice), m_default(def) {
     m_name        = name;
     m_description = description;
 }

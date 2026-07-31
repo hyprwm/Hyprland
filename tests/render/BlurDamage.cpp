@@ -194,11 +194,11 @@ TEST(FluidJar, WallVelocityUsesSimulationCoordinates) {
 }
 
 TEST(FluidJar, WallVelocityRejectsInvalidIntervalsAndClampsSpikes) {
-    EXPECT_EQ(fluidJarWallVelocities({0, 0, 800, 600}, {10, 0, 800, 600}, {200, 150}, 0.F), (std::array<float, 3>{}));
+    EXPECT_EQ(fluidJarWallVelocities({0, 0, 800, 600}, {10, 0, 800, 600}, {200, 150}, 0.F), (std::array<float, 4>{}));
 
     const auto velocity = fluidJarWallVelocities({0, 0, 800, 600}, {1000, 0, 800, 600}, {200, 150}, 1.F / 60.F);
     EXPECT_FLOAT_EQ(velocity[0], 1.25F);
     EXPECT_FLOAT_EQ(velocity[1], 1.25F);
 
-    EXPECT_EQ(fluidJarWallVelocities({0, 0, 800, 600}, {10, 0, 800, 600}, {200, 150}, 1.F / 60.F, 0.F), (std::array<float, 3>{}));
+    EXPECT_EQ(fluidJarWallVelocities({0, 0, 800, 600}, {10, 0, 800, 600}, {200, 150}, 1.F / 60.F, 0.F), (std::array<float, 4>{}));
 }

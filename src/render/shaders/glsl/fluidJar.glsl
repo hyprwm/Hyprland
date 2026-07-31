@@ -81,11 +81,12 @@ vec4 fluidJarSaveParticle(FluidJarParticle particle, int field) {
     return vec4(0.0);
 }
 
-void fluidJarResolveBoundaries(inout FluidJarParticle particle, vec2 resolution, vec3 wallVelocities, float mass) {
+void fluidJarResolveBoundaries(inout FluidJarParticle particle, vec2 resolution, vec4 wallVelocities, float mass) {
     float restitution = clamp(0.12 / sqrt(max(mass, 0.1)), 0.02, 0.4);
     float left = min(2.0, resolution.x * 0.5);
     float right = max(resolution.x - 2.0, left);
     float bottom = min(2.0, resolution.y);
+    float top = max(bottom, resolution.y);
 
     if (particle.position.x < left) {
         particle.position.x = left;
@@ -103,6 +104,12 @@ void fluidJarResolveBoundaries(inout FluidJarParticle particle, vec2 resolution,
         particle.position.y = bottom;
         if (particle.velocity.y < wallVelocities.z)
             particle.velocity.y = wallVelocities.z - restitution * (particle.velocity.y - wallVelocities.z);
+    }
+
+    if (particle.position.y > top) {
+        particle.position.y = top;
+        if (particle.velocity.y > wallVelocities.w)
+            particle.velocity.y = wallVelocities.w - restitution * (particle.velocity.y - wallVelocities.w);
     }
 }
 

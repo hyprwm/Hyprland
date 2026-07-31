@@ -14,7 +14,7 @@ uniform vec2 fluidJarOldGridSize;
 uniform int fluidJarOldParticleCount;
 uniform vec4 fluidJarTransform;
 uniform vec2 fluidJarVelocityScale;
-uniform vec3 fluidJarWallVelocities;
+uniform vec4 fluidJarWallVelocities;
 uniform float fluidJarMass;
 
 #include "fluidJar.glsl"

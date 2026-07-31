@@ -841,3 +841,173 @@ TEST_CASE(dwindleFullscreenNonInterference) {
         EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "size"), greenSize);
     }
 }
+
+TEST_CASE(defaultHandledFsfocusInDirection) {
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'dwindle' } })"));
+
+    /*
+            This test serves as a test for all layouts that use deafult FS behaviour
+    */
+
+    Tests::spawnKitty("normal1");
+    Tests::spawnKitty("fs");
+    Tests::spawnKitty("normal2");
+
+    // if movefocus_cycles_fullscreen = false, all focus({direction}) is disallowed from moving focus from FS window
+    OK(getFromSocket("r/eval hl.config({ binds = { movefocus_cycles_fullscreen = false } })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:fs' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set', window = 'class:fs' })"));
+
+    // on_focus_under_fullscreen = 0
+    OK(getFromSocket("r/eval hl.config({ misc = { on_focus_under_fullscreen = 0 } })"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: fs");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'right' })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: fs");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'left' })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: fs");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'up' })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: fs");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'down' })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: fs");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+    }
+
+    // on_focus_under_fullscreen = 1
+    OK(getFromSocket("r/eval hl.config({ misc = { on_focus_under_fullscreen = 1 } })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'left' })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: fs");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'right' })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: fs");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+    }
+
+    // on_focus_under_fullscreen = 2
+    OK(getFromSocket("r/eval hl.config({ misc = { on_focus_under_fullscreen = 2 } })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'left' })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: fs");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+    }
+
+    // if movefocus_cycles_fullscreen = true
+
+    OK(getFromSocket("r/eval hl.config({ binds = { movefocus_cycles_fullscreen = true } })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:fs' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set', window = 'class:fs' })"));
+
+    // on_focus_under_fullscreen = 0
+    OK(getFromSocket("r/eval hl.config({ misc = { on_focus_under_fullscreen = 0 } })"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: fs");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'right' })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: fs");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'left' })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: fs");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'up' })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: fs");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'down' })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: fs");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+    }
+
+    // on_focus_under_fullscreen = 1
+    OK(getFromSocket("r/eval hl.config({ misc = { on_focus_under_fullscreen = 1 } })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'left' })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: normal1");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'right' })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: fs");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+    }
+
+    // on_focus_under_fullscreen = 2
+    OK(getFromSocket("r/eval hl.config({ misc = { on_focus_under_fullscreen = 2 } })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'left' })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: normal1");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
+    }
+}

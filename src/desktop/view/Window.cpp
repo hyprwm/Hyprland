@@ -55,6 +55,7 @@
 #include "../../render/Renderer.hpp"
 #include "../../render/transformer/MotionBlurTransformer.hpp"
 #include "../../ipc/s2/S2.hpp"
+#include "../../render/transformer/WobbleTransformer.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../pointer/PointerController.hpp"
 #include "../../managers/KeybindManager.hpp"
@@ -613,24 +614,21 @@ static Render::CMotionBlurTransformer* motionBlurTransformer(CWindow* window) {
     if (!window)
         return nullptr;
 
-    for (auto const& transformer : window->m_transformers) {
-        if (const auto MOTIONBLUR = dc<Render::CMotionBlurTransformer*>(transformer.get()))
-            return MOTIONBLUR;
-    }
-
-    return nullptr;
+    return window->m_transformers.get<Render::CMotionBlurTransformer>();
 }
 
 static const Render::CMotionBlurTransformer* motionBlurTransformer(const CWindow* window) {
     if (!window)
         return nullptr;
 
-    for (auto const& transformer : window->m_transformers) {
-        if (const auto MOTIONBLUR = dc<const Render::CMotionBlurTransformer*>(transformer.get()))
-            return MOTIONBLUR;
-    }
+    return window->m_transformers.get<Render::CMotionBlurTransformer>();
+}
 
-    return nullptr;
+static Render::CWobbleTransformer* wobbleTransformer(CWindow* window) {
+    if (!window)
+        return nullptr;
+
+    return window->m_transformers.get<Render::CWobbleTransformer>();
 }
 
 std::optional<MotionBlur::SState> CWindow::motionBlurState(bool allowStale) const {
@@ -674,7 +672,7 @@ void CWindow::recordMotionBlur(const CBox& previous, const CBox& current) {
 
     auto MOTIONBLUR = motionBlurTransformer(this);
     if (!MOTIONBLUR) {
-        m_transformers.emplace_back(makeUnique<Render::CMotionBlurTransformer>(m_self));
+        m_transformers.emplace<Render::CMotionBlurTransformer>(m_self);
         MOTIONBLUR = motionBlurTransformer(this);
     }
 
@@ -688,14 +686,44 @@ void CWindow::recordMotionBlur(const CBox& previous, const CBox& current) {
 void CWindow::resetMotionBlur() {
     damageMotionBlur(true);
 
-    std::erase_if(m_transformers, [](auto const& transformer) {
-        const auto MOTIONBLUR = dc<Render::CMotionBlurTransformer*>(transformer.get());
-        if (!MOTIONBLUR)
-            return false;
-
+    if (auto MOTIONBLUR = motionBlurTransformer(this))
         MOTIONBLUR->reset();
-        return true;
-    });
+
+    m_transformers.removeInactive();
+}
+
+void CWindow::resetWobble() {
+    if (auto WOBBLE = wobbleTransformer(this))
+        WOBBLE->resetWithDamage();
+
+    m_transformers.removeInactive();
+}
+
+void CWindow::onPositionUpdate(const CBox& previous, const CBox& current, eWindowUpdateSource source) {
+    recordMotionBlur(previous, current);
+
+    if (previous == current)
+        return;
+
+    if (!Render::CWobbleTransformer::shouldEnable(m_self.lock())) {
+        resetWobble();
+        return;
+    }
+
+    auto WOBBLE = wobbleTransformer(this);
+    if (!WOBBLE) {
+        m_transformers.emplace<Render::CWobbleTransformer>(m_self);
+        WOBBLE = wobbleTransformer(this);
+    }
+
+    std::optional<Vector2D> grabPoint;
+    if (source == WINDOW_UPDATE_MOUSE && current.w > 0.F && current.h > 0.F) {
+        const auto MOUSE = g_pInputManager->getMouseCoordsInternal();
+        grabPoint        = Vector2D{std::clamp((MOUSE.x - current.x) / current.w, 0.0, 1.0), std::clamp((MOUSE.y - current.y) / current.h, 0.0, 1.0)};
+    }
+
+    if (WOBBLE)
+        WOBBLE->record(previous, current, grabPoint);
 }
 
 void CWindow::onUnmap() {
@@ -739,6 +767,7 @@ void CWindow::onUnmap() {
         PMONITOR->m_solitaryClient.reset();
 
     resetMotionBlur();
+    resetWobble();
 
     if (m_workspace) {
         m_workspace->updateWindows();
@@ -778,6 +807,7 @@ void CWindow::onMap() {
     alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE)->setValueAndWarp(1.F);
 
     resetMotionBlur();
+    resetWobble();
 
     if (m_borderAngleAnimationProgress->enabled()) {
         m_borderAngleAnimationProgress->setValueAndWarp(0.f);
@@ -2044,8 +2074,10 @@ static void setVector2DAnimToMove(WP<CBaseAnimatedVariable> pav) {
     if (animvar->m_Context.pWindow) {
         animvar->m_Context.pWindow->m_animatingIn = false;
 
-        if (!animvar->m_Context.pWindow->positionAnimation()->isBeingAnimated() && !animvar->m_Context.pWindow->sizeAnimation()->isBeingAnimated())
+        if (!animvar->m_Context.pWindow->positionAnimation()->isBeingAnimated() && !animvar->m_Context.pWindow->sizeAnimation()->isBeingAnimated()) {
             animvar->m_Context.pWindow->resetMotionBlur();
+            animvar->m_Context.pWindow->resetWobble();
+        }
     }
 }
 
@@ -2481,6 +2513,7 @@ void CWindow::mapWindow() {
         m_realPosition->warp();
         m_realSize->warp();
         resetMotionBlur();
+        resetWobble();
         if (requestedFSState.has_value()) {
             m_ruleApplicator->syncFullscreenOverride(Desktop::Types::COverridableVar(false, Desktop::Types::PRIORITY_WINDOW_RULE));
             Fullscreen::controller()->setFullscreenMode(m_self.lock(), requestedFSState.value().internal, requestedFSState.value().client, wasFullscreenLayoutHandled);

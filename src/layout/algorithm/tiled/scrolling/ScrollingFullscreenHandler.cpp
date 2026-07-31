@@ -13,6 +13,7 @@
 #include "../../../../layout/algorithm/tiled/scrolling/ScrollingAlgorithm.hpp"
 #include "../../../../layout/target/WindowGroupTarget.hpp"
 #include "../../../../config/supplementary/propRefresher/PropRefresher.hpp"
+#include <hyprutils/utils/ScopeGuard.hpp>
 #include <optional>
 
 using namespace Fullscreen;
@@ -165,7 +166,7 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
 
     if (REQUESTED_MODE == FSMODE_FULLSCREEN) {
 
-        if (!isFullscreen(TARGET, FSMODE_FULLSCREEN)) {
+        if (!isFullscreen(TARGET, FSMODE_FULLSCREEN, std::nullopt)) {
 
             float targetColumnWidth = 0.0F;
 
@@ -204,7 +205,7 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
 
     } else if (REQUESTED_MODE == FSMODE_MAXIMIZED) {
 
-        if (!isFullscreen(TARGET, FSMODE_MAXIMIZED)) {
+        if (!isFullscreen(TARGET, FSMODE_MAXIMIZED, std::nullopt)) {
 
             float targetColumnWidth = 0.0F;
 
@@ -245,7 +246,7 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
     // UnFS target
     setTargetFullscreenModeInternal(TARGET, FSMODE_NONE);
     setNoMembersAboveFullscreen();
-    return (REQUESTED_MODE == FSMODE_NONE && !isFullscreen(TARGET)) ? FULLSCREEN_REQUEST_LAYOUT_HANDLED : FULLSCREEN_REQUEST_FAILED;
+    return (REQUESTED_MODE == FSMODE_NONE && !isFullscreen(TARGET, std::nullopt, std::nullopt)) ? FULLSCREEN_REQUEST_LAYOUT_HANDLED : FULLSCREEN_REQUEST_FAILED;
 }
 
 void CScrollingFullscreenHandler::setTargetFullscreenModeInternal(const SP<Layout::ITarget> target, const eFullscreenMode mode) {
@@ -446,6 +447,11 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
 }
 
 void CScrollingFullscreenHandler::syncFullscreenTargets() {
+    if (m_syncingFullscreenTargets)
+        return;
+
+    m_syncingFullscreenTargets = true;
+    Hyprutils::Utils::CScopeGuard guard([this] { m_syncingFullscreenTargets = false; });
 
     // to prevent a rehash
     std::vector<std::pair<WP<Layout::ITarget>, SFullscreenMode>> toInsert;
@@ -467,7 +473,9 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
             continue;
         }
 
-        if ((!isFullscreen(TARGET) && getFullscreenModes(TARGET).client == FSMODE_NONE)) {
+        const auto TARGET_FS_MODES = getFullscreenModes(TARGET);
+
+        if (TARGET_FS_MODES.internal == FSMODE_NONE && TARGET_FS_MODES.client == FSMODE_NONE) {
             const auto NEXT = std::next(it);
             removeFsTarget(TARGET, true);
             it = NEXT;
@@ -479,8 +487,17 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
             const auto STDATA = m_scrollingAlgorithm->dataFor(TARGET, true);
             if (STDATA) {
                 const auto COL_DATA = m_scrollingAlgorithm->dataFor(TARGET, true)->column;
-                if (COL_DATA && getFullscreenModes(TARGET).internal != FSMODE_NONE && COL_DATA->targetDatas.size() != 1)
+                if (COL_DATA && TARGET_FS_MODES.internal != FSMODE_NONE && COL_DATA->targetDatas.size() != 1) {
+                    for (const auto& e : toInsert) {
+                        m_fsTargets.emplace(e.first, e.second);
+                    }
+                    toInsert.clear();
                     controller()->setFullscreenMode(TARGET_WINDOW, FSMODE_NONE, std::nullopt, true);
+                    if (getFullscreenModes(TARGET).internal != FSMODE_NONE)
+                        removeFsTarget(TARGET, true);
+                    it = m_fsTargets.begin();
+                    continue;
+                }
             }
         }
 
@@ -488,9 +505,8 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
         if (TARGET->type() == Layout::TARGET_TYPE_GROUP || (TARGET->window()->m_group && TARGET->window()->m_group->current()->m_target != TARGET)) {
             Log::logger->log(Log::WARN, "Handler tracked a window group. This should have never happened. Recovering...");
 
-            const auto TARGET_FS_MODES = getFullscreenModes(it->first.lock());
-            const auto WINDOWTARGET    = TARGET->window()->m_target;
-            const auto NEXT            = std::next(it);
+            const auto WINDOWTARGET = TARGET->window()->m_target;
+            const auto NEXT         = std::next(it);
             removeFsTarget(TARGET, true);
             it = NEXT;
             if (WINDOWTARGET)
@@ -498,8 +514,8 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
             continue;
         }
 
-        if (getFullscreenModes(TARGET).internal != FSMODE_NONE) {
-            m_scrollingAlgorithm->dataFor(TARGET, true)->column->setColumnWidth((getFullscreenModes(TARGET).internal == FSMODE_FULLSCREEN ? fullscreenColumnWidth() : 1.F));
+        if (TARGET_FS_MODES.internal != FSMODE_NONE) {
+            m_scrollingAlgorithm->dataFor(TARGET, true)->column->setColumnWidth((TARGET_FS_MODES.internal == FSMODE_FULLSCREEN ? fullscreenColumnWidth() : 1.F));
             ++it;
             continue;
         }
@@ -709,7 +725,7 @@ void CScrollingFullscreenHandler::updateFullscreenFade(bool coversMonitor) {
 float CScrollingFullscreenHandler::getTargetColumnWidthBeforeFullscreenOrMaximise(const SP<Layout::ITarget> target) {
     // fallback to col width of 0.5F
 
-    if (!target || !isFullscreen(target))
+    if (!target || !isFullscreen(target, std::nullopt, std::nullopt))
         return 0.5F;
 
     const auto WINITR = m_fsTargets.find(target);

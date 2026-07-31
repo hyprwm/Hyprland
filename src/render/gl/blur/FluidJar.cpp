@@ -456,7 +456,7 @@ void CFluidJarBlurMaterial::drawParticleStep(SState& state, float dt) const {
     shader->setUniformInt(SHADER_FLUIDJAR_PARTICLE_COUNT, state.particleCount);
     shader->setUniformFloat(SHADER_FLUIDJAR_DT, dt);
     shader->setUniformFloat(SHADER_FLUIDJAR_MASS, std::clamp(*PFLUIDMASS, 0.1F, 10.F));
-    shader->setUniformFloat3(SHADER_FLUIDJAR_WALL_VELOCITIES, state.wallVelocities[0], state.wallVelocities[1], state.wallVelocities[2]);
+    shader->setUniformFloat4(SHADER_FLUIDJAR_WALL_VELOCITIES, state.wallVelocities[0], state.wallVelocities[1], state.wallVelocities[2], state.wallVelocities[3]);
     glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glBindVertexArray(0);

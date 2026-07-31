@@ -265,6 +265,10 @@ bool CHyprGLRenderer::explicitSyncSupported() {
     return g_pHyprOpenGL->explicitSyncSupported();
 }
 
+bool CHyprGLRenderer::fp16Supported() {
+    return g_pHyprOpenGL->fp16Supported();
+}
+
 std::vector<SDRMFormat> CHyprGLRenderer::getDRMFormats() {
     return g_pHyprOpenGL->getDRMFormats();
 }

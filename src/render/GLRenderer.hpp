@@ -20,6 +20,7 @@ namespace Render::GL {
         SP<ITexture>            createTexture(cairo_surface_t* cairo) override;
         SP<ITexture>            createTexture(std::span<const float> lut3D, size_t N) override;
         bool                    explicitSyncSupported() override;
+        bool                    fp16Supported() override;
         std::vector<SDRMFormat> getDRMFormats() override;
         std::vector<uint64_t>   getDRMFormatModifiers(DRMFormat format) override;
         SP<IFramebuffer>        createFB(const std::string& name = "") override;

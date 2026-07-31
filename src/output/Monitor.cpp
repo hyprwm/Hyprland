@@ -2754,8 +2754,8 @@ bool CMonitor::useFP16() {
         return true;
     };
 
-    // Auto: use FP16 if the monitor is not sRGB
-    bool        shouldUse  = *PFP16 == 1 || (*PFP16 == 2 && !isSRGB());
+    // Auto: use FP16 if the monitor is not sRGB or is 10 bit
+    bool        shouldUse  = g_pHyprRenderer->fp16Supported() && (*PFP16 == 1 || (*PFP16 == 2 && (!isSRGB() || m_enabled10bit)));
     static bool usedBefore = shouldUse;
     if (usedBefore != shouldUse) {
         usedBefore    = shouldUse;

@@ -246,6 +246,7 @@ namespace Render::GL {
         WP<CShader>                               useShader(WP<CShader> prog);
 
         bool                                      explicitSyncSupported();
+        bool                                      fp16Supported();
         WP<CShader>                               getShaderVariant(Render::ePreparedFragmentShader frag, Render::ShaderFeatureFlags features = 0);
 
         bool                                      m_shadersInitialized = false;
@@ -279,6 +280,7 @@ namespace Render::GL {
 
         struct {
             bool EXT_read_format_bgra               = false;
+            bool EXT_color_buffer_half_float        = false;
             bool EXT_image_dma_buf_import           = false;
             bool EXT_image_dma_buf_import_modifiers = false;
             bool KHR_context_flush_control          = false;
@@ -314,7 +316,8 @@ namespace Render::GL {
         std::array<bool, CAP_STATUS_END> m_capStatus = {};
 
         std::vector<SDRMFormat>          m_drmFormats;
-        bool                             m_hasModifiers = false;
+        bool                             m_hasModifiers  = false;
+        bool                             m_fp16Supported = false;
 
         int                              m_drmFD = -1;
         std::string                      m_extensions;

@@ -256,7 +256,10 @@ void CGLFramebuffer::invalidate(const std::vector<GLenum>& attachments) {
     if (!isAllocated())
         return;
 
-    glInvalidateFramebuffer(GL_FRAMEBUFFER, attachments.size(), attachments.data());
+    static const auto PFBINVALIDATE = CConfigValue<Config::INTEGER>("debug:invalidate_buffers");
+    if (*PFBINVALIDATE)
+        glInvalidateFramebuffer(GL_FRAMEBUFFER, attachments.size(), attachments.data());
+
     m_cleared = false;
 }
 

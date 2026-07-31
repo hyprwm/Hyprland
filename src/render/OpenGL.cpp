@@ -368,7 +368,8 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >
     Log::logger->log(Log::DEBUG, "Renderer: {}", rc<const char*>(glGetString(GL_RENDERER)));
     Log::logger->log(Log::DEBUG, "Supported extensions: ({}) {}", std::ranges::count(m_extensions, ' '), m_extensions);
 
-    m_exts.EXT_read_format_bgra = m_extensions.contains("GL_EXT_read_format_bgra");
+    m_exts.EXT_read_format_bgra        = m_extensions.contains("GL_EXT_read_format_bgra");
+    m_exts.EXT_color_buffer_half_float = m_extensions.contains("GL_EXT_color_buffer_half_float") || m_extensions.contains("GL_EXT_color_buffer_float");
 
     RASSERT(m_extensions.contains("GL_EXT_texture_format_BGRA8888"), "GL_EXT_texture_format_BGRA8888 support by the GPU driver is required");
 
@@ -610,6 +611,12 @@ void CHyprOpenGLImpl::initDRMFormats() {
             Log::WARN, "EGL: WARNING: No dmabuf formats were found, dmabuf will be disabled. This will degrade performance, but is most likely a driver issue or a very old GPU.");
 
     m_drmFormats = dmaFormats;
+
+    // FP16 needs both a half float renderable color buffer and the drm format
+    m_fp16Supported = m_exts.EXT_color_buffer_half_float && std::ranges::any_of(m_drmFormats, [](const auto& fmt) { return fmt.drmFormat == DRM_FORMAT_ABGR16161616F; });
+
+    if (!m_fp16Supported)
+        Log::logger->log(Log::WARN, "Your GPU does not support rendering to FP16 buffers, FP16 will be unavailable.");
 }
 
 EGLImageKHR CHyprOpenGLImpl::createEGLImage(const Aquamarine::SDMABUFAttrs& attrs) {
@@ -772,7 +779,6 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, SP<IFra
 
 void CHyprOpenGLImpl::end() {
     static auto PZOOMDISABLEAA = CConfigValue<Config::INTEGER>("cursor:zoom_disable_aa");
-    static auto PFPINVALIDATE  = CConfigValue<Config::INTEGER>("debug:invalidate_fp16");
     auto&       m_renderData   = g_pHyprRenderer->m_renderData;
     const auto  PMONITOR       = m_renderData.pMonitor;
     TRACY_GPU_ZONE("RenderEnd");
@@ -845,7 +851,7 @@ void CHyprOpenGLImpl::end() {
     g_pHyprRenderer->popMonitorTransformEnabled();
 
     // invalidate our render FBs to signal to the driver we don't need them anymore
-    if (!g_pHyprRenderer->m_renderData.pMonitor->useFP16() || *PFPINVALIDATE == 1 || (*PFPINVALIDATE == 2 && !g_pHyprRenderer->isNvidia())) { // FIXME wtf?
+    if (!g_pHyprRenderer->m_renderData.pMonitor->useFP16()) { // FIXME wtf?
         g_pHyprRenderer->m_renderData.pMonitor->resources()->forEachUnusedFB(
             [](const auto& fb) {
                 fb->bind();
@@ -2718,6 +2724,10 @@ std::vector<uint64_t> CHyprOpenGLImpl::getDRMFormatModifiers(DRMFormat drmFormat
 
 bool CHyprOpenGLImpl::explicitSyncSupported() {
     return m_exts.EGL_ANDROID_native_fence_sync_ext;
+}
+
+bool CHyprOpenGLImpl::fp16Supported() {
+    return m_fp16Supported;
 }
 
 WP<CShader> CHyprOpenGLImpl::getShaderVariant(ePreparedFragmentShader frag, ShaderFeatureFlags features) {

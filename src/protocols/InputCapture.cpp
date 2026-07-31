@@ -33,6 +33,7 @@ CInputCaptureResource::CInputCaptureResource(SP<CHyprlandInputCaptureV1> resourc
     Log::logger->log(Log::INFO, "[input-capture]({}) new session", m_sessionId.c_str());
 
     m_resource->setOnDestroy([this](CHyprlandInputCaptureV1* r) { PROTO::inputCapture->destroyResource(this); }); //Remove & free this session
+    m_resource->setDestroy([this](CHyprlandInputCaptureV1* r) { PROTO::inputCapture->destroyResource(this); });
 
     m_resource->setEnable([this](CHyprlandInputCaptureV1* r) { onEnable(); });
     m_resource->setAddBarrier(
@@ -80,9 +81,6 @@ CInputCaptureResource::~CInputCaptureResource() {
         g_pEventLoopManager->removeTimer(m_keyRepeatTimer);
         m_keyRepeatTimer.reset();
     }
-
-    if (m_status == CLIENT_STATUS_ACTIVATED)
-        PROTO::inputCapture->forceRelease();
 
     Log::logger->log(Log::INFO, "[input-capture]({}) session destroyed", m_sessionId.c_str());
     PROTO::inputCapture->clearBarriers(m_sessionId);
@@ -358,7 +356,11 @@ void CInputCaptureProtocol::onCreateSession(CHyprlandInputCaptureManagerV1* pMgr
 }
 
 void CInputCaptureProtocol::destroyResource(CInputCaptureResource* resource) {
-    std::erase_if(m_Sessions, [resource](const auto& other) { return other->m_sessionId == resource->m_sessionId; });
+    //`active` holds a strong ref, so the erase alone would not destroy the session
+    if (active && active.get() == resource)
+        forceRelease();
+
+    std::erase_if(m_Sessions, [resource](const auto& other) { return other.get() == resource; });
 }
 
 bool CInputCaptureProtocol::isCaptured() {
@@ -417,6 +419,7 @@ void CInputCaptureProtocol::forceRelease() {
         auto cpy = active; //Because deactivate will put active to nullptr
         cpy->deactivate();
         cpy->disable();
+        g_pHyprRenderer->ensureCursorRenderingMode();
     }
     release();
 }

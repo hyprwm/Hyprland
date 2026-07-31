@@ -22,10 +22,10 @@ TEST(Config, blurVariantsMatchRendererTypes) {
 
     EXPECT_EQ(INT_VALUE->defaultVal(), sc<Config::INTEGER>(eBlurType::BLUR_DUAL_KAWASE));
     EXPECT_EQ(*INT_VALUE->m_min, sc<Config::INTEGER>(eBlurType::BLUR_DUAL_KAWASE));
-    EXPECT_EQ(*INT_VALUE->m_max, sc<Config::INTEGER>(eBlurType::BLUR_PRISM));
+    EXPECT_EQ(*INT_VALUE->m_max, sc<Config::INTEGER>(eBlurType::BLUR_HEAT_SHIMMER));
 
     const auto& MAP = *INT_VALUE->m_map;
-    EXPECT_EQ(MAP.size(), 7);
+    EXPECT_EQ(MAP.size(), 8);
     EXPECT_EQ(MAP.at("kawase"), sc<Config::INTEGER>(eBlurType::BLUR_DUAL_KAWASE));
     EXPECT_EQ(MAP.at("frost"), sc<Config::INTEGER>(eBlurType::BLUR_FROST));
     EXPECT_FALSE(MAP.contains("fluted"));
@@ -35,6 +35,7 @@ TEST(Config, blurVariantsMatchRendererTypes) {
     EXPECT_EQ(MAP.at("water"), sc<Config::INTEGER>(eBlurType::BLUR_WATER));
     EXPECT_EQ(MAP.at("fluid_jar"), sc<Config::INTEGER>(eBlurType::BLUR_FLUID_JAR));
     EXPECT_EQ(MAP.at("prism"), sc<Config::INTEGER>(eBlurType::BLUR_PRISM));
+    EXPECT_EQ(MAP.at("heat_shimmer"), sc<Config::INTEGER>(eBlurType::BLUR_HEAT_SHIMMER));
 }
 
 TEST(Config, dropsAnimationSpeedIsBounded) {
@@ -49,6 +50,21 @@ TEST(Config, dropsAnimationSpeedIsBounded) {
     EXPECT_FLOAT_EQ(FLOAT_VALUE->defaultVal(), 3.F);
     EXPECT_FLOAT_EQ(*FLOAT_VALUE->m_min, 0.F);
     EXPECT_FLOAT_EQ(*FLOAT_VALUE->m_max, 10.F);
+}
+
+TEST(Config, heatShimmerAnimationSpeedIsBounded) {
+    const auto VALUE = std::ranges::find_if(CONFIG_VALUES, [](const auto& value) { return std::string_view{value->name()} == "decoration:blur:heat_shimmer:speed"; });
+    ASSERT_NE(VALUE, CONFIG_VALUES.end());
+
+    const auto FLOAT_VALUE = dynamicPointerCast<CFloatValue>(*VALUE);
+    ASSERT_TRUE(FLOAT_VALUE);
+    ASSERT_TRUE(FLOAT_VALUE->m_min.has_value());
+    ASSERT_TRUE(FLOAT_VALUE->m_max.has_value());
+
+    EXPECT_FLOAT_EQ(FLOAT_VALUE->defaultVal(), 1.F);
+    EXPECT_FLOAT_EQ(*FLOAT_VALUE->m_min, 0.F);
+    EXPECT_FLOAT_EQ(*FLOAT_VALUE->m_max, 10.F);
+    EXPECT_EQ(FLOAT_VALUE->refreshBits(), Config::Supplementary::REFRESH_BLUR_FB);
 }
 
 TEST(Config, waterSettingsAreBounded) {

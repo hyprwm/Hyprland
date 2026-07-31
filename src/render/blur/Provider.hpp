@@ -13,13 +13,14 @@ namespace Render {
     };
 
     enum class eBlurType : uint8_t {
-        BLUR_DUAL_KAWASE = 0,
-        BLUR_FROST       = 1,
-        BLUR_RIPPLE      = 2,
-        BLUR_DROPS       = 3,
-        BLUR_WATER       = 4,
-        BLUR_FLUID_JAR   = 5,
-        BLUR_PRISM       = 6,
+        BLUR_DUAL_KAWASE  = 0,
+        BLUR_FROST        = 1,
+        BLUR_RIPPLE       = 2,
+        BLUR_DROPS        = 3,
+        BLUR_WATER        = 4,
+        BLUR_FLUID_JAR    = 5,
+        BLUR_PRISM        = 6,
+        BLUR_HEAT_SHIMMER = 7,
     };
 
     // "Jaki kurwa provident????"

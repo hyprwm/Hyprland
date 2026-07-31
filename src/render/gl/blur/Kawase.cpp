@@ -5,6 +5,7 @@
 #include "../../../config/ConfigValue.hpp"
 
 #include <algorithm>
+#include <utility>
 
 using namespace Render;
 using namespace Render::GL;
@@ -20,20 +21,25 @@ static SCMSettings blurIntermediateCMSettings(bool toIntermediate) {
     return settings;
 }
 
-CDualKawaseBlurProvider::CDualKawaseBlurProvider(CHyprOpenGLImpl& impl) : m_impl(impl) {
+CDualKawaseBlurProvider::CDualKawaseBlurProvider(CHyprOpenGLImpl& impl) : CDualKawaseBlurProvider(impl, makeUnique<CDefaultBlurMaterial>()) {
+    ;
+}
+
+CDualKawaseBlurProvider::CDualKawaseBlurProvider(CHyprOpenGLImpl& impl, UP<IGLBlurMaterial> material) : m_impl(impl), m_material(std::move(material)) {
+    RASSERT(m_material, "Cannot create a dual Kawase blur provider without a material");
     ;
 }
 
 eBlurType CDualKawaseBlurProvider::type() const noexcept {
-    return eBlurType::BLUR_DUAL_KAWASE;
+    return m_material->type();
 }
 
 bool CDualKawaseBlurProvider::isAnimated() const noexcept {
-    return false;
+    return m_material->isAnimated();
 }
 
 bool CDualKawaseBlurProvider::requiresLiveBlur() const noexcept {
-    return false;
+    return m_material->requirements().liveBlur;
 }
 
 float Render::GL::dualKawaseDamageRadius(int64_t size, int64_t passes) {
@@ -46,27 +52,11 @@ void CDualKawaseBlurProvider::expandDamage(CRegion& damage, float multiplier) co
     damage.expand(damageRadius() * multiplier);
 }
 
-ePreparedFragmentShader CDualKawaseBlurProvider::finishFragment() const noexcept {
-    return SH_FRAG_BLURFINISH;
-}
-
-bool CDualKawaseBlurProvider::requiresPreparedInput() const noexcept {
-    return false;
-}
-
-void CDualKawaseBlurProvider::updateProviderState(const SBlurContext& context, const CRegion& outputDamage) {
-    ;
-}
-
-void CDualKawaseBlurProvider::setFinishUniforms(WP<CShader> shader, float strength, const SBlurContext& context) const {
-    ;
-}
-
 float CDualKawaseBlurProvider::damageRadius() const {
     static auto PBLURSIZE   = CConfigValue<Config::INTEGER>("decoration:blur:size");
     static auto PBLURPASSES = CConfigValue<Config::INTEGER>("decoration:blur:passes");
 
-    return dualKawaseDamageRadius(std::clamp<Config::INTEGER>(*PBLURSIZE, 1, 40), std::clamp<Config::INTEGER>(*PBLURPASSES, 1, 8));
+    return dualKawaseDamageRadius(m_material->blurSizeForDamage(*PBLURSIZE), *PBLURPASSES) + m_material->sampleRadius();
 }
 
 SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(SP<CGLFramebuffer> source, float strength, const CRegion& originalDamage, const SBlurContext& context) {
@@ -93,12 +83,18 @@ SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(SP<CGLFramebuffer> source, fl
     outputDamage.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
                            m_renderData.pMonitor->m_transformedSize.y);
 
-    updateProviderState(context, outputDamage);
+    const SBlurMaterialContext materialContext{
+        .blurContext  = context,
+        .outputDamage = outputDamage,
+        .strength     = strength,
+    };
+    m_material->prepare(materialContext);
 
     CRegion workingDamage{outputDamage};
     expandDamage(workingDamage);
 
-    const bool REQUIRES_PREPARED_INPUT = requiresPreparedInput();
+    const auto MATERIAL_REQUIREMENTS   = m_material->requirements();
+    const bool REQUIRES_PREPARED_INPUT = MATERIAL_REQUIREMENTS.preparedInput;
 
     const auto PMIRRORFB     = dynamicPointerCast<CGLFramebuffer>(m_renderData.pMonitor->resources()->getUnusedWorkBuffer());
     const auto PMIRRORSWAPFB = dynamicPointerCast<CGLFramebuffer>(m_renderData.pMonitor->resources()->getUnusedWorkBuffer());
@@ -251,7 +247,7 @@ SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(SP<CGLFramebuffer> source, fl
 
         const bool skipCM = !m_impl.m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
         if (!skipCM) {
-            shader = m_impl.useShader(m_impl.getShaderVariant(finishFragment(), SH_FEAT_CM));
+            shader = m_impl.useShader(m_impl.getShaderVariant(MATERIAL_REQUIREMENTS.finishFragment, SH_FEAT_CM));
 
             m_impl.passCMUniforms(shader, getDefaultImageDescription(), g_pHyprRenderer->workBufferImageDescription(), false, -1.F, -1,
                                   blurIntermediateCMSettings(/* toIntermediate */ false));
@@ -266,7 +262,7 @@ SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(SP<CGLFramebuffer> source, fl
                                         m_renderData.pMonitor->m_sdrBrightness :
                                         1.0f);
         } else
-            shader = m_impl.useShader(m_impl.getShaderVariant(finishFragment()));
+            shader = m_impl.useShader(m_impl.getShaderVariant(MATERIAL_REQUIREMENTS.finishFragment));
 
         shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
         shader->setUniformFloat(SHADER_NOISE, *PBLURNOISE);
@@ -274,7 +270,7 @@ SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(SP<CGLFramebuffer> source, fl
         shader->setUniformInt(SHADER_TEX, 0);
         if (REQUIRES_PREPARED_INPUT)
             shader->setUniformInt(SHADER_SHARP_TEX, 1);
-        setFinishUniforms(shader, strength, context);
+        m_material->bindFinish(shader, materialContext);
 
         glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
 

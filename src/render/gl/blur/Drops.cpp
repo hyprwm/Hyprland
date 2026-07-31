@@ -22,11 +22,15 @@ static float            dropsSpeed() {
     return std::clamp(*PDROPSSPEED, 0.F, MAX_DROPS_SPEED);
 }
 
-CDropsBlurProvider::CDropsBlurProvider(CHyprOpenGLImpl& impl) : CGlassBlurProvider(impl, eBlurType::BLUR_DROPS, SH_FRAG_DROPSFINISH), m_lastAnimationUpdate(Time::steadyNow()) {
+CDropsBlurMaterial::CDropsBlurMaterial() : CGlassBlurMaterial(eBlurType::BLUR_DROPS, SH_FRAG_DROPSFINISH, true), m_lastAnimationUpdate(Time::steadyNow()) {
     m_configListener = Event::bus()->m_events.config.props_refreshed.listen([this](const bool) { updateAnimation(dropsSpeed()); });
 }
 
-bool CDropsBlurProvider::isAnimated() const noexcept {
+CDropsBlurProvider::CDropsBlurProvider(CHyprOpenGLImpl& impl) : CGlassBlurProvider(impl, makeUnique<CDropsBlurMaterial>()) {
+    ;
+}
+
+bool CDropsBlurMaterial::isAnimated() const noexcept {
     static auto PBLURENABLED     = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
     static auto PGLASSREFRACTION = CConfigValue<Config::FLOAT>("decoration:blur:glass:refraction");
     static auto PGLASSROUGHNESS  = CConfigValue<Config::FLOAT>("decoration:blur:glass:roughness");
@@ -36,33 +40,29 @@ bool CDropsBlurProvider::isAnimated() const noexcept {
     return *PBLURENABLED && SPEED > 0.F && (*PGLASSREFRACTION > 0.F || *PGLASSROUGHNESS > 0.F);
 }
 
-bool CDropsBlurProvider::requiresPreparedInput() const noexcept {
-    return true;
-}
-
-void CDropsBlurProvider::setFinishUniforms(WP<CShader> shader, float strength, const SBlurContext& context) const {
-    CGlassBlurProvider::setFinishUniforms(shader, strength, context);
+void CDropsBlurMaterial::bindFinish(WP<CShader> shader, const SBlurMaterialContext& context) const {
+    CGlassBlurMaterial::bindFinish(shader, context);
     updateAnimation(dropsSpeed());
     shader->setUniformFloat(SHADER_TIME, animationPhase());
 
     CBox transformedPatternBox;
-    if (context.patternBox && g_pHyprRenderer->m_renderData.pMonitor) {
+    if (context.blurContext.patternBox && g_pHyprRenderer->m_renderData.pMonitor) {
         const auto MONITOR    = g_pHyprRenderer->m_renderData.pMonitor;
-        transformedPatternBox = *context.patternBox;
+        transformedPatternBox = *context.blurContext.patternBox;
         transformedPatternBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(MONITOR->m_transform)), MONITOR->m_transformedSize.x, MONITOR->m_transformedSize.y);
     }
 
     shader->setUniformFloat2(SHADER_DROPS_POSITION, sc<float>(transformedPatternBox.x), sc<float>(transformedPatternBox.y));
 }
 
-void CDropsBlurProvider::updateAnimation(float speed) const {
+void CDropsBlurMaterial::updateAnimation(float speed) const {
     const auto NOW = Time::steadyNow();
     m_animationTime += std::chrono::duration<double>(NOW - m_lastAnimationUpdate).count() * m_previousSpeed;
     m_lastAnimationUpdate = NOW;
     m_previousSpeed       = speed;
 }
 
-float CDropsBlurProvider::animationPhase() const {
+float CDropsBlurMaterial::animationPhase() const {
     if (m_previousSpeed <= 0.F)
         return 0.F;
 

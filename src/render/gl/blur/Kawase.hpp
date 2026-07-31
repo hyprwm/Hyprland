@@ -1,12 +1,7 @@
 #pragma once
 
+#include "Material.hpp"
 #include "Provider.hpp"
-
-class CShader;
-
-namespace Render {
-    enum ePreparedFragmentShader : uint8_t;
-}
 
 namespace Render::GL {
     class CHyprOpenGLImpl;
@@ -14,6 +9,7 @@ namespace Render::GL {
     class CDualKawaseBlurProvider : public IGLBlurProvider {
       public:
         explicit CDualKawaseBlurProvider(CHyprOpenGLImpl& impl);
+        CDualKawaseBlurProvider(CHyprOpenGLImpl& impl, UP<IGLBlurMaterial> material);
 
         eBlurType type() const noexcept override;
         bool      isAnimated() const noexcept override;
@@ -21,15 +17,13 @@ namespace Render::GL {
         void      expandDamage(CRegion& damage, float multiplier = 1.F) const override;
 
       protected:
-        SP<CGLFramebuffer>              blurGL(SP<CGLFramebuffer> source, float strength, const CRegion& originalDamage, const SBlurContext& context) final;
-        virtual ePreparedFragmentShader finishFragment() const noexcept;
-        virtual bool                    requiresPreparedInput() const noexcept;
-        virtual void                    updateProviderState(const SBlurContext& context, const CRegion& outputDamage);
-        virtual void                    setFinishUniforms(WP<CShader> shader, float strength, const SBlurContext& context) const;
-        virtual float                   damageRadius() const;
+        SP<CGLFramebuffer> blurGL(SP<CGLFramebuffer> source, float strength, const CRegion& originalDamage, const SBlurContext& context) override;
 
       private:
-        CHyprOpenGLImpl& m_impl;
+        float               damageRadius() const;
+
+        CHyprOpenGLImpl&    m_impl;
+        UP<IGLBlurMaterial> m_material;
     };
 
     float dualKawaseDamageRadius(int64_t size, int64_t passes);

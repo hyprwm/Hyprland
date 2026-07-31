@@ -1,12 +1,41 @@
 #include <render/gl/blur/Kawase.hpp>
 #include <render/gl/blur/Glass.hpp>
 #include <render/gl/blur/FluidJar.hpp>
+#include <render/gl/blur/Prism.hpp>
 #include <render/gl/blur/Ripple.hpp>
 #include <render/gl/blur/Water.hpp>
+#include <render/ShaderLoader.hpp>
 
 #include <gtest/gtest.h>
 
 using namespace Render::GL;
+
+TEST(BlurMaterial, DefaultUsesPlainFinish) {
+    const CDefaultBlurMaterial material;
+    const auto                 requirements = material.requirements();
+
+    EXPECT_EQ(material.type(), Render::eBlurType::BLUR_DUAL_KAWASE);
+    EXPECT_EQ(requirements.finishFragment, Render::SH_FRAG_BLURFINISH);
+    EXPECT_FALSE(requirements.preparedInput);
+    EXPECT_FALSE(requirements.liveBlur);
+    EXPECT_FALSE(material.isAnimated());
+    EXPECT_EQ(material.blurSizeForDamage(100), 40);
+    EXPECT_FLOAT_EQ(material.sampleRadius(), 0.F);
+}
+
+TEST(BlurMaterial, GlassCapabilitiesAreConfiguredByMaterial) {
+    const CGlassBlurMaterial frost(Render::eBlurType::BLUR_FROST, Render::SH_FRAG_FROSTFINISH);
+    const auto               frostRequirements = frost.requirements();
+    EXPECT_EQ(frost.type(), Render::eBlurType::BLUR_FROST);
+    EXPECT_EQ(frostRequirements.finishFragment, Render::SH_FRAG_FROSTFINISH);
+    EXPECT_FALSE(frostRequirements.preparedInput);
+
+    const CPrismBlurMaterial prism;
+    const auto               prismRequirements = prism.requirements();
+    EXPECT_EQ(prism.type(), Render::eBlurType::BLUR_PRISM);
+    EXPECT_EQ(prismRequirements.finishFragment, Render::SH_FRAG_PRISMFINISH);
+    EXPECT_TRUE(prismRequirements.preparedInput);
+}
 
 TEST(BlurDamage, DualKawaseUsesOperationalMinimums) {
     EXPECT_FLOAT_EQ(dualKawaseDamageRadius(0, 0), 2.F);

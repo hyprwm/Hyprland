@@ -10,18 +10,16 @@
 namespace Render::GL {
     class CGLFramebuffer;
 
-    class CWaterBlurProvider final : public CDualKawaseBlurProvider {
+    class CWaterBlurMaterial final : public IGLBlurMaterial {
       public:
-        explicit CWaterBlurProvider(CHyprOpenGLImpl& impl);
+        explicit CWaterBlurMaterial(CHyprOpenGLImpl& impl);
 
-        eBlurType type() const noexcept override;
-        bool      isAnimated() const noexcept override;
-
-      protected:
-        ePreparedFragmentShader finishFragment() const noexcept override;
-        void                    updateProviderState(const SBlurContext& context, const CRegion& outputDamage) override;
-        void                    setFinishUniforms(WP<CShader> shader, float strength, const SBlurContext& context) const override;
-        float                   damageRadius() const override;
+        eBlurType                 type() const noexcept override;
+        SBlurMaterialRequirements requirements() const noexcept override;
+        bool                      isAnimated() const noexcept override;
+        float                     sampleRadius() const override;
+        void                      prepare(const SBlurMaterialContext& context) override;
+        void                      bindFinish(WP<CShader> shader, const SBlurMaterialContext& context) const override;
 
       private:
         static constexpr size_t MAX_IMPULSES = 16;
@@ -72,6 +70,11 @@ namespace Render::GL {
             CHyprSignalListener windowDestroy;
             CHyprSignalListener config;
         } m_listeners;
+    };
+
+    class CWaterBlurProvider final : public CDualKawaseBlurProvider {
+      public:
+        explicit CWaterBlurProvider(CHyprOpenGLImpl& impl);
     };
 
     float waterDamageRadius(int64_t size, int64_t passes, float displacement);

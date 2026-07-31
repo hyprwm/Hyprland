@@ -9,17 +9,15 @@
 #include <optional>
 
 namespace Render::GL {
-    class CRippleBlurProvider final : public CDualKawaseBlurProvider {
+    class CRippleBlurMaterial final : public IGLBlurMaterial {
       public:
-        explicit CRippleBlurProvider(CHyprOpenGLImpl& impl);
+        CRippleBlurMaterial();
 
-        eBlurType type() const noexcept override;
-        bool      isAnimated() const noexcept override;
-
-      protected:
-        ePreparedFragmentShader finishFragment() const noexcept override;
-        void                    setFinishUniforms(WP<CShader> shader, float strength, const SBlurContext& context) const override;
-        float                   damageRadius() const override;
+        eBlurType                 type() const noexcept override;
+        SBlurMaterialRequirements requirements() const noexcept override;
+        bool                      isAnimated() const noexcept override;
+        float                     sampleRadius() const override;
+        void                      bindFinish(WP<CShader> shader, const SBlurMaterialContext& context) const override;
 
       private:
         static constexpr size_t MAX_IMPULSES = 256;
@@ -45,6 +43,11 @@ namespace Render::GL {
             CHyprSignalListener mouseButton;
             CHyprSignalListener mouseMotion;
         } m_listeners;
+    };
+
+    class CRippleBlurProvider final : public CDualKawaseBlurProvider {
+      public:
+        explicit CRippleBlurProvider(CHyprOpenGLImpl& impl);
     };
 
     float rippleDamageRadius(int64_t size, int64_t passes, float displacement);

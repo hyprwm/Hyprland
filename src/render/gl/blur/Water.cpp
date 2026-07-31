@@ -1,5 +1,7 @@
 #include "Water.hpp"
 
+#include "Kawase.hpp"
+
 #include "../GLFramebuffer.hpp"
 #include "../../OpenGL.hpp"
 #include "../../Renderer.hpp"
@@ -28,7 +30,7 @@ static constexpr float  MAX_SIMULATION_SIZE    = 512.F;
 static constexpr float  WATER_FADE_DURATION    = 2.F;
 static constexpr size_t MAX_STORED_IMPULSES    = 64;
 
-CWaterBlurProvider::CWaterBlurProvider(CHyprOpenGLImpl& impl) : CDualKawaseBlurProvider(impl), m_impl(impl) {
+CWaterBlurMaterial::CWaterBlurMaterial(CHyprOpenGLImpl& impl) : m_impl(impl) {
     m_listeners.mouseButton = Event::bus()->m_events.input.mouse.button.listen([this](IPointer::SButtonEvent event, Event::SCallbackInfo&) {
         m_lastMouseHeldCoord.reset();
 
@@ -64,11 +66,15 @@ CWaterBlurProvider::CWaterBlurProvider(CHyprOpenGLImpl& impl) : CDualKawaseBlurP
     });
 }
 
-eBlurType CWaterBlurProvider::type() const noexcept {
+CWaterBlurProvider::CWaterBlurProvider(CHyprOpenGLImpl& impl) : CDualKawaseBlurProvider(impl, makeUnique<CWaterBlurMaterial>(impl)) {
+    ;
+}
+
+eBlurType CWaterBlurMaterial::type() const noexcept {
     return eBlurType::BLUR_WATER;
 }
 
-bool CWaterBlurProvider::isAnimated() const noexcept {
+bool CWaterBlurMaterial::isAnimated() const noexcept {
     static auto PBLURENABLED   = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
     static auto PWATERSTRENGTH = CConfigValue<Config::FLOAT>("decoration:blur:water:strength");
 
@@ -86,32 +92,34 @@ bool CWaterBlurProvider::isAnimated() const noexcept {
         std::ranges::any_of(m_monitorStates, [&](const auto& state) { return state.monitor == monitor && stateIsActive(state, now); });
 }
 
-ePreparedFragmentShader CWaterBlurProvider::finishFragment() const noexcept {
-    return SH_FRAG_WATERFINISH;
+SBlurMaterialRequirements CWaterBlurMaterial::requirements() const noexcept {
+    return {
+        .finishFragment = SH_FRAG_WATERFINISH,
+    };
 }
 
-void CWaterBlurProvider::updateProviderState(const SBlurContext& context, const CRegion& outputDamage) {
+void CWaterBlurMaterial::prepare(const SBlurMaterialContext& context) {
     pruneStates();
 
-    const auto state = stateForContext(context, false);
+    const auto state = stateForContext(context.blurContext, false);
     if (!state || !g_pHyprRenderer->m_renderData.pMonitor)
         return;
 
-    const auto extent = transformedPatternBox(context);
+    const auto extent = transformedPatternBox(context.blurContext);
     state->monitor    = g_pHyprRenderer->m_renderData.pMonitor;
     updateState(*state, extent);
 }
 
-void CWaterBlurProvider::setFinishUniforms(WP<CShader> shader, float strength, const SBlurContext& context) const {
+void CWaterBlurMaterial::bindFinish(WP<CShader> shader, const SBlurMaterialContext& context) const {
     static auto PWATERSTRENGTH = CConfigValue<Config::FLOAT>("decoration:blur:water:strength");
 
-    const auto  state = stateForContext(context);
+    const auto  state = stateForContext(context.blurContext);
     if (!state || !state->buffers[state->currentBuffer]) {
         shader->setUniformInt(SHADER_WATER_ENABLED, 0);
         return;
     }
 
-    const auto extent = transformedPatternBox(context);
+    const auto extent = transformedPatternBox(context.blurContext);
     if (extent.width <= 0 || extent.height <= 0) {
         shader->setUniformInt(SHADER_WATER_ENABLED, 0);
         return;
@@ -130,25 +138,23 @@ void CWaterBlurProvider::setFinishUniforms(WP<CShader> shader, float strength, c
     shader->setUniformFloat4(SHADER_WATER_EXTENT, sc<float>(extent.x), sc<float>(extent.y), sc<float>(extent.width), sc<float>(extent.height));
     const auto secondsRemaining = std::chrono::duration<float>(state->activeUntil - Time::steadyNow()).count();
     const auto fade             = std::clamp(secondsRemaining / WATER_FADE_DURATION, 0.F, 1.F);
-    shader->setUniformFloat(SHADER_WATER_REFRACTION, std::clamp(*PWATERSTRENGTH, 0.F, MAX_WATER_DISPLACEMENT) * std::clamp(strength, 0.F, 1.F) * fade);
+    shader->setUniformFloat(SHADER_WATER_REFRACTION, std::clamp(*PWATERSTRENGTH, 0.F, MAX_WATER_DISPLACEMENT) * std::clamp(context.strength, 0.F, 1.F) * fade);
 }
 
-float CWaterBlurProvider::damageRadius() const {
-    static auto PBLURSIZE      = CConfigValue<Config::INTEGER>("decoration:blur:size");
-    static auto PBLURPASSES    = CConfigValue<Config::INTEGER>("decoration:blur:passes");
+float CWaterBlurMaterial::sampleRadius() const {
     static auto PWATERSTRENGTH = CConfigValue<Config::FLOAT>("decoration:blur:water:strength");
 
-    return waterDamageRadius(*PBLURSIZE, *PBLURPASSES, *PWATERSTRENGTH);
+    return std::ceil(std::clamp(*PWATERSTRENGTH, 0.F, MAX_WATER_DISPLACEMENT));
 }
 
-CWaterBlurProvider::SState* CWaterBlurProvider::stateForContext(const SBlurContext& context, bool create) {
+CWaterBlurMaterial::SState* CWaterBlurMaterial::stateForContext(const SBlurContext& context, bool create) {
     if (!context.owner.expired())
         return windowState(context.owner, create);
 
     return monitorState(g_pHyprRenderer->m_renderData.pMonitor, create);
 }
 
-const CWaterBlurProvider::SState* CWaterBlurProvider::stateForContext(const SBlurContext& context) const {
+const CWaterBlurMaterial::SState* CWaterBlurMaterial::stateForContext(const SBlurContext& context) const {
     if (!context.owner.expired()) {
         const auto state = std::ranges::find_if(m_windowStates, [&](const auto& candidate) { return candidate.window == context.owner; });
         return state != m_windowStates.end() ? &*state : nullptr;
@@ -159,7 +165,7 @@ const CWaterBlurProvider::SState* CWaterBlurProvider::stateForContext(const SBlu
     return state != m_monitorStates.end() ? &*state : nullptr;
 }
 
-CWaterBlurProvider::SState* CWaterBlurProvider::windowState(PHLWINDOWREF window, bool create) {
+CWaterBlurMaterial::SState* CWaterBlurMaterial::windowState(PHLWINDOWREF window, bool create) {
     const auto state = std::ranges::find_if(m_windowStates, [&](const auto& candidate) { return candidate.window == window; });
     if (state != m_windowStates.end())
         return &*state;
@@ -170,7 +176,7 @@ CWaterBlurProvider::SState* CWaterBlurProvider::windowState(PHLWINDOWREF window,
     return &m_windowStates.emplace_back(SState{.window = window});
 }
 
-CWaterBlurProvider::SState* CWaterBlurProvider::monitorState(PHLMONITORREF monitor, bool create) {
+CWaterBlurMaterial::SState* CWaterBlurMaterial::monitorState(PHLMONITORREF monitor, bool create) {
     const auto state = std::ranges::find_if(m_monitorStates, [&](const auto& candidate) { return candidate.monitor == monitor; });
     if (state != m_monitorStates.end())
         return &*state;
@@ -181,7 +187,7 @@ CWaterBlurProvider::SState* CWaterBlurProvider::monitorState(PHLMONITORREF monit
     return &m_monitorStates.emplace_back(SState{.monitor = monitor});
 }
 
-void CWaterBlurProvider::addImpulse() {
+void CWaterBlurMaterial::addImpulse() {
     static auto PBLURENABLED   = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
     static auto PWATERSTRENGTH = CConfigValue<Config::FLOAT>("decoration:blur:water:strength");
     static auto PWATERRADIUS   = CConfigValue<Config::FLOAT>("decoration:blur:water:radius");
@@ -227,7 +233,7 @@ void CWaterBlurProvider::addImpulse() {
     queueImpulse(*state, windowPosition, *PWATERRADIUS, amplitude);
 }
 
-void CWaterBlurProvider::queueImpulse(SState& state, Vector2D position, float radius, float amplitude) {
+void CWaterBlurMaterial::queueImpulse(SState& state, Vector2D position, float radius, float amplitude) {
     static auto PWATERDURATION = CConfigValue<Config::FLOAT>("decoration:blur:water:duration");
 
     position.x = std::clamp(position.x, 0.0, 1.0);
@@ -241,7 +247,7 @@ void CWaterBlurProvider::queueImpulse(SState& state, Vector2D position, float ra
     state.activeUntil   = Time::steadyNow() + std::chrono::duration_cast<Time::steady_dur>(std::chrono::duration<float>(duration));
 }
 
-void CWaterBlurProvider::updateState(SState& state, const CBox& extent) {
+void CWaterBlurMaterial::updateState(SState& state, const CBox& extent) {
     const auto now = Time::steadyNow();
     if (!stateIsActive(state, now) || state.lastFrame == m_frame)
         return;
@@ -260,7 +266,7 @@ void CWaterBlurProvider::updateState(SState& state, const CBox& extent) {
     state.lastFrame  = m_frame;
 }
 
-void CWaterBlurProvider::resetState(SState& state, const Vector2D& simulationSize) {
+void CWaterBlurMaterial::resetState(SState& state, const Vector2D& simulationSize) {
     for (auto& buffer : state.buffers) {
         if (!buffer)
             buffer = dynamicPointerCast<CGLFramebuffer>(g_pHyprRenderer->createFB("Water simulation"));
@@ -278,7 +284,7 @@ void CWaterBlurProvider::resetState(SState& state, const Vector2D& simulationSiz
     state.reset          = false;
 }
 
-void CWaterBlurProvider::drawStateStep(SState& state, float dt, const CBox& extent) {
+void CWaterBlurMaterial::drawStateStep(SState& state, float dt, const CBox& extent) {
     static auto PWATERSPEED   = CConfigValue<Config::FLOAT>("decoration:blur:water:speed");
     static auto PWATERDAMPING = CConfigValue<Config::FLOAT>("decoration:blur:water:damping");
 
@@ -321,7 +327,7 @@ void CWaterBlurProvider::drawStateStep(SState& state, float dt, const CBox& exte
     state.currentBuffer = 1 - state.currentBuffer;
 }
 
-CBox CWaterBlurProvider::transformedPatternBox(const SBlurContext& context) const {
+CBox CWaterBlurMaterial::transformedPatternBox(const SBlurContext& context) const {
     const auto monitor = g_pHyprRenderer->m_renderData.pMonitor;
     if (!monitor)
         return {};
@@ -332,11 +338,11 @@ CBox CWaterBlurProvider::transformedPatternBox(const SBlurContext& context) cons
     return box;
 }
 
-bool CWaterBlurProvider::stateIsActive(const SState& state, const Time::steady_tp& now) const {
+bool CWaterBlurMaterial::stateIsActive(const SState& state, const Time::steady_tp& now) const {
     return !state.impulses.empty() || (state.activeUntil != Time::steady_tp{} && now < state.activeUntil);
 }
 
-void CWaterBlurProvider::pruneStates() const {
+void CWaterBlurMaterial::pruneStates() const {
     const auto now = Time::steadyNow();
     std::erase_if(m_windowStates, [&](const auto& state) { return state.window.expired() || !state.window->shouldBlur() || !stateIsActive(state, now); });
     std::erase_if(m_monitorStates, [&](const auto& state) { return state.monitor.expired() || !stateIsActive(state, now); });

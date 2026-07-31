@@ -24,20 +24,16 @@ namespace Render::GL {
         Vector2D offset = {};
     };
 
-    class CFluidJarBlurProvider final : public CDualKawaseBlurProvider {
+    class CFluidJarBlurMaterial final : public IGLBlurMaterial {
       public:
-        explicit CFluidJarBlurProvider(CHyprOpenGLImpl& impl);
+        explicit CFluidJarBlurMaterial(CHyprOpenGLImpl& impl);
 
-        eBlurType type() const noexcept override;
-        bool      isAnimated() const noexcept override;
-        bool      requiresLiveBlur() const noexcept override;
-
-      protected:
-        ePreparedFragmentShader finishFragment() const noexcept override;
-        bool                    requiresPreparedInput() const noexcept override;
-        void                    updateProviderState(const SBlurContext& context, const CRegion& outputDamage) override;
-        void                    setFinishUniforms(WP<CShader> shader, float strength, const SBlurContext& context) const override;
-        float                   damageRadius() const override;
+        eBlurType                 type() const noexcept override;
+        SBlurMaterialRequirements requirements() const noexcept override;
+        int64_t                   blurSizeForDamage(int64_t size) const override;
+        float                     sampleRadius() const override;
+        void                      prepare(const SBlurMaterialContext& context) override;
+        void                      bindFinish(WP<CShader> shader, const SBlurMaterialContext& context) const override;
 
       private:
         struct SState {
@@ -99,6 +95,11 @@ namespace Render::GL {
             CHyprSignalListener renderPre;
             CHyprSignalListener windowDestroy;
         } m_listeners;
+    };
+
+    class CFluidJarBlurProvider final : public CDualKawaseBlurProvider {
+      public:
+        explicit CFluidJarBlurProvider(CHyprOpenGLImpl& impl);
     };
 
     Vector2D                   fluidJarSimulationSize(const Vector2D& extent, float precision = 1.F);

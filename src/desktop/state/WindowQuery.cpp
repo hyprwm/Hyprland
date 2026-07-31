@@ -108,7 +108,7 @@ PHLWINDOW CWindowQuery::inDirection(const SWindowDirectionQuery& query) const {
                 if (query.workspace->m_monitor == w->m_monitor && query.workspace != w->m_workspace)
                     continue;
 
-                // Because we can't blanket ban finding window in direction if workspace has fullscreen, we need to only seek window if config options focus to wander away from FSed window
+                // Because we can't blanket ban finding window in direction if workspace has fullscreen, we need to only seek window if config options allow focus to wander away from FSed window
                 if ((Fullscreen::controller()->hasFullscreen(query.workspace)) && !w->isAllowedOverFullscreen()) {
                     if (!Fullscreen::controller()->layoutManagedFS(Fullscreen::controller()->getFullscreenWindow(query.workspace)))
                         continue;

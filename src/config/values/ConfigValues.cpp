@@ -214,7 +214,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
                      {.refresh = Supplementary::REFRESH_WINDOW_STATES}),
         MS<Vec2>("decoration:shadow:offset", "shadow's rendering offset.", Config::VEC2{},
                  {.validator = vec2Range(-250, -250, 250, 250), .refresh = Supplementary::REFRESH_WINDOW_STATES}),
-        MS<Float>("decoration:shadow:scale", "shadow's scale.", 1, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_WINDOW_STATES}),
+        MS<Float>("decoration:shadow:scale", "shadow's scale.", 1, {.min = 0.05, .max = 2, .refresh = Supplementary::REFRESH_WINDOW_STATES}),
         MS<Bool>("decoration:glow:enabled", "enable inner glow on windows", false, {.refresh = Supplementary::REFRESH_WINDOW_STATES}),
         MS<Int>("decoration:glow:range", "glow range (size) in layout px", 10, {.min = 0, .max = 100, .refresh = Supplementary::REFRESH_WINDOW_STATES}),
         MS<Int>("decoration:glow:render_power", "in what power to render the falloff (more power, the faster the falloff)", 3,

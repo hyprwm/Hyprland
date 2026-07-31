@@ -5,7 +5,7 @@ CTransformedWindowPassElement::CTransformedWindowPassElement(CTransformedWindowP
 }
 
 bool CTransformedWindowPassElement::needsLiveBlur() {
-    return m_data.blur;
+    return m_data.blur || (m_data.pass && m_data.pass->needsLiveBlur());
 }
 
 bool CTransformedWindowPassElement::needsPrecomputeBlur() {

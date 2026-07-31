@@ -32,6 +32,7 @@ void IElementRenderer::drawElement(WP<IPassElement> element, const CRegion& dama
         case EK_TEXTURE: drawTex(dynamicPointerCast<CTexPassElement>(element), damage); break;
         case EK_TEXTURE_MATTE: drawTexMatte(dynamicPointerCast<CTextureMatteElement>(element), damage); break;
         case EK_TRANSFORMED_WINDOW: drawTransformedWindow(dynamicPointerCast<CTransformedWindowPassElement>(element), damage); break;
+        case EK_BACKDROP_SCOPE: drawCustom(element, damage); break;
         case EK_CUSTOM: drawCustom(element, damage); break;
         default: Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
     }
@@ -508,7 +509,18 @@ void IElementRenderer::drawTex(WP<CTexPassElement> element, const CRegion& damag
             inverseOpaque.intersect(element->m_data.damage);
             auto patternBox = element->m_data.blurPatternBox.value_or(box);
             m_renderData.renderModif.applyToBox(patternBox);
-            blurredFB                 = g_pHyprRenderer->blurMainFramebuffer(element->m_data.a, inverseOpaque, {.patternBox = patternBox, .owner = element->m_data.blurOwner});
+            std::optional<SBlurShape> shape;
+            if (!element->m_data.blurShapeInvalid) {
+                auto shapeBox = box;
+                m_renderData.renderModif.applyToBox(shapeBox);
+                if (std::abs(shapeBox.rot) < 0.0001F)
+                    shape = SBlurShape{
+                        .box           = shapeBox,
+                        .radius        = std::max(sc<float>(element->m_data.round), 0.F),
+                        .roundingPower = element->m_data.roundingPower,
+                    };
+            }
+            blurredFB = g_pHyprRenderer->blurMainFramebuffer(element->m_data.a, inverseOpaque, {.patternBox = patternBox, .owner = element->m_data.blurOwner, .shape = shape});
             element->m_data.blurredBG = blurredFB->getTexture();
         } else
             element->m_data.blurredBG = m_renderData.pMonitor->resources()->m_blurFB->getTexture();
@@ -812,6 +824,7 @@ void IElementRenderer::drawTransformedWindow(WP<CTransformedWindowPassElement> e
         data.blur                  = true;
         data.forceBlurBlend        = true;
         data.blurPatternBox        = element->m_data.currentBox.copy().scale(pMonitor->m_scale).round();
+        data.blurShapeInvalid      = true;
         data.blockBlurOptimization = true;
         data.blurOwner             = element->m_data.window;
         data.blurA                 = element->m_data.blurA;

@@ -1,3 +1,4 @@
+#include <render/gl/blur/Acrylic.hpp>
 #include <render/gl/blur/Kawase.hpp>
 #include <render/gl/blur/Glass.hpp>
 #include <render/gl/blur/FluidJar.hpp>
@@ -48,6 +49,17 @@ TEST(BlurMaterial, HeatShimmerUsesAnimatedGlassFinish) {
     EXPECT_FALSE(requirements.liveBlur);
 }
 
+TEST(BlurMaterial, AcrylicUsesPreparedLiveFinish) {
+    const CAcrylicBlurMaterial acrylic;
+    const auto                 requirements = acrylic.requirements();
+
+    EXPECT_EQ(acrylic.type(), Render::eBlurType::BLUR_ACRYLIC);
+    EXPECT_EQ(requirements.finishFragment, Render::SH_FRAG_ACRYLICFINISH);
+    EXPECT_TRUE(requirements.preparedInput);
+    EXPECT_TRUE(requirements.liveBlur);
+    EXPECT_FALSE(acrylic.isAnimated());
+}
+
 TEST(BlurDamage, DualKawaseUsesOperationalMinimums) {
     EXPECT_FLOAT_EQ(dualKawaseDamageRadius(0, 0), 2.F);
     EXPECT_FLOAT_EQ(dualKawaseDamageRadius(-10, -10), 2.F);
@@ -72,6 +84,16 @@ TEST(BlurDamage, GlassIncludesRefractionReach) {
 TEST(BlurDamage, GlassClampsRefractionReach) {
     EXPECT_FLOAT_EQ(glassDamageRadius(8, 1, -1.F), 16.F);
     EXPECT_FLOAT_EQ(glassDamageRadius(8, 1, 100.F), 36.F);
+}
+
+TEST(BlurDamage, AcrylicIncludesFilteredRefractionReach) {
+    EXPECT_FLOAT_EQ(acrylicDamageRadius(8, 1, 3.F), 20.F);
+    EXPECT_FLOAT_EQ(acrylicDamageRadius(12, 3, 4.25F), 174.F);
+}
+
+TEST(BlurDamage, AcrylicClampsRefractionReach) {
+    EXPECT_FLOAT_EQ(acrylicDamageRadius(8, 1, -1.F), 16.F);
+    EXPECT_FLOAT_EQ(acrylicDamageRadius(8, 1, 100.F), 65.F);
 }
 
 TEST(BlurDamage, RippleIncludesBoundedDisplacement) {

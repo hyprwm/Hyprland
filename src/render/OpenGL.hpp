@@ -232,6 +232,7 @@ namespace Render::GL {
         void                                      onFramebufferDeleted(GLuint fb);
 
         void                                      blend(bool enabled);
+        bool                                      blendEnabled() const;
 
         void                                      scissor(const CBox&, bool transform = true);
         void                                      scissor(const pixman_box32*, bool transform = true);

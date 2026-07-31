@@ -72,6 +72,7 @@ namespace Render {
         SH_FRAG_FLUIDJARFINISH,
         SH_FRAG_PRISMFINISH,
         SH_FRAG_HEATSHIMMERFINISH,
+        SH_FRAG_ACRYLICFINISH,
 
         SH_FRAG_LAST,
     };

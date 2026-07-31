@@ -48,6 +48,7 @@
 #include "pass/RectPassElement.hpp"
 #include "pass/RendererHintsPassElement.hpp"
 #include "pass/SurfacePassElement.hpp"
+#include "pass/BackdropScopePassElement.hpp"
 #include "../debug/log/Logger.hpp"
 #include "../protocols/ColorManagement.hpp"
 #include "../protocols/types/ContentType.hpp"
@@ -645,7 +646,10 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         const bool      TRANSFORMEDWINDOW = pWindow->effects().hasActiveTransformers();
         UP<CRenderPass> transformedPass;
         UP<CScopeGuard> passRedirect;
-        const bool      windowBlur = renderdata.blur;
+        const bool      windowBlur    = renderdata.blur;
+        const auto      backdropScope = makeShared<SBackdropScope>();
+
+        addPassElement(makeUnique<CBackdropScopePassElement>(CBackdropScopePassElement::eAction::BEGIN, backdropScope));
 
         if (TRANSFORMEDWINDOW) {
             transformedPass = makeUnique<CRenderPass>();
@@ -753,6 +757,8 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
             renderdata.blur = windowBlur;
         }
+
+        addPassElement(makeUnique<CBackdropScopePassElement>(CBackdropScopePassElement::eAction::END, backdropScope));
     }
 
     m_renderData.clipBox = CBox();
@@ -1737,6 +1743,7 @@ void IHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
 
 bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode, SP<IHLBuffer> buffer, SP<IFramebuffer> fb, bool simple) {
     m_renderPass.clear();
+    m_backdropCaptures.clear();
     clearCMSettingsCache();
     m_renderMode          = mode;
     m_renderData.pMonitor = pMonitor;
@@ -1834,13 +1841,60 @@ Mat3x3 IHyprRenderer::projectBoxToTarget(const CBox& box, std::optional<eTransfo
 }
 
 SP<IFramebuffer> IHyprRenderer::blurMainFramebuffer(float strength, const CRegion& originalDamage, const SBlurContext& context) {
-    if (!m_renderData.currentFB->getTexture()) {
+    const auto renderTarget = m_renderData.currentFB;
+    const auto blurSource   = !m_backdropCaptures.empty() && m_backdropCaptures.back().framebuffer ? m_backdropCaptures.back().framebuffer : renderTarget;
+
+    if (!blurSource || !blurSource->getTexture()) {
         Log::logger->log(Log::ERR, "BUG THIS: null fb texture while attempting to blur main fb?! (introspection off?!)");
         return m_renderData.pMonitor->resources()->m_blurFB; // return something to sample from at least
     }
 
-    auto guard = bindTempFB(m_renderData.currentFB); // blurFramebuffer messes with FB bindings
-    return blurFramebuffer(m_renderData.currentFB, strength, originalDamage, context);
+    auto guard = bindTempFB(renderTarget); // blurFramebuffer messes with FB bindings
+    return blurFramebuffer(blurSource, strength, originalDamage, context);
+}
+
+void IHyprRenderer::beginBackdropScope(SP<SBackdropScope> scope) {
+    RASSERT(scope, "Cannot begin a null backdrop scope");
+
+    SP<IFramebuffer> backdrop;
+    if (scope->required && !scope->damage.empty() && m_renderData.currentFB && m_renderData.currentFB->getTexture()) {
+        backdrop = m_renderData.pMonitor->resources()->getUnusedWorkBuffer();
+        if (backdrop) {
+            const auto renderTarget     = m_renderData.currentFB;
+            const auto savedDamage      = m_renderData.damage.copy();
+            const auto savedRenderModif = m_renderData.renderModif;
+            const auto savedNearest     = m_renderData.useNearestNeighbor;
+            const auto backend          = glBackend();
+            const auto savedBlend       = backend && backend->blendEnabled();
+
+            {
+                auto guard                      = bindTempFB(backdrop);
+                m_renderData.damage             = scope->damage;
+                m_renderData.renderModif        = {};
+                m_renderData.useNearestNeighbor = true;
+                blend(false);
+                renderOffToMain(renderTarget);
+                blend(savedBlend);
+            }
+
+            m_renderData.damage             = savedDamage;
+            m_renderData.renderModif        = savedRenderModif;
+            m_renderData.useNearestNeighbor = savedNearest;
+        } else {
+            static bool warned = false;
+            if (!warned) {
+                warned = true;
+                Log::logger->log(Log::WARN, "Failed to allocate a clean backdrop buffer; live blur will include the current window's rendered content");
+            }
+        }
+    }
+
+    m_backdropCaptures.emplace_back(SBackdropCapture{.scope = std::move(scope), .framebuffer = std::move(backdrop)});
+}
+
+void IHyprRenderer::endBackdropScope(SP<SBackdropScope> scope) {
+    RASSERT(!m_backdropCaptures.empty() && m_backdropCaptures.back().scope == scope, "Unbalanced runtime backdrop scope");
+    m_backdropCaptures.pop_back();
 }
 
 void IHyprRenderer::scheduleFrameForAnimatedBlur(const CRegion& damage, bool usesPrecomputedBlur) {
@@ -3284,6 +3338,7 @@ void IHyprRenderer::renderFadeouts(PHLMONITOR monitor, Desktop::eFadeoutPlane pl
         data.blur                  = EFFECTS.textureBlur.enabled;
         data.blurA                 = EFFECTS.textureBlur.alpha;
         data.forceBlurBlend        = EFFECTS.textureBlur.forceBlend;
+        data.blurShapeInvalid      = true;
         data.ignoreAlpha           = EFFECTS.textureBlur.ignoreAlpha;
         data.blockBlurOptimization = EFFECTS.textureBlur.blockBlurOptimization;
 

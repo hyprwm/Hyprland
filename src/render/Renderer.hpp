@@ -46,6 +46,7 @@ class CEventLoopTimer;
 class CToplevelExportProtocolManager;
 class CInputManager;
 struct SSessionLockSurface;
+struct SBackdropScope;
 namespace Screenshare {
     class CScreenshareFrame;
 };
@@ -204,6 +205,8 @@ namespace Render {
         Mat3x3           projectBoxToTarget(const CBox& box, std::optional<eTransform> transform = std::nullopt);
 
         SP<IFramebuffer> blurMainFramebuffer(float strength, const CRegion& originalDamage, const Render::SBlurContext& context = {});
+        void             beginBackdropScope(SP<SBackdropScope> scope);
+        void             endBackdropScope(SP<SBackdropScope> scope);
         virtual SP<IFramebuffer> blurFramebuffer(SP<IFramebuffer> source, float strength, const CRegion& originalDamage, const Render::SBlurContext& context = {}) = 0;
         virtual void             refreshBlurProvider()                                                                                                             = 0;
         virtual void             expandBlurDamage(CRegion& damage, float multiplier = 1.F) const                                                                   = 0;
@@ -303,6 +306,13 @@ namespace Render {
         std::vector<SP<IRenderbuffer>> m_renderbuffers;
         std::vector<PHLWINDOWREF>      m_renderUnfocused;
         SP<CEventLoopTimer>            m_renderUnfocusedTimer;
+
+        struct SBackdropCapture {
+            SP<SBackdropScope> scope;
+            SP<IFramebuffer>   framebuffer;
+        };
+
+        std::vector<SBackdropCapture> m_backdropCaptures;
 
         friend class CRenderPass;
         friend class Render::GL::CHyprOpenGLImpl;

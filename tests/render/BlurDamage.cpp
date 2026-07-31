@@ -1,4 +1,5 @@
 #include <render/gl/blur/Acrylic.hpp>
+#include <render/gl/blur/Aurora.hpp>
 #include <render/gl/blur/Kawase.hpp>
 #include <render/gl/blur/Glass.hpp>
 #include <render/gl/blur/FluidJar.hpp>
@@ -45,6 +46,16 @@ TEST(BlurMaterial, HeatShimmerUsesAnimatedGlassFinish) {
 
     EXPECT_EQ(heatShimmer.type(), Render::eBlurType::BLUR_HEAT_SHIMMER);
     EXPECT_EQ(requirements.finishFragment, Render::SH_FRAG_HEATSHIMMERFINISH);
+    EXPECT_FALSE(requirements.preparedInput);
+    EXPECT_FALSE(requirements.liveBlur);
+}
+
+TEST(BlurMaterial, AuroraUsesAnimatedGlassFinish) {
+    const CAuroraBlurMaterial aurora;
+    const auto                requirements = aurora.requirements();
+
+    EXPECT_EQ(aurora.type(), Render::eBlurType::BLUR_AURORA);
+    EXPECT_EQ(requirements.finishFragment, Render::SH_FRAG_AURORAFINISH);
     EXPECT_FALSE(requirements.preparedInput);
     EXPECT_FALSE(requirements.liveBlur);
 }

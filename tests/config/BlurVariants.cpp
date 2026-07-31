@@ -22,10 +22,10 @@ TEST(Config, blurVariantsMatchRendererTypes) {
 
     EXPECT_EQ(INT_VALUE->defaultVal(), sc<Config::INTEGER>(eBlurType::BLUR_DUAL_KAWASE));
     EXPECT_EQ(*INT_VALUE->m_min, sc<Config::INTEGER>(eBlurType::BLUR_DUAL_KAWASE));
-    EXPECT_EQ(*INT_VALUE->m_max, sc<Config::INTEGER>(eBlurType::BLUR_ACRYLIC));
+    EXPECT_EQ(*INT_VALUE->m_max, sc<Config::INTEGER>(eBlurType::BLUR_AURORA));
 
     const auto& MAP = *INT_VALUE->m_map;
-    EXPECT_EQ(MAP.size(), 9);
+    EXPECT_EQ(MAP.size(), 10);
     EXPECT_EQ(MAP.at("kawase"), sc<Config::INTEGER>(eBlurType::BLUR_DUAL_KAWASE));
     EXPECT_EQ(MAP.at("frost"), sc<Config::INTEGER>(eBlurType::BLUR_FROST));
     EXPECT_FALSE(MAP.contains("fluted"));
@@ -37,6 +37,8 @@ TEST(Config, blurVariantsMatchRendererTypes) {
     EXPECT_EQ(MAP.at("prism"), sc<Config::INTEGER>(eBlurType::BLUR_PRISM));
     EXPECT_EQ(MAP.at("heat_shimmer"), sc<Config::INTEGER>(eBlurType::BLUR_HEAT_SHIMMER));
     EXPECT_EQ(MAP.at("acrylic"), sc<Config::INTEGER>(eBlurType::BLUR_ACRYLIC));
+    EXPECT_EQ(MAP.at("aurora"), sc<Config::INTEGER>(eBlurType::BLUR_AURORA));
+    EXPECT_EQ(INT_VALUE->refreshBits(), Config::Supplementary::REFRESH_BLUR_FB);
 }
 
 TEST(Config, dropsAnimationSpeedIsBounded) {
@@ -66,6 +68,55 @@ TEST(Config, heatShimmerAnimationSpeedIsBounded) {
     EXPECT_FLOAT_EQ(*FLOAT_VALUE->m_min, 0.F);
     EXPECT_FLOAT_EQ(*FLOAT_VALUE->m_max, 10.F);
     EXPECT_EQ(FLOAT_VALUE->refreshBits(), Config::Supplementary::REFRESH_BLUR_FB);
+}
+
+TEST(Config, auroraSettingsAreBounded) {
+    struct SAuroraSetting {
+        std::string_view name;
+        float            defaultValue;
+        float            min;
+        float            max;
+    };
+
+    constexpr std::array SETTINGS = {
+        SAuroraSetting{"decoration:blur:aurora:speed", 1.F, 0.F, 10.F},
+        SAuroraSetting{"decoration:blur:aurora:intensity", 0.35F, 0.F, 1.F},
+    };
+
+    for (const auto& setting : SETTINGS) {
+        const auto VALUE = std::ranges::find_if(CONFIG_VALUES, [&setting](const auto& value) { return std::string_view{value->name()} == setting.name; });
+        ASSERT_NE(VALUE, CONFIG_VALUES.end());
+
+        const auto FLOAT_VALUE = dynamicPointerCast<CFloatValue>(*VALUE);
+        ASSERT_TRUE(FLOAT_VALUE);
+        ASSERT_TRUE(FLOAT_VALUE->m_min.has_value());
+        ASSERT_TRUE(FLOAT_VALUE->m_max.has_value());
+
+        EXPECT_FLOAT_EQ(FLOAT_VALUE->defaultVal(), setting.defaultValue);
+        EXPECT_FLOAT_EQ(*FLOAT_VALUE->m_min, setting.min);
+        EXPECT_FLOAT_EQ(*FLOAT_VALUE->m_max, setting.max);
+        EXPECT_EQ(FLOAT_VALUE->refreshBits(), Config::Supplementary::REFRESH_BLUR_FB);
+    }
+
+    struct SAuroraColor {
+        std::string_view name;
+        int64_t          defaultValue;
+    };
+
+    constexpr std::array COLORS = {
+        SAuroraColor{"decoration:blur:aurora:color1", 0x29F0A0FF},
+        SAuroraColor{"decoration:blur:aurora:color2", 0x7A4DFFFF},
+    };
+
+    for (const auto& color : COLORS) {
+        const auto VALUE = std::ranges::find_if(CONFIG_VALUES, [&color](const auto& value) { return std::string_view{value->name()} == color.name; });
+        ASSERT_NE(VALUE, CONFIG_VALUES.end());
+
+        const auto COLOR_VALUE = dynamicPointerCast<CColorValue>(*VALUE);
+        ASSERT_TRUE(COLOR_VALUE);
+        EXPECT_EQ(COLOR_VALUE->defaultVal(), color.defaultValue);
+        EXPECT_EQ(COLOR_VALUE->refreshBits(), Config::Supplementary::REFRESH_BLUR_FB);
+    }
 }
 
 TEST(Config, acrylicSettingsAreBounded) {

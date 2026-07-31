@@ -29,6 +29,7 @@ namespace Render {
         BLUR_PRISM        = 6,
         BLUR_HEAT_SHIMMER = 7,
         BLUR_ACRYLIC      = 8,
+        BLUR_AURORA       = 9,
     };
 
     // "Jaki kurwa provident????"

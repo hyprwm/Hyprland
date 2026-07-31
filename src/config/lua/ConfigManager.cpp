@@ -610,7 +610,7 @@ void CConfigManager::reinitLuaState() {
                 lua_pushvalue(L, lua_upvalueindex(1));
                 lua_insert(L, 1);
                 lua_call(L, nstack, LUA_MULTRET);
-            } else {
+            } else if (nstack > 0) {
                 std::string out;
                 for (int i = 1; i <= nstack; ++i) {
                     out += std::format("{}\t", luaL_tolstring(L, i, nullptr));

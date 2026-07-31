@@ -202,7 +202,12 @@ IHyprRenderer::IHyprRenderer() {
                 w->wlSurface()->resource()->breadthfirst(
                     [](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) {
                         surf->m_stateQueue.unlockFirst(LOCK_REASON_FENCE | LOCK_REASON_FIFO | LOCK_REASON_TIMER);
-                        surf->presentFeedback(Time::steadyNow(), Desktop::focusState()->monitor(), true);
+
+                        //#TODO: figure out if renderunfocused should send discarded or not here.
+                        // if we dont discard it presentFeedback will send a frame callback.
+                        auto NOW = Time::steadyNow();
+                        surf->presentFeedback(NOW, Desktop::focusState()->monitor(), true);
+                        surf->frame(NOW);
                     },
                     nullptr);
             }

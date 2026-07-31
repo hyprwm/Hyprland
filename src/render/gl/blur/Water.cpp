@@ -7,7 +7,7 @@
 #include "../../ShaderLoader.hpp"
 #include "../../../config/ConfigValue.hpp"
 #include "../../../desktop/state/ViewState.hpp"
-#include "../../../desktop/view/Window.hpp"
+#include "../../../desktop/view/window/Window.hpp"
 #include "../../../event/EventBus.hpp"
 #include "../../../managers/input/InputManager.hpp"
 #include "../../../pointer/PointerManager.hpp"
@@ -338,7 +338,7 @@ bool CWaterBlurProvider::stateIsActive(const SState& state, const Time::steady_t
 
 void CWaterBlurProvider::pruneStates() const {
     const auto now = Time::steadyNow();
-    std::erase_if(m_windowStates, [&](const auto& state) { return state.window.expired() || !stateIsActive(state, now); });
+    std::erase_if(m_windowStates, [&](const auto& state) { return state.window.expired() || !state.window->shouldBlur() || !stateIsActive(state, now); });
     std::erase_if(m_monitorStates, [&](const auto& state) { return state.monitor.expired() || !stateIsActive(state, now); });
 }
 

@@ -598,7 +598,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         decorate && !pWindow->backend().traits().suggestsNoBorder && Fullscreen::controller()->getFullscreenModes(pWindow).internal != Fullscreen::FSMODE_FULLSCREEN;
     renderdata.rounding      = standalone || renderdata.dontRound ? 0 : pWindow->presentation().rounding() * pMonitor->m_scale;
     renderdata.roundingPower = standalone || renderdata.dontRound ? 2.0f : pWindow->presentation().roundingPower();
-    renderdata.blur          = !standalone && shouldBlur(pWindow);
+    renderdata.blur          = !standalone && !m_bRenderingSnapshot && pWindow->shouldBlur();
     renderdata.pWindow       = pWindow;
 
     if (standalone) {
@@ -769,7 +769,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
             static CConfigValue PBLURIGNOREA = CConfigValue<Config::FLOAT>("decoration:blur:popups_ignorealpha");
 
-            renderdata.blur = shouldBlur(pWindow->popupHead());
+            renderdata.blur = !m_bRenderingSnapshot && pWindow->popupHead()->shouldBlur();
 
             if (renderdata.blur) {
                 renderdata.discardMode |= DISCARD_ALPHA;
@@ -952,7 +952,7 @@ void IHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
 
     CSurfacePassElement::SRenderData renderdata = {pMonitor, time, REALPOS};
     renderdata.fadeAlpha                        = pLayer->alpha()[LS_ALPHA_FADE]->value();
-    renderdata.blur                             = shouldBlur(pLayer);
+    renderdata.blur                             = !m_bRenderingSnapshot && pLayer->shouldBlur();
     renderdata.surface                          = pLayer->wlSurface()->resource();
     renderdata.decorate                         = false;
     renderdata.w                                = REALSIZ.x;
@@ -3296,47 +3296,6 @@ NColorManagement::PImageDescription IHyprRenderer::workBufferImageDescription() 
         return LINEAR_IMAGE_DESCRIPTION;
 
     return m_renderData.pMonitor->workBufferImageDescription();
-}
-
-bool IHyprRenderer::shouldBlur(PHLLS ls) {
-    if (m_bRenderingSnapshot)
-        return false;
-
-    static auto PBLUR = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
-    if (!*PBLUR)
-        return false;
-
-    auto surface = ls->wlSurface();
-    if (surface && surface->m_hasBackgroundEffect)
-        return !surface->m_blurRegion.empty();
-
-    return ls->m_ruleApplicator->blur().valueOrDefault();
-}
-
-bool IHyprRenderer::shouldBlur(PHLWINDOW w) {
-    if (m_bRenderingSnapshot)
-        return false;
-
-    static auto PBLUR = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
-    if (!*PBLUR)
-        return false;
-
-    const bool DONT_BLUR = w->m_ruleApplicator->noBlur().valueOrDefault() || w->m_ruleApplicator->RGBX().valueOrDefault() || w->presentation().opaque();
-    if (DONT_BLUR)
-        return false;
-
-    auto surface = w->wlSurface();
-    if (surface && surface->m_hasBackgroundEffect)
-        return !surface->m_blurRegion.empty();
-
-    return true;
-}
-
-bool IHyprRenderer::shouldBlur(WP<Desktop::View::CPopup> p) {
-    static CConfigValue PBLURPOPUPS = CConfigValue<Config::INTEGER>("decoration:blur:popups");
-    static CConfigValue PBLUR       = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
-
-    return *PBLURPOPUPS && *PBLUR;
 }
 
 SP<ITexture> IHyprRenderer::renderSplash(const std::function<SP<ITexture>(const int, const int, unsigned char* const)>& handleData, const int fontSize, const int maxWidth,

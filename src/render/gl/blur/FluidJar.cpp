@@ -6,7 +6,8 @@
 #include "../../Shader.hpp"
 #include "../../ShaderLoader.hpp"
 #include "../../../config/ConfigValue.hpp"
-#include "../../../desktop/view/Window.hpp"
+#include "../../../desktop/view/window/Window.hpp"
+#include "../../../desktop/view/window/WindowPresentation.hpp"
 #include "../../../desktop/Workspace.hpp"
 #include "../../../event/EventBus.hpp"
 #include "../../../helpers/Color.hpp"
@@ -71,8 +72,8 @@ static CBox renderedWindowBox(PHLWINDOW window) {
     if (!window)
         return {};
 
-    auto position = window->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT) + window->m_floatingOffset;
-    if (!window->m_pinned && window->m_workspace)
+    auto position = window->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT) + window->presentation().floatingOffset();
+    if (!(window->m_state & Desktop::View::WINDOW_STATE_PINNED) && window->m_workspace)
         position += window->m_workspace->m_renderOffset->value();
 
     const auto size = window->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
@@ -568,7 +569,7 @@ void CFluidJarBlurProvider::scheduleNextFrame(const SState& state) const {
 }
 
 void CFluidJarBlurProvider::pruneStates() {
-    std::erase_if(m_states, [](const auto& state) { return state.window.expired(); });
+    std::erase_if(m_states, [](const auto& state) { return state.window.expired() || !state.window->shouldBlur(); });
 }
 
 Vector2D Render::GL::fluidJarSimulationSize(const Vector2D& extent, float precision) {

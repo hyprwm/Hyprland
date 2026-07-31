@@ -606,6 +606,22 @@ bool CWindow::isHidden() const {
     return m_hidden;
 }
 
+bool CWindow::shouldBlur() const {
+    static auto PBLUR = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
+    if (!*PBLUR)
+        return false;
+
+    const bool DONT_BLUR = m_ruleApplicator->noBlur().valueOrDefault() || m_ruleApplicator->RGBX().valueOrDefault() || presentation().opaque();
+    if (DONT_BLUR)
+        return false;
+
+    auto surface = wlSurface();
+    if (surface && surface->m_hasBackgroundEffect)
+        return !surface->m_blurRegion.empty();
+
+    return true;
+}
+
 void CWindow::onInputBlockStateUpdated(bool blocked) {
     if (blocked && Desktop::focusState()->window() == m_self)
         Desktop::focusState()->fullWindowFocus(nullptr, eFocusReason::FOCUS_REASON_SWITCH_TO_WINDOW_SOFT);
@@ -1048,7 +1064,7 @@ bool CWindow::priorityFocus() {
     return !m_backend->isX11() && CAsyncDialogBox::isPriorityDialogBox(m_backend->pid());
 }
 
-SP<CWLSurfaceResource> CWindow::getSolitaryResource() {
+SP<CWLSurfaceResource> CWindow::getSolitaryResource() const {
     if (!m_wlSurface || !m_wlSurface->resource())
         return nullptr;
 

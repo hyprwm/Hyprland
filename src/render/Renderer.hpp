@@ -283,10 +283,6 @@ namespace Render {
         ASP<Hyprgraphics::CImageResource> m_backgroundResource;
         bool                              m_backgroundResourceFailed = false;
 
-        bool                              shouldBlur(PHLLS ls);
-        bool                              shouldBlur(PHLWINDOW w);
-        bool                              shouldBlur(WP<Desktop::View::CPopup> p);
-
         bool                              m_cursorHidden            = false;
         bool                              m_cursorHiddenByCondition = false;
         bool                              m_cursorHasSurface        = false;

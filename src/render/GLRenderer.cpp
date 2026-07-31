@@ -11,7 +11,8 @@
 #include "../protocols/core/Compositor.hpp"
 #include "../debug/Overlay.hpp"
 #include "../desktop/state/WindowState.hpp"
-#include "../desktop/view/Window.hpp"
+#include "../desktop/view/window/Window.hpp"
+#include "../desktop/view/window/WindowPresentation.hpp"
 #include "../event/EventBus.hpp"
 #include "../output/Monitor.hpp"
 #include "pass/TexPassElement.hpp"
@@ -368,8 +369,9 @@ void CHyprGLRenderer::preRender(PHLMONITOR pMonitor) {
 
         const auto  PSURFACE   = pWindow->wlSurface()->resource();
         const auto  PWORKSPACE = pWindow->m_workspace;
-        const float A          = pWindow->alphaValue(Desktop::View::WINDOW_ALPHA_FADE) * pWindow->alphaValue(Desktop::View::WINDOW_ALPHA_FULLSCREEN) *
-            pWindow->alphaValue(Desktop::View::WINDOW_ALPHA_LAYOUT) * pWindow->alphaValue(Desktop::View::WINDOW_ALPHA_ACTIVE) * PWORKSPACE->m_alpha->value();
+        const float A = pWindow->presentation().alphaValue(Desktop::View::WINDOW_ALPHA_FADE) * pWindow->presentation().alphaValue(Desktop::View::WINDOW_ALPHA_FULLSCREEN) *
+            pWindow->presentation().alphaValue(Desktop::View::WINDOW_ALPHA_LAYOUT) * pWindow->presentation().alphaValue(Desktop::View::WINDOW_ALPHA_ACTIVE) *
+            PWORKSPACE->m_alpha->value();
 
         if (A < 1.F)
             return true;
@@ -383,7 +385,8 @@ void CHyprGLRenderer::preRender(PHLMONITOR pMonitor) {
 
     bool hasWindows = false;
     for (const auto& w : Desktop::windowState()->windows()) {
-        if (w->m_workspace != pMonitor->m_activeWorkspace || !w->visible() || !w->m_isMapped || (w->m_isFloating && !*PBLURXRAY) || !windowShouldBeBlurred(w))
+        if (w->m_workspace != pMonitor->m_activeWorkspace || !w->mapped() || !w->acceptsInput() || !w->alphaNonZero() || (w->isFloating() && !*PBLURXRAY) ||
+            !windowShouldBeBlurred(w))
             continue;
 
         hasWindows = true;

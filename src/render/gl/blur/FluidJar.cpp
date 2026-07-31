@@ -137,6 +137,15 @@ void CFluidJarBlurProvider::setFinishUniforms(WP<CShader> shader, float strength
         return;
     }
 
+    const auto monitor = g_pHyprRenderer->m_renderData.pMonitor;
+    if (!monitor) {
+        shader->setUniformInt(SHADER_FLUIDJAR_ENABLED, 0);
+        return;
+    }
+
+    const auto logicalExtent   = context.patternBox.value_or(CBox{0, 0, monitor->m_transformedSize.x, monitor->m_transformedSize.y});
+    const auto outputTransform = fluidJarOutputTransform(Math::wlTransformToHyprutils(Math::invertTransform(monitor->m_transform)));
+
     glActiveTexture(GL_TEXTURE2);
     const auto texture = state->visual[state->currentVisual]->getTexture();
     texture->bind();
@@ -153,6 +162,10 @@ void CFluidJarBlurProvider::setFinishUniforms(WP<CShader> shader, float strength
     shader->setUniformInt(SHADER_FLUIDJAR_ENABLED, 1);
     shader->setUniformInt(SHADER_FLUIDJAR_VISUAL_TEX, 2);
     shader->setUniformFloat4(SHADER_FLUIDJAR_EXTENT, sc<float>(extent.x), sc<float>(extent.y), sc<float>(extent.width), sc<float>(extent.height));
+    shader->setUniformFloat4(SHADER_FLUIDJAR_OUTPUT_TRANSFORM, sc<float>(outputTransform.xAxis.x), sc<float>(outputTransform.yAxis.x), sc<float>(outputTransform.xAxis.y),
+                             sc<float>(outputTransform.yAxis.y));
+    shader->setUniformFloat2(SHADER_FLUIDJAR_OUTPUT_OFFSET, sc<float>(outputTransform.offset.x), sc<float>(outputTransform.offset.y));
+    shader->setUniformFloat2(SHADER_FLUIDJAR_LOGICAL_SIZE, sc<float>(logicalExtent.width), sc<float>(logicalExtent.height));
     shader->setUniformFloat4(SHADER_FLUIDJAR_COLOR, color.r, color.g, color.b, color.a);
     shader->setUniformFloat(SHADER_FLUIDJAR_REFRACTION, MAX_REFRACTION);
     shader->setUniformInt(SHADER_FLUIDJAR_TRANSFER_FUNCTION, sc<int>(getDefaultImageDescription()->value().transferFunction));
@@ -604,6 +617,17 @@ int Render::GL::fluidJarResizedParticleCount(int oldParticleCount, const Vector2
 
 float Render::GL::fluidJarDamageRadius(int64_t size, int64_t passes, float distortion) {
     return dualKawaseDamageRadius(size, passes) + std::ceil(MAX_REFRACTION * std::clamp(distortion, 0.F, MAX_DISTORTION));
+}
+
+SFluidJarOutputTransform Render::GL::fluidJarOutputTransform(eTransform transform) {
+    constexpr Vector2D UNIT_EXTENT = {1, 1};
+
+    const auto         offset = Vector2D{}.transform(transform, UNIT_EXTENT);
+    return {
+        .xAxis  = Vector2D{1, 0}.transform(transform, UNIT_EXTENT) - offset,
+        .yAxis  = Vector2D{0, 1}.transform(transform, UNIT_EXTENT) - offset,
+        .offset = offset,
+    };
 }
 
 SFluidJarGeometryTransform Render::GL::fluidJarGeometryTransform(const CBox& oldExtent, const CBox& newExtent, const Vector2D& oldSimulationSize, const Vector2D& newSimulationSize,

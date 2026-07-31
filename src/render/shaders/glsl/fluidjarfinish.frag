@@ -10,6 +10,9 @@ uniform sampler2D sharpTex;
 uniform sampler2D fluidJarVisualTex;
 uniform int fluidJarEnabled;
 uniform vec4 fluidJarExtent;
+uniform vec4 fluidJarOutputTransform;
+uniform vec2 fluidJarOutputOffset;
+uniform vec2 fluidJarLogicalSize;
 uniform vec4 fluidJarColor;
 uniform float fluidJarRefraction;
 uniform int fluidJarTransferFunction;
@@ -36,6 +39,14 @@ vec4 sampleFluid(vec2 uv) {
     return texture(fluidJarVisualTex, clamp(uv, vec2(0.0), vec2(1.0)));
 }
 
+vec2 outputToLogical(vec2 position) {
+    return vec2(dot(fluidJarOutputTransform.xy, position), dot(fluidJarOutputTransform.zw, position)) + fluidJarOutputOffset;
+}
+
+vec2 logicalToOutputVector(vec2 vector) {
+    return vec2(dot(fluidJarOutputTransform.xz, vector), dot(fluidJarOutputTransform.yw, vector));
+}
+
 vec2 shimmerWaves(vec2 position, float material) {
     const vec2 DIRECTION_A = vec2(0.894427, 0.447214);
     const vec2 DIRECTION_B = vec2(-0.351123, 0.936329);
@@ -47,10 +58,10 @@ vec2 shimmerWaves(vec2 position, float material) {
     return 0.46 * DIRECTION_A * waveA + 0.34 * DIRECTION_B * waveB + 0.20 * DIRECTION_C * waveC;
 }
 
-vec4 applyLiquid(vec4 blurred, vec2 fluidUV, vec2 sourceSize, vec2 position) {
+vec4 applyLiquid(vec4 blurred, vec2 fluidUV, vec2 sourceSize, vec2 sourcePosition, vec2 logicalPosition) {
     vec2 visualSize = vec2(textureSize(fluidJarVisualTex, 0));
     vec2 texel = 1.0 / visualSize;
-    vec2 cellPixels = fluidJarExtent.zw / visualSize;
+    vec2 cellPixels = fluidJarLogicalSize / visualSize;
 
     vec4 center = sampleFluid(fluidUV);
     vec4 left = sampleFluid(fluidUV - vec2(texel.x, 0.0));
@@ -88,9 +99,8 @@ vec4 applyLiquid(vec4 blurred, vec2 fluidUV, vec2 sourceSize, vec2 position) {
         vec2 swirlPixels = normalizedCurl * vec2(-outputVelocity.y, outputVelocity.x) / (0.5 + speed);
         vec2 materialGradient = vec2((right.b - left.b) / max(2.0 * cellPixels.x, 0.001), -(up.b - down.b) / max(2.0 * cellPixels.y, 0.001));
         vec2 materialPixels = 4.0 * min(cellPixels.x, cellPixels.y) * materialGradient * mix(0.65, 1.35, motion) * (1.0 + 0.5 * abs(normalizedCurl));
-        vec2 localPosition = position - fluidJarExtent.xy;
         float shimmerActivity = mix(0.24, 1.25, motion) * (1.0 + 0.35 * abs(normalizedCurl));
-        vec2 shimmerPixels = 1.6 * shimmerActivity * shimmerWaves(localPosition, center.b);
+        vec2 shimmerPixels = 1.6 * shimmerActivity * shimmerWaves(logicalPosition, center.b);
         turbulentPixels = turbulence * (materialPixels + swirlPixels + shimmerPixels);
     }
     float interior = smoothstep(0.45, 0.8, mask) * (1.0 - edge);
@@ -101,9 +111,10 @@ vec4 applyLiquid(vec4 blurred, vec2 fluidUV, vec2 sourceSize, vec2 position) {
     float distortion = clamp(fluidJarDistortion, 0.0, 10.0);
     float maximumDisplacement = fluidJarRefraction * distortion;
     vec2 displacementPixels = distortion * effect * (mask * interiorPixels + edge * outwardNormal * edgePixels);
-    float sourceEdgeDistance = min(min(position.x, sourceSize.x - position.x), min(position.y, sourceSize.y - position.y));
+    float sourceEdgeDistance = min(min(sourcePosition.x, sourceSize.x - sourcePosition.x), min(sourcePosition.y, sourceSize.y - sourcePosition.y));
     displacementPixels *= smoothstep(0.0, maximumDisplacement + 1.0, sourceEdgeDistance);
     displacementPixels /= max(1.0, length(displacementPixels) / max(maximumDisplacement, 0.001));
+    displacementPixels = logicalToOutputVector(displacementPixels);
 
     vec3 surfaceNormal = normalize(vec3(-gradient * 20.0, 1.0));
     float oneMinusNV = 1.0 - max(surfaceNormal.z, 0.0);
@@ -141,10 +152,12 @@ void main() {
     if (fluidJarEnabled != 0) {
         vec2 sourceSize = vec2(textureSize(tex, 0));
         vec2 position = v_texcoord * sourceSize;
-        vec2 fluidUV = (position - fluidJarExtent.xy) / fluidJarExtent.zw;
-        if (all(greaterThanEqual(fluidUV, vec2(0.0))) && all(lessThanEqual(fluidUV, vec2(1.0)))) {
+        vec2 outputUV = (position - fluidJarExtent.xy) / fluidJarExtent.zw;
+        if (all(greaterThanEqual(outputUV, vec2(0.0))) && all(lessThanEqual(outputUV, vec2(1.0)))) {
+            vec2 logicalUV = outputToLogical(outputUV);
+            vec2 fluidUV = logicalUV;
             fluidUV.y = 1.0 - fluidUV.y;
-            color = applyLiquid(color, fluidUV, sourceSize, position);
+            color = applyLiquid(color, fluidUV, sourceSize, position, logicalUV * fluidJarLogicalSize);
         }
     }
 

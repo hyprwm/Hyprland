@@ -143,10 +143,14 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
             // without a viewport, at commit time the supplied
             // buffer size must be an integer multiple of the buffer_scale. If
             // that's not the case, an invalid_size error is sent.
-            if (sc<int>(m_pending.bufferSize.x) % m_pending.scale != 0 || sc<int>(m_pending.bufferSize.y) % m_pending.scale != 0) {
-                r->error(WL_SURFACE_ERROR_INVALID_SIZE, "buffer size is not an integer multiple of the buffer scale");
-                dropPendingBuffer();
-                return;
+            // https://gitlab.freedesktop.org/wayland/wayland/-/issues/194
+            // https://github.com/hyprwm/Hyprland/discussions/15673
+            if (m_role->role() != SURFACE_ROLE_CURSOR && m_role->role() != SURFACE_ROLE_UNASSIGNED) {
+                if (sc<int>(m_pending.bufferSize.x) % m_pending.scale != 0 || sc<int>(m_pending.bufferSize.y) % m_pending.scale != 0) {
+                    r->error(WL_SURFACE_ERROR_INVALID_SIZE, "buffer size is not an integer multiple of the buffer scale");
+                    dropPendingBuffer();
+                    return;
+                }
             }
 
             Vector2D tfs   = m_pending.transform % 2 == 1 ? Vector2D{m_pending.bufferSize.y, m_pending.bufferSize.x} : m_pending.bufferSize;

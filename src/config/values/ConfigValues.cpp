@@ -236,7 +236,8 @@ std::vector<SP<IValue>> Values::getConfigValues() {
          */
 
         MS<Bool>("decoration:blur:enabled", "enable window background blur", true, {.refresh = Supplementary::REFRESH_BLUR_FB}),
-        MS<Int>("decoration:blur:variant", "set the blur variant", 0,
+        MS<Int>("decoration:blur:variant", "set the blur variant. Blur variants enhance regular blur, but may increase GPU and CPU usage, significantly so if they are animated.",
+                0,
                 {.min = 0,
                  .max = 9,
                  .map =

@@ -25,7 +25,6 @@
 #include <hyprutils/string/VarList.hpp>
 #include <hyprutils/string/ConstVarList.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
-#include <optional>
 
 using namespace Hyprutils::String;
 using namespace Hyprutils::Utils;

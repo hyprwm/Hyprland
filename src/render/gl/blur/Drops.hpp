@@ -6,15 +6,13 @@
 #include "../../../helpers/time/Time.hpp"
 
 namespace Render::GL {
-    class CDropsBlurProvider final : public CGlassBlurProvider {
+    class CDropsBlurMaterial final : public CGlassBlurMaterial {
       public:
-        explicit CDropsBlurProvider(CHyprOpenGLImpl& impl);
+        CDropsBlurMaterial();
 
         bool isAnimated() const noexcept override;
 
-      protected:
-        bool requiresPreparedInput() const noexcept override;
-        void setFinishUniforms(WP<CShader> shader, float strength, const SBlurContext& context) const override;
+        void bindFinish(WP<CShader> shader, const SBlurMaterialContext& context) const override;
 
       private:
         void                    updateAnimation(float speed) const;
@@ -24,5 +22,10 @@ namespace Render::GL {
         mutable double          m_animationTime = 0.0;
         mutable float           m_previousSpeed = 0.F;
         CHyprSignalListener     m_configListener;
+    };
+
+    class CDropsBlurProvider final : public CGlassBlurProvider {
+      public:
+        explicit CDropsBlurProvider(CHyprOpenGLImpl& impl);
     };
 }

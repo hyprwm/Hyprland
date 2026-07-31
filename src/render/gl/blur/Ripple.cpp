@@ -1,5 +1,7 @@
 #include "Ripple.hpp"
 
+#include "Kawase.hpp"
+
 #include "../../Renderer.hpp"
 #include "../../Shader.hpp"
 #include "../../ShaderLoader.hpp"
@@ -19,7 +21,7 @@ using namespace Render::GL;
 
 static constexpr float MAX_RIPPLE_DISPLACEMENT = 32.F;
 
-CRippleBlurProvider::CRippleBlurProvider(CHyprOpenGLImpl& impl) : CDualKawaseBlurProvider(impl) {
+CRippleBlurMaterial::CRippleBlurMaterial() {
     m_listeners.mouseButton = Event::bus()->m_events.input.mouse.button.listen([this](IPointer::SButtonEvent event, Event::SCallbackInfo&) {
         m_lastMouseHeldCoord.reset();
 
@@ -66,11 +68,15 @@ CRippleBlurProvider::CRippleBlurProvider(CHyprOpenGLImpl& impl) : CDualKawaseBlu
     });
 }
 
-eBlurType CRippleBlurProvider::type() const noexcept {
+CRippleBlurProvider::CRippleBlurProvider(CHyprOpenGLImpl& impl) : CDualKawaseBlurProvider(impl, makeUnique<CRippleBlurMaterial>()) {
+    ;
+}
+
+eBlurType CRippleBlurMaterial::type() const noexcept {
     return eBlurType::BLUR_RIPPLE;
 }
 
-void CRippleBlurProvider::addImpulse() {
+void CRippleBlurMaterial::addImpulse() {
     static auto PRIPPLESTRENGTH = CConfigValue<Config::FLOAT>("decoration:blur:ripple:strength");
     static auto PRIPPLERADIUS   = CConfigValue<Config::FLOAT>("decoration:blur:ripple:radius");
     static auto PRIPPLEWIDTH    = CConfigValue<Config::FLOAT>("decoration:blur:ripple:width");
@@ -100,7 +106,7 @@ void CRippleBlurProvider::addImpulse() {
     damageImpulse(impulse);
 }
 
-bool CRippleBlurProvider::isAnimated() const noexcept {
+bool CRippleBlurMaterial::isAnimated() const noexcept {
     static auto PRIPPLESTRENGTH = CConfigValue<Config::FLOAT>("decoration:blur:ripple:strength");
     static auto PRIPPLEDURATION = CConfigValue<Config::FLOAT>("decoration:blur:ripple:duration");
     static auto PBLURENABLED    = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
@@ -112,11 +118,13 @@ bool CRippleBlurProvider::isAnimated() const noexcept {
     return std::ranges::any_of(m_impulses, [&](const auto& impulse) { return impulseIsActive(impulse, g_pHyprRenderer->m_renderData.pMonitor, now, *PRIPPLEDURATION); });
 }
 
-ePreparedFragmentShader CRippleBlurProvider::finishFragment() const noexcept {
-    return SH_FRAG_RIPPLEFINISH;
+SBlurMaterialRequirements CRippleBlurMaterial::requirements() const noexcept {
+    return {
+        .finishFragment = SH_FRAG_RIPPLEFINISH,
+    };
 }
 
-void CRippleBlurProvider::setFinishUniforms(WP<CShader> shader, float strength, const SBlurContext& context) const {
+void CRippleBlurMaterial::bindFinish(WP<CShader> shader, const SBlurMaterialContext& context) const {
     static auto        PRIPPLESTRENGTH = CConfigValue<Config::FLOAT>("decoration:blur:ripple:strength");
     static auto        PRIPPLERADIUS   = CConfigValue<Config::FLOAT>("decoration:blur:ripple:radius");
     static auto        PRIPPLEWIDTH    = CConfigValue<Config::FLOAT>("decoration:blur:ripple:width");
@@ -133,8 +141,7 @@ void CRippleBlurProvider::setFinishUniforms(WP<CShader> shader, float strength, 
         if (!impulseIsActive(impulse, monitor, now, duration))
             continue;
 
-        auto position = (impulse.globalPosition - monitor->m_position) * monitor->m_scale;
-        position      = position.transform(Math::wlTransformToHyprutils(monitor->m_transform), monitor->m_pixelSize);
+        const auto position = (impulse.globalPosition - monitor->m_position) * monitor->m_scale;
 
         const auto age = std::chrono::duration<float>(now - impulse.started).count();
         impulses.insert(impulses.end(), {sc<float>(position.x), sc<float>(position.y), age, 0.F});
@@ -146,18 +153,16 @@ void CRippleBlurProvider::setFinishUniforms(WP<CShader> shader, float strength, 
         shader->setUniform4fv(SHADER_RIPPLE_IMPULSES, count, impulses);
 
     shader->setUniformFloat4(SHADER_RIPPLE_PARAMS, duration, std::max(*PRIPPLERADIUS, 1.F), std::max(*PRIPPLEWIDTH, 1.F),
-                             std::clamp(*PRIPPLESTRENGTH, 0.F, MAX_RIPPLE_DISPLACEMENT) * std::clamp(strength, 0.F, 1.F));
+                             std::clamp(*PRIPPLESTRENGTH, 0.F, MAX_RIPPLE_DISPLACEMENT) * std::clamp(context.strength, 0.F, 1.F));
 }
 
-float CRippleBlurProvider::damageRadius() const {
-    static auto PBLURSIZE       = CConfigValue<Config::INTEGER>("decoration:blur:size");
-    static auto PBLURPASSES     = CConfigValue<Config::INTEGER>("decoration:blur:passes");
+float CRippleBlurMaterial::sampleRadius() const {
     static auto PRIPPLESTRENGTH = CConfigValue<Config::FLOAT>("decoration:blur:ripple:strength");
 
-    return rippleDamageRadius(*PBLURSIZE, *PBLURPASSES, *PRIPPLESTRENGTH);
+    return std::ceil(std::clamp(*PRIPPLESTRENGTH, 0.F, MAX_RIPPLE_DISPLACEMENT));
 }
 
-void CRippleBlurProvider::damageImpulse(const SImpulse& impulse) const {
+void CRippleBlurMaterial::damageImpulse(const SImpulse& impulse) const {
     const auto monitor = impulse.monitor.lock();
     if (!monitor)
         return;
@@ -172,7 +177,7 @@ void CRippleBlurProvider::damageImpulse(const SImpulse& impulse) const {
     monitor->addDamage(CBox{left, top, right - left, bottom - top});
 }
 
-bool CRippleBlurProvider::impulseIsActive(const SImpulse& impulse, PHLMONITORREF monitor, const Time::steady_tp& now, float duration) const {
+bool CRippleBlurMaterial::impulseIsActive(const SImpulse& impulse, PHLMONITORREF monitor, const Time::steady_tp& now, float duration) const {
     if (!impulse.occupied || !monitor || impulse.monitor != monitor)
         return false;
 

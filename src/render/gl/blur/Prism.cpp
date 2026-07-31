@@ -5,10 +5,10 @@
 using namespace Render;
 using namespace Render::GL;
 
-CPrismBlurProvider::CPrismBlurProvider(CHyprOpenGLImpl& impl) : CGlassBlurProvider(impl, eBlurType::BLUR_PRISM, SH_FRAG_PRISMFINISH) {
+CPrismBlurMaterial::CPrismBlurMaterial() : CGlassBlurMaterial(eBlurType::BLUR_PRISM, SH_FRAG_PRISMFINISH, true) {
     ;
 }
 
-bool CPrismBlurProvider::requiresPreparedInput() const noexcept {
-    return true;
+CPrismBlurProvider::CPrismBlurProvider(CHyprOpenGLImpl& impl) : CGlassBlurProvider(impl, makeUnique<CPrismBlurMaterial>()) {
+    ;
 }

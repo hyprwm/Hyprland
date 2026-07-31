@@ -12,6 +12,7 @@
 #include "../../protocols/core/Compositor.hpp"
 #include "../../state/MonitorState.hpp"
 #include "RectPassElement.hpp"
+#include "BackdropScopePassElement.hpp"
 #include "macros.hpp"
 
 using namespace Render;
@@ -22,6 +23,10 @@ bool CRenderPass::empty() const {
 
 bool CRenderPass::single() const {
     return m_passElements.size() == 1;
+}
+
+bool CRenderPass::needsLiveBlur() {
+    return std::ranges::any_of(m_passElements, [](const auto& el) { return el.element->needsLiveBlur(); });
 }
 
 void CRenderPass::add(UP<IPassElement>&& el) {
@@ -104,6 +109,30 @@ void CRenderPass::clear() {
     m_passElements.clear();
 }
 
+void CRenderPass::planBackdropScopes() {
+    CBackdropScopePlanner planner;
+    const CBox            bounds = {{}, g_pHyprRenderer->m_renderData.pMonitor->m_transformedSize};
+
+    for (auto& el : m_passElements) {
+        if (el.element->type() != EK_BACKDROP_SCOPE) {
+            if (!el.discard && el.element->needsLiveBlurCached)
+                planner.addLiveBlur(el.elementDamage);
+            continue;
+        }
+
+        const auto marker = sc<CBackdropScopePassElement*>(el.element.get());
+        const auto scope  = marker->scope();
+        RASSERT(scope, "Backdrop scope marker has no scope");
+
+        if (marker->action() == CBackdropScopePassElement::eAction::BEGIN)
+            planner.begin(scope);
+        else
+            planner.end(scope, bounds);
+    }
+
+    RASSERT(planner.empty(), "Unclosed backdrop scope marker");
+}
+
 CRegion CRenderPass::render(const CRegion& damage_) {
     const auto  pMonitor   = g_pHyprRenderer->m_renderData.pMonitor;
     static auto PDEBUGPASS = CConfigValue<Config::INTEGER>("debug:pass");
@@ -179,6 +208,8 @@ CRegion CRenderPass::render(const CRegion& damage_) {
         }
     } else
         simplify(willBlur, liveBlurRegion);
+
+    planBackdropScopes();
 
     if (g_pHyprRenderer->m_renderData.pMonitor)
         g_pHyprRenderer->m_renderData.pMonitor->m_blurFBShouldRender = willPrecomputeBlur;

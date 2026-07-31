@@ -259,6 +259,17 @@ void CShader::getUniformLocations() {
     m_uniformLocations[SHADER_FLUIDJAR_TURBULENCE]         = getUniform("fluidJarTurbulence");
     m_uniformLocations[SHADER_FLUIDJAR_DISTORTION]         = getUniform("fluidJarDistortion");
     m_uniformLocations[SHADER_FLUIDJAR_ENABLED]            = getUniform("fluidJarEnabled");
+    m_uniformLocations[SHADER_ACRYLIC_ENABLED]             = getUniform("acrylicEnabled");
+    m_uniformLocations[SHADER_ACRYLIC_EXTENT]              = getUniform("acrylicExtent");
+    m_uniformLocations[SHADER_ACRYLIC_RADIUS]              = getUniform("acrylicRadius");
+    m_uniformLocations[SHADER_ACRYLIC_ROUNDING_POWER]      = getUniform("acrylicRoundingPower");
+    m_uniformLocations[SHADER_ACRYLIC_REFRACTION]          = getUniform("acrylicRefraction");
+    m_uniformLocations[SHADER_ACRYLIC_BULB]                = getUniform("acrylicBulb");
+    m_uniformLocations[SHADER_ACRYLIC_CLARITY]             = getUniform("acrylicClarity");
+    m_uniformLocations[SHADER_ACRYLIC_ABERRATION]          = getUniform("acrylicAberration");
+    m_uniformLocations[SHADER_ACRYLIC_TINT]                = getUniform("acrylicTint");
+    m_uniformLocations[SHADER_ACRYLIC_STRENGTH]            = getUniform("acrylicStrength");
+    m_uniformLocations[SHADER_ACRYLIC_TRANSFER_FUNCTION]   = getUniform("acrylicTransferFunction");
     m_uniformLocations[SHADER_POINTER]                     = getUniform("pointer_position");
     m_uniformLocations[SHADER_POINTER_SHAPE]               = getUniform("pointer_shape");
     m_uniformLocations[SHADER_POINTER_SWITCH_TIME]         = getUniform("pointer_switch_time");

@@ -915,6 +915,7 @@ const std::array<std::string, SH_FRAG_LAST> FRAG_SHADERS = {
     "fluidjarfinish.frag",
     "prismfinish.frag",
     "heatshimmerfinish.frag",
+    "acrylicfinish.frag",
 };
 
 bool CHyprOpenGLImpl::initShaders(const std::string& path) {
@@ -1027,6 +1028,10 @@ void CHyprOpenGLImpl::blend(bool enabled) {
     m_blend = enabled;
 }
 
+bool CHyprOpenGLImpl::blendEnabled() const {
+    return m_blend;
+}
+
 void CHyprOpenGLImpl::scissor(const CBox& originalBox, bool transform) {
     auto& m_renderData = g_pHyprRenderer->m_renderData;
     RASSERT(m_renderData.pMonitor, "Tried to scissor without begin()!");
@@ -1093,8 +1098,18 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
 
     auto patternBox = data.blurPatternBox.value_or(box);
     g_pHyprRenderer->m_renderData.renderModif.applyToBox(patternBox);
-    const auto blurredFB = data.xray ? g_pHyprRenderer->m_renderData.pMonitor->resources()->m_blurFB :
-                                       g_pHyprRenderer->blurMainFramebuffer(data.blurA, damage, {.patternBox = patternBox, .owner = data.blurOwner});
+    auto shapeBox = box;
+    g_pHyprRenderer->m_renderData.renderModif.applyToBox(shapeBox);
+    std::optional<SBlurShape> shape;
+    if (std::abs(shapeBox.rot) < 0.0001F)
+        shape = SBlurShape{
+            .box           = shapeBox,
+            .radius        = std::max(sc<float>(data.round), 0.F),
+            .roundingPower = data.roundingPower,
+        };
+    const bool usePrecomputedBlur = data.xray && !g_pHyprRenderer->blurProviderRequiresLiveBlur();
+    const auto blurredFB = usePrecomputedBlur ? g_pHyprRenderer->m_renderData.pMonitor->resources()->m_blurFB :
+                                                g_pHyprRenderer->blurMainFramebuffer(data.blurA, damage, {.patternBox = patternBox, .owner = data.blurOwner, .shape = shape});
     const auto blurredBG = blurredFB->getTexture();
 
     CBox       MONITORBOX = {0, 0, g_pHyprRenderer->m_renderData.pMonitor->m_transformedSize.x, g_pHyprRenderer->m_renderData.pMonitor->m_transformedSize.y};

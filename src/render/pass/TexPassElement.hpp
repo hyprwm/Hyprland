@@ -69,6 +69,7 @@ class CTexPassElement : public IPassElement {
         std::optional<CBox>    blurSourceBox;
 
         SMotionBlurData        motionBlur;
+        bool                   blurShapeInvalid = false;
     };
 
     CTexPassElement(const SRenderData& data);

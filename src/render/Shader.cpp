@@ -270,6 +270,10 @@ void CShader::getUniformLocations() {
     m_uniformLocations[SHADER_ACRYLIC_TINT]                = getUniform("acrylicTint");
     m_uniformLocations[SHADER_ACRYLIC_STRENGTH]            = getUniform("acrylicStrength");
     m_uniformLocations[SHADER_ACRYLIC_TRANSFER_FUNCTION]   = getUniform("acrylicTransferFunction");
+    m_uniformLocations[SHADER_AURORA_INTENSITY]            = getUniform("auroraIntensity");
+    m_uniformLocations[SHADER_AURORA_COLOR1]               = getUniform("auroraColor1");
+    m_uniformLocations[SHADER_AURORA_COLOR2]               = getUniform("auroraColor2");
+    m_uniformLocations[SHADER_AURORA_TRANSFER_FUNCTION]    = getUniform("auroraTransferFunction");
     m_uniformLocations[SHADER_POINTER]                     = getUniform("pointer_position");
     m_uniformLocations[SHADER_POINTER_SHAPE]               = getUniform("pointer_shape");
     m_uniformLocations[SHADER_POINTER_SWITCH_TIME]         = getUniform("pointer_switch_time");

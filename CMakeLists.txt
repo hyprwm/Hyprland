@@ -503,6 +503,7 @@ function(protocolnew protoPath protoName external)
            ${CMAKE_SOURCE_DIR}/protocols/${protoName}.hpp
     COMMAND hyprwayland-scanner ${path}/${protoName}.xml
             ${CMAKE_SOURCE_DIR}/protocols/
+    DEPENDS ${path}/${protoName}.xml
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
   target_sources(hyprland_lib PRIVATE protocols/${protoName}.cpp
                                   protocols/${protoName}.hpp)
@@ -521,6 +522,7 @@ function(protocolWayland)
     COMMAND
       hyprwayland-scanner --wayland-enums
       ${WAYLAND_SCANNER_PKGDATA_DIR}/wayland.xml ${CMAKE_SOURCE_DIR}/protocols/
+    DEPENDS ${WAYLAND_SCANNER_PKGDATA_DIR}/wayland.xml
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
   target_sources(hyprland_lib PRIVATE protocols/wayland.cpp protocols/wayland.hpp)
   target_sources(generate-protocol-headers
@@ -538,7 +540,7 @@ else()
   target_link_libraries(hyprland_lib PUBLIC OpenGL::EGL OpenGL::GLES3 glslang::glslang glslang::glslang-default-resource-limits glslang::SPIRV Threads::Threads)
 endif()
 
-pkg_check_modules(hyprland_protocols_dep hyprland-protocols>=0.7.0)
+pkg_check_modules(hyprland_protocols_dep hyprland-protocols>=0.8.0)
 if(hyprland_protocols_dep_FOUND)
   pkg_get_variable(HYPRLAND_PROTOCOLS hyprland-protocols pkgdatadir)
   message(STATUS "hyprland-protocols dependency set to ${HYPRLAND_PROTOCOLS}")

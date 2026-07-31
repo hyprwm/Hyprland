@@ -475,7 +475,7 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
 
         const auto TARGET_FS_MODES = getFullscreenModes(TARGET);
 
-        if (isFullscreen(TARGET, std::nullopt, std::nullopt) && TARGET_FS_MODES.client == FSMODE_NONE) {
+        if (!isFullscreen(TARGET, std::nullopt, std::nullopt) && TARGET_FS_MODES.client == FSMODE_NONE) {
             const auto NEXT = std::next(it);
             removeFsTarget(TARGET, true);
             it = NEXT;

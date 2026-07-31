@@ -238,7 +238,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Bool>("decoration:blur:enabled", "enable window background blur", true, {.refresh = Supplementary::REFRESH_BLUR_FB}),
         MS<Int>("decoration:blur:variant", "set the blur variant", 0,
                 {.min = 0,
-                 .max = 6,
+                 .max = 7,
                  .map =
                      OptionMap{
                          {"kawase", 0},
@@ -248,6 +248,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
                          {"water", 4},
                          {"fluid_jar", 5},
                          {"prism", 6},
+                         {"heat_shimmer", 7},
                      },
                  .refresh = Supplementary::REFRESH_BLUR_FB}),
         MS<Int>("decoration:blur:size", "blur size (distance)", 8, {.min = 0, .max = 100, .refresh = Supplementary::REFRESH_BLUR_FB}),
@@ -275,6 +276,9 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Float>("decoration:blur:glass:roughness", "strength of the glass relief shading", 1.F, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),
 
         MS<Float>("decoration:blur:drops:speed", "animation speed for drops blur. 0 disables the animation. Enabling will significantly increase GPU usage.", 3.F,
+                  {.min = 0, .max = 10, .refresh = Supplementary::REFRESH_BLUR_FB}),
+
+        MS<Float>("decoration:blur:heat_shimmer:speed", "animation speed for heat shimmer blur. 0 disables the animation. Enabling will increase GPU usage.", 1.F,
                   {.min = 0, .max = 10, .refresh = Supplementary::REFRESH_BLUR_FB}),
 
         MS<Float>("decoration:blur:ripple:strength", "maximum refraction displacement of click ripples in pixels", 30.F,

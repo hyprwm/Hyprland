@@ -914,6 +914,7 @@ const std::array<std::string, SH_FRAG_LAST> FRAG_SHADERS = {
     "fluidjartrackingresample.frag",
     "fluidjarfinish.frag",
     "prismfinish.frag",
+    "heatshimmerfinish.frag",
 };
 
 bool CHyprOpenGLImpl::initShaders(const std::string& path) {

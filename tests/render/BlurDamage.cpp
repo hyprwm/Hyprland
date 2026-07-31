@@ -1,6 +1,7 @@
 #include <render/gl/blur/Kawase.hpp>
 #include <render/gl/blur/Glass.hpp>
 #include <render/gl/blur/FluidJar.hpp>
+#include <render/gl/blur/HeatShimmer.hpp>
 #include <render/gl/blur/Prism.hpp>
 #include <render/gl/blur/Ripple.hpp>
 #include <render/gl/blur/Water.hpp>
@@ -35,6 +36,16 @@ TEST(BlurMaterial, GlassCapabilitiesAreConfiguredByMaterial) {
     EXPECT_EQ(prism.type(), Render::eBlurType::BLUR_PRISM);
     EXPECT_EQ(prismRequirements.finishFragment, Render::SH_FRAG_PRISMFINISH);
     EXPECT_TRUE(prismRequirements.preparedInput);
+}
+
+TEST(BlurMaterial, HeatShimmerUsesAnimatedGlassFinish) {
+    const CHeatShimmerBlurMaterial heatShimmer;
+    const auto                     requirements = heatShimmer.requirements();
+
+    EXPECT_EQ(heatShimmer.type(), Render::eBlurType::BLUR_HEAT_SHIMMER);
+    EXPECT_EQ(requirements.finishFragment, Render::SH_FRAG_HEATSHIMMERFINISH);
+    EXPECT_FALSE(requirements.preparedInput);
+    EXPECT_FALSE(requirements.liveBlur);
 }
 
 TEST(BlurDamage, DualKawaseUsesOperationalMinimums) {

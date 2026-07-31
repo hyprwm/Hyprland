@@ -236,7 +236,7 @@ void CFluidJarBlurProvider::updateState(SState& state, const CBox& extent) {
     } else if (state.simulationSize != simulationSize || geometryChanged(state.extent, extent)) {
         const auto discontinuous = geometryDiscontinuous(state.extent, extent, elapsed);
         const auto transform     = fluidJarGeometryTransform(state.extent, extent, state.simulationSize, simulationSize, !discontinuous);
-        state.wallVelocities     = discontinuous ? std::array<float, 3>{} : fluidJarWallVelocities(state.extent, extent, simulationSize, elapsed, speed);
+        state.wallVelocities     = discontinuous ? std::array<float, 4>{} : fluidJarWallVelocities(state.extent, extent, simulationSize, elapsed, speed);
         transformState(state, simulationSize, transform, state.wallVelocities);
         state.extent = extent;
     } else
@@ -314,7 +314,7 @@ void CFluidJarBlurProvider::initializeState(SState& state, const Vector2D& simul
     }
 }
 
-void CFluidJarBlurProvider::transformState(SState& state, const Vector2D& simulationSize, const SFluidJarGeometryTransform& transform, const std::array<float, 3>& wallVelocities) {
+void CFluidJarBlurProvider::transformState(SState& state, const Vector2D& simulationSize, const SFluidJarGeometryTransform& transform, const std::array<float, 4>& wallVelocities) {
     const auto oldSize          = state.simulationSize;
     const auto oldGridSize      = state.gridSize;
     const auto oldParticleCount = state.particleCount;
@@ -398,7 +398,7 @@ void CFluidJarBlurProvider::drawInitialize(const SState& state, SP<CGLFramebuffe
 }
 
 void CFluidJarBlurProvider::drawResample(const SState& state, SP<CGLFramebuffer> source, SP<CGLFramebuffer> target, const Vector2D& oldGridSize, int oldParticleCount,
-                                         const SFluidJarGeometryTransform& transform, const std::array<float, 3>& wallVelocities) const {
+                                         const SFluidJarGeometryTransform& transform, const std::array<float, 4>& wallVelocities) const {
     static auto PFLUIDMASS = CConfigValue<Config::FLOAT>("decoration:blur:fluid_jar:mass");
 
     bindNearestTexture(source, GL_TEXTURE0);
@@ -412,7 +412,7 @@ void CFluidJarBlurProvider::drawResample(const SState& state, SP<CGLFramebuffer>
     shader->setUniformInt(SHADER_FLUIDJAR_OLD_PARTICLE_COUNT, oldParticleCount);
     shader->setUniformFloat4(SHADER_FLUIDJAR_TRANSFORM, transform.positionScale.x, transform.positionScale.y, transform.positionOffset.x, transform.positionOffset.y);
     shader->setUniformFloat2(SHADER_FLUIDJAR_VELOCITY_SCALE, transform.velocityScale.x, transform.velocityScale.y);
-    shader->setUniformFloat3(SHADER_FLUIDJAR_WALL_VELOCITIES, wallVelocities[0], wallVelocities[1], wallVelocities[2]);
+    shader->setUniformFloat4(SHADER_FLUIDJAR_WALL_VELOCITIES, wallVelocities[0], wallVelocities[1], wallVelocities[2], wallVelocities[3]);
     shader->setUniformFloat(SHADER_FLUIDJAR_MASS, std::clamp(*PFLUIDMASS, 0.1F, 10.F));
     glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -652,7 +652,7 @@ SFluidJarGeometryTransform Render::GL::fluidJarGeometryTransform(const CBox& old
     };
 }
 
-std::array<float, 3> Render::GL::fluidJarWallVelocities(const CBox& oldExtent, const CBox& newExtent, const Vector2D& simulationSize, float elapsed, float speed) {
+std::array<float, 4> Render::GL::fluidJarWallVelocities(const CBox& oldExtent, const CBox& newExtent, const Vector2D& simulationSize, float elapsed, float speed) {
     if (elapsed <= 0.F || oldExtent.width <= 0 || oldExtent.height <= 0 || newExtent.width <= 0 || newExtent.height <= 0 || simulationSize.x <= 0 || simulationSize.y <= 0)
         return {};
 
@@ -672,5 +672,6 @@ std::array<float, 3> Render::GL::fluidJarWallVelocities(const CBox& oldExtent, c
         velocity(newExtent.x - oldExtent.x, scaleX),
         velocity(newRight - oldRight, scaleX),
         velocity(oldBottom - newBottom, scaleY),
+        velocity(newExtent.y - oldExtent.y, scaleY),
     };
 }

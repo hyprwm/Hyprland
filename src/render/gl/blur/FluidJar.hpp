@@ -52,7 +52,7 @@ namespace Render::GL {
             Vector2D                          gridSize            = {};
             CBox                              extent              = {};
             Time::steady_tp                   lastUpdate          = {};
-            std::array<float, 3>              wallVelocities      = {};
+            std::array<float, 4>              wallVelocities      = {};
             double                            accumulator         = 0.0;
             double                            animationTime       = 0.0;
             float                             fillAmount          = 0.F;
@@ -71,13 +71,13 @@ namespace Render::GL {
         const SState* stateForContext(const SBlurContext& context) const;
         void          updateState(SState& state, const CBox& extent);
         void          initializeState(SState& state, const Vector2D& simulationSize, float fillAmount, float precision);
-        void          transformState(SState& state, const Vector2D& simulationSize, const SFluidJarGeometryTransform& transform, const std::array<float, 3>& wallVelocities);
+        void          transformState(SState& state, const Vector2D& simulationSize, const SFluidJarGeometryTransform& transform, const std::array<float, 4>& wallVelocities);
         void          allocateBuffers(std::array<SP<CGLFramebuffer>, 2>& buffers, const Vector2D& size, const std::string& name, DRMFormat format = DRM_FORMAT_ABGR16161616F) const;
         void          clearBuffers(const std::array<SP<CGLFramebuffer>, 2>& buffers, const std::array<float, 4>& color) const;
         void          clearIntegerBuffers(const std::array<SP<CGLFramebuffer>, 2>& buffers) const;
         void          drawInitialize(const SState& state, SP<CGLFramebuffer> target) const;
         void          drawResample(const SState& state, SP<CGLFramebuffer> source, SP<CGLFramebuffer> target, const Vector2D& oldGridSize, int oldParticleCount,
-                                   const SFluidJarGeometryTransform& transform, const std::array<float, 3>& wallVelocities) const;
+                                   const SFluidJarGeometryTransform& transform, const std::array<float, 4>& wallVelocities) const;
         void          drawHistoryResample(SP<CGLFramebuffer> source, SP<CGLFramebuffer> target, const Vector2D& oldSize, const SFluidJarGeometryTransform& transform,
                                           const std::array<float, 4>& fallback, bool linear) const;
         void          drawParticleStep(SState& state, float dt) const;
@@ -110,5 +110,5 @@ namespace Render::GL {
     SFluidJarOutputTransform   fluidJarOutputTransform(eTransform transform);
     SFluidJarGeometryTransform fluidJarGeometryTransform(const CBox& oldExtent, const CBox& newExtent, const Vector2D& oldSimulationSize, const Vector2D& newSimulationSize,
                                                          bool preserveWorldPosition = true);
-    std::array<float, 3>       fluidJarWallVelocities(const CBox& oldExtent, const CBox& newExtent, const Vector2D& simulationSize, float elapsed, float speed = 1.F);
+    std::array<float, 4>       fluidJarWallVelocities(const CBox& oldExtent, const CBox& newExtent, const Vector2D& simulationSize, float elapsed, float speed = 1.F);
 }

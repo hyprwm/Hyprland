@@ -1139,3 +1139,59 @@ TEST_CASE(luaSetWorkspace) {
     Tests::killAllWindows();
     OK(getFromSocket("/output remove HEADLESS-3"));
 }
+
+TEST_CASE(luaSetSpecialWorkspace) {
+    // add a new monitor
+    NLog::log("{}Adding a new monitor", Colors::YELLOW);
+    ASSERT(getFromSocket("/output create headless HEADLESS-3"), "ok");
+
+    // should take workspace 2
+    {
+        auto str = getFromSocket("/monitors");
+        ASSERT_CONTAINS(str, "active workspace: 2 (2)");
+        ASSERT_CONTAINS(str, "active workspace: 1 (1)");
+        ASSERT_CONTAINS(str, "HEADLESS-3");
+    }
+
+    // for ease of access
+    OK(getFromSocket("/eval M1 = hl.get_monitors()[1]"));
+    OK(getFromSocket("/eval M2 = hl.get_monitors()[2]"));
+
+    // special workspace with a window
+    NLog::log("{}Setting special workspace on active monitor", Colors::YELLOW);
+    OK(getFromSocket("/eval M1:set_special_workspace(1)"));
+    Tests::spawnKitty();
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "monitor: 1");
+        ASSERT_CONTAINS(str, "workspace: -98 (special:1)");
+    }
+
+    // new special workspace on unfocused monitor
+    NLog::log("{}Setting special workspace on inactive monitor", Colors::YELLOW);
+    OK(getFromSocket("/eval M2:set_special_workspace(2)"));
+    ASSERT_CONTAINS(getFromSocket("/workspaces"), "workspace ID -97 (special:2) on monitor HEADLESS-3:");
+
+    // move focused special to unfocused monitor
+    NLog::log("{}Moving active special workspace to inactive monitor", Colors::YELLOW);
+    OK(getFromSocket("/eval M2:set_special_workspace(1)"));
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace ID 1 (1) on monitor HEADLESS-2:");
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-3' })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "monitor: 2");
+        ASSERT_CONTAINS(str, "workspace: -98 (special:1)");
+    }
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+
+    // unset special workspace on unfocused monitor
+    NLog::log("{}Clearing special workspace on inactive monitor", Colors::YELLOW);
+    OK(getFromSocket("/eval M2:set_special_workspace(nil)"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-3' })"));
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace ID 2 (2) on monitor HEADLESS-3:");
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+
+    // clean up
+    Tests::killAllWindows();
+    OK(getFromSocket("/output remove HEADLESS-3"));
+}

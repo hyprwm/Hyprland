@@ -962,6 +962,22 @@ TEST_CASE(windows) {
 
     Tests::killAllWindows();
 
+    OK(getFromSocket("/eval hl.window_rule({ name = 'border-magic-kitty', match = { class = 'border_kitty' } })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'border-magic-kitty', border_color = 'rgba(c6ff00ff) rgba(ff0000ee) 45deg' })"));
+
+    SPAWN_KITTY("border_kitty");
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:border_kitty' })"));
+
+    {
+        auto str = getFromSocket("/getprop active active_border_color");
+        EXPECT_CONTAINS(str, "ffc6ff00");
+        EXPECT_CONTAINS(str, "eeff0000");
+        EXPECT_CONTAINS(str, "45deg");
+    }
+
+    Tests::killAllWindows();
+
     SPAWN_KITTY("tag_kitty");
 
     {

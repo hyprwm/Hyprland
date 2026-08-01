@@ -503,6 +503,14 @@ std::expected<void, std::string> Internal::addWindowRuleEffectFromLua(lua_State*
     auto val = UP<ILuaConfigValue>(desc.factory());
     auto err = val->parse(L);
 
+    if (err.errorCode != PARSE_ERROR_OK) {
+        const bool allowLegacyString = desc.effect == WE::WINDOW_RULE_EFFECT_BORDER_COLOR && lua_isstring(L, -1);
+        if (!allowLegacyString)
+            return std::unexpected(err.message);
+
+        return rule->addEffect(desc.effect, lua_tostring(L, -1));
+    }
+
     if (const auto expr = dc<CLuaConfigExpressionVec2*>(val.get()); expr)
         return rule->addEffect(desc.effect, expr->parsed());
 

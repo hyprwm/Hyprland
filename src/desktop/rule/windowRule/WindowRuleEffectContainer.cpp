@@ -33,6 +33,7 @@ static const std::vector<std::string> EFFECT_STRINGS = {
     "rounding_power",         //
     "persistent_size",        //
     "animation",              //
+    "border_color",           //
     "active_border",          //
     "inactive_border",        //
     "idle_inhibit",           //
@@ -76,7 +77,7 @@ static const std::vector<std::string> EFFECT_STRINGS = {
 
 // This is here so that if we change the rules, we get reminded to update
 // the strings.
-static_assert(WINDOW_RULE_EFFECT_LAST_STATIC == 59);
+static_assert(WINDOW_RULE_EFFECT_LAST_STATIC == 60);
 
 CWindowRuleEffectContainer::CWindowRuleEffectContainer() : IEffectContainer<eWindowRuleEffect>(std::vector<std::string>{EFFECT_STRINGS}) {
     ;

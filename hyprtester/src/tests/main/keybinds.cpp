@@ -14,6 +14,14 @@ static std::string pluginKeybindCmd(bool pressed, uint32_t modifier, uint32_t ke
     return "/eval hl.plugin.test.keybind(" + std::to_string(pressed ? 1 : 0) + ", " + std::to_string(modifier) + ", " + std::to_string(key) + ")";
 }
 
+static std::string pluginKeybindMaskCmd(bool pressed, const std::vector<uint8_t>& mods, uint32_t key) {
+    uint32_t mask = 0;
+    for (auto m : mods)
+        mask |= (1 << (m - 1));
+
+    return "/eval hl.plugin.test.keybind_modmask(" + std::to_string(pressed ? 1 : 0) + ", " + std::to_string(mask) + ", " + std::to_string(key) + ")";
+}
+
 static std::string pluginScrollCmd(int delta) {
     return "/eval hl.plugin.test.scroll(" + std::to_string(delta) + ")";
 }
@@ -295,6 +303,8 @@ SUBTEST(shortcutBind) {
     if (!kittyProc) {
         FAIL_TEST("Could not spawn kitty");
     }
+
+    // test SUPER.
     EXPECT(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:keybinds_test' })"), "ok");
     EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.send_shortcut({ mods = '', key = 'q', window = 'activewindow' }))"), "ok");
     // press keybind
@@ -303,10 +313,41 @@ SUBTEST(shortcutBind) {
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    const std::string output = readKittyOutput();
+    std::string output = readKittyOutput();
     EXPECT_COUNT_STRING(output, "y", 0);
     EXPECT(output.find("q") != std::string::npos, true);
     EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
+
+    // test SUPER + SHIFT (pick a different shortcut to avoid caching).
+    EXPECT(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:keybinds_test' })"), "ok");
+    EXPECT(getFromSocket("/eval hl.bind('SUPER + SHIFT + Y', hl.dsp.send_shortcut({ mods = '', key = 'w', window = 'activewindow' }))"), "ok");
+    // press keybind
+    OK(getFromSocket(pluginKeybindMaskCmd(true, {MOD_META, MOD_SHIFT}, 29)));
+    // release keybind
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    OK(getFromSocket(pluginKeybindMaskCmd(false, {}, 29)));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    output = readKittyOutput();
+    EXPECT_COUNT_STRING(output, "y", 0);
+    EXPECT_COUNT_STRING(output, "Y", 0);
+    EXPECT(output.find("w") != std::string::npos, true);
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + SHIFT + Y')"), "ok");
+
+    // test SUPER + SHIFT (check numbers (1 -> ! is not captured by case sensitivity)).
+    EXPECT(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:keybinds_test' })"), "ok");
+    EXPECT(getFromSocket("/eval hl.bind('SUPER + SHIFT + Y', hl.dsp.send_shortcut({ mods = '', key = '1', window = 'activewindow' }))"), "ok");
+    // press keybind
+    OK(getFromSocket(pluginKeybindMaskCmd(true, {MOD_META, MOD_SHIFT}, 29)));
+    // release keybind
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    OK(getFromSocket(pluginKeybindMaskCmd(false, {}, 29)));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    output = readKittyOutput();
+    EXPECT_COUNT_STRING(output, "y", 0);
+    EXPECT_COUNT_STRING(output, "Y", 0);
+    EXPECT(output.find("1") != std::string::npos, true);
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + SHIFT + Y')"), "ok");
+
     Tests::killAllWindows();
 }
 
@@ -315,19 +356,54 @@ SUBTEST(shortcutBindKey) {
     if (!kittyProc) {
         FAIL_TEST("Could not spawn kitty");
     }
+
+    // test lowercase Y.
     EXPECT(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:keybinds_test' })"), "ok");
-    EXPECT(getFromSocket("/eval hl.bind('Y', hl.dsp.send_shortcut({ mods = '', key = 'q', window = 'activewindow' }))"), "ok");
+    EXPECT(getFromSocket("/eval hl.bind('Y', hl.dsp.send_shortcut({ mods = '', key = 'e', window = 'activewindow' }))"), "ok");
     // press keybind
     OK(getFromSocket(pluginKeybindCmd(true, 0, 29)));
     // release keybind
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    const std::string output = readKittyOutput();
+    std::string output = readKittyOutput();
     EXPECT_COUNT_STRING(output, "y", 0);
     // disabled: doesn't work in CI
-    // EXPECT_COUNT_STRING(output, "q", 1);
+    // EXPECT_COUNT_STRING(output, "e", 1);
     EXPECT(getFromSocket("/eval hl.unbind('Y')"), "ok");
+
+    // test SHIFT + Y (pick a different shortcut to avoid caching).
+    EXPECT(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:keybinds_test' })"), "ok");
+    EXPECT(getFromSocket("/eval hl.bind('SHIFT + Y', hl.dsp.send_shortcut({ mods = '', key = 'r', window = 'activewindow' }))"), "ok");
+    // press keybind
+    OK(getFromSocket(pluginKeybindMaskCmd(true, {MOD_SHIFT}, 29)));
+    // release keybind
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    OK(getFromSocket(pluginKeybindMaskCmd(false, {}, 29)));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    output = readKittyOutput();
+    EXPECT_COUNT_STRING(output, "y", 0);
+    EXPECT_COUNT_STRING(output, "Y", 0);
+    // disabled: doesn't work in CI
+    // EXPECT_COUNT_STRING(output, "r", 1);
+    EXPECT(getFromSocket("/eval hl.unbind('SHIFT + Y')"), "ok");
+
+    // test SHIFT + Y (check numbers (2 -> @ is not captured by case sensitivity)).
+    EXPECT(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:keybinds_test' })"), "ok");
+    EXPECT(getFromSocket("/eval hl.bind('SHIFT + Y', hl.dsp.send_shortcut({ mods = '', key = '2', window = 'activewindow' }))"), "ok");
+    // press keybind
+    OK(getFromSocket(pluginKeybindMaskCmd(true, {MOD_SHIFT}, 29)));
+    // release keybind
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    OK(getFromSocket(pluginKeybindMaskCmd(false, {}, 29)));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    output = readKittyOutput();
+    EXPECT_COUNT_STRING(output, "y", 0);
+    EXPECT_COUNT_STRING(output, "Y", 0);
+    // disabled: doesn't work in CI
+    // EXPECT_COUNT_STRING(output, "2", 1);
+    EXPECT(getFromSocket("/eval hl.unbind('SHIFT + Y')"), "ok");
+
     Tests::killAllWindows();
 }
 

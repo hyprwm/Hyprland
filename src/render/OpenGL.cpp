@@ -616,7 +616,7 @@ void CHyprOpenGLImpl::initDRMFormats() {
     m_fp16Supported = m_exts.EXT_color_buffer_half_float && std::ranges::any_of(m_drmFormats, [](const auto& fmt) { return fmt.drmFormat == DRM_FORMAT_ABGR16161616F; });
 
     if (!m_fp16Supported)
-        Log::logger->log(Log::WARN, "Your GPU does not support rendering to FP16 buffers, FP16 will be unavailable.");
+        Log::logger->log(Log::WARN, "Your GPU does not support rendering to FP16 buffers, some effects and CM settings might be unavailable.");
 }
 
 EGLImageKHR CHyprOpenGLImpl::createEGLImage(const Aquamarine::SDMABUFAttrs& attrs) {

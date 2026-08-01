@@ -257,6 +257,7 @@ I18n::CI18nEngine::CI18nEngine() {
             return "You are using {count} deprecated config option. Run hyprctl deprecated-config to see more information.";
         return "You are using {count} deprecated config options. Run hyprctl deprecated-config to see more information.";
     });
+    registerEntry("en_US", TXT_KEY_NOTIF_NO_FP16, "Your GPU does not support rendering to FP16 buffers, some effects and CM settings might be unavailable.");
 
     registerEntry("en_US", TXT_KEY_SAFE_MODE_TITLE, "Safe Mode");
     registerEntry("en_US", TXT_KEY_SAFE_MODE_DESCRIPTION,
@@ -839,6 +840,7 @@ I18n::CI18nEngine::CI18nEngine() {
     registerEntry("ja_JP", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM シェーダのリロードに失敗したため、rgba/rgbx を使用します。");
     registerEntry("ja_JP", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "広色域が有効なモニタ {name} を使用していますが、画面表示の設定は 10 ビットになっていません。");
     registerEntry("ja_JP", TXT_KEY_NOTIF_NO_WATCHDOG, "start-hyprland なしで Hyprland を実行しています。これは、デバッグ目的以外ではおすすめしません。");
+    registerEntry("ja_JP", TXT_KEY_NOTIF_NO_FP16, "お使いのGPUはFP16バッファがサポートしていないため、一部のエフェクトやCM設定を利用できない可能性があります。");
     registerEntry("ja_JP", TXT_KEY_NOTIF_DEPRECATED_CONFIG_OPTS, "廃止済みのオプションが{count}件使用されています。詳細は、hyprctl deprecated-configで確認してください。");
 
     registerEntry("ja_JP", TXT_KEY_SAFE_MODE_TITLE, "セーフモード");
@@ -1181,6 +1183,7 @@ I18n::CI18nEngine::CI18nEngine() {
     registerEntry("pl_PL", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Nie udało się przeładować shader'a CM, użyto rgba/rgbx.");
     registerEntry("pl_PL", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: skonfigurowano szeroką głębię barw, ale monitor nie jest w trybie 10-bit.");
     registerEntry("pl_PL", TXT_KEY_NOTIF_NO_WATCHDOG, "Hyprland został uruchomiony bez start-hyprland. Nie jest to zalecane, chyba, że jest to środowisko do debugowania.");
+    registerEntry("pl_PL", TXT_KEY_NOTIF_NO_FP16, "Twoja karta graficzna nie obsługuje buforów FP16, niektóre efekty i ustawienia zarządzania kolorami mogą być niedostępne.");
     registerEntry("pl_PL", TXT_KEY_NOTIF_DEPRECATED_CONFIG_OPTS, [](const Hyprutils::I18n::translationVarMap& vars) {
         int opts = std::stoi(vars.at("count"));
         if (opts == 1)

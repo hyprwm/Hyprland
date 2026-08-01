@@ -1007,3 +1007,135 @@ TEST_CASE(luaGetWorkspace) {
     ASSERT(getFromSocket("r/repl hl.get_workspace('r+1')"), "nil");
     ASSERT(getFromSocket("r/repl hl.get_workspace(42)"), "nil");
 }
+
+SUBTEST(luaSetWorkspaceCreate) {
+    // set up monitor 2, the workspace donor for future tests
+    NLog::log("{}Creating four new workspaces on monitor 2", Colors::YELLOW);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = M2 })"));
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "on monitor HEADLESS-3:");
+
+    OK(getFromSocket("/eval M2:set_workspace(100)"));
+    Tests::spawnKitty("ws100");
+    OK(getFromSocket("/eval M2:set_workspace(101)"));
+    Tests::spawnKitty("ws101");
+
+    const auto workspaces = getFromSocket("/workspaces");
+    ASSERT_CONTAINS(workspaces, "workspace ID 100 (100) on monitor HEADLESS-3:");
+    ASSERT_CONTAINS(workspaces, "workspace ID 101 (101) on monitor HEADLESS-3:");
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "on monitor HEADLESS-2:");
+}
+
+SUBTEST(luaSetWorkspaceInactiveToFocused) {
+    NLog::log("{}Setting focused monitor 1 to a workspace currently inactive on monitor 2", Colors::YELLOW);
+
+    // steal workspace 100 from monitor 2
+    OK(getFromSocket("/eval M1:set_workspace(100)"));
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: ws100");
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace ID 100 (100) on monitor HEADLESS-2:");
+
+    // should leave workspace 101 active on monitor 2
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-3' })"));
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace ID 101 (101) on monitor HEADLESS-3:");
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+}
+
+SUBTEST(luaSetWorkspaceActiveToFocused) {
+    NLog::log("{}Setting focused monitor 1 to a workspace currently active on monitor 2", Colors::YELLOW);
+
+    // steal workspace 101 from monitor 2
+    OK(getFromSocket("/eval M1:set_workspace(101)"));
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: ws101");
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace ID 101 (101) on monitor HEADLESS-2:");
+
+    // should create workspace 2 on monitor 2
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-3' })"));
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace ID 2 (2) on monitor HEADLESS-3:");
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+}
+
+SUBTEST(luaSetWorkspaceInactiveToUnfocused) {
+    NLog::log("{}Setting unfocused monitor 2 to a workspace currently inactive on monitor 1", Colors::YELLOW);
+
+    // steal workspace 100 from monitor 1
+    OK(getFromSocket("/eval M2:set_workspace(100)"));
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: ws101");
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace ID 101 (101) on monitor HEADLESS-2:");
+
+    // should make workspace 100 active on monitor 2
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-3' })"));
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace ID 100 (100) on monitor HEADLESS-3:");
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+}
+
+SUBTEST(luaSetWorkspaceActiveToUnfocused) {
+    NLog::log("{}Setting unfocused monitor 2 to a workspace currently active on monitor 1", Colors::YELLOW);
+
+    // steal workspace 101 from monitor 1
+    OK(getFromSocket("/eval M2:set_workspace(101)"));
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: ws1");
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace ID 1 (1) on monitor HEADLESS-2:");
+
+    // should make workspace 101 active on monitor 2
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-3' })"));
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace ID 101 (101) on monitor HEADLESS-3:");
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+}
+
+SUBTEST(luaSetWorkspaceUnfocusedRelative) {
+    NLog::log("{}Setting unfocused monitor 2 via a relative workspace selector", Colors::YELLOW);
+
+    // relative workspace selector should be relative to the targeted monitor
+    OK(getFromSocket("/eval M2:set_workspace('m-1')"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-3' })"));
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: ws100");
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace ID 100 (100) on monitor HEADLESS-3:");
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+}
+
+TEST_CASE(luaSetWorkspace) {
+    // add a new monitor
+    NLog::log("{}Adding a new monitor", Colors::YELLOW);
+    ASSERT(getFromSocket("/output create headless HEADLESS-3"), "ok");
+
+    // should take workspace 2
+    {
+        auto str = getFromSocket("/monitors");
+        ASSERT_CONTAINS(str, "active workspace: 2 (2)");
+        ASSERT_CONTAINS(str, "active workspace: 1 (1)");
+        ASSERT_CONTAINS(str, "HEADLESS-3");
+    }
+
+    // plonk a recognizable window on the first monitor
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+    Tests::spawnKitty("ws1");
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "monitor: 1");
+        ASSERT_CONTAINS(str, "workspace: 1 (1)");
+    }
+
+    // for use in subtests
+    OK(getFromSocket("/eval M1 = hl.get_monitors()[1]"));
+    OK(getFromSocket("/eval M2 = hl.get_monitors()[2]"));
+
+    // order very much matters for these
+    CALL_SUBTEST(luaSetWorkspaceCreate);
+    CALL_SUBTEST(luaSetWorkspaceInactiveToFocused);
+    CALL_SUBTEST(luaSetWorkspaceActiveToFocused);
+    CALL_SUBTEST(luaSetWorkspaceInactiveToUnfocused);
+    CALL_SUBTEST(luaSetWorkspaceActiveToUnfocused);
+    CALL_SUBTEST(luaSetWorkspaceUnfocusedRelative);
+
+    // clean up
+    Tests::killAllWindows();
+    OK(getFromSocket("/output remove HEADLESS-3"));
+}

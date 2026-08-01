@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 
 TEST(Helpers, deformableMeshSetSizeClamps) {
@@ -88,4 +89,34 @@ TEST(Helpers, deformableMeshVerticesForBoxBuildsTriangles) {
     EXPECT_FLOAT_EQ(VERTICES.back().y, 1.F);
     EXPECT_FLOAT_EQ(VERTICES.back().u, 1.F);
     EXPECT_FLOAT_EQ(VERTICES.back().v, 1.F);
+}
+
+TEST(Helpers, deformableMeshVerticesForBoxTransformsUVs) {
+    struct STransformCase {
+        eTransform transform = HYPRUTILS_TRANSFORM_NORMAL;
+        Vector2D   topLeft;
+        Vector2D   bottomRight;
+    };
+
+    const CBox         BOX         = {100, 200, 300, 400};
+    constexpr Vector2D TEXTURESIZE = {1920, 1080};
+    const auto         CASES       = std::array{
+        STransformCase{HYPRUTILS_TRANSFORM_NORMAL, {100, 200}, {400, 600}},      STransformCase{HYPRUTILS_TRANSFORM_90, {200, 980}, {600, 680}},
+        STransformCase{HYPRUTILS_TRANSFORM_180, {1820, 880}, {1520, 480}},       STransformCase{HYPRUTILS_TRANSFORM_270, {1720, 100}, {1320, 400}},
+        STransformCase{HYPRUTILS_TRANSFORM_FLIPPED, {1820, 200}, {1520, 600}},   STransformCase{HYPRUTILS_TRANSFORM_FLIPPED_90, {200, 100}, {600, 400}},
+        STransformCase{HYPRUTILS_TRANSFORM_FLIPPED_180, {100, 880}, {400, 480}}, STransformCase{HYPRUTILS_TRANSFORM_FLIPPED_270, {1720, 980}, {1320, 680}},
+    };
+
+    CDeformableMesh mesh(2);
+    for (const auto& test : CASES) {
+        SCOPED_TRACE(static_cast<int>(test.transform));
+
+        const auto VERTICES = mesh.verticesForBox(BOX, BOX, TEXTURESIZE, 1.0, test.transform);
+
+        ASSERT_EQ(VERTICES.size(), 6u);
+        EXPECT_FLOAT_EQ(VERTICES.front().u, static_cast<float>(test.topLeft.x / TEXTURESIZE.x));
+        EXPECT_FLOAT_EQ(VERTICES.front().v, static_cast<float>(test.topLeft.y / TEXTURESIZE.y));
+        EXPECT_FLOAT_EQ(VERTICES.back().u, static_cast<float>(test.bottomRight.x / TEXTURESIZE.x));
+        EXPECT_FLOAT_EQ(VERTICES.back().v, static_cast<float>(test.bottomRight.y / TEXTURESIZE.y));
+    }
 }

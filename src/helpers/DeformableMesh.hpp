@@ -28,7 +28,8 @@ class CDeformableMesh {
 
     bool                           stable(float positionEpsilon, float velocityEpsilon) const;
     CBox                           transformedExtents(const CBox& box) const;
-    std::vector<SMeshRenderVertex> verticesForBox(const CBox& box, const CBox& outputBox, const Vector2D& textureSize, double displacementScale = 1.0) const;
+    std::vector<SMeshRenderVertex> verticesForBox(const CBox& box, const CBox& outputBox, const Vector2D& textureSize, double displacementScale = 1.0,
+                                                  eTransform textureTransform = HYPRUTILS_TRANSFORM_NORMAL) const;
 
   private:
     struct SPoint {

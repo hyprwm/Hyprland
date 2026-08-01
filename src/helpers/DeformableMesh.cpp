@@ -132,7 +132,8 @@ CBox CDeformableMesh::transformedExtents(const CBox& box) const {
     return {minX, minY, maxX - minX, maxY - minY};
 }
 
-std::vector<SMeshRenderVertex> CDeformableMesh::verticesForBox(const CBox& box, const CBox& outputBox, const Vector2D& textureSize, double displacementScale) const {
+std::vector<SMeshRenderVertex> CDeformableMesh::verticesForBox(const CBox& box, const CBox& outputBox, const Vector2D& textureSize, double displacementScale,
+                                                               eTransform textureTransform) const {
     std::vector<SMeshRenderVertex> vertices;
     if (m_verticesPerEdge < 2 || outputBox.w <= 0.F || outputBox.h <= 0.F || textureSize.x <= 0.F || textureSize.y <= 0.F)
         return vertices;
@@ -140,13 +141,14 @@ std::vector<SMeshRenderVertex> CDeformableMesh::verticesForBox(const CBox& box, 
     vertices.reserve((m_verticesPerEdge - 1) * (m_verticesPerEdge - 1) * 6);
 
     const auto makeVertex = [&](size_t x, size_t y) -> SMeshRenderVertex {
-        const Vector2D REST = restPoint(box, x, y);
-        const Vector2D POS  = REST + point(x, y).displacement * displacementScale;
+        const Vector2D REST       = restPoint(box, x, y);
+        const Vector2D POS        = REST + point(x, y).displacement * displacementScale;
+        const Vector2D TEXTUREPOS = REST.transform(textureTransform, textureSize);
         return {
             .x = static_cast<float>((POS.x - outputBox.x) / outputBox.w),
             .y = static_cast<float>((POS.y - outputBox.y) / outputBox.h),
-            .u = static_cast<float>(REST.x / textureSize.x),
-            .v = static_cast<float>(REST.y / textureSize.y),
+            .u = static_cast<float>(TEXTUREPOS.x / textureSize.x),
+            .v = static_cast<float>(TEXTUREPOS.y / textureSize.y),
         };
     };
 

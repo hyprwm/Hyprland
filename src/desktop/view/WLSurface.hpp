@@ -37,7 +37,7 @@ namespace Desktop::View {
         Vector2D               correctSmallVec() const;    // returns a corrective vector for small() surfaces
         Vector2D               correctSmallVecBuf() const; // returns a corrective vector for small() surfaces, in BL coords
         Vector2D               getViewporterCorrectedSize() const;
-        CRegion                computeDamage() const; // logical coordinates. May be wrong if the surface is unassigned
+        CRegion                computeDamage(const std::optional<CBox>& box) const; // logical coordinates. May be wrong if the surface is unassigned
         bool                   keyboardFocusable() const;
         void                   sendScale(float scale) const;
         void                   sendTransform(wl_output_transform xform) const;

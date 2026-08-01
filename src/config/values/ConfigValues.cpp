@@ -279,13 +279,13 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Float>("decoration:blur:glass:size", "pattern size for glass blur types in pixels", 40.F, {.min = 4, .max = 512, .refresh = Supplementary::REFRESH_BLUR_FB}),
         MS<Float>("decoration:blur:glass:roughness", "strength of the glass relief shading", 1.F, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),
 
-        MS<Float>("decoration:blur:acrylic:refraction", "maximum acrylic lens displacement in pixels", 28.F, {.min = 0, .max = 48, .refresh = Supplementary::REFRESH_BLUR_FB}),
-        MS<Float>("decoration:blur:acrylic:bulb", "width of the curved acrylic edge in pixels", 72.F, {.min = 4, .max = 256, .refresh = Supplementary::REFRESH_BLUR_FB}),
-        MS<Float>("decoration:blur:acrylic:clarity", "amount of sharp backdrop revealed by the acrylic lens", 0.8F,
+        MS<Float>("decoration:blur:acrylic:refraction", "maximum acrylic lens displacement in pixels", 24.F, {.min = 0, .max = 48, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:acrylic:bulb", "width of the curved acrylic edge in pixels", 48.F, {.min = 4, .max = 256, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:acrylic:clarity", "amount of sharp backdrop transmitted through the acrylic surface", 0.82F,
                   {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),
-        MS<Float>("decoration:blur:acrylic:aberration", "relative chromatic separation in the acrylic lens", 0.06F,
+        MS<Float>("decoration:blur:acrylic:aberration", "relative chromatic separation in the acrylic lens", 0.025F,
                   {.min = 0, .max = 0.25, .refresh = Supplementary::REFRESH_BLUR_FB}),
-        MS<Color>("decoration:blur:acrylic:tint", "acrylic tint color. Alpha controls optical absorption.", 0x18DDEEFF, {.refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Color>("decoration:blur:acrylic:tint", "acrylic tint color. Alpha controls optical absorption.", 0x14EEF5FF, {.refresh = Supplementary::REFRESH_BLUR_FB}),
 
         MS<Float>("decoration:blur:drops:speed", "animation speed for drops blur. 0 disables the animation. Enabling will significantly increase GPU usage.", 3.F,
                   {.min = 0, .max = 10, .refresh = Supplementary::REFRESH_BLUR_FB}),

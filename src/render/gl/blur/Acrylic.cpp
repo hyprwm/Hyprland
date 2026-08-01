@@ -23,6 +23,22 @@ static float           acrylicSampleRadius(float refraction) {
     return CLAMPED > 0.F ? std::ceil(CLAMPED + 1.F) : 0.F;
 }
 
+static float srgbToLinear(float value) {
+    return value <= 0.04045F ? value / 12.92F : std::pow((value + 0.055F) / 1.055F, 2.4F);
+}
+
+static float acrylicLuminanceScale() {
+    const auto INTERMEDIATE = getDefaultImageDescription();
+    const auto WORKBUFFER   = g_pHyprRenderer->workBufferImageDescription();
+    if (!WORKBUFFER)
+        return 1.F;
+
+    const auto MINIMUM = INTERMEDIATE->value().getTFMinLuminance();
+    const auto MAXIMUM = INTERMEDIATE->value().getTFMaxLuminance();
+    const auto RANGE   = std::max(MAXIMUM, sc<float>(WORKBUFFER->value().luminances.max)) - MINIMUM;
+    return (MAXIMUM - MINIMUM) / std::max(RANGE, 0.001F);
+}
+
 CAcrylicBlurProvider::CAcrylicBlurProvider(CHyprOpenGLImpl& impl) : CDualKawaseBlurProvider(impl, makeUnique<CAcrylicBlurMaterial>()) {
     ;
 }
@@ -62,7 +78,10 @@ void CAcrylicBlurMaterial::bindFinish(WP<CShader> shader, const SBlurMaterialCon
     static auto PACRYLICABERRATION = CConfigValue<Config::FLOAT>("decoration:blur:acrylic:aberration");
     static auto PACRYLICTINT       = CConfigValue<Config::INTEGER>("decoration:blur:acrylic:tint");
 
-    const auto  TINT = CHyprColor(*PACRYLICTINT);
+    const auto  TINT            = CHyprColor(*PACRYLICTINT);
+    const auto  TINT_ALPHA      = std::clamp(sc<float>(TINT.a), 0.F, 1.F);
+    const auto  TINT_DEPTH      = -std::log(std::max(1.F - TINT_ALPHA, 0.0001F));
+    const auto  LUMINANCE_SCALE = acrylicLuminanceScale();
 
     shader->setUniformInt(SHADER_ACRYLIC_ENABLED, 1);
     shader->setUniformFloat4(SHADER_ACRYLIC_EXTENT, sc<float>(extent.x), sc<float>(extent.y), sc<float>(extent.width), sc<float>(extent.height));
@@ -72,9 +91,11 @@ void CAcrylicBlurMaterial::bindFinish(WP<CShader> shader, const SBlurMaterialCon
     shader->setUniformFloat(SHADER_ACRYLIC_BULB, std::clamp(*PACRYLICBULB, MIN_ACRYLIC_BULB, MAX_ACRYLIC_BULB));
     shader->setUniformFloat(SHADER_ACRYLIC_CLARITY, std::clamp(*PACRYLICCLARITY, 0.F, 1.F));
     shader->setUniformFloat(SHADER_ACRYLIC_ABERRATION, std::clamp(*PACRYLICABERRATION, 0.F, 0.25F));
-    shader->setUniformFloat4(SHADER_ACRYLIC_TINT, TINT.r, TINT.g, TINT.b, TINT.a);
+    shader->setUniformFloat4(SHADER_ACRYLIC_TINT, srgbToLinear(sc<float>(TINT.r)) * LUMINANCE_SCALE, srgbToLinear(sc<float>(TINT.g)) * LUMINANCE_SCALE,
+                             srgbToLinear(sc<float>(TINT.b)) * LUMINANCE_SCALE, TINT_DEPTH);
     shader->setUniformFloat(SHADER_ACRYLIC_STRENGTH, std::clamp(context.strength, 0.F, 1.F));
     shader->setUniformInt(SHADER_ACRYLIC_TRANSFER_FUNCTION, sc<int>(getDefaultImageDescription()->value().transferFunction));
+    shader->setUniformFloat(SHADER_ACRYLIC_LUMINANCE_SCALE, LUMINANCE_SCALE);
 }
 
 float Render::GL::acrylicDamageRadius(int64_t size, int64_t passes, float refraction) {

@@ -909,6 +909,9 @@ void CCompositor::performUserChecks() {
     if (!m_watchdogWriteFd.isValid() && !*PNOWATCHDOG)
         Notification::overlay()->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_NO_WATCHDOG), CHyprColor{1.0, 0.1, 0.1, 1.0}, 15000, ICON_WARNING);
 
+    if (!g_pHyprRenderer->fp16Supported())
+        Notification::overlay()->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_NO_FP16), CHyprColor{}, 12000, ICON_WARNING);
+
     if (m_safeMode)
         openSafeModeBox();
 }

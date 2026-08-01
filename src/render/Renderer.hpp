@@ -180,6 +180,7 @@ namespace Render {
         SP<ITexture>                 loadAsset(const std::string& filename);
         virtual bool                 shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow);
         virtual bool                 explicitSyncSupported()                                                                                                     = 0;
+        virtual bool                 fp16Supported()                                                                                                             = 0;
         virtual std::vector<SDRMFormat> getDRMFormats()                                                                                                          = 0;
         virtual std::vector<uint64_t>   getDRMFormatModifiers(DRMFormat format)                                                                                  = 0;
         virtual SP<IFramebuffer>        createFB(const std::string& name = "")                                                                                   = 0;

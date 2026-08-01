@@ -492,7 +492,7 @@ void SScrollingData::recalculate(bool forceInstant) {
         const auto& COL = columns[i];
         // Not necessarily covering
         const bool COL_HAS_FS_TARGET = COL->targetDatas.size() == 1 && COL->targetDatas.at(0)->target &&
-            algorithm->m_scrollingFullscreenHandler->getFullscreenModes(COL->targetDatas.at(0)->target.lock()).internal != Fullscreen::FSMODE_NONE;
+            algorithm->m_scrollingFullscreenHandler->isFullscreen(COL->targetDatas.at(0)->target.lock(), std::nullopt, std::nullopt);
 
         for (size_t j = 0; j < COL->targetDatas.size(); ++j) {
             const auto TDATA                      = COL->targetDatas[j];

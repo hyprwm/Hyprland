@@ -353,7 +353,7 @@ void CScreenshareFrame::renderWindow() {
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
     Pointer::mgr()->renderSoftwareCursorsFor(PMONITOR->m_self.lock(), NOW, fakeDamage,
-                                             g_pInputManager->getMouseCoordsInternal() - PWINDOW->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT), true);
+                                             g_pInputManager->getMouseCoordsInternal() - PWINDOW->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT), true, true);
 }
 
 void CScreenshareFrame::render() {

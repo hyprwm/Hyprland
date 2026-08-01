@@ -4,6 +4,7 @@
 #include <render/gl/blur/Glass.hpp>
 #include <render/gl/blur/FluidJar.hpp>
 #include <render/gl/blur/HeatShimmer.hpp>
+#include <render/gl/blur/Haze.hpp>
 #include <render/gl/blur/Prism.hpp>
 #include <render/gl/blur/Ripple.hpp>
 #include <render/gl/blur/Water.hpp>
@@ -58,6 +59,19 @@ TEST(BlurMaterial, AuroraUsesAnimatedGlassFinish) {
     EXPECT_EQ(requirements.finishFragment, Render::SH_FRAG_AURORAFINISH);
     EXPECT_FALSE(requirements.preparedInput);
     EXPECT_FALSE(requirements.liveBlur);
+}
+
+TEST(BlurMaterial, HazeUsesStaticPearlescentFinish) {
+    const CHazeBlurMaterial haze;
+    const auto              requirements = haze.requirements();
+
+    EXPECT_EQ(haze.type(), Render::eBlurType::BLUR_HAZE);
+    EXPECT_EQ(requirements.finishFragment, Render::SH_FRAG_HAZEFINISH);
+    EXPECT_FALSE(requirements.preparedInput);
+    EXPECT_FALSE(requirements.liveBlur);
+    EXPECT_FALSE(haze.isAnimated());
+    EXPECT_EQ(haze.blurSizeForDamage(100), 40);
+    EXPECT_FLOAT_EQ(haze.sampleRadius(), 0.F);
 }
 
 TEST(BlurMaterial, AcrylicUsesPreparedLiveFinish) {

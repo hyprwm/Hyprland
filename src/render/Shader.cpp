@@ -274,6 +274,9 @@ void CShader::getUniformLocations() {
     m_uniformLocations[SHADER_AURORA_COLOR1]               = getUniform("auroraColor1");
     m_uniformLocations[SHADER_AURORA_COLOR2]               = getUniform("auroraColor2");
     m_uniformLocations[SHADER_AURORA_TRANSFER_FUNCTION]    = getUniform("auroraTransferFunction");
+    m_uniformLocations[SHADER_HAZE_INTENSITY]              = getUniform("hazeIntensity");
+    m_uniformLocations[SHADER_HAZE_IRIDESCENCE]            = getUniform("hazeIridescence");
+    m_uniformLocations[SHADER_HAZE_TRANSFER_FUNCTION]      = getUniform("hazeTransferFunction");
     m_uniformLocations[SHADER_POINTER]                     = getUniform("pointer_position");
     m_uniformLocations[SHADER_POINTER_SHAPE]               = getUniform("pointer_shape");
     m_uniformLocations[SHADER_POINTER_SWITCH_TIME]         = getUniform("pointer_switch_time");

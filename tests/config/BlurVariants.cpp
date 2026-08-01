@@ -22,10 +22,10 @@ TEST(Config, blurVariantsMatchRendererTypes) {
 
     EXPECT_EQ(INT_VALUE->defaultVal(), sc<Config::INTEGER>(eBlurType::BLUR_DUAL_KAWASE));
     EXPECT_EQ(*INT_VALUE->m_min, sc<Config::INTEGER>(eBlurType::BLUR_DUAL_KAWASE));
-    EXPECT_EQ(*INT_VALUE->m_max, sc<Config::INTEGER>(eBlurType::BLUR_AURORA));
+    EXPECT_EQ(*INT_VALUE->m_max, sc<Config::INTEGER>(eBlurType::BLUR_HAZE));
 
     const auto& MAP = *INT_VALUE->m_map;
-    EXPECT_EQ(MAP.size(), 10);
+    EXPECT_EQ(MAP.size(), 11);
     EXPECT_EQ(MAP.at("kawase"), sc<Config::INTEGER>(eBlurType::BLUR_DUAL_KAWASE));
     EXPECT_EQ(MAP.at("frost"), sc<Config::INTEGER>(eBlurType::BLUR_FROST));
     EXPECT_FALSE(MAP.contains("fluted"));
@@ -38,6 +38,7 @@ TEST(Config, blurVariantsMatchRendererTypes) {
     EXPECT_EQ(MAP.at("heat_shimmer"), sc<Config::INTEGER>(eBlurType::BLUR_HEAT_SHIMMER));
     EXPECT_EQ(MAP.at("acrylic"), sc<Config::INTEGER>(eBlurType::BLUR_ACRYLIC));
     EXPECT_EQ(MAP.at("aurora"), sc<Config::INTEGER>(eBlurType::BLUR_AURORA));
+    EXPECT_EQ(MAP.at("haze"), sc<Config::INTEGER>(eBlurType::BLUR_HAZE));
     EXPECT_EQ(INT_VALUE->refreshBits(), Config::Supplementary::REFRESH_BLUR_FB);
 }
 
@@ -116,6 +117,33 @@ TEST(Config, auroraSettingsAreBounded) {
         ASSERT_TRUE(COLOR_VALUE);
         EXPECT_EQ(COLOR_VALUE->defaultVal(), color.defaultValue);
         EXPECT_EQ(COLOR_VALUE->refreshBits(), Config::Supplementary::REFRESH_BLUR_FB);
+    }
+}
+
+TEST(Config, hazeSettingsAreBounded) {
+    struct SHazeSetting {
+        std::string_view name;
+        float            defaultValue;
+    };
+
+    constexpr std::array SETTINGS = {
+        SHazeSetting{"decoration:blur:haze:intensity", 0.35F},
+        SHazeSetting{"decoration:blur:haze:iridescence", 0.7F},
+    };
+
+    for (const auto& setting : SETTINGS) {
+        const auto VALUE = std::ranges::find_if(CONFIG_VALUES, [&setting](const auto& value) { return std::string_view{value->name()} == setting.name; });
+        ASSERT_NE(VALUE, CONFIG_VALUES.end());
+
+        const auto FLOAT_VALUE = dynamicPointerCast<CFloatValue>(*VALUE);
+        ASSERT_TRUE(FLOAT_VALUE);
+        ASSERT_TRUE(FLOAT_VALUE->m_min.has_value());
+        ASSERT_TRUE(FLOAT_VALUE->m_max.has_value());
+
+        EXPECT_FLOAT_EQ(FLOAT_VALUE->defaultVal(), setting.defaultValue);
+        EXPECT_FLOAT_EQ(*FLOAT_VALUE->m_min, 0.F);
+        EXPECT_FLOAT_EQ(*FLOAT_VALUE->m_max, 1.F);
+        EXPECT_EQ(FLOAT_VALUE->refreshBits(), Config::Supplementary::REFRESH_BLUR_FB);
     }
 }
 

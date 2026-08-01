@@ -106,6 +106,9 @@ namespace Fullscreen {
 
         SFsHandlersForWorkspace getFsHandlersForWorkspace(const PHLWORKSPACE workspace) const;
 
+        // avoids re-resolving the handlers when the caller already has them
+        eFullscreenHandler getFullscreenHandlerName(const PHLWINDOW window, const SFsHandlersForWorkspace& handlers);
+
         // List of FSMODE_MAX windows
         std::unordered_set<WP<Desktop::View::CWindow>> m_fsModeMaxWindows;
     };

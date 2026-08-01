@@ -668,10 +668,11 @@ void IElementRenderer::drawTransformedWindow(WP<CTransformedWindowPassElement> e
         outputBox = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
 
     CTexPassElement::SRenderData data;
-    data.tex        = last->getTexture();
-    data.box        = outputBox;
-    data.a          = 1.F;
-    data.motionBlur = motionBlur;
+    data.tex          = last->getTexture();
+    data.box          = outputBox;
+    data.a            = 1.F;
+    data.motionBlur   = motionBlur;
+    data.flipEndFrame = !motionBlur.enabled;
 
     const CRegion drawDamage = damage.copy().intersect(outputBox);
 

@@ -1,5 +1,7 @@
 #include "DeformableMesh.hpp"
 
+#include "memory/Memory.hpp"
+
 #include <hyprutils/animation/Spring.hpp>
 
 #include <algorithm>
@@ -13,7 +15,7 @@ CDeformableMesh::CDeformableMesh(size_t verticesPerEdge) {
 }
 
 void CDeformableMesh::setSize(size_t verticesPerEdge) {
-    verticesPerEdge = std::clamp(verticesPerEdge, static_cast<size_t>(2), static_cast<size_t>(32));
+    verticesPerEdge = std::clamp(verticesPerEdge, sc<size_t>(2), sc<size_t>(32));
     if (m_verticesPerEdge == verticesPerEdge && m_points.size() == verticesPerEdge * verticesPerEdge)
         return;
 
@@ -59,9 +61,9 @@ void CDeformableMesh::onPositionUpdate(const CBox& previous, const CBox& current
     const double GRABMAXDISTANCE = grabPoint ? std::max(std::hypot(std::max(grabPoint->x, 1.0 - grabPoint->x), std::max(grabPoint->y, 1.0 - grabPoint->y)), 0.001) : 1.0;
 
     for (size_t y = 0; y < m_verticesPerEdge; ++y) {
-        const double V = m_verticesPerEdge == 1 ? 0.0 : static_cast<double>(y) / static_cast<double>(m_verticesPerEdge - 1);
+        const double V = m_verticesPerEdge == 1 ? 0.0 : sc<double>(y) / sc<double>(m_verticesPerEdge - 1);
         for (size_t x = 0; x < m_verticesPerEdge; ++x) {
-            const double U = m_verticesPerEdge == 1 ? 0.0 : static_cast<double>(x) / static_cast<double>(m_verticesPerEdge - 1);
+            const double U = m_verticesPerEdge == 1 ? 0.0 : sc<double>(x) / sc<double>(m_verticesPerEdge - 1);
 
             const double MOVEWEIGHTX = 0.45 + 0.55 * std::sin(V * std::numbers::pi);
             const double MOVEWEIGHTY = 0.45 + 0.55 * std::sin(U * std::numbers::pi);
@@ -89,10 +91,10 @@ void CDeformableMesh::onPositionUpdate(const CBox& previous, const CBox& current
 
 void CDeformableMesh::advance(const SSpringCurve& spring, std::chrono::duration<float> elapsed) {
     for (auto& p : m_points) {
-        float valueX = 1.F + static_cast<float>(p.displacement.x);
-        float valueY = 1.F + static_cast<float>(p.displacement.y);
-        float velX   = static_cast<float>(p.velocity.x);
-        float velY   = static_cast<float>(p.velocity.y);
+        float valueX = 1.F + sc<float>(p.displacement.x);
+        float valueY = 1.F + sc<float>(p.displacement.y);
+        float velX   = sc<float>(p.velocity.x);
+        float velY   = sc<float>(p.velocity.y);
 
         advanceSpring(valueX, velX, spring, elapsed);
         advanceSpring(valueY, velY, spring, elapsed);
@@ -132,7 +134,8 @@ CBox CDeformableMesh::transformedExtents(const CBox& box) const {
     return {minX, minY, maxX - minX, maxY - minY};
 }
 
-std::vector<SMeshRenderVertex> CDeformableMesh::verticesForBox(const CBox& box, const CBox& outputBox, const Vector2D& textureSize, double displacementScale) const {
+std::vector<SMeshRenderVertex> CDeformableMesh::verticesForBox(const CBox& box, const CBox& outputBox, const Vector2D& textureSize, double displacementScale,
+                                                               eTransform textureTransform) const {
     std::vector<SMeshRenderVertex> vertices;
     if (m_verticesPerEdge < 2 || outputBox.w <= 0.F || outputBox.h <= 0.F || textureSize.x <= 0.F || textureSize.y <= 0.F)
         return vertices;
@@ -140,13 +143,14 @@ std::vector<SMeshRenderVertex> CDeformableMesh::verticesForBox(const CBox& box, 
     vertices.reserve((m_verticesPerEdge - 1) * (m_verticesPerEdge - 1) * 6);
 
     const auto makeVertex = [&](size_t x, size_t y) -> SMeshRenderVertex {
-        const Vector2D REST = restPoint(box, x, y);
-        const Vector2D POS  = REST + point(x, y).displacement * displacementScale;
+        const Vector2D REST       = restPoint(box, x, y);
+        const Vector2D POS        = REST + point(x, y).displacement * displacementScale;
+        const Vector2D TEXTUREPOS = REST.transform(textureTransform, textureSize);
         return {
-            .x = static_cast<float>((POS.x - outputBox.x) / outputBox.w),
-            .y = static_cast<float>((POS.y - outputBox.y) / outputBox.h),
-            .u = static_cast<float>(REST.x / textureSize.x),
-            .v = static_cast<float>(REST.y / textureSize.y),
+            .x = sc<float>((POS.x - outputBox.x) / outputBox.w),
+            .y = sc<float>((POS.y - outputBox.y) / outputBox.h),
+            .u = sc<float>(TEXTUREPOS.x / textureSize.x),
+            .v = sc<float>(TEXTUREPOS.y / textureSize.y),
         };
     };
 
@@ -173,8 +177,8 @@ const CDeformableMesh::SPoint& CDeformableMesh::point(size_t x, size_t y) const 
 }
 
 Vector2D CDeformableMesh::restPoint(const CBox& box, size_t x, size_t y) const {
-    const double U = m_verticesPerEdge == 1 ? 0.0 : static_cast<double>(x) / static_cast<double>(m_verticesPerEdge - 1);
-    const double V = m_verticesPerEdge == 1 ? 0.0 : static_cast<double>(y) / static_cast<double>(m_verticesPerEdge - 1);
+    const double U = m_verticesPerEdge == 1 ? 0.0 : sc<double>(x) / sc<double>(m_verticesPerEdge - 1);
+    const double V = m_verticesPerEdge == 1 ? 0.0 : sc<double>(y) / sc<double>(m_verticesPerEdge - 1);
     return {box.x + box.w * U, box.y + box.h * V};
 }
 

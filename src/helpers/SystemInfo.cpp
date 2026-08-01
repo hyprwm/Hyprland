@@ -233,6 +233,7 @@ std::string SystemInfo::getSystemInfo() {
     if (g_pHyprOpenGL) {
         result += std::format("\nExplicit sync: {}", g_pHyprOpenGL->m_exts.EGL_ANDROID_native_fence_sync_ext ? "supported" : "missing");
         result += std::format("\nGL ver: {}", g_pHyprOpenGL->m_eglContextVersion == CHyprOpenGLImpl::EGL_CONTEXT_GLES_3_2 ? "3.2" : "3.0");
+        result += std::format("\nFP16: {}", g_pHyprOpenGL->fp16Supported() ? "supported" : "missing");
     }
 
     if (g_pCompositor) {

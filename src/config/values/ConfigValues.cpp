@@ -239,7 +239,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Int>("decoration:blur:variant", "set the blur variant. Blur variants enhance regular blur, but may increase GPU and CPU usage, significantly so if they are animated.",
                 0,
                 {.min = 0,
-                 .max = 9,
+                 .max = 10,
                  .map =
                      OptionMap{
                          {"kawase", 0},
@@ -252,6 +252,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
                          {"heat_shimmer", 7},
                          {"acrylic", 8},
                          {"aurora", 9},
+                         {"haze", 10},
                      },
                  .refresh = Supplementary::REFRESH_BLUR_FB}),
         MS<Int>("decoration:blur:size", "blur size (distance)", 8, {.min = 0, .max = 100, .refresh = Supplementary::REFRESH_BLUR_FB}),
@@ -297,6 +298,9 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Float>("decoration:blur:aurora:intensity", "strength of the aurora color contribution", 0.35F, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),
         MS<Color>("decoration:blur:aurora:color1", "first aurora curtain color. Alpha controls its contribution.", 0x29F0A0FF, {.refresh = Supplementary::REFRESH_BLUR_FB}),
         MS<Color>("decoration:blur:aurora:color2", "second aurora curtain color. Alpha controls its contribution.", 0x7A4DFFFF, {.refresh = Supplementary::REFRESH_BLUR_FB}),
+
+        MS<Float>("decoration:blur:haze:intensity", "strength of the haze pearlescent sheen", 0.35F, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:haze:iridescence", "strength of the haze pearlescent color shift", 0.7F, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),
 
         MS<Float>("decoration:blur:ripple:strength", "maximum refraction displacement of click ripples in pixels", 30.F,
                   {.min = 0, .max = 32, .refresh = Supplementary::REFRESH_BLUR_FB}),

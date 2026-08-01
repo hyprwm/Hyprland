@@ -238,9 +238,9 @@ void CKeybindManager::updateXKBTranslationState() {
         fclose(KEYMAPFILE);
 
     if (!PKEYMAP) {
-        ErrorOverlay::overlay()->queueCreate("[Runtime Error] Invalid keyboard layout passed. ( rules: " + RULES + ", model: " + MODEL + ", variant: " + VARIANT +
-                                                 ", options: " + OPTIONS + ", layout: " + LAYOUT + " )",
-                                             ErrorOverlay::Colors::ERROR);
+        ErrorOverlay::overlay()->queueCreate(
+            std::format("[Runtime Error] Invalid keyboard layout passed. ( rules: {}, model: {}, variant: {}, options: {}, layout: {} )", RULES, MODEL, VARIANT, OPTIONS, LAYOUT),
+            ErrorOverlay::Colors::ERROR);
 
         Log::logger->log(Log::ERR, "[XKBTranslationState] Keyboard layout {} with variant {} (rules: {}, model: {}, options: {}) couldn't have been loaded.", rules.layout,
                          rules.variant, rules.rules, rules.model, rules.options);
@@ -406,7 +406,7 @@ bool CKeybindManager::onMouseEvent(const IPointer::SButtonEvent& e, SP<IPointer>
 
     bool       mouseBindWasActive = ensureMouseBindState();
 
-    const auto KEY_NAME = "mouse:" + std::to_string(e.button);
+    const auto KEY_NAME = std::format("mouse:{}", e.button);
 
     const auto KEY = SPressedKeyWithMods{
         .keyName            = KEY_NAME,
@@ -455,15 +455,15 @@ void CKeybindManager::resizeWithBorder(const IPointer::SButtonEvent& e) {
 }
 
 void CKeybindManager::onSwitchEvent(const std::string& switchName) {
-    handleKeybinds(0, SPressedKeyWithMods{.keyName = "switch:" + switchName, .submapAtPress = getCurrentSubmap()}, true, nullptr, nullptr);
+    handleKeybinds(0, SPressedKeyWithMods{.keyName = std::format("switch:{}", switchName), .submapAtPress = getCurrentSubmap()}, true, nullptr, nullptr);
 }
 
 void CKeybindManager::onSwitchOnEvent(const std::string& switchName) {
-    handleKeybinds(0, SPressedKeyWithMods{.keyName = "switch:on:" + switchName, .submapAtPress = getCurrentSubmap()}, true, nullptr, nullptr);
+    handleKeybinds(0, SPressedKeyWithMods{.keyName = std::format("switch:on:{}", switchName), .submapAtPress = getCurrentSubmap()}, true, nullptr, nullptr);
 }
 
 void CKeybindManager::onSwitchOffEvent(const std::string& switchName) {
-    handleKeybinds(0, SPressedKeyWithMods{.keyName = "switch:off:" + switchName, .submapAtPress = getCurrentSubmap()}, true, nullptr, nullptr);
+    handleKeybinds(0, SPressedKeyWithMods{.keyName = std::format("switch:off:{}", switchName), .submapAtPress = getCurrentSubmap()}, true, nullptr, nullptr);
 }
 
 eMultiKeyCase CKeybindManager::mkKeysymSetMatches(const std::vector<KeybindKey>& keybindKeysyms, const std::set<KeybindKey>& pressedKeysyms) {

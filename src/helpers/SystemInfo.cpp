@@ -165,10 +165,10 @@ std::string SystemInfo::getSystemInfo() {
 
     uname(&unameInfo);
 
-    result += "System name: " + std::string{unameInfo.sysname} + "\n";
-    result += "Node name: " + std::string{unameInfo.nodename} + "\n";
-    result += "Release: " + std::string{unameInfo.release} + "\n";
-    result += "Version: " + std::string{unameInfo.version} + "\n";
+    result += std::format("System name: {}\n", unameInfo.sysname);
+    result += std::format("Node name: {}\n", unameInfo.nodename);
+    result += std::format("Release: {}\n", unameInfo.release);
+    result += std::format("Version: {}\n", unameInfo.version);
     result += "\n";
     result += getBuiltSystemLibraryNames();
     result += "\n";
@@ -199,7 +199,7 @@ std::string SystemInfo::getSystemInfo() {
 #else
     const std::string GPUINFO = execAndGet("lspci -vnn | grep -E '(VGA|Display|3D)'");
 #endif
-    result += "GPU information: \n" + GPUINFO;
+    result += std::format("GPU information: \n{}", GPUINFO);
     if (GPUINFO.contains("NVIDIA") && std::filesystem::exists("/proc/driver/nvidia/version")) {
         std::ifstream file("/proc/driver/nvidia/version");
         std::string   line;
@@ -218,7 +218,7 @@ std::string SystemInfo::getSystemInfo() {
     if (std::ifstream file("/etc/os-release"); file.is_open()) {
         std::stringstream buffer;
         buffer << file.rdbuf();
-        result += "os-release: " + buffer.str() + "\n\n";
+        result += std::format("os-release: {}\n\n", buffer.str());
     } else
         result += "os-release: error\n\n";
 

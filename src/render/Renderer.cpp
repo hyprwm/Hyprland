@@ -1477,7 +1477,7 @@ void IHyprRenderer::requestBackgroundResource() {
 std::string IHyprRenderer::resolveAssetPath(const std::string& filename) {
     std::string fullPath;
     for (auto& e : ASSET_PATHS) {
-        std::string     p = std::string{e} + "/hypr/" + filename;
+        std::string     p = std::format("{}/hypr/{}", e, filename);
         std::error_code ec;
         if (std::filesystem::exists(p, ec)) {
             fullPath = p;
@@ -2996,8 +2996,7 @@ std::tuple<float, float, float> IHyprRenderer::getRenderTimes(PHLMONITOR pMonito
 
 static int handleCrashLoop(void* data) {
 
-    Notification::overlay()->addNotification("Hyprland will crash in " + std::to_string(10 - sc<int>(g_pHyprRenderer->m_crashingDistort * 2.f)) + "s.", CHyprColor(0), 5000,
-                                             ICON_INFO);
+    Notification::overlay()->addNotification(std::format("Hyprland will crash in {}s.", 10 - sc<int>(g_pHyprRenderer->m_crashingDistort * 2.f)), CHyprColor(0), 5000, ICON_INFO);
 
     g_pHyprRenderer->m_crashingDistort += 0.5f;
 

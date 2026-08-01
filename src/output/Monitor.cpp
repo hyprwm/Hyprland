@@ -1032,7 +1032,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
                     m_scale = std::round(scaleZero);
                 else {
                     Log::logger->log(Log::ERR, "Invalid scale passed to monitor, {} failed to find a clean divisor", m_scale);
-                    ErrorOverlay::overlay()->queueError("Invalid scale passed to monitor " + m_name + ", failed to find a clean divisor");
+                    ErrorOverlay::overlay()->queueError(std::format("Invalid scale passed to monitor {}, failed to find a clean divisor", m_name));
                     m_scale = getDefaultScale();
                 }
             } else {
@@ -1565,8 +1565,8 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         if (m_activeSpecialWorkspace) {
             m_activeSpecialWorkspace->m_visible = false;
             Animation::Workspace::startAnimation(m_activeSpecialWorkspace, Animation::Workspace::ANIMATION_TYPE_OUT, false);
-            IPC::Socket2::sock()->postEvent({"activespecial", "," + m_name});
-            IPC::Socket2::sock()->postEvent({"activespecialv2", ",," + m_name});
+            IPC::Socket2::sock()->postEvent({"activespecial", std::format(",{}", m_name)});
+            IPC::Socket2::sock()->postEvent({"activespecialv2", std::format(",,{}", m_name)});
 
             // Reset layer surface state when closing special workspace
             for (auto const& ls : Desktop::layerState()->layers()) {
@@ -1614,8 +1614,8 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         PMONITOR->m_activeSpecialWorkspace.reset();
         g_layoutManager->recalculateMonitor(PMONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE);
         g_pHyprRenderer->damageMonitor(PMONITOR);
-        IPC::Socket2::sock()->postEvent({"activespecial", "," + PMONITOR->m_name});
-        IPC::Socket2::sock()->postEvent({"activespecialv2", ",," + PMONITOR->m_name});
+        IPC::Socket2::sock()->postEvent({"activespecial", std::format(",{}", PMONITOR->m_name)});
+        IPC::Socket2::sock()->postEvent({"activespecialv2", std::format(",,{}", PMONITOR->m_name)});
 
         // Reset layer surfaces on the old monitor when special workspace is stolen
         for (auto const& ls : Desktop::layerState()->layers()) {
@@ -1686,8 +1686,8 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
             g_pInputManager->refocus();
     }
 
-    IPC::Socket2::sock()->postEvent({"activespecial", pWorkspace->m_name + "," + m_name});
-    IPC::Socket2::sock()->postEvent({"activespecialv2", std::to_string(pWorkspace->m_id) + "," + pWorkspace->m_name + "," + m_name});
+    IPC::Socket2::sock()->postEvent({"activespecial", std::format("{},{}", pWorkspace->m_name, m_name)});
+    IPC::Socket2::sock()->postEvent({"activespecialv2", std::format("{},{},{}", pWorkspace->m_id, pWorkspace->m_name, m_name)});
 
     g_pHyprRenderer->damageMonitor(m_self.lock());
 

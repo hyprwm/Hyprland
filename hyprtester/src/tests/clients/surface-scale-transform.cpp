@@ -58,7 +58,7 @@ static bool waitForClientWindow(pid_t pid, int timeoutMs) {
 }
 
 CClient::CClient() {
-    m_proc = makeShared<CProcess>(binaryDir + "/surface-scale-transform", std::vector<std::string>{});
+    m_proc = makeShared<CProcess>(std::format("{}/surface-scale-transform", binaryDir), std::vector<std::string>{});
     m_proc->addEnv("WAYLAND_DISPLAY", WLDISPLAY);
 
     int pipeFds1[2], pipeFds2[2];
@@ -85,8 +85,8 @@ CClient::CClient() {
     } while (pollRet == -1 && errno == EINTR);
 
     if (pollRet != 1 || !(m_fds.revents & POLLIN))
-        throw std::runtime_error(std::format("startup stdout poll failed: ret={} revents={} alive={} pid={} binary={}", pollRet, m_fds.revents, Tests::processAlive(m_proc->pid()),
-                                             m_proc->pid(), binaryDir + "/surface-scale-transform"));
+        throw std::runtime_error(std::format("startup stdout poll failed: ret={} revents={} alive={} pid={} binary={}/surface-scale-transform", pollRet, m_fds.revents,
+                                             Tests::processAlive(m_proc->pid()), m_proc->pid(), binaryDir));
 
     m_readBuf.fill(0);
     const ssize_t bytesRead = read(m_readFd.get(), m_readBuf.data(), m_readBuf.size() - 1);
@@ -115,7 +115,7 @@ CClient::~CClient() {
 }
 
 std::string CClient::command(const std::string& command) {
-    const std::string cmd = command + "\n";
+    const std::string cmd = std::format("{}\n", command);
     if ((size_t)write(m_writeFd.get(), cmd.c_str(), cmd.length()) != cmd.length())
         return "";
 

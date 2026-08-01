@@ -130,9 +130,9 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
 
         if (in.length() > 8) {
             const auto NAME = in.substr(8);
-            const auto WS   = State::workspaceState()->query().name("special:" + NAME).run();
+            const auto WS   = State::workspaceState()->query().name(std::format("special:{}", NAME)).run();
 
-            return {WS ? WS->m_id : State::workspaceState()->newSpecialID(), "special:" + NAME};
+            return {WS ? WS->m_id : State::workspaceState()->newSpecialID(), std::format("special:{}", NAME)};
         }
 
         result.id = SPECIAL_WORKSPACE_START;
@@ -481,7 +481,7 @@ std::optional<std::string> cleanCmdForWorkspace(const std::string& inWorkspaceNa
 
     if (!cmd.empty()) {
         std::string       rules;
-        const std::string workspaceRule = "workspace " + inWorkspaceName;
+        const std::string workspaceRule = std::format("workspace {}", inWorkspaceName);
 
         if (cmd[0] == '[') {
             const auto closingBracketIdx = cmd.find_last_of(']');
@@ -501,12 +501,12 @@ std::optional<std::string> cleanCmdForWorkspace(const std::string& inWorkspaceNa
             if (!hadWorkspaceRule)
                 rulesList.append(workspaceRule);
 
-            rules = "[" + rulesList.join(";") + "]";
+            rules = std::format("[{}]", rulesList.join(";"));
         } else {
-            rules = "[" + workspaceRule + "]";
+            rules = std::format("[{}]", workspaceRule);
         }
 
-        return std::optional<std::string>(rules + " " + cmd);
+        return std::optional<std::string>(std::format("{} {}", rules, cmd));
     }
 
     return std::nullopt;
@@ -544,7 +544,7 @@ int64_t getPPIDof(int64_t pid) {
 
     return 0;
 #else
-    std::string dir = "/proc/" + std::to_string(pid) + "/status";
+    std::string dir = std::format("/proc/{}/status", pid);
     FILE*       infile;
 
     infile = fopen(dir.c_str(), "r");
@@ -623,7 +623,7 @@ void throwError(const std::string& err) {
 
 std::pair<CFileDescriptor, std::string> openExclusiveShm() {
     // Only absolute paths can be shared across different shm_open() calls
-    std::string name = "/" + g_pTokenManager->getRandomUUID();
+    std::string name = std::format("/{}", g_pTokenManager->getRandomUUID());
 
     for (size_t i = 0; i < 69; ++i) {
         CFileDescriptor fd{shm_open(name.c_str(), O_RDWR | O_CREAT | O_EXCL, 0600)};
@@ -794,7 +794,7 @@ static const std::vector<const char*> PKGCONF_PATHS = {"/usr/lib/pkgconfig", "/u
 std::string getSystemLibraryVersion(const std::string& name) {
     for (const auto& pkgconf : PKGCONF_PATHS) {
         std::error_code   ec;
-        const std::string PATH = std::string{pkgconf} + "/" + name + ".pc";
+        const std::string PATH = std::format("{}/{}.pc", pkgconf, name);
         if (!std::filesystem::exists(PATH, ec))
             continue;
 

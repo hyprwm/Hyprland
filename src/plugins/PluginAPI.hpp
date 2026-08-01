@@ -30,6 +30,7 @@ Feel like the API is missing something you'd like to use in your plugin? Open an
 #include "../event/EventBus.hpp"
 
 #include <any>
+#include <format>
 #include <functional>
 #include <string>
 #include <string_view>
@@ -400,8 +401,8 @@ APICALL inline EXPORT const char* __hyprland_api_get_client_hash() {
         return std::string{v.substr(0, v.find_last_of('.'))};
     };
 
-    static const std::string ver = (std::string{GIT_COMMIT_HASH} + "_aq_" + stripPatch(AQUAMARINE_VERSION) + "_hu_" + stripPatch(HYPRUTILS_VERSION) + "_hg_" +
-                                    stripPatch(HYPRGRAPHICS_VERSION) + "_hc_" + stripPatch(HYPRCURSOR_VERSION) + "_hlg_" + stripPatch(HYPRLANG_VERSION));
+    static const std::string ver = std::format("{}_aq_{}_hu_{}_hg_{}_hc_{}_hlg_{}", GIT_COMMIT_HASH, stripPatch(AQUAMARINE_VERSION), stripPatch(HYPRUTILS_VERSION),
+                                               stripPatch(HYPRGRAPHICS_VERSION), stripPatch(HYPRCURSOR_VERSION), stripPatch(HYPRLANG_VERSION));
 
     return ver.c_str();
 }

@@ -1344,7 +1344,7 @@ std::unordered_map<std::string, std::string> CWindow::getEnv() {
 
 #if defined(__linux__)
     //
-    std::string   environFile = "/proc/" + std::to_string(PID) + "/environ";
+    std::string   environFile = std::format("/proc/{}/environ", PID);
     std::ifstream ifs(environFile, std::ios::binary);
 
     if (!ifs.good())
@@ -1484,7 +1484,7 @@ void CWindow::onUpdateMeta() {
         Event::bus()->m_events.window.title.emit(m_self.lock());
 
         if (m_self == Desktop::focusState()->window()) { // if it's the active, let's post an event to update others
-            IPC::Socket2::sock()->postEvent({.event = "activewindow", .data = m_class + "," + m_title});
+            IPC::Socket2::sock()->postEvent({.event = "activewindow", .data = std::format("{},{}", m_class, m_title)});
             IPC::Socket2::sock()->postEvent({.event = "activewindowv2", .data = std::format("{:x}", rc<uintptr_t>(this))});
 
             // no need for a hook event
@@ -1501,7 +1501,7 @@ void CWindow::onUpdateMeta() {
         Event::bus()->m_events.window.class_.emit(m_self.lock());
 
         if (m_self == Desktop::focusState()->window()) { // if it's the active, let's post an event to update others
-            IPC::Socket2::sock()->postEvent({.event = "activewindow", .data = m_class + "," + m_title});
+            IPC::Socket2::sock()->postEvent({.event = "activewindow", .data = std::format("{},{}", m_class, m_title)});
             IPC::Socket2::sock()->postEvent({.event = "activewindowv2", .data = std::format("{:x}", rc<uintptr_t>(this))});
 
             // no need for a hook event
@@ -2213,7 +2213,7 @@ void CWindow::mapWindow() {
 
             const auto JUSTWORKSPACE = WORKSPACERQ.contains(' ') ? WORKSPACERQ.substr(0, WORKSPACERQ.find_first_of(' ')) : WORKSPACERQ;
 
-            if (JUSTWORKSPACE == PWORKSPACE->m_name || JUSTWORKSPACE == "name:" + PWORKSPACE->m_name)
+            if (JUSTWORKSPACE == PWORKSPACE->m_name || JUSTWORKSPACE == std::format("name:{}", PWORKSPACE->m_name))
                 requestedWorkspace = "";
 
             Log::logger->log(Log::DEBUG, "Rule workspace matched by {}, {} applied.", m_self.lock(), m_ruleApplicator->static_.workspace);

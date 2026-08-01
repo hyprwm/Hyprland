@@ -391,7 +391,7 @@ TEST(ConfigLuaRequire, absolutePathLoadsAndTracksFile) {
     CConfigManagerPluginLuaTestAccessor::initializeOwnedLuaState(mgr, mainConfig);
     const auto L = CConfigManagerPluginLuaTestAccessor::luaState(mgr);
 
-    const auto CODE = "mod = require(" + luaString(module.string()) + ")";
+    const auto CODE = std::format("mod = require({})", luaString(module.string()));
     ASSERT_EQ(luaL_dostring(L, CODE.c_str()), LUA_OK) << lua_tostring(L, -1);
 
     lua_getglobal(L, "mod");
@@ -517,6 +517,6 @@ TEST(ConfigLuaRequire, packagePathPreservesLuaDefaultsAfterConfigDirectory) {
     CConfigManager mgr;
     CConfigManagerPluginLuaTestAccessor::initializeOwnedLuaState(mgr, mainConfig);
 
-    const auto configPath = (tmp.path() / "?.lua").string() + ";" + (tmp.path() / "?/init.lua").string();
-    EXPECT_EQ(packagePath(CConfigManagerPluginLuaTestAccessor::luaState(mgr)), configPath + ";" + defaultPath);
+    const auto configPath = std::format("{};{}", (tmp.path() / "?.lua").string(), (tmp.path() / "?/init.lua").string());
+    EXPECT_EQ(packagePath(CConfigManagerPluginLuaTestAccessor::luaState(mgr)), std::format("{};{}", configPath, defaultPath));
 }

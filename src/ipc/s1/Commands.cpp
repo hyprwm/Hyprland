@@ -139,7 +139,7 @@ std::string CCommandFormatter::getSolitaryBlockedReason(PHLMONITOR m, eHyprCtlOu
         }
     }
 
-    return format == eHyprCtlOutputFormat::FORMAT_JSON ? "[" + reasonStr + "]" : reasonStr;
+    return format == eHyprCtlOutputFormat::FORMAT_JSON ? std::format("[{}]", reasonStr) : reasonStr;
 }
 
 const std::array<const char*, Monitor::CMonitor::DS_CHECKS_COUNT> DS_REASONS_JSON = {
@@ -168,7 +168,7 @@ std::string CCommandFormatter::getDSBlockedReason(PHLMONITOR m, eHyprCtlOutputFo
         }
     }
 
-    return format == eHyprCtlOutputFormat::FORMAT_JSON ? "[" + reasonStr + "]" : reasonStr;
+    return format == eHyprCtlOutputFormat::FORMAT_JSON ? std::format("[{}]", reasonStr) : reasonStr;
 }
 
 const std::array<const char*, Monitor::CMonitor::TC_CHECKS_COUNT> TEARING_REASONS_JSON = {
@@ -194,7 +194,7 @@ std::string                                                       CCommandFormat
         }
     }
 
-    return format == eHyprCtlOutputFormat::FORMAT_JSON ? "[" + reasonStr + "]" : reasonStr;
+    return format == eHyprCtlOutputFormat::FORMAT_JSON ? std::format("[{}]", reasonStr) : reasonStr;
 }
 
 std::string CCommandFormatter::getMonitorData(PHLMONITOR m, eHyprCtlOutputFormat format) {
@@ -327,7 +327,7 @@ static std::string getTagsData(PHLWINDOW w, eHyprCtlOutputFormat format) {
         return std::ranges::fold_left(tags, std::string(),
                                       [](const std::string& a, const std::string& b) { return a.empty() ? std::format("\"{}\"", b) : std::format("{}, \"{}\"", a, b); });
     else
-        return std::ranges::fold_left(tags, std::string(), [](const std::string& a, const std::string& b) { return a.empty() ? b : a + ", " + b; });
+        return std::ranges::fold_left(tags, std::string(), [](const std::string& a, const std::string& b) { return a.empty() ? b : std::format("{}, {}", a, b); });
 }
 
 static std::string getGroupedData(PHLWINDOW w, eHyprCtlOutputFormat format) {
@@ -992,7 +992,7 @@ static std::string globalShortcutsRequest(eHyprCtlOutputFormat format, std::stri
     "name": "{}",
     "description": "{}"
 }},)#",
-                               escapeJSONStrings(sh.appid + ":" + sh.id), escapeJSONStrings(sh.description));
+                               escapeJSONStrings(std::format("{}:{}", sh.appid, sh.id)), escapeJSONStrings(sh.description));
         }
         trimTrailingComma(ret);
         ret += "]\n";
@@ -1150,7 +1150,7 @@ static std::string dispatchRequest(eHyprCtlOutputFormat format, std::string in) 
             return ret;
 
         // the user likely is trying to dispatch old hyprlang stuff via lua, let them know
-        return ret + "\n\n → Note: dispatch in lua is a shorthand for hl.dispatch(...), your syntax might need to be updated.";
+        return std::format("{}\n\n → Note: dispatch in lua is a shorthand for hl.dispatch(...), your syntax might need to be updated.", ret);
     }
 
     return "current config provider doesn't support dispatch";
@@ -1211,7 +1211,7 @@ static std::string dispatchSetCursor(eHyprCtlOutputFormat format, std::string re
     const auto  SIZESTR = vars[vars.size() - 1];
     std::string theme   = "";
     for (size_t i = 1; i < vars.size() - 1; ++i)
-        theme += vars[i] + " ";
+        theme += std::format("{} ", vars[i]);
     if (!theme.empty())
         theme.pop_back();
 
@@ -1259,7 +1259,7 @@ static std::string switchXKBLayoutRequest(eHyprCtlOutputFormat format, std::stri
             } catch (std::exception& e) { return "invalid arg 2"; }
 
             if (requestedLayout < 0 || sc<uint64_t>(requestedLayout) > LAYOUTS - 1) {
-                return "layout idx out of range of " + std::to_string(LAYOUTS);
+                return std::format("layout idx out of range of {}", LAYOUTS);
             }
 
             KEEB->updateModifiers(KEEB->m_modifiersState.depressed, KEEB->m_modifiersState.latched, KEEB->m_modifiersState.locked, requestedLayout);
@@ -1281,7 +1281,7 @@ static std::string switchXKBLayoutRequest(eHyprCtlOutputFormat format, std::stri
         for (auto const& k : g_pInputManager->m_keyboards) {
             auto res = updateKeyboard(k, CMD);
             if (res.has_value())
-                result += *res + "\n";
+                result += std::format("{}\n", *res);
         }
         return result.empty() ? "ok" : result;
     } else {
@@ -1615,7 +1615,7 @@ static std::string decorationRequest(eHyprCtlOutputFormat format, std::string re
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
         for (auto const& wd : PWINDOW->m_windowDecorations) {
-            result += "{\n\"decorationName\": \"" + wd->getDisplayName() + "\",\n\"priority\": " + std::to_string(wd->getPositioningInfo().priority) + "\n},";
+            result += std::format("{{\n\"decorationName\": \"{}\",\n\"priority\": {}\n}},", wd->getDisplayName(), wd->getPositioningInfo().priority);
         }
 
         trimTrailingComma(result);
@@ -1623,7 +1623,7 @@ static std::string decorationRequest(eHyprCtlOutputFormat format, std::string re
     } else {
         result = +"Decoration\tPriority\n";
         for (auto const& wd : PWINDOW->m_windowDecorations) {
-            result += wd->getDisplayName() + "\t" + std::to_string(wd->getPositioningInfo().priority) + "\n";
+            result += std::format("{}\t{}\n", wd->getDisplayName(), wd->getPositioningInfo().priority);
         }
     }
 
@@ -1859,7 +1859,7 @@ static std::string submapRequest(eHyprCtlOutputFormat format, std::string reques
     if (submap.empty())
         submap = "default";
 
-    return format == FORMAT_JSON ? std::format("\"{}\"\n", escapeJSONStrings(submap)) : (submap + "\n");
+    return format == FORMAT_JSON ? std::format("\"{}\"\n", escapeJSONStrings(submap)) : std::format("{}\n", submap);
 }
 
 static std::string reloadShaders(eHyprCtlOutputFormat format, std::string request) {

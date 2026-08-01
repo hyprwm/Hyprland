@@ -27,8 +27,8 @@ APICALL const char* __hyprland_api_get_hash() {
         return std::string{v.substr(0, v.find_last_of('.'))};
     };
 
-    static const std::string ver = (std::string{GIT_COMMIT_HASH} + "_aq_" + stripPatch(AQUAMARINE_VERSION) + "_hu_" + stripPatch(HYPRUTILS_VERSION) + "_hg_" +
-                                    stripPatch(HYPRGRAPHICS_VERSION) + "_hc_" + stripPatch(HYPRCURSOR_VERSION) + "_hlg_" + stripPatch(HYPRLANG_VERSION));
+    static const std::string ver = std::format("{}_aq_{}_hu_{}_hg_{}_hc_{}_hlg_{}", GIT_COMMIT_HASH, stripPatch(AQUAMARINE_VERSION), stripPatch(HYPRUTILS_VERSION),
+                                               stripPatch(HYPRGRAPHICS_VERSION), stripPatch(HYPRCURSOR_VERSION), stripPatch(HYPRLANG_VERSION));
 
     return ver.c_str();
 }
@@ -58,9 +58,9 @@ APICALL bool HyprlandAPI::unregisterCallback(HANDLE handle, SP<HOOK_CALLBACK_FN>
 
 APICALL std::string HyprlandAPI::invokeHyprctlCommand(const std::string& call, const std::string& args, const std::string& format) {
     if (args.empty())
-        return IPC::Socket1::sock()->invoke(format + "/" + call);
+        return IPC::Socket1::sock()->invoke(std::format("{}/{}", format, call));
     else
-        return IPC::Socket1::sock()->invoke(format + "/" + call + " " + args);
+        return IPC::Socket1::sock()->invoke(std::format("{}/{} {}", format, call, args));
 }
 
 APICALL bool HyprlandAPI::addLayout(HANDLE handle, const std::string& name, IHyprLayout* layout) {
@@ -287,11 +287,11 @@ APICALL std::vector<SFunctionMatch> HyprlandAPI::findFunctionsByName(HANDLE hand
 #endif
 
 #ifdef __clang__
-    static const auto SYMBOLS          = execAndGet(("llvm-nm -D -j \"" + FPATH.string() + "\"").c_str());
-    static const auto SYMBOLSDEMANGLED = execAndGet(("llvm-nm -D -j --demangle \"" + FPATH.string() + "\"").c_str());
+    static const auto SYMBOLS          = execAndGet(std::format("llvm-nm -D -j \"{}\"", FPATH.string()).c_str());
+    static const auto SYMBOLSDEMANGLED = execAndGet(std::format("llvm-nm -D -j --demangle \"{}\"", FPATH.string()).c_str());
 #else
-    static const auto SYMBOLS          = execAndGet(("nm -D -j \"" + FPATH.string() + "\"").c_str());
-    static const auto SYMBOLSDEMANGLED = execAndGet(("nm -D -j --demangle=auto \"" + FPATH.string() + "\"").c_str());
+    static const auto SYMBOLS          = execAndGet(std::format("nm -D -j \"{}\"", FPATH.string()).c_str());
+    static const auto SYMBOLSDEMANGLED = execAndGet(std::format("nm -D -j --demangle=auto \"{}\"", FPATH.string()).c_str());
 #endif
 
     auto demangledFromID = [&](size_t id) -> std::string {

@@ -24,7 +24,7 @@ CEis::CEis(std::string socketName) {
 
     const char* xdg = getenv("XDG_RUNTIME_DIR");
     if (xdg)
-        m_socketPath = std::string(xdg) + "/" + socketName;
+        m_socketPath = std::format("{}/{}", xdg, socketName);
 
     if (m_socketPath.empty()) {
         Log::logger->log(Log::ERR, "[EIS] Socket path is empty");

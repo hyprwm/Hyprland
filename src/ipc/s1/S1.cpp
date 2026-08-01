@@ -210,7 +210,7 @@ SResponse CSocket1::dispatch(std::string request, pid_t pid) {
         return dispatchSingle(std::move(request), pid);
     } catch (const std::exception& error) {
         Log::logger->log(Log::ERR, "Error in socket1 request: {}", error.what());
-        return "Err: " + std::string{error.what()};
+        return std::format("Err: {}", error.what());
     }
 }
 

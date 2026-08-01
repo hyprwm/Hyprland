@@ -1183,7 +1183,7 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
             g_pKeybindManager->m_keyToCodeCache.clear();
         }
 
-        IPC::Socket2::sock()->postEvent({"activelayout", PKEEB->m_hlName + "," + LAYOUT});
+        IPC::Socket2::sock()->postEvent({"activelayout", std::format("{},{}", PKEEB->m_hlName, LAYOUT)});
         Event::bus()->m_events.input.keyboard.layout.emit(PKEEB, LAYOUT);
     });
 
@@ -1284,7 +1284,7 @@ void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
 
     const auto LAYOUTSTR = pKeyboard->getActiveLayout();
 
-    IPC::Socket2::sock()->postEvent({"activelayout", pKeyboard->m_hlName + "," + LAYOUTSTR});
+    IPC::Socket2::sock()->postEvent({"activelayout", std::format("{},{}", pKeyboard->m_hlName, LAYOUTSTR)});
     Event::bus()->m_events.input.keyboard.layout.emit(pKeyboard, LAYOUTSTR);
 
     Log::logger->log(Log::DEBUG, "Set the keyboard layout to {} and variant to {} for keyboard \"{}\"", pKeyboard->m_currentRules.layout, pKeyboard->m_currentRules.variant,
@@ -1725,7 +1725,7 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
 
         Log::logger->log(Log::DEBUG, "LAYOUT CHANGED TO {} GROUP {}", LAYOUT, MODS.group);
 
-        IPC::Socket2::sock()->postEvent({"activelayout", pKeyboard->m_hlName + "," + LAYOUT});
+        IPC::Socket2::sock()->postEvent({"activelayout", std::format("{},{}", pKeyboard->m_hlName, LAYOUT)});
         Event::bus()->m_events.input.keyboard.layout.emit(pKeyboard, LAYOUT);
     }
 }
@@ -2118,7 +2118,9 @@ std::string CInputManager::getNameForNewDevice(std::string internalName) {
     auto proposedNewName = deviceNameToInternalString(internalName);
     int  dupeno          = 0;
 
-    auto makeNewName = [&]() { return (proposedNewName.empty() ? "unknown-device" : proposedNewName) + (dupeno == 0 ? "" : ("-" + std::to_string(dupeno))); };
+    auto makeNewName = [&]() {
+        return std::format("{}{}", proposedNewName.empty() ? "unknown-device" : proposedNewName, dupeno == 0 ? std::string{} : std::format("-{}", dupeno));
+    };
 
     while (std::ranges::find_if(m_hids, [&](const auto& other) { return other->m_hlName == makeNewName(); }) != m_hids.end())
         dupeno++;

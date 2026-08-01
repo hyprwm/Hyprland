@@ -416,7 +416,7 @@ def query_struct_to_type(struct_name: str) -> str:
     if name.startswith("S") and len(name) > 1:
         name = name[1:]
     if name.endswith("Query"):
-        name = name + "Filter"
+        name = f"{name}Filter"
     return f"HL.{name}"
 
 
@@ -504,7 +504,7 @@ def emit_class_block(class_name: str, fields: list[tuple[str, str, bool]], opera
         lines.append(f"---@field ['{quoted}'] {type_with_optional}")
 
     if (emit_local_var):
-        local_name = "__" + class_name.replace(".", "_")
+        local_name = f"__{class_name.replace('.', '_')}"
         lines.append(f"local {local_name} = {{}}")
     return lines
 
@@ -783,7 +783,7 @@ def generate_stub(root: Path) -> str:
         class_name = namespace_class_name(path)
         fields: list[tuple[str, str, bool]] = []
 
-        full_prefix = "hl" + ("." + ".".join(path) if path else "")
+        full_prefix = ".".join(["hl", *path])
 
         for method in sorted(node.methods):
             full_name = f"{full_prefix}.{method}"

@@ -90,7 +90,7 @@ CUnixImpl::CUnixImpl() : m_socket(socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC | S
     }
 
     sockaddr_un SERVERADDRESS = {.sun_family = AF_UNIX};
-    const auto  PATH          = g_pCompositor->m_instancePath + "/.socket2.sock";
+    const auto  PATH          = std::format("{}/.socket2.sock", g_pCompositor->m_instancePath);
     if (PATH.length() > sizeof(SERVERADDRESS.sun_path) - 1) {
         Log::logger->log(Log::ERR, "[Socket2::UnixImpl] path is too long. (2) IPC will not work.");
         return;

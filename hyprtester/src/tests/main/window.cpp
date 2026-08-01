@@ -2,6 +2,7 @@
 #include <cmath>
 #include <chrono>
 #include <filesystem>
+#include <format>
 #include <thread>
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
@@ -32,7 +33,7 @@ static std::string spawnKittyActivating(const std::string& class_ = "kitty_activ
     (void)close(fd);
 
     const std::vector<std::string> args = {
-        "-o", "allow_remote_control=yes", "--", "/bin/sh", "-c", "while [ -f \"" + tmpFilename + "\" ]; do :; done; kitten @ focus-window; sleep infinity"};
+        "-o", "allow_remote_control=yes", "--", "/bin/sh", "-c", std::format("while [ -f \"{}\" ]; do :; done; kitten @ focus-window; sleep infinity", tmpFilename)};
 
     if (!Tests::spawnKitty(class_, args)) {
         NLog::red("Error: failed to spawn kitty");
@@ -71,7 +72,7 @@ TEST_CASE(swapWindow) {
     // Test swapwindow by direction
     {
         getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_A' })");
-        auto pos = "at: " + Tests::getAttribute(getFromSocket("/activewindow"), "at");
+        auto pos = std::format("at: {}", Tests::getAttribute(getFromSocket("/activewindow"), "at"));
         NLog::log("{}Testing kitty_A {}, swapwindow with direction 'r'", Colors::YELLOW, pos);
 
         OK(getFromSocket("/dispatch hl.dsp.window.swap({ direction = 'right' })"));
@@ -83,7 +84,7 @@ TEST_CASE(swapWindow) {
     // Test swapwindow by class
     {
         getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_A' })");
-        auto pos = "at: " + Tests::getAttribute(getFromSocket("/activewindow"), "at");
+        auto pos = std::format("at: {}", Tests::getAttribute(getFromSocket("/activewindow"), "at"));
         NLog::log("{}Testing kitty_A {}, swapwindow with class:kitty_B", Colors::YELLOW, pos);
 
         OK(getFromSocket("/dispatch hl.dsp.window.swap({ target = 'class:kitty_B' })"));
@@ -97,7 +98,7 @@ TEST_CASE(swapWindow) {
         getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_B' })");
         auto addr = getWindowAddress(getFromSocket("/activewindow"));
         getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_A' })");
-        auto pos = "at: " + Tests::getAttribute(getFromSocket("/activewindow"), "at");
+        auto pos = std::format("at: {}", Tests::getAttribute(getFromSocket("/activewindow"), "at"));
         NLog::log("{}Testing kitty_A {}, swapwindow with address:0x{}(kitty_B)", Colors::YELLOW, pos, addr);
 
         OK(getFromSocket(std::format("/dispatch hl.dsp.window.swap({{ target = 'address:0x{}' }})", addr)));
@@ -120,7 +121,7 @@ TEST_CASE(swapWindow) {
     {
         getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_B' })");
         auto addr = getWindowAddress(getFromSocket("/activewindow"));
-        auto ws   = "workspace: " + Tests::getAttribute(getFromSocket("/activewindow"), "workspace");
+        auto ws   = std::format("workspace: {}", Tests::getAttribute(getFromSocket("/activewindow"), "workspace"));
         NLog::log("{}Sending address:0x{}(kitty_B) to workspace \"swapwindow2\"", Colors::YELLOW, addr);
 
         OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = 'name:swapwindow2', follow = false })"));
@@ -1356,7 +1357,7 @@ TEST_CASE(monitorrule) {
     Tests::spawnKitty("monitor_kitty");
     ASSERT(Tests::windowCount(), 1);
     const auto MON_SRC_ID = Tests::getAttribute(getFromSocket("/activewindow"), "monitor");
-    ASSERT_CONTAINS(MONALL, "HEADLESS-3 (ID " + MON_SRC_ID);
+    ASSERT_CONTAINS(MONALL, std::format("HEADLESS-3 (ID {}", MON_SRC_ID));
     EXPECT_CONTAINS(getFromSocket("/activeworkspace"), "HEADLESS-3");
 
     Tests::killAllWindows();
@@ -1368,7 +1369,7 @@ TEST_CASE(monitorrule) {
     Tests::spawnKitty("silent_kitty");
     ASSERT(Tests::windowCount(), 1);
     const auto SILENT_SRC_ID = Tests::getAttribute(getFromSocket("/clients"), "monitor");
-    ASSERT_CONTAINS(MONALL, "HEADLESS-3 (ID " + SILENT_SRC_ID);
+    ASSERT_CONTAINS(MONALL, std::format("HEADLESS-3 (ID {}", SILENT_SRC_ID));
     EXPECT_CONTAINS(getFromSocket("/activeworkspace"), "HEADLESS-2");
 }
 

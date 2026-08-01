@@ -36,7 +36,7 @@ static std::string keybindLabel(const SP<SKeybind>& k) {
     if (!k->description.empty())
         return k->description;
     if (!k->arg.empty())
-        return k->handler + ", " + k->arg;
+        return std::format("{}, {}", k->handler, k->arg);
     return k->handler;
 }
 

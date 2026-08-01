@@ -136,7 +136,7 @@ void CDonationNagManager::fire() {
 
 CDonationNagManager::SStateData CDonationNagManager::getState() {
     static const auto DATAROOT = NFsUtils::getDataHome();
-    const auto        STR      = NFsUtils::readFileAsString(*DATAROOT + "/" + LAST_NAG_FILE_NAME);
+    const auto        STR      = NFsUtils::readFileAsString(std::format("{}/{}", *DATAROOT, LAST_NAG_FILE_NAME));
 
     if (!STR.has_value())
         return {};
@@ -154,5 +154,5 @@ CDonationNagManager::SStateData CDonationNagManager::getState() {
 
 void CDonationNagManager::writeState(const SStateData& s) {
     static const auto DATAROOT = NFsUtils::getDataHome();
-    NFsUtils::writeToFile(*DATAROOT + "/" + LAST_NAG_FILE_NAME, std::format("{}\n{}", s.epoch, s.major));
+    NFsUtils::writeToFile(std::format("{}/{}", *DATAROOT, LAST_NAG_FILE_NAME), std::format("{}\n{}", s.epoch, s.major));
 }

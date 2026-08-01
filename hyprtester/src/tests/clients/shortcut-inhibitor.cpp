@@ -8,6 +8,7 @@
 #include <hyprutils/os/Process.hpp>
 
 #include <optional>
+#include <format>
 #include <sys/poll.h>
 #include <csignal>
 #include <thread>
@@ -34,7 +35,7 @@ namespace {
 
 CClient::CClient() {
     Tests::killAllWindows();
-    this->proc = makeShared<CProcess>(binaryDir + "/shortcut-inhibitor", std::vector<std::string>{});
+    this->proc = makeShared<CProcess>(std::format("{}/shortcut-inhibitor", binaryDir), std::vector<std::string>{});
 
     this->proc->addEnv("WAYLAND_DISPLAY", WLDISPLAY);
 
@@ -163,7 +164,7 @@ TEST_CASE(shortcutInhibitor) {
     EXPECT(ok, true);
 
     //basic keybind test
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'))"), "ok");
+    EXPECT(getFromSocket(std::format("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch {}'))", flagFile)), "ok");
     OK(getFromSocket("/eval hl.plugin.test.keybind(1, 7, 29)"));
     EXPECT(attemptCheckFlag(20, 50), false);
     OK(getFromSocket("/eval hl.plugin.test.keybind(0, 0, 29)"));
@@ -171,7 +172,7 @@ TEST_CASE(shortcutInhibitor) {
 
     //keybind bypass flag test
     EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { dont_inhibit = true })"), "ok");
+    EXPECT(getFromSocket(std::format("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch {}'), {{ dont_inhibit = true }})", flagFile)), "ok");
     OK(getFromSocket("/eval hl.plugin.test.keybind(1, 7, 29)"));
     EXPECT(attemptCheckFlag(20, 50), true);
     OK(getFromSocket("/eval hl.plugin.test.keybind(0, 0, 29)"));

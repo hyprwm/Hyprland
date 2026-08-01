@@ -294,13 +294,13 @@ std::set<std::string> CXCursorManager::themePaths(std::string const& theme) {
         Log::logger->log(Log::DEBUG, "XCursor scanning theme {}", t);
 
         while (std::getline(ss, line, ':')) {
-            auto p = expandTilde(line + "/" + t + "/cursors");
+            auto p = expandTilde(std::format("{}/{}/cursors", line, t));
             if (std::filesystem::exists(p) && std::filesystem::is_directory(p)) {
                 Log::logger->log(Log::DEBUG, "XCursor using theme path {}", p);
                 paths.insert(p);
             }
 
-            auto inherit = expandTilde(line + "/" + t + "/index.theme");
+            auto inherit = expandTilde(std::format("{}/{}/index.theme", line, t));
             if (std::filesystem::exists(inherit) && std::filesystem::is_regular_file(inherit)) {
                 auto inheritThemes = getInheritThemes(inherit);
                 for (auto const& i : inheritThemes) {

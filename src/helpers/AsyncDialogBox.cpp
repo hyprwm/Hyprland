@@ -95,7 +95,7 @@ void CAsyncDialogBox::onWrite(int fd, uint32_t mask) {
 SP<CPromise<std::string>> CAsyncDialogBox::open() {
     std::string buttonsString = "";
     for (auto& b : m_buttons) {
-        buttonsString += b + ";";
+        buttonsString += std::format("{};", b);
     }
     if (!buttonsString.empty())
         buttonsString.pop_back();

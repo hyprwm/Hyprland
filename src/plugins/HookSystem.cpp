@@ -64,7 +64,7 @@ CFunctionHook::SInstructionProbe CFunctionHook::probeMinimumJumpSize(void* start
         auto probe = getInstructionLenAt(sc<uint8_t*>(start) + size);
         sizes.push_back(probe.len);
         size += probe.len;
-        instrs += probe.assembly + "\n";
+        instrs += std::format("{}\n", probe.assembly);
     }
 
     return {size, instrs, sizes};

@@ -156,10 +156,10 @@ TEST(Config, acrylicSettingsAreBounded) {
     };
 
     constexpr std::array SETTINGS = {
-        SAcrylicSetting{"decoration:blur:acrylic:refraction", 28.F, 0.F, 48.F},
-        SAcrylicSetting{"decoration:blur:acrylic:bulb", 72.F, 4.F, 256.F},
-        SAcrylicSetting{"decoration:blur:acrylic:clarity", 0.8F, 0.F, 1.F},
-        SAcrylicSetting{"decoration:blur:acrylic:aberration", 0.06F, 0.F, 0.25F},
+        SAcrylicSetting{"decoration:blur:acrylic:refraction", 24.F, 0.F, 48.F},
+        SAcrylicSetting{"decoration:blur:acrylic:bulb", 48.F, 4.F, 256.F},
+        SAcrylicSetting{"decoration:blur:acrylic:clarity", 0.82F, 0.F, 1.F},
+        SAcrylicSetting{"decoration:blur:acrylic:aberration", 0.025F, 0.F, 0.25F},
     };
 
     for (const auto& setting : SETTINGS) {
@@ -182,7 +182,7 @@ TEST(Config, acrylicSettingsAreBounded) {
 
     const auto COLOR_VALUE = dynamicPointerCast<CColorValue>(*TINT);
     ASSERT_TRUE(COLOR_VALUE);
-    EXPECT_EQ(COLOR_VALUE->defaultVal(), 0x18DDEEFF);
+    EXPECT_EQ(COLOR_VALUE->defaultVal(), 0x14EEF5FF);
     EXPECT_EQ(COLOR_VALUE->refreshBits(), Config::Supplementary::REFRESH_BLUR_FB);
 }
 

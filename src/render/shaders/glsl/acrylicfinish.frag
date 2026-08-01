@@ -19,6 +19,7 @@ uniform float acrylicAberration;
 uniform vec4 acrylicTint;
 uniform float acrylicStrength;
 uniform int acrylicTransferFunction;
+uniform float acrylicLuminanceScale;
 uniform float noise;
 uniform float brightness;
 
@@ -47,6 +48,57 @@ float roundedBoxSDF(vec2 position, vec2 halfSize, float radius, float power) {
     return cornerDistance + min(max(offset.x, offset.y), 0.0) - radius;
 }
 
+float smootherstep(float edge0, float edge1, float value) {
+    float progress = clamp((value - edge0) / max(edge1 - edge0, 0.0001), 0.0, 1.0);
+    return progress * progress * progress * (progress * (progress * 6.0 - 15.0) + 10.0);
+}
+
+float nestedRoundedBoxSDF(vec2 position, vec2 halfSize, float radius, float power, float inset) {
+    vec2 nestedHalfSize = max(halfSize - vec2(inset), vec2(0.001));
+    float nestedRadius = clamp(radius, 0.0, min(nestedHalfSize.x, nestedHalfSize.y));
+    return roundedBoxSDF(position, nestedHalfSize, nestedRadius, power);
+}
+
+float roundedProfileDepth(vec2 position, vec2 halfSize, float radius, float power, float width, float boundarySdf) {
+    if (boundarySdf >= 0.0)
+        return 0.0;
+
+    if (nestedRoundedBoxSDF(position, halfSize, radius, power, width) <= 0.0)
+        return width;
+
+    float lower = 0.0;
+    float upper = width;
+    for (int i = 0; i < 8; ++i) {
+        float middle = (lower + upper) * 0.5;
+        if (nestedRoundedBoxSDF(position, halfSize, radius, power, middle) <= 0.0)
+            lower = middle;
+        else
+            upper = middle;
+    }
+
+    return (lower + upper) * 0.5;
+}
+
+vec2 roundedProfileNormal(vec2 position, vec2 halfSize, float radius, float power, float inset) {
+    vec2 nestedHalfSize = max(halfSize - vec2(inset), vec2(0.001));
+    float nestedRadius = clamp(radius, 0.0, min(nestedHalfSize.x, nestedHalfSize.y));
+    vec2 corner = max(abs(position) - (nestedHalfSize - vec2(nestedRadius)), vec2(0.0));
+    vec2 gradient;
+
+    if (corner.x > 0.0001 || corner.y > 0.0001) {
+        if (power <= 1.0001)
+            gradient = vec2(corner.x > 0.0001 ? 1.0 : 0.0, corner.y > 0.0001 ? 1.0 : 0.0);
+        else
+            gradient = pow(corner, vec2(power - 1.0));
+    } else {
+        vec2 edgeDistance = nestedHalfSize - abs(position);
+        gradient = edgeDistance.x < edgeDistance.y ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+    }
+
+    gradient *= sign(position);
+    return gradient / max(length(gradient), 0.0001);
+}
+
 float availableTextureTravel(vec2 origin, vec2 direction, vec2 minimumUV, vec2 maximumUV) {
     float travel = 1e10;
 
@@ -61,38 +113,6 @@ float availableTextureTravel(vec2 origin, vec2 direction, vec2 minimumUV, vec2 m
         travel = min(travel, (minimumUV.y - origin.y) / direction.y);
 
     return max(travel, 0.0);
-}
-
-float roundedBoundaryTravel(vec2 position, vec2 direction, vec2 halfSize, float radius, float power, float boundarySdf) {
-    if (boundarySdf >= 0.0)
-        return 0.0;
-
-    float horizontalTravel = 1e10;
-    if (direction.x > 0.000001)
-        horizontalTravel = (halfSize.x - position.x) / direction.x;
-    else if (direction.x < -0.000001)
-        horizontalTravel = (-halfSize.x - position.x) / direction.x;
-
-    float verticalTravel = 1e10;
-    if (direction.y > 0.000001)
-        verticalTravel = (halfSize.y - position.y) / direction.y;
-    else if (direction.y < -0.000001)
-        verticalTravel = (-halfSize.y - position.y) / direction.y;
-
-    float lower = 0.0;
-    float upper = max(min(horizontalTravel, verticalTravel), 0.0);
-    for (int i = 0; i < 12; ++i) {
-        if (upper - lower <= 0.25)
-            break;
-
-        float middle = (lower + upper) * 0.5;
-        if (roundedBoxSDF(position + direction * middle, halfSize, radius, power) < 0.0)
-            lower = middle;
-        else
-            upper = middle;
-    }
-
-    return upper;
 }
 
 vec4 applyAcrylic(vec4 blurred) {
@@ -110,57 +130,55 @@ vec4 applyAcrylic(vec4 blurred) {
     float bulbWidth = clamp(acrylicBulb, 1.0, maximumBulb);
 
     float boundarySdf = roundedBoxSDF(position, halfSize, boundaryRadius, power);
-    float opticalRadius = min(minimumHalfSize, max(boundaryRadius, bulbWidth));
-    float opticalSdf = roundedBoxSDF(position, halfSize, opticalRadius, power);
     float antialias = max(fwidth(boundarySdf), 0.75);
     float shape = 1.0 - smoothstep(-antialias, antialias, boundarySdf);
-    vec2 opticalGradient = vec2(dFdx(opticalSdf), dFdy(opticalSdf));
     vec2 texcoordDx = dFdx(v_texcoord);
     vec2 texcoordDy = dFdy(v_texcoord);
     if (shape <= 0.0)
         return blurred;
 
-    float opticalDepth = max(-opticalSdf, 0.0);
+    float opticalDepth = roundedProfileDepth(position, halfSize, boundaryRadius, power, bulbWidth, boundarySdf);
     float progress = clamp(opticalDepth / bulbWidth, 0.0, 1.0);
-    float edgeWeight = 1.0 - progress;
-    float lens = pow(1.0 - smoothstep(0.0, 1.0, progress), 0.75);
-    float boundaryDepth = max(-boundarySdf, 0.0);
-    float rim = 1.0 - smoothstep(0.0, max(bulbWidth * 0.12, 2.0), boundaryDepth);
+    float clarityCore = smootherstep(0.25, 0.6, progress);
+    float curvature = 1.0 - smootherstep(0.0, 1.0, progress);
+    float lensEntry = smootherstep(0.0, 0.08, progress);
+    float lensExit = 1.0 - smootherstep(0.16, 1.0, progress);
+    float lens = lensEntry * lensExit;
+    float outerRim = 1.0 - smootherstep(0.0, max(bulbWidth * 0.07, 2.0), opticalDepth);
+    float caustic = smootherstep(0.04, 0.13, progress) * (1.0 - smootherstep(0.22, 0.48, progress));
+    float counterRim = smootherstep(0.18, 0.34, progress) * (1.0 - smootherstep(0.42, 0.72, progress));
 
-    vec2 outward = opticalGradient / max(length(opticalGradient), 0.0001);
+    vec2 outward = roundedProfileNormal(position, halfSize, boundaryRadius, power, opticalDepth);
     vec2 sourceSize = vec2(textureSize(tex, 0));
     vec2 halfTexel = 0.5 / sourceSize;
     vec2 maximumUV = vec2(1.0) - halfTexel;
     vec2 outwardUV = outward.x * texcoordDx + outward.y * texcoordDy;
-    float maximumRefraction = acrylicRefraction;
-    float edgeValidity = 1.0;
-    float safeRefraction = maximumRefraction;
-    vec2 sourcePosition = v_texcoord * sourceSize;
-    float nearestTextureEdge = min(min(sourcePosition.x, sourceSize.x - sourcePosition.x), min(sourcePosition.y, sourceSize.y - sourcePosition.y));
-    if (maximumRefraction > 0.0 && nearestTextureEdge <= maximumRefraction + bulbWidth + 1.0) {
-        float boundaryTravel = roundedBoundaryTravel(position, outward, halfSize, boundaryRadius, power, boundarySdf);
-        vec2 boundaryUV = v_texcoord + boundaryTravel * outwardUV;
-        float availableTravel = availableTextureTravel(boundaryUV, outwardUV, halfTexel, maximumUV);
-        edgeValidity = smoothstep(0.0, maximumRefraction + 1.0, availableTravel);
-        safeRefraction = min(maximumRefraction * edgeValidity, max(availableTravel - 0.5, 0.0));
-    }
-    vec2 displacementPixels = outward * safeRefraction * lens;
+    float maximumRefraction = max(acrylicRefraction, 0.0);
+    float availableTravel = availableTextureTravel(v_texcoord, outwardUV, halfTexel, maximumUV);
+    float edgeValidity = smoothstep(0.0, maximumRefraction + 1.0, availableTravel);
+    float safeRefraction = min(maximumRefraction * edgeValidity, max(availableTravel - 0.5, 0.0));
+    vec2 displacementPixels = outward * safeRefraction * lens * effect;
+    vec2 displacementUV = displacementPixels.x * texcoordDx + displacementPixels.y * texcoordDy;
+    float aberration = clamp(acrylicAberration, 0.0, 0.25);
+    vec2 redUV = clamp(v_texcoord + displacementUV, halfTexel, maximumUV);
+    vec2 greenUV = clamp(v_texcoord + displacementUV * (1.0 - aberration * 0.5), halfTexel, maximumUV);
+    vec2 blueUV = clamp(v_texcoord + displacementUV * (1.0 - aberration), halfTexel, maximumUV);
 
     float outputAlpha = blurred.a;
     vec3 blurredLinear = toLinearRGB(blurred.rgb / max(blurred.a, 0.001), acrylicTransferFunction);
-    float opticalWeight = effect * lens * edgeValidity;
     vec3 acrylicLinear = blurredLinear;
-    if (opticalWeight > 0.0001) {
-        vec2 displacementUV = displacementPixels.x * texcoordDx + displacementPixels.y * texcoordDy;
-        float aberration = clamp(acrylicAberration, 0.0, 0.25);
-        vec2 redUV = clamp(v_texcoord + displacementUV, halfTexel, maximumUV);
-        vec2 greenUV = clamp(v_texcoord + displacementUV * (1.0 - aberration * 0.5), halfTexel, maximumUV);
-        vec2 blueUV = clamp(v_texcoord + displacementUV * (1.0 - aberration), halfTexel, maximumUV);
+    if (lens > 0.0001 && safeRefraction > 0.0001) {
         vec4 displacedBlurred = texture(tex, greenUV);
-        vec4 refractedGreen = texture(sharpTex, greenUV);
         vec3 displacedBlurredLinear = toLinearRGB(displacedBlurred.rgb / max(displacedBlurred.a, 0.001), acrylicTransferFunction);
+        acrylicLinear = mix(acrylicLinear, displacedBlurredLinear, effect * curvature * edgeValidity);
+    }
+
+    float fresnelTransmission = mix(1.0, 0.84, curvature);
+    float clarity = clamp(acrylicClarity, 0.0, 1.0) * effect * fresnelTransmission * clarityCore;
+    if (clarity > 0.0001) {
+        vec4 refractedGreen = texture(sharpTex, greenUV);
         vec3 refractedLinear = toLinearRGB(refractedGreen.rgb / max(refractedGreen.a, 0.001), acrylicTransferFunction);
-        if (aberration > 0.0001) {
+        if (aberration > 0.0001 && lens > 0.0001 && safeRefraction > 0.0001) {
             vec4 refractedRed = texture(sharpTex, redUV);
             vec4 refractedBlue = texture(sharpTex, blueUV);
             vec3 refractedRedLinear = toLinearRGB(refractedRed.rgb / max(refractedRed.a, 0.001), acrylicTransferFunction);
@@ -168,28 +186,35 @@ vec4 applyAcrylic(vec4 blurred) {
             refractedLinear.r = refractedRedLinear.r;
             refractedLinear.b = refractedBlueLinear.b;
         }
-        acrylicLinear = mix(acrylicLinear, displacedBlurredLinear, opticalWeight);
-        acrylicLinear = mix(acrylicLinear, refractedLinear, acrylicClarity * opticalWeight);
+        acrylicLinear = mix(acrylicLinear, refractedLinear, clarity);
     }
 
-    vec3 tintLinear = toLinearRGB(acrylicTint.rgb, CM_TRANSFER_FUNCTION_SRGB);
-    float tintDepth = -log(max(1.0 - acrylicTint.a * effect, 0.0001));
-    float thickness = mix(0.28, 1.0, lens);
-    float transmission = exp(-tintDepth * thickness);
+    vec3 tintLinear = acrylicTint.rgb;
+    float thickness = mix(0.34, 1.0, curvature);
+    float transmission = exp(-acrylicTint.a * effect * thickness);
     acrylicLinear = acrylicLinear * transmission + tintLinear * (1.0 - transmission);
 
-    vec3 surfaceNormal = normalize(vec3(outward * edgeWeight * 1.8, 1.0));
+    vec3 surfaceNormal = normalize(vec3(outward * curvature * 2.15, 1.0));
     const vec2 LIGHT_DIRECTION = vec2(-0.451219, 0.892413);
     vec3 light = normalize(vec3(LIGHT_DIRECTION, 0.72));
     vec3 halfway = normalize(light + vec3(0.0, 0.0, 1.0));
     float oneMinusNV = 1.0 - max(surfaceNormal.z, 0.0);
-    float fresnel = 0.04 + 0.96 * pow(oneMinusNV, 5.0);
-    float specular = pow(max(dot(surfaceNormal, halfway), 0.0), 48.0);
+    float fresnel = 0.0204 + 0.9796 * pow(oneMinusNV, 5.0);
+    float specular = pow(max(dot(surfaceNormal, halfway), 0.0), 40.0);
     float directional = dot(outward, LIGHT_DIRECTION);
-    float highlight = effect * (rim * 0.14 + lens * (0.12 * fresnel + 0.2 * specular + 0.05 * max(directional, 0.0)));
-    acrylicLinear += mix(vec3(1.0), tintLinear, 0.1) * highlight;
+    float backdropLuma = dot(acrylicLinear, vec3(0.2126, 0.7152, 0.0722));
+    float normalizedLuma = clamp(backdropLuma / max(acrylicLuminanceScale, 0.001), 0.0, 1.0);
+    float highlight = outerRim * (0.045 + 0.12 * max(directional, 0.0));
+    highlight += caustic * (0.035 + 0.08 * max(directional, 0.0));
+    highlight += curvature * (0.08 * fresnel + 0.13 * specular);
+    highlight *= effect * mix(1.0, 0.4, normalizedLuma);
 
-    vec4 acrylic = fromLinear(vec4(acrylicLinear * outputAlpha, outputAlpha), acrylicTransferFunction);
+    float shadow = outerRim * 0.09 * max(-directional, 0.0) + counterRim * (0.025 + 0.05 * max(-directional, 0.0));
+    shadow *= effect * mix(0.45, 1.0, normalizedLuma);
+    acrylicLinear *= 1.0 - shadow;
+    acrylicLinear += mix(vec3(acrylicLuminanceScale), tintLinear, 0.08) * highlight;
+
+    vec4 acrylic = fromLinear(vec4(max(acrylicLinear, vec3(0.0)) * outputAlpha, outputAlpha), acrylicTransferFunction);
     return mix(blurred, acrylic, shape);
 }
 

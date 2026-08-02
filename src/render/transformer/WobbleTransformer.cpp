@@ -87,7 +87,7 @@ SP<Render::IFramebuffer> CWobbleTransformer::transform(SP<Render::IFramebuffer> 
     if (sourceBox.empty() || outputBox.empty())
         return in;
 
-    const auto VERTICES = m_mesh.verticesForBox(sourceBox, sourceOutputBox, in->getTexture()->m_size, SCALE, Math::wlTransformToHyprutils(context.monitor->m_transform));
+    const auto VERTICES = m_mesh.verticesForBox(sourceBox, sourceOutputBox, in->getTexture()->m_size, SCALE);
     if (VERTICES.empty())
         return in;
 

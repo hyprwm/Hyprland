@@ -278,7 +278,7 @@ void CRenderPass::renderDebugData() {
 
     const auto DISCARDED_ELEMENTS = std::ranges::count_if(m_passElements, [](const auto& e) { return e.discard; });
     auto tex = g_pHyprRenderer->renderText(std::format("occlusion layers: {}\npass elements: {} ({} discarded)\nviewport: {:X0}", m_occludedRegions.size(), m_passElements.size(),
-                                                       DISCARDED_ELEMENTS, pMonitor->m_pixelSize),
+                                                       DISCARDED_ELEMENTS, pMonitor->m_transformedSize),
                                            Colors::WHITE, 12);
 
     if (tex)

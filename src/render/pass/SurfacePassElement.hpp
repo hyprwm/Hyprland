@@ -51,8 +51,6 @@ class CSurfacePassElement : public IPassElement {
         float   discardOpacity = 0.f;
 
         bool    useNearestNeighbor = false;
-
-        bool    flipEndFrame = false;
     };
 
     CSurfacePassElement(const SRenderData& data);

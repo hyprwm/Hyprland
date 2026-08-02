@@ -16,15 +16,17 @@ namespace Monitor {
         void clearAnchor();
 
         void applyZoomTransform(CBox& monbox, const Render::SRenderData& m_renderData);
+        bool shouldDamageEntire(float zoomLevel);
 
       private:
         void     zoomWithDetachedCamera(CBox& result, const Render::SRenderData& m_renderData);
         Vector2D getAnchor(const PHLMONITORREF& monitor);
 
         CBox     m_camera;
-        Vector2D m_pinnedAnchor  = {};
-        float    m_lastZoomLevel = 1.0f;
-        bool     m_padCamEdges   = true;
-        bool     m_anchorPinned  = false;
+        Vector2D m_pinnedAnchor          = {};
+        float    m_lastZoomLevel         = 1.0f;
+        float    m_lastRenderedZoomLevel = 1.0f;
+        bool     m_padCamEdges           = true;
+        bool     m_anchorPinned          = false;
     };
 }

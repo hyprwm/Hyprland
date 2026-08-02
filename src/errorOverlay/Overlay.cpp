@@ -108,7 +108,7 @@ void COverlay::createQueued() {
         return;
 
     const float       SCALE    = PMONITOR->m_scale;
-    const int         FONTSIZE = std::clamp(sc<int>(10.f * ((PMONITOR->m_pixelSize.x * SCALE) / 1920.f)), 8, 40);
+    const int         FONTSIZE = std::clamp(sc<int>(10.f * ((PMONITOR->m_transformedSize.x * SCALE) / 1920.f)), 8, 40);
 
     static auto       LINELIMIT    = CConfigValue<Config::INTEGER>("debug:error_limit");
     static auto       BAR_POSITION = CConfigValue<Config::INTEGER>("debug:error_position");
@@ -119,7 +119,7 @@ void COverlay::createQueued() {
 
     m_outerPad = 10.F * SCALE;
 
-    const float barWidth     = std::max<float>(1.F, sc<float>(PMONITOR->m_pixelSize.x) - m_outerPad * 2.F);
+    const float barWidth     = std::max<float>(1.F, sc<float>(PMONITOR->m_transformedSize.x) - m_outerPad * 2.F);
     const float textMaxWidth = std::max<float>(1.F, barWidth - 2.F * (1.F + m_outerPad));
 
     m_textTexture = g_pHyprRenderer->renderText(Hyprgraphics::CTextResource::STextResourceData{
@@ -141,8 +141,8 @@ void COverlay::createQueued() {
 
     m_damageBox = {
         sc<int>(PMONITOR->m_position.x),
-        sc<int>(PMONITOR->m_position.y + (TOPBAR ? 0 : PMONITOR->m_pixelSize.y - (m_lastHeight + m_outerPad * 2.F))),
-        sc<int>(PMONITOR->m_pixelSize.x),
+        sc<int>(PMONITOR->m_position.y + (TOPBAR ? 0 : PMONITOR->m_transformedSize.y - (m_lastHeight + m_outerPad * 2.F))),
+        sc<int>(PMONITOR->m_transformedSize.x),
         sc<int>(m_lastHeight + m_outerPad * 2.F),
     };
 
@@ -212,14 +212,14 @@ void COverlay::draw() {
     static auto BAR_POSITION = CConfigValue<Config::INTEGER>("debug:error_position");
     const bool  TOPBAR       = *BAR_POSITION == 0;
 
-    const float barWidth = std::max<float>(1.F, sc<float>(PMONITOR->m_pixelSize.x) - m_outerPad * 2.F);
-    const float barY     = TOPBAR ? m_outerPad : PMONITOR->m_pixelSize.y - m_lastHeight - m_outerPad;
+    const float barWidth = std::max<float>(1.F, sc<float>(PMONITOR->m_transformedSize.x) - m_outerPad * 2.F);
+    const float barY     = TOPBAR ? m_outerPad : PMONITOR->m_transformedSize.y - m_lastHeight - m_outerPad;
     const CBox  barBox   = {m_outerPad, barY, barWidth, m_lastHeight};
 
     m_damageBox.x      = sc<int>(PMONITOR->m_position.x);
-    m_damageBox.width  = sc<int>(PMONITOR->m_pixelSize.x);
+    m_damageBox.width  = sc<int>(PMONITOR->m_transformedSize.x);
     m_damageBox.height = sc<int>(m_lastHeight + m_outerPad * 2.F);
-    m_damageBox.y      = sc<int>(PMONITOR->m_position.y + (TOPBAR ? 0 : PMONITOR->m_pixelSize.y - m_damageBox.height));
+    m_damageBox.y      = sc<int>(PMONITOR->m_position.y + (TOPBAR ? 0 : PMONITOR->m_transformedSize.y - m_damageBox.height));
 
     if (m_fadeOpacity->isBeingAnimated() || m_monitorChanged)
         g_pHyprRenderer->damageBox(m_damageBox);

@@ -137,13 +137,18 @@ void main() {
     pixColor *= alpha;
 #endif
 #if USE_BLUR
+#if USE_MOTION_BLUR
+    vec2 blurUV = gl_FragCoord.xy / vec2(textureSize(blurredBG, 0));
+#else
+    vec2 blurUV = v_texcoord * uvSize + uvOffset;
+#endif
 #if USE_BLUR_MATTE
     float pixBlurAlphaMask = blurAlphaMask * blurAlpha;
 #if USE_DISCARD
     if (discardAlpha && pixColor.a <= discardAlphaValue)
         pixBlurAlphaMask = 0.0;
 #endif
-    vec3 blurredPixColor = texture(blurredBG, v_texcoord * uvSize + uvOffset).rgb;
+    vec3 blurredPixColor = texture(blurredBG, blurUV).rgb;
     float pixBlurBgAlpha = (1.0 - pixColor.a) * pixBlurAlphaMask;
     pixColor             = vec4(pixColor.rgb + blurredPixColor * pixBlurBgAlpha, pixColor.a + pixBlurBgAlpha);
 #else
@@ -156,7 +161,7 @@ void main() {
 #else
     float pixBlurAlphaMask = 1.0;
 #endif
-    vec3 blurredPixColor = texture(blurredBG, v_texcoord * uvSize + uvOffset).rgb;
+    vec3 blurredPixColor = texture(blurredBG, blurUV).rgb;
     float pixBlurBgAlpha = (1.0 - pixColor.a) * pixBlurAlphaMask;
     pixColor             = vec4(pixColor.rgb + blurredPixColor * pixBlurBgAlpha, pixColor.a + pixBlurBgAlpha);
 #endif
@@ -181,7 +186,7 @@ void main() {
     if (discardAlpha && mirrorColor.a <= discardAlphaValue)
         mirrorBlurAlphaMask = 0.0;
 #endif
-    vec3 blurredMirrorColor = texture(blurredBG, v_texcoord * uvSize + uvOffset).rgb;
+    vec3 blurredMirrorColor = texture(blurredBG, blurUV).rgb;
     float mirrorBlurBgAlpha = (1.0 - mirrorColor.a) * mirrorBlurAlphaMask;
     mirrorColor             = vec4(mirrorColor.rgb + blurredMirrorColor * mirrorBlurBgAlpha, mirrorColor.a + mirrorBlurBgAlpha);
 #else
@@ -193,7 +198,7 @@ void main() {
 #else
         float mirrorBlurAlphaMask = 1.0;
 #endif
-        vec3 blurredMirrorColor = texture(blurredBG, v_texcoord * uvSize + uvOffset).rgb;
+        vec3 blurredMirrorColor = texture(blurredBG, blurUV).rgb;
         float mirrorBlurBgAlpha = (1.0 - mirrorColor.a) * mirrorBlurAlphaMask;
         mirrorColor             = vec4(mirrorColor.rgb + blurredMirrorColor * mirrorBlurBgAlpha, mirrorColor.a + mirrorBlurBgAlpha);
 #if USE_BLUR_ALPHA_MASK

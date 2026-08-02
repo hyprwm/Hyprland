@@ -64,6 +64,7 @@ class CTexPassElement : public IPassElement {
 
         SP<Render::ITexture>   blurredBG;
         SP<Render::ITexture>   blurAlphaMatte;
+        std::optional<CBox>    blurSourceBox;
 
         SMotionBlurData        motionBlur;
     };

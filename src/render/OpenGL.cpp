@@ -65,6 +65,14 @@ using namespace Desktop::View;
 using namespace Render;
 using namespace Render::GL;
 
+CBox Render::GL::resolveBlurUV(const CBox& destinationBox, const Vector2D& textureSize, const std::optional<CBox>& sourceBox) {
+    if (textureSize.x <= 0.0 || textureSize.y <= 0.0)
+        return {};
+
+    const auto BOX = sourceBox.value_or(destinationBox);
+    return {BOX.x / textureSize.x, BOX.y / textureSize.y, BOX.w / textureSize.x, BOX.h / textureSize.y};
+}
+
 static inline void loadGLProc(void* pProc, const char* name) {
     void* proc = rc<void*>(eglGetProcAddress(name));
     if (proc == nullptr) {
@@ -1417,10 +1425,12 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
     shader->setUniformFloat(SHADER_ALPHA, alpha);
 
     if (shaderFeatures & SH_FEAT_BLUR) {
+        const auto BLURUV = resolveBlurUV(newBox, data.blurredBG->m_size, data.blurSourceBox);
+
         shader->setUniformInt(SHADER_BLURRED_BG, 1);
         shader->setUniformFloat(SHADER_BLUR_ALPHA, data.blurA);
-        shader->setUniformFloat2(SHADER_UV_OFFSET, newBox.x / data.blurredBG->m_size.x, newBox.y / data.blurredBG->m_size.y);
-        shader->setUniformFloat2(SHADER_UV_SIZE, newBox.width / data.blurredBG->m_size.x, newBox.height / data.blurredBG->m_size.y);
+        shader->setUniformFloat2(SHADER_UV_OFFSET, BLURUV.x, BLURUV.y);
+        shader->setUniformFloat2(SHADER_UV_SIZE, BLURUV.w, BLURUV.h);
 
         glActiveTexture(GL_TEXTURE0 + 1);
         data.blurredBG->bind();
@@ -2192,6 +2202,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
                               .blur           = SHADERBLEND,
                               .blurredBG      = data.blurredBG,
                               .blurAlphaMatte = data.blurAlphaMatte,
+                              .blurSourceBox  = data.blurSourceBox,
                               .damage         = data.damage,
                               .a              = data.a * data.overallA,
                               .round          = data.round,

@@ -59,11 +59,20 @@
 
     A global hotkey lets an unfocused client observe that a specific key
     combination was pressed. Compositors are the security boundary and SHOULD
-    apply policy when deciding whether to accept a request. In particular,
-    implementations SHOULD reject combinations that do not include at least one
-    non-latching modifier among Ctrl, Alt or Super, unless the trigger is a
-    function key, because unmodified (and Shift-only) keys carry ordinary text
-    entry and grabbing them turns this protocol into a keylogger.
+    apply policy when deciding whether to accept a request. As a default, we
+    suggest the following pseudo-code:
+
+    fn acceptable(keysym, modifiers) {
+      if modifiers contains any of {ctrl, alt, super}:
+        return true   # modified combinations are always acceptable
+      if keysym is a keypad key:
+        return true   # commonly a dedicated macro cluster
+      if keysym is a dead key:
+        return false  # no character mapping, but composes text
+      if keysym has a character mapping:
+        return false  # letters, digits, punctuation, space, Enter, Tab, ...
+      return true     # purely functional: function, media, navigation keys, ...
+    }
 
     The protocol's one hard guarantee is containment: a compositor MUST NOT
     deliver events for a combination the client did not successfully bind, and
@@ -148,8 +157,9 @@
         that needs a trustworthy identity SHOULD obtain it through the
         security-context mechanism rather than relying on this string.
 
-        description is a human-readable, localized description of what the hotkey
-		  does (e.g. "Toggle the launcher"), for display in compositor UI or even in this protocol error messages.
+        description is a human-readable, localized description of what the
+        hotkey does (e.g. "Toggle the launcher"), for display in compositor UI
+        or even in this protocol's error messages.
       </description>
       <arg name="id" type="new_id" interface="vicinae_hotkey_v1"
            summary="the new hotkey object"/>

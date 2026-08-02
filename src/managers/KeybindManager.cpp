@@ -274,8 +274,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
 
     const auto MODS = g_pInputManager->getModsFromAllKBs();
 
-    // hotkeys are not exclusive: compositor keybinds and every hotkey bound to the
-    // combination all fire, but a matched key never reaches the focused client
+    // non-exclusive: keybinds still run after a hotkey match, only the focused client is skipped
     const bool hotkeyMatched = PROTO::hotkey && PROTO::hotkey->onKey(keysym, MODS, KEYCODE, e.state == WL_KEYBOARD_KEY_STATE_PRESSED, e.timeMs);
 
     Config::Actions::state()->m_timeLastMs    = e.timeMs;

@@ -21,14 +21,43 @@ static uint32_t           protoModsToHL(uint32_t mods) {
     return out;
 }
 
-static bool isFunctionKey(xkb_keysym_t sym) {
-    return sym >= XKB_KEY_F1 && sym <= XKB_KEY_F35;
+static bool isKeypadKey(xkb_keysym_t sym) {
+    return sym >= XKB_KEY_KP_Space && sym <= XKB_KEY_KP_Equal;
 }
 
+static bool isDeadKey(xkb_keysym_t sym) {
+    return sym >= XKB_KEY_dead_grave && sym <= XKB_KEY_dead_longsolidusoverlay;
+}
+
+static xkb_keysym_t normalizeKeypad(xkb_keysym_t sym) {
+    switch (sym) {
+        case XKB_KEY_KP_Insert: return XKB_KEY_KP_0;
+        case XKB_KEY_KP_End: return XKB_KEY_KP_1;
+        case XKB_KEY_KP_Down: return XKB_KEY_KP_2;
+        case XKB_KEY_KP_Next: return XKB_KEY_KP_3;
+        case XKB_KEY_KP_Left: return XKB_KEY_KP_4;
+        case XKB_KEY_KP_Begin: return XKB_KEY_KP_5;
+        case XKB_KEY_KP_Right: return XKB_KEY_KP_6;
+        case XKB_KEY_KP_Home: return XKB_KEY_KP_7;
+        case XKB_KEY_KP_Up: return XKB_KEY_KP_8;
+        case XKB_KEY_KP_Prior: return XKB_KEY_KP_9;
+        case XKB_KEY_KP_Delete: return XKB_KEY_KP_Decimal;
+        default: return sym;
+    }
+}
+
+// see the suggested acceptance policy in the protocol's security considerations
 static bool isValidTrigger(xkb_keysym_t sym, uint32_t modmask) {
-    if (isFunctionKey(sym))
+    if (modmask & (HL_MODIFIER_CTRL | HL_MODIFIER_ALT | HL_MODIFIER_META))
         return true;
-    return modmask & (HL_MODIFIER_CTRL | HL_MODIFIER_ALT | HL_MODIFIER_META);
+
+    if (isKeypadKey(sym))
+        return true;
+
+    if (isDeadKey(sym))
+        return false;
+
+    return xkb_keysym_to_utf32(sym) == 0;
 }
 
 static std::string triggerString(xkb_keysym_t sym, uint32_t modmask) {
@@ -111,7 +140,7 @@ void CHotkeyProtocol::onBind(SP<CVicinaeHotkeyManagerV1> mgr, uint32_t id, xkb_k
     }
 
     if (!isValidTrigger(keysym, hk->modmask)) {
-        hk->resource->sendDenied(VICINAE_HOTKEY_V1_DENY_REASON_NOT_PERMITTED, "a non-latching modifier (Ctrl, Alt or Super) is required unless the trigger is a function key");
+        hk->resource->sendDenied(VICINAE_HOTKEY_V1_DENY_REASON_NOT_PERMITTED, "a non-latching modifier (Ctrl, Alt or Super) is required when the trigger key carries text entry");
         return;
     }
 
@@ -127,7 +156,7 @@ bool CHotkeyProtocol::onKey(xkb_keysym_t keysym, uint32_t modmask, uint32_t keyc
         for (const auto& hk : m_hotkeys) {
             if (!hk->bound || hk->held)
                 continue;
-            if (hk->keysym != keysym || hk->modmask != mods)
+            if (normalizeKeypad(hk->keysym) != normalizeKeypad(keysym) || hk->modmask != mods)
                 continue;
 
             hk->held              = true;

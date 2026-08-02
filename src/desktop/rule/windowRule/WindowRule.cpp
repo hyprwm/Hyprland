@@ -8,7 +8,8 @@
 #include "../../../desktop/state/FocusState.hpp"
 #include "../../../protocols/types/ContentType.hpp"
 #include "../../../config/shared/parserUtils/ParserUtils.hpp"
-#include "desktop/rule/windowRule/WindowRuleEffectContainer.hpp"
+#include "../../../desktop/rule/windowRule/WindowRuleEffectContainer.hpp"
+#include "../../../desktop/view/Group.hpp"
 #include "../../../layout/target/Target.hpp"
 
 #include <hyprutils/string/Numeric.hpp>
@@ -416,7 +417,7 @@ bool CWindowRule::matches(PHLWINDOW w, bool allowEnvLookup) {
                 break;
             case RULE_PROP_FULLSCREEN:
                 // FS states of a group are owned by the current window of the group
-                if (!engine->match(Fullscreen::controller()->isFullscreen(w->layoutTarget()->window())))
+                if (!engine->match(Fullscreen::controller()->isFullscreen(w->m_group ? w->m_group->current() : w)))
                     return false;
                 break;
             case RULE_PROP_PINNED:
@@ -437,12 +438,12 @@ bool CWindowRule::matches(PHLWINDOW w, bool allowEnvLookup) {
                 break;
             case RULE_PROP_FULLSCREENSTATE_INTERNAL:
                 // FS states of a group are owned by the current window of the group
-                if (!engine->match(Fullscreen::controller()->getFullscreenModes(w->layoutTarget()->window()).internal))
+                if (!engine->match(Fullscreen::controller()->getFullscreenModes(w->m_group ? w->m_group->current() : w).internal))
                     return false;
                 break;
             case RULE_PROP_FULLSCREENSTATE_CLIENT:
                 // FS states of a group are owned by the current window of the group
-                if (!engine->match(Fullscreen::controller()->getFullscreenModes(w->layoutTarget()->window()).client))
+                if (!engine->match(Fullscreen::controller()->getFullscreenModes(w->m_group ? w->m_group->current() : w).client))
                     return false;
                 break;
             case RULE_PROP_ON_WORKSPACE:

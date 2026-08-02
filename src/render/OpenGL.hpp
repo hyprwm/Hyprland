@@ -11,6 +11,7 @@
 #include <GLES3/gl32.h>
 #include <cstdint>
 #include <list>
+#include <optional>
 #include <string>
 #include <stack>
 #include <map>
@@ -51,6 +52,8 @@ namespace Config {
 }
 
 namespace Render::GL {
+
+    CBox resolveBlurUV(const CBox& destinationBox, const Vector2D& textureSize, const std::optional<CBox>& sourceBox = std::nullopt);
 
     struct SVertex {
         float x, y; // position
@@ -165,6 +168,7 @@ namespace Render::GL {
             bool                   blockBlurOptimization = false;
             SP<ITexture>           blurredBG;
             SP<ITexture>           blurAlphaMatte;
+            std::optional<CBox>    blurSourceBox;
 
             const CRegion*         damage        = nullptr;
             SP<CWLSurfaceResource> surface       = nullptr;

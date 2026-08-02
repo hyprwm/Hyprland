@@ -683,6 +683,8 @@ void IElementRenderer::drawTransformedWindow(WP<CTransformedWindowPassElement> e
         data.blurA                 = element->m_data.blurA;
         data.blurAlphaMatte        = blurAlphaMatte;
         data.discardMode           = 0;
+        if (!motionBlur.enabled)
+            data.blurSourceBox = CBox{{}, pMonitor->m_pixelSize};
     }
 
     (void)blurAlphaMatteFB;

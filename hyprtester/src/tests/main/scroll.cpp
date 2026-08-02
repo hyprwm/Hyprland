@@ -360,7 +360,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_TestFsingGroupedWindows) {
     OK(getFromSocket("/eval hl.config({ scrolling = { follow_focus = false } })"));
     OK(getFromSocket("/eval hl.config({ scrolling = { wrap_swapcol = false } })"));
 
-    // Config opt for adding gaps_out and border_size and a workspace rule that removes theo from maximised windows to make sure maximise works properly
+    // Config opt for adding gaps_out and border_size and a workspace rule that removes them from maximised windows to make sure maximise works properly
 
     OK(getFromSocket("r/eval hl.config({ general = { gaps_out = 10, border_size = 10 } })"));
     OK(getFromSocket("/eval hl.workspace_rule({ workspace = 'f[1]', gaps_out = 0, border_size = 0 })"));
@@ -1657,7 +1657,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_TestFsingGroupedWindows) {
 
     OK(getFromSocket("/eval hl.config({ group = { auto_group = true } })"));
 
-    // Config opt for adding gaps_out and border_size and a workspace rule that removes theo from maximised windows to make sure maximise works properly
+    // Config opt for adding gaps_out and border_size and a workspace rule that removes them from maximised windows to make sure maximise works properly
 
     OK(getFromSocket("r/eval hl.config({ general = { gaps_out = 10, border_size = 10 } })"));
     OK(getFromSocket("/eval hl.workspace_rule({ workspace = 'f[1]', gaps_out = 0, border_size = 0 })"));

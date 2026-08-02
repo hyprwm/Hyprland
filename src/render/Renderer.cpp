@@ -2711,21 +2711,20 @@ void IHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
         return;
     }
 
-    // hack: schedule frame events
-    if (!WLSURF->resource()->m_current.callbacks.empty() && pSurface->m_hlSurface) {
-        const auto BOX = pSurface->m_hlSurface->getSurfaceBoxGlobal();
-        if (BOX && !BOX->empty()) {
-            for (auto const& m : State::monitorState()->monitors()) {
-                if (!m->m_output)
-                    continue;
+    const auto SURFACE_BOX = WLSURF->getSurfaceBoxGlobal();
 
-                if (BOX->overlaps(m->logicalBox()))
-                    m->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
-            }
+    // hack: schedule frame events
+    if (!pSurface->m_current.callbacks.empty() && SURFACE_BOX && !SURFACE_BOX->empty()) {
+        for (auto const& m : State::monitorState()->monitors()) {
+            if (!m->m_output)
+                continue;
+
+            if (SURFACE_BOX->overlaps(m->logicalBox()))
+                m->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
         }
     }
 
-    CRegion damageBox = WLSURF->computeDamage();
+    CRegion damageBox = WLSURF->computeDamage(SURFACE_BOX);
     if (damageBox.empty())
         return;
 

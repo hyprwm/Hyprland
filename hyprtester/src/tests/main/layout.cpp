@@ -158,6 +158,19 @@ TEST_CASE(posPreserve) {
         EXPECT_CONTAINS(str, "at: 581,420");
         EXPECT_CONTAINS(str, "size: 1337,69");
     }
+
+    OK(getFromSocket("/eval hl.config({ binds = { allow_pin_fullscreen = true } })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.pin({ action = 'set', window = 'class:kitty' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen()"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen()"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "at: 581,420");
+        EXPECT_CONTAINS(str, "size: 1337,69");
+    }
 }
 
 TEST_CASE(focusMRUAfterClose) {

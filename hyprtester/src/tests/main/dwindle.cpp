@@ -2,7 +2,6 @@
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
 #include "tests.hpp"
-#include <string_view>
 
 TEST_CASE(dwindleFloatClamp) {
     for (auto const& win : {"a", "b", "c"}) {

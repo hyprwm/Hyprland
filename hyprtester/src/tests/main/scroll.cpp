@@ -1262,9 +1262,6 @@ TEST_CASE(scroll_LAYOUT_HANDLED_respectFocusFitMethodOnUnFs) {
     Tests::spawnKitty("kitty_A");
     Tests::spawnKitty("kitty_B");
 
-    // fs and unFS on focus_fit_method = 0 - expect the at: to be accordingly
-    // fs and unFS on focus_fit_method = 1
-
     // Fullscreen
 
     // focus_fit_method = 0

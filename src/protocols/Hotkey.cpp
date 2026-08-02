@@ -1,8 +1,6 @@
 #include "Hotkey.hpp"
 #include "../Compositor.hpp"
 #include "../devices/IKeyboard.hpp"
-#include "../managers/KeybindManager.hpp"
-#include "../event/EventBus.hpp"
 
 #include <xkbcommon/xkbcommon-keysyms.h>
 #include <array>
@@ -53,14 +51,6 @@ static std::string triggerString(xkb_keysym_t sym, uint32_t modmask) {
     return out;
 }
 
-static std::string keybindLabel(const SP<SKeybind>& k) {
-    if (!k->description.empty())
-        return k->description;
-    if (!k->arg.empty())
-        return std::format("{}, {}", k->handler, k->arg);
-    return k->handler;
-}
-
 CVicinaeHotkeyManager::CVicinaeHotkeyManager(SP<CVicinaeHotkeyManagerV1> resource_) : m_resource(resource_) {
     if UNLIKELY (!good())
         return;
@@ -77,7 +67,7 @@ bool CVicinaeHotkeyManager::good() {
 }
 
 CHotkeyProtocol::CHotkeyProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    m_reloadListener = Event::bus()->m_events.config.reloaded.listen([this] { revokeConflicting(); });
+    ;
 }
 
 void CHotkeyProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
@@ -93,14 +83,6 @@ void CHotkeyProtocol::bindManager(wl_client* client, void* data, uint32_t ver, u
 void CHotkeyProtocol::destroyManager(CVicinaeHotkeyManager* mgr) {
     // hotkeys outlive their manager
     std::erase_if(m_managers, [&](const auto& other) { return other.get() == mgr; });
-}
-
-bool CHotkeyProtocol::comboTakenByHotkey(xkb_keysym_t keysym, uint32_t modmask) {
-    for (const auto& hk : m_hotkeys) {
-        if (hk->bound && hk->keysym == keysym && hk->modmask == modmask)
-            return true;
-    }
-    return false;
 }
 
 void CHotkeyProtocol::onBind(SP<CVicinaeHotkeyManagerV1> mgr, uint32_t id, xkb_keysym_t keysym, uint32_t protoMods, const char* appid, const char* description) {
@@ -130,17 +112,6 @@ void CHotkeyProtocol::onBind(SP<CVicinaeHotkeyManagerV1> mgr, uint32_t id, xkb_k
 
     if (!isValidTrigger(keysym, hk->modmask)) {
         hk->resource->sendDenied(VICINAE_HOTKEY_V1_DENY_REASON_NOT_PERMITTED, "a non-latching modifier (Ctrl, Alt or Super) is required unless the trigger is a function key");
-        return;
-    }
-
-    if (comboTakenByHotkey(keysym, hk->modmask)) {
-        hk->resource->sendDenied(VICINAE_HOTKEY_V1_DENY_REASON_ALREADY_BOUND, "the combination is already bound by another hotkey");
-        return;
-    }
-
-    if (const auto CONFLICT = g_pKeybindManager->findConflictingKeybind(keysym, hk->modmask)) {
-        hk->resource->sendDenied(VICINAE_HOTKEY_V1_DENY_REASON_ALREADY_BOUND,
-                                 std::format("the combination is reserved by a compositor keybind ({})", keybindLabel(CONFLICT)).c_str());
         return;
     }
 
@@ -193,20 +164,4 @@ std::vector<CHotkeyProtocol::SHotkeyInfo> CHotkeyProtocol::getAllHotkeys() {
         });
     }
     return out;
-}
-
-void CHotkeyProtocol::revokeConflicting() {
-    for (const auto& hk : m_hotkeys) {
-        if (!hk->bound)
-            continue;
-        const auto CONFLICT = g_pKeybindManager->findConflictingKeybind(hk->keysym, hk->modmask);
-        if (!CONFLICT)
-            continue;
-
-        hk->bound    = false;
-        hk->held     = false;
-        hk->heldCode = 0;
-        hk->resource->sendRevoked(VICINAE_HOTKEY_V1_REVOKE_REASON_SUPERSEDED,
-                                  std::format("the combination is now reserved by a compositor keybind ({})", keybindLabel(CONFLICT)).c_str());
-    }
 }

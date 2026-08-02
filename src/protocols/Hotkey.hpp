@@ -3,7 +3,6 @@
 #include "../defines.hpp"
 #include "vicinae-hotkey-v1.hpp"
 #include "./WaylandProtocol.hpp"
-#include "../helpers/signal/Signal.hpp"
 
 #include <vector>
 #include <string>
@@ -38,8 +37,6 @@ class CHotkeyProtocol : public IWaylandProtocol {
     // returns true if a bound hotkey consumed the key
     bool                     onKey(xkb_keysym_t keysym, uint32_t modmask, uint32_t keycode, bool pressed, uint32_t timeMs);
 
-    void                     revokeConflicting();
-
     std::vector<SHotkeyInfo> getAllHotkeys();
 
   private:
@@ -56,12 +53,9 @@ class CHotkeyProtocol : public IWaylandProtocol {
 
     void onBind(SP<CVicinaeHotkeyManagerV1> mgr, uint32_t id, xkb_keysym_t keysym, uint32_t protoMods, const char* appid, const char* description);
     void destroyManager(CVicinaeHotkeyManager* mgr);
-    bool comboTakenByHotkey(xkb_keysym_t keysym, uint32_t modmask);
 
     std::vector<SP<CVicinaeHotkeyManager>> m_managers;
     std::vector<SP<SBoundHotkey>>          m_hotkeys;
-
-    CHyprSignalListener                    m_reloadListener;
 
     friend class CVicinaeHotkeyManager;
 };

@@ -119,6 +119,7 @@ struct SSurfaceState {
 
     // helpers
     CRegion accumulateBufferDamage();       // transforms state.damage and merges it into state.bufferDamage
+    bool    consumeBufferDamage() const;    // whether accumulateBufferDamage() takes the damage rather than leaving it
     CRegion effectiveInputRegion() const;   // materializes the input region clipped to the current surface size
     void    updateFrom(SSurfaceState& ref); // updates this state based on a reference state.
     void    reset();                        // resets pending state after commit

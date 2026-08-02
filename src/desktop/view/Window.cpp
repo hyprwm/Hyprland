@@ -2785,6 +2785,8 @@ void CWindow::commitWindow() {
 
     const auto PMONITOR = m_monitor.lock();
 
+    // damageSurface consumes damage, so snapshot it for the tearing check below
+    const bool HADDAMAGE = !wlSurface()->resource()->m_current.damage.empty() || !wlSurface()->resource()->m_current.bufferDamage.empty();
     g_pHyprRenderer->damageSurface(wlSurface()->resource(), m_realPosition->goal().x, m_realPosition->goal().y, m_isX11 ? 1.0 / m_X11SurfaceScaledBy : 1.0);
 
     if (!m_isX11) {
@@ -2794,16 +2796,12 @@ void CWindow::commitWindow() {
 
     // tearing: if solitary, redraw it. This still might be a single surface window
     if (PMONITOR && PMONITOR->m_solitaryClient.lock() == m_self.lock() && canBeTorn() && PMONITOR->m_tearingState.canTear && wlSurface()->resource()->m_current.texture &&
-        !PMONITOR->isTearingBlocked()) {
-        CRegion damageBox{wlSurface()->resource()->m_current.accumulateBufferDamage()};
-
-        if (!damageBox.empty()) {
-            if (PMONITOR->m_tearingState.busy) {
-                PMONITOR->m_tearingState.frameScheduledWhileBusy = true;
-            } else {
-                PMONITOR->m_tearingState.nextRenderTorn = true;
-                g_pHyprRenderer->renderMonitor(PMONITOR);
-            }
+        !PMONITOR->isTearingBlocked() && HADDAMAGE) {
+        if (PMONITOR->m_tearingState.busy) {
+            PMONITOR->m_tearingState.frameScheduledWhileBusy = true;
+        } else {
+            PMONITOR->m_tearingState.nextRenderTorn = true;
+            g_pHyprRenderer->renderMonitor(PMONITOR);
         }
     }
 }

@@ -17,24 +17,32 @@ Vector2D SSurfaceState::sourceSize() {
     return trc / scale;
 }
 
-CRegion SSurfaceState::accumulateBufferDamage() {
-    if (damage.empty())
-        return bufferDamage;
+bool SSurfaceState::consumeBufferDamage() const {
+    return buffer && !buffer->isSynchronous();
+}
 
-    CRegion surfaceDamage = damage;
-    if (viewport.hasDestination) {
-        Vector2D scale = sourceSize() / viewport.destination;
-        surfaceDamage.scale(scale);
+CRegion SSurfaceState::accumulateBufferDamage() {
+    if (!damage.empty()) {
+        CRegion surfaceDamage = damage;
+        if (viewport.hasDestination) {
+            Vector2D scale = sourceSize() / viewport.destination;
+            surfaceDamage.scale(scale);
+        }
+
+        if (viewport.hasSource)
+            surfaceDamage.translate(viewport.source.pos());
+
+        Vector2D trc = transform % 2 == 1 ? Vector2D{bufferSize.y, bufferSize.x} : bufferSize;
+
+        bufferDamage = surfaceDamage.scale(scale).transform(Math::wlTransformToHyprutils(Math::invertTransform(transform)), trc.x, trc.y).add(bufferDamage);
+        damage.clear();
     }
 
-    if (viewport.hasSource)
-        surfaceDamage.translate(viewport.source.pos());
+    auto taken = bufferDamage;
+    if (consumeBufferDamage())
+        bufferDamage.clear();
 
-    Vector2D trc = transform % 2 == 1 ? Vector2D{bufferSize.y, bufferSize.x} : bufferSize;
-
-    bufferDamage = surfaceDamage.scale(scale).transform(Math::wlTransformToHyprutils(Math::invertTransform(transform)), trc.x, trc.y).add(bufferDamage);
-    damage.clear();
-    return bufferDamage;
+    return taken;
 }
 
 CRegion SSurfaceState::effectiveInputRegion() const {
@@ -181,10 +189,19 @@ void SSurfaceState::updateFrom(SSurfaceState& ref) {
     }
 
     if (ref.updated.bits.damage) {
-        damage       = ref.damage;
-        bufferDamage = ref.bufferDamage;
-    } else {
-        // damage is always relative to the current commit
+        if (consumeBufferDamage()) {
+            // what we still hold is only consumed on rendering.
+            // dropping it here would leave those pixels stale.
+            damage.add(ref.damage);
+            bufferDamage.add(ref.bufferDamage);
+        } else {
+            damage       = ref.damage;
+            bufferDamage = ref.bufferDamage;
+        }
+    } else if (ref.updated.bits.buffer || !consumeBufferDamage()) {
+        // damage is relative to the buffer, shm drops the buffer on commit
+        // dmabuf doesnt drop it until we recieve a new one. and we cant clear
+        // the dmabuf damage until the renderer has actually consumed it.
         damage.clear();
         bufferDamage.clear();
     }

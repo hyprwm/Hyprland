@@ -2190,7 +2190,13 @@ bool CMonitor::attemptDirectScanout() {
 
     PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
 
-    m_output->state->addDamage(PSURFACE->m_current.accumulateBufferDamage());
+    // the commit path already added the damage into the damagering
+    CRegion scanoutDamage = m_damage.getBufferDamage(1);
+    // the ring is in transformed space, the fb we hand to KMS is in pixel space
+    scanoutDamage.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_transform)), m_transformedSize.x, m_transformedSize.y);
+    // expand to not miss pixels from rounding, being a bit over is safe, going below is stale pixels.
+    scanoutDamage.expand(1).intersect(CBox{{}, m_pixelSize});
+    m_output->state->addDamage(scanoutDamage);
 
     // multigpu needs a fence to trigger fence syncing blits and also committing with the recreated dgpu fence
     if (g_pHyprRenderer->explicitSyncSupported() && isMultiGPU()) {
@@ -2217,6 +2223,9 @@ bool CMonitor::attemptDirectScanout() {
     }
 
     scanoutCommitted = true;
+
+    // the flip has used the damage, rotate it.
+    m_damage.rotate();
 
     if (m_lastScanout.expired()) {
         m_lastScanout = PCANDIDATE;
@@ -2251,6 +2260,7 @@ void CMonitor::handleDSleave() {
 
     m_drmFormat   = m_prevDrmFormat;
     m_blurFBDirty = true;
+    m_damage.damageEntire();
 }
 
 bool CMonitor::canAttemptDirectScanoutFast() const {

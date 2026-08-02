@@ -450,7 +450,7 @@ TEST_CASE(dwindleTestFsingGroupedWindows) {
         OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'unset', layout_aware = false })"));
     }
 
-    // Maximized - TODO - fix pos and size
+    // Maximized
     {
         auto checkHiddenGroupMember = [&](const std::string& targetKitten) {
             auto clients  = getFromSocket("/clients");

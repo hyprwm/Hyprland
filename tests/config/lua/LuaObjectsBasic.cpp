@@ -146,8 +146,8 @@ TEST(ConfigLuaObjects, keybindExposesMetadataAndRemoveMethods) {
                                 {
                                     .displayKey  = "SUPER + Q",
                                     .description = "Close active window",
-                                    .handler     = "exec",
-                                    .argument    = "kitty",
+                                    .handler     = "HL.Dispatcher(close)",
+                                    .argument    = "42",
                                     .submap      = "default",
                                 },
                         });
@@ -159,13 +159,13 @@ TEST(ConfigLuaObjects, keybindExposesMetadataAndRemoveMethods) {
     Objects::CLuaKeybind::push(L, keybind);
     lua_setglobal(L, "kb");
 
-    ASSERT_EQ(luaL_dostring(L, R"(
+    ASSERT_EQ(luaL_dostring(L, R"-(
         assert(kb.enabled == true)
         assert(kb.description == "Close active window")
         assert(kb.display_key == "SUPER + Q")
         assert(kb.submap == "default")
-        assert(kb.handler == "exec")
-        assert(kb.arg == "kitty")
+        assert(kb.handler == "HL.Dispatcher(close)")
+        assert(kb.arg == "42")
         assert(kb.modmask ~= nil)
         assert(kb.key == "Q")
         assert(kb.keycode == 0)
@@ -178,7 +178,7 @@ TEST(ConfigLuaObjects, keybindExposesMetadataAndRemoveMethods) {
 
         kb:remove()
         kb:unbind()
-    )"),
+    )-"),
               LUA_OK);
 
     ASSERT_EQ(Keybinds::mgr()->registry().size(), 1);
@@ -211,13 +211,15 @@ TEST(ConfigLuaObjects, keybindRemovalDoesNotUnrefCallback) {
 
     ASSERT_EQ(luaL_dostring(L, "return function() end"), LUA_OK);
     ASSERT_TRUE(lua_isfunction(L, -1));
+    const std::string HANDLER = luaL_tolstring(L, -1, nullptr);
+    lua_pop(L, 1);
     const int  REF = luaL_ref(L, LUA_REGISTRYINDEX);
 
     const auto keybind = Keybinds::mgr()->addBind(makeBind({"Q"}, 0,
                                                            {
                                                                .metadata =
                                                                    {
-                                                                       .handler  = "__lua",
+                                                                       .handler  = HANDLER,
                                                                        .argument = std::to_string(REF),
                                                                    },
                                                            }));

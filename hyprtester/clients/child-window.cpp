@@ -59,11 +59,10 @@ static void clientLog(std::format_string<Args...> fmt, Args&&... args) {
 template <typename... Args>
 //NOLINTNEXTLINE
 static void debugLog(std::format_string<Args...> fmt, Args&&... args) {
-    std::string text = std::format(fmt, std::forward<Args>(args)...);
     if (!debug)
         return;
-    std::println("{}", text);
-    std::fflush(stdout);
+
+    clientLog(fmt, std::forward<Args>(args)...);
 }
 
 static bool bindRegistry(SWlState& state) {

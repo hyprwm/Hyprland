@@ -5,6 +5,7 @@
 #include "../event/EventBus.hpp"
 
 #include <xkbcommon/xkbcommon-keysyms.h>
+#include <array>
 #include <format>
 
 static constexpr uint32_t RELEVANT_MODS = HL_MODIFIER_SHIFT | HL_MODIFIER_CTRL | HL_MODIFIER_ALT | HL_MODIFIER_META;
@@ -30,6 +31,26 @@ static bool isValidTrigger(xkb_keysym_t sym, uint32_t modmask) {
     if (isFunctionKey(sym))
         return true;
     return modmask & (HL_MODIFIER_CTRL | HL_MODIFIER_ALT | HL_MODIFIER_META);
+}
+
+static std::string triggerString(xkb_keysym_t sym, uint32_t modmask) {
+    std::string out;
+    if (modmask & HL_MODIFIER_META)
+        out += "SUPER+";
+    if (modmask & HL_MODIFIER_CTRL)
+        out += "CTRL+";
+    if (modmask & HL_MODIFIER_ALT)
+        out += "ALT+";
+    if (modmask & HL_MODIFIER_SHIFT)
+        out += "SHIFT+";
+
+    std::array<char, 64> buf{};
+    if (xkb_keysym_get_name(sym, buf.data(), buf.size()) > 0)
+        out += buf.data();
+    else
+        out += std::format("keysym:{:#x}", sc<uint32_t>(sym));
+
+    return out;
 }
 
 static std::string keybindLabel(const SP<SKeybind>& k) {
@@ -158,6 +179,20 @@ bool CHotkeyProtocol::onKey(xkb_keysym_t keysym, uint32_t modmask, uint32_t keyc
     }
 
     return consumed;
+}
+
+std::vector<CHotkeyProtocol::SHotkeyInfo> CHotkeyProtocol::getAllHotkeys() {
+    std::vector<SHotkeyInfo> out;
+    out.reserve(m_hotkeys.size());
+    for (const auto& hk : m_hotkeys) {
+        out.emplace_back(SHotkeyInfo{
+            .appid       = hk->appid,
+            .description = hk->description,
+            .trigger     = triggerString(hk->keysym, hk->modmask),
+            .bound       = hk->bound,
+        });
+    }
+    return out;
 }
 
 void CHotkeyProtocol::revokeConflicting() {

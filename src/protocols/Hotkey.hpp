@@ -26,12 +26,21 @@ class CHotkeyProtocol : public IWaylandProtocol {
   public:
     CHotkeyProtocol(const wl_interface* iface, const int& ver, const std::string& name);
 
+    struct SHotkeyInfo {
+        std::string appid;
+        std::string description;
+        std::string trigger; // human-readable combo, e.g. "SUPER+K"
+        bool        bound = false;
+    };
+
     void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) override;
 
     // returns true if a bound hotkey consumed the key
-    bool onKey(xkb_keysym_t keysym, uint32_t modmask, uint32_t keycode, bool pressed, uint32_t timeMs);
+    bool                     onKey(xkb_keysym_t keysym, uint32_t modmask, uint32_t keycode, bool pressed, uint32_t timeMs);
 
-    void revokeConflicting();
+    void                     revokeConflicting();
+
+    std::vector<SHotkeyInfo> getAllHotkeys();
 
   private:
     struct SBoundHotkey {

@@ -42,7 +42,6 @@ bool IFullscreenHandler::isFullscreen(SP<Layout::ITarget> target, const std::opt
     if (target->window() && target->window()->m_group)
         target = target->window()->m_group->current()->m_target;
 
-
     const auto& ITR = m_fsTargets.find(target);
 
     if (ITR == m_fsTargets.end())

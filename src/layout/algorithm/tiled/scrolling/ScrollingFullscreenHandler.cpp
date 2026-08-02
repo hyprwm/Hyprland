@@ -129,13 +129,12 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
 
     const auto REQUESTED_MODE = request.mode;
 
-    auto currentCol = TDATA->column.lock();
+    auto       currentCol = TDATA->column.lock();
     if (!currentCol)
         return FULLSCREEN_REQUEST_FAILED;
 
     // lambda for expelling if there is more than one target in a column when FSing a target.
     const auto expelIfMoreThanOneTargetInColDuringFS = [&]() -> void {
-
         if (currentCol && currentCol->targetDatas.size() > 1) {
             const auto TDATA      = m_scrollingAlgorithm->dataFor(TARGET, true);
             const auto currentIdx = m_scrollingAlgorithm->m_scrollingData->idx(currentCol);

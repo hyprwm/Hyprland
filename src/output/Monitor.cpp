@@ -2353,7 +2353,8 @@ void CMonitor::commitDPMSState(bool state) {
     if (!state)
         m_usedAsyncBuffers.clear();
 
-    if (!m_state.commit(false)) {
+    // re-enabling needs a configured swapchain, the backend may have cleared it while we were off
+    if (!m_state.commit(state)) {
         Log::logger->log(Log::ERR, "Couldn't commit output {} for DPMS = {}, will retry.", m_name, state);
 
         // retry in 2 frames. This could happen when the DRM backend rejects our commit
@@ -2371,7 +2372,7 @@ void CMonitor::commitDPMSState(bool state) {
                 if (!m_dpmsStatus)
                     m_usedAsyncBuffers.clear();
 
-                if (!m_state.commit(false)) {
+                if (!m_state.commit(m_dpmsStatus)) {
                     Log::logger->log(Log::ERR, "Couldn't retry committing output {} for DPMS = {}", m_name, m_dpmsStatus);
                     return;
                 }

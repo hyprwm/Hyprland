@@ -104,7 +104,7 @@ void CWindowTarget::updatePos(uint8_t flags) {
             visualBox.round();
 
             // Reserved area must be updated before this is called
-            // Reserved area for all windows in a group are owned by the leading window. Other windows are hidden anyway so this simplay ensures their sizes are uniform when FSed
+            // Reserved area for all windows in a group are owned by the leading window. Other windows are hidden anyway so this simply ensures their sizes are uniform when FSed
             const auto RESERVED = effectiveWindow()->getFullWindowReservedArea();
 
             m_window->setBox({visualBox.pos() + RESERVED.topLeft, visualBox.size() - (RESERVED.topLeft + RESERVED.bottomRight)});
@@ -128,7 +128,7 @@ void CWindowTarget::updatePos(uint8_t flags) {
         } else if (flags & TARGET_UPDATE_MAXIMISED) {
 
             // Reserved area must be updated before this is called
-            // Reserved area for all windows in a group are owned by the leading window. Other windows are hidden anyway so this simplay ensures their sizes are uniform when FSed
+            // Reserved area for all windows in a group are owned by the leading window. Other windows are hidden anyway so this simply ensures their sizes are uniform when FSed
             const auto RESERVED = effectiveWindow()->getFullWindowReservedArea();
             m_window->setBox({visualBox.pos() + RESERVED.topLeft, visualBox.size() - (RESERVED.topLeft + RESERVED.bottomRight)});
         }

@@ -40,7 +40,6 @@ void CConfigValueBase::populateFromName() {
 
 void CConfigValueBase::bindInternal(const std::string& val) {
     m_valueName = val;
-    registry().push_back(this);
     populateFromName();
 }
 

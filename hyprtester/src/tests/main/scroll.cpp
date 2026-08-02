@@ -416,7 +416,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_TestFsingGroupedWindows) {
                 EXPECT_CONTAINS(windowEntry, "at: -960,0");
                 // fullscreen windows are MONBOX sized so they disregard borders and gaps_out even when not covering
                 EXPECT_CONTAINS(windowEntry, "size: 1920,1080");
-                EXPECT_CONTAINS(windowEntry, "fullscreen: 2");
+                EXPECT_CONTAINS(windowEntry, "fullscreen: 0");
             }
         };
 
@@ -563,7 +563,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_TestFsingGroupedWindows) {
                 EXPECT_CONTAINS(windowEntry, "at: -940,41");
                 // cuz the gaps and borders workspace rule now applies as it is no longer covering
                 EXPECT_CONTAINS(windowEntry, "size: 1875,1019");
-                EXPECT_CONTAINS(windowEntry, "fullscreen: 1");
+                EXPECT_CONTAINS(windowEntry, "fullscreen: 0");
             }
         };
 

@@ -39,8 +39,12 @@ bool IFullscreenHandler::isFullscreen(SP<Layout::ITarget> target, const std::opt
     }
 
     // A window group's FS state is considered to be owned by its current window
-    if (target->window() && target->window()->m_group)
-        target = target->window()->m_group->current()->m_target;
+    if (const auto WINDOW_GROUP_TARGET = dc<Layout::CWindowGroupTarget*>(target.get()); WINDOW_GROUP_TARGET && target->type() == Layout::TARGET_TYPE_GROUP) {
+        if (WINDOW_GROUP_TARGET->getGroup() && WINDOW_GROUP_TARGET->getGroup()->current() && WINDOW_GROUP_TARGET->getGroup()->current()->m_target)
+            target = WINDOW_GROUP_TARGET->getGroup()->current()->m_target;
+        else
+            return false;
+    }
 
     const auto& ITR = m_fsTargets.find(target);
 
@@ -67,8 +71,12 @@ SFullscreenMode IFullscreenHandler::getFullscreenModes(SP<Layout::ITarget> targe
         return {};
 
     // A window group's FS modes are considered to be owned by its current window
-    if (target->window() && target->window()->m_group)
-        target = target->window()->m_group->current()->m_target;
+    if (const auto WINDOW_GROUP_TARGET = dc<Layout::CWindowGroupTarget*>(target.get()); WINDOW_GROUP_TARGET && target->type() == Layout::TARGET_TYPE_GROUP) {
+        if (WINDOW_GROUP_TARGET->getGroup() && WINDOW_GROUP_TARGET->getGroup()->current() && WINDOW_GROUP_TARGET->getGroup()->current()->m_target)
+            target = WINDOW_GROUP_TARGET->getGroup()->current()->m_target;
+        else
+            return {};
+    }
 
     const auto ITR = m_fsTargets.find(target);
 

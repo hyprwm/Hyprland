@@ -764,6 +764,4 @@ TEST_CASE(groupedExitWindowRetainsFullscreen) {
         EXPECT_CONTAINS(str, "fullscreen: 2");
         EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
-
-    Tests::killAllWindows();
 }

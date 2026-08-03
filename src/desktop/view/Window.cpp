@@ -1002,7 +1002,7 @@ bool CWindow::isFadingOutUnderFullscreen() const {
 }
 
 bool CWindow::shouldRenderOverFullscreen() const {
-    return isAllowedOverFullscreen() || isFadingOutUnderFullscreen();
+    return isAllowedOverFullscreen() || !isFadingOutUnderFullscreen();
 }
 
 void CWindow::updateFullscreenInputState() {

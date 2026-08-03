@@ -27,7 +27,7 @@ namespace Desktop::Rule {
     };
 
     struct SBorderColorRule {
-        std::optional<Config::CGradientValueData> active;
+        Config::CGradientValueData                active;
         std::optional<Config::CGradientValueData> inactive;
     };
 

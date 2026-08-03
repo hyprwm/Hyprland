@@ -67,7 +67,7 @@ std::expected<uint32_t, std::string> CResolver::resolveKeycode(const std::string
         return IT->second;
 
     xkb_keymap*   km          = KB->m_xkbKeymap;
-    xkb_state*    ks          = KB->m_xkbState;
+    xkb_state*    ks          = KB->m_xkbSymState;
     xkb_keycode_t keycode_min = xkb_keymap_min_keycode(km);
     xkb_keycode_t keycode_max = xkb_keymap_max_keycode(km);
     uint32_t      keycode     = 0;

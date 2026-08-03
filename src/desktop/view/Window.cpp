@@ -2690,7 +2690,7 @@ void CWindow::unmapWindow() {
             else
                 Desktop::focusState()->fullWindowFocus(candidate, m_self->m_isFloating ? FOCUS_REASON_UNMAP_WINDOW_FLOATING : FOCUS_REASON_UNMAP_WINDOW_TILING);
 
-            if ((*PEXITRETAINSFS || candidate == nextInGroup) && IS_CURRENT_WINDOW_FS)
+            if ((*PEXITRETAINSFS == 1 || (candidate != nextInGroup && *PEXITRETAINSFS == 3) || (candidate == nextInGroup && *PEXITRETAINSFS == 2)) && IS_CURRENT_WINDOW_FS)
                 // set the candidate to the current window's FS state - use the current window's layoutAware FS behaviour
                 Fullscreen::controller()->setFullscreenMode(candidate, CURRENT_WINDOW_FS_MODES.internal, std::nullopt, CURRENT_FS_LAYOUT_HANDLED);
         }

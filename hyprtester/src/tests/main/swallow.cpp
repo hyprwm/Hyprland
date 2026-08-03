@@ -32,7 +32,7 @@ static CUniquePointer<CProcess> spawnRemoteControlKitty(const std::string& name)
 
 static bool spawnSwallower(const std::string& parent, const std::string& name) {
     auto cmd    = std::format("kitten @ --to unix:/tmp/kitty_{}.sock launch --type=background "
-                              "kitty -o allow_remote_control=yes --class kitty_{} --listen-on unix:/tmp/kitty_{}.sock --config NONE /bin/sh",
+                                 "kitty -o allow_remote_control=yes --class kitty_{} --listen-on unix:/tmp/kitty_{}.sock --config NONE /bin/sh",
                               parent, name, name);
     auto result = Tests::execAndGet(cmd);
     if (result == "error")

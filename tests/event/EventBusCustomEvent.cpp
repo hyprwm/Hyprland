@@ -45,8 +45,8 @@ TEST(EventBusCustomEvent, emitWithWrongArgTypeFails) {
 }
 
 TEST(EventBusCustomEvent, listenerReceivesCorrectArgTypes) {
-    CEventBus::CCustomEvent e("typed",
-                              {CEventBus::CCustomEvent::TYPE_BOOL, CEventBus::CCustomEvent::TYPE_INT, CEventBus::CCustomEvent::TYPE_DOUBLE, CEventBus::CCustomEvent::TYPE_STRING});
+    CEventBus::CCustomEvent               e("typed",
+                                            {CEventBus::CCustomEvent::TYPE_BOOL, CEventBus::CCustomEvent::TYPE_INT, CEventBus::CCustomEvent::TYPE_DOUBLE, CEventBus::CCustomEvent::TYPE_STRING});
 
     CEventBus::CCustomEvent::ValidVariant receivedBool{false};
     CEventBus::CCustomEvent::ValidVariant receivedInt{0};

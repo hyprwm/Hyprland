@@ -139,136 +139,37 @@ static std::expected<SOpacityRule, std::string> parseOpacityRule(const std::stri
 
 static std::expected<SBorderColorRule, std::string> parseBorderColorRule(const std::string& raw) {
     try {
-        Config::CGradientValueData activeBorderGradient   = {};
-        Config::CGradientValueData inactiveBorderGradient = {};
-        bool                       active                 = true;
-        CVarList                   colorsAndAngles        = CVarList(trim(raw), 0, 's', true);
-
-        if (colorsAndAngles.size() == 2 && !colorsAndAngles[1].contains("deg")) {
-            auto activeColor = parseBorderColorToken(raw, colorsAndAngles[0]);
-            if (!activeColor)
-                return std::unexpected(activeColor.error());
-
-            auto inactiveColor = parseBorderColorToken(raw, colorsAndAngles[1]);
-            if (!inactiveColor)
-                return std::unexpected(inactiveColor.error());
-
-            return SBorderColorRule{
-                .active   = Config::CGradientValueData(*activeColor),
-                .inactive = Config::CGradientValueData(*inactiveColor),
-            };
-        }
+        Config::CGradientValueData borderGradient  = {};
+        CVarList                   colorsAndAngles = CVarList(trim(raw), 0, 's', true);
 
         for (auto const& token : colorsAndAngles) {
-            if (active && token.contains("deg")) {
+            if (token.contains("deg")) {
                 auto angle = strToNumber<int>(token.substr(0, token.size() - 3));
                 if (!angle)
                     return std::unexpected(std::format("border_color rule \"{}\" has invalid angle \"{}\": {}", raw, token, numericParseError(angle.error())));
 
-                activeBorderGradient.m_angle = *angle * (std::numbers::pi / 180.0);
-                active                       = false;
-            } else if (token.contains("deg")) {
-                auto angle = strToNumber<int>(token.substr(0, token.size() - 3));
-                if (!angle)
-                    return std::unexpected(std::format("border_color rule \"{}\" has invalid angle \"{}\": {}", raw, token, numericParseError(angle.error())));
-
-                inactiveBorderGradient.m_angle = *angle * (std::numbers::pi / 180.0);
+                float calculatedAngle  = *angle * (std::numbers::pi / 180.0);
+                borderGradient.m_angle = calculatedAngle;
             } else {
                 auto color = parseBorderColorToken(raw, token);
                 if (!color)
                     return std::unexpected(color.error());
 
-                if (active)
-                    activeBorderGradient.m_colors.emplace_back(*color);
-                else
-                    inactiveBorderGradient.m_colors.emplace_back(*color);
+                borderGradient.m_colors.emplace_back(*color);
             }
         }
 
-        activeBorderGradient.updateColorsOk();
-        inactiveBorderGradient.updateColorsOk();
+        borderGradient.updateColorsOk();
 
-        if (activeBorderGradient.m_colors.size() > 10 || inactiveBorderGradient.m_colors.size() > 10)
+        if (borderGradient.m_colors.size() > 10)
             return std::unexpected(std::format("border_color rule \"{}\" has more than 10 colors in one gradient", raw));
-        if (activeBorderGradient.m_colors.empty() && inactiveBorderGradient.m_colors.empty())
+        if (borderGradient.m_colors.empty())
             return std::unexpected(std::format("border_color rule \"{}\" has no colors", raw));
 
-        SBorderColorRule result{};
-        if (!activeBorderGradient.m_colors.empty())
-            result.active = activeBorderGradient;
-        if (!inactiveBorderGradient.m_colors.empty())
-            result.inactive = inactiveBorderGradient;
+        SBorderColorRule result{.active = borderGradient};
 
         return result;
     } catch (std::exception& e) { return std::unexpected(std::format("border_color rule \"{}\" failed with: {}", raw, e.what())); }
-}
-
-static std::expected<SBorderColorRule, std::string> parseBorderActiveRule(const std::string& raw) {
-    try {
-        Config::CGradientValueData activeBorderGradient = {};
-        CVarList                   colorsAndAngles      = CVarList(trim(raw), 0, 's', true);
-
-        for (auto const& token : colorsAndAngles) {
-            if (token.contains("deg")) {
-                auto angle = strToNumber<int>(token.substr(0, token.size() - 3));
-                if (!angle)
-                    return std::unexpected(std::format("border_color rule \"{}\" has invalid angle \"{}\": {}", raw, token, numericParseError(angle.error())));
-
-                activeBorderGradient.m_angle = *angle * (std::numbers::pi / 180.0);
-            } else {
-                auto color = parseBorderColorToken(raw, token);
-                if (!color)
-                    return std::unexpected(color.error());
-
-                activeBorderGradient.m_colors.emplace_back(*color);
-            }
-        }
-
-        activeBorderGradient.updateColorsOk();
-
-        if (activeBorderGradient.m_colors.size() > 10)
-            return std::unexpected(std::format("active_border rule \"{}\" has more than 10 colors in gradient", raw));
-        if (activeBorderGradient.m_colors.empty())
-            return std::unexpected(std::format("active_border rule \"{}\" has no colors", raw));
-
-        SBorderColorRule result{.active = activeBorderGradient};
-
-        return result;
-    } catch (std::exception& e) { return std::unexpected(std::format("active_border rule \"{}\" failed with: {}", raw, e.what())); }
-}
-
-static std::expected<SBorderColorRule, std::string> parseBorderInactiveRule(const std::string& raw) {
-    try {
-        Config::CGradientValueData inactiveBorderGradient = {};
-        CVarList                   colorsAndAngles        = CVarList(trim(raw), 0, 's', true);
-
-        for (auto const& token : colorsAndAngles) {
-            if (token.contains("deg")) {
-                auto angle = strToNumber<int>(token.substr(0, token.size() - 3));
-                if (!angle)
-                    return std::unexpected(std::format("border_color rule \"{}\" has invalid angle \"{}\": {}", raw, token, numericParseError(angle.error())));
-
-                inactiveBorderGradient.m_angle = *angle * (std::numbers::pi / 180.0);
-            } else {
-                auto color = parseBorderColorToken(raw, token);
-                if (!color)
-                    return std::unexpected(color.error());
-
-                inactiveBorderGradient.m_colors.emplace_back(*color);
-            }
-        }
-
-        inactiveBorderGradient.updateColorsOk();
-
-        if (inactiveBorderGradient.m_colors.size() > 10)
-            return std::unexpected(std::format("inactive_border rule \"{}\" has more than 10 colors in gradient", raw));
-        if (inactiveBorderGradient.m_colors.empty())
-            return std::unexpected(std::format("inactive_border rule \"{}\" has no colors", raw));
-
-        SBorderColorRule result{.inactive = inactiveBorderGradient};
-
-        return result;
-    } catch (std::exception& e) { return std::unexpected(std::format("inactive_border rule \"{}\" failed with: {}", raw, e.what())); }
 }
 
 static std::vector<std::string> parseStringList(const std::string& raw) {
@@ -408,18 +309,6 @@ static std::expected<WindowRuleEffectValue, std::string> parseWindowRuleEffect(C
 
         case WINDOW_RULE_EFFECT_BORDER_COLOR: {
             auto parsed = parseBorderColorRule(raw);
-            if (!parsed)
-                return std::unexpected(parsed.error());
-            return *parsed;
-        }
-        case WINDOW_RULE_EFFECT_ACTIVE_BORDER: {
-            auto parsed = parseBorderActiveRule(raw);
-            if (!parsed)
-                return std::unexpected(parsed.error());
-            return *parsed;
-        }
-        case WINDOW_RULE_EFFECT_INACTIVE_BORDER: {
-            auto parsed = parseBorderInactiveRule(raw);
             if (!parsed)
                 return std::unexpected(parsed.error());
             return *parsed;

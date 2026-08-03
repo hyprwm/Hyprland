@@ -2,13 +2,13 @@
 #include <canberra.h>
 #include "../config/ConfigValue.hpp"
 #include "../config/ConfigManager.hpp"
-#include "MiscFunctions.hpp"
+#include "./MiscFunctions.hpp"
 #include "../event/EventBus.hpp"
 #include "../debug/log/Logger.hpp"
 
 CBellSound::CBellSound() {
     onNewConfig();
-    static auto configListener = Event::bus()->m_events.config.reloaded.listen([this] { onNewConfig(); });
+    m_configListener = Event::bus()->m_events.config.reloaded.listen([this] { onNewConfig(); });
 }
 
 CBellSound::~CBellSound() {

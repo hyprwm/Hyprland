@@ -763,22 +763,26 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
             static CConfigValue PBLURIGNOREA = CConfigValue<Config::FLOAT>("decoration:blur:popups_ignorealpha");
 
-            renderdata.blur = shouldBlur(pWindow->m_popupHead);
-
-            if (renderdata.blur) {
-                renderdata.discardMode |= DISCARD_ALPHA;
-                renderdata.discardOpacity = *PBLURIGNOREA;
-            }
-
             if (pWindow->m_ruleApplicator->nearestNeighbor().valueOrDefault())
                 renderdata.useNearestNeighbor = true;
 
             renderdata.surfaceCounter = 0;
 
+            const auto DISCARDMODE    = renderdata.discardMode;
+            const auto DISCARDOPACITY = renderdata.discardOpacity;
+
             pWindow->m_popupHead->breadthfirst(
-                [this, &renderdata](WP<Desktop::View::CPopup> popup, void* data) {
+                [this, &renderdata, DISCARDMODE, DISCARDOPACITY](WP<Desktop::View::CPopup> popup, void* data) {
                     if (!popup->aliveAndVisible())
                         return;
+
+                    renderdata.blur           = shouldBlur(popup);
+                    renderdata.discardMode    = DISCARDMODE;
+                    renderdata.discardOpacity = DISCARDOPACITY;
+                    if (renderdata.blur) {
+                        renderdata.discardMode |= DISCARD_ALPHA;
+                        renderdata.discardOpacity = *PBLURIGNOREA;
+                    }
 
                     const auto     pos    = popup->coordsRelativeToParent();
                     const Vector2D oldPos = renderdata.pos;
@@ -995,19 +999,20 @@ void IHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
     renderdata.squishOversized = false; // don't squish popups
     renderdata.dontRound       = true;
     renderdata.popup           = true;
-    renderdata.blur            = pLayer->m_ruleApplicator->blurPopups().valueOrDefault();
-    renderdata.discardMode &= ~DISCARD_ALPHA;
-    renderdata.discardOpacity = 0.F;
-    if (renderdata.blur && pLayer->m_ruleApplicator->ignoreAlpha().hasValue()) {
-        renderdata.discardMode |= DISCARD_ALPHA;
-        renderdata.discardOpacity = pLayer->m_ruleApplicator->ignoreAlpha().valueOrDefault();
-    }
-    renderdata.surfaceCounter = 0;
+    renderdata.surfaceCounter  = 0;
     if (popups) {
         pLayer->m_popupHead->breadthfirst(
-            [this, &renderdata](WP<Desktop::View::CPopup> popup, void* data) {
+            [this, &renderdata, &pLayer](WP<Desktop::View::CPopup> popup, void* data) {
                 if (!popup->aliveAndVisible())
                     return;
+
+                renderdata.blur = shouldBlur(popup);
+                renderdata.discardMode &= ~DISCARD_ALPHA;
+                renderdata.discardOpacity = 0.F;
+                if (renderdata.blur && pLayer->m_ruleApplicator->ignoreAlpha().hasValue()) {
+                    renderdata.discardMode |= DISCARD_ALPHA;
+                    renderdata.discardOpacity = pLayer->m_ruleApplicator->ignoreAlpha().valueOrDefault();
+                }
 
                 const auto SURF = popup->wlSurface()->resource();
 
@@ -3328,6 +3333,13 @@ bool IHyprRenderer::shouldBlur(PHLWINDOW w) {
 bool IHyprRenderer::shouldBlur(WP<Desktop::View::CPopup> p) {
     static CConfigValue PBLURPOPUPS = CConfigValue<Config::INTEGER>("decoration:blur:popups");
     static CConfigValue PBLUR       = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
+
+    const auto          SURFACE = p ? p->wlSurface() : nullptr;
+    if (SURFACE && SURFACE->m_hasBackgroundEffect)
+        return *PBLUR && !SURFACE->m_blurRegion.empty();
+
+    if (const auto LAYER = p ? p->layerOwner() : nullptr; LAYER)
+        return LAYER->m_ruleApplicator->blurPopups().valueOrDefault();
 
     return *PBLURPOPUPS && *PBLUR;
 }

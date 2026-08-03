@@ -1,10 +1,10 @@
 #include "XDGBell.hpp"
 #include "../helpers/BellSound.hpp"
-#include "core/Compositor.hpp"
+#include "./core/Compositor.hpp"
 #include "../desktop/state/ViewState.hpp"
 #include "../desktop/state/ViewQuery.hpp"
-#include "../ipc/s2/S2.hpp"
 #include "../event/EventBus.hpp"
+#include "../ipc/s2/S2.hpp"
 #include <format>
 
 CXDGSystemBellManagerResource::CXDGSystemBellManagerResource(UP<CXdgSystemBellV1>&& resource) : m_resource(std::move(resource)) {
@@ -15,12 +15,14 @@ CXDGSystemBellManagerResource::CXDGSystemBellManagerResource(UP<CXdgSystemBellV1
     m_resource->setOnDestroy([this](CXdgSystemBellV1*) { PROTO::xdgBell->destroyResource(this); });
 
     m_resource->setRing([](CXdgSystemBellV1*, wl_resource* surface) {
-        const auto WINDOW  = Desktop::viewState()->query().surface(CWLSurfaceResource::fromResource(surface)).type(Desktop::View::VIEW_TYPE_WINDOW).runWindow();
-        const auto ADDRESS = WINDOW ? std::format("{:x}", rc<uintptr_t>(WINDOW.get())) : "";
+        const auto           WINDOW = Desktop::viewState()->query().surface(CWLSurfaceResource::fromResource(surface)).type(Desktop::View::VIEW_TYPE_WINDOW).runWindow();
 
-        IPC::Socket2::sock()->postEvent({.event = "bell", .data = ADDRESS});
-        Event::bus()->m_events.window.bell.emit(WINDOW);
+        Event::SCallbackInfo info;
+        Event::bus()->m_events.window.bell.emit(WINDOW, info);
+        if (info.cancelled)
+            return;
 
+        IPC::Socket2::sock()->postEvent({.event = "bell", .data = WINDOW ? std::format("{:x}", rc<uintptr_t>(WINDOW.get())) : ""});
         CBellSound::play();
     });
 }

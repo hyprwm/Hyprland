@@ -90,7 +90,7 @@ namespace Event {
                 Event<PHLWINDOW>                        floating;
                 Event<PHLWINDOW>                        updateRules;
                 Event<PHLWINDOW, PHLWORKSPACE>          moveToWorkspace;
-                Event<PHLWINDOW>                        bell;
+                Cancellable<PHLWINDOW>                  bell;
             } window;
 
             struct {

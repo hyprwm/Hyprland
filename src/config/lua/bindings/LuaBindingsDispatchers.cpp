@@ -483,7 +483,7 @@ static int dsp_moveToWorkspace(lua_State* L) {
         return Internal::dispatcherError(L, "Invalid workspace", ERR, C_INVARG);
 
     bool silent = lua_toboolean(L, lua_upvalueindex(2));
-    return Internal::checkResult(L, CA::moveToWorkspace(ws, silent, Internal::windowFromUpval(L, 3)));
+    return Internal::checkResult(L, CA::moveWindowToWorkspace(ws, silent, Internal::windowFromUpval(L, 3)));
 }
 
 static int dsp_moveToMonitor(lua_State* L) {
@@ -492,7 +492,7 @@ static int dsp_moveToMonitor(lua_State* L) {
         return Internal::dispatcherError(L, "Invalid monitor / monitor doesn't exist", ERR, C_INVARG);
 
     bool silent = lua_toboolean(L, lua_upvalueindex(2));
-    return Internal::checkResult(L, CA::moveToWorkspace(mon->m_activeWorkspace, silent, Internal::windowFromUpval(L, 3)));
+    return Internal::checkResult(L, CA::moveWindowToWorkspace(mon->m_activeWorkspace, silent, Internal::windowFromUpval(L, 3)));
 }
 
 static int dsp_closeWindow(lua_State* L) {

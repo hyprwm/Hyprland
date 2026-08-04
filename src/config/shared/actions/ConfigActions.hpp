@@ -44,7 +44,7 @@ namespace Config::Actions {
     ActionResult fullscreenWindow(Fullscreen::eFullscreenMode mode, bool layoutAware, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult fullscreenWindow(Fullscreen::eFullscreenMode internalMode, Fullscreen::eFullscreenMode clientMode, bool layoutAware,
                                   std::optional<PHLWINDOW> window = std::nullopt /* Active */);
-    ActionResult moveToWorkspace(PHLWORKSPACE ws, bool silent, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
+    ActionResult moveWindowToWorkspace(PHLWORKSPACE ws, bool silent, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult moveFocus(Math::eDirection dir);
     ActionResult focus(PHLWINDOW window);
     ActionResult moveInDirection(Math::eDirection dir, std::optional<PHLWINDOW> window = std::nullopt /* Active */);

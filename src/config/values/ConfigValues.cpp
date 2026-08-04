@@ -228,6 +228,9 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Float>("decoration:dim_special", "how much to dim the rest of the screen by when a special workspace is open.", 0.2,
                   {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_WINDOW_STATES}),
         MS<Float>("decoration:dim_around", "how much the dimaround window rule should dim by.", 0.4, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_WINDOW_STATES}),
+        MS<String>("decoration:focus_effect", "effect to play when a window gains focus. [none/flash/shrink]", "none", {.validator = strChoice({"none", "flash", "shrink"})}),
+        MS<Float>("decoration:focus_flash_opacity", "opacity to flash to when decoration:focus_effect is flash.", 0.5, {.min = 0, .max = 1}),
+        MS<Float>("decoration:focus_shrink_percentage", "scale to shrink to when decoration:focus_effect is shrink.", 0.8, {.min = 0.1, .max = 1}),
         MS<String>("decoration:screen_shader", "a path to a custom shader to be applied at the end of rendering.", STRVAL_EMPTY, {.refresh = Supplementary::REFRESH_SCREEN_SHADER}),
         MS<Bool>("decoration:border_part_of_window", "whether the border should be treated as a part of the window.", true),
 

@@ -185,8 +185,25 @@ void IElementRenderer::drawRect(WP<CRectPassElement> element, const CRegion& dam
 
 void IElementRenderer::drawHints(WP<CRendererHintsPassElement> element, const CRegion& damage) {
     const auto& m_data = element->m_data;
-    if (m_data.renderModif.has_value())
-        g_pHyprRenderer->m_renderData.renderModif = *m_data.renderModif;
+
+    if (m_data.popCount > 0) {
+        auto& modifs = g_pHyprRenderer->m_renderData.renderModif.modifs;
+        if (modifs.size() >= m_data.popCount)
+            modifs.erase(modifs.end() - sc<long>(m_data.popCount), modifs.end());
+        return;
+    }
+
+    if (!m_data.renderModif.has_value())
+        return;
+
+    if (m_data.append) {
+        for (const auto& modif : m_data.renderModif->modifs) {
+            g_pHyprRenderer->m_renderData.renderModif.modifs.emplace_back(modif);
+        }
+        return;
+    }
+
+    g_pHyprRenderer->m_renderData.renderModif = *m_data.renderModif;
 }
 
 void IElementRenderer::drawPreBlur(WP<CPreBlurElement> element, const CRegion& damage) {

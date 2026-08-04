@@ -592,7 +592,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     renderdata.fadeAlpha = pWindow->alphaValue(WINDOW_ALPHA_FADE) * pWindow->alphaValue(WINDOW_ALPHA_FULLSCREEN) * pWindow->alphaValue(WINDOW_ALPHA_LAYOUT) *
         (pWindow->m_pinned || USE_WORKSPACE_FADE_ALPHA ? 1.f : PWORKSPACE->m_alpha->value()) *
         (USE_WORKSPACE_FADE_ALPHA ? pWindow->alphaValue(WINDOW_ALPHA_MOVE_TO_WORKSPACE) : 1.F) * pWindow->alphaValue(WINDOW_ALPHA_MOVE_FROM_WORKSPACE);
-    renderdata.alpha         = pWindow->alphaValue(WINDOW_ALPHA_ACTIVE);
+    renderdata.alpha         = pWindow->alphaValue(WINDOW_ALPHA_ACTIVE) * (pWindow->m_focusFlash ? pWindow->m_focusFlash->value() : 1.f);
     renderdata.decorate      = decorate && !pWindow->m_X11DoesntWantBorders && Fullscreen::controller()->getFullscreenModes(pWindow).internal != Fullscreen::FSMODE_FULLSCREEN;
     renderdata.rounding      = standalone || renderdata.dontRound ? 0 : pWindow->rounding() * pMonitor->m_scale;
     renderdata.roundingPower = standalone || renderdata.dontRound ? 2.0f : pWindow->roundingPower();
@@ -615,7 +615,28 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
     Event::bus()->m_events.render.stage.emit(RENDER_PRE_WINDOW);
 
-    const auto fullAlpha = renderdata.alpha * renderdata.fadeAlpha;
+    // scale around the window center without mutating layout geometry.
+    SRenderModifData FOCUSSCALEMODIF;
+    size_t           focusScaleModifCount = 0;
+    if (!standalone && pWindow->m_focusScale) {
+        const float FOCUSSCALE = pWindow->m_focusScale->value();
+        if UNLIKELY (FOCUSSCALE != 1.f) {
+            const Vector2D CENTER = (pWindow->middle() + pWindow->m_floatingOffset - pMonitor->m_position) * pMonitor->m_scale;
+            FOCUSSCALEMODIF.modifs.emplace_back(SRenderModifData::eRenderModifType::RMOD_TYPE_TRANSLATE, -CENTER);
+            FOCUSSCALEMODIF.modifs.emplace_back(SRenderModifData::eRenderModifType::RMOD_TYPE_SCALE, FOCUSSCALE);
+            FOCUSSCALEMODIF.modifs.emplace_back(SRenderModifData::eRenderModifType::RMOD_TYPE_TRANSLATE, CENTER);
+            focusScaleModifCount = FOCUSSCALEMODIF.modifs.size();
+            m_renderPass.add(makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{.renderModif = FOCUSSCALEMODIF, .append = true}));
+        }
+    }
+
+    CScopeGuard focusScaleGuard([focusScaleModifCount] {
+        if (focusScaleModifCount == 0)
+            return;
+        g_pHyprRenderer->m_renderPass.add(makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{.popCount = focusScaleModifCount}));
+    });
+
+    const auto  fullAlpha = renderdata.alpha * renderdata.fadeAlpha;
 
     if (*PDIMAROUND && pWindow->m_ruleApplicator->dimAround().valueOrDefault() && !m_bRenderingSnapshot && mode != RENDER_PASS_POPUP) {
         CBox                        monbox = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};

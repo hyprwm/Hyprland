@@ -259,6 +259,10 @@ namespace Desktop::View {
         // animated tint
         PHLANIMVAR<float> m_dimPercent;
 
+        // focus effects (flash opacity multiplier / shrink scale). 1 = identity.
+        PHLANIMVAR<float> m_focusFlash;
+        PHLANIMVAR<float> m_focusScale;
+
         // animate moving to an invisible workspace
         int m_monitorMovedFrom = -1; // -1 means not moving
 
@@ -396,6 +400,7 @@ namespace Desktop::View {
         void                              setAnimationsToMove();
         void                              onWorkspaceAnimUpdate();
         void                              onFocusAnimUpdate();
+        void                              playFocusEffect(const std::string& effect = "");
         std::optional<MotionBlur::SState> motionBlurState(bool allowStale = false) const;
         void                              damageMotionBlur(bool allowStale = false) const;
         void                              recordMotionBlur(const CBox& previous, const CBox& current);

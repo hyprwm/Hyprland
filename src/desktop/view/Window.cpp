@@ -121,6 +121,8 @@ PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
     Animation::mgr()->createAnimation(0.f, pWindow->m_glowFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("fadeGlow"), pWindow, AVARDAMAGE_GLOW);
     Animation::mgr()->createAnimation(0.f, pWindow->m_glowAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("glowangle"), pWindow, AVARDAMAGE_GLOW);
     Animation::mgr()->createAnimation(0.f, pWindow->m_dimPercent, Config::animationTree()->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(1.f, pWindow->m_focusFlash, Config::animationTree()->getAnimationPropertyConfig("focusFlash"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(1.f, pWindow->m_focusScale, Config::animationTree()->getAnimationPropertyConfig("focusShrink"), pWindow, AVARDAMAGE_ENTIRE);
     Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeOut"), pWindow,
                                       AVARDAMAGE_ENTIRE);
     Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow,
@@ -159,6 +161,8 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
     Animation::mgr()->createAnimation(0.f, pWindow->m_glowFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("fadeGlow"), pWindow, AVARDAMAGE_GLOW);
     Animation::mgr()->createAnimation(0.f, pWindow->m_glowAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("glowangle"), pWindow, AVARDAMAGE_GLOW);
     Animation::mgr()->createAnimation(0.f, pWindow->m_dimPercent, Config::animationTree()->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(1.f, pWindow->m_focusFlash, Config::animationTree()->getAnimationPropertyConfig("focusFlash"), pWindow, AVARDAMAGE_ENTIRE);
+    Animation::mgr()->createAnimation(1.f, pWindow->m_focusScale, Config::animationTree()->getAnimationPropertyConfig("focusShrink"), pWindow, AVARDAMAGE_ENTIRE);
     Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeOut"), pWindow,
                                       AVARDAMAGE_ENTIRE);
     Animation::mgr()->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow,
@@ -800,11 +804,15 @@ void CWindow::onMap() {
     m_glowFadeAnimationProgress->resetAllCallbacks();
     m_glowAngleAnimationProgress->resetAllCallbacks();
     m_dimPercent->resetAllCallbacks();
+    m_focusFlash->resetAllCallbacks();
+    m_focusScale->resetAllCallbacks();
     alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE)->resetAllCallbacks();
     alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE)->resetAllCallbacks();
 
     alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE)->setValueAndWarp(1.F);
     alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE)->setValueAndWarp(1.F);
+    m_focusFlash->setValueAndWarp(1.F);
+    m_focusScale->setValueAndWarp(1.F);
 
     resetMotionBlur();
     resetWobble();
@@ -1105,6 +1113,9 @@ bool CWindow::opaque() {
     if (alphaValue(WINDOW_ALPHA_FADE) != 1.f || alphaValue(WINDOW_ALPHA_FULLSCREEN) != 1.f || alphaValue(WINDOW_ALPHA_ACTIVE) != 1.f)
         return false;
 
+    if (m_focusFlash && m_focusFlash->value() != 1.f)
+        return false;
+
     const auto PWORKSPACE = m_workspace;
 
     if (m_wlSurface->small() && !m_wlSurface->m_fillIgnoreSmall)
@@ -1285,6 +1296,37 @@ void CWindow::onFocusAnimUpdate() {
     if (m_glowAngleAnimationProgress->enabled() && !m_glowAngleAnimationProgress->isBeingAnimated()) {
         m_glowAngleAnimationProgress->setValueAndWarp(0.f);
         *m_glowAngleAnimationProgress = 1.f;
+    }
+
+    playFocusEffect();
+}
+
+void CWindow::playFocusEffect(const std::string& effect) {
+    static auto PEFFECT = CConfigValue<std::string>("decoration:focus_effect");
+    static auto PFLASH  = CConfigValue<Config::FLOAT>("decoration:focus_flash_opacity");
+    static auto PSHRINK = CConfigValue<Config::FLOAT>("decoration:focus_shrink_percentage");
+
+    const auto  EFFECT = effect.empty() ? *PEFFECT : effect;
+
+    if (EFFECT == "flash") {
+        if (!m_focusFlash || !m_focusFlash->enabled())
+            return;
+
+        m_focusFlash->setValueAndWarp(*PFLASH);
+        *m_focusFlash = 1.f;
+        return;
+    }
+
+    if (EFFECT == "shrink") {
+        if (!m_focusScale || !m_focusScale->enabled())
+            return;
+
+        // Don't fight an in-progress size animation like a popin,
+        if (sizeAnimation()->isBeingAnimated())
+            return;
+
+        m_focusScale->setValueAndWarp(*PSHRINK);
+        *m_focusScale = 1.f;
     }
 }
 

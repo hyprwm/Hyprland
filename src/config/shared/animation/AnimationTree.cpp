@@ -26,6 +26,7 @@ void CAnimationTreeController::reset() {
     m_animationTree.createNode("workspaces", "global");
     m_animationTree.createNode("zoomFactor", "global");
     m_animationTree.createNode("monitorAdded", "global");
+    m_animationTree.createNode("focus", "global");
 
     // layer
     m_animationTree.createNode("layersIn", "layers");
@@ -50,6 +51,10 @@ void CAnimationTreeController::reset() {
     m_animationTree.createNode("fadePopupsIn", "fadePopups");
     m_animationTree.createNode("fadePopupsOut", "fadePopups");
     m_animationTree.createNode("fadeDpms", "fade");
+
+    // focus
+    m_animationTree.createNode("focusFlash", "focus");
+    m_animationTree.createNode("focusShrink", "focus");
 
     // workspaces
     m_animationTree.createNode("workspacesIn", "workspaces");

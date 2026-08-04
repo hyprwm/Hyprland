@@ -658,6 +658,10 @@ static int dsp_setProp(lua_State* L) {
     return Internal::checkResult(L, CA::setProp(lua_tostring(L, lua_upvalueindex(1)), lua_tostring(L, lua_upvalueindex(2)), Internal::windowFromUpval(L, 3)));
 }
 
+static int dsp_focusEffect(lua_State* L) {
+    return Internal::checkResult(L, CA::focusEffect(lua_tostring(L, lua_upvalueindex(1)), Internal::windowFromUpval(L, 2)));
+}
+
 static int dsp_moveIntoGroup(lua_State* L) {
     return Internal::checkResult(L, CA::moveIntoGroup(sc<Math::eDirection>((int)lua_tonumber(L, lua_upvalueindex(1))), Internal::windowFromUpval(L, 2)));
 }
@@ -1043,6 +1047,17 @@ static int hlWindowAlterZOrder(lua_State* L) {
     return 1;
 }
 
+static int hlWindowFocusEffect(lua_State* L) {
+    if (!lua_istable(L, 1))
+        return Internal::configError(L, "hl.window.focus_effect: expected a table { effect, window? }");
+
+    const auto effect = Internal::requireTableFieldStr(L, 1, "effect", "hl.window.focus_effect");
+    lua_pushstring(L, effect.c_str());
+    Internal::pushWindowUpval(L, 1);
+    lua_pushcclosure(L, dsp_focusEffect, 2);
+    return 1;
+}
+
 static int hlWindowSetProp(lua_State* L) {
     if (!lua_istable(L, 1))
         return Internal::configError(L, "hl.window.set_prop: expected a table { prop, value, window? }");
@@ -1382,6 +1397,7 @@ void Internal::registerDispatcherBindings(lua_State* L) {
         Internal::setFn(L, "bring_to_top", hlWindowBringToTop);
         Internal::setFn(L, "alter_zorder", hlWindowAlterZOrder);
         Internal::setFn(L, "set_prop", hlWindowSetProp);
+        Internal::setFn(L, "focus_effect", hlWindowFocusEffect);
         Internal::setFn(L, "deny_from_group", hlWindowDenyFromGroup);
         Internal::setFn(L, "drag", hlWindowDrag);
         Internal::setFn(L, "resize", hlWindowResize);

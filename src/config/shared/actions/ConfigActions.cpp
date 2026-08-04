@@ -878,6 +878,21 @@ ActionResult Actions::setProp(const std::string& PROP, const std::string& VAL, s
     return {};
 }
 
+ActionResult Actions::focusEffect(const std::string& effect, std::optional<PHLWINDOW> w) {
+    auto window = xtract(w);
+    if (!window)
+        return {};
+
+    if (effect != "flash" && effect != "shrink" && effect != "none")
+        return actionError("Invalid focus effect, expected flash, shrink, or none", eActionErrorLevel::ERROR, eActionErrorCode::INVALID_ARGUMENT);
+
+    if (effect == "none")
+        return {};
+
+    window->playFocusEffect(effect);
+    return {};
+}
+
 ActionResult Actions::toggleGroup(std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)

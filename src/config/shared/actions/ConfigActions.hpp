@@ -65,6 +65,7 @@ namespace Config::Actions {
     ActionResult swapNext(const bool next, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult alterZOrder(const std::string& mode, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult setProp(const std::string& prop, const std::string& val, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
+    ActionResult focusEffect(const std::string& effect, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
 
     ActionResult toggleGroup(std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult changeGroupActive(bool forward = true, std::optional<PHLWINDOW> window = std::nullopt /* Active */);

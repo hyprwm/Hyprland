@@ -26,6 +26,7 @@ namespace Desktop::View {
         virtual Vector2D            position(eGeometricValueType) const override;
         virtual Vector2D            size(eGeometricValueType) const override;
         virtual CBox                geometricBox(eGeometricValueType) const override;
+        virtual bool                cantLockCursor() const override;
 
         PHLMONITOR                  monitor() const;
 

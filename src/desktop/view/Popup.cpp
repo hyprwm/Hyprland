@@ -733,3 +733,14 @@ bool CPopup::shouldBlur() const {
 
     return *PBLURPOPUPS && *PBLUR;
 }
+
+bool CPopup::cantLockCursor() const {
+    if (!m_windowOwner.expired())
+        return m_windowOwner->cantLockCursor();
+    if (!m_layerOwner.expired())
+        return m_layerOwner->cantLockCursor();
+    if (m_parent)
+        return m_parent->cantLockCursor();
+
+    return false;
+}

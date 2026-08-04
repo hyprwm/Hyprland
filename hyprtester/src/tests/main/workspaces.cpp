@@ -985,3 +985,14 @@ TEST_CASE(workspaceRenameUpdatesRules) {
         ASSERT_CONTAINS(str, "at: 42,42");
     }
 }
+
+TEST_CASE(workspacesDistinctTiledAndFloatGaps) {
+    OK(getFromSocket("/eval hl.workspace_rule({ workspace = 'name:workspacesDistinctTiledAndFloatGaps', gaps_out = 200, float_gaps = 10, no_border = true })"));
+    OK(getFromSocket("/eval hl.window_rule({ match = { workspace = 'name:workspacesDistinctTiledAndFloatGaps', class = 'workspacesDistinctTiledAndFloatGaps' }, float = true })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:workspacesDistinctTiledAndFloatGaps' })"));
+    ASSERT(!!Tests::spawnKitty(), true);
+    ASSERT(getFromSocket("r/repl hl.get_active_window().at.x == 200"), "true");
+    ASSERT(!!Tests::spawnKitty("workspacesDistinctTiledAndFloatGaps"), true);
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ direction = 'l' })"));
+    ASSERT(getFromSocket("r/repl hl.get_active_window().at.x == 10"), "true");
+}

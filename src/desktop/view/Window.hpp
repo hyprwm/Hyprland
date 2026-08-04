@@ -166,12 +166,14 @@ namespace Desktop::View {
         // for recovering relative cursor position
         Vector2D      m_relativeCursorCoordsOnLastWarp = Vector2D(-1, -1);
 
-        bool          m_firstMap     = false; // for layouts
-        bool          m_isFloating   = false;
-        std::string   m_title        = "";
-        std::string   m_class        = "";
-        std::string   m_initialTitle = "";
-        std::string   m_initialClass = "";
+        bool          m_firstMap      = false; // for layouts
+        bool          m_isFloating    = false;
+        bool          m_noMouseMove   = false; // suppress mouse move
+        bool          m_noMouseResize = false; // suppress mouse resize
+        std::string   m_title         = "";
+        std::string   m_class         = "";
+        std::string   m_initialTitle  = "";
+        std::string   m_initialClass  = "";
         PHLWORKSPACE  m_workspace;
         PHLMONITORREF m_monitor, m_prevMonitor;
 

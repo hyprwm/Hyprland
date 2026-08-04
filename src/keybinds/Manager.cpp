@@ -529,8 +529,6 @@ SBindResult CKeybindManager::processEvent(const SBindEventContext& context, cons
 
         if (context.pressed && bind->hasFlag(BIND_FLAG_LONG_PRESS)) {
             longPressHits.emplace_back(bind);
-            if (!bind->hasFlag(BIND_FLAG_NON_CONSUMING) && !bind->hasFlag(BIND_FLAG_AUTO_CONSUMING))
-                claimed = true;
             continue;
         }
 

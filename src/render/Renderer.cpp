@@ -2335,6 +2335,7 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
                     if (needsHdrMetadataUpdate) {
                         Log::logger->log(Log::INFO, "[CM] Updating HDR metadata from surface");
                         pMonitor->m_output->state->setHDRMetadata(SURF->m_colorManagement->hdrMetadata());
+                        pMonitor->m_hdrMetadataFromSurface = true;
                     }
                     hdrIsHandled               = true;
                     pMonitor->m_needsHDRupdate = false;
@@ -2347,8 +2348,10 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
             wantHDR = configuredHDR;
 
         if (!hdrIsHandled) {
-            if (pMonitor->inHDR() != wantHDR) {
-                if (*PAUTOHDR && !(pMonitor->inHDR() && configuredHDR)) {
+            const bool HDR_CHANGED = pMonitor->inHDR() != wantHDR;
+
+            if (HDR_CHANGED || pMonitor->m_hdrMetadataFromSurface) {
+                if (HDR_CHANGED && *PAUTOHDR && !(pMonitor->inHDR() && configuredHDR)) {
                     // modify or restore monitor image description for auto-hdr
                     // FIXME ok for now, will need some other logic if monitor image description can be modified some other way
                     const auto targetCM      = wantHDR ? (*PAUTOHDR == 2 ? NCMType::CM_HDR_EDID : NCMType::CM_HDR) : pMonitor->m_cmType;
@@ -2359,6 +2362,7 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
                 }
                 Log::logger->log(Log::INFO, wantHDR ? "[CM] Updating HDR metadata from monitor" : "[CM] Restoring SDR mode");
                 pMonitor->m_output->state->setHDRMetadata(wantHDR ? createHDRMetadata(pMonitor->m_imageDescription->value(), pMonitor) : NO_HDR_METADATA);
+                pMonitor->m_hdrMetadataFromSurface = false;
             }
             pMonitor->m_needsHDRupdate = true;
         }

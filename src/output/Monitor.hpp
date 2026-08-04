@@ -358,7 +358,8 @@ namespace Monitor {
         bool                                                               m_renderingInitPassed = false;
 
         PHLWINDOWREF                                                       m_previousFSWindow;
-        bool                                                               m_needsHDRupdate = false;
+        bool                                                               m_needsHDRupdate         = false;
+        bool                                                               m_hdrMetadataFromSurface = false;
 
         std::optional<dev_t>                                               m_cachedAllocatorDRMDev;
         std::optional<dev_t>                                               m_cachedCompositorDRMDev;

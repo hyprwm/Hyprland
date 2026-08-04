@@ -142,16 +142,28 @@ void CMonitorRuleManager::ensureMonitorStatus() {
 
         auto rule = get(m);
 
+        bool mustApplySoft = false;
+
+        // check if mirror matches first of all
+        if (!!m->m_mirrorOf == rule.m_mirrorOf.empty()) {
+            // mismatch: we either have a mirror and rule says HEEEELLL NAW or the other way
+
+            if (m->m_mirrorOf)
+                mustApplySoft = true;
+            else if (std::ranges::any_of(State::monitorState()->monitors(), [&rule](const auto& m) { return m->matchesStaticSelector(rule.m_mirrorOf); }))
+                mustApplySoft = true;
+        }
+
         auto cmp = rule.compare(m->m_activeMonitorRule);
 
-        if (cmp == COMPARISON_FULL_MATCH)
+        if (!mustApplySoft && cmp == COMPARISON_FULL_MATCH)
             continue;
 
         m->m_splash = nullptr;
 
         monsForRefresh.emplace_back(m);
 
-        if (cmp == COMPARISON_SOFT_MISMATCH) {
+        if (cmp != COMPARISON_NO_MATCH) {
             m->applyMonitorRuleSoft(Config::CMonitorRule{rule});
             continue;
         }

@@ -197,6 +197,11 @@ void CMonitor::onConnect(bool noRule) {
         m_events.presented.emit(WHEN);
 
         m_frameScheduler->onPresented(WHEN, event.refresh);
+
+        // presentation, fifo and commit-timing all send off the emits above. get them out now, or they
+        // sit in the connection buffer until the loop flushes, which is after the frame we're about to render.
+        if (m_frameScheduler->newSchedulingEnabled())
+            g_pEventLoopManager->flushClients();
     });
 
     m_listeners.destroy = m_output->events.destroy.listen([this] {

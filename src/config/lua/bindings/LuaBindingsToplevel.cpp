@@ -55,20 +55,15 @@ static bool isSymSpecial(std::string_view sv) {
     return sv.starts_with("switch:") || sv.starts_with("mouse:");
 }
 
-static std::expected<void, std::string> parseKeyString(SKeybind& kb, std::string_view sv) {
+template <typename T>
+static std::expected<void, std::string> parseKeys(SKeybind& kb, T keysList) {
     bool                                                modsEnded = false, specialSym = false;
-    CVarList2                                           vl(sv, 0, '+', true);
 
     uint32_t                                            modMask = 0;
     std::vector<std::pair<xkb_keysym_t, xkb_keycode_t>> keysyms;
     std::string                                         lastKeyArg;
 
-    if (sv == "catchall") {
-        kb.catchAll = true;
-        return {};
-    }
-
-    for (const auto& a : vl) {
+    for (const auto& a : keysList) {
         auto arg = Hyprutils::String::trim(a);
 
         auto mask = modFromSv(arg);
@@ -129,21 +124,64 @@ static std::expected<void, std::string> parseKeyString(SKeybind& kb, std::string
     return {};
 }
 
+static std::expected<void, std::string> parseKeyString(SKeybind& kb, std::string_view sv) {
+    CVarList2 vl(sv, 0, '+', true);
+
+    if (sv == "catchall") {
+        kb.catchAll = true;
+        return {};
+    }
+
+    return parseKeys(kb, vl);
+}
+
 static int hlBind(lua_State* L) {
-    auto* mgr = sc<CConfigManager*>(lua_touserdata(L, lua_upvalueindex(1)));
+    auto*    mgr = sc<CConfigManager*>(lua_touserdata(L, lua_upvalueindex(1)));
 
-    auto  str = Check::string(L, 1);
-    if (!str)
-        return Internal::configError(L, std::format("bind: bad argument 1: {}", str.error()));
-
-    std::string_view keys = *str;
-
-    SKeybind         kb;
+    SKeybind kb;
     kb.submap.name  = mgr->m_currentSubmap;
     kb.submap.reset = mgr->m_currentSubmapReset;
 
-    if (auto res = parseKeyString(kb, keys); !res)
-        return Internal::configError(L, std::format("hl.bind: failed to parse key string: {}", res.error()));
+    int keysIdx = 1;
+    if (lua_istable(L, keysIdx)) {
+        int len = lua_rawlen(L, keysIdx);
+
+        if (len == 0)
+            return Internal::configError(L, "bind: keys must not be empty");
+
+        const int                     top = lua_gettop(L);
+        std::vector<std::string_view> keys;
+        keys.reserve(len);
+
+        for (int i = 1; i <= len; ++i) {
+            lua_rawgeti(L, keysIdx, i);
+            if (!lua_isstring(L, -1)) {
+                lua_settop(L, top);
+                return Internal::configError(L, std::format("bind: key at index {} must be a string.", i));
+            }
+            keys.emplace_back(lua_tostring(L, -1));
+        }
+
+        if (auto res = parseKeys(kb, keys); !res) {
+            lua_settop(L, top);
+            return Internal::configError(L, std::format("hl.bind: failed to parse key string array: {}", res.error()));
+        }
+
+        kb.displayKey = keys | std::views::join_with(std::string(" + ")) | std::ranges::to<std::string>();
+
+        lua_settop(L, top);
+    } else {
+        auto str = Check::string(L, keysIdx);
+        if (!str)
+            return Internal::configError(L, std::format("bind: bad argument 1: {}", str.error()));
+
+        std::string_view keys = *str;
+
+        if (auto res = parseKeyString(kb, keys); !res)
+            return Internal::configError(L, std::format("hl.bind: failed to parse key string: {}", res.error()));
+
+        kb.displayKey = keys;
+    }
 
     if (!Internal::pushDispatcherFunction(L, 2))
         return Internal::configError(L, "hl.bind: dispatcher must be a dispatcher (e.g. hl.dsp.window.close()) or a lua function");
@@ -151,10 +189,9 @@ static int hlBind(lua_State* L) {
     if (kb.catchAll && mgr->m_currentSubmap.empty())
         return Internal::configError(L, "hl.bind: catchall keybinds are only allowed in submaps.");
 
-    int ref       = luaL_ref(L, LUA_REGISTRYINDEX);
-    kb.handler    = "__lua";
-    kb.arg        = std::to_string(ref);
-    kb.displayKey = keys;
+    int ref    = luaL_ref(L, LUA_REGISTRYINDEX);
+    kb.handler = "__lua";
+    kb.arg     = std::to_string(ref);
 
     int optsIdx = 3;
 

@@ -818,6 +818,8 @@ ActionResult Actions::setProp(const std::string& PROP, const std::string& VAL, s
             parsePropTrivial(PWINDOW->m_ruleApplicator->noMaxSize(), VAL);
         else if (PROP == "no_shadow")
             parsePropTrivial(PWINDOW->m_ruleApplicator->noShadow(), VAL);
+        else if (PROP == "no_wobble")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->noWobble(), VAL);
         else if (PROP == "no_shortcuts_inhibit")
             parsePropTrivial(PWINDOW->m_ruleApplicator->noShortcutsInhibit(), VAL);
         else if (PROP == "dim_around")

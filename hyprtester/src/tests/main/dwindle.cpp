@@ -7,9 +7,7 @@
 
 TEST_CASE(dwindleFloatClamp) {
     for (auto const& win : {"a", "b", "c"}) {
-        if (!Tests::spawnKitty(win)) {
-            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
-        }
+        SPAWN_KITTY(win);
     }
 
     OK(getFromSocket("/eval hl.config({ dwindle = { force_split = 2 } })"));
@@ -35,8 +33,7 @@ TEST_CASE(dwindleIssue13349) {
     // exposed by #13349 as a regression from #12890
 
     for (auto const& win : {"a", "b", "c"}) {
-        if (!Tests::spawnKitty(win))
-            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
+        SPAWN_KITTY(win);
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:c' })"));
@@ -67,13 +64,13 @@ TEST_CASE(dwindleIssue13349) {
 TEST_CASE(dwindleSplit) {
     // Test various split methods
 
-    Tests::spawnKitty("a");
+    SPAWN_KITTY("a");
 
     // these must not crash
     EXPECT_NOT(getFromSocket("/dispatch hl.dsp.layout('swapsplit')"), "ok");
     EXPECT_NOT(getFromSocket("/dispatch hl.dsp.layout('splitratio 1 exact')"), "ok");
 
-    Tests::spawnKitty("b");
+    SPAWN_KITTY("b");
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:a' })"));
     OK(getFromSocket("/dispatch hl.dsp.layout('splitratio -0.2')"));
@@ -121,8 +118,7 @@ TEST_CASE(dwindleRotateSplit) {
     OK(getFromSocket("r/eval hl.config({ general = { border_size = 0 } })"));
 
     for (auto const& win : {"a", "b"}) {
-        if (!Tests::spawnKitty(win))
-            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
+        SPAWN_KITTY(win);
     }
 
     {
@@ -200,10 +196,10 @@ TEST_CASE(dwindleRotateSplit) {
 
 TEST_CASE(dwindleForceSplitOnMoveToWorkspace) {
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2' })"));
-    ASSERT(!!Tests::spawnKitty("kitty"), true);
+    SPAWN_KITTY("kitty");
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
-    ASSERT(!!Tests::spawnKitty("kitty"), true);
+    SPAWN_KITTY("kitty");
     std::string posBefore = std::format("at: {}", Tests::getAttribute(getFromSocket("/activewindow"), "at"));
 
     OK(getFromSocket("/eval hl.config({ dwindle = { force_split = 2 } })"));
@@ -223,8 +219,7 @@ TEST_CASE(dwindleMoveAcrossToggledSplit) {
 
     OK(getFromSocket("/eval hl.config({ dwindle = { force_split = 2 } })"));
     for (auto const& win : {"a", "b"}) {
-        if (!Tests::spawnKitty(win))
-            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
+        SPAWN_KITTY(win);
     }
     OK(getFromSocket("/dispatch hl.dsp.layout('togglesplit')"));
     // Window A, now on top, is to be moved
@@ -249,8 +244,7 @@ TEST_CASE(dwindleMoveSmallWindowAcrossSplit) {
     OK(getFromSocket("/eval hl.config({ dwindle = { force_split = 1 } })"));
     OK(getFromSocket("/eval hl.config({ dwindle = { default_split_ratio = 1.2 } })"));
     for (auto const& win : {"a", "b"}) {
-        if (!Tests::spawnKitty(win))
-            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
+        SPAWN_KITTY(win);
     }
     // Window B, on the left, is the smaller one
 
@@ -275,8 +269,8 @@ TEST_CASE(dwindleFullscreenMaximiseDispatchers) {
 
     OK(getFromSocket("/eval hl.config({ general = { layout = 'dwindle' } })"));
 
-    Tests::spawnKitty("kitty_A");
-    Tests::spawnKitty("kitty_B");
+    SPAWN_KITTY("kitty_A");
+    SPAWN_KITTY("kitty_B");
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_A' })"));
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set' })"));
@@ -351,8 +345,7 @@ TEST_CASE(dwindleTestFsFocusUnderFSWindow) {
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'dwindle' } })"));
 
     for (auto const& win : {"one", "two", "three"}) {
-        if (!Tests::spawnKitty(win))
-            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
+        SPAWN_KITTY(win);
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:one' })"));
@@ -367,7 +360,7 @@ TEST_CASE(dwindleTestFsFocusUnderFSWindow) {
 
     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 1 } })"));
 
-    Tests::spawnKitty("four");
+    SPAWN_KITTY("four");
 
     {
         auto str = getFromSocket("/activewindow");
@@ -379,7 +372,7 @@ TEST_CASE(dwindleTestFsFocusUnderFSWindow) {
 
     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 0 } })"));
 
-    Tests::spawnKitty("ignored");
+    SPAWN_KITTY("ignored");
 
     {
         auto str = getFromSocket("/activewindow");
@@ -391,7 +384,7 @@ TEST_CASE(dwindleTestFsFocusUnderFSWindow) {
 
     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 2 } })"));
 
-    Tests::spawnKitty("erstarrwashere");
+    SPAWN_KITTY("erstarrwashere");
 
     {
         auto str = getFromSocket("/activewindow");
@@ -408,7 +401,7 @@ TEST_CASE(dwindleNewWindowTakesOverFullscreen) {
 
     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 0 } })"));
 
-    Tests::spawnKitty("kitty_A");
+    SPAWN_KITTY("kitty_A");
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen' })"));
 
@@ -419,7 +412,7 @@ TEST_CASE(dwindleNewWindowTakesOverFullscreen) {
         EXPECT_CONTAINS(str, "kitty_A");
     }
 
-    Tests::spawnKitty("kitty_B");
+    SPAWN_KITTY("kitty_B");
 
     {
         auto str = getFromSocket("/activewindow");
@@ -440,7 +433,7 @@ TEST_CASE(dwindleNewWindowTakesOverFullscreen) {
 
     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 1 } })"));
 
-    Tests::spawnKitty("kitty_C");
+    SPAWN_KITTY("kitty_C");
 
     {
         auto str = getFromSocket("/activewindow");
@@ -451,7 +444,7 @@ TEST_CASE(dwindleNewWindowTakesOverFullscreen) {
 
     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 2 } })"));
 
-    Tests::spawnKitty("kitty_D");
+    SPAWN_KITTY("kitty_D");
 
     {
         auto str = getFromSocket("/activewindow");
@@ -461,8 +454,6 @@ TEST_CASE(dwindleNewWindowTakesOverFullscreen) {
     }
 
     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 0 } })"));
-
-    Tests::killAllWindows();
 }
 
 TEST_CASE(dwindleExitWindowRetainsFullscreen) {
@@ -473,8 +464,8 @@ TEST_CASE(dwindleExitWindowRetainsFullscreen) {
 
     OK(getFromSocket("/eval hl.config({ misc = { exit_window_retains_fullscreen = false } })"));
 
-    Tests::spawnKitty("kitty_A");
-    Tests::spawnKitty("kitty_B");
+    SPAWN_KITTY("kitty_A");
+    SPAWN_KITTY("kitty_B");
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen' })"));
 
@@ -493,7 +484,7 @@ TEST_CASE(dwindleExitWindowRetainsFullscreen) {
         EXPECT_CONTAINS(str, "fullscreenClient: 0");
     }
 
-    Tests::spawnKitty("kitty_B");
+    SPAWN_KITTY("kitty_B");
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen' })"));
     OK(getFromSocket("/eval hl.config({ misc = { exit_window_retains_fullscreen = true } })"));
 
@@ -505,8 +496,6 @@ TEST_CASE(dwindleExitWindowRetainsFullscreen) {
         EXPECT_CONTAINS(str, "fullscreen: 2");
         EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
-
-    Tests::killAllWindows();
 }
 
 TEST_CASE(dwindleFullscreenPinnedWindows) {
@@ -524,7 +513,7 @@ TEST_CASE(dwindleFullscreenPinnedWindows) {
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'dwindle' } })"));
 
-    Tests::spawnKitty("cake");
+    SPAWN_KITTY("cake");
 
     OK(getFromSocket("/dispatch hl.dsp.window.float({action = 'enable', window = 'class:cake'})"));
 
@@ -701,12 +690,12 @@ TEST_CASE(dwindleFullscreenNonInterference) {
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'dwindle' } })"));
 
-    Tests::spawnKitty("red");
-    Tests::spawnKitty("crimson");
-    Tests::spawnKitty("blue");
-    Tests::spawnKitty("cyan");
-    Tests::spawnKitty("azure");
-    Tests::spawnKitty("green");
+    SPAWN_KITTY("red");
+    SPAWN_KITTY("crimson");
+    SPAWN_KITTY("blue");
+    SPAWN_KITTY("cyan");
+    SPAWN_KITTY("azure");
+    SPAWN_KITTY("green");
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:red' })"));
 
@@ -852,9 +841,9 @@ TEST_CASE(defaultHandledFsfocusInDirection) {
             This test serves as a test for all layouts that use deafult FS behaviour
     */
 
-    Tests::spawnKitty("normal1");
-    Tests::spawnKitty("fs");
-    Tests::spawnKitty("normal2");
+    SPAWN_KITTY("normal1");
+    SPAWN_KITTY("fs");
+    SPAWN_KITTY("normal2");
 
     // if movefocus_cycles_fullscreen = false, all focus({direction}) is disallowed from moving focus from FS window
     OK(getFromSocket("r/eval hl.config({ binds = { movefocus_cycles_fullscreen = false } })"));

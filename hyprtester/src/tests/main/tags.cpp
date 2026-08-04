@@ -5,12 +5,8 @@
 
 TEST_CASE(tags) {
     NLog::log("{}Spawning kittyProcA&B on ws 1", Colors::YELLOW);
-    auto kittyProcA = Tests::spawnKitty("tagged");
-    auto kittyProcB = Tests::spawnKitty("untagged");
-
-    if (!kittyProcA || !kittyProcB) {
-        FAIL_TEST("Could not spawn kitty");
-    }
+    SPAWN_KITTY("tagged");
+    SPAWN_KITTY("untagged");
 
     NLog::log("{}Testing testTag tags", Colors::YELLOW);
 

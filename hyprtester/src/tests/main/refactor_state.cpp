@@ -101,7 +101,7 @@ TEST_CASE(workspacePlacementActiveMove) {
 
     OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", TEST_MONITOR_LEFT)));
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '270' })"));
-    ASSERT(!!Tests::spawnKitty("workspace_move_active"), true);
+    SPAWN_KITTY("workspace_move_active");
 
     OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", TEST_MONITOR_RIGHT)));
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '271' })"));
@@ -133,16 +133,16 @@ TEST_CASE(workspacePlacementWindowState) {
     OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", TEST_MONITOR_LEFT)));
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '280' })"));
 
-    ASSERT(!!Tests::spawnKitty("workspace_move_pinned"), true);
+    SPAWN_KITTY("workspace_move_pinned");
     OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set' })"));
     OK(getFromSocket("/dispatch hl.dsp.window.pin()"));
 
-    ASSERT(!!Tests::spawnKitty("workspace_move_float"), true);
+    SPAWN_KITTY("workspace_move_float");
     OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set' })"));
     OK(getFromSocket("/dispatch hl.dsp.window.resize({ x = 400, y = 300 })"));
     OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 200, y = 200 })"));
 
-    ASSERT(!!Tests::spawnKitty("workspace_move_fullscreen"), true);
+    SPAWN_KITTY("workspace_move_fullscreen");
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set' })"));
 
     OK(getFromSocket(std::format("/dispatch hl.dsp.workspace.move({{ workspace = '280', monitor = '{}' }})", TEST_MONITOR_RIGHT)));
@@ -185,7 +185,7 @@ TEST_CASE(globalWindowMoveState) {
 
     OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", TEST_MONITOR_LEFT)));
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '290' })"));
-    ASSERT(!!Tests::spawnKitty("global_move_fullscreen"), true);
+    SPAWN_KITTY("global_move_fullscreen");
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set' })"));
     OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '291', follow = false })"));
 
@@ -198,7 +198,7 @@ TEST_CASE(globalWindowMoveState) {
 
     OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", TEST_MONITOR_LEFT)));
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '292' })"));
-    ASSERT(!!Tests::spawnKitty("global_move_float"), true);
+    SPAWN_KITTY("global_move_float");
     OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set' })"));
     OK(getFromSocket("/dispatch hl.dsp.window.resize({ x = 400, y = 300 })"));
     OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 200, y = 200 })"));
@@ -211,12 +211,12 @@ TEST_CASE(globalWindowMoveState) {
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '293' })"));
-    ASSERT(!!Tests::spawnKitty("global_move_group_anchor"), true);
+    SPAWN_KITTY("global_move_group_anchor");
     OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
 
     OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", TEST_MONITOR_LEFT)));
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '295' })"));
-    ASSERT(!!Tests::spawnKitty("global_move_group_member"), true);
+    SPAWN_KITTY("global_move_group_member");
     OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '293', follow = true })"));
     EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: global_move_group_member");
 

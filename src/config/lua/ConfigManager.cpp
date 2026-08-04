@@ -610,7 +610,7 @@ void CConfigManager::reinitLuaState() {
                 lua_pushvalue(L, lua_upvalueindex(1));
                 lua_insert(L, 1);
                 lua_call(L, nstack, LUA_MULTRET);
-            } else {
+            } else if (nstack > 0) {
                 std::string out;
                 for (int i = 1; i <= nstack; ++i) {
                     out += std::format("{}\t", luaL_tolstring(L, i, nullptr));
@@ -893,12 +893,14 @@ std::optional<std::string> CConfigManager::eval(const std::string& code, bool re
         m_isEvaluating = false;
         m_isREPL       = false;
     });
-    if (luaL_loadstring(m_lua, code.starts_with("return") ? code.c_str() : std::format("return {};", code).c_str()) != LUA_OK) {
+
+    const auto                    errCode = luaL_loadstring(m_lua, code.starts_with("return") ? code.c_str() : std::format("return {};", code).c_str());
+    if (errCode != LUA_OK) {
         lua_pop(m_lua, 1);
         if (luaL_loadstring(m_lua, code.c_str()) != LUA_OK) {
             std::string err = lua_tostring(m_lua, -1);
             lua_pop(m_lua, 1);
-            return std::format("error: {}", err);
+            return std::format("error: {} {}", errCode, err);
         }
     }
 

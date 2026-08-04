@@ -80,8 +80,31 @@ bool CDragStateController::exclusiveDeviceGrab() const {
 }
 
 bool CDragStateController::updateDragWindow() {
-    const auto DRAGGINGTARGET = m_target.lock();
-    const bool WAS_FULLSCREEN = DRAGGINGTARGET->window() ? Fullscreen::controller()->isFullscreen(DRAGGINGTARGET->window()) : false;
+    const auto  DRAGGINGTARGET = m_target.lock();
+    const bool  WAS_FULLSCREEN = DRAGGINGTARGET->window() ? Fullscreen::controller()->isFullscreen(DRAGGINGTARGET->window()) : false;
+    static auto PDRAGCENTER    = CConfigValue<Config::BOOL>("binds:drag_center_window");
+
+    // geometry before we un-fullscreen / untile, needed to map the grab point onto the new window
+    const CBox PRE_DRAG_BOX = DRAGGINGTARGET->position();
+
+    // places the window under the cursor after its geometry changed. Without drag_center_window, the
+    // grab point keeps its relative position: grabbing 80% across the fullscreen surface leaves the
+    // cursor 80% across the restored window
+    const auto MAPDRAGHOTSPOT = [this](const SP<ITarget>& target, const CBox& oldBox) {
+        const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
+        const auto NEWSIZE     = target->position().size();
+        const auto OLDSIZE     = oldBox.size();
+
+        if (*PDRAGCENTER)
+            m_dragHotspot = NEWSIZE / 2.F;
+        else {
+            const Vector2D REL = {OLDSIZE.x > 0 ? (MOUSECOORDS.x - oldBox.pos().x) / OLDSIZE.x : 0.5, OLDSIZE.y > 0 ? (MOUSECOORDS.y - oldBox.pos().y) / OLDSIZE.y : 0.5};
+
+            m_dragHotspot = REL.clamp(Vector2D{0.F, 0.F}, Vector2D{1.F, 1.F}) * NEWSIZE;
+        }
+
+        target->setPositionGlobal(CBox{MOUSECOORDS - m_dragHotspot, NEWSIZE});
+    };
 
     if (m_dragThresholdReached) {
         if (WAS_FULLSCREEN) {
@@ -103,16 +126,16 @@ bool CDragStateController::updateDragWindow() {
     m_draggingWindowOriginalFloatSize = DRAGGINGTARGET->lastFloatingSize();
 
     if (WAS_FULLSCREEN && DRAGGINGTARGET->floating() && m_dragThresholdReached) {
-        const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
-        DRAGGINGTARGET->setPositionGlobal(CBox{MOUSECOORDS - DRAGGINGTARGET->position().size() / 2.F, DRAGGINGTARGET->position().size()});
+        MAPDRAGHOTSPOT(DRAGGINGTARGET, PRE_DRAG_BOX);
     } else if (!DRAGGINGTARGET->floating() && m_dragMode == MBIND_MOVE) {
         Vector2D MINSIZE = DRAGGINGTARGET->minSize().value_or(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE});
         DRAGGINGTARGET->rememberFloatingSize((DRAGGINGTARGET->position().size() * 0.8489).clamp(MINSIZE, Vector2D{}).floor());
 
         if (m_dragThresholdReached) {
-            DRAGGINGTARGET->setPositionGlobal(CBox{g_pInputManager->getMouseCoordsInternal() - DRAGGINGTARGET->position().size() / 2.F, DRAGGINGTARGET->position().size()});
             g_layoutManager->changeFloatingMode(DRAGGINGTARGET);
             m_draggingTiled = true;
+
+            MAPDRAGHOTSPOT(DRAGGINGTARGET, PRE_DRAG_BOX);
         }
     }
 
@@ -122,6 +145,7 @@ bool CDragStateController::updateDragWindow() {
     m_beginDragPositionXY = DRAG_ORIGINAL_BOX.pos();
     m_beginDragSizeXY     = DRAG_ORIGINAL_BOX.size();
     m_lastDragXY          = m_beginDragXY;
+    m_dragHotspot         = m_beginDragXY - m_beginDragPositionXY;
 
     return false;
 }
@@ -361,7 +385,7 @@ void CDragStateController::mouseMove(const Vector2D& mousePos) {
 
     if (m_dragMode == MBIND_MOVE) {
 
-        Vector2D newPos  = m_beginDragPositionXY + DELTA;
+        Vector2D newPos  = mousePos - m_dragHotspot;
         Vector2D newSize = DRAGGINGTARGET->position().size();
 
         if (*SNAPENABLED && !m_draggingTiled)

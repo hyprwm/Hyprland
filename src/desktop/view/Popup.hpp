@@ -46,6 +46,7 @@ namespace Desktop::View {
         virtual CBox                                        geometricBox(eGeometricValueType) const override;
         virtual Types::CMultiAVarContainer<float, uint8_t>& alpha() override;
         virtual std::optional<uint8_t>                      alphaGenericToKey(eAlphaModifiableProp p) override;
+        virtual bool                                        cantLockCursor() const override;
 
         SP<Desktop::View::CWLSurface>                       getT1Owner() const;
         PHLLS                                               layerOwner() const;

@@ -1558,6 +1558,8 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
     g_pHyprRenderer->damageMonitor(m_self.lock());
 
+    g_pInputManager->unconstrainMouse();
+
     if (!pWorkspace) {
         // remove special if exists
         if (m_activeSpecialWorkspace) {

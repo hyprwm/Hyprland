@@ -711,3 +711,7 @@ std::optional<uint8_t> CPopup::alphaGenericToKey(eAlphaModifiableProp p) {
     static_assert(ALPHA_MODIFIABLE_LAST == 1);
     UNREACHABLE();
 }
+
+bool CPopup::cantLockCursor() const {
+    return false;
+}

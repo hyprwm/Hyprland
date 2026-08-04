@@ -155,10 +155,17 @@ void CCommitTimingProtocol::onMonitorPresent(PHLMONITOR m, const Time::steady_tp
             continue;
 
         const auto& OUTPUTS = timer->m_surface->m_enteredOutputs;
-        if (OUTPUTS.size() != 1 || OUTPUTS[0] != m)
+        if (std::ranges::find(OUTPUTS, m) != OUTPUTS.end()) {
+            timer->releaseDueStates(UPCOMING_FLIP);
+            continue;
+        }
+
+        if (!OUTPUTS.empty() || !timer->m_surface->m_hlSurface)
             continue;
 
-        timer->releaseDueStates(UPCOMING_FLIP);
+        const auto BOX = timer->m_surface->m_hlSurface->getSurfaceBoxGlobal();
+        if (BOX && !BOX->intersection({m->position(), m->m_size}).empty())
+            timer->releaseDueStates(UPCOMING_FLIP);
     }
 }
 

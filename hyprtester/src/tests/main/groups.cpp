@@ -731,9 +731,9 @@ TEST_CASE(groups_disable_when_only) {
 TEST_CASE(groupedExitWindowRetainsFullscreen) {
     OK(getFromSocket("/eval hl.config({ misc = { exit_window_retains_fullscreen = 3 } })"));
 
-    Tests::spawnKitty("kitty_A");
+    SPAWN_KITTY("kitty_A");
     OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
-    Tests::spawnKitty("kitty_B");
+    SPAWN_KITTY("kitty_B");
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen' })"));
 

@@ -11,6 +11,7 @@
 #include "types/GeometricMovableAnimated.hpp"
 #include "types/AlphaModifiable.hpp"
 #include "surfaceTree/PopupOwner.hpp"
+#include "surfaceTree/SubsurfaceOwner.hpp"
 #include "animationControllers/LayerSurfaceAnimationController.hpp"
 
 class CLayerShellResource;
@@ -32,7 +33,11 @@ namespace Desktop::View {
     using enum eLayerFlags;
     EXPOSE_ENUM_AS_MASK(eLayerFlags, LayerFlags);
 
-    class CLayerSurface : public virtual IView, public virtual CGeometricMovableAnimated, public virtual IAlphaModifiable, public virtual CPopupOwner {
+    class CLayerSurface : public virtual IView,
+                          public virtual CGeometricMovableAnimated,
+                          public virtual IAlphaModifiable,
+                          public virtual CPopupOwner,
+                          public virtual CSubsurfaceOwner {
       public:
         static PHLLS create(SP<CLayerShellResource>);
         static PHLLS fromView(SP<IView>);
@@ -52,6 +57,7 @@ namespace Desktop::View {
         virtual Types::CMultiAVarContainer<float, uint8_t>&       alpha() override;
         virtual const Types::CMultiAVarContainer<float, uint8_t>& alpha() const override;
         virtual std::optional<uint8_t>                            alphaGenericToKey(eAlphaModifiableProp p) override;
+        virtual bool                                              cantLockCursor() const override;
 
         WP<CLayerShellResource>                                   m_layerSurface;
 

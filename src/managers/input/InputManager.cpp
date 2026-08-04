@@ -311,7 +311,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     };
 
     if (!g_pSeatManager->m_mouse.expired()) {
-        const auto SURF = Desktop::View::CWLSurface::fromResource(Desktop::focusState()->surface());
+        const auto SURF = Desktop::View::CWLSurface::fromResource(g_pSeatManager->m_state.pointerFocus.lock());
 
         if (isConstrained()) {
             const auto CONSTRAINT = SURF ? SURF->constraint() : nullptr;
@@ -1918,21 +1918,11 @@ bool CInputManager::isConstrained() {
     return std::ranges::any_of(m_constraints, [](auto const& c) {
         const auto constraint = c.lock();
 
-        if (!constraint || !constraint->isActive() || constraint->owner()->resource() != Desktop::focusState()->surface())
+        if (!constraint || !constraint->isActive() || constraint->owner()->resource() != g_pSeatManager->m_state.pointerFocus)
             return false;
 
-        const auto OWNER  = constraint->owner()->view();
-        const auto WINDOW = Desktop::View::CWindow::fromView(OWNER);
-
-        if (!WINDOW)
-            return false;
-
-        // a window being interactively moved or resized ignores its pointer lock. the lock would otherwise warp
-        // the cursor back to the constraint hint every frame, so the window could never be dragged (e.g. gamescope).
-        if (const auto DRAG = g_layoutManager->dragController()->target(); DRAG && DRAG->window() == WINDOW)
-            return false;
-
-        return !WINDOW->cantLockCursor();
+        const auto OWNER = constraint->owner()->view();
+        return OWNER && !OWNER->cantLockCursor();
     });
 }
 
@@ -1940,16 +1930,15 @@ bool CInputManager::isLocked() {
     if (!isConstrained())
         return false;
 
-    const auto SURF = Desktop::View::CWLSurface::fromResource(Desktop::focusState()->surface());
+    const auto SURF = Desktop::View::CWLSurface::fromResource(g_pSeatManager->m_state.pointerFocus.lock());
+    if (!SURF)
+        return false;
 
-    if (SURF) {
-        const auto WINDOW = Desktop::View::CWindow::fromView(SURF->view());
+    const auto VIEW = SURF->view();
+    if (!VIEW || VIEW->cantLockCursor())
+        return false;
 
-        if (WINDOW && WINDOW->cantLockCursor())
-            return false;
-    }
-
-    const auto CONSTRAINT = SURF ? SURF->constraint() : nullptr;
+    const auto CONSTRAINT = SURF->constraint();
 
     return CONSTRAINT && CONSTRAINT->isLocked();
 }

@@ -32,6 +32,16 @@ SP<CSubsurface> CSubsurface::create(WP<Desktop::View::CPopup> pOwner) {
     return subsurface;
 }
 
+SP<CSubsurface> CSubsurface::create(PHLLS pOwner) {
+    auto subsurface                  = SP<CSubsurface>(new CSubsurface());
+    subsurface->m_layerSurfaceParent = pOwner;
+    subsurface->m_self               = subsurface;
+    subsurface->initSignals();
+    subsurface->initExistingSubsurfaces(pOwner->wlSurface()->resource());
+    subsurface->initView(subsurface, VIEW_TYPE_SUBSURFACE);
+    return subsurface;
+}
+
 SP<CSubsurface> CSubsurface::create(SP<CWLSubsurfaceResource> pSubsurface, PHLWINDOW pOwner) {
     auto subsurface            = SP<CSubsurface>(new CSubsurface());
     subsurface->m_windowParent = pOwner;
@@ -52,6 +62,20 @@ SP<CSubsurface> CSubsurface::create(SP<CWLSubsurfaceResource> pSubsurface, WP<De
     subsurface->m_subsurface  = pSubsurface;
     subsurface->m_self        = subsurface;
     subsurface->wlSurface()   = CWLSurface::create();
+    subsurface->wlSurface()->assign(pSubsurface->m_surface.lock(), subsurface);
+    subsurface->initSignals();
+    subsurface->initExistingSubsurfaces(pSubsurface->m_surface.lock());
+    subsurface->initView(subsurface, VIEW_TYPE_SUBSURFACE);
+    subsurface->syncScaleTransform();
+    return subsurface;
+}
+
+SP<CSubsurface> CSubsurface::create(SP<CWLSubsurfaceResource> pSubsurface, PHLLS pOwner) {
+    auto subsurface                  = SP<CSubsurface>(new CSubsurface());
+    subsurface->m_layerSurfaceParent = pOwner;
+    subsurface->m_subsurface         = pSubsurface;
+    subsurface->m_self               = subsurface;
+    subsurface->wlSurface()          = CWLSurface::create();
     subsurface->wlSurface()->assign(pSubsurface->m_surface.lock(), subsurface);
     subsurface->initSignals();
     subsurface->initExistingSubsurfaces(pSubsurface->m_surface.lock());
@@ -85,6 +109,8 @@ bool CSubsurface::focusAvailable() const {
     }
     if (m_popupParent)
         return m_popupParent->mapped() && m_popupParent->acceptsInput();
+    if (!m_layerSurfaceParent.expired())
+        return m_layerSurfaceParent->focusAvailable();
     if (m_parent)
         return m_parent->mapped() && m_parent->acceptsInput();
 
@@ -133,6 +159,8 @@ void CSubsurface::initSignals() {
             m_listeners.newSubsurface = m_windowParent->wlSurface()->resource()->m_events.newSubsurface.listen([this](const auto& resource) { onNewSubsurface(resource); });
         else if (m_popupParent)
             m_listeners.newSubsurface = m_popupParent->wlSurface()->resource()->m_events.newSubsurface.listen([this](const auto& resource) { onNewSubsurface(resource); });
+        else if (!m_layerSurfaceParent.expired())
+            m_listeners.newSubsurface = m_layerSurfaceParent->wlSurface()->resource()->m_events.newSubsurface.listen([this](const auto& resource) { onNewSubsurface(resource); });
         else
             ASSERT(false);
     }
@@ -233,6 +261,8 @@ void CSubsurface::onNewSubsurface(SP<CWLSubsurfaceResource> pSubsurface) {
         PSUBSURFACE = m_children.emplace_back(CSubsurface::create(pSubsurface, m_windowParent.lock()));
     else if (m_popupParent)
         PSUBSURFACE = m_children.emplace_back(CSubsurface::create(pSubsurface, m_popupParent));
+    else if (!m_layerSurfaceParent.expired())
+        PSUBSURFACE = m_children.emplace_back(CSubsurface::create(pSubsurface, m_layerSurfaceParent.lock()));
 
     PSUBSURFACE->m_self = PSUBSURFACE;
 
@@ -253,6 +283,8 @@ void CSubsurface::onMap() {
 
     if (!m_windowParent.expired())
         m_windowParent->updateSurfaceScaleTransformDetails();
+    else if (!m_layerSurfaceParent.expired())
+        m_layerSurfaceParent->updateSurfaceScaleTransformDetails();
 }
 
 void CSubsurface::onUnmap() {
@@ -296,6 +328,8 @@ Vector2D CSubsurface::coordsGlobal() const {
         coords += m_windowParent->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
     else if (m_popupParent)
         coords += m_popupParent->coordsGlobal();
+    else if (!m_layerSurfaceParent.expired())
+        coords += m_layerSurfaceParent->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
 
     return coords;
 }
@@ -315,6 +349,8 @@ void CSubsurface::syncScaleTransform() const {
         pMonitor = m_windowParent->m_monitor.lock();
     else if (m_popupParent)
         pMonitor = m_popupParent->getMonitor();
+    else if (!m_layerSurfaceParent.expired())
+        pMonitor = m_layerSurfaceParent->m_monitor.lock();
 
     if (!pMonitor)
         return;
@@ -356,4 +392,17 @@ size_t CSubsurface::countChildren(bool onlyMapped) const {
     }
 
     return count;
+}
+
+bool CSubsurface::cantLockCursor() const {
+    if (!m_windowParent.expired())
+        return m_windowParent->cantLockCursor();
+    if (m_popupParent)
+        return m_popupParent->cantLockCursor();
+    if (!m_layerSurfaceParent.expired())
+        return m_layerSurfaceParent->cantLockCursor();
+    if (m_parent)
+        return m_parent->cantLockCursor();
+
+    return false;
 }

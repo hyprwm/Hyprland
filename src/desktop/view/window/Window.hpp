@@ -149,6 +149,7 @@ namespace Desktop::View {
         virtual Types::CMultiAVarContainer<float, uint8_t>&       alpha() override;
         virtual const Types::CMultiAVarContainer<float, uint8_t>& alpha() const override;
         virtual std::optional<uint8_t>                            alphaGenericToKey(eAlphaModifiableProp p) override;
+        virtual bool                                              cantLockCursor() const override;
 
         struct {
             CSignalT<> destroy;
@@ -239,7 +240,6 @@ namespace Desktop::View {
         SP<Layout::ITarget> layoutTarget();
         SP<Layout::ITarget> layoutTarget() const;
         bool                isFloating() const;
-        bool                cantLockCursor() const;
         void                sendClose();
         void                requestClientFullscreen(const SClientFullscreenRequest& request);
 

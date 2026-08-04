@@ -13,7 +13,6 @@
 #include <list>
 #include <optional>
 #include <string>
-#include <stack>
 #include <map>
 
 #include <cairo/cairo.h>
@@ -53,7 +52,7 @@ namespace Config {
 
 namespace Render::GL {
 
-    CBox resolveBlurUV(const CBox& destinationBox, const Vector2D& textureSize, const std::optional<CBox>& sourceBox = std::nullopt);
+    CBox resolveBlurUV(const CBox& destinationBox, const Vector2D& textureSize);
 
     struct SVertex {
         float x, y; // position
@@ -168,8 +167,6 @@ namespace Render::GL {
             bool                   blockBlurOptimization = false;
             SP<ITexture>           blurredBG;
             SP<ITexture>           blurAlphaMatte;
-            std::optional<CBox>    blurSourceBox;
-
             const CRegion*         damage        = nullptr;
             SP<CWLSurfaceResource> surface       = nullptr;
             float                  a             = 1.F;
@@ -360,7 +357,7 @@ namespace Render::GL {
         void             renderRectInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
         void             renderRectWithBlurInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
         void             renderRectWithDamageInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
-        WP<CShader>      renderToOutputInternal();
+        WP<CShader>      renderScreenShaderInternal();
         WP<CShader>      renderToFBInternal(SP<ITexture> tex, const STextureRenderData& data, eTextureType texType, const CBox& newBox);
         void             renderTextureInternal(SP<ITexture>, const CBox&, const STextureRenderData& data);
         void             renderTextureWithBlurInternal(SP<ITexture>, const CBox&, const STextureRenderData& data);

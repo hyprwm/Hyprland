@@ -88,7 +88,6 @@ static int cursorTicker(void* data) {
 
 IHyprRenderer::IHyprRenderer() {
     m_globalTimer.reset();
-    pushMonitorTransformEnabled(false);
 
     if (g_pCompositor->m_aqBackend->hasSession()) {
         size_t drmDevices = 0;
@@ -888,20 +887,6 @@ bool IHyprRenderer::preBlurQueued(PHLMONITORREF pMonitor) {
     return m_renderData.pMonitor->m_blurFBDirty && *PBLURNEWOPTIMIZE && *PBLUR && m_renderData.pMonitor->m_blurFBShouldRender;
 }
 
-void IHyprRenderer::pushMonitorTransformEnabled(bool enabled) {
-    m_monitorTransformStack.push(enabled);
-    m_monitorTransformEnabled = enabled;
-}
-
-void IHyprRenderer::popMonitorTransformEnabled() {
-    m_monitorTransformStack.pop();
-    m_monitorTransformEnabled = m_monitorTransformStack.top();
-}
-
-bool IHyprRenderer::monitorTransformEnabled() {
-    return m_monitorTransformEnabled;
-}
-
 SP<ITexture> IHyprRenderer::createTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) {
     if (!buffer)
         return createTexture();
@@ -1253,11 +1238,11 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
 
 void IHyprRenderer::renderIME(PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry) {
     Vector2D translate = {geometry.x, geometry.y};
-    float    scale     = sc<float>(geometry.width) / pMonitor->m_pixelSize.x;
+    float    scale     = sc<float>(geometry.width) / pMonitor->m_transformedSize.x;
 
     TRACY_GPU_ZONE("RenderIME");
 
-    if (!DELTALESSTHAN(sc<double>(geometry.width) / sc<double>(geometry.height), pMonitor->m_pixelSize.x / pMonitor->m_pixelSize.y, 0.01)) {
+    if (!DELTALESSTHAN(sc<double>(geometry.width) / sc<double>(geometry.height), pMonitor->m_transformedSize.x / pMonitor->m_transformedSize.y, 0.01)) {
         Log::logger->log(Log::ERR, "Ignoring geometry in renderIME: aspect ratio mismatch");
         scale     = 1.f;
         translate = Vector2D{};
@@ -1346,7 +1331,7 @@ SP<ITexture> IHyprRenderer::getBackground(PHLMONITOR pMonitor) {
             m_renderData.fbSize          = oldFbSize;
             m_renderData.transformDamage = oldTransformDmg;
             setProjectionType(oldProjType);
-            setViewport(0, 0, (int)pMonitor->m_pixelSize.x, (int)pMonitor->m_pixelSize.y);
+            setViewport(0, 0, (int)m_renderData.currentFB->m_size.x, (int)m_renderData.currentFB->m_size.y);
 
             backgroundTexture = fb->getTexture();
 
@@ -1706,7 +1691,7 @@ void IHyprRenderer::renderSessionLockPrimer(PHLMONITOR pMonitor) {
 
     CRectPassElement::SRectData data;
     data.color = CHyprColor(0, 0, 0, 1.f);
-    data.box   = CBox{{}, pMonitor->m_pixelSize};
+    data.box   = CBox{{}, pMonitor->m_transformedSize};
 
     m_renderPass.add(makeUnique<CRectPassElement>(data));
 }
@@ -1719,7 +1704,7 @@ void IHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
 
     // ANY_PRESENT: render image2, without instructions. Lock still "alive", unless texture dead
     // else: render image, with instructions. Lock is gone.
-    CBox                         monbox = {{}, pMonitor->m_pixelSize};
+    CBox                         monbox = {{}, pMonitor->m_transformedSize};
     CTexPassElement::SRenderData data;
     if (g_pCompositor->m_startLocked && g_pCompositor->m_startLockedCommand.empty())
         data.tex = m_lockDead3Texture;
@@ -1746,9 +1731,10 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     m_renderMode          = mode;
     m_renderData.pMonitor = pMonitor;
 
-    if (simple)
-        setProjectionType(fb ? fb->m_size : buffer->m_texture->m_size);
-    else
+    if (simple) {
+        m_renderData.fbSize = fb ? fb->m_size : buffer->m_texture->m_size;
+        setProjectionType(RPT_EXPORT);
+    } else
         setProjectionType(RPT_MONITOR);
 
     const auto RESOURCES     = g_pHyprRenderer->m_renderData.pMonitor->resources();
@@ -1801,14 +1787,6 @@ void IHyprRenderer::setDamage(const CRegion& damage_, std::optional<CRegion> fin
     m_renderData.finalDamage.set(finalDamage.value_or(damage_));
 }
 
-static Mat3x3 getMirrorProjection(PHLMONITORREF monitor) {
-    return Mat3x3::identity()
-        .translate(monitor->m_pixelSize / 2.0)
-        .transform(Math::wlTransformToHyprutils(monitor->m_transform))
-        .transform(Math::wlTransformToHyprutils(Math::invertTransform(monitor->m_mirrorOf->m_transform)))
-        .translate(-monitor->m_transformedSize / 2.0);
-}
-
 static Mat3x3 getFBProjection(PHLMONITORREF pMonitor, const Vector2D& size) {
     if (pMonitor->m_transform == WL_OUTPUT_TRANSFORM_NORMAL)
         return Mat3x3::identity();
@@ -1825,24 +1803,24 @@ void IHyprRenderer::setProjectionType(const Vector2D& fbSize) {
 void IHyprRenderer::setProjectionType(eRenderProjectionType projectionType) {
     m_renderData.projectionType = projectionType;
     switch (projectionType) {
-        case RPT_MONITOR: m_renderData.targetProjection = m_renderData.pMonitor->getTransformMatrix(); break;
-        case RPT_MIRROR: m_renderData.targetProjection = getMirrorProjection(m_renderData.pMonitor); break;
-        case RPT_FB: m_renderData.targetProjection = getFBProjection(m_renderData.pMonitor, m_renderData.fbSize); break;
+        case RPT_MONITOR:
         case RPT_EXPORT: m_renderData.targetProjection = Mat3x3::identity(); break;
+        case RPT_OUTPUT: m_renderData.targetProjection = m_renderData.pMonitor->getTransformMatrix(); break;
+        case RPT_FB: m_renderData.targetProjection = getFBProjection(m_renderData.pMonitor, m_renderData.fbSize); break;
         default: UNREACHABLE();
     }
 }
 
 Mat3x3 IHyprRenderer::getBoxProjection(const CBox& box, std::optional<eTransform> transform) {
-    return m_renderData.targetProjection.projectBox(
-        box, transform.value_or(Math::wlTransformToHyprutils(Math::invertTransform(!monitorTransformEnabled() ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform))),
-        box.rot);
+    return m_renderData.targetProjection.projectBox(box, transform.value_or(HYPRUTILS_TRANSFORM_NORMAL), box.rot);
 }
 
 Mat3x3 IHyprRenderer::projectBoxToTarget(const CBox& box, std::optional<eTransform> transform) {
-    return (m_renderData.projectionType == RPT_EXPORT ? Mat3x3::outputProjection(m_renderData.fbSize, HYPRUTILS_TRANSFORM_NORMAL) : m_renderData.pMonitor->getScaleMatrix())
-        .copy()
-        .multiply(getBoxProjection(box, transform));
+    const auto TARGET_SIZE = m_renderData.projectionType == RPT_MONITOR ? m_renderData.pMonitor->m_transformedSize : m_renderData.fbSize;
+    const auto OUTPUT_PROJECTION =
+        m_renderData.projectionType == RPT_OUTPUT ? m_renderData.pMonitor->getScaleMatrix() : Mat3x3::outputProjection(TARGET_SIZE, HYPRUTILS_TRANSFORM_NORMAL);
+
+    return OUTPUT_PROJECTION.copy().multiply(getBoxProjection(box, transform));
 }
 
 SP<ITexture> IHyprRenderer::blurMainFramebuffer(float a, CRegion* originalDamage) {
@@ -1860,13 +1838,9 @@ void IHyprRenderer::preBlurForCurrentMonitor(CRegion* fakeDamage) {
     const auto blurredTex = blurMainFramebuffer(1, fakeDamage);
 
     // render onto blurFB
-    auto       guard          = bindTempFB(m_renderData.pMonitor->resources()->m_blurFB);
-    const auto SAVE_TRANSFORM = blurredTex->m_transform;
-    blurredTex->m_transform   = Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform));
+    auto guard = bindTempFB(m_renderData.pMonitor->resources()->m_blurFB);
 
     draw(CClearPassElement::SClearData{{0, 0, 0, 0}});
-
-    pushMonitorTransformEnabled(true);
 
     draw(
         CTexPassElement::SRenderData{
@@ -1875,10 +1849,6 @@ void IHyprRenderer::preBlurForCurrentMonitor(CRegion* fakeDamage) {
             .damage = *fakeDamage,
         },
         *fakeDamage); // .noAA = true
-
-    popMonitorTransformEnabled();
-
-    blurredTex->m_transform = SAVE_TRANSFORM;
 }
 
 static bool isSDR2HDR(const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription) {
@@ -1998,9 +1968,6 @@ void IHyprRenderer::renderMirrored() {
     const double scale  = std::min(monitor->m_transformedSize.x / mirrored->m_transformedSize.x, monitor->m_transformedSize.y / mirrored->m_transformedSize.y);
     CBox         monbox = {0, 0, mirrored->m_transformedSize.x * scale, mirrored->m_transformedSize.y * scale};
 
-    // transform box as it will be drawn on a transformed projection
-    monbox.transform(Math::wlTransformToHyprutils(mirrored->m_transform), mirrored->m_transformedSize.x * scale, mirrored->m_transformedSize.y * scale);
-
     monbox.x = (monitor->m_transformedSize.x - monbox.w) / 2;
     monbox.y = (monitor->m_transformedSize.y - monbox.h) / 2;
 
@@ -2009,9 +1976,8 @@ void IHyprRenderer::renderMirrored() {
     m_renderPass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)}));
 
     CTexPassElement::SRenderData data;
-    data.tex                 = MIRROR_TEX;
-    data.box                 = monbox;
-    data.useMirrorProjection = true;
+    data.tex = MIRROR_TEX;
+    data.box = monbox;
 
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }
@@ -2136,14 +2102,17 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         m_renderData.useNearestNeighbor = false;
     }
 
-    CRegion damage, finalDamage;
+    const bool ZOOM_DAMAGE_ENTIRE = pMonitor->m_zoomController.shouldDamageEntire(m_renderData.mouseZoomFactor);
+
+    CRegion    damage, finalDamage;
     if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL)) {
         Log::logger->log(Log::ERR, "renderer: couldn't beginRender()!");
         return;
     }
 
     // if we have no tracking or full tracking, invalidate the entire monitor
-    if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || pMonitor->m_forceFullFrames > 0 || damageBlinkCleanup > 0)
+    if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || pMonitor->m_forceFullFrames > 0 || damageBlinkCleanup > 0 ||
+        ZOOM_DAMAGE_ENTIRE)
         damage = {0, 0, sc<int>(pMonitor->m_transformedSize.x) * 10, sc<int>(pMonitor->m_transformedSize.y) * 10};
 
     finalDamage = damage;
@@ -2171,7 +2140,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
             Event::bus()->m_events.render.stage.emit(RENDER_POST_MIRROR);
             renderCursor = false;
         } else {
-            CBox renderBox = {0, 0, sc<int>(pMonitor->m_pixelSize.x), sc<int>(pMonitor->m_pixelSize.y)};
+            CBox renderBox = {0, 0, sc<int>(pMonitor->m_transformedSize.x), sc<int>(pMonitor->m_transformedSize.y)};
             renderWorkspace(pMonitor, pMonitor->m_activeWorkspace, NOW, renderBox);
             renderLockscreen(pMonitor, NOW, renderBox);
 
@@ -2233,6 +2202,9 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     if (!pMonitor->needsACopyFB())
         pMonitor->resources()->markMirrorFBStale(m_renderData.damage);
 
+    if (!pMonitor->m_mirrors.empty())
+        damageMirrorsWith(pMonitor, m_renderData.damage);
+
     CRegion    frameDamage{m_renderData.damage};
 
     const auto TRANSFORM = Math::invertTransform(pMonitor->m_transform);
@@ -2243,9 +2215,6 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     if (*PDAMAGEBLINK)
         frameDamage.add(damage);
-
-    if (!pMonitor->m_mirrors.empty())
-        damageMirrorsWith(pMonitor, frameDamage);
 
     Event::bus()->m_events.render.stage.emit(RENDER_POST);
 
@@ -2495,11 +2464,11 @@ bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
 
 void IHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry) {
     Vector2D translate = {geometry.x, geometry.y};
-    float    scale     = sc<float>(geometry.width) / pMonitor->m_pixelSize.x;
+    float    scale     = sc<float>(geometry.width) / pMonitor->m_transformedSize.x;
 
     TRACY_GPU_ZONE("RenderWorkspace");
 
-    if (!DELTALESSTHAN(sc<double>(geometry.width) / sc<double>(geometry.height), pMonitor->m_pixelSize.x / pMonitor->m_pixelSize.y, 0.01)) {
+    if (!DELTALESSTHAN(sc<double>(geometry.width) / sc<double>(geometry.height), pMonitor->m_transformedSize.x / pMonitor->m_transformedSize.y, 0.01)) {
         Log::logger->log(Log::ERR, "Ignoring geometry in renderWorkspace: aspect ratio mismatch");
         scale     = 1.f;
         translate = Vector2D{};
@@ -2832,7 +2801,6 @@ void IHyprRenderer::damageMirrorsWith(PHLMONITOR pMonitor, const CRegion& pRegio
         monbox.y      = (monitor->m_transformedSize.y - monbox.h) / 2;
 
         transformed.scale(scale);
-        transformed.transform(Math::wlTransformToHyprutils(pMonitor->m_transform), pMonitor->m_pixelSize.x * scale, pMonitor->m_pixelSize.y * scale);
         transformed.translate(Vector2D(monbox.x, monbox.y));
 
         mirror->addDamage(transformed);
@@ -3102,7 +3070,7 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(PHLWINDOW pWindow) {
 
     const auto PFRAMEBUFFER = createFB("window snapshot");
 
-    PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
+    PFRAMEBUFFER->alloc(PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y, DRM_FORMAT_ABGR8888);
     PFRAMEBUFFER->setImageDescription(PMONITOR->workBufferImageDescription());
 
     beginFullFakeRender(PMONITOR, fakeDamage, PFRAMEBUFFER);
@@ -3142,7 +3110,7 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(PHLLS pLayer) {
 
     const auto PFRAMEBUFFER = createFB("layer snapshot");
 
-    PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
+    PFRAMEBUFFER->alloc(PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y, DRM_FORMAT_ABGR8888);
     PFRAMEBUFFER->setImageDescription(PMONITOR->workBufferImageDescription());
 
     beginFullFakeRender(PMONITOR, fakeDamage, PFRAMEBUFFER);
@@ -3183,7 +3151,7 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(WP<Desktop::View::CPopup> popup) 
 
     const auto PFRAMEBUFFER = createFB("popup shapshot");
 
-    PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
+    PFRAMEBUFFER->alloc(PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y, DRM_FORMAT_ABGR8888);
     PFRAMEBUFFER->setImageDescription(PMONITOR->workBufferImageDescription());
 
     beginFullFakeRender(PMONITOR, fakeDamage, PFRAMEBUFFER);
@@ -3269,7 +3237,6 @@ void IHyprRenderer::renderFadeouts(PHLMONITOR monitor, Desktop::eFadeoutPlane pl
         }
 
         CTexPassElement::SRenderData data;
-        data.flipEndFrame          = true;
         data.tex                   = FB->getTexture();
         data.box                   = fadeout->renderBox();
         data.a                     = fadeout->alpha();

@@ -195,9 +195,6 @@ namespace Render {
         virtual void setViewport(int x, int y, int width, int height)                                                                                            = 0;
 
         bool         preBlurQueued(PHLMONITORREF pMonitor);
-        void         pushMonitorTransformEnabled(bool enabled);
-        void         popMonitorTransformEnabled();
-        bool         monitorTransformEnabled();
         void         sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now);
 
         void         setProjectionType(const Vector2D& fbSize);
@@ -253,9 +250,7 @@ namespace Render {
         SP<ITexture>                       m_lockDead2Texture;
         SP<ITexture>                       m_lockDead3Texture;
         SP<ITexture>                       m_lockTtyTextTexture;
-        CRenderPass*                       m_currentPass             = nullptr;
-        bool                               m_monitorTransformEnabled = false; // do not modify directly
-        std::stack<bool>                   m_monitorTransformStack;
+        CRenderPass*                       m_currentPass = nullptr;
 
         void                               handleFullscreenSettings(PHLMONITOR pMonitor);
 

@@ -72,3 +72,25 @@ TEST(Helpers, mathComposeTransformRotation) {
     // 180 + 180 = NORMAL (360)
     EXPECT_EQ(composeTransform(eTransform::HYPRUTILS_TRANSFORM_180, eTransform::HYPRUTILS_TRANSFORM_180), eTransform::HYPRUTILS_TRANSFORM_NORMAL);
 }
+
+TEST(Helpers, outputDamageTransformRoundTrip) {
+    constexpr Vector2D SCENE_SIZE = {320, 180};
+    const CBox         DAMAGE     = {17, 29, 43, 31};
+
+    for (int i = 0; i <= 7; ++i) {
+        const auto TRANSFORM   = sc<wl_output_transform>(i);
+        const auto BUFFER_SIZE = i % 2 == 0 ? SCENE_SIZE : Vector2D{SCENE_SIZE.y, SCENE_SIZE.x};
+        CRegion    transformed{DAMAGE};
+
+        transformed.transform(wlTransformToHyprutils(invertTransform(TRANSFORM)), SCENE_SIZE.x, SCENE_SIZE.y);
+        const auto EXTENTS = transformed.getExtents();
+
+        EXPECT_GE(EXTENTS.x, 0);
+        EXPECT_GE(EXTENTS.y, 0);
+        EXPECT_LE(EXTENTS.x + EXTENTS.w, BUFFER_SIZE.x);
+        EXPECT_LE(EXTENTS.y + EXTENTS.h, BUFFER_SIZE.y);
+
+        transformed.transform(wlTransformToHyprutils(TRANSFORM), BUFFER_SIZE.x, BUFFER_SIZE.y);
+        EXPECT_EQ(transformed.getExtents(), DAMAGE);
+    }
+}

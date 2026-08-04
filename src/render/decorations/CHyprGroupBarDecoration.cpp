@@ -318,7 +318,7 @@ static SP<ITexture> renderGradient(Config::CGradientValueData* grad) {
     if (!Desktop::focusState()->monitor())
         return nullptr;
 
-    const Vector2D& bufferSize = Desktop::focusState()->monitor()->m_pixelSize;
+    const Vector2D& bufferSize = Desktop::focusState()->monitor()->m_transformedSize;
 
     const auto      CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
     const auto      CAIRO        = cairo_create(CAIROSURFACE);

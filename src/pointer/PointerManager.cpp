@@ -623,6 +623,9 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
     CRegion damageRegion = {0, 0, INT_MAX, INT_MAX};
     g_pHyprRenderer->beginFullFakeRender(state->monitor.lock(), damageRegion, RBO->getFB());
+    g_pHyprRenderer->m_renderData.fbSize = RBO->getFB()->m_size;
+    g_pHyprRenderer->setProjectionType(Render::RPT_FB);
+    g_pHyprRenderer->m_renderData.transformDamage = true;
     g_pHyprRenderer->startRenderPass();
     g_pHyprRenderer->draw(CClearPassElement::SClearData{{0.F, 0.F, 0.F, 0.F}});
 

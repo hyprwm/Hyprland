@@ -90,6 +90,11 @@ eScreenshareError CScreenshareFrame::share(SP<IHLBuffer> buffer, const CRegion& 
         return ERROR_NO_BUFFER;
     }
 
+    if UNLIKELY (m_bufferSize != m_session->bufferSize()) {
+        LOGM(Log::ERR, "Client requested sharing with stale buffer constraints");
+        return ERROR_BUFFER_SIZE;
+    }
+
     if UNLIKELY (buffer->size != m_bufferSize) {
         LOGM(Log::ERR, "Client requested sharing to an invalid buffer size");
         return ERROR_BUFFER_SIZE;
@@ -195,14 +200,15 @@ void CScreenshareFrame::renderMonitor() {
         Log::logger->log(Log::TRACE, "CM: screenshot renderMonitor {} -> {}", TEXTURE->m_imageDescription->value(),
                          g_pHyprRenderer->m_renderData.currentFB->imageDescription()->value());
 
-    const bool IS_CM_AWARE                        = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_session->m_client);
+    const bool IS_CM_AWARE               = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_session->m_client);
+    g_pHyprRenderer->m_renderData.fbSize = m_bufferSize;
+    g_pHyprRenderer->setProjectionType(Render::RPT_EXPORT);
     g_pHyprRenderer->m_renderData.transformDamage = false;
     g_pHyprRenderer->m_renderData.noSimplify      = true;
+    g_pHyprRenderer->setViewport(0, 0, m_bufferSize.x, m_bufferSize.y);
 
     // render monitor texture
-    CBox       monbox = CBox{{}, PMONITOR->m_pixelSize}
-                            .transform(Math::wlTransformToHyprutils(Math::invertTransform(PMONITOR->m_transform)), PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y)
-                            .translate(-m_session->m_captureBox.pos()); // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
+    CBox       monbox = CBox{{}, PMONITOR->m_transformedSize}.translate(-m_session->m_captureBox.pos());
 
     const auto OLD                                    = g_pHyprRenderer->m_renderData.renderModif.enabled;
     g_pHyprRenderer->m_renderData.renderModif.enabled = false;
@@ -211,10 +217,9 @@ void CScreenshareFrame::renderMonitor() {
         CTexPassElement::SRenderData{
             .tex          = TEXTURE,
             .box          = monbox,
-            .flipEndFrame = true,
             .cmBackToSRGB = !IS_CM_AWARE,
         },
-        {0, 0, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y});
+        {0, 0, m_bufferSize.x, m_bufferSize.y});
     g_pHyprRenderer->m_renderData.renderModif.enabled = OLD;
 
     // render black boxes for noscreenshare
@@ -307,7 +312,7 @@ void CScreenshareFrame::renderMonitor() {
     }
 
     if (m_overlayCursor) {
-        CRegion  fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
+        CRegion  fakeDamage = {0, 0, m_bufferSize.x, m_bufferSize.y};
         Vector2D cursorPos  = g_pInputManager->getMouseCoordsInternal() - PMONITOR->m_position - m_session->m_captureBox.pos() / PMONITOR->m_scale;
         Pointer::mgr()->renderSoftwareCursorsFor(PMONITOR, Time::steadyNow(), fakeDamage, cursorPos, true);
     }
@@ -359,7 +364,7 @@ void CScreenshareFrame::renderWindow() {
 void CScreenshareFrame::render() {
     const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(m_session->m_client, PERMISSION_TYPE_SCREENCOPY);
 
-    CRegion    frameRegion = {0, 0, g_pHyprRenderer->m_renderData.pMonitor->m_pixelSize.x, g_pHyprRenderer->m_renderData.pMonitor->m_pixelSize.y};
+    CRegion    frameRegion = {0, 0, m_bufferSize.x, m_bufferSize.y};
 
     g_pHyprRenderer->draw(CClearPassElement::SClearData{{0, 0, 0, 0}}, frameRegion);
 
@@ -485,7 +490,7 @@ void CScreenshareFrame::storeTempFB() {
     m_session->m_tempFB->alloc(m_bufferSize.x, m_bufferSize.y);
     m_session->m_tempFB->setImageDescription(NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION);
 
-    CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
+    CRegion fakeDamage = {0, 0, m_bufferSize.x, m_bufferSize.y};
 
     if (!g_pHyprRenderer->beginFullFakeRender(m_session->monitor(), fakeDamage, m_session->m_tempFB)) {
         LOGM(Log::ERR, "Can't copy: failed to begin rendering to temp fb");
@@ -508,12 +513,7 @@ Vector2D CScreenshareFrame::bufferSize() const {
 }
 
 wl_output_transform CScreenshareFrame::transform() const {
-    switch (m_session->m_type) {
-        case SHARE_REGION:
-        case SHARE_MONITOR: return m_session->monitor()->m_transform;
-        default:
-        case SHARE_WINDOW: return WL_OUTPUT_TRANSFORM_NORMAL;
-    }
+    return WL_OUTPUT_TRANSFORM_NORMAL;
 }
 
 const CRegion& CScreenshareFrame::damage() const {

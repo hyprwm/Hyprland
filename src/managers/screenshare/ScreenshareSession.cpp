@@ -113,7 +113,7 @@ void CScreenshareSession::calculateConstraints() {
 
     switch (m_type) {
         case SHARE_MONITOR:
-            m_bufferSize = PMONITOR->m_pixelSize;
+            m_bufferSize = PMONITOR->m_transformedSize;
             m_name       = PMONITOR->m_name;
             break;
         case SHARE_WINDOW:
@@ -121,7 +121,7 @@ void CScreenshareSession::calculateConstraints() {
             m_name       = m_window->m_title;
             break;
         case SHARE_REGION:
-            m_bufferSize = PMONITOR->m_transform % 2 == 0 ? m_captureBox.size() : Vector2D{m_captureBox.h, m_captureBox.w};
+            m_bufferSize = m_captureBox.size();
             m_name       = PMONITOR->m_name;
             break;
         case SHARE_NONE:

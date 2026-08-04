@@ -46,7 +46,7 @@ namespace Render {
 
     enum eRenderProjectionType : uint8_t {
         RPT_MONITOR,
-        RPT_MIRROR,
+        RPT_OUTPUT,
         RPT_FB,
         RPT_EXPORT,
     };

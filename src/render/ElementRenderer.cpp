@@ -166,14 +166,10 @@ void IElementRenderer::drawRect(WP<CRectPassElement> element, const CRegion& dam
     data.modifiedBox = data.box;
     m_renderData.renderModif.applyToBox(data.modifiedBox);
 
-    CBox transformedBox = data.modifiedBox;
-    transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
-                             m_renderData.pMonitor->m_transformedSize.y);
-
-    data.TOPLEFT[0]  = sc<float>(transformedBox.x);
-    data.TOPLEFT[1]  = sc<float>(transformedBox.y);
-    data.FULLSIZE[0] = sc<float>(transformedBox.width);
-    data.FULLSIZE[1] = sc<float>(transformedBox.height);
+    data.TOPLEFT[0]  = sc<float>(data.modifiedBox.x);
+    data.TOPLEFT[1]  = sc<float>(data.modifiedBox.y);
+    data.FULLSIZE[0] = sc<float>(data.modifiedBox.width);
+    data.FULLSIZE[1] = sc<float>(data.modifiedBox.height);
 
     data.drawRegion = data.color.a == 1.F || !data.blur ? damage : m_renderData.damage;
 
@@ -408,8 +404,7 @@ void IElementRenderer::preDrawSurface(WP<CSurfacePassElement> element, const CRe
     auto& m_renderData              = g_pHyprRenderer->m_renderData;
     m_renderData.clipBox            = m_renderData.renderingTransformedSource ? CBox{} : element->m_data.clipBox;
     m_renderData.useNearestNeighbor = element->m_data.useNearestNeighbor;
-    g_pHyprRenderer->pushMonitorTransformEnabled(element->m_data.flipEndFrame);
-    m_renderData.currentWindow = element->m_data.pWindow;
+    m_renderData.currentWindow      = element->m_data.pWindow;
 
     drawSurface(element, damage);
 
@@ -422,7 +417,6 @@ void IElementRenderer::preDrawSurface(WP<CSurfacePassElement> element, const CRe
 
     m_renderData.clipBox            = {};
     m_renderData.useNearestNeighbor = false;
-    g_pHyprRenderer->popMonitorTransformEnabled();
     m_renderData.currentWindow.reset();
 }
 
@@ -430,10 +424,6 @@ void IElementRenderer::drawTex(WP<CTexPassElement> element, const CRegion& damag
     auto& m_renderData = g_pHyprRenderer->m_renderData;
     if (!element->m_data.clipBox.empty())
         m_renderData.clipBox = element->m_data.clipBox;
-
-    g_pHyprRenderer->pushMonitorTransformEnabled(element->m_data.flipEndFrame);
-    if (element->m_data.useMirrorProjection)
-        g_pHyprRenderer->setProjectionType(RPT_MIRROR);
 
     m_renderData.surface = element->m_data.surface;
 
@@ -443,10 +433,7 @@ void IElementRenderer::drawTex(WP<CTexPassElement> element, const CRegion& damag
         element->m_data.clipRegion = clipRegion;
     };
 
-    Hyprutils::Utils::CScopeGuard x = {[useMirrorProjection = element->m_data.useMirrorProjection]() {
-        g_pHyprRenderer->popMonitorTransformEnabled();
-        if (useMirrorProjection)
-            g_pHyprRenderer->setProjectionType(RPT_MONITOR);
+    Hyprutils::Utils::CScopeGuard x = {[]() {
         g_pHyprRenderer->m_renderData.surface.reset();
         g_pHyprRenderer->m_renderData.clipBox = {};
     }};
@@ -515,11 +502,9 @@ void IElementRenderer::drawTexMatte(WP<CTextureMatteElement> element, const CReg
 
     const auto& m_data = element->m_data;
     if (m_data.disableTransformAndModify) {
-        g_pHyprRenderer->pushMonitorTransformEnabled(true);
         g_pHyprRenderer->m_renderData.renderModif.enabled = false;
         draw(element, damage);
         g_pHyprRenderer->m_renderData.renderModif.enabled = true;
-        g_pHyprRenderer->popMonitorTransformEnabled();
     } else
         draw(element, damage);
 }
@@ -534,11 +519,17 @@ void IElementRenderer::drawTransformedWindow(WP<CTransformedWindowPassElement> e
     if (!fb)
         return;
 
-    const CRegion    oldDamage      = renderData.damage.copy();
-    const CRegion    oldFinalDamage = renderData.finalDamage.copy();
-    const auto       oldWindow      = renderData.currentWindow;
-    const auto       oldSurface     = renderData.surface;
-    const CBox       oldClipBox     = renderData.clipBox;
+    const CRegion oldDamage          = renderData.damage.copy();
+    const CRegion oldFinalDamage     = renderData.finalDamage.copy();
+    const auto    oldWindow          = renderData.currentWindow;
+    const auto    oldSurface         = renderData.surface;
+    const CBox    oldClipBox         = renderData.clipBox;
+    const auto    oldProjection      = renderData.projectionType;
+    const auto    oldFBSize          = renderData.fbSize;
+    const bool    oldTransformDamage = renderData.transformDamage;
+
+    g_pHyprRenderer->setProjectionType(RPT_MONITOR);
+    renderData.transformDamage = false;
 
     SP<IFramebuffer> last;
 
@@ -645,11 +636,14 @@ void IElementRenderer::drawTransformedWindow(WP<CTransformedWindowPassElement> e
         }
     }
 
-    renderData.damage        = oldDamage;
-    renderData.finalDamage   = oldFinalDamage;
-    renderData.currentWindow = oldWindow;
-    renderData.surface       = oldSurface;
-    renderData.clipBox       = oldClipBox;
+    renderData.damage          = oldDamage;
+    renderData.finalDamage     = oldFinalDamage;
+    renderData.currentWindow   = oldWindow;
+    renderData.surface         = oldSurface;
+    renderData.clipBox         = oldClipBox;
+    renderData.fbSize          = oldFBSize;
+    renderData.transformDamage = oldTransformDamage;
+    g_pHyprRenderer->setProjectionType(oldProjection);
 
     if (!last || !last->getTexture())
         return;
@@ -668,11 +662,10 @@ void IElementRenderer::drawTransformedWindow(WP<CTransformedWindowPassElement> e
         outputBox = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
 
     CTexPassElement::SRenderData data;
-    data.tex          = last->getTexture();
-    data.box          = outputBox;
-    data.a            = 1.F;
-    data.motionBlur   = motionBlur;
-    data.flipEndFrame = !motionBlur.enabled;
+    data.tex        = last->getTexture();
+    data.box        = outputBox;
+    data.a          = 1.F;
+    data.motionBlur = motionBlur;
 
     const CRegion drawDamage = damage.copy().intersect(outputBox);
 
@@ -683,8 +676,6 @@ void IElementRenderer::drawTransformedWindow(WP<CTransformedWindowPassElement> e
         data.blurA                 = element->m_data.blurA;
         data.blurAlphaMatte        = blurAlphaMatte;
         data.discardMode           = 0;
-        if (!motionBlur.enabled)
-            data.blurSourceBox = CBox{{}, pMonitor->m_pixelSize};
     }
 
     (void)blurAlphaMatteFB;

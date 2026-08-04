@@ -1060,7 +1060,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
     m_size            = (xfmd / m_scale).round();
     m_transformedSize = xfmd;
 
-    if ((WAS10B != m_enabled10bit || OLDPIXELSIZE != m_pixelSize)) {
+    if (WAS10B != m_enabled10bit || OLDPIXELSIZE != m_pixelSize || OLDTRANSFORMEDSIZE != m_transformedSize) {
         m_resources.reset(); // TODO skip for 10bit change and fp16?
 
         if (g_pHyprRenderer && g_pHyprRenderer->glBackend())
@@ -1069,8 +1069,10 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
 
     applyMonitorRuleSoft(std::move(pMonitorRule));
 
-    if (OLD_PIXEL_SIZE != m_pixelSize)
+    if (OLD_PIXEL_SIZE != m_pixelSize || OLDTRANSFORMEDSIZE != m_transformedSize) {
         m_background.reset();
+        m_splash.reset();
+    }
 
     updateVCGTRamps();
 
@@ -2801,8 +2803,8 @@ WP<CMonitorResources> CMonitor::resources() {
     const auto DRM_FORMAT = useFP16() ? DRM_FORMAT_ABGR16161616F : m_output->state->state().drmFormat;
     const auto DESC       = workBufferImageDescription();
 
-    if (!m_resources || m_resources->m_drmFormat != DRM_FORMAT || m_resources->m_size != m_pixelSize)
-        m_resources = makeUnique<CMonitorResources>(m_self, DRM_FORMAT, m_pixelSize, DESC);
+    if (!m_resources || m_resources->m_drmFormat != DRM_FORMAT || m_resources->m_size != m_transformedSize)
+        m_resources = makeUnique<CMonitorResources>(m_self, DRM_FORMAT, m_transformedSize, DESC);
 
     if (m_resources->m_imageDescription != DESC)
         m_resources->setImageDescription(DESC);

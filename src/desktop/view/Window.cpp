@@ -1101,7 +1101,7 @@ Vector2D CWindow::middle() {
     return m_realPosition->goal() + m_realSize->goal() / 2.f;
 }
 
-bool CWindow::opaque() {
+bool CWindow::opaque() const {
     if (alphaValue(WINDOW_ALPHA_FADE) != 1.f || alphaValue(WINDOW_ALPHA_FULLSCREEN) != 1.f || alphaValue(WINDOW_ALPHA_ACTIVE) != 1.f)
         return false;
 
@@ -1288,7 +1288,7 @@ void CWindow::onFocusAnimUpdate() {
     }
 }
 
-int CWindow::popupsCount() {
+int CWindow::popupsCount() const {
     if (m_isX11 || !m_popupHead)
         return 0;
 
@@ -1857,7 +1857,7 @@ bool CWindow::priorityFocus() {
     return !m_isX11 && CAsyncDialogBox::isPriorityDialogBox(getPID());
 }
 
-SP<CWLSurfaceResource> CWindow::getSolitaryResource() {
+SP<CWLSurfaceResource> CWindow::getSolitaryResource() const {
     if (!m_wlSurface || !m_wlSurface->resource())
         return nullptr;
 
@@ -3002,4 +3002,20 @@ std::optional<uint8_t> CWindow::alphaGenericToKey(eAlphaModifiableProp p) {
 
     static_assert(ALPHA_MODIFIABLE_LAST == 1);
     UNREACHABLE();
+}
+
+bool CWindow::shouldBlur() const {
+    static auto PBLUR = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
+    if (!*PBLUR)
+        return false;
+
+    const bool DONT_BLUR = m_ruleApplicator->noBlur().valueOrDefault() || m_ruleApplicator->RGBX().valueOrDefault() || opaque();
+    if (DONT_BLUR)
+        return false;
+
+    auto surface = wlSurface();
+    if (surface && surface->m_hasBackgroundEffect)
+        return !surface->m_blurRegion.empty();
+
+    return true;
 }

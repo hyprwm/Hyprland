@@ -322,6 +322,7 @@ namespace Desktop::View {
         void                   onMap();
         void                   setHidden(bool hidden);
         bool                   isHidden() const;
+        bool                   shouldBlur() const;
         void                   setInputBlocked(eWindowInputBlockReason reason, bool blocked);
         /// Returns `true` if the input is blocked for this window for any reason.
         bool isInputBlocked() const;
@@ -368,7 +369,7 @@ namespace Desktop::View {
         void                              updateDecorationValues();
         SBoxExtents                       getFullWindowReservedArea();
         Vector2D                          middle();
-        bool                              opaque();
+        bool                              opaque() const;
         float                             rounding();
         float                             roundingPower();
         bool                              canBeTorn();
@@ -392,7 +393,7 @@ namespace Desktop::View {
         void                              onGlowAngleAnimEnd(WP<Hyprutils::Animation::CBaseAnimatedVariable> pav);
         bool                              isInCurvedCorner(double x, double y);
         bool                              hasPopupAt(const Vector2D& pos);
-        int                               popupsCount();
+        int                               popupsCount() const;
         void                              setAnimationsToMove();
         void                              onWorkspaceAnimUpdate();
         void                              onFocusAnimUpdate();
@@ -426,7 +427,7 @@ namespace Desktop::View {
         std::optional<std::string>        xdgDescription();
         PHLWINDOW                         parent();
         bool                              priorityFocus();
-        SP<CWLSurfaceResource>            getSolitaryResource();
+        SP<CWLSurfaceResource>            getSolitaryResource() const;
         Vector2D                          getReportedSize();
         std::optional<Vector2D>           calculateExpression(const std::string& s);
         std::optional<Vector2D>           calculateExpression(const Math::SExpressionVec2& expr);

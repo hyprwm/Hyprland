@@ -18,6 +18,7 @@ enum ePassElementType : uint8_t {
     EK_INNER_GLOW,
     EK_TRANSFORMED_WINDOW,
     EK_CUSTOM,
+    EK_BACKDROP_SCOPE,
 };
 
 class IPassElement {

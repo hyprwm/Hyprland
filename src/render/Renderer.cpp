@@ -45,6 +45,7 @@
 #include "pass/RectPassElement.hpp"
 #include "pass/RendererHintsPassElement.hpp"
 #include "pass/SurfacePassElement.hpp"
+#include "pass/BackdropScopePassElement.hpp"
 #include "../debug/log/Logger.hpp"
 #include "../protocols/ColorManagement.hpp"
 #include "../protocols/types/ContentType.hpp"
@@ -597,7 +598,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     renderdata.decorate      = decorate && !pWindow->m_X11DoesntWantBorders && Fullscreen::controller()->getFullscreenModes(pWindow).internal != Fullscreen::FSMODE_FULLSCREEN;
     renderdata.rounding      = standalone || renderdata.dontRound ? 0 : pWindow->rounding() * pMonitor->m_scale;
     renderdata.roundingPower = standalone || renderdata.dontRound ? 2.0f : pWindow->roundingPower();
-    renderdata.blur          = !standalone && shouldBlur(pWindow);
+    renderdata.blur          = !standalone && !m_bRenderingSnapshot && pWindow->shouldBlur();
     renderdata.pWindow       = pWindow;
 
     if (standalone) {
@@ -642,7 +643,10 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         const bool      TRANSFORMEDWINDOW = !pWindow->m_transformers.empty();
         UP<CRenderPass> transformedPass;
         UP<CScopeGuard> passRedirect;
-        const bool      windowBlur = renderdata.blur;
+        const bool      windowBlur    = renderdata.blur;
+        const auto      backdropScope = makeShared<SBackdropScope>();
+
+        addPassElement(makeUnique<CBackdropScopePassElement>(CBackdropScopePassElement::eAction::BEGIN, backdropScope));
 
         if (TRANSFORMEDWINDOW) {
             transformedPass = makeUnique<CRenderPass>();
@@ -676,12 +680,14 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
             CBox wb = {renderdata.pos.x - pMonitor->m_position.x, renderdata.pos.y - pMonitor->m_position.y, renderdata.w, renderdata.h};
             wb.scale(pMonitor->m_scale).round();
             CRectPassElement::SRectData data;
-            data.color = CHyprColor(0, 0, 0, 0);
-            data.box   = wb;
-            data.round = renderdata.dontRound ? 0 : renderdata.rounding - 1;
-            data.blur  = true;
-            data.blurA = renderdata.fadeAlpha;
-            data.xray  = shouldUseNewBlurOptimizations(nullptr, pWindow);
+            data.color          = CHyprColor(0, 0, 0, 0);
+            data.box            = wb;
+            data.round          = renderdata.dontRound ? 0 : renderdata.rounding - 1;
+            data.blur           = true;
+            data.blurA          = renderdata.fadeAlpha;
+            data.xray           = shouldUseNewBlurOptimizations(nullptr, pWindow);
+            data.blurPatternBox = wb;
+            data.blurOwner      = pWindow;
             addPassElement(makeUnique<CRectPassElement>(data));
             renderdata.blur = false;
         }
@@ -747,6 +753,8 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
             renderdata.blur = windowBlur;
         }
+
+        addPassElement(makeUnique<CBackdropScopePassElement>(CBackdropScopePassElement::eAction::END, backdropScope));
     }
 
     m_renderData.clipBox = CBox();
@@ -763,7 +771,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
             static CConfigValue PBLURIGNOREA = CConfigValue<Config::FLOAT>("decoration:blur:popups_ignorealpha");
 
-            renderdata.blur = shouldBlur(pWindow->m_popupHead);
+            renderdata.blur = !m_bRenderingSnapshot && pWindow->m_popupHead->shouldBlur();
 
             if (renderdata.blur) {
                 renderdata.discardMode |= DISCARD_ALPHA;
@@ -885,7 +893,7 @@ bool IHyprRenderer::preBlurQueued(PHLMONITORREF pMonitor) {
 
     if (!pMonitor)
         return false;
-    return m_renderData.pMonitor->m_blurFBDirty && *PBLURNEWOPTIMIZE && *PBLUR && m_renderData.pMonitor->m_blurFBShouldRender;
+    return pMonitor->m_blurFBDirty && *PBLURNEWOPTIMIZE && *PBLUR && pMonitor->m_blurFBShouldRender;
 }
 
 void IHyprRenderer::pushMonitorTransformEnabled(bool enabled) {
@@ -960,7 +968,7 @@ void IHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
 
     CSurfacePassElement::SRenderData renderdata = {pMonitor, time, REALPOS};
     renderdata.fadeAlpha                        = pLayer->alpha()[LS_ALPHA_FADE]->value();
-    renderdata.blur                             = shouldBlur(pLayer);
+    renderdata.blur                             = !m_bRenderingSnapshot && pLayer->shouldBlur();
     renderdata.surface                          = pLayer->wlSurface()->resource();
     renderdata.decorate                         = false;
     renderdata.w                                = REALSIZ.x;
@@ -1528,6 +1536,9 @@ bool IHyprRenderer::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindo
     if (!getBlurTexture(m_renderData.pMonitor))
         return false;
 
+    if (blurProviderRequiresLiveBlur())
+        return false;
+
     if (pWindow && pWindow->m_ruleApplicator->xray().hasValue() && !pWindow->m_ruleApplicator->xray().valueOrDefault())
         return false;
 
@@ -1742,6 +1753,7 @@ void IHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
 
 bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode, SP<IHLBuffer> buffer, SP<IFramebuffer> fb, bool simple) {
     m_renderPass.clear();
+    m_backdropCaptures.clear();
     clearCMSettingsCache();
     m_renderMode          = mode;
     m_renderData.pMonitor = pMonitor;
@@ -1845,19 +1857,78 @@ Mat3x3 IHyprRenderer::projectBoxToTarget(const CBox& box, std::optional<eTransfo
         .multiply(getBoxProjection(box, transform));
 }
 
-SP<ITexture> IHyprRenderer::blurMainFramebuffer(float a, CRegion* originalDamage) {
-    if (!m_renderData.currentFB->getTexture()) {
+SP<IFramebuffer> IHyprRenderer::blurMainFramebuffer(float strength, const CRegion& originalDamage, const SBlurContext& context) {
+    const auto renderTarget = m_renderData.currentFB;
+    const auto blurSource   = !m_backdropCaptures.empty() && m_backdropCaptures.back().framebuffer ? m_backdropCaptures.back().framebuffer : renderTarget;
+
+    if (!blurSource || !blurSource->getTexture()) {
         Log::logger->log(Log::ERR, "BUG THIS: null fb texture while attempting to blur main fb?! (introspection off?!)");
-        return m_renderData.pMonitor->resources()->m_blurFB->getTexture(); // return something to sample from at least
+        return m_renderData.pMonitor->resources()->m_blurFB; // return something to sample from at least
     }
 
-    auto guard = bindTempFB(m_renderData.currentFB); // blurFramebuffer messes with FB bindings
-    return blurFramebuffer(m_renderData.currentFB, a, originalDamage);
+    auto guard = bindTempFB(renderTarget); // blurFramebuffer messes with FB bindings
+    return blurFramebuffer(blurSource, strength, originalDamage, context);
 }
 
-void IHyprRenderer::preBlurForCurrentMonitor(CRegion* fakeDamage) {
+void IHyprRenderer::beginBackdropScope(SP<SBackdropScope> scope) {
+    RASSERT(scope, "Cannot begin a null backdrop scope");
 
-    const auto blurredTex = blurMainFramebuffer(1, fakeDamage);
+    SP<IFramebuffer> backdrop;
+    if (scope->required && !scope->damage.empty() && m_renderData.currentFB && m_renderData.currentFB->getTexture()) {
+        backdrop = m_renderData.pMonitor->resources()->getUnusedWorkBuffer();
+        if (backdrop) {
+            const auto renderTarget     = m_renderData.currentFB;
+            const auto savedDamage      = m_renderData.damage.copy();
+            const auto savedRenderModif = m_renderData.renderModif;
+            const auto savedNearest     = m_renderData.useNearestNeighbor;
+            const auto backend          = glBackend();
+            const auto savedBlend       = backend && backend->blendEnabled();
+
+            {
+                auto guard                      = bindTempFB(backdrop);
+                m_renderData.damage             = scope->damage;
+                m_renderData.renderModif        = {};
+                m_renderData.useNearestNeighbor = true;
+                blend(false);
+                renderOffToMain(renderTarget);
+                blend(savedBlend);
+            }
+
+            m_renderData.damage             = savedDamage;
+            m_renderData.renderModif        = savedRenderModif;
+            m_renderData.useNearestNeighbor = savedNearest;
+        } else {
+            static bool warned = false;
+            if (!warned) {
+                warned = true;
+                Log::logger->log(Log::WARN, "Failed to allocate a clean backdrop buffer; live blur will include the current window's rendered content");
+            }
+        }
+    }
+
+    m_backdropCaptures.emplace_back(SBackdropCapture{.scope = std::move(scope), .framebuffer = std::move(backdrop)});
+}
+
+void IHyprRenderer::endBackdropScope(SP<SBackdropScope> scope) {
+    RASSERT(!m_backdropCaptures.empty() && m_backdropCaptures.back().scope == scope, "Unbalanced runtime backdrop scope");
+    m_backdropCaptures.pop_back();
+}
+
+void IHyprRenderer::scheduleFrameForAnimatedBlur(const CRegion& damage, bool usesPrecomputedBlur) {
+    const auto monitor = m_renderData.pMonitor;
+    if (m_renderMode != RENDER_MODE_NORMAL || !monitor || monitor->isMirror() || damage.empty())
+        return;
+
+    if (usesPrecomputedBlur)
+        monitor->m_blurFBDirty = true;
+
+    monitor->addDamage(damage);
+}
+
+void IHyprRenderer::preBlurForCurrentMonitor(const CRegion& fakeDamage) {
+
+    const auto blurredFB  = blurMainFramebuffer(1, fakeDamage);
+    const auto blurredTex = blurredFB->getTexture();
 
     // render onto blurFB
     auto       guard          = bindTempFB(m_renderData.pMonitor->resources()->m_blurFB);
@@ -1872,9 +1943,9 @@ void IHyprRenderer::preBlurForCurrentMonitor(CRegion* fakeDamage) {
         CTexPassElement::SRenderData{
             .tex    = blurredTex,
             .box    = CBox{0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y},
-            .damage = *fakeDamage,
+            .damage = fakeDamage,
         },
-        *fakeDamage); // .noAA = true
+        fakeDamage); // .noAA = true
 
     popMonitorTransformEnabled();
 
@@ -3277,6 +3348,7 @@ void IHyprRenderer::renderFadeouts(PHLMONITOR monitor, Desktop::eFadeoutPlane pl
         data.blur                  = EFFECTS.textureBlur.enabled;
         data.blurA                 = EFFECTS.textureBlur.alpha;
         data.forceBlurBlend        = EFFECTS.textureBlur.forceBlend;
+        data.blurShapeInvalid      = true;
         data.ignoreAlpha           = EFFECTS.textureBlur.ignoreAlpha;
         data.blockBlurOptimization = EFFECTS.textureBlur.blockBlurOptimization;
 
@@ -3289,47 +3361,6 @@ NColorManagement::PImageDescription IHyprRenderer::workBufferImageDescription() 
         return LINEAR_IMAGE_DESCRIPTION;
 
     return m_renderData.pMonitor->workBufferImageDescription();
-}
-
-bool IHyprRenderer::shouldBlur(PHLLS ls) {
-    if (m_bRenderingSnapshot)
-        return false;
-
-    static auto PBLUR = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
-    if (!*PBLUR)
-        return false;
-
-    auto surface = ls->wlSurface();
-    if (surface && surface->m_hasBackgroundEffect)
-        return !surface->m_blurRegion.empty();
-
-    return ls->m_ruleApplicator->blur().valueOrDefault();
-}
-
-bool IHyprRenderer::shouldBlur(PHLWINDOW w) {
-    if (m_bRenderingSnapshot)
-        return false;
-
-    static auto PBLUR = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
-    if (!*PBLUR)
-        return false;
-
-    const bool DONT_BLUR = w->m_ruleApplicator->noBlur().valueOrDefault() || w->m_ruleApplicator->RGBX().valueOrDefault() || w->opaque();
-    if (DONT_BLUR)
-        return false;
-
-    auto surface = w->wlSurface();
-    if (surface && surface->m_hasBackgroundEffect)
-        return !surface->m_blurRegion.empty();
-
-    return true;
-}
-
-bool IHyprRenderer::shouldBlur(WP<Desktop::View::CPopup> p) {
-    static CConfigValue PBLURPOPUPS = CConfigValue<Config::INTEGER>("decoration:blur:popups");
-    static CConfigValue PBLUR       = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
-
-    return *PBLURPOPUPS && *PBLUR;
 }
 
 SP<ITexture> IHyprRenderer::renderSplash(const std::function<SP<ITexture>(const int, const int, unsigned char* const)>& handleData, const int fontSize, const int maxWidth,

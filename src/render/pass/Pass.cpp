@@ -12,6 +12,7 @@
 #include "../../protocols/core/Compositor.hpp"
 #include "../../state/MonitorState.hpp"
 #include "RectPassElement.hpp"
+#include "BackdropScopePassElement.hpp"
 #include "macros.hpp"
 
 using namespace Render;
@@ -22,6 +23,10 @@ bool CRenderPass::empty() const {
 
 bool CRenderPass::single() const {
     return m_passElements.size() == 1;
+}
+
+bool CRenderPass::needsLiveBlur() {
+    return std::ranges::any_of(m_passElements, [](const auto& el) { return el.element->needsLiveBlur(); });
 }
 
 void CRenderPass::add(UP<IPassElement>&& el) {
@@ -104,6 +109,30 @@ void CRenderPass::clear() {
     m_passElements.clear();
 }
 
+void CRenderPass::planBackdropScopes() {
+    CBackdropScopePlanner planner;
+    const CBox            bounds = {{}, g_pHyprRenderer->m_renderData.pMonitor->m_transformedSize};
+
+    for (auto& el : m_passElements) {
+        if (el.element->type() != EK_BACKDROP_SCOPE) {
+            if (!el.discard && el.element->needsLiveBlurCached)
+                planner.addLiveBlur(el.elementDamage);
+            continue;
+        }
+
+        const auto marker = sc<CBackdropScopePassElement*>(el.element.get());
+        const auto scope  = marker->scope();
+        RASSERT(scope, "Backdrop scope marker has no scope");
+
+        if (marker->action() == CBackdropScopePassElement::eAction::BEGIN)
+            planner.begin(scope);
+        else
+            planner.end(scope, bounds);
+    }
+
+    RASSERT(planner.empty(), "Unclosed backdrop scope marker");
+}
+
 CRegion CRenderPass::render(const CRegion& damage_) {
     const auto  pMonitor   = g_pHyprRenderer->m_renderData.pMonitor;
     static auto PDEBUGPASS = CConfigValue<Config::INTEGER>("debug:pass");
@@ -156,16 +185,18 @@ CRegion CRenderPass::render(const CRegion& damage_) {
         blurRegion.scale(pMonitor->m_scale);
 
         // save a copy for simplify's occlusion test before we mutate for damage expansion
-        liveBlurRegion = blurRegion.copy().expand(oneBlurRadius() * 2.F);
+        liveBlurRegion = blurRegion.copy();
+        g_pHyprRenderer->expandBlurDamage(liveBlurRegion, 2.F);
 
-        blurRegion.intersect(m_damage).expand(oneBlurRadius());
+        blurRegion.intersect(m_damage);
+        g_pHyprRenderer->expandBlurDamage(blurRegion);
 
         g_pHyprRenderer->m_renderData.finalDamage = blurRegion.copy().add(m_damage);
 
         // FIXME: why does this break on * 1.F ?
         // used to work when we expand all the damage... I think? Well, before pass.
         // moving a window over blur shows the edges being wonk.
-        blurRegion.expand(oneBlurRadius() * 1.5F);
+        g_pHyprRenderer->expandBlurDamage(blurRegion, 1.5F);
 
         m_damage = blurRegion.copy().add(m_damage);
     } else
@@ -178,11 +209,17 @@ CRegion CRenderPass::render(const CRegion& damage_) {
     } else
         simplify(willBlur, liveBlurRegion);
 
+    planBackdropScopes();
+
     if (g_pHyprRenderer->m_renderData.pMonitor)
         g_pHyprRenderer->m_renderData.pMonitor->m_blurFBShouldRender = willPrecomputeBlur;
 
     if (m_passElements.empty())
         return {};
+
+    const bool providerIsAnimated = g_pHyprRenderer->blurProviderIsAnimated();
+    CRegion    animatedBlurDamage;
+    bool       usesPrecomputedBlur = false;
 
     for (auto& el : m_passElements) {
         if (el.discard) {
@@ -192,7 +229,24 @@ CRegion CRenderPass::render(const CRegion& damage_) {
 
         g_pHyprRenderer->m_renderData.damage = el.elementDamage;
         g_pHyprRenderer->draw(el.element, el.elementDamage);
+
+        if (!providerIsAnimated || (!el.element->needsLiveBlurCached && !el.element->needsPrecomputeBlurCached))
+            continue;
+
+        const auto BB = el.element->boundingBox();
+        if (!BB)
+            animatedBlurDamage.add(CBox{{}, pMonitor->m_transformedSize});
+        else {
+            auto box = BB->copy().scale(pMonitor->m_scale);
+            g_pHyprRenderer->m_renderData.renderModif.applyToBox(box);
+            animatedBlurDamage.add(box);
+        }
+
+        usesPrecomputedBlur = usesPrecomputedBlur || el.element->needsPrecomputeBlurCached;
     }
+
+    animatedBlurDamage.intersect(CBox{{}, pMonitor->m_transformedSize});
+    g_pHyprRenderer->scheduleFrameForAnimatedBlur(animatedBlurDamage, usesPrecomputedBlur);
 
     if (*PDEBUGPASS) {
         renderDebugData();
@@ -308,16 +362,6 @@ void CRenderPass::renderDebugData() {
                 .box = CBox{{pMonitor->m_size.x - tex->m_size.x, pMonitor->m_size.y - tex->m_size.y}, tex->m_size}.scale(pMonitor->m_scale),
             },
             m_damage);
-}
-
-float CRenderPass::oneBlurRadius() {
-    // TODO: is this exact range correct?
-    static auto PBLURSIZE   = CConfigValue<Config::INTEGER>("decoration:blur:size");
-    static auto PBLURPASSES = CConfigValue<Config::INTEGER>("decoration:blur:passes");
-
-    const auto  BLUR_PASSES = std::clamp(*PBLURPASSES, sc<int64_t>(1), sc<int64_t>(8));
-
-    return std::clamp(*PBLURSIZE, sc<int64_t>(1), sc<int64_t>(40)) * pow(2, BLUR_PASSES); // is this 2^pass? I don't know but it works... I think.
 }
 
 void CRenderPass::removeAllOfType(const std::string& type) {

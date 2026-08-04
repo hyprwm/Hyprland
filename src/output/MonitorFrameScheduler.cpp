@@ -11,77 +11,38 @@ CMonitorFrameScheduler::CMonitorFrameScheduler(PHLMONITOR m) : m_monitor(m) {
     ;
 }
 
+CMonitorFrameScheduler::~CMonitorFrameScheduler() {
+    if (g_pEventLoopManager && m_renderTimer) {
+        m_renderTimer->cancel();
+        g_pEventLoopManager->removeTimer(m_renderTimer);
+    }
+}
+
 bool CMonitorFrameScheduler::newSchedulingEnabled() {
     static auto PENABLENEW = CConfigValue<Config::INTEGER>("render:new_render_scheduling");
 
-    return *PENABLENEW && g_pHyprRenderer->explicitSyncSupported() && m_monitor && !m_monitor->m_directScanoutIsActive;
+    //#TODO: figure out if this can be done on vrr/tearing
+    return *PENABLENEW && g_pHyprRenderer->explicitSyncSupported() && m_monitor && !m_monitor->m_tearingState.activelyTearing && !m_monitor->m_vrrActive;
 }
 
-void CMonitorFrameScheduler::onSyncFired() {
+void CMonitorFrameScheduler::onPresented(const Time::steady_tp& when, int refreshNs) {
     const auto PMONITOR = m_monitor.lock();
     if (!PMONITOR || !newSchedulingEnabled())
         return;
 
-    // Sync fired: reset submitted state, set as rendered. Check the last render time. If we are running
-    // late, we will instantly render here.
+    // drm hands us the period in ns, but its 0 if the connector has no refresh.
+    const float HZ  = PMONITOR->m_refreshRate > 0.F ? PMONITOR->m_refreshRate : 60.F;
+    m_refreshPeriod = refreshNs > 0 ? std::chrono::nanoseconds(refreshNs) : std::chrono::nanoseconds(static_cast<int64_t>(1'000'000'000.0 / HZ));
 
-    if (std::chrono::duration_cast<std::chrono::microseconds>(hrc::now() - m_lastRenderBegun).count() / 1000.F < 1000.F / PMONITOR->m_refreshRate) {
-        // we are in. Frame is valid. We can just render as normal.
-        Log::logger->log(Log::TRACE, "CMonitorFrameScheduler: {} -> onSyncFired, didn't miss.", PMONITOR->m_name);
-        m_renderAtFrame = true;
-        return;
-    }
-
-    Log::logger->log(Log::TRACE, "CMonitorFrameScheduler: {} -> onSyncFired, missed.", PMONITOR->m_name);
-
-    // we are out. The frame is taking too long to render. Begin rendering immediately, but don't commit yet.
-    m_pendingThird  = true;
-    m_renderAtFrame = false; // block frame rendering, we already scheduled
-
-    m_lastRenderBegun = hrc::now();
-
-    // get a ref to ourselves. renderMonitor can destroy this scheduler if it decides to perform a monitor reload
-    // FIXME: this is horrible. "renderMonitor" should not be able to do that.
-    auto self = m_self;
-
-    g_pHyprRenderer->renderMonitor(PMONITOR, false);
-
-    if (!self)
-        return;
-
-    onFinishRender();
-}
-
-void CMonitorFrameScheduler::onPresented() {
-    const auto PMONITOR = m_monitor.lock();
-    if (!PMONITOR || !newSchedulingEnabled())
-        return;
-
-    if (!m_pendingThird)
-        return;
-
-    Log::logger->log(Log::TRACE, "CMonitorFrameScheduler: {} -> onPresented, missed, committing pending.", PMONITOR->m_name);
-
-    m_pendingThird = false;
-
-    Log::logger->log(Log::TRACE, "CMonitorFrameScheduler: {} -> onPresented, missed, committing pending at the earliest convenience.", PMONITOR->m_name);
-
-    g_pEventLoopManager->doLater([m = PHLMONITORREF{PMONITOR}] {
-        if (!m || !m->m_output)
-            return;
-
-        auto ml = m.lock();
-
-        g_pHyprRenderer->commitPendingAndDoExplicitSync(ml); // commit the pending frame. If it didn't fire yet (is not rendered) it doesn't matter. Syncs will wait.
-
-        // schedule a frame: we might have some missed damage, which got cleared due to the above commit.
-        // TODO: this is not always necessary, but doesn't hurt in general. We likely won't hit this if nothing's happening anyways.
-        if (ml->m_damage.hasChanged())
-            ml->scheduleFrame();
-    });
+    m_earliestNextFlip = when + m_refreshPeriod;
+    m_delayNextFrame   = true; // this comes with the assumption next frame from AQ actually comes from the pageflip, the AQ currently does.
 }
 
 void CMonitorFrameScheduler::onFrame() {
+    // whatever we do below, the arming from onPresented belongs to this frame only.
+    const auto EARLIEST_FLIP = std::exchange(m_earliestNextFlip, {});
+    const bool DELAY         = std::exchange(m_delayNextFrame, false);
+
     const auto PMONITOR = m_monitor.lock();
     if (!PMONITOR || !canRender())
         return;
@@ -100,47 +61,55 @@ void CMonitorFrameScheduler::onFrame() {
     }
 
     if (!newSchedulingEnabled()) {
-        PMONITOR->m_lastPresentationTimer.reset();
+        // config change might still have this armed.
+        if (!m_renderTimer || (m_renderTimer && !m_renderTimer->armed()))
+            renderNow();
 
-        g_pHyprRenderer->renderMonitor(PMONITOR);
         return;
     }
 
-    if (!m_renderAtFrame) {
-        Log::logger->log(Log::TRACE, "CMonitorFrameScheduler: {} -> frame event, but m_renderAtFrame = false.", PMONITOR->m_name);
-        return;
+    Log::logger->log(Log::TRACE, "CMonitorFrameScheduler: {} -> frame event, scheduling a render on the event loop.", PMONITOR->m_name);
+
+    if (!m_renderTimer) {
+        m_renderTimer = makeShared<CEventLoopTimer>(
+            std::nullopt,
+            [this, self = m_self](SP<CEventLoopTimer>, void*) {
+                if (self.expired())
+                    return;
+
+                renderNow();
+            },
+            nullptr);
+
+        g_pEventLoopManager->addTimer(m_renderTimer);
     }
 
-    Log::logger->log(Log::TRACE, "CMonitorFrameScheduler: {} -> frame event, render = true, rendering normally.", PMONITOR->m_name);
+    if (DELAY && m_refreshPeriod > Time::steady_dur::zero() && !m_renderTimer->armed()) /*pageflip emitted .frame()*/ {
+        //const auto NOW    = Time::steadyNow();
+        //const auto TARGET = EARLIEST_FLIP - estimatedRenderCost();
+        //m_renderTimer->updateTimeout(TARGET > NOW ? TARGET - NOW : std::chrono::nanoseconds(50));
 
-    m_lastRenderBegun = hrc::now();
+        //#TODO: until rendermonitor rewrite happends, we cant measure rendercost reliably.
+        m_renderTimer->updateTimeout(std::chrono::nanoseconds(50));
+    } else if (!m_renderTimer->armed())                             // idle frame callback emitted .frame()
+        m_renderTimer->updateTimeout(std::chrono::nanoseconds(50)); // just add a tiny delay, since the wl_event_loop has no order guarantee, but delaying it means should be last.
+}
+
+bool CMonitorFrameScheduler::renderPending() {
+    return m_renderTimer && m_renderTimer->armed();
+}
+
+void CMonitorFrameScheduler::renderNow() {
+    const auto PMONITOR = m_monitor.lock();
+    if (!PMONITOR || !canRender())
+        return;
+
+    PMONITOR->m_lastPresentationTimer.reset();
 
     // get a ref to ourselves. renderMonitor can destroy this scheduler if it decides to perform a monitor reload
     // FIXME: this is horrible. "renderMonitor" should not be able to do that.
     auto self = m_self;
-
     g_pHyprRenderer->renderMonitor(PMONITOR);
-
-    if (!self)
-        return;
-
-    onFinishRender();
-}
-
-void CMonitorFrameScheduler::onFinishRender() {
-    m_sync = g_pHyprRenderer->createSyncFDManager(); // this destroys the old sync
-    if (!m_sync || !m_sync->isValid()) {
-        Log::logger->log(Log::ERR, "CMonitorFrameScheduler: explicit sync failed, falling back to frame events");
-        m_sync.reset();
-        m_renderAtFrame = true;
-        return;
-    }
-
-    g_pEventLoopManager->doOnReadable(m_sync->fd().duplicate(), [this, self = m_self] {
-        if (!self) // might've gotten destroyed
-            return;
-        onSyncFired();
-    });
 }
 
 bool CMonitorFrameScheduler::canRender() {

@@ -1,40 +1,34 @@
 #pragma once
 
 #include "Monitor.hpp"
-#include "../render/SyncFDManager.hpp"
-
-#include <chrono>
+#include "../managers/eventLoop/EventLoopTimer.hpp"
 
 namespace Monitor {
     class CMonitorFrameScheduler {
       public:
-        using hrc = std::chrono::high_resolution_clock;
-
         CMonitorFrameScheduler(PHLMONITOR m);
+        ~CMonitorFrameScheduler();
 
         CMonitorFrameScheduler(const CMonitorFrameScheduler&)            = delete;
         CMonitorFrameScheduler(CMonitorFrameScheduler&&)                 = delete;
         CMonitorFrameScheduler& operator=(const CMonitorFrameScheduler&) = delete;
         CMonitorFrameScheduler& operator=(CMonitorFrameScheduler&&)      = delete;
 
-        void                    onSyncFired();
-        void                    onPresented();
+        void                    onPresented(const Time::steady_tp& when, int refreshNs);
         void                    onFrame();
+        bool                    renderPending();
 
       private:
+        void                       renderNow();
         bool                       canRender();
-        void                       onFinishRender();
         bool                       newSchedulingEnabled();
 
-        bool                       m_renderAtFrame = true;
-        bool                       m_pendingThird  = false;
-        hrc::time_point            m_lastRenderBegun;
-
         PHLMONITORREF              m_monitor;
-
-        UP<Render::ISyncFDManager> m_sync;
-
         WP<CMonitorFrameScheduler> m_self;
+        SP<CEventLoopTimer>        m_renderTimer;
+        Time::steady_tp            m_earliestNextFlip;
+        Time::steady_dur           m_refreshPeriod{};
+        bool                       m_delayNextFrame = false;
 
         friend class CMonitor;
     };

@@ -1255,6 +1255,72 @@ TEST_CASE(scroll_LAYOUT_HANDLED_focusInDirectionFocusFollowFocusTrue) {
     }
 }
 
+TEST_CASE(scroll_LAYOUT_HANDLED_respectFocusFitMethodOnUnFs) {
+
+    OK(getFromSocket("/eval hl.config({ general = { layout = 'scrolling' } })"));
+
+    Tests::spawnKitty("kitty_A");
+    Tests::spawnKitty("kitty_B");
+
+    // Fullscreen
+
+    // focus_fit_method = 0
+
+    OK(getFromSocket("/eval hl.config({ scrolling = { focus_fit_method = 0 } })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set', window = 'activewindow', layout_aware = true })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'unset', window = 'activewindow', layout_aware = true })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: kitty_B");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
+        EXPECT_CONTAINS(str, "at: 497,22")
+    }
+
+    // focus_fit_method = 1
+    OK(getFromSocket("/eval hl.config({ scrolling = { focus_fit_method = 1 } })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set', window = 'activewindow', layout_aware = true })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'unset', window = 'activewindow', layout_aware = true })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: kitty_B");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
+        EXPECT_CONTAINS(str, "at: 27,22");
+    }
+
+    // Maximised
+
+    // focus_fit_method = 0
+
+    OK(getFromSocket("/eval hl.config({ scrolling = { focus_fit_method = 0 } })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', action = 'set', window = 'activewindow', layout_aware = true })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', action = 'unset', window = 'activewindow', layout_aware = true })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: kitty_B");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
+        EXPECT_CONTAINS(str, "at: 497,22")
+    }
+
+    // focus_fit_method = 1
+    OK(getFromSocket("/eval hl.config({ scrolling = { focus_fit_method = 1 } })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', action = 'set', window = 'activewindow', layout_aware = true })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', action = 'unset', window = 'activewindow', layout_aware = true })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: kitty_B");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
+        EXPECT_CONTAINS(str, "at: 27,22");
+    }
+}
+
 TEST_CASE(scroll_DEFAULT_HANDLED_fullscreenMaximiseDispatchers) {
 
     // Shared test among all default handled FS

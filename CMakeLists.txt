@@ -130,7 +130,7 @@ set(GLES_VERSION "GLES3")
 find_package(OpenGL REQUIRED COMPONENTS ${GLES_VERSION})
 find_package(glslang CONFIG REQUIRED)
 
-find_package(glaze 7...<8 QUIET)
+find_package(glaze QUIET)
 if(NOT glaze_FOUND)
   set(GLAZE_VERSION v7.2.0)
   message(STATUS "glaze dependency not found, retrieving ${GLAZE_VERSION} with FetchContent")

@@ -8,3 +8,6 @@
 
 # Hyprtester (framework): CC @kolayne
 ? hyprtester/src/* @kolayne
+
+# Fullscreen (framework and implementation): CC @erstarr
+? src/managers/fullscreen/** @erstarr

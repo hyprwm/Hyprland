@@ -38,17 +38,17 @@ namespace Render {
             return nullptr;
         }
 
-        bool                     empty() const;
-        bool                     blocksDirectScanout() const;
-        CBox                     transformedExtents(const CBox& currentBox) const;
-        CBox                     sourceBoxForRender(const CBox& currentBox, const CBox& monitorBox) const;
-        CBox                     transformBoxForDamage(const CBox& currentBox) const;
+        bool                   empty() const;
+        bool                   blocksDirectScanout() const;
+        CBox                   transformedExtents(const CBox& currentBox) const;
+        SWindowTransformPlan   plan(const CBox& currentBox, const CBox& outputBox) const;
+        CBox                   transformBoxForDamage(const CBox& currentBox) const;
 
-        void                     preWindowRender(CSurfacePassElement::SRenderData* pRenderData) const;
-        void                     amendTransformedRenderData(const CBox& currentBox, SMotionBlurData* pMotionBlurData) const;
-        SP<Render::IFramebuffer> transform(SP<Render::IFramebuffer> in, const SWindowTransformContext& context) const;
+        void                   preWindowRender(CSurfacePassElement::SRenderData* pRenderData) const;
+        void                   amendTransformedRenderData(const CBox& currentBox, SMotionBlurData* pMotionBlurData) const;
+        SWindowTransformBuffer transform(const SWindowTransformBuffer& in, const SWindowTransformPlan& plan, const SWindowTransformContext& context) const;
 
-        void                     removeInactive();
+        void                   removeInactive();
 
       private:
         void                                        sort();

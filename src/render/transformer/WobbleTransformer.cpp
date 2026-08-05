@@ -21,11 +21,7 @@ using namespace Hyprutils::Animation;
 static CHyprSignalListener g_wobbleTickListener;
 static constexpr double    WOBBLE_EXTENTS_PADDING = 4.0;
 
-static double              sourceOffsetForAxis(double min, double size, double monitorSize) {
-    return monitorSize / 2.0 - (min + size / 2.0);
-}
-
-static void tickWobbles() {
+static void                tickWobbles() {
     bool anyActive = false;
 
     for (auto const& window : Desktop::windowState()->windows()) {
@@ -68,46 +64,55 @@ void CWobbleTransformer::ensureTickListener() {
     g_wobbleTickListener = Event::bus()->m_events.tick.listen([] { tickWobbles(); });
 }
 
-SP<Render::IFramebuffer> CWobbleTransformer::transform(SP<Render::IFramebuffer> in, const SWindowTransformContext& context) {
-    if (!m_active || context.standalone || context.renderingSnapshot || !context.monitor || !in || !in->getTexture())
+SWindowTransformBuffer CWobbleTransformer::transform(const SWindowTransformBuffer& in, const SWindowTransformContext& context) {
+    if (!m_active || context.standalone || context.renderingSnapshot || !context.monitor || !in.framebuffer || !in.framebuffer->getTexture())
         return in;
 
     const auto PWINDOW = m_window.lock();
     if (!shouldEnable(PWINDOW))
         return in;
 
-    const auto OUT = context.monitor->resources()->getUnusedWorkBuffer();
+    const double CANVASPADDING = 1.0 / context.monitor->m_scale;
+    const auto   OUTPUTCANVAS  = pixelBoxForLogical(context.outputBox.copy().expand(CANVASPADDING), context.monitor->m_scale);
+    if (OUTPUTCANVAS.empty())
+        return in;
+
+    const auto OUT = context.monitor->resources()->getUnusedWorkBuffer(OUTPUTCANVAS.size());
     if (!OUT)
+        return {.framebuffer = in.framebuffer, .box = in.box, .success = false};
+
+    const double SCALE          = context.monitor->m_scale;
+    const CBox   SOURCEBOX      = context.currentBox.copy().scale(SCALE);
+    const CBox   OUTPUTBOX      = transformedExtents(context.currentBox).scale(SCALE);
+    const CBox   LOCALOUTPUTBOX = OUTPUTBOX.copy().translate(-OUTPUTCANVAS.pos());
+
+    if (SOURCEBOX.empty() || OUTPUTBOX.empty() || OUTPUTCANVAS.empty())
         return in;
 
-    const double SCALE           = context.monitor->m_scale;
-    CBox         sourceBox       = context.sourceBox.empty() ? context.currentBox.copy() : context.sourceBox.copy();
-    const auto   SOURCEOFFSET    = sourceBox.pos() - context.currentBox.pos();
-    CBox         sourceOutputBox = transformedExtents(context.currentBox).translate(SOURCEOFFSET).scale(SCALE).round();
-    CBox         outputBox       = transformedExtents(context.currentBox).scale(SCALE).round();
-    sourceBox.scale(SCALE).round();
-
-    if (sourceBox.empty() || outputBox.empty())
-        return in;
-
-    const auto VERTICES = m_mesh.verticesForBox(sourceBox, sourceOutputBox, in->getTexture()->m_size, SCALE);
+    const auto VERTICES = m_mesh.verticesForBox(SOURCEBOX, OUTPUTBOX, in.framebuffer->getTexture()->m_size, SCALE, HYPRUTILS_TRANSFORM_NORMAL, in.box.pos());
     if (VERTICES.empty())
-        return in;
+        return {.framebuffer = in.framebuffer, .box = in.box, .success = false};
 
-    auto&         renderData = g_pHyprRenderer->m_renderData;
-    const CRegion oldDamage  = renderData.damage.copy();
+    auto&         renderData    = g_pHyprRenderer->m_renderData;
+    const CRegion oldDamage     = renderData.damage.copy();
+    const auto    oldProjection = renderData.projectionType;
+    const auto    oldFBSize     = renderData.fbSize;
 
     {
         auto guard        = g_pHyprRenderer->bindTempFB(OUT);
-        renderData.damage = CRegion{0, 0, sc<int>(context.monitor->m_transformedSize.x), sc<int>(context.monitor->m_transformedSize.y)};
+        renderData.damage = CRegion{0, 0, sc<int>(OUTPUTCANVAS.w), sc<int>(OUTPUTCANVAS.h)};
+        renderData.fbSize = OUTPUTCANVAS.size();
+        g_pHyprRenderer->setProjectionType(RPT_EXPORT);
 
         g_pHyprRenderer->draw(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)});
-        GL::g_pHyprOpenGL->renderTextureMesh(in->getTexture(), outputBox, VERTICES,
+        GL::g_pHyprOpenGL->renderTextureMesh(in.framebuffer->getTexture(), LOCALOUTPUTBOX, VERTICES,
                                              GL::CHyprOpenGLImpl::STextureRenderData{.damage = &renderData.damage, .a = 1.F, .allowCustomUV = true});
     }
 
     renderData.damage = oldDamage;
-    return OUT;
+    renderData.fbSize = oldFBSize;
+    g_pHyprRenderer->setProjectionType(oldProjection);
+    return {.framebuffer = OUT, .box = OUTPUTCANVAS};
 }
 
 int CWobbleTransformer::priority() const {
@@ -130,17 +135,11 @@ CBox CWobbleTransformer::transformedExtents(const CBox& currentBox) const {
     return m_mesh.transformedExtents(currentBox).expand(WOBBLE_EXTENTS_PADDING);
 }
 
-CBox CWobbleTransformer::sourceBoxForRender(const CBox& currentBox, const CBox& monitorBox) const {
-    if (!m_active || monitorBox.w <= 0.0 || monitorBox.h <= 0.0)
-        return currentBox;
+CBox CWobbleTransformer::sourceBoxForOutput(const CBox& outputBox, const CBox& inputBox) const {
+    if (!m_active)
+        return outputBox.intersection(inputBox);
 
-    const auto     EXTENTS = transformedExtents(currentBox);
-    const Vector2D OFFSET  = {
-        sourceOffsetForAxis(EXTENTS.x, EXTENTS.w, monitorBox.w),
-        sourceOffsetForAxis(EXTENTS.y, EXTENTS.h, monitorBox.h),
-    };
-
-    return currentBox.copy().translate(OFFSET);
+    return m_mesh.sourceBoxForOutput(inputBox, outputBox).expand(WOBBLE_EXTENTS_PADDING).intersection(inputBox);
 }
 
 void CWobbleTransformer::record(const CBox& previous, const CBox& current, std::optional<Vector2D> grabPoint) {

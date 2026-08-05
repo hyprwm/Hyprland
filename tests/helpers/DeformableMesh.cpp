@@ -91,6 +91,33 @@ TEST(Helpers, deformableMeshVerticesForBoxBuildsTriangles) {
     EXPECT_FLOAT_EQ(VERTICES.back().v, 1.F);
 }
 
+TEST(Helpers, deformableMeshVerticesUseTextureOrigin) {
+    CDeformableMesh mesh(2);
+
+    const auto      VERTICES = mesh.verticesForBox({100, 200, 300, 400}, {100, 200, 300, 400}, {300, 400}, 1.0, HYPRUTILS_TRANSFORM_NORMAL, {100, 200});
+
+    ASSERT_EQ(VERTICES.size(), 6u);
+    EXPECT_FLOAT_EQ(VERTICES.front().u, 0.F);
+    EXPECT_FLOAT_EQ(VERTICES.front().v, 0.F);
+    EXPECT_FLOAT_EQ(VERTICES.back().u, 1.F);
+    EXPECT_FLOAT_EQ(VERTICES.back().v, 1.F);
+}
+
+TEST(Helpers, deformableMeshSourceBoxIsLimitedToInput) {
+    CDeformableMesh mesh(4);
+
+    const CBox      PREVIOUS = {0, 0, 100, 100};
+    const CBox      CURRENT  = {10, 0, 100, 100};
+    mesh.onPositionUpdate(PREVIOUS, CURRENT, 1.F);
+
+    const auto SOURCE = mesh.sourceBoxForOutput(CURRENT, {20, 20, 20, 20});
+    EXPECT_FALSE(SOURCE.empty());
+    EXPECT_GE(SOURCE.x, CURRENT.x);
+    EXPECT_GE(SOURCE.y, CURRENT.y);
+    EXPECT_LE(SOURCE.x + SOURCE.w, CURRENT.x + CURRENT.w);
+    EXPECT_LE(SOURCE.y + SOURCE.h, CURRENT.y + CURRENT.h);
+}
+
 TEST(Helpers, deformableMeshVerticesForBoxTransformsUVs) {
     struct STransformCase {
         eTransform transform = HYPRUTILS_TRANSFORM_NORMAL;

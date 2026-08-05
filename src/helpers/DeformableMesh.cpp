@@ -134,8 +134,27 @@ CBox CDeformableMesh::transformedExtents(const CBox& box) const {
     return {minX, minY, maxX - minX, maxY - minY};
 }
 
+CBox CDeformableMesh::sourceBoxForOutput(const CBox& box, const CBox& outputBox) const {
+    if (m_points.empty())
+        return outputBox.intersection(box);
+
+    Vector2D maxDisplacement;
+    for (const auto& point : m_points) {
+        maxDisplacement.x = std::max(maxDisplacement.x, std::abs(point.displacement.x));
+        maxDisplacement.y = std::max(maxDisplacement.y, std::abs(point.displacement.y));
+    }
+
+    CBox source = {
+        outputBox.x - maxDisplacement.x,
+        outputBox.y - maxDisplacement.y,
+        outputBox.w + maxDisplacement.x * 2.0,
+        outputBox.h + maxDisplacement.y * 2.0,
+    };
+    return source.intersection(box);
+}
+
 std::vector<SMeshRenderVertex> CDeformableMesh::verticesForBox(const CBox& box, const CBox& outputBox, const Vector2D& textureSize, double displacementScale,
-                                                               eTransform textureTransform) const {
+                                                               eTransform textureTransform, const Vector2D& textureOrigin) const {
     std::vector<SMeshRenderVertex> vertices;
     if (m_verticesPerEdge < 2 || outputBox.w <= 0.F || outputBox.h <= 0.F || textureSize.x <= 0.F || textureSize.y <= 0.F)
         return vertices;
@@ -145,7 +164,7 @@ std::vector<SMeshRenderVertex> CDeformableMesh::verticesForBox(const CBox& box, 
     const auto makeVertex = [&](size_t x, size_t y) -> SMeshRenderVertex {
         const Vector2D REST       = restPoint(box, x, y);
         const Vector2D POS        = REST + point(x, y).displacement * displacementScale;
-        const Vector2D TEXTUREPOS = REST.transform(textureTransform, textureSize);
+        const Vector2D TEXTUREPOS = (REST - textureOrigin).transform(textureTransform, textureSize);
         return {
             .x = sc<float>((POS.x - outputBox.x) / outputBox.w),
             .y = sc<float>((POS.y - outputBox.y) / outputBox.h),

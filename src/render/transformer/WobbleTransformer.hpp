@@ -13,20 +13,20 @@ namespace Render {
         CWobbleTransformer(PHLWINDOWREF window);
         virtual ~CWobbleTransformer() = default;
 
-        static bool                      shouldEnable(PHLWINDOW window);
-        static void                      ensureTickListener();
+        static bool                    shouldEnable(PHLWINDOW window);
+        static void                    ensureTickListener();
 
-        virtual SP<Render::IFramebuffer> transform(SP<Render::IFramebuffer> in, const SWindowTransformContext& context);
-        virtual int                      priority() const;
-        virtual bool                     active() const;
-        virtual bool                     blocksDirectScanout() const;
-        virtual CBox                     transformedExtents(const CBox& currentBox) const;
-        virtual CBox                     sourceBoxForRender(const CBox& currentBox, const CBox& monitorBox) const;
+        virtual SWindowTransformBuffer transform(const SWindowTransformBuffer& in, const SWindowTransformContext& context);
+        virtual int                    priority() const;
+        virtual bool                   active() const;
+        virtual bool                   blocksDirectScanout() const;
+        virtual CBox                   transformedExtents(const CBox& currentBox) const;
+        virtual CBox                   sourceBoxForOutput(const CBox& outputBox, const CBox& inputBox) const;
 
-        void                             record(const CBox& previous, const CBox& current, std::optional<Vector2D> grabPoint = std::nullopt);
-        void                             reset();
-        void                             resetWithDamage();
-        bool                             tick();
+        void                           record(const CBox& previous, const CBox& current, std::optional<Vector2D> grabPoint = std::nullopt);
+        void                           reset();
+        void                           resetWithDamage();
+        bool                           tick();
 
       private:
         Hyprutils::Animation::SSpringCurve    spring() const;

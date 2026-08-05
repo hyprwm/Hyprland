@@ -44,6 +44,7 @@ const float roundingPower = 2.0;
 uniform vec4  motionPrevBox;
 uniform vec4  motionCurrBox;
 uniform vec4  motionSourceBox;
+uniform vec2  motionSourceTexOrigin;
 uniform vec2  motionSourceTexSize;
 uniform int   motionSamples;
 #include "motion_blur.glsl"
@@ -68,9 +69,10 @@ layout(location = 1) out vec4 mirrorColor;
 #endif
 void main() {
 #if USE_MOTION_BLUR
-    vec4 pixColor = motionBlurSample(tex, motionPrevBox, motionCurrBox, motionSourceBox, motionSourceTexSize, motionSamples, USE_RGBA == 1);
+    vec4 pixColor = motionBlurSample(tex, motionPrevBox, motionCurrBox, motionSourceBox, motionSourceTexOrigin, motionSourceTexSize, motionSamples, USE_RGBA == 1);
 #if USE_BLUR_MATTE
-    float blurAlphaMask = clamp(motionBlurSample(blurAlphaMatte, motionPrevBox, motionCurrBox, motionSourceBox, motionSourceTexSize, motionSamples, true).r, 0.0, 1.0);
+    float blurAlphaMask =
+        clamp(motionBlurSample(blurAlphaMatte, motionPrevBox, motionCurrBox, motionSourceBox, motionSourceTexOrigin, motionSourceTexSize, motionSamples, true).r, 0.0, 1.0);
 #endif
 #else
 #if USE_RGBA

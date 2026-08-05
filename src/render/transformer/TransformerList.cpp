@@ -22,16 +22,36 @@ CBox CWindowTransformerList::transformedExtents(const CBox& currentBox) const {
     return box;
 }
 
-CBox CWindowTransformerList::sourceBoxForRender(const CBox& currentBox, const CBox& monitorBox) const {
-    CBox box = currentBox;
+SWindowTransformPlan CWindowTransformerList::plan(const CBox& currentBox, const CBox& outputBox) const {
+    SWindowTransformPlan plan;
+    plan.outputBox = outputBox;
+
+    CBox fullBox = currentBox;
     for (auto const& transformer : m_transformers) {
         if (!transformer->active())
             continue;
 
-        box = transformer->sourceBoxForRender(box, monitorBox);
+        auto& stage                 = plan.stages.emplace_back();
+        stage.fullInputBox          = fullBox;
+        stage.fullOutputBox         = transformer->transformedExtents(fullBox);
+        stage.allocatesOutputBuffer = transformer->allocatesOutputBuffer();
+        fullBox                     = stage.fullOutputBox;
     }
 
-    return box;
+    CBox   requiredBox = outputBox.intersection(fullBox);
+    size_t stageIndex  = plan.stages.size();
+    for (auto transformer = m_transformers.rbegin(); transformer != m_transformers.rend(); ++transformer) {
+        if (!(*transformer)->active())
+            continue;
+
+        auto& stage     = plan.stages[--stageIndex];
+        stage.outputBox = requiredBox.intersection(stage.fullOutputBox);
+        requiredBox     = (*transformer)->sourceBoxForOutput(stage.outputBox, stage.fullInputBox).intersection(stage.fullInputBox);
+        stage.inputBox  = requiredBox;
+    }
+
+    plan.sourceBox = requiredBox;
+    return plan;
 }
 
 CBox CWindowTransformerList::transformBoxForDamage(const CBox& currentBox) const {
@@ -60,13 +80,25 @@ void CWindowTransformerList::amendTransformedRenderData(const CBox& currentBox, 
     }
 }
 
-SP<Render::IFramebuffer> CWindowTransformerList::transform(SP<Render::IFramebuffer> in, const SWindowTransformContext& context) const {
-    SP<Render::IFramebuffer> last = in;
+SWindowTransformBuffer CWindowTransformerList::transform(const SWindowTransformBuffer& in, const SWindowTransformPlan& plan, const SWindowTransformContext& context) const {
+    SWindowTransformBuffer last  = in;
+    size_t                 stage = 0;
     for (auto const& transformer : m_transformers) {
         if (!transformer->active())
             continue;
 
-        last = transformer->transform(last, context);
+        if (stage >= plan.stages.size())
+            break;
+
+        auto stageContext       = context;
+        stageContext.currentBox = plan.stages[stage].fullInputBox;
+        stageContext.inputBox   = plan.stages[stage].inputBox;
+        stageContext.outputBox  = plan.stages[stage].outputBox;
+        last                    = transformer->transform(last, stageContext);
+        if (!last.success)
+            break;
+
+        ++stage;
     }
 
     return last;

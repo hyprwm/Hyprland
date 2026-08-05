@@ -1517,11 +1517,11 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
         CBox motionSource = data.motionBlur.source;
         m_renderData.renderModif.applyToBox(motionPrev);
         m_renderData.renderModif.applyToBox(motionCurr);
-        m_renderData.renderModif.applyToBox(motionSource);
 
         shader->setUniformFloat4(SHADER_MOTION_PREV_BOX, motionPrev.x, motionPrev.y, motionPrev.w, motionPrev.h);
         shader->setUniformFloat4(SHADER_MOTION_CURR_BOX, motionCurr.x, motionCurr.y, motionCurr.w, motionCurr.h);
         shader->setUniformFloat4(SHADER_MOTION_SOURCE_BOX, motionSource.x, motionSource.y, motionSource.w, motionSource.h);
+        shader->setUniformFloat2(SHADER_MOTION_SOURCE_TEX_ORIGIN, data.motionBlur.sourceTexOrigin.x, data.motionBlur.sourceTexOrigin.y);
         shader->setUniformFloat2(SHADER_MOTION_SOURCE_TEX_SIZE, data.motionBlur.sourceTexSize.x, data.motionBlur.sourceTexSize.y);
         shader->setUniformInt(SHADER_MOTION_SAMPLES, data.motionBlur.samples);
     }

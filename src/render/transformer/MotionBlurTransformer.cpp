@@ -30,7 +30,7 @@ bool CMotionBlurTransformer::shouldEnable(PHLWINDOW window) {
     return *PMBENABLED && *PMBSAMPLES > 1 && !Fullscreen::controller()->isFullscreen(window);
 }
 
-SP<Render::IFramebuffer> CMotionBlurTransformer::transform(SP<Render::IFramebuffer> in, const SWindowTransformContext&) {
+SWindowTransformBuffer CMotionBlurTransformer::transform(const SWindowTransformBuffer& in, const SWindowTransformContext&) {
     return in;
 }
 
@@ -40,6 +40,14 @@ int CMotionBlurTransformer::priority() const {
 
 bool CMotionBlurTransformer::active() const {
     return state(true).has_value();
+}
+
+bool CMotionBlurTransformer::allocatesOutputBuffer() const {
+    return false;
+}
+
+CBox CMotionBlurTransformer::sourceBoxForOutput(const CBox& outputBox, const CBox& inputBox) const {
+    return outputBox.intersection(inputBox);
 }
 
 CBox CMotionBlurTransformer::transformBoxForDamage(const CBox& currentBox) const {

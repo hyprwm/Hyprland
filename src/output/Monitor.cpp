@@ -2495,7 +2495,7 @@ NColorManagement::SImageDescription::SPCMasteringLuminances CMonitor::getMasteri
 }
 
 uint32_t CMonitor::getPreferredReadFormat() {
-    static const auto PFORCE8BIT = CConfigValue<Config::INTEGER>("misc:screencopy_force_8b");
+    static const auto PFORCE8BIT = CConfigValue<Config::BOOL>("misc:screencopy_force_8b");
 
     auto              monFmt = m_output->state->state().drmFormat;
 

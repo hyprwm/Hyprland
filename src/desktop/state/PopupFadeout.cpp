@@ -38,7 +38,7 @@ SP<CPopupFadeout> CPopupFadeout::create(SP<CPopup> popup, SP<Render::IFramebuffe
     fadeout->m_framebuffer = snapshot;
 
     static CConfigValue PBLURIGNOREA = CConfigValue<Config::FLOAT>("decoration:blur:popups_ignorealpha");
-    if (g_pHyprRenderer->shouldBlur(popup)) {
+    if (popup->shouldBlur()) {
         fadeout->m_effects.textureBlur.enabled               = true;
         fadeout->m_effects.textureBlur.blockBlurOptimization = true;
 

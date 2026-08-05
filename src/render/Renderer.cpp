@@ -776,7 +776,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
                     if (!popup->aliveAndVisible())
                         return;
 
-                    renderdata.blur           = shouldBlur(popup);
+                    renderdata.blur           = !m_bRenderingSnapshot && popup->shouldBlur();
                     renderdata.discardMode    = DISCARDMODE;
                     renderdata.discardOpacity = DISCARDOPACITY;
                     if (renderdata.blur) {
@@ -1006,7 +1006,7 @@ void IHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
                 if (!popup->aliveAndVisible())
                     return;
 
-                renderdata.blur = shouldBlur(popup);
+                renderdata.blur = popup->shouldBlur();
                 renderdata.discardMode &= ~DISCARD_ALPHA;
                 renderdata.discardOpacity = 0.F;
                 if (renderdata.blur && pLayer->m_ruleApplicator->ignoreAlpha().hasValue()) {
@@ -3328,20 +3328,6 @@ bool IHyprRenderer::shouldBlur(PHLWINDOW w) {
         return !surface->m_blurRegion.empty();
 
     return true;
-}
-
-bool IHyprRenderer::shouldBlur(WP<Desktop::View::CPopup> p) {
-    static CConfigValue PBLURPOPUPS = CConfigValue<Config::INTEGER>("decoration:blur:popups");
-    static CConfigValue PBLUR       = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
-
-    const auto          SURFACE = p ? p->wlSurface() : nullptr;
-    if (SURFACE && SURFACE->m_hasBackgroundEffect)
-        return *PBLUR && !SURFACE->m_blurRegion.empty();
-
-    if (const auto LAYER = p ? p->layerOwner() : nullptr; LAYER)
-        return LAYER->m_ruleApplicator->blurPopups().valueOrDefault();
-
-    return *PBLURPOPUPS && *PBLUR;
 }
 
 SP<ITexture> IHyprRenderer::renderSplash(const std::function<SP<ITexture>(const int, const int, unsigned char* const)>& handleData, const int fontSize, const int maxWidth,

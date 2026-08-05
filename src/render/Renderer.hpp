@@ -215,10 +215,6 @@ namespace Render {
         void                 clearCMSettingsCache();
         virtual bool         reloadShaders(const std::string& path = "") = 0;
 
-        bool                 shouldBlur(PHLLS ls);
-        bool                 shouldBlur(PHLWINDOW w);
-        bool                 shouldBlur(WP<Desktop::View::CPopup> p);
-
       protected:
         virtual void              renderOffToMain(SP<IFramebuffer> off)                                         = 0;
         virtual SP<IRenderbuffer> getOrCreateRenderbufferInternal(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) = 0;
@@ -285,6 +281,9 @@ namespace Render {
         SP<ITexture>                      m_missingAssetTexture;
         ASP<Hyprgraphics::CImageResource> m_backgroundResource;
         bool                              m_backgroundResourceFailed = false;
+
+        bool                              shouldBlur(PHLLS ls);
+        bool                              shouldBlur(PHLWINDOW w);
 
         bool                              m_cursorHidden            = false;
         bool                              m_cursorHiddenByCondition = false;

@@ -1,6 +1,7 @@
 #include "InputManager.hpp"
 #include "../../Compositor.hpp"
 #include "../../desktop/state/FocusState.hpp"
+#include "../../desktop/view/types/AlphaModifiable.hpp"
 #include "../../protocols/IdleInhibit.hpp"
 #include "../../protocols/IdleNotify.hpp"
 #include "../../protocols/core/Compositor.hpp"
@@ -45,7 +46,9 @@ void CInputManager::recheckIdleInhibitorStatus() {
         if (!WLSurface || !WLSurface->view())
             continue;
 
-        if (WLSurface->view()->aliveAndVisible()) {
+        const auto VIEW          = WLSurface->view();
+        const auto ALPHAMODIFIER = dynamicPointerCast<Desktop::View::IAlphaModifiable>(VIEW);
+        if (VIEW->mapped() && VIEW->acceptsInput() && (!ALPHAMODIFIER || ALPHAMODIFIER->alphaNonZero())) {
             PROTO::idle->setInhibit(true);
             return;
         }
@@ -91,7 +94,9 @@ bool CInputManager::isWindowInhibiting(const PHLWINDOW& w, bool onlyHl) {
                 if (!WLSurface || !WLSurface->view())
                     return;
 
-                if (WLSurface->view()->aliveAndVisible())
+                const auto VIEW          = WLSurface->view();
+                const auto ALPHAMODIFIER = dynamicPointerCast<Desktop::View::IAlphaModifiable>(VIEW);
+                if (VIEW->mapped() && VIEW->acceptsInput() && (!ALPHAMODIFIER || ALPHAMODIFIER->alphaNonZero()))
                     *sc<bool*>(data) = true;
             },
             &isInhibiting);

@@ -3,13 +3,13 @@
 #include "../input/InputManager.hpp"
 #include "../permissions/DynamicPermissionManager.hpp"
 #include "../../protocols/ColorManagement.hpp"
-#include "../../protocols/XDGShell.hpp"
 #include "../../Compositor.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../render/OpenGL.hpp"
 #include "../../output/Monitor.hpp"
 #include "../../state/MonitorState.hpp"
-#include "../../desktop/view/Window.hpp"
+#include "../../desktop/view/window/Window.hpp"
+#include "../../desktop/view/window/WindowPresentation.hpp"
 #include "../../desktop/state/FocusState.hpp"
 #include "../../render/pass/ClearPassElement.hpp"
 #include "../../render/pass/RectPassElement.hpp"
@@ -225,7 +225,7 @@ void CScreenshareFrame::renderMonitor() {
     // render black boxes for noscreenshare
     auto hidePopups = [&](Vector2D popupBaseOffset) {
         return [&, popupBaseOffset](WP<Desktop::View::CPopup> popup, void*) {
-            if (!popup->wlSurface() || !popup->wlSurface()->resource() || !popup->visible())
+            if (!popup->wlSurface() || !popup->wlSurface()->resource() || !popup->mapped() || !popup->acceptsInput() || !popup->alphaNonZero())
                 return;
 
             const auto popRel = popup->coordsRelativeToParent();
@@ -246,7 +246,7 @@ void CScreenshareFrame::renderMonitor() {
         if (!l->m_ruleApplicator->noScreenShare().valueOrDefault())
             continue;
 
-        if UNLIKELY (!l->visible())
+        if UNLIKELY (!l->mapped() || !l->acceptsInput() || !l->alphaNonZero())
             continue;
 
         const auto REALPOS  = l->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
@@ -261,8 +261,8 @@ void CScreenshareFrame::renderMonitor() {
 
         const auto     geom            = l->m_geometry;
         const Vector2D popupBaseOffset = REALPOS - Vector2D{geom.pos().x, geom.pos().y};
-        if (l->m_popupHead)
-            l->m_popupHead->breadthfirst(hidePopups(popupBaseOffset), nullptr);
+        if (l->popupHead())
+            l->popupHead()->breadthfirst(hidePopups(popupBaseOffset), nullptr);
     }
 
     for (auto const& w : Desktop::windowState()->windows()) {
@@ -277,10 +277,10 @@ void CScreenshareFrame::renderMonitor() {
 
         const auto PWORKSPACE = w->m_workspace;
 
-        if UNLIKELY (!PWORKSPACE && w->alphaValue(WINDOW_ALPHA_FADE) * w->alphaValue(WINDOW_ALPHA_FULLSCREEN) != 0.f)
+        if UNLIKELY (!PWORKSPACE && w->presentation().alphaValue(WINDOW_ALPHA_FADE) * w->presentation().alphaValue(WINDOW_ALPHA_FULLSCREEN) != 0.f)
             continue;
 
-        const auto renderOffset     = PWORKSPACE && !w->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D{};
+        const auto renderOffset     = PWORKSPACE && (w->m_state & WINDOW_STATE_PINNED) == WINDOW_STATE_NONE ? PWORKSPACE->m_renderOffset->value() : Vector2D{};
         const auto REALSIZE         = w->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
         const auto REALPOS          = w->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT) + renderOffset;
         const auto noScreenShareBox = CBox{REALPOS.x, REALPOS.y, std::max(REALSIZE.x, 5.0), std::max(REALSIZE.y, 5.0)}
@@ -290,8 +290,8 @@ void CScreenshareFrame::renderMonitor() {
 
         // seems like rounding doesn't play well with how we manipulate the box position to render regions causing the window to leak through
         const auto dontRound     = m_session->m_captureBox.pos() != Vector2D() || Fullscreen::controller()->isFullscreen(w, Fullscreen::FSMODE_FULLSCREEN);
-        const auto rounding      = dontRound ? 0 : w->rounding() * PMONITOR->m_scale;
-        const auto roundingPower = dontRound ? 2.0f : w->roundingPower();
+        const auto rounding      = dontRound ? 0 : w->presentation().rounding() * PMONITOR->m_scale;
+        const auto roundingPower = dontRound ? 2.0f : w->presentation().roundingPower();
 
         g_pHyprRenderer->draw(
             CRectPassElement::SRectData{
@@ -302,13 +302,13 @@ void CScreenshareFrame::renderMonitor() {
             },
             noScreenShareBox);
 
-        if (w->m_isX11 || !w->m_popupHead)
+        if (w->backend().isX11() || !w->popupHead())
             continue;
 
-        const auto     geom            = w->m_xdgSurface->m_current.geometry;
-        const Vector2D popupBaseOffset = REALPOS - Vector2D{geom.pos().x, geom.pos().y};
+        const auto     GEOM            = w->backend().geometry().box;
+        const Vector2D popupBaseOffset = REALPOS - GEOM.pos();
 
-        w->m_popupHead->breadthfirst(hidePopups(popupBaseOffset), nullptr);
+        w->popupHead()->breadthfirst(hidePopups(popupBaseOffset), nullptr);
     }
 
     if (m_overlayCursor) {

@@ -2,7 +2,6 @@
 #include "XWayland.hpp"
 #include "../protocols/XWaylandShell.hpp"
 #include "../protocols/core/Compositor.hpp"
-#include "../managers/ANRManager.hpp"
 #include "../helpers/time/Time.hpp"
 
 #ifndef NO_XWAYLAND
@@ -292,7 +291,7 @@ void CXWaylandSurface::ping() {
 
     if (!supportsPing) {
         Log::logger->log(Log::TRACE, "CXWaylandSurface: XID {} does not support ping, just sending an instant reply", m_xID);
-        g_pANRManager->onResponse(m_self.lock());
+        m_events.pong.emit();
         return;
     }
 

@@ -57,6 +57,7 @@ class CXWaylandSurface {
         CSignalT<>     map;
         CSignalT<>     unmap;
         CSignalT<>     commit;
+        CSignalT<>     pong;
 
         CSignalT<>     activate;
     } m_events;

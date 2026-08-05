@@ -11,7 +11,7 @@
 #include "../../../desktop/history/WorkspaceHistoryTracker.hpp"
 #include "../../../desktop/rule/windowRule/WindowRuleEffectContainer.hpp"
 #include "../../../desktop/view/LayerSurface.hpp"
-#include "../../../desktop/view/Window.hpp"
+#include "../../../desktop/view/window/Window.hpp"
 #include "../../../managers/input/InputManager.hpp"
 #include "../../../state/MonitorState.hpp"
 #include "../../../state/WorkspaceState.hpp"
@@ -47,16 +47,16 @@ static bool windowMatchesQuery(const PHLWINDOW& w, const SWindowQuery& query) {
     if (query.workspace && w->m_workspace != *query.workspace)
         return false;
 
-    if (query.floating && w->m_isFloating != *query.floating)
+    if (query.floating && w->isFloating() != *query.floating)
         return false;
 
-    if (query.mapped && w->m_isMapped != *query.mapped)
+    if (query.mapped && w->mapped() != *query.mapped)
         return false;
 
-    if (query.className && w->m_class != *query.className)
+    if (query.className && w->metadata().appID() != *query.className)
         return false;
 
-    if (query.title && w->m_title != *query.title)
+    if (query.title && w->metadata().title() != *query.title)
         return false;
 
     if (query.tag) {
@@ -301,7 +301,7 @@ static int hlGetLastWindow(lua_State* L) {
 
     for (auto it = fullHistory.rbegin(); it != fullHistory.rend(); ++it) {
         const auto candidate = it->lock();
-        if (!candidate || !candidate->m_isMapped)
+        if (!candidate || !candidate->mapped())
             continue;
 
         if (current && candidate == current)

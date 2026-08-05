@@ -741,9 +741,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         Considerations for the test:
             allowedOverFullscreen is used for floating windows' visibility. It's not always set for tiled ones, and don't implact their visibility.
 
-            `visible` and `hidden` are not reliable since they are inconsistent. After they are fixed, they should be added to tested fields
-
-            acceptInput works since hidden windows don't accept input.
+            `visible` combines the mapped, input, and alpha state.
 
 
     */
@@ -766,6 +764,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         ASSERT_CONTAINS(under, "floating: 1");
 
         ASSERT_CONTAINS(under, "allowedOverFullscreen: 0");
+        ASSERT_CONTAINS(under, "visible: 0");
         ASSERT_CONTAINS(under, "acceptsInput: 0");
 
         ASSERT_CONTAINS(under, "fullscreen: 0");
@@ -785,6 +784,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         ASSERT_CONTAINS(tiledOne, "class: tiledOne");
         ASSERT_CONTAINS(tiledOne, "floating: 0");
 
+        ASSERT_CONTAINS(tiledOne, "visible: 1");
         ASSERT_CONTAINS(tiledOne, "acceptsInput: 1");
 
         ASSERT_CONTAINS(tiledOne, "fullscreen: 2");

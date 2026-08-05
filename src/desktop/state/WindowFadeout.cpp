@@ -1,6 +1,7 @@
 #include "WindowFadeout.hpp"
 #include "WindowState.hpp"
-#include "../view/Window.hpp"
+#include "../view/window/Window.hpp"
+#include "../view/window/WindowPresentation.hpp"
 #include "../Workspace.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../config/shared/animation/AnimationTree.hpp"
@@ -27,7 +28,7 @@ static bool shouldBlurWindow(PHLWINDOW window) {
     if (!*PBLUR)
         return false;
 
-    if (window->m_ruleApplicator->noBlur().valueOrDefault() || window->m_ruleApplicator->RGBX().valueOrDefault() || window->opaque())
+    if (window->m_ruleApplicator->noBlur().valueOrDefault() || window->m_ruleApplicator->RGBX().valueOrDefault() || window->presentation().opaque())
         return false;
 
     auto surface = window->wlSurface();
@@ -64,10 +65,10 @@ SP<CWindowFadeout> CWindowFadeout::create(PHLWINDOW window, SP<Render::IFramebuf
     fadeout->m_sourcePos   = window->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT) - MONITOR->m_position;
     fadeout->m_sourceSize  = window->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
     const bool OVERFULLSCREEN =
-        window->m_isFloating && window->shouldRenderOverFullscreen() && window->m_workspace && Fullscreen::controller()->hasFullscreen(window->m_workspace, true);
-    fadeout->m_plane         = !window->m_isFloating ? FADEOUT_PLANE_WINDOW_TILED : (OVERFULLSCREEN ? FADEOUT_PLANE_WINDOW_OVER_FULLSCREEN : FADEOUT_PLANE_WINDOW_FLOATING);
-    fadeout->m_rounding      = window->rounding();
-    fadeout->m_roundingPower = window->roundingPower();
+        window->isFloating() && window->shouldRenderOverFullscreen() && window->m_workspace && Fullscreen::controller()->hasFullscreen(window->m_workspace, true);
+    fadeout->m_plane         = !window->isFloating() ? FADEOUT_PLANE_WINDOW_TILED : (OVERFULLSCREEN ? FADEOUT_PLANE_WINDOW_OVER_FULLSCREEN : FADEOUT_PLANE_WINDOW_FLOATING);
+    fadeout->m_rounding      = window->presentation().rounding();
+    fadeout->m_roundingPower = window->presentation().roundingPower();
     fadeout->m_blur          = shouldBlurWindow(window);
     fadeout->m_blurXray      = window->m_ruleApplicator->xray().valueOr(false);
 
@@ -75,7 +76,7 @@ SP<CWindowFadeout> CWindowFadeout::create(PHLWINDOW window, SP<Render::IFramebuf
     if (*PDIMAROUND && window->m_ruleApplicator->dimAround().valueOrDefault())
         fadeout->m_effects.dimAroundAlpha = *PDIMAROUND;
 
-    const auto ANIMCTX = window->m_animationController.animateOut();
+    const auto ANIMCTX = window->presentation().animateOut();
 
     Animation::mgr()->createAnimation(ANIMCTX.pos.from, fadeout->m_realPosition, Config::animationTree()->getAnimationPropertyConfig("windowsOut"), AVARDAMAGE_NONE);
     Animation::mgr()->createAnimation(ANIMCTX.size.from, fadeout->m_realSize, Config::animationTree()->getAnimationPropertyConfig("windowsOut"), AVARDAMAGE_NONE);
@@ -94,7 +95,7 @@ SP<CWindowFadeout> CWindowFadeout::create(PHLWINDOW window, SP<Render::IFramebuf
     *fadeout->m_realSize     = ANIMCTX.size.to;
     *fadeout->m_alpha        = ANIMCTX.alpha.to;
 
-    if (window->m_X11DoesntWantBorders) {
+    if (window->backend().traits().suggestsNoBorder) {
         fadeout->m_realPosition->warp();
         fadeout->m_realSize->warp();
     }

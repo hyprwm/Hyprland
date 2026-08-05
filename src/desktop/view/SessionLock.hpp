@@ -17,11 +17,12 @@ namespace Desktop::View {
 
         virtual ~CSessionLock();
 
-        virtual eViewType           type() const;
-        virtual bool                visible() const;
-        virtual std::optional<CBox> logicalBox() const;
-        virtual bool                desktopComponent() const;
-        virtual std::optional<CBox> surfaceLogicalBox() const;
+        virtual eViewType           type() const override;
+        virtual bool                mapped() const override;
+        virtual bool                focusAvailable() const override;
+        virtual std::optional<CBox> logicalBox() const override;
+        virtual bool                desktopComponent() const override;
+        virtual std::optional<CBox> surfaceLogicalBox() const override;
         virtual Vector2D            position(eGeometricValueType) const override;
         virtual Vector2D            size(eGeometricValueType) const override;
         virtual CBox                geometricBox(eGeometricValueType) const override;

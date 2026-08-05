@@ -1,9 +1,8 @@
 #pragma once
 
 #include <cstdint>
-#include <type_traits>
 
-#include "../helpers/memory/Memory.hpp"
+#include "../macros/Enums.hpp"
 
 namespace Input {
     enum class eKeyboardModifiers : uint8_t {
@@ -19,20 +18,7 @@ namespace Input {
     };
 
     using enum eKeyboardModifiers;
-
-    constexpr eKeyboardModifiers operator|(eKeyboardModifiers lhs, eKeyboardModifiers rhs) noexcept {
-        using T = std::underlying_type_t<eKeyboardModifiers>;
-        return sc<eKeyboardModifiers>(sc<T>(lhs) | sc<T>(rhs));
-    }
-
-    constexpr eKeyboardModifiers operator&(eKeyboardModifiers lhs, eKeyboardModifiers rhs) noexcept {
-        using T = std::underlying_type_t<eKeyboardModifiers>;
-        return sc<eKeyboardModifiers>(sc<T>(lhs) & sc<T>(rhs));
-    }
-
-    constexpr eKeyboardModifiers& operator|=(eKeyboardModifiers& lhs, eKeyboardModifiers rhs) noexcept {
-        return lhs = lhs | rhs;
-    }
-
     using ModifierMask = eKeyboardModifiers;
+
+    EXPOSE_ENUM_AS_MASK(eKeyboardModifiers)
 };

@@ -1,7 +1,9 @@
 #include "MotionBlurTransformer.hpp"
 
 #include "../../config/ConfigValue.hpp"
-#include "../../desktop/view/Window.hpp"
+#include "../../desktop/view/window/Window.hpp"
+#include "../../desktop/view/window/WindowEffectsController.hpp"
+#include "../../desktop/view/window/WindowPresentation.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../managers/eventLoop/EventLoopTimer.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
@@ -109,7 +111,10 @@ std::optional<MotionBlur::SState> CMotionBlurTransformer::state(bool allowStale)
 
     static auto    PMBSAMPLES = CConfigValue<Config::INTEGER>("decoration:motion_blur:samples");
 
-    const Vector2D RENDEROFFSET = (PWINDOW->m_pinned || !PWINDOW->m_workspace ? Vector2D{} : PWINDOW->m_workspace->m_renderOffset->value()) + PWINDOW->m_floatingOffset;
+    const Vector2D RENDEROFFSET =
+        ((PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED) != Desktop::View::WINDOW_STATE_NONE || !PWINDOW->m_workspace ? Vector2D{} :
+                                                                                                                                PWINDOW->m_workspace->m_renderOffset->value()) +
+        PWINDOW->presentation().floatingOffset();
     return m_motionBlur.state(std::clamp(sc<int>(*PMBSAMPLES), 2, 64), RENDEROFFSET, allowStale);
 }
 
@@ -119,7 +124,7 @@ void CMotionBlurTransformer::armExpiryTimer() {
             std::nullopt,
             [window = m_window](SP<CEventLoopTimer>, void*) {
                 if (const auto PWINDOW = window.lock())
-                    PWINDOW->resetMotionBlur();
+                    PWINDOW->effects().resetMotionBlur();
             },
             nullptr);
         g_pEventLoopManager->addTimer(m_expiryTimer);

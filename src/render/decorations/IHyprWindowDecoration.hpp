@@ -29,6 +29,10 @@ enum eDecorationFlags : uint8_t {
 
 class CDecorationPositioner;
 
+namespace Desktop::View {
+    class CWindowPresentation;
+}
+
 class IHyprWindowDecoration {
   public:
     IHyprWindowDecoration(PHLWINDOW);
@@ -54,8 +58,21 @@ class IHyprWindowDecoration {
 
     virtual std::string                getDisplayName();
 
+    virtual void                       initializeAnimations();
+    virtual void                       updateState();
+    virtual void                       onWindowMap();
+    virtual void                       onWindowFocus();
+
+  protected:
+    PHLWINDOW                 owningWindow() const;
+    SP<IHyprWindowDecoration> self() const;
+
   private:
-    PHLWINDOWREF m_window;
+    void                      setSelf(const SP<IHyprWindowDecoration>& self);
+
+    PHLWINDOWREF              m_window;
+    WP<IHyprWindowDecoration> m_self;
 
     friend class CDecorationPositioner;
+    friend class Desktop::View::CWindowPresentation;
 };

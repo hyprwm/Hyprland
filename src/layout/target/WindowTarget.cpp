@@ -1,4 +1,6 @@
 #include "WindowTarget.hpp"
+#include "../../desktop/view/window/Window.hpp"
+#include "../../desktop/view/window/WindowPresentation.hpp"
 
 #include "../space/Space.hpp"
 #include "../algorithm/Algorithm.hpp"
@@ -6,21 +8,24 @@
 #include "../../protocols/core/Compositor.hpp"
 #include "../../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../../output/Monitor.hpp"
-#include "../../xwayland/XSurface.hpp"
 #include "../../Compositor.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../desktop/state/FloatState.hpp"
+#include "../../desktop/state/FocusState.hpp"
 #include "../../state/MonitorState.hpp"
 #include "../../desktop/Workspace.hpp"
+#include "../../desktop/view/window/WindowGroupMembership.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../../desktop/view/Group.hpp"
+#include "../../managers/input/InputManager.hpp"
+#include "../../helpers/math/Expression.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 
 using namespace Hyprutils::Utils;
 using namespace Layout;
 
-SP<ITarget> CWindowTarget::create(PHLWINDOW w) {
+SP<CWindowTarget> CWindowTarget::create(PHLWINDOW w) {
     auto target    = SP<CWindowTarget>(new CWindowTarget(w));
     target->m_self = target;
     return target;
@@ -47,7 +52,7 @@ void CWindowTarget::updatePos(uint8_t flags) {
 
     const auto effectiveWindow = [&]() {
         // FS state of a window in a group is owned by the current window of that group.
-        return window()->m_group ? window()->m_group->current() : window();
+        return window()->grouping().group() ? window()->grouping().group()->current() : window();
     };
 
     g_pHyprRenderer->damageWindow(m_window.lock());
@@ -77,8 +82,8 @@ void CWindowTarget::updatePos(uint8_t flags) {
         m_window->setBox(m_box.logicalBox);
 
         if (CONFIGURECLIENT)
-            m_window->sendWindowSize();
-        m_window->updateWindowDecos();
+            sendWindowSize();
+        m_window->presentation().updateDecorations();
 
         return;
     }
@@ -110,9 +115,9 @@ void CWindowTarget::updatePos(uint8_t flags) {
             m_window->setBox({visualBox.pos() + RESERVED.topLeft, visualBox.size() - (RESERVED.topLeft + RESERVED.bottomRight)});
         }
 
-        m_window->updateWindowDecos();
+        m_window->presentation().updateDecorations();
         if (CONFIGURECLIENT)
-            m_window->sendWindowSize();
+            sendWindowSize();
         return;
     }
 
@@ -134,9 +139,9 @@ void CWindowTarget::updatePos(uint8_t flags) {
             m_window->setBox({visualBox.pos() + RESERVED.topLeft, visualBox.size() - (RESERVED.topLeft + RESERVED.bottomRight)});
         }
 
-        m_window->updateWindowDecos();
+        m_window->presentation().updateDecorations();
         if (CONFIGURECLIENT)
-            m_window->sendWindowSize();
+            sendWindowSize();
         return;
     }
 
@@ -256,9 +261,9 @@ void CWindowTarget::updatePos(uint8_t flags) {
         m_window->setBox(wb);
     }
 
-    m_window->updateWindowDecos();
+    m_window->presentation().updateDecorations();
     if (CONFIGURECLIENT)
-        m_window->sendWindowSize();
+        sendWindowSize();
 }
 
 void CWindowTarget::assignToSpace(const SP<CSpace>& space, std::optional<Vector2D> focalPoint) {
@@ -267,7 +272,7 @@ void CWindowTarget::assignToSpace(const SP<CSpace>& space, std::optional<Vector2
         return;
     }
 
-    m_window->m_layoutFlags = {};
+    m_cantLockCursor = false;
 
     // keep the ref here so that moveToWorkspace doesn't unref the workspace
     // and assignToSpace doesn't think this is a new target because space wp is dead
@@ -280,30 +285,42 @@ void CWindowTarget::assignToSpace(const SP<CSpace>& space, std::optional<Vector2
     ITarget::assignToSpace(space, focalPoint);
 
     m_window->updateToplevel();
-    m_window->updateWindowDecos();
+    m_window->presentation().updateDecorations();
 }
 
 bool CWindowTarget::floating() {
-    return m_window->m_isFloating;
+    return m_floating;
 }
 
 void CWindowTarget::setFloating(bool x) {
-    if (x == m_window->m_isFloating)
+    if (x == m_floating)
         return;
 
-    m_window->m_layoutFlags = {};
+    m_cantLockCursor = false;
 
-    m_window->m_isFloating = x;
-    m_window->m_pinned     = false;
+    m_floating = x;
+    m_window->m_state &= ~Desktop::View::WINDOW_STATE_PINNED;
 
     m_window->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FLOATING);
 }
 
-Vector2D CWindowTarget::clampSizeForDesired(const Vector2D& size) const {
+void CWindowTarget::setFloatingInitial(bool x) {
+    m_floating = x;
+}
+
+bool CWindowTarget::cantLockCursor() const {
+    return m_cantLockCursor;
+}
+
+void CWindowTarget::setCantLockCursor(bool x) {
+    m_cantLockCursor = x;
+}
+
+Vector2D CWindowTarget::clampSizeForDesired(const Vector2D& size) {
     Vector2D newSize = size;
-    if (const auto m = m_window->minSize(); m)
+    if (const auto m = minSize(); m)
         newSize = newSize.clamp(*m);
-    if (const auto m = m_window->maxSize(); m)
+    if (const auto m = maxSize(); m)
         newSize = newSize.clamp(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}, *m);
     return newSize;
 }
@@ -312,18 +329,14 @@ std::expected<SGeometryRequested, eGeometryFailure> CWindowTarget::desiredGeomet
 
     SGeometryRequested requested;
 
-    CBox               DESIRED_GEOM = g_pXWaylandManager->getGeometryForWindow(m_window.lock());
-    const auto         PMONITOR     = m_window->m_monitor.lock();
+    const auto         CLIENT_GEOMETRY = m_window->backend().geometry();
+    CBox               DESIRED_GEOM    = CLIENT_GEOMETRY.box;
+    const auto         PMONITOR        = m_window->m_monitor.lock();
 
     requested.size = clampSizeForDesired(DESIRED_GEOM.size());
 
-    if (m_window->m_isX11) {
-        Vector2D xy    = {DESIRED_GEOM.x, DESIRED_GEOM.y};
-        xy             = g_pXWaylandManager->xwaylandToWaylandCoords(xy);
-        requested.pos  = xy;
-        DESIRED_GEOM.x = xy.x;
-        DESIRED_GEOM.y = xy.y;
-    }
+    if (m_window->backend().isX11())
+        requested.pos = DESIRED_GEOM.pos() + (DESIRED_GEOM.size() - requested.size) / 2.F;
 
     const auto STOREDSIZE = m_window->m_ruleApplicator->persistentSize().valueOrDefault() ? Desktop::floatState()->get(m_window.lock()) : std::nullopt;
 
@@ -335,48 +348,40 @@ std::expected<SGeometryRequested, eGeometryFailure> CWindowTarget::desiredGeomet
         return std::unexpected(GEOMETRY_NO_DESIRED);
     }
 
-    static auto PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
-    const auto  toLogical          = [&](SGeometryRequested& req) {
-        if (m_window->m_isX11 && *PXWLFORCESCALEZERO && PMONITOR)
-            req.size /= PMONITOR->m_scale;
-    };
-
     if (DESIRED_GEOM.width <= 2 || DESIRED_GEOM.height <= 2) {
         const auto SURFACE = m_window->wlSurface()->resource();
 
         if (SURFACE->m_current.size.x > 5 && SURFACE->m_current.size.y > 5) {
             // center on mon and call it a day
             requested.pos.reset();
-            requested.size = clampSizeForDesired(SURFACE->m_current.size);
-            toLogical(requested);
+            requested.size = clampSizeForDesired(m_window->backend().clientToLogical(CBox{{}, SURFACE->m_current.size}, PMONITOR).size());
             return requested;
         }
 
-        if (m_window->m_isX11 && m_window->isX11OverrideRedirect()) {
+        const bool X11_OVERRIDE_REDIRECT = m_window->backend().isX11() && m_window->backend().traits().overrideRedirect;
+        if (X11_OVERRIDE_REDIRECT) {
             // check OR windows, they like their shit
-            const auto SIZE = clampSizeForDesired(m_window->m_xwaylandSurface->m_geometry.w > 0 && m_window->m_xwaylandSurface->m_geometry.h > 0 ?
-                                                      m_window->m_xwaylandSurface->m_geometry.size() :
-                                                      Vector2D{600, 400});
+            const auto CLIENT_BOX  = m_window->backend().logicalToClient(CLIENT_GEOMETRY.box, PMONITOR);
+            const auto CLIENT_SIZE = CLIENT_BOX.w > 0 && CLIENT_BOX.h > 0 ? CLIENT_BOX.size() : Vector2D{600, 400};
+            const auto SIZE        = clampSizeForDesired(m_window->backend().clientToLogical(CBox{{}, CLIENT_SIZE}, PMONITOR).size());
 
-            if (m_window->m_xwaylandSurface->m_geometry.x != 0 && m_window->m_xwaylandSurface->m_geometry.y != 0) {
+            if (CLIENT_BOX.x != 0 && CLIENT_BOX.y != 0) {
                 requested.size = SIZE;
-                requested.pos  = g_pXWaylandManager->xwaylandToWaylandCoords(m_window->m_xwaylandSurface->m_geometry.pos());
-                toLogical(requested);
+                requested.pos  = CLIENT_GEOMETRY.box.pos();
                 return requested;
             }
         }
 
-        return std::unexpected(m_window->m_isX11 && m_window->isX11OverrideRedirect() ? GEOMETRY_INVALID_DESIRED : GEOMETRY_NO_DESIRED);
+        return std::unexpected(X11_OVERRIDE_REDIRECT ? GEOMETRY_INVALID_DESIRED : GEOMETRY_NO_DESIRED);
     }
 
     // TODO: detect a popup in a more consistent way.
-    if ((DESIRED_GEOM.x == 0 && DESIRED_GEOM.y == 0) || !m_window->m_isX11) {
+    if ((DESIRED_GEOM.x == 0 && DESIRED_GEOM.y == 0) || !m_window->backend().isX11()) {
         // middle of parent if available
-        if (!m_window->m_isX11) {
-            if (const auto PARENT = m_window->parent(); PARENT) {
-                const auto POS =
-                    PARENT->position(Desktop::View::IGeometric::GEOMETRIC_GOAL) + PARENT->size(Desktop::View::IGeometric::GEOMETRIC_GOAL) / 2.F - DESIRED_GEOM.size() / 2.F;
-                requested.pos = POS;
+        if (!m_window->backend().isX11()) {
+            if (const auto PARENT = m_window->backend().parent(); PARENT) {
+                const auto POS = PARENT->position(Desktop::View::IGeometric::GEOMETRIC_GOAL) + PARENT->size(Desktop::View::IGeometric::GEOMETRIC_GOAL) / 2.F - requested.size / 2.F;
+                requested.pos  = POS;
             }
         }
     } else {
@@ -396,7 +401,6 @@ std::expected<SGeometryRequested, eGeometryFailure> CWindowTarget::desiredGeomet
     if (DESIRED_GEOM.w <= 2 || DESIRED_GEOM.h <= 2)
         return std::unexpected(GEOMETRY_NO_DESIRED);
 
-    toLogical(requested);
     return requested;
 }
 
@@ -405,11 +409,72 @@ PHLWINDOW CWindowTarget::window() const {
 }
 
 std::optional<Vector2D> CWindowTarget::minSize() {
-    return m_window->minSize();
+    if (m_window->m_ruleApplicator->minSize().hasValue())
+        return m_window->m_ruleApplicator->minSize().value();
+
+    return m_window->backend().geometryHints(Desktop::View::eBackendState::BACKEND_STATE_CURRENT).minSize;
 }
 
 std::optional<Vector2D> CWindowTarget::maxSize() {
-    return m_window->maxSize();
+    if (m_window->m_ruleApplicator->maxSize().hasValue())
+        return m_window->m_ruleApplicator->maxSize().value();
+
+    if (m_window->m_ruleApplicator->noMaxSize().valueOrDefault())
+        return std::nullopt;
+
+    return m_window->backend().geometryHints(Desktop::View::eBackendState::BACKEND_STATE_CURRENT).maxSize;
+}
+
+bool CWindowTarget::clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize) {
+    const Vector2D REALSIZE = m_window->size(Desktop::View::IGeometric::GEOMETRIC_GOAL);
+    const Vector2D MAX      = Fullscreen::controller()->isFullscreen(m_window.lock()) ? Vector2D{INFINITY, INFINITY} : maxSize.value_or(Vector2D{INFINITY, INFINITY});
+    const Vector2D NEWSIZE  = REALSIZE.clamp(minSize.value_or(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}), MAX);
+    const bool     changed  = !(NEWSIZE == REALSIZE);
+
+    if (changed) {
+        const Vector2D DELTA = REALSIZE - NEWSIZE;
+        m_window->layoutTarget()->setPositionGlobal(CBox{m_window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL) + DELTA / 2.0, NEWSIZE});
+    }
+
+    return changed;
+}
+
+std::optional<double> CWindowTarget::calculateSingleExpr(const std::string& s) {
+    const auto        PMONITOR     = m_window->m_monitor ? m_window->m_monitor : Desktop::focusState()->monitor();
+    const auto        CURSOR_LOCAL = g_pInputManager->getMouseCoordsInternal() - (PMONITOR ? PMONITOR->m_position : Vector2D{});
+
+    Math::CExpression expr;
+    expr.addVariable("window_w", m_window->size(Desktop::View::IGeometric::GEOMETRIC_GOAL).x);
+    expr.addVariable("window_h", m_window->size(Desktop::View::IGeometric::GEOMETRIC_GOAL).y);
+    expr.addVariable("window_x", m_window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL).x - (PMONITOR ? PMONITOR->m_position.x : 0));
+    expr.addVariable("window_y", m_window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL).y - (PMONITOR ? PMONITOR->m_position.y : 0));
+
+    expr.addVariable("monitor_w", PMONITOR ? PMONITOR->m_size.x : 1920);
+    expr.addVariable("monitor_h", PMONITOR ? PMONITOR->m_size.y : 1080);
+
+    expr.addVariable("cursor_x", CURSOR_LOCAL.x);
+    expr.addVariable("cursor_y", CURSOR_LOCAL.y);
+
+    return expr.compute(s);
+}
+
+std::optional<Vector2D> CWindowTarget::calculateExpression(const Math::SExpressionVec2& expr) {
+    const auto LHS = calculateSingleExpr(expr.x);
+    const auto RHS = calculateSingleExpr(expr.y);
+
+    if (!LHS || !RHS)
+        return std::nullopt;
+
+    return Vector2D{*LHS, *RHS};
+}
+
+void CWindowTarget::sendWindowSize(bool force) {
+    const auto PMONITOR = m_window->m_monitor.lock();
+
+    Log::logger->log(Log::TRACE, "sendWindowSize: window:{:x},title:{} with real pos {}, real size {} (force: {})", rc<uintptr_t>(m_window.get()), m_window->metadata().title(),
+                     m_window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL), m_window->size(Desktop::View::IGeometric::GEOMETRIC_GOAL), force);
+
+    m_window->backend().configure(CBox{m_window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL), m_window->size(Desktop::View::IGeometric::GEOMETRIC_GOAL)}, PMONITOR, force);
 }
 
 void CWindowTarget::damageEntire() {
@@ -418,7 +483,7 @@ void CWindowTarget::damageEntire() {
 
 void CWindowTarget::warpPositionSize() {
     m_window->finishAnimation();
-    m_window->updateWindowDecos();
+    m_window->presentation().updateDecorations();
 }
 
 void CWindowTarget::onUpdateSpace() {
@@ -429,5 +494,5 @@ void CWindowTarget::onUpdateSpace() {
     m_window->moveToWorkspace(space()->workspace());
     m_window->updateToplevel();
     m_window->updateWindowData();
-    m_window->updateWindowDecos();
+    m_window->presentation().updateDecorations();
 }

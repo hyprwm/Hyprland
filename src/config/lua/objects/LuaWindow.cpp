@@ -4,7 +4,10 @@
 #include "LuaGroup.hpp"
 #include "LuaObjectHelpers.hpp"
 
-#include "../../../desktop/view/Window.hpp"
+#include "../../../desktop/view/window/Window.hpp"
+#include "../../../desktop/view/window/WindowFullscreenPolicy.hpp"
+#include "../../../desktop/view/window/WindowGroupMembership.hpp"
+#include "../../../desktop/view/window/WindowSwallowController.hpp"
 #include "../../../desktop/view/Group.hpp"
 #include "../../../desktop/Workspace.hpp"
 #include "../../../desktop/state/FocusState.hpp"
@@ -70,11 +73,11 @@ static int windowIndex(lua_State* L) {
     if (key == "address")
         lua_pushstring(L, std::format("0x{:x}", reinterpret_cast<uintptr_t>(w.get())).c_str());
     else if (key == "mapped")
-        lua_pushboolean(L, w->m_isMapped);
+        lua_pushboolean(L, w->mapped());
     else if (key == "hidden")
         lua_pushboolean(L, w->isHidden());
     else if (key == "visible")
-        lua_pushboolean(L, w->visible());
+        lua_pushboolean(L, w->mapped() && w->acceptsInput() && w->alphaNonZero());
     else if (key == "accepts_input")
         lua_pushboolean(L, w->acceptsInput());
     else if (key == "at") {
@@ -95,7 +98,7 @@ static int windowIndex(lua_State* L) {
         else
             lua_pushnil(L);
     } else if (key == "floating")
-        lua_pushboolean(L, w->m_isFloating);
+        lua_pushboolean(L, w->isFloating());
     else if (key == "monitor") {
         const auto mon = w->m_monitor.lock();
         if (mon)
@@ -103,36 +106,36 @@ static int windowIndex(lua_State* L) {
         else
             lua_pushnil(L);
     } else if (key == "class")
-        lua_pushstring(L, w->m_class.c_str());
+        lua_pushstring(L, w->metadata().appID().c_str());
     else if (key == "title")
-        lua_pushstring(L, w->m_title.c_str());
+        lua_pushstring(L, w->metadata().title().c_str());
     else if (key == "initial_class")
-        lua_pushstring(L, w->m_initialClass.c_str());
+        lua_pushstring(L, w->metadata().initialAppID().c_str());
     else if (key == "initial_title")
-        lua_pushstring(L, w->m_initialTitle.c_str());
+        lua_pushstring(L, w->metadata().initialTitle().c_str());
     else if (key == "pid")
-        lua_pushinteger(L, sc<lua_Integer>(w->getPID()));
+        lua_pushinteger(L, sc<lua_Integer>(w->backend().pid()));
     else if (key == "xwayland")
-        lua_pushboolean(L, w->m_isX11);
+        lua_pushboolean(L, w->backend().isX11());
     else if (key == "pinned")
-        lua_pushboolean(L, w->m_pinned);
+        lua_pushboolean(L, (w->m_state & Desktop::View::WINDOW_STATE_PINNED) != Desktop::View::WINDOW_STATE_NONE);
     else if (key == "pin_fullscreened")
-        lua_pushboolean(L, w->m_pinFullscreened);
+        lua_pushboolean(L, w->fullscreenPolicy().pinFullscreened());
     else if (key == "fullscreen")
         lua_pushinteger(L, sc<lua_Integer>(sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w).internal)));
     else if (key == "fullscreen_client")
         lua_pushinteger(L, sc<lua_Integer>(sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w).client)));
     else if (key == "allowed_over_fullscreen")
-        lua_pushboolean(L, w->m_allowedOverFullscreen);
+        lua_pushboolean(L, w->fullscreenPolicy().allowedOverFullscreen());
     else if (key == "fullscreen_handler")
         lua_pushstring(L, Fullscreen::controller()->getFullscreenHandlerNameAsString(w).c_str());
     else if (key == "group") {
-        if (!w->m_group) {
+        if (!w->grouping().group()) {
             lua_pushnil(L);
             return 1;
         }
 
-        Objects::CLuaGroup::push(L, w->m_group);
+        Objects::CLuaGroup::push(L, w->grouping().group());
     } else if (key == "tags") {
         lua_newtable(L);
 
@@ -142,7 +145,7 @@ static int windowIndex(lua_State* L) {
             lua_rawseti(L, -2, i++);
         }
     } else if (key == "swallowing") {
-        const auto swallowee = w->m_swallowee.lock();
+        const auto swallowee = w->swallowing().swallowee();
         if (swallowee)
             Objects::CLuaWindow::push(L, swallowee);
         else
@@ -152,13 +155,13 @@ static int windowIndex(lua_State* L) {
     else if (key == "inhibiting_idle")
         lua_pushboolean(L, g_pInputManager && g_pInputManager->isWindowInhibiting(w, false));
     else if (key == "xdg_tag") {
-        const auto xdgTag = w->xdgTag();
+        const auto xdgTag = w->backend().metadata().tag;
         if (xdgTag)
             lua_pushstring(L, xdgTag->c_str());
         else
             lua_pushnil(L);
     } else if (key == "xdg_description") {
-        const auto xdgDescription = w->xdgDescription();
+        const auto xdgDescription = w->backend().metadata().description;
         if (xdgDescription)
             lua_pushstring(L, xdgDescription->c_str());
         else
@@ -166,7 +169,7 @@ static int windowIndex(lua_State* L) {
     } else if (key == "content_type")
         lua_pushstring(L, NContentType::toString(w->getContentType()).c_str());
     else if (key == "stable_id")
-        lua_pushinteger(L, sc<lua_Integer>(w->m_stableID));
+        lua_pushinteger(L, sc<lua_Integer>(w->metadata().stableID()));
     else if (key == "layout") {
         const auto target = w->layoutTarget();
         if (!target || target->floating() || !w->m_workspace || !w->m_workspace->m_space) {
@@ -240,7 +243,7 @@ static int windowIndex(lua_State* L) {
     } else if (key == "active") {
         lua_pushboolean(L, w == Desktop::focusState()->window());
     } else if (key == "tearing_hint") {
-        lua_pushboolean(L, w->m_tearingHint);
+        lua_pushboolean(L, (w->m_hints & Desktop::View::WINDOW_HINT_TEAR) != Desktop::View::WINDOW_HINT_NONE);
     } else
         lua_pushnil(L);
 

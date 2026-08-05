@@ -2,7 +2,8 @@
 
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
-#include "../../desktop/view/Window.hpp"
+#include "../../desktop/view/window/Window.hpp"
+#include "../../desktop/view/window/WindowEffectsController.hpp"
 #include "../../desktop/state/WindowState.hpp"
 #include "../../event/EventBus.hpp"
 #include "../../output/Monitor.hpp"
@@ -28,12 +29,7 @@ static void                tickWobbles() {
         if (!window)
             continue;
 
-        auto WOBBLE = window->m_transformers.get<CWobbleTransformer>();
-        if (!WOBBLE)
-            continue;
-
-        anyActive = WOBBLE->tick() || anyActive;
-        window->m_transformers.removeInactive();
+        anyActive = window->effects().tickWobble() || anyActive;
     }
 
     if (anyActive && Animation::mgr())

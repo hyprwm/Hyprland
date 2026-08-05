@@ -1,6 +1,6 @@
 #include "WindowHistoryTracker.hpp"
 
-#include "../view/Window.hpp"
+#include "../view/window/Window.hpp"
 #include "../../event/EventBus.hpp"
 
 using namespace Desktop;

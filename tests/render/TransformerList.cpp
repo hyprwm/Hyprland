@@ -8,7 +8,7 @@ class CTestDamageTransformer : public Render::IWindowTransformer {
         ;
     }
 
-    virtual SP<Render::IFramebuffer> transform(SP<Render::IFramebuffer> in, const Render::SWindowTransformContext& context) {
+    virtual Render::SWindowTransformBuffer transform(const Render::SWindowTransformBuffer& in, const Render::SWindowTransformContext& context) {
         (void)context;
         return in;
     }
@@ -35,6 +35,34 @@ class CTestDamageTransformer : public Render::IWindowTransformer {
     bool   m_active   = true;
 };
 
+class CTestRegionTransformer : public Render::IWindowTransformer {
+  public:
+    CTestRegionTransformer(int priority, double translation) : m_priority(priority), m_translation(translation) {
+        ;
+    }
+
+    virtual Render::SWindowTransformBuffer transform(const Render::SWindowTransformBuffer& in, const Render::SWindowTransformContext& context) {
+        (void)context;
+        return in;
+    }
+
+    virtual int priority() const {
+        return m_priority;
+    }
+
+    virtual CBox transformedExtents(const CBox& currentBox) const {
+        return currentBox.copy().translate({m_translation, 0.0});
+    }
+
+    virtual CBox sourceBoxForOutput(const CBox& outputBox, const CBox& inputBox) const {
+        return outputBox.copy().translate({-m_translation, 0.0}).intersection(inputBox);
+    }
+
+  private:
+    int    m_priority    = 0;
+    double m_translation = 0.0;
+};
+
 TEST(Render, transformerListDamageBoxFollowsPriorityOrder) {
     Render::CWindowTransformerList list;
     list.emplace<CTestDamageTransformer>(20, 2.0, 0.0);
@@ -59,4 +87,21 @@ TEST(Render, transformerListDamageBoxSkipsInactiveTransformers) {
 
     EXPECT_DOUBLE_EQ(OUT.x, 4.0);
     EXPECT_DOUBLE_EQ(OUT.w, 10.0);
+}
+
+TEST(Render, transformerListPlansRequiredSourceInReverseOrder) {
+    Render::CWindowTransformerList list;
+    list.emplace<CTestRegionTransformer>(20, 5.0);
+    list.emplace<CTestRegionTransformer>(10, 10.0);
+
+    const auto PLAN = list.plan({0, 0, 100, 50}, {30, 0, 20, 50});
+
+    ASSERT_EQ(PLAN.stages.size(), 2u);
+    EXPECT_EQ(PLAN.sourceBox, CBox(15, 0, 20, 50));
+    EXPECT_EQ(PLAN.stages[0].outputBox, CBox(25, 0, 20, 50));
+    EXPECT_EQ(PLAN.stages[1].outputBox, CBox(30, 0, 20, 50));
+}
+
+TEST(Render, transformerPixelBoxRoundsOutward) {
+    EXPECT_EQ(Render::pixelBoxForLogical({-1.25, 2.25, 3.5, 4.5}, 2.0), CBox(-3, 4, 8, 10));
 }

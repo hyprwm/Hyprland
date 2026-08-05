@@ -92,8 +92,8 @@ void CWindowTarget::updatePos(uint8_t flags) {
     }
 
     // Default Handled FS (floating or tiling)
-    if (const auto FSMODES = Fullscreen::controller()->getFullscreenModes(m_window.lock());
-        FSMODES.internal != Fullscreen::FSMODE_NONE && !Fullscreen::controller()->layoutManagedFS(m_self->window())) {
+    if (const auto FSMODES = Fullscreen::controller()->getFullscreenModes(effectiveWindow());
+        FSMODES.internal != Fullscreen::FSMODE_NONE && !Fullscreen::controller()->layoutManagedFS(effectiveWindow())) {
         if (FSMODES.internal == Fullscreen::FSMODE_FULLSCREEN) {
             m_window->setBox(m_box.logicalBox);
 
@@ -117,8 +117,8 @@ void CWindowTarget::updatePos(uint8_t flags) {
     }
 
     // Layout handled FS (Tiled Only)
-    if (const auto FSMODES = Fullscreen::controller()->getFullscreenModes(m_window.lock());
-        FSMODES.internal != Fullscreen::FSMODE_NONE && Fullscreen::controller()->layoutManagedFS(m_self->window())) {
+    if (const auto FSMODES = Fullscreen::controller()->getFullscreenModes(effectiveWindow());
+        FSMODES.internal != Fullscreen::FSMODE_NONE && Fullscreen::controller()->layoutManagedFS(effectiveWindow())) {
 
         CBox nodeBox   = m_box.logicalBox;
         CBox visualBox = m_box.visualBox.empty() ? nodeBox : m_box.visualBox;

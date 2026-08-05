@@ -202,11 +202,11 @@ void IFullscreenHandler::setTargetSizeAndPosition(const SP<Layout::ITarget> targ
     if (TARGET_INTERNAL_MODE == FSMODE_FULLSCREEN) {
         const CBox MONBOX                                  = MONITOR->logicalBox();
         Fullscreen::controller()->m_windowPosSettingQueued = true;
-        LAYOUT_TARGET->setPositionGlobal(MONBOX, Layout::TARGET_UPDATE_DEFAULT_HANDLED_FS | Layout::TARGET_UPDATE_FULLSCREEN);
+        LAYOUT_TARGET->setPositionGlobal(MONBOX);
     } else if (TARGET_INTERNAL_MODE == FSMODE_MAXIMIZED) {
         const CBox WORKAREA                                = WORKSPACE->m_space->workArea(target->floating());
         Fullscreen::controller()->m_windowPosSettingQueued = true;
-        LAYOUT_TARGET->setPositionGlobal(WORKAREA, Layout::TARGET_UPDATE_DEFAULT_HANDLED_FS | Layout::TARGET_UPDATE_MAXIMISED);
+        LAYOUT_TARGET->setPositionGlobal(WORKAREA);
     }
     Fullscreen::controller()->m_windowPosSettingQueued = false;
 }
@@ -243,7 +243,7 @@ void IFullscreenHandler::syncTargetSizeAndPosition() {
         // No need to compare with current value also since it'll get overwritten by goal anyway
         if (CURRENT_REAL_POS_GOAL != EXPECTED_REAL_POS || CURRENT_REAL_SIZE_GOAL != EXPECTED_REAL_SIZE) {
             controller()->m_windowPosSettingQueued = true;
-            LAYOUT_TARGET->setPositionGlobal(MONBOX, Layout::TARGET_UPDATE_DEFAULT_HANDLED_FS | Layout::TARGET_UPDATE_FULLSCREEN);
+            LAYOUT_TARGET->setPositionGlobal(MONBOX);
         }
     } else if (TARGET_INTERNAL_MODE == FSMODE_MAXIMIZED) {
 
@@ -262,7 +262,7 @@ void IFullscreenHandler::syncTargetSizeAndPosition() {
 
         if (CURRENT_REAL_POS_GOAL != EXPECTED_REAL_POS || CURRENT_REAL_SIZE_GOAL != EXPECTED_REAL_SIZE) {
             controller()->m_windowPosSettingQueued = true;
-            LAYOUT_TARGET->setPositionGlobal(WORKSPACE->m_space->workArea(FS_TARGET->floating()), Layout::TARGET_UPDATE_DEFAULT_HANDLED_FS | Layout::TARGET_UPDATE_MAXIMISED);
+            LAYOUT_TARGET->setPositionGlobal(WORKSPACE->m_space->workArea(FS_TARGET->floating()));
         }
     }
     Fullscreen::controller()->m_windowPosSettingQueued = false;

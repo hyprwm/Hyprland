@@ -8,9 +8,7 @@
 #include "../../../desktop/state/FocusState.hpp"
 #include "../../../protocols/types/ContentType.hpp"
 #include "../../../config/shared/parserUtils/ParserUtils.hpp"
-#include "../../../desktop/rule/windowRule/WindowRuleEffectContainer.hpp"
 #include "../../../desktop/view/Group.hpp"
-#include "../../../layout/target/Target.hpp"
 
 #include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/String.hpp>

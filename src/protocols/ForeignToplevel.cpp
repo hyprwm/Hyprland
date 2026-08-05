@@ -64,13 +64,13 @@ void CForeignToplevelList::onMap(PHLWINDOW pWindow) {
         return;
     }
 
-    const auto IDENTIFIER = std::format("{:x}", pWindow->m_stableID);
+    const auto IDENTIFIER = std::format("{:x}", pWindow->metadata().stableID());
 
     LOGM(Log::DEBUG, "Newly mapped window gets an identifier of {}", IDENTIFIER);
     m_resource->sendToplevel(newHandle->m_resource.get());
     newHandle->m_resource->sendIdentifier(IDENTIFIER.c_str());
-    newHandle->m_resource->sendAppId(pWindow->m_class.c_str());
-    newHandle->m_resource->sendTitle(pWindow->m_title.c_str());
+    newHandle->m_resource->sendAppId(pWindow->metadata().appID().c_str());
+    newHandle->m_resource->sendTitle(pWindow->metadata().title().c_str());
     newHandle->m_resource->sendDone();
 
     m_handles.emplace_back(std::move(newHandle));
@@ -90,7 +90,7 @@ void CForeignToplevelList::onTitle(PHLWINDOW pWindow) {
     if UNLIKELY (!H || H->m_closed)
         return;
 
-    H->m_resource->sendTitle(pWindow->m_title.c_str());
+    H->m_resource->sendTitle(pWindow->metadata().title().c_str());
     H->m_resource->sendDone();
 }
 
@@ -102,7 +102,7 @@ void CForeignToplevelList::onClass(PHLWINDOW pWindow) {
     if UNLIKELY (!H || H->m_closed)
         return;
 
-    H->m_resource->sendAppId(pWindow->m_class.c_str());
+    H->m_resource->sendAppId(pWindow->metadata().appID().c_str());
     H->m_resource->sendDone();
 }
 
@@ -180,7 +180,7 @@ void CForeignToplevelProtocol::destroyHandle(CForeignToplevelHandle* handle) {
 }
 
 bool CForeignToplevelProtocol::windowValidForForeign(PHLWINDOW pWindow) {
-    return validMapped(pWindow) && !pWindow->isX11OverrideRedirect();
+    return validMapped(pWindow) && !pWindow->backend().traits().overrideRedirect;
 }
 
 PHLWINDOW CForeignToplevelProtocol::windowFromHandleResource(wl_resource* res) {

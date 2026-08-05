@@ -10,7 +10,7 @@
 #include "../desktop/state/WindowState.hpp"
 #include "../desktop/state/ViewState.hpp"
 #include "../desktop/state/GlobalWindowController.hpp"
-#include "../desktop/view/Window.hpp"
+#include "../desktop/view/window/Window.hpp"
 #include "../helpers/MiscFunctions.hpp"
 #include "../output/Monitor.hpp"
 #include "../layout/target/Target.hpp"
@@ -157,7 +157,7 @@ void CWorkspacePlacementController::swapActiveWorkspaces(PHLMONITOR pMonitorA, P
 
     for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace == PWORKSPACEA) {
-            if (w->m_pinned) {
+            if (w->m_state & Desktop::View::WINDOW_STATE_PINNED) {
                 w->m_workspace = PWORKSPACEB;
                 continue;
             }
@@ -165,7 +165,7 @@ void CWorkspacePlacementController::swapActiveWorkspaces(PHLMONITOR pMonitorA, P
             w->m_monitor = pMonitorB;
 
             // additionally, move floating and fs windows manually
-            if (w->m_isFloating)
+            if (w->isFloating())
                 w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(-pMonitorA->m_position + pMonitorB->m_position));
 
             if (Fullscreen::controller()->isFullscreen(w))
@@ -180,7 +180,7 @@ void CWorkspacePlacementController::swapActiveWorkspaces(PHLMONITOR pMonitorA, P
 
     for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace == PWORKSPACEB) {
-            if (w->m_pinned) {
+            if (w->m_state & Desktop::View::WINDOW_STATE_PINNED) {
                 w->m_workspace = PWORKSPACEA;
                 continue;
             }
@@ -188,7 +188,7 @@ void CWorkspacePlacementController::swapActiveWorkspaces(PHLMONITOR pMonitorA, P
             w->m_monitor = pMonitorA;
 
             // additionally, move floating and fs windows manually
-            if (w->m_isFloating)
+            if (w->isFloating())
                 w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(-pMonitorB->m_position + pMonitorA->m_position));
 
             if (Fullscreen::controller()->isFullscreen(w))
@@ -297,7 +297,7 @@ void CWorkspacePlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspa
 
     for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace == pWorkspace) {
-            if (w->m_pinned) {
+            if (w->m_state & Desktop::View::WINDOW_STATE_PINNED) {
                 w->m_workspace = State::workspaceState()->query().id(nextWorkspaceOnMonitorID).run();
                 continue;
             }
@@ -305,9 +305,9 @@ void CWorkspacePlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspa
             w->m_monitor = pMonitor;
 
             // additionally, move floating and fs windows manually
-            if (w->m_isMapped && !w->isHidden()) {
+            if (w->mapped() && !w->isHidden()) {
                 if (POLDMON) {
-                    if (w->m_isFloating)
+                    if (w->isFloating())
                         w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(-POLDMON->m_position + pMonitor->m_position));
 
                     if (Fullscreen::controller()->isFullscreen(w))

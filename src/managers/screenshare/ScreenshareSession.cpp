@@ -118,7 +118,7 @@ void CScreenshareSession::calculateConstraints() {
             break;
         case SHARE_WINDOW:
             m_bufferSize = (m_window->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT) * PMONITOR->m_scale).round();
-            m_name       = m_window->m_title;
+            m_name       = m_window->metadata().title();
             break;
         case SHARE_REGION:
             m_bufferSize = m_captureBox.size();

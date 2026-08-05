@@ -1,6 +1,6 @@
 #include "TearingControl.hpp"
 #include "../managers/ProtocolManager.hpp"
-#include "../desktop/view/Window.hpp"
+#include "../desktop/view/window/Window.hpp"
 #include "../event/EventBus.hpp"
 #include "../Compositor.hpp"
 #include "core/Compositor.hpp"
@@ -69,7 +69,10 @@ void CTearingControl::updateWindow() {
     if UNLIKELY (m_window.expired())
         return;
 
-    m_window->m_tearingHint = m_hint == WP_TEARING_CONTROL_V1_PRESENTATION_HINT_ASYNC;
+    if (m_hint == WP_TEARING_CONTROL_V1_PRESENTATION_HINT_ASYNC)
+        m_window->m_hints |= Desktop::View::WINDOW_HINT_TEAR;
+    else
+        m_window->m_hints &= ~Desktop::View::WINDOW_HINT_TEAR;
 }
 
 bool CTearingControl::good() {

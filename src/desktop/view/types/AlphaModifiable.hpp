@@ -16,8 +16,11 @@ namespace Desktop::View {
             ALPHA_MODIFIABLE_LAST,
         };
 
-        virtual Types::CMultiAVarContainer<float, uint8_t>& alpha()                                   = 0;
-        virtual std::optional<uint8_t>                      alphaGenericToKey(eAlphaModifiableProp p) = 0;
+        virtual Types::CMultiAVarContainer<float, uint8_t>&       alpha()                                   = 0;
+        virtual const Types::CMultiAVarContainer<float, uint8_t>& alpha() const                             = 0;
+        virtual std::optional<uint8_t>                            alphaGenericToKey(eAlphaModifiableProp p) = 0;
+
+        bool                                                      alphaNonZero() const;
 
       protected:
         IAlphaModifiable() = default;

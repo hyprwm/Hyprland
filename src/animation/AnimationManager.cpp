@@ -4,7 +4,9 @@
 #include "../helpers/AnimatedVariable.hpp"
 #include "../macros.hpp"
 #include "../config/ConfigValue.hpp"
-#include "../desktop/view/Window.hpp"
+#include "../desktop/view/window/Window.hpp"
+#include "../desktop/view/window/WindowEffectsController.hpp"
+#include "../render/decorations/IHyprWindowDecoration.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../managers/fullscreen/FullscreenController.hpp"
@@ -81,23 +83,12 @@ static SAnimationContext& getContext(Hyprutils::Animation::CBaseAnimatedVariable
     }
 }
 
-static void damageWindowForPolicies(PHLWINDOW pWindow, bool entire, bool border, bool shadow, bool glow) {
+static void damageWindowForPolicies(PHLWINDOW pWindow, bool entire, const std::vector<SP<IHyprWindowDecoration>>& decorations) {
     if (entire)
         g_pHyprRenderer->damageWindow(pWindow); // damageWindow already damages all decorations
-    else {
-        if (border) {
-            const auto PDECO = pWindow->getDecorationByType(DECORATION_BORDER);
-            PDECO->damageEntire();
-        }
-        if (shadow) {
-            const auto PDECO = pWindow->getDecorationByType(DECORATION_SHADOW);
-            PDECO->damageEntire();
-        }
-        if (glow) {
-            const auto PDECO = pWindow->getDecorationByType(DECORATION_INNER_GLOW);
-            PDECO->damageEntire();
-        }
-    }
+    else
+        for (const auto& decoration : decorations)
+            decoration->damageEntire();
 }
 
 static void preDamageWorkspace(PHLWORKSPACE pWorkspace, PHLMONITOR pMonitor) {
@@ -107,10 +98,10 @@ static void preDamageWorkspace(PHLWORKSPACE pWorkspace, PHLMONITOR pMonitor) {
 
     // TODO: just make this into a damn callback already vax...
     for (auto const& w : Desktop::windowState()->windows()) {
-        if (!w->m_isMapped || w->isHidden() || w->m_workspace != pWorkspace)
+        if (!w->mapped() || w->isHidden() || w->m_workspace != pWorkspace)
             continue;
 
-        if (w->m_isFloating && !w->m_pinned) {
+        if (w->isFloating() && !(w->m_state & Desktop::View::WINDOW_STATE_PINNED)) {
             // still doing the full damage hack for floating because sometimes when the window
             // goes through multiple monitors the last rendered frame is missing damage somehow??
             const CBox windowBoxNoOffset = w->getFullWindowBoundingBox();
@@ -125,7 +116,7 @@ static void preDamageWorkspace(PHLWORKSPACE pWorkspace, PHLMONITOR pMonitor) {
 
     // damage any workspace window that is on any monitor
     for (auto const& w : Desktop::windowState()->windows()) {
-        if (!validMapped(w) || w->m_workspace != pWorkspace || w->m_pinned)
+        if (!validMapped(w) || w->m_workspace != pWorkspace || (w->m_state & Desktop::View::WINDOW_STATE_PINNED))
             continue;
 
         g_pHyprRenderer->damageWindow(w);
@@ -176,16 +167,14 @@ void CHyprAnimationManager::tick() {
     // batch damage per owner to avoid redundant damage calls, otherwise
     // we could be damaging many many times too much
     struct SDamageOwner {
-        PHLWINDOW    window;
-        PHLWORKSPACE workspace;
-        PHLLS        layer;
-        PHLMONITOR   monitor;
-        CBox         previousFull;
-        bool         entire            = false;
-        bool         border            = false;
-        bool         shadow            = false;
-        bool         glow              = false;
-        bool         trackWindowMotion = false;
+        PHLWINDOW                              window;
+        PHLWORKSPACE                           workspace;
+        PHLLS                                  layer;
+        PHLMONITOR                             monitor;
+        CBox                                   previousFull;
+        std::vector<SP<IHyprWindowDecoration>> decorations;
+        bool                                   entire            = false;
+        bool                                   trackWindowMotion = false;
     };
 
     std::vector<SDamageOwner> owners;
@@ -247,10 +236,16 @@ void CHyprAnimationManager::tick() {
             continue;
 
         switch (ctx.eDamagePolicy) {
-            case AVARDAMAGE_ENTIRE: owner->entire = true; break;
-            case AVARDAMAGE_BORDER: owner->border = true; break;
-            case AVARDAMAGE_SHADOW: owner->shadow = true; break;
-            case AVARDAMAGE_GLOW: owner->glow = true; break;
+            case AVARDAMAGE_ENTIRE:
+                owner->entire = true;
+                owner->decorations.clear();
+                break;
+            case AVARDAMAGE_DECORATION: {
+                const auto DECORATION = ctx.pDecoration.lock();
+                if (!owner->entire && DECORATION && std::ranges::find(owner->decorations, DECORATION) == owner->decorations.end())
+                    owner->decorations.emplace_back(DECORATION);
+                break;
+            }
             default: break;
         }
     }
@@ -266,7 +261,7 @@ void CHyprAnimationManager::tick() {
     // pre-damage each owner once (old state)
     for (const auto& owner : owners) {
         if (owner.window)
-            damageWindowForPolicies(owner.window, owner.entire, owner.border, owner.shadow, owner.glow);
+            damageWindowForPolicies(owner.window, owner.entire, owner.decorations);
         else if (owner.workspace)
             preDamageWorkspace(owner.workspace, owner.monitor);
         else if (owner.layer) {
@@ -307,17 +302,17 @@ void CHyprAnimationManager::tick() {
         if (!owner.window || !owner.trackWindowMotion)
             continue;
 
-        owner.window->onPositionUpdate(owner.previousFull, owner.window->getFullWindowBoundingBox(), Desktop::View::WINDOW_UPDATE_ANIMATION);
+        owner.window->effects().onPositionUpdate(owner.previousFull, owner.window->getFullWindowBoundingBox(), Desktop::View::WINDOW_UPDATE_ANIMATION);
     }
 
     // post-damage each owner once (new state) + schedule frames
     for (const auto& owner : owners) {
         if (owner.window)
-            damageWindowForPolicies(owner.window, owner.entire, owner.border, owner.shadow, owner.glow);
+            damageWindowForPolicies(owner.window, owner.entire, owner.decorations);
         else if (owner.workspace) {
             if (owner.entire) {
                 for (auto const& w : Desktop::windowState()->windows()) {
-                    if (!validMapped(w) || w->m_workspace != owner.workspace || w->m_pinned)
+                    if (!validMapped(w) || w->m_workspace != owner.workspace || (w->m_state & Desktop::View::WINDOW_STATE_PINNED))
                         continue;
 
                     g_pHyprRenderer->damageWindow(w);

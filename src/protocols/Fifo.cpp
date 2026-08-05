@@ -6,6 +6,7 @@
 #include "../event/EventBus.hpp"
 #include "../state/MonitorState.hpp"
 #include "../desktop/view/View.hpp"
+#include "../desktop/view/types/AlphaModifiable.hpp"
 #include "../render/Renderer.hpp"
 #include <algorithm>
 #include <hyprutils/memory/WeakPtr.hpp>
@@ -88,11 +89,12 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
                 if (!shouldLock && m_surface->m_hlSurface) {
                     const auto& view = m_surface->m_hlSurface->view();
                     if (view) {
-                        const auto& window    = view->type() == Desktop::View::VIEW_TYPE_WINDOW ? dynamicPointerCast<Desktop::View::CWindow>(view) : nullptr;
-                        const bool  isVisible = (view && view->visible() && //
-                                                 (!window || std::ranges::any_of(State::monitorState()->monitors(), [window](const auto& mon) {
+                        const auto& window        = view->type() == Desktop::View::VIEW_TYPE_WINDOW ? dynamicPointerCast<Desktop::View::CWindow>(view) : nullptr;
+                        const auto  alphaModifier = dynamicPointerCast<Desktop::View::IAlphaModifiable>(view);
+                        const bool  isVisible     = (view->mapped() && view->acceptsInput() && (!alphaModifier || alphaModifier->alphaNonZero()) && //
+                                                     (!window || std::ranges::any_of(State::monitorState()->monitors(), [window](const auto& mon) {
                                                     return g_pHyprRenderer->shouldRenderWindow(window, mon);
-                                                 })));
+                                                     })));
                         if (isVisible)
                             shouldLock = true;
                         else if (*PINVIS == 2) // never

@@ -4,7 +4,7 @@
 #include "../desktop/view/WLSurface.hpp"
 #include "../managers/SeatManager.hpp"
 #include "../pointer/PointerManager.hpp"
-#include "../desktop/view/Window.hpp"
+#include "../desktop/view/window/Window.hpp"
 #include "desktop/view/LayerSurface.hpp"
 #include <hyprutils/math/Box.hpp>
 #include <hyprutils/math/Vector2D.hpp>

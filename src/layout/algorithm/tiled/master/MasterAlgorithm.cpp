@@ -1,4 +1,5 @@
 #include "MasterAlgorithm.hpp"
+#include "../../../../desktop/view/window/WindowPresentation.hpp"
 
 #include "../../Algorithm.hpp"
 #include "../../../space/Space.hpp"
@@ -486,7 +487,7 @@ void CMasterAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir
     if (!targetWs)
         return;
 
-    t->window()->setAnimationsToMove();
+    t->window()->presentation().setAnimationsToMove();
 
     if (t->window()->m_workspace != targetWs) {
         if (!*PMONITORFALLBACK)

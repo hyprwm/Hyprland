@@ -1,5 +1,6 @@
 #pragma once
 
+#include "AnimatedDecorationGradient.hpp"
 #include "IHyprWindowDecoration.hpp"
 
 class CHyprBorderDecoration : public IHyprWindowDecoration {
@@ -25,16 +26,28 @@ class CHyprBorderDecoration : public IHyprWindowDecoration {
 
     virtual std::string                getDisplayName();
 
+    virtual void                       initializeAnimations() override;
+    virtual void                       updateState() override;
+    virtual void                       onWindowMap() override;
+    virtual void                       onWindowFocus() override;
+
+    int                                borderSize() const;
+    void                               invalidateBorderSize();
+
   private:
-    SBoxExtents  m_extents;
-    SBoxExtents  m_reportedExtents;
+    SBoxExtents                 m_extents;
+    SBoxExtents                 m_reportedExtents;
 
-    PHLWINDOWREF m_window;
+    PHLWINDOWREF                m_window;
 
-    CBox         m_assignedGeometry = {0};
+    CBox                        m_assignedGeometry = {0};
 
-    int          m_lastBorderSize = -1;
+    int                         m_lastBorderSize = -1;
 
-    CBox         assignedBoxGlobal();
-    bool         doesntWantBorders();
+    CAnimatedDecorationGradient m_gradient;
+    mutable int                 m_cachedBorderSize     = -1;
+    mutable bool                m_borderSizeCacheDirty = true;
+
+    CBox                        assignedBoxGlobal();
+    bool                        doesntWantBorders();
 };

@@ -3,13 +3,13 @@
 #include <algorithm>
 #include "../Compositor.hpp"
 #include "../managers/SeatManager.hpp"
-#include "../managers/ANRManager.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../output/Monitor.hpp"
 #include "core/Seat.hpp"
 #include "core/Compositor.hpp"
 #include "../desktop/DesktopTypes.hpp"
-#include "../desktop/view/Window.hpp"
+#include "../desktop/view/window/Window.hpp"
+#include "../desktop/view/window/WaylandBackend.hpp"
 #include "protocols/core/Output.hpp"
 #include <cstddef>
 #include <ranges>
@@ -330,8 +330,8 @@ void CXDGToplevelResource::setNewParent(SP<CXDGToplevelResource> newParent) {
     m_parent = newParent;
     if (m_parent) {
         m_parent->m_children.emplace_back(m_self);
-        if (m_parent->m_window && m_parent->m_window->m_pinned)
-            m_self->m_window->m_pinned = true;
+        if (m_parent->m_window && (m_parent->m_window->m_state & Desktop::View::WINDOW_STATE_PINNED))
+            m_self->m_window->m_state |= Desktop::View::WINDOW_STATE_PINNED;
     }
     LOGM(Log::DEBUG, "Toplevel {:x} sets parent to {:x}{}", (uintptr_t)this, (uintptr_t)newParent.get(), (oldParent ? std::format(" (was {:x})", (uintptr_t)oldParent.get()) : ""));
 }
@@ -565,10 +565,10 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
 
         LOGM(Log::DEBUG, "xdg_surface {:x} gets a toplevel {:x}", (uintptr_t)m_owner.get(), (uintptr_t)RESOURCE.get());
 
-        PHLWINDOW createdWindow = Desktop::View::CWindow::create(m_self.lock());
+        PHLWINDOW createdWindow = Desktop::View::CWindow::create(makeUnique<Desktop::View::CWaylandBackend>(m_self.lock()));
 
-        if (RESOURCE->m_parent && RESOURCE->m_parent->m_window->m_pinned)
-            createdWindow->m_pinned = true;
+        if (RESOURCE->m_parent && (RESOURCE->m_parent->m_window->m_state & Desktop::View::WINDOW_STATE_PINNED))
+            createdWindow->m_state |= Desktop::View::WINDOW_STATE_PINNED;
 
         for (auto const& p : m_popups) {
             if (!p)
@@ -881,10 +881,7 @@ CXDGWMBase::CXDGWMBase(SP<CXdgWmBase> resource_) : m_resource(resource_) {
         LOGM(Log::DEBUG, "New xdg_surface at {:x}", (uintptr_t)RESOURCE.get());
     });
 
-    m_resource->setPong([this](CXdgWmBase* r, uint32_t serial) {
-        g_pANRManager->onResponse(m_self.lock());
-        m_events.pong.emit();
-    });
+    m_resource->setPong([this](CXdgWmBase* r, uint32_t serial) { m_events.pong.emit(); });
 }
 
 bool CXDGWMBase::good() {

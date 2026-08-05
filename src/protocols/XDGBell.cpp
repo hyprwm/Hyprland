@@ -4,6 +4,8 @@
 #include "../desktop/state/ViewState.hpp"
 #include "../desktop/state/ViewQuery.hpp"
 #include "../event/EventBus.hpp"
+#include "core/Compositor.hpp"
+#include "../desktop/view/window/Window.hpp"
 #include "../ipc/s2/S2.hpp"
 #include <format>
 

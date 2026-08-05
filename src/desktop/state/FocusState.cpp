@@ -1,16 +1,18 @@
 #include "FocusState.hpp"
-#include "../view/Window.hpp"
+#include "../view/window/WindowFullscreenPolicy.hpp"
+#include "../view/window/WindowGroupMembership.hpp"
+#include "../view/window/Window.hpp"
+#include "../view/window/WindowPresentation.hpp"
 #include "../../Compositor.hpp"
-#include "../../protocols/XDGShell.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../ipc/s2/S2.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../managers/SeatManager.hpp"
-#include "../../xwayland/XSurface.hpp"
 #include "../../protocols/PointerConstraints.hpp"
 #include "animation/WorkspaceAnimationController.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../../layout/LayoutManager.hpp"
+#include "../../layout/target/WindowTarget.hpp"
 #include "../../event/EventBus.hpp"
 
 using namespace Desktop;
@@ -36,9 +38,9 @@ static SFullscreenWorkspaceFocusResult onFullscreenWorkspaceFocusWindow(PHLWINDO
     if (pWindow == FSWINDOW)
         return {}; // no conflict
 
-    if (pWindow->m_isFloating) {
+    if (pWindow->isFloating()) {
         // if the window is floating, just bring it to the top
-        pWindow->m_allowedOverFullscreen = true;
+        pWindow->fullscreenPolicy().setAllowedOverFullscreen(true);
         pWindow->updateFullscreenInputState();
         Animation::Workspace::setFullscreenFloatingFade(pWindow, 1.F);
         g_pHyprRenderer->damageWindow(pWindow);
@@ -85,7 +87,7 @@ void CFocusState::fullWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWL
 
     static auto PMODALPARENTBLOCKING = CConfigValue<Config::INTEGER>("general:modal_parent_blocking");
 
-    if (*PMODALPARENTBLOCKING && pWindow && pWindow->m_xdgSurface && pWindow->m_xdgSurface->m_toplevel && pWindow->m_xdgSurface->m_toplevel->anyChildModal()) {
+    if (*PMODALPARENTBLOCKING && pWindow && !pWindow->backend().isX11() && pWindow->backend().traits().hasModalChild) {
         Log::logger->log(Log::DEBUG, "Refusing focus to window shadowed by modal dialog");
         return;
     }
@@ -112,12 +114,15 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLS
         }
     }
 
-    if (pWindow && pWindow->m_isX11 && pWindow->isX11OverrideRedirect() && !pWindow->m_xwaylandSurface->wantsFocus())
-        return;
+    if (pWindow && pWindow->backend().isX11()) {
+        const auto TRAITS = pWindow->backend().traits();
+        if (TRAITS.overrideRedirect && !TRAITS.wantsFocus)
+            return;
+    }
 
     // m_target on purpose, this avoids the group
     if (pWindow)
-        g_layoutManager->bringTargetToTop(pWindow->m_target);
+        g_layoutManager->bringTargetToTop(pWindow->windowTarget());
 
     if (!pWindow || !validMapped(pWindow)) {
 
@@ -127,9 +132,9 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLS
         const auto PLASTWINDOW = m_focusWindow.lock();
         m_focusWindow.reset();
 
-        if (PLASTWINDOW && PLASTWINDOW->m_isMapped) {
+        if (PLASTWINDOW && PLASTWINDOW->mapped()) {
             PLASTWINDOW->m_ruleApplicator->propertiesChanged(Rule::RULE_PROP_FOCUS);
-            PLASTWINDOW->updateDecorationValues();
+            PLASTWINDOW->presentation().refreshValues();
 
             g_pXWaylandManager->activateWindow(PLASTWINDOW, false);
         }
@@ -155,7 +160,7 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLS
     if (m_focusWindow.lock() == pWindow && g_pSeatManager->m_state.keyboardFocus == surface && g_pSeatManager->m_state.keyboardFocus)
         return;
 
-    if (pWindow->m_pinned)
+    if (pWindow->m_state & Desktop::View::WINDOW_STATE_PINNED)
         pWindow->m_workspace = m_focusMonitor->m_activeWorkspace;
 
     const auto PMONITOR = pWindow->m_monitor.lock();
@@ -172,7 +177,7 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLS
         return;
     }
 
-    if (PMONITOR && !pWindow->m_pinned)
+    if (PMONITOR && !(pWindow->m_state & Desktop::View::WINDOW_STATE_PINNED))
         rawMonitorFocus(PMONITOR);
 
     const auto PLASTWINDOW                    = m_focusWindow.lock();
@@ -181,15 +186,16 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLS
 
     /* If special fallthrough is enabled, this behavior will be disabled, as I have no better idea of nicely tracking which
        window focuses are "via keybinds" and which ones aren't. */
-    if (PMONITOR && PMONITOR->m_activeSpecialWorkspace && PMONITOR->m_activeSpecialWorkspace != pWindow->m_workspace && !pWindow->m_pinned && !*PSPECIALFALLTHROUGH)
+    if (PMONITOR && PMONITOR->m_activeSpecialWorkspace && PMONITOR->m_activeSpecialWorkspace != pWindow->m_workspace && !(pWindow->m_state & Desktop::View::WINDOW_STATE_PINNED) &&
+        !*PSPECIALFALLTHROUGH)
         PMONITOR->setSpecialWorkspace(nullptr);
 
     // we need to make the PLASTWINDOW not equal to m_pLastWindow so that RENDERDATA is correct for an unfocused window
-    if (PLASTWINDOW && PLASTWINDOW->m_isMapped) {
+    if (PLASTWINDOW && PLASTWINDOW->mapped()) {
         PLASTWINDOW->m_ruleApplicator->propertiesChanged(Rule::RULE_PROP_FOCUS);
-        PLASTWINDOW->updateDecorationValues();
+        PLASTWINDOW->presentation().refreshValues();
 
-        if (!pWindow->m_isX11 || !pWindow->isX11OverrideRedirect())
+        if (!pWindow->backend().isX11() || !pWindow->backend().traits().overrideRedirect)
             g_pXWaylandManager->activateWindow(PLASTWINDOW, false);
     }
 
@@ -199,14 +205,14 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLS
     g_pXWaylandManager->activateWindow(pWindow, true); // sets the m_pLastWindow
 
     pWindow->m_ruleApplicator->propertiesChanged(Rule::RULE_PROP_FOCUS);
-    pWindow->onFocusAnimUpdate();
-    pWindow->updateDecorationValues();
+    pWindow->presentation().onFocusAnimUpdate();
+    pWindow->presentation().refreshValues();
 
-    if (pWindow->m_isUrgent)
-        pWindow->m_isUrgent = false;
+    if (pWindow->m_hints & Desktop::View::WINDOW_HINT_URGENT)
+        pWindow->m_hints &= ~Desktop::View::WINDOW_HINT_URGENT;
 
     // Send an event
-    IPC::Socket2::sock()->postEvent({.event = "activewindow", .data = std::format("{},{}", pWindow->m_class, pWindow->m_title)});
+    IPC::Socket2::sock()->postEvent({.event = "activewindow", .data = std::format("{},{}", pWindow->metadata().appID(), pWindow->metadata().title())});
     IPC::Socket2::sock()->postEvent({.event = "activewindowv2", .data = std::format("{:x}", rc<uintptr_t>(pWindow.get()))});
 
     Event::bus()->m_events.window.active.emit(pWindow, reason);
@@ -216,7 +222,7 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLS
     if (*PFOLLOWMOUSE == 0)
         g_pInputManager->sendMotionEventsToFocused();
 
-    if (pWindow->m_group)
+    if (pWindow->grouping().group())
         pWindow->deactivateGroupMembers();
 }
 
@@ -315,7 +321,7 @@ bool CFocusState::isWindowActive(PHLWINDOW pWindow) const {
     if (!FOCUSWINDOW && !FOCUSSURFACE)
         return false;
 
-    if (!pWindow || !pWindow->m_isMapped)
+    if (!pWindow || !pWindow->mapped())
         return false;
 
     const auto PSURFACE = pWindow->wlSurface()->resource();

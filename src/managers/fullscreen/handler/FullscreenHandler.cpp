@@ -1,4 +1,6 @@
 #include "FullscreenHandler.hpp"
+#include "../../../desktop/view/window/WindowFullscreenPolicy.hpp"
+#include "../../../desktop/view/window/WindowPresentation.hpp"
 
 #include "../../../managers/fullscreen/FullscreenController.hpp"
 
@@ -6,12 +8,15 @@
 
 #include "../../../desktop/DesktopTypes.hpp"
 #include "../../../desktop/view/LayerSurface.hpp"
+#include "../../../desktop/view/window/Window.hpp"
+#include "../../../desktop/view/window/WindowGroupMembership.hpp"
 #include "../../../desktop/state/LayerState.hpp"
 #include "../../../desktop/state/WindowState.hpp"
 
 #include "../../../layout/algorithm/Algorithm.hpp"
 #include "../../../layout/target/Target.hpp"
 #include "../../../layout/target/WindowGroupTarget.hpp"
+#include "../../../layout/target/WindowTarget.hpp"
 
 #include "../../../render/Renderer.hpp"
 #include "../../../animation/WorkspaceAnimationController.hpp"
@@ -40,8 +45,8 @@ bool IFullscreenHandler::isFullscreen(SP<Layout::ITarget> target, const std::opt
 
     // A window group's FS state is considered to be owned by its current window
     if (const auto WINDOW_GROUP_TARGET = dc<Layout::CWindowGroupTarget*>(target.get()); WINDOW_GROUP_TARGET && target->type() == Layout::TARGET_TYPE_GROUP) {
-        if (WINDOW_GROUP_TARGET->getGroup() && WINDOW_GROUP_TARGET->getGroup()->current() && WINDOW_GROUP_TARGET->getGroup()->current()->m_target)
-            target = WINDOW_GROUP_TARGET->getGroup()->current()->m_target;
+        if (WINDOW_GROUP_TARGET->getGroup() && WINDOW_GROUP_TARGET->getGroup()->current() && WINDOW_GROUP_TARGET->getGroup()->current()->windowTarget())
+            target = WINDOW_GROUP_TARGET->getGroup()->current()->windowTarget();
         else
             return false;
     }
@@ -72,8 +77,8 @@ SFullscreenMode IFullscreenHandler::getFullscreenModes(SP<Layout::ITarget> targe
 
     // A window group's FS modes are considered to be owned by its current window
     if (const auto WINDOW_GROUP_TARGET = dc<Layout::CWindowGroupTarget*>(target.get()); WINDOW_GROUP_TARGET && target->type() == Layout::TARGET_TYPE_GROUP) {
-        if (WINDOW_GROUP_TARGET->getGroup() && WINDOW_GROUP_TARGET->getGroup()->current() && WINDOW_GROUP_TARGET->getGroup()->current()->m_target)
-            target = WINDOW_GROUP_TARGET->getGroup()->current()->m_target;
+        if (WINDOW_GROUP_TARGET->getGroup() && WINDOW_GROUP_TARGET->getGroup()->current() && WINDOW_GROUP_TARGET->getGroup()->current()->windowTarget())
+            target = WINDOW_GROUP_TARGET->getGroup()->current()->windowTarget();
         else
             return {};
     }
@@ -128,7 +133,7 @@ void IFullscreenHandler::setTargetFullscreenModeInternal(const SP<Layout::ITarge
 
     const auto ITR = m_fsTargets.find(target);
 
-    if (target->window() && target->window()->m_isFloating && mode != FSMODE_NONE && !isFullscreen(target))
+    if (target->window() && target->window()->isFloating() && mode != FSMODE_NONE && !isFullscreen(target))
         target->rememberFloatingSize(target->position().size());
 
     if (mode == FSMODE_NONE) {
@@ -168,16 +173,16 @@ void IFullscreenHandler::updateTargetRulesAndDecos(const SP<Layout::ITarget> tar
     // update all the values necessary for FS windows to get correct window dimensions and pos
 
     // If window is in a group, we need to update these values for ALL members of the group.
-    if (WINDOW->m_group) {
-        for (const auto& gm : WINDOW->m_group->windows()) {
+    if (WINDOW->grouping().group()) {
+        for (const auto& gm : WINDOW->grouping().group()->windows()) {
             gm->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
                                                     Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-            gm->updateDecorationValues();
+            gm->presentation().updateDecorations();
         }
     } else {
         WINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
                                                     Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-        WINDOW->updateDecorationValues();
+        WINDOW->presentation().updateDecorations();
     }
     g_layoutManager->recalculateMonitor(MONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN);
     getSpace()->recalculate(Layout::RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN);
@@ -279,14 +284,16 @@ void IFullscreenHandler::setNoMembersAboveFullscreen(const std::optional<SP<Layo
     const bool SET = hasFullscreen(true);
 
     for (auto const& w : Desktop::windowState()->windows()) {
-        if (w && w->m_workspace == getSpace()->workspace() && !isFullscreen(w->m_target) && !w->m_pinned) {
-            w->m_allowedOverFullscreen = !SET;
+        if (w && w->m_workspace == getSpace()->workspace() && !isFullscreen(w->windowTarget()) && !(w->m_state & Desktop::View::WINDOW_STATE_PINNED)) {
+            w->fullscreenPolicy().setAllowedOverFullscreen(!SET);
             w->updateFullscreenInputState();
         }
     }
     for (auto const& ls : Desktop::layerState()->layers()) {
-        if (ls->m_monitor == MONITOR)
-            ls->m_aboveFullscreen = false;
+        if (ls->m_monitor != MONITOR)
+            continue;
+
+        ls->m_flags &= ~Desktop::View::LAYER_FLAG_ABOVE_FULLSCREEN;
     }
 }
 
@@ -316,7 +323,7 @@ void IFullscreenHandler::syncFullscreenTargets() {
         if (TARGET->type() == Layout::TARGET_TYPE_GROUP) {
             const SFullscreenMode MODE = SFullscreenMode{.internal = it->second.internal, .client = it->second.client};
             // gets the current window's target in the window group
-            const auto WINDOWTARGET = TARGET->window()->m_target;
+            const auto WINDOWTARGET = TARGET->window()->windowTarget();
             const auto NEXT         = std::next(it);
             removeFsTarget(TARGET, true);
             it = NEXT;

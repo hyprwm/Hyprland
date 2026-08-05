@@ -1,4 +1,5 @@
 #include "PluginAPI.hpp"
+#include "../desktop/view/window/WindowPresentation.hpp"
 #include "../Compositor.hpp"
 #include "../ipc/s1/S1.hpp"
 #include "../plugins/PluginSystem.hpp"
@@ -138,20 +139,18 @@ APICALL bool HyprlandAPI::removeFunctionHook(HANDLE handle, CFunctionHook* hook)
     return g_pFunctionHookSystem->removeHook(hook);
 }
 
-APICALL bool HyprlandAPI::addWindowDecoration(HANDLE handle, PHLWINDOW pWindow, UP<IHyprWindowDecoration> pDecoration) {
+APICALL bool HyprlandAPI::addWindowDecoration(HANDLE handle, PHLWINDOW pWindow, SP<IHyprWindowDecoration>&& pDecoration) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
     if (!PLUGIN)
         return false;
 
-    if (!validMapped(pWindow))
+    if (!validMapped(pWindow) || !pDecoration)
         return false;
 
     PLUGIN->m_registeredDecorations.push_back(pDecoration.get());
 
-    pWindow->addWindowDeco(std::move(pDecoration));
-
-    pWindow->layoutTarget()->recalc();
+    pWindow->presentation().addDecoration(std::move(pDecoration));
 
     return true;
 }
@@ -163,9 +162,9 @@ APICALL bool HyprlandAPI::removeWindowDecoration(HANDLE handle, IHyprWindowDecor
         return false;
 
     for (auto const& w : Desktop::windowState()->windows()) {
-        for (auto const& d : w->m_windowDecorations) {
+        for (auto const& d : w->presentation().decorations()) {
             if (d.get() == pDecoration) {
-                w->removeWindowDeco(pDecoration);
+                w->presentation().removeDecoration(pDecoration);
                 return true;
             }
         }

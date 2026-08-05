@@ -1,7 +1,8 @@
 #include "MoveGesture.hpp"
 
 #include "../../../../desktop/state/FocusState.hpp"
-#include "../../../../desktop/view/Window.hpp"
+#include "../../../../desktop/view/window/Window.hpp"
+#include "../../../../desktop/view/window/WindowPresentation.hpp"
 #include "../../../../render/Renderer.hpp"
 #include "../../../../layout/LayoutManager.hpp"
 
@@ -18,7 +19,7 @@ void CMoveTrackpadGesture::update(const ITrackpadGesture::STrackpadGestureUpdate
 
     const auto DELTA = e.swipe ? e.swipe->delta : e.pinch->delta;
 
-    if (m_window->m_isFloating) {
+    if (m_window->isFloating()) {
         g_layoutManager->moveTarget(DELTA, m_window->layoutTarget());
         m_window->finishAnimation();
         return;
@@ -30,7 +31,7 @@ void CMoveTrackpadGesture::update(const ITrackpadGesture::STrackpadGestureUpdate
 
     // funny name but works on tiled too lmao
     m_lastDelta += DELTA;
-    m_window->m_floatingOffset = (m_lastDelta * 0.5F).clamp(Vector2D{-100.F, -100.F}, Vector2D{100.F, 100.F});
+    m_window->presentation().setFloatingOffset((m_lastDelta * 0.5F).clamp(Vector2D{-100.F, -100.F}, Vector2D{100.F, 100.F}));
 
     g_pHyprRenderer->damageWindow(m_window.lock());
 }
@@ -40,14 +41,14 @@ void CMoveTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) {
     if (!m_window)
         return;
 
-    if (m_window->m_isFloating || m_lastDelta.size() < 0.1F)
+    if (m_window->isFloating() || m_lastDelta.size() < 0.1F)
         return;
 
     // tiled: attempt to move window in the given direction
 
-    const auto WINDOWPOS = m_window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL) + m_window->m_floatingOffset;
+    const auto WINDOWPOS = m_window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL) + m_window->presentation().floatingOffset();
 
-    m_window->m_floatingOffset = {};
+    m_window->presentation().clearFloatingOffset();
 
     if (std::abs(m_lastDelta.x) > std::abs(m_lastDelta.y)) {
         // horizontal

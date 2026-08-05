@@ -243,6 +243,7 @@ static std::expected<WindowRuleEffectValue, std::string> parseWindowRuleEffect(C
         case WINDOW_RULE_EFFECT_NO_FOLLOW_MOUSE:
         case WINDOW_RULE_EFFECT_NO_MAX_SIZE:
         case WINDOW_RULE_EFFECT_NO_SHADOW:
+        case WINDOW_RULE_EFFECT_NO_WOBBLE:
         case WINDOW_RULE_EFFECT_NO_SHORTCUTS_INHIBIT:
         case WINDOW_RULE_EFFECT_OPAQUE:
         case WINDOW_RULE_EFFECT_FORCE_RGBX:

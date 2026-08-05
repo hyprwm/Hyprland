@@ -1160,6 +1160,7 @@ void CWindow::updateWindowData(const Config::CWorkspaceRule& workspaceRule) {
     m_ruleApplicator->rounding().matchOptional(workspaceRule.m_noRounding.value_or(false) ? std::optional<Config::INTEGER>(0) : std::nullopt,
                                                Desktop::Types::PRIORITY_WORKSPACE_RULE);
     m_ruleApplicator->noShadow().matchOptional(workspaceRule.m_noShadow, Desktop::Types::PRIORITY_WORKSPACE_RULE);
+    m_ruleApplicator->noWobble().matchOptional(workspaceRule.m_noWobble, Desktop::Types::PRIORITY_WORKSPACE_RULE);
 
     m_borderSizeCacheDirty = true;
 }

@@ -55,6 +55,9 @@ bool CWobbleTransformer::shouldEnable(PHLWINDOW window) {
     if (!window)
         return false;
 
+    if (window->m_ruleApplicator->noWobble().valueOrDefault())
+        return false;
+
     return *PENABLED && !Fullscreen::controller()->isFullscreen(window);
 }
 

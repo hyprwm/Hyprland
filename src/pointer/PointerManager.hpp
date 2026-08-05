@@ -57,6 +57,7 @@ namespace Pointer {
 
         void renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::steady_tp& now, CRegion& damage /* logical */, std::optional<Vector2D> overridePos = {} /* monitor-local */,
                                       bool screencopy = false, bool forceRender = false);
+        void sendCursorSurfaceFrame(const Time::steady_tp& now);
 
         // this is needed e.g. during screensharing where
         // the software cursors aren't locked during the cursor move, but they

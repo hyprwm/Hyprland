@@ -218,7 +218,7 @@ void CMonitorRuleManager::ensureVRR(PHLMONITOR pMonitor) {
                 m->m_output->state->resetExplicitFences();
                 m->m_output->state->setAdaptiveSync(false);
 
-                if (!m->m_state.commit())
+                if (!m->m_state.commit(false))
                     Log::logger->log(Log::ERR, "Couldn't commit output {} in ensureVRR -> false", m->m_output->name);
             }
             m->m_vrrActive = false;
@@ -242,7 +242,7 @@ void CMonitorRuleManager::ensureVRR(PHLMONITOR pMonitor) {
                         m->m_output->state->setAdaptiveSync(false);
                     }
 
-                    if (!m->m_state.commit())
+                    if (!m->m_state.commit(false))
                         Log::logger->log(Log::ERR, "Couldn't commit output {} in ensureVRR -> true", m->m_output->name);
                 }
                 m->m_vrrActive = true;
@@ -251,7 +251,7 @@ void CMonitorRuleManager::ensureVRR(PHLMONITOR pMonitor) {
                     m->m_output->state->resetExplicitFences();
                     m->m_output->state->setAdaptiveSync(false);
 
-                    if (!m->m_state.commit())
+                    if (!m->m_state.commit(false))
                         Log::logger->log(Log::ERR, "Couldn't commit output {} in ensureVRR -> false", m->m_output->name);
                 }
                 m->m_vrrActive = false;

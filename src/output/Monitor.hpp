@@ -47,7 +47,7 @@ namespace Monitor {
         CMonitorState(CMonitor* owner);
         ~CMonitorState() = default;
 
-        bool commit();
+        bool commit(bool updateSwapChain);
         bool test();
         bool updateSwapchain();
         void applyModeWithSwapchain(const SP<Aquamarine::SOutputMode>& mode);

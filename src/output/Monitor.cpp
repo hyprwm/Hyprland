@@ -267,7 +267,7 @@ void CMonitor::onConnect(bool noRule) {
 
         m_output->state->resetExplicitFences();
         m_output->state->setEnabled(true);
-        m_state.commit();
+        m_state.commit(false);
         return;
     }
 
@@ -278,7 +278,7 @@ void CMonitor::onConnect(bool noRule) {
         m_output->state->setEnabled(false);
         m_usedAsyncBuffers.clear();
 
-        if (!m_state.commit())
+        if (!m_state.commit(false))
             Log::logger->log(Log::ERR, "Couldn't commit disabled state on output {}", m_name);
 
         m_enabled = false;
@@ -311,7 +311,7 @@ void CMonitor::onConnect(bool noRule) {
         applyMonitorRule(std::move(cpy));
     }
 
-    if (!m_state.commit())
+    if (!m_state.commit(false))
         Log::logger->log(Log::WARN, "state.commit() failed in CMonitor::onCommit");
 
     m_damage.setSize(m_transformedSize);
@@ -499,7 +499,7 @@ void CMonitor::onDisconnect(bool destroy) {
         m_output->state->setAdaptiveSync(false);
         m_output->state->setEnabled(false);
 
-        if (!m_state.commit())
+        if (!m_state.commit(false))
             Log::logger->log(Log::WARN, "state.commit() failed in CMonitor::onDisconnect");
     }
 
@@ -736,7 +736,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
 
         m_activeMonitorRule = std::move(pMonitorRule);
 
-        if (!m_state.commit())
+        if (!m_state.commit(false))
             Log::logger->log(Log::WARN, "state.commit() failed in CMonitor::applyMonitorRule");
 
         m_events.modeChanged.emit();
@@ -1053,7 +1053,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
 
     m_output->scheduleFrame();
 
-    if (!m_state.commit())
+    if (!m_state.commit(false))
         Log::logger->log(Log::ERR, "Couldn't commit output named {}", m_name);
 
     Vector2D xfmd     = m_transform % 2 == 1 ? Vector2D{m_pixelSize.y, m_pixelSize.x} : m_pixelSize;
@@ -2146,7 +2146,7 @@ bool CMonitor::attemptDirectScanout() {
                 return false;
             }
 
-            if (!m_output->commit()) {
+            if (!m_state.commit(false)) {
                 Log::logger->log(Log::TRACE, "attemptDirectScanout: failed to commit cursor update");
                 m_lastScanout.reset();
                 return false;
@@ -2225,7 +2225,7 @@ bool CMonitor::attemptDirectScanout() {
 
     // no need to do explicit sync here as surface current can only ever be ready to read
 
-    bool ok = m_output->commit();
+    bool ok = m_state.commit(false);
 
     if (!ok) {
         Log::logger->log(Log::TRACE, "attemptDirectScanout: failed to scanout surface");
@@ -2370,7 +2370,8 @@ void CMonitor::commitDPMSState(bool state) {
     if (!state)
         m_usedAsyncBuffers.clear();
 
-    if (!m_state.commit()) {
+    // re-enabling needs a configured swapchain, the backend may have cleared it while we were off
+    if (!m_state.commit(state)) {
         Log::logger->log(Log::ERR, "Couldn't commit output {} for DPMS = {}, will retry.", m_name, state);
 
         // retry in 2 frames. This could happen when the DRM backend rejects our commit
@@ -2384,10 +2385,11 @@ void CMonitor::commitDPMSState(bool state) {
 
                 m_output->state->resetExplicitFences();
                 m_output->state->setEnabled(m_dpmsStatus);
+
                 if (!m_dpmsStatus)
                     m_usedAsyncBuffers.clear();
 
-                if (!m_state.commit()) {
+                if (!m_state.commit(m_dpmsStatus)) {
                     Log::logger->log(Log::ERR, "Couldn't retry committing output {} for DPMS = {}", m_name, m_dpmsStatus);
                     return;
                 }
@@ -2683,13 +2685,17 @@ void CMonitorState::ensureBufferPresent() {
     m_owner->m_output->swapchain->rollback(); // restore the counter, don't advance the swapchain
 }
 
-bool CMonitorState::commit() {
-    if (!updateSwapchain())
-        return false;
+bool CMonitorState::commit(bool updateSwapChain) {
+    if (updateSwapChain) {
+        if (!updateSwapchain())
+            return false;
+    }
 
     Event::bus()->m_events.monitor.preCommit.emit(m_owner->m_self.lock());
 
-    ensureBufferPresent();
+    // a modeset needs a buffer matching the new mode
+    if (updateSwapChain || m_owner->m_output->state->needsReconfig())
+        ensureBufferPresent();
 
     bool ret = m_owner->m_output->commit();
     return ret;

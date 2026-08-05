@@ -71,7 +71,11 @@ namespace Render {
         virtual eType                       type() = 0;
         WP<Render::GL::CHyprOpenGLImpl>     glBackend();
 
+        void                                applyCursorZoom(PHLMONITOR pMonitor, SRenderData& data);
+        void                                renderDamageBlink(PHLMONITOR pMonitor, int& damageBlinkCleanup);
+        bool                                renderDirectScanout(PHLMONITOR pMonitor);
         void                                renderMonitor(PHLMONITOR pMonitor, bool commit = true);
+        void                                endRenderMonitor(PHLMONITOR pMonitor, bool commit, bool shouldTear, bool updateSwapChain);
         void                                arrangeLayersForMonitor(const MONITORID&);
         void                                damageSurface(SP<CWLSurfaceResource>, double, double, double scale = 1.0);
         void                                damageWindow(PHLWINDOW, bool forceFull = false);
@@ -143,28 +147,28 @@ namespace Render {
                                      const int maxHeight = 1024);
         CHyprColor      getConvertedColor(const CHyprColor& color);
 
-        virtual SP<IRenderbuffer>    getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer,
-                                                             uint32_t                fmt); // TODO? move to protected and fix CPointerManager::renderHWCursorBuffer
-        bool                         commitPendingAndDoExplicitSync(PHLMONITOR pMonitor);  // TODO? move to protected and fix CMonitorFrameScheduler::onPresented
-        SRenderData                  m_renderData;                                         // TODO? move to protected and fix CRenderPass
-        SP<ITexture>                 m_screencopyDeniedTexture;                            // TODO? make readonly
-        uint                         m_failedAssetsNo     = 0;                             // TODO? make readonly
-        bool                         m_reloadScreenShader = true;                          // at launch it can be set
-        CTimer                       m_globalTimer;
+        virtual SP<IRenderbuffer>  getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer,
+                                                           uint32_t                fmt); // TODO? move to protected and fix CPointerManager::renderHWCursorBuffer
+        bool                       commitPendingAndDoExplicitSync(PHLMONITOR pMonitor, bool updateSwapChain); // TODO? move to protected and fix CMonitorFrameScheduler::onPresented
+        SRenderData                m_renderData;                                                              // TODO? move to protected and fix CRenderPass
+        SP<ITexture>               m_screencopyDeniedTexture;                                                 // TODO? make readonly
+        uint                       m_failedAssetsNo     = 0;                                                  // TODO? make readonly
+        bool                       m_reloadScreenShader = true;                                               // at launch it can be set
+        CTimer                     m_globalTimer;
 
-        void                         draw(WP<IPassElement> element, const CRegion& damage = {});
-        void                         draw(const CBorderPassElement::SBorderData& data, const CRegion& damage = {});
-        void                         draw(const CClearPassElement::SClearData& data, const CRegion& damage = {});
-        void                         draw(const CFramebufferElement::SFramebufferElementData& data, const CRegion& damage = {});
-        void                         draw(const CRectPassElement::SRectData& data, const CRegion& damage = {});
-        void                         draw(const CRendererHintsPassElement::SData& data, const CRegion& damage = {});
-        void                         draw(const CShadowPassElement::SShadowData& data, const CRegion& damage = {});
-        void                         draw(const CSurfacePassElement::SRenderData& data, const CRegion& damage = {});
-        void                         draw(const CTexPassElement::SRenderData& data, const CRegion& damage = {});
-        void                         draw(const CTextureMatteElement::STextureMatteData& data, const CRegion& damage = {});
-        virtual void                 bindFB(SP<IFramebuffer> fb);
-        UP<CScopeGuard>              bindTempFB(SP<IFramebuffer> fb);
-        virtual UP<ISyncFDManager>   createSyncFDManager()                                                                                                                     = 0;
+        void                       draw(WP<IPassElement> element, const CRegion& damage = {});
+        void                       draw(const CBorderPassElement::SBorderData& data, const CRegion& damage = {});
+        void                       draw(const CClearPassElement::SClearData& data, const CRegion& damage = {});
+        void                       draw(const CFramebufferElement::SFramebufferElementData& data, const CRegion& damage = {});
+        void                       draw(const CRectPassElement::SRectData& data, const CRegion& damage = {});
+        void                       draw(const CRendererHintsPassElement::SData& data, const CRegion& damage = {});
+        void                       draw(const CShadowPassElement::SShadowData& data, const CRegion& damage = {});
+        void                       draw(const CSurfacePassElement::SRenderData& data, const CRegion& damage = {});
+        void                       draw(const CTexPassElement::SRenderData& data, const CRegion& damage = {});
+        void                       draw(const CTextureMatteElement::STextureMatteData& data, const CRegion& damage = {});
+        virtual void               bindFB(SP<IFramebuffer> fb);
+        UP<CScopeGuard>            bindTempFB(SP<IFramebuffer> fb);
+        virtual UP<ISyncFDManager> createSyncFDManager()                                                                                                                       = 0;
         virtual WP<IElementRenderer> elementRenderer()                                                                                                                         = 0;
         virtual SP<ITexture>         createStencilTexture(const int width, const int height)                                                                                   = 0;
         virtual SP<ITexture>         createTexture(bool opaque = false)                                                                                                        = 0;

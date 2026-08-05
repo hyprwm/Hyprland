@@ -1982,108 +1982,10 @@ void IHyprRenderer::renderMirrored() {
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }
 
-void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
-    if (!pMonitor)
-        return;
-    static std::chrono::high_resolution_clock::time_point renderStart        = std::chrono::high_resolution_clock::now();
-    static std::chrono::high_resolution_clock::time_point renderStartOverlay = std::chrono::high_resolution_clock::now();
-    static std::chrono::high_resolution_clock::time_point endRenderOverlay   = std::chrono::high_resolution_clock::now();
+void IHyprRenderer::applyCursorZoom(PHLMONITOR pMonitor, SRenderData& data) {
+    static bool zoomLock   = false;
+    const float ZOOMFACTOR = pMonitor->m_cursorZoom->value();
 
-    static auto                                           PDEBUGOVERLAY       = CConfigValue<Config::INTEGER>("debug:overlay");
-    static auto                                           PDAMAGETRACKINGMODE = CConfigValue<Config::INTEGER>("debug:damage_tracking");
-    static auto                                           PDAMAGEBLINK        = CConfigValue<Config::INTEGER>("debug:damage_blink");
-    static auto                                           PSOLDAMAGE          = CConfigValue<Config::INTEGER>("debug:render_solitary_wo_damage");
-    static auto                                           PVFR                = CConfigValue<Config::INTEGER>("debug:vfr");
-
-    static int                                            damageBlinkCleanup = 0; // because double-buffered
-
-    const float                                           ZOOMFACTOR = pMonitor->m_cursorZoom->value();
-
-    if (pMonitor->m_pixelSize.x < 1 || pMonitor->m_pixelSize.y < 1) {
-        Log::logger->log(Log::ERR, "Refusing to render a monitor because of an invalid pixel size: {}", pMonitor->m_pixelSize);
-        return;
-    }
-
-    if (!*PDAMAGEBLINK)
-        damageBlinkCleanup = 0;
-
-    if (*PDEBUGOVERLAY == 1) {
-        renderStart = std::chrono::high_resolution_clock::now();
-        Debug::overlay()->frameData(pMonitor);
-    }
-
-    if (!g_pCompositor->m_sessionActive)
-        return;
-
-    Event::bus()->m_events.render.preChecks.emit(pMonitor);
-
-    if (Animation::mgr())
-        Animation::mgr()->frameTick();
-
-    {
-        static bool once = true;
-        if (once) {
-            Event::bus()->m_events.start.emit();
-            once = false;
-        }
-    }
-
-    if (pMonitor->m_scheduledRecalc) {
-        pMonitor->m_scheduledRecalc = false;
-        if (pMonitor->m_activeWorkspace) // might be missing (mirror)
-            pMonitor->m_activeWorkspace->m_space->recalculate(Layout::RECALCULATE_REASON_RENDER_MONITOR);
-    }
-
-    // needsFrame can be cleared by commits that didnt consume our damage like a
-    // commit while a pageflip was in flight, so pending damage must keep the frame alive.
-    if (!pMonitor->m_output->needsFrame && pMonitor->m_forceFullFrames == 0 && !pMonitor->m_damage.hasChanged())
-        return;
-
-    // tearing and DS first
-    bool       shouldTear              = pMonitor->updateTearing();
-    const bool canAttemptDirectScanout = pMonitor->canAttemptDirectScanoutFast();
-
-    if (canAttemptDirectScanout) {
-        if (pMonitor->attemptDirectScanout()) {
-            if (!pMonitor->needsACopyFB())
-                pMonitor->resources()->markMirrorFBStale();
-
-            if (!pMonitor->m_directScanoutIsActive) {
-                pMonitor->m_previousFSWindow.reset(); // recalc fs settings
-                pMonitor->m_directScanoutIsActive = true;
-            }
-            handleFullscreenSettings(pMonitor);
-            return;
-        } else if (!pMonitor->m_lastScanout.expired() || pMonitor->m_directScanoutIsActive)
-            pMonitor->handleDSleave();
-    }
-
-    Event::bus()->m_events.render.pre.emit(pMonitor);
-
-    const auto NOW = Time::steadyNow();
-
-    if (!shouldRenderMonitor(pMonitor) && damageBlinkCleanup == 0)
-        return;
-
-    if (*PDAMAGETRACKINGMODE == -1) {
-        Log::logger->log(Log::CRIT, "Damage tracking mode -1 ????");
-        return;
-    }
-
-    Event::bus()->m_events.render.stage.emit(RENDER_PRE);
-
-    pMonitor->m_renderingActive = true;
-
-    // Most frames have no fading-out windows or layers for this monitor.
-    if (!Desktop::fadingOutState()->fadeouts().empty())
-        Desktop::fadingOutState()->cleanupForMonitor(pMonitor);
-
-    // TODO: this is getting called with extents being 0,0,0,0 should it be?
-    // potentially can save on resources.
-
-    TRACY_GPU_ZONE("Render");
-
-    static bool zoomLock = false;
     if (zoomLock && ZOOMFACTOR == 1.f) {
         Pointer::mgr()->unlockSoftwareAll();
         zoomLock = false;
@@ -2101,12 +2003,160 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         m_renderData.mouseZoomUseMouse  = false;
         m_renderData.useNearestNeighbor = false;
     }
+}
+
+void IHyprRenderer::renderDamageBlink(PHLMONITOR pMonitor, int& damageBlinkCleanup) {
+    if (damageBlinkCleanup == 0) {
+        CRectPassElement::SRectData data;
+        data.box   = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
+        data.color = CHyprColor(1.0, 0.0, 1.0, 100.0 / 255.0);
+        m_renderPass.add(makeUnique<CRectPassElement>(data));
+        damageBlinkCleanup = 1;
+    } else {
+        damageBlinkCleanup++;
+        if (damageBlinkCleanup > 3)
+            damageBlinkCleanup = 0;
+    }
+}
+
+bool IHyprRenderer::renderDirectScanout(PHLMONITOR pMonitor) {
+    const bool canAttemptDirectScanout = pMonitor->canAttemptDirectScanoutFast();
+
+    if (canAttemptDirectScanout) {
+        if (pMonitor->attemptDirectScanout()) {
+            if (!pMonitor->needsACopyFB())
+                pMonitor->resources()->markMirrorFBStale();
+
+            if (!pMonitor->m_directScanoutIsActive) {
+                pMonitor->m_previousFSWindow.reset(); // recalc fs settings
+                pMonitor->m_directScanoutIsActive = true;
+            }
+            handleFullscreenSettings(pMonitor);
+            return true;
+        } else if (!pMonitor->m_lastScanout.expired() || pMonitor->m_directScanoutIsActive)
+            pMonitor->handleDSleave();
+    }
+
+    return false;
+}
+
+// if the monitor image actually needs to be redrawn. If it doesnt, the buffer currently
+// being scanned out is still a correct picture of the monitor, and there is no point in acquiring
+// a new swapchain buffer and running a render pass over it.
+static bool monitorNeedsRedraw(PHLMONITOR pMonitor, int damageBlinkCleanup) {
+    static auto PDAMAGETRACKINGMODE = CConfigValue<Config::INTEGER>("debug:damage_tracking");
+    static auto PSOLDAMAGE          = CConfigValue<Config::INTEGER>("debug:render_solitary_wo_damage");
+
+    // these all redraw the entire monitor every frame by definition
+    if (*PDAMAGETRACKINGMODE != DAMAGE_TRACKING_FULL || pMonitor->m_forceFullFrames > 0 || damageBlinkCleanup > 0)
+        return true;
+
+    if (pMonitor->m_damage.hasChanged())
+        return true;
+
+    if (pMonitor->m_solitaryClient && *PSOLDAMAGE)
+        return true;
+
+    // mirrors and screenshare consumers read the mirror FB, which is only refreshed as a side
+    // effect of rendering, so keep rendering while it's stale.
+    return pMonitor->needsACopyFB() && !pMonitor->resources()->pendingMirrorFBDamage().empty();
+}
+
+void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
+    if (!pMonitor)
+        return;
+
+    if (pMonitor->m_pixelSize.x < 1 || pMonitor->m_pixelSize.y < 1) {
+        Log::logger->log(Log::ERR, "Refusing to render a monitor because of an invalid pixel size: {}", pMonitor->m_pixelSize);
+        return;
+    }
+
+    if (!g_pCompositor->m_sessionActive)
+        return;
+
+    static auto PDAMAGETRACKINGMODE = CConfigValue<Config::INTEGER>("debug:damage_tracking");
+    static auto PDAMAGEBLINK        = CConfigValue<Config::INTEGER>("debug:damage_blink");
+    static auto PSOLDAMAGE          = CConfigValue<Config::INTEGER>("debug:render_solitary_wo_damage");
+
+    static int  damageBlinkCleanup = 0; // because double-buffered
+
+    if (!*PDAMAGEBLINK)
+        damageBlinkCleanup = 0;
+
+    Debug::overlay()->renderStart(pMonitor);
+
+    Event::bus()->m_events.render.preChecks.emit(pMonitor);
+
+    if (Animation::mgr())
+        Animation::mgr()->frameTick();
+
+    static bool firstFrame = true;
+    if (std::exchange(firstFrame, false))
+        Event::bus()->m_events.start.emit();
+
+    if (pMonitor->m_scheduledRecalc) {
+        pMonitor->m_scheduledRecalc = false;
+        if (pMonitor->m_activeWorkspace) // might be missing (mirror)
+            pMonitor->m_activeWorkspace->m_space->recalculate(Layout::RECALCULATE_REASON_RENDER_MONITOR);
+    }
+
+    // needsFrame can be cleared by commits that didnt consume our damage like a
+    // commit while a pageflip was in flight, so pending damage must keep the frame alive.
+    if (!pMonitor->m_output->needsFrame && pMonitor->m_forceFullFrames == 0 && !pMonitor->m_damage.hasChanged())
+        return;
+
+    // tearing and DS first
+    bool shouldTear = pMonitor->updateTearing();
+    if (renderDirectScanout(pMonitor))
+        return;
+
+    Event::bus()->m_events.render.pre.emit(pMonitor);
+
+    pMonitor->m_renderingActive = true;
+
+    // a frame was scheduled, but nothing on this monitor changed, a hw cursor plane update, a
+    // client that only wants frame events, a bare scheduleFrame(). the scanned out buffer is still
+    // correct, so push the pending output state without rendering anything.
+    bool updateSwapChain = false;
+    if (!monitorNeedsRedraw(pMonitor, damageBlinkCleanup)) {
+        const auto NOW = Time::steadyNow();
+
+        if (!pMonitor->isMirror()) {
+            if (pMonitor->m_activeWorkspace)
+                sendFrameEventsToWorkspace(pMonitor, pMonitor->m_activeWorkspace, NOW);
+            if (pMonitor->m_activeSpecialWorkspace)
+                sendFrameEventsToWorkspace(pMonitor, pMonitor->m_activeSpecialWorkspace, NOW);
+        }
+
+        // an animated hw cursor keeps animating off its own frame callback
+        Pointer::mgr()->sendCursorSurfaceFrame(NOW);
+
+        pMonitor->output()->state->resetExplicitFences();
+        pMonitor->m_inFence.reset();
+        endRenderMonitor(pMonitor, commit, shouldTear, updateSwapChain);
+        return;
+    } else
+        updateSwapChain = true;
+
+    Event::bus()->m_events.render.stage.emit(RENDER_PRE);
+
+    // Most frames have no fading-out windows or layers for this monitor.
+    if (!Desktop::fadingOutState()->fadeouts().empty())
+        Desktop::fadingOutState()->cleanupForMonitor(pMonitor);
+
+    // TODO: this is getting called with extents being 0,0,0,0 should it be?
+    // potentially can save on resources.
+
+    TRACY_GPU_ZONE("Render");
+
+    applyCursorZoom(pMonitor, m_renderData);
 
     const bool ZOOM_DAMAGE_ENTIRE = pMonitor->m_zoomController.shouldDamageEntire(m_renderData.mouseZoomFactor);
 
     CRegion    damage, finalDamage;
     if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL)) {
         Log::logger->log(Log::ERR, "renderer: couldn't beginRender()!");
+        pMonitor->m_renderingActive = false;
         return;
     }
 
@@ -2128,7 +2178,8 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     Event::bus()->m_events.render.stage.emit(RENDER_BEGIN);
 
-    bool renderCursor = true;
+    bool       renderCursor = true;
+    const auto NOW          = Time::steadyNow();
 
     if (pMonitor->m_solitaryClient && (!finalDamage.empty() || *PSOLDAMAGE))
         renderWindow(pMonitor->m_solitaryClient.lock(), pMonitor, NOW, false, RENDER_PASS_MAIN /* solitary = no popups */);
@@ -2153,23 +2204,10 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
             }
 
             // for drawing the debug overlay
-            if (!State::monitorState()->monitors().empty() && pMonitor == State::monitorState()->monitors().front() && *PDEBUGOVERLAY == 1) {
-                renderStartOverlay = std::chrono::high_resolution_clock::now();
-                Debug::overlay()->draw();
-                endRenderOverlay = std::chrono::high_resolution_clock::now();
-            }
+            Debug::overlay()->renderOverlay(pMonitor);
 
-            if (*PDAMAGEBLINK && damageBlinkCleanup == 0) {
-                CRectPassElement::SRectData data;
-                data.box   = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
-                data.color = CHyprColor(1.0, 0.0, 1.0, 100.0 / 255.0);
-                m_renderPass.add(makeUnique<CRectPassElement>(data));
-                damageBlinkCleanup = 1;
-            } else if (*PDAMAGEBLINK) {
-                damageBlinkCleanup++;
-                if (damageBlinkCleanup > 3)
-                    damageBlinkCleanup = 0;
-            }
+            if (*PDAMAGEBLINK)
+                renderDamageBlink(pMonitor, damageBlinkCleanup);
         }
     } else if (!pMonitor->isMirror()) {
         if (pMonitor->m_activeWorkspace)
@@ -2219,12 +2257,20 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     Event::bus()->m_events.render.stage.emit(RENDER_POST);
 
     pMonitor->m_output->state->addDamage(frameDamage);
+
+    endRenderMonitor(pMonitor, commit, shouldTear, updateSwapChain);
+}
+
+void IHyprRenderer::endRenderMonitor(PHLMONITOR pMonitor, bool commit, bool shouldTear, bool updateSwapChain) {
+    static auto PDAMAGEBLINK = CConfigValue<Config::INTEGER>("debug:damage_blink");
+    static auto PVFR         = CConfigValue<Config::INTEGER>("debug:vfr");
+
     auto presentationMode = shouldTear ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE : Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC;
     if (pMonitor->m_output->state->state().presentationMode != presentationMode)
         pMonitor->m_output->state->setPresentationMode(presentationMode);
 
     if (commit)
-        commitPendingAndDoExplicitSync(pMonitor);
+        commitPendingAndDoExplicitSync(pMonitor, updateSwapChain);
 
     // cleared only after the commit
     pMonitor->m_renderingActive = false;
@@ -2237,16 +2283,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     pMonitor->m_pendingFrame = false;
 
-    if (*PDEBUGOVERLAY == 1) {
-        const float durationUs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - renderStart).count() / 1000.f;
-        Debug::overlay()->renderData(pMonitor, durationUs);
-
-        if (pMonitor == State::monitorState()->monitors().front()) {
-            const float noOverlayUs = durationUs - std::chrono::duration_cast<std::chrono::nanoseconds>(endRenderOverlay - renderStartOverlay).count() / 1000.f;
-            Debug::overlay()->renderDataNoOverlay(pMonitor, noOverlayUs);
-        } else
-            Debug::overlay()->renderDataNoOverlay(pMonitor, durationUs);
-    }
+    Debug::overlay()->renderEnd(pMonitor);
 }
 
 static const hdr_output_metadata NO_HDR_METADATA = {.hdmi_metadata_type1 = hdr_metadata_infoframe{.eotf = 0}};
@@ -2443,15 +2480,15 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
     pMonitor->m_previousFSWindow = FULLSCREEN_WINDOW;
 }
 
-bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
+bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor, bool updateSwapChain) {
     handleFullscreenSettings(pMonitor);
 
-    bool ok = pMonitor->m_state.commit();
+    bool ok = pMonitor->m_state.commit(updateSwapChain);
     if (!ok) {
         if (pMonitor->m_inFence.isValid()) {
             Log::logger->log(Log::TRACE, "Monitor state commit failed, retrying without a fence");
             pMonitor->m_output->state->resetExplicitFences();
-            ok = pMonitor->m_state.commit();
+            ok = pMonitor->m_state.commit(updateSwapChain);
         }
 
         if (!ok) {

@@ -19,6 +19,7 @@
 #include "../render/Texture.hpp"
 #include "../render/Framebuffer.hpp"
 #include "MonitorResources.hpp"
+#include "PresentationTimeFilter.hpp"
 #include "../helpers/time/Timer.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../desktop/reserved/ReservedArea.hpp"
@@ -136,6 +137,7 @@ namespace Monitor {
         PHLMONITORREF                  m_self;
 
         UP<CMonitorFrameScheduler>     m_frameScheduler;
+        CPresentationTimeFilter        m_presentationTimeFilter;
 
         // mirroring
         PHLMONITORREF              m_mirrorOf;

@@ -159,6 +159,12 @@ void CMonitor::onConnect(bool noRule) {
             flags &= ~Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_CLOCK;
         }
 
+        // without a hardware clock the timestamp is sampled when we dispatched the flip event, so it
+        // carries our own event loop latency. clients feeding it back into commit-timing deadlines
+        // lose that much of their margin. filter it before anything downstream sees it.
+        if (!(flags & Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_CLOCK) && !m_vrrActive && !m_tearingState.activelyTearing)
+            ts = Time::toTimespec(m_presentationTimeFilter.filter(Time::fromTimespec(&ts), std::chrono::nanoseconds(event.refresh)));
+
         PROTO::presentation->onPresented(m_self.lock(), ts, event.refresh, event.seq, flags);
 
         if (m_zoomAnimFrameCounter < 5) {

@@ -1446,7 +1446,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
     if (pWorkspace->m_isSpecialWorkspace) {
         if (m_activeSpecialWorkspace != pWorkspace) {
             Log::logger->log(Log::DEBUG, "changeworkspace on special, togglespecialworkspace to id {}", pWorkspace->m_id);
-            setSpecialWorkspace(pWorkspace);
+            setSpecialWorkspace(pWorkspace, noFocus);
         }
         return;
     }
@@ -1505,9 +1505,11 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
 
         g_layoutManager->recalculateMonitor(m_self.lock(), Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_WORKSPACE_CHANGE);
 
-        IPC::Socket2::sock()->postEvent({"workspace", pWorkspace->m_name});
-        IPC::Socket2::sock()->postEvent({"workspacev2", std::format("{},{}", pWorkspace->m_id, pWorkspace->m_name)});
-        Event::bus()->m_events.workspace.active.emit(pWorkspace);
+        if (!noFocus) {
+            IPC::Socket2::sock()->postEvent({"workspace", pWorkspace->m_name});
+            IPC::Socket2::sock()->postEvent({"workspacev2", std::format("{},{}", pWorkspace->m_id, pWorkspace->m_name)});
+            Event::bus()->m_events.workspace.active.emit(pWorkspace);
+        }
     }
 
     // set all LSes as not above fullscreen on workspace changes
@@ -1552,7 +1554,7 @@ void CMonitor::setSpecialWorkspaceVisualState(bool active) {
     *m_specialBlur = active && *PBLURSPECIAL && *PBLUR ? 1.F : 0.F;
 }
 
-void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
+void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace, bool noFocus) {
     if (m_activeSpecialWorkspace == pWorkspace)
         return;
 
@@ -1583,7 +1585,8 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
         g_layoutManager->recalculateMonitor(m_self.lock(), Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE);
 
-        if (!(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
+        if (!(noFocus && Desktop::focusState()->monitor() != m_self) &&
+            !(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
             if (const auto PLAST = m_activeWorkspace->getLastFocusedWindow(); PLAST)
                 Desktop::focusState()->fullWindowFocus(PLAST, Desktop::FOCUS_REASON_TOGGLE_SPECIAL_WORKSPACE);
             else
@@ -1616,6 +1619,15 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         PMONITOR->m_activeSpecialWorkspace.reset();
         g_layoutManager->recalculateMonitor(PMONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE);
         g_pHyprRenderer->damageMonitor(PMONITOR);
+        if (noFocus &&
+            (Desktop::focusState()->monitor() == PMONITOR &&
+             !(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == PMONITOR))) {
+            // leave focus behind
+            if (const auto PLAST = PMONITOR->m_activeWorkspace->getLastFocusedWindow(); PLAST)
+                Desktop::focusState()->fullWindowFocus(PLAST, Desktop::FOCUS_REASON_TOGGLE_SPECIAL_WORKSPACE);
+            else
+                g_pInputManager->refocus();
+        }
         IPC::Socket2::sock()->postEvent({"activespecial", std::format(",{}", PMONITOR->m_name)});
         IPC::Socket2::sock()->postEvent({"activespecialv2", std::format(",,{}", PMONITOR->m_name)});
 
@@ -1681,7 +1693,10 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
     g_layoutManager->recalculateMonitor(m_self.lock(), Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE);
 
-    if (!(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
+    if (!noFocus ||
+        (Desktop::focusState()->monitor() == m_self &&
+         !(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self))) {
+        // focus the workspace we just moved
         if (const auto PLAST = pWorkspace->getLastFocusedWindow(); PLAST)
             Desktop::focusState()->fullWindowFocus(PLAST, Desktop::FOCUS_REASON_TOGGLE_SPECIAL_WORKSPACE);
         else
@@ -1703,8 +1718,8 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     Event::bus()->m_events.workspace.specialActive.emit(pWorkspace, m_self.lock());
 }
 
-void CMonitor::setSpecialWorkspace(const WORKSPACEID& id) {
-    setSpecialWorkspace(State::workspaceState()->query().id(id).run());
+void CMonitor::setSpecialWorkspace(const WORKSPACEID& id, bool noFocus) {
+    setSpecialWorkspace(State::workspaceState()->query().id(id).run(), noFocus);
 }
 
 PHLWORKSPACE CMonitor::getCurrentWorkspace() {

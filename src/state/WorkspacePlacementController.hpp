@@ -16,7 +16,7 @@ namespace State {
         void ensurePersistentWorkspacesPresent(PHLWORKSPACE pWorkspace, const FMoveWorkspace& moveWorkspace) const;
         void ensurePersistentWorkspacesPresent(const std::vector<SP<Config::CWorkspaceRule>>& rules, PHLWORKSPACE pWorkspace, const FMoveWorkspace& moveWorkspace) const;
         void ensureWorkspacesOnAssignedMonitors(const FMoveWorkspace& moveWorkspace) const;
-        void moveWorkspaceToMonitor(PHLWORKSPACE, PHLMONITOR, bool noWarpCursor = false) const;
+        void moveWorkspaceToMonitor(PHLWORKSPACE, PHLMONITOR, bool noWarpCursor = false, bool carryFocus = true) const;
         void swapActiveWorkspaces(PHLMONITOR, PHLMONITOR) const;
     };
 

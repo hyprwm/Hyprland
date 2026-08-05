@@ -3,9 +3,11 @@
 #include "../Compositor.hpp"
 #include "../render/Renderer.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
+#include "../helpers/Drm.hpp"
 
 using namespace Render::GL;
 using namespace Monitor;
+using namespace Hyprutils::OS;
 
 CMonitorFrameScheduler::CMonitorFrameScheduler(PHLMONITOR m) : m_monitor(m) {
     ;
@@ -26,6 +28,9 @@ bool CMonitorFrameScheduler::newSchedulingEnabled() {
 }
 
 void CMonitorFrameScheduler::onPresented(const Time::steady_tp& when, int refreshNs) {
+    // if we bail below, the deadline must not outlive this presentation.
+    const auto AIMED_AT = std::exchange(m_inFlightDeadline, {});
+
     const auto PMONITOR = m_monitor.lock();
     if (!PMONITOR || !newSchedulingEnabled())
         return;
@@ -33,6 +38,12 @@ void CMonitorFrameScheduler::onPresented(const Time::steady_tp& when, int refres
     // drm hands us the period in ns, but its 0 if the connector has no refresh.
     const float HZ  = PMONITOR->m_refreshRate > 0.F ? PMONITOR->m_refreshRate : 60.F;
     m_refreshPeriod = refreshNs > 0 ? std::chrono::nanoseconds(refreshNs) : std::chrono::nanoseconds(static_cast<int64_t>(1'000'000'000.0 / HZ));
+
+    // did the frame we timed actually make the flip it aimed at?
+    const auto LATE = when - AIMED_AT;
+    if (AIMED_AT.time_since_epoch() > Time::steady_dur::zero() && LATE > m_refreshPeriod / 2 && LATE < m_refreshPeriod * 4)
+        Log::logger->log(Log::TRACE, "CMonitorFrameScheduler: {} -> missed the flip we aimed at by {:.3f}ms", PMONITOR->m_name,
+                         std::chrono::duration<float, std::milli>(LATE).count());
 
     m_earliestNextFlip = when + m_refreshPeriod;
     m_delayNextFrame   = true; // this comes with the assumption next frame from AQ actually comes from the pageflip, the AQ currently does.
@@ -77,7 +88,34 @@ void CMonitorFrameScheduler::onFrame() {
                 if (self.expired())
                     return;
 
+                const auto START    = Time::steadyNow();
+                const auto DEADLINE = std::exchange(m_pendingDeadline, {});
+
                 renderNow();
+
+                // renderNow -> renderMonitor can destroy us on a monitor reload.
+                if (self.expired())
+                    return;
+
+                const auto PMONITOR = m_monitor.lock();
+                if (!PMONITOR)
+                    return;
+
+                if (PMONITOR->m_inFence.isValid() && PMONITOR->output()->pendingPageFlip() && DEADLINE > START && m_refreshPeriod > Time::steady_dur::zero()) {
+                    m_inFlightDeadline = DEADLINE; // we committed, so a presentation for this deadline is coming.
+
+                    auto fence = makeShared<CFileDescriptor>(PMONITOR->m_inFence.duplicate());
+                    g_pEventLoopManager->doOnReadable(PMONITOR->m_inFence.duplicate(), [this, self, START, fence]() {
+                        if (self.expired())
+                            return;
+
+                        const auto SIGNALLED = DRM::fenceSignalTime(fence->get());
+                        if (!SIGNALLED)
+                            return;
+
+                        m_frameTimes.addRenderCost(START, *SIGNALLED);
+                    });
+                }
             },
             nullptr);
 
@@ -85,14 +123,26 @@ void CMonitorFrameScheduler::onFrame() {
     }
 
     if (DELAY && m_refreshPeriod > Time::steady_dur::zero() && !m_renderTimer->armed()) /*pageflip emitted .frame()*/ {
-        //const auto NOW    = Time::steadyNow();
-        //const auto TARGET = EARLIEST_FLIP - estimatedRenderCost();
-        //m_renderTimer->updateTimeout(TARGET > NOW ? TARGET - NOW : std::chrono::nanoseconds(50));
+        const auto NOW      = Time::steadyNow();
+        const auto COST     = m_frameTimes.estimatedRenderCost();
+        const auto DEADLINE = std::min(EARLIEST_FLIP, NOW + m_refreshPeriod);
+        const auto TARGET   = DEADLINE - COST;
 
-        //#TODO: until rendermonitor rewrite happends, we cant measure rendercost reliably.
-        m_renderTimer->updateTimeout(std::chrono::nanoseconds(50));
-    } else if (!m_renderTimer->armed())                             // idle frame callback emitted .frame()
-        m_renderTimer->updateTimeout(std::chrono::nanoseconds(50)); // just add a tiny delay, since the wl_event_loop has no order guarantee, but delaying it means should be last.
+        // only delay if the estimate says we can still make this flip.
+        const bool CAN_DELAY = m_frameTimes.hasSamples() && COST < m_refreshPeriod && TARGET > NOW;
+        const auto ARM_IN    = CAN_DELAY ? TARGET - NOW : FRAME_IDLE_DELAY;
+
+        m_pendingDeadline = DEADLINE;
+
+        Log::logger->log(Log::TRACE, "CMonitorFrameScheduler: {} -> frame event, period {:.3f}ms, target in {:.3f}ms, est. cost {:.3f}ms, arming in {:.3f}ms", PMONITOR->m_name,
+                         std::chrono::duration<float, std::milli>(m_refreshPeriod).count(), std::chrono::duration<float, std::milli>(TARGET - NOW).count(),
+                         std::chrono::duration<float, std::milli>(COST).count(), std::chrono::duration<float, std::milli>(ARM_IN).count());
+
+        m_renderTimer->updateTimeout(ARM_IN);
+    } else if (!m_renderTimer->armed()) { // idle frame callback emitted .frame()
+        m_pendingDeadline = {};
+        m_renderTimer->updateTimeout(FRAME_IDLE_DELAY); // just add a tiny delay, since the wl_event_loop has no order guarantee
+    }
 }
 
 bool CMonitorFrameScheduler::renderPending() {

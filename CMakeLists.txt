@@ -109,7 +109,6 @@ add_compile_options(
   -Wno-unused-parameter
   -Wno-unused-value
   -Wno-missing-field-initializers
-  -Wno-gnu-zero-variadic-macro-arguments
   -Wno-narrowing
   -Wno-pointer-arith
   -Wno-clobbered

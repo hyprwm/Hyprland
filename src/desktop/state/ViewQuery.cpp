@@ -5,7 +5,6 @@
 #include "../view/WLSurface.hpp"
 #include "../view/Window.hpp"
 #include "../../helpers/MiscFunctions.hpp"
-#include "../../managers/KeybindManager.hpp"
 #include "../../protocols/LayerShell.hpp"
 #include "../../protocols/core/Compositor.hpp"
 
@@ -96,6 +95,18 @@ PHLWINDOW CViewQuery::byHandle() const {
 
 PHLWINDOW CViewQuery::bySelector() const {
     auto regexp = trim(*m_selector);
+
+    enum eFocusWindowMode : uint8_t {
+        MODE_CLASS_REGEX = 0,
+        MODE_INITIAL_CLASS_REGEX,
+        MODE_TITLE_REGEX,
+        MODE_INITIAL_TITLE_REGEX,
+        MODE_TAG_REGEX,
+        MODE_STABLE_ID,
+        MODE_ADDRESS,
+        MODE_PID,
+        MODE_ACTIVE_WINDOW,
+    };
 
     if (regexp.starts_with("active"))
         return focusState()->window();

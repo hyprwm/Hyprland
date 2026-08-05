@@ -4,6 +4,7 @@
 #include "vicinae-hotkey-v1.hpp"
 #include "./WaylandProtocol.hpp"
 #include "../helpers/signal/Signal.hpp"
+#include "../input/Keys.hpp"
 
 #include <vector>
 #include <string>
@@ -29,7 +30,7 @@ class CHotkeyProtocol : public IWaylandProtocol {
     void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) override;
 
     // returns true if a bound hotkey consumed the key
-    bool onKey(xkb_keysym_t keysym, uint32_t modmask, uint32_t keycode, bool pressed, uint32_t timeMs);
+    bool onKey(xkb_keysym_t keysym, Input::ModifierMask modmask, uint32_t keycode, bool pressed, uint32_t timeMs);
 
     void revokeConflicting();
 
@@ -37,7 +38,7 @@ class CHotkeyProtocol : public IWaylandProtocol {
     struct SBoundHotkey {
         SP<CVicinaeHotkeyV1> resource;
         xkb_keysym_t         keysym  = XKB_KEY_NoSymbol;
-        uint32_t             modmask = 0; // HL_MODIFIER_* bits
+        Input::ModifierMask  modmask = Input::HL_MODIFIER_NONE;
         std::string          appid;
         std::string          description;
         bool                 bound    = false;
@@ -47,7 +48,7 @@ class CHotkeyProtocol : public IWaylandProtocol {
 
     void onBind(SP<CVicinaeHotkeyManagerV1> mgr, uint32_t id, xkb_keysym_t keysym, uint32_t protoMods, const char* appid, const char* description);
     void destroyManager(CVicinaeHotkeyManager* mgr);
-    bool comboTakenByHotkey(xkb_keysym_t keysym, uint32_t modmask);
+    bool comboTakenByHotkey(xkb_keysym_t keysym, Input::ModifierMask modmask);
 
     std::vector<SP<CVicinaeHotkeyManager>> m_managers;
     std::vector<SP<SBoundHotkey>>          m_hotkeys;

@@ -117,7 +117,7 @@ bool CDragStateController::updateDragWindow() {
 
         if (Fullscreen::controller()->hasFullscreen(PWORKSPACE) && (!DRAGGINGTARGET->floating() || !DRAGGINGWINDOW->isAllowedOverFullscreen())) {
             Log::logger->log(Log::DEBUG, "Rejecting drag on a fullscreen workspace. (window under fullscreen)");
-            CKeybindManager::changeMouseBindMode(MBIND_INVALID);
+            dragEnd();
             return true;
         }
     }
@@ -166,13 +166,13 @@ void CDragStateController::dragBegin(SP<ITarget> target, eMouseBindMode mode, st
     // Window will be floating. Let's check if it's valid. It should be, but I don't like crashing.
     if (!validMapped(DRAGGINGTARGET->window())) {
         Log::logger->log(Log::ERR, "Dragging attempted on an invalid window (not mapped)");
-        CKeybindManager::changeMouseBindMode(MBIND_INVALID);
+        dragEnd();
         return;
     }
 
     if (!DRAGGINGTARGET->workspace()) {
         Log::logger->log(Log::ERR, "Dragging attempted on an invalid window (no workspace)");
-        CKeybindManager::changeMouseBindMode(MBIND_INVALID);
+        dragEnd();
         return;
     }
 
@@ -232,7 +232,7 @@ void CDragStateController::dragBegin(SP<ITarget> target, eMouseBindMode mode, st
 
     DRAGGINGTARGET->damageEntire();
 
-    g_pKeybindManager->shadowKeybinds();
+    Keybinds::mgr()->shadowBinds();
 
     if (DRAGGINGTARGET->window()) {
         Desktop::focusState()->rawWindowFocus(DRAGGINGTARGET->window(), Desktop::FOCUS_REASON_DESKTOP_STATE_CHANGE);
@@ -242,8 +242,11 @@ void CDragStateController::dragBegin(SP<ITarget> target, eMouseBindMode mode, st
     if (isResizeMode(m_dragMode))
         setXDGResizingState(DRAGGINGTARGET, true);
 }
-void CDragStateController::dragEnd() {
+bool CDragStateController::dragEnd() {
     auto draggingTarget = m_target.lock();
+
+    if (!draggingTarget)
+        return false;
 
     m_mouseMoveEventCount = 1;
 
@@ -255,7 +258,7 @@ void CDragStateController::dragEnd() {
         m_dragMode            = MBIND_INVALID;
         m_exclusiveDeviceGrab = false;
         m_forcedGrabbedCorner.reset();
-        return;
+        return true;
     }
 
     Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
@@ -277,7 +280,7 @@ void CDragStateController::dragEnd() {
                 m_dragMode            = MBIND_INVALID;
                 m_exclusiveDeviceGrab = false;
                 m_forcedGrabbedCorner.reset();
-                return;
+                return true;
             }
 
             const bool  FLOATEDINTOTILED = !pWindow->m_isFloating && !m_draggingTiled;
@@ -317,6 +320,7 @@ void CDragStateController::dragEnd() {
     m_dragMode            = MBIND_INVALID;
     m_exclusiveDeviceGrab = false;
     m_forcedGrabbedCorner.reset();
+    return true;
 }
 
 void CDragStateController::mouseMove(const Vector2D& mousePos) {
@@ -328,7 +332,7 @@ void CDragStateController::mouseMove(const Vector2D& mousePos) {
 
     // Window invalid or drag begin size 0,0 meaning we rejected it.
     if ((!validMapped(DRAGGINGTARGET->window()) || m_beginDragSizeXY == Vector2D())) {
-        CKeybindManager::changeMouseBindMode(MBIND_INVALID);
+        dragEnd();
         return;
     }
 

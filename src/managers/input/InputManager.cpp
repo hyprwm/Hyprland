@@ -38,7 +38,8 @@
 #include "../../pointer/PointerManager.hpp"
 #include "../../pointer/PointerController.hpp"
 #include "../../managers/SeatManager.hpp"
-#include "../../managers/KeybindManager.hpp"
+#include "../../keybinds/Manager.hpp"
+#include "../../keybinds/Resolver.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
 
 #include "../../ipc/s2/S2.hpp"
@@ -756,17 +757,24 @@ void CInputManager::onMouseButton(IPointer::SButtonEvent e, SP<IPointer> mouse) 
 
     PROTO::inputCapture->button(e.button, e.state);
 
-    if (PROTO::inputCapture->isCaptured())
+    if (PROTO::inputCapture->isCaptured()) {
+        Keybinds::mgr()->onMouseEvent(e, mouse, true);
+        if (e.state == WL_POINTER_BUTTON_STATE_RELEASED)
+            std::erase_if(m_currentlyHeldButtons, [&](const auto& held) { return held.button == e.button && held.pointer.lock() == mouse; });
         return;
+    }
 
     m_lastCursorMovement.reset();
 
     if (e.state == WL_POINTER_BUTTON_STATE_PRESSED) {
-        m_currentlyHeldButtons.push_back(e.button);
+        m_currentlyHeldButtons.emplace_back(e.button, mouse);
     } else {
-        if (std::ranges::find_if(m_currentlyHeldButtons, [&](const auto& other) { return other == e.button; }) == m_currentlyHeldButtons.end())
+        if (std::ranges::find_if(m_currentlyHeldButtons, [&](const auto& held) { return held.button == e.button && held.pointer.lock() == mouse; }) ==
+            m_currentlyHeldButtons.end()) {
+            Keybinds::mgr()->onMouseEvent(e, mouse);
             return;
-        std::erase_if(m_currentlyHeldButtons, [&](const auto& other) { return other == e.button; });
+        }
+        std::erase_if(m_currentlyHeldButtons, [&](const auto& held) { return held.button == e.button && held.pointer.lock() == mouse; });
     }
 
     switch (m_clickBehavior) {
@@ -862,7 +870,7 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e, SP<I
 
     // notify the keybind manager
     static auto PPASSMOUSE        = CConfigValue<Config::INTEGER>("binds:pass_mouse_when_bound");
-    const auto  PASS              = g_pKeybindManager->onMouseEvent(e, mouse);
+    const auto  PASS              = Keybinds::mgr()->onMouseEvent(e, mouse);
     static auto PFOLLOWMOUSE      = CConfigValue<Config::INTEGER>("input:follow_mouse");
     static auto PRESIZEONBORDER   = CConfigValue<Config::INTEGER>("general:resize_on_border");
     static auto PBORDERSIZE       = CConfigValue<Config::INTEGER>("general:border_size");
@@ -886,7 +894,8 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e, SP<I
             const CBox grab = {real.x - BORDER_GRAB_AREA, real.y - BORDER_GRAB_AREA, real.width + 2 * BORDER_GRAB_AREA, real.height + 2 * BORDER_GRAB_AREA};
 
             if ((grab.containsPoint(mouseCoords) && (!real.containsPoint(mouseCoords) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y))) && !w->hasPopupAt(mouseCoords)) {
-                g_pKeybindManager->resizeWithBorder(e);
+                if (!g_layoutManager->dragController()->target())
+                    g_layoutManager->beginDragTarget(w->layoutTarget(), MBIND_RESIZE);
                 return;
             }
         }
@@ -998,7 +1007,8 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
         PROTO::inputCapture->axisStop(e.axis);
     PROTO::inputCapture->frame();
 
-    bool passEvent = !PROTO::inputCapture->isCaptured() && g_pKeybindManager->onAxisEvent(e, pointer);
+    const bool BIND_PASSES = Keybinds::mgr()->onAxisEvent(e, pointer);
+    bool       passEvent   = !PROTO::inputCapture->isCaptured() && BIND_PASSES;
 
     if (!passEvent)
         return;
@@ -1183,7 +1193,7 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
 
         if (PKEEB == g_pSeatManager->m_keyboard) {
             g_pSeatManager->updateActiveKeyboardData();
-            g_pKeybindManager->m_keyToCodeCache.clear();
+            Keybinds::resolver()->clearKeycodeCache();
         }
 
         IPC::Socket2::sock()->postEvent({"activelayout", std::format("{},{}", PKEEB->m_hlName, LAYOUT)});
@@ -1207,7 +1217,7 @@ void CInputManager::setKeyboardLayout() {
     for (auto const& k : m_keyboards)
         applyConfigToKeyboard(k);
 
-    g_pKeybindManager->updateXKBTranslationState();
+    Keybinds::mgr()->updateXKBTranslationState();
 }
 
 void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
@@ -1536,6 +1546,7 @@ static void removeFromHIDs(WP<IHID> hid) {
 void CInputManager::destroyKeyboard(SP<IKeyboard> pKeyboard) {
     Log::logger->log(Log::DEBUG, "Keyboard at {:x} removed", rc<uintptr_t>(pKeyboard.get()));
 
+    Keybinds::mgr()->onDeviceRemoved(pKeyboard);
     std::erase_if(m_keyboards, [pKeyboard](const auto& other) { return other == pKeyboard; });
 
     if (!m_keyboards.empty()) {
@@ -1560,6 +1571,16 @@ void CInputManager::destroyKeyboard(SP<IKeyboard> pKeyboard) {
 void CInputManager::destroyPointer(SP<IPointer> mouse) {
     Log::logger->log(Log::DEBUG, "Pointer at {:x} removed", rc<uintptr_t>(mouse.get()));
 
+    Keybinds::mgr()->onDeviceRemoved(mouse);
+    for (auto it = m_currentlyHeldButtons.begin(); it != m_currentlyHeldButtons.end();) {
+        if (it->pointer.lock() != mouse) {
+            ++it;
+            continue;
+        }
+
+        g_pSeatManager->sendPointerButton(Time::millis(Time::steadyNow()), it->button, WL_POINTER_BUTTON_STATE_RELEASED);
+        it = m_currentlyHeldButtons.erase(it);
+    }
     std::erase_if(m_pointers, [mouse](const auto& other) { return other == mouse; });
 
     g_pSeatManager->setMouse(!m_pointers.empty() ? m_pointers.front() : nullptr);
@@ -1616,6 +1637,69 @@ void CInputManager::updateKeyboardsLeds(SP<IKeyboard> pKeyboard) {
     }
 }
 
+Input::ModifierMask CInputManager::xkbModsToHyprland(SP<IKeyboard> relative, uint32_t xkb) {
+    auto getModState = [&xkb, &relative](const char* xkbModName) -> bool {
+        auto IDX = xkb_keymap_mod_get_index(relative->m_xkbKeymap, xkbModName);
+
+        if (IDX == XKB_MOD_INVALID)
+            return false;
+
+        return (xkb & (1 << IDX)) > 0;
+    };
+
+    Input::ModifierMask hl = Input::HL_MODIFIER_NONE;
+    if (getModState(XKB_MOD_NAME_ALT))
+        hl |= Input::HL_MODIFIER_ALT;
+    if (getModState(XKB_MOD_NAME_CTRL))
+        hl |= Input::HL_MODIFIER_CTRL;
+    if (getModState(XKB_MOD_NAME_SHIFT))
+        hl |= Input::HL_MODIFIER_SHIFT;
+    if (getModState(XKB_MOD_NAME_CAPS))
+        hl |= Input::HL_MODIFIER_CAPS;
+    if (getModState(XKB_MOD_NAME_MOD2))
+        hl |= Input::HL_MODIFIER_MOD2;
+    if (getModState(XKB_MOD_NAME_MOD3))
+        hl |= Input::HL_MODIFIER_MOD3;
+    if (getModState(XKB_MOD_NAME_MOD4))
+        hl |= Input::HL_MODIFIER_META;
+    if (getModState(XKB_MOD_NAME_MOD5))
+        hl |= Input::HL_MODIFIER_MOD5;
+
+    return hl;
+}
+
+uint32_t CInputManager::hyprlandModsToXkb(SP<IKeyboard> relative, Input::ModifierMask mask) {
+    uint32_t xkb = 0;
+
+    auto     applyModState = [&xkb, &relative](const char* xkbModName) -> void {
+        auto IDX = xkb_keymap_mod_get_index(relative->m_xkbKeymap, xkbModName);
+
+        if (IDX == XKB_MOD_INVALID)
+            return;
+
+        xkb |= (sc<uint32_t>(1) << IDX);
+    };
+
+    if ((mask & Input::HL_MODIFIER_ALT) != Input::HL_MODIFIER_NONE)
+        applyModState(XKB_MOD_NAME_ALT);
+    if ((mask & Input::HL_MODIFIER_CTRL) != Input::HL_MODIFIER_NONE)
+        applyModState(XKB_MOD_NAME_CTRL);
+    if ((mask & Input::HL_MODIFIER_SHIFT) != Input::HL_MODIFIER_NONE)
+        applyModState(XKB_MOD_NAME_SHIFT);
+    if ((mask & Input::HL_MODIFIER_CAPS) != Input::HL_MODIFIER_NONE)
+        applyModState(XKB_MOD_NAME_CAPS);
+    if ((mask & Input::HL_MODIFIER_MOD2) != Input::HL_MODIFIER_NONE)
+        applyModState(XKB_MOD_NAME_MOD2);
+    if ((mask & Input::HL_MODIFIER_MOD3) != Input::HL_MODIFIER_NONE)
+        applyModState(XKB_MOD_NAME_MOD3);
+    if ((mask & Input::HL_MODIFIER_META) != Input::HL_MODIFIER_NONE)
+        applyModState(XKB_MOD_NAME_MOD4);
+    if ((mask & Input::HL_MODIFIER_MOD5) != Input::HL_MODIFIER_NONE)
+        applyModState(XKB_MOD_NAME_MOD5);
+
+    return xkb;
+}
+
 void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboard> pKeyboard) {
     if (!pKeyboard->m_enabled || !pKeyboard->m_allowed)
         return;
@@ -1636,7 +1720,7 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
     bool passEvent = DISALLOWACTION && !PROTO::inputCapture->isCaptured();
 
     if (!DISALLOWACTION)
-        passEvent = g_pKeybindManager->onKeyEvent(event, pKeyboard) && !PROTO::inputCapture->isCaptured();
+        passEvent = Keybinds::mgr()->onKeyEvent(event, pKeyboard) && !PROTO::inputCapture->isCaptured();
 
     if (passEvent) {
         auto state   = event.state;
@@ -1689,16 +1773,17 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
 
     const bool DISALLOWACTION = pKeyboard->isVirtual() && shouldIgnoreVirtualKeyboard(pKeyboard);
 
-    const auto IME    = m_relay.m_inputMethod.lock();
-    const bool HASIME = IME && IME->hasGrab();
-    const bool USEIME = HASIME && !DISALLOWACTION;
-    auto       MODS   = pKeyboard->m_modifiersState;
+    const auto IME               = m_relay.m_inputMethod.lock();
+    const bool HASIME            = IME && IME->hasGrab();
+    const bool USEIME            = HASIME && !DISALLOWACTION;
+    auto       MODS              = pKeyboard->m_modifiersState;
+    const auto DEPRESSED_MODS_HL = xkbModsToHyprland(pKeyboard, MODS.depressed);
 
     if (*PSENDMOD) {
         PROTO::inputCapture->modifiers(MODS.depressed, MODS.latched, MODS.locked, MODS.group);
 
         if (PROTO::inputCapture->isCaptured()) {
-            m_lastMods = shareModsFromAllKBs(MODS.depressed);
+            m_lastMods = shareModsFromAllKBs(DEPRESSED_MODS_HL);
             return;
         }
     }
@@ -1706,9 +1791,9 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
     // use merged mods states when sending to ime or when sending to seat with no ime
     // if passing from ime, send mods directly without merging
     if (USEIME || !HASIME) {
-        const auto ALLMODS = shareModsFromAllKBs(MODS.depressed);
-        MODS.depressed     = ALLMODS;
-        m_lastMods         = MODS.depressed; // for hyprland keybinds use; not for sending to seat
+        const auto ALLMODS = shareModsFromAllKBs(DEPRESSED_MODS_HL);
+        MODS.depressed |= hyprlandModsToXkb(pKeyboard, ALLMODS);
+        m_lastMods = ALLMODS;
     }
 
     if (USEIME) {
@@ -1884,7 +1969,7 @@ const std::vector<uint32_t>& CInputManager::getKeysFromAllKBs() {
     return m_pressed;
 }
 
-uint32_t CInputManager::getModsFromAllKBs() {
+Input::ModifierMask CInputManager::getModsFromAllKBs() {
     return m_lastMods;
 }
 
@@ -1912,8 +1997,8 @@ bool CInputManager::shareKeyFromAllKBs(uint32_t key, bool pressed) {
     return finalState;
 }
 
-uint32_t CInputManager::shareModsFromAllKBs(uint32_t depressed) {
-    uint32_t finalMask = depressed;
+Input::ModifierMask CInputManager::shareModsFromAllKBs(Input::ModifierMask mask) {
+    Input::ModifierMask finalMask = mask;
 
     for (auto const& kb : m_keyboards) {
         if (!kb->shareStates())
@@ -2100,14 +2185,14 @@ void CInputManager::newSwitch(SP<Aquamarine::ISwitch> pDevice) {
 
         Log::logger->log(Log::DEBUG, "Switch {} fired, triggering binds.", NAME);
 
-        g_pKeybindManager->onSwitchEvent(NAME);
+        Keybinds::mgr()->onSwitchEvent(NAME);
 
         if (event.enable) {
             Log::logger->log(Log::DEBUG, "Switch {} turn on, triggering binds.", NAME);
-            g_pKeybindManager->onSwitchOnEvent(NAME);
+            Keybinds::mgr()->onSwitchOnEvent(NAME);
         } else {
             Log::logger->log(Log::DEBUG, "Switch {} turn off, triggering binds.", NAME);
-            g_pKeybindManager->onSwitchOffEvent(NAME);
+            Keybinds::mgr()->onSwitchOffEvent(NAME);
         }
     });
 }
@@ -2138,7 +2223,7 @@ void CInputManager::releaseAllMouseButtons() {
         return;
 
     for (auto const& mb : buttonsCopy) {
-        g_pSeatManager->sendPointerButton(Time::millis(Time::steadyNow()), mb, WL_POINTER_BUTTON_STATE_RELEASED);
+        g_pSeatManager->sendPointerButton(Time::millis(Time::steadyNow()), mb.button, WL_POINTER_BUTTON_STATE_RELEASED);
     }
 
     m_currentlyHeldButtons.clear();

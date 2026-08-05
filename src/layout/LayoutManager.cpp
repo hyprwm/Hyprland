@@ -109,8 +109,8 @@ void CLayoutManager::moveTarget(const Vector2D& Δ, SP<ITarget> target) {
     target->space()->moveTarget(Δ, target);
 }
 
-void CLayoutManager::endDragTarget() {
-    m_dragStateController->dragEnd();
+bool CLayoutManager::endDragTarget() {
+    return m_dragStateController->dragEnd();
 }
 
 void CLayoutManager::switchTargets(SP<ITarget> a, SP<ITarget> b, bool preserveFocus) {

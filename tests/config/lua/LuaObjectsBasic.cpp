@@ -4,10 +4,12 @@
 #include <config/lua/objects/LuaKeybind.hpp>
 #include <config/lua/objects/LuaWorkspaceRule.hpp>
 
-#include <managers/KeybindManager.hpp>
+#include <keybinds/Manager.hpp>
 #include <event/EventBus.hpp>
 
 #include <gtest/gtest.h>
+
+#include <stdexcept>
 
 extern "C" {
 #include <lualib.h>
@@ -17,6 +19,32 @@ extern "C" {
 using namespace Config::Lua;
 
 namespace {
+    Keybinds::CBind makeBind(std::vector<std::string> keys = {"Q"}, Keybinds::BindFlags flags = 0, Keybinds::SExtraBindArgs extra = {}) {
+        auto bind = Keybinds::CBind::make(std::move(keys), flags, [] { return Keybinds::SBindResult{}; }, std::move(extra));
+        if (!bind)
+            throw std::runtime_error(bind.error());
+
+        return std::move(*bind);
+    }
+
+    Keybinds::PBind makeBindPtr(std::vector<std::string> keys = {"Q"}, Keybinds::BindFlags flags = 0, Keybinds::SExtraBindArgs extra = {}) {
+        return makeShared<Keybinds::CBind>(makeBind(std::move(keys), flags, std::move(extra)));
+    }
+
+    class CScopedKeybindManager {
+      public:
+        CScopedKeybindManager() : m_previous(std::move(Keybinds::mgr())) {
+            Keybinds::mgr() = makeUnique<Keybinds::CKeybindManager>();
+        }
+
+        ~CScopedKeybindManager() {
+            Keybinds::mgr() = std::move(m_previous);
+        }
+
+      private:
+        UP<Keybinds::CKeybindManager> m_previous;
+    };
+
     class CLuaState {
       public:
         CLuaState() : m_lua(luaL_newstate()) {
@@ -64,8 +92,7 @@ TEST(ConfigLuaObjects, keybindCanToggleEnabledFromLua) {
 
     Objects::CLuaKeybind{}.setup(L);
 
-    auto keybind     = makeShared<SKeybind>();
-    keybind->enabled = true;
+    auto keybind = makeBindPtr();
 
     Objects::CLuaKeybind::push(L, keybind);
     lua_setglobal(L, "kb");
@@ -77,7 +104,7 @@ TEST(ConfigLuaObjects, keybindCanToggleEnabledFromLua) {
     )"),
               LUA_OK);
 
-    EXPECT_FALSE(keybind->enabled);
+    EXPECT_FALSE(keybind->enabled());
 }
 
 TEST(ConfigLuaObjects, workspaceRuleCanToggleEnabledFromLua) {
@@ -103,36 +130,31 @@ TEST(ConfigLuaObjects, workspaceRuleCanToggleEnabledFromLua) {
 }
 
 TEST(ConfigLuaObjects, keybindExposesMetadataAndRemoveMethods) {
-    CLuaState  S;
-    const auto L = S.get();
+    CScopedKeybindManager MANAGER;
+    CLuaState             S;
+    const auto            L = S.get();
 
     Objects::CLuaKeybind{}.setup(L);
 
-    auto keybind               = makeShared<SKeybind>();
-    keybind->enabled           = true;
-    keybind->description       = "Close active window";
-    keybind->hasDescription    = true;
-    keybind->displayKey        = "SUPER + Q";
-    keybind->submap.name       = "default";
-    keybind->handler           = "exec";
-    keybind->arg               = "kitty";
-    keybind->modmask           = HL_MODIFIER_META;
-    keybind->key               = "Q";
-    keybind->keycode           = 24;
-    keybind->repeat            = true;
-    keybind->locked            = true;
-    keybind->release           = false;
-    keybind->nonConsuming      = true;
-    keybind->transparent       = false;
-    keybind->ignoreMods        = false;
-    keybind->longPress         = false;
-    keybind->dontInhibit       = true;
-    keybind->click             = false;
-    keybind->drag              = false;
-    keybind->submapUniversal   = false;
-    keybind->deviceInclusive   = true;
-    keybind->devices           = {"kbd-a", "kbd-b"};
-    keybind->allowInputCapture = true;
+    const auto FLAGS = sc<Keybinds::BindFlags>(Keybinds::BIND_FLAG_REPEAT | Keybinds::BIND_FLAG_LOCKED | Keybinds::BIND_FLAG_NON_CONSUMING | Keybinds::BIND_FLAG_DONT_INHIBIT |
+                                               Keybinds::BIND_FLAG_DEVICE_INCLUSIVE | Keybinds::BIND_FLAG_ALLOW_INPUT_CAPTURE);
+    const auto makeMetadataBind = [&] {
+        return makeBind({"SUPER", "Q"}, FLAGS,
+                        {
+                            .devices = {"kbd-a", "kbd-b"},
+                            .metadata =
+                                {
+                                    .displayKey  = "SUPER + Q",
+                                    .description = "Close active window",
+                                    .handler     = "exec",
+                                    .argument    = "kitty",
+                                    .submap      = "default",
+                                },
+                        });
+    };
+
+    const auto keybind = Keybinds::mgr()->addBind(makeMetadataBind());
+    const auto other   = Keybinds::mgr()->addBind(makeMetadataBind());
 
     Objects::CLuaKeybind::push(L, keybind);
     lua_setglobal(L, "kb");
@@ -146,7 +168,7 @@ TEST(ConfigLuaObjects, keybindExposesMetadataAndRemoveMethods) {
         assert(kb.arg == "kitty")
         assert(kb.modmask ~= nil)
         assert(kb.key == "Q")
-        assert(kb.keycode == 24)
+        assert(kb.keycode == 0)
         assert(kb.repeating == true)
         assert(kb.locked == true)
         assert(kb.non_consuming == true)
@@ -158,6 +180,56 @@ TEST(ConfigLuaObjects, keybindExposesMetadataAndRemoveMethods) {
         kb:unbind()
     )"),
               LUA_OK);
+
+    ASSERT_EQ(Keybinds::mgr()->registry().size(), 1);
+    EXPECT_EQ(Keybinds::mgr()->registry().binds().front(), other);
+}
+
+TEST(ConfigLuaObjects, keybindExposesKeycodeTrigger) {
+    CLuaState  S;
+    const auto L = S.get();
+
+    Objects::CLuaKeybind{}.setup(L);
+
+    auto keybind = makeBindPtr({"code:24"});
+    Objects::CLuaKeybind::push(L, keybind);
+    lua_setglobal(L, "kb");
+
+    ASSERT_EQ(luaL_dostring(L, R"(
+        assert(kb.key == "")
+        assert(kb.keycode == 24)
+    )"),
+              LUA_OK);
+}
+
+TEST(ConfigLuaObjects, keybindRemovalDoesNotUnrefCallback) {
+    CScopedKeybindManager MANAGER;
+    CLuaState             S;
+    const auto            L = S.get();
+
+    Objects::CLuaKeybind{}.setup(L);
+
+    ASSERT_EQ(luaL_dostring(L, "return function() end"), LUA_OK);
+    ASSERT_TRUE(lua_isfunction(L, -1));
+    const int  REF = luaL_ref(L, LUA_REGISTRYINDEX);
+
+    const auto keybind = Keybinds::mgr()->addBind(makeBind({"Q"}, 0,
+                                                           {
+                                                               .metadata =
+                                                                   {
+                                                                       .handler  = "__lua",
+                                                                       .argument = std::to_string(REF),
+                                                                   },
+                                                           }));
+    Objects::CLuaKeybind::push(L, keybind);
+    lua_setglobal(L, "kb");
+
+    ASSERT_EQ(luaL_dostring(L, "kb:remove()"), LUA_OK);
+
+    lua_rawgeti(L, LUA_REGISTRYINDEX, REF);
+    EXPECT_TRUE(lua_isfunction(L, -1));
+    lua_pop(L, 1);
+    luaL_unref(L, LUA_REGISTRYINDEX, REF);
 }
 
 TEST(ConfigLuaObjects, objectsAreReadOnlyFromLua) {
@@ -166,7 +238,7 @@ TEST(ConfigLuaObjects, objectsAreReadOnlyFromLua) {
 
     Objects::CLuaKeybind{}.setup(L);
 
-    auto keybind = makeShared<SKeybind>();
+    auto keybind = makeBindPtr();
     Objects::CLuaKeybind::push(L, keybind);
     lua_setglobal(L, "kb");
 
@@ -181,8 +253,8 @@ TEST(ConfigLuaObjects, keybindSupportsEqAndToString) {
 
     Objects::CLuaKeybind{}.setup(L);
 
-    auto keybindA = makeShared<SKeybind>();
-    auto keybindB = makeShared<SKeybind>();
+    auto keybindA = makeBindPtr();
+    auto keybindB = makeBindPtr();
 
     Objects::CLuaKeybind::push(L, keybindA);
     lua_setglobal(L, "kb1");

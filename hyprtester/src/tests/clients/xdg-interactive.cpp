@@ -465,6 +465,7 @@ TEST_CASE(xdgInteractive) {
     ASSERT(client->waitButtonSerial().has_value(), true);
     ASSERT(client->requestRawResize(123), true);
     ASSERT(client->waitForDisconnect(), true);
+    ASSERT(click(272, false), true);
     EXPECT_NOT(getFromSocket("/clients"), "");
 
     client.reset();

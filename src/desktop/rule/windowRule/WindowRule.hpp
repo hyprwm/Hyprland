@@ -27,7 +27,7 @@ namespace Desktop::Rule {
     };
 
     struct SBorderColorRule {
-        Config::CGradientValueData                active;
+        std::optional<Config::CGradientValueData> active;
         std::optional<Config::CGradientValueData> inactive;
     };
 
@@ -63,6 +63,8 @@ namespace Desktop::Rule {
         std::expected<void, std::string>                   addEffect(storageType e, const Math::SExpressionVec2& expr);
 
         bool                                               matches(PHLWINDOW w, bool allowEnvLookup = false);
+        bool                                               matches(Desktop::Rule::eRuleProperty p, const std::string& s);
+        bool                                               matches(Desktop::Rule::eRuleProperty p, bool b);
 
       private:
         std::expected<WindowRuleEffectValue, std::string> parseEffect(storageType e, const std::string& result) override;

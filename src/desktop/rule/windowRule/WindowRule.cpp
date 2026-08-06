@@ -138,34 +138,65 @@ static std::expected<SOpacityRule, std::string> parseOpacityRule(const std::stri
 
 static std::expected<SBorderColorRule, std::string> parseBorderColorRule(const std::string& raw) {
     try {
-        Config::CGradientValueData borderGradient  = {};
-        CVarList                   colorsAndAngles = CVarList(trim(raw), 0, 's', true);
+        Config::CGradientValueData activeBorderGradient   = {};
+        Config::CGradientValueData inactiveBorderGradient = {};
+        bool                       active                 = true;
+        CVarList                   colorsAndAngles        = CVarList(trim(raw), 0, 's', true);
+
+        if (colorsAndAngles.size() == 2 && !colorsAndAngles[1].contains("deg")) {
+            auto activeColor = parseBorderColorToken(raw, colorsAndAngles[0]);
+            if (!activeColor)
+                return std::unexpected(activeColor.error());
+
+            auto inactiveColor = parseBorderColorToken(raw, colorsAndAngles[1]);
+            if (!inactiveColor)
+                return std::unexpected(inactiveColor.error());
+
+            return SBorderColorRule{
+                .active   = Config::CGradientValueData(*activeColor),
+                .inactive = Config::CGradientValueData(*inactiveColor),
+            };
+        }
 
         for (auto const& token : colorsAndAngles) {
-            if (token.contains("deg")) {
+            if (active && token.contains("deg")) {
                 auto angle = strToNumber<int>(token.substr(0, token.size() - 3));
                 if (!angle)
                     return std::unexpected(std::format("border_color rule \"{}\" has invalid angle \"{}\": {}", raw, token, numericParseError(angle.error())));
 
-                float calculatedAngle  = *angle * (std::numbers::pi / 180.0);
-                borderGradient.m_angle = calculatedAngle;
+                activeBorderGradient.m_angle = *angle * (std::numbers::pi / 180.0);
+                active                       = false;
+            } else if (token.contains("deg")) {
+                auto angle = strToNumber<int>(token.substr(0, token.size() - 3));
+                if (!angle)
+                    return std::unexpected(std::format("border_color rule \"{}\" has invalid angle \"{}\": {}", raw, token, numericParseError(angle.error())));
+
+                inactiveBorderGradient.m_angle = *angle * (std::numbers::pi / 180.0);
             } else {
                 auto color = parseBorderColorToken(raw, token);
                 if (!color)
                     return std::unexpected(color.error());
 
-                borderGradient.m_colors.emplace_back(*color);
+                if (active)
+                    activeBorderGradient.m_colors.emplace_back(*color);
+                else
+                    inactiveBorderGradient.m_colors.emplace_back(*color);
             }
         }
 
-        borderGradient.updateColorsOk();
+        activeBorderGradient.updateColorsOk();
+        inactiveBorderGradient.updateColorsOk();
 
-        if (borderGradient.m_colors.size() > 10)
+        if (activeBorderGradient.m_colors.size() > 10 || inactiveBorderGradient.m_colors.size() > 10)
             return std::unexpected(std::format("border_color rule \"{}\" has more than 10 colors in one gradient", raw));
-        if (borderGradient.m_colors.empty())
+        if (activeBorderGradient.m_colors.empty() && inactiveBorderGradient.m_colors.empty())
             return std::unexpected(std::format("border_color rule \"{}\" has no colors", raw));
 
-        SBorderColorRule result{.active = borderGradient};
+        SBorderColorRule result{};
+        if (!activeBorderGradient.m_colors.empty())
+            result.active = activeBorderGradient;
+        if (!inactiveBorderGradient.m_colors.empty())
+            result.inactive = inactiveBorderGradient;
 
         return result;
     } catch (std::exception& e) { return std::unexpected(std::format("border_color rule \"{}\" failed with: {}", raw, e.what())); }
@@ -482,4 +513,18 @@ std::expected<SP<CWindowRule>, std::string> CWindowRule::buildFromExecString(std
     }
 
     return wr;
+}
+
+bool CWindowRule::matches(Desktop::Rule::eRuleProperty p, const std::string& s) {
+    if (!canMatch())
+        return false;
+
+    return Desktop::Rule::IRule::matches(p, s);
+}
+
+bool CWindowRule::matches(Desktop::Rule::eRuleProperty p, bool b) {
+    if (!canMatch())
+        return false;
+
+    return Desktop::Rule::IRule::matches(p, b);
 }

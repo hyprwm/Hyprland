@@ -1069,9 +1069,9 @@ TEST_CASE(scroll_LAYOUT_HANDLED_focusInDirectionFocusFollowFocusTrue) {
         Scrolling quasi-equivalent of `defaultHandledFsfocusInDirection`
     */
 
-    // if movefocus_cycles_fullscreen = false, all focus({direction}) is disallowed from moving focus from FS window
+    // if directional_focus_in_fullscreen = false, all focus({direction}) is disallowed from moving focus from FS window
 
-    // if movefocus_cycles_fullscreen = true, standard behaviour of the config option won't be followed but focus will move in the firection specified as if window was not FS
+    // if directional_focus_in_fullscreen = true, standard behaviour of the config option won't be followed but focus will move in the firection specified as if window was not FS
     // if on_focus_under_fullscreen = 0 focus({direction}) is disallowed from moving focus from FS window
     // if on_focus_under_fullscreen = 1/2, standard behaviour of the config option won't be followed but focus will move in the firection specified as if window was not FS
 
@@ -1085,8 +1085,8 @@ TEST_CASE(scroll_LAYOUT_HANDLED_focusInDirectionFocusFollowFocusTrue) {
     Tests::spawnKitty("fs");
     Tests::spawnKitty("normal2");
 
-    // if movefocus_cycles_fullscreen = false, all focus({direction}) is disallowed from moving focus from FS window
-    OK(getFromSocket("r/eval hl.config({ binds = { movefocus_cycles_fullscreen = false } })"));
+    // if directional_focus_in_fullscreen = false, all focus({direction}) is disallowed from moving focus from FS window
+    OK(getFromSocket("r/eval hl.config({ binds = { directional_focus_in_fullscreen = false } })"));
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:fs' })"));
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set', window = 'class:fs' })"));
@@ -1163,9 +1163,9 @@ TEST_CASE(scroll_LAYOUT_HANDLED_focusInDirectionFocusFollowFocusTrue) {
         EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
 
-    // if movefocus_cycles_fullscreen = true, standard behaviour of the config option won't be followed but focus will move in the firection specified as if window was not FS
+    // if directional_focus_in_fullscreen = true, standard behaviour of the config option won't be followed but focus will move in the firection specified as if window was not FS
 
-    OK(getFromSocket("r/eval hl.config({ binds = { movefocus_cycles_fullscreen = true } })"));
+    OK(getFromSocket("r/eval hl.config({ binds = { directional_focus_in_fullscreen = true } })"));
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:fs' })"));
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set', window = 'class:fs' })"));

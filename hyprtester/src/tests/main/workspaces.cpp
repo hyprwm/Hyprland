@@ -705,7 +705,7 @@ TEST_CASE(workspacesCombined) {
         ASSERT_CONTAINS(str, "class: kitty_B");
     }
 
-    NLog::log("{}Testing movefocus_cycles_fullscreen", Colors::YELLOW);
+    NLog::log("{}Testing directional_focus_in_fullscreen", Colors::YELLOW);
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_A' })"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-3' })"));
     Tests::spawnKitty("kitty_D");
@@ -721,7 +721,7 @@ TEST_CASE(workspacesCombined) {
         ASSERT_CONTAINS(str, "class: kitty_A");
     }
 
-    OK(getFromSocket("/eval hl.config({ binds = { movefocus_cycles_fullscreen = false } })"));
+    OK(getFromSocket("/eval hl.config({ binds = { directional_focus_in_fullscreen = false } })"));
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen' })"));
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'right' })"));
@@ -738,7 +738,7 @@ TEST_CASE(workspacesCombined) {
         ASSERT_CONTAINS(str, "class: kitty_A");
     }
 
-    OK(getFromSocket("/eval hl.config({ binds = { movefocus_cycles_fullscreen = true } })"));
+    OK(getFromSocket("/eval hl.config({ binds = { directional_focus_in_fullscreen = true } })"));
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'right' })"));
 

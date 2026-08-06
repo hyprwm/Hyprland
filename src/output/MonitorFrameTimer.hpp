@@ -24,7 +24,7 @@ namespace Monitor {
         // how late we were for the flip we aimed at, or nullopt if we made it
         std::optional<Time::steady_dur> flipMiss(const Time::steady_tp& when, const Time::steady_tp& aimedAt) const;
         // when to render for the flip at earliestFlip.
-        SFrameTarget nextTarget(const Time::steady_tp& now, const Time::steady_tp& earliestFlip) const;
+        SFrameTarget nextTarget(const Time::steady_tp& now, const Time::steady_tp& earliestFlip, bool noRenderCost = false) const;
 
       private:
         struct SRenderTimes {

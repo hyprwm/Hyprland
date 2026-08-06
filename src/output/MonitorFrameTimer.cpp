@@ -72,16 +72,17 @@ std::optional<Time::steady_dur> CMonitorFrameTimer::flipMiss(const Time::steady_
     return LATE;
 }
 
-CMonitorFrameTimer::SFrameTarget CMonitorFrameTimer::nextTarget(const Time::steady_tp& now, const Time::steady_tp& earliestFlip) const {
+CMonitorFrameTimer::SFrameTarget CMonitorFrameTimer::nextTarget(const Time::steady_tp& now, const Time::steady_tp& earliestFlip, bool noRenderCost) const {
     if (earliestFlip.time_since_epoch() <= Time::steady_dur::zero() || !hasRefreshPeriod())
         return {.deadline = {}, .target = FRAME_IDLE_DELAY};
 
     const auto DEADLINE = std::min(earliestFlip, now + m_refreshPeriod);
-    const auto COST     = estimatedRenderCost();
-    const auto TARGET   = DEADLINE - COST;
+    // nothing to render still costs us the commit, the ioctl and the timer wakeup - that is what the margin is for.
+    const auto COST   = noRenderCost ? FRAME_SAFETY_MARGIN : estimatedRenderCost();
+    const auto TARGET = DEADLINE - COST;
 
-    // only delay if the estimate says we can still make this flip.
-    const bool CAN_DELAY = hasSamples() && COST < m_refreshPeriod && TARGET > now;
+    // only delay if the estimate says we can still make this flip. with no render there is nothing to estimate.
+    const bool CAN_DELAY = (noRenderCost || hasSamples()) && COST < m_refreshPeriod && TARGET > now;
 
     return {.deadline = DEADLINE, .target = CAN_DELAY ? TARGET - now : FRAME_IDLE_DELAY};
 }

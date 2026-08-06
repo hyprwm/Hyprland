@@ -31,7 +31,6 @@ namespace Monitor {
         Time::steady_tp            m_earliestNextFlip;
         Time::steady_tp            m_pendingDeadline;  // deadline of the frame the render timer is currently armed for
         Time::steady_tp            m_inFlightDeadline; // deadline of the frame that committed and is waiting on its flip
-        Time::steady_dur           m_refreshPeriod{};
         bool                       m_delayNextFrame = false;
 
         friend class CMonitor;

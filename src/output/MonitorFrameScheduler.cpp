@@ -35,17 +35,14 @@ void CMonitorFrameScheduler::onPresented(const Time::steady_tp& when, int refres
     if (!PMONITOR || !newSchedulingEnabled())
         return;
 
-    // drm hands us the period in ns, but its 0 if the connector has no refresh.
-    const float HZ  = PMONITOR->m_refreshRate > 0.F ? PMONITOR->m_refreshRate : 60.F;
-    m_refreshPeriod = refreshNs > 0 ? std::chrono::nanoseconds(refreshNs) : std::chrono::nanoseconds(static_cast<int64_t>(1'000'000'000.0 / HZ));
+    m_frameTimes.setRefreshPeriod(refreshNs, PMONITOR->m_refreshRate);
 
     // did the frame we timed actually make the flip it aimed at?
-    const auto LATE = when - AIMED_AT;
-    if (AIMED_AT.time_since_epoch() > Time::steady_dur::zero() && LATE > m_refreshPeriod / 2 && LATE < m_refreshPeriod * 4)
+    if (const auto LATE = m_frameTimes.flipMiss(when, AIMED_AT); LATE)
         Log::logger->log(Log::TRACE, "CMonitorFrameScheduler: {} -> missed the flip we aimed at by {:.3f}ms", PMONITOR->m_name,
-                         std::chrono::duration<float, std::milli>(LATE).count());
+                         std::chrono::duration<float, std::milli>(*LATE).count());
 
-    m_earliestNextFlip = when + m_refreshPeriod;
+    m_earliestNextFlip = when + m_frameTimes.refreshPeriod();
     m_delayNextFrame   = true; // this comes with the assumption next frame from AQ actually comes from the pageflip, the AQ currently does.
 }
 
@@ -101,7 +98,7 @@ void CMonitorFrameScheduler::onFrame() {
                 if (!PMONITOR)
                     return;
 
-                if (PMONITOR->m_inFence.isValid() && PMONITOR->output()->pendingPageFlip() && DEADLINE > START && m_refreshPeriod > Time::steady_dur::zero()) {
+                if (PMONITOR->m_inFence.isValid() && PMONITOR->output()->pendingPageFlip() && DEADLINE > START && m_frameTimes.hasRefreshPeriod()) {
                     m_inFlightDeadline = DEADLINE; // we committed, so a presentation for this deadline is coming.
 
                     auto fence = makeShared<CFileDescriptor>(PMONITOR->m_inFence.duplicate());
@@ -122,26 +119,18 @@ void CMonitorFrameScheduler::onFrame() {
         g_pEventLoopManager->addTimer(m_renderTimer);
     }
 
-    if (DELAY && m_refreshPeriod > Time::steady_dur::zero() && !m_renderTimer->armed()) /*pageflip emitted .frame()*/ {
-        const auto NOW      = Time::steadyNow();
-        const auto COST     = m_frameTimes.estimatedRenderCost();
-        const auto DEADLINE = std::min(EARLIEST_FLIP, NOW + m_refreshPeriod);
-        const auto TARGET   = DEADLINE - COST;
+    if (!m_renderTimer->armed()) {
+        // DELAY means a pageflip emitted .frame(), so there is a vblank to aim at. otherwise it came from an idle
+        // frame callback and nextArm just gets us behind the rest of this loop iteration.
+        const auto TARGET = m_frameTimes.nextTarget(Time::steadyNow(), DELAY ? EARLIEST_FLIP : Time::steady_tp{});
 
-        // only delay if the estimate says we can still make this flip.
-        const bool CAN_DELAY = m_frameTimes.hasSamples() && COST < m_refreshPeriod && TARGET > NOW;
-        const auto ARM_IN    = CAN_DELAY ? TARGET - NOW : FRAME_IDLE_DELAY;
+        m_pendingDeadline = TARGET.deadline;
 
-        m_pendingDeadline = DEADLINE;
+        Log::logger->log(Log::TRACE, "CMonitorFrameScheduler: {} -> frame event, period {:.3f}ms, est. cost {:.3f}ms, arming in {:.3f}ms", PMONITOR->m_name,
+                         std::chrono::duration<float, std::milli>(m_frameTimes.refreshPeriod()).count(),
+                         std::chrono::duration<float, std::milli>(m_frameTimes.estimatedRenderCost()).count(), std::chrono::duration<float, std::milli>(TARGET.target).count());
 
-        Log::logger->log(Log::TRACE, "CMonitorFrameScheduler: {} -> frame event, period {:.3f}ms, target in {:.3f}ms, est. cost {:.3f}ms, arming in {:.3f}ms", PMONITOR->m_name,
-                         std::chrono::duration<float, std::milli>(m_refreshPeriod).count(), std::chrono::duration<float, std::milli>(TARGET - NOW).count(),
-                         std::chrono::duration<float, std::milli>(COST).count(), std::chrono::duration<float, std::milli>(ARM_IN).count());
-
-        m_renderTimer->updateTimeout(ARM_IN);
-    } else if (!m_renderTimer->armed()) { // idle frame callback emitted .frame()
-        m_pendingDeadline = {};
-        m_renderTimer->updateTimeout(FRAME_IDLE_DELAY); // just add a tiny delay, since the wl_event_loop has no order guarantee
+        m_renderTimer->updateTimeout(TARGET.target);
     }
 }
 

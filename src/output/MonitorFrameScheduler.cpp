@@ -121,8 +121,8 @@ void CMonitorFrameScheduler::onFrame() {
 
     if (!m_renderTimer->armed()) {
         // DELAY means a pageflip emitted .frame(), so there is a vblank to aim at. an idle frame callback has none,
-        // and neither does vrr - its vblank moves with us. both fall back to rendering right after this loop iteration.
-        const bool AIM_AT_FLIP = DELAY && !PMONITOR->m_vrrActive;
+        // vrr moves its vblank with us, and direct scanout has no render to pay for. all fall back to FRAME_IDLE_DELAY.
+        const bool AIM_AT_FLIP = DELAY && !PMONITOR->m_vrrActive && !PMONITOR->m_directScanoutIsActive;
         const auto TARGET      = m_frameTimes.nextTarget(Time::steadyNow(), AIM_AT_FLIP ? EARLIEST_FLIP : Time::steady_tp{});
 
         m_pendingDeadline = TARGET.deadline;

@@ -2237,8 +2237,10 @@ bool CMonitor::attemptDirectScanout() {
             m_inFence.reset();
             m_output->state->resetExplicitFences(); // good luck.
         }
-    } else
+    } else {
+        m_inFence.reset();
         m_output->state->resetExplicitFences();
+    }
 
     // no need to do explicit sync here as surface current can only ever be ready to read
 

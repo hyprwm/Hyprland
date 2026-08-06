@@ -52,6 +52,9 @@ void COutputManager::makeAndSendNewHead(PHLMONITOR pMonitor) {
     if UNLIKELY (m_stopped)
         return;
 
+    if (pMonitor && pMonitor->m_isUnsafeFallback)
+        return;
+
     const auto RESOURCE =
         PROTO::outputManagement->m_heads.emplace_back(makeShared<COutputHead>(makeShared<CZwlrOutputHeadV1>(m_resource->client(), m_resource->version(), 0), pMonitor));
 

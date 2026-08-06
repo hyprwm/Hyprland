@@ -23,8 +23,8 @@ CMonitorFrameScheduler::~CMonitorFrameScheduler() {
 bool CMonitorFrameScheduler::newSchedulingEnabled() {
     static auto PENABLENEW = CConfigValue<Config::INTEGER>("render:new_render_scheduling");
 
-    //#TODO: figure out if this can be done on vrr/tearing
-    return *PENABLENEW && g_pHyprRenderer->explicitSyncSupported() && m_monitor && !m_monitor->m_tearingState.activelyTearing && !m_monitor->m_vrrActive;
+    //#TODO: figure out if this can be done on tearing
+    return *PENABLENEW && g_pHyprRenderer->explicitSyncSupported() && m_monitor && !m_monitor->m_tearingState.activelyTearing;
 }
 
 void CMonitorFrameScheduler::onPresented(const Time::steady_tp& when, int refreshNs) {
@@ -120,9 +120,10 @@ void CMonitorFrameScheduler::onFrame() {
     }
 
     if (!m_renderTimer->armed()) {
-        // DELAY means a pageflip emitted .frame(), so there is a vblank to aim at. otherwise it came from an idle
-        // frame callback and nextArm just gets us behind the rest of this loop iteration.
-        const auto TARGET = m_frameTimes.nextTarget(Time::steadyNow(), DELAY ? EARLIEST_FLIP : Time::steady_tp{});
+        // DELAY means a pageflip emitted .frame(), so there is a vblank to aim at. an idle frame callback has none,
+        // and neither does vrr - its vblank moves with us. both fall back to rendering right after this loop iteration.
+        const bool AIM_AT_FLIP = DELAY && !PMONITOR->m_vrrActive;
+        const auto TARGET      = m_frameTimes.nextTarget(Time::steadyNow(), AIM_AT_FLIP ? EARLIEST_FLIP : Time::steady_tp{});
 
         m_pendingDeadline = TARGET.deadline;
 

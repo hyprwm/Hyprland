@@ -301,11 +301,6 @@ void CSeatManager::setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& 
         return;
     }
 
-    if (!m_mouse) {
-        Log::logger->log(Log::ERR, "BUG THIS: setPointerFocus without a valid mouse set");
-        return;
-    }
-
     m_listeners.pointerSurfaceDestroy.reset();
 
     for (auto const& p : PROTO::seat->m_pointers) {

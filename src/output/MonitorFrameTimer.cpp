@@ -35,6 +35,9 @@ Time::steady_dur CMonitorFrameTimer::estimatedRenderCost() const {
 
     const auto WORST = std::ranges::max(m_renderTimes | std::views::transform([](const SRenderTimes& t) { return t.end - t.start; }));
 
+    // 15 previous samples, take the slowest and assume the next can be that slow + 25% + the safety margin.
+    // spikes pull the estimate up and stay for the whole window. until frames are more
+    // stable and we have proper early outs, we cant be more precise.
     return WORST + WORST / 4 + FRAME_SAFETY_MARGIN;
 }
 

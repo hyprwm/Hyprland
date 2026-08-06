@@ -2089,10 +2089,6 @@ void CWindow::mapWindow() {
     static auto PINITIALWSTRACKING = CConfigValue<Config::INTEGER>("misc:initial_workspace_tracking");
     static auto PAUTOGROUP         = CConfigValue<Config::INTEGER>("group:auto_group");
 
-    const auto  LAST_FOCUS_WINDOW = Desktop::focusState()->window();
-    const bool  IS_LAST_IN_FS     = LAST_FOCUS_WINDOW ? Fullscreen::controller()->isFullscreen(LAST_FOCUS_WINDOW) : false;
-    const auto  LAST_FS_MODE      = LAST_FOCUS_WINDOW ? Fullscreen::controller()->getFullscreenModes(LAST_FOCUS_WINDOW).internal : Fullscreen::FSMODE_NONE;
-
     auto        PMONITOR = Desktop::focusState()->monitor();
     if (!Desktop::focusState()->monitor()) {
         Desktop::focusState()->rawMonitorFocus(State::monitorState()->query().vec({}).run());
@@ -2478,17 +2474,8 @@ void CWindow::mapWindow() {
 
         // don't steal pointer focus with X11 when buttons are held (e.g., during drags)
         // if the incoming window is an OR
-        if (!m_isX11 || !g_pInputManager->hasHeldButtons() || !isX11OverrideRedirect()) {
-            // this window should gain focus: if it's grouped, preserve fullscreen state.
-            const bool SAME_GROUP = m_group && m_group->has(LAST_FOCUS_WINDOW);
-
-            if (IS_LAST_IN_FS && SAME_GROUP) {
-                Desktop::focusState()->rawWindowFocus(m_self.lock(), FOCUS_REASON_NEW_WINDOW);
-                // FS a new window to replace the old FSed window, use the old's layoutAware
-                Fullscreen::controller()->setFullscreenMode(m_self.lock(), LAST_FS_MODE, std::nullopt, Fullscreen::controller()->layoutManagedFS(LAST_FOCUS_WINDOW));
-            } else
-                Desktop::focusState()->fullWindowFocus(m_self.lock(), FOCUS_REASON_NEW_WINDOW);
-        }
+        if (!m_isX11 || !g_pInputManager->hasHeldButtons() || !isX11OverrideRedirect())
+            Desktop::focusState()->fullWindowFocus(m_self.lock(), FOCUS_REASON_NEW_WINDOW);
 
         alpha(WINDOW_ALPHA_ACTIVE)->setValueAndWarp(*PACTIVEALPHA);
         m_dimPercent->setValueAndWarp(m_ruleApplicator->noDim().valueOrDefault() ? 0.f : *PDIMSTRENGTH);

@@ -433,7 +433,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Gradient>("group:col.border_locked_active", "active locked group border color", CHyprColor{0x66775500}, {.refresh = Supplementary::REFRESH_GRADIENTS_GROUPBAR}),
         MS<Bool>("group:auto_group", "automatically group new windows", true),
         MS<Int>("group:drag_into_group", "whether dragging a window into a unlocked group will merge them.", 1,
-                {.min = 0, .max = 2, .map = OptionMap{{"disabled", 0}, {"enabled", 1}, {"only when dragging into the groupbar", 2}}}),
+                {.min = 0, .max = 2, .map = OptionMap{{"disabled", 0}, {"enabled", 1}, {"only_into_groupbar", 2}}}),
         MS<Bool>("group:merge_floated_into_tiled_on_groupbar", "whether dragging a floating window into a tiled window groupbar will merge them", false),
         MS<Bool>("group:group_on_movetoworkspace", "whether using movetoworkspace[silent] will merge the window into the workspace's solitary unlocked group", false),
 

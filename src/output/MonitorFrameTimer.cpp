@@ -1,6 +1,6 @@
 #include "MonitorFrameTimer.hpp"
 #include <algorithm>
-#include <ranges>
+#include <utility>
 
 using namespace Monitor;
 
@@ -8,6 +8,10 @@ using namespace Monitor;
 constexpr Time::steady_dur FRAME_SAFETY_MARGIN = std::chrono::microseconds(800);
 // with no pageflip behind the frame event we have no vblank to aim at, so there is no margin use. render now.
 constexpr Time::steady_dur FRAME_IDLE_DELAY = std::chrono::microseconds(1);
+// a sample older than this was taken at a gpu clock we are probably no longer running at.
+constexpr Time::steady_dur FRAME_SAMPLE_MAX_AGE = std::chrono::milliseconds(300);
+// frames to keep rendering immediately after idle
+constexpr int FRAME_COLD_AFTER_WAKE = 2;
 
 CMonitorFrameTimer::CMonitorFrameTimer() {
     ;
@@ -25,20 +29,28 @@ void CMonitorFrameTimer::addRenderCost(const Time::steady_tp& start, const Time:
         m_renderTimes.pop_front();
 }
 
-bool CMonitorFrameTimer::hasSamples() const {
-    return !m_renderTimes.empty();
+bool CMonitorFrameTimer::hasFreshSamples(const Time::steady_tp& now) const {
+    return std::ranges::any_of(m_renderTimes, [&now](const SRenderTimes& t) { return now - t.end <= FRAME_SAMPLE_MAX_AGE; });
 }
 
-Time::steady_dur CMonitorFrameTimer::estimatedRenderCost() const {
-    if (m_renderTimes.empty())
+Time::steady_dur CMonitorFrameTimer::estimatedRenderCost(const Time::steady_tp& now) const {
+    Time::steady_dur worst = Time::steady_dur::zero();
+
+    for (const auto& SAMPLE : m_renderTimes) {
+        // a sample from before an idle period
+        if (now - SAMPLE.end > FRAME_SAMPLE_MAX_AGE)
+            continue;
+
+        worst = std::max(worst, SAMPLE.end - SAMPLE.start);
+    }
+
+    if (worst == Time::steady_dur::zero())
         return Time::steady_dur::zero();
 
-    const auto WORST = std::ranges::max(m_renderTimes | std::views::transform([](const SRenderTimes& t) { return t.end - t.start; }));
-
-    // 15 previous samples, take the slowest and assume the next can be that slow + 25% + the safety margin.
+    // up to 15 recent samples, take the slowest and assume the next can be that slow + 25% + the safety margin.
     // spikes pull the estimate up and stay for the whole window. until frames are more
     // stable and we have proper early outs, we cant be more precise.
-    return WORST + WORST / 4 + FRAME_SAFETY_MARGIN;
+    return worst + worst / 4 + FRAME_SAFETY_MARGIN;
 }
 
 void CMonitorFrameTimer::setRefreshPeriod(int refreshNs, float fallbackHz) {
@@ -60,6 +72,22 @@ bool CMonitorFrameTimer::hasRefreshPeriod() const {
     return m_refreshPeriod > Time::steady_dur::zero();
 }
 
+void CMonitorFrameTimer::notePresentation(const Time::steady_tp& when) {
+    const auto PREV = std::exchange(m_lastPresentation, when);
+
+    if (PREV.time_since_epoch() <= Time::steady_dur::zero())
+        return;
+
+    if (when - PREV > FRAME_SAMPLE_MAX_AGE)
+        m_coldFrames = FRAME_COLD_AFTER_WAKE;
+    else if (m_coldFrames > 0)
+        m_coldFrames--;
+}
+
+bool CMonitorFrameTimer::frameFromIdle() const {
+    return m_coldFrames > 0;
+}
+
 std::optional<Time::steady_dur> CMonitorFrameTimer::flipMiss(const Time::steady_tp& when, const Time::steady_tp& aimedAt) const {
     if (aimedAt.time_since_epoch() <= Time::steady_dur::zero() || !hasRefreshPeriod())
         return std::nullopt;
@@ -78,11 +106,12 @@ CMonitorFrameTimer::SFrameTarget CMonitorFrameTimer::nextTarget(const Time::stea
 
     const auto DEADLINE = std::min(earliestFlip, now + m_refreshPeriod);
     // nothing to render still costs us the commit, the ioctl and the timer wakeup - that is what the margin is for.
-    const auto COST   = noRenderCost ? FRAME_SAFETY_MARGIN : estimatedRenderCost();
+    const auto COST   = noRenderCost ? FRAME_SAFETY_MARGIN : estimatedRenderCost(now);
     const auto TARGET = DEADLINE - COST;
 
-    // only delay if the estimate says we can still make this flip. with no render there is nothing to estimate.
-    const bool CAN_DELAY = (noRenderCost || hasSamples()) && COST < m_refreshPeriod && TARGET > now;
+    // only delay if the estimate says we can still make this flip. with no render there is nothing to estimate,
+    // but a idle gpu is slow at the commit too, starting early is the best we can do when we cannot predict what the frame will cost.
+    const bool CAN_DELAY = !frameFromIdle() && (noRenderCost || hasFreshSamples(now)) && COST < m_refreshPeriod && TARGET > now;
 
     return {.deadline = DEADLINE, .target = CAN_DELAY ? TARGET - now : FRAME_IDLE_DELAY};
 }

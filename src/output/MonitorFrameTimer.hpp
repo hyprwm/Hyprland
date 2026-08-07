@@ -14,12 +14,17 @@ namespace Monitor {
         };
 
         void             addRenderCost(const Time::steady_tp& start, const Time::steady_tp& end);
-        Time::steady_dur estimatedRenderCost() const;
-        bool             hasSamples() const;
+        Time::steady_dur estimatedRenderCost(const Time::steady_tp& now) const;
+        bool             hasFreshSamples(const Time::steady_tp& now) const;
 
         void             setRefreshPeriod(int refreshNs, float fallbackHz);
         Time::steady_dur refreshPeriod() const;
         bool             hasRefreshPeriod() const;
+
+        // record a presentation. a long gap between two of them is how we spot an idle wake.
+        void notePresentation(const Time::steady_tp& when);
+        // are we still on the cold frames right after such a wake?
+        bool frameFromIdle() const;
 
         // how late we were for the flip we aimed at, or nullopt if we made it
         std::optional<Time::steady_dur> flipMiss(const Time::steady_tp& when, const Time::steady_tp& aimedAt) const;
@@ -34,5 +39,7 @@ namespace Monitor {
 
         std::deque<SRenderTimes> m_renderTimes;
         Time::steady_dur         m_refreshPeriod{};
+        Time::steady_tp          m_lastPresentation{};
+        int                      m_coldFrames = 0;
     };
 }

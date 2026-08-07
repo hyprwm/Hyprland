@@ -36,6 +36,7 @@ void CMonitorFrameScheduler::onPresented(const Time::steady_tp& when, int refres
         return;
 
     m_frameTimes.setRefreshPeriod(refreshNs, PMONITOR->m_refreshRate);
+    m_frameTimes.notePresentation(when);
 
     // did the frame we timed actually make the flip it aimed at?
     if (const auto LATE = m_frameTimes.flipMiss(when, AIMED_AT); LATE)
@@ -125,13 +126,14 @@ void CMonitorFrameScheduler::onFrame() {
         // m_vrrActive can be set on a panel that cannot do vrr, and that one still runs on a fixed grid.
         const bool VRR         = PMONITOR->m_vrrActive && PMONITOR->output()->vrrCapable;
         const bool AIM_AT_FLIP = DELAY && !VRR;
-        const auto TARGET      = m_frameTimes.nextTarget(Time::steadyNow(), AIM_AT_FLIP ? EARLIEST_FLIP : Time::steady_tp{}, PMONITOR->m_directScanoutIsActive);
+        const auto NOW         = Time::steadyNow();
+        const auto TARGET      = m_frameTimes.nextTarget(NOW, AIM_AT_FLIP ? EARLIEST_FLIP : Time::steady_tp{}, PMONITOR->m_directScanoutIsActive);
 
         m_pendingDeadline = TARGET.deadline;
 
         Log::logger->log(Log::TRACE, "CMonitorFrameScheduler: {} -> frame event, period {:.3f}ms, est. cost {:.3f}ms, arming in {:.3f}ms", PMONITOR->m_name,
                          std::chrono::duration<float, std::milli>(m_frameTimes.refreshPeriod()).count(),
-                         std::chrono::duration<float, std::milli>(m_frameTimes.estimatedRenderCost()).count(), std::chrono::duration<float, std::milli>(TARGET.target).count());
+                         std::chrono::duration<float, std::milli>(m_frameTimes.estimatedRenderCost(NOW)).count(), std::chrono::duration<float, std::milli>(TARGET.target).count());
 
         m_renderTimer->updateTimeout(TARGET.target);
     }

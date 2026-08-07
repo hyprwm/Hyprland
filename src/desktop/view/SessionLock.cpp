@@ -89,3 +89,7 @@ PHLMONITOR View::CSessionLock::monitor() const {
         return m_surface->monitor();
     return nullptr;
 }
+
+bool View::CSessionLock::cantLockCursor() const {
+    return false;
+}

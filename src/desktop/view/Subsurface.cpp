@@ -322,3 +322,7 @@ void CSubsurface::syncScaleTransform() const {
 Vector2D CSubsurface::size() {
     return m_wlSurface->resource()->m_current.size;
 }
+
+bool CSubsurface::cantLockCursor() const {
+    return m_windowParent && m_windowParent->cantLockCursor();
+}

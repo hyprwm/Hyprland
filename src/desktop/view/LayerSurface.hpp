@@ -39,6 +39,7 @@ namespace Desktop::View {
         virtual std::optional<CBox>                         surfaceLogicalBox() const override;
         virtual Types::CMultiAVarContainer<float, uint8_t>& alpha() override;
         virtual std::optional<uint8_t>                      alphaGenericToKey(eAlphaModifiableProp p) override;
+        virtual bool                                        cantLockCursor() const override;
 
         int                                                 popupsCount();
 

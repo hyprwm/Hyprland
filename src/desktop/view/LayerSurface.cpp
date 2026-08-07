@@ -478,3 +478,7 @@ std::optional<uint8_t> CLayerSurface::alphaGenericToKey(eAlphaModifiableProp p) 
     static_assert(ALPHA_MODIFIABLE_LAST == 1);
     UNREACHABLE();
 }
+
+bool CLayerSurface::cantLockCursor() const {
+    return false;
+}

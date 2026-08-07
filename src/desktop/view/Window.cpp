@@ -2988,3 +2988,12 @@ std::optional<uint8_t> CWindow::alphaGenericToKey(eAlphaModifiableProp p) {
     static_assert(ALPHA_MODIFIABLE_LAST == 1);
     UNREACHABLE();
 }
+
+bool CWindow::cantLockCursor() const {
+    // a window being interactively moved or resized ignores its pointer lock. the lock would otherwise warp
+    // the cursor back to the constraint hint every frame, so the window could never be dragged (e.g. gamescope).
+    if (const auto DRAG = g_layoutManager->dragController()->target(); DRAG && DRAG->window() == m_self)
+        return true;
+
+    return m_layoutFlags.cantLockCursor;
+}

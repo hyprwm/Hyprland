@@ -78,6 +78,11 @@ UP<CScreenshareSession> CScreenshareManager::newSession(wl_client* client, PHLWI
         return nullptr;
     }
 
+    if UNLIKELY (window->m_monitor.expired()) {
+        LOGM(Log::ERR, "Client requested sharing of a window that isn't on a monitor");
+        return nullptr;
+    }
+
     UP<CScreenshareSession> session = UP<CScreenshareSession>(new CScreenshareSession(window, client));
 
     session->m_self = session;
@@ -136,6 +141,12 @@ WP<CScreenshareSession> CScreenshareManager::getManagedSession(eScreenshareType 
             case SHARE_NONE:
             default: return {};
         }
+
+        // init() can stop a session right away (e.g. the window has no monitor to capture from).
+        // don't cache it: the stopped listener isn't hooked up yet, so nothing would ever evict it
+        // and every later request would get handed the same dead session.
+        if UNLIKELY (!session->isActive())
+            return {};
 
         session->m_self = session;
         m_sessions.emplace_back(session);

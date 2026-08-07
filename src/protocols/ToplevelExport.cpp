@@ -63,6 +63,12 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
     m_resource->setDestroy([this](CHyprlandToplevelExportFrameV1* pFrame) { PROTO::toplevelExport->destroyResource(this); });
     m_resource->setCopy([this](CHyprlandToplevelExportFrameV1* pFrame, wl_resource* res, int32_t ignoreDamage) { shareFrame(res, !!ignoreDamage); });
 
+    if UNLIKELY (!m_session) {
+        LOGM(Log::ERR, "Couldn't capture (no share session for the toplevel)");
+        m_resource->sendFailed();
+        return;
+    }
+
     m_frame = m_session->nextFrame(overlayCursor);
 
     auto formats = m_session->allowedFormats();

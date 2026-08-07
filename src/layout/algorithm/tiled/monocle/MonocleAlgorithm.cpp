@@ -132,7 +132,10 @@ void CMonocleAlgorithm::recalculate(eRecalculateReason reason) {
         return;
 
     // Avoid further pos recalc if in fullscreen
-    if (Fullscreen::controller()->hasFullscreen(m_parent->space()->workspace(), true)) {
+    // Monocle has its own input blocking reason and uses WINDOW_ALPHA_LAYOUT so we need to handle this differently than other layouts
+    if (const auto COVERING_FS_WINDOW = Fullscreen::controller()->getFullscreenWindow(m_parent->space()->workspace(), true); COVERING_FS_WINDOW) {
+        COVERING_FS_WINDOW->setInputBlocked(Desktop::View::INPUT_BLOCK_MONOCLE_INACTIVE, false);
+        *COVERING_FS_WINDOW->alpha(Desktop::View::WINDOW_ALPHA_LAYOUT) = 1.F;
         m_defaultFullscreenHandler->syncTargetSizeAndPosition();
         return;
     }

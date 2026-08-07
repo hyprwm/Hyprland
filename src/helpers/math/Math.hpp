@@ -15,4 +15,5 @@ namespace Math {
     eTransform               wlTransformToHyprutils(wl_output_transform t);
     wl_output_transform      invertTransform(wl_output_transform tr);
     eTransform               composeTransform(eTransform a, eTransform b);
+    Vector2D                 transformedSize(wl_output_transform tr, const Vector2D& size);
 }

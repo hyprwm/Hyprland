@@ -21,15 +21,10 @@ static bool shouldBlurPopup() {
     return *PBLURPOPUPS && *PBLUR;
 }
 
-static void damageFadeoutMonitor(PHLMONITORREF monitor) {
-    if (const auto MONITOR = monitor.lock(); MONITOR)
-        g_pHyprRenderer->damageMonitor(MONITOR);
-}
-
-template <typename T>
-static void damageWeakFadeout(WP<T> fadeout) {
+// the snapshot is baked at the popup's global coords and doesn't move, so only its own box needs damage
+static void damageWeakFadeout(WP<CPopupFadeout> fadeout) {
     if (const auto FADEOUT = fadeout.lock(); FADEOUT)
-        damageFadeoutMonitor(FADEOUT->monitor());
+        g_pHyprRenderer->damageBox(FADEOUT->damageBox());
 }
 
 SP<CPopupFadeout> CPopupFadeout::create(SP<CPopup> popup, SP<Render::IFramebuffer> snapshot, float sourceAlpha) {
@@ -40,9 +35,15 @@ SP<CPopupFadeout> CPopupFadeout::create(SP<CPopup> popup, SP<Render::IFramebuffe
     if (!MONITOR)
         return nullptr;
 
-    auto fadeout           = SP<CPopupFadeout>(new CPopupFadeout());
+    const auto EXTENDS = popup->wlSurface()->resource()->extends();
+    const auto ORIGIN  = popup->coordsGlobal() + EXTENDS.pos();
+
+    auto       fadeout     = SP<CPopupFadeout>(new CPopupFadeout());
     fadeout->m_monitor     = MONITOR;
     fadeout->m_framebuffer = snapshot;
+    fadeout->m_damageBox   = CBox{ORIGIN, EXTENDS.size()}.expand(4);
+    // take the size from the FB so the snapshot maps 1:1 and doesn't get rescaled mid-fade
+    fadeout->m_renderBox = CBox{((ORIGIN - MONITOR->m_position) * MONITOR->m_scale).round(), snapshot->m_size};
 
     static CConfigValue PBLURIGNOREA = CConfigValue<Config::FLOAT>("decoration:blur:popups_ignorealpha");
     if (shouldBlurPopup()) {
@@ -81,8 +82,7 @@ int CPopupFadeout::zIndex() const {
 }
 
 CBox CPopupFadeout::renderBox() const {
-    const auto MONITOR = m_monitor.lock();
-    return MONITOR ? CBox{{}, MONITOR->m_transformedSize} : CBox{};
+    return m_renderBox;
 }
 
 float CPopupFadeout::alpha() const {
@@ -91,6 +91,10 @@ float CPopupFadeout::alpha() const {
 
 bool CPopupFadeout::done() const {
     return m_alpha->value() == 0.F && !m_alpha->isBeingAnimated();
+}
+
+const CBox& CPopupFadeout::damageBox() const {
+    return m_damageBox;
 }
 
 SFadeoutRenderEffects CPopupFadeout::effects() const {

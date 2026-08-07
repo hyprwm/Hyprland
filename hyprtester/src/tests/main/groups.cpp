@@ -727,3 +727,41 @@ TEST_CASE(groups_disable_when_only) {
     Tests::killAllWindows();
     ASSERT(Tests::windowCount(), 0);
 }
+
+TEST_CASE(groupedExitWindowRetainsFullscreen) {
+    OK(getFromSocket("/eval hl.config({ misc = { exit_window_retains_fullscreen = 3 } })"));
+
+    SPAWN_KITTY("kitty_A");
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+    SPAWN_KITTY("kitty_B");
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen' })"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.kill({ window = 'activewindow' })"));
+    Tests::waitUntilWindowsN(1);
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
+    }
+
+    Tests::spawnKitty("kitty_B");
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen' })"));
+    OK(getFromSocket("/eval hl.config({ misc = { exit_window_retains_fullscreen = 2 } })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.window.kill({ window = 'activewindow' })"));
+    Tests::waitUntilWindowsN(1);
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+    }
+}

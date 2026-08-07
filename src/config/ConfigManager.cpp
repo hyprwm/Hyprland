@@ -2,6 +2,7 @@
 #include "supplementary/jeremy/Jeremy.hpp"
 #include "lua/ConfigManager.hpp"
 #include "../debug/log/Logger.hpp"
+#include "../Compositor.hpp"
 
 #include <hyprutils/path/Path.hpp>
 #include <filesystem>
@@ -43,7 +44,7 @@ bool Config::initConfigManager() {
         }
 
         // generate default
-        if (const auto v = g_mgr->generateDefaultConfig(filePath); !v) {
+        if (const auto v = g_mgr->generateDefaultConfig(filePath, g_pCompositor->m_safeMode); !v) {
             Log::logger->log(Log::CRIT, "[cfg] Couldn't generate default config: {}", v.error());
             return false;
         }

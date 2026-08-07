@@ -137,8 +137,10 @@ void CDefaultFloatingAlgorithm::movedTarget(SP<ITarget> target, std::optional<Ve
 
         const auto THIS_BOX = m_parent->space()->workspace()->m_monitor->logicalBox();
 
-        if (!THIS_BOX.intersection(BOX).empty())
+        if (!THIS_BOX.intersection(BOX).empty()) {
+            updateTarget(target);
             return;
+        }
     }
 
     auto       LAST_SIZE    = target->lastFloatingSize();

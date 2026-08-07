@@ -44,9 +44,7 @@ TEST_CASE(hyprctlDevicesActiveLayoutIndex) {
 }
 
 TEST_CASE(hyprctlGetprop) {
-    if (!Tests::spawnKitty()) {
-        FAIL_TEST("Could not spawn kitty");
-    }
+    SPAWN_KITTY("kitty");
 
     // animation
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty animation"), "(unset)");

@@ -128,10 +128,7 @@ TEST_CASE(childWindow) {
 
     // test that child windows (shouldBeFloated) are not auto-grouped
     NLog::log("{}Test child windows are not auto-grouped", Colors::GREEN);
-    auto kitty = Tests::spawnKitty();
-    if (!kitty) {
-        FAIL_TEST("Couldn't spawn kitty");
-    }
+    SPAWN_KITTY("a");
 
     // create group and enable auto-grouping
     OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));

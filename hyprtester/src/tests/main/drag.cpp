@@ -41,7 +41,7 @@ TEST_CASE(dragTiledCentered) {
     OK(getFromSocket("r/eval hl.unbind('SUPER + mouse:272')"));
     OK(getFromSocket("r/eval hl.bind('mouse:272', hl.dsp.window.drag(), { mouse = true })"));
 
-    Tests::spawnKitty();
+    SPAWN_KITTY("kitty");
     ASSERT(Tests::windowCount(), 1);
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty' })"));
 
@@ -77,7 +77,7 @@ TEST_CASE(dragTiledProportional) {
     OK(getFromSocket("r/eval hl.unbind('SUPER + mouse:272')"));
     OK(getFromSocket("r/eval hl.bind('mouse:272', hl.dsp.window.drag(), { mouse = true })"));
 
-    Tests::spawnKitty();
+    SPAWN_KITTY("kitty");
     ASSERT(Tests::windowCount(), 1);
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty' })"));
 
@@ -113,7 +113,7 @@ TEST_CASE(dragFullscreenCentered) {
     OK(getFromSocket("r/eval hl.unbind('SUPER + mouse:272')"));
     OK(getFromSocket("r/eval hl.bind('mouse:272', hl.dsp.window.drag(), { mouse = true })"));
 
-    Tests::spawnKitty();
+    SPAWN_KITTY("kitty");
     ASSERT(Tests::windowCount(), 1);
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty' })"));
     OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set' })"));
@@ -153,7 +153,7 @@ TEST_CASE(dragFullscreenProportional) {
     OK(getFromSocket("r/eval hl.unbind('SUPER + mouse:272')"));
     OK(getFromSocket("r/eval hl.bind('mouse:272', hl.dsp.window.drag(), { mouse = true })"));
 
-    Tests::spawnKitty();
+    SPAWN_KITTY("kitty");
     ASSERT(Tests::windowCount(), 1);
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty' })"));
     OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set' })"));

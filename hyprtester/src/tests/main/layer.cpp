@@ -55,10 +55,10 @@ TEST_CASE(layerPointerFocusPreservedOnKeyboardRefocus) {
     OK(getFromSocket("/eval hl.config({ input = { follow_mouse = 0 } })"));
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
-    ASSERT(!!Tests::spawnKitty("pointer_focus_ws1"), true);
+    SPAWN_KITTY("pointer_focus_ws1");
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2' })"));
-    ASSERT(!!Tests::spawnKitty("pointer_focus_ws2"), true);
+    SPAWN_KITTY("pointer_focus_ws2");
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:pointer_focus_ws1' })"));
@@ -81,7 +81,7 @@ TEST_CASE(layerVisibilityOnFs) {
 
     ASSERT(spawnLayer(LAYER_NAMESPACE, {"--edge=top", "--layer=top", "--lines=48px", "--focus-policy=not-allowed"}), true);
 
-    Tests::spawnKitty("cat");
+    SPAWN_KITTY("cat");
 
     {
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
@@ -127,7 +127,7 @@ TEST_CASE(windowRefocusRestoresKeyboardFocusAfterSurfaceFocusCleared) {
     static constexpr const char* WINDOW_CLASS = "keyboard_refocus_target";
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
-    ASSERT(!!Tests::spawnKitty(WINDOW_CLASS), true);
+    SPAWN_KITTY(WINDOW_CLASS);
     OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ window = 'class:{}' }})", WINDOW_CLASS)));
     ASSERT_CONTAINS(getFromSocket("/activewindow"), std::format("class: {}\n", WINDOW_CLASS));
     OK(getFromSocket(std::format("/eval hl.plugin.test.check_keyboard_focus_window('{}')", WINDOW_CLASS)));

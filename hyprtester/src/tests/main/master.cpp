@@ -19,8 +19,7 @@ TEST_CASE(focusMasterPrevious) {
     NLog::log("{}Spawning 1 master and 3 slave windows", Colors::YELLOW);
     // order of windows set according to new_status = master (set in test.lua)
     for (auto const& win : {"slave1", "slave2", "slave3", "master"}) {
-        if (!Tests::spawnKitty(win))
-            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
+        SPAWN_KITTY(win);
     }
     NLog::log("{}Ensuring focus is on master before testing", Colors::YELLOW);
     OK(getFromSocket("/dispatch hl.dsp.layout('focusmaster master')"));
@@ -110,8 +109,7 @@ TEST_CASE(masterTestFsFocusUnderFSWindow) {
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'master' } })"));
 
     for (auto const& win : {"master", "slave1", "slave2"}) {
-        if (!Tests::spawnKitty(win))
-            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
+        SPAWN_KITTY(win);
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:master' })"));
@@ -126,7 +124,7 @@ TEST_CASE(masterTestFsFocusUnderFSWindow) {
 
     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 1 } })"));
 
-    Tests::spawnKitty("new_master");
+    SPAWN_KITTY("new_master");
 
     {
         auto str = getFromSocket("/activewindow");
@@ -138,7 +136,7 @@ TEST_CASE(masterTestFsFocusUnderFSWindow) {
 
     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 0 } })"));
 
-    Tests::spawnKitty("ignored");
+    SPAWN_KITTY("ignored");
 
     {
         auto str = getFromSocket("/activewindow");
@@ -150,7 +148,7 @@ TEST_CASE(masterTestFsFocusUnderFSWindow) {
 
     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 2 } })"));
 
-    Tests::spawnKitty("vaxwashere");
+    SPAWN_KITTY("vaxwashere");
 
     {
         auto str = getFromSocket("/activewindow");
@@ -165,8 +163,8 @@ TEST_CASE(masterFullscreenMaximiseDispatchers) {
 
     OK(getFromSocket("/eval hl.config({ general = { layout = 'master' } })"));
 
-    Tests::spawnKitty("kitty_A");
-    Tests::spawnKitty("kitty_B");
+    SPAWN_KITTY("kitty_A");
+    SPAWN_KITTY("kitty_B");
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_A' })"));
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set' })"));
@@ -242,7 +240,7 @@ TEST_CASE(masterNewWindowTakesOverFullscreen) {
 
     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 0 } })"));
 
-    Tests::spawnKitty("kitty_A");
+    SPAWN_KITTY("kitty_A");
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen' })"));
 
@@ -253,7 +251,7 @@ TEST_CASE(masterNewWindowTakesOverFullscreen) {
         EXPECT_CONTAINS(str, "kitty_A");
     }
 
-    Tests::spawnKitty("kitty_B");
+    SPAWN_KITTY("kitty_B");
 
     {
         auto str = getFromSocket("/activewindow");
@@ -274,7 +272,7 @@ TEST_CASE(masterNewWindowTakesOverFullscreen) {
 
     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 1 } })"));
 
-    Tests::spawnKitty("kitty_C");
+    SPAWN_KITTY("kitty_C");
 
     {
         auto str = getFromSocket("/activewindow");
@@ -285,7 +283,7 @@ TEST_CASE(masterNewWindowTakesOverFullscreen) {
 
     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 2 } })"));
 
-    Tests::spawnKitty("kitty_D");
+    SPAWN_KITTY("kitty_D");
 
     {
         auto str = getFromSocket("/activewindow");
@@ -307,8 +305,8 @@ TEST_CASE(masterExitWindowRetainsFullscreen) {
 
     OK(getFromSocket("/eval hl.config({ misc = { exit_window_retains_fullscreen = false } })"));
 
-    Tests::spawnKitty("kitty_A");
-    Tests::spawnKitty("kitty_B");
+    SPAWN_KITTY("kitty_A");
+    SPAWN_KITTY("kitty_B");
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen' })"));
 
@@ -327,7 +325,7 @@ TEST_CASE(masterExitWindowRetainsFullscreen) {
         EXPECT_CONTAINS(str, "fullscreenClient: 0");
     }
 
-    Tests::spawnKitty("kitty_B");
+    SPAWN_KITTY("kitty_B");
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen' })"));
     OK(getFromSocket("/eval hl.config({ misc = { exit_window_retains_fullscreen = true } })"));
 
@@ -358,7 +356,7 @@ TEST_CASE(masterFullscreenPinnedWindows) {
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'master' } })"));
 
-    Tests::spawnKitty("cake");
+    SPAWN_KITTY("cake");
 
     OK(getFromSocket("/dispatch hl.dsp.window.float({action = 'enable', window = 'class:cake'})"));
 
@@ -535,12 +533,12 @@ TEST_CASE(masterFullscreenNonInterference) {
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'master' } })"));
 
-    Tests::spawnKitty("red");
-    Tests::spawnKitty("crimson");
-    Tests::spawnKitty("blue");
-    Tests::spawnKitty("cyan");
-    Tests::spawnKitty("azure");
-    Tests::spawnKitty("green");
+    SPAWN_KITTY("red");
+    SPAWN_KITTY("crimson");
+    SPAWN_KITTY("blue");
+    SPAWN_KITTY("cyan");
+    SPAWN_KITTY("azure");
+    SPAWN_KITTY("green");
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:red' })"));
 
@@ -699,8 +697,7 @@ TEST_CASE(rollFocus) {
     };
 
     for (auto const& win : windows) {
-        if (!Tests::spawnKitty(win))
-            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
+        SPAWN_KITTY(win);
     }
 
     // focus master
@@ -821,8 +818,7 @@ TEST_CASE(centerMasterColumnResize) {
     OK(getFromSocket(
         "r/eval hl.config({ general = { layout = 'master' }, master = { orientation = 'center', center_master_fallback = 'left', slave_count_for_center_master = 2 } })"));
     for (auto const& win : {"slave1", "slave2", "slave3", "master"}) {
-        if (!Tests::spawnKitty(win))
-            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
+        SPAWN_KITTY(win);
     }
 
     // default `left` fallback: slave1 (top) + slave3 (bottom) on the left, slave2 alone on the right
@@ -843,8 +839,7 @@ TEST_CASE(centerMasterColumnResize) {
     // new_status = master => `extra` becomes the master and `master` drops to the 4th slave.
     NLog::log("{}center master, left fallback, 4 slaves: columns still resize (no regression)", Colors::YELLOW);
     OK(getFromSocket("r/eval hl.config({ master = { center_master_fallback = 'left' } })"));
-    if (!Tests::spawnKitty("extra"))
-        FAIL_TEST("Could not spawn kitty with win class `{}`", "extra");
+    SPAWN_KITTY("extra");
     expectColumnResizes("slave1", "slave3", "slave2");
 
     // even count, no regression: 2 slaves => 1 per column, so a vertical resize is a no-op
@@ -852,8 +847,7 @@ TEST_CASE(centerMasterColumnResize) {
     if (!Tests::killAllWindows())
         FAIL_TEST("Could not kill all windows before the {}-slave phase", 2);
     for (auto const& win : {"slave1", "slave2", "master"}) {
-        if (!Tests::spawnKitty(win))
-            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
+        SPAWN_KITTY(win);
     }
     const double H0 = heightOf("slave1");
     OK(resizeY("slave1", 80));
@@ -882,8 +876,7 @@ SUBTEST(expectCenterDrop, const std::string& pick, bool dropRight, const std::st
         FAIL_TEST("Could not clear windows{}", "");
 
     for (auto const& win : {"w1", "w2", "w3"}) {
-        if (!Tests::spawnKitty(win))
-            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
+        SPAWN_KITTY(win);
     }
     Tests::waitUntilWindowsN(3);
 

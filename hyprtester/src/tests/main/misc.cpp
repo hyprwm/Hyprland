@@ -133,7 +133,7 @@ TEST_CASE(misc) {
     OK(getFromSocket("/eval hl.config({ misc = { close_special_on_empty = false } })"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'special:test' })"));
 
-    Tests::spawnKitty();
+    SPAWN_KITTY("a");
 
     {
         auto str = getFromSocket("/monitors");
@@ -147,7 +147,7 @@ TEST_CASE(misc) {
         ASSERT_CONTAINS(str, "special workspace: -");
     }
 
-    Tests::spawnKitty();
+    SPAWN_KITTY("a");
 
     OK(getFromSocket("/eval hl.config({ misc = { close_special_on_empty = true } })"));
 

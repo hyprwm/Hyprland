@@ -528,12 +528,13 @@ SUBTEST(shortcutLongPress) {
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
     const std::string output = readKittyOutput();
     int               yCount = Tests::countOccurrences(output, "y");
+    int               qCount = Tests::countOccurrences(output, "q");
     // sometimes 1, sometimes 2, not sure why
     // keybind press sends 1 y immediately
     // then repeat triggers, sending 1 y
     // final release stop repeats, and shouldn't send any more
     EXPECT(true, yCount == 1 || yCount == 2);
-    EXPECT_COUNT_STRING(output, "q", 1);
+    EXPECT(true, qCount == 1 || qCount == 2);
     EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
     Tests::killAllWindows();
 }

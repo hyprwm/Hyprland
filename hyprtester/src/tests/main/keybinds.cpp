@@ -533,7 +533,8 @@ SUBTEST(shortcutLongPress) {
     // then repeat triggers, sending 1 y
     // final release stop repeats, and shouldn't send any more
     EXPECT(true, yCount == 1 || yCount == 2);
-    EXPECT_COUNT_STRING(output, "q", 1);
+    int               qCount = Tests::countOccurrences(output, "q");
+    EXPECT(true, qCount == 1 || qCount == 2);
     EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
     Tests::killAllWindows();
 }

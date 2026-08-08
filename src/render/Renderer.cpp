@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <aquamarine/output/Output.hpp>
 #include <cmath>
+#include <cstring>
+#include <drm_mode.h>
 #include <filesystem>
 #include "../config/ConfigValue.hpp"
 #include "../config/ConfigManager.hpp"
@@ -2297,6 +2299,14 @@ static hdr_output_metadata       createHDRMetadata(SImageDescription settings, P
     };
 }
 
+static bool hdrMetadataEqual(const hdr_output_metadata& a, const hdr_output_metadata& b) {
+    if (a.metadata_type != b.metadata_type)
+        return false;
+
+    static_assert(std::has_unique_object_representations_v<hdr_metadata_infoframe>);
+    return std::memcmp(&a.hdmi_metadata_type1, &b.hdmi_metadata_type1, sizeof(a.hdmi_metadata_type1));
+}
+
 void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
     static auto PCT        = CConfigValue<Config::INTEGER>("render:send_content_type");
     static auto PAUTOHDR   = CConfigValue<Config::INTEGER>("render:cm_auto_hdr");
@@ -2350,18 +2360,20 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
         if (!hdrIsHandled) {
             const bool HDR_CHANGED = pMonitor->inHDR() != wantHDR;
 
-            if (HDR_CHANGED || pMonitor->m_hdrMetadataFromSurface) {
-                if (HDR_CHANGED && *PAUTOHDR && !(pMonitor->inHDR() && configuredHDR)) {
-                    // modify or restore monitor image description for auto-hdr
-                    // FIXME ok for now, will need some other logic if monitor image description can be modified some other way
-                    const auto targetCM      = wantHDR ? (*PAUTOHDR == 2 ? NCMType::CM_HDR_EDID : NCMType::CM_HDR) : pMonitor->m_cmType;
-                    const auto targetSDREOTF = pMonitor->m_sdrEotf;
-                    Log::logger->log(Log::INFO, "[CM] Auto HDR: changing monitor cm to {}", sc<uint8_t>(targetCM));
-                    pMonitor->applyCMType(targetCM, targetSDREOTF);
-                    pMonitor->m_previousFSWindow.reset(); // trigger CTM update
-                }
+            if (HDR_CHANGED && *PAUTOHDR && !(pMonitor->inHDR() && configuredHDR)) {
+                const auto targetCM      = wantHDR ? (*PAUTOHDR == 2 ? NCMType::CM_HDR_EDID : NCMType::CM_HDR) : pMonitor->m_cmType;
+                const auto targetSDREOTF = pMonitor->m_sdrEotf;
+                Log::logger->log(Log::INFO, "[CM] Auto HDR: changing monitor cm to {}", sc<uint8_t>(targetCM));
+                pMonitor->applyCMType(targetCM, targetSDREOTF);
+                pMonitor->m_previousFSWindow.reset(); // trigger CTM update
+            }
+
+            const auto WANTED  = wantHDR ? createHDRMetadata(pMonitor->m_imageDescription->value(), pMonitor) : NO_HDR_METADATA;
+            const auto CURRENT = pMonitor->m_output->state->state().hdrMetadata;
+
+            if (HDR_CHANGED || pMonitor->m_hdrMetadataFromSurface || (wantHDR && !hdrMetadataEqual(WANTED, CURRENT))) {
                 Log::logger->log(Log::INFO, wantHDR ? "[CM] Updating HDR metadata from monitor" : "[CM] Restoring SDR mode");
-                pMonitor->m_output->state->setHDRMetadata(wantHDR ? createHDRMetadata(pMonitor->m_imageDescription->value(), pMonitor) : NO_HDR_METADATA);
+                pMonitor->m_output->state->setHDRMetadata(WANTED);
                 pMonitor->m_hdrMetadataFromSurface = false;
             }
             pMonitor->m_needsHDRupdate = true;

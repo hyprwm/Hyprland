@@ -197,10 +197,13 @@ void IElementRenderer::drawPreBlur(WP<CPreBlurElement> element, const CRegion& d
     auto&      m_renderData = g_pHyprRenderer->m_renderData;
 
     const auto SAVEDRENDERMODIF = m_renderData.renderModif;
+    const auto SAVEDDAMAGE      = m_renderData.damage;
     m_renderData.renderModif    = {}; // fix shit
 
     // make the fake dmg
     CRegion fakeDamage{0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
+
+    m_renderData.damage = fakeDamage; // the clear inside scissors to renderData.damage, it has to match the blit
 
     draw(element, fakeDamage);
 
@@ -208,6 +211,7 @@ void IElementRenderer::drawPreBlur(WP<CPreBlurElement> element, const CRegion& d
     m_renderData.pMonitor->m_blurFBShouldRender = false;
 
     m_renderData.renderModif = SAVEDRENDERMODIF;
+    m_renderData.damage      = SAVEDDAMAGE;
 }
 
 void IElementRenderer::drawClear(WP<CClearPassElement> element, const CRegion& damage) {

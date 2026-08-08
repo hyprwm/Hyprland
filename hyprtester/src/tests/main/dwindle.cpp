@@ -1034,8 +1034,8 @@ TEST_CASE(defaultHandledFsfocusInDirection) {
     Tests::spawnKitty("fs");
     Tests::spawnKitty("normal2");
 
-    // if movefocus_cycles_fullscreen = false, all focus({direction}) is disallowed from moving focus from FS window
-    OK(getFromSocket("r/eval hl.config({ binds = { movefocus_cycles_fullscreen = false } })"));
+    // if directional_focus_in_fullscreen = false, all focus({direction}) is disallowed from moving focus from FS window
+    OK(getFromSocket("r/eval hl.config({ binds = { directional_focus_in_fullscreen = false } })"));
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:fs' })"));
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set', window = 'class:fs' })"));
@@ -1112,9 +1112,9 @@ TEST_CASE(defaultHandledFsfocusInDirection) {
         EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
 
-    // if movefocus_cycles_fullscreen = true
+    // if directional_focus_in_fullscreen = true
 
-    OK(getFromSocket("r/eval hl.config({ binds = { movefocus_cycles_fullscreen = true } })"));
+    OK(getFromSocket("r/eval hl.config({ binds = { directional_focus_in_fullscreen = true } })"));
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:fs' })"));
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set', window = 'class:fs' })"));

@@ -366,7 +366,7 @@ ActionResult Actions::moveToWorkspace(PHLWORKSPACE ws, bool silent, std::optiona
 }
 
 ActionResult Actions::moveFocus(Math::eDirection dir) {
-    static auto PFULLCYCLE      = CConfigValue<Config::INTEGER>("binds:movefocus_cycles_fullscreen");
+    static auto PFULLCYCLE      = CConfigValue<Config::INTEGER>("binds:directional_focus_in_fullscreen");
     static auto PNEWTAKESOVERFS = CConfigValue<Config::INTEGER>("misc:on_focus_under_fullscreen");
 
     static auto PGROUPCYCLE      = CConfigValue<Config::INTEGER>("binds:movefocus_cycles_groupfirst");

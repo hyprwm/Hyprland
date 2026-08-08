@@ -542,7 +542,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
                 {.min = 0, .max = 1}),
         MS<Int>("binds:focus_preferred_method", "sets the preferred focus finding method when using focuswindow/movewindow/etc with a direction.", 0, {.min = 0, .max = 1}),
         MS<Bool>("binds:ignore_group_lock", "If enabled, dispatchers like moveintogroup, moveoutofgroup and movewindoworgroup will ignore lock per group.", false),
-        MS<Bool>("binds:movefocus_cycles_fullscreen", "If enabled, when on a fullscreen window, movefocus will cycle fullscreen.", false),
+        MS<Int>("binds:directional_focus_in_fullscreen", "If set to \"window\", it allows hl.dsp.focus({ direction }) to seek windows when focus is on a fullscreen window. If set to \"monitor\", it will seek just monitors instead.", 1, {.min = 0, .max = 1, .map = OptionMap{{"monitor", 0}, {"window", 1}}}),
         MS<Bool>("binds:movefocus_cycles_groupfirst", "If enabled, when in a grouped window, movefocus will cycle windows in the groups first.", false),
         MS<Bool>("binds:disable_keybind_grabbing", "If enabled, apps that request keybinds to be disabled will not be able to do so.", false),
         MS<Bool>("binds:window_direction_monitor_fallback", "If enabled, moving a window or focus over the edge of a monitor with a direction will move it to the next monitor.",

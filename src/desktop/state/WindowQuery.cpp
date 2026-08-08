@@ -114,7 +114,7 @@ PHLWINDOW CWindowQuery::inDirection(const SWindowDirectionQuery& query) const {
                         continue;
                     // Let layout handled fullscreens not block seeking window in direction
                     static auto PONFOCUSUNDERFS = CConfigValue<Config::INTEGER>("misc:on_focus_under_fullscreen");
-                    static auto PFULLCYCLE      = CConfigValue<Config::BOOL>("binds:movefocus_cycles_fullscreen");
+                    static auto PFULLCYCLE      = CConfigValue<Config::BOOL>("binds:directional_focus_in_fullscreen");
                     if (!(*PFULLCYCLE) || *PONFOCUSUNDERFS == 0)
                         continue;
                 }

@@ -14,5 +14,6 @@ namespace Math {
 
     eTransform               wlTransformToHyprutils(wl_output_transform t);
     wl_output_transform      invertTransform(wl_output_transform tr);
+    eTransform               invertTransform(eTransform tr);
     eTransform               composeTransform(eTransform a, eTransform b);
 }

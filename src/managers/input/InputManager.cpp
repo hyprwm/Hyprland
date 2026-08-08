@@ -452,7 +452,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     }
 
     // forced above all
-    if (!g_pInputManager->m_exclusiveLSes.empty()) {
+    if (!g_pInputManager->m_exclusiveLSes.empty() && !PROTO::data->dndActive()) {
         if (!foundSurface)
             foundSurface = Desktop::viewState()->hitTest().layerPopupSurfaceAt(mouseCoords, &g_pInputManager->m_exclusiveLSes, &surfaceCoords, &pFoundLayerSurface);
 

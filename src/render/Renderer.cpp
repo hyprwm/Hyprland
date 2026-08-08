@@ -686,19 +686,29 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         }
 
         renderdata.surfaceCounter = 0;
+
+        const bool EFFECTBLURALLOWED = !standalone && blurPolicyAllows(pWindow);
+
         pWindow->wlSurface()->resource()->breadthfirst(
-            [this, &renderdata, &pWindow](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+            [this, &renderdata, &pWindow, EFFECTBLURALLOWED](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
                 if (!s->m_current.texture)
                     return;
 
                 if (s->m_current.size.x < 1 || s->m_current.size.y < 1)
                     return;
 
-                renderdata.localPos    = offset;
-                renderdata.texture     = s->m_current.texture;
-                renderdata.surface     = s;
-                renderdata.mainSurface = s == pWindow->wlSurface()->resource();
-                addPassElement(makeUnique<CSurfacePassElement>(renderdata));
+                const auto HLSURFACE = Desktop::View::CWLSurface::fromResource(s);
+                const bool OWNEFFECT = EFFECTBLURALLOWED && HLSURFACE && HLSURFACE->backgroundEffectBlur().value_or(false);
+
+                auto       surfacedata = renderdata;
+                surfacedata.blur |= OWNEFFECT;
+                surfacedata.blockBlurOptimization |= OWNEFFECT;
+                surfacedata.blurOptIn   = OWNEFFECT;
+                surfacedata.localPos    = offset;
+                surfacedata.texture     = s->m_current.texture;
+                surfacedata.surface     = s;
+                surfacedata.mainSurface = s == pWindow->wlSurface()->resource();
+                addPassElement(makeUnique<CSurfacePassElement>(surfacedata));
                 renderdata.surfaceCounter++;
             },
             nullptr);
@@ -762,22 +772,26 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
             static CConfigValue PBLURIGNOREA = CConfigValue<Config::FLOAT>("decoration:blur:popups_ignorealpha");
 
-            renderdata.blur = shouldBlur(pWindow->m_popupHead);
-
-            if (renderdata.blur) {
-                renderdata.discardMode |= DISCARD_ALPHA;
-                renderdata.discardOpacity = *PBLURIGNOREA;
-            }
-
             if (pWindow->m_ruleApplicator->nearestNeighbor().valueOrDefault())
                 renderdata.useNearestNeighbor = true;
 
             renderdata.surfaceCounter = 0;
 
+            const auto DISCARDMODE    = renderdata.discardMode;
+            const auto DISCARDOPACITY = renderdata.discardOpacity;
+
             pWindow->m_popupHead->breadthfirst(
-                [this, &renderdata](WP<Desktop::View::CPopup> popup, void* data) {
+                [this, &renderdata, DISCARDMODE, DISCARDOPACITY](WP<Desktop::View::CPopup> popup, void* data) {
                     if (!popup->aliveAndVisible())
                         return;
+
+                    renderdata.blur           = !m_bRenderingSnapshot && popup->shouldBlur();
+                    renderdata.discardMode    = DISCARDMODE;
+                    renderdata.discardOpacity = DISCARDOPACITY;
+                    if (renderdata.blur) {
+                        renderdata.discardMode |= DISCARD_ALPHA;
+                        renderdata.discardOpacity = *PBLURIGNOREA;
+                    }
 
                     const auto     pos    = popup->coordsRelativeToParent();
                     const Vector2D oldPos = renderdata.pos;
@@ -959,20 +973,29 @@ void IHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
         renderdata.discardOpacity = pLayer->m_ruleApplicator->ignoreAlpha().valueOrDefault();
     }
 
+    const bool EFFECTBLURALLOWED = blurPolicyAllows();
+
     if (!popups)
         pLayer->wlSurface()->resource()->breadthfirst(
-            [this, &renderdata, &pLayer](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+            [this, &renderdata, &pLayer, EFFECTBLURALLOWED](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
                 if (!s->m_current.texture)
                     return;
 
                 if (s->m_current.size.x < 1 || s->m_current.size.y < 1)
                     return;
 
-                renderdata.localPos    = offset;
-                renderdata.texture     = s->m_current.texture;
-                renderdata.surface     = s;
-                renderdata.mainSurface = s == pLayer->wlSurface()->resource();
-                m_renderPass.add(makeUnique<CSurfacePassElement>(renderdata));
+                const auto HLSURFACE = Desktop::View::CWLSurface::fromResource(s);
+                const bool OWNEFFECT = EFFECTBLURALLOWED && HLSURFACE && HLSURFACE->backgroundEffectBlur().value_or(false);
+
+                auto       surfacedata = renderdata;
+                surfacedata.blur |= OWNEFFECT;
+                surfacedata.blockBlurOptimization |= OWNEFFECT;
+                surfacedata.blurOptIn   = OWNEFFECT;
+                surfacedata.localPos    = offset;
+                surfacedata.texture     = s->m_current.texture;
+                surfacedata.surface     = s;
+                surfacedata.mainSurface = s == pLayer->wlSurface()->resource();
+                m_renderPass.add(makeUnique<CSurfacePassElement>(surfacedata));
                 renderdata.surfaceCounter++;
             },
             &renderdata);
@@ -980,19 +1003,20 @@ void IHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
     renderdata.squishOversized = false; // don't squish popups
     renderdata.dontRound       = true;
     renderdata.popup           = true;
-    renderdata.blur            = pLayer->m_ruleApplicator->blurPopups().valueOrDefault();
-    renderdata.discardMode &= ~DISCARD_ALPHA;
-    renderdata.discardOpacity = 0.F;
-    if (renderdata.blur && pLayer->m_ruleApplicator->ignoreAlpha().hasValue()) {
-        renderdata.discardMode |= DISCARD_ALPHA;
-        renderdata.discardOpacity = pLayer->m_ruleApplicator->ignoreAlpha().valueOrDefault();
-    }
-    renderdata.surfaceCounter = 0;
+    renderdata.surfaceCounter  = 0;
     if (popups) {
         pLayer->m_popupHead->breadthfirst(
-            [this, &renderdata](WP<Desktop::View::CPopup> popup, void* data) {
+            [this, &renderdata, &pLayer](WP<Desktop::View::CPopup> popup, void* data) {
                 if (!popup->aliveAndVisible())
                     return;
+
+                renderdata.blur = popup->shouldBlur();
+                renderdata.discardMode &= ~DISCARD_ALPHA;
+                renderdata.discardOpacity = 0.F;
+                if (renderdata.blur && pLayer->m_ruleApplicator->ignoreAlpha().hasValue()) {
+                    renderdata.discardMode |= DISCARD_ALPHA;
+                    renderdata.discardOpacity = pLayer->m_ruleApplicator->ignoreAlpha().valueOrDefault();
+                }
 
                 const auto SURF = popup->wlSurface()->resource();
 
@@ -3262,45 +3286,38 @@ NColorManagement::PImageDescription IHyprRenderer::workBufferImageDescription() 
     return m_renderData.pMonitor->workBufferImageDescription();
 }
 
-bool IHyprRenderer::shouldBlur(PHLLS ls) {
+bool IHyprRenderer::blurPolicyAllows() {
     if (m_bRenderingSnapshot)
         return false;
 
     static auto PBLUR = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
-    if (!*PBLUR)
+    return *PBLUR;
+}
+
+bool IHyprRenderer::blurPolicyAllows(PHLWINDOW w) {
+    return blurPolicyAllows() && !w->m_ruleApplicator->noBlur().valueOrDefault() && !w->m_ruleApplicator->RGBX().valueOrDefault();
+}
+
+bool IHyprRenderer::shouldBlur(PHLLS ls) {
+    if (!blurPolicyAllows())
         return false;
 
-    auto surface = ls->wlSurface();
-    if (surface && surface->m_hasBackgroundEffect)
-        return !surface->m_blurRegion.empty();
+    const auto SURFACE = ls->wlSurface();
+    if (const auto EFFECT = SURFACE ? SURFACE->backgroundEffectBlur() : std::nullopt; EFFECT)
+        return *EFFECT;
 
     return ls->m_ruleApplicator->blur().valueOrDefault();
 }
 
 bool IHyprRenderer::shouldBlur(PHLWINDOW w) {
-    if (m_bRenderingSnapshot)
+    if (!blurPolicyAllows(w) || w->opaque())
         return false;
 
-    static auto PBLUR = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
-    if (!*PBLUR)
-        return false;
-
-    const bool DONT_BLUR = w->m_ruleApplicator->noBlur().valueOrDefault() || w->m_ruleApplicator->RGBX().valueOrDefault() || w->opaque();
-    if (DONT_BLUR)
-        return false;
-
-    auto surface = w->wlSurface();
-    if (surface && surface->m_hasBackgroundEffect)
-        return !surface->m_blurRegion.empty();
+    const auto SURFACE = w->wlSurface();
+    if (const auto EFFECT = SURFACE ? SURFACE->backgroundEffectBlur() : std::nullopt; EFFECT)
+        return *EFFECT;
 
     return true;
-}
-
-bool IHyprRenderer::shouldBlur(WP<Desktop::View::CPopup> p) {
-    static CConfigValue PBLURPOPUPS = CConfigValue<Config::INTEGER>("decoration:blur:popups");
-    static CConfigValue PBLUR       = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
-
-    return *PBLURPOPUPS && *PBLUR;
 }
 
 SP<ITexture> IHyprRenderer::renderSplash(const std::function<SP<ITexture>(const int, const int, unsigned char* const)>& handleData, const int fontSize, const int maxWidth,

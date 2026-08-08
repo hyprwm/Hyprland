@@ -14,13 +14,6 @@
 using namespace Desktop;
 using namespace Desktop::View;
 
-static bool shouldBlurPopup() {
-    static CConfigValue PBLURPOPUPS = CConfigValue<Config::INTEGER>("decoration:blur:popups");
-    static CConfigValue PBLUR       = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
-
-    return *PBLURPOPUPS && *PBLUR;
-}
-
 static void damageFadeoutMonitor(PHLMONITORREF monitor) {
     if (const auto MONITOR = monitor.lock(); MONITOR)
         g_pHyprRenderer->damageMonitor(MONITOR);
@@ -45,7 +38,7 @@ SP<CPopupFadeout> CPopupFadeout::create(SP<CPopup> popup, SP<Render::IFramebuffe
     fadeout->m_framebuffer = snapshot;
 
     static CConfigValue PBLURIGNOREA = CConfigValue<Config::FLOAT>("decoration:blur:popups_ignorealpha");
-    if (shouldBlurPopup()) {
+    if (popup->shouldBlur()) {
         fadeout->m_effects.textureBlur.enabled               = true;
         fadeout->m_effects.textureBlur.blockBlurOptimization = true;
 

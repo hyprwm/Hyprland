@@ -191,6 +191,13 @@ SP<CPointerConstraint> CWLSurface::constraint() const {
     return m_constraint.lock();
 }
 
+std::optional<bool> CWLSurface::backgroundEffectBlur() const {
+    if (!m_hasBackgroundEffect)
+        return std::nullopt;
+
+    return !m_blurRegion.empty();
+}
+
 SP<Desktop::View::CWLSurface> CWLSurface::fromResource(SP<CWLSurfaceResource> pSurface) {
     if (!pSurface)
         return nullptr;

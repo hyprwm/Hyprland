@@ -7,7 +7,8 @@ static char                  DISPATCHER_TABLES_REGISTRY_KEY;
 
 namespace {
     struct SDispatcherRef {
-        int ref = LUA_NOREF;
+        int ref     = LUA_NOREF;
+        int nameref = LUA_NOREF;
     };
 }
 
@@ -16,6 +17,10 @@ static int dispatcherGc(lua_State* L) {
     if (dispatcher->ref != LUA_NOREF) {
         luaL_unref(L, LUA_REGISTRYINDEX, dispatcher->ref);
         dispatcher->ref = LUA_NOREF;
+    }
+    if (dispatcher->nameref != LUA_NOREF) {
+        luaL_unref(L, LUA_REGISTRYINDEX, dispatcher->nameref);
+        dispatcher->nameref = LUA_NOREF;
     }
 
     return 0;
@@ -26,7 +31,15 @@ static int dispatcherCall(lua_State* L) {
 }
 
 static int dispatcherToString(lua_State* L) {
-    lua_pushstring(L, "HL.Dispatcher");
+    auto*       dispatcher = sc<SDispatcherRef*>(luaL_checkudata(L, 1, DISPATCHER_MT));
+    std::string str;
+    if (dispatcher->nameref != LUA_NOREF) {
+        lua_rawgeti(L, LUA_REGISTRYINDEX, dispatcher->nameref);
+        str = lua_tostring(L, -1);
+        lua_pop(L, 1);
+    } else
+        str = "INVALID";
+    lua_pushstring(L, std::format("HL.Dispatcher({})", str).c_str());
     return 1;
 }
 
@@ -74,8 +87,10 @@ static int dispatcherFactory(lua_State* L) {
     lua_call(L, nargs, LUA_MULTRET);
 
     const int nresults = lua_gettop(L);
-    if (nresults == 1 && lua_isfunction(L, -1))
+    if (nresults == 1 && lua_isfunction(L, -1)) {
+        lua_pushvalue(L, lua_upvalueindex(2));
         return Internal::wrapDispatcher(L);
+    }
 
     return nresults;
 }
@@ -83,7 +98,8 @@ static int dispatcherFactory(lua_State* L) {
 void Internal::setFn(lua_State* L, const char* name, lua_CFunction fn) {
     if (isDispatcherTable(L, -1)) {
         lua_pushcfunction(L, fn);
-        lua_pushcclosure(L, dispatcherFactory, 1);
+        lua_pushstring(L, name);
+        lua_pushcclosure(L, dispatcherFactory, 2);
     } else
         lua_pushcfunction(L, fn);
 
@@ -112,11 +128,13 @@ void Internal::markDispatcherTable(lua_State* L) {
 }
 
 int Internal::wrapDispatcher(lua_State* L) {
-    luaL_checktype(L, -1, LUA_TFUNCTION);
+    luaL_checktype(L, -1, LUA_TSTRING);
+    const int nameref = luaL_ref(L, LUA_REGISTRYINDEX);
 
+    luaL_checktype(L, -1, LUA_TFUNCTION);
     const int ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
-    new (lua_newuserdata(L, sizeof(SDispatcherRef))) SDispatcherRef{.ref = ref};
+    new (lua_newuserdata(L, sizeof(SDispatcherRef))) SDispatcherRef{.ref = ref, .nameref = nameref};
 
     ensureDispatcherMetatable(L);
     luaL_getmetatable(L, DISPATCHER_MT);

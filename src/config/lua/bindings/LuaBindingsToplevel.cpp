@@ -25,6 +25,7 @@ using namespace Hyprutils::String;
 
 extern "C" {
 #include <lua.h>
+#include <lauxlib.h>
 #include <xkbcommon/xkbcommon.h>
 }
 
@@ -79,6 +80,9 @@ static int hlBind(lua_State* L) {
     if (!keys)
         return Internal::configError(L, std::format("hl.bind: failed to parse key string: {}", keys.error()));
 
+    const std::string handler = luaL_tolstring(L, 2, nullptr);
+    lua_pop(L, 1);
+
     if (!Internal::pushDispatcherFunction(L, 2))
         return Internal::configError(L, "hl.bind: dispatcher must be a dispatcher (e.g. hl.dsp.window.close()) or a lua function");
 
@@ -94,7 +98,7 @@ static int hlBind(lua_State* L) {
         .metadata =
             {
                 .displayKey  = std::string{DISPLAY_KEYS},
-                .handler     = "__lua",
+                .handler     = handler,
                 .argument    = std::to_string(LUA_REF->ref()),
                 .submap      = mgr->m_currentSubmap,
                 .submapReset = mgr->m_currentSubmapReset,

@@ -268,7 +268,7 @@ void IFullscreenHandler::syncTargetSizeAndPosition() {
     Fullscreen::controller()->m_windowPosSettingQueued = false;
 }
 
-void IFullscreenHandler::setNoMembersAboveFullscreen() {
+void IFullscreenHandler::setNoMembersAboveFullscreen(const std::optional<SP<Layout::ITarget>> coveringFsTarget) {
     if (!getSpace() || !getSpace()->workspace() || !getSpace()->workspace()->m_monitor)
         return;
 
@@ -286,7 +286,7 @@ void IFullscreenHandler::setNoMembersAboveFullscreen() {
     }
     for (auto const& ls : Desktop::layerState()->layers()) {
         if (ls->m_monitor == MONITOR)
-            ls->m_aboveFullscreen = !SET;
+            ls->m_aboveFullscreen = false;
     }
 }
 

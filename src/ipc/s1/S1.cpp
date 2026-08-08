@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <optional>
 #include <ranges>
+#include <sstream>
 #include <hyprutils/string/String.hpp>
 
 using namespace IPC::Socket1;
@@ -129,25 +130,24 @@ SResponse CSocket1::dispatchBatch(std::string request, pid_t pid) {
     request = request.substr(BATCH_TOKEN.size());
 
     std::vector<std::string> commands;
-    size_t                   commandStart = 0;
-    int                      bracketDepth = 0;
+    std::stringstream        parsedCommand("");
 
     for (size_t i = 0; i <= request.size(); ++i) {
         const bool atEnd = i == request.size();
-
-        if (!atEnd) {
-            if (request[i] == '[')
-                ++bracketDepth;
-            else if (request[i] == ']')
-                --bracketDepth;
+        if (atEnd || request[i] == ';') {
+            commands.emplace_back(Hyprutils::String::trim(parsedCommand.str()));
+            parsedCommand.str("");
+            parsedCommand.clear();
+            continue;
         }
 
-        if (!atEnd && (request[i] != ';' || bracketDepth != 0))
-            continue;
-
-        if (commandStart < i)
-            commands.emplace_back(Hyprutils::String::trim(request.substr(commandStart, i - commandStart)));
-        commandStart = i + 1;
+        if (request[i] == '\\') {
+            if (i < request.size() && (request[i + 1] == '\\' || request[i + 1] == ';')) {
+                ++i;
+            } else
+                Log::logger->log(Log::ERR, "Malformed socket1 request: invalid escape sequence {} at position {}, using it verbatim", request.subview(i, 2), i);
+        }
+        parsedCommand << request[i];
     }
 
     std::vector<SResponse> responses;

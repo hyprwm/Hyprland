@@ -31,7 +31,7 @@ uniform float gradientLerp;
 uniform float alpha;
 
 #if USE_CM
-uniform int sourceTF; // eTransferFunction
+const int sourceTF = SOURCE_TF;
 #endif
 
 #include "shadow.glsl"

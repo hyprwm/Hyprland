@@ -1,11 +1,13 @@
 #pragma once
 
 #include <array>
+#include <compare>
 #include <glslang/Include/glslang_c_interface.h>
 #include <string>
 #include <vector>
 #include <map>
 #include "../helpers/memory/Memory.hpp"
+#include "../helpers/cm/ColorManagement.hpp"
 
 namespace Render {
     enum ePreparedFragmentShaderFeature : uint16_t {
@@ -30,6 +32,15 @@ namespace Render {
     };
 
     using ShaderFeatureFlags = uint16_t;
+
+    constexpr NColorManagement::eTransferFunction SHADER_DEFAULT_TF = NColorManagement::CM_TRANSFER_FUNCTION_SRGB;
+    struct SShaderVariant {
+        ShaderFeatureFlags                  features = 0;
+        NColorManagement::eTransferFunction sourceTF = SHADER_DEFAULT_TF;
+        NColorManagement::eTransferFunction targetTF = SHADER_DEFAULT_TF;
+
+        auto                                operator<=>(const SShaderVariant&) const = default;
+    };
 
     enum ePreparedFragmentShader : uint8_t {
         SH_FRAG_QUAD = 0,
@@ -58,7 +69,7 @@ namespace Render {
         std::string                               process(const std::string& filename);
         std::string                               process(const std::string& filename, const std::map<std::string, std::string>& defines);
 
-        std::string                               getVariantSource(ePreparedFragmentShader frag, ShaderFeatureFlags features);
+        std::string                               getVariantSource(ePreparedFragmentShader frag, SShaderVariant variant);
 
         const std::map<std::string, std::string>& includes();
 
@@ -66,17 +77,17 @@ namespace Render {
 
       private:
         std::string loadShader(const std::string& filename);
-        std::string getDefines(ShaderFeatureFlags features);
+        std::string getDefines(const SShaderVariant& variant);
         std::string processSource(const std::string& source, glslang_stage_t stage = GLSLANG_STAGE_FRAGMENT);
 
         //
-        std::string                                                         m_shaderPath;
-        std::array<std::string, SH_FRAG_LAST>                               m_fragFiles;
-        std::array<std::map<ShaderFeatureFlags, std::string>, SH_FRAG_LAST> m_fragVariants;
-        std::map<std::string, std::string>                                  m_includes;
+        std::string                                                     m_shaderPath;
+        std::array<std::string, SH_FRAG_LAST>                           m_fragFiles;
+        std::array<std::map<SShaderVariant, std::string>, SH_FRAG_LAST> m_fragVariants;
+        std::map<std::string, std::string>                              m_includes;
 
-        std::string                                                         m_overrideDefines;
-        glsl_include_callbacks_t                                            m_callbacks;
+        std::string                                                     m_overrideDefines;
+        glsl_include_callbacks_t                                        m_callbacks;
     };
 
     inline UP<CShaderLoader> g_pShaderLoader;

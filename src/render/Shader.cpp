@@ -131,8 +131,6 @@ void CShader::getUniformLocations() {
     m_uniformLocations[SHADER_TEX_TYPE]    = getUniform("texType");
 
     // shader has #include "CM.glsl"
-    m_uniformLocations[SHADER_SOURCE_TF]            = getUniform("sourceTF");
-    m_uniformLocations[SHADER_TARGET_TF]            = getUniform("targetTF");
     m_uniformLocations[SHADER_SRC_TF_RANGE]         = getUniform("srcTFRange");
     m_uniformLocations[SHADER_DST_TF_RANGE]         = getUniform("dstTFRange");
     m_uniformLocations[SHADER_TARGET_PRIMARIES_XYZ] = getUniform("targetPrimariesXYZ");
@@ -235,7 +233,7 @@ void CShader::createVao() {
 
     if (m_uniformLocations[SHADER_POS_ATTRIB] != -1) {
         glGenBuffers(1, &shaderVbo);
-        glBindBuffer(GL_ARRAY_BUFFER, shaderVbo);
+        g_pHyprOpenGL->bindArrayBuffer(shaderVbo);
         glBufferData(GL_ARRAY_BUFFER, sizeof(fullVerts), fullVerts.data(), GL_STATIC_DRAW);
         glEnableVertexAttribArray(m_uniformLocations[SHADER_POS_ATTRIB]);
         glVertexAttribPointer(m_uniformLocations[SHADER_POS_ATTRIB], 2, GL_FLOAT, GL_FALSE, sizeof(SVertex), (void*)offsetof(SVertex, x));
@@ -243,7 +241,7 @@ void CShader::createVao() {
 
     // UV VBO (static, default UVs never change)
     if (m_uniformLocations[SHADER_TEX_ATTRIB] != -1 && shaderVbo != 0) {
-        glBindBuffer(GL_ARRAY_BUFFER, shaderVbo);
+        g_pHyprOpenGL->bindArrayBuffer(shaderVbo);
         glEnableVertexAttribArray(m_uniformLocations[SHADER_TEX_ATTRIB]);
         glVertexAttribPointer(m_uniformLocations[SHADER_TEX_ATTRIB], 2, GL_FLOAT, GL_FALSE, sizeof(SVertex), (void*)offsetof(SVertex, u));
     }
@@ -254,7 +252,7 @@ void CShader::createVao() {
         glBindVertexArray(shaderUvVao);
 
         glGenBuffers(1, &shaderUvVbo);
-        glBindBuffer(GL_ARRAY_BUFFER, shaderUvVbo);
+        g_pHyprOpenGL->bindArrayBuffer(shaderUvVbo);
         glBufferData(GL_ARRAY_BUFFER, sizeof(fullVerts), fullVerts.data(), GL_DYNAMIC_DRAW);
         glEnableVertexAttribArray(m_uniformLocations[SHADER_POS_ATTRIB]);
         glVertexAttribPointer(m_uniformLocations[SHADER_POS_ATTRIB], 2, GL_FLOAT, GL_FALSE, sizeof(SVertex), (void*)offsetof(SVertex, x));
@@ -263,7 +261,7 @@ void CShader::createVao() {
     }
 
     glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    g_pHyprOpenGL->bindArrayBuffer(0);
 
     m_uniformLocations[SHADER_SHADER_VAO]    = shaderVao;
     m_uniformLocations[SHADER_SHADER_VBO]    = shaderVbo;
@@ -431,6 +429,8 @@ void CShader::destroy() {
     shaderVbo   = m_uniformLocations[SHADER_SHADER_VBO] == -1 ? 0 : m_uniformLocations[SHADER_SHADER_VBO];
     shaderUvVao = m_uniformLocations[SHADER_SHADER_UV_VAO] == -1 ? 0 : m_uniformLocations[SHADER_SHADER_UV_VAO];
     shaderUvVbo = m_uniformLocations[SHADER_SHADER_UV_VBO] == -1 ? 0 : m_uniformLocations[SHADER_SHADER_UV_VBO];
+
+    g_pHyprOpenGL->bindArrayBuffer(0);
 
     if (shaderVao)
         glDeleteVertexArrays(1, &shaderVao);

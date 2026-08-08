@@ -2679,6 +2679,22 @@ void CWindow::unmapWindow() {
             }
         }
 
+        const auto PMONITOR = m_monitor.lock();
+        if (PMONITOR && PMONITOR->m_activeSpecialWorkspace) {
+            if (candidate && candidate->m_workspace != PMONITOR->m_activeSpecialWorkspace && !candidate->m_pinned) {
+
+                candidate = nullptr;
+
+                const auto history = Desktop::History::windowTracker()->historyForWorkspace(PMONITOR->m_activeSpecialWorkspace);
+
+                auto       match = std::ranges::find_last_if(history, [this](const auto& w) { return validMapped(w) && w != m_self; });
+
+                if (!match.empty()) {
+                    candidate = match.front().lock();
+                }
+            }
+        }
+
         Log::logger->log(Log::DEBUG, "On closed window, new focused candidate is {}", candidate);
 
         if (candidate != Desktop::focusState()->window() && candidate) {

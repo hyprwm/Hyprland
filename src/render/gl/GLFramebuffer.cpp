@@ -4,6 +4,7 @@
 #include "macros.hpp"
 #include "../Framebuffer.hpp"
 #include <hyprgraphics/egl/Egl.hpp>
+#include <algorithm>
 #include <limits>
 
 using namespace Hyprgraphics::Egl;
@@ -259,7 +260,9 @@ void CGLFramebuffer::invalidate(const std::vector<GLenum>& attachments) {
     if (*PFBINVALIDATE)
         glInvalidateFramebuffer(GL_FRAMEBUFFER, attachments.size(), attachments.data());
 
-    m_cleared = false;
+    // m_cleared tracks the color attachment only, see clearAfterInvalidation()
+    if (std::ranges::contains(attachments, sc<GLenum>(GL_COLOR_ATTACHMENT0)))
+        m_cleared = false;
 }
 
 void CGLFramebuffer::clearAfterInvalidation() {

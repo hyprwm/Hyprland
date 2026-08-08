@@ -918,14 +918,12 @@ void CHyprOpenGLImpl::end() {
     g_pHyprRenderer->m_renderData.mainFB.reset();
     g_pHyprRenderer->m_renderData.outFB.reset();
     // invalidate our render FBs to signal to the driver we don't need them anymore
-    if (!g_pHyprRenderer->m_renderData.pMonitor->useFP16()) { // FIXME wtf?
-        g_pHyprRenderer->m_renderData.pMonitor->resources()->forEachUnusedFB(
-            [](const auto& fb) {
-                fb->bind();
-                GLFB(fb)->invalidate({GL_DEPTH_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
-            },
-            false);
-    }
+    g_pHyprRenderer->m_renderData.pMonitor->resources()->forEachUnusedFB(
+        [](const auto& fb) {
+            fb->bind();
+            GLFB(fb)->invalidate({GL_DEPTH_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
+        },
+        false);
 
     m_renderData.pMonitor.reset();
 

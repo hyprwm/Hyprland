@@ -5,7 +5,9 @@
 #include <optional>
 #include <sys/stat.h>
 #include <hyprutils/os/FileDescriptor.hpp>
+#include <hyprutils/memory/Casts.hpp>
 #include <string>
+#include <vector>
 #include <algorithm>
 #include "Drm.hpp"
 #include <sys/ioctl.h>
@@ -26,6 +28,7 @@ struct sync_merge_data {
 #endif
 
 using namespace Hyprutils::OS;
+using namespace Hyprutils::Memory;
 
 namespace {
     using SDRMNodePair = std::array<dev_t, 2>;
@@ -96,6 +99,41 @@ int DRM::doIoctl(int fd, unsigned long request, void* arg) {
         ret = ioctl(fd, request, arg);
     } while (ret == -1 && (errno == EINTR || errno == EAGAIN));
     return ret;
+}
+
+// https://www.kernel.org/doc/html/latest/driver-api/sync_file.html
+// when the fence signalled, which is not the same as when we got around to noticing it - the
+// readable notification only arrives on the next event loop wakeup.
+std::optional<Time::steady_tp> DRM::fenceSignalTime(int fd) {
+    if (fd < 0)
+        return std::nullopt;
+
+#ifdef __linux__
+    sync_file_info info{};
+
+    // num_fences 0 asks the kernel how many there are.
+    if (doIoctl(fd, SYNC_IOC_FILE_INFO, &info) != 0 || info.num_fences == 0)
+        return std::nullopt;
+
+    std::vector<sync_fence_info> fences(info.num_fences);
+    info.sync_fence_info = rc<uintptr_t>(fences.data());
+
+    if (doIoctl(fd, SYNC_IOC_FILE_INFO, &info) != 0)
+        return std::nullopt;
+
+    // the sync file is done when all of its fences are, so the last one to change status is the time we want.
+    __u64 latest = 0;
+    for (const auto& FENCE : fences) {
+        if (FENCE.status != 1)
+            return std::nullopt; // still pending, no completion time to report.
+
+        latest = std::max(latest, FENCE.timestamp_ns);
+    }
+
+    return Time::steady_tp{std::chrono::nanoseconds{sc<Time::steady_dur::rep>(latest)}};
+#else
+    return std::nullopt;
+#endif
 }
 
 // https://www.kernel.org/doc/html/latest/driver-api/dma-buf.html#c.dma_buf_export_sync_file

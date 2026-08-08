@@ -580,7 +580,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Bool>("render:send_content_type", "Report content type to allow monitor profile autoswitch", true),
         MS<Int>("render:cm_auto_hdr", "Auto-switch to hdr mode when fullscreen app is in hdr", 1,
                 {.min = 0, .max = 2, .map = OptionMap{{"disable", 0}, {"hdr", 1}, {"hdredid", 2}}}),
-        MS<Bool>("render:new_render_scheduling", "enable new render scheduling, which should improve FPS on underpowered devices.", false),
+        MS<Bool>("render:new_render_scheduling", "Use new render scheduling, which should reduce latency and stutters.", true),
         MS<Int>("render:non_shader_cm", "Enable CM without shader.", 3, {.min = 0, .max = 3, .map = OptionMap{{"disable", 0}, {"always", 1}, {"ondemand", 2}, {"ignore", 3}}}),
         MS<String>("render:cm_sdr_eotf", "Default transfer function for displaying SDR apps.", "default"),
         MS<Bool>("render:commit_timing_enabled", "Enable commit timing proto. Requires restart", true),

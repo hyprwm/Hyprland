@@ -3304,9 +3304,9 @@ bool IHyprRenderer::shouldBlur(PHLLS ls) {
     if (!*PBLUR)
         return false;
 
-    auto surface = ls->wlSurface();
-    if (surface && surface->m_hasBackgroundEffect)
-        return !surface->m_blurRegion.empty();
+    const auto SURFACE = ls->wlSurface();
+    if (const auto EFFECT = SURFACE ? SURFACE->backgroundEffectBlur() : std::nullopt; EFFECT)
+        return *EFFECT;
 
     return ls->m_ruleApplicator->blur().valueOrDefault();
 }
@@ -3323,9 +3323,9 @@ bool IHyprRenderer::shouldBlur(PHLWINDOW w) {
     if (DONT_BLUR)
         return false;
 
-    auto surface = w->wlSurface();
-    if (surface && surface->m_hasBackgroundEffect)
-        return !surface->m_blurRegion.empty();
+    const auto SURFACE = w->wlSurface();
+    if (const auto EFFECT = SURFACE ? SURFACE->backgroundEffectBlur() : std::nullopt; EFFECT)
+        return *EFFECT;
 
     return true;
 }

@@ -717,9 +717,9 @@ bool CPopup::shouldBlur() const {
     if (!*PBLUR)
         return false;
 
-    auto surface = wlSurface();
-    if (surface && surface->m_hasBackgroundEffect)
-        return !surface->m_blurRegion.empty();
+    const auto SURFACE = wlSurface();
+    if (const auto EFFECT = SURFACE ? SURFACE->backgroundEffectBlur() : std::nullopt; EFFECT)
+        return *EFFECT;
 
     if (const auto LAYER = layerOwner(); LAYER)
         return LAYER->m_ruleApplicator->blurPopups().valueOrDefault();

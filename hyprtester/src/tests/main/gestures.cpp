@@ -184,7 +184,7 @@ TEST_CASE(live_gesture_callbacks) {
 
 // TODO: decompose this into multiple test cases
 TEST_CASE(gestures) {
-    Tests::spawnKitty();
+    SPAWN_KITTY("a");
     ASSERT(Tests::windowCount(), 1);
 
     // Give the shell a moment to initialize
@@ -295,7 +295,7 @@ TEST_CASE(gestures) {
 
     // This test ensures that `movecursortocorner`, which expects
     // a single-character direction argument, is parsed correctly.
-    Tests::spawnKitty();
+    SPAWN_KITTY("a");
     OK(getFromSocket("/dispatch hl.dsp.cursor.move_to_corner({ corner = 0, window = 'activewindow' })"));
     const std::string cursorPos1 = getFromSocket("/cursorpos");
     OK(getFromSocket("/eval hl.plugin.test.gesture('left', 4)"));
@@ -311,7 +311,7 @@ TEST_CASE(gestures) {
 
         // Come to workspace 5 from workspace 3: 5 will remember that.
         OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '5' })"));
-        Tests::spawnKitty(); // Keep workspace 5 open
+        SPAWN_KITTY("a"); // Keep workspace 5 open
 
         // Swipe from 1 to 5: 5 shall remember that.
         OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));

@@ -22,18 +22,14 @@ TEST_CASE(crossMonitorFullscreenFocus) {
 
     // 1 window on the left monitor
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:workspace1' })"));
-    auto src = Tests::spawnKitty("1A");
-    if (!src)
-        FAIL_TEST("Could not spawn kitty");
+    SPAWN_KITTY("1A");
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:1A' })"));
     const auto MON_SRC_ID = Tests::getAttribute(getFromSocket("/activewindow"), "monitor");
 
     // 2 windows on the right monitor
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:workspace2' })"));
-    auto dstA = Tests::spawnKitty("2A");
-    auto dstB = Tests::spawnKitty("2B");
-    if (!dstA || !dstB)
-        FAIL_TEST("Could not spawn destination kittys");
+    SPAWN_KITTY("2A");
+    SPAWN_KITTY("2B");
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:2B' })"));
     const auto MON_DST_ID = Tests::getAttribute(getFromSocket("/activewindow"), "monitor");
 
@@ -74,9 +70,7 @@ TEST_CASE(crossMonitorEmptyWorkspaceUnfocusesWindow) {
     OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HYPRTEST-UNFOCUS' })"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2' })"));
 
-    auto kittyProc = Tests::spawnKitty("cross_monitor_ws2");
-    if (!kittyProc)
-        FAIL_TEST("Could not spawn kitty");
+    SPAWN_KITTY("cross_monitor_ws2");
 
     {
         auto str = getFromSocket("/activewindow");

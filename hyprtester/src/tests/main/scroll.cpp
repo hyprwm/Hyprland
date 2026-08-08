@@ -751,11 +751,11 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
     OK(getFromSocket("/eval hl.config({ general = { layout = 'scrolling' } })"));
 
     // Spawn a window, float it
-    Tests::spawnKitty("under");
+    SPAWN_KITTY("under");
     OK(getFromSocket("/dispatch hl.dsp.window.float({action = 'enable', window = 'class:under'})"));
 
     // FS 2 tiled windows - one fullscreen and one maximised
-    Tests::spawnKitty("tiledOne");
+    SPAWN_KITTY("tiledOne");
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({mode = 'fullscreen'})"));
 
     // under should be hidden by now
@@ -772,7 +772,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         ASSERT_CONTAINS(under, "fullscreenClient: 0");
     }
 
-    Tests::spawnKitty("tiledTwo");
+    SPAWN_KITTY("tiledTwo");
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({mode = 'maximized'})"));
 
     // move view to tiledOne
@@ -809,8 +809,8 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
     OK(getFromSocket("/eval hl.window_rule({ name = 'kittens float with certain size', match = {class = 'floating.*',}, float = true, size = {950, 500},})"));
 
     // Spawn 2 floating windows
-    Tests::spawnKitty("floatingOne");
-    Tests::spawnKitty("floatingTwo");
+    SPAWN_KITTY("floatingOne");
+    SPAWN_KITTY("floatingTwo");
 
     // Check that both are visible
     {
@@ -911,7 +911,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
     }
 
     // Spawn a floating window - this should be ontop of floatingOne
-    Tests::spawnKitty("floatingThree");
+    SPAWN_KITTY("floatingThree");
 
     // floatingThree - visible and allowedOverFullscreen (spawned while floatingOne FS is active)
     {
@@ -1179,7 +1179,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_layerVisibilityOnFs) {
 
     ASSERT(spawnLayer(LAYER_NAMESPACE, {"--edge=top", "--layer=top", "--lines=48px", "--focus-policy=not-allowed"}), true);
 
-    Tests::spawnKitty("cat");
+    SPAWN_KITTY("cat");
 
     {
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
@@ -1273,7 +1273,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_layerVisibilityOnFs) {
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 2");
     }
 
-    Tests::spawnKitty("cat2");
+    SPAWN_KITTY("cat2");
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', action = 'set', window = 'class:cat2' })"));
 
@@ -1303,7 +1303,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_layerVisibilityOnFs) {
     // window rule for spawning floating kittens
     OK(getFromSocket("/eval hl.window_rule({ name = 'kittens float with certain size', match = {class = 'floating.*',}, float = true, size = {950, 500},})"));
 
-    Tests::spawnKitty("floating_cat");
+    SPAWN_KITTY("floating_cat");
 
     // still ontop of maximised widnow
 
@@ -1345,7 +1345,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_layerVisibilityOnFs) {
     // move to the fullscreen window on the left, maximise and fullscreen the kitty window ontop of that too - the old floating kitten is now hidden so we can't use that
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:cat' })"));
 
-    Tests::spawnKitty("floating_cat2");
+    SPAWN_KITTY("floating_cat2");
 
     {
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
@@ -1398,9 +1398,9 @@ TEST_CASE(scroll_LAYOUT_HANDLED_focusInDirectionFocusFollowFocusTrue) {
             This test serves as a test for all layouts that use deafult FS behaviour
     */
 
-    Tests::spawnKitty("normal1");
-    Tests::spawnKitty("fs");
-    Tests::spawnKitty("normal2");
+    SPAWN_KITTY("normal1");
+    SPAWN_KITTY("fs");
+    SPAWN_KITTY("normal2");
 
     // if movefocus_cycles_fullscreen = false, all focus({direction}) is disallowed from moving focus from FS window
     OK(getFromSocket("r/eval hl.config({ binds = { movefocus_cycles_fullscreen = false } })"));
@@ -1576,8 +1576,8 @@ TEST_CASE(scroll_LAYOUT_HANDLED_respectFocusFitMethodOnUnFs) {
 
     OK(getFromSocket("/eval hl.config({ general = { layout = 'scrolling' } })"));
 
-    Tests::spawnKitty("kitty_A");
-    Tests::spawnKitty("kitty_B");
+    SPAWN_KITTY("kitty_A");
+    SPAWN_KITTY("kitty_B");
 
     // Fullscreen
 
@@ -1644,8 +1644,8 @@ TEST_CASE(scroll_DEFAULT_HANDLED_fullscreenMaximiseDispatchers) {
 
     OK(getFromSocket("/eval hl.config({ general = { layout = 'scrolling' } })"));
 
-    Tests::spawnKitty("kitty_A");
-    Tests::spawnKitty("kitty_B");
+    SPAWN_KITTY("kitty_A");
+    SPAWN_KITTY("kitty_B");
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_A' })"));
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set' })"));
@@ -1898,9 +1898,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_testFsFocusUnderFSWindow) {
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
     for (auto const& win : {"one", "two", "three"})
-        if (!Tests::spawnKitty(win)) {
-            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
-        }
+        SPAWN_KITTY(win);
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:one' })"));
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', layout_aware = false, })"));
@@ -1914,7 +1912,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_testFsFocusUnderFSWindow) {
 
     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 1 } })"));
 
-    Tests::spawnKitty("four");
+    SPAWN_KITTY("four");
 
     {
         auto str = getFromSocket("/activewindow");
@@ -1926,7 +1924,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_testFsFocusUnderFSWindow) {
 
     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 0 } })"));
 
-    Tests::spawnKitty("ignored");
+    SPAWN_KITTY("ignored");
 
     {
         auto str = getFromSocket("/activewindow");
@@ -1938,7 +1936,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_testFsFocusUnderFSWindow) {
 
     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 2 } })"));
 
-    Tests::spawnKitty("erstarrwashere");
+    SPAWN_KITTY("erstarrwashere");
 
     {
         auto str = getFromSocket("/activewindow");
@@ -1955,7 +1953,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_newWindowTakesOverFullscreen) {
 
     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 0 } })"));
 
-    Tests::spawnKitty("kitty_A");
+    SPAWN_KITTY("kitty_A");
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', layout_aware = false, })"));
 
@@ -1966,7 +1964,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_newWindowTakesOverFullscreen) {
         EXPECT_CONTAINS(str, "kitty_A");
     }
 
-    Tests::spawnKitty("kitty_B");
+    SPAWN_KITTY("kitty_B");
 
     {
         auto str = getFromSocket("/activewindow");
@@ -1987,7 +1985,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_newWindowTakesOverFullscreen) {
 
     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 1 } })"));
 
-    Tests::spawnKitty("kitty_C");
+    SPAWN_KITTY("kitty_C");
 
     {
         auto str = getFromSocket("/activewindow");
@@ -1998,7 +1996,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_newWindowTakesOverFullscreen) {
 
     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 2 } })"));
 
-    Tests::spawnKitty("kitty_D");
+    SPAWN_KITTY("kitty_D");
 
     {
         auto str = getFromSocket("/activewindow");
@@ -2020,8 +2018,8 @@ TEST_CASE(scroll_DEFAULT_HANDLED_exitWindowRetainsFullscreen) {
 
     OK(getFromSocket("/eval hl.config({ misc = { exit_window_retains_fullscreen = false } })"));
 
-    Tests::spawnKitty("kitty_A");
-    Tests::spawnKitty("kitty_B");
+    SPAWN_KITTY("kitty_A");
+    SPAWN_KITTY("kitty_B");
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', layout_aware = false, })"));
 
@@ -2040,7 +2038,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_exitWindowRetainsFullscreen) {
         EXPECT_CONTAINS(str, "fullscreenClient: 0");
     }
 
-    Tests::spawnKitty("kitty_B");
+    SPAWN_KITTY("kitty_B");
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', layout_aware = false, })"));
     OK(getFromSocket("/eval hl.config({ misc = { exit_window_retains_fullscreen = true } })"));
 
@@ -2071,7 +2069,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenPinnedWindows) {
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
-    Tests::spawnKitty("cake");
+    SPAWN_KITTY("cake");
 
     OK(getFromSocket("/dispatch hl.dsp.window.float({action = 'enable', window = 'class:cake'})"));
 
@@ -2248,12 +2246,12 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenNonInterference) {
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
-    Tests::spawnKitty("red");
-    Tests::spawnKitty("crimson");
-    Tests::spawnKitty("blue");
-    Tests::spawnKitty("cyan");
-    Tests::spawnKitty("azure");
-    Tests::spawnKitty("green");
+    SPAWN_KITTY("red");
+    SPAWN_KITTY("crimson");
+    SPAWN_KITTY("blue");
+    SPAWN_KITTY("cyan");
+    SPAWN_KITTY("azure");
+    SPAWN_KITTY("green");
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:red' })"));
 
@@ -3046,17 +3044,11 @@ TEST_CASE(layoutmsg_fit_into_view) {
     // ensure variables are correctly set for the test
     OK(getFromSocket("/eval hl.config({scrolling = {follow_focus = false}})"));
 
-    if (!Tests::spawnKitty("a")) {
-        FAIL_TEST("Could not spawn kitty with win class `a`");
-        return;
-    }
+    SPAWN_KITTY("a");
 
     OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
 
-    if (!Tests::spawnKitty("b")) {
-        FAIL_TEST("Could not spawn kitty with win class `b`");
-        return;
-    }
+    SPAWN_KITTY("b");
 
     // class:a column is now off screen to the left
 

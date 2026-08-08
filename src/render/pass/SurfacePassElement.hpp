@@ -29,6 +29,7 @@ class CSurfacePassElement : public IPassElement {
         float                  alpha = 1.F, fadeAlpha = 1.F;
         bool                   blur                  = false;
         bool                   blockBlurOptimization = false;
+        bool                   blurOptIn             = false;
 
         uint8_t                wrapX = WRAP_CLAMP_TO_EDGE;
         uint8_t                wrapY = WRAP_CLAMP_TO_EDGE;

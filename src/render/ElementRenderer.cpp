@@ -357,7 +357,7 @@ void IElementRenderer::drawSurface(WP<CSurfacePassElement> element, const CRegio
                         }),
                         surfaceDamage());
     } else {
-        if (BLUR && m_data.popup)
+        if (BLUR && (m_data.popup || m_data.blurOptIn))
             drawElement(makeShared<CTexPassElement>(CTexPassElement::SRenderData{
                             .tex                   = TEXTURE,
                             .box                   = windowBox,

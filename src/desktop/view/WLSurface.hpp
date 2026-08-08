@@ -49,8 +49,7 @@ namespace Desktop::View {
         void                   appendConstraint(WP<CPointerConstraint> constraint);
         SP<CPointerConstraint> constraint() const;
 
-        // ext-background-effect: nullopt if the client expressed no preference for this surface,
-        // otherwise whether it asked for its background to be blurred.
+        // nullopt if the client set no ext-background-effect on this surface
         std::optional<bool> backgroundEffectBlur() const;
 
         // allow stretching. Useful for plugins.

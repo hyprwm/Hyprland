@@ -727,3 +727,42 @@ TEST_CASE(groups_disable_when_only) {
     Tests::killAllWindows();
     ASSERT(Tests::windowCount(), 0);
 }
+
+TEST_CASE(autoGroupTiledIntoFloated) {
+
+    // test that we can auto-group a new tiled window into the focused floated group
+    NLog::log("{}Test that we can auto-group a new tiled window into the focused floated group.", Colors::GREEN);
+
+    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated-A', match = { class = 'kitty_floated_A' } })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated-A', float = true })"));
+    SPAWN_KITTY("kitty_floated_A");
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "floating: 1");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+
+    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-tiled-B', match = { class = 'kitty_tiled_B' } })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-tiled-B', tile = true })"));
+    SPAWN_KITTY("kitty_tiled_B");
+
+    ASSERT(Tests::windowCount(), 2);
+
+    {
+        auto clients  = getFromSocket("/clients");
+        auto classPos = clients.find("class: kitty_tiled_B");
+        if (classPos == std::string::npos) {
+            FAIL_TEST("Could not find kitty_tiled_B in clients output");
+        } else {
+            auto entryStart  = clients.rfind("Window ", classPos);
+            auto entryEnd    = clients.find("\n\n", classPos);
+            auto windowEntry = clients.substr(entryStart, entryEnd - entryStart);
+            EXPECT_CONTAINS(windowEntry, "floating: 1");
+            EXPECT_NOT_CONTAINS(windowEntry, "grouped: 0");
+        }
+    }
+
+    Tests::killAllWindows();
+    ASSERT(Tests::windowCount(), 0);
+}

@@ -576,6 +576,10 @@ void CCompositor::cleanup() {
 #ifdef USES_SYSTEMD
     if (NSystemd::sdBooted() > 0 && !Env::envEnabled("HYPRLAND_NO_SD_NOTIFY"))
         NSystemd::sdNotify(0, "STOPPING=1");
+    if (m_aqBackend->hasSession() && !Env::envEnabled("HYPRLAND_NO_SD_TARGET")) {
+        Config::Supplementary::executor()->spawn("systemctl --user stop hyprland-session.target");
+        usleep(50000); // services blow up if there's no time to react
+    }
 #endif
 
     cleanEnvironment();
@@ -796,6 +800,10 @@ void CCompositor::startCompositor() {
 #endif
             "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS";
         Config::Supplementary::executor()->spawn(CMD);
+#ifdef USES_SYSTEMD
+        if (!Env::envEnabled("HYPRLAND_NO_SD_TARGET"))
+            Config::Supplementary::executor()->spawn("systemctl --user start hyprland-session.target");
+#endif
     }
 
     Log::logger->log(Log::DEBUG, "Running on WAYLAND_DISPLAY: {}", m_wlDisplaySocket);

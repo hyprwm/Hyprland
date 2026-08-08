@@ -131,8 +131,6 @@ void CShader::getUniformLocations() {
     m_uniformLocations[SHADER_TEX_TYPE]    = getUniform("texType");
 
     // shader has #include "CM.glsl"
-    m_uniformLocations[SHADER_SOURCE_TF]            = getUniform("sourceTF");
-    m_uniformLocations[SHADER_TARGET_TF]            = getUniform("targetTF");
     m_uniformLocations[SHADER_SRC_TF_RANGE]         = getUniform("srcTFRange");
     m_uniformLocations[SHADER_DST_TF_RANGE]         = getUniform("dstTFRange");
     m_uniformLocations[SHADER_TARGET_PRIMARIES_XYZ] = getUniform("targetPrimariesXYZ");

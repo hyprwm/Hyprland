@@ -89,9 +89,9 @@ namespace Render::GL {
     };
 
     struct SPreparedShaders {
-        std::string                                                                         TEXVERTSRC;
-        std::string                                                                         TEXVERTSRC320;
-        std::array<std::map<Render::ShaderFeatureFlags, SP<CShader>>, Render::SH_FRAG_LAST> fragVariants;
+        std::string                                                                     TEXVERTSRC;
+        std::string                                                                     TEXVERTSRC320;
+        std::array<std::map<Render::SShaderVariant, SP<CShader>>, Render::SH_FRAG_LAST> fragVariants;
     };
 
     struct SCurrentRenderData {
@@ -248,7 +248,10 @@ namespace Render::GL {
 
         bool                                      explicitSyncSupported();
         bool                                      fp16Supported();
-        WP<CShader>                               getShaderVariant(Render::ePreparedFragmentShader frag, Render::ShaderFeatureFlags features = 0);
+        WP<CShader>                               getShaderVariant(Render::ePreparedFragmentShader frag, Render::ShaderFeatureFlags features = 0,
+                                                                   NColorManagement::eTransferFunction sourceTF = Render::SHADER_DEFAULT_TF,
+                                                                   NColorManagement::eTransferFunction targetTF = Render::SHADER_DEFAULT_TF);
+        WP<CShader>                               getShaderVariant(Render::ePreparedFragmentShader frag, const Render::SShaderVariant& variant);
 
         bool                                      m_shadersInitialized = false;
         SP<SPreparedShaders>                      m_shaders;

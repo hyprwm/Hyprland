@@ -1214,8 +1214,6 @@ static std::map<std::pair<uint32_t, uint32_t>, std::array<GLfloat, 9>> primaries
 void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const NColorManagement::PImageDescription imageDescription,
                                      const NColorManagement::PImageDescription targetImageDescription, bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance,
                                      const SCMSettings& settings) {
-    shader->setUniformInt(SHADER_SOURCE_TF, settings.sourceTF);
-    shader->setUniformInt(SHADER_TARGET_TF, settings.targetTF);
     shader->setUniformFloat2(SHADER_SRC_TF_RANGE, settings.srcTFRange.min, settings.srcTFRange.max);
     shader->setUniformFloat2(SHADER_DST_TF_RANGE, settings.dstTFRange.min, settings.dstTFRange.max);
     shader->setUniformFloat(SHADER_SRC_REF_LUMINANCE, settings.srcRefLuminance);
@@ -1462,7 +1460,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
         }
 
         if (!shader)
-            shader = getShaderVariant(SH_FRAG_SURFACE, shaderFeatures | globalFeatures());
+            shader = getShaderVariant(SH_FRAG_SURFACE, shaderFeatures | globalFeatures(), settings.sourceTF, settings.targetTF);
         shader = useShader(shader);
 
         passCMUniforms(shader, SOURCE_IMAGE_DESCRIPTION, TARGET_IMAGE_DESCRIPTION, true, g_pHyprRenderer->m_renderData.pMonitor->m_sdrMinLuminance,
@@ -1860,10 +1858,10 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
         // From FB to sRGB
         const bool skipCM = !m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
         if (!skipCM) {
-            shader = useShader(getShaderVariant(SH_FRAG_BLURPREPARE, SH_FEAT_CM));
+            const auto settings = blurIntermediateCMSettings(/* toIntermediate */ true);
+            shader              = useShader(getShaderVariant(SH_FRAG_BLURPREPARE, SH_FEAT_CM, settings.sourceTF, settings.targetTF));
 
-            passCMUniforms(shader, g_pHyprRenderer->workBufferImageDescription(), getDefaultImageDescription(), false, -1.F, -1,
-                           blurIntermediateCMSettings(/* toIntermediate */ true));
+            passCMUniforms(shader, g_pHyprRenderer->workBufferImageDescription(), getDefaultImageDescription(), false, -1.F, -1, settings);
             shader->setUniformFloat(SHADER_SDR_SATURATION,
                                     m_renderData.pMonitor->m_sdrSaturation > 0 &&
                                             g_pHyprRenderer->workBufferImageDescription()->value().transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
@@ -1982,10 +1980,10 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
         // From FB to sRGB
         const bool skipCM = !m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
         if (!skipCM) {
-            shader = useShader(getShaderVariant(SH_FRAG_BLURFINISH, SH_FEAT_CM));
+            const auto settings = blurIntermediateCMSettings(/* toIntermediate */ false);
+            shader              = useShader(getShaderVariant(SH_FRAG_BLURFINISH, SH_FEAT_CM, settings.sourceTF, settings.targetTF));
 
-            passCMUniforms(shader, getDefaultImageDescription(), g_pHyprRenderer->workBufferImageDescription(), false, -1.F, -1,
-                           blurIntermediateCMSettings(/* toIntermediate */ false));
+            passCMUniforms(shader, getDefaultImageDescription(), g_pHyprRenderer->workBufferImageDescription(), false, -1.F, -1, settings);
             shader->setUniformFloat(SHADER_SDR_SATURATION,
                                     m_renderData.pMonitor->m_sdrSaturation > 0 &&
                                             g_pHyprRenderer->workBufferImageDescription()->value().transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
@@ -2241,10 +2239,13 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
     scissor(nullptr);
 }
 
-static ShaderFeatureFlags getDecoFeatures() {
+static SShaderVariant getDecoVariant() {
     const bool IS_ICC   = g_pHyprRenderer->workBufferImageDescription()->value().icc.present;
     const auto settings = g_pHyprRenderer->getCMSettings(g_pHyprRenderer->workBufferImageDescription(), getDefaultImageDescription(), nullptr, true,
                                                          g_pHyprRenderer->m_renderData.pMonitor->m_sdrMinLuminance, g_pHyprRenderer->m_renderData.pMonitor->m_sdrMaxLuminance);
+    const auto uniformSettings =
+        g_pHyprRenderer->getCMSettings(getDefaultImageDescription(), g_pHyprRenderer->workBufferImageDescription(), nullptr, true,
+                                       g_pHyprRenderer->m_renderData.pMonitor->m_sdrMinLuminance, g_pHyprRenderer->m_renderData.pMonitor->m_sdrMaxLuminance);
 
     ShaderFeatureFlags features = SH_FEAT_ROUNDING | SH_FEAT_CM | globalFeatures();
     if (IS_ICC)
@@ -2258,7 +2259,7 @@ static ShaderFeatureFlags getDecoFeatures() {
         if (settings.needsSDRmod)
             features |= SH_FEAT_SDR_MOD;
     }
-    return features;
+    return {.features = features, .sourceTF = uniformSettings.sourceTF, .targetTF = uniformSettings.targetTF};
 }
 
 void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValueData& grad, SBorderRenderData data) {
@@ -2298,7 +2299,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValue
 
     const bool  skipCM = !m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
     if (!skipCM) {
-        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, getDecoFeatures()));
+        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, getDecoVariant()));
         passCMUniforms(shader, getDefaultImageDescription());
     } else
         shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING | globalFeatures()));
@@ -2379,7 +2380,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValue
     WP<CShader> shader;
     const bool  skipCM = !m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
     if (!skipCM) {
-        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, getDecoFeatures()));
+        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, getDecoVariant()));
         passCMUniforms(shader, getDefaultImageDescription());
     } else
         shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING | globalFeatures()));
@@ -2455,10 +2456,8 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
 
     const auto TF      = m_renderData.currentFB->imageDescription()->value().transferFunction;
     const bool needsCM = TF != CM_TRANSFER_FUNCTION_EXT_LINEAR;
-    auto       shader  = useShader(getShaderVariant(SH_FRAG_SHADOW, (needsCM ? SH_FEAT_CM : 0) | globalFeatures()));
+    auto       shader  = useShader(getShaderVariant(SH_FRAG_SHADOW, (needsCM ? SH_FEAT_CM : 0) | globalFeatures(), TF));
 
-    if (needsCM)
-        shader->setUniformInt(SHADER_SOURCE_TF, TF);
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
 
     CHyprColor color;
@@ -2748,21 +2747,25 @@ bool CHyprOpenGLImpl::fp16Supported() {
     return m_fp16Supported;
 }
 
-WP<CShader> CHyprOpenGLImpl::getShaderVariant(ePreparedFragmentShader frag, ShaderFeatureFlags features) {
+WP<CShader> CHyprOpenGLImpl::getShaderVariant(ePreparedFragmentShader frag, ShaderFeatureFlags features, eTransferFunction sourceTF, eTransferFunction targetTF) {
+    return getShaderVariant(frag, SShaderVariant{.features = features, .sourceTF = sourceTF, .targetTF = targetTF});
+}
+
+WP<CShader> CHyprOpenGLImpl::getShaderVariant(ePreparedFragmentShader frag, const SShaderVariant& variant) {
     auto& variants = m_shaders->fragVariants[frag];
-    auto  it       = variants.find(features);
+    auto  it       = variants.find(variant);
 
     if (it == variants.end()) {
         auto shader = makeShared<CShader>();
 
-        Log::logger->log(Log::INFO, "compiling feature set {} for {}", features, FRAG_SHADERS[frag]);
+        Log::logger->log(Log::INFO, "compiling feature set {} (TFs {} -> {}) for {}", variant.features, sc<int>(variant.sourceTF), sc<int>(variant.targetTF), FRAG_SHADERS[frag]);
 
-        const auto fragSrc = g_pShaderLoader->getVariantSource(frag, features);
+        const auto fragSrc = g_pShaderLoader->getVariantSource(frag, variant);
 
         if (!shader->createProgram(m_shaders->TEXVERTSRC, fragSrc, true, true))
-            Log::logger->log(Log::ERR, "shader features {} failed for {}", features, FRAG_SHADERS[frag]);
+            Log::logger->log(Log::ERR, "shader features {} failed for {}", variant.features, FRAG_SHADERS[frag]);
 
-        it = variants.emplace(features, std::move(shader)).first;
+        it = variants.emplace(variant, std::move(shader)).first;
         return it->second;
     }
 

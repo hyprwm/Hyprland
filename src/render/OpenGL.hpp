@@ -221,22 +221,28 @@ namespace Render::GL {
 
         void setViewport(GLint x, GLint y, GLsizei width, GLsizei height);
         void setCapStatus(int cap, bool status);
+        void setActiveTexture(GLenum texture);
+        void blendFunc(GLenum sfactor, GLenum dfactor);
+        void bindArrayBuffer(GLuint buffer);
+        void bindFramebuffer(GLenum target, GLuint fb);
+        // GL implicitly rebinds 0 on every target the deleted fb was bound to, keep the shadow in sync
+        void                                      onFramebufferDeleted(GLuint fb);
 
-        void blend(bool enabled);
+        void                                      blend(bool enabled);
 
-        void scissor(const CBox&, bool transform = true);
-        void scissor(const pixman_box32*, bool transform = true);
-        void scissor(const int x, const int y, const int w, const int h, bool transform = true);
+        void                                      scissor(const CBox&, bool transform = true);
+        void                                      scissor(const pixman_box32*, bool transform = true);
+        void                                      scissor(const int x, const int y, const int w, const int h, bool transform = true);
 
-        void destroyMonitorResources(PHLMONITORREF);
+        void                                      destroyMonitorResources(PHLMONITORREF);
 
-        void preRender(PHLMONITOR);
+        void                                      preRender(PHLMONITOR);
 
-        bool saveBufferForMirror(const CBox&);
+        bool                                      saveBufferForMirror(const CBox&);
 
-        void applyScreenShader(const std::string& path);
+        void                                      applyScreenShader(const std::string& path);
 
-        void renderOffToMain(SP<IFramebuffer> off);
+        void                                      renderOffToMain(SP<IFramebuffer> off);
 
         std::vector<SDRMFormat>                   getDRMFormats();
         std::vector<uint64_t>                     getDRMFormatModifiers(DRMFormat format);
@@ -319,25 +325,33 @@ namespace Render::GL {
 
         std::array<bool, CAP_STATUS_END> m_capStatus = {};
 
-        std::vector<SDRMFormat>          m_drmFormats;
-        bool                             m_hasModifiers  = false;
-        bool                             m_fp16Supported = false;
+        // shadowed GL state, all initialized to the GL defaults
+        GLenum                  m_activeTexture    = GL_TEXTURE0;
+        GLuint                  m_boundArrayBuffer = 0;
+        GLuint                  m_boundDrawFB      = 0;
+        GLuint                  m_boundReadFB      = 0;
+        GLenum                  m_blendSFactor     = GL_ONE;
+        GLenum                  m_blendDFactor     = GL_ZERO;
 
-        int                              m_drmFD = -1;
-        std::string                      m_extensions;
+        std::vector<SDRMFormat> m_drmFormats;
+        bool                    m_hasModifiers  = false;
+        bool                    m_fp16Supported = false;
 
-        bool                             m_fakeFrame            = false;
-        bool                             m_applyFinalShader     = false;
-        bool                             m_blend                = false;
-        bool                             m_offloadedFramebuffer = false;
-        bool                             m_cmSupported          = true;
+        int                     m_drmFD = -1;
+        std::string             m_extensions;
 
-        SP<CShader>                      m_finalScreenShader;
-        GLuint                           m_currentProgram;
+        bool                    m_fakeFrame            = false;
+        bool                    m_applyFinalShader     = false;
+        bool                    m_blend                = false;
+        bool                    m_offloadedFramebuffer = false;
+        bool                    m_cmSupported          = true;
 
-        void                             initDRMFormats();
-        void                             initEGL(bool gbm);
-        EGLDeviceEXT                     eglDeviceFromDRMFD(int drmFD);
+        SP<CShader>             m_finalScreenShader;
+        GLuint                  m_currentProgram;
+
+        void                    initDRMFormats();
+        void                    initEGL(bool gbm);
+        EGLDeviceEXT            eglDeviceFromDRMFD(int drmFD);
 
         // for the final shader
         std::array<CTimer, POINTER_PRESSED_HISTORY_LENGTH>   m_pressedHistoryTimers    = {};

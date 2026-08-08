@@ -1054,7 +1054,7 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
 void CHyprOpenGLImpl::blend(bool enabled) {
     if (enabled) {
         setCapStatus(GL_BLEND, true);
-        GLCALL(glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA)); // everything is premultiplied
+        blendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA); // everything is premultiplied
     } else
         setCapStatus(GL_BLEND, false);
 
@@ -1246,13 +1246,13 @@ void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const NColorManagement:
         shader->setUniformMatrix3fv(SHADER_TARGET_PRIMARIES_XYZ, 1, false, glTargetPrimariesXYZ);
     } else {
         // TODO: this sucks
-        GLCALL(glActiveTexture(GL_TEXTURE8));
+        setActiveTexture(GL_TEXTURE8);
         targetImageDescription->value().icc.lutTexture->bind();
 
         shader->setUniformInt(SHADER_LUT_3D, 8);
         shader->setUniformFloat(SHADER_LUT_SIZE, targetImageDescription->value().icc.lutSize);
 
-        GLCALL(glActiveTexture(GL_TEXTURE0));
+        setActiveTexture(GL_TEXTURE0);
     }
 }
 
@@ -1481,14 +1481,14 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
         shader->setUniformFloat2(SHADER_UV_OFFSET, BLURUV.x, BLURUV.y);
         shader->setUniformFloat2(SHADER_UV_SIZE, BLURUV.w, BLURUV.h);
 
-        glActiveTexture(GL_TEXTURE0 + 1);
+        setActiveTexture(GL_TEXTURE0 + 1);
         data.blurredBG->bind();
     }
 
     if (shaderFeatures & SH_FEAT_BLUR_MATTE) {
         shader->setUniformInt(SHADER_BLUR_ALPHA_MATTE, 2);
 
-        glActiveTexture(GL_TEXTURE0 + 2);
+        setActiveTexture(GL_TEXTURE0 + 2);
         data.blurAlphaMatte->bind();
     }
 
@@ -1572,7 +1572,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, c
 
     const bool                  useScreenShader = m_applyFinalShader;
 
-    glActiveTexture(GL_TEXTURE0);
+    setActiveTexture(GL_TEXTURE0);
     tex->bind();
 
     tex->setTexParameter(GL_TEXTURE_WRAP_S, wrapModeToGl(data.wrapX));
@@ -1595,7 +1595,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, c
 
     if (CUSTOMUV && CUSTOM_VAO) {
         GLCALL(glBindVertexArray(CUSTOM_VAO));
-        GLCALL(glBindBuffer(GL_ARRAY_BUFFER, shader->getUniformLocation(SHADER_SHADER_UV_VBO)));
+        bindArrayBuffer(shader->getUniformLocation(SHADER_SHADER_UV_VBO));
 
         // Keep the old block available to previous draws while custom UVs update.
         glBufferData(GL_ARRAY_BUFFER, sizeof(fullVerts), nullptr, GL_DYNAMIC_DRAW);
@@ -1644,7 +1644,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, c
     }
 
     GLCALL(glBindVertexArray(0));
-    GLCALL(glBindBuffer(GL_ARRAY_BUFFER, 0));
+    bindArrayBuffer(0);
     tex->unbind();
 }
 
@@ -1663,7 +1663,7 @@ void CHyprOpenGLImpl::renderTextureMesh(SP<ITexture> tex, const CBox& box, const
 
     const auto&                 glMatrix = g_pHyprRenderer->projectBoxToTarget(newBox, TRANSFORM);
 
-    glActiveTexture(GL_TEXTURE0);
+    setActiveTexture(GL_TEXTURE0);
     tex->bind();
 
     tex->setTexParameter(GL_TEXTURE_WRAP_S, wrapModeToGl(data.wrapX));
@@ -1682,7 +1682,7 @@ void CHyprOpenGLImpl::renderTextureMesh(SP<ITexture> tex, const CBox& box, const
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
     shader->setUniformInt(SHADER_TEX, 0);
     GLCALL(glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_UV_VAO)));
-    GLCALL(glBindBuffer(GL_ARRAY_BUFFER, shader->getUniformLocation(SHADER_SHADER_UV_VBO)));
+    bindArrayBuffer(shader->getUniformLocation(SHADER_SHADER_UV_VBO));
 
     glBufferData(GL_ARRAY_BUFFER, sizeof(SMeshRenderVertex) * vertices.size(), nullptr, GL_DYNAMIC_DRAW);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(SMeshRenderVertex) * vertices.size(), vertices.data());
@@ -1711,7 +1711,7 @@ void CHyprOpenGLImpl::renderTextureMesh(SP<ITexture> tex, const CBox& box, const
     }
 
     GLCALL(glBindVertexArray(0));
-    GLCALL(glBindBuffer(GL_ARRAY_BUFFER, 0));
+    bindArrayBuffer(0);
     tex->unbind();
 }
 
@@ -1730,7 +1730,7 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<ITexture> tex, const CBox& box) 
     // get transform
     const auto& glMatrix = g_pHyprRenderer->projectBoxToTarget(newBox);
 
-    glActiveTexture(GL_TEXTURE0);
+    setActiveTexture(GL_TEXTURE0);
     tex->bind();
 
     // ensure the final blit uses the desired sampling filter
@@ -1775,10 +1775,10 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<ITexture> tex, const CBox& box, SP<I
     shader->setUniformInt(SHADER_TEX, 0);
     shader->setUniformInt(SHADER_ALPHA_MATTE, 1);
 
-    glActiveTexture(GL_TEXTURE0);
+    setActiveTexture(GL_TEXTURE0);
     tex->bind();
 
-    glActiveTexture(GL_TEXTURE0 + 1);
+    setActiveTexture(GL_TEXTURE0 + 1);
     auto matteTex = matte->getTexture();
     matteTex->bind();
 
@@ -1846,7 +1846,7 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
         PMIRRORSWAPFB->bind();
         GLFB(PMIRRORSWAPFB)->clearAfterInvalidation();
 
-        glActiveTexture(GL_TEXTURE0);
+        setActiveTexture(GL_TEXTURE0);
 
         auto currentTex = source.getTexture();
 
@@ -1900,7 +1900,7 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
         else
             PMIRRORFB->bind();
 
-        glActiveTexture(GL_TEXTURE0);
+        setActiveTexture(GL_TEXTURE0);
 
         auto currentTex = currentRenderToFB->getTexture();
 
@@ -1969,7 +1969,7 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
         else
             PMIRRORFB->bind();
 
-        glActiveTexture(GL_TEXTURE0);
+        setActiveTexture(GL_TEXTURE0);
 
         auto currentTex = currentRenderToFB->getTexture();
 
@@ -2691,6 +2691,53 @@ void CHyprOpenGLImpl::setViewport(GLint x, GLint y, GLsizei width, GLsizei heigh
 
     glViewport(x, y, width, height);
     m_lastViewport = {.x = x, .y = y, .width = width, .height = height};
+}
+
+void CHyprOpenGLImpl::setActiveTexture(GLenum texture) {
+    if (m_activeTexture == texture)
+        return;
+
+    GLCALL(glActiveTexture(texture));
+    m_activeTexture = texture;
+}
+
+void CHyprOpenGLImpl::blendFunc(GLenum sfactor, GLenum dfactor) {
+    if (m_blendSFactor == sfactor && m_blendDFactor == dfactor)
+        return;
+
+    GLCALL(glBlendFunc(sfactor, dfactor));
+    m_blendSFactor = sfactor;
+    m_blendDFactor = dfactor;
+}
+
+void CHyprOpenGLImpl::bindArrayBuffer(GLuint buffer) {
+    if (m_boundArrayBuffer == buffer)
+        return;
+
+    GLCALL(glBindBuffer(GL_ARRAY_BUFFER, buffer));
+    m_boundArrayBuffer = buffer;
+}
+
+void CHyprOpenGLImpl::bindFramebuffer(GLenum target, GLuint fb) {
+    const bool DRAW = target == GL_FRAMEBUFFER || target == GL_DRAW_FRAMEBUFFER;
+    const bool READ = target == GL_FRAMEBUFFER || target == GL_READ_FRAMEBUFFER;
+
+    if ((DRAW || READ) && (!DRAW || m_boundDrawFB == fb) && (!READ || m_boundReadFB == fb))
+        return;
+
+    GLCALL(glBindFramebuffer(target, fb));
+
+    if (DRAW)
+        m_boundDrawFB = fb;
+    if (READ)
+        m_boundReadFB = fb;
+}
+
+void CHyprOpenGLImpl::onFramebufferDeleted(GLuint fb) {
+    if (m_boundDrawFB == fb)
+        m_boundDrawFB = 0;
+    if (m_boundReadFB == fb)
+        m_boundReadFB = 0;
 }
 
 void CHyprOpenGLImpl::setCapStatus(int cap, bool status) {

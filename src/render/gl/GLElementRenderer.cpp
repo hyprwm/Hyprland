@@ -92,12 +92,18 @@ void CGLElementRenderer::draw(WP<CRectPassElement> element, const CRegion& damag
 
 void CGLElementRenderer::draw(WP<CShadowPassElement> element, const CRegion& damage) {
     const auto& m_data = element->m_data;
-    m_data.deco->render(g_pHyprRenderer->m_renderData.pMonitor.lock(), m_data.a);
+    const auto  DECO   = m_data.deco.lock();
+    if (!DECO)
+        return;
+    DECO->render(g_pHyprRenderer->m_renderData.pMonitor.lock(), m_data.a);
 };
 
 void CGLElementRenderer::draw(WP<CInnerGlowPassElement> element, const CRegion& damage) {
     const auto& m_data = element->m_data;
-    m_data.deco->render(g_pHyprRenderer->m_renderData.pMonitor.lock(), m_data.a);
+    const auto  DECO   = m_data.deco.lock();
+    if (!DECO)
+        return;
+    DECO->render(g_pHyprRenderer->m_renderData.pMonitor.lock(), m_data.a);
 };
 
 void CGLElementRenderer::draw(WP<CTexPassElement> element, const CRegion& damage) {

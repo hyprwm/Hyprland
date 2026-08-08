@@ -1,9 +1,12 @@
 #include "CHyprInnerGlowDecoration.hpp"
+#include "../../desktop/view/window/WindowPresentation.hpp"
 
 #include <algorithm>
 
+#include "../../config/ConfigManager.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../Compositor.hpp"
+#include "../../desktop/state/FocusState.hpp"
 #include "../pass/InnerGlowPassElement.hpp"
 #include "../Renderer.hpp"
 #include "../OpenGL.hpp"
@@ -35,6 +38,43 @@ std::string CHyprInnerGlowDecoration::getDisplayName() {
     return "Inner Glow";
 }
 
+void CHyprInnerGlowDecoration::initializeAnimations() {
+    m_gradient.initializeAnimations(m_window.lock(), self(), "fadeGlow", "glowangle");
+}
+
+void CHyprInnerGlowDecoration::updateState() {
+    static auto PGLOWCOL         = CConfigValue<Config::IComplexConfigValue>("decoration:glow:color");
+    static auto PGLOWCOLINACTIVE = CConfigValue<Config::IComplexConfigValue>("decoration:glow:color_inactive");
+
+    const auto  PWINDOW = m_window.lock();
+    if (!PWINDOW)
+        return;
+
+    const auto TRAITS = PWINDOW->backend().traits();
+    if (TRAITS.overrideRedirect || TRAITS.suggestsNoBorder) {
+        m_gradient.setTarget(Config::CGradientValueData{CHyprColor(0, 0, 0, 0)}, false);
+        return;
+    }
+
+    auto* const GLOWCOL         = sc<Config::CGradientValueData*>(PGLOWCOL.ptr());
+    auto* const GLOWCOLINACTIVE = sc<Config::CGradientValueData*>(PGLOWCOLINACTIVE.ptr());
+    if (PWINDOW == Desktop::focusState()->window()) {
+        m_gradient.setTarget(*GLOWCOL);
+        return;
+    }
+
+    const auto COLORINACTIVE = Config::mgr()->getConfigValue("decoration:glow:color_inactive");
+    m_gradient.setTarget(COLORINACTIVE.setByUser ? *GLOWCOLINACTIVE : *GLOWCOL);
+}
+
+void CHyprInnerGlowDecoration::onWindowMap() {
+    m_gradient.onWindowMap();
+}
+
+void CHyprInnerGlowDecoration::onWindowFocus() {
+    m_gradient.onWindowFocus();
+}
+
 void CHyprInnerGlowDecoration::damageEntire() {
     const auto PWINDOW = m_window.lock();
     if (!validMapped(PWINDOW))
@@ -43,9 +83,9 @@ void CHyprInnerGlowDecoration::damageEntire() {
     CBox       windowBox = PWINDOW->getWindowMainSurfaceBox();
 
     const auto PWORKSPACE = PWINDOW->m_workspace;
-    if (PWORKSPACE && PWORKSPACE->m_renderOffset->isBeingAnimated() && !PWINDOW->m_pinned)
+    if (PWORKSPACE && PWORKSPACE->m_renderOffset->isBeingAnimated() && (PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED) == Desktop::View::WINDOW_STATE_NONE)
         windowBox.translate(PWORKSPACE->m_renderOffset->value());
-    windowBox.translate(PWINDOW->m_floatingOffset);
+    windowBox.translate(PWINDOW->presentation().floatingOffset());
 
     g_pHyprRenderer->damageRegion(CRegion(windowBox));
 }
@@ -57,8 +97,12 @@ void CHyprInnerGlowDecoration::updateWindow(PHLWINDOW pWindow) {
 }
 
 void CHyprInnerGlowDecoration::draw(PHLMONITOR pMonitor, float const& a) {
+    const auto SELF = dynamicPointerCast<CHyprInnerGlowDecoration>(self());
+    if (!SELF)
+        return;
+
     CInnerGlowPassElement::SInnerGlowData data;
-    data.deco = this;
+    data.deco = SELF;
     data.a    = a;
     g_pHyprRenderer->addPassElement(makeUnique<CInnerGlowPassElement>(data));
 }
@@ -73,13 +117,14 @@ void CHyprInnerGlowDecoration::render(PHLMONITOR pMonitor, float const& a) {
     if (!validMapped(PWINDOW))
         return;
 
-    const auto ROUNDING      = PWINDOW->rounding() > 0 ? PWINDOW->rounding() - 1 : PWINDOW->rounding();
-    const auto ROUNDINGPOWER = PWINDOW->roundingPower();
+    const auto ROUNDING      = PWINDOW->presentation().rounding() > 0 ? PWINDOW->presentation().rounding() - 1 : PWINDOW->presentation().rounding();
+    const auto ROUNDINGPOWER = PWINDOW->presentation().roundingPower();
     const auto PWORKSPACE    = PWINDOW->m_workspace;
-    const auto WORKSPACEOFF  = PWORKSPACE && !PWINDOW->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D();
+    const auto WORKSPACEOFF =
+        PWORKSPACE && (PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED) == Desktop::View::WINDOW_STATE_NONE ? PWORKSPACE->m_renderOffset->value() : Vector2D();
 
-    CBox       windowBox = {m_lastWindowPos.x, m_lastWindowPos.y, m_lastWindowSize.x, m_lastWindowSize.y};
-    windowBox.translate(-pMonitor->m_position + WORKSPACEOFF + PWINDOW->m_floatingOffset);
+    CBox windowBox = {m_lastWindowPos.x, m_lastWindowPos.y, m_lastWindowSize.x, m_lastWindowSize.y};
+    windowBox.translate(-pMonitor->m_position + WORKSPACEOFF + PWINDOW->presentation().floatingOffset());
     windowBox.scale(pMonitor->m_scale).round();
 
     if (windowBox.width < 1 || windowBox.height < 1)
@@ -88,25 +133,16 @@ void CHyprInnerGlowDecoration::render(PHLMONITOR pMonitor, float const& a) {
     static auto PGLOWSIZE = CConfigValue<Config::INTEGER>("decoration:glow:range");
     const auto  GLOWSIZE  = sc<int>(*PGLOWSIZE);
 
-    auto        grad     = PWINDOW->m_realGlowColor;
-    const bool  ANIMATED = PWINDOW->m_glowFadeAnimationProgress->isBeingAnimated();
-    if (PWINDOW->m_glowAngleAnimationProgress->enabled()) {
-        grad.m_angle += PWINDOW->m_glowAngleAnimationProgress->value() * M_PI * 2;
-        grad.m_angle = normalizeAngleRad(grad.m_angle);
-
-        if (ANIMATED)
-            PWINDOW->m_realGlowColorPrevious.m_angle = grad.m_angle;
-    }
+    const auto  GRADIENT = m_gradient.renderState();
 
     g_pHyprRenderer->m_renderData.currentWindow = m_window;
 
     g_pHyprRenderer->blend(true);
 
-    if (ANIMATED)
-        drawGlowInternal(windowBox, ROUNDING * pMonitor->m_scale, ROUNDINGPOWER, GLOWSIZE * pMonitor->m_scale, PWINDOW->m_realGlowColorPrevious, grad,
-                         PWINDOW->m_glowFadeAnimationProgress->value(), a);
+    if (GRADIENT.transitioning)
+        drawGlowInternal(windowBox, ROUNDING * pMonitor->m_scale, ROUNDINGPOWER, GLOWSIZE * pMonitor->m_scale, GRADIENT.previous, GRADIENT.current, GRADIENT.progress, a);
     else
-        drawGlowInternal(windowBox, ROUNDING * pMonitor->m_scale, ROUNDINGPOWER, GLOWSIZE * pMonitor->m_scale, grad, a);
+        drawGlowInternal(windowBox, ROUNDING * pMonitor->m_scale, ROUNDINGPOWER, GLOWSIZE * pMonitor->m_scale, GRADIENT.current, a);
 
     g_pHyprRenderer->m_renderData.currentWindow.reset();
 }

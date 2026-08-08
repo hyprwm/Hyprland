@@ -1,10 +1,13 @@
 #include "GlobalWindowController.hpp"
 
 #include "WindowState.hpp"
-#include "../view/Window.hpp"
+#include "../view/window/Window.hpp"
+#include "../view/window/WindowGroupMembership.hpp"
+#include "../view/window/WindowPresentation.hpp"
 #include "../view/Group.hpp"
 #include "../../output/Monitor.hpp"
 #include "../../layout/LayoutManager.hpp"
+#include "../../layout/target/Target.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
 
 using namespace Desktop;
@@ -16,16 +19,16 @@ UP<CGlobalWindowController>& Desktop::globalWindowController() {
 
 void CGlobalWindowController::updateAllWindowsDecorations() const {
     for (auto const& w : Desktop::windowState()->windows()) {
-        if (!w->m_isMapped)
+        if (!w->mapped())
             continue;
 
-        w->updateDecorationValues();
+        w->presentation().refreshValues();
     }
 }
 
 void CGlobalWindowController::updateSuspendedStates() const {
     for (auto const& w : Desktop::windowState()->windows()) {
-        if (!w->m_isMapped)
+        if (!w->mapped())
             continue;
 
         w->setSuspended(w->isHidden() || !w->m_workspace || !w->m_workspace->isVisible());
@@ -36,7 +39,7 @@ void CGlobalWindowController::moveWindowToWorkspace(PHLWINDOW pWindow, PHLWORKSP
     if (!pWindow || !pWorkspace)
         return;
 
-    if (pWindow->m_pinned && pWorkspace->m_isSpecialWorkspace)
+    if ((pWindow->m_state & Desktop::View::WINDOW_STATE_PINNED) != Desktop::View::WINDOW_STATE_NONE && pWorkspace->m_isSpecialWorkspace)
         return;
 
     if (pWindow->m_workspace == pWorkspace)
@@ -59,20 +62,20 @@ void CGlobalWindowController::moveWindowToWorkspace(PHLWINDOW pWindow, PHLWORKSP
     pWindow->m_monitor = pWorkspace->m_monitor;
 
     static auto PGROUPONMOVETOWORKSPACE = CConfigValue<Config::INTEGER>("group:group_on_movetoworkspace");
-    if (*PGROUPONMOVETOWORKSPACE && visibleWindowsOnWorkspace == 1 && pFirstWindowOnWorkspace && pFirstWindowOnWorkspace != pWindow && pFirstWindowOnWorkspace->m_group &&
-        pWindow->canBeGroupedInto(pFirstWindowOnWorkspace->m_group)) {
-        pFirstWindowOnWorkspace->m_group->add(pWindow);
+    if (*PGROUPONMOVETOWORKSPACE && visibleWindowsOnWorkspace == 1 && pFirstWindowOnWorkspace && pFirstWindowOnWorkspace != pWindow &&
+        pFirstWindowOnWorkspace->grouping().group() && pWindow->grouping().canBeGroupedInto(pFirstWindowOnWorkspace->grouping().group())) {
+        pFirstWindowOnWorkspace->grouping().group()->add(pWindow);
     } else {
-        if (pWindow->m_isFloating)
+        if (pWindow->isFloating())
             pWindow->layoutTarget()->setPositionGlobal(CBox{POSTOMON + PWORKSPACEMONITOR->m_position, pWindow->layoutTarget()->position().size()});
     }
 
     pWindow->updateToplevel();
     pWindow->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-    pWindow->uncacheWindowDecos();
+    pWindow->presentation().uncacheDecorations();
 
-    if (pWindow->m_group)
-        pWindow->m_group->updateWorkspace(pWorkspace);
+    if (pWindow->grouping().group())
+        pWindow->grouping().group()->updateWorkspace(pWorkspace);
 
     g_layoutManager->newTarget(pWindow->layoutTarget(), pWorkspace->m_space);
 
@@ -85,7 +88,7 @@ void CGlobalWindowController::moveWindowToWorkspace(PHLWINDOW pWindow, PHLWORKSP
     updateSuspendedStates();
 
     if (!WASVISIBLE && pWindow->m_workspace && pWindow->m_workspace->isVisible()) {
-        pWindow->alpha(View::WINDOW_ALPHA_MOVE_FROM_WORKSPACE)->setValueAndWarp(0.F);
-        *pWindow->alpha(View::WINDOW_ALPHA_MOVE_FROM_WORKSPACE) = 1.F;
+        pWindow->presentation().alpha(View::WINDOW_ALPHA_MOVE_FROM_WORKSPACE)->setValueAndWarp(0.F);
+        *pWindow->presentation().alpha(View::WINDOW_ALPHA_MOVE_FROM_WORKSPACE) = 1.F;
     }
 }

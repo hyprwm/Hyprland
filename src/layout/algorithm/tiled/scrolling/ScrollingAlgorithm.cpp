@@ -1,9 +1,12 @@
 #include "ScrollingAlgorithm.hpp"
+#include "../../../../desktop/view/window/WindowGroupMembership.hpp"
+#include "../../../../desktop/view/window/WindowPresentation.hpp"
 #include "ScrollTapeController.hpp"
 
 #include "../../Algorithm.hpp"
 #include "../../../space/Space.hpp"
 #include "../../../LayoutManager.hpp"
+#include "../../../target/WindowTarget.hpp"
 
 #include "../../../../Compositor.hpp"
 #include "../../../../desktop/state/FocusState.hpp"
@@ -823,7 +826,7 @@ void CScrollingAlgorithm::resizeTarget(const Vector2D& delta, SP<ITarget> target
         PWINDOW->resize((PWINDOW->size(Desktop::View::IGeometric::GEOMETRIC_GOAL) + delta)
                             .clamp(PWINDOW->m_ruleApplicator->minSize().valueOr(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}),
                                    PWINDOW->m_ruleApplicator->maxSize().valueOr(Vector2D{INFINITY, INFINITY})));
-        PWINDOW->updateWindowDecos();
+        PWINDOW->presentation().updateDecorations();
         return;
     }
 
@@ -1919,10 +1922,10 @@ SP<SScrollingTargetData> CScrollingAlgorithm::dataFor(SP<ITarget> t, bool stepIn
 
                 // if tracked target data is a group, search the contents of the group for the target
                 if (TARGET->type() == TARGET_TYPE_GROUP && TARGET->window()) {
-                    const auto WINDOW_GROUP = TARGET->window()->m_group;
+                    const auto WINDOW_GROUP = TARGET->window()->grouping().group();
                     if (WINDOW_GROUP) {
                         for (const auto& window : WINDOW_GROUP->windows()) {
-                            if (window->m_target == t)
+                            if (window->windowTarget() == t)
                                 return SCROLLING_DATA;
                         }
                     }

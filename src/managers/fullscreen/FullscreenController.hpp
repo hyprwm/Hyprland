@@ -2,38 +2,12 @@
 
 #include "../../helpers/memory/Memory.hpp"
 #include "desktop/DesktopTypes.hpp"
+#include "FullscreenTypes.hpp"
 #include <optional>
-#include <unordered_set>
 
 namespace Fullscreen {
 
     class IFullscreenHandler;
-
-    enum eFullscreenMode : int8_t {
-        FSMODE_NONE = 0,
-        FSMODE_MAXIMIZED,
-        FSMODE_FULLSCREEN,
-    };
-
-    enum eFullscreenHandler : uint8_t {
-        FULLSCREEN_HANDLER_NONE = 0, // default/error case
-        // Types of Handlers
-        FULLSCREEN_HANDLER_DEFAULT = 1 << 0,
-        FULLSCREEN_HANDLER_LAYOUT  = 1 << 1,
-        // Specific Handlers
-        FULLSCREEN_HANDLER_SCROLLING = 1 << 2 | FULLSCREEN_HANDLER_LAYOUT,
-    };
-
-    enum eFullscreenRequestResult : uint8_t {
-        FULLSCREEN_REQUEST_FAILED = 0,
-        FULLSCREEN_REQUEST_DEFAULT_HANDLED,
-        FULLSCREEN_REQUEST_LAYOUT_HANDLED,
-    };
-
-    struct SFullscreenMode {
-        eFullscreenMode internal = FSMODE_NONE;
-        eFullscreenMode client   = FSMODE_NONE;
-    };
 
     class CFullscreenController {
 
@@ -83,6 +57,8 @@ namespace Fullscreen {
 
         void setFullscreenMode(const PHLWINDOW window, std::optional<eFullscreenMode> internal = std::nullopt, std::optional<eFullscreenMode> client = std::nullopt,
                                std::optional<bool> layoutAware = std::nullopt);
+        void setInternalFullscreenMode(const PHLWINDOW window, eFullscreenMode internal, bool layoutAware);
+        void clearClientFullscreenMode(const PHLWINDOW window);
 
         // Misc. Operations
 
@@ -97,7 +73,9 @@ namespace Fullscreen {
         };
 
         // FS Mode Setter Helpers
-        void setWindowFullscreenModeInternal(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware);
+        void setFullscreenModeImpl(const PHLWINDOW window, std::optional<eFullscreenMode> internal, std::optional<eFullscreenMode> client, std::optional<bool> layoutAware,
+                                   bool preserveClient);
+        void setWindowFullscreenModeInternal(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware, bool armMaximizeEcho);
         void setWindowFullscreenModeClient(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware);
 
         // FS Handler getters
@@ -108,9 +86,6 @@ namespace Fullscreen {
 
         // avoids re-resolving the handlers when the caller already has them
         eFullscreenHandler getFullscreenHandlerName(const PHLWINDOW window, const SFsHandlersForWorkspace& handlers);
-
-        // List of FSMODE_MAX windows
-        std::unordered_set<WP<Desktop::View::CWindow>> m_fsModeMaxWindows;
     };
 
     UP<CFullscreenController>& controller();

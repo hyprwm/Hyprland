@@ -1,4 +1,5 @@
 #include "PropRefresher.hpp"
+#include "../../../desktop/view/window/WindowPresentation.hpp"
 
 #include "../../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../../managers/input/InputManager.hpp"
@@ -90,7 +91,7 @@ void CPropRefresher::refreshProp(const bool execdAsScheduled) {
         Desktop::Rule::ruleEngine()->updateAllRules();
 
         for (auto const& w : Desktop::windowState()->windows())
-            w->uncacheWindowDecos();
+            w->presentation().uncacheDecorations();
 
         for (const auto& ws : State::workspaceState()->workspaces()) {
             if (!ws)

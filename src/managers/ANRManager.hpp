@@ -8,17 +8,14 @@
 #include "./eventLoop/EventLoopTimer.hpp"
 #include "../helpers/signal/Signal.hpp"
 #include "../helpers/AsyncDialogBox.hpp"
+#include "../desktop/view/window/WindowBackend.hpp"
 #include <vector>
-
-class CXDGWMBase;
-class CXWaylandSurface;
 
 class CANRManager {
   public:
     CANRManager();
 
-    void onResponse(SP<CXDGWMBase> wmBase);
-    void onResponse(SP<CXWaylandSurface> xwaylandSurface);
+    void onResponse(Desktop::View::SBackendClientID clientID);
     bool isNotResponding(PHLWINDOW pWindow);
 
   private:
@@ -31,28 +28,31 @@ class CANRManager {
         SANRData(PHLWINDOW pWindow);
         ~SANRData();
 
-        WP<CXWaylandSurface> xwaylandSurface;
-        WP<CXDGWMBase>       xdgBase;
+        struct SWindowData {
+            PHLWINDOWREF        window;
+            CHyprSignalListener pong;
+            CHyprSignalListener destroy;
+        };
 
-        int                  missedResponses = 0;
+        Desktop::View::SBackendClientID clientID;
+        pid_t                           pid = 0;
+        std::vector<SWindowData>        windows;
+        int                             missedResponses = 0;
 
-        bool                 dialogSaidWait = false;
-        SP<CAsyncDialogBox>  dialogBox;
+        bool                            dialogSaidWait = false;
+        SP<CAsyncDialogBox>             dialogBox;
 
-        void                 runDialog(const std::string& appName, const std::string appClass, pid_t dialogWmPID);
-        bool                 isRunning();
-        void                 killDialog();
-        bool                 isDefunct() const;
-        bool                 fitsWindow(PHLWINDOW pWindow) const;
-        pid_t                getPID() const;
-        void                 ping();
+        void                            runDialog(const std::string& appName, const std::string appClass, pid_t dialogWmPID);
+        bool                            isRunning();
+        void                            killDialog();
+        bool                            fitsWindow(PHLWINDOW pWindow) const;
+        void                            ping();
     };
 
     void                      onResponse(SP<SANRData> data);
     bool                      isNotResponding(SP<SANRData> data);
     SP<SANRData>              dataFor(PHLWINDOW pWindow);
-    SP<SANRData>              dataFor(SP<CXDGWMBase> wmBase);
-    SP<SANRData>              dataFor(SP<CXWaylandSurface> pXwaylandSurface);
+    SP<SANRData>              dataFor(Desktop::View::SBackendClientID clientID);
 
     std::vector<SP<SANRData>> m_data;
 };

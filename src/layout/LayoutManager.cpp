@@ -10,6 +10,7 @@
 #include "../state/WorkspaceState.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../desktop/view/Group.hpp"
+#include "../desktop/view/window/WindowGroupMembership.hpp"
 #include "../event/EventBus.hpp"
 
 using namespace Layout;
@@ -157,9 +158,9 @@ void CLayoutManager::bringTargetToTop(SP<ITarget> target) {
     if (!target)
         return;
 
-    if (target->window()->m_group) {
+    if (target->window()->grouping().group()) {
         // grouped, change the current to this window
-        target->window()->m_group->setCurrent(target->window());
+        target->window()->grouping().group()->setCurrent(target->window());
     }
 }
 
@@ -231,8 +232,8 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
         const double GAPSY  = GAPSIN->m_top + GAPSIN->m_bottom;
 
         for (auto& other : Desktop::windowState()->windows()) {
-            if ((HASFULLSCREEN && !other->isAllowedOverFullscreen()) || other == DRAGGINGWINDOW || other->workspaceID() != WSID || !other->m_isMapped ||
-                other->isX11OverrideRedirect())
+            if ((HASFULLSCREEN && !other->isAllowedOverFullscreen()) || other == DRAGGINGWINDOW || other->workspaceID() != WSID || !other->mapped() ||
+                other->backend().traits().overrideRedirect)
                 continue;
 
             const CBox   SURF   = other->getWindowBoxUnified(Desktop::View::RESERVED_EXTENTS);

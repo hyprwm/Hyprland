@@ -15,7 +15,10 @@
 #include <src/desktop/rule/layerRule/LayerRuleEffectContainer.hpp>
 #include <src/desktop/rule/windowRule/WindowRuleApplicator.hpp>
 #include <src/desktop/view/LayerSurface.hpp>
+#include <src/desktop/view/window/WindowFullscreenPolicy.hpp>
+#include <src/desktop/view/window/WindowPresentation.hpp>
 #include <src/desktop/state/WindowState.hpp>
+#include <src/layout/target/Target.hpp>
 #include <src/keybinds/Key.hpp>
 #include <src/Compositor.hpp>
 #include <src/desktop/state/FocusState.hpp>
@@ -48,7 +51,7 @@ static SDispatchResult test(std::string in) {
 // Trigger a snap move event for the active window
 static SDispatchResult snapMove(std::string in) {
     const auto PLASTWINDOW = Desktop::focusState()->window();
-    if (!PLASTWINDOW->m_isFloating)
+    if (!PLASTWINDOW->isFloating())
         return {.success = false, .error = "Window must be floating"};
 
     Vector2D pos  = PLASTWINDOW->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
@@ -78,7 +81,7 @@ static SDispatchResult dragWindow(std::string in) {
     } catch (...) { return {.success = false, .error = "invalid input"}; }
 
     for (const auto& window : Desktop::windowState()->windows()) {
-        if (window->m_class != cls)
+        if (window->metadata().appID() != cls)
             continue;
 
         const auto target = window->layoutTarget();
@@ -480,8 +483,8 @@ static SDispatchResult checkKeyboardFocusWindow(std::string in) {
     if (!PWINDOW)
         return {.success = false, .error = "Keyboard focus surface is not a window"};
 
-    if (PWINDOW->m_class != in)
-        return {.success = false, .error = std::format("Keyboard focus window class is '{}', expected '{}'", PWINDOW->m_class, in)};
+    if (PWINDOW->metadata().appID() != in)
+        return {.success = false, .error = std::format("Keyboard focus window class is '{}', expected '{}'", PWINDOW->metadata().appID(), in)};
 
     return {};
 }
@@ -560,7 +563,7 @@ static SDispatchResult checkPointerFocusLayer(std::string in) {
     if (!LAYER) {
         const auto WINDOW = Desktop::viewState()->query().type(Desktop::View::VIEW_TYPE_WINDOW).surface(POINTERSURF).runWindow();
         if (WINDOW)
-            return {.success = false, .error = std::format("Pointer focus is a window surface with class '{}'", WINDOW->m_class)};
+            return {.success = false, .error = std::format("Pointer focus is a window surface with class '{}'", WINDOW->metadata().appID())};
 
         return {.success = false, .error = std::format("Pointer focus is not a layer surface, view type is {}", VIEW ? sc<int>(VIEW->type()) : -1)};
     }
@@ -592,7 +595,7 @@ static SDispatchResult setPointerFocusLayer(std::string in) {
 
 static SDispatchResult softFocusWindowByClass(std::string in) {
     for (const auto& window : Desktop::windowState()->windows()) {
-        if (window->m_class != in)
+        if (window->metadata().appID() != in)
             continue;
 
         Desktop::focusState()->rawWindowFocus(window, Desktop::FOCUS_REASON_FFM);
@@ -608,14 +611,25 @@ static SDispatchResult floatingFocusOnFullscreen(std::string in) {
     if (!PLASTWINDOW)
         return {.success = false, .error = "No window"};
 
-    if (!PLASTWINDOW->m_isFloating)
+    if (!PLASTWINDOW->isFloating())
         return {.success = false, .error = "Window must be floating"};
 
-    if (PLASTWINDOW->alphaTotalGoal() != 1.F)
+    if (PLASTWINDOW->presentation().alphaTotalGoal() != 1.F)
         return {.success = false, .error = "floating window doesnt restore it opacity when focused on fullscreen workspace"};
 
-    if (!PLASTWINDOW->m_allowedOverFullscreen)
+    if (!PLASTWINDOW->fullscreenPolicy().allowedOverFullscreen())
         return {.success = false, .error = "floating window doesnt get flagged as allowedOverFullscreen"};
+
+    return {};
+}
+
+static SDispatchResult expectNoMaximizeEcho(std::string in) {
+    const auto WINDOW = Desktop::focusState()->window();
+    if (!WINDOW)
+        return {.success = false, .error = "No window"};
+
+    if (WINDOW->fullscreenPolicy().consumeExpectedMaximizeEcho(true))
+        return {.success = false, .error = "Window has a stale maximize echo expectation"};
 
     return {};
 }
@@ -767,6 +781,10 @@ static int luaFloatingFocusOnFullscreen(lua_State* L) {
     return luaResult(L, ::floatingFocusOnFullscreen(""));
 }
 
+static int luaExpectNoMaximizeEcho(lua_State* L) {
+    return luaResult(L, ::expectNoMaximizeEcho(""));
+}
+
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     PHANDLE = handle;
 
@@ -801,6 +819,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     addLuaFn("set_pointer_focus_layer", ::luaSetPointerFocusLayer);
     addLuaFn("window_soft_focus", ::luaSoftFocusWindowByClass);
     addLuaFn("floating_focus_on_fullscreen", ::luaFloatingFocusOnFullscreen);
+    addLuaFn("expect_no_maximize_echo", ::luaExpectNoMaximizeEcho);
 
     // init mouse
     g_mouse = CTestMouse::create(false);

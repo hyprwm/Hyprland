@@ -2,6 +2,7 @@
 
 #include "WLSurface.hpp"
 #include "../../helpers/math/Math.hpp"
+#include "focusable/Focusable.hpp"
 
 #include <cstdint>
 
@@ -14,15 +15,14 @@ namespace Desktop::View {
         VIEW_TYPE_LOCK_SCREEN,
     };
 
-    class IView {
+    class IView : public virtual IFocusable {
       public:
         virtual ~IView();
 
         virtual SP<Desktop::View::CWLSurface> wlSurface() const;
         virtual SP<CWLSurfaceResource>        resource() const;
-        virtual bool                          aliveAndVisible() const;
         virtual eViewType                     type() const              = 0;
-        virtual bool                          visible() const           = 0;
+        virtual bool                          mapped() const            = 0;
         virtual bool                          desktopComponent() const  = 0;
         virtual std::optional<CBox>           logicalBox() const        = 0;
         virtual std::optional<CBox>           surfaceLogicalBox() const = 0;

@@ -2,7 +2,8 @@
 #include "WindowRule.hpp"
 #include "../Engine.hpp"
 #include "../utils/SetUtils.hpp"
-#include "../../view/Window.hpp"
+#include "../../view/window/Window.hpp"
+#include "../../view/window/WindowPresentation.hpp"
 #include "../../types/OverridableVar.hpp"
 #include "../../../event/EventBus.hpp"
 #include "desktop/rule/windowRule/WindowRuleEffectContainer.hpp"
@@ -187,7 +188,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
 
                     m_maxSize.first = Types::COverridableVar(*VEC, Types::PRIORITY_WINDOW_RULE);
 
-                    if (*PCLAMP_TILED || m_window->m_isFloating)
+                    if (*PCLAMP_TILED || m_window->isFloating())
                         m_window->clampWindowSize(std::nullopt, m_maxSize.first.value());
                 } catch (std::exception& e) { Log::logger->log(Log::ERR, "maxsize rule \"{}\" failed with: {}", std::get<Math::SExpressionVec2>(value).toString(), e.what()); }
                 m_maxSize.second = rule->getPropertiesMask();
@@ -216,7 +217,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                     }
 
                     m_minSize.first = Types::COverridableVar(*VEC, Types::PRIORITY_WINDOW_RULE);
-                    if (*PCLAMP_TILED || m_window->m_isFloating)
+                    if (*PCLAMP_TILED || m_window->isFloating())
                         m_window->clampWindowSize(m_minSize.first.value(), std::nullopt);
                 } catch (std::exception& e) { Log::logger->log(Log::ERR, "minsize rule \"{}\" failed with: {}", std::get<Math::SExpressionVec2>(value).toString(), e.what()); }
                 m_minSize.second = rule->getPropertiesMask();
@@ -555,7 +556,7 @@ void CWindowRuleApplicator::recheckStaticRules() {
 }
 
 void CWindowRuleApplicator::propertiesChanged(std::underlying_type_t<eRuleProperty> props) {
-    if (!m_window || !m_window->m_isMapped || m_window->isHidden())
+    if (!m_window || !m_window->mapped() || m_window->isHidden())
         return;
 
     bool                                                        needsRelayout         = false;
@@ -589,8 +590,8 @@ void CWindowRuleApplicator::propertiesChanged(std::underlying_type_t<eRuleProper
     }
 
     m_window->updateWindowData();
-    m_window->updateWindowDecos();
-    m_window->updateDecorationValues();
+    m_window->presentation().updateDecorations();
+    m_window->presentation().refreshValues();
 
     if (needsRelayout)
         g_pDecorationPositioner->forceRecalcFor(m_window.lock());

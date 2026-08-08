@@ -17,11 +17,11 @@
 #include "../protocols/core/Seat.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../managers/SeatManager.hpp"
-#include "../managers/ANRManager.hpp"
 #include "../helpers/env/Env.hpp"
 #include "../protocols/XWaylandShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../desktop/state/FocusState.hpp"
+#include "../desktop/view/window/X11Backend.hpp"
 using Hyprutils::Memory::CUniquePointer;
 
 using namespace Hyprutils::OS;
@@ -61,8 +61,7 @@ void CXWM::handleCreate(xcb_create_notify_event_t* e) {
     XSURF->m_self    = XSURF;
     Log::logger->log(Log::DEBUG, "[xwm] New XSurface at {:x} with xid of {}", rc<uintptr_t>(XSURF.get()), e->window);
 
-    const auto WINDOW = Desktop::View::CWindow::create(XSURF);
-    WINDOW->m_self    = WINDOW;
+    const auto WINDOW = Desktop::View::CWindow::create(makeUnique<Desktop::View::CX11Backend>(XSURF));
     Log::logger->log(Log::DEBUG, "[xwm] New XWayland window at {:x} for surf {:x}", rc<uintptr_t>(WINDOW.get()), rc<uintptr_t>(XSURF.get()));
 }
 
@@ -392,7 +391,7 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
 
     if (e->type == HYPRATOMS["WM_PROTOCOLS"]) {
         if (e->data.data32[1] == XSURF->m_lastPingSeq && e->data.data32[0] == HYPRATOMS["_NET_WM_PING"]) {
-            g_pANRManager->onResponse(XSURF);
+            XSURF->m_events.pong.emit();
             return;
         }
     } else if (e->type == HYPRATOMS["WL_SURFACE_ID"]) {
@@ -1090,7 +1089,7 @@ void CXWM::activateSurface(SP<CXWaylandSurface> surf, bool activate) {
     if ((surf == m_focusedSurface && activate) || (surf && surf->m_overrideRedirect))
         return;
 
-    if (!surf || (!activate && Desktop::focusState()->window() && !Desktop::focusState()->window()->m_isX11)) {
+    if (!surf || (!activate && Desktop::focusState()->window() && !Desktop::focusState()->window()->backend().isX11())) {
         setActiveWindow(XCB_WINDOW_NONE);
         focusWindow(nullptr);
     } else {

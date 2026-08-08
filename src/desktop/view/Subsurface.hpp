@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../defines.hpp"
+#include <cstddef>
 #include <vector>
 #include "WLSurface.hpp"
 #include "View.hpp"
@@ -24,17 +25,20 @@ namespace Desktop::View {
 
         virtual ~CSubsurface() = default;
 
-        virtual eViewType              type() const;
-        virtual bool                   visible() const;
-        virtual std::optional<CBox>    logicalBox() const;
-        virtual bool                   desktopComponent() const;
-        virtual std::optional<CBox>    surfaceLogicalBox() const;
+        virtual eViewType              type() const override;
+        virtual bool                   mapped() const override;
+        virtual bool                   focusAvailable() const override;
+        virtual std::optional<CBox>    logicalBox() const override;
+        virtual bool                   desktopComponent() const override;
+        virtual std::optional<CBox>    surfaceLogicalBox() const override;
         virtual Vector2D               position(eGeometricValueType) const override;
         virtual Vector2D               size(eGeometricValueType) const override;
         virtual CBox                   geometricBox(eGeometricValueType) const override;
 
         Vector2D                       coordsRelativeToParent() const;
         Vector2D                       coordsGlobal() const;
+        size_t                         allChildrenCount() const;
+        size_t                         allMappedChildrenCount() const;
 
         Vector2D                       size();
 
@@ -81,5 +85,6 @@ namespace Desktop::View {
         void                                        syncScaleTransform() const;
         void                                        checkSiblingDamage();
         void                                        damageLastArea();
+        size_t                                      countChildren(bool onlyMapped) const;
     };
 }

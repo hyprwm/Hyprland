@@ -2,7 +2,6 @@
 
 #include "../defines.hpp"
 #include "../desktop/DesktopTypes.hpp"
-#include <optional>
 
 class CWLSurfaceResource;
 
@@ -11,18 +10,12 @@ class CHyprXWaylandManager {
     CHyprXWaylandManager();
     ~CHyprXWaylandManager();
 
-    SP<CWLSurfaceResource> getWindowSurface(PHLWINDOW);
-    void                   activateSurface(SP<CWLSurfaceResource>, bool);
-    void                   activateWindow(PHLWINDOW, bool);
-    CBox                   getGeometryForWindow(PHLWINDOW);
-    void                   sendCloseWindow(PHLWINDOW);
-    void                   setWindowFullscreen(PHLWINDOW, bool);
-    bool                   shouldBeFloated(PHLWINDOW, bool pending = false);
-    void                   checkBorders(PHLWINDOW);
-    Vector2D               xwaylandToWaylandCoords(const Vector2D&);
-    Vector2D               xwaylandToWaylandCoords(const Vector2D&, PHLMONITOR);
-    Vector2D               waylandToXWaylandCoords(const Vector2D&);
-    Vector2D               waylandToXWaylandCoords(const Vector2D&, PHLMONITOR);
+    void     activateSurface(SP<CWLSurfaceResource>, bool);
+    void     activateWindow(PHLWINDOW, bool);
+    Vector2D xwaylandToWaylandCoords(const Vector2D&);
+    Vector2D xwaylandToWaylandCoords(const Vector2D&, PHLMONITOR);
+    Vector2D waylandToXWaylandCoords(const Vector2D&);
+    Vector2D waylandToXWaylandCoords(const Vector2D&, PHLMONITOR);
 };
 
 inline UP<CHyprXWaylandManager> g_pXWaylandManager;

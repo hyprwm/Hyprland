@@ -3,7 +3,7 @@
 #include "../space/Space.hpp"
 #include "Algorithm.hpp"
 #include "../../output/Monitor.hpp"
-#include "../../desktop/view/Window.hpp"
+#include "../../desktop/view/window/Window.hpp"
 #include "../../managers/fullscreen/handler/FullscreenHandler.hpp"
 
 using namespace Layout;

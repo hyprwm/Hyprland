@@ -56,6 +56,7 @@ class CWLSubsurfaceResource {
 
     void              destroy();
     void              unlinkFromParent();
+    void              markPlacementPending();
 
     struct {
         CHyprSignalListener commitSurface;

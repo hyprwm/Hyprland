@@ -670,7 +670,7 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
         return false;
     };
 
-    if (coveringFsWindowStatePositive || scrollingAwayFromCoveringFsWindow || coveringFsWindowStateNegative || detectIfWindowHidingOutOfSync()) {
+    if (coveringFsWindowStatePositive || scrollingAwayFromCoveringFsWindow || coveringFsWindowStateNegative || (CURRENT_COVERING_FS_TDATA && detectIfWindowHidingOutOfSync())) {
 
         /*
             DS and VRR setting must run before setNoMembersAboveFullscreen() because we need the last tiled layout managed fullscreen window before it is reset when no fullscreen

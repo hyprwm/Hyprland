@@ -142,9 +142,9 @@ SResponse CSocket1::dispatchBatch(std::string request, pid_t pid) {
         }
 
         if (request[i] == '\\') {
-            if (i < request.size() && (request[i + 1] == '\\' || request[i + 1] == ';')) {
+            if (i < request.size() && (request[i + 1] == '\\' || request[i + 1] == ';'))
                 ++i;
-            } else
+            else
                 Log::logger->log(Log::ERR, "Malformed socket1 request: invalid escape sequence {} at position {}, using it verbatim", request.subview(i, 2), i);
         }
         parsedCommand << request[i];

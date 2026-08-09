@@ -643,10 +643,8 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
         Updating window visibility states, animation, prev covering FS window info
     */
 
-
     // Keep logic in sync with CScrollingFullscreenHandler::setNoMembersAboveFullscreen
     const auto detectIfWindowHidingOutOfSync = [&]() -> bool {
-
         for (auto const& w : Desktop::windowState()->windows()) {
             if (!w || w->m_workspace != getSpace()->workspace())
                 continue;
@@ -658,19 +656,19 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
             }
         }
 
-
         // Not checking layers here since notifications (-> layers) ontop of scrolling FS windows cause cursor flicks.
-        
+
         // Let newly spawned layers detect if there is a covering FS present themselves
 
         // This is not a problem in the case of the default handled covering floating FS window being unFSed
         // as layers are not set as above fullscreen after a window is unFSed in any case, therefore we let the default FS handler handle leayers itself
-        
 
         return false;
     };
 
-    if (coveringFsWindowStatePositive || scrollingAwayFromCoveringFsWindow || coveringFsWindowStateNegative || (CURRENT_COVERING_FS_TDATA && detectIfWindowHidingOutOfSync())) {
+    if (coveringFsWindowStatePositive || scrollingAwayFromCoveringFsWindow || coveringFsWindowStateNegative ||
+        // For when you unFS the (default handled) covering floating FS window ontop of a Layout handled tiled covering FS window.
+        (CURRENT_COVERING_FS_TDATA && detectIfWindowHidingOutOfSync())) {
 
         /*
             DS and VRR setting must run before setNoMembersAboveFullscreen() because we need the last tiled layout managed fullscreen window before it is reset when no fullscreen
@@ -682,7 +680,6 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
         setNoMembersAboveFullscreen(CURRENT_COVERING_FS_TDATA ? CURRENT_COVERING_FS_TDATA->target->window()->m_target : nullptr);
         // Must run after setNoMembersAboveFullscreen() so it can properly set the windows' allowedOverFullscreen attributes
         updateFullscreenFade(sc<bool>(CURRENT_COVERING_FS_TDATA));
-
     }
 }
 

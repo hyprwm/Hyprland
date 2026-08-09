@@ -206,3 +206,16 @@ TEST_CASE(hyprctlREPL) {
     EXPECT(getCommandStdOut("hyprctl repl 'print(type(hl))'"), "table");
     EXPECT(getCommandStdOut("hyprctl eval 'print(type(hl))'"), "ok");
 }
+
+TEST_CASE(hyprctlBatch) {
+    const auto command  = R"([[BATCH]] activewindow; repl local i = 42\; print(i, "hello\\nworld ]"); clients)";
+    const auto expected = R"(Invalid
+
+
+42	hello
+world ]
+
+
+no open windows)";
+    EXPECT(getFromSocket(command), expected);
+}

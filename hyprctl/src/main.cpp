@@ -566,8 +566,8 @@ int main(int argc, char** argv) {
         std::println("{}", USAGE);
     else if (fullRequest.contains("/rollinglog") && needRoll)
         exitStatus = request(fullRequest, 0, true);
-    else if (fullRequest.contains("/repl")) {
-        if (ARGS.size() > 1) {
+    else if (auto pos = fullRequest.find("/repl"); pos != std::string::npos) {
+        if (fullRequest.length() > pos + 5) {
             // single command with output
             exitStatus = request(fullRequest, 1);
         } else {

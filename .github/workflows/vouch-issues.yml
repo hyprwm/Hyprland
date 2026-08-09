@@ -19,7 +19,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Verify central Vouch list for Issues
+      - name: Verify central Issues Vouch list
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

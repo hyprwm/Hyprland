@@ -135,6 +135,8 @@ bool CInputMethodPopupV2::good() {
 
 void CInputMethodPopupV2::sendInputRectangle(const CBox& box) {
     m_resource->sendTextInputRectangle(box.x, box.y, box.w, box.h);
+    if (m_surface)
+        m_surface->m_pending.updated.bits.imePopup = true;
 }
 
 SP<CWLSurfaceResource> CInputMethodPopupV2::surface() {

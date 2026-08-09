@@ -199,6 +199,9 @@ void CXWaylandSurface::configure(const CBox& box) {
 
     m_geometry = box;
 
+    if (m_surface)
+        m_surface->m_pending.updated.bits.xwayland = true;
+
     uint32_t mask     = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y | XCB_CONFIG_WINDOW_WIDTH | XCB_CONFIG_WINDOW_HEIGHT | XCB_CONFIG_WINDOW_BORDER_WIDTH;
     uint32_t values[] = {box.x, box.y, box.width, box.height, 0};
     xcb_configure_window(g_pXWayland->m_wm->getConnection(), m_xID, mask, values);

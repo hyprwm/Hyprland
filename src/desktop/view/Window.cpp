@@ -2673,9 +2673,13 @@ void CWindow::unmapWindow() {
                 candidate = (Desktop::viewState()->hitTest().windowAt(g_pInputManager->getMouseCoordsInternal(),
                                                                       Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING));
             else {
-                const auto CAND = g_layoutManager->getNextCandidate(m_workspace->m_space, layoutTarget());
-                if (CAND)
-                    candidate = CAND->window();
+                if (m_pinned && PMONITOR && PMONITOR->m_activeSpecialWorkspace)
+                    candidate = PMONITOR->m_activeSpecialWorkspace->getFocusCandidate();
+                if (!candidate) {
+                    const auto CAND = g_layoutManager->getNextCandidate(m_workspace->m_space, layoutTarget());
+                    if (CAND)
+                        candidate = CAND->window();
+                }
             }
         }
 

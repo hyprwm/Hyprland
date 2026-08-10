@@ -534,6 +534,36 @@ TEST_CASE(pinnedWorkspacesValid) {
     }
 }
 
+TEST_CASE(pinnedCloseFocusSpecialWorkspace) {
+    OK(getFromSocket("/eval hl.config({ input = { focus_on_close = 0 } })"));
+
+    SPAWN_KITTY("pinned");
+    SPAWN_KITTY("workspace");
+
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:pinned' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.pin({ action = 'set', window = 'class:pinned' })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'special:special' })"));
+    SPAWN_KITTY("special");
+    {
+        auto str = getFromSocket("/monitors");
+        ASSERT_CONTAINS(str, "special workspace: -");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:pinned' })"));
+    ASSERT(isActiveWindow("pinned"), true);
+
+    OK(getFromSocket("/dispatch hl.dsp.window.kill({ window = 'class:pinned' })"));
+    Tests::waitUntilWindowsN(2);
+
+    {
+        auto str = getFromSocket("/monitors");
+        ASSERT_CONTAINS(str, "special workspace: -");
+    }
+
+    ASSERT(isActiveWindow("special"), true);
+}
+
 TEST_CASE(windowruleWorkspaceEmpty) {
     OK(getFromSocket("/eval hl.window_rule({ match = { class = 'kitty_A' }, workspace = 'empty' })"));
     OK(getFromSocket("/eval hl.window_rule({ match = { class = 'kitty_B' }, workspace = 'emptyn' })"));

@@ -1180,3 +1180,46 @@ TEST_CASE(defaultHandledFsfocusInDirection) {
         EXPECT_CONTAINS(str, "fullscreenClient: 0");
     }
 }
+
+TEST_CASE(dwindleFullsreenCenterDispatchSavesPos) {
+    /*
+        This test serves as a test for all layouts that use deafult FS behaviour
+
+        Also tests hl.dsp.window.center() incidentally
+
+    */
+
+    SPAWN_KITTY("kot");
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:kot' })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ x =100 , y =100 , relative = false, window = 'class:kot' })"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: kot");
+        EXPECT_CONTAINS(str, "at: 100,100");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.center({ window = 'class:kot' })"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: kot");
+        EXPECT_CONTAINS(str, "at: 0,0");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set', window = 'class:kot' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'unset', window = 'class:kot' })"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: kot");
+        EXPECT_CONTAINS(str, "at: 0,0");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
+    }
+}

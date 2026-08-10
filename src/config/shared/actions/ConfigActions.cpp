@@ -567,10 +567,9 @@ ActionResult Actions::center(std::optional<PHLWINDOW> w) {
 
     const auto PMONITOR = window->m_monitor.lock();
 
-    if (window->m_isFloating)
-        g_layoutManager->setTargetGeom(
-            CBox{PMONITOR->logicalBoxMinusReserved().middle() - window->size(Desktop::View::IGeometric::GEOMETRIC_GOAL) / 2.F, window->layoutTarget()->position().size()},
-            window->m_target);
+    g_layoutManager->setTargetGeom(
+        CBox{PMONITOR->logicalBoxMinusReserved().middle() - window->size(Desktop::View::IGeometric::GEOMETRIC_GOAL) / 2.F, window->layoutTarget()->position().size()},
+        window->m_target);
 
     return {};
 }

@@ -51,8 +51,8 @@ uniform int   motionSamples;
 #endif
 
 #if USE_CM
-uniform int sourceTF; // eTransferFunction
-uniform int targetTF; // eTransferFunction
+const int sourceTF = SOURCE_TF;
+const int targetTF = TARGET_TF;
 
 #if USE_TONEMAP || USE_SDR_MOD
 uniform mat3 targetPrimariesXYZ;

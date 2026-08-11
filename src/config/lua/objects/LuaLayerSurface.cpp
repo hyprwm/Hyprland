@@ -82,6 +82,11 @@ void Objects::CLuaLayerSurface::setup(lua_State* L) {
 }
 
 void Objects::CLuaLayerSurface::push(lua_State* L, PHLLSREF ls) {
+    if (!ls) {
+        lua_pushnil(L);
+        return;
+    }
+
     new (lua_newuserdata(L, sizeof(PHLLSREF))) PHLLSREF(ls ? ls->m_self : nullptr);
     luaL_getmetatable(L, MT);
     lua_setmetatable(L, -2);

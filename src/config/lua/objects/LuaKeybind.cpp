@@ -185,6 +185,11 @@ void Objects::CLuaKeybind::setup(lua_State* L) {
 }
 
 void Objects::CLuaKeybind::push(lua_State* L, const Keybinds::PBind& keybind) {
+    if (!keybind) {
+        lua_pushnil(L);
+        return;
+    }
+
     new (lua_newuserdata(L, sizeof(WP<Keybinds::CBind>))) WP<Keybinds::CBind>(keybind);
     luaL_getmetatable(L, MT);
     lua_setmetatable(L, -2);

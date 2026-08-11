@@ -212,6 +212,11 @@ void Objects::CLuaMonitor::setup(lua_State* L) {
 }
 
 void Objects::CLuaMonitor::push(lua_State* L, PHLMONITORREF mon) {
+    if (!mon) {
+        lua_pushnil(L);
+        return;
+    }
+
     new (lua_newuserdata(L, sizeof(PHLMONITORREF))) PHLMONITORREF(mon ? mon->m_self : nullptr);
     luaL_getmetatable(L, MT);
     lua_setmetatable(L, -2);

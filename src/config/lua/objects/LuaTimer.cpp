@@ -103,6 +103,11 @@ void Objects::CLuaTimer::setup(lua_State* L) {
 }
 
 void Objects::CLuaTimer::push(lua_State* L, const SP<CEventLoopTimer>& timer, int timeoutMs) {
+    if (!timer) {
+        lua_pushnil(L);
+        return;
+    }
+
     new (lua_newuserdata(L, sizeof(STimerRef))) STimerRef{WP<CEventLoopTimer>(timer), timeoutMs};
     luaL_getmetatable(L, MT);
     lua_setmetatable(L, -2);

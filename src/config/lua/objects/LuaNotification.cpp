@@ -374,6 +374,11 @@ void Objects::CLuaNotification::setup(lua_State* L) {
 }
 
 void Objects::CLuaNotification::push(lua_State* L, const SP<Notification::CNotification>& notification) {
+    if (!notification) {
+        lua_pushnil(L);
+        return;
+    }
+
     new (lua_newuserdata(L, sizeof(SNotificationRef))) SNotificationRef{.notification = WP<Notification::CNotification>(notification)};
     luaL_getmetatable(L, MT);
     lua_setmetatable(L, -2);

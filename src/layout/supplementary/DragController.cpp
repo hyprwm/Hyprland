@@ -153,6 +153,7 @@ bool CDragStateController::updateDragWindow() {
 void CDragStateController::dragBegin(SP<ITarget> target, eMouseBindMode mode, std::optional<eRectCorner> forcedEdge, bool exclusiveDeviceGrab) {
     m_target              = target;
     m_dragMode            = mode;
+    m_draggingTiled       = false;
     m_forcedGrabbedCorner = forcedEdge;
     m_exclusiveDeviceGrab = exclusiveDeviceGrab;
     m_grabbedCorner       = CORNER_NONE;
@@ -319,6 +320,7 @@ bool CDragStateController::dragEnd() {
 
     m_dragMode            = MBIND_INVALID;
     m_exclusiveDeviceGrab = false;
+    m_draggingTiled       = false;
     m_forcedGrabbedCorner.reset();
     return true;
 }

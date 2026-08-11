@@ -2000,3 +2000,33 @@ TEST_CASE(floatingForceOnscreen) {
 
 #undef WAIT_FOR_WINDOW
 }
+
+TEST_CASE(specialWorkspacePinnedWindowUnmapFallback) {
+    NLog::log("{}Testing special workspace focus fallback on unmap for pinned windows", Colors::GREEN);
+
+    Tests::killAllWindows();
+    ASSERT(Tests::windowCount(), 0);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1'})"));
+    SPAWN_KITTY("kitty_normal");
+
+    SPAWN_KITTY("kitty_pinned");
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:kitty_pinned' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.pin({ action = 'set', window = 'class:kitty_pinned' })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.workspace.toggle_special('fallback')"));
+
+    SPAWN_KITTY("kitty_sp_normal");
+
+    Tests::waitUntilWindowsN(3);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_pinned' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.kill({ window = 'activewindow' })"));
+    Tests::waitUntilWindowsN(2);
+
+    const auto active = getFromSocket("/activewindow");
+    EXPECT_CONTAINS(active, "(special:fallback)");
+
+    OK(getFromSocket("/dispatch hl.dsp.workspace.toggle_special('fallback')"));
+    Tests::killAllWindows();
+}

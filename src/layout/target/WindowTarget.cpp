@@ -241,20 +241,10 @@ void CWindowTarget::updatePos(uint8_t flags) {
         calcPos.y = std::clamp(calcPos.y, MONITOR_WORKAREA.y, std::max(MONITOR_WORKAREA.y, MONITOR_WORKAREA.y + MONITOR_WORKAREA.h - calcSize.y));
     }
 
-    if (m_window->onSpecialWorkspace() && m_window) {
-        // if special, we adjust the coords a bit
-        static auto PSCALEFACTOR = CConfigValue<Config::FLOAT>("dwindle:special_scale_factor");
+    CBox wb = {calcPos, calcSize};
+    wb.round(); // avoid rounding mess
 
-        CBox        wb = {calcPos + (calcSize - calcSize * *PSCALEFACTOR) / 2.f, calcSize * *PSCALEFACTOR};
-        wb.round(); // avoid rounding mess
-
-        m_window->setBox(wb);
-    } else {
-        CBox wb = {calcPos, calcSize};
-        wb.round(); // avoid rounding mess
-
-        m_window->setBox(wb);
-    }
+    m_window->setBox(wb);
 
     m_window->updateWindowDecos();
     if (CONFIGURECLIENT)

@@ -684,7 +684,8 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Bool>("dwindle:smart_split", "if enabled, allows a more precise control over the window split direction based on the cursor's position.", false),
         MS<Bool>("dwindle:smart_resizing", "if enabled, resizing direction will be determined by the mouse's position on the window.", true),
         MS<Bool>("dwindle:permanent_direction_override", "if enabled, makes the preselect direction persist.", false),
-        MS<Float>("dwindle:special_scale_factor", "specifies the scale factor of windows on the special workspace", 1, {.min = 0, .max = 1}),
+        MS<Float>("dwindle:special_scale_factor", "specifies the scale factor of windows on the special workspace", 1,
+                  {.min = 0, .max = 1, .deprecationNotice = "Use workspace rules to achieve the same effect"}),
         MS<Float>("dwindle:split_width_multiplier", "specifies the auto-split width multiplier", 1, {.min = 0.1F, .max = 3}),
         MS<Bool>("dwindle:use_active_for_splits", "whether to prefer the active window or the mouse position for splits", true),
         MS<Float>("dwindle:default_split_ratio", "the default split ratio on window open.", 1, {.min = 0.1F, .max = 1.9F}),
@@ -696,7 +697,8 @@ std::vector<SP<IValue>> Values::getConfigValues() {
          */
 
         MS<Bool>("master:allow_small_split", "enable adding additional master windows in a horizontal split style", false),
-        MS<Float>("master:special_scale_factor", "the scale of the special workspace windows.", 1, {.min = 0, .max = 1}),
+        MS<Float>("master:special_scale_factor", "the scale of the special workspace windows.", 1,
+                  {.min = 0, .max = 1, .deprecationNotice = "Use workspace rules to achieve the same effect"}),
         MS<Float>("master:mfact", "the size as a percentage of the master window.", 0.55, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_LAYOUTS}),
         MS<String>("master:new_status", "`master`: new window becomes master; `slave`: new windows are added to slave stack; `inherit`: inherit from focused window", "slave"),
         MS<Bool>("master:new_on_top", "whether a newly open window should be on the top of the stack", false),

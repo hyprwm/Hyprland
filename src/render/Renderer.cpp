@@ -2304,7 +2304,7 @@ static bool hdrMetadataEqual(const hdr_output_metadata& a, const hdr_output_meta
         return false;
 
     static_assert(std::has_unique_object_representations_v<hdr_metadata_infoframe>);
-    return std::memcmp(&a.hdmi_metadata_type1, &b.hdmi_metadata_type1, sizeof(a.hdmi_metadata_type1));
+    return std::memcmp(&a.hdmi_metadata_type1, &b.hdmi_metadata_type1, sizeof(a.hdmi_metadata_type1)) == 0;
 }
 
 void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {

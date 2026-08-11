@@ -542,6 +542,11 @@ void CCompositor::cleanEnvironment() {
         unsetenv("XDG_CURRENT_DESKTOP");
 
     if (m_aqBackend->hasSession() && !Env::envEnabled("HYPRLAND_NO_SD_VARS")) {
+#ifdef USES_SYSTEMD
+        if (!Env::envEnabled("HYPRLAND_NO_SD_TARGET"))
+            // stopping hyprland-session doesn't wait for dependent services; this does
+            Config::Supplementary::executor()->spawn("systemctl --user stop graphical-session.target");
+#endif
         const auto CMD =
 #ifdef USES_SYSTEMD
             "systemctl --user unset-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS && hash "
@@ -576,10 +581,6 @@ void CCompositor::cleanup() {
 #ifdef USES_SYSTEMD
     if (NSystemd::sdBooted() > 0 && !Env::envEnabled("HYPRLAND_NO_SD_NOTIFY"))
         NSystemd::sdNotify(0, "STOPPING=1");
-    if (m_aqBackend->hasSession() && !Env::envEnabled("HYPRLAND_NO_SD_TARGET")) {
-        Config::Supplementary::executor()->spawn("systemctl --user stop hyprland-session.target");
-        usleep(50000); // services blow up if there's no time to react
-    }
 #endif
 
     cleanEnvironment();

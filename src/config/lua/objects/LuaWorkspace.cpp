@@ -169,12 +169,22 @@ void Objects::CLuaWorkspace::setup(lua_State* L) {
 }
 
 void Objects::CLuaWorkspace::push(lua_State* L, PHLWORKSPACE ws) {
+    if (!ws) {
+        lua_pushnil(L);
+        return;
+    }
+
     new (lua_newuserdata(L, sizeof(PHLWORKSPACEREF))) PHLWORKSPACEREF(ws ? ws->m_self : nullptr);
     luaL_getmetatable(L, MT);
     lua_setmetatable(L, -2);
 }
 
 void Objects::CLuaWorkspace::push(lua_State* L, PHLWORKSPACEREF ws) {
+    if (!ws) {
+        lua_pushnil(L);
+        return;
+    }
+
     new (lua_newuserdata(L, sizeof(PHLWORKSPACEREF))) PHLWORKSPACEREF(ws ? ws->m_self : nullptr);
     luaL_getmetatable(L, MT);
     lua_setmetatable(L, -2);

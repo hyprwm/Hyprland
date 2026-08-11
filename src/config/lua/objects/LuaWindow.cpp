@@ -19,6 +19,7 @@
 #include "../../../managers/fullscreen/FullscreenController.hpp"
 
 #include <format>
+#include <lua.h>
 #include <string_view>
 
 using namespace Config::Lua;
@@ -252,6 +253,11 @@ void Objects::CLuaWindow::setup(lua_State* L) {
 }
 
 void Objects::CLuaWindow::push(lua_State* L, PHLWINDOWREF w) {
+    if (!w) {
+        lua_pushnil(L);
+        return;
+    }
+
     new (lua_newuserdata(L, sizeof(PHLWINDOWREF))) PHLWINDOWREF(w ? w->m_self : nullptr);
     luaL_getmetatable(L, MT);
     lua_setmetatable(L, -2);

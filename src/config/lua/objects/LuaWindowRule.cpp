@@ -74,6 +74,11 @@ void Objects::CLuaWindowRule::setup(lua_State* L) {
 }
 
 void Objects::CLuaWindowRule::push(lua_State* L, const SP<Desktop::Rule::CWindowRule>& rule) {
+    if (!rule) {
+        lua_pushnil(L);
+        return;
+    }
+
     new (lua_newuserdata(L, sizeof(WP<Desktop::Rule::CWindowRule>))) WP<Desktop::Rule::CWindowRule>(rule);
     luaL_getmetatable(L, MT);
     lua_setmetatable(L, -2);

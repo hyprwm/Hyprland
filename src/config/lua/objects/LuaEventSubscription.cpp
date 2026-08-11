@@ -68,6 +68,11 @@ void Objects::CLuaEventSubscription::setup(lua_State* L) {
 }
 
 void Objects::CLuaEventSubscription::push(lua_State* L, CLuaEventHandler* handler, uint64_t handle) {
+    if (!handler) {
+        lua_pushnil(L);
+        return;
+    }
+
     new (lua_newuserdata(L, sizeof(SEventSubscriptionRef))) SEventSubscriptionRef{.handler = handler, .handle = handle, .active = true};
     luaL_getmetatable(L, MT);
     lua_setmetatable(L, -2);

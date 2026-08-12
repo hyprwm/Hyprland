@@ -21,3 +21,22 @@ TEST(Layout, scrollCameraOffsetResetsAtExactExtent) {
     EXPECT_DOUBLE_EQ(controller.calculateCameraOffset(USABLE_AREA), 0.0);
     EXPECT_DOUBLE_EQ(controller.getOffset(), 0.0);
 }
+
+TEST(Layout, scrollCameraOffsetPreservesAlignmentAtExactExtent) {
+    const CBox            USABLE_AREA{0, 0, 1920, 1080};
+    CScrollTapeController controller;
+
+    controller.addStrip(0.5F);
+    controller.addStrip(0.5F);
+
+    controller.centerStrip(1, USABLE_AREA);
+    const double centeredOffset = controller.getOffset();
+    EXPECT_GT(centeredOffset, 0.0);
+    EXPECT_DOUBLE_EQ(controller.calculateCameraOffset(USABLE_AREA), centeredOffset);
+
+    controller.setOffset(USABLE_AREA.w);
+    controller.fitStrip(1, USABLE_AREA);
+    const double fittedOffset = controller.getOffset();
+    EXPECT_GT(fittedOffset, 0.0);
+    EXPECT_DOUBLE_EQ(controller.calculateCameraOffset(USABLE_AREA), fittedOffset);
+}

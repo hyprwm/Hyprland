@@ -42,8 +42,10 @@ void CScrollTapeController::setOffset(double offset) {
     if (getScrollInhibitor().isInhibited) {
         m_offset = getScrollInhibitor().offsetWhenInhibited;
         Log::logger->log(Log::DEBUG, "m_offset not set - scrolling inhibited");
-    } else
+    } else {
         m_offset = offset;
+        m_lastExtentRatio.reset();
+    }
 }
 
 double CScrollTapeController::getOffset() const {
@@ -52,6 +54,7 @@ double CScrollTapeController::getOffset() const {
 
 void CScrollTapeController::adjustOffset(double delta) {
     m_offset += delta;
+    m_lastExtentRatio.reset();
 }
 
 struct SScrollInhibitor& CScrollTapeController::getScrollInhibitor() {
@@ -84,6 +87,11 @@ void CScrollTapeController::removeStrip(size_t index) {
 
 double CScrollTapeController::getPrimary(const Vector2D& v) const {
     return isPrimaryHorizontal() ? v.x : v.y;
+}
+
+double CScrollTapeController::calculateExtentRatio(const CBox& usableArea, bool fullscreenOnOne) const {
+    const double usablePrimary = getPrimary(usableArea.size());
+    return usablePrimary == 0.0 ? 0.0 : calculateMaxExtent(usableArea, fullscreenOnOne) / usablePrimary;
 }
 
 double CScrollTapeController::getSecondary(const Vector2D& v) const {
@@ -223,14 +231,18 @@ CBox CScrollTapeController::calculateTargetBox(size_t stripIndex, size_t targetI
 double CScrollTapeController::calculateCameraOffset(const CBox& usableArea, bool fullscreenOnOne) {
     const double maxExtent     = calculateMaxExtent(usableArea, fullscreenOnOne);
     const double usablePrimary = getPrimary(usableArea.size());
+    const double extentRatio   = usablePrimary == 0.0 ? 0.0 : maxExtent / usablePrimary;
 
     // don't adjust the offset if we are dragging
     if (isBeingDragged())
         return m_offset;
 
     // if the content fits in viewport, center it
-    if (maxExtent <= usablePrimary)
+    if (maxExtent < usablePrimary)
         setOffset(std::round((maxExtent - usablePrimary) / 2.0));
+    // At exact extent, only clear an offset left stale by a shrink. centerStrip and fitStrip may intentionally align an exact-fit tape away from zero.
+    else if (maxExtent == usablePrimary && m_lastExtentRatio.value_or(extentRatio) > 1.0)
+        setOffset(0.0);
 
     // if the offset is negative but we already extended and fit method is not center, reset offset to 0
     if (maxExtent > usablePrimary && m_offset < 0.0) {
@@ -239,6 +251,8 @@ double CScrollTapeController::calculateCameraOffset(const CBox& usableArea, bool
             setOffset(0.0);
     }
 
+    if (!m_scrollInhibitor.isInhibited)
+        m_lastExtentRatio = extentRatio;
     return m_offset;
 }
 
@@ -260,6 +274,8 @@ void CScrollTapeController::centerStrip(size_t stripIndex, const CBox& usableAre
     const double stripSize     = calculateStripSize(stripIndex, usableArea, fullscreenOnOne);
 
     setOffset(stripStart - (usablePrimary - stripSize) / 2.0);
+    if (!m_scrollInhibitor.isInhibited)
+        m_lastExtentRatio = calculateExtentRatio(usableArea, fullscreenOnOne);
 }
 
 void CScrollTapeController::fitStrip(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne) {
@@ -277,10 +293,11 @@ void CScrollTapeController::fitStrip(size_t stripIndex, const CBox& usableArea, 
         // strip is wider than viewport (e.g. during monitor reconnection after suspend),
         // center the strip instead of hitting the std::clamp assertion
         setOffset(stripStart - (usablePrimary - stripSize) / 2.0);
-        return;
-    }
+    } else
+        setOffset(std::clamp(m_offset, lo, hi));
 
-    setOffset(std::clamp(m_offset, lo, hi));
+    if (!m_scrollInhibitor.isInhibited)
+        m_lastExtentRatio = calculateExtentRatio(usableArea, fullscreenOnOne);
 }
 
 bool CScrollTapeController::isStripVisible(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne, bool full) const {

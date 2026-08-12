@@ -222,6 +222,7 @@ void CMonitor::onConnect(bool noRule) {
             Log::logger->log(Log::DEBUG, "Reapplying monitor rule for {} from a state request", m_name);
             auto cpy = m_activeMonitorRule;
             applyMonitorRule(std::move(cpy));
+            State::monitorLayoutController()->scheduleRecheck();
             return;
         }
 
@@ -240,6 +241,7 @@ void CMonitor::onConnect(bool noRule) {
         rule.m_resolution = SIZE;
 
         applyMonitorRule(std::move(rule));
+        State::monitorLayoutController()->scheduleRecheck();
     });
 
     m_frameScheduler         = makeUnique<CMonitorFrameScheduler>(m_self.lock());

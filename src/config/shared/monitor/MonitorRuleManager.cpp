@@ -4,7 +4,6 @@
 #include "../../../protocols/OutputManagement.hpp"
 #include "../../../output/Monitor.hpp"
 #include "../../../Compositor.hpp"
-#include "../../../render/Renderer.hpp"
 #include "../../../event/EventBus.hpp"
 #include "../../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../../managers/fullscreen/FullscreenController.hpp"
@@ -193,15 +192,6 @@ void CMonitorRuleManager::ensureMonitorStatus() {
 
     State::monitorLayoutController()->arrange();
     State::monitorLayoutController()->checkOverlapsAndNotify();
-
-    for (const auto& m : monsForRefresh) {
-        if (!m->m_output)
-            continue;
-
-        g_pHyprRenderer->arrangeLayersForMonitor(m->m_id);
-    }
-
-    Event::bus()->m_events.monitor.layoutChanged.emit();
 }
 
 void CMonitorRuleManager::ensureVRR(PHLMONITOR pMonitor) {

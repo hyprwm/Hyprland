@@ -27,15 +27,15 @@ struct SState {
 
     CSharedPointer<CCWlShmPool>    shmPool;
     CSharedPointer<CCWlBuffer>     shmBuf;
-    int                            shmFd    = -1;
-    size_t                         shmSize  = 0;
-    bool                           hasXrgb  = false;
+    int                            shmFd   = -1;
+    size_t                         shmSize = 0;
+    bool                           hasXrgb = false;
 
     CSharedPointer<CCWlSurface>    surf;
     CSharedPointer<CCXdgSurface>   xdgSurf;
     CSharedPointer<CCXdgToplevel>  toplevel;
-    Vector2D                       geom        = {1280, 720};
-    bool                           fullscreen  = false;
+    Vector2D                       geom       = {1280, 720};
+    bool                           fullscreen = false;
 };
 
 static bool started    = false;
@@ -125,18 +125,15 @@ static bool setupSurface(SState& s) {
             s.geom = {(double)w, (double)h};
 
         // parse the state array to detect fullscreen
-        s.fullscreen  = false;
-        auto stateSpan = std::span<const uint32_t>(
-            static_cast<const uint32_t*>(states->data),
-            states->size / sizeof(uint32_t)
-        );
+        s.fullscreen   = false;
+        auto stateSpan = std::span<const uint32_t>(static_cast<const uint32_t*>(states->data), states->size / sizeof(uint32_t));
         for (uint32_t st : stateSpan) {
 
             if (st == XDG_TOPLEVEL_STATE_FULLSCREEN) {
                 s.fullscreen = true;
                 break;
             }
-        }   
+        }
 
         if (!makeShm(s, s.geom))
             exit(-1);
@@ -203,10 +200,7 @@ int main() {
     buf.fill(0);
     wl_display_flush(s.display);
 
-    struct pollfd fds[2] = {
-        {.fd = wl_display_get_fd(s.display), .events = POLLIN | POLLOUT},
-        {.fd = STDIN_FILENO,                 .events = POLLIN}
-    };
+    struct pollfd fds[2] = {{.fd = wl_display_get_fd(s.display), .events = POLLIN | POLLOUT}, {.fd = STDIN_FILENO, .events = POLLIN}};
 
     while (!shouldExit && poll(fds, 2, 0) != -1) {
         if (fds[0].revents & POLLIN) {

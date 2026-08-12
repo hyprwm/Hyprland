@@ -25,9 +25,9 @@ namespace {
       public:
         CFsMonClient();
         ~CFsMonClient();
-        bool isFullscreen();
-        void requestFullscreen();
-        void requestUnFullscreen();
+        bool  isFullscreen();
+        void  requestFullscreen();
+        void  requestUnFullscreen();
         pid_t pid();
     };
 
@@ -104,13 +104,11 @@ void CFsMonClient::requestFullscreen() {
     std::this_thread::sleep_for(std::chrono::milliseconds(300));
 }
 
-
 void CFsMonClient::requestUnFullscreen() {
     std::string cmd = "unfullscreen\n";
     write(this->writeFd.get(), cmd.c_str(), cmd.length());
     std::this_thread::sleep_for(std::chrono::milliseconds(300));
 }
-
 
 bool CFsMonClient::isFullscreen() {
     std::string cmd = "get\n";
@@ -129,7 +127,6 @@ bool CFsMonClient::isFullscreen() {
     return std::string{this->readBuf.data()}.contains('1');
 }
 
-
 TEST_CASE(fullscreenWithExplicitMonitor) {
     NLog::log("{}Testing xdg_toplevel_set_fullscreen with explicit wl_output", Colors::GREEN);
 
@@ -139,9 +136,7 @@ TEST_CASE(fullscreenWithExplicitMonitor) {
     std::optional<CFsMonClient> client;
     try {
         client.emplace();
-    } catch (...) {
-        FAIL_TEST("Failed to start fullscreen-with-monitor client");
-    }
+    } catch (...) { FAIL_TEST("Failed to start fullscreen-with-monitor client"); }
 
     // sanity: window should not be fullscreen before we ask
     EXPECT(client->isFullscreen(), false);
@@ -151,17 +146,11 @@ TEST_CASE(fullscreenWithExplicitMonitor) {
     // client parsed the fullscreen state from the configure wl_array
     EXPECT(client->isFullscreen(), true);
 
-
     // unFullscreen
     client->requestUnFullscreen();
     EXPECT(client->isFullscreen(), false);
 
-
     // expect the client to be in the special workspace still
 
     EXPECT_CONTAINS(getFromSocket("/clients"), "workspace: -98 (special:A)")
-
-
-
-
 }

@@ -12,6 +12,7 @@
 #include "../notification/NotificationOverlay.hpp"
 #include "../output/Monitor.hpp"
 #include "../protocols/XDGOutput.hpp"
+#include "../render/Renderer.hpp"
 #include "../xwayland/XWayland.hpp"
 
 #include <vector>
@@ -65,6 +66,10 @@ void CMonitorLayoutController::arrange() const {
 
     Log::logger->log(Log::DEBUG, "arrangeMonitors: {} to arrange", arrangeableMonitors.size());
     State::monitorPositionController()->arrange(arrangeableMonitors, *PXWLFORCESCALEZERO);
+
+    for (const auto& m : State::monitorState()->monitors()) {
+        g_pHyprRenderer->arrangeLayersForMonitor(m->m_id);
+    }
 
     PROTO::xdgOutput->updateAllOutputs();
     Event::bus()->m_events.monitor.layoutChanged.emit();

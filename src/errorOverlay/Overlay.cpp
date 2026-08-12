@@ -64,7 +64,7 @@ COverlay::COverlay() {
             return;
 
         g_pHyprRenderer->damageMonitor(Desktop::focusState()->monitor());
-        updateReservedArea(true);
+        updateReservedArea(mon);
         m_monitorChanged = true;
     });
 
@@ -154,22 +154,21 @@ void COverlay::createQueued() {
 
     g_pHyprRenderer->damageMonitor(PMONITOR);
 
-    updateReservedArea(true);
+    updateReservedArea(PMONITOR);
 }
 
-void COverlay::updateReservedArea(bool reserve) {
+void COverlay::updateReservedArea(PHLMONITOR monitor) {
     static auto BAR_POSITION = CConfigValue<Config::INTEGER>("debug:error_position");
 
-    const auto  PMONITOR = Desktop::focusState()->monitor();
-    const bool  TOPBAR   = *BAR_POSITION == 0;
+    const bool  TOPBAR = *BAR_POSITION == 0;
 
     for (const auto& m : State::monitorState()->monitors()) {
         m->m_reservedArea.resetType(Desktop::RESERVED_DYNAMIC_TYPE_ERROR_BAR);
     }
 
-    if (reserve && PMONITOR) {
-        const auto RESERVED = (m_lastHeight + m_outerPad) / PMONITOR->m_scale;
-        PMONITOR->m_reservedArea.addType(Desktop::RESERVED_DYNAMIC_TYPE_ERROR_BAR, Vector2D{0.0, TOPBAR ? RESERVED : 0.0}, Vector2D{0.0, !TOPBAR ? RESERVED : 0.0});
+    if (monitor) {
+        const auto RESERVED = (m_lastHeight + m_outerPad) / monitor->m_scale;
+        monitor->m_reservedArea.addType(Desktop::RESERVED_DYNAMIC_TYPE_ERROR_BAR, Vector2D{0.0, TOPBAR ? RESERVED : 0.0}, Vector2D{0.0, !TOPBAR ? RESERVED : 0.0});
     }
 
     for (const auto& m : State::monitorState()->monitors()) {
@@ -195,7 +194,7 @@ void COverlay::draw() {
                 m_isCreated = false;
                 m_queued    = "";
 
-                updateReservedArea(false);
+                updateReservedArea(nullptr);
 
                 return;
             } else {

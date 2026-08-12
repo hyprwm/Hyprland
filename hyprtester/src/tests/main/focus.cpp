@@ -6,12 +6,68 @@
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include "../shared.hpp"
 
+#include <chrono>
+#include <thread>
+
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
 using namespace Hyprutils::Utils;
 
 #define UP CUniquePointer
 #define SP CSharedPointer
+
+static bool waitForMonitorReservations(const std::string& reservedMonitor, const std::string& clearMonitor) {
+    for (size_t i = 0; i < 50; ++i) {
+        const auto result =
+            getFromSocket(std::format("r/eval return hl.get_monitor('{}').reserved.top > 0 and hl.get_monitor('{}').reserved.top == 0", reservedMonitor, clearMonitor));
+        if (result == "true")
+            return true;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        Tests::sync();
+    }
+
+    return false;
+}
+
+static bool waitForMonitorReservationsCleared(const std::string& monitorA, const std::string& monitorB) {
+    for (size_t i = 0; i < 50; ++i) {
+        const auto result = getFromSocket(std::format("r/eval return hl.get_monitor('{}').reserved.top == 0 and hl.get_monitor('{}').reserved.top == 0", monitorA, monitorB));
+        if (result == "true")
+            return true;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        Tests::sync();
+    }
+
+    return false;
+}
+
+TEST_CASE(errorBarReservationFollowsFocusedMonitor) {
+    static constexpr const char* TEST_OUTPUT = "HYPRTEST-ERROR-BAR";
+
+    getFromSocket(std::format("/output remove {}", TEST_OUTPUT));
+    OK(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-2', mode = '1920x1080@60', position = '0x0', scale = '1' })"));
+    OK(getFromSocket(std::format("/eval hl.monitor({{ output = '{}', mode = '1920x1080@60', position = '1920x0', scale = '1' }})", TEST_OUTPUT)));
+    OK(getFromSocket(std::format("/output create headless {}", TEST_OUTPUT)));
+
+    CScopeGuard guard = {[&]() {
+        getFromSocket("/seterror disable");
+        getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })");
+        waitForMonitorReservationsCleared("HEADLESS-2", TEST_OUTPUT);
+        getFromSocket(std::format("/output remove {}", TEST_OUTPUT));
+    }};
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+    OK(getFromSocket("/seterror rgb(ff0000) reservation-test"));
+    ASSERT(waitForMonitorReservations("HEADLESS-2", TEST_OUTPUT), true);
+
+    OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", TEST_OUTPUT)));
+    ASSERT(waitForMonitorReservations(TEST_OUTPUT, "HEADLESS-2"), true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+    EXPECT(waitForMonitorReservations("HEADLESS-2", TEST_OUTPUT), true);
+}
 
 TEST_CASE(crossMonitorFullscreenFocus) {
     // Create a destination monitor to the right of the default one and pin the

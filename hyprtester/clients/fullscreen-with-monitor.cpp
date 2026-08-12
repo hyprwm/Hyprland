@@ -203,7 +203,7 @@ int main() {
 
     struct pollfd fds[2] = {{.fd = wl_display_get_fd(s.display), .events = POLLIN | POLLOUT}, {.fd = STDIN_FILENO, .events = POLLIN}};
 
-    while (!shouldExit && poll(fds, 2, 0-1) != -1) {
+    while (!shouldExit && poll(fds, 2, 0 - 1) != -1) {
         if (fds[0].revents & POLLIN) {
             wl_display_flush(s.display);
             if (wl_display_prepare_read(s.display) == 0) {

@@ -1543,6 +1543,10 @@ static void removeFromHIDs(WP<IHID> hid) {
     g_pInputManager->updateCapabilities();
 }
 
+bool CInputManager::anyHidHasCap(eHIDCapabilityType type) {
+    return std::ranges::any_of(m_hids, [&type](const auto& hid) { return hid && (hid->getCapabilities() & type) != 0; });
+}
+
 void CInputManager::destroyKeyboard(SP<IKeyboard> pKeyboard) {
     Log::logger->log(Log::DEBUG, "Keyboard at {:x} removed", rc<uintptr_t>(pKeyboard.get()));
 

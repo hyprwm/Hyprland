@@ -60,7 +60,7 @@ namespace Fullscreen::ScrollingFullscreenHandler {
 
         virtual void syncTargetSizeAndPosition();
 
-        virtual void setNoMembersAboveFullscreen();
+        virtual void setNoMembersAboveFullscreen(const std::optional<SP<Layout::ITarget>> coveringFsTarget = std::nullopt);
         virtual void syncFullscreenTargets();
         virtual void removeFsTarget(SP<Layout::ITarget> target, const bool recursionGuard = false);
 
@@ -70,7 +70,7 @@ namespace Fullscreen::ScrollingFullscreenHandler {
 
         // Scrolling Specific Helpers
 
-        void sScrollingDataRecalculateHelper(const SP<Layout::Tiled::SScrollingTargetData> CURRENT_FS_TDATA, const PHLMONITOR MONITOR, const bool TARGET_WORKSPACE_HAS_FS);
+        void sScrollingDataRecalculateHelper(const SP<Layout::Tiled::SScrollingTargetData> CURRENT_COVERING_FS_TDATA, const PHLMONITOR MONITOR);
 
       private:
         struct SScrollingFullscreenWindowHidingState {

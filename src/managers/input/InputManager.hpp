@@ -118,6 +118,8 @@ class CInputManager {
     bool               isLocked();
     bool               hasHeldButtons();
 
+    bool               anyHidHasCap(eHIDCapabilityType type);
+
     Vector2D           getMouseCoordsInternal();
     void               refocus(std::optional<Vector2D> overridePos = std::nullopt);
     bool               refocusLastWindow(PHLMONITOR pMonitor);

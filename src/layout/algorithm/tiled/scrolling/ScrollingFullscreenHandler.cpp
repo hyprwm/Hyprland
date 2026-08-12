@@ -651,7 +651,7 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
 
             if (w != CURRENT_LAYOUT_HANDLED_FS_WINDOW && !w->m_pinned) {
                 // If it the window was hidden when the UNDERLYING_FS_WINDOW was FSed, or it is a tiled window; it remains hidden. else, it is allowed ontop of it
-                if (w->m_allowedOverFullscreen != w->m_isFloating && !m_fullscreenWindowHidingState.hiddenFloatingWindowsUnderFSWindow.contains(w))
+                if (w->m_allowedOverFullscreen != (w->m_isFloating && !m_fullscreenWindowHidingState.hiddenFloatingWindowsUnderFSWindow.contains(w)))
                     return true;
             }
         }

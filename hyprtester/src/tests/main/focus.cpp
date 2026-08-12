@@ -18,8 +18,7 @@ using namespace Hyprutils::Utils;
 
 static bool waitForMonitorReservations(const std::string& reservedMonitor, const std::string& clearMonitor) {
     for (size_t i = 0; i < 50; ++i) {
-        const auto result =
-            getFromSocket(std::format("r/eval return hl.get_monitor('{}').reserved.top > 0 and hl.get_monitor('{}').reserved.top == 0", reservedMonitor, clearMonitor));
+        const auto result = getFromSocket(std::format("r/repl hl.get_monitor('{}').reserved.top > 0 and hl.get_monitor('{}').reserved.top == 0", reservedMonitor, clearMonitor));
         if (result == "true")
             return true;
 
@@ -32,7 +31,7 @@ static bool waitForMonitorReservations(const std::string& reservedMonitor, const
 
 static bool waitForMonitorReservationsCleared(const std::string& monitorA, const std::string& monitorB) {
     for (size_t i = 0; i < 50; ++i) {
-        const auto result = getFromSocket(std::format("r/eval return hl.get_monitor('{}').reserved.top == 0 and hl.get_monitor('{}').reserved.top == 0", monitorA, monitorB));
+        const auto result = getFromSocket(std::format("r/repl hl.get_monitor('{}').reserved.top == 0 and hl.get_monitor('{}').reserved.top == 0", monitorA, monitorB));
         if (result == "true")
             return true;
 

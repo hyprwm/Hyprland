@@ -67,7 +67,7 @@ CFsMonClient::CFsMonClient() {
         NLog::log("{}CFsMonClient: read failed", Colors::RED);
         throw std::exception();
     }
-    if (std::string{!this->readBuf.data()}.contains("started")) {
+    if (!std::string_view{this->readBuf.data()}.contains("started")) {
         NLog::log("{}CFsMonClient: unexpected startup output: {}", Colors::RED, this->readBuf.data());
         throw std::exception();
     }

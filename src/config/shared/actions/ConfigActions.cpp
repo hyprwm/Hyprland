@@ -90,6 +90,8 @@ static void switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool forceFSCycle = fals
     }
 }
 
+// TODO: This fucntion should probably just find a workspace and call `Actions::changeWorkspace`.
+// Can be refactored after #15649 is resolved.
 static bool tryMoveFocusToMonitor(PHLMONITOR monitor) {
     if (!monitor)
         return false;
@@ -985,13 +987,16 @@ ActionResult Actions::changeWorkspace(PHLWORKSPACE ws) {
     }
 
     const static auto PWARPONWORKSPACECHANGE = CConfigValue<Config::INTEGER>("cursor:warp_on_change_workspace");
+    const static auto PWARPONMONITORCHANGE   = CConfigValue<Config::INTEGER>("cursor:warp_on_monitor_change");
 
-    if (*PWARPONWORKSPACECHANGE > 0) {
+    const auto        WARP = ws->monitorID() == PMONITOR->id() || *PWARPONMONITORCHANGE == -1 ? *PWARPONWORKSPACECHANGE : *PWARPONMONITORCHANGE;
+
+    if (WARP > 0) {
         auto PLAST     = ws->getLastFocusedWindow();
         auto HLSurface = Desktop::View::CWLSurface::fromResource(g_pSeatManager->m_state.pointerFocus.lock());
 
         if (PLAST && (!HLSurface || HLSurface->view()->type() == Desktop::View::VIEW_TYPE_WINDOW))
-            PLAST->warpCursor(*PWARPONWORKSPACECHANGE == 2);
+            PLAST->warpCursor(WARP == 2);
     }
 
     return {};

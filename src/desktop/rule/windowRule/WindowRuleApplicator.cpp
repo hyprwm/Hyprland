@@ -61,7 +61,8 @@ std::unordered_set<CWindowRuleEffectContainer::storageType> CWindowRuleApplicato
             std::pair{std::ref(m_scrollMouse), [this] { return scrollMouseEffect(); }}, std::pair{std::ref(m_scrollTouchpad), [this] { return scrollTouchpadEffect(); }},
             std::pair{std::ref(m_animationStyle), [this] { return animationStyleEffect(); }}, std::pair{std::ref(m_maxSize), [this] { return maxSizeEffect(); }},
             std::pair{std::ref(m_minSize), [this] { return minSizeEffect(); }}, std::pair{std::ref(m_activeBorderColor), [this] { return activeBorderColorEffect(); }},
-            std::pair{std::ref(m_inactiveBorderColor), [this] { return inactiveBorderColorEffect(); }}, std::pair{std::ref(m_noWobble), [this] { return noWobbleEffect(); }}));
+            std::pair{std::ref(m_inactiveBorderColor), [this] { return inactiveBorderColorEffect(); }}, std::pair{std::ref(m_noWobble), [this] { return noWobbleEffect(); }},
+            std::pair{std::ref(m_noGlow), [this] { return noGlowEffect(); }}));
 
     if (prio == Types::PRIORITY_WINDOW_RULE) {
         std::erase_if(m_dynamicTags, [props, this](const auto& el) {
@@ -294,6 +295,11 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
             case WINDOW_RULE_EFFECT_NO_SHADOW: {
                 m_noShadow.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_noShadow.second |= rule->getPropertiesMask();
+                break;
+            }
+            case WINDOW_RULE_EFFECT_NO_GLOW: {
+                m_noGlow.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
+                m_noGlow.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_NO_WOBBLE: {

@@ -33,6 +33,16 @@ set_target_properties(hyprpm PROPERTIES CXX_VISIBILITY_PRESET hidden)
 
 target_link_libraries(hyprpm PUBLIC PkgConfig::hyprpm_deps glaze::glaze)
 
+if (BUILD_TESTING OR WITH_TESTS)
+    find_package(GTest CONFIG REQUIRED)
+    include(GoogleTest)
+    enable_testing()
+
+    add_executable(hyprpm_gtests tests/RepositoryCache.cpp src/core/RepositoryCache.cpp)
+    target_link_libraries(hyprpm_gtests PRIVATE GTest::gtest_main)
+    gtest_discover_tests(hyprpm_gtests TEST_PREFIX "hyprpm.")
+endif()
+
 # binary
 install(TARGETS hyprpm)
 

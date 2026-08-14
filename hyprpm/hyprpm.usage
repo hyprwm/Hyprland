@@ -6,6 +6,7 @@ hyprpm [<FLAGS>]... <ARGUMENT>
         |   (--verbose | -v)            "Enable too much logging"
         |   (--force | -f)              "Force an operation ignoring checks (e.g. update -f)"
         |   (--no-shallow | -s)         "Disable shallow cloning of Hyprland sources"
+        |   (--experimental-cache)      "Persist plugin repositories and their build caches locally"
         ;
 
 <ARGUMENT> ::= (add)                    "Install a new plugin repository from git"

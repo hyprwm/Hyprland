@@ -11,6 +11,7 @@ struct SGlobalState {
 
 namespace DataState {
     std::filesystem::path              getDataStatePath();
+    std::filesystem::path              getRepositoryCachePath();
     std::string                        getHeadersPath();
     std::vector<std::filesystem::path> getPluginStates();
     void                               ensureStateStoreExists();

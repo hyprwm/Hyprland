@@ -15,10 +15,10 @@ _hyprpm () {
     local words cword
     _get_comp_words_by_ref -n "$COMP_WORDBREAKS" words cword
 
-    declare -a literals=(--no-shallow -n ::= disable list --help update add --verbose -v --force -s remove enable --notify -h reload -f)
+    declare -a literals=(--no-shallow -n ::= disable list --help update add --verbose -v --force -s remove enable --notify -h reload -f --experimental-cache)
     declare -A literal_transitions
-    literal_transitions[0]="([0]=7 [3]=3 [4]=4 [8]=7 [9]=7 [6]=4 [7]=4 [11]=7 [5]=7 [10]=7 [12]=2 [13]=3 [15]=7 [16]=4 [17]=7)"
-    literal_transitions[1]="([12]=2 [13]=3 [3]=3 [4]=4 [16]=4 [6]=4 [7]=4)"
+    literal_transitions[0]="([0]=7 [3]=3 [4]=4 [8]=7 [9]=7 [6]=4 [7]=4 [11]=7 [5]=7 [10]=7 [12]=2 [13]=3 [15]=7 [16]=4 [17]=7 [18]=7)"
+    literal_transitions[1]="([12]=2 [13]=3 [3]=3 [4]=4 [16]=4 [6]=4 [7]=4 [18]=7)"
     literal_transitions[5]="([2]=6)"
     literal_transitions[6]="([1]=7 [14]=7)"
     declare -A match_anything_transitions=([1]=1 [4]=5 [3]=4 [2]=4 [0]=1)

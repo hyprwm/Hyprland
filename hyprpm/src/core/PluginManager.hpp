@@ -5,6 +5,7 @@
 #include <optional>
 #include <string>
 #include <expected>
+#include <filesystem>
 #include "Plugin.hpp"
 
 enum eHeadersErrors {
@@ -47,6 +48,7 @@ struct SHyprlandVersion {
 class CPluginManager {
   public:
     CPluginManager();
+    ~CPluginManager();
 
     bool                   addNewPluginRepo(const std::string& url, const std::string& rev);
     bool                   removePluginRepo(const SPluginRepoIdentifier& identifier);
@@ -70,10 +72,12 @@ class CPluginManager {
     const std::string&     getPkgConfigPath();
 
     bool                   hasDeps();
+    bool                   acquireRepositoryCacheLock();
 
-    bool                   m_bVerbose   = false;
-    bool                   m_bNoShallow = false;
-    bool                   m_bNoNix     = false;
+    bool                   m_bVerbose           = false;
+    bool                   m_bNoShallow         = false;
+    bool                   m_bNoNix             = false;
+    bool                   m_bExperimentalCache = false;
     std::string            m_szCustomHlUrl, m_szUsername, m_szArgv0;
 
     // will delete recursively if exists!!
@@ -83,10 +87,16 @@ class CPluginManager {
     std::string                             headerError(const eHeadersErrors err);
     std::string                             headerErrorShort(const eHeadersErrors err);
     bool                                    validArg(const std::string& s);
+    bool                                    preparePluginRepository(const std::string& url);
+    bool                                    preparePluginOutput(const std::string& output);
+    std::optional<std::filesystem::path>    pluginOutputPath(const std::string& output);
+    void                                    cleanWorkingPluginDirectory();
+    std::string                             getPluginRepositoryPath(const std::string& url);
 
     std::expected<std::string, std::string> nixDevelopIfNeeded(const std::string& cmd, const SHyprlandVersion& ver);
 
     std::string                             m_szWorkingPluginDirectory;
+    int                                     m_iRepositoryCacheLockFD = -1;
 };
 
 inline std::unique_ptr<CPluginManager> g_pPluginManager;

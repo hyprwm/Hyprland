@@ -1,13 +1,22 @@
 #include "DataState.hpp"
 #include <sys/stat.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <pwd.h>
+#include <unistd.h>
+#include <cerrno>
 #include <toml++/toml.hpp>
 #include <print>
 #include <sstream>
-#include <fstream>
+#include <string_view>
+#include <format>
 #include "PluginManager.hpp"
 #include "../helpers/Die.hpp"
 #include "../helpers/Sys.hpp"
 #include "../helpers/StringUtils.hpp"
+
+#include <hyprutils/memory/Casts.hpp>
+using namespace Hyprutils::Memory;
 
 static std::string getTempRoot() {
     static auto ENV = getenv("XDG_RUNTIME_DIR");
@@ -16,7 +25,7 @@ static std::string getTempRoot() {
         exit(1);
     }
 
-    const auto STR = ENV + std::string{"/hyprpm/"};
+    const auto STR = std::format("{}/hyprpm/", ENV);
 
     if (!std::filesystem::exists(STR))
         mkdir(STR.c_str(), S_IRWXU);
@@ -24,21 +33,66 @@ static std::string getTempRoot() {
     return STR;
 }
 
+static bool writeAll(int fd, std::string_view data) {
+    size_t written = 0;
+    while (written < data.size()) {
+        const auto WRITE = write(fd, data.data() + written, data.size() - written);
+        if (WRITE < 0) {
+            if (errno == EINTR)
+                continue;
+            return false;
+        }
+        if (WRITE == 0)
+            return false;
+        written += WRITE;
+    }
+    return true;
+}
+
 // write the state to a file
 static bool writeState(const std::string& str, const std::string& to) {
-    // create temp file in a safe temp root
-    std::ofstream of(std::format("{}.temp-state", getTempRoot()), std::ios::trunc);
-    if (!of.good())
+    int TEMP_FD = open(getTempRoot().c_str(), O_RDWR | O_TMPFILE | O_CLOEXEC, S_IRUSR | S_IWUSR);
+    if (TEMP_FD < 0)
+        TEMP_FD = memfd_create("hyprpm-state", MFD_CLOEXEC);
+    if (TEMP_FD < 0)
         return false;
 
-    of << str;
-    of.close();
-
-    return NSys::root::install(std::format("{}.temp-state", getTempRoot()), to, "644");
+    const bool WRITTEN   = writeAll(TEMP_FD, str) && lseek(TEMP_FD, 0, SEEK_SET) == 0;
+    const bool INSTALLED = WRITTEN && NSys::root::installFromFD(TEMP_FD, to, "644");
+    close(TEMP_FD);
+    return INSTALLED;
 }
 
 std::filesystem::path DataState::getDataStatePath() {
     return std::filesystem::path(std::format("/var/cache/hyprpm/{}", g_pPluginManager->m_szUsername));
+}
+
+std::filesystem::path DataState::getRepositoryCachePath() {
+    const auto XDG_CACHE_HOME = getenv("XDG_CACHE_HOME");
+    if (XDG_CACHE_HOME && std::filesystem::path{XDG_CACHE_HOME}.is_absolute())
+        return std::filesystem::path{XDG_CACHE_HOME} / "hyprpm" / "repos";
+
+    const auto USER = getpwuid(NSys::getUID());
+    if (!USER || !USER->pw_dir)
+        Debug::die("getRepositoryCachePath: Failed to determine the user's home directory");
+
+    return std::filesystem::path{USER->pw_dir} / ".cache" / "hyprpm" / "repos";
+}
+
+static bool installPluginBinary(const std::filesystem::path& source, const std::filesystem::path& destination) {
+    const int SOURCE_FD = open(source.c_str(), O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+    if (SOURCE_FD < 0)
+        return false;
+
+    struct stat sourceStat;
+    if (fstat(SOURCE_FD, &sourceStat) != 0 || !S_ISREG(sourceStat.st_mode) || sourceStat.st_uid != sc<uid_t>(NSys::getUID())) {
+        close(SOURCE_FD);
+        return false;
+    }
+
+    const bool INSTALLED = NSys::root::installFromFD(SOURCE_FD, destination.string(), "0755");
+    close(SOURCE_FD);
+    return INSTALLED;
 }
 
 std::string DataState::getHeadersPath() {
@@ -103,8 +157,8 @@ void DataState::addNewPluginRepo(const SPluginRepository& repo) {
         const auto filename = std::format("{}.so", p.name);
 
         // copy .so to the good place and chmod 755
-        if (std::filesystem::exists(p.filename)) {
-            if (!NSys::root::install(p.filename, (PATH / filename).string(), "0755"))
+        if (!p.failed && std::filesystem::exists(p.filename)) {
+            if (!installPluginBinary(p.filename, PATH / filename))
                 Debug::die("addNewPluginRepo: failed to install so file");
         }
 
@@ -296,15 +350,28 @@ bool DataState::setPluginEnabled(const SPluginRepoIdentifier& identifier, bool e
 
 void DataState::purgeAllCache() {
     std::error_code ec;
-    if (!std::filesystem::exists(getDataStatePath()) && !ec) {
-        std::println("{}", infoString("Nothing to do"));
-        return;
+    bool            removed = false;
+
+    if (std::filesystem::exists(getDataStatePath(), ec) && !ec) {
+        const auto PATH = getDataStatePath().string();
+        if (PATH.contains('\''))
+            return;
+        // scary!
+        if (!NSys::root::removeRecursive(PATH))
+            Debug::die("Failed to run a superuser cmd");
+        removed = true;
     }
 
-    const auto PATH = getDataStatePath().string();
-    if (PATH.contains('\''))
-        return;
-    // scary!
-    if (!NSys::root::removeRecursive(PATH))
-        Debug::die("Failed to run a superuser cmd");
+    ec.clear();
+    const auto REPOSITORY_CACHE        = getRepositoryCachePath();
+    const auto REPOSITORY_CACHE_STATUS = std::filesystem::symlink_status(REPOSITORY_CACHE, ec);
+    if (!ec && REPOSITORY_CACHE_STATUS.type() != std::filesystem::file_type::not_found) {
+        std::filesystem::remove_all(REPOSITORY_CACHE, ec);
+        if (ec)
+            Debug::die("Failed to remove the local repository cache");
+        removed = true;
+    }
+
+    if (!removed)
+        std::println("{}", infoString("Nothing to do"));
 }

@@ -111,7 +111,6 @@ add_compile_options(
   -Wno-missing-field-initializers
   -Wno-narrowing
   -Wno-pointer-arith
-  -Wno-clobbered
   -frtti
   -fmacro-prefix-map=${CMAKE_SOURCE_DIR}/=)
 

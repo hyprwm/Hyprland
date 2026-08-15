@@ -167,7 +167,7 @@ static int windowIndex(lua_State* L) {
     } else if (key == "content_type")
         lua_pushstring(L, NContentType::toString(w->getContentType()).c_str());
     else if (key == "stable_id")
-        lua_pushinteger(L, sc<lua_Integer>(w->m_stableID));
+        lua_pushstring(L, std::format("{:x}", w->m_stableID).c_str());
     else if (key == "layout") {
         const auto target = w->layoutTarget();
         if (!target || target->floating() || !w->m_workspace || !w->m_workspace->m_space) {

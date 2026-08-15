@@ -433,7 +433,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Gradient>("group:col.border_locked_active", "active locked group border color", CHyprColor{0x66775500}, {.refresh = Supplementary::REFRESH_GRADIENTS_GROUPBAR}),
         MS<Bool>("group:auto_group", "automatically group new windows", true),
         MS<Int>("group:drag_into_group", "whether dragging a window into a unlocked group will merge them.", 1,
-                {.min = 0, .max = 2, .map = OptionMap{{"disabled", 0}, {"enabled", 1}, {"only when dragging into the groupbar", 2}}}),
+                {.min = 0, .max = 2, .map = OptionMap{{"disabled", 0}, {"enabled", 1}, {"only_into_groupbar", 2}}}),
         MS<Bool>("group:merge_floated_into_tiled_on_groupbar", "whether dragging a floating window into a tiled window groupbar will merge them", false),
         MS<Bool>("group:group_on_movetoworkspace", "whether using movetoworkspace[silent] will merge the window into the workspace's solitary unlocked group", false),
 
@@ -510,7 +510,8 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Bool>("misc:close_special_on_empty", "close the special workspace if the last window is removed", true),
         MS<Int>("misc:on_focus_under_fullscreen", "if there is a fullscreen or maximized window, decide whether a tiled window requested to focus should replace it.", 2,
                 {.min = 0, .max = 2, .map = OptionMap{{"ignore", 0}, {"take_over", 1}, {"exit_fullscreen", 2}}}),
-        MS<Bool>("misc:exit_window_retains_fullscreen", "if true, closing a fullscreen window makes the next focused window fullscreen", false),
+        MS<Int>("misc:exit_window_retains_fullscreen", "whether closing a fullscreen window makes the next focused window to be fullscreened", 0,
+                {.min = 0, .max = 3, .map = OptionMap{{"disable", 0}, {"enable", 1}, {"only_when_grouped", 2}, {"only_when_nongrouped", 3}}}),
         MS<Int>("misc:initial_workspace_tracking", "if enabled, windows will open on the workspace they were invoked on.", 1, {.min = 0, .max = 2}),
         MS<Int>("misc:initial_workspace_token_timeout", "the time in seconds a window has to open on its invoked workspace before the tracking token expires.", 10,
                 {.min = 1, .max = 3600}),

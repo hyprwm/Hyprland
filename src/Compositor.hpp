@@ -74,6 +74,7 @@ class CCompositor {
     bool                     m_desktopEnvSet          = false;
     bool                     m_wantsXwayland          = true;
     bool                     m_onlyConfigVerification = false;
+    bool                     m_sdSessionTarget        = false;
 
     // ------------------------------------------------- //
 

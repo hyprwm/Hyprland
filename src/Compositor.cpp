@@ -543,7 +543,7 @@ void CCompositor::cleanEnvironment() {
 
     if (m_aqBackend->hasSession() && !Env::envEnabled("HYPRLAND_NO_SD_VARS") && !getenv("MANAGERPID")) {
 #ifdef USES_SYSTEMD
-        if (!Env::envEnabled("HYPRLAND_NO_SD_TARGET"))
+        if (m_sdSessionTarget)
             // stopping hyprland-session doesn't wait for dependent services; this does
             Config::Supplementary::executor()->spawn("systemctl --user stop graphical-session.target");
 #endif
@@ -804,8 +804,10 @@ void CCompositor::startCompositor() {
             "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS";
         Config::Supplementary::executor()->spawn(CMD);
 #ifdef USES_SYSTEMD
-        if (!Env::envEnabled("HYPRLAND_NO_SD_TARGET"))
+        if (!Env::envEnabled("HYPRLAND_NO_SD_TARGET")) {
+            m_sdSessionTarget = true;
             Config::Supplementary::executor()->spawn("systemctl --user start hyprland-session.target");
+        }
 #endif
     }
 

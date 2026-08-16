@@ -30,9 +30,9 @@ static bool shouldBlurWindow(PHLWINDOW window) {
     if (window->m_ruleApplicator->noBlur().valueOrDefault() || window->m_ruleApplicator->RGBX().valueOrDefault() || window->opaque())
         return false;
 
-    auto surface = window->wlSurface();
-    if (surface && surface->m_hasBackgroundEffect)
-        return !surface->m_blurRegion.empty();
+    const auto SURFACE = window->wlSurface();
+    if (const auto EFFECT = SURFACE ? SURFACE->backgroundEffectBlur() : std::nullopt; EFFECT)
+        return *EFFECT;
 
     return true;
 }

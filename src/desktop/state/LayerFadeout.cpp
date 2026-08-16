@@ -29,9 +29,9 @@ static bool shouldBlurLayer(PHLLS layer) {
     if (!*PBLUR)
         return false;
 
-    auto surface = layer->wlSurface();
-    if (surface && surface->m_hasBackgroundEffect)
-        return !surface->m_blurRegion.empty();
+    const auto SURFACE = layer->wlSurface();
+    if (const auto EFFECT = SURFACE ? SURFACE->backgroundEffectBlur() : std::nullopt; EFFECT)
+        return *EFFECT;
 
     return layer->m_ruleApplicator->blur().valueOrDefault();
 }

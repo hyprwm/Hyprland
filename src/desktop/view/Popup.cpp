@@ -711,3 +711,19 @@ std::optional<uint8_t> CPopup::alphaGenericToKey(eAlphaModifiableProp p) {
     static_assert(ALPHA_MODIFIABLE_LAST == 1);
     UNREACHABLE();
 }
+
+bool CPopup::shouldBlur() const {
+    static auto PBLUR = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
+    if (!*PBLUR)
+        return false;
+
+    const auto SURFACE = wlSurface();
+    if (const auto EFFECT = SURFACE ? SURFACE->backgroundEffectBlur() : std::nullopt; EFFECT)
+        return *EFFECT;
+
+    if (const auto LAYER = layerOwner(); LAYER)
+        return LAYER->m_ruleApplicator->blurPopups().valueOrDefault();
+
+    static auto PBLURPOPUPS = CConfigValue<Config::INTEGER>("decoration:blur:popups");
+    return *PBLURPOPUPS;
+}

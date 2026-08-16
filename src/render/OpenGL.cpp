@@ -2168,7 +2168,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
         // handle ext-background-effect-v1 blur region if specified
         CRegion blurClipRegion = data.clipRegion;
         auto    PSURFACE       = Desktop::View::CWLSurface::fromResource(data.surface);
-        if (PSURFACE && PSURFACE->m_hasBackgroundEffect && !PSURFACE->m_blurRegion.empty()) {
+        if (PSURFACE && PSURFACE->backgroundEffectBlur().value_or(false)) {
             CRegion protocolBlur = PSURFACE->m_blurRegion.copy();
             protocolBlur.intersect(CBox{0, 0, box.width, box.height});
             protocolBlur.scale(m_renderData.pMonitor->m_scale);

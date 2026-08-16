@@ -14,8 +14,7 @@ using namespace Hyprutils::Utils;
 #define UP CUniquePointer
 #define SP CSharedPointer
 
-// TODO: decompose this into multiple test cases
-TEST_CASE(groups) {
+TEST_CASE(groupDimensions) {
     // test on workspace "window"
     NLog::log("{}Dispatching workspace `groups`", Colors::YELLOW);
     getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:groups' })");
@@ -95,7 +94,7 @@ TEST_CASE(groups) {
         EXPECT_CONTAINS(str, "size: 1876,1015");
     }
 
-    // disable the groupbar for ease of testing for now
+    // disable the groupbar
     NLog::log("{}Disable groupbar", Colors::YELLOW);
     OK(getFromSocket("/eval hl.config({ group = { groupbar = { enabled = 0 } } })"));
 
@@ -124,8 +123,11 @@ TEST_CASE(groups) {
         EXPECT_CONTAINS(str, "at: 22,22");
         EXPECT_CONTAINS(str, "size: 1876,1036");
     }
+}
 
-    NLog::log("{}Spawn kittyProcB", Colors::YELLOW);
+TEST_CASE(groupNext) {
+    SPAWN_KITTY("a");
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
     SPAWN_KITTY("b");
 
     NLog::log("{}Expecting 2 windows", Colors::YELLOW);
@@ -155,6 +157,15 @@ TEST_CASE(groups) {
         auto str = getFromSocket("/activewindow");
         ASSERT(lastActiveKittyIdx, std::stoull(str.substr(7, str.find(" -> ") - 7), nullptr, 16));
     } catch (...) { FAIL_TEST("Could not extract the active window id"); }
+}
+
+TEST_CASE(groupMoveWindow) {
+    SPAWN_KITTY("a");
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+    SPAWN_KITTY("b");
+
+    NLog::log("{}Expecting 2 windows", Colors::YELLOW);
+    ASSERT(Tests::windowCount(), 2);
 
     // test movegroupwindow: focus should follow the moved window
     NLog::log("{}Test movegroupwindow focus follows window", Colors::YELLOW);
@@ -177,6 +188,16 @@ TEST_CASE(groups) {
         auto activeAfterMove = std::stoull(str.substr(7, str.find(" -> ") - 7), nullptr, 16);
         EXPECT(activeAfterMove, activeBeforeMove);
     } catch (...) { FAIL_TEST("Could not extract the active window id"); }
+}
+
+TEST_CASE(autoGroupInsertAfterCurrent) {
+    OK(getFromSocket("/eval hl.config({ group = { groupbar = { enabled = 0 } } })"));
+    SPAWN_KITTY("a");
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+    SPAWN_KITTY("b");
+
+    NLog::log("{}Expecting 2 windows", Colors::YELLOW);
+    ASSERT(Tests::windowCount(), 2);
 
     NLog::log("{}Disable autogrouping", Colors::YELLOW);
     OK(getFromSocket("/eval hl.config({ group = { auto_group = false } })"));
@@ -211,14 +232,9 @@ TEST_CASE(groups) {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, std::format("pid: {}", kittyProcD->pid()));
     }
+}
 
-    // kill all
-    NLog::log("{}Kill windows", Colors::YELLOW);
-    Tests::killAllWindows();
-
-    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
-    ASSERT(Tests::windowCount(), 0);
-
+TEST_CASE(moveWindowOrGroup) {
     // test movewindoworgroup: direction should be respected when extracting from group
     NLog::log("{}Test movewindoworgroup respects direction out of group", Colors::YELLOW);
     OK(getFromSocket("/eval hl.config({ group = { groupbar = { enabled = 0 } } })"));
@@ -259,77 +275,13 @@ TEST_CASE(groups) {
             auto str = getFromSocket("/clients");
             EXPECT_COUNT_STRING(str, "at: 22,22", 1);
         }
-
-        Tests::killAllWindows();
-        ASSERT(Tests::windowCount(), 0);
     }
+}
 
-    // test that we can auto-group a new floated window into the focused floated group
-    NLog::log("{}Test that we can auto-group a new floated window into the focused floated group.", Colors::GREEN);
-
-    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated-A', match = { class = 'kitty_floated_A' } })"));
-    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated-A', float = true })"));
-    SPAWN_KITTY("kitty_floated_A");
-    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
-
-    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated-B', match = { class = 'kitty_floated_B' } })"));
-    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated-B', float = true })"));
-    SPAWN_KITTY("kitty_floated_B");
-    ASSERT(Tests::windowCount(), 2);
-
-    {
-        auto clients  = getFromSocket("/clients");
-        auto classPos = clients.find("class: kitty_floated_B");
-        if (classPos == std::string::npos) {
-            FAIL_TEST("Could not find kitty_floated_B in clients output");
-        } else {
-            auto entryStart  = clients.rfind("Window ", classPos);
-            auto entryEnd    = clients.find("\n\n", classPos);
-            auto windowEntry = clients.substr(entryStart, entryEnd - entryStart);
-            EXPECT_CONTAINS(windowEntry, "floating: 1");
-            EXPECT_NOT_CONTAINS(windowEntry, "grouped: 0");
-        }
-    }
-
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
-
-    // test that we deny a floated window getting auto-grouped into a tiled group.
-    NLog::log("{}Test that we deny a floated window getting auto-grouped into a tiled group.", Colors::GREEN);
-
-    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-tiled', match = { class = 'kitty_tiled' } })"));
-    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-tiled', tile = true })"));
-    SPAWN_KITTY("kitty_tiled");
-    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
-
-    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated', match = { class = 'kitty_floated' } })"));
-    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated', float = true })"));
-    SPAWN_KITTY("kitty_floated");
-
-    ASSERT(Tests::windowCount(), 2);
-
-    {
-        auto clients  = getFromSocket("/clients");
-        auto classPos = clients.find("class: kitty_floated");
-        if (classPos == std::string::npos) {
-            FAIL_TEST("Could not find kitty_floated in clients output");
-        } else {
-            auto entryStart  = clients.rfind("Window ", classPos);
-            auto entryEnd    = clients.find("\n\n", classPos);
-            auto windowEntry = clients.substr(entryStart, entryEnd - entryStart);
-            EXPECT_CONTAINS(windowEntry, "floating: 1");
-            EXPECT_CONTAINS(windowEntry, "grouped: 0");
-        }
-    }
-
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
-
-    // Tests for grouping/merging logic
+TEST_CASE(groupLock) {
     NLog::log("{}Testing locked groups w/ invade", Colors::GREEN);
 
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
+    OK(getFromSocket("/eval hl.config({ group = { groupbar = { enabled = 0 } } })"));
 
     // Test normal, unlocked groups
     {
@@ -383,10 +335,9 @@ TEST_CASE(groups) {
         auto str = getFromSocket("/clients");
         EXPECT_COUNT_STRING(str, "at: 22,22", 2);
     }
+}
 
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
-
+TEST_CASE(groupbarMiddleClick) {
     // Test groupbar middle click close config
     {
         OK(getFromSocket("/eval hl.config({ group = { auto_group = true, groupbar = { enabled = true, middle_click_close = false } } })"));
@@ -416,9 +367,6 @@ TEST_CASE(groups) {
 
         OK(getFromSocket("/eval hl.config({ group = { groupbar = { enabled = 0 } } })"));
     }
-
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
 }
 
 TEST_CASE(groupsNoCrash) {
@@ -642,8 +590,64 @@ TEST_CASE(groups_disable_when_only) {
     ASSERT(Tests::windowCount(), 0);
 }
 
+TEST_CASE(autoGroupFloatedIntoTiled) {
+    NLog::log("{}Test that we deny a new floated window getting auto-grouped into the focused tiled group.", Colors::GREEN);
+
+    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-tiled', match = { class = 'kitty_tiled' } })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-tiled', tile = true })"));
+    SPAWN_KITTY("kitty_tiled");
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+
+    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated', match = { class = 'kitty_floated' } })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated', float = true })"));
+    SPAWN_KITTY("kitty_floated");
+
+    ASSERT(Tests::windowCount(), 2);
+
+    {
+        auto clients  = getFromSocket("/clients");
+        auto classPos = clients.find("class: kitty_floated");
+        if (classPos == std::string::npos) {
+            FAIL_TEST("Could not find kitty_floated in clients output");
+        } else {
+            auto entryStart  = clients.rfind("Window ", classPos);
+            auto entryEnd    = clients.find("\n\n", classPos);
+            auto windowEntry = clients.substr(entryStart, entryEnd - entryStart);
+            EXPECT_CONTAINS(windowEntry, "floating: 1");
+            EXPECT_CONTAINS(windowEntry, "grouped: 0");
+        }
+    }
+}
+
+TEST_CASE(autoGroupFloatedintoFloated) {
+    NLog::log("{}Test that we can auto-group a new floated window into the focused floated group.", Colors::GREEN);
+
+    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated-A', match = { class = 'kitty_floated_A' } })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated-A', float = true })"));
+    SPAWN_KITTY("kitty_floated_A");
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+
+    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated-B', match = { class = 'kitty_floated_B' } })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated-B', float = true })"));
+    SPAWN_KITTY("kitty_floated_B");
+    ASSERT(Tests::windowCount(), 2);
+
+    {
+        auto clients  = getFromSocket("/clients");
+        auto classPos = clients.find("class: kitty_floated_B");
+        if (classPos == std::string::npos) {
+            FAIL_TEST("Could not find kitty_floated_B in clients output");
+        } else {
+            auto entryStart  = clients.rfind("Window ", classPos);
+            auto entryEnd    = clients.find("\n\n", classPos);
+            auto windowEntry = clients.substr(entryStart, entryEnd - entryStart);
+            EXPECT_CONTAINS(windowEntry, "floating: 1");
+            EXPECT_NOT_CONTAINS(windowEntry, "grouped: 0");
+        }
+    }
+}
+
 TEST_CASE(autoGroupTiledIntoFloated) {
-    // test that we can auto-group a new tiled window into the focused floated group
     NLog::log("{}Test that we can auto-group a new tiled window into the focused floated group.", Colors::GREEN);
 
     OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated-A', match = { class = 'kitty_floated_A' } })"));

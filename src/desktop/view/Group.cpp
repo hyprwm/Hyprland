@@ -161,6 +161,7 @@ void CGroup::add(PHLWINDOW w, std::optional<size_t> index) {
     }
 
     m_target->recalc();
+    g_pInputManager->sendMotionEventsToFocused();
 }
 
 void CGroup::remove(PHLWINDOW w, Math::eDirection dir, eRemoveFromGroupReason reason) {

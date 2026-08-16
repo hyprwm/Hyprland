@@ -2698,6 +2698,7 @@ void CWindow::unmapWindow() {
         if (!candidate && m_workspace && (m_workspace->getWindowCount() == 0 || PMONITOR->m_activeSpecialWorkspace))
             g_pInputManager->refocus();
 
+        // TODO: when unmapping a fullscreen window, this doesn't work right
         g_pInputManager->sendMotionEventsToFocused();
 
         // CWindow::onUnmap will remove this window's active status, but we can't really do it above.

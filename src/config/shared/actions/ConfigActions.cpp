@@ -36,6 +36,7 @@
 #include "../../../state/WorkspacePlacementController.hpp"
 #include "../../../state/WorkspaceState.hpp"
 #include "../../../helpers/math/Expression.hpp"
+#include "../../../overview/Overview.hpp"
 
 #include <numbers>
 #include <utility>
@@ -1798,5 +1799,18 @@ ActionResult Actions::moveIntoOrCreateGroup(Math::eDirection dir, std::optional<
 
 ActionResult Actions::releaseInputCapture() {
     PROTO::inputCapture->forceRelease();
+    return {};
+}
+
+ActionResult Actions::overview(eTogglableAction action) {
+    const bool target = action == TOGGLE_ACTION_TOGGLE ? !Overview::overview()->isOpen() : action == TOGGLE_ACTION_ENABLE;
+    if (target == Overview::overview()->isOpen())
+        return {};
+
+    if (target)
+        Overview::overview()->open(Desktop::focusState()->monitor());
+    else
+        Overview::overview()->close();
+
     return {};
 }

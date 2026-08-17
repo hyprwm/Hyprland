@@ -91,7 +91,9 @@ namespace Render {
         Vector2D                        windowRenderFloatingOffset(PHLWINDOW) const;
         bool                            renderingWorkspaceToBuffer() const;
         // Renders only the target workspace's windows and popups during the target monitor's active render.
-        bool                                renderWorkspaceToBuffer(PHLWORKSPACE, SP<IFramebuffer>, bool sendFeedback = true);
+        bool renderWorkspaceToBuffer(PHLWORKSPACE, SP<IFramebuffer>, bool sendFeedback = true);
+        // Renders the target monitor's regular scene during its active render.
+        bool                                renderMonitorToBuffer(PHLMONITOR, SP<IFramebuffer>, const Time::steady_tp&, bool sendFeedback = true);
         bool                                shouldRenderMonitor(PHLMONITOR);
         void                                ensureCursorRenderingMode();
         bool                                shouldRenderCursor();

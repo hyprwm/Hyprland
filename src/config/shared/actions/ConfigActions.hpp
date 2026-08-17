@@ -84,6 +84,8 @@ namespace Config::Actions {
 
     ActionResult layoutMessage(const std::string& msg);
 
+    ActionResult overview(eTogglableAction action);
+
     ActionResult moveCursor(const Vector2D& pos);
     ActionResult exit();
     ActionResult forceRendererReload();

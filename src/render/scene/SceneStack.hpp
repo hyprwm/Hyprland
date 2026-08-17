@@ -15,8 +15,6 @@ namespace Render {
      * scene be rendered again.
      *
      * Only the "current" (top) scene is rendered.
-     *
-     * TODO: make this not a stack once we can have situations where A+ B+ C+ B- can occur.
      */
     class CSceneStack {
       public:
@@ -29,8 +27,10 @@ namespace Render {
 
         void       push(SP<IScene> scene);
         SP<IScene> pop();
+        bool       remove(const SP<IScene>& scene);
 
         SP<IScene> current() const;
+        bool       hasOverride() const;
 
       private:
         std::vector<SP<IScene>> m_scenes;

@@ -52,6 +52,7 @@
 #include "../helpers/Drm.hpp"
 #include "MonitorFrameScheduler.hpp"
 #include "OutputCommitCoordinator.hpp"
+#include "WorkspaceTransition.hpp"
 #include <aquamarine/output/Output.hpp>
 #include "debug/log/Logger.hpp"
 #include "notification/NotificationOverlay.hpp"
@@ -85,7 +86,8 @@ constexpr const char* drmFormatToString(uint32_t drmFormat) {
     }
 }
 
-CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_name(output_->name), m_state(this), m_output(output_), m_imageDescription(getDefaultImageDescription()) {
+CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) :
+    m_name(output_->name), m_state(this), m_output(output_), m_workspaceTransition(makeUnique<CWorkspaceTransition>(*this)), m_imageDescription(getDefaultImageDescription()) {
     Animation::mgr()->createAnimation(0.f, m_specialFade, Config::animationTree()->getAnimationPropertyConfig("specialWorkspaceIn"), AVARDAMAGE_NONE);
     m_specialFade->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
     Animation::mgr()->createAnimation(0.f, m_specialDim, Config::animationTree()->getAnimationPropertyConfig("specialWorkspaceIn"), AVARDAMAGE_NONE);
@@ -106,6 +108,7 @@ CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_name(output_->name), m_s
 }
 
 CMonitor::~CMonitor() {
+    m_workspaceTransition->clear();
     m_events.destroy.emit();
     if (g_pHyprRenderer && g_pHyprRenderer->glBackend())
         g_pHyprRenderer->glBackend()->destroyMonitorResources(m_self);
@@ -1666,6 +1669,15 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace, bool noFocus)
     }
 
     // open special
+    const bool TRANSFERREDTRANSITION = PMONITOR && PMONITOR != m_self && PMONITOR->m_workspaceTransition->get(pWorkspace);
+    if (PMONITOR && PMONITOR != m_self) {
+        PMONITOR->m_workspaceTransition->transferTo(*m_workspaceTransition, pWorkspace);
+        if (TRANSFERREDTRANSITION) {
+            g_pHyprRenderer->damageMonitor(PMONITOR);
+            g_pHyprRenderer->damageMonitor(m_self.lock());
+        }
+    }
+
     pWorkspace->m_monitor               = m_self;
     m_activeSpecialWorkspace            = pWorkspace;
     m_activeSpecialWorkspace->m_visible = true;
@@ -1881,14 +1893,21 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
             return reasons;
     }
 
-    if (PWORKSPACE->m_alpha->value() != 1.f) {
+    if (m_workspaceTransition->alphaValue(PWORKSPACE) != 1.F) {
         reasons |= SC_ALPHA;
         if (!full)
             return reasons;
     }
 
-    if (PWORKSPACE->m_renderOffset->value() != Vector2D{}) {
+    if (m_workspaceTransition->offsetValue(PWORKSPACE) != Vector2D{}) {
         reasons |= SC_OFFSET;
+        if (!full)
+            return reasons;
+    }
+
+    const auto TRANSITIONPARTICIPANTS = m_workspaceTransition->participants();
+    if (!TRANSITIONPARTICIPANTS.empty()) {
+        reasons |= SC_WORKSPACES;
         if (!full)
             return reasons;
     }
@@ -1947,8 +1966,12 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
         }
     }
 
-    for (auto const& ws : State::workspaceState()->workspaces()) {
-        if (ws->m_alpha->value() <= 0.F || !ws->m_isSpecialWorkspace || ws->m_monitor != m_self)
+    auto specialWorkspaces = m_workspaceTransition->participants(true);
+    if (m_activeSpecialWorkspace && !std::ranges::contains(specialWorkspaces, m_activeSpecialWorkspace))
+        specialWorkspaces.emplace_back(m_activeSpecialWorkspace);
+
+    for (auto const& ws : specialWorkspaces) {
+        if (m_workspaceTransition->alphaValue(ws) <= 0.F)
             continue;
 
         reasons |= SC_WORKSPACES;
@@ -2093,6 +2116,12 @@ uint16_t CMonitor::isDSBlocked(bool full) {
 
     if (Pointer::mgr()->softwareLockedFor(m_self.lock())) {
         reasons |= DS_BLOCK_SW;
+        if (!full)
+            return reasons;
+    }
+
+    if (!m_workspaceTransition->participants().empty()) {
+        reasons |= DS_BLOCK_TRANSFORM;
         if (!full)
             return reasons;
     }

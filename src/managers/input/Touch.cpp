@@ -6,6 +6,7 @@
 #include "../../desktop/state/FocusState.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../output/Monitor.hpp"
+#include "../../output/WorkspaceTransition.hpp"
 #include "../../state/MonitorState.hpp"
 #include "../../devices/ITouch.hpp"
 #include "../../event/EventBus.hpp"
@@ -56,7 +57,7 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
         // TODO: Don't swipe if you touched a floating window.
     } else if (*PSWIPETOUCH && (m_foundLSToFocus.expired() || m_foundLSToFocus->m_layer <= 1) && !g_pSessionLockManager->isSessionLocked()) {
         const auto   PWORKSPACE  = PMONITOR->m_activeWorkspace;
-        const auto   STYLE       = PWORKSPACE->m_renderOffset->getStyle();
+        const auto   STYLE       = PMONITOR->m_workspaceTransition->style(PWORKSPACE);
         const bool   VERTANIMS   = STYLE == "slidevert" || STYLE.starts_with("slidefadevert");
         const double TARGETLEFT  = ((VERTANIMS ? gapsOut.m_top : gapsOut.m_left) + *PBORDERSIZE) / (VERTANIMS ? PMONITOR->m_size.y : PMONITOR->m_size.x);
         const double TARGETRIGHT = 1 - (((VERTANIMS ? gapsOut.m_bottom : gapsOut.m_right) + *PBORDERSIZE) / (VERTANIMS ? PMONITOR->m_size.y : PMONITOR->m_size.x));
@@ -157,7 +158,12 @@ void CInputManager::onTouchMove(ITouch::SMotionEvent e) {
         if (e.touchID != g_pUnifiedWorkspaceSwipe->m_touchID)
             return;
 
-        const auto  ANIMSTYLE     = g_pUnifiedWorkspaceSwipe->m_workspaceBegin->m_renderOffset->getStyle();
+        if (!g_pUnifiedWorkspaceSwipe->m_monitor) {
+            g_pUnifiedWorkspaceSwipe->cancel();
+            return;
+        }
+
+        const auto  ANIMSTYLE     = g_pUnifiedWorkspaceSwipe->m_monitor->m_workspaceTransition->style(g_pUnifiedWorkspaceSwipe->m_workspaceBegin);
         const bool  VERTANIMS     = ANIMSTYLE == "slidevert" || ANIMSTYLE.starts_with("slidefadevert");
         static auto PSWIPEINVR    = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_touch_invert");
         static auto PSWIPEDIST    = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_distance");

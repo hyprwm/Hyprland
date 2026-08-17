@@ -71,20 +71,27 @@ namespace Render {
             RT_VK = 2,
         };
 
-        virtual eType                       type() = 0;
-        WP<Render::GL::CHyprOpenGLImpl>     glBackend();
+        virtual eType                   type() = 0;
+        WP<Render::GL::CHyprOpenGLImpl> glBackend();
 
-        void                                renderMonitor(PHLMONITOR pMonitor, bool commit = true);
-        void                                arrangeLayersForMonitor(const MONITORID&);
-        void                                damageSurface(SP<CWLSurfaceResource>, double, double, double scale = 1.0);
-        void                                damageWindow(PHLWINDOW, bool forceFull = false);
-        void                                damageBox(const CBox&, bool skipFrameSchedule = false);
-        void                                damageBox(const int& x, const int& y, const int& w, const int& h);
-        void                                damageRegion(const CRegion&);
-        void                                damageMonitor(PHLMONITOR);
-        void                                damageMirrorsWith(PHLMONITOR, const CRegion&);
-        bool                                shouldRenderWindow(PHLWINDOW, PHLMONITOR);
-        bool                                shouldRenderWindow(PHLWINDOW);
+        void                            renderMonitor(PHLMONITOR pMonitor, bool commit = true);
+        void                            arrangeLayersForMonitor(const MONITORID&);
+        void                            damageSurface(SP<CWLSurfaceResource>, double, double, double scale = 1.0);
+        void                            damageWindow(PHLWINDOW, bool forceFull = false);
+        void                            damageBox(const CBox&, bool skipFrameSchedule = false);
+        void                            damageBox(const int& x, const int& y, const int& w, const int& h);
+        void                            damageRegion(const CRegion&);
+        void                            damageMonitor(PHLMONITOR);
+        void                            damageMirrorsWith(PHLMONITOR, const CRegion&);
+        bool                            shouldRenderWindow(PHLWINDOW, PHLMONITOR);
+        bool                            shouldRenderWindow(PHLWINDOW);
+        float                           workspaceRenderAlpha(PHLWORKSPACE, PHLMONITOR = nullptr) const;
+        Vector2D                        workspaceRenderOffset(PHLWORKSPACE, PHLMONITOR = nullptr) const;
+        bool                            workspaceRenderIsAnimating(PHLWORKSPACE, PHLMONITOR = nullptr) const;
+        Vector2D                        windowRenderFloatingOffset(PHLWINDOW) const;
+        bool                            renderingWorkspaceToBuffer() const;
+        // Renders only the target workspace's windows and popups during the target monitor's active render.
+        bool                                renderWorkspaceToBuffer(PHLWORKSPACE, SP<IFramebuffer>, bool sendFeedback = true);
         bool                                shouldRenderMonitor(PHLMONITOR);
         void                                ensureCursorRenderingMode();
         bool                                shouldRenderCursor();
@@ -262,6 +269,7 @@ namespace Render {
         SP<ITexture>                       m_lockDead3Texture;
         SP<ITexture>                       m_lockTtyTextTexture;
         CRenderPass*                       m_currentPass = nullptr;
+        PHLWORKSPACEREF                    m_isolatedWorkspace;
 
         void                               handleFullscreenSettings(PHLMONITOR pMonitor);
 

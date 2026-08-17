@@ -374,7 +374,7 @@ void CHyprGLRenderer::preRender(PHLMONITOR pMonitor) {
         const auto  PWORKSPACE = pWindow->m_workspace;
         const float A          = pWindow->presentation().alphaValue(Desktop::View::WINDOW_ALPHA_FADE) * pWindow->presentation().alphaValue(Desktop::View::WINDOW_ALPHA_FULLSCREEN) *
             pWindow->presentation().alphaValue(Desktop::View::WINDOW_ALPHA_LAYOUT) * pWindow->presentation().alphaValue(Desktop::View::WINDOW_ALPHA_ACTIVE) *
-            PWORKSPACE->m_alpha->value();
+            g_pHyprRenderer->workspaceRenderAlpha(PWORKSPACE, g_pHyprRenderer->renderData().pMonitor.lock());
 
         if (A < 1.F)
             return true;

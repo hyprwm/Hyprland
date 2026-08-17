@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../helpers/AnimatedVariable.hpp"
 #include <string>
+#include <optional>
 #include <unordered_set>
 #include "DesktopTypes.hpp"
 #include "../helpers/MiscFunctions.hpp"
@@ -29,9 +29,6 @@ class CWorkspace {
     PHLMONITORREF m_monitor;
 
     // for animations
-    PHLANIMVAR<Vector2D>       m_renderOffset;
-    PHLANIMVAR<float>          m_alpha;
-    bool                       m_forceRendering = false;
     std::optional<std::string> m_animationStyle;
 
     // allows damage to propagate.

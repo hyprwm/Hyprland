@@ -13,6 +13,7 @@
 #include "../desktop/view/window/Window.hpp"
 #include "../helpers/MiscFunctions.hpp"
 #include "../output/Monitor.hpp"
+#include "../output/WorkspaceTransition.hpp"
 #include "../layout/target/Target.hpp"
 #include "../layout/LayoutManager.hpp"
 #include "../layout/space/Space.hpp"
@@ -152,6 +153,7 @@ void CWorkspacePlacementController::swapActiveWorkspaces(PHLMONITOR pMonitorA, P
     const auto PWORKSPACEA = pMonitorA->m_activeWorkspace;
     const auto PWORKSPACEB = pMonitorB->m_activeWorkspace;
 
+    pMonitorA->m_workspaceTransition->transferTo(*pMonitorB->m_workspaceTransition, PWORKSPACEA);
     PWORKSPACEA->m_monitor = pMonitorB;
     PWORKSPACEA->m_events.monitorChanged.emit();
 
@@ -175,6 +177,7 @@ void CWorkspacePlacementController::swapActiveWorkspaces(PHLMONITOR pMonitorA, P
         }
     }
 
+    pMonitorB->m_workspaceTransition->transferTo(*pMonitorA->m_workspaceTransition, PWORKSPACEB);
     PWORKSPACEB->m_monitor = pMonitorA;
     PWORKSPACEB->m_events.monitorChanged.emit();
 
@@ -291,6 +294,15 @@ void CWorkspacePlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspa
     }
 
     // move the workspace
+    const bool TRANSFERREDTRANSITION = POLDMON && POLDMON->m_workspaceTransition->get(pWorkspace);
+    if (POLDMON) {
+        POLDMON->m_workspaceTransition->transferTo(*pMonitor->m_workspaceTransition, pWorkspace);
+        if (TRANSFERREDTRANSITION) {
+            g_pHyprRenderer->damageMonitor(POLDMON);
+            g_pHyprRenderer->damageMonitor(pMonitor);
+        }
+    }
+
     pWorkspace->m_monitor = pMonitor;
     pWorkspace->m_space->recheckWorkArea();
     pWorkspace->m_events.monitorChanged.emit();

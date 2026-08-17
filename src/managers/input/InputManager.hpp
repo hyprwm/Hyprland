@@ -173,7 +173,7 @@ class CInputManager {
     std::list<SSwitchDevice> m_switches;
 
     // Exclusive layer surfaces
-    std::vector<PHLLSREF> m_exclusiveLSes;
+    std::vector<PHLLSREF> m_exclusiveKeyboardLSes;
 
     // constraints
     std::vector<WP<CPointerConstraint>> m_constraints;

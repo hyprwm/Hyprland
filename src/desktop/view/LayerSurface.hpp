@@ -58,7 +58,7 @@ namespace Desktop::View {
         LayerFlags                                                m_flags = LAYER_FLAG_ABOVE_FULLSCREEN;
 
         // the header providing the enum type cannot be imported here
-        int                                     m_interactivity = 0;
+        int                                     m_keyboardInteractivity = 0;
 
         uint32_t                                m_layer = 0;
 

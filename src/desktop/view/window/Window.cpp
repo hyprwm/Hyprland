@@ -1434,7 +1434,7 @@ void CWindow::mapWindow() {
     // check LS focus grab
     const auto PFORCEFOCUS  = Desktop::viewState()->query().forceFocus().runWindow();
     const auto PLSFROMFOCUS = Desktop::viewState()->query().type(VIEW_TYPE_LAYER_SURFACE).surface(Desktop::focusState()->surface()).runLayer();
-    if (PLSFROMFOCUS && PLSFROMFOCUS->m_layerSurface->m_current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE)
+    if (PLSFROMFOCUS && PLSFROMFOCUS->m_layerSurface->m_current.keyboardInteractivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE)
         m_state |= WINDOW_STATE_NO_INITIAL_FOCUS;
 
     // emit the hook event here after basic stuff has been initialized

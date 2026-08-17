@@ -206,7 +206,7 @@ bool CWLSurface::keyboardFocusable() const {
     if (m_view->type() == VIEW_TYPE_WINDOW || m_view->type() == VIEW_TYPE_SUBSURFACE || m_view->type() == VIEW_TYPE_POPUP)
         return true;
     if (const auto LS = CLayerSurface::fromView(m_view.lock()); LS && LS->m_layerSurface)
-        return LS->m_layerSurface->m_current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
+        return LS->m_layerSurface->m_current.keyboardInteractivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
     return false;
 }
 

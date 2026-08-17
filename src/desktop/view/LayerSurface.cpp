@@ -173,8 +173,8 @@ void CLayerSurface::onDestroy() {
 void CLayerSurface::onMap() {
     Log::logger->log(Log::DEBUG, "LayerSurface {:x} mapped", rc<uintptr_t>(m_layerSurface.get()));
 
-    m_mapped        = true;
-    m_interactivity = m_layerSurface->m_current.interactivity;
+    m_mapped                = true;
+    m_keyboardInteractivity = m_layerSurface->m_current.keyboardInteractivity;
     m_flags |= LAYER_FLAG_ABOVE_FULLSCREEN;
 
     m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ALL);
@@ -193,13 +193,13 @@ void CLayerSurface::onMap() {
 
     m_wlSurface->resource()->enter(PMONITOR->m_self.lock());
 
-    const bool KEYBOARD_EXCLUSIVE = m_layerSurface->m_current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
+    const bool KEYBOARD_EXCLUSIVE = m_layerSurface->m_current.keyboardInteractivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
 
     if (KEYBOARD_EXCLUSIVE)
-        g_pInputManager->m_exclusiveLSes.push_back(m_self);
+        g_pInputManager->m_exclusiveKeyboardLSes.push_back(m_self);
 
     const bool GRABS_KEYBOARD = KEYBOARD_EXCLUSIVE ||
-        (m_layerSurface->m_current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE &&
+        (m_layerSurface->m_current.keyboardInteractivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE &&
          // don't focus if constrained
          (g_pSeatManager->m_mouse.expired() || !g_pInputManager->isConstrained()));
 
@@ -237,7 +237,7 @@ void CLayerSurface::onUnmap() {
     IPC::Socket2::sock()->postEvent({.event = "closelayer", .data = m_layerSurface->m_layerNamespace});
     Event::bus()->m_events.layer.closed.emit(m_self.lock());
 
-    std::erase_if(g_pInputManager->m_exclusiveLSes, [this](const auto& other) { return !other || other == m_self; });
+    std::erase_if(g_pInputManager->m_exclusiveKeyboardLSes, [this](const auto& other) { return !other || other == m_self; });
 
     if (!m_monitor) {
         Log::logger->log(Log::WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");
@@ -379,7 +379,7 @@ void CLayerSurface::onCommit() {
             m_realSize->setValueAndWarp(m_geometry.size());
     }
 
-    if (m_mapped && (m_layerSurface->m_current.committed & CLayerShellResource::eCommittedState::STATE_INTERACTIVITY)) {
+    if (m_mapped && (m_layerSurface->m_current.committed & CLayerShellResource::eCommittedState::STATE_KEYBOARD_INTERACTIVITY)) {
         bool WASLASTFOCUS = false;
         m_layerSurface->m_surface->breadthfirst(
             [&WASLASTFOCUS](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) { WASLASTFOCUS = WASLASTFOCUS || g_pSeatManager->m_state.keyboardFocus == surf; },
@@ -391,21 +391,21 @@ void CLayerSurface::onCommit() {
                 },
                 nullptr);
         }
-        const bool WAS_KEYBOARD_EXCLUSIVE = m_interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
-        const bool KEYBOARD_EXCLUSIVE     = m_layerSurface->m_current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
+        const bool WAS_KEYBOARD_EXCLUSIVE = m_keyboardInteractivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
+        const bool KEYBOARD_EXCLUSIVE     = m_layerSurface->m_current.keyboardInteractivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
 
         if (!WAS_KEYBOARD_EXCLUSIVE && KEYBOARD_EXCLUSIVE)
-            g_pInputManager->m_exclusiveLSes.push_back(m_self);
+            g_pInputManager->m_exclusiveKeyboardLSes.push_back(m_self);
         else if (WAS_KEYBOARD_EXCLUSIVE && !KEYBOARD_EXCLUSIVE)
-            std::erase_if(g_pInputManager->m_exclusiveLSes, [this](const auto& other) { return !other || other == m_self; });
+            std::erase_if(g_pInputManager->m_exclusiveKeyboardLSes, [this](const auto& other) { return !other || other == m_self; });
 
         // if the surface was focused and interactive but now isn't, refocus
-        if (WASLASTFOCUS && m_layerSurface->m_current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) {
+        if (WASLASTFOCUS && m_layerSurface->m_current.keyboardInteractivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) {
             // moveMouseUnified won't focus non interactive layers but it won't unfocus them either,
             // so unfocus the surface here.
             Desktop::focusState()->rawSurfaceFocus(nullptr);
             g_pInputManager->refocusLastWindow(m_monitor.lock());
-        } else if (WASLASTFOCUS && WAS_KEYBOARD_EXCLUSIVE && m_layerSurface->m_current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND) {
+        } else if (WASLASTFOCUS && WAS_KEYBOARD_EXCLUSIVE && m_layerSurface->m_current.keyboardInteractivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND) {
             g_pInputManager->simulateMouseMovement();
         } else if (!WAS_KEYBOARD_EXCLUSIVE && KEYBOARD_EXCLUSIVE) {
             // if now exclusive and not previously
@@ -415,7 +415,7 @@ void CLayerSurface::onCommit() {
         }
     }
 
-    m_interactivity = m_layerSurface->m_current.interactivity;
+    m_keyboardInteractivity = m_layerSurface->m_current.keyboardInteractivity;
 
     g_pHyprRenderer->damageSurface(m_wlSurface->resource(), m_position.x, m_position.y);
 

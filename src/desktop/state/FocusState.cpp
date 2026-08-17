@@ -108,7 +108,7 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLS
             return;
         }
 
-        if (!g_pInputManager->m_exclusiveLSes.empty()) {
+        if (!g_pInputManager->m_exclusiveKeyboardLSes.empty()) {
             Log::logger->log(Log::DEBUG, "Refusing a keyboard focus to a window because of an exclusive ls");
             return;
         }

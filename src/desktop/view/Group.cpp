@@ -187,11 +187,12 @@ void CGroup::replaceMember(PHLWINDOW oldWindow, PHLWINDOW newWindow, std::option
     const auto GROUP_WORKSPACE  = GROUP_SPACE ? GROUP_SPACE->workspace() : nullptr;
 
     if (HAD_FULLSCREEN)
-        Fullscreen::controller()->setFullscreenMode(oldWindow, Fullscreen::FSMODE_NONE, std::nullopt, LAYOUT_MANAGED);
+        Fullscreen::controller()->setFullscreenMode(oldWindow, Fullscreen::FSMODE_NONE, std::nullopt, LAYOUT_MANAGED, Fullscreen::FULLSCREEN_MUTATION_TRANSFER);
 
     const auto NEW_FS_INTERNAL_MODE = Fullscreen::controller()->getFullscreenModes(newWindow).internal;
     if (NEW_FS_INTERNAL_MODE != Fullscreen::FSMODE_NONE)
-        Fullscreen::controller()->setFullscreenMode(newWindow, Fullscreen::FSMODE_NONE, std::nullopt, Fullscreen::controller()->layoutManagedFS(newWindow));
+        Fullscreen::controller()->setFullscreenMode(newWindow, Fullscreen::FSMODE_NONE, std::nullopt, Fullscreen::controller()->layoutManagedFS(newWindow),
+                                                    Fullscreen::FULLSCREEN_MUTATION_TRANSFER);
 
     if (newWindow->layoutTarget()->space())
         g_layoutManager->removeTarget(newWindow->layoutTarget());
@@ -217,7 +218,7 @@ void CGroup::replaceMember(PHLWINDOW oldWindow, PHLWINDOW newWindow, std::option
     updateWindowVisibility();
 
     if (HAD_FULLSCREEN) {
-        Fullscreen::controller()->setFullscreenMode(newWindow, FS_INTERNAL_MODE, std::nullopt, LAYOUT_MANAGED);
+        Fullscreen::controller()->setFullscreenMode(newWindow, FS_INTERNAL_MODE, std::nullopt, LAYOUT_MANAGED, Fullscreen::FULLSCREEN_MUTATION_TRANSFER);
         newWindow->windowTarget()->warpPositionSize();
     }
 }

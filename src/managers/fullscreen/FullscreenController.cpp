@@ -291,11 +291,14 @@ std::string CFullscreenController::getFullscreenHandlerNameAsString(const PHLWIN
 }
 
 void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optional<eFullscreenMode> internal, std::optional<eFullscreenMode> client,
-                                              std::optional<bool> layoutAware) {
+                                              std::optional<bool> layoutAware, eFullscreenMutationContext context) {
     if (!window)
         return;
 
-    const bool WANT_SYNC = window->m_ruleApplicator->syncFullscreen().valueOrDefault();
+    if (context == FULLSCREEN_MUTATION_TRANSFER)
+        window->fullscreenPolicy().clearExpectedMaximizeEcho();
+
+    const bool WANT_SYNC = context == FULLSCREEN_MUTATION_NORMAL && window->m_ruleApplicator->syncFullscreen().valueOrDefault();
 
     bool       stateChanged = false;
 
@@ -348,10 +351,10 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
 
         if (WANT_SYNC) {
             setWindowFullscreenModeClient(window, FSMODE_NONE, WAS_LAYOUT_HANDLED);
-            setWindowFullscreenModeInternal(window, FSMODE_NONE, WAS_LAYOUT_HANDLED);
+            setWindowFullscreenModeInternal(window, FSMODE_NONE, WAS_LAYOUT_HANDLED, context);
         } else {
             if (OLD_FS_MODES.internal != FSMODE_NONE)
-                setWindowFullscreenModeInternal(window, FSMODE_NONE, WAS_LAYOUT_HANDLED);
+                setWindowFullscreenModeInternal(window, FSMODE_NONE, WAS_LAYOUT_HANDLED, context);
             if (OLD_FS_MODES.client != FSMODE_NONE)
                 setWindowFullscreenModeClient(window, FSMODE_NONE, WAS_LAYOUT_HANDLED);
         }
@@ -412,13 +415,13 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
 
     if (stateChanged) {
         setWindowFullscreenModeClient(window, targetClientMode, layoutAware.value_or(WAS_LAYOUT_HANDLED));
-        setWindowFullscreenModeInternal(window, targetInternalMode, layoutAware.value_or(WAS_LAYOUT_HANDLED));
+        setWindowFullscreenModeInternal(window, targetInternalMode, layoutAware.value_or(WAS_LAYOUT_HANDLED), context);
     }
-    if (window->fullscreenPolicy().restoreClientMaximized() && getFullscreenModes(window).internal != FSMODE_FULLSCREEN)
+    if (context == FULLSCREEN_MUTATION_NORMAL && window->fullscreenPolicy().restoreClientMaximized() && getFullscreenModes(window).internal != FSMODE_FULLSCREEN)
         window->fullscreenPolicy().setRestoreClientMaximized(false);
 }
 
-void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware) {
+void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware, eFullscreenMutationContext context) {
 
     if (!window || !validMapped(window) || !window->m_monitor || !window->m_workspace || !window->m_workspace->m_space || !window->m_workspace->m_space->algorithm())
         return;
@@ -450,7 +453,8 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
     }
 
     // Swallow the set_maximized echo clients send after fullscreen exit.
-    if (INTERNAL_FS_MODE_CHANGED && !window->isFloating() && (getFullscreenModes(window).internal == FSMODE_FULLSCREEN) && mode != FSMODE_FULLSCREEN)
+    if (context == FULLSCREEN_MUTATION_NORMAL && INTERNAL_FS_MODE_CHANGED && !window->isFloating() && (getFullscreenModes(window).internal == FSMODE_FULLSCREEN) &&
+        mode != FSMODE_FULLSCREEN)
         window->fullscreenPolicy().expectMaximizeEcho();
 
     // Window/Workspace Rules, decorations, etc..

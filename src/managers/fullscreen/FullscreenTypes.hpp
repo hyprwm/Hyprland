@@ -22,6 +22,11 @@ namespace Fullscreen {
         FULLSCREEN_REQUEST_LAYOUT_HANDLED,
     };
 
+    enum eFullscreenMutationContext : uint8_t {
+        FULLSCREEN_MUTATION_NORMAL = 0,
+        FULLSCREEN_MUTATION_TRANSFER,
+    };
+
     struct SFullscreenMode {
         eFullscreenMode internal = FSMODE_NONE;
         eFullscreenMode client   = FSMODE_NONE;

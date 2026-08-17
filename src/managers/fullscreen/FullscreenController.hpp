@@ -56,7 +56,7 @@ namespace Fullscreen {
         // FS Mode Setter
 
         void setFullscreenMode(const PHLWINDOW window, std::optional<eFullscreenMode> internal = std::nullopt, std::optional<eFullscreenMode> client = std::nullopt,
-                               std::optional<bool> layoutAware = std::nullopt);
+                               std::optional<bool> layoutAware = std::nullopt, eFullscreenMutationContext context = FULLSCREEN_MUTATION_NORMAL);
 
         // Misc. Operations
 
@@ -71,7 +71,7 @@ namespace Fullscreen {
         };
 
         // FS Mode Setter Helpers
-        void setWindowFullscreenModeInternal(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware);
+        void setWindowFullscreenModeInternal(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware, eFullscreenMutationContext context);
         void setWindowFullscreenModeClient(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware);
 
         // FS Handler getters

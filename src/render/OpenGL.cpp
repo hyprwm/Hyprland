@@ -1125,7 +1125,6 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
 
     auto       blurredBG = data.xray ? g_pHyprRenderer->m_renderData.pMonitor->resources()->m_blurFB->getTexture() : g_pHyprRenderer->blurMainFramebuffer(data.blurA, &damage);
 
-    CBox       MONITORBOX                     = {0, 0, g_pHyprRenderer->m_renderData.pMonitor->m_transformedSize.x, g_pHyprRenderer->m_renderData.pMonitor->m_transformedSize.y};
     const auto SAVEDRENDERMODIF               = g_pHyprRenderer->m_renderData.renderModif;
     g_pHyprRenderer->m_renderData.renderModif = {}; // fix shit
 

@@ -444,7 +444,7 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
     if (window->isFloating() && WINDOW_FS_MODE.internal == FSMODE_NONE && mode != FSMODE_NONE)
         g_pHyprRenderer->damageWindow(window);
 
-    if (hasFullscreen(WORKSPACE) && !isFullscreen(window) && !layoutAware) {
+    if (context == FULLSCREEN_MUTATION_NORMAL && hasFullscreen(WORKSPACE) && !isFullscreen(window) && !layoutAware) {
 
         // Layout FS handling allows for layering a floating FS winow ontop of a tiled one. Default does not.
         const auto COVERING_FS_WINDOW = Fullscreen::controller()->getFullscreenWindow(WORKSPACE, true);

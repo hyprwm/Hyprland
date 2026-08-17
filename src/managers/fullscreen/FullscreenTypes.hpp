@@ -24,6 +24,7 @@ namespace Fullscreen {
 
     enum eFullscreenMutationContext : uint8_t {
         FULLSCREEN_MUTATION_NORMAL = 0,
+        // Move compositor-owned internal state without changing client-owned state.
         FULLSCREEN_MUTATION_TRANSFER,
     };
 

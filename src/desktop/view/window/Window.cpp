@@ -1573,7 +1573,7 @@ void CWindow::unmapWindow() {
 
     if (IS_CURRENT_WINDOW_FS) {
         if (SWALLOW_UNMAP_RESULT.transferredInternalFullscreen)
-            Fullscreen::controller()->setFullscreenMode(m_self.lock(), std::nullopt, Fullscreen::FSMODE_NONE);
+            Fullscreen::controller()->setFullscreenMode(m_self.lock(), std::nullopt, Fullscreen::FSMODE_NONE, std::nullopt, Fullscreen::FULLSCREEN_MUTATION_TRANSFER);
         else
             Fullscreen::controller()->setFullscreenMode(m_self.lock(), Fullscreen::FSMODE_NONE, Fullscreen::FSMODE_NONE);
     }

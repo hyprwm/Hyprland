@@ -7,6 +7,7 @@
 #include "../../render/Renderer.hpp"
 #include "../../render/OpenGL.hpp"
 #include "../../output/Monitor.hpp"
+#include "../../output/WorkspaceTransition.hpp"
 #include "../../state/MonitorState.hpp"
 #include "../../desktop/view/window/Window.hpp"
 #include "../../desktop/view/window/WindowPresentation.hpp"
@@ -280,13 +281,14 @@ void CScreenshareFrame::renderMonitor() {
         if UNLIKELY (!PWORKSPACE && w->presentation().alphaValue(WINDOW_ALPHA_FADE) * w->presentation().alphaValue(WINDOW_ALPHA_FULLSCREEN) != 0.f)
             continue;
 
-        const auto renderOffset     = PWORKSPACE && !(w->m_state & WINDOW_STATE_PINNED) ? PWORKSPACE->m_renderOffset->value() : Vector2D{};
-        const auto REALSIZE         = w->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
-        const auto REALPOS          = w->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT) + renderOffset;
-        const auto noScreenShareBox = CBox{REALPOS.x, REALPOS.y, std::max(REALSIZE.x, 5.0), std::max(REALSIZE.y, 5.0)}
-                                          .translate(-PMONITOR->m_position)
-                                          .scale(PMONITOR->m_scale)
-                                          .translate(-m_session->m_captureBox.pos());
+        const auto PWORKSPACEMONITOR = PWORKSPACE ? PWORKSPACE->m_monitor.lock() : nullptr;
+        const auto renderOffset      = PWORKSPACEMONITOR && !(w->m_state & WINDOW_STATE_PINNED) ? PWORKSPACEMONITOR->m_workspaceTransition->offsetValue(PWORKSPACE) : Vector2D{};
+        const auto REALSIZE          = w->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+        const auto REALPOS           = w->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT) + renderOffset;
+        const auto noScreenShareBox  = CBox{REALPOS.x, REALPOS.y, std::max(REALSIZE.x, 5.0), std::max(REALSIZE.y, 5.0)}
+                                           .translate(-PMONITOR->m_position)
+                                           .scale(PMONITOR->m_scale)
+                                           .translate(-m_session->m_captureBox.pos());
 
         // seems like rounding doesn't play well with how we manipulate the box position to render regions causing the window to leak through
         const auto dontRound     = m_session->m_captureBox.pos() != Vector2D() || Fullscreen::controller()->isFullscreen(w, Fullscreen::FSMODE_FULLSCREEN);

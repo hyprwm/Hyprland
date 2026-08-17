@@ -6,6 +6,7 @@
 #include "../../config/ConfigManager.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../desktop/state/FocusState.hpp"
+#include "../../output/WorkspaceTransition.hpp"
 #include "../pass/ShadowPassElement.hpp"
 #include "../Renderer.hpp"
 #include "../pass/RectPassElement.hpp"
@@ -93,9 +94,9 @@ void CHyprDropShadowDecoration::damageEntire() {
 
     const auto PWORKSPACE  = PWINDOW->m_workspace;
     const auto applyOffset = [&](CBox& b) {
-        if (PWORKSPACE && PWORKSPACE->m_renderOffset->isBeingAnimated() && !(PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED))
-            b.translate(PWORKSPACE->m_renderOffset->value());
-        b.translate(PWINDOW->presentation().floatingOffset());
+        if (g_pHyprRenderer->workspaceRenderIsAnimating(PWORKSPACE) && !(PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED))
+            b.translate(g_pHyprRenderer->workspaceRenderOffset(PWORKSPACE));
+        b.translate(g_pHyprRenderer->windowRenderFloatingOffset(PWINDOW));
     };
 
     applyOffset(shadowBox);
@@ -179,7 +180,7 @@ SShadowRenderData CHyprDropShadowDecoration::getRenderData(PHLMONITOR pMonitor, 
     const auto  CORRECTIONOFFSET = (BORDERSIZE * (M_SQRT2 - 1) * std::max(2.0 - ROUNDINGPOWER, 0.0));
     const auto  ROUNDING         = ROUNDINGBASE > 0 ? (ROUNDINGBASE + BORDERSIZE) - CORRECTIONOFFSET : 0;
     const auto  PWORKSPACE       = PWINDOW->m_workspace;
-    const auto  WORKSPACEOFFSET  = PWORKSPACE && !(PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED) ? PWORKSPACE->m_renderOffset->value() : Vector2D();
+    const auto  WORKSPACEOFFSET  = PWORKSPACE && !(PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED) ? g_pHyprRenderer->workspaceRenderOffset(PWORKSPACE) : Vector2D{};
 
     // draw the shadow
     CBox fullBox = m_lastWindowBoxWithDecos;
@@ -209,7 +210,7 @@ SShadowRenderData CHyprDropShadowDecoration::getRenderData(PHLMONITOR pMonitor, 
             },
     };
 
-    fullBox.translate(PWINDOW->presentation().floatingOffset());
+    fullBox.translate(g_pHyprRenderer->windowRenderFloatingOffset(PWINDOW));
 
     if (fullBox.width < 1 || fullBox.height < 1)
         return {}; // don't draw invisible shadows

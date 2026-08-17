@@ -40,6 +40,7 @@
 #include "../helpers/CursorShapes.hpp"
 #include "../helpers/MainLoopExecutor.hpp"
 #include "../output/Monitor.hpp"
+#include "../output/WorkspaceTransition.hpp"
 #include "../state/MonitorState.hpp"
 #include "../state/WorkspaceState.hpp"
 #include "macros.hpp"
@@ -238,6 +239,9 @@ bool IHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
     if (!pWindow->m_workspace)
         return false;
 
+    if (m_isolatedWorkspace)
+        return !(pWindow->m_state & WINDOW_STATE_PINNED) && pWindow->m_workspace == m_isolatedWorkspace;
+
     if (pWindow->m_state & WINDOW_STATE_PINNED)
         return true;
 
@@ -248,7 +252,7 @@ bool IHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
 
     const auto PWINDOWWORKSPACE = pWindow->m_workspace;
     if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_monitor == pMonitor) {
-        if (PWINDOWWORKSPACE->m_renderOffset->isBeingAnimated() || PWINDOWWORKSPACE->m_alpha->isBeingAnimated() || PWINDOWWORKSPACE->m_forceRendering)
+        if (pMonitor->m_workspaceTransition->participates(PWINDOWWORKSPACE))
             return true;
 
         // if hidden behind fullscreen
@@ -256,7 +260,7 @@ bool IHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
             pWindow->presentation().alphaValue(WINDOW_ALPHA_FADE) * pWindow->presentation().alphaValue(WINDOW_ALPHA_FULLSCREEN) == 0)
             return false;
 
-        if (!PWINDOWWORKSPACE->m_renderOffset->isBeingAnimated() && !PWINDOWWORKSPACE->m_alpha->isBeingAnimated() && !PWINDOWWORKSPACE->isVisible())
+        if (!pMonitor->m_workspaceTransition->isAnimating(PWINDOWWORKSPACE) && !PWINDOWWORKSPACE->isVisible())
             return false;
     }
 
@@ -278,13 +282,14 @@ bool IHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
         return false;
 
     if (pWindow->positionAnimation()->isBeingAnimated()) {
-        if (PWINDOWWORKSPACE && !PWINDOWWORKSPACE->m_isSpecialWorkspace && PWINDOWWORKSPACE->m_renderOffset->isBeingAnimated())
+        const auto PWORKSPACEMONITOR = PWINDOWWORKSPACE ? PWINDOWWORKSPACE->m_monitor.lock() : nullptr;
+        if (PWINDOWWORKSPACE && !PWINDOWWORKSPACE->m_isSpecialWorkspace && PWORKSPACEMONITOR && PWORKSPACEMONITOR->m_workspaceTransition->isAnimating(PWINDOWWORKSPACE))
             return false;
         // render window if window and monitor intersect
         // (when moving out of or through a monitor)
         CBox windowBox = pWindow->getFullWindowBoundingBox();
-        if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_renderOffset->isBeingAnimated())
-            windowBox.translate(PWINDOWWORKSPACE->m_renderOffset->value());
+        if (PWINDOWWORKSPACE && PWORKSPACEMONITOR && PWORKSPACEMONITOR->m_workspaceTransition->isAnimating(PWINDOWWORKSPACE))
+            windowBox.translate(PWORKSPACEMONITOR->m_workspaceTransition->offsetValue(PWINDOWWORKSPACE));
         windowBox.translate(pWindow->presentation().floatingOffset());
 
         const CBox monitorBox = {pMonitor->m_position, pMonitor->m_size};
@@ -305,14 +310,16 @@ bool IHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow) {
     if (!pWindow->m_workspace)
         return false;
 
-    if ((pWindow->m_state & WINDOW_STATE_PINNED) || PWORKSPACE->m_forceRendering)
+    const auto PWORKSPACEMONITOR = PWORKSPACE->m_monitor.lock();
+
+    if ((pWindow->m_state & WINDOW_STATE_PINNED) || (PWORKSPACEMONITOR && PWORKSPACEMONITOR->m_workspaceTransition->forceRendering(PWORKSPACE)))
         return true;
 
     if (PWORKSPACE && PWORKSPACE->isVisible())
         return true;
 
     for (auto const& m : State::monitorState()->monitors()) {
-        if (PWORKSPACE && PWORKSPACE->m_monitor == m && (PWORKSPACE->m_renderOffset->isBeingAnimated() || PWORKSPACE->m_alpha->isBeingAnimated()))
+        if (PWORKSPACE && PWORKSPACE->m_monitor == m && m->m_workspaceTransition->isAnimating(PWORKSPACE))
             return true;
 
         if (m->m_activeSpecialWorkspace && pWindow->onSpecialWorkspace())
@@ -320,6 +327,38 @@ bool IHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow) {
     }
 
     return false;
+}
+
+float IHyprRenderer::workspaceRenderAlpha(PHLWORKSPACE workspace, PHLMONITOR) const {
+    if (!workspace || (m_isolatedWorkspace && workspace == m_isolatedWorkspace))
+        return 1.F;
+
+    const auto WORKSPACEMONITOR = workspace->m_monitor.lock();
+    return WORKSPACEMONITOR ? WORKSPACEMONITOR->m_workspaceTransition->alphaValue(workspace) : 1.F;
+}
+
+Vector2D IHyprRenderer::workspaceRenderOffset(PHLWORKSPACE workspace, PHLMONITOR) const {
+    if (!workspace || (m_isolatedWorkspace && workspace == m_isolatedWorkspace))
+        return {};
+
+    const auto WORKSPACEMONITOR = workspace->m_monitor.lock();
+    return WORKSPACEMONITOR ? WORKSPACEMONITOR->m_workspaceTransition->offsetValue(workspace) : Vector2D{};
+}
+
+bool IHyprRenderer::workspaceRenderIsAnimating(PHLWORKSPACE workspace, PHLMONITOR) const {
+    if (!workspace || (m_isolatedWorkspace && workspace == m_isolatedWorkspace))
+        return false;
+
+    const auto WORKSPACEMONITOR = workspace->m_monitor.lock();
+    return WORKSPACEMONITOR && WORKSPACEMONITOR->m_workspaceTransition->isAnimating(workspace);
+}
+
+Vector2D IHyprRenderer::windowRenderFloatingOffset(PHLWINDOW window) const {
+    return window && !(m_isolatedWorkspace && window->m_workspace == m_isolatedWorkspace) ? window->presentation().floatingOffset() : Vector2D{};
+}
+
+bool IHyprRenderer::renderingWorkspaceToBuffer() const {
+    return !!m_isolatedWorkspace;
 }
 
 bool IHyprRenderer::shouldRenderMonitor(PHLMONITOR monitor) {
@@ -335,7 +374,8 @@ bool IHyprRenderer::shouldRenderMonitor(PHLMONITOR monitor) {
 void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {
     PHLWINDOW pWorkspaceWindow = nullptr;
 
-    Event::bus()->m_events.render.stage.emit(RENDER_PRE_WINDOWS);
+    if (!m_isolatedWorkspace)
+        Event::bus()->m_events.render.stage.emit(RENDER_PRE_WINDOWS);
 
     // pre-filter renderable windows once for the tiled + floating passes
     std::vector<PHLWINDOW> windows;
@@ -363,7 +403,8 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
 
         renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
     }
-    renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_WINDOW_TILED, pWorkspace);
+    if (!m_isolatedWorkspace)
+        renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_WINDOW_TILED, pWorkspace);
 
     // and floating ones too
     for (auto const& w : windows) {
@@ -379,16 +420,21 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
         if (w->isFadingOutUnderFullscreen())
             continue; // render these over fullscreen so the fade-out is visible
 
+        if (m_isolatedWorkspace && w->shouldRenderOverFullscreen())
+            continue;
+
         renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
     }
-    renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_WINDOW_FLOATING, pWorkspace);
+    if (!m_isolatedWorkspace)
+        renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_WINDOW_FLOATING, pWorkspace);
 
     // TODO: this pass sucks
     for (auto const& w : Desktop::windowState()->windows()) {
         const auto PWORKSPACE = w->m_workspace;
 
         if (w->m_workspace != pWorkspace || !Fullscreen::controller()->isFullscreen(w)) {
-            if (!(PWORKSPACE && (PWORKSPACE->m_renderOffset->isBeingAnimated() || PWORKSPACE->m_alpha->isBeingAnimated() || PWORKSPACE->m_forceRendering)))
+            const auto PWORKSPACEMONITOR = PWORKSPACE ? PWORKSPACE->m_monitor.lock() : nullptr;
+            if (!(PWORKSPACE && PWORKSPACEMONITOR && PWORKSPACEMONITOR->m_workspaceTransition->participates(PWORKSPACE)))
                 continue;
 
             if (w->m_monitor != pMonitor)
@@ -421,6 +467,9 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
         if (shouldSkipWindow)
             continue;
 
+        if (!shouldRenderWindow(w, pMonitor))
+            continue;
+
         const bool mismatchedSpecialWorkspace = w->m_monitor == pWorkspace->m_monitor && pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace();
 
         if (mismatchedSpecialWorkspace)
@@ -433,13 +482,15 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
 
         renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
     }
-    renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_WINDOW_OVER_FULLSCREEN, pWorkspace);
+    if (!m_isolatedWorkspace)
+        renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_WINDOW_OVER_FULLSCREEN, pWorkspace);
 }
 
 void IHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {
     PHLWINDOW lastWindow;
 
-    Event::bus()->m_events.render.stage.emit(RENDER_PRE_WINDOWS);
+    if (!m_isolatedWorkspace)
+        Event::bus()->m_events.render.stage.emit(RENDER_PRE_WINDOWS);
 
     std::vector<PHLWINDOWREF> windows;
     windows.reserve(Desktop::windowState()->windows().size());
@@ -483,7 +534,8 @@ void IHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
 
     lastWindow.reset();
 
-    renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_WINDOW_TILED, pWorkspace);
+    if (!m_isolatedWorkspace)
+        renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_WINDOW_TILED, pWorkspace);
 
     // Non-floating popup
     for (auto& w : windows) {
@@ -524,7 +576,8 @@ void IHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
         // render the bad boy
         renderWindow(w.lock(), pMonitor, time, true, RENDER_PASS_ALL);
     }
-    renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_WINDOW_FLOATING, pWorkspace);
+    if (!m_isolatedWorkspace)
+        renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_WINDOW_FLOATING, pWorkspace);
 }
 
 void IHyprRenderer::bindOffMain() {
@@ -562,10 +615,11 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
     TRACY_GPU_ZONE("RenderWindow");
 
-    const auto PWORKSPACE = pWindow->m_workspace;
-    const auto REALPOS =
-        pWindow->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT) + ((pWindow->m_state & WINDOW_STATE_PINNED) ? Vector2D{} : PWORKSPACE->m_renderOffset->value());
-    static auto                      PDIMAROUND = CConfigValue<Config::FLOAT>("decoration:dim_around");
+    const auto  PWORKSPACE      = pWindow->m_workspace;
+    const auto  WORKSPACEOFFSET = workspaceRenderOffset(PWORKSPACE, pMonitor);
+    const auto  WINDOWOFFSET    = windowRenderFloatingOffset(pWindow);
+    const auto  REALPOS         = pWindow->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT) + ((pWindow->m_state & WINDOW_STATE_PINNED) ? Vector2D{} : WORKSPACEOFFSET);
+    static auto PDIMAROUND      = CConfigValue<Config::FLOAT>("decoration:dim_around");
 
     CSurfacePassElement::SRenderData renderdata = {pMonitor, time};
     const auto                       REALSIZE   = pWindow->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
@@ -592,7 +646,8 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     renderdata.surface   = pWindow->wlSurface()->resource();
     renderdata.dontRound = Fullscreen::controller()->getFullscreenModes(pWindow).internal == Fullscreen::FSMODE_FULLSCREEN;
     renderdata.fadeAlpha = pWindow->presentation().alphaValue(WINDOW_ALPHA_FADE) * pWindow->presentation().alphaValue(WINDOW_ALPHA_FULLSCREEN) *
-        pWindow->presentation().alphaValue(WINDOW_ALPHA_LAYOUT) * ((pWindow->m_state & WINDOW_STATE_PINNED) || USE_WORKSPACE_FADE_ALPHA ? 1.f : PWORKSPACE->m_alpha->value()) *
+        pWindow->presentation().alphaValue(WINDOW_ALPHA_LAYOUT) *
+        ((pWindow->m_state & WINDOW_STATE_PINNED) || USE_WORKSPACE_FADE_ALPHA ? 1.f : workspaceRenderAlpha(PWORKSPACE, pMonitor)) *
         (USE_WORKSPACE_FADE_ALPHA ? pWindow->presentation().alphaValue(WINDOW_ALPHA_MOVE_TO_WORKSPACE) : 1.F) *
         pWindow->presentation().alphaValue(WINDOW_ALPHA_MOVE_FROM_WORKSPACE);
     renderdata.alpha = pWindow->presentation().alphaValue(WINDOW_ALPHA_ACTIVE);
@@ -617,7 +672,8 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     // for plugins
     m_renderData.currentWindow = pWindow;
 
-    Event::bus()->m_events.render.stage.emit(RENDER_PRE_WINDOW);
+    if (!m_isolatedWorkspace)
+        Event::bus()->m_events.render.stage.emit(RENDER_PRE_WINDOW);
 
     const auto fullAlpha = renderdata.alpha * renderdata.fadeAlpha;
 
@@ -629,15 +685,12 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         addPassElement(makeUnique<CRectPassElement>(data));
     }
 
-    renderdata.pos += pWindow->presentation().floatingOffset();
+    renderdata.pos += WINDOWOFFSET;
 
     // if window is floating and we have a slide animation, clip it to its full bb
-    if (!ignorePosition && pWindow->isFloating() && !Fullscreen::controller()->isFullscreen(pWindow) && PWORKSPACE->m_renderOffset->isBeingAnimated() &&
+    if (!ignorePosition && pWindow->isFloating() && !Fullscreen::controller()->isFullscreen(pWindow) && workspaceRenderIsAnimating(PWORKSPACE, pMonitor) &&
         !(pWindow->m_state & WINDOW_STATE_PINNED)) {
-        CRegion rg         = pWindow->getFullWindowBoundingBox()
-                                 .translate(-pMonitor->m_position + PWORKSPACE->m_renderOffset->value() + pWindow->presentation().floatingOffset())
-                                 .scale(pMonitor->m_scale)
-                                 .round();
+        CRegion rg = pWindow->getFullWindowBoundingBox().translate(-pMonitor->m_position + WORKSPACEOFFSET + WINDOWOFFSET).scale(pMonitor->m_scale).round();
         renderdata.clipBox = rg.getExtents();
     }
 
@@ -730,9 +783,8 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
             passRedirect.reset();
 
             CBox currentBox = pWindow->getFullWindowBoundingBox();
-            currentBox.translate(((pWindow->m_state & WINDOW_STATE_PINNED) ? Vector2D{} : PWORKSPACE->m_renderOffset->value()) + pWindow->presentation().floatingOffset() -
-                                 pMonitor->m_position);
-            CBox            transformedBox = pWindow->effects().transformedExtents(currentBox);
+            currentBox.translate(((pWindow->m_state & WINDOW_STATE_PINNED) ? Vector2D{} : WORKSPACEOFFSET) + WINDOWOFFSET - pMonitor->m_position);
+            CBox transformedBox = pWindow->effects().transformedExtents(currentBox);
 
             SMotionBlurData windowMotionBlur;
             if (!standalone && !m_bRenderingSnapshot) {
@@ -788,17 +840,18 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
             if (pWindow->m_ruleApplicator->nearestNeighbor().valueOrDefault())
                 renderdata.useNearestNeighbor = true;
 
-            renderdata.surfaceCounter = 0;
+            renderdata.surfaceCounter  = 0;
+            const auto PARENTFADEALPHA = renderdata.fadeAlpha;
 
             pWindow->popupHead()->breadthfirst(
-                [this, &renderdata](WP<Desktop::View::CPopup> popup, void* data) {
+                [this, &renderdata, PARENTFADEALPHA](WP<Desktop::View::CPopup> popup, void* data) {
                     if (!popup->mapped() || !popup->acceptsInput() || !popup->alphaNonZero())
                         return;
 
                     const auto     pos    = popup->coordsRelativeToParent();
                     const Vector2D oldPos = renderdata.pos;
                     renderdata.pos += pos;
-                    renderdata.fadeAlpha = popup->alpha()[POPUP_ALPHA_FADE]->value();
+                    renderdata.fadeAlpha = PARENTFADEALPHA * popup->alpha()[POPUP_ALPHA_FADE]->value();
 
                     popup->wlSurface()->resource()->breadthfirst(
                         [this, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
@@ -812,7 +865,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
                             renderdata.texture     = s->m_current.texture;
                             renderdata.surface     = s;
                             renderdata.mainSurface = false;
-                            m_renderPass.add(makeUnique<CSurfacePassElement>(renderdata));
+                            addPassElement(makeUnique<CSurfacePassElement>(renderdata));
                             renderdata.surfaceCounter++;
                         },
                         data);
@@ -821,7 +874,8 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
                 },
                 &renderdata);
 
-            renderdata.alpha = 1.F;
+            renderdata.fadeAlpha = PARENTFADEALPHA;
+            renderdata.alpha     = 1.F;
         }
 
         if (decorate) {
@@ -834,7 +888,8 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         }
     }
 
-    Event::bus()->m_events.render.stage.emit(RENDER_POST_WINDOW);
+    if (!m_isolatedWorkspace)
+        Event::bus()->m_events.render.stage.emit(RENDER_POST_WINDOW);
 
     m_renderData.currentWindow.reset();
 }
@@ -1203,15 +1258,25 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         m_renderPass.add(makeUnique<CRectPassElement>(data));
     }
 
-    // special
-    for (auto const& ws : State::workspaceState()->workspaces()) {
-        if (ws->m_alpha->value() <= 0.F || !ws->m_isSpecialWorkspace)
+    std::vector<PHLWORKSPACE> specialWorkspaces;
+    for (const auto& monitor : State::monitorState()->monitors()) {
+        for (const auto& workspace : monitor->m_workspaceTransition->participants(true)) {
+            if (!std::ranges::contains(specialWorkspaces, workspace))
+                specialWorkspaces.emplace_back(workspace);
+        }
+
+        if (monitor->m_activeSpecialWorkspace && !std::ranges::contains(specialWorkspaces, monitor->m_activeSpecialWorkspace))
+            specialWorkspaces.emplace_back(monitor->m_activeSpecialWorkspace);
+    }
+
+    for (const auto& workspace : specialWorkspaces) {
+        if (workspaceRenderAlpha(workspace, pMonitor) <= 0.F)
             continue;
 
-        if (Fullscreen::controller()->hasFullscreen(ws.lock()))
-            renderWorkspaceWindowsFullscreen(pMonitor, ws.lock(), time);
+        if (Fullscreen::controller()->hasFullscreen(workspace))
+            renderWorkspaceWindowsFullscreen(pMonitor, workspace, time);
         else
-            renderWorkspaceWindows(pMonitor, ws.lock(), time);
+            renderWorkspaceWindows(pMonitor, workspace, time);
     }
 
     // pinned always above
@@ -2557,6 +2622,70 @@ void IHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace
     renderAllClientsForWorkspace(pMonitor, pWorkspace, now, translate, scale);
 }
 
+bool IHyprRenderer::renderWorkspaceToBuffer(PHLWORKSPACE workspace, SP<IFramebuffer> framebuffer, bool sendFeedback) {
+    const auto MONITOR = workspace ? workspace->m_monitor.lock() : nullptr;
+    if (!MONITOR || !framebuffer || !framebuffer->isAllocated() || framebuffer->m_size != MONITOR->m_transformedSize || !m_renderData.currentFB || m_renderData.pMonitor != MONITOR)
+        return false;
+    if (framebuffer == m_renderData.currentFB || framebuffer == m_renderData.mainFB || framebuffer == m_renderData.outFB)
+        return false;
+
+    if (!framebuffer->imageDescription())
+        framebuffer->setImageDescription(MONITOR->workBufferImageDescription());
+
+    CRenderPass pass;
+    const auto  OLDRENDERDATA        = m_renderData;
+    const auto  OLDISOLATEDWORKSPACE = m_isolatedWorkspace;
+    const bool  OLDBLOCKFEEDBACK     = m_bBlockSurfaceFeedback;
+    const bool  OLDRENDERINGSNAPSHOT = m_bRenderingSnapshot;
+    const bool  OLDBLURSHOULDRENDER  = MONITOR->m_blurFBShouldRender;
+    auto* const OLDPASS              = m_currentPass;
+
+    CScopeGuard restore([&] {
+        m_currentPass                 = OLDPASS;
+        m_isolatedWorkspace           = OLDISOLATEDWORKSPACE;
+        m_bBlockSurfaceFeedback       = OLDBLOCKFEEDBACK;
+        m_bRenderingSnapshot          = OLDRENDERINGSNAPSHOT;
+        MONITOR->m_blurFBShouldRender = OLDBLURSHOULDRENDER;
+        m_renderData                  = OLDRENDERDATA;
+    });
+    auto        framebufferGuard = bindTempFB(framebuffer);
+
+    CRegion     damage{0, 0, sc<int>(MONITOR->m_transformedSize.x), sc<int>(MONITOR->m_transformedSize.y)};
+    m_currentPass                 = &pass;
+    m_isolatedWorkspace           = workspace;
+    m_bBlockSurfaceFeedback       = !sendFeedback;
+    m_bRenderingSnapshot          = true;
+    MONITOR->m_blurFBShouldRender = false;
+    m_renderData.pMonitor         = MONITOR;
+    m_renderData.mainFB           = framebuffer;
+    m_renderData.outFB.reset();
+    m_renderData.fbSize                     = MONITOR->m_transformedSize;
+    m_renderData.damage                     = damage;
+    m_renderData.finalDamage                = damage;
+    m_renderData.renderModif                = {};
+    m_renderData.mouseZoomFactor            = 1.F;
+    m_renderData.mouseZoomUseMouse          = false;
+    m_renderData.transformDamage            = false;
+    m_renderData.noSimplify                 = false;
+    m_renderData.renderingTransformedSource = false;
+    m_renderData.blockScreenShader          = true;
+    m_renderData.currentWindow.reset();
+    m_renderData.surface.reset();
+    m_renderData.clipBox = {};
+    setProjectionType(RPT_EXPORT);
+
+    addPassElement(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)}));
+    if (Fullscreen::controller()->hasFullscreen(workspace))
+        renderWorkspaceWindowsFullscreen(MONITOR, workspace, Time::steadyNow());
+    else
+        renderWorkspaceWindows(MONITOR, workspace, Time::steadyNow());
+
+    m_currentPass = OLDPASS;
+    pass.render(damage);
+
+    return true;
+}
+
 void IHyprRenderer::sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now) {
     for (const auto& view : Desktop::View::getViewsForWorkspace(pWorkspace)) {
         if (!view->mapped() || !view->acceptsInput() || !view->resource())
@@ -2810,10 +2939,11 @@ void IHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
 }
 
 void IHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
-    CBox       windowBox        = pWindow->getFullWindowBoundingBox();
-    const auto PWINDOWWORKSPACE = pWindow->m_workspace;
-    if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_renderOffset->isBeingAnimated() && !(pWindow->m_state & WINDOW_STATE_PINNED))
-        windowBox.translate(PWINDOWWORKSPACE->m_renderOffset->value());
+    CBox       windowBox         = pWindow->getFullWindowBoundingBox();
+    const auto PWINDOWWORKSPACE  = pWindow->m_workspace;
+    const auto PWORKSPACEMONITOR = PWINDOWWORKSPACE ? PWINDOWWORKSPACE->m_monitor.lock() : nullptr;
+    if (PWINDOWWORKSPACE && PWORKSPACEMONITOR && PWORKSPACEMONITOR->m_workspaceTransition->isAnimating(PWINDOWWORKSPACE) && !(pWindow->m_state & WINDOW_STATE_PINNED))
+        windowBox.translate(PWORKSPACEMONITOR->m_workspaceTransition->offsetValue(PWINDOWWORKSPACE));
     windowBox.translate(pWindow->presentation().floatingOffset());
     windowBox = pWindow->effects().transformBoxForDamage(windowBox);
 

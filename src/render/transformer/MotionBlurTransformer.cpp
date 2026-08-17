@@ -7,6 +7,7 @@
 #include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../managers/eventLoop/EventLoopTimer.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
+#include "../../output/WorkspaceTransition.hpp"
 #include "../Renderer.hpp"
 
 #include <algorithm>
@@ -111,8 +112,9 @@ std::optional<MotionBlur::SState> CMotionBlurTransformer::state(bool allowStale)
 
     static auto    PMBSAMPLES = CConfigValue<Config::INTEGER>("decoration:motion_blur:samples");
 
-    const Vector2D RENDEROFFSET = ((PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED) || !PWINDOW->m_workspace ? Vector2D{} : PWINDOW->m_workspace->m_renderOffset->value()) +
-        PWINDOW->presentation().floatingOffset();
+    const auto     PWORKSPACE   = PWINDOW->m_workspace;
+    const Vector2D RENDEROFFSET = ((PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED) ? Vector2D{} : g_pHyprRenderer->workspaceRenderOffset(PWORKSPACE)) +
+        g_pHyprRenderer->windowRenderFloatingOffset(PWINDOW);
     return m_motionBlur.state(std::clamp(sc<int>(*PMBSAMPLES), 2, 64), RENDEROFFSET, allowStale);
 }
 

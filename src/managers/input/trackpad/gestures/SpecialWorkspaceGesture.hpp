@@ -7,13 +7,15 @@
 class CSpecialWorkspaceGesture : public ITrackpadGesture {
   public:
     CSpecialWorkspaceGesture(const std::string& workspaceName);
-    virtual ~CSpecialWorkspaceGesture() = default;
+    virtual ~CSpecialWorkspaceGesture();
 
     virtual void begin(const ITrackpadGesture::STrackpadGestureBegin& e);
     virtual void update(const ITrackpadGesture::STrackpadGestureUpdate& e);
     virtual void end(const ITrackpadGesture::STrackpadGestureEnd& e);
 
   private:
+    void          releaseForceRendering();
+
     std::string   m_specialWorkspaceName;
     PHLWORKSPACE  m_specialWorkspace;
     PHLMONITORREF m_monitor;

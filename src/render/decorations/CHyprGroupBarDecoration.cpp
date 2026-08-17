@@ -7,6 +7,7 @@
 #include "../../desktop/state/FocusState.hpp"
 #include "../../desktop/state/WindowState.hpp"
 #include "../../desktop/view/Group.hpp"
+#include "../../output/WorkspaceTransition.hpp"
 #include <ranges>
 #include <pango/pangocairo.h>
 #include "../pass/TexPassElement.hpp"
@@ -140,7 +141,8 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     auto* const GROUPCOLACTIVELOCKED       = sc<Config::CGradientValueData*>((PGROUPCOLACTIVELOCKED.ptr()));
     auto* const GROUPCOLINACTIVELOCKED     = sc<Config::CGradientValueData*>((PGROUPCOLINACTIVELOCKED.ptr()));
 
-    const auto  ASSIGNEDBOX = assignedBoxGlobal();
+    const auto  ASSIGNEDBOX  = assignedBoxGlobal();
+    const auto  WINDOWOFFSET = g_pHyprRenderer->windowRenderFloatingOffset(m_window.lock());
 
     const auto  ONEBARHEIGHT = *POUTERGAP + *PINDICATORHEIGHT + *PINDICATORGAP + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0);
     m_barWidth               = *PSTACKED ? ASSIGNEDBOX.w : (ASSIGNEDBOX.w - *PINNERGAP * (barsToDraw - 1)) / barsToDraw;
@@ -153,14 +155,13 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     float xoff = 0;
     float yoff = 0;
 
-    bool  blur = *PBLUR != 0;
+    bool  blur = *PBLUR != 0 && !g_pHyprRenderer->renderingWorkspaceToBuffer();
 
     for (int i = 0; i < barsToDraw; ++i) {
         const auto WINDOWINDEX = *PSTACKED ? m_dwGroupMembers.size() - i - 1 : i;
 
-        const auto FLOATING_OFFSET = m_window->presentation().floatingOffset();
-        CBox rect = {ASSIGNEDBOX.x + xoff - pMonitor->m_position.x + FLOATING_OFFSET.x,
-                     ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - *PINDICATORHEIGHT - *POUTERGAP - pMonitor->m_position.y + FLOATING_OFFSET.y, m_barWidth, *PINDICATORHEIGHT};
+        CBox       rect = {ASSIGNEDBOX.x + xoff - pMonitor->m_position.x + WINDOWOFFSET.x,
+                           ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - *PINDICATORHEIGHT - *POUTERGAP - pMonitor->m_position.y + WINDOWOFFSET.y, m_barWidth, *PINDICATORHEIGHT};
 
         rect.scale(pMonitor->m_scale).round();
 
@@ -196,9 +197,8 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
             g_pHyprRenderer->addPassElement(makeUnique<CRectPassElement>(rectdata));
         }
 
-        rect = {ASSIGNEDBOX.x + xoff - pMonitor->m_position.x + FLOATING_OFFSET.x,
-                ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - ONEBARHEIGHT - pMonitor->m_position.y + FLOATING_OFFSET.y, m_barWidth,
-                (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0)};
+        rect = {ASSIGNEDBOX.x + xoff - pMonitor->m_position.x + WINDOWOFFSET.x,
+                ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - ONEBARHEIGHT - pMonitor->m_position.y + WINDOWOFFSET.y, m_barWidth, (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0)};
         rect.scale(pMonitor->m_scale);
 
         if (!rect.empty()) {
@@ -546,7 +546,7 @@ CBox CHyprGroupBarDecoration::assignedBoxGlobal() {
     const auto PWORKSPACE = m_window->m_workspace;
 
     if (PWORKSPACE && !(m_window->m_state & Desktop::View::WINDOW_STATE_PINNED))
-        box.translate(PWORKSPACE->m_renderOffset->value());
+        box.translate(g_pHyprRenderer->workspaceRenderOffset(PWORKSPACE));
 
     return box.round();
 }

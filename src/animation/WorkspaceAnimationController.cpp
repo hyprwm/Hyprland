@@ -10,6 +10,7 @@
 #include "../desktop/view/window/WindowPresentation.hpp"
 #include "../layout/target/Target.hpp"
 #include "../output/Monitor.hpp"
+#include "../output/WorkspaceTransition.hpp"
 #include "../managers/fullscreen/FullscreenController.hpp"
 #include "wlr-layer-shell-unstable-v1.hpp"
 
@@ -22,38 +23,27 @@ void Animation::Workspace::startAnimation(PHLWORKSPACE ws, eAnimationType type, 
     if (!ws)
         return;
 
-    const bool IN = type == ANIMATION_TYPE_IN;
+    const auto PMONITOR = ws->m_monitor.lock();
+    if (!PMONITOR)
+        return;
+
+    auto&      transition = PMONITOR->m_workspaceTransition->ensure(ws);
+    const bool IN         = type == ANIMATION_TYPE_IN;
 
     if (!instant) {
         const std::string ANIMNAME = std::format("{}{}", ws->m_isSpecialWorkspace ? "specialWorkspace" : "workspaces", IN ? "In" : "Out");
 
-        ws->m_alpha->setConfig(Config::animationTree()->getAnimationPropertyConfig(ANIMNAME));
-        ws->m_renderOffset->setConfig(Config::animationTree()->getAnimationPropertyConfig(ANIMNAME));
+        transition.alpha->setConfig(Config::animationTree()->getAnimationPropertyConfig(ANIMNAME));
+        transition.offset->setConfig(Config::animationTree()->getAnimationPropertyConfig(ANIMNAME));
     }
 
     static auto PWORKSPACEGAP = CConfigValue<Config::INTEGER>("general:gaps_workspaces");
-    const auto  PMONITOR      = ws->m_monitor.lock();
-    const auto  ANIMSTYLE     = style.value_or(ws->m_alpha->getStyle());
+    const auto  ANIMSTYLE     = style.value_or(transition.alpha->getStyle());
 
-    if (!PMONITOR)
-        return;
+    float       movePerc = 100.F;
+    bool        vert     = ANIMSTYLE.starts_with("slidevert") || ANIMSTYLE.starts_with("slidefadevert");
 
-    float movePerc = 100.F;
-    bool  vert     = ANIMSTYLE.starts_with("slidevert") || ANIMSTYLE.starts_with("slidefadevert");
-
-    ws->m_renderOffset->setUpdateCallback([weak = PHLWORKSPACEREF{ws}](auto) {
-        if (!weak)
-            return;
-
-        for (auto const& w : Desktop::windowState()->windows()) {
-            if (!validMapped(w) || w->workspaceID() != weak->m_id)
-                continue;
-
-            w->presentation().onWorkspaceAnimUpdate();
-        };
-    });
-
-    CVarList args(ANIMSTYLE, 0, 's');
+    CVarList    args(ANIMSTYLE, 0, 's');
     if (args.size() > 1) {
         const auto ARG2 = args[1];
         if (ARG2 == "top") {
@@ -79,75 +69,75 @@ void Animation::Workspace::startAnimation(PHLWORKSPACE ws, eAnimationType type, 
     }
 
     if (ANIMSTYLE.starts_with("slidefade")) {
-        ws->m_alpha->setValueAndWarp(1.F);
-        ws->m_renderOffset->setValueAndWarp(Vector2D(0, 0));
+        transition.alpha->setValueAndWarp(1.F);
+        transition.offset->setValueAndWarp(Vector2D(0, 0));
 
         if (vert) {
             if (IN) {
-                ws->m_alpha->setValueAndWarp(0.F);
-                ws->m_renderOffset->setValueAndWarp(Vector2D(0.0, (left ? PMONITOR->m_size.y : -PMONITOR->m_size.y) * (movePerc / 100.F)));
-                *ws->m_alpha        = 1.F;
-                *ws->m_renderOffset = Vector2D(0, 0);
+                transition.alpha->setValueAndWarp(0.F);
+                transition.offset->setValueAndWarp(Vector2D(0.0, (left ? PMONITOR->m_size.y : -PMONITOR->m_size.y) * (movePerc / 100.F)));
+                *transition.alpha  = 1.F;
+                *transition.offset = Vector2D(0, 0);
             } else {
-                ws->m_alpha->setValueAndWarp(1.F);
-                *ws->m_alpha        = 0.F;
-                *ws->m_renderOffset = Vector2D(0.0, (left ? -PMONITOR->m_size.y : PMONITOR->m_size.y) * (movePerc / 100.F));
+                transition.alpha->setValueAndWarp(1.F);
+                *transition.alpha  = 0.F;
+                *transition.offset = Vector2D(0.0, (left ? -PMONITOR->m_size.y : PMONITOR->m_size.y) * (movePerc / 100.F));
             }
         } else {
             if (IN) {
-                ws->m_alpha->setValueAndWarp(0.F);
-                ws->m_renderOffset->setValueAndWarp(Vector2D((left ? PMONITOR->m_size.x : -PMONITOR->m_size.x) * (movePerc / 100.F), 0.0));
-                *ws->m_alpha        = 1.F;
-                *ws->m_renderOffset = Vector2D(0, 0);
+                transition.alpha->setValueAndWarp(0.F);
+                transition.offset->setValueAndWarp(Vector2D((left ? PMONITOR->m_size.x : -PMONITOR->m_size.x) * (movePerc / 100.F), 0.0));
+                *transition.alpha  = 1.F;
+                *transition.offset = Vector2D(0, 0);
             } else {
-                ws->m_alpha->setValueAndWarp(1.F);
-                *ws->m_alpha        = 0.F;
-                *ws->m_renderOffset = Vector2D((left ? -PMONITOR->m_size.x : PMONITOR->m_size.x) * (movePerc / 100.F), 0.0);
+                transition.alpha->setValueAndWarp(1.F);
+                *transition.alpha  = 0.F;
+                *transition.offset = Vector2D((left ? -PMONITOR->m_size.x : PMONITOR->m_size.x) * (movePerc / 100.F), 0.0);
             }
         }
     } else if (ANIMSTYLE == "fade") {
-        ws->m_renderOffset->setValueAndWarp(Vector2D(0, 0));
+        transition.offset->setValueAndWarp(Vector2D(0, 0));
 
         if (IN) {
-            ws->m_alpha->setValueAndWarp(0.F);
-            *ws->m_alpha = 1.F;
+            transition.alpha->setValueAndWarp(0.F);
+            *transition.alpha = 1.F;
         } else {
-            ws->m_alpha->setValueAndWarp(1.F);
-            *ws->m_alpha = 0.F;
+            transition.alpha->setValueAndWarp(1.F);
+            *transition.alpha = 0.F;
         }
     } else if (vert) {
         const auto YDISTANCE = (PMONITOR->m_size.y + *PWORKSPACEGAP) * (movePerc / 100.F);
-        ws->m_alpha->setValueAndWarp(1.F);
+        transition.alpha->setValueAndWarp(1.F);
 
         if (IN) {
-            ws->m_renderOffset->setValueAndWarp(Vector2D(0.0, left ? YDISTANCE : -YDISTANCE));
-            *ws->m_renderOffset = Vector2D(0, 0);
+            transition.offset->setValueAndWarp(Vector2D(0.0, left ? YDISTANCE : -YDISTANCE));
+            *transition.offset = Vector2D(0, 0);
         } else
-            *ws->m_renderOffset = Vector2D(0.0, left ? -YDISTANCE : YDISTANCE);
+            *transition.offset = Vector2D(0.0, left ? -YDISTANCE : YDISTANCE);
     } else {
         const auto XDISTANCE = (PMONITOR->m_size.x + *PWORKSPACEGAP) * (movePerc / 100.F);
-        ws->m_alpha->setValueAndWarp(1.F);
+        transition.alpha->setValueAndWarp(1.F);
 
         if (IN) {
-            ws->m_renderOffset->setValueAndWarp(Vector2D(left ? XDISTANCE : -XDISTANCE, 0.0));
-            *ws->m_renderOffset = Vector2D(0, 0);
+            transition.offset->setValueAndWarp(Vector2D(left ? XDISTANCE : -XDISTANCE, 0.0));
+            *transition.offset = Vector2D(0, 0);
         } else
-            *ws->m_renderOffset = Vector2D(left ? -XDISTANCE : XDISTANCE, 0.0);
+            *transition.offset = Vector2D(left ? -XDISTANCE : XDISTANCE, 0.0);
     }
 
     if (ws->m_isSpecialWorkspace) {
         if (IN) {
-            ws->m_alpha->setValueAndWarp(0.F);
-            *ws->m_alpha = 1.F;
+            transition.alpha->setValueAndWarp(0.F);
+            *transition.alpha = 1.F;
         } else {
-            ws->m_alpha->setValueAndWarp(1.F);
-            *ws->m_alpha = 0.F;
+            transition.alpha->setValueAndWarp(1.F);
+            *transition.alpha = 0.F;
         }
     }
 
     if (instant) {
-        ws->m_renderOffset->warp();
-        ws->m_alpha->warp();
+        transition.offset->warp();
+        transition.alpha->warp();
     }
 }
 

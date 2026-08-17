@@ -35,6 +35,7 @@
 #include "../managers/screenshare/ScreenshareManager.hpp"
 #include "../notification/NotificationOverlay.hpp"
 #include "../state/MonitorState.hpp"
+#include "../output/WorkspaceTransition.hpp"
 #include "errorOverlay/Overlay.hpp"
 #include "helpers/Color.hpp"
 #include "macros.hpp"
@@ -2264,9 +2265,9 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
 
                 const auto PWORKSPACE = PWINDOW->m_workspace;
                 if (PWORKSPACE && !(PWINDOW->m_state & WINDOW_STATE_PINNED))
-                    scaledWindowBox.translate(PWORKSPACE->m_renderOffset->value());
+                    scaledWindowBox.translate(g_pHyprRenderer->workspaceRenderOffset(PWORKSPACE, g_pHyprRenderer->renderData().pMonitor.lock()));
 
-                scaledWindowBox.translate(PWINDOW->presentation().floatingOffset());
+                scaledWindowBox.translate(g_pHyprRenderer->windowRenderFloatingOffset(PWINDOW));
                 scaledWindowBox.translate(-m_renderData.pMonitor->m_position);
                 scaledWindowBox.scale(m_renderData.pMonitor->m_scale).round();
                 m_renderData.renderModif.applyToBox(scaledWindowBox);

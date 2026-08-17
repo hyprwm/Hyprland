@@ -8,6 +8,7 @@
 #include "../../desktop/view/Group.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
+#include "../../output/WorkspaceTransition.hpp"
 #include "../pass/BorderPassElement.hpp"
 #include "../Renderer.hpp"
 #include "../../state/MonitorState.hpp"
@@ -48,7 +49,7 @@ CBox CHyprBorderDecoration::assignedBoxGlobal() {
     if (!PWORKSPACE)
         return box;
 
-    const auto WORKSPACEOFFSET = PWORKSPACE && !(m_window->m_state & Desktop::View::WINDOW_STATE_PINNED) ? PWORKSPACE->m_renderOffset->value() : Vector2D();
+    const auto WORKSPACEOFFSET = !(m_window->m_state & Desktop::View::WINDOW_STATE_PINNED) ? g_pHyprRenderer->workspaceRenderOffset(PWORKSPACE) : Vector2D{};
     return box.translate(WORKSPACEOFFSET);
 }
 
@@ -59,7 +60,12 @@ void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     if (m_assignedGeometry.width < m_extents.topLeft.x + 1 || m_assignedGeometry.height < m_extents.topLeft.y + 1)
         return;
 
-    CBox windowBox = assignedBoxGlobal().translate(-pMonitor->m_position + m_window->presentation().floatingOffset()).expand(-borderSize()).scale(pMonitor->m_scale).round();
+
+    CBox windowBox = assignedBoxGlobal()
+                         .translate(-pMonitor->m_position + g_pHyprRenderer->windowRenderFloatingOffset(m_window.lock()))
+                         .expand(-borderSize())
+                         .scale(pMonitor->m_scale)
+                         .round();
 
     if (windowBox.width < 1 || windowBox.height < 1)
         return;

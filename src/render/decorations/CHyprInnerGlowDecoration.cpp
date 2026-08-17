@@ -7,6 +7,7 @@
 #include "../../config/ConfigValue.hpp"
 #include "../../Compositor.hpp"
 #include "../../desktop/state/FocusState.hpp"
+#include "../../output/WorkspaceTransition.hpp"
 #include "../pass/InnerGlowPassElement.hpp"
 #include "../Renderer.hpp"
 #include "../OpenGL.hpp"
@@ -83,9 +84,10 @@ void CHyprInnerGlowDecoration::damageEntire() {
     CBox       windowBox = PWINDOW->getWindowMainSurfaceBox();
 
     const auto PWORKSPACE = PWINDOW->m_workspace;
-    if (PWORKSPACE && PWORKSPACE->m_renderOffset->isBeingAnimated() && !(PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED))
-        windowBox.translate(PWORKSPACE->m_renderOffset->value());
-    windowBox.translate(PWINDOW->presentation().floatingOffset());
+
+    if (g_pHyprRenderer->workspaceRenderIsAnimating(PWORKSPACE) && !(PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED))
+        windowBox.translate(g_pHyprRenderer->workspaceRenderOffset(PWORKSPACE));
+    windowBox.translate(g_pHyprRenderer->windowRenderFloatingOffset(PWINDOW));
 
     g_pHyprRenderer->damageRegion(CRegion(windowBox));
 }
@@ -120,10 +122,10 @@ void CHyprInnerGlowDecoration::render(PHLMONITOR pMonitor, float const& a) {
     const auto ROUNDING      = PWINDOW->presentation().rounding() > 0 ? PWINDOW->presentation().rounding() - 1 : PWINDOW->presentation().rounding();
     const auto ROUNDINGPOWER = PWINDOW->presentation().roundingPower();
     const auto PWORKSPACE    = PWINDOW->m_workspace;
-    const auto WORKSPACEOFF  = PWORKSPACE && !(PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED) ? PWORKSPACE->m_renderOffset->value() : Vector2D();
+    const auto WORKSPACEOFF  = PWORKSPACE && !(PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED) ? g_pHyprRenderer->workspaceRenderOffset(PWORKSPACE) : Vector2D{};
 
     CBox       windowBox = {m_lastWindowPos.x, m_lastWindowPos.y, m_lastWindowSize.x, m_lastWindowSize.y};
-    windowBox.translate(-pMonitor->m_position + WORKSPACEOFF + PWINDOW->presentation().floatingOffset());
+    windowBox.translate(-pMonitor->m_position + WORKSPACEOFF + g_pHyprRenderer->windowRenderFloatingOffset(PWINDOW));
     windowBox.scale(pMonitor->m_scale).round();
 
     if (windowBox.width < 1 || windowBox.height < 1)

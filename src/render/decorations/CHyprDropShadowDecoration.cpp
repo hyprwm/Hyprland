@@ -1,8 +1,11 @@
 #include "CHyprDropShadowDecoration.hpp"
+#include "../../desktop/view/window/WindowPresentation.hpp"
 
 #include <algorithm>
 #include "../../Compositor.hpp"
+#include "../../config/ConfigManager.hpp"
 #include "../../config/ConfigValue.hpp"
+#include "../../desktop/state/FocusState.hpp"
 #include "../pass/ShadowPassElement.hpp"
 #include "../Renderer.hpp"
 #include "../pass/RectPassElement.hpp"
@@ -39,6 +42,43 @@ std::string CHyprDropShadowDecoration::getDisplayName() {
     return "Drop Shadow";
 }
 
+void CHyprDropShadowDecoration::initializeAnimations() {
+    m_gradient.initializeAnimations(m_window.lock(), self(), "fadeShadow", "shadowangle");
+}
+
+void CHyprDropShadowDecoration::updateState() {
+    static auto PSHADOWCOL         = CConfigValue<Config::IComplexConfigValue>("decoration:shadow:color");
+    static auto PSHADOWCOLINACTIVE = CConfigValue<Config::IComplexConfigValue>("decoration:shadow:color_inactive");
+
+    const auto  PWINDOW = m_window.lock();
+    if (!PWINDOW)
+        return;
+
+    const auto TRAITS = PWINDOW->backend().traits();
+    if (TRAITS.overrideRedirect || TRAITS.suggestsNoBorder) {
+        m_gradient.setTarget(Config::CGradientValueData{CHyprColor(0, 0, 0, 0)}, false);
+        return;
+    }
+
+    auto* const SHADOWCOL         = sc<Config::CGradientValueData*>(PSHADOWCOL.ptr());
+    auto* const SHADOWCOLINACTIVE = sc<Config::CGradientValueData*>(PSHADOWCOLINACTIVE.ptr());
+    if (PWINDOW == Desktop::focusState()->window()) {
+        m_gradient.setTarget(*SHADOWCOL);
+        return;
+    }
+
+    const auto COLORINACTIVE = Config::mgr()->getConfigValue("decoration:shadow:color_inactive");
+    m_gradient.setTarget(COLORINACTIVE.setByUser ? *SHADOWCOLINACTIVE : *SHADOWCOL);
+}
+
+void CHyprDropShadowDecoration::onWindowMap() {
+    m_gradient.onWindowMap();
+}
+
+void CHyprDropShadowDecoration::onWindowFocus() {
+    m_gradient.onWindowFocus();
+}
+
 void CHyprDropShadowDecoration::damageEntire() {
     static auto PSHADOWS = CConfigValue<Config::INTEGER>("decoration:shadow:enabled");
 
@@ -53,9 +93,9 @@ void CHyprDropShadowDecoration::damageEntire() {
 
     const auto PWORKSPACE  = PWINDOW->m_workspace;
     const auto applyOffset = [&](CBox& b) {
-        if (PWORKSPACE && PWORKSPACE->m_renderOffset->isBeingAnimated() && !PWINDOW->m_pinned)
+        if (PWORKSPACE && PWORKSPACE->m_renderOffset->isBeingAnimated() && !(PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED))
             b.translate(PWORKSPACE->m_renderOffset->value());
-        b.translate(PWINDOW->m_floatingOffset);
+        b.translate(PWINDOW->presentation().floatingOffset());
     };
 
     applyOffset(shadowBox);
@@ -83,8 +123,12 @@ void CHyprDropShadowDecoration::updateWindow(PHLWINDOW pWindow) {
 }
 
 void CHyprDropShadowDecoration::draw(PHLMONITOR pMonitor, float const& a) {
+    const auto SELF = dynamicPointerCast<CHyprDropShadowDecoration>(self());
+    if (!SELF)
+        return;
+
     CShadowPassElement::SShadowData data;
-    data.deco = this;
+    data.deco = SELF;
     data.a    = a;
     g_pHyprRenderer->addPassElement(makeUnique<CShadowPassElement>(data));
 }
@@ -101,10 +145,11 @@ bool CHyprDropShadowDecoration::canRender(PHLMONITOR pMonitor) {
 
     {
         static constexpr auto HAS_ALPHA = [](const auto& c) { return c.a > 0.001f; };
-        if (std::none_of(PWINDOW->m_realShadowColor.m_colors.begin(), PWINDOW->m_realShadowColor.m_colors.end(), HAS_ALPHA)) {
-            if (!PWINDOW->m_shadowFadeAnimationProgress->isBeingAnimated())
+        const auto            GRADIENT  = m_gradient.renderState();
+        if (std::none_of(GRADIENT.current.m_colors.begin(), GRADIENT.current.m_colors.end(), HAS_ALPHA)) {
+            if (!GRADIENT.transitioning)
                 return false;
-            if (std::none_of(PWINDOW->m_realShadowColorPrevious.m_colors.begin(), PWINDOW->m_realShadowColorPrevious.m_colors.end(), HAS_ALPHA))
+            if (std::none_of(GRADIENT.previous.m_colors.begin(), GRADIENT.previous.m_colors.end(), HAS_ALPHA))
                 return false;
         }
     }
@@ -128,13 +173,13 @@ SShadowRenderData CHyprDropShadowDecoration::getRenderData(PHLMONITOR pMonitor, 
     static auto PSHADOWSCALE  = CConfigValue<Config::FLOAT>("decoration:shadow:scale");
     static auto PSHADOWOFFSET = CConfigValue<Config::VEC2>("decoration:shadow:offset");
 
-    const auto  BORDERSIZE       = PWINDOW->getRealBorderSize();
-    const auto  ROUNDINGBASE     = PWINDOW->rounding();
-    const auto  ROUNDINGPOWER    = PWINDOW->roundingPower();
+    const auto  BORDERSIZE       = PWINDOW->presentation().borderSize();
+    const auto  ROUNDINGBASE     = PWINDOW->presentation().rounding();
+    const auto  ROUNDINGPOWER    = PWINDOW->presentation().roundingPower();
     const auto  CORRECTIONOFFSET = (BORDERSIZE * (M_SQRT2 - 1) * std::max(2.0 - ROUNDINGPOWER, 0.0));
     const auto  ROUNDING         = ROUNDINGBASE > 0 ? (ROUNDINGBASE + BORDERSIZE) - CORRECTIONOFFSET : 0;
     const auto  PWORKSPACE       = PWINDOW->m_workspace;
-    const auto  WORKSPACEOFFSET  = PWORKSPACE && !PWINDOW->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D();
+    const auto  WORKSPACEOFFSET  = PWORKSPACE && !(PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED) ? PWORKSPACE->m_renderOffset->value() : Vector2D();
 
     // draw the shadow
     CBox fullBox = m_lastWindowBoxWithDecos;
@@ -164,7 +209,7 @@ SShadowRenderData CHyprDropShadowDecoration::getRenderData(PHLMONITOR pMonitor, 
             },
     };
 
-    fullBox.translate(PWINDOW->m_floatingOffset);
+    fullBox.translate(PWINDOW->presentation().floatingOffset());
 
     if (fullBox.width < 1 || fullBox.height < 1)
         return {}; // don't draw invisible shadows
@@ -199,22 +244,13 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
 
     g_pHyprRenderer->disableScissor();
 
-    auto       grad     = PWINDOW->m_realShadowColor;
-    const bool ANIMATED = PWINDOW->m_shadowFadeAnimationProgress->isBeingAnimated();
+    const auto GRADIENT = m_gradient.renderState();
 
-    if (PWINDOW->m_shadowAngleAnimationProgress->enabled()) {
-        grad.m_angle += PWINDOW->m_shadowAngleAnimationProgress->value() * M_PI * 2;
-        grad.m_angle = normalizeAngleRad(grad.m_angle);
-
-        if (ANIMATED)
-            PWINDOW->m_realShadowColorPrevious.m_angle = grad.m_angle;
-    }
-
-    if (ANIMATED)
-        drawShadowInternal(data.fullBox, data.rounding * pMonitor->m_scale, data.roundingPower, data.size * pMonitor->m_scale, PWINDOW->m_realShadowColorPrevious, grad,
-                           PWINDOW->m_shadowFadeAnimationProgress->value(), a);
+    if (GRADIENT.transitioning)
+        drawShadowInternal(data.fullBox, data.rounding * pMonitor->m_scale, data.roundingPower, data.size * pMonitor->m_scale, GRADIENT.previous, GRADIENT.current,
+                           GRADIENT.progress, a);
     else
-        drawShadowInternal(data.fullBox, data.rounding * pMonitor->m_scale, data.roundingPower, data.size * pMonitor->m_scale, grad, a);
+        drawShadowInternal(data.fullBox, data.rounding * pMonitor->m_scale, data.roundingPower, data.size * pMonitor->m_scale, GRADIENT.current, a);
 
     reposition();
 }

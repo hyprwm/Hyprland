@@ -7,7 +7,7 @@
 
 #include "../../helpers/math/Math.hpp"
 #include "../DesktopTypes.hpp"
-#include "../view/Window.hpp"
+#include "../view/window/Window.hpp"
 
 namespace Desktop {
     struct SFloatCacheKey {
@@ -15,12 +15,12 @@ namespace Desktop {
 
         SFloatCacheKey(PHLWINDOW window, bool initial) {
             // Base hash from class/title
-            size_t baseHash = initial ? (std::hash<std::string>{}(window->m_initialClass) ^ (std::hash<std::string>{}(window->m_initialTitle) << 1)) :
-                                        (std::hash<std::string>{}(window->m_class) ^ (std::hash<std::string>{}(window->m_title) << 1));
+            size_t baseHash = initial ? (std::hash<std::string>{}(window->metadata().initialAppID()) ^ (std::hash<std::string>{}(window->metadata().initialTitle()) << 1)) :
+                                        (std::hash<std::string>{}(window->metadata().appID()) ^ (std::hash<std::string>{}(window->metadata().title()) << 1));
 
             // Use empty string as default tag value
             std::string tagValue = "";
-            if (auto xdgTag = window->xdgTag())
+            if (auto xdgTag = window->backend().metadata().tag)
                 tagValue = xdgTag.value();
 
             // Combine hashes

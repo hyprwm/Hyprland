@@ -1,8 +1,11 @@
 #include "ElementRenderer.hpp"
 #include "Renderer.hpp"
 #include "../layout/LayoutManager.hpp"
-#include "../desktop/view/Window.hpp"
+#include "../desktop/view/window/Window.hpp"
+#include "../desktop/view/window/WindowEffectsController.hpp"
+#include "../desktop/view/window/WindowPresentation.hpp"
 #include "render/pass/ClearPassElement.hpp"
+#include "render/transformer/TransformerList.hpp"
 #include <hyprutils/memory/SharedPtr.hpp>
 #include <hyprutils/memory/UniquePtr.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -36,7 +39,7 @@ void IElementRenderer::drawElement(WP<IPassElement> element, const CRegion& dama
 
 static std::optional<Vector2D> getSurfaceExpectedSize(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, PHLMONITOR pMonitor, bool main) {
     const auto CAN_USE_WINDOW       = pWindow && main;
-    const auto WINDOW_SIZE_MISALIGN = CAN_USE_WINDOW && pWindow->getReportedSize() != pWindow->wlSurface()->resource()->m_current.size;
+    const auto WINDOW_SIZE_MISALIGN = CAN_USE_WINDOW && pWindow->backend().reportedSize() != pWindow->wlSurface()->resource()->m_current.size;
 
     if (pSurface->m_current.viewport.hasDestination)
         return (pSurface->m_current.viewport.destination * pMonitor->m_scale).round();
@@ -48,7 +51,7 @@ static std::optional<Vector2D> getSurfaceExpectedSize(PHLWINDOW pWindow, SP<CWLS
         return (pSurface->m_current.size * pMonitor->m_scale).round();
 
     if (CAN_USE_WINDOW)
-        return (pWindow->getReportedSize() * pMonitor->m_scale).round();
+        return (pWindow->backend().reportedSize() * pMonitor->m_scale).round();
 
     return std::nullopt;
 }
@@ -57,7 +60,7 @@ void IElementRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceRes
                                              const Vector2D& projSizeUnscaled, bool fixMisalignedFSV1) {
     auto& m_renderData = g_pHyprRenderer->m_renderData;
 
-    if (!pWindow || !pWindow->m_isX11) {
+    if (!pWindow || !pWindow->backend().isX11()) {
         static auto PEXPANDEDGES = CConfigValue<Hyprlang::INT>("render:expand_undersized_textures");
 
         Vector2D    uvTL;
@@ -111,7 +114,7 @@ void IElementRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceRes
                 }
 
                 // FIXME: probably do this for in anims on all views...
-                const auto SHOULD_SKIP = !pWindow || pWindow->m_animatingIn;
+                const auto SHOULD_SKIP = !pWindow || pWindow->presentation().animatingIn();
                 if (!SHOULD_SKIP && (RATIO.x < 1 || RATIO.y < 1)) {
                     const auto FIX = RATIO.clamp(Vector2D{0.0001, 0.0001}, Vector2D{1, 1});
                     uvBR           = uvBR * FIX;
@@ -133,7 +136,7 @@ void IElementRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceRes
 
         // FIXME: this doesn't work. We always set MAXIMIZED anyways, so this doesn't need to work, but it's problematic.
 
-        // CBox geom = pWindow->m_xdgSurface->m_current.geometry;
+        // CBox geom = pWindow->backend().geometry().box;
 
         // // Adjust UV based on the xdg_surface geometry
         // if (geom.x != 0 || geom.y != 0 || geom.w != 0 || geom.h != 0) {
@@ -313,7 +316,7 @@ void IElementRenderer::drawSurface(WP<CSurfacePassElement> element, const CRegio
         roundingPower = 2.0f;
     }
 
-    const bool WINDOWOPAQUE    = m_data.pWindow && m_data.pWindow->wlSurface()->resource() == m_data.surface ? m_data.pWindow->opaque() : false;
+    const bool WINDOWOPAQUE    = m_data.pWindow && m_data.pWindow->wlSurface()->resource() == m_data.surface ? m_data.pWindow->presentation().opaque() : false;
     const bool CANDISABLEBLEND = ALPHA >= 1.f && OVERALL_ALPHA >= 1.f && rounding <= 0 && WINDOWOPAQUE;
 
     if (CANDISABLEBLEND)
@@ -624,7 +627,7 @@ void IElementRenderer::drawTransformedWindow(WP<CTransformedWindowPassElement> e
 
     SWindowTransformPlan plan;
     if (applyTransformers)
-        plan = PWINDOW->m_transformers.plan(element->m_data.currentBox, transformerOutput);
+        plan = PWINDOW->effects().transformers()->plan(element->m_data.currentBox, transformerOutput);
     else {
         plan.sourceBox = transformerOutput.intersection(element->m_data.currentBox);
         plan.outputBox = plan.sourceBox;
@@ -689,15 +692,15 @@ void IElementRenderer::drawTransformedWindow(WP<CTransformedWindowPassElement> e
         if (!applyTransformers)
             return in;
 
-        return PWINDOW->m_transformers.transform(in, plan,
-                                                 SWindowTransformContext{
-                                                     .currentBox        = element->m_data.currentBox,
-                                                     .inputBox          = plan.sourceBox,
-                                                     .outputBox         = plan.outputBox,
-                                                     .monitor           = pMonitor,
-                                                     .standalone        = element->m_data.standalone,
-                                                     .renderingSnapshot = element->m_data.renderingSnapshot,
-                                                 });
+        return PWINDOW->effects().transformers()->transform(in, plan,
+                                                            SWindowTransformContext{
+                                                                .currentBox        = element->m_data.currentBox,
+                                                                .inputBox          = plan.sourceBox,
+                                                                .outputBox         = plan.outputBox,
+                                                                .monitor           = pMonitor,
+                                                                .standalone        = element->m_data.standalone,
+                                                                .renderingSnapshot = element->m_data.renderingSnapshot,
+                                                            });
     };
 
     SWindowTransformBuffer last;

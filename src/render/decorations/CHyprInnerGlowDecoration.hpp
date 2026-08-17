@@ -1,7 +1,7 @@
 #pragma once
 
+#include "AnimatedDecorationGradient.hpp"
 #include "IHyprWindowDecoration.hpp"
-#include "../../config/shared/complex/ComplexDataTypes.hpp"
 
 class CHyprInnerGlowDecoration : public IHyprWindowDecoration {
   public:
@@ -26,6 +26,11 @@ class CHyprInnerGlowDecoration : public IHyprWindowDecoration {
 
     virtual std::string                getDisplayName();
 
+    virtual void                       initializeAnimations() override;
+    virtual void                       updateState() override;
+    virtual void                       onWindowMap() override;
+    virtual void                       onWindowFocus() override;
+
     void                               render(PHLMONITOR, float const& a);
 
   private:
@@ -34,8 +39,10 @@ class CHyprInnerGlowDecoration : public IHyprWindowDecoration {
     void drawGlowInternal(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2, float lerp,
                           float a);
 
-    PHLWINDOWREF m_window;
+    PHLWINDOWREF                m_window;
 
-    Vector2D     m_lastWindowPos;
-    Vector2D     m_lastWindowSize;
+    CAnimatedDecorationGradient m_gradient;
+
+    Vector2D                    m_lastWindowPos;
+    Vector2D                    m_lastWindowSize;
 };

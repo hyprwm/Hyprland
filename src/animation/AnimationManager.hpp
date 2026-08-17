@@ -41,6 +41,12 @@ namespace Animation {
             pav->m_Context.pWindow = pWindow;
         }
         template <Animable VarType>
+        void createAnimation(const VarType& v, PHLANIMVAR<VarType>& pav, SP<SAnimationPropertyConfig> pConfig, PHLWINDOW pWindow, SP<IHyprWindowDecoration> pDecoration,
+                             eAVarDamagePolicy policy) {
+            createAnimation(v, pav, pConfig, pWindow, policy);
+            pav->m_Context.pDecoration = pDecoration;
+        }
+        template <Animable VarType>
         void createAnimation(const VarType& v, PHLANIMVAR<VarType>& pav, SP<SAnimationPropertyConfig> pConfig, PHLWORKSPACE pWorkspace, eAVarDamagePolicy policy) {
             createAnimation(v, pav, pConfig, policy);
             pav->m_Context.pWorkspace = pWorkspace;

@@ -1,4 +1,5 @@
 #include "DwindleAlgorithm.hpp"
+#include "../../../../desktop/view/window/WindowPresentation.hpp"
 
 #include "../../Algorithm.hpp"
 #include "../../../space/Space.hpp"
@@ -95,8 +96,8 @@ void CDwindleAlgorithm::addTarget(SP<ITarget> target) {
 
         if (m_overrideFocalPoint)
             OPENINGON = getClosestNode(*m_overrideFocalPoint);
-        else if (!m_overrideFocalPoint && ACTIVE_WINDOW && !ACTIVE_WINDOW->m_isFloating && ACTIVE_WINDOW != target->window() && ACTIVE_WINDOW->m_workspace == PWORKSPACE &&
-                 ACTIVE_WINDOW->m_isMapped)
+        else if (!m_overrideFocalPoint && ACTIVE_WINDOW && !ACTIVE_WINDOW->isFloating() && ACTIVE_WINDOW != target->window() && ACTIVE_WINDOW->m_workspace == PWORKSPACE &&
+                 ACTIVE_WINDOW->mapped())
             OPENINGON = getNodeFromWindow(ACTIVE_WINDOW);
 
         if (!OPENINGON)
@@ -585,7 +586,7 @@ void CDwindleAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection di
         }
     }
 
-    t->window()->setAnimationsToMove();
+    t->window()->presentation().setAnimationsToMove();
 
     if (PMONITORFOCAL != m_parent->space()->workspace()->m_monitor) {
         // move with a focal point

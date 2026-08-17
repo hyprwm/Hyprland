@@ -1,5 +1,5 @@
 #include "InputManager.hpp"
-#include "../../desktop/view/Window.hpp"
+#include "../../desktop/view/window/Window.hpp"
 #include "../../protocols/Tablet.hpp"
 #include "../../devices/Tablet.hpp"
 #include "../../pointer/PointerManager.hpp"
@@ -77,8 +77,8 @@ static void refocusTablet(SP<CTablet> tab, SP<CTabletTool> tool, bool motion = f
         else
             local = tool->m_absolutePos * BOX->size();
 
-        if (WINDOW && WINDOW->m_isX11)
-            local = local * WINDOW->m_X11SurfaceScaledBy;
+        if (WINDOW && WINDOW->backend().isX11())
+            local = WINDOW->backend().surfaceLocalToBuffer(local);
 
         PROTO::tablet->motion(tool, local);
         return;
@@ -86,8 +86,8 @@ static void refocusTablet(SP<CTablet> tab, SP<CTabletTool> tool, bool motion = f
 
     auto local = CURSORPOS - BOX->pos();
 
-    if (WINDOW && WINDOW->m_isX11)
-        local = local * WINDOW->m_X11SurfaceScaledBy;
+    if (WINDOW && WINDOW->backend().isX11())
+        local = WINDOW->backend().surfaceLocalToBuffer(local);
 
     PROTO::tablet->motion(tool, local);
 }

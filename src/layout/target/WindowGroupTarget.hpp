@@ -2,7 +2,7 @@
 
 #include "Target.hpp"
 
-#include "../../desktop/view/Window.hpp"
+#include "../../desktop/view/window/Window.hpp"
 #include "../../desktop/view/Group.hpp"
 
 namespace Layout {

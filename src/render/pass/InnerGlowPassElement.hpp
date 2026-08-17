@@ -6,8 +6,8 @@ class CHyprInnerGlowDecoration;
 class CInnerGlowPassElement : public IPassElement {
   public:
     struct SInnerGlowData {
-        CHyprInnerGlowDecoration* deco = nullptr;
-        float                     a    = 1.F;
+        WP<CHyprInnerGlowDecoration> deco;
+        float                        a = 1.F;
     };
 
     CInnerGlowPassElement(const SInnerGlowData& data_);

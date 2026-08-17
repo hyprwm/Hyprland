@@ -2,7 +2,7 @@
 #include "WindowState.hpp"
 #include "../Workspace.hpp"
 #include "../history/WindowHistoryTracker.hpp"
-#include "../view/Window.hpp"
+#include "../view/window/Window.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../output/Monitor.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
@@ -41,9 +41,9 @@ PHLWINDOW CWindowQuery::inDirection(PHLWINDOW window, Math::eDirection direction
     return inDirection({.origin             = WINDOWIDEALBB,
                         .workspace          = PWORKSPACE,
                         .direction          = direction,
-                        .floatingPreference = window->m_isFloating,
+                        .floatingPreference = window->isFloating(),
                         .ignoreWindow       = window,
-                        .useVectorAngles    = window->m_isFloating});
+                        .useVectorAngles    = window->isFloating()});
 }
 
 PHLWINDOW CWindowQuery::inDirection(const SWindowDirectionQuery& query) const {
@@ -96,13 +96,13 @@ PHLWINDOW CWindowQuery::inDirection(const SWindowDirectionQuery& query) const {
 
         auto find = [&]() {
             for (auto const& w : m_state.windows()) {
-                if (w == query.ignoreWindow || !w->m_workspace || !w->m_isMapped || (!Fullscreen::controller()->isFullscreen(w) && w->m_isFloating) || !w->m_workspace->isVisible())
+                if (w == query.ignoreWindow || !w->m_workspace || !w->mapped() || (!Fullscreen::controller()->isFullscreen(w) && w->isFloating()) || !w->m_workspace->isVisible())
                     continue;
 
                 if (w->isHidden())
                     continue;
 
-                if (w->hasInputBlockedReasonsBesides(INPUT_BLOCK_BELOW_FULLSCREEN))
+                if (w->hasInputBlockedReasonsBesides(FOCUS_BLOCK_BELOW_FULLSCREEN))
                     continue;
 
                 if (query.workspace->m_monitor == w->m_monitor && query.workspace != w->m_workspace)
@@ -127,7 +127,7 @@ PHLWINDOW CWindowQuery::inDirection(const SWindowDirectionQuery& query) const {
                 if (!*PMONITORFALLBACK && query.workspace->m_monitor != w->m_monitor)
                     continue;
 
-                if ((!Fullscreen::controller()->isFullscreen(w) && w->m_isFloating) != floatingPreference)
+                if ((!Fullscreen::controller()->isFullscreen(w) && w->isFloating()) != floatingPreference)
                     continue;
 
                 // prioritize windows on the same workspace.
@@ -220,7 +220,7 @@ PHLWINDOW CWindowQuery::inDirection(const SWindowDirectionQuery& query) const {
         constexpr float THRESHOLD    = 0.3 * M_PI;
 
         for (auto const& w : m_state.windows()) {
-            if (w == query.ignoreWindow || !w->m_isMapped || !w->m_workspace || !w->acceptsInput() || (!Fullscreen::controller()->isFullscreen(w) && !w->m_isFloating) ||
+            if (w == query.ignoreWindow || !w->mapped() || !w->m_workspace || !w->acceptsInput() || (!Fullscreen::controller()->isFullscreen(w) && !w->isFloating()) ||
                 !w->m_workspace->isVisible())
                 continue;
 
@@ -263,7 +263,7 @@ static bool isWorkspaceMatches(WINDOWPTR pWindow, const WINDOWPTR w, bool anyWor
 
 template <typename WINDOWPTR>
 static bool isFloatingMatches(WINDOWPTR w, std::optional<bool> floating) {
-    return !floating.has_value() || w->m_isFloating == floating.value();
+    return !floating.has_value() || w->isFloating() == floating.value();
 }
 
 template <typename WINDOWPTR>
@@ -271,13 +271,13 @@ static bool acceptsInputForCycle(WINDOWPTR w, bool allowFullscreenBlocked) {
     if (w->acceptsInput())
         return true;
 
-    return allowFullscreenBlocked && !w->isHidden() && w->noInputBlockedReasonsBesides(INPUT_BLOCK_BELOW_FULLSCREEN);
+    return allowFullscreenBlocked && !w->isHidden() && w->noInputBlockedReasonsBesides(FOCUS_BLOCK_BELOW_FULLSCREEN);
 }
 
 template <typename WINDOWPTR>
 static bool isWindowAvailableForCycle(WINDOWPTR pWindow, WINDOWPTR w, const SWindowCycleOptions& options) {
     return isFloatingMatches(w, options.floating) &&
-        (w != pWindow && isWorkspaceMatches(pWindow, w, options.visible) && w->m_isMapped && acceptsInputForCycle(w, options.allowFullscreenBlocked) &&
+        (w != pWindow && isWorkspaceMatches(pWindow, w, options.visible) && w->mapped() && acceptsInputForCycle(w, options.allowFullscreenBlocked) &&
          (!options.focusableOnly || !w->m_ruleApplicator->noFocus().valueOrDefault()));
 }
 

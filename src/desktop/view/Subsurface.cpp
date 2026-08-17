@@ -1,6 +1,6 @@
 #include "Subsurface.hpp"
 #include "../state/FocusState.hpp"
-#include "Window.hpp"
+#include "window/Window.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../protocols/core/Compositor.hpp"
 #include "../../protocols/core/Subcompositor.hpp"
@@ -74,16 +74,19 @@ eViewType CSubsurface::type() const {
     return VIEW_TYPE_SUBSURFACE;
 }
 
-bool CSubsurface::visible() const {
-    if (!m_wlSurface || !m_wlSurface->resource() || !m_wlSurface->resource()->m_mapped)
-        return false;
+bool CSubsurface::mapped() const {
+    return m_wlSurface && m_wlSurface->resource() && m_wlSurface->resource()->m_mapped;
+}
 
-    if (!m_windowParent.expired())
-        return g_pHyprRenderer->shouldRenderWindow(m_windowParent.lock());
+bool CSubsurface::focusAvailable() const {
+    if (!m_windowParent.expired()) {
+        const auto WINDOW = m_windowParent.lock();
+        return WINDOW->mapped() && WINDOW->acceptsInput() && g_pHyprRenderer->shouldRenderWindow(WINDOW);
+    }
     if (m_popupParent)
-        return m_popupParent->visible();
+        return m_popupParent->mapped() && m_popupParent->acceptsInput();
     if (m_parent)
-        return m_parent->visible();
+        return m_parent->mapped() && m_parent->acceptsInput();
 
     return false;
 }
@@ -97,7 +100,7 @@ std::optional<CBox> CSubsurface::logicalBox() const {
 }
 
 std::optional<CBox> CSubsurface::surfaceLogicalBox() const {
-    if (!visible())
+    if (!mapped() || !acceptsInput())
         return std::nullopt;
 
     return geometricBox(GEOMETRIC_CURRENT);
@@ -139,7 +142,8 @@ void CSubsurface::checkSiblingDamage() {
     if (!m_parent)
         return; // ??????????
 
-    const double SCALE = m_windowParent.lock() && m_windowParent->m_isX11 ? 1.0 / m_windowParent->m_X11SurfaceScaledBy : 1.0;
+    const auto   WINDOW = m_windowParent.lock();
+    const double SCALE  = WINDOW && WINDOW->backend().isX11() ? 1.0 / WINDOW->backend().surfaceScale() : 1.0;
 
     for (auto const& n : m_parent->m_children) {
         if (n.get() == this)
@@ -181,7 +185,7 @@ void CSubsurface::recheckDamageForSubsurfaces(int depth) {
 
 void CSubsurface::onCommit() {
     // no damaging if it's not visible
-    if (!m_windowParent.expired() && (!m_windowParent->m_isMapped || !m_windowParent->m_workspace->m_visible)) {
+    if (!m_windowParent.expired() && (!m_windowParent->mapped() || !m_windowParent->m_workspace->m_visible)) {
         m_lastSize = m_wlSurface->resource()->m_current.size;
 
         static auto PLOGDAMAGE = CConfigValue<Config::INTEGER>("debug:log_damage");
@@ -197,7 +201,7 @@ void CSubsurface::onCommit() {
     if (m_popupParent && !m_popupParent->inert() && m_popupParent->wlSurface())
         m_popupParent->recheckTree();
     if (!m_windowParent.expired()) // I hate you firefox why are you doing this
-        m_windowParent->m_popupHead->recheckTree();
+        m_windowParent->popupHead()->recheckTree();
 
     // I do not think this is correct, but it solves a lot of issues with some apps (e.g. firefox)
     checkSiblingDamage();
@@ -321,4 +325,35 @@ void CSubsurface::syncScaleTransform() const {
 
 Vector2D CSubsurface::size() {
     return m_wlSurface->resource()->m_current.size;
+}
+
+size_t CSubsurface::allChildrenCount() const {
+    return countChildren(false);
+}
+
+size_t CSubsurface::allMappedChildrenCount() const {
+    return countChildren(true);
+}
+
+size_t CSubsurface::countChildren(bool onlyMapped) const {
+    size_t                       count = 0;
+    std::vector<SP<CSubsurface>> subsurfaces;
+    subsurfaces.emplace_back(m_self.lock());
+
+    for (size_t i = 0; i < subsurfaces.size(); ++i) {
+        const auto& subsurface = subsurfaces[i];
+        if (!subsurface)
+            continue;
+
+        for (const auto& c : subsurface->m_children) {
+            if (!c)
+                continue;
+
+            subsurfaces.emplace_back(c);
+            if (!onlyMapped || c->mapped())
+                count++;
+        }
+    }
+
+    return count;
 }

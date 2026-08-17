@@ -1,4 +1,5 @@
 #include "Workspace.hpp"
+#include "view/window/WindowPresentation.hpp"
 #include "view/Group.hpp"
 #include "view/LayerSurface.hpp"
 #include "state/FocusState.hpp"
@@ -437,11 +438,11 @@ int CWorkspace::getWindowCount(std::optional<bool> onlyTiled, std::optional<bool
             continue;
 
         const auto visibilityFulfilled = t->window() && !t->window()->isHidden() &&
-            !t->window()->isInputBlockedReasonAnyOf(INPUT_BLOCK_GROUP_INACTIVE | INPUT_BLOCK_MONOCLE_INACTIVE | INPUT_BLOCK_BELOW_FULLSCREEN);
+            !t->window()->isInputBlockedReasonAnyOf(FOCUS_BLOCK_GROUP_INACTIVE | FOCUS_BLOCK_MONOCLE_INACTIVE | FOCUS_BLOCK_BELOW_FULLSCREEN);
 
         if (onlyTiled.has_value() && t->floating() == onlyTiled.value())
             continue;
-        if (onlyPinned.has_value() && (!t->window() || t->window()->m_pinned != onlyPinned.value()))
+        if (onlyPinned.has_value() && (!t->window() || sc<bool>(t->window()->m_state & WINDOW_STATE_PINNED) != onlyPinned.value()))
             continue;
         if (onlyVisible.has_value() && (!t->window() || visibilityFulfilled != onlyVisible.value()))
             continue;
@@ -457,13 +458,13 @@ int CWorkspace::getGroups(std::optional<bool> onlyTiled, std::optional<bool> onl
         const auto HEAD = g->head();
 
         const auto visibilityFulfilled = g->current() && !g->current()->isHidden() &&
-            !g->current()->isInputBlockedReasonAnyOf(INPUT_BLOCK_GROUP_INACTIVE | INPUT_BLOCK_MONOCLE_INACTIVE | INPUT_BLOCK_BELOW_FULLSCREEN);
+            !g->current()->isInputBlockedReasonAnyOf(FOCUS_BLOCK_GROUP_INACTIVE | FOCUS_BLOCK_MONOCLE_INACTIVE | FOCUS_BLOCK_BELOW_FULLSCREEN);
 
-        if (HEAD->workspaceID() != m_id || !HEAD->m_isMapped)
+        if (HEAD->workspaceID() != m_id || !HEAD->mapped())
             continue;
-        if (onlyTiled.has_value() && HEAD->m_isFloating == onlyTiled.value())
+        if (onlyTiled.has_value() && HEAD->isFloating() == onlyTiled.value())
             continue;
-        if (onlyPinned.has_value() && HEAD->m_pinned != onlyPinned.value())
+        if (onlyPinned.has_value() && sc<bool>(HEAD->m_state & WINDOW_STATE_PINNED) != onlyPinned.value())
             continue;
         if (onlyVisible.has_value() && visibilityFulfilled != onlyVisible.value())
             continue;
@@ -474,7 +475,7 @@ int CWorkspace::getGroups(std::optional<bool> onlyTiled, std::optional<bool> onl
 
 PHLWINDOW CWorkspace::getFirstWindow() {
     for (auto const& w : Desktop::windowState()->windows()) {
-        if (w->m_workspace == m_self && w->m_isMapped && w->acceptsInput())
+        if (w->m_workspace == m_self && w->mapped() && w->acceptsInput())
             return w;
     }
 
@@ -485,7 +486,7 @@ PHLWINDOW CWorkspace::getTopLeftWindow() {
     const auto PMONITOR = m_monitor.lock();
 
     for (auto const& w : Desktop::windowState()->windows()) {
-        if (w->m_workspace != m_self || !w->m_isMapped || !w->acceptsInput())
+        if (w->m_workspace != m_self || !w->mapped() || !w->acceptsInput())
             continue;
 
         const auto WINDOWIDEALBB = w->getWindowIdealBoundingBoxIgnoreReserved();
@@ -497,7 +498,7 @@ PHLWINDOW CWorkspace::getTopLeftWindow() {
 }
 
 bool CWorkspace::hasUrgentWindow() {
-    return std::ranges::any_of(Desktop::windowState()->windows(), [this](const auto& w) { return w->m_workspace == m_self && w->m_isMapped && w->m_isUrgent; });
+    return std::ranges::any_of(Desktop::windowState()->windows(), [this](const auto& w) { return w->m_workspace == m_self && w->mapped() && (w->m_hints & WINDOW_HINT_URGENT); });
 }
 
 void CWorkspace::updateWindowDecos() {
@@ -505,7 +506,7 @@ void CWorkspace::updateWindowDecos() {
         if (w->m_workspace != m_self)
             continue;
 
-        w->updateWindowDecos();
+        w->presentation().updateDecorations();
     }
 }
 
@@ -522,7 +523,7 @@ void CWorkspace::updateWindowData() {
 
 void CWorkspace::forceReportSizesToWindows() {
     for (auto const& w : Desktop::windowState()->windows()) {
-        if (w->m_workspace != m_self || !w->m_isMapped || w->isHidden())
+        if (w->m_workspace != m_self || !w->mapped() || w->isHidden())
             continue;
 
         w->sendWindowSize(true);

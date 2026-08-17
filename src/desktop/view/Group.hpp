@@ -10,6 +10,10 @@ namespace Layout {
     class CWindowGroupTarget;
 };
 
+namespace Fullscreen {
+    enum eFullscreenMode : int8_t;
+}
+
 namespace Desktop::View {
     class CGroup {
       public:
@@ -21,53 +25,54 @@ namespace Desktop::View {
             REMOVE_FROM_GROUP_REASON_UNMAP_WINDOW,
         };
 
-        bool                             has(PHLWINDOW w) const;
+        bool      has(PHLWINDOW w) const;
 
-        void                             add(PHLWINDOW w, std::optional<size_t> index = {});
-        void                             remove(PHLWINDOW w, Math::eDirection dir = Math::DIRECTION_DEFAULT, eRemoveFromGroupReason reason = REMOVE_FROM_GROUP_REASON_UNKNOWN);
-        void                             moveCurrent(bool next);
-        void                             setCurrent(size_t idx);
-        void                             setCurrent(PHLWINDOW w);
-        size_t                           getCurrentIdx() const;
-        size_t                           size() const;
-        void                             destroy();
-        void                             updateWorkspace(PHLWORKSPACE);
+        void      add(PHLWINDOW w, std::optional<size_t> index = {});
+        void      replaceMember(PHLWINDOW oldWindow, PHLWINDOW newWindow, std::optional<Fullscreen::eFullscreenMode> internalMode = std::nullopt, bool layoutManaged = false);
+        void      remove(PHLWINDOW w, Math::eDirection dir = Math::DIRECTION_DEFAULT, eRemoveFromGroupReason reason = REMOVE_FROM_GROUP_REASON_UNKNOWN);
+        void      moveCurrent(bool next);
+        void      setCurrent(size_t idx);
+        void      setCurrent(PHLWINDOW w);
+        size_t    getCurrentIdx() const;
+        size_t    size() const;
+        void      destroy();
+        void      updateWorkspace(PHLWORKSPACE);
 
-        void                             swapWithNext();
-        void                             swapWithLast();
+        void      swapWithNext();
+        void      swapWithLast();
 
-        PHLWINDOW                        head() const;
-        PHLWINDOW                        tail() const;
-        PHLWINDOW                        current() const;
-        PHLWINDOW                        next() const;
+        PHLWINDOW head() const;
+        PHLWINDOW tail() const;
+        PHLWINDOW current() const;
+        PHLWINDOW next() const;
 
-        PHLWINDOW                        fromIndex(size_t idx) const;
+        PHLWINDOW fromIndex(size_t idx) const;
 
-        bool                             locked() const;
-        void                             setLocked(bool x);
+        bool      locked() const;
+        void      setLocked(bool x);
 
-        bool                             denied() const;
-        void                             setDenied(bool x);
+        bool      denied() const;
+        void      setDenied(bool x);
 
         const std::vector<PHLWINDOWREF>& windows() const;
-
-        SP<Layout::CWindowGroupTarget>   m_target;
+        SP<Layout::CWindowGroupTarget>   target() const;
 
       private:
         CGroup(std::vector<PHLWINDOWREF>&& windows);
 
-        void                      applyWindowDecosAndUpdates(PHLWINDOW x);
-        void                      removeWindowDecos(PHLWINDOW x);
-        void                      init();
-        void                      updateWindowVisibility();
+        void                           applyWindowDecosAndUpdates(PHLWINDOW x);
+        void                           removeWindowDecos(PHLWINDOW x);
+        void                           init();
+        void                           updateWindowVisibility();
 
-        WP<CGroup>                m_self;
+        WP<CGroup>                     m_self;
+        SP<Layout::CWindowGroupTarget> m_target;
 
-        std::vector<PHLWINDOWREF> m_windows;
+        std::vector<PHLWINDOWREF>      m_windows;
 
-        size_t                    m_current = 0;
+        size_t                         m_current = 0;
 
-        uint32_t                  m_groupPolicyFlags = 0;
+        uint32_t                       m_groupPolicyFlags = 0;
     };
 
     std::vector<WP<CGroup>>& groups();

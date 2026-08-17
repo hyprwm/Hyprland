@@ -1,4 +1,5 @@
 #include "InputManager.hpp"
+#include "../../desktop/view/window/WindowPresentation.hpp"
 #include "../../Compositor.hpp"
 #include <aquamarine/output/Output.hpp>
 #include <cstdint>
@@ -26,7 +27,6 @@
 #include "../../protocols/core/Seat.hpp"
 #include "../../protocols/core/DataDevice.hpp"
 #include "../../protocols/core/Compositor.hpp"
-#include "../../protocols/XDGShell.hpp"
 #include "../../protocols/InputCapture.hpp"
 
 #include "../../devices/Mouse.hpp"
@@ -215,7 +215,7 @@ void CInputManager::sendMotionEventsToFocused() {
 
     const auto VIEW = HLSurf->view();
 
-    if (!VIEW->aliveAndVisible())
+    if (!VIEW->mapped() || !VIEW->acceptsInput())
         return;
 
     const auto BOX = HLSurf->getSurfaceBoxGlobal();
@@ -299,7 +299,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
         const auto CLOSEST      = rg.closestPoint(mouseCoords);
         const auto BOX          = surf->getSurfaceBoxGlobal();
         const auto WINDOW       = Desktop::View::CWindow::fromView(surf->view());
-        const auto CLOSESTLOCAL = (CLOSEST - (BOX.has_value() ? BOX->pos() : Vector2D{})) * (WINDOW ? WINDOW->m_X11SurfaceScaledBy : 1.0);
+        const auto LOCAL        = CLOSEST - (BOX.has_value() ? BOX->pos() : Vector2D{});
+        const auto CLOSESTLOCAL = WINDOW ? WINDOW->backend().surfaceLocalToBuffer(LOCAL) : LOCAL;
 
         if (g_pSeatManager->m_state.pointerFocus != surf->resource())
             g_pSeatManager->setPointerFocus(surf->resource(), CLOSESTLOCAL);
@@ -500,7 +501,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     if (HAS_EXCLUSIVE_FULLSCREEN) {
         const auto IS_LS_UNFOCUSABLE = pFoundLayerSurface &&
             (pFoundLayerSurface->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP ||
-             (pFoundLayerSurface->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP && !pFoundLayerSurface->m_aboveFullscreen));
+             (pFoundLayerSurface->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP && !(pFoundLayerSurface->m_flags & Desktop::View::LAYER_FLAG_ABOVE_FULLSCREEN)));
 
         if (IS_LS_UNFOCUSABLE) {
             foundSurface       = nullptr;
@@ -514,11 +515,11 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
             const auto& PWINDOWIDEAL = getWindowIdeal();
             if (PWINDOWIDEAL &&
-                ((PWINDOWIDEAL->m_isFloating && PWINDOWIDEAL->isAllowedOverFullscreen()) /* floating over fullscreen or pinned */
+                ((PWINDOWIDEAL->isFloating() && PWINDOWIDEAL->isAllowedOverFullscreen()) /* floating over fullscreen or pinned */
                  || (PMONITOR->m_activeSpecialWorkspace == PWINDOWIDEAL->m_workspace) /* on an open special workspace */))
                 pFoundWindow = PWINDOWIDEAL;
 
-            if (!pFoundWindow->m_isX11) {
+            if (!pFoundWindow->backend().isX11()) {
                 foundSurface = Desktop::viewState()->hitTest().windowSurfaceAt(mouseCoords, pFoundWindow, surfaceCoords);
                 surfacePos   = Vector2D(-1337, -1337);
             } else {
@@ -552,7 +553,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
                         if (pFoundWindow != PWINDOWIDEAL)
                             pFoundWindow = PWINDOWIDEAL;
 
-                        if (!(pFoundWindow && (pFoundWindow->m_isFloating && pFoundWindow->isAllowedOverFullscreen())))
+                        if (!(pFoundWindow && (pFoundWindow->isFloating() && pFoundWindow->isAllowedOverFullscreen())))
                             pFoundWindow = Fullscreen::controller()->getFullscreenWindow(PWORKSPACE);
                     }
                 }
@@ -565,7 +566,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
         }
 
         if (pFoundWindow) {
-            if (!pFoundWindow->m_isX11) {
+            if (!pFoundWindow->backend().isX11()) {
                 foundSurface = Desktop::viewState()->hitTest().windowSurfaceAt(mouseCoords, pFoundWindow, surfaceCoords);
                 if (!foundSurface) {
                     foundSurface = pFoundWindow->wlSurface()->resource();
@@ -631,8 +632,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
     Vector2D surfaceLocal = surfacePos == Vector2D(-1337, -1337) ? surfaceCoords : mouseCoords - surfacePos;
 
-    if (pFoundWindow && pFoundWindow->m_isX11) // for x11 force scale zero
-        surfaceLocal = surfaceLocal * pFoundWindow->m_X11SurfaceScaledBy;
+    if (pFoundWindow && pFoundWindow->backend().isX11()) // for x11 force scale zero
+        surfaceLocal = pFoundWindow->backend().surfaceLocalToBuffer(surfaceLocal);
 
     bool allowKeyboardRefocus = true;
 
@@ -679,7 +680,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
         if (FOLLOWMOUSE != 1 && !refocus) {
             if (pFoundWindow != Desktop::focusState()->window() && Desktop::focusState()->window() &&
-                ((pFoundWindow->m_isFloating && *PFLOATBEHAVIOR == 2) || (Desktop::focusState()->window()->m_isFloating != pFoundWindow->m_isFloating && *PFLOATBEHAVIOR != 0))) {
+                ((pFoundWindow->isFloating() && *PFLOATBEHAVIOR == 2) || (Desktop::focusState()->window()->isFloating() != pFoundWindow->isFloating() && *PFLOATBEHAVIOR != 0))) {
                 // enter if change floating style
                 if (FOLLOWMOUSE != 3 && allowKeyboardRefocus)
                     Desktop::focusState()->rawWindowFocus(pFoundWindow, FOCUS_REASON, foundSurface);
@@ -883,17 +884,19 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e, SP<I
     const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
     const auto w           = Desktop::viewState()->hitTest().windowAt(mouseCoords, Desktop::View::ALLOW_FLOATING | Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS);
 
-    if (w && !m_lastFocusOnLS && !g_pSessionLockManager->isSessionLocked() && w->checkInputOnDecos(INPUT_TYPE_BUTTON, mouseCoords, e))
+    if (w && !m_lastFocusOnLS && !g_pSessionLockManager->isSessionLocked() && w->presentation().checkInputOnDecorations(INPUT_TYPE_BUTTON, mouseCoords, e))
         return;
 
     // clicking on border triggers resize
     // TODO detect click on LS properly
-    if (*PRESIZEONBORDER && !g_pSessionLockManager->isSessionLocked() && !m_lastFocusOnLS && e.state == WL_POINTER_BUTTON_STATE_PRESSED && (!w || !w->isX11OverrideRedirect())) {
+    if (*PRESIZEONBORDER && !g_pSessionLockManager->isSessionLocked() && !m_lastFocusOnLS && e.state == WL_POINTER_BUTTON_STATE_PRESSED &&
+        (!w || !w->backend().traits().overrideRedirect)) {
         if (w && !Fullscreen::controller()->isFullscreen(w)) {
             const CBox real = w->geometricBox(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
             const CBox grab = {real.x - BORDER_GRAB_AREA, real.y - BORDER_GRAB_AREA, real.width + 2 * BORDER_GRAB_AREA, real.height + 2 * BORDER_GRAB_AREA};
 
-            if ((grab.containsPoint(mouseCoords) && (!real.containsPoint(mouseCoords) || w->isInCurvedCorner(mouseCoords.x, mouseCoords.y))) && !w->hasPopupAt(mouseCoords)) {
+            if ((grab.containsPoint(mouseCoords) && (!real.containsPoint(mouseCoords) || w->presentation().isInCurvedCorner(mouseCoords.x, mouseCoords.y))) &&
+                !w->hasPopupAt(mouseCoords)) {
                 if (!g_layoutManager->dragController()->target())
                     g_layoutManager->beginDragTarget(w->layoutTarget(), MBIND_RESIZE);
                 return;
@@ -963,7 +966,7 @@ void CInputManager::processMouseDownKill(const IPointer::SButtonEvent& e) {
             Event::bus()->m_events.window.kill.emit(PWINDOW);
 
             // kill the mf
-            kill(PWINDOW->getPID(), SIGKILL);
+            kill(PWINDOW->backend().pid(), SIGKILL);
             break;
         }
         case WL_POINTER_BUTTON_STATE_RELEASED: break;
@@ -1018,7 +1021,7 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
         const auto PWINDOW = Desktop::viewState()->hitTest().windowAt(MOUSECOORDS, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
 
         if (PWINDOW) {
-            if (PWINDOW->checkInputOnDecos(INPUT_TYPE_AXIS, MOUSECOORDS, e))
+            if (PWINDOW->presentation().checkInputOnDecorations(INPUT_TYPE_AXIS, MOUSECOORDS, e))
                 return;
 
             if (*POFFWINDOWAXIS != 1) {
@@ -1684,21 +1687,21 @@ uint32_t CInputManager::hyprlandModsToXkb(SP<IKeyboard> relative, Input::Modifie
         xkb |= (sc<uint32_t>(1) << IDX);
     };
 
-    if ((mask & Input::HL_MODIFIER_ALT) != Input::HL_MODIFIER_NONE)
+    if (mask & Input::HL_MODIFIER_ALT)
         applyModState(XKB_MOD_NAME_ALT);
-    if ((mask & Input::HL_MODIFIER_CTRL) != Input::HL_MODIFIER_NONE)
+    if (mask & Input::HL_MODIFIER_CTRL)
         applyModState(XKB_MOD_NAME_CTRL);
-    if ((mask & Input::HL_MODIFIER_SHIFT) != Input::HL_MODIFIER_NONE)
+    if (mask & Input::HL_MODIFIER_SHIFT)
         applyModState(XKB_MOD_NAME_SHIFT);
-    if ((mask & Input::HL_MODIFIER_CAPS) != Input::HL_MODIFIER_NONE)
+    if (mask & Input::HL_MODIFIER_CAPS)
         applyModState(XKB_MOD_NAME_CAPS);
-    if ((mask & Input::HL_MODIFIER_MOD2) != Input::HL_MODIFIER_NONE)
+    if (mask & Input::HL_MODIFIER_MOD2)
         applyModState(XKB_MOD_NAME_MOD2);
-    if ((mask & Input::HL_MODIFIER_MOD3) != Input::HL_MODIFIER_NONE)
+    if (mask & Input::HL_MODIFIER_MOD3)
         applyModState(XKB_MOD_NAME_MOD3);
-    if ((mask & Input::HL_MODIFIER_META) != Input::HL_MODIFIER_NONE)
+    if (mask & Input::HL_MODIFIER_META)
         applyModState(XKB_MOD_NAME_MOD4);
-    if ((mask & Input::HL_MODIFIER_MOD5) != Input::HL_MODIFIER_NONE)
+    if (mask & Input::HL_MODIFIER_MOD5)
         applyModState(XKB_MOD_NAME_MOD5);
 
     return xkb;
@@ -1929,7 +1932,7 @@ bool CInputManager::isConstrained() {
         if (const auto DRAG = g_layoutManager->dragController()->target(); DRAG && DRAG->window() == WINDOW)
             return false;
 
-        return !WINDOW->m_layoutFlags.cantLockCursor;
+        return !WINDOW->cantLockCursor();
     });
 }
 
@@ -1942,7 +1945,7 @@ bool CInputManager::isLocked() {
     if (SURF) {
         const auto WINDOW = Desktop::View::CWindow::fromView(SURF->view());
 
-        if (WINDOW && WINDOW->m_layoutFlags.cantLockCursor)
+        if (WINDOW && WINDOW->cantLockCursor())
             return false;
     }
 
@@ -2235,14 +2238,14 @@ void CInputManager::releaseAllMouseButtons() {
 
 void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
     // ignore X11 OR windows, they shouldn't be touched
-    if (w->m_isX11 && w->isX11OverrideRedirect()) {
+    if (w->backend().isX11() && w->backend().traits().overrideRedirect) {
         Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_WINDOW_EDGE);
         return;
     }
 
     static auto PEXTENDBORDERGRAB = CConfigValue<Config::INTEGER>("general:extend_border_grab_area");
-    const int   BORDERSIZE        = w->getRealBorderSize();
-    const int   ROUNDING          = w->rounding();
+    const int   BORDERSIZE        = w->presentation().borderSize();
+    const int   ROUNDING          = w->presentation().rounding();
 
     // give a small leeway (10 px) for corner icon
     const auto           CORNER           = ROUNDING + BORDERSIZE + 10;
@@ -2260,7 +2263,7 @@ void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
 
         bool onDeco = false;
 
-        for (auto const& wd : w->m_windowDecorations) {
+        for (auto const& wd : w->presentation().decorations()) {
             if (!(wd->getDecorationFlags() & DECORATION_ALLOWS_MOUSE_INPUT))
                 continue;
 
@@ -2274,7 +2277,7 @@ void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
             direction = BORDERICON_NONE;
         else {
             if (box.containsPoint(mouseCoords)) {
-                if (!w->isInCurvedCorner(mouseCoords.x, mouseCoords.y)) {
+                if (!w->presentation().isInCurvedCorner(mouseCoords.x, mouseCoords.y)) {
                     direction = BORDERICON_NONE;
                 } else {
                     if (mouseCoords.y < box.y + CORNER) {

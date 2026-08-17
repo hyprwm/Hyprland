@@ -29,7 +29,7 @@ static bool isFunctionKey(xkb_keysym_t sym) {
 static bool isValidTrigger(xkb_keysym_t sym, Input::ModifierMask modmask) {
     if (isFunctionKey(sym))
         return true;
-    return (modmask & (Input::HL_MODIFIER_CTRL | Input::HL_MODIFIER_ALT | Input::HL_MODIFIER_META)) != Input::HL_MODIFIER_NONE;
+    return sc<bool>(modmask & (Input::HL_MODIFIER_CTRL | Input::HL_MODIFIER_ALT | Input::HL_MODIFIER_META));
 }
 
 static std::string keybindLabel(const Keybinds::PBind& bind) {

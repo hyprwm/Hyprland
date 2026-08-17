@@ -1,7 +1,7 @@
 #include "ImageCaptureSource.hpp"
 #include "core/Output.hpp"
 #include "../output/Monitor.hpp"
-#include "../desktop/view/Window.hpp"
+#include "../desktop/view/window/Window.hpp"
 #include "ForeignToplevel.hpp"
 
 CImageCaptureSource::CImageCaptureSource(SP<CExtImageCaptureSourceV1> resource, PHLMONITOR pMonitor) : m_resource(resource), m_monitor(pMonitor) {
@@ -30,7 +30,7 @@ std::string CImageCaptureSource::getName() {
     if (!m_monitor.expired())
         return m_monitor->m_name;
     if (!m_window.expired())
-        return m_window->m_title;
+        return m_window->metadata().title();
 
     return "error";
 }
@@ -117,7 +117,7 @@ void CToplevelImageCaptureSourceProtocol::bindManager(wl_client* client, void* d
             PROTO::imageCaptureSource->m_sources.emplace_back(makeShared<CImageCaptureSource>(makeShared<CExtImageCaptureSourceV1>(pMgr->client(), pMgr->version(), id), pWindow));
         PSOURCE->m_self = PSOURCE;
 
-        LOGM(Log::INFO, "New capture source for foreign toplevel: {}", pWindow->m_title);
+        LOGM(Log::INFO, "New capture source for foreign toplevel: {}", pWindow->metadata().title());
     });
 }
 

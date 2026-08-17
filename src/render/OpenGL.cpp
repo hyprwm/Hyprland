@@ -9,6 +9,7 @@
 #include <random>
 #include <pango/pangocairo.h>
 #include "OpenGL.hpp"
+#include "../desktop/view/window/WindowPresentation.hpp"
 #include "Renderer.hpp"
 #include "../Compositor.hpp"
 #include "../helpers/MiscFunctions.hpp"
@@ -1431,7 +1432,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
         Log::logger->log(Log::TRACE, "CM: render to FB skip={} {} -> {}", skipCM, SOURCE_IMAGE_DESCRIPTION->value(), TARGET_IMAGE_DESCRIPTION->value());
 
     if (data.allowDim && g_pHyprRenderer->m_renderData.currentWindow &&
-        (g_pHyprRenderer->m_renderData.currentWindow->m_notRespondingTint->value() > 0 || g_pHyprRenderer->m_renderData.currentWindow->m_dimPercent->value() > 0))
+        (g_pHyprRenderer->m_renderData.currentWindow->presentation().notRespondingTint() > 0 || g_pHyprRenderer->m_renderData.currentWindow->presentation().dimPercent() > 0))
         shaderFeatures |= SH_FEAT_TINT;
 
     if (data.round > 0)
@@ -1523,13 +1524,13 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
     }
 
     if (data.allowDim && g_pHyprRenderer->m_renderData.currentWindow) {
-        if (g_pHyprRenderer->m_renderData.currentWindow->m_notRespondingTint->value() > 0) {
-            const auto DIM = g_pHyprRenderer->m_renderData.currentWindow->m_notRespondingTint->value();
+        if (g_pHyprRenderer->m_renderData.currentWindow->presentation().notRespondingTint() > 0) {
+            const auto DIM = g_pHyprRenderer->m_renderData.currentWindow->presentation().notRespondingTint();
             shader->setUniformInt(SHADER_APPLY_TINT, 1);
             shader->setUniformFloat3(SHADER_TINT, 1.f - DIM, 1.f - DIM, 1.f - DIM);
-        } else if (g_pHyprRenderer->m_renderData.currentWindow->m_dimPercent->value() > 0) {
+        } else if (g_pHyprRenderer->m_renderData.currentWindow->presentation().dimPercent() > 0) {
             shader->setUniformInt(SHADER_APPLY_TINT, 1);
-            const auto DIM = g_pHyprRenderer->m_renderData.currentWindow->m_dimPercent->value();
+            const auto DIM = g_pHyprRenderer->m_renderData.currentWindow->presentation().dimPercent();
             shader->setUniformFloat3(SHADER_TINT, 1.f - DIM, 1.f - DIM, 1.f - DIM);
         } else
             shader->setUniformInt(SHADER_APPLY_TINT, 0);
@@ -2056,8 +2057,8 @@ void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
         const auto  PSURFACE = pWindow->wlSurface()->resource();
 
         const auto  PWORKSPACE = pWindow->m_workspace;
-        const float A          = pWindow->alphaValue(WINDOW_ALPHA_FADE) * pWindow->alphaValue(WINDOW_ALPHA_FULLSCREEN) * pWindow->alphaValue(WINDOW_ALPHA_LAYOUT) *
-            pWindow->alphaValue(WINDOW_ALPHA_ACTIVE) * PWORKSPACE->m_alpha->value();
+        const float A          = pWindow->presentation().alphaValue(WINDOW_ALPHA_FADE) * pWindow->presentation().alphaValue(WINDOW_ALPHA_FULLSCREEN) *
+            pWindow->presentation().alphaValue(WINDOW_ALPHA_LAYOUT) * pWindow->presentation().alphaValue(WINDOW_ALPHA_ACTIVE) * PWORKSPACE->m_alpha->value();
 
         if (A >= 1.f) {
             // if (PSURFACE->opaque)
@@ -2078,7 +2079,7 @@ void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
 
     bool hasWindows = false;
     for (auto const& w : Desktop::windowState()->windows()) {
-        if (w->m_workspace == pMonitor->m_activeWorkspace && w->visible() && w->m_isMapped && (!w->m_isFloating || *PBLURXRAY)) {
+        if (w->m_workspace == pMonitor->m_activeWorkspace && w->mapped() && w->acceptsInput() && w->alphaNonZero() && (!w->isFloating() || *PBLURXRAY)) {
 
             // check if window is valid
             if (!windowShouldBeBlurred(w))
@@ -2511,10 +2512,10 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
                 CBox       scaledWindowBox = WINDOWBOX.value();
 
                 const auto PWORKSPACE = PWINDOW->m_workspace;
-                if (PWORKSPACE && !PWINDOW->m_pinned)
+                if (PWORKSPACE && !(PWINDOW->m_state & WINDOW_STATE_PINNED))
                     scaledWindowBox.translate(PWORKSPACE->m_renderOffset->value());
 
-                scaledWindowBox.translate(PWINDOW->m_floatingOffset);
+                scaledWindowBox.translate(PWINDOW->presentation().floatingOffset());
                 scaledWindowBox.translate(-m_renderData.pMonitor->m_position);
                 scaledWindowBox.scale(m_renderData.pMonitor->m_scale).round();
                 m_renderData.renderModif.applyToBox(scaledWindowBox);
@@ -2522,7 +2523,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
                 const auto cutoutTopLeft     = scaledWindowBox.pos() - newBox.pos();
                 const auto cutoutBottomRight = cutoutTopLeft + scaledWindowBox.size();
 
-                float      cutoutRadius = std::max(0.F, sc<float>(PWINDOW->rounding() * m_renderData.pMonitor->m_scale));
+                float      cutoutRadius = std::max(0.F, sc<float>(PWINDOW->presentation().rounding() * m_renderData.pMonitor->m_scale));
                 cutoutRadius            = std::round(cutoutRadius * m_renderData.renderModif.combinedScale());
 
                 shader->setUniformFloat2(SHADER_WINDOW_TOP_LEFT, sc<float>(cutoutTopLeft.x), sc<float>(cutoutTopLeft.y));

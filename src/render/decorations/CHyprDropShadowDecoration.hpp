@@ -1,7 +1,7 @@
 #pragma once
 
+#include "AnimatedDecorationGradient.hpp"
 #include "IHyprWindowDecoration.hpp"
-#include "../../config/shared/complex/ComplexDataTypes.hpp"
 
 struct SShadowRenderData {
     bool  valid = false;
@@ -34,6 +34,11 @@ class CHyprDropShadowDecoration : public IHyprWindowDecoration {
 
     virtual std::string                getDisplayName();
 
+    virtual void                       initializeAnimations() override;
+    virtual void                       updateState() override;
+    virtual void                       onWindowMap() override;
+    virtual void                       onWindowFocus() override;
+
     bool                               canRender(PHLMONITOR);
     SShadowRenderData                  getRenderData(PHLMONITOR, float const& a);
     void                               reposition();
@@ -42,18 +47,20 @@ class CHyprDropShadowDecoration : public IHyprWindowDecoration {
     void render(PHLMONITOR, float const& a);
 
   private:
-    SBoxExtents  m_extents;
-    SBoxExtents  m_reportedExtents;
+    SBoxExtents                 m_extents;
+    SBoxExtents                 m_reportedExtents;
 
-    PHLWINDOWREF m_window;
+    PHLWINDOWREF                m_window;
 
-    Vector2D     m_lastWindowPos;
-    Vector2D     m_lastWindowSize;
+    CAnimatedDecorationGradient m_gradient;
 
-    void         drawShadowInternal(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad, float a);
-    void         drawShadowInternal(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2,
-                                    float lerp, float a);
+    Vector2D                    m_lastWindowPos;
+    Vector2D                    m_lastWindowSize;
 
-    CBox         m_lastWindowBox          = {0};
-    CBox         m_lastWindowBoxWithDecos = {0};
+    void                        drawShadowInternal(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad, float a);
+    void drawShadowInternal(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2,
+                            float lerp, float a);
+
+    CBox m_lastWindowBox          = {0};
+    CBox m_lastWindowBoxWithDecos = {0};
 };

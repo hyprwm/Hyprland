@@ -1,4 +1,6 @@
 #include "Monitor.hpp"
+#include "../desktop/view/window/WindowEffectsController.hpp"
+#include "../desktop/view/window/WindowPresentation.hpp"
 #include "../helpers/MiscFunctions.hpp"
 #include "../macros.hpp"
 #include "SharedDefs.hpp"
@@ -20,6 +22,7 @@
 #include "../protocols/ToplevelExport.hpp"
 #include "../pointer/PointerManager.hpp"
 #include "../pointer/PointerController.hpp"
+#include "../layout/target/Target.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/core/DataDevice.hpp"
@@ -1481,12 +1484,12 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
 
         // move pinned windows
         for (auto const& w : Desktop::windowState()->windows()) {
-            if (w->m_workspace == POLDWORKSPACE && w->m_pinned)
+            if (w->m_workspace == POLDWORKSPACE && (w->m_state & WINDOW_STATE_PINNED))
                 w->layoutTarget()->assignToSpace(pWorkspace->m_space);
         }
 
         if (!noFocus && !Desktop::focusState()->monitor()->m_activeSpecialWorkspace &&
-            !(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
+            !(Desktop::focusState()->window() && (Desktop::focusState()->window()->m_state & WINDOW_STATE_PINNED) && Desktop::focusState()->window()->m_monitor == m_self)) {
             static auto PFOLLOWMOUSE = CConfigValue<Config::INTEGER>("input:follow_mouse");
             auto pWindow = Fullscreen::controller()->hasFullscreen(pWorkspace) ? Fullscreen::controller()->getFullscreenWindow(pWorkspace) : pWorkspace->getLastFocusedWindow();
 
@@ -1517,7 +1520,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
     // set all LSes as not above fullscreen on workspace changes
     for (auto const& ls : Desktop::layerState()->layers()) {
         if (ls->m_monitor == m_self)
-            ls->m_aboveFullscreen = false;
+            ls->m_flags &= ~LAYER_FLAG_ABOVE_FULLSCREEN;
     }
 
     pWorkspace->m_events.activeChanged.emit();
@@ -1577,7 +1580,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace, bool noFocus)
             // Reset layer surface state when closing special workspace
             for (auto const& ls : Desktop::layerState()->layers()) {
                 if (ls->m_monitor == m_self)
-                    ls->m_aboveFullscreen = false;
+                    ls->m_flags &= ~LAYER_FLAG_ABOVE_FULLSCREEN;
             }
         }
         m_activeSpecialWorkspace.reset();
@@ -1588,7 +1591,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace, bool noFocus)
         g_layoutManager->recalculateMonitor(m_self.lock(), Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE);
 
         if (!(noFocus && Desktop::focusState()->monitor() != m_self) &&
-            !(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
+            !(Desktop::focusState()->window() && (Desktop::focusState()->window()->m_state & WINDOW_STATE_PINNED) && Desktop::focusState()->window()->m_monitor == m_self)) {
             if (const auto PLAST = m_activeWorkspace->getLastFocusedWindow(); PLAST)
                 Desktop::focusState()->fullWindowFocus(PLAST, Desktop::FOCUS_REASON_TOGGLE_SPECIAL_WORKSPACE);
             else
@@ -1623,7 +1626,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace, bool noFocus)
         g_pHyprRenderer->damageMonitor(PMONITOR);
         if (noFocus &&
             (Desktop::focusState()->monitor() == PMONITOR &&
-             !(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == PMONITOR))) {
+             !(Desktop::focusState()->window() && (Desktop::focusState()->window()->m_state & WINDOW_STATE_PINNED) && Desktop::focusState()->window()->m_monitor == PMONITOR))) {
             // leave focus behind
             if (const auto PLAST = PMONITOR->m_activeWorkspace->getLastFocusedWindow(); PLAST)
                 Desktop::focusState()->fullWindowFocus(PLAST, Desktop::FOCUS_REASON_TOGGLE_SPECIAL_WORKSPACE);
@@ -1636,7 +1639,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace, bool noFocus)
         // Reset layer surfaces on the old monitor when special workspace is stolen
         for (auto const& ls : Desktop::layerState()->layers()) {
             if (ls->m_monitor == PMONITOR)
-                ls->m_aboveFullscreen = false;
+                ls->m_flags &= ~LAYER_FLAG_ABOVE_FULLSCREEN;
         }
 
         const auto PACTIVEWORKSPACE = PMONITOR->m_activeWorkspace;
@@ -1655,7 +1658,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace, bool noFocus)
     // Reset layer surface state when opening special workspace
     for (auto const& ls : Desktop::layerState()->layers()) {
         if (ls->m_monitor == m_self)
-            ls->m_aboveFullscreen = false;
+            ls->m_flags &= ~LAYER_FLAG_ABOVE_FULLSCREEN;
     }
 
     if (POLDSPECIAL)
@@ -1674,10 +1677,10 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace, bool noFocus)
         if (w->m_workspace == pWorkspace) {
             w->m_monitor = m_self;
             w->updateSurfaceScaleTransformDetails();
-            w->setAnimationsToMove();
+            w->presentation().setAnimationsToMove();
 
             const auto MIDDLE = w->middle();
-            if (w->m_isFloating && VECNOTINRECT(MIDDLE, m_position.x, m_position.y, m_position.x + m_size.x, m_position.y + m_size.y) && !w->isX11OverrideRedirect()) {
+            if (w->isFloating() && VECNOTINRECT(MIDDLE, m_position.x, m_position.y, m_position.x + m_size.x, m_position.y + m_size.y) && !w->backend().traits().overrideRedirect) {
                 // if it's floating and the middle isn't on the current mon, move it to the center
                 const auto PMONFROMMIDDLE = State::monitorState()->query().vec(MIDDLE).run();
                 Vector2D   pos            = w->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
@@ -1697,7 +1700,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace, bool noFocus)
 
     if (!noFocus ||
         (Desktop::focusState()->monitor() == m_self &&
-         !(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self))) {
+         !(Desktop::focusState()->window() && (Desktop::focusState()->window()->m_state & WINDOW_STATE_PINNED) && Desktop::focusState()->window()->m_monitor == m_self))) {
         // focus the workspace we just moved
         if (const auto PLAST = pWorkspace->getLastFocusedWindow(); PLAST)
             Desktop::focusState()->fullWindowFocus(PLAST, Desktop::FOCUS_REASON_TOGGLE_SPECIAL_WORKSPACE);
@@ -1750,7 +1753,7 @@ void CMonitor::moveTo(const Vector2D& pos) {
     const auto DELTA = pos - OLD_POSITION;
 
     for (const auto& w : Desktop::windowState()->windows()) {
-        if (!validMapped(w) || !w->m_isFloating || w->m_monitor != m_self)
+        if (!validMapped(w) || !w->isFloating() || w->m_monitor != m_self)
             continue;
 
         w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(DELTA));
@@ -1882,7 +1885,7 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
         return reasons;
     }
 
-    if (!PCANDIDATE->opaque()) {
+    if (!PCANDIDATE->presentation().opaque()) {
         reasons |= SC_OPAQUE;
         if (!full)
             return reasons;
@@ -1919,10 +1922,10 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
     }
 
     for (auto const& w : Desktop::windowState()->windows()) {
-        if (w == PCANDIDATE || !w->m_isMapped || !w->visible())
+        if (w == PCANDIDATE || !w->mapped() || !w->acceptsInput() || !w->alphaNonZero())
             continue;
 
-        if (w->workspaceID() == PCANDIDATE->workspaceID() && w->m_isFloating && w->isAllowedOverFullscreen() && w->visibleOnMonitor(m_self.lock())) {
+        if (w->workspaceID() == PCANDIDATE->workspaceID() && w->isFloating() && w->isAllowedOverFullscreen() && w->presentation().visibleOnMonitor(m_self.lock())) {
             reasons |= SC_FLOAT;
             if (!full)
                 return reasons;
@@ -2085,7 +2088,7 @@ uint16_t CMonitor::isDSBlocked(bool full) {
         return reasons;
     }
 
-    if (PCANDIDATE->m_transformers.blocksDirectScanout()) {
+    if (PCANDIDATE->effects().blocksDirectScanout()) {
         reasons |= DS_BLOCK_TRANSFORM;
         if (!full)
             return reasons;
@@ -2248,7 +2251,7 @@ bool CMonitor::attemptDirectScanout() {
 
     if (m_lastScanout.expired()) {
         m_lastScanout = PCANDIDATE;
-        Log::logger->log(Log::DEBUG, "Entered a direct scanout to {:x}: \"{}\"", rc<uintptr_t>(PCANDIDATE.get()), PCANDIDATE->m_title);
+        Log::logger->log(Log::DEBUG, "Entered a direct scanout to {:x}: \"{}\"", rc<uintptr_t>(PCANDIDATE.get()), PCANDIDATE->metadata().title());
     }
 
     m_scanoutNeedsCursorUpdate = false;

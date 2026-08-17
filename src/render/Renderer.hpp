@@ -23,6 +23,7 @@
 #include "./pass/TexPassElement.hpp"
 #include "./pass/TextureMatteElement.hpp"
 #include "./pass/TransformedWindowPassElement.hpp"
+#include "render/scene/MonitorScene.hpp"
 #include "types.hpp"
 #include "../output/Monitor.hpp"
 #include "../desktop/state/Fadeout.hpp"
@@ -323,6 +324,7 @@ namespace Render {
         friend class Pointer::CPointerManager;
         friend class Monitor::CMonitor;
         friend class CMonitorFrameScheduler;
+        friend class CMonitorScene;
 
       private:
         void bindOffMain();

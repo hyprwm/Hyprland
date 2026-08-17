@@ -50,6 +50,7 @@
 #include "pass/RendererHintsPassElement.hpp"
 #include "pass/SurfacePassElement.hpp"
 #include "pass/BackdropScopePassElement.hpp"
+#include "scene/Scene.hpp"
 #include "../debug/log/Logger.hpp"
 #include "../protocols/ColorManagement.hpp"
 #include "../protocols/types/ContentType.hpp"
@@ -2226,48 +2227,35 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     Event::bus()->m_events.render.stage.emit(RENDER_BEGIN);
 
-    bool renderCursor = true;
+    bool renderCursor = !pMonitor->isMirror();
 
     if (pMonitor->m_solitaryClient && (!finalDamage.empty() || *PSOLDAMAGE))
         renderWindow(pMonitor->m_solitaryClient.lock(), pMonitor, NOW, false, RENDER_PASS_MAIN /* solitary = no popups */);
     else if (!finalDamage.empty()) {
-        if (pMonitor->isMirror()) {
-            blend(false);
-            renderMirrored();
-            blend(true);
-            Event::bus()->m_events.render.stage.emit(RENDER_POST_MIRROR);
-            renderCursor = false;
-        } else {
-            CBox renderBox = {0, 0, sc<int>(pMonitor->m_transformedSize.x), sc<int>(pMonitor->m_transformedSize.y)};
-            renderWorkspace(pMonitor, pMonitor->m_activeWorkspace, NOW, renderBox);
-            renderLockscreen(pMonitor, NOW, renderBox);
+        pMonitor->resources()->m_sceneStack.current()->draw(NOW);
 
-            // render IME even above the lockscreen - allow the user to use it to potentially input stuff on it.
-            renderIME(pMonitor, NOW, renderBox);
+        if (pMonitor == Desktop::focusState()->monitor()) {
+            Notification::overlay()->draw(pMonitor);
+            ErrorOverlay::overlay()->draw();
+        }
 
-            if (pMonitor == Desktop::focusState()->monitor()) {
-                Notification::overlay()->draw(pMonitor);
-                ErrorOverlay::overlay()->draw();
-            }
+        // for drawing the debug overlay
+        if (!State::monitorState()->monitors().empty() && pMonitor == State::monitorState()->monitors().front() && *PDEBUGOVERLAY == 1) {
+            renderStartOverlay = std::chrono::high_resolution_clock::now();
+            Debug::overlay()->draw();
+            endRenderOverlay = std::chrono::high_resolution_clock::now();
+        }
 
-            // for drawing the debug overlay
-            if (!State::monitorState()->monitors().empty() && pMonitor == State::monitorState()->monitors().front() && *PDEBUGOVERLAY == 1) {
-                renderStartOverlay = std::chrono::high_resolution_clock::now();
-                Debug::overlay()->draw();
-                endRenderOverlay = std::chrono::high_resolution_clock::now();
-            }
-
-            if (*PDAMAGEBLINK && damageBlinkCleanup == 0) {
-                CRectPassElement::SRectData data;
-                data.box   = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
-                data.color = CHyprColor(1.0, 0.0, 1.0, 100.0 / 255.0);
-                m_renderPass.add(makeUnique<CRectPassElement>(data));
-                damageBlinkCleanup = 1;
-            } else if (*PDAMAGEBLINK) {
-                damageBlinkCleanup++;
-                if (damageBlinkCleanup > 3)
-                    damageBlinkCleanup = 0;
-            }
+        if (*PDAMAGEBLINK && damageBlinkCleanup == 0) {
+            CRectPassElement::SRectData data;
+            data.box   = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
+            data.color = CHyprColor(1.0, 0.0, 1.0, 100.0 / 255.0);
+            m_renderPass.add(makeUnique<CRectPassElement>(data));
+            damageBlinkCleanup = 1;
+        } else if (*PDAMAGEBLINK) {
+            damageBlinkCleanup++;
+            if (damageBlinkCleanup > 3)
+                damageBlinkCleanup = 0;
         }
     } else if (!pMonitor->isMirror()) {
         if (pMonitor->m_activeWorkspace)

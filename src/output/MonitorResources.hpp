@@ -4,6 +4,7 @@
 #include "../helpers/Format.hpp"
 #include "../helpers/time/Timer.hpp"
 #include "../render/Framebuffer.hpp"
+#include "../render/scene/SceneStack.hpp"
 #include <hyprutils/math/Vector2D.hpp>
 #include <vector>
 
@@ -32,6 +33,8 @@ namespace Monitor {
 
         SP<Render::ITexture>     m_stencilTex; // TODO fix blur ignore alpha and remove
         SP<Render::IFramebuffer> m_blurFB;
+
+        Render::CSceneStack      m_sceneStack;
 
       private:
         void                                initFB(SP<Render::IFramebuffer> fb);

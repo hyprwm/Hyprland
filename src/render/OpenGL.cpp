@@ -1128,8 +1128,30 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
     CBox       MONITORBOX                     = {0, 0, g_pHyprRenderer->m_renderData.pMonitor->m_transformedSize.x, g_pHyprRenderer->m_renderData.pMonitor->m_transformedSize.y};
     const auto SAVEDRENDERMODIF               = g_pHyprRenderer->m_renderData.renderModif;
     g_pHyprRenderer->m_renderData.renderModif = {}; // fix shit
-    renderTexture(blurredBG, MONITORBOX,
-                  STextureRenderData{.damage = &damage, .a = data.blurA, .round = data.round, .roundingPower = 2.F, .allowCustomUV = false, .allowDim = false, .noAA = false});
+
+    auto& m_renderData = g_pHyprRenderer->m_renderData;
+
+    CBox  transformedBox = box;
+    transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
+                             m_renderData.pMonitor->m_transformedSize.y);
+
+    CBox monitorSpaceBox = {transformedBox.pos().x / m_renderData.pMonitor->m_pixelSize.x * m_renderData.pMonitor->m_transformedSize.x,
+                            transformedBox.pos().y / m_renderData.pMonitor->m_pixelSize.y * m_renderData.pMonitor->m_transformedSize.y,
+                            transformedBox.width / m_renderData.pMonitor->m_pixelSize.x * m_renderData.pMonitor->m_transformedSize.x,
+                            transformedBox.height / m_renderData.pMonitor->m_pixelSize.y * m_renderData.pMonitor->m_transformedSize.y};
+
+    renderTexture(blurredBG, box,
+                  STextureRenderData{
+                      .damage                      = &damage,
+                      .a                           = data.blurA,
+                      .round                       = data.round,
+                      .roundingPower               = data.roundingPower,
+                      .allowCustomUV               = true,
+                      .allowDim                    = false,
+                      .noAA                        = false,
+                      .primarySurfaceUVTopLeft     = monitorSpaceBox.pos() / m_renderData.pMonitor->m_transformedSize,
+                      .primarySurfaceUVBottomRight = (monitorSpaceBox.pos() + monitorSpaceBox.size()) / m_renderData.pMonitor->m_transformedSize,
+                  });
     g_pHyprRenderer->m_renderData.renderModif = SAVEDRENDERMODIF;
 
     renderRectWithDamageInternal(box, col, data);

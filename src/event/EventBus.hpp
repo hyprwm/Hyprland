@@ -112,9 +112,9 @@ namespace Event {
                 } mouse;
 
                 struct {
-                    Cancellable<IKeyboard::SKeyEvent>        key;
-                    Event<SP<IKeyboard>, const std::string&> layout;
-                    Event<SP<CWLSurfaceResource>>            focus;
+                    Cancellable<IKeyboard::SKeyEvent, SP<IKeyboard>> key;
+                    Event<SP<IKeyboard>, const std::string&>         layout;
+                    Event<SP<CWLSurfaceResource>>                    focus;
                 } keyboard;
 
                 struct {

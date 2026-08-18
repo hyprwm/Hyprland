@@ -92,6 +92,8 @@ namespace Render {
         bool                            renderingWorkspaceToBuffer() const;
         // Renders only the target workspace's windows and popups during the target monitor's active render.
         bool renderWorkspaceToBuffer(PHLWORKSPACE, SP<IFramebuffer>, bool sendFeedback = true);
+        // Renders the target workspace as a complete monitor scene during the target monitor's active render.
+        bool renderWorkspaceSceneToBuffer(PHLWORKSPACE, SP<IFramebuffer>, const Time::steady_tp&, bool sendFeedback = true);
         // Renders the target monitor's regular scene during its active render.
         bool                                renderMonitorToBuffer(PHLMONITOR, SP<IFramebuffer>, const Time::steady_tp&, bool sendFeedback = true);
         bool                                shouldRenderMonitor(PHLMONITOR);
@@ -271,8 +273,10 @@ namespace Render {
         SP<ITexture>                       m_lockTtyTextTexture;
         CRenderPass*                       m_currentPass = nullptr;
         PHLWORKSPACEREF                    m_isolatedWorkspace;
+        bool                               m_isolatedWorkspaceFullScene = false;
 
         void                               handleFullscreenSettings(PHLMONITOR pMonitor);
+        bool                               renderWorkspaceToBufferInternal(PHLWORKSPACE, SP<IFramebuffer>, const Time::steady_tp&, bool sendFeedback, bool fullScene);
 
         // old private:
         void arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);

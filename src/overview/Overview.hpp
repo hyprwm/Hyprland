@@ -27,6 +27,7 @@ namespace Overview {
         virtual void close() = 0;
 
         virtual bool isOpen() const = 0;
+        virtual bool shouldRenderWorkspace(PHLWORKSPACE workspace) const;
 
         struct {
             CSignalT<> opened;

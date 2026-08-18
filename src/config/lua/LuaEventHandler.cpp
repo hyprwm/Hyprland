@@ -182,7 +182,7 @@ CLuaEventHandler::CLuaEventHandler(lua_State* L) : m_lua(L) {
             Log::logger->log(Log::ERR, "failed to unregister plugin event for lua {}: {}", name, ret.error());
     }));
 
-    m_listeners.push_back(bus()->m_events.input.keyboard.key.listen([this](const IKeyboard::SKeyEvent& keyEvent, const SCallbackInfo& _) {
+    m_listeners.push_back(bus()->m_events.input.keyboard.key.listen([this](const IKeyboard::SKeyEvent& keyEvent, SP<IKeyboard>, const SCallbackInfo& _) {
         dispatch("input.keyboard.key", 3, [&](lua_State* L) {
             lua_pushinteger(L, keyEvent.keycode + 8); // Because to xkbcommon it's +8 from libinput
             lua_pushinteger(L, keyEvent.timeMs);

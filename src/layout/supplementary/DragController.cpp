@@ -160,6 +160,7 @@ void CDragStateController::dragBegin(SP<ITarget> target, eMouseBindMode mode, st
     m_forcedGrabbedCorner = forcedEdge;
     m_exclusiveDeviceGrab = exclusiveDeviceGrab;
     m_grabbedCorner       = CORNER_NONE;
+    m_overriddenWorkspaceTarget.reset();
 
     const auto  DRAGGINGTARGET = m_target.lock();
     static auto PDRAGTHRESHOLD = CConfigValue<Config::INTEGER>("binds:drag_threshold");
@@ -251,6 +252,19 @@ bool CDragStateController::dragEnd() {
 
     if (!draggingTarget)
         return false;
+
+    // get middle point
+    Vector2D middle = draggingTarget->position().middle();
+
+    // and check its monitor
+    const auto PMONITOR = State::monitorState()->query().vec(middle).run();
+
+    if (m_overriddenWorkspaceTarget)
+        draggingTarget->assignToSpace(m_overriddenWorkspaceTarget->m_space);
+    else if (PMONITOR && PMONITOR->m_activeWorkspace) {
+        const auto WS = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
+        draggingTarget->assignToSpace(WS->m_space);
+    }
 
     m_mouseMoveEventCount = 1;
 
@@ -473,16 +487,9 @@ void CDragStateController::mouseMove(const Vector2D& mousePos) {
     if (TRACKMOTION)
         MOTIONWINDOW->effects().onPositionUpdate(previousFull, MOTIONWINDOW->getFullWindowBoundingBox(), Desktop::View::WINDOW_UPDATE_MOUSE);
 
-    // get middle point
-    Vector2D middle = DRAGGINGTARGET->position().middle();
-
-    // and check its monitor
-    const auto PMONITOR = State::monitorState()->query().vec(middle).run();
-
-    if (PMONITOR && PMONITOR->m_activeWorkspace && DRAGGINGTARGET->floating() /* If we're resizing a tiled target, don't do this */) {
-        const auto WS = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
-        DRAGGINGTARGET->assignToSpace(WS->m_space);
-    }
-
     DRAGGINGTARGET->damageEntire();
+}
+
+void CDragStateController::overrideDragWindowTargetWS(PHLWORKSPACE ws) {
+    m_overriddenWorkspaceTarget = ws;
 }

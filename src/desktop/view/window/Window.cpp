@@ -52,6 +52,7 @@
 #include "../../../protocols/LayerShell.hpp"
 #include "../../../helpers/Color.hpp"
 #include "../../../helpers/math/Expression.hpp"
+#include "../../../overview/Overview.hpp"
 #include "../../../render/Renderer.hpp"
 #include "../../../ipc/s2/S2.hpp"
 #include "../../../managers/input/InputManager.hpp"
@@ -1752,7 +1753,7 @@ void CWindow::commitWindow(bool initialCommit) {
             g_pHyprRenderer->damageWindow(m_self.lock());
     }
 
-    if (!m_workspace->m_visible)
+    if (!m_workspace->m_visible && !Overview::overview()->shouldRenderWorkspace(m_workspace))
         return;
 
     const auto PMONITOR = m_monitor.lock();

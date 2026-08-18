@@ -193,31 +193,27 @@ void CLayerSurface::onMap() {
 
     m_wlSurface->resource()->enter(PMONITOR->m_self.lock());
 
-    const bool ISEXCLUSIVE = m_layerSurface->m_current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
+    const bool KEYBOARD_EXCLUSIVE = m_layerSurface->m_current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
 
-    if (ISEXCLUSIVE)
+    if (KEYBOARD_EXCLUSIVE)
         g_pInputManager->m_exclusiveLSes.push_back(m_self);
 
-    const bool GRABSFOCUS = ISEXCLUSIVE ||
+    const bool GRABS_KEYBOARD = KEYBOARD_EXCLUSIVE ||
         (m_layerSurface->m_current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE &&
          // don't focus if constrained
          (g_pSeatManager->m_mouse.expired() || !g_pInputManager->isConstrained()));
 
-    if (GRABSFOCUS) {
+    if (GRABS_KEYBOARD) {
         // TODO: use the new superb really very cool grab
         if (g_pSeatManager->m_seatGrab && !g_pSeatManager->m_seatGrab->accepts(m_wlSurface->resource()))
             g_pSeatManager->setGrab(nullptr);
 
         g_pInputManager->releaseAllMouseButtons();
         Desktop::focusState()->rawSurfaceFocus(m_wlSurface->resource());
-
-        const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(m_geometry.x + PMONITOR->m_position.x, m_geometry.y + PMONITOR->m_position.y);
-        g_pSeatManager->setPointerFocus(m_wlSurface->resource(), LOCAL);
-        g_pInputManager->m_emptyFocusCursorSet = false;
-    } else {
-        // update pointer focus
-        g_pInputManager->simulateMouseMovement();
     }
+
+    // update pointer focus
+    g_pInputManager->simulateMouseMovement();
 
     m_position = Vector2D(m_geometry.x, m_geometry.y);
 
@@ -395,12 +391,12 @@ void CLayerSurface::onCommit() {
                 },
                 nullptr);
         }
-        const bool WASEXCLUSIVE = m_interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
-        const bool ISEXCLUSIVE  = m_layerSurface->m_current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
+        const bool WAS_KEYBOARD_EXCLUSIVE = m_interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
+        const bool KEYBOARD_EXCLUSIVE     = m_layerSurface->m_current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE;
 
-        if (!WASEXCLUSIVE && ISEXCLUSIVE)
+        if (!WAS_KEYBOARD_EXCLUSIVE && KEYBOARD_EXCLUSIVE)
             g_pInputManager->m_exclusiveLSes.push_back(m_self);
-        else if (WASEXCLUSIVE && !ISEXCLUSIVE)
+        else if (WAS_KEYBOARD_EXCLUSIVE && !KEYBOARD_EXCLUSIVE)
             std::erase_if(g_pInputManager->m_exclusiveLSes, [this](const auto& other) { return !other || other == m_self; });
 
         // if the surface was focused and interactive but now isn't, refocus
@@ -409,17 +405,13 @@ void CLayerSurface::onCommit() {
             // so unfocus the surface here.
             Desktop::focusState()->rawSurfaceFocus(nullptr);
             g_pInputManager->refocusLastWindow(m_monitor.lock());
-        } else if (WASLASTFOCUS && WASEXCLUSIVE && m_layerSurface->m_current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND) {
+        } else if (WASLASTFOCUS && WAS_KEYBOARD_EXCLUSIVE && m_layerSurface->m_current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND) {
             g_pInputManager->simulateMouseMovement();
-        } else if (!WASEXCLUSIVE && ISEXCLUSIVE) {
+        } else if (!WAS_KEYBOARD_EXCLUSIVE && KEYBOARD_EXCLUSIVE) {
             // if now exclusive and not previously
             g_pSeatManager->setGrab(nullptr);
             g_pInputManager->releaseAllMouseButtons();
             Desktop::focusState()->rawSurfaceFocus(m_wlSurface->resource());
-
-            const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(m_geometry.x + PMONITOR->m_position.x, m_geometry.y + PMONITOR->m_position.y);
-            g_pSeatManager->setPointerFocus(m_wlSurface->resource(), LOCAL);
-            g_pInputManager->m_emptyFocusCursorSet = false;
         }
     }
 

@@ -452,20 +452,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
         return;
     }
 
-    // forced above all
-    if (!g_pInputManager->m_exclusiveLSes.empty() && !PROTO::data->dndActive()) {
-        if (!foundSurface)
-            foundSurface = Desktop::viewState()->hitTest().layerPopupSurfaceAt(mouseCoords, &g_pInputManager->m_exclusiveLSes, &surfaceCoords, &pFoundLayerSurface);
-
-        if (!foundSurface)
-            foundSurface = Desktop::viewState()->hitTest().layerSurfaceAt(mouseCoords, &g_pInputManager->m_exclusiveLSes, &surfaceCoords, &pFoundLayerSurface);
-
-        if (!foundSurface) {
-            foundSurface = (*g_pInputManager->m_exclusiveLSes.begin())->wlSurface()->resource();
-            surfacePos   = (*g_pInputManager->m_exclusiveLSes.begin())->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
-        }
-    }
-
     if (!foundSurface)
         foundSurface = Desktop::viewState()->hitTest().layerPopupSurfaceAt(mouseCoords, PMONITOR, &surfaceCoords, &pFoundLayerSurface);
 

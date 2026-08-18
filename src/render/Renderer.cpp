@@ -691,7 +691,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     // if window is floating and we have a slide animation, clip it to its full bb
     if (!ignorePosition && pWindow->isFloating() && !Fullscreen::controller()->isFullscreen(pWindow) && workspaceRenderIsAnimating(PWORKSPACE, pMonitor) &&
         !(pWindow->m_state & WINDOW_STATE_PINNED)) {
-        CRegion rg = pWindow->getFullWindowBoundingBox().translate(-pMonitor->m_position + WORKSPACEOFFSET + WINDOWOFFSET).scale(pMonitor->m_scale).round();
+        CRegion rg         = pWindow->getFullWindowBoundingBox().translate(-pMonitor->m_position + WORKSPACEOFFSET + WINDOWOFFSET).scale(pMonitor->m_scale).round();
         renderdata.clipBox = rg.getExtents();
     }
 
@@ -785,7 +785,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
             CBox currentBox = pWindow->getFullWindowBoundingBox();
             currentBox.translate(((pWindow->m_state & WINDOW_STATE_PINNED) ? Vector2D{} : WORKSPACEOFFSET) + WINDOWOFFSET - pMonitor->m_position);
-            CBox transformedBox = pWindow->effects().transformedExtents(currentBox);
+            CBox            transformedBox = pWindow->effects().transformedExtents(currentBox);
 
             SMotionBlurData windowMotionBlur;
             if (!standalone && !m_bRenderingSnapshot) {
@@ -846,7 +846,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
             pWindow->popupHead()->breadthfirst(
                 [this, &renderdata, PARENTFADEALPHA](WP<Desktop::View::CPopup> popup, void* data) {
-                    if (!popup->mapped() || !popup->acceptsInput() || !popup->alphaNonZero())
+                    if (!popup->mapped() || !popup->resource() || (!m_isolatedWorkspace && (!popup->acceptsInput() || !popup->alphaNonZero())))
                         return;
 
                     const auto     pos    = popup->coordsRelativeToParent();

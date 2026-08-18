@@ -5,7 +5,8 @@
 #include "../config/shared/animation/AnimationTree.hpp"
 #include "../desktop/Workspace.hpp"
 #include "../desktop/state/WindowState.hpp"
-#include "../desktop/view/Window.hpp"
+#include "../desktop/view/window/Window.hpp"
+#include "../desktop/view/window/WindowPresentation.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 
 #include <algorithm>
@@ -178,7 +179,7 @@ void CWorkspaceTransition::installCallbacks(SWorkspaceTransitionState& state) {
             if (!validMapped(window) || window->m_workspace != WORKSPACE)
                 continue;
 
-            window->onWorkspaceAnimUpdate();
+            window->presentation().onWorkspaceAnimUpdate();
         }
     });
 

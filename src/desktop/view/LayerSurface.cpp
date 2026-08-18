@@ -214,6 +214,9 @@ void CLayerSurface::onMap() {
         const auto LOCAL = g_pInputManager->getMouseCoordsInternal() - Vector2D(m_geometry.x + PMONITOR->m_position.x, m_geometry.y + PMONITOR->m_position.y);
         g_pSeatManager->setPointerFocus(m_wlSurface->resource(), LOCAL);
         g_pInputManager->m_emptyFocusCursorSet = false;
+    } else {
+        // update pointer focus
+        g_pInputManager->simulateMouseMovement();
     }
 
     m_position = Vector2D(m_geometry.x, m_geometry.y);

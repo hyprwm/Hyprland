@@ -9,6 +9,10 @@
 TEST_CASE(state) {
     NLog::log("{}Testing Fallback State", Colors::YELLOW);
 
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '9' })"));
+    SPAWN_KITTY("fallback-workspace-a");
+
     OK(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-1', disabled = true })"));
     OK(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-2', disabled = true })"));
     OK(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-3', disabled = true })"));
@@ -31,5 +35,15 @@ TEST_CASE(state) {
         ASSERT_CONTAINS(str, "FALLBACK");
     }
 
+    ASSERT_CONTAINS(getFromSocket("/workspaces"), "workspace ID 9 (9) on monitor FALLBACK:");
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '9' })"));
+    SPAWN_KITTY("fallback-workspace-b");
+
     OK(getFromSocket("/reload"));
+    Tests::sync();
+
+    ASSERT_CONTAINS(getFromSocket("/workspaces"), "workspace ID 9 (9) on monitor HEADLESS-2:");
+
+    Tests::killAllWindows();
 }

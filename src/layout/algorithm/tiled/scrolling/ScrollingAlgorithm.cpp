@@ -637,6 +637,12 @@ CScrollingAlgorithm::CScrollingAlgorithm() : m_scrollingFullscreenHandler(makeUn
         if (!pWindow)
             return;
 
+        // Defer click-triggered view movement to button release (see m_mouseButtonCallback):
+        // moving the view while the button is still held slides the window under the cursor
+        // and the app receives pointer-motion mid-press, which it interprets as a drag.
+        if (reason == Desktop::FOCUS_REASON_CLICK)
+            return;
+
         static const auto PFOLLOW_FOCUS = CConfigValue<Config::INTEGER>("scrolling:follow_focus");
 
         if (!*PFOLLOW_FOCUS && !Desktop::isHardInputFocusReason(reason))

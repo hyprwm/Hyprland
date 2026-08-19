@@ -41,8 +41,6 @@ namespace Overview::Hyprland {
         WP<Monitor::CMonitorResources> m_resources;
         PHLANIMVAR<float>              m_progress;
         SP<COverviewScene>             m_scene;
-        struct SXKBComposeState;
-        UP<SXKBComposeState> m_composeState;
 
         struct {
             CHyprSignalListener monitorDisconnect;

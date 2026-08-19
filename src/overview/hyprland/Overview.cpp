@@ -22,14 +22,11 @@
 #include "../../layout/LayoutManager.hpp"
 #include "../../layout/supplementary/DragController.hpp"
 
-#include <array>
 #include <chrono>
-#include <cstdlib>
 #include <hyprutils/math/Vector2D.hpp>
 #include <hyprutils/memory/SharedPtr.hpp>
 #include <ranges>
 #include <wayland-server-protocol.h>
-#include <xkbcommon/xkbcommon-compose.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
 
 using namespace Overview;
@@ -37,40 +34,7 @@ using namespace Overview::Hyprland;
 
 constexpr const float DRAG_MOVE_MS = 500.F;
 
-struct COverview::SXKBComposeState {
-    SXKBComposeState() {
-        context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-        if (!context)
-            return;
-
-        const char* locale = std::getenv("LC_ALL");
-        if (!locale || !*locale)
-            locale = std::getenv("LC_CTYPE");
-        if (!locale || !*locale)
-            locale = std::getenv("LANG");
-        if (!locale || !*locale)
-            locale = "C";
-
-        table = xkb_compose_table_new_from_locale(context, locale, XKB_COMPOSE_COMPILE_NO_FLAGS);
-        if (table)
-            state = xkb_compose_state_new(table, XKB_COMPOSE_STATE_NO_FLAGS);
-    }
-
-    ~SXKBComposeState() {
-        if (state)
-            xkb_compose_state_unref(state);
-        if (table)
-            xkb_compose_table_unref(table);
-        if (context)
-            xkb_context_unref(context);
-    }
-
-    xkb_context*       context = nullptr;
-    xkb_compose_table* table   = nullptr;
-    xkb_compose_state* state   = nullptr;
-};
-
-COverview::COverview() : m_scene(makeShared<COverviewScene>(*this)), m_composeState(makeUnique<SXKBComposeState>()) {
+COverview::COverview() : m_scene(makeShared<COverviewScene>(*this)) {
     ;
 }
 
@@ -204,33 +168,19 @@ bool COverview::handleSearchKey(uint32_t keycode, SP<IKeyboard> keyboard, bool r
         return true;
     }
 
-    std::array<char, 64> utf8Buffer = {};
-    const int            utf8Size   = xkb_state_key_get_utf8(keyboard->m_xkbState, keycode + 8, utf8Buffer.data(), utf8Buffer.size());
-    auto                 utf8       = utf8Size > 0 ? std::string{utf8Buffer.data(), sc<size_t>(utf8Size)} : std::string{};
-    const auto           MODIFIERS  = g_pInputManager->getModsFromAllKBs();
-    const bool           EDIT_KEY   = KEYSYM == XKB_KEY_BackSpace || KEYSYM == XKB_KEY_Delete || KEYSYM == XKB_KEY_Left || KEYSYM == XKB_KEY_Right || KEYSYM == XKB_KEY_Home ||
+    const int   UTF8_SIZE = xkb_state_key_get_utf8(keyboard->m_xkbState, keycode + 8, nullptr, 0);
+    std::string utf8;
+    if (UTF8_SIZE > 0) {
+        utf8.resize(sc<size_t>(UTF8_SIZE) + 1);
+        const int WRITTEN = xkb_state_key_get_utf8(keyboard->m_xkbState, keycode + 8, utf8.data(), utf8.size());
+        utf8.resize(WRITTEN > 0 ? sc<size_t>(WRITTEN) : 0);
+    }
+
+    const auto MODIFIERS = keyboard->getModifiers();
+    const bool EDIT_KEY  = KEYSYM == XKB_KEY_BackSpace || KEYSYM == XKB_KEY_Delete || KEYSYM == XKB_KEY_Left || KEYSYM == XKB_KEY_Right || KEYSYM == XKB_KEY_Home ||
         KEYSYM == XKB_KEY_End || KEYSYM == XKB_KEY_KP_Home || KEYSYM == XKB_KEY_KP_End;
     const bool TEXT_SHORTCUT         = (MODIFIERS & Input::HL_MODIFIER_CTRL) && (KEYSYM == XKB_KEY_a || KEYSYM == XKB_KEY_A);
     const bool BLOCKED_TEXT_MODIFIER = !!(MODIFIERS & (Input::HL_MODIFIER_CTRL | Input::HL_MODIFIER_ALT | Input::HL_MODIFIER_META));
-    if (!repeat && !EDIT_KEY && !TEXT_SHORTCUT && !BLOCKED_TEXT_MODIFIER && m_composeState && m_composeState->state) {
-        xkb_compose_state_feed(m_composeState->state, KEYSYM);
-        const auto STATUS = xkb_compose_state_get_status(m_composeState->state);
-        if (STATUS == XKB_COMPOSE_COMPOSING)
-            return true;
-
-        if (STATUS == XKB_COMPOSE_COMPOSED) {
-            const int composeSize = xkb_compose_state_get_utf8(m_composeState->state, nullptr, 0);
-            if (composeSize > 0) {
-                std::vector<char> composeBuffer(sc<size_t>(composeSize) + 1, '\0');
-                const int         written = xkb_compose_state_get_utf8(m_composeState->state, composeBuffer.data(), composeBuffer.size());
-                if (written > 0)
-                    utf8.assign(composeBuffer.data(), std::min(sc<size_t>(written), composeBuffer.size() - 1));
-            } else
-                utf8.clear();
-            xkb_compose_state_reset(m_composeState->state);
-        } else if (STATUS == XKB_COMPOSE_CANCELLED)
-            xkb_compose_state_reset(m_composeState->state);
-    }
 
     if (!EDIT_KEY && !TEXT_SHORTCUT && (utf8.empty() || BLOCKED_TEXT_MODIFIER))
         return false;
@@ -392,8 +342,6 @@ void COverview::open(PHLMONITOR monitor) {
         return;
 
     m_isOpen = true;
-    if (m_composeState && m_composeState->state)
-        xkb_compose_state_reset(m_composeState->state);
     if (NEW_SCENE) {
         m_monitor   = monitor;
         m_resources = RESOURCES;

@@ -33,9 +33,6 @@ in
     inputs.hyprland-protocols.overlays.default
     inputs.hyprland-guiutils.overlays.default
     inputs.hyprtoolkit.overlays.default
-    (final: prev: {
-      hyprtoolkit = prev.hyprtoolkit.override { stdenv = final.gcc16Stdenv; };
-    })
     inputs.hyprlang.overlays.default
     inputs.hyprutils.overlays.default
     inputs.hyprwayland-scanner.overlays.default

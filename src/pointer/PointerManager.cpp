@@ -621,9 +621,14 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
     RBO->bind();
 
+    // the cursor plane is blended after the FB is encoded into the output's colour space,
+    // so tag it - otherwise a raw sRGB cursor gets reinterpreted there, blinding on PQ
+    const auto FB = RBO->getFB();
+    FB->setImageDescription(state->monitor->m_imageDescription);
+
     CRegion damageRegion = {0, 0, INT_MAX, INT_MAX};
-    g_pHyprRenderer->beginFullFakeRender(state->monitor.lock(), damageRegion, RBO->getFB());
-    g_pHyprRenderer->m_renderData.fbSize = RBO->getFB()->m_size;
+    g_pHyprRenderer->beginFullFakeRender(state->monitor.lock(), damageRegion, FB);
+    g_pHyprRenderer->m_renderData.fbSize = FB->m_size;
     g_pHyprRenderer->setProjectionType(Render::RPT_FB);
     g_pHyprRenderer->m_renderData.transformDamage = true;
     g_pHyprRenderer->startRenderPass();

@@ -56,12 +56,14 @@ namespace Overview::Hyprland {
         WP<Monitor::CMonitorResources>  m_resources;
         FWorkspaceFilter                m_filter;
         PHLWORKSPACEREF                 m_selectedWorkspace;
+        PHLWORKSPACEREF                 m_preferredWorkspace;
         std::vector<UP<SWorkspaceTile>> m_tiles;
         bool                            m_started = false;
 
         struct {
             CHyprSignalListener created;
             CHyprSignalListener removed;
+            CHyprSignalListener renamed;
             CHyprSignalListener moved;
             CHyprSignalListener active;
             CHyprSignalListener monitorAdded;

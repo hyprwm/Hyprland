@@ -22,11 +22,14 @@
 #include "../../layout/LayoutManager.hpp"
 #include "../../layout/supplementary/DragController.hpp"
 
+#include <array>
 #include <chrono>
+#include <cstdlib>
 #include <hyprutils/math/Vector2D.hpp>
 #include <hyprutils/memory/SharedPtr.hpp>
 #include <ranges>
 #include <wayland-server-protocol.h>
+#include <xkbcommon/xkbcommon-compose.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
 
 using namespace Overview;
@@ -34,7 +37,40 @@ using namespace Overview::Hyprland;
 
 constexpr const float DRAG_MOVE_MS = 500.F;
 
-COverview::COverview() : m_scene(makeShared<COverviewScene>(*this)) {
+struct COverview::SXKBComposeState {
+    SXKBComposeState() {
+        context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+        if (!context)
+            return;
+
+        const char* locale = std::getenv("LC_ALL");
+        if (!locale || !*locale)
+            locale = std::getenv("LC_CTYPE");
+        if (!locale || !*locale)
+            locale = std::getenv("LANG");
+        if (!locale || !*locale)
+            locale = "C";
+
+        table = xkb_compose_table_new_from_locale(context, locale, XKB_COMPOSE_COMPILE_NO_FLAGS);
+        if (table)
+            state = xkb_compose_state_new(table, XKB_COMPOSE_STATE_NO_FLAGS);
+    }
+
+    ~SXKBComposeState() {
+        if (state)
+            xkb_compose_state_unref(state);
+        if (table)
+            xkb_compose_table_unref(table);
+        if (context)
+            xkb_context_unref(context);
+    }
+
+    xkb_context*       context = nullptr;
+    xkb_compose_table* table   = nullptr;
+    xkb_compose_state* state   = nullptr;
+};
+
+COverview::COverview() : m_scene(makeShared<COverviewScene>(*this)), m_composeState(makeUnique<SXKBComposeState>()) {
     ;
 }
 
@@ -57,24 +93,22 @@ void COverview::installListeners() {
                 return;
 
             m_interceptedKeys.erase(IT);
+            stopKeyRepeat(event.keycode);
             info.cancelled = true;
             return;
         }
 
-        if (!m_isOpen || !keyboard || !keyboard->m_xkbSymState)
+        if (!m_isOpen || !keyboard || !keyboard->m_xkbState)
             return;
 
-        const auto KEYSYM = xkb_state_key_get_one_sym(keyboard->m_xkbSymState, event.keycode + 8);
-        if (KEYSYM != XKB_KEY_Left && KEYSYM != XKB_KEY_Right && KEYSYM != XKB_KEY_h && KEYSYM != XKB_KEY_l)
+        if (!handleSearchKey(event.keycode, keyboard))
             return;
 
         info.cancelled = true;
         if (INTERCEPTED() == m_interceptedKeys.end())
             m_interceptedKeys.emplace_back(keyboard, event.keycode);
-        if (KEYSYM == XKB_KEY_Left || KEYSYM == XKB_KEY_h)
-            m_scene->navigateLeft();
-        else
-            m_scene->navigateRight();
+        if (m_isOpen)
+            startKeyRepeat(event.keycode, keyboard);
     });
 
     m_listeners.monitorDisconnect  = m_monitor->m_events.disconnect.listen([this] { closeImmediately(); });
@@ -90,14 +124,31 @@ void COverview::installListeners() {
         m_listeners.sessionLock = g_pSessionLockManager->m_events.lock.listen([this] { closeImmediately(); });
 
     m_listeners.mouseButton = Event::bus()->m_events.input.mouse.button.listen([this](IPointer::SButtonEvent e, Event::SCallbackInfo& i) {
+        const auto INTERCEPTED = std::ranges::find(m_interceptedButtons, e.button);
+        if (e.state == WL_POINTER_BUTTON_STATE_RELEASED && INTERCEPTED != m_interceptedButtons.end()) {
+            if (const auto MONITOR = m_monitor.lock())
+                m_scene->pointerButton(e.button, false, g_pInputManager->getMouseCoordsInternal() - MONITOR->logicalBox().pos());
+            m_interceptedButtons.erase(INTERCEPTED);
+            i.cancelled = true;
+            return;
+        }
+
         if (e.state != WL_POINTER_BUTTON_STATE_PRESSED)
             return;
 
-        if (!m_monitor)
+        const auto MONITOR = m_monitor.lock();
+        if (!MONITOR)
             return;
 
-        if (!m_monitor->logicalBox().containsPoint(g_pInputManager->getMouseCoordsInternal()))
+        const auto MOUSE = g_pInputManager->getMouseCoordsInternal();
+        if (!MONITOR->logicalBox().containsPoint(MOUSE))
             return;
+
+        if (m_scene->pointerButton(e.button, true, MOUSE - MONITOR->logicalBox().pos())) {
+            m_interceptedButtons.emplace_back(e.button);
+            i.cancelled = true;
+            return;
+        }
 
         // TODO: make this better. This is to support drags, and is obviously kinda wrong.
         if (g_pInputManager->getModsFromAllKBs() != Input::eKeyboardModifiers::HL_MODIFIER_NONE)
@@ -108,7 +159,127 @@ void COverview::installListeners() {
         i.cancelled = true;
     });
 
-    m_listeners.mouseMove = Event::bus()->m_events.input.mouse.move.listen([this](Vector2D p, Event::SCallbackInfo& i) { recheckDrag(); });
+    m_listeners.mouseMove = Event::bus()->m_events.input.mouse.move.listen([this](Vector2D p, Event::SCallbackInfo& i) {
+        const auto MONITOR = m_monitor.lock();
+        if (MONITOR && m_scene->pointerMove(p - MONITOR->logicalBox().pos()))
+            i.cancelled = true;
+        recheckDrag();
+    });
+}
+
+bool COverview::handleSearchKey(uint32_t keycode, SP<IKeyboard> keyboard, bool repeat) {
+    if (!m_isOpen || !keyboard || !keyboard->m_xkbState)
+        return false;
+
+    const auto KEYSYM = xkb_state_key_get_one_sym(keyboard->m_xkbState, keycode + 8);
+
+    // Text mode follows a small "vim"-like mode behavior:
+    // By default, we're in NAVIGATE: escape closes, left/right navigates
+    // if we start typing, we enter TEXT mode, and escape goes out of it, enter closes.
+    if (m_inputMode == eInputMode::NAVIGATION) {
+        if (KEYSYM == XKB_KEY_Left) {
+            m_scene->navigateLeft();
+            return true;
+        }
+
+        if (KEYSYM == XKB_KEY_Right) {
+            m_scene->navigateRight();
+            return true;
+        }
+
+        if (KEYSYM == XKB_KEY_Escape) {
+            close();
+            return true;
+        }
+    } else if (m_inputMode == eInputMode::TEXT) {
+        if (KEYSYM == XKB_KEY_Escape) {
+            m_inputMode = eInputMode::NAVIGATION;
+            m_scene->setTextboxFocus(false);
+            return true;
+        }
+    }
+
+    if (KEYSYM == XKB_KEY_Return || KEYSYM == XKB_KEY_KP_Enter) {
+        close();
+        return true;
+    }
+
+    std::array<char, 64> utf8Buffer = {};
+    const int            utf8Size   = xkb_state_key_get_utf8(keyboard->m_xkbState, keycode + 8, utf8Buffer.data(), utf8Buffer.size());
+    auto                 utf8       = utf8Size > 0 ? std::string{utf8Buffer.data(), sc<size_t>(utf8Size)} : std::string{};
+    const auto           MODIFIERS  = g_pInputManager->getModsFromAllKBs();
+    const bool           EDIT_KEY   = KEYSYM == XKB_KEY_BackSpace || KEYSYM == XKB_KEY_Delete || KEYSYM == XKB_KEY_Left || KEYSYM == XKB_KEY_Right || KEYSYM == XKB_KEY_Home ||
+        KEYSYM == XKB_KEY_End || KEYSYM == XKB_KEY_KP_Home || KEYSYM == XKB_KEY_KP_End;
+    const bool TEXT_SHORTCUT         = (MODIFIERS & Input::HL_MODIFIER_CTRL) && (KEYSYM == XKB_KEY_a || KEYSYM == XKB_KEY_A);
+    const bool BLOCKED_TEXT_MODIFIER = !!(MODIFIERS & (Input::HL_MODIFIER_CTRL | Input::HL_MODIFIER_ALT | Input::HL_MODIFIER_META));
+    if (!repeat && !EDIT_KEY && !TEXT_SHORTCUT && !BLOCKED_TEXT_MODIFIER && m_composeState && m_composeState->state) {
+        xkb_compose_state_feed(m_composeState->state, KEYSYM);
+        const auto STATUS = xkb_compose_state_get_status(m_composeState->state);
+        if (STATUS == XKB_COMPOSE_COMPOSING)
+            return true;
+
+        if (STATUS == XKB_COMPOSE_COMPOSED) {
+            const int composeSize = xkb_compose_state_get_utf8(m_composeState->state, nullptr, 0);
+            if (composeSize > 0) {
+                std::vector<char> composeBuffer(sc<size_t>(composeSize) + 1, '\0');
+                const int         written = xkb_compose_state_get_utf8(m_composeState->state, composeBuffer.data(), composeBuffer.size());
+                if (written > 0)
+                    utf8.assign(composeBuffer.data(), std::min(sc<size_t>(written), composeBuffer.size() - 1));
+            } else
+                utf8.clear();
+            xkb_compose_state_reset(m_composeState->state);
+        } else if (STATUS == XKB_COMPOSE_CANCELLED)
+            xkb_compose_state_reset(m_composeState->state);
+    }
+
+    if (!EDIT_KEY && !TEXT_SHORTCUT && (utf8.empty() || BLOCKED_TEXT_MODIFIER))
+        return false;
+
+    m_scene->setTextboxFocus(true);
+    m_scene->keyboardKey(KEYSYM, true, repeat, std::move(utf8), sc<uint32_t>(MODIFIERS));
+    m_inputMode = eInputMode::TEXT;
+
+    return true;
+}
+
+void COverview::startKeyRepeat(uint32_t keycode, SP<IKeyboard> keyboard) {
+    if (!keyboard || !keyboard->m_xkbKeymap || keyboard->m_repeatRate <= 0 || !xkb_keymap_key_repeats(keyboard->m_xkbKeymap, keycode + 8)) {
+        stopKeyRepeat(m_keyRepeat.keycode);
+        return;
+    }
+
+    m_keyRepeat.keyboard = keyboard;
+    m_keyRepeat.keycode  = keycode;
+    if (!m_keyRepeat.timer) {
+        m_keyRepeat.timer = makeShared<CEventLoopTimer>(
+            std::nullopt,
+            [this](SP<CEventLoopTimer> self, void*) {
+                const auto KEYBOARD = m_keyRepeat.keyboard.lock();
+                if (!m_isOpen || !KEYBOARD || KEYBOARD->m_repeatRate <= 0) {
+                    self->updateTimeout(std::nullopt);
+                    return;
+                }
+
+                if (!handleSearchKey(m_keyRepeat.keycode, KEYBOARD, true)) {
+                    self->updateTimeout(std::nullopt);
+                    return;
+                }
+                self->updateTimeout(std::chrono::milliseconds(std::max(1, 1000 / KEYBOARD->m_repeatRate)));
+            },
+            nullptr);
+        g_pEventLoopManager->addTimer(m_keyRepeat.timer);
+    }
+
+    m_keyRepeat.timer->updateTimeout(std::chrono::milliseconds(std::max(0, keyboard->m_repeatDelay)));
+}
+
+void COverview::stopKeyRepeat(uint32_t keycode) {
+    if (!m_keyRepeat.timer || m_keyRepeat.keycode != keycode)
+        return;
+
+    m_keyRepeat.timer->updateTimeout(std::nullopt);
+    m_keyRepeat.keyboard.reset();
+    m_keyRepeat.keycode = 0;
 }
 
 void COverview::recheckDrag() {
@@ -193,6 +364,9 @@ void COverview::open(PHLMONITOR monitor) {
     if (m_isOpen)
         return;
 
+    m_inputMode = eInputMode::NAVIGATION;
+    m_scene->setTextboxFocus(false);
+
     if (!m_progress) {
         Animation::mgr()->createAnimation(0.F, m_progress, Config::animationTree()->getAnimationPropertyConfig("overviewIn"), AVARDAMAGE_NONE);
         m_progress->setUpdateCallback([this](auto) {
@@ -218,6 +392,8 @@ void COverview::open(PHLMONITOR monitor) {
         return;
 
     m_isOpen = true;
+    if (m_composeState && m_composeState->state)
+        xkb_compose_state_reset(m_composeState->state);
     if (NEW_SCENE) {
         m_monitor   = monitor;
         m_resources = RESOURCES;
@@ -248,9 +424,10 @@ void COverview::close() {
     m_progress->setConfig(Config::animationTree()->getAnimationPropertyConfig("overviewOut"));
     *m_progress = 0.F;
 
-    const auto MONITOR = m_monitor.lock();
-    if (MONITOR && m_scene->selectedWorkspace() != MONITOR->m_activeWorkspace)
-        Config::Actions::changeWorkspace(m_scene->selectedWorkspace());
+    const auto MONITOR  = m_monitor.lock();
+    const auto SELECTED = m_scene->selectedWorkspace();
+    if (MONITOR && SELECTED && SELECTED != MONITOR->m_activeWorkspace)
+        Config::Actions::changeWorkspace(SELECTED);
 
     if (const auto MONITOR = m_monitor.lock(); MONITOR && g_pHyprRenderer)
         g_pHyprRenderer->damageMonitor(MONITOR);
@@ -269,7 +446,10 @@ void COverview::finishClose(bool emitEvent) {
         return;
 
     m_sceneInstalled = false;
-    m_listeners      = {};
+    stopKeyRepeat(m_keyRepeat.keycode);
+    m_listeners = {};
+    m_interceptedKeys.clear();
+    m_interceptedButtons.clear();
 
     const auto MONITOR   = m_monitor.lock();
     const auto RESOURCES = m_resources;

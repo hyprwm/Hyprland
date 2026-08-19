@@ -68,6 +68,7 @@ void CWorkspaceTapeController::start(PHLMONITOR monitor, WP<Monitor::CMonitorRes
             reconcile();
     });
     m_listeners.removed              = Event::bus()->m_events.workspace.removed.listen([this](PHLWORKSPACEREF) { reconcile(); });
+    m_listeners.renamed              = Event::bus()->m_events.workspace.renamed.listen([this](PHLWORKSPACEREF) { reconcile(); });
     m_listeners.moved                = Event::bus()->m_events.workspace.moveToMonitor.listen([this](PHLWORKSPACE, PHLMONITOR) { reconcile(); });
     m_listeners.active               = Event::bus()->m_events.workspace.active.listen([this](PHLWORKSPACE workspace) {
         if (workspace && workspace->m_monitor == m_monitor)
@@ -109,6 +110,7 @@ void CWorkspaceTapeController::reset() {
 
     m_tiles.clear();
     m_selectedWorkspace.reset();
+    m_preferredWorkspace.reset();
     m_resources.reset();
     m_monitor.reset();
 }
@@ -146,7 +148,7 @@ void CWorkspaceTapeController::draw(Render::CRenderingContext& context, Time::st
         const Vector2D POS   = IS_ACTIVE ? OPENPOS * PROGRESS : OPENPOS;
         const Vector2D SIZE  = IS_ACTIVE ? FULLSIZE + (OPENSIZE - FULLSIZE) * PROGRESS : OPENSIZE;
         const float    ALPHA = IS_ACTIVE ? (1.F - PROGRESS) + tile->opacity->value() * PROGRESS : tile->opacity->value() * PROGRESS;
-        const CBox     BOX{POS, SIZE};
+        const CBox     BOX = CBox{POS, SIZE}.round();
 
         if (ALPHA <= 0.F || BOX.intersection(MONITORBOX).empty()) {
             tile->framebuffer.reset();
@@ -286,7 +288,8 @@ bool CWorkspaceTapeController::navigate(int direction) {
     if (TARGET == INDEX)
         return false;
 
-    m_selectedWorkspace = TILES.at(TARGET)->workspace;
+    m_selectedWorkspace  = TILES.at(TARGET)->workspace;
+    m_preferredWorkspace = m_selectedWorkspace;
     updateLayout();
     damageMonitor();
     return true;
@@ -328,14 +331,22 @@ void CWorkspaceTapeController::reconcile(bool initial) {
             retireTile(*tile);
     }
 
+    if (initial) {
+        if (const auto MONITOR = m_monitor.lock(); MONITOR)
+            m_preferredWorkspace = MONITOR->m_activeWorkspace;
+    }
+
     if (WORKSPACES.empty())
         m_selectedWorkspace.reset();
     else if (std::ranges::contains(WORKSPACES, OLD_SELECTED))
         m_selectedWorkspace = OLD_SELECTED;
-    else if (const auto MONITOR = m_monitor.lock(); initial && MONITOR && std::ranges::contains(WORKSPACES, MONITOR->m_activeWorkspace))
-        m_selectedWorkspace = MONITOR->m_activeWorkspace;
+    else if (const auto PREFERRED = m_preferredWorkspace.lock(); PREFERRED && std::ranges::contains(WORKSPACES, PREFERRED))
+        m_selectedWorkspace = PREFERRED;
     else
         m_selectedWorkspace = WORKSPACES.at(std::min(OLD_INDEX, sc<long>(WORKSPACES.size()) - 1L));
+
+    if (const auto SELECTED = selectedWorkspace(); SELECTED)
+        m_preferredWorkspace = SELECTED;
 
     if (const auto MONITOR = m_monitor.lock(); MONITOR && MONITOR->m_activeWorkspace && !tileFor(MONITOR->m_activeWorkspace)) {
         auto tile       = makeUnique<SWorkspaceTile>();

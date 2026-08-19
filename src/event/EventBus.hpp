@@ -176,6 +176,7 @@ namespace Event {
                 Event<PHLWORKSPACE, PHLMONITOR> specialActive;
                 Event<PHLWORKSPACEREF>          created;
                 Event<PHLWORKSPACEREF>          removed;
+                Event<PHLWORKSPACEREF>          renamed;
             } workspace;
 
             struct {

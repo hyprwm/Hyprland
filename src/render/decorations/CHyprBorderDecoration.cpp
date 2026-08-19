@@ -49,20 +49,30 @@ CBox CHyprBorderDecoration::assignedBoxGlobal() {
     if (!PWORKSPACE)
         return box;
 
-    const auto WORKSPACEOFFSET = !(m_window->m_state & Desktop::View::WINDOW_STATE_PINNED) ? g_pHyprRenderer->workspaceRenderOffset(PWORKSPACE) : Vector2D{};
+    const auto WORKSPACEOFFSET =
+        !(m_window->m_state & Desktop::View::WINDOW_STATE_PINNED) && PWORKSPACE->m_monitor ? PWORKSPACE->m_monitor->m_workspaceTransition->offsetValue(PWORKSPACE) : Vector2D{};
     return box.translate(WORKSPACEOFFSET);
 }
 
-void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a) {
+CBox CHyprBorderDecoration::assignedBoxGlobalForRender(const Render::CRenderingContext& context) {
+    CBox box = m_assignedGeometry;
+    box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_BOTTOM | DECORATION_EDGE_LEFT | DECORATION_EDGE_RIGHT | DECORATION_EDGE_TOP, m_window));
+
+    if (!m_window->m_workspace || m_window->m_state & Desktop::View::WINDOW_STATE_PINNED)
+        return box;
+
+    return box.translate(g_pHyprRenderer->workspaceRenderOffset(context, m_window->m_workspace));
+}
+
+void CHyprBorderDecoration::draw(Render::CRenderingContext& context, PHLMONITOR pMonitor, float const& a) {
     if (doesntWantBorders())
         return;
 
     if (m_assignedGeometry.width < m_extents.topLeft.x + 1 || m_assignedGeometry.height < m_extents.topLeft.y + 1)
         return;
 
-
-    CBox windowBox = assignedBoxGlobal()
-                         .translate(-pMonitor->m_position + g_pHyprRenderer->windowRenderFloatingOffset(m_window.lock()))
+    CBox windowBox = assignedBoxGlobalForRender(context)
+                         .translate(-pMonitor->m_position + g_pHyprRenderer->windowRenderFloatingOffset(context, m_window.lock()))
                          .expand(-borderSize())
                          .scale(pMonitor->m_scale)
                          .round();
@@ -95,7 +105,7 @@ void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a) {
         data.lerp     = GRADIENT.progress;
     }
 
-    g_pHyprRenderer->addPassElement(makeUnique<CBorderPassElement>(data));
+    g_pHyprRenderer->addPassElement(context, makeUnique<CBorderPassElement>(data));
 }
 
 eDecorationType CHyprBorderDecoration::getDecorationType() {

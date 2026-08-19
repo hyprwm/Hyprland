@@ -2,11 +2,11 @@
 
 CPreBlurElement::CPreBlurElement() = default;
 
-bool CPreBlurElement::needsLiveBlur() {
+bool CPreBlurElement::needsLiveBlur(const Render::CRenderingContext&) {
     return false;
 }
 
-bool CPreBlurElement::needsPrecomputeBlur() {
+bool CPreBlurElement::needsPrecomputeBlur(const Render::CRenderingContext&) {
     return false;
 }
 

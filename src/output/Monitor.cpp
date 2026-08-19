@@ -1835,7 +1835,7 @@ void CMonitor::setCTM(const Mat3x3& ctm_) {
 }
 
 uint32_t CMonitor::isSolitaryBlocked(bool full) {
-    uint32_t reasons = 0;
+    uint32_t   reasons = 0;
 
     const auto PWORKSPACE = m_activeWorkspace;
     if (!PWORKSPACE) {
@@ -2011,7 +2011,8 @@ uint8_t CMonitor::isTearingBlocked(bool full) {
         }
     }
 
-    if (g_pHyprRenderer->m_renderData.mouseZoomFactor != 1.0) {
+    const bool CURSOR_ZOOMED = m_cursorZoom->value() != 1.0 && m_self == State::monitorState()->query().vec(Pointer::mgr()->position()).run();
+    if (CURSOR_ZOOMED || m_zoomAnimProgress->value() != 1.0) {
         reasons |= TC_ZOOM;
         if (!full) {
             Log::logger->log(Log::WARN, "Tearing commit requested but scale factor is not 1, ignoring");

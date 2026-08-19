@@ -91,7 +91,7 @@ void CWorkspaceTapeController::reset() {
     m_monitor.reset();
 }
 
-void CWorkspaceTapeController::draw(Time::steady_tp tp, float overviewProgress) {
+void CWorkspaceTapeController::draw(Render::CRenderingContext& context, Time::steady_tp tp, float overviewProgress) {
     const auto MONITOR   = m_monitor.lock();
     const auto RESOURCES = m_resources;
     if (!m_started || !MONITOR || !RESOURCES || !g_pHyprRenderer)
@@ -152,7 +152,7 @@ void CWorkspaceTapeController::draw(Time::steady_tp tp, float overviewProgress) 
 
         bool rendered = false;
         if (CAN_RENDER && tile.framebuffer)
-            rendered = g_pHyprRenderer->renderWorkspaceSceneToBuffer(WORKSPACE, tile.framebuffer, tp, drawTile.selected);
+            rendered = g_pHyprRenderer->renderWorkspaceSceneToBuffer(context, WORKSPACE, tile.framebuffer, tp, drawTile.selected);
 
         if (!rendered && tile.inLayout)
             tile.framebuffer.reset();
@@ -162,7 +162,7 @@ void CWorkspaceTapeController::draw(Time::steady_tp tp, float overviewProgress) 
             data.box   = drawTile.box;
             data.color = CHyprColor(PLACEHOLDER_GRAY, PLACEHOLDER_GRAY, PLACEHOLDER_GRAY, drawTile.opacity);
             data.round = ROUNDING;
-            g_pHyprRenderer->addPassElement(makeUnique<CRectPassElement>(data));
+            g_pHyprRenderer->addPassElement(context, makeUnique<CRectPassElement>(data));
             continue;
         }
 
@@ -172,7 +172,7 @@ void CWorkspaceTapeController::draw(Time::steady_tp tp, float overviewProgress) 
         data.a       = drawTile.opacity;
         data.round   = ROUNDING;
         data.clipBox = MONITORBOX;
-        g_pHyprRenderer->addPassElement(makeUnique<CTexPassElement>(std::move(data)));
+        g_pHyprRenderer->addPassElement(context, makeUnique<CTexPassElement>(std::move(data)));
     }
 }
 

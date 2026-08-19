@@ -74,7 +74,7 @@ eBlurType CWaterBlurMaterial::type() const noexcept {
     return eBlurType::BLUR_WATER;
 }
 
-bool CWaterBlurMaterial::isAnimated() const noexcept {
+bool CWaterBlurMaterial::isAnimated(const CRenderingContext& context) const noexcept {
     static auto PBLURENABLED   = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
     static auto PWATERSTRENGTH = CConfigValue<Config::FLOAT>("decoration:blur:water:strength");
 
@@ -83,7 +83,7 @@ bool CWaterBlurMaterial::isAnimated() const noexcept {
 
     pruneStates();
 
-    const auto monitor = g_pHyprRenderer->m_renderData.pMonitor;
+    const auto monitor = context.sceneMonitor;
     if (!monitor)
         return false;
 
@@ -101,25 +101,25 @@ SBlurMaterialRequirements CWaterBlurMaterial::requirements() const noexcept {
 void CWaterBlurMaterial::prepare(const SBlurMaterialContext& context) {
     pruneStates();
 
-    const auto state = stateForContext(context.blurContext, false);
-    if (!state || !g_pHyprRenderer->m_renderData.pMonitor)
+    const auto state = stateForContext(context.renderingContext, context.blurContext, false);
+    if (!state || !context.renderingContext.sceneMonitor)
         return;
 
-    const auto extent = transformedPatternBox(context.blurContext);
-    state->monitor    = g_pHyprRenderer->m_renderData.pMonitor;
-    updateState(*state, extent);
+    const auto extent = transformedPatternBox(context.renderingContext, context.blurContext);
+    state->monitor    = context.renderingContext.sceneMonitor;
+    updateState(context.renderingContext, *state, extent);
 }
 
 void CWaterBlurMaterial::bindFinish(WP<CShader> shader, const SBlurMaterialContext& context) const {
     static auto PWATERSTRENGTH = CConfigValue<Config::FLOAT>("decoration:blur:water:strength");
 
-    const auto  state = stateForContext(context.blurContext);
+    const auto  state = stateForContext(context.renderingContext, context.blurContext);
     if (!state || !state->buffers[state->currentBuffer]) {
         shader->setUniformInt(SHADER_WATER_ENABLED, 0);
         return;
     }
 
-    const auto extent = transformedPatternBox(context.blurContext);
+    const auto extent = transformedPatternBox(context.renderingContext, context.blurContext);
     if (extent.width <= 0 || extent.height <= 0) {
         shader->setUniformInt(SHADER_WATER_ENABLED, 0);
         return;
@@ -147,20 +147,20 @@ float CWaterBlurMaterial::sampleRadius() const {
     return std::ceil(std::clamp(*PWATERSTRENGTH, 0.F, MAX_WATER_DISPLACEMENT));
 }
 
-CWaterBlurMaterial::SState* CWaterBlurMaterial::stateForContext(const SBlurContext& context, bool create) {
+CWaterBlurMaterial::SState* CWaterBlurMaterial::stateForContext(const CRenderingContext& renderingContext, const SBlurContext& context, bool create) {
     if (!context.owner.expired())
         return windowState(context.owner, create);
 
-    return monitorState(g_pHyprRenderer->m_renderData.pMonitor, create);
+    return monitorState(renderingContext.sceneMonitor, create);
 }
 
-const CWaterBlurMaterial::SState* CWaterBlurMaterial::stateForContext(const SBlurContext& context) const {
+const CWaterBlurMaterial::SState* CWaterBlurMaterial::stateForContext(const CRenderingContext& renderingContext, const SBlurContext& context) const {
     if (!context.owner.expired()) {
         const auto state = std::ranges::find_if(m_windowStates, [&](const auto& candidate) { return candidate.window == context.owner; });
         return state != m_windowStates.end() ? &*state : nullptr;
     }
 
-    const auto monitor = g_pHyprRenderer->m_renderData.pMonitor;
+    const auto monitor = renderingContext.sceneMonitor;
     const auto state   = std::ranges::find_if(m_monitorStates, [&](const auto& candidate) { return candidate.monitor == monitor; });
     return state != m_monitorStates.end() ? &*state : nullptr;
 }
@@ -246,7 +246,7 @@ void CWaterBlurMaterial::queueImpulse(SState& state, Vector2D position, float ra
     state.activeUntil   = Time::steadyNow() + std::chrono::duration_cast<Time::steady_dur>(std::chrono::duration<float>(duration));
 }
 
-void CWaterBlurMaterial::updateState(SState& state, const CBox& extent) {
+void CWaterBlurMaterial::updateState(CRenderingContext& renderingContext, SState& state, const CBox& extent) {
     const auto now = Time::steadyNow();
     if (!stateIsActive(state, now) || state.lastFrame == m_frame)
         return;
@@ -257,22 +257,22 @@ void CWaterBlurMaterial::updateState(SState& state, const CBox& extent) {
     };
 
     if (state.reset || state.simulationSize != simulationSize)
-        resetState(state, simulationSize);
+        resetState(renderingContext, state, simulationSize);
 
     const auto dt = state.lastUpdate == Time::steady_tp{} ? 1.F / 60.F : std::clamp(sc<float>(std::chrono::duration<float>(now - state.lastUpdate).count()), 0.F, 1.F / 20.F);
-    drawStateStep(state, dt, extent);
+    drawStateStep(renderingContext, state, dt, extent);
     state.lastUpdate = now;
     state.lastFrame  = m_frame;
 }
 
-void CWaterBlurMaterial::resetState(SState& state, const Vector2D& simulationSize) {
+void CWaterBlurMaterial::resetState(CRenderingContext& renderingContext, SState& state, const Vector2D& simulationSize) {
     for (auto& buffer : state.buffers) {
         if (!buffer)
             buffer = dynamicPointerCast<CGLFramebuffer>(g_pHyprRenderer->createFB("Water simulation"));
 
         buffer->alloc(sc<int>(simulationSize.x), sc<int>(simulationSize.y), DRM_FORMAT_ARGB8888);
         buffer->bind();
-        g_pHyprRenderer->disableScissor();
+        g_pHyprRenderer->disableScissor(renderingContext);
         glClearColor(0.5F, 0.5F, 0.F, 1.F);
         glClear(GL_COLOR_BUFFER_BIT);
     }
@@ -283,7 +283,7 @@ void CWaterBlurMaterial::resetState(SState& state, const Vector2D& simulationSiz
     state.reset          = false;
 }
 
-void CWaterBlurMaterial::drawStateStep(SState& state, float dt, const CBox& extent) {
+void CWaterBlurMaterial::drawStateStep(CRenderingContext& renderingContext, SState& state, float dt, const CBox& extent) {
     static auto PWATERSPEED   = CConfigValue<Config::FLOAT>("decoration:blur:water:speed");
     static auto PWATERDAMPING = CConfigValue<Config::FLOAT>("decoration:blur:water:damping");
 
@@ -291,7 +291,7 @@ void CWaterBlurMaterial::drawStateStep(SState& state, float dt, const CBox& exte
     const auto  target = state.buffers[1 - state.currentBuffer];
     target->bind();
     g_pHyprRenderer->setViewport(0, 0, sc<int>(state.simulationSize.x), sc<int>(state.simulationSize.y));
-    g_pHyprRenderer->disableScissor();
+    g_pHyprRenderer->disableScissor(renderingContext);
 
     glActiveTexture(GL_TEXTURE0);
     const auto texture = source->getTexture();
@@ -299,8 +299,8 @@ void CWaterBlurMaterial::drawStateStep(SState& state, float dt, const CBox& exte
     texture->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     texture->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    const auto monitor = g_pHyprRenderer->m_renderData.pMonitor;
-    const auto matrix  = g_pHyprRenderer->projectBoxToTarget({0, 0, monitor->m_transformedSize.x, monitor->m_transformedSize.y});
+    const auto monitor = renderingContext.sceneMonitor;
+    const auto matrix  = g_pHyprRenderer->projectBoxToTarget(renderingContext, {0, 0, monitor->m_transformedSize.x, monitor->m_transformedSize.y});
     const auto shader  = m_impl.useShader(m_impl.getShaderVariant(SH_FRAG_WATERSTEP));
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, matrix.getMatrix());
     shader->setUniformInt(SHADER_WATER_STATE_TEX, 0);
@@ -325,8 +325,8 @@ void CWaterBlurMaterial::drawStateStep(SState& state, float dt, const CBox& exte
     state.currentBuffer = 1 - state.currentBuffer;
 }
 
-CBox CWaterBlurMaterial::transformedPatternBox(const SBlurContext& context) const {
-    const auto monitor = g_pHyprRenderer->m_renderData.pMonitor;
+CBox CWaterBlurMaterial::transformedPatternBox(const CRenderingContext& renderingContext, const SBlurContext& context) const {
+    const auto monitor = renderingContext.sceneMonitor;
     if (!monitor)
         return {};
 

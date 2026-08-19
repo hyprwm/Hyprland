@@ -22,6 +22,7 @@
 #define HLG_MAX_LUMINANCE 1000.0f
 
 namespace Render {
+    class CRenderingContext;
     class ITexture;
 }
 
@@ -381,8 +382,8 @@ namespace NColorManagement {
 
     using PImageDescription = WP<const CImageDescription>;
 
-    RGBAColor         convertColor(RGBAColor color, PImageDescription srcDesc, PImageDescription dstDesc);
-    CHyprColor        convertColor(const CHyprColor& color, PImageDescription srcDesc, PImageDescription dstDesc);
+    RGBAColor         convertColor(const Render::CRenderingContext&, RGBAColor color, PImageDescription srcDesc, PImageDescription dstDesc);
+    CHyprColor        convertColor(const Render::CRenderingContext&, const CHyprColor& color, PImageDescription srcDesc, PImageDescription dstDesc);
 
     PImageDescription getDefaultImageDescription();
 

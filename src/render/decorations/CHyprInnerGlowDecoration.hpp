@@ -12,7 +12,7 @@ class CHyprInnerGlowDecoration : public IHyprWindowDecoration {
 
     virtual void                       onPositioningReply(const SDecorationPositioningReply& reply);
 
-    virtual void                       draw(PHLMONITOR, float const& a);
+    virtual void                       draw(Render::CRenderingContext&, PHLMONITOR, float const& a);
 
     virtual eDecorationType            getDecorationType();
 
@@ -31,15 +31,15 @@ class CHyprInnerGlowDecoration : public IHyprWindowDecoration {
     virtual void                       onWindowMap() override;
     virtual void                       onWindowFocus() override;
 
-    void                               render(PHLMONITOR, float const& a);
+    void                               render(Render::CRenderingContext&, PHLMONITOR, float const& a);
 
   private:
-    bool visible();
-    void drawGlowInternal(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad, float a);
-    void drawGlowInternal(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2, float lerp,
-                          float a);
+    bool         visible();
+    void         drawGlowInternal(Render::CRenderingContext&, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad, float a);
+    void         drawGlowInternal(Render::CRenderingContext&, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
+                                  const Config::CGradientValueData& grad2, float lerp, float a);
 
-    PHLWINDOWREF                m_window;
+    PHLWINDOWREF m_window;
 
     CAnimatedDecorationGradient m_gradient;
 

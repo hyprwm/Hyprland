@@ -7,6 +7,10 @@
 #include "../helpers/AnimatedVariable.hpp"
 #include "../config/shared/complex/ComplexDataTypes.hpp"
 
+namespace Render {
+    class CRenderingContext;
+}
+
 namespace ErrorOverlay {
 
     namespace Colors {
@@ -24,7 +28,7 @@ namespace ErrorOverlay {
         void  queueCreate(std::string message, const CHyprColor& color);
         void  queueCreate(std::string message, const Config::CGradientValueData& gradient);
         void  queueError(std::string err);
-        void  draw();
+        void  draw(Render::CRenderingContext&);
         void  destroy();
 
         bool  active();

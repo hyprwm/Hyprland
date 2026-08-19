@@ -31,23 +31,23 @@ CBackdropScopePassElement::CBackdropScopePassElement(eAction action, SP<SBackdro
     ;
 }
 
-std::vector<UP<IPassElement>> CBackdropScopePassElement::draw() {
+std::vector<UP<IPassElement>> CBackdropScopePassElement::draw(Render::CRenderingContext& context) {
     if (!m_scope->required)
         return {};
 
     if (m_action == eAction::BEGIN)
-        g_pHyprRenderer->beginBackdropScope(m_scope);
+        g_pHyprRenderer->beginBackdropScope(context, m_scope);
     else
-        g_pHyprRenderer->endBackdropScope(m_scope);
+        g_pHyprRenderer->endBackdropScope(context, m_scope);
 
     return {};
 }
 
-bool CBackdropScopePassElement::needsLiveBlur() {
+bool CBackdropScopePassElement::needsLiveBlur(const Render::CRenderingContext&) {
     return false;
 }
 
-bool CBackdropScopePassElement::needsPrecomputeBlur() {
+bool CBackdropScopePassElement::needsPrecomputeBlur(const Render::CRenderingContext&) {
     return false;
 }
 

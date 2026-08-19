@@ -8,6 +8,8 @@
 #include "../../../config/ConfigValue.hpp"
 #include "../../../config/shared/animation/AnimationTree.hpp"
 #include "../../../desktop/Workspace.hpp"
+#include "../../../desktop/state/WindowState.hpp"
+#include "../../../desktop/view/window/Window.hpp"
 #include "../../../event/EventBus.hpp"
 #include "../../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../../output/Monitor.hpp"
@@ -46,6 +48,8 @@ struct CWorkspaceTapeController::SWorkspaceTile {
     PHLANIMVAR<float>        opacity;
     SP<Render::IFramebuffer> framebuffer;
     SP<Render::IFramebuffer> miniFramebuffer;
+    bool                     miniDirty           = true;
+    bool                     miniValid           = false;
     bool                     inLayout            = false;
     bool                     geometryInitialized = false;
 
@@ -77,10 +81,18 @@ void CWorkspaceTapeController::start(PHLMONITOR monitor, WP<Monitor::CMonitorRes
     m_started       = true;
 
     m_listeners.created              = Event::bus()->m_events.workspace.created.listen([this](PHLWORKSPACEREF) {
-        if (g_pEventLoopManager)
-            g_pEventLoopManager->doLater([this] { reconcile(); });
-        else
+        if (!g_pEventLoopManager) {
             reconcile();
+            return;
+        }
+
+        if (m_reconcileLock)
+            return;
+
+        m_reconcileLock = g_pEventLoopManager->doLaterLock([this] {
+            m_reconcileLock.reset();
+            reconcile();
+        });
     });
     m_listeners.removed              = Event::bus()->m_events.workspace.removed.listen([this](PHLWORKSPACEREF) { reconcile(); });
     m_listeners.renamed              = Event::bus()->m_events.workspace.renamed.listen([this](PHLWORKSPACEREF) { reconcile(); });
@@ -94,26 +106,73 @@ void CWorkspaceTapeController::start(PHLMONITOR monitor, WP<Monitor::CMonitorRes
     m_listeners.monitorLayoutChanged = Event::bus()->m_events.monitor.layoutChanged.listen([this] { reconcile(); });
     m_listeners.monitorPreRender     = Event::bus()->m_events.render.preChecks.listen([this](PHLMONITOR monitor) {
         const auto OVERVIEW_MONITOR = m_monitor.lock();
-        if (!monitor || monitor == OVERVIEW_MONITOR || !monitor->m_damage.hasChanged())
+        if (!monitor || !monitor->m_damage.hasChanged())
             return;
 
-        const auto TILES = layoutTiles();
-        if (std::ranges::none_of(TILES, [&monitor](const auto* tile) {
+        if (monitor == OVERVIEW_MONITOR) {
+            const bool LAYOUT_ANIMATING = m_overviewProgress < 1.F ||
+                std::ranges::any_of(
+                                              m_tiles,
+                                              [](const auto& tile) {
+                                                  return tile->position->isBeingAnimated() || tile->size->isBeingAnimated() || tile->miniPosition->isBeingAnimated() ||
+                                                      tile->miniSize->isBeingAnimated() || tile->miniBorderColor->isBeingAnimated() || tile->opacity->isBeingAnimated();
+                                              });
+            if (LAYOUT_ANIMATING)
+                return;
+
+            for (const auto& tile : m_tiles) {
                 const auto WORKSPACE = tile->workspace.lock();
-                return WORKSPACE && WORKSPACE->m_monitor == monitor;
-            }))
+                if (tile->inLayout && WORKSPACE && WORKSPACE->m_monitor == monitor)
+                    tile->miniDirty = true;
+            }
+            return;
+        }
+
+        bool invalidated = false;
+        for (const auto& tile : m_tiles) {
+            const auto WORKSPACE = tile->workspace.lock();
+            if (!tile->inLayout || !WORKSPACE || WORKSPACE->m_monitor != monitor)
+                continue;
+
+            tile->miniDirty = true;
+            invalidated     = true;
+        }
+
+        if (!invalidated)
             return;
 
         damageMonitor();
     });
-    m_listeners.configRefreshed      = Event::bus()->m_events.config.props_refreshed.listen([this](bool) { updateMiniBorderColors(); });
+    m_listeners.configRefreshed      = Event::bus()->m_events.config.props_refreshed.listen([this](bool) {
+        updateMiniBorderColors();
+        invalidateMiniatures();
+    });
+    m_listeners.windowOpened         = Event::bus()->m_events.window.open.listen([this](PHLWINDOW window) {
+        refreshWindowListeners();
+        invalidateMiniature(window ? window->m_workspace : nullptr);
+    });
+    m_listeners.windowClosed         = Event::bus()->m_events.window.close.listen([this](PHLWINDOW window) {
+        refreshWindowListeners();
+        invalidateMiniature(window ? window->m_workspace : nullptr);
+    });
+    m_listeners.windowMoved          = Event::bus()->m_events.window.moveToWorkspace.listen([this](PHLWINDOW, PHLWORKSPACE) { invalidateMiniatures(); });
+    m_listeners.windowFullscreen     = Event::bus()->m_events.window.fullscreen.listen([this](PHLWINDOW window) { invalidateMiniature(window ? window->m_workspace : nullptr); });
+    m_listeners.windowFloating       = Event::bus()->m_events.window.floating.listen([this](PHLWINDOW window) { invalidateMiniature(window ? window->m_workspace : nullptr); });
+    m_listeners.windowActive =
+        Event::bus()->m_events.window.active.listen([this](PHLWINDOW window, Desktop::eFocusReason) { invalidateMiniature(window ? window->m_workspace : nullptr); });
+    m_listeners.windowPinned = Event::bus()->m_events.window.pin.listen([this](PHLWINDOW) { invalidateMiniatures(); });
+    m_listeners.layerOpened  = Event::bus()->m_events.layer.opened.listen([this](PHLLS) { invalidateMiniatures(); });
+    m_listeners.layerClosed  = Event::bus()->m_events.layer.closed.listen([this](PHLLS) { invalidateMiniatures(); });
 
+    refreshWindowListeners();
     reconcile(true);
 }
 
 void CWorkspaceTapeController::reset() {
     m_started   = false;
     m_listeners = {};
+    m_windowListeners.clear();
+    m_reconcileLock.reset();
 
     for (const auto& tile : m_tiles) {
         if (tile->position)
@@ -134,8 +193,9 @@ void CWorkspaceTapeController::reset() {
     m_selectedWorkspace.reset();
     m_preferredWorkspace.reset();
     m_pressedMiniWorkspace.reset();
-    m_mainArea      = {};
-    m_miniStripArea = {};
+    m_mainArea         = {};
+    m_miniStripArea    = {};
+    m_overviewProgress = 0.F;
     m_resources.reset();
     m_monitor.reset();
 }
@@ -153,6 +213,7 @@ void CWorkspaceTapeController::draw(Render::CRenderingContext& context, Time::st
     const auto     ACTIVE     = MONITOR->m_activeWorkspace;
     const auto     SELECTED   = selectedWorkspace();
     const Vector2D FULLSIZE   = MONITOR->m_transformedSize;
+    m_overviewProgress        = PROGRESS;
 
     struct SDrawTile {
         SWorkspaceTile* tile = nullptr;
@@ -185,7 +246,6 @@ void CWorkspaceTapeController::draw(Render::CRenderingContext& context, Time::st
 
         if (!MAIN_VISIBLE && !MINI_VISIBLE) {
             tile->framebuffer.reset();
-            tile->miniFramebuffer.reset();
             continue;
         }
 
@@ -225,23 +285,45 @@ void CWorkspaceTapeController::draw(Render::CRenderingContext& context, Time::st
         const bool CAN_RENDER = SOURCE_MONITOR && SOURCE_MONITOR->m_enabled && !SOURCE_MONITOR->isMirror() && SOURCE_MONITOR->resources() && BUFFER_SIZE.x > 0 && BUFFER_SIZE.y > 0;
         if (tile.framebuffer && (!CAN_RENDER || tile.framebuffer->m_size != BUFFER_SIZE))
             tile.framebuffer.reset();
-        if (tile.miniFramebuffer && (!CAN_RENDER || tile.miniFramebuffer->m_size != MINI_BUFFER_SIZE))
+        if (tile.miniFramebuffer && CAN_RENDER && tile.miniFramebuffer->m_size != MINI_BUFFER_SIZE) {
             tile.miniFramebuffer.reset();
+            tile.miniDirty = true;
+            tile.miniValid = false;
+        }
         if (!drawTile.mainVisible)
             tile.framebuffer.reset();
 
-        const auto ACQUIRE_BUFFER = [&] {
+        const auto ACQUIRE_BUFFER = [&]() -> SP<Render::IFramebuffer> {
             if (SOURCE_MONITOR == MONITOR) {
                 if (RESOURCES->availableWorkBufferCount() <= reservedWorkBuffers)
-                    return;
+                    return nullptr;
 
-                tile.framebuffer = RESOURCES->getUnusedWorkBuffer();
-            } else
-                tile.framebuffer = RESOURCES->getUnusedWorkBuffer(BUFFER_SIZE);
+                return RESOURCES->getUnusedWorkBuffer();
+            }
+
+            return RESOURCES->getUnusedWorkBuffer(BUFFER_SIZE);
+        };
+
+        const auto UPDATE_MINIATURE = [&](SP<Render::IFramebuffer> source) {
+            if (!source || !source->getTexture() || MINI_BUFFER_SIZE.x <= 0 || MINI_BUFFER_SIZE.y <= 0)
+                return false;
+
+            if (!tile.miniFramebuffer)
+                tile.miniFramebuffer = g_pHyprRenderer->createFB("overview-mini-workspace");
+            if (!tile.miniFramebuffer || !tile.miniFramebuffer->alloc(std::lround(MINI_BUFFER_SIZE.x), std::lround(MINI_BUFFER_SIZE.y)) ||
+                !g_pHyprRenderer->renderTextureToBuffer(context, source->getTexture(), tile.miniFramebuffer)) {
+                if (!tile.miniValid)
+                    tile.miniFramebuffer.reset();
+                return false;
+            }
+
+            tile.miniDirty = false;
+            tile.miniValid = true;
+            return true;
         };
 
         if (drawTile.mainVisible && !tile.framebuffer && CAN_RENDER) {
-            ACQUIRE_BUFFER();
+            tile.framebuffer = ACQUIRE_BUFFER();
 
             for (size_t candidateIndex = drawTiles.size(); !tile.framebuffer && candidateIndex > i + 1; --candidateIndex) {
                 auto&      candidate           = *drawTiles.at(candidateIndex - 1).tile;
@@ -251,7 +333,7 @@ void CWorkspaceTapeController::draw(Render::CRenderingContext& context, Time::st
                     continue;
 
                 candidate.framebuffer.reset();
-                ACQUIRE_BUFFER();
+                tile.framebuffer = ACQUIRE_BUFFER();
             }
         }
 
@@ -262,16 +344,12 @@ void CWorkspaceTapeController::draw(Render::CRenderingContext& context, Time::st
         if (!rendered)
             tile.framebuffer.reset();
         else
-            tile.miniFramebuffer.reset();
+            UPDATE_MINIATURE(tile.framebuffer);
 
-        if (!rendered && CAN_RENDER && MINI_BUFFER_SIZE.x > 0 && MINI_BUFFER_SIZE.y > 0) {
-            if (!tile.miniFramebuffer)
-                tile.miniFramebuffer = g_pHyprRenderer->createFB("overview-mini-workspace");
-
-            if (!tile.miniFramebuffer || !tile.miniFramebuffer->alloc(std::lround(MINI_BUFFER_SIZE.x), std::lround(MINI_BUFFER_SIZE.y)) ||
-                !g_pHyprRenderer->renderWorkspaceSceneToBufferScaled(context, WORKSPACE, tile.miniFramebuffer, tp,
-                                                                     drawTile.mainVisible && WORKSPACE->m_visible && SOURCE_MONITOR == MONITOR))
-                tile.miniFramebuffer.reset();
+        if (!rendered && CAN_RENDER && tile.miniDirty) {
+            const auto SCRATCH = ACQUIRE_BUFFER();
+            if (SCRATCH && g_pHyprRenderer->renderWorkspaceSceneToBuffer(context, WORKSPACE, SCRATCH, tp, false))
+                UPDATE_MINIATURE(SCRATCH);
         }
     }
 
@@ -298,7 +376,7 @@ void CWorkspaceTapeController::draw(Render::CRenderingContext& context, Time::st
             g_pHyprRenderer->addPassElement(context, makeUnique<CBoxShadowPassElement>(shadow));
         }
 
-        const auto FRAMEBUFFER = tile.framebuffer ? tile.framebuffer : tile.miniFramebuffer;
+        const auto FRAMEBUFFER = tile.framebuffer ? tile.framebuffer : (tile.miniValid ? tile.miniFramebuffer : nullptr);
         if (!FRAMEBUFFER) {
             CRectPassElement::SRectData data;
             data.box   = drawTile.mainBox;
@@ -323,7 +401,7 @@ void CWorkspaceTapeController::draw(Render::CRenderingContext& context, Time::st
             continue;
 
         const auto& tile        = *drawTile.tile;
-        const auto  FRAMEBUFFER = tile.framebuffer ? tile.framebuffer : tile.miniFramebuffer;
+        const auto  FRAMEBUFFER = tile.framebuffer ? tile.framebuffer : (tile.miniValid ? tile.miniFramebuffer : nullptr);
         if (!FRAMEBUFFER) {
             CRectPassElement::SRectData data;
             data.box     = drawTile.miniBox;
@@ -452,6 +530,9 @@ bool CWorkspaceTapeController::navigate(int direction) {
 void CWorkspaceTapeController::reconcile(bool initial) {
     if (!m_started)
         return;
+
+    for (const auto& tile : m_tiles)
+        tile->miniDirty = true;
 
     const auto OLD_LAYOUT   = layoutTiles();
     const auto OLD_SELECTED = selectedWorkspace();
@@ -660,6 +741,44 @@ void CWorkspaceTapeController::updateMiniBorderColors(bool warp) {
     }
 
     damageMiniStrip();
+}
+
+void CWorkspaceTapeController::invalidateMiniatures() {
+    if (m_tiles.empty())
+        return;
+
+    for (const auto& tile : m_tiles)
+        tile->miniDirty = true;
+
+    damageMonitor();
+}
+
+void CWorkspaceTapeController::invalidateMiniature(PHLWORKSPACE workspace) {
+    auto* tile = tileFor(workspace);
+    if (!tile)
+        return;
+
+    tile->miniDirty = true;
+    damageMonitor();
+}
+
+void CWorkspaceTapeController::refreshWindowListeners() {
+    m_windowListeners.clear();
+
+    for (const auto& window : Desktop::windowState()->windows()) {
+        if (!window)
+            continue;
+
+        const PHLWINDOWREF WINDOW = window;
+        m_windowListeners.emplace_back(window->backend().m_events.commit.listen([this, WINDOW](bool) {
+            if (const auto LOCKED = WINDOW.lock(); LOCKED)
+                invalidateMiniature(LOCKED->m_workspace);
+        }));
+        m_windowListeners.emplace_back(window->backend().m_events.geometryChanged.listen([this, WINDOW](const CBox&) {
+            if (const auto LOCKED = WINDOW.lock(); LOCKED)
+                invalidateMiniature(LOCKED->m_workspace);
+        }));
+    }
 }
 
 CWorkspaceTapeController::SWorkspaceTile* CWorkspaceTapeController::tileFor(PHLWORKSPACE workspace) const {

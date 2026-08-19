@@ -64,6 +64,10 @@ namespace Overview::Hyprland {
             CHyprSignalListener removed;
             CHyprSignalListener moved;
             CHyprSignalListener active;
+            CHyprSignalListener monitorAdded;
+            CHyprSignalListener monitorRemoved;
+            CHyprSignalListener monitorLayoutChanged;
+            CHyprSignalListener monitorPreRender;
         } m_listeners;
     };
 }

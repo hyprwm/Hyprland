@@ -2633,7 +2633,7 @@ bool IHyprRenderer::renderWorkspaceToBufferInternal(CRenderingContext& context, 
                                                     bool sendFeedback, bool fullScene) {
     const auto MONITOR = workspace ? workspace->m_monitor.lock() : nullptr;
     auto&      parent  = context;
-    if (!MONITOR || !framebuffer || !framebuffer->isAllocated() || framebuffer->m_size != MONITOR->m_transformedSize || !parent.currentFB || parent.sceneMonitor != MONITOR)
+    if (!MONITOR || !framebuffer || !framebuffer->isAllocated() || framebuffer->m_size != MONITOR->m_transformedSize || !parent.currentFB)
         return false;
     if (framebuffer == parent.currentFB || framebuffer == parent.mainFB || framebuffer == parent.outFB)
         return false;

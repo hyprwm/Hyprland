@@ -12,6 +12,8 @@ namespace Pointer::Cursor {
         CURSOR_OVERRIDE_UNKNOWN = 0,
         // window edges for resizing from edge
         CURSOR_OVERRIDE_WINDOW_EDGE,
+        // compositor-owned interactive UI
+        CURSOR_OVERRIDE_INTERNAL_UI,
         // Drag and drop
         CURSOR_OVERRIDE_DND,
         // special action: Interactive::CDrag, kill, etc.

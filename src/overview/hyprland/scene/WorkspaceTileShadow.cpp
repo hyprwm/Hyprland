@@ -18,7 +18,7 @@ std::optional<WorkspaceTileShadow::SGeometry> WorkspaceTileShadow::calculate(con
         return std::nullopt;
 
     return SGeometry{
-        .outerBox = tileBox.copy().expand(RANGE),
+        .outerBox = tileBox.copy().expand(RANGE).round(),
         .range    = RANGE,
         .rounding = std::lround(std::max(0.F, rounding) * monitorScale * PROGRESS),
         .opacity  = OPACITY,

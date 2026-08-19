@@ -31,6 +31,9 @@ namespace Overview::Hyprland {
         void                           closeImmediately();
         void                           installListeners();
         void                           recheckDrag();
+        bool                           handleSearchKey(uint32_t keycode, SP<IKeyboard> keyboard, bool repeat = false);
+        void                           startKeyRepeat(uint32_t keycode, SP<IKeyboard> keyboard);
+        void                           stopKeyRepeat(uint32_t keycode);
 
         bool                           m_isOpen         = false;
         bool                           m_sceneInstalled = false;
@@ -38,6 +41,8 @@ namespace Overview::Hyprland {
         WP<Monitor::CMonitorResources> m_resources;
         PHLANIMVAR<float>              m_progress;
         SP<COverviewScene>             m_scene;
+        struct SXKBComposeState;
+        UP<SXKBComposeState> m_composeState;
 
         struct {
             CHyprSignalListener monitorDisconnect;
@@ -56,7 +61,19 @@ namespace Overview::Hyprland {
             SP<CEventLoopTimer> eventLoopTimer;
         } m_drag;
 
+        struct {
+            WP<IKeyboard>       keyboard;
+            uint32_t            keycode = 0;
+            SP<CEventLoopTimer> timer;
+        } m_keyRepeat;
+
+        enum class eInputMode : uint8_t {
+            NAVIGATION,
+            TEXT
+        } m_inputMode = COverview::eInputMode::NAVIGATION;
+
         std::vector<std::pair<WP<IKeyboard>, uint32_t>> m_interceptedKeys;
+        std::vector<uint32_t>                           m_interceptedButtons;
 
         friend class COverviewScene;
     };

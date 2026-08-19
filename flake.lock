@@ -108,7 +108,9 @@
         "hyprlang": [
           "hyprlang"
         ],
-        "hyprtoolkit": "hyprtoolkit",
+        "hyprtoolkit": [
+          "hyprtoolkit"
+        ],
         "hyprutils": [
           "hyprutils"
         ],
@@ -188,45 +190,39 @@
     "hyprtoolkit": {
       "inputs": {
         "aquamarine": [
-          "hyprland-guiutils",
           "aquamarine"
         ],
         "hyprgraphics": [
-          "hyprland-guiutils",
           "hyprgraphics"
         ],
         "hyprlang": [
-          "hyprland-guiutils",
           "hyprlang"
         ],
         "hyprutils": [
-          "hyprland-guiutils",
           "hyprutils"
         ],
         "hyprwayland-scanner": [
-          "hyprland-guiutils",
           "hyprwayland-scanner"
         ],
         "nixpkgs": [
-          "hyprland-guiutils",
           "nixpkgs"
         ],
         "systems": [
-          "hyprland-guiutils",
           "systems"
         ]
       },
       "locked": {
-        "lastModified": 1785930473,
-        "narHash": "sha256-DitTu625BhEYpZjtjxtGpjrEJwPwW+X/+jJvhSZNSJM=",
+        "lastModified": 1786377817,
+        "narHash": "sha256-YDGxUL6Lt6ORijQIhTiTaP7I/qMricD3JtqAz8l/8Ds=",
         "owner": "hyprwm",
         "repo": "hyprtoolkit",
-        "rev": "af515b69dfbe366dc7873aa1475cb2f4db3ebad7",
+        "rev": "aac6072eb3cc95e40a658ceae8b09460726f2fb9",
         "type": "github"
       },
       "original": {
         "owner": "hyprwm",
         "repo": "hyprtoolkit",
+        "rev": "aac6072eb3cc95e40a658ceae8b09460726f2fb9",
         "type": "github"
       }
     },
@@ -347,6 +343,7 @@
         "hyprland-guiutils": "hyprland-guiutils",
         "hyprland-protocols": "hyprland-protocols",
         "hyprlang": "hyprlang",
+        "hyprtoolkit": "hyprtoolkit",
         "hyprutils": "hyprutils",
         "hyprwayland-scanner": "hyprwayland-scanner",
         "hyprwire": "hyprwire",

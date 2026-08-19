@@ -261,7 +261,7 @@ bool COverview::isOpen() const {
 }
 
 bool COverview::shouldRenderWorkspace(PHLWORKSPACE workspace) const {
-    return m_sceneInstalled && workspace && m_scene->selectedWorkspace() == workspace;
+    return m_sceneInstalled && workspace && workspace->m_visible && m_scene->selectedWorkspace() == workspace;
 }
 
 void COverview::finishClose(bool emitEvent) {

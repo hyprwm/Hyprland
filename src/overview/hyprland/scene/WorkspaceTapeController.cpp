@@ -1,4 +1,5 @@
 #include "WorkspaceTapeController.hpp"
+#include "WorkspaceTapeLayout.hpp"
 
 #include "../../../animation/AnimationManager.hpp"
 #include "../../../config/shared/animation/AnimationTree.hpp"
@@ -56,17 +57,34 @@ void CWorkspaceTapeController::start(PHLMONITOR monitor, WP<Monitor::CMonitorRes
     m_resources = resources;
     m_started   = true;
 
-    m_listeners.created = Event::bus()->m_events.workspace.created.listen([this](PHLWORKSPACEREF) {
+    m_listeners.created              = Event::bus()->m_events.workspace.created.listen([this](PHLWORKSPACEREF) {
         if (g_pEventLoopManager)
             g_pEventLoopManager->doLater([this] { reconcile(); });
         else
             reconcile();
     });
-    m_listeners.removed = Event::bus()->m_events.workspace.removed.listen([this](PHLWORKSPACEREF) { reconcile(); });
-    m_listeners.moved   = Event::bus()->m_events.workspace.moveToMonitor.listen([this](PHLWORKSPACE, PHLMONITOR) { reconcile(); });
-    m_listeners.active  = Event::bus()->m_events.workspace.active.listen([this](PHLWORKSPACE workspace) {
+    m_listeners.removed              = Event::bus()->m_events.workspace.removed.listen([this](PHLWORKSPACEREF) { reconcile(); });
+    m_listeners.moved                = Event::bus()->m_events.workspace.moveToMonitor.listen([this](PHLWORKSPACE, PHLMONITOR) { reconcile(); });
+    m_listeners.active               = Event::bus()->m_events.workspace.active.listen([this](PHLWORKSPACE workspace) {
         if (workspace && workspace->m_monitor == m_monitor)
             reconcile();
+    });
+    m_listeners.monitorAdded         = Event::bus()->m_events.monitor.added.listen([this](PHLMONITOR) { reconcile(); });
+    m_listeners.monitorRemoved       = Event::bus()->m_events.monitor.removed.listen([this](PHLMONITOR) { reconcile(); });
+    m_listeners.monitorLayoutChanged = Event::bus()->m_events.monitor.layoutChanged.listen([this] { reconcile(); });
+    m_listeners.monitorPreRender     = Event::bus()->m_events.render.preChecks.listen([this](PHLMONITOR monitor) {
+        const auto OVERVIEW_MONITOR = m_monitor.lock();
+        if (!monitor || monitor == OVERVIEW_MONITOR || !monitor->m_damage.hasChanged())
+            return;
+
+        const auto TILES = layoutTiles();
+        if (std::ranges::none_of(TILES, [&monitor](const auto* tile) {
+                const auto WORKSPACE = tile->workspace.lock();
+                return WORKSPACE && WORKSPACE->m_monitor == monitor;
+            }))
+            return;
+
+        damageMonitor();
     });
 
     reconcile(true);
@@ -139,24 +157,61 @@ void CWorkspaceTapeController::draw(Render::CRenderingContext& context, Time::st
         });
     }
 
-    std::ranges::stable_sort(drawTiles, [](const auto& lhs, const auto& rhs) { return lhs.selected < rhs.selected; });
+    std::ranges::stable_sort(drawTiles, [&MONITORBOX](const auto& lhs, const auto& rhs) {
+        if (lhs.selected != rhs.selected)
+            return lhs.selected;
 
-    const int ROUNDING = std::lround(TILE_ROUNDING * MONITOR->m_scale * PROGRESS);
-    for (auto& drawTile : drawTiles) {
+        const double MONITOR_CENTER = MONITORBOX.x + MONITORBOX.w / 2.0;
+        const double LHS_DISTANCE   = std::abs(lhs.box.x + lhs.box.w / 2.0 - MONITOR_CENTER);
+        const double RHS_DISTANCE   = std::abs(rhs.box.x + rhs.box.w / 2.0 - MONITOR_CENTER);
+        return LHS_DISTANCE < RHS_DISTANCE;
+    });
+    for (size_t i = 0; i < drawTiles.size(); ++i) {
+        auto&      drawTile  = drawTiles.at(i);
         auto&      tile      = *drawTile.tile;
         const auto WORKSPACE = tile.workspace.lock();
 
-        const bool CAN_RENDER = WORKSPACE && WORKSPACE->m_monitor == MONITOR;
-        if (!tile.framebuffer && CAN_RENDER)
-            tile.framebuffer = RESOURCES->getUnusedWorkBuffer();
+        const auto SOURCE_MONITOR = WORKSPACE ? WORKSPACE->m_monitor.lock() : nullptr;
+        const auto BUFFER_SIZE    = SOURCE_MONITOR ? SOURCE_MONITOR->m_transformedSize : Vector2D{};
+        const bool CAN_RENDER = SOURCE_MONITOR && SOURCE_MONITOR->m_enabled && !SOURCE_MONITOR->isMirror() && SOURCE_MONITOR->resources() && BUFFER_SIZE.x > 0 && BUFFER_SIZE.y > 0;
+        if (tile.framebuffer && (!CAN_RENDER || tile.framebuffer->m_size != BUFFER_SIZE))
+            tile.framebuffer.reset();
+
+        const auto ACQUIRE_BUFFER = [&] {
+            if (SOURCE_MONITOR == MONITOR)
+                tile.framebuffer = RESOURCES->getUnusedWorkBuffer();
+            else
+                tile.framebuffer = RESOURCES->getUnusedWorkBuffer(BUFFER_SIZE);
+        };
+
+        if (!tile.framebuffer && CAN_RENDER) {
+            ACQUIRE_BUFFER();
+
+            for (size_t candidateIndex = drawTiles.size(); !tile.framebuffer && candidateIndex > i + 1; --candidateIndex) {
+                auto&      candidate           = *drawTiles.at(candidateIndex - 1).tile;
+                const auto CANDIDATE_WORKSPACE = candidate.workspace.lock();
+                const auto CANDIDATE_MONITOR   = CANDIDATE_WORKSPACE ? CANDIDATE_WORKSPACE->m_monitor.lock() : nullptr;
+                if (!candidate.framebuffer || (CANDIDATE_MONITOR == MONITOR) != (SOURCE_MONITOR == MONITOR))
+                    continue;
+
+                candidate.framebuffer.reset();
+                ACQUIRE_BUFFER();
+            }
+        }
 
         bool rendered = false;
         if (CAN_RENDER && tile.framebuffer)
-            rendered = g_pHyprRenderer->renderWorkspaceSceneToBuffer(context, WORKSPACE, tile.framebuffer, tp, drawTile.selected);
+            rendered = g_pHyprRenderer->renderWorkspaceSceneToBuffer(context, WORKSPACE, tile.framebuffer, tp, WORKSPACE->m_visible && SOURCE_MONITOR == MONITOR);
 
         if (!rendered && tile.inLayout)
             tile.framebuffer.reset();
+    }
 
+    std::ranges::stable_sort(drawTiles, [](const auto& lhs, const auto& rhs) { return lhs.selected < rhs.selected; });
+
+    const int ROUNDING = std::lround(TILE_ROUNDING * MONITOR->m_scale * PROGRESS);
+    for (const auto& drawTile : drawTiles) {
+        const auto& tile = *drawTile.tile;
         if (!tile.framebuffer) {
             CRectPassElement::SRectData data;
             data.box   = drawTile.box;
@@ -279,19 +334,28 @@ void CWorkspaceTapeController::updateLayout(bool warp) {
     if (!MONITOR)
         return;
 
-    const auto SELECTED = selectedWorkspace();
-    const auto IT       = std::ranges::find_if(TILES, [&SELECTED](const auto* tile) { return tile->workspace == SELECTED; });
-    const auto INDEX    = IT == TILES.end() ? 0L : std::ranges::distance(TILES.begin(), IT);
-    const auto SIZE     = MONITOR->m_transformedSize * TILE_SCALE;
-    const auto BASEPOS  = (MONITOR->m_transformedSize - SIZE) / 2.F;
-    const auto STRIDE   = SIZE.x + MONITOR->m_transformedSize.x * TILE_GAP;
+    const auto            SELECTED = selectedWorkspace();
+    const auto            IT       = std::ranges::find_if(TILES, [&SELECTED](const auto* tile) { return tile->workspace == SELECTED; });
+    const auto            INDEX    = IT == TILES.end() ? 0L : std::ranges::distance(TILES.begin(), IT);
+    std::vector<Vector2D> sourceSizes;
+    sourceSizes.reserve(TILES.size());
+
+    for (const auto* tile : TILES) {
+        const auto WORKSPACE = tile->workspace.lock();
+        const auto SOURCE    = WORKSPACE ? WORKSPACE->m_monitor.lock() : nullptr;
+        sourceSizes.emplace_back(SOURCE ? SOURCE->m_transformedSize : MONITOR->m_transformedSize);
+    }
+
+    const auto BOXES        = WorkspaceTapeLayout::calculate(MONITOR->m_transformedSize, sourceSizes, INDEX, TILE_SCALE, TILE_GAP);
+    const auto REGULAR_SIZE = MONITOR->m_transformedSize * TILE_SCALE;
 
     for (size_t i = 0; i < TILES.size(); ++i) {
         auto& tile = *TILES.at(i);
         tile.position->setConfig(Config::animationTree()->getAnimationPropertyConfig("overviewMove"));
         tile.size->setConfig(Config::animationTree()->getAnimationPropertyConfig("overviewMove"));
 
-        const Vector2D POSITION = BASEPOS + Vector2D{(sc<long>(i) - INDEX) * STRIDE, 0.F};
+        const auto POSITION = BOXES.at(i).pos();
+        const auto SIZE     = BOXES.at(i).size();
         if (warp || !tile.geometryInitialized) {
             tile.position->setValueAndWarp(POSITION);
             tile.size->setValueAndWarp(SIZE);
@@ -310,14 +374,14 @@ void CWorkspaceTapeController::updateLayout(bool warp) {
         if (!WORKSPACE || WORKSPACE != MONITOR->m_activeWorkspace)
             continue;
 
-        const Vector2D POSITION = BASEPOS;
+        const Vector2D POSITION = (MONITOR->m_transformedSize - REGULAR_SIZE) / 2.F;
         if (warp || !tile->geometryInitialized) {
             tile->position->setValueAndWarp(POSITION);
-            tile->size->setValueAndWarp(SIZE);
+            tile->size->setValueAndWarp(REGULAR_SIZE);
             tile->geometryInitialized = true;
         } else {
             *tile->position = POSITION;
-            *tile->size     = SIZE;
+            *tile->size     = REGULAR_SIZE;
         }
     }
 }
@@ -380,8 +444,10 @@ std::vector<PHLWORKSPACE> CWorkspaceTapeController::filteredWorkspaces() const {
         return workspaces;
 
     for (const auto& workspaceRef : State::workspaceState()->workspaces()) {
-        const auto WORKSPACE = workspaceRef.lock();
-        if (!valid(WORKSPACE) || WORKSPACE->m_monitor != MONITOR || WORKSPACE->m_isSpecialWorkspace || !m_filter(WORKSPACE))
+        const auto WORKSPACE      = workspaceRef.lock();
+        const auto SOURCE_MONITOR = WORKSPACE ? WORKSPACE->m_monitor.lock() : nullptr;
+        if (!valid(WORKSPACE) || !SOURCE_MONITOR || !SOURCE_MONITOR->m_enabled || SOURCE_MONITOR->isMirror() || !SOURCE_MONITOR->resources() || WORKSPACE->m_isSpecialWorkspace ||
+            !m_filter(WORKSPACE))
             continue;
 
         workspaces.emplace_back(WORKSPACE);

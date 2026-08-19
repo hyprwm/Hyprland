@@ -62,6 +62,11 @@ SP<Render::IFramebuffer> CMonitorResources::getUnusedWorkBuffer() {
     return res.buffer;
 }
 
+size_t CMonitorResources::availableWorkBufferCount() const {
+    const auto AVAILABLE = std::ranges::count_if(m_workBuffers, [](const auto& resource) { return resource.buffer.strongRef() < 2; });
+    return AVAILABLE + MAX_WORK_BUFFERS - m_workBuffers.size();
+}
+
 SP<Render::IFramebuffer> CMonitorResources::getUnusedWorkBuffer(const Vector2D& size) {
     RASSERT((size.x > 0 && size.y > 0), "cannot get a workbuffer with negative / zero size! (attempted {}x{})", size.x, size.y);
 

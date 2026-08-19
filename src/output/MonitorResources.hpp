@@ -15,6 +15,7 @@ namespace Monitor {
 
         SP<Render::IFramebuffer> getUnusedWorkBuffer();
         SP<Render::IFramebuffer> getUnusedWorkBuffer(const Vector2D& size);
+        size_t                   availableWorkBufferCount() const;
         void                     forEachUnusedFB(std::function<void(SP<Render::IFramebuffer>)> callback, bool includeNamed = false);
         bool                     hasMirrorFB() const;
         bool                     shouldKeepMirrorFB() const;

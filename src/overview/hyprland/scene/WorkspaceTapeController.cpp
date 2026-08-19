@@ -1,5 +1,6 @@
 #include "WorkspaceTapeController.hpp"
 #include "WorkspaceTapeLayout.hpp"
+#include "WorkspaceTileShadow.hpp"
 
 #include "../../../animation/AnimationManager.hpp"
 #include "../../../config/shared/animation/AnimationTree.hpp"
@@ -9,6 +10,7 @@
 #include "../../../output/Monitor.hpp"
 #include "../../../output/MonitorResources.hpp"
 #include "../../../render/Renderer.hpp"
+#include "../../../render/pass/BoxShadowPassElement.hpp"
 #include "../../../render/pass/RectPassElement.hpp"
 #include "../../../render/pass/TexPassElement.hpp"
 #include "../../../state/WorkspaceState.hpp"
@@ -19,9 +21,11 @@
 
 using namespace Overview::Hyprland;
 
-static constexpr float TILE_GAP         = 0.02F;
-static constexpr float TILE_ROUNDING    = 20.F;
-static constexpr float PLACEHOLDER_GRAY = 0.12F;
+static constexpr float TILE_GAP          = 0.02F;
+static constexpr float TILE_ROUNDING     = 20.F;
+static constexpr float TILE_SHADOW_RANGE = 14.F;
+static constexpr float TILE_SHADOW_ALPHA = 0.45F;
+static constexpr float PLACEHOLDER_GRAY  = 0.12F;
 
 struct CWorkspaceTapeController::SWorkspaceTile {
     PHLWORKSPACEREF          workspace;
@@ -109,7 +113,7 @@ void CWorkspaceTapeController::reset() {
     m_monitor.reset();
 }
 
-void CWorkspaceTapeController::draw(Render::CRenderingContext& context, Time::steady_tp tp, float overviewProgress) {
+void CWorkspaceTapeController::draw(Render::CRenderingContext& context, Time::steady_tp tp, float overviewProgress, size_t reservedWorkBuffers) {
     const auto MONITOR   = m_monitor.lock();
     const auto RESOURCES = m_resources;
     if (!m_started || !MONITOR || !RESOURCES || !g_pHyprRenderer)
@@ -178,9 +182,12 @@ void CWorkspaceTapeController::draw(Render::CRenderingContext& context, Time::st
             tile.framebuffer.reset();
 
         const auto ACQUIRE_BUFFER = [&] {
-            if (SOURCE_MONITOR == MONITOR)
+            if (SOURCE_MONITOR == MONITOR) {
+                if (RESOURCES->availableWorkBufferCount() <= reservedWorkBuffers)
+                    return;
+
                 tile.framebuffer = RESOURCES->getUnusedWorkBuffer();
-            else
+            } else
                 tile.framebuffer = RESOURCES->getUnusedWorkBuffer(BUFFER_SIZE);
         };
 
@@ -212,6 +219,21 @@ void CWorkspaceTapeController::draw(Render::CRenderingContext& context, Time::st
     const int ROUNDING = std::lround(TILE_ROUNDING * MONITOR->m_scale * PROGRESS);
     for (const auto& drawTile : drawTiles) {
         const auto& tile = *drawTile.tile;
+
+        const auto  SHADOW = WorkspaceTileShadow::calculate(drawTile.box, MONITOR->m_scale, drawTile.opacity, PROGRESS, TILE_SHADOW_RANGE, TILE_ROUNDING);
+        if (SHADOW) {
+            CBoxShadowPassElement::SBoxShadowData shadow;
+            shadow.box           = SHADOW->outerBox;
+            shadow.cutoutBox     = drawTile.box;
+            shadow.clipBox       = MONITORBOX;
+            shadow.color         = CHyprColor(0.F, 0.F, 0.F, TILE_SHADOW_ALPHA);
+            shadow.a             = SHADOW->opacity;
+            shadow.round         = SHADOW->rounding;
+            shadow.roundingPower = 2.F;
+            shadow.range         = SHADOW->range;
+            g_pHyprRenderer->addPassElement(context, makeUnique<CBoxShadowPassElement>(shadow));
+        }
+
         if (!tile.framebuffer) {
             CRectPassElement::SRectData data;
             data.box   = drawTile.box;

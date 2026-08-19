@@ -132,10 +132,10 @@ void CHyprInnerGlowDecoration::render(Render::CRenderingContext& context, PHLMON
     if (windowBox.width < 1 || windowBox.height < 1)
         return;
 
-    static auto         PGLOWSIZE = CConfigValue<Config::INTEGER>("decoration:glow:range");
-    const auto          GLOWSIZE  = sc<int>(*PGLOWSIZE);
+    static auto               PGLOWSIZE = CConfigValue<Config::INTEGER>("decoration:glow:range");
+    const auto                GLOWSIZE  = sc<int>(*PGLOWSIZE);
 
-    const auto          GRADIENT = m_gradient.renderState();
+    const auto                GRADIENT = m_gradient.renderState();
 
     Render::CRenderingContext child{context, context.renderPass()};
     child.currentWindow = m_window;

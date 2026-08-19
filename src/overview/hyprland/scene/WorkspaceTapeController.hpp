@@ -27,7 +27,7 @@ namespace Overview::Hyprland {
 
         void         start(PHLMONITOR monitor, WP<Monitor::CMonitorResources> resources);
         void         reset();
-        void         draw(Render::CRenderingContext&, Time::steady_tp tp, float overviewProgress);
+        void         draw(Render::CRenderingContext&, Time::steady_tp tp, float overviewProgress, size_t reservedWorkBuffers = 0);
 
         bool         navigateLeft();
         bool         navigateRight();

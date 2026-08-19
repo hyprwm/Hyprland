@@ -96,7 +96,9 @@ namespace Render {
         // Renders the target workspace as a complete monitor scene during the target monitor's active render.
         bool renderWorkspaceSceneToBuffer(CRenderingContext&, PHLWORKSPACE, SP<IFramebuffer>, const Time::steady_tp&, bool sendFeedback = true);
         // Renders the target monitor's regular scene during its active render.
-        bool                                renderMonitorToBuffer(CRenderingContext&, PHLMONITOR, SP<IFramebuffer>, const Time::steady_tp&, bool sendFeedback = true);
+        bool renderMonitorToBuffer(CRenderingContext&, PHLMONITOR, SP<IFramebuffer>, const Time::steady_tp&, bool sendFeedback = true);
+        // Renders the compositor background and layer-shell background plane.
+        void                                renderMonitorBackground(CRenderingContext&, PHLMONITOR, const Time::steady_tp&);
         bool                                shouldRenderMonitor(PHLMONITOR);
         void                                ensureCursorRenderingMode();
         bool                                shouldRenderCursor();

@@ -2156,11 +2156,21 @@ void CHyprOpenGLImpl::renderBorder(CRenderingContext& context, const CBox& box, 
 }
 
 void CHyprOpenGLImpl::renderRoundedShadow(CRenderingContext& context, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad, float a) {
-    renderRoundedShadow(context, box, round, roundingPower, range, grad, Config::CGradientValueData{}, 0.f, a);
+    renderRoundedShadowInternal(context, box, round, roundingPower, range, grad, Config::CGradientValueData{}, 0.f, a, std::nullopt, 0);
+}
+
+void CHyprOpenGLImpl::renderRoundedShadow(CRenderingContext& context, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad, float a,
+                                          const CBox& cutoutBox, int cutoutRound) {
+    renderRoundedShadowInternal(context, box, round, roundingPower, range, grad, Config::CGradientValueData{}, 0.f, a, cutoutBox, cutoutRound);
 }
 
 void CHyprOpenGLImpl::renderRoundedShadow(CRenderingContext& context, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
                                           const Config::CGradientValueData& grad2, float lerp, float a) {
+    renderRoundedShadowInternal(context, box, round, roundingPower, range, grad1, grad2, lerp, a, std::nullopt, 0);
+}
+
+void CHyprOpenGLImpl::renderRoundedShadowInternal(CRenderingContext& context, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
+                                                  const Config::CGradientValueData& grad2, float lerp, float a, const std::optional<CBox>& cutoutBox, int cutoutRound) {
     RASSERT(context.sceneMonitor, "Tried to render shadow without begin()!");
     RASSERT((box.width > 0 && box.height > 0), "Tried to render shadow with width/height < 0!");
 
@@ -2230,7 +2240,20 @@ void CHyprOpenGLImpl::renderRoundedShadow(CRenderingContext& context, const CBox
     } else
         drawRegion = context.damage;
 
-    if (context.currentWindow) {
+    if (cutoutBox) {
+        CBox transformedCutout = *cutoutBox;
+        context.renderModif.applyToBox(transformedCutout);
+
+        const auto cutoutTopLeft     = transformedCutout.pos() - newBox.pos();
+        const auto cutoutBottomRight = cutoutTopLeft + transformedCutout.size();
+        const auto cutoutRadius      = std::max(0.F, sc<float>(cutoutRound));
+
+        shader->setUniformFloat2(SHADER_WINDOW_TOP_LEFT, sc<float>(cutoutTopLeft.x), sc<float>(cutoutTopLeft.y));
+        shader->setUniformFloat2(SHADER_WINDOW_BOTTOM_RIGHT, sc<float>(cutoutBottomRight.x), sc<float>(cutoutBottomRight.y));
+        shader->setUniformFloat(SHADER_THICK, cutoutRadius);
+
+        drawRegion.subtract(transformedCutout.copy().expand(-sc<int>(std::round(cutoutRadius))));
+    } else if (context.currentWindow) {
         const auto PWINDOW = context.currentWindow.lock();
         if (PWINDOW) {
             if (const auto WINDOWBOX = PWINDOW->surfaceLogicalBox(); WINDOWBOX.has_value()) {

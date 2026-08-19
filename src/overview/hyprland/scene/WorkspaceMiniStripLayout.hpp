@@ -7,6 +7,6 @@
 #include <hyprutils/math/Box.hpp>
 #include <hyprutils/math/Vector2D.hpp>
 
-namespace Overview::Hyprland::WorkspaceTapeLayout {
+namespace Overview::Hyprland::WorkspaceMiniStripLayout {
     std::vector<Hyprutils::Math::CBox> calculate(const Hyprutils::Math::CBox& bounds, std::span<const Hyprutils::Math::Vector2D> sourceSizes, size_t selectedIndex, float gapScale);
 }

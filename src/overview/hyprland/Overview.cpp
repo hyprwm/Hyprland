@@ -7,9 +7,7 @@
 #include "input/Keys.hpp"
 #include "managers/eventLoop/EventLoopTimer.hpp"
 #include "managers/input/InputManager.hpp"
-#include "overview/hyprland/scene/WorkspaceTapeController.hpp"
 #include "scene/OverviewScene.hpp"
-#include "scene/WorkspaceTapeController.hpp"
 #include "../../animation/AnimationManager.hpp"
 #include "../../config/shared/animation/AnimationTree.hpp"
 #include "../../event/EventBus.hpp"
@@ -123,12 +121,13 @@ void COverview::installListeners() {
         i.cancelled = true;
     });
 
-    m_listeners.mouseMove = Event::bus()->m_events.input.mouse.move.listen([this](Vector2D p, Event::SCallbackInfo& i) {
+    m_listeners.mouseMove  = Event::bus()->m_events.input.mouse.move.listen([this](Vector2D p, Event::SCallbackInfo& i) {
         const auto MONITOR = m_monitor.lock();
-        if (MONITOR && m_scene->pointerMove(p - MONITOR->logicalBox().pos()))
+        if (MONITOR && !g_layoutManager->dragController()->target() && m_scene->pointerMove(p - MONITOR->logicalBox().pos()))
             i.cancelled = true;
-        recheckDrag();
     });
+    m_listeners.dragMotion = g_layoutManager->dragController()->m_events.motion.listen([this] { recheckDrag(); });
+    m_listeners.dragEnded  = g_layoutManager->dragController()->m_events.ended.listen([this] { resetDragHover(); });
 }
 
 bool COverview::handleSearchKey(uint32_t keycode, SP<IKeyboard> keyboard, bool repeat) {
@@ -233,69 +232,116 @@ void COverview::stopKeyRepeat(uint32_t keycode) {
 }
 
 void COverview::recheckDrag() {
-    auto resetDrag = [this] {
-        m_drag.isWithin = false;
-        if (m_drag.eventLoopTimer)
-            m_drag.eventLoopTimer->cancel();
-    };
-
-    if (!m_monitor) {
-        resetDrag();
+    const auto  MONITOR = m_monitor.lock();
+    const auto& DRAG    = g_layoutManager->dragController();
+    if (!m_isOpen || !MONITOR || !DRAG->target() || DRAG->mode() != MBIND_MOVE || !DRAG->dragThresholdReached()) {
+        resetDragHover();
         return;
     }
 
-    if (!m_monitor->logicalBox().containsPoint(g_pInputManager->getMouseCoordsInternal())) {
-        resetDrag();
+    const auto MOUSE = g_pInputManager->getMouseCoordsInternal();
+    if (!MONITOR->logicalBox().containsPoint(MOUSE)) {
+        resetDragHover();
         return;
     }
 
-    const auto TARGET = g_layoutManager->dragController()->target();
+    const auto MOUSE_LOCAL = MOUSE - MONITOR->logicalBox().pos();
+    const auto MINI_TILE   = m_scene->miniWorkspaceAt(MOUSE_LOCAL);
+    auto       target      = eDragHoverTarget::NONE;
+    if (MINI_TILE)
+        target = eDragHoverTarget::MINI_TILE;
+    else {
+        const auto MAIN_AREA = m_scene->mainArea();
+        if (MOUSE_LOCAL.x < MAIN_AREA.x)
+            target = eDragHoverTarget::LEFT_EDGE;
+        else if (MOUSE_LOCAL.x > MAIN_AREA.x + MAIN_AREA.w)
+            target = eDragHoverTarget::RIGHT_EDGE;
+    }
 
-    if (!TARGET) {
-        resetDrag();
+    if (target == eDragHoverTarget::NONE) {
+        resetDragHover();
         return;
     }
 
-    const auto MONBOX                   = m_monitor->logicalBox();
-    const auto MOUSE_LOCAL              = g_pInputManager->getMouseCoordsInternal() - MONBOX.pos();
-    const auto SIDE_WIDTH               = (MONBOX.size().x - (MONBOX.size() * CWorkspaceTapeController::TILE_SCALE).x) / 2.F;
-    const bool MOUSE_IS_LEFT_DIST       = MOUSE_LOCAL.x < SIDE_WIDTH;
-    const auto IS_MOUSE_WITHIN_DISTANCE = MOUSE_IS_LEFT_DIST || MOUSE_LOCAL.x > MONBOX.size().x - SIDE_WIDTH;
-
-    if (!IS_MOUSE_WITHIN_DISTANCE) {
-        resetDrag();
+    if (target == m_drag.target && m_drag.dragTarget == DRAG->target() && (target != eDragHoverTarget::MINI_TILE || m_drag.workspace == MINI_TILE))
         return;
-    }
 
-    if (IS_MOUSE_WITHIN_DISTANCE && m_drag.isWithin) {
-        // check if timer passed, if so, move
-        if (m_drag.debouncer.getMillis() < DRAG_MOVE_MS)
-            return;
-
-        if (MOUSE_IS_LEFT_DIST)
-            m_scene->navigateLeft();
-        else
-            m_scene->navigateRight();
-
-        // set the current dragger's workspace MOTHERFUCKER
-        if (TARGET->window()) {
-            TARGET->window()->moveToWorkspace(m_scene->selectedWorkspace());
-            g_layoutManager->dragController()->overrideDragWindowTargetWS(m_scene->selectedWorkspace());
-        }
-
-        m_drag.debouncer.reset();
-        return;
-    }
-
-    m_drag.isWithin = true;
-    m_drag.debouncer.reset();
-
+    m_drag.target     = target;
+    m_drag.workspace  = MINI_TILE;
+    m_drag.dragTarget = DRAG->target();
     if (!m_drag.eventLoopTimer) {
-        m_drag.eventLoopTimer =
-            makeShared<CEventLoopTimer>(std::chrono::milliseconds(sc<int32_t>(DRAG_MOVE_MS) + 10), [this](SP<CEventLoopTimer> self, void* data) { recheckDrag(); }, nullptr);
+        m_drag.eventLoopTimer = makeShared<CEventLoopTimer>(std::nullopt, [this](SP<CEventLoopTimer>, void*) { applyDragHoverTarget(); }, nullptr);
         g_pEventLoopManager->addTimer(m_drag.eventLoopTimer);
-    } else
-        m_drag.eventLoopTimer->updateTimeout(std::chrono::milliseconds(sc<int32_t>(DRAG_MOVE_MS) + 10));
+    }
+
+    m_drag.eventLoopTimer->updateTimeout(std::chrono::milliseconds(sc<int32_t>(DRAG_MOVE_MS)));
+}
+
+void COverview::applyDragHoverTarget() {
+    const auto& DRAG    = g_layoutManager->dragController();
+    const auto  MONITOR = m_monitor.lock();
+    if (!m_isOpen || !MONITOR || !DRAG->target() || m_drag.dragTarget != DRAG->target() || DRAG->mode() != MBIND_MOVE || !DRAG->dragThresholdReached()) {
+        resetDragHover();
+        return;
+    }
+
+    const auto MOUSE = g_pInputManager->getMouseCoordsInternal();
+    if (!MONITOR->logicalBox().containsPoint(MOUSE)) {
+        resetDragHover();
+        return;
+    }
+
+    const auto MOUSE_LOCAL   = MOUSE - MONITOR->logicalBox().pos();
+    const auto MINI_TILE     = m_scene->miniWorkspaceAt(MOUSE_LOCAL);
+    const auto MAIN_AREA     = m_scene->mainArea();
+    const bool STILL_HOVERED = (m_drag.target == eDragHoverTarget::MINI_TILE && MINI_TILE && m_drag.workspace == MINI_TILE) ||
+        (m_drag.target == eDragHoverTarget::LEFT_EDGE && !MINI_TILE && MOUSE_LOCAL.x < MAIN_AREA.x) ||
+        (m_drag.target == eDragHoverTarget::RIGHT_EDGE && !MINI_TILE && MOUSE_LOCAL.x > MAIN_AREA.x + MAIN_AREA.w);
+    if (!STILL_HOVERED) {
+        resetDragHover();
+        recheckDrag();
+        return;
+    }
+
+    PHLWORKSPACE workspace;
+    bool         repeat = false;
+    switch (m_drag.target) {
+        case eDragHoverTarget::LEFT_EDGE:
+            if (m_scene->navigateLeft()) {
+                workspace = m_scene->selectedWorkspace();
+                repeat    = true;
+            }
+            break;
+        case eDragHoverTarget::RIGHT_EDGE:
+            if (m_scene->navigateRight()) {
+                workspace = m_scene->selectedWorkspace();
+                repeat    = true;
+            }
+            break;
+        case eDragHoverTarget::MINI_TILE:
+            workspace = m_drag.workspace.lock();
+            if (workspace)
+                m_scene->selectWorkspace(workspace);
+            break;
+        case eDragHoverTarget::NONE: return;
+    }
+
+    const auto TARGET = DRAG->target();
+    if (!workspace || workspace != m_scene->selectedWorkspace() || !TARGET || !TARGET->window())
+        return;
+
+    TARGET->window()->moveToWorkspace(workspace);
+    DRAG->overrideDragWindowTargetWS(workspace);
+    if (repeat && m_drag.eventLoopTimer)
+        m_drag.eventLoopTimer->updateTimeout(std::chrono::milliseconds(sc<int32_t>(DRAG_MOVE_MS)));
+}
+
+void COverview::resetDragHover() {
+    m_drag.target = eDragHoverTarget::NONE;
+    m_drag.workspace.reset();
+    m_drag.dragTarget.reset();
+    if (m_drag.eventLoopTimer)
+        m_drag.eventLoopTimer->updateTimeout(std::nullopt);
 }
 
 void COverview::open(PHLMONITOR monitor) {
@@ -369,6 +415,7 @@ void COverview::close() {
         return;
 
     m_isOpen = false;
+    resetDragHover();
     m_progress->setConfig(Config::animationTree()->getAnimationPropertyConfig("overviewOut"));
     *m_progress = 0.F;
 
@@ -394,6 +441,7 @@ void COverview::finishClose(bool emitEvent) {
         return;
 
     m_sceneInstalled = false;
+    resetDragHover();
     stopKeyRepeat(m_keyRepeat.keycode);
     m_listeners = {};
     m_interceptedKeys.clear();
@@ -422,6 +470,7 @@ void COverview::closeImmediately() {
         return;
 
     m_isOpen = false;
+    resetDragHover();
     if (m_progress)
         m_progress->setValueAndWarp(0.F);
     finishClose();

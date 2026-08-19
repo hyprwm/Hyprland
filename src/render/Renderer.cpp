@@ -2631,11 +2631,22 @@ bool IHyprRenderer::renderWorkspaceSceneToBuffer(CRenderingContext& context, PHL
     return renderWorkspaceToBufferInternal(context, workspace, framebuffer, time, sendFeedback, true);
 }
 
+bool IHyprRenderer::renderWorkspaceSceneToBufferScaled(CRenderingContext& context, PHLWORKSPACE workspace, SP<IFramebuffer> framebuffer, const Time::steady_tp& time,
+                                                       bool sendFeedback) {
+    return renderWorkspaceToBufferInternal(context, workspace, framebuffer, time, sendFeedback, true, true);
+}
+
 bool IHyprRenderer::renderWorkspaceToBufferInternal(CRenderingContext& context, PHLWORKSPACE workspace, SP<IFramebuffer> framebuffer, const Time::steady_tp& time,
-                                                    bool sendFeedback, bool fullScene) {
+                                                    bool sendFeedback, bool fullScene, bool scaleToBuffer) {
     const auto MONITOR = workspace ? workspace->m_monitor.lock() : nullptr;
     auto&      parent  = context;
-    if (!MONITOR || !framebuffer || !framebuffer->isAllocated() || framebuffer->m_size != MONITOR->m_transformedSize || !parent.currentFB)
+    if (!MONITOR || !framebuffer || !framebuffer->isAllocated() || !parent.currentFB)
+        return false;
+    if (framebuffer->m_size.x <= 0 || framebuffer->m_size.y <= 0 || MONITOR->m_transformedSize.x <= 0 || MONITOR->m_transformedSize.y <= 0)
+        return false;
+    if (!scaleToBuffer && framebuffer->m_size != MONITOR->m_transformedSize)
+        return false;
+    if (scaleToBuffer && !DELTALESSTHAN(framebuffer->m_size.x / framebuffer->m_size.y, MONITOR->m_transformedSize.x / MONITOR->m_transformedSize.y, 0.01))
         return false;
     if (framebuffer == parent.currentFB || framebuffer == parent.mainFB || framebuffer == parent.outFB)
         return false;
@@ -2645,7 +2656,7 @@ bool IHyprRenderer::renderWorkspaceToBufferInternal(CRenderingContext& context, 
 
     CRenderPass       pass;
     CRenderingContext child{parent, pass, MONITOR};
-    CRegion           damage{0, 0, sc<int>(MONITOR->m_transformedSize.x), sc<int>(MONITOR->m_transformedSize.y)};
+    CRegion           damage{0, 0, sc<int>(framebuffer->m_size.x), sc<int>(framebuffer->m_size.y)};
 
     child.isolatedWorkspace          = workspace;
     child.isolatedWorkspaceFullScene = fullScene;
@@ -2654,14 +2665,14 @@ bool IHyprRenderer::renderWorkspaceToBufferInternal(CRenderingContext& context, 
     child.precomputeBlur             = false;
     child.mainFB                     = framebuffer;
     child.outFB.reset();
-    child.fbSize                     = MONITOR->m_transformedSize;
+    child.fbSize                     = framebuffer->m_size;
     child.damage                     = damage;
     child.finalDamage                = damage;
     child.renderModif                = {};
     child.mouseZoomFactor            = 1.F;
     child.mouseZoomUseMouse          = false;
     child.transformDamage            = false;
-    child.noSimplify                 = false;
+    child.noSimplify                 = scaleToBuffer;
     child.renderingTransformedSource = false;
     child.blockScreenShader          = true;
     child.currentWindow.reset();
@@ -2673,9 +2684,17 @@ bool IHyprRenderer::renderWorkspaceToBufferInternal(CRenderingContext& context, 
 
     addPassElement(child, makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)}));
     if (fullScene) {
-        renderAllClientsForWorkspace(child, MONITOR, workspace, time);
-        const CBox renderBox = {{}, MONITOR->m_transformedSize};
-        renderLockscreen(child, MONITOR, time, renderBox);
+        const float SCALE = scaleToBuffer ? framebuffer->m_size.x / MONITOR->m_transformedSize.x : 1.F;
+        renderAllClientsForWorkspace(child, MONITOR, workspace, time, {}, SCALE);
+        const CBox renderBox = {{}, MONITOR->m_transformedSize * SCALE};
+        if (scaleToBuffer) {
+            SRenderModifData renderModif;
+            renderModif.modifs.emplace_back(SRenderModifData::eRenderModifType::RMOD_TYPE_SCALE, SCALE);
+            addPassElement(child, makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{renderModif}));
+            renderLockscreen(child, MONITOR, time, renderBox);
+            addPassElement(child, makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{SRenderModifData{}}));
+        } else
+            renderLockscreen(child, MONITOR, time, renderBox);
         renderIME(child, MONITOR, time, renderBox);
     } else if (Fullscreen::controller()->hasFullscreen(workspace))
         renderWorkspaceWindowsFullscreen(child, MONITOR, workspace, time);

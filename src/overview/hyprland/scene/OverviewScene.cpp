@@ -85,8 +85,9 @@ static bool workspaceFilter(PHLWORKSPACE ws, const std::string& query) {
 }
 
 void COverviewScene::start(PHLMONITOR monitor, WP<Monitor::CMonitorResources> resources) {
+    m_layout = monitor ? OverviewLayout::calculate(monitor->m_size, monitor->m_scale) : OverviewLayout::SLayout{};
     m_workspaceTape->setFilter([](PHLWORKSPACE) { return true; });
-    m_workspaceTape->start(monitor, resources);
+    m_workspaceTape->start(monitor, resources, m_layout);
     m_workspaceSearch->start(monitor, [this](const std::string& query) { m_workspaceTape->setFilter([query](PHLWORKSPACE w) { return ::workspaceFilter(w, query); }); });
 }
 
@@ -98,8 +99,20 @@ bool COverviewScene::navigateRight() {
     return m_workspaceTape->navigateRight();
 }
 
+bool COverviewScene::selectWorkspace(PHLWORKSPACE workspace) {
+    return m_workspaceTape->selectWorkspace(workspace);
+}
+
 PHLWORKSPACE COverviewScene::selectedWorkspace() const {
     return m_workspaceTape->selectedWorkspace();
+}
+
+PHLWORKSPACE COverviewScene::miniWorkspaceAt(const Vector2D& monitorLocal) const {
+    return m_workspaceTape->miniWorkspaceAt(monitorLocal);
+}
+
+CBox COverviewScene::mainArea() const {
+    return m_layout.logicalMain;
 }
 
 bool COverviewScene::pointerMove(const Vector2D& monitorLocal) {
@@ -107,7 +120,27 @@ bool COverviewScene::pointerMove(const Vector2D& monitorLocal) {
 }
 
 bool COverviewScene::pointerButton(uint32_t button, bool pressed, const Vector2D& monitorLocal) {
-    return m_workspaceSearch->pointerButton(button, pressed, monitorLocal);
+    if (!pressed) {
+        const auto TARGET = m_pointerTargets.find(button);
+        if (TARGET == m_pointerTargets.end())
+            return false;
+
+        const bool HANDLED =
+            TARGET->second == ePointerTarget::SEARCH ? m_workspaceSearch->pointerButton(button, false, monitorLocal) : m_workspaceTape->pointerButton(button, false, monitorLocal);
+        m_pointerTargets.erase(TARGET);
+        return HANDLED;
+    }
+
+    if (m_workspaceSearch->pointerButton(button, true, monitorLocal)) {
+        m_pointerTargets.insert_or_assign(button, ePointerTarget::SEARCH);
+        return true;
+    }
+
+    if (!m_workspaceTape->pointerButton(button, true, monitorLocal))
+        return false;
+
+    m_pointerTargets.insert_or_assign(button, ePointerTarget::WORKSPACE_TAPE);
+    return true;
 }
 
 void COverviewScene::pointerLeave() {
@@ -121,6 +154,8 @@ void COverviewScene::keyboardKey(uint32_t keysym, bool down, bool repeat, std::s
 void COverviewScene::reset() {
     m_workspaceSearch->reset();
     m_workspaceTape->reset();
+    m_layout = {};
+    m_pointerTargets.clear();
 }
 
 void COverviewScene::setTextboxFocus(bool x) {

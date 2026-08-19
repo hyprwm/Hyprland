@@ -18,6 +18,7 @@ namespace Render {
 namespace Overview::Hyprland::OverviewLayout {
     struct SLayout;
 }
+struct SEventLoopDoLaterLock;
 
 namespace Overview::Hyprland {
     class CWorkspaceTapeController {
@@ -44,31 +45,37 @@ namespace Overview::Hyprland {
       private:
         struct SWorkspaceTile;
 
-        bool                            navigate(int direction);
-        void                            reconcile(bool initial = false);
-        void                            updateLayout(bool warp = false);
-        void                            retireTile(SWorkspaceTile& tile);
-        void                            ensureAnimations(SWorkspaceTile& tile);
-        void                            installWorkspaceListeners(SWorkspaceTile& tile);
-        void                            damageMonitor() const;
-        void                            damageMiniStrip() const;
-        void                            updateMiniBorderColors(bool warp = false);
-        SWorkspaceTile*                 tileFor(PHLWORKSPACE workspace) const;
-        SWorkspaceTile*                 tileFor(PHLWORKSPACEREF workspace) const;
-        std::vector<PHLWORKSPACE>       filteredWorkspaces() const;
-        std::vector<SWorkspaceTile*>    layoutTiles() const;
-        void                            pruneRetiredTiles();
+        bool                             navigate(int direction);
+        void                             reconcile(bool initial = false);
+        void                             updateLayout(bool warp = false);
+        void                             retireTile(SWorkspaceTile& tile);
+        void                             ensureAnimations(SWorkspaceTile& tile);
+        void                             installWorkspaceListeners(SWorkspaceTile& tile);
+        void                             damageMonitor() const;
+        void                             damageMiniStrip() const;
+        void                             updateMiniBorderColors(bool warp = false);
+        void                             invalidateMiniatures();
+        void                             invalidateMiniature(PHLWORKSPACE workspace);
+        void                             refreshWindowListeners();
+        SWorkspaceTile*                  tileFor(PHLWORKSPACE workspace) const;
+        SWorkspaceTile*                  tileFor(PHLWORKSPACEREF workspace) const;
+        std::vector<PHLWORKSPACE>        filteredWorkspaces() const;
+        std::vector<SWorkspaceTile*>     layoutTiles() const;
+        void                             pruneRetiredTiles();
 
-        PHLMONITORREF                   m_monitor;
-        WP<Monitor::CMonitorResources>  m_resources;
-        FWorkspaceFilter                m_filter;
-        PHLWORKSPACEREF                 m_selectedWorkspace;
-        PHLWORKSPACEREF                 m_preferredWorkspace;
-        PHLWORKSPACEREF                 m_pressedMiniWorkspace;
-        std::vector<UP<SWorkspaceTile>> m_tiles;
-        CBox                            m_mainArea;
-        CBox                            m_miniStripArea;
-        bool                            m_started = false;
+        PHLMONITORREF                    m_monitor;
+        WP<Monitor::CMonitorResources>   m_resources;
+        FWorkspaceFilter                 m_filter;
+        PHLWORKSPACEREF                  m_selectedWorkspace;
+        PHLWORKSPACEREF                  m_preferredWorkspace;
+        PHLWORKSPACEREF                  m_pressedMiniWorkspace;
+        std::vector<UP<SWorkspaceTile>>  m_tiles;
+        CBox                             m_mainArea;
+        CBox                             m_miniStripArea;
+        std::vector<CHyprSignalListener> m_windowListeners;
+        UP<SEventLoopDoLaterLock>        m_reconcileLock;
+        float                            m_overviewProgress = 0.F;
+        bool                             m_started          = false;
 
         struct {
             CHyprSignalListener created;
@@ -81,6 +88,15 @@ namespace Overview::Hyprland {
             CHyprSignalListener monitorLayoutChanged;
             CHyprSignalListener monitorPreRender;
             CHyprSignalListener configRefreshed;
+            CHyprSignalListener windowOpened;
+            CHyprSignalListener windowClosed;
+            CHyprSignalListener windowMoved;
+            CHyprSignalListener windowFullscreen;
+            CHyprSignalListener windowFloating;
+            CHyprSignalListener windowActive;
+            CHyprSignalListener windowPinned;
+            CHyprSignalListener layerOpened;
+            CHyprSignalListener layerClosed;
         } m_listeners;
     };
 }

@@ -95,8 +95,7 @@ namespace Render {
         bool renderWorkspaceToBuffer(CRenderingContext&, PHLWORKSPACE, SP<IFramebuffer>, bool sendFeedback = true);
         // Renders the target workspace as a complete monitor scene during the target monitor's active render.
         bool renderWorkspaceSceneToBuffer(CRenderingContext&, PHLWORKSPACE, SP<IFramebuffer>, const Time::steady_tp&, bool sendFeedback = true);
-        // Renders and scales the target workspace to an aspect-ratio-matched framebuffer.
-        bool renderWorkspaceSceneToBufferScaled(CRenderingContext&, PHLWORKSPACE, SP<IFramebuffer>, const Time::steady_tp&, bool sendFeedback = true);
+        bool renderTextureToBuffer(CRenderingContext&, SP<ITexture>, SP<IFramebuffer>);
         // Renders the target monitor's regular scene during its active render.
         bool renderMonitorToBuffer(CRenderingContext&, PHLMONITOR, SP<IFramebuffer>, const Time::steady_tp&, bool sendFeedback = true);
         // Renders the compositor background and layer-shell background plane.
@@ -259,8 +258,7 @@ namespace Render {
         SP<ITexture>         m_lockDead3Texture;
         SP<ITexture>         m_lockTtyTextTexture;
         void                 handleFullscreenSettings(PHLMONITOR pMonitor);
-        bool                 renderWorkspaceToBufferInternal(CRenderingContext&, PHLWORKSPACE, SP<IFramebuffer>, const Time::steady_tp&, bool sendFeedback, bool fullScene,
-                                                             bool scaleToBuffer = false);
+        bool                 renderWorkspaceToBufferInternal(CRenderingContext&, PHLWORKSPACE, SP<IFramebuffer>, const Time::steady_tp&, bool sendFeedback, bool fullScene);
 
         // old private:
         void         arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);

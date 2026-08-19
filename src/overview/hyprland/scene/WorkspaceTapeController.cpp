@@ -1,8 +1,11 @@
 #include "WorkspaceTapeController.hpp"
+#include "OverviewLayout.hpp"
 #include "WorkspaceTapeLayout.hpp"
+#include "WorkspaceMiniStripLayout.hpp"
 #include "WorkspaceTileShadow.hpp"
 
 #include "../../../animation/AnimationManager.hpp"
+#include "../../../config/ConfigValue.hpp"
 #include "../../../config/shared/animation/AnimationTree.hpp"
 #include "../../../desktop/Workspace.hpp"
 #include "../../../event/EventBus.hpp"
@@ -10,6 +13,7 @@
 #include "../../../output/Monitor.hpp"
 #include "../../../output/MonitorResources.hpp"
 #include "../../../render/Renderer.hpp"
+#include "../../../render/pass/BorderPassElement.hpp"
 #include "../../../render/pass/BoxShadowPassElement.hpp"
 #include "../../../render/pass/RectPassElement.hpp"
 #include "../../../render/pass/TexPassElement.hpp"
@@ -19,20 +23,29 @@
 #include <cmath>
 #include <ranges>
 
+#include <linux/input-event-codes.h>
+
 using namespace Overview::Hyprland;
 
-static constexpr float TILE_GAP          = 0.02F;
-static constexpr float TILE_ROUNDING     = 20.F;
-static constexpr float TILE_SHADOW_RANGE = 14.F;
-static constexpr float TILE_SHADOW_ALPHA = 0.45F;
-static constexpr float PLACEHOLDER_GRAY  = 0.12F;
+static constexpr float MAIN_TILE_GAP         = 0.02F;
+static constexpr float MINI_TILE_GAP         = 0.15F;
+static constexpr float TILE_ROUNDING         = 20.F;
+static constexpr float MINI_TILE_ROUNDING    = 8.F;
+static constexpr int   MINI_TILE_BORDER_SIZE = 3;
+static constexpr float TILE_SHADOW_RANGE     = 14.F;
+static constexpr float TILE_SHADOW_ALPHA     = 0.45F;
+static constexpr float PLACEHOLDER_GRAY      = 0.12F;
 
 struct CWorkspaceTapeController::SWorkspaceTile {
     PHLWORKSPACEREF          workspace;
     PHLANIMVAR<Vector2D>     position;
     PHLANIMVAR<Vector2D>     size;
+    PHLANIMVAR<Vector2D>     miniPosition;
+    PHLANIMVAR<Vector2D>     miniSize;
+    PHLANIMVAR<CHyprColor>   miniBorderColor;
     PHLANIMVAR<float>        opacity;
     SP<Render::IFramebuffer> framebuffer;
+    SP<Render::IFramebuffer> miniFramebuffer;
     bool                     inLayout            = false;
     bool                     geometryInitialized = false;
 
@@ -51,15 +64,17 @@ CWorkspaceTapeController::~CWorkspaceTapeController() {
     reset();
 }
 
-void CWorkspaceTapeController::start(PHLMONITOR monitor, WP<Monitor::CMonitorResources> resources) {
+void CWorkspaceTapeController::start(PHLMONITOR monitor, WP<Monitor::CMonitorResources> resources, const OverviewLayout::SLayout& layout) {
     reset();
 
     if (!monitor || !resources)
         return;
 
-    m_monitor   = monitor;
-    m_resources = resources;
-    m_started   = true;
+    m_monitor       = monitor;
+    m_resources     = resources;
+    m_mainArea      = layout.pixelMain;
+    m_miniStripArea = layout.pixelMiniStrip;
+    m_started       = true;
 
     m_listeners.created              = Event::bus()->m_events.workspace.created.listen([this](PHLWORKSPACEREF) {
         if (g_pEventLoopManager)
@@ -91,6 +106,7 @@ void CWorkspaceTapeController::start(PHLMONITOR monitor, WP<Monitor::CMonitorRes
 
         damageMonitor();
     });
+    m_listeners.configRefreshed      = Event::bus()->m_events.config.props_refreshed.listen([this](bool) { updateMiniBorderColors(); });
 
     reconcile(true);
 }
@@ -104,6 +120,12 @@ void CWorkspaceTapeController::reset() {
             tile->position->resetAllCallbacks();
         if (tile->size)
             tile->size->resetAllCallbacks();
+        if (tile->miniPosition)
+            tile->miniPosition->resetAllCallbacks();
+        if (tile->miniSize)
+            tile->miniSize->resetAllCallbacks();
+        if (tile->miniBorderColor)
+            tile->miniBorderColor->resetAllCallbacks();
         if (tile->opacity)
             tile->opacity->resetAllCallbacks();
     }
@@ -111,6 +133,9 @@ void CWorkspaceTapeController::reset() {
     m_tiles.clear();
     m_selectedWorkspace.reset();
     m_preferredWorkspace.reset();
+    m_pressedMiniWorkspace.reset();
+    m_mainArea      = {};
+    m_miniStripArea = {};
     m_resources.reset();
     m_monitor.reset();
 }
@@ -131,9 +156,13 @@ void CWorkspaceTapeController::draw(Render::CRenderingContext& context, Time::st
 
     struct SDrawTile {
         SWorkspaceTile* tile = nullptr;
-        CBox            box;
-        float           opacity  = 0.F;
-        bool            selected = false;
+        CBox            mainBox;
+        CBox            miniBox;
+        float           mainOpacity = 0.F;
+        float           miniOpacity = 0.F;
+        bool            mainVisible = false;
+        bool            miniVisible = false;
+        bool            selected    = false;
     };
 
     std::vector<SDrawTile> drawTiles;
@@ -145,31 +174,44 @@ void CWorkspaceTapeController::draw(Render::CRenderingContext& context, Time::st
         const auto     OPENPOS   = tile->position->value();
         const auto     OPENSIZE  = tile->size->value();
 
-        const Vector2D POS   = IS_ACTIVE ? OPENPOS * PROGRESS : OPENPOS;
-        const Vector2D SIZE  = IS_ACTIVE ? FULLSIZE + (OPENSIZE - FULLSIZE) * PROGRESS : OPENSIZE;
-        const float    ALPHA = IS_ACTIVE ? (1.F - PROGRESS) + tile->opacity->value() * PROGRESS : tile->opacity->value() * PROGRESS;
-        const CBox     BOX = CBox{POS, SIZE}.round();
+        const Vector2D POS          = IS_ACTIVE ? OPENPOS * PROGRESS : OPENPOS;
+        const Vector2D SIZE         = IS_ACTIVE ? FULLSIZE + (OPENSIZE - FULLSIZE) * PROGRESS : OPENSIZE;
+        const float    ALPHA        = IS_ACTIVE ? (1.F - PROGRESS) + tile->opacity->value() * PROGRESS : tile->opacity->value() * PROGRESS;
+        const CBox     MAIN_BOX     = CBox{POS, SIZE}.round();
+        const CBox     MINI_BOX     = CBox{tile->miniPosition->value(), tile->miniSize->value()}.round();
+        const float    MINI_ALPHA   = tile->opacity->value() * PROGRESS;
+        const bool     MAIN_VISIBLE = ALPHA > 0.F && !MAIN_BOX.intersection(MONITORBOX).empty();
+        const bool     MINI_VISIBLE = MINI_ALPHA > 0.F && !MINI_BOX.intersection(m_miniStripArea).empty();
 
-        if (ALPHA <= 0.F || BOX.intersection(MONITORBOX).empty()) {
+        if (!MAIN_VISIBLE && !MINI_VISIBLE) {
             tile->framebuffer.reset();
+            tile->miniFramebuffer.reset();
             continue;
         }
 
         drawTiles.emplace_back(SDrawTile{
-            .tile     = tile.get(),
-            .box      = BOX,
-            .opacity  = ALPHA,
-            .selected = WORKSPACE && WORKSPACE == SELECTED,
+            .tile        = tile.get(),
+            .mainBox     = MAIN_BOX,
+            .miniBox     = MINI_BOX,
+            .mainOpacity = ALPHA,
+            .miniOpacity = MINI_ALPHA,
+            .mainVisible = MAIN_VISIBLE,
+            .miniVisible = MINI_VISIBLE,
+            .selected    = WORKSPACE && WORKSPACE == SELECTED,
         });
     }
 
     std::ranges::stable_sort(drawTiles, [&MONITORBOX](const auto& lhs, const auto& rhs) {
         if (lhs.selected != rhs.selected)
             return lhs.selected;
+        if (lhs.mainVisible != rhs.mainVisible)
+            return lhs.mainVisible;
 
         const double MONITOR_CENTER = MONITORBOX.x + MONITORBOX.w / 2.0;
-        const double LHS_DISTANCE   = std::abs(lhs.box.x + lhs.box.w / 2.0 - MONITOR_CENTER);
-        const double RHS_DISTANCE   = std::abs(rhs.box.x + rhs.box.w / 2.0 - MONITOR_CENTER);
+        const auto&  LHS_BOX        = lhs.mainVisible ? lhs.mainBox : lhs.miniBox;
+        const auto&  RHS_BOX        = rhs.mainVisible ? rhs.mainBox : rhs.miniBox;
+        const double LHS_DISTANCE   = std::abs(LHS_BOX.x + LHS_BOX.w / 2.0 - MONITOR_CENTER);
+        const double RHS_DISTANCE   = std::abs(RHS_BOX.x + RHS_BOX.w / 2.0 - MONITOR_CENTER);
         return LHS_DISTANCE < RHS_DISTANCE;
     });
     for (size_t i = 0; i < drawTiles.size(); ++i) {
@@ -177,10 +219,15 @@ void CWorkspaceTapeController::draw(Render::CRenderingContext& context, Time::st
         auto&      tile      = *drawTile.tile;
         const auto WORKSPACE = tile.workspace.lock();
 
-        const auto SOURCE_MONITOR = WORKSPACE ? WORKSPACE->m_monitor.lock() : nullptr;
-        const auto BUFFER_SIZE    = SOURCE_MONITOR ? SOURCE_MONITOR->m_transformedSize : Vector2D{};
+        const auto SOURCE_MONITOR   = WORKSPACE ? WORKSPACE->m_monitor.lock() : nullptr;
+        const auto BUFFER_SIZE      = SOURCE_MONITOR ? SOURCE_MONITOR->m_transformedSize : Vector2D{};
+        const auto MINI_BUFFER_SIZE = drawTile.miniBox.size();
         const bool CAN_RENDER = SOURCE_MONITOR && SOURCE_MONITOR->m_enabled && !SOURCE_MONITOR->isMirror() && SOURCE_MONITOR->resources() && BUFFER_SIZE.x > 0 && BUFFER_SIZE.y > 0;
         if (tile.framebuffer && (!CAN_RENDER || tile.framebuffer->m_size != BUFFER_SIZE))
+            tile.framebuffer.reset();
+        if (tile.miniFramebuffer && (!CAN_RENDER || tile.miniFramebuffer->m_size != MINI_BUFFER_SIZE))
+            tile.miniFramebuffer.reset();
+        if (!drawTile.mainVisible)
             tile.framebuffer.reset();
 
         const auto ACQUIRE_BUFFER = [&] {
@@ -193,7 +240,7 @@ void CWorkspaceTapeController::draw(Render::CRenderingContext& context, Time::st
                 tile.framebuffer = RESOURCES->getUnusedWorkBuffer(BUFFER_SIZE);
         };
 
-        if (!tile.framebuffer && CAN_RENDER) {
+        if (drawTile.mainVisible && !tile.framebuffer && CAN_RENDER) {
             ACQUIRE_BUFFER();
 
             for (size_t candidateIndex = drawTiles.size(); !tile.framebuffer && candidateIndex > i + 1; --candidateIndex) {
@@ -212,21 +259,36 @@ void CWorkspaceTapeController::draw(Render::CRenderingContext& context, Time::st
         if (CAN_RENDER && tile.framebuffer)
             rendered = g_pHyprRenderer->renderWorkspaceSceneToBuffer(context, WORKSPACE, tile.framebuffer, tp, WORKSPACE->m_visible && SOURCE_MONITOR == MONITOR);
 
-        if (!rendered && tile.inLayout)
+        if (!rendered)
             tile.framebuffer.reset();
+        else
+            tile.miniFramebuffer.reset();
+
+        if (!rendered && CAN_RENDER && MINI_BUFFER_SIZE.x > 0 && MINI_BUFFER_SIZE.y > 0) {
+            if (!tile.miniFramebuffer)
+                tile.miniFramebuffer = g_pHyprRenderer->createFB("overview-mini-workspace");
+
+            if (!tile.miniFramebuffer || !tile.miniFramebuffer->alloc(std::lround(MINI_BUFFER_SIZE.x), std::lround(MINI_BUFFER_SIZE.y)) ||
+                !g_pHyprRenderer->renderWorkspaceSceneToBufferScaled(context, WORKSPACE, tile.miniFramebuffer, tp,
+                                                                     drawTile.mainVisible && WORKSPACE->m_visible && SOURCE_MONITOR == MONITOR))
+                tile.miniFramebuffer.reset();
+        }
     }
 
     std::ranges::stable_sort(drawTiles, [](const auto& lhs, const auto& rhs) { return lhs.selected < rhs.selected; });
 
     const int ROUNDING = std::lround(TILE_ROUNDING * MONITOR->m_scale * PROGRESS);
     for (const auto& drawTile : drawTiles) {
+        if (!drawTile.mainVisible)
+            continue;
+
         const auto& tile = *drawTile.tile;
 
-        const auto  SHADOW = WorkspaceTileShadow::calculate(drawTile.box, MONITOR->m_scale, drawTile.opacity, PROGRESS, TILE_SHADOW_RANGE, TILE_ROUNDING);
+        const auto  SHADOW = WorkspaceTileShadow::calculate(drawTile.mainBox, MONITOR->m_scale, drawTile.mainOpacity, PROGRESS, TILE_SHADOW_RANGE, TILE_ROUNDING);
         if (SHADOW) {
             CBoxShadowPassElement::SBoxShadowData shadow;
             shadow.box           = SHADOW->outerBox;
-            shadow.cutoutBox     = drawTile.box;
+            shadow.cutoutBox     = drawTile.mainBox;
             shadow.clipBox       = MONITORBOX;
             shadow.color         = CHyprColor(0.F, 0.F, 0.F, TILE_SHADOW_ALPHA);
             shadow.a             = SHADOW->opacity;
@@ -236,22 +298,58 @@ void CWorkspaceTapeController::draw(Render::CRenderingContext& context, Time::st
             g_pHyprRenderer->addPassElement(context, makeUnique<CBoxShadowPassElement>(shadow));
         }
 
-        if (!tile.framebuffer) {
+        const auto FRAMEBUFFER = tile.framebuffer ? tile.framebuffer : tile.miniFramebuffer;
+        if (!FRAMEBUFFER) {
             CRectPassElement::SRectData data;
-            data.box   = drawTile.box;
-            data.color = CHyprColor(PLACEHOLDER_GRAY, PLACEHOLDER_GRAY, PLACEHOLDER_GRAY, drawTile.opacity);
+            data.box   = drawTile.mainBox;
+            data.color = CHyprColor(PLACEHOLDER_GRAY, PLACEHOLDER_GRAY, PLACEHOLDER_GRAY, drawTile.mainOpacity);
             data.round = ROUNDING;
             g_pHyprRenderer->addPassElement(context, makeUnique<CRectPassElement>(data));
             continue;
         }
 
         CTexPassElement::SRenderData data;
-        data.tex     = tile.framebuffer->getTexture();
-        data.box     = drawTile.box;
-        data.a       = drawTile.opacity;
+        data.tex     = FRAMEBUFFER->getTexture();
+        data.box     = drawTile.mainBox;
+        data.a       = drawTile.mainOpacity;
         data.round   = ROUNDING;
         data.clipBox = MONITORBOX;
         g_pHyprRenderer->addPassElement(context, makeUnique<CTexPassElement>(std::move(data)));
+    }
+
+    const int MINI_ROUNDING = std::lround(MINI_TILE_ROUNDING * MONITOR->m_scale);
+    for (const auto& drawTile : drawTiles) {
+        if (!drawTile.miniVisible)
+            continue;
+
+        const auto& tile        = *drawTile.tile;
+        const auto  FRAMEBUFFER = tile.framebuffer ? tile.framebuffer : tile.miniFramebuffer;
+        if (!FRAMEBUFFER) {
+            CRectPassElement::SRectData data;
+            data.box     = drawTile.miniBox;
+            data.color   = CHyprColor(PLACEHOLDER_GRAY, PLACEHOLDER_GRAY, PLACEHOLDER_GRAY, drawTile.miniOpacity);
+            data.round   = MINI_ROUNDING;
+            data.clipBox = m_miniStripArea;
+            g_pHyprRenderer->addPassElement(context, makeUnique<CRectPassElement>(data));
+        } else {
+            CTexPassElement::SRenderData data;
+            data.tex     = FRAMEBUFFER->getTexture();
+            data.box     = drawTile.miniBox;
+            data.a       = drawTile.miniOpacity;
+            data.round   = MINI_ROUNDING;
+            data.clipBox = m_miniStripArea;
+            g_pHyprRenderer->addPassElement(context, makeUnique<CTexPassElement>(std::move(data)));
+        }
+
+        CBorderPassElement::SBorderData border;
+        border.box           = drawTile.miniBox;
+        border.grad1         = Config::CGradientValueData{tile.miniBorderColor->value()};
+        border.a             = drawTile.miniOpacity;
+        border.round         = MINI_ROUNDING;
+        border.outerRound    = MINI_ROUNDING;
+        border.borderSize    = MINI_TILE_BORDER_SIZE;
+        border.roundingPower = 2.F;
+        g_pHyprRenderer->addPassElement(context, makeUnique<CBorderPassElement>(border));
     }
 }
 
@@ -263,8 +361,68 @@ bool CWorkspaceTapeController::navigateRight() {
     return navigate(1);
 }
 
+bool CWorkspaceTapeController::selectWorkspace(PHLWORKSPACE workspace) {
+    if (!m_started || !workspace || workspace == selectedWorkspace())
+        return false;
+
+    const auto TILES = layoutTiles();
+    if (std::ranges::none_of(TILES, [&workspace](const auto* tile) { return tile->workspace == workspace; }))
+        return false;
+
+    m_selectedWorkspace  = workspace;
+    m_preferredWorkspace = workspace;
+    updateLayout();
+    damageMonitor();
+    return true;
+}
+
 PHLWORKSPACE CWorkspaceTapeController::selectedWorkspace() const {
     return m_selectedWorkspace.lock();
+}
+
+PHLWORKSPACE CWorkspaceTapeController::miniWorkspaceAt(const Vector2D& monitorLocal) const {
+    const auto MONITOR = m_monitor.lock();
+    if (!m_started || !MONITOR)
+        return nullptr;
+
+    const auto PIXEL = monitorLocal * MONITOR->m_scale;
+    if (!m_miniStripArea.containsPoint(PIXEL))
+        return nullptr;
+
+    for (const auto& tile : m_tiles) {
+        if (!tile->inLayout)
+            continue;
+
+        if (!CBox{tile->miniPosition->value(), tile->miniSize->value()}.containsPoint(PIXEL))
+            continue;
+
+        return tile->workspace.lock();
+    }
+
+    return nullptr;
+}
+
+bool CWorkspaceTapeController::pointerButton(uint32_t button, bool pressed, const Vector2D& monitorLocal) {
+    if (button != BTN_LEFT)
+        return false;
+
+    const auto WORKSPACE = miniWorkspaceAt(monitorLocal);
+    if (pressed) {
+        if (!WORKSPACE)
+            return false;
+
+        m_pressedMiniWorkspace = WORKSPACE;
+        return true;
+    }
+
+    const auto PRESSED = m_pressedMiniWorkspace.lock();
+    m_pressedMiniWorkspace.reset();
+    if (!PRESSED)
+        return false;
+
+    if (WORKSPACE == PRESSED)
+        selectWorkspace(PRESSED);
+    return true;
 }
 
 void CWorkspaceTapeController::setFilter(FWorkspaceFilter filter) {
@@ -288,11 +446,7 @@ bool CWorkspaceTapeController::navigate(int direction) {
     if (TARGET == INDEX)
         return false;
 
-    m_selectedWorkspace  = TILES.at(TARGET)->workspace;
-    m_preferredWorkspace = m_selectedWorkspace;
-    updateLayout();
-    damageMonitor();
-    return true;
+    return selectWorkspace(TILES.at(TARGET)->workspace.lock());
 }
 
 void CWorkspaceTapeController::reconcile(bool initial) {
@@ -379,23 +533,31 @@ void CWorkspaceTapeController::updateLayout(bool warp) {
         sourceSizes.emplace_back(SOURCE ? SOURCE->m_transformedSize : MONITOR->m_transformedSize);
     }
 
-    const auto BOXES        = WorkspaceTapeLayout::calculate(MONITOR->m_transformedSize, sourceSizes, INDEX, TILE_SCALE, TILE_GAP);
-    const auto REGULAR_SIZE = MONITOR->m_transformedSize * TILE_SCALE;
+    const auto BOXES      = WorkspaceTapeLayout::calculate(m_mainArea, sourceSizes, INDEX, MAIN_TILE_GAP);
+    const auto MINI_BOXES = WorkspaceMiniStripLayout::calculate(m_miniStripArea, sourceSizes, INDEX, MINI_TILE_GAP);
 
     for (size_t i = 0; i < TILES.size(); ++i) {
         auto& tile = *TILES.at(i);
         tile.position->setConfig(Config::animationTree()->getAnimationPropertyConfig("overviewMove"));
         tile.size->setConfig(Config::animationTree()->getAnimationPropertyConfig("overviewMove"));
+        tile.miniPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("overviewMove"));
+        tile.miniSize->setConfig(Config::animationTree()->getAnimationPropertyConfig("overviewMove"));
 
-        const auto POSITION = BOXES.at(i).pos();
-        const auto SIZE     = BOXES.at(i).size();
+        const auto POSITION      = BOXES.at(i).pos();
+        const auto SIZE          = BOXES.at(i).size();
+        const auto MINI_POSITION = MINI_BOXES.at(i).pos();
+        const auto MINI_SIZE     = MINI_BOXES.at(i).size();
         if (warp || !tile.geometryInitialized) {
             tile.position->setValueAndWarp(POSITION);
             tile.size->setValueAndWarp(SIZE);
+            tile.miniPosition->setValueAndWarp(MINI_POSITION);
+            tile.miniSize->setValueAndWarp(MINI_SIZE);
             tile.geometryInitialized = true;
         } else {
-            *tile.position = POSITION;
-            *tile.size     = SIZE;
+            *tile.position     = POSITION;
+            *tile.size         = SIZE;
+            *tile.miniPosition = MINI_POSITION;
+            *tile.miniSize     = MINI_SIZE;
         }
     }
 
@@ -407,16 +569,25 @@ void CWorkspaceTapeController::updateLayout(bool warp) {
         if (!WORKSPACE || WORKSPACE != MONITOR->m_activeWorkspace)
             continue;
 
-        const Vector2D POSITION = (MONITOR->m_transformedSize - REGULAR_SIZE) / 2.F;
+        const auto SOURCE       = WORKSPACE->m_monitor.lock();
+        const auto SOURCE_SIZE  = SOURCE ? SOURCE->m_transformedSize : MONITOR->m_transformedSize;
+        const auto ACTIVE_BOXES = WorkspaceTapeLayout::calculate(m_mainArea, std::span<const Vector2D>{&SOURCE_SIZE, 1}, 0, MAIN_TILE_GAP);
+        if (ACTIVE_BOXES.empty())
+            continue;
+
+        const auto POSITION = ACTIVE_BOXES.front().pos();
+        const auto SIZE     = ACTIVE_BOXES.front().size();
         if (warp || !tile->geometryInitialized) {
             tile->position->setValueAndWarp(POSITION);
-            tile->size->setValueAndWarp(REGULAR_SIZE);
+            tile->size->setValueAndWarp(SIZE);
             tile->geometryInitialized = true;
         } else {
             *tile->position = POSITION;
-            *tile->size     = REGULAR_SIZE;
+            *tile->size     = SIZE;
         }
     }
+
+    updateMiniBorderColors(warp);
 }
 
 void CWorkspaceTapeController::retireTile(SWorkspaceTile& tile) {
@@ -425,21 +596,30 @@ void CWorkspaceTapeController::retireTile(SWorkspaceTile& tile) {
 
     tile.position->setValueAndWarp(tile.position->value());
     tile.size->setValueAndWarp(tile.size->value());
+    tile.miniPosition->setValueAndWarp(tile.miniPosition->value());
+    tile.miniSize->setValueAndWarp(tile.miniSize->value());
     tile.opacity->setConfig(Config::animationTree()->getAnimationPropertyConfig("overviewFade"));
     *tile.opacity = 0.F;
 }
 
 void CWorkspaceTapeController::ensureAnimations(SWorkspaceTile& tile) {
-    const auto MOVE = Config::animationTree()->getAnimationPropertyConfig("overviewMove");
-    const auto FADE = Config::animationTree()->getAnimationPropertyConfig("overviewFade");
+    const auto  MOVE                 = Config::animationTree()->getAnimationPropertyConfig("overviewMove");
+    const auto  FADE                 = Config::animationTree()->getAnimationPropertyConfig("overviewFade");
+    static auto PINACTIVEBORDERCOLOR = CConfigValue<Config::INTEGER>("overview:col.inactive_border");
 
     Animation::mgr()->createAnimation(Vector2D{}, tile.position, MOVE, AVARDAMAGE_NONE);
     Animation::mgr()->createAnimation(Vector2D{}, tile.size, MOVE, AVARDAMAGE_NONE);
+    Animation::mgr()->createAnimation(Vector2D{}, tile.miniPosition, MOVE, AVARDAMAGE_NONE);
+    Animation::mgr()->createAnimation(Vector2D{}, tile.miniSize, MOVE, AVARDAMAGE_NONE);
+    Animation::mgr()->createAnimation(CHyprColor(*PINACTIVEBORDERCOLOR), tile.miniBorderColor, FADE, AVARDAMAGE_NONE);
     Animation::mgr()->createAnimation(0.F, tile.opacity, FADE, AVARDAMAGE_NONE);
 
     const auto DAMAGE = [this](auto) { damageMonitor(); };
     tile.position->setUpdateCallback(DAMAGE);
     tile.size->setUpdateCallback(DAMAGE);
+    tile.miniPosition->setUpdateCallback(DAMAGE);
+    tile.miniSize->setUpdateCallback(DAMAGE);
+    tile.miniBorderColor->setUpdateCallback([this](auto) { damageMiniStrip(); });
     tile.opacity->setUpdateCallback(DAMAGE);
 }
 
@@ -456,6 +636,30 @@ void CWorkspaceTapeController::installWorkspaceListeners(SWorkspaceTile& tile) {
 void CWorkspaceTapeController::damageMonitor() const {
     if (const auto MONITOR = m_monitor.lock(); MONITOR && g_pHyprRenderer)
         g_pHyprRenderer->damageMonitor(MONITOR);
+}
+
+void CWorkspaceTapeController::damageMiniStrip() const {
+    if (const auto MONITOR = m_monitor.lock(); MONITOR)
+        MONITOR->addDamage(m_miniStripArea.copy().expand(MINI_TILE_BORDER_SIZE * MONITOR->m_scale));
+}
+
+void CWorkspaceTapeController::updateMiniBorderColors(bool warp) {
+    static auto PACTIVEBORDERCOLOR   = CConfigValue<Config::INTEGER>("overview:col.active_border");
+    static auto PINACTIVEBORDERCOLOR = CConfigValue<Config::INTEGER>("overview:col.inactive_border");
+
+    const auto  SELECTED = selectedWorkspace();
+    for (const auto& tile : m_tiles) {
+        const auto WORKSPACE = tile->workspace.lock();
+        const auto COLOR     = CHyprColor(tile->inLayout && WORKSPACE && WORKSPACE == SELECTED ? *PACTIVEBORDERCOLOR : *PINACTIVEBORDERCOLOR);
+
+        tile->miniBorderColor->setConfig(Config::animationTree()->getAnimationPropertyConfig("overviewFade"));
+        if (warp)
+            tile->miniBorderColor->setValueAndWarp(COLOR);
+        else
+            *tile->miniBorderColor = COLOR;
+    }
+
+    damageMiniStrip();
 }
 
 CWorkspaceTapeController::SWorkspaceTile* CWorkspaceTapeController::tileFor(PHLWORKSPACE workspace) const {

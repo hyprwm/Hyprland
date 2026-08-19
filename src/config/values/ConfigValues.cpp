@@ -194,6 +194,13 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<String>("general:locale", "overrides the system locale", ""),
 
         /*
+         * overview:
+         */
+
+        MS<Color>("overview:col.active_border", "border color for the workspace selected in overview", 0xffffffff),
+        MS<Color>("overview:col.inactive_border", "border color for unselected workspaces in overview", 0xff444444),
+
+        /*
          * decoration:
          */
 

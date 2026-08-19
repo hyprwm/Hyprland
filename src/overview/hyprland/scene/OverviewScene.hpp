@@ -4,8 +4,10 @@
 #include "../../../desktop/DesktopTypes.hpp"
 #include "../../../helpers/memory/Memory.hpp"
 #include "../../../helpers/math/Math.hpp"
+#include "OverviewLayout.hpp"
 
 #include <string>
+#include <unordered_map>
 
 namespace Monitor {
     class CMonitorResources;
@@ -27,7 +29,10 @@ namespace Overview::Hyprland {
         void         start(PHLMONITOR monitor, WP<Monitor::CMonitorResources> resources);
         bool         navigateLeft();
         bool         navigateRight();
+        bool         selectWorkspace(PHLWORKSPACE workspace);
         PHLWORKSPACE selectedWorkspace() const;
+        PHLWORKSPACE miniWorkspaceAt(const Vector2D& monitorLocal) const;
+        CBox         mainArea() const;
         bool         pointerMove(const Vector2D& monitorLocal);
         bool         pointerButton(uint32_t button, bool pressed, const Vector2D& monitorLocal);
         void         pointerLeave();
@@ -36,8 +41,15 @@ namespace Overview::Hyprland {
         void         setTextboxFocus(bool x);
 
       private:
-        COverview&                     m_parent;
-        UP<CWorkspaceTapeController>   m_workspaceTape;
-        UP<CWorkspaceSearchController> m_workspaceSearch;
+        enum class ePointerTarget : uint8_t {
+            SEARCH,
+            WORKSPACE_TAPE,
+        };
+
+        COverview&                                   m_parent;
+        UP<CWorkspaceTapeController>                 m_workspaceTape;
+        UP<CWorkspaceSearchController>               m_workspaceSearch;
+        OverviewLayout::SLayout                      m_layout;
+        std::unordered_map<uint32_t, ePointerTarget> m_pointerTargets;
     };
 }

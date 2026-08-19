@@ -2,7 +2,6 @@
 
 #include "../Overview.hpp"
 #include "../../helpers/AnimatedVariable.hpp"
-#include "../../helpers/time/Timer.hpp"
 #include "../../managers/eventLoop/EventLoopTimer.hpp"
 
 #include <utility>
@@ -10,6 +9,9 @@
 
 namespace Monitor {
     class CMonitorResources;
+}
+namespace Layout {
+    class ITarget;
 }
 class IKeyboard;
 
@@ -31,6 +33,8 @@ namespace Overview::Hyprland {
         void                           closeImmediately();
         void                           installListeners();
         void                           recheckDrag();
+        void                           applyDragHoverTarget();
+        void                           resetDragHover();
         bool                           handleSearchKey(uint32_t keycode, SP<IKeyboard> keyboard, bool repeat = false);
         void                           startKeyRepeat(uint32_t keycode, SP<IKeyboard> keyboard);
         void                           stopKeyRepeat(uint32_t keycode);
@@ -50,12 +54,21 @@ namespace Overview::Hyprland {
             CHyprSignalListener mouseMove;
             CHyprSignalListener sessionLock;
             CHyprSignalListener keyboardKey;
+            CHyprSignalListener dragMotion;
+            CHyprSignalListener dragEnded;
         } m_listeners;
 
+        enum class eDragHoverTarget : uint8_t {
+            NONE,
+            LEFT_EDGE,
+            RIGHT_EDGE,
+            MINI_TILE,
+        };
+
         struct {
-            CTimer debouncer;
-            // met criteria
-            bool                isWithin = false;
+            eDragHoverTarget    target = eDragHoverTarget::NONE;
+            PHLWORKSPACEREF     workspace;
+            WP<Layout::ITarget> dragTarget;
             SP<CEventLoopTimer> eventLoopTimer;
         } m_drag;
 

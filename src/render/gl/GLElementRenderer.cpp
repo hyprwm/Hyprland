@@ -1,4 +1,5 @@
 #include "GLElementRenderer.hpp"
+#include "../pass/BoxShadowPassElement.hpp"
 #include "../Renderer.hpp"
 #include "../decorations/CHyprDropShadowDecoration.hpp"
 #include "../OpenGL.hpp"
@@ -97,6 +98,17 @@ void CGLElementRenderer::draw(CRenderingContext& context, WP<CRectPassElement> e
 };
 
 void CGLElementRenderer::draw(CRenderingContext& context, WP<CShadowPassElement> element, const CRegion& damage) {
+    if (const auto BOX_SHADOW = dynamicPointerCast<CBoxShadowPassElement>(element)) {
+        const auto&       DATA = BOX_SHADOW->m_boxData;
+        CRenderingContext child{context, context.renderPass()};
+        child.clipBox = DATA.clipBox;
+        child.currentWindow.reset();
+        child.damage = damage;
+
+        g_pHyprOpenGL->renderRoundedShadow(child, DATA.box, DATA.round, DATA.roundingPower, DATA.range, Config::CGradientValueData{DATA.color}, DATA.a, DATA.cutoutBox, DATA.round);
+        return;
+    }
+
     const auto& m_data = element->m_data;
     const auto  DECO   = m_data.deco.lock();
     if (!DECO)

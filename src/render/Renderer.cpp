@@ -1198,12 +1198,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(CRenderingContext& context, PHL
     if UNLIKELY (!pWorkspace) {
         // allow rendering without a workspace. In this case, just render layers.
 
-        renderBackground(context, pMonitor);
-
-        for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
-            renderLayer(context, ls.lock(), pMonitor, time);
-        }
-        renderFadeouts(context, pMonitor, Desktop::FADEOUT_PLANE_LAYER_BACKGROUND);
+        renderMonitorBackground(context, pMonitor, time);
 
         if (!context.isolatedWorkspace)
             Event::bus()->m_events.render.stage.emit(RENDER_POST_WALLPAPER);
@@ -1227,12 +1222,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(CRenderingContext& context, PHL
     }
 
     if LIKELY (!*PXPMODE) {
-        renderBackground(context, pMonitor);
-
-        for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
-            renderLayer(context, ls.lock(), pMonitor, time);
-        }
-        renderFadeouts(context, pMonitor, Desktop::FADEOUT_PLANE_LAYER_BACKGROUND);
+        renderMonitorBackground(context, pMonitor, time);
 
         if (!context.isolatedWorkspace)
             Event::bus()->m_events.render.stage.emit(RENDER_POST_WALLPAPER);
@@ -1329,6 +1319,18 @@ void IHyprRenderer::renderAllClientsForWorkspace(CRenderingContext& context, PHL
     renderFadeouts(context, pMonitor, Desktop::FADEOUT_PLANE_POPUP);
 
     renderDragIcon(context, pMonitor, time);
+}
+
+void IHyprRenderer::renderMonitorBackground(CRenderingContext& context, PHLMONITOR monitor, const Time::steady_tp& time) {
+    if (!monitor)
+        return;
+
+    renderBackground(context, monitor);
+
+    for (const auto& layer : monitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
+        renderLayer(context, layer.lock(), monitor, time);
+    }
+    renderFadeouts(context, monitor, Desktop::FADEOUT_PLANE_LAYER_BACKGROUND);
 }
 
 void IHyprRenderer::renderIME(CRenderingContext& context, PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry) {

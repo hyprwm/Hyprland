@@ -175,6 +175,8 @@ namespace Render::GL {
         void   renderTexture(CRenderingContext&, SP<ITexture>, const CBox&, STextureRenderData data);
         void   renderTextureMesh(CRenderingContext&, SP<ITexture>, const CBox&, const std::vector<SMeshRenderVertex>& vertices, STextureRenderData data);
         void   renderRoundedShadow(CRenderingContext&, const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a = 1.0);
+        void   renderRoundedShadow(CRenderingContext&, const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a,
+                                   const CBox& cutoutBox, int cutoutRound);
         void   renderRoundedShadow(CRenderingContext&, const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
                                    const Config::CGradientValueData& grad2, float lerp, float a = 1.0);
         void   renderInnerGlow(CRenderingContext&, const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& color, int glowPower, float a = 1.0);
@@ -335,6 +337,8 @@ namespace Render::GL {
         void passCMUniforms(CRenderingContext&, WP<CShader>, const NColorManagement::PImageDescription imageDescription, const SCMSettings& settings);
         void renderRectWithBlurInternal(CRenderingContext&, const CBox&, const CHyprColor&, const SRectRenderData& data);
         void renderRectWithDamageInternal(CRenderingContext&, const CBox&, const CHyprColor&, const SRectRenderData& data);
+        void renderRoundedShadowInternal(CRenderingContext&, const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
+                                         const Config::CGradientValueData& grad2, float lerp, float a, const std::optional<CBox>& cutoutBox, int cutoutRound);
         WP<CShader> renderScreenShaderInternal(CRenderingContext&);
         WP<CShader> renderToFBInternal(CRenderingContext&, SP<ITexture> tex, const STextureRenderData& data, eTextureType texType, const CBox& newBox);
         void        renderTextureInternal(CRenderingContext&, SP<ITexture>, const CBox&, const STextureRenderData& data);

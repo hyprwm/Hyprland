@@ -10,6 +10,8 @@
 class CEventLoopTimer;
 
 namespace Render {
+    class CRenderingContext;
+
     CBox pixelBoxForLogical(const CBox& box, double scale);
 
     struct SWindowTransformBuffer {
@@ -52,7 +54,7 @@ namespace Render {
 
         // called by Hyprland. For more data about what is being rendered, inspect render data.
         // returns the output framebuffer and the monitor-local pixel box represented by it.
-        virtual SWindowTransformBuffer transform(const SWindowTransformBuffer& in, const SWindowTransformContext& context) = 0;
+        virtual SWindowTransformBuffer transform(CRenderingContext&, const SWindowTransformBuffer& in, const SWindowTransformContext& context) = 0;
 
         virtual int                    priority() const;
         virtual bool                   active() const;
@@ -63,9 +65,9 @@ namespace Render {
         virtual CBox                   transformBoxForDamage(const CBox& currentBox) const;
 
         // called by Hyprland before a window main pass is started.
-        virtual void preWindowRender(CSurfacePassElement::SRenderData* pRenderData);
+        virtual void preWindowRender(CRenderingContext&, CSurfacePassElement::SRenderData* pRenderData);
 
         // called by Hyprland before the transformed window fb is rendered back to the main fb.
-        virtual void amendTransformedRenderData(const CBox& currentBox, SMotionBlurData* pMotionBlurData);
+        virtual void amendTransformedRenderData(CRenderingContext&, const CBox& currentBox, SMotionBlurData* pMotionBlurData);
     };
 }

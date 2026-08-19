@@ -9,7 +9,7 @@ namespace Render {
         CMonitorScene(PHLMONITOR mon);
         ~CMonitorScene() = default;
 
-        virtual void draw(Time::steady_tp tp) override;
+        virtual void draw(CRenderingContext&, Time::steady_tp tp) override;
 
       private:
         PHLMONITORREF m_monitor;

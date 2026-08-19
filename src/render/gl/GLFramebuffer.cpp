@@ -15,7 +15,8 @@ CGLFramebuffer::CGLFramebuffer(const std::string& name) : IFramebuffer(name), m_
 
 bool CGLFramebuffer::internalAlloc(int w, int h, uint32_t drmFormat) {
     g_pHyprOpenGL->makeEGLCurrent();
-    m_tempBuf = false;
+    const auto previousDrawFB = g_pHyprOpenGL->boundDrawFramebuffer();
+    m_tempBuf                 = false;
 
     if (!m_tex) {
         m_tex = g_pHyprRenderer->createTexture();
@@ -74,10 +75,7 @@ bool CGLFramebuffer::internalAlloc(int w, int h, uint32_t drmFormat) {
     g_pHyprOpenGL->bindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
     // this can run mid frame in enableMirror() in begin() restore the draw fb the renderer had bound
-    if (g_pHyprRenderer && g_pHyprRenderer->m_renderData.currentFB)
-        g_pHyprRenderer->m_renderData.currentFB->bind();
-    else
-        g_pHyprOpenGL->bindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    g_pHyprOpenGL->bindFramebuffer(GL_DRAW_FRAMEBUFFER, previousDrawFB);
 
     return true;
 }
@@ -121,6 +119,7 @@ void CGLFramebuffer::unbind() {
 
 void CGLFramebuffer::release() {
     if (m_fbAllocated) {
+        const auto previousDrawFB = g_pHyprOpenGL ? g_pHyprOpenGL->boundDrawFramebuffer() : 0;
         if (g_pHyprOpenGL)
             g_pHyprOpenGL->bindFramebuffer(GL_FRAMEBUFFER, m_fb);
         else
@@ -136,8 +135,8 @@ void CGLFramebuffer::release() {
 
         // releasing can happen mid frame from a temp fb, rebind the fb the renderer
         // had previously bound, otherwise draws continue into fb 0 and raise GL_INVALID_FRAMEBUFFER_OPERATION
-        if (g_pHyprRenderer && g_pHyprRenderer->m_renderData.currentFB && g_pHyprRenderer->m_renderData.currentFB.get() != this)
-            g_pHyprRenderer->m_renderData.currentFB->bind();
+        if (g_pHyprOpenGL)
+            g_pHyprOpenGL->bindFramebuffer(GL_DRAW_FRAMEBUFFER, previousDrawFB == m_fb ? 0 : previousDrawFB);
 
         m_fbAllocated = false;
         m_fb          = 0;
@@ -287,6 +286,6 @@ void CGLFramebuffer::clearAfterInvalidation() {
 
     m_cleared = true;
     glClearColor(0, 0, 0, 0);
-    g_pHyprOpenGL->scissor(nullptr);
+    g_pHyprOpenGL->disableScissorState();
     glClear(GL_COLOR_BUFFER_BIT);
 }

@@ -19,13 +19,13 @@ COverviewScene::COverviewScene(COverview& parent) : m_parent(parent), m_workspac
 
 COverviewScene::~COverviewScene() = default;
 
-void COverviewScene::draw(Time::steady_tp tp) {
+void COverviewScene::draw(Render::CRenderingContext& context, Time::steady_tp tp) {
     const auto MONITOR = m_parent.m_monitor.lock();
     if (!MONITOR || !m_parent.m_progress || !g_pHyprRenderer)
         return;
 
-    g_pHyprRenderer->addPassElement(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(OVERVIEW_GRAY, OVERVIEW_GRAY, OVERVIEW_GRAY, 1.F)}));
-    m_workspaceTape->draw(tp, std::clamp(m_parent.m_progress->value(), 0.F, 1.F));
+    g_pHyprRenderer->addPassElement(context, makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(OVERVIEW_GRAY, OVERVIEW_GRAY, OVERVIEW_GRAY, 1.F)}));
+    m_workspaceTape->draw(context, tp, std::clamp(m_parent.m_progress->value(), 0.F, 1.F));
 }
 
 void COverviewScene::start(PHLMONITOR monitor, WP<Monitor::CMonitorResources> resources) {

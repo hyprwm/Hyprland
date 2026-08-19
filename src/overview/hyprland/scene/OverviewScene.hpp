@@ -17,12 +17,12 @@ namespace Overview::Hyprland {
         COverviewScene(COverview& parent);
         virtual ~COverviewScene() override;
 
-        virtual void                        draw(Time::steady_tp tp) override;
-        void                                start(PHLMONITOR monitor, WP<Monitor::CMonitorResources> resources);
-        bool                                navigateLeft();
-        bool                                navigateRight();
-        PHLWORKSPACE                        selectedWorkspace() const;
-        void                                reset();
+        virtual void draw(Render::CRenderingContext&, Time::steady_tp tp) override;
+        void         start(PHLMONITOR monitor, WP<Monitor::CMonitorResources> resources);
+        bool         navigateLeft();
+        bool         navigateRight();
+        PHLWORKSPACE selectedWorkspace() const;
+        void         reset();
 
       private:
         COverview&                   m_parent;

@@ -30,7 +30,7 @@ CDropsBlurProvider::CDropsBlurProvider(CHyprOpenGLImpl& impl) : CGlassBlurProvid
     ;
 }
 
-bool CDropsBlurMaterial::isAnimated() const noexcept {
+bool CDropsBlurMaterial::isAnimated(const CRenderingContext&) const noexcept {
     static auto PBLURENABLED     = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
     static auto PGLASSREFRACTION = CConfigValue<Config::FLOAT>("decoration:blur:glass:refraction");
     static auto PGLASSROUGHNESS  = CConfigValue<Config::FLOAT>("decoration:blur:glass:roughness");

@@ -7,19 +7,20 @@ class CGradientValueData;
 
 namespace Render {
     class ITexture;
+    class CRenderingContext;
 
     class CRenderPass {
       public:
         bool    empty() const;
         bool    single() const;
-        bool    needsLiveBlur();
-        bool    needsPrecomputeBlur();
+        bool    needsLiveBlur(const CRenderingContext& context);
+        bool    needsPrecomputeBlur(const CRenderingContext& context);
 
         void    add(UP<IPassElement>&& elem);
         void    clear();
         void    removeAllOfType(const std::string& type);
 
-        CRegion render(const CRegion& damage_);
+        CRegion render(CRenderingContext& context, const CRegion& damage_);
 
       private:
         CRegion              m_damage;
@@ -34,9 +35,9 @@ namespace Render {
 
         std::vector<SPassElementData> m_passElements;
 
-        void                          simplify(bool willBlur, const CRegion& liveBlurRegion);
-        void                          planBackdropScopes();
-        void                          renderDebugData();
+        void                          simplify(CRenderingContext& context, bool willBlur, const CRegion& liveBlurRegion);
+        void                          planBackdropScopes(const CRenderingContext& context);
+        void                          renderDebugData(CRenderingContext& context);
 
         struct {
             bool         present = false;

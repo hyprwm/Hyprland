@@ -75,13 +75,13 @@ class CTexPassElement : public IPassElement {
     CTexPassElement(SRenderData&& data);
     virtual ~CTexPassElement() = default;
 
-    virtual bool                needsLiveBlur();
-    virtual bool                needsPrecomputeBlur();
-    virtual std::optional<CBox> boundingBox();
-    virtual CRegion             opaqueRegion();
-    virtual void                discard();
+    virtual bool                needsLiveBlur(const Render::CRenderingContext&);
+    virtual bool                needsPrecomputeBlur(const Render::CRenderingContext&);
+    virtual std::optional<CBox> boundingBox(const Render::CRenderingContext& context);
+    virtual CRegion             opaqueRegion(const Render::CRenderingContext& context);
+    virtual void                discard(Render::CRenderingContext& context);
 
-    bool                        usesLiveBlur();
+    bool                        usesLiveBlur(const Render::CRenderingContext& context);
 
     virtual const char*         passName() {
         return "CTexPassElement";

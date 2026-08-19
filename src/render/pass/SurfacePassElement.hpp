@@ -7,6 +7,7 @@
 class CWLSurfaceResource;
 namespace Render {
     class ITexture;
+    class CRenderingContext;
 }
 class CSyncTimeline;
 
@@ -56,12 +57,12 @@ class CSurfacePassElement : public IPassElement {
     CSurfacePassElement(const SRenderData& data);
     virtual ~CSurfacePassElement() = default;
 
-    virtual bool                needsLiveBlur();
-    virtual bool                needsPrecomputeBlur();
-    virtual std::optional<CBox> boundingBox();
-    virtual CRegion             opaqueRegion();
-    virtual void                discard();
-    CRegion                     visibleRegion(bool& cancel);
+    virtual bool                needsLiveBlur(const Render::CRenderingContext&);
+    virtual bool                needsPrecomputeBlur(const Render::CRenderingContext&);
+    virtual std::optional<CBox> boundingBox(const Render::CRenderingContext& context);
+    virtual CRegion             opaqueRegion(const Render::CRenderingContext& context);
+    virtual void                discard(Render::CRenderingContext& context);
+    CRegion                     visibleRegion(Render::CRenderingContext& context, bool& cancel);
 
     virtual const char*         passName() {
         return "CSurfacePassElement";

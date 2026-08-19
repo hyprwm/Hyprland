@@ -9,14 +9,14 @@ namespace Render::GL {
         ~CGLElementRenderer() = default;
 
       private:
-        void draw(WP<CBorderPassElement> element, const Hyprutils::Math::CRegion& damage) override;
-        void draw(WP<CClearPassElement> element, const CRegion& damage) override;
-        void draw(WP<CFramebufferElement> element, const CRegion& damage) override;
-        void draw(WP<CPreBlurElement> element, const CRegion& damage) override;
-        void draw(WP<CRectPassElement> element, const CRegion& damage) override;
-        void draw(WP<CShadowPassElement> element, const CRegion& damage) override;
-        void draw(WP<CInnerGlowPassElement> element, const CRegion& damage) override;
-        void draw(WP<CTexPassElement> element, const CRegion& damage) override;
-        void draw(WP<CTextureMatteElement> element, const CRegion& damage) override;
+        void draw(CRenderingContext& context, WP<CBorderPassElement> element, const Hyprutils::Math::CRegion& damage) override;
+        void draw(CRenderingContext& context, WP<CClearPassElement> element, const CRegion& damage) override;
+        void draw(CRenderingContext& context, WP<CFramebufferElement> element, const CRegion& damage) override;
+        void draw(CRenderingContext& context, WP<CPreBlurElement> element, const CRegion& damage) override;
+        void draw(CRenderingContext& context, WP<CRectPassElement> element, const CRegion& damage) override;
+        void draw(CRenderingContext& context, WP<CShadowPassElement> element, const CRegion& damage) override;
+        void draw(CRenderingContext& context, WP<CInnerGlowPassElement> element, const CRegion& damage) override;
+        void draw(CRenderingContext& context, WP<CTexPassElement> element, const CRegion& damage) override;
+        void draw(CRenderingContext& context, WP<CTextureMatteElement> element, const CRegion& damage) override;
     };
 }

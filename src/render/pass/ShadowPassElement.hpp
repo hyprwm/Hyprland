@@ -13,8 +13,8 @@ class CShadowPassElement : public IPassElement {
     CShadowPassElement(const SShadowData& data_);
     virtual ~CShadowPassElement() = default;
 
-    virtual bool        needsLiveBlur();
-    virtual bool        needsPrecomputeBlur();
+    virtual bool        needsLiveBlur(const Render::CRenderingContext&);
+    virtual bool        needsPrecomputeBlur(const Render::CRenderingContext&);
 
     virtual const char* passName() {
         return "CShadowPassElement";

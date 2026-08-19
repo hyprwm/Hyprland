@@ -16,7 +16,7 @@ namespace Render {
         static bool                    shouldEnable(PHLWINDOW window);
         static void                    ensureTickListener();
 
-        virtual SWindowTransformBuffer transform(const SWindowTransformBuffer& in, const SWindowTransformContext& context);
+        virtual SWindowTransformBuffer transform(CRenderingContext&, const SWindowTransformBuffer& in, const SWindowTransformContext& context);
         virtual int                    priority() const;
         virtual bool                   active() const;
         virtual bool                   blocksDirectScanout() const;

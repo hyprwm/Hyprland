@@ -832,6 +832,86 @@ TEST_CASE(keybinds) {
     CALL_SUBTEST(unbind);
 }
 
+TEST_CASE(unorderedSubChordDeferral) {
+    constexpr uint32_t X = KEY_X + 8;
+    constexpr uint32_t D = KEY_D + 8;
+    constexpr uint32_t F = KEY_F + 8;
+
+    const auto         counts = [] { return getFromSocket("/repl return _G.hyprtester_overlap_x .. ':' .. _G.hyprtester_overlap_d .. ':' .. _G.hyprtester_overlap_long"); };
+
+    OK(getFromSocket("/eval do "
+                     "_G.hyprtester_overlap_x = 0; "
+                     "_G.hyprtester_overlap_d = 0; "
+                     "_G.hyprtester_overlap_long = 0; "
+                     "hl.bind('SUPER + X', function() _G.hyprtester_overlap_x = _G.hyprtester_overlap_x + 1 end); "
+                     "hl.bind('SUPER + D', function() _G.hyprtester_overlap_d = _G.hyprtester_overlap_d + 1 end); "
+                     "hl.bind('SUPER + X + D + F', function() _G.hyprtester_overlap_long = _G.hyprtester_overlap_long + 1 end) "
+                     "end"));
+
+    OK(getFromSocket(pluginKeybindCmd(true, MOD_META, X)));
+    EXPECT(counts(), "0:0:0");
+    OK(getFromSocket(pluginKeybindCmd(false, 0, X)));
+    EXPECT(counts(), "1:0:0");
+
+    OK(getFromSocket(pluginKeybindCmd(true, MOD_META, D)));
+    EXPECT(counts(), "1:0:0");
+    OK(getFromSocket(pluginKeybindCmd(false, 0, D)));
+    EXPECT(counts(), "1:1:0");
+
+    OK(getFromSocket(pluginKeybindCmd(true, MOD_META, X)));
+    EXPECT(counts(), "1:1:0");
+    OK(getFromSocket(pluginKeybindCmd(true, MOD_META, D)));
+    EXPECT(counts(), "1:1:0");
+    OK(getFromSocket(pluginKeybindCmd(true, MOD_META, F)));
+    EXPECT(counts(), "1:1:1");
+    OK(getFromSocket(pluginKeybindCmd(false, MOD_META, F)));
+    OK(getFromSocket(pluginKeybindCmd(false, MOD_META, D)));
+    OK(getFromSocket(pluginKeybindCmd(false, 0, X)));
+    EXPECT(counts(), "1:1:1");
+
+    OK(getFromSocket("/eval do "
+                     "hl.unbind('SUPER + X'); "
+                     "hl.unbind('SUPER + D'); "
+                     "hl.unbind('SUPER + X + D + F'); "
+                     "_G.hyprtester_overlap_x = nil; "
+                     "_G.hyprtester_overlap_d = nil; "
+                     "_G.hyprtester_overlap_long = nil "
+                     "end"));
+}
+
+TEST_CASE(modifierReleaseBindShadowing) {
+    constexpr uint32_t ALT_L = KEY_LEFTALT + 8;
+    constexpr uint32_t P     = KEY_P + 8;
+
+    const auto         counts = [] { return getFromSocket("/repl return _G.hyprtester_alt_release .. ':' .. _G.hyprtester_alt_p"); };
+
+    OK(getFromSocket("/eval do "
+                     "_G.hyprtester_alt_release = 0; "
+                     "_G.hyprtester_alt_p = 0; "
+                     "hl.bind('ALT + ALT_L', function() _G.hyprtester_alt_release = _G.hyprtester_alt_release + 1 end, { release = true }); "
+                     "hl.bind('ALT + P', function() _G.hyprtester_alt_p = _G.hyprtester_alt_p + 1 end) "
+                     "end"));
+
+    OK(getFromSocket(pluginKeybindCmd(true, 0, ALT_L)));
+    EXPECT(counts(), "0:0");
+    OK(getFromSocket(pluginKeybindCmd(true, MOD_ALT, P)));
+    EXPECT(counts(), "0:1");
+    OK(getFromSocket(pluginKeybindCmd(false, MOD_ALT, P)));
+    OK(getFromSocket(pluginKeybindCmd(false, 0, ALT_L)));
+    EXPECT(counts(), "0:1");
+
+    OK(getFromSocket(pluginKeybindCmd(true, 0, ALT_L)));
+    OK(getFromSocket(pluginKeybindCmd(false, 0, ALT_L)));
+    EXPECT(counts(), "1:1");
+
+    OK(getFromSocket("/eval do "
+                     "hl.unbind('ALT + ALT_L'); "
+                     "hl.unbind('ALT + P'); "
+                     "_G.hyprtester_alt_release = nil; "
+                     "_G.hyprtester_alt_p = nil "
+                     "end"));
+}
+
 TEST_CASE(luaDispatcherStrings) {
     OK(getFromSocket("/eval B = hl.bind('SUPER + F24', hl.dsp.exec_cmd('true'))"));
     EXPECT(getFromSocket("/repl return B.handler"), "HL.Dispatcher(exec_cmd)");

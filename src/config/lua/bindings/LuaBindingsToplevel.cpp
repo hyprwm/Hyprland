@@ -18,6 +18,9 @@
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/string/VarList.hpp>
 
+#include <cctype>
+#include <unordered_set>
+
 using namespace Config;
 using namespace Config::Lua;
 using namespace Config::Lua::Bindings;
@@ -30,14 +33,20 @@ extern "C" {
 }
 
 static std::expected<std::vector<std::string>, std::string> parseKeyString(std::string_view value) {
-    CVarList2                list(value, 0, '+', true);
-    std::vector<std::string> keys;
+    CVarList2                       list(value, 0, '+', true);
+    std::vector<std::string>        keys;
+    std::unordered_set<std::string> seen;
     keys.reserve(list.size());
 
     for (const auto& entry : list) {
         auto key = Hyprutils::String::trim(entry);
         if (key.empty())
             return std::unexpected("Empty key in key list");
+
+        std::string normalized = key;
+        std::ranges::transform(normalized, normalized.begin(), [](unsigned char c) { return std::toupper(c); });
+        if (!seen.insert(std::move(normalized)).second)
+            return std::unexpected(std::format("Repeated key '{}' in bind", key));
 
         keys.emplace_back(std::move(key));
     }
@@ -82,6 +91,9 @@ static int hlBind(lua_State* L) {
 
     const std::string handler = luaL_tolstring(L, 2, nullptr);
     lua_pop(L, 1);
+
+    if (Internal::isDispatcherFactory(L, 2))
+        return Internal::configError(L, "hl.bind: dispatcher factory was not called (e.g. hl.dsp.exec_raw instead of hl.dsp.exec_raw(\"...\"))");
 
     if (!Internal::pushDispatcherFunction(L, 2))
         return Internal::configError(L, "hl.bind: dispatcher must be a dispatcher (e.g. hl.dsp.window.close()) or a lua function");
@@ -333,6 +345,9 @@ static int hlClearCrashedLockscreen(lua_State* L) {
 }
 
 static int hlDispatch(lua_State* L) {
+    if (Internal::isDispatcherFactory(L, 1))
+        return Internal::configError(L, "hl.dispatch: dispatcher factory was not called (e.g. hl.dsp.window.close instead of hl.dsp.window.close())");
+
     if (!Internal::pushDispatcherFunction(L, 1))
         return Internal::configError(L, "hl.dispatch: expected a dispatcher (e.g. hl.dsp.window.close())");
 

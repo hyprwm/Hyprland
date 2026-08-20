@@ -229,6 +229,19 @@ TEST(Keybinds, ModifierReleaseBindIncludesTriggerModifier) {
               BIND_MATCH_FULL);
 }
 
+TEST(Keybinds, RejectsRepeatedKeys) {
+    auto result = makeBind({"A", "A", "A"});
+    ASSERT_FALSE(result.has_value());
+    EXPECT_NE(result.error().find("Repeated key"), std::string::npos);
+
+    result = makeBind({"SUPER", "SUPER", "K"});
+    ASSERT_FALSE(result.has_value());
+    EXPECT_NE(result.error().find("Repeated key"), std::string::npos);
+
+    result = makeBind({"a", "A"});
+    ASSERT_FALSE(result.has_value());
+}
+
 TEST(Keybinds, CatchAllContextHonorsSubmapAndModifiers) {
     auto result = CBind::make({"SUPER", "catchall"}, BIND_FLAG_CATCH_ALL, [] { return SBindResult{}; }, {.metadata = {.submap = "resize"}});
     ASSERT_TRUE(result.has_value());

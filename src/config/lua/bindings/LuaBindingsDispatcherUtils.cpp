@@ -4,6 +4,7 @@ using namespace Config::Lua::Bindings;
 
 static constexpr const char* DISPATCHER_MT = "HL.Dispatcher";
 static char                  DISPATCHER_TABLES_REGISTRY_KEY;
+static char                  DISPATCHER_FACTORIES_REGISTRY_KEY;
 
 namespace {
     struct SDispatcherRef {
@@ -95,11 +96,50 @@ static int dispatcherFactory(lua_State* L) {
     return nresults;
 }
 
+static void markDispatcherFactory(lua_State* L) {
+    lua_pushlightuserdata(L, &DISPATCHER_FACTORIES_REGISTRY_KEY);
+    lua_rawget(L, LUA_REGISTRYINDEX);
+
+    if (!lua_istable(L, -1)) {
+        lua_pop(L, 1);
+        lua_newtable(L);
+        lua_pushlightuserdata(L, &DISPATCHER_FACTORIES_REGISTRY_KEY);
+        lua_pushvalue(L, -2);
+        lua_rawset(L, LUA_REGISTRYINDEX);
+    }
+
+    lua_pushvalue(L, -2);
+    lua_pushboolean(L, true);
+    lua_rawset(L, -3);
+    lua_pop(L, 1);
+}
+
+bool Internal::isDispatcherFactory(lua_State* L, int idx) {
+    if (!lua_isfunction(L, idx))
+        return false;
+
+    idx = lua_absindex(L, idx);
+    lua_pushlightuserdata(L, &DISPATCHER_FACTORIES_REGISTRY_KEY);
+    lua_rawget(L, LUA_REGISTRYINDEX);
+
+    if (!lua_istable(L, -1)) {
+        lua_pop(L, 1);
+        return false;
+    }
+
+    lua_pushvalue(L, idx);
+    lua_rawget(L, -2);
+    const bool result = lua_toboolean(L, -1);
+    lua_pop(L, 2);
+    return result;
+}
+
 void Internal::setFn(lua_State* L, const char* name, lua_CFunction fn) {
     if (isDispatcherTable(L, -1)) {
         lua_pushcfunction(L, fn);
         lua_pushstring(L, name);
         lua_pushcclosure(L, dispatcherFactory, 2);
+        markDispatcherFactory(L);
     } else
         lua_pushcfunction(L, fn);
 

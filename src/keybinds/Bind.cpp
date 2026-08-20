@@ -5,6 +5,7 @@
 #include <array>
 #include <cctype>
 #include <format>
+#include <unordered_set>
 
 using namespace Input;
 using namespace Keybinds;
@@ -88,13 +89,17 @@ std::expected<CBind, std::string> CBind::make(std::vector<std::string>&& keys, B
     if (!ret.m_callback)
         return std::unexpected("Bad callback");
 
-    bool   finishedMods = false;
-    size_t externalKeys = 0;
-    size_t ordinaryKeys = 0;
+    bool                            finishedMods = false;
+    size_t                          externalKeys = 0;
+    size_t                          ordinaryKeys = 0;
+    std::unordered_set<std::string> seenKeys;
 
     for (const auto& k : keys) {
         std::string normalized = k;
         std::ranges::transform(normalized, normalized.begin(), [](unsigned char c) { return std::toupper(c); });
+
+        if (!seenKeys.insert(normalized).second)
+            return std::unexpected(std::format("Repeated key '{}' in bind", k));
 
         if (const auto MODIFIER = modifierFromString(normalized)) {
             if (finishedMods)

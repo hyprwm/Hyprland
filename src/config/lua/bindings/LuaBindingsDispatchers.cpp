@@ -234,6 +234,9 @@ static int dsp_releaseInputCapture(lua_State* L) {
 }
 
 static int hlExecCmd(lua_State* L) {
+    if (lua_gettop(L) > 2)
+        return Internal::configError(L, "exec_cmd: too many arguments (expected command and optional rule table, got {})", lua_gettop(L));
+
     const auto proc = Check::string(L, 1);
 
     if (!proc)
@@ -253,6 +256,9 @@ static int hlExecCmd(lua_State* L) {
 }
 
 static int hlExecRaw(lua_State* L) {
+    if (lua_gettop(L) > 1)
+        return Internal::configError(L, "exec_raw: too many arguments (expected a command string, got {})", lua_gettop(L));
+
     auto proc = Check::string(L, 1);
     if (!proc)
         return Internal::configError(L, std::format("exec_raw: bad argument 1: {}", proc.error()));

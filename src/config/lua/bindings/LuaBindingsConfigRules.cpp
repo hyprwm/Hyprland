@@ -1019,6 +1019,44 @@ static int hlConfig(lua_State* L) {
     return 0;
 }
 
+static void pushDeviceConfigValues(lua_State* L, CConfigManager* self, const std::string& devName) {
+    lua_newtable(L);
+
+    const auto it = self->m_deviceConfigs.find(devName);
+    if (it == self->m_deviceConfigs.end())
+        return;
+
+    for (const auto& [key, val] : it->second.values) {
+        if (!val || !val->setByUser())
+            continue;
+
+        val->push(L);
+        lua_setfield(L, -2, key.c_str());
+    }
+}
+
+static int hlGetDeviceConfig(lua_State* L) {
+    auto* self = sc<CConfigManager*>(lua_touserdata(L, lua_upvalueindex(1)));
+
+    if (lua_gettop(L) < 1 || lua_isnil(L, 1)) {
+        lua_newtable(L);
+        for (const auto& [name, _] : self->m_deviceConfigs) {
+            pushDeviceConfigValues(L, self, name);
+            lua_setfield(L, -2, name.c_str());
+        }
+        return 1;
+    }
+
+    auto arg = Check::string(L, 1);
+    if (!arg)
+        return Internal::configError(L, std::format("hl.get_device_config: bad type for arg 1, {}", arg.error()));
+
+    std::string devName = *arg;
+    std::ranges::replace(devName, ' ', '-');
+    pushDeviceConfigValues(L, self, devName);
+    return 1;
+}
+
 static int hlGetConfig(lua_State* L) {
     auto* self = sc<CConfigManager*>(lua_touserdata(L, lua_upvalueindex(1)));
 
@@ -1394,6 +1432,7 @@ static int hlLayerRule(lua_State* L) {
 void Internal::registerConfigRuleBindings(lua_State* L, CConfigManager* mgr) {
     Internal::setMgrFn(L, mgr, "config", hlConfig);
     Internal::setMgrFn(L, mgr, "get_config", hlGetConfig);
+    Internal::setMgrFn(L, mgr, "get_device_config", hlGetDeviceConfig);
     Internal::setMgrFn(L, mgr, "device", hlDevice);
     Internal::setMgrFn(L, mgr, "monitor", hlMonitor);
     Internal::setMgrFn(L, mgr, "window_rule", hlWindowRule);

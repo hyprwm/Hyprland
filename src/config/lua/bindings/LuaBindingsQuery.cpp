@@ -15,6 +15,12 @@
 #include "../../../managers/input/InputManager.hpp"
 #include "../../../state/MonitorState.hpp"
 #include "../../../state/WorkspaceState.hpp"
+#include "../../../devices/IKeyboard.hpp"
+#include "../../../devices/IHID.hpp"
+
+extern "C" {
+#include <xkbcommon/xkbcommon.h>
+}
 
 using namespace Config;
 using namespace Config::Lua;
@@ -389,6 +395,76 @@ static int hlGetCurrentSubmap(lua_State* L) {
     return 1;
 }
 
+static const char* hidTypeName(eHIDType type) {
+    switch (type) {
+        case HID_TYPE_POINTER:     return "pointer";
+        case HID_TYPE_KEYBOARD:    return "keyboard";
+        case HID_TYPE_TOUCH:       return "touch";
+        case HID_TYPE_TABLET:      return "tablet";
+        case HID_TYPE_TABLET_TOOL: return "tablet_tool";
+        case HID_TYPE_TABLET_PAD:  return "tablet_pad";
+        default:                   return "unknown";
+    }
+}
+
+static void pushKeyboardState(lua_State* L, const SP<IKeyboard>& kb) {
+    lua_pushboolean(L, kb->m_enabled);
+    lua_setfield(L, -2, "enabled");
+
+    if (!kb->m_xkbKeymap)
+        return;
+
+    lua_pushstring(L, kb->getActiveLayout().c_str());
+    lua_setfield(L, -2, "layout");
+
+    lua_newtable(L);
+    const auto LAYOUTS = xkb_keymap_num_layouts(kb->m_xkbKeymap);
+    int        i       = 1;
+    for (xkb_layout_index_t li = 0; li < LAYOUTS; ++li) {
+        const auto NAME = xkb_keymap_layout_get_name(kb->m_xkbKeymap, li);
+        lua_pushstring(L, NAME ? NAME : "");
+        lua_rawseti(L, -2, i++);
+    }
+    lua_setfield(L, -2, "layouts");
+}
+
+static int hlGetDevices(lua_State* L) {
+    lua_newtable(L);
+
+    if (!g_pInputManager)
+        return 1;
+
+    int i = 1;
+
+    auto pushHid = [&](const SP<IHID>& hid) {
+        if (!hid)
+            return;
+
+        lua_createtable(L, 0, 6);
+        lua_pushstring(L, hid->m_hlName.c_str());
+        lua_setfield(L, -2, "name");
+        lua_pushstring(L, hidTypeName(hid->getType()));
+        lua_setfield(L, -2, "type");
+
+        if (hid->getType() == HID_TYPE_KEYBOARD) {
+            for (const auto& kb : g_pInputManager->m_keyboards) {
+                if (sc<IHID*>(kb.get()) != hid.get())
+                    continue;
+                pushKeyboardState(L, kb);
+                break;
+            }
+        }
+
+        lua_rawseti(L, -2, i++);
+    };
+
+    for (const auto& hid : g_pInputManager->m_hids) {
+        pushHid(hid.lock());
+    }
+
+    return 1;
+}
+
 void Internal::registerQueryBindings(lua_State* L) {
     Internal::setFn(L, "get_windows", hlGetWindows);
     Internal::setFn(L, "get_window", hlGetWindow);
@@ -409,4 +485,5 @@ void Internal::registerQueryBindings(lua_State* L) {
     Internal::setFn(L, "get_last_window", hlGetLastWindow);
     Internal::setFn(L, "get_last_workspace", hlGetLastWorkspace);
     Internal::setFn(L, "get_current_submap", hlGetCurrentSubmap);
+    Internal::setFn(L, "get_devices", hlGetDevices);
 }

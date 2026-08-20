@@ -7,8 +7,9 @@
 #include <fstream>
 #include <format>
 #include <sys/stat.h>
-#include <sys/wait.h>
 #include <unistd.h>
+
+#include <hyprutils/os/Process.hpp>
 
 using namespace NCacheLogic;
 
@@ -21,10 +22,9 @@ namespace {
     }
 
     void runCommand(const std::string& command) {
-        const auto STATUS = std::system(command.c_str());
-        ASSERT_NE(STATUS, -1);
-        ASSERT_TRUE(WIFEXITED(STATUS));
-        ASSERT_EQ(WEXITSTATUS(STATUS), 0);
+        Hyprutils::OS::CProcess process{"/bin/sh", {"-c", command}};
+        ASSERT_TRUE(process.runSync());
+        ASSERT_EQ(process.exitCode(), 0) << process.stdOut();
     }
 
     std::string readHead(const std::filesystem::path& repository, const std::filesystem::path& resultFile) {

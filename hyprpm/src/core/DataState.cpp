@@ -48,7 +48,8 @@ std::filesystem::path DataState::getDataStatePath() {
 
 std::filesystem::path DataState::getRepositoryCachePath() {
     static const auto CACHE_HOME = []() -> std::filesystem::path {
-        if (const auto ENV = getenv("XDG_CACHE_HOME"); ENV && std::filesystem::path{ENV}.is_absolute())
+        // XDG_CACHE_HOME is untrusted, but only an absolute value is accepted and every created cache directory is subsequently ownership/permission checked.
+        if (const auto ENV = getenv("XDG_CACHE_HOME"); ENV && std::filesystem::path{ENV}.is_absolute()) // flawfinder: ignore
             return ENV;
 
         const auto USER = getpwuid(NSys::getUID());

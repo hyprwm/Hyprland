@@ -67,7 +67,8 @@ namespace NCacheLogic {
     }
 
     Hyprutils::OS::CFileDescriptor openValidatedPluginBinary(const std::filesystem::path& source, uid_t owner) {
-        Hyprutils::OS::CFileDescriptor sourceFD{open(source.c_str(), O_RDONLY | O_CLOEXEC | O_NOFOLLOW)};
+        // O_NOFOLLOW plus the fstat checks below bind installation to an already-open, owned regular file rather than a replaceable path.
+        Hyprutils::OS::CFileDescriptor sourceFD{open(source.c_str(), O_RDONLY | O_CLOEXEC | O_NOFOLLOW)}; // flawfinder: ignore
         if (!sourceFD.isValid())
             return {};
 

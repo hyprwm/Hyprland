@@ -201,8 +201,9 @@ bool CPluginManager::acquireRepositoryCacheLock() {
         return false;
     }
 
-    const auto      LOCK_PATH = HYPRPM_DIR / ".lock";
-    CFileDescriptor lock{open(LOCK_PATH.c_str(), O_CREAT | O_CLOEXEC | O_RDWR | O_NOFOLLOW, S_IRUSR | S_IWUSR)};
+    const auto LOCK_PATH = HYPRPM_DIR / ".lock";
+    // O_NOFOLLOW and the fstat ownership/type/mode checks below prevent lock-file redirection or replacement attacks.
+    CFileDescriptor lock{open(LOCK_PATH.c_str(), O_CREAT | O_CLOEXEC | O_RDWR | O_NOFOLLOW, S_IRUSR | S_IWUSR)}; // flawfinder: ignore
     if (!lock.isValid()) {
         std::println(stderr, "\n{}", failureString("Could not open the local repository cache lock"));
         return false;

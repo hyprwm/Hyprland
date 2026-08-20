@@ -1,4 +1,5 @@
 #include "PluginManager.hpp"
+#include "../helpers/JobControl.hpp"
 #include "CacheLogic.hpp"
 #include "../helpers/Colors.hpp"
 #include "../helpers/StringUtils.hpp"
@@ -546,7 +547,8 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
         }
 
         for (auto const& bs : p.buildSteps) {
-            const auto CMD_RAW = nixDevelopIfNeeded(std::format("cd {} && {} {}", shellQuote(m_szWorkingPluginDirectory), env, bs), HLVER);
+            const auto BUILD_CMD = NJobControl::pluginBuildCommand(shellQuote(m_szWorkingPluginDirectory), env, bs, m_jobs);
+            const auto CMD_RAW   = nixDevelopIfNeeded(BUILD_CMD, HLVER);
 
             if (!CMD_RAW) {
                 progress.printMessageAbove(failureString("Failed to build {}: {}", p.name, CMD_RAW.error()));
@@ -856,8 +858,7 @@ bool CPluginManager::updateHeaders(bool force) {
 
     ret = execAndGet(cmd);
 
-    cmd = std::format("make -C '{}' installheaders && chmod -R 644 '{}' && find '{}' -type d -exec chmod a+x {{}} \\;", WORKINGDIR, DataState::getHeadersPath(),
-                      DataState::getHeadersPath());
+    cmd = NJobControl::headersInstallCommand(WORKINGDIR, DataState::getHeadersPath(), m_jobs);
 
     if (m_bVerbose)
         progress.printMessageAbove(verboseString("install will run as sudo: {}", cmd));
@@ -1056,7 +1057,8 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
             }
 
             for (auto const& bs : p.buildSteps) {
-                const auto CMD_RAW = nixDevelopIfNeeded(std::format("cd {} && {} {}", shellQuote(m_szWorkingPluginDirectory), env, bs), HLVER);
+                const auto BUILD_CMD = NJobControl::pluginBuildCommand(shellQuote(m_szWorkingPluginDirectory), env, bs, m_jobs);
+                const auto CMD_RAW   = nixDevelopIfNeeded(BUILD_CMD, HLVER);
 
                 if (!CMD_RAW) {
                     progress.printMessageAbove(failureString("Failed to build {}: {}", p.name, CMD_RAW.error()));
@@ -1362,6 +1364,8 @@ bool CPluginManager::hasDeps() {
 
 std::string CPluginManager::getPluginBuildEnv() {
     std::string env = std::format("PKG_CONFIG_PATH=\"{}\"", getPkgConfigPath());
+
+    env = NJobControl::buildEnvironment(m_jobs) + env;
 
 #if defined(HYPRPM_EXTRA_CFLAGS)
     if (std::string_view{HYPRPM_EXTRA_CFLAGS}.size() > 0)

@@ -7,6 +7,7 @@ hyprpm [<FLAGS>]... <ARGUMENT>
         |   (--force | -f)              "Force an operation ignoring checks (e.g. update -f)"
         |   (--no-shallow | -s)         "Disable shallow cloning of Hyprland sources"
         |   (--experimental-cache)      "Persist plugin repositories and their build caches locally"
+        |   (--job <JOBS>)              "Set the maximum number of parallel build jobs"
         ;
 
 <ARGUMENT> ::= (add)                    "Install a new plugin repository from git"
@@ -20,3 +21,4 @@ hyprpm [<FLAGS>]... <ARGUMENT>
 
 <PLUGINS> ::= {{{ hyprpm list | awk '/Plugin/{print $4}' }}};
 <PLUGIN_REPOS> ::= {{{ hyprpm list | awk '/Repository/{print $4}' | sed 's/:$//' }}};
+<JOBS> ::= {{{ seq 1 $(nproc) | head -n 256 }}};

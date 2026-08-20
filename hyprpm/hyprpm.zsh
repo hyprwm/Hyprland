@@ -8,8 +8,12 @@ _hyprpm_cmd_1 () {
     hyprpm list | awk '/Repository/{print $4}' | sed 's/:$//'
 }
 
+_hyprpm_cmd_2 () {
+    seq 1 "$(nproc)" | head -n 256
+}
+
 _hyprpm () {
-    local -a literals=("--no-shallow" "-n" "::=" "disable" "list" "--help" "update" "add" "--verbose" "-v" "--force" "-s" "remove" "enable" "--notify" "-h" "reload" "-f" "--experimental-cache")
+    local -a literals=("--no-shallow" "-n" "::=" "disable" "list" "--help" "update" "add" "--verbose" "-v" "--force" "-s" "remove" "enable" "--notify" "-h" "reload" "-f" "--experimental-cache" "--job")
 
     local -A descriptions
     descriptions[1]="Disable shallow cloning of Hyprland sources"
@@ -30,15 +34,16 @@ _hyprpm () {
     descriptions[17]="Reload all plugins"
     descriptions[18]="Force an operation ignoring checks (e.g. update -f)"
     descriptions[19]="Persist plugin repositories and their build caches locally"
+    descriptions[20]="Set the maximum number of parallel build jobs"
 
     local -A literal_transitions
-    literal_transitions[1]="([1]=8 [4]=4 [5]=5 [9]=8 [10]=8 [7]=5 [8]=5 [12]=8 [6]=8 [11]=8 [13]=3 [14]=4 [16]=8 [17]=5 [18]=8 [19]=8)"
+    literal_transitions[1]="([1]=8 [4]=4 [5]=5 [9]=8 [10]=8 [7]=5 [8]=5 [12]=8 [6]=8 [11]=8 [13]=3 [14]=4 [16]=8 [17]=5 [18]=8 [19]=8 [20]=9)"
     literal_transitions[2]="([13]=3 [14]=4 [4]=4 [5]=5 [17]=5 [7]=5 [8]=5)"
     literal_transitions[6]="([3]=7)"
     literal_transitions[7]="([2]=8 [15]=8)"
 
     local -A match_anything_transitions
-    match_anything_transitions=([2]=2 [5]=6 [4]=5 [3]=5 [1]=2)
+    match_anything_transitions=([2]=2 [5]=6 [4]=5 [3]=5 [1]=2 [9]=8)
 
     declare -A subword_transitions
 
@@ -98,7 +103,7 @@ _hyprpm () {
             fi
         done
     fi
-    local -A commands=([4]=0 [3]=1)
+    local -A commands=([4]=0 [3]=1 [9]=2)
 
     if [[ -v "commands[$state]" ]]; then
         local command_id=${commands[$state]}

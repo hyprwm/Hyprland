@@ -1,7 +1,7 @@
 #include "SurfacePassElement.hpp"
 #include "../OpenGL.hpp"
 #include "../../desktop/view/WLSurface.hpp"
-#include "../../desktop/view/Window.hpp"
+#include "../../desktop/view/window/Window.hpp"
 #include "../../protocols/core/Compositor.hpp"
 #include "../../protocols/DRMSyncobj.hpp"
 #include "../../managers/input/InputManager.hpp"
@@ -37,7 +37,7 @@ CBox CSurfacePassElement::getTexBox() {
         if (PSURFACE && !PSURFACE->m_fillIgnoreSmall && PSURFACE->small() /* guarantees PWINDOW */) {
             const auto CORRECT  = PSURFACE->correctSmallVec();
             const auto SIZE     = PSURFACE->getViewporterCorrectedSize();
-            const auto REPORTED = PWINDOW->getReportedSize();
+            const auto REPORTED = PWINDOW->backend().reportedSize();
 
             if (!INTERACTIVERESIZEINPROGRESS) {
                 windowBox.translate(CORRECT);
@@ -58,7 +58,7 @@ CBox CSurfacePassElement::getTexBox() {
                      std::max(sc<float>(SURFSIZE.y), 2.F)};
         if (m_data.pWindow && m_data.pWindow->sizeAnimation()->isBeingAnimated() && m_data.surface && !m_data.mainSurface && m_data.squishOversized /* subsurface */) {
             // adjust subsurfaces to the window
-            const auto REPORTED = m_data.pWindow->getReportedSize();
+            const auto REPORTED = m_data.pWindow->backend().reportedSize();
             if (REPORTED.x != 0 && REPORTED.y != 0) {
                 const auto REALSIZE = m_data.pWindow->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
                 windowBox.width     = (windowBox.width / REPORTED.x) * REALSIZE.x;

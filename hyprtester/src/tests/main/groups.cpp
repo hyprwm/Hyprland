@@ -14,17 +14,13 @@ using namespace Hyprutils::Utils;
 #define UP CUniquePointer
 #define SP CSharedPointer
 
-// TODO: decompose this into multiple test cases
-TEST_CASE(groups) {
+TEST_CASE(groupDimensions) {
     // test on workspace "window"
     NLog::log("{}Dispatching workspace `groups`", Colors::YELLOW);
     getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:groups' })");
 
     NLog::log("{}Testing movewindoworgroup from group to group", Colors::YELLOW);
-    auto kittyA = Tests::spawnKitty("kittyA");
-    if (!kittyA) {
-        FAIL_TEST("Could not spawn kitty");
-    }
+    SPAWN_KITTY("kittyA");
 
     // check kitty properties. One kitty should take the entire screen, minus the gaps.
     NLog::log("{}Check kittyA dimensions", Colors::YELLOW);
@@ -35,10 +31,7 @@ TEST_CASE(groups) {
         EXPECT_COUNT_STRING(str, "fullscreen: 0", 1);
     }
 
-    auto kittyB = Tests::spawnKitty("kittyB");
-    if (!kittyB) {
-        FAIL_TEST("Could not spawn kitty");
-    }
+    SPAWN_KITTY("kittyB");
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kittyB' })"));
     OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
@@ -52,10 +45,7 @@ TEST_CASE(groups) {
         EXPECT_COUNT_STRING(str, "fullscreen: 0", 1);
     }
 
-    auto kittyC = Tests::spawnKitty("kittyC");
-    if (!kittyC) {
-        FAIL_TEST("Could not spawn kitty");
-    }
+    SPAWN_KITTY("kittyC");
 
     NLog::log("{}Check kittyC dimensions", Colors::YELLOW);
     {
@@ -77,10 +67,7 @@ TEST_CASE(groups) {
     Tests::killAllWindows();
 
     NLog::log("{}Spawning kittyProcA", Colors::YELLOW);
-    auto kittyProcA = Tests::spawnKitty();
-    if (!kittyProcA) {
-        FAIL_TEST("Could not spawn kitty");
-    }
+    SPAWN_KITTY("a");
 
     NLog::log("{}Expecting 1 window", Colors::YELLOW);
     ASSERT(Tests::windowCount(), 1);
@@ -107,7 +94,7 @@ TEST_CASE(groups) {
         EXPECT_CONTAINS(str, "size: 1876,1015");
     }
 
-    // disable the groupbar for ease of testing for now
+    // disable the groupbar
     NLog::log("{}Disable groupbar", Colors::YELLOW);
     OK(getFromSocket("/eval hl.config({ group = { groupbar = { enabled = 0 } } })"));
 
@@ -124,10 +111,7 @@ TEST_CASE(groups) {
     Tests::killAllWindows();
 
     NLog::log("{}Spawn kitty again", Colors::YELLOW);
-    kittyProcA = Tests::spawnKitty();
-    if (!kittyProcA) {
-        FAIL_TEST("Could not spawn kitty");
-    }
+    SPAWN_KITTY("a");
 
     NLog::log("{}Group kitty", Colors::YELLOW);
     OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
@@ -139,12 +123,12 @@ TEST_CASE(groups) {
         EXPECT_CONTAINS(str, "at: 22,22");
         EXPECT_CONTAINS(str, "size: 1876,1036");
     }
+}
 
-    NLog::log("{}Spawn kittyProcB", Colors::YELLOW);
-    auto kittyProcB = Tests::spawnKitty();
-    if (!kittyProcB) {
-        FAIL_TEST("Could not spawn kitty");
-    }
+TEST_CASE(groupNext) {
+    SPAWN_KITTY("a");
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+    SPAWN_KITTY("b");
 
     NLog::log("{}Expecting 2 windows", Colors::YELLOW);
     ASSERT(Tests::windowCount(), 2);
@@ -173,6 +157,15 @@ TEST_CASE(groups) {
         auto str = getFromSocket("/activewindow");
         ASSERT(lastActiveKittyIdx, std::stoull(str.substr(7, str.find(" -> ") - 7), nullptr, 16));
     } catch (...) { FAIL_TEST("Could not extract the active window id"); }
+}
+
+TEST_CASE(groupMoveWindow) {
+    SPAWN_KITTY("a");
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+    SPAWN_KITTY("b");
+
+    NLog::log("{}Expecting 2 windows", Colors::YELLOW);
+    ASSERT(Tests::windowCount(), 2);
 
     // test movegroupwindow: focus should follow the moved window
     NLog::log("{}Test movegroupwindow focus follows window", Colors::YELLOW);
@@ -195,16 +188,23 @@ TEST_CASE(groups) {
         auto activeAfterMove = std::stoull(str.substr(7, str.find(" -> ") - 7), nullptr, 16);
         EXPECT(activeAfterMove, activeBeforeMove);
     } catch (...) { FAIL_TEST("Could not extract the active window id"); }
+}
+
+TEST_CASE(autoGroupInsertAfterCurrent) {
+    OK(getFromSocket("/eval hl.config({ group = { groupbar = { enabled = 0 } } })"));
+    SPAWN_KITTY("a");
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+    SPAWN_KITTY("b");
+
+    NLog::log("{}Expecting 2 windows", Colors::YELLOW);
+    ASSERT(Tests::windowCount(), 2);
 
     NLog::log("{}Disable autogrouping", Colors::YELLOW);
     OK(getFromSocket("/eval hl.config({ group = { auto_group = false } })"));
     OK(getFromSocket("/eval hl.config({ dwindle = { force_split = 2 } })"));
 
     NLog::log("{}Spawn kittyProcC", Colors::YELLOW);
-    auto kittyProcC = Tests::spawnKitty();
-    if (!kittyProcC) {
-        FAIL_TEST("Could not spawn kitty");
-    }
+    SPAWN_KITTY("c");
 
     NLog::log("{}Expecting 3 windows 2", Colors::YELLOW);
     ASSERT(Tests::windowCount(), 3);
@@ -220,10 +220,8 @@ TEST_CASE(groups) {
     OK(getFromSocket("/eval hl.config({ group = { insert_after_current = false } })"));
 
     NLog::log("{}Spawn kittyProcD", Colors::YELLOW);
-    auto kittyProcD = Tests::spawnKitty();
-    if (!kittyProcD) {
-        FAIL_TEST("Could not spawn kitty");
-    }
+    auto kittyProcD = Tests::spawnKitty("d");
+    ASSERT(!!kittyProcD, true);
 
     NLog::log("{}Expecting 4 windows", Colors::YELLOW);
     ASSERT(Tests::windowCount(), 4);
@@ -234,30 +232,19 @@ TEST_CASE(groups) {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, std::format("pid: {}", kittyProcD->pid()));
     }
+}
 
-    // kill all
-    NLog::log("{}Kill windows", Colors::YELLOW);
-    Tests::killAllWindows();
-
-    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
-    ASSERT(Tests::windowCount(), 0);
-
+TEST_CASE(moveWindowOrGroup) {
     // test movewindoworgroup: direction should be respected when extracting from group
     NLog::log("{}Test movewindoworgroup respects direction out of group", Colors::YELLOW);
     OK(getFromSocket("/eval hl.config({ group = { groupbar = { enabled = 0 } } })"));
     {
-        auto kittyE = Tests::spawnKitty();
-        if (!kittyE) {
-            FAIL_TEST("Could not spawn kitty");
-        }
+        SPAWN_KITTY("e");
 
         // group kitty, and new windows should be auto-grouped
         OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
 
-        auto kittyF = Tests::spawnKitty();
-        if (!kittyF) {
-            FAIL_TEST("Could not spawn kitty");
-        }
+        SPAWN_KITTY("f");
         ASSERT(Tests::windowCount(), 2);
 
         // both windows should be grouped at the same position
@@ -288,102 +275,20 @@ TEST_CASE(groups) {
             auto str = getFromSocket("/clients");
             EXPECT_COUNT_STRING(str, "at: 22,22", 1);
         }
-
-        Tests::killAllWindows();
-        ASSERT(Tests::windowCount(), 0);
     }
+}
 
-    // test that we can auto-group a new floated window into the focused floated group
-    NLog::log("{}Test that we can auto-group a new floated window into the focused floated group.", Colors::GREEN);
-
-    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated-A', match = { class = 'kitty_floated_A' } })"));
-    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated-A', float = true })"));
-    auto kittyFA = Tests::spawnKitty("kitty_floated_A");
-    if (!kittyFA) {
-        FAIL_TEST("Could not spawn kitty");
-    }
-    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
-
-    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated-B', match = { class = 'kitty_floated_B' } })"));
-    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated-B', float = true })"));
-    auto kittyFB = Tests::spawnKitty("kitty_floated_B");
-    if (!kittyFB) {
-        FAIL_TEST("Could not spawn kitty");
-    }
-    ASSERT(Tests::windowCount(), 2);
-
-    {
-        auto clients  = getFromSocket("/clients");
-        auto classPos = clients.find("class: kitty_floated_B");
-        if (classPos == std::string::npos) {
-            FAIL_TEST("Could not find kitty_floated_B in clients output");
-        } else {
-            auto entryStart  = clients.rfind("Window ", classPos);
-            auto entryEnd    = clients.find("\n\n", classPos);
-            auto windowEntry = clients.substr(entryStart, entryEnd - entryStart);
-            EXPECT_CONTAINS(windowEntry, "floating: 1");
-            EXPECT_NOT_CONTAINS(windowEntry, "grouped: 0");
-        }
-    }
-
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
-
-    // test that we deny a floated window getting auto-grouped into a tiled group.
-    NLog::log("{}Test that we deny a floated window getting auto-grouped into a tiled group.", Colors::GREEN);
-
-    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-tiled', match = { class = 'kitty_tiled' } })"));
-    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-tiled', tile = true })"));
-    auto kittyProcE = Tests::spawnKitty("kitty_tiled");
-    if (!kittyProcE) {
-        FAIL_TEST("Could not spawn kitty");
-    }
-    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
-
-    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated', match = { class = 'kitty_floated' } })"));
-    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated', float = true })"));
-    auto kittyProcF = Tests::spawnKitty("kitty_floated");
-    if (!kittyProcF) {
-        FAIL_TEST("Could not spawn kitty");
-    }
-
-    ASSERT(Tests::windowCount(), 2);
-
-    {
-        auto clients  = getFromSocket("/clients");
-        auto classPos = clients.find("class: kitty_floated");
-        if (classPos == std::string::npos) {
-            FAIL_TEST("Could not find kitty_floated in clients output");
-        } else {
-            auto entryStart  = clients.rfind("Window ", classPos);
-            auto entryEnd    = clients.find("\n\n", classPos);
-            auto windowEntry = clients.substr(entryStart, entryEnd - entryStart);
-            EXPECT_CONTAINS(windowEntry, "floating: 1");
-            EXPECT_CONTAINS(windowEntry, "grouped: 0");
-        }
-    }
-
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
-
-    // Tests for grouping/merging logic
+TEST_CASE(groupLock) {
     NLog::log("{}Testing locked groups w/ invade", Colors::GREEN);
 
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
+    OK(getFromSocket("/eval hl.config({ group = { groupbar = { enabled = 0 } } })"));
 
     // Test normal, unlocked groups
     {
-        auto winA = Tests::spawnKitty("unlocked");
-        if (!winA) {
-            FAIL_TEST("Could not spawn unlocked kitty");
-        }
+        SPAWN_KITTY("unlocked");
         OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
 
-        auto winB = Tests::spawnKitty("top");
-        if (!winB) {
-            FAIL_TEST("Could not spawn top kitty");
-        }
+        SPAWN_KITTY("top");
 
         // Verify it DID merge into a group
         {
@@ -405,10 +310,7 @@ TEST_CASE(groups) {
         OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ window = 'pid:{}' }})", lockedWin->pid())));
         OK(getFromSocket("/dispatch hl.dsp.group.lock_active({ action = 'set' })"));
 
-        auto winB = Tests::spawnKitty("top");
-        if (!winB) {
-            FAIL_TEST("Could not spawn top kitty");
-        }
+        SPAWN_KITTY("top");
 
         // Verify it did NOT merge into the locked group
         {
@@ -425,39 +327,26 @@ TEST_CASE(groups) {
         OK(getFromSocket("/eval hl.window_rule({ name = 'locked-im', match = { class = '^locked|invade$' } })"));
         OK(getFromSocket("/eval hl.window_rule({ name = 'locked-im', group = 'set always lock invade' })"));
 
-        auto lockedWin = Tests::spawnKitty("locked");
-        if (!lockedWin) {
-            FAIL_TEST("Could not spawn locked kitty");
-        }
+        SPAWN_KITTY("locked");
 
-        auto invadingWin = Tests::spawnKitty("invade");
-        if (!invadingWin) {
-            FAIL_TEST("Could not spawn invading kitty");
-        }
+        SPAWN_KITTY("invade");
 
         // Verify it DID merge into the locked group
         auto str = getFromSocket("/clients");
         EXPECT_COUNT_STRING(str, "at: 22,22", 2);
     }
+}
 
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
-
+TEST_CASE(groupbarMiddleClick) {
     // Test groupbar middle click close config
     {
         OK(getFromSocket("/eval hl.config({ group = { auto_group = true, groupbar = { enabled = true, middle_click_close = false } } })"));
 
-        auto kittyA = Tests::spawnKitty("kittyA");
-        if (!kittyA) {
-            FAIL_TEST("Could not spawn kitty");
-        }
+        SPAWN_KITTY("kittyA");
 
         OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
 
-        auto kittyB = Tests::spawnKitty("kittyB");
-        if (!kittyB) {
-            FAIL_TEST("Could not spawn kitty");
-        }
+        SPAWN_KITTY("kittyB");
 
         EXPECT(Tests::windowCount(), 2);
 
@@ -478,13 +367,10 @@ TEST_CASE(groups) {
 
         OK(getFromSocket("/eval hl.config({ group = { groupbar = { enabled = 0 } } })"));
     }
-
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
 }
 
 TEST_CASE(groupsNoCrash) {
-    auto kittyA = Tests::spawnKitty("kittyA");
+    SPAWN_KITTY("kittyA");
 
     OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
     OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
@@ -500,14 +386,11 @@ TEST_CASE(groupsLuaApi) {
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:groups-lua-api' })"));
     OK(getFromSocket("/eval hl.config({ group = { auto_group = false, insert_after_current = false, groupbar = { enabled = false } } })"));
 
-    auto kittyA = Tests::spawnKitty("luaGroupA");
-    auto kittyB = Tests::spawnKitty("luaGroupB");
-    auto kittyC = Tests::spawnKitty("luaGroupC");
-    auto kittyD = Tests::spawnKitty("luaGroupD");
-    auto kittyE = Tests::spawnKitty("luaGroupE");
-
-    if (!kittyA || !kittyB || !kittyC || !kittyD || !kittyE)
-        FAIL_TEST("Could not spawn kitty");
+    SPAWN_KITTY("luaGroupA");
+    SPAWN_KITTY("luaGroupB");
+    SPAWN_KITTY("luaGroupC");
+    SPAWN_KITTY("luaGroupD");
+    SPAWN_KITTY("luaGroupE");
 
     ASSERT(Tests::windowCount(), 5);
 
@@ -536,12 +419,9 @@ TEST_CASE(groupsLuaApiInvalidOps) {
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:groups-lua-invalid' })"));
     OK(getFromSocket("/eval hl.config({ group = { auto_group = false, insert_after_current = false, groupbar = { enabled = false } } })"));
 
-    auto kittyA = Tests::spawnKitty("luaInvalidA");
-    auto kittyB = Tests::spawnKitty("luaInvalidB");
-    auto kittyC = Tests::spawnKitty("luaInvalidC");
-
-    if (!kittyA || !kittyB || !kittyC)
-        FAIL_TEST("Could not spawn kitty");
+    SPAWN_KITTY("luaInvalidA");
+    SPAWN_KITTY("luaInvalidB");
+    SPAWN_KITTY("luaInvalidC");
 
     ASSERT(Tests::windowCount(), 3);
 
@@ -571,15 +451,11 @@ TEST_CASE(groupsLuaApiCrossWorkspaceMonitor) {
     OK(getFromSocket("/eval hl.config({ group = { auto_group = false, insert_after_current = false, groupbar = { enabled = false } } })"));
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:groups-lua-ws-a' })"));
-    auto kittyWorkspaceA = Tests::spawnKitty("luaWorkspaceA");
-    if (!kittyWorkspaceA)
-        FAIL_TEST("Could not spawn kitty");
+    SPAWN_KITTY("luaWorkspaceA");
 
     OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:groups-lua-ws-b' })"));
-    auto kittyWorkspaceB = Tests::spawnKitty("luaWorkspaceB");
-    if (!kittyWorkspaceB)
-        FAIL_TEST("Could not spawn kitty");
+    SPAWN_KITTY("luaWorkspaceB");
 
     OK(getFromSocket("/eval local a=hl.get_window('class:luaWorkspaceA') local b=hl.get_window('class:luaWorkspaceB') assert(a and b and a.group) local g=a.group g:add(b) "
                      "assert(b.group == g) assert(b.workspace == a.workspace) assert(b.monitor == a.monitor) assert(g.size == 2)"));
@@ -597,17 +473,13 @@ TEST_CASE(groupsLuaApiCrossWorkspaceMonitor) {
     OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:groups-lua-monitor-a' })"));
 
-    auto kittyMonitorA = Tests::spawnKitty("luaMonitorA");
-    if (!kittyMonitorA)
-        FAIL_TEST("Could not spawn kitty");
+    SPAWN_KITTY("luaMonitorA");
 
     OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
     OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", TEST_OUTPUT)));
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:groups-lua-monitor-b' })"));
 
-    auto kittyMonitorB = Tests::spawnKitty("luaMonitorB");
-    if (!kittyMonitorB)
-        FAIL_TEST("Could not spawn kitty");
+    SPAWN_KITTY("luaMonitorB");
 
     OK(getFromSocket("/eval local a=hl.get_window('class:luaMonitorA') local b=hl.get_window('class:luaMonitorB') assert(a and b and a.group) local g=a.group g:add(b) "
                      "assert(b.group == g) assert(b.workspace == a.workspace) assert(b.monitor == a.monitor) assert(g.size == 2)"));
@@ -621,10 +493,8 @@ TEST_CASE(groupsLuaApiFullscreen) {
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:groups-lua-fullscreen' })"));
     OK(getFromSocket("/eval hl.config({ group = { auto_group = false, insert_after_current = false, groupbar = { enabled = false } } })"));
 
-    auto kittyA = Tests::spawnKitty("luaFullscreenGroupA");
-    auto kittyB = Tests::spawnKitty("luaFullscreenSourceB");
-    if (!kittyA || !kittyB)
-        FAIL_TEST("Could not spawn kitty");
+    SPAWN_KITTY("luaFullscreenGroupA");
+    SPAWN_KITTY("luaFullscreenSourceB");
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:luaFullscreenGroupA' })"));
     OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
@@ -639,10 +509,8 @@ TEST_CASE(groupsLuaApiFullscreen) {
     ASSERT(Tests::windowCount(), 0);
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:groups-lua-fullscreen-target' })"));
-    auto kittyC = Tests::spawnKitty("luaFullscreenTargetC");
-    auto kittyD = Tests::spawnKitty("luaFullscreenUnderD");
-    if (!kittyC || !kittyD)
-        FAIL_TEST("Could not spawn kitty");
+    SPAWN_KITTY("luaFullscreenTargetC");
+    SPAWN_KITTY("luaFullscreenUnderD");
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:luaFullscreenTargetC' })"));
     OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
@@ -660,10 +528,7 @@ TEST_CASE(groups_disable_when_only) {
     ASSERT(Tests::windowCount(), 0);
 
     NLog::log("{}Testing disable_when_only ", Colors::YELLOW);
-    auto kittyA = Tests::spawnKitty("kittyA");
-    if (!kittyA) {
-        FAIL_TEST("Could not spawn kitty");
-    }
+    SPAWN_KITTY("kittyA");
     ASSERT(Tests::windowCount(), 1);
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kittyA' })"));
 
@@ -686,10 +551,7 @@ TEST_CASE(groups_disable_when_only) {
         EXPECT_COUNT_STRING(str, "size: 1876,1036", 1);
     }
 
-    auto kittyB = Tests::spawnKitty("kittyB");
-    if (!kittyB) {
-        FAIL_TEST("Could not spawn kitty");
-    }
+    SPAWN_KITTY("kittyB");
     ASSERT(Tests::windowCount(), 2);
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kittyB' })"));
 
@@ -726,4 +588,136 @@ TEST_CASE(groups_disable_when_only) {
 
     Tests::killAllWindows();
     ASSERT(Tests::windowCount(), 0);
+}
+
+TEST_CASE(autoGroupFloatedIntoTiled) {
+    NLog::log("{}Test that we deny a new floated window getting auto-grouped into the focused tiled group.", Colors::GREEN);
+
+    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-tiled', match = { class = 'kitty_tiled' } })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-tiled', tile = true })"));
+    SPAWN_KITTY("kitty_tiled");
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+
+    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated', match = { class = 'kitty_floated' } })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated', float = true })"));
+    SPAWN_KITTY("kitty_floated");
+
+    ASSERT(Tests::windowCount(), 2);
+
+    {
+        auto clients  = getFromSocket("/clients");
+        auto classPos = clients.find("class: kitty_floated");
+        if (classPos == std::string::npos) {
+            FAIL_TEST("Could not find kitty_floated in clients output");
+        } else {
+            auto entryStart  = clients.rfind("Window ", classPos);
+            auto entryEnd    = clients.find("\n\n", classPos);
+            auto windowEntry = clients.substr(entryStart, entryEnd - entryStart);
+            EXPECT_CONTAINS(windowEntry, "floating: 1");
+            EXPECT_CONTAINS(windowEntry, "grouped: 0");
+        }
+    }
+}
+
+TEST_CASE(autoGroupFloatedintoFloated) {
+    NLog::log("{}Test that we can auto-group a new floated window into the focused floated group.", Colors::GREEN);
+
+    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated-A', match = { class = 'kitty_floated_A' } })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated-A', float = true })"));
+    SPAWN_KITTY("kitty_floated_A");
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+
+    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated-B', match = { class = 'kitty_floated_B' } })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated-B', float = true })"));
+    SPAWN_KITTY("kitty_floated_B");
+    ASSERT(Tests::windowCount(), 2);
+
+    {
+        auto clients  = getFromSocket("/clients");
+        auto classPos = clients.find("class: kitty_floated_B");
+        if (classPos == std::string::npos) {
+            FAIL_TEST("Could not find kitty_floated_B in clients output");
+        } else {
+            auto entryStart  = clients.rfind("Window ", classPos);
+            auto entryEnd    = clients.find("\n\n", classPos);
+            auto windowEntry = clients.substr(entryStart, entryEnd - entryStart);
+            EXPECT_CONTAINS(windowEntry, "floating: 1");
+            EXPECT_NOT_CONTAINS(windowEntry, "grouped: 0");
+        }
+    }
+}
+
+TEST_CASE(autoGroupTiledIntoFloated) {
+    NLog::log("{}Test that we can auto-group a new tiled window into the focused floated group.", Colors::GREEN);
+
+    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated-A', match = { class = 'kitty_floated_A' } })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-floated-A', float = true })"));
+    SPAWN_KITTY("kitty_floated_A");
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "floating: 1");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+
+    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-tiled-B', match = { class = 'kitty_tiled_B' } })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'kitty-tiled-B', tile = true })"));
+    SPAWN_KITTY("kitty_tiled_B");
+
+    ASSERT(Tests::windowCount(), 2);
+
+    {
+        auto clients  = getFromSocket("/clients");
+        auto classPos = clients.find("class: kitty_tiled_B");
+        if (classPos == std::string::npos) {
+            FAIL_TEST("Could not find kitty_tiled_B in clients output");
+        } else {
+            auto entryStart  = clients.rfind("Window ", classPos);
+            auto entryEnd    = clients.find("\n\n", classPos);
+            auto windowEntry = clients.substr(entryStart, entryEnd - entryStart);
+            EXPECT_CONTAINS(windowEntry, "floating: 1");
+            EXPECT_NOT_CONTAINS(windowEntry, "grouped: 0");
+        }
+    }
+
+    Tests::killAllWindows();
+    ASSERT(Tests::windowCount(), 0);
+}
+
+TEST_CASE(groupedExitWindowRetainsFullscreen) {
+    OK(getFromSocket("/eval hl.config({ misc = { exit_window_retains_fullscreen = 3 } })"));
+
+    SPAWN_KITTY("kitty_A");
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+    SPAWN_KITTY("kitty_B");
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen' })"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.kill({ window = 'activewindow' })"));
+    Tests::waitUntilWindowsN(1);
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
+    }
+
+    SPAWN_KITTY("kitty_B");
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen' })"));
+    OK(getFromSocket("/eval hl.config({ misc = { exit_window_retains_fullscreen = 2 } })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.window.kill({ window = 'activewindow' })"));
+    Tests::waitUntilWindowsN(1);
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+    }
 }

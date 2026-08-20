@@ -135,8 +135,10 @@ TEST_CASE(swallow) {
     }
 
     // Re-swallow the initial window
-    OK(getFromSocket("/dispatch hl.dsp.focus({ last = true })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_swallowee' })"));
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: kitty_swallowee");
     OK(getFromSocket("/dispatch hl.dsp.window.toggle_swallow()"));
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: kitty_swallower");
 
     {
         // Verify that the initial has been re-swallowed
@@ -147,4 +149,217 @@ TEST_CASE(swallow) {
         std::string workspaces = getFromSocket("/workspaces");
         ASSERT_CONTAINS(workspaces, "windows: 2\n");
     }
+
+    Tests::killAllWindows();
+    ASSERT(Tests::windowCount(), 0);
+
+    NLog::log("{}Testing chained window swallowing", Colors::GREEN);
+    OK(getFromSocket("/eval hl.config({ misc = { swallow_regex = '^(kitty_swallowee|kitty_chain_middle|kitty_chain_removed_middle)$' } })"));
+
+    spawnRemoteControlKitty("chain_first");
+    const std::string chainFirstID = getActiveWindowID();
+    if (chainFirstID == "error")
+        FAIL_TEST("Could not get first chain window ID");
+
+    ASSERT(spawnSwallower("chain_first", "chain_middle"), true);
+    const std::string chainMiddleID = getActiveWindowID();
+    if (chainMiddleID == "error")
+        FAIL_TEST("Could not get middle chain window ID");
+
+    ASSERT(spawnSwallower("chain_middle", "chain_last"), true);
+    {
+        const auto clients = getFromSocket("/clients");
+        ASSERT_COUNT_STRING(clients, "swallowing: 0\n", 1);
+        ASSERT_COUNT_STRING(clients, std::format("swallowing: {}\n", chainFirstID), 1);
+        ASSERT_COUNT_STRING(clients, std::format("swallowing: {}\n", chainMiddleID), 1);
+        ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: kitty_chain_last");
+        ASSERT_CONTAINS(getFromSocket("/workspaces"), "windows: 1\n");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.kill({ window = 'class:kitty_chain_last' })"));
+    Tests::waitUntilWindowsN(2);
+    {
+        const auto clients = getFromSocket("/clients");
+        ASSERT_COUNT_STRING(clients, "swallowing: 0\n", 1);
+        ASSERT_COUNT_STRING(clients, std::format("swallowing: {}\n", chainFirstID), 1);
+        ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: kitty_chain_middle");
+        ASSERT_CONTAINS(getFromSocket("/workspaces"), "windows: 1\n");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.kill({ window = 'class:kitty_chain_middle' })"));
+    Tests::waitUntilWindowsN(1);
+    ASSERT_COUNT_STRING(getFromSocket("/clients"), "swallowing: 0\n", 1);
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: kitty_swallowee");
+    ASSERT_CONTAINS(getFromSocket("/workspaces"), "windows: 1\n");
+
+    Tests::killAllWindows();
+    ASSERT(Tests::windowCount(), 0);
+
+    spawnRemoteControlKitty("chain_removed_first");
+    ASSERT(spawnSwallower("chain_removed_first", "chain_removed_middle"), true);
+    ASSERT(spawnSwallower("chain_removed_middle", "chain_removed_last"), true);
+    OK(getFromSocket("/dispatch hl.dsp.window.kill({ window = 'class:kitty_chain_removed_middle' })"));
+    Tests::waitUntilWindowsN(2);
+    ASSERT_COUNT_STRING(getFromSocket("/clients"), "swallowing: 0\n", 2);
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: kitty_chain_removed_last");
+    ASSERT_CONTAINS(getFromSocket("/workspaces"), "windows: 2\n");
+
+    Tests::killAllWindows();
+    ASSERT(Tests::windowCount(), 0);
+    OK(getFromSocket("/eval hl.config({ misc = { swallow_regex = '^(kitty_swallowee)$' } })"));
+
+    NLog::log("{}Testing grouped window swallowing", Colors::GREEN);
+    OK(getFromSocket("/eval hl.config({ group = { auto_group = true } })"));
+
+    spawnRemoteControlKitty("grouped_swallowee");
+    const std::string groupedSwalloweeID = getActiveWindowID();
+    if (groupedSwalloweeID == "error")
+        FAIL_TEST("Could not get grouped swallowee ID");
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+    ASSERT(!!Tests::spawnKitty("swallow_group_peer"), true);
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_swallowee' })"));
+
+    {
+        const auto clients = getFromSocket("/clients");
+        ASSERT_COUNT_STRING(clients, "grouped: 0\n", 0);
+    }
+
+    ASSERT(spawnSwallower("grouped_swallowee", "grouped_swallower"), true);
+
+    {
+        const auto clients = getFromSocket("/clients");
+        ASSERT_COUNT_STRING(clients, "grouped: 0\n", 1);
+        ASSERT_COUNT_STRING(clients, std::format("swallowing: {}\n", groupedSwalloweeID), 1);
+    }
+
+    // Only internal fullscreen follows the group slot; each endpoint keeps its own client mode.
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 2, client = 1, action = 'set', layout_aware = false })"));
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 2");
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "fullscreenClient: 1");
+
+    OK(getFromSocket("/dispatch hl.dsp.window.toggle_swallow()"));
+    {
+        const auto active = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(active, "class: kitty_swallowee");
+        ASSERT_CONTAINS(active, "fullscreen: 2");
+        ASSERT_CONTAINS(active, "fullscreenClient: 0");
+    }
+    ASSERT_COUNT_STRING(getFromSocket("/clients"), std::format("swallowing: {}\n", groupedSwalloweeID), 1);
+    ASSERT_COUNT_STRING(getFromSocket("/clients"), "fullscreenClient: 1\n", 1);
+
+    OK(getFromSocket("/dispatch hl.dsp.window.toggle_swallow()"));
+    {
+        const auto active = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(active, "class: kitty_grouped_swallower");
+        ASSERT_CONTAINS(active, "fullscreen: 2");
+        ASSERT_CONTAINS(active, "fullscreenClient: 1");
+    }
+
+    // Internal-only slot transfers preserve the endpoint's client maximize restoration state.
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 1, client = 1, action = 'set', layout_aware = false })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 2, client = 2, action = 'set', layout_aware = false })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.toggle_swallow()"));
+    OK(getFromSocket("/dispatch hl.dsp.window.toggle_swallow()"));
+
+    // A transfer must not carry an old echo suppression into a later genuine client request.
+    OK(getFromSocket("/eval hl.plugin.test.expect_no_maximize_echo()"));
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 2, client = 2, action = 'set', layout_aware = false })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 0, client = 0, action = 'set', layout_aware = false })"));
+    {
+        const auto active = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(active, "class: kitty_grouped_swallower");
+        ASSERT_CONTAINS(active, "fullscreen: 0");
+        ASSERT_CONTAINS(active, "fullscreenClient: 1");
+    }
+
+    // Clear the restored client mode before resetting the state used by the close test.
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 0, client = 0, action = 'set', layout_aware = false })"));
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "fullscreenClient: 0");
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 2, client = 1, action = 'set', layout_aware = false })"));
+
+    // Closing the source restores the swallowee and the default-handled internal fullscreen state.
+    OK(getFromSocket("/dispatch hl.dsp.window.kill({ window = 'class:kitty_grouped_swallower' })"));
+    Tests::waitUntilWindowsN(2);
+    ASSERT(Tests::windowCount(), 2);
+    {
+        const auto clients = getFromSocket("/clients");
+        ASSERT_COUNT_STRING(clients, "grouped: 0\n", 0);
+        ASSERT_COUNT_STRING(clients, "swallowing: 0\n", 2);
+    }
+    {
+        const auto active = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(active, "class: kitty_swallowee");
+        ASSERT_CONTAINS(active, "fullscreen: 2");
+        ASSERT_CONTAINS(active, "fullscreenClient: 0");
+        ASSERT_CONTAINS(active, "fullscreenHandler: default");
+    }
+
+    Tests::killAllWindows();
+    ASSERT(Tests::windowCount(), 0);
+
+    // Destroying the revealed target restores the source to the group slot and clears both reservations.
+    spawnRemoteControlKitty("target_first_swallowee");
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+    ASSERT(!!Tests::spawnKitty("target_first_group_peer"), true);
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_swallowee' })"));
+    ASSERT(spawnSwallower("target_first_swallowee", "target_first_swallower"), true);
+    OK(getFromSocket("/dispatch hl.dsp.window.toggle_swallow()"));
+    OK(getFromSocket("/dispatch hl.dsp.window.kill({ window = 'class:kitty_swallowee' })"));
+    Tests::waitUntilWindowsN(2);
+    ASSERT(Tests::windowCount(), 2);
+    {
+        const auto clients = getFromSocket("/clients");
+        ASSERT_COUNT_STRING(clients, "grouped: 0\n", 0);
+        ASSERT_COUNT_STRING(clients, "swallowing: 0\n", 2);
+    }
+
+    Tests::killAllWindows();
+    ASSERT(Tests::windowCount(), 0);
+
+    // Layout-managed fullscreen follows the group slot and survives closing the active swallower too.
+    OK(getFromSocket("/eval hl.config({ general = { layout = 'scrolling' } })"));
+    spawnRemoteControlKitty("layout_swallowee");
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+    ASSERT(!!Tests::spawnKitty("layout_swallow_group_peer"), true);
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_swallowee' })"));
+    ASSERT(spawnSwallower("layout_swallowee", "layout_swallower"), true);
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 2, client = 1, action = 'set', layout_aware = true })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.window.toggle_swallow()"));
+    {
+        const auto active = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(active, "class: kitty_swallowee");
+        ASSERT_CONTAINS(active, "fullscreen: 2");
+        ASSERT_CONTAINS(active, "fullscreenClient: 0");
+        ASSERT_CONTAINS(active, "fullscreenHandler: scrolling");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.toggle_swallow()"));
+    OK(getFromSocket("/dispatch hl.dsp.window.kill({ window = 'class:kitty_layout_swallower' })"));
+    Tests::waitUntilWindowsN(2);
+    ASSERT(Tests::windowCount(), 2);
+    {
+        const auto active = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(active, "class: kitty_swallowee");
+        ASSERT_CONTAINS(active, "fullscreen: 2");
+        ASSERT_CONTAINS(active, "fullscreenClient: 0");
+        ASSERT_CONTAINS(active, "fullscreenHandler: scrolling");
+    }
+
+    Tests::killAllWindows();
+    ASSERT(Tests::windowCount(), 0);
+    OK(getFromSocket("/eval hl.config({ general = { layout = 'dwindle' } })"));
+
+    // A locked candidate group must remain intact and must not be swallowed.
+    spawnRemoteControlKitty("locked_swallowee");
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+    OK(getFromSocket("/dispatch hl.dsp.group.lock_active({ action = 'set' })"));
+    ASSERT(spawnSwallower("locked_swallowee", "locked_swallower"), true);
+    ASSERT(swallowingCount(), 0);
+    ASSERT_COUNT_STRING(getFromSocket("/clients"), "grouped: 0\n", 1);
+
+    OK(getFromSocket("/eval hl.config({ group = { auto_group = false } })"));
+    Tests::killAllWindows();
 }

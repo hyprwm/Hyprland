@@ -4,7 +4,7 @@
 #include "../pointer/PointerManager.hpp"
 #include "./core/Seat.hpp"
 #include "LinuxDMABUF.hpp"
-#include "../desktop/view/Window.hpp"
+#include "../desktop/view/window/Window.hpp"
 #include "../render/OpenGL.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "render/Renderer.hpp"
@@ -266,7 +266,7 @@ void CImageCopyCaptureCursorSession::createFrame(SP<CExtImageCopyCaptureFrameV1>
     // we should always copy over the entire cursor image, it doesn't cost much
     m_frameResource->sendDamage(0, 0, m_bufferSize.x, m_bufferSize.y);
 
-    // the cursor is never transformed... probably?
+    // Images are always sent in NORMAL transforms
     m_frameResource->sendTransform(WL_OUTPUT_TRANSFORM_NORMAL);
 }
 

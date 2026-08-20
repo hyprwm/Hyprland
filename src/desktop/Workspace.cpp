@@ -1,4 +1,5 @@
 #include "Workspace.hpp"
+#include "view/window/WindowPresentation.hpp"
 #include "view/Group.hpp"
 #include "view/LayerSurface.hpp"
 #include "state/FocusState.hpp"
@@ -9,7 +10,7 @@
 #include "../config/supplementary/executor/Executor.hpp"
 #include "../config/supplementary/propRefresher/PropRefresher.hpp"
 #include "animation/AnimationManager.hpp"
-#include "../managers/EventManager.hpp"
+#include "../ipc/s2/S2.hpp"
 #include "../managers/fullscreen/FullscreenController.hpp"
 #include "../output/Monitor.hpp"
 #include "../state/MonitorState.hpp"
@@ -69,17 +70,17 @@ void CWorkspace::init(PHLWORKSPACE self) {
         if (auto cmd = WORKSPACERULE.m_onCreatedEmptyRunCmd)
             Config::Supplementary::executor()->spawnWithRules(*cmd, self);
 
-    g_pEventManager->postEvent({.event = "createworkspace", .data = m_name});
-    g_pEventManager->postEvent({.event = "createworkspacev2", .data = std::format("{},{}", m_id, m_name)});
+    IPC::Socket2::sock()->postEvent({.event = "createworkspace", .data = m_name});
+    IPC::Socket2::sock()->postEvent({.event = "createworkspacev2", .data = std::format("{},{}", m_id, m_name)});
     Event::bus()->m_events.workspace.created.emit(self);
 }
 
 CWorkspace::~CWorkspace() {
     Log::logger->log(Log::DEBUG, "Destroying workspace ID {}", m_id);
 
-    if (g_pEventManager) {
-        g_pEventManager->postEvent({.event = "destroyworkspace", .data = m_name});
-        g_pEventManager->postEvent({.event = "destroyworkspacev2", .data = std::format("{},{}", m_id, m_name)});
+    if (IPC::Socket2::sock()) {
+        IPC::Socket2::sock()->postEvent({.event = "destroyworkspace", .data = m_name});
+        IPC::Socket2::sock()->postEvent({.event = "destroyworkspacev2", .data = std::format("{},{}", m_id, m_name)});
     }
 
     Event::bus()->m_events.workspace.removed.emit(m_self);
@@ -114,7 +115,7 @@ std::string CWorkspace::getConfigName() {
     if (m_id > 0)
         return std::to_string(m_id);
 
-    return "name:" + m_name;
+    return std::format("name:{}", m_name);
 }
 
 bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
@@ -437,11 +438,11 @@ int CWorkspace::getWindowCount(std::optional<bool> onlyTiled, std::optional<bool
             continue;
 
         const auto visibilityFulfilled = t->window() && !t->window()->isHidden() &&
-            !t->window()->isInputBlockedReasonAnyOf(INPUT_BLOCK_GROUP_INACTIVE | INPUT_BLOCK_MONOCLE_INACTIVE | INPUT_BLOCK_BELOW_FULLSCREEN);
+            !t->window()->isInputBlockedReasonAnyOf(FOCUS_BLOCK_GROUP_INACTIVE | FOCUS_BLOCK_MONOCLE_INACTIVE | FOCUS_BLOCK_BELOW_FULLSCREEN);
 
         if (onlyTiled.has_value() && t->floating() == onlyTiled.value())
             continue;
-        if (onlyPinned.has_value() && (!t->window() || t->window()->m_pinned != onlyPinned.value()))
+        if (onlyPinned.has_value() && (!t->window() || sc<bool>(t->window()->m_state & WINDOW_STATE_PINNED) != onlyPinned.value()))
             continue;
         if (onlyVisible.has_value() && (!t->window() || visibilityFulfilled != onlyVisible.value()))
             continue;
@@ -457,13 +458,13 @@ int CWorkspace::getGroups(std::optional<bool> onlyTiled, std::optional<bool> onl
         const auto HEAD = g->head();
 
         const auto visibilityFulfilled = g->current() && !g->current()->isHidden() &&
-            !g->current()->isInputBlockedReasonAnyOf(INPUT_BLOCK_GROUP_INACTIVE | INPUT_BLOCK_MONOCLE_INACTIVE | INPUT_BLOCK_BELOW_FULLSCREEN);
+            !g->current()->isInputBlockedReasonAnyOf(FOCUS_BLOCK_GROUP_INACTIVE | FOCUS_BLOCK_MONOCLE_INACTIVE | FOCUS_BLOCK_BELOW_FULLSCREEN);
 
-        if (HEAD->workspaceID() != m_id || !HEAD->m_isMapped)
+        if (HEAD->workspaceID() != m_id || !HEAD->mapped())
             continue;
-        if (onlyTiled.has_value() && HEAD->m_isFloating == onlyTiled.value())
+        if (onlyTiled.has_value() && HEAD->isFloating() == onlyTiled.value())
             continue;
-        if (onlyPinned.has_value() && HEAD->m_pinned != onlyPinned.value())
+        if (onlyPinned.has_value() && sc<bool>(HEAD->m_state & WINDOW_STATE_PINNED) != onlyPinned.value())
             continue;
         if (onlyVisible.has_value() && visibilityFulfilled != onlyVisible.value())
             continue;
@@ -474,7 +475,7 @@ int CWorkspace::getGroups(std::optional<bool> onlyTiled, std::optional<bool> onl
 
 PHLWINDOW CWorkspace::getFirstWindow() {
     for (auto const& w : Desktop::windowState()->windows()) {
-        if (w->m_workspace == m_self && w->m_isMapped && w->acceptsInput())
+        if (w->m_workspace == m_self && w->mapped() && w->acceptsInput())
             return w;
     }
 
@@ -485,7 +486,7 @@ PHLWINDOW CWorkspace::getTopLeftWindow() {
     const auto PMONITOR = m_monitor.lock();
 
     for (auto const& w : Desktop::windowState()->windows()) {
-        if (w->m_workspace != m_self || !w->m_isMapped || !w->acceptsInput())
+        if (w->m_workspace != m_self || !w->mapped() || !w->acceptsInput())
             continue;
 
         const auto WINDOWIDEALBB = w->getWindowIdealBoundingBoxIgnoreReserved();
@@ -497,7 +498,7 @@ PHLWINDOW CWorkspace::getTopLeftWindow() {
 }
 
 bool CWorkspace::hasUrgentWindow() {
-    return std::ranges::any_of(Desktop::windowState()->windows(), [this](const auto& w) { return w->m_workspace == m_self && w->m_isMapped && w->m_isUrgent; });
+    return std::ranges::any_of(Desktop::windowState()->windows(), [this](const auto& w) { return w->m_workspace == m_self && w->mapped() && (w->m_hints & WINDOW_HINT_URGENT); });
 }
 
 void CWorkspace::updateWindowDecos() {
@@ -505,7 +506,7 @@ void CWorkspace::updateWindowDecos() {
         if (w->m_workspace != m_self)
             continue;
 
-        w->updateWindowDecos();
+        w->presentation().updateDecorations();
     }
 }
 
@@ -522,7 +523,7 @@ void CWorkspace::updateWindowData() {
 
 void CWorkspace::forceReportSizesToWindows() {
     for (auto const& w : Desktop::windowState()->windows()) {
-        if (w->m_workspace != m_self || !w->m_isMapped || w->isHidden())
+        if (w->m_workspace != m_self || !w->mapped() || w->isHidden())
             continue;
 
         w->sendWindowSize(true);
@@ -540,7 +541,7 @@ void CWorkspace::rename(const std::string& name) {
 
     m_wasRenamed = true;
 
-    g_pEventManager->postEvent({.event = "renameworkspace", .data = std::to_string(m_id) + "," + m_name});
+    IPC::Socket2::sock()->postEvent({.event = "renameworkspace", .data = std::format("{},{}", m_id, m_name)});
     m_events.renamed.emit();
 }
 
@@ -557,7 +558,7 @@ void CWorkspace::changeID(int64_t id) {
 
     Config::Supplementary::refresher()->scheduleRefresh(Config::Supplementary::REFRESH_ALL);
 
-    g_pEventManager->postEvent({.event = "changeworkspaceid", .data = std::to_string(OLD_ID) + "," + std::to_string(m_id)});
+    IPC::Socket2::sock()->postEvent({.event = "changeworkspaceid", .data = std::format("{},{}", OLD_ID, m_id)});
     m_events.idChanged.emit();
 }
 

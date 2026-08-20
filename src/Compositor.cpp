@@ -1,5 +1,6 @@
 
 #include "Compositor.hpp"
+#include "render/decorations/DecorationPositioner.hpp"
 #include "config/supplementary/executor/Executor.hpp"
 #include "debug/log/Logger.hpp"
 #include "desktop/DesktopTypes.hpp"
@@ -30,7 +31,8 @@
 #include <print>
 #include <cstring>
 #include <filesystem>
-#include "debug/HyprCtl.hpp"
+#include <fstream>
+#include "ipc/s1/S1.hpp"
 #include "debug/crash/CrashReporter.hpp"
 #include "render/GLRenderer.hpp"
 #include "render/ShaderLoader.hpp"
@@ -45,7 +47,7 @@
 #include "xwayland/XWayland.hpp"
 #include "helpers/ByteOperations.hpp"
 
-#include "managers/KeybindManager.hpp"
+#include "keybinds/Manager.hpp"
 #include "managers/SessionLockManager.hpp"
 #include "managers/XWaylandManager.hpp"
 
@@ -53,7 +55,7 @@
 #include "render/OpenGL.hpp"
 #include "managers/input/InputManager.hpp"
 #include "animation/AnimationManager.hpp"
-#include "managers/EventManager.hpp"
+#include "ipc/s2/S2.hpp"
 #include "managers/ProtocolManager.hpp"
 #include "managers/WelcomeManager.hpp"
 #include "render/AsyncResourceGatherer.hpp"
@@ -190,7 +192,8 @@ CCompositor::CCompositor(bool onlyConfig) : m_onlyConfigVerification(onlyConfig)
 
     setMallocThreshold();
 
-    m_hyprTempDataRoot = std::string{getenv("XDG_RUNTIME_DIR")} + "/hypr";
+    const auto* XDG_RUNTIME_DIR = getenv("XDG_RUNTIME_DIR");
+    m_hyprTempDataRoot          = std::format("{}/hypr", XDG_RUNTIME_DIR ? XDG_RUNTIME_DIR : "");
 
     if (m_hyprTempDataRoot.starts_with("/hypr")) {
         std::println("Bailing out, $XDG_RUNTIME_DIR is invalid");
@@ -215,7 +218,7 @@ CCompositor::CCompositor(bool onlyConfig) : m_onlyConfigVerification(onlyConfig)
         throw std::runtime_error("CCompositor() failed");
     }
 
-    m_instancePath = m_hyprTempDataRoot + "/" + m_instanceSignature;
+    m_instancePath = std::format("{}/{}", m_hyprTempDataRoot, m_instanceSignature);
 
     if (std::filesystem::exists(m_instancePath)) {
         std::println("Bailing out, {} exists??", m_instancePath);
@@ -270,7 +273,7 @@ static bool filterGlobals(const wl_client* client, const wl_global* global, void
 //
 void CCompositor::initServer(std::string socketName, int socketFd) {
     if (m_onlyConfigVerification) {
-        g_pKeybindManager = makeUnique<CKeybindManager>();
+        Keybinds::mgr();
         Animation::mgr();
         Config::initConfigManager();
         Config::mgr()->init();
@@ -392,7 +395,7 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
     } else {
         // get socket, avoid using 0
         for (int candidate = 1; candidate <= 32; candidate++) {
-            const auto CANDIDATESTR = ("wayland-" + std::to_string(candidate));
+            const auto CANDIDATESTR = std::format("wayland-{}", candidate);
             const auto RETVAL       = wl_display_add_socket(m_wlDisplay, CANDIDATESTR.c_str());
             if (RETVAL >= 0) {
                 m_wlDisplaySocket = CANDIDATESTR;
@@ -609,20 +612,20 @@ void CCompositor::cleanup() {
     g_pPluginSystem.reset();
     Notification::overlay().reset();
     Debug::overlay().reset();
-    g_pEventManager.reset();
+    IPC::Socket2::sock().reset();
     g_pSessionLockManager.reset();
     g_pHyprRenderer.reset();
     g_pProtocolManager.reset();
     g_pHyprOpenGL.reset();
     Render::g_pShaderLoader.reset();
+    Keybinds::mgr().reset();
     Config::mgr().reset();
     g_layoutManager.reset();
     ErrorOverlay::overlay().reset();
-    g_pKeybindManager.reset();
     g_pXWaylandManager.reset();
     Pointer::mgr().reset();
     g_pSeatManager.reset();
-    g_pHyprCtl.reset();
+    IPC::Socket1::sock().reset();
     g_pEventLoopManager.reset();
     g_pVersionKeeperMgr.reset();
     g_pDonationNagManager.reset();
@@ -648,7 +651,7 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             g_pEventLoopManager = makeUnique<CEventLoopManager>(m_wlDisplay, m_wlEventLoop);
 
             Log::logger->log(Log::DEBUG, "Creating the KeybindManager!");
-            g_pKeybindManager = makeUnique<CKeybindManager>();
+            Keybinds::mgr();
 
             Log::logger->log(Log::DEBUG, "Creating the AnimationManager!");
             Animation::mgr();
@@ -675,8 +678,7 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             Log::logger->log(Log::DEBUG, "Creating the TokenManager!");
             g_pTokenManager = makeUnique<CTokenManager>();
 
-            Log::logger->log(Log::DEBUG, "Creating the EventManager!");
-            g_pEventManager = makeUnique<CEventManager>();
+            IPC::Socket2::sock();
 
             // create executor
             Config::Supplementary::executor();
@@ -719,8 +721,8 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
         } break;
         case STAGE_LATE: {
-            Log::logger->log(Log::DEBUG, "Creating CHyprCtl");
-            g_pHyprCtl = makeUnique<CHyprCtl>();
+            Log::logger->log(Log::DEBUG, "Creating Socket1");
+            IPC::Socket1::sock() = makeUnique<IPC::Socket1::CSocket1>();
 
             Log::logger->log(Log::DEBUG, "Creating the InputManager!");
             g_pInputManager = makeUnique<CInputManager>();
@@ -764,7 +766,7 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 }
 
 void CCompositor::createLockFile() {
-    const auto    PATH = m_instancePath + "/hyprland.lock";
+    const auto    PATH = std::format("{}/hyprland.lock", m_instancePath);
 
     std::ofstream ofs(PATH, std::ios::trunc);
 
@@ -774,7 +776,7 @@ void CCompositor::createLockFile() {
 }
 
 void CCompositor::removeLockFile() {
-    const auto PATH = m_instancePath + "/hyprland.lock";
+    const auto PATH = std::format("{}/hyprland.lock", m_instancePath);
 
     if (std::filesystem::exists(PATH))
         std::filesystem::remove(PATH);
@@ -901,8 +903,16 @@ void CCompositor::performUserChecks() {
                                                  CHyprColor{1.0, 0.1, 0.1, 1.0}, 15000, ICON_ERROR);
     }
 
+    if (const auto N = Config::mgr()->deprecationNotices(); !N.empty()) {
+        Notification::overlay()->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_DEPRECATED_CONFIG_OPTS, {{"count", std::to_string(N.size())}}), CHyprColor{},
+                                                 12000, ICON_WARNING);
+    }
+
     if (!m_watchdogWriteFd.isValid() && !*PNOWATCHDOG)
         Notification::overlay()->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_NO_WATCHDOG), CHyprColor{1.0, 0.1, 0.1, 1.0}, 15000, ICON_WARNING);
+
+    if (!g_pHyprRenderer->fp16Supported())
+        Notification::overlay()->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_NO_FP16), CHyprColor{}, 12000, ICON_WARNING);
 
     if (m_safeMode)
         openSafeModeBox();

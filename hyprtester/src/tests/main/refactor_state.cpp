@@ -101,7 +101,7 @@ TEST_CASE(workspacePlacementActiveMove) {
 
     OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", TEST_MONITOR_LEFT)));
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '270' })"));
-    ASSERT(!!Tests::spawnKitty("workspace_move_active"), true);
+    SPAWN_KITTY("workspace_move_active");
 
     OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", TEST_MONITOR_RIGHT)));
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '271' })"));
@@ -133,16 +133,16 @@ TEST_CASE(workspacePlacementWindowState) {
     OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", TEST_MONITOR_LEFT)));
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '280' })"));
 
-    ASSERT(!!Tests::spawnKitty("workspace_move_pinned"), true);
+    SPAWN_KITTY("workspace_move_pinned");
     OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set' })"));
     OK(getFromSocket("/dispatch hl.dsp.window.pin()"));
 
-    ASSERT(!!Tests::spawnKitty("workspace_move_float"), true);
+    SPAWN_KITTY("workspace_move_float");
     OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set' })"));
     OK(getFromSocket("/dispatch hl.dsp.window.resize({ x = 400, y = 300 })"));
     OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 200, y = 200 })"));
 
-    ASSERT(!!Tests::spawnKitty("workspace_move_fullscreen"), true);
+    SPAWN_KITTY("workspace_move_fullscreen");
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set' })"));
 
     OK(getFromSocket(std::format("/dispatch hl.dsp.workspace.move({{ workspace = '280', monitor = '{}' }})", TEST_MONITOR_RIGHT)));
@@ -185,7 +185,7 @@ TEST_CASE(globalWindowMoveState) {
 
     OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", TEST_MONITOR_LEFT)));
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '290' })"));
-    ASSERT(!!Tests::spawnKitty("global_move_fullscreen"), true);
+    SPAWN_KITTY("global_move_fullscreen");
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set' })"));
     OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '291', follow = false })"));
 
@@ -198,7 +198,7 @@ TEST_CASE(globalWindowMoveState) {
 
     OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", TEST_MONITOR_LEFT)));
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '292' })"));
-    ASSERT(!!Tests::spawnKitty("global_move_float"), true);
+    SPAWN_KITTY("global_move_float");
     OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set' })"));
     OK(getFromSocket("/dispatch hl.dsp.window.resize({ x = 400, y = 300 })"));
     OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 200, y = 200 })"));
@@ -211,12 +211,12 @@ TEST_CASE(globalWindowMoveState) {
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '293' })"));
-    ASSERT(!!Tests::spawnKitty("global_move_group_anchor"), true);
+    SPAWN_KITTY("global_move_group_anchor");
     OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
 
     OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", TEST_MONITOR_LEFT)));
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '295' })"));
-    ASSERT(!!Tests::spawnKitty("global_move_group_member"), true);
+    SPAWN_KITTY("global_move_group_member");
     OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '293', follow = true })"));
     EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: global_move_group_member");
 
@@ -225,10 +225,7 @@ TEST_CASE(globalWindowMoveState) {
 }
 
 TEST_CASE(pointerNoWarpsFocusesMonitorOnly) {
-    CScopeGuard guard = {[&]() {
-        OK(getFromSocket("/eval hl.config({ cursor = { no_warps = false } })"));
-        cleanupRefactorStateMonitors();
-    }};
+    CScopeGuard guard = {[&]() { cleanupRefactorStateMonitors(); }};
 
     ASSERT(prepareRefactorStateMonitors(), true);
     Tests::killAllWindows();
@@ -252,4 +249,73 @@ TEST_CASE(pointerNoWarpsFocusesMonitorOnly) {
 
     OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 2000, y = 10 })"));
     EXPECT_NOT(getFromSocket("/cursorpos"), originalCursor);
+}
+
+SUBTEST(checkCursorWarpWhenSwitchingMonitor, bool noWarps, int warpOnChangeWorkspace, int warpOnMonitorChange, bool expectMove) {
+    auto conf = std::format("/eval hl.config({{ cursor = {{ no_warps = {}, warp_on_change_workspace = {}, warp_on_monitor_change = {} }} }})", noWarps, warpOnChangeWorkspace,
+                            warpOnMonitorChange);
+    NLog::yellow("{}", conf);
+    OK(getFromSocket(conf));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 300 })"));
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 5, y = 5 })"));
+    ASSERT(getFromSocket("/cursorpos"), "5, 5");
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 301 })"));
+    if (expectMove)
+        EXPECT_NOT(getFromSocket("/cursorpos"), "5, 5");
+    else
+        EXPECT(getFromSocket("/cursorpos"), "5, 5");
+
+    // TODO: uncomment after #15649 is resolved. Might need an additional fix in ConfigActions to pass:
+    // focusing with `hl.dsp.focus({ monitor = ... })` should trigger proper workspace switching.
+    /*
+    OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", TEST_MONITOR_LEFT)));
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 5, y = 5 })"));
+    ASSERT(getFromSocket("/cursorpos"), "5, 5");
+
+    OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", TEST_MONITOR_RIGHT)));
+    if (expectMove)
+        EXPECT_NOT(getFromSocket("/cursorpos"), "5, 5");
+    else
+        EXPECT(getFromSocket("/cursorpos"), "5, 5");
+    */
+}
+
+TEST_CASE(cursorWarpFocusOnMonitorChange) {
+    CScopeGuard guard = {[&]() { cleanupRefactorStateMonitors(); }};
+    ASSERT(prepareRefactorStateMonitors(), true);
+
+    OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", TEST_MONITOR_RIGHT)));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '301' })"));
+    SPAWN_KITTY("kitty301"); // A window must exist on the workspace (bug #15649)
+    OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", TEST_MONITOR_LEFT)));
+    SPAWN_KITTY("kitty300"); // A window must exist on the workspace (bug #15649)
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '300' })"));
+
+    //                                             no_warps, W, M, expect_move
+    //CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, false, 0, -1, false); // BUG: fails!
+    //CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, false, 0, 0, false); // BUG: fails!
+    CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, false, 0, 1, true);
+    CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, false, 0, 2, true);
+    CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, false, 1, -1, true);
+    //CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, false, 1, 0,  false); // BUG: fails!
+    CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, false, 1, 1, true);
+    CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, false, 1, 2, true);
+    CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, false, 2, -1, true);
+    //CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, false, 2, 0, false); // BUG: fails!
+    CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, false, 2, 1, true);
+    CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, false, 2, 2, true);
+    CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, true, 0, -1, false);
+    CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, true, 0, 0, false);
+    CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, true, 0, 1, false);
+    CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, true, 0, 2, true);
+    CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, true, 1, -1, false);
+    CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, true, 1, 0, false);
+    CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, true, 1, 1, false);
+    CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, true, 1, 2, true);
+    CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, true, 2, -1, true);
+    CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, true, 2, 0, false);
+    CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, true, 2, 1, false);
+    CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, true, 2, 2, true);
 }

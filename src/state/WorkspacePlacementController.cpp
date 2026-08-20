@@ -10,13 +10,13 @@
 #include "../desktop/state/WindowState.hpp"
 #include "../desktop/state/ViewState.hpp"
 #include "../desktop/state/GlobalWindowController.hpp"
-#include "../desktop/view/Window.hpp"
+#include "../desktop/view/window/Window.hpp"
 #include "../helpers/MiscFunctions.hpp"
 #include "../output/Monitor.hpp"
 #include "../layout/target/Target.hpp"
 #include "../layout/LayoutManager.hpp"
 #include "../layout/space/Space.hpp"
-#include "../managers/EventManager.hpp"
+#include "../ipc/s2/S2.hpp"
 #include "../managers/fullscreen/FullscreenController.hpp"
 #include "../pointer/PointerManager.hpp"
 #include "../event/EventBus.hpp"
@@ -157,7 +157,7 @@ void CWorkspacePlacementController::swapActiveWorkspaces(PHLMONITOR pMonitorA, P
 
     for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace == PWORKSPACEA) {
-            if (w->m_pinned) {
+            if (w->m_state & Desktop::View::WINDOW_STATE_PINNED) {
                 w->m_workspace = PWORKSPACEB;
                 continue;
             }
@@ -165,7 +165,7 @@ void CWorkspacePlacementController::swapActiveWorkspaces(PHLMONITOR pMonitorA, P
             w->m_monitor = pMonitorB;
 
             // additionally, move floating and fs windows manually
-            if (w->m_isFloating)
+            if (w->isFloating())
                 w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(-pMonitorA->m_position + pMonitorB->m_position));
 
             if (Fullscreen::controller()->isFullscreen(w))
@@ -180,7 +180,7 @@ void CWorkspacePlacementController::swapActiveWorkspaces(PHLMONITOR pMonitorA, P
 
     for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace == PWORKSPACEB) {
-            if (w->m_pinned) {
+            if (w->m_state & Desktop::View::WINDOW_STATE_PINNED) {
                 w->m_workspace = PWORKSPACEA;
                 continue;
             }
@@ -188,7 +188,7 @@ void CWorkspacePlacementController::swapActiveWorkspaces(PHLMONITOR pMonitorA, P
             w->m_monitor = pMonitorA;
 
             // additionally, move floating and fs windows manually
-            if (w->m_isFloating)
+            if (w->isFloating())
                 w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(-pMonitorB->m_position + pMonitorA->m_position));
 
             if (Fullscreen::controller()->isFullscreen(w))
@@ -221,22 +221,22 @@ void CWorkspacePlacementController::swapActiveWorkspaces(PHLMONITOR pMonitorA, P
             Desktop::FOCUS_REASON_DESKTOP_STATE_CHANGE);
 
         const auto PNEWWORKSPACE = pMonitorA->m_id == Desktop::focusState()->monitor()->m_id ? PWORKSPACEB : PWORKSPACEA;
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "workspace", .data = PNEWWORKSPACE->m_name});
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "workspacev2", .data = std::format("{},{}", PNEWWORKSPACE->m_id, PNEWWORKSPACE->m_name)});
+        IPC::Socket2::sock()->postEvent({.event = "workspace", .data = PNEWWORKSPACE->m_name});
+        IPC::Socket2::sock()->postEvent({.event = "workspacev2", .data = std::format("{},{}", PNEWWORKSPACE->m_id, PNEWWORKSPACE->m_name)});
         Event::bus()->m_events.workspace.active.emit(PNEWWORKSPACE);
     }
 
     // events
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspace", .data = PWORKSPACEA->m_name + "," + pMonitorB->m_name});
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspacev2", .data = std::format("{},{},{}", PWORKSPACEA->m_id, PWORKSPACEA->m_name, pMonitorB->m_name)});
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspace", .data = PWORKSPACEB->m_name + "," + pMonitorA->m_name});
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspacev2", .data = std::format("{},{},{}", PWORKSPACEB->m_id, PWORKSPACEB->m_name, pMonitorA->m_name)});
+    IPC::Socket2::sock()->postEvent({.event = "moveworkspace", .data = std::format("{},{}", PWORKSPACEA->m_name, pMonitorB->m_name)});
+    IPC::Socket2::sock()->postEvent({.event = "moveworkspacev2", .data = std::format("{},{},{}", PWORKSPACEA->m_id, PWORKSPACEA->m_name, pMonitorB->m_name)});
+    IPC::Socket2::sock()->postEvent({.event = "moveworkspace", .data = std::format("{},{}", PWORKSPACEB->m_name, pMonitorA->m_name)});
+    IPC::Socket2::sock()->postEvent({.event = "moveworkspacev2", .data = std::format("{},{},{}", PWORKSPACEB->m_id, PWORKSPACEB->m_name, pMonitorA->m_name)});
 
     Event::bus()->m_events.workspace.moveToMonitor.emit(PWORKSPACEA, pMonitorB);
     Event::bus()->m_events.workspace.moveToMonitor.emit(PWORKSPACEB, pMonitorA);
 }
 
-void CWorkspacePlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMonitor, bool noWarpCursor) const {
+void CWorkspacePlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMonitor, bool noWarpCursor, bool carryFocus) const {
     static auto PHIDESPECIALONWORKSPACECHANGE = CConfigValue<Config::INTEGER>("binds:hide_special_on_workspace_change");
 
     if (!pWorkspace || !pMonitor)
@@ -287,7 +287,7 @@ void CWorkspacePlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspa
 
         Log::logger->log(Log::DEBUG, "moveWorkspaceToMonitor: Plugging gap with existing {}", nextWorkspaceOnMonitorID);
         if (POLDMON)
-            POLDMON->changeWorkspace(nextWorkspaceOnMonitorID, false, true, true);
+            POLDMON->changeWorkspace(nextWorkspaceOnMonitorID, false, true, carryFocus || POLDMON != Desktop::focusState()->monitor());
     }
 
     // move the workspace
@@ -297,7 +297,7 @@ void CWorkspacePlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspa
 
     for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace == pWorkspace) {
-            if (w->m_pinned) {
+            if (w->m_state & Desktop::View::WINDOW_STATE_PINNED) {
                 w->m_workspace = State::workspaceState()->query().id(nextWorkspaceOnMonitorID).run();
                 continue;
             }
@@ -305,9 +305,9 @@ void CWorkspacePlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspa
             w->m_monitor = pMonitor;
 
             // additionally, move floating and fs windows manually
-            if (w->m_isMapped && !w->isHidden()) {
+            if (w->mapped() && !w->isHidden()) {
                 if (POLDMON) {
-                    if (w->m_isFloating)
+                    if (w->isFloating())
                         w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(-POLDMON->m_position + pMonitor->m_position));
 
                     if (Fullscreen::controller()->isFullscreen(w))
@@ -325,7 +325,7 @@ void CWorkspacePlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspa
         }
     }
 
-    if (SWITCHINGISACTIVE && POLDMON == Desktop::focusState()->monitor()) { // if it was active, preserve its' status. If it wasn't, don't.
+    if (carryFocus && SWITCHINGISACTIVE && POLDMON == Desktop::focusState()->monitor()) { // if it was active, preserve its' status. If it wasn't, don't.
         Log::logger->log(Log::DEBUG, "moveWorkspaceToMonitor: SWITCHINGISACTIVE, active {} -> {}", pMonitor->activeWorkspaceID(), pWorkspace->m_id);
 
         if (valid(pMonitor->m_activeWorkspace)) {
@@ -373,8 +373,8 @@ void CWorkspacePlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspa
     Desktop::globalWindowController()->updateSuspendedStates();
 
     // event
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspace", .data = pWorkspace->m_name + "," + pMonitor->m_name});
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspacev2", .data = std::format("{},{},{}", pWorkspace->m_id, pWorkspace->m_name, pMonitor->m_name)});
+    IPC::Socket2::sock()->postEvent({.event = "moveworkspace", .data = std::format("{},{}", pWorkspace->m_name, pMonitor->m_name)});
+    IPC::Socket2::sock()->postEvent({.event = "moveworkspacev2", .data = std::format("{},{},{}", pWorkspace->m_id, pWorkspace->m_name, pMonitor->m_name)});
 
     Event::bus()->m_events.workspace.moveToMonitor.emit(pWorkspace, pMonitor);
 }

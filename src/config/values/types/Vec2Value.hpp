@@ -9,8 +9,9 @@
 
 namespace Config::Values {
     struct SVec2ValueOptions {
-        std::function<std::expected<void, std::string>(const Config::VEC2&)> validator = {};
-        Supplementary::PropRefreshBits                                       refresh   = 0;
+        std::function<std::expected<void, std::string>(const Config::VEC2&)> validator         = {};
+        Supplementary::PropRefreshBits                                       refresh           = 0;
+        const char*                                                          deprecationNotice = nullptr;
     };
 
     class CVec2Value : public IValue {
@@ -19,11 +20,12 @@ namespace Config::Values {
 
         virtual ~CVec2Value() = default;
 
-        virtual const std::type_info* underlying() const override;
-        virtual void                  commence() override;
+        virtual const std::type_info*                                        underlying() const override;
+        virtual void                                                         commence() override;
 
-        Config::VEC2                  value() const;
-        Config::VEC2                  defaultVal() const;
+        Config::VEC2                                                         value() const;
+        Config::VEC2                                                         defaultVal() const;
+        std::function<std::expected<void, std::string>(const Config::VEC2&)> validator() const;
 
       private:
         CConfigValue<Config::VEC2>                                           m_val;

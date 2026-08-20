@@ -12,6 +12,7 @@
 #include <csignal>
 #include <deque>
 #include <optional>
+#include <format>
 #include <string>
 #include <sys/poll.h>
 #include <thread>
@@ -140,7 +141,7 @@ static bool click(uint32_t button, bool pressed) {
 }
 
 static std::optional<int> statusValue(const std::string& line, const std::string& key) {
-    const auto KEY = key + "=";
+    const auto KEY = std::format("{}=", key);
     auto       pos = line.find(KEY);
     if (pos == std::string::npos)
         return std::nullopt;
@@ -209,7 +210,7 @@ std::optional<std::string> CClient::takeLineContaining(const std::string& marker
 CClient::CClient() {
     NLog::log("{}Attempting to start xdg-interactive client", Colors::YELLOW);
 
-    proc = makeShared<CProcess>(binaryDir + "/xdg-interactive", std::vector<std::string>{});
+    proc = makeShared<CProcess>(std::format("{}/xdg-interactive", binaryDir), std::vector<std::string>{});
     proc->addEnv("WAYLAND_DISPLAY", WLDISPLAY);
 
     int procInPipeFd[2], procOutPipeFd[2];
@@ -464,6 +465,7 @@ TEST_CASE(xdgInteractive) {
     ASSERT(client->waitButtonSerial().has_value(), true);
     ASSERT(client->requestRawResize(123), true);
     ASSERT(client->waitForDisconnect(), true);
+    ASSERT(click(272, false), true);
     EXPECT_NOT(getFromSocket("/clients"), "");
 
     client.reset();

@@ -6,6 +6,7 @@
 #include "../bindings/LuaBindingsInternal.hpp"
 #include "../../../output/Monitor.hpp"
 #include "../../../desktop/state/FocusState.hpp"
+#include "../../../state/WorkspacePlacementController.hpp"
 
 #include <string_view>
 
@@ -36,35 +37,48 @@ static int monitorToString(lua_State* L) {
 }
 
 static int monitorSetWorkspace(lua_State* L) {
-    auto*      ref = sc<PHLMONITORREF*>(luaL_checkudata(L, 1, MT));
-    const auto id  = Internal::requireTableFieldWorkspaceSelector(L, 2, "workspace", "HLMonitor.set_workspace");
+    auto*      ref      = sc<PHLMONITORREF*>(luaL_checkudata(L, 1, MT));
+    const auto selector = Internal::workspaceSelectorFromLuaSelectorOrObject(L, 2, "HLMonitor.set_workspace");
 
-    if (id.empty())
+    if (!selector)
         return 0;
 
-    auto ws = State::workspaceState()->query().name(id).run();
+    const auto& [id, name, _] = getWorkspaceIDNameFromString(*selector, ref->lock());
+    if (id == WORKSPACE_INVALID || State::workspaceState()->isSpecial(id))
+        return 0;
+
+    auto ws = State::workspaceState()->query().id(id).run();
     if (!ws)
-        return 0;
+        ws = State::workspaceState()->create(id, (*ref)->m_id, name);
 
-    (*ref)->changeWorkspace(ws->m_id);
+    State::workspacePlacementController()->moveWorkspaceToMonitor(ws, ref->lock(), true, false);
+    (*ref)->changeWorkspace(ws, false, true, Desktop::focusState()->monitor() != *ref);
 
     return 0;
 }
 
 static int monitorSetSpecialWorkspace(lua_State* L) {
-    auto*      ref = sc<PHLMONITORREF*>(luaL_checkudata(L, 1, MT));
-    const auto id  = Internal::tableOptWorkspaceSelector(L, 2, "workspace", "HLMonitor.set_workspace");
+    auto*                      ref = sc<PHLMONITORREF*>(luaL_checkudata(L, 1, MT));
+    std::optional<std::string> selector;
+    if (lua_isstring(L, 2) || lua_isnumber(L, 2))
+        selector = std::format("special:{}", Internal::argStr(L, 2));
+    else
+        selector = Internal::workspaceSelectorFromLuaSelectorOrObject(L, 2, "HLMonitor.set_special_workspace");
 
-    if (!id) {
-        (*ref)->setSpecialWorkspace(WORKSPACE_INVALID);
+    if (!selector) {
+        (*ref)->setSpecialWorkspace(WORKSPACE_INVALID, true);
         return 0;
     }
 
-    auto ws = State::workspaceState()->query().name(*id).run();
-    if (!ws)
+    const auto& [id, name, _] = getWorkspaceIDNameFromString(*selector, ref->lock());
+    if (id == WORKSPACE_INVALID || !State::workspaceState()->isSpecial(id))
         return 0;
 
-    (*ref)->setSpecialWorkspace(ws->m_id);
+    auto ws = State::workspaceState()->query().id(id).run();
+    if (!ws)
+        ws = State::workspaceState()->create(id, (*ref)->m_id, name);
+
+    (*ref)->setSpecialWorkspace(ws->m_id, true);
 
     return 0;
 }
@@ -198,6 +212,11 @@ void Objects::CLuaMonitor::setup(lua_State* L) {
 }
 
 void Objects::CLuaMonitor::push(lua_State* L, PHLMONITORREF mon) {
+    if (!mon) {
+        lua_pushnil(L);
+        return;
+    }
+
     new (lua_newuserdata(L, sizeof(PHLMONITORREF))) PHLMONITORREF(mon ? mon->m_self : nullptr);
     luaL_getmetatable(L, MT);
     lua_setmetatable(L, -2);

@@ -14,3 +14,5 @@
 #define USE_ICC         0
 #define USE_MIRROR      0
 #define USE_BLUR_MATTE  0
+#define SOURCE_TF       9 // eTransferFunction, compiled in per variant. 9 is CM_TRANSFER_FUNCTION_SRGB
+#define TARGET_TF       9

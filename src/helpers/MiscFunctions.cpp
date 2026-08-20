@@ -122,17 +122,18 @@ static bool isAutoIDdWorkspace(WORKSPACEID id) {
     return id < WORKSPACE_INVALID;
 }
 
-SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
-    SWorkspaceIDName result = {WORKSPACE_INVALID, ""};
+SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in, std::optional<PHLMONITOR> baseMon) {
+    const auto       BASEMONITOR = baseMon.value_or(Desktop::focusState()->monitor());
+    SWorkspaceIDName result      = {WORKSPACE_INVALID, ""};
 
     if (in.starts_with("special")) {
         result.name = "special:special";
 
         if (in.length() > 8) {
             const auto NAME = in.substr(8);
-            const auto WS   = State::workspaceState()->query().name("special:" + NAME).run();
+            const auto WS   = State::workspaceState()->query().name(std::format("special:{}", NAME)).run();
 
-            return {WS ? WS->m_id : State::workspaceState()->newSpecialID(), "special:" + NAME};
+            return {WS ? WS->m_id : State::workspaceState()->newSpecialID(), std::format("special:{}", NAME)};
         }
 
         result.id = SPECIAL_WORKSPACE_START;
@@ -149,7 +150,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
     } else if (in.starts_with("empty")) {
         const bool same_mon = in.substr(5).contains("m");
         const bool next     = in.substr(5).contains("n");
-        if ((same_mon || next) && !Desktop::focusState()->monitor()) {
+        if ((same_mon || next) && !BASEMONITOR) {
             Log::logger->log(Log::ERR, "Empty monitor workspace on monitor null!");
             return {WORKSPACE_INVALID};
         }
@@ -160,13 +161,13 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 if (!rule->isEnabled())
                     continue;
 
-                const auto PMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(rule->m_monitor).run();
-                if (PMONITOR && (PMONITOR->m_id != Desktop::focusState()->monitor()->m_id))
+                const auto PMONITOR = State::monitorState()->query().relativeTo(BASEMONITOR).configString(rule->m_monitor).run();
+                if (PMONITOR && (PMONITOR->m_id != BASEMONITOR->m_id))
                     invalidWSes.insert(rule->m_workspaceId);
             }
         }
 
-        WORKSPACEID id = next ? Desktop::focusState()->monitor()->activeWorkspaceID() : 0;
+        WORKSPACEID id = next ? BASEMONITOR->activeWorkspaceID() : 0;
         while (++id < LONG_MAX) {
             const auto PWORKSPACE = State::workspaceState()->query().id(id).run();
             if (!invalidWSes.contains(id) && (!PWORKSPACE || PWORKSPACE->getWindowCount() == 0)) {
@@ -175,11 +176,10 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             }
         }
     } else if (in.starts_with("prev")) {
-        auto monitor = Desktop::focusState()->monitor();
-        if (!monitor)
+        if (!BASEMONITOR)
             return {WORKSPACE_INVALID};
 
-        const auto PWORKSPACE = monitor->m_activeWorkspace;
+        const auto PWORKSPACE = BASEMONITOR->m_activeWorkspace;
 
         if (!valid(PWORKSPACE))
             return {WORKSPACE_INVALID};
@@ -198,12 +198,12 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
 
         return {PLASTWORKSPACE->m_id, PLASTWORKSPACE->m_name};
     } else if (in == "next") {
-        if (!Desktop::focusState()->monitor() || !Desktop::focusState()->monitor()->m_activeWorkspace) {
+        if (!BASEMONITOR || !BASEMONITOR->m_activeWorkspace) {
             Log::logger->log(Log::ERR, "no active monitor or workspace for 'next'");
             return {WORKSPACE_INVALID};
         }
 
-        auto        PCURRENTWORKSPACE = Desktop::focusState()->monitor()->m_activeWorkspace;
+        auto        PCURRENTWORKSPACE = BASEMONITOR->m_activeWorkspace;
 
         WORKSPACEID nextId = PCURRENTWORKSPACE->m_id + 1;
 
@@ -216,7 +216,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
     } else {
         if (in[0] == 'r' && (in[1] == '-' || in[1] == '+' || in[1] == '~') && isNumber(in.substr(2))) {
             bool absolute = in[1] == '~';
-            if (!Desktop::focusState()->monitor()) {
+            if (!BASEMONITOR) {
                 Log::logger->log(Log::ERR, "Relative monitor workspace on monitor null!");
                 return {WORKSPACE_INVALID};
             }
@@ -234,7 +234,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
 
             // Collect all the workspaces we can't jump to.
             for (auto const& ws : State::workspaceState()->workspaces()) {
-                if (ws->m_isSpecialWorkspace || (ws->m_monitor != Desktop::focusState()->monitor())) {
+                if (ws->m_isSpecialWorkspace || (ws->m_monitor != BASEMONITOR)) {
                     // Can't jump to this workspace
                     invalidWSes.insert(ws->m_id);
                 }
@@ -243,8 +243,8 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 if (!rule->isEnabled())
                     continue;
 
-                const auto PMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(rule->m_monitor).run();
-                if (!PMONITOR || PMONITOR->m_id == Desktop::focusState()->monitor()->m_id) {
+                const auto PMONITOR = State::monitorState()->query().relativeTo(BASEMONITOR).configString(rule->m_monitor).run();
+                if (!PMONITOR || PMONITOR->m_id == BASEMONITOR->m_id) {
                     // Can't be invalid
                     continue;
                 }
@@ -255,7 +255,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             // Prepare all named workspaces in case when we need them
             std::vector<WORKSPACEID> namedWSes;
             for (auto const& ws : State::workspaceState()->workspaces()) {
-                if (ws->m_isSpecialWorkspace || (ws->m_monitor != Desktop::focusState()->monitor()) || ws->m_id >= 0)
+                if (ws->m_isSpecialWorkspace || (ws->m_monitor != BASEMONITOR) || ws->m_id >= 0)
                     continue;
 
                 namedWSes.push_back(ws->m_id);
@@ -282,7 +282,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             } else {
 
                 // Just take a blind guess at where we'll probably end up
-                WORKSPACEID activeWSID    = Desktop::focusState()->monitor()->m_activeWorkspace ? Desktop::focusState()->monitor()->m_activeWorkspace->m_id : 1;
+                WORKSPACEID activeWSID    = BASEMONITOR->m_activeWorkspace ? BASEMONITOR->m_activeWorkspace->m_id : 1;
                 WORKSPACEID predictedWSID = activeWSID + remains;
                 int         remainingWSes = 0;
                 char        walkDir       = in[1];
@@ -381,7 +381,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             bool onAllMonitors = in[0] == 'e';
             bool absolute      = in[1] == '~';
 
-            if (!Desktop::focusState()->monitor()) {
+            if (!BASEMONITOR) {
                 Log::logger->log(Log::ERR, "Relative monitor workspace on monitor null!");
                 return {WORKSPACE_INVALID};
             }
@@ -399,7 +399,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
 
             std::vector<WORKSPACEID> validWSes;
             for (auto const& ws : State::workspaceState()->workspaces()) {
-                if (ws->m_isSpecialWorkspace || (ws->m_monitor != Desktop::focusState()->monitor() && !onAllMonitors))
+                if (ws->m_isSpecialWorkspace || (ws->m_monitor != BASEMONITOR && !onAllMonitors))
                     continue;
 
                 validWSes.push_back(ws->m_id);
@@ -424,7 +424,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 remains = remains < 0 ? -((-remains) % validWSes.size()) : remains % validWSes.size();
 
                 // get the current item
-                WORKSPACEID activeWSID = Desktop::focusState()->monitor()->m_activeWorkspace ? Desktop::focusState()->monitor()->m_activeWorkspace->m_id : 1;
+                WORKSPACEID activeWSID = BASEMONITOR->m_activeWorkspace ? BASEMONITOR->m_activeWorkspace->m_id : 1;
                 for (ssize_t i = 0; i < sc<ssize_t>(validWSes.size()); i++) {
                     if (validWSes[i] == activeWSID) {
                         currentItem = i;
@@ -447,8 +447,8 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             result.name = State::workspaceState()->query().id(validWSes[currentItem]).run()->m_name;
         } else {
             if (in[0] == '+' || in[0] == '-') {
-                if (Desktop::focusState()->monitor()) {
-                    const auto PLUSMINUSRESULT = getPlusMinusKeywordResult(in, Desktop::focusState()->monitor()->activeWorkspaceID());
+                if (BASEMONITOR) {
+                    const auto PLUSMINUSRESULT = getPlusMinusKeywordResult(in, BASEMONITOR->activeWorkspaceID());
                     if (!PLUSMINUSRESULT.has_value())
                         return {WORKSPACE_INVALID};
 
@@ -481,7 +481,7 @@ std::optional<std::string> cleanCmdForWorkspace(const std::string& inWorkspaceNa
 
     if (!cmd.empty()) {
         std::string       rules;
-        const std::string workspaceRule = "workspace " + inWorkspaceName;
+        const std::string workspaceRule = std::format("workspace {}", inWorkspaceName);
 
         if (cmd[0] == '[') {
             const auto closingBracketIdx = cmd.find_last_of(']');
@@ -501,12 +501,12 @@ std::optional<std::string> cleanCmdForWorkspace(const std::string& inWorkspaceNa
             if (!hadWorkspaceRule)
                 rulesList.append(workspaceRule);
 
-            rules = "[" + rulesList.join(";") + "]";
+            rules = std::format("[{}]", rulesList.join(";"));
         } else {
-            rules = "[" + workspaceRule + "]";
+            rules = std::format("[{}]", workspaceRule);
         }
 
-        return std::optional<std::string>(rules + " " + cmd);
+        return std::optional<std::string>(std::format("{} {}", rules, cmd));
     }
 
     return std::nullopt;
@@ -544,7 +544,7 @@ int64_t getPPIDof(int64_t pid) {
 
     return 0;
 #else
-    std::string dir = "/proc/" + std::to_string(pid) + "/status";
+    std::string dir = std::format("/proc/{}/status", pid);
     FILE*       infile;
 
     infile = fopen(dir.c_str(), "r");
@@ -623,7 +623,7 @@ void throwError(const std::string& err) {
 
 std::pair<CFileDescriptor, std::string> openExclusiveShm() {
     // Only absolute paths can be shared across different shm_open() calls
-    std::string name = "/" + g_pTokenManager->getRandomUUID();
+    std::string name = std::format("/{}", g_pTokenManager->getRandomUUID());
 
     for (size_t i = 0; i < 69; ++i) {
         CFileDescriptor fd{shm_open(name.c_str(), O_RDWR | O_CREAT | O_EXCL, 0600)};
@@ -794,7 +794,7 @@ static const std::vector<const char*> PKGCONF_PATHS = {"/usr/lib/pkgconfig", "/u
 std::string getSystemLibraryVersion(const std::string& name) {
     for (const auto& pkgconf : PKGCONF_PATHS) {
         std::error_code   ec;
-        const std::string PATH = std::string{pkgconf} + "/" + name + ".pc";
+        const std::string PATH = std::format("{}/{}.pc", pkgconf, name);
         if (!std::filesystem::exists(PATH, ec))
             continue;
 

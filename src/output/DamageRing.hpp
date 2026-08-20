@@ -4,7 +4,9 @@
 #include <array>
 
 namespace Monitor {
-    constexpr static int DAMAGE_RING_PREVIOUS_LEN = 3;
+    constexpr static int   DAMAGE_RING_PREVIOUS_LEN   = 3;
+    constexpr static int   DAMAGE_RING_MAX_RECTS      = 8;
+    constexpr static float DAMAGE_RING_EXTENTS_FACTOR = 2.F;
 
     class CDamageRing {
       public:

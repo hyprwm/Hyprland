@@ -64,22 +64,32 @@ std::optional<bool> CSyncTimeline::check(uint64_t point, uint32_t flags) {
     return ret == 0;
 }
 
-bool CSyncTimeline::addWaiter(std::function<void()>&& waiter, uint64_t point, uint32_t flags) {
+WP<SReadableWaiter> CSyncTimeline::addWaiter(std::function<void()>&& waiter, uint64_t point, uint32_t flags) {
+    // any failure (incl. -EINVAL on an unmaterialized point) means "not signaled"
+    auto tryCheck = [this, &point, &flags]() {
+        uint32_t signaled = 0;
+        return drmSyncobjTimelineWait(m_drmFD, &m_handle, &point, 1, 0, flags, &signaled) == 0;
+    };
+
+    // skip the eventfd + ioctl + poll + close dance if the point is already there
+    if (tryCheck()) {
+        waiter();
+        return {};
+    }
+
     auto eventFd = CFileDescriptor(eventfd(0, EFD_CLOEXEC));
 
     if (!eventFd.isValid()) {
         Log::logger->log(Log::ERR, "CSyncTimeline::addWaiter: failed to acquire an eventfd");
-        return false;
+        return {};
     }
 
     if (drmSyncobjEventfd(m_drmFD, m_handle, point, eventFd.get(), flags)) {
         Log::logger->log(Log::ERR, "CSyncTimeline::addWaiter: drmSyncobjEventfd failed");
-        return false;
+        return {};
     }
 
-    g_pEventLoopManager->doOnReadable(std::move(eventFd), std::move(waiter));
-
-    return true;
+    return g_pEventLoopManager->doOnReadable(std::move(eventFd), std::move(waiter));
 }
 
 CFileDescriptor CSyncTimeline::exportAsSyncFileFD(uint64_t src) {

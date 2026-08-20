@@ -37,6 +37,12 @@ using namespace Hyprutils::Memory;
 #include <readline/readline.h>
 #include <readline/history.h>
 
+#define LUA_ERRSYNTAX 3
+#define LUA_EOFMARK   "<eof>"
+
+#define xstr(a) str(a)
+#define str(a)  #a
+
 std::string instanceSignature;
 bool        quiet = false;
 
@@ -81,12 +87,10 @@ static int getUID() {
 std::string getRuntimeDir() {
     const auto XDG = getenv("XDG_RUNTIME_DIR");
 
-    if (!XDG) {
-        const std::string USERID = std::to_string(getUID());
-        return "/run/user/" + USERID + "/hypr";
-    }
+    if (!XDG)
+        return std::format("/run/user/{}/hypr", getUID());
 
-    return std::string{XDG} + "/hypr";
+    return std::format("{}/hypr", XDG);
 }
 
 static std::optional<uint64_t> toUInt64(const std::string_view str) {
@@ -198,7 +202,7 @@ int rollingRead(const int socket) {
     return 0;
 }
 
-int request(std::string_view arg, int minArgs = 0, bool needRoll = false) {
+int request(std::string_view arg, int minArgs = 0, bool needRoll = false, bool isRepl = false) {
     const auto SERVERSOCKET = socket(AF_UNIX, SOCK_STREAM, 0);
 
     if (SERVERSOCKET < 0) {
@@ -227,12 +231,12 @@ int request(std::string_view arg, int minArgs = 0, bool needRoll = false) {
     sockaddr_un serverAddress = {0};
     serverAddress.sun_family  = AF_UNIX;
 
-    std::string socketPath = getRuntimeDir() + "/" + instanceSignature + "/.socket.sock";
+    std::string socketPath = std::format("{}/{}/.socket.sock", getRuntimeDir(), instanceSignature);
 
     strncpy(serverAddress.sun_path, socketPath.c_str(), sizeof(serverAddress.sun_path) - 1);
 
     if (connect(SERVERSOCKET, rc<sockaddr*>(&serverAddress), SUN_LEN(&serverAddress)) < 0) {
-        log("Couldn't connect to " + socketPath + ". (4)");
+        log(std::format("Couldn't connect to {}. (4)", socketPath));
         return 4;
     }
 
@@ -272,7 +276,11 @@ int request(std::string_view arg, int minArgs = 0, bool needRoll = false) {
 
     close(SERVERSOCKET);
 
-    log(reply);
+    // lua interactive REPL: check for incomplete-line error
+    if (isRepl && reply.starts_with("error: " xstr(LUA_ERRSYNTAX) " ") && reply.ends_with(LUA_EOFMARK))
+        return 8;
+    else
+        log(reply);
 
     if (reply.starts_with("error:"))
         return 7;
@@ -296,12 +304,12 @@ int requestIPC(std::string_view filename, std::string_view arg) {
     sockaddr_un serverAddress = {0};
     serverAddress.sun_family  = AF_UNIX;
 
-    std::string socketPath = getRuntimeDir() + "/" + instanceSignature + "/" + filename;
+    std::string socketPath = std::format("{}/{}/{}", getRuntimeDir(), instanceSignature, filename);
 
     strncpy(serverAddress.sun_path, socketPath.c_str(), sizeof(serverAddress.sun_path) - 1);
 
     if (connect(SERVERSOCKET, rc<sockaddr*>(&serverAddress), SUN_LEN(&serverAddress)) < 0) {
-        log("Couldn't connect to " + socketPath + ". (3)");
+        log(std::format("Couldn't connect to {}. (3)", socketPath));
         return 3;
     }
 
@@ -344,7 +352,7 @@ void batchRequest(std::string_view arg, bool json) {
         commands.insert(0, "j/");
     }
 
-    std::string rq = "[[BATCH]]" + commands;
+    std::string rq = std::format("[[BATCH]]{}", commands);
     request(rq);
 }
 
@@ -375,7 +383,7 @@ void instancesRequest(bool json) {
         result += "\n]";
     }
 
-    log(result + "\n");
+    log(std::format("{}\n", result));
 }
 
 std::vector<std::string> splitArgs(int argc, char** argv) {
@@ -467,7 +475,7 @@ int main(int argc, char** argv) {
             continue;
         }
 
-        fullRequest += ARGS[i] + " ";
+        fullRequest += std::format("{} ", ARGS[i]);
     }
 
     if (fullRequest.empty()) {
@@ -477,7 +485,7 @@ int main(int argc, char** argv) {
 
     fullRequest.pop_back(); // remove trailing space
 
-    fullRequest = fullArgs + "/" + fullRequest;
+    fullRequest = std::format("{}/{}", fullArgs, fullRequest);
 
     // instances is HIS-independent
     if (fullRequest.contains("/instances")) {
@@ -558,20 +566,33 @@ int main(int argc, char** argv) {
         std::println("{}", USAGE);
     else if (fullRequest.contains("/rollinglog") && needRoll)
         exitStatus = request(fullRequest, 0, true);
-    else if (fullRequest.contains("/repl")) {
-        if (ARGS.size() > 1) {
+    else if (auto pos = fullRequest.find("/repl"); pos != std::string::npos) {
+        if (fullRequest.length() > pos + 5) {
             // single command with output
             exitStatus = request(fullRequest, 1);
         } else {
             // interactive REPL mode
-            char* input = nullptr;
-            while ((input = readline("> ")) != nullptr) {
-                std::string line(input);
-                if (!line.empty()) {
-                    exitStatus = request("/repl " + line);
-                    add_history(input);
-                }
+            char*       input      = nullptr;
+            bool        continuing = false;
+            std::string line;
+            while ((input = readline(continuing ? ">> " : "> ")) != nullptr) {
+                // extend line if incomplete, replace otherwise
+                if (continuing) {
+                    line.append("\n");
+                    line.append(input);
+                } else
+                    line.assign(input);
                 free(input);
+                if (!line.empty()) {
+                    exitStatus = request(std::format("/repl {}", line), 0, false, true);
+                    // check for incomplete-line error, retry
+                    if (exitStatus == 8)
+                        continuing = true;
+                    else {
+                        continuing = false;
+                        add_history(line.c_str());
+                    }
+                }
             }
         }
     } else {

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FLAMEGRAPH_DIR="$SCRIPT_DIR/flamegraph"
@@ -16,5 +16,5 @@ if [ ! -f perf.data ]; then
 fi
 
 echo "Generating flame graph..."
-perf script | "$FLAMEGRAPH_DIR/stackcollapse-perf.pl" | "$FLAMEGRAPH_DIR/flamegraph.pl" > flame.svg
+perf script | perl "$FLAMEGRAPH_DIR/stackcollapse-perf.pl" | perl "$FLAMEGRAPH_DIR/flamegraph.pl" > flame.svg
 xdg-open flame.svg

@@ -3,7 +3,7 @@
 using namespace Config::Values;
 
 CStringValue::CStringValue(const char* name, const char* description, Config::STRING def, SStringValueOptions&& options) :
-    IValue(options.refresh), m_validator(std::move(options.validator)), m_default(def) {
+    IValue(options.refresh, options.deprecationNotice), m_validator(std::move(options.validator)), m_default(def) {
     m_name        = name;
     m_description = description;
 }
@@ -25,4 +25,8 @@ Config::STRING CStringValue::value() const {
 
 Config::STRING CStringValue::defaultVal() const {
     return m_default;
+}
+
+std::function<std::expected<void, std::string>(const Config::STRING&)> CStringValue::validator() const {
+    return m_validator;
 }

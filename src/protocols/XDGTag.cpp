@@ -1,6 +1,6 @@
 #include "XDGTag.hpp"
 #include "XDGShell.hpp"
-#include "../desktop/view/Window.hpp"
+#include "../desktop/view/window/Window.hpp"
 
 CXDGToplevelTagManagerResource::CXDGToplevelTagManagerResource(UP<CXdgToplevelTagManagerV1>&& resource) : m_resource(std::move(resource)) {
     if UNLIKELY (!good())

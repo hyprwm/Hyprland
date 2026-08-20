@@ -1,5 +1,6 @@
 #include "WindowRule.hpp"
-#include "../../view/Window.hpp"
+#include "../../view/window/Window.hpp"
+#include "../../view/window/WindowGroupMembership.hpp"
 #include "../../../output/Monitor.hpp"
 #include "../../../helpers/MiscFunctions.hpp"
 #include "../../../Compositor.hpp"
@@ -8,7 +9,7 @@
 #include "../../../desktop/state/FocusState.hpp"
 #include "../../../protocols/types/ContentType.hpp"
 #include "../../../config/shared/parserUtils/ParserUtils.hpp"
-#include "desktop/rule/windowRule/WindowRuleEffectContainer.hpp"
+#include "../../../desktop/view/Group.hpp"
 
 #include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/String.hpp>
@@ -243,6 +244,7 @@ static std::expected<WindowRuleEffectValue, std::string> parseWindowRuleEffect(C
         case WINDOW_RULE_EFFECT_NO_FOLLOW_MOUSE:
         case WINDOW_RULE_EFFECT_NO_MAX_SIZE:
         case WINDOW_RULE_EFFECT_NO_SHADOW:
+        case WINDOW_RULE_EFFECT_NO_WOBBLE:
         case WINDOW_RULE_EFFECT_NO_SHORTCUTS_INHIBIT:
         case WINDOW_RULE_EFFECT_OPAQUE:
         case WINDOW_RULE_EFFECT_FORCE_RGBX:
@@ -386,23 +388,23 @@ bool CWindowRule::matches(PHLWINDOW w, bool allowEnvLookup) {
             }
 
             case RULE_PROP_TITLE:
-                if (!engine->match(w->m_title))
+                if (!engine->match(w->metadata().title()))
                     return false;
                 break;
             case RULE_PROP_INITIAL_TITLE:
-                if (!engine->match(w->m_initialTitle))
+                if (!engine->match(w->metadata().initialTitle()))
                     return false;
                 break;
             case RULE_PROP_CLASS:
-                if (!engine->match(w->m_class))
+                if (!engine->match(w->metadata().appID()))
                     return false;
                 break;
             case RULE_PROP_INITIAL_CLASS:
-                if (!engine->match(w->m_initialClass))
+                if (!engine->match(w->metadata().initialAppID()))
                     return false;
                 break;
             case RULE_PROP_FLOATING:
-                if (!engine->match(w->m_isFloating))
+                if (!engine->match(w->isFloating()))
                     return false;
                 break;
             case RULE_PROP_TAG:
@@ -410,15 +412,16 @@ bool CWindowRule::matches(PHLWINDOW w, bool allowEnvLookup) {
                     return false;
                 break;
             case RULE_PROP_XWAYLAND:
-                if (!engine->match(w->m_isX11))
+                if (!engine->match(w->backend().isX11()))
                     return false;
                 break;
             case RULE_PROP_FULLSCREEN:
-                if (!engine->match(Fullscreen::controller()->isFullscreen(w)))
+                // FS states of a group are owned by the current window of the group
+                if (!engine->match(Fullscreen::controller()->isFullscreen(w->grouping().group() ? w->grouping().group()->current() : w)))
                     return false;
                 break;
             case RULE_PROP_PINNED:
-                if (!engine->match(w->m_pinned))
+                if (!engine->match(sc<bool>(w->m_state & Desktop::View::WINDOW_STATE_PINNED)))
                     return false;
                 break;
             case RULE_PROP_FOCUS:
@@ -426,19 +429,21 @@ bool CWindowRule::matches(PHLWINDOW w, bool allowEnvLookup) {
                     return false;
                 break;
             case RULE_PROP_GROUP:
-                if (!engine->match(!!w->m_group))
+                if (!engine->match(!!w->grouping().group()))
                     return false;
                 break;
             case RULE_PROP_MODAL:
-                if (!engine->match(w->isModal()))
+                if (!engine->match(w->backend().traits().modal))
                     return false;
                 break;
             case RULE_PROP_FULLSCREENSTATE_INTERNAL:
-                if (!engine->match(Fullscreen::controller()->getFullscreenModes(w).internal))
+                // FS states of a group are owned by the current window of the group
+                if (!engine->match(Fullscreen::controller()->getFullscreenModes(w->grouping().group() ? w->grouping().group()->current() : w).internal))
                     return false;
                 break;
             case RULE_PROP_FULLSCREENSTATE_CLIENT:
-                if (!engine->match(Fullscreen::controller()->getFullscreenModes(w).client))
+                // FS states of a group are owned by the current window of the group
+                if (!engine->match(Fullscreen::controller()->getFullscreenModes(w->grouping().group() ? w->grouping().group()->current() : w).client))
                     return false;
                 break;
             case RULE_PROP_ON_WORKSPACE:
@@ -450,7 +455,7 @@ bool CWindowRule::matches(PHLWINDOW w, bool allowEnvLookup) {
                     return false;
                 break;
             case RULE_PROP_XDG_TAG:
-                if (!w->xdgTag().has_value() || !engine->match(*w->xdgTag()))
+                if (const auto TAG = w->backend().metadata().tag; !TAG.has_value() || !engine->match(*TAG))
                     return false;
                 break;
 
@@ -465,7 +470,7 @@ bool CWindowRule::matches(PHLWINDOW w, bool allowEnvLookup) {
                     if (engine->match(ENV.at(EXEC_RULE_ENV_NAME)))
                         match = true;
                 } else if (m_matchEngines.contains(RULE_PROP_EXEC_PID)) {
-                    if (m_matchEngines.at(RULE_PROP_EXEC_PID)->match(w->getPID()))
+                    if (m_matchEngines.at(RULE_PROP_EXEC_PID)->match(w->backend().pid()))
                         match = true;
                 }
                 if (!match)

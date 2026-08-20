@@ -3,6 +3,7 @@
 #include "../../hyprctlCompat.hpp"
 #include <cstdint>
 #include <string>
+#include <format>
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
 #include "../shared.hpp"
@@ -25,7 +26,7 @@ static std::string getCommandStdOut(std::string command) {
 }
 
 static void setWindowProp(const std::string& selector, const std::string& prop, const std::string& value) {
-    getFromSocket("/dispatch hl.dsp.window.set_prop({ window = '" + selector + "', prop = '" + prop + "', value = '" + value + "' })");
+    getFromSocket(std::format("/dispatch hl.dsp.window.set_prop({{ window = '{}', prop = '{}', value = '{}' }})", selector, prop, value));
 }
 
 TEST_CASE(hyprctlDevicesActiveLayoutIndex) {
@@ -34,18 +35,16 @@ TEST_CASE(hyprctlDevicesActiveLayoutIndex) {
 
     for (uint8_t i = 0; i < 3; i++) {
         // set layout
-        getFromSocket("/switchxkblayout all " + std::to_string(i));
+        getFromSocket(std::format("/switchxkblayout all {}", i));
         std::string devicesJson = getFromSocket("j/devices");
-        std::string expected    = R"("active_layout_index": )" + std::to_string(i);
+        std::string expected    = std::format(R"("active_layout_index": {})", i);
         // check layout index
         EXPECT_CONTAINS(devicesJson, expected);
     }
 }
 
 TEST_CASE(hyprctlGetprop) {
-    if (!Tests::spawnKitty()) {
-        FAIL_TEST("Could not spawn kitty");
-    }
+    SPAWN_KITTY("kitty");
 
     // animation
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty animation"), "(unset)");
@@ -168,7 +167,9 @@ TEST_CASE(hyprctlJsonErrors) {
 }
 
 TEST_CASE(hyprctlBindsJson) {
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + F12', hl.dsp.exec_cmd('true'), { description = 'hyprctl binds JSON regression', allow_input_capture = false })"), "ok");
+    EXPECT(getFromSocket("/eval hl.bind('SUPER + F12', hl.dsp.exec_cmd('true'), { description = 'hyprctl binds JSON regression', locked = true, repeating = true, "
+                         "allow_input_capture = false })"),
+           "ok");
 
     CProcess jqProc("bash", {"-c", R"(hyprctl -j binds | jq -e '
         type == "array" and
@@ -186,10 +187,35 @@ TEST_CASE(hyprctlBindsJson) {
     jqProc.runSync();
     EXPECT(jqProc.exitCode(), 0);
 
+    const auto BINDS    = getFromSocket("/binds");
+    const auto DESC_POS = BINDS.find("description: hyprctl binds JSON regression");
+    EXPECT(DESC_POS != std::string::npos, true);
+    if (DESC_POS != std::string::npos) {
+        const auto BIND_POS = BINDS.rfind("bind\n", DESC_POS);
+        EXPECT(BIND_POS != std::string::npos, true);
+        if (BIND_POS != std::string::npos) {
+            const auto BLOCK = BINDS.substr(BIND_POS, DESC_POS - BIND_POS);
+            EXPECT(BLOCK.contains("\tflags: locked, repeat\n"), true);
+        }
+    }
+
     EXPECT(getFromSocket("/eval hl.unbind('SUPER + F12')"), "ok");
 }
 
 TEST_CASE(hyprctlREPL) {
     EXPECT(getCommandStdOut("hyprctl repl 'print(type(hl))'"), "table");
     EXPECT(getCommandStdOut("hyprctl eval 'print(type(hl))'"), "ok");
+}
+
+TEST_CASE(hyprctlBatch) {
+    const auto command  = R"([[BATCH]] activewindow; repl local i = 42\; print(i, "hello\\nworld ]"); clients)";
+    const auto expected = R"(Invalid
+
+
+42	hello
+world ]
+
+
+no open windows)";
+    EXPECT(getFromSocket(command), expected);
 }

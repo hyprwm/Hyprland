@@ -4,7 +4,6 @@
 #include "../../../protocols/OutputManagement.hpp"
 #include "../../../output/Monitor.hpp"
 #include "../../../Compositor.hpp"
-#include "../../../render/Renderer.hpp"
 #include "../../../event/EventBus.hpp"
 #include "../../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../../managers/fullscreen/FullscreenController.hpp"
@@ -142,16 +141,28 @@ void CMonitorRuleManager::ensureMonitorStatus() {
 
         auto rule = get(m);
 
+        bool mustApplySoft = false;
+
+        // check if mirror matches first of all
+        if (!!m->m_mirrorOf == rule.m_mirrorOf.empty()) {
+            // mismatch: we either have a mirror and rule says HEEEELLL NAW or the other way
+
+            if (m->m_mirrorOf)
+                mustApplySoft = true;
+            else if (std::ranges::any_of(State::monitorState()->monitors(), [&rule](const auto& m) { return m->matchesStaticSelector(rule.m_mirrorOf); }))
+                mustApplySoft = true;
+        }
+
         auto cmp = rule.compare(m->m_activeMonitorRule);
 
-        if (cmp == COMPARISON_FULL_MATCH)
+        if (!mustApplySoft && cmp == COMPARISON_FULL_MATCH)
             continue;
 
         m->m_splash = nullptr;
 
         monsForRefresh.emplace_back(m);
 
-        if (cmp == COMPARISON_SOFT_MISMATCH) {
+        if (cmp != COMPARISON_NO_MATCH) {
             m->applyMonitorRuleSoft(Config::CMonitorRule{rule});
             continue;
         }
@@ -181,15 +192,6 @@ void CMonitorRuleManager::ensureMonitorStatus() {
 
     State::monitorLayoutController()->arrange();
     State::monitorLayoutController()->checkOverlapsAndNotify();
-
-    for (const auto& m : monsForRefresh) {
-        if (!m->m_output)
-            continue;
-
-        g_pHyprRenderer->arrangeLayersForMonitor(m->m_id);
-    }
-
-    Event::bus()->m_events.monitor.layoutChanged.emit();
 }
 
 void CMonitorRuleManager::ensureVRR(PHLMONITOR pMonitor) {

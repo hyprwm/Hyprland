@@ -19,10 +19,11 @@ enum eWrapMode : uint8_t {
 };
 
 struct SMotionBlurData {
-    bool     enabled  = false;
-    CBox     previous = {};
-    CBox     current  = {};
-    CBox     source   = {};
+    bool     enabled         = false;
+    CBox     previous        = {};
+    CBox     current         = {};
+    CBox     source          = {};
+    Vector2D sourceTexOrigin = {};
     Vector2D sourceTexSize;
     int      samples = 1;
 
@@ -38,10 +39,9 @@ class CTexPassElement : public IPassElement {
         float                  blurA    = 1.F;
         float                  overallA = 1.F;
         CRegion                damage;
-        int                    round               = 0;
-        float                  roundingPower       = 2.0f;
-        bool                   flipEndFrame        = false;
-        bool                   useMirrorProjection = false;
+        bool                   useProvidedDamage = false;
+        int                    round             = 0;
+        float                  roundingPower     = 2.0f;
         CBox                   clipBox;
         bool                   blur           = false;
         bool                   forceBlurBlend = false;
@@ -64,7 +64,6 @@ class CTexPassElement : public IPassElement {
 
         SP<Render::ITexture>   blurredBG;
         SP<Render::ITexture>   blurAlphaMatte;
-
         SMotionBlurData        motionBlur;
     };
 

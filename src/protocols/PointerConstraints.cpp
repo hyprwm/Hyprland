@@ -1,8 +1,7 @@
 #include "PointerConstraints.hpp"
 #include "../desktop/view/WLSurface.hpp"
 #include "../desktop/state/FocusState.hpp"
-#include "../desktop/view/Window.hpp"
-#include "../config/ConfigValue.hpp"
+#include "../desktop/view/window/Window.hpp"
 #include "../managers/SeatManager.hpp"
 #include "core/Compositor.hpp"
 #include "../managers/input/InputManager.hpp"
@@ -27,21 +26,16 @@ CPointerConstraint::CPointerConstraint(SP<CZwpLockedPointerV1> resource_, SP<CWL
 
     resource_->setSetRegion([this](CZwpLockedPointerV1* p, wl_resource* region) { onSetRegion(region); });
     resource_->setSetCursorPositionHint([this](CZwpLockedPointerV1* p, wl_fixed_t x, wl_fixed_t y) {
-        static auto PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
-
         if (!m_hlSurface)
             return;
 
         m_hintSet = true;
 
-        float      scale   = 1.f;
+        m_positionHint     = {wl_fixed_to_double(x), wl_fixed_to_double(y)};
         const auto PWINDOW = Desktop::View::CWindow::fromView(m_hlSurface->view());
-        if (PWINDOW) {
-            const auto ISXWL = PWINDOW->m_isX11;
-            scale            = ISXWL && *PXWLFORCESCALEZERO ? PWINDOW->m_X11SurfaceScaledBy : 1.f;
-        }
+        if (PWINDOW && PWINDOW->backend().isX11())
+            m_positionHint = PWINDOW->backend().bufferToSurfaceLocal(m_positionHint);
 
-        m_positionHint = {wl_fixed_to_double(x) / scale, wl_fixed_to_double(y) / scale};
         g_pInputManager->simulateMouseMovement();
     });
 
@@ -127,7 +121,7 @@ void CPointerConstraint::activate() {
 
     // TODO: hack, probably not a super duper great idea
     if (g_pSeatManager->m_state.pointerFocus != m_hlSurface->resource()) {
-        if (const auto W = Desktop::View::CWindow::fromView(m_hlSurface->view()); !W || !W->m_layoutFlags.cantLockCursor) {
+        if (const auto W = Desktop::View::CWindow::fromView(m_hlSurface->view()); !W || !W->cantLockCursor()) {
             const auto SURFBOX = m_hlSurface->getSurfaceBoxGlobal();
             const auto LOCAL   = SURFBOX.has_value() ? logicPositionHint() - SURFBOX->pos() : Vector2D{};
             g_pSeatManager->setPointerFocus(m_hlSurface->resource(), LOCAL);

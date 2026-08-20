@@ -32,12 +32,13 @@ namespace Config {
         std::optional<bool>                m_isPersistent;
         std::optional<CCssGapData>         m_gapsIn;
         std::optional<CCssGapData>         m_gapsOut;
-        std::optional<CCssGapData>         m_floatGaps = m_gapsOut;
+        std::optional<CCssGapData>         m_floatGaps;
         std::optional<int64_t>             m_borderSize;
         std::optional<bool>                m_decorate;
         std::optional<bool>                m_noRounding;
         std::optional<bool>                m_noBorder;
         std::optional<bool>                m_noShadow;
+        std::optional<bool>                m_noWobble;
         std::optional<std::string>         m_onCreatedEmptyRunCmd;
         std::optional<std::string>         m_defaultName;
         std::optional<std::string>         m_layout;

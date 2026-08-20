@@ -416,7 +416,7 @@ def query_struct_to_type(struct_name: str) -> str:
     if name.startswith("S") and len(name) > 1:
         name = name[1:]
     if name.endswith("Query"):
-        name = name + "Filter"
+        name = f"{name}Filter"
     return f"HL.{name}"
 
 
@@ -504,7 +504,7 @@ def emit_class_block(class_name: str, fields: list[tuple[str, str, bool]], opera
         lines.append(f"---@field ['{quoted}'] {type_with_optional}")
 
     if (emit_local_var):
-        local_name = "__" + class_name.replace(".", "_")
+        local_name = f"__{class_name.replace('.', '_')}"
         lines.append(f"local {local_name} = {{}}")
     return lines
 
@@ -556,6 +556,12 @@ def generate_stub(root: Path) -> str:
         "hl.notification.get": "fun(): HL.Notification[]",
         "hl.layout.register": "fun(name: string, provider: HL.LayoutProvider): nil",
         "hl.exec_cmd": "fun(cmd: string, rules?: table<string, string|number|boolean>): nil",
+        "hl.get_loaded_plugins": "fun(): HL.Plugin[]",
+        "hl.is_key_down": "fun(key: number|string): boolean",
+        "hl.version": "fun(): string",
+        "hl.clear_crashed_lockscreen": "fun(): nil",
+        "hl.exec_scheduled_prop_refresh_immediately": "fun(): nil",
+        "hl.unbind": "fun(key: string): nil"
     }
     api_signatures.update(query_overrides)
 
@@ -728,6 +734,19 @@ def generate_stub(root: Path) -> str:
     )
     lines.append("")
 
+    lines.extend(
+        emit_class_block(
+            "HL.Plugin",
+            [
+                ("name", "string", True),
+                ("author", "string", True),
+                ("version", "string", True),
+                ("description", "string", True),
+            ],
+        )
+    )
+    lines.append("")
+
     for class_name in sorted(query_types.keys()):
         fields = [(name, typ, True) for name, typ in sorted(query_types[class_name].items())]
         lines.extend(emit_class_block(class_name, fields))
@@ -764,7 +783,7 @@ def generate_stub(root: Path) -> str:
         class_name = namespace_class_name(path)
         fields: list[tuple[str, str, bool]] = []
 
-        full_prefix = "hl" + ("." + ".".join(path) if path else "")
+        full_prefix = ".".join(["hl", *path])
 
         for method in sorted(node.methods):
             full_name = f"{full_prefix}.{method}"

@@ -3,7 +3,8 @@
 #include "LuaObjectHelpers.hpp"
 
 #include "../../../desktop/view/Group.hpp"
-#include "../../../desktop/view/Window.hpp"
+#include "../../../desktop/view/window/Window.hpp"
+#include "../../../desktop/view/window/WindowGroupMembership.hpp"
 
 #include <optional>
 #include <string_view>
@@ -92,13 +93,13 @@ static int groupAdd(lua_State* L) {
             return 0;
     }
 
-    if (window->m_group == group)
+    if (window->grouping().group() == group)
         return 0;
 
     if (group->denied())
         return Config::Lua::Bindings::Internal::configError(L, "{}: target group is denied", FN);
 
-    if (!window->canBeGroupedInto(group))
+    if (!window->grouping().canBeGroupedInto(group))
         return Config::Lua::Bindings::Internal::configError(L, "{}: window cannot be added to group", FN);
 
     group->add(window, index);
@@ -185,6 +186,11 @@ void Objects::CLuaGroup::setup(lua_State* L) {
 }
 
 void Objects::CLuaGroup::push(lua_State* L, SP<Desktop::View::CGroup> group) {
+    if (!group) {
+        lua_pushnil(L);
+        return;
+    }
+
     new (lua_newuserdata(L, sizeof(WP<Desktop::View::CGroup>))) WP<Desktop::View::CGroup>(group);
     luaL_getmetatable(L, MT);
     lua_setmetatable(L, -2);

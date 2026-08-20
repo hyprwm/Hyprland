@@ -6,9 +6,10 @@
 
 namespace Config::Values {
     struct SFloatValueOptions {
-        std::optional<Config::FLOAT>   min     = std::nullopt;
-        std::optional<Config::FLOAT>   max     = std::nullopt;
-        Supplementary::PropRefreshBits refresh = 0;
+        std::optional<Config::FLOAT>   min               = std::nullopt;
+        std::optional<Config::FLOAT>   max               = std::nullopt;
+        Supplementary::PropRefreshBits refresh           = 0;
+        const char*                    deprecationNotice = nullptr;
     };
 
     class CFloatValue : public IValue {

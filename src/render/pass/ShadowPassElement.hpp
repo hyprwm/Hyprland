@@ -6,8 +6,8 @@ class CHyprDropShadowDecoration;
 class CShadowPassElement : public IPassElement {
   public:
     struct SShadowData {
-        CHyprDropShadowDecoration* deco = nullptr;
-        float                      a    = 1.F;
+        WP<CHyprDropShadowDecoration> deco;
+        float                         a = 1.F;
     };
 
     CShadowPassElement(const SShadowData& data_);

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "helpers/math/Math.hpp"
-#include <functional>
 #include <any>
 #include <string>
 #include <algorithm>
@@ -38,20 +37,10 @@ enum eInputType : uint8_t {
     INPUT_TYPE_MOTION
 };
 
-enum eHyprCtlOutputFormat : uint8_t {
-    FORMAT_NORMAL = 0,
-    FORMAT_JSON
-};
-
-struct SHyprCtlCommand {
-    std::string                                                   name  = "";
-    bool                                                          exact = true;
-    std::function<std::string(eHyprCtlOutputFormat, std::string)> fn;
-};
-
 struct SDispatchResult {
-    bool        passEvent = false;
-    bool        success   = true;
+    bool        passEvent      = false;
+    bool        success        = true;
+    bool        requestRelease = false;
     std::string error;
 };
 

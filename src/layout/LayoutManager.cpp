@@ -1,6 +1,6 @@
 #include "LayoutManager.hpp"
 
-#include "../managers/EventManager.hpp"
+#include "../ipc/s2/S2.hpp"
 #include "../managers/fullscreen/FullscreenController.hpp"
 #include "space/Space.hpp"
 #include "target/Target.hpp"
@@ -10,6 +10,7 @@
 #include "../state/WorkspaceState.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../desktop/view/Group.hpp"
+#include "../desktop/view/window/WindowGroupMembership.hpp"
 #include "../event/EventBus.hpp"
 
 using namespace Layout;
@@ -44,10 +45,10 @@ void CLayoutManager::changeFloatingMode(SP<ITarget> target) {
     if (pastFsMode != Fullscreen::FSMODE_NONE)
         Fullscreen::controller()->setFullscreenMode(target->window(), pastFsMode);
 
-    g_pEventManager->postEvent(SHyprIPCEvent({
+    IPC::Socket2::sock()->postEvent({
         .event = "changefloatingmode",
         .data  = std::format("{:x},{}", rc<uintptr_t>(target->window().get()), sc<int>(target->floating())),
-    }));
+    });
     Event::bus()->m_events.window.floating.emit(target->window());
 }
 
@@ -109,8 +110,8 @@ void CLayoutManager::moveTarget(const Vector2D& Δ, SP<ITarget> target) {
     target->space()->moveTarget(Δ, target);
 }
 
-void CLayoutManager::endDragTarget() {
-    m_dragStateController->dragEnd();
+bool CLayoutManager::endDragTarget() {
+    return m_dragStateController->dragEnd();
 }
 
 void CLayoutManager::switchTargets(SP<ITarget> a, SP<ITarget> b, bool preserveFocus) {
@@ -157,9 +158,9 @@ void CLayoutManager::bringTargetToTop(SP<ITarget> target) {
     if (!target)
         return;
 
-    if (target->window()->m_group) {
+    if (target->window()->grouping().group()) {
         // grouped, change the current to this window
-        target->window()->m_group->setCurrent(target->window());
+        target->window()->grouping().group()->setCurrent(target->window());
     }
 }
 
@@ -231,8 +232,8 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
         const double GAPSY  = GAPSIN->m_top + GAPSIN->m_bottom;
 
         for (auto& other : Desktop::windowState()->windows()) {
-            if ((HASFULLSCREEN && !other->isAllowedOverFullscreen()) || other == DRAGGINGWINDOW || other->workspaceID() != WSID || !other->m_isMapped ||
-                other->isX11OverrideRedirect())
+            if ((HASFULLSCREEN && !other->isAllowedOverFullscreen()) || other == DRAGGINGWINDOW || other->workspaceID() != WSID || !other->mapped() ||
+                other->backend().traits().overrideRedirect)
                 continue;
 
             const CBox   SURF   = other->getWindowBoxUnified(Desktop::View::RESERVED_EXTENTS);

@@ -26,7 +26,7 @@ class CFifoResource {
     } m_listeners;
 
     void presented();
-    bool checkMonitors(bool needsSchedule = false);
+    bool checkMonitors();
 
     friend class CFifoProtocol;
     friend class CFifoManagerResource;

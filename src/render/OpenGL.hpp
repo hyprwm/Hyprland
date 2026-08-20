@@ -6,12 +6,13 @@
 #include "../helpers/time/Timer.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../helpers/Format.hpp"
+#include "../helpers/DeformableMesh.hpp"
 #include "../helpers/sync/SyncTimeline.hpp"
 #include <GLES3/gl32.h>
 #include <cstdint>
 #include <list>
+#include <optional>
 #include <string>
-#include <stack>
 #include <map>
 
 #include <cairo/cairo.h>
@@ -51,6 +52,8 @@ namespace Config {
 
 namespace Render::GL {
 
+    CBox resolveBlurUV(const CBox& destinationBox, const Vector2D& textureSize);
+
     struct SVertex {
         float x, y; // position
         float u, v; // uv
@@ -86,9 +89,9 @@ namespace Render::GL {
     };
 
     struct SPreparedShaders {
-        std::string                                                                         TEXVERTSRC;
-        std::string                                                                         TEXVERTSRC320;
-        std::array<std::map<Render::ShaderFeatureFlags, SP<CShader>>, Render::SH_FRAG_LAST> fragVariants;
+        std::string                                                                     TEXVERTSRC;
+        std::string                                                                     TEXVERTSRC320;
+        std::array<std::map<Render::SShaderVariant, SP<CShader>>, Render::SH_FRAG_LAST> fragVariants;
     };
 
     struct SCurrentRenderData {
@@ -105,13 +108,14 @@ namespace Render::GL {
         CRegion                  finalDamage; // damage used for final off -> main
 
         Render::SRenderModifData renderModif;
-        float                    mouseZoomFactor    = 1.f;
-        bool                     mouseZoomUseMouse  = true; // true by default
-        bool                     useNearestNeighbor = false;
-        bool                     blockScreenShader  = false;
-        bool                     simplePass         = false;
-        bool                     transformDamage    = true;
-        bool                     noSimplify         = false;
+        float                    mouseZoomFactor            = 1.f;
+        bool                     mouseZoomUseMouse          = true; // true by default
+        bool                     useNearestNeighbor         = false;
+        bool                     blockScreenShader          = false;
+        bool                     simplePass                 = false;
+        bool                     transformDamage            = true;
+        bool                     noSimplify                 = false;
+        bool                     renderingTransformedSource = false;
 
         Vector2D                 primarySurfaceUVTopLeft     = Vector2D(-1, -1);
         Vector2D                 primarySurfaceUVBottomRight = Vector2D(-1, -1);
@@ -163,7 +167,6 @@ namespace Render::GL {
             bool                   blockBlurOptimization = false;
             SP<ITexture>           blurredBG;
             SP<ITexture>           blurAlphaMatte;
-
             const CRegion*         damage        = nullptr;
             SP<CWLSurfaceResource> surface       = nullptr;
             float                  a             = 1.F;
@@ -204,6 +207,7 @@ namespace Render::GL {
 
         void renderRect(const CBox&, const CHyprColor&, SRectRenderData data);
         void renderTexture(SP<ITexture>, const CBox&, STextureRenderData data);
+        void renderTextureMesh(SP<ITexture>, const CBox&, const std::vector<SMeshRenderVertex>& vertices, STextureRenderData data);
         void renderRoundedShadow(const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a = 1.0);
         void renderRoundedShadow(const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2,
                                  float lerp, float a = 1.0);
@@ -217,22 +221,28 @@ namespace Render::GL {
 
         void setViewport(GLint x, GLint y, GLsizei width, GLsizei height);
         void setCapStatus(int cap, bool status);
+        void setActiveTexture(GLenum texture);
+        void blendFunc(GLenum sfactor, GLenum dfactor);
+        void bindArrayBuffer(GLuint buffer);
+        void bindFramebuffer(GLenum target, GLuint fb);
+        // GL implicitly rebinds 0 on every target the deleted fb was bound to, keep the shadow in sync
+        void                                      onFramebufferDeleted(GLuint fb);
 
-        void blend(bool enabled);
+        void                                      blend(bool enabled);
 
-        void scissor(const CBox&, bool transform = true);
-        void scissor(const pixman_box32*, bool transform = true);
-        void scissor(const int x, const int y, const int w, const int h, bool transform = true);
+        void                                      scissor(const CBox&, bool transform = true);
+        void                                      scissor(const pixman_box32*, bool transform = true);
+        void                                      scissor(const int x, const int y, const int w, const int h, bool transform = true);
 
-        void destroyMonitorResources(PHLMONITORREF);
+        void                                      destroyMonitorResources(PHLMONITORREF);
 
-        void preRender(PHLMONITOR);
+        void                                      preRender(PHLMONITOR);
 
-        bool saveBufferForMirror(const CBox&);
+        bool                                      saveBufferForMirror(const CBox&);
 
-        void applyScreenShader(const std::string& path);
+        void                                      applyScreenShader(const std::string& path);
 
-        void renderOffToMain(SP<IFramebuffer> off);
+        void                                      renderOffToMain(SP<IFramebuffer> off);
 
         std::vector<SDRMFormat>                   getDRMFormats();
         std::vector<uint64_t>                     getDRMFormatModifiers(DRMFormat format);
@@ -243,7 +253,11 @@ namespace Render::GL {
         WP<CShader>                               useShader(WP<CShader> prog);
 
         bool                                      explicitSyncSupported();
-        WP<CShader>                               getShaderVariant(Render::ePreparedFragmentShader frag, Render::ShaderFeatureFlags features = 0);
+        bool                                      fp16Supported();
+        WP<CShader>                               getShaderVariant(Render::ePreparedFragmentShader frag, Render::ShaderFeatureFlags features = 0,
+                                                                   NColorManagement::eTransferFunction sourceTF = Render::SHADER_DEFAULT_TF,
+                                                                   NColorManagement::eTransferFunction targetTF = Render::SHADER_DEFAULT_TF);
+        WP<CShader>                               getShaderVariant(Render::ePreparedFragmentShader frag, const Render::SShaderVariant& variant);
 
         bool                                      m_shadersInitialized = false;
         SP<SPreparedShaders>                      m_shaders;
@@ -276,6 +290,7 @@ namespace Render::GL {
 
         struct {
             bool EXT_read_format_bgra               = false;
+            bool EXT_color_buffer_half_float        = false;
             bool EXT_image_dma_buf_import           = false;
             bool EXT_image_dma_buf_import_modifiers = false;
             bool KHR_context_flush_control          = false;
@@ -310,24 +325,33 @@ namespace Render::GL {
 
         std::array<bool, CAP_STATUS_END> m_capStatus = {};
 
-        std::vector<SDRMFormat>          m_drmFormats;
-        bool                             m_hasModifiers = false;
+        // shadowed GL state, all initialized to the GL defaults
+        GLenum                  m_activeTexture    = GL_TEXTURE0;
+        GLuint                  m_boundArrayBuffer = 0;
+        GLuint                  m_boundDrawFB      = 0;
+        GLuint                  m_boundReadFB      = 0;
+        GLenum                  m_blendSFactor     = GL_ONE;
+        GLenum                  m_blendDFactor     = GL_ZERO;
 
-        int                              m_drmFD = -1;
-        std::string                      m_extensions;
+        std::vector<SDRMFormat> m_drmFormats;
+        bool                    m_hasModifiers  = false;
+        bool                    m_fp16Supported = false;
 
-        bool                             m_fakeFrame            = false;
-        bool                             m_applyFinalShader     = false;
-        bool                             m_blend                = false;
-        bool                             m_offloadedFramebuffer = false;
-        bool                             m_cmSupported          = true;
+        int                     m_drmFD = -1;
+        std::string             m_extensions;
 
-        SP<CShader>                      m_finalScreenShader;
-        GLuint                           m_currentProgram;
+        bool                    m_fakeFrame            = false;
+        bool                    m_applyFinalShader     = false;
+        bool                    m_blend                = false;
+        bool                    m_offloadedFramebuffer = false;
+        bool                    m_cmSupported          = true;
 
-        void                             initDRMFormats();
-        void                             initEGL(bool gbm);
-        EGLDeviceEXT                     eglDeviceFromDRMFD(int drmFD);
+        SP<CShader>             m_finalScreenShader;
+        GLuint                  m_currentProgram;
+
+        void                    initDRMFormats();
+        void                    initEGL(bool gbm);
+        EGLDeviceEXT            eglDeviceFromDRMFD(int drmFD);
 
         // for the final shader
         std::array<CTimer, POINTER_PRESSED_HISTORY_LENGTH>   m_pressedHistoryTimers    = {};
@@ -350,7 +374,7 @@ namespace Render::GL {
         void             renderRectInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
         void             renderRectWithBlurInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
         void             renderRectWithDamageInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
-        WP<CShader>      renderToOutputInternal();
+        WP<CShader>      renderScreenShaderInternal();
         WP<CShader>      renderToFBInternal(SP<ITexture> tex, const STextureRenderData& data, eTextureType texType, const CBox& newBox);
         void             renderTextureInternal(SP<ITexture>, const CBox&, const STextureRenderData& data);
         void             renderTextureWithBlurInternal(SP<ITexture>, const CBox&, const STextureRenderData& data);

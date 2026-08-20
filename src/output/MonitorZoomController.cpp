@@ -18,6 +18,12 @@ void CMonitorZoomController::clearAnchor() {
     m_anchorPinned = false;
 }
 
+bool CMonitorZoomController::shouldDamageEntire(float zoomLevel) {
+    const bool CHANGED      = zoomLevel != m_lastRenderedZoomLevel;
+    m_lastRenderedZoomLevel = zoomLevel;
+    return zoomLevel != 1.F || CHANGED;
+}
+
 Vector2D CMonitorZoomController::getAnchor(const PHLMONITORREF& monitor) {
     if (m_anchorPinned)
         return m_pinnedAnchor;

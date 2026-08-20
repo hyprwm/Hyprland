@@ -74,6 +74,11 @@ void Objects::CLuaLayerRule::setup(lua_State* L) {
 }
 
 void Objects::CLuaLayerRule::push(lua_State* L, const SP<Desktop::Rule::CLayerRule>& rule) {
+    if (!rule) {
+        lua_pushnil(L);
+        return;
+    }
+
     new (lua_newuserdata(L, sizeof(WP<Desktop::Rule::CLayerRule>))) WP<Desktop::Rule::CLayerRule>(rule);
     luaL_getmetatable(L, MT);
     lua_setmetatable(L, -2);

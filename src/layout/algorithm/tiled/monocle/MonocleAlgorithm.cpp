@@ -1,8 +1,10 @@
 #include "MonocleAlgorithm.hpp"
+#include "../../../../desktop/view/window/WindowPresentation.hpp"
 
 #include "../../Algorithm.hpp"
 #include "../../../space/Space.hpp"
 #include "../../../target/WindowTarget.hpp"
+#include "../../../../desktop/view/window/Window.hpp"
 #include "../../../LayoutManager.hpp"
 
 #include "../../../../managers/fullscreen/handler/FullscreenHandler.hpp"
@@ -49,8 +51,8 @@ CMonocleAlgorithm::~CMonocleAlgorithm() {
 
         const auto WINDOW = TARGET->window();
         if (WINDOW) {
-            WINDOW->setInputBlocked(Desktop::View::INPUT_BLOCK_MONOCLE_INACTIVE, false);
-            *WINDOW->alpha(Desktop::View::WINDOW_ALPHA_LAYOUT) = 1.F;
+            WINDOW->setInputBlocked(Desktop::View::FOCUS_BLOCK_MONOCLE_INACTIVE, false);
+            *WINDOW->presentation().alpha(Desktop::View::WINDOW_ALPHA_LAYOUT) = 1.F;
         }
     }
 
@@ -86,8 +88,8 @@ void CMonocleAlgorithm::removeTarget(SP<ITarget> target) {
     // unhide window when removing from monocle layout
     const auto WINDOW = target->window();
     if (WINDOW) {
-        WINDOW->setInputBlocked(Desktop::View::INPUT_BLOCK_MONOCLE_INACTIVE, false);
-        *WINDOW->alpha(Desktop::View::WINDOW_ALPHA_LAYOUT) = 1.F;
+        WINDOW->setInputBlocked(Desktop::View::FOCUS_BLOCK_MONOCLE_INACTIVE, false);
+        *WINDOW->presentation().alpha(Desktop::View::WINDOW_ALPHA_LAYOUT) = 1.F;
     }
 
     const auto INDEX = std::distance(m_targetDatas.begin(), it);
@@ -149,8 +151,8 @@ void CMonocleAlgorithm::recalculate(eRecalculateReason reason) {
 
         // Adjust visibility before setting pos so workspace rules like w[tv1] get the correct number of visible windows
         const bool SHOULD_BE_VISIBLE = ((int)i == m_currentVisibleIndex);
-        WINDOW->setInputBlocked(Desktop::View::INPUT_BLOCK_MONOCLE_INACTIVE, !SHOULD_BE_VISIBLE);
-        *WINDOW->alpha(Desktop::View::WINDOW_ALPHA_LAYOUT) = SHOULD_BE_VISIBLE ? 1.F : 0.F;
+        WINDOW->setInputBlocked(Desktop::View::FOCUS_BLOCK_MONOCLE_INACTIVE, !SHOULD_BE_VISIBLE);
+        *WINDOW->presentation().alpha(Desktop::View::WINDOW_ALPHA_LAYOUT) = SHOULD_BE_VISIBLE ? 1.F : 0.F;
 
         // Need to update work area for the above change to take affect on work area dimensions
         SPACE->recheckWorkArea();
@@ -233,7 +235,7 @@ void CMonocleAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection di
         const auto TARGETWS = PMONINDIR->m_activeWorkspace;
 
         if (t->window())
-            t->window()->setAnimationsToMove();
+            t->window()->presentation().setAnimationsToMove();
 
         t->assignToSpace(TARGETWS->m_space, focalPointForDir(t, dir));
     }

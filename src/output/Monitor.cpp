@@ -1,4 +1,6 @@
 #include "Monitor.hpp"
+#include "../desktop/view/window/WindowEffectsController.hpp"
+#include "../desktop/view/window/WindowPresentation.hpp"
 #include "../helpers/MiscFunctions.hpp"
 #include "../macros.hpp"
 #include "SharedDefs.hpp"
@@ -20,11 +22,12 @@
 #include "../protocols/ToplevelExport.hpp"
 #include "../pointer/PointerManager.hpp"
 #include "../pointer/PointerController.hpp"
+#include "../layout/target/Target.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/core/DataDevice.hpp"
 #include "../render/Renderer.hpp"
-#include "../managers/EventManager.hpp"
+#include "../ipc/s2/S2.hpp"
 #include "../managers/screenshare/ScreenshareManager.hpp"
 #include "../animation/AnimationManager.hpp"
 #include "../animation/WorkspaceAnimationController.hpp"
@@ -222,6 +225,7 @@ void CMonitor::onConnect(bool noRule) {
             Log::logger->log(Log::DEBUG, "Reapplying monitor rule for {} from a state request", m_name);
             auto cpy = m_activeMonitorRule;
             applyMonitorRule(std::move(cpy));
+            State::monitorLayoutController()->scheduleRecheck();
             return;
         }
 
@@ -240,6 +244,7 @@ void CMonitor::onConnect(bool noRule) {
         rule.m_resolution = SIZE;
 
         applyMonitorRule(std::move(rule));
+        State::monitorLayoutController()->scheduleRecheck();
     });
 
     m_frameScheduler         = makeUnique<CMonitorFrameScheduler>(m_self.lock());
@@ -276,6 +281,7 @@ void CMonitor::onConnect(bool noRule) {
 
         m_output->state->resetExplicitFences();
         m_output->state->setEnabled(false);
+        m_usedAsyncBuffers.clear();
 
         if (!m_state.commit())
             Log::logger->log(Log::ERR, "Couldn't commit disabled state on output {}", m_name);
@@ -384,8 +390,8 @@ void CMonitor::onConnect(bool noRule) {
 
     m_events.connect.emit();
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"monitoradded", m_name});
-    g_pEventManager->postEvent(SHyprIPCEvent{"monitoraddedv2", std::format("{},{},{}", m_id, m_name, m_shortDescription)});
+    IPC::Socket2::sock()->postEvent({"monitoradded", m_name});
+    IPC::Socket2::sock()->postEvent({"monitoraddedv2", std::format("{},{},{}", m_id, m_name, m_shortDescription)});
     Event::bus()->m_events.monitor.added.emit(m_self.lock());
 }
 
@@ -394,8 +400,8 @@ void CMonitor::onDisconnect(bool destroy) {
     CScopeGuard x = {[this]() {
         if (g_pCompositor->m_isShuttingDown)
             return;
-        g_pEventManager->postEvent(SHyprIPCEvent{"monitorremoved", m_name});
-        g_pEventManager->postEvent(SHyprIPCEvent{"monitorremovedv2", std::format("{},{},{}", m_id, m_name, m_shortDescription)});
+        IPC::Socket2::sock()->postEvent({"monitorremoved", m_name});
+        IPC::Socket2::sock()->postEvent({"monitorremovedv2", std::format("{},{},{}", m_id, m_name, m_shortDescription)});
         Event::bus()->m_events.monitor.removed.emit(m_self.lock());
         State::monitorLayoutController()->scheduleRecheck();
     }};
@@ -1031,7 +1037,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
                     m_scale = std::round(scaleZero);
                 else {
                     Log::logger->log(Log::ERR, "Invalid scale passed to monitor, {} failed to find a clean divisor", m_scale);
-                    ErrorOverlay::overlay()->queueError("Invalid scale passed to monitor " + m_name + ", failed to find a clean divisor");
+                    ErrorOverlay::overlay()->queueError(std::format("Invalid scale passed to monitor {}, failed to find a clean divisor", m_name));
                     m_scale = getDefaultScale();
                 }
             } else {
@@ -1059,7 +1065,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
     m_size            = (xfmd / m_scale).round();
     m_transformedSize = xfmd;
 
-    if ((WAS10B != m_enabled10bit || OLDPIXELSIZE != m_pixelSize)) {
+    if (WAS10B != m_enabled10bit || OLDPIXELSIZE != m_pixelSize || OLDTRANSFORMEDSIZE != m_transformedSize) {
         m_resources.reset(); // TODO skip for 10bit change and fp16?
 
         if (g_pHyprRenderer && g_pHyprRenderer->glBackend())
@@ -1068,8 +1074,10 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
 
     applyMonitorRuleSoft(std::move(pMonitorRule));
 
-    if (OLD_PIXEL_SIZE != m_pixelSize)
+    if (OLD_PIXEL_SIZE != m_pixelSize || OLDTRANSFORMEDSIZE != m_transformedSize) {
         m_background.reset();
+        m_splash.reset();
+    }
 
     updateVCGTRamps();
 
@@ -1443,7 +1451,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
     if (pWorkspace->m_isSpecialWorkspace) {
         if (m_activeSpecialWorkspace != pWorkspace) {
             Log::logger->log(Log::DEBUG, "changeworkspace on special, togglespecialworkspace to id {}", pWorkspace->m_id);
-            setSpecialWorkspace(pWorkspace);
+            setSpecialWorkspace(pWorkspace, noFocus);
         }
         return;
     }
@@ -1476,12 +1484,12 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
 
         // move pinned windows
         for (auto const& w : Desktop::windowState()->windows()) {
-            if (w->m_workspace == POLDWORKSPACE && w->m_pinned)
+            if (w->m_workspace == POLDWORKSPACE && (w->m_state & WINDOW_STATE_PINNED))
                 w->layoutTarget()->assignToSpace(pWorkspace->m_space);
         }
 
         if (!noFocus && !Desktop::focusState()->monitor()->m_activeSpecialWorkspace &&
-            !(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
+            !(Desktop::focusState()->window() && (Desktop::focusState()->window()->m_state & WINDOW_STATE_PINNED) && Desktop::focusState()->window()->m_monitor == m_self)) {
             static auto PFOLLOWMOUSE = CConfigValue<Config::INTEGER>("input:follow_mouse");
             auto pWindow = Fullscreen::controller()->hasFullscreen(pWorkspace) ? Fullscreen::controller()->getFullscreenWindow(pWorkspace) : pWorkspace->getLastFocusedWindow();
 
@@ -1502,15 +1510,17 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
 
         g_layoutManager->recalculateMonitor(m_self.lock(), Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_WORKSPACE_CHANGE);
 
-        g_pEventManager->postEvent(SHyprIPCEvent{"workspace", pWorkspace->m_name});
-        g_pEventManager->postEvent(SHyprIPCEvent{"workspacev2", std::format("{},{}", pWorkspace->m_id, pWorkspace->m_name)});
-        Event::bus()->m_events.workspace.active.emit(pWorkspace);
+        if (!noFocus) {
+            IPC::Socket2::sock()->postEvent({"workspace", pWorkspace->m_name});
+            IPC::Socket2::sock()->postEvent({"workspacev2", std::format("{},{}", pWorkspace->m_id, pWorkspace->m_name)});
+            Event::bus()->m_events.workspace.active.emit(pWorkspace);
+        }
     }
 
     // set all LSes as not above fullscreen on workspace changes
     for (auto const& ls : Desktop::layerState()->layers()) {
         if (ls->m_monitor == m_self)
-            ls->m_aboveFullscreen = false;
+            ls->m_flags &= ~LAYER_FLAG_ABOVE_FULLSCREEN;
     }
 
     pWorkspace->m_events.activeChanged.emit();
@@ -1549,7 +1559,7 @@ void CMonitor::setSpecialWorkspaceVisualState(bool active) {
     *m_specialBlur = active && *PBLURSPECIAL && *PBLUR ? 1.F : 0.F;
 }
 
-void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
+void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace, bool noFocus) {
     if (m_activeSpecialWorkspace == pWorkspace)
         return;
 
@@ -1564,13 +1574,13 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         if (m_activeSpecialWorkspace) {
             m_activeSpecialWorkspace->m_visible = false;
             Animation::Workspace::startAnimation(m_activeSpecialWorkspace, Animation::Workspace::ANIMATION_TYPE_OUT, false);
-            g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + m_name});
-            g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", ",," + m_name});
+            IPC::Socket2::sock()->postEvent({"activespecial", std::format(",{}", m_name)});
+            IPC::Socket2::sock()->postEvent({"activespecialv2", std::format(",,{}", m_name)});
 
             // Reset layer surface state when closing special workspace
             for (auto const& ls : Desktop::layerState()->layers()) {
                 if (ls->m_monitor == m_self)
-                    ls->m_aboveFullscreen = false;
+                    ls->m_flags &= ~LAYER_FLAG_ABOVE_FULLSCREEN;
             }
         }
         m_activeSpecialWorkspace.reset();
@@ -1580,7 +1590,8 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
         g_layoutManager->recalculateMonitor(m_self.lock(), Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE);
 
-        if (!(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
+        if (!(noFocus && Desktop::focusState()->monitor() != m_self) &&
+            !(Desktop::focusState()->window() && (Desktop::focusState()->window()->m_state & WINDOW_STATE_PINNED) && Desktop::focusState()->window()->m_monitor == m_self)) {
             if (const auto PLAST = m_activeWorkspace->getLastFocusedWindow(); PLAST)
                 Desktop::focusState()->fullWindowFocus(PLAST, Desktop::FOCUS_REASON_TOGGLE_SPECIAL_WORKSPACE);
             else
@@ -1613,13 +1624,22 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         PMONITOR->m_activeSpecialWorkspace.reset();
         g_layoutManager->recalculateMonitor(PMONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE);
         g_pHyprRenderer->damageMonitor(PMONITOR);
-        g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + PMONITOR->m_name});
-        g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", ",," + PMONITOR->m_name});
+        if (noFocus &&
+            (Desktop::focusState()->monitor() == PMONITOR &&
+             !(Desktop::focusState()->window() && (Desktop::focusState()->window()->m_state & WINDOW_STATE_PINNED) && Desktop::focusState()->window()->m_monitor == PMONITOR))) {
+            // leave focus behind
+            if (const auto PLAST = PMONITOR->m_activeWorkspace->getLastFocusedWindow(); PLAST)
+                Desktop::focusState()->fullWindowFocus(PLAST, Desktop::FOCUS_REASON_TOGGLE_SPECIAL_WORKSPACE);
+            else
+                g_pInputManager->refocus();
+        }
+        IPC::Socket2::sock()->postEvent({"activespecial", std::format(",{}", PMONITOR->m_name)});
+        IPC::Socket2::sock()->postEvent({"activespecialv2", std::format(",,{}", PMONITOR->m_name)});
 
         // Reset layer surfaces on the old monitor when special workspace is stolen
         for (auto const& ls : Desktop::layerState()->layers()) {
             if (ls->m_monitor == PMONITOR)
-                ls->m_aboveFullscreen = false;
+                ls->m_flags &= ~LAYER_FLAG_ABOVE_FULLSCREEN;
         }
 
         const auto PACTIVEWORKSPACE = PMONITOR->m_activeWorkspace;
@@ -1638,7 +1658,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     // Reset layer surface state when opening special workspace
     for (auto const& ls : Desktop::layerState()->layers()) {
         if (ls->m_monitor == m_self)
-            ls->m_aboveFullscreen = false;
+            ls->m_flags &= ~LAYER_FLAG_ABOVE_FULLSCREEN;
     }
 
     if (POLDSPECIAL)
@@ -1657,10 +1677,10 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         if (w->m_workspace == pWorkspace) {
             w->m_monitor = m_self;
             w->updateSurfaceScaleTransformDetails();
-            w->setAnimationsToMove();
+            w->presentation().setAnimationsToMove();
 
             const auto MIDDLE = w->middle();
-            if (w->m_isFloating && VECNOTINRECT(MIDDLE, m_position.x, m_position.y, m_position.x + m_size.x, m_position.y + m_size.y) && !w->isX11OverrideRedirect()) {
+            if (w->isFloating() && VECNOTINRECT(MIDDLE, m_position.x, m_position.y, m_position.x + m_size.x, m_position.y + m_size.y) && !w->backend().traits().overrideRedirect) {
                 // if it's floating and the middle isn't on the current mon, move it to the center
                 const auto PMONFROMMIDDLE = State::monitorState()->query().vec(MIDDLE).run();
                 Vector2D   pos            = w->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
@@ -1678,15 +1698,18 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
     g_layoutManager->recalculateMonitor(m_self.lock(), Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE);
 
-    if (!(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
+    if (!noFocus ||
+        (Desktop::focusState()->monitor() == m_self &&
+         !(Desktop::focusState()->window() && (Desktop::focusState()->window()->m_state & WINDOW_STATE_PINNED) && Desktop::focusState()->window()->m_monitor == m_self))) {
+        // focus the workspace we just moved
         if (const auto PLAST = pWorkspace->getLastFocusedWindow(); PLAST)
             Desktop::focusState()->fullWindowFocus(PLAST, Desktop::FOCUS_REASON_TOGGLE_SPECIAL_WORKSPACE);
         else
             g_pInputManager->refocus();
     }
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", pWorkspace->m_name + "," + m_name});
-    g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", std::to_string(pWorkspace->m_id) + "," + pWorkspace->m_name + "," + m_name});
+    IPC::Socket2::sock()->postEvent({"activespecial", std::format("{},{}", pWorkspace->m_name, m_name)});
+    IPC::Socket2::sock()->postEvent({"activespecialv2", std::format("{},{},{}", pWorkspace->m_id, pWorkspace->m_name, m_name)});
 
     g_pHyprRenderer->damageMonitor(m_self.lock());
 
@@ -1700,8 +1723,8 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     Event::bus()->m_events.workspace.specialActive.emit(pWorkspace, m_self.lock());
 }
 
-void CMonitor::setSpecialWorkspace(const WORKSPACEID& id) {
-    setSpecialWorkspace(State::workspaceState()->query().id(id).run());
+void CMonitor::setSpecialWorkspace(const WORKSPACEID& id, bool noFocus) {
+    setSpecialWorkspace(State::workspaceState()->query().id(id).run(), noFocus);
 }
 
 PHLWORKSPACE CMonitor::getCurrentWorkspace() {
@@ -1730,7 +1753,7 @@ void CMonitor::moveTo(const Vector2D& pos) {
     const auto DELTA = pos - OLD_POSITION;
 
     for (const auto& w : Desktop::windowState()->windows()) {
-        if (!validMapped(w) || !w->m_isFloating || w->m_monitor != m_self)
+        if (!validMapped(w) || !w->isFloating() || w->m_monitor != m_self)
             continue;
 
         w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(DELTA));
@@ -1862,7 +1885,7 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
         return reasons;
     }
 
-    if (!PCANDIDATE->opaque()) {
+    if (!PCANDIDATE->presentation().opaque()) {
         reasons |= SC_OPAQUE;
         if (!full)
             return reasons;
@@ -1899,10 +1922,10 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
     }
 
     for (auto const& w : Desktop::windowState()->windows()) {
-        if (w == PCANDIDATE || !w->m_isMapped || !w->visible())
+        if (w == PCANDIDATE || !w->mapped() || !w->acceptsInput() || !w->alphaNonZero())
             continue;
 
-        if (w->workspaceID() == PCANDIDATE->workspaceID() && w->m_isFloating && w->isAllowedOverFullscreen() && w->visibleOnMonitor(m_self.lock())) {
+        if (w->workspaceID() == PCANDIDATE->workspaceID() && w->isFloating() && w->isAllowedOverFullscreen() && w->presentation().visibleOnMonitor(m_self.lock())) {
             reasons |= SC_FLOAT;
             if (!full)
                 return reasons;
@@ -2065,6 +2088,12 @@ uint16_t CMonitor::isDSBlocked(bool full) {
         return reasons;
     }
 
+    if (PCANDIDATE->effects().blocksDirectScanout()) {
+        reasons |= DS_BLOCK_TRANSFORM;
+        if (!full)
+            return reasons;
+    }
+
     const auto PSURFACE = PCANDIDATE->getSolitaryResource();
     if (!PSURFACE || !PSURFACE->m_current.texture || !PSURFACE->m_current.buffer) {
         reasons |= DS_BLOCK_SURFACE;
@@ -2183,7 +2212,13 @@ bool CMonitor::attemptDirectScanout() {
 
     PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
 
-    m_output->state->addDamage(PSURFACE->m_current.accumulateBufferDamage());
+    // the commit path already added the damage into the damagering
+    CRegion scanoutDamage = m_damage.getBufferDamage(1);
+    // the ring is in transformed space, the fb we hand to KMS is in pixel space
+    scanoutDamage.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_transform)), m_transformedSize.x, m_transformedSize.y);
+    // expand to not miss pixels from rounding, being a bit over is safe, going below is stale pixels.
+    scanoutDamage.expand(1).intersect(CBox{{}, m_pixelSize});
+    m_output->state->addDamage(scanoutDamage);
 
     // multigpu needs a fence to trigger fence syncing blits and also committing with the recreated dgpu fence
     if (g_pHyprRenderer->explicitSyncSupported() && isMultiGPU()) {
@@ -2211,9 +2246,12 @@ bool CMonitor::attemptDirectScanout() {
 
     scanoutCommitted = true;
 
+    // the flip has used the damage, rotate it.
+    m_damage.rotate();
+
     if (m_lastScanout.expired()) {
         m_lastScanout = PCANDIDATE;
-        Log::logger->log(Log::DEBUG, "Entered a direct scanout to {:x}: \"{}\"", rc<uintptr_t>(PCANDIDATE.get()), PCANDIDATE->m_title);
+        Log::logger->log(Log::DEBUG, "Entered a direct scanout to {:x}: \"{}\"", rc<uintptr_t>(PCANDIDATE.get()), PCANDIDATE->metadata().title());
     }
 
     m_scanoutNeedsCursorUpdate = false;
@@ -2244,6 +2282,7 @@ void CMonitor::handleDSleave() {
 
     m_drmFormat   = m_prevDrmFormat;
     m_blurFBDirty = true;
+    m_damage.damageEntire();
 }
 
 bool CMonitor::canAttemptDirectScanoutFast() const {
@@ -2334,6 +2373,7 @@ void CMonitor::setDPMS(bool on) {
 
                 // commit DPMS to disable the monitor, it's fully black now
                 commitDPMSState(false);
+                m_usedAsyncBuffers.clear();
             },
             true);
     }
@@ -2342,6 +2382,8 @@ void CMonitor::setDPMS(bool on) {
 void CMonitor::commitDPMSState(bool state) {
     m_output->state->resetExplicitFences();
     m_output->state->setEnabled(state);
+    if (!state)
+        m_usedAsyncBuffers.clear();
 
     if (!m_state.commit()) {
         Log::logger->log(Log::ERR, "Couldn't commit output {} for DPMS = {}, will retry.", m_name, state);
@@ -2357,6 +2399,9 @@ void CMonitor::commitDPMSState(bool state) {
 
                 m_output->state->resetExplicitFences();
                 m_output->state->setEnabled(m_dpmsStatus);
+                if (!m_dpmsStatus)
+                    m_usedAsyncBuffers.clear();
+
                 if (!m_state.commit()) {
                     Log::logger->log(Log::ERR, "Couldn't retry committing output {} for DPMS = {}", m_name, m_dpmsStatus);
                     return;
@@ -2741,8 +2786,8 @@ bool CMonitor::useFP16() {
         return true;
     };
 
-    // Auto: use FP16 if the monitor is not sRGB
-    bool        shouldUse  = *PFP16 == 1 || (*PFP16 == 2 && !isSRGB());
+    // Auto: use FP16 if the monitor is not sRGB or is 10 bit
+    bool        shouldUse  = g_pHyprRenderer->fp16Supported() && (*PFP16 == 1 || (*PFP16 == 2 && (!isSRGB() || m_enabled10bit)));
     static bool usedBefore = shouldUse;
     if (usedBefore != shouldUse) {
         usedBefore    = shouldUse;
@@ -2788,8 +2833,8 @@ WP<CMonitorResources> CMonitor::resources() {
     const auto DRM_FORMAT = useFP16() ? DRM_FORMAT_ABGR16161616F : m_output->state->state().drmFormat;
     const auto DESC       = workBufferImageDescription();
 
-    if (!m_resources || m_resources->m_drmFormat != DRM_FORMAT || m_resources->m_size != m_pixelSize)
-        m_resources = makeUnique<CMonitorResources>(m_self, DRM_FORMAT, m_pixelSize, DESC);
+    if (!m_resources || m_resources->m_drmFormat != DRM_FORMAT || m_resources->m_size != m_transformedSize)
+        m_resources = makeUnique<CMonitorResources>(m_self, DRM_FORMAT, m_transformedSize, DESC);
 
     if (m_resources->m_imageDescription != DESC)
         m_resources->setImageDescription(DESC);

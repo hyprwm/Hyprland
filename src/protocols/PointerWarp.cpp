@@ -4,7 +4,7 @@
 #include "../desktop/view/WLSurface.hpp"
 #include "../managers/SeatManager.hpp"
 #include "../pointer/PointerManager.hpp"
-#include "../desktop/view/Window.hpp"
+#include "../desktop/view/window/Window.hpp"
 #include "desktop/view/LayerSurface.hpp"
 #include <hyprutils/math/Box.hpp>
 #include <hyprutils/math/Vector2D.hpp>
@@ -75,6 +75,7 @@ void CPointerWarpProtocol::bindManager(wl_client* client, void* data, uint32_t v
 
         Pointer::mgr()->warpTo(GLOBALPOS);
         g_pSeatManager->sendPointerMotion(Time::millis(Time::steadyNow()), LOCALPOS);
+        g_pSeatManager->sendPointerFrame();
     });
 }
 

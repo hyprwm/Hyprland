@@ -22,7 +22,7 @@
 #include "../../desktop/rule/layerRule/LayerRule.hpp"
 
 #include "../../SharedDefs.hpp"
-#include "../../managers/KeybindManager.hpp"
+#include "../../keybinds/Manager.hpp"
 #include "../shared/ConfigErrors.hpp"
 
 extern "C" {
@@ -49,6 +49,10 @@ namespace Config::Lua::Bindings {
 }
 
 namespace Config::Lua {
+
+    struct SLuaStateLifetime {
+        lua_State* state = nullptr;
+    };
 
     class CConfigManager : public Config::IConfigManager {
       public:
@@ -84,6 +88,8 @@ namespace Config::Lua {
         virtual std::expected<void, std::string> registerPluginValue(void* handle, SP<Config::Values::IValue> value) override;
         virtual void                             onPluginUnload(void* handle) override;
 
+        virtual std::vector<std::string>         deprecationNotices() const override;
+
         int                                      invokePluginLuaFunctionByID(uint64_t id, lua_State* L);
 
         std::expected<void, std::string>         registerPluginLuaFunction(void* handle, const std::string& namespace_, const std::string& name, PLUGIN_LUA_FN fn);
@@ -97,6 +103,7 @@ namespace Config::Lua {
         void                                     callLuaFn(int ref, const std::function<int(lua_State*)>& pushArgs, int timeoutMs, std::string_view context);
         std::expected<void, std::string>         registerLuaLayoutProvider(std::string name, lua_State* L, int providerTableIdx);
         SDispatchResult                          callLuaFnBind(int ref);
+        SP<SLuaStateLifetime>                    luaStateLifetime() const;
 
         // execute an arbitrary lua string on the current state.
         std::optional<std::string> eval(const std::string& code, bool repl = false);
@@ -164,6 +171,7 @@ namespace Config::Lua {
 
         lua_State*                                   m_lua          = nullptr;
         bool                                         m_ownsLuaState = false;
+        SP<SLuaStateLifetime>                        m_luaStateLifetime;
 
         bool                                         m_lastConfigVerificationWasSuccessful = true;
         bool                                         m_isFirstLaunch                       = true;

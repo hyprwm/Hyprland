@@ -4,6 +4,7 @@
 #include "macros.hpp"
 #include "../Framebuffer.hpp"
 #include <hyprgraphics/egl/Egl.hpp>
+#include <algorithm>
 #include <limits>
 
 using namespace Hyprgraphics::Egl;
@@ -34,14 +35,14 @@ bool CGLFramebuffer::internalAlloc(int w, int h, uint32_t drmFormat) {
     const auto format = getPixelFormatFromDRM(drmFormat);
     m_tex->bind();
     glTexImage2D(GL_TEXTURE_2D, 0, format->glInternalFormat ? format->glInternalFormat : format->glFormat, w, h, 0, format->glFormat, format->glType, nullptr);
-    glBindFramebuffer(GL_FRAMEBUFFER, m_fb);
+    g_pHyprOpenGL->bindFramebuffer(GL_FRAMEBUFFER, m_fb);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_tex->m_texID, 0);
 
     if (m_mirrorTex) {
         const auto format = getPixelFormatFromDRM(m_mirrorTex->m_drmFormat);
         m_mirrorTex->bind();
         glTexImage2D(GL_TEXTURE_2D, 0, format->glInternalFormat ? format->glInternalFormat : format->glFormat, w, h, 0, format->glFormat, format->glType, nullptr);
-        glBindFramebuffer(GL_FRAMEBUFFER, m_fb);
+        g_pHyprOpenGL->bindFramebuffer(GL_FRAMEBUFFER, m_fb);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_mirrorTex->m_texID, 0);
         GLenum drawBuffers[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
         glDrawBuffers(2, drawBuffers);
@@ -69,13 +70,13 @@ bool CGLFramebuffer::internalAlloc(int w, int h, uint32_t drmFormat) {
     Log::logger->log(Log::DEBUG, "Framebuffer \"{}\" created, status {}", m_name, status);
 
     glBindTexture(GL_TEXTURE_2D, 0);
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    g_pHyprOpenGL->bindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
     // this can run mid frame in enableMirror() in begin() restore the draw fb the renderer had bound
     if (g_pHyprRenderer && g_pHyprRenderer->m_renderData.currentFB)
         g_pHyprRenderer->m_renderData.currentFB->bind();
     else
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        g_pHyprOpenGL->bindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
     return true;
 }
@@ -93,30 +94,43 @@ void CGLFramebuffer::bind() {
     // that means its a temp buffer that we have to raw bind and not change the viewport.
     // the temp buffer code binds this fb to add attachments themself
     if (m_tempBuf) {
-        glBindFramebuffer(GL_FRAMEBUFFER, m_fb);
+        if (g_pHyprOpenGL)
+            g_pHyprOpenGL->bindFramebuffer(GL_FRAMEBUFFER, m_fb);
+        else
+            glBindFramebuffer(GL_FRAMEBUFFER, m_fb);
         return;
     }
 
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fb);
     if (g_pHyprOpenGL) {
-        const auto& size = g_pHyprRenderer->m_renderData.pMonitor ? g_pHyprRenderer->m_renderData.pMonitor->m_pixelSize : m_size;
-        g_pHyprOpenGL->setViewport(0, 0, size.x, size.y);
-    } else
+        g_pHyprOpenGL->bindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fb);
+        g_pHyprOpenGL->setViewport(0, 0, m_size.x, m_size.y);
+    } else {
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fb);
         glViewport(0, 0, m_size.x, m_size.y);
+    }
 }
 
 void CGLFramebuffer::unbind() {
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    if (g_pHyprOpenGL)
+        g_pHyprOpenGL->bindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    else
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 }
 
 void CGLFramebuffer::release() {
     if (m_fbAllocated) {
-        glBindFramebuffer(GL_FRAMEBUFFER, m_fb);
+        if (g_pHyprOpenGL)
+            g_pHyprOpenGL->bindFramebuffer(GL_FRAMEBUFFER, m_fb);
+        else
+            glBindFramebuffer(GL_FRAMEBUFFER, m_fb);
+
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
         if (m_mirrorTex)
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, 0, 0);
 
         glDeleteFramebuffers(1, &m_fb);
+        if (g_pHyprOpenGL)
+            g_pHyprOpenGL->onFramebufferDeleted(m_fb);
 
         // releasing can happen mid frame from a temp fb, rebind the fb the renderer
         // had previously bound, otherwise draws continue into fb 0 and raise GL_INVALID_FRAMEBUFFER_OPERATION
@@ -202,7 +216,7 @@ bool CGLFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uin
     }
 
     g_pHyprOpenGL->makeEGLCurrent();
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, getFBID());
+    g_pHyprOpenGL->bindFramebuffer(GL_READ_FRAMEBUFFER, getFBID());
     bind();
 
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
@@ -240,7 +254,7 @@ bool CGLFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uin
     unbind();
     glPixelStorei(GL_PACK_ALIGNMENT, 4);
 
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    g_pHyprOpenGL->bindFramebuffer(GL_READ_FRAMEBUFFER, 0);
     return true;
 }
 
@@ -256,8 +270,13 @@ void CGLFramebuffer::invalidate(const std::vector<GLenum>& attachments) {
     if (!isAllocated())
         return;
 
-    glInvalidateFramebuffer(GL_FRAMEBUFFER, attachments.size(), attachments.data());
-    m_cleared = false;
+    static const auto PFBINVALIDATE = CConfigValue<Config::INTEGER>("debug:invalidate_buffers");
+    if (*PFBINVALIDATE)
+        glInvalidateFramebuffer(GL_FRAMEBUFFER, attachments.size(), attachments.data());
+
+    // m_cleared tracks the color attachment only, see clearAfterInvalidation()
+    if (std::ranges::contains(attachments, sc<GLenum>(GL_COLOR_ATTACHMENT0)))
+        m_cleared = false;
 }
 
 void CGLFramebuffer::clearAfterInvalidation() {

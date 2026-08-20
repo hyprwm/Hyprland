@@ -17,7 +17,7 @@
 #include "../../../output/Monitor.hpp"
 #include "../../../desktop/state/FocusState.hpp"
 #include "../../../desktop/rule/windowRule/WindowRuleEffectContainer.hpp"
-#include "../../../managers/KeybindManager.hpp"
+#include "../../../keybinds/Manager.hpp"
 #include "../../shared/actions/ConfigActions.hpp"
 
 #include <functional>
@@ -65,7 +65,7 @@ namespace Config::Lua::Bindings::Internal {
         {"content", []() -> ILuaConfigValue* { return new CLuaConfigString(STRVAL_EMPTY); }, WE::WINDOW_RULE_EFFECT_CONTENT},
         {"no_close_for", []() -> ILuaConfigValue* { return new CLuaConfigInt(0); }, WE::WINDOW_RULE_EFFECT_NOCLOSEFOR},
         {"scrolling_width", []() -> ILuaConfigValue* { return new CLuaConfigFloat(0.F); }, WE::WINDOW_RULE_EFFECT_SCROLLING_WIDTH},
-        {"rounding", []() -> ILuaConfigValue* { return new CLuaConfigInt(0, 0, 20); }, WE::WINDOW_RULE_EFFECT_ROUNDING},
+        {"rounding", []() -> ILuaConfigValue* { return new CLuaConfigInt(0, 0, 100); }, WE::WINDOW_RULE_EFFECT_ROUNDING},
         {"border_size", []() -> ILuaConfigValue* { return new CLuaConfigInt(0); }, WE::WINDOW_RULE_EFFECT_BORDER_SIZE},
         {"rounding_power", []() -> ILuaConfigValue* { return new CLuaConfigFloat(2.F, 1.F, 10.F); }, WE::WINDOW_RULE_EFFECT_ROUNDING_POWER},
         {"scroll_mouse", []() -> ILuaConfigValue* { return new CLuaConfigFloat(1.F, 0.01F, 10.F); }, WE::WINDOW_RULE_EFFECT_SCROLL_MOUSE},
@@ -91,6 +91,7 @@ namespace Config::Lua::Bindings::Internal {
         {"no_follow_mouse", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_NO_FOLLOW_MOUSE},
         {"no_max_size", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_NO_MAX_SIZE},
         {"no_shadow", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_NO_SHADOW},
+        {"no_wobble", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_NO_WOBBLE},
         {"no_shortcuts_inhibit", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_NO_SHORTCUTS_INHIBIT},
         {"opaque", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_OPAQUE},
         {"force_rgbx", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_FORCE_RGBX},

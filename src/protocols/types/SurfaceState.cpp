@@ -1,6 +1,8 @@
 #include "SurfaceState.hpp"
 #include "helpers/Format.hpp"
 #include "protocols/types/Buffer.hpp"
+#include "protocols/PresentationTime.hpp"
+#include "managers/eventLoop/EventLoopManager.hpp"
 #include "render/Renderer.hpp"
 #include "render/Texture.hpp"
 
@@ -15,24 +17,32 @@ Vector2D SSurfaceState::sourceSize() {
     return trc / scale;
 }
 
-CRegion SSurfaceState::accumulateBufferDamage() {
-    if (damage.empty())
-        return bufferDamage;
+bool SSurfaceState::consumeBufferDamage() const {
+    return buffer && !buffer->isSynchronous();
+}
 
-    CRegion surfaceDamage = damage;
-    if (viewport.hasDestination) {
-        Vector2D scale = sourceSize() / viewport.destination;
-        surfaceDamage.scale(scale);
+CRegion SSurfaceState::accumulateBufferDamage() {
+    if (!damage.empty()) {
+        CRegion surfaceDamage = damage;
+        if (viewport.hasDestination) {
+            Vector2D scale = sourceSize() / viewport.destination;
+            surfaceDamage.scale(scale);
+        }
+
+        if (viewport.hasSource)
+            surfaceDamage.translate(viewport.source.pos());
+
+        Vector2D trc = transform % 2 == 1 ? Vector2D{bufferSize.y, bufferSize.x} : bufferSize;
+
+        bufferDamage = surfaceDamage.scale(scale).transform(Math::wlTransformToHyprutils(Math::invertTransform(transform)), trc.x, trc.y).add(bufferDamage);
+        damage.clear();
     }
 
-    if (viewport.hasSource)
-        surfaceDamage.translate(viewport.source.pos());
+    auto taken = bufferDamage;
+    if (consumeBufferDamage())
+        bufferDamage.clear();
 
-    Vector2D trc = transform % 2 == 1 ? Vector2D{bufferSize.y, bufferSize.x} : bufferSize;
-
-    bufferDamage = surfaceDamage.scale(scale).transform(Math::wlTransformToHyprutils(Math::invertTransform(transform)), trc.x, trc.y).add(bufferDamage);
-    damage.clear();
-    return bufferDamage;
+    return taken;
 }
 
 CRegion SSurfaceState::effectiveInputRegion() const {
@@ -76,19 +86,46 @@ void SSurfaceState::reset() {
     presentationFeedbacks.clear();
     lockMask = LOCK_REASON_NONE;
 
-    barrierSet    = false;
-    surfaceLocked = false;
-    fifoScheduled = false;
+    barrierSet            = false;
+    barrierWait           = false;
+    waitingOnPresentation = false;
 
     pendingTimeout.reset();
     commitTimingTarget.reset();
     timer.reset(); // CEventLoopManager::nudgeTimers should handle it eventually
 }
 
-void SSurfaceState::updateFrom(SSurfaceState& ref) {
-    updated = ref.updated;
+bool SSurfaceState::isLocked() const {
+    return lockMask != LOCK_REASON_NONE;
+}
+
+bool SSurfaceState::fenceSignaled() const {
+    if (buffer) {
+        for (const auto& fd : buffer->m_syncFds) {
+            if (!fd.isReadable())
+                return false;
+        }
+    }
+
+    if (acquireWaiter && !acquireWaiter->fd.isReadable())
+        return false;
+
+    return true;
+}
+
+void SSurfaceState::cancelFenceWaiter() {
+    if (acquireWaiter && g_pEventLoopManager)
+        g_pEventLoopManager->removeReadableWaiter(acquireWaiter);
+    acquireWaiter.reset();
+}
+
+void SSurfaceState::mergeFrom(SSurfaceState& ref) {
+    updated.all |= ref.updated.all;
 
     if (ref.updated.bits.buffer) {
+        if (!presentationFeedbacks.empty())
+            PROTO::presentation->discardFeedbacks(presentationFeedbacks);
+
         buffer     = ref.buffer;
         texture    = ref.texture;
         size       = ref.size;
@@ -96,10 +133,75 @@ void SSurfaceState::updateFrom(SSurfaceState& ref) {
     }
 
     if (ref.updated.bits.damage) {
-        damage       = ref.damage;
-        bufferDamage = ref.bufferDamage;
-    } else {
-        // damage is always relative to the current commit
+        damage.add(ref.damage);
+        bufferDamage.add(ref.bufferDamage);
+    }
+
+    if (ref.updated.bits.input) {
+        input           = ref.input;
+        inputIsInfinite = ref.inputIsInfinite;
+    }
+
+    if (ref.updated.bits.opaque)
+        opaque = ref.opaque;
+
+    if (ref.updated.bits.offset)
+        offset = ref.offset;
+
+    if (ref.updated.bits.scale)
+        scale = ref.scale;
+
+    if (ref.updated.bits.transform)
+        transform = ref.transform;
+
+    if (ref.updated.bits.viewport)
+        viewport = ref.viewport;
+
+    if (ref.updated.bits.acquire)
+        acquire = ref.acquire;
+
+    if (ref.updated.bits.acked)
+        ackedSize = ref.ackedSize;
+
+    if (ref.updated.bits.frame) {
+        callbacks.insert(callbacks.end(), std::make_move_iterator(ref.callbacks.begin()), std::make_move_iterator(ref.callbacks.end()));
+        ref.callbacks.clear();
+    }
+
+    if (ref.updated.bits.presentation) {
+        presentationFeedbacks.insert(presentationFeedbacks.end(), std::make_move_iterator(ref.presentationFeedbacks.begin()),
+                                     std::make_move_iterator(ref.presentationFeedbacks.end()));
+        ref.presentationFeedbacks.clear();
+    }
+}
+
+void SSurfaceState::updateFrom(SSurfaceState& ref) {
+    updated = ref.updated;
+
+    if (ref.updated.bits.buffer) {
+        if (!presentationFeedbacks.empty())
+            PROTO::presentation->discardFeedbacks(presentationFeedbacks);
+
+        buffer     = ref.buffer;
+        texture    = ref.texture;
+        size       = ref.size;
+        bufferSize = ref.bufferSize;
+    }
+
+    if (ref.updated.bits.damage) {
+        if (consumeBufferDamage()) {
+            // what we still hold is only consumed on rendering.
+            // dropping it here would leave those pixels stale.
+            damage.add(ref.damage);
+            bufferDamage.add(ref.bufferDamage);
+        } else {
+            damage       = ref.damage;
+            bufferDamage = ref.bufferDamage;
+        }
+    } else if (ref.updated.bits.buffer || !consumeBufferDamage()) {
+        // damage is relative to the buffer, shm drops the buffer on commit
+        // dmabuf doesnt drop it until we recieve a new one. and we cant clear
+        // the dmabuf damage until the renderer has actually consumed it.
         damage.clear();
         bufferDamage.clear();
     }
@@ -142,5 +244,5 @@ void SSurfaceState::updateFrom(SSurfaceState& ref) {
     }
 
     if (ref.barrierSet)
-        barrierSet = ref.barrierSet;
+        waitingOnPresentation = true;
 }

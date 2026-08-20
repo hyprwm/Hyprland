@@ -86,7 +86,7 @@ eIconBackend CNotificationOverlay::iconBackendForFont(const std::string& fontFam
 
 void CNotificationOverlay::ensureNotificationCache(CNotification& notif, PHLMONITOR pMonitor, const std::string& fontFamily) {
     const auto iconBackend = iconBackendForFont(fontFamily);
-    const auto fontSizePx  = std::clamp(sc<int>(notif.fontSize() * ((pMonitor->m_pixelSize.x * pMonitor->m_scale) / 1920.F)), 8, 40);
+    const auto fontSizePx  = std::clamp(sc<int>(notif.fontSize() * ((pMonitor->m_transformedSize.x * pMonitor->m_scale) / 1920.F)), 8, 40);
 
     const bool cacheValid = notif.m_cache.monitor == pMonitor && notif.m_cache.fontFamily == fontFamily && notif.m_cache.fontSizePx == fontSizePx &&
         notif.m_cache.iconBackend == iconBackend && notif.m_cache.textTex && (notif.icon() == ICON_NONE || notif.m_cache.iconTex);

@@ -1,0 +1,41 @@
+name: Vouch MR Check
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  check-vouch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out template
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Verify central Vouch list
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api \
+            "/repos/${{ github.repository_owner }}/.github/contents/vouch/VOUCHED.td?ref=${{ github.event.repository.default_branch }}" \
+            >/dev/null
+
+      - name: Enforce central Vouch list
+        uses: mitchellh/vouch/action/check-pr@v1
+        with:
+          pr-number: ${{ github.event.pull_request.number }}
+          repo: ${{ github.repository }}
+          vouched-repo: ${{ github.repository_owner }}/.github
+          vouched-file: vouch/VOUCHED.td
+          template-file: .github/vouch_pr_message.md
+          require-vouch: true
+          auto-close: true
+          dry-run: false
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

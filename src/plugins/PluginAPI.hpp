@@ -24,11 +24,13 @@ Feel like the API is missing something you'd like to use in your plugin? Open an
 #include "HookSystem.hpp"
 #include "../SharedDefs.hpp"
 #include "../defines.hpp"
+#include "../ipc/s1/S1.hpp"
 #include "../version.h"
 #include "../config/values/types/IValue.hpp"
 #include "../event/EventBus.hpp"
 
 #include <any>
+#include <format>
 #include <functional>
 #include <string>
 #include <string_view>
@@ -262,7 +264,7 @@ namespace HyprlandAPI {
 
         returns: true on success. False otherwise.
     */
-    APICALL bool addWindowDecoration(HANDLE handle, PHLWINDOW pWindow, UP<IHyprWindowDecoration> pDecoration);
+    APICALL bool addWindowDecoration(HANDLE handle, PHLWINDOW pWindow, SP<IHyprWindowDecoration>&& pDecoration);
 
     /*
         Removes a window decoration
@@ -329,14 +331,14 @@ namespace HyprlandAPI {
 
         returns: Pointer. Nullptr on fail.
     */
-    APICALL SP<SHyprCtlCommand> registerHyprCtlCommand(HANDLE handle, SHyprCtlCommand cmd);
+    APICALL SP<IPC::Socket1::SCommand> registerHyprCtlCommand(HANDLE handle, IPC::Socket1::SCommand cmd);
 
     /*
         Unregisters a hyprctl command
 
         returns: true on success. False otherwise.
     */
-    APICALL bool unregisterHyprCtlCommand(HANDLE handle, SP<SHyprCtlCommand> cmd);
+    APICALL bool unregisterHyprCtlCommand(HANDLE handle, SP<IPC::Socket1::SCommand> cmd);
 
     /*
         Add a new config value. Keep the pointer, you can use it for retrieving the value.
@@ -399,8 +401,8 @@ APICALL inline EXPORT const char* __hyprland_api_get_client_hash() {
         return std::string{v.substr(0, v.find_last_of('.'))};
     };
 
-    static const std::string ver = (std::string{GIT_COMMIT_HASH} + "_aq_" + stripPatch(AQUAMARINE_VERSION) + "_hu_" + stripPatch(HYPRUTILS_VERSION) + "_hg_" +
-                                    stripPatch(HYPRGRAPHICS_VERSION) + "_hc_" + stripPatch(HYPRCURSOR_VERSION) + "_hlg_" + stripPatch(HYPRLANG_VERSION));
+    static const std::string ver = std::format("{}_aq_{}_hu_{}_hg_{}_hc_{}_hlg_{}", GIT_COMMIT_HASH, stripPatch(AQUAMARINE_VERSION), stripPatch(HYPRUTILS_VERSION),
+                                               stripPatch(HYPRGRAPHICS_VERSION), stripPatch(HYPRCURSOR_VERSION), stripPatch(HYPRLANG_VERSION));
 
     return ver.c_str();
 }

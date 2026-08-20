@@ -198,6 +198,8 @@ std::optional<std::string> Internal::workspaceSelectorFromLuaSelectorOrObject(lu
             return std::nullopt;
         }
 
+        if (ws->m_isSpecialWorkspace)
+            return ws->m_name;
         return std::to_string(ws->m_id);
     }
 

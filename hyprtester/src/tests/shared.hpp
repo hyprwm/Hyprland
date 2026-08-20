@@ -6,7 +6,9 @@
 
 //NOLINTNEXTLINE
 namespace Tests {
+    [[nodiscard("Check whether kitty was spawned successfully or use the SPAWN_KITTY macro")]]
     Hyprutils::Memory::CUniquePointer<Hyprutils::OS::CProcess> spawnKitty(const std::string& class_ = "", const std::vector<std::string> args = {});
+    [[nodiscard("Check whether kitty was spawned successfully or use the SPAWN_LAYER_KITTY macro")]]
     Hyprutils::Memory::CUniquePointer<Hyprutils::OS::CProcess> spawnLayerKitty(const std::string& namespace_ = "", const std::vector<std::string> args = {});
     bool                                                       processAlive(pid_t pid);
     int                                                        windowCount();

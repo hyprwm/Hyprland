@@ -11,8 +11,8 @@ uniform sampler2D tex;
 uniform float     contrast;
 uniform float     brightness;
 
-uniform int       sourceTF; // eTransferFunction
-uniform int       targetTF; // eTransferFunction
+const int         sourceTF = SOURCE_TF;
+const int         targetTF = TARGET_TF;
 
 #if USE_CM
 uniform vec2  srcTFRange;

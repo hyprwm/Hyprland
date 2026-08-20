@@ -19,7 +19,7 @@ namespace Layout::Supplementary {
         ~CDragStateController() = default;
 
         void           dragBegin(SP<ITarget> target, eMouseBindMode mode, std::optional<Layout::eRectCorner> forcedEdge = std::nullopt, bool exclusiveDeviceGrab = false);
-        void           dragEnd();
+        bool           dragEnd();
 
         void           mouseMove(const Vector2D& mousePos);
         eMouseBindMode mode() const;
@@ -48,6 +48,7 @@ namespace Layout::Supplementary {
         bool                               m_exclusiveDeviceGrab  = false;
 
         int                                m_mouseMoveEventCount = 0;
+        Vector2D                           m_dragHotspot;
         Vector2D                           m_beginDragXY;
         Vector2D                           m_lastDragXY;
         Vector2D                           m_beginDragPositionXY;

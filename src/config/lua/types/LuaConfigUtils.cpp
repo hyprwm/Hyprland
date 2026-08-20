@@ -23,29 +23,32 @@ using namespace Config::Lua;
 
 UP<ILuaConfigValue> Lua::fromGenericValue(SP<Config::Values::IValue> v) {
     const auto refreshBits = v->refreshBits();
-    const auto withRefresh = [refreshBits](UP<ILuaConfigValue> val) -> UP<ILuaConfigValue> {
+    const auto deprecated  = v->deprecationNotice();
+    const auto populate    = [refreshBits, deprecated](UP<ILuaConfigValue> val) -> UP<ILuaConfigValue> {
         val->setRefreshBits(refreshBits);
+        if (deprecated)
+            val->setDeprecated(*deprecated);
         return val;
     };
 
     if (auto p = dc<Config::Values::CIntValue*>(v.get()))
-        return withRefresh(makeUnique<CLuaConfigInt>(p->defaultVal()));
+        return populate(makeUnique<CLuaConfigInt>(p->defaultVal(), p->m_min, p->m_max, p->m_map));
     if (auto p = dc<Config::Values::CFloatValue*>(v.get()))
-        return withRefresh(makeUnique<CLuaConfigFloat>(p->defaultVal()));
+        return populate(makeUnique<CLuaConfigFloat>(p->defaultVal(), p->m_min, p->m_max));
     if (auto p = dc<Config::Values::CBoolValue*>(v.get()))
-        return withRefresh(makeUnique<CLuaConfigBool>(p->defaultVal()));
+        return populate(makeUnique<CLuaConfigBool>(p->defaultVal()));
     if (auto p = dc<Config::Values::CStringValue*>(v.get()))
-        return withRefresh(makeUnique<CLuaConfigString>(p->defaultVal()));
+        return populate(makeUnique<CLuaConfigString>(p->defaultVal(), p->validator()));
     if (auto p = dc<Config::Values::CColorValue*>(v.get()))
-        return withRefresh(makeUnique<CLuaConfigColor>(p->defaultVal()));
+        return populate(makeUnique<CLuaConfigColor>(p->defaultVal()));
     if (auto p = dc<Config::Values::CVec2Value*>(v.get()))
-        return withRefresh(makeUnique<CLuaConfigVec2>(p->defaultVal()));
+        return populate(makeUnique<CLuaConfigVec2>(p->defaultVal(), p->validator()));
     if (auto p = dc<Config::Values::CCssGapValue*>(v.get()))
-        return withRefresh(makeUnique<CLuaConfigCssGap>(p->defaultVal().m_top));
+        return populate(makeUnique<CLuaConfigCssGap>(p->defaultVal().m_top, p->m_min, p->m_max));
     if (auto p = dc<Config::Values::CFontWeightValue*>(v.get()))
-        return withRefresh(makeUnique<CLuaConfigFontWeight>(p->defaultVal().m_value));
+        return populate(makeUnique<CLuaConfigFontWeight>(p->defaultVal().m_value));
     if (auto p = dc<Config::Values::CGradientValue*>(v.get()))
-        return withRefresh(makeUnique<CLuaConfigGradient>(p->defaultVal().m_colors.empty() ? CHyprColor{} : p->defaultVal().m_colors.front()));
+        return populate(makeUnique<CLuaConfigGradient>(p->defaultVal().m_colors.empty() ? CHyprColor{} : p->defaultVal().m_colors.front()));
 
     return nullptr;
 }

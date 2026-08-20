@@ -13,6 +13,7 @@
 #include "../desktop/view/LayerSurface.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../state/MonitorState.hpp"
+#include "devices/IHID.hpp"
 #include "wlr-layer-shell-unstable-v1.hpp"
 #include <algorithm>
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -183,8 +184,8 @@ void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {
     if (m_state.keyboardFocus == surf)
         return;
 
-    if (!m_keyboard) {
-        Log::logger->log(Log::ERR, "BUG THIS: setKeyboardFocus without a valid keyboard set");
+    if (!g_pInputManager->anyHidHasCap(HID_INPUT_CAPABILITY_KEYBOARD)) {
+        Log::logger->log(Log::ERR, "BUG THIS: setKeyboardFocus without a valid keyboard capability");
         return;
     }
 
@@ -301,8 +302,8 @@ void CSeatManager::setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& 
         return;
     }
 
-    if (!m_mouse) {
-        Log::logger->log(Log::ERR, "BUG THIS: setPointerFocus without a valid mouse set");
+    if (!g_pInputManager->anyHidHasCap(HID_INPUT_CAPABILITY_POINTER)) {
+        Log::logger->log(Log::ERR, "BUG THIS: setPointerFocus without a valid pointer input");
         return;
     }
 
@@ -738,7 +739,7 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
                 // If this was a popup grab, focus its parent window to maintain context
                 if (validMapped(parentWindow)) {
                     Desktop::focusState()->rawWindowFocus(parentWindow, Desktop::FOCUS_REASON_FFM);
-                    Log::logger->log(Log::DEBUG, "[seatmgr] Refocused popup parent window {} (follow_mouse={})", parentWindow->m_title, *PFOLLOWMOUSE);
+                    Log::logger->log(Log::DEBUG, "[seatmgr] Refocused popup parent window {} (follow_mouse={})", parentWindow->metadata().title(), *PFOLLOWMOUSE);
                 } else
                     g_pInputManager->refocusLastWindow(PMONITOR);
             } else

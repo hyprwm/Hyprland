@@ -143,10 +143,14 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
             // without a viewport, at commit time the supplied
             // buffer size must be an integer multiple of the buffer_scale. If
             // that's not the case, an invalid_size error is sent.
-            if (sc<int>(m_pending.bufferSize.x) % m_pending.scale != 0 || sc<int>(m_pending.bufferSize.y) % m_pending.scale != 0) {
-                r->error(WL_SURFACE_ERROR_INVALID_SIZE, "buffer size is not an integer multiple of the buffer scale");
-                dropPendingBuffer();
-                return;
+            // https://gitlab.freedesktop.org/wayland/wayland/-/issues/194
+            // https://github.com/hyprwm/Hyprland/discussions/15673
+            if (m_role->role() != SURFACE_ROLE_CURSOR && m_role->role() != SURFACE_ROLE_UNASSIGNED) {
+                if (sc<int>(m_pending.bufferSize.x) % m_pending.scale != 0 || sc<int>(m_pending.bufferSize.y) % m_pending.scale != 0) {
+                    r->error(WL_SURFACE_ERROR_INVALID_SIZE, "buffer size is not an integer multiple of the buffer scale");
+                    dropPendingBuffer();
+                    return;
+                }
             }
 
             Vector2D tfs   = m_pending.transform % 2 == 1 ? Vector2D{m_pending.bufferSize.y, m_pending.bufferSize.x} : m_pending.bufferSize;
@@ -164,6 +168,16 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
             PROTO::presentation->discardFeedbacks(m_pending.presentationFeedbacks);
             dropPendingBuffer();
             return;
+        }
+
+        // a synced subsurface caches its state until the parent commits, so make sure that
+        // commit isnt dropped as empty. mark the t1 parent.
+        if (m_role->role() == SURFACE_ROLE_SUBSURFACE) {
+            const auto SUB = sc<CSubsurfaceRole*>(m_role.get())->m_subsurface.lock();
+            if (SUB && SUB->m_sync && SUB->m_parent) {
+                if (const auto PARENT = SUB->t1Parent())
+                    PARENT->m_pending.updated.bits.subsurface = true;
+            }
         }
 
         // null buffer attached
@@ -591,22 +605,25 @@ CBox CWLSurfaceResource::extends() {
 }
 
 void CWLSurfaceResource::scheduleState(WP<SSurfaceState> state) {
-    auto whenReadable = [this, surf = m_self](auto state, auto reason) {
+    auto whenReadable = [this, surf = m_self](WP<SSurfaceState> state) {
         if (!surf || !state)
             return;
 
-        m_stateQueue.unlock(state, reason);
+        m_stateQueue.unlockFence(state);
     };
 
     if (state->updated.bits.acquire) {
-        // wait on acquire point for this surface, from explicit sync protocol
-        if (!state->acquire.addWaiter([state, whenReadable]() { whenReadable(state, LOCK_REASON_FENCE); })) {
-            Log::logger->log(Log::ERR, "Failed to addWaiter in CWLSurfaceResource::scheduleState");
-            whenReadable(state, LOCK_REASON_FENCE);
+        auto waiter = state->acquire.addWaiter([state, whenReadable]() { whenReadable(state); });
+        // the waiter may have fired (and dropped this state), so re check.
+        if (state) {
+            state->acquireWaiter = waiter;
+            // a null waiter means it either fired immediately or failed to register
+            if (!waiter)
+                whenReadable(state);
         }
     } else if (state->buffer && state->buffer->isSynchronous()) {
         // synchronous (shm) buffers can be read immediately
-        m_stateQueue.unlock(state, LOCK_REASON_FENCE);
+        m_stateQueue.unlockFence(state);
     } else if (state->buffer && !state->buffer->m_syncFds.empty()) {
         // async buffer and is dmabuf, then we can wait on implicit fences
         drainSyncFds(state, LOCK_REASON_FENCE);
@@ -624,31 +641,24 @@ void CWLSurfaceResource::drainSyncFds(WP<SSurfaceState> state, eLockReason reaso
     if (!fds.empty()) {
         auto fd = std::move(fds.front());
         fds.erase(fds.begin());
-        g_pEventLoopManager->doOnReadable(std::move(fd), [this, surf = m_self, state, reason]() {
+        auto waiter = g_pEventLoopManager->doOnReadable(std::move(fd), [this, surf = m_self, state, reason]() {
             if (!surf || !state)
                 return;
 
             drainSyncFds(state, reason);
         });
+
+        if (state)
+            state->acquireWaiter = waiter;
         return;
     }
 
-    m_stateQueue.unlock(state, reason);
+    m_stateQueue.unlockFence(state);
 }
 
 void CWLSurfaceResource::commitState(SSurfaceState& state) {
-    // TODO might be incorrect. needed for VRR with FIFO to avoid same buffer extra frames for second commit when it's used in this way:
-    // wp_fifo_v1#43.set_barrier()
-    // wp_fifo_v1#43.wait_barrier()
-    // wl_surface#3.commit()
-    // wp_fifo_v1#43.wait_barrier()
-    // wl_surface#3.commit()
-    if (!state.updated.all && m_mapped && state.fifoScheduled)
+    if (!state.updated.all && m_mapped)
         return;
-
-    // only a new buffer supersedes the current, not yet presented content.
-    if (state.updated.bits.buffer)
-        PROTO::presentation->discardFeedbacks(m_current.presentationFeedbacks);
 
     auto lastTexture = m_current.texture;
     m_current.updateFrom(state);
@@ -696,7 +706,7 @@ PImageDescription CWLSurfaceResource::getPreferredImageDescription() {
     static const auto PFORCE_HDR = CConfigValue<Config::INTEGER>("quirks:prefer_hdr");
     const auto        WINDOW     = m_hlSurface ? Desktop::View::CWindow::fromView(m_hlSurface->view()) : nullptr;
 
-    if (*PFORCE_HDR == 1 || (*PFORCE_HDR == 2 && m_hlSurface && WINDOW && WINDOW->m_class == "gamescope"))
+    if (*PFORCE_HDR == 1 || (*PFORCE_HDR == 2 && m_hlSurface && WINDOW && WINDOW->metadata().appID() == "gamescope"))
         return g_pCompositor->getHDRImageDescription();
 
     auto parent = m_self;
@@ -824,17 +834,19 @@ void CWLSurfaceResource::presentFeedback(const Time::steady_tp& when, PHLMONITOR
     if (m_current.presentationFeedbacks.empty())
         return;
 
+    // discarded content will never be scanned out, so there is no present event coming.
+    if (discarded) {
+        PROTO::presentation->discardFeedbacks(m_current.presentationFeedbacks);
+        return;
+    }
+
     auto FEEDBACK = makeUnique<CQueuedPresentationData>(m_self.lock(), std::move(m_current.presentationFeedbacks));
     FEEDBACK->attachMonitor(pMonitor);
-    if (discarded)
-        FEEDBACK->discarded();
-    else {
-        FEEDBACK->presented();
-        if (!pMonitor->m_lastScanout.expired()) {
-            const auto WINDOW = m_hlSurface ? Desktop::View::CWindow::fromView(m_hlSurface->view()) : nullptr;
-            if (WINDOW == pMonitor->m_lastScanout)
-                FEEDBACK->setPresentationType(true);
-        }
+    FEEDBACK->presented();
+    if (!pMonitor->m_lastScanout.expired()) {
+        const auto WINDOW = m_hlSurface ? Desktop::View::CWindow::fromView(m_hlSurface->view()) : nullptr;
+        if (WINDOW == pMonitor->m_lastScanout)
+            FEEDBACK->setPresentationType(true);
     }
     PROTO::presentation->queueData(std::move(FEEDBACK));
 }

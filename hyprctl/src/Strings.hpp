@@ -148,8 +148,7 @@ regex:
     Regular expression by which a window will be searched
 
 property:
-    See https://wiki.hypr.land/Configuring/Using-hyprctl/#setprop for list
-    of properties
+    See the wiki for a list of properties
 
 value:
     Property value
@@ -167,8 +166,7 @@ regex:
     Regular expression by which a window will be searched
 
 property:
-    See https://wiki.hypr.land/Configuring/Using-hyprctl/#setprop for list
-    of properties
+    See the wiki for a list of properties
 
 flags:
     See 'hyprctl --help')#";

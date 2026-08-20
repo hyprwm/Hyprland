@@ -2,7 +2,8 @@
 
 using namespace Config::Values;
 
-CFontWeightValue::CFontWeightValue(const char* name, const char* description, Config::INTEGER def, SFontWeightValueOptions&& options) : IValue(options.refresh), m_default(def) {
+CFontWeightValue::CFontWeightValue(const char* name, const char* description, Config::INTEGER def, SFontWeightValueOptions&& options) :
+    IValue(options.refresh, options.deprecationNotice), m_default(def) {
     m_name        = name;
     m_description = description;
 }

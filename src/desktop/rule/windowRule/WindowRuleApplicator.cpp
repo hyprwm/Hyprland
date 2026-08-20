@@ -2,7 +2,8 @@
 #include "WindowRule.hpp"
 #include "../Engine.hpp"
 #include "../utils/SetUtils.hpp"
-#include "../../view/Window.hpp"
+#include "../../view/window/Window.hpp"
+#include "../../view/window/WindowPresentation.hpp"
 #include "../../types/OverridableVar.hpp"
 #include "../../../event/EventBus.hpp"
 #include "desktop/rule/windowRule/WindowRuleEffectContainer.hpp"
@@ -60,7 +61,7 @@ std::unordered_set<CWindowRuleEffectContainer::storageType> CWindowRuleApplicato
             std::pair{std::ref(m_scrollMouse), [this] { return scrollMouseEffect(); }}, std::pair{std::ref(m_scrollTouchpad), [this] { return scrollTouchpadEffect(); }},
             std::pair{std::ref(m_animationStyle), [this] { return animationStyleEffect(); }}, std::pair{std::ref(m_maxSize), [this] { return maxSizeEffect(); }},
             std::pair{std::ref(m_minSize), [this] { return minSizeEffect(); }}, std::pair{std::ref(m_activeBorderColor), [this] { return activeBorderColorEffect(); }},
-            std::pair{std::ref(m_inactiveBorderColor), [this] { return inactiveBorderColorEffect(); }}));
+            std::pair{std::ref(m_inactiveBorderColor), [this] { return inactiveBorderColorEffect(); }}, std::pair{std::ref(m_noWobble), [this] { return noWobbleEffect(); }}));
 
     if (prio == Types::PRIORITY_WINDOW_RULE) {
         std::erase_if(m_dynamicTags, [props, this](const auto& el) {
@@ -187,7 +188,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
 
                     m_maxSize.first = Types::COverridableVar(*VEC, Types::PRIORITY_WINDOW_RULE);
 
-                    if (*PCLAMP_TILED || m_window->m_isFloating)
+                    if (*PCLAMP_TILED || m_window->isFloating())
                         m_window->clampWindowSize(std::nullopt, m_maxSize.first.value());
                 } catch (std::exception& e) { Log::logger->log(Log::ERR, "maxsize rule \"{}\" failed with: {}", std::get<Math::SExpressionVec2>(value).toString(), e.what()); }
                 m_maxSize.second = rule->getPropertiesMask();
@@ -216,7 +217,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                     }
 
                     m_minSize.first = Types::COverridableVar(*VEC, Types::PRIORITY_WINDOW_RULE);
-                    if (*PCLAMP_TILED || m_window->m_isFloating)
+                    if (*PCLAMP_TILED || m_window->isFloating())
                         m_window->clampWindowSize(m_minSize.first.value(), std::nullopt);
                 } catch (std::exception& e) { Log::logger->log(Log::ERR, "minsize rule \"{}\" failed with: {}", std::get<Math::SExpressionVec2>(value).toString(), e.what()); }
                 m_minSize.second = rule->getPropertiesMask();
@@ -293,6 +294,11 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
             case WINDOW_RULE_EFFECT_NO_SHADOW: {
                 m_noShadow.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_noShadow.second |= rule->getPropertiesMask();
+                break;
+            }
+            case WINDOW_RULE_EFFECT_NO_WOBBLE: {
+                m_noWobble.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
+                m_noWobble.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_NO_SHORTCUTS_INHIBIT: {
@@ -550,7 +556,7 @@ void CWindowRuleApplicator::recheckStaticRules() {
 }
 
 void CWindowRuleApplicator::propertiesChanged(std::underlying_type_t<eRuleProperty> props) {
-    if (!m_window || !m_window->m_isMapped || m_window->isHidden())
+    if (!m_window || !m_window->mapped() || m_window->isHidden())
         return;
 
     bool                                                        needsRelayout         = false;
@@ -584,8 +590,8 @@ void CWindowRuleApplicator::propertiesChanged(std::underlying_type_t<eRuleProper
     }
 
     m_window->updateWindowData();
-    m_window->updateWindowDecos();
-    m_window->updateDecorationValues();
+    m_window->presentation().updateDecorations();
+    m_window->presentation().refreshValues();
 
     if (needsRelayout)
         g_pDecorationPositioner->forceRecalcFor(m_window.lock());

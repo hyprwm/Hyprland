@@ -32,18 +32,18 @@ static std::string getTempRoot() {
 // write the state to a file
 static bool writeState(const std::string& str, const std::string& to) {
     // create temp file in a safe temp root
-    std::ofstream of(getTempRoot() + ".temp-state", std::ios::trunc);
+    std::ofstream of(std::format("{}.temp-state", getTempRoot()), std::ios::trunc);
     if (!of.good())
         return false;
 
     of << str;
     of.close();
 
-    return NSys::root::install(getTempRoot() + ".temp-state", to, "644");
+    return NSys::root::install(std::format("{}.temp-state", getTempRoot()), to, "644");
 }
 
 std::filesystem::path DataState::getDataStatePath() {
-    return std::filesystem::path("/var/cache/hyprpm/" + g_pPluginManager->m_szUsername);
+    return std::filesystem::path(std::format("/var/cache/hyprpm/{}", g_pPluginManager->m_szUsername));
 }
 
 std::filesystem::path DataState::getRepositoryCachePath() {
@@ -128,7 +128,7 @@ void DataState::addNewPluginRepo(const SPluginRepository& repo, bool installFrom
         }}
     };
     for (auto const& p : repo.plugins) {
-        const auto filename = p.name + ".so";
+        const auto filename = std::format("{}.so", p.name);
 
         // copy .so to the good place and chmod 755
         if (!p.failed) {

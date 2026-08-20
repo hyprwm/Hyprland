@@ -85,7 +85,7 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionMode(wl_c
     const auto LOOKUP = binaryNameForWlClient(client);
 
     Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: checking permission {} for client {:x} (binary {})", permissionToString(permission),
-                     rc<uintptr_t>(client), LOOKUP.has_value() ? LOOKUP.value() : "lookup failed: " + LOOKUP.error());
+                     rc<uintptr_t>(client), LOOKUP.has_value() ? LOOKUP.value() : std::format("lookup failed: {}", LOOKUP.error()));
 
     // first, check if we have the client + perm combo in our cache.
     auto it = std::ranges::find_if(m_rules, [client, permission](const auto& e) { return e->m_client == client && e->m_type == permission; });
@@ -161,7 +161,7 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionModeWithS
         lookup = binaryNameForPid(pid);
 
         Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: checking permission {} for key {} (binary {})", permissionToString(permission), str,
-                         lookup.has_value() ? lookup.value() : "lookup failed: " + lookup.error());
+                         lookup.has_value() ? lookup.value() : std::format("lookup failed: {}", lookup.error()));
 
         if (lookup.has_value())
             binaryName = *lookup;

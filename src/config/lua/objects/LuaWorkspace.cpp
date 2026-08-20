@@ -7,6 +7,7 @@
 #include "../../../managers/fullscreen/FullscreenController.hpp"
 #include "../../../desktop/Workspace.hpp"
 #include "../../../desktop/view/Group.hpp"
+#include "../../../desktop/view/window/WindowGroupMembership.hpp"
 #include "../../../output/Monitor.hpp"
 #include "../../../layout/space/Space.hpp"
 #include "../../../layout/algorithm/Algorithm.hpp"
@@ -75,15 +76,15 @@ static int workspaceGetGroups(lua_State* L) {
     std::vector<Desktop::View::CGroup*> pushedGroups;
 
     for (auto const& w : Desktop::windowState()->windows()) {
-        if (w->m_workspace != ws || !w->m_group)
+        if (w->m_workspace != ws || !w->grouping().group())
             continue;
 
-        if (std::ranges::find(pushedGroups, w->m_group.get()) != pushedGroups.end())
+        if (std::ranges::find(pushedGroups, w->grouping().group().get()) != pushedGroups.end())
             continue;
 
-        pushedGroups.push_back(w->m_group.get());
+        pushedGroups.push_back(w->grouping().group().get());
 
-        Objects::CLuaGroup::push(L, w->m_group);
+        Objects::CLuaGroup::push(L, w->grouping().group());
 
         lua_rawseti(L, -2, idx++);
     }
@@ -169,12 +170,22 @@ void Objects::CLuaWorkspace::setup(lua_State* L) {
 }
 
 void Objects::CLuaWorkspace::push(lua_State* L, PHLWORKSPACE ws) {
+    if (!ws) {
+        lua_pushnil(L);
+        return;
+    }
+
     new (lua_newuserdata(L, sizeof(PHLWORKSPACEREF))) PHLWORKSPACEREF(ws ? ws->m_self : nullptr);
     luaL_getmetatable(L, MT);
     lua_setmetatable(L, -2);
 }
 
 void Objects::CLuaWorkspace::push(lua_State* L, PHLWORKSPACEREF ws) {
+    if (!ws) {
+        lua_pushnil(L);
+        return;
+    }
+
     new (lua_newuserdata(L, sizeof(PHLWORKSPACEREF))) PHLWORKSPACEREF(ws ? ws->m_self : nullptr);
     luaL_getmetatable(L, MT);
     lua_setmetatable(L, -2);

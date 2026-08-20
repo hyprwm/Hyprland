@@ -1,7 +1,11 @@
 #include "DragController.hpp"
+#include "../../desktop/view/window/WindowEffectsController.hpp"
+#include "../../desktop/view/window/WindowGroupMembership.hpp"
+#include "../../desktop/view/window/WindowPresentation.hpp"
 
 #include "../LayoutManager.hpp"
 #include "../space/Space.hpp"
+#include "../target/WindowTarget.hpp"
 
 #include "../../Compositor.hpp"
 #include "../../managers/SeatManager.hpp"
@@ -10,7 +14,6 @@
 #include "../../desktop/state/FocusState.hpp"
 #include "../../desktop/state/WindowState.hpp"
 #include "../../desktop/view/Group.hpp"
-#include "../../protocols/XDGShell.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../state/MonitorState.hpp"
 
@@ -44,11 +47,11 @@ static std::string_view cursorForResizeEdge(eRectCorner edge) {
     return "se-resize";
 }
 
-static void setXDGResizingState(SP<ITarget> target, bool resizing) {
-    if (!target || !target->window() || target->window()->m_isX11 || !target->window()->m_xdgSurface || !target->window()->m_xdgSurface->m_toplevel)
+static void setClientResizingState(SP<ITarget> target, bool resizing) {
+    if (!target || !target->window())
         return;
 
-    target->window()->m_xdgSurface->m_toplevel->setResizing(resizing);
+    target->window()->backend().setResizing(resizing);
 }
 
 SP<ITarget> CDragStateController::target() const {
@@ -80,8 +83,31 @@ bool CDragStateController::exclusiveDeviceGrab() const {
 }
 
 bool CDragStateController::updateDragWindow() {
-    const auto DRAGGINGTARGET = m_target.lock();
-    const bool WAS_FULLSCREEN = DRAGGINGTARGET->window() ? Fullscreen::controller()->isFullscreen(DRAGGINGTARGET->window()) : false;
+    const auto  DRAGGINGTARGET = m_target.lock();
+    const bool  WAS_FULLSCREEN = DRAGGINGTARGET->window() ? Fullscreen::controller()->isFullscreen(DRAGGINGTARGET->window()) : false;
+    static auto PDRAGCENTER    = CConfigValue<Config::BOOL>("binds:drag_center_window");
+
+    // geometry before we un-fullscreen / untile, needed to map the grab point onto the new window
+    const CBox PRE_DRAG_BOX = DRAGGINGTARGET->position();
+
+    // places the window under the cursor after its geometry changed. Without drag_center_window, the
+    // grab point keeps its relative position: grabbing 80% across the fullscreen surface leaves the
+    // cursor 80% across the restored window
+    const auto MAPDRAGHOTSPOT = [this](const SP<ITarget>& target, const CBox& oldBox) {
+        const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
+        const auto NEWSIZE     = target->position().size();
+        const auto OLDSIZE     = oldBox.size();
+
+        if (*PDRAGCENTER)
+            m_dragHotspot = NEWSIZE / 2.F;
+        else {
+            const Vector2D REL = {OLDSIZE.x > 0 ? (MOUSECOORDS.x - oldBox.pos().x) / OLDSIZE.x : 0.5, OLDSIZE.y > 0 ? (MOUSECOORDS.y - oldBox.pos().y) / OLDSIZE.y : 0.5};
+
+            m_dragHotspot = REL.clamp(Vector2D{0.F, 0.F}, Vector2D{1.F, 1.F}) * NEWSIZE;
+        }
+
+        target->setPositionGlobal(CBox{MOUSECOORDS - m_dragHotspot, NEWSIZE});
+    };
 
     if (m_dragThresholdReached) {
         if (WAS_FULLSCREEN) {
@@ -94,7 +120,7 @@ bool CDragStateController::updateDragWindow() {
 
         if (Fullscreen::controller()->hasFullscreen(PWORKSPACE) && (!DRAGGINGTARGET->floating() || !DRAGGINGWINDOW->isAllowedOverFullscreen())) {
             Log::logger->log(Log::DEBUG, "Rejecting drag on a fullscreen workspace. (window under fullscreen)");
-            CKeybindManager::changeMouseBindMode(MBIND_INVALID);
+            dragEnd();
             return true;
         }
     }
@@ -103,16 +129,16 @@ bool CDragStateController::updateDragWindow() {
     m_draggingWindowOriginalFloatSize = DRAGGINGTARGET->lastFloatingSize();
 
     if (WAS_FULLSCREEN && DRAGGINGTARGET->floating() && m_dragThresholdReached) {
-        const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
-        DRAGGINGTARGET->setPositionGlobal(CBox{MOUSECOORDS - DRAGGINGTARGET->position().size() / 2.F, DRAGGINGTARGET->position().size()});
+        MAPDRAGHOTSPOT(DRAGGINGTARGET, PRE_DRAG_BOX);
     } else if (!DRAGGINGTARGET->floating() && m_dragMode == MBIND_MOVE) {
         Vector2D MINSIZE = DRAGGINGTARGET->minSize().value_or(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE});
         DRAGGINGTARGET->rememberFloatingSize((DRAGGINGTARGET->position().size() * 0.8489).clamp(MINSIZE, Vector2D{}).floor());
 
         if (m_dragThresholdReached) {
-            DRAGGINGTARGET->setPositionGlobal(CBox{g_pInputManager->getMouseCoordsInternal() - DRAGGINGTARGET->position().size() / 2.F, DRAGGINGTARGET->position().size()});
             g_layoutManager->changeFloatingMode(DRAGGINGTARGET);
             m_draggingTiled = true;
+
+            MAPDRAGHOTSPOT(DRAGGINGTARGET, PRE_DRAG_BOX);
         }
     }
 
@@ -122,6 +148,7 @@ bool CDragStateController::updateDragWindow() {
     m_beginDragPositionXY = DRAG_ORIGINAL_BOX.pos();
     m_beginDragSizeXY     = DRAG_ORIGINAL_BOX.size();
     m_lastDragXY          = m_beginDragXY;
+    m_dragHotspot         = m_beginDragXY - m_beginDragPositionXY;
 
     return false;
 }
@@ -129,6 +156,7 @@ bool CDragStateController::updateDragWindow() {
 void CDragStateController::dragBegin(SP<ITarget> target, eMouseBindMode mode, std::optional<eRectCorner> forcedEdge, bool exclusiveDeviceGrab) {
     m_target              = target;
     m_dragMode            = mode;
+    m_draggingTiled       = false;
     m_forcedGrabbedCorner = forcedEdge;
     m_exclusiveDeviceGrab = exclusiveDeviceGrab;
     m_grabbedCorner       = CORNER_NONE;
@@ -142,13 +170,13 @@ void CDragStateController::dragBegin(SP<ITarget> target, eMouseBindMode mode, st
     // Window will be floating. Let's check if it's valid. It should be, but I don't like crashing.
     if (!validMapped(DRAGGINGTARGET->window())) {
         Log::logger->log(Log::ERR, "Dragging attempted on an invalid window (not mapped)");
-        CKeybindManager::changeMouseBindMode(MBIND_INVALID);
+        dragEnd();
         return;
     }
 
     if (!DRAGGINGTARGET->workspace()) {
         Log::logger->log(Log::ERR, "Dragging attempted on an invalid window (no workspace)");
-        CKeybindManager::changeMouseBindMode(MBIND_INVALID);
+        dragEnd();
         return;
     }
 
@@ -208,7 +236,7 @@ void CDragStateController::dragBegin(SP<ITarget> target, eMouseBindMode mode, st
 
     DRAGGINGTARGET->damageEntire();
 
-    g_pKeybindManager->shadowKeybinds();
+    Keybinds::mgr()->shadowBinds();
 
     if (DRAGGINGTARGET->window()) {
         Desktop::focusState()->rawWindowFocus(DRAGGINGTARGET->window(), Desktop::FOCUS_REASON_DESKTOP_STATE_CHANGE);
@@ -216,10 +244,13 @@ void CDragStateController::dragBegin(SP<ITarget> target, eMouseBindMode mode, st
     }
 
     if (isResizeMode(m_dragMode))
-        setXDGResizingState(DRAGGINGTARGET, true);
+        setClientResizingState(DRAGGINGTARGET, true);
 }
-void CDragStateController::dragEnd() {
+bool CDragStateController::dragEnd() {
     auto draggingTarget = m_target.lock();
+
+    if (!draggingTarget)
+        return false;
 
     m_mouseMoveEventCount = 1;
 
@@ -231,7 +262,7 @@ void CDragStateController::dragEnd() {
         m_dragMode            = MBIND_INVALID;
         m_exclusiveDeviceGrab = false;
         m_forcedGrabbedCorner.reset();
-        return;
+        return true;
     }
 
     Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
@@ -248,28 +279,28 @@ void CDragStateController::dragEnd() {
             Desktop::viewState()->hitTest().windowAt(MOUSECOORDS, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING, DRAGGING_WINDOW);
 
         if (pWindow) {
-            if (pWindow->checkInputOnDecos(INPUT_TYPE_DRAG_END, MOUSECOORDS, DRAGGING_WINDOW)) {
+            if (pWindow->presentation().checkInputOnDecorations(INPUT_TYPE_DRAG_END, MOUSECOORDS, DRAGGING_WINDOW)) {
                 m_wasDraggingWindow   = false;
                 m_dragMode            = MBIND_INVALID;
                 m_exclusiveDeviceGrab = false;
                 m_forcedGrabbedCorner.reset();
-                return;
+                return true;
             }
 
-            const bool  FLOATEDINTOTILED = !pWindow->m_isFloating && !m_draggingTiled;
+            const bool  FLOATEDINTOTILED = !pWindow->isFloating() && !m_draggingTiled;
             static auto PDRAGINTOGROUP   = CConfigValue<Config::INTEGER>("group:drag_into_group");
 
-            if (pWindow->m_group && DRAGGING_WINDOW->canBeGroupedInto(pWindow->m_group) && *PDRAGINTOGROUP == 1 && !FLOATEDINTOTILED) {
-                pWindow->m_group->add(DRAGGING_WINDOW);
+            if (pWindow->grouping().group() && DRAGGING_WINDOW->grouping().canBeGroupedInto(pWindow->grouping().group()) && *PDRAGINTOGROUP == 1 && !FLOATEDINTOTILED) {
+                pWindow->grouping().group()->add(DRAGGING_WINDOW);
                 // fix the draggingTarget, now it's DRAGGING_WINDOW
-                draggingTarget = DRAGGING_WINDOW->m_target;
+                draggingTarget = DRAGGING_WINDOW->windowTarget();
             }
         }
     }
 
     if (const auto W = draggingTarget->window(); W) {
-        W->resetMotionBlur();
-        W->m_floatingOffset = {};
+        W->effects().resetMotionBlur();
+        W->presentation().clearFloatingOffset();
     }
 
     if (m_draggingTiled) {
@@ -288,11 +319,13 @@ void CDragStateController::dragEnd() {
 
     m_wasDraggingWindow = false;
     if (isResizeMode(m_dragMode))
-        setXDGResizingState(draggingTarget, false);
+        setClientResizingState(draggingTarget, false);
 
     m_dragMode            = MBIND_INVALID;
     m_exclusiveDeviceGrab = false;
+    m_draggingTiled       = false;
     m_forcedGrabbedCorner.reset();
+    return true;
 }
 
 void CDragStateController::mouseMove(const Vector2D& mousePos) {
@@ -304,7 +337,7 @@ void CDragStateController::mouseMove(const Vector2D& mousePos) {
 
     // Window invalid or drag begin size 0,0 meaning we rejected it.
     if ((!validMapped(DRAGGINGTARGET->window()) || m_beginDragSizeXY == Vector2D())) {
-        CKeybindManager::changeMouseBindMode(MBIND_INVALID);
+        dragEnd();
         return;
     }
 
@@ -361,7 +394,7 @@ void CDragStateController::mouseMove(const Vector2D& mousePos) {
 
     if (m_dragMode == MBIND_MOVE) {
 
-        Vector2D newPos  = m_beginDragPositionXY + DELTA;
+        Vector2D newPos  = mousePos - m_dragHotspot;
         Vector2D newSize = DRAGGINGTARGET->position().size();
 
         if (*SNAPENABLED && !m_draggingTiled)
@@ -438,7 +471,7 @@ void CDragStateController::mouseMove(const Vector2D& mousePos) {
     }
 
     if (TRACKMOTION)
-        MOTIONWINDOW->recordMotionBlur(previousFull, MOTIONWINDOW->getFullWindowBoundingBox());
+        MOTIONWINDOW->effects().onPositionUpdate(previousFull, MOTIONWINDOW->getFullWindowBoundingBox(), Desktop::View::WINDOW_UPDATE_MOUSE);
 
     // get middle point
     Vector2D middle = DRAGGINGTARGET->position().middle();

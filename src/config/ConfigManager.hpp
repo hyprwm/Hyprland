@@ -67,6 +67,8 @@ namespace Config {
 
         virtual std::expected<void, std::string> registerPluginValue(void* handle, SP<Config::Values::IValue> value) = 0;
         virtual void                             onPluginUnload(void* handle)                                        = 0;
+
+        virtual std::vector<std::string>         deprecationNotices() const = 0;
     };
 
     bool                initConfigManager();

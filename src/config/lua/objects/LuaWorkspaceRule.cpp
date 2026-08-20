@@ -74,6 +74,11 @@ void Objects::CLuaWorkspaceRule::setup(lua_State* L) {
 }
 
 void Objects::CLuaWorkspaceRule::push(lua_State* L, const SP<Config::CWorkspaceRule>& rule) {
+    if (!rule) {
+        lua_pushnil(L);
+        return;
+    }
+
     new (lua_newuserdata(L, sizeof(WP<Config::CWorkspaceRule>))) WP<Config::CWorkspaceRule>(rule);
     luaL_getmetatable(L, MT);
     lua_setmetatable(L, -2);

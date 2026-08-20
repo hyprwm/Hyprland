@@ -21,7 +21,7 @@ using namespace Config::Lua::Layouts;
 
 static std::string normalizeLuaLayoutName(std::string name) {
     if (!name.starts_with("lua:"))
-        name = "lua:" + name;
+        name = std::format("lua:{}", name);
     return name;
 }
 

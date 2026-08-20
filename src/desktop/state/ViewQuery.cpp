@@ -3,9 +3,8 @@
 #include "../state/FocusState.hpp"
 #include "../view/LayerSurface.hpp"
 #include "../view/WLSurface.hpp"
-#include "../view/Window.hpp"
+#include "../view/window/Window.hpp"
 #include "../../helpers/MiscFunctions.hpp"
-#include "../../managers/KeybindManager.hpp"
 #include "../../protocols/LayerShell.hpp"
 #include "../../protocols/core/Compositor.hpp"
 
@@ -97,6 +96,18 @@ PHLWINDOW CViewQuery::byHandle() const {
 PHLWINDOW CViewQuery::bySelector() const {
     auto regexp = trim(*m_selector);
 
+    enum eFocusWindowMode : uint8_t {
+        MODE_CLASS_REGEX = 0,
+        MODE_INITIAL_CLASS_REGEX,
+        MODE_TITLE_REGEX,
+        MODE_INITIAL_TITLE_REGEX,
+        MODE_TAG_REGEX,
+        MODE_STABLE_ID,
+        MODE_ADDRESS,
+        MODE_PID,
+        MODE_ACTIVE_WINDOW,
+    };
+
     if (regexp.starts_with("active"))
         return focusState()->window();
     else if (regexp.starts_with("floating") || regexp.starts_with("tiled")) {
@@ -106,8 +117,8 @@ PHLWINDOW CViewQuery::bySelector() const {
         const bool FLOAT = regexp.starts_with("floating");
 
         for (auto const& w : m_tracker.windows()) {
-            if (!w->m_isMapped || w->m_isFloating != FLOAT || w->m_workspace != focusState()->window()->m_workspace ||
-                w->hasInputBlockedReasonsBesides(Desktop::View::INPUT_BLOCK_BELOW_FULLSCREEN))
+            if (!w->mapped() || w->isFloating() != FLOAT || w->m_workspace != focusState()->window()->m_workspace ||
+                w->hasInputBlockedReasonsBesides(Desktop::View::FOCUS_BLOCK_BELOW_FULLSCREEN))
                 continue;
 
             return w;
@@ -146,7 +157,7 @@ PHLWINDOW CViewQuery::bySelector() const {
     }
 
     for (auto const& w : m_tracker.windows()) {
-        if (!w->m_isMapped)
+        if (!w->mapped())
             continue;
 
         if (!windowMatchesCommon(w))
@@ -154,25 +165,25 @@ PHLWINDOW CViewQuery::bySelector() const {
 
         switch (mode) {
             case MODE_CLASS_REGEX: {
-                const auto windowClass = w->m_class;
+                const auto& windowClass = w->metadata().appID();
                 if (!RE2::FullMatch(windowClass, regexCheck))
                     continue;
                 break;
             }
             case MODE_INITIAL_CLASS_REGEX: {
-                const auto initialWindowClass = w->m_initialClass;
+                const auto& initialWindowClass = w->metadata().initialAppID();
                 if (!RE2::FullMatch(initialWindowClass, regexCheck))
                     continue;
                 break;
             }
             case MODE_TITLE_REGEX: {
-                const auto windowTitle = w->m_title;
+                const auto& windowTitle = w->metadata().title();
                 if (!RE2::FullMatch(windowTitle, regexCheck))
                     continue;
                 break;
             }
             case MODE_INITIAL_TITLE_REGEX: {
-                const auto initialWindowTitle = w->m_initialTitle;
+                const auto& initialWindowTitle = w->metadata().initialTitle();
                 if (!RE2::FullMatch(initialWindowTitle, regexCheck))
                     continue;
                 break;
@@ -190,7 +201,7 @@ PHLWINDOW CViewQuery::bySelector() const {
                 break;
             }
             case MODE_STABLE_ID: {
-                std::string stableID = std::format("{:x}", w->m_stableID);
+                std::string stableID = std::format("{:x}", w->metadata().stableID());
                 if (matchCheck != stableID)
                     continue;
                 break;
@@ -202,7 +213,7 @@ PHLWINDOW CViewQuery::bySelector() const {
                 break;
             }
             case MODE_PID: {
-                std::string pid = std::format("{}", w->getPID());
+                std::string pid = std::format("{}", w->backend().pid());
                 if (matchCheck != pid)
                     continue;
                 break;
@@ -221,7 +232,7 @@ PHLWINDOW CViewQuery::urgentWindow() const {
         if (!windowMatchesCommon(w))
             continue;
 
-        if (w->m_isMapped && w->m_isUrgent)
+        if (w->mapped() && (w->m_hints & Desktop::View::WINDOW_HINT_URGENT))
             return w;
     }
 
@@ -233,7 +244,7 @@ PHLWINDOW CViewQuery::forceFocusWindow() const {
         if (!windowMatchesCommon(w))
             continue;
 
-        if (!w->m_isMapped || !w->acceptsInput() || !w->m_workspace || !w->m_workspace->isVisible())
+        if (!w->mapped() || !w->acceptsInput() || !w->m_workspace || !w->m_workspace->isVisible())
             continue;
 
         if (!w->m_ruleApplicator->stayFocused().valueOrDefault())
@@ -263,7 +274,7 @@ PHLLS CViewQuery::layerBySurface() const {
     std::pair<SP<CWLSurfaceResource>, bool> result = {*m_surface, false};
 
     for (auto const& ls : m_tracker.layers()) {
-        if (!ls->aliveAndVisible())
+        if (!ls->mapped())
             continue;
 
         if (ls->m_layerSurface->m_surface == *m_surface)
@@ -296,7 +307,7 @@ bool CViewQuery::windowMatchesCommon(PHLWINDOW window) const {
     if (m_type && *m_type != View::VIEW_TYPE_WINDOW)
         return false;
 
-    if (m_mappedOnly && !window->m_isMapped)
+    if (m_mappedOnly && !window->mapped())
         return false;
 
     return true;

@@ -2,7 +2,7 @@
 #include "../../render/OpenGL.hpp"
 #include "../../Compositor.hpp"
 #include "../../render/Renderer.hpp"
-#include "../EventManager.hpp"
+#include "../../ipc/s2/S2.hpp"
 #include "../eventLoop/EventLoopManager.hpp"
 #include "../../event/EventBus.hpp"
 
@@ -113,15 +113,15 @@ void CScreenshareSession::calculateConstraints() {
 
     switch (m_type) {
         case SHARE_MONITOR:
-            m_bufferSize = PMONITOR->m_pixelSize;
+            m_bufferSize = PMONITOR->m_transformedSize;
             m_name       = PMONITOR->m_name;
             break;
         case SHARE_WINDOW:
             m_bufferSize = (m_window->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT) * PMONITOR->m_scale).round();
-            m_name       = m_window->m_title;
+            m_name       = m_window->metadata().title();
             break;
         case SHARE_REGION:
-            m_bufferSize = PMONITOR->m_transform % 2 == 0 ? m_captureBox.size() : Vector2D{m_captureBox.h, m_captureBox.w};
+            m_bufferSize = m_captureBox.size();
             m_name       = PMONITOR->m_name;
             break;
         case SHARE_NONE:
@@ -137,15 +137,15 @@ void CScreenshareSession::calculateConstraints() {
 void CScreenshareSession::screenshareEvents(bool startSharing) {
     if (startSharing && !m_sharing) {
         m_sharing = true;
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "screencast", .data = std::format("1,{}", m_type)});
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "screencastv2", .data = std::format("1,{},{}", m_type, m_name)});
+        IPC::Socket2::sock()->postEvent({.event = "screencast", .data = std::format("1,{}", m_type)});
+        IPC::Socket2::sock()->postEvent({.event = "screencastv2", .data = std::format("1,{},{}", m_type, m_name)});
         LOGM(Log::INFO, "Started screenshare session for ({}): {}", m_type, m_name);
 
         Event::bus()->m_events.screenshare.state.emit(true, m_type, m_name);
     } else if (!startSharing && m_sharing) {
         m_sharing = false;
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "screencast", .data = std::format("0,{}", m_type)});
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "screencastv2", .data = std::format("0,{},{}", m_type, m_name)});
+        IPC::Socket2::sock()->postEvent({.event = "screencast", .data = std::format("0,{}", m_type)});
+        IPC::Socket2::sock()->postEvent({.event = "screencastv2", .data = std::format("0,{},{}", m_type, m_name)});
         LOGM(Log::INFO, "Stopped screenshare session for ({}): {}", m_type, m_name);
 
         Event::bus()->m_events.screenshare.state.emit(false, m_type, m_name);

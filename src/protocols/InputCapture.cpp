@@ -41,7 +41,7 @@ CInputCaptureResource::CInputCaptureResource(SP<CHyprlandInputCaptureV1> resourc
     m_resource->setRelease([this](CHyprlandInputCaptureV1* r, uint32_t activationId, double x, double y) { onRelease(activationId, x, y); });
     m_resource->setClearBarriers([this](CHyprlandInputCaptureV1* r) { onClearBarriers(); });
 
-    m_eis = makeUnique<CEis>("eis-" + std::to_string(eisCounter++));
+    m_eis = makeUnique<CEis>(std::format("eis-{}", eisCounter++));
 
     const int EISFD = m_eis->getFileDescriptor();
     if (EISFD >= 0)
@@ -181,7 +181,7 @@ void CInputCaptureResource::onAddBarrier(uint32_t zoneSet, uint32_t id, uint32_t
         Log::logger->log(Log::INFO, "[input-capture]({}) Barrier {} is invalid [{}, {}], [{}, {}]", m_sessionId.c_str(), id, sx1, sy1, sx2, sy2);
 
         if (*PENFORCEBARRIERS) {
-            m_resource->error(HYPRLAND_INPUT_CAPTURE_V1_ERROR_INVALID_BARRIER, "The barrier id " + std::to_string(id) + " is invalid");
+            m_resource->error(HYPRLAND_INPUT_CAPTURE_V1_ERROR_INVALID_BARRIER, std::format("The barrier id {} is invalid", id));
             return;
         }
     }

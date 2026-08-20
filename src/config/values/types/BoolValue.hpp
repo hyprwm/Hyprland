@@ -6,7 +6,8 @@
 
 namespace Config::Values {
     struct SBoolValueOptions {
-        Supplementary::PropRefreshBits refresh = 0;
+        Supplementary::PropRefreshBits refresh           = 0;
+        const char*                    deprecationNotice = nullptr;
     };
 
     class CBoolValue : public IValue {

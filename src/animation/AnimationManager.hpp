@@ -17,6 +17,7 @@ namespace Animation {
 
         void         tick();
         void         frameTick();
+        void         requestTick();
         virtual void scheduleTick();
         virtual void onTicked();
 
@@ -40,6 +41,12 @@ namespace Animation {
             pav->m_Context.pWindow = pWindow;
         }
         template <Animable VarType>
+        void createAnimation(const VarType& v, PHLANIMVAR<VarType>& pav, SP<SAnimationPropertyConfig> pConfig, PHLWINDOW pWindow, SP<IHyprWindowDecoration> pDecoration,
+                             eAVarDamagePolicy policy) {
+            createAnimation(v, pav, pConfig, pWindow, policy);
+            pav->m_Context.pDecoration = pDecoration;
+        }
+        template <Animable VarType>
         void createAnimation(const VarType& v, PHLANIMVAR<VarType>& pav, SP<SAnimationPropertyConfig> pConfig, PHLWORKSPACE pWorkspace, eAVarDamagePolicy policy) {
             createAnimation(v, pav, pConfig, policy);
             pav->m_Context.pWorkspace = pWorkspace;
@@ -57,8 +64,9 @@ namespace Animation {
         float               m_lastTickTimeMs;
 
       private:
-        bool   m_tickScheduled = false;
-        bool   m_lastTickValid = false;
+        bool   m_tickScheduled       = false;
+        bool   m_manualTickRequested = false;
+        bool   m_lastTickValid       = false;
         CTimer m_lastTickTimer;
     };
 

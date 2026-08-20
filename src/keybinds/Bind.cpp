@@ -315,35 +315,6 @@ bool CBind::isSubChordOf(const CBind& other, const SBindEventContext& ctx) const
     return true;
 }
 
-bool CBind::isOrderedPrefixOf(const CBind& other, const SBindEventContext& ctx) const {
-    const auto CHORD_SIZE = chordSize();
-    if (CHORD_SIZE == 0 || CHORD_SIZE >= other.chordSize() || !ctx.trigger || !m_keys.back().matches(*ctx.trigger))
-        return false;
-
-    size_t keyIdx      = 0;
-    size_t otherKeyIdx = 0;
-    size_t relevant    = 0;
-    for (const auto& held : ctx.heldKeys) {
-        if (held.modifier || std::ranges::none_of(other.m_keys, [&held](const auto& pattern) { return !pattern.isMod() && pattern.matches(held); }))
-            continue;
-
-        if (relevant == CHORD_SIZE)
-            return false;
-        while (m_keys[keyIdx].isMod())
-            ++keyIdx;
-        while (other.m_keys[otherKeyIdx].isMod())
-            ++otherKeyIdx;
-        if (!m_keys[keyIdx].matches(held) || !other.m_keys[otherKeyIdx].matches(held))
-            return false;
-
-        ++keyIdx;
-        ++otherKeyIdx;
-        ++relevant;
-    }
-
-    return relevant == CHORD_SIZE;
-}
-
 std::span<const CKey> CBind::keys() const {
     return m_keys;
 }

@@ -22,7 +22,7 @@ SChordMatchResolution Keybinds::resolveChordMatches(std::span<const SBindMatchCa
             continue;
 
         const bool EXTENDABLE = context.pressed &&
-            std::ranges::any_of(candidates, [&](const auto& other) { return other.match == BIND_MATCH_PARTIAL && candidate.bind->isOrderedPrefixOf(*other.bind, context); });
+            std::ranges::any_of(candidates, [&](const auto& other) { return other.match == BIND_MATCH_PARTIAL && candidate.bind->isSubChordOf(*other.bind, context); });
         if (EXTENDABLE)
             result.deferred.emplace_back(candidate.bind);
         else

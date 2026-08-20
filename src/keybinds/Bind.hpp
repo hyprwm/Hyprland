@@ -101,7 +101,6 @@ namespace Keybinds {
         bool                                   containsKey(const SResolvedKey& key) const;
         bool                                   isFullyHeld(const SBindEventContext& ctx) const;
         bool                                   isSubChordOf(const CBind& other, const SBindEventContext& ctx) const;
-        bool                                   isOrderedPrefixOf(const CBind& other, const SBindEventContext& ctx) const;
         std::span<const CKey>                  keys() const;
         std::span<const std::string>           keyNames() const;
         const std::unordered_set<std::string>& devices() const;

@@ -765,6 +765,10 @@ void CKeybindManager::shadowBinds(const std::optional<SResolvedKey>& excluded, c
                                 [&bind](const auto& input) { return std::ranges::any_of(input.deferredBinds, [&bind](const auto& weak) { return weak.lock() == bind; }); }))
             continue;
 
+        // Multi-key release binds retain their armed state as earlier chord keys are released.
+        // Their overlap suppression is tracked on the armed input instead of through m_shadowed.
+        const bool MATCH_RELEASE = bind->hasFlag(BIND_FLAG_RELEASE) && bind->chordSize() <= 1;
+
         for (const auto& input : m_inputState.pressed()) {
             const auto device = input.device.lock();
             if (!device)
@@ -773,15 +777,17 @@ void CKeybindManager::shadowBinds(const std::optional<SResolvedKey>& excluded, c
             if (excluded && device == excludedDevice && input.key.code == excluded->code && input.key.event == excluded->event)
                 continue;
 
-            if (bind->matches({
-                    .heldKeys         = m_inputState.heldKeys(),
-                    .trigger          = input.key,
-                    .modifiersNow     = MODIFIERS,
-                    .modifiersAtPress = input.modifiersAtPress,
-                    .pressed          = true,
-                    .device           = device,
-                    .submap           = input.submapAtPress,
-                }) == BIND_MATCH_FULL) {
+            const SBindEventContext CONTEXT{
+                .heldKeys         = m_inputState.heldKeys(),
+                .trigger          = input.key,
+                .modifiersNow     = MODIFIERS,
+                .modifiersAtPress = input.modifiersAtPress,
+                .pressed          = !MATCH_RELEASE,
+                .device           = device,
+                .submap           = input.submapAtPress,
+            };
+
+            if (bind->matches(CONTEXT) == BIND_MATCH_FULL) {
                 m_shadowed.emplace(bind);
                 break;
             }

@@ -63,7 +63,7 @@ TEST(KeybindsMatchResolver, FullPrefixWaitsForLongerChord) {
     EXPECT_EQ(RESOLUTION.deferred.front(), SHORT);
 }
 
-TEST(KeybindsMatchResolver, ReverseOrderDoesNotDeferShortChord) {
+TEST(KeybindsMatchResolver, NonPrefixSubChordWaitsForLongerChord) {
     const auto              SHORT = makeResolverBind({"SUPER", "Q"});
     const auto              LONG  = makeResolverBind({"SUPER", "K", "Q"});
     const auto              Q     = resolverKey("Q", 24);
@@ -79,9 +79,37 @@ TEST(KeybindsMatchResolver, ReverseOrderDoesNotDeferShortChord) {
     };
 
     const auto RESOLUTION = resolveChordMatches(CANDIDATES, CONTEXT);
-    ASSERT_EQ(RESOLUTION.immediate.size(), 1);
-    EXPECT_EQ(RESOLUTION.immediate.front(), SHORT);
-    EXPECT_TRUE(RESOLUTION.deferred.empty());
+    EXPECT_TRUE(RESOLUTION.immediate.empty());
+    ASSERT_EQ(RESOLUTION.deferred.size(), 1);
+    EXPECT_EQ(RESOLUTION.deferred.front(), SHORT);
+}
+
+TEST(KeybindsMatchResolver, MiddleSubChordWaitsForLongerChord) {
+    const auto              SHORT = makeResolverBind({"SUPER", "D"});
+    const auto              LONG  = makeResolverBind({"SUPER", "X", "D", "F"});
+    const auto              X     = resolverKey("X", 53);
+    const auto              D     = resolverKey("D", 40);
+    const std::array        HELD  = {X, D};
+    const SBindEventContext CONTEXT{
+        .heldKeys     = HELD,
+        .trigger      = D,
+        .modifiersNow = HL_MODIFIER_META,
+    };
+    const std::array CANDIDATES = {
+        SBindMatchCandidate{SHORT, SHORT->matches(CONTEXT)},
+        SBindMatchCandidate{LONG, LONG->matches(CONTEXT)},
+    };
+    const std::array REVERSED_CANDIDATES = {
+        SBindMatchCandidate{LONG, LONG->matches(CONTEXT)},
+        SBindMatchCandidate{SHORT, SHORT->matches(CONTEXT)},
+    };
+
+    for (const auto& candidates : {CANDIDATES, REVERSED_CANDIDATES}) {
+        const auto RESOLUTION = resolveChordMatches(candidates, CONTEXT);
+        EXPECT_TRUE(RESOLUTION.immediate.empty());
+        ASSERT_EQ(RESOLUTION.deferred.size(), 1);
+        EXPECT_EQ(RESOLUTION.deferred.front(), SHORT);
+    }
 }
 
 TEST(KeybindsMatchResolver, SidedModifierDoesNotIncreaseChordLength) {

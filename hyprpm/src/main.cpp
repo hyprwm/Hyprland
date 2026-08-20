@@ -21,7 +21,7 @@ constexpr std::string_view HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┣ update                        → Check and update all plugins if needed.
 ┣ reload                        → Reload hyprpm state. Ensure all enabled plugins are loaded.
 ┣ list                          → List all installed plugins.
-┣ purge-cache                   → Remove the entire hyprpm cache, built plugins, hyprpm settings and headers.
+┣ purge-cache                   → Remove built plugins, hyprpm settings, headers and cached repositories.
 ┃
 ┣ Flags:
 ┃
@@ -33,6 +33,7 @@ constexpr std::string_view HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┣ --force        | -f           → Force an operation ignoring checks (e.g. update -f).
 ┣ --no-shallow   | -s           → Disable shallow cloning of Hyprland sources.
 ┣ --hl-url       |              → Pass a custom hyprland source url.
+┣ --experimental-cache          → Persist plugin repositories and their build caches locally.
 ┗
 )#";
 
@@ -48,7 +49,7 @@ int                        main(int argc, char** argv, char** envp) {
     }
 
     std::vector<std::string> command;
-    bool                     notify = false, verbose = false, force = false, noShallow = false, noNix = false;
+    bool                     notify = false, verbose = false, force = false, noShallow = false, noNix = false, experimentalCache = false;
     std::string              customHlUrl;
 
     for (int i = 1; i < argc; ++i) {
@@ -68,6 +69,8 @@ int                        main(int argc, char** argv, char** envp) {
                 noNix = true;
             } else if (ARGS[i] == "--no-shallow" || ARGS[i] == "-s") {
                 noShallow = true;
+            } else if (ARGS[i] == "--experimental-cache") {
+                experimentalCache = true;
             } else if (ARGS[i] == "--hl-url") {
                 if (i + 1 >= argc) {
                     std::println(stderr, "Missing argument for --hl-url");
@@ -91,12 +94,13 @@ int                        main(int argc, char** argv, char** envp) {
         return 1;
     }
 
-    g_pPluginManager                  = std::make_unique<CPluginManager>();
-    g_pPluginManager->m_bVerbose      = verbose;
-    g_pPluginManager->m_bNoShallow    = noShallow;
-    g_pPluginManager->m_bNoNix        = noNix;
-    g_pPluginManager->m_szCustomHlUrl = customHlUrl;
-    g_pPluginManager->m_szArgv0       = argv[0];
+    g_pPluginManager                       = std::make_unique<CPluginManager>();
+    g_pPluginManager->m_bVerbose           = verbose;
+    g_pPluginManager->m_bNoShallow         = noShallow;
+    g_pPluginManager->m_bNoNix             = noNix;
+    g_pPluginManager->m_bExperimentalCache = experimentalCache;
+    g_pPluginManager->m_szCustomHlUrl      = customHlUrl;
+    g_pPluginManager->m_szArgv0            = argv[0];
 
     if (command[0] == "add") {
         if (command.size() < 2) {
@@ -223,9 +227,12 @@ int                        main(int argc, char** argv, char** envp) {
             g_pPluginManager->notify(ICON_OK, 0, 4000, "[hyprpm] Loaded plugins");
         }
     } else if (command[0] == "purge-cache") {
+        // an unsafe or busy repository cache is left alone, lockExistingRepositoryCache says why
+        const bool CACHE_LOCKED = g_pPluginManager->lockExistingRepositoryCache();
+
         NSys::root::cacheSudo();
         CScopeGuard x([] { NSys::root::dropSudo(); });
-        DataState::purgeAllCache();
+        DataState::purgeAllCache(CACHE_LOCKED);
     } else if (command[0] == "list") {
         g_pPluginManager->listAllPlugins();
     } else {

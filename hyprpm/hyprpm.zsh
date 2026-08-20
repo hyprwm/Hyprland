@@ -9,7 +9,7 @@ _hyprpm_cmd_1 () {
 }
 
 _hyprpm () {
-    local -a literals=("--no-shallow" "-n" "::=" "disable" "list" "--help" "update" "add" "--verbose" "-v" "--force" "-s" "remove" "enable" "--notify" "-h" "reload" "-f")
+    local -a literals=("--no-shallow" "-n" "::=" "disable" "list" "--help" "update" "add" "--verbose" "-v" "--force" "-s" "remove" "enable" "--notify" "-h" "reload" "-f" "--experimental-cache")
 
     local -A descriptions
     descriptions[1]="Disable shallow cloning of Hyprland sources"
@@ -29,9 +29,10 @@ _hyprpm () {
     descriptions[16]="Show help menu"
     descriptions[17]="Reload all plugins"
     descriptions[18]="Force an operation ignoring checks (e.g. update -f)"
+    descriptions[19]="Persist plugin repositories and their build caches locally"
 
     local -A literal_transitions
-    literal_transitions[1]="([1]=8 [4]=4 [5]=5 [9]=8 [10]=8 [7]=5 [8]=5 [12]=8 [6]=8 [11]=8 [13]=3 [14]=4 [16]=8 [17]=5 [18]=8)"
+    literal_transitions[1]="([1]=8 [4]=4 [5]=5 [9]=8 [10]=8 [7]=5 [8]=5 [12]=8 [6]=8 [11]=8 [13]=3 [14]=4 [16]=8 [17]=5 [18]=8 [19]=8)"
     literal_transitions[2]="([13]=3 [14]=4 [4]=4 [5]=5 [17]=5 [7]=5 [8]=5)"
     literal_transitions[6]="([3]=7)"
     literal_transitions[7]="([2]=8 [15]=8)"

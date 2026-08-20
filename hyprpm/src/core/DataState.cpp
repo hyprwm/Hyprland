@@ -1,5 +1,6 @@
 #include "DataState.hpp"
 #include <sys/stat.h>
+#include <pwd.h>
 #include <toml++/toml.hpp>
 #include <print>
 #include <sstream>
@@ -8,6 +9,10 @@
 #include "../helpers/Die.hpp"
 #include "../helpers/Sys.hpp"
 #include "../helpers/StringUtils.hpp"
+
+#include <hyprutils/memory/Casts.hpp>
+#include "CacheLogic.hpp"
+using namespace Hyprutils::Memory;
 
 static std::string getTempRoot() {
     static auto ENV = getenv("XDG_RUNTIME_DIR");
@@ -39,6 +44,29 @@ static bool writeState(const std::string& str, const std::string& to) {
 
 std::filesystem::path DataState::getDataStatePath() {
     return std::filesystem::path("/var/cache/hyprpm/" + g_pPluginManager->m_szUsername);
+}
+
+std::filesystem::path DataState::getRepositoryCachePath() {
+    static const auto CACHE_HOME = []() -> std::filesystem::path {
+        if (const auto ENV = getenv("XDG_CACHE_HOME"); ENV && std::filesystem::path{ENV}.is_absolute())
+            return ENV;
+
+        const auto USER = getpwuid(NSys::getUID());
+        if (!USER || !USER->pw_dir)
+            Debug::die("getRepositoryCachePath: Failed to determine the user's home directory");
+
+        return std::filesystem::path{USER->pw_dir} / ".cache";
+    }();
+
+    return CACHE_HOME / "hyprpm" / "repos";
+}
+
+static bool installPluginBinary(const std::filesystem::path& source, const std::filesystem::path& destination) {
+    auto sourceFD = NCacheLogic::openValidatedPluginBinary(source, NSys::getUID());
+    if (!sourceFD.isValid())
+        return false;
+
+    return NSys::root::installFromFD(sourceFD.get(), destination.string(), "0755");
 }
 
 std::string DataState::getHeadersPath() {
@@ -79,7 +107,7 @@ void DataState::ensureStateStoreExists() {
     }
 }
 
-void DataState::addNewPluginRepo(const SPluginRepository& repo) {
+void DataState::addNewPluginRepo(const SPluginRepository& repo, bool installFromValidatedFD) {
     ensureStateStoreExists();
 
     const auto      PATH = getDataStatePath() / repo.name;
@@ -103,8 +131,10 @@ void DataState::addNewPluginRepo(const SPluginRepository& repo) {
         const auto filename = p.name + ".so";
 
         // copy .so to the good place and chmod 755
-        if (std::filesystem::exists(p.filename)) {
-            if (!NSys::root::install(p.filename, (PATH / filename).string(), "0755"))
+        if (!p.failed) {
+            if (installFromValidatedFD && !installPluginBinary(p.filename, PATH / filename))
+                Debug::die("addNewPluginRepo: failed to install so file");
+            if (!installFromValidatedFD && std::filesystem::exists(p.filename) && !NSys::root::install(p.filename, (PATH / filename).string(), "0755"))
                 Debug::die("addNewPluginRepo: failed to install so file");
         }
 
@@ -182,10 +212,14 @@ void DataState::markPluginRepoFailed(const SPluginRepoIdentifier& identifier) {
         if (!identifier.matches(URL, NAME, AUTHOR))
             continue;
 
-        STATE["repository"].as_table()->insert_or_assign("hash", "");
+        const auto REPOSITORY = STATE["repository"].as_table();
+        if (!REPOSITORY)
+            continue;
+
+        REPOSITORY->insert_or_assign("hash", "");
 
         for (auto& [key, value] : STATE) {
-            if (key == "repository")
+            if (key == "repository" || !value.is_table())
                 continue;
 
             value.as_table()->insert_or_assign("failed", true);
@@ -307,8 +341,12 @@ bool DataState::setPluginEnabled(const SPluginRepoIdentifier& identifier, bool e
             if (FAILED && enabled)
                 return false;
 
-            auto modifiedState = STATE;
-            (*modifiedState[key].as_table()).insert_or_assign("enabled", enabled);
+            auto       modifiedState = STATE;
+            const auto PLUGIN        = modifiedState[key].as_table();
+            if (!PLUGIN)
+                continue;
+
+            PLUGIN->insert_or_assign("enabled", enabled);
 
             std::stringstream ss;
             ss << modifiedState;
@@ -323,17 +361,32 @@ bool DataState::setPluginEnabled(const SPluginRepoIdentifier& identifier, bool e
     return false;
 }
 
-void DataState::purgeAllCache() {
+void DataState::purgeAllCache(bool purgeRepositoryCache) {
     std::error_code ec;
-    if (!std::filesystem::exists(getDataStatePath()) && !ec) {
-        std::println("{}", infoString("Nothing to do"));
-        return;
+    bool            removed = false;
+
+    if (std::filesystem::exists(getDataStatePath(), ec) && !ec) {
+        const auto PATH = getDataStatePath().string();
+        if (PATH.contains('\''))
+            return;
+        // scary!
+        if (!NSys::root::removeRecursive(PATH))
+            Debug::die("Failed to run a superuser cmd");
+        removed = true;
     }
 
-    const auto PATH = getDataStatePath().string();
-    if (PATH.contains('\''))
-        return;
-    // scary!
-    if (!NSys::root::removeRecursive(PATH))
-        Debug::die("Failed to run a superuser cmd");
+    if (purgeRepositoryCache) {
+        ec.clear();
+        const auto REPOSITORY_CACHE        = getRepositoryCachePath();
+        const auto REPOSITORY_CACHE_STATUS = std::filesystem::symlink_status(REPOSITORY_CACHE, ec);
+        if (!ec && REPOSITORY_CACHE_STATUS.type() != std::filesystem::file_type::not_found) {
+            std::filesystem::remove_all(REPOSITORY_CACHE, ec);
+            if (ec)
+                Debug::die("Failed to remove the local repository cache");
+            removed = true;
+        }
+    }
+
+    if (!removed)
+        std::println("{}", infoString("Nothing to do"));
 }

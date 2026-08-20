@@ -19,7 +19,7 @@ function _hyprpm
         set COMP_CWORD (count $COMP_WORDS)
     end
 
-    set literals "--no-shallow" "-n" "::=" "disable" "list" "--help" "update" "add" "--verbose" "-v" "--force" "-s" "remove" "enable" "--notify" "-h" "reload" "-f"
+    set literals "--no-shallow" "-n" "::=" "disable" "list" "--help" "update" "add" "--verbose" "-v" "--force" "-s" "remove" "enable" "--notify" "-h" "reload" "-f" "--experimental-cache"
 
     set descriptions
     set descriptions[1] "Disable shallow cloning of Hyprland sources"
@@ -39,9 +39,10 @@ function _hyprpm
     set descriptions[16] "Show help menu"
     set descriptions[17] "Reload all plugins"
     set descriptions[18] "Force an operation ignoring checks (e.g. update -f)"
+    set descriptions[19] "Persist plugin repositories and their build caches locally"
 
     set literal_transitions
-    set literal_transitions[1] "set inputs 1 4 5 9 10 7 8 12 6 11 13 14 16 17 18; set tos 8 4 5 8 8 5 5 8 8 8 3 4 8 5 8"
+    set literal_transitions[1] "set inputs 1 4 5 9 10 7 8 12 6 11 13 14 16 17 18 19; set tos 8 4 5 8 8 5 5 8 8 8 3 4 8 5 8 8"
     set literal_transitions[2] "set inputs 13 14 4 5 17 7 8; set tos 3 4 4 5 5 5 5"
     set literal_transitions[6] "set inputs 3; set tos 7"
     set literal_transitions[7] "set inputs 2 15; set tos 8 8"

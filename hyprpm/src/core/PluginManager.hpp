@@ -74,6 +74,7 @@ class CPluginManager {
     bool                   m_bVerbose   = false;
     bool                   m_bNoShallow = false;
     bool                   m_bNoNix     = false;
+    size_t                 m_jobs       = 0;
     std::string            m_szCustomHlUrl, m_szUsername, m_szArgv0;
 
     // will delete recursively if exists!!

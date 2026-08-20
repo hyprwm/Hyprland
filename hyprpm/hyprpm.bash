@@ -6,6 +6,10 @@ _hyprpm_cmd_1 () {
     hyprpm list | awk '/Repository/{print $4}' | sed 's/:$//'
 }
 
+_hyprpm_cmd_2 () {
+    seq 1 "$(nproc)" | head -n 256
+}
+
 _hyprpm () {
     if [[ $(type -t _get_comp_words_by_ref) != function ]]; then
         echo _get_comp_words_by_ref: function not defined.  Make sure the bash-completions system package is installed
@@ -15,13 +19,13 @@ _hyprpm () {
     local words cword
     _get_comp_words_by_ref -n "$COMP_WORDBREAKS" words cword
 
-    declare -a literals=(--no-shallow -n ::= disable list --help update add --verbose -v --force -s remove enable --notify -h reload -f)
+    declare -a literals=(--no-shallow -n ::= disable list --help update add --verbose -v --force -s remove enable --notify -h reload -f --job)
     declare -A literal_transitions
-    literal_transitions[0]="([0]=7 [3]=3 [4]=4 [8]=7 [9]=7 [6]=4 [7]=4 [11]=7 [5]=7 [10]=7 [12]=2 [13]=3 [15]=7 [16]=4 [17]=7)"
+    literal_transitions[0]="([0]=7 [3]=3 [4]=4 [8]=7 [9]=7 [6]=4 [7]=4 [11]=7 [5]=7 [10]=7 [12]=2 [13]=3 [15]=7 [16]=4 [17]=7 [18]=8)"
     literal_transitions[1]="([12]=2 [13]=3 [3]=3 [4]=4 [16]=4 [6]=4 [7]=4)"
     literal_transitions[5]="([2]=6)"
     literal_transitions[6]="([1]=7 [14]=7)"
-    declare -A match_anything_transitions=([1]=1 [4]=5 [3]=4 [2]=4 [0]=1)
+    declare -A match_anything_transitions=([1]=1 [4]=5 [3]=4 [2]=4 [0]=1 [8]=7)
     declare -A subword_transitions
 
     local state=0
@@ -75,7 +79,7 @@ _hyprpm () {
         done
     fi
     declare -A commands
-    commands=([3]=0 [2]=1)
+    commands=([3]=0 [2]=1 [8]=2)
     if [[ -v "commands[$state]" ]]; then
         local command_id=${commands[$state]}
         local completions=()

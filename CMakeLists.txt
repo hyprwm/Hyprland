@@ -713,6 +713,7 @@ if(BUILD_TESTING OR WITH_TESTS)
   include(GoogleTest)
   file(GLOB_RECURSE TESTFILES "tests/*.cpp")
   add_executable(hyprland_gtests ${TESTFILES})
+  target_sources(hyprland_gtests PRIVATE hyprpm/src/helpers/JobControl.cpp)
   target_compile_options(hyprland_gtests PRIVATE --coverage)
   target_link_options(hyprland_gtests PRIVATE --coverage)
   target_include_directories(

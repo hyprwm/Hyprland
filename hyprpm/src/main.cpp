@@ -3,6 +3,7 @@
 #include "core/PluginManager.hpp"
 #include "core/DataState.hpp"
 #include "helpers/Sys.hpp"
+#include "helpers/JobControl.hpp"
 
 #include <vector>
 #include <string>
@@ -33,6 +34,7 @@ constexpr std::string_view HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┣ --force        | -f           → Force an operation ignoring checks (e.g. update -f).
 ┣ --no-shallow   | -s           → Disable shallow cloning of Hyprland sources.
 ┣ --hl-url       |              → Pass a custom hyprland source url.
+┣ --job <N>      |              → Set the maximum number of parallel build jobs.
 ┗
 )#";
 
@@ -49,6 +51,7 @@ int                        main(int argc, char** argv, char** envp) {
 
     std::vector<std::string> command;
     bool                     notify = false, verbose = false, force = false, noShallow = false, noNix = false;
+    size_t                   jobs = 0;
     std::string              customHlUrl;
 
     for (int i = 1; i < argc; ++i) {
@@ -68,6 +71,18 @@ int                        main(int argc, char** argv, char** envp) {
                 noNix = true;
             } else if (ARGS[i] == "--no-shallow" || ARGS[i] == "-s") {
                 noShallow = true;
+            } else if (ARGS[i] == "--job") {
+                if (i + 1 >= argc) {
+                    std::println(stderr, "Missing argument for --job");
+                    return 1;
+                }
+
+                const auto PARSED_JOBS = NJobControl::parse(ARGS[++i]);
+                if (!PARSED_JOBS) {
+                    std::println(stderr, "Invalid argument for --job: {} ({})", ARGS[i], PARSED_JOBS.error());
+                    return 1;
+                }
+                jobs = *PARSED_JOBS;
             } else if (ARGS[i] == "--hl-url") {
                 if (i + 1 >= argc) {
                     std::println(stderr, "Missing argument for --hl-url");
@@ -95,6 +110,7 @@ int                        main(int argc, char** argv, char** envp) {
     g_pPluginManager->m_bVerbose      = verbose;
     g_pPluginManager->m_bNoShallow    = noShallow;
     g_pPluginManager->m_bNoNix        = noNix;
+    g_pPluginManager->m_jobs          = jobs;
     g_pPluginManager->m_szCustomHlUrl = customHlUrl;
     g_pPluginManager->m_szArgv0       = argv[0];
 

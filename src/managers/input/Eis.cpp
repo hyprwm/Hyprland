@@ -19,29 +19,21 @@ static const char* getClientName(eis_client* client) {
     return name ? name : "<unnamed>";
 }
 
-CEis::CEis(std::string socketName) {
-    Log::logger->log(Log::INFO, "[EIS] Init socket: {}", socketName);
-
-    const char* xdg = getenv("XDG_RUNTIME_DIR");
-    if (xdg)
-        m_socketPath = std::format("{}/{}", xdg, socketName);
-
-    if (m_socketPath.empty()) {
-        Log::logger->log(Log::ERR, "[EIS] Socket path is empty");
-        return;
-    }
-
+CEis::CEis() {
     m_eisCtx = eis_new(nullptr);
     if (!m_eisCtx) {
         Log::logger->log(Log::ERR, "[EIS] Cannot create eis context");
         return;
     }
 
-    if (eis_setup_backend_socket(m_eisCtx, m_socketPath.c_str())) {
-        Log::logger->log(Log::ERR, "[EIS] Cannot init eis socket on {}", m_socketPath);
+    if (eis_setup_backend_fd(m_eisCtx)) {
+        Log::logger->log(Log::ERR, "[EIS] Cannot init eis fd backend");
+        eis_unref(m_eisCtx);
+        m_eisCtx = nullptr;
         return;
     }
-    Log::logger->log(Log::INFO, "[EIS] Listening on {}", m_socketPath);
+
+    Log::logger->log(Log::INFO, "[EIS] fd backend ready");
 
     m_eventSource = wl_event_loop_add_fd(
         g_pCompositor->m_wlEventLoop, eis_get_fd(m_eisCtx), WL_EVENT_READABLE, [](int fd, uint32_t mask, void* data) { return ((CEis*)data)->pollEvents(); }, this);

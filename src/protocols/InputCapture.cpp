@@ -25,8 +25,6 @@
 #include <optional>
 #include <string>
 
-static int eisCounter = 0;
-
 CInputCaptureResource::CInputCaptureResource(SP<CHyprlandInputCaptureV1> resource_, std::string handle) : m_sessionId(handle), m_resource(resource_) {
     if UNLIKELY (!good())
         return;
@@ -41,7 +39,7 @@ CInputCaptureResource::CInputCaptureResource(SP<CHyprlandInputCaptureV1> resourc
     m_resource->setRelease([this](CHyprlandInputCaptureV1* r, uint32_t activationId, double x, double y) { onRelease(activationId, x, y); });
     m_resource->setClearBarriers([this](CHyprlandInputCaptureV1* r) { onClearBarriers(); });
 
-    m_eis = makeUnique<CEis>(std::format("eis-{}", eisCounter++));
+    m_eis = makeUnique<CEis>();
 
     const int EISFD = m_eis->getFileDescriptor();
     if (EISFD >= 0)

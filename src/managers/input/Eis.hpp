@@ -1,15 +1,15 @@
 #pragma once
 
 #include <libeis.h>
-#include <string>
 #include <wayland-server-core.h>
 
 /*
- * Responsible to creating a socket for input communication
+ * EIS context for input capture. Uses libeis's fd backend so a private
+ * socket can be passed to the portal client via sendEisFd.
  */
 class CEis {
   public:
-    CEis(std::string socketPath);
+    CEis();
     ~CEis();
 
     void startEmulating(int activationId);
@@ -28,10 +28,6 @@ class CEis {
     void sendPointerFrame();
 
     int  getFileDescriptor();
-
-    //
-
-    std::string m_socketPath;
 
   private:
     struct SKeymap {

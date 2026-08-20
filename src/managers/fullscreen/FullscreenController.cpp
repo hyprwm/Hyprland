@@ -480,6 +480,7 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
                                                                                          Layout::RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN);
 
     IPC::Socket2::sock()->postEvent({.event = "fullscreen", .data = std::to_string(sc<int>(mode) != FSMODE_NONE)});
+    IPC::Socket2::sock()->postEvent({.event = "fullscreenv2", .data = std::format("{:x},{}", rc<uintptr_t>(window.get()), sc<int>(mode))});
     Event::bus()->m_events.window.fullscreen.emit(window);
 
     window->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |

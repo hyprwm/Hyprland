@@ -172,14 +172,20 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
 }
 
 void CInputManager::onMouseWarp(IPointer::SMotionAbsoluteEvent e) {
-    Pointer::mgr()->warpAbsolute(e.absolute, e.device);
+    if (e.mouse)
+        recheckMouseWarpOnMouseInput();
 
-    mouseMoveUnified(e.timeMs);
+    Pointer::mgr()->warpAbsolute(e.absolute, e.device, e.output);
+
+    mouseMoveUnified(e.timeMs, false, e.mouse);
 
     m_lastCursorMovement.reset();
 
     m_lastInputTouch  = false;
     m_lastInputTablet = false;
+
+    if (e.mouse)
+        m_lastMousePos = getMouseCoordsInternal();
 
     g_pSeatManager->sendPointerFrame();
 }

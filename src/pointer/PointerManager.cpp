@@ -1,4 +1,5 @@
 #include "PointerManager.hpp"
+#include "PointerTransformer.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../config/shared/actions/ConfigActions.hpp"
@@ -107,6 +108,19 @@ bool CPointerManager::hasVisibleHWCursor(PHLMONITOR pMonitor) {
 }
 
 Vector2D CPointerManager::position() {
+    if (m_transformers.empty())
+        return m_pointerPos;
+
+    auto pos = m_pointerPos;
+
+    for (const auto& x : m_transformers) {
+        pos = x->transform(pos);
+    }
+
+    return pos;
+}
+
+Vector2D CPointerManager::untransformedPosition() const {
     return m_pointerPos;
 }
 
@@ -1179,4 +1193,15 @@ void CPointerManager::damageCursor(PHLMONITOR pMonitor, bool skipFrameSchedule) 
 
 Vector2D CPointerManager::cursorSizeLogical() {
     return m_currentCursorImage.size / m_currentCursorImage.scale;
+}
+
+void CPointerManager::addTransformer(const SP<CPointerTransformer>& transformer) {
+    if (!transformer || std::ranges::contains(m_transformers, transformer))
+        return;
+
+    m_transformers.emplace_back(transformer);
+}
+
+void CPointerManager::removeTransformer(const SP<CPointerTransformer>& transformer) {
+    std::erase(m_transformers, transformer);
 }

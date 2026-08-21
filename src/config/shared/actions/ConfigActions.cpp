@@ -1681,8 +1681,11 @@ ActionResult Actions::mouse(const std::string& action) {
         }
     }
 
-    const auto      MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
-    const PHLWINDOW PWINDOW = Desktop::viewState()->hitTest().windowAt(MOUSECOORDS, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
+    const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
+    const auto WORKSPACE   = Overview::overview()->inputWorkspace();
+    const auto PWINDOW     = WORKSPACE ?
+        Desktop::viewState()->hitTest().windowAtWorkspace(MOUSECOORDS, WORKSPACE, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING) :
+        Desktop::viewState()->hitTest().windowAt(MOUSECOORDS, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
 
     if (!PWINDOW)
         return SActionResult{.passEvent = true};

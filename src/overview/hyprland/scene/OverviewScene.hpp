@@ -31,6 +31,7 @@ namespace Overview::Hyprland {
         bool         navigateRight();
         bool         selectWorkspace(PHLWORKSPACE workspace);
         PHLWORKSPACE selectedWorkspace() const;
+        Vector2D     transformPointer(const Vector2D& global) const;
         PHLWORKSPACE miniWorkspaceAt(const Vector2D& monitorLocal) const;
         CBox         mainArea() const;
         bool         pointerMove(const Vector2D& monitorLocal);

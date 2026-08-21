@@ -28,6 +28,8 @@ AQUAMARINE_FORWARD(IBuffer);
 
 namespace Pointer {
 
+    class CPointerTransformer;
+
     class CPointerManager {
       public:
         CPointerManager();
@@ -66,10 +68,15 @@ namespace Pointer {
 
         //
         Vector2D position();
+        Vector2D untransformedPosition() const;
         Vector2D hotspot();
         Vector2D cursorSizeLogical();
 
-        void     recheckEnteredOutputs();
+        // Transformer logic
+        void addTransformer(const SP<CPointerTransformer>& transformer);
+        void removeTransformer(const SP<CPointerTransformer>& transformer);
+
+        void recheckEnteredOutputs();
 
         // returns the thing in global coords
         CBox getCursorBoxGlobal();
@@ -191,6 +198,8 @@ namespace Pointer {
         bool                                  attemptHardwareCursor(SP<SMonitorPointerState> state);
         SP<Aquamarine::IBuffer>               renderHWCursorBuffer(SP<SMonitorPointerState> state, SP<Render::ITexture> texture);
         bool                                  setHWCursorBuffer(SP<SMonitorPointerState> state, SP<Aquamarine::IBuffer> buf);
+
+        std::vector<SP<CPointerTransformer>>  m_transformers;
 
         struct {
             CHyprSignalListener monitorAdded;

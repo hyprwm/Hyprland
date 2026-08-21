@@ -14,6 +14,7 @@
 #include "../../desktop/state/FocusState.hpp"
 #include "../../desktop/state/WindowState.hpp"
 #include "../../desktop/view/Group.hpp"
+#include "../../overview/Overview.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../state/MonitorState.hpp"
 
@@ -292,7 +293,10 @@ bool CDragStateController::dragEnd() {
         const auto DRAGGING_WINDOW = draggingTarget->window();
 
         const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
-        PHLWINDOW  pWindow =
+        const auto WORKSPACE   = Overview::overview()->inputWorkspace();
+        PHLWINDOW  pWindow     = WORKSPACE ?
+            Desktop::viewState()->hitTest().windowAtWorkspace(MOUSECOORDS, WORKSPACE,
+                                                              Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING, DRAGGING_WINDOW) :
             Desktop::viewState()->hitTest().windowAt(MOUSECOORDS, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING, DRAGGING_WINDOW);
 
         if (pWindow) {
@@ -497,4 +501,8 @@ void CDragStateController::mouseMove(const Vector2D& mousePos) {
 
 void CDragStateController::overrideDragWindowTargetWS(PHLWORKSPACE ws) {
     m_overriddenWorkspaceTarget = ws;
+}
+
+void CDragStateController::clearDragWindowTargetWS() {
+    m_overriddenWorkspaceTarget.reset();
 }

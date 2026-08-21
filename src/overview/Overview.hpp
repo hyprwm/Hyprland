@@ -24,10 +24,11 @@ namespace Overview {
          * Request to close the overview prematurely. This is not closed if the overview
          * decides to close itself.
          */
-        virtual void close() = 0;
+        virtual void         close() = 0;
 
-        virtual bool isOpen() const = 0;
-        virtual bool shouldRenderWorkspace(PHLWORKSPACE workspace) const;
+        virtual bool         isOpen() const = 0;
+        virtual bool         shouldRenderWorkspace(PHLWORKSPACE workspace) const;
+        virtual PHLWORKSPACE inputWorkspace() const;
 
         struct {
             CSignalT<> opened;

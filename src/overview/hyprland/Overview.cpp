@@ -16,7 +16,11 @@
 #include "../../managers/SessionLockManager.hpp"
 #include "../../output/Monitor.hpp"
 #include "../../output/MonitorResources.hpp"
+#include "../../pointer/PointerManager.hpp"
+#include "../../pointer/PointerTransformer.hpp"
+#include "../../protocols/core/DataDevice.hpp"
 #include "../../render/Renderer.hpp"
+#include "../../state/MonitorState.hpp"
 #include "../../layout/LayoutManager.hpp"
 #include "../../layout/supplementary/DragController.hpp"
 
@@ -89,7 +93,7 @@ void COverview::installListeners() {
         const auto INTERCEPTED = std::ranges::find(m_interceptedButtons, e.button);
         if (e.state == WL_POINTER_BUTTON_STATE_RELEASED && INTERCEPTED != m_interceptedButtons.end()) {
             if (const auto MONITOR = m_monitor.lock())
-                m_scene->pointerButton(e.button, false, g_pInputManager->getMouseCoordsInternal() - MONITOR->logicalBox().pos());
+                m_scene->pointerButton(e.button, false, Pointer::mgr()->untransformedPosition() - MONITOR->logicalBox().pos());
             m_interceptedButtons.erase(INTERCEPTED);
             i.cancelled = true;
             return;
@@ -102,7 +106,7 @@ void COverview::installListeners() {
         if (!MONITOR)
             return;
 
-        const auto MOUSE = g_pInputManager->getMouseCoordsInternal();
+        const auto MOUSE = Pointer::mgr()->untransformedPosition();
         if (!MONITOR->logicalBox().containsPoint(MOUSE))
             return;
 
@@ -121,10 +125,23 @@ void COverview::installListeners() {
         i.cancelled = true;
     });
 
-    m_listeners.mouseMove  = Event::bus()->m_events.input.mouse.move.listen([this](Vector2D p, Event::SCallbackInfo& i) {
+    m_listeners.mouseMove  = Event::bus()->m_events.input.mouse.move.listen([this](Vector2D, Event::SCallbackInfo& i) {
         const auto MONITOR = m_monitor.lock();
-        if (MONITOR && !g_layoutManager->dragController()->target() && m_scene->pointerMove(p - MONITOR->logicalBox().pos()))
-            i.cancelled = true;
+        if (!MONITOR)
+            return;
+
+        const auto RAW = Pointer::mgr()->untransformedPosition();
+        if (!MONITOR->logicalBox().containsPoint(RAW)) {
+            releaseDragFromOverview();
+            return;
+        }
+
+        if (!g_layoutManager->dragController()->target())
+            m_scene->pointerMove(RAW - MONITOR->logicalBox().pos());
+        else
+            g_layoutManager->moveMouse(g_pInputManager->getMouseCoordsInternal());
+
+        i.cancelled = !PROTO::data || !PROTO::data->dndActive();
     });
     m_listeners.dragMotion = g_layoutManager->dragController()->m_events.motion.listen([this] { recheckDrag(); });
     m_listeners.dragEnded  = g_layoutManager->dragController()->m_events.ended.listen([this] { resetDragHover(); });
@@ -239,9 +256,9 @@ void COverview::recheckDrag() {
         return;
     }
 
-    const auto MOUSE = g_pInputManager->getMouseCoordsInternal();
+    const auto MOUSE = Pointer::mgr()->untransformedPosition();
     if (!MONITOR->logicalBox().containsPoint(MOUSE)) {
-        resetDragHover();
+        releaseDragFromOverview();
         return;
     }
 
@@ -285,9 +302,9 @@ void COverview::applyDragHoverTarget() {
         return;
     }
 
-    const auto MOUSE = g_pInputManager->getMouseCoordsInternal();
+    const auto MOUSE = Pointer::mgr()->untransformedPosition();
     if (!MONITOR->logicalBox().containsPoint(MOUSE)) {
-        resetDragHover();
+        releaseDragFromOverview();
         return;
     }
 
@@ -330,8 +347,9 @@ void COverview::applyDragHoverTarget() {
     if (!workspace || workspace != m_scene->selectedWorkspace() || !TARGET || !TARGET->window())
         return;
 
-    TARGET->window()->moveToWorkspace(workspace);
+    TARGET->assignToSpace(workspace->m_space);
     DRAG->overrideDragWindowTargetWS(workspace);
+    g_layoutManager->moveMouse(m_scene->transformPointer(Pointer::mgr()->untransformedPosition()));
     if (repeat && m_drag.eventLoopTimer)
         m_drag.eventLoopTimer->updateTimeout(std::chrono::milliseconds(sc<int32_t>(DRAG_MOVE_MS)));
 }
@@ -342,6 +360,24 @@ void COverview::resetDragHover() {
     m_drag.dragTarget.reset();
     if (m_drag.eventLoopTimer)
         m_drag.eventLoopTimer->updateTimeout(std::nullopt);
+}
+
+void COverview::releaseDragFromOverview() {
+    const auto& DRAG = g_layoutManager->dragController();
+    DRAG->clearDragWindowTargetWS();
+
+    const auto TARGET = DRAG->target();
+    if (!TARGET || DRAG->mode() != MBIND_MOVE || !DRAG->dragThresholdReached()) {
+        resetDragHover();
+        return;
+    }
+
+    const auto MONITOR   = State::monitorState()->query().vec(Pointer::mgr()->untransformedPosition()).run();
+    const auto WORKSPACE = MONITOR ? (MONITOR->m_activeSpecialWorkspace ? MONITOR->m_activeSpecialWorkspace : MONITOR->m_activeWorkspace) : nullptr;
+    if (TARGET->window() && WORKSPACE && TARGET->workspace() != WORKSPACE)
+        TARGET->assignToSpace(WORKSPACE->m_space);
+
+    resetDragHover();
 }
 
 void COverview::open(PHLMONITOR monitor) {
@@ -393,7 +429,10 @@ void COverview::open(PHLMONITOR monitor) {
         m_resources = RESOURCES;
         m_scene->start(monitor, RESOURCES);
         RESOURCES->m_sceneStack.push(m_scene);
-        m_sceneInstalled = true;
+        m_sceneInstalled     = true;
+        m_pointerTransformer = makeShared<Pointer::CPointerTransformer>(
+            [this](Vector2D pos) { return m_sceneInstalled && (!PROTO::data || !PROTO::data->dndActive()) ? m_scene->transformPointer(pos) : pos; });
+        Pointer::mgr()->addTransformer(m_pointerTransformer);
         m_progress->setValueAndWarp(0.F);
 
         installListeners();
@@ -436,6 +475,14 @@ bool COverview::shouldRenderWorkspace(PHLWORKSPACE workspace) const {
     return m_sceneInstalled && workspace && workspace->m_visible && m_scene->selectedWorkspace() == workspace;
 }
 
+PHLWORKSPACE COverview::inputWorkspace() const {
+    const auto MONITOR = m_monitor.lock();
+    if (!m_sceneInstalled || !MONITOR || !Pointer::mgr() || !MONITOR->logicalBox().containsPoint(Pointer::mgr()->untransformedPosition()))
+        return nullptr;
+
+    return m_scene->selectedWorkspace();
+}
+
 void COverview::finishClose(bool emitEvent) {
     if (m_isOpen || !m_sceneInstalled)
         return;
@@ -447,6 +494,12 @@ void COverview::finishClose(bool emitEvent) {
     m_interceptedKeys.clear();
     m_interceptedButtons.clear();
 
+    if (g_layoutManager)
+        g_layoutManager->dragController()->clearDragWindowTargetWS();
+    if (Pointer::mgr())
+        Pointer::mgr()->removeTransformer(m_pointerTransformer);
+    m_pointerTransformer.reset();
+
     const auto MONITOR   = m_monitor.lock();
     const auto RESOURCES = m_resources;
     if (RESOURCES)
@@ -455,6 +508,9 @@ void COverview::finishClose(bool emitEvent) {
     m_scene->reset();
     m_resources.reset();
     m_monitor.reset();
+
+    if (g_pInputManager)
+        g_pInputManager->simulateMouseMovement();
 
     if (MONITOR && g_pHyprRenderer) {
         MONITOR->recheckSolitary();

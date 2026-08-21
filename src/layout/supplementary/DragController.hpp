@@ -31,6 +31,7 @@ namespace Layout::Supplementary {
         bool           draggingTiled() const;
         bool           exclusiveDeviceGrab() const;
         void           overrideDragWindowTargetWS(PHLWORKSPACE ws);
+        void           clearDragWindowTargetWS();
 
         /*
             Called to try to pick up window for dragging.

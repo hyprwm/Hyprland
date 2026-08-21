@@ -156,6 +156,7 @@ bool COverview::handleSearchKey(uint32_t keycode, SP<IKeyboard> keyboard, bool r
     // Text mode follows a small "vim"-like mode behavior:
     // By default, we're in NAVIGATE: escape closes, left/right navigates
     // if we start typing, we enter TEXT mode, and escape goes out of it, enter closes.
+    // if we delete all the text with backspace, automatically goes back to navi.
     if (m_inputMode == eInputMode::NAVIGATION) {
         if (KEYSYM == XKB_KEY_Left) {
             m_scene->navigateLeft();
@@ -174,6 +175,7 @@ bool COverview::handleSearchKey(uint32_t keycode, SP<IKeyboard> keyboard, bool r
     } else if (m_inputMode == eInputMode::TEXT) {
         if (KEYSYM == XKB_KEY_Escape) {
             m_inputMode = eInputMode::NAVIGATION;
+            m_scene->resetQuery();
             m_scene->setTextboxFocus(false);
             return true;
         }
@@ -204,6 +206,13 @@ bool COverview::handleSearchKey(uint32_t keycode, SP<IKeyboard> keyboard, bool r
     m_scene->setTextboxFocus(true);
     m_scene->keyboardKey(KEYSYM, true, repeat, std::move(utf8), sc<uint32_t>(MODIFIERS));
     m_inputMode = eInputMode::TEXT;
+
+    if (m_scene->currentQuery().empty()) {
+        m_inputMode = eInputMode::NAVIGATION;
+        m_scene->resetQuery();
+        m_scene->setTextboxFocus(false);
+        return true;
+    }
 
     return true;
 }

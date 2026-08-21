@@ -41,6 +41,7 @@ namespace Overview::Hyprland {
         void         keyboardKey(uint32_t keysym, bool down, bool repeat, std::string utf8, uint32_t modifiers);
         void         reset();
         void         setTextboxFocus(bool x);
+        void         resetQuery() const;
         std::string  currentQuery() const;
 
       private:

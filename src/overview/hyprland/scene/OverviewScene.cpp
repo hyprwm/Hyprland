@@ -166,6 +166,10 @@ void COverviewScene::setTextboxFocus(bool x) {
     m_workspaceSearch->setFocused(x);
 }
 
+void COverviewScene::resetQuery() const {
+    m_workspaceSearch->resetQuery();
+}
+
 std::string COverviewScene::currentQuery() const {
     return m_workspaceSearch->query();
 }

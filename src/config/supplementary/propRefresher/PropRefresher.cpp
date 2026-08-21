@@ -71,8 +71,7 @@ void CPropRefresher::refreshProp(const bool execdAsScheduled) {
             if (!m)
                 continue;
 
-            m->m_forceFullFrames = 2;
-            m->scheduleFrame();
+            g_pHyprRenderer->damageMonitor(m);
         }
     }
 

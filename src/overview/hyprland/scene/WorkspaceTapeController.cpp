@@ -202,24 +202,37 @@ void CWorkspaceTapeController::reset() {
     m_selectedWorkspace.reset();
     m_preferredWorkspace.reset();
     m_pressedMiniWorkspace.reset();
-    m_mainArea         = {};
-    m_miniStripArea    = {};
-    m_overviewProgress = 0.F;
+    m_mainArea           = {};
+    m_miniStripArea      = {};
+    m_overviewProgress   = 0.F;
+    m_fullscreenSelected = false;
     m_resources.reset();
     m_monitor.reset();
+}
+
+PHLWORKSPACE CWorkspaceTapeController::fullscreenWorkspace(PHLMONITOR monitor) const {
+    if (!monitor)
+        return nullptr;
+
+    const auto SELECTED = selectedWorkspace();
+    if (m_fullscreenSelected && SELECTED && SELECTED->m_monitor == monitor)
+        return SELECTED;
+
+    return monitor->m_activeWorkspace;
 }
 
 CBox CWorkspaceTapeController::mainBoxFor(const SWorkspaceTile& tile, PHLMONITOR monitor) const {
     if (!monitor || !tile.position || !tile.size)
         return {};
 
-    const auto     WORKSPACE = tile.workspace.lock();
-    const bool     IS_ACTIVE = WORKSPACE && WORKSPACE == monitor->m_activeWorkspace;
-    const Vector2D OPENPOS   = tile.position->value();
-    const Vector2D OPENSIZE  = tile.size->value();
-    const Vector2D FULLSIZE  = monitor->m_transformedSize;
-    const Vector2D POS       = IS_ACTIVE ? OPENPOS * m_overviewProgress : OPENPOS;
-    const Vector2D SIZE      = IS_ACTIVE ? FULLSIZE + (OPENSIZE - FULLSIZE) * m_overviewProgress : OPENSIZE;
+    const auto     WORKSPACE  = tile.workspace.lock();
+    const auto     FULLSCREEN = fullscreenWorkspace(monitor);
+    const bool     IS_ACTIVE  = WORKSPACE && WORKSPACE == FULLSCREEN;
+    const Vector2D OPENPOS    = tile.position->value();
+    const Vector2D OPENSIZE   = tile.size->value();
+    const Vector2D FULLSIZE   = monitor->m_transformedSize;
+    const Vector2D POS        = IS_ACTIVE ? OPENPOS * m_overviewProgress : OPENPOS;
+    const Vector2D SIZE       = IS_ACTIVE ? FULLSIZE + (OPENSIZE - FULLSIZE) * m_overviewProgress : OPENSIZE;
 
     return CBox{POS, SIZE}.round();
 }
@@ -247,7 +260,7 @@ void CWorkspaceTapeController::draw(Render::CRenderingContext& context, Time::st
 
     const float PROGRESS   = std::clamp(overviewProgress, 0.F, 1.F);
     const CBox  MONITORBOX = {{}, MONITOR->m_transformedSize};
-    const auto  ACTIVE     = MONITOR->m_activeWorkspace;
+    const auto  ACTIVE     = fullscreenWorkspace(MONITOR);
     const auto  SELECTED   = selectedWorkspace();
     m_overviewProgress     = PROGRESS;
 
@@ -460,6 +473,10 @@ void CWorkspaceTapeController::draw(Render::CRenderingContext& context, Time::st
         border.roundingPower = 2.F;
         g_pHyprRenderer->addPassElement(context, makeUnique<CBorderPassElement>(border));
     }
+}
+
+void CWorkspaceTapeController::useSelectedWorkspaceForFullscreen(bool x) {
+    m_fullscreenSelected = x;
 }
 
 bool CWorkspaceTapeController::navigateLeft() {

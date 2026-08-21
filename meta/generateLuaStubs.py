@@ -541,7 +541,7 @@ def generate_stub(root: Path) -> str:
         "hl.get_workspace": "fun(selector: HL.WorkspaceSelector): HL.Workspace|nil",
         "hl.get_active_workspace": "fun(monitor?: HL.MonitorSelector): HL.Workspace|nil",
         "hl.get_active_special_workspace": "fun(monitor?: HL.MonitorSelector): HL.Workspace|nil",
-        "hl.get_monitors": "fun(): HL.Monitor[]",
+        "hl.get_monitors": "fun(options?: HL.GetMonitorsOptions): HL.Monitor[]",
         "hl.get_monitor": "fun(selector: HL.MonitorSelector): HL.Monitor|nil",
         "hl.get_active_monitor": "fun(): HL.Monitor|nil",
         "hl.get_monitor_at": "fun(x: number|HL.Vec2, y?: number): HL.Monitor|nil",
@@ -685,6 +685,16 @@ def generate_stub(root: Path) -> str:
             [
                 ("timeout", "integer", False),
                 ("type", '"repeat"|"oneshot"', False),
+            ],
+        )
+    )
+    lines.append("")
+
+    lines.extend(
+        emit_class_block(
+            "HL.GetMonitorsOptions",
+            [
+                ("all", "boolean", True),
             ],
         )
     )

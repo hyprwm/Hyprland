@@ -17,11 +17,12 @@ namespace Pointer {
     class CPointerTransformer;
 }
 class IKeyboard;
+struct SEventLoopDoLaterLock;
 
 namespace Overview::Hyprland {
     class COverviewScene;
 
-    class COverview : public Overview::IOverview {
+    class COverview : public Overview::IOverview, public Overview::IOverviewGesture {
       public:
         COverview();
         virtual ~COverview() override;
@@ -31,12 +32,19 @@ namespace Overview::Hyprland {
         virtual bool         isOpen() const override;
         virtual bool         shouldRenderWorkspace(PHLWORKSPACE workspace) const override;
         virtual PHLWORKSPACE inputWorkspace() const override;
+        virtual bool         beginGesture(PHLMONITOR monitor) override;
+        virtual void         updateGesture(float completion) override;
+        virtual void         endGesture(bool commit) override;
 
         SP<COverviewScene>   scene() const;
 
       private:
         void                             finishClose(bool emitEvent = true);
         void                             closeImmediately();
+        bool                             prepareOpen(PHLMONITOR monitor, bool& newScene);
+        void                             commitClose();
+        void                             settleProgress(float goal, bool opening);
+        void                             scheduleFinishClose();
         void                             installListeners();
         void                             recheckDrag();
         void                             applyDragHoverTarget();
@@ -48,11 +56,15 @@ namespace Overview::Hyprland {
 
         bool                             m_isOpen         = false;
         bool                             m_sceneInstalled = false;
+        bool                             m_gestureActive  = false;
+        bool                             m_gestureOpening = false;
+        float                            m_gestureStart   = 0.F;
         PHLMONITORREF                    m_monitor;
         WP<Monitor::CMonitorResources>   m_resources;
         PHLANIMVAR<float>                m_progress;
         SP<COverviewScene>               m_scene;
         SP<Pointer::CPointerTransformer> m_pointerTransformer;
+        UP<SEventLoopDoLaterLock>        m_finishCloseLock;
 
         struct {
             CHyprSignalListener monitorDisconnect;

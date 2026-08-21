@@ -39,6 +39,15 @@ namespace Overview {
         IOverview() = default;
     };
 
+    class IOverviewGesture {
+      public:
+        virtual ~IOverviewGesture() = default;
+
+        virtual bool beginGesture(PHLMONITOR monitor) = 0;
+        virtual void updateGesture(float completion)  = 0;
+        virtual void endGesture(bool commit)          = 0;
+    };
+
     /*
      * If you are a plugin and want to override this, remember to reset this ptr on unload and
      * populate with Overview::Hyprland::COverview

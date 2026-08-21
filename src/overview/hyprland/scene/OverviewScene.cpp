@@ -154,6 +154,10 @@ void COverviewScene::setTextboxFocus(bool x) {
     m_workspaceSearch->setFocused(x);
 }
 
+void COverviewScene::useSelectedWorkspaceForFullscreen(bool x) {
+    m_workspaceTape->useSelectedWorkspaceForFullscreen(x);
+}
+
 void COverviewScene::resetQuery() const {
     m_workspaceSearch->resetQuery();
 }

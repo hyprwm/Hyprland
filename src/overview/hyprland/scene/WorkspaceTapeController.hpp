@@ -39,6 +39,7 @@ namespace Overview::Hyprland {
         Vector2D     transformPointer(const Vector2D& global) const;
         PHLWORKSPACE miniWorkspaceAt(const Vector2D& monitorLocal) const;
         bool         pointerButton(uint32_t button, bool pressed, const Vector2D& monitorLocal);
+        void         useSelectedWorkspaceForFullscreen(bool x);
 
         void         setFilter(FWorkspaceFilter filter);
         void         refresh();
@@ -60,6 +61,7 @@ namespace Overview::Hyprland {
         void                             refreshWindowListeners();
         SWorkspaceTile*                  tileFor(PHLWORKSPACE workspace) const;
         SWorkspaceTile*                  tileFor(PHLWORKSPACEREF workspace) const;
+        PHLWORKSPACE                     fullscreenWorkspace(PHLMONITOR monitor) const;
         CBox                             mainBoxFor(const SWorkspaceTile& tile, PHLMONITOR monitor) const;
         std::vector<PHLWORKSPACE>        filteredWorkspaces() const;
         std::vector<SWorkspaceTile*>     layoutTiles() const;
@@ -76,8 +78,9 @@ namespace Overview::Hyprland {
         CBox                             m_miniStripArea;
         std::vector<CHyprSignalListener> m_windowListeners;
         UP<SEventLoopDoLaterLock>        m_reconcileLock;
-        float                            m_overviewProgress = 0.F;
-        bool                             m_started          = false;
+        float                            m_overviewProgress   = 0.F;
+        bool                             m_started            = false;
+        bool                             m_fullscreenSelected = false;
 
         struct {
             CHyprSignalListener created;

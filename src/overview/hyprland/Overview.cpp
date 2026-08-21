@@ -26,7 +26,9 @@
 #include "../../layout/LayoutManager.hpp"
 #include "../../layout/supplementary/DragController.hpp"
 
+#include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <hyprutils/math/Vector2D.hpp>
 #include <hyprutils/memory/SharedPtr.hpp>
 #include <ranges>
@@ -43,7 +45,9 @@ COverview::COverview() : m_scene(makeShared<COverviewScene>(*this)) {
 }
 
 COverview::~COverview() {
-    m_isOpen = false;
+    m_finishCloseLock.reset();
+    m_isOpen        = false;
+    m_gestureActive = false;
     if (m_progress)
         m_progress->resetAllCallbacks();
     finishClose(false);
@@ -391,21 +395,23 @@ void COverview::releaseDragFromOverview() {
     resetDragHover();
 }
 
-void COverview::open(PHLMONITOR monitor) {
+bool COverview::prepareOpen(PHLMONITOR monitor, bool& newScene) {
+    newScene = false;
     if (!monitor || !monitor->m_enabled || monitor->isMirror() || !g_pHyprRenderer || (g_pSessionLockManager && g_pSessionLockManager->isSessionLocked()))
-        return;
+        return false;
 
     if (!monitor->m_lastScanout.expired() || monitor->m_directScanoutIsActive)
         monitor->handleDSleave();
 
     const auto CURRENT_MONITOR = m_monitor.lock();
     if (m_sceneInstalled && CURRENT_MONITOR != monitor) {
-        m_isOpen = false;
+        m_isOpen        = false;
+        m_gestureActive = false;
         finishClose();
     }
 
     if (m_isOpen)
-        return;
+        return true;
 
     m_inputMode = eInputMode::NAVIGATION;
     m_scene->setTextboxFocus(false);
@@ -421,21 +427,19 @@ void COverview::open(PHLMONITOR monitor) {
                 if (m_isOpen)
                     return;
 
-                if (g_pEventLoopManager)
-                    g_pEventLoopManager->doLater([this] { finishClose(); });
-                else
-                    finishClose();
+                scheduleFinishClose();
             },
             false);
     }
 
-    const bool NEW_SCENE = !m_sceneInstalled;
-    const auto RESOURCES = NEW_SCENE ? monitor->resources() : m_resources;
+    newScene             = !m_sceneInstalled;
+    const auto RESOURCES = newScene ? monitor->resources() : m_resources;
     if (!RESOURCES)
-        return;
+        return false;
 
     m_isOpen = true;
-    if (NEW_SCENE) {
+    m_finishCloseLock.reset();
+    if (newScene) {
         m_monitor   = monitor;
         m_resources = RESOURCES;
         m_scene->start(monitor, RESOURCES);
@@ -449,12 +453,53 @@ void COverview::open(PHLMONITOR monitor) {
         installListeners();
     }
 
-    m_progress->setConfig(Config::animationTree()->getAnimationPropertyConfig("overviewIn"));
-    *m_progress = 1.F;
-
     monitor->recheckSolitary();
     if (g_pHyprRenderer)
         g_pHyprRenderer->damageMonitor(monitor);
+
+    return true;
+}
+
+void COverview::settleProgress(float goal, bool opening) {
+    if (!m_progress)
+        return;
+
+    m_progress->setConfig(Config::animationTree()->getAnimationPropertyConfig(opening ? "overviewIn" : "overviewOut"));
+    *m_progress = goal;
+
+    if (goal != 0.F || m_progress->value() > 0.F || !m_sceneInstalled || m_isOpen)
+        return;
+
+    scheduleFinishClose();
+}
+
+void COverview::scheduleFinishClose() {
+    if (m_finishCloseLock)
+        return;
+
+    if (!g_pEventLoopManager) {
+        finishClose();
+        return;
+    }
+
+    m_finishCloseLock = g_pEventLoopManager->doLaterLock([this] {
+        m_finishCloseLock.reset();
+        finishClose();
+    });
+}
+
+void COverview::open(PHLMONITOR monitor) {
+    const bool KEEP_SELECTED_FULLSCREEN = m_gestureActive && !m_gestureOpening;
+    if (m_gestureActive)
+        endGesture(m_gestureOpening);
+
+    bool NEW_SCENE = false;
+    if (!prepareOpen(monitor, NEW_SCENE))
+        return;
+
+    if (!KEEP_SELECTED_FULLSCREEN)
+        m_scene->useSelectedWorkspaceForFullscreen(false);
+    settleProgress(1.F, true);
 
     if (NEW_SCENE)
         m_events.opened.emit();
@@ -464,11 +509,17 @@ void COverview::close() {
     if (!m_isOpen || !m_sceneInstalled)
         return;
 
-    m_isOpen = false;
+    m_gestureActive = false;
+    m_isOpen        = false;
     resetDragHover();
-    m_progress->setConfig(Config::animationTree()->getAnimationPropertyConfig("overviewOut"));
-    *m_progress = 0.F;
+    commitClose();
+    settleProgress(0.F, false);
 
+    if (const auto MONITOR = m_monitor.lock(); MONITOR && g_pHyprRenderer)
+        g_pHyprRenderer->damageMonitor(MONITOR);
+}
+
+void COverview::commitClose() {
     const auto MONITOR  = m_monitor.lock();
     const auto SELECTED = m_scene->selectedWorkspace();
     if (MONITOR && SELECTED && SELECTED != MONITOR->m_activeWorkspace)
@@ -476,7 +527,7 @@ void COverview::close() {
 
     const auto QUERY = m_scene->currentQuery();
 
-    if (!QUERY.empty()) {
+    if (MONITOR && MONITOR->m_activeWorkspace && !QUERY.empty()) {
         // select the window, if applicable
         // if we match the workspace name our search is exclusive for the workspace, don't focus shit
         if (!StringUtils::fullMatchCaseIns(MONITOR->m_activeWorkspace->m_name, QUERY)) {
@@ -492,9 +543,65 @@ void COverview::close() {
             }
         }
     }
+}
 
-    if (const auto MONITOR = m_monitor.lock(); MONITOR && g_pHyprRenderer)
-        g_pHyprRenderer->damageMonitor(MONITOR);
+bool COverview::beginGesture(PHLMONITOR monitor) {
+    if (m_gestureActive)
+        return false;
+
+    const bool OPENING   = !m_isOpen;
+    bool       NEW_SCENE = false;
+    if (OPENING && !prepareOpen(monitor, NEW_SCENE))
+        return false;
+    if (!OPENING && !m_sceneInstalled)
+        return false;
+
+    m_gestureActive  = true;
+    m_gestureOpening = OPENING;
+    m_gestureStart   = std::clamp(m_progress->value(), 0.F, 1.F);
+    m_scene->useSelectedWorkspaceForFullscreen(!OPENING);
+    m_progress->setValueAndWarp(m_gestureStart);
+
+    if (NEW_SCENE)
+        m_events.opened.emit();
+
+    return true;
+}
+
+void COverview::updateGesture(float completion) {
+    if (!m_gestureActive || !m_progress)
+        return;
+
+    const float TARGET = m_gestureOpening ? 1.F : 0.F;
+    m_progress->setValueAndWarp(std::lerp(m_gestureStart, TARGET, std::clamp(completion, 0.F, 1.F)));
+}
+
+void COverview::endGesture(bool commit) {
+    if (!m_gestureActive)
+        return;
+
+    m_gestureActive = false;
+    if (m_gestureOpening) {
+        if (commit) {
+            settleProgress(1.F, true);
+            return;
+        }
+
+        m_isOpen = false;
+        resetDragHover();
+        settleProgress(0.F, false);
+        return;
+    }
+
+    if (!commit) {
+        settleProgress(1.F, true);
+        return;
+    }
+
+    m_isOpen = false;
+    resetDragHover();
+    commitClose();
+    settleProgress(0.F, false);
 }
 
 bool COverview::isOpen() const {
@@ -517,7 +624,9 @@ void COverview::finishClose(bool emitEvent) {
     if (m_isOpen || !m_sceneInstalled)
         return;
 
+    m_finishCloseLock.reset();
     m_sceneInstalled = false;
+    m_gestureActive  = false;
     resetDragHover();
     stopKeyRepeat(m_keyRepeat.keycode);
     m_listeners = {};
@@ -555,7 +664,9 @@ void COverview::closeImmediately() {
     if (!m_sceneInstalled)
         return;
 
-    m_isOpen = false;
+    m_finishCloseLock.reset();
+    m_isOpen        = false;
+    m_gestureActive = false;
     resetDragHover();
     if (m_progress)
         m_progress->setValueAndWarp(0.F);

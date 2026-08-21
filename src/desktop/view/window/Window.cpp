@@ -665,6 +665,7 @@ void CWindow::updateWindowData(const Config::CWorkspaceRule& workspaceRule) {
                                                Desktop::Types::PRIORITY_WORKSPACE_RULE);
     m_ruleApplicator->noShadow().matchOptional(workspaceRule.m_noShadow, Desktop::Types::PRIORITY_WORKSPACE_RULE);
     m_ruleApplicator->noGlow().matchOptional(workspaceRule.m_noGlow, Desktop::Types::PRIORITY_WORKSPACE_RULE);
+    m_ruleApplicator->noWobble().matchOptional(workspaceRule.m_noWobble, Desktop::Types::PRIORITY_WORKSPACE_RULE);
 
     m_presentation->invalidateBorderSize();
 }

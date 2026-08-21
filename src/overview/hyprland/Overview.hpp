@@ -46,6 +46,7 @@ namespace Overview::Hyprland {
         void                             settleProgress(float goal, bool opening);
         void                             scheduleFinishClose();
         void                             installListeners();
+        void                             updatePointerState();
         void                             recheckDrag();
         void                             applyDragHoverTarget();
         void                             releaseDragFromOverview();

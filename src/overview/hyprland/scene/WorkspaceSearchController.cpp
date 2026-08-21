@@ -80,6 +80,7 @@ void CWorkspaceSearchController::start(PHLMONITOR monitor, FTextChanged textChan
 
 void CWorkspaceSearchController::reset() {
     pointerLeave();
+    Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_INTERNAL_UI);
     m_listeners = {};
     m_textbox.reset();
     m_surface.reset();
@@ -91,6 +92,7 @@ void CWorkspaceSearchController::reset() {
     m_pressedButtons = 0;
     m_needsFrame     = true;
     m_fullRedraw     = true;
+    m_focused        = false;
 }
 
 void CWorkspaceSearchController::draw(Render::CRenderingContext& context, float opacity) {
@@ -124,12 +126,15 @@ void CWorkspaceSearchController::draw(Render::CRenderingContext& context, float 
 }
 
 bool CWorkspaceSearchController::pointerMove(const Vector2D& monitorLocal) {
-    if (!m_surface || !contains(monitorLocal)) {
-        if (m_surface && m_pointerEntered && m_pressedButtons > 0) {
-            m_surface->pointerMotion(monitorLocal - m_logicalBox.pos());
-            return true;
-        }
+    if (!m_surface)
+        return false;
 
+    if (m_pointerEntered && m_pressedButtons > 0) {
+        m_surface->pointerMotion(monitorLocal - m_logicalBox.pos());
+        return true;
+    }
+
+    if (!m_focused || !contains(monitorLocal)) {
         pointerLeave();
         return false;
     }
@@ -161,13 +166,16 @@ bool CWorkspaceSearchController::pointerButton(uint32_t button, bool pressed, co
     else if (m_pressedButtons > 0)
         --m_pressedButtons;
 
-    if (!pressed && m_pressedButtons == 0 && !contains(monitorLocal))
+    if (!pressed && m_pressedButtons == 0 && (!m_focused || !contains(monitorLocal)))
         pointerLeave();
     return true;
 }
 
 void CWorkspaceSearchController::pointerLeave() {
-    if (m_surface && m_pointerEntered)
+    if (!m_pointerEntered)
+        return;
+
+    if (m_surface)
         m_surface->pointerLeave();
     Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_INTERNAL_UI);
     m_pointerEntered = false;
@@ -225,9 +233,15 @@ void CWorkspaceSearchController::setFocused(bool x) {
 
     m_focused = x;
 
+    if (!x && m_pressedButtons == 0)
+        pointerLeave();
+
     if (m_textbox) {
         m_textbox->setOpacity(x ? 1.F : 0.F);
-        m_textbox->focus(x);
+        if (x)
+            m_textbox->focus();
+        else if (m_surface)
+            m_surface->keyboardLeave();
     }
 }
 

@@ -20,6 +20,7 @@
 #include "../../output/MonitorResources.hpp"
 #include "../../pointer/PointerManager.hpp"
 #include "../../pointer/PointerTransformer.hpp"
+#include "../../pointer/cursor/CursorShapeOverrideController.hpp"
 #include "../../protocols/core/DataDevice.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../state/MonitorState.hpp"
@@ -116,6 +117,11 @@ void COverview::installListeners() {
         if (!MONITOR->logicalBox().containsPoint(MOUSE))
             return;
 
+        if (!m_isOpen) {
+            i.cancelled = true;
+            return;
+        }
+
         if (m_scene->pointerButton(e.button, true, MOUSE - MONITOR->logicalBox().pos())) {
             m_interceptedButtons.emplace_back(e.button);
             i.cancelled = true;
@@ -138,19 +144,51 @@ void COverview::installListeners() {
 
         const auto RAW = Pointer::mgr()->untransformedPosition();
         if (!MONITOR->logicalBox().containsPoint(RAW)) {
+            updatePointerState();
             releaseDragFromOverview();
             return;
         }
 
-        if (!g_layoutManager->dragController()->target())
-            m_scene->pointerMove(RAW - MONITOR->logicalBox().pos());
-        else
+        updatePointerState();
+        if (g_layoutManager->dragController()->target())
             g_layoutManager->moveMouse(g_pInputManager->getMouseCoordsInternal());
 
         i.cancelled = !PROTO::data || !PROTO::data->dndActive();
     });
-    m_listeners.dragMotion = g_layoutManager->dragController()->m_events.motion.listen([this] { recheckDrag(); });
-    m_listeners.dragEnded  = g_layoutManager->dragController()->m_events.ended.listen([this] { resetDragHover(); });
+    m_listeners.dragMotion = g_layoutManager->dragController()->m_events.motion.listen([this] {
+        updatePointerState();
+        recheckDrag();
+    });
+    m_listeners.dragEnded  = g_layoutManager->dragController()->m_events.ended.listen([this] {
+        resetDragHover();
+        updatePointerState();
+    });
+}
+
+void COverview::updatePointerState() {
+    const auto MONITOR = m_monitor.lock();
+    if (!m_isOpen || !MONITOR || !Pointer::mgr()) {
+        m_scene->pointerLeave();
+        Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_INTERNAL_UI);
+        return;
+    }
+
+    const auto RAW = Pointer::mgr()->untransformedPosition();
+    if (!MONITOR->logicalBox().containsPoint(RAW)) {
+        if (m_scene->pointerMove(RAW - MONITOR->logicalBox().pos()))
+            return;
+
+        m_scene->pointerLeave();
+        Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_INTERNAL_UI);
+        return;
+    }
+
+    if (g_layoutManager && g_layoutManager->dragController()->target())
+        m_scene->pointerLeave();
+    else if (m_scene->pointerMove(RAW - MONITOR->logicalBox().pos()))
+        return;
+
+    Pointer::Cursor::overrideController->setOverride("default", Pointer::Cursor::CURSOR_OVERRIDE_INTERNAL_UI);
 }
 
 bool COverview::handleSearchKey(uint32_t keycode, SP<IKeyboard> keyboard, bool repeat) {
@@ -183,6 +221,7 @@ bool COverview::handleSearchKey(uint32_t keycode, SP<IKeyboard> keyboard, bool r
             m_inputMode = eInputMode::NAVIGATION;
             m_scene->resetQuery();
             m_scene->setTextboxFocus(false);
+            updatePointerState();
             return true;
         }
     }
@@ -210,6 +249,7 @@ bool COverview::handleSearchKey(uint32_t keycode, SP<IKeyboard> keyboard, bool r
         return false;
 
     m_scene->setTextboxFocus(true);
+    updatePointerState();
     m_scene->keyboardKey(KEYSYM, true, repeat, std::move(utf8), sc<uint32_t>(MODIFIERS));
     m_inputMode = eInputMode::TEXT;
 
@@ -217,6 +257,7 @@ bool COverview::handleSearchKey(uint32_t keycode, SP<IKeyboard> keyboard, bool r
         m_inputMode = eInputMode::NAVIGATION;
         m_scene->resetQuery();
         m_scene->setTextboxFocus(false);
+        updatePointerState();
         return true;
     }
 
@@ -453,6 +494,8 @@ bool COverview::prepareOpen(PHLMONITOR monitor, bool& newScene) {
         installListeners();
     }
 
+    updatePointerState();
+
     monitor->recheckSolitary();
     if (g_pHyprRenderer)
         g_pHyprRenderer->damageMonitor(monitor);
@@ -511,6 +554,7 @@ void COverview::close() {
 
     m_gestureActive = false;
     m_isOpen        = false;
+    updatePointerState();
     resetDragHover();
     commitClose();
     settleProgress(0.F, false);
@@ -588,6 +632,7 @@ void COverview::endGesture(bool commit) {
         }
 
         m_isOpen = false;
+        updatePointerState();
         resetDragHover();
         settleProgress(0.F, false);
         return;
@@ -599,6 +644,7 @@ void COverview::endGesture(bool commit) {
     }
 
     m_isOpen = false;
+    updatePointerState();
     resetDragHover();
     commitClose();
     settleProgress(0.F, false);
@@ -627,6 +673,7 @@ void COverview::finishClose(bool emitEvent) {
     m_finishCloseLock.reset();
     m_sceneInstalled = false;
     m_gestureActive  = false;
+    updatePointerState();
     resetDragHover();
     stopKeyRepeat(m_keyRepeat.keycode);
     m_listeners = {};
@@ -667,6 +714,7 @@ void COverview::closeImmediately() {
     m_finishCloseLock.reset();
     m_isOpen        = false;
     m_gestureActive = false;
+    updatePointerState();
     resetDragHover();
     if (m_progress)
         m_progress->setValueAndWarp(0.F);

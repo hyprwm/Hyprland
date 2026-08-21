@@ -1,7 +1,9 @@
 #include "Overview.hpp"
+#include "StringUtils.hpp"
 
 #include "config/shared/actions/ConfigActions.hpp"
 #include "desktop/state/FocusState.hpp"
+#include "desktop/state/WindowState.hpp"
 #include "desktop/view/window/Window.hpp"
 #include "devices/IPointer.hpp"
 #include "input/Keys.hpp"
@@ -471,6 +473,25 @@ void COverview::close() {
     const auto SELECTED = m_scene->selectedWorkspace();
     if (MONITOR && SELECTED && SELECTED != MONITOR->m_activeWorkspace)
         Config::Actions::changeWorkspace(SELECTED);
+
+    const auto QUERY = m_scene->currentQuery();
+
+    if (!QUERY.empty()) {
+        // select the window, if applicable
+        // if we match the workspace name our search is exclusive for the workspace, don't focus shit
+        if (!StringUtils::fullMatchCaseIns(MONITOR->m_activeWorkspace->m_name, QUERY)) {
+            for (const auto& w : Desktop::windowState()->windows()) {
+                if (w->m_workspace != MONITOR->m_activeWorkspace || !w->focusAvailable())
+                    continue;
+
+                if (!StringUtils::matchesName(w->metadata().appID(), QUERY) && !StringUtils::matchesName(w->metadata().title(), QUERY))
+                    continue;
+
+                Desktop::focusState()->fullWindowFocus(w, Desktop::eFocusReason::FOCUS_REASON_SWITCH_TO_WINDOW_HARD);
+                break;
+            }
+        }
+    }
 
     if (const auto MONITOR = m_monitor.lock(); MONITOR && g_pHyprRenderer)
         g_pHyprRenderer->damageMonitor(MONITOR);

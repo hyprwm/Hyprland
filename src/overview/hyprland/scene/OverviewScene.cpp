@@ -4,6 +4,7 @@
 #include "WorkspaceSearch.hpp"
 #include "WorkspaceSearchController.hpp"
 #include "../Overview.hpp"
+#include "../StringUtils.hpp"
 #include "../../../desktop/Workspace.hpp"
 #include "../../../desktop/DesktopTypes.hpp"
 #include "../../../desktop/state/WindowState.hpp"
@@ -52,24 +53,11 @@ void COverviewScene::draw(Render::CRenderingContext& context, Time::steady_tp tp
     m_workspaceSearch->draw(context, std::clamp(m_parent.m_progress->value(), 0.F, 1.F));
 }
 
-static uint8_t foldASCII(uint8_t character) {
-    if (character >= 'A' && character <= 'Z')
-        return character + ('a' - 'A');
-    return character;
-}
-
-bool Overview::Hyprland::matchesName(std::string_view name, std::string_view query) {
-    if (query.empty())
-        return true;
-
-    return std::ranges::search(name, query, [](char lhs, char rhs) { return foldASCII(sc<unsigned char>(lhs)) == foldASCII(sc<unsigned char>(rhs)); }).begin() != name.end();
-}
-
 static bool workspaceFilter(PHLWORKSPACE ws, const std::string& query) {
     if (!ws)
         return false;
 
-    if (matchesName(ws->m_name, query))
+    if (StringUtils::matchesName(ws->m_name, query))
         return true;
 
     // check windows, we can match by title or class.
@@ -77,7 +65,7 @@ static bool workspaceFilter(PHLWORKSPACE ws, const std::string& query) {
         if (w->m_workspace != ws)
             continue;
 
-        if (matchesName(w->metadata().appID(), query) || matchesName(w->metadata().title(), query))
+        if (StringUtils::matchesName(w->metadata().appID(), query) || StringUtils::matchesName(w->metadata().title(), query))
             return true;
     }
 

@@ -230,3 +230,8 @@ void CWorkspaceSearchController::setFocused(bool x) {
         m_textbox->focus(x);
     }
 }
+
+void CWorkspaceSearchController::resetQuery() {
+    if (m_textbox)
+        m_textbox->setText("");
+}

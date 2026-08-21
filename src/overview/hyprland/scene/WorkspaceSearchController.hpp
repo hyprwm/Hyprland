@@ -39,6 +39,7 @@ namespace Overview::Hyprland {
         std::string query() const;
 
         void        setFocused(bool x);
+        void        resetQuery();
 
       private:
         void                              updateGeometry();

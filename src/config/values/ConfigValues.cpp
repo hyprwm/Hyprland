@@ -199,6 +199,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
 
         MS<Color>("overview:col.active_border", "border color for the workspace selected in overview", 0xffffffff),
         MS<Color>("overview:col.inactive_border", "border color for unselected workspaces in overview", 0xff444444),
+        MS<Bool>("overview:only_current_monitor", "Only show workspaces on the current monitor the overview is on", false),
 
         /*
          * decoration:

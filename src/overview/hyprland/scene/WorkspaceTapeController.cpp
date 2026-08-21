@@ -822,11 +822,16 @@ std::vector<PHLWORKSPACE> CWorkspaceTapeController::filteredWorkspaces() const {
     if (!MONITOR)
         return workspaces;
 
+    static const auto PONLYSAMEMON = CConfigValue<Config::BOOL>("overview:only_current_monitor");
+
     for (const auto& workspaceRef : State::workspaceState()->workspaces()) {
         const auto WORKSPACE      = workspaceRef.lock();
         const auto SOURCE_MONITOR = WORKSPACE ? WORKSPACE->m_monitor.lock() : nullptr;
         if (!valid(WORKSPACE) || !SOURCE_MONITOR || !SOURCE_MONITOR->m_enabled || SOURCE_MONITOR->isMirror() || !SOURCE_MONITOR->resources() || WORKSPACE->m_isSpecialWorkspace ||
             !m_filter(WORKSPACE))
+            continue;
+
+        if (*PONLYSAMEMON && workspaceRef->m_monitor != MONITOR)
             continue;
 
         workspaces.emplace_back(WORKSPACE);

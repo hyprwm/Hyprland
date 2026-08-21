@@ -729,7 +729,7 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
 
         m_seatGrab.reset();
 
-        if (parentLayer && parentLayer->m_layerSurface->m_current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) {
+        if (parentLayer && parentLayer->m_layerSurface->m_current.keyboardInteractivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) {
             Desktop::focusState()->rawSurfaceFocus(parentLayer->wlSurface()->resource());
         } else {
             static auto PFOLLOWMOUSE = CConfigValue<Config::INTEGER>("input:follow_mouse");
@@ -766,7 +766,7 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
         }
 
         if (!refocus && layer)
-            refocus = layer->m_interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
+            refocus = layer->m_keyboardInteractivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
 
         if (refocus) {
             auto candidate = Desktop::focusState()->window();

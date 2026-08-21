@@ -67,8 +67,8 @@ static int layerSurfaceIndex(lua_State* L) {
         lua_pushboolean(L, ls->mapped());
     else if (key == "layer")
         lua_pushinteger(L, sc<lua_Integer>(ls->m_layer));
-    else if (key == "interactivity")
-        lua_pushinteger(L, sc<lua_Integer>(ls->m_interactivity));
+    else if (key == "keyboard_interactivity")
+        lua_pushinteger(L, sc<lua_Integer>(ls->m_keyboardInteractivity));
     else if (key == "above_fullscreen")
         lua_pushboolean(L, sc<bool>(ls->m_flags & Desktop::View::LAYER_FLAG_ABOVE_FULLSCREEN));
     else

@@ -325,23 +325,6 @@ SP<CWLSurfaceResource> CViewHitTester::layerPopupSurfaceAt(const Vector2D& pos, 
     return nullptr;
 }
 
-SP<CWLSurfaceResource> CViewHitTester::layerPopupSurfaceAt(const Vector2D& pos, const std::vector<PHLLSREF>* layerSurfaces, Vector2D* surfaceCoords, PHLLS* layerFound) const {
-    for (auto const& ls : *layerSurfaces | std::views::reverse) {
-        if (!ls->mapped() || !ls->acceptsInput())
-            continue;
-
-        auto SURFACEAT = ls->popupHead()->at(pos, true);
-
-        if (SURFACEAT) {
-            *layerFound    = ls.lock();
-            *surfaceCoords = pos - SURFACEAT->coordsGlobal();
-            return SURFACEAT->wlSurface()->resource();
-        }
-    }
-
-    return nullptr;
-}
-
 SP<CWLSurfaceResource> CViewHitTester::layerSurfaceAt(const Vector2D& pos, std::vector<PHLLSREF>* layerSurfaces, Vector2D* surfaceCoords, PHLLS* layerFound,
                                                       bool aboveLockscreen) const {
     for (auto const& ls : *layerSurfaces | std::views::reverse) {

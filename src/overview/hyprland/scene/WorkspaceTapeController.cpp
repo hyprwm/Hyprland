@@ -26,6 +26,7 @@
 
 #include "../../Overview.hpp"
 #include "../Overview.hpp"
+#include "../StringUtils.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -823,16 +824,6 @@ CWorkspaceTapeController::SWorkspaceTile* CWorkspaceTapeController::tileFor(PHLW
     return IT == m_tiles.end() ? nullptr : IT->get();
 }
 
-static uint8_t foldASCII(uint8_t character) {
-    if (character >= 'A' && character <= 'Z')
-        return character + ('a' - 'A');
-    return character;
-}
-
-static bool fullMatchCaseIns(std::string_view a, std::string_view b) {
-    return std::ranges::equal(a, b, [](char x, char y) { return foldASCII(x) == foldASCII(y); });
-}
-
 std::vector<PHLWORKSPACE> CWorkspaceTapeController::filteredWorkspaces() const {
     std::vector<PHLWORKSPACE> workspaces;
     const auto                MONITOR = m_monitor.lock();
@@ -853,7 +844,7 @@ std::vector<PHLWORKSPACE> CWorkspaceTapeController::filteredWorkspaces() const {
         if (*PONLYSAMEMON && workspaceRef->m_monitor != MONITOR)
             continue;
 
-        if (fullMatchCaseIns(WORKSPACE->m_name, dynamicPointerCast<Hyprland::COverview>(WP<IOverview>(Overview::overview()))->scene()->currentQuery())) {
+        if (StringUtils::fullMatchCaseIns(WORKSPACE->m_name, dynamicPointerCast<Hyprland::COverview>(WP<IOverview>(Overview::overview()))->scene()->currentQuery())) {
             exactMatch = WORKSPACE;
             break;
         }

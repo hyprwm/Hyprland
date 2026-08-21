@@ -32,6 +32,8 @@ namespace Overview::Hyprland {
         virtual bool         shouldRenderWorkspace(PHLWORKSPACE workspace) const override;
         virtual PHLWORKSPACE inputWorkspace() const override;
 
+        SP<COverviewScene>   scene() const;
+
       private:
         void                             finishClose(bool emitEvent = true);
         void                             closeImmediately();

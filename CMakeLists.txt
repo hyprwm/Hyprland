@@ -43,7 +43,7 @@ pkg_check_modules(udis_dep IMPORTED_TARGET udis86>=1.7.2)
 # Find non-pkgconfig udis86, otherwise fallback to subproject
 if(NOT udis_dep_FOUND)
   find_library(udis_nopc udis86)
-  if(NOT("${udis_nopc}" MATCHES "udis_nopc-NOTFOUND"))
+  if(NOT("${udis_nopc}"  "udis_nopc-NOTFOUND"))
     message(STATUS "Found udis86 at ${udis_nopc}")
   else()
     add_subdirectory("subprojects/udis86")

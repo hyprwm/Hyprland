@@ -531,3 +531,7 @@ void COverview::closeImmediately() {
         m_progress->setValueAndWarp(0.F);
     finishClose();
 }
+
+SP<COverviewScene> COverview::scene() const {
+    return m_scene;
+}

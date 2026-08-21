@@ -36,6 +36,7 @@ namespace Overview::Hyprland {
         bool         navigateRight();
         bool         selectWorkspace(PHLWORKSPACE workspace);
         PHLWORKSPACE selectedWorkspace() const;
+        Vector2D     transformPointer(const Vector2D& global) const;
         PHLWORKSPACE miniWorkspaceAt(const Vector2D& monitorLocal) const;
         bool         pointerButton(uint32_t button, bool pressed, const Vector2D& monitorLocal);
 
@@ -59,6 +60,7 @@ namespace Overview::Hyprland {
         void                             refreshWindowListeners();
         SWorkspaceTile*                  tileFor(PHLWORKSPACE workspace) const;
         SWorkspaceTile*                  tileFor(PHLWORKSPACEREF workspace) const;
+        CBox                             mainBoxFor(const SWorkspaceTile& tile, PHLMONITOR monitor) const;
         std::vector<PHLWORKSPACE>        filteredWorkspaces() const;
         std::vector<SWorkspaceTile*>     layoutTiles() const;
         void                             pruneRetiredTiles();

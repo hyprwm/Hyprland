@@ -107,6 +107,10 @@ PHLWORKSPACE COverviewScene::selectedWorkspace() const {
     return m_workspaceTape->selectedWorkspace();
 }
 
+Vector2D COverviewScene::transformPointer(const Vector2D& global) const {
+    return m_workspaceTape->transformPointer(global);
+}
+
 PHLWORKSPACE COverviewScene::miniWorkspaceAt(const Vector2D& monitorLocal) const {
     return m_workspaceTape->miniWorkspaceAt(monitorLocal);
 }

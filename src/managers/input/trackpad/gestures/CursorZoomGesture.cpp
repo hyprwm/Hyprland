@@ -2,7 +2,7 @@
 
 #include "../../../../Compositor.hpp"
 #include "../../../../output/Monitor.hpp"
-#include "../../../../managers/input/InputManager.hpp"
+#include "../../../../pointer/PointerManager.hpp"
 #include "../../../../state/MonitorState.hpp"
 #include <hyprutils/string/Numeric.hpp>
 
@@ -23,7 +23,7 @@ void CCursorZoomTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureB
         if (!e.pinch)
             return;
 
-        m_monitor = State::monitorState()->query().vec(g_pInputManager->getMouseCoordsInternal()).run();
+        m_monitor = State::monitorState()->query().vec(Pointer::mgr()->untransformedPosition()).run();
         if (!m_monitor)
             return;
 
@@ -33,7 +33,7 @@ void CCursorZoomTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureB
 
         m_zoomBegin = std::clamp(PMONITOR->m_cursorZoom->goal(), 1.0F, 100.0F);
         PMONITOR->m_cursorZoom->setValueAndWarp(m_zoomBegin);
-        PMONITOR->m_zoomController.pinAnchor(g_pInputManager->getMouseCoordsInternal() - PMONITOR->m_position);
+        PMONITOR->m_zoomController.pinAnchor(Pointer::mgr()->untransformedPosition() - PMONITOR->m_position);
         return;
     }
 

@@ -2,7 +2,7 @@
 
 #include <hyprlang.hpp>
 #include "../config/ConfigValue.hpp"
-#include "../managers/input/InputManager.hpp"
+#include "../pointer/PointerManager.hpp"
 #include "../render/OpenGL.hpp"
 #include "desktop/DesktopTypes.hpp"
 #include "render/Renderer.hpp"
@@ -28,7 +28,7 @@ Vector2D CMonitorZoomController::getAnchor(const PHLMONITORREF& monitor) {
     if (m_anchorPinned)
         return m_pinnedAnchor;
 
-    return g_pInputManager->getMouseCoordsInternal() - monitor->m_position;
+    return Pointer::mgr()->untransformedPosition() - monitor->m_position;
 }
 
 void CMonitorZoomController::zoomWithDetachedCamera(CBox& result, const Render::CRenderingContext& context) {

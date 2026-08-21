@@ -13,6 +13,9 @@ namespace Monitor {
 namespace Layout {
     class ITarget;
 }
+namespace Pointer {
+    class CPointerTransformer;
+}
 class IKeyboard;
 
 namespace Overview::Hyprland {
@@ -23,28 +26,31 @@ namespace Overview::Hyprland {
         COverview();
         virtual ~COverview() override;
 
-        virtual void open(PHLMONITOR monitor) override;
-        virtual void close() override;
-        virtual bool isOpen() const override;
-        virtual bool shouldRenderWorkspace(PHLWORKSPACE workspace) const override;
+        virtual void         open(PHLMONITOR monitor) override;
+        virtual void         close() override;
+        virtual bool         isOpen() const override;
+        virtual bool         shouldRenderWorkspace(PHLWORKSPACE workspace) const override;
+        virtual PHLWORKSPACE inputWorkspace() const override;
 
       private:
-        void                           finishClose(bool emitEvent = true);
-        void                           closeImmediately();
-        void                           installListeners();
-        void                           recheckDrag();
-        void                           applyDragHoverTarget();
-        void                           resetDragHover();
-        bool                           handleSearchKey(uint32_t keycode, SP<IKeyboard> keyboard, bool repeat = false);
-        void                           startKeyRepeat(uint32_t keycode, SP<IKeyboard> keyboard);
-        void                           stopKeyRepeat(uint32_t keycode);
+        void                             finishClose(bool emitEvent = true);
+        void                             closeImmediately();
+        void                             installListeners();
+        void                             recheckDrag();
+        void                             applyDragHoverTarget();
+        void                             releaseDragFromOverview();
+        void                             resetDragHover();
+        bool                             handleSearchKey(uint32_t keycode, SP<IKeyboard> keyboard, bool repeat = false);
+        void                             startKeyRepeat(uint32_t keycode, SP<IKeyboard> keyboard);
+        void                             stopKeyRepeat(uint32_t keycode);
 
-        bool                           m_isOpen         = false;
-        bool                           m_sceneInstalled = false;
-        PHLMONITORREF                  m_monitor;
-        WP<Monitor::CMonitorResources> m_resources;
-        PHLANIMVAR<float>              m_progress;
-        SP<COverviewScene>             m_scene;
+        bool                             m_isOpen         = false;
+        bool                             m_sceneInstalled = false;
+        PHLMONITORREF                    m_monitor;
+        WP<Monitor::CMonitorResources>   m_resources;
+        PHLANIMVAR<float>                m_progress;
+        SP<COverviewScene>               m_scene;
+        SP<Pointer::CPointerTransformer> m_pointerTransformer;
 
         struct {
             CHyprSignalListener monitorDisconnect;

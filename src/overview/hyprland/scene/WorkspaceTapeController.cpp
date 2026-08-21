@@ -3,6 +3,7 @@
 #include "WorkspaceTapeLayout.hpp"
 #include "WorkspaceMiniStripLayout.hpp"
 #include "WorkspaceTileShadow.hpp"
+#include "WorkspacePointerMapping.hpp"
 
 #include "../../../animation/AnimationManager.hpp"
 #include "../../../config/ConfigValue.hpp"
@@ -200,6 +201,34 @@ void CWorkspaceTapeController::reset() {
     m_monitor.reset();
 }
 
+CBox CWorkspaceTapeController::mainBoxFor(const SWorkspaceTile& tile, PHLMONITOR monitor) const {
+    if (!monitor || !tile.position || !tile.size)
+        return {};
+
+    const auto     WORKSPACE = tile.workspace.lock();
+    const bool     IS_ACTIVE = WORKSPACE && WORKSPACE == monitor->m_activeWorkspace;
+    const Vector2D OPENPOS   = tile.position->value();
+    const Vector2D OPENSIZE  = tile.size->value();
+    const Vector2D FULLSIZE  = monitor->m_transformedSize;
+    const Vector2D POS       = IS_ACTIVE ? OPENPOS * m_overviewProgress : OPENPOS;
+    const Vector2D SIZE      = IS_ACTIVE ? FULLSIZE + (OPENSIZE - FULLSIZE) * m_overviewProgress : OPENSIZE;
+
+    return CBox{POS, SIZE}.round();
+}
+
+Vector2D CWorkspaceTapeController::transformPointer(const Vector2D& global) const {
+    const auto MONITOR   = m_monitor.lock();
+    const auto WORKSPACE = selectedWorkspace();
+    const auto TILE      = tileFor(WORKSPACE);
+    const auto SOURCE    = WORKSPACE ? WORKSPACE->m_monitor.lock() : nullptr;
+    if (!m_started || !MONITOR || !MONITOR->logicalBox().containsPoint(global) || !TILE || !TILE->inLayout || !SOURCE)
+        return global;
+
+    const auto PIXEL  = (global - MONITOR->logicalBox().pos()) * MONITOR->m_scale;
+    const auto MAPPED = WorkspacePointerMapping::mapClamped(PIXEL, mainBoxFor(*TILE, MONITOR), SOURCE->logicalBox());
+    return MAPPED.value_or(global);
+}
+
 void CWorkspaceTapeController::draw(Render::CRenderingContext& context, Time::steady_tp tp, float overviewProgress, size_t reservedWorkBuffers) {
     const auto MONITOR   = m_monitor.lock();
     const auto RESOURCES = m_resources;
@@ -208,12 +237,11 @@ void CWorkspaceTapeController::draw(Render::CRenderingContext& context, Time::st
 
     pruneRetiredTiles();
 
-    const float    PROGRESS   = std::clamp(overviewProgress, 0.F, 1.F);
-    const CBox     MONITORBOX = {{}, MONITOR->m_transformedSize};
-    const auto     ACTIVE     = MONITOR->m_activeWorkspace;
-    const auto     SELECTED   = selectedWorkspace();
-    const Vector2D FULLSIZE   = MONITOR->m_transformedSize;
-    m_overviewProgress        = PROGRESS;
+    const float PROGRESS   = std::clamp(overviewProgress, 0.F, 1.F);
+    const CBox  MONITORBOX = {{}, MONITOR->m_transformedSize};
+    const auto  ACTIVE     = MONITOR->m_activeWorkspace;
+    const auto  SELECTED   = selectedWorkspace();
+    m_overviewProgress     = PROGRESS;
 
     struct SDrawTile {
         SWorkspaceTile* tile = nullptr;
@@ -230,19 +258,14 @@ void CWorkspaceTapeController::draw(Render::CRenderingContext& context, Time::st
     drawTiles.reserve(m_tiles.size());
 
     for (const auto& tile : m_tiles) {
-        const auto     WORKSPACE = tile->workspace.lock();
-        const bool     IS_ACTIVE = WORKSPACE && WORKSPACE == ACTIVE;
-        const auto     OPENPOS   = tile->position->value();
-        const auto     OPENSIZE  = tile->size->value();
-
-        const Vector2D POS          = IS_ACTIVE ? OPENPOS * PROGRESS : OPENPOS;
-        const Vector2D SIZE         = IS_ACTIVE ? FULLSIZE + (OPENSIZE - FULLSIZE) * PROGRESS : OPENSIZE;
-        const float    ALPHA        = IS_ACTIVE ? (1.F - PROGRESS) + tile->opacity->value() * PROGRESS : tile->opacity->value() * PROGRESS;
-        const CBox     MAIN_BOX     = CBox{POS, SIZE}.round();
-        const CBox     MINI_BOX     = CBox{tile->miniPosition->value(), tile->miniSize->value()}.round();
-        const float    MINI_ALPHA   = tile->opacity->value() * PROGRESS;
-        const bool     MAIN_VISIBLE = ALPHA > 0.F && !MAIN_BOX.intersection(MONITORBOX).empty();
-        const bool     MINI_VISIBLE = MINI_ALPHA > 0.F && !MINI_BOX.intersection(m_miniStripArea).empty();
+        const auto  WORKSPACE    = tile->workspace.lock();
+        const bool  IS_ACTIVE    = WORKSPACE && WORKSPACE == ACTIVE;
+        const float ALPHA        = IS_ACTIVE ? (1.F - PROGRESS) + tile->opacity->value() * PROGRESS : tile->opacity->value() * PROGRESS;
+        const CBox  MAIN_BOX     = mainBoxFor(*tile, MONITOR);
+        const CBox  MINI_BOX     = CBox{tile->miniPosition->value(), tile->miniSize->value()}.round();
+        const float MINI_ALPHA   = tile->opacity->value() * PROGRESS;
+        const bool  MAIN_VISIBLE = ALPHA > 0.F && !MAIN_BOX.intersection(MONITORBOX).empty();
+        const bool  MINI_VISIBLE = MINI_ALPHA > 0.F && !MINI_BOX.intersection(m_miniStripArea).empty();
 
         if (!MAIN_VISIBLE && !MINI_VISIBLE) {
             tile->framebuffer.reset();

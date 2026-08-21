@@ -26,6 +26,7 @@ namespace Overview::Hyprland {
         virtual ~COverviewScene() override;
 
         virtual void draw(Render::CRenderingContext&, Time::steady_tp tp) override;
+
         void         start(PHLMONITOR monitor, WP<Monitor::CMonitorResources> resources);
         bool         navigateLeft();
         bool         navigateRight();
@@ -40,6 +41,7 @@ namespace Overview::Hyprland {
         void         keyboardKey(uint32_t keysym, bool down, bool repeat, std::string utf8, uint32_t modifiers);
         void         reset();
         void         setTextboxFocus(bool x);
+        std::string  currentQuery() const;
 
       private:
         enum class ePointerTarget : uint8_t {

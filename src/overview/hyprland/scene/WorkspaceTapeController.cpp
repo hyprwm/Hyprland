@@ -4,12 +4,14 @@
 #include "WorkspaceMiniStripLayout.hpp"
 #include "WorkspaceTileShadow.hpp"
 #include "WorkspacePointerMapping.hpp"
+#include "OverviewScene.hpp"
 
 #include "../../../animation/AnimationManager.hpp"
 #include "../../../config/ConfigValue.hpp"
 #include "../../../config/shared/animation/AnimationTree.hpp"
 #include "../../../desktop/Workspace.hpp"
 #include "../../../desktop/state/WindowState.hpp"
+#include "../../../desktop/DesktopTypes.hpp"
 #include "../../../desktop/view/window/Window.hpp"
 #include "../../../event/EventBus.hpp"
 #include "../../../managers/eventLoop/EventLoopManager.hpp"
@@ -22,11 +24,16 @@
 #include "../../../render/pass/TexPassElement.hpp"
 #include "../../../state/WorkspaceState.hpp"
 
+#include "../../Overview.hpp"
+#include "../Overview.hpp"
+
 #include <algorithm>
 #include <cmath>
+#include <hyprutils/memory/WeakPtr.hpp>
 #include <ranges>
 
 #include <linux/input-event-codes.h>
+#include <string_view>
 
 using namespace Overview::Hyprland;
 
@@ -816,6 +823,16 @@ CWorkspaceTapeController::SWorkspaceTile* CWorkspaceTapeController::tileFor(PHLW
     return IT == m_tiles.end() ? nullptr : IT->get();
 }
 
+static uint8_t foldASCII(uint8_t character) {
+    if (character >= 'A' && character <= 'Z')
+        return character + ('a' - 'A');
+    return character;
+}
+
+static bool fullMatchCaseIns(std::string_view a, std::string_view b) {
+    return std::ranges::equal(a, b, [](char x, char y) { return foldASCII(x) == foldASCII(y); });
+}
+
 std::vector<PHLWORKSPACE> CWorkspaceTapeController::filteredWorkspaces() const {
     std::vector<PHLWORKSPACE> workspaces;
     const auto                MONITOR = m_monitor.lock();
@@ -823,6 +840,8 @@ std::vector<PHLWORKSPACE> CWorkspaceTapeController::filteredWorkspaces() const {
         return workspaces;
 
     static const auto PONLYSAMEMON = CConfigValue<Config::BOOL>("overview:only_current_monitor");
+
+    PHLWORKSPACE      exactMatch = nullptr;
 
     for (const auto& workspaceRef : State::workspaceState()->workspaces()) {
         const auto WORKSPACE      = workspaceRef.lock();
@@ -834,18 +853,27 @@ std::vector<PHLWORKSPACE> CWorkspaceTapeController::filteredWorkspaces() const {
         if (*PONLYSAMEMON && workspaceRef->m_monitor != MONITOR)
             continue;
 
+        if (fullMatchCaseIns(WORKSPACE->m_name, dynamicPointerCast<Hyprland::COverview>(WP<IOverview>(Overview::overview()))->scene()->currentQuery())) {
+            exactMatch = WORKSPACE;
+            break;
+        }
+
         workspaces.emplace_back(WORKSPACE);
     }
 
-    std::ranges::stable_sort(workspaces, [](const auto& lhs, const auto& rhs) {
-        const bool LHS_NUMERIC = lhs->m_id > 0;
-        const bool RHS_NUMERIC = rhs->m_id > 0;
-        if (LHS_NUMERIC != RHS_NUMERIC)
-            return LHS_NUMERIC;
-        if (LHS_NUMERIC)
-            return lhs->m_id < rhs->m_id;
-        return false;
-    });
+    if (exactMatch)
+        workspaces = {exactMatch};
+    else {
+        std::ranges::stable_sort(workspaces, [](const auto& lhs, const auto& rhs) {
+            const bool LHS_NUMERIC = lhs->m_id > 0;
+            const bool RHS_NUMERIC = rhs->m_id > 0;
+            if (LHS_NUMERIC != RHS_NUMERIC)
+                return LHS_NUMERIC;
+            if (LHS_NUMERIC)
+                return lhs->m_id < rhs->m_id;
+            return false;
+        });
+    }
 
     return workspaces;
 }

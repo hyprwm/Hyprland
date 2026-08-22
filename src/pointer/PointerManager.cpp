@@ -174,6 +174,8 @@ void CPointerManager::setCursorSurface(SP<Desktop::View::CWLSurface> surf, const
         m_currentCursorImage.surface = surf;
         m_currentCursorImage.scale   = surf->resource()->m_current.scale;
 
+        surf->resource()->m_pending.updated.bits.cursor = true;
+
         surf->resource()->map();
 
         m_currentCursorImage.destroySurface = surf->m_events.destroy.listen([this] { resetCursorImage(); });

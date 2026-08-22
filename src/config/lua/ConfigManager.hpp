@@ -157,7 +157,7 @@ namespace Config::Lua {
       private:
         void                                         reinitLuaState();
         void                                         postConfigReload();
-        void                                         registerValue(const char* name, ILuaConfigValue* val);
+        void                                         registerValue(const char* name, UP<ILuaConfigValue>&& val);
         void                                         cleanTimers();
         void                                         clearLuaLayoutProviders();
         void                                         clearHeldLuaRefs();

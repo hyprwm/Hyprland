@@ -1,0 +1,42 @@
+name: Vouch Issue Check
+
+on:
+  issues:
+    types: [opened, reopened]
+
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check-vouch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out template
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Verify central Issues Vouch list
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api \
+            "/repos/${{ github.repository_owner }}/.github/contents/vouch/VOUCHED_ISSUE.td?ref=${{ github.event.repository.default_branch }}" \
+            >/dev/null
+
+      - name: Enforce central Vouch list
+        uses: mitchellh/vouch/action/check-issue@v1
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          repo: ${{ github.repository }}
+          vouched-repo: ${{ github.repository_owner }}/.github
+          vouched-file: vouch/VOUCHED_ISSUE.td
+          template-file: .github/vouch_issue_message.md
+          require-vouch: true
+          auto-close: true
+          dry-run: false
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

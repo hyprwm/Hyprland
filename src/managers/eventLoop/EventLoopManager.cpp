@@ -139,6 +139,15 @@ void CEventLoopManager::enterLoop() {
     Log::logger->log(Log::DEBUG, "Kicked off the event loop! :(");
 }
 
+void CEventLoopManager::flushClients() {
+    wl_client* client = nullptr;
+    wl_client_for_each(client, wl_display_get_client_list(m_wayland.display)) {
+        // flushes every clients connection. wl_display_flush_clients destroys
+        // a client on a failed flush, wl_client_flush does not.
+        wl_client_flush(client);
+    }
+}
+
 void CEventLoopManager::onTimerFire() {
     const auto CPY = m_timers.timers;
     for (auto const& t : CPY) {

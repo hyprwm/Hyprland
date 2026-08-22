@@ -1,6 +1,7 @@
 #include "WindowBackend.hpp"
 
 #include <algorithm>
+#include <ranges>
 
 using namespace Desktop::View;
 
@@ -10,6 +11,16 @@ IWindowBackend::~IWindowBackend() = default;
 
 bool IWindowBackend::isX11() const {
     return type() == eBackendType::WINDOW_BACKEND_X11;
+}
+
+void IWindowBackend::recordConfiguredSize(const Vector2D& size) {
+    m_recentConfiguredSizes.emplace_back(size.floor());
+    if (m_recentConfiguredSizes.size() > 4)
+        m_recentConfiguredSizes.erase(m_recentConfiguredSizes.begin());
+}
+
+bool IWindowBackend::configuredSizeRecently(const Vector2D& size) const {
+    return std::ranges::any_of(m_recentConfiguredSizes, [&size](const auto& s) { return DELTALESSTHAN(size.x, s.x, 2) && DELTALESSTHAN(size.y, s.y, 2); });
 }
 
 void CWindowConfigureAckTracker::add(uint32_t serial, const Vector2D& size) {

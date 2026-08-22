@@ -299,6 +299,7 @@ void CWaylandBackend::configure(const CBox& logicalBox, PHLMONITOR preferredMoni
         return;
 
     m_pendingReportedSize = CLIENT_BOX.size();
+    recordConfiguredSize(CLIENT_BOX.size());
     m_configureAcks.add(TOPLEVEL->setSize(CLIENT_BOX.size()), CLIENT_BOX.size().floor());
 }
 

@@ -458,6 +458,10 @@ bool CWindowRule::matches(PHLWINDOW w, bool allowEnvLookup) {
                 if (const auto TAG = w->backend().metadata().tag; !TAG.has_value() || !engine->match(*TAG))
                     return false;
                 break;
+            case RULE_PROP_MAPPED:
+                if (!engine->match(w->mapped()))
+                    return false;
+                break;
 
             case RULE_PROP_EXEC_TOKEN:
                 if (!allowEnvLookup)

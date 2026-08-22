@@ -556,7 +556,7 @@ void CWindowRuleApplicator::recheckStaticRules() {
 }
 
 void CWindowRuleApplicator::propertiesChanged(std::underlying_type_t<eRuleProperty> props) {
-    if (!m_window || !m_window->mapped() || m_window->isHidden())
+    if (!m_window)
         return;
 
     bool                                                        needsRelayout         = false;
@@ -588,6 +588,9 @@ void CWindowRuleApplicator::propertiesChanged(std::underlying_type_t<eRuleProper
         const auto RES = applyDynamicRule(wr);
         needsRelayout  = needsRelayout || RES.needsRelayout;
     }
+
+    if (!m_window->mapped() || m_window->isHidden())
+        return;
 
     m_window->updateWindowData();
     m_window->presentation().updateDecorations();

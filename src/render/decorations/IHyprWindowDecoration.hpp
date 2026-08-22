@@ -32,6 +32,9 @@ class CDecorationPositioner;
 namespace Desktop::View {
     class CWindowPresentation;
 }
+namespace Render {
+    class CRenderingContext;
+}
 
 class IHyprWindowDecoration {
   public:
@@ -42,7 +45,7 @@ class IHyprWindowDecoration {
 
     virtual void                       onPositioningReply(const SDecorationPositioningReply& reply) = 0;
 
-    virtual void                       draw(PHLMONITOR, float const& a) = 0;
+    virtual void                       draw(Render::CRenderingContext&, PHLMONITOR, float const& a) = 0;
 
     virtual eDecorationType            getDecorationType() = 0;
 

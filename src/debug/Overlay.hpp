@@ -9,6 +9,7 @@
 #include <vector>
 
 namespace Render {
+    class CRenderingContext;
     class IHyprRenderer;
     class ITexture;
 }
@@ -17,7 +18,7 @@ namespace Debug {
 
     class CMonitorOverlay {
       public:
-        int         draw(int offset, bool& cacheUpdated);
+        int         draw(Render::CRenderingContext&, int offset, bool& cacheUpdated);
         const CBox& lastDrawnBox() const;
 
         void        renderData(PHLMONITOR pMonitor, float durationUs);
@@ -66,7 +67,7 @@ namespace Debug {
     class COverlay {
       public:
         COverlay();
-        void draw();
+        void draw(Render::CRenderingContext&);
         void renderData(PHLMONITOR, float durationUs);
         void renderDataNoOverlay(PHLMONITOR, float durationUs);
         void frameData(PHLMONITOR);

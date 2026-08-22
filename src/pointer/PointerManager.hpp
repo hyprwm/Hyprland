@@ -13,6 +13,7 @@
 
 class IHID;
 namespace Render {
+    class CRenderingContext;
     class ITexture;
 }
 
@@ -26,6 +27,8 @@ AQUAMARINE_FORWARD(IBuffer);
 */
 
 namespace Pointer {
+
+    class CPointerTransformer;
 
     class CPointerManager {
       public:
@@ -55,8 +58,8 @@ namespace Pointer {
         bool softwareLockedFor(PHLMONITOR pMonitor);
         bool hasVisibleHWCursor(PHLMONITOR pMonitor);
 
-        void renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::steady_tp& now, CRegion& damage /* logical */, std::optional<Vector2D> overridePos = {} /* monitor-local */,
-                                      bool screencopy = false, bool forceRender = false);
+        void renderSoftwareCursorsFor(Render::CRenderingContext&, PHLMONITOR pMonitor, const Time::steady_tp& now, CRegion& damage /* logical */,
+                                      std::optional<Vector2D> overridePos = {} /* monitor-local */, bool screencopy = false, bool forceRender = false);
 
         // this is needed e.g. during screensharing where
         // the software cursors aren't locked during the cursor move, but they
@@ -65,10 +68,15 @@ namespace Pointer {
 
         //
         Vector2D position();
+        Vector2D untransformedPosition() const;
         Vector2D hotspot();
         Vector2D cursorSizeLogical();
 
-        void     recheckEnteredOutputs();
+        // Transformer logic
+        void addTransformer(const SP<CPointerTransformer>& transformer);
+        void removeTransformer(const SP<CPointerTransformer>& transformer);
+
+        void recheckEnteredOutputs();
 
         // returns the thing in global coords
         CBox getCursorBoxGlobal();
@@ -190,6 +198,8 @@ namespace Pointer {
         bool                                  attemptHardwareCursor(SP<SMonitorPointerState> state);
         SP<Aquamarine::IBuffer>               renderHWCursorBuffer(SP<SMonitorPointerState> state, SP<Render::ITexture> texture);
         bool                                  setHWCursorBuffer(SP<SMonitorPointerState> state, SP<Aquamarine::IBuffer> buf);
+
+        std::vector<SP<CPointerTransformer>>  m_transformers;
 
         struct {
             CHyprSignalListener monitorAdded;

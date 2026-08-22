@@ -40,6 +40,7 @@ class CEventLoopTimer;
 namespace Monitor {
     class CMonitorResources;
     class CMonitorFrameScheduler;
+    class CWorkspaceTransition;
     class CMonitor;
 
     class CMonitorState {
@@ -136,6 +137,7 @@ namespace Monitor {
         PHLMONITORREF                  m_self;
 
         UP<CMonitorFrameScheduler>     m_frameScheduler;
+        UP<CWorkspaceTransition>       m_workspaceTransition;
 
         // mirroring
         PHLMONITORREF              m_mirrorOf;

@@ -24,6 +24,7 @@ void CAnimationTreeController::reset() {
     m_animationTree.createNode("shadowangle", "global");
     m_animationTree.createNode("glowangle", "global");
     m_animationTree.createNode("workspaces", "global");
+    m_animationTree.createNode("overview", "global");
     m_animationTree.createNode("zoomFactor", "global");
     m_animationTree.createNode("monitorAdded", "global");
 
@@ -57,6 +58,12 @@ void CAnimationTreeController::reset() {
     m_animationTree.createNode("specialWorkspace", "workspaces");
     m_animationTree.createNode("specialWorkspaceIn", "specialWorkspace");
     m_animationTree.createNode("specialWorkspaceOut", "specialWorkspace");
+
+    // overview
+    m_animationTree.createNode("overviewIn", "overview");
+    m_animationTree.createNode("overviewOut", "overview");
+    m_animationTree.createNode("overviewMove", "overview");
+    m_animationTree.createNode("overviewFade", "overview");
 
     // init the root nodes
     m_animationTree.setConfigForNode("global", 1, 8.f, "default");

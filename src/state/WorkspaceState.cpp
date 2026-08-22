@@ -71,11 +71,7 @@ PHLWORKSPACE CWorkspaceStateTracker::create(const WORKSPACEID& id, const MONITOR
         return nullptr;
     }
 
-    const auto PWORKSPACE = CWorkspace::create(id, PMONITOR, NAME, SPECIAL, isEmpty);
-
-    PWORKSPACE->m_alpha->setValueAndWarp(0);
-
-    return PWORKSPACE;
+    return CWorkspace::create(id, PMONITOR, NAME, SPECIAL, isEmpty);
 }
 
 WORKSPACEID CWorkspaceStateTracker::nextAvailableNamedWorkspace() const {

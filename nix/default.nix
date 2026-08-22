@@ -18,6 +18,7 @@
   hyprgraphics,
   hyprland-protocols,
   hyprland-guiutils,
+  hyprtoolkit,
   hyprlang,
   hyprutils,
   hyprwayland-scanner,
@@ -129,7 +130,7 @@ customStdenv.mkDerivation (finalAttrs: {
             ../systemd
             ../VERSION
             (fs.fileFilter (file: file.hasExt "1") ../docs)
-            (fs.fileFilter (file: file.hasExt "conf" || file.hasExt "in" || file.hasExt "lua" ) ../example)
+            (fs.fileFilter (file: file.hasExt "conf" || file.hasExt "in" || file.hasExt "lua") ../example)
             (fs.fileFilter (file: file.hasExt "sh") ../scripts)
             (fs.fileFilter (file: file.name == "CMakeLists.txt") ../.)
             (optional withTests [
@@ -187,6 +188,7 @@ customStdenv.mkDerivation (finalAttrs: {
       hyprcursor
       hyprgraphics
       hyprland-protocols
+      hyprtoolkit
       hyprlang
       hyprutils
       hyprwire

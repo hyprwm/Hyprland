@@ -10,7 +10,7 @@ namespace Render::GL {
       public:
         CAuroraBlurMaterial();
 
-        bool isAnimated() const noexcept override;
+        bool isAnimated(const CRenderingContext&) const noexcept override;
         void bindFinish(WP<CShader> shader, const SBlurMaterialContext& context) const override;
 
       private:

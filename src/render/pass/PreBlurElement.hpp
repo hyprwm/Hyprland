@@ -6,8 +6,8 @@ class CPreBlurElement : public IPassElement {
     CPreBlurElement();
     virtual ~CPreBlurElement() = default;
 
-    virtual bool        needsLiveBlur();
-    virtual bool        needsPrecomputeBlur();
+    virtual bool        needsLiveBlur(const Render::CRenderingContext&);
+    virtual bool        needsPrecomputeBlur(const Render::CRenderingContext&);
     virtual bool        disableSimplification();
     virtual bool        undiscardable();
 

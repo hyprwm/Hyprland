@@ -36,8 +36,8 @@ namespace Desktop::View {
         bool                                      blocksDirectScanout() const;
         CBox                                      transformedExtents(const CBox& currentBox) const;
         CBox                                      transformBoxForDamage(const CBox& currentBox) const;
-        void                                      preWindowRender(CSurfacePassElement::SRenderData* renderData) const;
-        void                                      amendTransformedRenderData(const CBox& currentBox, SMotionBlurData* motionBlurData) const;
+        void                                      preWindowRender(Render::CRenderingContext&, CSurfacePassElement::SRenderData* renderData) const;
+        void                                      amendTransformedRenderData(Render::CRenderingContext&, const CBox& currentBox, SMotionBlurData* motionBlurData) const;
         const UP<Render::CWindowTransformerList>& transformers() const;
 
       private:

@@ -4,11 +4,11 @@ CRendererHintsPassElement::CRendererHintsPassElement(const CRendererHintsPassEle
     ;
 }
 
-bool CRendererHintsPassElement::needsLiveBlur() {
+bool CRendererHintsPassElement::needsLiveBlur(const Render::CRenderingContext&) {
     return false;
 }
 
-bool CRendererHintsPassElement::needsPrecomputeBlur() {
+bool CRendererHintsPassElement::needsPrecomputeBlur(const Render::CRenderingContext&) {
     return false;
 }
 

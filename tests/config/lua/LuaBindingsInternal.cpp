@@ -146,6 +146,26 @@ namespace {
     }
 }
 
+TEST(ConfigLuaBindingsInternal, dispatcherRegistrationIncludesOverviewTable) {
+    CLuaState  S;
+    const auto L = S.get();
+
+    lua_newtable(L);
+    Internal::registerDispatcherBindings(L);
+
+    lua_getfield(L, 1, "dsp");
+    ASSERT_TRUE(lua_istable(L, -1));
+
+    lua_getfield(L, -1, "overview");
+    ASSERT_TRUE(lua_istable(L, -1));
+    lua_getfield(L, -1, "toggle");
+    EXPECT_TRUE(lua_isfunction(L, -1));
+    lua_pop(L, 2);
+
+    lua_getfield(L, -1, "no_op");
+    EXPECT_TRUE(lua_isfunction(L, -1));
+}
+
 TEST(ConfigLuaBindingsInternal, parseDirectionAliases) {
     EXPECT_EQ(Internal::parseDirectionStr("left"), Math::DIRECTION_LEFT);
     EXPECT_EQ(Internal::parseDirectionStr("l"), Math::DIRECTION_LEFT);

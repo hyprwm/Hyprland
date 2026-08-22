@@ -42,11 +42,6 @@ CWorkspace::CWorkspace(WORKSPACEID id, PHLMONITOR monitor, std::string name, boo
 void CWorkspace::init(PHLWORKSPACE self) {
     m_self = self;
 
-    Animation::mgr()->createAnimation(Vector2D(0, 0), m_renderOffset,
-                                      Config::animationTree()->getAnimationPropertyConfig(m_isSpecialWorkspace ? "specialWorkspaceIn" : "workspacesIn"), self, AVARDAMAGE_ENTIRE);
-    Animation::mgr()->createAnimation(1.f, m_alpha, Config::animationTree()->getAnimationPropertyConfig(m_isSpecialWorkspace ? "specialWorkspaceIn" : "workspacesIn"), self,
-                                      AVARDAMAGE_ENTIRE);
-
     const auto RULEFORTHIS = Config::workspaceRuleMgr()->getWorkspaceRuleFor(self).value_or(Config::CWorkspaceRule{});
     if (RULEFORTHIS.m_defaultName.has_value())
         m_name = RULEFORTHIS.m_defaultName.value();
@@ -543,6 +538,7 @@ void CWorkspace::rename(const std::string& name) {
 
     IPC::Socket2::sock()->postEvent({.event = "renameworkspace", .data = std::format("{},{}", m_id, m_name)});
     m_events.renamed.emit();
+    Event::bus()->m_events.workspace.renamed.emit(m_self);
 }
 
 void CWorkspace::changeID(int64_t id) {

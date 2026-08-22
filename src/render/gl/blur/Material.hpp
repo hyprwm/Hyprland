@@ -15,6 +15,7 @@ namespace Render::GL {
     };
 
     struct SBlurMaterialContext {
+        CRenderingContext&  renderingContext;
         const SBlurContext& blurContext;
         const CRegion&      outputDamage;
         float               strength = 1.F;
@@ -26,7 +27,7 @@ namespace Render::GL {
 
         virtual eBlurType                 type() const noexcept         = 0;
         virtual SBlurMaterialRequirements requirements() const noexcept = 0;
-        virtual bool                      isAnimated() const noexcept;
+        virtual bool                      isAnimated(const CRenderingContext& context) const noexcept;
         virtual int64_t                   blurSizeForDamage(int64_t size) const;
         virtual float                     sampleRadius() const;
         virtual void                      prepare(const SBlurMaterialContext& context);

@@ -7,6 +7,8 @@
 #include <optional>
 
 namespace Render {
+    class CRenderingContext;
+
     struct SBlurShape {
         CBox  box;
         float radius        = 0.F;
@@ -38,12 +40,13 @@ namespace Render {
       public:
         virtual ~IBlurProvider() = default;
 
-        virtual eBlurType        type() const noexcept             = 0;
-        virtual bool             isAnimated() const noexcept       = 0;
-        virtual bool             requiresLiveBlur() const noexcept = 0;
+        virtual eBlurType        type() const noexcept                                       = 0;
+        virtual bool             isAnimated(const CRenderingContext& context) const noexcept = 0;
+        virtual bool             requiresLiveBlur() const noexcept                           = 0;
 
-        virtual void             expandDamage(CRegion& damage, float multiplier = 1.F) const                                                    = 0;
-        virtual SP<IFramebuffer> blur(SP<IFramebuffer> source, float strength, const CRegion& originalDamage, const SBlurContext& context = {}) = 0;
+        virtual void             expandDamage(CRegion& damage, float multiplier = 1.F) const = 0;
+        virtual SP<IFramebuffer> blur(CRenderingContext& renderingContext, SP<IFramebuffer> source, float strength, const CRegion& originalDamage,
+                                      const SBlurContext& blurContext = {})                  = 0;
 
       protected:
         IBlurProvider() = default;

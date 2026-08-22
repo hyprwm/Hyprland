@@ -8,7 +8,7 @@ class CTestDamageTransformer : public Render::IWindowTransformer {
         ;
     }
 
-    virtual Render::SWindowTransformBuffer transform(const Render::SWindowTransformBuffer& in, const Render::SWindowTransformContext& context) {
+    virtual Render::SWindowTransformBuffer transform(Render::CRenderingContext&, const Render::SWindowTransformBuffer& in, const Render::SWindowTransformContext& context) {
         (void)context;
         return in;
     }
@@ -41,7 +41,7 @@ class CTestRegionTransformer : public Render::IWindowTransformer {
         ;
     }
 
-    virtual Render::SWindowTransformBuffer transform(const Render::SWindowTransformBuffer& in, const Render::SWindowTransformContext& context) {
+    virtual Render::SWindowTransformBuffer transform(Render::CRenderingContext&, const Render::SWindowTransformBuffer& in, const Render::SWindowTransformContext& context) {
         (void)context;
         return in;
     }

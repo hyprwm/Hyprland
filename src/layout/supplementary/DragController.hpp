@@ -2,6 +2,8 @@
 
 #include "../target/Target.hpp"
 #include "../../managers/input/InputManager.hpp"
+#include "../../helpers/signal/Signal.hpp"
+#include "desktop/DesktopTypes.hpp"
 
 #include <optional>
 
@@ -28,6 +30,8 @@ namespace Layout::Supplementary {
         void           resetDragThresholdReached();
         bool           draggingTiled() const;
         bool           exclusiveDeviceGrab() const;
+        void           overrideDragWindowTargetWS(PHLWORKSPACE ws);
+        void           clearDragWindowTargetWS();
 
         /*
             Called to try to pick up window for dragging.
@@ -37,6 +41,11 @@ namespace Layout::Supplementary {
         bool        updateDragWindow();
 
         SP<ITarget> target() const;
+
+        struct {
+            CSignalT<> motion;
+            CSignalT<> ended;
+        } m_events;
 
       private:
         WP<ITarget>                        m_target;
@@ -56,5 +65,6 @@ namespace Layout::Supplementary {
         Vector2D                           m_draggingWindowOriginalFloatSize;
         Layout::eRectCorner                m_grabbedCorner = sc<Layout::eRectCorner>(0) /* CORNER_NONE */;
         std::optional<Layout::eRectCorner> m_forcedGrabbedCorner;
+        PHLWORKSPACEREF                    m_overriddenWorkspaceTarget;
     };
 };

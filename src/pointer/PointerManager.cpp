@@ -1,4 +1,5 @@
 #include "PointerManager.hpp"
+#include "PointerTransformer.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../config/shared/actions/ConfigActions.hpp"
@@ -15,6 +16,7 @@
 #include "../render/pass/TexPassElement.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../render/Renderer.hpp"
+#include "../render/pass/Pass.hpp"
 #include "../render/OpenGL.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../managers/SeatManager.hpp"
@@ -106,6 +108,19 @@ bool CPointerManager::hasVisibleHWCursor(PHLMONITOR pMonitor) {
 }
 
 Vector2D CPointerManager::position() {
+    if (m_transformers.empty())
+        return m_pointerPos;
+
+    auto pos = m_pointerPos;
+
+    for (const auto& x : m_transformers) {
+        pos = x->transform(pos);
+    }
+
+    return pos;
+}
+
+Vector2D CPointerManager::untransformedPosition() const {
     return m_pointerPos;
 }
 
@@ -611,9 +626,10 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         return buf;
     }
 
-    g_pHyprRenderer->m_renderData.pMonitor = state->monitor;
+    Render::CRenderPass       pass;
+    Render::CRenderingContext context{state->monitor, pass};
 
-    auto RBO = g_pHyprRenderer->getOrCreateRenderbuffer(buf, state->monitor->m_cursorSwapchain->currentOptions().format);
+    auto                      RBO = g_pHyprRenderer->getOrCreateRenderbuffer(buf, state->monitor->m_cursorSwapchain->currentOptions().format);
     if (!RBO) {
         Log::logger->log(Log::TRACE, "Failed to create cursor RB with format {}, mod {}", buf->dmabuf().format, buf->dmabuf().modifier);
         return nullptr;
@@ -627,27 +643,26 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     FB->setImageDescription(state->monitor->m_imageDescription);
 
     CRegion damageRegion = {0, 0, INT_MAX, INT_MAX};
-    g_pHyprRenderer->beginFullFakeRender(state->monitor.lock(), damageRegion, FB);
-    g_pHyprRenderer->m_renderData.fbSize = FB->m_size;
-    g_pHyprRenderer->setProjectionType(Render::RPT_FB);
-    g_pHyprRenderer->m_renderData.transformDamage = true;
-    g_pHyprRenderer->startRenderPass();
-    g_pHyprRenderer->draw(CClearPassElement::SClearData{{0.F, 0.F, 0.F, 0.F}});
+    g_pHyprRenderer->beginFullFakeRender(context, damageRegion, FB);
+    context.fbSize = FB->m_size;
+    g_pHyprRenderer->setProjectionType(context, Render::RPT_FB);
+    context.transformDamage = true;
+    g_pHyprRenderer->startRenderPass(context);
+    g_pHyprRenderer->draw(context, CClearPassElement::SClearData{{0.F, 0.F, 0.F, 0.F}});
 
     CBox xbox = {{}, Vector2D{m_currentCursorImage.size / m_currentCursorImage.scale * state->monitor->m_scale}.round()};
     Log::logger->log(Log::TRACE, "[pointer] monitor: {}, size: {}, hw buf: {}, scale: {:.2f}, monscale: {:.2f}, xbox: {}", state->monitor->m_name, m_currentCursorImage.size,
                      cursorSize, m_currentCursorImage.scale, state->monitor->m_scale, xbox.size());
 
-    g_pHyprRenderer->draw(CTexPassElement::SRenderData{.tex = texture, .box = xbox}, damageRegion);
+    g_pHyprRenderer->draw(context, CTexPassElement::SRenderData{.tex = texture, .box = xbox}, damageRegion);
 
-    g_pHyprRenderer->endRender();
-    g_pHyprRenderer->m_renderData.pMonitor.reset();
+    g_pHyprRenderer->endRender(context);
 
     return buf;
 }
 
-void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::steady_tp& now, CRegion& damage, std::optional<Vector2D> overridePos, bool screencopy,
-                                               bool forceRender) {
+void CPointerManager::renderSoftwareCursorsFor(Render::CRenderingContext& context, PHLMONITOR pMonitor, const Time::steady_tp& now, CRegion& damage,
+                                               std::optional<Vector2D> overridePos, bool screencopy, bool forceRender) {
     if (!hasCursor())
         return;
 
@@ -690,7 +705,7 @@ void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::
     data.tex = texture;
     data.box = box.round();
 
-    g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+    g_pHyprRenderer->addPassElement(context, makeUnique<CTexPassElement>(std::move(data)));
 
     // to erase the leftover in updateCursorBackend()
     if (!screencopy) {
@@ -1178,4 +1193,15 @@ void CPointerManager::damageCursor(PHLMONITOR pMonitor, bool skipFrameSchedule) 
 
 Vector2D CPointerManager::cursorSizeLogical() {
     return m_currentCursorImage.size / m_currentCursorImage.scale;
+}
+
+void CPointerManager::addTransformer(const SP<CPointerTransformer>& transformer) {
+    if (!transformer || std::ranges::contains(m_transformers, transformer))
+        return;
+
+    m_transformers.emplace_back(transformer);
+}
+
+void CPointerManager::removeTransformer(const SP<CPointerTransformer>& transformer) {
+    std::erase(m_transformers, transformer);
 }

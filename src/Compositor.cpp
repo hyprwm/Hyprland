@@ -1,4 +1,3 @@
-
 #include "Compositor.hpp"
 #include "render/decorations/DecorationPositioner.hpp"
 #include "config/supplementary/executor/Executor.hpp"
@@ -22,6 +21,7 @@
 #include "managers/ANRManager.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
 #include "managers/permissions/DynamicPermissionManager.hpp"
+#include "hyprtoolkit/embedded/EmbeddedToolkitManager.hpp"
 #include "state/FallbackState.hpp"
 #include "state/MonitorState.hpp"
 #include "state/WorkspaceState.hpp"
@@ -619,6 +619,7 @@ void CCompositor::cleanup() {
     Debug::overlay().reset();
     IPC::Socket2::sock().reset();
     g_pSessionLockManager.reset();
+    EmbeddedToolkit::manager().reset();
     g_pHyprRenderer.reset();
     g_pProtocolManager.reset();
     g_pHyprOpenGL.reset();
@@ -702,6 +703,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Log::logger->log(Log::DEBUG, "Creating the HyprRenderer!");
             g_pHyprRenderer = makeUnique<CHyprGLRenderer>();
+
+            Log::logger->log(Log::DEBUG, "Creating the embedded hyprtoolkit manager!");
+            EmbeddedToolkit::manager() = makeUnique<EmbeddedToolkit::CManager>();
 
             Log::logger->log(Log::DEBUG, "Creating the ProtocolManager!");
             g_pProtocolManager = makeUnique<CProtocolManager>();

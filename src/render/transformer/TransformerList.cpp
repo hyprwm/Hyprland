@@ -66,21 +66,22 @@ CBox CWindowTransformerList::transformBoxForDamage(const CBox& currentBox) const
     return box;
 }
 
-void CWindowTransformerList::preWindowRender(CSurfacePassElement::SRenderData* pRenderData) const {
+void CWindowTransformerList::preWindowRender(CRenderingContext& context, CSurfacePassElement::SRenderData* pRenderData) const {
     for (auto const& transformer : m_transformers) {
         if (transformer->active())
-            transformer->preWindowRender(pRenderData);
+            transformer->preWindowRender(context, pRenderData);
     }
 }
 
-void CWindowTransformerList::amendTransformedRenderData(const CBox& currentBox, SMotionBlurData* pMotionBlurData) const {
+void CWindowTransformerList::amendTransformedRenderData(CRenderingContext& context, const CBox& currentBox, SMotionBlurData* pMotionBlurData) const {
     for (auto const& transformer : m_transformers) {
         if (transformer->active())
-            transformer->amendTransformedRenderData(currentBox, pMotionBlurData);
+            transformer->amendTransformedRenderData(context, currentBox, pMotionBlurData);
     }
 }
 
-SWindowTransformBuffer CWindowTransformerList::transform(const SWindowTransformBuffer& in, const SWindowTransformPlan& plan, const SWindowTransformContext& context) const {
+SWindowTransformBuffer CWindowTransformerList::transform(CRenderingContext& renderingContext, const SWindowTransformBuffer& in, const SWindowTransformPlan& plan,
+                                                         const SWindowTransformContext& context) const {
     SWindowTransformBuffer last  = in;
     size_t                 stage = 0;
     for (auto const& transformer : m_transformers) {
@@ -94,7 +95,7 @@ SWindowTransformBuffer CWindowTransformerList::transform(const SWindowTransformB
         stageContext.currentBox = plan.stages[stage].fullInputBox;
         stageContext.inputBox   = plan.stages[stage].inputBox;
         stageContext.outputBox  = plan.stages[stage].outputBox;
-        last                    = transformer->transform(last, stageContext);
+        last                    = transformer->transform(renderingContext, last, stageContext);
         if (!last.success)
             break;
 

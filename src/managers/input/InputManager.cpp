@@ -1704,7 +1704,7 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
     const bool           USEIME = HASIME && !DISALLOWACTION;
 
     Event::SCallbackInfo info;
-    Event::bus()->m_events.input.keyboard.key.emit(event, info);
+    Event::bus()->m_events.input.keyboard.key.emit(event, pKeyboard, info);
     if (info.cancelled)
         return;
 

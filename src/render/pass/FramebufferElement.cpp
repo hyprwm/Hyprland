@@ -4,11 +4,11 @@ CFramebufferElement::CFramebufferElement(const CFramebufferElement::SFramebuffer
     ;
 }
 
-bool CFramebufferElement::needsLiveBlur() {
+bool CFramebufferElement::needsLiveBlur(const Render::CRenderingContext&) {
     return false;
 }
 
-bool CFramebufferElement::needsPrecomputeBlur() {
+bool CFramebufferElement::needsPrecomputeBlur(const Render::CRenderingContext&) {
     return false;
 }
 

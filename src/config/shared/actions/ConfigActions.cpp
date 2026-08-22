@@ -36,6 +36,7 @@
 #include "../../../state/WorkspacePlacementController.hpp"
 #include "../../../state/WorkspaceState.hpp"
 #include "../../../helpers/math/Expression.hpp"
+#include "../../../overview/Overview.hpp"
 
 #include <numbers>
 #include <utility>
@@ -1680,8 +1681,11 @@ ActionResult Actions::mouse(const std::string& action) {
         }
     }
 
-    const auto      MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
-    const PHLWINDOW PWINDOW = Desktop::viewState()->hitTest().windowAt(MOUSECOORDS, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
+    const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
+    const auto WORKSPACE   = Overview::overview()->inputWorkspace();
+    const auto PWINDOW     = WORKSPACE ?
+        Desktop::viewState()->hitTest().windowAtWorkspace(MOUSECOORDS, WORKSPACE, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING) :
+        Desktop::viewState()->hitTest().windowAt(MOUSECOORDS, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
 
     if (!PWINDOW)
         return SActionResult{.passEvent = true};
@@ -1798,5 +1802,18 @@ ActionResult Actions::moveIntoOrCreateGroup(Math::eDirection dir, std::optional<
 
 ActionResult Actions::releaseInputCapture() {
     PROTO::inputCapture->forceRelease();
+    return {};
+}
+
+ActionResult Actions::overview(eTogglableAction action) {
+    const bool target = action == TOGGLE_ACTION_TOGGLE ? !Overview::overview()->isOpen() : action == TOGGLE_ACTION_ENABLE;
+    if (target == Overview::overview()->isOpen())
+        return {};
+
+    if (target)
+        Overview::overview()->open(Desktop::focusState()->monitor());
+    else
+        Overview::overview()->close();
+
     return {};
 }

@@ -1285,6 +1285,18 @@ static int hlWorkspaceSwapMonitors(lua_State* L) {
     return 1;
 }
 
+static int dsp_toggleOverview(lua_State* L) {
+    return Internal::checkResult(L, CA::overview(sc<CA::eTogglableAction>((int)lua_tonumber(L, lua_upvalueindex(1)))));
+}
+
+static int hlOverviewToggle(lua_State* L) {
+    const auto action = Internal::tableToggleAction(L, 1);
+
+    lua_pushnumber(L, (int)action);
+    lua_pushcclosure(L, dsp_toggleOverview, 1);
+    return 1;
+}
+
 void Internal::registerDispatcherBindings(lua_State* L) {
     lua_newtable(L);
     Internal::markDispatcherTable(L);
@@ -1340,6 +1352,11 @@ void Internal::registerDispatcherBindings(lua_State* L) {
         Internal::setFn(L, "swap_monitors", hlWorkspaceSwapMonitors);
         Internal::setFn(L, "toggle_special", hlWorkspaceToggleSpecial);
         lua_setfield(L, -2, "workspace");
+
+        lua_newtable(L);
+        Internal::markDispatcherTable(L);
+        Internal::setFn(L, "toggle", hlOverviewToggle);
+        lua_setfield(L, -2, "overview");
 
         Internal::setFn(L, "exec_cmd", hlExecCmd);
         Internal::setFn(L, "exec_raw", hlExecRaw);

@@ -70,13 +70,13 @@ static bool geometryDiscontinuous(const CBox& oldExtent, const CBox& newExtent, 
     return horizontalDelta > width * 0.75 || verticalDelta > height * 0.75;
 }
 
-static CBox renderedWindowBox(PHLWINDOW window) {
+static CBox renderedWindowBox(const CRenderingContext& context, PHLWINDOW window) {
     if (!window)
         return {};
 
-    auto position = window->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT) + window->presentation().floatingOffset();
+    auto position = window->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT) + g_pHyprRenderer->windowRenderFloatingOffset(context, window);
     if (!(window->m_state & Desktop::View::WINDOW_STATE_PINNED) && window->m_workspace)
-        position += window->m_workspace->m_renderOffset->value();
+        position += g_pHyprRenderer->workspaceRenderOffset(context, window->m_workspace);
 
     const auto size = window->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
     return {position.x, position.y, size.x, size.y};
@@ -118,13 +118,13 @@ void CFluidJarBlurMaterial::prepare(const SBlurMaterialContext& context) {
     pruneStates();
 
     const auto state         = stateForContext(context.blurContext, true);
-    const auto renderExtent  = transformedPatternBox(context.blurContext);
+    const auto renderExtent  = transformedPatternBox(context.renderingContext, context.blurContext);
     const auto window        = context.blurContext.owner.lock();
-    const auto physicsExtent = renderedWindowBox(window);
-    if (!state || physicsExtent.width <= 0 || physicsExtent.height <= 0 || renderExtent.width <= 0 || renderExtent.height <= 0 || !g_pHyprRenderer->m_renderData.pMonitor)
+    const auto physicsExtent = renderedWindowBox(context.renderingContext, window);
+    if (!state || physicsExtent.width <= 0 || physicsExtent.height <= 0 || renderExtent.width <= 0 || renderExtent.height <= 0 || !context.renderingContext.sceneMonitor)
         return;
 
-    updateState(*state, physicsExtent);
+    updateState(context.renderingContext, *state, physicsExtent);
 }
 
 void CFluidJarBlurMaterial::bindFinish(WP<CShader> shader, const SBlurMaterialContext& context) const {
@@ -134,13 +134,13 @@ void CFluidJarBlurMaterial::bindFinish(WP<CShader> shader, const SBlurMaterialCo
         return;
     }
 
-    const auto extent = transformedPatternBox(context.blurContext);
+    const auto extent = transformedPatternBox(context.renderingContext, context.blurContext);
     if (extent.width <= 0 || extent.height <= 0) {
         shader->setUniformInt(SHADER_FLUIDJAR_ENABLED, 0);
         return;
     }
 
-    const auto monitor = g_pHyprRenderer->m_renderData.pMonitor;
+    const auto monitor = context.renderingContext.sceneMonitor;
     if (!monitor) {
         shader->setUniformInt(SHADER_FLUIDJAR_ENABLED, 0);
         return;
@@ -208,7 +208,7 @@ const CFluidJarBlurMaterial::SState* CFluidJarBlurMaterial::stateForContext(cons
     return state != m_states.end() ? &*state : nullptr;
 }
 
-void CFluidJarBlurMaterial::updateState(SState& state, const CBox& extent) {
+void CFluidJarBlurMaterial::updateState(CRenderingContext& renderingContext, SState& state, const CBox& extent) {
     if (state.lastFrame == m_frame)
         return;
 
@@ -227,7 +227,7 @@ void CFluidJarBlurMaterial::updateState(SState& state, const CBox& extent) {
     const auto speed   = std::clamp(*PFLUIDSPEED, 0.F, 10.F);
 
     if (!state.particles[0] || state.fillAmount != fillAmount || state.precision != precision) {
-        initializeState(state, simulationSize, fillAmount, precision);
+        initializeState(renderingContext, state, simulationSize, fillAmount, precision);
         state.extent    = extent;
         state.hasExtent = true;
     } else if (!state.hasExtent) {
@@ -237,7 +237,7 @@ void CFluidJarBlurMaterial::updateState(SState& state, const CBox& extent) {
         const auto discontinuous = geometryDiscontinuous(state.extent, extent, elapsed);
         const auto transform     = fluidJarGeometryTransform(state.extent, extent, state.simulationSize, simulationSize, !discontinuous);
         state.wallVelocities     = discontinuous ? std::array<float, 4>{} : fluidJarWallVelocities(state.extent, extent, simulationSize, elapsed, speed);
-        transformState(state, simulationSize, transform, state.wallVelocities);
+        transformState(renderingContext, state, simulationSize, transform, state.wallVelocities);
         state.extent = extent;
     } else
         state.wallVelocities = {};
@@ -248,16 +248,16 @@ void CFluidJarBlurMaterial::updateState(SState& state, const CBox& extent) {
 
         int substeps = 0;
         while (state.accumulator >= FIXED_TIMESTEP && substeps < MAX_SUBSTEPS) {
-            drawParticleStep(state, SOLVER_TIMESTEP);
-            drawGraphStep(state);
-            drawTrackingStep(state);
+            drawParticleStep(renderingContext, state, SOLVER_TIMESTEP);
+            drawGraphStep(renderingContext, state);
+            drawTrackingStep(renderingContext, state);
             state.accumulator -= FIXED_TIMESTEP;
             ++state.simulationFrame;
             ++substeps;
         }
 
         if (substeps > 0)
-            drawVisualStep(state, substeps);
+            drawVisualStep(renderingContext, state, substeps);
 
         if (substeps == MAX_SUBSTEPS)
             state.accumulator = std::min(state.accumulator, sc<double>(FIXED_TIMESTEP));
@@ -269,7 +269,7 @@ void CFluidJarBlurMaterial::updateState(SState& state, const CBox& extent) {
     state.lastFrame  = m_frame;
 }
 
-void CFluidJarBlurMaterial::initializeState(SState& state, const Vector2D& simulationSize, float fillAmount, float precision) {
+void CFluidJarBlurMaterial::initializeState(CRenderingContext& renderingContext, SState& state, const Vector2D& simulationSize, float fillAmount, float precision) {
     state.simulationSize      = simulationSize;
     state.gridSize            = fluidJarGridSize(simulationSize);
     state.particleTextureSize = {state.gridSize.x * 4.0, state.gridSize.y};
@@ -294,27 +294,28 @@ void CFluidJarBlurMaterial::initializeState(SState& state, const Vector2D& simul
     state.wallVelocities   = {};
 
     for (const auto& buffer : state.particles)
-        drawInitialize(state, buffer);
+        drawInitialize(renderingContext, state, buffer);
 
-    clearIntegerBuffers(state.graph);
+    clearIntegerBuffers(renderingContext, state.graph);
     for (int i = 0; i < INITIAL_GRAPH_STEPS; ++i) {
-        drawGraphStep(state);
+        drawGraphStep(renderingContext, state);
         ++state.simulationFrame;
     }
 
-    clearIntegerBuffers(state.tracking);
-    clearBuffers(state.visual, {0.F, 0.F, 0.F, 0.F});
+    clearIntegerBuffers(renderingContext, state.tracking);
+    clearBuffers(renderingContext, state.visual, {0.F, 0.F, 0.F, 0.F});
     if (state.particleCount > 0) {
         for (int i = 0; i < INITIAL_TRACK_STEPS; ++i) {
-            drawTrackingStep(state);
+            drawTrackingStep(renderingContext, state);
             ++state.simulationFrame;
         }
         for (int i = 0; i < INITIAL_VISUAL_STEPS; ++i)
-            drawVisualStep(state);
+            drawVisualStep(renderingContext, state);
     }
 }
 
-void CFluidJarBlurMaterial::transformState(SState& state, const Vector2D& simulationSize, const SFluidJarGeometryTransform& transform, const std::array<float, 4>& wallVelocities) {
+void CFluidJarBlurMaterial::transformState(CRenderingContext& renderingContext, SState& state, const Vector2D& simulationSize, const SFluidJarGeometryTransform& transform,
+                                           const std::array<float, 4>& wallVelocities) {
     const auto oldSize          = state.simulationSize;
     const auto oldGridSize      = state.gridSize;
     const auto oldParticleCount = state.particleCount;
@@ -327,34 +328,34 @@ void CFluidJarBlurMaterial::transformState(SState& state, const Vector2D& simula
     state.particleCount  = fluidJarResizedParticleCount(oldParticleCount, simulationSize);
 
     const auto particleTarget = state.particles[1 - state.currentParticles];
-    drawResample(state, oldParticles, particleTarget, oldGridSize, oldParticleCount, transform, wallVelocities);
+    drawResample(renderingContext, state, oldParticles, particleTarget, oldGridSize, oldParticleCount, transform, wallVelocities);
     state.currentParticles = 1 - state.currentParticles;
-    drawGraphStep(state);
+    drawGraphStep(renderingContext, state);
 
     if (resized) {
         std::array<SP<CGLFramebuffer>, 2> tracking;
         std::array<SP<CGLFramebuffer>, 2> visual;
         allocateBuffers(tracking, simulationSize, "Fluid jar resized tracking", DRM_FORMAT_ABGR16161616);
         allocateBuffers(visual, simulationSize, "Fluid jar resized visual");
-        clearIntegerBuffers(tracking);
-        clearBuffers(visual, {0.F, 0.F, 0.F, 0.F});
-        drawTrackingResample(oldTracking, tracking[0], oldSize, transform);
-        drawHistoryResample(oldVisual, visual[0], oldSize, transform, {0.F, 0.F, 0.F, 0.F}, true);
+        clearIntegerBuffers(renderingContext, tracking);
+        clearBuffers(renderingContext, visual, {0.F, 0.F, 0.F, 0.F});
+        drawTrackingResample(renderingContext, oldTracking, tracking[0], oldSize, transform);
+        drawHistoryResample(renderingContext, oldVisual, visual[0], oldSize, transform, {0.F, 0.F, 0.F, 0.F}, true);
         state.tracking        = std::move(tracking);
         state.visual          = std::move(visual);
         state.currentTracking = 0;
         state.currentVisual   = 0;
     } else {
-        drawTrackingResample(oldTracking, state.tracking[1 - state.currentTracking], oldSize, transform);
-        drawHistoryResample(oldVisual, state.visual[1 - state.currentVisual], oldSize, transform, {0.F, 0.F, 0.F, 0.F}, true);
+        drawTrackingResample(renderingContext, oldTracking, state.tracking[1 - state.currentTracking], oldSize, transform);
+        drawHistoryResample(renderingContext, oldVisual, state.visual[1 - state.currentVisual], oldSize, transform, {0.F, 0.F, 0.F, 0.F}, true);
         state.currentTracking = 1 - state.currentTracking;
         state.currentVisual   = 1 - state.currentVisual;
     }
 
     if (state.particleCount > 0) {
-        drawTrackingStep(state);
+        drawTrackingStep(renderingContext, state);
         const bool velocityScaleChanged = std::abs(transform.velocityScale.x - 1.0) > 0.001 || std::abs(transform.velocityScale.y - 1.0) > 0.001;
-        drawVisualStep(state, resized || velocityScaleChanged ? INITIAL_VISUAL_STEPS : 1);
+        drawVisualStep(renderingContext, state, resized || velocityScaleChanged ? INITIAL_VISUAL_STEPS : 1);
     }
 }
 
@@ -366,29 +367,29 @@ void CFluidJarBlurMaterial::allocateBuffers(std::array<SP<CGLFramebuffer>, 2>& b
     }
 }
 
-void CFluidJarBlurMaterial::clearIntegerBuffers(const std::array<SP<CGLFramebuffer>, 2>& buffers) const {
+void CFluidJarBlurMaterial::clearIntegerBuffers(CRenderingContext& renderingContext, const std::array<SP<CGLFramebuffer>, 2>& buffers) const {
     constexpr std::array<GLuint, 4> CLEAR_VALUE = {};
     for (const auto& buffer : buffers) {
         buffer->bind();
-        g_pHyprRenderer->disableScissor();
+        g_pHyprRenderer->disableScissor(renderingContext);
         g_pHyprRenderer->blend(false);
         glClearBufferuiv(GL_COLOR, 0, CLEAR_VALUE.data());
     }
 }
 
-void CFluidJarBlurMaterial::clearBuffers(const std::array<SP<CGLFramebuffer>, 2>& buffers, const std::array<float, 4>& color) const {
+void CFluidJarBlurMaterial::clearBuffers(CRenderingContext& renderingContext, const std::array<SP<CGLFramebuffer>, 2>& buffers, const std::array<float, 4>& color) const {
     for (const auto& buffer : buffers) {
         buffer->bind();
         g_pHyprRenderer->setViewport(0, 0, sc<int>(buffer->m_size.x), sc<int>(buffer->m_size.y));
-        g_pHyprRenderer->disableScissor();
+        g_pHyprRenderer->disableScissor(renderingContext);
         glClearColor(color[0], color[1], color[2], color[3]);
         glClear(GL_COLOR_BUFFER_BIT);
     }
 }
 
-void CFluidJarBlurMaterial::drawInitialize(const SState& state, SP<CGLFramebuffer> target) const {
+void CFluidJarBlurMaterial::drawInitialize(CRenderingContext& renderingContext, const SState& state, SP<CGLFramebuffer> target) const {
     const auto shader = m_impl.useShader(m_impl.getShaderVariant(SH_FRAG_FLUIDJARINIT));
-    preparePass(target, state.particleTextureSize, shader);
+    preparePass(renderingContext, target, state.particleTextureSize, shader);
     shader->setUniformFloat2(SHADER_FLUIDJAR_RESOLUTION, state.simulationSize.x, state.simulationSize.y);
     shader->setUniformFloat2(SHADER_FLUIDJAR_GRID_SIZE, state.gridSize.x, state.gridSize.y);
     shader->setUniformInt(SHADER_FLUIDJAR_PARTICLE_COUNT, state.particleCount);
@@ -397,13 +398,14 @@ void CFluidJarBlurMaterial::drawInitialize(const SState& state, SP<CGLFramebuffe
     glBindVertexArray(0);
 }
 
-void CFluidJarBlurMaterial::drawResample(const SState& state, SP<CGLFramebuffer> source, SP<CGLFramebuffer> target, const Vector2D& oldGridSize, int oldParticleCount,
-                                         const SFluidJarGeometryTransform& transform, const std::array<float, 4>& wallVelocities) const {
+void CFluidJarBlurMaterial::drawResample(CRenderingContext& renderingContext, const SState& state, SP<CGLFramebuffer> source, SP<CGLFramebuffer> target,
+                                         const Vector2D& oldGridSize, int oldParticleCount, const SFluidJarGeometryTransform& transform,
+                                         const std::array<float, 4>& wallVelocities) const {
     static auto PFLUIDMASS = CConfigValue<Config::FLOAT>("decoration:blur:fluid_jar:mass");
 
     bindNearestTexture(source, GL_TEXTURE0);
     const auto shader = m_impl.useShader(m_impl.getShaderVariant(SH_FRAG_FLUIDJARRESAMPLE));
-    preparePass(target, state.particleTextureSize, shader);
+    preparePass(renderingContext, target, state.particleTextureSize, shader);
     shader->setUniformInt(SHADER_FLUIDJAR_PARTICLE_TEX, 0);
     shader->setUniformFloat2(SHADER_FLUIDJAR_RESOLUTION, state.simulationSize.x, state.simulationSize.y);
     shader->setUniformFloat2(SHADER_FLUIDJAR_GRID_SIZE, state.gridSize.x, state.gridSize.y);
@@ -419,8 +421,8 @@ void CFluidJarBlurMaterial::drawResample(const SState& state, SP<CGLFramebuffer>
     glBindVertexArray(0);
 }
 
-void CFluidJarBlurMaterial::drawHistoryResample(SP<CGLFramebuffer> source, SP<CGLFramebuffer> target, const Vector2D& oldSize, const SFluidJarGeometryTransform& transform,
-                                                const std::array<float, 4>& fallback, bool linear) const {
+void CFluidJarBlurMaterial::drawHistoryResample(CRenderingContext& renderingContext, SP<CGLFramebuffer> source, SP<CGLFramebuffer> target, const Vector2D& oldSize,
+                                                const SFluidJarGeometryTransform& transform, const std::array<float, 4>& fallback, bool linear) const {
     glActiveTexture(GL_TEXTURE0);
     const auto texture = source->getTexture();
     texture->bind();
@@ -430,7 +432,7 @@ void CFluidJarBlurMaterial::drawHistoryResample(SP<CGLFramebuffer> source, SP<CG
     const Vector2D inverseScale  = {1.0 / transform.positionScale.x, 1.0 / transform.positionScale.y};
     const Vector2D inverseOffset = {-transform.positionOffset.x * inverseScale.x, -transform.positionOffset.y * inverseScale.y};
     const auto     shader        = m_impl.useShader(m_impl.getShaderVariant(SH_FRAG_FLUIDJARHISTORYRESAMPLE));
-    preparePass(target, target->m_size, shader);
+    preparePass(renderingContext, target, target->m_size, shader);
     shader->setUniformInt(SHADER_FLUIDJAR_HISTORY_TEX, 0);
     shader->setUniformFloat2(SHADER_FLUIDJAR_OLD_RESOLUTION, oldSize.x, oldSize.y);
     shader->setUniformFloat4(SHADER_FLUIDJAR_HISTORY_TRANSFORM, inverseScale.x, inverseScale.y, inverseOffset.x, inverseOffset.y);
@@ -440,7 +442,7 @@ void CFluidJarBlurMaterial::drawHistoryResample(SP<CGLFramebuffer> source, SP<CG
     glBindVertexArray(0);
 }
 
-void CFluidJarBlurMaterial::drawParticleStep(SState& state, float dt) const {
+void CFluidJarBlurMaterial::drawParticleStep(CRenderingContext& renderingContext, SState& state, float dt) const {
     static auto PFLUIDMASS = CConfigValue<Config::FLOAT>("decoration:blur:fluid_jar:mass");
 
     const auto  source = state.particles[state.currentParticles];
@@ -448,7 +450,7 @@ void CFluidJarBlurMaterial::drawParticleStep(SState& state, float dt) const {
     bindNearestTexture(source, GL_TEXTURE0);
     bindNearestTexture(state.graph[state.currentGraph], GL_TEXTURE1);
     const auto shader = m_impl.useShader(m_impl.getShaderVariant(SH_FRAG_FLUIDJARSTEP));
-    preparePass(target, state.particleTextureSize, shader);
+    preparePass(renderingContext, target, state.particleTextureSize, shader);
     shader->setUniformInt(SHADER_FLUIDJAR_PARTICLE_TEX, 0);
     shader->setUniformInt(SHADER_FLUIDJAR_GRAPH_TEX, 1);
     shader->setUniformFloat2(SHADER_FLUIDJAR_RESOLUTION, state.simulationSize.x, state.simulationSize.y);
@@ -463,12 +465,12 @@ void CFluidJarBlurMaterial::drawParticleStep(SState& state, float dt) const {
     state.currentParticles = 1 - state.currentParticles;
 }
 
-void CFluidJarBlurMaterial::drawGraphStep(SState& state) const {
+void CFluidJarBlurMaterial::drawGraphStep(CRenderingContext& renderingContext, SState& state) const {
     const auto target = state.graph[1 - state.currentGraph];
     bindNearestTexture(state.particles[state.currentParticles], GL_TEXTURE0);
     bindNearestTexture(state.graph[state.currentGraph], GL_TEXTURE1);
     const auto shader = m_impl.useShader(m_impl.getShaderVariant(SH_FRAG_FLUIDJARGRAPH));
-    preparePass(target, state.graphTextureSize, shader);
+    preparePass(renderingContext, target, state.graphTextureSize, shader);
     shader->setUniformInt(SHADER_FLUIDJAR_PARTICLE_TEX, 0);
     shader->setUniformInt(SHADER_FLUIDJAR_GRAPH_TEX, 1);
     shader->setUniformFloat2(SHADER_FLUIDJAR_RESOLUTION, state.simulationSize.x, state.simulationSize.y);
@@ -481,13 +483,13 @@ void CFluidJarBlurMaterial::drawGraphStep(SState& state) const {
     state.currentGraph = 1 - state.currentGraph;
 }
 
-void CFluidJarBlurMaterial::drawTrackingStep(SState& state) const {
+void CFluidJarBlurMaterial::drawTrackingStep(CRenderingContext& renderingContext, SState& state) const {
     const auto target = state.tracking[1 - state.currentTracking];
     bindNearestTexture(state.particles[state.currentParticles], GL_TEXTURE0);
     bindNearestTexture(state.graph[state.currentGraph], GL_TEXTURE1);
     bindNearestTexture(state.tracking[state.currentTracking], GL_TEXTURE2);
     const auto shader = m_impl.useShader(m_impl.getShaderVariant(SH_FRAG_FLUIDJARTRACK));
-    preparePass(target, state.simulationSize, shader);
+    preparePass(renderingContext, target, state.simulationSize, shader);
     shader->setUniformInt(SHADER_FLUIDJAR_PARTICLE_TEX, 0);
     shader->setUniformInt(SHADER_FLUIDJAR_GRAPH_TEX, 1);
     shader->setUniformInt(SHADER_FLUIDJAR_TRACKING_TEX, 2);
@@ -501,13 +503,14 @@ void CFluidJarBlurMaterial::drawTrackingStep(SState& state) const {
     state.currentTracking = 1 - state.currentTracking;
 }
 
-void CFluidJarBlurMaterial::drawTrackingResample(SP<CGLFramebuffer> source, SP<CGLFramebuffer> target, const Vector2D& oldSize, const SFluidJarGeometryTransform& transform) const {
+void CFluidJarBlurMaterial::drawTrackingResample(CRenderingContext& renderingContext, SP<CGLFramebuffer> source, SP<CGLFramebuffer> target, const Vector2D& oldSize,
+                                                 const SFluidJarGeometryTransform& transform) const {
     bindNearestTexture(source, GL_TEXTURE0);
 
     const Vector2D inverseScale  = {1.0 / transform.positionScale.x, 1.0 / transform.positionScale.y};
     const Vector2D inverseOffset = {-transform.positionOffset.x * inverseScale.x, -transform.positionOffset.y * inverseScale.y};
     const auto     shader        = m_impl.useShader(m_impl.getShaderVariant(SH_FRAG_FLUIDJARTRACKINGRESAMPLE));
-    preparePass(target, target->m_size, shader);
+    preparePass(renderingContext, target, target->m_size, shader);
     shader->setUniformInt(SHADER_FLUIDJAR_HISTORY_TEX, 0);
     shader->setUniformFloat2(SHADER_FLUIDJAR_OLD_RESOLUTION, oldSize.x, oldSize.y);
     shader->setUniformFloat4(SHADER_FLUIDJAR_HISTORY_TRANSFORM, inverseScale.x, inverseScale.y, inverseOffset.x, inverseOffset.y);
@@ -516,14 +519,14 @@ void CFluidJarBlurMaterial::drawTrackingResample(SP<CGLFramebuffer> source, SP<C
     glBindVertexArray(0);
 }
 
-void CFluidJarBlurMaterial::drawVisualStep(SState& state, int steps) const {
+void CFluidJarBlurMaterial::drawVisualStep(CRenderingContext& renderingContext, SState& state, int steps) const {
     const auto target = state.visual[1 - state.currentVisual];
     bindNearestTexture(state.particles[state.currentParticles], GL_TEXTURE0);
     bindNearestTexture(state.graph[state.currentGraph], GL_TEXTURE1);
     bindNearestTexture(state.tracking[state.currentTracking], GL_TEXTURE2);
     bindNearestTexture(state.visual[state.currentVisual], GL_TEXTURE3);
     const auto shader = m_impl.useShader(m_impl.getShaderVariant(SH_FRAG_FLUIDJARVISUAL));
-    preparePass(target, state.simulationSize, shader);
+    preparePass(renderingContext, target, state.simulationSize, shader);
     shader->setUniformInt(SHADER_FLUIDJAR_PARTICLE_TEX, 0);
     shader->setUniformInt(SHADER_FLUIDJAR_GRAPH_TEX, 1);
     shader->setUniformInt(SHADER_FLUIDJAR_TRACKING_TEX, 2);
@@ -539,18 +542,18 @@ void CFluidJarBlurMaterial::drawVisualStep(SState& state, int steps) const {
     glActiveTexture(GL_TEXTURE0);
 }
 
-void CFluidJarBlurMaterial::preparePass(SP<CGLFramebuffer> target, const Vector2D& size, WP<CShader> shader) const {
+void CFluidJarBlurMaterial::preparePass(CRenderingContext& renderingContext, SP<CGLFramebuffer> target, const Vector2D& size, WP<CShader> shader) const {
     target->bind();
     g_pHyprRenderer->setViewport(0, 0, sc<int>(size.x), sc<int>(size.y));
-    g_pHyprRenderer->disableScissor();
+    g_pHyprRenderer->disableScissor(renderingContext);
     g_pHyprRenderer->blend(false);
-    const auto monitor = g_pHyprRenderer->m_renderData.pMonitor;
-    const auto matrix  = g_pHyprRenderer->projectBoxToTarget({0, 0, monitor->m_transformedSize.x, monitor->m_transformedSize.y});
+    const auto monitor = renderingContext.sceneMonitor;
+    const auto matrix  = g_pHyprRenderer->projectBoxToTarget(renderingContext, {0, 0, monitor->m_transformedSize.x, monitor->m_transformedSize.y});
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, matrix.getMatrix());
 }
 
-CBox CFluidJarBlurMaterial::transformedPatternBox(const SBlurContext& context) const {
-    const auto monitor = g_pHyprRenderer->m_renderData.pMonitor;
+CBox CFluidJarBlurMaterial::transformedPatternBox(const CRenderingContext& renderingContext, const SBlurContext& context) const {
+    const auto monitor = renderingContext.sceneMonitor;
     if (!monitor)
         return {};
 

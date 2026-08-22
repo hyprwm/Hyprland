@@ -22,7 +22,7 @@ struct SEventLoopDoLaterLock;
 namespace Overview::Hyprland {
     class COverviewScene;
 
-    class COverview : public Overview::IOverview, public Overview::IOverviewGesture {
+    class COverview : public Overview::IOverview, public Overview::IOverviewGestureOpenable, public Overview::IOverviewGestureMovable {
       public:
         COverview();
         virtual ~COverview() override;
@@ -32,9 +32,12 @@ namespace Overview::Hyprland {
         virtual bool         isOpen() const override;
         virtual bool         shouldRenderWorkspace(PHLWORKSPACE workspace) const override;
         virtual PHLWORKSPACE inputWorkspace() const override;
-        virtual bool         beginGesture(PHLMONITOR monitor) override;
-        virtual void         updateGesture(float completion) override;
-        virtual void         endGesture(bool commit) override;
+        virtual bool         beginOpenGesture(PHLMONITOR monitor) override;
+        virtual void         updateOpenGesture(float completion) override;
+        virtual void         endOpenGesture(bool commit) override;
+        virtual bool         beginMoveGesture() override;
+        virtual void         updateMoveGesture(float Δ) override;
+        virtual void         endMoveGesture() override;
 
         SP<COverviewScene>   scene() const;
 
@@ -55,11 +58,12 @@ namespace Overview::Hyprland {
         void                             startKeyRepeat(uint32_t keycode, SP<IKeyboard> keyboard);
         void                             stopKeyRepeat(uint32_t keycode);
 
-        bool                             m_isOpen         = false;
-        bool                             m_sceneInstalled = false;
-        bool                             m_gestureActive  = false;
-        bool                             m_gestureOpening = false;
-        float                            m_gestureStart   = 0.F;
+        bool                             m_isOpen            = false;
+        bool                             m_sceneInstalled    = false;
+        bool                             m_gestureActive     = false;
+        bool                             m_gestureOpening    = false;
+        bool                             m_moveGestureActive = false;
+        float                            m_gestureStart      = 0.F;
         PHLMONITORREF                    m_monitor;
         WP<Monitor::CMonitorResources>   m_resources;
         PHLANIMVAR<float>                m_progress;

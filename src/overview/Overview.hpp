@@ -39,13 +39,22 @@ namespace Overview {
         IOverview() = default;
     };
 
-    class IOverviewGesture {
+    class IOverviewGestureOpenable {
       public:
-        virtual ~IOverviewGesture() = default;
+        virtual ~IOverviewGestureOpenable() = default;
 
-        virtual bool beginGesture(PHLMONITOR monitor) = 0;
-        virtual void updateGesture(float completion)  = 0;
-        virtual void endGesture(bool commit)          = 0;
+        virtual bool beginOpenGesture(PHLMONITOR monitor) = 0;
+        virtual void updateOpenGesture(float completion)  = 0;
+        virtual void endOpenGesture(bool commit)          = 0;
+    };
+
+    class IOverviewGestureMovable {
+      public:
+        virtual ~IOverviewGestureMovable() = default;
+
+        virtual bool beginMoveGesture()         = 0;
+        virtual void updateMoveGesture(float Δ) = 0;
+        virtual void endMoveGesture()           = 0;
     };
 
     /*

@@ -534,7 +534,9 @@ void COverview::scheduleFinishClose() {
 void COverview::open(PHLMONITOR monitor) {
     const bool KEEP_SELECTED_FULLSCREEN = m_gestureActive && !m_gestureOpening;
     if (m_gestureActive)
-        endGesture(m_gestureOpening);
+        endOpenGesture(m_gestureOpening);
+    if (m_moveGestureActive)
+        endMoveGesture();
 
     bool NEW_SCENE = false;
     if (!prepareOpen(monitor, NEW_SCENE))
@@ -551,6 +553,9 @@ void COverview::open(PHLMONITOR monitor) {
 void COverview::close() {
     if (!m_isOpen || !m_sceneInstalled)
         return;
+
+    if (m_moveGestureActive)
+        endMoveGesture();
 
     m_gestureActive = false;
     m_isOpen        = false;
@@ -589,7 +594,7 @@ void COverview::commitClose() {
     }
 }
 
-bool COverview::beginGesture(PHLMONITOR monitor) {
+bool COverview::beginOpenGesture(PHLMONITOR monitor) {
     if (m_gestureActive)
         return false;
 
@@ -612,7 +617,7 @@ bool COverview::beginGesture(PHLMONITOR monitor) {
     return true;
 }
 
-void COverview::updateGesture(float completion) {
+void COverview::updateOpenGesture(float completion) {
     if (!m_gestureActive || !m_progress)
         return;
 
@@ -620,7 +625,7 @@ void COverview::updateGesture(float completion) {
     m_progress->setValueAndWarp(std::lerp(m_gestureStart, TARGET, std::clamp(completion, 0.F, 1.F)));
 }
 
-void COverview::endGesture(bool commit) {
+void COverview::endOpenGesture(bool commit) {
     if (!m_gestureActive)
         return;
 
@@ -650,6 +655,29 @@ void COverview::endGesture(bool commit) {
     settleProgress(0.F, false);
 }
 
+bool COverview::beginMoveGesture() {
+    if (!m_isOpen || !m_sceneInstalled || m_gestureActive || m_moveGestureActive)
+        return false;
+
+    m_moveGestureActive = m_scene->beginMoveGesture();
+    return m_moveGestureActive;
+}
+
+void COverview::updateMoveGesture(float Δ) {
+    if (!m_moveGestureActive)
+        return;
+
+    m_scene->updateMoveGesture(Δ);
+}
+
+void COverview::endMoveGesture() {
+    if (!m_moveGestureActive)
+        return;
+
+    m_moveGestureActive = false;
+    m_scene->endMoveGesture();
+}
+
 bool COverview::isOpen() const {
     return m_isOpen;
 }
@@ -671,8 +699,9 @@ void COverview::finishClose(bool emitEvent) {
         return;
 
     m_finishCloseLock.reset();
-    m_sceneInstalled = false;
-    m_gestureActive  = false;
+    m_sceneInstalled    = false;
+    m_gestureActive     = false;
+    m_moveGestureActive = false;
     updatePointerState();
     resetDragHover();
     stopKeyRepeat(m_keyRepeat.keycode);
@@ -712,8 +741,9 @@ void COverview::closeImmediately() {
         return;
 
     m_finishCloseLock.reset();
-    m_isOpen        = false;
-    m_gestureActive = false;
+    m_isOpen            = false;
+    m_gestureActive     = false;
+    m_moveGestureActive = false;
     updatePointerState();
     resetDragHover();
     if (m_progress)

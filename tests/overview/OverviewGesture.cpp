@@ -1,9 +1,10 @@
 #include <managers/input/trackpad/gestures/OverviewGesture.hpp>
+#include <managers/input/trackpad/gestures/WorkspaceSwipeGesture.hpp>
 #include <overview/Overview.hpp>
 
 #include <gtest/gtest.h>
 
-class CTestInteractiveOverview final : public Overview::IOverview, public Overview::IOverviewGesture {
+class CTestInteractiveOverview final : public Overview::IOverview, public Overview::IOverviewGestureOpenable, public Overview::IOverviewGestureMovable {
   public:
     virtual void open(PHLMONITOR) override {
         m_open = true;
@@ -17,26 +18,45 @@ class CTestInteractiveOverview final : public Overview::IOverview, public Overvi
         return m_open;
     }
 
-    virtual bool beginGesture(PHLMONITOR) override {
+    virtual bool beginOpenGesture(PHLMONITOR) override {
         m_beginCount++;
         return m_acceptBegin;
     }
 
-    virtual void updateGesture(float completion) override {
+    virtual void updateOpenGesture(float completion) override {
         m_completion = completion;
     }
 
-    virtual void endGesture(bool commit) override {
+    virtual void endOpenGesture(bool commit) override {
         m_endCount++;
         m_committed = commit;
     }
 
-    bool  m_open        = false;
-    bool  m_acceptBegin = true;
-    bool  m_committed   = false;
-    float m_completion  = 0.F;
-    int   m_beginCount  = 0;
-    int   m_endCount    = 0;
+    virtual bool beginMoveGesture() override {
+        m_moveBeginCount++;
+        return m_acceptMoveBegin;
+    }
+
+    virtual void updateMoveGesture(float delta) override {
+        m_moveUpdateCount++;
+        m_moveDelta = delta;
+    }
+
+    virtual void endMoveGesture() override {
+        m_moveEndCount++;
+    }
+
+    bool  m_open            = false;
+    bool  m_acceptBegin     = true;
+    bool  m_acceptMoveBegin = true;
+    bool  m_committed       = false;
+    float m_completion      = 0.F;
+    float m_moveDelta       = 0.F;
+    int   m_beginCount      = 0;
+    int   m_endCount        = 0;
+    int   m_moveBeginCount  = 0;
+    int   m_moveUpdateCount = 0;
+    int   m_moveEndCount    = 0;
 };
 
 class CScopedTestOverview {
@@ -120,4 +140,44 @@ TEST(OverviewGesture, supportsScaledPinchDistance) {
     gesture.update({.pinch = &update, .direction = TRACKPAD_GESTURE_DIR_PINCH_IN, .scale = 2.F});
 
     EXPECT_FLOAT_EQ(scopedOverview.get().m_completion, 0.4F);
+}
+
+TEST(WorkspaceSwipeGesture, delegatesDeltaToOpenOverview) {
+    CScopedTestOverview         scopedOverview;
+    CWorkspaceSwipeGesture      gesture;
+    IPointer::SSwipeUpdateEvent update{.delta = {-20, 0}};
+    IPointer::SSwipeEndEvent    end{.cancelled = true};
+    scopedOverview.get().m_open = true;
+
+    gesture.begin({.swipe = &update, .direction = TRACKPAD_GESTURE_DIR_HORIZONTAL, .scale = 2.F});
+    gesture.update({.swipe = &update, .direction = TRACKPAD_GESTURE_DIR_HORIZONTAL, .scale = 2.F});
+
+    EXPECT_EQ(scopedOverview.get().m_moveBeginCount, 1);
+    EXPECT_EQ(scopedOverview.get().m_moveUpdateCount, 1);
+    EXPECT_FLOAT_EQ(scopedOverview.get().m_moveDelta, -40.F);
+
+    update.delta = {5, 0};
+    gesture.update({.swipe = &update, .direction = TRACKPAD_GESTURE_DIR_HORIZONTAL, .scale = 2.F});
+    EXPECT_EQ(scopedOverview.get().m_moveUpdateCount, 2);
+    EXPECT_FLOAT_EQ(scopedOverview.get().m_moveDelta, 10.F);
+
+    gesture.end({.swipe = &end, .direction = TRACKPAD_GESTURE_DIR_HORIZONTAL, .scale = 2.F});
+    EXPECT_EQ(scopedOverview.get().m_moveEndCount, 1);
+}
+
+TEST(WorkspaceSwipeGesture, ignoresUpdatesWhenMoveBeginIsRejected) {
+    CScopedTestOverview         scopedOverview;
+    CWorkspaceSwipeGesture      gesture;
+    IPointer::SSwipeUpdateEvent update{.delta = {20, 0}};
+    IPointer::SSwipeEndEvent    end;
+    scopedOverview.get().m_open            = true;
+    scopedOverview.get().m_acceptMoveBegin = false;
+
+    gesture.begin({.swipe = &update, .direction = TRACKPAD_GESTURE_DIR_HORIZONTAL});
+    gesture.update({.swipe = &update, .direction = TRACKPAD_GESTURE_DIR_HORIZONTAL});
+    gesture.end({.swipe = &end, .direction = TRACKPAD_GESTURE_DIR_HORIZONTAL});
+
+    EXPECT_EQ(scopedOverview.get().m_moveBeginCount, 1);
+    EXPECT_EQ(scopedOverview.get().m_moveUpdateCount, 0);
+    EXPECT_EQ(scopedOverview.get().m_moveEndCount, 0);
 }

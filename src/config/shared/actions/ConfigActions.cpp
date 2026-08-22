@@ -323,7 +323,7 @@ ActionResult Actions::fullscreenWindow(Fullscreen::eFullscreenMode internalMode,
     return {};
 }
 
-ActionResult Actions::moveToWorkspace(PHLWORKSPACE ws, bool silent, std::optional<PHLWINDOW> w) {
+ActionResult Actions::moveWindowToWorkspace(PHLWORKSPACE ws, bool silent, std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
         return {};

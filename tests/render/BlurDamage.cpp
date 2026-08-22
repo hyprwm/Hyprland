@@ -8,13 +8,17 @@
 #include <render/gl/blur/Prism.hpp>
 #include <render/gl/blur/Ripple.hpp>
 #include <render/gl/blur/Water.hpp>
+#include <render/pass/Pass.hpp>
 #include <render/ShaderLoader.hpp>
+#include <render/types.hpp>
 
 #include <gtest/gtest.h>
 
 using namespace Render::GL;
 
 TEST(BlurMaterial, DefaultUsesPlainFinish) {
+    Render::CRenderPass        pass;
+    Render::CRenderingContext  context{{}, pass};
     const CDefaultBlurMaterial material;
     const auto                 requirements = material.requirements();
 
@@ -22,7 +26,7 @@ TEST(BlurMaterial, DefaultUsesPlainFinish) {
     EXPECT_EQ(requirements.finishFragment, Render::SH_FRAG_BLURFINISH);
     EXPECT_FALSE(requirements.preparedInput);
     EXPECT_FALSE(requirements.liveBlur);
-    EXPECT_FALSE(material.isAnimated());
+    EXPECT_FALSE(material.isAnimated(context));
     EXPECT_EQ(material.blurSizeForDamage(100), 40);
     EXPECT_FLOAT_EQ(material.sampleRadius(), 0.F);
 }
@@ -62,19 +66,23 @@ TEST(BlurMaterial, AuroraUsesAnimatedGlassFinish) {
 }
 
 TEST(BlurMaterial, HazeUsesStaticPearlescentFinish) {
-    const CHazeBlurMaterial haze;
-    const auto              requirements = haze.requirements();
+    Render::CRenderPass       pass;
+    Render::CRenderingContext context{{}, pass};
+    const CHazeBlurMaterial   haze;
+    const auto                requirements = haze.requirements();
 
     EXPECT_EQ(haze.type(), Render::eBlurType::BLUR_HAZE);
     EXPECT_EQ(requirements.finishFragment, Render::SH_FRAG_HAZEFINISH);
     EXPECT_FALSE(requirements.preparedInput);
     EXPECT_FALSE(requirements.liveBlur);
-    EXPECT_FALSE(haze.isAnimated());
+    EXPECT_FALSE(haze.isAnimated(context));
     EXPECT_EQ(haze.blurSizeForDamage(100), 40);
     EXPECT_FLOAT_EQ(haze.sampleRadius(), 0.F);
 }
 
 TEST(BlurMaterial, AcrylicUsesPreparedLiveFinish) {
+    Render::CRenderPass        pass;
+    Render::CRenderingContext  context{{}, pass};
     const CAcrylicBlurMaterial acrylic;
     const auto                 requirements = acrylic.requirements();
 
@@ -82,7 +90,7 @@ TEST(BlurMaterial, AcrylicUsesPreparedLiveFinish) {
     EXPECT_EQ(requirements.finishFragment, Render::SH_FRAG_ACRYLICFINISH);
     EXPECT_TRUE(requirements.preparedInput);
     EXPECT_TRUE(requirements.liveBlur);
-    EXPECT_FALSE(acrylic.isAnimated());
+    EXPECT_FALSE(acrylic.isAnimated(context));
 }
 
 TEST(BlurDamage, DualKawaseUsesOperationalMinimums) {

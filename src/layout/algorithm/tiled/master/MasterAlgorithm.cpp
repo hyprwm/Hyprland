@@ -65,7 +65,7 @@ void CMasterAlgorithm::addTarget(SP<ITarget> target, bool firstMap) {
     }
 
     const bool BNEWBEFOREACTIVE = *PNEWONACTIVE == "before";
-    const bool BNEWISMASTER     = dragOntoMaster || *PNEWSTATUS == "master";
+    const bool BNEWISMASTER     = dragOntoMaster || (!DRAGMOVE && *PNEWSTATUS == "master");
 
     const auto PNODE = [&]() -> SP<SMasterNodeData> {
         if (*PNEWONACTIVE != "none" && !BNEWISMASTER) {

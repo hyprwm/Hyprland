@@ -1086,9 +1086,19 @@ SP<CWLSurfaceResource> CWindow::getSolitaryResource() const {
         if (res->m_subsurfaces.size() == 1) {
             if (res->m_subsurfaces[0].expired() || res->m_subsurfaces[0]->m_surface.expired())
                 return nullptr;
-            auto surf = res->m_subsurfaces[0]->m_surface.lock();
+
+            auto subsurf = res->m_subsurfaces[0];
+
+            // A subsurface under the main surface cannot result in a solitary resource
+            if (subsurf->m_zIndex < 0)
+                return nullptr;
+
+            auto surf = subsurf->m_surface.lock();
+
+            // check if the subsurface covers the main surface
             if (!surf || surf->m_subsurfaces.size() != 0 || surf->extends() != res->extends() || !surf->m_current.texture || !surf->m_current.texture->m_opaque)
                 return nullptr;
+
             return surf;
         }
     }

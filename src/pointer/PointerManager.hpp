@@ -17,6 +17,7 @@ namespace Render {
 }
 
 AQUAMARINE_FORWARD(IBuffer);
+AQUAMARINE_FORWARD(IOutput);
 
 /*
     The naming here is a bit confusing.
@@ -42,7 +43,7 @@ namespace Pointer {
         // only clamps to the layout.
         void warpTo(const Vector2D& logical);
         void move(const Vector2D& deltaLogical);
-        void warpAbsolute(Vector2D abs, SP<IHID> dev);
+        void warpAbsolute(Vector2D abs, SP<IHID> dev, WP<Aquamarine::IOutput> output = {});
 
         void setCursorBuffer(SP<Aquamarine::IBuffer> buf, const Vector2D& hotspot, const float& scale);
         void setCursorSurface(SP<Desktop::View::CWLSurface> buf, const Vector2D& hotspot);

@@ -142,8 +142,7 @@ void CPropRefresher::refreshProp(const bool execdAsScheduled) {
     if (m_propsTripped & REFRESH_CURSOR_ZOOMS) {
         for (auto const& m : State::monitorState()->monitors()) {
             *(m->m_cursorZoom) = *PZOOMFACTOR;
-            if (m->m_activeWorkspace)
-                m->m_activeWorkspace->m_space->recalculate();
+            g_pHyprRenderer->damageMonitor(m);
         }
     }
 

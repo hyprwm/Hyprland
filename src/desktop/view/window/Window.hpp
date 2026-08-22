@@ -199,6 +199,7 @@ namespace Desktop::View {
         void                       onMap();
         void                       setHidden(bool hidden);
         bool                       isHidden() const;
+        bool                       shouldBlur() const;
         bool                       isAllowedOverFullscreen() const;
         bool                       isBlockedByFullscreen() const;
         bool                       isFadingOutUnderFullscreen() const;
@@ -229,7 +230,7 @@ namespace Desktop::View {
         void                       deactivateGroupMembers();
         bool                       isNotResponding();
         bool                       priorityFocus();
-        SP<CWLSurfaceResource>     getSolitaryResource();
+        SP<CWLSurfaceResource>     getSolitaryResource() const;
         std::optional<Vector2D>    calculateExpression(const Math::SExpressionVec2& expr);
         std::optional<Vector2D>    minSize();
         std::optional<Vector2D>    maxSize();

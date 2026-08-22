@@ -215,7 +215,7 @@ void CWindowPresentation::invalidateBorderSize() {
     m_borderDecoration->invalidateBorderSize();
 }
 
-bool CWindowPresentation::opaque() {
+bool CWindowPresentation::opaque() const {
     if (alphaValue(WINDOW_ALPHA_FADE) != 1.f || alphaValue(WINDOW_ALPHA_FULLSCREEN) != 1.f || alphaValue(WINDOW_ALPHA_ACTIVE) != 1.f)
         return false;
 

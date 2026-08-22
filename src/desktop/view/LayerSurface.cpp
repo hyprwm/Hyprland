@@ -10,6 +10,7 @@
 #include "../../animation/AnimationManager.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../config/shared/animation/AnimationTree.hpp"
+#include "../../config/ConfigValue.hpp"
 #include "../../output/Monitor.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../ipc/s2/S2.hpp"
@@ -483,4 +484,16 @@ std::optional<uint8_t> CLayerSurface::alphaGenericToKey(eAlphaModifiableProp p) 
 
     static_assert(ALPHA_MODIFIABLE_LAST == 1);
     UNREACHABLE();
+}
+
+bool CLayerSurface::shouldBlur() const {
+    static auto PBLUR = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
+    if (!*PBLUR)
+        return false;
+
+    auto surface = wlSurface();
+    if (surface && surface->m_hasBackgroundEffect)
+        return !surface->m_blurRegion.empty();
+
+    return m_ruleApplicator->blur().valueOrDefault();
 }

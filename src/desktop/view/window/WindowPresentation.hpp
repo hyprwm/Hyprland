@@ -49,7 +49,7 @@ namespace Desktop::View {
 
         int                                               borderSize() const;
         void                                              invalidateBorderSize();
-        bool                                              opaque();
+        bool                                              opaque() const;
         float                                             rounding();
         float                                             roundingPower();
         bool                                              isInCurvedCorner(double x, double y);

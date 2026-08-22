@@ -4,10 +4,12 @@
 #include "render/ElementRenderer.hpp"
 
 namespace Render::GL {
+    class IGLBlurProvider;
+
     class CHyprGLRenderer : public Render::IHyprRenderer {
       public:
         CHyprGLRenderer();
-        ~CHyprGLRenderer() = default;
+        ~CHyprGLRenderer();
 
         eType                   type() override;
         void                    endRender(const std::function<void()>& renderingDoneCallback = {}) override;
@@ -33,7 +35,11 @@ namespace Render::GL {
         void drawGlow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a) override;
         void drawGlow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2, float lerp,
                       float a) override;
-        SP<ITexture>         blurFramebuffer(SP<IFramebuffer> source, float a, CRegion* originalDamage) override;
+        SP<IFramebuffer>     blurFramebuffer(SP<IFramebuffer> source, float strength, const CRegion& originalDamage, const Render::SBlurContext& context = {}) override;
+        void                 refreshBlurProvider() override;
+        void                 expandBlurDamage(CRegion& damage, float multiplier = 1.F) const override;
+        bool                 blurProviderIsAnimated() const override;
+        bool                 blurProviderRequiresLiveBlur() const override;
         void                 setViewport(int x, int y, int width, int height) override;
         bool                 reloadShaders(const std::string& path = "") override;
 
@@ -41,6 +47,7 @@ namespace Render::GL {
         WP<IElementRenderer> elementRenderer() override;
 
       private:
+        void                 preRender(PHLMONITOR pMonitor);
         void                 renderOffToMain(SP<IFramebuffer> off) override;
         SP<IRenderbuffer>    getOrCreateRenderbufferInternal(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) override;
         bool                 beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple = false) override;
@@ -52,6 +59,8 @@ namespace Render::GL {
 
         SP<IRenderbuffer>    m_currentRenderbuffer;
         UP<IElementRenderer> m_elementRenderer;
+        UP<IGLBlurProvider>  m_blur;
+        CHyprSignalListener  m_preRenderListener;
 
         friend class CHyprOpenGLImpl;
     };

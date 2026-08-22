@@ -235,7 +235,26 @@ std::vector<SP<IValue>> Values::getConfigValues() {
          * blur:
          */
 
-        MS<Bool>("decoration:blur:enabled", "enable kawase window background blur", true, {.refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Bool>("decoration:blur:enabled", "enable window background blur", true, {.refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Int>("decoration:blur:variant", "set the blur variant. Blur variants enhance regular blur, but may increase GPU and CPU usage, significantly so if they are animated.",
+                0,
+                {.min = 0,
+                 .max = 10,
+                 .map =
+                     OptionMap{
+                         {"kawase", 0},
+                         {"frost", 1},
+                         {"ripple", 2},
+                         {"drops", 3},
+                         {"water", 4},
+                         {"fluid_jar", 5},
+                         {"prism", 6},
+                         {"heat_shimmer", 7},
+                         {"acrylic", 8},
+                         {"aurora", 9},
+                         {"haze", 10},
+                     },
+                 .refresh = Supplementary::REFRESH_BLUR_FB}),
         MS<Int>("decoration:blur:size", "blur size (distance)", 8, {.min = 0, .max = 100, .refresh = Supplementary::REFRESH_BLUR_FB}),
         MS<Int>("decoration:blur:passes", "the amount of passes to perform", 1, {.min = 0, .max = 10, .refresh = Supplementary::REFRESH_BLUR_FB}),
         MS<Bool>("decoration:blur:ignore_opacity", "make the blur layer ignore the opacity of the window", true, {.refresh = Supplementary::REFRESH_BLUR_FB}),
@@ -253,6 +272,61 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Bool>("decoration:blur:input_methods", "whether to blur input methods (e.g. fcitx5)", false, {.refresh = Supplementary::REFRESH_BLUR_FB}),
         MS<Float>("decoration:blur:input_methods_ignorealpha", "works like ignorealpha in layer rules. If pixel opacity is below set value, will not blur.", 0.2,
                   {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),
+
+        // specific blur stuff
+        MS<Float>("decoration:blur:glass:refraction", "maximum refraction displacement for glass blur types in pixels", 20.F,
+                  {.min = 0, .max = 20, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:glass:size", "pattern size for glass blur types in pixels", 40.F, {.min = 4, .max = 512, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:glass:roughness", "strength of the glass relief shading", 1.F, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),
+
+        MS<Float>("decoration:blur:acrylic:refraction", "maximum acrylic lens displacement in pixels", 24.F, {.min = 0, .max = 48, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:acrylic:bulb", "width of the curved acrylic edge in pixels", 48.F, {.min = 4, .max = 256, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:acrylic:clarity", "amount of sharp backdrop transmitted through the acrylic surface", 0.82F,
+                  {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:acrylic:aberration", "relative chromatic separation in the acrylic lens", 0.025F,
+                  {.min = 0, .max = 0.25, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Color>("decoration:blur:acrylic:tint", "acrylic tint color. Alpha controls optical absorption.", 0x14EEF5FF, {.refresh = Supplementary::REFRESH_BLUR_FB}),
+
+        MS<Float>("decoration:blur:drops:speed", "animation speed for drops blur. 0 disables the animation. Enabling will significantly increase GPU usage.", 3.F,
+                  {.min = 0, .max = 10, .refresh = Supplementary::REFRESH_BLUR_FB}),
+
+        MS<Float>("decoration:blur:heat_shimmer:speed", "animation speed for heat shimmer blur. 0 disables the animation. Enabling will increase GPU usage.", 1.F,
+                  {.min = 0, .max = 10, .refresh = Supplementary::REFRESH_BLUR_FB}),
+
+        MS<Float>("decoration:blur:aurora:speed", "animation speed for aurora blur. 0 freezes the animation. Enabling will increase GPU usage.", 1.F,
+                  {.min = 0, .max = 10, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:aurora:intensity", "strength of the aurora color contribution", 0.35F, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Color>("decoration:blur:aurora:color1", "first aurora curtain color. Alpha controls its contribution.", 0x29F0A0FF, {.refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Color>("decoration:blur:aurora:color2", "second aurora curtain color. Alpha controls its contribution.", 0x7A4DFFFF, {.refresh = Supplementary::REFRESH_BLUR_FB}),
+
+        MS<Float>("decoration:blur:haze:intensity", "strength of the haze pearlescent sheen", 0.35F, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:haze:iridescence", "strength of the haze pearlescent color shift", 0.7F, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),
+
+        MS<Float>("decoration:blur:ripple:strength", "maximum refraction displacement of click ripples in pixels", 30.F,
+                  {.min = 0, .max = 32, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:ripple:radius", "maximum radius of click ripples in pixels", 400.F, {.min = 1, .max = 1000, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:ripple:width", "width of click ripple waves in pixels", 32.F, {.min = 1, .max = 200, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:ripple:duration", "duration of click ripples in seconds", 0.45F, {.min = 0.05, .max = 5, .refresh = Supplementary::REFRESH_BLUR_FB}),
+
+        MS<Float>("decoration:blur:water:strength", "maximum refraction displacement and injection strength for water blur in pixels", 32.F,
+                  {.min = 0, .max = 32, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:water:radius", "pointer radius for water blur in pixels", 20.F, {.min = 1, .max = 1000, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:water:speed", "propagation speed for water blur", 0.76F, {.min = 0, .max = 10, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:water:damping", "decay damping for water blur", 0.95F, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:water:duration", "maximum water blur animation duration in seconds", 12.F, {.min = 0.5, .max = 60, .refresh = Supplementary::REFRESH_BLUR_FB}),
+
+        MS<Color>("decoration:blur:fluid_jar:color", "fluid color for fluid jar blur", 0xCC3399FF, {.refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:fluid_jar:speed", "animation speed for fluid jar blur", 3.7F, {.min = 0, .max = 10, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:fluid_jar:fill_amount", "fill amount for fluid jar blur", 0.5F, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:fluid_jar:mass", "inertial mass for fluid jar blur", 1.4F, {.min = 0.1, .max = 10, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:fluid_jar:precision", "fluid simulation precision multiplier. 2x is a good compromise. 4x is expensive. 8x is extreme and unnecessary.", 2.F,
+                  {.min = 0.5, .max = 8, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:fluid_jar:turbulence", "interior fluid turbulence multiplier", 1.2F, {.min = 0, .max = 5, .refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Float>("decoration:blur:fluid_jar:distortion", "fluid refraction distortion multiplier", 8.F, {.min = 0, .max = 10, .refresh = Supplementary::REFRESH_BLUR_FB}),
+
+        /*
+         * motion_blur:
+         */
 
         MS<Bool>("decoration:motion_blur:enabled", "enable motion blur for moving and resizing windows", false, {.refresh = Supplementary::REFRESH_WINDOW_STATES}),
         MS<Int>("decoration:motion_blur:samples", "amount of samples used for motion blur", 7, {.min = 1, .max = 64, .refresh = Supplementary::REFRESH_WINDOW_STATES}),

@@ -45,8 +45,10 @@ class CTexPassElement : public IPassElement {
         CBox                   clipBox;
         bool                   blur           = false;
         bool                   forceBlurBlend = false;
+        std::optional<CBox>    blurPatternBox;
         std::optional<float>   ignoreAlpha;
         std::optional<bool>    blockBlurOptimization;
+        std::optional<bool>    liveBlurOverride;
         bool                   cmBackToSRGB = false;
 
         bool                   discardActive = false;
@@ -61,10 +63,12 @@ class CTexPassElement : public IPassElement {
 
         CRegion                clipRegion;
         PHLLSREF               currentLS;
+        PHLWINDOWREF           blurOwner;
 
         SP<Render::ITexture>   blurredBG;
         SP<Render::ITexture>   blurAlphaMatte;
         SMotionBlurData        motionBlur;
+        bool                   blurShapeInvalid = false;
     };
 
     CTexPassElement(const SRenderData& data);
@@ -77,6 +81,8 @@ class CTexPassElement : public IPassElement {
     virtual CRegion             opaqueRegion();
     virtual void                discard();
 
+    bool                        usesLiveBlur();
+
     virtual const char*         passName() {
         return "CTexPassElement";
     }
@@ -86,4 +92,7 @@ class CTexPassElement : public IPassElement {
     };
 
     SRenderData m_data;
+
+  private:
+    std::optional<bool> m_usesLiveBlur;
 };

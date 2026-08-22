@@ -5,11 +5,11 @@ CTransformedWindowPassElement::CTransformedWindowPassElement(CTransformedWindowP
 }
 
 bool CTransformedWindowPassElement::needsLiveBlur() {
-    return m_data.blur;
+    return (m_data.blur && m_data.blurUsesLive) || (m_data.pass && m_data.pass->needsLiveBlur());
 }
 
 bool CTransformedWindowPassElement::needsPrecomputeBlur() {
-    return false;
+    return (m_data.blur && !m_data.blurUsesLive) || (m_data.pass && m_data.pass->needsPrecomputeBlur());
 }
 
 std::optional<CBox> CTransformedWindowPassElement::boundingBox() {

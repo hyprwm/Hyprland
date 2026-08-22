@@ -76,6 +76,8 @@ void CPropRefresher::refreshProp(const bool execdAsScheduled) {
     }
 
     if (m_propsTripped & REFRESH_BLUR_FB) {
+        g_pHyprRenderer->refreshBlurProvider();
+
         for (auto const& m : State::monitorState()->monitors()) {
             if (!m)
                 continue;

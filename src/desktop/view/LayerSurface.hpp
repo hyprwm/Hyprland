@@ -54,6 +54,7 @@ namespace Desktop::View {
         virtual std::optional<uint8_t>                            alphaGenericToKey(eAlphaModifiableProp p) override;
 
         WP<CLayerShellResource>                                   m_layerSurface;
+        bool                                                      shouldBlur() const;
 
         LayerFlags                                                m_flags = LAYER_FLAG_ABOVE_FULLSCREEN;
 

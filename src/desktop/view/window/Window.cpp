@@ -938,6 +938,7 @@ void CWindow::onConfigureRequest(const CBox& box) {
         setHidden(true);
 
     layoutTarget()->setPositionGlobal(box);
+    layoutTarget()->warpPositionSize();
     m_backend->configure(box, m_monitor.lock());
     acknowledgeClientGeometry(box);
     m_presentation->updateDecorations();

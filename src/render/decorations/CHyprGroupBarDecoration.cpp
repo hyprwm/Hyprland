@@ -488,6 +488,9 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPo
 
     PHLWINDOW pWindow = m_window->grouping().group()->fromIndex(WINDOWINDEX);
 
+    if (!pWindow)
+        return true;
+
     if (pWindow != m_window)
         pWindow->grouping().group()->setCurrent(pWindow);
 

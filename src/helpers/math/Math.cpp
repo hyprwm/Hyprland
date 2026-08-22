@@ -48,6 +48,10 @@ wl_output_transform Math::invertTransform(wl_output_transform tr) {
     return tr;
 }
 
+Vector2D Math::transformedSize(wl_output_transform tr, const Vector2D& size) {
+    return tr % 2 == 1 ? Vector2D{size.y, size.x} : size;
+}
+
 static bool matEq(const Mat3x3& a, const Mat3x3& b) {
     for (size_t i = 0; i < 9; ++i) {
         const float Δ = std::fabs(a.getMatrix()[i] - b.getMatrix()[i]);

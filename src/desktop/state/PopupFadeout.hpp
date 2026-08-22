@@ -15,11 +15,15 @@ namespace Desktop {
         virtual bool                  done() const override;
         virtual SFadeoutRenderEffects effects() const override;
 
+        const CBox&                   damageBox() const;
+
       private:
         CPopupFadeout() = default;
 
         PHLMONITORREF     m_monitor;
         int               m_zIndex = 0;
         PHLANIMVAR<float> m_alpha;
+        CBox              m_damageBox;
+        CBox              m_renderBox;
     };
 }

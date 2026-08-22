@@ -153,7 +153,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
                 }
             }
 
-            Vector2D tfs   = m_pending.transform % 2 == 1 ? Vector2D{m_pending.bufferSize.y, m_pending.bufferSize.x} : m_pending.bufferSize;
+            Vector2D tfs   = Math::transformedSize(m_pending.transform, m_pending.bufferSize);
             m_pending.size = tfs / m_pending.scale;
         }
 

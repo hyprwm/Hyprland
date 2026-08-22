@@ -1810,7 +1810,7 @@ static Mat3x3 getFBProjection(PHLMONITORREF pMonitor, const Vector2D& size) {
     if (pMonitor->m_transform == WL_OUTPUT_TRANSFORM_NORMAL)
         return Mat3x3::identity();
 
-    const Vector2D tfmd = pMonitor->m_transform % 2 == 1 ? Vector2D{size.y, size.x} : size;
+    const Vector2D tfmd = Math::transformedSize(pMonitor->m_transform, size);
     return Mat3x3::identity().translate(size / 2.0).transform(Math::wlTransformToHyprutils(pMonitor->m_transform)).translate(-tfmd / 2.0);
 }
 
@@ -3243,13 +3243,22 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(WP<Desktop::View::CPopup> popup) 
 
     Log::logger->log(Log::DEBUG, "renderer: making a snapshot of {:x}", rc<uintptr_t>(popup.get()));
 
-    CRegion    fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
+    // snapshot the popup's own extents, not the whole monitor
+    const auto SURFACE     = popup->wlSurface()->resource();
+    const auto EXTENDS     = SURFACE->extends();
+    const auto CONTENTSIZE = (EXTENDS.size() * PMONITOR->m_scale).round();
+
+    if (CONTENTSIZE.x < 1 || CONTENTSIZE.y < 1)
+        return nullptr;
+
+    CRegion    fakeDamage{0, 0, CONTENTSIZE.x, CONTENTSIZE.y};
 
     const auto PFRAMEBUFFER = createFB("popup shapshot");
 
-    PFRAMEBUFFER->alloc(PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y, DRM_FORMAT_ABGR8888);
+    PFRAMEBUFFER->alloc(CONTENTSIZE.x, CONTENTSIZE.y, DRM_FORMAT_ABGR8888);
     PFRAMEBUFFER->setImageDescription(PMONITOR->workBufferImageDescription());
 
+    // beginFullFakeRender projects through the FB's own size, so the popup lands 1:1 in it
     beginFullFakeRender(PMONITOR, fakeDamage, PFRAMEBUFFER);
 
     m_bRenderingSnapshot = true;
@@ -3257,7 +3266,8 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(WP<Desktop::View::CPopup> popup) 
     draw(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)});
 
     CSurfacePassElement::SRenderData renderdata;
-    renderdata.pos             = popup->coordsGlobal();
+    // getTexBox adds -monitor pos, so this lands the extents origin at 0,0 in the FB
+    renderdata.pos             = PMONITOR->m_position - EXTENDS.pos();
     renderdata.alpha           = 1.F;
     renderdata.dontRound       = true; // don't round popups
     renderdata.pMonitor        = PMONITOR;
@@ -3265,7 +3275,7 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(WP<Desktop::View::CPopup> popup) 
     renderdata.popup           = true;
     renderdata.blur            = false;
 
-    popup->wlSurface()->resource()->breadthfirst(
+    SURFACE->breadthfirst(
         [this, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
             if (!s->m_current.texture)
                 return;

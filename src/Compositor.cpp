@@ -542,7 +542,12 @@ void CCompositor::cleanEnvironment() {
     if (m_desktopEnvSet)
         unsetenv("XDG_CURRENT_DESKTOP");
 
-    if (m_aqBackend->hasSession() && !Env::envEnabled("HYPRLAND_NO_SD_VARS")) {
+    if (m_aqBackend->hasSession() && !Env::envEnabled("HYPRLAND_NO_SD_VARS") && !getenv("MANAGERPID")) {
+#ifdef USES_SYSTEMD
+        if (m_sdSessionTarget)
+            // stopping hyprland-session doesn't wait for dependent services; this does
+            Config::Supplementary::executor()->spawn("systemctl --user stop graphical-session.target");
+#endif
         const auto CMD =
 #ifdef USES_SYSTEMD
             "systemctl --user unset-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS && hash "
@@ -789,7 +794,9 @@ void CCompositor::startCompositor() {
         /* Session-less Hyprland usually means a nest, don't update the env in that case */
         m_aqBackend->hasSession() &&
         /* Activation environment management is not disabled */
-        !Env::envEnabled("HYPRLAND_NO_SD_VARS")) {
+        !Env::envEnabled("HYPRLAND_NO_SD_VARS") &&
+        /* Being executed under systemd */
+        !getenv("MANAGERPID")) {
         const auto CMD =
 #ifdef USES_SYSTEMD
             "systemctl --user import-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS && hash "
@@ -797,6 +804,12 @@ void CCompositor::startCompositor() {
 #endif
             "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS";
         Config::Supplementary::executor()->spawn(CMD);
+#ifdef USES_SYSTEMD
+        if (!Env::envEnabled("HYPRLAND_NO_SD_TARGET")) {
+            m_sdSessionTarget = true;
+            Config::Supplementary::executor()->spawn("systemctl --user start hyprland-session.target");
+        }
+#endif
     }
 
     Log::logger->log(Log::DEBUG, "Running on WAYLAND_DISPLAY: {}", m_wlDisplaySocket);

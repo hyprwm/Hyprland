@@ -582,6 +582,11 @@ bool CWorkspaceTapeController::pointerButton(uint32_t button, bool pressed, cons
         return true;
     }
 
+    if (workspace == m_selectedWorkspace) {
+        m_selectedWorkspace.reset();
+        return false;
+    }
+
     const auto PRESSED = m_pressedWorkspace.lock();
     m_pressedWorkspace.reset();
     if (!PRESSED)

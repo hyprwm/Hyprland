@@ -23,6 +23,7 @@
 #include "../../../render/pass/RectPassElement.hpp"
 #include "../../../render/pass/TexPassElement.hpp"
 #include "../../../state/WorkspaceState.hpp"
+#include "../../../pointer/PointerManager.hpp"
 
 #include "../../Overview.hpp"
 #include "../Overview.hpp"
@@ -83,11 +84,11 @@ void CWorkspaceTapeController::start(PHLMONITOR monitor, WP<Monitor::CMonitorRes
     if (!monitor || !resources)
         return;
 
-    m_monitor       = monitor;
-    m_resources     = resources;
-    m_mainArea      = layout.pixelMain;
-    m_miniStripArea = layout.pixelMiniStrip;
-    m_started       = true;
+    m_monitor         = monitor;
+    m_resources       = resources;
+    m_mainArea        = layout.pixelMain;
+    m_miniStripArea   = layout.pixelMiniStrip;
+    m_started         = true;
 
     m_listeners.created              = Event::bus()->m_events.workspace.created.listen([this](PHLWORKSPACEREF) {
         if (!g_pEventLoopManager) {
@@ -201,7 +202,7 @@ void CWorkspaceTapeController::reset() {
     m_tiles.clear();
     m_selectedWorkspace.reset();
     m_preferredWorkspace.reset();
-    m_pressedMiniWorkspace.reset();
+    m_pressedWorkspace.reset();
     m_mainArea           = {};
     m_miniStripArea      = {};
     m_overviewProgress   = 0.F;
@@ -532,22 +533,33 @@ bool CWorkspaceTapeController::pointerButton(uint32_t button, bool pressed, cons
     if (button != BTN_LEFT)
         return false;
 
-    const auto WORKSPACE = miniWorkspaceAt(monitorLocal);
+    auto workspace = miniWorkspaceAt(monitorLocal);
+    if (!workspace) {
+        // mega workspace pointer logic
+
+        const auto CURSOR    = Pointer::mgr()->untransformedPosition();
+        const auto TILE = tileAt(CURSOR);
+
+        if (TILE)
+            workspace = TILE->workspace.lock();
+    }
+
     if (pressed) {
-        if (!WORKSPACE)
+        if (!workspace)
             return false;
 
-        m_pressedMiniWorkspace = WORKSPACE;
+        m_pressedWorkspace = workspace;
         return true;
     }
 
-    const auto PRESSED = m_pressedMiniWorkspace.lock();
-    m_pressedMiniWorkspace.reset();
+    const auto PRESSED = m_pressedWorkspace.lock();
+    m_pressedWorkspace.reset();
     if (!PRESSED)
         return false;
 
-    if (WORKSPACE == PRESSED)
+    if (workspace == PRESSED)
         selectWorkspace(PRESSED);
+
     return true;
 }
 
@@ -884,6 +896,17 @@ std::vector<PHLWORKSPACE> CWorkspaceTapeController::filteredWorkspaces() const {
     }
 
     return workspaces;
+}
+
+CWorkspaceTapeController::SWorkspaceTile* CWorkspaceTapeController::tileAt(const Vector2D& monitorLocal) const {
+    auto tiles = layoutTiles();
+
+    for (const auto& t : tiles) {
+        if (CBox{t->position->goal(), t->size->goal()}.containsPoint(monitorLocal))
+            return t;
+    }
+
+    return nullptr;
 }
 
 std::vector<CWorkspaceTapeController::SWorkspaceTile*> CWorkspaceTapeController::layoutTiles() const {

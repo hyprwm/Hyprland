@@ -66,13 +66,14 @@ namespace Overview::Hyprland {
         std::vector<PHLWORKSPACE>        filteredWorkspaces() const;
         std::vector<SWorkspaceTile*>     layoutTiles() const;
         void                             pruneRetiredTiles();
+        SWorkspaceTile*                  tileAt(const Vector2D& monitorLocal) const;
 
         PHLMONITORREF                    m_monitor;
         WP<Monitor::CMonitorResources>   m_resources;
         FWorkspaceFilter                 m_filter;
         PHLWORKSPACEREF                  m_selectedWorkspace;
         PHLWORKSPACEREF                  m_preferredWorkspace;
-        PHLWORKSPACEREF                  m_pressedMiniWorkspace;
+        PHLWORKSPACEREF                  m_pressedWorkspace;
         std::vector<UP<SWorkspaceTile>>  m_tiles;
         CBox                             m_mainArea;
         CBox                             m_miniStripArea;

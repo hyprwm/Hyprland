@@ -14,9 +14,9 @@ void                  COverviewTrackpadGesture::begin(const ITrackpadGesture::ST
     m_distance = 0.F;
     m_overview = Overview::overview().get();
 
-    const auto GESTURE = dynamic_cast<Overview::IOverviewGesture*>(Overview::overview().get());
+    const auto GESTURE = dynamic_cast<Overview::IOverviewGestureOpenable*>(Overview::overview().get());
     m_interactive      = GESTURE;
-    m_active           = !GESTURE || GESTURE->beginGesture(Desktop::focusState()->monitor());
+    m_active           = !GESTURE || GESTURE->beginOpenGesture(Desktop::focusState()->monitor());
     if (!m_active)
         m_overview = nullptr;
 }
@@ -30,8 +30,8 @@ void COverviewTrackpadGesture::update(const ITrackpadGesture::STrackpadGestureUp
     if (Overview::overview().get() != m_overview || !m_interactive)
         return;
 
-    if (const auto GESTURE = dynamic_cast<Overview::IOverviewGesture*>(Overview::overview().get()))
-        GESTURE->updateGesture(std::clamp(m_distance / MAX_DISTANCE, 0.F, 1.F));
+    if (const auto GESTURE = dynamic_cast<Overview::IOverviewGestureOpenable*>(Overview::overview().get()))
+        GESTURE->updateOpenGesture(std::clamp(m_distance / MAX_DISTANCE, 0.F, 1.F));
 }
 
 void COverviewTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) {
@@ -48,8 +48,8 @@ void COverviewTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& 
     }
 
     m_overview = nullptr;
-    if (const auto GESTURE = m_interactive ? dynamic_cast<Overview::IOverviewGesture*>(Overview::overview().get()) : nullptr) {
-        GESTURE->endGesture(COMMITTED);
+    if (const auto GESTURE = m_interactive ? dynamic_cast<Overview::IOverviewGestureOpenable*>(Overview::overview().get()) : nullptr) {
+        GESTURE->endOpenGesture(COMMITTED);
         return;
     }
 

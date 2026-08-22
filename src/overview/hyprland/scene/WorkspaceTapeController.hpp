@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../../desktop/DesktopTypes.hpp"
+#include "../../../helpers/AnimatedVariable.hpp"
 #include "../../../helpers/memory/Memory.hpp"
 #include "../../../helpers/math/Math.hpp"
 #include "../../../helpers/signal/Signal.hpp"
@@ -40,6 +41,9 @@ namespace Overview::Hyprland {
         PHLWORKSPACE miniWorkspaceAt(const Vector2D& monitorLocal) const;
         bool         pointerButton(uint32_t button, bool pressed, const Vector2D& monitorLocal);
         void         useSelectedWorkspaceForFullscreen(bool x);
+        bool         beginMoveGesture();
+        void         updateMoveGesture(float delta);
+        void         endMoveGesture();
 
         void         setFilter(FWorkspaceFilter filter);
         void         refresh();
@@ -77,6 +81,7 @@ namespace Overview::Hyprland {
         std::vector<UP<SWorkspaceTile>>  m_tiles;
         CBox                             m_mainArea;
         CBox                             m_miniStripArea;
+        PHLANIMVAR<float>                m_mainOffset;
         std::vector<CHyprSignalListener> m_windowListeners;
         UP<SEventLoopDoLaterLock>        m_reconcileLock;
         float                            m_overviewProgress   = 0.F;

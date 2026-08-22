@@ -84,11 +84,14 @@ void CWorkspaceTapeController::start(PHLMONITOR monitor, WP<Monitor::CMonitorRes
     if (!monitor || !resources)
         return;
 
-    m_monitor         = monitor;
-    m_resources       = resources;
-    m_mainArea        = layout.pixelMain;
-    m_miniStripArea   = layout.pixelMiniStrip;
-    m_started         = true;
+    m_monitor       = monitor;
+    m_resources     = resources;
+    m_mainArea      = layout.pixelMain;
+    m_miniStripArea = layout.pixelMiniStrip;
+    m_started       = true;
+
+    Animation::mgr()->createAnimation(0.F, m_mainOffset, Config::animationTree()->getAnimationPropertyConfig("overviewMove"), AVARDAMAGE_NONE);
+    m_mainOffset->setUpdateCallback([this](auto) { damageMonitor(); });
 
     m_listeners.created              = Event::bus()->m_events.workspace.created.listen([this](PHLWORKSPACEREF) {
         if (!g_pEventLoopManager) {
@@ -120,7 +123,7 @@ void CWorkspaceTapeController::start(PHLMONITOR monitor, WP<Monitor::CMonitorRes
             return;
 
         if (monitor == OVERVIEW_MONITOR) {
-            const bool LAYOUT_ANIMATING = m_overviewProgress < 1.F ||
+            const bool LAYOUT_ANIMATING = m_overviewProgress < 1.F || (m_mainOffset && m_mainOffset->isBeingAnimated()) ||
                 std::ranges::any_of(
                                               m_tiles,
                                               [](const auto& tile) {
@@ -184,6 +187,9 @@ void CWorkspaceTapeController::reset() {
     m_windowListeners.clear();
     m_reconcileLock.reset();
 
+    if (m_mainOffset)
+        m_mainOffset->resetAllCallbacks();
+
     for (const auto& tile : m_tiles) {
         if (tile->position)
             tile->position->resetAllCallbacks();
@@ -203,6 +209,7 @@ void CWorkspaceTapeController::reset() {
     m_selectedWorkspace.reset();
     m_preferredWorkspace.reset();
     m_pressedWorkspace.reset();
+    m_mainOffset.reset();
     m_mainArea           = {};
     m_miniStripArea      = {};
     m_overviewProgress   = 0.F;
@@ -232,7 +239,8 @@ CBox CWorkspaceTapeController::mainBoxFor(const SWorkspaceTile& tile, PHLMONITOR
     const Vector2D OPENPOS    = tile.position->value();
     const Vector2D OPENSIZE   = tile.size->value();
     const Vector2D FULLSIZE   = monitor->m_transformedSize;
-    const Vector2D POS        = IS_ACTIVE ? OPENPOS * m_overviewProgress : OPENPOS;
+    const Vector2D OFFSET     = {m_mainOffset ? m_mainOffset->value() : 0.F, 0.F};
+    const Vector2D POS        = (IS_ACTIVE ? OPENPOS * m_overviewProgress : OPENPOS) + OFFSET;
     const Vector2D SIZE       = IS_ACTIVE ? FULLSIZE + (OPENSIZE - FULLSIZE) * m_overviewProgress : OPENSIZE;
 
     return CBox{POS, SIZE}.round();
@@ -480,6 +488,29 @@ void CWorkspaceTapeController::useSelectedWorkspaceForFullscreen(bool x) {
     m_fullscreenSelected = x;
 }
 
+bool CWorkspaceTapeController::beginMoveGesture() {
+    if (!m_started || !m_mainOffset)
+        return false;
+
+    m_mainOffset->setValueAndWarp(m_mainOffset->value());
+    return true;
+}
+
+void CWorkspaceTapeController::updateMoveGesture(float delta) {
+    if (!m_started || !m_mainOffset || !std::isfinite(delta))
+        return;
+
+    m_mainOffset->setValueAndWarp(m_mainOffset->value() + delta);
+}
+
+void CWorkspaceTapeController::endMoveGesture() {
+    if (!m_started || !m_mainOffset)
+        return;
+
+    m_mainOffset->setConfig(Config::animationTree()->getAnimationPropertyConfig("overviewMove"));
+    *m_mainOffset = 0.F;
+}
+
 bool CWorkspaceTapeController::navigateLeft() {
     return navigate(-1);
 }
@@ -537,8 +568,7 @@ bool CWorkspaceTapeController::pointerButton(uint32_t button, bool pressed, cons
     if (!workspace) {
         // mega workspace pointer logic
 
-        const auto CURSOR    = Pointer::mgr()->untransformedPosition();
-        const auto TILE = tileAt(CURSOR);
+        const auto TILE = tileAt(monitorLocal);
 
         if (TILE)
             workspace = TILE->workspace.lock();
@@ -899,11 +929,16 @@ std::vector<PHLWORKSPACE> CWorkspaceTapeController::filteredWorkspaces() const {
 }
 
 CWorkspaceTapeController::SWorkspaceTile* CWorkspaceTapeController::tileAt(const Vector2D& monitorLocal) const {
-    auto tiles = layoutTiles();
+    const auto MONITOR = m_monitor.lock();
+    if (!MONITOR)
+        return nullptr;
 
-    for (const auto& t : tiles) {
-        if (CBox{t->position->goal(), t->size->goal()}.containsPoint(monitorLocal))
-            return t;
+    const auto PIXEL = monitorLocal * MONITOR->m_scale;
+    const auto TILES = layoutTiles();
+
+    for (const auto& tile : TILES) {
+        if (mainBoxFor(*tile, MONITOR).containsPoint(PIXEL))
+            return tile;
     }
 
     return nullptr;

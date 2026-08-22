@@ -158,6 +158,18 @@ void COverviewScene::useSelectedWorkspaceForFullscreen(bool x) {
     m_workspaceTape->useSelectedWorkspaceForFullscreen(x);
 }
 
+bool COverviewScene::beginMoveGesture() {
+    return m_workspaceTape->beginMoveGesture();
+}
+
+void COverviewScene::updateMoveGesture(float delta) {
+    m_workspaceTape->updateMoveGesture(delta);
+}
+
+void COverviewScene::endMoveGesture() {
+    m_workspaceTape->endMoveGesture();
+}
+
 void COverviewScene::resetQuery() const {
     m_workspaceSearch->resetQuery();
 }

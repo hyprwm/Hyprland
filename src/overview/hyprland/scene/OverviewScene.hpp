@@ -42,6 +42,9 @@ namespace Overview::Hyprland {
         void         reset();
         void         setTextboxFocus(bool x);
         void         useSelectedWorkspaceForFullscreen(bool x);
+        bool         beginMoveGesture();
+        void         updateMoveGesture(float delta);
+        void         endMoveGesture();
         void         resetQuery() const;
         std::string  currentQuery() const;
 

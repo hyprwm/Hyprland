@@ -2,6 +2,7 @@
 #include "supplementary/jeremy/Jeremy.hpp"
 #include "lua/ConfigManager.hpp"
 #include "../debug/log/Logger.hpp"
+#include "values/ConfigValues.hpp"
 
 #include <hyprutils/path/Path.hpp>
 #include <filesystem>
@@ -47,6 +48,10 @@ bool Config::initConfigManager() {
             Log::logger->log(Log::CRIT, "[cfg] Couldn't generate default config: {}", v.error());
             return false;
         }
+    }
+
+    for (const auto& v : Values::CONFIG_VALUES) {
+        v->commence();
     }
 
     return true;

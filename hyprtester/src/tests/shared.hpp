@@ -18,6 +18,7 @@ namespace Tests {
     void                                                       waitUntilWindowsN(int n);
     int                                                        layerCount();
     bool                                                       killAllLayers();
+    void                                                       waitUntilLayersN(int n);
     std::string                                                execAndGet(const std::string& cmd);
     bool                                                       writeFile(const std::string& name, const std::string& contents);
     /**

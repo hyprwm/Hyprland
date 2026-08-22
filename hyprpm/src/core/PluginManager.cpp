@@ -1,4 +1,6 @@
 #include "PluginManager.hpp"
+#include "../helpers/JobControl.hpp"
+#include "CacheLogic.hpp"
 #include "../helpers/Colors.hpp"
 #include "../helpers/StringUtils.hpp"
 #include "../progress/CProgressBar.hpp"
@@ -20,6 +22,8 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/file.h>
+#include <fcntl.h>
 #include <pwd.h>
 #include <unistd.h>
 
@@ -33,15 +37,35 @@ using namespace Hyprutils::String;
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
 
-static std::string execAndGet(std::string cmd) {
+struct SExecResult {
+    std::string output;
+    int         exitCode = -1;
+};
+
+static SExecResult execCommand(std::string cmd) {
     cmd += " 2>&1";
 
     CProcess proc("/bin/sh", {"-c", cmd});
 
     if (!proc.runSync())
-        return "error";
+        return {.output = "error"};
 
-    return proc.stdOut();
+    return {.output = proc.stdOut(), .exitCode = proc.exitCode()};
+}
+
+static std::string execAndGet(std::string cmd) {
+    return execCommand(std::move(cmd)).output;
+}
+
+static std::string shellQuote(std::string_view value) {
+    std::string result = "'";
+    for (const auto c : value) {
+        if (c == '\'')
+            result += "'\\''";
+        else
+            result += c;
+    }
+    return result + "'";
 }
 
 static std::string getTempRoot() {
@@ -140,6 +164,215 @@ bool CPluginManager::validArg(const std::string& s) {
     return !s.contains("'") && !s.ends_with("\\") && !s.starts_with("\\");
 }
 
+std::string CPluginManager::getPluginRepositoryPath(const std::string& url) {
+    return NCacheLogic::workingRepositoryPath(m_bExperimentalCache, DataState::getRepositoryCachePath(), getTempRoot(), m_szUsername, url);
+}
+
+static bool secureCacheDirectory(const std::filesystem::path& path) {
+    struct stat statBuf;
+    if (lstat(path.c_str(), &statBuf) != 0)
+        return false;
+
+    return S_ISDIR(statBuf.st_mode) && statBuf.st_uid == sc<uid_t>(NSys::getUID()) && !(statBuf.st_mode & (S_IWGRP | S_IWOTH));
+}
+
+static bool ensureSecureCacheDirectory(const std::filesystem::path& path) {
+    std::error_code ec;
+    const bool      exists = std::filesystem::exists(path, ec);
+    if (ec || (exists && !secureCacheDirectory(path)))
+        return false;
+
+    if (!exists) {
+        std::filesystem::create_directories(path, ec);
+        if (!ec)
+            std::filesystem::permissions(path, std::filesystem::perms::owner_all, std::filesystem::perm_options::replace, ec);
+    }
+
+    return !ec && secureCacheDirectory(path);
+}
+
+bool CPluginManager::acquireRepositoryCacheLock() {
+    if (m_repositoryCacheLock.isValid())
+        return true;
+
+    const auto HYPRPM_DIR = DataState::getRepositoryCachePath().parent_path();
+    if (!ensureSecureCacheDirectory(HYPRPM_DIR)) {
+        std::println(stderr, "\n{}", failureString("Local repository cache path is not a secure user-owned directory: {}", HYPRPM_DIR.string()));
+        return false;
+    }
+
+    const auto LOCK_PATH = HYPRPM_DIR / ".lock";
+    // O_NOFOLLOW and the fstat ownership/type/mode checks below prevent lock-file redirection or replacement attacks.
+    CFileDescriptor lock{open(LOCK_PATH.c_str(), O_CREAT | O_CLOEXEC | O_RDWR | O_NOFOLLOW, S_IRUSR | S_IWUSR)}; // flawfinder: ignore
+    if (!lock.isValid()) {
+        std::println(stderr, "\n{}", failureString("Could not open the local repository cache lock"));
+        return false;
+    }
+
+    struct stat lockStat;
+    if (fstat(lock.get(), &lockStat) != 0 || !S_ISREG(lockStat.st_mode) || lockStat.st_uid != sc<uid_t>(NSys::getUID()) || (lockStat.st_mode & (S_IWGRP | S_IWOTH)) ||
+        flock(lock.get(), LOCK_EX | LOCK_NB) != 0) {
+        std::println(stderr, "\n{}", failureString("Local repository cache is already in use or has an unsafe lock file"));
+        return false;
+    }
+
+    m_repositoryCacheLock = std::move(lock);
+    return true;
+}
+
+bool CPluginManager::lockExistingRepositoryCache() {
+    std::error_code ec;
+    return std::filesystem::exists(DataState::getRepositoryCachePath(), ec) && !ec && acquireRepositoryCacheLock();
+}
+
+// (re-)clones url into the cache entry for it, replacing whatever was there
+bool CPluginManager::cloneIntoRepositoryCache(const std::string& url) {
+    const auto      CACHE_ROOT = DataState::getRepositoryCachePath();
+
+    std::error_code ec;
+    std::filesystem::remove_all(m_szWorkingPluginDirectory, ec);
+    if (ec) {
+        std::println(stderr, "\n{}", failureString("Could not clear the cached plugin repository at {}", m_szWorkingPluginDirectory));
+        return false;
+    }
+
+    const auto RET = execCommand(std::format("cd {} && git clone --recursive {} {}", shellQuote(CACHE_ROOT.string()), shellQuote(url),
+                                             shellQuote(std::filesystem::path{m_szWorkingPluginDirectory}.filename().string())));
+    if (RET.exitCode != 0 || !std::filesystem::exists(m_szWorkingPluginDirectory + "/.git")) {
+        std::println(stderr, "\n{}", failureString("Could not clone the plugin repository into the local cache. shell returned:\n{}", RET.output));
+        // a half-cloned entry would only make the next run fail too
+        std::filesystem::remove_all(m_szWorkingPluginDirectory, ec);
+        return false;
+    }
+
+    std::filesystem::permissions(m_szWorkingPluginDirectory, std::filesystem::perms::owner_all, std::filesystem::perm_options::replace, ec);
+    if (ec || !secureCacheDirectory(m_szWorkingPluginDirectory)) {
+        std::println(stderr, "\n{}", failureString("The cloned repository cache directory is unsafe"));
+        return false;
+    }
+
+    return true;
+}
+
+void CPluginManager::removeRepositoryCache(const std::string& url) {
+    const auto      PATH = NCacheLogic::repositoryPath(DataState::getRepositoryCachePath(), url);
+
+    std::error_code ec;
+    if (!std::filesystem::exists(PATH, ec) || ec)
+        return;
+
+    if (!acquireRepositoryCacheLock())
+        return;
+
+    std::filesystem::remove_all(PATH, ec);
+    if (ec)
+        std::println(stderr, "{}", failureString("Could not remove the cached repository at {}", PATH.string()));
+}
+
+bool CPluginManager::preparePluginRepository(const std::string& url) {
+    m_szWorkingPluginDirectory = getPluginRepositoryPath(url);
+
+    if (!m_bExperimentalCache) {
+        if (!std::filesystem::exists(getTempRoot())) {
+            std::filesystem::create_directory(getTempRoot());
+            std::filesystem::permissions(getTempRoot(), std::filesystem::perms::owner_all, std::filesystem::perm_options::replace);
+        } else if (!std::filesystem::is_directory(getTempRoot())) {
+            std::println(stderr, "\n{}", failureString("Could not prepare working dir for hyprpm"));
+            return false;
+        }
+
+        if (!createSafeDirectory(m_szWorkingPluginDirectory)) {
+            std::println(stderr, "\n{}", failureString("Could not prepare working dir for repo"));
+            return false;
+        }
+
+        const auto RET = execAndGet(std::format("cd '{}' && git clone --recursive '{}' '{}'", getTempRoot(), url, m_szUsername));
+        if (!std::filesystem::exists(m_szWorkingPluginDirectory + "/.git")) {
+            std::println(stderr, "\n{}", failureString("Could not clone the plugin repository. shell returned:\n{}", RET));
+            return false;
+        }
+
+        return true;
+    }
+
+    if (!acquireRepositoryCacheLock())
+        return false;
+
+    const auto CACHE_ROOT = DataState::getRepositoryCachePath();
+    if (!ensureSecureCacheDirectory(CACHE_ROOT)) {
+        std::println(stderr, "\n{}", failureString("The local repository cache is unsafe. Run hyprpm purge-cache and try again."));
+        return false;
+    }
+
+    std::error_code ec;
+    if (!std::filesystem::exists(m_szWorkingPluginDirectory, ec) || ec)
+        return cloneIntoRepositoryCache(url);
+
+    // an entry we cannot trust or use is not worth diagnosing: drop it and clone again
+    if (!secureCacheDirectory(m_szWorkingPluginDirectory) || !std::filesystem::exists(m_szWorkingPluginDirectory + "/.git") ||
+        trim(execAndGet(std::format("git -C {} remote get-url origin", shellQuote(m_szWorkingPluginDirectory)))) != url) {
+        std::println("{}", infoString("The cached copy of {} is unusable, re-cloning", url));
+        return cloneIntoRepositoryCache(url);
+    }
+
+    const auto QUOTED_PATH = shellQuote(m_szWorkingPluginDirectory);
+    const auto RET         = execCommand(std::format("git -C {} fetch --prune --recurse-submodules origin && "
+                                                     "git -C {} remote set-head origin --auto && "
+                                                     "git -C {} reset --hard --recurse-submodules refs/remotes/origin/HEAD && "
+                                                     "git -C {} submodule sync --recursive && "
+                                                     "git -C {} submodule update --init --recursive",
+                                                     QUOTED_PATH, QUOTED_PATH, QUOTED_PATH, QUOTED_PATH, QUOTED_PATH));
+
+    if (RET.exitCode != 0) {
+        std::println(stderr, "\n{}", failureString("Could not update the cached plugin repository. shell returned:\n{}", RET.output));
+        return false;
+    }
+
+    return true;
+}
+
+bool CPluginManager::preparePluginOutput(const std::string& output) {
+    const auto OUTPUT_PATH = NCacheLogic::pluginOutputPath(m_szWorkingPluginDirectory, output);
+    if (!OUTPUT_PATH)
+        return false;
+
+    std::error_code ec;
+    const auto      STATUS = std::filesystem::symlink_status(*OUTPUT_PATH, ec);
+    if (ec == std::errc::no_such_file_or_directory)
+        return true;
+    if (ec)
+        return false;
+    if (STATUS.type() == std::filesystem::file_type::not_found)
+        return true;
+
+    return std::filesystem::remove(*OUTPUT_PATH, ec) && !ec;
+}
+
+bool CPluginManager::pluginOutputValid(const std::string& output) {
+    const auto OUTPUT_PATH = NCacheLogic::pluginOutputPath(m_szWorkingPluginDirectory, output);
+    if (!OUTPUT_PATH)
+        return false;
+
+    struct stat outputStat;
+    return lstat(OUTPUT_PATH->c_str(), &outputStat) == 0 && S_ISREG(outputStat.st_mode) && outputStat.st_uid == sc<uid_t>(NSys::getUID());
+}
+
+std::string CPluginManager::getPluginOutputPath(const std::string& output) {
+    if (!m_bExperimentalCache)
+        return m_szWorkingPluginDirectory + "/" + output;
+
+    const auto OUTPUT_PATH = NCacheLogic::pluginOutputPath(m_szWorkingPluginDirectory, output);
+    return OUTPUT_PATH ? OUTPUT_PATH->string() : "";
+}
+
+void CPluginManager::cleanWorkingPluginDirectory() {
+    // the cache is persistent by design
+    if (m_bExperimentalCache || m_szWorkingPluginDirectory.empty())
+        return;
+
+    std::filesystem::remove_all(m_szWorkingPluginDirectory);
+}
+
 bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string& rev) {
     const auto HLVER = getHyprlandVersion();
 
@@ -193,42 +426,25 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
 
     progress.print();
 
-    if (!std::filesystem::exists(getTempRoot())) {
-        std::filesystem::create_directory(getTempRoot());
-        std::filesystem::permissions(getTempRoot(), std::filesystem::perms::owner_all, std::filesystem::perm_options::replace);
-    } else if (!std::filesystem::is_directory(getTempRoot())) {
-        std::println(stderr, "\n{}", failureString("Could not prepare working dir for hyprpm"));
+    progress.printMessageAbove(infoString("{} {}", m_bExperimentalCache ? "Preparing cached repository" : "Cloning", url));
+
+    if (!preparePluginRepository(url))
         return false;
-    }
 
-    const std::string USERNAME = getpwuid(getuid())->pw_name;
-
-    m_szWorkingPluginDirectory = std::format("{}{}", getTempRoot(), USERNAME);
-
-    if (!createSafeDirectory(m_szWorkingPluginDirectory)) {
-        std::println(stderr, "\n{}", failureString("Could not prepare working dir for repo"));
-        return false;
-    }
-
-    progress.printMessageAbove(infoString("Cloning {}", url));
-
-    std::string ret = execAndGet(std::format("cd {} && git clone --recursive '{}' {}", getTempRoot(), url, USERNAME));
-
-    if (!std::filesystem::exists(std::format("{}/.git", m_szWorkingPluginDirectory))) {
-        std::println(stderr, "\n{}", failureString("Could not clone the plugin repository. shell returned:\n{}", ret));
-        return false;
-    }
+    std::string ret;
 
     if (!rev.empty()) {
-        std::string ret = execAndGet(std::format("git -C {} reset --hard --recurse-submodules {}", m_szWorkingPluginDirectory, rev));
+        ret = execAndGet("git -C " + shellQuote(m_szWorkingPluginDirectory) + " reset --hard --recurse-submodules " + shellQuote(rev));
         if (ret.compare(0, 6, "fatal:") == 0) {
             std::println(stderr, "\n{}", failureString("Could not check out revision {}. shell returned:\n{}", rev, ret));
             return false;
         }
-        ret = execAndGet(std::format("git -C {} submodule update --init", m_szWorkingPluginDirectory));
+        ret = execAndGet("git -C " + shellQuote(m_szWorkingPluginDirectory) + " submodule update --init");
         if (m_bVerbose)
             std::println("{}", verboseString("git submodule update --init returned: {}", ret));
     }
+
+    const auto CHECKED_OUT_REPOSITORY_HASH = trim(execAndGet("git -C " + shellQuote(m_szWorkingPluginDirectory) + " rev-parse HEAD"));
 
     progress.m_iSteps = 1;
     progress.printMessageAbove(successString("cloned"));
@@ -286,9 +502,9 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
 
             progress.printMessageAbove(successString("commit pin {} matched hl, resetting", plugin));
 
-            execAndGet(std::format("cd {} && git reset --hard --recurse-submodules '{}'", m_szWorkingPluginDirectory, plugin));
+            execAndGet("cd " + shellQuote(m_szWorkingPluginDirectory) + " && git reset --hard --recurse-submodules " + shellQuote(plugin));
 
-            ret = execAndGet(std::format("git -C {} submodule update --init", m_szWorkingPluginDirectory));
+            ret = execAndGet("git -C " + shellQuote(m_szWorkingPluginDirectory) + " submodule update --init");
             if (m_bVerbose)
                 std::println("{}", verboseString("git submodule update --init returned: {}", ret));
 
@@ -325,8 +541,15 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
 
         const auto env = getPluginBuildEnv();
 
+        if (m_bExperimentalCache && !preparePluginOutput(p.output)) {
+            progress.printMessageAbove(failureString("Refusing unsafe or unremovable cached output path for {}", p.name));
+            p.failed = true;
+            continue;
+        }
+
         for (auto const& bs : p.buildSteps) {
-            const auto CMD_RAW = nixDevelopIfNeeded(std::format("cd {} && {} {}", m_szWorkingPluginDirectory, env, bs), HLVER);
+            const auto BUILD_CMD = NJobControl::pluginBuildCommand(shellQuote(m_szWorkingPluginDirectory), env, bs, m_jobs);
+            const auto CMD_RAW   = nixDevelopIfNeeded(BUILD_CMD, HLVER);
 
             if (!CMD_RAW) {
                 progress.printMessageAbove(failureString("Failed to build {}: {}", p.name, CMD_RAW.error()));
@@ -339,7 +562,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
         if (m_bVerbose)
             std::println("{}", verboseString("shell returned: {}", out));
 
-        if (!std::filesystem::exists(std::format("{}/{}", m_szWorkingPluginDirectory, p.output))) {
+        if (m_bExperimentalCache ? !pluginOutputValid(p.output) : !std::filesystem::exists(m_szWorkingPluginDirectory + "/" + p.output)) {
             progress.printMessageAbove(failureString("Plugin {} failed to build.\n"
                                                      "  This likely means that the plugin is either outdated, not yet available for your version, or broken.\n"
                                                      "  If you are on -git, update first\n"
@@ -360,20 +583,18 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
 
     // add repo toml to DataState
     SPluginRepository repo;
-    std::string       repohash = execAndGet(std::format("cd {} && git rev-parse HEAD", m_szWorkingPluginDirectory));
-    if (repohash.length() > 0)
-        repohash.pop_back();
-    auto lastSlash       = url.find_last_of('/');
-    auto secondLastSlash = url.find_last_of('/', lastSlash - 1);
-    repo.name            = pManifest->m_repository.name.empty() ? url.substr(lastSlash + 1) : pManifest->m_repository.name;
-    repo.author          = url.substr(secondLastSlash + 1, lastSlash - secondLastSlash - 1);
-    repo.url             = url;
-    repo.rev             = rev;
-    repo.hash            = repohash;
+    std::string       repohash  = m_bExperimentalCache ? CHECKED_OUT_REPOSITORY_HASH : trim(execAndGet("git -C " + shellQuote(m_szWorkingPluginDirectory) + " rev-parse HEAD"));
+    auto              lastSlash = url.find_last_of('/');
+    auto              secondLastSlash = url.find_last_of('/', lastSlash - 1);
+    repo.name                         = pManifest->m_repository.name.empty() ? url.substr(lastSlash + 1) : pManifest->m_repository.name;
+    repo.author                       = url.substr(secondLastSlash + 1, lastSlash - secondLastSlash - 1);
+    repo.url                          = url;
+    repo.rev                          = rev;
+    repo.hash                         = repohash;
     for (auto const& p : pManifest->m_plugins) {
-        repo.plugins.push_back(SPlugin{p.name, std::format("{}/{}", m_szWorkingPluginDirectory, p.output), false, p.failed});
+        repo.plugins.push_back(SPlugin{p.name, getPluginOutputPath(p.output), false, p.failed});
     }
-    DataState::addNewPluginRepo(repo);
+    DataState::addNewPluginRepo(repo, m_bExperimentalCache);
 
     progress.printMessageAbove(successString("installed repository"));
     progress.printMessageAbove(successString("you can now enable the plugin(s) with hyprpm enable"));
@@ -384,7 +605,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
     std::print("\n");
 
     // remove build files
-    std::filesystem::remove_all(m_szWorkingPluginDirectory);
+    cleanWorkingPluginDirectory();
 
     return true;
 }
@@ -406,7 +627,19 @@ bool CPluginManager::removePluginRepo(const SPluginRepoIdentifier& identifier) {
         return false;
     }
 
+    // grab the url before the state is gone, the cache entry is keyed by it
+    std::string url;
+    for (const auto& r : DataState::getAllRepositories()) {
+        if (identifier.matches(r.url, r.name, r.author)) {
+            url = r.url;
+            break;
+        }
+    }
+
     DataState::removePluginRepo(identifier);
+
+    if (!url.empty())
+        removeRepositoryCache(url);
 
     return true;
 }
@@ -627,8 +860,7 @@ bool CPluginManager::updateHeaders(bool force) {
 
     ret = execAndGet(cmd);
 
-    cmd = std::format("make -C '{}' installheaders && chmod -R 644 '{}' && find '{}' -type d -exec chmod a+x {{}} \\;", WORKINGDIR, DataState::getHeadersPath(),
-                      DataState::getHeadersPath());
+    cmd = NJobControl::headersInstallCommand(WORKINGDIR, DataState::getHeadersPath(), m_jobs);
 
     if (m_bVerbose)
         progress.printMessageAbove(verboseString("install will run as sudo: {}", cmd));
@@ -674,8 +906,9 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
         return false;
     }
 
-    const auto HLVER = getHyprlandVersion(false);
-    const auto REPOS = DataState::getAllRepositories();
+    const auto HLVER           = getHyprlandVersion(false);
+    const auto REPOS           = DataState::getAllRepositories();
+    const auto ABI_INVALIDATED = DataState::getGlobalState().headersAbiCompiled != HLVER.abiHash;
 
     if (REPOS.size() < 1) {
         auto GLOBALSTATE               = DataState::getGlobalState();
@@ -691,14 +924,13 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
     progress.m_szCurrentMessage = "Updating repositories";
     progress.print();
 
-    const std::string USERNAME = getpwuid(getuid())->pw_name;
-    m_szWorkingPluginDirectory = std::format("{}{}", getTempRoot(), USERNAME);
-
     std::vector<std::string> failedRepos;
 
     const auto               markRepoFailed = [&](const SPluginRepository& repo, bool advanceProgress) {
         failedRepos.emplace_back(repo.name);
-        std::filesystem::remove_all(m_szWorkingPluginDirectory);
+        if (ABI_INVALIDATED)
+            DataState::markPluginRepoFailed(SPluginRepoIdentifier::fromName(repo.name));
+        cleanWorkingPluginDirectory();
 
         if (advanceProgress) {
             progress.m_iSteps++;
@@ -715,41 +947,31 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
 
         progress.printMessageAbove(infoString("checking for updates for {}", repo.name));
 
-        createSafeDirectory(m_szWorkingPluginDirectory);
+        progress.printMessageAbove(infoString("{} {}", m_bExperimentalCache ? "Preparing cached repository" : "Cloning", repo.url));
 
-        progress.printMessageAbove(infoString("Cloning {}", repo.url));
-
-        std::string ret = execAndGet(std::format("cd {} && git clone --recursive '{}' {}", getTempRoot(), repo.url, USERNAME));
-
-        if (!std::filesystem::exists(std::format("{}/.git", m_szWorkingPluginDirectory))) {
-            std::println(stderr, "\n{}", failureString("could not clone repo: shell returned: {}", ret));
+        if (!preparePluginRepository(repo.url)) {
             markRepoFailed(repo, true);
             continue;
         }
 
         if (!repo.rev.empty()) {
             progress.printMessageAbove(infoString("Plugin has revision set, resetting: {}", repo.rev));
-
-            std::string ret = execAndGet(std::format("git -C {} reset --hard --recurse-submodules \'{}\'", m_szWorkingPluginDirectory, repo.rev));
-            if (ret.compare(0, 6, "fatal:") == 0) {
-                std::println(stderr, "\n{}", failureString("could not check out revision {}: shell returned:\n{}", repo.rev, ret));
-
-                markRepoFailed(repo, true);
-                continue;
-            }
         }
 
-        if (!update) {
-            // check if git has updates
-            std::string hash = execAndGet(std::format("cd {} && git rev-parse HEAD", m_szWorkingPluginDirectory));
-            if (!hash.empty())
-                hash.pop_back();
-
-            update = update || hash != repo.hash;
+        // Keep the hash of the requested repository revision before per-plugin commit pins
+        // temporarily move the working tree elsewhere.
+        const auto REVISION = execCommand(NCacheLogic::checkoutRepositoryRevisionCommand(m_szWorkingPluginDirectory, repo.rev));
+        if (REVISION.exitCode != 0) {
+            std::println(stderr, "\n{}", failureString("could not check out revision {}: shell returned:\n{}", repo.rev, REVISION.output));
+            markRepoFailed(repo, true);
+            continue;
         }
+        const auto CHECKED_OUT_REPOSITORY_HASH = trim(REVISION.output);
+
+        update = NCacheLogic::repositoryNeedsUpdate(update, CHECKED_OUT_REPOSITORY_HASH, repo.hash);
 
         if (!update) {
-            std::filesystem::remove_all(m_szWorkingPluginDirectory);
+            cleanWorkingPluginDirectory();
             progress.printMessageAbove(successString("repository {} is up-to-date.", repo.name));
             progress.m_iSteps++;
             progress.print();
@@ -805,7 +1027,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
 
                 progress.printMessageAbove(successString("commit pin {} matched hl, resetting", plugin));
 
-                execAndGet(std::format("cd {} && git reset --hard --recurse-submodules '{}'", m_szWorkingPluginDirectory, plugin));
+                execAndGet("cd " + shellQuote(m_szWorkingPluginDirectory) + " && git reset --hard --recurse-submodules " + shellQuote(plugin));
             }
 
             if (commitPinFailed)
@@ -829,8 +1051,16 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
 
             const auto env = getPluginBuildEnv();
 
+            if (m_bExperimentalCache && !preparePluginOutput(p.output)) {
+                progress.printMessageAbove(failureString("Refusing unsafe or unremovable cached output path for {}", p.name));
+                p.failed               = true;
+                anyPluginFailedToBuild = true;
+                continue;
+            }
+
             for (auto const& bs : p.buildSteps) {
-                const auto CMD_RAW = nixDevelopIfNeeded(std::format("cd {} && {} {}", m_szWorkingPluginDirectory, env, bs), HLVER);
+                const auto BUILD_CMD = NJobControl::pluginBuildCommand(shellQuote(m_szWorkingPluginDirectory), env, bs, m_jobs);
+                const auto CMD_RAW   = nixDevelopIfNeeded(BUILD_CMD, HLVER);
 
                 if (!CMD_RAW) {
                     progress.printMessageAbove(failureString("Failed to build {}: {}", p.name, CMD_RAW.error()));
@@ -843,7 +1073,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
             if (m_bVerbose)
                 std::println("{}", verboseString("shell returned: {}", out));
 
-            if (!std::filesystem::exists(std::format("{}/{}", m_szWorkingPluginDirectory, p.output))) {
+            if (m_bExperimentalCache ? !pluginOutputValid(p.output) : !std::filesystem::exists(m_szWorkingPluginDirectory + "/" + p.output)) {
                 std::println(stderr,
                              "\n{}\n"
                              "  This likely means that the plugin is either outdated, not yet available for your version, or broken.\n"
@@ -861,25 +1091,26 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
         // add repo toml to DataState
         SPluginRepository newrepo = repo;
         newrepo.plugins.clear();
-        execAndGet(std::format("cd {} && git pull --recurse-submodules && git reset --hard --recurse-submodules",
-                               m_szWorkingPluginDirectory)); // repo hash in the state.toml has to match head and not any pin
-        std::string repohash = execAndGet(std::format("cd {} && git rev-parse HEAD", m_szWorkingPluginDirectory));
-        if (!repohash.empty())
-            repohash.pop_back();
+        std::string repohash;
+        if (m_bExperimentalCache)
+            repohash = CHECKED_OUT_REPOSITORY_HASH;
+        else {
+            execAndGet("cd " + shellQuote(m_szWorkingPluginDirectory) +
+                       " && git pull --recurse-submodules && git reset --hard --recurse-submodules"); // repo hash in the state.toml has to match head and not any pin
+            repohash = trim(execAndGet("cd " + shellQuote(m_szWorkingPluginDirectory) + " && git rev-parse HEAD"));
+        }
         // a build failure must not record the fetched hash: the next update would consider the
         // repo up-to-date and never retry the build. An empty hash never matches, so it retries.
         newrepo.hash = anyPluginFailedToBuild ? "" : repohash;
         for (auto const& p : pManifest->m_plugins) {
             const auto OLDPLUGINIT = std::ranges::find_if(repo.plugins, [&](const auto& other) { return other.name == p.name; });
-            newrepo.plugins.emplace_back(SPlugin{.name     = p.name,
-                                                 .filename = std::format("{}/{}", m_szWorkingPluginDirectory, p.output),
-                                                 .enabled  = OLDPLUGINIT != repo.plugins.end() ? OLDPLUGINIT->enabled : false,
-                                                 .failed   = p.failed});
+            newrepo.plugins.emplace_back(SPlugin{
+                .name = p.name, .filename = getPluginOutputPath(p.output), .enabled = OLDPLUGINIT != repo.plugins.end() ? OLDPLUGINIT->enabled : false, .failed = p.failed});
         }
         DataState::removePluginRepo(SPluginRepoIdentifier::fromName(newrepo.name));
-        DataState::addNewPluginRepo(newrepo);
+        DataState::addNewPluginRepo(newrepo, m_bExperimentalCache);
 
-        std::filesystem::remove_all(m_szWorkingPluginDirectory);
+        cleanWorkingPluginDirectory();
 
         if (anyPluginFailedToBuild) {
             failedRepos.emplace_back(repo.name);
@@ -901,11 +1132,9 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
     progress.m_szCurrentMessage = "Updating global state...";
     progress.print();
 
-    if (failedRepos.empty()) {
-        auto GLOBALSTATE               = DataState::getGlobalState();
-        GLOBALSTATE.headersAbiCompiled = HLVER.abiHash;
-        DataState::updateGlobalState(GLOBALSTATE);
-    }
+    auto GLOBALSTATE               = DataState::getGlobalState();
+    GLOBALSTATE.headersAbiCompiled = HLVER.abiHash;
+    DataState::updateGlobalState(GLOBALSTATE);
 
     progress.m_iSteps++;
     progress.m_szCurrentMessage = failedRepos.empty() ? "Done!" : "Done with errors";
@@ -984,7 +1213,7 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState(bool forceReload) 
     auto       enabled = [REPOS](const std::string& plugin) -> bool {
         for (auto const& r : REPOS) {
             for (auto const& p : r.plugins) {
-                if (p.name == plugin && p.enabled)
+                if (p.name == plugin && p.enabled && !p.failed)
                     return true;
             }
         }
@@ -1137,6 +1366,8 @@ bool CPluginManager::hasDeps() {
 
 std::string CPluginManager::getPluginBuildEnv() {
     std::string env = std::format("PKG_CONFIG_PATH=\"{}\"", getPkgConfigPath());
+
+    env = NJobControl::buildEnvironment(m_jobs) + env;
 
 #if defined(HYPRPM_EXTRA_CFLAGS)
     if (std::string_view{HYPRPM_EXTRA_CFLAGS}.size() > 0)

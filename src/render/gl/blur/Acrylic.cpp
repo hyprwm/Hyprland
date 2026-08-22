@@ -63,12 +63,10 @@ float CAcrylicBlurMaterial::sampleRadius() const {
 void CAcrylicBlurMaterial::bindFinish(WP<CShader> shader, const SBlurMaterialContext& context) const {
     shader->setUniformInt(SHADER_ACRYLIC_ENABLED, 0);
 
-    const auto MONITOR = g_pHyprRenderer->m_renderData.pMonitor;
-    if (!MONITOR || !context.blurContext.shape)
+    if (!context.blurContext.shape)
         return;
 
-    auto extent = context.blurContext.shape->box;
-    extent.transform(Math::wlTransformToHyprutils(Math::invertTransform(MONITOR->m_transform)), MONITOR->m_transformedSize.x, MONITOR->m_transformedSize.y);
+    const auto extent = context.blurContext.shape->box;
     if (extent.width <= 0 || extent.height <= 0)
         return;
 

@@ -171,7 +171,7 @@ void CEis::ensurePointer() {
         eis_region* r = eis_device_new_region(pointer);
 
         eis_region_set_offset(r, o->m_position.x, o->m_position.y);
-        eis_region_set_size(r, o->m_pixelSize.x, o->m_pixelSize.y);
+        eis_region_set_size(r, o->m_size.x, o->m_size.y);
         eis_region_set_physical_scale(r, o->m_scale);
         eis_region_add(r);
         eis_region_unref(r);

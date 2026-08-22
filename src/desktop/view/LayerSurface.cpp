@@ -19,7 +19,6 @@
 #include "../../state/MonitorState.hpp"
 #include "popup/WaylandPopupBackend.hpp"
 #include "Popup.hpp"
-#include "wlr-layer-shell-unstable-v1.hpp"
 
 using namespace Desktop;
 using namespace Desktop::View;

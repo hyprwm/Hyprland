@@ -369,7 +369,7 @@ void CHyprGLRenderer::preRender(PHLMONITOR pMonitor) {
 
         const auto  PSURFACE   = pWindow->wlSurface()->resource();
         const auto  PWORKSPACE = pWindow->m_workspace;
-        const float A = pWindow->presentation().alphaValue(Desktop::View::WINDOW_ALPHA_FADE) * pWindow->presentation().alphaValue(Desktop::View::WINDOW_ALPHA_FULLSCREEN) *
+        const float A          = pWindow->presentation().alphaValue(Desktop::View::WINDOW_ALPHA_FADE) * pWindow->presentation().alphaValue(Desktop::View::WINDOW_ALPHA_FULLSCREEN) *
             pWindow->presentation().alphaValue(Desktop::View::WINDOW_ALPHA_LAYOUT) * pWindow->presentation().alphaValue(Desktop::View::WINDOW_ALPHA_ACTIVE) *
             PWORKSPACE->m_alpha->value();
 
@@ -385,7 +385,10 @@ void CHyprGLRenderer::preRender(PHLMONITOR pMonitor) {
 
     bool hasWindows = false;
     for (const auto& w : Desktop::windowState()->windows()) {
-        if (w->m_workspace != pMonitor->m_activeWorkspace || !w->mapped() || !w->acceptsInput() || !w->alphaNonZero() || (w->isFloating() && !*PBLURXRAY) ||
+        const auto& XRAY_RULE           = w->m_ruleApplicator->xray();
+        const bool  XRAY                = XRAY_RULE.hasValue() ? XRAY_RULE.valueOrDefault() : *PBLURXRAY;
+        const bool  ON_ACTIVE_WORKSPACE = w->m_workspace && (w->m_workspace == pMonitor->m_activeWorkspace || w->m_workspace == pMonitor->m_activeSpecialWorkspace);
+        if (!ON_ACTIVE_WORKSPACE || !w->mapped() || !w->acceptsInput() || !w->alphaNonZero() || ((w->isFloating() || w->onSpecialWorkspace()) && !XRAY) ||
             !windowShouldBeBlurred(w))
             continue;
 

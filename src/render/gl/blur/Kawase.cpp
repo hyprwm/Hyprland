@@ -67,18 +67,18 @@ SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(SP<CGLFramebuffer> source, fl
     m_impl.blend(false);
     m_impl.setCapStatus(GL_STENCIL_TEST, false);
 
-    CBox MONITORBOX = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
+    CBox                       MONITORBOX = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
 
-    const auto& glMatrix = g_pHyprRenderer->projectBoxToTarget(MONITORBOX);
+    const auto&                glMatrix = g_pHyprRenderer->projectBoxToTarget(MONITORBOX);
 
-    static auto PBLURSIZE             = CConfigValue<Config::INTEGER>("decoration:blur:size");
-    static auto PBLURPASSES           = CConfigValue<Config::INTEGER>("decoration:blur:passes");
-    static auto PBLURVIBRANCY         = CConfigValue<Config::FLOAT>("decoration:blur:vibrancy");
-    static auto PBLURVIBRANCYDARKNESS = CConfigValue<Config::FLOAT>("decoration:blur:vibrancy_darkness");
+    static auto                PBLURSIZE             = CConfigValue<Config::INTEGER>("decoration:blur:size");
+    static auto                PBLURPASSES           = CConfigValue<Config::INTEGER>("decoration:blur:passes");
+    static auto                PBLURVIBRANCY         = CConfigValue<Config::FLOAT>("decoration:blur:vibrancy");
+    static auto                PBLURVIBRANCYDARKNESS = CConfigValue<Config::FLOAT>("decoration:blur:vibrancy_darkness");
 
-    const auto  BLUR_PASSES = std::clamp(*PBLURPASSES, sc<int64_t>(1), sc<int64_t>(8));
+    const auto                 BLUR_PASSES = std::clamp(*PBLURPASSES, sc<int64_t>(1), sc<int64_t>(8));
 
-    CRegion     outputDamage{originalDamage};
+    CRegion                    outputDamage{originalDamage};
 
     const SBlurMaterialContext materialContext{
         .blurContext  = context,

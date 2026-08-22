@@ -821,15 +821,15 @@ void IElementRenderer::drawTransformedWindow(WP<CTransformedWindowPassElement> e
     data.useProvidedDamage   = true;
 
     if (element->m_data.blur && blurAlphaMatte) {
-        data.blur                  = true;
-        data.forceBlurBlend        = true;
-        data.blurPatternBox        = element->m_data.currentBox.copy().scale(pMonitor->m_scale).round();
-        data.blurShapeInvalid      = true;
-        data.blockBlurOptimization = true;
-        data.blurOwner             = element->m_data.window;
-        data.blurA                 = element->m_data.blurA;
-        data.blurAlphaMatte        = blurAlphaMatte;
-        data.discardMode           = 0;
+        data.blur             = true;
+        data.forceBlurBlend   = true;
+        data.blurPatternBox   = element->m_data.blurBox;
+        data.blurShapeInvalid = true;
+        data.liveBlurOverride = element->m_data.blurUsesLive;
+        data.blurOwner        = element->m_data.window;
+        data.blurA            = element->m_data.blurA;
+        data.blurAlphaMatte   = blurAlphaMatte;
+        data.discardMode      = 0;
     }
 
     (void)blurAlphaMatteFB;

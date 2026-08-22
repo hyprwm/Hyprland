@@ -646,8 +646,9 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         const bool      TRANSFORMEDWINDOW = pWindow->effects().hasActiveTransformers();
         UP<CRenderPass> transformedPass;
         UP<CScopeGuard> passRedirect;
-        const bool      windowBlur    = renderdata.blur;
-        const auto      backdropScope = makeShared<SBackdropScope>();
+        const bool      windowBlur         = renderdata.blur;
+        const bool      windowBlurUsesLive = windowBlur && !shouldUseNewBlurOptimizations(nullptr, pWindow);
+        const auto      backdropScope      = makeShared<SBackdropScope>();
 
         addPassElement(makeUnique<CBackdropScopePassElement>(CBackdropScopePassElement::eAction::BEGIN, backdropScope));
 
@@ -746,6 +747,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
                 .currentBox        = currentBox,
                 .blurBox           = blurBox,
                 .blur              = windowBlur,
+                .blurUsesLive      = windowBlurUsesLive,
                 .blurA             = renderdata.fadeAlpha,
                 .blurRound         = renderdata.dontRound ? 0 : std::max(renderdata.rounding - 1, 0),
                 .blurRoundingPower = renderdata.roundingPower,

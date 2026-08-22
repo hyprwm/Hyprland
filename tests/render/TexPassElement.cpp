@@ -18,3 +18,23 @@ TEST(TexPassElement, ReportsExplicitLiveBlur) {
     EXPECT_TRUE(element.needsLiveBlur());
     EXPECT_FALSE(element.needsPrecomputeBlur());
 }
+
+TEST(TexPassElement, LiveBlurOverrideForcesLiveBlur) {
+    CTexPassElement element{CTexPassElement::SRenderData{
+        .blur             = true,
+        .liveBlurOverride = true,
+    }};
+
+    EXPECT_TRUE(element.needsLiveBlur());
+    EXPECT_FALSE(element.needsPrecomputeBlur());
+}
+
+TEST(TexPassElement, LiveBlurOverrideForcesPrecomputedBlur) {
+    CTexPassElement element{CTexPassElement::SRenderData{
+        .blur             = true,
+        .liveBlurOverride = false,
+    }};
+
+    EXPECT_FALSE(element.needsLiveBlur());
+    EXPECT_TRUE(element.needsPrecomputeBlur());
+}

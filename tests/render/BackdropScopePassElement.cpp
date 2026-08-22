@@ -70,3 +70,34 @@ TEST(BackdropScopePlanner, TransformedWindowReportsNestedLiveBlur) {
     CTransformedWindowPassElement transformed{CTransformedWindowPassElement::SData{.pass = std::move(nestedPass)}};
     EXPECT_TRUE(transformed.needsLiveBlur());
 }
+
+TEST(BackdropScopePlanner, TransformedWindowReportsNestedPrecomputedBlur) {
+    auto nestedPass = makeUnique<Render::CRenderPass>();
+    nestedPass->add(makeUnique<CTexPassElement>(CTexPassElement::SRenderData{
+        .blur             = true,
+        .liveBlurOverride = false,
+    }));
+
+    CTransformedWindowPassElement transformed{CTransformedWindowPassElement::SData{.pass = std::move(nestedPass)}};
+    EXPECT_TRUE(transformed.needsPrecomputeBlur());
+}
+
+TEST(BackdropScopePlanner, TransformedWindowPreservesLiveBlurMode) {
+    CTransformedWindowPassElement transformed{CTransformedWindowPassElement::SData{
+        .blur         = true,
+        .blurUsesLive = true,
+    }};
+
+    EXPECT_TRUE(transformed.needsLiveBlur());
+    EXPECT_FALSE(transformed.needsPrecomputeBlur());
+}
+
+TEST(BackdropScopePlanner, TransformedWindowPreservesPrecomputedBlurMode) {
+    CTransformedWindowPassElement transformed{CTransformedWindowPassElement::SData{
+        .blur         = true,
+        .blurUsesLive = false,
+    }};
+
+    EXPECT_FALSE(transformed.needsLiveBlur());
+    EXPECT_TRUE(transformed.needsPrecomputeBlur());
+}

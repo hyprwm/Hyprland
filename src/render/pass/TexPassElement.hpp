@@ -48,6 +48,7 @@ class CTexPassElement : public IPassElement {
         std::optional<CBox>    blurPatternBox;
         std::optional<float>   ignoreAlpha;
         std::optional<bool>    blockBlurOptimization;
+        std::optional<bool>    liveBlurOverride;
         bool                   cmBackToSRGB = false;
 
         bool                   discardActive = false;

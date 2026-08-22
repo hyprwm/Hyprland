@@ -29,9 +29,13 @@ bool CTexPassElement::usesLiveBlur() {
     if (m_usesLiveBlur.has_value())
         return *m_usesLiveBlur;
 
-    m_usesLiveBlur = m_data.blur &&
-        (m_data.blockBlurOptimization.value_or(false) ||
-         !g_pHyprRenderer->shouldUseNewBlurOptimizations(m_data.currentLS.lock(), g_pHyprRenderer->m_renderData.currentWindow.lock()));
+    if (m_data.liveBlurOverride.has_value()) {
+        m_usesLiveBlur = m_data.blur && *m_data.liveBlurOverride;
+        return *m_usesLiveBlur;
+    }
+
+    m_usesLiveBlur =
+        m_data.blur && (m_data.blockBlurOptimization.value_or(false) || !g_pHyprRenderer->shouldUseNewBlurOptimizations(m_data.currentLS.lock(), m_data.blurOwner.lock()));
     return *m_usesLiveBlur;
 }
 

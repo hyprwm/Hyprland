@@ -13,6 +13,7 @@ namespace Render {
         bool    empty() const;
         bool    single() const;
         bool    needsLiveBlur();
+        bool    needsPrecomputeBlur();
 
         void    add(UP<IPassElement>&& elem);
         void    clear();

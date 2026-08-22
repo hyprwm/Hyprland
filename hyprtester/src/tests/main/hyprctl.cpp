@@ -14,7 +14,21 @@ using namespace Hyprutils::Memory;
 #define UP CUniquePointer
 #define SP CSharedPointer
 
-static std::string getCommandStdOut(std::string command) {
+static constexpr auto CONFIGURED_DESCRIPTION_VALUES = R"(
+    def matches($name; $default; $current):
+        ([.[] | select(.name == $name)] |
+            length == 1 and
+            .[0].default == $default and
+            .[0].current == $current);
+
+    matches("general:border_size"; 1; 2) and
+    matches("general:snap:enabled"; false; true) and
+    matches("decoration:rounding"; 0; 10) and
+    matches("master:new_status"; "slave"; "master") and
+    matches("scrolling:follow_min_visible"; 0.4; 1)
+)";
+
+static std::string    getCommandStdOut(std::string command) {
     CProcess process("bash", {"-c", command});
     process.addEnv("HYPRLAND_INSTANCE_SIGNATURE", HIS);
     process.runSync();
@@ -23,6 +37,13 @@ static std::string getCommandStdOut(std::string command) {
 
     // Remove trailing new line
     return stdOut.substr(0, stdOut.length() - 1);
+}
+
+static bool descriptionsMatch(const std::string& filter) {
+    CProcess jqProc("bash", {"-c", std::format("hyprctl descriptions | jq -e '{}'", filter)});
+    jqProc.addEnv("HYPRLAND_INSTANCE_SIGNATURE", HIS);
+    jqProc.runSync();
+    return jqProc.exitCode() == 0;
 }
 
 static void setWindowProp(const std::string& selector, const std::string& prop, const std::string& value) {
@@ -160,10 +181,31 @@ TEST_CASE(hyprctlSubmap) {
 }
 
 TEST_CASE(hyprctlJsonErrors) {
-    CProcess jqProc("bash", {"-c", "hyprctl descriptions | jq"});
-    jqProc.addEnv("HYPRLAND_INSTANCE_SIGNATURE", HIS);
-    jqProc.runSync();
-    EXPECT(jqProc.exitCode(), 0);
+    EXPECT(descriptionsMatch(R"(type == "array")"), true);
+}
+
+TEST_CASE(hyprctlDescriptionsCurrentValues) {
+    EXPECT(descriptionsMatch(CONFIGURED_DESCRIPTION_VALUES), true);
+
+    OK(getFromSocket(
+        "/eval hl.config({ general = { border_size = 7, snap = { enabled = false } }, master = { new_status = 'inherit' }, scrolling = { follow_min_visible = 0.625 } })"));
+
+    EXPECT(descriptionsMatch(R"(
+        def matches($name; $default; $current):
+            ([.[] | select(.name == $name)] |
+                length == 1 and
+                .[0].default == $default and
+                .[0].current == $current);
+
+        matches("general:border_size"; 1; 7) and
+        matches("general:snap:enabled"; false; false) and
+        matches("master:new_status"; "slave"; "inherit") and
+        matches("scrolling:follow_min_visible"; 0.4; 0.625)
+    )"),
+           true);
+
+    OK(getFromSocket("/reload"));
+    EXPECT(descriptionsMatch(CONFIGURED_DESCRIPTION_VALUES), true);
 }
 
 TEST_CASE(hyprctlBindsJson) {

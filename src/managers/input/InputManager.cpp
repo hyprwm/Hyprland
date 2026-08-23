@@ -765,7 +765,7 @@ void CInputManager::onMouseButton(IPointer::SButtonEvent e, SP<IPointer> mouse) 
     }
 
     switch (m_clickBehavior) {
-        case CLICKMODE_DEFAULT: processMouseDownNormal(e, mouse); break;
+        case CLICKMODE_DEFAULT: processMouseDownNormal(e, mouse); break; // here
         case CLICKMODE_KILL: processMouseDownKill(e); break;
         default: break;
     }

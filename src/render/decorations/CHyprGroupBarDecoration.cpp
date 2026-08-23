@@ -482,7 +482,7 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPo
     const auto STACKPAD = *PSTACKED && (BARRELATIVEY - (m_barHeight + *POUTERGAP) * WINDOWINDEX < *POUTERGAP);
     if (TABPAD || STACKPAD) {
         if (!Desktop::focusState()->isWindowActive(m_window.lock()))
-            Desktop::focusState()->rawWindowFocus(m_window.lock(), Desktop::FOCUS_REASON_CLICK);
+            Desktop::focusState()->rawWindowFocus(m_window.lock(), e.state == WL_POINTER_BUTTON_STATE_PRESSED ? Desktop::FOCUS_REASON_CLICK_DOWN : Desktop::FOCUS_REASON_CLICK_UP);
         return true;
     }
 
@@ -495,7 +495,7 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPo
         pWindow->grouping().group()->setCurrent(pWindow);
 
     if (!Desktop::focusState()->isWindowActive(pWindow) && *PFOLLOWMOUSE != 3)
-        Desktop::focusState()->rawWindowFocus(pWindow, Desktop::FOCUS_REASON_CLICK);
+        Desktop::focusState()->rawWindowFocus(pWindow, e.state == WL_POINTER_BUTTON_STATE_PRESSED ? Desktop::FOCUS_REASON_CLICK_DOWN : Desktop::FOCUS_REASON_CLICK_UP);
 
     if (pWindow->isFloating())
         Desktop::windowState()->raise(pWindow);

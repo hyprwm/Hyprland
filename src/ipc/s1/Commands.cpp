@@ -529,17 +529,15 @@ static std::string getWorkspaceRuleData(const Config::CWorkspaceRule& r, eHyprCt
         const std::string rounding    = sc<bool>(r.m_noRounding) ? std::format(",\n    \"rounding\": {}", boolToString(!r.m_noRounding.value())) : "";
         const std::string decorate    = sc<bool>(r.m_decorate) ? std::format(",\n    \"decorate\": {}", boolToString(r.m_decorate.value())) : "";
         const std::string shadow      = sc<bool>(r.m_noShadow) ? std::format(",\n    \"shadow\": {}", boolToString(!r.m_noShadow.value())) : "";
-        const std::string glow        = sc<bool>(r.m_noGlow) ? std::format(",\n    \"glow\": {}", boolToString(!r.m_noGlow.value())) : "";
-        const std::string wobble      = sc<bool>(r.m_noWobble) ? std::format(",\n    \"wobble\": {}", boolToString(!r.m_noWobble.value())) : "";
         const std::string defaultName = r.m_defaultName.has_value() ? std::format(",\n    \"defaultName\": \"{}\"", escapeJSONStrings(r.m_defaultName.value())) : "";
         const std::string onCreatedEmpty =
             r.m_onCreatedEmptyRunCmd.has_value() ? std::format(",\n    \"onCreatedEmpty\": \"{}\"", escapeJSONStrings(r.m_onCreatedEmptyRunCmd.value())) : "";
 
         std::string result = std::format(R"#({{
-    "workspaceString": "{}"{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}
+    "workspaceString": "{}"{}{}{}{}{}{}{}{}{}{}{}{}{}
 }})#",
                                          escapeJSONStrings(r.m_workspaceString), enabled, monitor, default_, persistent, gapsIn, gapsOut, borderSize, border, rounding, decorate,
-                                         shadow, glow, wobble, defaultName, onCreatedEmpty);
+                                         shadow, defaultName, onCreatedEmpty);
 
         return result;
     } else {
@@ -560,13 +558,11 @@ static std::string getWorkspaceRuleData(const Config::CWorkspaceRule& r, eHyprCt
         const std::string rounding       = std::format("\trounding: {}\n", sc<bool>(r.m_noRounding) ? boolToString(!r.m_noRounding.value()) : "<unset>");
         const std::string decorate       = std::format("\tdecorate: {}\n", sc<bool>(r.m_decorate) ? boolToString(r.m_decorate.value()) : "<unset>");
         const std::string shadow         = std::format("\tshadow: {}\n", sc<bool>(r.m_noShadow) ? boolToString(!r.m_noShadow.value()) : "<unset>");
-        const std::string glow           = std::format("\tglow: {}\n", sc<bool>(r.m_noGlow) ? boolToString(!r.m_noGlow.value()) : "<unset>");
-        const std::string wobble         = std::format("\twobble: {}\n", sc<bool>(r.m_noWobble) ? boolToString(!r.m_noWobble.value()) : "<unset>");
         const std::string defaultName    = std::format("\tdefaultName: {}\n", r.m_defaultName.value_or("<unset>"));
         const std::string onCreatedEmpty = std::format("\tonCreatedEmpty: {}\n", r.m_onCreatedEmptyRunCmd.value_or("<unset>"));
 
-        std::string result = std::format("Workspace rule {}:\n{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.m_workspaceString), enabled, monitor, default_, persistent,
-                                         gapsIn, gapsOut, borderSize, border, rounding, decorate, shadow, glow, wobble, defaultName, onCreatedEmpty);
+        std::string result = std::format("Workspace rule {}:\n{}{}{}{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.m_workspaceString), enabled, monitor, default_, persistent, gapsIn,
+                                         gapsOut, borderSize, border, rounding, decorate, shadow, defaultName, onCreatedEmpty);
 
         return result;
     }

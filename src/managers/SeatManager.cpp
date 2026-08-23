@@ -178,6 +178,10 @@ void CSeatManager::updateActiveKeyboardData() {
         PROTO::seat->updateRepeatInfo(m_keyboard->m_repeatRate, m_keyboard->m_repeatDelay);
     PROTO::seat->updateKeymap();
     PROTO::inputCapture->updateKeymap();
+
+    // wl_keyboard.keymap resets the client's xkb state: follow up with current mods
+    if (m_keyboard)
+        sendKeyboardMods(m_keyboard->m_modifiersState.depressed, m_keyboard->m_modifiersState.latched, m_keyboard->m_modifiersState.locked, m_keyboard->m_modifiersState.group);
 }
 
 void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {

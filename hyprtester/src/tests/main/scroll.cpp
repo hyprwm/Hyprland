@@ -1183,7 +1183,23 @@ TEST_CASE(scroll_LAYOUT_HANDLED_layerVisibilityOnFs) {
 
     static constexpr const char* LAYER_NAMESPACE = "bar-like-layer";
 
-    const auto                   spawnLayerAndWaitTillSuccess_TOP = [&]() {
+    const auto                   waitUntilLayerAlphaSetCorrectly = [&](std::string_view str, int alpha) {
+        int counter = 0;
+        while (!str.contains(std::format("a: {}", alpha))) {
+            counter++;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+            if (counter > 50) {
+                std::println("{}Timed out waiting for layer to get correct alpha value!", Colors::RED);
+                // will just fail anyway. Instead of extracting fail logic from test templates i'll just piggyback off this
+                EXPECT_CONTAINS(str, std::format("a: {}", alpha));
+                return;
+            }
+        }
+        EXPECT_CONTAINS(str, std::format("a: {}", alpha));
+    };
+
+    const auto spawnLayerAndWaitTillSuccess_TOP = [&]() {
         ASSERT(spawnLayer(LAYER_NAMESPACE, {"--edge=top", "--layer=top", "--lines=48px", "--focus-policy=not-allowed"}), true);
         Tests::waitUntilLayersN(1);
     };
@@ -1211,7 +1227,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_layerVisibilityOnFs) {
     {
 
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
-        EXPECT_CONTAINS(str, "a: 1")
+        waitUntilLayerAlphaSetCorrectly(str, 1);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 1");
     }
 
@@ -1219,7 +1235,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_layerVisibilityOnFs) {
 
     {
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
-        EXPECT_CONTAINS(str, "a: 1")
+        waitUntilLayerAlphaSetCorrectly(str, 1);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 0");
     }
 
@@ -1227,7 +1243,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_layerVisibilityOnFs) {
 
     {
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
-        EXPECT_CONTAINS(str, "a: 0")
+        waitUntilLayerAlphaSetCorrectly(str, 0);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 2");
     }
 
@@ -1235,7 +1251,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_layerVisibilityOnFs) {
 
     {
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
-        EXPECT_CONTAINS(str, "a: 1")
+        waitUntilLayerAlphaSetCorrectly(str, 1);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 0");
     }
 
@@ -1252,14 +1268,14 @@ TEST_CASE(scroll_LAYOUT_HANDLED_layerVisibilityOnFs) {
     {
 
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
-        EXPECT_CONTAINS(str, "a: 1")
+        waitUntilLayerAlphaSetCorrectly(str, 1);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 1");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', action = 'unset', window = 'class:cat' })"));
     {
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
-        EXPECT_CONTAINS(str, "a: 1")
+        waitUntilLayerAlphaSetCorrectly(str, 1);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 0");
     }
 
@@ -1270,14 +1286,14 @@ TEST_CASE(scroll_LAYOUT_HANDLED_layerVisibilityOnFs) {
     spawnLayerAndWaitTillSuccess_TOP();
     {
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
-        EXPECT_CONTAINS(str, "a: 1")
+        waitUntilLayerAlphaSetCorrectly(str, 1);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 2");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'unset', window = 'class:cat' })"));
     {
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
-        EXPECT_CONTAINS(str, "a: 1")
+        waitUntilLayerAlphaSetCorrectly(str, 1);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 0");
     }
 
@@ -1292,14 +1308,14 @@ TEST_CASE(scroll_LAYOUT_HANDLED_layerVisibilityOnFs) {
     {
 
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
-        EXPECT_CONTAINS(str, "a: 1")
+        waitUntilLayerAlphaSetCorrectly(str, 1);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 1");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', action = 'unset', window = 'class:cat' })"));
     {
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
-        EXPECT_CONTAINS(str, "a: 1")
+        waitUntilLayerAlphaSetCorrectly(str, 1);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 0");
     }
 
@@ -1310,14 +1326,14 @@ TEST_CASE(scroll_LAYOUT_HANDLED_layerVisibilityOnFs) {
     spawnLayerAndWaitTillSuccess_TOP();
     {
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
-        EXPECT_CONTAINS(str, "a: 0")
+        waitUntilLayerAlphaSetCorrectly(str, 0);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 2");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'unset', window = 'class:cat' })"));
     {
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
-        EXPECT_CONTAINS(str, "a: 1")
+        waitUntilLayerAlphaSetCorrectly(str, 1);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 0");
     }
 
@@ -1332,7 +1348,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_layerVisibilityOnFs) {
 
     {
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
-        EXPECT_CONTAINS(str, "a: 1")
+        waitUntilLayerAlphaSetCorrectly(str, 1);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 0");
     }
 
@@ -1340,28 +1356,28 @@ TEST_CASE(scroll_LAYOUT_HANDLED_layerVisibilityOnFs) {
     {
 
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
-        EXPECT_CONTAINS(str, "a: 1")
+        waitUntilLayerAlphaSetCorrectly(str, 1);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 1");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', action = 'unset', window = 'class:cat' })"));
     {
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
-        EXPECT_CONTAINS(str, "a: 1")
+        waitUntilLayerAlphaSetCorrectly(str, 1);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 0");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set', window = 'class:cat' })"));
     {
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
-        EXPECT_CONTAINS(str, "a: 1")
+        waitUntilLayerAlphaSetCorrectly(str, 1);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 2");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'unset', window = 'class:cat' })"));
     {
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
-        EXPECT_CONTAINS(str, "a: 1")
+        waitUntilLayerAlphaSetCorrectly(str, 1);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 0");
     }
 
@@ -1375,14 +1391,14 @@ TEST_CASE(scroll_LAYOUT_HANDLED_layerVisibilityOnFs) {
     {
 
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
-        EXPECT_CONTAINS(str, "a: 1")
+        waitUntilLayerAlphaSetCorrectly(str, 1);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 1");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', action = 'unset', window = 'class:cat' })"));
     {
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
-        EXPECT_CONTAINS(str, "a: 1")
+        waitUntilLayerAlphaSetCorrectly(str, 1);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 0");
     }
 
@@ -1393,14 +1409,14 @@ TEST_CASE(scroll_LAYOUT_HANDLED_layerVisibilityOnFs) {
     spawnLayerAndWaitTillSuccess_OVERLAY();
     {
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
-        EXPECT_CONTAINS(str, "a: 1")
+        waitUntilLayerAlphaSetCorrectly(str, 1);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 2");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'unset', window = 'class:cat' })"));
     {
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
-        EXPECT_CONTAINS(str, "a: 1")
+        waitUntilLayerAlphaSetCorrectly(str, 1);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 0");
     }
 

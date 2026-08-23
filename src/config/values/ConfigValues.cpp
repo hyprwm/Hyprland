@@ -569,6 +569,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Bool>("misc:name_vk_after_proc", "Name virtual keyboards after the processes that create them.", true),
         MS<Bool>("misc:always_follow_on_dnd", "Will make mouse focus follow the mouse when drag and dropping.", true),
         MS<Bool>("misc:layers_hog_keyboard_focus", "If true, will make keyboard-interactive layers keep their focus on mouse move.", true),
+        MS<Bool>("misc.allow_new_top_layers_over_existing_fullscreen", "If true, allows new top layers to go over a fullscreen window.", true),
         MS<Bool>("misc:animate_manual_resizes", "If true, will animate manual window resizes/moves", false),
         MS<Bool>("misc:animate_mouse_windowdragging", "If true, will animate windows being dragged by mouse.", false),
         MS<Bool>("misc:disable_autoreload", "If true, the config will not reload automatically on save.", false, {.refresh = Supplementary::REFRESH_CONFIG_WATCHER}),

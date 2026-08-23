@@ -841,7 +841,7 @@ void CWindow::requestClientFullscreen(const SClientFullscreenRequest& request) {
             if (monitor) {
                 requestedMonitor = monitor->m_id;
                 if (m_isMapped) {
-                    Desktop::globalWindowController()->moveWindowToWorkspace(m_self.lock(), monitor->m_activeWorkspace);
+                    Desktop::globalWindowController()->moveWindowToWorkspace(m_self.lock(), monitor->getCurrentWorkspace());
                     Desktop::focusState()->rawMonitorFocus(monitor);
                 }
             }

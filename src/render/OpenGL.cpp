@@ -1925,6 +1925,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
             protocolBlur.intersect(CBox{0, 0, box.width, box.height});
             protocolBlur.scale(m_renderData.pMonitor->m_scale);
             protocolBlur.translate(box.pos());
+            m_renderData.renderModif.applyToRegion(protocolBlur);
             if (blurClipRegion.empty())
                 blurClipRegion = protocolBlur;
             else

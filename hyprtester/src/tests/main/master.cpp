@@ -915,20 +915,19 @@ TEST_CASE(masterCenterDropAtCursor) {
 
 // In a non-centered master layout with three windows w1/w2/w3, return their
 // classes ordered: { master, top slave, bottom slave }.
-static std::array<std::string, 3> detectTripleArrangement(const std::array<std::string, 3> &classes) {
+static std::array<std::string, 3> detectTripleArrangement(const std::array<std::string, 3>& classes) {
     std::vector<std::pair<std::pair<int, int>, std::string>> wins;
     for (auto const& cls : classes) {
         getFromSocket(std::format("/dispatch hl.dsp.focus({{ window = 'class:{}' }})", cls));
-        const auto at = Tests::getAttribute(getFromSocket("/activewindow"), "at");
+        const auto at    = Tests::getAttribute(getFromSocket("/activewindow"), "at");
         const auto comma = at.find(',');
-        const auto x = std::stoi(at.substr(0, comma));
-        const auto y = std::stoi(at.substr(comma + 1));
+        const auto x     = std::stoi(at.substr(0, comma));
+        const auto y     = std::stoi(at.substr(comma + 1));
         wins.emplace_back(std::pair(x, y), cls);
     }
-    std::ranges::sort(wins,
-            [&](std::pair<int, int> w1, std::pair<int, int> w2){ return (w1.first < w2.first) || (w1.second < w2.second); },
-            &std::pair<std::pair<int, int>, std::string>::first);
-    NLog::log("{}DEBUG: Window list is {},{},{}", Colors::BLUE, wins[0], wins[1], wins[2]);
+    std::ranges::sort(
+        wins, [&](std::pair<int, int> w1, std::pair<int, int> w2) { return (w1.first < w2.first) || (w1.second < w2.second); },
+        &std::pair<std::pair<int, int>, std::string>::first);
     return {wins[0].second, wins[1].second, wins[2].second};
 }
 
@@ -948,14 +947,13 @@ SUBTEST(expectTripleDragSwap, const uint pick, const uint place, const uint exp1
     Tests::waitUntilWindowsN(3);
 
     const auto INITIAL = detectTripleArrangement(CLASSES);
-
-    double DROPX, DROPY;
+    double     DROPX, DROPY;
     {
         getFromSocket(std::format("/dispatch hl.dsp.focus({{ window = 'class:{}' }})", INITIAL[place - 1]));
-        const auto at = Tests::getAttribute(getFromSocket("/activewindow"), "at");
+        const auto at    = Tests::getAttribute(getFromSocket("/activewindow"), "at");
         const auto comma = at.find(',');
-        DROPX = std::stoi(at.substr(0, comma));
-        DROPY = std::stoi(at.substr(comma + 1));
+        DROPX            = std::stoi(at.substr(0, comma));
+        DROPY            = std::stoi(at.substr(comma + 1));
     }
 
     NLog::log("{}Dragging window {} and dropping it in position {} ({},{})", Colors::YELLOW, pick, place, DROPX, DROPY);

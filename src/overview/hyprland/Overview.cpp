@@ -55,35 +55,6 @@ COverview::~COverview() {
 }
 
 void COverview::installListeners() {
-    m_listeners.keyboardKey = Event::bus()->m_events.input.keyboard.key.listen([this](const IKeyboard::SKeyEvent& event, SP<IKeyboard> keyboard, Event::SCallbackInfo& info) {
-        const auto INTERCEPTED = [&] {
-            return std::ranges::find_if(m_interceptedKeys, [&event, &keyboard](const auto& key) { return key.first == keyboard && key.second == event.keycode; });
-        };
-
-        if (event.state == WL_KEYBOARD_KEY_STATE_RELEASED) {
-            const auto IT = INTERCEPTED();
-            if (IT == m_interceptedKeys.end())
-                return;
-
-            m_interceptedKeys.erase(IT);
-            stopKeyRepeat(event.keycode);
-            info.cancelled = true;
-            return;
-        }
-
-        if (!m_isOpen || !keyboard || !keyboard->m_xkbState)
-            return;
-
-        if (!handleSearchKey(event.keycode, keyboard))
-            return;
-
-        info.cancelled = true;
-        if (INTERCEPTED() == m_interceptedKeys.end())
-            m_interceptedKeys.emplace_back(keyboard, event.keycode);
-        if (m_isOpen)
-            startKeyRepeat(event.keycode, keyboard);
-    });
-
     m_listeners.monitorDisconnect  = m_monitor->m_events.disconnect.listen([this] { closeImmediately(); });
     m_listeners.monitorModeChanged = m_monitor->m_events.modeChanged.listen([this] { closeImmediately(); });
     m_listeners.monitorPreRender   = Event::bus()->m_events.render.preChecks.listen([this](PHLMONITOR monitor) {
@@ -163,6 +134,19 @@ void COverview::installListeners() {
         resetDragHover();
         updatePointerState();
     });
+}
+
+void COverview::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboard> keyboard) {
+    if (event.state == WL_KEYBOARD_KEY_STATE_RELEASED) {
+        stopKeyRepeat(event.keycode, keyboard);
+        return;
+    }
+
+    if (!m_isOpen || !keyboard || !keyboard->m_xkbState || !handleSearchKey(event.keycode, keyboard))
+        return;
+
+    if (m_isOpen)
+        startKeyRepeat(event.keycode, keyboard);
 }
 
 void COverview::updatePointerState() {
@@ -295,8 +279,8 @@ void COverview::startKeyRepeat(uint32_t keycode, SP<IKeyboard> keyboard) {
     m_keyRepeat.timer->updateTimeout(std::chrono::milliseconds(std::max(0, keyboard->m_repeatDelay)));
 }
 
-void COverview::stopKeyRepeat(uint32_t keycode) {
-    if (!m_keyRepeat.timer || m_keyRepeat.keycode != keycode)
+void COverview::stopKeyRepeat(uint32_t keycode, SP<IKeyboard> keyboard) {
+    if (!m_keyRepeat.timer || m_keyRepeat.keycode != keycode || (keyboard && m_keyRepeat.keyboard != keyboard))
         return;
 
     m_keyRepeat.timer->updateTimeout(std::nullopt);
@@ -492,6 +476,8 @@ bool COverview::prepareOpen(PHLMONITOR monitor, bool& newScene) {
         m_progress->setValueAndWarp(0.F);
 
         installListeners();
+        m_keyboardEventHandler = dynamicPointerCast<IKeyboardEventHandler>(WP<IOverview>(Overview::overview()));
+        g_pSeatManager->m_keyboardEventHandlers.push(m_keyboardEventHandler);
     }
 
     updatePointerState();
@@ -705,8 +691,10 @@ void COverview::finishClose(bool emitEvent) {
     updatePointerState();
     resetDragHover();
     stopKeyRepeat(m_keyRepeat.keycode);
+    if (g_pSeatManager)
+        g_pSeatManager->m_keyboardEventHandlers.remove(m_keyboardEventHandler);
+    m_keyboardEventHandler.reset();
     m_listeners = {};
-    m_interceptedKeys.clear();
     m_interceptedButtons.clear();
 
     if (g_layoutManager)

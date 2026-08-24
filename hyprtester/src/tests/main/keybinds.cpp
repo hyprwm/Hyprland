@@ -832,6 +832,37 @@ TEST_CASE(keybinds) {
     CALL_SUBTEST(unbind);
 }
 
+TEST_CASE(overviewKeyboardRouting) {
+    clearFlag();
+
+    OK(getFromSocket("/eval hl.workspace_rule({ workspace = 'name:y', persistent = true }); "
+                     "hl.workspace_rule({ workspace = 'name:overview-source', persistent = true })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:y' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:overview-source' })"));
+
+    EXPECT(getFromSocket(std::format("/eval hl.bind('Y', hl.dsp.exec_cmd('touch {}'))", flagFile)), "ok");
+    OK(getFromSocket("/dispatch hl.dsp.overview.toggle()"));
+    OK(getFromSocket(pluginKeybindCmd(true, 0, 29)));
+    OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
+    EXPECT(attemptCheckFlag(20, 50), true);
+    OK(getFromSocket("/dispatch hl.dsp.overview.toggle()"));
+    EXPECT(getFromSocket("/eval hl.unbind('Y')"), "ok");
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    EXPECT(getFromSocket(std::format("/eval hl.bind('Y', hl.dsp.exec_cmd('touch {}'), {{ non_consuming = true }})", flagFile)), "ok");
+    OK(getFromSocket("/dispatch hl.dsp.overview.toggle()"));
+    OK(getFromSocket(pluginKeybindCmd(true, 0, 29)));
+    OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
+    EXPECT(attemptCheckFlag(20, 50), true);
+    OK(getFromSocket(pluginKeybindCmd(true, 0, 36)));
+    OK(getFromSocket(pluginKeybindCmd(false, 0, 36)));
+    EXPECT_CONTAINS(getFromSocket("/activeworkspace"), "(y)");
+    EXPECT(getFromSocket("/eval hl.unbind('Y')"), "ok");
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:overview-source' })"));
+}
+
 TEST_CASE(unorderedSubChordDeferral) {
     constexpr uint32_t X = KEY_X + 8;
     constexpr uint32_t D = KEY_D + 8;

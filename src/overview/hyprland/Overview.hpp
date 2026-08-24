@@ -2,6 +2,7 @@
 
 #include "../Overview.hpp"
 #include "../../helpers/AnimatedVariable.hpp"
+#include "../../managers/SeatManager.hpp"
 #include "../../managers/eventLoop/EventLoopTimer.hpp"
 
 #include <utility>
@@ -16,13 +17,12 @@ namespace Layout {
 namespace Pointer {
     class CPointerTransformer;
 }
-class IKeyboard;
 struct SEventLoopDoLaterLock;
 
 namespace Overview::Hyprland {
     class COverviewScene;
 
-    class COverview : public Overview::IOverview, public Overview::IOverviewGestureOpenable, public Overview::IOverviewGestureMovable {
+    class COverview : public Overview::IOverview, public Overview::IOverviewGestureOpenable, public Overview::IOverviewGestureMovable, public IKeyboardEventHandler {
       public:
         COverview();
         virtual ~COverview() override;
@@ -38,6 +38,7 @@ namespace Overview::Hyprland {
         virtual bool         beginMoveGesture() override;
         virtual void         updateMoveGesture(float Δ) override;
         virtual void         endMoveGesture() override;
+        virtual void         onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboard> keyboard) override;
 
         SP<COverviewScene>   scene() const;
 
@@ -56,7 +57,7 @@ namespace Overview::Hyprland {
         void                             resetDragHover();
         bool                             handleSearchKey(uint32_t keycode, SP<IKeyboard> keyboard, bool repeat = false);
         void                             startKeyRepeat(uint32_t keycode, SP<IKeyboard> keyboard);
-        void                             stopKeyRepeat(uint32_t keycode);
+        void                             stopKeyRepeat(uint32_t keycode, SP<IKeyboard> keyboard = nullptr);
 
         bool                             m_isOpen            = false;
         bool                             m_sceneInstalled    = false;
@@ -78,7 +79,6 @@ namespace Overview::Hyprland {
             CHyprSignalListener mouseButton;
             CHyprSignalListener mouseMove;
             CHyprSignalListener sessionLock;
-            CHyprSignalListener keyboardKey;
             CHyprSignalListener dragMotion;
             CHyprSignalListener dragEnded;
         } m_listeners;
@@ -103,13 +103,14 @@ namespace Overview::Hyprland {
             SP<CEventLoopTimer> timer;
         } m_keyRepeat;
 
+        WP<IKeyboardEventHandler> m_keyboardEventHandler;
+
         enum class eInputMode : uint8_t {
             NAVIGATION,
             TEXT
         } m_inputMode = COverview::eInputMode::NAVIGATION;
 
-        std::vector<std::pair<WP<IKeyboard>, uint32_t>> m_interceptedKeys;
-        std::vector<uint32_t>                           m_interceptedButtons;
+        std::vector<uint32_t> m_interceptedButtons;
 
         friend class COverviewScene;
     };

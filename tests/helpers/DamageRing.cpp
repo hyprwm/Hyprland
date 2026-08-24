@@ -2,6 +2,9 @@
 
 #include <gtest/gtest.h>
 
+#include <type_traits>
+#include <utility>
+
 using namespace Monitor;
 
 // --- setSize ---
@@ -331,5 +334,132 @@ TEST(DamageRing, hasChangedFalseAfterDamageOutsideBounds) {
     // Damage entirely outside the screen must not change state
     CRegion outside(500, 500, 10, 10);
     ring.damage(outside);
+    EXPECT_FALSE(ring.hasChanged());
+}
+
+// --- transactions ---
+
+TEST(DamageRing, transactionCapturesCurrentAndAllowsNewDamage) {
+    CDamageRing ring;
+    ring.setSize({100, 100});
+    ring.rotate();
+
+    ring.damage(CBox{10, 10, 10, 10});
+    auto transaction = ring.beginTransaction();
+
+    EXPECT_FALSE(ring.hasChanged());
+    EXPECT_TRUE(transaction.getBufferDamage(1).containsPoint({15, 15}));
+
+    ring.damage(CBox{40, 40, 10, 10});
+    EXPECT_TRUE(ring.hasChanged());
+    EXPECT_FALSE(transaction.getBufferDamage(1).containsPoint({45, 45}));
+    EXPECT_TRUE(ring.getBufferDamage(1).containsPoint({45, 45}));
+}
+
+TEST(DamageRing, transactionBufferDamageIncludesHistory) {
+    CDamageRing ring;
+    ring.setSize({100, 100});
+    ring.rotate();
+
+    ring.damage(CBox{10, 10, 10, 10});
+    ring.rotate();
+    ring.damage(CBox{40, 40, 10, 10});
+
+    auto    transaction = ring.beginTransaction();
+    CRegion damage      = transaction.getBufferDamage(2);
+    EXPECT_TRUE(damage.containsPoint({15, 15}));
+    EXPECT_TRUE(damage.containsPoint({45, 45}));
+}
+
+TEST(DamageRing, transactionCommitPreservesNewDamage) {
+    CDamageRing ring;
+    ring.setSize({100, 100});
+    ring.rotate();
+
+    ring.damage(CBox{10, 10, 10, 10});
+    auto transaction = ring.beginTransaction();
+    ring.damage(CBox{40, 40, 10, 10});
+    transaction.commit();
+
+    CRegion current = ring.getBufferDamage(1);
+    EXPECT_FALSE(current.containsPoint({15, 15}));
+    EXPECT_TRUE(current.containsPoint({45, 45}));
+
+    CRegion withHistory = ring.getBufferDamage(2);
+    EXPECT_TRUE(withHistory.containsPoint({15, 15}));
+    EXPECT_TRUE(withHistory.containsPoint({45, 45}));
+}
+
+TEST(DamageRing, transactionCommitFinalizesOnlyOnce) {
+    CDamageRing ring;
+    ring.setSize({100, 100});
+
+    for (int i = 0; i < DAMAGE_RING_PREVIOUS_LEN + 1; ++i)
+        ring.rotate();
+
+    ring.damage(CBox{10, 10, 10, 10});
+    ring.rotate();
+    ring.damage(CBox{30, 30, 10, 10});
+    ring.rotate();
+    ring.damage(CBox{50, 50, 10, 10});
+
+    auto transaction = ring.beginTransaction();
+    transaction.commit();
+    transaction.commit();
+
+    CRegion history = ring.getBufferDamage(DAMAGE_RING_PREVIOUS_LEN + 1);
+    EXPECT_TRUE(history.containsPoint({15, 15}));
+    EXPECT_TRUE(history.containsPoint({35, 35}));
+    EXPECT_TRUE(history.containsPoint({55, 55}));
+}
+
+TEST(DamageRing, transactionRollbackMergesCapturedAndNewDamage) {
+    CDamageRing ring;
+    ring.setSize({100, 100});
+    ring.rotate();
+
+    ring.damage(CBox{10, 10, 10, 10});
+    auto transaction = ring.beginTransaction();
+    ring.damage(CBox{40, 40, 10, 10});
+    transaction.rollback();
+    transaction.rollback();
+
+    CRegion damage = ring.getBufferDamage(1);
+    EXPECT_TRUE(damage.containsPoint({15, 15}));
+    EXPECT_TRUE(damage.containsPoint({45, 45}));
+}
+
+TEST(DamageRing, transactionRollsBackOnDestruction) {
+    CDamageRing ring;
+    ring.setSize({100, 100});
+    ring.rotate();
+    ring.damage(CBox{10, 10, 10, 10});
+
+    {
+        auto transaction = ring.beginTransaction();
+        ring.damage(CBox{40, 40, 10, 10});
+    }
+
+    CRegion damage = ring.getBufferDamage(1);
+    EXPECT_TRUE(damage.containsPoint({15, 15}));
+    EXPECT_TRUE(damage.containsPoint({45, 45}));
+}
+
+TEST(DamageRing, transactionMoveTransfersFinalization) {
+    static_assert(!std::is_copy_constructible_v<CDamageRing::CTransaction>);
+    static_assert(!std::is_copy_assignable_v<CDamageRing::CTransaction>);
+    static_assert(std::is_move_constructible_v<CDamageRing::CTransaction>);
+    static_assert(std::is_move_assignable_v<CDamageRing::CTransaction>);
+
+    CDamageRing ring;
+    ring.setSize({100, 100});
+    ring.rotate();
+    ring.damage(CBox{10, 10, 10, 10});
+
+    auto transaction = ring.beginTransaction();
+    auto moved       = std::move(transaction);
+    moved.commit();
+
+    EXPECT_TRUE(ring.getBufferDamage(2).containsPoint({15, 15}));
     EXPECT_FALSE(ring.hasChanged());
 }

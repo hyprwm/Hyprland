@@ -19,6 +19,12 @@ void CQueuedPresentationData::attachMonitor(PHLMONITOR pMonitor_) {
     m_monitor = pMonitor_;
 }
 
+void CQueuedPresentationData::setCommitInfo(uint64_t commitID, bool tearing, bool vrr) {
+    m_commitID = commitID;
+    m_tearing  = tearing;
+    m_vrr      = vrr;
+}
+
 void CQueuedPresentationData::presented() {
     m_wasPresented = true;
 }
@@ -54,7 +60,7 @@ void CPresentationFeedback::sendQueued(WP<CQueuedPresentationData> data, const t
 
     if (data->m_wasPresented) {
         uint32_t flags = 0;
-        if (!data->m_monitor->m_tearingState.activelyTearing)
+        if (!data->m_tearing)
             flags |= WP_PRESENTATION_FEEDBACK_KIND_VSYNC;
         if (data->m_zeroCopy)
             flags |= WP_PRESENTATION_FEEDBACK_KIND_ZERO_COPY;
@@ -67,7 +73,7 @@ void CPresentationFeedback::sendQueued(WP<CQueuedPresentationData> data, const t
         if (sizeof(time_t) > 4)
             tv_sec = when.tv_sec >> 32;
 
-        uint32_t refreshNs = m_resource->version() == 1 && data->m_monitor->m_vrrActive && data->m_monitor->m_output->vrrCapable ? 0 : untilRefreshNs;
+        uint32_t refreshNs = m_resource->version() == 1 && data->m_vrr && data->m_monitor->m_output->vrrCapable ? 0 : untilRefreshNs;
 
         m_resource->sendPresented(sc<uint32_t>(tv_sec), sc<uint32_t>(when.tv_sec & 0xFFFFFFFF), sc<uint32_t>(when.tv_nsec), refreshNs, sc<uint32_t>(seq >> 32),
                                   sc<uint32_t>(seq & 0xFFFFFFFF), sc<wpPresentationFeedbackKind>(flags));
@@ -131,7 +137,8 @@ void CPresentationProtocol::onGetFeedback(CWpPresentation* pMgr, wl_resource* su
     }
 }
 
-void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, const timespec& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags) {
+void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, const timespec& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags, uint64_t commitID,
+                                        bool presented) {
     for (auto const& data : m_queue) {
         if (!data->m_surface || !data->m_monitor) {
             discardFeedbacks(data->m_feedbacks);
@@ -140,6 +147,12 @@ void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, const timespec& whe
 
         if (data->m_monitor != pMonitor)
             continue;
+
+        if (data->m_commitID && *data->m_commitID != commitID)
+            continue;
+
+        if (!presented)
+            data->discarded();
 
         for (auto const& feedback : data->m_feedbacks) {
             if (!feedback || feedback->m_done)
@@ -164,11 +177,46 @@ void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, const timespec& whe
     }
 
     std::erase_if(m_feedbacks, [](const auto& other) { return !other->m_surface || other->m_done; });
-    std::erase_if(m_queue, [pMonitor](const auto& other) { return !other->m_surface || other->m_monitor == pMonitor || !other->m_monitor; });
+    std::erase_if(m_queue, [pMonitor, commitID](const auto& other) {
+        return !other->m_surface || (other->m_monitor == pMonitor && (!other->m_commitID || *other->m_commitID == commitID)) || !other->m_monitor;
+    });
 }
 
 void CPresentationProtocol::queueData(UP<CQueuedPresentationData>&& data) {
     m_queue.emplace_back(std::move(data));
+}
+
+void CPresentationProtocol::tagQueued(PHLMONITOR monitor, uint64_t commitID, bool tearing, bool vrr) {
+    for (const auto& data : m_queue) {
+        if (!data->m_surface || data->m_monitor != monitor || data->m_commitID.has_value())
+            continue;
+
+        data->setCommitInfo(commitID, tearing, vrr);
+    }
+}
+
+void CPresentationProtocol::discardQueued(PHLMONITOR monitor, uint64_t commitID) {
+    for (const auto& data : m_queue) {
+        if (!data->m_surface || data->m_monitor != monitor || !data->m_commitID || *data->m_commitID != commitID)
+            continue;
+
+        discardFeedbacks(data->m_feedbacks);
+    }
+
+    std::erase_if(m_queue, [monitor, commitID](const auto& data) {
+        return !data->m_surface || (data->m_monitor == monitor && data->m_commitID && *data->m_commitID == commitID) || !data->m_monitor;
+    });
+}
+
+void CPresentationProtocol::discardUntagged(PHLMONITOR monitor) {
+    for (const auto& data : m_queue) {
+        if (!data->m_surface || data->m_monitor != monitor || data->m_commitID)
+            continue;
+
+        discardFeedbacks(data->m_feedbacks);
+    }
+
+    std::erase_if(m_queue, [monitor](const auto& data) { return !data->m_surface || (data->m_monitor == monitor && !data->m_commitID) || !data->m_monitor; });
 }
 
 void CPresentationProtocol::discardFeedbacks(std::vector<WP<CPresentationFeedback>>& feedbacks) {

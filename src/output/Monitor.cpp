@@ -51,6 +51,7 @@
 #include "../event/EventBus.hpp"
 #include "../helpers/Drm.hpp"
 #include "MonitorFrameScheduler.hpp"
+#include "OutputCommitCoordinator.hpp"
 #include <aquamarine/output/Output.hpp>
 #include "debug/log/Logger.hpp"
 #include "notification/NotificationOverlay.hpp"
@@ -109,6 +110,8 @@ CMonitor::~CMonitor() {
 }
 
 void CMonitor::onConnect(bool noRule) {
+    m_commitCoordinator = makeUnique<COutputCommitCoordinator>(this);
+
     Event::bus()->m_events.monitor.preAdded.emit(m_self.lock());
     CScopeGuard x = {[]() { State::monitorLayoutController()->arrange(); }};
 
@@ -122,20 +125,45 @@ void CMonitor::onConnect(bool noRule) {
             [](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { State::workspacePlacementController()->moveWorkspaceToMonitor(ws, mon, noWarp); });
     });
 
-    m_listeners.frame      = m_output->events.frame.listen([this] {
+    m_listeners.frame        = m_output->events.frame.listen([this] {
         if (m_frameScheduler)
             m_frameScheduler->onFrame();
     });
-    m_listeners.commit     = m_output->events.commit.listen([this] {
-        m_events.commit.emit();
+    m_listeners.commit       = m_output->events.commit.listen([this] {
+        if (m_commitCoordinator && !m_commitCoordinator->shouldForwardCommitEvent())
+            return;
 
-        // FIXME: E->state->committed & WLR_OUTPUT_STATE_BUFFER
-        if (true && Screenshare::mgr())
-            Screenshare::mgr()->onOutputCommit(m_self.lock());
+        m_events.commit.emit();
     });
-    m_listeners.needsFrame = m_output->events.needsFrame.listen([this] { scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME); });
+    m_listeners.commitResult = m_output->events.commitResult.listen([this](const Aquamarine::IOutput::SCommitResult& result) {
+        if (m_commitCoordinator)
+            m_commitCoordinator->onCommitResult(result);
+    });
+    m_listeners.needsFrame   = m_output->events.needsFrame.listen([this] { scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME); });
 
     m_listeners.presented = m_output->events.present.listen([this](const Aquamarine::IOutput::SPresentEvent& event) {
+        timespec ts{};
+        auto     flags = event.flags;
+
+        if (event.when && event.when->tv_sec > 2) {
+            // drop this timestamp, it's not valid. Likely drm is cringe. We can't push it further because
+            // a) it's wrong, b) our translations aren't 100% accurate and risk underflows
+            ts = *event.when;
+        } else {
+            clock_gettime(CLOCK_MONOTONIC, &ts);
+            flags &= ~Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_CLOCK;
+        }
+
+        PROTO::presentation->onPresented(m_self.lock(), ts, event.refresh, event.seq, flags, event.commitID, event.presented);
+
+        if (m_commitCoordinator)
+            m_commitCoordinator->onPresented(event.commitID, event.presented);
+
+        if (!event.presented) {
+            m_damage.damageEntire();
+            return;
+        }
+
         if (m_pendingDpmsAnimation) {
             m_pendingDpmsAnimationCounter++;
             // we give ourselves 5 frames of a buffer. The first presentation event still doesn't usually say that we actually
@@ -149,20 +177,6 @@ void CMonitor::onConnect(bool noRule) {
                 m_pendingDpmsAnimation = false;
             }
         }
-
-        timespec ts{};
-        auto     flags = event.flags;
-
-        if (event.when && event.when->tv_sec > 2) {
-            // drop this timestamp, it's not valid. Likely drm is cringe. We can't push it further because
-            // a) it's wrong, b) our translations aren't 100% accurate and risk underflows
-            ts = *event.when;
-        } else {
-            clock_gettime(CLOCK_MONOTONIC, &ts);
-            flags &= ~Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_CLOCK;
-        }
-
-        PROTO::presentation->onPresented(m_self.lock(), ts, event.refresh, event.seq, flags);
 
         if (m_zoomAnimFrameCounter < 5) {
             m_zoomAnimFrameCounter++;
@@ -408,6 +422,8 @@ void CMonitor::onDisconnect(bool destroy) {
     }};
 
     m_frameScheduler.reset();
+    if (m_commitCoordinator)
+        m_commitCoordinator->cancelPending();
     clearModeRetry();
 
     if (!m_enabled || g_pCompositor->m_isShuttingDown)
@@ -455,6 +471,7 @@ void CMonitor::onDisconnect(bool destroy) {
     m_listeners.presented.reset();
     m_listeners.needsFrame.reset();
     m_listeners.commit.reset();
+    m_listeners.commitResult.reset();
 
     for (size_t i = 0; i < 4; ++i) {
         for (auto const& ls : m_layerSurfaceLayers[i]) {
@@ -2147,6 +2164,7 @@ bool CMonitor::attemptDirectScanout() {
     // #TODO this entire bit needs figuring out, vrr goes down the drain without it
     if (PBUFFER == m_output->state->state().buffer && *PSAME) {
         PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
+        PROTO::presentation->tagQueued(m_self.lock(), 0, m_tearingState.activelyTearing, m_vrrActive);
 
         if (m_scanoutNeedsCursorUpdate) {
             if (!m_state.test()) {
@@ -2215,8 +2233,8 @@ bool CMonitor::attemptDirectScanout() {
 
     PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
 
-    // the commit path already added the damage into the damagering
-    CRegion scanoutDamage = m_damage.getBufferDamage(1);
+    auto    damageTransaction = m_damage.beginTransaction();
+    CRegion scanoutDamage     = damageTransaction.getBufferDamage(1);
     // the ring is in transformed space, the fb we hand to KMS is in pixel space
     scanoutDamage.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_transform)), m_transformedSize.x, m_transformedSize.y);
     // expand to not miss pixels from rounding, being a bit over is safe, going below is stale pixels.
@@ -2239,23 +2257,24 @@ bool CMonitor::attemptDirectScanout() {
 
     // no need to do explicit sync here as surface current can only ever be ready to read
 
-    bool ok = m_output->commit();
+    COutputCommitCoordinator::SFrame frame{
+        .kind              = COutputCommitCoordinator::FRAME_DIRECT_SCANOUT,
+        .damage            = std::move(damageTransaction),
+        .scanoutCandidate  = PCANDIDATE,
+        .rollbackSwapchain = false,
+        .tearing           = m_tearingState.activelyTearing,
+        .vrr               = m_vrrActive,
+        .previousFormat    = previousFormat,
+    };
 
-    if (!ok) {
+    const auto result = m_commitCoordinator ? m_commitCoordinator->submit(std::move(frame)) : COutputCommitCoordinator::SUBMIT_FAILED;
+    if (result == COutputCommitCoordinator::SUBMIT_FAILED) {
         Log::logger->log(Log::TRACE, "attemptDirectScanout: failed to scanout surface");
         m_lastScanout.reset();
         return false;
     }
 
     scanoutCommitted = true;
-
-    // the flip has used the damage, rotate it.
-    m_damage.rotate();
-
-    if (m_lastScanout.expired()) {
-        m_lastScanout = PCANDIDATE;
-        Log::logger->log(Log::DEBUG, "Entered a direct scanout to {:x}: \"{}\"", rc<uintptr_t>(PCANDIDATE.get()), PCANDIDATE->metadata().title());
-    }
 
     m_scanoutNeedsCursorUpdate = false;
 
@@ -2702,6 +2721,9 @@ void CMonitorState::ensureBufferPresent() {
 }
 
 bool CMonitorState::commit() {
+    if (m_owner->m_commitCoordinator && m_owner->m_commitCoordinator->deferStateCommit())
+        return true;
+
     if (!updateSwapchain())
         return false;
 

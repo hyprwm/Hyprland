@@ -147,11 +147,12 @@ namespace Render {
 
         virtual SP<IRenderbuffer>    getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer,
                                                              uint32_t                fmt); // TODO? move to protected and fix CPointerManager::renderHWCursorBuffer
-        bool                         commitPendingAndDoExplicitSync(PHLMONITOR pMonitor);  // TODO? move to protected and fix CMonitorFrameScheduler::onPresented
-        SRenderData                  m_renderData;                                         // TODO? move to protected and fix CRenderPass
-        SP<ITexture>                 m_screencopyDeniedTexture;                            // TODO? make readonly
-        uint                         m_failedAssetsNo     = 0;                             // TODO? make readonly
-        bool                         m_reloadScreenShader = true;                          // at launch it can be set
+        bool                         commitPendingAndDoExplicitSync(PHLMONITOR pMonitor, std::optional<Monitor::CDamageRing::CTransaction> damage = std::nullopt,
+                                                                    const CRegion& renderedDamage = {}); // TODO? move to protected and fix CMonitorFrameScheduler::onPresented
+        SRenderData                  m_renderData;                                                       // TODO? move to protected and fix CRenderPass
+        SP<ITexture>                 m_screencopyDeniedTexture;                                          // TODO? make readonly
+        uint                         m_failedAssetsNo     = 0;                                           // TODO? make readonly
+        bool                         m_reloadScreenShader = true;                                        // at launch it can be set
         CTimer                       m_globalTimer;
 
         void                         draw(WP<IPassElement> element, const CRegion& damage = {});
@@ -228,8 +229,8 @@ namespace Render {
         void                      setDamage(const CRegion& damage_, std::optional<CRegion> finalDamage);
         // if RENDER_MODE_NORMAL, provided damage will be written to.
         // otherwise, it will be the one used.
-        bool         beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode = RENDER_MODE_NORMAL, SP<IHLBuffer> buffer = {}, SP<IFramebuffer> fb = nullptr,
-                                 bool simple = false);
+        bool beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode = RENDER_MODE_NORMAL, SP<IHLBuffer> buffer = {}, SP<IFramebuffer> fb = nullptr, bool simple = false,
+                         std::optional<Monitor::CDamageRing::CTransaction>* damageTransaction = nullptr);
 
         virtual bool beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple = false) {
             return false;

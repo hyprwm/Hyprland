@@ -1175,16 +1175,7 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
     const auto SAVEDRENDERMODIF               = g_pHyprRenderer->m_renderData.renderModif;
     g_pHyprRenderer->m_renderData.renderModif = {}; // fix shit
 
-    auto& m_renderData = g_pHyprRenderer->m_renderData;
-
-    CBox  transformedBox = box;
-    transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
-                             m_renderData.pMonitor->m_transformedSize.y);
-
-    CBox monitorSpaceBox = {transformedBox.pos().x / m_renderData.pMonitor->m_pixelSize.x * m_renderData.pMonitor->m_transformedSize.x,
-                            transformedBox.pos().y / m_renderData.pMonitor->m_pixelSize.y * m_renderData.pMonitor->m_transformedSize.y,
-                            transformedBox.width / m_renderData.pMonitor->m_pixelSize.x * m_renderData.pMonitor->m_transformedSize.x,
-                            transformedBox.height / m_renderData.pMonitor->m_pixelSize.y * m_renderData.pMonitor->m_transformedSize.y};
+    const auto blurUV = resolveBlurUV(box, blurredBG->m_size);
 
     renderTexture(blurredBG, box,
                   STextureRenderData{
@@ -1195,8 +1186,8 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
                       .allowCustomUV               = true,
                       .allowDim                    = false,
                       .noAA                        = false,
-                      .primarySurfaceUVTopLeft     = monitorSpaceBox.pos() / m_renderData.pMonitor->m_transformedSize,
-                      .primarySurfaceUVBottomRight = (monitorSpaceBox.pos() + monitorSpaceBox.size()) / m_renderData.pMonitor->m_transformedSize,
+                      .primarySurfaceUVTopLeft     = blurUV.pos(),
+                      .primarySurfaceUVBottomRight = blurUV.pos() + blurUV.size(),
                   });
     g_pHyprRenderer->m_renderData.renderModif = SAVEDRENDERMODIF;
 

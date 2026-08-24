@@ -12,6 +12,10 @@ bool IPassElement::disableSimplification() {
     return false;
 }
 
+bool IPassElement::requiresFullDamage() {
+    return false;
+}
+
 void IPassElement::discard() {
     ;
 }

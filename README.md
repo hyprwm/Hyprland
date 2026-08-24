@@ -35,10 +35,10 @@ easy IPC, much more QoL stuff than other compositors and more...
 
 # Features
 
-- All of the eyecandy: gradient borders, blur, animations, shadows and much more
+- All of the eyecandy: gradient borders, many types of blur, animations, glow, shadows and much more
 - A lot of customization
 - 100% independent, no wlroots, no libweston, no kwin, no mutter.
-- Custom bezier curves for the best animations
+- Custom bezier and spring curves for the best animations
 - Powerful plugin support
 - Built-in plugin manager
 - Tearing support for better gaming performance
@@ -46,8 +46,6 @@ easy IPC, much more QoL stuff than other compositors and more...
 - Fast and active development
 - Not afraid to provide bleeding-edge features
 - Config reloaded instantly upon saving
-- Fully dynamic workspaces
-- Two built-in layouts and more available as plugins
 - Global keybinds passed to your apps of choice
 - Tiling/pseudotiling/floating/fullscreen windows
 - Special workspaces (scratchpads)
@@ -55,6 +53,15 @@ easy IPC, much more QoL stuff than other compositors and more...
 - Powerful window/monitor/layer rules
 - Socket-based IPC
 - Native IME and Input Panels Support
+- Fully dynamic workspaces
+- Extensive layout support
+    - Dwindle
+    - Scrolling
+    - Master
+    - Monocle
+    - Custom layout with Lua
+    - Custom layouts with plugins
+- Per Workspace Layouts
 - and much more...
 
 <br>

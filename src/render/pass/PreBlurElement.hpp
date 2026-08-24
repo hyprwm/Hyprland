@@ -9,6 +9,7 @@ class CPreBlurElement : public IPassElement {
     virtual bool        needsLiveBlur();
     virtual bool        needsPrecomputeBlur();
     virtual bool        disableSimplification();
+    virtual bool        requiresFullDamage();
     virtual bool        undiscardable();
 
     virtual const char* passName() {

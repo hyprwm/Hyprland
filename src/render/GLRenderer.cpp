@@ -354,6 +354,9 @@ void CHyprGLRenderer::preRender(PHLMONITOR pMonitor) {
     static auto PBLURXRAY        = CConfigValue<Config::INTEGER>("decoration:blur:xray");
     static auto PBLUR            = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
 
+    // Resource changes can invalidate the blur framebuffer, so resolve them before checking its state.
+    (void)pMonitor->resources();
+
     if (!*PBLURNEWOPTIMIZE || !pMonitor->m_blurFBDirty || !*PBLUR)
         return;
 

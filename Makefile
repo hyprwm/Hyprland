@@ -13,7 +13,7 @@ stub:
 
 # Regenerate when CMakeLists have changed
 $(CMAKE_BUILDTYPE_FILE): $(shell find -type f -name CMakeLists.txt -not -path '*/_deps/*')
-	if [ ! -d "$(BUILDDIR)" ]; then mkdir "$(BUILDDIR)"; fi
+	mkdir -p "$(BUILDDIR)"
 	echo "$(CMAKE_BUILD_TYPE)+$(CMAKE_ARGS)" > "$(CMAKE_BUILDTYPE_FILE)"
 	$(CMAKE_GENERATE_CMD)
 

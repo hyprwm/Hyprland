@@ -13,13 +13,14 @@ stub:
 
 # Regenerate when CMakeLists have changed
 $(CMAKE_BUILDTYPE_FILE): $(shell find -type f -name CMakeLists.txt -not -path '*/_deps/*')
-	echo "$(CMAKE_BUILD_TYPE)+$(CMAKE_ARGS)" > $(CMAKE_BUILDTYPE_FILE)
+	if [ ! -d "$(BUILDDIR)" ]; then mkdir "$(BUILDDIR)"; fi
+	echo "$(CMAKE_BUILD_TYPE)+$(CMAKE_ARGS)" > "$(CMAKE_BUILDTYPE_FILE)"
 	$(CMAKE_GENERATE_CMD)
 
 # Regenerate when CMake options have changed, then build
 cmake_smartbuild: $(CMAKE_BUILDTYPE_FILE)
-	read lastbuild < $(CMAKE_BUILDTYPE_FILE) && test "$$lastbuild" = "$(CMAKE_BUILD_TYPE)+$(CMAKE_ARGS)" || { \
-		echo "$(CMAKE_BUILD_TYPE)+$(CMAKE_ARGS)" > $(CMAKE_BUILDTYPE_FILE); \
+	read lastbuild < "$(CMAKE_BUILDTYPE_FILE)" && test "$$lastbuild" = "$(CMAKE_BUILD_TYPE)+$(CMAKE_ARGS)" || { \
+		echo "$(CMAKE_BUILD_TYPE)+$(CMAKE_ARGS)" > "$(CMAKE_BUILDTYPE_FILE)"; \
 		$(CMAKE_GENERATE_CMD); \
 	}
 	cmake --build $(BUILDDIR) --config $(CMAKE_BUILD_TYPE) --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`

@@ -973,7 +973,7 @@ TEST_CASE(masterDropAtCursor) {
     OK(getFromSocket("/eval hl.config({ master = { new_status = 'slave' } })"));
     CALL_SUBTEST(expectTripleDragSwap, 1, 2, 2, 1, 3);
     CALL_SUBTEST(expectTripleDragSwap, 1, 3, 2, 3, 1);
-    CALL_SUBTEST(expectTripleDragSwap, 3, 1, 3, 2, 1);
+    CALL_SUBTEST(expectTripleDragSwap, 3, 1, 3, 1, 2);
     CALL_SUBTEST(expectTripleDragSwap, 3, 2, 1, 3, 2);
     NLog::log("{}...and again with new_on_top", Colors::GREEN);
     OK(getFromSocket("/eval hl.config({ master = { new_on_top = true } })"));
@@ -993,7 +993,7 @@ TEST_CASE(masterDropAtCursor) {
     OK(getFromSocket("/eval hl.config({ master = { new_on_top = true } })"));
     CALL_SUBTEST(expectTripleDragSwap, 1, 2, 2, 1, 3);
     CALL_SUBTEST(expectTripleDragSwap, 1, 3, 2, 3, 1);
-    CALL_SUBTEST(expectTripleDragSwap, 3, 1, 3, 2, 1);
+    CALL_SUBTEST(expectTripleDragSwap, 3, 1, 3, 1, 2);
     CALL_SUBTEST(expectTripleDragSwap, 3, 2, 1, 3, 2);
     OK(getFromSocket("/eval hl.config({ master = { new_on_top = false } })"));
 
@@ -1007,7 +1007,7 @@ TEST_CASE(masterDropAtCursor) {
     OK(getFromSocket("/eval hl.config({ master = { new_on_top = true } })"));
     CALL_SUBTEST(expectTripleDragSwap, 1, 2, 2, 1, 3);
     CALL_SUBTEST(expectTripleDragSwap, 1, 3, 2, 3, 1);
-    CALL_SUBTEST(expectTripleDragSwap, 3, 1, 3, 2, 1);
+    CALL_SUBTEST(expectTripleDragSwap, 3, 1, 3, 1, 2);
     CALL_SUBTEST(expectTripleDragSwap, 3, 2, 1, 3, 2);
     OK(getFromSocket("/eval hl.config({ master = { new_on_top = false } })"));
 }

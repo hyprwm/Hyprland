@@ -3,16 +3,24 @@ BUILDDIR ?= ./build
 CMAKE_BUILD_TYPE := Release
 CMAKE_ARGS = -DCMAKE_BUILD_TYPE:STRING=$(CMAKE_BUILD_TYPE) -DCMAKE_INSTALL_PREFIX:STRING=$(PREFIX)
 CMAKE_BUILDTYPE_FILE = $(BUILDDIR)/cmake_last_build_type
+CMAKE_GENERATE_CMD = cmake -Wno-unused-cli $(CMAKE_ARGS) -S . -B $(BUILDDIR)
 
+.DEFAULT: stub
 .PHONY: stub cmake_smartbuild release debug nopch clear all install uninstall pluginenv installheaders man asan format-check format-fix test
 
 stub:
 	@echo "Do not run $(MAKE) directly without any arguments. Please refer to the wiki on how to compile Hyprland."
 
-cmake_smartbuild:
+# Regenerate when CMakeLists have changed
+$(CMAKE_BUILDTYPE_FILE): $(shell find -type f -name CMakeLists.txt -not -path '*/_deps/*')
+	echo "$(CMAKE_BUILD_TYPE)+$(CMAKE_ARGS)" > $(CMAKE_BUILDTYPE_FILE)
+	$(CMAKE_GENERATE_CMD)
+
+# Regenerate when CMake options have changed, then build
+cmake_smartbuild: $(CMAKE_BUILDTYPE_FILE)
 	read lastbuild < $(CMAKE_BUILDTYPE_FILE) && test "$$lastbuild" = "$(CMAKE_BUILD_TYPE)+$(CMAKE_ARGS)" || { \
 		echo "$(CMAKE_BUILD_TYPE)+$(CMAKE_ARGS)" > $(CMAKE_BUILDTYPE_FILE); \
-		cmake -Wno-unused-cli $(CMAKE_ARGS) -S . -B $(BUILDDIR); \
+		$(CMAKE_GENERATE_CMD); \
 	}
 	cmake --build $(BUILDDIR) --config $(CMAKE_BUILD_TYPE) --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
@@ -98,7 +106,7 @@ asan: cmake_smartbuild
 	@echo "Wayland done"
 
 	patch -p1 < ./scripts/hyprlandStaticAsan.diff
-	cmake -Wno-unused-cli $(CMAKE_ARGS) -DWITH_ASAN:STRING=True -DUSE_TRACY:STRING=False -DUSE_TRACY_GPU:STRING=False -S . -B $(BUILDDIR)
+	$(CMAKE_GENERATE_CMD) -DWITH_ASAN:STRING=True -DUSE_TRACY:STRING=False -DUSE_TRACY_GPU:STRING=False
 	cmake --build $(BUILDDIR) --config $(CMAKE_BUILD_TYPE) --target all
 	@echo "Hyprland done"
 

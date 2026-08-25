@@ -1,7 +1,10 @@
-PREFIX = /usr/local
+PREFIX ?= /usr/local
+BUILDDIR ?= ./build
 CMAKE_BUILD_TYPE := Release
 CMAKE_ARGS = -DCMAKE_BUILD_TYPE:STRING=$(CMAKE_BUILD_TYPE) -DCMAKE_INSTALL_PREFIX:STRING=$(PREFIX)
-CMAKE_BUILDTYPE_FILE = ./build/cmake_last_build_type
+CMAKE_BUILDTYPE_FILE = $(BUILDDIR)/cmake_last_build_type
+
+.PHONY: stub cmake_smartbuild release debug nopch clear all install uninstall pluginenv installheaders man asan format-check format-fix test
 
 stub:
 	@echo "Do not run $(MAKE) directly without any arguments. Please refer to the wiki on how to compile Hyprland."
@@ -9,9 +12,9 @@ stub:
 cmake_smartbuild:
 	read lastbuild < $(CMAKE_BUILDTYPE_FILE) && test "$$lastbuild" = "$(CMAKE_BUILD_TYPE)+$(CMAKE_ARGS)" || { \
 		echo "$(CMAKE_BUILD_TYPE)+$(CMAKE_ARGS)" > $(CMAKE_BUILDTYPE_FILE); \
-		cmake -Wno-unused-cli $(CMAKE_ARGS) -S . -B ./build; \
+		cmake -Wno-unused-cli $(CMAKE_ARGS) -S . -B $(BUILDDIR); \
 	}
-	cmake --build ./build --config $(CMAKE_BUILD_TYPE) --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
+	cmake --build $(BUILDDIR) --config $(CMAKE_BUILD_TYPE) --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
 release: cmake_smartbuild
 
@@ -32,10 +35,10 @@ all:
 	$(MAKE) release
 
 install: cmake_smartbuild
-	cmake --install ./build
+	cmake --install $(BUILDDIR)
 
 uninstall:
-	xargs rm < ./build/install_manifest.txt
+	xargs rm < $(BUILDDIR)/install_manifest.txt
 
 pluginenv:
 	@echo -en "$(MAKE) pluginenv has been deprecated.\nPlease run $(MAKE) all && sudo $(MAKE) installheaders\n"
@@ -50,12 +53,12 @@ installheaders: cmake_smartbuild
 	mkdir -p ${PREFIX}/include/hyprland/protocols
 	mkdir -p ${PREFIX}/share/pkgconfig
 
-	cmake --build ./build --config $(CMAKE_BUILD_TYPE) --target generate-protocol-headers
+	cmake --build $(BUILDDIR) --config $(CMAKE_BUILD_TYPE) --target generate-protocol-headers
 
 	find src -type f \( -name '*.hpp' -o -name '*.h' -o -name '*.inc' \) -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland
 	cp ./protocols/*.h* ${PREFIX}/include/hyprland/protocols
-	cp ./build/hyprland.pc ${PREFIX}/share/pkgconfig
-	if [ -d /usr/share/pkgconfig ]; then cp ./build/hyprland.pc /usr/share/pkgconfig 2>/dev/null || true; fi
+	cp $(BUILDDIR)/hyprland.pc ${PREFIX}/share/pkgconfig
+	if [ -d /usr/share/pkgconfig ]; then cp $(BUILDDIR)/hyprland.pc /usr/share/pkgconfig 2>/dev/null || true; fi
 
 	chmod -R 755 ${PREFIX}/include/hyprland
 	chmod 755 ${PREFIX}/share/pkgconfig
@@ -80,8 +83,7 @@ man:
 asan: CMAKE_BUILD_TYPE := Debug
 asan: cmake_smartbuild
 	@echo -en "!!WARNING!!\nOnly run this in the TTY.\n"
-	@pidof Hyprland > /dev/null && echo -ne "Refusing to run with Hyprland running.\n" || echo ""
-	@pidof Hyprland > /dev/null && exit 1 || echo ""
+	@if pidof Hyprland > /dev/null; then echo -ne "Refusing to run with Hyprland running.\n"; exit 1; fi
 
 	rm -rf ./wayland
 	#git reset --hard
@@ -96,11 +98,11 @@ asan: cmake_smartbuild
 	@echo "Wayland done"
 
 	patch -p1 < ./scripts/hyprlandStaticAsan.diff
-	cmake -Wno-unused-cli $(CMAKE_ARGS) -DWITH_ASAN:STRING=True -DUSE_TRACY:STRING=False -DUSE_TRACY_GPU:STRING=False -S . -B ./build
-	cmake --build ./build --config $(CMAKE_BUILD_TYPE) --target all
+	cmake -Wno-unused-cli $(CMAKE_ARGS) -DWITH_ASAN:STRING=True -DUSE_TRACY:STRING=False -DUSE_TRACY_GPU:STRING=False -S . -B $(BUILDDIR)
+	cmake --build $(BUILDDIR) --config $(CMAKE_BUILD_TYPE) --target all
 	@echo "Hyprland done"
 
-	ASAN_OPTIONS="detect_odr_violation=0,log_path=asan.log" HYPRLAND_NO_CRASHREPORTER=1 ./build/Hyprland -c ~/.config/hypr/hyprland.lua
+	ASAN_OPTIONS="detect_odr_violation=0,log_path=asan.log" HYPRLAND_NO_CRASHREPORTER=1 $(BUILDDIR)/Hyprland -c ~/.config/hypr/hyprland.lua
 
 format-check:
 	@find src hyprctl hyprpm start tests hyprtester -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" \) \
@@ -117,4 +119,4 @@ format-fix:
 		| xargs clang-format -i
 
 test: debug
-	./build/hyprtester/hyprtester -c hyprtester/test.lua -b ./build/Hyprland -p hyprtester/plugin/hyprtestplugin.so $(TESTS)
+	$(BUILDDIR)/hyprtester/hyprtester -c hyprtester/test.lua -b $(BUILDDIR)/Hyprland -p hyprtester/plugin/hyprtestplugin.so $(TESTS)

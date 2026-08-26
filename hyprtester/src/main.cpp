@@ -11,7 +11,9 @@
 // - maybe figure out a way to do some visual tests too?
 
 // Required runtime deps for checks:
+// - dolphin
 // - kitty
+// - nautilus
 // - xeyes
 
 #define INCLUDED_FROM_MAIN 1 // Prevent macro redefinition warnings from includes of "tests/*/tests.hpp"

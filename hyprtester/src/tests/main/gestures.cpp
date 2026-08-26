@@ -94,6 +94,27 @@ TEST_CASE(live_gesture_callbacks) {
     )"));
 
     OK(evalLua(R"(
+        __liveGesture.negative_scale_delta = nil
+
+        hl.gesture({
+            fingers = 9,
+            direction = 'left',
+            action = {
+                update = function(e)
+                    __liveGesture.negative_scale_delta = e.delta.x
+                end,
+            },
+            scale = -1,
+        })
+
+        hl.plugin.test.gesture('left', 9)
+
+        if __liveGesture.negative_scale_delta ~= 300 then
+            error('unexpected negatively scaled delta: ' .. tostring(__liveGesture.negative_scale_delta))
+        end
+    )"));
+
+    OK(evalLua(R"(
         __liveGesture.pinch = { start = 0, update = 0, finish = 0, last_scale = 0, last_rotation = 0 }
 
         local function expect_eq(actual, expected, name)
@@ -180,6 +201,7 @@ TEST_CASE(live_gesture_callbacks) {
 
     EXPECT_CONTAINS(evalLua("hl.gesture({ fingers = 8, direction = 'up', action = { start = 1 } })"), "action.start must be a function");
     EXPECT_CONTAINS(evalLua("hl.gesture({ fingers = 8, direction = 'up', action = {} })"), "must define at least one of start, update, end, or finish");
+    EXPECT_CONTAINS(evalLua("hl.gesture({ fingers = 8, direction = 'up', action = function() end, scale = 0 })"), "value must be between -10 and -0.1 or between 0.1 and 10");
 }
 
 // TODO: decompose this into multiple test cases

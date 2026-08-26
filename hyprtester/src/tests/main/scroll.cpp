@@ -2391,6 +2391,50 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenNonInterference) {
 
 /* Scroll viewport tests */
 
+TEST_CASE(scrollNegativeScaleGesture) {
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
+    OK(getFromSocket("/eval hl.config({ scrolling = { follow_focus = false }, gestures = { scrolling = { move_snap_to_grid = false, move_snap_cursor = false } } })"));
+
+    // Move away from the tape boundary before testing the negative scale.
+    OK(getFromSocket("/eval hl.gesture({ fingers = 6, direction = 'left', action = 'scroll_move', scale = -2 })"));
+    OK(getFromSocket("/eval hl.gesture({ fingers = 7, direction = 'left', action = 'scroll_move', scale = 2 })"));
+    OK(getFromSocket("/eval hl.gesture({ fingers = 8, direction = 'left', action = 'scroll_move', scale = -1 })"));
+    OK(getFromSocket("/eval hl.gesture({ fingers = 9, direction = 'left', action = 'scroll_move', scale = 1 })"));
+
+    for (const auto& win : {"negative_scale_a", "negative_scale_b", "negative_scale_c", "negative_scale_d"})
+        SPAWN_KITTY(win);
+
+    const auto xCoordinate = [&](const std::string& window) {
+        const auto at = Tests::getAttribute(getClientBlock(getFromSocket("/clients"), window), "at");
+        return std::stoi(at.substr(0, at.find(',')));
+    };
+
+    const int pos = xCoordinate("negative_scale_a");
+
+    OK(getFromSocket("/eval hl.plugin.test.gesture('left', 7)"));
+    const int posPlus2 = xCoordinate("negative_scale_a");
+
+    // Test negative delta when moving the viewport in scrolling via a gesture.
+    OK(getFromSocket("/eval hl.plugin.test.gesture('left', 8)"));
+    const int posPlus1 = xCoordinate("negative_scale_a");
+
+    if (posPlus1 <= posPlus2)
+        FAIL_TEST("Expected a negative gesture scale to move the scrolling view right, from x={} to x={}", posPlus2, posPlus1);
+
+    // Return to the same tape position before comparing scale -2.
+    OK(getFromSocket("/eval hl.plugin.test.gesture('left', 9)"));
+    const int posPlus2Again = xCoordinate("negative_scale_a");
+
+    if (posPlus2Again != posPlus2)
+        FAIL_TEST("Expected scale 1 to reset the scrolling view from x={} to x={}, got x={}", posPlus1, posPlus2, posPlus2Again);
+
+    OK(getFromSocket("/eval hl.plugin.test.gesture('left', 6)"));
+    const int posAgain = xCoordinate("negative_scale_a");
+
+    if (posAgain != pos)
+        FAIL_TEST("Expected scale -2 to return the scrolling view from x={} to x={}, got x={}", posPlus2, pos, posAgain);
+}
+
 TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocusFalse) {
 
     /*

@@ -2,6 +2,7 @@
 
 #include "InputState.hpp"
 #include "Registry.hpp"
+#include "Submap.hpp"
 
 #include "../devices/IPointer.hpp"
 #include "../helpers/time/Timer.hpp"
@@ -20,6 +21,7 @@ namespace Keybinds {
         ~CKeybindManager();
 
         PBind              addBind(CBind&& bind);
+        PSubmap            addSubmap(CSubmap&& submap);
         bool               removeBind(const PBind& bind);
         size_t             removeBinds(std::string_view displayKey);
         void               clearBinds();

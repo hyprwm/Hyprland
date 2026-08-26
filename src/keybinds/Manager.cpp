@@ -145,6 +145,10 @@ PBind CKeybindManager::addBind(CBind&& bind) {
     return m_registry.add(std::move(bind));
 }
 
+PSubmap CKeybindManager::addSubmap(CSubmap&& submap) {
+    return m_registry.addSubmap(std::move(submap));
+};
+
 bool CKeybindManager::removeBind(const PBind& bind) {
     cancelTimedBinds();
     invokeReleaseCallbacks(m_inputState.takeReleaseCallbacks(bind));

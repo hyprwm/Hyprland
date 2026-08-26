@@ -6,6 +6,7 @@
 
 #include "../../../desktop/DesktopTypes.hpp"
 #include "../../../desktop/Workspace.hpp"
+#include "../../../devices/IHID.hpp"
 #include "../../../input/Keys.hpp"
 #include "../../../helpers/math/Direction.hpp"
 #include "../ConfigErrors.hpp"
@@ -119,6 +120,7 @@ namespace Config::Actions {
         uint32_t    m_lastMouseCode       = 0;  // last mouse button code, 0 if last was keyboard
         uint32_t    m_timeLastMs          = 0;  // timestamp of last key/mouse event
         std::string m_currentSubmap       = ""; // current keybind submap name
+        WP<IHID>    m_lastDevice;               // device used to press last keycode
     };
 
     UP<CActionState>& state();

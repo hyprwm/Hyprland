@@ -38,7 +38,6 @@ namespace Config {
         std::optional<bool>                m_noRounding;
         std::optional<bool>                m_noBorder;
         std::optional<bool>                m_noShadow;
-        std::optional<bool>                m_noWobble;
         std::optional<std::string>         m_onCreatedEmptyRunCmd;
         std::optional<std::string>         m_defaultName;
         std::optional<std::string>         m_layout;

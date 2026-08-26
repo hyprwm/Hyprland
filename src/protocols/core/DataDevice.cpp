@@ -577,9 +577,17 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
     m_dnd.currentSource = currentSource;
     m_dnd.originSurface = origin;
     m_dnd.dndSurface    = dragSurface;
+    m_dnd.iconOffset    = {};
     if (dragSurface) {
         m_dnd.dndSurfaceDestroy = dragSurface->m_events.destroy.listen([this] { abortDrag(); });
         m_dnd.dndSurfaceCommit  = dragSurface->m_events.commit.listen([this] {
+            // wl_surface.offset (and the dx,dy of wl_surface.attach) move the icon
+            // relative to where it already is. Accumulate, don't overwrite: a client
+            // that sets a hotspot once and then keeps drawing frames with a (0, 0)
+            // delta must keep that hotspot.
+            if (m_dnd.dndSurface->m_current.updated.bits.offset)
+                m_dnd.iconOffset += m_dnd.dndSurface->m_current.offset;
+
             if (m_dnd.dndSurface->m_current.texture && !m_dnd.dndSurface->m_mapped) {
                 m_dnd.dndSurface->map();
                 return;
@@ -714,6 +722,7 @@ void CWLDataDeviceProtocol::updateDrag() {
 
 void CWLDataDeviceProtocol::cleanupDndState(bool resetDevice, bool resetSource, bool simulateInput) {
     m_dnd.dndSurface.reset();
+    m_dnd.iconOffset = {};
     m_dnd.dndSurfaceCommit.reset();
     m_dnd.dndSurfaceDestroy.reset();
     m_dnd.mouseButton.reset();
@@ -834,7 +843,7 @@ void CWLDataDeviceProtocol::renderDND(PHLMONITOR pMonitor, const Time::steady_tp
 
     Vector2D   surfacePos = POS;
 
-    surfacePos += m_dnd.dndSurface->m_current.offset;
+    surfacePos += m_dnd.iconOffset;
 
     CBox                         box = CBox{surfacePos, m_dnd.dndSurface->m_current.size}.translate(-pMonitor->m_position).scale(pMonitor->m_scale).round();
 

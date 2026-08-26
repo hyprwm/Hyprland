@@ -174,6 +174,10 @@ class CWLDataDeviceProtocol : public IWaylandProtocol {
         WP<CWLSurfaceResource>  dndSurface;
         WP<CWLSurfaceResource>  originSurface;
         std::optional<Vector2D> touchPos;
+        // Accumulated wl_surface.offset / wl_surface.attach dx,dy of the drag icon.
+        // Per spec these are deltas relative to the icon's current position, so they
+        // must be summed across commits rather than treated as an absolute offset.
+        Vector2D                iconOffset;
         bool                    overriddenCursor = false;
         CHyprSignalListener     dndSurfaceDestroy;
         CHyprSignalListener     dndSurfaceCommit;

@@ -14,6 +14,7 @@
 #include "../../../plugins/PluginSystem.hpp"
 #include "../../../keybinds/Manager.hpp"
 #include "../../../keybinds/Resolver.hpp"
+#include "../../../keybinds/Submap.hpp"
 #include "../../../helpers/string/StringUtils.hpp"
 
 #include <hyprutils/string/Numeric.hpp>
@@ -244,16 +245,44 @@ static int hlDefineSubmap(lua_State* L) {
         fnIdx = 3;
     }
 
+    const int             optsIdx = fnIdx + 1;
+    Keybinds::SSubmapArgs args;
+
+    if (lua_gettop(L) >= optsIdx) {
+        if (!lua_istable(L, optsIdx))
+            return Internal::configError(L, "define_submap: last argument must be a table");
+
+        lua_getfield(L, optsIdx, "device");
+
+        if (lua_istable(L, -1)) {
+            // Let's start with something simple for now...
+            lua_pushnil(L);
+
+            while (lua_next(L, -2)) {
+                if (auto device_name = Check::string(L, -1); device_name)
+                    args.devices.emplace(*device_name);
+                lua_pop(L, 1);
+            }
+        }
+
+        lua_pop(L, 1);
+    }
+
+    Keybinds::CSubmap  submap = Keybinds::CSubmap(*name, args);
+    const auto         SUBMAP = Keybinds::mgr()->addSubmap(std::move(submap));
+
+    const std::string NAME{SUBMAP->name()};
+
     luaL_checktype(L, fnIdx, LUA_TFUNCTION);
 
     std::string prev          = mgr->m_currentSubmap;
     std::string prevReset     = mgr->m_currentSubmapReset;
-    mgr->m_currentSubmap      = *name;
+    mgr->m_currentSubmap      = NAME;
     mgr->m_currentSubmapReset = reset;
 
     lua_pushvalue(L, fnIdx);
-    if (mgr->caller().guardedPCall(L, 0, 0, 0, CLuaCaller::LUA_TIMEOUT_DISPATCH_MS, std::format("hl.define_submap(\"{}\")", *name)) != LUA_OK) {
-        mgr->addError(std::format("hl.define_submap: error in submap \"{}\": {}", *name, mgr->caller().errorToString(L, -1)));
+    if (mgr->caller().guardedPCall(L, 0, 0, 0, CLuaCaller::LUA_TIMEOUT_DISPATCH_MS, std::format("hl.define_submap(\"{}\")", NAME)) != LUA_OK) {
+        mgr->addError(std::format("hl.define_submap: error in submap \"{}\": {}", NAME, mgr->caller().errorToString(L, -1)));
         lua_pop(L, 1);
     }
 

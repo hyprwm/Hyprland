@@ -64,6 +64,8 @@ void CScrollMoveTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureB
 }
 
 void CScrollMoveTrackpadGesture::update(const ITrackpadGesture::STrackpadGestureUpdate& e) {
+    static auto PINVERT = CConfigValue<Config::BOOL>("gestures:scrolling:move_invert");
+
     if (!m_wasScrollingLayout)
         return;
 
@@ -71,7 +73,7 @@ void CScrollMoveTrackpadGesture::update(const ITrackpadGesture::STrackpadGesture
     if (!SCROLLING)
         return;
 
-    const float  DELTA   = deltaForUpdate(e);
+    const float  DELTA   = deltaForUpdate(e) * (*PINVERT ? -1.F : 1.F);
     const double PRIMARY = SCROLLING->primaryViewportSize();
 
     if (DELTA == 0.F || PRIMARY <= 0.0)

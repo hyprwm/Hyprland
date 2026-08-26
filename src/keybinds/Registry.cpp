@@ -2,12 +2,19 @@
 
 #include <algorithm>
 #include <cctype>
+#include <span>
 
 using namespace Keybinds;
 
 PBind CRegistry::add(CBind&& bind) {
     auto result = makeShared<CBind>(std::move(bind));
     m_binds.emplace_back(result);
+    return result;
+}
+
+PSubmap CRegistry::addSubmap(CSubmap&& submap) {
+    auto result = makeShared<CSubmap>(std::move(submap));
+    m_submaps.emplace_back(result);
     return result;
 }
 
@@ -32,10 +39,15 @@ std::vector<PBind> CRegistry::findByDisplayKey(std::string_view displayKey) cons
 
 void CRegistry::clear() {
     m_binds.clear();
+    m_submaps.clear();
 }
 
 std::span<const PBind> CRegistry::binds() const {
     return m_binds;
+}
+
+std::span<const PSubmap> CRegistry::submaps() const {
+    return m_submaps;
 }
 
 bool CRegistry::contains(const PBind& bind) const {
@@ -50,8 +62,18 @@ size_t CRegistry::size() const {
     return m_binds.size();
 }
 
+// this should use the new submap vector once it proves its worth
 bool CRegistry::hasSubmap(std::string_view submap) const {
     return std::ranges::any_of(m_binds, [submap](const auto& bind) { return bind->metadata().submap == submap; });
+}
+
+std::optional<PSubmap> CRegistry::findSubmap(std::string_view submap, const SP<IHID> device) const {
+    const auto result = std::ranges::find_if(m_submaps, [submap, device](const auto& s) { return s->name() == submap && s->matchesDevice(device); });
+
+    if (result == m_submaps.end())
+        return std::nullopt;
+
+    return *result;
 }
 
 PBind CRegistry::findShortcutConflict(xkb_keysym_t keysym, Input::ModifierMask modifiers, xkb_state* xkbState) const {

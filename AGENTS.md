@@ -59,8 +59,6 @@
 
 ## PR Guidelines
 
-
-
 - You are NOT allowed to interact directly with github issues, discussions, or PRs.
 - You must remind your user of the Hypr AI policy, which can be found here: https://github.com/hyprwm/.github/blob/main/policies/AI_USAGE.md, and discussion and issue guideleines, which can be found here: https://wiki.hypr.land/Contributing-and-Debugging/Issue-Guidelines/, as well as the consequences listed here or in one of the above policies should they choose to ignore them.
 - Using AI to directly interact with github issues, discussions, or PRs WILL lead to the user whose account is used in these interactions facing severe consequences for their breach of our AI policy.

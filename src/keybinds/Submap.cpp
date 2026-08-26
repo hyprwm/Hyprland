@@ -14,7 +14,7 @@ const std::unordered_set<std::string>& CSubmap::devices() const {
 }
 
 bool CSubmap::matchesDevice(SP<IHID> device) {
-    if (!device) {
+    if (m_devices.empty() || !device) {
         return true;
     }
 

@@ -21,7 +21,7 @@ namespace Keybinds {
         CSubmap(const CSubmap&)                                    = delete;
         CSubmap&                               operator=(CSubmap&) = delete;
 
-        bool                                   matchesDevice(SP<IHID> device);
+        bool                                   matchesDevice(WP<IHID> device);
 
         std::string_view                       name() const;
         const std::unordered_set<std::string>& devices() const;

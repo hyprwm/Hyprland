@@ -1692,10 +1692,16 @@ ActionResult Actions::setSubmap(const std::string& submap) {
         return {};
     }
 
-    if (Keybinds::mgr()->registry().hasSubmap(submap)) {
+    const auto device = Config::Actions::state()->m_lastDevice;
+
+    if (Keybinds::mgr()->registry().findSubmap(submap, device)) {
         Config::Actions::state()->m_currentSubmap = submap;
         IPC::Socket2::sock()->postEvent({.event = "submap", .data = submap});
         Event::bus()->m_events.keybinds.submap.emit(submap);
+        return {};
+    }
+
+    if (Keybinds::mgr()->registry().hasSubmap(submap)) {
         return {};
     }
 

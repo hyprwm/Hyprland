@@ -67,7 +67,7 @@ bool CRegistry::hasSubmap(std::string_view submap) const {
     return std::ranges::any_of(m_binds, [submap](const auto& bind) { return bind->metadata().submap == submap; });
 }
 
-std::optional<PSubmap> CRegistry::findSubmap(std::string_view submap, const SP<IHID> device) const {
+std::optional<PSubmap> CRegistry::findSubmap(std::string_view submap, const WP<IHID> device) const {
     const auto result = std::ranges::find_if(m_submaps, [submap, device](const auto& s) { return s->name() == submap && s->matchesDevice(device); });
 
     if (result == m_submaps.end())

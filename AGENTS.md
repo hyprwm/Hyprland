@@ -48,3 +48,5 @@
  - violating clang-tidy (`.clang-tidy`)
  - manual C-style cleanup: `some_c_thing_new()` and `some_c_thing_free()` can be wrapped.
 - Make sure to write tests for code which our Unit (`tests/`) or Integration (`hyprtester/`) tests can test.
+
+## Issue and Discussion Guidelines

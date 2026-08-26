@@ -59,7 +59,8 @@ bool CGLFramebuffer::internalAlloc(int w, int h, uint32_t drmFormat) {
 
         glDisable(GL_DEPTH_TEST);
         glDepthMask(GL_FALSE);
-    }
+    } else
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, GL_NONE, 0);
 
     auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     RASSERT((status == GL_FRAMEBUFFER_COMPLETE), "Framebuffer incomplete, couldn't create! (FB status: {}, GL Error: 0x{:x})", status, sc<int>(glGetError()));
@@ -85,7 +86,8 @@ void CGLFramebuffer::addStencil(SP<ITexture> tex) {
     if (m_stencilTex == tex)
         return;
 
-    RASSERT(!m_fbAllocated, "Should add stencil tex prior to FB allocation")
+    if (m_fbAllocated)
+        Log::logger->log(Log::DEBUG, "Attaching a stencil to an allocated fb, will need re-alloc to be applied.");
     m_stencilTex = tex;
 }
 

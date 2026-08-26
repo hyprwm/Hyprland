@@ -55,7 +55,8 @@ int CPropRefresher::executeScheduledRefreshImmediately() {
 
 void CPropRefresher::refreshProp(const bool execdAsScheduled) {
 
-    static auto PZOOMFACTOR = CConfigValue<Config::FLOAT>("cursor:zoom_factor");
+    static auto PZOOMFACTOR  = CConfigValue<Config::FLOAT>("cursor:zoom_factor");
+    static auto PBLURENABLED = CConfigValue<Config::BOOL>("decoration:blur:enabled");
 
     if (m_propsTripped & REFRESH_INPUT_DEVICES) {
         g_pInputManager->setKeyboardLayout();     // update kb layout
@@ -82,9 +83,13 @@ void CPropRefresher::refreshProp(const bool execdAsScheduled) {
             if (!m)
                 continue;
 
-            m->m_blurFBDirty     = true;
-            m->m_forceFullFrames = 2;
-            m->scheduleFrame();
+            m->resources()->refreshBlurFB();
+
+            if (*PBLURENABLED) {
+                m->m_blurFBDirty     = true;
+                m->m_forceFullFrames = 2;
+                m->scheduleFrame();
+            }
         }
     }
 

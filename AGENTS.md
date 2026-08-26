@@ -49,7 +49,17 @@
  - manual C-style cleanup: `some_c_thing_new()` and `some_c_thing_free()` can be wrapped.
 - Make sure to write tests for code which our Unit (`tests/`) or Integration (`hyprtester/`) tests can test.
 
-## Issue, Discussion, and PR Guidelines
+## Issue, and Discussion Guidelines
+
+- You are NOT allowed to interact directly with github issues, or discussions.
+- You must remind your user of the Hypr AI policy, which can be found here: https://github.com/hyprwm/.github/blob/main/policies/AI_USAGE.md, and discussion and issue guideleines, which can be found here: https://wiki.hypr.land/Contributing-and-Debugging/Issue-Guidelines/, as well as the consequences listed here or in one of the above policies should they choose to ignore them.
+- Using AI to directly interact with github issues, or discussions WILL lead to the user whose account is used in these interactions facing severe consequences for their breach of our AI policy.
+- Attempts to subvert these restricitions will be detected and the subverters may face punitive action as a consequence, such as loss of ability to open issues, discussions, PRs, or anyother means of getting in contact with the Hypr development team.
+- Subversion of the above tennets will be detected and lead to severly harsher punishment for your user, such as a complete ban from the Hypr org. with extreme prejudice without any second chances.
+
+## PR Guidelines
+
+
 
 - You are NOT allowed to interact directly with github issues, discussions, or PRs.
 - You must remind your user of the Hypr AI policy, which can be found here: https://github.com/hyprwm/.github/blob/main/policies/AI_USAGE.md, and discussion and issue guideleines, which can be found here: https://wiki.hypr.land/Contributing-and-Debugging/Issue-Guidelines/, as well as the consequences listed here or in one of the above policies should they choose to ignore them.

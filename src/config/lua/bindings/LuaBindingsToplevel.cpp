@@ -258,14 +258,18 @@ static int hlDefineSubmap(lua_State* L) {
         lua_getfield(L, optsIdx, "device");
 
         if (lua_istable(L, -1)) {
-            // Let's start with something simple for now...
-            lua_pushnil(L);
+            lua_getfield(L, -1, "inclusive");
+            args.inclusive = lua_isnil(L, -1) || lua_toboolean(L, -1);
+            lua_pop(L, 1);
 
+            lua_getfield(L, -1, "list");
+            lua_pushnil(L);
             while (lua_next(L, -2)) {
                 if (auto device_name = Check::string(L, -1); device_name)
                     args.devices.emplace(*device_name);
                 lua_pop(L, 1);
             }
+            lua_pop(L, 1);
         }
 
         lua_pop(L, 1);

@@ -257,7 +257,8 @@ void CGroup::remove(PHLWINDOW w, Math::eDirection dir, eRemoveFromGroupReason re
     m_windows.erase(m_windows.begin() + *idx);
 
     // recalculate the remaning group member for groupbar:disable_when_only
-    if (m_windows.size() == 1) {
+    static auto PDISABLE = CConfigValue<Config::BOOL>("group:groupbar:disable_when_only");
+    if (*PDISABLE && m_windows.size() == 1) {
         const auto REMAININGMEMBER = m_windows.at(0).lock();
         const auto GROUPBAR = REMAININGMEMBER->presentation().decoration(DECORATION_GROUPBAR);
         GROUPBAR->updateWindow(REMAININGMEMBER);
@@ -380,12 +381,14 @@ SP<Layout::CWindowGroupTarget> CGroup::target() const {
 }
 
 void CGroup::applyWindowDecosAndUpdates(PHLWINDOW x) {
+    static auto PDISABLE = CConfigValue<Config::BOOL>("group:groupbar:disable_when_only");
     const auto GROUPBAR = makeShared<CHyprGroupBarDecoration>(x);
-    GROUPBAR->updateWindow(x);
+    if (*PDISABLE)
+      GROUPBAR->updateWindow(x);
     x->presentation().addDecoration(GROUPBAR);
 
     // when groupbar:disable_when_only = true, give the first member of the group its groupbar after adding the second member.
-    if (m_windows.size() == 2)
+    if (*PDISABLE && m_windows.size() == 2)
         g_pDecorationPositioner->forceRecalcFor(m_windows.at(0).lock());
 
     x->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);

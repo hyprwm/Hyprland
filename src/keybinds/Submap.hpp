@@ -10,11 +10,12 @@ namespace Keybinds {
 
     struct SSubmapArgs {
         std::unordered_set<std::string> devices;
+        bool                            inclusive;
     };
 
     class CSubmap {
       public:
-        CSubmap(std::string& name, SSubmapArgs metadata);
+        CSubmap(std::string& name, SSubmapArgs args);
 
         CSubmap(CSubmap&&) noexcept                                = default;
         CSubmap& operator=(CSubmap&&) noexcept                     = default;
@@ -24,11 +25,13 @@ namespace Keybinds {
         bool                                   matchesDevice(WP<IHID> device);
 
         std::string_view                       name() const;
+        bool                                   inclusive() const;
         const std::unordered_set<std::string>& devices() const;
 
       private:
         std::string                     m_name;
         std::unordered_set<std::string> m_devices;
+        bool                            m_inclusive;
     };
 
 }

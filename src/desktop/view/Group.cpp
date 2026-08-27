@@ -372,7 +372,9 @@ SP<Layout::CWindowGroupTarget> CGroup::target() const {
 }
 
 void CGroup::applyWindowDecosAndUpdates(PHLWINDOW x) {
-    x->presentation().addDecoration(makeShared<CHyprGroupBarDecoration>(x));
+    const auto GROUPBAR = makeShared<CHyprGroupBarDecoration>(x);
+    GROUPBAR->updateWindow(x);
+    x->presentation().addDecoration(GROUPBAR);
 
     x->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
     x->presentation().updateDecorations();

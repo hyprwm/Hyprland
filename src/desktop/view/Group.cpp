@@ -376,6 +376,10 @@ void CGroup::applyWindowDecosAndUpdates(PHLWINDOW x) {
     GROUPBAR->updateWindow(x);
     x->presentation().addDecoration(GROUPBAR);
 
+    // when groupbar:disable_when_only = true, give the first member of the group its groupbar after adding the second member.
+    if (m_windows.size() == 2)
+        g_pDecorationPositioner->forceRecalcFor(m_windows.at(0).lock());
+
     x->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
     x->presentation().updateDecorations();
     x->presentation().refreshValues();

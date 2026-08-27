@@ -260,7 +260,7 @@ void CGroup::remove(PHLWINDOW w, Math::eDirection dir, eRemoveFromGroupReason re
     static auto PDISABLE = CConfigValue<Config::BOOL>("group:groupbar:disable_when_only");
     if (*PDISABLE && m_windows.size() == 1) {
         const auto REMAININGMEMBER = m_windows.at(0).lock();
-        const auto GROUPBAR = REMAININGMEMBER->presentation().decoration(DECORATION_GROUPBAR);
+        const auto GROUPBAR        = REMAININGMEMBER->presentation().decoration(DECORATION_GROUPBAR);
         GROUPBAR->updateWindow(REMAININGMEMBER);
         g_pDecorationPositioner->forceRecalcFor(REMAININGMEMBER);
     }
@@ -382,9 +382,9 @@ SP<Layout::CWindowGroupTarget> CGroup::target() const {
 
 void CGroup::applyWindowDecosAndUpdates(PHLWINDOW x) {
     static auto PDISABLE = CConfigValue<Config::BOOL>("group:groupbar:disable_when_only");
-    const auto GROUPBAR = makeShared<CHyprGroupBarDecoration>(x);
+    const auto  GROUPBAR = makeShared<CHyprGroupBarDecoration>(x);
     if (*PDISABLE)
-      GROUPBAR->updateWindow(x);
+        GROUPBAR->updateWindow(x);
     x->presentation().addDecoration(GROUPBAR);
 
     // when groupbar:disable_when_only = true, give the first member of the group its groupbar after adding the second member.

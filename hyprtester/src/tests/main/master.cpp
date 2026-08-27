@@ -912,3 +912,102 @@ TEST_CASE(masterCenterDropAtCursor) {
     CALL_SUBTEST(expectCenterDrop, "R", false, "R", "M", "L");
     CALL_SUBTEST(expectCenterDrop, "R", true, "L", "M", "R");
 }
+
+// In a non-centered master layout with three windows w1/w2/w3, return their
+// classes ordered: { master, top slave, bottom slave }.
+static std::array<std::string, 3> detectTripleArrangement(const std::array<std::string, 3>& classes) {
+    std::vector<std::pair<std::pair<int, int>, std::string>> wins;
+    for (auto const& cls : classes) {
+        getFromSocket(std::format("/dispatch hl.dsp.focus({{ window = 'class:{}' }})", cls));
+        const auto at    = Tests::getAttribute(getFromSocket("/activewindow"), "at");
+        const auto comma = at.find(',');
+        const auto x     = std::stoi(at.substr(0, comma));
+        const auto y     = std::stoi(at.substr(comma + 1));
+        wins.emplace_back(std::pair(x, y), cls);
+    }
+    std::ranges::sort(
+        wins, [&](std::pair<int, int> w1, std::pair<int, int> w2) { return (w1.first < w2.first) || (w1.second < w2.second); },
+        &std::pair<std::pair<int, int>, std::string>::first);
+    return {wins[0].second, wins[1].second, wins[2].second};
+}
+
+// Create three windows, and drags `pick` to where `place` was before the drag
+// started. Assert that windows are in their expected locations afterwards.
+// `pick` and `place` are numbers from 1 to 3, with 1 representing the master
+// window, and 2/3 being the upper/lower windows in the stack, respectively.
+SUBTEST(expectTripleDragSwap, const uint pick, const uint place, const uint exp1, const uint exp2, const uint exp3) {
+    // start from a fresh set of three windows
+    if (!Tests::killAllWindows())
+        FAIL_TEST("Could not clear windows{}", "");
+
+    const std::array<std::string, 3> CLASSES = {"w1", "w2", "w3"};
+    for (auto const& win : CLASSES) {
+        SPAWN_KITTY(win);
+    }
+    Tests::waitUntilWindowsN(3);
+
+    const auto INITIAL = detectTripleArrangement(CLASSES);
+    double     DROPX, DROPY;
+    {
+        getFromSocket(std::format("/dispatch hl.dsp.focus({{ window = 'class:{}' }})", INITIAL[place - 1]));
+        const auto at    = Tests::getAttribute(getFromSocket("/activewindow"), "at");
+        const auto comma = at.find(',');
+        DROPX            = std::stoi(at.substr(0, comma));
+        DROPY            = std::stoi(at.substr(comma + 1));
+    }
+
+    NLog::log("{}Dragging window {} and dropping it in position {} ({},{})", Colors::YELLOW, pick, place, DROPX, DROPY);
+    OK(getFromSocket(std::format("/eval hl.plugin.test.drag_window('{}', {}, {})", INITIAL[pick - 1], DROPX, DROPY)));
+
+    const auto FINAL = detectTripleArrangement(CLASSES);
+    EXPECT(FINAL[0], INITIAL[exp1 - 1]);
+    EXPECT(FINAL[1], INITIAL[exp2 - 1]);
+    EXPECT(FINAL[2], INITIAL[exp3 - 1]);
+}
+
+TEST_CASE(masterDropAtCursor) {
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'master' } })"));
+    OK(getFromSocket("/eval hl.config({ master = { drop_at_cursor = true } })"));
+
+    NLog::log("{}Testing master window drag with new_status=slave", Colors::GREEN);
+    OK(getFromSocket("/eval hl.config({ master = { new_status = 'slave' } })"));
+    CALL_SUBTEST(expectTripleDragSwap, 1, 2, 2, 1, 3);
+    CALL_SUBTEST(expectTripleDragSwap, 1, 3, 2, 3, 1);
+    CALL_SUBTEST(expectTripleDragSwap, 3, 1, 3, 1, 2);
+    CALL_SUBTEST(expectTripleDragSwap, 3, 2, 1, 3, 2);
+    NLog::log("{}...and again with new_on_top", Colors::GREEN);
+    OK(getFromSocket("/eval hl.config({ master = { new_on_top = true } })"));
+    CALL_SUBTEST(expectTripleDragSwap, 1, 2, 2, 1, 3);
+    CALL_SUBTEST(expectTripleDragSwap, 1, 3, 2, 3, 1);
+    CALL_SUBTEST(expectTripleDragSwap, 3, 1, 3, 2, 1);
+    CALL_SUBTEST(expectTripleDragSwap, 3, 2, 1, 3, 2);
+    OK(getFromSocket("/eval hl.config({ master = { new_on_top = false } })"));
+
+    NLog::log("{}Testing master window drag with new_status=master", Colors::GREEN);
+    OK(getFromSocket("/eval hl.config({ master = { new_status = 'master' } })"));
+    CALL_SUBTEST(expectTripleDragSwap, 1, 2, 2, 1, 3);
+    CALL_SUBTEST(expectTripleDragSwap, 1, 3, 2, 3, 1);
+    CALL_SUBTEST(expectTripleDragSwap, 3, 1, 3, 2, 1);
+    CALL_SUBTEST(expectTripleDragSwap, 3, 2, 1, 3, 2);
+    NLog::log("{}...and again with new_on_top", Colors::GREEN);
+    OK(getFromSocket("/eval hl.config({ master = { new_on_top = true } })"));
+    CALL_SUBTEST(expectTripleDragSwap, 1, 2, 2, 1, 3);
+    CALL_SUBTEST(expectTripleDragSwap, 1, 3, 2, 3, 1);
+    CALL_SUBTEST(expectTripleDragSwap, 3, 1, 3, 1, 2);
+    CALL_SUBTEST(expectTripleDragSwap, 3, 2, 1, 3, 2);
+    OK(getFromSocket("/eval hl.config({ master = { new_on_top = false } })"));
+
+    NLog::log("{}Testing master window drag with new_status=inherit", Colors::GREEN);
+    OK(getFromSocket("/eval hl.config({ master = { new_status = 'inherit' } })"));
+    CALL_SUBTEST(expectTripleDragSwap, 1, 2, 2, 1, 3);
+    CALL_SUBTEST(expectTripleDragSwap, 1, 3, 2, 3, 1);
+    CALL_SUBTEST(expectTripleDragSwap, 3, 1, 3, 2, 1);
+    CALL_SUBTEST(expectTripleDragSwap, 3, 2, 1, 3, 2);
+    NLog::log("{}...and again with new_on_top", Colors::GREEN);
+    OK(getFromSocket("/eval hl.config({ master = { new_on_top = true } })"));
+    CALL_SUBTEST(expectTripleDragSwap, 1, 2, 2, 1, 3);
+    CALL_SUBTEST(expectTripleDragSwap, 1, 3, 2, 3, 1);
+    CALL_SUBTEST(expectTripleDragSwap, 3, 1, 3, 1, 2);
+    CALL_SUBTEST(expectTripleDragSwap, 3, 2, 1, 3, 2);
+    OK(getFromSocket("/eval hl.config({ master = { new_on_top = false } })"));
+}

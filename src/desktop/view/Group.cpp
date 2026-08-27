@@ -95,7 +95,9 @@ bool CGroup::has(PHLWINDOW w) const {
 }
 
 void CGroup::add(PHLWINDOW w, std::optional<size_t> index) {
-    static auto INSERT_AFTER_CURRENT = CConfigValue<Config::INTEGER>("group:insert_after_current");
+    static auto INSERT_AFTER_CURRENT          = CConfigValue<Config::INTEGER>("group:insert_after_current");
+    static auto PDISABLE                      = CConfigValue<Config::BOOL>("group:groupbar:disable_when_only");
+    const auto  GROUPBAR_DISABLED_ONLY_MEMBER = (*PDISABLE && m_windows.size() == 1) ? m_windows.at(0).lock() : nullptr;
 
     if (w->grouping().group()) {
         if (w->grouping().group() == m_self)
@@ -152,6 +154,11 @@ void CGroup::add(PHLWINDOW w, std::optional<size_t> index) {
     }
 
     applyWindowDecosAndUpdates(w);
+
+    // when groupbar:disable_when_only = true, give the only member of the group its groupbar after adding the second member.
+    if (GROUPBAR_DISABLED_ONLY_MEMBER)
+        g_pDecorationPositioner->forceRecalcFor(GROUPBAR_DISABLED_ONLY_MEMBER);
+
     updateWindowVisibility();
 
     if (FS_INTERNAL_MODE != Fullscreen::FSMODE_NONE) {
@@ -386,10 +393,6 @@ void CGroup::applyWindowDecosAndUpdates(PHLWINDOW x) {
     if (*PDISABLE)
         GROUPBAR->updateWindow(x);
     x->presentation().addDecoration(GROUPBAR);
-
-    // when groupbar:disable_when_only = true, give the first member of the group its groupbar after adding the second member.
-    if (*PDISABLE && m_windows.size() == 2)
-        g_pDecorationPositioner->forceRecalcFor(m_windows.at(0).lock());
 
     x->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
     x->presentation().updateDecorations();

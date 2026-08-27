@@ -256,6 +256,14 @@ void CGroup::remove(PHLWINDOW w, Math::eDirection dir, eRemoveFromGroupReason re
     // we do it after the above because switchTargets expects this to be a valid group
     m_windows.erase(m_windows.begin() + *idx);
 
+    // recalculate the remaning group member for groupbar:disable_when_only
+    if (m_windows.size() == 1) {
+        const auto REMAININGMEMBER = m_windows.at(0).lock();
+        const auto GROUPBAR = REMAININGMEMBER->presentation().decoration(DECORATION_GROUPBAR);
+        GROUPBAR->updateWindow(REMAININGMEMBER);
+        g_pDecorationPositioner->forceRecalcFor(REMAININGMEMBER);
+    }
+
     if (!m_windows.empty())
         updateWindowVisibility();
 

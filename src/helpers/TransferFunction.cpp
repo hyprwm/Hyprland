@@ -33,6 +33,11 @@ eTF NTransferFunction::fromConfig(bool useICC) {
     static auto PSDREOTF = CConfigValue<Config::STRING>("render:cm_sdr_eotf");
     static auto sdrEOTF  = NTransferFunction::fromString(*PSDREOTF);
     static auto P        = Event::bus()->m_events.config.reloaded.listen([]() { sdrEOTF = NTransferFunction::fromString(*PSDREOTF); });
+    // Also refresh on a prop refresh, not just a full reload: a runtime config
+    // change (hyprctl / the Lua config API) does not emit config.reloaded, so
+    // without this the cached enum keeps its startup value while the stored
+    // string reports the new one.
+    static auto P2 = Event::bus()->m_events.config.props_refreshed.listen([](const bool) { sdrEOTF = NTransferFunction::fromString(*PSDREOTF); });
 
     return sdrEOTF;
 }

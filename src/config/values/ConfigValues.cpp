@@ -657,7 +657,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
                 {.min = 0, .max = 2, .map = OptionMap{{"disable", 0}, {"hdr", 1}, {"hdredid", 2}}}),
         MS<Bool>("render:new_render_scheduling", "enable new render scheduling, which should improve FPS on underpowered devices.", false),
         MS<Int>("render:non_shader_cm", "Enable CM without shader.", 3, {.min = 0, .max = 3, .map = OptionMap{{"disable", 0}, {"always", 1}, {"ondemand", 2}, {"ignore", 3}}}),
-        MS<String>("render:cm_sdr_eotf", "Default transfer function for displaying SDR apps.", "default"),
+        MS<String>("render:cm_sdr_eotf", "Default transfer function for displaying SDR apps.", "default", {.refresh = Supplementary::REFRESH_MONITOR_STATES}),
         MS<Bool>("render:commit_timing_enabled", "Enable commit timing proto. Requires restart", true),
         MS<Bool>("render:icc_vcgt_enabled", "Enable sending VCGT ramps to KMS with ICC profiles", true),
         MS<Bool>("render:use_shader_blur_blend", "Use experimental blurred bg blending", false),

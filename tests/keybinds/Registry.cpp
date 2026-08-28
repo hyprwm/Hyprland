@@ -18,6 +18,10 @@ static CBind makeRegistryBind(std::string displayKey, std::string submap = {}) {
     return std::move(*result);
 }
 
+static CSubmap makeSubmap(std::string name, std::unordered_set<std::string> devices, const bool inclusive) {
+    return CSubmap(name, {.devices = devices, .inclusive = inclusive});
+};
+
 TEST(KeybindsRegistry, RemovesExactBind) {
     CRegistry  registry;
     const auto FIRST  = registry.add(makeRegistryBind("SUPER + K"));
@@ -45,6 +49,13 @@ TEST(KeybindsRegistry, FindsSubmap) {
 
     EXPECT_TRUE(registry.hasSubmap("resize"));
     EXPECT_FALSE(registry.hasSubmap("missing"));
+}
+
+TEST(KeybindsRegistry, FindsSubmapNewAPI) {
+    CRegistry registry;
+    registry.addSubmap(makeSubmap("example", {}, false));
+
+    EXPECT_TRUE(registry.findSubmap("example", nullptr));
 }
 
 TEST(KeybindsRegistry, FindsShortcutWithSidedModifier) {

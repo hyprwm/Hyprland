@@ -635,7 +635,7 @@ void CKeybindManager::invokeReleaseCallbacks(std::vector<SPendingRelease>&& rele
         state.m_lastCode              = release.actionCode;
         state.m_lastMouseCode         = release.actionMouseCode;
         state.m_timeLastMs            = release.actionTimeMs;
-        state.m_lastDevice            = release.device;
+        state.m_lastDevice            = release.device.lock();
         Hyprutils::Utils::CScopeGuard guard([&state, PREVIOUS_CODE, PREVIOUS_MOUSECODE, PREVIOUS_TIME, PREVIOUS_DEVICE] {
             state.m_lastCode      = PREVIOUS_CODE;
             state.m_lastMouseCode = PREVIOUS_MOUSECODE;

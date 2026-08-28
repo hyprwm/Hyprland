@@ -27,7 +27,7 @@ namespace Keybinds {
         bool                     empty() const;
         size_t                   size() const;
         bool                     hasSubmap(std::string_view submap) const;
-        std::optional<PSubmap>   findSubmap(std::string_view submap, const WP<IHID> device) const;
+        std::optional<PSubmap>   findSubmap(std::string_view submap, const SP<IHID> device) const;
         PBind                    findShortcutConflict(xkb_keysym_t keysym, Input::ModifierMask modifiers, xkb_state* xkbState = nullptr) const;
 
       private:

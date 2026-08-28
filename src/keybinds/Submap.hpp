@@ -22,7 +22,7 @@ namespace Keybinds {
         CSubmap(const CSubmap&)                                    = delete;
         CSubmap&                               operator=(CSubmap&) = delete;
 
-        bool                                   matchesDevice(WP<IHID> device);
+        bool                                   matchesDevice(SP<IHID> device) const;
 
         std::string_view                       name() const;
         bool                                   inclusive() const;

@@ -5,6 +5,7 @@
 #include "../../../config/ConfigValue.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <utility>
 
 using namespace Render;
@@ -19,6 +20,22 @@ static SCMSettings blurIntermediateCMSettings(bool toIntermediate) {
     auto&      range    = toIntermediate ? settings.dstTFRange : settings.srcTFRange;
     range.max           = std::max(range.max, sc<float>(WORKBUFFER->value().luminances.max));
     return settings;
+}
+
+// decoration:blur:noise is authored against an SDR intermediate, where 1.0 encodes SDR white.
+// blurIntermediateCMSettings stretches the intermediate over the entire workbuffer luminance range on HDR outputs
+// (up to 10000 nits), so the very same noise value covers a multiple of the SDR white level and reads as coarse grain
+// instead of a subtle dither. Scale it back to the equivalent SDR-relative amount.
+// Takes the settings of the finish pass, where the stretched intermediate is the source.
+static float blurNoiseScale(const SCMSettings& finishSettings) {
+    const float NOMINAL   = getDefaultImageDescription()->value().getTFMaxLuminance(-1) - finishSettings.srcTFRange.min;
+    const float STRETCHED = finishSettings.srcTFRange.max - finishSettings.srcTFRange.min;
+
+    if (NOMINAL <= 0 || STRETCHED <= NOMINAL)
+        return 1.F;
+
+    // the intermediate is gamma encoded, sRGB is close enough to a pure 2.2 gamma for scaling noise
+    return std::pow(NOMINAL / STRETCHED, 1.F / 2.2F);
 }
 
 CDualKawaseBlurProvider::CDualKawaseBlurProvider(CHyprOpenGLImpl& impl) : CDualKawaseBlurProvider(impl, makeUnique<CDefaultBlurMaterial>()) {
@@ -241,9 +258,11 @@ SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(SP<CGLFramebuffer> source, fl
             m_impl.setActiveTexture(GL_TEXTURE0);
         }
 
-        const bool skipCM = !m_impl.m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
+        const bool skipCM     = !m_impl.m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
+        float      noiseScale = 1.F;
         if (!skipCM) {
             const auto settings = blurIntermediateCMSettings(/* toIntermediate */ false);
+            noiseScale          = blurNoiseScale(settings);
             shader              = m_impl.useShader(m_impl.getShaderVariant(MATERIAL_REQUIREMENTS.finishFragment, SH_FEAT_CM, settings.sourceTF, settings.targetTF));
 
             m_impl.passCMUniforms(shader, getDefaultImageDescription(), g_pHyprRenderer->workBufferImageDescription(), false, -1.F, -1, settings);
@@ -261,7 +280,7 @@ SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(SP<CGLFramebuffer> source, fl
             shader = m_impl.useShader(m_impl.getShaderVariant(MATERIAL_REQUIREMENTS.finishFragment));
 
         shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
-        shader->setUniformFloat(SHADER_NOISE, *PBLURNOISE);
+        shader->setUniformFloat(SHADER_NOISE, *PBLURNOISE * noiseScale);
         shader->setUniformFloat(SHADER_BRIGHTNESS, *PBLURBRIGHTNESS);
         shader->setUniformInt(SHADER_TEX, 0);
         if (REQUIRES_PREPARED_INPUT)

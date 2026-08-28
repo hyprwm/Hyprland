@@ -84,11 +84,16 @@ COutputCommitCoordinator::eSubmitResult COutputCommitCoordinator::submit(SFrame&
         return SUBMIT_FAILED;
     }
 
+    const auto CAPS = m_monitor->m_output->commitCapabilities();
+
+    Log::logger->log(Log::TRACE, "COutputCommitCoordinator: submit() with caps={}", m_monitor->m_name, sc<uint32_t>(CAPS));
+
     if (!canSubmitAsync(frame))
         return submitSynchronously(std::move(frame));
 
+    Log::logger->log(Log::TRACE, "COutputCommitCoordinator: submitting asynchronously for {}", m_monitor->m_name);
+
     Aquamarine::IOutput::SCommitOptions options;
-    const auto                          CAPS = m_monitor->m_output->commitCapabilities();
 
     if (!frame.tearing && !frame.vrr && (CAPS & Aquamarine::IOutput::AQ_OUTPUT_COMMIT_CAPABILITY_TIMED))
         options.targetPresentation = m_monitor->m_output->nextVBlank();
@@ -117,6 +122,8 @@ COutputCommitCoordinator::eSubmitResult COutputCommitCoordinator::submit(SFrame&
 }
 
 COutputCommitCoordinator::eSubmitResult COutputCommitCoordinator::submitSynchronously(SFrame&& frame) {
+    Log::logger->log(Log::TRACE, "COutputCommitCoordinator: submitting synchronously for {}", m_monitor->m_name);
+
     PROTO::presentation->tagQueued(m_monitor->m_self.lock(), 0, frame.tearing, frame.vrr);
 
     bool ok = frame.kind == FRAME_DIRECT_SCANOUT ? m_monitor->m_output->commit() : m_monitor->m_state.commit();
@@ -160,6 +167,8 @@ void COutputCommitCoordinator::onCommitResult(const Aquamarine::IOutput::SCommit
 }
 
 void COutputCommitCoordinator::submitted(SFrame& frame, bool async) {
+    Log::logger->log(Log::TRACE, "COutputCommitCoordinator: submitted {}, async={}", m_monitor->m_name, async);
+
     if (frame.damage)
         frame.damage->commit();
 
@@ -208,6 +217,8 @@ void COutputCommitCoordinator::onPresented(uint64_t id, bool presented) {
 }
 
 void COutputCommitCoordinator::failed(SFrame&& frame, bool rollbackSwapchain) {
+    Log::logger->log(Log::TRACE, "COutputCommitCoordinator: failed for {}", m_monitor->m_name);
+
     if (frame.damage)
         frame.damage->rollback();
     if (rollbackSwapchain && frame.rollbackSwapchain && m_monitor->m_output && m_monitor->m_output->swapchain)

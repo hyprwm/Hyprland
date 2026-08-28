@@ -590,6 +590,49 @@ TEST_CASE(groups_disable_when_only) {
     ASSERT(Tests::windowCount(), 0);
 }
 
+TEST_CASE(groupbarDisableWhenOnlyDimensions) {
+    OK(getFromSocket("/eval hl.config({ group = { groupbar = { disable_when_only = true } } })"));
+    SPAWN_KITTY("kittenA");
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "at: 22,22");
+        EXPECT_CONTAINS(str, "size: 1876,1036");
+    }
+
+    SPAWN_KITTY("kittenB");
+    // when `groupbar:disable_when_only = true` and adding a second member to the group, check if the first member got its groupbar by checking its dimensions.
+    {
+        auto clients  = getFromSocket("/clients");
+        auto classPos = clients.find("class: kittenA");
+        if (classPos == std::string::npos) {
+            FAIL_TEST("Could not find kittenA in clients output");
+        } else {
+            auto entryStart  = clients.rfind("Window ", classPos);
+            auto entryEnd    = clients.find("\n\n", classPos);
+            auto windowEntry = clients.substr(entryStart, entryEnd - entryStart);
+            EXPECT_CONTAINS(windowEntry, "at: 22,43");
+            EXPECT_CONTAINS(windowEntry, "size: 1876,1015");
+        }
+    }
+
+    // also check the dimensions of the only member of the group after moving out the other member. It should have lost its groupbar and resized accordingly.
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ out_of_group = true })"));
+    {
+        auto clients  = getFromSocket("/clients");
+        auto classPos = clients.find("class: kittenA");
+        if (classPos == std::string::npos) {
+            FAIL_TEST("Could not find kittenA in clients output");
+        } else {
+            auto entryStart  = clients.rfind("Window ", classPos);
+            auto entryEnd    = clients.find("\n\n", classPos);
+            auto windowEntry = clients.substr(entryStart, entryEnd - entryStart);
+            EXPECT_CONTAINS(windowEntry, "at: 22,22");
+            EXPECT_CONTAINS(windowEntry, "size: 931,1036");
+        }
+    }
+}
+
 TEST_CASE(autoGroupFloatedIntoTiled) {
     NLog::log("{}Test that we deny a new floated window getting auto-grouped into the focused tiled group.", Colors::GREEN);
 

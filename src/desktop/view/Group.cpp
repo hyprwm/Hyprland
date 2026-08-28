@@ -263,13 +263,13 @@ void CGroup::remove(PHLWINDOW w, Math::eDirection dir, eRemoveFromGroupReason re
     // we do it after the above because switchTargets expects this to be a valid group
     m_windows.erase(m_windows.begin() + *idx);
 
-    // recalculate the remaning group member for groupbar:disable_when_only
+    // if groupbar:disable_when_only is enabled and there is only one group member left, we need to fix its size because it will lose its groupbar.
     static auto PDISABLE = CConfigValue<Config::BOOL>("group:groupbar:disable_when_only");
     if (*PDISABLE && m_windows.size() == 1) {
-        const auto REMAININGMEMBER = m_windows.at(0).lock();
-        const auto GROUPBAR        = REMAININGMEMBER->presentation().decoration(DECORATION_GROUPBAR);
-        GROUPBAR->updateWindow(REMAININGMEMBER);
-        g_pDecorationPositioner->forceRecalcFor(REMAININGMEMBER);
+        const auto REMAINING_MEMBER = m_windows.at(0).lock();
+        const auto GROUPBAR         = REMAINING_MEMBER->presentation().decoration(DECORATION_GROUPBAR);
+        GROUPBAR->updateWindow(REMAINING_MEMBER);
+        g_pDecorationPositioner->forceRecalcFor(REMAINING_MEMBER);
     }
 
     if (!m_windows.empty())

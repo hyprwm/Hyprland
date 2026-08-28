@@ -16,7 +16,7 @@ bool CMonitorFrameScheduler::newSchedulingEnabled() {
     static auto PENABLENEW = CConfigValue<Config::INTEGER>("render:new_render_scheduling");
 
     return *PENABLENEW && g_pHyprRenderer->explicitSyncSupported() && m_monitor && !m_monitor->m_directScanoutIsActive &&
-        (!m_monitor->m_commitCoordinator || !m_monitor->m_commitCoordinator->asyncEnabled());
+        (!m_monitor->m_commitCoordinator->asyncEnabled());
 }
 
 void CMonitorFrameScheduler::onSyncFired() {
@@ -154,7 +154,7 @@ bool CMonitorFrameScheduler::canRender() {
     if (!m_monitor->m_enabled)
         return false;
 
-    if (m_monitor->m_commitCoordinator && !m_monitor->m_commitCoordinator->canBeginFrame())
+    if (!m_monitor->m_commitCoordinator->canBeginFrame())
         return false;
 
     return true;

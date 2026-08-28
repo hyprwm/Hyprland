@@ -101,6 +101,8 @@ CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_name(output_->name), m_s
     m_backgroundOpacity->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
     Animation::mgr()->createAnimation(0.F, m_dpmsBlackOpacity, Config::animationTree()->getAnimationPropertyConfig("fadeDpms"), AVARDAMAGE_NONE);
     m_dpmsBlackOpacity->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
+
+    m_commitCoordinator = makeUnique<COutputCommitCoordinator>(this);
 }
 
 CMonitor::~CMonitor() {
@@ -110,8 +112,6 @@ CMonitor::~CMonitor() {
 }
 
 void CMonitor::onConnect(bool noRule) {
-    m_commitCoordinator = makeUnique<COutputCommitCoordinator>(this);
-
     Event::bus()->m_events.monitor.preAdded.emit(m_self.lock());
     CScopeGuard x = {[]() { State::monitorLayoutController()->arrange(); }};
 
@@ -130,14 +130,13 @@ void CMonitor::onConnect(bool noRule) {
             m_frameScheduler->onFrame();
     });
     m_listeners.commit       = m_output->events.commit.listen([this] {
-        if (m_commitCoordinator && !m_commitCoordinator->shouldForwardCommitEvent())
+        if (!m_commitCoordinator->shouldForwardCommitEvent())
             return;
 
         m_events.commit.emit();
     });
     m_listeners.commitResult = m_output->events.commitResult.listen([this](const Aquamarine::IOutput::SCommitResult& result) {
-        if (m_commitCoordinator)
-            m_commitCoordinator->onCommitResult(result);
+        m_commitCoordinator->onCommitResult(result);
     });
     m_listeners.needsFrame   = m_output->events.needsFrame.listen([this] { scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME); });
 
@@ -156,8 +155,7 @@ void CMonitor::onConnect(bool noRule) {
 
         PROTO::presentation->onPresented(m_self.lock(), ts, event.refresh, event.seq, flags, event.commitID, event.presented);
 
-        if (m_commitCoordinator)
-            m_commitCoordinator->onPresented(event.commitID, event.presented);
+        m_commitCoordinator->onPresented(event.commitID, event.presented);
 
         if (!event.presented) {
             m_damage.damageEntire();
@@ -422,8 +420,7 @@ void CMonitor::onDisconnect(bool destroy) {
     }};
 
     m_frameScheduler.reset();
-    if (m_commitCoordinator)
-        m_commitCoordinator->cancelPending();
+    m_commitCoordinator->cancelPending();
     clearModeRetry();
 
     if (!m_enabled || g_pCompositor->m_isShuttingDown)
@@ -2267,7 +2264,7 @@ bool CMonitor::attemptDirectScanout() {
         .previousFormat    = previousFormat,
     };
 
-    const auto result = m_commitCoordinator ? m_commitCoordinator->submit(std::move(frame)) : COutputCommitCoordinator::SUBMIT_FAILED;
+    const auto result = m_commitCoordinator->submit(std::move(frame));
     if (result == COutputCommitCoordinator::SUBMIT_FAILED) {
         Log::logger->log(Log::TRACE, "attemptDirectScanout: failed to scanout surface");
         m_lastScanout.reset();
@@ -2721,7 +2718,7 @@ void CMonitorState::ensureBufferPresent() {
 }
 
 bool CMonitorState::commit() {
-    if (m_owner->m_commitCoordinator && m_owner->m_commitCoordinator->deferStateCommit())
+    if (m_owner->m_commitCoordinator->deferStateCommit())
         return true;
 
     if (!updateSwapchain())

@@ -2133,7 +2133,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     if (!pMonitor->m_output->needsFrame && pMonitor->m_forceFullFrames == 0 && !pMonitor->m_damage.hasChanged())
         return;
 
-    if (pMonitor->m_commitCoordinator && !pMonitor->m_commitCoordinator->canBeginFrame()) {
+    if (!pMonitor->m_commitCoordinator->canBeginFrame()) {
         pMonitor->m_pendingFrame = true;
         return;
     }
@@ -2317,8 +2317,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     else {
         if (damageTransaction)
             damageTransaction->commit();
-        if (pMonitor->m_commitCoordinator)
-            pMonitor->m_commitCoordinator->stageRenderedDamage(m_renderData.damage, pMonitor->needsACopyFB());
+        pMonitor->m_commitCoordinator->stageRenderedDamage(m_renderData.damage, pMonitor->needsACopyFB());
     }
 
     if (shouldTear && submitted)
@@ -2547,9 +2546,6 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
 
 bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor, std::optional<Monitor::CDamageRing::CTransaction> damage, const CRegion& renderedDamage) {
     handleFullscreenSettings(pMonitor);
-
-    if (!pMonitor->m_commitCoordinator)
-        return pMonitor->m_state.commit();
 
     const auto                                staged = renderedDamage.empty() ? pMonitor->m_commitCoordinator->takeStagedRender() : std::nullopt;
 

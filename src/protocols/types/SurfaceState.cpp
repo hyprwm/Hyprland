@@ -13,7 +13,7 @@ Vector2D SSurfaceState::sourceSize() {
     if UNLIKELY (viewport.hasSource)
         return viewport.source.size();
 
-    Vector2D trc = transform % 2 == 1 ? Vector2D{bufferSize.y, bufferSize.x} : bufferSize;
+    Vector2D trc = Math::transformedSize(transform, bufferSize);
     return trc / scale;
 }
 
@@ -32,7 +32,7 @@ CRegion SSurfaceState::accumulateBufferDamage() {
         if (viewport.hasSource)
             surfaceDamage.translate(viewport.source.pos());
 
-        Vector2D trc = transform % 2 == 1 ? Vector2D{bufferSize.y, bufferSize.x} : bufferSize;
+        Vector2D trc = Math::transformedSize(transform, bufferSize);
 
         bufferDamage = surfaceDamage.scale(scale).transform(Math::wlTransformToHyprutils(Math::invertTransform(transform)), trc.x, trc.y).add(bufferDamage);
         damage.clear();

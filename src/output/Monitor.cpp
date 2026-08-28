@@ -705,7 +705,7 @@ bool CMonitor::applyMonitorRuleSoft(Config::CMonitorRule&& pMonitorRule) {
         }
     }
 
-    Vector2D xfmd     = m_transform % 2 == 1 ? Vector2D{m_pixelSize.y, m_pixelSize.x} : m_pixelSize;
+    Vector2D xfmd     = Math::transformedSize(m_transform, m_pixelSize);
     m_size            = (xfmd / m_scale).round();
     m_transformedSize = xfmd;
 
@@ -1064,7 +1064,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
     if (!m_state.commit())
         Log::logger->log(Log::ERR, "Couldn't commit output named {}", m_name);
 
-    Vector2D xfmd     = m_transform % 2 == 1 ? Vector2D{m_pixelSize.y, m_pixelSize.x} : m_pixelSize;
+    Vector2D xfmd     = Math::transformedSize(m_transform, m_pixelSize);
     m_size            = (xfmd / m_scale).round();
     m_transformedSize = xfmd;
 

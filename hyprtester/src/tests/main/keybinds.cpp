@@ -789,6 +789,41 @@ SUBTEST(perDeviceKeybind) {
     EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
 }
 
+SUBTEST(perDeviceSubmap) {
+    NLog::log("{}Testing per-device submaps", Colors::GREEN);
+
+    const auto press = [this](const uint32_t key, const uint32_t mod = 0) {
+        // +8 because udev -> XKB keycode.
+        OK(getFromSocket(pluginKeybindCmd(true, mod, key + 8)));
+        OK(getFromSocket(pluginKeybindCmd(false, mod, key + 8)));
+    };
+
+    NLog::log("{}Testing per-device submaps - Matching device name", Colors::MAGENTA);
+
+    OK(getFromSocket("/eval hl.bind('SUPER + y', hl.dsp.submap('keyboard-submap'))"));
+    press(KEY_Y, MOD_META);
+    EXPECT_CONTAINS(getFromSocket("/submap"), "keyboard-submap");
+    press(KEY_P);
+    EXPECT_CONTAINS(getFromSocket("/submap"), "default");
+    OK(getFromSocket("/eval hl.unbind('SUPER + y')"));
+
+    NLog::log("{}Testing per-device submaps - Matching device tag", Colors::MAGENTA);
+
+    OK(getFromSocket("/eval hl.bind('SUPER + y', hl.dsp.submap('tag-submap'))"));
+    press(KEY_Y, MOD_META);
+    EXPECT_CONTAINS(getFromSocket("/submap"), "tag-submap");
+    press(KEY_P);
+    EXPECT_CONTAINS(getFromSocket("/submap"), "default");
+    OK(getFromSocket("/eval hl.unbind('SUPER + y')"));
+
+    NLog::log("{}Testing per-device submaps - Non-matching device tag", Colors::MAGENTA);
+
+    OK(getFromSocket("/eval hl.bind('SUPER + y', hl.dsp.submap('hidden-tag-submap'))"));
+    press(KEY_Y, MOD_META);
+    EXPECT_CONTAINS(getFromSocket("/submap"), "default");
+    OK(getFromSocket("/eval hl.unbind('SUPER + y')"));
+}
+
 SUBTEST(unbind) {
     NLog::log("{}Testing unbind behavior", Colors::GREEN);
 
@@ -824,6 +859,7 @@ TEST_CASE(keybinds) {
     CALL_SUBTEST(shortcutRepeat);
     CALL_SUBTEST(shortcutRepeatKeyRelease);
     CALL_SUBTEST(submap);
+    CALL_SUBTEST(perDeviceSubmap);
     CALL_SUBTEST(submapMouseBinds);
     CALL_SUBTEST(submapUniversal);
     CALL_SUBTEST(bindsAfterScroll);

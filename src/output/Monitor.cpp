@@ -535,6 +535,7 @@ static NColorManagement::eTransferFunction chooseTF(NTransferFunction::eTF tf) {
         case NTransferFunction::TF_FORCED_GAMMA22: return NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22;
         case NTransferFunction::TF_DEFAULT:
         case NTransferFunction::TF_SRGB: return NColorManagement::CM_TRANSFER_FUNCTION_SRGB;
+        case NTransferFunction::TF_BT1886: return NColorManagement::CM_TRANSFER_FUNCTION_BT1886;
 
         case NTransferFunction::TF_AUTO: // use global setting
             switch (sdrEOTF) {

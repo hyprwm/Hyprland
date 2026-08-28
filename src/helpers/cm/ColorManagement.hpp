@@ -402,6 +402,14 @@ namespace NColorManagement {
         .luminances       = {.min = SDR_MIN_LUMINANCE, .max = 80, .reference = 80},
     });
 
+    inline const auto DEFAULT_BT1886_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
+        .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_BT1886,
+        .primariesNameSet = true,
+        .primariesNamed   = NColorManagement::CM_PRIMARIES_SRGB,
+        .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_SRGB),
+        .luminances       = {.min = SDR_MIN_LUMINANCE, .max = 80, .reference = 80},
+    });
+
     inline const auto DEFAULT_HDR_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
         .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
         .primariesNameSet = true,

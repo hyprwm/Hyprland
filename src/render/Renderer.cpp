@@ -1979,6 +1979,8 @@ SCMSettings IHyprRenderer::getCMSettings(const NColorManagement::PImageDescripti
             srcTF = NColorManagement::eTransferFunction::CM_TRANSFER_FUNCTION_SRGB;
         else if (sdrEOTF == NTransferFunction::TF_GAMMA22 || sdrEOTF == NTransferFunction::TF_FORCED_GAMMA22)
             srcTF = NColorManagement::eTransferFunction::CM_TRANSFER_FUNCTION_GAMMA22;
+        else if (sdrEOTF == NTransferFunction::TF_BT1886)
+            srcTF = NColorManagement::eTransferFunction::CM_TRANSFER_FUNCTION_BT1886;
         else
             srcTF = imageDescription->value().transferFunction;
     } else

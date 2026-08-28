@@ -10,6 +10,7 @@ namespace NTransferFunction {
         TF_SRGB           = 2,
         TF_GAMMA22        = 3,
         TF_FORCED_GAMMA22 = 4,
+        TF_BT1886         = 5,
     };
 
     eTF         fromString(const std::string tfName);

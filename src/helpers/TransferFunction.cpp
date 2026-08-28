@@ -9,7 +9,7 @@ using namespace NTransferFunction;
 
 static std::unordered_map<std::string, eTF> const table = {{"default", TF_DEFAULT}, {"0", TF_DEFAULT},       {"auto", TF_AUTO}, {"srgb", TF_SRGB},
                                                            {"3", TF_SRGB},          {"gamma22", TF_GAMMA22}, {"1", TF_GAMMA22}, {"gamma22force", TF_FORCED_GAMMA22},
-                                                           {"2", TF_FORCED_GAMMA22}};
+                                                           {"2", TF_FORCED_GAMMA22}, {"bt1886", TF_BT1886}};
 
 eTF                                               NTransferFunction::fromString(const std::string tfName) {
     auto it = table.find(tfName);

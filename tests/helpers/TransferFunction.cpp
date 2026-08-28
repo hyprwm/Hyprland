@@ -10,6 +10,7 @@ TEST(Helpers, transferFunctionFromStringNamed) {
     EXPECT_EQ(fromString("srgb"), TF_SRGB);
     EXPECT_EQ(fromString("gamma22"), TF_GAMMA22);
     EXPECT_EQ(fromString("gamma22force"), TF_FORCED_GAMMA22);
+    EXPECT_EQ(fromString("bt1886"), TF_BT1886);
 }
 
 TEST(Helpers, transferFunctionFromStringNumeric) {
@@ -32,6 +33,7 @@ TEST(Helpers, transferFunctionToString) {
     EXPECT_FALSE(toString(TF_SRGB).empty());
     EXPECT_FALSE(toString(TF_GAMMA22).empty());
     EXPECT_FALSE(toString(TF_FORCED_GAMMA22).empty());
+    EXPECT_FALSE(toString(TF_BT1886).empty());
 }
 
 TEST(Helpers, transferFunctionRoundTrip) {
@@ -40,4 +42,5 @@ TEST(Helpers, transferFunctionRoundTrip) {
     EXPECT_EQ(fromString(toString(TF_SRGB)), TF_SRGB);
     EXPECT_EQ(fromString(toString(TF_GAMMA22)), TF_GAMMA22);
     EXPECT_EQ(fromString(toString(TF_FORCED_GAMMA22)), TF_FORCED_GAMMA22);
+    EXPECT_EQ(fromString(toString(TF_BT1886)), TF_BT1886);
 }

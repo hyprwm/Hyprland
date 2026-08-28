@@ -533,6 +533,7 @@ PImageDescription NColorManagement::getDefaultImageDescription() {
         case TF_FORCED_GAMMA22: return DEFAULT_GAMMA22_IMAGE_DESCRIPTION;
         case TF_DEFAULT:
         case TF_SRGB: return DEFAULT_SRGB_IMAGE_DESCRIPTION;
+        case TF_BT1886: return DEFAULT_BT1886_IMAGE_DESCRIPTION;
         default: UNREACHABLE();
     }
 }

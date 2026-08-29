@@ -297,6 +297,12 @@ SUBTEST(multimonFocus) {
         SPAWN_KITTY(win);
     }
 
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 8 })"));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    auto str = getFromSocket("/activeworkspace");
+    EXPECT_CONTAINS(str, "workspace ID 8 (")
+    EXPECT_CONTAINS(str, ") on monitor HEADLESS-3:\n");
+
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:a' })"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'right' })"));
 
@@ -741,7 +747,13 @@ TEST_CASE(workspacesCombined) {
     Tests::killAllWindows();
 
     CALL_SUBTEST(multimonBAF);
-    CALL_SUBTEST(multimonFocus);
+    // Test with both `no_warps=true` and `no_warps=false`.
+    // TODO: is there more cursor-related options to include in the matrix? Is there more subtests we should run like this?
+    for (const std::string& conf : {"cursor={no_warps=false}", "cursor={no_warps=true}"}) {
+        NLog::yellow("Setting hl.config({{{}}})", conf);
+        OK(getFromSocket("/eval hl.config({" + conf + "})"));
+        CALL_SUBTEST(multimonFocus);
+    }
     CALL_SUBTEST(workspaceHistoryMultiMon);
 
     // destroy the headless output

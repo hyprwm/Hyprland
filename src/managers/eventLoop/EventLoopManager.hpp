@@ -50,6 +50,7 @@ class CEventLoopManager {
     ~CEventLoopManager();
 
     void enterLoop();
+    void flushClients();
 
     // Note: will remove the timer if the ptr is lost.
     void addTimer(SP<CEventLoopTimer> timer);

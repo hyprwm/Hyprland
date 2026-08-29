@@ -10,7 +10,7 @@
 
 static std::string clientBlockForClass(const std::string& className) {
     const auto clients  = getFromSocket("/clients");
-    const auto classPos = clients.find(std::format("class: {}", className));
+    const auto classPos = clients.find(std::format("class: {}\n", className));
     if (classPos == std::string::npos)
         return "";
 

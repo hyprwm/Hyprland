@@ -92,7 +92,7 @@ void CScrollMoveTrackpadGesture::update(const ITrackpadGesture::STrackpadGesture
             const double INSTANT_VELOCITY = NORMALIZED_OFFSET_DELTA / DT;
 
             if (std::isfinite(INSTANT_VELOCITY))
-                m_velocity = m_velocity * (1.0 - SCROLL_GESTURE_VELOCITY_SMOOTH) + INSTANT_VELOCITY * SCROLL_GESTURE_VELOCITY_SMOOTH;
+                m_velocity = (m_velocity * (1.0 - SCROLL_GESTURE_VELOCITY_SMOOTH)) + (INSTANT_VELOCITY * SCROLL_GESTURE_VELOCITY_SMOOTH);
         }
     }
 

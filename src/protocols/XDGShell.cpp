@@ -314,7 +314,7 @@ bool CXDGToplevelResource::shouldIgnoreInitialMaximizeds() const {
     if (!m_owner->m_surface)
         return true;
 
-    if (!m_owner->m_surface->m_current.buffer)
+    if (!m_owner->m_surface->m_mapped)
         return true;
 
     return false;

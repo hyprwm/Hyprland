@@ -7,6 +7,8 @@
 #include "../../../protocols/XDGDialog.hpp"
 #include "../../../protocols/XDGShell.hpp"
 #include "../../../protocols/core/Compositor.hpp"
+#include "managers/fullscreen/FullscreenController.hpp"
+#include "managers/fullscreen/FullscreenTypes.hpp"
 
 using namespace Desktop::View;
 
@@ -167,10 +169,19 @@ CWaylandBackend::CWaylandBackend(SP<CXDGSurfaceResource> resource) : m_resource(
                 return;
 
             updateTraits(true);
+
+            // This is tricky, but we essentially check if the app requested any type of maximize.
+            // If it did, we send the inverse of our internal state.
+            // This is because apps are always "maximized" under Hyprland + Wayland, check setMaximized().
+            const auto REQUESTED_MAXIMIZE = TOPLEVEL->m_state.requestsMaximize.has_value();
+            auto       requestsMaximize   = std::optional<bool>{std::nullopt};
+            if (REQUESTED_MAXIMIZE)
+                requestsMaximize = !Fullscreen::controller()->isFullscreen(m_window.lock(), Fullscreen::FSMODE_MAXIMIZED);
+
             m_events.stateRequest.emit({
                 .fullscreen        = TOPLEVEL->m_state.requestsFullscreen,
                 .fullscreenMonitor = TOPLEVEL->m_state.requestsFullscreenMonitor,
-                .maximized         = TOPLEVEL->m_state.requestsMaximize,
+                .maximized         = requestsMaximize,
                 .minimized         = TOPLEVEL->m_state.requestsMinimize,
             });
         });
@@ -324,9 +335,15 @@ void CWaylandBackend::setFullscreen(bool fullscreen) {
 }
 
 void CWaylandBackend::setMaximized(bool maximized) {
-    const auto RESOURCE = m_resource.lock();
-    if (RESOURCE && RESOURCE->m_toplevel)
-        RESOURCE->m_toplevel->setMaximized(maximized);
+    // Do not let Wayland propagate maximized states.
+    // Hyprland always sets Maximized for apps to force them to not draw CSD.
+    // Even in 2026, GTK can still draw CSD even with tiled properties,
+    // and our MR to w-p to fix this problem has gotten the classic gnome "usecase????"
+    // so we can't fucking do shit with this idiotic, braindead bs
+
+    // const auto RESOURCE = m_resource.lock();
+    // if (RESOURCE && RESOURCE->m_toplevel)
+    //     RESOURCE->m_toplevel->setMaximized(maximized);
 }
 
 void CWaylandBackend::setResizing(bool resizing) {

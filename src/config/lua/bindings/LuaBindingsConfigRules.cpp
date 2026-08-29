@@ -355,15 +355,20 @@ static int hlCurve(lua_State* L) {
         {
             CScopeGuard x([L] { lua_pop(L, 1); });
 
-            lua_getfield(L, 2, "dampening");
+            lua_getfield(L, 2, "damping");
+            if (lua_isnil(L, -1)) {
+                lua_pop(L, 1);
+                // Old typo form, please add a deprecation notice if you ever plan on removing these
+                lua_getfield(L, 2, "dampening");
+            }
 
             if (!lua_isnumber(L, -1))
-                return Internal::configError(L, std::format("hl.curve(\"{}\"): dampening expects a number", name));
+                return Internal::configError(L, std::format("hl.curve(\"{}\"): damping expects a number", name));
 
             curve.damping = lua_tonumber(L, -1);
 
             if (curve.damping <= 0.5F)
-                return Internal::configError(L, std::format("hl.curve(\"{}\"): dampening expects a number >= 0.5", name));
+                return Internal::configError(L, std::format("hl.curve(\"{}\"): damping expects a number >= 0.5", name));
         }
 
         {

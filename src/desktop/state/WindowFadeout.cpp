@@ -71,6 +71,7 @@ SP<CWindowFadeout> CWindowFadeout::create(PHLWINDOW window, SP<Render::IFramebuf
     fadeout->m_roundingPower = window->presentation().roundingPower();
     fadeout->m_blur          = shouldBlurWindow(window);
     fadeout->m_blurXray      = window->m_ruleApplicator->xray().valueOr(false);
+    fadeout->m_noScreenShare = window->m_ruleApplicator->noScreenShare().valueOrDefault();
 
     static auto PDIMAROUND = CConfigValue<Config::FLOAT>("decoration:dim_around");
     if (*PDIMAROUND && window->m_ruleApplicator->dimAround().valueOrDefault())

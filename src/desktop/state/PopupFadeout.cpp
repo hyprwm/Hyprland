@@ -1,6 +1,7 @@
 #include "PopupFadeout.hpp"
 #include "../view/LayerSurface.hpp"
 #include "../view/Popup.hpp"
+#include "../view/window/Window.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../config/shared/animation/AnimationTree.hpp"
 #include "../../animation/AnimationManager.hpp"
@@ -43,6 +44,11 @@ SP<CPopupFadeout> CPopupFadeout::create(SP<CPopup> popup, SP<Render::IFramebuffe
     auto fadeout           = SP<CPopupFadeout>(new CPopupFadeout());
     fadeout->m_monitor     = MONITOR;
     fadeout->m_framebuffer = snapshot;
+
+    if (const auto WINDOW = popup->windowOwner(); WINDOW)
+        fadeout->m_noScreenShare = WINDOW->m_ruleApplicator->noScreenShare().valueOrDefault();
+    else if (const auto LAYER = popup->layerOwner(); LAYER)
+        fadeout->m_noScreenShare = LAYER->m_ruleApplicator->noScreenShare().valueOrDefault();
 
     static CConfigValue PBLURIGNOREA = CConfigValue<Config::FLOAT>("decoration:blur:popups_ignorealpha");
     if (shouldBlurPopup()) {

@@ -51,6 +51,7 @@ namespace Desktop::View {
 
         SP<Desktop::View::CWLSurface>                             getT1Owner() const;
         PHLLS                                                     layerOwner() const;
+        PHLWINDOW                                                 windowOwner() const;
         Vector2D                                                  coordsRelativeToParent() const;
         Vector2D                                                  coordsGlobal() const;
         PHLMONITOR                                                getMonitor() const;

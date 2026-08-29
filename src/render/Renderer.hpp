@@ -112,6 +112,7 @@ namespace Render {
         NColorManagement::PImageDescription workBufferImageDescription();
         bool                                m_bBlockSurfaceFeedback = false;
         bool                                m_bRenderingSnapshot    = false;
+        bool                                m_skipNoScreenShare     = false; // skip views with the no_screen_share rule, as if they didn't exist
         PHLMONITORREF                       m_mostHzMonitor;
         bool                                m_directScanoutBlocked = false;
 

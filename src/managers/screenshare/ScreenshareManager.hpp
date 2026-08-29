@@ -185,7 +185,8 @@ namespace Screenshare {
 
         void render();
         void renderMonitor();
-        void renderMonitorRegion();
+        void renderMonitorMirror(PHLMONITOR monitor);
+        void renderMonitorScene(PHLMONITOR monitor);
         void renderWindow();
 
         void storeTempFB();

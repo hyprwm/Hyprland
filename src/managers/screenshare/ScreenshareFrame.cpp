@@ -184,7 +184,50 @@ void CScreenshareFrame::renderMonitor() {
 
     const auto PMONITOR = m_session->monitor();
 
-    auto       TEXTURE = g_pHyprRenderer->m_renderData.pMonitor->resources()->getMirrorTexture();
+    g_pHyprRenderer->m_renderData.fbSize = m_bufferSize;
+    g_pHyprRenderer->setProjectionType(Render::RPT_EXPORT);
+    g_pHyprRenderer->m_renderData.transformDamage = false;
+    g_pHyprRenderer->m_renderData.noSimplify      = true;
+    g_pHyprRenderer->setViewport(0, 0, m_bufferSize.x, m_bufferSize.y);
+
+    // the mirror texture has views with the no_screen_share rule baked into it, so if any of them would be
+    // visible, re-render the whole scene instead, skipping them as if they didn't exist
+    const auto ANY_NO_SCREEN_SHARE_VIEWS = [&PMONITOR] {
+        for (auto const& l : Desktop::layerState()->layers()) {
+            if (l->m_monitor != PMONITOR || !l->m_ruleApplicator->noScreenShare().valueOrDefault())
+                continue;
+
+            if UNLIKELY (!l->mapped() || !l->acceptsInput() || !l->alphaNonZero())
+                continue;
+
+            return true;
+        }
+
+        for (auto const& w : Desktop::windowState()->windows()) {
+            if (!w->m_ruleApplicator->noScreenShare().valueOrDefault() || w->isHidden() || !g_pHyprRenderer->shouldRenderWindow(w, PMONITOR))
+                continue;
+
+            return true;
+        }
+
+        return false;
+    };
+
+    // mirrored monitors can't re-render their scene, they fall back to blanking no_screen_share views out
+    if (!PMONITOR->isMirror() && ANY_NO_SCREEN_SHARE_VIEWS())
+        renderMonitorScene(PMONITOR);
+    else
+        renderMonitorMirror(PMONITOR);
+
+    if (m_overlayCursor) {
+        CRegion  fakeDamage = {0, 0, m_bufferSize.x, m_bufferSize.y};
+        Vector2D cursorPos  = g_pInputManager->getMouseCoordsInternal() - PMONITOR->m_position - m_session->m_captureBox.pos() / PMONITOR->m_scale;
+        Pointer::mgr()->renderSoftwareCursorsFor(PMONITOR, Time::steadyNow(), fakeDamage, cursorPos, true);
+    }
+}
+
+void CScreenshareFrame::renderMonitorMirror(PHLMONITOR PMONITOR) {
+    auto TEXTURE = g_pHyprRenderer->m_renderData.pMonitor->resources()->getMirrorTexture();
     if (!TEXTURE) {
         LOGM(Log::ERR, "Invalid source texture");
         return;
@@ -200,12 +243,7 @@ void CScreenshareFrame::renderMonitor() {
         Log::logger->log(Log::TRACE, "CM: screenshot renderMonitor {} -> {}", TEXTURE->m_imageDescription->value(),
                          g_pHyprRenderer->m_renderData.currentFB->imageDescription()->value());
 
-    const bool IS_CM_AWARE               = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_session->m_client);
-    g_pHyprRenderer->m_renderData.fbSize = m_bufferSize;
-    g_pHyprRenderer->setProjectionType(Render::RPT_EXPORT);
-    g_pHyprRenderer->m_renderData.transformDamage = false;
-    g_pHyprRenderer->m_renderData.noSimplify      = true;
-    g_pHyprRenderer->setViewport(0, 0, m_bufferSize.x, m_bufferSize.y);
+    const bool IS_CM_AWARE = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_session->m_client);
 
     // render monitor texture
     CBox       monbox = CBox{{}, PMONITOR->m_transformedSize}.translate(-m_session->m_captureBox.pos());
@@ -222,7 +260,10 @@ void CScreenshareFrame::renderMonitor() {
         {0, 0, m_bufferSize.x, m_bufferSize.y});
     g_pHyprRenderer->m_renderData.renderModif.enabled = OLD;
 
-    // render black boxes for noscreenshare
+    // re-rendering the scene isn't possible for mirrored monitors, blank no_screen_share views out instead
+    if (!PMONITOR->isMirror())
+        return;
+
     auto hidePopups = [&](Vector2D popupBaseOffset) {
         return [&, popupBaseOffset](WP<Desktop::View::CPopup> popup, void*) {
             if (!popup->wlSurface() || !popup->wlSurface()->resource() || !popup->mapped() || !popup->acceptsInput() || !popup->alphaNonZero())
@@ -310,12 +351,34 @@ void CScreenshareFrame::renderMonitor() {
 
         w->popupHead()->breadthfirst(hidePopups(popupBaseOffset), nullptr);
     }
+}
 
-    if (m_overlayCursor) {
-        CRegion  fakeDamage = {0, 0, m_bufferSize.x, m_bufferSize.y};
-        Vector2D cursorPos  = g_pInputManager->getMouseCoordsInternal() - PMONITOR->m_position - m_session->m_captureBox.pos() / PMONITOR->m_scale;
-        Pointer::mgr()->renderSoftwareCursorsFor(PMONITOR, Time::steadyNow(), fakeDamage, cursorPos, true);
+void CScreenshareFrame::renderMonitorScene(PHLMONITOR PMONITOR) {
+    const auto NOW       = Time::steadyNow();
+    const CBox RENDERBOX = {{}, PMONITOR->m_transformedSize};
+
+    // for region captures, shift the scene so that the capture box starts at (0, 0)
+    const bool NEEDS_TRANSLATE = m_session->m_captureBox.pos() != Vector2D();
+    if (NEEDS_TRANSLATE) {
+        Render::SRenderModifData modifs;
+        modifs.modifs.emplace_back(Render::SRenderModifData::RMOD_TYPE_TRANSLATE, -m_session->m_captureBox.pos());
+        g_pHyprRenderer->m_renderPass.add(makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{modifs}));
     }
+
+    g_pHyprRenderer->startRenderPass();
+
+    g_pHyprRenderer->m_skipNoScreenShare     = true;
+    g_pHyprRenderer->m_bBlockSurfaceFeedback = true; // the monitor render already sends feedback, avoid spamming surfaces
+
+    g_pHyprRenderer->renderWorkspace(PMONITOR, PMONITOR->m_activeWorkspace, NOW, RENDERBOX);
+    g_pHyprRenderer->renderLockscreen(PMONITOR, NOW, RENDERBOX);
+    g_pHyprRenderer->renderIME(PMONITOR, NOW, RENDERBOX);
+
+    g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
+    g_pHyprRenderer->m_skipNoScreenShare     = false;
+
+    if (NEEDS_TRANSLATE)
+        g_pHyprRenderer->m_renderPass.add(makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{Render::SRenderModifData{}}));
 }
 
 void CScreenshareFrame::renderWindow() {

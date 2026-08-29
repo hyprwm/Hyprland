@@ -559,6 +559,9 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     if (!pWindow->mapped())
         return;
 
+    if (m_skipNoScreenShare && pWindow->m_ruleApplicator->noScreenShare().valueOrDefault())
+        return;
+
     TRACY_GPU_ZONE("RenderWindow");
 
     const auto PWORKSPACE = pWindow->m_workspace;
@@ -937,6 +940,9 @@ void IHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
         return;
 
     if (!pLayer->mapped() || !pLayer->acceptsInput() || !pLayer->alphaNonZero())
+        return;
+
+    if (m_skipNoScreenShare && pLayer->m_ruleApplicator->noScreenShare().valueOrDefault())
         return;
 
     // skip rendering based on abovelock rule and make sure to not render abovelock layers twice
@@ -3298,6 +3304,9 @@ void IHyprRenderer::renderFadeouts(PHLMONITOR monitor, Desktop::eFadeoutPlane pl
             continue;
 
         if (fadeout->workspace() && fadeout->workspace() != workspace)
+            continue;
+
+        if (m_skipNoScreenShare && fadeout->noScreenShare())
             continue;
 
         fadeouts.emplace_back(fadeout);

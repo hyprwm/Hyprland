@@ -390,6 +390,10 @@ PHLLS CPopup::layerOwner() const {
     return m_layerOwner.lock();
 }
 
+PHLWINDOW CPopup::windowOwner() const {
+    return m_windowOwner.lock();
+}
+
 Vector2D CPopup::coordsRelativeToParent() const {
     Vector2D offset;
 

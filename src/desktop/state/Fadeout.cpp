@@ -14,3 +14,7 @@ PHLWORKSPACEREF IFadeout::workspace() const {
 SFadeoutRenderEffects IFadeout::effects() const {
     return m_effects;
 }
+
+bool IFadeout::noScreenShare() const {
+    return m_noScreenShare;
+}

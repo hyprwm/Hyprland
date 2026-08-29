@@ -58,6 +58,7 @@ namespace Desktop {
         virtual float                 alpha() const     = 0;
         virtual bool                  done() const      = 0;
         virtual SFadeoutRenderEffects effects() const;
+        bool                          noScreenShare() const;
 
       protected:
         IFadeout() = default;
@@ -65,5 +66,6 @@ namespace Desktop {
         SP<Render::IFramebuffer> m_framebuffer;
         PHLWORKSPACEREF          m_workspace;
         SFadeoutRenderEffects    m_effects;
+        bool                     m_noScreenShare = false; // source view had the no_screen_share rule
     };
 }

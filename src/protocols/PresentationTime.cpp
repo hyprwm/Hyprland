@@ -188,7 +188,7 @@ void CPresentationProtocol::queueData(UP<CQueuedPresentationData>&& data) {
 
 void CPresentationProtocol::tagQueued(PHLMONITOR monitor, uint64_t commitID, bool tearing, bool vrr) {
     for (const auto& data : m_queue) {
-        if (!data->m_surface || data->m_monitor != monitor || data->m_commitID.has_value())
+        if (!data->m_surface || data->m_monitor != monitor || !data->m_commitID.has_value())
             continue;
 
         data->setCommitInfo(commitID, tearing, vrr);

@@ -16,11 +16,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1787324852,
-        "narHash": "sha256-tBpacE1B1MNxDDKwEkS4ea+g6xxUYv9806v165HxKME=",
+        "lastModified": 1788016784,
+        "narHash": "sha256-RO90Fk+Rn2Yy+I8oL4ePTLLKLgOAr8hrTx7tlpwdLaA=",
         "owner": "hyprwm",
         "repo": "aquamarine",
-        "rev": "46d93d8e8d683f22a8bfbf8d3661b3df9c04e3f9",
+        "rev": "783bfd9ae441d1d0519b979ac68b73ddd6e81df0",
         "type": "github"
       },
       "original": {

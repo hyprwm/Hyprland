@@ -303,9 +303,7 @@ void IFullscreenHandler::syncFullscreenTargets() {
 
 
     const auto removeTargetFromList = [&](auto& it){
-            const auto NEXT = std::next(it);
-            m_fsTargets.erase(it);
-            it = NEXT;
+            it = m_fsTargets.erase(it);
     };
 
     const auto removeFsTargetAndreturnNextIter = [&](auto& it, const auto& TARGET) {

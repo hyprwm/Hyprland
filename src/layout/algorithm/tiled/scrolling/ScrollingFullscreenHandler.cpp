@@ -470,8 +470,9 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
     };
 
 
-    decltype(m_fsTargets) keep = {};
-    keep.reserve(m_fsTargets.size());
+    // to prevent a rehash
+    std::vector<std::pair<WP<Layout::ITarget>, SFullscreenMode>> toInsert;
+
 
     for (auto it = m_fsTargets.begin(); it != m_fsTargets.end();) {
 
@@ -497,13 +498,15 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
                 const auto COL_DATA = m_scrollingAlgorithm->dataFor(TARGET, true)->column;
                 // use TARGET_FS_MODES.internal != FSMODE_NONE here because isFullscreen() would catch that target isn't alone in col and return false
                 if (COL_DATA && TARGET_FS_MODES.internal != FSMODE_NONE && COL_DATA->targetDatas.size() != 1) {
-
+                    // Empty the list now so the unFS operation has an updated tracked FS target list it can check
+                    for (const auto& e : toInsert) {
+                        m_fsTargets.emplace(e.first, e.second);
+                    }
+                    toInsert.clear();
                     controller()->setFullscreenMode(TARGET_WINDOW, FSMODE_NONE, std::nullopt, true);
                     if (getFullscreenModes(TARGET).internal != FSMODE_NONE)
                         removeFsTarget(TARGET, true);
-                    // we start from the beginning
                     it = m_fsTargets.begin();
-                    keep.clear();
                     continue;
                 }
             }
@@ -527,22 +530,21 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
             }
             // do post-remove-ops on the window group target as that's what algorithms store as a target, then save only the current window of the group
             it = removeFsTargetAndreturnNextIter(it, TARGET);
-            keep.emplace(WINDOWTARGET, MODE);
+            toInsert.emplace_back(WINDOWTARGET, MODE);
             continue;
         }
 
         if (isFullscreen(TARGET, std::nullopt, std::nullopt)) {
             m_scrollingAlgorithm->dataFor(TARGET, true)->column->setColumnWidth((TARGET_FS_MODES.internal == FSMODE_FULLSCREEN ? fullscreenColumnWidth() : 1.F));
-            keep.emplace(it->first, it->second);
             ++it;
             continue;
         }
-        keep.emplace(it->first, it->second);
         ++it;
     }
 
-    m_fsTargets.swap(keep);
-
+    for (const auto& e : toInsert) {
+        m_fsTargets.emplace(e.first, e.second);
+    }
 }
 
 void CScrollingFullscreenHandler::removeFsTarget(SP<Layout::ITarget> target, const bool recursionGuard) {

@@ -315,11 +315,8 @@ void IFullscreenHandler::syncFullscreenTargets() {
     };
 
 
-    
-    decltype(m_fsTargets) keep = {};
-    keep.reserve(m_fsTargets.size());
-
-
+    // to prevent a rehash
+    std::vector<std::pair<WP<Layout::ITarget>, SFullscreenMode>> toInsert;
 
 
     for (auto it = m_fsTargets.begin(); it != m_fsTargets.end();) {
@@ -354,14 +351,16 @@ void IFullscreenHandler::syncFullscreenTargets() {
             }
             // do post-remove-ops on the window group target as that's what algorithms store as a target, then save only the current window of the group
             it = removeFsTargetAndreturnNextIter(it, TARGET);
-            keep.emplace(WINDOWTARGET, MODE);
+            toInsert.emplace_back(WINDOWTARGET, MODE);
             continue;
         }
-        keep.emplace(it->first, it->second);
         ++it;
     }
 
-    m_fsTargets.swap(keep);
+    for (const auto& e : toInsert) {
+        m_fsTargets.emplace(e.first, e.second);
+    }
+
 }
 
 void IFullscreenHandler::removeFsTarget(SP<Layout::ITarget> target, const bool recursionGuard) {

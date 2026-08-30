@@ -66,9 +66,10 @@ namespace Pointer::Cursor {
         UP<CXCursorManager>                m_xcursor;
         SP<SXCursors>                      m_currentXcursor;
 
-        std::string                        m_theme       = "";
-        int                                m_size        = 0;
-        float                              m_cursorScale = 1.0;
+        std::string                        m_lastCursorName = "left_ptr";
+        std::string                        m_theme          = "";
+        int                                m_size           = 0;
+        float                              m_cursorScale    = 1.0;
 
         Hyprcursor::SCursorStyleInfo       m_currentStyleInfo;
 

@@ -170,8 +170,9 @@ void CCursorManager::setAnimationTimer(const int& frame, const int& delay) {
 void CCursorManager::setCursorFromName(const std::string& name) {
 
     static auto PUSEHYPRCURSOR = CConfigValue<Config::INTEGER>("cursor:enable_hyprcursor");
+    m_lastCursorName           = name;
 
-    auto        setXCursor = [this](auto const& name) {
+    auto setXCursor = [this](auto const& name) {
         float scale = std::ceil(m_cursorScale);
 
         auto  xcursor = m_xcursor->getShape(name, m_size, m_cursorScale);
@@ -320,6 +321,8 @@ void CCursorManager::updateTheme() {
         m->m_forceFullFrames = 5;
         m->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_SHAPE);
     }
+    if (m_ourBufferConnected)
+        setCursorFromName(m_lastCursorName);
 }
 
 bool CCursorManager::changeTheme(const std::string& name, const int size) {

@@ -200,6 +200,9 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Color>("overview:col.active_border", "border color for the workspace selected in overview", 0xffffffff),
         MS<Color>("overview:col.inactive_border", "border color for unselected workspaces in overview", 0xff444444),
         MS<Bool>("overview:only_current_monitor", "Only show workspaces on the current monitor the overview is on", false),
+        MS<String>("overview:search:window_prefix", "single-character prefix for window queries", "/", {.validator = singleCharacter()}),
+        MS<String>("overview:search:workspace_prefix", "single-character prefix for workspace queries", ".", {.validator = singleCharacter()}),
+        MS<Int>("overview:search:default_mode", "query mode used without a prefix", 0, {.min = 0, .max = 2, .map = OptionMap{{"all", 0}, {"window", 1}, {"workspace", 2}}}),
 
         /*
          * decoration:

@@ -4,7 +4,7 @@
 #include "WorkspaceSearch.hpp"
 #include "WorkspaceSearchController.hpp"
 #include "../Overview.hpp"
-#include "../StringUtils.hpp"
+#include "../Query.hpp"
 #include "../../../desktop/Workspace.hpp"
 #include "../../../desktop/DesktopTypes.hpp"
 #include "../../../desktop/state/WindowState.hpp"
@@ -13,6 +13,7 @@
 #include "../../../output/Monitor.hpp"
 #include "../../../output/MonitorResources.hpp"
 #include "../../../config/ConfigValue.hpp"
+#include "../../../event/EventBus.hpp"
 #include "../../../render/Renderer.hpp"
 #include "../../../render/pass/ClearPassElement.hpp"
 #include "../../../render/pass/RectPassElement.hpp"
@@ -53,30 +54,48 @@ void COverviewScene::draw(Render::CRenderingContext& context, Time::steady_tp tp
     m_workspaceSearch->draw(context, std::clamp(m_parent.m_progress->value(), 0.F, 1.F));
 }
 
-static bool workspaceFilter(PHLWORKSPACE ws, const std::string& query) {
+static Mode::eWorkspaceMatch workspaceFilter(PHLWORKSPACE ws, const CQuery& query) {
     if (!ws)
-        return false;
+        return Mode::eWorkspaceMatch::NONE;
 
-    if (StringUtils::matchesName(ws->m_name, query))
-        return true;
+    const auto WORKSPACE_MATCH = query.matchWorkspace(ws->m_name, [ws](std::string_view selector) { return ws->matchesStaticSelector(std::string{selector}); });
+    if (WORKSPACE_MATCH != Mode::eWorkspaceMatch::NONE)
+        return WORKSPACE_MATCH;
 
-    // check windows, we can match by title or class.
     for (const auto& w : Desktop::windowState()->windows()) {
         if (w->m_workspace != ws)
             continue;
 
-        if (StringUtils::matchesName(w->metadata().appID(), query) || StringUtils::matchesName(w->metadata().title(), query))
-            return true;
+        if (query.matchesWindow(w->metadata().appID(), w->metadata().title()))
+            return Mode::eWorkspaceMatch::MATCH;
     }
 
-    return false;
+    return Mode::eWorkspaceMatch::NONE;
+}
+
+static char queryPrefix(const std::string& value, char fallback) {
+    return value.size() == 1 ? value.front() : fallback;
 }
 
 void COverviewScene::start(PHLMONITOR monitor, WP<Monitor::CMonitorResources> resources) {
     m_layout = monitor ? OverviewLayout::calculate(monitor->m_size, monitor->m_scale) : OverviewLayout::SLayout{};
-    m_workspaceTape->setFilter([](PHLWORKSPACE) { return true; });
+    updateQuery("");
     m_workspaceTape->start(monitor, resources, m_layout);
-    m_workspaceSearch->start(monitor, [this](const std::string& query) { m_workspaceTape->setFilter([query](PHLWORKSPACE w) { return ::workspaceFilter(w, query); }); });
+    m_workspaceSearch->start(monitor, [this](const std::string& query) { updateQuery(query); });
+    m_configListener = Event::bus()->m_events.config.props_refreshed.listen([this](bool) { updateQuery(currentQuery()); });
+}
+
+void COverviewScene::updateQuery(const std::string& raw) {
+    static auto PWINDOWPREFIX    = CConfigValue<Config::STRING>("overview:search:window_prefix");
+    static auto PWORKSPACEPREFIX = CConfigValue<Config::STRING>("overview:search:workspace_prefix");
+    static auto PDEFAULTMODE     = CConfigValue<Config::INTEGER>("overview:search:default_mode");
+
+    const auto  WINDOW_PREFIX    = *PWINDOWPREFIX;
+    const auto  WORKSPACE_PREFIX = *PWORKSPACEPREFIX;
+
+    m_query = makeUnique<CQuery>(
+        raw, SQueryConfig{.windowPrefix = queryPrefix(WINDOW_PREFIX, '/'), .workspacePrefix = queryPrefix(WORKSPACE_PREFIX, '.'), .defaultMode = sc<eQueryMode>(*PDEFAULTMODE)});
+    m_workspaceTape->setFilter([this](PHLWORKSPACE workspace) { return ::workspaceFilter(workspace, *m_query); }, m_query->usesWindowMetadata());
 }
 
 bool COverviewScene::navigateLeft() {
@@ -144,8 +163,10 @@ void COverviewScene::keyboardKey(uint32_t keysym, bool down, bool repeat, std::s
 }
 
 void COverviewScene::reset() {
+    m_configListener = {};
     m_workspaceSearch->reset();
     m_workspaceTape->reset();
+    m_query.reset();
     m_layout = {};
     m_pointerTargets.clear();
 }
@@ -176,4 +197,8 @@ void COverviewScene::resetQuery() const {
 
 std::string COverviewScene::currentQuery() const {
     return m_workspaceSearch->query();
+}
+
+const CQuery* COverviewScene::query() const {
+    return m_query.get();
 }

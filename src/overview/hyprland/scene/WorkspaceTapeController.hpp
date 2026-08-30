@@ -6,6 +6,7 @@
 #include "../../../helpers/math/Math.hpp"
 #include "../../../helpers/signal/Signal.hpp"
 #include "../../../helpers/time/Time.hpp"
+#include "../mode/IQueryMode.hpp"
 
 #include <functional>
 #include <vector>
@@ -24,7 +25,7 @@ struct SEventLoopDoLaterLock;
 namespace Overview::Hyprland {
     class CWorkspaceTapeController {
       public:
-        using FWorkspaceFilter = std::function<bool(PHLWORKSPACE)>;
+        using FWorkspaceFilter = std::function<Mode::eWorkspaceMatch(PHLWORKSPACE)>;
 
         CWorkspaceTapeController();
         ~CWorkspaceTapeController();
@@ -45,14 +46,14 @@ namespace Overview::Hyprland {
         void         updateMoveGesture(float delta);
         void         endMoveGesture();
 
-        void         setFilter(FWorkspaceFilter filter);
+        void         setFilter(FWorkspaceFilter filter, bool usesWindowMetadata = false);
         void         refresh();
 
       private:
         struct SWorkspaceTile;
 
         bool                             navigate(int direction);
-        void                             reconcile(bool initial = false);
+        void                             reconcile(bool initial = false, bool invalidateMiniatures = true);
         void                             updateLayout(bool warp = false);
         void                             retireTile(SWorkspaceTile& tile);
         void                             ensureAnimations(SWorkspaceTile& tile);
@@ -63,6 +64,7 @@ namespace Overview::Hyprland {
         void                             invalidateMiniatures();
         void                             invalidateMiniature(PHLWORKSPACE workspace);
         void                             refreshWindowListeners();
+        void                             scheduleReconcile(bool invalidateMiniatures = true);
         SWorkspaceTile*                  tileFor(PHLWORKSPACE workspace) const;
         SWorkspaceTile*                  tileFor(PHLWORKSPACEREF workspace) const;
         PHLWORKSPACE                     fullscreenWorkspace(PHLMONITOR monitor) const;
@@ -84,9 +86,11 @@ namespace Overview::Hyprland {
         PHLANIMVAR<float>                m_mainOffset;
         std::vector<CHyprSignalListener> m_windowListeners;
         UP<SEventLoopDoLaterLock>        m_reconcileLock;
-        float                            m_overviewProgress   = 0.F;
-        bool                             m_started            = false;
-        bool                             m_fullscreenSelected = false;
+        bool                             m_reconcileInvalidatesMiniatures = false;
+        float                            m_overviewProgress               = 0.F;
+        bool                             m_started                        = false;
+        bool                             m_fullscreenSelected             = false;
+        bool                             m_filterUsesWindowMetadata       = false;
 
         struct {
             CHyprSignalListener created;
@@ -102,6 +106,8 @@ namespace Overview::Hyprland {
             CHyprSignalListener windowOpened;
             CHyprSignalListener windowClosed;
             CHyprSignalListener windowMoved;
+            CHyprSignalListener windowTitle;
+            CHyprSignalListener windowClass;
             CHyprSignalListener windowFullscreen;
             CHyprSignalListener windowFloating;
             CHyprSignalListener windowActive;

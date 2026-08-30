@@ -1,5 +1,5 @@
 #include "Overview.hpp"
-#include "StringUtils.hpp"
+#include "Query.hpp"
 
 #include "config/shared/actions/ConfigActions.hpp"
 #include "desktop/state/FocusState.hpp"
@@ -560,17 +560,15 @@ void COverview::commitClose() {
     if (MONITOR && SELECTED && SELECTED != MONITOR->m_activeWorkspace)
         Config::Actions::changeWorkspace(SELECTED);
 
-    const auto QUERY = m_scene->currentQuery();
+    const auto QUERY = m_scene->query();
 
-    if (MONITOR && MONITOR->m_activeWorkspace && !QUERY.empty()) {
-        // select the window, if applicable
-        // if we match the workspace name our search is exclusive for the workspace, don't focus shit
-        if (!StringUtils::fullMatchCaseIns(MONITOR->m_activeWorkspace->m_name, QUERY)) {
+    if (MONITOR && MONITOR->m_activeWorkspace && QUERY && !QUERY->empty()) {
+        if (QUERY->matchWorkspace(MONITOR->m_activeWorkspace->m_name) != Mode::eWorkspaceMatch::EXACT) {
             for (const auto& w : Desktop::windowState()->windows()) {
                 if (w->m_workspace != MONITOR->m_activeWorkspace || !w->focusAvailable())
                     continue;
 
-                if (!StringUtils::matchesName(w->metadata().appID(), QUERY) && !StringUtils::matchesName(w->metadata().title(), QUERY))
+                if (!QUERY->matchesWindow(w->metadata().appID(), w->metadata().title()))
                     continue;
 
                 Desktop::focusState()->fullWindowFocus(w, Desktop::eFocusReason::FOCUS_REASON_SWITCH_TO_WINDOW_HARD);

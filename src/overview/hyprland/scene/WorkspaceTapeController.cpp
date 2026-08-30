@@ -4,7 +4,6 @@
 #include "WorkspaceMiniStripLayout.hpp"
 #include "WorkspaceTileShadow.hpp"
 #include "WorkspacePointerMapping.hpp"
-#include "OverviewScene.hpp"
 
 #include "../../../animation/AnimationManager.hpp"
 #include "../../../config/ConfigValue.hpp"
@@ -24,10 +23,6 @@
 #include "../../../render/pass/TexPassElement.hpp"
 #include "../../../state/WorkspaceState.hpp"
 #include "../../../pointer/PointerManager.hpp"
-
-#include "../../Overview.hpp"
-#include "../Overview.hpp"
-#include "../StringUtils.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -70,7 +65,7 @@ struct CWorkspaceTapeController::SWorkspaceTile {
     } listeners;
 };
 
-CWorkspaceTapeController::CWorkspaceTapeController() : m_filter([](PHLWORKSPACE) { return true; }) {
+CWorkspaceTapeController::CWorkspaceTapeController() : m_filter([](PHLWORKSPACE) { return Mode::eWorkspaceMatch::MATCH; }) {
     ;
 }
 
@@ -93,20 +88,7 @@ void CWorkspaceTapeController::start(PHLMONITOR monitor, WP<Monitor::CMonitorRes
     Animation::mgr()->createAnimation(0.F, m_mainOffset, Config::animationTree()->getAnimationPropertyConfig("overviewMove"), AVARDAMAGE_NONE);
     m_mainOffset->setUpdateCallback([this](auto) { damageMonitor(); });
 
-    m_listeners.created              = Event::bus()->m_events.workspace.created.listen([this](PHLWORKSPACEREF) {
-        if (!g_pEventLoopManager) {
-            reconcile();
-            return;
-        }
-
-        if (m_reconcileLock)
-            return;
-
-        m_reconcileLock = g_pEventLoopManager->doLaterLock([this] {
-            m_reconcileLock.reset();
-            reconcile();
-        });
-    });
+    m_listeners.created              = Event::bus()->m_events.workspace.created.listen([this](PHLWORKSPACEREF) { scheduleReconcile(); });
     m_listeners.removed              = Event::bus()->m_events.workspace.removed.listen([this](PHLWORKSPACEREF) { reconcile(); });
     m_listeners.renamed              = Event::bus()->m_events.workspace.renamed.listen([this](PHLWORKSPACEREF) { reconcile(); });
     m_listeners.moved                = Event::bus()->m_events.workspace.moveToMonitor.listen([this](PHLWORKSPACE, PHLMONITOR) { reconcile(); });
@@ -163,17 +145,39 @@ void CWorkspaceTapeController::start(PHLMONITOR monitor, WP<Monitor::CMonitorRes
     m_listeners.windowOpened         = Event::bus()->m_events.window.open.listen([this](PHLWINDOW window) {
         refreshWindowListeners();
         invalidateMiniature(window ? window->m_workspace : nullptr);
+        scheduleReconcile(false);
     });
     m_listeners.windowClosed         = Event::bus()->m_events.window.close.listen([this](PHLWINDOW window) {
         refreshWindowListeners();
         invalidateMiniature(window ? window->m_workspace : nullptr);
+        scheduleReconcile(false);
     });
-    m_listeners.windowMoved          = Event::bus()->m_events.window.moveToWorkspace.listen([this](PHLWINDOW, PHLWORKSPACE) { invalidateMiniatures(); });
-    m_listeners.windowFullscreen     = Event::bus()->m_events.window.fullscreen.listen([this](PHLWINDOW window) { invalidateMiniature(window ? window->m_workspace : nullptr); });
-    m_listeners.windowFloating       = Event::bus()->m_events.window.floating.listen([this](PHLWINDOW window) { invalidateMiniature(window ? window->m_workspace : nullptr); });
+    m_listeners.windowMoved          = Event::bus()->m_events.window.moveToWorkspace.listen([this](PHLWINDOW, PHLWORKSPACE) {
+        invalidateMiniatures();
+        scheduleReconcile(false);
+    });
+    m_listeners.windowTitle          = Event::bus()->m_events.window.title.listen([this](PHLWINDOW) {
+        if (m_filterUsesWindowMetadata)
+            scheduleReconcile(false);
+    });
+    m_listeners.windowClass          = Event::bus()->m_events.window.class_.listen([this](PHLWINDOW) {
+        if (m_filterUsesWindowMetadata)
+            scheduleReconcile(false);
+    });
+    m_listeners.windowFullscreen     = Event::bus()->m_events.window.fullscreen.listen([this](PHLWINDOW window) {
+        invalidateMiniature(window ? window->m_workspace : nullptr);
+        scheduleReconcile(false);
+    });
+    m_listeners.windowFloating       = Event::bus()->m_events.window.floating.listen([this](PHLWINDOW window) {
+        invalidateMiniature(window ? window->m_workspace : nullptr);
+        scheduleReconcile(false);
+    });
     m_listeners.windowActive =
         Event::bus()->m_events.window.active.listen([this](PHLWINDOW window, Desktop::eFocusReason) { invalidateMiniature(window ? window->m_workspace : nullptr); });
-    m_listeners.windowPinned = Event::bus()->m_events.window.pin.listen([this](PHLWINDOW) { invalidateMiniatures(); });
+    m_listeners.windowPinned = Event::bus()->m_events.window.pin.listen([this](PHLWINDOW) {
+        invalidateMiniatures();
+        scheduleReconcile(false);
+    });
     m_listeners.layerOpened  = Event::bus()->m_events.layer.opened.listen([this](PHLLS) { invalidateMiniatures(); });
     m_listeners.layerClosed  = Event::bus()->m_events.layer.closed.listen([this](PHLLS) { invalidateMiniatures(); });
 
@@ -186,6 +190,7 @@ void CWorkspaceTapeController::reset() {
     m_listeners = {};
     m_windowListeners.clear();
     m_reconcileLock.reset();
+    m_reconcileInvalidatesMiniatures = false;
 
     if (m_mainOffset)
         m_mainOffset->resetAllCallbacks();
@@ -210,10 +215,11 @@ void CWorkspaceTapeController::reset() {
     m_preferredWorkspace.reset();
     m_pressedWorkspace.reset();
     m_mainOffset.reset();
-    m_mainArea           = {};
-    m_miniStripArea      = {};
-    m_overviewProgress   = 0.F;
-    m_fullscreenSelected = false;
+    m_mainArea                 = {};
+    m_miniStripArea            = {};
+    m_overviewProgress         = 0.F;
+    m_fullscreenSelected       = false;
+    m_filterUsesWindowMetadata = false;
     m_resources.reset();
     m_monitor.reset();
 }
@@ -598,13 +604,35 @@ bool CWorkspaceTapeController::pointerButton(uint32_t button, bool pressed, cons
     return true;
 }
 
-void CWorkspaceTapeController::setFilter(FWorkspaceFilter filter) {
-    m_filter = filter ? std::move(filter) : FWorkspaceFilter{[](PHLWORKSPACE) { return true; }};
+void CWorkspaceTapeController::setFilter(FWorkspaceFilter filter, bool usesWindowMetadata) {
+    m_filter                   = filter ? std::move(filter) : FWorkspaceFilter{[](PHLWORKSPACE) { return Mode::eWorkspaceMatch::MATCH; }};
+    m_filterUsesWindowMetadata = usesWindowMetadata;
     reconcile();
 }
 
 void CWorkspaceTapeController::refresh() {
     reconcile();
+}
+
+void CWorkspaceTapeController::scheduleReconcile(bool invalidateMiniatures) {
+    m_reconcileInvalidatesMiniatures |= invalidateMiniatures;
+
+    if (!g_pEventLoopManager) {
+        const bool INVALIDATE            = m_reconcileInvalidatesMiniatures;
+        m_reconcileInvalidatesMiniatures = false;
+        reconcile(false, INVALIDATE);
+        return;
+    }
+
+    if (m_reconcileLock)
+        return;
+
+    m_reconcileLock = g_pEventLoopManager->doLaterLock([this] {
+        m_reconcileLock.reset();
+        const bool INVALIDATE            = m_reconcileInvalidatesMiniatures;
+        m_reconcileInvalidatesMiniatures = false;
+        reconcile(false, INVALIDATE);
+    });
 }
 
 bool CWorkspaceTapeController::navigate(int direction) {
@@ -622,12 +650,14 @@ bool CWorkspaceTapeController::navigate(int direction) {
     return selectWorkspace(TILES.at(TARGET)->workspace.lock());
 }
 
-void CWorkspaceTapeController::reconcile(bool initial) {
+void CWorkspaceTapeController::reconcile(bool initial, bool invalidateMiniatures) {
     if (!m_started)
         return;
 
-    for (const auto& tile : m_tiles)
-        tile->miniDirty = true;
+    if (invalidateMiniatures) {
+        for (const auto& tile : m_tiles)
+            tile->miniDirty = true;
+    }
 
     const auto OLD_LAYOUT   = layoutTiles();
     const auto OLD_SELECTED = selectedWorkspace();
@@ -901,14 +931,17 @@ std::vector<PHLWORKSPACE> CWorkspaceTapeController::filteredWorkspaces() const {
     for (const auto& workspaceRef : State::workspaceState()->workspaces()) {
         const auto WORKSPACE      = workspaceRef.lock();
         const auto SOURCE_MONITOR = WORKSPACE ? WORKSPACE->m_monitor.lock() : nullptr;
-        if (!valid(WORKSPACE) || !SOURCE_MONITOR || !SOURCE_MONITOR->m_enabled || SOURCE_MONITOR->isMirror() || !SOURCE_MONITOR->resources() || WORKSPACE->m_isSpecialWorkspace ||
-            !m_filter(WORKSPACE))
+        if (!valid(WORKSPACE) || !SOURCE_MONITOR || !SOURCE_MONITOR->m_enabled || SOURCE_MONITOR->isMirror() || !SOURCE_MONITOR->resources() || WORKSPACE->m_isSpecialWorkspace)
             continue;
 
         if (*PONLYSAMEMON && workspaceRef->m_monitor != MONITOR)
             continue;
 
-        if (StringUtils::fullMatchCaseIns(WORKSPACE->m_name, dynamicPointerCast<Hyprland::COverview>(WP<IOverview>(Overview::overview()))->scene()->currentQuery())) {
+        const auto MATCH = m_filter(WORKSPACE);
+        if (MATCH == Mode::eWorkspaceMatch::NONE)
+            continue;
+
+        if (MATCH == Mode::eWorkspaceMatch::EXACT) {
             exactMatch = WORKSPACE;
             break;
         }

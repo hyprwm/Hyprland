@@ -149,7 +149,9 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
     }
 
     if (!hasDeps()) {
-        std::println(stderr, "\n{}", failureString("Could not clone the plugin repository. Dependencies not satisfied. Hyprpm requires: cmake, cpio, pkg-config, git, g++, gcc"));
+        std::println(
+            stderr, "\n{}",
+            failureString("Could not clone the plugin repository. Dependencies not satisfied. Hyprpm requires: cmake, cpio, hyprwayland-scanner, pkg-config, git, g++, gcc"));
         return false;
     }
 
@@ -493,7 +495,7 @@ bool CPluginManager::updateHeaders(bool force) {
     const auto HLVER = getHyprlandVersion(false);
 
     if (!hasDeps()) {
-        std::println("\n{}", failureString("Could not update. Dependencies not satisfied. Hyprpm requires: cmake, cpio, pkg-config, git, g++, gcc"));
+        std::println("\n{}", failureString("Could not update. Dependencies not satisfied. Hyprpm requires: cmake, cpio, hyprwayland-scanner, pkg-config, git, g++, gcc"));
         return false;
     }
 
@@ -1123,7 +1125,7 @@ bool CPluginManager::hasDeps() {
         return true; // dep check not needed if we are on nix
 
     bool                     hasAllDeps = true;
-    std::vector<std::string> deps       = {"cpio", "cmake", "pkg-config", "g++", "gcc", "git"};
+    std::vector<std::string> deps       = {"cmake", "cpio", "hyprwayland-scanner", "pkg-config", "g++", "gcc", "git"};
 
     for (auto const& d : deps) {
         if (!execAndGet(std::format("command -v {}", d)).contains("/")) {

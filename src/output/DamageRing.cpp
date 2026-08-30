@@ -2,8 +2,51 @@
 
 #include <hyprutils/memory/Casts.hpp>
 
+#include <utility>
+
 using namespace Monitor;
 using namespace Hyprutils::Memory;
+
+CDamageRing::CTransaction::CTransaction(CDamageRing* ring, CRegion&& damage) : m_ring(ring), m_damage(std::move(damage)) {}
+
+CDamageRing::CTransaction::CTransaction(CTransaction&& other) noexcept : m_ring(std::exchange(other.m_ring, nullptr)), m_damage(std::move(other.m_damage)) {}
+
+CDamageRing::CTransaction& CDamageRing::CTransaction::operator=(CTransaction&& other) noexcept {
+    if (this == &other)
+        return *this;
+
+    rollback();
+    m_ring   = std::exchange(other.m_ring, nullptr);
+    m_damage = std::move(other.m_damage);
+    return *this;
+}
+
+CDamageRing::CTransaction::~CTransaction() {
+    rollback();
+}
+
+CRegion CDamageRing::CTransaction::getBufferDamage(int age) {
+    if (!m_ring)
+        return {};
+
+    return m_ring->getBufferDamageFor(m_damage, age);
+}
+
+void CDamageRing::CTransaction::commit() {
+    if (!m_ring)
+        return;
+
+    m_ring->rotateDamage(m_damage);
+    m_ring = nullptr;
+}
+
+void CDamageRing::CTransaction::rollback() {
+    if (!m_ring)
+        return;
+
+    m_ring->damage(m_damage);
+    m_ring = nullptr;
+}
 
 void CDamageRing::setSize(const Vector2D& size_) {
     if (size_ == m_size)
@@ -37,21 +80,35 @@ void CDamageRing::damageEntire() {
     damage(CBox{{}, m_size});
 }
 
-void CDamageRing::rotate() {
-    m_previousIdx = (m_previousIdx + DAMAGE_RING_PREVIOUS_LEN - 1) % DAMAGE_RING_PREVIOUS_LEN;
+CDamageRing::CTransaction CDamageRing::beginTransaction() {
+    CRegion captured = std::move(m_current);
+    m_current.clear();
+    return {this, std::move(captured)};
+}
 
-    m_previous[m_previousIdx] = m_current;
+void CDamageRing::rotate() {
+    rotateDamage(m_current);
     m_current.clear();
 }
 
+void CDamageRing::rotateDamage(const CRegion& damage) {
+    m_previousIdx = (m_previousIdx + DAMAGE_RING_PREVIOUS_LEN - 1) % DAMAGE_RING_PREVIOUS_LEN;
+
+    m_previous[m_previousIdx] = damage;
+}
+
 CRegion CDamageRing::getBufferDamage(int age) {
+    return getBufferDamageFor(m_current, age);
+}
+
+CRegion CDamageRing::getBufferDamageFor(const CRegion& current, int age) {
     if (m_size.x <= 0 || m_size.y <= 0)
         return {};
 
     if (age <= 0 || age > DAMAGE_RING_PREVIOUS_LEN + 1)
         return CBox{{}, m_size};
 
-    CRegion damage = m_current;
+    CRegion damage = current;
 
     for (int i = 0; i < age - 1; ++i) {
         int j = (m_previousIdx + i) % DAMAGE_RING_PREVIOUS_LEN;

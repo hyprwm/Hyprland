@@ -3,6 +3,7 @@
 #include "../Compositor.hpp"
 #include "../render/Renderer.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
+#include "OutputCommitCoordinator.hpp"
 
 using namespace Render::GL;
 using namespace Monitor;
@@ -14,7 +15,7 @@ CMonitorFrameScheduler::CMonitorFrameScheduler(PHLMONITOR m) : m_monitor(m) {
 bool CMonitorFrameScheduler::newSchedulingEnabled() {
     static auto PENABLENEW = CConfigValue<Config::INTEGER>("render:new_render_scheduling");
 
-    return *PENABLENEW && g_pHyprRenderer->explicitSyncSupported() && m_monitor && !m_monitor->m_directScanoutIsActive;
+    return *PENABLENEW && g_pHyprRenderer->explicitSyncSupported() && m_monitor && !m_monitor->m_directScanoutIsActive && (!m_monitor->m_commitCoordinator->asyncEnabled());
 }
 
 void CMonitorFrameScheduler::onSyncFired() {
@@ -150,6 +151,9 @@ bool CMonitorFrameScheduler::canRender() {
     }
 
     if (!m_monitor->m_enabled)
+        return false;
+
+    if (!m_monitor->m_commitCoordinator->canBeginFrame())
         return false;
 
     return true;

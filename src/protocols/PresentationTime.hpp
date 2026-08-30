@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ctime>
+#include <optional>
 #include <vector>
 #include <cstdint>
 #include "WaylandProtocol.hpp"
@@ -16,6 +17,7 @@ class CQueuedPresentationData {
 
     void setPresentationType(bool zeroCopy);
     void attachMonitor(PHLMONITOR pMonitor);
+    void setCommitInfo(uint64_t commitID, bool tearing, bool vrr);
 
     void presented();
     void discarded();
@@ -23,6 +25,9 @@ class CQueuedPresentationData {
   private:
     bool                                   m_wasPresented = false;
     bool                                   m_zeroCopy     = false;
+    bool                                   m_tearing      = false;
+    bool                                   m_vrr          = false;
+    std::optional<uint64_t>                m_commitID;
     PHLMONITORREF                          m_monitor;
     WP<CWLSurfaceResource>                 m_surface;
     std::vector<WP<CPresentationFeedback>> m_feedbacks;
@@ -54,11 +59,14 @@ class CPresentationProtocol : public IWaylandProtocol {
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-    void         onPresented(PHLMONITOR pMonitor, const timespec& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags);
-    void         queueData(UP<CQueuedPresentationData>&& data);
-    void         discardFeedbacks(std::vector<WP<CPresentationFeedback>>& feedbacks);
-    void         discardFeedbacksForSurface(WP<CWLSurfaceResource> surface);
-    bool         hasPendingFeedbacks() const;
+    void onPresented(PHLMONITOR pMonitor, const timespec& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags, uint64_t commitID = 0, bool presented = true);
+    void queueData(UP<CQueuedPresentationData>&& data);
+    void tagQueued(PHLMONITOR monitor, uint64_t commitID, bool tearing, bool vrr);
+    void discardQueued(PHLMONITOR monitor, uint64_t commitID);
+    void discardUntagged(PHLMONITOR monitor);
+    void discardFeedbacks(std::vector<WP<CPresentationFeedback>>& feedbacks);
+    void discardFeedbacksForSurface(WP<CWLSurfaceResource> surface);
+    bool hasPendingFeedbacks() const;
 
   private:
     void onManagerResourceDestroy(wl_resource* res);

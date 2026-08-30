@@ -40,6 +40,7 @@
 #include "../helpers/CursorShapes.hpp"
 #include "../helpers/MainLoopExecutor.hpp"
 #include "../output/Monitor.hpp"
+#include "../output/OutputCommitCoordinator.hpp"
 #include "../state/MonitorState.hpp"
 #include "../state/WorkspaceState.hpp"
 #include "macros.hpp"
@@ -1743,7 +1744,8 @@ void IHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
     }
 }
 
-bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode, SP<IHLBuffer> buffer, SP<IFramebuffer> fb, bool simple) {
+bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode, SP<IHLBuffer> buffer, SP<IFramebuffer> fb, bool simple,
+                                std::optional<Monitor::CDamageRing::CTransaction>* damageTransaction) {
     m_renderPass.clear();
     m_backdropCaptures.clear();
     clearCMSettingsCache();
@@ -1783,9 +1785,10 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
         return false;
     }
 
+    std::optional<Monitor::CDamageRing::CTransaction> transaction;
     if (m_renderMode == RENDER_MODE_NORMAL) {
-        damage = pMonitor->m_damage.getBufferDamage(bufferAge);
-        pMonitor->m_damage.rotate();
+        transaction.emplace(pMonitor->m_damage.beginTransaction());
+        damage = transaction->getBufferDamage(bufferAge);
 
         if (pMonitor->needsACopyFB())
             damage.add(pMonitor->resources()->pendingMirrorFBDamage());
@@ -1798,7 +1801,20 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
         initial = false;
     }
 
-    return res;
+    if (!res) {
+        if (m_renderMode == RENDER_MODE_NORMAL && !buffer)
+            pMonitor->m_output->swapchain->rollback();
+        return false;
+    }
+
+    if (transaction) {
+        if (damageTransaction)
+            *damageTransaction = std::move(transaction);
+        else
+            transaction->commit();
+    }
+
+    return true;
 }
 
 void IHyprRenderer::setDamage(const CRegion& damage_, std::optional<CRegion> finalDamage) {
@@ -2117,20 +2133,22 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     if (!pMonitor->m_output->needsFrame && pMonitor->m_forceFullFrames == 0 && !pMonitor->m_damage.hasChanged())
         return;
 
+    if (!pMonitor->m_commitCoordinator->canBeginFrame()) {
+        pMonitor->m_pendingFrame = true;
+        return;
+    }
+
     // tearing and DS first
     bool       shouldTear              = pMonitor->updateTearing();
     const bool canAttemptDirectScanout = pMonitor->canAttemptDirectScanoutFast();
+    const auto presentationMode =
+        shouldTear ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE : Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC;
+    if (pMonitor->m_output->state->state().presentationMode != presentationMode)
+        pMonitor->m_output->state->setPresentationMode(presentationMode);
 
     if (canAttemptDirectScanout) {
+        handleFullscreenSettings(pMonitor);
         if (pMonitor->attemptDirectScanout()) {
-            if (!pMonitor->needsACopyFB())
-                pMonitor->resources()->markMirrorFBStale();
-
-            if (!pMonitor->m_directScanoutIsActive) {
-                pMonitor->m_previousFSWindow.reset(); // recalc fs settings
-                pMonitor->m_directScanoutIsActive = true;
-            }
-            handleFullscreenSettings(pMonitor);
             return;
         } else if (!pMonitor->m_lastScanout.expired() || pMonitor->m_directScanoutIsActive)
             pMonitor->handleDSleave();
@@ -2151,6 +2169,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     Event::bus()->m_events.render.stage.emit(RENDER_PRE);
 
     pMonitor->m_renderingActive = true;
+    CScopeGuard renderingGuard([pMonitor] { pMonitor->m_renderingActive = false; });
 
     // Most frames have no fading-out windows or layers for this monitor.
     if (!Desktop::fadingOutState()->fadeouts().empty())
@@ -2180,10 +2199,11 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         m_renderData.useNearestNeighbor = false;
     }
 
-    const bool ZOOM_DAMAGE_ENTIRE = pMonitor->m_zoomController.shouldDamageEntire(m_renderData.mouseZoomFactor);
+    const bool                                        ZOOM_DAMAGE_ENTIRE = pMonitor->m_zoomController.shouldDamageEntire(m_renderData.mouseZoomFactor);
 
-    CRegion    damage, finalDamage;
-    if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL)) {
+    CRegion                                           damage, finalDamage;
+    std::optional<Monitor::CDamageRing::CTransaction> damageTransaction;
+    if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL, {}, nullptr, false, &damageTransaction)) {
         Log::logger->log(Log::ERR, "renderer: couldn't beginRender()!");
         return;
     }
@@ -2277,12 +2297,6 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     TRACY_GPU_COLLECT;
 
-    if (!pMonitor->needsACopyFB())
-        pMonitor->resources()->markMirrorFBStale(m_renderData.damage);
-
-    if (!pMonitor->m_mirrors.empty())
-        damageMirrorsWith(pMonitor, m_renderData.damage);
-
     CRegion    frameDamage{m_renderData.damage};
 
     const auto TRANSFORM = Math::invertTransform(pMonitor->m_transform);
@@ -2297,17 +2311,16 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     Event::bus()->m_events.render.stage.emit(RENDER_POST);
 
     pMonitor->m_output->state->addDamage(frameDamage);
-    auto presentationMode = shouldTear ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE : Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC;
-    if (pMonitor->m_output->state->state().presentationMode != presentationMode)
-        pMonitor->m_output->state->setPresentationMode(presentationMode);
-
+    bool submitted = true;
     if (commit)
-        commitPendingAndDoExplicitSync(pMonitor);
+        submitted = commitPendingAndDoExplicitSync(pMonitor, std::move(damageTransaction), m_renderData.damage);
+    else {
+        if (damageTransaction)
+            damageTransaction->commit();
+        pMonitor->m_commitCoordinator->stageRenderedDamage(m_renderData.damage, pMonitor->needsACopyFB());
+    }
 
-    // cleared only after the commit
-    pMonitor->m_renderingActive = false;
-
-    if (shouldTear)
+    if (shouldTear && submitted)
         pMonitor->m_tearingState.busy = true;
 
     if (*PDAMAGEBLINK || *PVFR == 0 || pMonitor->m_pendingFrame)
@@ -2531,25 +2544,25 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
     pMonitor->m_previousFSWindow = FULLSCREEN_WINDOW;
 }
 
-bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
+bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor, std::optional<Monitor::CDamageRing::CTransaction> damage, const CRegion& renderedDamage) {
     handleFullscreenSettings(pMonitor);
 
-    bool ok = pMonitor->m_state.commit();
-    if (!ok) {
-        if (pMonitor->m_inFence.isValid()) {
-            Log::logger->log(Log::TRACE, "Monitor state commit failed, retrying without a fence");
-            pMonitor->m_output->state->resetExplicitFences();
-            ok = pMonitor->m_state.commit();
-        }
+    const auto                                staged = renderedDamage.empty() ? pMonitor->m_commitCoordinator->takeStagedRender() : std::nullopt;
 
-        if (!ok) {
-            Log::logger->log(Log::TRACE, "Monitor state commit failed");
-            // rollback the buffer to avoid writing to the front buffer that is being
-            // displayed
-            pMonitor->m_output->swapchain->rollback();
-            pMonitor->m_damage.damageEntire();
-        }
-    }
+    Monitor::COutputCommitCoordinator::SFrame frame{
+        .kind              = Monitor::COutputCommitCoordinator::FRAME_COMPOSED,
+        .damage            = std::move(damage),
+        .renderedDamage    = staged ? staged->damage : renderedDamage,
+        .rollbackSwapchain = true,
+        .tearing           = pMonitor->m_output->state->state().presentationMode == Aquamarine::AQ_OUTPUT_PRESENTATION_IMMEDIATE,
+        .vrr               = pMonitor->m_vrrActive,
+        .copyFBPrepared    = staged ? staged->copyFBPrepared : pMonitor->needsACopyFB(),
+    };
+
+    const auto result = pMonitor->m_commitCoordinator->submit(std::move(frame));
+    const bool ok     = result != Monitor::COutputCommitCoordinator::SUBMIT_FAILED;
+    if (!ok)
+        Log::logger->log(Log::TRACE, "Monitor state commit failed");
 
     return ok;
 }

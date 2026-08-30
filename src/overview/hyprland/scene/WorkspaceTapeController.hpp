@@ -7,6 +7,7 @@
 #include "../../../helpers/signal/Signal.hpp"
 #include "../../../helpers/time/Time.hpp"
 #include "../mode/IQueryMode.hpp"
+#include "WorkspaceNavigation.hpp"
 
 #include <functional>
 #include <vector>
@@ -30,24 +31,24 @@ namespace Overview::Hyprland {
         CWorkspaceTapeController();
         ~CWorkspaceTapeController();
 
-        void         start(PHLMONITOR monitor, WP<Monitor::CMonitorResources> resources, const OverviewLayout::SLayout& layout);
-        void         reset();
-        void         draw(Render::CRenderingContext&, Time::steady_tp tp, float overviewProgress, size_t reservedWorkBuffers = 0);
+        void                       start(PHLMONITOR monitor, WP<Monitor::CMonitorResources> resources, const OverviewLayout::SLayout& layout);
+        void                       reset();
+        void                       draw(Render::CRenderingContext&, Time::steady_tp tp, float overviewProgress, size_t reservedWorkBuffers = 0);
 
-        bool         navigateLeft();
-        bool         navigateRight();
-        bool         selectWorkspace(PHLWORKSPACE workspace);
-        PHLWORKSPACE selectedWorkspace() const;
-        Vector2D     transformPointer(const Vector2D& global) const;
-        PHLWORKSPACE miniWorkspaceAt(const Vector2D& monitorLocal) const;
-        bool         pointerButton(uint32_t button, bool pressed, const Vector2D& monitorLocal);
-        void         useSelectedWorkspaceForFullscreen(bool x);
-        bool         beginMoveGesture();
-        void         updateMoveGesture(float delta);
-        void         endMoveGesture();
+        bool                       navigateLeft();
+        eWorkspaceNavigationResult navigateRight(bool allowCreate, bool willReceiveWindow = false);
+        bool                       selectWorkspace(PHLWORKSPACE workspace);
+        PHLWORKSPACE               selectedWorkspace() const;
+        Vector2D                   transformPointer(const Vector2D& global) const;
+        PHLWORKSPACE               miniWorkspaceAt(const Vector2D& monitorLocal) const;
+        bool                       pointerButton(uint32_t button, bool pressed, const Vector2D& monitorLocal);
+        void                       useSelectedWorkspaceForFullscreen(bool x);
+        bool                       beginMoveGesture();
+        void                       updateMoveGesture(float delta);
+        void                       endMoveGesture();
 
-        void         setFilter(FWorkspaceFilter filter, bool usesWindowMetadata = false);
-        void         refresh();
+        void                       setFilter(FWorkspaceFilter filter, bool usesWindowMetadata = false);
+        void                       refresh();
 
       private:
         struct SWorkspaceTile;
@@ -65,6 +66,7 @@ namespace Overview::Hyprland {
         void                             invalidateMiniature(PHLWORKSPACE workspace);
         void                             refreshWindowListeners();
         void                             scheduleReconcile(bool invalidateMiniatures = true);
+        void                             releaseUnselectedCreatedWorkspace();
         SWorkspaceTile*                  tileFor(PHLWORKSPACE workspace) const;
         SWorkspaceTile*                  tileFor(PHLWORKSPACEREF workspace) const;
         PHLWORKSPACE                     fullscreenWorkspace(PHLMONITOR monitor) const;
@@ -80,6 +82,7 @@ namespace Overview::Hyprland {
         PHLWORKSPACEREF                  m_selectedWorkspace;
         PHLWORKSPACEREF                  m_preferredWorkspace;
         PHLWORKSPACEREF                  m_pressedWorkspace;
+        PHLWORKSPACE                     m_createdWorkspace;
         std::vector<UP<SWorkspaceTile>>  m_tiles;
         CBox                             m_mainArea;
         CBox                             m_miniStripArea;

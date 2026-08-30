@@ -131,6 +131,7 @@ void COverview::installListeners() {
         recheckDrag();
     });
     m_listeners.dragEnded  = g_layoutManager->dragController()->m_events.ended.listen([this] {
+        m_drag.createdWorkspace = false;
         resetDragHover();
         updatePointerState();
     });
@@ -370,9 +371,11 @@ void COverview::applyDragHoverTarget() {
             }
             break;
         case eDragHoverTarget::RIGHT_EDGE:
-            if (m_scene->navigateRight()) {
+            if (const auto RESULT = m_scene->navigateRight(!m_drag.createdWorkspace, true); RESULT != eWorkspaceNavigationResult::NONE) {
                 workspace = m_scene->selectedWorkspace();
-                repeat    = true;
+                repeat    = RESULT == eWorkspaceNavigationResult::EXISTING;
+                if (RESULT == eWorkspaceNavigationResult::CREATED)
+                    m_drag.createdWorkspace = true;
             }
             break;
         case eDragHoverTarget::MINI_TILE:
@@ -683,9 +686,10 @@ void COverview::finishClose(bool emitEvent) {
         return;
 
     m_finishCloseLock.reset();
-    m_sceneInstalled    = false;
-    m_gestureActive     = false;
-    m_moveGestureActive = false;
+    m_sceneInstalled        = false;
+    m_gestureActive         = false;
+    m_moveGestureActive     = false;
+    m_drag.createdWorkspace = false;
     updatePointerState();
     resetDragHover();
     stopKeyRepeat(m_keyRepeat.keycode);

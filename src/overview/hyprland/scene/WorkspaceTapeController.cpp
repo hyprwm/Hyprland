@@ -8,6 +8,7 @@
 #include "../../../animation/AnimationManager.hpp"
 #include "../../../config/ConfigValue.hpp"
 #include "../../../config/shared/animation/AnimationTree.hpp"
+#include "../../../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../../../desktop/Workspace.hpp"
 #include "../../../desktop/state/WindowState.hpp"
 #include "../../../desktop/DesktopTypes.hpp"
@@ -27,6 +28,7 @@
 #include <algorithm>
 #include <cmath>
 #include <hyprutils/memory/WeakPtr.hpp>
+#include <limits>
 #include <ranges>
 
 #include <linux/input-event-codes.h>
@@ -214,6 +216,7 @@ void CWorkspaceTapeController::reset() {
     m_selectedWorkspace.reset();
     m_preferredWorkspace.reset();
     m_pressedWorkspace.reset();
+    m_createdWorkspace.reset();
     m_mainOffset.reset();
     m_mainArea                 = {};
     m_miniStripArea            = {};
@@ -521,8 +524,48 @@ bool CWorkspaceTapeController::navigateLeft() {
     return navigate(-1);
 }
 
-bool CWorkspaceTapeController::navigateRight() {
-    return navigate(1);
+eWorkspaceNavigationResult CWorkspaceTapeController::navigateRight(bool allowCreate, bool willReceiveWindow) {
+    if (navigate(1))
+        return eWorkspaceNavigationResult::EXISTING;
+
+    const auto TILES    = layoutTiles();
+    const auto SELECTED = selectedWorkspace();
+    const auto LAST     = TILES.empty() ? nullptr : TILES.back()->workspace.lock();
+    const auto MONITOR  = SELECTED ? SELECTED->m_monitor.lock() : nullptr;
+    if (!allowCreate || !SELECTED || SELECTED != LAST || SELECTED->m_id <= 0 || SELECTED->getWindowCount() == 0 || !MONITOR)
+        return eWorkspaceNavigationResult::NONE;
+
+    WORKSPACEID workspaceID      = SELECTED->m_id;
+    bool        availableIDFound = false;
+    while (workspaceID < std::numeric_limits<WORKSPACEID>::max()) {
+        workspaceID++;
+        if (State::workspaceState()->query().id(workspaceID).run())
+            continue;
+
+        const auto BOUND_MONITOR = Config::workspaceRuleMgr()->getBoundMonitorForWS(std::to_string(workspaceID));
+        if (BOUND_MONITOR && BOUND_MONITOR != MONITOR)
+            continue;
+
+        availableIDFound = true;
+        break;
+    }
+
+    if (!availableIDFound)
+        return eWorkspaceNavigationResult::NONE;
+
+    auto workspace = State::workspaceState()->create(workspaceID, MONITOR->m_id, "", !willReceiveWindow);
+    if (!workspace || workspace->m_monitor != MONITOR)
+        return eWorkspaceNavigationResult::NONE;
+
+    m_createdWorkspace  = workspace;
+    m_selectedWorkspace = workspace;
+    reconcile();
+    if (selectedWorkspace() != workspace) {
+        m_createdWorkspace.reset();
+        return eWorkspaceNavigationResult::NONE;
+    }
+
+    return eWorkspaceNavigationResult::CREATED;
 }
 
 bool CWorkspaceTapeController::selectWorkspace(PHLWORKSPACE workspace) {
@@ -537,6 +580,7 @@ bool CWorkspaceTapeController::selectWorkspace(PHLWORKSPACE workspace) {
     m_preferredWorkspace = workspace;
     updateLayout();
     damageMonitor();
+    releaseUnselectedCreatedWorkspace();
     return true;
 }
 
@@ -635,6 +679,13 @@ void CWorkspaceTapeController::scheduleReconcile(bool invalidateMiniatures) {
     });
 }
 
+void CWorkspaceTapeController::releaseUnselectedCreatedWorkspace() {
+    if (!m_createdWorkspace || m_createdWorkspace == selectedWorkspace())
+        return;
+
+    m_createdWorkspace.reset();
+}
+
 bool CWorkspaceTapeController::navigate(int direction) {
     const auto TILES = layoutTiles();
     if (!m_started || TILES.empty() || direction == 0)
@@ -719,6 +770,7 @@ void CWorkspaceTapeController::reconcile(bool initial, bool invalidateMiniatures
 
     updateLayout(initial);
     damageMonitor();
+    releaseUnselectedCreatedWorkspace();
 }
 
 void CWorkspaceTapeController::updateLayout(bool warp) {

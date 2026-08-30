@@ -95,6 +95,7 @@ namespace Overview::Hyprland {
             PHLWORKSPACEREF     workspace;
             WP<Layout::ITarget> dragTarget;
             SP<CEventLoopTimer> eventLoopTimer;
+            bool                createdWorkspace = false;
         } m_drag;
 
         struct {

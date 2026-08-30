@@ -6,8 +6,10 @@
 #include "../../../helpers/math/Math.hpp"
 #include "../../../helpers/signal/Signal.hpp"
 #include "OverviewLayout.hpp"
+#include "WorkspaceNavigation.hpp"
 
 #include <string>
+#include <cstdint>
 #include <unordered_map>
 
 namespace Monitor {
@@ -25,29 +27,29 @@ namespace Overview::Hyprland {
         COverviewScene(COverview& parent);
         virtual ~COverviewScene() override;
 
-        virtual void  draw(Render::CRenderingContext&, Time::steady_tp tp) override;
+        virtual void               draw(Render::CRenderingContext&, Time::steady_tp tp) override;
 
-        void          start(PHLMONITOR monitor, WP<Monitor::CMonitorResources> resources);
-        bool          navigateLeft();
-        bool          navigateRight();
-        bool          selectWorkspace(PHLWORKSPACE workspace);
-        PHLWORKSPACE  selectedWorkspace() const;
-        Vector2D      transformPointer(const Vector2D& global) const;
-        PHLWORKSPACE  miniWorkspaceAt(const Vector2D& monitorLocal) const;
-        CBox          mainArea() const;
-        bool          pointerMove(const Vector2D& monitorLocal);
-        bool          pointerButton(uint32_t button, bool pressed, const Vector2D& monitorLocal);
-        void          pointerLeave();
-        void          keyboardKey(uint32_t keysym, bool down, bool repeat, std::string utf8, uint32_t modifiers);
-        void          reset();
-        void          setTextboxFocus(bool x);
-        void          useSelectedWorkspaceForFullscreen(bool x);
-        bool          beginMoveGesture();
-        void          updateMoveGesture(float delta);
-        void          endMoveGesture();
-        void          resetQuery() const;
-        std::string   currentQuery() const;
-        const CQuery* query() const;
+        void                       start(PHLMONITOR monitor, WP<Monitor::CMonitorResources> resources);
+        bool                       navigateLeft();
+        eWorkspaceNavigationResult navigateRight(bool allowCreate = true, bool willReceiveWindow = false);
+        bool                       selectWorkspace(PHLWORKSPACE workspace);
+        PHLWORKSPACE               selectedWorkspace() const;
+        Vector2D                   transformPointer(const Vector2D& global) const;
+        PHLWORKSPACE               miniWorkspaceAt(const Vector2D& monitorLocal) const;
+        CBox                       mainArea() const;
+        bool                       pointerMove(const Vector2D& monitorLocal);
+        bool                       pointerButton(uint32_t button, bool pressed, const Vector2D& monitorLocal);
+        void                       pointerLeave();
+        void                       keyboardKey(uint32_t keysym, bool down, bool repeat, std::string utf8, uint32_t modifiers);
+        void                       reset();
+        void                       setTextboxFocus(bool x);
+        void                       useSelectedWorkspaceForFullscreen(bool x);
+        bool                       beginMoveGesture();
+        void                       updateMoveGesture(float delta);
+        void                       endMoveGesture();
+        void                       resetQuery() const;
+        std::string                currentQuery() const;
+        const CQuery*              query() const;
 
       private:
         enum class ePointerTarget : uint8_t {

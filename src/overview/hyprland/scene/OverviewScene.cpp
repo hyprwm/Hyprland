@@ -102,8 +102,8 @@ bool COverviewScene::navigateLeft() {
     return m_workspaceTape->navigateLeft();
 }
 
-bool COverviewScene::navigateRight() {
-    return m_workspaceTape->navigateRight();
+eWorkspaceNavigationResult COverviewScene::navigateRight(bool allowCreate, bool willReceiveWindow) {
+    return m_workspaceTape->navigateRight(allowCreate && (!m_query || m_query->empty()), willReceiveWindow);
 }
 
 bool COverviewScene::selectWorkspace(PHLWORKSPACE workspace) {

@@ -15,8 +15,7 @@ CMonitorFrameScheduler::CMonitorFrameScheduler(PHLMONITOR m) : m_monitor(m) {
 bool CMonitorFrameScheduler::newSchedulingEnabled() {
     static auto PENABLENEW = CConfigValue<Config::INTEGER>("render:new_render_scheduling");
 
-    return *PENABLENEW && g_pHyprRenderer->explicitSyncSupported() && m_monitor && !m_monitor->m_directScanoutIsActive &&
-        (!m_monitor->m_commitCoordinator->asyncEnabled());
+    return *PENABLENEW && g_pHyprRenderer->explicitSyncSupported() && m_monitor && !m_monitor->m_directScanoutIsActive && (!m_monitor->m_commitCoordinator->asyncEnabled());
 }
 
 void CMonitorFrameScheduler::onSyncFired() {

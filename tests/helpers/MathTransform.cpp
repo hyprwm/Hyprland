@@ -94,3 +94,23 @@ TEST(Helpers, outputDamageTransformRoundTrip) {
         EXPECT_EQ(transformed.getExtents(), DAMAGE);
     }
 }
+
+TEST(Helpers, mathTransformNormalized) {
+    constexpr Vector2D POINT = {0.2, 0.3};
+
+    EXPECT_EQ(transformNormalized(POINT, WL_OUTPUT_TRANSFORM_NORMAL), Vector2D(0.2, 0.3));
+    EXPECT_EQ(transformNormalized(POINT, WL_OUTPUT_TRANSFORM_90), Vector2D(0.7, 0.2));
+    EXPECT_EQ(transformNormalized(POINT, WL_OUTPUT_TRANSFORM_180), Vector2D(0.8, 0.7));
+    EXPECT_EQ(transformNormalized(POINT, WL_OUTPUT_TRANSFORM_270), Vector2D(0.3, 0.8));
+    EXPECT_EQ(transformNormalized(POINT, WL_OUTPUT_TRANSFORM_FLIPPED), Vector2D(0.8, 0.3));
+    EXPECT_EQ(transformNormalized(POINT, WL_OUTPUT_TRANSFORM_FLIPPED_90), Vector2D(0.3, 0.2));
+    EXPECT_EQ(transformNormalized(POINT, WL_OUTPUT_TRANSFORM_FLIPPED_180), Vector2D(0.2, 0.7));
+    EXPECT_EQ(transformNormalized(POINT, WL_OUTPUT_TRANSFORM_FLIPPED_270), Vector2D(0.7, 0.8));
+}
+
+TEST(Helpers, mathMapNormalizedToBox) {
+    EXPECT_EQ(mapNormalizedToBox({0.25, 0.5}, CBox{{1920, 0}, {1280, 720}}), Vector2D(2240, 360));
+    EXPECT_EQ(mapNormalizedToBox({0.75, 0.25}, CBox{{-1600, 900}, {1600, 900}}), Vector2D(-400, 1125));
+    EXPECT_EQ(mapNormalizedToBox({0.2, 0.3}, CBox{{100, 200}, {900, 1600}}, WL_OUTPUT_TRANSFORM_90), Vector2D(730, 520));
+    EXPECT_EQ(mapNormalizedToBox({0, 0}, CBox{{100, 200}, {900, 1600}}, WL_OUTPUT_TRANSFORM_90), Vector2D(1000, 200));
+}

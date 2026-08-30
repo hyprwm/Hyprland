@@ -703,7 +703,7 @@ void CScrollingAlgorithm::focusOnInput(SP<ITarget> target, eInputMode input) {
     }
 
     // if click, but target is not under cursor, ignore
-    if (input & INPUT_MODE_CLICK && !Pointer::mgr()->getCursorBoxGlobal().overlaps(target->position()))
+    if ((input & INPUT_MODE_CLICK) && !Pointer::mgr()->getCursorBoxGlobal().overlaps(target->position()))
         return;
 
     // if we moved via non-kb, and it's fully visible, ignore

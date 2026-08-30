@@ -326,6 +326,8 @@ void CMonitor::onConnect(bool noRule) {
     if (!isMirror())
         setupDefaultWS(monitorRule);
 
+    const auto REAL_MONITOR_COUNT = std::ranges::count_if(State::monitorState()->monitors(), [](const auto& mon) { return !mon->m_isUnsafeFallback; });
+
     for (auto const& ws : State::workspaceState()->workspacesCopy()) {
         if (!valid(ws))
             continue;
@@ -333,8 +335,7 @@ void CMonitor::onConnect(bool noRule) {
         const auto CURRENTMON = ws->m_monitor.lock();
         const bool ORPHANED   = !CURRENTMON || std::ranges::none_of(State::monitorState()->monitors(), [&](const auto& mon) { return mon == CURRENTMON; });
         const bool RETURNING  = ws->m_lastMonitor == m_name;
-        const bool RECOVERY   = ORPHANED &&
-            std::ranges::count_if(State::monitorState()->monitors(), [](const auto& mon) { return !mon->m_isUnsafeFallback; }) == 1; // temporarily recover orphaned workspaces
+        const bool RECOVERY   = ORPHANED && (m_isUnsafeFallback || REAL_MONITOR_COUNT == 1); // temporarily recover orphaned workspaces
 
         if (RETURNING || RECOVERY) {
             State::workspacePlacementController()->moveWorkspaceToMonitor(ws, m_self.lock());
@@ -475,9 +476,9 @@ void CMonitor::onDisconnect(bool destroy) {
     }
 
     // Preserve ownership across cascaded monitor disconnects.
-    // The first disconnected monitor "owns" where a workspace should return.
+    // The first disconnected real monitor "owns" where a workspace should return.
     for (auto const& w : wspToMove) {
-        if (w && w->m_lastMonitor.empty())
+        if (!m_isUnsafeFallback && w && w->m_lastMonitor.empty())
             w->m_lastMonitor = m_name;
     }
 
@@ -2789,13 +2790,7 @@ bool CMonitor::useFP16() {
     };
 
     // Auto: use FP16 if the monitor is not sRGB or is 10 bit
-    bool        shouldUse  = g_pHyprRenderer->fp16Supported() && (*PFP16 == 1 || (*PFP16 == 2 && (!isSRGB() || m_enabled10bit)));
-    static bool usedBefore = shouldUse;
-    if (usedBefore != shouldUse) {
-        usedBefore    = shouldUse;
-        m_blurFBDirty = true;
-    }
-    return shouldUse;
+    return g_pHyprRenderer->fp16Supported() && (*PFP16 == 1 || (*PFP16 == 2 && (!isSRGB() || m_enabled10bit)));
 }
 
 PImageDescription CMonitor::workBufferImageDescription() {

@@ -2,6 +2,7 @@
 #include "../managers/screenshare/ScreenshareManager.hpp"
 #include "../helpers/cm/ColorManagement.hpp"
 #include "../render/Renderer.hpp"
+#include "../config/ConfigValue.hpp"
 #include <algorithm>
 #include <cstdint>
 #include <format>
@@ -223,4 +224,18 @@ void CMonitorResources::disableMirror() {
     if (m_mirrorTex)
         m_monitor->m_blurFBDirty = true;
     m_mirrorTex.reset();
+}
+
+void CMonitorResources::refreshBlurFB() {
+    static auto PBLURENABLED = CConfigValue<Config::BOOL>("decoration:blur:enabled");
+
+    // TODO: this is super naive. It does free VRAM, but I don't want to make an auto-initializing wrapper
+    // for now and this is good enough.
+    if (!*PBLURENABLED) {
+        m_blurFB->addStencil(nullptr);
+        m_blurFB->alloc(1, 1, m_drmFormat);
+    } else {
+        m_blurFB->addStencil(m_stencilTex);
+        m_blurFB->alloc(m_size.x, m_size.y, m_drmFormat);
+    }
 }

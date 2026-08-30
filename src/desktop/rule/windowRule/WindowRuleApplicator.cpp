@@ -48,6 +48,7 @@ std::unordered_set<CWindowRuleEffectContainer::storageType> CWindowRuleApplicato
             std::pair{std::ref(m_noAnim), [this] { return noAnimEffect(); }}, std::pair{std::ref(m_noBlur), [this] { return noBlurEffect(); }},
             std::pair{std::ref(m_noDim), [this] { return noDimEffect(); }}, std::pair{std::ref(m_noFocus), [this] { return noFocusEffect(); }},
             std::pair{std::ref(m_noMaxSize), [this] { return noMaxSizeEffect(); }}, std::pair{std::ref(m_noShadow), [this] { return noShadowEffect(); }},
+            std::pair{std::ref(m_noGlow), [this] { return noGlowEffect(); }}, std::pair{std::ref(m_noWobble), [this] { return noWobbleEffect(); }},
             std::pair{std::ref(m_noShortcutsInhibit), [this] { return noShortcutsInhibitEffect(); }}, std::pair{std::ref(m_opaque), [this] { return opaqueEffect(); }},
             std::pair{std::ref(m_dimAround), [this] { return dimAroundEffect(); }}, std::pair{std::ref(m_RGBX), [this] { return RGBXEffect(); }},
             std::pair{std::ref(m_syncFullscreen), [this] { return syncFullscreenEffect(); }}, std::pair{std::ref(m_tearing), [this] { return tearingEffect(); }},
@@ -61,7 +62,7 @@ std::unordered_set<CWindowRuleEffectContainer::storageType> CWindowRuleApplicato
             std::pair{std::ref(m_scrollMouse), [this] { return scrollMouseEffect(); }}, std::pair{std::ref(m_scrollTouchpad), [this] { return scrollTouchpadEffect(); }},
             std::pair{std::ref(m_animationStyle), [this] { return animationStyleEffect(); }}, std::pair{std::ref(m_maxSize), [this] { return maxSizeEffect(); }},
             std::pair{std::ref(m_minSize), [this] { return minSizeEffect(); }}, std::pair{std::ref(m_activeBorderColor), [this] { return activeBorderColorEffect(); }},
-            std::pair{std::ref(m_inactiveBorderColor), [this] { return inactiveBorderColorEffect(); }}, std::pair{std::ref(m_noWobble), [this] { return noWobbleEffect(); }}));
+            std::pair{std::ref(m_inactiveBorderColor), [this] { return inactiveBorderColorEffect(); }}));
 
     if (prio == Types::PRIORITY_WINDOW_RULE) {
         std::erase_if(m_dynamicTags, [props, this](const auto& el) {
@@ -309,6 +310,11 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
             case WINDOW_RULE_EFFECT_NO_SHADOW: {
                 m_noShadow.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_noShadow.second |= rule->getPropertiesMask();
+                break;
+            }
+            case WINDOW_RULE_EFFECT_NO_GLOW: {
+                m_noGlow.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
+                m_noGlow.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_NO_WOBBLE: {

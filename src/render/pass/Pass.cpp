@@ -142,7 +142,7 @@ CRegion CRenderPass::render(const CRegion& damage_) {
     static auto PDEBUGPASS = CConfigValue<Config::INTEGER>("debug:pass");
 
     // single pass: cache blur results and gather aggregate info
-    bool    willBlur = false, willDisableSimplification = false, willPrecomputeBlur = false;
+    bool    willBlur = false, willDisableSimplification = false, willPrecomputeBlur = false, requiresFullDamage = false;
     CRegion blurRegion;
     for (auto& el : m_passElements) {
         el.element->needsLiveBlurCached       = el.element->needsLiveBlur();
@@ -160,9 +160,12 @@ CRegion CRenderPass::render(const CRegion& damage_) {
 
         if (el.element->disableSimplification())
             willDisableSimplification = true;
+
+        if (el.element->requiresFullDamage())
+            requiresFullDamage = true;
     }
 
-    m_damage = *PDEBUGPASS ? CRegion{CBox{{}, {INT32_MAX, INT32_MAX}}} : damage_.copy();
+    m_damage = *PDEBUGPASS ? CRegion{CBox{{}, {INT32_MAX, INT32_MAX}}} : requiresFullDamage ? CRegion{CBox{{}, pMonitor->m_transformedSize}} : damage_.copy();
     if (*PDEBUGPASS) {
         m_occludedRegions.clear();
         m_totalLiveBlurRegion = CRegion{};

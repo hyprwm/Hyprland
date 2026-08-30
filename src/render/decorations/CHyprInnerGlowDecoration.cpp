@@ -171,5 +171,5 @@ eDecorationLayer CHyprInnerGlowDecoration::getDecorationLayer() {
 
 bool CHyprInnerGlowDecoration::visible() {
     static auto PENABLED = CConfigValue<Config::INTEGER>("decoration:glow:enabled");
-    return *PENABLED && m_window->m_ruleApplicator->decorate().valueOrDefault();
+    return *PENABLED && m_window->m_ruleApplicator->decorate().valueOrDefault() && !m_window->m_ruleApplicator->noGlow().valueOrDefault();
 }

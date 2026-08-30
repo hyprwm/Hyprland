@@ -21,6 +21,16 @@ TEST(Render, blurUVUsesNormalSceneFramebuffer) {
     EXPECT_DOUBLE_EQ(UV.h, 1.0);
 }
 
+TEST(Render, blurUVUsesPartialNormalSceneFramebuffer) {
+    const Vector2D TEXTURE_SIZE = {1080, 1920};
+    const auto     UV           = Render::GL::resolveBlurUV({0, 0, 540, 1920}, TEXTURE_SIZE);
+
+    EXPECT_DOUBLE_EQ(UV.x, 0.0);
+    EXPECT_DOUBLE_EQ(UV.y, 0.0);
+    EXPECT_DOUBLE_EQ(UV.w, 0.5);
+    EXPECT_DOUBLE_EQ(UV.h, 1.0);
+}
+
 TEST(Render, blurUVRejectsInvalidFramebufferSize) {
     EXPECT_TRUE(Render::GL::resolveBlurUV({10, 20, 30, 40}, {}).empty());
 }

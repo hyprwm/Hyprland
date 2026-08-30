@@ -260,6 +260,9 @@ void CDataDeviceWLRProtocol::destroyResource(CWLRDataOffer* resource) {
 }
 
 void CDataDeviceWLRProtocol::sendSelectionToDevice(SP<CWLRDataDevice> dev, SP<IDataSource> sel, bool primary) {
+    if (primary && dev->m_resource->version() < 2)
+        return;
+
     if (!sel) {
         if (primary)
             dev->m_resource->sendPrimarySelectionRaw(nullptr);

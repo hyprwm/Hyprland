@@ -27,6 +27,7 @@ namespace Monitor {
         void                     disableMirror();
         SP<Render::IFramebuffer> mirrorFB();
         SP<Render::ITexture>     getMirrorTexture();
+        void                     refreshBlurFB();
         SP<Render::ITexture>     m_mirrorTex;
 
         SP<Render::ITexture>     m_stencilTex; // TODO fix blur ignore alpha and remove

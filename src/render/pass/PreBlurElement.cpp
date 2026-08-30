@@ -14,6 +14,10 @@ bool CPreBlurElement::disableSimplification() {
     return true;
 }
 
+bool CPreBlurElement::requiresFullDamage() {
+    return true;
+}
+
 bool CPreBlurElement::undiscardable() {
     return true;
 }

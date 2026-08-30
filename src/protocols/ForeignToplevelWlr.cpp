@@ -92,6 +92,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
             return;
 
         IPC::Socket2::sock()->postEvent({.event = "minimized", .data = std::format("{:x},1", rc<uintptr_t>(PWINDOW.get()))});
+        Event::bus()->m_events.window.minimize.emit(PWINDOW, true);
     });
 
     m_resource->setUnsetMinimized([this](CZwlrForeignToplevelHandleV1* p) {
@@ -104,6 +105,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
             return;
 
         IPC::Socket2::sock()->postEvent({.event = "minimized", .data = std::format("{:x},0", rc<uintptr_t>(PWINDOW.get()))});
+        Event::bus()->m_events.window.minimize.emit(PWINDOW, false);
     });
 
     m_resource->setClose([this](CZwlrForeignToplevelHandleV1* p) {

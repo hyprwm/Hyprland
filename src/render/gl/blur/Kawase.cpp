@@ -5,6 +5,7 @@
 #include "../../../config/ConfigValue.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <utility>
 
 using namespace Render;
@@ -19,6 +20,13 @@ static SCMSettings blurIntermediateCMSettings(bool toIntermediate) {
     auto&      range    = toIntermediate ? settings.dstTFRange : settings.srcTFRange;
     range.max           = std::max(range.max, sc<float>(WORKBUFFER->value().luminances.max));
     return settings;
+}
+
+static float cmBlurNoiseMultiplier(const SCMSettings& settings) {
+    const float DEFAULT_LUMINANCE_RANGE = getDefaultImageDescription()->value().getTFMaxLuminance() - settings.srcTFRange.min;
+    const float CM_LUMINANCE_RANGE      = settings.srcTFRange.max - settings.srcTFRange.min;
+
+    return std::pow(DEFAULT_LUMINANCE_RANGE / CM_LUMINANCE_RANGE, 1.F / 2.2F);
 }
 
 CDualKawaseBlurProvider::CDualKawaseBlurProvider(CHyprOpenGLImpl& impl) : CDualKawaseBlurProvider(impl, makeUnique<CDefaultBlurMaterial>()) {
@@ -241,9 +249,11 @@ SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(SP<CGLFramebuffer> source, fl
             m_impl.setActiveTexture(GL_TEXTURE0);
         }
 
-        const bool skipCM = !m_impl.m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
+        const bool skipCM            = !m_impl.m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
+        float      cmNoiseMultiplier = 1.F;
         if (!skipCM) {
             const auto settings = blurIntermediateCMSettings(/* toIntermediate */ false);
+            cmNoiseMultiplier   = cmBlurNoiseMultiplier(settings);
             shader              = m_impl.useShader(m_impl.getShaderVariant(MATERIAL_REQUIREMENTS.finishFragment, SH_FEAT_CM, settings.sourceTF, settings.targetTF));
 
             m_impl.passCMUniforms(shader, getDefaultImageDescription(), g_pHyprRenderer->workBufferImageDescription(), false, -1.F, -1, settings);
@@ -261,7 +271,7 @@ SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(SP<CGLFramebuffer> source, fl
             shader = m_impl.useShader(m_impl.getShaderVariant(MATERIAL_REQUIREMENTS.finishFragment));
 
         shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
-        shader->setUniformFloat(SHADER_NOISE, *PBLURNOISE);
+        shader->setUniformFloat(SHADER_NOISE, *PBLURNOISE * cmNoiseMultiplier);
         shader->setUniformFloat(SHADER_BRIGHTNESS, *PBLURBRIGHTNESS);
         shader->setUniformInt(SHADER_TEX, 0);
         if (REQUIRES_PREPARED_INPUT)

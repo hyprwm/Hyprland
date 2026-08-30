@@ -300,22 +300,16 @@ void IFullscreenHandler::setNoMembersAboveFullscreen(const std::optional<SP<Layo
 void IFullscreenHandler::syncFullscreenTargets() {
     // Mode checking logic is the same as getFullscreenModes() - keep it in sync
 
-
-
-    const auto removeTargetFromList = [&](auto& it){
-            it = m_fsTargets.erase(it);
-    };
+    const auto removeTargetFromList = [&](auto& it) { it = m_fsTargets.erase(it); };
 
     const auto removeFsTargetAndreturnNextIter = [&](auto& it, const auto& TARGET) {
-            const auto NEXT = std::next(it);
-            removeFsTarget(TARGET, true);
-            return NEXT;
+        const auto NEXT = std::next(it);
+        removeFsTarget(TARGET, true);
+        return NEXT;
     };
-
 
     // to prevent a rehash
     std::vector<std::pair<WP<Layout::ITarget>, SFullscreenMode>> toInsert;
-
 
     for (auto it = m_fsTargets.begin(); it != m_fsTargets.end();) {
 
@@ -342,10 +336,10 @@ void IFullscreenHandler::syncFullscreenTargets() {
                 removeTargetFromList(it);
                 continue;
             }
-            
+
             if (!isFullscreen(WINDOWTARGET) && MODE.client == FSMODE_NONE) {
                 it = removeFsTargetAndreturnNextIter(it, TARGET);
-                continue;                
+                continue;
             }
             // do post-remove-ops on the window group target as that's what algorithms store as a target, then save only the current window of the group
             it = removeFsTargetAndreturnNextIter(it, TARGET);
@@ -358,7 +352,6 @@ void IFullscreenHandler::syncFullscreenTargets() {
     for (const auto& e : toInsert) {
         m_fsTargets.emplace(e.first, e.second);
     }
-
 }
 
 void IFullscreenHandler::removeFsTarget(SP<Layout::ITarget> target, const bool recursionGuard) {
@@ -367,7 +360,9 @@ void IFullscreenHandler::removeFsTarget(SP<Layout::ITarget> target, const bool r
     // iterator in the list; which would corrupt the map if that next iter is also nullptr. We let this go through on the offchance that there is Ǝ! expired entries or the erase hits the right expired target but it is
     // non-deterministic
     if (!target)
-        Log::logger->log(Log::CRIT, "IFullscreenHandler::removeFsTarget() called with target = nullptr. This is possibly non-deterministic and should NOT happen. This is a bug and should be reported!");
+        Log::logger->log(
+            Log::CRIT,
+            "IFullscreenHandler::removeFsTarget() called with target = nullptr. This is possibly non-deterministic and should NOT happen. This is a bug and should be reported!");
 
     m_fsTargets.erase(target);
 

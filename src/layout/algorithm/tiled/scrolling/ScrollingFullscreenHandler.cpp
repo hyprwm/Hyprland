@@ -30,11 +30,8 @@ CScrollingFullscreenHandler::CScrollingFullscreenHandler(Layout::Tiled::CScrolli
 
 CScrollingFullscreenHandler::~CScrollingFullscreenHandler() {
 
-
     // sift through any expired entries in case the following loop fucks us - read CScrollingFullscreenHandler::removeFsTarget()
-    std::erase_if(m_fsTargets, [&](const auto& it){
-        return !it.first;
-    });
+    std::erase_if(m_fsTargets, [&](const auto& it) { return !it.first; });
 
     for (auto it = m_fsTargets.begin(); it != m_fsTargets.end();) {
         const auto NEXT = std::next(it); // save next before removeFsTarget invalidates it
@@ -374,7 +371,7 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen(const std::optiona
     const auto LAYOUT_TILED_COVERING_FS_WINDOW_TARGET = coveringFsTarget.value_or(getFullscreen(true));
     const auto LAYOUT_TILED_COVERING_FS_WINDOW        = LAYOUT_TILED_COVERING_FS_WINDOW_TARGET ? LAYOUT_TILED_COVERING_FS_WINDOW_TARGET->window() : nullptr;
 
-    const auto LAST_SCROLL_HANDLED_TILED_FS_WINDOW = m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow.lock();
+    const auto LAST_SCROLL_HANDLED_TILED_FS_WINDOW         = m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow.lock();
     const auto LAST_SCROLL_HANDLED_TILED_FS_WINDOW_FS_MODE = m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindowMode;
 
     if (!COVERING_FS_WINDOW && LAYOUT_TILED_COVERING_FS_WINDOW) {
@@ -451,31 +448,24 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
     if (m_syncingFullscreenTargets)
         return;
 
-
     m_syncingFullscreenTargets = true;
     Hyprutils::Utils::CScopeGuard guard([this] { m_syncingFullscreenTargets = false; });
 
+    const auto                    removeTargetFromList = [&](auto& it) { it = m_fsTargets.erase(it); };
 
-
-    const auto removeTargetFromList = [&](auto& it){
-            it = m_fsTargets.erase(it);
+    const auto                    removeFsTargetAndreturnNextIter = [&](auto& it, const auto& TARGET) {
+        const auto NEXT = std::next(it);
+        removeFsTarget(TARGET, true);
+        return NEXT;
     };
-
-    const auto removeFsTargetAndreturnNextIter = [&](auto& it, const auto& TARGET) {
-            const auto NEXT = std::next(it);
-            removeFsTarget(TARGET, true);
-            return NEXT;
-    };
-
 
     // to prevent a rehash
     std::vector<std::pair<WP<Layout::ITarget>, SFullscreenMode>> toInsert;
 
-
     for (auto it = m_fsTargets.begin(); it != m_fsTargets.end();) {
 
         const auto TARGET = it->first.lock();
-        
+
         // expired/invalid entries. We need not perform any post-removal operations on these
         if (!TARGET || !TARGET->window() || TARGET->space() != getSpace() || !m_scrollingAlgorithm->dataFor(TARGET, true)) {
             removeTargetFromList(it);
@@ -521,10 +511,10 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
                 removeTargetFromList(it);
                 continue;
             }
-            
+
             if (!isFullscreen(WINDOWTARGET) && MODE.client == FSMODE_NONE) {
                 it = removeFsTargetAndreturnNextIter(it, TARGET);
-                continue;                
+                continue;
             }
             // do post-remove-ops on the window group target as that's what algorithms store as a target, then save only the current window of the group
             it = removeFsTargetAndreturnNextIter(it, TARGET);
@@ -551,8 +541,9 @@ void CScrollingFullscreenHandler::removeFsTarget(SP<Layout::ITarget> target, con
     // iterator in the list; which would corrupt the map if that next iter is also nullptr. We let this go through on the offchance that there is Ǝ! expired entries or the erase hits the right expired target but it is
     // non-deterministic
     if (!target)
-        Log::logger->log(Log::CRIT, "IFullscreenHandler::removeFsTarget() called with target = nullptr. This is possibly non-deterministic and should NOT happen. This is a bug and should be reported!");
-
+        Log::logger->log(
+            Log::CRIT,
+            "IFullscreenHandler::removeFsTarget() called with target = nullptr. This is possibly non-deterministic and should NOT happen. This is a bug and should be reported!");
 
     const auto ITR = m_fsTargets.find(target);
 

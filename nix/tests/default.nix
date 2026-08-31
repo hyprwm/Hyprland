@@ -13,9 +13,7 @@ in
         environment.systemPackages = with pkgs; [
           # Programs needed for tests
           jq
-          kdePackages.dolphin
           kitty
-          nautilus
           wl-clipboard
           xeyes
         ];

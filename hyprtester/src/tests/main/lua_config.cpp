@@ -44,10 +44,11 @@ TEST_CASE(luaSpecialWorkspaceDeactivationEventNil) {
 }
 
 TEST_CASE(luaEventConfigUnload) {
-    std::filesystem::remove("/tmp/hyprtester-luaEventConfigUnload.txt");
+    std::error_code ec;
+    std::filesystem::remove("/tmp/hyprtester-luaEventConfigUnload.txt", ec);
     OK(getFromSocket("/eval luaEventConfigUnload = 'luaEventConfigUnload'; hl.on('config.unload', function() os.execute('echo -n '..tostring(luaEventConfigUnload)..' > "
                      "/tmp/hyprtester-luaEventConfigUnload.txt') end)"));
     OK(getFromSocket("/reload"));
     EXPECT(Hyprutils::File::readFileAsString("/tmp/hyprtester-luaEventConfigUnload.txt").value_or("error"), "luaEventConfigUnload");
-    std::filesystem::remove("/tmp/hyprtester-luaEventConfigUnload.txt");
+    std::filesystem::remove("/tmp/hyprtester-luaEventConfigUnload.txt", ec);
 }

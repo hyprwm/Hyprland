@@ -17,7 +17,7 @@ const std::unordered_set<std::string>& CSubmap::devices() const {
     return m_devices;
 }
 
-bool CSubmap::matchesDevice(SP<IHID> device) const {
+bool CSubmap::matchesDevice(WP<IHID> device) {
     if (!device)
         return !m_inclusive;
 

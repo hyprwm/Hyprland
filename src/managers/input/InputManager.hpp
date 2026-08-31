@@ -241,6 +241,8 @@ class CInputManager {
 
     void               processMouseDownNormal(const IPointer::SButtonEvent& e, SP<IPointer>);
     void               processMouseDownKill(const IPointer::SButtonEvent& e);
+    bool               updatePointerGesture(const SP<IHID>& device, uint32_t timeMs, const Vector2D& delta);
+    void               endPointerGesture(uint32_t timeMs, bool cancelled);
 
     bool               cursorImageUnlocked();
 
@@ -276,6 +278,10 @@ class CInputManager {
 
     // for releasing mouse buttons
     std::list<SHeldPointerButton> m_currentlyHeldButtons;
+
+    // for pointer-button driven gestures
+    uint32_t     m_pointerGestureButton = 0;
+    WP<IPointer> m_pointerGesturePointer;
 
     // idle inhibitors
     struct SIdleInhibitor {

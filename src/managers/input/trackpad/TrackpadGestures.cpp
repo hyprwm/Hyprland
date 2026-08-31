@@ -56,8 +56,11 @@ const char* CTrackpadGestures::stringForDir(eTrackpadGestureDirection dir) {
 }
 
 std::expected<void, std::string> CTrackpadGestures::addGesture(UP<ITrackpadGesture>&& gesture, size_t fingerCount, eTrackpadGestureDirection direction, Input::ModifierMask modMask,
-                                                               float deltaScale, bool disableInhibit) {
+                                                               float deltaScale, bool disableInhibit, uint32_t pointerButton) {
     for (const auto& g : m_gestures) {
+        if (g->pointerButton != pointerButton)
+            continue;
+
         if (g->fingerCount != fingerCount)
             continue;
 
@@ -86,15 +89,16 @@ std::expected<void, std::string> CTrackpadGestures::addGesture(UP<ITrackpadGestu
         }
     }
 
-    m_gestures.emplace_back(makeShared<CTrackpadGestures::SGestureData>(std::move(gesture), fingerCount, modMask, direction, deltaScale, disableInhibit));
+    m_gestures.emplace_back(makeShared<CTrackpadGestures::SGestureData>(std::move(gesture), fingerCount, pointerButton, modMask, direction, deltaScale, disableInhibit));
 
     return {};
 }
 
 std::expected<void, std::string> CTrackpadGestures::removeGesture(size_t fingerCount, eTrackpadGestureDirection direction, Input::ModifierMask modMask, float deltaScale,
-                                                                  bool disableInhibit) {
+                                                                  bool disableInhibit, uint32_t pointerButton) {
     const auto IT = std::ranges::find_if(m_gestures, [&](const auto& g) {
-        return g->fingerCount == fingerCount && g->direction == direction && g->modMask == modMask && g->deltaScale == deltaScale && g->disableInhibit == disableInhibit;
+        return g->fingerCount == fingerCount && g->pointerButton == pointerButton && g->direction == direction && g->modMask == modMask && g->deltaScale == deltaScale &&
+            g->disableInhibit == disableInhibit;
     });
 
     if (IT == m_gestures.end())
@@ -111,8 +115,9 @@ void CTrackpadGestures::gestureBegin(const IPointer::SSwipeBeginEvent& e) {
         return;
     }
 
-    m_gestureFindFailed = false;
-    m_currentTotalDelta = {};
+    m_gestureFindFailed   = false;
+    m_activePointerButton = 0;
+    m_currentTotalDelta   = {};
 
     // nothing here. We need to wait for the first update to determine the delta.
 }
@@ -148,7 +153,7 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SSwipeUpdateEvent& e) {
             if (g->direction != axis && g->direction != direction && g->direction != TRACKPAD_GESTURE_DIR_SWIPE)
                 continue;
 
-            if (g->fingerCount != e.fingers)
+            if (g->pointerButton != 0 || g->fingerCount != e.fingers)
                 continue;
 
             if (g->modMask != MODS)
@@ -179,6 +184,72 @@ void CTrackpadGestures::gestureEnd(const IPointer::SSwipeEndEvent& e) {
     m_activeGesture->gesture->end({.swipe = &e, .direction = m_activeGesture->direction, .scale = m_activeGesture->deltaScale});
 
     m_activeGesture.reset();
+}
+
+bool CTrackpadGestures::pointerGestureBegin(uint32_t button, uint32_t timeMs) {
+    static auto PDISABLEINHIBIT = CConfigValue<Config::INTEGER>("binds:disable_keybind_grabbing");
+
+    if (m_activeGesture || m_activePointerButton)
+        return false;
+
+    const auto MODS    = g_pInputManager->getModsFromAllKBs();
+    const auto MATCHES = std::ranges::any_of(m_gestures, [button, MODS](const auto& g) {
+        return g->pointerButton == button && g->modMask == MODS && (!PROTO::shortcutsInhibit->isInhibited() || *PDISABLEINHIBIT || g->disableInhibit);
+    });
+
+    if (!MATCHES)
+        return false;
+
+    gestureBegin(IPointer::SSwipeBeginEvent{.timeMs = timeMs});
+    m_activePointerButton = button;
+    return true;
+}
+
+void CTrackpadGestures::pointerGestureUpdate(uint32_t button, const IPointer::SSwipeUpdateEvent& e) {
+    static auto PDISABLEINHIBIT = CConfigValue<Config::INTEGER>("binds:disable_keybind_grabbing");
+
+    if (button != m_activePointerButton || m_gestureFindFailed)
+        return;
+
+    m_currentTotalDelta += e.delta;
+
+    if (!m_activeGesture && std::abs(m_currentTotalDelta.x) < 5 && std::abs(m_currentTotalDelta.y) < 5)
+        return;
+
+    if (!m_activeGesture) {
+        const auto axis      = std::abs(m_currentTotalDelta.x) > std::abs(m_currentTotalDelta.y) ? TRACKPAD_GESTURE_DIR_HORIZONTAL : TRACKPAD_GESTURE_DIR_VERTICAL;
+        const auto direction = axis == TRACKPAD_GESTURE_DIR_HORIZONTAL ? (m_currentTotalDelta.x < 0 ? TRACKPAD_GESTURE_DIR_LEFT : TRACKPAD_GESTURE_DIR_RIGHT) :
+                                                                         (m_currentTotalDelta.y < 0 ? TRACKPAD_GESTURE_DIR_UP : TRACKPAD_GESTURE_DIR_DOWN);
+        const auto MODS      = g_pInputManager->getModsFromAllKBs();
+
+        for (const auto& g : m_gestures) {
+            if (g->pointerButton != button || (g->direction != axis && g->direction != direction && g->direction != TRACKPAD_GESTURE_DIR_SWIPE) || g->modMask != MODS)
+                continue;
+
+            if (PROTO::shortcutsInhibit->isInhibited() && !*PDISABLEINHIBIT && !g->disableInhibit)
+                continue;
+
+            m_activeGesture     = g;
+            g->currentDirection = g->gesture->isDirectionSensitive() ? g->direction : direction;
+            m_activeGesture->gesture->begin({.swipe = &e, .direction = direction, .scale = g->deltaScale});
+            break;
+        }
+
+        if (!m_activeGesture) {
+            m_gestureFindFailed = true;
+            return;
+        }
+    }
+
+    m_activeGesture->gesture->update({.swipe = &e, .direction = m_activeGesture->currentDirection, .scale = m_activeGesture->deltaScale});
+}
+
+void CTrackpadGestures::pointerGestureEnd(uint32_t button, const IPointer::SSwipeEndEvent& e) {
+    if (button != m_activePointerButton)
+        return;
+
+    gestureEnd(e);
+    m_activePointerButton = 0;
 }
 
 void CTrackpadGestures::gestureBegin(const IPointer::SPinchBeginEvent& e) {

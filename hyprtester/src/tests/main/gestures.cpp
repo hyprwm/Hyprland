@@ -187,6 +187,52 @@ TEST_CASE(live_gesture_callbacks) {
     EXPECT_CONTAINS(evalLua("hl.gesture({ fingers = 8, direction = 'up', action = {} })"), "must define at least one of start, update, end, or finish");
     EXPECT_CONTAINS(evalLua("hl.gesture({ fingers = 8, direction = 'up', action = function() end, scale = 0 })"),
                     "value must be between -10 and -0.1 or between 0.1 and 10 - It's currently: 0");
+    EXPECT_CONTAINS(evalLua("hl.gesture({ direction = 'left', action = 'workspace' })"), "require either fingers or button");
+    EXPECT_CONTAINS(evalLua("hl.gesture({ fingers = 3, button = 'mouse:274', direction = 'left', action = 'workspace' })"), "cannot use fingers and button together");
+    EXPECT_CONTAINS(evalLua("hl.gesture({ button = 'mouse:abc', direction = 'left', action = 'workspace' })"), "button must be mouse:<numeric code>");
+
+    OK(evalLua(R"(
+        local originalCursor = hl.get_cursor_pos()
+        __pointerGesture = { start = 0, update = 0, finish = 0 }
+        hl.gesture({
+            button = 'mouse:299',
+            direction = 'left',
+            action = {
+                start = function(e)
+                    __pointerGesture.start = __pointerGesture.start + 1
+                    if e.fingers ~= 0 then error('invalid pointer gesture fingers') end
+                    if __pointerGesture.start == 1 and e.delta.x ~= -300 then error('invalid relative pointer gesture start') end
+                    if __pointerGesture.start == 2 and e.delta.x >= 0 then error('invalid absolute pointer gesture start') end
+                end,
+                update = function(e)
+                    __pointerGesture.update = __pointerGesture.update + 1
+                    if __pointerGesture.update == 1 and e.delta.x ~= -300 then error('invalid relative pointer gesture update') end
+                    if __pointerGesture.update == 2 and e.delta.x >= 0 then error('invalid absolute pointer gesture update') end
+                end,
+                finish = function(e)
+                    __pointerGesture.finish = __pointerGesture.finish + 1
+                    if e.cancelled then error('pointer gesture unexpectedly cancelled') end
+                end,
+            },
+        })
+        hl.plugin.test.click(299, 1)
+        hl.plugin.test.mouse_move(-300, 0)
+        hl.plugin.test.click(299, 0)
+        if __pointerGesture.start ~= 1 or __pointerGesture.update ~= 1 or __pointerGesture.finish ~= 1 then
+            error('unexpected pointer gesture callback counts')
+        end
+
+        hl.plugin.test.mouse_warp(0.9, 0.1)
+        hl.plugin.test.click(299, 1)
+        hl.plugin.test.mouse_warp(0.1, 0.1)
+        hl.plugin.test.click(299, 0)
+        if __pointerGesture.start ~= 2 or __pointerGesture.update ~= 2 or __pointerGesture.finish ~= 2 then
+            error('absolute pointer gesture did not run')
+        end
+
+        local currentCursor = hl.get_cursor_pos()
+        hl.plugin.test.mouse_move(originalCursor.x - currentCursor.x, originalCursor.y - currentCursor.y)
+    )"));
 }
 
 // TODO: decompose this into multiple test cases

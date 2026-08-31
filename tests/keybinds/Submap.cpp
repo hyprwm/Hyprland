@@ -13,11 +13,11 @@ static CSubmap makeSubmap(std::string name, std::unordered_set<std::string> devi
 // virtually :(
 
 TEST(KeybindsSubmap, MatchesEmptyDeviceWhenNotInclusive) {
-    const auto SUBMAP = makeSubmap("example", {"device_a", "device_b"}, false);
-    ASSERT_TRUE(SUBMAP.matchesDevice(nullptr));
+    auto submap = makeSubmap("example", {"device_a", "device_b"}, false);
+    ASSERT_TRUE(submap.matchesDevice(nullptr));
 }
 
 TEST(KeybindsSubmap, NoMatchesEmptyDeviceWhenInclusive) {
-    const auto SUBMAP = makeSubmap("example", {"device_a", "device_b"}, true);
-    ASSERT_FALSE(SUBMAP.matchesDevice(nullptr));
+    auto submap = makeSubmap("example", {"device_a", "device_b"}, true);
+    ASSERT_FALSE(submap.matchesDevice(nullptr));
 }

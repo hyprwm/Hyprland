@@ -151,6 +151,7 @@ CLuaEventHandler::CLuaEventHandler(lua_State* L) : m_lua(L) {
     }));
 
     m_listeners.push_back(bus()->m_events.config.reloaded.listen([this] { dispatch("config.reloaded", 0, [](lua_State* L) {}); }));
+    m_listeners.push_back(bus()->m_events.config.preReload.listen([this] { dispatch("config.unload", 0, [](lua_State* L) {}); }));
     m_listeners.push_back(bus()->m_events.config.props_refreshed.listen(
         [this](const bool execdAsScheduled) { dispatch("config.props_refreshed", 1, [&](lua_State* L) { lua_pushboolean(L, sc<lua_Integer>(execdAsScheduled)); }); }));
 
@@ -165,7 +166,10 @@ CLuaEventHandler::CLuaEventHandler(lua_State* L) : m_lua(L) {
     }));
 
     m_listeners.push_back(bus()->m_events.start.listen([this]() { dispatch("hyprland.start", 0, [](lua_State* L) {}); }));
-    m_listeners.push_back(bus()->m_events.exit.listen([this]() { dispatch("hyprland.shutdown", 0, [](lua_State* L) {}); }));
+    m_listeners.push_back(bus()->m_events.exit.listen([this]() {
+        dispatch("config.unload", 0, [](lua_State* L) {});
+        dispatch("hyprland.shutdown", 0, [](lua_State* L) {});
+    }));
 
     m_listeners.push_back(bus()->m_events.pluginEventAdded.listen([this](SP<Event::CEventBus::CCustomEvent> event) {
         auto ret = addCustomEvent(event);
@@ -294,6 +298,7 @@ std::unordered_set<std::string> CLuaEventHandler::knownEvents() {
         "workspace.move_to_monitor",
         "config.reloaded",
         "config.props_refreshed",
+        "config.unload",
         "keybinds.submap",
         "screenshare.state",
         "hyprland.start",

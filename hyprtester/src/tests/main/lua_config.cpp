@@ -2,7 +2,9 @@
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
 
+#include <filesystem>
 #include <hyprutils/utils/ScopeGuard.hpp>
+#include <hyprutils/os/File.hpp>
 
 using namespace Hyprutils::Utils;
 
@@ -39,4 +41,14 @@ TEST_CASE(luaSpecialWorkspaceDeactivationEventNil) {
     ASSERT(getFromSocket("/repl _G.hyprtester_special_active_event_count"), "2");
     ASSERT(getFromSocket("/repl _G.hyprtester_special_active_workspace_type"), "nil");
     ASSERT(getFromSocket("/repl _G.hyprtester_special_active_monitor_type"), "userdata");
+}
+
+TEST_CASE(luaEventConfigUnload) {
+    std::error_code ec;
+    std::filesystem::remove("/tmp/hyprtester-luaEventConfigUnload.txt", ec);
+    OK(getFromSocket("/eval luaEventConfigUnload = 'luaEventConfigUnload'; hl.on('config.unload', function() os.execute('echo -n '..tostring(luaEventConfigUnload)..' > "
+                     "/tmp/hyprtester-luaEventConfigUnload.txt') end)"));
+    OK(getFromSocket("/reload"));
+    EXPECT(Hyprutils::File::readFileAsString("/tmp/hyprtester-luaEventConfigUnload.txt").value_or("error"), "luaEventConfigUnload");
+    std::filesystem::remove("/tmp/hyprtester-luaEventConfigUnload.txt", ec);
 }

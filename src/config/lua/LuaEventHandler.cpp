@@ -116,6 +116,12 @@ CLuaEventHandler::CLuaEventHandler(lua_State* L) : m_lua(L) {
     }));
     m_listeners.push_back(
         bus()->m_events.window.bell.listen([this](PHLWINDOW w, Event::SCallbackInfo&) { dispatch("window.bell", 1, [&](lua_State* L) { CLuaWindow::push(L, w); }); }));
+    m_listeners.push_back(bus()->m_events.window.minimize.listen([this](PHLWINDOW w, bool s) {
+        dispatch("window.minimize", 2, [&](lua_State* L) {
+            CLuaWindow::push(L, w);
+            lua_pushboolean(L, s);
+        });
+    }));
 
     m_listeners.push_back(bus()->m_events.layer.opened.listen([this](PHLLS ls) { dispatch("layer.opened", 1, [&](lua_State* L) { CLuaLayerSurface::push(L, ls); }); }));
     m_listeners.push_back(bus()->m_events.layer.closed.listen([this](PHLLS ls) { dispatch("layer.closed", 1, [&](lua_State* L) { CLuaLayerSurface::push(L, ls); }); }));
@@ -285,6 +291,7 @@ std::unordered_set<std::string> CLuaEventHandler::knownEvents() {
         "window.update_rules",
         "window.move_to_workspace",
         "window.bell",
+        "window.minimize",
         "layer.opened",
         "layer.closed",
         "monitor.added",

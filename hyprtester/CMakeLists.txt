@@ -101,6 +101,7 @@ protocolnew("staging/pointer-warp" "pointer-warp-v1" false)
 protocolnew("staging/fractional-scale" "fractional-scale-v1" false)
 protocolnew("stable/xdg-shell" "xdg-shell" false)
 protocolnew("unstable/keyboard-shortcuts-inhibit" "keyboard-shortcuts-inhibit-unstable-v1" false)
+protocolnew("../protocols" "wlr-foreign-toplevel-management-unstable-v1" true)
 
 clientNew("pointer-warp" PROTOS "pointer-warp-v1" "xdg-shell")
 clientNew("surface-scale-transform" PROTOS "fractional-scale-v1" "xdg-shell")
@@ -111,3 +112,4 @@ clientNew("shortcut-inhibitor" PROTOS "xdg-shell" "keyboard-shortcuts-inhibit-un
 clientNew("keyboard-modifiers" PROTOS "xdg-shell")
 clientNew("fullscreen-with-monitor" PROTOS "xdg-shell")
 clientNew("xdg-initial-maximize" PROTOS "xdg-shell")
+clientNew("wlr-foreign-toplevel" PROTOS "wlr-foreign-toplevel-management-unstable-v1")

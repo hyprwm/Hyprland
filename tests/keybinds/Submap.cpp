@@ -1,13 +1,10 @@
-#include "devices/Keyboard.hpp"
 #include <keybinds/Submap.hpp>
 
 #include <gtest/gtest.h>
 
-using namespace Keybinds;
+#include "Utils.hpp"
 
-static CSubmap makeSubmap(std::string name, std::unordered_set<std::string> devices, const bool inclusive) {
-    return CSubmap(name, {.devices = devices, .inclusive = inclusive});
-};
+using namespace Keybinds;
 
 // testing with actual devices requires being able to instantiate them
 // virtually :(

@@ -376,9 +376,24 @@ void CWaylandBackend::updateGeometry(bool emitEvent) {
     if (GEOMETRY.box == m_geometry.box && GEOMETRY.positionAuthoritative == m_geometry.positionAuthoritative)
         return;
 
+    const Vector2D OLD_SIZE = m_geometry.box.size();
+
     m_geometry = GEOMETRY;
     if (emitEvent)
         m_events.geometryChanged.emit(m_geometry.box);
+
+    if (!emitEvent || !m_mapped)
+        return;
+
+    // Everything we configure ourselves comes back with the size we asked for, so a geometry
+    // whose size differs from our last configure is the client asking for a size of its own.
+    if (!m_pendingReportedSize.has_value() || m_geometry.box.size() == *m_pendingReportedSize)
+        return;
+
+    if (m_geometry.box.size() == OLD_SIZE || m_geometry.box.size().x <= 1 || m_geometry.box.size().y <= 1)
+        return;
+
+    m_events.clientResizeRequest.emit(CBox{{}, m_geometry.box.size()});
 }
 
 void CWaylandBackend::updateGeometryHints() {

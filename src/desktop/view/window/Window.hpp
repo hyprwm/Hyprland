@@ -265,6 +265,7 @@ namespace Desktop::View {
         void         onSurfaceChanged(SP<CWLSurfaceResource> surface);
         void         onConfigureRequest(const CBox& box);
         void         onGeometryChanged(const CBox& box);
+        void         onClientResizeRequest(const CBox& clientBox);
         void         onActivationRequest();
         void         onMoveRequest();
         void         onResizeRequest(eBackendResizeEdge edge);
@@ -301,6 +302,7 @@ namespace Desktop::View {
             CHyprSignalListener stateRequest;
             CHyprSignalListener configureRequest;
             CHyprSignalListener geometryChanged;
+            CHyprSignalListener clientResizeRequest;
             CHyprSignalListener activationRequest;
             CHyprSignalListener moveRequest;
             CHyprSignalListener resizeRequest;

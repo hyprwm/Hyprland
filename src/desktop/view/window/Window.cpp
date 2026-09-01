@@ -137,6 +137,8 @@ void CWindow::attachBackendListeners() {
     m_backendListeners.stateRequest      = m_backend->m_events.stateRequest.listen([this](const auto& request) { onUpdateState(request); });
     m_backendListeners.configureRequest  = m_backend->m_events.configureRequest.listen([this](const auto& box) { onConfigureRequest(box); });
     m_backendListeners.geometryChanged   = m_backend->m_events.geometryChanged.listen([this](const auto& box) { onGeometryChanged(box); });
+    m_backendListeners.clientResizeRequest =
+        m_backend->m_events.clientResizeRequest.listen([this](const auto& box) { onClientResizeRequest(box); });
     m_backendListeners.activationRequest = m_backend->m_events.activationRequest.listen([this] { onActivationRequest(); });
     m_backendListeners.moveRequest       = m_backend->m_events.moveRequest.listen([this] { onMoveRequest(); });
     m_backendListeners.resizeRequest     = m_backend->m_events.resizeRequest.listen([this](eBackendResizeEdge edge) { onResizeRequest(edge); });
@@ -1846,6 +1848,34 @@ void CWindow::onResizeRequest(eBackendResizeEdge edge) {
 void CWindow::onGeometryChanged(const CBox& box) {
     if (m_backend->isX11() && m_backend->traits().overrideRedirect)
         unmanagedSetGeometry(box);
+}
+
+// An xdg_shell client may resize itself by changing its window geometry, e.g. when a
+// collapsible panel is expanded or folded away. X11 clients have had this via
+// onConfigureRequest since forever; without this, a wayland client can only ever grow
+// itself (by raising its min size, which clampWindowSize enforces) and never shrink back.
+void CWindow::onClientResizeRequest(const CBox& clientBox) {
+    if (m_backend->isX11() || !m_isMapped || isHidden() || !m_backend->isMapped())
+        return;
+
+    // The compositor owns the size of everything that is not a plain floating window.
+    if (!m_target->floating() || Fullscreen::controller()->isFullscreen(m_self.lock()) || g_layoutManager->dragController()->target() == layoutTarget())
+        return;
+
+    const auto HINTS   = m_backend->geometryHints(eBackendState::BACKEND_STATE_CURRENT);
+    const auto REQUEST = m_backend->clientToLogical(clientBox, m_monitor.lock()).size();
+    const auto NEWSIZE = REQUEST.clamp(HINTS.minSize.value_or(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}), HINTS.maxSize.value_or(Vector2D{INFINITY, INFINITY}));
+
+    if (NEWSIZE == m_realSize->goal() || NEWSIZE.x <= MIN_WINDOW_SIZE || NEWSIZE.y <= MIN_WINDOW_SIZE)
+        return;
+
+    Log::logger->log(Log::DEBUG, "Window '{}' ({:#x}) resized itself to {}", m_metadata->title(), (uintptr_t)this, NEWSIZE);
+
+    g_pHyprRenderer->damageWindow(m_self.lock());
+    // Anchored at the top left: the client grew or shrank its own content downwards/rightwards,
+    // so moving the window out from under the pointer would be surprising.
+    layoutTarget()->setPositionGlobal(CBox{m_realPosition->goal(), NEWSIZE});
+    g_pHyprRenderer->damageWindow(m_self.lock());
 }
 
 void CWindow::unmanagedSetGeometry(const CBox& box) {

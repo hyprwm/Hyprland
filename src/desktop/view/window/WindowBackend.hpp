@@ -144,6 +144,7 @@ namespace Desktop::View {
             CSignalT<SBackendStateRequest>   stateRequest;
             CSignalT<CBox>                   configureRequest;
             CSignalT<CBox>                   geometryChanged;
+            CSignalT<CBox>                   clientResizeRequest;
             CSignalT<>                       activationRequest;
             CSignalT<>                       moveRequest;
             CSignalT<eBackendResizeEdge>     resizeRequest;

@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include "Utils.hpp"
+
 using namespace Keybinds;
 using namespace Input;
 
@@ -17,10 +19,6 @@ static CBind makeRegistryBind(std::string displayKey, std::string submap = {}) {
     EXPECT_TRUE(result.has_value());
     return std::move(*result);
 }
-
-static CSubmap makeSubmap(std::string name, std::unordered_set<std::string> devices, const bool inclusive) {
-    return CSubmap(name, {.devices = devices, .inclusive = inclusive});
-};
 
 TEST(KeybindsRegistry, RemovesExactBind) {
     CRegistry  registry;

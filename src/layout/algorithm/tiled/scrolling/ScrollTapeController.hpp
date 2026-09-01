@@ -2,6 +2,7 @@
 
 #include "../../../../helpers/math/Math.hpp"
 #include "../../../../helpers/memory/Memory.hpp"
+#include <optional>
 #include <vector>
 
 namespace Layout::Tiled {
@@ -78,9 +79,11 @@ namespace Layout::Tiled {
         eScrollDirection        m_direction = SCROLL_DIR_RIGHT;
         std::vector<SStripData> m_strips;
         double                  m_offset = 0.0;
+        std::optional<double>   m_lastExtentRatio;
         struct SScrollInhibitor m_scrollInhibitor; // for inhibiting scrolling (prevents the viewport from moving)
 
         double                  getPrimary(const Vector2D& v) const;
+        double                  calculateExtentRatio(const CBox& usableArea, bool fullscreenOnOne) const;
         double                  getSecondary(const Vector2D& v) const;
         void                    setPrimary(Vector2D& v, double val) const;
         void                    setSecondary(Vector2D& v, double val) const;

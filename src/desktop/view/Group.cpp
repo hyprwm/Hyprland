@@ -95,7 +95,9 @@ bool CGroup::has(PHLWINDOW w) const {
 }
 
 void CGroup::add(PHLWINDOW w, std::optional<size_t> index) {
-    static auto INSERT_AFTER_CURRENT = CConfigValue<Config::INTEGER>("group:insert_after_current");
+    static auto INSERT_AFTER_CURRENT          = CConfigValue<Config::INTEGER>("group:insert_after_current");
+    static auto PDISABLE                      = CConfigValue<Config::BOOL>("group:groupbar:disable_when_only");
+    const auto  GROUPBAR_DISABLED_ONLY_MEMBER = (*PDISABLE && m_windows.size() == 1) ? m_windows.at(0).lock() : nullptr;
 
     if (w->grouping().group()) {
         if (w->grouping().group() == m_self)
@@ -152,6 +154,11 @@ void CGroup::add(PHLWINDOW w, std::optional<size_t> index) {
     }
 
     applyWindowDecosAndUpdates(w);
+
+    // when groupbar:disable_when_only = true, give the only member of the group its groupbar after adding the second member.
+    if (GROUPBAR_DISABLED_ONLY_MEMBER)
+        g_pDecorationPositioner->forceRecalcFor(GROUPBAR_DISABLED_ONLY_MEMBER);
+
     updateWindowVisibility();
 
     if (FS_INTERNAL_MODE != Fullscreen::FSMODE_NONE) {
@@ -255,6 +262,16 @@ void CGroup::remove(PHLWINDOW w, Math::eDirection dir, eRemoveFromGroupReason re
 
     // we do it after the above because switchTargets expects this to be a valid group
     m_windows.erase(m_windows.begin() + *idx);
+
+    // if groupbar:disable_when_only is enabled and there is only one group member left, we need to fix its size because it will lose its groupbar.
+    static auto PDISABLE = CConfigValue<Config::BOOL>("group:groupbar:disable_when_only");
+    if (*PDISABLE && m_windows.size() == 1) {
+        if (const auto REMAINING_MEMBER = m_windows.at(0).lock()) {
+            const auto GROUPBAR = REMAINING_MEMBER->presentation().decoration(DECORATION_GROUPBAR);
+            GROUPBAR->updateWindow(REMAINING_MEMBER);
+            g_pDecorationPositioner->forceRecalcFor(REMAINING_MEMBER);
+        }
+    }
 
     if (!m_windows.empty())
         updateWindowVisibility();
@@ -372,7 +389,11 @@ SP<Layout::CWindowGroupTarget> CGroup::target() const {
 }
 
 void CGroup::applyWindowDecosAndUpdates(PHLWINDOW x) {
-    x->presentation().addDecoration(makeShared<CHyprGroupBarDecoration>(x));
+    static auto PDISABLE = CConfigValue<Config::BOOL>("group:groupbar:disable_when_only");
+    const auto  GROUPBAR = makeShared<CHyprGroupBarDecoration>(x);
+    if (*PDISABLE)
+        GROUPBAR->updateWindow(x);
+    x->presentation().addDecoration(GROUPBAR);
 
     x->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
     x->presentation().updateDecorations();

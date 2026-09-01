@@ -259,14 +259,14 @@ static int hlDefineSubmap(lua_State* L) {
 
         if (lua_istable(L, -1)) {
             lua_getfield(L, -1, "inclusive");
-            args.inclusive = lua_isnil(L, -1) || lua_toboolean(L, -1);
+            args.device.setInclusive(lua_isnil(L, -1) || lua_toboolean(L, -1));
             lua_pop(L, 1);
 
             lua_getfield(L, -1, "list");
             lua_pushnil(L);
             while (lua_next(L, -2)) {
                 if (auto device_name = Check::string(L, -1); device_name)
-                    args.devices.emplace(*device_name);
+                    args.device.add(*device_name);
                 lua_pop(L, 1);
             }
             lua_pop(L, 1);
@@ -275,7 +275,7 @@ static int hlDefineSubmap(lua_State* L) {
         lua_pop(L, 1);
     }
 
-    Keybinds::CSubmap submap = Keybinds::CSubmap(*name, args);
+    Keybinds::CSubmap submap = Keybinds::CSubmap(*name, std::move(args));
     const auto        SUBMAP = Keybinds::mgr()->addSubmap(std::move(submap));
 
     luaL_checktype(L, fnIdx, LUA_TFUNCTION);

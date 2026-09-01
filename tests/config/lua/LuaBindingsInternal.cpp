@@ -4,7 +4,9 @@
 #include <Compositor.hpp>
 
 #include <config/lua/types/LuaConfigInt.hpp>
+#include <config/shared/actions/ConfigActions.hpp>
 #include <config/values/types/IntValue.hpp>
+#include <overview/Overview.hpp>
 
 #include <gtest/gtest.h>
 
@@ -45,6 +47,62 @@ namespace Config::Lua {
 }
 
 namespace {
+    class CTestOverview final : public Overview::IOverview, public Overview::IOverviewNavigable, public Overview::IOverviewQueryOpenable, public Overview::IOverviewStateProvider {
+      public:
+        virtual void open(PHLMONITOR) override {
+            m_open = true;
+        }
+
+        virtual void open(PHLMONITOR, const std::string& query) override {
+            m_open  = true;
+            m_query = query;
+        }
+
+        virtual void close() override {
+            m_open = false;
+        }
+
+        virtual bool isOpen() const override {
+            return m_open;
+        }
+
+        virtual Overview::SOverviewState state() const override {
+            return {.open = m_open, .query = m_open ? m_query : ""};
+        }
+
+        virtual bool moveLeft() override {
+            m_moves--;
+            return true;
+        }
+
+        virtual bool moveRight() override {
+            m_moves++;
+            return true;
+        }
+
+        bool        m_open  = false;
+        int         m_moves = 0;
+        std::string m_query;
+    };
+
+    class CScopedTestOverview {
+      public:
+        CScopedTestOverview() : m_previous(std::move(Overview::overview())) {
+            Overview::overview() = makeUnique<CTestOverview>();
+        }
+
+        ~CScopedTestOverview() {
+            Overview::overview() = std::move(m_previous);
+        }
+
+        CTestOverview& get() const {
+            return *dynamic_cast<CTestOverview*>(Overview::overview().get());
+        }
+
+      private:
+        UP<Overview::IOverview> m_previous;
+    };
+
     class CLuaState {
       public:
         CLuaState() : m_lua(luaL_newstate()) {
@@ -160,10 +218,86 @@ TEST(ConfigLuaBindingsInternal, dispatcherRegistrationIncludesOverviewTable) {
     ASSERT_TRUE(lua_istable(L, -1));
     lua_getfield(L, -1, "toggle");
     EXPECT_TRUE(lua_isfunction(L, -1));
+    lua_pop(L, 1);
+    lua_getfield(L, -1, "move_left");
+    EXPECT_TRUE(lua_isfunction(L, -1));
+    lua_pop(L, 1);
+    lua_getfield(L, -1, "move_right");
+    EXPECT_TRUE(lua_isfunction(L, -1));
     lua_pop(L, 2);
 
     lua_getfield(L, -1, "no_op");
     EXPECT_TRUE(lua_isfunction(L, -1));
+}
+
+TEST(ConfigLuaBindingsInternal, overviewActionsForwardQueryAndNavigation) {
+    CScopedTestOverview overview;
+
+    ASSERT_TRUE(Config::Actions::overview(Config::Actions::TOGGLE_ACTION_ENABLE, "query with spaces"));
+    EXPECT_TRUE(overview.get().m_open);
+    EXPECT_EQ(overview.get().m_query, "query with spaces");
+
+    EXPECT_TRUE(Config::Actions::overviewMoveLeft());
+    EXPECT_TRUE(Config::Actions::overviewMoveRight());
+    EXPECT_EQ(overview.get().m_moves, 0);
+
+    ASSERT_TRUE(Config::Actions::overview(Config::Actions::TOGGLE_ACTION_DISABLE));
+    EXPECT_FALSE(overview.get().m_open);
+    const auto moveResult = Config::Actions::overviewMoveLeft();
+    ASSERT_FALSE(moveResult);
+    EXPECT_EQ(moveResult.error().code, Config::Actions::eActionErrorCode::INVALID_STATE);
+}
+
+TEST(ConfigLuaBindingsInternal, overviewToggleDispatcherPreservesQuery) {
+    CScopedTestOverview overview;
+    CLuaState           state;
+    const auto          lua = state.get();
+
+    lua_newtable(lua);
+    Internal::registerDispatcherBindings(lua);
+    lua_setglobal(lua, "hl");
+
+    lua_getglobal(lua, "hl");
+    lua_getfield(lua, -1, "dsp");
+    lua_getfield(lua, -1, "overview");
+    lua_getfield(lua, -1, "toggle");
+    lua_createtable(lua, 0, 1);
+    constexpr char QUERY[] = {'q', '\0', 'x'};
+    lua_pushlstring(lua, QUERY, sizeof(QUERY));
+    lua_setfield(lua, -2, "query");
+    lua_call(lua, 1, 1);
+
+    ASSERT_TRUE(Internal::pushDispatcherFunction(lua, -1));
+    lua_call(lua, 0, 1);
+    EXPECT_TRUE(overview.get().m_open);
+    EXPECT_EQ(overview.get().m_query, std::string(QUERY, sizeof(QUERY)));
+
+    ASSERT_EQ(luaL_dostring(lua, "assert(hl.dsp.overview.toggle({ query = true }) == nil)"), LUA_OK) << lua_tostring(lua, -1);
+    ASSERT_EQ(luaL_dostring(lua, "assert(hl.dsp.overview.toggle({ query = 42 }) == nil)"), LUA_OK) << lua_tostring(lua, -1);
+}
+
+TEST(ConfigLuaBindingsInternal, getOverviewReturnsStableStateTable) {
+    CScopedTestOverview overview;
+    CLuaState           state;
+    const auto          lua = state.get();
+
+    lua_newtable(lua);
+    Internal::registerQueryBindings(lua);
+    lua_setglobal(lua, "hl");
+
+    ASSERT_EQ(luaL_dostring(lua, R"(
+        local overview = hl.get_overview()
+        assert(type(overview) == "table")
+        assert(overview.open == false)
+        assert(overview.monitor == nil)
+        assert(overview.workspace == nil)
+        assert(overview.query == "")
+    )"),
+              LUA_OK)
+        << lua_tostring(lua, -1);
+
+    overview.get().m_open = true;
+    ASSERT_EQ(luaL_dostring(lua, "assert(hl.get_overview().open == true)"), LUA_OK) << lua_tostring(lua, -1);
 }
 
 TEST(ConfigLuaBindingsInternal, parseDirectionAliases) {

@@ -28,8 +28,10 @@ namespace Overview::Hyprland {
         virtual ~COverview() override;
 
         virtual void         open(PHLMONITOR monitor) override;
+        void                 open(PHLMONITOR monitor, const std::string& query);
         virtual void         close() override;
         virtual bool         isOpen() const override;
+        SOverviewState       state() const;
         virtual bool         shouldRenderWorkspace(PHLWORKSPACE workspace) const override;
         virtual PHLWORKSPACE inputWorkspace() const override;
         virtual bool         beginOpenGesture(PHLMONITOR monitor) override;
@@ -38,6 +40,8 @@ namespace Overview::Hyprland {
         virtual bool         beginMoveGesture() override;
         virtual void         updateMoveGesture(float Δ) override;
         virtual void         endMoveGesture() override;
+        bool                 moveLeft();
+        bool                 moveRight();
         virtual void         onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboard> keyboard) override;
 
         SP<COverviewScene>   scene() const;

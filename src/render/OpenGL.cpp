@@ -1158,12 +1158,12 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(CRenderingContext& context, con
             .radius        = std::max(sc<float>(data.round), 0.F),
             .roundingPower = data.roundingPower,
         };
-    const bool usePrecomputedBlur = data.xray && !g_pHyprRenderer->blurProviderRequiresLiveBlur();
-    const auto blurredFB          = usePrecomputedBlur ?
+    const bool        usePrecomputedBlur = data.xray && !g_pHyprRenderer->blurProviderRequiresLiveBlur();
+    const auto        blurredFB          = usePrecomputedBlur ?
         context.sceneMonitor->resources()->m_blurFB :
         g_pHyprRenderer->blurMainFramebuffer(context, data.blurA, damage, {.patternBox = patternBox, .owner = data.blurOwner, .shape = shape});
-    const auto blurredBG = blurredFB->getTexture();
-    const auto blurUV    = resolveBlurUV(box, blurredBG->m_size);
+    const auto        blurredBG          = blurredFB->getTexture();
+    const auto        blurUV             = resolveBlurUV(box, blurredBG->m_size);
 
     CRenderingContext child{context, context.renderPass()};
     child.renderModif = {};

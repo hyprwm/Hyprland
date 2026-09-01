@@ -84,7 +84,9 @@ namespace Config::Actions {
 
     ActionResult layoutMessage(const std::string& msg);
 
-    ActionResult overview(eTogglableAction action);
+    ActionResult overview(eTogglableAction action, const std::string& query = {});
+    ActionResult overviewMoveLeft();
+    ActionResult overviewMoveRight();
 
     ActionResult moveCursor(const Vector2D& pos);
     ActionResult exit();

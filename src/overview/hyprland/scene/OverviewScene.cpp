@@ -191,8 +191,13 @@ void COverviewScene::endMoveGesture() {
     m_workspaceTape->endMoveGesture();
 }
 
-void COverviewScene::resetQuery() const {
-    m_workspaceSearch->resetQuery();
+void COverviewScene::setQuery(const std::string& query) {
+    m_workspaceSearch->setQuery(query);
+    updateQuery(query);
+}
+
+void COverviewScene::resetQuery() {
+    setQuery("");
 }
 
 std::string COverviewScene::currentQuery() const {

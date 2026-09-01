@@ -188,12 +188,12 @@ bool COverview::handleSearchKey(uint32_t keycode, SP<IKeyboard> keyboard, bool r
     // if we delete all the text with backspace, automatically goes back to navi.
     if (m_inputMode == eInputMode::NAVIGATION) {
         if (KEYSYM == XKB_KEY_Left) {
-            m_scene->navigateLeft();
+            moveLeft();
             return true;
         }
 
         if (KEYSYM == XKB_KEY_Right) {
-            m_scene->navigateRight();
+            moveRight();
             return true;
         }
 
@@ -521,6 +521,11 @@ void COverview::scheduleFinishClose() {
 }
 
 void COverview::open(PHLMONITOR monitor) {
+    open(monitor, "");
+}
+
+void COverview::open(PHLMONITOR monitor, const std::string& query) {
+    const bool WAS_OPEN                 = m_isOpen;
     const bool KEEP_SELECTED_FULLSCREEN = m_gestureActive && !m_gestureOpening;
     if (m_gestureActive)
         endOpenGesture(m_gestureOpening);
@@ -530,6 +535,9 @@ void COverview::open(PHLMONITOR monitor) {
     bool NEW_SCENE = false;
     if (!prepareOpen(monitor, NEW_SCENE))
         return;
+
+    if (!WAS_OPEN)
+        m_scene->setQuery(query);
 
     if (!KEEP_SELECTED_FULLSCREEN)
         m_scene->useSelectedWorkspaceForFullscreen(false);
@@ -667,6 +675,26 @@ void COverview::endMoveGesture() {
 
 bool COverview::isOpen() const {
     return m_isOpen;
+}
+
+SOverviewState COverview::state() const {
+    SOverviewState result{.open = m_isOpen};
+    if (!m_isOpen || !m_sceneInstalled)
+        return result;
+
+    result.monitor   = m_monitor.lock();
+    result.workspace = m_scene->selectedWorkspace();
+    if (const auto QUERY = m_scene->query())
+        result.query = QUERY->raw();
+    return result;
+}
+
+bool COverview::moveLeft() {
+    return m_isOpen && m_sceneInstalled && m_scene->navigateLeft();
+}
+
+bool COverview::moveRight() {
+    return m_isOpen && m_sceneInstalled && m_scene->navigateRight() != eWorkspaceNavigationResult::NONE;
 }
 
 bool COverview::shouldRenderWorkspace(PHLWORKSPACE workspace) const {

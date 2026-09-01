@@ -245,7 +245,7 @@ void CWorkspaceSearchController::setFocused(bool x) {
     }
 }
 
-void CWorkspaceSearchController::resetQuery() {
+void CWorkspaceSearchController::setQuery(const std::string& query) {
     if (m_textbox)
-        m_textbox->setText("");
+        m_textbox->setText(query);
 }

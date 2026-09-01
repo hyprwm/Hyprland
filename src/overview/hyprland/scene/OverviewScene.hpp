@@ -47,7 +47,8 @@ namespace Overview::Hyprland {
         bool                       beginMoveGesture();
         void                       updateMoveGesture(float delta);
         void                       endMoveGesture();
-        void                       resetQuery() const;
+        void                       setQuery(const std::string& query);
+        void                       resetQuery();
         std::string                currentQuery() const;
         const CQuery*              query() const;
 

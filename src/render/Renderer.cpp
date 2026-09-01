@@ -2233,7 +2233,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     Event::bus()->m_events.render.stage.emit(RENDER_PRE);
 
     pMonitor->m_renderingActive = true;
-    CScopeGuard renderingGuard([pMonitor] { pMonitor->m_renderingActive = false; });
+    CScopeGuard       renderingGuard([pMonitor] { pMonitor->m_renderingActive = false; });
 
     CRenderPass       pass;
     CRenderingContext context{pMonitor, pass};
@@ -2266,7 +2266,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         context.useNearestNeighbor = false;
     }
 
-    const bool ZOOM_DAMAGE_ENTIRE = pMonitor->m_zoomController.shouldDamageEntire(context.mouseZoomFactor);
+    const bool                                        ZOOM_DAMAGE_ENTIRE = pMonitor->m_zoomController.shouldDamageEntire(context.mouseZoomFactor);
 
     CRegion                                           damage, finalDamage;
     std::optional<Monitor::CDamageRing::CTransaction> damageTransaction;
@@ -2351,7 +2351,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     TRACY_GPU_COLLECT;
 
-    CRegion frameDamage{context.damage};
+    CRegion    frameDamage{context.damage};
 
     const auto TRANSFORM = Math::invertTransform(pMonitor->m_transform);
     frameDamage.transform(Math::wlTransformToHyprutils(TRANSFORM), pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y);

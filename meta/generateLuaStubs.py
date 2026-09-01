@@ -552,6 +552,10 @@ def generate_stub(root: Path) -> str:
         "hl.get_last_window": "fun(): HL.Window|nil",
         "hl.get_last_workspace": "fun(monitor?: HL.MonitorSelector): HL.Workspace|nil",
         "hl.get_current_submap": "fun(): string",
+        "hl.get_overview": "fun(): HL.OverviewState",
+        "hl.dsp.overview.toggle": "fun(options?: HL.OverviewToggleOptions): HL.Dispatcher",
+        "hl.dsp.overview.move_left": "fun(): HL.Dispatcher",
+        "hl.dsp.overview.move_right": "fun(): HL.Dispatcher",
         "hl.notification.create": "fun(opts?: HL.NotificationOptions): HL.Notification",
         "hl.notification.get": "fun(): HL.Notification[]",
         "hl.layout.register": "fun(name: string, provider: HL.LayoutProvider): nil",
@@ -695,6 +699,30 @@ def generate_stub(root: Path) -> str:
             "HL.GetMonitorsOptions",
             [
                 ("all", "boolean", True),
+            ],
+        )
+    )
+    lines.append("")
+
+    lines.extend(
+        emit_class_block(
+            "HL.OverviewState",
+            [
+                ("open", "boolean", False),
+                ("monitor", "HL.Monitor|nil", False),
+                ("workspace", "HL.Workspace|nil", False),
+                ("query", "string", False),
+            ],
+        )
+    )
+    lines.append("")
+
+    lines.extend(
+        emit_class_block(
+            "HL.OverviewToggleOptions",
+            [
+                ("action", '"toggle"|"enable"|"disable"|"on"|"off"', True),
+                ("query", "string", True),
             ],
         )
     )

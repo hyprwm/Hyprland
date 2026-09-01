@@ -959,6 +959,58 @@ TEST_CASE(overviewCreatesTrailingNumericWorkspace) {
     ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace ID 9302 (9302)");
 }
 
+TEST_CASE(overviewLuaApi) {
+    Hyprutils::Utils::CScopeGuard cleanup = {[&] {
+        getFromSocket("/dispatch hl.dsp.overview.toggle({ action = 'disable' })");
+        getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })");
+        getFromSocket("/reload");
+    }};
+
+    const auto                    pressKey = [](uint32_t key) {
+        const bool PRESSED  = getFromSocket(pluginKeybindCmd(true, 0, key)) == "ok";
+        const bool RELEASED = getFromSocket(pluginKeybindCmd(false, 0, key)) == "ok";
+        return PRESSED && RELEASED;
+    };
+
+    OK(getFromSocket("/eval hl.config({ overview = { only_current_monitor = true } }); "
+                     "hl.workspace_rule({ workspace = 'name:overview-api-alpha', persistent = true }); "
+                     "hl.workspace_rule({ workspace = 'name:overview-api-beta', persistent = true })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:overview-api-alpha' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:overview-api-beta' })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.overview.toggle({ query = 'overview-api' })"));
+    OK(getFromSocket("/eval local overview = hl.get_overview(); "
+                     "assert(overview.open); "
+                     "assert(overview.monitor == hl.get_active_monitor()); "
+                     "assert(overview.workspace.name == 'overview-api-beta'); "
+                     "assert(overview.query == 'overview-api')"));
+
+    ASSERT(pressKey(KEY_LEFT + 8), true);
+    OK(getFromSocket("/eval local overview = hl.get_overview(); "
+                     "assert(overview.workspace.name == 'overview-api-alpha'); "
+                     "assert(overview.query == 'overview-api')"));
+
+    OK(getFromSocket("/dispatch hl.dsp.overview.move_right()"));
+    OK(getFromSocket("/eval assert(hl.get_overview().workspace.name == 'overview-api-beta')"));
+
+    OK(getFromSocket("/dispatch hl.dsp.overview.toggle({ action = 'disable' })"));
+    OK(getFromSocket("/eval local overview = hl.get_overview(); "
+                     "assert(not overview.open); "
+                     "assert(overview.monitor == nil); "
+                     "assert(overview.workspace == nil); "
+                     "assert(overview.query == '')"));
+
+    OK(getFromSocket("/dispatch hl.dsp.overview.toggle({ action = 'enable', query = 'overview-api-alpha' })"));
+    OK(getFromSocket("/eval local overview = hl.get_overview(); "
+                     "assert(overview.open); "
+                     "assert(overview.workspace.name == 'overview-api-alpha'); "
+                     "assert(overview.query == 'overview-api-alpha')"));
+
+    OK(getFromSocket("/dispatch hl.dsp.overview.toggle({ action = 'disable' })"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "(overview-api-alpha)");
+}
+
 TEST_CASE(overviewDragCreatesOneTrailingNumericWorkspace) {
     Hyprutils::Utils::CScopeGuard cleanup = {[&] {
         getFromSocket(pluginClickCmd(false, BTN_LEFT));

@@ -1807,15 +1807,41 @@ ActionResult Actions::releaseInputCapture() {
     return {};
 }
 
-ActionResult Actions::overview(eTogglableAction action) {
-    const bool target = action == TOGGLE_ACTION_TOGGLE ? !Overview::overview()->isOpen() : action == TOGGLE_ACTION_ENABLE;
-    if (target == Overview::overview()->isOpen())
+ActionResult Actions::overview(eTogglableAction action, const std::string& query) {
+    const auto OVERVIEW = Overview::overview().get();
+    if (!OVERVIEW)
+        return actionError("Overview is unavailable", eActionErrorLevel::WARNING, eActionErrorCode::UNAVAILABLE);
+
+    const bool target = action == TOGGLE_ACTION_TOGGLE ? !OVERVIEW->isOpen() : action == TOGGLE_ACTION_ENABLE;
+    if (target == OVERVIEW->isOpen())
         return {};
 
     if (target)
-        Overview::overview()->open(Desktop::focusState()->monitor());
+        Overview::openWithQuery(OVERVIEW, Desktop::focusState()->monitor(), query);
     else
-        Overview::overview()->close();
+        OVERVIEW->close();
 
     return {};
+}
+
+static ActionResult moveOverview(bool left) {
+    const auto OVERVIEW = Overview::overview().get();
+    if (!OVERVIEW)
+        return actionError("Overview is unavailable", eActionErrorLevel::WARNING, eActionErrorCode::UNAVAILABLE);
+    if (!OVERVIEW->isOpen())
+        return actionError("Overview is not open", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
+
+    const auto MOVED = left ? Overview::moveLeft(OVERVIEW) : Overview::moveRight(OVERVIEW);
+    if (!MOVED)
+        return actionError("Overview does not support navigation", eActionErrorLevel::WARNING, eActionErrorCode::UNAVAILABLE);
+
+    return {};
+}
+
+ActionResult Actions::overviewMoveLeft() {
+    return moveOverview(true);
+}
+
+ActionResult Actions::overviewMoveRight() {
+    return moveOverview(false);
 }

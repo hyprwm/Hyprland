@@ -4,7 +4,17 @@
 #include "../desktop/DesktopTypes.hpp"
 #include "../helpers/signal/Signal.hpp"
 
+#include <string>
+#include <optional>
+
 namespace Overview {
+
+    struct SOverviewState {
+        bool         open = false;
+        PHLMONITOR   monitor;
+        PHLWORKSPACE workspace;
+        std::string  query;
+    };
 
     /*
      * An interface for an overview. Normally, Hyprland only implements one,
@@ -56,6 +66,33 @@ namespace Overview {
         virtual void updateMoveGesture(float Δ) = 0;
         virtual void endMoveGesture()           = 0;
     };
+
+    class IOverviewNavigable {
+      public:
+        virtual ~IOverviewNavigable() = default;
+
+        virtual bool moveLeft()  = 0;
+        virtual bool moveRight() = 0;
+    };
+
+    class IOverviewQueryOpenable {
+      public:
+        virtual ~IOverviewQueryOpenable() = default;
+
+        virtual void open(PHLMONITOR monitor, const std::string& query) = 0;
+    };
+
+    class IOverviewStateProvider {
+      public:
+        virtual ~IOverviewStateProvider() = default;
+
+        virtual SOverviewState state() const = 0;
+    };
+
+    void                openWithQuery(IOverview* overview, PHLMONITOR monitor, const std::string& query);
+    SOverviewState      state(const IOverview* overview);
+    std::optional<bool> moveLeft(IOverview* overview);
+    std::optional<bool> moveRight(IOverview* overview);
 
     /*
      * If you are a plugin and want to override this, remember to reset this ptr on unload and

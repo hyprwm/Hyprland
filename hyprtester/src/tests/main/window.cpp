@@ -2045,9 +2045,10 @@ TEST_CASE(windowRuleBorderColors) {
     }
 
     Tests::killAllWindows();
-    
+
     // Testing setting only the active border
-    OK(getFromSocket("/eval hl.window_rule({ name = 'active-border-kitty', match = { class = 'active_border_kitty', focus = true }, border_color = 'rgba(ffff00ff) rgba(000000ff) 90deg' })"));
+    OK(getFromSocket(
+        "/eval hl.window_rule({ name = 'active-border-kitty', match = { class = 'active_border_kitty', focus = true }, border_color = 'rgba(ffff00ff) rgba(000000ff) 90deg' })"));
 
     SPAWN_KITTY("active_border_kitty");
 
@@ -2071,12 +2072,12 @@ TEST_CASE(windowRuleBorderColors) {
     Tests::killAllWindows();
 
     // Testing setting only the inactive border
-    OK(getFromSocket("/eval hl.window_rule({ name = 'inactive-border-kitty', match = { class = 'inactive_border_kitty', focus = false }, border_color = '0deg rgba(ffff00ff) rgba(000000ff) 90deg' })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'inactive-border-kitty', match = { class = 'inactive_border_kitty', focus = false }, border_color = '0deg rgba(ffff00ff) "
+                     "rgba(000000ff) 90deg' })"));
 
-    SPAWN_KITTY("inactive_border_kitty");    
+    SPAWN_KITTY("inactive_border_kitty");
     // dummy window to check inactive colors
     SPAWN_KITTY("dummy_kitty");
-
 
     // We expect the active color to be the global one
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:inactive_border_kitty' })"));
@@ -2100,7 +2101,8 @@ TEST_CASE(windowRuleBorderColors) {
     Tests::killAllWindows();
 
     // setting both colors
-    OK(getFromSocket("/eval hl.window_rule({ name = 'border-color-kitty', match = { class = 'border_color_kitty' }, border_color = 'rgba(ffff00ff) rgba(000000ff) 90deg rgba(0000ffff) rgba(ff0000ff) 90deg' })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'border-color-kitty', match = { class = 'border_color_kitty' }, border_color = 'rgba(ffff00ff) rgba(000000ff) 90deg "
+                     "rgba(0000ffff) rgba(ff0000ff) 90deg' })"));
 
     SPAWN_KITTY("border_color_kitty");
 
@@ -2119,7 +2121,6 @@ TEST_CASE(windowRuleBorderColors) {
         EXPECT_CONTAINS(str, "ffff0000");
         EXPECT_CONTAINS(str, "90deg");
     }
-
 }
 
 TEST_CASE(windowRuleBorderColorsFocus) {
@@ -2128,7 +2129,8 @@ TEST_CASE(windowRuleBorderColorsFocus) {
     OK(getFromSocket("/eval hl.config({ general = { col = { inactive_border = { colors = { 'rgba(ff0000ff)', 'rgba(ffffffff)' }, angle = 45 } } } })"));
 
     // Testing setting only the active border
-    OK(getFromSocket("/eval hl.window_rule({ name = 'active-border-kitty', match = { class = 'active_border_kitty', focus = true }, border_color = { colors = {'rgba(ff00ffff)', 'rgba(000000ff)' }, angle = 90 } })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'active-border-kitty', match = { class = 'active_border_kitty', focus = true }, border_color = { colors = {'rgba(ff00ffff)', "
+                     "'rgba(000000ff)' }, angle = 90 } })"));
 
     SPAWN_KITTY("active_border_kitty");
 
@@ -2152,9 +2154,10 @@ TEST_CASE(windowRuleBorderColorsFocus) {
     Tests::killAllWindows();
 
     // Testing setting only the inactive border
-    OK(getFromSocket("/eval hl.window_rule({ name = 'inactive-border-kitty', match = { class = 'inactive_border_kitty', focus = false }, border_color = { colors = { 'rgba(ffff00ff)', 'rgba(000000ff)' }, angle = 90 } })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'inactive-border-kitty', match = { class = 'inactive_border_kitty', focus = false }, border_color = { colors = { "
+                     "'rgba(ffff00ff)', 'rgba(000000ff)' }, angle = 90 } })"));
 
-    SPAWN_KITTY("inactive_border_kitty");    
+    SPAWN_KITTY("inactive_border_kitty");
     // dummy window to check inactive colors
     SPAWN_KITTY("dummy_kitty");
 

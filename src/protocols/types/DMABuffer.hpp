@@ -22,6 +22,10 @@ class CDMABuffer : public IHLBuffer {
 
   private:
     Aquamarine::SDMABUFAttrs m_attrs;
+    bool                     m_cpuFallback = false;
+    void*                    m_map         = nullptr;
+    size_t                   m_mapSize     = 0;
+    void*                    m_staging     = nullptr;
 
     struct {
         CHyprSignalListener resourceDestroy;

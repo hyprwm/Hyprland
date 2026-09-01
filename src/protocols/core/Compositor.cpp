@@ -621,12 +621,14 @@ void CWLSurfaceResource::scheduleState(WP<SSurfaceState> state) {
             if (!waiter)
                 whenReadable(state);
         }
+    } else if (state->buffer && !state->buffer->m_syncFds.empty()) {
+        // dmabuf with implicit fences: wait for them asynchronously. This must come before the
+        // isSynchronous() check: a CPU-fallback dmabuf is synchronous (read at commit) but still
+        // GPU-written, and reading it before its fences signal would block in the sync ioctl.
+        drainSyncFds(state, LOCK_REASON_FENCE);
     } else if (state->buffer && state->buffer->isSynchronous()) {
         // synchronous (shm) buffers can be read immediately
         m_stateQueue.unlockFence(state);
-    } else if (state->buffer && !state->buffer->m_syncFds.empty()) {
-        // async buffer and is dmabuf, then we can wait on implicit fences
-        drainSyncFds(state, LOCK_REASON_FENCE);
     } else {
         // state commit without a buffer.
         m_stateQueue.tryProcess();

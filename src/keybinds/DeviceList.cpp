@@ -25,3 +25,12 @@ bool CDeviceList::contains(const std::string& device) const {
 
     return LISTED == m_inclusive;
 };
+
+bool CDeviceList::contains(WP<IHID> device) const {
+    if (!device)
+        return !m_inclusive;
+
+    const bool LISTED = m_devices.contains(device->m_hlName) || std::ranges::any_of(device->m_deviceTags, [this](const auto& tag) { return m_devices.contains(tag); });
+
+    return LISTED == m_inclusive;
+}

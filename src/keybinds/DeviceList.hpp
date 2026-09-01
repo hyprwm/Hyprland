@@ -3,6 +3,9 @@
 #include <string>
 #include <unordered_set>
 
+#include "../devices/IHID.hpp"
+#include "../helpers/memory/Memory.hpp"
+
 namespace Keybinds {
 
     using DeviceList = std::unordered_set<std::string>;
@@ -20,6 +23,7 @@ namespace Keybinds {
         void              setInclusive(bool value);
         void              add(std::string& device);
         bool              contains(const std::string& device) const;
+        bool              contains(WP<IHID> device) const;
 
         bool              inclusive() const;
         const DeviceList& devices() const;

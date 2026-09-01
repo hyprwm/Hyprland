@@ -15,8 +15,5 @@ const CDeviceList& CSubmap::devices() const {
 }
 
 bool CSubmap::matchesDevice(WP<IHID> device) const {
-    if (!device)
-        return !m_devices.inclusive();
-
-    return m_devices.contains(device->m_hlName) || std::ranges::any_of(device->m_deviceTags, [this](const auto& tag) { return m_devices.contains(tag); });
+    return m_devices.contains(device);
 }

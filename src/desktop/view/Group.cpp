@@ -155,7 +155,7 @@ void CGroup::add(PHLWINDOW w, std::optional<size_t> index) {
 
     applyWindowDecosAndUpdates(w);
 
-    // when groupbar:disable_when_only = true, give the only member of the group its groupbar after adding the second member.
+    // when groupbar:disable_when_only = true, after adding the second member of a group, update the size and position for the first member.
     if (GROUPBAR_DISABLED_ONLY_MEMBER)
         g_pDecorationPositioner->forceRecalcFor(GROUPBAR_DISABLED_ONLY_MEMBER);
 

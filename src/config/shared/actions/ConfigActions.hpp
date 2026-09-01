@@ -48,7 +48,7 @@ namespace Config::Actions {
     ActionResult moveToWorkspace(PHLWORKSPACE ws, bool silent, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult moveFocus(Math::eDirection dir);
     ActionResult focus(PHLWINDOW window);
-    ActionResult moveInDirection(Math::eDirection dir, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
+    ActionResult moveInDirection(Math::eDirection dir, std::optional<PHLWINDOW> window = std::nullopt /* Active */, bool silent = false);
     ActionResult swapInDirection(Math::eDirection dir, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult swapWith(PHLWINDOW other, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult focusCurrentOrLast();

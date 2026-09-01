@@ -536,7 +536,9 @@ static int dsp_pseudoWindow(lua_State* L) {
 }
 
 static int dsp_moveInDirection(lua_State* L) {
-    return Internal::checkResult(L, CA::moveInDirection(sc<Math::eDirection>((int)lua_tonumber(L, lua_upvalueindex(1))), Internal::windowFromUpval(L, 2)));
+    return Internal::checkResult(L,
+                                 CA::moveInDirection(sc<Math::eDirection>((int)lua_tonumber(L, lua_upvalueindex(1))), Internal::windowFromUpval(L, 2),
+                                                     lua_toboolean(L, lua_upvalueindex(3))));
 }
 
 static int dsp_swapInDirection(lua_State* L) {
@@ -784,9 +786,11 @@ static int hlWindowMove(lua_State* L) {
             return 1;
         }
 
+        const bool silent = Internal::tableOptBool(L, 1, "silent").value_or(false);
         lua_pushnumber(L, (int)dir);
         Internal::pushWindowUpval(L, 1);
-        lua_pushcclosure(L, dsp_moveInDirection, 2);
+        lua_pushboolean(L, silent);
+        lua_pushcclosure(L, dsp_moveInDirection, 3);
         return 1;
     }
 

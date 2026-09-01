@@ -1137,7 +1137,8 @@ void CScrollingAlgorithm::moveTargetTo(SP<ITarget> t, Math::eDirection dir, bool
     }
 
     m_scrollingData->recalculate();
-    focusTargetUpdate(t);
+    if (!silent)
+        focusTargetUpdate(t);
 }
 
 WP<Fullscreen::IFullscreenHandler> CScrollingAlgorithm::getFSHandler() {

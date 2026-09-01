@@ -485,7 +485,7 @@ ActionResult Actions::focus(PHLWINDOW window) {
     return {};
 }
 
-ActionResult Actions::moveInDirection(Math::eDirection dir, std::optional<PHLWINDOW> w) {
+ActionResult Actions::moveInDirection(Math::eDirection dir, std::optional<PHLWINDOW> w, bool silent) {
     auto window = xtract(w);
     if (!window)
         return {};
@@ -495,8 +495,10 @@ ActionResult Actions::moveInDirection(Math::eDirection dir, std::optional<PHLWIN
 
     updateRelativeCursorCoords();
 
-    g_layoutManager->moveInDirection(window->layoutTarget(), dirToString(dir));
-    window->warpCursor();
+    g_layoutManager->moveInDirection(window->layoutTarget(), dirToString(dir), silent);
+
+    if (!silent)
+        window->warpCursor();
 
     return {};
 }

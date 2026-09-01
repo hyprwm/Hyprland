@@ -15,6 +15,7 @@
 #include "../../render/Renderer.hpp"
 #include "../../render/OpenGL.hpp"
 #include "../../output/Monitor.hpp"
+#include "../../overview/Overview.hpp"
 #include "../../state/MonitorState.hpp"
 #include <array>
 #include <ranges>
@@ -314,7 +315,8 @@ void CPopup::onCommit(bool ignoreSiblings) {
         return;
     }
 
-    if (!m_windowOwner.expired() && (!m_windowOwner->mapped() || !m_windowOwner->m_workspace->m_visible)) {
+    const auto WINDOW_OWNER = m_windowOwner.lock();
+    if (WINDOW_OWNER && (!WINDOW_OWNER->mapped() || (!WINDOW_OWNER->m_workspace->m_visible && !Overview::overview()->shouldRenderWorkspace(WINDOW_OWNER->m_workspace)))) {
         const auto PREV_SIZE = m_lastSize;
         m_lastSize           = m_backend->surfaceSize();
 
@@ -323,7 +325,7 @@ void CPopup::onCommit(bool ignoreSiblings) {
 
         static auto PLOGDAMAGE = CConfigValue<Config::INTEGER>("debug:log_damage");
         if (*PLOGDAMAGE)
-            Log::logger->log(Log::DEBUG, "Refusing to commit damage from a subsurface of {} because it's invisible.", m_windowOwner.lock());
+            Log::logger->log(Log::DEBUG, "Refusing to commit damage from a subsurface of {} because it's invisible.", WINDOW_OWNER);
         return;
     }
 

@@ -43,7 +43,7 @@ pkg_check_modules(udis_dep IMPORTED_TARGET udis86>=1.7.2)
 # Find non-pkgconfig udis86, otherwise fallback to subproject
 if(NOT udis_dep_FOUND)
   find_library(udis_nopc udis86)
-  if(NOT("${udis_nopc}" MATCHES "udis_nopc-NOTFOUND"))
+  if(NOT("${udis_nopc}"  "udis_nopc-NOTFOUND"))
     message(STATUS "Found udis86 at ${udis_nopc}")
   else()
     add_subdirectory("subprojects/udis86")
@@ -153,6 +153,12 @@ pkg_check_modules(hyprlang_dep REQUIRED IMPORTED_TARGET hyprlang>=${HYPRLANG_MIN
 pkg_check_modules(hyprcursor_dep REQUIRED IMPORTED_TARGET hyprcursor>=${HYPRCURSOR_MINIMUM_VERSION})
 pkg_check_modules(hyprutils_dep REQUIRED IMPORTED_TARGET hyprutils>=${HYPRUTILS_MINIMUM_VERSION})
 pkg_check_modules(hyprgraphics_dep REQUIRED IMPORTED_TARGET hyprgraphics>=${HYPRGRAPHICS_MINIMUM_VERSION})
+pkg_check_modules(hyprtoolkit_dep REQUIRED IMPORTED_TARGET hyprtoolkit)
+
+find_path(HYPRTOOLKIT_EMBEDDED_BACKEND_INCLUDE_DIR "hyprtoolkit/core/EmbeddedBackend.hpp" PATHS ${hyprtoolkit_dep_INCLUDE_DIRS} NO_DEFAULT_PATH)
+if(NOT HYPRTOOLKIT_EMBEDDED_BACKEND_INCLUDE_DIR)
+  message(FATAL_ERROR "hyprtoolkit does not provide the embedded surface API")
+endif()
 
 string(REPLACE "." ";" AQ_VERSION_LIST ${aquamarine_dep_VERSION})
 list(GET AQ_VERSION_LIST 0 AQ_VERSION_MAJOR)
@@ -452,6 +458,7 @@ target_link_libraries(
   PkgConfig::hyprutils_dep
   PkgConfig::hyprcursor_dep
   PkgConfig::hyprgraphics_dep
+  PkgConfig::hyprtoolkit_dep
   PkgConfig::deps
   PkgConfig::LUA
 )

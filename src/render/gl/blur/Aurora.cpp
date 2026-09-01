@@ -29,9 +29,9 @@ static float srgbToLinear(float value) {
     return value <= 0.04045F ? value / 12.92F : std::pow((value + 0.055F) / 1.055F, 2.4F);
 }
 
-static float auroraLuminanceScale() {
+static float auroraLuminanceScale(const CRenderingContext& context) {
     const auto INTERMEDIATE = getDefaultImageDescription();
-    const auto WORKBUFFER   = g_pHyprRenderer->workBufferImageDescription();
+    const auto WORKBUFFER   = g_pHyprRenderer->workBufferImageDescription(context);
     if (!WORKBUFFER)
         return 1.F;
 
@@ -49,7 +49,7 @@ CAuroraBlurProvider::CAuroraBlurProvider(CHyprOpenGLImpl& impl) : CGlassBlurProv
     ;
 }
 
-bool CAuroraBlurMaterial::isAnimated() const noexcept {
+bool CAuroraBlurMaterial::isAnimated(const CRenderingContext&) const noexcept {
     static auto PBLURENABLED     = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
     static auto PGLASSREFRACTION = CConfigValue<Config::FLOAT>("decoration:blur:glass:refraction");
     static auto PGLASSROUGHNESS  = CConfigValue<Config::FLOAT>("decoration:blur:glass:roughness");
@@ -75,7 +75,7 @@ void CAuroraBlurMaterial::bindFinish(WP<CShader> shader, const SBlurMaterialCont
 
     const auto COLOR1 = CHyprColor(*PAURORACOLOR1);
     const auto COLOR2 = CHyprColor(*PAURORACOLOR2);
-    const auto SCALE  = auroraLuminanceScale();
+    const auto SCALE  = auroraLuminanceScale(context.renderingContext);
 
     const auto bindColor = [&](eShaderUniform uniform, const CHyprColor& color) {
         const auto ALPHA = sc<float>(color.a);

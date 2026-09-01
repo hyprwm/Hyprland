@@ -4,7 +4,7 @@
 #include "../desktop/DesktopTypes.hpp"
 
 namespace Render {
-    struct SRenderData;
+    class CRenderingContext;
 }
 
 namespace Monitor {
@@ -15,11 +15,11 @@ namespace Monitor {
         void pinAnchor(const Vector2D& anchor);
         void clearAnchor();
 
-        void applyZoomTransform(CBox& monbox, const Render::SRenderData& m_renderData);
+        void applyZoomTransform(CBox& monbox, const Render::CRenderingContext& context);
         bool shouldDamageEntire(float zoomLevel);
 
       private:
-        void     zoomWithDetachedCamera(CBox& result, const Render::SRenderData& m_renderData);
+        void     zoomWithDetachedCamera(CBox& result, const Render::CRenderingContext& context);
         Vector2D getAnchor(const PHLMONITORREF& monitor);
 
         CBox     m_camera;

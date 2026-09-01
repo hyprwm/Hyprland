@@ -100,7 +100,7 @@ static void checkDefaultCursorWarp(PHLMONITOR monitor) {
     }
 
     // modechange happened check if cursor is on that monitor and warp it to middle to not place it out of bounds if resolution changed.
-    if (State::monitorState()->query().vec(Pointer::mgr()->position()).run() == monitor) {
+    if (State::monitorState()->query().vec(Pointer::mgr()->untransformedPosition()).run() == monitor) {
         Pointer::pointerController()->warpTo(POS, true);
         g_pInputManager->refocus();
     }

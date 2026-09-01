@@ -1,6 +1,7 @@
 #include <filesystem>
 #include <linux/input-event-codes.h>
 #include <format>
+#include <hyprutils/utils/ScopeGuard.hpp>
 #include <thread>
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
@@ -830,6 +831,279 @@ TEST_CASE(keybinds) {
     CALL_SUBTEST(bindsAfterScroll);
     CALL_SUBTEST(perDeviceKeybind);
     CALL_SUBTEST(unbind);
+}
+
+TEST_CASE(overviewKeyboardRouting) {
+    clearFlag();
+
+    OK(getFromSocket("/eval hl.workspace_rule({ workspace = 'name:y', persistent = true }); "
+                     "hl.workspace_rule({ workspace = 'name:overview-source', persistent = true })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:y' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:overview-source' })"));
+
+    EXPECT(getFromSocket(std::format("/eval hl.bind('Y', hl.dsp.exec_cmd('touch {}'))", flagFile)), "ok");
+    OK(getFromSocket("/dispatch hl.dsp.overview.toggle()"));
+    OK(getFromSocket(pluginKeybindCmd(true, 0, 29)));
+    OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
+    EXPECT(attemptCheckFlag(20, 50), true);
+    OK(getFromSocket("/dispatch hl.dsp.overview.toggle()"));
+    EXPECT(getFromSocket("/eval hl.unbind('Y')"), "ok");
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    EXPECT(getFromSocket(std::format("/eval hl.bind('Y', hl.dsp.exec_cmd('touch {}'), {{ non_consuming = true }})", flagFile)), "ok");
+    OK(getFromSocket("/dispatch hl.dsp.overview.toggle()"));
+    OK(getFromSocket(pluginKeybindCmd(true, 0, 29)));
+    OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
+    EXPECT(attemptCheckFlag(20, 50), true);
+    OK(getFromSocket(pluginKeybindCmd(true, 0, 36)));
+    OK(getFromSocket(pluginKeybindCmd(false, 0, 36)));
+    EXPECT_CONTAINS(getFromSocket("/activeworkspace"), "(y)");
+    EXPECT(getFromSocket("/eval hl.unbind('Y')"), "ok");
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:overview-source' })"));
+}
+
+TEST_CASE(overviewCreatesTrailingNumericWorkspace) {
+    Hyprutils::Utils::CScopeGuard cleanup = {[&] {
+        getFromSocket("/dispatch hl.dsp.overview.toggle({ action = 'disable' })");
+        getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })");
+        Tests::killAllWindows();
+        getFromSocket("/output remove HEADLESS-3");
+        getFromSocket("/reload");
+    }};
+
+    const auto                    pressKey = [](uint32_t key) {
+        const bool PRESSED  = getFromSocket(pluginKeybindCmd(true, 0, key)) == "ok";
+        const bool RELEASED = getFromSocket(pluginKeybindCmd(false, 0, key)) == "ok";
+        return PRESSED && RELEASED;
+    };
+    const auto         workspaceCount = [] { return Tests::countOccurrences(getFromSocket("/workspaces"), "workspace ID "); };
+
+    constexpr uint32_t LEFT  = KEY_LEFT + 8;
+    constexpr uint32_t RIGHT = KEY_RIGHT + 8;
+    constexpr uint32_t ENTER = KEY_ENTER + 8;
+
+    OK(getFromSocket("/eval hl.config({ overview = { only_current_monitor = true } })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '9000' })"));
+    SPAWN_KITTY("overview-new-workspace");
+    Tests::sync();
+
+    const int BEFORE_CREATE = workspaceCount();
+
+    OK(getFromSocket("/dispatch hl.dsp.overview.toggle()"));
+    ASSERT(pressKey(RIGHT), true);
+    Tests::sync();
+
+    ASSERT(workspaceCount(), BEFORE_CREATE + 1);
+    ASSERT_CONTAINS(getFromSocket("/workspaces"), "workspace ID 9001 (9001)");
+
+    ASSERT(pressKey(LEFT), true);
+    Tests::sync();
+
+    ASSERT(workspaceCount(), BEFORE_CREATE);
+    ASSERT_NOT_CONTAINS(getFromSocket("/workspaces"), "workspace ID 9001 (9001)");
+
+    ASSERT(pressKey(RIGHT), true);
+    Tests::sync();
+
+    ASSERT(workspaceCount(), BEFORE_CREATE + 1);
+    ASSERT_CONTAINS(getFromSocket("/workspaces"), "workspace ID 9001 (9001)");
+
+    ASSERT(pressKey(ENTER), true);
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace ID 9001 (9001)");
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    const int BEFORE_EMPTY = workspaceCount();
+
+    OK(getFromSocket("/dispatch hl.dsp.overview.toggle()"));
+    ASSERT(pressKey(RIGHT), true);
+    Tests::sync();
+
+    ASSERT(workspaceCount(), BEFORE_EMPTY);
+    ASSERT_NOT_CONTAINS(getFromSocket("/workspaces"), "workspace ID 9002 (9002)");
+
+    ASSERT(pressKey(ENTER), true);
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace ID 9001 (9001)");
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:overview-new-workspace-named' })"));
+    SPAWN_KITTY("overview-new-workspace-named");
+    Tests::sync();
+
+    const int BEFORE_NAMED = workspaceCount();
+
+    OK(getFromSocket("/dispatch hl.dsp.overview.toggle()"));
+    ASSERT(pressKey(RIGHT), true);
+    Tests::sync();
+
+    ASSERT(workspaceCount(), BEFORE_NAMED);
+    ASSERT(pressKey(ENTER), true);
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "(overview-new-workspace-named)");
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    Tests::killAllWindows();
+    OK(getFromSocket("/output create headless HEADLESS-3"));
+    OK(getFromSocket("/eval hl.workspace_rule({ workspace = '9301', monitor = 'HEADLESS-3' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '9300' })"));
+    SPAWN_KITTY("overview-skip-bound-workspace");
+    Tests::sync();
+
+    OK(getFromSocket("/dispatch hl.dsp.overview.toggle()"));
+    ASSERT(pressKey(RIGHT), true);
+    Tests::sync();
+
+    ASSERT_CONTAINS(getFromSocket("/workspaces"), "workspace ID 9302 (9302)");
+    ASSERT_NOT_CONTAINS(getFromSocket("/workspaces"), "workspace ID 9301 (9301)");
+    ASSERT(pressKey(ENTER), true);
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace ID 9302 (9302)");
+}
+
+TEST_CASE(overviewLuaApi) {
+    Hyprutils::Utils::CScopeGuard cleanup = {[&] {
+        getFromSocket("/dispatch hl.dsp.overview.toggle({ action = 'disable' })");
+        getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })");
+        getFromSocket("/reload");
+    }};
+
+    const auto                    pressKey = [](uint32_t key) {
+        const bool PRESSED  = getFromSocket(pluginKeybindCmd(true, 0, key)) == "ok";
+        const bool RELEASED = getFromSocket(pluginKeybindCmd(false, 0, key)) == "ok";
+        return PRESSED && RELEASED;
+    };
+
+    OK(getFromSocket("/eval hl.config({ overview = { only_current_monitor = true } }); "
+                     "hl.workspace_rule({ workspace = 'name:overview-api-alpha', persistent = true }); "
+                     "hl.workspace_rule({ workspace = 'name:overview-api-beta', persistent = true })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:overview-api-alpha' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:overview-api-beta' })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.overview.toggle({ query = 'overview-api' })"));
+    OK(getFromSocket("/eval local overview = hl.get_overview(); "
+                     "assert(overview.open); "
+                     "assert(overview.monitor == hl.get_active_monitor()); "
+                     "assert(overview.workspace.name == 'overview-api-beta'); "
+                     "assert(overview.query == 'overview-api')"));
+
+    ASSERT(pressKey(KEY_LEFT + 8), true);
+    OK(getFromSocket("/eval local overview = hl.get_overview(); "
+                     "assert(overview.workspace.name == 'overview-api-alpha'); "
+                     "assert(overview.query == 'overview-api')"));
+
+    OK(getFromSocket("/dispatch hl.dsp.overview.move_right()"));
+    OK(getFromSocket("/eval assert(hl.get_overview().workspace.name == 'overview-api-beta')"));
+
+    OK(getFromSocket("/dispatch hl.dsp.overview.toggle({ action = 'disable' })"));
+    OK(getFromSocket("/eval local overview = hl.get_overview(); "
+                     "assert(not overview.open); "
+                     "assert(overview.monitor == nil); "
+                     "assert(overview.workspace == nil); "
+                     "assert(overview.query == '')"));
+
+    OK(getFromSocket("/dispatch hl.dsp.overview.toggle({ action = 'enable', query = 'overview-api-alpha' })"));
+    OK(getFromSocket("/eval local overview = hl.get_overview(); "
+                     "assert(overview.open); "
+                     "assert(overview.workspace.name == 'overview-api-alpha'); "
+                     "assert(overview.query == 'overview-api-alpha')"));
+
+    OK(getFromSocket("/dispatch hl.dsp.overview.toggle({ action = 'disable' })"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "(overview-api-alpha)");
+}
+
+TEST_CASE(overviewDragCreatesOneTrailingNumericWorkspace) {
+    Hyprutils::Utils::CScopeGuard cleanup = {[&] {
+        getFromSocket(pluginClickCmd(false, BTN_LEFT));
+        getFromSocket(pluginKeybindMaskCmd(false, {}, KEY_Y + 8));
+        getFromSocket("/dispatch hl.dsp.overview.toggle({ action = 'disable' })");
+        getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })");
+        Tests::killAllWindows();
+        getFromSocket("/reload");
+    }};
+
+    OK(getFromSocket("/eval hl.config({ overview = { only_current_monitor = true }, binds = { drag_threshold = 0 } })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '9100' })"));
+    SPAWN_KITTY("overview-edge-drag");
+    Tests::sync();
+
+    const int BEFORE_CREATE = Tests::countOccurrences(getFromSocket("/workspaces"), "workspace ID ");
+
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 960, y = 540 })"));
+    OK(getFromSocket("/dispatch hl.dsp.overview.toggle()"));
+    OK(getFromSocket(pluginKeybindMaskCmd(true, {MOD_META}, KEY_Y + 8)));
+    OK(getFromSocket(pluginClickCmd(true, BTN_LEFT)));
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 1900, y = 540 })"));
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(600));
+    Tests::sync();
+
+    ASSERT(Tests::countOccurrences(getFromSocket("/workspaces"), "workspace ID "), BEFORE_CREATE + 1);
+    ASSERT_CONTAINS(getFromSocket("/workspaces"), "workspace ID 9101 (9101)");
+    ASSERT_NOT_CONTAINS(getFromSocket("/workspaces"), "workspace ID 9102 (9102)");
+
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 20, y = 540 })"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(600));
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 960, y = 540 })"));
+    Tests::sync();
+
+    ASSERT(Tests::countOccurrences(getFromSocket("/workspaces"), "workspace ID "), BEFORE_CREATE);
+    ASSERT_NOT_CONTAINS(getFromSocket("/workspaces"), "workspace ID 9101 (9101)");
+
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 1900, y = 540 })"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(600));
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 960, y = 540 })"));
+    Tests::sync();
+
+    ASSERT(Tests::countOccurrences(getFromSocket("/workspaces"), "workspace ID "), BEFORE_CREATE);
+    ASSERT_NOT_CONTAINS(getFromSocket("/workspaces"), "workspace ID 9101 (9101)");
+
+    OK(getFromSocket(pluginClickCmd(false, BTN_LEFT)));
+    OK(getFromSocket(pluginKeybindMaskCmd(false, {}, KEY_Y + 8)));
+
+    OK(getFromSocket(pluginKeybindMaskCmd(true, {MOD_META}, KEY_Y + 8)));
+    OK(getFromSocket(pluginClickCmd(true, BTN_LEFT)));
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 1900, y = 540 })"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(600));
+    Tests::sync();
+
+    ASSERT(Tests::countOccurrences(getFromSocket("/workspaces"), "workspace ID "), BEFORE_CREATE + 1);
+    ASSERT_CONTAINS(getFromSocket("/workspaces"), "workspace ID 9101 (9101)");
+
+    OK(getFromSocket(pluginClickCmd(false, BTN_LEFT)));
+    OK(getFromSocket(pluginKeybindMaskCmd(false, {}, KEY_Y + 8)));
+    OK(getFromSocket(pluginKeybindCmd(true, 0, KEY_ENTER + 8)));
+    OK(getFromSocket(pluginKeybindCmd(false, 0, KEY_ENTER + 8)));
+
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace ID 9101 (9101)");
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "workspace: 9101 (9101)");
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '9200' })"));
+    SPAWN_KITTY("overview-filtered-edge-drag");
+    Tests::sync();
+
+    const int BEFORE_FILTERED_DRAG = Tests::countOccurrences(getFromSocket("/workspaces"), "workspace ID ");
+
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 960, y = 540 })"));
+    OK(getFromSocket("/dispatch hl.dsp.overview.toggle()"));
+    for (const auto KEY : {KEY_9, KEY_2, KEY_0, KEY_0}) {
+        OK(getFromSocket(pluginKeybindCmd(true, 0, KEY + 8)));
+        OK(getFromSocket(pluginKeybindCmd(false, 0, KEY + 8)));
+    }
+    OK(getFromSocket(pluginKeybindMaskCmd(true, {MOD_META}, KEY_Y + 8)));
+    OK(getFromSocket(pluginClickCmd(true, BTN_LEFT)));
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 1900, y = 540 })"));
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(600));
+    Tests::sync();
+
+    ASSERT(Tests::countOccurrences(getFromSocket("/workspaces"), "workspace ID "), BEFORE_FILTERED_DRAG);
+    ASSERT_NOT_CONTAINS(getFromSocket("/workspaces"), "workspace ID 9201 (9201)");
+
+    OK(getFromSocket(pluginClickCmd(false, BTN_LEFT)));
+    OK(getFromSocket(pluginKeybindMaskCmd(false, {}, KEY_Y + 8)));
+    OK(getFromSocket(pluginKeybindCmd(true, 0, KEY_ENTER + 8)));
+    OK(getFromSocket(pluginKeybindCmd(false, 0, KEY_ENTER + 8)));
 }
 
 TEST_CASE(unorderedSubChordDeferral) {

@@ -21,20 +21,24 @@ enum ePassElementType : uint8_t {
     EK_BACKDROP_SCOPE,
 };
 
+namespace Render {
+    class CRenderingContext;
+}
+
 class IPassElement {
   public:
     virtual ~IPassElement() = default;
 
-    virtual std::vector<UP<IPassElement>> draw();
+    virtual std::vector<UP<IPassElement>> draw(Render::CRenderingContext& context);
     //
-    virtual bool                needsLiveBlur()       = 0;
-    virtual bool                needsPrecomputeBlur() = 0;
-    virtual const char*         passName()            = 0;
-    virtual ePassElementType    type()                = 0;
-    virtual void                discard();
+    virtual bool                needsLiveBlur(const Render::CRenderingContext&)       = 0;
+    virtual bool                needsPrecomputeBlur(const Render::CRenderingContext&) = 0;
+    virtual const char*         passName()                                            = 0;
+    virtual ePassElementType    type()                                                = 0;
+    virtual void                discard(Render::CRenderingContext& context);
     virtual bool                undiscardable();
-    virtual std::optional<CBox> boundingBox();  // in monitor-local logical coordinates
-    virtual CRegion             opaqueRegion(); // in monitor-local logical coordinates
+    virtual std::optional<CBox> boundingBox(const Render::CRenderingContext& context); // in monitor-local logical coordinates
+    virtual CRegion             opaqueRegion(const Render::CRenderingContext& context);
     virtual bool                disableSimplification();
     virtual bool                requiresFullDamage();
 

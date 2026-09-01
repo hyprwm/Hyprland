@@ -1,0 +1,774 @@
+#include "Overview.hpp"
+#include "Query.hpp"
+
+#include "config/shared/actions/ConfigActions.hpp"
+#include "desktop/state/FocusState.hpp"
+#include "desktop/state/WindowState.hpp"
+#include "desktop/view/window/Window.hpp"
+#include "devices/IPointer.hpp"
+#include "input/Keys.hpp"
+#include "managers/eventLoop/EventLoopTimer.hpp"
+#include "managers/input/InputManager.hpp"
+#include "scene/OverviewScene.hpp"
+#include "../../animation/AnimationManager.hpp"
+#include "../../config/shared/animation/AnimationTree.hpp"
+#include "../../event/EventBus.hpp"
+#include "../../managers/eventLoop/EventLoopManager.hpp"
+#include "../../devices/IKeyboard.hpp"
+#include "../../managers/SessionLockManager.hpp"
+#include "../../output/Monitor.hpp"
+#include "../../output/MonitorResources.hpp"
+#include "../../pointer/PointerManager.hpp"
+#include "../../pointer/PointerTransformer.hpp"
+#include "../../pointer/cursor/CursorShapeOverrideController.hpp"
+#include "../../protocols/core/DataDevice.hpp"
+#include "../../render/Renderer.hpp"
+#include "../../state/MonitorState.hpp"
+#include "../../layout/LayoutManager.hpp"
+#include "../../layout/supplementary/DragController.hpp"
+
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <hyprutils/math/Vector2D.hpp>
+#include <hyprutils/memory/SharedPtr.hpp>
+#include <ranges>
+#include <wayland-server-protocol.h>
+#include <xkbcommon/xkbcommon-keysyms.h>
+
+using namespace Overview;
+using namespace Overview::Hyprland;
+
+constexpr const float DRAG_MOVE_MS = 500.F;
+
+COverview::COverview() : m_scene(makeShared<COverviewScene>(*this)) {
+    ;
+}
+
+COverview::~COverview() {
+    m_finishCloseLock.reset();
+    m_isOpen        = false;
+    m_gestureActive = false;
+    if (m_progress)
+        m_progress->resetAllCallbacks();
+    finishClose(false);
+}
+
+void COverview::installListeners() {
+    m_listeners.monitorDisconnect  = m_monitor->m_events.disconnect.listen([this] { closeImmediately(); });
+    m_listeners.monitorModeChanged = m_monitor->m_events.modeChanged.listen([this] { closeImmediately(); });
+    m_listeners.monitorPreRender   = Event::bus()->m_events.render.preChecks.listen([this](PHLMONITOR monitor) {
+        if (monitor != m_monitor.lock() || monitor->resources() == m_resources)
+            return;
+
+        closeImmediately();
+    });
+
+    if (g_pSessionLockManager)
+        m_listeners.sessionLock = g_pSessionLockManager->m_events.lock.listen([this] { closeImmediately(); });
+
+    m_listeners.mouseButton = Event::bus()->m_events.input.mouse.button.listen([this](IPointer::SButtonEvent e, Event::SCallbackInfo& i) {
+        const auto INTERCEPTED = std::ranges::find(m_interceptedButtons, e.button);
+        if (e.state == WL_POINTER_BUTTON_STATE_RELEASED && INTERCEPTED != m_interceptedButtons.end()) {
+            if (const auto MONITOR = m_monitor.lock())
+                m_scene->pointerButton(e.button, false, Pointer::mgr()->untransformedPosition() - MONITOR->logicalBox().pos());
+            m_interceptedButtons.erase(INTERCEPTED);
+            i.cancelled = true;
+            return;
+        }
+
+        if (e.state != WL_POINTER_BUTTON_STATE_PRESSED)
+            return;
+
+        const auto MONITOR = m_monitor.lock();
+        if (!MONITOR)
+            return;
+
+        const auto MOUSE = Pointer::mgr()->untransformedPosition();
+        if (!MONITOR->logicalBox().containsPoint(MOUSE))
+            return;
+
+        if (!m_isOpen) {
+            i.cancelled = true;
+            return;
+        }
+
+        if (m_scene->pointerButton(e.button, true, MOUSE - MONITOR->logicalBox().pos())) {
+            m_interceptedButtons.emplace_back(e.button);
+            i.cancelled = true;
+            return;
+        }
+
+        // TODO: make this better. This is to support drags, and is obviously kinda wrong.
+        if (g_pInputManager->getModsFromAllKBs() != Input::eKeyboardModifiers::HL_MODIFIER_NONE)
+            return;
+
+        close();
+
+        i.cancelled = true;
+    });
+
+    m_listeners.mouseMove  = Event::bus()->m_events.input.mouse.move.listen([this](Vector2D, Event::SCallbackInfo& i) {
+        const auto MONITOR = m_monitor.lock();
+        if (!MONITOR)
+            return;
+
+        const auto RAW = Pointer::mgr()->untransformedPosition();
+        if (!MONITOR->logicalBox().containsPoint(RAW)) {
+            updatePointerState();
+            releaseDragFromOverview();
+            return;
+        }
+
+        updatePointerState();
+        if (g_layoutManager->dragController()->target())
+            g_layoutManager->moveMouse(g_pInputManager->getMouseCoordsInternal());
+
+        i.cancelled = !PROTO::data || !PROTO::data->dndActive();
+    });
+    m_listeners.dragMotion = g_layoutManager->dragController()->m_events.motion.listen([this] {
+        updatePointerState();
+        recheckDrag();
+    });
+    m_listeners.dragEnded  = g_layoutManager->dragController()->m_events.ended.listen([this] {
+        m_drag.createdWorkspace = false;
+        resetDragHover();
+        updatePointerState();
+    });
+}
+
+void COverview::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboard> keyboard) {
+    if (event.state == WL_KEYBOARD_KEY_STATE_RELEASED) {
+        stopKeyRepeat(event.keycode, keyboard);
+        return;
+    }
+
+    if (!m_isOpen || !keyboard || !keyboard->m_xkbState || !handleSearchKey(event.keycode, keyboard))
+        return;
+
+    if (m_isOpen)
+        startKeyRepeat(event.keycode, keyboard);
+}
+
+void COverview::updatePointerState() {
+    const auto MONITOR = m_monitor.lock();
+    if (!m_isOpen || !MONITOR || !Pointer::mgr()) {
+        m_scene->pointerLeave();
+        Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_INTERNAL_UI);
+        return;
+    }
+
+    const auto RAW = Pointer::mgr()->untransformedPosition();
+    if (!MONITOR->logicalBox().containsPoint(RAW)) {
+        if (m_scene->pointerMove(RAW - MONITOR->logicalBox().pos()))
+            return;
+
+        m_scene->pointerLeave();
+        Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_INTERNAL_UI);
+        return;
+    }
+
+    if (g_layoutManager && g_layoutManager->dragController()->target())
+        m_scene->pointerLeave();
+    else if (m_scene->pointerMove(RAW - MONITOR->logicalBox().pos()))
+        return;
+
+    Pointer::Cursor::overrideController->setOverride("default", Pointer::Cursor::CURSOR_OVERRIDE_INTERNAL_UI);
+}
+
+bool COverview::handleSearchKey(uint32_t keycode, SP<IKeyboard> keyboard, bool repeat) {
+    if (!m_isOpen || !keyboard || !keyboard->m_xkbState)
+        return false;
+
+    const auto KEYSYM = xkb_state_key_get_one_sym(keyboard->m_xkbState, keycode + 8);
+
+    // Text mode follows a small "vim"-like mode behavior:
+    // By default, we're in NAVIGATE: escape closes, left/right navigates
+    // if we start typing, we enter TEXT mode, and escape goes out of it, enter closes.
+    // if we delete all the text with backspace, automatically goes back to navi.
+    if (m_inputMode == eInputMode::NAVIGATION) {
+        if (KEYSYM == XKB_KEY_Left) {
+            moveLeft();
+            return true;
+        }
+
+        if (KEYSYM == XKB_KEY_Right) {
+            moveRight();
+            return true;
+        }
+
+        if (KEYSYM == XKB_KEY_Escape) {
+            close();
+            return true;
+        }
+    } else if (m_inputMode == eInputMode::TEXT) {
+        if (KEYSYM == XKB_KEY_Escape) {
+            m_inputMode = eInputMode::NAVIGATION;
+            m_scene->resetQuery();
+            m_scene->setTextboxFocus(false);
+            updatePointerState();
+            return true;
+        }
+    }
+
+    if (KEYSYM == XKB_KEY_Return || KEYSYM == XKB_KEY_KP_Enter) {
+        close();
+        return true;
+    }
+
+    const int   UTF8_SIZE = xkb_state_key_get_utf8(keyboard->m_xkbState, keycode + 8, nullptr, 0);
+    std::string utf8;
+    if (UTF8_SIZE > 0) {
+        utf8.resize(sc<size_t>(UTF8_SIZE) + 1);
+        const int WRITTEN = xkb_state_key_get_utf8(keyboard->m_xkbState, keycode + 8, utf8.data(), utf8.size());
+        utf8.resize(WRITTEN > 0 ? sc<size_t>(WRITTEN) : 0);
+    }
+
+    const auto MODIFIERS = keyboard->getModifiers();
+    const bool EDIT_KEY  = KEYSYM == XKB_KEY_BackSpace || KEYSYM == XKB_KEY_Delete || KEYSYM == XKB_KEY_Left || KEYSYM == XKB_KEY_Right || KEYSYM == XKB_KEY_Home ||
+        KEYSYM == XKB_KEY_End || KEYSYM == XKB_KEY_KP_Home || KEYSYM == XKB_KEY_KP_End;
+    const bool TEXT_SHORTCUT         = (MODIFIERS & Input::HL_MODIFIER_CTRL) && (KEYSYM == XKB_KEY_a || KEYSYM == XKB_KEY_A);
+    const bool BLOCKED_TEXT_MODIFIER = !!(MODIFIERS & (Input::HL_MODIFIER_CTRL | Input::HL_MODIFIER_ALT | Input::HL_MODIFIER_META));
+
+    if (!EDIT_KEY && !TEXT_SHORTCUT && (utf8.empty() || BLOCKED_TEXT_MODIFIER))
+        return false;
+
+    m_scene->setTextboxFocus(true);
+    updatePointerState();
+    m_scene->keyboardKey(KEYSYM, true, repeat, std::move(utf8), sc<uint32_t>(MODIFIERS));
+    m_inputMode = eInputMode::TEXT;
+
+    if (m_scene->currentQuery().empty()) {
+        m_inputMode = eInputMode::NAVIGATION;
+        m_scene->resetQuery();
+        m_scene->setTextboxFocus(false);
+        updatePointerState();
+        return true;
+    }
+
+    return true;
+}
+
+void COverview::startKeyRepeat(uint32_t keycode, SP<IKeyboard> keyboard) {
+    if (!keyboard || !keyboard->m_xkbKeymap || keyboard->m_repeatRate <= 0 || !xkb_keymap_key_repeats(keyboard->m_xkbKeymap, keycode + 8)) {
+        stopKeyRepeat(m_keyRepeat.keycode);
+        return;
+    }
+
+    m_keyRepeat.keyboard = keyboard;
+    m_keyRepeat.keycode  = keycode;
+    if (!m_keyRepeat.timer) {
+        m_keyRepeat.timer = makeShared<CEventLoopTimer>(
+            std::nullopt,
+            [this](SP<CEventLoopTimer> self, void*) {
+                const auto KEYBOARD = m_keyRepeat.keyboard.lock();
+                if (!m_isOpen || !KEYBOARD || KEYBOARD->m_repeatRate <= 0) {
+                    self->updateTimeout(std::nullopt);
+                    return;
+                }
+
+                if (!handleSearchKey(m_keyRepeat.keycode, KEYBOARD, true)) {
+                    self->updateTimeout(std::nullopt);
+                    return;
+                }
+                self->updateTimeout(std::chrono::milliseconds(std::max(1, 1000 / KEYBOARD->m_repeatRate)));
+            },
+            nullptr);
+        g_pEventLoopManager->addTimer(m_keyRepeat.timer);
+    }
+
+    m_keyRepeat.timer->updateTimeout(std::chrono::milliseconds(std::max(0, keyboard->m_repeatDelay)));
+}
+
+void COverview::stopKeyRepeat(uint32_t keycode, SP<IKeyboard> keyboard) {
+    if (!m_keyRepeat.timer || m_keyRepeat.keycode != keycode || (keyboard && m_keyRepeat.keyboard != keyboard))
+        return;
+
+    m_keyRepeat.timer->updateTimeout(std::nullopt);
+    m_keyRepeat.keyboard.reset();
+    m_keyRepeat.keycode = 0;
+}
+
+void COverview::recheckDrag() {
+    const auto  MONITOR = m_monitor.lock();
+    const auto& DRAG    = g_layoutManager->dragController();
+    if (!m_isOpen || !MONITOR || !DRAG->target() || DRAG->mode() != MBIND_MOVE || !DRAG->dragThresholdReached()) {
+        resetDragHover();
+        return;
+    }
+
+    const auto MOUSE = Pointer::mgr()->untransformedPosition();
+    if (!MONITOR->logicalBox().containsPoint(MOUSE)) {
+        releaseDragFromOverview();
+        return;
+    }
+
+    const auto MOUSE_LOCAL = MOUSE - MONITOR->logicalBox().pos();
+    const auto MINI_TILE   = m_scene->miniWorkspaceAt(MOUSE_LOCAL);
+    auto       target      = eDragHoverTarget::NONE;
+    if (MINI_TILE)
+        target = eDragHoverTarget::MINI_TILE;
+    else {
+        const auto MAIN_AREA = m_scene->mainArea();
+        if (MOUSE_LOCAL.x < MAIN_AREA.x)
+            target = eDragHoverTarget::LEFT_EDGE;
+        else if (MOUSE_LOCAL.x > MAIN_AREA.x + MAIN_AREA.w)
+            target = eDragHoverTarget::RIGHT_EDGE;
+    }
+
+    if (target == eDragHoverTarget::NONE) {
+        resetDragHover();
+        return;
+    }
+
+    if (target == m_drag.target && m_drag.dragTarget == DRAG->target() && (target != eDragHoverTarget::MINI_TILE || m_drag.workspace == MINI_TILE))
+        return;
+
+    m_drag.target     = target;
+    m_drag.workspace  = MINI_TILE;
+    m_drag.dragTarget = DRAG->target();
+    if (!m_drag.eventLoopTimer) {
+        m_drag.eventLoopTimer = makeShared<CEventLoopTimer>(std::nullopt, [this](SP<CEventLoopTimer>, void*) { applyDragHoverTarget(); }, nullptr);
+        g_pEventLoopManager->addTimer(m_drag.eventLoopTimer);
+    }
+
+    m_drag.eventLoopTimer->updateTimeout(std::chrono::milliseconds(sc<int32_t>(DRAG_MOVE_MS)));
+}
+
+void COverview::applyDragHoverTarget() {
+    const auto& DRAG    = g_layoutManager->dragController();
+    const auto  MONITOR = m_monitor.lock();
+    if (!m_isOpen || !MONITOR || !DRAG->target() || m_drag.dragTarget != DRAG->target() || DRAG->mode() != MBIND_MOVE || !DRAG->dragThresholdReached()) {
+        resetDragHover();
+        return;
+    }
+
+    const auto MOUSE = Pointer::mgr()->untransformedPosition();
+    if (!MONITOR->logicalBox().containsPoint(MOUSE)) {
+        releaseDragFromOverview();
+        return;
+    }
+
+    const auto MOUSE_LOCAL   = MOUSE - MONITOR->logicalBox().pos();
+    const auto MINI_TILE     = m_scene->miniWorkspaceAt(MOUSE_LOCAL);
+    const auto MAIN_AREA     = m_scene->mainArea();
+    const bool STILL_HOVERED = (m_drag.target == eDragHoverTarget::MINI_TILE && MINI_TILE && m_drag.workspace == MINI_TILE) ||
+        (m_drag.target == eDragHoverTarget::LEFT_EDGE && !MINI_TILE && MOUSE_LOCAL.x < MAIN_AREA.x) ||
+        (m_drag.target == eDragHoverTarget::RIGHT_EDGE && !MINI_TILE && MOUSE_LOCAL.x > MAIN_AREA.x + MAIN_AREA.w);
+    if (!STILL_HOVERED) {
+        resetDragHover();
+        recheckDrag();
+        return;
+    }
+
+    PHLWORKSPACE workspace;
+    bool         repeat = false;
+    switch (m_drag.target) {
+        case eDragHoverTarget::LEFT_EDGE:
+            if (m_scene->navigateLeft()) {
+                workspace = m_scene->selectedWorkspace();
+                repeat    = true;
+            }
+            break;
+        case eDragHoverTarget::RIGHT_EDGE:
+            if (const auto RESULT = m_scene->navigateRight(!m_drag.createdWorkspace, true); RESULT != eWorkspaceNavigationResult::NONE) {
+                workspace = m_scene->selectedWorkspace();
+                repeat    = RESULT == eWorkspaceNavigationResult::EXISTING;
+                if (RESULT == eWorkspaceNavigationResult::CREATED)
+                    m_drag.createdWorkspace = true;
+            }
+            break;
+        case eDragHoverTarget::MINI_TILE:
+            workspace = m_drag.workspace.lock();
+            if (workspace)
+                m_scene->selectWorkspace(workspace);
+            break;
+        case eDragHoverTarget::NONE: return;
+    }
+
+    const auto TARGET = DRAG->target();
+    if (!workspace || workspace != m_scene->selectedWorkspace() || !TARGET || !TARGET->window())
+        return;
+
+    TARGET->assignToSpace(workspace->m_space);
+    DRAG->overrideDragWindowTargetWS(workspace);
+    g_layoutManager->moveMouse(m_scene->transformPointer(Pointer::mgr()->untransformedPosition()));
+    if (repeat && m_drag.eventLoopTimer)
+        m_drag.eventLoopTimer->updateTimeout(std::chrono::milliseconds(sc<int32_t>(DRAG_MOVE_MS)));
+}
+
+void COverview::resetDragHover() {
+    m_drag.target = eDragHoverTarget::NONE;
+    m_drag.workspace.reset();
+    m_drag.dragTarget.reset();
+    if (m_drag.eventLoopTimer)
+        m_drag.eventLoopTimer->updateTimeout(std::nullopt);
+}
+
+void COverview::releaseDragFromOverview() {
+    const auto& DRAG = g_layoutManager->dragController();
+    DRAG->clearDragWindowTargetWS();
+
+    const auto TARGET = DRAG->target();
+    if (!TARGET || DRAG->mode() != MBIND_MOVE || !DRAG->dragThresholdReached()) {
+        resetDragHover();
+        return;
+    }
+
+    const auto MONITOR   = State::monitorState()->query().vec(Pointer::mgr()->untransformedPosition()).run();
+    const auto WORKSPACE = MONITOR ? (MONITOR->m_activeSpecialWorkspace ? MONITOR->m_activeSpecialWorkspace : MONITOR->m_activeWorkspace) : nullptr;
+    if (TARGET->window() && WORKSPACE && TARGET->workspace() != WORKSPACE)
+        TARGET->assignToSpace(WORKSPACE->m_space);
+
+    resetDragHover();
+}
+
+bool COverview::prepareOpen(PHLMONITOR monitor, bool& newScene) {
+    newScene = false;
+    if (!monitor || !monitor->m_enabled || monitor->isMirror() || !g_pHyprRenderer || (g_pSessionLockManager && g_pSessionLockManager->isSessionLocked()))
+        return false;
+
+    if (!monitor->m_lastScanout.expired() || monitor->m_directScanoutIsActive)
+        monitor->handleDSleave();
+
+    const auto CURRENT_MONITOR = m_monitor.lock();
+    if (m_sceneInstalled && CURRENT_MONITOR != monitor) {
+        m_isOpen        = false;
+        m_gestureActive = false;
+        finishClose();
+    }
+
+    if (m_isOpen)
+        return true;
+
+    m_inputMode = eInputMode::NAVIGATION;
+    m_scene->setTextboxFocus(false);
+
+    if (!m_progress) {
+        Animation::mgr()->createAnimation(0.F, m_progress, Config::animationTree()->getAnimationPropertyConfig("overviewIn"), AVARDAMAGE_NONE);
+        m_progress->setUpdateCallback([this](auto) {
+            if (const auto MONITOR = m_monitor.lock(); MONITOR && g_pHyprRenderer)
+                g_pHyprRenderer->damageMonitor(MONITOR);
+        });
+        m_progress->setCallbackOnEnd(
+            [this](auto) {
+                if (m_isOpen)
+                    return;
+
+                scheduleFinishClose();
+            },
+            false);
+    }
+
+    newScene             = !m_sceneInstalled;
+    const auto RESOURCES = newScene ? monitor->resources() : m_resources;
+    if (!RESOURCES)
+        return false;
+
+    m_isOpen = true;
+    m_finishCloseLock.reset();
+    if (newScene) {
+        m_monitor   = monitor;
+        m_resources = RESOURCES;
+        m_scene->start(monitor, RESOURCES);
+        RESOURCES->m_sceneStack.push(m_scene);
+        m_sceneInstalled     = true;
+        m_pointerTransformer = makeShared<Pointer::CPointerTransformer>(
+            [this](Vector2D pos) { return m_sceneInstalled && (!PROTO::data || !PROTO::data->dndActive()) ? m_scene->transformPointer(pos) : pos; });
+        Pointer::mgr()->addTransformer(m_pointerTransformer);
+        m_progress->setValueAndWarp(0.F);
+
+        installListeners();
+        m_keyboardEventHandler = dynamicPointerCast<IKeyboardEventHandler>(WP<IOverview>(Overview::overview()));
+        g_pSeatManager->m_keyboardEventHandlers.push(m_keyboardEventHandler);
+    }
+
+    updatePointerState();
+
+    monitor->recheckSolitary();
+    if (g_pHyprRenderer)
+        g_pHyprRenderer->damageMonitor(monitor);
+
+    return true;
+}
+
+void COverview::settleProgress(float goal, bool opening) {
+    if (!m_progress)
+        return;
+
+    m_progress->setConfig(Config::animationTree()->getAnimationPropertyConfig(opening ? "overviewIn" : "overviewOut"));
+    *m_progress = goal;
+
+    if (goal != 0.F || m_progress->value() > 0.F || !m_sceneInstalled || m_isOpen)
+        return;
+
+    scheduleFinishClose();
+}
+
+void COverview::scheduleFinishClose() {
+    if (m_finishCloseLock)
+        return;
+
+    if (!g_pEventLoopManager) {
+        finishClose();
+        return;
+    }
+
+    m_finishCloseLock = g_pEventLoopManager->doLaterLock([this] {
+        m_finishCloseLock.reset();
+        finishClose();
+    });
+}
+
+void COverview::open(PHLMONITOR monitor) {
+    open(monitor, "");
+}
+
+void COverview::open(PHLMONITOR monitor, const std::string& query) {
+    const bool WAS_OPEN                 = m_isOpen;
+    const bool KEEP_SELECTED_FULLSCREEN = m_gestureActive && !m_gestureOpening;
+    if (m_gestureActive)
+        endOpenGesture(m_gestureOpening);
+    if (m_moveGestureActive)
+        endMoveGesture();
+
+    bool NEW_SCENE = false;
+    if (!prepareOpen(monitor, NEW_SCENE))
+        return;
+
+    if (!WAS_OPEN)
+        m_scene->setQuery(query);
+
+    if (!KEEP_SELECTED_FULLSCREEN)
+        m_scene->useSelectedWorkspaceForFullscreen(false);
+    settleProgress(1.F, true);
+
+    if (NEW_SCENE)
+        m_events.opened.emit();
+}
+
+void COverview::close() {
+    if (!m_isOpen || !m_sceneInstalled)
+        return;
+
+    if (m_moveGestureActive)
+        endMoveGesture();
+
+    m_gestureActive = false;
+    m_isOpen        = false;
+    updatePointerState();
+    resetDragHover();
+    commitClose();
+    settleProgress(0.F, false);
+
+    if (const auto MONITOR = m_monitor.lock(); MONITOR && g_pHyprRenderer)
+        g_pHyprRenderer->damageMonitor(MONITOR);
+}
+
+void COverview::commitClose() {
+    const auto MONITOR  = m_monitor.lock();
+    const auto SELECTED = m_scene->selectedWorkspace();
+    if (MONITOR && SELECTED && SELECTED != MONITOR->m_activeWorkspace)
+        Config::Actions::changeWorkspace(SELECTED);
+
+    const auto QUERY = m_scene->query();
+
+    if (MONITOR && MONITOR->m_activeWorkspace && QUERY && !QUERY->empty()) {
+        if (QUERY->matchWorkspace(MONITOR->m_activeWorkspace->m_name) != Mode::eWorkspaceMatch::EXACT) {
+            for (const auto& w : Desktop::windowState()->windows()) {
+                if (w->m_workspace != MONITOR->m_activeWorkspace || !w->focusAvailable())
+                    continue;
+
+                if (!QUERY->matchesWindow(w->metadata().appID(), w->metadata().title()))
+                    continue;
+
+                Desktop::focusState()->fullWindowFocus(w, Desktop::eFocusReason::FOCUS_REASON_SWITCH_TO_WINDOW_HARD);
+                break;
+            }
+        }
+    }
+}
+
+bool COverview::beginOpenGesture(PHLMONITOR monitor) {
+    if (m_gestureActive)
+        return false;
+
+    const bool OPENING   = !m_isOpen;
+    bool       NEW_SCENE = false;
+    if (OPENING && !prepareOpen(monitor, NEW_SCENE))
+        return false;
+    if (!OPENING && !m_sceneInstalled)
+        return false;
+
+    m_gestureActive  = true;
+    m_gestureOpening = OPENING;
+    m_gestureStart   = std::clamp(m_progress->value(), 0.F, 1.F);
+    m_scene->useSelectedWorkspaceForFullscreen(!OPENING);
+    m_progress->setValueAndWarp(m_gestureStart);
+
+    if (NEW_SCENE)
+        m_events.opened.emit();
+
+    return true;
+}
+
+void COverview::updateOpenGesture(float completion) {
+    if (!m_gestureActive || !m_progress)
+        return;
+
+    const float TARGET = m_gestureOpening ? 1.F : 0.F;
+    m_progress->setValueAndWarp(std::lerp(m_gestureStart, TARGET, std::clamp(completion, 0.F, 1.F)));
+}
+
+void COverview::endOpenGesture(bool commit) {
+    if (!m_gestureActive)
+        return;
+
+    m_gestureActive = false;
+    if (m_gestureOpening) {
+        if (commit) {
+            settleProgress(1.F, true);
+            return;
+        }
+
+        m_isOpen = false;
+        updatePointerState();
+        resetDragHover();
+        settleProgress(0.F, false);
+        return;
+    }
+
+    if (!commit) {
+        settleProgress(1.F, true);
+        return;
+    }
+
+    m_isOpen = false;
+    updatePointerState();
+    resetDragHover();
+    commitClose();
+    settleProgress(0.F, false);
+}
+
+bool COverview::beginMoveGesture() {
+    if (!m_isOpen || !m_sceneInstalled || m_gestureActive || m_moveGestureActive)
+        return false;
+
+    m_moveGestureActive = m_scene->beginMoveGesture();
+    return m_moveGestureActive;
+}
+
+void COverview::updateMoveGesture(float Δ) {
+    if (!m_moveGestureActive)
+        return;
+
+    m_scene->updateMoveGesture(Δ);
+}
+
+void COverview::endMoveGesture() {
+    if (!m_moveGestureActive)
+        return;
+
+    m_moveGestureActive = false;
+    m_scene->endMoveGesture();
+}
+
+bool COverview::isOpen() const {
+    return m_isOpen;
+}
+
+SOverviewState COverview::state() const {
+    SOverviewState result{.open = m_isOpen};
+    if (!m_isOpen || !m_sceneInstalled)
+        return result;
+
+    result.monitor   = m_monitor.lock();
+    result.workspace = m_scene->selectedWorkspace();
+    if (const auto QUERY = m_scene->query())
+        result.query = QUERY->raw();
+    return result;
+}
+
+bool COverview::moveLeft() {
+    return m_isOpen && m_sceneInstalled && m_scene->navigateLeft();
+}
+
+bool COverview::moveRight() {
+    return m_isOpen && m_sceneInstalled && m_scene->navigateRight() != eWorkspaceNavigationResult::NONE;
+}
+
+bool COverview::shouldRenderWorkspace(PHLWORKSPACE workspace) const {
+    return m_sceneInstalled && workspace && workspace->m_visible && m_scene->selectedWorkspace() == workspace;
+}
+
+PHLWORKSPACE COverview::inputWorkspace() const {
+    const auto MONITOR = m_monitor.lock();
+    if (!m_sceneInstalled || !MONITOR || !Pointer::mgr() || !MONITOR->logicalBox().containsPoint(Pointer::mgr()->untransformedPosition()))
+        return nullptr;
+
+    return m_scene->selectedWorkspace();
+}
+
+void COverview::finishClose(bool emitEvent) {
+    if (m_isOpen || !m_sceneInstalled)
+        return;
+
+    m_finishCloseLock.reset();
+    m_sceneInstalled        = false;
+    m_gestureActive         = false;
+    m_moveGestureActive     = false;
+    m_drag.createdWorkspace = false;
+    updatePointerState();
+    resetDragHover();
+    stopKeyRepeat(m_keyRepeat.keycode);
+    if (g_pSeatManager)
+        g_pSeatManager->m_keyboardEventHandlers.remove(m_keyboardEventHandler);
+    m_keyboardEventHandler.reset();
+    m_listeners = {};
+    m_interceptedButtons.clear();
+
+    if (g_layoutManager)
+        g_layoutManager->dragController()->clearDragWindowTargetWS();
+    if (Pointer::mgr())
+        Pointer::mgr()->removeTransformer(m_pointerTransformer);
+    m_pointerTransformer.reset();
+
+    const auto MONITOR   = m_monitor.lock();
+    const auto RESOURCES = m_resources;
+    if (RESOURCES)
+        RESOURCES->m_sceneStack.remove(m_scene);
+
+    m_scene->reset();
+    m_resources.reset();
+    m_monitor.reset();
+
+    if (g_pInputManager)
+        g_pInputManager->simulateMouseMovement();
+
+    if (MONITOR && g_pHyprRenderer) {
+        MONITOR->recheckSolitary();
+        g_pHyprRenderer->damageMonitor(MONITOR);
+    }
+
+    if (emitEvent)
+        m_events.closed.emit();
+}
+
+void COverview::closeImmediately() {
+    if (!m_sceneInstalled)
+        return;
+
+    m_finishCloseLock.reset();
+    m_isOpen            = false;
+    m_gestureActive     = false;
+    m_moveGestureActive = false;
+    updatePointerState();
+    resetDragHover();
+    if (m_progress)
+        m_progress->setValueAndWarp(0.F);
+    finishClose();
+}
+
+SP<COverviewScene> COverview::scene() const {
+    return m_scene;
+}

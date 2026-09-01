@@ -1285,6 +1285,53 @@ static int hlWorkspaceSwapMonitors(lua_State* L) {
     return 1;
 }
 
+static int dsp_toggleOverview(lua_State* L) {
+    size_t      queryLength = 0;
+    const auto* query       = lua_tolstring(L, lua_upvalueindex(2), &queryLength);
+    return Internal::checkResult(L, CA::overview(sc<CA::eTogglableAction>((int)lua_tonumber(L, lua_upvalueindex(1))), std::string{query, queryLength}));
+}
+
+static int hlOverviewToggle(lua_State* L) {
+    const auto  action = Internal::tableToggleAction(L, 1);
+    std::string query;
+
+    if (lua_istable(L, 1)) {
+        lua_getfield(L, 1, "query");
+        if (!lua_isnil(L, -1)) {
+            if (lua_type(L, -1) != LUA_TSTRING)
+                return Internal::configError(L, "hl.dsp.overview.toggle: option 'query': expected string, got {}", luaL_typename(L, -1));
+
+            size_t      queryLength = 0;
+            const auto* queryValue  = lua_tolstring(L, -1, &queryLength);
+            query.assign(queryValue, queryLength);
+        }
+        lua_pop(L, 1);
+    }
+
+    lua_pushnumber(L, (int)action);
+    lua_pushlstring(L, query.data(), query.size());
+    lua_pushcclosure(L, dsp_toggleOverview, 2);
+    return 1;
+}
+
+static int dsp_overviewMoveLeft(lua_State* L) {
+    return Internal::checkResult(L, CA::overviewMoveLeft());
+}
+
+static int hlOverviewMoveLeft(lua_State* L) {
+    lua_pushcclosure(L, dsp_overviewMoveLeft, 0);
+    return 1;
+}
+
+static int dsp_overviewMoveRight(lua_State* L) {
+    return Internal::checkResult(L, CA::overviewMoveRight());
+}
+
+static int hlOverviewMoveRight(lua_State* L) {
+    lua_pushcclosure(L, dsp_overviewMoveRight, 0);
+    return 1;
+}
+
 void Internal::registerDispatcherBindings(lua_State* L) {
     lua_newtable(L);
     Internal::markDispatcherTable(L);
@@ -1340,6 +1387,13 @@ void Internal::registerDispatcherBindings(lua_State* L) {
         Internal::setFn(L, "swap_monitors", hlWorkspaceSwapMonitors);
         Internal::setFn(L, "toggle_special", hlWorkspaceToggleSpecial);
         lua_setfield(L, -2, "workspace");
+
+        lua_newtable(L);
+        Internal::markDispatcherTable(L);
+        Internal::setFn(L, "toggle", hlOverviewToggle);
+        Internal::setFn(L, "move_left", hlOverviewMoveLeft);
+        Internal::setFn(L, "move_right", hlOverviewMoveRight);
+        lua_setfield(L, -2, "overview");
 
         Internal::setFn(L, "exec_cmd", hlExecCmd);
         Internal::setFn(L, "exec_raw", hlExecRaw);

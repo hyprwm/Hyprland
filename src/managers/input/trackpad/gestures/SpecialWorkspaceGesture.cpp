@@ -4,6 +4,7 @@
 #include "../../../../state/WorkspaceState.hpp"
 #include "../../../../desktop/state/FocusState.hpp"
 #include "../../../../render/Renderer.hpp"
+#include "../../../../output/WorkspaceTransition.hpp"
 
 #include <cmath>
 
@@ -24,9 +25,20 @@ CSpecialWorkspaceGesture::CSpecialWorkspaceGesture(const std::string& workspaceN
     ;
 }
 
+CSpecialWorkspaceGesture::~CSpecialWorkspaceGesture() {
+    releaseForceRendering();
+}
+
+void CSpecialWorkspaceGesture::releaseForceRendering() {
+    const auto MONITOR = m_specialWorkspace ? m_specialWorkspace->m_monitor.lock() : nullptr;
+    if (MONITOR && MONITOR->m_workspaceTransition)
+        MONITOR->m_workspaceTransition->setForceRendering(m_specialWorkspace, false);
+}
+
 void CSpecialWorkspaceGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
     ITrackpadGesture::begin(e);
 
+    releaseForceRendering();
     m_specialWorkspace.reset();
     m_lastDelta = 0.F;
     m_monitor.reset();
@@ -59,38 +71,45 @@ void CSpecialWorkspaceGesture::begin(const ITrackpadGesture::STrackpadGestureBeg
     if (!m_specialWorkspace)
         return;
 
+    m_monitor->m_workspaceTransition->setForceRendering(m_specialWorkspace, true);
+    auto& TRANSITION      = m_monitor->m_workspaceTransition->ensure(m_specialWorkspace);
     m_monitorFadeFrom     = m_monitor->m_specialFade->begun();
     m_monitorFadeTo       = m_monitor->m_specialFade->goal();
     m_monitorDimFrom      = m_monitor->m_specialDim->begun();
     m_monitorDimTo        = m_monitor->m_specialDim->goal();
     m_monitorBlurFrom     = m_monitor->m_specialBlur->begun();
     m_monitorBlurTo       = m_monitor->m_specialBlur->goal();
-    m_workspaceAlphaFrom  = m_specialWorkspace->m_alpha->begun();
-    m_workspaceAlphaTo    = m_specialWorkspace->m_alpha->goal();
-    m_workspaceOffsetFrom = m_specialWorkspace->m_renderOffset->begun();
-    m_workspaceOffsetTo   = m_specialWorkspace->m_renderOffset->goal();
+    m_workspaceAlphaFrom  = TRANSITION.alpha->begun();
+    m_workspaceAlphaTo    = TRANSITION.alpha->goal();
+    m_workspaceOffsetFrom = TRANSITION.offset->begun();
+    m_workspaceOffsetTo   = TRANSITION.offset->goal();
 }
 
 void CSpecialWorkspaceGesture::update(const ITrackpadGesture::STrackpadGestureUpdate& e) {
     if (!m_specialWorkspace || !m_monitor)
         return;
 
-    g_pHyprRenderer->damageMonitor(m_specialWorkspace->m_monitor.lock());
+    g_pHyprRenderer->damageMonitor(m_monitor.lock());
 
     m_lastDelta += distance(e);
 
     const auto FADEPERCENT = m_animatingOut ? 1.F - std::clamp(m_lastDelta / MAX_DISTANCE, 0.F, 1.F) : std::clamp(m_lastDelta / MAX_DISTANCE, 0.F, 1.F);
 
+    auto&      TRANSITION = m_monitor->m_workspaceTransition->ensure(m_specialWorkspace);
     m_monitor->m_specialFade->setValueAndWarp(std::lerp(m_monitorFadeFrom, m_monitorFadeTo, FADEPERCENT));
     m_monitor->m_specialDim->setValueAndWarp(std::lerp(m_monitorDimFrom, m_monitorDimTo, FADEPERCENT));
     m_monitor->m_specialBlur->setValueAndWarp(std::lerp(m_monitorBlurFrom, m_monitorBlurTo, FADEPERCENT));
-    m_specialWorkspace->m_alpha->setValueAndWarp(std::lerp(m_workspaceAlphaFrom, m_workspaceAlphaTo, FADEPERCENT));
-    m_specialWorkspace->m_renderOffset->setValueAndWarp(lerpVal(m_workspaceOffsetFrom, m_workspaceOffsetTo, FADEPERCENT));
+    TRANSITION.alpha->setValueAndWarp(std::lerp(m_workspaceAlphaFrom, m_workspaceAlphaTo, FADEPERCENT));
+    TRANSITION.offset->setValueAndWarp(lerpVal(m_workspaceOffsetFrom, m_workspaceOffsetTo, FADEPERCENT));
 }
 
 void CSpecialWorkspaceGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) {
-    if (!m_specialWorkspace || !m_monitor)
+    if (!m_specialWorkspace)
         return;
+    if (!m_monitor) {
+        releaseForceRendering();
+        return;
+    }
 
     const auto COMPLETION = std::clamp(m_lastDelta / MAX_DISTANCE, 0.F, 1.F);
 
@@ -108,34 +127,37 @@ void CSpecialWorkspaceGesture::end(const ITrackpadGesture::STrackpadGestureEnd& 
         }
     }
 
+    auto& TRANSITION = m_monitor->m_workspaceTransition->ensure(m_specialWorkspace);
     if (m_animatingOut) {
-        const auto CURR_WS_ALPHA  = m_specialWorkspace->m_alpha->value();
-        const auto CURR_WS_OFFSET = m_specialWorkspace->m_renderOffset->value();
+        const auto CURR_WS_ALPHA  = TRANSITION.alpha->value();
+        const auto CURR_WS_OFFSET = TRANSITION.offset->value();
         const auto CURR_MON_FADE  = m_monitor->m_specialFade->value();
         const auto CURR_MON_DIM   = m_monitor->m_specialDim->value();
         const auto CURR_MON_BLUR  = m_monitor->m_specialBlur->value();
 
         m_monitor->setSpecialWorkspace(nullptr);
 
-        const auto GOAL_WS_ALPHA  = m_specialWorkspace->m_alpha->goal();
-        const auto GOAL_WS_OFFSET = m_specialWorkspace->m_renderOffset->goal();
+        const auto GOAL_WS_ALPHA  = TRANSITION.alpha->goal();
+        const auto GOAL_WS_OFFSET = TRANSITION.offset->goal();
 
         m_monitor->m_specialFade->setValueAndWarp(CURR_MON_FADE);
         m_monitor->m_specialDim->setValueAndWarp(CURR_MON_DIM);
         m_monitor->m_specialBlur->setValueAndWarp(CURR_MON_BLUR);
-        m_specialWorkspace->m_alpha->setValueAndWarp(CURR_WS_ALPHA);
-        m_specialWorkspace->m_renderOffset->setValueAndWarp(CURR_WS_OFFSET);
+        TRANSITION.alpha->setValueAndWarp(CURR_WS_ALPHA);
+        TRANSITION.offset->setValueAndWarp(CURR_WS_OFFSET);
 
-        *m_monitor->m_specialFade           = 0.F;
-        *m_monitor->m_specialDim            = 0.F;
-        *m_monitor->m_specialBlur           = 0.F;
-        *m_specialWorkspace->m_alpha        = GOAL_WS_ALPHA;
-        *m_specialWorkspace->m_renderOffset = GOAL_WS_OFFSET;
+        *m_monitor->m_specialFade = 0.F;
+        *m_monitor->m_specialDim  = 0.F;
+        *m_monitor->m_specialBlur = 0.F;
+        *TRANSITION.alpha         = GOAL_WS_ALPHA;
+        *TRANSITION.offset        = GOAL_WS_OFFSET;
     } else {
-        *m_monitor->m_specialFade           = m_monitorFadeTo;
-        *m_monitor->m_specialDim            = m_monitorDimTo;
-        *m_monitor->m_specialBlur           = m_monitorBlurTo;
-        *m_specialWorkspace->m_renderOffset = m_workspaceOffsetTo;
-        *m_specialWorkspace->m_alpha        = m_workspaceAlphaTo;
+        *m_monitor->m_specialFade = m_monitorFadeTo;
+        *m_monitor->m_specialDim  = m_monitorDimTo;
+        *m_monitor->m_specialBlur = m_monitorBlurTo;
+        *TRANSITION.offset        = m_workspaceOffsetTo;
+        *TRANSITION.alpha         = m_workspaceAlphaTo;
     }
+
+    releaseForceRendering();
 }

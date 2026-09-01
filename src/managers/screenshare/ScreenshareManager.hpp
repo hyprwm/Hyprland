@@ -145,7 +145,7 @@ namespace Screenshare {
         } m_listeners;
 
         bool copy();
-        void render();
+        void render(Render::CRenderingContext&);
         void calculateConstraints();
 
         friend class CScreenshareFrame;
@@ -183,10 +183,10 @@ namespace Screenshare {
         bool copyDmabuf();
         bool copyShm();
 
-        void render();
-        void renderMonitor();
-        void renderMonitorRegion();
-        void renderWindow();
+        void render(Render::CRenderingContext&);
+        void renderMonitor(Render::CRenderingContext&);
+        void renderMonitorRegion(Render::CRenderingContext&);
+        void renderWindow(Render::CRenderingContext&);
 
         void storeTempFB();
 

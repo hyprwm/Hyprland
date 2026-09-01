@@ -46,6 +46,14 @@ namespace Config::Values {
         };
     }
 
+    inline auto singleCharacter() {
+        return [](const Config::STRING& v) -> std::expected<void, std::string> {
+            if (v.size() != 1)
+                return std::unexpected("value must be a single character");
+            return {};
+        };
+    }
+
     using Bool       = CBoolValue;
     using Color      = CColorValue;
     using CssGap     = CCssGapValue;

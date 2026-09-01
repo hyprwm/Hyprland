@@ -16,7 +16,7 @@ namespace Render::GL {
 
         eBlurType                 type() const noexcept override;
         SBlurMaterialRequirements requirements() const noexcept override;
-        bool                      isAnimated() const noexcept override;
+        bool                      isAnimated(const CRenderingContext& context) const noexcept override;
         float                     sampleRadius() const override;
         void                      prepare(const SBlurMaterialContext& context) override;
         void                      bindFinish(WP<CShader> shader, const SBlurMaterialContext& context) const override;
@@ -43,16 +43,16 @@ namespace Render::GL {
             bool                  reset         = true;
         };
 
-        SState*                     stateForContext(const SBlurContext& context, bool create);
-        const SState*               stateForContext(const SBlurContext& context) const;
+        SState*                     stateForContext(const CRenderingContext& renderingContext, const SBlurContext& context, bool create);
+        const SState*               stateForContext(const CRenderingContext& renderingContext, const SBlurContext& context) const;
         SState*                     windowState(PHLWINDOWREF window, bool create);
         SState*                     monitorState(PHLMONITORREF monitor, bool create);
         void                        addImpulse();
         void                        queueImpulse(SState& state, Vector2D position, float radius, float amplitude);
-        void                        updateState(SState& state, const CBox& extent);
-        void                        resetState(SState& state, const Vector2D& simulationSize);
-        void                        drawStateStep(SState& state, float dt, const CBox& extent);
-        CBox                        transformedPatternBox(const SBlurContext& context) const;
+        void                        updateState(CRenderingContext& renderingContext, SState& state, const CBox& extent);
+        void                        resetState(CRenderingContext& renderingContext, SState& state, const Vector2D& simulationSize);
+        void                        drawStateStep(CRenderingContext& renderingContext, SState& state, float dt, const CBox& extent);
+        CBox                        transformedPatternBox(const CRenderingContext& renderingContext, const SBlurContext& context) const;
         bool                        stateIsActive(const SState& state, const Time::steady_tp& now) const;
         void                        pruneStates() const;
 

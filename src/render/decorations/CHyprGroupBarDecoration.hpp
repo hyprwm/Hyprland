@@ -32,7 +32,7 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
 
     virtual void                       onPositioningReply(const SDecorationPositioningReply& reply);
 
-    virtual void                       draw(PHLMONITOR, float const& a);
+    virtual void                       draw(Render::CRenderingContext&, PHLMONITOR, float const& a);
 
     virtual eDecorationType            getDecorationType();
 
@@ -64,6 +64,7 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
     void                      invalidateTextures();
 
     CBox                      assignedBoxGlobal();
+    CBox                      assignedBoxGlobalForRender(const Render::CRenderingContext&);
     bool                      visible();
 
     bool                      onBeginWindowDragOnDeco(const Vector2D&);

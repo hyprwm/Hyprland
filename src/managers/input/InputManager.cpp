@@ -1546,6 +1546,7 @@ void CInputManager::destroyKeyboard(SP<IKeyboard> pKeyboard) {
     Log::logger->log(Log::DEBUG, "Keyboard at {:x} removed", rc<uintptr_t>(pKeyboard.get()));
 
     Keybinds::mgr()->onDeviceRemoved(pKeyboard);
+    g_pSeatManager->m_keyboardEventHandlers.onKeyboardRemoved(pKeyboard);
     std::erase_if(m_keyboards, [pKeyboard](const auto& other) { return other == pKeyboard; });
 
     if (!m_keyboards.empty()) {
@@ -1710,7 +1711,7 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
     const bool           USEIME = HASIME && !DISALLOWACTION;
 
     Event::SCallbackInfo info;
-    Event::bus()->m_events.input.keyboard.key.emit(event, info);
+    Event::bus()->m_events.input.keyboard.key.emit(event, pKeyboard, info);
     if (info.cancelled)
         return;
 
@@ -1721,48 +1722,52 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
     if (!DISALLOWACTION)
         passEvent = Keybinds::mgr()->onKeyEvent(event, pKeyboard) && !PROTO::inputCapture->isCaptured();
 
-    if (passEvent) {
-        auto state   = event.state;
-        auto pressed = state == WL_KEYBOARD_KEY_STATE_PRESSED;
+    if (g_pSeatManager->m_keyboardEventHandlers.dispatch(event, pKeyboard, passEvent))
+        return;
 
-        // use merged keys states when sending to ime or when sending to seat with no ime
-        // if passing from ime, send keys directly without merging
-        if (USEIME || !HASIME) {
-            const auto ANYPRESSED = shareKeyFromAllKBs(event.keycode, pressed);
+    if (!passEvent)
+        return;
 
-            // do not turn released event into pressed event (when one keyboard has a key released but some
-            // other keyboard still has the key pressed)
-            // maybe we should keep track of pressed keys for inputs like m_pressed for seat outputs below,
-            // to avoid duplicate pressed events, but this should work well enough
-            if (!pressed && ANYPRESSED)
-                return;
+    auto state   = event.state;
+    auto pressed = state == WL_KEYBOARD_KEY_STATE_PRESSED;
 
-            pressed = ANYPRESSED;
-            state   = pressed ? WL_KEYBOARD_KEY_STATE_PRESSED : WL_KEYBOARD_KEY_STATE_RELEASED;
-        }
+    // use merged keys states when sending to ime or when sending to seat with no ime
+    // if passing from ime, send keys directly without merging
+    if (USEIME || !HASIME) {
+        const auto ANYPRESSED = shareKeyFromAllKBs(event.keycode, pressed);
 
-        if (USEIME) {
-            IME->setKeyboard(pKeyboard);
-            IME->sendKey(event.timeMs, event.keycode, state);
-        } else {
-            const auto CONTAINS = std::ranges::contains(m_pressed, event.keycode);
+        // do not turn released event into pressed event (when one keyboard has a key released but some
+        // other keyboard still has the key pressed)
+        // maybe we should keep track of pressed keys for inputs like m_pressed for seat outputs below,
+        // to avoid duplicate pressed events, but this should work well enough
+        if (!pressed && ANYPRESSED)
+            return;
 
-            if (CONTAINS && pressed)
-                return;
-            if (!CONTAINS && !pressed)
-                return;
-
-            if (CONTAINS)
-                std::erase(m_pressed, event.keycode);
-            else
-                m_pressed.emplace_back(event.keycode);
-
-            g_pSeatManager->setKeyboard(pKeyboard);
-            g_pSeatManager->sendKeyboardKey(event.timeMs, event.keycode, state);
-        }
-
-        updateKeyboardsLeds(pKeyboard);
+        pressed = ANYPRESSED;
+        state   = pressed ? WL_KEYBOARD_KEY_STATE_PRESSED : WL_KEYBOARD_KEY_STATE_RELEASED;
     }
+
+    if (USEIME) {
+        IME->setKeyboard(pKeyboard);
+        IME->sendKey(event.timeMs, event.keycode, state);
+    } else {
+        const auto CONTAINS = std::ranges::contains(m_pressed, event.keycode);
+
+        if (CONTAINS && pressed)
+            return;
+        if (!CONTAINS && !pressed)
+            return;
+
+        if (CONTAINS)
+            std::erase(m_pressed, event.keycode);
+        else
+            m_pressed.emplace_back(event.keycode);
+
+        g_pSeatManager->setKeyboard(pKeyboard);
+        g_pSeatManager->sendKeyboardKey(event.timeMs, event.keycode, state);
+    }
+
+    updateKeyboardsLeds(pKeyboard);
 }
 
 void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {

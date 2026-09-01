@@ -11,11 +11,11 @@ using namespace Render;
 using namespace Render::GL;
 using namespace NColorManagement;
 
-static SCMSettings blurIntermediateCMSettings(bool toIntermediate) {
-    const auto WORKBUFFER   = g_pHyprRenderer->workBufferImageDescription();
+static SCMSettings blurIntermediateCMSettings(const CRenderingContext& context, bool toIntermediate) {
+    const auto WORKBUFFER   = g_pHyprRenderer->workBufferImageDescription(context);
     const auto INTERMEDIATE = getDefaultImageDescription();
 
-    auto       settings = toIntermediate ? g_pHyprRenderer->getCMSettings(WORKBUFFER, INTERMEDIATE) : g_pHyprRenderer->getCMSettings(INTERMEDIATE, WORKBUFFER);
+    auto       settings = toIntermediate ? g_pHyprRenderer->getCMSettings(context, WORKBUFFER, INTERMEDIATE) : g_pHyprRenderer->getCMSettings(context, INTERMEDIATE, WORKBUFFER);
     auto&      range    = toIntermediate ? settings.dstTFRange : settings.srcTFRange;
     range.max           = std::max(range.max, sc<float>(WORKBUFFER->value().luminances.max));
     return settings;
@@ -34,8 +34,8 @@ eBlurType CDualKawaseBlurProvider::type() const noexcept {
     return m_material->type();
 }
 
-bool CDualKawaseBlurProvider::isAnimated() const noexcept {
-    return m_material->isAnimated();
+bool CDualKawaseBlurProvider::isAnimated(const CRenderingContext& context) const noexcept {
+    return m_material->isAnimated(context);
 }
 
 bool CDualKawaseBlurProvider::requiresLiveBlur() const noexcept {
@@ -59,17 +59,17 @@ float CDualKawaseBlurProvider::damageRadius() const {
     return dualKawaseDamageRadius(m_material->blurSizeForDamage(*PBLURSIZE), *PBLURPASSES) + m_material->sampleRadius();
 }
 
-SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(SP<CGLFramebuffer> source, float strength, const CRegion& originalDamage, const SBlurContext& context) {
+SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(CRenderingContext& renderingContext, SP<CGLFramebuffer> source, float strength, const CRegion& originalDamage,
+                                                   const SBlurContext& blurContext) {
     TRACY_GPU_ZONE("RenderBlurFramebufferWithDamage");
-    auto&      m_renderData = g_pHyprRenderer->m_renderData;
 
     const auto BLENDBEFORE = m_impl.m_blend;
     m_impl.blend(false);
     m_impl.setCapStatus(GL_STENCIL_TEST, false);
 
-    CBox                       MONITORBOX = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
+    CBox                       MONITORBOX = {0, 0, renderingContext.sceneMonitor->m_transformedSize.x, renderingContext.sceneMonitor->m_transformedSize.y};
 
-    const auto&                glMatrix = g_pHyprRenderer->projectBoxToTarget(MONITORBOX);
+    const auto&                glMatrix = g_pHyprRenderer->projectBoxToTarget(renderingContext, MONITORBOX);
 
     static auto                PBLURSIZE             = CConfigValue<Config::INTEGER>("decoration:blur:size");
     static auto                PBLURPASSES           = CConfigValue<Config::INTEGER>("decoration:blur:passes");
@@ -81,9 +81,10 @@ SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(SP<CGLFramebuffer> source, fl
     CRegion                    outputDamage{originalDamage};
 
     const SBlurMaterialContext materialContext{
-        .blurContext  = context,
-        .outputDamage = outputDamage,
-        .strength     = strength,
+        .renderingContext = renderingContext,
+        .blurContext      = blurContext,
+        .outputDamage     = outputDamage,
+        .strength         = strength,
     };
     m_material->prepare(materialContext);
 
@@ -93,11 +94,11 @@ SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(SP<CGLFramebuffer> source, fl
     const auto MATERIAL_REQUIREMENTS   = m_material->requirements();
     const bool REQUIRES_PREPARED_INPUT = MATERIAL_REQUIREMENTS.preparedInput;
 
-    const auto PMIRRORFB     = dynamicPointerCast<CGLFramebuffer>(m_renderData.pMonitor->resources()->getUnusedWorkBuffer());
-    const auto PMIRRORSWAPFB = dynamicPointerCast<CGLFramebuffer>(m_renderData.pMonitor->resources()->getUnusedWorkBuffer());
+    const auto PMIRRORFB     = dynamicPointerCast<CGLFramebuffer>(renderingContext.sceneMonitor->resources()->getUnusedWorkBuffer());
+    const auto PMIRRORSWAPFB = dynamicPointerCast<CGLFramebuffer>(renderingContext.sceneMonitor->resources()->getUnusedWorkBuffer());
     RASSERT(PMIRRORFB && PMIRRORSWAPFB, "Failed to obtain GL work buffers for dual Kawase blur");
 
-    const auto PPREPAREDFB = REQUIRES_PREPARED_INPUT ? dynamicPointerCast<CGLFramebuffer>(m_renderData.pMonitor->resources()->getUnusedWorkBuffer()) : PMIRRORSWAPFB;
+    const auto PPREPAREDFB = REQUIRES_PREPARED_INPUT ? dynamicPointerCast<CGLFramebuffer>(renderingContext.sceneMonitor->resources()->getUnusedWorkBuffer()) : PMIRRORSWAPFB;
     RASSERT(PPREPAREDFB, "Failed to obtain GL prepared work buffer for dual Kawase blur");
 
     auto currentRenderToFB = PMIRRORFB;
@@ -121,21 +122,21 @@ SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(SP<CGLFramebuffer> source, fl
 
         WP<CShader> shader;
 
-        const bool  skipCM = !m_impl.m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
+        const bool  skipCM = !m_impl.m_cmSupported || !g_pHyprRenderer->workBufferImageDescription(renderingContext)->needsCM(getDefaultImageDescription());
         if (!skipCM) {
-            const auto settings = blurIntermediateCMSettings(/* toIntermediate */ true);
+            const auto settings = blurIntermediateCMSettings(renderingContext, /* toIntermediate */ true);
             shader              = m_impl.useShader(m_impl.getShaderVariant(SH_FRAG_BLURPREPARE, SH_FEAT_CM, settings.sourceTF, settings.targetTF));
 
-            m_impl.passCMUniforms(shader, g_pHyprRenderer->workBufferImageDescription(), getDefaultImageDescription(), false, -1.F, -1, settings);
+            m_impl.passCMUniforms(renderingContext, shader, g_pHyprRenderer->workBufferImageDescription(renderingContext), getDefaultImageDescription(), false, -1.F, -1, settings);
             shader->setUniformFloat(SHADER_SDR_SATURATION,
-                                    m_renderData.pMonitor->m_sdrSaturation > 0 &&
-                                            g_pHyprRenderer->workBufferImageDescription()->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ ?
-                                        m_renderData.pMonitor->m_sdrSaturation :
+                                    renderingContext.sceneMonitor->m_sdrSaturation > 0 &&
+                                            g_pHyprRenderer->workBufferImageDescription(renderingContext)->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ ?
+                                        renderingContext.sceneMonitor->m_sdrSaturation :
                                         1.0f);
             shader->setUniformFloat(SHADER_SDR_BRIGHTNESS,
-                                    m_renderData.pMonitor->m_sdrBrightness > 0 &&
-                                            g_pHyprRenderer->workBufferImageDescription()->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ ?
-                                        m_renderData.pMonitor->m_sdrBrightness :
+                                    renderingContext.sceneMonitor->m_sdrBrightness > 0 &&
+                                            g_pHyprRenderer->workBufferImageDescription(renderingContext)->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ ?
+                                        renderingContext.sceneMonitor->m_sdrBrightness :
                                         1.0f);
         } else
             shader = m_impl.useShader(m_impl.getShaderVariant(SH_FRAG_BLURPREPARE));
@@ -148,8 +149,8 @@ SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(SP<CGLFramebuffer> source, fl
         glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
 
         if (!workingDamage.empty()) {
-            workingDamage.forEachRect([this](const auto& RECT) {
-                m_impl.scissor(&RECT, false);
+            workingDamage.forEachRect([this, &renderingContext](const auto& RECT) {
+                m_impl.scissor(renderingContext, &RECT, false);
                 glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             });
         }
@@ -174,19 +175,21 @@ SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(SP<CGLFramebuffer> source, fl
         shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
         shader->setUniformFloat(SHADER_RADIUS, *PBLURSIZE * strength);
         if (frag == SH_FRAG_BLUR1) {
-            shader->setUniformFloat2(SHADER_HALFPIXEL, 0.5f / (m_renderData.pMonitor->m_transformedSize.x / 2.f), 0.5f / (m_renderData.pMonitor->m_transformedSize.y / 2.f));
+            shader->setUniformFloat2(SHADER_HALFPIXEL, 0.5f / (renderingContext.sceneMonitor->m_transformedSize.x / 2.f),
+                                     0.5f / (renderingContext.sceneMonitor->m_transformedSize.y / 2.f));
             shader->setUniformInt(SHADER_PASSES, BLUR_PASSES);
             shader->setUniformFloat(SHADER_VIBRANCY, *PBLURVIBRANCY);
             shader->setUniformFloat(SHADER_VIBRANCY_DARKNESS, *PBLURVIBRANCYDARKNESS);
         } else
-            shader->setUniformFloat2(SHADER_HALFPIXEL, 0.5f / (m_renderData.pMonitor->m_transformedSize.x * 2.f), 0.5f / (m_renderData.pMonitor->m_transformedSize.y * 2.f));
+            shader->setUniformFloat2(SHADER_HALFPIXEL, 0.5f / (renderingContext.sceneMonitor->m_transformedSize.x * 2.f),
+                                     0.5f / (renderingContext.sceneMonitor->m_transformedSize.y * 2.f));
         shader->setUniformInt(SHADER_TEX, 0);
 
         glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
 
         if (!passDamage->empty()) {
-            passDamage->forEachRect([this](const auto& RECT) {
-                m_impl.scissor(&RECT, false);
+            passDamage->forEachRect([this, &renderingContext](const auto& RECT) {
+                m_impl.scissor(renderingContext, &RECT, false);
                 glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             });
         }
@@ -241,21 +244,21 @@ SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(SP<CGLFramebuffer> source, fl
             m_impl.setActiveTexture(GL_TEXTURE0);
         }
 
-        const bool skipCM = !m_impl.m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
+        const bool skipCM = !m_impl.m_cmSupported || !g_pHyprRenderer->workBufferImageDescription(renderingContext)->needsCM(getDefaultImageDescription());
         if (!skipCM) {
-            const auto settings = blurIntermediateCMSettings(/* toIntermediate */ false);
+            const auto settings = blurIntermediateCMSettings(renderingContext, /* toIntermediate */ false);
             shader              = m_impl.useShader(m_impl.getShaderVariant(MATERIAL_REQUIREMENTS.finishFragment, SH_FEAT_CM, settings.sourceTF, settings.targetTF));
 
-            m_impl.passCMUniforms(shader, getDefaultImageDescription(), g_pHyprRenderer->workBufferImageDescription(), false, -1.F, -1, settings);
+            m_impl.passCMUniforms(renderingContext, shader, getDefaultImageDescription(), g_pHyprRenderer->workBufferImageDescription(renderingContext), false, -1.F, -1, settings);
             shader->setUniformFloat(SHADER_SDR_SATURATION,
-                                    m_renderData.pMonitor->m_sdrSaturation > 0 &&
-                                            g_pHyprRenderer->workBufferImageDescription()->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ ?
-                                        m_renderData.pMonitor->m_sdrSaturation :
+                                    renderingContext.sceneMonitor->m_sdrSaturation > 0 &&
+                                            g_pHyprRenderer->workBufferImageDescription(renderingContext)->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ ?
+                                        renderingContext.sceneMonitor->m_sdrSaturation :
                                         1.0f);
             shader->setUniformFloat(SHADER_SDR_BRIGHTNESS,
-                                    m_renderData.pMonitor->m_sdrBrightness > 0 &&
-                                            g_pHyprRenderer->workBufferImageDescription()->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ ?
-                                        m_renderData.pMonitor->m_sdrBrightness :
+                                    renderingContext.sceneMonitor->m_sdrBrightness > 0 &&
+                                            g_pHyprRenderer->workBufferImageDescription(renderingContext)->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ ?
+                                        renderingContext.sceneMonitor->m_sdrBrightness :
                                         1.0f);
         } else
             shader = m_impl.useShader(m_impl.getShaderVariant(MATERIAL_REQUIREMENTS.finishFragment));
@@ -271,8 +274,8 @@ SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(SP<CGLFramebuffer> source, fl
         glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
 
         if (!outputDamage.empty()) {
-            outputDamage.forEachRect([this](const auto& RECT) {
-                m_impl.scissor(&RECT, false /* this region is already transformed */);
+            outputDamage.forEachRect([this, &renderingContext](const auto& RECT) {
+                m_impl.scissor(renderingContext, &RECT, false /* this region is already transformed */);
                 glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             });
         }

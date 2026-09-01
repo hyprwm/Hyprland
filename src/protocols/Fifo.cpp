@@ -91,10 +91,10 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
                     if (view) {
                         const auto& window        = view->type() == Desktop::View::VIEW_TYPE_WINDOW ? dynamicPointerCast<Desktop::View::CWindow>(view) : nullptr;
                         const auto  alphaModifier = dynamicPointerCast<Desktop::View::IAlphaModifiable>(view);
-                        const bool  isVisible     = (view->mapped() && view->acceptsInput() && (!alphaModifier || alphaModifier->alphaNonZero()) && //
-                                                     (!window || std::ranges::any_of(State::monitorState()->monitors(), [window](const auto& mon) {
-                                                    return g_pHyprRenderer->shouldRenderWindow(window, mon);
-                                                     })));
+                        const bool  isVisible     = view->mapped() && view->acceptsInput() && (!alphaModifier || alphaModifier->alphaNonZero()) &&
+                            (!window || std::ranges::any_of(State::monitorState()->monitors(), [window](const auto& monitor) {
+                                                   return g_pHyprRenderer->shouldRenderWindow(window, monitor);
+                                               }));
                         if (isVisible)
                             shouldLock = true;
                         else if (*PINVIS == 2) // never

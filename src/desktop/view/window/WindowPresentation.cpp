@@ -7,6 +7,7 @@
 #include "../../../layout/target/Target.hpp"
 #include "../../../managers/fullscreen/FullscreenController.hpp"
 #include "../../../output/Monitor.hpp"
+#include "../../../output/WorkspaceTransition.hpp"
 #include "../../../protocols/core/Compositor.hpp"
 #include "../../../render/decorations/CHyprBorderDecoration.hpp"
 #include "../../../render/decorations/CHyprDropShadowDecoration.hpp"
@@ -220,11 +221,12 @@ bool CWindowPresentation::opaque() const {
         return false;
 
     const auto PWORKSPACE = m_window.m_workspace;
+    const auto PMONITOR   = m_window.m_monitor;
 
     if (m_window.wlSurface()->small() && !m_window.wlSurface()->m_fillIgnoreSmall)
         return false;
 
-    if (PWORKSPACE && PWORKSPACE->m_alpha->value() != 1.f)
+    if (PMONITOR && PMONITOR->m_workspaceTransition->alphaValue(PWORKSPACE) != 1.F)
         return false;
 
     auto solitaryResource = m_window.getSolitaryResource();
@@ -391,16 +393,17 @@ void CWindowPresentation::onWorkspaceAnimUpdate() {
         return;
 
     Vector2D   offset;
-    const auto WINDOW_BOX = m_window.getFullWindowBoundingBox();
-    if (WORKSPACE->m_renderOffset->value().x != 0) {
-        const auto PROGRESS = WORKSPACE->m_renderOffset->value().x / MONITOR->m_size.x;
+    const auto WORKSPACEOFFSET = MONITOR->m_workspaceTransition->offsetValue(WORKSPACE);
+    const auto WINDOW_BOX      = m_window.getFullWindowBoundingBox();
+    if (WORKSPACEOFFSET.x != 0) {
+        const auto PROGRESS = WORKSPACEOFFSET.x / MONITOR->m_size.x;
 
         if (WINDOW_BOX.x < MONITOR->m_position.x)
             offset.x += (MONITOR->m_position.x - WINDOW_BOX.x) * PROGRESS;
         if (WINDOW_BOX.x + WINDOW_BOX.width > MONITOR->m_position.x + MONITOR->m_size.x)
             offset.x += (WINDOW_BOX.x + WINDOW_BOX.width - MONITOR->m_position.x - MONITOR->m_size.x) * PROGRESS;
-    } else if (WORKSPACE->m_renderOffset->value().y != 0) {
-        const auto PROGRESS = WORKSPACE->m_renderOffset->value().y / MONITOR->m_size.y;
+    } else if (WORKSPACEOFFSET.y != 0) {
+        const auto PROGRESS = WORKSPACEOFFSET.y / MONITOR->m_size.y;
 
         if (WINDOW_BOX.y < MONITOR->m_position.y)
             offset.y += (MONITOR->m_position.y - WINDOW_BOX.y) * PROGRESS;

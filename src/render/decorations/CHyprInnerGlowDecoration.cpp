@@ -7,6 +7,7 @@
 #include "../../config/ConfigValue.hpp"
 #include "../../Compositor.hpp"
 #include "../../desktop/state/FocusState.hpp"
+#include "../../output/WorkspaceTransition.hpp"
 #include "../pass/InnerGlowPassElement.hpp"
 #include "../Renderer.hpp"
 #include "../OpenGL.hpp"
@@ -83,8 +84,10 @@ void CHyprInnerGlowDecoration::damageEntire() {
     CBox       windowBox = PWINDOW->getWindowMainSurfaceBox();
 
     const auto PWORKSPACE = PWINDOW->m_workspace;
-    if (PWORKSPACE && PWORKSPACE->m_renderOffset->isBeingAnimated() && !(PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED))
-        windowBox.translate(PWORKSPACE->m_renderOffset->value());
+
+    const auto WORKSPACEMONITOR = PWORKSPACE ? PWORKSPACE->m_monitor.lock() : nullptr;
+    if (WORKSPACEMONITOR && WORKSPACEMONITOR->m_workspaceTransition->isAnimating(PWORKSPACE) && !(PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED))
+        windowBox.translate(WORKSPACEMONITOR->m_workspaceTransition->offsetValue(PWORKSPACE));
     windowBox.translate(PWINDOW->presentation().floatingOffset());
 
     g_pHyprRenderer->damageRegion(CRegion(windowBox));
@@ -96,7 +99,7 @@ void CHyprInnerGlowDecoration::updateWindow(PHLWINDOW pWindow) {
     m_lastWindowSize   = PWINDOW->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
 }
 
-void CHyprInnerGlowDecoration::draw(PHLMONITOR pMonitor, float const& a) {
+void CHyprInnerGlowDecoration::draw(Render::CRenderingContext& context, PHLMONITOR pMonitor, float const& a) {
     const auto SELF = dynamicPointerCast<CHyprInnerGlowDecoration>(self());
     if (!SELF)
         return;
@@ -104,10 +107,10 @@ void CHyprInnerGlowDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     CInnerGlowPassElement::SInnerGlowData data;
     data.deco = SELF;
     data.a    = a;
-    g_pHyprRenderer->addPassElement(makeUnique<CInnerGlowPassElement>(data));
+    g_pHyprRenderer->addPassElement(context, makeUnique<CInnerGlowPassElement>(data));
 }
 
-void CHyprInnerGlowDecoration::render(PHLMONITOR pMonitor, float const& a) {
+void CHyprInnerGlowDecoration::render(Render::CRenderingContext& context, PHLMONITOR pMonitor, float const& a) {
     static auto PGLOW = CConfigValue<Config::INTEGER>("decoration:glow:enabled");
     if (!*PGLOW || !visible())
         return;
@@ -120,49 +123,45 @@ void CHyprInnerGlowDecoration::render(PHLMONITOR pMonitor, float const& a) {
     const auto ROUNDING      = PWINDOW->presentation().rounding() > 0 ? PWINDOW->presentation().rounding() - 1 : PWINDOW->presentation().rounding();
     const auto ROUNDINGPOWER = PWINDOW->presentation().roundingPower();
     const auto PWORKSPACE    = PWINDOW->m_workspace;
-    const auto WORKSPACEOFF  = PWORKSPACE && !(PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED) ? PWORKSPACE->m_renderOffset->value() : Vector2D();
+    const auto WORKSPACEOFF  = PWORKSPACE && !(PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED) ? g_pHyprRenderer->workspaceRenderOffset(context, PWORKSPACE) : Vector2D{};
 
     CBox       windowBox = {m_lastWindowPos.x, m_lastWindowPos.y, m_lastWindowSize.x, m_lastWindowSize.y};
-    windowBox.translate(-pMonitor->m_position + WORKSPACEOFF + PWINDOW->presentation().floatingOffset());
+    windowBox.translate(-pMonitor->m_position + WORKSPACEOFF + g_pHyprRenderer->windowRenderFloatingOffset(context, PWINDOW));
     windowBox.scale(pMonitor->m_scale).round();
 
     if (windowBox.width < 1 || windowBox.height < 1)
         return;
 
-    static auto PGLOWSIZE = CConfigValue<Config::INTEGER>("decoration:glow:range");
-    const auto  GLOWSIZE  = sc<int>(*PGLOWSIZE);
+    static auto               PGLOWSIZE = CConfigValue<Config::INTEGER>("decoration:glow:range");
+    const auto                GLOWSIZE  = sc<int>(*PGLOWSIZE);
 
-    const auto  GRADIENT = m_gradient.renderState();
+    const auto                GRADIENT = m_gradient.renderState();
 
-    g_pHyprRenderer->m_renderData.currentWindow = m_window;
+    Render::CRenderingContext child{context, context.renderPass()};
+    child.currentWindow = m_window;
 
     g_pHyprRenderer->blend(true);
 
     if (GRADIENT.transitioning)
-        drawGlowInternal(windowBox, ROUNDING * pMonitor->m_scale, ROUNDINGPOWER, GLOWSIZE * pMonitor->m_scale, GRADIENT.previous, GRADIENT.current, GRADIENT.progress, a);
+        drawGlowInternal(child, windowBox, ROUNDING * pMonitor->m_scale, ROUNDINGPOWER, GLOWSIZE * pMonitor->m_scale, GRADIENT.previous, GRADIENT.current, GRADIENT.progress, a);
     else
-        drawGlowInternal(windowBox, ROUNDING * pMonitor->m_scale, ROUNDINGPOWER, GLOWSIZE * pMonitor->m_scale, GRADIENT.current, a);
-
-    g_pHyprRenderer->m_renderData.currentWindow.reset();
+        drawGlowInternal(child, windowBox, ROUNDING * pMonitor->m_scale, ROUNDINGPOWER, GLOWSIZE * pMonitor->m_scale, GRADIENT.current, a);
 }
 
-void CHyprInnerGlowDecoration::drawGlowInternal(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad, float a) {
+void CHyprInnerGlowDecoration::drawGlowInternal(Render::CRenderingContext& context, const CBox& box, int round, float roundingPower, int range,
+                                                const Config::CGradientValueData& grad, float a) {
     if (box.w < 1 || box.h < 1)
         return;
     g_pHyprRenderer->blend(true);
-    g_pHyprRenderer->m_renderData.currentWindow = m_window;
-    g_pHyprRenderer->drawGlow(box, round, roundingPower, range, grad, a);
-    g_pHyprRenderer->m_renderData.currentWindow.reset();
+    g_pHyprRenderer->drawGlow(context, box, round, roundingPower, range, grad, a);
 }
 
-void CHyprInnerGlowDecoration::drawGlowInternal(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
-                                                const Config::CGradientValueData& grad2, float lerp, float a) {
+void CHyprInnerGlowDecoration::drawGlowInternal(Render::CRenderingContext& context, const CBox& box, int round, float roundingPower, int range,
+                                                const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2, float lerp, float a) {
     if (box.w < 1 || box.h < 1)
         return;
     g_pHyprRenderer->blend(true);
-    g_pHyprRenderer->m_renderData.currentWindow = m_window;
-    g_pHyprRenderer->drawGlow(box, round, roundingPower, range, grad1, grad2, lerp, a);
-    g_pHyprRenderer->m_renderData.currentWindow.reset();
+    g_pHyprRenderer->drawGlow(context, box, round, roundingPower, range, grad1, grad2, lerp, a);
 }
 
 eDecorationLayer CHyprInnerGlowDecoration::getDecorationLayer() {

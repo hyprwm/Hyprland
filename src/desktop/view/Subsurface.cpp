@@ -6,6 +6,7 @@
 #include "../../protocols/core/Subcompositor.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../managers/input/InputManager.hpp"
+#include "../../overview/Overview.hpp"
 #include "../../output/Monitor.hpp"
 
 using namespace Desktop;
@@ -185,12 +186,13 @@ void CSubsurface::recheckDamageForSubsurfaces(int depth) {
 
 void CSubsurface::onCommit() {
     // no damaging if it's not visible
-    if (!m_windowParent.expired() && (!m_windowParent->mapped() || !m_windowParent->m_workspace->m_visible)) {
+    const auto WINDOW_PARENT = m_windowParent.lock();
+    if (WINDOW_PARENT && (!WINDOW_PARENT->mapped() || (!WINDOW_PARENT->m_workspace->m_visible && !Overview::overview()->shouldRenderWorkspace(WINDOW_PARENT->m_workspace)))) {
         m_lastSize = m_wlSurface->resource()->m_current.size;
 
         static auto PLOGDAMAGE = CConfigValue<Config::INTEGER>("debug:log_damage");
         if (*PLOGDAMAGE)
-            Log::logger->log(Log::DEBUG, "Refusing to commit damage from a subsurface of {} because it's invisible.", m_windowParent.lock());
+            Log::logger->log(Log::DEBUG, "Refusing to commit damage from a subsurface of {} because it's invisible.", WINDOW_PARENT);
         return;
     }
 

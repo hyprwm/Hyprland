@@ -20,6 +20,7 @@ namespace Desktop {
         CViewHitTester(CViewHitTester&&)      = delete;
 
         PHLWINDOW              windowAt(const Vector2D& pos, uint16_t properties, PHLWINDOW ignoreWindow = nullptr) const;
+        PHLWINDOW              windowAtWorkspace(const Vector2D& pos, PHLWORKSPACE workspace, uint16_t properties, PHLWINDOW ignoreWindow = nullptr) const;
         SP<CWLSurfaceResource> windowSurfaceAt(const Vector2D& pos, PHLWINDOW window, Vector2D& surfaceLocal) const;
         Vector2D               surfaceLocalAt(const Vector2D& pos, PHLWINDOW window, SP<CWLSurfaceResource> surface) const;
         SP<CWLSurfaceResource> layerPopupSurfaceAt(const Vector2D& pos, PHLMONITOR monitor, Vector2D* surfaceCoords, PHLLS* layerFound) const;
@@ -27,6 +28,7 @@ namespace Desktop {
                                               bool aboveLockscreen = false) const;
 
       private:
+        PHLWINDOW                windowAtInternal(const Vector2D& pos, uint16_t properties, PHLWINDOW ignoreWindow, PHLWORKSPACE workspace) const;
         const IViewStateTracker& m_tracker;
     };
 }

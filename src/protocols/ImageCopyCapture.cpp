@@ -325,7 +325,7 @@ void CImageCopyCaptureCursorSession::sendCursorEvents() {
     if (!overlaps)
         return;
 
-    Vector2D pos = Pointer::mgr()->position() - sourceBox.pos();
+    Vector2D pos = Pointer::mgr()->untransformedPosition() - sourceBox.pos();
     if (pos != m_pos) {
         m_pos = pos;
         m_resource->sendPosition(m_pos.x, m_pos.y);

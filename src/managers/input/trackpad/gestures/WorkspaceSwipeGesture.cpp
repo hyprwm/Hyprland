@@ -1,14 +1,35 @@
 #include "WorkspaceSwipeGesture.hpp"
 
 #include "../../../../Compositor.hpp"
+#include "../../../../config/ConfigManager.hpp"
 #include "../../../../state/WorkspaceState.hpp"
 #include "../../../../desktop/state/FocusState.hpp"
+#include "../../../../overview/Overview.hpp"
 #include "../../../../render/Renderer.hpp"
 
 #include "../../UnifiedWorkspaceSwipeGesture.hpp"
 
+static float overviewMoveDelta(float delta) {
+    if (!Config::mgr())
+        return delta;
+
+    static auto PSWIPEINVR = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_invert");
+    return *PSWIPEINVR ? delta : -delta;
+}
+
 void CWorkspaceSwipeGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
     ITrackpadGesture::begin(e);
+
+    m_overview           = nullptr;
+    m_overviewMoveActive = false;
+
+    const auto OVERVIEW = Overview::overview().get();
+    if (OVERVIEW && OVERVIEW->isOpen()) {
+        m_overview = OVERVIEW;
+        if (const auto MOVABLE = dynamic_cast<Overview::IOverviewGestureMovable*>(OVERVIEW))
+            m_overviewMoveActive = MOVABLE->beginMoveGesture();
+        return;
+    }
 
     static auto PSWIPENEW = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_create_new");
 
@@ -28,6 +49,14 @@ void CWorkspaceSwipeGesture::begin(const ITrackpadGesture::STrackpadGestureBegin
 }
 
 void CWorkspaceSwipeGesture::update(const ITrackpadGesture::STrackpadGestureUpdate& e) {
+    if (m_overview) {
+        if (Overview::overview().get() == m_overview && m_overviewMoveActive) {
+            if (const auto MOVABLE = dynamic_cast<Overview::IOverviewGestureMovable*>(m_overview))
+                MOVABLE->updateMoveGesture(overviewMoveDelta(distance(e)));
+        }
+        return;
+    }
+
     if (!g_pUnifiedWorkspaceSwipe->isGestureInProgress())
         return;
 
@@ -40,6 +69,17 @@ void CWorkspaceSwipeGesture::update(const ITrackpadGesture::STrackpadGestureUpda
 }
 
 void CWorkspaceSwipeGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) {
+    if (m_overview) {
+        if (Overview::overview().get() == m_overview && m_overviewMoveActive) {
+            if (const auto MOVABLE = dynamic_cast<Overview::IOverviewGestureMovable*>(m_overview))
+                MOVABLE->endMoveGesture();
+        }
+
+        m_overview           = nullptr;
+        m_overviewMoveActive = false;
+        return;
+    }
+
     if (!g_pUnifiedWorkspaceSwipe->isGestureInProgress())
         return;
 

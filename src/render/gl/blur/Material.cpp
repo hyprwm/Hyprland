@@ -7,7 +7,7 @@
 using namespace Render;
 using namespace Render::GL;
 
-bool IGLBlurMaterial::isAnimated() const noexcept {
+bool IGLBlurMaterial::isAnimated(const CRenderingContext&) const noexcept {
     return false;
 }
 

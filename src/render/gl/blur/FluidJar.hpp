@@ -65,24 +65,26 @@ namespace Render::GL {
 
         SState*       stateForContext(const SBlurContext& context, bool create);
         const SState* stateForContext(const SBlurContext& context) const;
-        void          updateState(SState& state, const CBox& extent);
-        void          initializeState(SState& state, const Vector2D& simulationSize, float fillAmount, float precision);
-        void          transformState(SState& state, const Vector2D& simulationSize, const SFluidJarGeometryTransform& transform, const std::array<float, 4>& wallVelocities);
+        void          updateState(CRenderingContext& renderingContext, SState& state, const CBox& extent);
+        void          initializeState(CRenderingContext& renderingContext, SState& state, const Vector2D& simulationSize, float fillAmount, float precision);
+        void          transformState(CRenderingContext& renderingContext, SState& state, const Vector2D& simulationSize, const SFluidJarGeometryTransform& transform,
+                                     const std::array<float, 4>& wallVelocities);
         void          allocateBuffers(std::array<SP<CGLFramebuffer>, 2>& buffers, const Vector2D& size, const std::string& name, DRMFormat format = DRM_FORMAT_ABGR16161616F) const;
-        void          clearBuffers(const std::array<SP<CGLFramebuffer>, 2>& buffers, const std::array<float, 4>& color) const;
-        void          clearIntegerBuffers(const std::array<SP<CGLFramebuffer>, 2>& buffers) const;
-        void          drawInitialize(const SState& state, SP<CGLFramebuffer> target) const;
-        void          drawResample(const SState& state, SP<CGLFramebuffer> source, SP<CGLFramebuffer> target, const Vector2D& oldGridSize, int oldParticleCount,
-                                   const SFluidJarGeometryTransform& transform, const std::array<float, 4>& wallVelocities) const;
-        void          drawHistoryResample(SP<CGLFramebuffer> source, SP<CGLFramebuffer> target, const Vector2D& oldSize, const SFluidJarGeometryTransform& transform,
-                                          const std::array<float, 4>& fallback, bool linear) const;
-        void          drawParticleStep(SState& state, float dt) const;
-        void          drawGraphStep(SState& state) const;
-        void          drawTrackingStep(SState& state) const;
-        void          drawTrackingResample(SP<CGLFramebuffer> source, SP<CGLFramebuffer> target, const Vector2D& oldSize, const SFluidJarGeometryTransform& transform) const;
-        void          drawVisualStep(SState& state, int steps = 1) const;
-        void          preparePass(SP<CGLFramebuffer> target, const Vector2D& size, WP<CShader> shader) const;
-        CBox          transformedPatternBox(const SBlurContext& context) const;
+        void          clearBuffers(CRenderingContext& renderingContext, const std::array<SP<CGLFramebuffer>, 2>& buffers, const std::array<float, 4>& color) const;
+        void          clearIntegerBuffers(CRenderingContext& renderingContext, const std::array<SP<CGLFramebuffer>, 2>& buffers) const;
+        void          drawInitialize(CRenderingContext& renderingContext, const SState& state, SP<CGLFramebuffer> target) const;
+        void          drawResample(CRenderingContext& renderingContext, const SState& state, SP<CGLFramebuffer> source, SP<CGLFramebuffer> target, const Vector2D& oldGridSize,
+                                   int oldParticleCount, const SFluidJarGeometryTransform& transform, const std::array<float, 4>& wallVelocities) const;
+        void          drawHistoryResample(CRenderingContext& renderingContext, SP<CGLFramebuffer> source, SP<CGLFramebuffer> target, const Vector2D& oldSize,
+                                          const SFluidJarGeometryTransform& transform, const std::array<float, 4>& fallback, bool linear) const;
+        void          drawParticleStep(CRenderingContext& renderingContext, SState& state, float dt) const;
+        void          drawGraphStep(CRenderingContext& renderingContext, SState& state) const;
+        void          drawTrackingStep(CRenderingContext& renderingContext, SState& state) const;
+        void          drawTrackingResample(CRenderingContext& renderingContext, SP<CGLFramebuffer> source, SP<CGLFramebuffer> target, const Vector2D& oldSize,
+                                           const SFluidJarGeometryTransform& transform) const;
+        void          drawVisualStep(CRenderingContext& renderingContext, SState& state, int steps = 1) const;
+        void          preparePass(CRenderingContext& renderingContext, SP<CGLFramebuffer> target, const Vector2D& size, WP<CShader> shader) const;
+        CBox          transformedPatternBox(const CRenderingContext& renderingContext, const SBlurContext& context) const;
         void          scheduleNextFrame(const SState& state) const;
         void          pruneStates();
 

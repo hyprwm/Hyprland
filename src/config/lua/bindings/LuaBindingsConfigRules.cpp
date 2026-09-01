@@ -37,6 +37,7 @@
 #include "../../../managers/input/trackpad/gestures/FullscreenGesture.hpp"
 #include "../../../managers/input/trackpad/gestures/LuaFunctionGesture.hpp"
 #include "../../../managers/input/trackpad/gestures/MoveGesture.hpp"
+#include "../../../managers/input/trackpad/gestures/OverviewGesture.hpp"
 #include "../../../managers/input/trackpad/gestures/ResizeGesture.hpp"
 #include "../../../managers/input/trackpad/gestures/SpecialWorkspaceGesture.hpp"
 #include "../../../managers/input/trackpad/gestures/WorkspaceSwipeGesture.hpp"
@@ -945,6 +946,8 @@ static int hlGesture(lua_State* L) {
             result = g_pTrackpadGestures->addGesture(makeUnique<CResizeTrackpadGesture>(), fingerCount, direction, modMask, deltaScale, disableInhibit);
         else if (action == "move")
             result = g_pTrackpadGestures->addGesture(makeUnique<CMoveTrackpadGesture>(), fingerCount, direction, modMask, deltaScale, disableInhibit);
+        else if (action == "overview")
+            result = g_pTrackpadGestures->addGesture(makeUnique<COverviewTrackpadGesture>(), fingerCount, direction, modMask, deltaScale, disableInhibit);
         else if (action == "special")
             result = g_pTrackpadGestures->addGesture(makeUnique<CSpecialWorkspaceGesture>(workspaceName), fingerCount, direction, modMask, deltaScale, disableInhibit);
         else if (action == "close")

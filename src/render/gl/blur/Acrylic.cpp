@@ -27,9 +27,9 @@ static float srgbToLinear(float value) {
     return value <= 0.04045F ? value / 12.92F : std::pow((value + 0.055F) / 1.055F, 2.4F);
 }
 
-static float acrylicLuminanceScale() {
+static float acrylicLuminanceScale(const CRenderingContext& context) {
     const auto INTERMEDIATE = getDefaultImageDescription();
-    const auto WORKBUFFER   = g_pHyprRenderer->workBufferImageDescription();
+    const auto WORKBUFFER   = g_pHyprRenderer->workBufferImageDescription(context);
     if (!WORKBUFFER)
         return 1.F;
 
@@ -79,7 +79,7 @@ void CAcrylicBlurMaterial::bindFinish(WP<CShader> shader, const SBlurMaterialCon
     const auto  TINT            = CHyprColor(*PACRYLICTINT);
     const auto  TINT_ALPHA      = std::clamp(sc<float>(TINT.a), 0.F, 1.F);
     const auto  TINT_DEPTH      = -std::log(std::max(1.F - TINT_ALPHA, 0.0001F));
-    const auto  LUMINANCE_SCALE = acrylicLuminanceScale();
+    const auto  LUMINANCE_SCALE = acrylicLuminanceScale(context.renderingContext);
 
     shader->setUniformInt(SHADER_ACRYLIC_ENABLED, 1);
     shader->setUniformFloat4(SHADER_ACRYLIC_EXTENT, sc<float>(extent.x), sc<float>(extent.y), sc<float>(extent.width), sc<float>(extent.height));

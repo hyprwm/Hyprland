@@ -13,6 +13,7 @@
 #include "../../../desktop/view/LayerSurface.hpp"
 #include "../../../desktop/view/window/Window.hpp"
 #include "../../../managers/input/InputManager.hpp"
+#include "../../../overview/Overview.hpp"
 #include "../../../state/MonitorState.hpp"
 #include "../../../state/WorkspaceState.hpp"
 
@@ -412,6 +413,31 @@ static int hlGetCurrentSubmap(lua_State* L) {
     return 1;
 }
 
+static int hlGetOverview(lua_State* L) {
+    const auto OVERVIEW = Overview::overview().get();
+    const auto state    = Overview::state(OVERVIEW);
+
+    lua_createtable(L, 0, 4);
+    lua_pushboolean(L, state.open);
+    lua_setfield(L, -2, "open");
+
+    if (state.monitor)
+        Objects::CLuaMonitor::push(L, state.monitor);
+    else
+        lua_pushnil(L);
+    lua_setfield(L, -2, "monitor");
+
+    if (state.workspace)
+        Objects::CLuaWorkspace::push(L, state.workspace);
+    else
+        lua_pushnil(L);
+    lua_setfield(L, -2, "workspace");
+
+    lua_pushlstring(L, state.query.data(), state.query.size());
+    lua_setfield(L, -2, "query");
+    return 1;
+}
+
 void Internal::registerQueryBindings(lua_State* L) {
     Internal::setFn(L, "get_windows", hlGetWindows);
     Internal::setFn(L, "get_window", hlGetWindow);
@@ -432,4 +458,5 @@ void Internal::registerQueryBindings(lua_State* L) {
     Internal::setFn(L, "get_last_window", hlGetLastWindow);
     Internal::setFn(L, "get_last_workspace", hlGetLastWorkspace);
     Internal::setFn(L, "get_current_submap", hlGetCurrentSubmap);
+    Internal::setFn(L, "get_overview", hlGetOverview);
 }

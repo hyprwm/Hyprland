@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 #include "Framebuffer.hpp"
 #include "../desktop/DesktopTypes.hpp"
 #include "../helpers/cm/ColorManagement.hpp"
@@ -10,7 +12,12 @@
 #include <hyprutils/math/Region.hpp>
 #include <hyprutils/math/Vector2D.hpp>
 
+struct SBackdropScope;
+
 namespace Render {
+    class CRenderPass;
+    class IRenderbuffer;
+
     const std::vector<const char*> ASSET_PATHS = {
 #ifdef DATAROOTDIR
         DATAROOTDIR,
@@ -69,44 +76,6 @@ namespace Render {
         bool                                               enabled = true;
     };
 
-    struct SRenderData {
-        // can be private
-        Hyprutils::Math::Mat3x3 targetProjection;
-
-        // ----------------------
-
-        // used by public
-        Hyprutils::Math::Vector2D fbSize = {-1, -1};
-        PHLMONITORREF             pMonitor;
-
-        eRenderProjectionType     projectionType = RPT_MONITOR;
-
-        SP<IFramebuffer>          currentFB = nullptr; // current rendering to
-        SP<IFramebuffer>          mainFB    = nullptr; // main to render to
-        SP<IFramebuffer>          outFB     = nullptr; // out to render to (if offloaded, etc)
-
-        CRegion                   damage;
-        CRegion                   finalDamage; // damage used for final off -> main
-
-        SRenderModifData          renderModif;
-        float                     mouseZoomFactor    = 1.f;
-        bool                      mouseZoomUseMouse  = true; // true by default
-        bool                      useNearestNeighbor = false;
-        bool                      blockScreenShader  = false;
-
-        Vector2D                  primarySurfaceUVTopLeft     = Vector2D(-1, -1);
-        Vector2D                  primarySurfaceUVBottomRight = Vector2D(-1, -1);
-
-        // TODO remove and pass directly
-        CBox                   clipBox = {}; // scaled coordinates
-        PHLWINDOWREF           currentWindow;
-        WP<CWLSurfaceResource> surface;
-
-        bool                   transformDamage            = true;
-        bool                   noSimplify                 = false;
-        bool                   renderingTransformedSource = false;
-    };
-
     struct STFRange {
         float min = 0;
         float max = 80;
@@ -129,5 +98,88 @@ namespace Render {
         bool                                 needsSDRmod             = false;
         float                                sdrSaturation           = 1.0;
         float                                sdrBrightnessMultiplier = 1.0;
+    };
+
+    struct SCMSettingsCacheEntry {
+        uint64_t    srcDescId = 0, dstDescId = 0;
+        void*       surfacePtr      = nullptr; // read-only!!
+        bool        modifySDR       = false;
+        float       sdrMinLuminance = -1.F;
+        int         sdrMaxLuminance = -1;
+        SCMSettings settings;
+    };
+
+    struct SCMSettingsCache {
+        std::vector<SCMSettingsCacheEntry> entries;
+    };
+
+    struct SBackdropCapture {
+        SP<SBackdropScope> scope;
+        SP<IFramebuffer>   framebuffer;
+    };
+
+    class CRenderingContext {
+      public:
+        CRenderingContext(PHLMONITORREF sceneMonitor, CRenderPass& pass, PHLMONITORREF outputMonitor = {});
+        CRenderingContext(const CRenderingContext& parent, CRenderPass& pass);
+        CRenderingContext(const CRenderingContext& parent, CRenderPass& pass, PHLMONITORREF sceneMonitor);
+
+        CRenderPass&                  renderPass() const;
+
+        Mat3x3                        targetProjection;
+        Vector2D                      fbSize = {-1, -1};
+
+        PHLMONITORREF                 sceneMonitor;
+        PHLMONITORREF                 outputMonitor;
+
+        eRenderProjectionType         projectionType = RPT_MONITOR;
+
+        SP<IFramebuffer>              currentFB;
+        SP<IFramebuffer>              mainFB;
+        SP<IFramebuffer>              outFB;
+
+        CRegion                       damage;
+        CRegion                       finalDamage;
+
+        SRenderModifData              renderModif;
+        float                         mouseZoomFactor    = 1.F;
+        bool                          mouseZoomUseMouse  = true;
+        bool                          useNearestNeighbor = false;
+        bool                          blockScreenShader  = false;
+
+        Vector2D                      primarySurfaceUVTopLeft     = Vector2D(-1, -1);
+        Vector2D                      primarySurfaceUVBottomRight = Vector2D(-1, -1);
+
+        CBox                          clipBox;
+        PHLWINDOWREF                  currentWindow;
+        WP<CWLSurfaceResource>        surface;
+
+        bool                          transformDamage            = true;
+        bool                          noSimplify                 = false;
+        bool                          renderingTransformedSource = false;
+
+        PHLWORKSPACEREF               isolatedWorkspace;
+        bool                          isolatedWorkspaceFullScene = false;
+        bool                          blockSurfaceFeedback       = false;
+        bool                          renderingSnapshot          = false;
+        bool                          precomputeBlur             = false;
+        bool                          updatesMonitorBlurState    = true;
+
+        eRenderMode                   renderMode             = RENDER_MODE_NORMAL;
+        bool                          fakeFrame              = false;
+        bool                          offloadedFramebuffer   = false;
+        bool                          applyFinalScreenShader = false;
+
+        SP<Aquamarine::IBuffer>       buffer;
+        SP<IRenderbuffer>             renderbuffer;
+
+        SP<SCMSettingsCache>          cmSettingsCache;
+        std::vector<SBackdropCapture> backdropCaptures;
+
+      private:
+        CRenderingContext(const CRenderingContext&)                             = default;
+        CRenderingContext&                  operator=(const CRenderingContext&) = delete;
+
+        std::reference_wrapper<CRenderPass> m_pass;
     };
 }

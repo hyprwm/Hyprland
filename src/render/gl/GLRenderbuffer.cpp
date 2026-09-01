@@ -67,7 +67,7 @@ CGLRenderbuffer::CGLRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format
 
 void CGLRenderbuffer::bind() {
     g_pHyprOpenGL->makeEGLCurrent();
-    g_pHyprRenderer->bindFB(m_framebuffer);
+    GLFB(m_framebuffer)->bind();
 }
 
 void CGLRenderbuffer::unbind() {

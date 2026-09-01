@@ -3,9 +3,11 @@
 #include "../helpers/cm/ColorManagement.hpp"
 #include "../render/Renderer.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../render/scene/MonitorScene.hpp"
 #include <algorithm>
 #include <cstdint>
 #include <format>
+#include <hyprutils/memory/SharedPtr.hpp>
 
 using namespace Monitor;
 using namespace NColorManagement;
@@ -19,6 +21,7 @@ CMonitorResources::CMonitorResources(WP<CMonitor> monitor, DRMFormat format, Vec
     m_monitor(monitor), m_drmFormat(format), m_size(size), m_imageDescription(imageDescription) {
     initFB(m_blurFB);
     monitor->m_blurFBDirty = true;
+    m_sceneStack.push(makeShared<Render::CMonitorScene>(monitor.lock()));
 }
 
 void CMonitorResources::initFB(SP<Render::IFramebuffer> fb) {
@@ -58,6 +61,11 @@ SP<Render::IFramebuffer> CMonitorResources::getUnusedWorkBuffer() {
     initFB(res.buffer);
     res.lastUsed.reset();
     return res.buffer;
+}
+
+size_t CMonitorResources::availableWorkBufferCount() const {
+    const auto AVAILABLE = std::ranges::count_if(m_workBuffers, [](const auto& resource) { return resource.buffer.strongRef() < 2; });
+    return AVAILABLE + MAX_WORK_BUFFERS - m_workBuffers.size();
 }
 
 SP<Render::IFramebuffer> CMonitorResources::getUnusedWorkBuffer(const Vector2D& size) {

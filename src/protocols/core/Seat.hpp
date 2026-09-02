@@ -129,6 +129,7 @@ class CWLKeyboardResource {
   private:
     SP<CWlKeyboard>        m_resource;
     WP<CWLSurfaceResource> m_currentSurface;
+    std::vector<uint32_t>  m_pressedKeys;
 
     struct {
         CHyprSignalListener destroySurface;

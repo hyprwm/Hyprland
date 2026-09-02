@@ -1741,6 +1741,15 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
         }
 
         if (USEIME) {
+            // keep the seat's pressed-key set accurate even while the IME has the
+            // grab: m_pressed is what wl_keyboard.enter carries on focus changes,
+            // and a stale entry re-arms stuck keys in stateful clients like XWayland.
+            const bool CONTAINS = std::ranges::contains(m_pressed, event.keycode);
+            if (pressed && !CONTAINS)
+                m_pressed.emplace_back(event.keycode);
+            else if (!pressed && CONTAINS)
+                std::erase(m_pressed, event.keycode);
+
             IME->setKeyboard(pKeyboard);
             IME->sendKey(event.timeMs, event.keycode, state);
         } else {

@@ -406,6 +406,14 @@ void CWLKeyboardResource::sendEnter(SP<CWLSurfaceResource> surface, wl_array* ke
     m_listeners.destroySurface = surface->m_events.destroy.listen([this] { sendLeave(); });
 
     m_resource->sendEnter(g_pSeatManager->nextSerial(m_owner.lock()), surface->getResource().get(), keys);
+    // track the keys this client saw pressed, so they can be released on
+    // leave and stateful clients (e.g. XWayland) don't get stuck keys.
+    m_pressedKeys.clear();
+    for (size_t i = 0; i < keys->size / sizeof(uint32_t); ++i) {
+        const auto KEY = sc<const uint32_t*>(keys->data)[i];
+        if (std::ranges::find(m_pressedKeys, KEY) == m_pressedKeys.end())
+            m_pressedKeys.emplace_back(KEY);
+    }
 }
 
 void CWLKeyboardResource::sendLeave() {
@@ -414,6 +422,15 @@ void CWLKeyboardResource::sendLeave() {
 
     if (!(PROTO::seat->m_currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_KEYBOARD))
         return;
+    // bring the client's keyboard state back to neutral before leaving:
+    // release every key this client saw pressed. Stateful clients like
+    // XWayland don't reset key state on leave, and a stuck key re-arms
+    // the client-side auto-repeat once it's focused again.
+    const auto KEYS = m_pressedKeys;
+    m_pressedKeys.clear();
+    for (auto const& k : KEYS) {
+        sendKey(Time::millis(Time::steadyNow()), k, WL_KEYBOARD_KEY_STATE_RELEASED);
+    }
 
     m_resource->sendLeave(g_pSeatManager->nextSerial(m_owner.lock()), m_currentSurface->getResource().get());
     m_currentSurface.reset();
@@ -428,6 +445,12 @@ void CWLKeyboardResource::sendKey(uint32_t timeMs, uint32_t key, wl_keyboard_key
         return;
 
     m_resource->sendKey(g_pSeatManager->nextSerial(m_owner.lock()), timeMs, key, state);
+
+    if (state == WL_KEYBOARD_KEY_STATE_PRESSED) {
+        if (std::ranges::find(m_pressedKeys, key) == m_pressedKeys.end())
+            m_pressedKeys.emplace_back(key);
+    } else
+        std::erase(m_pressedKeys, key);
 }
 
 void CWLKeyboardResource::sendMods(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group) {

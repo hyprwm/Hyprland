@@ -145,6 +145,10 @@ PBind CKeybindManager::addBind(CBind&& bind) {
     return m_registry.add(std::move(bind));
 }
 
+PSubmap CKeybindManager::addSubmap(CSubmap&& submap) {
+    return m_registry.addSubmap(std::move(submap));
+};
+
 bool CKeybindManager::removeBind(const PBind& bind) {
     cancelTimedBinds();
     invokeReleaseCallbacks(m_inputState.takeReleaseCallbacks(bind));
@@ -220,6 +224,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> keyboard) {
     Config::Actions::state()->m_timeLastMs    = KEY_EVENT.timeMs;
     Config::Actions::state()->m_lastCode      = KEYCODE;
     Config::Actions::state()->m_lastMouseCode = 0;
+    Config::Actions::state()->m_lastDevice    = keyboard;
 
     const bool DRAG_WAS_ACTIVE = g_layoutManager->endDragTarget();
     cancelTimedBinds();
@@ -350,6 +355,7 @@ bool CKeybindManager::onMouseEvent(const IPointer::SButtonEvent& event, SP<IPoin
     Config::Actions::state()->m_lastMouseCode = event.button;
     Config::Actions::state()->m_lastCode      = 0;
     Config::Actions::state()->m_timeLastMs    = event.timeMs;
+    Config::Actions::state()->m_lastDevice    = pointer;
 
     const bool DRAG_WAS_ACTIVE = captured ? false : g_layoutManager->endDragTarget();
     cancelTimedBinds();
@@ -625,13 +631,16 @@ void CKeybindManager::invokeReleaseCallbacks(std::vector<SPendingRelease>&& rele
         const auto PREVIOUS_CODE      = state.m_lastCode;
         const auto PREVIOUS_MOUSECODE = state.m_lastMouseCode;
         const auto PREVIOUS_TIME      = state.m_timeLastMs;
+        const auto PREVIOUS_DEVICE    = state.m_lastDevice;
         state.m_lastCode              = release.actionCode;
         state.m_lastMouseCode         = release.actionMouseCode;
         state.m_timeLastMs            = release.actionTimeMs;
-        Hyprutils::Utils::CScopeGuard guard([&state, PREVIOUS_CODE, PREVIOUS_MOUSECODE, PREVIOUS_TIME] {
+        state.m_lastDevice            = release.device;
+        Hyprutils::Utils::CScopeGuard guard([&state, PREVIOUS_CODE, PREVIOUS_MOUSECODE, PREVIOUS_TIME, PREVIOUS_DEVICE] {
             state.m_lastCode      = PREVIOUS_CODE;
             state.m_lastMouseCode = PREVIOUS_MOUSECODE;
             state.m_timeLastMs    = PREVIOUS_TIME;
+            state.m_lastDevice    = PREVIOUS_DEVICE;
         });
         invokeBind(release.bind, false, m_inputState.find(release.key, release.device.lock()));
     }

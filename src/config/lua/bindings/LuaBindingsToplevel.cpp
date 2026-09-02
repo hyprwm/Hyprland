@@ -13,6 +13,7 @@
 #include "../../../plugins/PluginSystem.hpp"
 #include "keybinds/Manager.hpp"
 #include "keybinds/Resolver.hpp"
+#include "keybinds/Submap.hpp"
 
 #include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/String.hpp>
@@ -251,11 +252,41 @@ static int hlDefineSubmap(lua_State* L) {
         fnIdx = 3;
     }
 
+    const int             optsIdx = fnIdx + 1;
+    Keybinds::SSubmapArgs args;
+
+    if (lua_gettop(L) >= optsIdx) {
+        if (!lua_istable(L, optsIdx))
+            return Internal::configError(L, "define_submap: last argument must be a table");
+
+        lua_getfield(L, optsIdx, "device");
+
+        if (lua_istable(L, -1)) {
+            lua_getfield(L, -1, "inclusive");
+            args.device.setInclusive(lua_isnil(L, -1) || lua_toboolean(L, -1));
+            lua_pop(L, 1);
+
+            lua_getfield(L, -1, "list");
+            lua_pushnil(L);
+            while (lua_next(L, -2)) {
+                if (auto device_name = Check::string(L, -1); device_name)
+                    args.device.add(*device_name);
+                lua_pop(L, 1);
+            }
+            lua_pop(L, 1);
+        }
+
+        lua_pop(L, 1);
+    }
+
+    Keybinds::CSubmap submap = Keybinds::CSubmap(*name, std::move(args));
+    const auto        SUBMAP = Keybinds::mgr()->addSubmap(std::move(submap));
+
     luaL_checktype(L, fnIdx, LUA_TFUNCTION);
 
     std::string prev          = mgr->m_currentSubmap;
     std::string prevReset     = mgr->m_currentSubmapReset;
-    mgr->m_currentSubmap      = *name;
+    mgr->m_currentSubmap      = SUBMAP->name();
     mgr->m_currentSubmapReset = reset;
 
     lua_pushvalue(L, fnIdx);

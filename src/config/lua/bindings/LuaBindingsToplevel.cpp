@@ -48,6 +48,28 @@ static std::expected<std::vector<std::string>, std::string> parseKeyString(std::
     return keys;
 }
 
+static std::expected<Keybinds::CDeviceList, std::string> parseDeviceList(lua_State* L, int idx) {
+    bool                 inclusive = false;
+    Keybinds::DeviceList devices;
+
+    if (lua_istable(L, idx)) {
+        lua_getfield(L, idx, "inclusive");
+        inclusive = lua_isnil(L, -1) || lua_toboolean(L, -1);
+        lua_pop(L, 1);
+
+        lua_getfield(L, idx, "list");
+        lua_pushnil(L);
+        while (lua_next(L, -2)) {
+            if (auto device_name = Check::string(L, -1); device_name)
+                devices.emplace(*device_name);
+            lua_pop(L, 1);
+        }
+        lua_pop(L, 1);
+    }
+
+    return Keybinds::CDeviceList(inclusive, std::move(devices));
+}
+
 class CLuaBindRef {
   public:
     CLuaBindRef(SP<SLuaStateLifetime> lifetime, int ref) : m_lifetime(std::move(lifetime)), m_ref(ref) {
@@ -256,23 +278,12 @@ static int hlDefineSubmap(lua_State* L) {
             return Internal::configError(L, "define_submap: last argument must be a table");
 
         lua_getfield(L, optsIdx, "device");
-
-        if (lua_istable(L, -1)) {
-            lua_getfield(L, -1, "inclusive");
-            args.device.setInclusive(lua_isnil(L, -1) || lua_toboolean(L, -1));
-            lua_pop(L, 1);
-
-            lua_getfield(L, -1, "list");
-            lua_pushnil(L);
-            while (lua_next(L, -2)) {
-                if (auto device_name = Check::string(L, -1); device_name)
-                    args.device.add(*device_name);
-                lua_pop(L, 1);
-            }
-            lua_pop(L, 1);
-        }
-
+        auto device = parseDeviceList(L, -1);
+        if (!device)
+            return Internal::configError(L, std::format("define_submap: {}", device.error()));
         lua_pop(L, 1);
+
+        args.device = std::move(*device);
     }
 
     Keybinds::CSubmap submap = Keybinds::CSubmap(*name, std::move(args));

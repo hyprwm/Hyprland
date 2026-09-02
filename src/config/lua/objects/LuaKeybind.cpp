@@ -14,7 +14,7 @@ static Keybinds::PBind       getKeybindFromUserdata(lua_State* L) {
 static void pushDeviceList(lua_State* L, const Keybinds::CBind& keybind) {
     lua_newtable(L);
     int i = 1;
-    for (const auto& device : keybind.devices()) {
+    for (const auto& device : keybind.devices().devices()) {
         lua_pushstring(L, device.c_str());
         lua_rawseti(L, -2, i++);
     }

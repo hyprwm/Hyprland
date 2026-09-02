@@ -1221,6 +1221,8 @@ ActionResult Actions::exit() {
 }
 
 ActionResult Actions::reloadConfig() {
+    if (!Config::mgr()->configLoaded())
+        return std::unexpected(std::string("Cannot trigger a reload while the config is already loading!"));
     // probably don't tear down state while stuff is actively running
     g_pEventLoopManager->doLater([] { Config::mgr()->reload(); });
     return {};

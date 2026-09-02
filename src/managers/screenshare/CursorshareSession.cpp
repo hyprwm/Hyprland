@@ -185,29 +185,7 @@ bool CCursorshareSession::copy() {
 
         g_pHyprRenderer->endRender();
 
-        int glFormat = PFORMAT->glFormat;
-
-        if (glFormat == GL_RGBA)
-            glFormat = GL_BGRA_EXT;
-
-        if (glFormat != GL_BGRA_EXT && glFormat != GL_RGB) {
-            if (PFORMAT->swizzle.has_value()) {
-                if (PFORMAT->swizzle == SWIZZLE_RGBA)
-                    glFormat = GL_RGBA;
-                else if (PFORMAT->swizzle == SWIZZLE_BGRA)
-                    glFormat = GL_BGRA_EXT;
-                else {
-                    LOGM(Log::ERR, "Copied frame via shm might be broken or color flipped");
-                    glFormat = GL_RGBA;
-                }
-            }
-        }
-
-        if (!outFB->readPixels(m_pendingFrame.buffer, 0, 0, m_bufferSize.x, m_bufferSize.y)) {
-            g_pHyprRenderer->m_renderData.pMonitor.reset();
-            LOGM(Log::ERR, "Can't copy: failed to read cursor pixels to shm");
-            return false;
-        }
+        outFB->readPixels(m_pendingFrame.buffer, 0, 0, m_bufferSize.x, m_bufferSize.y);
 
         g_pHyprRenderer->m_renderData.pMonitor.reset();
 

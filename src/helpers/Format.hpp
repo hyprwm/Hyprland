@@ -19,5 +19,4 @@ namespace NFormatUtils {
     bool        isShmBufferLayoutValid(DRMFormat drmFormat, const Vector2D& size, int32_t stride, int32_t offset, size_t poolSize);
     std::string drmFormatName(DRMFormat drm);
     std::string drmModifierName(uint64_t mod);
-    DRMFormat   alphaFormat(DRMFormat prevFormat);
 };

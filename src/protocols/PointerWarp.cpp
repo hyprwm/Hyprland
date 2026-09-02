@@ -63,7 +63,7 @@ void CPointerWarpProtocol::bindManager(wl_client* client, void* data, uint32_t v
 
         const auto POINTER = CWLPointerResource::fromResource(pointer);
         if UNLIKELY (!POINTER) {
-            LOGM(Log::ERR, "pointer_warp received an invalid pointer resource");
+            LOG(Log::ERR, "pointer_warp received an invalid pointer resource");
             return;
         }
 
@@ -71,7 +71,7 @@ void CPointerWarpProtocol::bindManager(wl_client* client, void* data, uint32_t v
         if (!g_pSeatManager->serialValid(PSEAT, serial, false))
             return;
 
-        LOGM(Log::DEBUG, "warped pointer to {}", GLOBALPOS);
+        LOG(Log::DEBUG, "warped pointer to {}", GLOBALPOS);
 
         Pointer::mgr()->warpTo(GLOBALPOS);
         g_pSeatManager->sendPointerMotion(Time::millis(Time::steadyNow()), LOCALPOS);

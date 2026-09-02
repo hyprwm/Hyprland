@@ -142,7 +142,7 @@ static std::string jsonify(SP<IValue> v) {
             x->name(), x->description(), x->defaultVal(), x->value());
     }
 
-    Log::logger->log(Log::ERR, "values/jsonify: invalid value {}", v->name());
+    LOG(Log::ERR, "values/jsonify: invalid value {}", v->name());
     return "{},";
 }
 

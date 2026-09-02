@@ -136,7 +136,7 @@ void CLayoutManager::switchTargets(SP<ITarget> a, SP<ITarget> b, bool preserveFo
 void CLayoutManager::moveInDirection(SP<ITarget> target, const std::string& direction, bool silent) {
     Math::eDirection dir = Math::fromChar(direction.at(0));
     if (dir == Math::DIRECTION_DEFAULT) {
-        Log::logger->log(Log::ERR, "invalid direction for moveInDirection: {}", direction);
+        LOG(Log::ERR, "invalid direction for moveInDirection: {}", direction);
         return;
     }
 

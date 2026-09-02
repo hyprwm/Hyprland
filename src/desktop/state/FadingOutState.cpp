@@ -26,7 +26,7 @@ void CFadingOutState::cleanupForMonitor(PHLMONITOR monitor) {
     std::erase_if(m_fadeouts, [&](const auto& fadeout) { return !fadeout || fadeout->monitor().expired() || (fadeout->monitor() == monitor && fadeout->done()); });
 
     if (SIZEBEFORE != m_fadeouts.size())
-        Log::logger->log(Log::DEBUG, "Cleanup: removed {} fadeouts", SIZEBEFORE - m_fadeouts.size());
+        LOG(Log::DEBUG, "Cleanup: removed {} fadeouts", SIZEBEFORE - m_fadeouts.size());
 }
 
 void CFadingOutState::clear() {

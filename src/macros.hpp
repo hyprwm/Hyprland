@@ -45,7 +45,7 @@
 
 template <typename... Args>
 [[gnu::noinline]] [[gnu::cold]] void assertImpl(int line, std::string_view filename, std::format_string<Args...> reason, Args&&... args) {
-    Log::logger->log(Log::CRIT, "\n==========================================================================================\nASSERTION FAILED! \n\n{}\n\nat: line {} in {}",
+    LOG(Log::CRIT, "\n==========================================================================================\nASSERTION FAILED! \n\n{}\n\nat: line {} in {}",
                      std::format(reason, std::forward<Args>(args)...), line, filename);
     std::print("Assertion failed! See the log in /tmp/hypr/hyprland.log for more info.");
     raise(SIGABRT);
@@ -88,7 +88,7 @@ template <typename... Args>
 #if ISDEBUG
 #define UNREACHABLE()                                                                                                                                                              \
     {                                                                                                                                                                              \
-        Log::logger->log(Log::CRIT, "\n\nMEMORY CORRUPTED: Unreachable failed! (Reached an unreachable position, memory corruption!!!)");                                          \
+        LOG(Log::CRIT, "\n\nMEMORY CORRUPTED: Unreachable failed! (Reached an unreachable position, memory corruption!!!)");                                          \
         raise(SIGABRT);                                                                                                                                                            \
         std::unreachable();                                                                                                                                                        \
     }
@@ -105,7 +105,7 @@ template <typename... Args>
         if (*GLDEBUG) {                                                                                                                                                            \
             auto err = glGetError();                                                                                                                                               \
             if (err != GL_NO_ERROR) {                                                                                                                                              \
-                Log::logger->log(Log::ERR, "[GLES] Error in call at {}@{}: 0x{:x}", __LINE__,                                                                                      \
+                LOG(Log::ERR, "[GLES] Error in call at {}@{}: 0x{:x}", __LINE__,                                                                                      \
                                  ([]() consteval { return std::string_view(__FILE__).substr(std::string_view(__FILE__).find_last_of('/') + 1); })(), err);                         \
             }                                                                                                                                                                      \
         }                                                                                                                                                                          \

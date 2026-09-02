@@ -93,7 +93,7 @@ using namespace Desktop::View;
 using namespace Render::GL;
 
 static int handleCritSignal(int signo, void* data) {
-    Log::logger->log(Log::DEBUG, "Hyprland received signal {}", signo);
+    LOG(Log::DEBUG, "Hyprland received signal {}", signo);
 
     if (signo == SIGTERM || signo == SIGINT || signo == SIGKILL)
         g_pCompositor->stopCompositor();
@@ -143,9 +143,9 @@ bool CCompositor::writeWatchdogFd(std::string str) {
 
 void CCompositor::bumpNofile() {
     if (!getrlimit(RLIMIT_NOFILE, &m_originalNofile))
-        Log::logger->log(Log::DEBUG, "Old rlimit: soft -> {}, hard -> {}", m_originalNofile.rlim_cur, m_originalNofile.rlim_max);
+        LOG(Log::DEBUG, "Old rlimit: soft -> {}, hard -> {}", m_originalNofile.rlim_cur, m_originalNofile.rlim_max);
     else {
-        Log::logger->log(Log::ERR, "Failed to get NOFILE rlimits");
+        LOG(Log::ERR, "Failed to get NOFILE rlimits");
         m_originalNofile.rlim_max = 0;
         return;
     }
@@ -155,13 +155,13 @@ void CCompositor::bumpNofile() {
     newLimit.rlim_cur = newLimit.rlim_max;
 
     if (setrlimit(RLIMIT_NOFILE, &newLimit) < 0) {
-        Log::logger->log(Log::ERR, "Failed bumping NOFILE limits higher");
+        LOG(Log::ERR, "Failed bumping NOFILE limits higher");
         m_originalNofile.rlim_max = 0;
         return;
     }
 
     if (!getrlimit(RLIMIT_NOFILE, &newLimit))
-        Log::logger->log(Log::DEBUG, "New rlimit: soft -> {}, hard -> {}", newLimit.rlim_cur, newLimit.rlim_max);
+        LOG(Log::DEBUG, "New rlimit: soft -> {}, hard -> {}", newLimit.rlim_cur, newLimit.rlim_max);
 }
 
 void CCompositor::restoreNofile() {
@@ -169,7 +169,7 @@ void CCompositor::restoreNofile() {
         return;
 
     if (setrlimit(RLIMIT_NOFILE, &m_originalNofile) < 0)
-        Log::logger->log(Log::ERR, "Failed restoring NOFILE limits");
+        LOG(Log::ERR, "Failed restoring NOFILE limits");
 }
 
 bool CCompositor::supportsDrmSyncobjTimeline() const {
@@ -325,7 +325,7 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
     m_aqBackend = CBackend::create(implementations, options);
 
     if (!m_aqBackend) {
-        Log::logger->log(
+        LOG(
             Log::CRIT,
             "m_pAqBackend was null! This usually means aquamarine could not find a GPU or encountered some issues. Make sure you're running either on a tty or on a Wayland "
             "session, NOT an X11 one.");
@@ -337,7 +337,7 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
     initAllSignals();
 
     if (!m_aqBackend->start()) {
-        Log::logger->log(
+        LOG(
             Log::CRIT,
             "m_pAqBackend couldn't start! This usually means aquamarine could not find a GPU or encountered some issues. Make sure you're running either on a tty or on a "
             "Wayland session, NOT an X11 one.");
@@ -346,21 +346,21 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
 
     m_initialized = true;
 
-    Log::logger->log(Log::DEBUG, "Instance Signature: {}", m_instanceSignature);
-    Log::logger->log(Log::DEBUG, "Runtime directory: {}", m_instancePath);
-    Log::logger->log(Log::DEBUG, "Hyprland PID: {}", m_hyprlandPID);
-    Log::logger->log(Log::DEBUG, "===== SYSTEM INFO: =====");
-    Log::logger->log(Log::DEBUG, "{}", Helpers::SystemInfo::getSystemInfo());
-    Log::logger->log(Log::DEBUG, "========================");
-    Log::logger->log(Log::DEBUG, "\n\n"); // pad
-    Log::logger->log(Log::INFO, "If you are crashing, or encounter any bugs, please consult https://wiki.hypr.land/Crashes-and-Bugs/\n\n");
-    Log::logger->log(Log::DEBUG, "\nCurrent splash: {}\n\n", m_currentSplash);
+    LOG(Log::DEBUG, "Instance Signature: {}", m_instanceSignature);
+    LOG(Log::DEBUG, "Runtime directory: {}", m_instancePath);
+    LOG(Log::DEBUG, "Hyprland PID: {}", m_hyprlandPID);
+    LOG(Log::DEBUG, "===== SYSTEM INFO: =====");
+    LOG(Log::DEBUG, "{}", Helpers::SystemInfo::getSystemInfo());
+    LOG(Log::DEBUG, "========================");
+    LOG(Log::DEBUG, "\n\n"); // pad
+    LOG(Log::INFO, "If you are crashing, or encounter any bugs, please consult https://wiki.hypr.land/Crashes-and-Bugs/\n\n");
+    LOG(Log::DEBUG, "\nCurrent splash: {}\n\n", m_currentSplash);
 
     m_drm.fd = m_aqBackend->drmFD();
-    Log::logger->log(Log::DEBUG, "Running on DRMFD: {}", m_drm.fd);
+    LOG(Log::DEBUG, "Running on DRMFD: {}", m_drm.fd);
 
     m_drmRenderNode.fd = m_aqBackend->drmRenderNodeFD();
-    Log::logger->log(Log::DEBUG, "Using RENDERNODEFD: {}", m_drmRenderNode.fd);
+    LOG(Log::DEBUG, "Using RENDERNODEFD: {}", m_drmRenderNode.fd);
 
 #if defined(__linux__)
     auto syncObjSupport = [](auto fd) {
@@ -373,15 +373,15 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
     };
 
     m_drm.syncobjSupport = syncObjSupport(m_drm.fd);
-    Log::logger->log(Log::DEBUG, "DRM DisplayNode syncobj timeline support: {}", m_drm.syncobjSupport ? "yes" : "no");
+    LOG(Log::DEBUG, "DRM DisplayNode syncobj timeline support: {}", m_drm.syncobjSupport ? "yes" : "no");
 
     m_drmRenderNode.syncObjSupport = syncObjSupport(m_drmRenderNode.fd);
-    Log::logger->log(Log::DEBUG, "DRM RenderNode syncobj timeline support: {}", m_drmRenderNode.syncObjSupport ? "yes" : "no");
+    LOG(Log::DEBUG, "DRM RenderNode syncobj timeline support: {}", m_drmRenderNode.syncObjSupport ? "yes" : "no");
 
     if (!m_drm.syncobjSupport && !m_drmRenderNode.syncObjSupport)
-        Log::logger->log(Log::DEBUG, "DRM no syncobj support, disabling explicit sync");
+        LOG(Log::DEBUG, "DRM no syncobj support, disabling explicit sync");
 #else
-    Log::logger->log(Log::DEBUG, "DRM syncobj timeline support: no (not linux)");
+    LOG(Log::DEBUG, "DRM syncobj timeline support: no (not linux)");
 #endif
 
     if (!socketName.empty() && socketFd != -1) {
@@ -389,9 +389,9 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
         const auto RETVAL = wl_display_add_socket_fd(m_wlDisplay, socketFd);
         if (RETVAL >= 0) {
             m_wlDisplaySocket = socketName;
-            Log::logger->log(Log::DEBUG, "wl_display_add_socket_fd for {} succeeded with {}", socketName, RETVAL);
+            LOG(Log::DEBUG, "wl_display_add_socket_fd for {} succeeded with {}", socketName, RETVAL);
         } else
-            Log::logger->log(Log::WARN, "wl_display_add_socket_fd for {} returned {}: skipping", socketName, RETVAL);
+            LOG(Log::WARN, "wl_display_add_socket_fd for {} returned {}: skipping", socketName, RETVAL);
     } else {
         // get socket, avoid using 0
         for (int candidate = 1; candidate <= 32; candidate++) {
@@ -399,22 +399,22 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
             const auto RETVAL       = wl_display_add_socket(m_wlDisplay, CANDIDATESTR.c_str());
             if (RETVAL >= 0) {
                 m_wlDisplaySocket = CANDIDATESTR;
-                Log::logger->log(Log::DEBUG, "wl_display_add_socket for {} succeeded with {}", CANDIDATESTR, RETVAL);
+                LOG(Log::DEBUG, "wl_display_add_socket for {} succeeded with {}", CANDIDATESTR, RETVAL);
                 break;
             } else
-                Log::logger->log(Log::WARN, "wl_display_add_socket for {} returned {}: skipping candidate {}", CANDIDATESTR, RETVAL, candidate);
+                LOG(Log::WARN, "wl_display_add_socket for {} returned {}: skipping candidate {}", CANDIDATESTR, RETVAL, candidate);
         }
     }
 
     if (m_wlDisplaySocket.empty()) {
-        Log::logger->log(Log::WARN, "All candidates failed, trying wl_display_add_socket_auto");
+        LOG(Log::WARN, "All candidates failed, trying wl_display_add_socket_auto");
         const auto SOCKETSTR = wl_display_add_socket_auto(m_wlDisplay);
         if (SOCKETSTR)
             m_wlDisplaySocket = SOCKETSTR;
     }
 
     if (m_wlDisplaySocket.empty()) {
-        Log::logger->log(Log::CRIT, "m_szWLDisplaySocket NULL!");
+        LOG(Log::CRIT, "m_szWLDisplaySocket NULL!");
         throwError("m_szWLDisplaySocket was null! (wl_display_add_socket and wl_display_add_socket_auto failed)");
     }
 
@@ -460,7 +460,7 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
 
 void CCompositor::initAllSignals() {
     m_aqBackend->events.newOutput.listenStatic([this](const SP<Aquamarine::IOutput>& output) {
-        Log::logger->log(Log::DEBUG, "New aquamarine output with name {}", output->name);
+        LOG(Log::DEBUG, "New aquamarine output with name {}", output->name);
         if (m_initialized)
             State::monitorState()->add(output);
         else
@@ -468,42 +468,42 @@ void CCompositor::initAllSignals() {
     });
 
     m_aqBackend->events.newPointer.listenStatic([](const SP<Aquamarine::IPointer>& dev) {
-        Log::logger->log(Log::DEBUG, "New aquamarine pointer with name {}", dev->getName());
+        LOG(Log::DEBUG, "New aquamarine pointer with name {}", dev->getName());
         g_pInputManager->newMouse(dev);
         g_pInputManager->updateCapabilities();
     });
 
     m_aqBackend->events.newKeyboard.listenStatic([](const SP<Aquamarine::IKeyboard>& dev) {
-        Log::logger->log(Log::DEBUG, "New aquamarine keyboard with name {}", dev->getName());
+        LOG(Log::DEBUG, "New aquamarine keyboard with name {}", dev->getName());
         g_pInputManager->newKeyboard(dev);
         g_pInputManager->updateCapabilities();
     });
 
     m_aqBackend->events.newTouch.listenStatic([](const SP<Aquamarine::ITouch>& dev) {
-        Log::logger->log(Log::DEBUG, "New aquamarine touch with name {}", dev->getName());
+        LOG(Log::DEBUG, "New aquamarine touch with name {}", dev->getName());
         g_pInputManager->newTouchDevice(dev);
         g_pInputManager->updateCapabilities();
     });
 
     m_aqBackend->events.newSwitch.listenStatic([](const SP<Aquamarine::ISwitch>& dev) {
-        Log::logger->log(Log::DEBUG, "New aquamarine switch with name {}", dev->getName());
+        LOG(Log::DEBUG, "New aquamarine switch with name {}", dev->getName());
         g_pInputManager->newSwitch(dev);
     });
 
     m_aqBackend->events.newTablet.listenStatic([](const SP<Aquamarine::ITablet>& dev) {
-        Log::logger->log(Log::DEBUG, "New aquamarine tablet with name {}", dev->getName());
+        LOG(Log::DEBUG, "New aquamarine tablet with name {}", dev->getName());
         g_pInputManager->newTablet(dev);
     });
 
     m_aqBackend->events.newTabletPad.listenStatic([](const SP<Aquamarine::ITabletPad>& dev) {
-        Log::logger->log(Log::DEBUG, "New aquamarine tablet pad with name {}", dev->getName());
+        LOG(Log::DEBUG, "New aquamarine tablet pad with name {}", dev->getName());
         g_pInputManager->newTabletPad(dev);
     });
 
     if (m_aqBackend->hasSession()) {
         m_aqBackend->session->events.changeActive.listenStatic([this] {
             if (m_aqBackend->session->active) {
-                Log::logger->log(Log::DEBUG, "Session got activated!");
+                LOG(Log::DEBUG, "Session got activated!");
 
                 m_sessionActive = true;
 
@@ -518,7 +518,7 @@ void CCompositor::initAllSignals() {
                 Config::monitorRuleMgr()->scheduleReload();
                 Pointer::Cursor::mgr()->syncGsettings();
             } else {
-                Log::logger->log(Log::DEBUG, "Session got deactivated!");
+                LOG(Log::DEBUG, "Session got deactivated!");
 
                 m_sessionActive = false;
             }
@@ -559,7 +559,7 @@ void CCompositor::cleanEnvironment() {
 }
 
 void CCompositor::stopCompositor() {
-    Log::logger->log(Log::DEBUG, "Hyprland is stopping!");
+    LOG(Log::DEBUG, "Hyprland is stopping!");
 
     // this stops the wayland loop, wl_display_run
     wl_display_terminate(m_wlDisplay);
@@ -652,35 +652,35 @@ void CCompositor::cleanup() {
 void CCompositor::initManagers(eManagersInitStage stage) {
     switch (stage) {
         case STAGE_PRIORITY: {
-            Log::logger->log(Log::DEBUG, "Creating the EventLoopManager!");
+            LOG(Log::DEBUG, "Creating the EventLoopManager!");
             g_pEventLoopManager = makeUnique<CEventLoopManager>(m_wlDisplay, m_wlEventLoop);
 
-            Log::logger->log(Log::DEBUG, "Creating the KeybindManager!");
+            LOG(Log::DEBUG, "Creating the KeybindManager!");
             Keybinds::mgr();
 
-            Log::logger->log(Log::DEBUG, "Creating the AnimationManager!");
+            LOG(Log::DEBUG, "Creating the AnimationManager!");
             Animation::mgr();
 
-            Log::logger->log(Log::DEBUG, "Creating the DynamicPermissionManager!");
+            LOG(Log::DEBUG, "Creating the DynamicPermissionManager!");
             g_pDynamicPermissionManager = makeUnique<CDynamicPermissionManager>();
 
-            Log::logger->log(Log::DEBUG, "Creating the MonitorState!");
+            LOG(Log::DEBUG, "Creating the MonitorState!");
             State::monitorState();
 
-            Log::logger->log(Log::DEBUG, "Creating the WorkspaceState!");
+            LOG(Log::DEBUG, "Creating the WorkspaceState!");
             State::workspaceState();
 
-            Log::logger->log(Log::DEBUG, "Creating the ConfigManager!");
+            LOG(Log::DEBUG, "Creating the ConfigManager!");
             if (!Config::initConfigManager())
                 exit(1);
 
-            Log::logger->log(Log::DEBUG, "Creating the Error Overlay!");
+            LOG(Log::DEBUG, "Creating the Error Overlay!");
             ErrorOverlay::overlay();
 
-            Log::logger->log(Log::DEBUG, "Creating the LayoutManager!");
+            LOG(Log::DEBUG, "Creating the LayoutManager!");
             g_layoutManager = makeUnique<Layout::CLayoutManager>();
 
-            Log::logger->log(Log::DEBUG, "Creating the TokenManager!");
+            LOG(Log::DEBUG, "Creating the TokenManager!");
             g_pTokenManager = makeUnique<CTokenManager>();
 
             IPC::Socket2::sock();
@@ -690,26 +690,26 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Config::mgr()->init();
 
-            Log::logger->log(Log::DEBUG, "Creating the PointerManager!");
+            LOG(Log::DEBUG, "Creating the PointerManager!");
             Pointer::mgr() = makeUnique<Pointer::CPointerManager>();
 
-            Log::logger->log(Log::DEBUG, "Creating the AsyncResourceGatherer!");
+            LOG(Log::DEBUG, "Creating the AsyncResourceGatherer!");
             g_pAsyncResourceGatherer = makeUnique<Hyprgraphics::CAsyncResourceGatherer>();
         } break;
         case STAGE_BASICINIT: {
-            Log::logger->log(Log::DEBUG, "Creating the CHyprOpenGLImpl!");
+            LOG(Log::DEBUG, "Creating the CHyprOpenGLImpl!");
             g_pHyprOpenGL = makeUnique<CHyprOpenGLImpl>();
 
-            Log::logger->log(Log::DEBUG, "Creating the HyprRenderer!");
+            LOG(Log::DEBUG, "Creating the HyprRenderer!");
             g_pHyprRenderer = makeUnique<CHyprGLRenderer>();
 
-            Log::logger->log(Log::DEBUG, "Creating the ProtocolManager!");
+            LOG(Log::DEBUG, "Creating the ProtocolManager!");
             g_pProtocolManager = makeUnique<CProtocolManager>();
 
-            Log::logger->log(Log::DEBUG, "Creating the SeatManager!");
+            LOG(Log::DEBUG, "Creating the SeatManager!");
             g_pSeatManager = makeUnique<CSeatManager>();
 
-            Log::logger->log(Log::DEBUG, "Creating the SessionLockManager!");
+            LOG(Log::DEBUG, "Creating the SessionLockManager!");
             g_pSessionLockManager = makeUnique<CSessionLockManager>();
 
             // init focus state els
@@ -726,44 +726,44 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
         } break;
         case STAGE_LATE: {
-            Log::logger->log(Log::DEBUG, "Creating Socket1");
+            LOG(Log::DEBUG, "Creating Socket1");
             IPC::Socket1::sock() = makeUnique<IPC::Socket1::CSocket1>();
 
-            Log::logger->log(Log::DEBUG, "Creating the InputManager!");
+            LOG(Log::DEBUG, "Creating the InputManager!");
             g_pInputManager = makeUnique<CInputManager>();
 
-            Log::logger->log(Log::DEBUG, "Creating the XWaylandManager!");
+            LOG(Log::DEBUG, "Creating the XWaylandManager!");
             g_pXWaylandManager = makeUnique<CHyprXWaylandManager>();
 
-            Log::logger->log(Log::DEBUG, "Creating the Debug Overlay!");
+            LOG(Log::DEBUG, "Creating the Debug Overlay!");
             Debug::overlay();
 
-            Log::logger->log(Log::DEBUG, "Creating the NotificationOverlay!");
+            LOG(Log::DEBUG, "Creating the NotificationOverlay!");
             Notification::overlay();
 
-            Log::logger->log(Log::DEBUG, "Creating the PluginSystem!");
+            LOG(Log::DEBUG, "Creating the PluginSystem!");
             g_pPluginSystem = makeUnique<CPluginSystem>();
             Config::mgr()->handlePluginLoads();
 
-            Log::logger->log(Log::DEBUG, "Creating the DecorationPositioner!");
+            LOG(Log::DEBUG, "Creating the DecorationPositioner!");
             g_pDecorationPositioner = makeUnique<CDecorationPositioner>();
 
-            Log::logger->log(Log::DEBUG, "Creating the CursorManager!");
+            LOG(Log::DEBUG, "Creating the CursorManager!");
             Pointer::Cursor::mgr() = makeUnique<Pointer::Cursor::CCursorManager>();
 
-            Log::logger->log(Log::DEBUG, "Creating the VersionKeeper!");
+            LOG(Log::DEBUG, "Creating the VersionKeeper!");
             g_pVersionKeeperMgr = makeUnique<CVersionKeeperManager>();
 
-            Log::logger->log(Log::DEBUG, "Creating the DonationNag!");
+            LOG(Log::DEBUG, "Creating the DonationNag!");
             g_pDonationNagManager = makeUnique<CDonationNagManager>();
 
-            Log::logger->log(Log::DEBUG, "Creating the WelcomeManager!");
+            LOG(Log::DEBUG, "Creating the WelcomeManager!");
             g_pWelcomeManager = makeUnique<CWelcomeManager>();
 
-            Log::logger->log(Log::DEBUG, "Creating the ANRManager!");
+            LOG(Log::DEBUG, "Creating the ANRManager!");
             g_pANRManager = makeUnique<CANRManager>();
 
-            Log::logger->log(Log::DEBUG, "Starting XWayland");
+            LOG(Log::DEBUG, "Starting XWayland");
             g_pXWayland = makeUnique<CXWayland>(g_pCompositor->m_wantsXwayland);
         } break;
         default: UNREACHABLE();
@@ -812,7 +812,7 @@ void CCompositor::startCompositor() {
 #endif
     }
 
-    Log::logger->log(Log::DEBUG, "Running on WAYLAND_DISPLAY: {}", m_wlDisplaySocket);
+    LOG(Log::DEBUG, "Running on WAYLAND_DISPLAY: {}", m_wlDisplaySocket);
 
     g_pHyprRenderer->setCursorFromName("left_ptr");
 
@@ -822,7 +822,7 @@ void CCompositor::startCompositor() {
         if (!Env::envEnabled("HYPRLAND_NO_SD_NOTIFY"))
             NSystemd::sdNotify(0, "READY=1");
     } else
-        Log::logger->log(Log::DEBUG, "systemd integration is baked in but system itself is not booted à la systemd!");
+        LOG(Log::DEBUG, "systemd integration is baked in but system itself is not booted à la systemd!");
 #endif
 
     createLockFile();
@@ -831,14 +831,14 @@ void CCompositor::startCompositor() {
 
     if (m_watchdogWriteFd.isValid()) {
         if (!writeWatchdogFd("vax"))
-            Log::logger->log(Log::ERR, "startCompositor: failed to write to watchdogWriteFd {}: {}", m_watchdogWriteFd.get(), strerror(errno));
+            LOG(Log::ERR, "startCompositor: failed to write to watchdogWriteFd {}: {}", m_watchdogWriteFd.get(), strerror(errno));
     }
 
     if (!Env::envEnabled("HYPRLAND_NO_RT"))
         NInit::gainRealTime();
 
     // This blocks until we are done.
-    Log::logger->log(Log::DEBUG, "Hyprland is ready, running the event loop!");
+    LOG(Log::DEBUG, "Hyprland is ready, running the event loop!");
     g_pEventLoopManager->enterLoop();
 }
 
@@ -874,7 +874,7 @@ Vector2D CCompositor::parseWindowVectorArgsRelative(const std::string& args, con
     }
 
     if (!isNumber2(x) || !isNumber2(y)) {
-        Log::logger->log(Log::ERR, "parseWindowVectorArgsRelative: args not numbers");
+        LOG(Log::ERR, "parseWindowVectorArgsRelative: args not numbers");
         return relativeTo;
     }
 
@@ -976,10 +976,10 @@ void CCompositor::openSafeModeBox() {
 
 PImageDescription CCompositor::getPreferredImageDescription() {
     if (!PROTO::colorManagement) {
-        Log::logger->log(Log::ERR, "FIXME: color management protocol is not enabled, returning empty image description");
+        LOG(Log::ERR, "FIXME: color management protocol is not enabled, returning empty image description");
         return getDefaultImageDescription();
     }
-    Log::logger->log(Log::WARN, "FIXME: color management protocol is enabled, determine correct preferred image description");
+    LOG(Log::WARN, "FIXME: color management protocol is enabled, determine correct preferred image description");
     // should determine some common settings to avoid unnecessary transformations while keeping maximum displayable precision
     return State::monitorState()->monitors().size() == 1 ? State::monitorState()->monitors()[0]->m_imageDescription :
                                                            CImageDescription::from(SImageDescription{.primaries = NColorPrimaries::BT709});
@@ -987,7 +987,7 @@ PImageDescription CCompositor::getPreferredImageDescription() {
 
 PImageDescription CCompositor::getHDRImageDescription() {
     if (!PROTO::colorManagement) {
-        Log::logger->log(Log::ERR, "FIXME: color management protocol is not enabled, returning empty image description");
+        LOG(Log::ERR, "FIXME: color management protocol is not enabled, returning empty image description");
         return getDefaultImageDescription();
     }
 
@@ -1008,7 +1008,7 @@ PImageDescription CCompositor::getHDRImageDescription() {
 }
 
 bool CCompositor::shouldChangePreferredImageDescription() {
-    Log::logger->log(Log::WARN, "FIXME: color management protocol is enabled and outputs changed, check preferred image description changes");
+    LOG(Log::WARN, "FIXME: color management protocol is enabled and outputs changed, check preferred image description changes");
     return false;
 }
 

@@ -114,7 +114,7 @@ void CBackgroundEffectProtocol::getBackgroundEffect(CExtBackgroundEffectManagerV
 
     if (iter != m_effects.end()) {
         if (iter->second->m_resource) {
-            LOGM(Log::ERR, "BackgroundEffect already present for surface {:x}", (uintptr_t)surface.get());
+            LOG(Log::ERR, "BackgroundEffect already present for surface {:x}", (uintptr_t)surface.get());
             manager->error(EXT_BACKGROUND_EFFECT_MANAGER_V1_ERROR_BACKGROUND_EFFECT_EXISTS, "BackgroundEffect already present");
             return;
         } else {

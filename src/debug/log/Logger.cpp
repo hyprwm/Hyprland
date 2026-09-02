@@ -24,6 +24,16 @@ void CLogger::log(Hyprutils::CLI::eLogLevel level, const std::string_view& str) 
     m_logger.log(level, str);
 }
 
+void CLogger::log(Hyprutils::CLI::eLogLevel level, const std::string_view loc, const std::string_view str) {
+    if (!m_logsEnabled)
+        return;
+
+    if (level == Hyprutils::CLI::LOG_TRACE && !m_isTrace)
+        return;
+
+    log(level, std::format("[{}] {}", loc, str));
+}
+
 void CLogger::initIS(const std::string_view& IS) {
     // NOLINTNEXTLINE
     m_logger.setOutputFile(std::string{IS} + (ISDEBUG ? "/hyprlandd.log" : "/hyprland.log"));

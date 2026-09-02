@@ -25,7 +25,7 @@ void CXDGOutputProtocol::bindManager(wl_client* client, void* data, uint32_t ver
     const auto RESOURCE = m_managerResources.emplace_back(makeUnique<CZxdgOutputManagerV1>(client, ver, id)).get();
 
     if UNLIKELY (!RESOURCE->resource()) {
-        LOGM(Log::DEBUG, "Couldn't bind XDGOutputMgr");
+        LOG(Log::DEBUG, "Couldn't bind XDGOutputMgr");
         wl_client_post_no_memory(client);
         return;
     }
@@ -43,7 +43,7 @@ CXDGOutputProtocol::CXDGOutputProtocol(const wl_interface* iface, const int& ver
 void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32_t id, wl_resource* outputResource) {
     const auto OUTPUT = CWLOutputResource::fromResource(outputResource);
     if UNLIKELY (!OUTPUT) {
-        LOGM(Log::ERR, "New xdg_output from client {:x} has invalid wl_output resource", (uintptr_t)mgr->client());
+        LOG(Log::ERR, "New xdg_output from client {:x} has invalid wl_output resource", (uintptr_t)mgr->client());
         mgr->error(-1, "Invalid output resource");
         return;
     }
@@ -67,11 +67,11 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32
     }
 
     if UNLIKELY (!PMONITOR) {
-        LOGM(Log::ERR, "New xdg_output from client {:x} ({}) has no CMonitor?!", (uintptr_t)CLIENT, pXDGOutput->m_isXWayland ? "xwayland" : "not xwayland");
+        LOG(Log::ERR, "New xdg_output from client {:x} ({}) has no CMonitor?!", (uintptr_t)CLIENT, pXDGOutput->m_isXWayland ? "xwayland" : "not xwayland");
         return;
     }
 
-    LOGM(Log::DEBUG, "New xdg_output for {}: client {:x} ({})", PMONITOR->m_name, (uintptr_t)CLIENT, pXDGOutput->m_isXWayland ? "xwayland" : "not xwayland");
+    LOG(Log::DEBUG, "New xdg_output for {}: client {:x} ({})", PMONITOR->m_name, (uintptr_t)CLIENT, pXDGOutput->m_isXWayland ? "xwayland" : "not xwayland");
 
     const auto XDGVER = pXDGOutput->m_resource->version();
 
@@ -88,7 +88,7 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32
 }
 
 void CXDGOutputProtocol::updateAllOutputs() {
-    LOGM(Log::DEBUG, "updating all xdg_output heads");
+    LOG(Log::DEBUG, "updating all xdg_output heads");
 
     for (auto const& o : m_xdgOutputs) {
         if (!o->m_monitor)

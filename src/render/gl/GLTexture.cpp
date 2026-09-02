@@ -68,7 +68,7 @@ CGLTexture::CGLTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, con
 CGLTexture::CGLTexture(const Aquamarine::SDMABUFAttrs& attrs, void* image, bool opaque) {
     m_opaque = opaque;
     if (!g_pHyprOpenGL->m_proc.glEGLImageTargetTexture2DOES) {
-        Log::logger->log(Log::ERR, "Cannot create a dmabuf texture: no glEGLImageTargetTexture2DOES");
+        LOG(Log::ERR, "Cannot create a dmabuf texture: no glEGLImageTargetTexture2DOES");
         return;
     }
 

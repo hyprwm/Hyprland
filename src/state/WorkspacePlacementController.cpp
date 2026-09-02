@@ -73,7 +73,7 @@ void CWorkspacePlacementController::ensurePersistentWorkspacesPresent(const std:
             }
 
             if (id == WORKSPACE_INVALID) {
-                Log::logger->log(Log::ERR, "ensurePersistentWorkspacesPresent: couldn't resolve id for workspace {}", rule.m_workspaceString);
+                LOG(Log::ERR, "ensurePersistentWorkspacesPresent: couldn't resolve id for workspace {}", rule.m_workspaceString);
                 continue;
             }
             PWORKSPACE = State::workspaceState()->query().id(id).run();
@@ -85,7 +85,7 @@ void CWorkspacePlacementController::ensurePersistentWorkspacesPresent(const std:
         }
 
         if (!PMONITOR) {
-            Log::logger->log(Log::ERR, "ensurePersistentWorkspacesPresent: couldn't resolve monitor for {}, skipping", rule.m_monitor);
+            LOG(Log::ERR, "ensurePersistentWorkspacesPresent: couldn't resolve monitor for {}, skipping", rule.m_monitor);
             continue;
         }
 
@@ -97,12 +97,12 @@ void CWorkspacePlacementController::ensurePersistentWorkspacesPresent(const std:
 
         if (PWORKSPACE) {
             if (PWORKSPACE->m_monitor == PMONITOR) {
-                Log::logger->log(Log::DEBUG, "ensurePersistentWorkspacesPresent: workspace persistent {} already on {}", rule.m_workspaceString, PMONITOR->m_name);
+                LOG(Log::DEBUG, "ensurePersistentWorkspacesPresent: workspace persistent {} already on {}", rule.m_workspaceString, PMONITOR->m_name);
 
                 continue;
             }
 
-            Log::logger->log(Log::DEBUG, "ensurePersistentWorkspacesPresent: workspace persistent {} not on {}, moving", rule.m_workspaceString, PMONITOR->m_name);
+            LOG(Log::DEBUG, "ensurePersistentWorkspacesPresent: workspace persistent {} not on {}, moving", rule.m_workspaceString, PMONITOR->m_name);
             moveWorkspace(PWORKSPACE, PMONITOR, false);
             continue;
         }
@@ -143,7 +143,7 @@ void CWorkspacePlacementController::ensureWorkspacesOnAssignedMonitors(const FMo
         if (ws->m_monitor == PMONITOR)
             continue;
 
-        Log::logger->log(Log::DEBUG, "ensureWorkspacesOnAssignedMonitors: moving workspace {} to {}", ws->m_name, PMONITOR->m_name);
+        LOG(Log::DEBUG, "ensureWorkspacesOnAssignedMonitors: moving workspace {} to {}", ws->m_name, PMONITOR->m_name);
         moveWorkspace(ws, PMONITOR, true);
     }
 }
@@ -245,7 +245,7 @@ void CWorkspacePlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspa
     if (pWorkspace->m_monitor == pMonitor)
         return;
 
-    Log::logger->log(Log::DEBUG, "moveWorkspaceToMonitor: Moving {} to monitor {}", pWorkspace->m_id, pMonitor->m_id);
+    LOG(Log::DEBUG, "moveWorkspaceToMonitor: Moving {} to monitor {}", pWorkspace->m_id, pMonitor->m_id);
 
     const auto POLDMON = pWorkspace->m_monitor.lock();
 
@@ -279,13 +279,13 @@ void CWorkspacePlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspa
             }())
                 nextWorkspaceOnMonitorID++;
 
-            Log::logger->log(Log::DEBUG, "moveWorkspaceToMonitor: Plugging gap with new {}", nextWorkspaceOnMonitorID);
+            LOG(Log::DEBUG, "moveWorkspaceToMonitor: Plugging gap with new {}", nextWorkspaceOnMonitorID);
 
             if (POLDMON)
                 newWorkspace = State::workspaceState()->create(nextWorkspaceOnMonitorID, POLDMON->m_id);
         }
 
-        Log::logger->log(Log::DEBUG, "moveWorkspaceToMonitor: Plugging gap with existing {}", nextWorkspaceOnMonitorID);
+        LOG(Log::DEBUG, "moveWorkspaceToMonitor: Plugging gap with existing {}", nextWorkspaceOnMonitorID);
         if (POLDMON)
             POLDMON->changeWorkspace(nextWorkspaceOnMonitorID, false, true, carryFocus || POLDMON != Desktop::focusState()->monitor());
     }
@@ -326,7 +326,7 @@ void CWorkspacePlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspa
     }
 
     if (carryFocus && SWITCHINGISACTIVE && POLDMON == Desktop::focusState()->monitor()) { // if it was active, preserve its' status. If it wasn't, don't.
-        Log::logger->log(Log::DEBUG, "moveWorkspaceToMonitor: SWITCHINGISACTIVE, active {} -> {}", pMonitor->activeWorkspaceID(), pWorkspace->m_id);
+        LOG(Log::DEBUG, "moveWorkspaceToMonitor: SWITCHINGISACTIVE, active {} -> {}", pMonitor->activeWorkspaceID(), pWorkspace->m_id);
 
         if (valid(pMonitor->m_activeWorkspace)) {
             pMonitor->m_activeWorkspace->m_visible = false;

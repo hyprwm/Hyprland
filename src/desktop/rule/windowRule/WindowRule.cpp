@@ -384,7 +384,7 @@ bool CWindowRule::matches(PHLWINDOW w, bool allowEnvLookup) {
     for (const auto& [prop, engine] : m_matchEngines) {
         switch (prop) {
             default: {
-                Log::logger->log(Log::TRACE, "CWindowRule::matches: skipping prop entry {}", sc<std::underlying_type_t<eRuleProperty>>(prop));
+                LOG(Log::TRACE, "CWindowRule::matches: skipping prop entry {}", sc<std::underlying_type_t<eRuleProperty>>(prop));
                 break;
             }
 

@@ -45,8 +45,7 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     pLS->initView(pLS, VIEW_TYPE_LAYER_SURFACE);
 
     if (!pMonitor) {
-        Log::logger->log(Log::DEBUG, "LayerSurface {:x} (namespace {} layer {}) created on NO MONITOR ?!", rc<uintptr_t>(resource.get()), resource->m_layerNamespace,
-                         sc<int>(pLS->m_layer));
+        LOG(Log::DEBUG, "LayerSurface {:x} (namespace {} layer {}) created on NO MONITOR ?!", rc<uintptr_t>(resource.get()), resource->m_layerNamespace, sc<int>(pLS->m_layer));
 
         return pLS;
     }
@@ -57,8 +56,8 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     pLS->m_monitor = pMonitor;
     pMonitor->m_layerSurfaceLayers[resource->m_current.layer].emplace_back(pLS);
 
-    Log::logger->log(Log::DEBUG, "LayerSurface {:x} (namespace {} layer {}) created on monitor {}", rc<uintptr_t>(resource.get()), resource->m_layerNamespace,
-                     sc<int>(pLS->m_layer), pMonitor->m_name);
+    LOG(Log::DEBUG, "LayerSurface {:x} (namespace {} layer {}) created on monitor {}", rc<uintptr_t>(resource.get()), resource->m_layerNamespace, sc<int>(pLS->m_layer),
+        pMonitor->m_name);
 
     return pLS;
 }
@@ -131,16 +130,16 @@ bool CLayerSurface::desktopComponent() const {
 }
 
 void CLayerSurface::onDestroy() {
-    Log::logger->log(Log::DEBUG, "LayerSurface {:x} destroyed", rc<uintptr_t>(m_layerSurface.get()));
+    LOG(Log::DEBUG, "LayerSurface {:x} destroyed", rc<uintptr_t>(m_layerSurface.get()));
 
     const auto SELF     = m_self.lock();
     const auto PMONITOR = m_monitor.lock();
 
     if (!PMONITOR)
-        Log::logger->log(Log::WARN, "Layersurface destroyed on an invalid monitor (removed?)");
+        LOG(Log::WARN, "Layersurface destroyed on an invalid monitor (removed?)");
 
     if (m_mapped) {
-        Log::logger->log(Log::DEBUG, "Forcing an unmap of a LS that did a straight destroy!");
+        LOG(Log::DEBUG, "Forcing an unmap of a LS that did a straight destroy!");
         onUnmap();
     }
 
@@ -172,7 +171,7 @@ void CLayerSurface::onDestroy() {
 }
 
 void CLayerSurface::onMap() {
-    Log::logger->log(Log::DEBUG, "LayerSurface {:x} mapped", rc<uintptr_t>(m_layerSurface.get()));
+    LOG(Log::DEBUG, "LayerSurface {:x} mapped", rc<uintptr_t>(m_layerSurface.get()));
 
     m_mapped                = true;
     m_keyboardInteractivity = m_layerSurface->m_current.keyboardInteractivity;
@@ -233,7 +232,7 @@ void CLayerSurface::onMap() {
 }
 
 void CLayerSurface::onUnmap() {
-    Log::logger->log(Log::DEBUG, "LayerSurface {:x} unmapped", rc<uintptr_t>(m_layerSurface.get()));
+    LOG(Log::DEBUG, "LayerSurface {:x} unmapped", rc<uintptr_t>(m_layerSurface.get()));
 
     IPC::Socket2::sock()->postEvent({.event = "closelayer", .data = m_layerSurface->m_layerNamespace});
     Event::bus()->m_events.layer.closed.emit(m_self.lock());
@@ -241,7 +240,7 @@ void CLayerSurface::onUnmap() {
     std::erase_if(g_pInputManager->m_exclusiveKeyboardLSes, [this](const auto& other) { return !other || other == m_self; });
 
     if (!m_monitor) {
-        Log::logger->log(Log::WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");
+        LOG(Log::WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");
 
         m_mapped = false;
         if (m_layerSurface && m_layerSurface->m_surface)

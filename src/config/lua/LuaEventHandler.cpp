@@ -27,7 +27,7 @@ void CLuaEventHandler::dispatch(const std::string& name, int nargs, const std::f
         return;
 
     if (m_dispatchDepth >= MAX_DISPATCH_DEPTH) {
-        Log::logger->log(Log::WARN, "[LuaEvents] max dispatch depth ({}) reached while handling '{}'", MAX_DISPATCH_DEPTH, name);
+        LOG(Log::WARN, "[LuaEvents] max dispatch depth ({}) reached while handling '{}'", MAX_DISPATCH_DEPTH, name);
         return;
     }
 
@@ -40,7 +40,7 @@ void CLuaEventHandler::dispatch(const std::string& name, int nargs, const std::f
 
         if (m_activeHandles.contains(handle)) {
             if (m_reentrancyWarnedHandles.emplace(handle).second)
-                Log::logger->log(Log::WARN, "[LuaEvents] suppressed recursive hl.on(\"{}\") callback invocation", name);
+                LOG(Log::WARN, "[LuaEvents] suppressed recursive hl.on(\"{}\") callback invocation", name);
             continue;
         }
 
@@ -174,12 +174,12 @@ CLuaEventHandler::CLuaEventHandler(lua_State* L) : m_lua(L) {
     m_listeners.push_back(bus()->m_events.pluginEventAdded.listen([this](SP<Event::CEventBus::CCustomEvent> event) {
         auto ret = addCustomEvent(event);
         if (!ret)
-            Log::logger->log(Log::ERR, "failed to register plugin event for lua {}: {}", event->m_name, ret.error());
+            LOG(Log::ERR, "failed to register plugin event for lua {}: {}", event->m_name, ret.error());
     }));
     m_listeners.push_back(bus()->m_events.pluginEventRemoved.listen([this](const std::string& name) {
         auto ret = removeCustomEvent(name);
         if (!ret)
-            Log::logger->log(Log::ERR, "failed to unregister plugin event for lua {}: {}", name, ret.error());
+            LOG(Log::ERR, "failed to unregister plugin event for lua {}: {}", name, ret.error());
     }));
 
     m_listeners.push_back(bus()->m_events.input.keyboard.key.listen([this](const IKeyboard::SKeyEvent& keyEvent, const SCallbackInfo& _) {

@@ -72,7 +72,7 @@ CInputManager::CInputManager() {
         if (wl_resource_get_client(event.pMgr->resource()) != g_pSeatManager->m_state.pointerFocusResource->client())
             return;
 
-        Log::logger->log(Log::DEBUG, "cursorImage request: shape {} -> {}", sc<uint32_t>(event.shape), event.shapeName);
+        LOG(Log::DEBUG, "cursorImage request: shape {} -> {}", sc<uint32_t>(event.shape), event.shapeName);
 
         m_cursorSurfaceInfo.wlSurface->unassign();
         m_cursorSurfaceInfo.vHotspot = {};
@@ -332,8 +332,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
                 return;
             } else {
-                Log::logger->log(Log::ERR, "BUG THIS: Null SURF/CONSTRAINT in mouse refocus. Ignoring constraints. {:x} {:x}", rc<uintptr_t>(SURF.get()),
-                                 rc<uintptr_t>(CONSTRAINT.get()));
+                LOG(Log::ERR, "BUG THIS: Null SURF/CONSTRAINT in mouse refocus. Ignoring constraints. {:x} {:x}", rc<uintptr_t>(SURF.get()), rc<uintptr_t>(CONSTRAINT.get()));
             }
         } else {
             const auto WINDOW = SURF ? Desktop::View::CWindow::fromView(SURF->view()) : nullptr;
@@ -790,7 +789,7 @@ void CInputManager::onMouseButton(IPointer::SButtonEvent e, SP<IPointer> mouse) 
 }
 
 void CInputManager::processMouseRequest(const CSeatManager::SSetCursorEvent& event) {
-    Log::logger->log(Log::DEBUG, "cursorImage request: surface {:x}", rc<uintptr_t>(event.surf.get()));
+    LOG(Log::DEBUG, "cursorImage request: surface {:x}", rc<uintptr_t>(event.surf.get()));
 
     if (event.surf != m_cursorSurfaceInfo.wlSurface->resource()) {
         m_cursorSurfaceInfo.wlSurface->unassign();
@@ -839,13 +838,13 @@ eClickBehaviorMode CInputManager::getClickMode() {
 void CInputManager::setClickMode(eClickBehaviorMode mode) {
     switch (mode) {
         case CLICKMODE_DEFAULT:
-            Log::logger->log(Log::DEBUG, "SetClickMode: DEFAULT");
+            LOG(Log::DEBUG, "SetClickMode: DEFAULT");
             m_clickBehavior = CLICKMODE_DEFAULT;
             g_pHyprRenderer->setCursorFromName("left_ptr", true);
             break;
 
         case CLICKMODE_KILL:
-            Log::logger->log(Log::DEBUG, "SetClickMode: KILL");
+            LOG(Log::DEBUG, "SetClickMode: KILL");
             m_clickBehavior = CLICKMODE_KILL;
 
             // remove constraints
@@ -950,7 +949,7 @@ void CInputManager::processMouseDownKill(const IPointer::SButtonEvent& e) {
                 Desktop::viewState()->hitTest().windowAt(getMouseCoordsInternal(), Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
 
             if (!PWINDOW) {
-                Log::logger->log(Log::ERR, "Cannot kill invalid window!");
+                LOG(Log::ERR, "Cannot kill invalid window!");
                 break;
             }
 
@@ -1118,7 +1117,7 @@ void CInputManager::newKeyboard(SP<IKeyboard> keeb) {
 
     setupKeyboard(PNEWKEYBOARD);
 
-    Log::logger->log(Log::DEBUG, "New keyboard created, pointers Hypr: {:x}", rc<uintptr_t>(PNEWKEYBOARD.get()));
+    LOG(Log::DEBUG, "New keyboard created, pointers Hypr: {:x}", rc<uintptr_t>(PNEWKEYBOARD.get()));
 }
 
 void CInputManager::newKeyboard(SP<Aquamarine::IKeyboard> keyboard) {
@@ -1126,7 +1125,7 @@ void CInputManager::newKeyboard(SP<Aquamarine::IKeyboard> keyboard) {
 
     setupKeyboard(PNEWKEYBOARD);
 
-    Log::logger->log(Log::DEBUG, "New keyboard created, pointers Hypr: {:x} and AQ: {:x}", rc<uintptr_t>(PNEWKEYBOARD.get()), rc<uintptr_t>(keyboard.get()));
+    LOG(Log::DEBUG, "New keyboard created, pointers Hypr: {:x} and AQ: {:x}", rc<uintptr_t>(PNEWKEYBOARD.get()), rc<uintptr_t>(keyboard.get()));
 }
 
 void CInputManager::newVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keyboard) {
@@ -1134,7 +1133,7 @@ void CInputManager::newVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keyboard) 
 
     setupKeyboard(PNEWKEYBOARD);
 
-    Log::logger->log(Log::DEBUG, "New virtual keyboard created at {:x}", rc<uintptr_t>(PNEWKEYBOARD.get()));
+    LOG(Log::DEBUG, "New virtual keyboard created at {:x}", rc<uintptr_t>(PNEWKEYBOARD.get()));
 }
 
 void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
@@ -1145,7 +1144,7 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
     try {
         keeb->m_hlName = getNameForNewDevice(keeb->m_deviceName);
     } catch (std::exception& e) {
-        Log::logger->log(Log::ERR, "Keyboard had no name???"); // logic error
+        LOG(Log::ERR, "Keyboard had no name???"); // logic error
     }
 
     keeb->m_events.destroy.listenStatic([this, keeb = keeb.get()] {
@@ -1155,7 +1154,7 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
             return;
 
         destroyKeyboard(PKEEB);
-        Log::logger->log(Log::DEBUG, "Destroyed keyboard {:x}", rc<uintptr_t>(keeb));
+        LOG(Log::DEBUG, "Destroyed keyboard {:x}", rc<uintptr_t>(keeb));
     });
 
     keeb->m_keyboardEvents.key.listenStatic([this, keeb = keeb.get()](const IKeyboard::SKeyEvent& event) {
@@ -1220,7 +1219,7 @@ void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
 
     const auto HASCONFIG = Config::mgr()->deviceConfigExists(devname);
 
-    Log::logger->log(Log::DEBUG, "ApplyConfigToKeyboard for \"{}\", hasconfig: {}", devname, sc<int>(HASCONFIG));
+    LOG(Log::DEBUG, "ApplyConfigToKeyboard for \"{}\", hasconfig: {}", devname, sc<int>(HASCONFIG));
 
     const auto REPEATRATE  = Config::mgr()->getDeviceInt(devname, "repeat_rate", "input:repeat_rate");
     const auto REPEATDELAY = Config::mgr()->getDeviceInt(devname, "repeat_delay", "input:repeat_delay");
@@ -1255,11 +1254,11 @@ void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
 
         const auto PROMISE = g_pDynamicPermissionManager->promiseFor(-1, pKeyboard->m_hlName, PERMISSION_TYPE_KEYBOARD);
         if (!PROMISE)
-            Log::logger->log(Log::ERR, "BUG THIS: No promise for client permission for keyboard");
+            LOG(Log::ERR, "BUG THIS: No promise for client permission for keyboard");
         else {
             PROMISE->then([k = WP<IKeyboard>{pKeyboard}](SP<CPromiseResult<eDynamicPermissionAllowMode>> r) {
                 if (r->hasError()) {
-                    Log::logger->log(Log::ERR, "BUG THIS: No permission returned for keyboard");
+                    LOG(Log::ERR, "BUG THIS: No permission returned for keyboard");
                     return;
                 }
 
@@ -1276,7 +1275,7 @@ void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
         if (NUMLOCKON == pKeyboard->m_numlockOn && REPEATDELAY == pKeyboard->m_repeatDelay && REPEATRATE == pKeyboard->m_repeatRate && RULES == pKeyboard->m_currentRules.rules &&
             MODEL == pKeyboard->m_currentRules.model && LAYOUT == pKeyboard->m_currentRules.layout && VARIANT == pKeyboard->m_currentRules.variant &&
             OPTIONS == pKeyboard->m_currentRules.options && FILEPATH == pKeyboard->m_xkbFilePath) {
-            Log::logger->log(Log::DEBUG, "Not applying config to keyboard, it did not change.");
+            LOG(Log::DEBUG, "Not applying config to keyboard, it did not change.");
             return;
         }
     } catch (std::exception& e) {
@@ -1295,8 +1294,8 @@ void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
     IPC::Socket2::sock()->postEvent({"activelayout", std::format("{},{}", pKeyboard->m_hlName, LAYOUTSTR)});
     Event::bus()->m_events.input.keyboard.layout.emit(pKeyboard, LAYOUTSTR);
 
-    Log::logger->log(Log::DEBUG, "Set the keyboard layout to {} and variant to {} for keyboard \"{}\"", pKeyboard->m_currentRules.layout, pKeyboard->m_currentRules.variant,
-                     pKeyboard->m_hlName);
+    LOG(Log::DEBUG, "Set the keyboard layout to {} and variant to {} for keyboard \"{}\"", pKeyboard->m_currentRules.layout, pKeyboard->m_currentRules.variant,
+        pKeyboard->m_hlName);
 }
 
 void CInputManager::newVirtualMouse(SP<CVirtualPointerV1Resource> mouse) {
@@ -1304,7 +1303,7 @@ void CInputManager::newVirtualMouse(SP<CVirtualPointerV1Resource> mouse) {
 
     setupMouse(PMOUSE);
 
-    Log::logger->log(Log::DEBUG, "New virtual mouse created");
+    LOG(Log::DEBUG, "New virtual mouse created");
 }
 
 void CInputManager::newMouse(SP<IPointer> mouse) {
@@ -1312,7 +1311,7 @@ void CInputManager::newMouse(SP<IPointer> mouse) {
 
     setupMouse(mouse);
 
-    Log::logger->log(Log::DEBUG, "New mouse created, pointer Hypr: {:x}", rc<uintptr_t>(mouse.get()));
+    LOG(Log::DEBUG, "New mouse created, pointer Hypr: {:x}", rc<uintptr_t>(mouse.get()));
 }
 
 void CInputManager::newMouse(SP<Aquamarine::IPointer> mouse) {
@@ -1320,7 +1319,7 @@ void CInputManager::newMouse(SP<Aquamarine::IPointer> mouse) {
 
     setupMouse(PMOUSE);
 
-    Log::logger->log(Log::DEBUG, "New mouse created, pointer AQ: {:x}", rc<uintptr_t>(mouse.get()));
+    LOG(Log::DEBUG, "New mouse created, pointer AQ: {:x}", rc<uintptr_t>(mouse.get()));
 }
 
 void CInputManager::setupMouse(SP<IPointer> mauz) {
@@ -1329,15 +1328,15 @@ void CInputManager::setupMouse(SP<IPointer> mauz) {
     try {
         mauz->m_hlName = getNameForNewDevice(mauz->m_deviceName);
     } catch (std::exception& e) {
-        Log::logger->log(Log::ERR, "Mouse had no name???"); // logic error
+        LOG(Log::ERR, "Mouse had no name???"); // logic error
     }
 
     if (mauz->aq() && mauz->aq()->getLibinputHandle()) {
         const auto LIBINPUTDEV = mauz->aq()->getLibinputHandle();
 
-        Log::logger->log(Log::DEBUG, "New mouse has libinput sens {:.2f} ({:.2f}) with accel profile {} ({})", libinput_device_config_accel_get_speed(LIBINPUTDEV),
-                         libinput_device_config_accel_get_default_speed(LIBINPUTDEV), sc<int>(libinput_device_config_accel_get_profile(LIBINPUTDEV)),
-                         sc<int>(libinput_device_config_accel_get_default_profile(LIBINPUTDEV)));
+        LOG(Log::DEBUG, "New mouse has libinput sens {:.2f} ({:.2f}) with accel profile {} ({})", libinput_device_config_accel_get_speed(LIBINPUTDEV),
+            libinput_device_config_accel_get_default_speed(LIBINPUTDEV), sc<int>(libinput_device_config_accel_get_profile(LIBINPUTDEV)),
+            sc<int>(libinput_device_config_accel_get_default_profile(LIBINPUTDEV)));
     }
 
     Pointer::mgr()->attachPointer(mauz);
@@ -1415,7 +1414,7 @@ void CInputManager::setPointerConfigs() {
                 else if (TAP_MAP == "lmr")
                     libinput_device_config_tap_set_button_map(LIBINPUTDEV, LIBINPUT_CONFIG_TAP_MAP_LMR);
                 else
-                    Log::logger->log(Log::WARN, "Tap button mapping unknown");
+                    LOG(Log::WARN, "Tap button mapping unknown");
             }
 
             const auto SCROLLMETHOD = Config::mgr()->getDeviceString(devname, "scroll_method", "input:scroll_method");
@@ -1430,7 +1429,7 @@ void CInputManager::setPointerConfigs() {
             } else if (SCROLLMETHOD == "on_button_down") {
                 libinput_device_config_scroll_set_method(LIBINPUTDEV, LIBINPUT_CONFIG_SCROLL_ON_BUTTON_DOWN);
             } else {
-                Log::logger->log(Log::WARN, "Scroll method unknown");
+                LOG(Log::WARN, "Scroll method unknown");
             }
 
             if (Config::mgr()->getDeviceInt(devname, "tap-and-drag", "input:touchpad:tap-and-drag") == 0)
@@ -1508,15 +1507,15 @@ void CInputManager::setPointerConfigs() {
                             }
 
                             libinput_config_accel_set_points(CONFIG, LIBINPUT_ACCEL_TYPE_SCROLL, scrollStep, scrollPoints.size(), scrollPoints.data());
-                        } catch (std::exception& e) { Log::logger->log(Log::ERR, "Invalid values in scroll_points"); }
+                        } catch (std::exception& e) { LOG(Log::ERR, "Invalid values in scroll_points"); }
                     }
 
                     libinput_config_accel_set_points(CONFIG, LIBINPUT_ACCEL_TYPE_MOTION, accelStep, accelPoints.size(), accelPoints.data());
                     libinput_device_config_accel_apply(LIBINPUTDEV, CONFIG);
                     libinput_config_accel_destroy(CONFIG);
-                } catch (std::exception& e) { Log::logger->log(Log::ERR, "Invalid values in custom accel profile"); }
+                } catch (std::exception& e) { LOG(Log::ERR, "Invalid values in custom accel profile"); }
             } else {
-                Log::logger->log(Log::WARN, "Unknown acceleration profile, falling back to default");
+                LOG(Log::WARN, "Unknown acceleration profile, falling back to default");
             }
 
             const auto SCROLLBUTTON = Config::mgr()->getDeviceInt(devname, "scroll_button", "input:scroll_button");
@@ -1528,7 +1527,7 @@ void CInputManager::setPointerConfigs() {
             libinput_device_config_scroll_set_button_lock(LIBINPUTDEV,
                                                           SCROLLBUTTONLOCK == 0 ? LIBINPUT_CONFIG_SCROLL_BUTTON_LOCK_DISABLED : LIBINPUT_CONFIG_SCROLL_BUTTON_LOCK_ENABLED);
 
-            Log::logger->log(Log::DEBUG, "Applied config to mouse {}, sens {:.2f}", m->m_hlName, LIBINPUTSENS);
+            LOG(Log::DEBUG, "Applied config to mouse {}, sens {:.2f}", m->m_hlName, LIBINPUTSENS);
         }
     }
 }
@@ -1543,7 +1542,7 @@ bool CInputManager::anyHidHasCap(eHIDCapabilityType type) {
 }
 
 void CInputManager::destroyKeyboard(SP<IKeyboard> pKeyboard) {
-    Log::logger->log(Log::DEBUG, "Keyboard at {:x} removed", rc<uintptr_t>(pKeyboard.get()));
+    LOG(Log::DEBUG, "Keyboard at {:x} removed", rc<uintptr_t>(pKeyboard.get()));
 
     Keybinds::mgr()->onDeviceRemoved(pKeyboard);
     std::erase_if(m_keyboards, [pKeyboard](const auto& other) { return other == pKeyboard; });
@@ -1568,7 +1567,7 @@ void CInputManager::destroyKeyboard(SP<IKeyboard> pKeyboard) {
 }
 
 void CInputManager::destroyPointer(SP<IPointer> mouse) {
-    Log::logger->log(Log::DEBUG, "Pointer at {:x} removed", rc<uintptr_t>(mouse.get()));
+    LOG(Log::DEBUG, "Pointer at {:x} removed", rc<uintptr_t>(mouse.get()));
 
     Keybinds::mgr()->onDeviceRemoved(mouse);
     for (auto it = m_currentlyHeldButtons.begin(); it != m_currentlyHeldButtons.end();) {
@@ -1591,7 +1590,7 @@ void CInputManager::destroyPointer(SP<IPointer> mouse) {
 }
 
 void CInputManager::destroyTouchDevice(SP<ITouch> touch) {
-    Log::logger->log(Log::DEBUG, "Touch device at {:x} removed", rc<uintptr_t>(touch.get()));
+    LOG(Log::DEBUG, "Touch device at {:x} removed", rc<uintptr_t>(touch.get()));
 
     std::erase_if(m_touches, [touch](const auto& other) { return other == touch; });
 
@@ -1599,7 +1598,7 @@ void CInputManager::destroyTouchDevice(SP<ITouch> touch) {
 }
 
 void CInputManager::destroyTablet(SP<CTablet> tablet) {
-    Log::logger->log(Log::DEBUG, "Tablet device at {:x} removed", rc<uintptr_t>(tablet.get()));
+    LOG(Log::DEBUG, "Tablet device at {:x} removed", rc<uintptr_t>(tablet.get()));
 
     std::erase_if(m_tablets, [tablet](const auto& other) { return other == tablet; });
 
@@ -1607,7 +1606,7 @@ void CInputManager::destroyTablet(SP<CTablet> tablet) {
 }
 
 void CInputManager::destroyTabletTool(SP<CTabletTool> tool) {
-    Log::logger->log(Log::DEBUG, "Tablet tool at {:x} removed", rc<uintptr_t>(tool.get()));
+    LOG(Log::DEBUG, "Tablet tool at {:x} removed", rc<uintptr_t>(tool.get()));
 
     std::erase_if(m_tabletTools, [tool](const auto& other) { return other == tool; });
 
@@ -1615,7 +1614,7 @@ void CInputManager::destroyTabletTool(SP<CTabletTool> tool) {
 }
 
 void CInputManager::destroyTabletPad(SP<CTabletPad> pad) {
-    Log::logger->log(Log::DEBUG, "Tablet pad at {:x} removed", rc<uintptr_t>(pad.get()));
+    LOG(Log::DEBUG, "Tablet pad at {:x} removed", rc<uintptr_t>(pad.get()));
 
     std::erase_if(m_tabletPads, [pad](const auto& other) { return other == pad; });
 
@@ -1810,7 +1809,7 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
 
         const auto LAYOUT = pKeyboard->getActiveLayout();
 
-        Log::logger->log(Log::DEBUG, "LAYOUT CHANGED TO {} GROUP {}", LAYOUT, MODS.group);
+        LOG(Log::DEBUG, "LAYOUT CHANGED TO {} GROUP {}", LAYOUT, MODS.group);
 
         IPC::Socket2::sock()->postEvent({"activelayout", std::format("{},{}", pKeyboard->m_hlName, LAYOUT)});
         Event::bus()->m_events.input.keyboard.layout.emit(pKeyboard, LAYOUT);
@@ -1840,7 +1839,7 @@ void CInputManager::refocus(std::optional<Vector2D> overridePos) {
 
 bool CInputManager::refocusLastWindow(PHLMONITOR pMonitor) {
     if (!m_exclusiveKeyboardLSes.empty()) {
-        Log::logger->log(Log::DEBUG, "CInputManager::refocusLastWindow: ignoring, exclusive LS present.");
+        LOG(Log::DEBUG, "CInputManager::refocusLastWindow: ignoring, exclusive LS present.");
         return false;
     }
 
@@ -2032,7 +2031,7 @@ void CInputManager::newTouchDevice(SP<Aquamarine::ITouch> pDevice) {
     try {
         PNEWDEV->m_hlName = getNameForNewDevice(PNEWDEV->m_deviceName);
     } catch (std::exception& e) {
-        Log::logger->log(Log::ERR, "Touch Device had no name???"); // logic error
+        LOG(Log::ERR, "Touch Device had no name???"); // logic error
     }
 
     setTouchDeviceConfigs(PNEWDEV);
@@ -2047,7 +2046,7 @@ void CInputManager::newTouchDevice(SP<Aquamarine::ITouch> pDevice) {
         destroyTouchDevice(PDEV);
     });
 
-    Log::logger->log(Log::DEBUG, "New touch device added at {:x}", rc<uintptr_t>(PNEWDEV.get()));
+    LOG(Log::DEBUG, "New touch device added at {:x}", rc<uintptr_t>(PNEWDEV.get()));
 }
 
 void CInputManager::setTouchDeviceConfigs(SP<ITouch> dev) {
@@ -2061,7 +2060,7 @@ void CInputManager::setTouchDeviceConfigs(SP<ITouch> dev) {
                 libinput_device_config_send_events_set_mode(LIBINPUTDEV, mode);
 
             if (libinput_device_config_calibration_has_matrix(LIBINPUTDEV)) {
-                Log::logger->log(Log::DEBUG, "Setting calibration matrix for device {}", PTOUCHDEV->m_hlName);
+                LOG(Log::DEBUG, "Setting calibration matrix for device {}", PTOUCHDEV->m_hlName);
                 // default value of transform being -1 means it's unset.
                 const int ROTATION = std::clamp(Config::mgr()->getDeviceInt(PTOUCHDEV->m_hlName, "transform", "input:touchdevice:transform"), -1, 7);
                 if (ROTATION > -1)
@@ -2082,10 +2081,10 @@ void CInputManager::setTouchDeviceConfigs(SP<ITouch> dev) {
             PTOUCHDEV->m_boundOutput = bound ? output : "";
             const auto PMONITOR      = bound ? State::monitorState()->query().name(output).run() : nullptr;
             if (PMONITOR) {
-                Log::logger->log(Log::DEBUG, "Binding touch device {} to output {}", PTOUCHDEV->m_hlName, PMONITOR->m_name);
+                LOG(Log::DEBUG, "Binding touch device {} to output {}", PTOUCHDEV->m_hlName, PMONITOR->m_name);
                 // wlr_cursor_map_input_to_output(g_pCompositor->m_sWLRCursor, &PTOUCHDEV->wlr()->base, PMONITOR->output);
             } else if (bound)
-                Log::logger->log(Log::ERR, "Failed to bind touch device {} to output '{}': monitor not found", PTOUCHDEV->m_hlName, output);
+                LOG(Log::ERR, "Failed to bind touch device {} to output '{}': monitor not found", PTOUCHDEV->m_hlName, output);
         }
     };
 
@@ -2109,7 +2108,7 @@ void CInputManager::setTabletConfigs() {
             t->m_relativeInput  = RELINPUT;
 
             const int ROTATION = std::clamp(Config::mgr()->getDeviceInt(NAME, "transform", "input:tablet:transform"), -1, 7);
-            Log::logger->log(Log::DEBUG, "Setting calibration matrix for device {}", NAME);
+            LOG(Log::DEBUG, "Setting calibration matrix for device {}", NAME);
             if (ROTATION > -1)
                 libinput_device_config_calibration_set_matrix(LIBINPUTDEV, MATRICES[ROTATION]);
 
@@ -2120,7 +2119,7 @@ void CInputManager::setTabletConfigs() {
 
             const auto OUTPUT = Config::mgr()->getDeviceString(NAME, "output", "input:tablet:output");
             if (OUTPUT != STRVAL_EMPTY) {
-                Log::logger->log(Log::DEBUG, "Binding tablet {} to output {}", NAME, OUTPUT);
+                LOG(Log::DEBUG, "Binding tablet {} to output {}", NAME, OUTPUT);
                 t->m_boundOutput = OUTPUT;
             } else
                 t->m_boundOutput = "";
@@ -2175,22 +2174,22 @@ void CInputManager::newSwitch(SP<Aquamarine::ISwitch> pDevice) {
     const auto PNEWDEV = &m_switches.emplace_back();
     PNEWDEV->pDevice   = pDevice;
 
-    Log::logger->log(Log::DEBUG, "New switch with name \"{}\" added", pDevice->getName());
+    LOG(Log::DEBUG, "New switch with name \"{}\" added", pDevice->getName());
 
     PNEWDEV->listeners.destroy = pDevice->events.destroy.listen([this, PNEWDEV] { destroySwitch(PNEWDEV); });
 
     PNEWDEV->listeners.fire = pDevice->events.fire.listen([PNEWDEV](const Aquamarine::ISwitch::SFireEvent& event) {
         const auto NAME = PNEWDEV->pDevice->getName();
 
-        Log::logger->log(Log::DEBUG, "Switch {} fired, triggering binds.", NAME);
+        LOG(Log::DEBUG, "Switch {} fired, triggering binds.", NAME);
 
         Keybinds::mgr()->onSwitchEvent(NAME);
 
         if (event.enable) {
-            Log::logger->log(Log::DEBUG, "Switch {} turn on, triggering binds.", NAME);
+            LOG(Log::DEBUG, "Switch {} turn on, triggering binds.", NAME);
             Keybinds::mgr()->onSwitchOnEvent(NAME);
         } else {
-            Log::logger->log(Log::DEBUG, "Switch {} turn off, triggering binds.", NAME);
+            LOG(Log::DEBUG, "Switch {} turn off, triggering binds.", NAME);
             Keybinds::mgr()->onSwitchOffEvent(NAME);
         }
     });

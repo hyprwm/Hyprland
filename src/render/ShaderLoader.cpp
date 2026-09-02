@@ -114,10 +114,10 @@ std::string CShaderLoader::processSource(const std::string& source, glslang_stag
     glslang_shader_t* shader = glslang_shader_create(&input);
 
     if (!glslang_shader_preprocess(shader, &input)) {
-        Log::logger->log(Log::ERR, "GLSL preprocessing failed");
-        Log::logger->log(Log::ERR, "{}", glslang_shader_get_info_log(shader));
-        Log::logger->log(Log::ERR, "{}", glslang_shader_get_info_debug_log(shader));
-        Log::logger->log(Log::ERR, "{}", input.code);
+        LOG(Log::ERR, "GLSL preprocessing failed");
+        LOG(Log::ERR, "{}", glslang_shader_get_info_log(shader));
+        LOG(Log::ERR, "{}", glslang_shader_get_info_debug_log(shader));
+        LOG(Log::ERR, "{}", input.code);
         glslang_shader_delete(shader);
         return source;
     }

@@ -354,7 +354,7 @@ static auto logLevelForActionError(CA::eActionErrorLevel level) {
 }
 
 void Internal::reportError(lua_State* L, const CA::SActionError& e) {
-    Log::logger->log(logLevelForActionError(e.level), "Lua {} ({}): {}", CA::toString(e.level), CA::toString(e.code), e.message);
+    LOG(logLevelForActionError(e.level), "Lua {} ({}): {}", CA::toString(e.level), CA::toString(e.code), e.message);
 
     if (auto mgr = Config::Lua::mgr(); mgr) {
         mgr->addEvalIssue(e);

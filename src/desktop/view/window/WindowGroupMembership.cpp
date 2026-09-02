@@ -47,7 +47,7 @@ uint16_t Desktop::View::parseGroupRules(std::string_view rule, uint16_t currentR
             else if (previous == "lock")
                 currentRules |= GROUP_LOCK_ALWAYS;
             else
-                Log::logger->log(Log::ERR, "windowrule `group` does not support `{} always`", previous);
+                LOG(Log::ERR, "windowrule `group` does not support `{} always`", previous);
         }
 
         previous = value;

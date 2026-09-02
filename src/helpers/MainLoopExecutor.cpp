@@ -28,7 +28,7 @@ CMainLoopExecutor::~CMainLoopExecutor() {
 void CMainLoopExecutor::signal() {
     const char* amogus = "h";
     if (write(m_writeFd.get(), amogus, 1) < 0)
-        Log::logger->log(Log::ERR, "signal: failed to write to fd {}: {}", m_writeFd.get(), strerror(errno));
+        LOG(Log::ERR, "signal: failed to write to fd {}: {}", m_writeFd.get(), strerror(errno));
 }
 
 void CMainLoopExecutor::onFired() {

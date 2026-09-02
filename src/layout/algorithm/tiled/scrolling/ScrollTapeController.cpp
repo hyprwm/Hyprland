@@ -41,7 +41,7 @@ const SStripData& CScrollTapeController::getStrip(size_t index) const {
 void CScrollTapeController::setOffset(double offset) {
     if (getScrollInhibitor().isInhibited) {
         m_offset = getScrollInhibitor().offsetWhenInhibited;
-        Log::logger->log(Log::DEBUG, "m_offset not set - scrolling inhibited");
+        LOG(Log::DEBUG, "m_offset not set - scrolling inhibited");
     } else
         m_offset = offset;
 }

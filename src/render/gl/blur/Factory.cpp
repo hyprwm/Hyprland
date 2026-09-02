@@ -32,6 +32,6 @@ UP<IGLBlurProvider> Render::GL::createBlurProvider(eBlurType type, CHyprOpenGLIm
         case eBlurType::BLUR_HAZE: return makeUnique<CHazeBlurProvider>(impl);
     }
 
-    Log::logger->log(Log::ERR, "Unknown blur provider {}, falling back to dual Kawase", sc<uint8_t>(type));
+    LOG(Log::ERR, "Unknown blur provider {}, falling back to dual Kawase", sc<uint8_t>(type));
     return makeUnique<CDualKawaseBlurProvider>(impl);
 }

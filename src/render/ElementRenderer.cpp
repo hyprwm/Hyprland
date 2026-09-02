@@ -34,7 +34,7 @@ void IElementRenderer::drawElement(WP<IPassElement> element, const CRegion& dama
         case EK_TRANSFORMED_WINDOW: drawTransformedWindow(dynamicPointerCast<CTransformedWindowPassElement>(element), damage); break;
         case EK_BACKDROP_SCOPE: drawCustom(element, damage); break;
         case EK_CUSTOM: drawCustom(element, damage); break;
-        default: Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
+        default: LOG(Log::WARN, "Unimplimented draw for {}", element->passName());
     }
 }
 

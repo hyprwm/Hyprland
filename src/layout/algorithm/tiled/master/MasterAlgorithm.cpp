@@ -536,7 +536,7 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
     const auto stateErr   = [](std::string msg) { return Config::configError(std::move(msg), Config::eConfigErrorLevel::WARNING, Config::eConfigErrorCode::INVALID_STATE); };
 
     if (vars.size() < 1 || vars[0].empty()) {
-        Log::logger->log(Log::ERR, "layoutmsg called without params");
+        LOG(Log::ERR, "layoutmsg called without params");
         return invalidArg("layoutmsg without params");
     }
 

@@ -14,7 +14,7 @@ namespace NContentType {
                 auto n = std::stoi(name);
                 if (n >= 0 && n <= 3)
                     return sc<eContentType>(n);
-            } catch (std::exception& e) { Log::logger->log(Log::ERR, "NContentType::fromString: invalid number {}, need to be between 0 and 3", name); }
+            } catch (std::exception& e) { LOG(Log::ERR, "NContentType::fromString: invalid number {}, need to be between 0 and 3", name); }
         }
         auto it = table.find(name);
         if (it != table.end())

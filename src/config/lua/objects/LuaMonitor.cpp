@@ -87,7 +87,7 @@ static int monitorIndex(lua_State* L) {
     auto*      ref = sc<PHLMONITORREF*>(luaL_checkudata(L, 1, MT));
     const auto mon = ref->lock();
     if (!mon) {
-        Log::logger->log(Log::DEBUG, "[lua] Tried to access an expired object");
+        LOG(Log::DEBUG, "[lua] Tried to access an expired object");
         lua_pushnil(L);
         return 1;
     }

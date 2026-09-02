@@ -118,7 +118,7 @@ CWLPointerResource::CWLPointerResource(SP<CWlPointer> resource_, SP<CWLSeatResou
 
     m_resource->setSetCursor([this](CWlPointer* r, uint32_t serial, wl_resource* surf, int32_t hotX, int32_t hotY) {
         if (!m_owner) {
-            LOGM(Log::ERR, "Client bug: setCursor when seatClient is already dead");
+            LOG(Log::ERR, "Client bug: setCursor when seatClient is already dead");
             return;
         }
 
@@ -168,7 +168,7 @@ void CWLPointerResource::sendEnter(SP<CWLSurfaceResource> surface, const Vector2
         return;
 
     if (m_currentSurface) {
-        LOGM(Log::WARN, "requested CWLPointerResource::sendEnter without sendLeave first.");
+        LOG(Log::WARN, "requested CWLPointerResource::sendEnter without sendLeave first.");
         sendLeave();
     }
 
@@ -224,10 +224,10 @@ void CWLPointerResource::sendButton(uint32_t timeMs, uint32_t button, wl_pointer
         return;
 
     if (state == WL_POINTER_BUTTON_STATE_RELEASED && std::ranges::find(m_pressedButtons, button) == m_pressedButtons.end()) {
-        LOGM(Log::ERR, "sendButton release on a non-pressed button");
+        LOG(Log::ERR, "sendButton release on a non-pressed button");
         return;
     } else if (state == WL_POINTER_BUTTON_STATE_PRESSED && std::ranges::find(m_pressedButtons, button) != m_pressedButtons.end()) {
-        LOGM(Log::ERR, "sendButton press on a non-pressed button");
+        LOG(Log::ERR, "sendButton press on a non-pressed button");
         return;
     }
 
@@ -344,7 +344,7 @@ CWLKeyboardResource::CWLKeyboardResource(SP<CWlKeyboard> resource_, SP<CWLSeatRe
     m_resource->setOnDestroy([this](CWlKeyboard* r) { PROTO::seat->destroyResource(this); });
 
     if (!g_pSeatManager->m_keyboard) {
-        LOGM(Log::ERR, "No keyboard on bound wl_keyboard??");
+        LOG(Log::ERR, "No keyboard on bound wl_keyboard??");
         return;
     }
 
@@ -396,7 +396,7 @@ void CWLKeyboardResource::sendEnter(SP<CWLSurfaceResource> surface, wl_array* ke
         return;
 
     if (m_currentSurface) {
-        LOGM(Log::WARN, "requested CWLKeyboardResource::sendEnter without sendLeave first.");
+        LOG(Log::WARN, "requested CWLKeyboardResource::sendEnter without sendLeave first.");
         sendLeave();
     }
 
@@ -561,7 +561,7 @@ void CWLSeatProtocol::bindManager(wl_client* client, void* data, uint32_t ver, u
 
     RESOURCE->m_self = RESOURCE;
 
-    LOGM(Log::DEBUG, "New seat resource bound at {:x}", (uintptr_t)RESOURCE.get());
+    LOG(Log::DEBUG, "New seat resource bound at {:x}", (uintptr_t)RESOURCE.get());
 
     m_events.newSeatResource.emit(RESOURCE);
 }

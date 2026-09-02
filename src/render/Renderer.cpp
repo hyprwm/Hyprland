@@ -111,14 +111,14 @@ IHyprRenderer::IHyprRenderer() {
             else if (name.contains("softpipe") || name.contains("Software Rasterizer") || name.contains("llvmpipe"))
                 m_software = true;
 
-            Log::logger->log(Log::DEBUG, "DRM driver information: {} v{}.{}.{} from {} description {}", name, DRMV->version_major, DRMV->version_minor, DRMV->version_patchlevel,
-                             std::string{DRMV->date, DRMV->date_len}, std::string{DRMV->desc, DRMV->desc_len});
+            LOG(Log::DEBUG, "DRM driver information: {} v{}.{}.{} from {} description {}", name, DRMV->version_major, DRMV->version_minor, DRMV->version_patchlevel,
+                std::string{DRMV->date, DRMV->date_len}, std::string{DRMV->desc, DRMV->desc_len});
 
             drmFreeVersion(DRMV);
         }
         m_mgpu = drmDevices > 1;
     } else {
-        Log::logger->log(Log::DEBUG, "Aq backend has no session, omitting full DRM node checks");
+        LOG(Log::DEBUG, "Aq backend has no session, omitting full DRM node checks");
 
         const auto DRMV = drmGetVersion(g_pCompositor->m_drm.fd);
 
@@ -133,17 +133,17 @@ IHyprRenderer::IHyprRenderer() {
             else if (name.contains("softpipe") || name.contains("Software Rasterizer") || name.contains("llvmpipe"))
                 m_software = true;
 
-            Log::logger->log(Log::DEBUG, "Primary DRM driver information: {} v{}.{}.{} from {} description {}", name, DRMV->version_major, DRMV->version_minor,
-                             DRMV->version_patchlevel, std::string{DRMV->date, DRMV->date_len}, std::string{DRMV->desc, DRMV->desc_len});
+            LOG(Log::DEBUG, "Primary DRM driver information: {} v{}.{}.{} from {} description {}", name, DRMV->version_major, DRMV->version_minor, DRMV->version_patchlevel,
+                std::string{DRMV->date, DRMV->date_len}, std::string{DRMV->desc, DRMV->desc_len});
         } else {
-            Log::logger->log(Log::DEBUG, "No primary DRM driver information found");
+            LOG(Log::DEBUG, "No primary DRM driver information found");
         }
 
         drmFreeVersion(DRMV);
     }
 
     if (m_nvidia)
-        Log::logger->log(Log::WARN, "NVIDIA detected, please remember to follow nvidia instructions on the wiki");
+        LOG(Log::WARN, "NVIDIA detected, please remember to follow nvidia instructions on the wiki");
 
     // cursor hiding stuff
 
@@ -914,7 +914,7 @@ SP<ITexture> IHyprRenderer::createTexture(const SP<Aquamarine::IBuffer> buffer, 
         auto shm = buffer->shm();
 
         if (!shm.success) {
-            Log::logger->log(Log::ERR, "Cannot create a texture: buffer has no dmabuf or shm");
+            LOG(Log::ERR, "Cannot create a texture: buffer has no dmabuf or shm");
             return createTexture(buffer->opaque);
         }
 
@@ -926,7 +926,7 @@ SP<ITexture> IHyprRenderer::createTexture(const SP<Aquamarine::IBuffer> buffer, 
     auto tex = createTexture(attrs, buffer->opaque);
 
     if (!tex) {
-        Log::logger->log(Log::ERR, "Cannot create a texture: failed to create an Image");
+        LOG(Log::ERR, "Cannot create a texture: failed to create an Image");
         return createTexture(buffer->opaque);
     }
 
@@ -1259,7 +1259,7 @@ void IHyprRenderer::renderIME(PHLMONITOR pMonitor, const Time::steady_tp& now, c
     TRACY_GPU_ZONE("RenderIME");
 
     if (!DELTALESSTHAN(sc<double>(geometry.width) / sc<double>(geometry.height), pMonitor->m_transformedSize.x / pMonitor->m_transformedSize.y, 0.01)) {
-        Log::logger->log(Log::ERR, "Ignoring geometry in renderIME: aspect ratio mismatch");
+        LOG(Log::ERR, "Ignoring geometry in renderIME: aspect ratio mismatch");
         scale     = 1.f;
         translate = Vector2D{};
     }
@@ -1300,13 +1300,13 @@ SP<ITexture> IHyprRenderer::getBackground(PHLMONITOR pMonitor) {
     if (!m_backgroundResource->m_ready)
         return nullptr;
 
-    Log::logger->log(Log::DEBUG, "Creating a texture for BGTex");
+    LOG(Log::DEBUG, "Creating a texture for BGTex");
     SP<ITexture> backgroundTexture = createTexture(m_backgroundResource->m_asset.cairoSurface->cairo());
 
     if (!backgroundTexture || !backgroundTexture->ok())
         return nullptr;
 
-    Log::logger->log(Log::DEBUG, "BGTex created for monitor {}", pMonitor->m_name);
+    LOG(Log::DEBUG, "BGTex created for monitor {}", pMonitor->m_name);
 
     const int monW  = (int)std::round(pMonitor->m_transformedSize.x);
     const int monH  = (int)std::round(pMonitor->m_transformedSize.y);
@@ -1351,7 +1351,7 @@ SP<ITexture> IHyprRenderer::getBackground(PHLMONITOR pMonitor) {
 
             backgroundTexture = fb->getTexture();
 
-            Log::logger->log(Log::INFO, "BGTex scaled from {}x{} to {}x{} for monitor {}", origW, origH, monW, monH, pMonitor->m_name);
+            LOG(Log::INFO, "BGTex scaled from {}x{} to {}x{} for monitor {}", origW, origH, monW, monH, pMonitor->m_name);
         }
     }
 
@@ -1484,12 +1484,12 @@ std::string IHyprRenderer::resolveAssetPath(const std::string& filename) {
             fullPath = p;
             break;
         } else
-            Log::logger->log(Log::DEBUG, "resolveAssetPath: looking at {} unsuccessful: ec {}", filename, ec.message());
+            LOG(Log::DEBUG, "resolveAssetPath: looking at {} unsuccessful: ec {}", filename, ec.message());
     }
 
     if (fullPath.empty()) {
         m_failedAssetsNo++;
-        Log::logger->log(Log::ERR, "resolveAssetPath: looking for {} failed (no provider found)", filename);
+        LOG(Log::ERR, "resolveAssetPath: looking for {} failed (no provider found)", filename);
         return "";
     }
 
@@ -1507,7 +1507,7 @@ SP<ITexture> IHyprRenderer::loadAsset(const std::string& filename) {
 
     if (!CAIROSURFACE) {
         m_failedAssetsNo++;
-        Log::logger->log(Log::ERR, "loadAsset: failed to load {} (corrupt / inaccessible / not png)", fullPath);
+        LOG(Log::ERR, "loadAsset: failed to load {} (corrupt / inaccessible / not png)", fullPath);
         return m_missingAssetTexture;
     }
 
@@ -1772,7 +1772,7 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     if (!buffer) {
         m_currentBuffer = pMonitor->m_output->swapchain->next(&bufferAge);
         if (!m_currentBuffer) {
-            Log::logger->log(Log::ERR, "Failed to acquire swapchain buffer for {}", pMonitor->m_name);
+            LOG(Log::ERR, "Failed to acquire swapchain buffer for {}", pMonitor->m_name);
             return false;
         }
     } else
@@ -1781,7 +1781,7 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     initRender();
 
     if (!initRenderBuffer(m_currentBuffer, pMonitor->m_output->state->state().drmFormat)) {
-        Log::logger->log(Log::ERR, "failed to start a render pass for output {}, no RBO could be obtained", pMonitor->m_name);
+        LOG(Log::ERR, "failed to start a render pass for output {}, no RBO could be obtained", pMonitor->m_name);
         return false;
     }
 
@@ -1863,7 +1863,7 @@ SP<IFramebuffer> IHyprRenderer::blurMainFramebuffer(float strength, const CRegio
     const auto blurSource   = !m_backdropCaptures.empty() && m_backdropCaptures.back().framebuffer ? m_backdropCaptures.back().framebuffer : renderTarget;
 
     if (!blurSource || !blurSource->getTexture()) {
-        Log::logger->log(Log::ERR, "BUG THIS: null fb texture while attempting to blur main fb?! (introspection off?!)");
+        LOG(Log::ERR, "BUG THIS: null fb texture while attempting to blur main fb?! (introspection off?!)");
         return m_renderData.pMonitor->resources()->m_blurFB; // return something to sample from at least
     }
 
@@ -1902,7 +1902,7 @@ void IHyprRenderer::beginBackdropScope(SP<SBackdropScope> scope) {
             static bool warned = false;
             if (!warned) {
                 warned = true;
-                Log::logger->log(Log::WARN, "Failed to allocate a clean backdrop buffer; live blur will include the current window's rendered content");
+                LOG(Log::WARN, "Failed to allocate a clean backdrop buffer; live blur will include the current window's rendered content");
             }
         }
     }
@@ -2094,7 +2094,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     const float                                           ZOOMFACTOR = pMonitor->m_cursorZoom->value();
 
     if (pMonitor->m_pixelSize.x < 1 || pMonitor->m_pixelSize.y < 1) {
-        Log::logger->log(Log::ERR, "Refusing to render a monitor because of an invalid pixel size: {}", pMonitor->m_pixelSize);
+        LOG(Log::ERR, "Refusing to render a monitor because of an invalid pixel size: {}", pMonitor->m_pixelSize);
         return;
     }
 
@@ -2162,7 +2162,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         return;
 
     if (*PDAMAGETRACKINGMODE == -1) {
-        Log::logger->log(Log::CRIT, "Damage tracking mode -1 ????");
+        LOG(Log::CRIT, "Damage tracking mode -1 ????");
         return;
     }
 
@@ -2204,7 +2204,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     CRegion                                           damage, finalDamage;
     std::optional<Monitor::CDamageRing::CTransaction> damageTransaction;
     if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL, {}, nullptr, false, &damageTransaction)) {
-        Log::logger->log(Log::ERR, "renderer: couldn't beginRender()!");
+        LOG(Log::ERR, "renderer: couldn't beginRender()!");
         return;
     }
 
@@ -2364,9 +2364,9 @@ static hdr_output_metadata       createHDRMetadata(SImageDescription settings, P
                                                                          SImageDescription::SPCMasteringLuminances{.min = settings.luminances.min, .max = settings.luminances.max} :
                                                                          SImageDescription::SPCMasteringLuminances{.min = monitor->minLuminance(), .max = monitor->maxLuminance(10000)});
 
-    Log::logger->log(Log::TRACE, "ColorManagement primaries {},{} {},{} {},{} {},{}", colorimetry.red.x, colorimetry.red.y, colorimetry.green.x, colorimetry.green.y,
-                     colorimetry.blue.x, colorimetry.blue.y, colorimetry.white.x, colorimetry.white.y);
-    Log::logger->log(Log::TRACE, "ColorManagement min {}, max {}, cll {}, fall {}", luminances.min, luminances.max, settings.maxCLL, settings.maxFALL);
+    LOG(Log::TRACE, "ColorManagement primaries {},{} {},{} {},{} {},{}", colorimetry.red.x, colorimetry.red.y, colorimetry.green.x, colorimetry.green.y, colorimetry.blue.x,
+        colorimetry.blue.y, colorimetry.white.x, colorimetry.white.y);
+    LOG(Log::TRACE, "ColorManagement min {}, max {}, cll {}, fall {}", luminances.min, luminances.max, settings.maxCLL, settings.maxFALL);
     return hdr_output_metadata{
         .metadata_type = 0,
         .hdmi_metadata_type1 =
@@ -2428,11 +2428,11 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
                     bool needsHdrMetadataUpdate =
                         SURF->m_colorManagement->needsHdrMetadataUpdate() || pMonitor->m_previousFSWindow != FULLSCREEN_WINDOW || pMonitor->m_needsHDRupdate;
                     if (SURF->m_colorManagement->needsHdrMetadataUpdate()) {
-                        Log::logger->log(Log::INFO, "[CM] Recreating HDR metadata for surface");
+                        LOG(Log::INFO, "[CM] Recreating HDR metadata for surface");
                         SURF->m_colorManagement->setHDRMetadata(createHDRMetadata(SURF->m_colorManagement->imageDescription(), pMonitor));
                     }
                     if (needsHdrMetadataUpdate) {
-                        Log::logger->log(Log::INFO, "[CM] Updating HDR metadata from surface");
+                        LOG(Log::INFO, "[CM] Updating HDR metadata from surface");
                         pMonitor->m_output->state->setHDRMetadata(SURF->m_colorManagement->hdrMetadata());
                         pMonitor->m_hdrMetadataFromSurface = true;
                     }
@@ -2452,7 +2452,7 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
             if (HDR_CHANGED && *PAUTOHDR && !(pMonitor->inHDR() && configuredHDR)) {
                 const auto targetCM      = wantHDR ? (*PAUTOHDR == 2 ? NCMType::CM_HDR_EDID : NCMType::CM_HDR) : pMonitor->m_cmType;
                 const auto targetSDREOTF = pMonitor->m_sdrEotf;
-                Log::logger->log(Log::INFO, "[CM] Auto HDR: changing monitor cm to {}", sc<uint8_t>(targetCM));
+                LOG(Log::INFO, "[CM] Auto HDR: changing monitor cm to {}", sc<uint8_t>(targetCM));
                 pMonitor->applyCMType(targetCM, targetSDREOTF);
                 pMonitor->m_previousFSWindow.reset(); // trigger CTM update
             }
@@ -2461,7 +2461,7 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
             const auto CURRENT = pMonitor->m_output->state->state().hdrMetadata;
 
             if (HDR_CHANGED || pMonitor->m_hdrMetadataFromSurface || (wantHDR && !hdrMetadataEqual(WANTED, CURRENT))) {
-                Log::logger->log(Log::INFO, wantHDR ? "[CM] Updating HDR metadata from monitor" : "[CM] Restoring SDR mode");
+                LOG(Log::INFO, wantHDR ? "[CM] Updating HDR metadata from monitor" : "[CM] Restoring SDR mode");
                 pMonitor->m_output->state->setHDRMetadata(WANTED);
                 pMonitor->m_hdrMetadataFromSurface = false;
             }
@@ -2471,12 +2471,12 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
 
     const bool needsWCG = pMonitor->wantsWideColor();
     if (pMonitor->m_output->state->state().wideColorGamut != needsWCG) {
-        Log::logger->log(Log::TRACE, "Setting wide color gamut {}", needsWCG ? "on" : "off");
+        LOG(Log::TRACE, "Setting wide color gamut {}", needsWCG ? "on" : "off");
         pMonitor->m_output->state->setWideColorGamut(needsWCG);
 
         // FIXME do not trust enabled10bit, auto switch to 10bit and back if needed
         if (needsWCG && !pMonitor->m_enabled10bit) {
-            Log::logger->log(Log::WARN, "Wide color gamut is enabled but the display is not in 10bit mode");
+            LOG(Log::WARN, "Wide color gamut is enabled but the display is not in 10bit mode");
             static bool shown = false;
             if (!shown) {
                 Notification::overlay()->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, {{"name", pMonitor->m_name}}), CHyprColor{}, 15000,
@@ -2497,7 +2497,7 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
                 resetCTM = true;
             else if (const auto FS_DESC = pMonitor->getFSImageDescription(); pMonitor->needsCM() && pMonitor->canNoShaderCM(!pMonitor->m_lastScanout.expired()) &&
                      FS_DESC.has_value() && (*PNONSHADER != CM_NS_ONDEMAND || !pMonitor->m_lastScanout.expired())) {
-                Log::logger->log(Log::INFO, "[CM] Updating fullscreen CTM");
+                LOG(Log::INFO, "[CM] Updating fullscreen CTM");
                 pMonitor->m_noShaderCTM = true;
                 pMonitor->m_ctmUpdated  = false;
                 auto conversion         = FS_DESC.value()->getPrimaries()->convertMatrix(pMonitor->m_imageDescription->getPrimaries());
@@ -2520,7 +2520,7 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
                 };
                 pMonitor->m_output->state->setCTM(CTM);
             } else if (!INTEROP && pMonitor->m_ctm != Mat3x3::identity()) {
-                Log::logger->log(Log::INFO, "[CM] Setting identity CTM");
+                LOG(Log::INFO, "[CM] Setting identity CTM");
                 pMonitor->m_noShaderCTM = true;
                 pMonitor->m_ctmUpdated  = false;
 
@@ -2530,7 +2530,7 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
         }
 
         if (resetCTM && pMonitor->m_noShaderCTM) {
-            Log::logger->log(Log::INFO, "[CM] No fullscreen CTM, restoring previous one");
+            LOG(Log::INFO, "[CM] No fullscreen CTM, restoring previous one");
             pMonitor->m_noShaderCTM = false;
             pMonitor->m_ctmUpdated  = true;
         }
@@ -2562,7 +2562,7 @@ bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor, std::opt
     const auto result = pMonitor->m_commitCoordinator->submit(std::move(frame));
     const bool ok     = result != Monitor::COutputCommitCoordinator::SUBMIT_FAILED;
     if (!ok)
-        Log::logger->log(Log::TRACE, "Monitor state commit failed");
+        LOG(Log::TRACE, "Monitor state commit failed");
 
     return ok;
 }
@@ -2574,7 +2574,7 @@ void IHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace
     TRACY_GPU_ZONE("RenderWorkspace");
 
     if (!DELTALESSTHAN(sc<double>(geometry.width) / sc<double>(geometry.height), pMonitor->m_transformedSize.x / pMonitor->m_transformedSize.y, 0.01)) {
-        Log::logger->log(Log::ERR, "Ignoring geometry in renderWorkspace: aspect ratio mismatch");
+        LOG(Log::ERR, "Ignoring geometry in renderWorkspace: aspect ratio mismatch");
         scale     = 1.f;
         translate = Vector2D{};
     }
@@ -2731,7 +2731,7 @@ void IHyprRenderer::arrangeLayerArray(PHLMONITOR pMonitor, const std::vector<PHL
             box.y -= PSTATE->margin.bottom;
 
         if (box.width <= 0 || box.height <= 0) {
-            Log::logger->log(Log::ERR, "LayerSurface {:x} has a negative/zero w/h???", rc<uintptr_t>(ls.get()));
+            LOG(Log::ERR, "LayerSurface {:x} has a negative/zero w/h???", rc<uintptr_t>(ls.get()));
             continue;
         }
 
@@ -2785,7 +2785,7 @@ void IHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
 
     const auto WLSURF = Desktop::View::CWLSurface::fromResource(pSurface);
     if (!WLSURF) {
-        Log::logger->log(Log::ERR, "BUG THIS: No CWLSurface for surface in damageSurface!!!");
+        LOG(Log::ERR, "BUG THIS: No CWLSurface for surface in damageSurface!!!");
         return;
     }
 
@@ -2830,8 +2830,8 @@ void IHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
     static auto PLOGDAMAGE = CConfigValue<Config::INTEGER>("debug:log_damage");
 
     if (*PLOGDAMAGE)
-        Log::logger->log(Log::DEBUG, "Damage: Surface (extents): xy: {}, {} wh: {}, {}", damageBox.pixman()->extents.x1, damageBox.pixman()->extents.y1,
-                         damageBox.pixman()->extents.x2 - damageBox.pixman()->extents.x1, damageBox.pixman()->extents.y2 - damageBox.pixman()->extents.y1);
+        LOG(Log::DEBUG, "Damage: Surface (extents): xy: {}, {} wh: {}, {}", damageBox.pixman()->extents.x1, damageBox.pixman()->extents.y1,
+            damageBox.pixman()->extents.x2 - damageBox.pixman()->extents.x1, damageBox.pixman()->extents.y2 - damageBox.pixman()->extents.y1);
 }
 
 void IHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
@@ -2853,7 +2853,7 @@ void IHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
     static auto PLOGDAMAGE = CConfigValue<Config::INTEGER>("debug:log_damage");
 
     if (*PLOGDAMAGE)
-        Log::logger->log(Log::DEBUG, "Damage: Window ({}): xy: {}, {} wh: {}, {}", pWindow->metadata().title(), windowBox.x, windowBox.y, windowBox.width, windowBox.height);
+        LOG(Log::DEBUG, "Damage: Window ({}): xy: {}, {} wh: {}, {}", pWindow->metadata().title(), windowBox.x, windowBox.y, windowBox.width, windowBox.height);
 }
 
 void IHyprRenderer::damageMonitor(PHLMONITOR pMonitor) {
@@ -2866,7 +2866,7 @@ void IHyprRenderer::damageMonitor(PHLMONITOR pMonitor) {
     static auto PLOGDAMAGE = CConfigValue<Config::INTEGER>("debug:log_damage");
 
     if (*PLOGDAMAGE)
-        Log::logger->log(Log::DEBUG, "Damage: Monitor {}", pMonitor->m_name);
+        LOG(Log::DEBUG, "Damage: Monitor {}", pMonitor->m_name);
 }
 
 void IHyprRenderer::damageBox(const CBox& box, bool skipFrameSchedule) {
@@ -2883,7 +2883,7 @@ void IHyprRenderer::damageBox(const CBox& box, bool skipFrameSchedule) {
     static auto PLOGDAMAGE = CConfigValue<Config::INTEGER>("debug:log_damage");
 
     if (*PLOGDAMAGE)
-        Log::logger->log(Log::DEBUG, "Damage: Box: xy: {}, {} wh: {}, {}", box.x, box.y, box.w, box.h);
+        LOG(Log::DEBUG, "Damage: Box: xy: {}, {} wh: {}, {}", box.x, box.y, box.w, box.h);
 }
 
 void IHyprRenderer::damageBox(const int& x, const int& y, const int& w, const int& h) {
@@ -3016,9 +3016,9 @@ void IHyprRenderer::ensureCursorRenderingMode() {
         return;
 
     if (HIDE)
-        Log::logger->log(Log::DEBUG, "Hiding the cursor (hl-mandated)");
+        LOG(Log::DEBUG, "Hiding the cursor (hl-mandated)");
     else
-        Log::logger->log(Log::DEBUG, "Showing the cursor (hl-mandated)");
+        LOG(Log::DEBUG, "Showing the cursor (hl-mandated)");
 
     for (auto const& m : State::monitorState()->monitors()) {
         if (!Pointer::mgr()->softwareLockedFor(m))
@@ -3170,7 +3170,7 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(PHLWINDOW pWindow) {
     if (!shouldRenderWindow(pWindow))
         return nullptr; // ignore, window is not being rendered
 
-    Log::logger->log(Log::DEBUG, "renderer: making a snapshot of {:x}", rc<uintptr_t>(pWindow.get()));
+    LOG(Log::DEBUG, "renderer: making a snapshot of {:x}", rc<uintptr_t>(pWindow.get()));
 
     // we need to "damage" the entire monitor
     // so that we render the entire window
@@ -3189,15 +3189,15 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(PHLWINDOW pWindow) {
     draw(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)});
     startRenderPass();
 
-    Log::logger->log(Log::DEBUG, "renderer: cleared a snapshot of {:x}", rc<uintptr_t>(pWindow.get()));
+    LOG(Log::DEBUG, "renderer: cleared a snapshot of {:x}", rc<uintptr_t>(pWindow.get()));
 
     renderWindow(pWindow, PMONITOR, Time::steadyNow(), !pWindow->backend().traits().suggestsNoBorder, RENDER_PASS_ALL);
 
-    Log::logger->log(Log::DEBUG, "renderer: rendered a snapshot of {:x}", rc<uintptr_t>(pWindow.get()));
+    LOG(Log::DEBUG, "renderer: rendered a snapshot of {:x}", rc<uintptr_t>(pWindow.get()));
 
     endRender();
 
-    Log::logger->log(Log::DEBUG, "renderer: made a snapshot of {:x}", rc<uintptr_t>(pWindow.get()));
+    LOG(Log::DEBUG, "renderer: made a snapshot of {:x}", rc<uintptr_t>(pWindow.get()));
 
     m_bRenderingSnapshot = false;
     return PFRAMEBUFFER;
@@ -3210,7 +3210,7 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(PHLLS pLayer) {
     if (!PMONITOR || !PMONITOR->m_output || PMONITOR->m_pixelSize.x <= 0 || PMONITOR->m_pixelSize.y <= 0)
         return nullptr;
 
-    Log::logger->log(Log::DEBUG, "renderer: making a snapshot of layer {:x}", rc<uintptr_t>(pLayer.get()));
+    LOG(Log::DEBUG, "renderer: making a snapshot of layer {:x}", rc<uintptr_t>(pLayer.get()));
 
     // we need to "damage" the entire monitor
     // so that we render the entire window
@@ -3229,16 +3229,16 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(PHLLS pLayer) {
     draw(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)});
     startRenderPass();
 
-    Log::logger->log(Log::DEBUG, "renderer: cleared a snapshot of layer {:x}", rc<uintptr_t>(pLayer.get()));
+    LOG(Log::DEBUG, "renderer: cleared a snapshot of layer {:x}", rc<uintptr_t>(pLayer.get()));
 
     // draw the layer
     renderLayer(pLayer, PMONITOR, Time::steadyNow());
 
-    Log::logger->log(Log::DEBUG, "renderer: rendered a snapshot of layer {:x}", rc<uintptr_t>(pLayer.get()));
+    LOG(Log::DEBUG, "renderer: rendered a snapshot of layer {:x}", rc<uintptr_t>(pLayer.get()));
 
     endRender();
 
-    Log::logger->log(Log::DEBUG, "renderer: made a snapshot of layer {:x}", rc<uintptr_t>(pLayer.get()));
+    LOG(Log::DEBUG, "renderer: made a snapshot of layer {:x}", rc<uintptr_t>(pLayer.get()));
 
     m_bRenderingSnapshot = false;
     return PFRAMEBUFFER;
@@ -3254,7 +3254,7 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(WP<Desktop::View::CPopup> popup) 
     if (!popup->mapped() || !popup->acceptsInput() || !popup->alphaNonZero())
         return nullptr;
 
-    Log::logger->log(Log::DEBUG, "renderer: making a snapshot of {:x}", rc<uintptr_t>(popup.get()));
+    LOG(Log::DEBUG, "renderer: making a snapshot of {:x}", rc<uintptr_t>(popup.get()));
 
     CRegion    fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
 
@@ -3463,7 +3463,7 @@ CHyprColor IHyprRenderer::getConvertedColor(const CHyprColor& color) {
     const auto DESCR = m_renderData.currentFB ? m_renderData.currentFB->imageDescription() : workBufferImageDescription();
 
     if (!DESCR) {
-        Log::logger->log(Log::ERR, "getConvertedColor: failed to get image description");
+        LOG(Log::ERR, "getConvertedColor: failed to get image description");
         return color;
     }
 

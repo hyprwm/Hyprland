@@ -75,7 +75,7 @@ static std::expected<std::optional<SVCGTTable16>, std::string> readVCGT16(cmsHPR
     table.entrySize = bigEndianU16(raw.data() + 16);
     // raw+18: reserved u16
 
-    Log::logger->log(Log::DEBUG, "readVCGT16: table has {} channels, {} entries, and entry size of {}", table.channels, table.entries, table.entrySize);
+    LOG(Log::DEBUG, "readVCGT16: table has {} channels, {} entries, and entry size of {}", table.channels, table.entries, table.entrySize);
 
     if (table.channels != 3 || table.entrySize != 2 || table.entries == 0)
         return std::unexpected("invalid vcgt table size");
@@ -101,11 +101,11 @@ static std::expected<std::optional<SVCGTTable16>, std::string> readVCGT16(cmsHPR
         tableOff = 18;
 
         if (raw.size() < tableOff + tableBytes) {
-            Log::logger->log(Log::ERR, "readVCGT16: table is too short, tag is invalid");
+            LOG(Log::ERR, "readVCGT16: table is too short, tag is invalid");
             return std::unexpected("table is too short");
         }
 
-        Log::logger->log(Log::DEBUG, "readVCGT16: table is too short, but off = 18 fits. Attempting offset = 18");
+        LOG(Log::DEBUG, "readVCGT16: table is too short, but off = 18 fits. Attempting offset = 18");
 
         readTable();
     } else {
@@ -113,7 +113,7 @@ static std::expected<std::optional<SVCGTTable16>, std::string> readVCGT16(cmsHPR
 
         // if the table's last entry is suspiciously low, we more than likely read an 18 as a 20.
         if (table.ch[0][table.entries - 1] < 30000) {
-            Log::logger->log(Log::DEBUG, "readVCGT16: table is likely offset 18 not 20, re-reading");
+            LOG(Log::DEBUG, "readVCGT16: table is likely offset 18 not 20, re-reading");
 
             tableOff = 18;
 
@@ -122,13 +122,13 @@ static std::expected<std::optional<SVCGTTable16>, std::string> readVCGT16(cmsHPR
     }
 
     if (table.ch[0][table.entries - 1] < 30000) {
-        Log::logger->log(Log::ERR, "readVCGT16: table is malformed, last value of a gamma ramp can't be {}", table.ch[0][table.entries - 1]);
+        LOG(Log::ERR, "readVCGT16: table is malformed, last value of a gamma ramp can't be {}", table.ch[0][table.entries - 1]);
         return std::unexpected("invalid table values");
     }
 
-    Log::logger->log(Log::DEBUG, "readVCGT16: red channel: [{}, {}, ... {}, {}]", table.ch[0][0], table.ch[0][1], table.ch[0][table.entries - 2], table.ch[0][table.entries - 1]);
-    Log::logger->log(Log::DEBUG, "readVCGT16: green channel: [{}, {}, ... {}, {}]", table.ch[1][0], table.ch[1][1], table.ch[1][table.entries - 2], table.ch[1][table.entries - 1]);
-    Log::logger->log(Log::DEBUG, "readVCGT16: blue channel: [{}, {}, ... {}, {}]", table.ch[2][0], table.ch[2][1], table.ch[2][table.entries - 2], table.ch[2][table.entries - 1]);
+    LOG(Log::DEBUG, "readVCGT16: red channel: [{}, {}, ... {}, {}]", table.ch[0][0], table.ch[0][1], table.ch[0][table.entries - 2], table.ch[0][table.entries - 1]);
+    LOG(Log::DEBUG, "readVCGT16: green channel: [{}, {}, ... {}, {}]", table.ch[1][0], table.ch[1][1], table.ch[1][table.entries - 2], table.ch[1][table.entries - 1]);
+    LOG(Log::DEBUG, "readVCGT16: blue channel: [{}, {}, ... {}, {}]", table.ch[2][0], table.ch[2][1], table.ch[2][table.entries - 2], table.ch[2][table.entries - 1]);
 
     return table;
 }
@@ -190,7 +190,7 @@ static std::expected<void, std::string> buildIcc3DLut(cmsHPROFILE profile, SImag
     if (!xform)
         return std::unexpected("Failed to create ICC transform");
 
-    Log::logger->log(Log::DEBUG, "Building a {}³ 3D LUT", image.icc.lutSize);
+    LOG(Log::DEBUG, "Building a {}³ 3D LUT", image.icc.lutSize);
 
     image.icc.present = true;
     image.icc.lutDataPacked.resize(image.icc.lutSize * image.icc.lutSize * image.icc.lutSize * 3);
@@ -223,7 +223,7 @@ static std::expected<void, std::string> buildIcc3DLut(cmsHPROFILE profile, SImag
         }
     }
 
-    Log::logger->log(Log::DEBUG, "3D LUT constructed, size {}", image.icc.lutDataPacked.size());
+    LOG(Log::DEBUG, "3D LUT constructed, size {}", image.icc.lutDataPacked.size());
 
     // upload
     image.icc.lutTexture = g_pHyprRenderer->createTexture(image.icc.lutDataPacked, image.icc.lutSize);
@@ -251,7 +251,7 @@ static std::expected<void, std::string> buildPrimaries(cmsHPROFILE profile, SIma
     if (!xform)
         return std::unexpected("Failed to create ICC transform");
 
-    Log::logger->log(Log::DEBUG, "Building RGB Primaries");
+    LOG(Log::DEBUG, "Building RGB Primaries");
 
     const cmsCIExyY redXY   = buildPrimary(xform, {1.0f, 0.0f, 0.0f});
     const cmsCIExyY greenXY = buildPrimary(xform, {0.0f, 1.0f, 0.0f});
@@ -263,10 +263,10 @@ static std::expected<void, std::string> buildPrimaries(cmsHPROFILE profile, SIma
     image.primaries.blue  = {.x = blueXY.x, .y = blueXY.y};
     image.primaries.white = {.x = whiteXY.x, .y = whiteXY.y};
 
-    Log::logger->log(Log::DEBUG, "Got Red Primaries of: x{} y{}", redXY.x, redXY.y);
-    Log::logger->log(Log::DEBUG, "Got Greeen Primaries of: x{} y{}", greenXY.x, greenXY.y);
-    Log::logger->log(Log::DEBUG, "Got Blue Primaries of: x{} y{}", blueXY.x, blueXY.y);
-    Log::logger->log(Log::DEBUG, "Got White Primaries of: x{} y{}", whiteXY.x, whiteXY.y);
+    LOG(Log::DEBUG, "Got Red Primaries of: x{} y{}", redXY.x, redXY.y);
+    LOG(Log::DEBUG, "Got Greeen Primaries of: x{} y{}", greenXY.x, greenXY.y);
+    LOG(Log::DEBUG, "Got Blue Primaries of: x{} y{}", blueXY.x, blueXY.y);
+    LOG(Log::DEBUG, "Got White Primaries of: x{} y{}", whiteXY.x, whiteXY.y);
 
     return {};
 }
@@ -294,8 +294,8 @@ std::expected<SImageDescription, std::string> SImageDescription::fromICC(const s
     if (cmsGetColorSpace(prof) != cmsSigRgbData)
         return std::unexpected("Only RGB display profiles are supported");
 
-    Log::logger->log(Log::DEBUG, "============= Begin ICC load =============");
-    Log::logger->log(Log::DEBUG, "ICC size: {} bytes", image.rawICC.size());
+    LOG(Log::DEBUG, "============= Begin ICC load =============");
+    LOG(Log::DEBUG, "ICC size: {} bytes", image.rawICC.size());
 
     if (const auto RET = buildIcc3DLut(prof, image); !RET)
         return std::unexpected(RET.error());
@@ -311,11 +311,11 @@ std::expected<SImageDescription, std::string> SImageDescription::fromICC(const s
         image.icc.vcgt = *vcgtRes;
 
         if (!*vcgtRes)
-            Log::logger->log(Log::DEBUG, "ICC profile has no VCGT data");
+            LOG(Log::DEBUG, "ICC profile has no VCGT data");
     } else
-        Log::logger->log(Log::DEBUG, "Skipping VCGT load, disabled by config");
+        LOG(Log::DEBUG, "Skipping VCGT load, disabled by config");
 
-    Log::logger->log(Log::DEBUG, "============= End ICC load =============");
+    LOG(Log::DEBUG, "============= End ICC load =============");
 
     return image;
 }

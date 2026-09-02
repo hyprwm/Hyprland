@@ -96,7 +96,7 @@ static int workspaceIndex(lua_State* L) {
     auto*      ref = sc<PHLWORKSPACEREF*>(luaL_checkudata(L, 1, MT));
     const auto ws  = ref->lock();
     if (!ws || ws->inert()) {
-        Log::logger->log(Log::DEBUG, "[lua] Tried to access an expired object");
+        LOG(Log::DEBUG, "[lua] Tried to access an expired object");
         lua_pushnil(L);
         return 1;
     }

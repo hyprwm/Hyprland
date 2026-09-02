@@ -108,7 +108,7 @@ std::optional<float> getPlusMinusKeywordResult(std::string source, float relativ
     try {
         return relative + stof(source);
     } catch (...) {
-        Log::logger->log(Log::ERR, "Invalid arg \"{}\" in getPlusMinusKeywordResult!", source);
+        LOG(Log::ERR, "Invalid arg \"{}\" in getPlusMinusKeywordResult!", source);
         return {};
     }
 }
@@ -151,7 +151,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in, std::option
         const bool same_mon = in.substr(5).contains("m");
         const bool next     = in.substr(5).contains("n");
         if ((same_mon || next) && !BASEMONITOR) {
-            Log::logger->log(Log::ERR, "Empty monitor workspace on monitor null!");
+            LOG(Log::ERR, "Empty monitor workspace on monitor null!");
             return {WORKSPACE_INVALID};
         }
 
@@ -192,14 +192,14 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in, std::option
         const auto PLASTWORKSPACE = State::workspaceState()->query().id(PREVWORKSPACEIDNAME.id).run();
 
         if (!PLASTWORKSPACE) {
-            Log::logger->log(Log::DEBUG, "previous workspace {} doesn't exist yet", PREVWORKSPACEIDNAME.id);
+            LOG(Log::DEBUG, "previous workspace {} doesn't exist yet", PREVWORKSPACEIDNAME.id);
             return {PREVWORKSPACEIDNAME.id, PREVWORKSPACEIDNAME.name};
         }
 
         return {PLASTWORKSPACE->m_id, PLASTWORKSPACE->m_name};
     } else if (in == "next") {
         if (!BASEMONITOR || !BASEMONITOR->m_activeWorkspace) {
-            Log::logger->log(Log::ERR, "no active monitor or workspace for 'next'");
+            LOG(Log::ERR, "no active monitor or workspace for 'next'");
             return {WORKSPACE_INVALID};
         }
 
@@ -217,7 +217,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in, std::option
         if (in[0] == 'r' && (in[1] == '-' || in[1] == '+' || in[1] == '~') && isNumber(in.substr(2))) {
             bool absolute = in[1] == '~';
             if (!BASEMONITOR) {
-                Log::logger->log(Log::ERR, "Relative monitor workspace on monitor null!");
+                LOG(Log::ERR, "Relative monitor workspace on monitor null!");
                 return {WORKSPACE_INVALID};
             }
 
@@ -382,7 +382,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in, std::option
             bool absolute      = in[1] == '~';
 
             if (!BASEMONITOR) {
-                Log::logger->log(Log::ERR, "Relative monitor workspace on monitor null!");
+                LOG(Log::ERR, "Relative monitor workspace on monitor null!");
                 return {WORKSPACE_INVALID};
             }
 
@@ -454,7 +454,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in, std::option
 
                     result.id = std::max(sc<int>(PLUSMINUSRESULT.value()), 1);
                 } else {
-                    Log::logger->log(Log::ERR, "Relative workspace on no mon!");
+                    LOG(Log::ERR, "Relative workspace on no mon!");
                     return {WORKSPACE_INVALID};
                 }
             } else if (isNumber(in))
@@ -617,7 +617,7 @@ std::vector<SCallstackFrameInfo> getBacktrace() {
 }
 
 void throwError(const std::string& err) {
-    Log::logger->log(Log::CRIT, "Critical error thrown: {}", err);
+    LOG(Log::CRIT, "Critical error thrown: {}", err);
     throw std::runtime_error(err);
 }
 
@@ -715,7 +715,7 @@ bool isNvidiaDriverVersionAtLeast(int threshold) {
                     if (firstDot != std::string::npos)
                         driverMajor = std::stoi(driverInfo.substr(0, firstDot));
 
-                    Log::logger->log(Log::DEBUG, "Parsed NVIDIA major version: {}", driverMajor);
+                    LOG(Log::DEBUG, "Parsed NVIDIA major version: {}", driverMajor);
 
                 } catch (std::exception& e) {
                     driverMajor = 0; // Default to 0 if parsing fails

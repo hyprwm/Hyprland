@@ -334,7 +334,7 @@ std::expected<SGeometryRequested, eGeometryFailure> CWindowTarget::desiredGeomet
         requested.size = clampSizeForDesired(*STOREDSIZE);
 
     if (!PMONITOR) {
-        Log::logger->log(Log::ERR, "{:m} has an invalid monitor in desiredGeometry!", m_window.lock());
+        LOG(Log::ERR, "{:m} has an invalid monitor in desiredGeometry!", m_window.lock());
         return std::unexpected(GEOMETRY_NO_DESIRED);
     }
 
@@ -461,8 +461,8 @@ std::optional<Vector2D> CWindowTarget::calculateExpression(const Math::SExpressi
 void CWindowTarget::sendWindowSize(bool force) {
     const auto PMONITOR = m_window->m_monitor.lock();
 
-    Log::logger->log(Log::TRACE, "sendWindowSize: window:{:x},title:{} with real pos {}, real size {} (force: {})", rc<uintptr_t>(m_window.get()), m_window->metadata().title(),
-                     m_window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL), m_window->size(Desktop::View::IGeometric::GEOMETRIC_GOAL), force);
+    LOG(Log::TRACE, "sendWindowSize: window:{:x},title:{} with real pos {}, real size {} (force: {})", rc<uintptr_t>(m_window.get()), m_window->metadata().title(),
+        m_window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL), m_window->size(Desktop::View::IGeometric::GEOMETRIC_GOAL), force);
 
     m_window->backend().configure(CBox{m_window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL), m_window->size(Desktop::View::IGeometric::GEOMETRIC_GOAL)}, PMONITOR, force);
 }

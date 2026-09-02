@@ -148,7 +148,7 @@ void CVirtualPointerProtocol::onCreatePointer(CZwlrVirtualPointerManagerV1* pMgr
         return;
     }
 
-    LOGM(Log::DEBUG, "New VPointer at id {}", id);
+    LOG(Log::DEBUG, "New VPointer at id {}", id);
 
     m_events.newPointer.emit(RESOURCE);
 }

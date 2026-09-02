@@ -56,7 +56,7 @@ static pid_t peerPid(int fd) {
     uint32_t length = sizeof(credentials);
 
     if (getsockopt(fd, CRED_LVL, CRED_OPT, &credentials, &length) < 0) {
-        Log::logger->log(Log::ERR, "[Socket1::Unix] failed to get peer credentials: {}", strerror(errno));
+        LOG(Log::ERR, "[Socket1::Unix] failed to get peer credentials: {}", strerror(errno));
         return 0;
     }
 
@@ -234,7 +234,7 @@ void CUnixImpl::start(FRequestHandler&& handler) {
     m_requestHandler = std::move(handler);
 
     if (!m_socket.isValid()) {
-        Log::logger->log(Log::ERR, "[Socket1::Unix] couldn't create socket");
+        LOG(Log::ERR, "[Socket1::Unix] couldn't create socket");
         return;
     }
 
@@ -242,7 +242,7 @@ void CUnixImpl::start(FRequestHandler&& handler) {
     m_socketPath        = std::format("{}/.socket.sock", g_pCompositor->m_instancePath);
 
     if (m_socketPath.size() > sizeof(address.sun_path) - 1) {
-        Log::logger->log(Log::ERR, "[Socket1::Unix] socket path is too long");
+        LOG(Log::ERR, "[Socket1::Unix] socket path is too long");
         m_socket.reset();
         return;
     }
@@ -250,30 +250,30 @@ void CUnixImpl::start(FRequestHandler&& handler) {
     strncpy(address.sun_path, m_socketPath.c_str(), sizeof(address.sun_path) - 1);
 
     if (bind(m_socket.get(), rc<sockaddr*>(&address), SUN_LEN(&address)) < 0) {
-        Log::logger->log(Log::ERR, "[Socket1::Unix] couldn't bind socket: {}", strerror(errno));
+        LOG(Log::ERR, "[Socket1::Unix] couldn't bind socket: {}", strerror(errno));
         m_socket.reset();
         return;
     }
 
     if (listen(m_socket.get(), 10) < 0) {
-        Log::logger->log(Log::ERR, "[Socket1::Unix] couldn't listen on socket: {}", strerror(errno));
+        LOG(Log::ERR, "[Socket1::Unix] couldn't listen on socket: {}", strerror(errno));
         m_socket.reset();
         return;
     }
 
     m_eventSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, m_socket.get(), WL_EVENT_READABLE, ::onServerEvent, this);
     if (!m_eventSource) {
-        Log::logger->log(Log::ERR, "[Socket1::Unix] couldn't register socket with the event loop");
+        LOG(Log::ERR, "[Socket1::Unix] couldn't register socket with the event loop");
         m_socket.reset();
         return;
     }
 
-    Log::logger->log(Log::DEBUG, "[Socket1::Unix] socket started at {}", m_socketPath);
+    LOG(Log::DEBUG, "[Socket1::Unix] socket started at {}", m_socketPath);
 }
 
 int CUnixImpl::onServerEvent(uint32_t mask) {
     if (mask & WL_EVENT_ERROR || mask & WL_EVENT_HANGUP) {
-        Log::logger->log(Log::ERR, "[Socket1::Unix] listener hung up");
+        LOG(Log::ERR, "[Socket1::Unix] listener hung up");
         wl_event_source_remove(m_eventSource);
         m_eventSource = nullptr;
         m_socket.reset();
@@ -284,7 +284,7 @@ int CUnixImpl::onServerEvent(uint32_t mask) {
         CFileDescriptor connection{accept4(m_socket.get(), nullptr, nullptr, SOCK_CLOEXEC | SOCK_NONBLOCK)};
         if (!connection.isValid()) {
             if (errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR)
-                Log::logger->log(Log::ERR, "[Socket1::Unix] failed to accept connection: {}", strerror(errno));
+                LOG(Log::ERR, "[Socket1::Unix] failed to accept connection: {}", strerror(errno));
             if (errno == EINTR)
                 continue;
             break;
@@ -297,7 +297,7 @@ int CUnixImpl::onServerEvent(uint32_t mask) {
 
         peer->init(peer);
         m_peers.emplace_back(std::move(peer));
-        Log::logger->log(Log::DEBUG, "[Socket1::Unix] accepted fd {} from pid {}", m_peers.back()->id(), PID);
+        LOG(Log::DEBUG, "[Socket1::Unix] accepted fd {} from pid {}", m_peers.back()->id(), PID);
     }
 
     return 0;

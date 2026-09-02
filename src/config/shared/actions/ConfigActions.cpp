@@ -738,7 +738,7 @@ static void parsePropTrivial(Desktop::Types::COverridableVar<T>& prop, const std
                 prop = Desktop::Types::COverridableVar<T>(std::stof(s), Desktop::Types::PRIORITY_SET_PROP);
         } else if constexpr (std::is_same_v<T, std::string>)
             prop = Desktop::Types::COverridableVar<T>(s, Desktop::Types::PRIORITY_SET_PROP);
-    } catch (...) { Log::logger->log(Log::ERR, "Hyprctl: parsePropTrivial: failed to parse setprop for {}", s); }
+    } catch (...) { LOG(Log::ERR, "Hyprctl: parsePropTrivial: failed to parse setprop for {}", s); }
 }
 
 ActionResult Actions::setProp(const std::string& PROP, const std::string& VAL, std::optional<PHLWINDOW> w) {
@@ -755,7 +755,7 @@ ActionResult Actions::setProp(const std::string& PROP, const std::string& VAL, s
         if (PROP == "max_size") {
             const auto SIZE = calculateExpression();
             if (!SIZE) {
-                Log::logger->log(Log::ERR, "failed to parse {} as an expression", VAL);
+                LOG(Log::ERR, "failed to parse {} as an expression", VAL);
                 throw "failed to parse expression";
             }
             PWINDOW->m_ruleApplicator->maxSizeOverride(Desktop::Types::COverridableVar(*SIZE, Desktop::Types::PRIORITY_SET_PROP));
@@ -764,7 +764,7 @@ ActionResult Actions::setProp(const std::string& PROP, const std::string& VAL, s
         } else if (PROP == "min_size") {
             const auto SIZE = calculateExpression();
             if (!SIZE) {
-                Log::logger->log(Log::ERR, "failed to parse {} as an expression", VAL);
+                LOG(Log::ERR, "failed to parse {} as an expression", VAL);
                 throw "failed to parse expression";
             }
             PWINDOW->m_ruleApplicator->minSizeOverride(Desktop::Types::COverridableVar(*SIZE, Desktop::Types::PRIORITY_SET_PROP));
@@ -1767,7 +1767,7 @@ ActionResult Actions::moveIntoOrCreateGroup(Math::eDirection dir, std::optional<
         return {};
 
     if (dir == Math::DIRECTION_DEFAULT) {
-        Log::logger->log(Log::ERR, "Cannot move into or create group in direction {}, unsupported direction. Supported: l,r,u/t,d/b", dirToString(dir));
+        LOG(Log::ERR, "Cannot move into or create group in direction {}, unsupported direction. Supported: l,r,u/t,d/b", dirToString(dir));
         return std::unexpected(std::format("Cannot move into or create group in direction {}, unsupported direction. Supported: l,r,u/t,d/b", dirToString(dir)));
     }
 

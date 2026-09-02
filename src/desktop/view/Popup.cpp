@@ -164,7 +164,7 @@ void CPopup::onNewPopup(SP<IPopupBackend> popup) {
 
     invalidateTreeExtentsCache();
 
-    Log::logger->log(Log::DEBUG, "New popup at {:x}", rc<uintptr_t>(this));
+    LOG(Log::DEBUG, "New popup at {:x}", rc<uintptr_t>(this));
 }
 
 void CPopup::onDestroy() {
@@ -188,7 +188,7 @@ void CPopup::onDestroy() {
 }
 
 void CPopup::fullyDestroy() {
-    Log::logger->log(Log::DEBUG, "popup {:x} fully destroying", rc<uintptr_t>(this));
+    LOG(Log::DEBUG, "popup {:x} fully destroying", rc<uintptr_t>(this));
 
     invalidateTreeExtentsCache();
 
@@ -230,7 +230,7 @@ void CPopup::onMap() {
     m_alpha.get(POPUP_ALPHA_FADE)->setValueAndWarp(0.F);
     *m_alpha.get(POPUP_ALPHA_FADE) = 1.F;
 
-    Log::logger->log(Log::DEBUG, "popup {:x}: mapped", rc<uintptr_t>(this));
+    LOG(Log::DEBUG, "popup {:x}: mapped", rc<uintptr_t>(this));
 }
 
 void CPopup::onUnmap() {
@@ -238,12 +238,12 @@ void CPopup::onUnmap() {
         return;
 
     if (!m_backend || !m_backend->valid()) {
-        Log::logger->log(Log::ERR, "CPopup: orphaned (no surface/resource) and unmaps??");
+        LOG(Log::ERR, "CPopup: orphaned (no surface/resource) and unmaps??");
         onDestroy();
         return;
     }
 
-    Log::logger->log(Log::DEBUG, "popup {:x}: unmapped", rc<uintptr_t>(this));
+    LOG(Log::DEBUG, "popup {:x}: unmapped", rc<uintptr_t>(this));
 
     // if the popup committed a different size right now, we also need to damage the old size.
     const auto     SURFACE_SIZE    = m_backend->surfaceSize();
@@ -304,7 +304,7 @@ void CPopup::onUnmap() {
 
 void CPopup::onCommit(bool ignoreSiblings) {
     if (!m_backend || !m_backend->valid()) {
-        Log::logger->log(Log::ERR, "CPopup: orphaned (no surface/resource) and commits??");
+        LOG(Log::ERR, "CPopup: orphaned (no surface/resource) and commits??");
         onDestroy();
         return;
     }
@@ -323,7 +323,7 @@ void CPopup::onCommit(bool ignoreSiblings) {
 
         static auto PLOGDAMAGE = CConfigValue<Config::INTEGER>("debug:log_damage");
         if (*PLOGDAMAGE)
-            Log::logger->log(Log::DEBUG, "Refusing to commit damage from a subsurface of {} because it's invisible.", m_windowOwner.lock());
+            LOG(Log::DEBUG, "Refusing to commit damage from a subsurface of {} because it's invisible.", m_windowOwner.lock());
         return;
     }
 
@@ -360,7 +360,7 @@ void CPopup::onCommit(bool ignoreSiblings) {
 }
 
 void CPopup::onReposition() {
-    Log::logger->log(Log::DEBUG, "Popup {:x} requests reposition", rc<uintptr_t>(this));
+    LOG(Log::DEBUG, "Popup {:x} requests reposition", rc<uintptr_t>(this));
 
     m_requestedReposition = true;
 

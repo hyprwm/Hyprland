@@ -50,11 +50,11 @@ CEventLoopManager::~CEventLoopManager() {
 
 static int timerWrite(int fd, uint32_t mask, void* data) {
     if (!CFileDescriptor::isReadable(fd))
-        Log::logger->log(Log::ERR, "timerWrite: triggered a non readable event on fd : {}", fd);
+        LOG(Log::ERR, "timerWrite: triggered a non readable event on fd : {}", fd);
     else {
         uint64_t expirations;
         if (read(fd, &expirations, sizeof(expirations)) < 0)
-            Log::logger->log(Log::ERR, "timerWrite: read failed on fd {}: {}", fd, strerror(errno));
+            LOG(Log::ERR, "timerWrite: read failed on fd {}: {}", fd, strerror(errno));
     }
 
     g_pEventLoopManager->onTimerFire();
@@ -76,12 +76,12 @@ static int handleWaiterFD(int fd, uint32_t mask, void* data) {
     auto waiter = sc<SReadableWaiter*>(data);
 
     if (!waiter) {
-        Log::logger->log(Log::ERR, "handleWaiterFD: failed casting waiter");
+        LOG(Log::ERR, "handleWaiterFD: failed casting waiter");
         return 0;
     }
 
     if (mask & (WL_EVENT_HANGUP | WL_EVENT_ERROR)) {
-        Log::logger->log(Log::ERR, "handleWaiterFD: readable waiter error");
+        LOG(Log::ERR, "handleWaiterFD: readable waiter error");
         g_pEventLoopManager->onFdReadableFail(waiter);
         return 0;
     }
@@ -136,7 +136,7 @@ void CEventLoopManager::enterLoop() {
 
     wl_display_run(m_wayland.display);
 
-    Log::logger->log(Log::DEBUG, "Kicked off the event loop! :(");
+    LOG(Log::DEBUG, "Kicked off the event loop! :(");
 }
 
 void CEventLoopManager::onTimerFire() {

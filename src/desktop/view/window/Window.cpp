@@ -806,7 +806,7 @@ void CWindow::activate(bool force) {
         return;
 
     if (!m_isMapped) {
-        Log::logger->log(Log::DEBUG, "Ignoring CWindow::activate focus/warp, window is not mapped yet.");
+        LOG(Log::DEBUG, "Ignoring CWindow::activate focus/warp, window is not mapped yet.");
         return;
     }
 
@@ -894,7 +894,7 @@ void CWindow::onUpdateMeta(const SBackendMetadata& metadata) {
             // no need for a hook event
         }
 
-        Log::logger->log(Log::DEBUG, "Window {:x} set title to {}", rc<uintptr_t>(this), m_metadata->title());
+        LOG(Log::DEBUG, "Window {:x} set title to {}", rc<uintptr_t>(this), m_metadata->title());
         doUpdate = true;
     }
 
@@ -909,7 +909,7 @@ void CWindow::onUpdateMeta(const SBackendMetadata& metadata) {
             // no need for a hook event
         }
 
-        Log::logger->log(Log::DEBUG, "Window {:x} set class to {}", rc<uintptr_t>(this), m_metadata->appID());
+        LOG(Log::DEBUG, "Window {:x} set class to {}", rc<uintptr_t>(this), m_metadata->appID());
         doUpdate = true;
     }
 
@@ -925,7 +925,7 @@ void CWindow::onSurfaceChanged(SP<CWLSurfaceResource> surface) {
     else if (!surface && m_wlSurface->resource())
         m_wlSurface->unassign();
 
-    Log::logger->log(Log::DEBUG, "window client {} -> association to {:x}", m_backend->clientID().id, rc<uintptr_t>(m_wlSurface->resource().get()));
+    LOG(Log::DEBUG, "window client {} -> association to {:x}", m_backend->clientID().id, rc<uintptr_t>(m_wlSurface->resource().get()));
 }
 
 void CWindow::onConfigureRequest(const CBox& box) {
@@ -965,8 +965,7 @@ void CWindow::onConfigureRequest(const CBox& box) {
     const auto monitorByRequestedPosition = State::monitorState()->query().vec(m_realPosition->goal() + m_realSize->goal() / 2.f).run();
     const auto currentMonitor             = m_workspace->m_monitor.lock();
 
-    Log::logger->log(
-        Log::DEBUG,
+    LOG(Log::DEBUG,
         "onX11ConfigureRequest: window '{}' ({:#x}) - workspace '{}' (special={}), currentMonitor='{}', monitorByRequestedPosition='{}', pos={:.0f},{:.0f}, size={:.0f},{:.0f}",
         m_metadata->title(), (uintptr_t)this, m_workspace->m_name, m_workspace->m_isSpecialWorkspace, currentMonitor ? currentMonitor->m_name : "null",
         monitorByRequestedPosition ? monitorByRequestedPosition->m_name : "null", m_realPosition->goal().x, m_realPosition->goal().y, m_realSize->goal().x, m_realSize->goal().y);
@@ -975,7 +974,7 @@ void CWindow::onConfigureRequest(const CBox& box) {
     // X11 apps send configure requests with positions based on XWayland's monitor layout, such as "0,0",
     // which would incorrectly move windows off special workspaces
     if (monitorByRequestedPosition && monitorByRequestedPosition != currentMonitor && !m_workspace->m_isSpecialWorkspace) {
-        Log::logger->log(Log::DEBUG, "onX11ConfigureRequest: reassigning workspace from '{}' to '{}'", m_workspace->m_name, monitorByRequestedPosition->m_activeWorkspace->m_name);
+        LOG(Log::DEBUG, "onX11ConfigureRequest: reassigning workspace from '{}' to '{}'", m_workspace->m_name, monitorByRequestedPosition->m_activeWorkspace->m_name);
         m_workspace = monitorByRequestedPosition->m_activeWorkspace;
     }
 
@@ -1038,7 +1037,7 @@ void CWindow::setContentType(NContentType::eContentType contentType) {
         m_wlSurface->resource()->m_contentType = PROTO::contentType->getContentType(m_wlSurface->resource());
     // else disallow content type change if proto is used?
 
-    Log::logger->log(Log::INFO, "ContentType for window {}", sc<int>(contentType));
+    LOG(Log::INFO, "ContentType for window {}", sc<int>(contentType));
     m_wlSurface->resource()->m_contentType->m_value = contentType;
 }
 
@@ -1140,7 +1139,7 @@ void CWindow::mapWindow() {
         PMONITOR = Desktop::focusState()->monitor();
     }
     if (!PMONITOR || (!PMONITOR->m_activeSpecialWorkspace && !PMONITOR->m_activeWorkspace)) {
-        Log::logger->log(Log::ERR, "mapWindow: no valid monitor/workspace, aborting map for {:x}", (uintptr_t)this);
+        LOG(Log::ERR, "mapWindow: no valid monitor/workspace, aborting map for {:x}", (uintptr_t)this);
         return;
     }
     auto PWORKSPACE = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
@@ -1163,13 +1162,13 @@ void CWindow::mapWindow() {
         const auto WINDOWENV = getEnv();
         if (WINDOWENV.contains("HL_INITIAL_WORKSPACE_TOKEN")) {
             const auto SZTOKEN = WINDOWENV.at("HL_INITIAL_WORKSPACE_TOKEN");
-            Log::logger->log(Log::DEBUG, "New window contains HL_INITIAL_WORKSPACE_TOKEN: {}", SZTOKEN);
+            LOG(Log::DEBUG, "New window contains HL_INITIAL_WORKSPACE_TOKEN: {}", SZTOKEN);
             const auto TOKEN = g_pTokenManager->getToken(SZTOKEN);
             if (TOKEN) {
                 // find workspace and use it
                 Desktop::View::SInitialWorkspaceToken WS = std::any_cast<Desktop::View::SInitialWorkspaceToken>(TOKEN->m_data);
 
-                Log::logger->log(Log::DEBUG, "HL_INITIAL_WORKSPACE_TOKEN {} -> {}", SZTOKEN, WS.workspace);
+                LOG(Log::DEBUG, "HL_INITIAL_WORKSPACE_TOKEN {} -> {}", SZTOKEN, WS.workspace);
 
                 if (State::workspaceState()->query().string(WS.workspace).run() != m_workspace) {
                     requestedWorkspace = WS.workspace;
@@ -1239,10 +1238,10 @@ void CWindow::mapWindow() {
                     m_workspace = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
                     PWORKSPACE  = m_workspace;
 
-                    Log::logger->log(Log::DEBUG, "Rule monitor, applying to {:mw}", m_self.lock());
+                    LOG(Log::DEBUG, "Rule monitor, applying to {:mw}", m_self.lock());
                     requestedFSMonitor = MONITOR_INVALID;
                 } else
-                    Log::logger->log(Log::ERR, "No monitor in monitor {} rule", MONITORSTR);
+                    LOG(Log::ERR, "No monitor in monitor {} rule", MONITORSTR);
             }
         }
 
@@ -1259,7 +1258,7 @@ void CWindow::mapWindow() {
             if (JUSTWORKSPACE == PWORKSPACE->m_name || JUSTWORKSPACE == std::format("name:{}", PWORKSPACE->m_name))
                 requestedWorkspace = "";
 
-            Log::logger->log(Log::DEBUG, "Rule workspace matched by {}, {} applied.", m_self.lock(), m_ruleApplicator->static_.workspace);
+            LOG(Log::DEBUG, "Rule workspace matched by {}, {} applied.", m_self.lock(), m_ruleApplicator->static_.workspace);
             requestedFSMonitor = MONITOR_INVALID;
         }
 
@@ -1296,7 +1295,7 @@ void CWindow::mapWindow() {
             else if (var == "x11configurerequest")
                 m_requestSuppression.x11ConfigureRequest = true;
             else
-                Log::logger->log(Log::ERR, "Error while parsing suppressevent windowrule: unknown event type {}", var);
+                LOG(Log::ERR, "Error while parsing suppressevent windowrule: unknown event type {}", var);
         }
         m_fullscreenPolicy->setRequestSuppression(fullscreenSuppression);
 
@@ -1393,7 +1392,7 @@ void CWindow::mapWindow() {
         m_workspace = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
         PWORKSPACE  = m_workspace;
 
-        Log::logger->log(Log::DEBUG, "Requested monitor, applying to {:mw}", m_self.lock());
+        LOG(Log::DEBUG, "Requested monitor, applying to {:mw}", m_self.lock());
     }
 
     PMONITOR = m_monitor.lock();
@@ -1439,7 +1438,7 @@ void CWindow::mapWindow() {
         if (m_ruleApplicator->static_.size) {
             const auto COMPUTED = calculateExpression(*m_ruleApplicator->static_.size);
             if (!COMPUTED)
-                Log::logger->log(Log::ERR, "failed to parse {} as an expression", m_ruleApplicator->static_.size->toString());
+                LOG(Log::ERR, "failed to parse {} as an expression", m_ruleApplicator->static_.size->toString());
             else {
                 setPseudo = true;
                 m_target->setPseudoSize(*COMPUTED);
@@ -1534,7 +1533,7 @@ void CWindow::mapWindow() {
     m_state &= ~WINDOW_STATE_FIRST_MAP;
     m_fullscreenPolicy->consumePendingClientRequest();
 
-    Log::logger->log(Log::DEBUG, "Map request dispatched, monitor {}, window pos: {:5j}, window size: {:5j}", PMONITOR->m_name, m_realPosition->goal(), m_realSize->goal());
+    LOG(Log::DEBUG, "Map request dispatched, monitor {}, window pos: {:5j}, window size: {:5j}", PMONITOR->m_name, m_realPosition->goal(), m_realSize->goal());
 
     // apply data from default decos. Borders, shadows.
     g_pDecorationPositioner->forceRecalcFor(m_self.lock());
@@ -1570,7 +1569,7 @@ void CWindow::mapWindow() {
 }
 
 void CWindow::unmapWindow() {
-    Log::logger->log(Log::DEBUG, "{:c} unmapped", m_self.lock());
+    LOG(Log::DEBUG, "{:c} unmapped", m_self.lock());
 
     static auto PEXITRETAINSFS = CConfigValue<Config::INTEGER>("misc:exit_window_retains_fullscreen");
 
@@ -1579,7 +1578,7 @@ void CWindow::unmapWindow() {
     const bool  CURRENT_FS_LAYOUT_HANDLED = IS_CURRENT_WINDOW_FS ? Fullscreen::controller()->layoutManagedFS(m_self.lock()) : false;
     const bool  WAS_FOCUSED               = m_self.lock() == Desktop::focusState()->window();
     if (!wlSurface()->exists() || !m_isMapped) {
-        Log::logger->log(Log::WARN, "{} unmapped without being mapped??", m_self.lock());
+        LOG(Log::WARN, "{} unmapped without being mapped??", m_self.lock());
         return;
     }
 
@@ -1590,8 +1589,7 @@ void CWindow::unmapWindow() {
     Event::bus()->m_events.window.close.emit(m_self.lock());
 
     if (m_target->floating() && !m_backend->isX11() && m_ruleApplicator->persistentSize().valueOrDefault()) {
-        Log::logger->log(Log::DEBUG, "storing floating size {}x{} for window {}::{} on close", m_realSize->value().x, m_realSize->value().y, m_metadata->appID(),
-                         m_metadata->title());
+        LOG(Log::DEBUG, "storing floating size {}x{} for window {}::{} on close", m_realSize->value().x, m_realSize->value().y, m_metadata->appID(), m_metadata->title());
         Desktop::floatState()->remember(m_self.lock(), m_realSize->value());
     }
 
@@ -1668,7 +1666,7 @@ void CWindow::unmapWindow() {
         if (candidate && PMONITOR && PMONITOR->m_activeSpecialWorkspace && candidate->m_workspace != PMONITOR->m_activeSpecialWorkspace)
             candidate = nullptr;
 
-        Log::logger->log(Log::DEBUG, "On closed window, new focused candidate is {}", candidate);
+        LOG(Log::DEBUG, "On closed window, new focused candidate is {}", candidate);
 
         if (candidate != Desktop::focusState()->window() && candidate) {
             if (candidate == nextInGroup)
@@ -1694,7 +1692,7 @@ void CWindow::unmapWindow() {
             Event::bus()->m_events.window.active.emit(m_self.lock(), FOCUS_REASON_OTHER);
         }
     } else {
-        Log::logger->log(Log::DEBUG, "Unmapped was not focused, ignoring a refocus.");
+        LOG(Log::DEBUG, "Unmapped was not focused, ignoring a refocus.");
     }
 
     if (!m_backend->traits().suggestsNoBorder)                              // don't animate out if they weren't animated in.
@@ -1737,7 +1735,7 @@ void CWindow::commitWindow(bool initialCommit) {
             g_layoutManager->predictSizeForNewTiledTarget().value_or(Vector2D{}) :
             Vector2D{};
 
-        Log::logger->log(Log::DEBUG, "Layout predicts size {} for {}", predSize, m_self.lock());
+        LOG(Log::DEBUG, "Layout predicts size {} for {}", predSize, m_self.lock());
 
         m_backend->configure(CBox{{}, predSize}, m_monitor.lock());
         return;
@@ -1781,7 +1779,7 @@ void CWindow::commitWindow(bool initialCommit) {
 }
 
 void CWindow::destroyWindow() {
-    Log::logger->log(Log::DEBUG, "{:c} destroyed, queueing.", m_self.lock());
+    LOG(Log::DEBUG, "{:c} destroyed, queueing.", m_self.lock());
 
     m_swallowing->onDestroy();
 
@@ -1800,12 +1798,12 @@ void CWindow::destroyWindow() {
 }
 
 void CWindow::onActivationRequest() {
-    Log::logger->log(Log::DEBUG, "X11 Activate request for window {}", m_self.lock());
+    LOG(Log::DEBUG, "X11 Activate request for window {}", m_self.lock());
 
     const auto TRAITS = m_backend->traits();
     if (TRAITS.overrideRedirect) {
 
-        Log::logger->log(Log::DEBUG, "Unmanaged X11 {} requests activate", m_self.lock());
+        LOG(Log::DEBUG, "Unmanaged X11 {} requests activate", m_self.lock());
 
         if (Desktop::focusState()->window() && Desktop::focusState()->window()->backend().pid() != m_backend->pid())
             return;
@@ -1867,7 +1865,7 @@ void CWindow::unmanagedSetGeometry(const CBox& box) {
     }
 
     if (abs(std::floor(POS.x) - box.x) > 2 || abs(std::floor(POS.y) - box.y) > 2 || abs(std::floor(SIZ.x) - box.w) > 2 || abs(std::floor(SIZ.y) - box.h) > 2) {
-        Log::logger->log(Log::DEBUG, "Unmanaged window {} requests geometry update to {:j} {:j}", m_self.lock(), box.pos(), box.size());
+        LOG(Log::DEBUG, "Unmanaged window {} requests geometry update to {:j} {:j}", m_self.lock(), box.pos(), box.size());
 
         g_pHyprRenderer->damageWindow(m_self.lock());
 

@@ -13,7 +13,7 @@ CTextInputV3::CTextInputV3(SP<CZwpTextInputV3> resource_) : m_resource(resource_
     if UNLIKELY (!m_resource->resource())
         return;
 
-    LOGM(Log::DEBUG, "New tiv3 at {:016x}", (uintptr_t)this);
+    LOG(Log::DEBUG, "New tiv3 at {:016x}", (uintptr_t)this);
 
     m_resource->setDestroy([this](CZwpTextInputV3* r) { PROTO::textInputV3->destroyTextInput(this); });
     m_resource->setOnDestroy([this](CZwpTextInputV3* r) { PROTO::textInputV3->destroyTextInput(this); });
@@ -132,7 +132,7 @@ void CTextInputV3Protocol::onGetTextInput(CZwpTextInputManagerV3* pMgr, uint32_t
     if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
         m_textInputs.pop_back();
-        LOGM(Log::ERR, "Failed to create a tiv3 resource");
+        LOG(Log::ERR, "Failed to create a tiv3 resource");
         return;
     }
 

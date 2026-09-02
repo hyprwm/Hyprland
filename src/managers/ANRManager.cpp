@@ -17,7 +17,7 @@ static constexpr auto TIMER_TIMEOUT = std::chrono::milliseconds(1500);
 
 CANRManager::CANRManager() {
     if (!NFsUtils::executableExistsInPath("hyprland-dialog")) {
-        Log::logger->log(Log::ERR, "hyprland-dialog missing from PATH, cannot start ANRManager");
+        LOG(Log::ERR, "hyprland-dialog missing from PATH, cannot start ANRManager");
         return;
     }
 
@@ -201,7 +201,7 @@ void CANRManager::SANRData::runDialog(const std::string& appName, const std::str
 
     dialogBox->open()->then([dialogWmPID, this, OPTION_TERMINATE_STR, OPTION_WAIT_STR](SP<CPromiseResult<std::string>> r) {
         if (r->hasError()) {
-            Log::logger->log(Log::ERR, "CANRManager::SANRData::runDialog: error spawning dialog");
+            LOG(Log::ERR, "CANRManager::SANRData::runDialog: error spawning dialog");
             return;
         }
 
@@ -212,7 +212,7 @@ void CANRManager::SANRData::runDialog(const std::string& appName, const std::str
         else if (result.starts_with(OPTION_WAIT_STR))
             dialogSaidWait = true;
         else
-            Log::logger->log(Log::ERR, "CANRManager::SANRData::runDialog: lambda: unrecognized result: {}", result);
+            LOG(Log::ERR, "CANRManager::SANRData::runDialog: lambda: unrecognized result: {}", result);
     });
 }
 

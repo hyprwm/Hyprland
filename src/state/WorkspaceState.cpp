@@ -67,7 +67,7 @@ PHLWORKSPACE CWorkspaceStateTracker::create(const WORKSPACEID& id, const MONITOR
 
     const auto PMONITOR = State::monitorState()->query().id(monID).run();
     if (!PMONITOR) {
-        Log::logger->log(Log::ERR, "BUG THIS: No pMonitor for new workspace in CWorkspaceStateTracker::create");
+        LOG(Log::ERR, "BUG THIS: No pMonitor for new workspace in CWorkspaceStateTracker::create");
         return nullptr;
     }
 

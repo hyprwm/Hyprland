@@ -271,7 +271,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> keyboard) {
 
     auto* pressedInput = m_inputState.find(KEY, keyboard);
     if (!pressedInput) {
-        Log::logger->log(Log::ERR, "Keybind release had no matching press record");
+        LOG(Log::ERR, "Keybind release had no matching press record");
         const auto result = processEvent(
             {
                 .heldKeys         = m_inputState.heldKeys(),

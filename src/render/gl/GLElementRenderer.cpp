@@ -38,7 +38,7 @@ void CGLElementRenderer::draw(WP<CClearPassElement> element, const CRegion& dama
 };
 
 void CGLElementRenderer::draw(WP<CFramebufferElement> element, const CRegion& damage) {
-    Log::logger->log(Log::ERR, "Deprecated CFramebufferElement. Use g_pHyprRenderer->m_renderData and CTexPassElement instead");
+    LOG(Log::ERR, "Deprecated CFramebufferElement. Use g_pHyprRenderer->m_renderData and CTexPassElement instead");
     // const auto       m_data = element->m_data;
     // SP<IFramebuffer> fb     = nullptr;
 
@@ -51,7 +51,7 @@ void CGLElementRenderer::draw(WP<CFramebufferElement> element, const CRegion& da
     //     }
 
     //     if (!fb) {
-    //         Log::logger->log(Log::ERR, "BUG THIS: CFramebufferElement::draw: main but null");
+    //         LOG(Log::ERR, "BUG THIS: CFramebufferElement::draw: main but null");
     //         return;
     //     }
 
@@ -67,7 +67,7 @@ void CGLElementRenderer::draw(WP<CFramebufferElement> element, const CRegion& da
     //     }
 
     //     if (!fb) {
-    //         Log::logger->log(Log::ERR, "BUG THIS: CFramebufferElement::draw: not main but null");
+    //         LOG(Log::ERR, "BUG THIS: CFramebufferElement::draw: not main but null");
     //         return;
     //     }
     // }

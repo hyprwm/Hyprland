@@ -53,7 +53,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
     static auto PALLOWRELOCK = CConfigValue<Config::INTEGER>("misc:allow_session_lock_restore");
 
     if (PROTO::sessionLock->isLocked() && !*PALLOWRELOCK && g_pCompositor->m_startLockedCommand.empty()) {
-        LOGM(Log::DEBUG, "Cannot re-lock, misc:allow_session_lock_restore is disabled");
+        LOG(Log::DEBUG, "Cannot re-lock, misc:allow_session_lock_restore is disabled");
         pLock->sendDenied();
         return;
     }
@@ -61,7 +61,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
     if (m_sessionLock && !clientDenied() && !clientLocked())
         return; // Not allowing to relock in case the old lock is still in a limbo
 
-    LOGM(Log::DEBUG, "Session got locked by {:x}", (uintptr_t)pLock.get());
+    LOG(Log::DEBUG, "Session got locked by {:x}", (uintptr_t)pLock.get());
 
     m_sessionLock       = makeUnique<SSessionLock>();
     m_sessionLock->lock = pLock;
@@ -122,8 +122,8 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
             if (!g_pSessionLockManager->m_sessionLock || !g_pSessionLockManager->m_sessionLock->lock)
                 return;
 
-            LOGM(Log::WARN,
-                 "Sending locked after a 5 second timeout. This happens when we failed to render a lock frame from the client for every output. Lockdead frames may be shown.");
+            LOG(Log::WARN,
+                "Sending locked after a 5 second timeout. This happens when we failed to render a lock frame from the client for every output. Lockdead frames may be shown.");
             g_pSessionLockManager->m_sessionLock->lock->sendLocked();
             g_pSessionLockManager->m_sessionLock->hasSentLocked = true;
         },

@@ -90,7 +90,7 @@ IRule::IRule(const std::string& name) : m_name(name) {
 void IRule::registerMatch(eRuleProperty p, const std::string& s) {
     const auto IT = std::ranges::lower_bound(RULE_ENGINES, p, {}, [](auto pair) { return pair.first; });
     if (IT == RULE_ENGINES.end() || IT->first != p) {
-        Log::logger->log(Log::ERR, "BUG THIS: IRule: RULE_ENGINES does not contain rule idx {}", sc<std::underlying_type_t<eRuleProperty>>(p));
+        LOG(Log::ERR, "BUG THIS: IRule: RULE_ENGINES does not contain rule idx {}", sc<std::underlying_type_t<eRuleProperty>>(p));
         return;
     }
 

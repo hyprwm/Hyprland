@@ -40,19 +40,19 @@ void CCanberraImpl::playThreaded(const std::string& x) {
         if (std::filesystem::exists(RESOLVEDPATH)) {
             ca_proplist_sets(m_sound, CA_PROP_MEDIA_FILENAME, RESOLVEDPATH.c_str());
             ca_proplist_set(m_sound, CA_PROP_EVENT_ID, nullptr, 0);
-            Log::logger->log(Log::WARN, "CCanberraImpl::playThreaded: resolved custom sound path '{}'", RESOLVEDPATH);
+            LOG(Log::WARN, "CCanberraImpl::playThreaded: resolved custom sound path '{}'", RESOLVEDPATH);
         } else {
             ca_proplist_sets(m_sound, CA_PROP_EVENT_ID, "bell-window-system");
-            Log::logger->log(Log::WARN, "CCanberraImpl::playThreaded: resolved custom sound path '{}' doesn't exist, falling back to default", RESOLVEDPATH);
+            LOG(Log::WARN, "CCanberraImpl::playThreaded: resolved custom sound path '{}' doesn't exist, falling back to default", RESOLVEDPATH);
         }
     }
 
     int result = ca_context_play_full(m_context, 0, m_sound, nullptr, nullptr);
     if UNLIKELY (result != CA_SUCCESS) {
         if (result == CA_ERROR_CORRUPT)
-            Log::logger->log(Log::WARN, "bell: sound is not a wav/ogg file");
+            LOG(Log::WARN, "bell: sound is not a wav/ogg file");
         else
-            Log::logger->log(Log::WARN, "bell: failed to play sound, '{}'", ca_strerror(result));
+            LOG(Log::WARN, "bell: failed to play sound, '{}'", ca_strerror(result));
     }
 }
 
@@ -70,7 +70,7 @@ void CCanberraImpl::initializeSoundContext() {
 
     int result = ca_context_create(&m_context) || ca_proplist_create(&m_sound);
     if UNLIKELY (result != CA_SUCCESS)
-        Log::logger->log(Log::ERR, "bell: failed to create canberra context, '{}'", ca_strerror(result));
+        LOG(Log::ERR, "bell: failed to create canberra context, '{}'", ca_strerror(result));
 
     ca_context_change_props(m_context, CA_PROP_APPLICATION_NAME, "Hyprland", CA_PROP_MEDIA_NAME, "System Bell", CA_PROP_EVENT_DESCRIPTION, "Wayland system bell",
                             CA_PROP_MEDIA_ROLE, "event", CA_PROP_MEDIA_ICON_NAME, "preferences-system-notifications", CA_PROP_CANBERRA_CACHE_CONTROL, "permanent", nullptr);

@@ -46,7 +46,7 @@ void CLayerRuleApplicator::applyDynamicRule(const SP<CLayerRule>& rule) {
         switch (key) {
             default: {
                 if (key <= LAYER_RULE_EFFECT_LAST_STATIC) {
-                    Log::logger->log(Log::TRACE, "CLayerRuleApplicator::applyDynamicRule: Skipping effect {}, not dynamic", sc<std::underlying_type_t<eLayerRuleEffect>>(key));
+                    LOG(Log::TRACE, "CLayerRuleApplicator::applyDynamicRule: Skipping effect {}, not dynamic", sc<std::underlying_type_t<eLayerRuleEffect>>(key));
                     break;
                 }
 
@@ -67,7 +67,7 @@ void CLayerRuleApplicator::applyDynamicRule(const SP<CLayerRule>& rule) {
                 break;
             }
             case LAYER_RULE_EFFECT_NONE: {
-                Log::logger->log(Log::ERR, "CLayerRuleApplicator::applyDynamicRule: BUG THIS: LAYER_RULE_EFFECT_NONE??");
+                LOG(Log::ERR, "CLayerRuleApplicator::applyDynamicRule: BUG THIS: LAYER_RULE_EFFECT_NONE??");
                 break;
             }
             case LAYER_RULE_EFFECT_NO_ANIM: {

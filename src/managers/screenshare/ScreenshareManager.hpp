@@ -248,7 +248,7 @@ namespace Screenshare {
     inline UP<CScreenshareManager>& mgr() {
         static UP<CScreenshareManager> manager = nullptr;
         if (!manager && g_pHyprRenderer) {
-            Log::logger->log(Log::DEBUG, "Starting ScreenshareManager");
+            LOG(Log::DEBUG, "Starting ScreenshareManager");
             manager = makeUnique<CScreenshareManager>();
         }
         return manager;

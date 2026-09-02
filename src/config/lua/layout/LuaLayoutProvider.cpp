@@ -233,7 +233,7 @@ void CLuaTiledAlgorithm::reportError(const std::string& message) {
     if (!m_provider)
         return;
 
-    Log::logger->log(Log::ERR, "[lua] layout {} error: {}", m_provider->name, message);
+    LOG(Log::ERR, "[lua] layout {} error: {}", m_provider->name, message);
 
     if (m_provider->didError || !m_provider->manager)
         return;

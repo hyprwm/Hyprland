@@ -6,7 +6,7 @@ using namespace Desktop::Rule;
 CIntMatchEngine::CIntMatchEngine(const std::string& s) {
     try {
         m_value = std::stoi(s);
-    } catch (...) { Log::logger->log(Log::ERR, "CIntMatchEngine: invalid input {}", s); }
+    } catch (...) { LOG(Log::ERR, "CIntMatchEngine: invalid input {}", s); }
 }
 
 bool CIntMatchEngine::match(int other) {

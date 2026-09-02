@@ -74,29 +74,29 @@ eScreenshareError CScreenshareFrame::share(SP<IHLBuffer> buffer, const CRegion& 
         return ERROR_STOPPED;
 
     if UNLIKELY (!m_session->monitor() || !State::monitorState()->contains(m_session->monitor())) {
-        LOGM(Log::ERR, "Client requested sharing of a monitor that is gone");
+        LOG(Log::ERR, "Client requested sharing of a monitor that is gone");
         m_failed = true;
         return ERROR_STOPPED;
     }
 
     if UNLIKELY (m_session->m_type == SHARE_WINDOW && !validMapped(m_session->m_window)) {
-        LOGM(Log::ERR, "Client requested sharing of window that is gone or not shareable!");
+        LOG(Log::ERR, "Client requested sharing of window that is gone or not shareable!");
         m_failed = true;
         return ERROR_STOPPED;
     }
 
     if UNLIKELY (!buffer || !buffer->m_resource || !buffer->m_resource->good()) {
-        LOGM(Log::ERR, "Client requested sharing to an invalid buffer");
+        LOG(Log::ERR, "Client requested sharing to an invalid buffer");
         return ERROR_NO_BUFFER;
     }
 
     if UNLIKELY (m_bufferSize != m_session->bufferSize()) {
-        LOGM(Log::ERR, "Client requested sharing with stale buffer constraints");
+        LOG(Log::ERR, "Client requested sharing with stale buffer constraints");
         return ERROR_BUFFER_SIZE;
     }
 
     if UNLIKELY (buffer->size != m_bufferSize) {
-        LOGM(Log::ERR, "Client requested sharing to an invalid buffer size");
+        LOG(Log::ERR, "Client requested sharing to an invalid buffer size");
         return ERROR_BUFFER_SIZE;
     }
 
@@ -106,12 +106,12 @@ eScreenshareError CScreenshareFrame::share(SP<IHLBuffer> buffer, const CRegion& 
     else if (buffer->shm().success)
         bufFormat = buffer->shm().format;
     else {
-        LOGM(Log::ERR, "Client requested sharing to an invalid buffer");
+        LOG(Log::ERR, "Client requested sharing to an invalid buffer");
         return ERROR_NO_BUFFER;
     }
 
     if (std::ranges::count_if(m_session->allowedFormats(), [&](const DRMFormat& format) { return format == bufFormat; }) == 0) {
-        LOGM(Log::ERR, "Invalid format {} in {:x}", bufFormat, (uintptr_t)this);
+        LOG(Log::ERR, "Invalid format {} in {:x}", bufFormat, (uintptr_t)this);
         return ERROR_BUFFER_FORMAT;
     }
 
@@ -186,19 +186,18 @@ void CScreenshareFrame::renderMonitor() {
 
     auto       TEXTURE = g_pHyprRenderer->m_renderData.pMonitor->resources()->getMirrorTexture();
     if (!TEXTURE) {
-        LOGM(Log::ERR, "Invalid source texture");
+        LOG(Log::ERR, "Invalid source texture");
         return;
     }
 
     if (!TEXTURE->m_imageDescription)
-        Log::logger->log(Log::ERR, "CM: FIXME no source image description for screenshare");
+        LOG(Log::ERR, "CM: FIXME no source image description for screenshare");
 
     if (!g_pHyprRenderer->m_renderData.currentFB->imageDescription())
-        Log::logger->log(Log::ERR, "CM: FIXME no target image description for screenshare");
+        LOG(Log::ERR, "CM: FIXME no target image description for screenshare");
 
     if (TEXTURE->m_imageDescription && g_pHyprRenderer->m_renderData.currentFB->imageDescription())
-        Log::logger->log(Log::TRACE, "CM: screenshot renderMonitor {} -> {}", TEXTURE->m_imageDescription->value(),
-                         g_pHyprRenderer->m_renderData.currentFB->imageDescription()->value());
+        LOG(Log::TRACE, "CM: screenshot renderMonitor {} -> {}", TEXTURE->m_imageDescription->value(), g_pHyprRenderer->m_renderData.currentFB->imageDescription()->value());
 
     const bool IS_CM_AWARE               = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_session->m_client);
     g_pHyprRenderer->m_renderData.fbSize = m_bufferSize;
@@ -400,7 +399,7 @@ bool CScreenshareFrame::copyDmabuf() {
         return false;
 
     if (!g_pHyprRenderer->beginRender(m_session->monitor(), m_damage, Render::RENDER_MODE_TO_BUFFER, m_buffer, nullptr, true)) {
-        LOGM(Log::ERR, "Can't copy: failed to begin rendering to dma frame");
+        LOG(Log::ERR, "Can't copy: failed to begin rendering to dma frame");
         return false;
     }
     g_pHyprRenderer->m_renderData.currentFB->setImageDescription(NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION);
@@ -420,7 +419,7 @@ bool CScreenshareFrame::copyDmabuf() {
         if (self->m_copied)
             return;
 
-        LOGM(Log::TRACE, "Copied frame via dma");
+        LOG(Log::TRACE, "Copied frame via dma");
         self->m_callback(RESULT_COPIED);
         self->m_copied = true;
     });
@@ -436,7 +435,7 @@ bool CScreenshareFrame::copyShm() {
 
     const auto PFORMAT = getPixelFormatFromDRM(shm.format);
     if (!PFORMAT) {
-        LOGM(Log::ERR, "Can't copy: failed to find a pixel format");
+        LOG(Log::ERR, "Can't copy: failed to find a pixel format");
         return false;
     }
 
@@ -447,7 +446,7 @@ bool CScreenshareFrame::copyShm() {
     outFB->setImageDescription(NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION);
 
     if (!g_pHyprRenderer->beginFullFakeRender(PMONITOR, m_damage, outFB)) {
-        LOGM(Log::ERR, "Can't copy: failed to begin rendering");
+        LOG(Log::ERR, "Can't copy: failed to begin rendering");
         return false;
     }
 
@@ -471,12 +470,12 @@ bool CScreenshareFrame::copyShm() {
     g_pHyprRenderer->m_renderData.pMonitor.reset();
 
     if (!readSucceeded) {
-        LOGM(Log::ERR, "Can't copy: failed to read pixels to shm");
+        LOG(Log::ERR, "Can't copy: failed to read pixels to shm");
         return false;
     }
 
     if (!m_copied) {
-        LOGM(Log::TRACE, "Copied frame via shm");
+        LOG(Log::TRACE, "Copied frame via shm");
         m_callback(RESULT_COPIED);
         m_copied = true;
     }
@@ -493,7 +492,7 @@ void CScreenshareFrame::storeTempFB() {
     CRegion fakeDamage = {0, 0, m_bufferSize.x, m_bufferSize.y};
 
     if (!g_pHyprRenderer->beginFullFakeRender(m_session->monitor(), fakeDamage, m_session->m_tempFB)) {
-        LOGM(Log::ERR, "Can't copy: failed to begin rendering to temp fb");
+        LOG(Log::ERR, "Can't copy: failed to begin rendering to temp fb");
         return;
     }
 

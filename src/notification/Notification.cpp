@@ -75,7 +75,7 @@ void CNotification::lock() {
 
 void CNotification::unlock() {
     if (m_pauseLocks == 0) {
-        Log::logger->log(Log::ERR, "CNotification: BUG THIS: unlock on 0 locks??");
+        LOG(Log::ERR, "CNotification: BUG THIS: unlock on 0 locks??");
         return;
     }
 

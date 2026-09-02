@@ -58,15 +58,15 @@ CSecurityContext::CSecurityContext(SP<CWpSecurityContextV1> resource_, int liste
     m_closeFD.setFlags(m_closeFD.getFlags() | FD_CLOEXEC);
 
     m_resource->setDestroy([this](CWpSecurityContextV1* r) {
-        LOGM(Log::DEBUG, "security_context at 0x{:x}: resource destroyed, keeping context until fd hangup", (uintptr_t)this);
+        LOG(Log::DEBUG, "security_context at 0x{:x}: resource destroyed, keeping context until fd hangup", (uintptr_t)this);
         m_resource = nullptr;
     });
     m_resource->setOnDestroy([this](CWpSecurityContextV1* r) {
-        LOGM(Log::DEBUG, "security_context at 0x{:x}: resource destroyed, keeping context until fd hangup", (uintptr_t)this);
+        LOG(Log::DEBUG, "security_context at 0x{:x}: resource destroyed, keeping context until fd hangup", (uintptr_t)this);
         m_resource = nullptr;
     });
 
-    LOGM(Log::DEBUG, "New security_context at 0x{:x}", (uintptr_t)this);
+    LOG(Log::DEBUG, "New security_context at 0x{:x}", (uintptr_t)this);
 
     m_resource->setSetSandboxEngine([this](CWpSecurityContextV1* r, const char* engine) {
         if UNLIKELY (!m_sandboxEngine.empty()) {
@@ -80,7 +80,7 @@ CSecurityContext::CSecurityContext(SP<CWpSecurityContextV1> resource_, int liste
         }
 
         m_sandboxEngine = engine ? engine : "(null)";
-        LOGM(Log::DEBUG, "security_context at 0x{:x} sets engine to {}", (uintptr_t)this, m_sandboxEngine);
+        LOG(Log::DEBUG, "security_context at 0x{:x} sets engine to {}", (uintptr_t)this, m_sandboxEngine);
     });
 
     m_resource->setSetAppId([this](CWpSecurityContextV1* r, const char* appid) {
@@ -95,7 +95,7 @@ CSecurityContext::CSecurityContext(SP<CWpSecurityContextV1> resource_, int liste
         }
 
         m_appID = appid ? appid : "(null)";
-        LOGM(Log::DEBUG, "security_context at 0x{:x} sets appid to {}", (uintptr_t)this, m_appID);
+        LOG(Log::DEBUG, "security_context at 0x{:x} sets appid to {}", (uintptr_t)this, m_appID);
     });
 
     m_resource->setSetInstanceId([this](CWpSecurityContextV1* r, const char* instance) {
@@ -110,13 +110,13 @@ CSecurityContext::CSecurityContext(SP<CWpSecurityContextV1> resource_, int liste
         }
 
         m_instanceID = instance ? instance : "(null)";
-        LOGM(Log::DEBUG, "security_context at 0x{:x} sets instance to {}", (uintptr_t)this, m_instanceID);
+        LOG(Log::DEBUG, "security_context at 0x{:x} sets instance to {}", (uintptr_t)this, m_instanceID);
     });
 
     m_resource->setCommit([this](CWpSecurityContextV1* r) {
         m_committed = true;
 
-        LOGM(Log::DEBUG, "security_context at 0x{:x} commits", (uintptr_t)this);
+        LOG(Log::DEBUG, "security_context at 0x{:x} commits", (uintptr_t)this);
 
         m_listenSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, m_listenFD.get(), WL_EVENT_READABLE, ::onListenFdEvent, this);
         m_closeSource  = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, m_closeFD.get(), 0, ::onCloseFdEvent, this);
@@ -141,7 +141,7 @@ bool CSecurityContext::good() {
 
 void CSecurityContext::onListen(uint32_t mask) {
     if UNLIKELY (mask & (WL_EVENT_HANGUP | WL_EVENT_ERROR)) {
-        LOGM(Log::ERR, "security_context at 0x{:x} got an error in listen", (uintptr_t)this);
+        LOG(Log::ERR, "security_context at 0x{:x} got an error in listen", (uintptr_t)this);
         PROTO::securityContext->destroyContext(this);
         return;
     }
@@ -151,19 +151,19 @@ void CSecurityContext::onListen(uint32_t mask) {
 
     CFileDescriptor clientFD{accept(m_listenFD.get(), nullptr, nullptr)};
     if UNLIKELY (!clientFD.isValid()) {
-        LOGM(Log::ERR, "security_context at 0x{:x} couldn't accept", (uintptr_t)this);
+        LOG(Log::ERR, "security_context at 0x{:x} couldn't accept", (uintptr_t)this);
         return;
     }
 
     auto newClient = CSecurityContextSandboxedClient::create(std::move(clientFD));
     if UNLIKELY (!newClient) {
-        LOGM(Log::ERR, "security_context at 0x{:x} couldn't create a client", (uintptr_t)this);
+        LOG(Log::ERR, "security_context at 0x{:x} couldn't create a client", (uintptr_t)this);
         return;
     }
 
     PROTO::securityContext->m_sandboxedClients.emplace_back(newClient);
 
-    LOGM(Log::DEBUG, "security_context at 0x{:x} got a new wl_client 0x{:x}", (uintptr_t)this, (uintptr_t)newClient->m_client);
+    LOG(Log::DEBUG, "security_context at 0x{:x} got a new wl_client 0x{:x}", (uintptr_t)this, (uintptr_t)newClient->m_client);
 }
 
 void CSecurityContext::onClose(uint32_t mask) {

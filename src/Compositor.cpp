@@ -325,8 +325,7 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
     m_aqBackend = CBackend::create(implementations, options);
 
     if (!m_aqBackend) {
-        LOG(
-            Log::CRIT,
+        LOG(Log::CRIT,
             "m_pAqBackend was null! This usually means aquamarine could not find a GPU or encountered some issues. Make sure you're running either on a tty or on a Wayland "
             "session, NOT an X11 one.");
         throwError("CBackend::create() failed!");
@@ -337,8 +336,7 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
     initAllSignals();
 
     if (!m_aqBackend->start()) {
-        LOG(
-            Log::CRIT,
+        LOG(Log::CRIT,
             "m_pAqBackend couldn't start! This usually means aquamarine could not find a GPU or encountered some issues. Make sure you're running either on a tty or on a "
             "Wayland session, NOT an X11 one.");
         throwError("CBackend::create() failed!");

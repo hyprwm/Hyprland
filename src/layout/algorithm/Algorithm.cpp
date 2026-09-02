@@ -56,7 +56,7 @@ void CAlgorithm::removeTarget(SP<ITarget> target) {
         return;
     }
 
-    Log::logger->log(Log::ERR, "BUG THIS: CAlgorithm::removeTarget, but not found");
+    LOG(Log::ERR, "BUG THIS: CAlgorithm::removeTarget, but not found");
 }
 
 void CAlgorithm::moveTarget(SP<ITarget> target, std::optional<Vector2D> focalPoint, bool reposition) {

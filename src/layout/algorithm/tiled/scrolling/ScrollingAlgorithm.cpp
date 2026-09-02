@@ -597,7 +597,7 @@ CScrollingAlgorithm::CScrollingAlgorithm() : m_scrollingFullscreenHandler(makeUn
         for (auto& w : widths) {
             try {
                 widthVec.emplace_back(std::clamp(std::stof(std::string{w}), MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH));
-            } catch (...) { Log::logger->log(Log::ERR, "scrolling: Failed to parse width {} as float", w); }
+            } catch (...) { LOG(Log::ERR, "scrolling: Failed to parse width {} as float", w); }
         }
         if (widthVec.empty())
             widthVec = {0.333, 0.5, 0.667, 1.0}; // default
@@ -1987,13 +1987,13 @@ void CScrollingAlgorithm::inhibitScroll() {
     m_scrollingData->controller->getScrollInhibitor().offsetWhenInhibited = m_scrollingData->controller->getOffset();
     m_scrollingData->controller->getScrollInhibitor().isInhibited         = true;
 
-    Log::logger->log(Log::INFO, "Scrolling inhibited");
+    LOG(Log::INFO, "Scrolling inhibited");
 }
 
 void CScrollingAlgorithm::uninhibitScroll() {
     m_scrollingData->controller->getScrollInhibitor().isInhibited = false;
 
-    Log::logger->log(Log::INFO, "Scrolling uninhibited");
+    LOG(Log::INFO, "Scrolling uninhibited");
 }
 
 float CScrollingAlgorithm::defaultColumnWidth() {

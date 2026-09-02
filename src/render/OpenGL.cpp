@@ -76,7 +76,7 @@ CBox Render::GL::resolveBlurUV(const CBox& destinationBox, const Vector2D& textu
 static inline void loadGLProc(void* pProc, const char* name) {
     void* proc = rc<void*>(eglGetProcAddress(name));
     if (proc == nullptr) {
-        Log::logger->log(Log::CRIT, "[Tracy GPU Profiling] eglGetProcAddress({}) failed", name);
+        LOG(Log::CRIT, "[Tracy GPU Profiling] eglGetProcAddress({}) failed", name);
         abort();
     }
     *sc<void**>(pProc) = proc;
@@ -115,7 +115,7 @@ static const char* eglErrorToString(EGLint error) {
 }
 
 static void eglLog(EGLenum error, const char* command, EGLint type, EGLLabelKHR thread, EGLLabelKHR obj, const char* msg) {
-    Log::logger->log(eglLogToLevel(type), "[EGL] Command {} errored out with {} (0x{}): {}", command, eglErrorToString(error), error, msg);
+    LOG(eglLogToLevel(type), "[EGL] Command {} errored out with {} (0x{}): {}", command, eglErrorToString(error), error, msg);
 }
 
 static int openRenderNode(int drmFd) {
@@ -125,14 +125,14 @@ static int openRenderNode(int drmFd) {
         // primary node
         renderName = drmGetPrimaryDeviceNameFromFd(drmFd);
         if (!renderName) {
-            Log::logger->log(Log::ERR, "drmGetPrimaryDeviceNameFromFd failed");
+            LOG(Log::ERR, "drmGetPrimaryDeviceNameFromFd failed");
             return -1;
         }
-        Log::logger->log(Log::DEBUG, "DRM dev {} has no render node, falling back to primary", renderName);
+        LOG(Log::DEBUG, "DRM dev {} has no render node, falling back to primary", renderName);
 
         drmVersion* render_version = drmGetVersion(drmFd);
         if (render_version && render_version->name) {
-            Log::logger->log(Log::DEBUG, "DRM dev versionName {}", render_version->name);
+            LOG(Log::DEBUG, "DRM dev versionName {}", render_version->name);
             if (strcmp(render_version->name, "evdi") == 0) {
                 free(renderName); // NOLINT(cppcoreguidelines-no-malloc)
                 renderName = strdup("/dev/dri/card0");
@@ -141,11 +141,11 @@ static int openRenderNode(int drmFd) {
         }
     }
 
-    Log::logger->log(Log::DEBUG, "openRenderNode got drm device {}", renderName);
+    LOG(Log::DEBUG, "openRenderNode got drm device {}", renderName);
 
     int renderFD = open(renderName, O_RDWR | O_CLOEXEC);
     if (renderFD < 0)
-        Log::logger->log(Log::ERR, "openRenderNode failed to open drm device {}", renderName);
+        LOG(Log::ERR, "openRenderNode failed to open drm device {}", renderName);
 
     free(renderName); // NOLINT(cppcoreguidelines-no-malloc)
     return renderFD;
@@ -185,19 +185,19 @@ void CHyprOpenGLImpl::initEGL(bool gbm) {
     m_exts.KHR_context_flush_control          = EGLEXTENSIONS.contains("EGL_KHR_context_flush_control");
 
     if (m_exts.IMG_context_priority) {
-        Log::logger->log(Log::DEBUG, "EGL: IMG_context_priority supported, requesting high");
+        LOG(Log::DEBUG, "EGL: IMG_context_priority supported, requesting high");
         attrs.push_back(EGL_CONTEXT_PRIORITY_LEVEL_IMG);
         attrs.push_back(EGL_CONTEXT_PRIORITY_HIGH_IMG);
     }
 
     if (m_exts.EXT_create_context_robustness) {
-        Log::logger->log(Log::DEBUG, "EGL: EXT_create_context_robustness supported, requesting lose on reset");
+        LOG(Log::DEBUG, "EGL: EXT_create_context_robustness supported, requesting lose on reset");
         attrs.push_back(EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_EXT);
         attrs.push_back(EGL_LOSE_CONTEXT_ON_RESET_EXT);
     }
 
     if (m_exts.KHR_context_flush_control) {
-        Log::logger->log(Log::DEBUG, "EGL: Using KHR_context_flush_control");
+        LOG(Log::DEBUG, "EGL: Using KHR_context_flush_control");
         attrs.push_back(EGL_CONTEXT_RELEASE_BEHAVIOR_KHR);
         attrs.push_back(EGL_CONTEXT_RELEASE_BEHAVIOR_NONE_KHR); // or _FLUSH_KHR
     }
@@ -212,7 +212,7 @@ void CHyprOpenGLImpl::initEGL(bool gbm) {
 
     m_eglContext = eglCreateContext(m_eglDisplay, EGL_NO_CONFIG_KHR, EGL_NO_CONTEXT, attrs.data());
     if (m_eglContext == EGL_NO_CONTEXT) {
-        Log::logger->log(Log::WARN, "EGL: Failed to create a context with GLES3.2, retrying 3.0");
+        LOG(Log::WARN, "EGL: Failed to create a context with GLES3.2, retrying 3.0");
 
         attrs = attrsNoVer;
         attrs.push_back(EGL_CONTEXT_MAJOR_VERSION);
@@ -232,9 +232,9 @@ void CHyprOpenGLImpl::initEGL(bool gbm) {
         EGLint priority = EGL_CONTEXT_PRIORITY_MEDIUM_IMG;
         eglQueryContext(m_eglDisplay, m_eglContext, EGL_CONTEXT_PRIORITY_LEVEL_IMG, &priority);
         if (priority != EGL_CONTEXT_PRIORITY_HIGH_IMG)
-            Log::logger->log(Log::ERR, "EGL: Failed to obtain a high priority context");
+            LOG(Log::ERR, "EGL: Failed to obtain a high priority context");
         else
-            Log::logger->log(Log::DEBUG, "EGL: Got a high priority context");
+            LOG(Log::DEBUG, "EGL: Got a high priority context");
     }
 
     eglMakeCurrent(m_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, m_eglContext);
@@ -254,12 +254,12 @@ static bool drmDeviceHasName(const drmDevice* device, const std::string& name) {
 EGLDeviceEXT CHyprOpenGLImpl::eglDeviceFromDRMFD(int drmFD) {
     EGLint nDevices = 0;
     if (!m_proc.eglQueryDevicesEXT(0, nullptr, &nDevices)) {
-        Log::logger->log(Log::ERR, "eglDeviceFromDRMFD: eglQueryDevicesEXT failed");
+        LOG(Log::ERR, "eglDeviceFromDRMFD: eglQueryDevicesEXT failed");
         return EGL_NO_DEVICE_EXT;
     }
 
     if (nDevices <= 0) {
-        Log::logger->log(Log::ERR, "eglDeviceFromDRMFD: no devices");
+        LOG(Log::ERR, "eglDeviceFromDRMFD: no devices");
         return EGL_NO_DEVICE_EXT;
     }
 
@@ -267,13 +267,13 @@ EGLDeviceEXT CHyprOpenGLImpl::eglDeviceFromDRMFD(int drmFD) {
     devices.resize(nDevices);
 
     if (!m_proc.eglQueryDevicesEXT(nDevices, devices.data(), &nDevices)) {
-        Log::logger->log(Log::ERR, "eglDeviceFromDRMFD: eglQueryDevicesEXT failed (2)");
+        LOG(Log::ERR, "eglDeviceFromDRMFD: eglQueryDevicesEXT failed (2)");
         return EGL_NO_DEVICE_EXT;
     }
 
     drmDevice* drmDev = nullptr;
     if (int ret = drmGetDevice(drmFD, &drmDev); ret < 0) {
-        Log::logger->log(Log::ERR, "eglDeviceFromDRMFD: drmGetDevice failed");
+        LOG(Log::ERR, "eglDeviceFromDRMFD: drmGetDevice failed");
         return EGL_NO_DEVICE_EXT;
     }
 
@@ -283,21 +283,21 @@ EGLDeviceEXT CHyprOpenGLImpl::eglDeviceFromDRMFD(int drmFD) {
             continue;
 
         if (drmDeviceHasName(drmDev, devName)) {
-            Log::logger->log(Log::DEBUG, "eglDeviceFromDRMFD: Using device {}", devName);
+            LOG(Log::DEBUG, "eglDeviceFromDRMFD: Using device {}", devName);
             drmFreeDevice(&drmDev);
             return d;
         }
     }
 
     drmFreeDevice(&drmDev);
-    Log::logger->log(Log::DEBUG, "eglDeviceFromDRMFD: No drm devices found");
+    LOG(Log::DEBUG, "eglDeviceFromDRMFD: No drm devices found");
     return EGL_NO_DEVICE_EXT;
 }
 
 CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >= 0 ? g_pCompositor->m_drmRenderNode.fd : g_pCompositor->m_drm.fd) {
     const std::string EGLEXTENSIONS = eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS);
 
-    Log::logger->log(Log::DEBUG, "Supported EGL global extensions: ({}) {}", std::ranges::count(EGLEXTENSIONS, ' '), EGLEXTENSIONS);
+    LOG(Log::DEBUG, "Supported EGL global extensions: ({}) {}", std::ranges::count(EGLEXTENSIONS, ' '), EGLEXTENSIONS);
 
     m_exts.KHR_display_reference = EGLEXTENSIONS.contains("KHR_display_reference");
 
@@ -348,7 +348,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >
     }
 
     if (!success) {
-        Log::logger->log(Log::WARN, "EGL: EXT_platform_device or EGL_EXT_device_query not supported, using gbm");
+        LOG(Log::WARN, "EGL: EXT_platform_device or EGL_EXT_device_query not supported, using gbm");
         if (EGLEXTENSIONS.contains("KHR_platform_gbm")) {
             success = true;
             m_gbmFD = CFileDescriptor{openRenderNode(m_drmFD)};
@@ -370,11 +370,11 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >
 
     m_extensions = EXTENSIONS;
 
-    Log::logger->log(Log::DEBUG, "Creating the Hypr OpenGL Renderer!");
-    Log::logger->log(Log::DEBUG, "Using: {}", rc<const char*>(glGetString(GL_VERSION)));
-    Log::logger->log(Log::DEBUG, "Vendor: {}", rc<const char*>(glGetString(GL_VENDOR)));
-    Log::logger->log(Log::DEBUG, "Renderer: {}", rc<const char*>(glGetString(GL_RENDERER)));
-    Log::logger->log(Log::DEBUG, "Supported extensions: ({}) {}", std::ranges::count(m_extensions, ' '), m_extensions);
+    LOG(Log::DEBUG, "Creating the Hypr OpenGL Renderer!");
+    LOG(Log::DEBUG, "Using: {}", rc<const char*>(glGetString(GL_VERSION)));
+    LOG(Log::DEBUG, "Vendor: {}", rc<const char*>(glGetString(GL_VENDOR)));
+    LOG(Log::DEBUG, "Renderer: {}", rc<const char*>(glGetString(GL_RENDERER)));
+    LOG(Log::DEBUG, "Supported extensions: ({}) {}", std::ranges::count(m_extensions, ' '), m_extensions);
 
     m_exts.EXT_read_format_bgra        = m_extensions.contains("GL_EXT_read_format_bgra");
     m_exts.EXT_color_buffer_half_float = m_extensions.contains("GL_EXT_color_buffer_half_float") || m_extensions.contains("GL_EXT_color_buffer_float");
@@ -382,22 +382,22 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >
     RASSERT(m_extensions.contains("GL_EXT_texture_format_BGRA8888"), "GL_EXT_texture_format_BGRA8888 support by the GPU driver is required");
 
     if (!m_exts.EXT_read_format_bgra)
-        Log::logger->log(Log::WARN, "Your GPU does not support GL_EXT_read_format_bgra, this may cause issues with texture importing");
+        LOG(Log::WARN, "Your GPU does not support GL_EXT_read_format_bgra, this may cause issues with texture importing");
     if (!m_exts.EXT_image_dma_buf_import || !m_exts.EXT_image_dma_buf_import_modifiers)
-        Log::logger->log(Log::WARN, "Your GPU does not support DMABUFs, this will possibly cause issues and will take a hit on the performance.");
+        LOG(Log::WARN, "Your GPU does not support DMABUFs, this will possibly cause issues and will take a hit on the performance.");
 
     const std::string EGLEXTENSIONS_DISPLAY = eglQueryString(m_eglDisplay, EGL_EXTENSIONS);
 
-    Log::logger->log(Log::DEBUG, "Supported EGL display extensions: ({}) {}", std::ranges::count(EGLEXTENSIONS_DISPLAY, ' '), EGLEXTENSIONS_DISPLAY);
+    LOG(Log::DEBUG, "Supported EGL display extensions: ({}) {}", std::ranges::count(EGLEXTENSIONS_DISPLAY, ' '), EGLEXTENSIONS_DISPLAY);
 
 #if defined(__linux__)
     m_exts.EGL_ANDROID_native_fence_sync_ext = EGLEXTENSIONS_DISPLAY.contains("EGL_ANDROID_native_fence_sync");
 
     if (!m_exts.EGL_ANDROID_native_fence_sync_ext)
-        Log::logger->log(Log::WARN, "Your GPU does not support explicit sync via the EGL_ANDROID_native_fence_sync extension.");
+        LOG(Log::WARN, "Your GPU does not support explicit sync via the EGL_ANDROID_native_fence_sync extension.");
 #else
     m_exts.EGL_ANDROID_native_fence_sync_ext = false;
-    Log::logger->log(Log::WARN, "Forcefully disabling explicit sync: BSD is missing support for proper timeline export");
+    LOG(Log::WARN, "Forcefully disabling explicit sync: BSD is missing support for proper timeline export");
 #endif
 
 #ifdef USE_TRACY_GPU
@@ -478,7 +478,7 @@ std::optional<std::vector<uint64_t>> CHyprOpenGLImpl::getModsForFormat(EGLint fo
 
     EGLint len = 0;
     if (!m_proc.eglQueryDmaBufModifiersEXT(m_eglDisplay, format, 0, nullptr, nullptr, &len)) {
-        Log::logger->log(Log::ERR, "EGL: Failed to query mods");
+        LOG(Log::ERR, "EGL: Failed to query mods");
         return std::nullopt;
     }
 
@@ -493,7 +493,7 @@ std::optional<std::vector<uint64_t>> CHyprOpenGLImpl::getModsForFormat(EGLint fo
 
     if (!m_proc.eglQueryDmaBufModifiersEXT(m_eglDisplay, format, len, mods.data(), external.data(), &len)) {
         const auto err = eglGetError();
-        Log::logger->log(Log::ERR, "EGL: Failed to query mods (2) for format 0x{:x}, eglGetError: 0x{:x}", format, err);
+        LOG(Log::ERR, "EGL: Failed to query mods (2) for format 0x{:x}, eglGetError: 0x{:x}", format, err);
         return std::nullopt;
     }
 
@@ -522,10 +522,10 @@ std::optional<std::vector<uint64_t>> CHyprOpenGLImpl::getModsForFormat(EGLint fo
 void CHyprOpenGLImpl::initDRMFormats() {
     const auto DISABLE_MODS = Env::envEnabled("HYPRLAND_EGL_NO_MODIFIERS");
     if (DISABLE_MODS)
-        Log::logger->log(Log::WARN, "HYPRLAND_EGL_NO_MODIFIERS set, disabling modifiers");
+        LOG(Log::WARN, "HYPRLAND_EGL_NO_MODIFIERS set, disabling modifiers");
 
     if (!m_exts.EXT_image_dma_buf_import) {
-        Log::logger->log(Log::ERR, "EGL: No dmabuf import, DMABufs will not work.");
+        LOG(Log::ERR, "EGL: No dmabuf import, DMABufs will not work.");
         return;
     }
 
@@ -534,28 +534,28 @@ void CHyprOpenGLImpl::initDRMFormats() {
     if (!m_exts.EXT_image_dma_buf_import_modifiers || !m_proc.eglQueryDmaBufFormatsEXT) {
         formats.push_back(DRM_FORMAT_ARGB8888);
         formats.push_back(DRM_FORMAT_XRGB8888);
-        Log::logger->log(Log::WARN, "EGL: No mod support");
+        LOG(Log::WARN, "EGL: No mod support");
     } else {
         EGLint len = 0;
         if (!m_proc.eglQueryDmaBufFormatsEXT(m_eglDisplay, 0, nullptr, &len)) {
             const auto err = eglGetError();
-            Log::logger->log(Log::ERR, "EGL: Failed to query formats, eglGetError: 0x{:x}", err);
+            LOG(Log::ERR, "EGL: Failed to query formats, eglGetError: 0x{:x}", err);
             return;
         }
         formats.resize(len);
         if (!m_proc.eglQueryDmaBufFormatsEXT(m_eglDisplay, len, formats.data(), &len)) {
             const auto err = eglGetError();
-            Log::logger->log(Log::ERR, "EGL: Failed to query formats (2), eglGetError: 0x{:x}", err);
+            LOG(Log::ERR, "EGL: Failed to query formats (2), eglGetError: 0x{:x}", err);
             return;
         }
     }
 
     if (formats.empty()) {
-        Log::logger->log(Log::ERR, "EGL: Failed to get formats, DMABufs will not work.");
+        LOG(Log::ERR, "EGL: Failed to get formats, DMABufs will not work.");
         return;
     }
 
-    Log::logger->log(Log::DEBUG, "Supported DMA-BUF formats:");
+    LOG(Log::DEBUG, "Supported DMA-BUF formats:");
 
     std::vector<SDRMFormat> dmaFormats;
     // reserve number of elements to avoid reallocations
@@ -587,7 +587,7 @@ void CHyprOpenGLImpl::initDRMFormats() {
         modifierData.reserve(mods.size());
 
         auto fmtName = drmGetFormatName(fmt);
-        Log::logger->log(Log::DEBUG, "EGL: GPU Supports Format {} (0x{:x})", fmtName ? fmtName : "?unknown?", fmt);
+        LOG(Log::DEBUG, "EGL: GPU Supports Format {} (0x{:x})", fmtName ? fmtName : "?unknown?", fmt);
         for (auto const& mod : mods) {
             auto modName = drmGetFormatModifierName(mod);
             modifierData.emplace_back(mod, modName ? modName : "?unknown?");
@@ -605,16 +605,15 @@ void CHyprOpenGLImpl::initDRMFormats() {
         });
 
         for (auto const& [m, name] : modifierData) {
-            Log::logger->log(Log::DEBUG, "EGL: | with modifier {} (0x{:x})", name, m);
+            LOG(Log::DEBUG, "EGL: | with modifier {} (0x{:x})", name, m);
             mods.emplace_back(m);
         }
     }
 
-    Log::logger->log(Log::DEBUG, "EGL: {} formats found in total. Some modifiers may be omitted as they are external-only.", dmaFormats.size());
+    LOG(Log::DEBUG, "EGL: {} formats found in total. Some modifiers may be omitted as they are external-only.", dmaFormats.size());
 
     if (dmaFormats.empty())
-        Log::logger->log(
-            Log::WARN, "EGL: WARNING: No dmabuf formats were found, dmabuf will be disabled. This will degrade performance, but is most likely a driver issue or a very old GPU.");
+        LOG(Log::WARN, "EGL: WARNING: No dmabuf formats were found, dmabuf will be disabled. This will degrade performance, but is most likely a driver issue or a very old GPU.");
 
     m_drmFormats = dmaFormats;
 
@@ -622,7 +621,7 @@ void CHyprOpenGLImpl::initDRMFormats() {
     m_fp16Supported = m_exts.EXT_color_buffer_half_float && std::ranges::any_of(m_drmFormats, [](const auto& fmt) { return fmt.drmFormat == DRM_FORMAT_ABGR16161616F; });
 
     if (!m_fp16Supported)
-        Log::logger->log(Log::WARN, "Your GPU does not support rendering to FP16 buffers, some effects and CM settings might be unavailable.");
+        LOG(Log::WARN, "Your GPU does not support rendering to FP16 buffers, some effects and CM settings might be unavailable.");
 }
 
 EGLImageKHR CHyprOpenGLImpl::createEGLImage(const Aquamarine::SDMABUFAttrs& attrs) {
@@ -672,7 +671,7 @@ EGLImageKHR CHyprOpenGLImpl::createEGLImage(const Aquamarine::SDMABUFAttrs& attr
 
     EGLImageKHR image = m_proc.eglCreateImageKHR(m_eglDisplay, EGL_NO_CONTEXT, EGL_LINUX_DMA_BUF_EXT, nullptr, attribs.data());
     if (image == EGL_NO_IMAGE_KHR) {
-        Log::logger->log(Log::ERR, "EGL: EGLCreateImageKHR failed: {}", eglGetError());
+        LOG(Log::ERR, "EGL: EGLCreateImageKHR failed: {}", eglGetError());
         return EGL_NO_IMAGE_KHR;
     }
 
@@ -856,7 +855,7 @@ void CHyprOpenGLImpl::end() {
                         finalBox        = CBox{{}, m_renderData.pMonitor->m_transformedSize};
                         finalCMComplete = true;
                     } else {
-                        Log::logger->log(Log::ERR, "Failed to acquire a work buffer for final color management");
+                        LOG(Log::ERR, "Failed to acquire a work buffer for final color management");
                         postProcessFBs[postProcessCount].reset();
                     }
                 }
@@ -880,7 +879,7 @@ void CHyprOpenGLImpl::end() {
                         finalTexture = postProcessFBs[postProcessCount++]->getTexture();
                         finalBox     = CBox{{}, m_renderData.pMonitor->m_transformedSize};
                     } else {
-                        Log::logger->log(Log::ERR, "Failed to acquire a work buffer for the final screen shader");
+                        LOG(Log::ERR, "Failed to acquire a work buffer for the final screen shader");
                         postProcessFBs[postProcessCount].reset();
                     }
                 }
@@ -996,14 +995,14 @@ bool CHyprOpenGLImpl::initShaders(const std::string& path) {
         if (!m_shadersInitialized)
             throw e;
 
-        Log::logger->log(Log::ERR, "Shaders update failed: {}", e.what());
+        LOG(Log::ERR, "Shaders update failed: {}", e.what());
         return false;
     }
 
     m_shaders            = shaders;
     m_shadersInitialized = true;
 
-    Log::logger->log(Log::DEBUG, "Shaders initialized successfully.");
+    LOG(Log::DEBUG, "Shaders initialized successfully.");
     return true;
 }
 
@@ -1487,7 +1486,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
         ;
 
     if (g_pHyprRenderer->m_renderData.pMonitor->needsACopyFB())
-        Log::logger->log(Log::TRACE, "CM: render to FB skip={} {} -> {}", skipCM, SOURCE_IMAGE_DESCRIPTION->value(), TARGET_IMAGE_DESCRIPTION->value());
+        LOG(Log::TRACE, "CM: render to FB skip={} {} -> {}", skipCM, SOURCE_IMAGE_DESCRIPTION->value(), TARGET_IMAGE_DESCRIPTION->value());
 
     if (data.allowDim && g_pHyprRenderer->m_renderData.currentWindow &&
         (g_pHyprRenderer->m_renderData.currentWindow->presentation().notRespondingTint() > 0 || g_pHyprRenderer->m_renderData.currentWindow->presentation().dimPercent() > 0))
@@ -2373,13 +2372,13 @@ bool CHyprOpenGLImpl::saveBufferForMirror(const CBox& box) {
     const auto TEX = g_pHyprRenderer->m_renderData.pMonitor->resources()->m_mirrorTex ? g_pHyprRenderer->m_renderData.pMonitor->resources()->m_mirrorTex :
                                                                                         g_pHyprRenderer->m_renderData.currentFB->getTexture();
     if (!TEX) {
-        Log::logger->log(Log::ERR, "Invalid source texture for mirror");
+        LOG(Log::ERR, "Invalid source texture for mirror");
         return false;
     }
     auto fb    = g_pHyprRenderer->m_renderData.pMonitor->resources()->mirrorFB();
     auto guard = g_pHyprRenderer->bindTempFB(fb);
 
-    Log::logger->log(Log::TRACE, "CM: saveBufferForMirror {} -> {}", TEX->m_imageDescription->value(), g_pHyprRenderer->m_renderData.currentFB->imageDescription()->value());
+    LOG(Log::TRACE, "CM: saveBufferForMirror {} -> {}", TEX->m_imageDescription->value(), g_pHyprRenderer->m_renderData.currentFB->imageDescription()->value());
 
     blend(false);
 
@@ -2420,7 +2419,7 @@ void CHyprOpenGLImpl::destroyMonitorResources(PHLMONITORREF pMonitor) {
     }
 
     if (pMonitor)
-        Log::logger->log(Log::DEBUG, "Monitor {} -> destroyed all render data", pMonitor->m_name);
+        LOG(Log::DEBUG, "Monitor {} -> destroyed all render data", pMonitor->m_name);
 }
 
 void CHyprOpenGLImpl::renderOffToMain(SP<IFramebuffer> off) {
@@ -2548,12 +2547,12 @@ WP<CShader> CHyprOpenGLImpl::getShaderVariant(ePreparedFragmentShader frag, cons
     if (it == variants.end()) {
         auto shader = makeShared<CShader>();
 
-        Log::logger->log(Log::INFO, "compiling feature set {} (TFs {} -> {}) for {}", variant.features, sc<int>(variant.sourceTF), sc<int>(variant.targetTF), FRAG_SHADERS[frag]);
+        LOG(Log::INFO, "compiling feature set {} (TFs {} -> {}) for {}", variant.features, sc<int>(variant.sourceTF), sc<int>(variant.targetTF), FRAG_SHADERS[frag]);
 
         const auto fragSrc = g_pShaderLoader->getVariantSource(frag, variant);
 
         if (!shader->createProgram(m_shaders->TEXVERTSRC, fragSrc, true, true))
-            Log::logger->log(Log::ERR, "shader features {} failed for {}", variant.features, FRAG_SHADERS[frag]);
+            LOG(Log::ERR, "shader features {} failed for {}", variant.features, FRAG_SHADERS[frag]);
 
         it = variants.emplace(variant, std::move(shader)).first;
         return it->second;
@@ -2588,7 +2587,7 @@ void SRenderModifData::applyToBox(CBox& box) {
                     box.y             = OLDPOS.y * COS + OLDPOS.x * SIN;
                 }
             }
-        } catch (std::bad_any_cast& e) { Log::logger->log(Log::ERR, "BUG THIS OR PLUGIN ERROR: caught a bad_any_cast in SRenderModifData::applyToBox!"); }
+        } catch (std::bad_any_cast& e) { LOG(Log::ERR, "BUG THIS OR PLUGIN ERROR: caught a bad_any_cast in SRenderModifData::applyToBox!"); }
     }
 }
 
@@ -2605,7 +2604,7 @@ void SRenderModifData::applyToRegion(CRegion& rg) {
                 case RMOD_TYPE_ROTATE: /* TODO */
                 case RMOD_TYPE_ROTATECENTER: break;
             }
-        } catch (std::bad_any_cast& e) { Log::logger->log(Log::ERR, "BUG THIS OR PLUGIN ERROR: caught a bad_any_cast in SRenderModifData::applyToRegion!"); }
+        } catch (std::bad_any_cast& e) { LOG(Log::ERR, "BUG THIS OR PLUGIN ERROR: caught a bad_any_cast in SRenderModifData::applyToRegion!"); }
     }
 }
 
@@ -2623,7 +2622,7 @@ float SRenderModifData::combinedScale() {
                 case RMOD_TYPE_ROTATE:
                 case RMOD_TYPE_ROTATECENTER: break;
             }
-        } catch (std::bad_any_cast& e) { Log::logger->log(Log::ERR, "BUG THIS OR PLUGIN ERROR: caught a bad_any_cast in SRenderModifData::combinedScale!"); }
+        } catch (std::bad_any_cast& e) { LOG(Log::ERR, "BUG THIS OR PLUGIN ERROR: caught a bad_any_cast in SRenderModifData::combinedScale!"); }
     }
     return scale;
 }
@@ -2634,7 +2633,7 @@ UP<CEGLSync> CEGLSync::create() {
     EGLSyncKHR sync = g_pHyprOpenGL->m_proc.eglCreateSyncKHR(g_pHyprOpenGL->m_eglDisplay, EGL_SYNC_NATIVE_FENCE_ANDROID, nullptr);
 
     if UNLIKELY (sync == EGL_NO_SYNC_KHR) {
-        Log::logger->log(Log::ERR, "eglCreateSyncKHR failed");
+        LOG(Log::ERR, "eglCreateSyncKHR failed");
         return nullptr;
     }
 
@@ -2644,10 +2643,10 @@ UP<CEGLSync> CEGLSync::create() {
     int fd = g_pHyprOpenGL->m_proc.eglDupNativeFenceFDANDROID(g_pHyprOpenGL->m_eglDisplay, sync);
     if UNLIKELY (fd == EGL_NO_NATIVE_FENCE_FD_ANDROID) {
         const auto ERR = eglGetError();
-        Log::logger->log(Log::ERR, "eglDupNativeFenceFDANDROID failed: 0x{:x}", sc<int>(ERR));
+        LOG(Log::ERR, "eglDupNativeFenceFDANDROID failed: 0x{:x}", sc<int>(ERR));
 
         if (g_pHyprOpenGL->m_proc.eglDestroySyncKHR(g_pHyprOpenGL->m_eglDisplay, sync) != EGL_TRUE)
-            Log::logger->log(Log::ERR, "eglDestroySyncKHR failed after eglDupNativeFenceFDANDROID failure");
+            LOG(Log::ERR, "eglDestroySyncKHR failed after eglDupNativeFenceFDANDROID failure");
 
         return nullptr;
     }
@@ -2665,7 +2664,7 @@ CEGLSync::~CEGLSync() {
         return;
 
     if UNLIKELY (g_pHyprOpenGL && g_pHyprOpenGL->m_proc.eglDestroySyncKHR(g_pHyprOpenGL->m_eglDisplay, m_sync) != EGL_TRUE)
-        Log::logger->log(Log::ERR, "eglDestroySyncKHR failed");
+        LOG(Log::ERR, "eglDestroySyncKHR failed");
 }
 
 bool CEGLSync::isValid() {

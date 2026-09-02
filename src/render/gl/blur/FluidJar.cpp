@@ -84,7 +84,7 @@ static CBox renderedWindowBox(PHLWINDOW window) {
 
 CFluidJarBlurMaterial::CFluidJarBlurMaterial(CHyprOpenGLImpl& impl) : m_impl(impl), m_supported(impl.m_exts.EXT_color_buffer_half_float) {
     if (!m_supported)
-        Log::logger->log(Log::WARN, "fluid_jar blur requires GL_EXT_color_buffer_half_float; falling back to Kawase blur");
+        LOG(Log::WARN, "fluid_jar blur requires GL_EXT_color_buffer_half_float; falling back to Kawase blur");
 
     m_listeners.renderPre = Event::bus()->m_events.render.pre.listen([this](PHLMONITOR) { ++m_frame; });
     m_listeners.windowDestroy =

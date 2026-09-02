@@ -86,12 +86,12 @@ COutputCommitCoordinator::eSubmitResult COutputCommitCoordinator::submit(SFrame&
 
     const auto CAPS = m_monitor->m_output->commitCapabilities();
 
-    Log::logger->log(Log::TRACE, "COutputCommitCoordinator: submit() with caps={}", m_monitor->m_name, sc<uint32_t>(CAPS));
+    LOG(Log::TRACE, "COutputCommitCoordinator: submit() with caps={}", m_monitor->m_name, sc<uint32_t>(CAPS));
 
     if (!canSubmitAsync(frame))
         return submitSynchronously(std::move(frame));
 
-    Log::logger->log(Log::TRACE, "COutputCommitCoordinator: submitting asynchronously for {}", m_monitor->m_name);
+    LOG(Log::TRACE, "COutputCommitCoordinator: submitting asynchronously for {}", m_monitor->m_name);
 
     Aquamarine::IOutput::SCommitOptions options;
 
@@ -104,7 +104,7 @@ COutputCommitCoordinator::eSubmitResult COutputCommitCoordinator::submit(SFrame&
         if (SUBMISSION.error == ENOTSUP)
             return submitSynchronously(std::move(frame));
 
-        Log::logger->log(Log::TRACE, "Async output commit for {} rejected: {}", m_monitor->m_name, strerror(SUBMISSION.error));
+        LOG(Log::TRACE, "Async output commit for {} rejected: {}", m_monitor->m_name, strerror(SUBMISSION.error));
         PROTO::presentation->discardUntagged(m_monitor->m_self.lock());
         failed(std::move(frame), true);
         return SUBMIT_FAILED;
@@ -122,7 +122,7 @@ COutputCommitCoordinator::eSubmitResult COutputCommitCoordinator::submit(SFrame&
 }
 
 COutputCommitCoordinator::eSubmitResult COutputCommitCoordinator::submitSynchronously(SFrame&& frame) {
-    Log::logger->log(Log::TRACE, "COutputCommitCoordinator: submitting synchronously for {}", m_monitor->m_name);
+    LOG(Log::TRACE, "COutputCommitCoordinator: submitting synchronously for {}", m_monitor->m_name);
 
     PROTO::presentation->tagQueued(m_monitor->m_self.lock(), 0, frame.tearing, frame.vrr);
 
@@ -150,24 +150,24 @@ void COutputCommitCoordinator::onCommitResult(const Aquamarine::IOutput::SCommit
         auto frame = std::move(*m_pending);
         m_pending.reset();
         PROTO::presentation->discardQueued(m_monitor->m_self.lock(), result.id);
-        Log::logger->log(Log::ERR, "Async output commit {} for {} failed: {}", result.id, m_monitor->m_name,
-                         result.status == Aquamarine::IOutput::AQ_OUTPUT_COMMIT_CANCELLED ? "cancelled" : strerror(result.error));
+        LOG(Log::ERR, "Async output commit {} for {} failed: {}", result.id, m_monitor->m_name,
+            result.status == Aquamarine::IOutput::AQ_OUTPUT_COMMIT_CANCELLED ? "cancelled" : strerror(result.error));
         failed(std::move(frame), false);
         flushDeferredStateCommit();
         return;
     }
 
     if (result.missedTarget)
-        Log::logger->log(Log::TRACE, "Async output commit {} for {} missed its target", result.id, m_monitor->m_name);
+        LOG(Log::TRACE, "Async output commit {} for {} missed its target", result.id, m_monitor->m_name);
     else
-        Log::logger->log(Log::TRACE, "Async output commit {} for {} submitted successfully", result.id, m_monitor->m_name);
+        LOG(Log::TRACE, "Async output commit {} for {} submitted successfully", result.id, m_monitor->m_name);
 
     submitted(*m_pending, true);
     m_monitor->m_events.commit.emit();
 }
 
 void COutputCommitCoordinator::submitted(SFrame& frame, bool async) {
-    Log::logger->log(Log::TRACE, "COutputCommitCoordinator: submitted {}, async={}", m_monitor->m_name, async);
+    LOG(Log::TRACE, "COutputCommitCoordinator: submitted {}, async={}", m_monitor->m_name, async);
 
     if (frame.damage)
         frame.damage->commit();
@@ -184,7 +184,7 @@ void COutputCommitCoordinator::submitted(SFrame& frame, bool async) {
         const auto CANDIDATE = frame.scanoutCandidate.lock();
         if (CANDIDATE) {
             if (m_monitor->m_lastScanout.expired())
-                Log::logger->log(Log::DEBUG, "Entered a direct scanout to {:x}: \"{}\"", rc<uintptr_t>(CANDIDATE.get()), CANDIDATE->metadata().title());
+                LOG(Log::DEBUG, "Entered a direct scanout to {:x}: \"{}\"", rc<uintptr_t>(CANDIDATE.get()), CANDIDATE->metadata().title());
             m_monitor->m_lastScanout           = CANDIDATE;
             m_monitor->m_directScanoutIsActive = true;
         }
@@ -217,7 +217,7 @@ void COutputCommitCoordinator::onPresented(uint64_t id, bool presented) {
 }
 
 void COutputCommitCoordinator::failed(SFrame&& frame, bool rollbackSwapchain) {
-    Log::logger->log(Log::TRACE, "COutputCommitCoordinator: failed for {}", m_monitor->m_name);
+    LOG(Log::TRACE, "COutputCommitCoordinator: failed for {}", m_monitor->m_name);
 
     if (frame.damage)
         frame.damage->rollback();

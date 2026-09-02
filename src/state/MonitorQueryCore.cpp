@@ -120,7 +120,7 @@ SP<Monitor::IMonitorQueryable> CMonitorQueryCore::closestTo(const Vector2D& vec)
         }
 
         if (!pBestMon) {
-            Log::logger->log(Log::WARN, "CMonitorQueryCore::closestTo: no close mon???");
+            LOG(Log::WARN, "CMonitorQueryCore::closestTo: no close mon???");
             return nullptr;
         }
 
@@ -208,7 +208,7 @@ SP<Monitor::IMonitorQueryable> CMonitorQueryCore::fromConfigString(std::string_v
         const auto OFFSET = sv[0] == '-' ? sv : sv.substr(1);
 
         if (!isNumber(std::string{OFFSET})) {
-            Log::logger->log(Log::ERR, "Error in CMonitorQueryCore::fromConfigString: Not a number in relative.");
+            LOG(Log::ERR, "Error in CMonitorQueryCore::fromConfigString: Not a number in relative.");
             return nullptr;
         }
 
@@ -231,7 +231,7 @@ SP<Monitor::IMonitorQueryable> CMonitorQueryCore::fromConfigString(std::string_v
             currentPlace = currentPlace % m_monitors.size();
 
         if (currentPlace != std::clamp(currentPlace, 0, sc<int>(m_monitors.size()) - 1)) {
-            Log::logger->log(Log::WARN, "Error in CMonitorQueryCore::fromConfigString: Vaxry's code sucks.");
+            LOG(Log::WARN, "Error in CMonitorQueryCore::fromConfigString: Vaxry's code sucks.");
             currentPlace = std::clamp(currentPlace, 0, sc<int>(m_monitors.size()) - 1);
         }
 
@@ -239,14 +239,14 @@ SP<Monitor::IMonitorQueryable> CMonitorQueryCore::fromConfigString(std::string_v
     } else if (isNumber(std::string{sv})) {
         auto monID = strToNumber<MONITORID>(sv);
         if (!monID) {
-            Log::logger->log(Log::ERR, "Error in CMonitorQueryCore::fromConfigString: invalid num");
+            LOG(Log::ERR, "Error in CMonitorQueryCore::fromConfigString: invalid num");
             return nullptr;
         }
 
         if (*monID > -1 && *monID < sc<MONITORID>(m_monitors.size()))
             return CMonitorQueryCore{m_monitors}.id(*monID).run();
 
-        Log::logger->log(Log::ERR, "Error in CMonitorQueryCore::fromConfigString: invalid arg 1");
+        LOG(Log::ERR, "Error in CMonitorQueryCore::fromConfigString: invalid arg 1");
         return nullptr;
     } else {
         for (auto const& m : m_monitors) {

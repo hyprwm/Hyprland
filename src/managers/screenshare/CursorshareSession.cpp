@@ -20,7 +20,7 @@ CCursorshareSession::CCursorshareSession(wl_client* client, WP<CWLPointerResourc
             if (copy())
                 return;
 
-            LOGM(Log::ERR, "Failed to copy cursor image for cursor share");
+            LOG(Log::ERR, "Failed to copy cursor image for cursor share");
             if (m_pendingFrame.callback)
                 m_pendingFrame.callback(RESULT_NOT_COPIED);
             m_pendingFrame.pending = false;
@@ -68,12 +68,12 @@ eScreenshareError CCursorshareSession::share(PHLMONITOR monitor, SP<IHLBuffer> b
         return ERROR_STOPPED;
 
     if UNLIKELY (!buffer || !buffer->m_resource || !buffer->m_resource->good()) {
-        LOGM(Log::ERR, "Client requested sharing to an invalid buffer");
+        LOG(Log::ERR, "Client requested sharing to an invalid buffer");
         return ERROR_NO_BUFFER;
     }
 
     if UNLIKELY (buffer->size != m_bufferSize) {
-        LOGM(Log::ERR, "Client requested sharing to an invalid buffer size");
+        LOG(Log::ERR, "Client requested sharing to an invalid buffer size");
         return ERROR_BUFFER_SIZE;
     }
 
@@ -83,12 +83,12 @@ eScreenshareError CCursorshareSession::share(PHLMONITOR monitor, SP<IHLBuffer> b
     else if (buffer->shm().success)
         bufFormat = buffer->shm().format;
     else {
-        LOGM(Log::ERR, "Client requested sharing to an invalid buffer");
+        LOG(Log::ERR, "Client requested sharing to an invalid buffer");
         return ERROR_NO_BUFFER;
     }
 
     if (bufFormat != m_format) {
-        LOGM(Log::ERR, "Invalid format {} in {:x}", bufFormat, (uintptr_t)this);
+        LOG(Log::ERR, "Invalid format {} in {:x}", bufFormat, (uintptr_t)this);
         return ERROR_BUFFER_FORMAT;
     }
 
@@ -103,7 +103,7 @@ eScreenshareError CCursorshareSession::share(PHLMONITOR monitor, SP<IHLBuffer> b
         return ERROR_NONE;
 
     if (!copy()) {
-        LOGM(Log::ERR, "Failed to copy cursor image for cursor share");
+        LOG(Log::ERR, "Failed to copy cursor image for cursor share");
         callback(RESULT_NOT_COPIED);
         m_pendingFrame.pending = false;
         return ERROR_UNKNOWN;
@@ -150,12 +150,12 @@ bool CCursorshareSession::copy() {
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
     if (auto attrs = m_pendingFrame.buffer->dmabuf(); attrs.success) {
         if (attrs.format != m_format) {
-            LOGM(Log::ERR, "Can't copy: invalid format");
+            LOG(Log::ERR, "Can't copy: invalid format");
             return false;
         }
 
         if (!g_pHyprRenderer->beginRenderToBuffer(m_pendingFrame.monitor, fakeDamage, m_pendingFrame.buffer, true)) {
-            LOGM(Log::ERR, "Can't copy: failed to begin rendering to dmabuf");
+            LOG(Log::ERR, "Can't copy: failed to begin rendering to dmabuf");
             return false;
         }
 
@@ -169,7 +169,7 @@ bool CCursorshareSession::copy() {
         const auto PFORMAT = getPixelFormatFromDRM(m_format);
 
         if (attrs.format != m_format || !PFORMAT) {
-            LOGM(Log::ERR, "Can't copy: invalid format");
+            LOG(Log::ERR, "Can't copy: invalid format");
             return false;
         }
 
@@ -177,7 +177,7 @@ bool CCursorshareSession::copy() {
         outFB->alloc(m_bufferSize.x, m_bufferSize.y, m_format);
 
         if (!g_pHyprRenderer->beginFullFakeRender(m_pendingFrame.monitor, fakeDamage, outFB)) {
-            LOGM(Log::ERR, "Can't copy: failed to begin rendering to shm");
+            LOG(Log::ERR, "Can't copy: failed to begin rendering to shm");
             return false;
         }
 
@@ -197,7 +197,7 @@ bool CCursorshareSession::copy() {
                 else if (PFORMAT->swizzle == SWIZZLE_BGRA)
                     glFormat = GL_BGRA_EXT;
                 else {
-                    LOGM(Log::ERR, "Copied frame via shm might be broken or color flipped");
+                    LOG(Log::ERR, "Copied frame via shm might be broken or color flipped");
                     glFormat = GL_RGBA;
                 }
             }
@@ -205,7 +205,7 @@ bool CCursorshareSession::copy() {
 
         if (!outFB->readPixels(m_pendingFrame.buffer, 0, 0, m_bufferSize.x, m_bufferSize.y)) {
             g_pHyprRenderer->m_renderData.pMonitor.reset();
-            LOGM(Log::ERR, "Can't copy: failed to read cursor pixels to shm");
+            LOG(Log::ERR, "Can't copy: failed to read cursor pixels to shm");
             return false;
         }
 
@@ -213,7 +213,7 @@ bool CCursorshareSession::copy() {
 
         m_pendingFrame.callback(RESULT_COPIED);
     } else {
-        LOGM(Log::ERR, "Can't copy: invalid buffer type");
+        LOG(Log::ERR, "Can't copy: invalid buffer type");
         return false;
     }
 

@@ -271,7 +271,7 @@ void CDwindleAlgorithm::removeTarget(SP<ITarget> target) {
     const auto PNODE = getNodeFromTarget(target);
 
     if (!PNODE) {
-        Log::logger->log(Log::ERR, "onWindowRemovedTiling node null?");
+        LOG(Log::ERR, "onWindowRemovedTiling node null?");
         return;
     }
 
@@ -283,7 +283,7 @@ void CDwindleAlgorithm::removeTarget(SP<ITarget> target) {
     const auto PPARENT = PNODE->pParent;
 
     if (!PPARENT) {
-        Log::logger->log(Log::DEBUG, "Removing last node (dwindle)");
+        LOG(Log::DEBUG, "Removing last node (dwindle)");
         std::erase(m_dwindleNodesData, PNODE);
         return;
     }
@@ -694,7 +694,7 @@ Config::ErrorResult CDwindleAlgorithm::layoutMsg(const std::string_view& sv) {
                 try {
                     angle = std::stoi(std::string{ARGS[1]});
                 } catch (const std::exception& e) {
-                    Log::logger->log(Log::WARN, "Invalid angle argument for rotatesplit: {}", ARGS[1]);
+                    LOG(Log::WARN, "Invalid angle argument for rotatesplit: {}", ARGS[1]);
                     return Config::configError("Invalid angle argument", Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT);
                 }
             }
@@ -715,7 +715,7 @@ Config::ErrorResult CDwindleAlgorithm::layoutMsg(const std::string_view& sv) {
         auto direction = ARGS[1];
 
         if (direction.empty()) {
-            Log::logger->log(Log::ERR, "Expected direction for preselect");
+            LOG(Log::ERR, "Expected direction for preselect");
             return Config::configError("No direction for preselect", Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT);
         }
 

@@ -26,16 +26,16 @@ CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataS
 
     m_resource->setAccept([this](CWlDataOffer* r, uint32_t serial, const char* mime) {
         if (!m_source) {
-            LOGM(Log::WARN, "Possible bug: Accept on an offer w/o a source");
+            LOG(Log::WARN, "Possible bug: Accept on an offer w/o a source");
             return;
         }
 
         if (m_dead) {
-            LOGM(Log::WARN, "Possible bug: Accept on an offer that's dead");
+            LOG(Log::WARN, "Possible bug: Accept on an offer that's dead");
             return;
         }
 
-        LOGM(Log::DEBUG, "Offer {:x} accepts data from source {:x} with mime {}", (uintptr_t)this, (uintptr_t)m_source.get(), mime ? mime : "null");
+        LOG(Log::DEBUG, "Offer {:x} accepts data from source {:x} with mime {}", (uintptr_t)this, (uintptr_t)m_source.get(), mime ? mime : "null");
 
         m_source->accepted(mime ? mime : "");
         m_accepted = mime;
@@ -44,19 +44,19 @@ CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataS
     m_resource->setReceive([this](CWlDataOffer* r, const char* mime, int fd) {
         CFileDescriptor sendFd{fd};
         if (!m_source) {
-            LOGM(Log::WARN, "Possible bug: Receive on an offer w/o a source");
+            LOG(Log::WARN, "Possible bug: Receive on an offer w/o a source");
             return;
         }
 
         if (m_dead) {
-            LOGM(Log::WARN, "Possible bug: Receive on an offer that's dead");
+            LOG(Log::WARN, "Possible bug: Receive on an offer that's dead");
             return;
         }
 
-        LOGM(Log::DEBUG, "Offer {:x} asks to send data from source {:x}", (uintptr_t)this, (uintptr_t)m_source.get());
+        LOG(Log::DEBUG, "Offer {:x} asks to send data from source {:x}", (uintptr_t)this, (uintptr_t)m_source.get());
 
         if (!m_accepted) {
-            LOGM(Log::WARN, "Offer was never accepted, sending accept first");
+            LOG(Log::WARN, "Offer was never accepted, sending accept first");
             m_source->accepted(mime ? mime : "");
         }
 
@@ -101,13 +101,13 @@ void CWLDataOfferResource::sendData() {
         else if (SOURCEACTIONS & WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY)
             m_resource->sendAction(WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY);
         else {
-            LOGM(Log::ERR, "Client bug? dnd source has no action move or copy. Sending move, f this.");
+            LOG(Log::ERR, "Client bug? dnd source has no action move or copy. Sending move, f this.");
             m_resource->sendAction(WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE);
         }
     }
 
     for (auto const& m : m_source->mimes()) {
-        LOGM(Log::DEBUG, " | offer {:x} supports mime {}", (uintptr_t)this, m);
+        LOG(Log::DEBUG, " | offer {:x} supports mime {}", (uintptr_t)this, m);
         m_resource->sendOffer(m.c_str());
     }
 }
@@ -147,7 +147,7 @@ CWLDataSourceResource::CWLDataSourceResource(SP<CWlDataSource> resource_, SP<CWL
 
     m_resource->setOffer([this](CWlDataSource* r, const char* mime) { m_mimeTypes.emplace_back(mime); });
     m_resource->setSetActions([this](CWlDataSource* r, uint32_t a) {
-        LOGM(Log::DEBUG, "DataSource {:x} actions {}", (uintptr_t)this, a);
+        LOG(Log::DEBUG, "DataSource {:x} actions {}", (uintptr_t)this, a);
         m_supportedActions = a;
     });
 }
@@ -173,7 +173,7 @@ void CWLDataSourceResource::accepted(const std::string& mime) {
     }
 
     if (std::ranges::find(m_mimeTypes, mime) == m_mimeTypes.end()) {
-        LOGM(Log::ERR, "Compositor/App bug: CWLDataSourceResource::sendAccepted with non-existent mime");
+        LOG(Log::ERR, "Compositor/App bug: CWLDataSourceResource::sendAccepted with non-existent mime");
         return;
     }
 
@@ -186,7 +186,7 @@ std::vector<std::string> CWLDataSourceResource::mimes() {
 
 void CWLDataSourceResource::send(const std::string& mime, CFileDescriptor fd) {
     if (std::ranges::find(m_mimeTypes, mime) == m_mimeTypes.end()) {
-        LOGM(Log::ERR, "Compositor/App bug: CWLDataSourceResource::sendAskSend with non-existent mime");
+        LOG(Log::ERR, "Compositor/App bug: CWLDataSourceResource::sendAskSend with non-existent mime");
         return;
     }
 
@@ -248,13 +248,13 @@ CWLDataDeviceResource::CWLDataDeviceResource(SP<CWlDataDevice> resource_) : m_re
     m_resource->setSetSelection([](CWlDataDevice* r, wl_resource* sourceR, uint32_t serial) {
         auto source = sourceR ? CWLDataSourceResource::fromResource(sourceR) : CSharedPointer<CWLDataSourceResource>{};
         if (!source) {
-            LOGM(Log::DEBUG, "Reset selection received");
+            LOG(Log::DEBUG, "Reset selection received");
             g_pSeatManager->setCurrentSelection(nullptr);
             return;
         }
 
         if (source && source->m_used)
-            LOGM(Log::WARN, "setSelection on a used resource. By protocol, this is a violation, but firefox et al insist on doing this.");
+            LOG(Log::WARN, "setSelection on a used resource. By protocol, this is a violation, but firefox et al insist on doing this.");
 
         source->markUsed();
 
@@ -264,12 +264,12 @@ CWLDataDeviceResource::CWLDataDeviceResource(SP<CWlDataDevice> resource_) : m_re
     m_resource->setStartDrag([](CWlDataDevice* r, wl_resource* sourceR, wl_resource* origin, wl_resource* icon, uint32_t serial) {
         auto source = CWLDataSourceResource::fromResource(sourceR);
         if (!source) {
-            LOGM(Log::ERR, "No source in drag");
+            LOG(Log::ERR, "No source in drag");
             return;
         }
 
         if (source && source->m_used)
-            LOGM(Log::WARN, "setSelection on a used resource. By protocol, this is a violation, but firefox et al insist on doing this.");
+            LOG(Log::WARN, "setSelection on a used resource. By protocol, this is a violation, but firefox et al insist on doing this.");
 
         source->markUsed();
 
@@ -357,13 +357,13 @@ CWLDataDeviceManagerResource::CWLDataDeviceManagerResource(SP<CWlDataDeviceManag
         }
 
         if (!m_device)
-            LOGM(Log::WARN, "New data source before a device was created");
+            LOG(Log::WARN, "New data source before a device was created");
 
         RESOURCE->m_self = RESOURCE;
 
         m_sources.emplace_back(RESOURCE);
 
-        LOGM(Log::DEBUG, "New data source bound at {:x}", (uintptr_t)RESOURCE.get());
+        LOG(Log::DEBUG, "New data source bound at {:x}", (uintptr_t)RESOURCE.get());
     });
 
     m_resource->setGetDataDevice([this](CWlDataDeviceManager* r, uint32_t id, wl_resource* seat) {
@@ -383,7 +383,7 @@ CWLDataDeviceManagerResource::CWLDataDeviceManagerResource(SP<CWlDataDeviceManag
             s->m_device = RESOURCE;
         }
 
-        LOGM(Log::DEBUG, "New data device bound at {:x}", (uintptr_t)RESOURCE.get());
+        LOG(Log::DEBUG, "New data device bound at {:x}", (uintptr_t)RESOURCE.get());
     });
 }
 
@@ -407,7 +407,7 @@ void CWLDataDeviceProtocol::bindManager(wl_client* client, void* data, uint32_t 
         return;
     }
 
-    LOGM(Log::DEBUG, "New datamgr resource bound at {:x}", (uintptr_t)RESOURCE.get());
+    LOG(Log::DEBUG, "New datamgr resource bound at {:x}", (uintptr_t)RESOURCE.get());
 }
 
 void CWLDataDeviceProtocol::destroyResource(CWLDataDeviceManagerResource* seat) {
@@ -463,11 +463,11 @@ void CWLDataDeviceProtocol::sendSelectionToDevice(SP<IDataDevice> dev, SP<IDataS
 #endif
 
     if UNLIKELY (!offer) {
-        LOGM(Log::ERR, "No offer could be created in sendSelectionToDevice");
+        LOG(Log::ERR, "No offer could be created in sendSelectionToDevice");
         return;
     }
 
-    LOGM(Log::DEBUG, "New {} offer {:x} for data source {:x}", offer->type() == DATA_SOURCE_TYPE_WAYLAND ? "wayland" : "X11", (uintptr_t)offer.get(), (uintptr_t)sel.get());
+    LOG(Log::DEBUG, "New {} offer {:x} for data source {:x}", offer->type() == DATA_SOURCE_TYPE_WAYLAND ? "wayland" : "X11", (uintptr_t)offer.get(), (uintptr_t)sel.get());
 
     dev->sendDataOffer(offer);
     if (const auto WL = offer->getWayland(); WL)
@@ -488,7 +488,7 @@ void CWLDataDeviceProtocol::setSelection(SP<IDataSource> source) {
     }
 
     if (!source) {
-        LOGM(Log::DEBUG, "resetting selection");
+        LOG(Log::DEBUG, "resetting selection");
 
         if (!g_pSeatManager->m_state.keyboardFocusResource)
             return;
@@ -500,7 +500,7 @@ void CWLDataDeviceProtocol::setSelection(SP<IDataSource> source) {
         return;
     }
 
-    LOGM(Log::DEBUG, "New selection for data source {:x}", (uintptr_t)source.get());
+    LOG(Log::DEBUG, "New selection for data source {:x}", (uintptr_t)source.get());
 
     if (!g_pSeatManager->m_state.keyboardFocusResource)
         return;
@@ -508,12 +508,12 @@ void CWLDataDeviceProtocol::setSelection(SP<IDataSource> source) {
     auto DESTDEVICE = dataDeviceForClient(g_pSeatManager->m_state.keyboardFocusResource->client());
 
     if (!DESTDEVICE) {
-        LOGM(Log::DEBUG, "CWLDataDeviceProtocol::setSelection: cannot send selection to a client without a data_device");
+        LOG(Log::DEBUG, "CWLDataDeviceProtocol::setSelection: cannot send selection to a client without a data_device");
         return;
     }
 
     if (DESTDEVICE->type() != DATA_SOURCE_TYPE_WAYLAND) {
-        LOGM(Log::DEBUG, "CWLDataDeviceProtocol::setSelection: ignoring X11 data device");
+        LOG(Log::DEBUG, "CWLDataDeviceProtocol::setSelection: ignoring X11 data device");
         return;
     }
 
@@ -527,7 +527,7 @@ void CWLDataDeviceProtocol::updateSelection() {
     auto DESTDEVICE = dataDeviceForClient(g_pSeatManager->m_state.keyboardFocusResource->client());
 
     if (!DESTDEVICE) {
-        LOGM(Log::DEBUG, "CWLDataDeviceProtocol::onKeyboardFocus: cannot send selection to a client without a data_device");
+        LOG(Log::DEBUG, "CWLDataDeviceProtocol::onKeyboardFocus: cannot send selection to a client without a data_device");
         return;
     }
 
@@ -557,7 +557,7 @@ void CWLDataDeviceProtocol::onDndPointerFocus() {
 void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource, SP<CWLSurfaceResource> dragSurface, SP<CWLSurfaceResource> origin) {
 
     if (m_dnd.currentSource) {
-        LOGM(Log::WARN, "New drag started while old drag still active??");
+        LOG(Log::WARN, "New drag started while old drag still active??");
         abortDrag();
     }
 
@@ -570,7 +570,7 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
     if (g_pInputManager->m_lastInputTouch)
         m_dnd.touchPos = g_pInputManager->m_touchData.lastTouchPos;
 
-    LOGM(Log::DEBUG, "initiateDrag: source {:x}, surface: {:x}, origin: {:x}", (uintptr_t)currentSource.get(), (uintptr_t)dragSurface.get(), (uintptr_t)origin.get());
+    LOG(Log::DEBUG, "initiateDrag: source {:x}, surface: {:x}, origin: {:x}", (uintptr_t)currentSource.get(), (uintptr_t)dragSurface.get(), (uintptr_t)origin.get());
 
     currentSource->m_used = true;
 
@@ -594,19 +594,19 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
 
     m_dnd.mouseButton = Event::bus()->m_events.input.mouse.button.listen([this](IPointer::SButtonEvent e, Event::SCallbackInfo&) {
         if (e.state == WL_POINTER_BUTTON_STATE_RELEASED) {
-            LOGM(Log::DEBUG, "Dropping drag on mouseUp");
+            LOG(Log::DEBUG, "Dropping drag on mouseUp");
             dropDrag();
         }
     });
 
     m_dnd.touchUp = Event::bus()->m_events.input.touch.up.listen([this](ITouch::SUpEvent e, Event::SCallbackInfo&) {
-        LOGM(Log::DEBUG, "Dropping drag on touchUp");
+        LOG(Log::DEBUG, "Dropping drag on touchUp");
         dropDrag();
     });
 
     m_dnd.tabletTip = Event::bus()->m_events.input.tablet.tip.listen([this](CTablet::STipEvent e, Event::SCallbackInfo&) {
         if (!e.in) {
-            LOGM(Log::DEBUG, "Dropping drag on tablet tipUp");
+            LOG(Log::DEBUG, "Dropping drag on tablet tipUp");
             dropDrag();
         }
     });
@@ -624,7 +624,7 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
                 return;
 
             m_dnd.focusedDevice->sendMotion(Time::millis(Time::steadyNow()), pos - box->pos());
-            LOGM(Log::DEBUG, "Drag motion {}", pos - box->pos());
+            LOG(Log::DEBUG, "Drag motion {}", pos - box->pos());
         }
     });
 
@@ -648,7 +648,7 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
             m_dnd.touchPos = POS;
 
             m_dnd.focusedDevice->sendMotion(e.timeMs, POS - box->pos());
-            LOGM(Log::DEBUG, "Drag motion {}", POS - box->pos());
+            LOG(Log::DEBUG, "Drag motion {}", POS - box->pos());
         }
     });
 
@@ -699,12 +699,12 @@ void CWLDataDeviceProtocol::updateDrag() {
 #endif
 
     if (!offer) {
-        LOGM(Log::ERR, "No offer could be created in updateDrag");
+        LOG(Log::ERR, "No offer could be created in updateDrag");
         return;
     }
 
-    LOGM(Log::DEBUG, "New {} dnd offer {:x} for data source {:x}", offer->type() == DATA_SOURCE_TYPE_WAYLAND ? "wayland" : "X11", (uintptr_t)offer.get(),
-         (uintptr_t)m_dnd.currentSource.get());
+    LOG(Log::DEBUG, "New {} dnd offer {:x} for data source {:x}", offer->type() == DATA_SOURCE_TYPE_WAYLAND ? "wayland" : "X11", (uintptr_t)offer.get(),
+        (uintptr_t)m_dnd.currentSource.get());
 
     m_dnd.focusedDevice->sendDataOffer(offer);
     if (const auto WL = offer->getWayland(); WL)

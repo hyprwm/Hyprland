@@ -145,7 +145,7 @@ SResponse CSocket1::dispatchBatch(std::string request, pid_t pid) {
             if (i < request.size() && (request[i + 1] == '\\' || request[i + 1] == ';'))
                 ++i;
             else
-                Log::logger->log(Log::ERR, "Malformed socket1 request: invalid escape sequence {} at position {}, using it verbatim", request.subview(i, 2), i);
+                LOG(Log::ERR, "Malformed socket1 request: invalid escape sequence {} at position {}, using it verbatim", request.subview(i, 2), i);
         }
         parsedCommand << request[i];
     }
@@ -209,7 +209,7 @@ SResponse CSocket1::dispatch(std::string request, pid_t pid) {
 
         return dispatchSingle(std::move(request), pid);
     } catch (const std::exception& error) {
-        Log::logger->log(Log::ERR, "Error in socket1 request: {}", error.what());
+        LOG(Log::ERR, "Error in socket1 request: {}", error.what());
         return std::format("Err: {}", error.what());
     }
 }

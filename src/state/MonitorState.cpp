@@ -113,7 +113,7 @@ void CMonitorStateTracker::add(PHLMONITOR mon) {
 
     m_realMonitors.emplace_back(mon);
 
-    Log::logger->log(Log::DEBUG, "[CMonitorStateTracker] New monitor: {}", mon->m_name);
+    LOG(Log::DEBUG, "[CMonitorStateTracker] New monitor: {}", mon->m_name);
 
     Event::bus()->m_events.monitor.newMon.emit(mon);
 
@@ -139,7 +139,7 @@ void CMonitorStateTracker::add(PHLMONITOR mon) {
     mon->m_frameScheduler->onFrame();
 
     if (PROTO::colorManagement && g_pCompositor->shouldChangePreferredImageDescription()) {
-        Log::logger->log(Log::ERR, "FIXME: color management protocol is enabled, need a preferred image description id");
+        LOG(Log::ERR, "FIXME: color management protocol is enabled, need a preferred image description id");
         PROTO::colorManagement->onImagePreferredChanged(0);
     }
 }

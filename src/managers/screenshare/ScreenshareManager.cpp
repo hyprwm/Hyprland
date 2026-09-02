@@ -46,7 +46,7 @@ void CScreenshareManager::onOutputCommit(PHLMONITOR monitor) {
 
 UP<CScreenshareSession> CScreenshareManager::newSession(wl_client* client, PHLMONITOR monitor) {
     if UNLIKELY (!monitor || !State::monitorState()->contains(monitor)) {
-        LOGM(Log::ERR, "Client requested sharing of a monitor that is gone");
+        LOG(Log::ERR, "Client requested sharing of a monitor that is gone");
         return nullptr;
     }
 
@@ -60,7 +60,7 @@ UP<CScreenshareSession> CScreenshareManager::newSession(wl_client* client, PHLMO
 
 UP<CScreenshareSession> CScreenshareManager::newSession(wl_client* client, PHLMONITOR monitor, CBox captureRegion) {
     if UNLIKELY (!monitor || !State::monitorState()->contains(monitor)) {
-        LOGM(Log::ERR, "Client requested sharing of a monitor that is gone");
+        LOG(Log::ERR, "Client requested sharing of a monitor that is gone");
         return nullptr;
     }
 
@@ -74,7 +74,7 @@ UP<CScreenshareSession> CScreenshareManager::newSession(wl_client* client, PHLMO
 
 UP<CScreenshareSession> CScreenshareManager::newSession(wl_client* client, PHLWINDOW window) {
     if UNLIKELY (!window || !window->mapped()) {
-        LOGM(Log::ERR, "Client requested sharing of window that is gone or not shareable!");
+        LOG(Log::ERR, "Client requested sharing of window that is gone or not shareable!");
         return nullptr;
     }
 

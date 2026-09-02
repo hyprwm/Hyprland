@@ -472,7 +472,7 @@ static int hlTimer(lua_State* L) {
                 status = lua_pcall(L, 0, 0, 0);
 
             if (status != LUA_OK) {
-                Log::logger->log(Log::ERR, "[Lua] error in timer callback: {}", lua_tostring(L, -1));
+                LOG(Log::ERR, "[Lua] error in timer callback: {}", lua_tostring(L, -1));
                 lua_pop(L, 1);
             }
 

@@ -111,7 +111,7 @@ bool CDragStateController::updateDragWindow() {
 
     if (m_dragThresholdReached) {
         if (WAS_FULLSCREEN) {
-            Log::logger->log(Log::DEBUG, "Dragging a fullscreen window");
+            LOG(Log::DEBUG, "Dragging a fullscreen window");
             Fullscreen::controller()->setFullscreenMode(DRAGGINGTARGET->window(), Fullscreen::FSMODE_NONE);
         }
 
@@ -119,7 +119,7 @@ bool CDragStateController::updateDragWindow() {
         const auto DRAGGINGWINDOW = DRAGGINGTARGET->window();
 
         if (Fullscreen::controller()->hasFullscreen(PWORKSPACE) && (!DRAGGINGTARGET->floating() || !DRAGGINGWINDOW->isAllowedOverFullscreen())) {
-            Log::logger->log(Log::DEBUG, "Rejecting drag on a fullscreen workspace. (window under fullscreen)");
+            LOG(Log::DEBUG, "Rejecting drag on a fullscreen workspace. (window under fullscreen)");
             dragEnd();
             return true;
         }
@@ -169,13 +169,13 @@ void CDragStateController::dragBegin(SP<ITarget> target, eMouseBindMode mode, st
 
     // Window will be floating. Let's check if it's valid. It should be, but I don't like crashing.
     if (!validMapped(DRAGGINGTARGET->window())) {
-        Log::logger->log(Log::ERR, "Dragging attempted on an invalid window (not mapped)");
+        LOG(Log::ERR, "Dragging attempted on an invalid window (not mapped)");
         dragEnd();
         return;
     }
 
     if (!DRAGGINGTARGET->workspace()) {
-        Log::logger->log(Log::ERR, "Dragging attempted on an invalid window (no workspace)");
+        LOG(Log::ERR, "Dragging attempted on an invalid window (no workspace)");
         dragEnd();
         return;
     }

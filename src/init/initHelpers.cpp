@@ -41,7 +41,7 @@ static bool trySchedDirect(int prio) {
     struct sched_param param     = {};
 
     if (pthread_getschedparam(pthread_self(), &oldPolicy, &param)) {
-        Log::logger->log(Log::WARN, "Failed to get old pthread scheduling priority");
+        LOG(Log::WARN, "Failed to get old pthread scheduling priority");
         return false;
     }
 
@@ -90,7 +90,7 @@ static bool installSigxcpuHandler() {
     action.sa_handler = handleSigxcpu;
 
     if (sigaction(SIGXCPU, &action, nullptr)) {
-        Log::logger->log(Log::WARN, "Failed to install the SIGXCPU handler: {}, not attempting realtime", strerror(errno));
+        LOG(Log::WARN, "Failed to install the SIGXCPU handler: {}, not attempting realtime", strerror(errno));
         return false;
     }
 
@@ -125,7 +125,7 @@ static bool tryRtkit(int prio) {
 
         const auto maxUs = maxVar.get<int64_t>();
         if (maxUs <= 0) {
-            Log::logger->log(Log::DEBUG, "rtkit: no usable RTTimeUSecMax, not requesting realtime");
+            LOG(Log::DEBUG, "rtkit: no usable RTTimeUSecMax, not requesting realtime");
             return false;
         }
 
@@ -136,7 +136,7 @@ static bool tryRtkit(int prio) {
         // too.
         rlimit current = {};
         if (getrlimit(RLIMIT_RTTIME, &current)) {
-            Log::logger->log(Log::WARN, "rtkit: failed to get RLIMIT_RTTIME: {}", strerror(errno));
+            LOG(Log::WARN, "rtkit: failed to get RLIMIT_RTTIME: {}", strerror(errno));
             return false;
         }
 
@@ -148,7 +148,7 @@ static bool tryRtkit(int prio) {
         const rlimit newLimit = {.rlim_cur = std::min(hard / 4 * 3, current.rlim_cur), .rlim_max = hard};
 
         if (setrlimit(RLIMIT_RTTIME, &newLimit)) {
-            Log::logger->log(Log::WARN, "rtkit: failed to set RLIMIT_RTTIME: {}", strerror(errno));
+            LOG(Log::WARN, "rtkit: failed to set RLIMIT_RTTIME: {}", strerror(errno));
             return false;
         }
 
@@ -159,7 +159,7 @@ static bool tryRtkit(int prio) {
 
         return true;
     } catch (const sdbus::Error& e) {
-        Log::logger->log(Log::DEBUG, "rtkit: {}", e.what());
+        LOG(Log::DEBUG, "rtkit: {}", e.what());
         return false;
     }
 }
@@ -180,15 +180,15 @@ void NInit::gainRealTime() {
 
     gained = trySchedDirect(minPrio);
     if (gained)
-        Log::logger->log(Log::DEBUG, "Gained realtime scheduling directly");
+        LOG(Log::DEBUG, "Gained realtime scheduling directly");
 
 #ifdef HAS_RTKIT
     if (!gained && (gained = tryRtkit(minPrio)))
-        Log::logger->log(Log::DEBUG, "Gained realtime scheduling via rtkit");
+        LOG(Log::DEBUG, "Gained realtime scheduling via rtkit");
 #endif
 
     if (!gained) {
-        Log::logger->log(Log::WARN, "Failed to gain realtime scheduling");
+        LOG(Log::WARN, "Failed to gain realtime scheduling");
         return;
     }
 
@@ -198,7 +198,7 @@ void NInit::gainRealTime() {
     pthread_atfork(nullptr, nullptr, []() {
         const struct sched_param param = {.sched_priority = 0};
         if (pthread_setschedparam(pthread_self(), SCHED_OTHER, &param))
-            Log::logger->log(Log::WARN, "Failed to reset process scheduling strategy");
+            LOG(Log::WARN, "Failed to reset process scheduling strategy");
     });
 #endif
 }

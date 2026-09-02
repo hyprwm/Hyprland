@@ -11,7 +11,7 @@ CSyncReleaser::CSyncReleaser(SP<CSyncTimeline> timeline, uint64_t point) : m_tim
 
 CSyncReleaser::~CSyncReleaser() {
     if (!m_timeline) {
-        Log::logger->log(Log::ERR, "CSyncReleaser destructing without a timeline");
+        LOG(Log::ERR, "CSyncReleaser destructing without a timeline");
         return;
     }
 

@@ -22,7 +22,7 @@ void CMonitorPositionController::arrange(std::span<const SP<Monitor::IMonitorArr
         auto m = *it;
 
         if (const auto POS = m->explicitPosition(); POS.has_value()) {
-            Log::logger->log(Log::DEBUG, "arrangeMonitors: {} explicit {:j}", m->name(), *POS);
+            LOG(Log::DEBUG, "arrangeMonitors: {} explicit {:j}", m->name(), *POS);
 
             m->moveTo(*POS);
             arranged.push_back(m);
@@ -96,13 +96,13 @@ void CMonitorPositionController::arrange(std::span<const SP<Monitor::IMonitorArr
         }
 
         m->moveTo(newPosition);
-        Log::logger->log(Log::DEBUG, "arrangeMonitors: {} auto {:j}", m->name(), m->position());
+        LOG(Log::DEBUG, "arrangeMonitors: {} auto {:j}", m->name(), m->position());
         arranged.emplace_back(m);
     }
 
     maxXOffsetRight = 0;
     for (auto const& m : monitors) {
-        Log::logger->log(Log::DEBUG, "arrangeMonitors: {} xwayland [{}, {}]", m->name(), maxXOffsetRight, 0);
+        LOG(Log::DEBUG, "arrangeMonitors: {} xwayland [{}, {}]", m->name(), maxXOffsetRight, 0);
         m->setXWaylandPosition({maxXOffsetRight, 0});
         maxXOffsetRight += xwaylandForceZeroScaling ? m->transformedSize().x : m->size().x;
         m->setXWaylandScale(xwaylandForceZeroScaling ? m->scale() : 1.F);

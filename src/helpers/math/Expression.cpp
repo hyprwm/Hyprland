@@ -58,7 +58,7 @@ std::optional<double> CExpression::compute(const std::string& expr) {
     try {
         m_parser->SetExpr(expr);
         return m_parser->Eval();
-    } catch (mu::Parser::exception_type& e) { Log::logger->log(Log::ERR, "CExpression::compute: mu threw: {}", e.GetMsg()); }
+    } catch (mu::Parser::exception_type& e) { LOG(Log::ERR, "CExpression::compute: mu threw: {}", e.GetMsg()); }
 
     return std::nullopt;
 }

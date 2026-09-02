@@ -185,7 +185,7 @@ void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {
         return;
 
     if (!g_pInputManager->anyHidHasCap(HID_INPUT_CAPABILITY_KEYBOARD)) {
-        Log::logger->log(Log::ERR, "BUG THIS: setKeyboardFocus without a valid keyboard capability");
+        LOG(Log::ERR, "BUG THIS: setKeyboardFocus without a valid keyboard capability");
         return;
     }
 
@@ -296,14 +296,14 @@ void CSeatManager::setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& 
     if (dndActive && surf) {
         if (m_state.dndPointerFocus == surf)
             return;
-        Log::logger->log(Log::DEBUG, "[seatmgr] Refusing pointer focus during an active dnd, but setting dndPointerFocus");
+        LOG(Log::DEBUG, "[seatmgr] Refusing pointer focus during an active dnd, but setting dndPointerFocus");
         m_state.dndPointerFocus = surf;
         m_events.dndPointerFocusChange.emit();
         return;
     }
 
     if (!g_pInputManager->anyHidHasCap(HID_INPUT_CAPABILITY_POINTER)) {
-        Log::logger->log(Log::ERR, "BUG THIS: setPointerFocus without a valid pointer input");
+        LOG(Log::ERR, "BUG THIS: setPointerFocus without a valid pointer input");
         return;
     }
 
@@ -616,13 +616,13 @@ void CSeatManager::refocusGrab() {
 
 void CSeatManager::onSetCursor(SP<CWLSeatResource> seatResource, uint32_t serial, SP<CWLSurfaceResource> surf, const Vector2D& hotspot) {
     if (!m_state.pointerFocusResource || !seatResource || seatResource->client() != m_state.pointerFocusResource->client()) {
-        Log::logger->log(Log::DEBUG, "[seatmgr] Rejecting a setCursor because the client ain't in focus");
+        LOG(Log::DEBUG, "[seatmgr] Rejecting a setCursor because the client ain't in focus");
         return;
     }
 
     // TODO: fix this. Probably should be done in the CWlPointer as the serial could be lost by us.
     // if (!serialValid(seatResource, serial)) {
-    //     Log::logger->log(Log::DEBUG, "[seatmgr] Rejecting a setCursor because the serial is invalid");
+    //     LOG(Log::DEBUG, "[seatmgr] Rejecting a setCursor because the serial is invalid");
     //     return;
     // }
 
@@ -635,7 +635,7 @@ SP<CWLSeatResource> CSeatManager::seatResourceForClient(wl_client* client) {
 
 void CSeatManager::setCurrentSelection(SP<IDataSource> source) {
     if (source == m_selection.currentSelection) {
-        Log::logger->log(Log::WARN, "[seat] duplicated setCurrentSelection?");
+        LOG(Log::WARN, "[seat] duplicated setCurrentSelection?");
         return;
     }
 
@@ -661,7 +661,7 @@ void CSeatManager::setCurrentSelection(SP<IDataSource> source) {
 
 void CSeatManager::setCurrentPrimarySelection(SP<IDataSource> source) {
     if (source == m_selection.currentPrimarySelection) {
-        Log::logger->log(Log::WARN, "[seat] duplicated setCurrentPrimarySelection?");
+        LOG(Log::WARN, "[seat] duplicated setCurrentPrimarySelection?");
         return;
     }
 
@@ -739,7 +739,7 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
                 // If this was a popup grab, focus its parent window to maintain context
                 if (validMapped(parentWindow)) {
                     Desktop::focusState()->rawWindowFocus(parentWindow, Desktop::FOCUS_REASON_FFM);
-                    Log::logger->log(Log::DEBUG, "[seatmgr] Refocused popup parent window {} (follow_mouse={})", parentWindow->metadata().title(), *PFOLLOWMOUSE);
+                    LOG(Log::DEBUG, "[seatmgr] Refocused popup parent window {} (follow_mouse={})", parentWindow->metadata().title(), *PFOLLOWMOUSE);
                 } else
                     g_pInputManager->refocusLastWindow(PMONITOR);
             } else

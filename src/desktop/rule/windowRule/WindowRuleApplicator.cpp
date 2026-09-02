@@ -91,7 +91,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
         switch (key) {
             default: {
                 if (key <= WINDOW_RULE_EFFECT_LAST_STATIC) {
-                    Log::logger->log(Log::TRACE, "CWindowRuleApplicator::applyDynamicRule: Skipping effect {}, not dynamic", sc<std::underlying_type_t<eWindowRuleEffect>>(key));
+                    LOG(Log::TRACE, "CWindowRuleApplicator::applyDynamicRule: Skipping effect {}, not dynamic", sc<std::underlying_type_t<eWindowRuleEffect>>(key));
                     break;
                 }
 
@@ -113,7 +113,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
             }
 
             case WINDOW_RULE_EFFECT_NONE: {
-                Log::logger->log(Log::ERR, "CWindowRuleApplicator::applyDynamicRule: BUG THIS: WINDOW_RULE_EFFECT_NONE??");
+                LOG(Log::ERR, "CWindowRuleApplicator::applyDynamicRule: BUG THIS: WINDOW_RULE_EFFECT_NONE??");
                 break;
             }
             case WINDOW_RULE_EFFECT_ROUNDING: {
@@ -179,11 +179,11 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
 
                     const auto VEC = m_window->calculateExpression(expr);
                     if (!VEC) {
-                        Log::logger->log(Log::ERR, "failed to parse {} as an expression", expr.toString());
+                        LOG(Log::ERR, "failed to parse {} as an expression", expr.toString());
                         break;
                     }
                     if (VEC->x < 1 || VEC->y < 1) {
-                        Log::logger->log(Log::ERR, "Invalid size for maxsize");
+                        LOG(Log::ERR, "Invalid size for maxsize");
                         break;
                     }
 
@@ -191,7 +191,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
 
                     if (*PCLAMP_TILED || m_window->isFloating())
                         m_window->clampWindowSize(std::nullopt, m_maxSize.first.value());
-                } catch (std::exception& e) { Log::logger->log(Log::ERR, "maxsize rule \"{}\" failed with: {}", std::get<Math::SExpressionVec2>(value).toString(), e.what()); }
+                } catch (std::exception& e) { LOG(Log::ERR, "maxsize rule \"{}\" failed with: {}", std::get<Math::SExpressionVec2>(value).toString(), e.what()); }
                 m_maxSize.second = rule->getPropertiesMask();
                 break;
             }
@@ -208,19 +208,19 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
 
                     const auto VEC = m_window->calculateExpression(expr);
                     if (!VEC) {
-                        Log::logger->log(Log::ERR, "failed to parse {} as an expression", expr.toString());
+                        LOG(Log::ERR, "failed to parse {} as an expression", expr.toString());
                         break;
                     }
 
                     if (VEC->x < 1 || VEC->y < 1) {
-                        Log::logger->log(Log::ERR, "Invalid size for maxsize");
+                        LOG(Log::ERR, "Invalid size for maxsize");
                         break;
                     }
 
                     m_minSize.first = Types::COverridableVar(*VEC, Types::PRIORITY_WINDOW_RULE);
                     if (*PCLAMP_TILED || m_window->isFloating())
                         m_window->clampWindowSize(m_minSize.first.value(), std::nullopt);
-                } catch (std::exception& e) { Log::logger->log(Log::ERR, "minsize rule \"{}\" failed with: {}", std::get<Math::SExpressionVec2>(value).toString(), e.what()); }
+                } catch (std::exception& e) { LOG(Log::ERR, "minsize rule \"{}\" failed with: {}", std::get<Math::SExpressionVec2>(value).toString(), e.what()); }
                 m_minSize.second = rule->getPropertiesMask();
                 break;
             }
@@ -399,7 +399,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyStaticRule(const 
 
         switch (key) {
             default: {
-                Log::logger->log(Log::TRACE, "CWindowRuleApplicator::applyStaticRule: Skipping effect {}, not static", sc<std::underlying_type_t<eWindowRuleEffect>>(key));
+                LOG(Log::TRACE, "CWindowRuleApplicator::applyStaticRule: Skipping effect {}, not static", sc<std::underlying_type_t<eWindowRuleEffect>>(key));
                 break;
             }
 

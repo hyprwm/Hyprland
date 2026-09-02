@@ -23,7 +23,7 @@ static int hlPrint(lua_State* L) {
         out.append(s, len);
         lua_pop(L, 1);
     }
-    Log::logger->log(Log::INFO, "[Lua] {}", out);
+    LOG(Log::INFO, "[Lua] {}", out);
     return 0;
 }
 

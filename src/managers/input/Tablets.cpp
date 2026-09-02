@@ -251,7 +251,7 @@ void CInputManager::newTablet(SP<Aquamarine::ITablet> pDevice) {
     try {
         PNEWTABLET->m_hlName = g_pInputManager->getNameForNewDevice(pDevice->getName());
     } catch (std::exception& e) {
-        Log::logger->log(Log::ERR, "Tablet had no name???"); // logic error
+        LOG(Log::ERR, "Tablet had no name???"); // logic error
     }
 
     Pointer::mgr()->attachTablet(PNEWTABLET);
@@ -277,7 +277,7 @@ SP<CTabletTool> CInputManager::ensureTabletToolPresent(SP<Aquamarine::ITabletToo
     try {
         PTOOL->m_hlName = g_pInputManager->getNameForNewDevice(pTool->getName());
     } catch (std::exception& e) {
-        Log::logger->log(Log::ERR, "Tablet had no name???"); // logic error
+        LOG(Log::ERR, "Tablet had no name???"); // logic error
     }
 
     PTOOL->m_events.destroy.listenStatic([this, tool = PTOOL.get()] {
@@ -297,7 +297,7 @@ void CInputManager::newTabletPad(SP<Aquamarine::ITabletPad> pDevice) {
     try {
         PNEWPAD->m_hlName = g_pInputManager->getNameForNewDevice(pDevice->getName());
     } catch (std::exception& e) {
-        Log::logger->log(Log::ERR, "Pad had no name???"); // logic error
+        LOG(Log::ERR, "Pad had no name???"); // logic error
     }
 
     PNEWPAD->m_events.destroy.listenStatic([this, pad = PNEWPAD.get()] {

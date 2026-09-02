@@ -139,7 +139,7 @@ int main(int argc, char** argv) {
                     return 1;
                 }
 
-                Log::logger->log(Log::DEBUG, "User-specified config location: '{}'", configPath);
+                LOG(Log::DEBUG, "User-specified config location: '{}'", configPath);
 
                 it++;
 
@@ -281,7 +281,7 @@ int main(int argc, char** argv) {
     }
 
     if (!watchdogOk && !verifyConfig)
-        Log::logger->log(Log::WARN, "WARNING: Hyprland is being launched without start-hyprland. This is highly advised against.");
+        LOG(Log::WARN, "WARNING: Hyprland is being launched without start-hyprland. This is highly advised against.");
 
     g_pCompositor->initServer(socketName, socketFd);
 
@@ -291,7 +291,7 @@ int main(int argc, char** argv) {
         return !verify;
     }
 
-    Log::logger->log(Log::DEBUG, "Hyprland init finished.");
+    LOG(Log::DEBUG, "Hyprland init finished.");
 
     // If all's good to go, start.
     g_pCompositor->startCompositor();
@@ -300,7 +300,7 @@ int main(int argc, char** argv) {
 
     g_pCompositor.reset();
 
-    Log::logger->log(Log::DEBUG, "Hyprland has reached the end.");
+    LOG(Log::DEBUG, "Hyprland has reached the end.");
 
     return EXIT_SUCCESS;
 }

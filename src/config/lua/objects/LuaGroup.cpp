@@ -139,7 +139,7 @@ static int groupIndex(lua_State* L) {
     auto*      ref   = sc<WP<Desktop::View::CGroup>*>(luaL_checkudata(L, 1, MT));
     const auto group = ref->lock();
     if (!group) {
-        Log::logger->log(Log::DEBUG, "[lua] Tried to access an expired object");
+        LOG(Log::DEBUG, "[lua] Tried to access an expired object");
         lua_pushnil(L);
         return 1;
     }

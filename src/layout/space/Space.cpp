@@ -76,7 +76,7 @@ void CSpace::setAlgorithmProvider(SP<CAlgorithm> algo) {
 
 void CSpace::recheckWorkArea() {
     if (!m_parent || !m_parent->m_monitor) {
-        Log::logger->log(Log::ERR, "CSpace: recheckWorkArea on no parent / mon?!");
+        LOG(Log::ERR, "CSpace: recheckWorkArea on no parent / mon?!");
         return;
     }
 

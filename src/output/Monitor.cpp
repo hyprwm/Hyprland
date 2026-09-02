@@ -213,7 +213,7 @@ void CMonitor::onConnect(bool noRule) {
     });
 
     m_listeners.destroy = m_output->events.destroy.listen([this] {
-        Log::logger->log(Log::DEBUG, "Destroy called for monitor {}", m_name);
+        LOG(Log::DEBUG, "Destroy called for monitor {}", m_name);
 
         m_listeners = {};
 
@@ -232,7 +232,7 @@ void CMonitor::onConnect(bool noRule) {
             if (m_createdByUser)
                 return;
 
-            Log::logger->log(Log::DEBUG, "Reapplying monitor rule for {} from a state request", m_name);
+            LOG(Log::DEBUG, "Reapplying monitor rule for {} from a state request", m_name);
             auto cpy = m_activeMonitorRule;
             applyMonitorRule(std::move(cpy));
             State::monitorLayoutController()->scheduleRecheck();
@@ -294,7 +294,7 @@ void CMonitor::onConnect(bool noRule) {
         m_usedAsyncBuffers.clear();
 
         if (!m_state.commit())
-            Log::logger->log(Log::ERR, "Couldn't commit disabled state on output {}", m_name);
+            LOG(Log::ERR, "Couldn't commit disabled state on output {}", m_name);
 
         m_enabled = false;
 
@@ -303,7 +303,7 @@ void CMonitor::onConnect(bool noRule) {
     }
 
     if (m_output->nonDesktop) {
-        Log::logger->log(Log::DEBUG, "Not configuring non-desktop output");
+        LOG(Log::DEBUG, "Not configuring non-desktop output");
 
         for (auto& [name, lease] : PROTO::lease) {
             if (!lease || m_output->getBackend() != lease->getBackend())
@@ -327,11 +327,11 @@ void CMonitor::onConnect(bool noRule) {
     }
 
     if (!m_state.commit())
-        Log::logger->log(Log::WARN, "state.commit() failed in CMonitor::onCommit");
+        LOG(Log::WARN, "state.commit() failed in CMonitor::onCommit");
 
     m_damage.setSize(m_transformedSize);
 
-    Log::logger->log(Log::DEBUG, "Added new monitor with name {} at {:j0} with size {:j0}, pointer {:x}", m_name, m_position, m_pixelSize, rc<uintptr_t>(m_output.get()));
+    LOG(Log::DEBUG, "Added new monitor with name {} at {:j0} with size {:j0}, pointer {:x}", m_name, m_position, m_pixelSize, rc<uintptr_t>(m_output.get()));
 
     if (!isMirror())
         setupDefaultWS(monitorRule);
@@ -379,18 +379,18 @@ void CMonitor::onConnect(bool noRule) {
         }
     }
 
-    Log::logger->log(Log::DEBUG, "checking if we have seen this monitor before: {}", m_name);
+    LOG(Log::DEBUG, "checking if we have seen this monitor before: {}", m_name);
     // if we saw this monitor before, set it to the workspace it was on
     if (const auto WORKSPACEID = State::workspaceState()->rememberedWorkspaceForMonitor(m_name); WORKSPACEID.has_value()) {
         auto workspaceID = *WORKSPACEID;
-        Log::logger->log(Log::DEBUG, "Monitor {} was on workspace {}, setting it to that", m_name, workspaceID);
+        LOG(Log::DEBUG, "Monitor {} was on workspace {}, setting it to that", m_name, workspaceID);
         auto ws = State::workspaceState()->query().id(workspaceID).run();
         if (ws) {
             State::workspacePlacementController()->moveWorkspaceToMonitor(ws, m_self.lock());
             changeWorkspace(ws, true, false, false);
         }
     } else
-        Log::logger->log(Log::DEBUG, "Monitor {} was not on any workspace", m_name);
+        LOG(Log::DEBUG, "Monitor {} was not on any workspace", m_name);
 
     if (!found)
         Desktop::focusState()->rawMonitorFocus(m_self.lock());
@@ -424,7 +424,7 @@ void CMonitor::onDisconnect(bool destroy) {
     if (!m_enabled || g_pCompositor->m_isShuttingDown)
         return;
 
-    Log::logger->log(Log::DEBUG, "onDisconnect called for {}", m_name);
+    LOG(Log::DEBUG, "onDisconnect called for {}", m_name);
 
     m_events.disconnect.emit();
     if (g_pHyprRenderer && g_pHyprRenderer->glBackend())
@@ -432,7 +432,7 @@ void CMonitor::onDisconnect(bool destroy) {
 
     // record what workspace this monitor was on
     if (m_activeWorkspace) {
-        Log::logger->log(Log::DEBUG, "Disconnecting Monitor {} was on workspace {}", m_name, m_activeWorkspace->m_id);
+        LOG(Log::DEBUG, "Disconnecting Monitor {} was on workspace {}", m_name, m_activeWorkspace->m_id);
         State::workspaceState()->rememberWorkspaceForMonitor(m_name, m_activeWorkspace->m_id);
     }
 
@@ -476,7 +476,7 @@ void CMonitor::onDisconnect(bool destroy) {
         m_layerSurfaceLayers[i].clear();
     }
 
-    Log::logger->log(Log::DEBUG, "Removed monitor {}!", m_name);
+    LOG(Log::DEBUG, "Removed monitor {}!", m_name);
 
     m_enabled             = false;
     m_renderingInitPassed = false;
@@ -518,7 +518,7 @@ void CMonitor::onDisconnect(bool destroy) {
         m_output->state->setEnabled(false);
 
         if (!m_state.commit())
-            Log::logger->log(Log::WARN, "state.commit() failed in CMonitor::onDisconnect");
+            LOG(Log::WARN, "state.commit() failed in CMonitor::onDisconnect");
     }
 
     if (Desktop::focusState()->monitor() == m_self)
@@ -705,12 +705,12 @@ bool CMonitor::applyMonitorRuleSoft(Config::CMonitorRule&& pMonitorRule) {
     } else {
         auto image = NColorManagement::SImageDescription::fromICC(m_activeMonitorRule.m_iccFile);
         if (!image) {
-            Log::logger->log(Log::ERR, "icc for {} ({}) failed: {}", m_name, m_activeMonitorRule.m_iccFile, image.error());
+            LOG(Log::ERR, "icc for {} ({}) failed: {}", m_name, m_activeMonitorRule.m_iccFile, image.error());
             ErrorOverlay::overlay()->queueError(std::format("failed to apply icc {} to {}: {}", m_activeMonitorRule.m_iccFile, m_name, image.error()));
         } else {
             m_imageDescription = CImageDescription::from(*image);
             if (!m_imageDescription) {
-                Log::logger->log(Log::ERR, "icc for {} ({}) failed 2: {}", m_name, m_activeMonitorRule.m_iccFile, image.error());
+                LOG(Log::ERR, "icc for {} ({}) failed 2: {}", m_name, m_activeMonitorRule.m_iccFile, image.error());
                 ErrorOverlay::overlay()->queueError(std::format("failed to apply icc {} to {}: {}", m_activeMonitorRule.m_iccFile, m_name, image.error()));
                 m_imageDescription = CImageDescription::from(SImageDescription{});
             }
@@ -741,7 +741,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
 
     static auto PDISABLESCALECHECKS = CConfigValue<Config::INTEGER>("debug:disable_scale_checks");
 
-    Log::logger->log(Log::DEBUG, "Applying monitor rule for {}", m_name);
+    LOG(Log::DEBUG, "Applying monitor rule for {}", m_name);
 
     if (m_forceSize.has_value())
         m_activeMonitorRule.m_resolution = m_forceSize.value();
@@ -757,7 +757,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
         m_activeMonitorRule = std::move(pMonitorRule);
 
         if (!m_state.commit())
-            Log::logger->log(Log::WARN, "state.commit() failed in CMonitor::applyMonitorRule");
+            LOG(Log::WARN, "state.commit() failed in CMonitor::applyMonitorRule");
 
         m_events.modeChanged.emit();
 
@@ -787,7 +787,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
 
     // last fallback is always preferred mode
     if (!m_output->preferredMode())
-        Log::logger->log(Log::ERR, "Monitor {} has NO PREFERRED MODE", m_name);
+        LOG(Log::ERR, "Monitor {} has NO PREFERRED MODE", m_name);
     else
         requestedModes.push_back(m_output->preferredMode());
 
@@ -863,7 +863,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
         // then if requested is custom, try custom mode first
         if (RULE->m_drmMode.type == DRM_MODE_TYPE_USERDEF) {
             if (m_output->getBackend()->type() != Aquamarine::eBackendType::AQ_BACKEND_DRM)
-                Log::logger->log(Log::ERR, "Tried to set custom modeline on non-DRM output");
+                LOG(Log::ERR, "Tried to set custom modeline on non-DRM output");
             else
                 requestedModes.push_back(makeShared<Aquamarine::SOutputMode>(Aquamarine::SOutputMode{
                     .pixelSize = {RULE->m_drmMode.hdisplay, RULE->m_drmMode.vdisplay}, .refreshRate = RULE->m_drmMode.vrefresh, .modeInfo = RULE->m_drmMode}));
@@ -886,12 +886,12 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
     m_output->state->resetExplicitFences();
 
     if (Env::isTrace()) {
-        Log::logger->log(Log::TRACE, "Monitor {} requested modes:", m_name);
+        LOG(Log::TRACE, "Monitor {} requested modes:", m_name);
         if (requestedModes.empty())
-            Log::logger->log(Log::TRACE, "| None");
+            LOG(Log::TRACE, "| None");
         else {
             for (auto const& mode : requestedModes | std::views::reverse) {
-                Log::logger->log(Log::TRACE, "| {:X0}@{:.2f}Hz", mode->pixelSize, mode->refreshRate / 1000.f);
+                LOG(Log::TRACE, "| {:X0}@{:.2f}Hz", mode->pixelSize, mode->refreshRate / 1000.f);
             }
         }
     }
@@ -903,7 +903,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
             m_state.applyCustomModeWithSwapchain(mode);
 
             if (!m_state.test()) {
-                Log::logger->log(Log::ERR, "Monitor {}: REJECTED custom mode {}!", m_name, modeStr);
+                LOG(Log::ERR, "Monitor {}: REJECTED custom mode {}!", m_name, modeStr);
                 continue;
             }
 
@@ -912,9 +912,9 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
             m_state.applyModeWithSwapchain(mode);
 
             if (!m_state.test()) {
-                Log::logger->log(Log::ERR, "Monitor {}: REJECTED available mode {}!", m_name, modeStr);
+                LOG(Log::ERR, "Monitor {}: REJECTED available mode {}!", m_name, modeStr);
                 if (mode->preferred)
-                    Log::logger->log(Log::ERR, "Monitor {}: REJECTED preferred mode!!!", m_name);
+                    LOG(Log::ERR, "Monitor {}: REJECTED preferred mode!!!", m_name);
                 continue;
             }
 
@@ -928,11 +928,11 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
         success = true;
 
         if (mode->preferred)
-            Log::logger->log(Log::DEBUG, "Monitor {}: requested {}, using preferred mode {}", m_name, requestedStr, modeStr);
+            LOG(Log::DEBUG, "Monitor {}: requested {}, using preferred mode {}", m_name, requestedStr, modeStr);
         else if (mode->modeInfo.has_value() && mode->modeInfo->type == DRM_MODE_TYPE_USERDEF)
-            Log::logger->log(Log::DEBUG, "Monitor {}: requested {}, using custom mode {}", m_name, requestedStr, modeStr);
+            LOG(Log::DEBUG, "Monitor {}: requested {}, using custom mode {}", m_name, requestedStr, modeStr);
         else
-            Log::logger->log(Log::DEBUG, "Monitor {}: requested {}, using available mode {}", m_name, requestedStr, modeStr);
+            LOG(Log::DEBUG, "Monitor {}: requested {}, using available mode {}", m_name, requestedStr, modeStr);
 
         break;
     }
@@ -946,7 +946,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
         m_state.applyCustomModeWithSwapchain(mode);
 
         if (m_state.test()) {
-            Log::logger->log(Log::DEBUG, "Monitor {}: requested {}, using custom mode {}", m_name, requestedStr, modeStr);
+            LOG(Log::DEBUG, "Monitor {}: requested {}, using custom mode {}", m_name, requestedStr, modeStr);
 
             refreshRate     = mode->refreshRate / 1000.f;
             m_size          = mode->pixelSize;
@@ -955,7 +955,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
 
             success = true;
         } else
-            Log::logger->log(Log::ERR, "Monitor {}: REJECTED custom mode {}!", m_name, modeStr);
+            LOG(Log::ERR, "Monitor {}: REJECTED custom mode {}!", m_name, modeStr);
     }
 
     // try any of the modes if none of the above work
@@ -968,7 +968,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
 
             auto errorMessage = I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_MONITOR_MODE_FAIL,
                                                              {{"name", m_name}, {"mode", std::format("{:X0}@{:.2f}Hz", mode->pixelSize, mode->refreshRate / 1000.f)}});
-            Log::logger->log(Log::WARN, errorMessage);
+            LOG(Log::WARN, errorMessage);
             Notification::overlay()->addNotification(errorMessage, CHyprColor(0xff0000ff), 5000, ICON_WARNING);
 
             m_refreshRate   = mode->refreshRate / 1000.f;
@@ -984,7 +984,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
 
     if (!success) {
         m_activeMonitorRule = std::move(pMonitorRule);
-        Log::logger->log(Log::ERR, "Monitor {} has NO FALLBACK MODES, and an INVALID one was requested: {:X0}@{:.2f}Hz", m_name, RULE->m_resolution, RULE->m_refreshRate);
+        LOG(Log::ERR, "Monitor {} has NO FALLBACK MODES, and an INVALID one was requested: {:X0}@{:.2f}Hz", m_name, RULE->m_resolution, RULE->m_refreshRate);
         scheduleModeRetry();
         return true;
     }
@@ -1051,13 +1051,13 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
                 if (autoScale)
                     m_scale = std::round(scaleZero);
                 else {
-                    Log::logger->log(Log::ERR, "Invalid scale passed to monitor, {} failed to find a clean divisor", m_scale);
+                    LOG(Log::ERR, "Invalid scale passed to monitor, {} failed to find a clean divisor", m_scale);
                     ErrorOverlay::overlay()->queueError(std::format("Invalid scale passed to monitor {}, failed to find a clean divisor", m_name));
                     m_scale = getDefaultScale();
                 }
             } else {
                 if (!autoScale) {
-                    Log::logger->log(Log::ERR, "Invalid scale passed to monitor, {} found suggestion {}", m_scale, searchScale);
+                    LOG(Log::ERR, "Invalid scale passed to monitor, {} found suggestion {}", m_scale, searchScale);
                     static auto PDISABLENOTIFICATION = CConfigValue<Config::INTEGER>("misc:disable_scale_notification");
                     if (!*PDISABLENOTIFICATION) {
                         Notification::overlay()->addNotification(
@@ -1074,7 +1074,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
     m_output->scheduleFrame();
 
     if (!m_state.commit())
-        Log::logger->log(Log::ERR, "Couldn't commit output named {}", m_name);
+        LOG(Log::ERR, "Couldn't commit output named {}", m_name);
 
     Vector2D xfmd     = m_transform % 2 == 1 ? Vector2D{m_pixelSize.y, m_pixelSize.x} : m_pixelSize;
     m_size            = (xfmd / m_scale).round();
@@ -1096,8 +1096,8 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
 
     updateVCGTRamps();
 
-    Log::logger->log(Log::DEBUG, "Monitor {} data dump: res {:X}@{:.2f}Hz, scale {:.2f}, transform {}, pos {:X}, 10b {}", m_name, m_pixelSize, m_refreshRate, m_scale,
-                     sc<int>(m_transform), m_position, sc<int>(m_enabled10bit));
+    LOG(Log::DEBUG, "Monitor {} data dump: res {:X}@{:.2f}Hz, scale {:.2f}, transform {}, pos {:X}, 10b {}", m_name, m_pixelSize, m_refreshRate, m_scale, sc<int>(m_transform),
+        m_position, sc<int>(m_enabled10bit));
 
     m_events.modeChanged.emit();
 
@@ -1113,7 +1113,7 @@ void CMonitor::scheduleModeRetry() {
 
     m_modeRetryCount++;
 
-    Log::logger->log(Log::WARN, "Monitor {} failed to find a valid mode, retrying in 1s ({}/{})", m_name, m_modeRetryCount, MAX_MODE_RETRIES);
+    LOG(Log::WARN, "Monitor {} failed to find a valid mode, retrying in 1s ({}/{})", m_name, m_modeRetryCount, MAX_MODE_RETRIES);
 
     m_modeRetryTimer = makeShared<CEventLoopTimer>(
         RETRY_DELAY,
@@ -1327,12 +1327,12 @@ void CMonitor::setupDefaultWS(const Config::CMonitorRule& monitorRule) {
         wsID                    = std::ranges::distance(State::workspaceState()->workspaces()) + 1;
         newDefaultWorkspaceName = std::to_string(wsID);
 
-        Log::logger->log(Log::DEBUG, "Invalid workspace= directive name in monitor parsing, workspace name \"{}\" is invalid.", DEFAULTWORKSPACE);
+        LOG(Log::DEBUG, "Invalid workspace= directive name in monitor parsing, workspace name \"{}\" is invalid.", DEFAULTWORKSPACE);
     }
 
     auto PNEWWORKSPACE = State::workspaceState()->query().id(wsID).run();
 
-    Log::logger->log(Log::DEBUG, "New monitor: WORKSPACEID {}, exists: {}", wsID, sc<int>(PNEWWORKSPACE != nullptr));
+    LOG(Log::DEBUG, "New monitor: WORKSPACEID {}, exists: {}", wsID, sc<int>(PNEWWORKSPACE != nullptr));
 
     if (PNEWWORKSPACE) {
         // workspace exists, move it to the newly connected monitor
@@ -1361,12 +1361,12 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         return;
 
     if (PMIRRORMON && PMIRRORMON->isMirror()) {
-        Log::logger->log(Log::ERR, "Cannot mirror a mirror!");
+        LOG(Log::ERR, "Cannot mirror a mirror!");
         return;
     }
 
     if (PMIRRORMON == m_self) {
-        Log::logger->log(Log::ERR, "Cannot mirror self!");
+        LOG(Log::ERR, "Cannot mirror self!");
         return;
     }
 
@@ -1465,7 +1465,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
 
     if (pWorkspace->m_isSpecialWorkspace) {
         if (m_activeSpecialWorkspace != pWorkspace) {
-            Log::logger->log(Log::DEBUG, "changeworkspace on special, togglespecialworkspace to id {}", pWorkspace->m_id);
+            LOG(Log::DEBUG, "changeworkspace on special, togglespecialworkspace to id {}", pWorkspace->m_id);
             setSpecialWorkspace(pWorkspace, noFocus);
         }
         return;
@@ -1990,7 +1990,7 @@ uint8_t CMonitor::isTearingBlocked(bool full) {
     if (!*PTEARINGENABLED) {
         reasons |= TC_USER;
         if (!full) {
-            Log::logger->log(Log::WARN, "Tearing commit requested but the master switch general:allow_tearing is off, ignoring");
+            LOG(Log::WARN, "Tearing commit requested but the master switch general:allow_tearing is off, ignoring");
             return reasons;
         }
     }
@@ -1998,7 +1998,7 @@ uint8_t CMonitor::isTearingBlocked(bool full) {
     if (g_pHyprRenderer->m_renderData.mouseZoomFactor != 1.0) {
         reasons |= TC_ZOOM;
         if (!full) {
-            Log::logger->log(Log::WARN, "Tearing commit requested but scale factor is not 1, ignoring");
+            LOG(Log::WARN, "Tearing commit requested but scale factor is not 1, ignoring");
             return reasons;
         }
     }
@@ -2006,7 +2006,7 @@ uint8_t CMonitor::isTearingBlocked(bool full) {
     if (!m_tearingState.canTear) {
         reasons |= TC_SUPPORT;
         if (!full) {
-            Log::logger->log(Log::WARN, "Tearing commit requested but monitor doesn't support it, ignoring");
+            LOG(Log::WARN, "Tearing commit requested but monitor doesn't support it, ignoring");
             return reasons;
         }
     }
@@ -2163,12 +2163,12 @@ bool CMonitor::attemptDirectScanout() {
 
         if (m_scanoutNeedsCursorUpdate) {
             if (!m_state.test()) {
-                Log::logger->log(Log::TRACE, "attemptDirectScanout: failed basic test on cursor update");
+                LOG(Log::TRACE, "attemptDirectScanout: failed basic test on cursor update");
                 return false;
             }
 
             if (!m_output->commit()) {
-                Log::logger->log(Log::TRACE, "attemptDirectScanout: failed to commit cursor update");
+                LOG(Log::TRACE, "attemptDirectScanout: failed to commit cursor update");
                 m_lastScanout.reset();
                 return false;
             }
@@ -2185,8 +2185,8 @@ bool CMonitor::attemptDirectScanout() {
 
     const auto params = PSURFACE->m_current.buffer->dmabuf();
 
-    Log::logger->log(Log::TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {} fmt: {} -> {} (mod {})", rc<uintptr_t>(PSURFACE.get()),
-                     rc<uintptr_t>(PSURFACE->m_current.buffer.m_buffer.get()), m_drmFormat, params.format, params.modifier);
+    LOG(Log::TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {} fmt: {} -> {} (mod {})", rc<uintptr_t>(PSURFACE.get()),
+        rc<uintptr_t>(PSURFACE->m_current.buffer.m_buffer.get()), m_drmFormat, params.format, params.modifier);
 
     // FIXME: make sure the buffer actually follows the available scanout dmabuf formats
     // and comes from the appropriate device. This may implode on multi-gpu!!
@@ -2217,12 +2217,12 @@ bool CMonitor::attemptDirectScanout() {
     }
 
     m_output->state->setBuffer(PBUFFER);
-    Log::logger->log(Log::TRACE, "attemptDirectScanout: setting presentation mode");
+    LOG(Log::TRACE, "attemptDirectScanout: setting presentation mode");
     m_output->state->setPresentationMode(m_tearingState.activelyTearing ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
                                                                           Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
 
     if (NEEDS_TEST && !m_state.test()) {
-        Log::logger->log(Log::TRACE, "attemptDirectScanout: failed basic test");
+        LOG(Log::TRACE, "attemptDirectScanout: failed basic test");
         return false;
     }
 
@@ -2264,7 +2264,7 @@ bool CMonitor::attemptDirectScanout() {
 
     const auto result = m_commitCoordinator->submit(std::move(frame));
     if (result == COutputCommitCoordinator::SUBMIT_FAILED) {
-        Log::logger->log(Log::TRACE, "attemptDirectScanout: failed to scanout surface");
+        LOG(Log::TRACE, "attemptDirectScanout: failed to scanout surface");
         m_lastScanout.reset();
         return false;
     }
@@ -2288,7 +2288,7 @@ bool CMonitor::attemptDirectScanout() {
 }
 
 void CMonitor::handleDSleave() {
-    Log::logger->log(Log::DEBUG, "Left a direct scanout.");
+    LOG(Log::DEBUG, "Left a direct scanout.");
     m_lastScanout.reset();
     m_previousFSWindow.reset(); // recalc fs settings
     m_directScanoutIsActive = false;
@@ -2403,7 +2403,7 @@ void CMonitor::commitDPMSState(bool state) {
         m_usedAsyncBuffers.clear();
 
     if (!m_state.commit()) {
-        Log::logger->log(Log::ERR, "Couldn't commit output {} for DPMS = {}, will retry.", m_name, state);
+        LOG(Log::ERR, "Couldn't commit output {} for DPMS = {}, will retry.", m_name, state);
 
         // retry in 2 frames. This could happen when the DRM backend rejects our commit
         // because disable + enable were sent almost instantly
@@ -2420,7 +2420,7 @@ void CMonitor::commitDPMSState(bool state) {
                     m_usedAsyncBuffers.clear();
 
                 if (!m_state.commit()) {
-                    Log::logger->log(Log::ERR, "Couldn't retry committing output {} for DPMS = {}", m_name, m_dpmsStatus);
+                    LOG(Log::ERR, "Couldn't retry committing output {} for DPMS = {}", m_name, m_dpmsStatus);
                     return;
                 }
 
@@ -2437,8 +2437,8 @@ void CMonitor::commitDPMSState(bool state) {
 }
 
 void CMonitor::debugLastPresentation(const std::string& message) {
-    Log::logger->log(Log::TRACE, "{} (last presentation {} - {} fps)", message, m_lastPresentationTimer.getMillis(),
-                     m_lastPresentationTimer.getMillis() > 0 ? 1000.0f / m_lastPresentationTimer.getMillis() : 0.0f);
+    LOG(Log::TRACE, "{} (last presentation {} - {} fps)", message, m_lastPresentationTimer.getMillis(),
+        m_lastPresentationTimer.getMillis() > 0 ? 1000.0f / m_lastPresentationTimer.getMillis() : 0.0f);
 }
 
 void CMonitor::onCursorMovedOnMonitor() {
@@ -2450,7 +2450,7 @@ void CMonitor::onCursorMovedOnMonitor() {
     // output->state->addDamage(CRegion{});
     // output->state->setPresentationMode(Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE);
     // if (!output->commit())
-    //     Log::logger->log(Log::ERR, "onCursorMovedOnMonitor: tearing and wanted to update cursor, failed.");
+    //     LOG(Log::ERR, "onCursorMovedOnMonitor: tearing and wanted to update cursor, failed.");
 
     // FIXME: try to do the above. We currently can't just render because drm is a fucking bitch
     // and throws a "nO pRoP cAn Be ChAnGeD dUrInG AsYnC fLiP" on crtc_x
@@ -2590,7 +2590,7 @@ bool CMonitor::canNoShaderCM(bool forDSmode) {
     if (m_imageDescription->value().icc.present)
         return false;
 
-    Log::logger->log(Log::TRACE, "CM: can no shder compares src={} to output={}", SRC_DESC_VALUE, m_imageDescription->value());
+    LOG(Log::TRACE, "CM: can no shder compares src={} to output={}", SRC_DESC_VALUE, m_imageDescription->value());
 
     // only primaries differ
     return (
@@ -2668,7 +2668,7 @@ void CMonitor::updateVCGTRamps() {
     auto gammaSize = m_output->getGammaSize();
 
     if (gammaSize <= 10) {
-        Log::logger->log(Log::DEBUG, "CMonitor::updateVCGTRamps: skipping, no gamma ramp for output");
+        LOG(Log::DEBUG, "CMonitor::updateVCGTRamps: skipping, no gamma ramp for output");
         return;
     }
 
@@ -2699,7 +2699,7 @@ CMonitorState::CMonitorState(CMonitor* owner) : m_owner(owner) {
 void CMonitorState::ensureBufferPresent() {
     const auto& STATE = m_owner->m_output->state->state();
     if (!STATE.enabled) {
-        Log::logger->log(Log::TRACE, "CMonitorState::ensureBufferPresent: Ignoring, monitor is not enabled");
+        LOG(Log::TRACE, "CMonitorState::ensureBufferPresent: Ignoring, monitor is not enabled");
         return;
     }
 
@@ -2710,7 +2710,7 @@ void CMonitorState::ensureBufferPresent() {
 
     // this is required for modesetting being possible and might be missing in case of first tests in the renderer
     // where we test modes and buffers
-    Log::logger->log(Log::DEBUG, "CMonitorState::ensureBufferPresent: no buffer or mismatched format, attaching one from the swapchain for modeset being possible");
+    LOG(Log::DEBUG, "CMonitorState::ensureBufferPresent: no buffer or mismatched format, attaching one from the swapchain for modeset being possible");
     m_owner->m_output->state->setBuffer(m_owner->m_output->swapchain->next(nullptr));
     m_owner->m_output->swapchain->rollback(); // restore the counter, don't advance the swapchain
 }
@@ -2747,7 +2747,7 @@ bool CMonitorState::updateSwapchain() {
     const auto& STATE   = m_owner->m_output->state->state();
     const auto& MODE    = STATE.mode ? STATE.mode : STATE.customMode;
     if (!MODE) {
-        Log::logger->log(Log::WARN, "updateSwapchain: No mode?");
+        LOG(Log::WARN, "updateSwapchain: No mode?");
         return true;
     }
 
@@ -2864,9 +2864,9 @@ bool CMonitor::trySetFormat(std::span<const uint32_t> formats) {
 
         const auto fmtName = drmFormatToString(fmt);
         if (!m_state.test()) {
-            Log::logger->log(Log::ERR, "output {} failed basic test on format {}", m_name, fmtName);
+            LOG(Log::ERR, "output {} failed basic test on format {}", m_name, fmtName);
         } else {
-            Log::logger->log(Log::DEBUG, "output {} succeeded basic test on format {}", m_name, fmtName);
+            LOG(Log::DEBUG, "output {} succeeded basic test on format {}", m_name, fmtName);
             return true;
         }
     }

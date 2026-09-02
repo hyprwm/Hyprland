@@ -65,11 +65,11 @@ void CXDataSource::send(const std::string& mime, CFileDescriptor fd) {
     }
 
     if (!mimeAtom) {
-        Log::logger->log(Log::ERR, "[XDataSource] mime atom not found");
+        LOG(Log::ERR, "[XDataSource] mime atom not found");
         return;
     }
 
-    Log::logger->log(Log::DEBUG, "[XDataSource] send with mime {} to fd {}", mime, fd.get());
+    LOG(Log::DEBUG, "[XDataSource] send with mime {} to fd {}", mime, fd.get());
 
     auto transfer            = makeUnique<SXTransfer>(m_selection);
     transfer->incomingWindow = xcb_generate_id(g_pXWayland->m_wm->getConnection());
@@ -94,15 +94,15 @@ void CXDataSource::send(const std::string& mime, CFileDescriptor fd) {
 }
 
 void CXDataSource::accepted(const std::string& mime) {
-    Log::logger->log(Log::DEBUG, "[XDataSource] accepted is a stub");
+    LOG(Log::DEBUG, "[XDataSource] accepted is a stub");
 }
 
 void CXDataSource::cancelled() {
-    Log::logger->log(Log::DEBUG, "[XDataSource] cancelled is a stub");
+    LOG(Log::DEBUG, "[XDataSource] cancelled is a stub");
 }
 
 void CXDataSource::error(uint32_t code, const std::string& msg) {
-    Log::logger->log(Log::DEBUG, "[XDataSource] error is a stub: err {}: {}", code, msg);
+    LOG(Log::DEBUG, "[XDataSource] error is a stub: err {}: {}", code, msg);
 }
 
 eDataSourceType CXDataSource::type() {

@@ -59,7 +59,7 @@ bool CUnixPeer::flush() {
         if (WRITTEN < 0 && errno == EINTR)
             continue;
 
-        Log::logger->log(Log::ERR, "[Socket2::UnixPeer] fd {} failed writing event: {}", m_fd.get(), WRITTEN < 0 ? strerror(errno) : "write returned 0");
+        LOG(Log::ERR, "[Socket2::UnixPeer] fd {} failed writing event: {}", m_fd.get(), WRITTEN < 0 ? strerror(errno) : "write returned 0");
         return false;
     }
 
@@ -85,27 +85,27 @@ bool CUnixPeer::addEvent(const SP<std::string>& x) {
 
 CUnixImpl::CUnixImpl() : m_socket(socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK, 0)) {
     if (!m_socket.isValid()) {
-        Log::logger->log(Log::ERR, "[Socket2::UnixImpl] Couldn't start the Hyprland Socket 2. (1) IPC will not work.");
+        LOG(Log::ERR, "[Socket2::UnixImpl] Couldn't start the Hyprland Socket 2. (1) IPC will not work.");
         return;
     }
 
     sockaddr_un SERVERADDRESS = {.sun_family = AF_UNIX};
     const auto  PATH          = std::format("{}/.socket2.sock", g_pCompositor->m_instancePath);
     if (PATH.length() > sizeof(SERVERADDRESS.sun_path) - 1) {
-        Log::logger->log(Log::ERR, "[Socket2::UnixImpl] path is too long. (2) IPC will not work.");
+        LOG(Log::ERR, "[Socket2::UnixImpl] path is too long. (2) IPC will not work.");
         return;
     }
 
     strncpy(SERVERADDRESS.sun_path, PATH.c_str(), sizeof(SERVERADDRESS.sun_path) - 1);
 
     if (bind(m_socket.get(), rc<sockaddr*>(&SERVERADDRESS), SUN_LEN(&SERVERADDRESS)) < 0) {
-        Log::logger->log(Log::ERR, "[Socket2::UnixImpl] Couldn't bind the Hyprland Socket 2. (3) IPC will not work.");
+        LOG(Log::ERR, "[Socket2::UnixImpl] Couldn't bind the Hyprland Socket 2. (3) IPC will not work.");
         return;
     }
 
     // 10 max queued.
     if (listen(m_socket.get(), 10) < 0) {
-        Log::logger->log(Log::ERR, "[Socket2::UnixImpl] Couldn't listen on the Hyprland Socket 2. (4) IPC will not work.");
+        LOG(Log::ERR, "[Socket2::UnixImpl] Couldn't listen on the Hyprland Socket 2. (4) IPC will not work.");
         return;
     }
 
@@ -119,7 +119,7 @@ CUnixImpl::~CUnixImpl() {
 
 int CUnixImpl::onServerEvent(int fd, uint32_t mask) {
     if (mask & WL_EVENT_ERROR || mask & WL_EVENT_HANGUP) {
-        Log::logger->log(Log::ERR, "[Socket2::UnixImpl] hangup?? IPC broke");
+        LOG(Log::ERR, "[Socket2::UnixImpl] hangup?? IPC broke");
 
         wl_event_source_remove(m_eventSource);
         m_eventSource = nullptr;
@@ -133,7 +133,7 @@ int CUnixImpl::onServerEvent(int fd, uint32_t mask) {
     CFileDescriptor acceptedConnection{accept4(m_socket.get(), rc<sockaddr*>(&clientAddress), &clientSize, SOCK_CLOEXEC | SOCK_NONBLOCK)};
     if (!acceptedConnection.isValid()) {
         if (errno != EAGAIN) {
-            Log::logger->log(Log::ERR, "[Socket2::UnixImpl] failed receiving connection, errno: {}", errno);
+            LOG(Log::ERR, "[Socket2::UnixImpl] failed receiving connection, errno: {}", errno);
             wl_event_source_remove(m_eventSource);
             m_eventSource = nullptr;
             m_socket.reset();
@@ -142,7 +142,7 @@ int CUnixImpl::onServerEvent(int fd, uint32_t mask) {
         return 0;
     }
 
-    Log::logger->log(Log::DEBUG, "[Socket2::UnixImpl] accepted a new client at FD {}", acceptedConnection.get());
+    LOG(Log::DEBUG, "[Socket2::UnixImpl] accepted a new client at FD {}", acceptedConnection.get());
 
     m_peers.emplace_back(makeShared<CUnixPeer>(std::move(acceptedConnection), this));
 
@@ -151,7 +151,7 @@ int CUnixImpl::onServerEvent(int fd, uint32_t mask) {
 
 int CUnixImpl::onClientEvent(int fd, uint32_t mask) {
     if (mask & WL_EVENT_ERROR || mask & WL_EVENT_HANGUP) {
-        Log::logger->log(Log::DEBUG, "[Socket2::UnixImpl] fd {} hung up", fd);
+        LOG(Log::DEBUG, "[Socket2::UnixImpl] fd {} hung up", fd);
         removeByFd(fd);
         return 0;
     }
@@ -192,7 +192,7 @@ bool CUnixImpl::send(std::string&& x) {
         const auto& PEER = *it;
 
         if (PEER->queueSize() >= MAX_QUEUED_EVENTS) {
-            Log::logger->log(Log::ERR, "[Socket2::UnixImpl] fd {} overflowed event queue, removing", (*it)->id());
+            LOG(Log::ERR, "[Socket2::UnixImpl] fd {} overflowed event queue, removing", (*it)->id());
             it = m_peers.erase(it);
             continue;
         }

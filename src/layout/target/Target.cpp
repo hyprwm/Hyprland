@@ -34,7 +34,7 @@ void ITarget::assignToSpace(const SP<CSpace>& space, std::optional<Vector2D> foc
         space->add(m_self.lock());
 
     if (!space)
-        Log::logger->log(Log::WARN, "ITarget: assignToSpace with a null space?");
+        LOG(Log::WARN, "ITarget: assignToSpace with a null space?");
 
     m_ghostSpace = false;
 

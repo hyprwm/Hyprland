@@ -42,7 +42,7 @@ void CShader::logShaderError(const GLuint& shader, bool program, bool silent) {
 
     const auto  FULLERROR = (program ? "Screen shader parser: Error linking program:" : "Screen shader parser: Error compiling shader: ") + errorStr;
 
-    Log::logger->log(Log::ERR, "Failed to link shader: {}", FULLERROR);
+    LOG(Log::ERR, "Failed to link shader: {}", FULLERROR);
 
     if (!silent)
         ErrorOverlay::overlay()->queueError(FULLERROR);

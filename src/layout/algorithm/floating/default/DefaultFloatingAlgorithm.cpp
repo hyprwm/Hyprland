@@ -56,7 +56,7 @@ void CDefaultFloatingAlgorithm::newTarget(SP<ITarget> target) {
         if (WINDOW->m_ruleApplicator->static_.size) {
             const auto COMPUTED = WINDOW->calculateExpression(*WINDOW->m_ruleApplicator->static_.size);
             if (!COMPUTED)
-                Log::logger->log(Log::ERR, "failed to parse {} as an expression", WINDOW->m_ruleApplicator->static_.size->toString());
+                LOG(Log::ERR, "failed to parse {} as an expression", WINDOW->m_ruleApplicator->static_.size->toString());
             else {
                 windowGeometry.w = COMPUTED->x;
                 windowGeometry.h = COMPUTED->y;
@@ -69,7 +69,7 @@ void CDefaultFloatingAlgorithm::newTarget(SP<ITarget> target) {
         if (WINDOW->m_ruleApplicator->static_.position) {
             const auto COMPUTED = WINDOW->calculateExpression(*WINDOW->m_ruleApplicator->static_.position);
             if (!COMPUTED)
-                Log::logger->log(Log::ERR, "failed to parse {} as an expression", WINDOW->m_ruleApplicator->static_.position->toString());
+                LOG(Log::ERR, "failed to parse {} as an expression", WINDOW->m_ruleApplicator->static_.position->toString());
             else {
                 windowGeometry.x = COMPUTED->x + MONITOR_POS.x;
                 windowGeometry.y = COMPUTED->y + MONITOR_POS.y;
@@ -263,7 +263,7 @@ void CDefaultFloatingAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDire
         case Math::DIRECTION_RIGHT: pos.x = work.x + work.w - pos.w - EXTENTS.bottomRight.x; break;
         case Math::DIRECTION_UP: pos.y = work.y + EXTENTS.topLeft.y; break;
         case Math::DIRECTION_DOWN: pos.y = work.y + work.h - pos.h - EXTENTS.bottomRight.y; break;
-        default: Log::logger->log(Log::ERR, "Invalid direction in CDefaultFloatingAlgorithm::moveTargetInDirection"); break;
+        default: LOG(Log::ERR, "Invalid direction in CDefaultFloatingAlgorithm::moveTargetInDirection"); break;
     }
 
     setPositionGlobal(t, pos);

@@ -11,7 +11,7 @@ CDecorationPositioner::CDecorationPositioner() {
 
 Vector2D CDecorationPositioner::getEdgeDefinedPoint(uint32_t edges, PHLWINDOWREF pWindow) {
     if (!pWindow) {
-        Log::logger->log(Log::ERR, "getEdgeDefinedPoint: invalid pWindow");
+        LOG(Log::ERR, "getEdgeDefinedPoint: invalid pWindow");
         return {};
     }
 
@@ -23,7 +23,7 @@ Vector2D CDecorationPositioner::getEdgeDefinedPoint(uint32_t edges, PHLWINDOWREF
     const int  EDGESNO = TOP + BOTTOM + LEFT + RIGHT;
 
     if (EDGESNO == 0 || EDGESNO == 3 || EDGESNO > 4) {
-        Log::logger->log(Log::ERR, "getEdgeDefinedPoint: invalid number of edges");
+        LOG(Log::ERR, "getEdgeDefinedPoint: invalid number of edges");
         return {};
     }
 
@@ -51,7 +51,7 @@ Vector2D CDecorationPositioner::getEdgeDefinedPoint(uint32_t edges, PHLWINDOWREF
         if (BOTTOM && LEFT)
             return wb.pos() + Vector2D{0.0, wb.size().y};
     }
-    Log::logger->log(Log::ERR, "getEdgeDefinedPoint: invalid configuration of edges");
+    LOG(Log::ERR, "getEdgeDefinedPoint: invalid configuration of edges");
     return {};
 }
 

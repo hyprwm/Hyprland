@@ -74,9 +74,9 @@ namespace NColorManagement {
     inline wpColorManagerV1TransferFunction convertTransferFunction(eTransferFunction tf, bool useV1SRGB = true) {
         switch (tf) {
             case CM_TRANSFER_FUNCTION_LINEAR:
-                Log::logger->log(Log::TRACE,
-                                 "CM_TRANSFER_FUNCTION_LINEAR is internal and buffers with this TF shouldn't go outside. Returning "
-                                 "WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_EXT_LINEAR for preferred description instead");
+                LOG(Log::TRACE,
+                    "CM_TRANSFER_FUNCTION_LINEAR is internal and buffers with this TF shouldn't go outside. Returning "
+                    "WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_EXT_LINEAR for preferred description instead");
                 return WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_EXT_LINEAR;
             case CM_TRANSFER_FUNCTION_SRGB: return useV1SRGB ? WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_SRGB : WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_COMPOUND_POWER_2_4;
             default: return sc<wpColorManagerV1TransferFunction>(tf);

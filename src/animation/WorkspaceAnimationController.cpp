@@ -75,7 +75,7 @@ void Animation::Workspace::startAnimation(PHLWORKSPACE ws, eAnimationType type, 
     if (percstr.ends_with('%')) {
         try {
             movePerc = std::stoi(percstr.substr(0, percstr.length() - 1));
-        } catch (std::exception& e) { Log::logger->log(Log::ERR, "Error in startAnim: invalid percentage"); }
+        } catch (std::exception& e) { LOG(Log::ERR, "Error in startAnim: invalid percentage"); }
     }
 
     if (ANIMSTYLE.starts_with("slidefade")) {

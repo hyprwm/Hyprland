@@ -275,7 +275,7 @@ void CLayerShellProtocol::onGetLayerSurface(CZwlrLayerShellV1* pMgr, uint32_t id
         }
     }
 
-    LOGM(Log::DEBUG, "New wlr_layer_surface {:x}", (uintptr_t)RESOURCE.get());
+    LOG(Log::DEBUG, "New wlr_layer_surface {:x}", (uintptr_t)RESOURCE.get());
 }
 
 CLayerShellRole::CLayerShellRole(SP<CLayerShellResource> ls) : m_layerSurface(ls) {

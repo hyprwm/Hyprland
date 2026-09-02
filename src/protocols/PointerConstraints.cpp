@@ -213,14 +213,14 @@ void CPointerConstraintsProtocol::destroyPointerConstraint(CPointerConstraint* h
 
 void CPointerConstraintsProtocol::onNewConstraint(SP<CPointerConstraint> constraint, CZwpPointerConstraintsV1* pMgr) {
     if UNLIKELY (!constraint->good()) {
-        LOGM(Log::ERR, "Couldn't create constraint??");
+        LOG(Log::ERR, "Couldn't create constraint??");
         pMgr->noMemory();
         m_constraints.pop_back();
         return;
     }
 
     if UNLIKELY (!constraint->owner()) {
-        LOGM(Log::ERR, "New constraint has no CWLSurface owner??");
+        LOG(Log::ERR, "New constraint has no CWLSurface owner??");
         return;
     }
 
@@ -229,7 +229,7 @@ void CPointerConstraintsProtocol::onNewConstraint(SP<CPointerConstraint> constra
     const auto DUPES = std::ranges::count_if(m_constraints, [OWNER](const auto& c) { return c->owner() == OWNER; });
 
     if UNLIKELY (DUPES > 1) {
-        LOGM(Log::ERR, "Constraint for surface duped");
+        LOG(Log::ERR, "Constraint for surface duped");
         pMgr->error(ZWP_POINTER_CONSTRAINTS_V1_ERROR_ALREADY_CONSTRAINED, "Surface already confined");
         m_constraints.pop_back();
         return;

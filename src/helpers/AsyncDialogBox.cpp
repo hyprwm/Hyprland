@@ -14,7 +14,7 @@ static std::vector<std::pair<pid_t, WP<CAsyncDialogBox>>> asyncDialogBoxes;
 //
 SP<CAsyncDialogBox> CAsyncDialogBox::create(const std::string& title, const std::string& description, std::vector<std::string> buttons) {
     if (!NFsUtils::executableExistsInPath("hyprland-dialog")) {
-        Log::logger->log(Log::ERR, "CAsyncDialogBox: cannot create, no hyprland-dialog");
+        LOG(Log::ERR, "CAsyncDialogBox: cannot create, no hyprland-dialog");
         return nullptr;
     }
 
@@ -65,7 +65,7 @@ void CAsyncDialogBox::onWrite(int fd, uint32_t mask) {
         // TODO: can we avoid this without risking a blocking read()?
         int fdFlags = fcntl(fd, F_GETFL, 0);
         if (fcntl(fd, F_SETFL, fdFlags | O_NONBLOCK) < 0) {
-            Log::logger->log(Log::ERR, "CAsyncDialogBox::onWrite: fcntl 1 failed!");
+            LOG(Log::ERR, "CAsyncDialogBox::onWrite: fcntl 1 failed!");
             return;
         }
 
@@ -75,13 +75,13 @@ void CAsyncDialogBox::onWrite(int fd, uint32_t mask) {
 
         // restore the flags (otherwise libwayland won't give us a hangup)
         if (fcntl(fd, F_SETFL, fdFlags) < 0) {
-            Log::logger->log(Log::ERR, "CAsyncDialogBox::onWrite: fcntl 2 failed!");
+            LOG(Log::ERR, "CAsyncDialogBox::onWrite: fcntl 2 failed!");
             return;
         }
     }
 
     if (mask & (WL_EVENT_HANGUP | WL_EVENT_ERROR)) {
-        Log::logger->log(Log::DEBUG, "CAsyncDialogBox: dialog {:x} hung up, closed.");
+        LOG(Log::DEBUG, "CAsyncDialogBox: dialog {:x} hung up, closed.");
 
         m_promiseResolver->resolve(m_stdout);
         std::erase_if(asyncDialogBoxes, [this](const auto& e) { return e.first == m_dialogPid; });
@@ -104,7 +104,7 @@ SP<CPromise<std::string>> CAsyncDialogBox::open() {
 
     int      outPipe[2];
     if (pipe(outPipe)) {
-        Log::logger->log(Log::ERR, "CAsyncDialogBox::open: failed to pipe()");
+        LOG(Log::ERR, "CAsyncDialogBox::open: failed to pipe()");
         return nullptr;
     }
 
@@ -115,7 +115,7 @@ SP<CPromise<std::string>> CAsyncDialogBox::open() {
     m_readEventSource = wl_event_loop_add_fd(g_pEventLoopManager->m_wayland.loop, m_pipeReadFd.get(), WL_EVENT_READABLE, ::onFdWrite, this);
 
     if (!m_readEventSource) {
-        Log::logger->log(Log::ERR, "CAsyncDialogBox::open: failed to add read fd to loop");
+        LOG(Log::ERR, "CAsyncDialogBox::open: failed to add read fd to loop");
         return nullptr;
     }
 
@@ -125,7 +125,7 @@ SP<CPromise<std::string>> CAsyncDialogBox::open() {
         proc.addEnv(Desktop::Rule::EXEC_RULE_ENV_NAME, m_execRuleToken);
 
     if (!proc.runAsync()) {
-        Log::logger->log(Log::ERR, "CAsyncDialogBox::open: failed to run async");
+        LOG(Log::ERR, "CAsyncDialogBox::open: failed to run async");
         wl_event_source_remove(m_readEventSource);
         return nullptr;
     }
@@ -163,7 +163,7 @@ SP<CAsyncDialogBox> CAsyncDialogBox::lockSelf() {
 void CAsyncDialogBox::setExecRule(std::string&& s) {
     auto rule = Desktop::Rule::CWindowRule::buildFromExecString(std::move(s));
     if (!rule) {
-        Log::logger->log(Log::ERR, "CAsyncDialogBox: failed to parse exec rule: {}", rule.error());
+        LOG(Log::ERR, "CAsyncDialogBox: failed to parse exec rule: {}", rule.error());
         return;
     }
 

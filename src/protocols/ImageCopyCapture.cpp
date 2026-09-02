@@ -22,7 +22,7 @@ CImageCopyCaptureSession::CImageCopyCaptureSession(SP<CExtImageCopyCaptureSessio
 
     m_resource->setCreateFrame([this](CExtImageCopyCaptureSessionV1* pMgr, uint32_t id) {
         if (!m_frame.expired()) {
-            LOGM(Log::ERR, "Duplicate frame in session for source: \"{}\"", m_source->getName());
+            LOG(Log::ERR, "Duplicate frame in session for source: \"{}\"", m_source->getName());
             m_resource->error(EXT_IMAGE_COPY_CAPTURE_SESSION_V1_ERROR_DUPLICATE_FRAME, "duplicate frame");
             return;
         }
@@ -114,7 +114,7 @@ CImageCopyCaptureCursorSession::CImageCopyCaptureCursorSession(SP<CExtImageCopyC
 
     m_resource->setGetCaptureSession([this](CExtImageCopyCaptureCursorSessionV1* pMgr, uint32_t id) {
         if (m_session || m_sessionResource) {
-            LOGM(Log::ERR, "Duplicate cursor copy capture session for source: \"{}\"", m_source->getName());
+            LOG(Log::ERR, "Duplicate cursor copy capture session for source: \"{}\"", m_source->getName());
             m_resource->error(EXT_IMAGE_COPY_CAPTURE_CURSOR_SESSION_V1_ERROR_DUPLICATE_SESSION, "duplicate session");
             return;
         }
@@ -129,7 +129,7 @@ CImageCopyCaptureCursorSession::CImageCopyCaptureCursorSession(SP<CExtImageCopyC
                 return;
 
             if (m_frameResource) {
-                LOGM(Log::ERR, "Duplicate frame in session for source: \"{}\"", m_source->getName());
+                LOG(Log::ERR, "Duplicate frame in session for source: \"{}\"", m_source->getName());
                 m_resource->error(EXT_IMAGE_COPY_CAPTURE_SESSION_V1_ERROR_DUPLICATE_FRAME, "duplicate frame");
                 return;
             }
@@ -183,7 +183,7 @@ void CImageCopyCaptureCursorSession::createFrame(SP<CExtImageCopyCaptureFrameV1>
             return;
 
         if (m_captured) {
-            LOGM(Log::ERR, "Frame already captured in attach_buffer, {:x}", (uintptr_t)this);
+            LOG(Log::ERR, "Frame already captured in attach_buffer, {:x}", (uintptr_t)this);
             m_frameResource->error(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_ERROR_ALREADY_CAPTURED, "already captured");
             m_frameResource.reset();
             return;
@@ -191,7 +191,7 @@ void CImageCopyCaptureCursorSession::createFrame(SP<CExtImageCopyCaptureFrameV1>
 
         auto PBUFFERRES = CWLBufferResource::fromResource(buf);
         if (!PBUFFERRES || !PBUFFERRES->m_buffer) {
-            LOGM(Log::ERR, "Invalid buffer in attach_buffer {:x}", (uintptr_t)this);
+            LOG(Log::ERR, "Invalid buffer in attach_buffer {:x}", (uintptr_t)this);
             m_frameResource->error(-1, "invalid buffer");
             m_frameResource.reset();
             return;
@@ -205,7 +205,7 @@ void CImageCopyCaptureCursorSession::createFrame(SP<CExtImageCopyCaptureFrameV1>
             return;
 
         if (m_captured) {
-            LOGM(Log::ERR, "Frame already captured in damage_buffer, {:x}", (uintptr_t)this);
+            LOG(Log::ERR, "Frame already captured in damage_buffer, {:x}", (uintptr_t)this);
             m_frameResource->error(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_ERROR_ALREADY_CAPTURED, "already captured");
             m_frameResource.reset();
             return;
@@ -225,7 +225,7 @@ void CImageCopyCaptureCursorSession::createFrame(SP<CExtImageCopyCaptureFrameV1>
             return;
 
         if (m_captured) {
-            LOGM(Log::ERR, "Frame already captured in capture, {:x}", (uintptr_t)this);
+            LOG(Log::ERR, "Frame already captured in capture, {:x}", (uintptr_t)this);
             m_frameResource->error(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_ERROR_ALREADY_CAPTURED, "already captured");
             m_frameResource.reset();
             return;
@@ -355,14 +355,14 @@ CImageCopyCaptureFrame::CImageCopyCaptureFrame(SP<CExtImageCopyCaptureFrameV1> r
 
     m_resource->setAttachBuffer([this](CExtImageCopyCaptureFrameV1* pMgr, wl_resource* buf) {
         if (m_captured) {
-            LOGM(Log::ERR, "Frame already captured in attach_buffer, {:x}", (uintptr_t)this);
+            LOG(Log::ERR, "Frame already captured in attach_buffer, {:x}", (uintptr_t)this);
             m_resource->error(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_ERROR_ALREADY_CAPTURED, "already captured");
             return;
         }
 
         auto PBUFFERRES = CWLBufferResource::fromResource(buf);
         if (!PBUFFERRES || !PBUFFERRES->m_buffer) {
-            LOGM(Log::ERR, "Invalid buffer in attach_buffer {:x}", (uintptr_t)this);
+            LOG(Log::ERR, "Invalid buffer in attach_buffer {:x}", (uintptr_t)this);
             m_resource->error(-1, "invalid buffer");
             return;
         }
@@ -372,7 +372,7 @@ CImageCopyCaptureFrame::CImageCopyCaptureFrame(SP<CExtImageCopyCaptureFrameV1> r
 
     m_resource->setDamageBuffer([this](CExtImageCopyCaptureFrameV1* pMgr, int32_t x, int32_t y, int32_t w, int32_t h) {
         if (m_captured) {
-            LOGM(Log::ERR, "Frame already captured in damage_buffer, {:x}", (uintptr_t)this);
+            LOG(Log::ERR, "Frame already captured in damage_buffer, {:x}", (uintptr_t)this);
             m_resource->error(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_ERROR_ALREADY_CAPTURED, "already captured");
             return;
         }
@@ -387,7 +387,7 @@ CImageCopyCaptureFrame::CImageCopyCaptureFrame(SP<CExtImageCopyCaptureFrameV1> r
 
     m_resource->setCapture([this](CExtImageCopyCaptureFrameV1* pMgr) {
         if (m_captured) {
-            LOGM(Log::ERR, "Frame already captured in capture, {:x}", (uintptr_t)this);
+            LOG(Log::ERR, "Frame already captured in capture, {:x}", (uintptr_t)this);
             m_resource->error(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_ERROR_ALREADY_CAPTURED, "already captured");
             return;
         }
@@ -451,13 +451,13 @@ void CImageCopyCaptureProtocol::bindManager(wl_client* client, void* data, uint3
     RESOURCE->setCreateSession([this](CExtImageCopyCaptureManagerV1* pMgr, uint32_t id, wl_resource* source_, extImageCopyCaptureManagerV1Options options) {
         auto source = PROTO::imageCaptureSource->sourceFromResource(source_);
         if (!source) {
-            LOGM(Log::ERR, "Client tried to create image copy capture session from invalid source");
+            LOG(Log::ERR, "Client tried to create image copy capture session from invalid source");
             pMgr->error(-1, "invalid image capture source");
             return;
         }
 
         if (options > 1) {
-            LOGM(Log::ERR, "Client tried to create image copy capture session with invalid options");
+            LOG(Log::ERR, "Client tried to create image copy capture session with invalid options");
             pMgr->error(EXT_IMAGE_COPY_CAPTURE_MANAGER_V1_ERROR_INVALID_OPTION, "Options can't be above 1");
             return;
         }
@@ -465,13 +465,13 @@ void CImageCopyCaptureProtocol::bindManager(wl_client* client, void* data, uint3
         auto& PSESSION =
             m_sessions.emplace_back(makeShared<CImageCopyCaptureSession>(makeShared<CExtImageCopyCaptureSessionV1>(pMgr->client(), pMgr->version(), id), source, options));
         PSESSION->m_self = PSESSION;
-        LOGM(Log::INFO, "New image copy capture session for source ({}): \"{}\"", source->getTypeName(), source->getName());
+        LOG(Log::INFO, "New image copy capture session for source ({}): \"{}\"", source->getTypeName(), source->getName());
     });
 
     RESOURCE->setCreatePointerCursorSession([this](CExtImageCopyCaptureManagerV1* pMgr, uint32_t id, wl_resource* source_, wl_resource* pointer_) {
         SP<CImageCaptureSource> source = PROTO::imageCaptureSource->sourceFromResource(source_);
         if (!source) {
-            LOGM(Log::ERR, "Client tried to create image copy capture session from invalid source");
+            LOG(Log::ERR, "Client tried to create image copy capture session from invalid source");
             pMgr->error(-1, "invalid image capture source");
             return;
         }
@@ -483,7 +483,7 @@ void CImageCopyCaptureProtocol::bindManager(wl_client* client, void* data, uint3
         m_cursorSessions.emplace_back(makeShared<CImageCopyCaptureCursorSession>(makeShared<CExtImageCopyCaptureCursorSessionV1>(pMgr->client(), pMgr->version(), id), source,
                                                                                  CWLPointerResource::fromResource(pointer_)));
 
-        LOGM(Log::INFO, "New image copy capture cursor session for source ({}): \"{}\"", source->getTypeName(), source->getName());
+        LOG(Log::INFO, "New image copy capture cursor session for source ({}): \"{}\"", source->getTypeName(), source->getName());
     });
 }
 

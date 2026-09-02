@@ -23,8 +23,8 @@ CReservedArea::CReservedArea(const CBox& parent, const CBox& child) {
     if (!parent.containsPoint(child.pos() + Vector2D{0.0001, 0.0001}) //
         || !parent.containsPoint(child.pos() + child.size() - Vector2D{0.0001, 0.0001})) {
 
-        Log::logger->log(Log::ERR, "CReservedArea: attempted to create a reserved area from parent [{}, {}] and child [{}, {}] which is invalid", parent.pos(), parent.size(),
-                         child.pos(), child.size());
+        LOG(Log::ERR, "CReservedArea: attempted to create a reserved area from parent [{}, {}] and child [{}, {}] which is invalid", parent.pos(), parent.size(), child.pos(),
+            child.size());
 
         m_ok = false;
         return;

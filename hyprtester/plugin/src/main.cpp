@@ -349,7 +349,7 @@ static SDispatchResult scroll(std::string in) {
         by = std::stod(in);
     } catch (...) { return SDispatchResult{.success = false, .error = "invalid input"}; }
 
-    Log::logger->log(Log::DEBUG, "tester: scrolling by {}", by);
+    LOG(Log::DEBUG, "tester: scrolling by {}", by);
 
     g_mouse->m_pointerEvents.axis.emit(IPointer::SAxisEvent{
         .delta         = by,
@@ -370,7 +370,7 @@ static SDispatchResult click(std::string in) {
         pressed = std::stoul(std::string{data[1]}) == 1;
     } catch (...) { return {.success = false, .error = "invalid input"}; }
 
-    Log::logger->log(Log::DEBUG, "tester: mouse button {} state {}", button, pressed);
+    LOG(Log::DEBUG, "tester: mouse button {} state {}", button, pressed);
 
     g_mouse->m_pointerEvents.button.emit(IPointer::SButtonEvent{
         .timeMs = sc<uint32_t>(Time::millis(Time::steadyNow())),
@@ -790,7 +790,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     auto addLuaFn = [](const std::string& name, PLUGIN_LUA_FN fn) {
         if (!HyprlandAPI::addLuaFunction(PHANDLE, "test", name, fn))
-            Log::logger->log(Log::ERR, "hyprtester plugin: failed to register hl.plugin.test.{}", name);
+            LOG(Log::ERR, "hyprtester plugin: failed to register hl.plugin.test.{}", name);
     };
 
     addLuaFn("test", ::luaTest);

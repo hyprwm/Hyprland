@@ -19,7 +19,7 @@ void CUnifiedWorkspaceSwipeGesture::begin() {
 
     const auto PWORKSPACE = Desktop::focusState()->monitor()->m_activeWorkspace;
 
-    Log::logger->log(Log::DEBUG, "CUnifiedWorkspaceSwipeGesture::begin: Starting a swipe from {}", PWORKSPACE->m_name);
+    LOG(Log::DEBUG, "CUnifiedWorkspaceSwipeGesture::begin: Starting a swipe from {}", PWORKSPACE->m_name);
 
     m_workspaceBegin = PWORKSPACE;
     m_delta          = 0;
@@ -267,7 +267,7 @@ void CUnifiedWorkspaceSwipeGesture::end() {
 
         g_pInputManager->unconstrainMouse();
 
-        Log::logger->log(Log::DEBUG, "Ended swipe to the left");
+        LOG(Log::DEBUG, "Ended swipe to the left");
 
         pSwitchedTo = PWORKSPACEL;
     } else {
@@ -293,7 +293,7 @@ void CUnifiedWorkspaceSwipeGesture::end() {
 
         g_pInputManager->unconstrainMouse();
 
-        Log::logger->log(Log::DEBUG, "Ended swipe to the right");
+        LOG(Log::DEBUG, "Ended swipe to the right");
 
         pSwitchedTo = PWORKSPACER;
     }

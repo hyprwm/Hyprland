@@ -29,7 +29,7 @@ using namespace Fullscreen;
 
 IFullscreenHandler::IFullscreenHandler(Layout::IModeAlgorithm* const algorithm) : m_algorithm(algorithm) {
     if (!m_algorithm)
-        Log::logger->log(Log::CRIT, "IFullscreenHandler failed during construction: Owning layout algorithm does not exist!");
+        LOG(Log::CRIT, "IFullscreenHandler failed during construction: Owning layout algorithm does not exist!");
 };
 
 bool IFullscreenHandler::isFullscreen(SP<Layout::ITarget> target, const std::optional<eFullscreenMode> mode, const std::optional<bool> covering) {
@@ -39,7 +39,7 @@ bool IFullscreenHandler::isFullscreen(SP<Layout::ITarget> target, const std::opt
         return false;
 
     if (mode.value_or(FSMODE_FULLSCREEN) == FSMODE_NONE) {
-        Log::logger->log(Log::ERR, "Passed mode = FSMODE_NONE into isFullscreen(). Negating the result instead");
+        LOG(Log::ERR, "Passed mode = FSMODE_NONE into isFullscreen(). Negating the result instead");
         !isFullscreen(target, std::nullopt, covering);
     }
 

@@ -64,7 +64,7 @@ bool CHyprGLRenderer::initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t 
     try {
         m_currentRenderbuffer = getOrCreateRenderbuffer(m_currentBuffer, fmt);
     } catch (std::exception& e) {
-        Log::logger->log(Log::ERR, "getOrCreateRenderbuffer failed for {}", NFormatUtils::drmFormatName(fmt));
+        LOG(Log::ERR, "getOrCreateRenderbuffer failed for {}", NFormatUtils::drmFormatName(fmt));
         return false;
     }
 
@@ -122,7 +122,7 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
         PMONITOR->m_output->state->setBuffer(m_currentBuffer);
 
     if (!explicitSyncSupported()) {
-        Log::logger->log(Log::TRACE, "renderer: Explicit sync unsupported, falling back to implicit in endRender");
+        LOG(Log::TRACE, "renderer: Explicit sync unsupported, falling back to implicit in endRender");
 
         // nvidia doesn't have implicit sync, so we have to explicitly wait here, llvmpipe and other software renderer seems to bug out as well.
         if ((isNvidia() && *PNVIDIAANTIFLICKER) || isSoftware())
@@ -164,7 +164,7 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
             PMONITOR->m_output->state->setExplicitInFence(PMONITOR->m_inFence.get());
         }
     } else {
-        Log::logger->log(Log::ERR, "renderer: Explicit sync failed, falling back to implicit sync");
+        LOG(Log::ERR, "renderer: Explicit sync failed, falling back to implicit sync");
 
         // Establish an implicit synchronization point without blocking the render loop.
         glFlush();

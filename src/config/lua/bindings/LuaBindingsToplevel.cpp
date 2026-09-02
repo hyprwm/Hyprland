@@ -209,24 +209,15 @@ static int hlBind(lua_State* L) {
         flags |= drag ? Keybinds::BIND_FLAG_DRAG : 0;
 
         lua_getfield(L, optsIdx, "device");
-        if (lua_istable(L, -1)) {
-            lua_getfield(L, -1, "inclusive");
-            const bool INCLUSIVE = lua_isnil(L, -1) ? true : lua_toboolean(L, -1);
-            flags |= INCLUSIVE ? Keybinds::BIND_FLAG_DEVICE_INCLUSIVE : 0;
-            lua_pop(L, 1);
 
-            lua_getfield(L, -1, "list");
-            if (lua_istable(L, -1)) {
-                lua_pushnil(L);
-                while (lua_next(L, -2)) {
-                    if (lua_isstring(L, -1))
-                        args.devices.emplace(lua_tostring(L, -1));
-                    lua_pop(L, 1);
-                }
-            }
-            lua_pop(L, 1);
-        }
+        auto devices = parseDeviceList(L, -1);
+        if (!devices)
+            return Internal::configError(L, std::format("hl.bind: {}", devices.error()));
+
+        args.devices = std::move(*devices);
+        flags |= args.devices.inclusive() ? Keybinds::BIND_FLAG_DEVICE_INCLUSIVE : 0;
         flags |= getBool("allow_input_capture") ? Keybinds::BIND_FLAG_ALLOW_INPUT_CAPTURE : 0;
+
         lua_pop(L, 1);
     }
 

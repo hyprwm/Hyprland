@@ -8,6 +8,7 @@
 #include <functional>
 #include <optional>
 
+#include "DeviceList.hpp"
 #include "Key.hpp"
 
 #include "../devices/IHID.hpp"
@@ -29,6 +30,11 @@ namespace Keybinds {
         BIND_FLAG_DRAG                = (1 << 10),
         BIND_FLAG_SUBMAP_UNIVERSAL    = (1 << 11),
         BIND_FLAG_ALLOW_INPUT_CAPTURE = (1 << 12),
+        // NOTE: inclusive device list metadata handling has been moved to the
+        //       dedicated Keybinds::CDeviceList class that now composes Bind's
+        //       m_devices attribute. let's keep the flag around for now to not
+        //       introduce breaking changes just yet, but we might consider
+        //       removing it eventually
         BIND_FLAG_DEVICE_INCLUSIVE    = (1 << 13),
         BIND_FLAG_CATCH_ALL           = (1 << 14),
         BIND_FLAG_MOUSE               = (1 << 15),
@@ -46,8 +52,8 @@ namespace Keybinds {
     };
 
     struct SExtraBindArgs {
-        std::unordered_set<std::string> devices;
-        SBindMetadata                   metadata;
+        CDeviceList   devices;
+        SBindMetadata metadata;
     };
 
     enum eBindFollowUp : uint8_t {
@@ -84,41 +90,41 @@ namespace Keybinds {
       public:
         static std::expected<CBind, std::string> make(std::vector<std::string>&& keys, BindFlags flags, BindCallback&& callback, SExtraBindArgs&& args = {});
 
-        CBind(CBind&&) noexcept                                        = default;
-        CBind& operator=(CBind&&) noexcept                             = default;
-        CBind(const CBind&)                                            = delete;
-        CBind&                                 operator=(const CBind&) = delete;
+        CBind(CBind&&) noexcept                              = default;
+        CBind& operator=(CBind&&) noexcept                   = default;
+        CBind(const CBind&)                                  = delete;
+        CBind&                       operator=(const CBind&) = delete;
 
-        eBindMatch                             matches(const SBindEventContext& ctx = {}) const;
-        bool                                   matchesContext(const SBindEventContext& ctx) const;
-        SBindResult                            invoke() const;
-        bool                                   enabled() const;
-        void                                   setEnabled(bool x);
-        bool                                   hasFlag(eBindFlags flag) const;
-        BindFlags                              flags() const;
-        Input::ModifierMask                    modifierMask() const;
-        size_t                                 chordSize() const;
-        bool                                   containsKey(const SResolvedKey& key) const;
-        bool                                   isFullyHeld(const SBindEventContext& ctx) const;
-        bool                                   isSubChordOf(const CBind& other, const SBindEventContext& ctx) const;
-        bool                                   isOrderedPrefixOf(const CBind& other, const SBindEventContext& ctx) const;
-        std::span<const CKey>                  keys() const;
-        std::span<const std::string>           keyNames() const;
-        const std::unordered_set<std::string>& devices() const;
-        const SBindMetadata&                   metadata() const;
+        eBindMatch                   matches(const SBindEventContext& ctx = {}) const;
+        bool                         matchesContext(const SBindEventContext& ctx) const;
+        SBindResult                  invoke() const;
+        bool                         enabled() const;
+        void                         setEnabled(bool x);
+        bool                         hasFlag(eBindFlags flag) const;
+        BindFlags                    flags() const;
+        Input::ModifierMask          modifierMask() const;
+        size_t                       chordSize() const;
+        bool                         containsKey(const SResolvedKey& key) const;
+        bool                         isFullyHeld(const SBindEventContext& ctx) const;
+        bool                         isSubChordOf(const CBind& other, const SBindEventContext& ctx) const;
+        bool                         isOrderedPrefixOf(const CBind& other, const SBindEventContext& ctx) const;
+        std::span<const CKey>        keys() const;
+        std::span<const std::string> keyNames() const;
+        const CDeviceList&           devices() const;
+        const SBindMetadata&         metadata() const;
 
       private:
         CBind() = default;
 
-        bool                            matchesDevice(SP<IHID> dev) const;
+        bool                     matchesDevice(SP<IHID> dev) const;
 
-        BindCallback                    m_callback;
-        BindFlags                       m_flags   = 0;
-        Input::ModifierMask             m_modmask = Input::HL_MODIFIER_NONE;
-        std::vector<CKey>               m_keys;
-        std::vector<std::string>        m_keyNames;
-        std::unordered_set<std::string> m_devices;
-        SBindMetadata                   m_metadata;
-        bool                            m_enabled = true;
+        BindCallback             m_callback;
+        BindFlags                m_flags   = 0;
+        Input::ModifierMask      m_modmask = Input::HL_MODIFIER_NONE;
+        std::vector<CKey>        m_keys;
+        std::vector<std::string> m_keyNames;
+        CDeviceList              m_devices;
+        SBindMetadata            m_metadata;
+        bool                     m_enabled = true;
     };
 };

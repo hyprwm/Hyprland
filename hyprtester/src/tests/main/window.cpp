@@ -2182,3 +2182,26 @@ TEST_CASE(windowRuleBorderColorsFocus) {
 
     Tests::killAllWindows();
 }
+
+TEST_CASE(floatingMoveExpression) {
+    OK(getFromSocket("/eval hl.window_rule({ match = { class = 'kitty_floatingmove' }, "
+                     "float = true, size = { 800, 600 }, "
+                     "move = { '(monitor_w-window_w-10)', '(monitor_h-window_h-10)' } })"));
+
+    SPAWN_KITTY("kitty_floatingmove");
+
+    Tests::waitUntilWindowsN(1);
+
+    const auto EXPECTED_AT = getFromSocket("/repl local m = hl.get_active_monitor();"
+                                           "return (m.x + m.width - 800 - 10) .. ',' "
+                                           ".. (m.y + m.height - 600 - 10)");
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "floating: 1");
+        EXPECT_CONTAINS(str, std::format("size: {},{}", 800, 600));
+        EXPECT_CONTAINS(str, std::format("at: {}", EXPECTED_AT));
+    }
+
+    Tests::killAllWindows();
+}

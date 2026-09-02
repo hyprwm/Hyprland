@@ -61,8 +61,8 @@ void CDefaultFloatingAlgorithm::newTarget(SP<ITarget> target) {
                 windowGeometry.w = COMPUTED->x;
                 windowGeometry.h = COMPUTED->y;
 
-                // update for pos to work with size.
-                WINDOW->positionAnimation()->setValueAndWarp(*COMPUTED);
+                // update the size for position expressions to use.
+                WINDOW->sizeAnimation()->setValueAndWarp(*COMPUTED);
             }
         }
 

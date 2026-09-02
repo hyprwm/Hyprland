@@ -142,7 +142,7 @@ TEST(ConfigLuaObjects, keybindExposesMetadataAndRemoveMethods) {
     const auto makeMetadataBind = [&] {
         return makeBind({"SUPER", "Q"}, FLAGS,
                         {
-                            .devices = {"kbd-a", "kbd-b"},
+                            .devices = { true, {"kbd-a", "kbd-b"} },
                             .metadata =
                                 {
                                     .displayKey  = "SUPER + Q",

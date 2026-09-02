@@ -83,6 +83,7 @@ namespace Config::Lua {
         virtual std::expected<void, std::string> generateDefaultConfig(const std::filesystem::path&, bool safeMode) override;
 
         virtual void                             handlePluginLoads() override;
+        virtual bool                             configLoaded() override;
         virtual bool                             configVerifPassed() override;
 
         virtual std::expected<void, std::string> registerPluginValue(void* handle, SP<Config::Values::IValue> value) override;

@@ -193,7 +193,7 @@ void COutputCommitCoordinator::submitted(SFrame& frame, bool async) {
     if (!async && frame.kind == FRAME_COMPOSED)
         m_monitor->m_directScanoutIsActive = false;
 
-    if (!async && frame.kind == FRAME_COMPOSED && frame.copyFBPrepared && Screenshare::mgr())
+    if (!async && Screenshare::mgr() && ((frame.kind == FRAME_COMPOSED && frame.copyFBPrepared) || (frame.kind == FRAME_DIRECT_SCANOUT)))
         Screenshare::mgr()->onOutputCommit(m_monitor->m_self.lock());
 }
 
@@ -201,7 +201,7 @@ void COutputCommitCoordinator::onPresented(uint64_t id, bool presented) {
     if (!ownsCommit(id))
         return;
 
-    if (presented && m_pending->kind == FRAME_COMPOSED && m_pending->copyFBPrepared && Screenshare::mgr())
+    if (presented && Screenshare::mgr() && ((m_pending->kind == FRAME_COMPOSED && m_pending->copyFBPrepared) || (m_pending->kind == FRAME_DIRECT_SCANOUT)))
         Screenshare::mgr()->onOutputCommit(m_monitor->m_self.lock());
 
     if (!presented) {

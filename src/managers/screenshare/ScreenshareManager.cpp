@@ -194,6 +194,9 @@ CScreenshareManager::SOutputCopyFBState CScreenshareManager::outputCopyFBState(P
         } else if (frame->m_session->m_type == SHARE_REGION) {
             state.pendingFrames++;
             state.pendingRegionFrames++;
+        } else if (frame->m_session->m_type == SHARE_WINDOW) {
+            state.pendingFrames++;
+            state.pendingWindowFrames++;
         }
     }
 

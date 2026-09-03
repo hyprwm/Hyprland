@@ -14,6 +14,7 @@
 #include "../../layout/LayoutManager.hpp"
 #include "../../layout/target/WindowTarget.hpp"
 #include "../../event/EventBus.hpp"
+#include "../../workspace/query/Query.hpp"
 
 using namespace Desktop;
 
@@ -165,11 +166,11 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLS
 
     const auto PMONITOR = pWindow->m_monitor.lock();
 
-    if (!pWindow->m_workspace || !pWindow->m_workspace->isVisible()) {
+    if (!pWindow->m_workspace || !pWindow->m_workspace->visible()) {
         const auto PWORKSPACE = pWindow->m_workspace;
         // This is to fix incorrect feedback on the focus history.
-        PWORKSPACE->m_lastFocusedWindow = pWindow;
-        if (PWORKSPACE->m_isSpecialWorkspace)
+        PWORKSPACE->rememberFocusedWindow(pWindow);
+        if (PWORKSPACE->type() == Workspace::eWorkspaceType::SPECIAL)
             m_focusMonitor->changeWorkspace(PWORKSPACE, false, true); // if special ws, open on current monitor
         else if (PMONITOR)
             PMONITOR->changeWorkspace(PWORKSPACE, false, true);
@@ -180,9 +181,9 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLS
     if (PMONITOR && !(pWindow->m_state & Desktop::View::WINDOW_STATE_PINNED))
         rawMonitorFocus(PMONITOR);
 
-    const auto PLASTWINDOW                    = m_focusWindow.lock();
-    m_focusWindow                             = pWindow;
-    pWindow->m_workspace->m_lastFocusedWindow = pWindow;
+    const auto PLASTWINDOW = m_focusWindow.lock();
+    m_focusWindow          = pWindow;
+    pWindow->m_workspace->rememberFocusedWindow(pWindow);
 
     /* If special fallthrough is enabled, this behavior will be disabled, as I have no better idea of nicely tracking which
        window focuses are "via keybinds" and which ones aren't. */
@@ -287,11 +288,11 @@ void CFocusState::rawMonitorFocus(PHLMONITOR pMonitor) {
 
     const auto PWORKSPACE = pMonitor->m_activeWorkspace;
 
-    const auto WORKSPACE_ID   = PWORKSPACE ? std::to_string(PWORKSPACE->m_id) : std::to_string(WORKSPACE_INVALID);
-    const auto WORKSPACE_NAME = PWORKSPACE ? PWORKSPACE->m_name : "?";
+    const auto WORKSPACE_ADDRESS = PWORKSPACE ? Workspace::selector(*PWORKSPACE) : "";
+    const auto WORKSPACE_NAME    = PWORKSPACE ? PWORKSPACE->displayName() : "?";
 
     IPC::Socket2::sock()->postEvent({.event = "focusedmon", .data = std::format("{},{}", pMonitor->m_name, WORKSPACE_NAME)});
-    IPC::Socket2::sock()->postEvent({.event = "focusedmonv2", .data = std::format("{},{}", pMonitor->m_name, WORKSPACE_ID)});
+    IPC::Socket2::sock()->postEvent({.event = "focusedmonv2", .data = std::format("{},{}", pMonitor->m_name, WORKSPACE_ADDRESS)});
 
     Event::bus()->m_events.monitor.focused.emit(pMonitor);
     m_focusMonitor = pMonitor;

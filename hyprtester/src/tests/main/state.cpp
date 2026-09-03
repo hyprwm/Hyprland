@@ -35,7 +35,8 @@ TEST_CASE(state) {
         ASSERT_CONTAINS(str, "FALLBACK");
     }
 
-    ASSERT_CONTAINS(getFromSocket("/workspaces"), "workspace ID 9 (9) on monitor FALLBACK:");
+    ASSERT_CONTAINS(getFromSocket("/workspaces"), "workspace 9 (9) on monitor FALLBACK:");
+    OK(getFromSocket("/eval hl.plugin.test.expect_workspace_lifecycle_state('FALLBACK')"));
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '9' })"));
     SPAWN_KITTY("fallback-workspace-b");
@@ -43,7 +44,8 @@ TEST_CASE(state) {
     OK(getFromSocket("/reload"));
     Tests::sync();
 
-    ASSERT_CONTAINS(getFromSocket("/workspaces"), "workspace ID 9 (9) on monitor HEADLESS-2:");
+    ASSERT_CONTAINS(getFromSocket("/workspaces"), "workspace 9 (9) on monitor HEADLESS-2:");
+    OK(getFromSocket("/eval hl.plugin.test.expect_workspace_lifecycle_state('HEADLESS-2')"));
 
     Tests::killAllWindows();
 }

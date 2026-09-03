@@ -121,7 +121,7 @@ bool CWindowSwallowController::activateStandalone(const SP<SRelation>& relation)
         return false;
 
     if (!SWALLOWER->windowTarget()->space())
-        g_layoutManager->newTarget(SWALLOWER->windowTarget(), SWALLOWER->m_workspace->m_space);
+        g_layoutManager->newTarget(SWALLOWER->windowTarget(), SWALLOWER->m_workspace->space());
 
     if (SWALLOWEE->windowTarget()->space())
         g_layoutManager->removeTarget(SWALLOWEE->windowTarget());
@@ -171,7 +171,7 @@ bool CWindowSwallowController::restoreStandalone(const SP<SRelation>& relation) 
     relation->group.reset();
     SWALLOWER->setHidden(false);
     if (!SWALLOWER->grouping().group() && !SWALLOWER->windowTarget()->space() && SWALLOWER->mapped() && SWALLOWER->m_workspace)
-        g_layoutManager->newTarget(SWALLOWER->windowTarget(), SWALLOWER->m_workspace->m_space);
+        g_layoutManager->newTarget(SWALLOWER->windowTarget(), SWALLOWER->m_workspace->space());
 
     if (relation->state == SRelation::STATE_ACTIVE) {
         if (SWALLOWEE->grouping().group()) {
@@ -186,7 +186,7 @@ bool CWindowSwallowController::restoreStandalone(const SP<SRelation>& relation) 
 
     SWALLOWEE->setHidden(false);
     if (!SWALLOWEE->grouping().group() && !SWALLOWEE->windowTarget()->space() && SWALLOWEE->mapped())
-        g_layoutManager->newTarget(SWALLOWEE->windowTarget(), SWALLOWER->m_workspace->m_space);
+        g_layoutManager->newTarget(SWALLOWEE->windowTarget(), SWALLOWER->m_workspace->space());
 
     return true;
 }
@@ -205,7 +205,7 @@ bool CWindowSwallowController::toggleStandalone(const SP<SRelation>& relation) {
         SWALLOWEE->m_monitor = SWALLOWER->m_monitor;
         SWALLOWEE->setHidden(false);
         if (!SWALLOWEE->windowTarget()->space())
-            g_layoutManager->newTarget(SWALLOWEE->windowTarget(), SWALLOWER->m_workspace->m_space);
+            g_layoutManager->newTarget(SWALLOWEE->windowTarget(), SWALLOWER->m_workspace->space());
         relation->state = SRelation::STATE_REVEALED;
         return true;
     }
@@ -310,7 +310,7 @@ CWindowSwallowController::SUnmapResult CWindowSwallowController::restoreAfterSwa
     if (!SWALLOWEE->grouping().group() && !SWALLOWEE->windowTarget()->space()) {
         const auto WORKSPACE = SWALLOWER && SWALLOWER->m_workspace ? SWALLOWER->m_workspace : SWALLOWEE->m_workspace;
         if (WORKSPACE)
-            g_layoutManager->newTarget(SWALLOWEE->windowTarget(), WORKSPACE->m_space);
+            g_layoutManager->newTarget(SWALLOWEE->windowTarget(), WORKSPACE->space());
     }
 
     return {.restoredWindow = SWALLOWEE};

@@ -3,7 +3,7 @@
 #include "ITrackpadGesture.hpp"
 
 #include "../../../../desktop/DesktopTypes.hpp"
-#include "../../../../desktop/Workspace.hpp"
+#include "../../../../workspace/HLWorkspace.hpp"
 #include "../../../../managers/fullscreen/FullscreenController.hpp"
 
 class CFullscreenTrackpadGesture : public ITrackpadGesture {

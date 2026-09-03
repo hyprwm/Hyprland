@@ -58,6 +58,7 @@ using namespace Hyprutils::String;
 #include "../../state/MonitorState.hpp"
 #include "../../state/WorkspacePlacementController.hpp"
 #include "../../state/WorkspaceState.hpp"
+#include "../../workspace/RegularWorkspace.hpp"
 #include "../../version.h"
 
 #include "../../Compositor.hpp"
@@ -241,11 +242,13 @@ std::string CCommandFormatter::getMonitorData(PHLMONITOR m, eHyprCtlOutputFormat
     "x": {},
     "y": {},
     "activeWorkspace": {{
-        "id": {},
+        "address": "{}",
+        "type": "{}",
         "name": "{}"
     }},
     "specialWorkspace": {{
-        "id": {},
+        "address": "{}",
+        "type": "{}",
         "name": "{}"
     }},
     "reserved": [{}, {}, {}, {}],
@@ -281,9 +284,12 @@ std::string CCommandFormatter::getMonitorData(PHLMONITOR m, eHyprCtlOutputFormat
 
             m->m_id, escapeJSONStrings(m->m_name), escapeJSONStrings(m->m_shortDescription), escapeJSONStrings(m->m_output->make), escapeJSONStrings(m->m_output->model),
             escapeJSONStrings(m->m_output->serial), sc<int>(m->m_pixelSize.x), sc<int>(m->m_pixelSize.y), sc<int>(m->m_output->physicalSize.x),
-            sc<int>(m->m_output->physicalSize.y), m->m_refreshRate, sc<int>(m->m_position.x), sc<int>(m->m_position.y), m->activeWorkspaceID(),
-            (!m->m_activeWorkspace ? "" : escapeJSONStrings(m->m_activeWorkspace->m_name)), m->activeSpecialWorkspaceID(),
-            escapeJSONStrings(m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->m_name : ""), sc<int>(m->m_reservedArea.left()), sc<int>(m->m_reservedArea.top()),
+            sc<int>(m->m_output->physicalSize.y), m->m_refreshRate, sc<int>(m->m_position.x), sc<int>(m->m_position.y),
+            escapeJSONStrings(m->m_activeWorkspace ? m->m_activeWorkspace->addressableName() : ""), m->m_activeWorkspace ? Workspace::identityTypeName(*m->m_activeWorkspace) : "",
+            (!m->m_activeWorkspace ? "" : escapeJSONStrings(m->m_activeWorkspace->displayName())),
+            escapeJSONStrings(m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->addressableName() : ""),
+            m->m_activeSpecialWorkspace ? Workspace::identityTypeName(*m->m_activeSpecialWorkspace) : "",
+            escapeJSONStrings(m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->displayName() : ""), sc<int>(m->m_reservedArea.left()), sc<int>(m->m_reservedArea.top()),
             sc<int>(m->m_reservedArea.right()), sc<int>(m->m_reservedArea.bottom()), m->m_scale, sc<int>(m->m_transform), tf(m == Desktop::focusState()->monitor()),
             tf(m->m_dpmsStatus), tf(m->m_output->state->state().adaptiveSync), rc<uint64_t>(m->m_solitaryClient.get()), getSolitaryBlockedReason(m, format),
             tf(m->m_tearingState.activelyTearing), getTearingBlockedReason(m, format), rc<uint64_t>(m->m_lastScanout.get()), getDSBlockedReason(m, format), tf(m->m_enabled),
@@ -302,10 +308,11 @@ std::string CCommandFormatter::getMonitorData(PHLMONITOR m, eHyprCtlOutputFormat
             "{}\n\tavailableModes: {}\n\tcolorManagementPreset: {}\n\tsdrBrightness: {}\n\tsdrSaturation: {}\n\tsdrMinLuminance: {}\n\tsdrMaxLuminance: "
             "{}\n\thardwareCursorsInUse: {}\n\thardwareDetails:\n\t  backend: {}\n\t  hdr: {}\n\t  chroma: {}\n\t  bt2020: {}\n\t  vrrCapable: {}\n\n",
             m->m_name, m->m_id, sc<int>(m->m_pixelSize.x), sc<int>(m->m_pixelSize.y), m->m_refreshRate, sc<int>(m->m_position.x), sc<int>(m->m_position.y), m->m_shortDescription,
-            m->m_output->make, m->m_output->model, sc<int>(m->m_output->physicalSize.x), sc<int>(m->m_output->physicalSize.y), m->m_output->serial, m->activeWorkspaceID(),
-            (!m->m_activeWorkspace ? "" : m->m_activeWorkspace->m_name), m->activeSpecialWorkspaceID(), (m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->m_name : ""),
+            m->m_output->make, m->m_output->model, sc<int>(m->m_output->physicalSize.x), sc<int>(m->m_output->physicalSize.y), m->m_output->serial,
+            (m->m_activeWorkspace ? m->m_activeWorkspace->addressableName() : ""), (!m->m_activeWorkspace ? "" : m->m_activeWorkspace->displayName()),
+            (m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->addressableName() : ""), (m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->displayName() : ""),
             sc<int>(m->m_reservedArea.left()), sc<int>(m->m_reservedArea.top()), sc<int>(m->m_reservedArea.right()), sc<int>(m->m_reservedArea.bottom()), m->m_scale,
-            sc<int>(m->m_transform), (m == Desktop::focusState()->monitor() ? "yes" : "no"), sc<int>(m->m_dpmsStatus), m->m_output->state->state().adaptiveSync,
+            sc<int>(m->m_transform), yn(m == Desktop::focusState()->monitor()), sc<int>(m->m_dpmsStatus), m->m_output->state->state().adaptiveSync,
             rc<uint64_t>(m->m_solitaryClient.get()), getSolitaryBlockedReason(m, format), m->m_tearingState.activelyTearing, getTearingBlockedReason(m, format),
             rc<uint64_t>(m->m_lastScanout.get()), getDSBlockedReason(m, format), !m->m_enabled, formatToString(m->m_output->state->state().drmFormat),
             m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format), (NCMType::toString(m->m_cmType)), (m->m_sdrBrightness),
@@ -390,8 +397,9 @@ std::string CCommandFormatter::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat f
         return -1;
     };
 
-    const auto METADATA = w->backend().metadata();
-    const bool VISIBLE  = w->mapped() && w->acceptsInput() && w->alphaNonZero();
+    const auto METADATA          = w->backend().metadata();
+    const bool VISIBLE           = w->mapped() && w->acceptsInput() && w->alphaNonZero();
+    const auto WORKSPACE_ADDRESS = w->workspaceAddress();
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         return std::format(
@@ -404,7 +412,8 @@ std::string CCommandFormatter::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat f
     "at": [{}, {}],
     "size": [{}, {}],
     "workspace": {{
-        "id": {},
+        "address": "{}",
+        "type": "{}",
         "name": "{}"
     }},
     "floating": {},
@@ -434,10 +443,10 @@ std::string CCommandFormatter::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat f
 }},)#",
             rc<uintptr_t>(w.get()), (w->mapped() ? "true" : "false"), (w->isHidden() ? "true" : "false"), (VISIBLE ? "true" : "false"), (w->acceptsInput() ? "true" : "false"),
             sc<int>(w->position(Desktop::View::IGeometric::GEOMETRIC_GOAL).x), sc<int>(w->position(Desktop::View::IGeometric::GEOMETRIC_GOAL).y),
-            sc<int>(w->size(Desktop::View::IGeometric::GEOMETRIC_GOAL).x), sc<int>(w->size(Desktop::View::IGeometric::GEOMETRIC_GOAL).y),
-            w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID, escapeJSONStrings(!w->m_workspace ? "" : w->m_workspace->m_name),
-            (sc<int>(w->isFloating()) == 1 ? "true" : "false"), w->monitorID(), escapeJSONStrings(w->metadata().appID()), escapeJSONStrings(w->metadata().title()),
-            escapeJSONStrings(w->metadata().initialAppID()), escapeJSONStrings(w->metadata().initialTitle()), w->backend().pid(), (w->backend().isX11() ? "true" : "false"),
+            sc<int>(w->size(Desktop::View::IGeometric::GEOMETRIC_GOAL).x), sc<int>(w->size(Desktop::View::IGeometric::GEOMETRIC_GOAL).y), escapeJSONStrings(WORKSPACE_ADDRESS),
+            w->workspaceType(), escapeJSONStrings(!w->m_workspace ? "" : w->m_workspace->displayName()), (sc<int>(w->isFloating()) == 1 ? "true" : "false"), w->monitorID(),
+            escapeJSONStrings(w->metadata().appID()), escapeJSONStrings(w->metadata().title()), escapeJSONStrings(w->metadata().initialAppID()),
+            escapeJSONStrings(w->metadata().initialTitle()), w->backend().pid(), (w->backend().isX11() ? "true" : "false"),
             ((w->m_state & Desktop::View::WINDOW_STATE_PINNED) ? "true" : "false"), (w->fullscreenPolicy().pinFullscreened() ? "true" : "false"),
             sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w).internal), sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w).client),
             escapeJSONStrings(Fullscreen::controller()->getFullscreenHandlerNameAsString(w)), (w->fullscreenPolicy().allowedOverFullscreen() ? "true" : "false"),
@@ -456,9 +465,9 @@ std::string CCommandFormatter::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat f
             "{}\n\txdgDescription: {}\n\tcontentType: {}\n\ttearingHint: {}\n\tstableID: {:x}\n\n",
             rc<uintptr_t>(w.get()), w->metadata().title(), sc<int>(w->mapped()), sc<int>(w->isHidden()), sc<int>(VISIBLE), sc<int>(w->acceptsInput()),
             sc<int>(w->position(Desktop::View::IGeometric::GEOMETRIC_GOAL).x), sc<int>(w->position(Desktop::View::IGeometric::GEOMETRIC_GOAL).y),
-            sc<int>(w->size(Desktop::View::IGeometric::GEOMETRIC_GOAL).x), sc<int>(w->size(Desktop::View::IGeometric::GEOMETRIC_GOAL).y),
-            w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID, (!w->m_workspace ? "" : w->m_workspace->m_name), sc<int>(w->isFloating()), w->monitorID(), w->metadata().appID(),
-            w->metadata().title(), w->metadata().initialAppID(), w->metadata().initialTitle(), w->backend().pid(), sc<int>(w->backend().isX11()),
+            sc<int>(w->size(Desktop::View::IGeometric::GEOMETRIC_GOAL).x), sc<int>(w->size(Desktop::View::IGeometric::GEOMETRIC_GOAL).y), WORKSPACE_ADDRESS,
+            (!w->m_workspace ? "" : w->m_workspace->displayName()), sc<int>(w->isFloating()), w->monitorID(), w->metadata().appID(), w->metadata().title(),
+            w->metadata().initialAppID(), w->metadata().initialTitle(), w->backend().pid(), sc<int>(w->backend().isX11()),
             sc<int>(sc<bool>(w->m_state & Desktop::View::WINDOW_STATE_PINNED)), sc<int>(w->fullscreenPolicy().pinFullscreened()),
             sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w).internal), sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w).client),
             Fullscreen::controller()->getFullscreenHandlerNameAsString(w), sc<int>(w->fullscreenPolicy().allowedOverFullscreen()), getGroupedData(w, format),
@@ -499,18 +508,22 @@ static std::string clientsRequest(const SRequest& request) {
 }
 
 std::string CCommandFormatter::getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat format) {
-    const auto  PLASTW   = w->getLastFocusedWindow();
-    const auto  PMONITOR = w->m_monitor.lock();
+    const auto  PLASTW     = w->getLastFocusedWindow();
+    const auto  PMONITOR   = w->m_monitor.lock();
+    const auto  REGULAR    = dynamicPointerCast<Workspace::CRegularWorkspace>(w);
+    const bool  PERSISTENT = REGULAR && REGULAR->isPersistent();
 
     std::string layoutName = "unknown";
-    if (w->m_space && w->m_space->algorithm() && w->m_space->algorithm()->tiledAlgo()) {
-        const auto& TILED_ALGO = w->m_space->algorithm()->tiledAlgo();
+    const auto& SPACE      = w->space();
+    if (SPACE && SPACE->algorithm() && SPACE->algorithm()->tiledAlgo()) {
+        const auto& TILED_ALGO = SPACE->algorithm()->tiledAlgo();
         layoutName             = Layout::Supplementary::algoMatcher()->getNameForTiledAlgo(&typeid(*TILED_ALGO.get()));
     }
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         return std::format(R"#({{
-    "id": {},
+    "address": "{}",
+    "type": "{}",
     "name": "{}",
     "monitor": "{}",
     "monitorID": {},
@@ -521,15 +534,15 @@ std::string CCommandFormatter::getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFo
     "ispersistent": {},
     "tiledLayout": "{}"
 }})#",
-                           w->m_id, escapeJSONStrings(w->m_name), escapeJSONStrings(PMONITOR ? PMONITOR->m_name : "?"),
-                           escapeJSONStrings(PMONITOR ? std::to_string(PMONITOR->m_id) : "null"), w->getWindowCount(),
+                           escapeJSONStrings(w->addressableName()), Workspace::identityTypeName(*w), escapeJSONStrings(w->displayName()),
+                           escapeJSONStrings(PMONITOR ? PMONITOR->m_name : "?"), escapeJSONStrings(PMONITOR ? std::to_string(PMONITOR->m_id) : "null"), w->getWindowCount(),
                            Fullscreen::controller()->hasFullscreen(w) ? "true" : "false", rc<uintptr_t>(PLASTW.get()), PLASTW ? escapeJSONStrings(PLASTW->metadata().title()) : "",
-                           w->isPersistent() ? "true" : "false", escapeJSONStrings(layoutName));
+                           PERSISTENT ? "true" : "false", escapeJSONStrings(layoutName));
     } else {
-        return std::format("workspace ID {} ({}) on monitor {}:\n\tmonitorID: {}\n\twindows: {}\n\thasfullscreen: {}\n\tlastwindow: 0x{:x}\n\tlastwindowtitle: {}\n\tispersistent: "
+        return std::format("workspace {} ({}) on monitor {}:\n\tmonitorID: {}\n\twindows: {}\n\thasfullscreen: {}\n\tlastwindow: 0x{:x}\n\tlastwindowtitle: {}\n\tispersistent: "
                            "{}\n\ttiledLayout: {}\n\n",
-                           w->m_id, w->m_name, PMONITOR ? PMONITOR->m_name : "?", PMONITOR ? std::to_string(PMONITOR->m_id) : "null", w->getWindowCount(),
-                           sc<int>(Fullscreen::controller()->hasFullscreen(w)), rc<uintptr_t>(PLASTW.get()), PLASTW ? PLASTW->metadata().title() : "", sc<int>(w->isPersistent()),
+                           w->addressableName(), w->displayName(), PMONITOR ? PMONITOR->m_name : "?", PMONITOR ? std::to_string(PMONITOR->m_id) : "null", w->getWindowCount(),
+                           sc<int>(Fullscreen::controller()->hasFullscreen(w)), rc<uintptr_t>(PLASTW.get()), PLASTW ? PLASTW->metadata().title() : "", sc<int>(PERSISTENT),
                            layoutName);
     }
 }
@@ -609,7 +622,7 @@ static std::string workspacesRequest(eHyprCtlOutputFormat format, std::string re
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
-        for (auto const& w : State::workspaceState()->workspaces()) {
+        for (auto const& w : State::Workspace::state()->workspaces()) {
             result += CCommandFormatter::getWorkspaceData(w.lock(), format);
             result += ",";
         }
@@ -617,7 +630,7 @@ static std::string workspacesRequest(eHyprCtlOutputFormat format, std::string re
         trimTrailingComma(result);
         result += "]";
     } else {
-        for (auto const& w : State::workspaceState()->workspaces()) {
+        for (auto const& w : State::Workspace::state()->workspaces()) {
             result += CCommandFormatter::getWorkspaceData(w.lock(), format);
         }
     }
@@ -2018,13 +2031,13 @@ void IPC::Socket1::refreshState() {
     }
 
     for (const auto& window : Desktop::windowState()->windows()) {
-        if (!window->mapped() || !window->m_workspace || !window->m_workspace->isVisible())
+        if (!window->mapped() || !window->m_workspace || !window->m_workspace->visible())
             continue;
 
         Desktop::Rule::ruleEngine()->updateAllRules();
     }
 
-    for (const auto& workspace : State::workspaceState()->workspaces()) {
+    for (const auto& workspace : State::Workspace::state()->workspaces()) {
         if (!workspace)
             continue;
 

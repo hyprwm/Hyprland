@@ -32,15 +32,9 @@ namespace Layout::Tiled {
     };
 
     struct SMasterWorkspaceData {
-        WORKSPACEID                 workspaceID = WORKSPACE_INVALID;
         std::optional<eOrientation> explicitOrientation;
         // Previously focused non-master window when `focusmaster previous` command was issued
         WP<ITarget> focusMasterPrev;
-
-        //
-        bool operator==(const SMasterWorkspaceData& rhs) const {
-            return workspaceID == rhs.workspaceID;
-        }
     };
 
     class CMasterAlgorithm : public ITiledAlgorithm {

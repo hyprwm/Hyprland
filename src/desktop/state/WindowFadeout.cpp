@@ -2,7 +2,7 @@
 #include "WindowState.hpp"
 #include "../view/window/Window.hpp"
 #include "../view/window/WindowPresentation.hpp"
-#include "../Workspace.hpp"
+#include "../../workspace/HLWorkspace.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../config/shared/animation/AnimationTree.hpp"
 #include "../../animation/AnimationManager.hpp"

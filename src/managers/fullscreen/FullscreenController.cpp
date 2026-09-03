@@ -423,14 +423,16 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
 
 void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware, eFullscreenMutationContext context) {
 
-    if (!window || !validMapped(window) || !window->m_monitor || !window->m_workspace || !window->m_workspace->m_space || !window->m_workspace->m_space->algorithm())
+    if (!window || !validMapped(window) || !window->m_monitor || !window->m_workspace)
         return;
 
-    const auto            MONITOR   = window->m_monitor.lock();
-    const auto            WORKSPACE = window->m_workspace;
+    const auto  WORKSPACE = window->m_workspace;
+    const auto& SPACE     = WORKSPACE->space();
+    const auto  ALGORITHM = SPACE ? SPACE->algorithm() : nullptr;
+    if (!ALGORITHM)
+        return;
 
-    const auto            SPACE     = window->m_workspace->m_space;
-    const auto            ALGORITHM = window->m_workspace->m_space->algorithm();
+    const auto            MONITOR = window->m_monitor.lock();
 
     const auto            WINDOW_FS_HANDLER        = getFsHandler(window, layoutAware);
     const SFullscreenMode WINDOW_FS_MODE           = getFullscreenModes(window);
@@ -464,7 +466,7 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
         window->presentation().refreshValues();
         g_layoutManager->recalculateMonitor(MONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN);
         // Need to explicitly call as workspace may not be the currently focused one on the monitor (e.g. moving FS window between workspaces)
-        WORKSPACE->m_space->recalculate(layoutAware ? Layout::RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN : Layout::RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN);
+        WORKSPACE->space()->recalculate(layoutAware ? Layout::RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN : Layout::RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN);
         return;
     }
 
@@ -486,7 +488,7 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
                                                 Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
     window->presentation().refreshValues();
     g_layoutManager->recalculateMonitor(MONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN);
-    WORKSPACE->m_space->recalculate(layoutAware ? Layout::RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN : Layout::RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN);
+    WORKSPACE->space()->recalculate(layoutAware ? Layout::RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN : Layout::RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN);
 
     window->sendWindowSize(true);
 
@@ -494,7 +496,7 @@ void CFullscreenController::setWindowFullscreenModeInternal(const PHLWINDOW wind
     // because the windows below fs are not visible obviously but because we update fullscreen fade which sets that
     // state later, it does it wrong
     WORKSPACE->updateWindows();
-    WORKSPACE->m_space->recalculate(FULLSCREEN_REQUEST_RESULT == FULLSCREEN_REQUEST_DEFAULT_HANDLED ? Layout::RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN :
+    WORKSPACE->space()->recalculate(FULLSCREEN_REQUEST_RESULT == FULLSCREEN_REQUEST_DEFAULT_HANDLED ? Layout::RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN :
                                                                                                       Layout::RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN);
     WORKSPACE->forceReportSizesToWindows();
 
@@ -539,10 +541,10 @@ WP<IFullscreenHandler> CFullscreenController::getFsHandler(const PHLWINDOW windo
 }
 
 CFullscreenController::SFsHandlersForWorkspace CFullscreenController::getFsHandlersForWorkspace(const PHLWORKSPACE workspace) const {
-    if (!workspace || !workspace->m_space)
+    if (!workspace || !workspace->space())
         return {};
 
-    const auto ALGO = workspace->m_space->algorithm();
+    const auto ALGO = workspace->space()->algorithm();
     if (!ALGO)
         return {};
 
@@ -558,7 +560,7 @@ CFullscreenController::SFsHandlersForWorkspace CFullscreenController::getFsHandl
     const auto FLOATING_FS_HANDLER = FLOATING_ALGO->getFSHandler();
 
     if (!TILED_FS_HANDLER || !TILED_DEFAULT_FS_HANDLER || !FLOATING_FS_HANDLER) {
-        LOG(Log::ERR, "workspace ID:{} doesn't have FS handlers assinged. This should never happen", workspace->m_id);
+        LOG(Log::ERR, "workspace {} doesn't have FS handlers assinged. This should never happen", workspace->addressableName());
         return {};
     }
 

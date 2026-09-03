@@ -1,6 +1,8 @@
 #include "LuaMonitor.hpp"
 #include "LuaWorkspace.hpp"
 #include "../../../state/WorkspaceState.hpp"
+#include "../../../state/workspace/Resolver.hpp"
+#include "../../../workspace/WorkspaceUtils.hpp"
 #include "LuaObjectHelpers.hpp"
 
 #include "../bindings/LuaBindingsInternal.hpp"
@@ -43,15 +45,15 @@ static int monitorSetWorkspace(lua_State* L) {
     if (!selector)
         return 0;
 
-    const auto& [id, name, _] = getWorkspaceIDNameFromString(*selector, ref->lock());
-    if (id == WORKSPACE_INVALID || State::workspaceState()->isSpecial(id))
+    const auto TARGET = State::Workspace::resolver()->getWorkspaceTargetFromString(*selector, ref->lock());
+    if (!TARGET.valid() || TARGET.type == Workspace::eWorkspaceType::SPECIAL)
         return 0;
 
-    auto ws = State::workspaceState()->query().id(id).run();
+    auto ws = State::Workspace::state()->find(TARGET);
     if (!ws)
-        ws = State::workspaceState()->create(id, (*ref)->m_id, name);
+        ws = State::Workspace::state()->create(TARGET, ref->lock());
 
-    State::workspacePlacementController()->moveWorkspaceToMonitor(ws, ref->lock(), true, false);
+    State::Workspace::placementController()->moveWorkspaceToMonitor(ws, ref->lock(), true, false);
     (*ref)->changeWorkspace(ws, false, true, Desktop::focusState()->monitor() != *ref);
 
     return 0;
@@ -61,24 +63,24 @@ static int monitorSetSpecialWorkspace(lua_State* L) {
     auto*                      ref = sc<PHLMONITORREF*>(luaL_checkudata(L, 1, MT));
     std::optional<std::string> selector;
     if (lua_isstring(L, 2) || lua_isnumber(L, 2))
-        selector = std::format("special:{}", Internal::argStr(L, 2));
+        selector = Workspace::specialWorkspaceAddressFromName(Internal::argStr(L, 2));
     else
         selector = Internal::workspaceSelectorFromLuaSelectorOrObject(L, 2, "HLMonitor.set_special_workspace");
 
     if (!selector) {
-        (*ref)->setSpecialWorkspace(WORKSPACE_INVALID, true);
+        (*ref)->setSpecialWorkspace(nullptr, true);
         return 0;
     }
 
-    const auto& [id, name, _] = getWorkspaceIDNameFromString(*selector, ref->lock());
-    if (id == WORKSPACE_INVALID || !State::workspaceState()->isSpecial(id))
+    const auto TARGET = State::Workspace::resolver()->getWorkspaceTargetFromString(*selector, ref->lock());
+    if (!TARGET.valid() || TARGET.type != Workspace::eWorkspaceType::SPECIAL)
         return 0;
 
-    auto ws = State::workspaceState()->query().id(id).run();
+    auto ws = State::Workspace::state()->find(TARGET);
     if (!ws)
-        ws = State::workspaceState()->create(id, (*ref)->m_id, name);
+        ws = State::Workspace::state()->create(TARGET, ref->lock());
 
-    (*ref)->setSpecialWorkspace(ws->m_id, true);
+    (*ref)->setSpecialWorkspace(ws, true);
 
     return 0;
 }

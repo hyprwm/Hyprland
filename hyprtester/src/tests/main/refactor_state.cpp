@@ -114,14 +114,14 @@ TEST_CASE(workspacePlacementActiveMove) {
     OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", TEST_MONITOR_RIGHT)));
     {
         const auto str = getFromSocket("/activeworkspace");
-        EXPECT_CONTAINS(str, "workspace ID 270");
+        EXPECT_CONTAINS(str, "workspace 270");
         EXPECT_CONTAINS(str, TEST_MONITOR_RIGHT);
     }
 
     OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", TEST_MONITOR_LEFT)));
     {
         const auto str = getFromSocket("/activeworkspace");
-        EXPECT_NOT_CONTAINS(str, "workspace ID 270");
+        EXPECT_NOT_CONTAINS(str, "workspace 270");
         EXPECT_CONTAINS(str, TEST_MONITOR_LEFT);
     }
 }
@@ -243,7 +243,7 @@ TEST_CASE(pointerNoWarpsFocusesMonitorOnly) {
     EXPECT(getFromSocket("/cursorpos"), originalCursor);
     {
         const auto str = getFromSocket("/activeworkspace");
-        EXPECT_CONTAINS(str, "workspace ID 301");
+        EXPECT_CONTAINS(str, "workspace 301");
         EXPECT_CONTAINS(str, TEST_MONITOR_RIGHT);
     }
 

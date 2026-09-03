@@ -31,7 +31,7 @@ CMonocleAlgorithm::CMonocleAlgorithm() {
         if (!pWindow)
             return;
 
-        if (!pWindow->m_workspace->isVisible())
+        if (!pWindow->m_workspace->visible())
             return;
 
         const auto TARGET = pWindow->layoutTarget();
@@ -237,7 +237,7 @@ void CMonocleAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection di
         if (t->window())
             t->window()->presentation().setAnimationsToMove();
 
-        t->assignToSpace(TARGETWS->m_space, focalPointForDir(t, dir));
+        t->assignToSpace(TARGETWS->space(), focalPointForDir(t, dir));
     }
 }
 

@@ -9,6 +9,8 @@
 #include "../../../managers/fullscreen/FullscreenController.hpp"
 #include "../../../state/MonitorState.hpp"
 #include "../../../state/WorkspaceState.hpp"
+#include "../../../state/workspace/Resolver.hpp"
+#include "../../../workspace/WorkspaceUtils.hpp"
 #include "../../../desktop/rule/windowRule/WindowRule.hpp"
 #include "../../../keybinds/Resolver.hpp"
 #include "config/shared/actions/ConfigActions.hpp"
@@ -1150,16 +1152,16 @@ static int hlNoop(lua_State* L) {
 }
 
 static int dsp_toggleSpecial(lua_State* L) {
-    std::string name                                   = lua_isnil(L, lua_upvalueindex(1)) ? "" : lua_tostring(L, lua_upvalueindex(1));
-    const auto& [workspaceID, workspaceName, isAutoID] = getWorkspaceIDNameFromString(std::format("special:{}", name));
-    if (workspaceID == WORKSPACE_INVALID || !State::workspaceState()->isSpecial(workspaceID))
+    std::string name   = lua_isnil(L, lua_upvalueindex(1)) ? "" : lua_tostring(L, lua_upvalueindex(1));
+    const auto  TARGET = State::Workspace::resolver()->getWorkspaceTargetFromString(Workspace::specialWorkspaceAddressFromName(name));
+    if (!TARGET.valid() || TARGET.type != Workspace::eWorkspaceType::SPECIAL)
         return Internal::dispatcherError(L, "Invalid special workspace", ERR, C_INVARG);
 
-    auto ws = State::workspaceState()->query().id(workspaceID).run();
+    auto ws = State::Workspace::state()->find(TARGET);
     if (!ws) {
         const auto PMONITOR = Desktop::focusState()->monitor();
         if (PMONITOR)
-            ws = State::workspaceState()->create(workspaceID, PMONITOR->m_id, workspaceName);
+            ws = State::Workspace::state()->create(TARGET, PMONITOR);
     }
     if (!ws)
         return Internal::dispatcherError(L, "Could not resolve special workspace", ERR, C_UNAVAIL);
@@ -1168,7 +1170,7 @@ static int dsp_toggleSpecial(lua_State* L) {
 }
 
 static int dsp_renameWorkspace(lua_State* L) {
-    const auto PWS = State::workspaceState()->query().string(lua_tostring(L, lua_upvalueindex(1))).run();
+    const auto PWS = State::Workspace::state()->query().input(lua_tostring(L, lua_upvalueindex(1))).run();
     if (!PWS)
         return Internal::dispatcherError(L, "hl.workspace.rename: no such workspace", WARN, C_NOTFOUND);
     std::string name = lua_isnil(L, lua_upvalueindex(2)) ? "" : lua_tostring(L, lua_upvalueindex(2));
@@ -1176,20 +1178,20 @@ static int dsp_renameWorkspace(lua_State* L) {
 }
 
 static int dsp_workspaceChangeID(lua_State* L) {
-    const auto PWS = State::workspaceState()->query().string(lua_tostring(L, lua_upvalueindex(1))).run();
+    const auto PWS = State::Workspace::state()->query().input(lua_tostring(L, lua_upvalueindex(1))).run();
     if (!PWS)
         return Internal::dispatcherError(L, "hl.workspace.change_id: no such workspace", WARN, C_NOTFOUND);
-    if (PWS->m_id <= 0)
+    if (!PWS->numberedID())
         return Internal::dispatcherError(L, "hl.workspace.change_id: cannot change id of workspace with a managed id", WARN, C_NOTFOUND);
     int64_t id = lua_tonumber(L, lua_upvalueindex(2));
     return Internal::checkResult(L, CA::changeWorkspaceID(PWS, id));
 }
 
 static int dsp_moveWorkspaceToMonitor(lua_State* L) {
-    const auto WORKSPACEID = getWorkspaceIDNameFromString(lua_tostring(L, lua_upvalueindex(1))).id;
-    if (WORKSPACEID == WORKSPACE_INVALID)
+    const auto TARGET = State::Workspace::resolver()->getWorkspaceTargetFromString(lua_tostring(L, lua_upvalueindex(1)));
+    if (!TARGET.valid())
         return Internal::dispatcherError(L, "Invalid workspace", ERR, C_INVARG);
-    const auto PWORKSPACE = State::workspaceState()->query().id(WORKSPACEID).run();
+    const auto PWORKSPACE = State::Workspace::state()->find(TARGET);
     if (!PWORKSPACE)
         return Internal::dispatcherError(L, "Workspace not found", WARN, C_NOTFOUND);
     const auto PMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(lua_tostring(L, lua_upvalueindex(2))).run();

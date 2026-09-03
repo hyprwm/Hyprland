@@ -28,6 +28,7 @@
 #include "../../../protocols/GlobalShortcuts.hpp"
 #include "../../../protocols/InputCapture.hpp"
 #include "../../../event/EventBus.hpp"
+#include "../../../helpers/MiscFunctions.hpp"
 #include "../../../managers/XWaylandManager.hpp"
 #include "../../../layout/algorithm/Algorithm.hpp"
 #include "../../../layout/algorithm/tiled/master/MasterAlgorithm.hpp"
@@ -35,6 +36,7 @@
 #include "../../../state/MonitorState.hpp"
 #include "../../../state/WorkspacePlacementController.hpp"
 #include "../../../state/WorkspaceState.hpp"
+#include "../../../state/workspace/Resolver.hpp"
 #include "../../../helpers/math/Expression.hpp"
 
 #include <numbers>
@@ -252,7 +254,7 @@ ActionResult Actions::pinWindow(eTogglableAction action, std::optional<PHLWINDOW
     if (!PMONITOR)
         return actionError("Window has no monitor", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
-    if (!PMONITOR->m_activeWorkspace || !PMONITOR->m_activeWorkspace->m_space)
+    if (!PMONITOR->m_activeWorkspace || !PMONITOR->m_activeWorkspace->space())
         return actionError("Monitor has no active workspace", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     const auto LAYOUTTARGET = window->layoutTarget();
@@ -266,12 +268,12 @@ ActionResult Actions::pinWindow(eTogglableAction action, std::optional<PHLWINDOW
     window->updateFullscreenInputState();
     *window->presentation().alpha(Desktop::View::WINDOW_ALPHA_FULLSCREEN) = window->isBlockedByFullscreen() ? 0.F : 1.F;
 
-    LAYOUTTARGET->assignToSpace(PMONITOR->m_activeWorkspace->m_space);
+    LAYOUTTARGET->assignToSpace(PMONITOR->m_activeWorkspace->space());
     window->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_PINNED);
 
     const auto PWORKSPACE = window->m_workspace;
-    PWORKSPACE->m_lastFocusedWindow =
-        Desktop::viewState()->hitTest().windowAt(g_pInputManager->getMouseCoordsInternal(), Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS);
+    PWORKSPACE->rememberFocusedWindow(
+        Desktop::viewState()->hitTest().windowAt(g_pInputManager->getMouseCoordsInternal(), Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS));
 
     IPC::Socket2::sock()->postEvent({.event = "pin", .data = std::format("{:x},{}", rc<uintptr_t>(window.get()), sc<int>(wantPin))});
     Event::bus()->m_events.window.pin.emit(window);
@@ -331,7 +333,7 @@ ActionResult Actions::moveToWorkspace(PHLWORKSPACE ws, bool silent, std::optiona
     if (!ws)
         return actionError("No workspace to move to", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_ARGUMENT);
 
-    if (ws->m_id == window->workspaceID())
+    if (ws == window->m_workspace)
         return {};
 
     const auto POLDWS = window->m_workspace;
@@ -360,11 +362,11 @@ ActionResult Actions::moveToWorkspace(PHLWORKSPACE ws, bool silent, std::optiona
         Desktop::focusState()->rawMonitorFocus(pMonitor);
         Fullscreen::controller()->setFullscreenMode(window, FULLSCREENMODE);
 
-        POLDWS->m_lastFocusedWindow = POLDWS->getFirstWindow();
+        POLDWS->rememberFocusedWindow(POLDWS->getFirstWindow());
 
-        if (ws->m_isSpecialWorkspace)
+        if (ws->type() == Workspace::eWorkspaceType::SPECIAL)
             pMonitor->setSpecialWorkspace(ws);
-        else if (POLDWS->m_isSpecialWorkspace)
+        else if (POLDWS->type() == Workspace::eWorkspaceType::SPECIAL)
             POLDWS->m_monitor.lock()->setSpecialWorkspace(nullptr);
 
         pMonitor->changeWorkspace(ws);
@@ -893,7 +895,7 @@ ActionResult Actions::setProp(const std::string& PROP, const std::string& VAL, s
 
     for (auto const& m : State::monitorState()->monitors()) {
         if (m->m_activeWorkspace)
-            m->m_activeWorkspace->m_space->recalculate();
+            m->m_activeWorkspace->space()->recalculate();
     }
 
     return {};
@@ -963,7 +965,7 @@ ActionResult Actions::changeWorkspace(PHLWORKSPACE ws) {
     if (!PMONITOR)
         return actionError("No focused monitor", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
-    if (ws->m_isSpecialWorkspace) {
+    if (ws->type() == Workspace::eWorkspaceType::SPECIAL) {
         PMONITOR->setSpecialWorkspace(ws);
         g_pInputManager->simulateMouseMovement();
         return {};
@@ -1033,38 +1035,38 @@ static PHLWORKSPACE resolveWorkspaceForChange(const std::string& args) {
 
     // handle "previous" workspace
     if (args.starts_with("previous")) {
-        const bool             PER_MON = args.contains("_per_monitor");
-        const SWorkspaceIDName PPREVWS = PER_MON ? Desktop::History::workspaceTracker()->previousWorkspaceIDName(PCURRENTWORKSPACE, PMONITOR) :
-                                                   Desktop::History::workspaceTracker()->previousWorkspaceIDName(PCURRENTWORKSPACE);
-        if (PPREVWS.id == -1 || PPREVWS.id == PCURRENTWORKSPACE->m_id)
+        const bool PER_MON  = args.contains("_per_monitor");
+        const auto PREVIOUS = PER_MON ? Desktop::History::workspaceTracker()->previousWorkspace(PCURRENTWORKSPACE, PMONITOR) :
+                                        Desktop::History::workspaceTracker()->previousWorkspace(PCURRENTWORKSPACE);
+        if (!PREVIOUS.target.valid() || State::Workspace::state()->find(PREVIOUS.target) == PCURRENTWORKSPACE)
             return nullptr;
 
-        auto ws = State::workspaceState()->query().id(PPREVWS.id).run();
+        auto ws = State::Workspace::state()->find(PREVIOUS.target);
         if (!ws)
-            ws = State::workspaceState()->create(PPREVWS.id, PMONITOR->m_id, PPREVWS.name.empty() ? std::to_string(PPREVWS.id) : PPREVWS.name);
+            ws = State::Workspace::state()->create(PREVIOUS.target, PMONITOR);
         return ws;
     }
 
-    const auto& [workspaceToChangeTo, workspaceName, isAutoID] = getWorkspaceIDNameFromString(args);
-    if (workspaceToChangeTo == WORKSPACE_INVALID || workspaceToChangeTo == WORKSPACE_NOT_CHANGED)
+    const auto TARGET = State::Workspace::resolver()->getWorkspaceTargetFromString(args);
+    if (!TARGET.valid())
         return nullptr;
 
     // back_and_forth: if switching to current workspace, go to previous
-    if (workspaceToChangeTo == PCURRENTWORKSPACE->m_id && (*PBACKANDFORTH || EXPLICITPREVIOUS)) {
-        const SWorkspaceIDName PPREVWS = args.contains("_per_monitor") ? Desktop::History::workspaceTracker()->previousWorkspaceIDName(PCURRENTWORKSPACE, PMONITOR) :
-                                                                         Desktop::History::workspaceTracker()->previousWorkspaceIDName(PCURRENTWORKSPACE);
-        if (PPREVWS.id == -1)
+    if (State::Workspace::state()->find(TARGET) == PCURRENTWORKSPACE && (*PBACKANDFORTH || EXPLICITPREVIOUS)) {
+        const auto PREVIOUS = args.contains("_per_monitor") ? Desktop::History::workspaceTracker()->previousWorkspace(PCURRENTWORKSPACE, PMONITOR) :
+                                                              Desktop::History::workspaceTracker()->previousWorkspace(PCURRENTWORKSPACE);
+        if (!PREVIOUS.target.valid())
             return nullptr;
 
-        auto ws = State::workspaceState()->query().id(PPREVWS.id).run();
+        auto ws = State::Workspace::state()->find(PREVIOUS.target);
         if (!ws)
-            ws = State::workspaceState()->create(PPREVWS.id, PMONITOR->m_id, PPREVWS.name.empty() ? std::to_string(PPREVWS.id) : PPREVWS.name);
+            ws = State::Workspace::state()->create(PREVIOUS.target, PMONITOR);
         return ws;
     }
 
-    auto ws = State::workspaceState()->query().id(workspaceToChangeTo).run();
+    auto ws = State::Workspace::state()->find(TARGET);
     if (!ws)
-        ws = State::workspaceState()->create(workspaceToChangeTo, PMONITOR->m_id, workspaceName);
+        ws = State::Workspace::state()->create(TARGET, PMONITOR);
     return ws;
 }
 
@@ -1085,13 +1087,13 @@ ActionResult Actions::renameWorkspace(PHLWORKSPACE ws, const std::string& s) {
 }
 
 ActionResult Actions::changeWorkspaceID(PHLWORKSPACE ws, int64_t id) {
-    if (!ws || ws->m_id <= 0)
+    if (!ws || !ws->numberedID())
         return actionError("Bad workspace", eActionErrorLevel::WARNING, eActionErrorCode::NO_TARGET);
 
-    if (!!State::workspaceState()->query().id(id).run())
+    if (id <= 0 || id > UINT32_MAX || State::Workspace::state()->query().numbered(Workspace::SWorkspaceNumberedID{sc<uint32_t>(id)}).run())
         return actionError("ID is taken", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
-    ws->changeID(id);
+    ws->changeID(Workspace::SWorkspaceNumberedID{sc<Workspace::WorkspaceIDContainer>(id)});
 
     return {};
 }
@@ -1102,7 +1104,7 @@ ActionResult Actions::moveToMonitor(PHLWORKSPACE ws, PHLMONITOR mon) {
     if (!mon)
         return actionError("Bad monitor", eActionErrorLevel::WARNING, eActionErrorCode::NO_TARGET);
 
-    State::workspacePlacementController()->moveWorkspaceToMonitor(ws, mon);
+    State::Workspace::placementController()->moveWorkspaceToMonitor(ws, mon);
 
     return {};
 }
@@ -1120,11 +1122,11 @@ ActionResult Actions::changeWorkspaceOnCurrentMonitor(PHLWORKSPACE ws) {
         if (!POLDMONITOR)
             return actionError("Workspace has no monitor", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
-        if (POLDMONITOR->activeWorkspaceID() == ws->m_id) {
-            State::workspacePlacementController()->swapActiveWorkspaces(POLDMONITOR, PCURRMONITOR);
+        if (POLDMONITOR->m_activeWorkspace == ws) {
+            State::Workspace::placementController()->swapActiveWorkspaces(POLDMONITOR, PCURRMONITOR);
             return {};
         } else {
-            State::workspacePlacementController()->moveWorkspaceToMonitor(ws, PCURRMONITOR, true);
+            State::Workspace::placementController()->moveWorkspaceToMonitor(ws, PCURRMONITOR, true);
         }
     }
 
@@ -1132,7 +1134,7 @@ ActionResult Actions::changeWorkspaceOnCurrentMonitor(PHLWORKSPACE ws) {
 }
 
 ActionResult Actions::toggleSpecial(PHLWORKSPACE special) {
-    if (!special || !special->m_isSpecialWorkspace)
+    if (!special || special->type() != Workspace::eWorkspaceType::SPECIAL)
         return actionError("Bad special workspace", eActionErrorLevel::WARNING, eActionErrorCode::NO_TARGET);
 
     const auto PMONITOR = Desktop::focusState()->monitor();
@@ -1140,10 +1142,10 @@ ActionResult Actions::toggleSpecial(PHLWORKSPACE special) {
         return actionError("No focused monitor", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     bool requestedWorkspaceIsAlreadyOpen = false;
-    auto specialOpenOnMonitor            = PMONITOR->activeSpecialWorkspaceID();
+    auto specialOpenOnMonitor            = PMONITOR->m_activeSpecialWorkspace;
 
     for (auto const& m : State::monitorState()->monitors()) {
-        if (m->activeSpecialWorkspaceID() == special->m_id) {
+        if (m->m_activeSpecialWorkspace == special) {
             requestedWorkspaceIsAlreadyOpen = true;
             break;
         }
@@ -1153,7 +1155,7 @@ ActionResult Actions::toggleSpecial(PHLWORKSPACE special) {
 
     PHLWORKSPACEREF focusedWorkspace;
 
-    if (requestedWorkspaceIsAlreadyOpen && specialOpenOnMonitor == special->m_id) {
+    if (requestedWorkspaceIsAlreadyOpen && specialOpenOnMonitor == special) {
         PMONITOR->setSpecialWorkspace(nullptr);
         focusedWorkspace = PMONITOR->m_activeWorkspace;
     } else {
@@ -1190,7 +1192,7 @@ ActionResult Actions::swapActiveWorkspaces(PHLMONITOR mon1, PHLMONITOR mon2) {
     if (mon1 == mon2)
         return {};
 
-    State::workspacePlacementController()->swapActiveWorkspaces(mon1, mon2);
+    State::Workspace::placementController()->swapActiveWorkspaces(mon1, mon2);
 
     return {};
 }

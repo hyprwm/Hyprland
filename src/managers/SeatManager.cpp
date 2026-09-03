@@ -644,8 +644,11 @@ void CSeatManager::setCurrentSelection(SP<IDataSource> source) {
     if (m_selection.currentSelection)
         m_selection.currentSelection->cancelled();
 
-    if (!source)
+    if (!source) {
         PROTO::data->setSelection(nullptr);
+        PROTO::dataWlr->setSelection(nullptr, false);
+        PROTO::extDataDevice->setSelection(nullptr, false);
+    }
 
     m_selection.currentSelection = source;
 
@@ -670,8 +673,11 @@ void CSeatManager::setCurrentPrimarySelection(SP<IDataSource> source) {
     if (m_selection.currentPrimarySelection)
         m_selection.currentPrimarySelection->cancelled();
 
-    if (!source)
+    if (!source) {
         PROTO::primarySelection->setSelection(nullptr);
+        PROTO::dataWlr->setSelection(nullptr, true);
+        PROTO::extDataDevice->setSelection(nullptr, true);
+    }
 
     m_selection.currentPrimarySelection = source;
 

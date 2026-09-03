@@ -649,6 +649,10 @@ CScrollingAlgorithm::CScrollingAlgorithm() : m_scrollingFullscreenHandler(makeUn
         if (!TARGET || TARGET->floating())
             return;
 
+        // only FOCUS_REASON_CLICK_UP is allowed to move view in scrolling. Focus is still allowed to change on DOWN
+        if (reason == Desktop::FOCUS_REASON_CLICK_DOWN)
+            return;
+
         // if follow_focus != 0, focuswindow always moves scrolling view
         // if follow_focus != 0, change in a group's current window state always moves scrolling view
         // if follow_focus != 0, moving a window into group via the corresponding dispatches `moveintogroup`, `movewindoworgroup` always moves scrolling view
@@ -658,7 +662,7 @@ CScrollingAlgorithm::CScrollingAlgorithm() : m_scrollingFullscreenHandler(makeUn
              reason == Desktop::FOCUS_REASON_DISPATCH_MOVEWINDOWINTOGROUP || reason == Desktop::FOCUS_REASON_SWITCH_TO_WINDOW_SOFT))
             focusOnInput(TARGET, INPUT_MODE_HARD);
         else
-            focusOnInput(TARGET, reason == Desktop::FOCUS_REASON_CLICK ? INPUT_MODE_CLICK : (Desktop::isHardInputFocusReason(reason) ? INPUT_MODE_HARD : INPUT_MODE_SOFT));
+            focusOnInput(TARGET, reason == Desktop::FOCUS_REASON_CLICK_UP ? INPUT_MODE_CLICK : (Desktop::isHardInputFocusReason(reason) ? INPUT_MODE_HARD : INPUT_MODE_SOFT));
     });
 
     // Initialize default widths and direction
@@ -699,7 +703,7 @@ void CScrollingAlgorithm::focusOnInput(SP<ITarget> target, eInputMode input) {
     }
 
     // if click, but target is not under cursor, ignore
-    if (input == INPUT_MODE_CLICK && !Pointer::mgr()->getCursorBoxGlobal().overlaps(target->position()))
+    if ((input & INPUT_MODE_CLICK) && !Pointer::mgr()->getCursorBoxGlobal().overlaps(target->position()))
         return;
 
     // if we moved via non-kb, and it's fully visible, ignore

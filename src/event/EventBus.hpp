@@ -17,7 +17,7 @@
 #include <variant>
 
 namespace Desktop {
-    enum eFocusReason : uint8_t;
+    enum eFocusReason : uint32_t;
 }
 namespace Event {
     struct SCallbackInfo {

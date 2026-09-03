@@ -3122,6 +3122,64 @@ TEST_CASE(scrollTapeOnClickOutOfWindow) {
         FAIL_TEST("Expected the x coordinate of window of class \"A\" to be < 0, got {}.", posAx);
 }
 
+TEST_CASE(scrollTapeWithMouseClick) {
+
+    // follow_focus = true, follow_mouse = 2 --> test that mouse-down moves the view but does NOT move the viewport. mouse-up moves the viewport (only full click moves the viewport)
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
+    OK(getFromSocket("r/eval hl.config({ scrolling = { follow_focus = true } })"));
+    OK(getFromSocket("r/eval hl.config({ input = { follow_mouse = 2 } })"));
+
+    const auto ExpectViewportMoved = [&](bool moved) {
+        // if the view does not move, we expect the x coordinate of the window of class "a" to be negative, as it would be to the left of the viewport
+        const std::string posA  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
+        const int         posAx = std::stoi(posA.substr(0, posA.find(',')));
+
+        if (moved ? (posAx < 0) : (posAx >= 0))
+            FAIL_TEST("Expected the x coordinate of window of class \"a\" to be {} 0, got {}.", moved ? ">=" : "<", posAx);
+    };
+
+    SPAWN_KITTY("wee");
+    OK(getFromSocket("r/dispatch hl.dsp.layout('colresize 0.8')"));
+
+    SPAWN_KITTY("woo");
+
+    // move it over wee
+    OK(getFromSocket("r/dispatch hl.dsp.cursor.move({ x = 100, y = 100 })"));
+
+    {
+        // expect focus to not to have moved
+        ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: woo");
+
+        // expect viewport to not have moved
+        // still focused onver woo, so this should be >=0
+        ExpectViewportMoved(true);
+    }
+    OK(getFromSocket("r/dispatch hl.dsp.cursor.move({ x = 100, y = 100 })"));
+    OK(getFromSocket("/eval hl.plugin.test.click(272, 1)"));
+
+    {
+        // expect focus to be moved
+        ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: wee");
+
+        // expect viewport to not have moved
+        // focused over wee now and it should be hidden in the left still
+        ExpectViewportMoved(false);
+    }
+
+    OK(getFromSocket("r/dispatch hl.dsp.cursor.move({ x = 100, y = 100 })"));
+    OK(getFromSocket("/eval hl.plugin.test.click(272, 0)"));
+
+    {
+        // expect focus to be moved
+        ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: wee");
+
+        // expect viewport to have moved
+        // focused over wee now and since w is now supposed to have moved into view, it should no longer be hidden on the left. Combined with prev test block, this proves it moved
+        ExpectViewportMoved(true);
+    }
+}
+
 TEST_CASE(properFocusBehvaior) {
     // test that focus history does not fuck with proper workspace preference
 

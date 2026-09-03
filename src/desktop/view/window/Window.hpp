@@ -33,7 +33,7 @@ namespace Layout {
 }
 
 namespace Desktop {
-    enum eFocusReason : uint8_t;
+    enum eFocusReason : uint32_t;
 }
 
 namespace Desktop::View {

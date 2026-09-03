@@ -99,7 +99,7 @@ void CPropRefresher::refreshProp(const bool execdAsScheduled) {
         for (auto const& w : Desktop::windowState()->windows())
             w->presentation().uncacheDecorations();
 
-        for (const auto& ws : State::workspaceState()->workspaces()) {
+        for (const auto& ws : State::Workspace::state()->workspaces()) {
             if (!ws)
                 continue;
 
@@ -131,8 +131,8 @@ void CPropRefresher::refreshProp(const bool execdAsScheduled) {
             g_layoutManager->recalculateMonitor(m);
         }
 
-        State::workspacePlacementController()->ensurePersistentWorkspacesPresent(
-            nullptr, [](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { State::workspacePlacementController()->moveWorkspaceToMonitor(ws, mon, noWarp); });
+        State::Workspace::placementController()->ensurePersistentWorkspacesPresent(
+            nullptr, [](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { State::Workspace::placementController()->moveWorkspaceToMonitor(ws, mon, noWarp); });
     }
 
     if (m_propsTripped & REFRESH_LAYOUTS) {

@@ -5,7 +5,7 @@
 #include <optional>
 
 #include "../../../desktop/DesktopTypes.hpp"
-#include "../../../desktop/Workspace.hpp"
+#include "../../../workspace/HLWorkspace.hpp"
 #include "../../../input/Keys.hpp"
 #include "../../../helpers/math/Direction.hpp"
 #include "../ConfigErrors.hpp"

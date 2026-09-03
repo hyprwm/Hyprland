@@ -26,8 +26,6 @@ namespace Config {
 
         std::string                        m_monitor         = "";
         std::string                        m_workspaceString = "";
-        std::string                        m_workspaceName   = "";
-        WORKSPACEID                        m_workspaceId     = -1;
         std::optional<bool>                m_isDefault;
         std::optional<bool>                m_isPersistent;
         std::optional<CCssGapData>         m_gapsIn;

@@ -466,7 +466,7 @@ void CGroup::updateWorkspace(PHLWORKSPACE ws) {
         w->moveToWorkspace(ws);
         w->updateToplevel();
         w->presentation().updateDecorations();
-        w->windowTarget()->setSpaceGhost(ws->m_space);
+        w->windowTarget()->setSpaceGhost(ws->space());
     }
 }
 

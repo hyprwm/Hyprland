@@ -152,5 +152,5 @@ TEST_CASE(fullscreenWithExplicitMonitor) {
 
     // expect the client to be in the special workspace still
 
-    EXPECT_CONTAINS(getFromSocket("/clients"), "workspace: -98 (special:A)")
+    EXPECT_CONTAINS(getFromSocket("/clients"), "workspace: special:A (special:A)")
 }

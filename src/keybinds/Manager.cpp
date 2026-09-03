@@ -1,4 +1,5 @@
 #include "Manager.hpp"
+#include "../helpers/MiscFunctions.hpp"
 #include "MatchResolver.hpp"
 
 #include "../Compositor.hpp"

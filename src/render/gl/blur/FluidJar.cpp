@@ -10,7 +10,7 @@
 #include "../../../config/ConfigValue.hpp"
 #include "../../../desktop/view/window/Window.hpp"
 #include "../../../desktop/view/window/WindowPresentation.hpp"
-#include "../../../desktop/Workspace.hpp"
+#include "../../../workspace/HLWorkspace.hpp"
 #include "../../../event/EventBus.hpp"
 #include "../../../helpers/Color.hpp"
 #include "../../../helpers/cm/ColorManagement.hpp"

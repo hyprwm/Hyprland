@@ -2,12 +2,21 @@
 
 #include "../../Compositor.hpp"
 #include "../../state/WorkspaceState.hpp"
+#include "../../state/workspace/Resolver.hpp"
 #include "../../desktop/state/FocusState.hpp"
 #include "../../render/Renderer.hpp"
 #include "InputManager.hpp"
 #include "../../layout/space/Space.hpp"
 #include "../../layout/algorithm/Algorithm.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
+
+static bool sameWorkspaceIdentity(const State::Workspace::STarget& target, const PHLWORKSPACE& workspace) {
+    return workspace && target.id && *target.id == workspace->id() && target.type == workspace->type() && target.address == workspace->addressableName();
+}
+
+static bool sameWorkspaceIdentity(const State::Workspace::STarget& lhs, const State::Workspace::STarget& rhs) {
+    return lhs.id == rhs.id && lhs.type == rhs.type && lhs.address == rhs.address;
+}
 
 bool CUnifiedWorkspaceSwipeGesture::isGestureInProgress() {
     return !!m_workspaceBegin;
@@ -17,13 +26,17 @@ void CUnifiedWorkspaceSwipeGesture::begin() {
     if (isGestureInProgress())
         return;
 
-    const auto PWORKSPACE = Desktop::focusState()->monitor()->m_activeWorkspace;
+    const auto MONITOR = Desktop::focusState()->monitor();
+    if (!MONITOR || !MONITOR->m_activeWorkspace)
+        return;
 
-    LOG(Log::DEBUG, "CUnifiedWorkspaceSwipeGesture::begin: Starting a swipe from {}", PWORKSPACE->m_name);
+    const auto PWORKSPACE = MONITOR->m_activeWorkspace;
+
+    LOG(Log::DEBUG, "CUnifiedWorkspaceSwipeGesture::begin: Starting a swipe from {}", PWORKSPACE->displayName());
 
     m_workspaceBegin = PWORKSPACE;
     m_delta          = 0;
-    m_monitor        = Desktop::focusState()->monitor();
+    m_monitor        = MONITOR;
     m_avgSpeed       = 0;
     m_speedPoints    = 0;
 
@@ -60,10 +73,10 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
     m_avgSpeed = (m_avgSpeed * m_speedPoints + abs(d)) / (m_speedPoints + 1);
     m_speedPoints++;
 
-    auto workspaceIDLeft  = getWorkspaceIDNameFromString((*PSWIPEUSER ? "r-1" : "m-1")).id;
-    auto workspaceIDRight = getWorkspaceIDNameFromString((*PSWIPEUSER ? "r+1" : "m+1")).id;
+    auto workspaceLeft  = State::Workspace::resolver()->getWorkspaceTargetFromString((*PSWIPEUSER ? "r-1" : "m-1"));
+    auto workspaceRight = State::Workspace::resolver()->getWorkspaceTargetFromString((*PSWIPEUSER ? "r+1" : "m+1"));
 
-    if ((workspaceIDLeft == WORKSPACE_INVALID || workspaceIDRight == WORKSPACE_INVALID || workspaceIDLeft == m_workspaceBegin->m_id) && !*PSWIPENEW) {
+    if (!workspaceLeft.valid() || !workspaceRight.valid() || (sameWorkspaceIdentity(workspaceLeft, m_workspaceBegin) && !*PSWIPENEW)) {
         m_workspaceBegin = nullptr; // invalidate the swipe
         return;
     }
@@ -72,8 +85,12 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
 
     m_delta = std::clamp(m_delta, sc<double>(-SWIPEDISTANCE), sc<double>(SWIPEDISTANCE));
 
-    if ((m_workspaceBegin->m_id == workspaceIDLeft && *PSWIPENEW && (m_delta < 0)) ||
-        (m_delta > 0 && m_workspaceBegin->getWindowCount() == 0 && workspaceIDRight <= m_workspaceBegin->m_id) || (m_delta < 0 && m_workspaceBegin->m_id <= workspaceIDLeft)) {
+    const auto BEGIN_ID = m_workspaceBegin->numberedID();
+    const auto LEFT_ID  = std::get_if<Workspace::SWorkspaceNumberedID>(&*workspaceLeft.id);
+    const auto RIGHT_ID = std::get_if<Workspace::SWorkspaceNumberedID>(&*workspaceRight.id);
+    if ((sameWorkspaceIdentity(workspaceLeft, m_workspaceBegin) && *PSWIPENEW && (m_delta < 0)) ||
+        (m_delta > 0 && m_workspaceBegin->getWindowCount() == 0 && BEGIN_ID && RIGHT_ID && RIGHT_ID->value <= *BEGIN_ID) ||
+        (m_delta < 0 && BEGIN_ID && LEFT_ID && *BEGIN_ID <= LEFT_ID->value)) {
 
         m_delta = 0;
         g_pHyprRenderer->damageMonitor(m_monitor.lock());
@@ -89,9 +106,9 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
     }
 
     if (m_delta < 0) {
-        const auto PWORKSPACE = State::workspaceState()->query().id(workspaceIDLeft).run();
+        const auto PWORKSPACE = State::Workspace::state()->find(workspaceLeft);
 
-        if (workspaceIDLeft > m_workspaceBegin->m_id || !PWORKSPACE) {
+        if ((BEGIN_ID && LEFT_ID && LEFT_ID->value > *BEGIN_ID) || !PWORKSPACE) {
             if (*PSWIPENEW) {
                 g_pHyprRenderer->damageMonitor(m_monitor.lock());
 
@@ -110,8 +127,8 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
         PWORKSPACE->m_forceRendering = true;
         PWORKSPACE->m_alpha->setValueAndWarp(1.f);
 
-        if (workspaceIDLeft != workspaceIDRight && workspaceIDRight != m_workspaceBegin->m_id) {
-            const auto PWORKSPACER = State::workspaceState()->query().id(workspaceIDRight).run();
+        if (!sameWorkspaceIdentity(workspaceLeft, workspaceRight) && !sameWorkspaceIdentity(workspaceRight, m_workspaceBegin)) {
+            const auto PWORKSPACER = State::Workspace::state()->find(workspaceRight);
 
             if (PWORKSPACER) {
                 PWORKSPACER->m_forceRendering = false;
@@ -129,9 +146,9 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
 
         PWORKSPACE->updateWindowDecos();
     } else {
-        const auto PWORKSPACE = State::workspaceState()->query().id(workspaceIDRight).run();
+        const auto PWORKSPACE = State::Workspace::state()->find(workspaceRight);
 
-        if (workspaceIDRight < m_workspaceBegin->m_id || !PWORKSPACE) {
+        if ((BEGIN_ID && RIGHT_ID && RIGHT_ID->value < *BEGIN_ID) || !PWORKSPACE) {
             if (*PSWIPENEW) {
                 g_pHyprRenderer->damageMonitor(m_monitor.lock());
 
@@ -150,8 +167,8 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
         PWORKSPACE->m_forceRendering = true;
         PWORKSPACE->m_alpha->setValueAndWarp(1.f);
 
-        if (workspaceIDLeft != workspaceIDRight && workspaceIDLeft != m_workspaceBegin->m_id) {
-            const auto PWORKSPACEL = State::workspaceState()->query().id(workspaceIDLeft).run();
+        if (!sameWorkspaceIdentity(workspaceLeft, workspaceRight) && !sameWorkspaceIdentity(workspaceLeft, m_workspaceBegin)) {
+            const auto PWORKSPACEL = State::Workspace::state()->find(workspaceLeft);
 
             if (PWORKSPACEL) {
                 PWORKSPACEL->m_forceRendering = false;
@@ -196,17 +213,27 @@ void CUnifiedWorkspaceSwipeGesture::end() {
     const bool  VERTANIMS     = ANIMSTYLE == "slidevert" || ANIMSTYLE.starts_with("slidefadevert");
 
     // commit
-    auto       workspaceIDLeft  = getWorkspaceIDNameFromString((*PSWIPEUSER ? "r-1" : "m-1")).id;
-    auto       workspaceIDRight = getWorkspaceIDNameFromString((*PSWIPEUSER ? "r+1" : "m+1")).id;
-    const auto SWIPEDISTANCE    = std::clamp(*PSWIPEDIST, sc<int64_t>(1LL), sc<int64_t>(UINT32_MAX));
+    auto       workspaceLeft  = State::Workspace::resolver()->getWorkspaceTargetFromString((*PSWIPEUSER ? "r-1" : "m-1"));
+    auto       workspaceRight = State::Workspace::resolver()->getWorkspaceTargetFromString((*PSWIPEUSER ? "r+1" : "m+1"));
+    const auto SWIPEDISTANCE  = std::clamp(*PSWIPEDIST, sc<int64_t>(1LL), sc<int64_t>(UINT32_MAX));
 
     // If we've been swiping off the right end with PSWIPENEW enabled, there is
     // no workspace there yet, and we need to choose an ID for a new one now.
-    if (workspaceIDRight <= m_workspaceBegin->m_id && *PSWIPENEW)
-        workspaceIDRight = getWorkspaceIDNameFromString("r+1").id;
+    const auto BEGIN_ID = m_workspaceBegin->numberedID();
+    const auto RIGHT_ID = workspaceRight.id ? std::get_if<Workspace::SWorkspaceNumberedID>(&*workspaceRight.id) : nullptr;
+    if (BEGIN_ID && RIGHT_ID && RIGHT_ID->value <= *BEGIN_ID && *PSWIPENEW)
+        workspaceRight = State::Workspace::resolver()->getWorkspaceTargetFromString("r+1");
 
-    auto         PWORKSPACER = State::workspaceState()->query().id(workspaceIDRight).run(); // not guaranteed if PSWIPENEW || PSWIPENUMBER
-    auto         PWORKSPACEL = State::workspaceState()->query().id(workspaceIDLeft).run();  // not guaranteed if PSWIPENUMBER
+    if (!workspaceLeft.valid() || !workspaceRight.valid()) {
+        m_workspaceBegin->m_renderOffset->setValueAndWarp({});
+        m_workspaceBegin->m_forceRendering = false;
+        m_workspaceBegin                   = nullptr;
+        m_initialDirection                 = 0;
+        return;
+    }
+
+    auto         PWORKSPACER = State::Workspace::state()->find(workspaceRight); // not guaranteed if PSWIPENEW || PSWIPENUMBER
+    auto         PWORKSPACEL = State::Workspace::state()->find(workspaceLeft);  // not guaranteed if PSWIPENUMBER
 
     const auto   RENDEROFFSETMIDDLE = m_workspaceBegin->m_renderOffset->value();
     const auto   XDISTANCE          = m_monitor->m_size.x + *PWORKSPACEGAP;
@@ -249,14 +276,17 @@ void CUnifiedWorkspaceSwipeGesture::end() {
         const auto RENDEROFFSET = PWORKSPACEL ? PWORKSPACEL->m_renderOffset->value() : Vector2D();
 
         if (PWORKSPACEL)
-            m_monitor->changeWorkspace(workspaceIDLeft);
+            m_monitor->changeWorkspace(PWORKSPACEL);
         else {
-            m_monitor->changeWorkspace(State::workspaceState()->create(workspaceIDLeft, m_monitor->m_id));
-            PWORKSPACEL = State::workspaceState()->query().id(workspaceIDLeft).run();
+            PWORKSPACEL = State::Workspace::state()->create(workspaceLeft, m_monitor.lock());
+            if (PWORKSPACEL)
+                m_monitor->changeWorkspace(PWORKSPACEL);
         }
 
-        PWORKSPACEL->m_renderOffset->setValue(RENDEROFFSET);
-        PWORKSPACEL->m_alpha->setValueAndWarp(1.f);
+        if (PWORKSPACEL) {
+            PWORKSPACEL->m_renderOffset->setValue(RENDEROFFSET);
+            PWORKSPACEL->m_alpha->setValueAndWarp(1.f);
+        }
 
         m_workspaceBegin->m_renderOffset->setValue(RENDEROFFSETMIDDLE);
         if (VERTANIMS)
@@ -275,14 +305,17 @@ void CUnifiedWorkspaceSwipeGesture::end() {
         const auto RENDEROFFSET = PWORKSPACER ? PWORKSPACER->m_renderOffset->value() : Vector2D();
 
         if (PWORKSPACER)
-            m_monitor->changeWorkspace(workspaceIDRight);
+            m_monitor->changeWorkspace(PWORKSPACER);
         else {
-            m_monitor->changeWorkspace(State::workspaceState()->create(workspaceIDRight, m_monitor->m_id));
-            PWORKSPACER = State::workspaceState()->query().id(workspaceIDRight).run();
+            PWORKSPACER = State::Workspace::state()->create(workspaceRight, m_monitor.lock());
+            if (PWORKSPACER)
+                m_monitor->changeWorkspace(PWORKSPACER);
         }
 
-        PWORKSPACER->m_renderOffset->setValue(RENDEROFFSET);
-        PWORKSPACER->m_alpha->setValueAndWarp(1.f);
+        if (PWORKSPACER) {
+            PWORKSPACER->m_renderOffset->setValue(RENDEROFFSET);
+            PWORKSPACER->m_alpha->setValueAndWarp(1.f);
+        }
 
         m_workspaceBegin->m_renderOffset->setValue(RENDEROFFSETMIDDLE);
         if (VERTANIMS)
@@ -313,11 +346,11 @@ void CUnifiedWorkspaceSwipeGesture::end() {
 
     // apply alpha
     if (pSwitchedTo) {
-        const auto FSWINDOW         = Fullscreen::controller()->getFullscreenWindow(pSwitchedTo);
-        const auto FS_MODE_INTERNAL = FSWINDOW ? Fullscreen::controller()->getFullscreenModes(FSWINDOW).internal : Fullscreen::FSMODE_NONE;
-        const bool HIDE             = FS_MODE_INTERNAL == Fullscreen::FSMODE_FULLSCREEN &&
-            (!FSWINDOW || !Fullscreen::controller()->layoutManagedFS(FSWINDOW) ||
-             (pSwitchedTo->m_space && pSwitchedTo->m_space->algorithm() && Fullscreen::controller()->hasFullscreen(pSwitchedTo, true)));
+        const auto  FSWINDOW         = Fullscreen::controller()->getFullscreenWindow(pSwitchedTo);
+        const auto  FS_MODE_INTERNAL = FSWINDOW ? Fullscreen::controller()->getFullscreenModes(FSWINDOW).internal : Fullscreen::FSMODE_NONE;
+        const auto& SPACE            = pSwitchedTo->space();
+        const bool  HIDE             = FS_MODE_INTERNAL == Fullscreen::FSMODE_FULLSCREEN &&
+            (!FSWINDOW || !Fullscreen::controller()->layoutManagedFS(FSWINDOW) || (SPACE && SPACE->algorithm() && Fullscreen::controller()->hasFullscreen(pSwitchedTo, true)));
 
         for (auto const& ls : Desktop::focusState()->monitor()->m_layerSurfaceLayers[2]) {
             *ls->alpha()[Desktop::View::LS_ALPHA_FADE] = HIDE ? 0.F : 1.F;

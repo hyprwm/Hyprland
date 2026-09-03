@@ -3032,7 +3032,7 @@ TEST_CASE(testScrollingViewBehaviourScheduledPropRefresh) {
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:a' })"));
 
     // setting a workspace rule queues a doLater() call in the Event Loop Manager
-    OK(getFromSocket("/eval hl.dispatch(hl.dsp.layout('inhibit_scroll true')); hl.workspace_rule({workspace = hl.get_active_workspace().id,gaps_in = 0}); "
+    OK(getFromSocket("/eval hl.dispatch(hl.dsp.layout('inhibit_scroll true')); hl.workspace_rule({workspace = hl.get_active_workspace().addressable_name,gaps_in = 0}); "
                      "hl.exec_scheduled_prop_refresh_immediately(); hl.dispatch(hl.dsp.layout('inhibit_scroll false'));"));
 
     // Check that the workspace rule is set

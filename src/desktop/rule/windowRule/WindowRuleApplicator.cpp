@@ -6,6 +6,7 @@
 #include "../../view/window/WindowPresentation.hpp"
 #include "../../types/OverridableVar.hpp"
 #include "../../../event/EventBus.hpp"
+#include "../../../helpers/MiscFunctions.hpp"
 #include "desktop/rule/windowRule/WindowRuleEffectContainer.hpp"
 
 #include <string>

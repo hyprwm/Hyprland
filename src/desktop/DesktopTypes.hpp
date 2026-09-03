@@ -3,8 +3,6 @@
 
 #include <cstdint>
 
-class CWorkspace;
-
 namespace Desktop::View {
     enum eViewType : uint8_t;
     class IView;
@@ -17,10 +15,14 @@ namespace Monitor {
     class CMonitor;
 }
 
+namespace Workspace {
+    class CHLWorkspace;
+}
+
 /* Shared pointer to a workspace */
-using PHLWORKSPACE = SP<CWorkspace>;
+using PHLWORKSPACE = SP<Workspace::CHLWorkspace>;
 /* Weak pointer to a workspace */
-using PHLWORKSPACEREF = WP<CWorkspace>;
+using PHLWORKSPACEREF = WP<Workspace::CHLWorkspace>;
 
 /* Shared pointer to a window */
 using PHLWINDOW = SP<Desktop::View::CWindow>;

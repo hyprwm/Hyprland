@@ -13,7 +13,7 @@
 #include "../../desktop/state/FloatState.hpp"
 #include "../../desktop/state/FocusState.hpp"
 #include "../../state/MonitorState.hpp"
-#include "../../desktop/Workspace.hpp"
+#include "../../workspace/HLWorkspace.hpp"
 #include "../../desktop/view/window/WindowGroupMembership.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../../desktop/view/Group.hpp"

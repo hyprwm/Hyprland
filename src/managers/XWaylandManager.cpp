@@ -1,4 +1,5 @@
 #include "XWaylandManager.hpp"
+#include "../helpers/MiscFunctions.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../desktop/view/WLSurface.hpp"
 #include "../desktop/view/window/Window.hpp"
@@ -63,7 +64,7 @@ void CHyprXWaylandManager::activateWindow(PHLWINDOW pWindow, bool activate) {
     }
 
     if (!(pWindow->m_state & Desktop::View::WINDOW_STATE_PINNED))
-        pWindow->m_workspace->m_lastFocusedWindow = pWindow;
+        pWindow->m_workspace->rememberFocusedWindow(pWindow);
 }
 
 Vector2D CHyprXWaylandManager::waylandToXWaylandCoords(const Vector2D& coord) {

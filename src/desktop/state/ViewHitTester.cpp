@@ -1,7 +1,6 @@
 #include "ViewHitTester.hpp"
 #include "FocusState.hpp"
 #include "ViewStateTracker.hpp"
-#include "../Workspace.hpp"
 #include "../view/LayerSurface.hpp"
 #include "../view/WLSurface.hpp"
 #include "../view/window/Window.hpp"
@@ -13,6 +12,8 @@
 #include "../../state/MonitorState.hpp"
 #include "../../state/WorkspaceState.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
+#include "../../workspace/HLWorkspace.hpp"
+#include "workspace/AbstractWorkspace.hpp"
 
 #include <cmath>
 #include <ranges>
@@ -98,7 +99,7 @@ PHLWINDOW CViewHitTester::windowAtInternal(const Vector2D& pos, uint16_t propert
                         continue;
                 }
 
-                const bool ON_WORKSPACE = workspace ? w->m_workspace == workspace : w->m_workspace->isVisible();
+                const bool ON_WORKSPACE = workspace ? w->m_workspace == workspace : w->m_workspace->visible();
                 if (w->isFloating() && w->mapped() && ON_WORKSPACE && w->acceptsInput() && !(w->m_state & WINDOW_STATE_PINNED) &&
                     !w->m_ruleApplicator->noFocus().valueOrDefault() && w != ignoreWindow && (!aboveFullscreen || w->isAllowedOverFullscreen()) && !isShadowedByModal(w)) {
                     // OR windows should add focus to parent
@@ -142,8 +143,7 @@ PHLWINDOW CViewHitTester::windowAtInternal(const Vector2D& pos, uint16_t propert
         if (properties & FLOATING_ONLY)
             return floating(false);
 
-        const WORKSPACEID WSPID      = workspace ? workspace->m_id : (special ? PMONITOR->activeSpecialWorkspaceID() : PMONITOR->activeWorkspaceID());
-        const auto        PWORKSPACE = workspace ? workspace : State::workspaceState()->query().id(WSPID).run();
+        const auto PWORKSPACE = special ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
 
         if (Fullscreen::controller()->hasFullscreen(PWORKSPACE) && !(properties & SKIP_FULLSCREEN_PRIORITY) && !ONLY_PRIORITY) {
             const auto FS_WINDOW = Fullscreen::controller()->getFullscreenWindow(PWORKSPACE);
@@ -173,7 +173,7 @@ PHLWINDOW CViewHitTester::windowAtInternal(const Vector2D& pos, uint16_t propert
             if (!w->m_workspace)
                 continue;
 
-            if (!w->backend().isX11() && !w->isFloating() && w->mapped() && w->workspaceID() == WSPID && w->acceptsInput() && !w->shouldntFocus() &&
+            if (!w->backend().isX11() && !w->isFloating() && w->mapped() && w->m_workspace == PWORKSPACE && w->acceptsInput() && !w->shouldntFocus() &&
                 !w->m_ruleApplicator->noFocus().valueOrDefault() && w != ignoreWindow && !isShadowedByModal(w)) {
                 if (w->hasPopupAt(pos))
                     return w;
@@ -190,11 +190,11 @@ PHLWINDOW CViewHitTester::windowAtInternal(const Vector2D& pos, uint16_t propert
             if (!w->m_workspace)
                 continue;
 
-            if (!w->isFloating() && w->mapped() && w->workspaceID() == WSPID && w->acceptsInput() && !w->shouldntFocus() && !w->m_ruleApplicator->noFocus().valueOrDefault() &&
+            if (!w->isFloating() && w->mapped() && w->m_workspace == PWORKSPACE && w->acceptsInput() && !w->shouldntFocus() && !w->m_ruleApplicator->noFocus().valueOrDefault() &&
                 w != ignoreWindow && !isShadowedByModal(w)) {
                 CBox box = (properties & USE_PROP_TILED) ? w->getWindowBoxUnified(properties) : w->layoutBox();
                 if ((properties & INPUT_EXTENTS) && BORDER_GRAB_AREA > 0 && !w->backend().traits().overrideRedirect) {
-                    const auto WORKAREA                    = PWORKSPACE->m_space->workArea();
+                    const auto WORKAREA                    = PWORKSPACE->space()->workArea();
                     auto       isWindowCloseToWorkAreaEdge = [&](const Math::eDirection dir) -> bool {
                         constexpr double STICK_THRESHOLD = 2.0; // This constant is taken from isAdjacent in CWindowQuery::inDirection
                         double           aEdge           = -1;
@@ -250,7 +250,7 @@ PHLWINDOW CViewHitTester::windowAtInternal(const Vector2D& pos, uint16_t propert
     };
 
     if (workspace)
-        return windowForWorkspace(State::workspaceState()->isSpecial(workspace->m_id));
+        return windowForWorkspace(workspace->type() == Workspace::eWorkspaceType::SPECIAL);
 
     // special workspace
     if (PMONITOR->m_activeSpecialWorkspace && !*PSPECIALFALLTHRU)

@@ -9,7 +9,7 @@
 #include "../../../desktop/view/window/WindowGroupMembership.hpp"
 #include "../../../desktop/view/window/WindowSwallowController.hpp"
 #include "../../../desktop/view/Group.hpp"
-#include "../../../desktop/Workspace.hpp"
+#include "../../../workspace/HLWorkspace.hpp"
 #include "../../../desktop/state/FocusState.hpp"
 #include "../../../desktop/history/WindowHistoryTracker.hpp"
 #include "../../../layout/algorithm/Algorithm.hpp"
@@ -173,12 +173,12 @@ static int windowIndex(lua_State* L) {
         lua_pushstring(L, std::format("{:x}", w->metadata().stableID()).c_str());
     else if (key == "layout") {
         const auto target = w->layoutTarget();
-        if (!target || target->floating() || !w->m_workspace || !w->m_workspace->m_space) {
+        if (!target || target->floating() || !w->m_workspace || !w->m_workspace->space()) {
             lua_pushnil(L);
             return 1;
         }
 
-        const auto& algo = w->m_workspace->m_space->algorithm();
+        const auto& algo = w->m_workspace->space()->algorithm();
         if (!algo || !algo->tiledAlgo()) {
             lua_pushnil(L);
             return 1;

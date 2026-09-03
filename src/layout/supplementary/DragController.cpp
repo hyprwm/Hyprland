@@ -487,7 +487,7 @@ void CDragStateController::mouseMove(const Vector2D& mousePos) {
 
     if (PMONITOR && PMONITOR->m_activeWorkspace && DRAGGINGTARGET->floating() /* If we're resizing a tiled target, don't do this */) {
         const auto WS = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
-        DRAGGINGTARGET->assignToSpace(WS->m_space);
+        DRAGGINGTARGET->assignToSpace(WS->space());
     }
 
     DRAGGINGTARGET->damageEntire();

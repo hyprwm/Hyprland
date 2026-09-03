@@ -100,7 +100,7 @@ Config::ErrorResult CLayoutManager::layoutMsg(const std::string_view& sv) {
     if (!ws)
         return Config::configError("No workspace, can't target", Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::NO_TARGET);
 
-    return ws->m_space->layoutMsg(sv);
+    return ws->space()->layoutMsg(sv);
 }
 
 void CLayoutManager::moveTarget(const Vector2D& Δ, SP<ITarget> target) {
@@ -171,9 +171,9 @@ std::optional<Vector2D> CLayoutManager::predictSizeForNewTiledTarget() {
         return std::nullopt;
 
     if (FOCUSED_MON->m_activeSpecialWorkspace)
-        return FOCUSED_MON->m_activeSpecialWorkspace->m_space->predictSizeForNewTiledTarget();
+        return FOCUSED_MON->m_activeSpecialWorkspace->space()->predictSizeForNewTiledTarget();
 
-    return FOCUSED_MON->m_activeWorkspace->m_space->predictSizeForNewTiledTarget();
+    return FOCUSED_MON->m_activeWorkspace->space()->predictSizeForNewTiledTarget();
 }
 
 const UP<Supplementary::CDragStateController>& CLayoutManager::dragController() {
@@ -224,7 +224,7 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
 
     if (*SNAPWINDOWGAP) {
         const double GAPSIZE       = *SNAPWINDOWGAP;
-        const auto   WSID          = DRAGGINGWINDOW->workspaceID();
+        const auto   WORKSPACE     = DRAGGINGWINDOW->m_workspace;
         const bool   HASFULLSCREEN = DRAGGINGWINDOW->m_workspace && Fullscreen::controller()->hasFullscreen(DRAGGINGWINDOW->m_workspace);
 
         const auto*  GAPSIN = *SNAPRESPECTGAPS ? sc<Config::CCssGapData*>(PGAPSIN.ptr()) : &GAPSNONE;
@@ -232,7 +232,7 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
         const double GAPSY  = GAPSIN->m_top + GAPSIN->m_bottom;
 
         for (auto& other : Desktop::windowState()->windows()) {
-            if ((HASFULLSCREEN && !other->isAllowedOverFullscreen()) || other == DRAGGINGWINDOW || other->workspaceID() != WSID || !other->mapped() ||
+            if ((HASFULLSCREEN && !other->isAllowedOverFullscreen()) || other == DRAGGINGWINDOW || other->m_workspace != WORKSPACE || !other->mapped() ||
                 other->backend().traits().overrideRedirect)
                 continue;
 
@@ -349,17 +349,18 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
 
 void CLayoutManager::recalculateMonitor(PHLMONITOR m, eRecalculateMonitorReason reason) {
     if (m->m_activeSpecialWorkspace)
-        m->m_activeSpecialWorkspace->m_space->recalculate(recalcMonitorReasonToRecalcReason(reason));
+        m->m_activeSpecialWorkspace->space()->recalculate(recalcMonitorReasonToRecalcReason(reason));
 
     if (m->m_activeWorkspace)
-        m->m_activeWorkspace->m_space->recalculate(recalcMonitorReasonToRecalcReason(reason));
+        m->m_activeWorkspace->space()->recalculate(recalcMonitorReasonToRecalcReason(reason));
 }
 
 void CLayoutManager::invalidateMonitorGeometries(PHLMONITOR m) {
-    for (const auto& ws : State::workspaceState()->workspaces()) {
+    for (const auto& ws : State::Workspace::state()->workspaces()) {
         if (ws && ws->m_monitor == m) {
-            ws->m_space->recheckWorkArea();
-            ws->m_space->recalculate(RECALCULATE_REASON_INVALIDATE_MONITOR_GEOMETRIES);
+            const auto& SPACE = ws->space();
+            SPACE->recheckWorkArea();
+            SPACE->recalculate(RECALCULATE_REASON_INVALIDATE_MONITOR_GEOMETRIES);
         }
     }
 }

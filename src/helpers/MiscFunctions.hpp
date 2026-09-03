@@ -9,23 +9,15 @@
 #include <hyprutils/os/FileDescriptor.hpp>
 #include "../SharedDefs.hpp"
 #include "../macros.hpp"
-#include "../desktop/DesktopTypes.hpp"
 
 struct SCallstackFrameInfo {
     void*       adr = nullptr;
     std::string desc;
 };
 
-struct SWorkspaceIDName {
-    WORKSPACEID id = WORKSPACE_INVALID;
-    std::string name;
-    bool        isAutoIDd = false;
-};
-
 std::string                             absolutePath(const std::string&, const std::string&);
 std::string                             escapeJSONStrings(const std::string& str);
 bool                                    isDirection(std::string_view);
-SWorkspaceIDName                        getWorkspaceIDNameFromString(const std::string&, std::optional<PHLMONITOR> = std::nullopt);
 std::optional<std::string>              cleanCmdForWorkspace(const std::string&, std::string);
 float                                   vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Vector2D& p2);
 std::string                             execAndGet(const char*);

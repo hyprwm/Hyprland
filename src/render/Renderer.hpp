@@ -39,7 +39,6 @@
 #include <hyprgraphics/resource/resources/TextResource.hpp>
 
 struct SMonitorRule;
-class CWorkspace;
 class CInputPopup;
 class IHLBuffer;
 class CEventLoopTimer;

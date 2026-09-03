@@ -1,4 +1,5 @@
 #include "PluginAPI.hpp"
+#include "../helpers/MiscFunctions.hpp"
 #include "../desktop/view/window/WindowPresentation.hpp"
 #include "../Compositor.hpp"
 #include "../ipc/s1/S1.hpp"

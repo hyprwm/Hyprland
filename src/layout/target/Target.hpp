@@ -2,7 +2,7 @@
 
 #include "../../helpers/math/Math.hpp"
 #include "../../helpers/memory/Memory.hpp"
-#include "../../desktop/Workspace.hpp"
+#include "../../workspace/HLWorkspace.hpp"
 
 #include <expected>
 #include <cstdint>

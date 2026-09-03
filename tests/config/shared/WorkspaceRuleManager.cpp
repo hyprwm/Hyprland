@@ -41,9 +41,15 @@ class CWorkspaceRuleTestMonitor : public Monitor::IMonitorIdentifiable {
 static Config::CWorkspaceRule defaultWorkspaceRule(const std::string& workspace, const std::string& monitor) {
     Config::CWorkspaceRule rule;
     rule.m_workspaceString = workspace;
-    rule.m_workspaceName   = workspace;
     rule.m_monitor         = monitor;
     rule.m_isDefault       = true;
+    return rule;
+}
+
+static Config::CWorkspaceRule boundWorkspaceRule(const std::string& workspace, const std::string& monitor) {
+    Config::CWorkspaceRule rule;
+    rule.m_workspaceString = workspace;
+    rule.m_monitor         = monitor;
     return rule;
 }
 
@@ -115,4 +121,39 @@ TEST(WorkspaceRuleManager, replaceOrAddKeepsExistingSharedRule) {
     EXPECT_EQ(firstPtr, secondPtr);
     EXPECT_EQ(firstPtr->m_monitor, "DP-2");
     EXPECT_FALSE(firstPtr->m_isPersistent.value_or(true));
+}
+
+TEST(WorkspaceRuleManager, boundRulesMatchTypedWorkspaceIdentity) {
+    Config::CWorkspaceRuleManager manager;
+    manager.add(boundWorkspaceRule("1", "numbered"));
+    manager.add(boundWorkspaceRule("name:1", "named"));
+    manager.add(boundWorkspaceRule("special:term", "special"));
+    manager.add(boundWorkspaceRule("name:special:term", "named-special"));
+
+    EXPECT_EQ(manager.getBoundMonitorStringForWS(::Workspace::SWorkspaceNumberedID{1}, ::Workspace::eWorkspaceType::NORMAL, "1"), "numbered");
+    EXPECT_EQ(manager.getBoundMonitorStringForWS(::Workspace::SWorkspaceSpecialID{}, ::Workspace::eWorkspaceType::NORMAL, "1"), "named");
+    EXPECT_EQ(manager.getBoundMonitorStringForWS(::Workspace::SWorkspaceSpecialID{}, ::Workspace::eWorkspaceType::SPECIAL, "special:term"), "special");
+    EXPECT_EQ(manager.getBoundMonitorStringForWS(::Workspace::SWorkspaceSpecialID{}, ::Workspace::eWorkspaceType::NORMAL, "special:term"), "named-special");
+}
+
+TEST(WorkspaceRuleManager, numberedRulesIgnoreNumericSpelling) {
+    Config::CWorkspaceRuleManager manager;
+    manager.add(boundWorkspaceRule("01", "DP-1"));
+
+    EXPECT_EQ(manager.getBoundMonitorStringForWS(::Workspace::SWorkspaceNumberedID{1}, ::Workspace::eWorkspaceType::NORMAL, "1"), "DP-1");
+}
+
+TEST(WorkspaceRuleManager, explicitNamedRuleTreatsBracketsLiterally) {
+    Config::CWorkspaceRuleManager manager;
+    manager.add(boundWorkspaceRule("name:dev[1]", "DP-1"));
+
+    EXPECT_EQ(manager.getBoundMonitorStringForWS(::Workspace::SWorkspaceSpecialID{}, ::Workspace::eWorkspaceType::NORMAL, "dev[1]"), "DP-1");
+}
+
+TEST(WorkspaceRuleManager, bareNamedRuleMatchesAddressableName) {
+    Config::CWorkspaceRuleManager manager;
+    manager.add(boundWorkspaceRule("vaxry", "DP-1"));
+
+    EXPECT_EQ(manager.getBoundMonitorStringForWS("vaxry"), "DP-1");
+    EXPECT_EQ(manager.getBoundMonitorStringForWS(::Workspace::SWorkspaceSpecialID{}, ::Workspace::eWorkspaceType::NORMAL, "vaxry"), "DP-1");
 }

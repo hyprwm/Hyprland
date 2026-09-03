@@ -29,7 +29,6 @@ namespace NSplashes {
         "\"disabling hyprland logo is a war crime\" - vaxry",
         "some basic startup code",
         "\"I think I am addicted to hyprland\" - mathisbuilder",
-        "\"hyprland is the most important package in the arch repos\" - jacekpoz",
         "Thanks Brodie!",
         "Thanks fufexan!",
         "Thanks raf!",

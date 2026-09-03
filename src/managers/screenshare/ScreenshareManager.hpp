@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include <vector>
 #include "../../helpers/memory/Memory.hpp"
 #include "../../protocols/types/Buffer.hpp"

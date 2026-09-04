@@ -243,6 +243,7 @@ def lua_type_from_config_ctor(ctor: str) -> str:
         "CLuaConfigString": "string",
         "CLuaConfigColor": "string",
         "CLuaConfigVec2": "HL.Vec2Like",
+        "CLuaConfigExpressionVec2": "HL.ExprVec2Like",
         "CLuaConfigCssGap": "integer|HL.CssGap",
         "CLuaConfigFontWeight": "integer|string",
         "CLuaConfigGradient": "string|HL.Gradient",
@@ -341,13 +342,19 @@ def extract_initializer_body(source: str, array_name: str) -> str:
 
 
 def parse_descriptor_fields(root: Path) -> dict[str, dict[str, str]]:
-    source = read_text(root / "src/config/lua/bindings/LuaBindingsConfigRules.cpp")
+    bindings_dir = root / "src/config/lua/bindings"
+    # NOTE: WINDOW_RULE_EFFECT_DESCS lives in LuaBindingsInternal.hpp, the rest in LuaBindingsConfigRules.cpp.
+    sources = {
+        "LuaBindingsConfigRules.cpp": read_text(bindings_dir / "LuaBindingsConfigRules.cpp"),
+        "LuaBindingsInternal.hpp": read_text(bindings_dir / "LuaBindingsInternal.hpp"),
+    }
     arrays = {
-        "MONITOR_FIELDS": "HL.MonitorSpec",
-        "DEVICE_FIELDS": "HL.DeviceSpec",
-        "WORKSPACE_RULE_FIELDS": "HL.WorkspaceRuleSpec",
-        "WINDOW_RULE_EFFECT_DESCS": "HL.WindowRuleSpec",
-        "LAYER_RULE_EFFECT_DESCS": "HL.LayerRuleSpec",
+        # (source file, array name) -> stub class
+        ("LuaBindingsConfigRules.cpp", "MONITOR_FIELDS"): "HL.MonitorSpec",
+        ("LuaBindingsConfigRules.cpp", "DEVICE_FIELDS"): "HL.DeviceSpec",
+        ("LuaBindingsConfigRules.cpp", "WORKSPACE_RULE_FIELDS"): "HL.WorkspaceRuleSpec",
+        ("LuaBindingsInternal.hpp", "WINDOW_RULE_EFFECT_DESCS"): "HL.WindowRuleSpec",
+        ("LuaBindingsConfigRules.cpp", "LAYER_RULE_EFFECT_DESCS"): "HL.LayerRuleSpec",
     }
 
     entry_regex = re.compile(
@@ -357,8 +364,8 @@ def parse_descriptor_fields(root: Path) -> dict[str, dict[str, str]]:
 
     out: dict[str, dict[str, str]] = {class_name: {} for class_name in arrays.values()}
 
-    for array_name, class_name in arrays.items():
-        body = extract_initializer_body(source, array_name)
+    for (source_file, array_name), class_name in arrays.items():
+        body = extract_initializer_body(sources[source_file], array_name)
         if not body:
             continue
 
@@ -584,6 +591,7 @@ def generate_stub(root: Path) -> str:
     lines.append("---@alias HL.WorkspaceSelector string|integer|HL.Workspace")
     lines.append("---@alias HL.WindowSelector string|integer|HL.Window")
     lines.append("---@alias HL.Vec2Like HL.Vec2|{x:number, y:number}|{number, number}|string")
+    lines.append("---@alias HL.ExprVec2Like string|{[1]:string|number, [2]:string|number}|{x:string|number, y:string|number}")
     lines.append("---@alias HL.CssGap integer|{top?:integer, right?:integer, bottom?:integer, left?:integer}")
     lines.append("---@alias HL.Gradient string|{colors:string[], angle?:number}")
     lines.append("")

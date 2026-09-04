@@ -3,6 +3,7 @@
 #include <sstream>
 #include <any>
 #include <cmath>
+#include <vector>
 
 #define private public
 #include <src/managers/input/InputManager.hpp>
@@ -167,9 +168,65 @@ class CTestMouse : public IPointer {
     bool m_isVirtual = false;
 };
 
-SP<CTestMouse>         g_mouse;
-SP<CTestKeyboard>      g_keyboard;
-SP<CTestKeyboard>      g_keyboard2;
+class CKeyboardEventRecorder : public IKeyboardEventHandler {
+  public:
+    struct SEvent {
+        uint32_t              keycode = 0;
+        wl_keyboard_key_state state   = WL_KEYBOARD_KEY_STATE_RELEASED;
+    };
+
+    virtual void onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboard>) override {
+        m_events.emplace_back(SEvent{
+            .keycode = event.keycode,
+            .state   = event.state,
+        });
+    }
+
+    std::vector<SEvent> m_events;
+};
+
+SP<CTestMouse>             g_mouse;
+SP<CTestKeyboard>          g_keyboard;
+SP<CTestKeyboard>          g_keyboard2;
+SP<CKeyboardEventRecorder> g_keyboardEventRecorder;
+
+static SDispatchResult     registerKeyboardEventRecorder(std::string in) {
+    if (!g_keyboardEventRecorder)
+        g_keyboardEventRecorder = makeShared<CKeyboardEventRecorder>();
+    else
+        g_pSeatManager->m_keyboardEventHandlers.remove(g_keyboardEventRecorder);
+
+    g_keyboardEventRecorder->m_events.clear();
+    g_pSeatManager->m_keyboardEventHandlers.push(g_keyboardEventRecorder);
+    return {};
+}
+
+static SDispatchResult removeKeyboardEventRecorder(std::string in) {
+    if (g_keyboardEventRecorder)
+        g_pSeatManager->m_keyboardEventHandlers.remove(g_keyboardEventRecorder);
+
+    return {};
+}
+
+static SDispatchResult expectKeyboardEvents(const std::vector<CKeyboardEventRecorder::SEvent>& expected) {
+    if (!g_keyboardEventRecorder)
+        return {.success = false, .error = "Keyboard event recorder has not been registered"};
+
+    if (g_keyboardEventRecorder->m_events.size() != expected.size())
+        return {.success = false, .error = std::format("Expected {} keyboard events, recorded {}", expected.size(), g_keyboardEventRecorder->m_events.size())};
+
+    for (size_t i = 0; i < expected.size(); ++i) {
+        const auto& ACTUAL = g_keyboardEventRecorder->m_events[i];
+        if (ACTUAL.keycode == expected[i].keycode && ACTUAL.state == expected[i].state)
+            continue;
+
+        return {.success = false,
+                .error   = std::format("Keyboard event {}: expected keycode {} state {}, recorded keycode {} state {}", i, expected[i].keycode, sc<uint32_t>(expected[i].state),
+                                       ACTUAL.keycode, sc<uint32_t>(ACTUAL.state))};
+    }
+
+    return {};
+}
 
 static SDispatchResult pressAlt(std::string in) {
     g_pInputManager->m_lastMods = in == "1" ? Input::HL_MODIFIER_ALT : Input::HL_MODIFIER_NONE;
@@ -737,6 +794,31 @@ static int luaSetMods(lua_State* L) {
     return luaResult(L, ::setMods(std::format("{},{},{},{},{}", kbIndex, depressed, latched, locked, group)));
 }
 
+static int luaRegisterKeyboardEventRecorder(lua_State* L) {
+    return luaResult(L, ::registerKeyboardEventRecorder(""));
+}
+
+static int luaRemoveKeyboardEventRecorder(lua_State* L) {
+    return luaResult(L, ::removeKeyboardEventRecorder(""));
+}
+
+static int luaExpectKeyboardEvents(lua_State* L) {
+    const int ARGS = lua_gettop(L);
+    if (ARGS % 2 != 0)
+        return luaL_error(L, "expected keycode/state pairs");
+
+    std::vector<CKeyboardEventRecorder::SEvent> expected;
+    expected.reserve(ARGS / 2);
+    for (int i = 1; i <= ARGS; i += 2) {
+        expected.emplace_back(CKeyboardEventRecorder::SEvent{
+            .keycode = sc<uint32_t>(luaL_checkinteger(L, i)),
+            .state   = sc<wl_keyboard_key_state>(luaL_checkinteger(L, i + 1)),
+        });
+    }
+
+    return luaResult(L, ::expectKeyboardEvents(expected));
+}
+
 static int luaNullfocus(lua_State* L) {
     return luaResult(L, ::nullfocus(""));
 }
@@ -808,6 +890,9 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     addLuaFn("keybind2", ::luaKeybind2);
     addLuaFn("keybind_modmask", ::luaKeybindMask);
     addLuaFn("set_mods", ::luaSetMods);
+    addLuaFn("register_keyboard_event_recorder", ::luaRegisterKeyboardEventRecorder);
+    addLuaFn("remove_keyboard_event_recorder", ::luaRemoveKeyboardEventRecorder);
+    addLuaFn("expect_keyboard_events", ::luaExpectKeyboardEvents);
     addLuaFn("nullfocus", ::luaNullfocus);
     addLuaFn("clear_surface_focus", ::luaClearSurfaceFocus);
     addLuaFn("check_keyboard_focus_window", ::luaCheckKeyboardFocusWindow);
@@ -837,6 +922,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 }
 
 APICALL EXPORT void PLUGIN_EXIT() {
+    removeKeyboardEventRecorder("");
+    g_keyboardEventRecorder.reset();
     g_mouse->destroy();
     g_mouse.reset();
     g_keyboard->destroy();

@@ -31,6 +31,62 @@ static bool surfaceInTree(SP<CWLSurfaceResource> root, SP<CWLSurfaceResource> su
     return !!root->findFirstPreorder([surface](SP<CWLSurfaceResource> candidate) { return candidate == surface; });
 }
 
+void CKeyboardEventHandlerStack::push(WP<IKeyboardEventHandler> handler) {
+    if (handler.expired())
+        return;
+
+    std::erase_if(m_handlers, [&handler](const auto& candidate) { return candidate.expired() || candidate == handler; });
+    m_handlers.emplace_back(std::move(handler));
+}
+
+bool CKeyboardEventHandlerStack::remove(WP<IKeyboardEventHandler> handler) {
+    bool removed = false;
+    std::erase_if(m_handlers, [&handler, &removed](const auto& candidate) {
+        if (candidate == handler)
+            removed = true;
+        return candidate.expired() || candidate == handler;
+    });
+    return removed;
+}
+
+bool CKeyboardEventHandlerStack::dispatch(const IKeyboard::SKeyEvent& event, SP<IKeyboard> keyboard, bool allowNewPress) {
+    const auto OWNED = std::ranges::find_if(m_ownedKeys, [&event, &keyboard](const auto& key) { return key.keyboard == keyboard && key.keycode == event.keycode; });
+
+    if (OWNED != m_ownedKeys.end()) {
+        const auto HANDLER = OWNED->handler;
+        if (event.state == WL_KEYBOARD_KEY_STATE_RELEASED)
+            m_ownedKeys.erase(OWNED);
+
+        if (!HANDLER.expired())
+            HANDLER->onKeyboardKey(event, keyboard);
+        return true;
+    }
+
+    if (!allowNewPress || event.state != WL_KEYBOARD_KEY_STATE_PRESSED)
+        return false;
+
+    pruneHandlers();
+    if (m_handlers.empty())
+        return false;
+
+    const auto HANDLER = m_handlers.back();
+    m_ownedKeys.emplace_back(SOwnedKey{
+        .keyboard = keyboard,
+        .keycode  = event.keycode,
+        .handler  = HANDLER,
+    });
+    HANDLER->onKeyboardKey(event, keyboard);
+    return true;
+}
+
+void CKeyboardEventHandlerStack::onKeyboardRemoved(SP<IKeyboard> keyboard) {
+    std::erase_if(m_ownedKeys, [&keyboard](const auto& key) { return key.keyboard.expired() || key.keyboard == keyboard; });
+}
+
+void CKeyboardEventHandlerStack::pruneHandlers() {
+    std::erase_if(m_handlers, [](const auto& handler) { return handler.expired(); });
+}
+
 CSeatManager::CSeatManager() {
     m_listeners.newSeatResource = PROTO::seat->m_events.newSeatResource.listen([this](const auto& resource) { onNewSeatResource(resource); });
 }

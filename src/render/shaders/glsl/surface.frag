@@ -99,7 +99,7 @@ void main() {
 #else
     pixColor =
 #endif
-        doColorManagement(pixColor, alpha, sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange
+        doColorManagement(pixColor, alpha, sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange, 0.0
 #if USE_ICC
                           ,
                           iccLut3D, iccLutSize

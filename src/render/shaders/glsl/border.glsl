@@ -102,7 +102,7 @@ vec4
     pixColor.rgb *= pixColor[3];
 
 #if USE_CM
-    return doColorManagement(pixColor, alpha * additionalAlpha, sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange
+    return doColorManagement(pixColor, alpha * additionalAlpha, sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange, 0.0
 #if USE_ICC
                              ,
                              iccLut3D, iccLutSize

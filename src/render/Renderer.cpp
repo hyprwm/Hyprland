@@ -332,6 +332,11 @@ bool IHyprRenderer::shouldRenderMonitor(PHLMONITOR monitor) {
     return true;
 }
 
+bool IHyprRenderer::shouldUseOverlay(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace) {
+    static auto POVER = CConfigValue<Config::INTEGER>("render:use_overlay_plane");
+    return *POVER;
+}
+
 void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {
     PHLWINDOW pWorkspaceWindow = nullptr;
 

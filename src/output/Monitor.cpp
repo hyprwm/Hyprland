@@ -1900,7 +1900,9 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
         return reasons;
     }
 
-    if (!PCANDIDATE->presentation().opaque()) {
+    const auto DSRESOURCE = PCANDIDATE->getDirectScanoutResource();
+
+    if (!PCANDIDATE->presentation().opaque() && !DSRESOURCE) {
         reasons |= SC_OPAQUE;
         if (!full)
             return reasons;
@@ -1957,7 +1959,7 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
     }
 
     // check if it did not open any subsurfaces or shit
-    if (!PCANDIDATE->getSolitaryResource())
+    if (!PCANDIDATE->getDirectScanoutResource())
         reasons |= SC_SURFACES;
 
     return reasons;
@@ -2109,7 +2111,7 @@ uint16_t CMonitor::isDSBlocked(bool full) {
             return reasons;
     }
 
-    const auto PSURFACE = PCANDIDATE->getSolitaryResource();
+    const auto PSURFACE = PCANDIDATE->getDirectScanoutResource();
     if (!PSURFACE || !PSURFACE->m_current.texture || !PSURFACE->m_current.buffer) {
         reasons |= DS_BLOCK_SURFACE;
         return reasons;
@@ -2153,7 +2155,7 @@ bool CMonitor::attemptDirectScanout() {
         return false;
 
     const auto PCANDIDATE = m_solitaryClient.lock();
-    const auto PSURFACE   = PCANDIDATE->getSolitaryResource();
+    const auto PSURFACE   = PCANDIDATE->getDirectScanoutResource();
     auto       PBUFFER    = PSURFACE->m_current.buffer.m_buffer;
 
     // #TODO this entire bit needs figuring out, vrr goes down the drain without it

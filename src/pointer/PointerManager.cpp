@@ -1,4 +1,5 @@
 #include "PointerManager.hpp"
+#include "PointerTransformer.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../config/shared/actions/ConfigActions.hpp"
@@ -106,6 +107,24 @@ bool CPointerManager::hasVisibleHWCursor(PHLMONITOR pMonitor) {
 }
 
 Vector2D CPointerManager::position() {
+    if (m_transformers.empty())
+        return m_pointerPos;
+
+    auto position = m_pointerPos;
+
+    ++m_transformDepth;
+    CScopeGuard guard([this] {
+        if (--m_transformDepth == 0)
+            applyPendingTransformerMutations();
+    });
+
+    for (const auto& transformer : m_transformers)
+        position = transformer->transform(position);
+
+    return position;
+}
+
+Vector2D CPointerManager::untransformedPosition() const {
     return m_pointerPos;
 }
 
@@ -1194,4 +1213,46 @@ void CPointerManager::damageCursor(PHLMONITOR pMonitor, bool skipFrameSchedule) 
 
 Vector2D CPointerManager::cursorSizeLogical() {
     return m_currentCursorImage.size / m_currentCursorImage.scale;
+}
+
+void CPointerManager::addTransformer(const SP<CPointerTransformer>& transformer) {
+    if (!transformer)
+        return;
+
+    if (m_transformDepth > 0) {
+        m_pendingTransformerMutations.emplace_back(STransformerMutation{.transformer = transformer, .add = true});
+        return;
+    }
+
+    if (std::ranges::contains(m_transformers, transformer))
+        return;
+
+    m_transformers.emplace_back(transformer);
+}
+
+void CPointerManager::removeTransformer(const SP<CPointerTransformer>& transformer) {
+    if (!transformer)
+        return;
+
+    if (m_transformDepth > 0) {
+        m_pendingTransformerMutations.emplace_back(STransformerMutation{.transformer = transformer});
+        return;
+    }
+
+    std::erase(m_transformers, transformer);
+}
+
+bool CPointerManager::hasTransformers() const {
+    return !m_transformers.empty();
+}
+
+void CPointerManager::applyPendingTransformerMutations() {
+    auto mutations = std::move(m_pendingTransformerMutations);
+
+    for (const auto& mutation : mutations) {
+        if (mutation.add)
+            addTransformer(mutation.transformer);
+        else
+            removeTransformer(mutation.transformer);
+    }
 }

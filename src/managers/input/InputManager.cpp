@@ -166,7 +166,7 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
     m_lastInputTablet = false;
 
     if (e.mouse)
-        m_lastMousePos = getMouseCoordsInternal();
+        m_lastMousePos = Pointer::mgr()->untransformedPosition();
 
     g_pSeatManager->sendPointerFrame();
 }
@@ -185,7 +185,7 @@ void CInputManager::onMouseWarp(IPointer::SMotionAbsoluteEvent e) {
     m_lastInputTablet = false;
 
     if (e.mouse)
-        m_lastMousePos = getMouseCoordsInternal();
+        m_lastMousePos = Pointer::mgr()->untransformedPosition();
 
     g_pSeatManager->sendPointerFrame();
 }
@@ -286,16 +286,17 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     if (PMONITOR == nullptr)
         return;
 
-    if (PMONITOR->m_cursorZoom->value() != 1.f)
-        g_pHyprRenderer->damageMonitor(PMONITOR);
+    const auto CURSOR_POSITION            = Pointer::mgr()->untransformedPosition();
+    const auto CURSOR_MONITOR             = Pointer::mgr()->hasTransformers() ? State::monitorState()->query().vec(CURSOR_POSITION).run() : PMONITOR;
+    const bool SKIP_CURSOR_FRAME_SCHEDULE = !CURSOR_MONITOR || CURSOR_MONITOR->shouldSkipScheduleFrameOnMouseEvent();
+    const auto CURSOR_MONITOR_REF         = CURSOR_MONITOR ? CURSOR_MONITOR->m_self.lock() : nullptr;
 
-    bool       skipFrameSchedule = PMONITOR->shouldSkipScheduleFrameOnMouseEvent();
+    if (CURSOR_MONITOR && CURSOR_MONITOR->m_cursorZoom->value() != 1.f)
+        g_pHyprRenderer->damageMonitor(CURSOR_MONITOR);
 
-    const auto solitary = PMONITOR->m_solitaryClient.lock();
-    const auto self     = PMONITOR->m_self.lock();
-
-    if (!solitary && g_pHyprRenderer->shouldRenderCursor() && Pointer::mgr()->softwareLockedFor(self) && !skipFrameSchedule)
-        PMONITOR->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_MOVE);
+    if (CURSOR_MONITOR && !CURSOR_MONITOR->m_solitaryClient.lock() && g_pHyprRenderer->shouldRenderCursor() && Pointer::mgr()->softwareLockedFor(CURSOR_MONITOR_REF) &&
+        !SKIP_CURSOR_FRAME_SCHEDULE)
+        CURSOR_MONITOR->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_MOVE);
 
     // constraints
     auto confineToRegion = [&](const CRegion& rg, SP<Desktop::View::CWLSurface> surf) {
@@ -579,10 +580,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
         foundSurface =
             Desktop::viewState()->hitTest().layerSurfaceAt(mouseCoords, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND], &surfaceCoords, &pFoundLayerSurface);
 
-    if (Pointer::mgr()->softwareLockedFor(self) > 0 && !skipFrameSchedule) {
-        if (const auto PMONITOR = Desktop::focusState()->monitor())
-            PMONITOR->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_MOVE);
-    }
+    if (CURSOR_MONITOR && Pointer::mgr()->softwareLockedFor(CURSOR_MONITOR_REF) > 0 && !SKIP_CURSOR_FRAME_SCHEDULE)
+        CURSOR_MONITOR->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_MOVE);
 
     // FIXME: This will be disabled during DnD operations because we do not exactly follow the spec
     // xdg-popup grabs should be keyboard-only, while they are absolute in our case...

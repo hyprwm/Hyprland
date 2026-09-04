@@ -1,6 +1,6 @@
 #include "ScreenshareManager.hpp"
 #include "../../pointer/PointerManager.hpp"
-#include "../input/InputManager.hpp"
+#include "../SeatManager.hpp"
 #include "../permissions/DynamicPermissionManager.hpp"
 #include "../../protocols/ColorManagement.hpp"
 #include "../../Compositor.hpp"
@@ -312,7 +312,7 @@ void CScreenshareFrame::renderMonitor() {
 
     if (m_overlayCursor) {
         CRegion  fakeDamage = {0, 0, m_bufferSize.x, m_bufferSize.y};
-        Vector2D cursorPos  = g_pInputManager->getMouseCoordsInternal() - PMONITOR->m_position - m_session->m_captureBox.pos() / PMONITOR->m_scale;
+        Vector2D cursorPos  = Pointer::mgr()->untransformedPosition() - PMONITOR->m_position - m_session->m_captureBox.pos() / PMONITOR->m_scale;
         Pointer::mgr()->renderSoftwareCursorsFor(PMONITOR, Time::steadyNow(), fakeDamage, cursorPos, true);
     }
 }
@@ -357,7 +357,7 @@ void CScreenshareFrame::renderWindow() {
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
     Pointer::mgr()->renderSoftwareCursorsFor(PMONITOR->m_self.lock(), NOW, fakeDamage,
-                                             g_pInputManager->getMouseCoordsInternal() - PWINDOW->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT), true, true);
+                                             Pointer::mgr()->untransformedPosition() - PWINDOW->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT), true, true);
 }
 
 void CScreenshareFrame::render() {

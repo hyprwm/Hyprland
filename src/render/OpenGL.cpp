@@ -441,7 +441,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >
         if (e.state != WL_POINTER_BUTTON_STATE_PRESSED)
             return;
 
-        addLastPressToHistory(g_pInputManager->getMouseCoordsInternal(), g_pInputManager->getClickMode() == CLICKMODE_KILL, false);
+        addLastPressToHistory(Pointer::mgr()->untransformedPosition(), g_pInputManager->getClickMode() == CLICKMODE_KILL, false);
     });
 
     static auto P3 = Event::bus()->m_events.input.touch.down.listen([](ITouch::SDownEvent e, Event::SCallbackInfo&) {
@@ -1357,7 +1357,7 @@ WP<CShader> CHyprOpenGLImpl::renderScreenShaderInternal() {
 
     if (*PDT == 0) {
         PHLMONITORREF pMonitor = m_renderData.pMonitor;
-        Vector2D      p        = ((g_pInputManager->getMouseCoordsInternal() - pMonitor->m_position) * pMonitor->m_scale);
+        Vector2D      p        = ((Pointer::mgr()->untransformedPosition() - pMonitor->m_position) * pMonitor->m_scale);
         shader->setUniformFloat2(SHADER_POINTER, p.x / pMonitor->m_transformedSize.x, p.y / pMonitor->m_transformedSize.y);
 
         std::vector<float> pressedPos = m_pressedHistoryPositions | std::views::transform([&](const Vector2D& vec) {

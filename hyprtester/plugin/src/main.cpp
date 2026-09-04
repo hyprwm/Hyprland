@@ -340,7 +340,7 @@ static SDispatchResult expectCursorZoom(std::string in) {
             return {.success = false, .error = "invalid input"};
     }
 
-    const auto PMONITOR = State::monitorState()->query().vec(g_pInputManager->getMouseCoordsInternal()).run();
+    const auto PMONITOR = State::monitorState()->query().vec(Pointer::mgr()->untransformedPosition()).run();
 
     if (!PMONITOR)
         return {.success = false, .error = "No monitor under cursor"};

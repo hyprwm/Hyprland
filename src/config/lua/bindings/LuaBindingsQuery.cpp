@@ -13,6 +13,7 @@
 #include "../../../desktop/view/LayerSurface.hpp"
 #include "../../../desktop/view/window/Window.hpp"
 #include "../../../managers/input/InputManager.hpp"
+#include "../../../pointer/PointerManager.hpp"
 #include "../../../state/MonitorState.hpp"
 #include "../../../state/WorkspaceState.hpp"
 
@@ -292,7 +293,7 @@ static int hlGetMonitorAt(lua_State* L) {
 }
 
 static int hlGetMonitorAtCursor(lua_State* L) {
-    const auto PMONITOR = State::monitorState()->query().vec(g_pInputManager->getMouseCoordsInternal()).run();
+    const auto PMONITOR = State::monitorState()->query().vec(Pointer::mgr()->untransformedPosition()).run();
     if (!PMONITOR) {
         lua_pushnil(L);
         return 1;
@@ -308,7 +309,7 @@ static int hlGetCursorPos(lua_State* L) {
         return 1;
     }
 
-    const auto pos = g_pInputManager->getMouseCoordsInternal();
+    const auto pos = Pointer::mgr()->untransformedPosition();
 
     lua_newtable(L);
     lua_pushnumber(L, pos.x);

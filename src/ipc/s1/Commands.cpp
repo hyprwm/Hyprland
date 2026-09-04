@@ -4,6 +4,7 @@
 #include "../../desktop/view/window/WindowPresentation.hpp"
 #include "../../desktop/view/window/WindowSwallowController.hpp"
 #include "../../output/Monitor.hpp"
+#include "../../pointer/PointerManager.hpp"
 
 #include <algorithm>
 #include <array>
@@ -1233,7 +1234,7 @@ static std::string splashRequest(eHyprCtlOutputFormat format, std::string reques
 }
 
 static std::string cursorPosRequest(eHyprCtlOutputFormat format, std::string request) {
-    const auto CURSORPOS = g_pInputManager->getMouseCoordsInternal().floor();
+    const auto CURSORPOS = Pointer::mgr()->untransformedPosition().floor();
 
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
         return std::format("{}, {}", sc<int>(CURSORPOS.x), sc<int>(CURSORPOS.y));

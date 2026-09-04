@@ -1,17 +1,16 @@
-# Written by ChatGPT:
+# Written by ChatGPT, partially modified:
 
 name: Update Stable Branch
 
 on:
   schedule:
     - cron: '0 0 * * *'  # Runs every 24 hours at midnight
-  # Modified by Endermanbugzjfc:
   workflow_dispatch:
-  # End modification.
-
 jobs:
   update-stable:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -28,8 +27,6 @@ jobs:
           git checkout tags/$LATEST_TAG -b stable
 
       - name: Force push stable branch
-        # Modified by Endermanbugzjfc:
         run: |
-          git remote add push https://github.com/Endermanbugzjfc/Hyprland-stable
+          git remote add push https://github.com/nixche/Hyprland-stable
           git push --set-upstream push stable --force
-        # End modification.

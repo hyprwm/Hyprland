@@ -34,6 +34,11 @@ static std::string evalLua(std::string_view code) {
     return getFromSocket(std::format("/eval {}", code));
 }
 
+TEST_CASE(pinchDeltaScalePropagation) {
+    OK(evalLua("hl.plugin.test.test_pinch_delta_scale(2.5)"));
+    OK(evalLua("hl.plugin.test.test_pinch_delta_scale(-2.0)"));
+}
+
 TEST_CASE(live_gesture_callbacks) {
     OK(evalLua(R"(
         __liveGesture = { swipe = { start = 0, update = 0, finish = 0 } }

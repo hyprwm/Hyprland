@@ -187,3 +187,17 @@ TEST_CASE(dragFullscreenProportional) {
     OK(getFromSocket("/reload"));
     Tests::killAllWindows();
 }
+
+TEST_CASE(dragLifecycleSignals) {
+    OK(getFromSocket("/eval hl.config({ binds = { drag_threshold = 0 } })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '5301' })"));
+    SPAWN_KITTY("drag_lifecycle");
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:drag_lifecycle' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.resize({ x = 300, y = 200, window = 'class:drag_lifecycle' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 200, y = 200, window = 'class:drag_lifecycle' })"));
+
+    OK(getFromSocket("/eval hl.plugin.test.test_drag_lifecycle('drag_lifecycle')"));
+
+    Tests::killAllWindows();
+    OK(getFromSocket("/reload"));
+}

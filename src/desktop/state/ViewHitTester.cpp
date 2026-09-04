@@ -1,6 +1,7 @@
 #include "ViewHitTester.hpp"
 #include "FocusState.hpp"
 #include "ViewStateTracker.hpp"
+#include "../Workspace.hpp"
 #include "../view/LayerSurface.hpp"
 #include "../view/WLSurface.hpp"
 #include "../view/window/Window.hpp"
@@ -25,7 +26,15 @@ CViewHitTester::CViewHitTester(const IViewStateTracker& tracker) : m_tracker(tra
 }
 
 PHLWINDOW CViewHitTester::windowAt(const Vector2D& pos, uint16_t properties, PHLWINDOW ignoreWindow) const {
-    const auto PMONITOR = State::monitorState()->query().vec(pos).run();
+    return windowAtInternal(pos, properties, ignoreWindow, nullptr);
+}
+
+PHLWINDOW CViewHitTester::windowAtWorkspace(const Vector2D& pos, PHLWORKSPACE workspace, uint16_t properties, PHLWINDOW ignoreWindow) const {
+    return windowAtInternal(pos, properties, ignoreWindow, workspace);
+}
+
+PHLWINDOW CViewHitTester::windowAtInternal(const Vector2D& pos, uint16_t properties, PHLWINDOW ignoreWindow, PHLWORKSPACE workspace) const {
+    const auto PMONITOR = workspace ? workspace->m_monitor.lock() : State::monitorState()->query().vec(pos).run();
     if (!PMONITOR)
         return nullptr;
 
@@ -89,7 +98,8 @@ PHLWINDOW CViewHitTester::windowAt(const Vector2D& pos, uint16_t properties, PHL
                         continue;
                 }
 
-                if (w->isFloating() && w->mapped() && w->m_workspace->isVisible() && w->acceptsInput() && !(w->m_state & WINDOW_STATE_PINNED) &&
+                const bool ON_WORKSPACE = workspace ? w->m_workspace == workspace : w->m_workspace->isVisible();
+                if (w->isFloating() && w->mapped() && ON_WORKSPACE && w->acceptsInput() && !(w->m_state & WINDOW_STATE_PINNED) &&
                     !w->m_ruleApplicator->noFocus().valueOrDefault() && w != ignoreWindow && (!aboveFullscreen || w->isAllowedOverFullscreen()) && !isShadowedByModal(w)) {
                     // OR windows should add focus to parent
                     if (w->shouldntFocus() && !w->backend().traits().overrideRedirect)
@@ -132,8 +142,8 @@ PHLWINDOW CViewHitTester::windowAt(const Vector2D& pos, uint16_t properties, PHL
         if (properties & FLOATING_ONLY)
             return floating(false);
 
-        const WORKSPACEID WSPID      = special ? PMONITOR->activeSpecialWorkspaceID() : PMONITOR->activeWorkspaceID();
-        const auto        PWORKSPACE = State::workspaceState()->query().id(WSPID).run();
+        const WORKSPACEID WSPID      = workspace ? workspace->m_id : (special ? PMONITOR->activeSpecialWorkspaceID() : PMONITOR->activeWorkspaceID());
+        const auto        PWORKSPACE = workspace ? workspace : State::workspaceState()->query().id(WSPID).run();
 
         if (Fullscreen::controller()->hasFullscreen(PWORKSPACE) && !(properties & SKIP_FULLSCREEN_PRIORITY) && !ONLY_PRIORITY) {
             const auto FS_WINDOW = Fullscreen::controller()->getFullscreenWindow(PWORKSPACE);
@@ -238,6 +248,9 @@ PHLWINDOW CViewHitTester::windowAt(const Vector2D& pos, uint16_t properties, PHL
 
         return nullptr;
     };
+
+    if (workspace)
+        return windowForWorkspace(State::workspaceState()->isSpecial(workspace->m_id));
 
     // special workspace
     if (PMONITOR->m_activeSpecialWorkspace && !*PSPECIALFALLTHRU)

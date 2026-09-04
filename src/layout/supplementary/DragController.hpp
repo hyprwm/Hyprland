@@ -2,6 +2,7 @@
 
 #include "../target/Target.hpp"
 #include "../../managers/input/InputManager.hpp"
+#include "../../helpers/signal/Signal.hpp"
 
 #include <optional>
 
@@ -37,6 +38,11 @@ namespace Layout::Supplementary {
         bool        updateDragWindow();
 
         SP<ITarget> target() const;
+
+        struct {
+            CSignalT<> motion;
+            CSignalT<> ended;
+        } m_events;
 
       private:
         WP<ITarget>                        m_target;

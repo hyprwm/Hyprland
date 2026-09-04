@@ -921,6 +921,36 @@ TEST_CASE(workspaceRenameChangeID) {
     }
 }
 
+TEST_CASE(workspaceRenameEmitsGlobalEvent) {
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '5201' })"));
+    SPAWN_KITTY("workspace_rename_event");
+
+    OK(getFromSocket("/eval hl.plugin.test.expect_workspace_rename_event('5201', 'renamed_by_event_test')"));
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace ID 5201 (renamed_by_event_test)");
+
+    Tests::killAllWindows();
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+}
+
+TEST_CASE(windowAtExplicitWorkspace) {
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '5101' })"));
+    SPAWN_KITTY("hit_workspace_tiled");
+    SPAWN_KITTY("hit_workspace_floating");
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:hit_workspace_floating' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.resize({ x = 300, y = 300, window = 'class:hit_workspace_floating' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 300, y = 300, window = 'class:hit_workspace_floating' })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '5102' })"));
+    SPAWN_KITTY("hit_workspace_visible");
+
+    OK(getFromSocket("/eval hl.plugin.test.expect_window_at_workspace('5101', 400, 400, 'hit_workspace_floating')"));
+    OK(getFromSocket("/eval hl.plugin.test.expect_window_at_workspace('5101', 400, 400, 'hit_workspace_tiled', 'hit_workspace_floating')"));
+    OK(getFromSocket("/eval hl.plugin.test.expect_window_at_workspace('5102', 400, 400, 'hit_workspace_visible')"));
+
+    Tests::killAllWindows();
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+}
+
 TEST_CASE(workspaceChangeIDUpdatesRules) {
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = \"200\" })"));
 

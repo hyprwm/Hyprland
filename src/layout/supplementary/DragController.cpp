@@ -9,6 +9,7 @@
 
 #include "../../Compositor.hpp"
 #include "../../managers/SeatManager.hpp"
+#include "../../pointer/PointerManager.hpp"
 #include "../../pointer/cursor/CursorShapeOverrideController.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../../desktop/state/FocusState.hpp"
@@ -144,11 +145,12 @@ bool CDragStateController::updateDragWindow() {
 
     const auto DRAG_ORIGINAL_BOX = DRAGGINGTARGET->position();
 
-    m_beginDragXY         = g_pInputManager->getMouseCoordsInternal();
-    m_beginDragPositionXY = DRAG_ORIGINAL_BOX.pos();
-    m_beginDragSizeXY     = DRAG_ORIGINAL_BOX.size();
-    m_lastDragXY          = m_beginDragXY;
-    m_dragHotspot         = m_beginDragXY - m_beginDragPositionXY;
+    m_beginDragXY              = g_pInputManager->getMouseCoordsInternal();
+    m_beginDragUntransformedXY = Pointer::mgr()->untransformedPosition();
+    m_beginDragPositionXY      = DRAG_ORIGINAL_BOX.pos();
+    m_beginDragSizeXY          = DRAG_ORIGINAL_BOX.size();
+    m_lastDragXY               = m_beginDragXY;
+    m_dragHotspot              = m_beginDragXY - m_beginDragPositionXY;
 
     return false;
 }
@@ -343,7 +345,7 @@ void CDragStateController::mouseMove(const Vector2D& mousePos) {
 
     // Yoink dragged window here instead if using drag_threshold and it has been reached
     if (*PDRAGTHRESHOLD > 0 && !m_dragThresholdReached) {
-        if ((m_beginDragXY.distanceSq(mousePos) <= std::pow(*PDRAGTHRESHOLD, 2) && m_beginDragXY == m_lastDragXY))
+        if ((m_beginDragUntransformedXY.distanceSq(Pointer::mgr()->untransformedPosition()) <= std::pow(*PDRAGTHRESHOLD, 2) && m_beginDragXY == m_lastDragXY))
             return;
         m_dragThresholdReached = true;
         if (updateDragWindow())

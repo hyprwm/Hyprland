@@ -13,6 +13,7 @@
 #include "../managers/SessionLockManager.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../pointer/PointerManager.hpp"
 #include "../protocols/Hotkey.hpp"
 #include "../protocols/InputCapture.hpp"
 #include "../protocols/ShortcutsInhibit.hpp"
@@ -241,7 +242,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> keyboard) {
                 .actionCode       = KEYCODE,
                 .actionTimeMs     = KEY_EVENT.timeMs,
                 .submapAtPress    = std::string{currentSubmap()},
-                .positionAtPress  = g_pInputManager->getMouseCoordsInternal(),
+                .positionAtPress  = Pointer::mgr()->untransformedPosition(),
                 .device           = keyboard,
             })) {
             const auto* existing = m_inputState.find(KEY, keyboard);
@@ -363,7 +364,7 @@ bool CKeybindManager::onMouseEvent(const IPointer::SButtonEvent& event, SP<IPoin
                 .actionMouseCode  = event.button,
                 .actionTimeMs     = event.timeMs,
                 .submapAtPress    = std::string{currentSubmap()},
-                .positionAtPress  = g_pInputManager->getMouseCoordsInternal(),
+                .positionAtPress  = Pointer::mgr()->untransformedPosition(),
                 .device           = pointer,
             })) {
             const auto* existing = m_inputState.find(KEY, pointer);
@@ -487,7 +488,7 @@ SBindResult CKeybindManager::processEvent(const SBindEventContext& context, cons
             continue;
 
         if (MATCH == BIND_MATCH_FULL && !context.pressed && pressedInput) {
-            const bool THRESHOLD_REACHED = pressedInput->positionAtPress.distanceSq(g_pInputManager->getMouseCoordsInternal()) > std::pow(*PDRAGTHRESHOLD, 2);
+            const bool THRESHOLD_REACHED = pressedInput->positionAtPress.distanceSq(Pointer::mgr()->untransformedPosition()) > std::pow(*PDRAGTHRESHOLD, 2);
             if (bind->hasFlag(BIND_FLAG_CLICK) && (g_layoutManager->dragController()->dragThresholdReached() || THRESHOLD_REACHED))
                 continue;
             if (bind->hasFlag(BIND_FLAG_DRAG) && !g_layoutManager->dragController()->dragThresholdReached() && !THRESHOLD_REACHED)

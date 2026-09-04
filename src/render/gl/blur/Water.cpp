@@ -48,11 +48,13 @@ CWaterBlurMaterial::CWaterBlurMaterial(CHyprOpenGLImpl& impl) : m_impl(impl) {
         if (!m_mouseHeld)
             return;
 
-        if (m_lastMouseHeldCoord && (*m_lastMouseHeldCoord - position).size() < 6.9F)
+        const auto RAW_POSITION = Pointer::mgr()->untransformedPosition();
+
+        if (m_lastMouseHeldCoord && (*m_lastMouseHeldCoord - RAW_POSITION).size() < 6.9F)
             return;
 
         addImpulse();
-        m_lastMouseHeldCoord = position;
+        m_lastMouseHeldCoord = RAW_POSITION;
     });
 
     m_listeners.renderPre = Event::bus()->m_events.render.pre.listen([this](PHLMONITOR) { ++m_frame; });
@@ -195,12 +197,12 @@ void CWaterBlurMaterial::addImpulse() {
     if (!*PBLURENABLED || *PWATERSTRENGTH <= 0.F)
         return;
 
-    const auto position = g_pInputManager->getMouseCoordsInternal();
-    const auto monitor  = State::monitorState()->query().vec(position).run();
+    const auto rawPosition = Pointer::mgr()->untransformedPosition();
+    const auto monitor     = State::monitorState()->query().vec(rawPosition).run();
     if (!monitor)
         return;
 
-    const auto localPosition   = (position - monitor->m_position) * monitor->m_scale;
+    const auto localPosition   = (rawPosition - monitor->m_position) * monitor->m_scale;
     const auto monitorPosition = Vector2D{localPosition.x / monitor->m_transformedSize.x, localPosition.y / monitor->m_transformedSize.y};
     const auto amplitude       = std::clamp(*PWATERSTRENGTH / MAX_WATER_DISPLACEMENT, 0.F, 1.F) * 0.5F;
 
@@ -218,7 +220,8 @@ void CWaterBlurMaterial::addImpulse() {
         std::ceil(reach * 2.F),
     });
 
-    const auto window = Desktop::viewState()->hitTest().windowAt(position, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
+    const auto position = g_pInputManager->getMouseCoordsInternal();
+    const auto window   = Desktop::viewState()->hitTest().windowAt(position, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
     if (!window)
         return;
 
@@ -228,7 +231,7 @@ void CWaterBlurMaterial::addImpulse() {
 
     const auto windowPosition = Vector2D{(position.x - box->x) / box->width, (position.y - box->y) / box->height};
     const auto state          = windowState(window, true);
-    state->monitor            = monitor;
+    state->monitor            = window->m_monitor;
     queueImpulse(*state, windowPosition, *PWATERRADIUS, amplitude);
 }
 

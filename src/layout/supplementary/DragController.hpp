@@ -50,6 +50,7 @@ namespace Layout::Supplementary {
         int                                m_mouseMoveEventCount = 0;
         Vector2D                           m_dragHotspot;
         Vector2D                           m_beginDragXY;
+        Vector2D                           m_beginDragUntransformedXY;
         Vector2D                           m_lastDragXY;
         Vector2D                           m_beginDragPositionXY;
         Vector2D                           m_beginDragSizeXY;

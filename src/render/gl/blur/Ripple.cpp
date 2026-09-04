@@ -9,7 +9,6 @@
 #include "../../../event/EventBus.hpp"
 #include "../../../pointer/PointerManager.hpp"
 #include "../../../state/MonitorState.hpp"
-#include "../../../managers/input/InputManager.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -57,14 +56,14 @@ CRippleBlurMaterial::CRippleBlurMaterial() {
             return;
 
         if (m_lastMouseHeldCoord) {
-            const auto Δ = (*m_lastMouseHeldCoord - g_pInputManager->getMouseCoordsInternal()).size();
+            const auto Δ = (*m_lastMouseHeldCoord - Pointer::mgr()->untransformedPosition()).size();
             if (Δ < 6.9F) // arbitrarily chosen by me, fuck you
                 return;
         }
 
         addImpulse();
 
-        m_lastMouseHeldCoord = g_pInputManager->getMouseCoordsInternal();
+        m_lastMouseHeldCoord = Pointer::mgr()->untransformedPosition();
     });
 }
 
@@ -83,7 +82,7 @@ void CRippleBlurMaterial::addImpulse() {
     static auto PRIPPLEDURATION = CConfigValue<Config::FLOAT>("decoration:blur:ripple:duration");
     static auto PBLURENABLED    = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
 
-    const auto  POS      = g_pInputManager->getMouseCoordsInternal();
+    const auto  POS      = Pointer::mgr()->untransformedPosition();
     const auto  PMONITOR = State::monitorState()->query().vec(POS).run();
     if (!PMONITOR)
         return;

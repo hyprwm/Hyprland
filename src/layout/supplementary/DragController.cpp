@@ -18,6 +18,7 @@
 #include "../../render/Renderer.hpp"
 #include "../../state/MonitorState.hpp"
 
+#include <hyprutils/utils/ScopeGuard.hpp>
 #include <string_view>
 
 using namespace Layout;
@@ -254,6 +255,8 @@ bool CDragStateController::dragEnd() {
     if (!draggingTarget)
         return false;
 
+    Hyprutils::Utils::CScopeGuard notifyEnded([this] { m_events.ended.emit(); });
+
     m_mouseMoveEventCount = 1;
 
     if (!validMapped(draggingTarget->window())) {
@@ -350,6 +353,7 @@ void CDragStateController::mouseMove(const Vector2D& mousePos) {
         m_dragThresholdReached = true;
         if (updateDragWindow())
             return;
+        m_events.motion.emit();
     }
 
     static auto TIMER = std::chrono::high_resolution_clock::now(), MSTIMER = TIMER;
@@ -487,4 +491,5 @@ void CDragStateController::mouseMove(const Vector2D& mousePos) {
     }
 
     DRAGGINGTARGET->damageEntire();
+    m_events.motion.emit();
 }

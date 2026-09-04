@@ -543,6 +543,7 @@ void CWorkspace::rename(const std::string& name) {
 
     IPC::Socket2::sock()->postEvent({.event = "renameworkspace", .data = std::format("{},{}", m_id, m_name)});
     m_events.renamed.emit();
+    Event::bus()->m_events.workspace.renamed.emit(m_self);
 }
 
 void CWorkspace::changeID(int64_t id) {

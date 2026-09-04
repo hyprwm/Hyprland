@@ -209,7 +209,7 @@ vec4[2]
 #else
 vec4
 #endif
-    doColorManagement(vec4 pixColor, float additionalAlpha, int srcTF, int dstTF, mat3 convertMatrix, vec2 srcTFRange, vec2 dstTFRange
+    doColorManagement(vec4 pixColor, float additionalAlpha, int srcTF, int dstTF, mat3 convertMatrix, vec2 srcTFRange, vec2 dstTFRange, float linearNoise
 #if USE_ICC
                       ,
                       highp sampler3D iccLut3D, float iccLutSize
@@ -233,6 +233,7 @@ vec4
 
     pixColor.rgb /= max(sourceAlpha, 0.001);
     pixColor.rgb = toLinearRGB(pixColor.rgb, srcTF);
+    pixColor.rgb += linearNoise;
     
 #if USE_ICC
     pixColor.rgb = applyIcc3DLut(pixColor.rgb, iccLut3D, iccLutSize);

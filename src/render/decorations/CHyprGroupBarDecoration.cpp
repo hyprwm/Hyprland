@@ -44,22 +44,29 @@ SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
     static auto                PPRIORITY        = CConfigValue<Config::INTEGER>("group:groupbar:priority");
     static auto                PSTACKED         = CConfigValue<Config::INTEGER>("group:groupbar:stacked");
     static auto                POUTERGAP        = CConfigValue<Config::INTEGER>("group:groupbar:gaps_out");
-    static auto                PKEEPUPPERGAP    = CConfigValue<Config::INTEGER>("group:groupbar:keep_upper_gap");
+    static auto                PKEEPOUTERGAP    = CConfigValue<Config::INTEGER>("group:groupbar:keep_outer_gap");
+    static auto                PPOSITION        = CConfigValue<Config::INTEGER>("group:groupbar:position");
 
     SDecorationPositioningInfo info;
     info.policy   = DECORATION_POSITION_STICKY;
-    info.edges    = DECORATION_EDGE_TOP;
+    info.edges    = *PPOSITION == 0 ? DECORATION_EDGE_TOP : DECORATION_EDGE_BOTTOM;
     info.priority = *PPRIORITY;
     info.reserved = true;
 
     if (visible()) {
+        int calcHeight = 0;
         if (*PSTACKED) {
             const auto ONEBARHEIGHT = *POUTERGAP + *PINDICATORHEIGHT + *PINDICATORGAP + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0);
-            info.desiredExtents     = {{0, (ONEBARHEIGHT * m_dwGroupMembers.size()) + (*PKEEPUPPERGAP * *POUTERGAP)}, {0, 0}};
+            calcHeight              = (ONEBARHEIGHT * m_dwGroupMembers.size()) + (*PKEEPOUTERGAP * *POUTERGAP);
         } else
-            info.desiredExtents = {{0, *POUTERGAP * (1 + *PKEEPUPPERGAP) + *PINDICATORHEIGHT + *PINDICATORGAP + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0)}, {0, 0}};
+            calcHeight = (*POUTERGAP * (1 + *PKEEPOUTERGAP)) + *PINDICATORHEIGHT + *PINDICATORGAP + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0);
+
+        if (*PPOSITION == 0)
+            info.desiredExtents = {.topLeft = {0, calcHeight}, .bottomRight = {0, 0}};
+        else
+            info.desiredExtents = {.topLeft = {0, 0}, .bottomRight = {0, calcHeight}};
     } else
-        info.desiredExtents = {{0, 0}, {0, 0}};
+        info.desiredExtents = {.topLeft = {0, 0}, .bottomRight = {0, 0}};
     return info;
 }
 
@@ -70,8 +77,6 @@ void CHyprGroupBarDecoration::onPositioningReply(const SDecorationPositioningRep
 eDecorationType CHyprGroupBarDecoration::getDecorationType() {
     return DECORATION_GROUPBAR;
 }
-
-//
 
 void CHyprGroupBarDecoration::updateWindow(PHLWINDOW pWindow) {
     if (!m_window->grouping().group()) {
@@ -131,7 +136,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     static auto PGROUPCOLINACTIVELOCKED    = CConfigValue<Config::IComplexConfigValue>("group:groupbar:col.locked_inactive");
     static auto POUTERGAP                  = CConfigValue<Config::INTEGER>("group:groupbar:gaps_out");
     static auto PINNERGAP                  = CConfigValue<Config::INTEGER>("group:groupbar:gaps_in");
-    static auto PKEEPUPPERGAP              = CConfigValue<Config::INTEGER>("group:groupbar:keep_upper_gap");
+    static auto PKEEPOUTERGAP              = CConfigValue<Config::INTEGER>("group:groupbar:keep_outer_gap");
     static auto PTEXTOFFSET                = CConfigValue<Config::INTEGER>("group:groupbar:text_offset");
     static auto PTEXTPADDING               = CConfigValue<Config::INTEGER>("group:groupbar:text_padding");
     static auto PBLUR                      = CConfigValue<Config::INTEGER>("group:groupbar:blur");
@@ -144,9 +149,9 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
 
     const auto  ONEBARHEIGHT = *POUTERGAP + *PINDICATORHEIGHT + *PINDICATORGAP + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0);
     m_barWidth               = *PSTACKED ? ASSIGNEDBOX.w : (ASSIGNEDBOX.w - *PINNERGAP * (barsToDraw - 1)) / barsToDraw;
-    m_barHeight              = *PSTACKED ? ((ASSIGNEDBOX.h - *POUTERGAP * *PKEEPUPPERGAP) - *POUTERGAP * (barsToDraw)) / barsToDraw : ASSIGNEDBOX.h - *POUTERGAP * *PKEEPUPPERGAP;
+    m_barHeight              = *PSTACKED ? ((ASSIGNEDBOX.h - *POUTERGAP * *PKEEPOUTERGAP) - *POUTERGAP * (barsToDraw)) / barsToDraw : ASSIGNEDBOX.h - *POUTERGAP * *PKEEPOUTERGAP;
 
-    const auto DESIREDHEIGHT = *PSTACKED ? (ONEBARHEIGHT * m_dwGroupMembers.size()) + *POUTERGAP * *PKEEPUPPERGAP : *POUTERGAP * (1 + *PKEEPUPPERGAP) + ONEBARHEIGHT;
+    const auto DESIREDHEIGHT = (*PSTACKED ? (ONEBARHEIGHT * m_dwGroupMembers.size()) : ONEBARHEIGHT) + *POUTERGAP * *PKEEPOUTERGAP;
     if (DESIREDHEIGHT != ASSIGNEDBOX.h)
         g_pDecorationPositioner->repositionDeco(this);
 
@@ -540,8 +545,16 @@ std::string CHyprGroupBarDecoration::getDisplayName() {
 }
 
 CBox CHyprGroupBarDecoration::assignedBoxGlobal() {
-    CBox box = m_assignedBox;
-    box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_TOP, m_window));
+    static auto PPOSITION     = CConfigValue<Config::INTEGER>("group:groupbar:position");
+    static auto PKEEPOUTERGAP = CConfigValue<Config::BOOL>("group:groupbar:keep_outer_gap");
+    static auto POUTERGAP     = CConfigValue<Config::INTEGER>("group:groupbar:gaps_out");
+
+    CBox        box = m_assignedBox;
+
+    if (*PPOSITION == 0)
+        box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_TOP, m_window));
+    else
+        box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_BOTTOM, m_window) + Vector2D(0, *PKEEPOUTERGAP ? 6 - *POUTERGAP : 6));
 
     const auto PWORKSPACE = m_window->m_workspace;
 

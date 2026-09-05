@@ -205,6 +205,18 @@ static int monitorIndex(lua_State* L) {
         lua_setfield(L, -2, "bottom");
         lua_pushnumber(L, mon->m_reservedArea.left());
         lua_setfield(L, -2, "left");
+    } else if (key == "hardware_details") {
+        lua_newtable(L);
+        lua_pushstring(L, "FIXME!!!");
+        lua_setfield(L, -2, "backend");
+        lua_pushboolean(L, mon->m_output->parsedEDID.hdrMetadata.has_value());
+        lua_setfield(L, -2, "hdr");
+        lua_pushboolean(L, mon->m_output->parsedEDID.chromaticityCoords.has_value());
+        lua_setfield(L, -2, "chroma");
+        lua_pushboolean(L, mon->m_output->parsedEDID.supportsBT2020);
+        lua_setfield(L, -2, "bt2020");
+        lua_pushboolean(L, mon->m_output->vrrCapable);
+        lua_setfield(L, -2, "vrr_capable");
     }
 
     // Fns

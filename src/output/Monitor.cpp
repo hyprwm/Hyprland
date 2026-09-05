@@ -1913,14 +1913,8 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
             return reasons;
     }
 
-    if (!m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY].empty()) {
-        reasons |= SC_OVERLAYS;
-        if (!full)
-            return reasons;
-    }
-
-    for (auto const& topls : m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-        if (topls->alpha()[LS_ALPHA_FADE]->value() != 0.F) {
+    for (auto const& overlayls : m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
+        if (overlayls->alpha()[LS_ALPHA_FADE]->value() != 0.F) {
             reasons |= SC_OVERLAYS;
             if (!full)
                 return reasons;
@@ -1928,7 +1922,7 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
     }
 
     for (auto const& fadeout : Desktop::fadingOutState()->fadeouts()) {
-        if (!fadeout || fadeout->monitor() != m_self)
+        if (!fadeout || fadeout->monitor() != m_self || fadeout->plane() < Desktop::eFadeoutPlane::FADEOUT_PLANE_WINDOW_OVER_FULLSCREEN)
             continue;
 
         reasons |= SC_FADEOUT;

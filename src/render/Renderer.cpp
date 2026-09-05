@@ -1101,6 +1101,7 @@ void IHyprRenderer::renderSessionLockSurface(WP<SSessionLockSurface> pSurface, P
 }
 
 void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time, const Vector2D& translate, const float& scale) {
+    static auto PBLUR            = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
     static auto PXPMODE          = CConfigValue<Config::INTEGER>("render:xp_mode");
     static auto PSESSIONLOCKXRAY = CConfigValue<Config::INTEGER>("misc:session_lock_xray");
 
@@ -1175,6 +1176,24 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_BOTTOM);
     }
 
+    const bool  SPECIALFADEACTIVE     = pMonitor->m_specialFade->value() != 0.F;
+    const auto  SPECIALANIMPROGRS     = SPECIALFADEACTIVE ? pMonitor->m_specialFade->getCurveValue() : 0.F;
+    const bool  ANIMOUT               = !pMonitor->m_activeSpecialWorkspace;
+    const float SPECIALBLURA          = SPECIALFADEACTIVE ? (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS) : 0.F;
+    const float WORKSPACERULEBLURA    = *PBLUR ? pMonitor->m_workspaceRuleBlurAlpha->value() : 0.F;
+    const float ACTIVEWORKSPACEBLURA  = WORKSPACERULEBLURA * (1.F - SPECIALBLURA);
+    const float SPECIALWORKSPACEBLURA = WORKSPACERULEBLURA * SPECIALBLURA;
+
+    if (ACTIVEWORKSPACEBLURA > 0.F) {
+        CRectPassElement::SRectData data;
+        data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
+        data.color = CHyprColor(0, 0, 0, 0);
+        data.blur  = true;
+        data.blurA = ACTIVEWORKSPACEBLURA;
+
+        m_renderPass.add(makeUnique<CRectPassElement>(data));
+    }
+
     // pre window pass
     if (preBlurQueued(pMonitor))
         m_renderPass.add(makeUnique<CPreBlurElement>());
@@ -1193,12 +1212,14 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         m_renderPass.add(makeUnique<CRectPassElement>(data));
     }
 
-    if UNLIKELY (pMonitor->m_specialBlur->value() != 0.F) {
+    const float SPECIALBLUR = std::max(pMonitor->m_specialBlur->value(), SPECIALWORKSPACEBLURA);
+
+    if UNLIKELY (SPECIALBLUR != 0.F) {
         CRectPassElement::SRectData data;
         data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
         data.color = CHyprColor(0, 0, 0, 0);
         data.blur  = true;
-        data.blurA = pMonitor->m_specialBlur->value();
+        data.blurA = SPECIALBLUR;
 
         m_renderPass.add(makeUnique<CRectPassElement>(data));
     }

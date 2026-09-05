@@ -138,6 +138,14 @@ static int monitorIndex(lua_State* L) {
         lua_setfield(L, -2, "width");
         lua_pushinteger(L, sc<int>(mon->m_pixelSize.y));
         lua_setfield(L, -2, "height");
+    } else if (key == "mode") {
+        lua_newtable(L);
+        lua_pushinteger(L, sc<int>(mon->m_size.x));
+        lua_setfield(L, -2, "width");
+        lua_pushinteger(L, sc<int>(mon->m_size.y));
+        lua_setfield(L, -2, "height");
+        lua_pushnumber(L, sc<float>(mon->m_refreshRate));
+        lua_setfield(L, -2, "refresh_rate");
     } else if (key == "scale")
         lua_pushnumber(L, mon->m_scale);
     else if (key == "transform")
@@ -195,6 +203,18 @@ static int monitorIndex(lua_State* L) {
         lua_setfield(L, -2, "bottom");
         lua_pushnumber(L, mon->m_reservedArea.left());
         lua_setfield(L, -2, "left");
+    } else if (key == "hardware_details") {
+        lua_newtable(L);
+        lua_pushstring(L, "FIXME!!!");
+        lua_setfield(L, -2, "backend");
+        lua_pushboolean(L, mon->m_output->parsedEDID.hdrMetadata.has_value());
+        lua_setfield(L, -2, "hdr");
+        lua_pushboolean(L, mon->m_output->parsedEDID.chromaticityCoords.has_value());
+        lua_setfield(L, -2, "chroma");
+        lua_pushboolean(L, mon->m_output->parsedEDID.supportsBT2020);
+        lua_setfield(L, -2, "bt2020");
+        lua_pushboolean(L, mon->m_output->vrrCapable);
+        lua_setfield(L, -2, "vrr_capable");
     }
 
     // Fns

@@ -7,6 +7,7 @@
 #include "../shared.hpp"
 
 #include <chrono>
+#include <format>
 #include <string>
 #include <thread>
 
@@ -1224,4 +1225,26 @@ TEST_CASE(workspacesDistinctTiledAndFloatGaps) {
     SPAWN_KITTY("workspacesDistinctTiledAndFloatGaps");
     OK(getFromSocket("/dispatch hl.dsp.window.move({ direction = 'l' })"));
     ASSERT(getFromSocket("r/repl hl.get_active_window().at.x == 10"), "true");
+}
+
+SUBTEST(switchWorkspaceAndCheckActiveWindowFocusIsLostAndRestored) {
+    std::string resp1 = getFromSocket("/activewindow");
+    ASSERT_NOT("Invalid", resp1);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 2 })"));
+    std::string resp2 = getFromSocket("/activewindow");
+    EXPECT("Invalid", resp2);
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = \"previous\" })"));
+    resp2 = getFromSocket("/activewindow");
+    ASSERT(resp1, resp2);
+}
+
+TEST_CASE(workspaceSwitchUnfocusesWindowFromOldWorkspace) {
+    SPAWN_KITTY("a");
+    for (int followMouse = 0; followMouse <= 3; ++followMouse) {
+        OK(getFromSocket(std::format("/eval hl.config({{ input = {{ follow_mouse = {} }} }})", followMouse)));
+        CALL_SUBTEST(switchWorkspaceAndCheckActiveWindowFocusIsLostAndRestored);
+    }
+    // TODO: also test when workspaces 1 and 2 are on different workspaces.
+    //       At the time of writing, it is broken (i.e., the test would fail).
 }

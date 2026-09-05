@@ -1776,13 +1776,27 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     int bufferAge = 0;
 
     if (!buffer) {
-        m_currentBuffer = pMonitor->m_output->swapchain->next(&bufferAge);
+        if (m_renderMode == RENDER_MODE_TO_OVERLAY) {
+            const auto& plane = pMonitor->m_output->getOverlayPlane();
+            if (!plane->swapchain) {
+                LOG(Log::ERR, "Failed to acquire overlay swapchain for {}", pMonitor->m_name);
+                return false;
+            } else {
+                LOG(Log::TRACE, "Got overlay swapchain for {}, plane id={}", pMonitor->m_name, plane->id);
+            }
+            pMonitor->m_state.updateSwapchain(plane->swapchain);
+            m_currentBuffer = plane->swapchain->next(&bufferAge);
+        } else {
+            m_currentBuffer = pMonitor->m_output->swapchain->next(&bufferAge);
+        }
+
         if (!m_currentBuffer) {
             LOG(Log::ERR, "Failed to acquire swapchain buffer for {}", pMonitor->m_name);
             return false;
         }
-    } else
+    } else {
         m_currentBuffer = buffer;
+    }
 
     initRender();
 
@@ -2205,9 +2219,21 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         m_renderData.useNearestNeighbor = false;
     }
 
-    const bool                                        ZOOM_DAMAGE_ENTIRE = pMonitor->m_zoomController.shouldDamageEntire(m_renderData.mouseZoomFactor);
+    const bool ZOOM_DAMAGE_ENTIRE = pMonitor->m_zoomController.shouldDamageEntire(m_renderData.mouseZoomFactor);
 
-    CRegion                                           damage, finalDamage;
+    CRegion    damage, finalDamage, overlayDamage;
+
+    bool       usingOverlay = shouldUseOverlay(pMonitor, pMonitor->m_activeWorkspace);
+    if (usingOverlay) {
+        if (!beginRender(pMonitor, overlayDamage, RENDER_MODE_TO_OVERLAY)) {
+            LOG(Log::ERR, "renderer: couldn't beginRender() to overlay!");
+            usingOverlay = false;
+        }
+        CBox renderBox = {0, 0, sc<int>(pMonitor->m_pixelSize.x), sc<int>(pMonitor->m_pixelSize.y)};
+        renderWorkspace(pMonitor, pMonitor->m_activeWorkspace, NOW, renderBox, RL_OVERLAY);
+        endRender();
+    }
+
     std::optional<Monitor::CDamageRing::CTransaction> damageTransaction;
     if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL, {}, nullptr, false, &damageTransaction)) {
         LOG(Log::ERR, "renderer: couldn't beginRender()!");
@@ -2245,7 +2271,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
             renderCursor = false;
         } else {
             CBox renderBox = {0, 0, sc<int>(pMonitor->m_transformedSize.x), sc<int>(pMonitor->m_transformedSize.y)};
-            renderWorkspace(pMonitor, pMonitor->m_activeWorkspace, NOW, renderBox);
+            renderWorkspace(pMonitor, pMonitor->m_activeWorkspace, NOW, renderBox, usingOverlay ? RL_PRIMARY : RL_ALL);
             renderLockscreen(pMonitor, NOW, renderBox);
 
             // render IME even above the lockscreen - allow the user to use it to potentially input stuff on it.

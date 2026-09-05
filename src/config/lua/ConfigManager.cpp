@@ -1140,6 +1140,10 @@ void CConfigManager::handlePluginLoads() {
     }
 }
 
+bool CConfigManager::configLoaded() {
+    return !(m_isFirstLaunch || m_isParsingConfig);
+}
+
 bool CConfigManager::configVerifPassed() {
     return m_lastConfigVerificationWasSuccessful;
 }

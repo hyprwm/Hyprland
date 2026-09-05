@@ -86,6 +86,7 @@ namespace Config::Actions {
 
     ActionResult moveCursor(const Vector2D& pos);
     ActionResult exit();
+    ActionResult reloadConfig();
     ActionResult forceRendererReload();
     ActionResult toggleSwallow();
     ActionResult setSubmap(const std::string& submap);

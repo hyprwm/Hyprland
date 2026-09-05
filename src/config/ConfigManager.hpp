@@ -57,6 +57,7 @@ namespace Config {
         virtual std::string                      getConfigString()   = 0;
         virtual const std::vector<std::string>&  getConfigPaths()    = 0;
 
+        virtual bool                             configLoaded()      = 0;
         virtual bool                             configVerifPassed() = 0;
 
         virtual std::string                      getErrors() = 0;

@@ -52,3 +52,11 @@ TEST_CASE(luaEventConfigUnload) {
     EXPECT(Hyprutils::File::readFileAsString("/tmp/hyprtester-luaEventConfigUnload.txt").value_or("error"), "luaEventConfigUnload");
     std::filesystem::remove("/tmp/hyprtester-luaEventConfigUnload.txt", ec);
 }
+
+TEST_CASE(luaReloadConfig) {
+    constexpr auto VAR = "normally_nonexistent_variable";
+
+    OK(getFromSocket(std::format("/eval {} = true", VAR)));
+    OK(getFromSocket("/dispatch hl.dsp.reload_config()"));
+    EXPECT(getFromSocket(std::format("/repl return {}", VAR)), "nil");
+}

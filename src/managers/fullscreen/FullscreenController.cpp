@@ -42,10 +42,9 @@ bool CFullscreenController::isFullscreen(const PHLWINDOW window, const std::opti
         if (!FS_WINDOW || !FS_WINDOW->windowTarget())
             return false;
 
-        const auto FS_TARGET     = FS_HANDLER->getFullscreen(covering);
         const auto INTERNAL_MODE = FS_HANDLER->getFullscreenModes(window->windowTarget()).internal;
 
-        if (FS_TARGET && FS_WINDOW == FS_TARGET->window() && INTERNAL_MODE != FSMODE_NONE && (!mode.has_value() || INTERNAL_MODE == mode.value()))
+        if (INTERNAL_MODE != FSMODE_NONE && (!mode.has_value() || INTERNAL_MODE == mode.value()))
             return true;
         else {
             FS_HANDLER->syncFullscreenTargets();

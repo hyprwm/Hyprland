@@ -862,6 +862,8 @@ void CWindow::requestClientFullscreen(const SClientFullscreenRequest& request) {
     }
 
     if (request.maximized.has_value() && !SUPPRESSION.maximize) {
+        static auto SUPPRESS_INITIAL_MAXIMIZE = CConfigValue<Config::BOOL>("misc:suppress_initial_maximize_requests");
+
         if (m_isMapped) {
             if (!BACKEND_REQUEST || !m_fullscreenPolicy->consumeExpectedMaximizeEcho(request.maximized.value())) {
                 const auto WINDOW       = m_self.lock();
@@ -871,10 +873,12 @@ void CWindow::requestClientFullscreen(const SClientFullscreenRequest& request) {
                 else if (CLIENT_STATE == Fullscreen::FSMODE_MAXIMIZED)
                     Fullscreen::controller()->setFullscreenMode(WINDOW, std::nullopt, Fullscreen::FSMODE_NONE);
             }
-        } else if (request.maximized.value())
-            m_fullscreenPolicy->setPendingClientRequest(Fullscreen::FSMODE_MAXIMIZED);
-        else
-            m_fullscreenPolicy->clearPendingClientMode(Fullscreen::FSMODE_MAXIMIZED);
+        } else if (!(*SUPPRESS_INITIAL_MAXIMIZE)) {
+            if (request.maximized.value())
+                m_fullscreenPolicy->setPendingClientRequest(Fullscreen::FSMODE_MAXIMIZED);
+            else
+                m_fullscreenPolicy->clearPendingClientMode(Fullscreen::FSMODE_MAXIMIZED);
+        }
     }
 }
 

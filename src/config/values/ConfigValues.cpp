@@ -603,6 +603,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<String>("misc:bell_sound", "path to custom wav/ogg system bell. `none` or an empty string mute it. `default` uses the system's current one.", "default"),
         MS<Int>("misc:new_float_force_onscreen", "whether new floating windows must be placed fully/partially on-screen", 2),
         MS<Int>("misc:float_force_onscreen", "whether existing floating windows must remain fully/partially on-screen", 0),
+        MS<Bool>("misc:suppress_initial_maximize_requests", "whether to ignore requests from a window to be maximised when it is first created", true),
 
         /*
          * binds:

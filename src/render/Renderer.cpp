@@ -332,6 +332,11 @@ bool IHyprRenderer::shouldRenderMonitor(PHLMONITOR monitor) {
     return true;
 }
 
+bool IHyprRenderer::shouldUseOverlay(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace) {
+    static auto POVER = CConfigValue<Config::INTEGER>("render:use_overlay_plane");
+    return *POVER;
+}
+
 void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {
     PHLWINDOW pWorkspaceWindow = nullptr;
 
@@ -1100,7 +1105,8 @@ void IHyprRenderer::renderSessionLockSurface(WP<SSessionLockSurface> pSurface, P
         &renderdata);
 }
 
-void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time, const Vector2D& translate, const float& scale) {
+void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time, const Vector2D& translate, const float& scale,
+                                                 eRenderLayers layers) {
     static auto PXPMODE          = CConfigValue<Config::INTEGER>("render:xp_mode");
     static auto PSESSIONLOCKXRAY = CConfigValue<Config::INTEGER>("misc:session_lock_xray");
 
@@ -1159,97 +1165,103 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         return;
     }
 
-    if LIKELY (!*PXPMODE) {
-        renderBackground(pMonitor);
+    if (layers & RL_BOTTOM) {
+        if LIKELY (!*PXPMODE) {
+            renderBackground(pMonitor);
 
-        for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
-            renderLayer(ls.lock(), pMonitor, time);
+            for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
+                renderLayer(ls.lock(), pMonitor, time);
+            }
+            renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_BACKGROUND);
+
+            Event::bus()->m_events.render.stage.emit(RENDER_POST_WALLPAPER);
+
+            for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
+                renderLayer(ls.lock(), pMonitor, time);
+            }
+            renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_BOTTOM);
         }
-        renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_BACKGROUND);
 
-        Event::bus()->m_events.render.stage.emit(RENDER_POST_WALLPAPER);
-
-        for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
-            renderLayer(ls.lock(), pMonitor, time);
-        }
-        renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_BOTTOM);
+        // pre window pass
+        if (preBlurQueued(pMonitor))
+            m_renderPass.add(makeUnique<CPreBlurElement>());
     }
 
-    // pre window pass
-    if (preBlurQueued(pMonitor))
-        m_renderPass.add(makeUnique<CPreBlurElement>());
-
-    if UNLIKELY /* subjective? */ (Fullscreen::controller()->hasFullscreen(pWorkspace))
-        renderWorkspaceWindowsFullscreen(pMonitor, pWorkspace, time);
-    else
-        renderWorkspaceWindows(pMonitor, pWorkspace, time);
-
-    // and then special
-    if UNLIKELY (pMonitor->m_specialDim->value() != 0.F) {
-        CRectPassElement::SRectData data;
-        data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
-        data.color = CHyprColor(0, 0, 0, pMonitor->m_specialDim->value());
-
-        m_renderPass.add(makeUnique<CRectPassElement>(data));
-    }
-
-    if UNLIKELY (pMonitor->m_specialBlur->value() != 0.F) {
-        CRectPassElement::SRectData data;
-        data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
-        data.color = CHyprColor(0, 0, 0, 0);
-        data.blur  = true;
-        data.blurA = pMonitor->m_specialBlur->value();
-
-        m_renderPass.add(makeUnique<CRectPassElement>(data));
-    }
-
-    // special
-    for (auto const& ws : State::workspaceState()->workspaces()) {
-        if (ws->m_alpha->value() <= 0.F || !ws->m_isSpecialWorkspace)
-            continue;
-
-        if (Fullscreen::controller()->hasFullscreen(ws.lock()))
-            renderWorkspaceWindowsFullscreen(pMonitor, ws.lock(), time);
+    if (layers & RL_NORMAL) {
+        if UNLIKELY /* subjective? */ (Fullscreen::controller()->hasFullscreen(pWorkspace))
+            renderWorkspaceWindowsFullscreen(pMonitor, pWorkspace, time);
         else
-            renderWorkspaceWindows(pMonitor, ws.lock(), time);
+            renderWorkspaceWindows(pMonitor, pWorkspace, time);
     }
 
-    // pinned always above
-    for (auto const& w : Desktop::windowState()->windows()) {
-        if (w->isHidden() && !w->mapped())
-            continue;
+    if (layers & RL_TOP) {
+        // and then special
+        if UNLIKELY (pMonitor->m_specialDim->value() != 0.F) {
+            CRectPassElement::SRectData data;
+            data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
+            data.color = CHyprColor(0, 0, 0, pMonitor->m_specialDim->value());
 
-        if (!(w->m_state & WINDOW_STATE_PINNED) || !w->isFloating())
-            continue;
-
-        if (!shouldRenderWindow(w, pMonitor))
-            continue;
-
-        // render the bad boy
-        renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
-    }
-
-    Event::bus()->m_events.render.stage.emit(RENDER_POST_WINDOWS);
-
-    // Render surfaces above windows for monitor
-    for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-        renderLayer(ls.lock(), pMonitor, time);
-    }
-    renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_TOP);
-
-    for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
-        renderLayer(ls.lock(), pMonitor, time);
-    }
-    renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_OVERLAY);
-
-    for (auto const& lsl : pMonitor->m_layerSurfaceLayers) {
-        for (auto const& ls : lsl) {
-            renderLayer(ls.lock(), pMonitor, time, true);
+            m_renderPass.add(makeUnique<CRectPassElement>(data));
         }
-    }
-    renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_POPUP);
 
-    renderDragIcon(pMonitor, time);
+        if UNLIKELY (pMonitor->m_specialBlur->value() != 0.F) {
+            CRectPassElement::SRectData data;
+            data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
+            data.color = CHyprColor(0, 0, 0, 0);
+            data.blur  = true;
+            data.blurA = pMonitor->m_specialBlur->value();
+
+            m_renderPass.add(makeUnique<CRectPassElement>(data));
+        }
+
+        // special
+        for (auto const& ws : State::workspaceState()->workspaces()) {
+            if (ws->m_alpha->value() <= 0.F || !ws->m_isSpecialWorkspace)
+                continue;
+
+            if (Fullscreen::controller()->hasFullscreen(ws.lock()))
+                renderWorkspaceWindowsFullscreen(pMonitor, ws.lock(), time);
+            else
+                renderWorkspaceWindows(pMonitor, ws.lock(), time);
+        }
+
+        // pinned always above
+        for (auto const& w : Desktop::windowState()->windows()) {
+            if (w->isHidden() && !w->mapped())
+                continue;
+
+            if (!(w->m_state & WINDOW_STATE_PINNED) || !w->isFloating())
+                continue;
+
+            if (!shouldRenderWindow(w, pMonitor))
+                continue;
+
+            // render the bad boy
+            renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
+        }
+
+        Event::bus()->m_events.render.stage.emit(RENDER_POST_WINDOWS);
+
+        // Render surfaces above windows for monitor
+        for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+            renderLayer(ls.lock(), pMonitor, time);
+        }
+        renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_TOP);
+
+        for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
+            renderLayer(ls.lock(), pMonitor, time);
+        }
+        renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_OVERLAY);
+
+        for (auto const& lsl : pMonitor->m_layerSurfaceLayers) {
+            for (auto const& ls : lsl) {
+                renderLayer(ls.lock(), pMonitor, time, true);
+            }
+        }
+        renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_POPUP);
+
+        renderDragIcon(pMonitor, time);
+    }
 }
 
 void IHyprRenderer::renderIME(PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry) {
@@ -1770,13 +1782,27 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     int bufferAge = 0;
 
     if (!buffer) {
-        m_currentBuffer = pMonitor->m_output->swapchain->next(&bufferAge);
+        if (m_renderMode == RENDER_MODE_TO_OVERLAY) {
+            const auto& plane = pMonitor->m_output->getOverlayPlane();
+            if (!plane->swapchain) {
+                LOG(Log::ERR, "Failed to acquire overlay swapchain for {}", pMonitor->m_name);
+                return false;
+            } else {
+                LOG(Log::TRACE, "Got overlay swapchain for {}, plane id={}", pMonitor->m_name, plane->id);
+            }
+            pMonitor->m_state.updateSwapchain(plane->swapchain);
+            m_currentBuffer = plane->swapchain->next(&bufferAge);
+        } else {
+            m_currentBuffer = pMonitor->m_output->swapchain->next(&bufferAge);
+        }
+
         if (!m_currentBuffer) {
             LOG(Log::ERR, "Failed to acquire swapchain buffer for {}", pMonitor->m_name);
             return false;
         }
-    } else
+    } else {
         m_currentBuffer = buffer;
+    }
 
     initRender();
 
@@ -2199,9 +2225,21 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         m_renderData.useNearestNeighbor = false;
     }
 
-    const bool                                        ZOOM_DAMAGE_ENTIRE = pMonitor->m_zoomController.shouldDamageEntire(m_renderData.mouseZoomFactor);
+    const bool ZOOM_DAMAGE_ENTIRE = pMonitor->m_zoomController.shouldDamageEntire(m_renderData.mouseZoomFactor);
 
-    CRegion                                           damage, finalDamage;
+    CRegion    damage, finalDamage, overlayDamage;
+
+    bool       usingOverlay = shouldUseOverlay(pMonitor, pMonitor->m_activeWorkspace);
+    if (usingOverlay) {
+        if (!beginRender(pMonitor, overlayDamage, RENDER_MODE_TO_OVERLAY)) {
+            LOG(Log::ERR, "renderer: couldn't beginRender() to overlay!");
+            usingOverlay = false;
+        }
+        CBox renderBox = {0, 0, sc<int>(pMonitor->m_pixelSize.x), sc<int>(pMonitor->m_pixelSize.y)};
+        renderWorkspace(pMonitor, pMonitor->m_activeWorkspace, NOW, renderBox, RL_OVERLAY);
+        endRender();
+    }
+
     std::optional<Monitor::CDamageRing::CTransaction> damageTransaction;
     if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL, {}, nullptr, false, &damageTransaction)) {
         LOG(Log::ERR, "renderer: couldn't beginRender()!");
@@ -2239,7 +2277,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
             renderCursor = false;
         } else {
             CBox renderBox = {0, 0, sc<int>(pMonitor->m_transformedSize.x), sc<int>(pMonitor->m_transformedSize.y)};
-            renderWorkspace(pMonitor, pMonitor->m_activeWorkspace, NOW, renderBox);
+            renderWorkspace(pMonitor, pMonitor->m_activeWorkspace, NOW, renderBox, usingOverlay ? RL_PRIMARY : RL_ALL);
             renderLockscreen(pMonitor, NOW, renderBox);
 
             // render IME even above the lockscreen - allow the user to use it to potentially input stuff on it.
@@ -2567,7 +2605,7 @@ bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor, std::opt
     return ok;
 }
 
-void IHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry) {
+void IHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry, eRenderLayers layers) {
     Vector2D translate = {geometry.x, geometry.y};
     float    scale     = sc<float>(geometry.width) / pMonitor->m_transformedSize.x;
 
@@ -2579,7 +2617,7 @@ void IHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace
         translate = Vector2D{};
     }
 
-    renderAllClientsForWorkspace(pMonitor, pWorkspace, now, translate, scale);
+    renderAllClientsForWorkspace(pMonitor, pWorkspace, now, translate, scale, layers);
 }
 
 void IHyprRenderer::sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now) {

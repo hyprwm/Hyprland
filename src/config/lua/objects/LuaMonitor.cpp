@@ -140,6 +140,14 @@ static int monitorIndex(lua_State* L) {
         lua_setfield(L, -2, "width");
         lua_pushinteger(L, sc<int>(mon->m_pixelSize.y));
         lua_setfield(L, -2, "height");
+    } else if (key == "mode") {
+        lua_newtable(L);
+        lua_pushinteger(L, sc<int>(mon->m_size.x));
+        lua_setfield(L, -2, "width");
+        lua_pushinteger(L, sc<int>(mon->m_size.y));
+        lua_setfield(L, -2, "height");
+        lua_pushnumber(L, sc<float>(mon->m_refreshRate));
+        lua_setfield(L, -2, "refresh_rate");
     } else if (key == "scale")
         lua_pushnumber(L, mon->m_scale);
     else if (key == "transform")

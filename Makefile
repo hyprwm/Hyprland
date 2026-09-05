@@ -1,19 +1,38 @@
-PREFIX = /usr/local
+PREFIX ?= /usr/local
+BUILDDIR ?= ./build
+CMAKE_BUILD_TYPE := Release
+CMAKE_ARGS = -DCMAKE_BUILD_TYPE:STRING=$(CMAKE_BUILD_TYPE) -DCMAKE_INSTALL_PREFIX:STRING=$(PREFIX)
+CMAKE_BUILDTYPE_FILE = $(BUILDDIR)/cmake_last_build_type
+CMAKE_GENERATE_CMD = cmake -Wno-unused-cli $(CMAKE_ARGS) -S . -B $(BUILDDIR)
+
+.DEFAULT: stub
+.PHONY: stub cmake_smartbuild release debug nopch clear all install uninstall pluginenv installheaders man asan format-check format-fix test
 
 stub:
 	@echo "Do not run $(MAKE) directly without any arguments. Please refer to the wiki on how to compile Hyprland."
 
-release:
-	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:STRING=${PREFIX} -S . -B ./build
-	cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
+# Regenerate when CMakeLists have changed
+$(CMAKE_BUILDTYPE_FILE): $(shell find -type f -name CMakeLists.txt -not -path '*/_deps/*')
+	mkdir -p "$(BUILDDIR)"
+	echo "$(CMAKE_BUILD_TYPE)+$(CMAKE_ARGS)" > "$(CMAKE_BUILDTYPE_FILE)"
+	$(CMAKE_GENERATE_CMD)
 
-debug:
-	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Debug -DTESTS=true -DCMAKE_INSTALL_PREFIX:STRING=${PREFIX} -S . -B ./build
-	cmake --build ./build --config Debug --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
+# Regenerate when CMake options have changed, then build
+cmake_smartbuild: $(CMAKE_BUILDTYPE_FILE)
+	read lastbuild < "$(CMAKE_BUILDTYPE_FILE)" && test "$$lastbuild" = "$(CMAKE_BUILD_TYPE)+$(CMAKE_ARGS)" || { \
+		echo "$(CMAKE_BUILD_TYPE)+$(CMAKE_ARGS)" > "$(CMAKE_BUILDTYPE_FILE)"; \
+		$(CMAKE_GENERATE_CMD); \
+	}
+	cmake --build $(BUILDDIR) --config $(CMAKE_BUILD_TYPE) --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
-nopch:
-	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:STRING=${PREFIX} -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON -S . -B ./build
-	cmake --build ./build --config Release --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
+release: cmake_smartbuild
+
+debug: CMAKE_BUILD_TYPE := Debug
+debug: CMAKE_ARGS += -DTESTS=true
+debug: cmake_smartbuild
+
+nopch: CMAKE_ARGS += -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON
+nopch: cmake_smartbuild
 
 clear:
 	rm -rf build
@@ -24,17 +43,17 @@ all:
 	$(MAKE) clear
 	$(MAKE) release
 
-install:
-	cmake --install ./build
+install: cmake_smartbuild
+	cmake --install $(BUILDDIR)
 
 uninstall:
-	xargs rm < ./build/install_manifest.txt
+	xargs rm < $(BUILDDIR)/install_manifest.txt
 
 pluginenv:
 	@echo -en "$(MAKE) pluginenv has been deprecated.\nPlease run $(MAKE) all && sudo $(MAKE) installheaders\n"
 	@exit 1
 
-installheaders:
+installheaders: cmake_smartbuild
 	@if [ ! -f ./src/version.h ]; then echo -en "You need to run $(MAKE) all first.\n" && exit 1; fi
 
 	# remove previous headers from hyprpm's dir
@@ -43,12 +62,12 @@ installheaders:
 	mkdir -p ${PREFIX}/include/hyprland/protocols
 	mkdir -p ${PREFIX}/share/pkgconfig
 
-	cmake --build ./build --config Release --target generate-protocol-headers
+	cmake --build $(BUILDDIR) --config $(CMAKE_BUILD_TYPE) --target generate-protocol-headers
 
 	find src -type f \( -name '*.hpp' -o -name '*.h' -o -name '*.inc' \) -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland
 	cp ./protocols/*.h* ${PREFIX}/include/hyprland/protocols
-	cp ./build/hyprland.pc ${PREFIX}/share/pkgconfig
-	if [ -d /usr/share/pkgconfig ]; then cp ./build/hyprland.pc /usr/share/pkgconfig 2>/dev/null || true; fi
+	cp $(BUILDDIR)/hyprland.pc ${PREFIX}/share/pkgconfig
+	if [ -d /usr/share/pkgconfig ]; then cp $(BUILDDIR)/hyprland.pc /usr/share/pkgconfig 2>/dev/null || true; fi
 
 	chmod -R 755 ${PREFIX}/include/hyprland
 	chmod 755 ${PREFIX}/share/pkgconfig
@@ -70,10 +89,10 @@ man:
 		--from rst \
 		--to man > ./docs/hyprctl.1
 
-asan:
+asan: CMAKE_BUILD_TYPE := Debug
+asan: cmake_smartbuild
 	@echo -en "!!WARNING!!\nOnly run this in the TTY.\n"
-	@pidof Hyprland > /dev/null && echo -ne "Refusing to run with Hyprland running.\n" || echo ""
-	@pidof Hyprland > /dev/null && exit 1 || echo ""
+	@if pidof Hyprland > /dev/null; then echo -ne "Refusing to run with Hyprland running.\n"; exit 1; fi
 
 	rm -rf ./wayland
 	#git reset --hard
@@ -88,11 +107,11 @@ asan:
 	@echo "Wayland done"
 
 	patch -p1 < ./scripts/hyprlandStaticAsan.diff
-	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Debug -DWITH_ASAN:STRING=True -DUSE_TRACY:STRING=False -DUSE_TRACY_GPU:STRING=False -S . -B ./build
-	cmake --build ./build --config Debug --target all
+	$(CMAKE_GENERATE_CMD) -DWITH_ASAN:STRING=True -DUSE_TRACY:STRING=False -DUSE_TRACY_GPU:STRING=False
+	cmake --build $(BUILDDIR) --config $(CMAKE_BUILD_TYPE) --target all
 	@echo "Hyprland done"
 
-	ASAN_OPTIONS="detect_odr_violation=0,log_path=asan.log" HYPRLAND_NO_CRASHREPORTER=1 ./build/Hyprland -c ~/.config/hypr/hyprland.lua
+	ASAN_OPTIONS="detect_odr_violation=0,log_path=asan.log" HYPRLAND_NO_CRASHREPORTER=1 $(BUILDDIR)/Hyprland -c ~/.config/hypr/hyprland.lua
 
 format-check:
 	@find src hyprctl hyprpm start tests hyprtester -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" \) \
@@ -108,6 +127,5 @@ format-fix:
 		! -path "hyprtester/protocols/*" \
 		| xargs clang-format -i
 
-test:
-	$(MAKE) debug
-	./build/hyprtester/hyprtester -c hyprtester/test.lua -b ./build/Hyprland -p hyprtester/plugin/hyprtestplugin.so $(TESTS)
+test: debug
+	$(BUILDDIR)/hyprtester/hyprtester -c hyprtester/test.lua -b $(BUILDDIR)/Hyprland -p hyprtester/plugin/hyprtestplugin.so $(TESTS)

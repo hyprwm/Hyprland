@@ -10,7 +10,10 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
     m_resource->setOnDestroy([this](CWlSubsurface* r) { destroy(); });
     m_resource->setDestroy([this](CWlSubsurface* r) { destroy(); });
 
-    m_resource->setSetPosition([this](CWlSubsurface* r, int32_t x, int32_t y) { m_position = {x, y}; });
+    m_resource->setSetPosition([this](CWlSubsurface* r, int32_t x, int32_t y) {
+        m_position = {x, y};
+        markPlacementPending();
+    });
 
     m_resource->setSetDesync([this](CWlSubsurface* r) { m_sync = false; });
     m_resource->setSetSync([this](CWlSubsurface* r) { m_sync = true; });
@@ -43,6 +46,7 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
         }
 
         m_parent->sortSubsurfaces();
+        markPlacementPending();
     });
 
     m_resource->setPlaceBelow([this](CWlSubsurface* r, wl_resource* surf) {
@@ -73,6 +77,7 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
         }
 
         m_parent->sortSubsurfaces();
+        markPlacementPending();
     });
 
     m_listeners.commitSurface = m_surface->m_events.commit.listen([this] {
@@ -106,6 +111,11 @@ void CWLSubsurfaceResource::destroy() {
     }
     m_events.destroy.emit();
     PROTO::subcompositor->destroyResource(this);
+}
+
+void CWLSubsurfaceResource::markPlacementPending() {
+    if (m_surface)
+        m_surface->m_pending.updated.bits.subsurfacePlacement = true;
 }
 
 void CWLSubsurfaceResource::unlinkFromParent() {

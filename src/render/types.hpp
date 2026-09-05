@@ -37,6 +37,7 @@ namespace Render {
         RENDER_MODE_FULL_FAKE           = 1,
         RENDER_MODE_TO_BUFFER           = 2,
         RENDER_MODE_TO_BUFFER_READ_ONLY = 3,
+        RENDER_MODE_TO_OVERLAY          = 4,
     };
 
     struct SRenderWorkspaceUntilData {

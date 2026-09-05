@@ -1165,97 +1165,103 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         return;
     }
 
-    if LIKELY (!*PXPMODE) {
-        renderBackground(pMonitor);
+    if (layers & RL_BOTTOM) {
+        if LIKELY (!*PXPMODE) {
+            renderBackground(pMonitor);
 
-        for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
-            renderLayer(ls.lock(), pMonitor, time);
+            for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
+                renderLayer(ls.lock(), pMonitor, time);
+            }
+            renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_BACKGROUND);
+
+            Event::bus()->m_events.render.stage.emit(RENDER_POST_WALLPAPER);
+
+            for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
+                renderLayer(ls.lock(), pMonitor, time);
+            }
+            renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_BOTTOM);
         }
-        renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_BACKGROUND);
 
-        Event::bus()->m_events.render.stage.emit(RENDER_POST_WALLPAPER);
-
-        for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
-            renderLayer(ls.lock(), pMonitor, time);
-        }
-        renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_BOTTOM);
+        // pre window pass
+        if (preBlurQueued(pMonitor))
+            m_renderPass.add(makeUnique<CPreBlurElement>());
     }
 
-    // pre window pass
-    if (preBlurQueued(pMonitor))
-        m_renderPass.add(makeUnique<CPreBlurElement>());
-
-    if UNLIKELY /* subjective? */ (Fullscreen::controller()->hasFullscreen(pWorkspace))
-        renderWorkspaceWindowsFullscreen(pMonitor, pWorkspace, time);
-    else
-        renderWorkspaceWindows(pMonitor, pWorkspace, time);
-
-    // and then special
-    if UNLIKELY (pMonitor->m_specialDim->value() != 0.F) {
-        CRectPassElement::SRectData data;
-        data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
-        data.color = CHyprColor(0, 0, 0, pMonitor->m_specialDim->value());
-
-        m_renderPass.add(makeUnique<CRectPassElement>(data));
-    }
-
-    if UNLIKELY (pMonitor->m_specialBlur->value() != 0.F) {
-        CRectPassElement::SRectData data;
-        data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
-        data.color = CHyprColor(0, 0, 0, 0);
-        data.blur  = true;
-        data.blurA = pMonitor->m_specialBlur->value();
-
-        m_renderPass.add(makeUnique<CRectPassElement>(data));
-    }
-
-    // special
-    for (auto const& ws : State::workspaceState()->workspaces()) {
-        if (ws->m_alpha->value() <= 0.F || !ws->m_isSpecialWorkspace)
-            continue;
-
-        if (Fullscreen::controller()->hasFullscreen(ws.lock()))
-            renderWorkspaceWindowsFullscreen(pMonitor, ws.lock(), time);
+    if (layers & RL_NORMAL) {
+        if UNLIKELY /* subjective? */ (Fullscreen::controller()->hasFullscreen(pWorkspace))
+            renderWorkspaceWindowsFullscreen(pMonitor, pWorkspace, time);
         else
-            renderWorkspaceWindows(pMonitor, ws.lock(), time);
+            renderWorkspaceWindows(pMonitor, pWorkspace, time);
     }
 
-    // pinned always above
-    for (auto const& w : Desktop::windowState()->windows()) {
-        if (w->isHidden() && !w->mapped())
-            continue;
+    if (layers & RL_TOP) {
+        // and then special
+        if UNLIKELY (pMonitor->m_specialDim->value() != 0.F) {
+            CRectPassElement::SRectData data;
+            data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
+            data.color = CHyprColor(0, 0, 0, pMonitor->m_specialDim->value());
 
-        if (!(w->m_state & WINDOW_STATE_PINNED) || !w->isFloating())
-            continue;
-
-        if (!shouldRenderWindow(w, pMonitor))
-            continue;
-
-        // render the bad boy
-        renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
-    }
-
-    Event::bus()->m_events.render.stage.emit(RENDER_POST_WINDOWS);
-
-    // Render surfaces above windows for monitor
-    for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-        renderLayer(ls.lock(), pMonitor, time);
-    }
-    renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_TOP);
-
-    for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
-        renderLayer(ls.lock(), pMonitor, time);
-    }
-    renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_OVERLAY);
-
-    for (auto const& lsl : pMonitor->m_layerSurfaceLayers) {
-        for (auto const& ls : lsl) {
-            renderLayer(ls.lock(), pMonitor, time, true);
+            m_renderPass.add(makeUnique<CRectPassElement>(data));
         }
-    }
-    renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_POPUP);
 
-    renderDragIcon(pMonitor, time);
+        if UNLIKELY (pMonitor->m_specialBlur->value() != 0.F) {
+            CRectPassElement::SRectData data;
+            data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
+            data.color = CHyprColor(0, 0, 0, 0);
+            data.blur  = true;
+            data.blurA = pMonitor->m_specialBlur->value();
+
+            m_renderPass.add(makeUnique<CRectPassElement>(data));
+        }
+
+        // special
+        for (auto const& ws : State::workspaceState()->workspaces()) {
+            if (ws->m_alpha->value() <= 0.F || !ws->m_isSpecialWorkspace)
+                continue;
+
+            if (Fullscreen::controller()->hasFullscreen(ws.lock()))
+                renderWorkspaceWindowsFullscreen(pMonitor, ws.lock(), time);
+            else
+                renderWorkspaceWindows(pMonitor, ws.lock(), time);
+        }
+
+        // pinned always above
+        for (auto const& w : Desktop::windowState()->windows()) {
+            if (w->isHidden() && !w->mapped())
+                continue;
+
+            if (!(w->m_state & WINDOW_STATE_PINNED) || !w->isFloating())
+                continue;
+
+            if (!shouldRenderWindow(w, pMonitor))
+                continue;
+
+            // render the bad boy
+            renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
+        }
+
+        Event::bus()->m_events.render.stage.emit(RENDER_POST_WINDOWS);
+
+        // Render surfaces above windows for monitor
+        for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+            renderLayer(ls.lock(), pMonitor, time);
+        }
+        renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_TOP);
+
+        for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
+            renderLayer(ls.lock(), pMonitor, time);
+        }
+        renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_OVERLAY);
+
+        for (auto const& lsl : pMonitor->m_layerSurfaceLayers) {
+            for (auto const& ls : lsl) {
+                renderLayer(ls.lock(), pMonitor, time, true);
+            }
+        }
+        renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_POPUP);
+
+        renderDragIcon(pMonitor, time);
+    }
 }
 
 void IHyprRenderer::renderIME(PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry) {

@@ -231,6 +231,7 @@ namespace Desktop::View {
         bool                       isNotResponding();
         bool                       priorityFocus();
         SP<CWLSurfaceResource>     getSolitaryResource() const;
+        SP<CWLSurfaceResource>     getDirectScanoutResource() const;
         std::optional<Vector2D>    calculateExpression(const Math::SExpressionVec2& expr);
         std::optional<Vector2D>    minSize();
         std::optional<Vector2D>    maxSize();

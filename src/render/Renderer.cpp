@@ -2228,7 +2228,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     bool renderCursor = true;
 
-    if (pMonitor->m_solitaryClient && (!finalDamage.empty() || *PSOLDAMAGE))
+    if (pMonitor->m_solitaryClient && pMonitor->m_solitaryClient->getSolitaryResource() && (!finalDamage.empty() || *PSOLDAMAGE))
         renderWindow(pMonitor->m_solitaryClient.lock(), pMonitor, NOW, false, RENDER_PASS_MAIN /* solitary = no popups */);
     else if (!finalDamage.empty()) {
         if (pMonitor->isMirror()) {

@@ -1105,6 +1105,61 @@ SP<CWLSurfaceResource> CWindow::getSolitaryResource() const {
     return nullptr;
 }
 
+SP<CWLSurfaceResource> CWindow::getDirectScanoutResource() const {
+    if (auto sol = getSolitaryResource())
+        return sol;
+
+    if (m_wlSurface) {
+        auto res = m_wlSurface->resource();
+        if (!res || res->m_current.buffer)
+            return nullptr;
+
+        SP<CWLSurfaceResource> targetSubsurface = nullptr;
+
+        // inspect root window subsurfaces
+        for (auto& sub : res->m_subsurfaces) {
+            if (sub.expired())
+                continue;
+            auto subsurf = sub.lock();
+            if (!subsurf || subsurf->m_surface.expired())
+                continue;
+
+            auto surf = subsurf->m_surface.lock();
+            if (!surf)
+                continue;
+
+            if (subsurf->m_zIndex < 0) {
+                if (surf->m_current.buffer) {
+                    if (targetSubsurface)
+                        return nullptr; // multiple rendering subsurfaces active
+                    targetSubsurface = surf;
+                }
+            } else if (surf->m_current.buffer || surf->m_mapped) {
+                return nullptr;
+            }
+        }
+
+        // inspect nested subsurfaces attached directly to the surface
+        if (targetSubsurface) {
+            for (auto& sub : targetSubsurface->m_subsurfaces) {
+                if (sub.expired())
+                    continue;
+                auto subsurf = sub.lock();
+                if (!subsurf || subsurf->m_surface.expired())
+                    continue;
+
+                auto surf = subsurf->m_surface.lock();
+                if (surf && (surf->m_current.buffer || surf->m_mapped))
+                    return nullptr; // Steam Overlay or Wayland cursor subsurface active
+            }
+        }
+
+        return targetSubsurface;
+    }
+
+    return nullptr;
+}
+
 std::optional<Vector2D> CWindow::calculateExpression(const Math::SExpressionVec2& expr) {
     return m_target->calculateExpression(expr);
 }

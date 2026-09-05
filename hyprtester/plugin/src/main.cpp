@@ -1,3 +1,4 @@
+#include "state/workspace/Resolver.hpp"
 #include <unistd.h>
 #include <src/includes.hpp>
 #include <sstream>
@@ -18,15 +19,15 @@
 #include <src/desktop/view/LayerSurface.hpp>
 #include <src/desktop/view/window/WindowFullscreenPolicy.hpp>
 #include <src/desktop/view/window/WindowPresentation.hpp>
-#include <src/desktop/Workspace.hpp>
 #include <src/desktop/state/ViewState.hpp>
 #include <src/desktop/state/WindowState.hpp>
+#include <src/workspace/HLWorkspace.hpp>
 #include <src/layout/target/Target.hpp>
 #include <src/keybinds/Key.hpp>
 #include <src/Compositor.hpp>
 #include <src/desktop/state/FocusState.hpp>
 #include <src/state/MonitorState.hpp>
-#include <src/state/WorkspaceState.hpp>
+#include <src/state/workspace/State.hpp>
 #include <src/layout/LayoutManager.hpp>
 #include <src/event/EventBus.hpp>
 #undef private
@@ -79,7 +80,7 @@ static PHLWINDOW windowByClass(const std::string& cls) {
 }
 
 static SDispatchResult expectWindowAtWorkspace(const std::string& workspaceSelector, const Vector2D& pos, const std::string& expectedClass, const std::string& ignoreClass) {
-    const auto WORKSPACE = State::workspaceState()->query().string(workspaceSelector).run();
+    const auto WORKSPACE = State::Workspace::state()->find(State::Workspace::resolver()->getWorkspaceTargetFromString(workspaceSelector));
     if (!WORKSPACE)
         return {.success = false, .error = std::format("No workspace matching '{}'", workspaceSelector)};
 
@@ -99,7 +100,7 @@ static SDispatchResult expectWindowAtWorkspace(const std::string& workspaceSelec
 }
 
 static SDispatchResult expectWorkspaceRenameEvent(const std::string& workspaceSelector, const std::string& name) {
-    const auto WORKSPACE = State::workspaceState()->query().string(workspaceSelector).run();
+    const auto WORKSPACE = State::Workspace::state()->find(State::Workspace::resolver()->getWorkspaceTargetFromString(workspaceSelector));
     if (!WORKSPACE)
         return {.success = false, .error = std::format("No workspace matching '{}'", workspaceSelector)};
 
@@ -853,6 +854,22 @@ static SDispatchResult floatingFocusOnFullscreen(std::string in) {
     return {};
 }
 
+static SDispatchResult expectWorkspaceLifecycleState(std::string monitorName) {
+    const auto MONITOR = std::ranges::find(State::monitorState()->monitors(), monitorName, &Monitor::CMonitor::m_name);
+    if (MONITOR == State::monitorState()->monitors().end() || !(*MONITOR)->m_activeWorkspace)
+        return {.success = false, .error = std::format("Monitor '{}' has no active workspace", monitorName)};
+
+    const auto WORKSPACE = (*MONITOR)->m_activeWorkspace;
+    if (!WORKSPACE->visible())
+        return {.success = false, .error = "Active lifecycle workspace is not visible"};
+    if (WORKSPACE->m_alpha->value() != 1.F || WORKSPACE->m_alpha->goal() != 1.F)
+        return {.success = false, .error = "Active lifecycle workspace alpha is not instantly IN"};
+    if (WORKSPACE->m_renderOffset->value() != Vector2D{} || WORKSPACE->m_renderOffset->goal() != Vector2D{})
+        return {.success = false, .error = "Active lifecycle workspace offset is not instantly IN"};
+
+    return {};
+}
+
 static SDispatchResult expectNoMaximizeEcho(std::string in) {
     const auto WINDOW = Desktop::focusState()->window();
     if (!WINDOW)
@@ -1056,6 +1073,10 @@ static int luaFloatingFocusOnFullscreen(lua_State* L) {
     return luaResult(L, ::floatingFocusOnFullscreen(""));
 }
 
+static int luaExpectWorkspaceLifecycleState(lua_State* L) {
+    return luaResult(L, ::expectWorkspaceLifecycleState(luaL_checkstring(L, 1)));
+}
+
 static int luaExpectNoMaximizeEcho(lua_State* L) {
     return luaResult(L, ::expectNoMaximizeEcho(""));
 }
@@ -1101,6 +1122,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     addLuaFn("set_pointer_focus_layer", ::luaSetPointerFocusLayer);
     addLuaFn("window_soft_focus", ::luaSoftFocusWindowByClass);
     addLuaFn("floating_focus_on_fullscreen", ::luaFloatingFocusOnFullscreen);
+    addLuaFn("expect_workspace_lifecycle_state", ::luaExpectWorkspaceLifecycleState);
     addLuaFn("expect_no_maximize_echo", ::luaExpectNoMaximizeEcho);
 
     // init mouse

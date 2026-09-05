@@ -81,10 +81,19 @@ CExtWorkspaceResource::CExtWorkspaceResource(WP<CExtWorkspaceManagerResource> ma
     m_manager->m_resource->sendWorkspace(m_resource.get());
 
     m_listeners.destroyed = m_workspace->m_events.destroy.listen([this] {
+        const auto OLD_MONITOR = m_group ? m_group->m_monitor : PHLMONITORREF{};
+
+        if (m_group) {
+            m_group->workspaceLeave(m_resource);
+            m_group.reset();
+        }
+
         m_resource->sendRemoved();
 
-        if (m_manager)
+        if (m_manager) {
+            m_manager->sendCoordinatesForGroup(OLD_MONITOR, m_self);
             m_manager->scheduleDone();
+        }
     });
 
     m_listeners.activeChanged = m_workspace->m_events.activeChanged.listen([this] {
@@ -92,20 +101,29 @@ CExtWorkspaceResource::CExtWorkspaceResource(WP<CExtWorkspaceManagerResource> ma
         sendCapabilities();
     });
 
-    m_listeners.monitorChanged = m_workspace->m_events.monitorChanged.listen([this] { this->sendGroup(); });
+    m_listeners.monitorChanged = m_workspace->m_events.monitorChanged.listen([this] {
+        const auto OLD_MONITOR = m_group ? m_group->m_monitor : PHLMONITORREF{};
+        sendGroup();
+        if (m_manager) {
+            m_manager->sendCoordinatesForGroup(OLD_MONITOR);
+            m_manager->sendCoordinatesForGroup(m_workspace->m_monitor);
+        }
+    });
 
     m_listeners.renamed = m_workspace->m_events.renamed.listen([this] {
-        m_resource->sendName(m_workspace->m_name.c_str());
+        m_resource->sendName(m_workspace->displayName().c_str());
 
         if (m_manager)
             m_manager->scheduleDone();
     });
 
     m_listeners.idChanged = m_workspace->m_events.idChanged.listen([this] {
-        m_resource->sendName(m_workspace->m_name.c_str());
+        m_resource->sendName(m_workspace->displayName().c_str());
 
-        if (m_manager)
+        if (m_manager) {
+            m_manager->sendCoordinatesForGroup(m_workspace->m_monitor);
             m_manager->scheduleDone();
+        }
     });
 
     m_resource->setOnDestroy([this](auto) { PROTO::extWorkspace->destroyWorkspace(m_self); });
@@ -121,26 +139,27 @@ CExtWorkspaceResource::CExtWorkspaceResource(WP<CExtWorkspaceManagerResource> ma
             m_pendingState.targetMonitor = group->m_monitor;
     });
 
-    m_resource->sendName(m_workspace->m_name.c_str());
-
-    wl_array coordinates;
-    wl_array_init(&coordinates);
-
-    auto id = m_workspace->m_id;
-    if (id < 0 && !m_workspace->m_name.empty())
-        id += UINT32_MAX - 1337;
-
-    if (id > 0)
-        *sc<uint32_t*>(wl_array_add(&coordinates, sizeof(uint32_t))) = id;
-
-    m_resource->sendCoordinates(&coordinates);
-    wl_array_release(&coordinates);
+    m_resource->sendName(m_workspace->displayName().c_str());
 
     sendState();
     sendCapabilities();
     sendGroup();
 
     m_manager->scheduleDone();
+}
+
+void CExtWorkspaceResource::sendCoordinates(bool numbered) {
+    wl_array coordinates;
+    wl_array_init(&coordinates);
+
+    const auto ID = m_workspace->id();
+    if (numbered) {
+        if (const auto NUMBERED = std::get_if<Workspace::SWorkspaceNumberedID>(&ID); NUMBERED)
+            *sc<uint32_t*>(wl_array_add(&coordinates, sizeof(uint32_t))) = NUMBERED->value;
+    }
+
+    m_resource->sendCoordinates(&coordinates);
+    wl_array_release(&coordinates);
 }
 
 bool CExtWorkspaceResource::good() const {
@@ -155,7 +174,7 @@ bool CExtWorkspaceResource::isActive() const {
     if (!monitor)
         return false;
 
-    auto const& cmpWorkspace = m_workspace->m_isSpecialWorkspace ? monitor->m_activeSpecialWorkspace : monitor->m_activeWorkspace;
+    auto const& cmpWorkspace = m_workspace->type() == Workspace::eWorkspaceType::SPECIAL ? monitor->m_activeSpecialWorkspace : monitor->m_activeWorkspace;
     return m_workspace == cmpWorkspace;
 }
 
@@ -168,7 +187,7 @@ void CExtWorkspaceResource::sendState() {
     if (m_workspace->hasUrgentWindow())
         state |= EXT_WORKSPACE_HANDLE_V1_STATE_URGENT;
 
-    if (m_workspace->m_isSpecialWorkspace)
+    if (m_workspace->type() == Workspace::eWorkspaceType::SPECIAL)
         state |= EXT_WORKSPACE_HANDLE_V1_STATE_HIDDEN;
 
     m_resource->sendState(sc<extWorkspaceHandleV1State>(state));
@@ -184,7 +203,7 @@ void CExtWorkspaceResource::sendCapabilities() {
     if (!active)
         capabilities |= EXT_WORKSPACE_HANDLE_V1_WORKSPACE_CAPABILITIES_ACTIVATE;
 
-    if (active && m_workspace->m_isSpecialWorkspace)
+    if (active && m_workspace->type() == Workspace::eWorkspaceType::SPECIAL)
         capabilities |= EXT_WORKSPACE_HANDLE_V1_WORKSPACE_CAPABILITIES_DEACTIVATE;
 
     m_resource->sendCapabilities(sc<extWorkspaceHandleV1WorkspaceCapabilities>(capabilities));
@@ -210,11 +229,11 @@ void CExtWorkspaceResource::sendGroup() {
 void CExtWorkspaceResource::commit() {
     // order is important
 
-    if (m_pendingState.deactivate && isActive() && m_workspace->m_isSpecialWorkspace)
+    if (m_pendingState.deactivate && isActive() && m_workspace->type() == Workspace::eWorkspaceType::SPECIAL)
         m_workspace->m_monitor->setSpecialWorkspace(nullptr);
 
     if (m_pendingState.targetMonitor && m_workspace && m_workspace->m_monitor != m_pendingState.targetMonitor)
-        State::workspacePlacementController()->moveWorkspaceToMonitor(m_workspace.lock(), m_pendingState.targetMonitor.lock(), true);
+        State::Workspace::placementController()->moveWorkspaceToMonitor(m_workspace.lock(), m_pendingState.targetMonitor.lock(), true);
 
     if (m_pendingState.activate && !isActive() && m_workspace)
         m_workspace->m_monitor->changeWorkspace(m_workspace.lock());
@@ -253,7 +272,7 @@ void CExtWorkspaceManagerResource::init(WP<CExtWorkspaceManagerResource> self) {
         onMonitorCreated(m);
     }
 
-    for (auto const& w : State::workspaceState()->workspaces()) {
+    for (auto const& w : State::Workspace::state()->workspaces()) {
         onWorkspaceCreated(w.lock());
     }
 }
@@ -290,6 +309,27 @@ void CExtWorkspaceManagerResource::sendGroupToWorkspaces(const WP<CExtWorkspaceG
     }
 }
 
+void CExtWorkspaceManagerResource::sendCoordinatesForGroup(const PHLMONITORREF& monitor, const WP<CExtWorkspaceResource>& excluded) {
+    if (!monitor)
+        return;
+
+    const auto IN_GROUP = [&](const auto& resource) {
+        return resource != excluded && resource->m_manager == m_self && resource->m_workspace && resource->m_workspace->m_monitor == monitor;
+    };
+    const bool NUMBERED = std::ranges::all_of(PROTO::extWorkspace->m_workspaces, [&](const auto& resource) {
+        if (!IN_GROUP(resource))
+            return true;
+        return std::holds_alternative<Workspace::SWorkspaceNumberedID>(resource->m_workspace->id());
+    });
+
+    for (const auto& resource : PROTO::extWorkspace->m_workspaces) {
+        if (IN_GROUP(resource))
+            resource->sendCoordinates(NUMBERED);
+    }
+
+    scheduleDone();
+}
+
 void CExtWorkspaceManagerResource::onMonitorCreated(const PHLMONITOR& monitor) {
     auto& group = PROTO::extWorkspace->m_groups.emplace_back(
         makeUnique<CExtWorkspaceGroupResource>(m_self, makeUnique<CExtWorkspaceGroupHandleV1>(m_resource->client(), m_resource->version(), 0), monitor));
@@ -315,6 +355,8 @@ void CExtWorkspaceManagerResource::onWorkspaceCreated(const PHLWORKSPACE& worksp
         wl_client_post_no_memory(m_resource->client());
         return;
     }
+
+    sendCoordinatesForGroup(workspace->m_monitor);
 }
 
 CExtWorkspaceProtocol::CExtWorkspaceProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {

@@ -1312,14 +1312,14 @@ TEST_CASE(pinnedRetainsPositionOnWorkspaceChange) {
 
     {
         auto str = getFromSocket("/workspaces");
-        ASSERT_CONTAINS(str, "workspace ID 2");
+        ASSERT_CONTAINS(str, "workspace 2");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
 
     {
         auto str = getFromSocket("/workspaces");
-        ASSERT_CONTAINS(str, "workspace ID 1");
+        ASSERT_CONTAINS(str, "workspace 1");
     }
 
     {

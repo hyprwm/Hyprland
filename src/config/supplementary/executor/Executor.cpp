@@ -163,7 +163,9 @@ std::vector<std::pair<std::string, std::string>> CExecutor::getHyprlandLaunchEnv
     }
 
     const auto TIMEOUT = (*PINITIALWSTRACKING == 2) ? std::chrono::seconds(std::chrono::months(1337)) : std::chrono::seconds(*PINITIALWSTRACKINGTIMEOUT);
-    result.emplace_back("HL_INITIAL_WORKSPACE_TOKEN", g_pTokenManager->registerNewToken(Desktop::View::SInitialWorkspaceToken{{}, pInitialWorkspace->getConfigName()}, TIMEOUT));
+    result.emplace_back("HL_INITIAL_WORKSPACE_TOKEN",
+                        g_pTokenManager->registerNewToken(
+                            Desktop::View::SInitialWorkspaceToken{{}, pInitialWorkspace->id(), pInitialWorkspace->addressableName(), pInitialWorkspace->type()}, TIMEOUT));
 
     return result;
 }

@@ -209,7 +209,7 @@ void IFullscreenHandler::setTargetSizeAndPosition(const SP<Layout::ITarget> targ
         Fullscreen::controller()->m_windowPosSettingQueued = true;
         LAYOUT_TARGET->setPositionGlobal(MONBOX);
     } else if (TARGET_INTERNAL_MODE == FSMODE_MAXIMIZED) {
-        const CBox WORKAREA                                = WORKSPACE->m_space->workArea(target->floating());
+        const CBox WORKAREA                                = WORKSPACE->space()->workArea(target->floating());
         Fullscreen::controller()->m_windowPosSettingQueued = true;
         LAYOUT_TARGET->setPositionGlobal(WORKAREA);
     }
@@ -252,7 +252,7 @@ void IFullscreenHandler::syncTargetSizeAndPosition() {
         }
     } else if (TARGET_INTERNAL_MODE == FSMODE_MAXIMIZED) {
 
-        const auto WORK_AREA       = WORKSPACE->m_space->workArea(FS_TARGET->floating());
+        const auto WORK_AREA       = WORKSPACE->space()->workArea(FS_TARGET->floating());
         auto       roundedWorkArea = WORK_AREA;
         roundedWorkArea.round();
 
@@ -267,7 +267,7 @@ void IFullscreenHandler::syncTargetSizeAndPosition() {
 
         if (CURRENT_REAL_POS_GOAL != EXPECTED_REAL_POS || CURRENT_REAL_SIZE_GOAL != EXPECTED_REAL_SIZE) {
             controller()->m_windowPosSettingQueued = true;
-            LAYOUT_TARGET->setPositionGlobal(WORKSPACE->m_space->workArea(FS_TARGET->floating()));
+            LAYOUT_TARGET->setPositionGlobal(WORKSPACE->space()->workArea(FS_TARGET->floating()));
         }
     }
     Fullscreen::controller()->m_windowPosSettingQueued = false;

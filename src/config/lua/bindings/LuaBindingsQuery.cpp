@@ -161,9 +161,9 @@ static int hlGetUrgentWindow(lua_State* L) {
 static int hlGetWorkspaces(lua_State* L) {
     lua_newtable(L);
     int i = 1;
-    for (const auto& wsRef : State::workspaceState()->workspaces()) {
+    for (const auto& wsRef : State::Workspace::state()->workspaces()) {
         const auto ws = wsRef.lock();
-        if (!ws || ws->inert())
+        if (!ws)
             continue;
         Objects::CLuaWorkspace::push(L, ws);
         lua_rawseti(L, -2, i++);
@@ -352,10 +352,10 @@ static int hlGetLastWorkspace(lua_State* L) {
     auto previous = hadMonitorArg ? Desktop::History::workspaceTracker()->previousWorkspace(current, PMONITOR) : Desktop::History::workspaceTracker()->previousWorkspace(current);
 
     auto ws = previous.workspace.lock();
-    if ((!ws || ws->inert()) && previous.id != WORKSPACE_INVALID)
-        ws = State::workspaceState()->query().id(previous.id).run();
+    if (!ws && previous.target.valid())
+        ws = State::Workspace::state()->find(previous.target);
 
-    if (!ws || ws->inert()) {
+    if (!ws) {
         lua_pushnil(L);
         return 1;
     }

@@ -43,6 +43,23 @@ TEST_CASE(luaSpecialWorkspaceDeactivationEventNil) {
     ASSERT(getFromSocket("/repl _G.hyprtester_special_active_monitor_type"), "userdata");
 }
 
+TEST_CASE(luaDefaultSpecialWorkspaceName) {
+    CScopeGuard guard = {[&]() {
+        if (getFromSocket("/monitors").contains("(special:special)"))
+            getFromSocket("/eval hl.get_active_monitor():set_special_workspace(nil)");
+    }};
+
+    OK(getFromSocket("/dispatch hl.dsp.workspace.toggle_special()"));
+    ASSERT_CONTAINS(getFromSocket("/monitors"), "(special:special)");
+    OK(getFromSocket("/dispatch hl.dsp.workspace.toggle_special()"));
+    ASSERT_NOT_CONTAINS(getFromSocket("/monitors"), "(special:special)");
+
+    OK(getFromSocket("/eval hl.get_active_monitor():set_special_workspace('')"));
+    ASSERT_CONTAINS(getFromSocket("/monitors"), "(special:special)");
+    OK(getFromSocket("/eval hl.get_active_monitor():set_special_workspace(nil)"));
+    ASSERT_NOT_CONTAINS(getFromSocket("/monitors"), "(special:special)");
+}
+
 TEST_CASE(luaEventConfigUnload) {
     std::error_code ec;
     std::filesystem::remove("/tmp/hyprtester-luaEventConfigUnload.txt", ec);

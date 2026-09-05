@@ -1,4 +1,5 @@
 #include "SystemInfo.hpp"
+#include "MiscFunctions.hpp"
 
 #include "../Compositor.hpp"
 #include "../version.h"

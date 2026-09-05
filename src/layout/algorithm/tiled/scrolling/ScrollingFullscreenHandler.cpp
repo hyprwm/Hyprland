@@ -243,7 +243,7 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
 
     // Because we use MONBOX for a fullscreen window, we need to offset the fact that it's larger than a 1.F column and thus leave the viewport a few pixels to the right when unFullscreened
     if (request.currentMode == FSMODE_FULLSCREEN)
-        m_scrollingAlgorithm->m_scrollingData->controller->adjustOffset(MONITOR->logicalBox().x - WORKSPACE->m_space->workArea().x);
+        m_scrollingAlgorithm->m_scrollingData->controller->adjustOffset(MONITOR->logicalBox().x - WORKSPACE->space()->workArea().x);
 
     // UnFS target
     setTargetFullscreenModeInternal(TARGET, FSMODE_NONE);

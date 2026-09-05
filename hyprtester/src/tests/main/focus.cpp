@@ -136,7 +136,7 @@ TEST_CASE(crossMonitorEmptyWorkspaceUnfocusesWindow) {
 
     {
         auto str = getFromSocket("/activeworkspace");
-        ASSERT_CONTAINS(str, "workspace ID 1 ");
+        ASSERT_CONTAINS(str, "workspace 1 ");
     }
 
     ASSERT(getFromSocket("/activewindow"), "Invalid");

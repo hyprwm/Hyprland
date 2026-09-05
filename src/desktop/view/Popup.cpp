@@ -314,7 +314,7 @@ void CPopup::onCommit(bool ignoreSiblings) {
         return;
     }
 
-    if (!m_windowOwner.expired() && (!m_windowOwner->mapped() || !m_windowOwner->m_workspace->m_visible)) {
+    if (!m_windowOwner.expired() && (!m_windowOwner->mapped() || !m_windowOwner->m_workspace->visible())) {
         const auto PREV_SIZE = m_lastSize;
         m_lastSize           = m_backend->surfaceSize();
 

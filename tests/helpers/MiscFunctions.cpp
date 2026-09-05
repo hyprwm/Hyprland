@@ -1,4 +1,6 @@
 #include <helpers/MiscFunctions.hpp>
+#include <state/workspace/Resolver.hpp>
+#include <workspace/WorkspaceUtils.hpp>
 
 #include <gtest/gtest.h>
 
@@ -37,6 +39,35 @@ TEST(Helpers, isDirectionString) {
     EXPECT_FALSE(isDirection("desc:Monitor"));
     EXPECT_FALSE(isDirection(""));
     EXPECT_FALSE(isDirection("i_am_single"));
+}
+
+TEST(Helpers, specialWorkspaceEmptyNameUsesCanonicalDefaultAddress) {
+    EXPECT_EQ(Workspace::specialWorkspaceAddressFromName(""), "special:special");
+    EXPECT_EQ(Workspace::specialWorkspaceAddressFromName("magic"), "special:magic");
+
+    const auto DEFAULT_TARGET = State::Workspace::resolver()->getWorkspaceTargetFromString(Workspace::specialWorkspaceAddressFromName(""));
+    EXPECT_TRUE(DEFAULT_TARGET.valid());
+    ASSERT_TRUE(DEFAULT_TARGET.id.has_value());
+    EXPECT_TRUE(std::holds_alternative<Workspace::SWorkspaceSpecialID>(*DEFAULT_TARGET.id));
+    EXPECT_EQ(DEFAULT_TARGET.type, Workspace::eWorkspaceType::SPECIAL);
+    EXPECT_EQ(DEFAULT_TARGET.address, "special:special");
+
+    const auto NAMED_TARGET = State::Workspace::resolver()->getWorkspaceTargetFromString("name:special:magic");
+    EXPECT_TRUE(NAMED_TARGET.valid());
+    ASSERT_TRUE(NAMED_TARGET.id.has_value());
+    EXPECT_TRUE(std::holds_alternative<Workspace::SWorkspaceSpecialID>(*NAMED_TARGET.id));
+    EXPECT_EQ(NAMED_TARGET.type, Workspace::eWorkspaceType::NORMAL);
+    EXPECT_EQ(NAMED_TARGET.address, "special:magic");
+
+    const auto NUMBERED_TARGET = State::Workspace::resolver()->getWorkspaceTargetFromString("7");
+    EXPECT_TRUE(NUMBERED_TARGET.valid());
+    ASSERT_TRUE(NUMBERED_TARGET.id.has_value());
+    EXPECT_TRUE(std::holds_alternative<Workspace::SWorkspaceNumberedID>(*NUMBERED_TARGET.id));
+    EXPECT_EQ(NUMBERED_TARGET.type, Workspace::eWorkspaceType::NORMAL);
+
+    const auto INVALID_TARGET = State::Workspace::resolver()->getWorkspaceTargetFromString("special:");
+    EXPECT_FALSE(INVALID_TARGET.valid());
+    EXPECT_FALSE(INVALID_TARGET.id.has_value());
 }
 
 // normalizeAngleRad

@@ -300,7 +300,7 @@ std::string CCommandFormatter::getMonitorData(PHLMONITOR m, eHyprCtlOutputFormat
             "{:x}\n\tdirectScanoutBlockedBy: {}\n\tdisabled: "
             "{}\n\tcurrentFormat: {}\n\tmirrorOf: "
             "{}\n\tavailableModes: {}\n\tcolorManagementPreset: {}\n\tsdrBrightness: {}\n\tsdrSaturation: {}\n\tsdrMinLuminance: {}\n\tsdrMaxLuminance: "
-            "{}\n\thardwareCursorsInUse: {}\n\thardwareDetails:\n\t  backend: {}\n\t  hdr: {}\n\t  chroma: {}\n\t  bt2020: {}\n\t  vrrCapable: {}\n\n",
+            "{}\n\thardwareCursorsInUse: {}\n\thardwareDetails:\n\t\tbackend: {}\n\t\thdr: {}\n\t\tchroma: {}\n\t\tbt2020: {}\n\t\tvrrCapable: {}\n\n",
             m->m_name, m->m_id, sc<int>(m->m_pixelSize.x), sc<int>(m->m_pixelSize.y), m->m_refreshRate, sc<int>(m->m_position.x), sc<int>(m->m_position.y), m->m_shortDescription,
             m->m_output->make, m->m_output->model, sc<int>(m->m_output->physicalSize.x), sc<int>(m->m_output->physicalSize.y), m->m_output->serial, m->activeWorkspaceID(),
             (!m->m_activeWorkspace ? "" : m->m_activeWorkspace->m_name), m->activeSpecialWorkspaceID(), (m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->m_name : ""),

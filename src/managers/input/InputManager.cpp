@@ -351,9 +351,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
         }
     }
 
-    if (PMONITOR != Desktop::focusState()->monitor() && (*PMOUSEFOCUSMON || refocus) && m_forcedFocus.expired())
-        Desktop::focusState()->rawMonitorFocus(PMONITOR);
-
     // IME popups essentially always exist on the top - they are transient,
     // and pretty much always need to be visible and accessible.
     if (!foundSurface) {

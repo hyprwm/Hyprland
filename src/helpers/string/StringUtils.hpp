@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <aquamarine/backend/Backend.hpp>
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/string/Numeric.hpp>
 
@@ -16,6 +17,16 @@ namespace StringUtils {
         }
 
         return false;
+    }
+
+    inline std::string backendStr(Aquamarine::eBackendType t) {
+        switch (t) {
+            case Aquamarine::AQ_BACKEND_DRM: return "drm";
+            case Aquamarine::AQ_BACKEND_HEADLESS: return "headless";
+            case Aquamarine::AQ_BACKEND_WAYLAND: return "wayland";
+            default: break;
+        }
+        return "?";
     }
 
     inline const char* huParseErrorToString(Hyprutils::String::eNumericParseResult r) {

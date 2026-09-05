@@ -50,6 +50,7 @@ using namespace Hyprutils::String;
 #include "../../helpers/MiscFunctions.hpp"
 #include "../../keybinds/Manager.hpp"
 #include "../../helpers/SystemInfo.hpp"
+#include "../../helpers/string/StringUtils.hpp"
 #include "../../desktop/view/LayerSurface.hpp"
 #include "../../desktop/view/Group.hpp"
 #include "../../desktop/rule/Engine.hpp"
@@ -211,16 +212,6 @@ std::string CCommandFormatter::getMonitorData(PHLMONITOR m, eHyprCtlOutputFormat
     if (!m->m_output || m->m_id == -1)
         return "";
 
-    static auto backendStr = [](Aquamarine::eBackendType t) -> std::string {
-        switch (t) {
-            case Aquamarine::AQ_BACKEND_DRM: return "drm";
-            case Aquamarine::AQ_BACKEND_HEADLESS: return "headless";
-            case Aquamarine::AQ_BACKEND_WAYLAND: return "wayland";
-            default: break;
-        }
-        return "?";
-    };
-
     static auto tf = [](bool t) -> const char* { return t ? "true" : "false"; };
     static auto yn = [](bool t) -> const char* { return t ? "yes" : "no"; };
 
@@ -295,8 +286,8 @@ std::string CCommandFormatter::getMonitorData(PHLMONITOR m, eHyprCtlOutputFormat
             tf(m->m_tearingState.activelyTearing), getTearingBlockedReason(m, format), rc<uint64_t>(m->m_lastScanout.get()), getDSBlockedReason(m, format), tf(m->m_enabled),
             formatToString(m->m_output->state->state().drmFormat), m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format),
             (NCMType::toString(m->m_cmType)), (m->m_sdrBrightness), (m->m_sdrSaturation), (m->m_sdrMinLuminance), (m->m_sdrMaxLuminance), tf(!m->shouldUseSoftwareCursors()),
-            backendStr(m->m_output->getBackend()->type()), tf(m->m_output->parsedEDID.hdrMetadata.has_value()), tf(m->m_output->parsedEDID.chromaticityCoords.has_value()),
-            tf(m->m_output->parsedEDID.supportsBT2020), tf(m->m_output->vrrCapable));
+            StringUtils::backendStr(m->m_output->getBackend()->type()), tf(m->m_output->parsedEDID.hdrMetadata.has_value()),
+            tf(m->m_output->parsedEDID.chromaticityCoords.has_value()), tf(m->m_output->parsedEDID.supportsBT2020), tf(m->m_output->vrrCapable));
 
     } else {
         result += std::format(
@@ -316,7 +307,7 @@ std::string CCommandFormatter::getMonitorData(PHLMONITOR m, eHyprCtlOutputFormat
             rc<uint64_t>(m->m_solitaryClient.get()), getSolitaryBlockedReason(m, format), m->m_tearingState.activelyTearing, getTearingBlockedReason(m, format),
             rc<uint64_t>(m->m_lastScanout.get()), getDSBlockedReason(m, format), !m->m_enabled, formatToString(m->m_output->state->state().drmFormat),
             m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format), (NCMType::toString(m->m_cmType)), (m->m_sdrBrightness),
-            (m->m_sdrSaturation), (m->m_sdrMinLuminance), (m->m_sdrMaxLuminance), (!m->shouldUseSoftwareCursors()), backendStr(m->m_output->getBackend()->type()),
+            (m->m_sdrSaturation), (m->m_sdrMinLuminance), (m->m_sdrMaxLuminance), (!m->shouldUseSoftwareCursors()), StringUtils::backendStr(m->m_output->getBackend()->type()),
             yn(m->m_output->parsedEDID.hdrMetadata.has_value()), yn(m->m_output->parsedEDID.chromaticityCoords.has_value()), yn(m->m_output->parsedEDID.supportsBT2020),
             yn(m->m_output->vrrCapable));
     }

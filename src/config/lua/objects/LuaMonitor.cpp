@@ -1,5 +1,6 @@
 #include "LuaMonitor.hpp"
 #include "LuaWorkspace.hpp"
+#include "../../../helpers/string/StringUtils.hpp"
 #include "../../../state/WorkspaceState.hpp"
 #include "../../../state/workspace/Resolver.hpp"
 #include "../../../workspace/WorkspaceUtils.hpp"
@@ -207,7 +208,7 @@ static int monitorIndex(lua_State* L) {
         lua_setfield(L, -2, "left");
     } else if (key == "hardware_details") {
         lua_newtable(L);
-        lua_pushstring(L, "FIXME!!!");
+        lua_pushstring(L, StringUtils::backendStr(mon->m_output->getBackend()->type()).c_str());
         lua_setfield(L, -2, "backend");
         lua_pushboolean(L, mon->m_output->parsedEDID.hdrMetadata.has_value());
         lua_setfield(L, -2, "hdr");

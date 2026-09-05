@@ -11,14 +11,16 @@ struct SGlobalState {
 
 namespace DataState {
     std::filesystem::path              getDataStatePath();
+    std::filesystem::path              getRepositoryCachePath();
     std::string                        getHeadersPath();
     std::vector<std::filesystem::path> getPluginStates();
     void                               ensureStateStoreExists();
-    void                               addNewPluginRepo(const SPluginRepository& repo);
+    void                               addNewPluginRepo(const SPluginRepository& repo, bool installFromValidatedFD);
     void                               removePluginRepo(const SPluginRepoIdentifier& identifier);
     bool                               pluginRepoExists(const SPluginRepoIdentifier& identifier);
+    void                               markPluginRepoFailed(const SPluginRepoIdentifier& identifier);
     void                               updateGlobalState(const SGlobalState& state);
-    void                               purgeAllCache();
+    void                               purgeAllCache(bool purgeRepositoryCache);
     SGlobalState                       getGlobalState();
     bool                               setPluginEnabled(const SPluginRepoIdentifier& identifier, bool enabled);
     std::vector<SPluginRepository>     getAllRepositories();

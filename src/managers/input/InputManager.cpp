@@ -146,6 +146,8 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
 
     const auto DELTA = *PNOACCEL == 1 ? unaccel : delta;
 
+    updatePointerGesture(e.device, e.timeMs, DELTA);
+
     if (e.mouse)
         recheckMouseWarpOnMouseInput();
 
@@ -175,7 +177,10 @@ void CInputManager::onMouseWarp(IPointer::SMotionAbsoluteEvent e) {
     if (e.mouse)
         recheckMouseWarpOnMouseInput();
 
+    const auto LASTPOS = getMouseCoordsInternal();
     Pointer::mgr()->warpAbsolute(e.absolute, e.device, e.output);
+
+    updatePointerGesture(e.device, e.timeMs, getMouseCoordsInternal() - LASTPOS);
 
     mouseMoveUnified(e.timeMs, false, e.mouse);
 
@@ -188,6 +193,28 @@ void CInputManager::onMouseWarp(IPointer::SMotionAbsoluteEvent e) {
         m_lastMousePos = Pointer::mgr()->untransformedPosition();
 
     g_pSeatManager->sendPointerFrame();
+}
+
+bool CInputManager::updatePointerGesture(const SP<IHID>& device, uint32_t timeMs, const Vector2D& delta) {
+    if (!m_pointerGestureButton || m_pointerGesturePointer.lock() != device)
+        return false;
+
+    if (PROTO::inputCapture->isCaptured()) {
+        endPointerGesture(timeMs, true);
+        return true;
+    }
+
+    g_pTrackpadGestures->pointerGestureUpdate(m_pointerGestureButton, {.timeMs = timeMs, .delta = delta});
+    return true;
+}
+
+void CInputManager::endPointerGesture(uint32_t timeMs, bool cancelled) {
+    if (!m_pointerGestureButton)
+        return;
+
+    g_pTrackpadGestures->pointerGestureEnd(m_pointerGestureButton, {.timeMs = timeMs, .cancelled = cancelled});
+    m_pointerGestureButton = 0;
+    m_pointerGesturePointer.reset();
 }
 
 void CInputManager::simulateMouseMovement() {
@@ -750,8 +777,12 @@ void CInputManager::onMouseButton(IPointer::SButtonEvent e, SP<IPointer> mouse) 
 
     if (PROTO::inputCapture->isCaptured()) {
         Keybinds::mgr()->onMouseEvent(e, mouse, true);
-        if (e.state == WL_POINTER_BUTTON_STATE_RELEASED)
+        if (e.state == WL_POINTER_BUTTON_STATE_RELEASED) {
+            if (m_pointerGestureButton == e.button && m_pointerGesturePointer.lock() == mouse)
+                endPointerGesture(e.timeMs, true);
+
             std::erase_if(m_currentlyHeldButtons, [&](const auto& held) { return held.button == e.button && held.pointer.lock() == mouse; });
+        }
         return;
     }
 
@@ -768,10 +799,20 @@ void CInputManager::onMouseButton(IPointer::SButtonEvent e, SP<IPointer> mouse) 
         std::erase_if(m_currentlyHeldButtons, [&](const auto& held) { return held.button == e.button && held.pointer.lock() == mouse; });
     }
 
-    switch (m_clickBehavior) {
-        case CLICKMODE_DEFAULT: processMouseDownNormal(e, mouse); break;
-        case CLICKMODE_KILL: processMouseDownKill(e); break;
-        default: break;
+    if (e.state == WL_POINTER_BUTTON_STATE_PRESSED && g_pTrackpadGestures->pointerGestureBegin(e.button, e.timeMs)) {
+        // starts pointer gesture
+        m_pointerGestureButton  = e.button;
+        m_pointerGesturePointer = mouse;
+    } else if (e.state == WL_POINTER_BUTTON_STATE_RELEASED && m_pointerGestureButton == e.button && m_pointerGesturePointer.lock() == mouse) {
+        // ends pointer gesture
+        endPointerGesture(e.timeMs, false);
+    } else {
+        // normal click
+        switch (m_clickBehavior) {
+            case CLICKMODE_DEFAULT: processMouseDownNormal(e, mouse); break;
+            case CLICKMODE_KILL: processMouseDownKill(e); break;
+            default: break;
+        }
     }
 
     if (m_focusHeldByButtons && m_currentlyHeldButtons.empty() && e.state == WL_POINTER_BUTTON_STATE_RELEASED) {
@@ -1570,6 +1611,10 @@ void CInputManager::destroyPointer(SP<IPointer> mouse) {
     LOG(Log::DEBUG, "Pointer at {:x} removed", rc<uintptr_t>(mouse.get()));
 
     Keybinds::mgr()->onDeviceRemoved(mouse);
+
+    if (m_pointerGesturePointer.lock() == mouse)
+        endPointerGesture(Time::millis(Time::steadyNow()), true);
+
     for (auto it = m_currentlyHeldButtons.begin(); it != m_currentlyHeldButtons.end();) {
         if (it->pointer.lock() != mouse) {
             ++it;

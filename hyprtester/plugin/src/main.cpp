@@ -612,6 +612,45 @@ static SDispatchResult click(std::string in) {
     return {};
 }
 
+static SDispatchResult mouseMove(std::string in) {
+    CVarList2 data(std::move(in));
+
+    double    x, y;
+    try {
+        x = std::stod(std::string{data[0]});
+        y = std::stod(std::string{data[1]});
+    } catch (...) { return {.success = false, .error = "invalid input"}; }
+
+    g_mouse->m_pointerEvents.motion.emit(IPointer::SMotionEvent{
+        .timeMs  = sc<uint32_t>(Time::millis(Time::steadyNow())),
+        .delta   = {x, y},
+        .unaccel = {x, y},
+        .mouse   = true,
+        .device  = g_mouse,
+    });
+
+    return {};
+}
+
+static SDispatchResult mouseWarp(std::string in) {
+    CVarList2 data(std::move(in));
+
+    double    x, y;
+    try {
+        x = std::stod(std::string{data[0]});
+        y = std::stod(std::string{data[1]});
+    } catch (...) { return {.success = false, .error = "invalid input"}; }
+
+    g_pInputManager->onMouseWarp(IPointer::SMotionAbsoluteEvent{
+        .timeMs   = sc<uint32_t>(Time::millis(Time::steadyNow())),
+        .absolute = {x, y},
+        .device   = g_mouse,
+        .mouse    = false,
+    });
+
+    return {};
+}
+
 static SDispatchResult keybind(std::string in) {
     CVarList2 data(std::move(in));
     // 0 = release, 1 = press
@@ -957,6 +996,14 @@ static int luaClick(lua_State* L) {
     return luaResult(L, ::click(std::format("{},{}", button, pressed)));
 }
 
+static int luaMouseMove(lua_State* L) {
+    return luaResult(L, ::mouseMove(std::format("{},{}", (double)luaL_checknumber(L, 1), (double)luaL_checknumber(L, 2))));
+}
+
+static int luaMouseWarp(lua_State* L) {
+    return luaResult(L, ::mouseWarp(std::format("{},{}", (double)luaL_checknumber(L, 1), (double)luaL_checknumber(L, 2))));
+}
+
 static int luaKeybind(lua_State* L) {
     const auto press    = (int)luaL_checkinteger(L, 1);
     const auto modifier = (int)luaL_checkinteger(L, 2);
@@ -1083,6 +1130,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     addLuaFn("expect_cursor_zoom", ::luaExpectCursorZoom);
     addLuaFn("scroll", ::luaScroll);
     addLuaFn("click", ::luaClick);
+    addLuaFn("mouse_move", ::luaMouseMove);
+    addLuaFn("mouse_warp", ::luaMouseWarp);
     addLuaFn("keybind", ::luaKeybind);
     addLuaFn("keybind2", ::luaKeybind2);
     addLuaFn("keybind_modmask", ::luaKeybindMask);

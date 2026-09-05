@@ -119,6 +119,7 @@ void CWindow::initialize() {
     m_presentation->initialize();
 
     m_target = Layout::CWindowTarget::create(SELF);
+    m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_MAPPED);
 
     if (const auto SURFACE = m_backend->surface())
         wlSurface()->assign(SURFACE, SELF);
@@ -1646,6 +1647,8 @@ void CWindow::unmapWindow() {
 
     // do this after onWindowRemoved because otherwise it'll think the window is invalid
     m_isMapped = false;
+
+    m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_MAPPED);
 
     // refocus on a new window if needed
     if (wasLastWindow) {

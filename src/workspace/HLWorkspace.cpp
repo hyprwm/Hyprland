@@ -91,9 +91,10 @@ void Workspace::CHLWorkspace::init(PHLWORKSPACE self) {
 
     applyTypeSpecificRules(RULEFORTHIS);
 
+    LOG(Log::DEBUG, "Creating workspace {}", addressableName());
     IPC::Socket2::sock()->postEvent({.event = "createworkspace", .data = m_name});
     IPC::Socket2::sock()->postEvent({.event = "createworkspacev2", .data = std::format("{},{}", Workspace::selector(*this), displayName())});
-    Event::bus()->m_events.workspace.created.emit(self);
+    Event::bus()->m_events.workspace.createdEarly.emit(self);
 }
 
 void Workspace::CHLWorkspace::applyTypeSpecificRules(const Config::CWorkspaceRule&) {

@@ -138,11 +138,17 @@ CLuaEventHandler::CLuaEventHandler(lua_State* L) : m_lua(L) {
             CLuaMonitor::push(L, mon);
         });
     }));
-    m_listeners.push_back(bus()->m_events.workspace.created.listen([this](PHLWORKSPACEREF wsRef) {
+    m_listeners.push_back(bus()->m_events.workspace.createdLate.listen([this](PHLWORKSPACEREF wsRef) {
         const auto ws = wsRef.lock();
         if (!ws)
             return;
         dispatch("workspace.created", 1, [&](lua_State* L) { CLuaWorkspace::push(L, ws); });
+    }));
+    m_listeners.push_back(bus()->m_events.workspace.createdEarly.listen([this](PHLWORKSPACEREF wsRef) {
+        const auto ws = wsRef.lock();
+        if (!ws)
+            return;
+        dispatch("workspace.created_early", 1, [&](lua_State* L) { CLuaWorkspace::push(L, ws); });
     }));
     m_listeners.push_back(bus()->m_events.workspace.removed.listen([this](PHLWORKSPACEREF wsRef) {
         if (!wsRef)
@@ -301,6 +307,7 @@ std::unordered_set<std::string> CLuaEventHandler::knownEvents() {
         "workspace.active",
         "workspace.special_active",
         "workspace.created",
+        "workspace.created_early",
         "workspace.removed",
         "workspace.move_to_monitor",
         "config.reloaded",

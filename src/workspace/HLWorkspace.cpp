@@ -101,6 +101,14 @@ void Workspace::CHLWorkspace::applyTypeSpecificRules(const Config::CWorkspaceRul
     ;
 }
 
+void Workspace::CHLWorkspace::ready() {
+    if (!m_ready) {
+        m_ready = true;
+        LOG(Log::DEBUG, "Workspace {} ready", m_name);
+        Event::bus()->m_events.workspace.createdLate.emit(m_self);
+    }
+}
+
 Workspace::CHLWorkspace::~CHLWorkspace() {
     LOG(Log::DEBUG, "Destroying workspace {}", addressableName());
 

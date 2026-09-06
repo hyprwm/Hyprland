@@ -143,7 +143,7 @@ PHLWINDOW CViewHitTester::windowAtInternal(const Vector2D& pos, uint16_t propert
         if (properties & FLOATING_ONLY)
             return floating(false);
 
-        const auto PWORKSPACE = special ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
+        const auto PWORKSPACE = workspace ? workspace : special ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
 
         if (Fullscreen::controller()->hasFullscreen(PWORKSPACE) && !(properties & SKIP_FULLSCREEN_PRIORITY) && !ONLY_PRIORITY) {
             const auto FS_WINDOW = Fullscreen::controller()->getFullscreenWindow(PWORKSPACE);

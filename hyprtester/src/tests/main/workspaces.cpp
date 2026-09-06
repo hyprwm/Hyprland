@@ -926,7 +926,7 @@ TEST_CASE(workspaceRenameEmitsGlobalEvent) {
     SPAWN_KITTY("workspace_rename_event");
 
     OK(getFromSocket("/eval hl.plugin.test.expect_workspace_rename_event('5201', 'renamed_by_event_test')"));
-    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace ID 5201 (renamed_by_event_test)");
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace 5201 (renamed_by_event_test)");
 
     Tests::killAllWindows();
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
@@ -1178,9 +1178,17 @@ TEST_CASE(luaSetWorkspace) {
 }
 
 TEST_CASE(luaSetSpecialWorkspace) {
+    static constexpr const char* SECOND_MONITOR = "HEADLESS-3";
+
+    CScopeGuard                  guard = {[&]() {
+        if (getFromSocket("/monitors all").contains(SECOND_MONITOR))
+            getFromSocket(std::format("/output remove {}", SECOND_MONITOR));
+    }};
+
     // add a new monitor
     NLog::log("{}Adding a new monitor", Colors::YELLOW);
-    ASSERT(getFromSocket("/output create headless HEADLESS-3"), "ok");
+    ASSERT(getFromSocket(std::format("/output create headless {}", SECOND_MONITOR)), "ok");
+    ASSERT(waitForMonitorListed(SECOND_MONITOR, true), true);
 
     // should take workspace 2
     {
@@ -1191,8 +1199,8 @@ TEST_CASE(luaSetSpecialWorkspace) {
     }
 
     // for ease of access
-    OK(getFromSocket("/eval M1 = hl.get_monitors()[1]"));
-    OK(getFromSocket("/eval M2 = hl.get_monitors()[2]"));
+    OK(getFromSocket("/eval M1 = hl.get_monitor('HEADLESS-2')"));
+    OK(getFromSocket(std::format("/eval M2 = hl.get_monitor('{}')", SECOND_MONITOR)));
 
     // special workspace with a window
     NLog::log("{}Setting special workspace on active monitor", Colors::YELLOW);
@@ -1200,7 +1208,7 @@ TEST_CASE(luaSetSpecialWorkspace) {
     SPAWN_KITTY("a");
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "monitor: 1");
+        ASSERT(getFromSocket("/repl hl.get_active_window().monitor == M1"), "true");
         ASSERT_CONTAINS(str, "workspace: special:1 (special:1)");
     }
 
@@ -1216,7 +1224,7 @@ TEST_CASE(luaSetSpecialWorkspace) {
     OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-3' })"));
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "monitor: 2");
+        ASSERT(getFromSocket("/repl hl.get_active_window().monitor == M2"), "true");
         ASSERT_CONTAINS(str, "workspace: special:1 (special:1)");
     }
     OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
@@ -1230,7 +1238,8 @@ TEST_CASE(luaSetSpecialWorkspace) {
 
     // clean up
     Tests::killAllWindows();
-    OK(getFromSocket("/output remove HEADLESS-3"));
+    OK(getFromSocket(std::format("/output remove {}", SECOND_MONITOR)));
+    ASSERT(waitForMonitorListed(SECOND_MONITOR, false), true);
 }
 
 TEST_CASE(workspacesDistinctTiledAndFloatGaps) {

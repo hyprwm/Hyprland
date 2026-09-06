@@ -3,13 +3,39 @@
 #include "../../hyprctlCompat.hpp"
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
+#include <hyprutils/utils/ScopeGuard.hpp>
+#include <chrono>
 #include <format>
+#include <thread>
 
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
+using namespace Hyprutils::Utils;
 
 #define UP CUniquePointer
 #define SP CSharedPointer
+
+static bool waitForMonitor(const std::string& name, bool present, bool all = true) {
+    for (int i = 0; i < 50; ++i) {
+        if (getFromSocket(all ? "/monitors all" : "/monitors").contains(name) == present)
+            return true;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    return false;
+}
+
+static bool waitForWorkspace(const std::string& workspace, bool present) {
+    for (int i = 0; i < 50; ++i) {
+        if (getFromSocket("/workspaces").contains(workspace) == present)
+            return true;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    return false;
+}
 
 TEST_CASE(persistentWorkspaces) {
     // test on workspace "window"
@@ -74,19 +100,29 @@ TEST_CASE(workspaceLifecycleReleasesEmptyWorkspaces) {
     static constexpr const char* MONITOR   = "HEADLESS-LIFECYCLE-OWNERSHIP";
     static constexpr const char* WORKSPACE = "410";
 
+    CScopeGuard                  guard = {[&]() {
+        if (getFromSocket("/monitors all").contains(MONITOR))
+            getFromSocket(std::format("/output remove {}", MONITOR));
+        getFromSocket("/reload");
+    }};
+
     getFromSocket(std::format("/output remove {}", MONITOR));
+    ASSERT(waitForMonitor(MONITOR, false), true);
+    OK(getFromSocket(std::format("/eval hl.monitor({{ output = '{}', mode = '1920x1080@60', position = 'auto-right', scale = '1' }})", MONITOR)));
     OK(getFromSocket(std::format("/output create headless {}", MONITOR)));
+    ASSERT(waitForMonitor(MONITOR, true, false), true);
     OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", MONITOR)));
     OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ workspace = '{}' }})", WORKSPACE)));
     ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace 410 (410)");
 
     OK(getFromSocket(std::format("/output remove {}", MONITOR)));
-    Tests::sync();
-    ASSERT_NOT_CONTAINS(getFromSocket("/workspaces"), "workspace 410 (410)");
+    ASSERT(waitForMonitor(MONITOR, false), true);
+    ASSERT(waitForWorkspace("workspace 410 (410)", false), true);
 
     OK(getFromSocket(std::format("/output create headless {}", MONITOR)));
-    Tests::sync();
-    ASSERT_NOT_CONTAINS(getFromSocket("/workspaces"), "workspace 410 (410)");
+    ASSERT(waitForMonitor(MONITOR, true, false), true);
+    ASSERT(waitForWorkspace("workspace 410 (410)", false), true);
 
     OK(getFromSocket(std::format("/output remove {}", MONITOR)));
+    ASSERT(waitForMonitor(MONITOR, false), true);
 }

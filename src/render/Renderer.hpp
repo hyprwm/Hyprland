@@ -275,7 +275,7 @@ namespace Render {
 
         void                               handleFullscreenSettings(PHLMONITOR pMonitor);
 
-        virtual bool                       shouldUseOverlay(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace);
+        virtual bool                       shouldUseOverlay(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, bool isSolitary = false);
 
         // old private:
         void arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);

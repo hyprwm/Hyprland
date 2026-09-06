@@ -673,7 +673,8 @@ std::vector<SP<IValue>> Values::getConfigValues() {
                 "Control fifo locking for not shown surfaces. always - use fifo lock for any surface, ignore_unfocused - ignore render_unfocused windows, never - skip locking "
                 "invisible surfaces",
                 0, {.min = 0, .max = 2, .map = OptionMap{{"always", 0}, {"ignore_unfocused", 1}, {"never", 2}}}),
-        MS<Bool>("render:use_overlay_plane", "Use overlay plane for 'render above' surfaces", false),
+        MS<Int>("render:use_overlay_plane", "Use overlay plane for 'render above' surfaces", 0,
+                {.min = 0, .max = 2, .map = OptionMap{{"disable", 0}, {"always", 1}, {"solitary", 2}}}),
 
         /*
          * cursor:

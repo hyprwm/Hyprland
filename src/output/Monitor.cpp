@@ -1725,43 +1725,6 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
         return reasons;
     }
 
-    // Monitor considers only FSMODE_FULLSCREEN as FS
-    if (Fullscreen::controller()->getFullscreenModes(m_self.lock()).internal != Fullscreen::FSMODE_FULLSCREEN) {
-        reasons |= SC_WINDOWED;
-        if (!full)
-            return reasons;
-    }
-
-    if (m_activeSpecialWorkspace) {
-        reasons |= SC_SPECIAL;
-        if (!full)
-            return reasons;
-    }
-
-    if (Notification::overlay()->hasAny()) {
-        reasons |= SC_NOTIFICATION;
-        if (!full)
-            return reasons;
-    }
-
-    if (ErrorOverlay::overlay()->active() && Desktop::focusState()->monitor() == m_self) {
-        reasons |= SC_ERRORBAR;
-        if (!full)
-            return reasons;
-    }
-
-    if (g_pSessionLockManager->isSessionLocked()) {
-        reasons |= SC_LOCK;
-        if (!full)
-            return reasons;
-    }
-
-    if (PROTO::data->dndActive()) {
-        reasons |= SC_DND;
-        if (!full)
-            return reasons;
-    }
-
     if (PWORKSPACE->m_alpha->value() != 1.f) {
         reasons |= SC_ALPHA;
         if (!full)
@@ -1774,7 +1737,20 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
             return reasons;
     }
 
-    const auto PCANDIDATE = Fullscreen::controller()->getFullscreenWindow(m_self.lock());
+    // Monitor considers only FSMODE_FULLSCREEN as FS
+    if (Fullscreen::controller()->getFullscreenModes(PWORKSPACE).internal != Fullscreen::FSMODE_FULLSCREEN) {
+        reasons |= SC_WINDOWED;
+        if (!full)
+            return reasons;
+    }
+
+    if (g_pSessionLockManager->isSessionLocked()) {
+        reasons |= SC_LOCK;
+        if (!full)
+            return reasons;
+    }
+
+    const auto PCANDIDATE = Fullscreen::controller()->getFullscreenWindow(PWORKSPACE);
 
     if (!PCANDIDATE) {
         reasons |= SC_CANDIDATE;
@@ -1794,47 +1770,73 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
             return reasons;
     }
 
-    if (!m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY].empty()) {
-        reasons |= SC_OVERLAYS;
-        if (!full)
-            return reasons;
-    }
+    if (!g_pHyprRenderer->shouldUseOverlay(m_self.lock(), PWORKSPACE, true)) {
+        if (m_activeSpecialWorkspace) {
+            reasons |= SC_SPECIAL;
+            if (!full)
+                return reasons;
+        }
 
-    for (auto const& topls : m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-        if (topls->alpha()[LS_ALPHA_FADE]->value() != 0.F) {
+        if (Notification::overlay()->hasAny()) {
+            reasons |= SC_NOTIFICATION;
+            if (!full)
+                return reasons;
+        }
+
+        if (ErrorOverlay::overlay()->active() && Desktop::focusState()->monitor() == m_self) {
+            reasons |= SC_ERRORBAR;
+            if (!full)
+                return reasons;
+        }
+
+        if (PROTO::data->dndActive()) {
+            reasons |= SC_DND;
+            if (!full)
+                return reasons;
+        }
+
+        if (!m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY].empty()) {
             reasons |= SC_OVERLAYS;
             if (!full)
                 return reasons;
         }
-    }
 
-    for (auto const& fadeout : Desktop::fadingOutState()->fadeouts()) {
-        if (!fadeout || fadeout->monitor() != m_self)
-            continue;
+        for (auto const& topls : m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+            if (topls->alpha()[LS_ALPHA_FADE]->value() != 0.F) {
+                reasons |= SC_OVERLAYS;
+                if (!full)
+                    return reasons;
+            }
+        }
 
-        reasons |= SC_FADEOUT;
-        if (!full)
-            return reasons;
-    }
+        for (auto const& fadeout : Desktop::fadingOutState()->fadeouts()) {
+            if (!fadeout || fadeout->monitor() != m_self)
+                continue;
 
-    for (auto const& w : Desktop::windowState()->windows()) {
-        if (w == PCANDIDATE || !w->mapped() || !w->acceptsInput() || !w->alphaNonZero())
-            continue;
-
-        if (w->m_workspace == PCANDIDATE->m_workspace && w->isFloating() && w->isAllowedOverFullscreen() && w->presentation().visibleOnMonitor(m_self.lock())) {
-            reasons |= SC_FLOAT;
+            reasons |= SC_FADEOUT;
             if (!full)
                 return reasons;
         }
-    }
 
-    for (auto const& ws : State::Workspace::state()->workspaces()) {
-        if (ws->m_alpha->value() <= 0.F || ws->type() != Workspace::eWorkspaceType::SPECIAL || ws->m_monitor != m_self)
-            continue;
+        for (auto const& w : Desktop::windowState()->windows()) {
+            if (w == PCANDIDATE || !w->mapped() || !w->acceptsInput() || !w->alphaNonZero())
+                continue;
 
-        reasons |= SC_WORKSPACES;
-        if (!full)
-            return reasons;
+            if (w->m_workspace == PCANDIDATE->m_workspace && w->isFloating() && w->isAllowedOverFullscreen() && w->presentation().visibleOnMonitor(m_self.lock())) {
+                reasons |= SC_FLOAT;
+                if (!full)
+                    return reasons;
+            }
+        }
+
+        for (auto const& ws : State::Workspace::state()->workspaces()) {
+            if (ws->m_alpha->value() <= 0.F || ws->type() != Workspace::eWorkspaceType::SPECIAL || ws->m_monitor != m_self)
+                continue;
+
+            reasons |= SC_WORKSPACES;
+            if (!full)
+                return reasons;
+        }
     }
 
     // check if it did not open any subsurfaces or shit
@@ -1854,7 +1856,7 @@ void CMonitor::recheckSolitary() {
     if (isSolitaryBlocked())
         return;
 
-    m_solitaryClient = Fullscreen::controller()->getFullscreenWindow(m_self.lock());
+    m_solitaryClient = Fullscreen::controller()->getFullscreenWindow(PWORKSPACE);
 }
 
 uint8_t CMonitor::isTearingBlocked(bool full) {

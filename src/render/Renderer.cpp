@@ -332,9 +332,15 @@ bool IHyprRenderer::shouldRenderMonitor(PHLMONITOR monitor) {
     return true;
 }
 
-bool IHyprRenderer::shouldUseOverlay(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace) {
+/**
+* isSolitary = true when checked from isSolitaryBlocked
+ */
+bool IHyprRenderer::shouldUseOverlay(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, bool isSolitary) {
     static auto POVER = CConfigValue<Config::INTEGER>("render:use_overlay_plane");
-    return *POVER;
+    if (*POVER < 2)
+        return *POVER;
+
+    return isSolitary || !pMonitor->m_solitaryClient.expired();
 }
 
 void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {

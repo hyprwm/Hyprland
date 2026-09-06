@@ -77,7 +77,7 @@ void CPlacementController::ensurePersistentWorkspacesPresent(const std::vector<S
                 PMONITOR = Desktop::focusState()->monitor();
 
             if (!PWORKSPACE)
-                PWORKSPACE = State::Workspace::state()->create(TARGET, PMONITOR, false);
+                PWORKSPACE = State::Workspace::state()->create(TARGET, PMONITOR);
         }
 
         const auto REGULAR = dynamicPointerCast<::Workspace::CRegularWorkspace>(PWORKSPACE);

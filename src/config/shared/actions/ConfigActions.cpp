@@ -155,7 +155,7 @@ static PHLWORKSPACE findOrCreateWorkspace(const State::Workspace::STarget target
     if (!ws) {
         const auto PMONITOR = Desktop::focusState()->monitor();
         if (PMONITOR)
-            ws = State::Workspace::state()->create(target, PMONITOR, false);
+            ws = State::Workspace::state()->create(target, PMONITOR);
     }
 
     return ws;

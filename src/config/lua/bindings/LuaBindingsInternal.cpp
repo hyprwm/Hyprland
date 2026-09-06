@@ -406,7 +406,7 @@ PHLWORKSPACE Internal::resolveWorkspaceStr(const std::string& args) {
     if (!ws) {
         const auto PMONITOR = Desktop::focusState()->monitor();
         if (PMONITOR)
-            ws = State::Workspace::state()->create(TARGET, PMONITOR, false);
+            ws = State::Workspace::state()->create(TARGET, PMONITOR);
     }
 
     return ws;

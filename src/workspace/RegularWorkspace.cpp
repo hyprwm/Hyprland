@@ -4,31 +4,31 @@
 
 using namespace Workspace;
 
-CRegularWorkspace::CRegularWorkspace(WorkspaceID id, PHLMONITOR monitor, std::string displayName, std::string address, bool isEmpty) :
-    CHLWorkspace(std::move(id), std::move(monitor), std::move(displayName), std::move(address), eWorkspaceType::NORMAL, isEmpty) {
+CRegularWorkspace::CRegularWorkspace(WorkspaceID id, PHLMONITOR monitor, std::string displayName, std::string address) :
+    CHLWorkspace(std::move(id), std::move(monitor), std::move(displayName), std::move(address), eWorkspaceType::NORMAL) {
     ;
 }
 
-PHLWORKSPACE CRegularWorkspace::create(SWorkspaceNumberedID id, PHLMONITOR monitor, std::string name, bool isEmpty) {
+PHLWORKSPACE CRegularWorkspace::create(SWorkspaceNumberedID id, PHLMONITOR monitor, std::string name) {
     if (id.value == 0)
         return nullptr;
 
     if (name.empty())
         name = std::to_string(id.value);
 
-    auto workspace = makeShared<CRegularWorkspace>(id, std::move(monitor), std::move(name), std::to_string(id.value), isEmpty);
+    auto workspace = makeShared<CRegularWorkspace>(id, std::move(monitor), std::move(name), std::to_string(id.value));
     workspace->init(workspace);
     return workspace;
 }
 
-PHLWORKSPACE CRegularWorkspace::createNamed(PHLMONITOR monitor, std::string address, std::string displayName, bool isEmpty) {
+PHLWORKSPACE CRegularWorkspace::createNamed(PHLMONITOR monitor, std::string address, std::string displayName) {
     if (address.empty())
         return nullptr;
 
     if (displayName.empty())
         displayName = address;
 
-    auto workspace = makeShared<CRegularWorkspace>(SWorkspaceSpecialID{}, std::move(monitor), std::move(displayName), std::move(address), isEmpty);
+    auto workspace = makeShared<CRegularWorkspace>(SWorkspaceSpecialID{}, std::move(monitor), std::move(displayName), std::move(address));
     workspace->init(workspace);
     return workspace;
 }

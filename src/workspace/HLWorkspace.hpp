@@ -70,7 +70,7 @@ namespace Workspace {
         } m_events;
 
       protected:
-        CHLWorkspace(WorkspaceID id, PHLMONITOR monitor, std::string displayName, std::string addressableName, eWorkspaceType type, bool isEmpty = true);
+        CHLWorkspace(WorkspaceID id, PHLMONITOR monitor, std::string displayName, std::string addressableName, eWorkspaceType type);
 
         void         init(PHLWORKSPACE self);
         virtual void applyTypeSpecificRules(const Config::CWorkspaceRule&);

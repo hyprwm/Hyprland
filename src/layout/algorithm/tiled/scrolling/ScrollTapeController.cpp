@@ -233,7 +233,7 @@ double CScrollTapeController::calculateCameraOffset(const CBox& usableArea, bool
         setOffset(std::round((maxExtent - usablePrimary) / 2.0));
 
     // if the offset is negative but we already extended and fit method is not center, reset offset to 0
-    static const auto PFITMETHOD = CConfigValue<Hyprlang::INT>("scrolling:focus_fit_method");
+    static const auto PFITMETHOD = CConfigValue<Config::INTEGER>("scrolling:focus_fit_method");
     if (maxExtent > usablePrimary && m_offset < 0.0 && *PFITMETHOD != 0)
         setOffset(0.0);
 

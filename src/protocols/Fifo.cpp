@@ -84,7 +84,7 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
         if (m_surface->m_mapped && m_surface->m_current.waitingOnPresentation) {
             bool shouldLock = false;
             if (state->barrierSet && state->barrierWait) {
-                static const auto PINVIS = CConfigValue<Hyprlang::INT>("render:not_shown_fifo_lock");
+                static const auto PINVIS = CConfigValue<Config::INTEGER>("render:not_shown_fifo_lock");
                 shouldLock               = *PINVIS == 0 || !m_surface->m_hlSurface; // always && unknown
                 if (!shouldLock && m_surface->m_hlSurface) {
                     const auto& view = m_surface->m_hlSurface->view();

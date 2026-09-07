@@ -19,7 +19,6 @@
 #include <fcntl.h>
 #include <glaze/core/context.hpp>
 #include <glaze/util/parse.hpp>
-#include <hyprlang.hpp>
 #include <hyprutils/memory/SharedPtr.hpp>
 #include <hyprutils/os/FileDescriptor.hpp>
 #include <libeis.h>
@@ -165,7 +164,7 @@ static bool isBarrierValid(int x1, int y1, int x2, int y2) {
 }
 
 void CInputCaptureResource::onAddBarrier(uint32_t zoneSet, uint32_t id, uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2) {
-    static auto PENFORCEBARRIERS = CConfigValue<Hyprlang::INT>("input-capture:enforce_barriers");
+    static auto PENFORCEBARRIERS = CConfigValue<Config::INTEGER>("input-capture:enforce_barriers");
     // Protocol coordinates are transported as uint32_t. Negative global-space
     // coordinates are encoded via two's complement and must be reinterpreted.
     const int32_t sx1 = static_cast<int32_t>(x1);

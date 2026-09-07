@@ -1,7 +1,6 @@
 #include "MonitorZoomController.hpp"
 
 #include <algorithm>
-#include <hyprlang.hpp>
 #include "../config/ConfigValue.hpp"
 #include "../pointer/PointerManager.hpp"
 #include "../render/OpenGL.hpp"

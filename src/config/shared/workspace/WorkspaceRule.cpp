@@ -16,6 +16,8 @@ void CWorkspaceRule::mergeLeft(const CWorkspaceRule& other) {
         m_isDefault = other.m_isDefault;
     if (other.m_isPersistent.has_value())
         m_isPersistent = other.m_isPersistent;
+    if (other.m_blur.has_value())
+        m_blur = other.m_blur;
     if (other.m_gapsIn.has_value())
         m_gapsIn = other.m_gapsIn;
     if (other.m_gapsOut.has_value())

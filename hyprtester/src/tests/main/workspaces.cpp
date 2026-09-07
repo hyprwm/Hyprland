@@ -1033,12 +1033,15 @@ TEST_CASE(luaGetWorkspace) {
     ASSERT(getFromSocket("/repl hl.get_workspace('test')"), "HL.Workspace(test:test)");
     ASSERT(getFromSocket("/repl hl.get_workspace('name:test') == hl.get_active_workspace()"), "true");
     ASSERT(getFromSocket("/repl hl.get_workspace('test') == hl.get_active_workspace()"), "true");
+    ASSERT(getFromSocket("/repl type(hl.get_active_workspace().id)"), "nil");
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 1})"));
     {
         auto str = getFromSocket("/activeworkspace");
         ASSERT_CONTAINS(str, "workspace 1 (1)");
     }
+    ASSERT(getFromSocket("/repl hl.get_active_workspace().id"), "1");
+    ASSERT(getFromSocket("/repl math.type(hl.get_active_workspace().id)"), "integer");
 
     ASSERT(getFromSocket("/repl hl.get_workspace('e-1')"), "HL.Workspace(test:test)");
     ASSERT(getFromSocket("/repl hl.get_workspace('r+1')"), "nil");

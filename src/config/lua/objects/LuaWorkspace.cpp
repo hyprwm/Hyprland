@@ -15,9 +15,12 @@
 #include "../../../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 #include "../../../workspace/RegularWorkspace.hpp"
 #include "../../../Compositor.hpp"
+#include "workspace/AbstractWorkspace.hpp"
 
 #include <algorithm>
+#include <lua.h>
 #include <string_view>
+#include <variant>
 
 using namespace Config::Lua;
 
@@ -108,7 +111,15 @@ static int workspaceIndex(lua_State* L) {
         lua_pushstring(L, ws->displayName().c_str());
     else if (key == "addressable_name")
         lua_pushstring(L, ws->addressableName().c_str());
-    else if (key == "monitor") {
+    else if (key == "id") {
+        // for compatibility under lua, keep this field populated with a numbered ID if there is one,
+        // or nil
+        auto id = ws->id();
+        if (std::holds_alternative<Workspace::SWorkspaceNumberedID>(id))
+            lua_pushinteger(L, std::get<Workspace::SWorkspaceNumberedID>(id).value);
+        else
+            lua_pushnil(L);
+    } else if (key == "monitor") {
         const auto mon = ws->m_monitor.lock();
         if (mon)
             Objects::CLuaMonitor::push(L, mon);

@@ -545,7 +545,7 @@ if(hyprland_protocols_dep_FOUND)
   pkg_get_variable(HYPRLAND_PROTOCOLS hyprland-protocols pkgdatadir)
   message(STATUS "hyprland-protocols dependency set to ${HYPRLAND_PROTOCOLS}")
 else()
-  set(HYPRLAND_PROTOCOLS "subprojects/hyprland-protocols")
+  set(HYPRLAND_PROTOCOLS "${CMAKE_SOURCE_DIR}/subprojects/hyprland-protocols")
   message(STATUS "hyprland-protocols subproject set to ${HYPRLAND_PROTOCOLS}")
 endif()
 

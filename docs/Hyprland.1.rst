@@ -30,7 +30,7 @@ Although Hyprland is pretty stable, it may have some bugs.
 CONFIGURATION
 =============
 
-For configuration information please see <*https://github.com/hyprwm/Hyprland/wiki*>.
+For configuration information please see <*https://wiki.hypr.land*>.
 
 OPTIONS
 =======

@@ -163,6 +163,7 @@ static bool preTestCleanup() {
         NLog::red("Internal failure: failed to kill all layers");
         failed = true;
     }
+    // TODO: also remove all the added headless outputs! (some tests will need to be updated)
     if (getFromSocket("/reload") != "ok") {
         NLog::red("Internal failure: failed to reload");
         failed = true;
@@ -231,7 +232,7 @@ int main(int argc, char** argv, char** envp) {
         if (testCases.contains(test)) {
             requestedTestCases.push_back(testCases.at(test));
         } else {
-            NLog::red("ERROR: Unknown test name '{}'", Colors::RED, test);
+            NLog::red("ERROR: Unknown test name '{}'", test);
             return EXIT_FAILURE;
         }
     }

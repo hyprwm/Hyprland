@@ -1078,46 +1078,48 @@ SP<CWLSurfaceResource> CWindow::getSolitaryResource() const {
     if (res->m_subsurfaces.size() == 0)
         return res;
 
-    if (res->m_subsurfaces.size() >= 1) {
-        if (!res->hasVisibleSubsurface())
-            return res;
-
+    if (res->hasVisibleSubsurface()) {
         if (res->m_subsurfaces.size() == 1) {
-            if (res->m_subsurfaces[0].expired() || res->m_subsurfaces[0]->m_surface.expired())
-                return nullptr;
+            auto subsurf = res->m_subsurfaces[0].lock();
+            if (subsurf && !subsurf->m_surface.expired() && subsurf->m_zIndex >= 0) {
+                auto surf = subsurf->m_surface.lock();
+                if (surf && surf->m_subsurfaces.empty() && surf->extends() == res->extends() && surf->m_current.texture && surf->m_current.texture->m_opaque)
+                    return surf;
+            }
+        }
+    } else {
+        return res;
+    }
 
-            auto subsurf = res->m_subsurfaces[0];
+    if (res->m_current.buffer)
+        return nullptr;
 
-            // A subsurface under the main surface cannot result in a solitary resource
-            if (subsurf->m_zIndex < 0)
-                return nullptr;
+    SP<CWLSurfaceResource> targetSubsurface = nullptr;
 
-            auto surf = subsurf->m_surface.lock();
+    for (auto& sub : res->m_subsurfaces) {
+        if (sub.expired())
+            continue;
+        auto subsurf = sub.lock();
+        if (!subsurf || subsurf->m_surface.expired())
+            continue;
 
-            // check if the subsurface covers the main surface
-            if (!surf || surf->m_subsurfaces.size() != 0 || surf->extends() != res->extends() || !surf->m_current.texture || !surf->m_current.texture->m_opaque)
-                return nullptr;
+        auto surf = subsurf->m_surface.lock();
+        if (!surf)
+            continue;
 
-            return surf;
+        if (subsurf->m_zIndex < 0) {
+            if (surf->m_current.buffer) {
+                if (targetSubsurface)
+                    return nullptr;
+                targetSubsurface = surf;
+            }
+        } else if (surf->m_current.buffer || surf->m_mapped) {
+            return nullptr; // overlay blocks solitary
         }
     }
 
-    return nullptr;
-}
-
-SP<CWLSurfaceResource> CWindow::getDirectScanoutResource() const {
-    if (auto sol = getSolitaryResource())
-        return sol;
-
-    if (m_wlSurface) {
-        auto res = m_wlSurface->resource();
-        if (!res || res->m_current.buffer)
-            return nullptr;
-
-        SP<CWLSurfaceResource> targetSubsurface = nullptr;
-
-        // inspect root window subsurfaces
-        for (auto& sub : res->m_subsurfaces) {
+    if (targetSubsurface) {
+        for (auto& sub : targetSubsurface->m_subsurfaces) {
             if (sub.expired())
                 continue;
             auto subsurf = sub.lock();
@@ -1125,39 +1127,22 @@ SP<CWLSurfaceResource> CWindow::getDirectScanoutResource() const {
                 continue;
 
             auto surf = subsurf->m_surface.lock();
-            if (!surf)
-                continue;
-
-            if (subsurf->m_zIndex < 0) {
-                if (surf->m_current.buffer) {
-                    if (targetSubsurface)
-                        return nullptr; // multiple rendering subsurfaces active
-                    targetSubsurface = surf;
-                }
-            } else if (surf->m_current.buffer || surf->m_mapped) {
-                return nullptr;
-            }
-        }
-
-        // inspect nested subsurfaces attached directly to the surface
-        if (targetSubsurface) {
-            for (auto& sub : targetSubsurface->m_subsurfaces) {
-                if (sub.expired())
-                    continue;
-                auto subsurf = sub.lock();
-                if (!subsurf || subsurf->m_surface.expired())
-                    continue;
-
-                auto surf = subsurf->m_surface.lock();
-                if (surf && (surf->m_current.buffer || surf->m_mapped))
-                    return nullptr; // Steam Overlay or Wayland cursor subsurface active
-            }
+            if (surf && (surf->m_current.buffer || surf->m_mapped))
+                return nullptr; // Nested overlay active
         }
 
         return targetSubsurface;
     }
 
     return nullptr;
+}
+
+bool CWindow::isSolitaryRoot() const {
+    if (!m_wlSurface)
+        return false;
+
+    auto res = m_wlSurface->resource();
+    return res && getSolitaryResource() == res;
 }
 
 std::optional<Vector2D> CWindow::calculateExpression(const Math::SExpressionVec2& expr) {

@@ -457,6 +457,8 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
                     XSURF->m_state.requestsMinimize = updateState(action, XSURF->m_minimized);
                 if (prop == HYPRATOMS["_NET_WM_STATE_MAXIMIZED_VERT"] || prop == HYPRATOMS["_NET_WM_STATE_MAXIMIZED_HORZ"])
                     XSURF->m_state.requestsMaximize = updateState(action, XSURF->m_maximized);
+                if (prop == HYPRATOMS["_NET_WM_STATE_DEMANDS_ATTENTION"] && updateState(action, false))
+                    XSURF->m_events.activate.emit();
             }
 
             XSURF->m_events.stateChanged.emit();

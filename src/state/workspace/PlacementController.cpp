@@ -52,6 +52,9 @@ void CPlacementController::ensurePersistentWorkspacesPresent(const std::vector<S
         const auto&  rule = *rulePtr;
 
         PHLWORKSPACE PWORKSPACE = nullptr;
+        // clang-format off
+        Hyprutils::Utils::CScopeGuard x([&]() { if (PWORKSPACE) PWORKSPACE->ready(); });
+        // clang-format on
         if (pWorkspace) {
             if (pWorkspace->matchesStaticSelector(rule.m_workspaceString))
                 PWORKSPACE = pWorkspace;
@@ -262,6 +265,9 @@ void CPlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMO
 
     // fix old mon
     PHLWORKSPACE nextWorkspaceOnMonitor;
+    // clang-format off
+    Hyprutils::Utils::CScopeGuard x([&]() { if (nextWorkspaceOnMonitor) nextWorkspaceOnMonitor->ready(); });
+    // clang-format on
     if (!SWITCHINGISACTIVE)
         nextWorkspaceOnMonitor = pWorkspace;
     else {

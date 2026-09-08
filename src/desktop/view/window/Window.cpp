@@ -1588,6 +1588,7 @@ void CWindow::mapWindow() {
         m_workspace->updateWindows();
 
     Event::bus()->m_events.window.openLate.emit(m_self.lock());
+    PWORKSPACE->ready();
 }
 
 void CWindow::unmapWindow() {

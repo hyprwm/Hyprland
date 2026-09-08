@@ -136,8 +136,11 @@ class CHyprlandPolicyContext final : public IPolicyContext {
             return;
         }
 
-        m_createdWorkspace = state()->create(TARGET, MONITOR);
-        finishLifecycleTransition(m_createdWorkspace);
+        if (const auto ws = state()->create(TARGET, MONITOR)) {
+            m_createdWorkspace = ws;
+            ws->ready();
+            finishLifecycleTransition(ws);
+        }
     }
 
     void moveWorkspace(const SWorkspaceIdentity& identity, std::string_view monitorAddress) override {

@@ -7,7 +7,7 @@ CMAKE_GENERATE_CMD = cmake -Wno-unused-cli $(CMAKE_ARGS) -S . -B $(BUILDDIR)
 CMAKE_BUILD_CMD = cmake --build $(BUILDDIR) --config $(CMAKE_BUILD_TYPE) --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
 .DEFAULT: stub
-.PHONY: stub cmake_smartbuild release debug nopch clear all install uninstall pluginenv installheaders man asan format-check format-fix test
+.PHONY: stub cmake_smartbuild release debug nopch clean all install uninstall pluginenv installheaders man asan format-check format-fix test
 
 stub:
 	@echo "Do not run $(MAKE) directly without any arguments. Please refer to the wiki on how to compile Hyprland."
@@ -35,13 +35,13 @@ debug: cmake_smartbuild
 nopch: CMAKE_ARGS += -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON
 nopch: cmake_smartbuild
 
-clear:
+clean:
 	rm -rf build
 	rm -f ./protocols/*.h ./protocols/*.c ./protocols/*.cpp ./protocols/*.hpp
 	rm -f ./hyprctl/hw-protocols/*.cpp ./hyprctl/hw-protocols/*.hpp
 
 all:
-	$(MAKE) clear
+	$(MAKE) clean
 	$(MAKE) release
 
 install: cmake_smartbuild

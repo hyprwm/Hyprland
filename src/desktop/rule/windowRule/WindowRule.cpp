@@ -186,13 +186,16 @@ static std::expected<SBorderColorRule, std::string> parseBorderColorRule(const s
         }
 
         activeBorderGradient.updateColorsOk();
+        inactiveBorderGradient.updateColorsOk();
 
         if (activeBorderGradient.m_colors.size() > 10 || inactiveBorderGradient.m_colors.size() > 10)
             return std::unexpected(std::format("border_color rule \"{}\" has more than 10 colors in one gradient", raw));
-        if (activeBorderGradient.m_colors.empty())
+        if (activeBorderGradient.m_colors.empty() && inactiveBorderGradient.m_colors.empty())
             return std::unexpected(std::format("border_color rule \"{}\" has no colors", raw));
 
-        SBorderColorRule result{.active = activeBorderGradient};
+        SBorderColorRule result{};
+        if (!activeBorderGradient.m_colors.empty())
+            result.active = activeBorderGradient;
         if (!inactiveBorderGradient.m_colors.empty())
             result.inactive = inactiveBorderGradient;
 
@@ -517,4 +520,18 @@ std::expected<SP<CWindowRule>, std::string> CWindowRule::buildFromExecString(std
     }
 
     return wr;
+}
+
+bool CWindowRule::matches(Desktop::Rule::eRuleProperty p, const std::string& s) {
+    if (!canMatch())
+        return false;
+
+    return Desktop::Rule::IRule::matches(p, s);
+}
+
+bool CWindowRule::matches(Desktop::Rule::eRuleProperty p, bool b) {
+    if (!canMatch())
+        return false;
+
+    return Desktop::Rule::IRule::matches(p, b);
 }

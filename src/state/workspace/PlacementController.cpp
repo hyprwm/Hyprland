@@ -243,7 +243,7 @@ void CPlacementController::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR
     Event::bus()->m_events.workspace.moveToMonitor.emit(PWORKSPACEB, pMonitorA);
 }
 
-void CPlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMonitor, bool noWarpCursor, bool carryFocus) const {
+void CPlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMonitor, bool noWarpCursor, bool carryFocus, bool replace) const {
     static auto PHIDESPECIALONWORKSPACECHANGE = CConfigValue<Config::INTEGER>("binds:hide_special_on_workspace_change");
 
     if (!pWorkspace || !pMonitor)
@@ -268,37 +268,39 @@ void CPlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMO
     // clang-format off
     Hyprutils::Utils::CScopeGuard x([&]() { if (nextWorkspaceOnMonitor) nextWorkspaceOnMonitor->ready(); });
     // clang-format on
-    if (!SWITCHINGISACTIVE)
-        nextWorkspaceOnMonitor = pWorkspace;
-    else {
-        PHLWORKSPACE newWorkspace; // for holding a ref to the new workspace that might be created
+    if (replace) {
+        if (!SWITCHINGISACTIVE)
+            nextWorkspaceOnMonitor = pWorkspace;
+        else {
+            PHLWORKSPACE newWorkspace; // for holding a ref to the new workspace that might be created
 
-        for (auto const& w : state()->workspaces()) {
-            if (w->m_monitor == POLDMON && w.lock() != pWorkspace && w->type() != ::Workspace::eWorkspaceType::SPECIAL) {
-                nextWorkspaceOnMonitor = w.lock();
-                break;
+            for (auto const& w : state()->workspaces()) {
+                if (w->m_monitor == POLDMON && w.lock() != pWorkspace && w->type() != ::Workspace::eWorkspaceType::SPECIAL) {
+                    nextWorkspaceOnMonitor = w.lock();
+                    break;
+                }
             }
-        }
 
-        if (!nextWorkspaceOnMonitor) {
-            ::Workspace::WorkspaceIDContainer nextWorkspaceOnMonitorID = 1;
+            if (!nextWorkspaceOnMonitor) {
+                ::Workspace::WorkspaceIDContainer nextWorkspaceOnMonitorID = 1;
 
-            while (state()->query().numbered(::Workspace::SWorkspaceNumberedID{nextWorkspaceOnMonitorID}).run() || [&]() -> bool {
-                const auto B = Config::workspaceRuleMgr()->getBoundMonitorForWS(std::to_string(nextWorkspaceOnMonitorID));
-                return B && B != POLDMON;
-            }())
-                nextWorkspaceOnMonitorID++;
+                while (state()->query().numbered(::Workspace::SWorkspaceNumberedID{nextWorkspaceOnMonitorID}).run() || [&]() -> bool {
+                    const auto B = Config::workspaceRuleMgr()->getBoundMonitorForWS(std::to_string(nextWorkspaceOnMonitorID));
+                    return B && B != POLDMON;
+                }())
+                    nextWorkspaceOnMonitorID++;
 
-            LOG(Log::DEBUG, "moveWorkspaceToMonitor: Plugging gap with new {}", nextWorkspaceOnMonitorID);
+                LOG(Log::DEBUG, "moveWorkspaceToMonitor: Plugging gap with new {}", nextWorkspaceOnMonitorID);
 
+                if (POLDMON)
+                    newWorkspace = state()->createNumbered(::Workspace::SWorkspaceNumberedID{nextWorkspaceOnMonitorID}, POLDMON);
+                nextWorkspaceOnMonitor = newWorkspace;
+            }
+
+            LOG(Log::DEBUG, "moveWorkspaceToMonitor: Plugging gap with existing {}", nextWorkspaceOnMonitor ? nextWorkspaceOnMonitor->addressableName() : "none");
             if (POLDMON)
-                newWorkspace = state()->createNumbered(::Workspace::SWorkspaceNumberedID{nextWorkspaceOnMonitorID}, POLDMON);
-            nextWorkspaceOnMonitor = newWorkspace;
+                POLDMON->changeWorkspace(nextWorkspaceOnMonitor, false, true, carryFocus || POLDMON != Desktop::focusState()->monitor());
         }
-
-        LOG(Log::DEBUG, "moveWorkspaceToMonitor: Plugging gap with existing {}", nextWorkspaceOnMonitor ? nextWorkspaceOnMonitor->addressableName() : "none");
-        if (POLDMON)
-            POLDMON->changeWorkspace(nextWorkspaceOnMonitor, false, true, carryFocus || POLDMON != Desktop::focusState()->monitor());
     }
 
     // move the workspace
@@ -308,7 +310,7 @@ void CPlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMO
 
     for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace == pWorkspace) {
-            if (w->m_state & Desktop::View::WINDOW_STATE_PINNED) {
+            if (nextWorkspaceOnMonitor && (w->m_state & Desktop::View::WINDOW_STATE_PINNED)) {
                 w->m_workspace = nextWorkspaceOnMonitor;
                 continue;
             }

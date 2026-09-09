@@ -44,6 +44,5 @@ struct SDispatchResult {
     std::string error;
 };
 
-using WINDOWID    = int64_t;
-using MONITORID   = int64_t;
-using WORKSPACEID = int64_t;
+using WINDOWID  = int64_t;
+using MONITORID = int64_t;

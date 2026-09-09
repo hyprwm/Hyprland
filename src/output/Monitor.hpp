@@ -272,12 +272,8 @@ namespace Monitor {
         bool         isMirror();
         float        getDefaultScale();
         void         changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal = false, bool noMouseMove = false, bool noFocus = false);
-        void         changeWorkspace(const WORKSPACEID& id, bool internal = false, bool noMouseMove = false, bool noFocus = false);
         void         setSpecialWorkspace(const PHLWORKSPACE& pWorkspace, bool noFocus = false);
-        void         setSpecialWorkspace(const WORKSPACEID& id, bool noFocus = false);
         PHLWORKSPACE getCurrentWorkspace();
-        WORKSPACEID  activeWorkspaceID();
-        WORKSPACEID  activeSpecialWorkspaceID();
         void         scheduleDone();
         uint32_t     isSolitaryBlocked(bool full = false);
         void         recheckSolitary();
@@ -389,25 +385,21 @@ namespace Monitor {
         WP<Monitor::CMonitorResources>      resources();
 
       private:
-        void                    updateMatrix();
-        Mat3x3                  m_projMatrix;
-        Mat3x3                  m_projOutputMatrix;
+        void                updateMatrix();
+        Mat3x3              m_projMatrix;
+        Mat3x3              m_projOutputMatrix;
 
-        void                    setupDefaultWS(const Config::CMonitorRule&);
-        WORKSPACEID             findAvailableDefaultWS();
-        void                    setSpecialWorkspaceVisualState(bool active);
-        void                    commitDPMSState(bool state);
-        void                    scheduleModeRetry();
-        void                    clearModeRetry();
-        void                    updateVCGTRamps();
-        bool                    trySetFormat(std::span<const uint32_t> formats);
+        void                setSpecialWorkspaceVisualState(bool active);
+        void                commitDPMSState(bool state);
+        void                scheduleModeRetry();
+        void                clearModeRetry();
+        void                updateVCGTRamps();
+        bool                trySetFormat(std::span<const uint32_t> formats);
 
-        bool                    m_doneScheduled  = false;
-        bool                    m_vcgtRampsSet   = false;
-        int                     m_modeRetryCount = 0;
-        SP<CEventLoopTimer>     m_modeRetryTimer;
-
-        std::stack<WORKSPACEID> m_prevWorkSpaces;
+        bool                m_doneScheduled  = false;
+        bool                m_vcgtRampsSet   = false;
+        int                 m_modeRetryCount = 0;
+        SP<CEventLoopTimer> m_modeRetryTimer;
 
         // Resources
         UP<Monitor::CMonitorResources> m_resources;

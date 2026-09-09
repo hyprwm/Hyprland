@@ -1,5 +1,6 @@
 
 #include "Compositor.hpp"
+#include "helpers/MiscFunctions.hpp"
 #include "render/decorations/DecorationPositioner.hpp"
 #include "config/supplementary/executor/Executor.hpp"
 #include "debug/log/Logger.hpp"
@@ -588,7 +589,7 @@ void CCompositor::cleanup() {
     // still in a normal working state.
     g_pPluginSystem->unloadAllPlugins();
 
-    State::workspaceState()->clear();
+    State::Workspace::state()->clear();
     Desktop::windowState()->clear();
     Desktop::layerState()->clear();
     Desktop::fadingOutState()->clear();
@@ -666,7 +667,7 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             State::monitorState();
 
             LOG(Log::DEBUG, "Creating the WorkspaceState!");
-            State::workspaceState();
+            State::Workspace::state();
 
             LOG(Log::DEBUG, "Creating the ConfigManager!");
             if (!Config::initConfigManager())

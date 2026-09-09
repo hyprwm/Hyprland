@@ -185,7 +185,7 @@ void CSubsurface::recheckDamageForSubsurfaces(int depth) {
 
 void CSubsurface::onCommit() {
     // no damaging if it's not visible
-    if (!m_windowParent.expired() && (!m_windowParent->mapped() || !m_windowParent->m_workspace->m_visible)) {
+    if (!m_windowParent.expired() && (!m_windowParent->mapped() || !m_windowParent->m_workspace->visible())) {
         m_lastSize = m_wlSurface->resource()->m_current.size;
 
         static auto PLOGDAMAGE = CConfigValue<Config::INTEGER>("debug:log_damage");

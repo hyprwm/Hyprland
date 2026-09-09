@@ -2,7 +2,7 @@
 
 #include "View.hpp"
 
-#include "../Workspace.hpp"
+#include "../../workspace/HLWorkspace.hpp"
 
 #include <vector>
 

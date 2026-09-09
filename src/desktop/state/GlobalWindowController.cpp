@@ -31,7 +31,7 @@ void CGlobalWindowController::updateSuspendedStates() const {
         if (!w->mapped())
             continue;
 
-        w->setSuspended(w->isHidden() || !w->m_workspace || !w->m_workspace->isVisible());
+        w->setSuspended(w->isHidden() || !w->m_workspace || !w->m_workspace->visible());
     }
 }
 
@@ -39,7 +39,7 @@ void CGlobalWindowController::moveWindowToWorkspace(PHLWINDOW pWindow, PHLWORKSP
     if (!pWindow || !pWorkspace)
         return;
 
-    if ((pWindow->m_state & Desktop::View::WINDOW_STATE_PINNED) && pWorkspace->m_isSpecialWorkspace)
+    if ((pWindow->m_state & Desktop::View::WINDOW_STATE_PINNED) && pWorkspace->type() == Workspace::eWorkspaceType::SPECIAL)
         return;
 
     if (pWindow->m_workspace == pWorkspace)
@@ -48,7 +48,7 @@ void CGlobalWindowController::moveWindowToWorkspace(PHLWINDOW pWindow, PHLWORKSP
     const bool FULLSCREEN     = Fullscreen::controller()->isFullscreen(pWindow);
     const auto FULLSCREENMODE = Fullscreen::controller()->getFullscreenModes(pWindow).internal;
     const auto LAYOUT_AWARE   = FULLSCREEN ? Fullscreen::controller()->layoutManagedFS(pWindow) : false;
-    const bool WASVISIBLE     = pWindow->m_workspace && pWindow->m_workspace->isVisible();
+    const bool WASVISIBLE     = pWindow->m_workspace && pWindow->m_workspace->visible();
 
     if (FULLSCREEN)
         Fullscreen::controller()->setFullscreenMode(pWindow, Fullscreen::FSMODE_NONE);
@@ -77,7 +77,7 @@ void CGlobalWindowController::moveWindowToWorkspace(PHLWINDOW pWindow, PHLWORKSP
     if (pWindow->grouping().group())
         pWindow->grouping().group()->updateWorkspace(pWorkspace);
 
-    g_layoutManager->newTarget(pWindow->layoutTarget(), pWorkspace->m_space);
+    g_layoutManager->newTarget(pWindow->layoutTarget(), pWorkspace->space());
 
     if (FULLSCREEN)
         Fullscreen::controller()->setFullscreenMode(pWindow, FULLSCREENMODE, std::nullopt, LAYOUT_AWARE);
@@ -87,7 +87,7 @@ void CGlobalWindowController::moveWindowToWorkspace(PHLWINDOW pWindow, PHLWORKSP
         pWindow->m_workspace->updateWindows();
     updateSuspendedStates();
 
-    if (!WASVISIBLE && pWindow->m_workspace && pWindow->m_workspace->isVisible()) {
+    if (!WASVISIBLE && pWindow->m_workspace && pWindow->m_workspace->visible()) {
         pWindow->presentation().alpha(View::WINDOW_ALPHA_MOVE_FROM_WORKSPACE)->setValueAndWarp(0.F);
         *pWindow->presentation().alpha(View::WINDOW_ALPHA_MOVE_FROM_WORKSPACE) = 1.F;
     }

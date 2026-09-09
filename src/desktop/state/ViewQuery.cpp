@@ -244,7 +244,7 @@ PHLWINDOW CViewQuery::forceFocusWindow() const {
         if (!windowMatchesCommon(w))
             continue;
 
-        if (!w->mapped() || !w->acceptsInput() || !w->m_workspace || !w->m_workspace->isVisible())
+        if (!w->mapped() || !w->acceptsInput() || !w->m_workspace || !w->m_workspace->visible())
             continue;
 
         if (!w->m_ruleApplicator->stayFocused().valueOrDefault())

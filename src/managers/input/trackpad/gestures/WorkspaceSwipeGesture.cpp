@@ -16,8 +16,8 @@ void CWorkspaceSwipeGesture::begin(const ITrackpadGesture::STrackpadGestureBegin
         return;
 
     int onMonitor = 0;
-    for (auto const& w : State::workspaceState()->workspaces()) {
-        if (w->m_monitor == Desktop::focusState()->monitor() && !State::workspaceState()->isSpecial(w->m_id))
+    for (auto const& w : State::Workspace::state()->workspaces()) {
+        if (w->m_monitor == Desktop::focusState()->monitor() && w->type() != Workspace::eWorkspaceType::SPECIAL)
             onMonitor++;
     }
 

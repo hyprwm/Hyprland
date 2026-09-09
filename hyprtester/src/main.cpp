@@ -167,7 +167,7 @@ static bool preTestCleanup() {
         NLog::red("Internal failure: failed to reload");
         failed = true;
     }
-    if (!getFromSocket("/activeworkspace").contains("workspace ID 1 (1)")) {
+    if (!getFromSocket("/activeworkspace").contains("workspace 1 (1)")) {
         if (getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })") != "ok") {
             NLog::red("Internal failure: failed to switch to workspace 1");
             failed = true;

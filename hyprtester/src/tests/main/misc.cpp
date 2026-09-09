@@ -137,14 +137,14 @@ TEST_CASE(misc) {
 
     {
         auto str = getFromSocket("/monitors");
-        ASSERT_CONTAINS(str, "special workspace: -");
+        ASSERT_CONTAINS(str, "special workspace: special:test (special:test)");
     }
 
     Tests::killAllWindows();
 
     {
         auto str = getFromSocket("/monitors");
-        ASSERT_CONTAINS(str, "special workspace: -");
+        ASSERT_CONTAINS(str, "special workspace: special:test (special:test)");
     }
 
     SPAWN_KITTY("a");
@@ -155,7 +155,7 @@ TEST_CASE(misc) {
 
     {
         auto str = getFromSocket("/monitors");
-        ASSERT_NOT_CONTAINS(str, "special workspace: -");
+        ASSERT_NOT_CONTAINS(str, "special workspace: special:test (special:test)");
     }
 }
 

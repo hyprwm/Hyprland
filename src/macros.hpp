@@ -19,12 +19,7 @@
 #define ISDEBUG false
 #endif
 
-#define SPECIAL_WORKSPACE_START (-99)
-
 #define STRVAL_EMPTY "[[EMPTY]]"
-
-#define WORKSPACE_INVALID     -1L
-#define WORKSPACE_NOT_CHANGED -101
 
 #define MONITOR_INVALID  -1L
 #define MONITOR_FALLBACK -2L

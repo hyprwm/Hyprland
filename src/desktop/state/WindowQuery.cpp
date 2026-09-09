@@ -1,6 +1,6 @@
 #include "WindowQuery.hpp"
 #include "WindowState.hpp"
-#include "../Workspace.hpp"
+#include "../../workspace/HLWorkspace.hpp"
 #include "../history/WindowHistoryTracker.hpp"
 #include "../view/window/Window.hpp"
 #include "../../config/ConfigValue.hpp"
@@ -96,7 +96,7 @@ PHLWINDOW CWindowQuery::inDirection(const SWindowDirectionQuery& query) const {
 
         auto find = [&]() {
             for (auto const& w : m_state.windows()) {
-                if (w == query.ignoreWindow || !w->m_workspace || !w->mapped() || (!Fullscreen::controller()->isFullscreen(w) && w->isFloating()) || !w->m_workspace->isVisible())
+                if (w == query.ignoreWindow || !w->m_workspace || !w->mapped() || (!Fullscreen::controller()->isFullscreen(w) && w->isFloating()) || !w->m_workspace->visible())
                     continue;
 
                 if (w->isHidden())
@@ -221,7 +221,7 @@ PHLWINDOW CWindowQuery::inDirection(const SWindowDirectionQuery& query) const {
 
         for (auto const& w : m_state.windows()) {
             if (w == query.ignoreWindow || !w->mapped() || !w->m_workspace || !w->acceptsInput() || (!Fullscreen::controller()->isFullscreen(w) && !w->isFloating()) ||
-                !w->m_workspace->isVisible())
+                !w->m_workspace->visible())
                 continue;
 
             if (query.workspace->m_monitor == w->m_monitor && query.workspace != w->m_workspace)
@@ -258,7 +258,7 @@ PHLWINDOW CWindowQuery::inDirection(const SWindowDirectionQuery& query) const {
 
 template <typename WINDOWPTR>
 static bool isWorkspaceMatches(WINDOWPTR pWindow, const WINDOWPTR w, bool anyWorkspace) {
-    return anyWorkspace ? w->m_workspace && w->m_workspace->isVisible() : w->m_workspace == pWindow->m_workspace;
+    return anyWorkspace ? w->m_workspace && w->m_workspace->visible() : w->m_workspace == pWindow->m_workspace;
 }
 
 template <typename WINDOWPTR>

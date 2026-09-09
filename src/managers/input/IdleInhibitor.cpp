@@ -73,7 +73,7 @@ bool CInputManager::isWindowInhibiting(const PHLWINDOW& w, bool onlyHl) {
         return true;
 
     if (w->m_ruleApplicator->idleInhibitMode().valueOrDefault() == Desktop::Rule::IDLEINHIBIT_FULLSCREEN && Fullscreen::controller()->isFullscreen(w) && w->m_workspace &&
-        w->m_workspace->isVisible())
+        w->m_workspace->visible())
         return true;
 
     if (onlyHl)

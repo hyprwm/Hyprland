@@ -1,4 +1,5 @@
 #include "MasterAlgorithm.hpp"
+#include "../../../../helpers/MiscFunctions.hpp"
 #include "../../../../desktop/view/window/WindowPresentation.hpp"
 
 #include "../../Algorithm.hpp"
@@ -493,7 +494,7 @@ void CMasterAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir
         if (!*PMONITORFALLBACK)
             return; // noop
 
-        t->assignToSpace(targetWs->m_space, focalPointForDir(t, dir));
+        t->assignToSpace(targetWs->space(), focalPointForDir(t, dir));
     } else if (PWINDOW2) {
         // if same monitor, switch windows
         g_layoutManager->switchTargets(t, PWINDOW2->layoutTarget());

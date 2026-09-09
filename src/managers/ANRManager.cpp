@@ -10,6 +10,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../i18n/Engine.hpp"
 #include "../event/EventBus.hpp"
+#include "../workspace/query/Query.hpp"
 
 using namespace Hyprutils::OS;
 
@@ -194,7 +195,7 @@ void CANRManager::SANRData::runDialog(const std::string& appName, const std::str
             continue;
 
         if (w->m_workspace)
-            dialogBox->setExecRule(std::format("workspace {} silent", w->m_workspace->getConfigName()));
+            dialogBox->setExecRule(std::format("workspace {} silent", Workspace::selector(*w->m_workspace)));
 
         break;
     }

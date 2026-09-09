@@ -93,7 +93,7 @@ static void damageWindowForPolicies(PHLWINDOW pWindow, bool entire, const std::v
 
 static void preDamageWorkspace(PHLWORKSPACE pWorkspace, PHLMONITOR pMonitor) {
     // don't damage the whole monitor on workspace change, unless it's a special workspace, because dim/blur etc
-    if (pWorkspace->m_isSpecialWorkspace)
+    if (pWorkspace->type() == Workspace::eWorkspaceType::SPECIAL)
         g_pHyprRenderer->damageMonitor(pMonitor);
 
     // TODO: just make this into a damn callback already vax...
@@ -110,7 +110,7 @@ static void preDamageWorkspace(PHLWORKSPACE pWorkspace, PHLMONITOR pMonitor) {
                 g_pHyprRenderer->damageWindow(w, true);
         }
 
-        if (pWorkspace->m_isSpecialWorkspace)
+        if (pWorkspace->type() == Workspace::eWorkspaceType::SPECIAL)
             g_pHyprRenderer->damageWindow(w, true); // hack for special too because it can cross multiple monitors
     }
 

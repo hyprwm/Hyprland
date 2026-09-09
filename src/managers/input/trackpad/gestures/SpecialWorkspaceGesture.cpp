@@ -2,8 +2,10 @@
 
 #include "../../../../Compositor.hpp"
 #include "../../../../state/WorkspaceState.hpp"
+#include "../../../../state/workspace/Resolver.hpp"
 #include "../../../../desktop/state/FocusState.hpp"
 #include "../../../../render/Renderer.hpp"
+#include "../../../../workspace/WorkspaceUtils.hpp"
 
 #include <cmath>
 
@@ -31,10 +33,11 @@ void CSpecialWorkspaceGesture::begin(const ITrackpadGesture::STrackpadGestureBeg
     m_lastDelta = 0.F;
     m_monitor.reset();
 
-    m_specialWorkspace = State::workspaceState()->query().name(std::format("special:{}", m_specialWorkspaceName)).run();
+    const auto SPECIAL_WORKSPACE_ADDRESS = Workspace::specialWorkspaceAddressFromName(m_specialWorkspaceName);
+    m_specialWorkspace                   = State::Workspace::state()->query().address(SPECIAL_WORKSPACE_ADDRESS).run();
 
     if (m_specialWorkspace) {
-        m_animatingOut = m_specialWorkspace->isVisible();
+        m_animatingOut = m_specialWorkspace->visible();
         m_monitor      = m_animatingOut ? m_specialWorkspace->m_monitor : Desktop::focusState()->monitor();
 
         if (!m_monitor)
@@ -50,8 +53,10 @@ void CSpecialWorkspaceGesture::begin(const ITrackpadGesture::STrackpadGestureBeg
 
         m_animatingOut = false;
 
-        const auto& [workspaceID, workspaceName, isAutoID] = getWorkspaceIDNameFromString(std::format("special:{}", m_specialWorkspaceName));
-        const auto WS                                      = State::workspaceState()->create(workspaceID, m_monitor->m_id, workspaceName);
+        const auto TARGET = State::Workspace::resolver()->getWorkspaceTargetFromString(SPECIAL_WORKSPACE_ADDRESS);
+        const auto WS     = State::Workspace::state()->create(TARGET, m_monitor.lock());
+        if (!WS)
+            return;
         m_monitor->setSpecialWorkspace(WS);
         m_specialWorkspace = WS;
     }

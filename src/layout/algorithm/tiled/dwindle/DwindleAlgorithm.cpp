@@ -1,4 +1,5 @@
 #include "DwindleAlgorithm.hpp"
+#include "../../../../helpers/MiscFunctions.hpp"
 #include "../../../../desktop/view/window/WindowPresentation.hpp"
 
 #include "../../Algorithm.hpp"
@@ -84,7 +85,7 @@ void CDwindleAlgorithm::addTarget(SP<ITarget> target) {
     const auto           MOUSECOORDS = m_overrideFocalPoint.value_or(g_pInputManager->getMouseCoordsInternal());
     const auto           ACTIVE_MON  = Desktop::focusState()->monitor();
 
-    if ((PWORKSPACE == ACTIVE_MON->m_activeWorkspace || (PWORKSPACE->m_isSpecialWorkspace && PMONITOR->m_activeSpecialWorkspace)) && !*PUSEACTIVE) {
+    if ((PWORKSPACE == ACTIVE_MON->m_activeWorkspace || (PWORKSPACE->type() == Workspace::eWorkspaceType::SPECIAL && PMONITOR->m_activeSpecialWorkspace)) && !*PUSEACTIVE) {
         OPENINGON = getNodeFromWindow(
             Desktop::viewState()->hitTest().windowAt(MOUSECOORDS, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::SKIP_FULLSCREEN_PRIORITY));
 
@@ -592,7 +593,7 @@ void CDwindleAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection di
         // move with a focal point
 
         if (PMONITORFOCAL->m_activeWorkspace)
-            t->assignToSpace(PMONITORFOCAL->m_activeWorkspace->m_space, FOCAL_POINT);
+            t->assignToSpace(PMONITORFOCAL->m_activeWorkspace->space(), FOCAL_POINT);
 
         return;
     }

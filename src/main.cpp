@@ -1,4 +1,5 @@
 #include "defines.hpp"
+#include "helpers/MiscFunctions.hpp"
 #include "debug/log/Logger.hpp"
 #include "Compositor.hpp"
 #include "config/ConfigManager.hpp"

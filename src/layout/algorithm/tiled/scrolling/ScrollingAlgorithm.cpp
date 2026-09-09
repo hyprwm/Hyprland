@@ -1,4 +1,5 @@
 #include "ScrollingAlgorithm.hpp"
+#include "../../../../helpers/MiscFunctions.hpp"
 #include "../../../../desktop/view/window/WindowGroupMembership.hpp"
 #include "../../../../desktop/view/window/WindowPresentation.hpp"
 #include "ScrollTapeController.hpp"
@@ -1132,7 +1133,7 @@ void CScrollingAlgorithm::moveTargetTo(SP<ITarget> t, Math::eDirection dir, bool
 
         const auto MONINDIR = State::monitorState()->query().relativeTo(m_parent->space()->workspace()->m_monitor.lock()).inDirection(dir).run();
         if (MONINDIR && MONINDIR != m_parent->space()->workspace()->m_monitor && MONINDIR->m_activeWorkspace) {
-            t->assignToSpace(MONINDIR->m_activeWorkspace->m_space, focalPointForDir(t, dir));
+            t->assignToSpace(MONINDIR->m_activeWorkspace->space(), focalPointForDir(t, dir));
 
             m_scrollingData->recalculate();
 

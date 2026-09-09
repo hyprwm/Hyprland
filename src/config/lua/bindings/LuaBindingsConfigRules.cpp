@@ -651,12 +651,8 @@ static int hlWorkspaceRule(lua_State* L) {
         enabled = lua_toboolean(L, -1) != 0;
     lua_pop(L, 1);
 
-    const auto& [wsId, wsName, isAutoID] = getWorkspaceIDNameFromString(wsStr);
-
     Config::CWorkspaceRule wsRule;
     wsRule.m_workspaceString = wsStr;
-    wsRule.m_workspaceName   = wsName;
-    wsRule.m_workspaceId     = isAutoID ? WORKSPACE_INVALID : wsId;
     wsRule.setEnabled(enabled);
 
     lua_pushnil(L);

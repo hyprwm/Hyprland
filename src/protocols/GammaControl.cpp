@@ -160,7 +160,7 @@ void CGammaControl::applyToMonitor() {
 }
 
 PHLMONITOR CGammaControl::getMonitor() {
-    return m_monitor ? m_monitor.lock() : nullptr;
+    return m_monitor.lock();
 }
 
 void CGammaControl::onMonitorDestroy() {

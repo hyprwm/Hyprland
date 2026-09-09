@@ -7,7 +7,7 @@ CMAKE_GENERATE_CMD = cmake -Wno-unused-cli $(CMAKE_ARGS) -S . -B $(BUILDDIR)
 CMAKE_BUILD_CMD = cmake --build $(BUILDDIR) --config $(CMAKE_BUILD_TYPE) --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
 .DEFAULT: stub
-.PHONY: stub cmake_smartbuild release debug nopch clean all install uninstall pluginenv installheaders man asan format-check format-fix test
+.PHONY: stub cmake_smartbuild release debug nopch clean all install uninstall pluginenv installheaders man asan format-check format-fix gtest hyprtest test
 
 stub:
 	@echo "Do not run $(MAKE) directly without any arguments. Please refer to the wiki on how to compile Hyprland."
@@ -128,5 +128,11 @@ format-fix:
 		! -path "hyprtester/protocols/*" \
 		| xargs clang-format -i
 
-test: debug
-	$(BUILDDIR)/hyprtester/hyprtester -c hyprtester/test.lua -b $(BUILDDIR)/Hyprland -p hyprtester/plugin/hyprtestplugin.so $(TESTS)
+gtest: debug
+	./build/hyprland_gtests
+
+hyprtest: debug
+	$(BUILDDIR)/hyprtester/hyprtester -c hyprtester/test.lua -b $(BUILDDIR)/Hyprland -p hyprtester/plugin/hyprtestplugin.so $(HYPRTESTS)
+
+# This works best with one job, so gtests run before hyprtester and their output doesn't interleave
+test: gtest hyprtest

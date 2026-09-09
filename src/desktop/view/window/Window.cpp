@@ -5,6 +5,8 @@
 #include <hyprutils/animation/AnimatedVariable.hpp>
 
 #include "../Group.hpp"
+#include "debug/log/Logger.hpp"
+#include "managers/fullscreen/FullscreenTypes.hpp"
 
 #if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
 #include <sys/types.h>
@@ -848,15 +850,20 @@ void CWindow::requestClientFullscreen(const SClientFullscreenRequest& request) {
         }
 
         if (m_isMapped) {
-            if (request.fullscreen.value())
+            if (request.fullscreen.value()) {
+                if (BACKEND_REQUEST)
+                    Fullscreen::controller()->beginFullscreenTakeover(m_self.lock());
+
                 Fullscreen::controller()->setFullscreenMode(m_self.lock(), std::nullopt, Fullscreen::FSMODE_FULLSCREEN);
-            else {
+            } else {
+                const auto TAKEOVER_EXECUTED = Fullscreen::controller()->endFullscreenTakeover(m_self.lock());
+
                 // If window's fullscreen, un-fullscreen it. if it's not FS, let it keep its current FS mode
-                if (Fullscreen::controller()->getFullscreenModes(m_self.lock()).client == Fullscreen::FSMODE_FULLSCREEN)
+                if (!TAKEOVER_EXECUTED && Fullscreen::controller()->getFullscreenModes(m_self.lock()).client == Fullscreen::FSMODE_FULLSCREEN)
                     Fullscreen::controller()->setFullscreenMode(m_self.lock(), std::nullopt, Fullscreen::FSMODE_NONE);
             }
         } else if (request.fullscreen.value())
-            m_fullscreenPolicy->setPendingClientRequest(Fullscreen::FSMODE_FULLSCREEN, requestedMonitor);
+            m_fullscreenPolicy->setPendingClientRequest(Fullscreen::FSMODE_FULLSCREEN, requestedMonitor, BACKEND_REQUEST);
         else
             m_fullscreenPolicy->clearPendingClientMode(Fullscreen::FSMODE_FULLSCREEN);
     }
@@ -1205,10 +1212,13 @@ void CWindow::mapWindow() {
     // window rules
     std::optional<Fullscreen::eFullscreenMode> requestedInternalFSMode, requestedClientFSMode;
     std::optional<Fullscreen::SFullscreenMode> requestedFSState;
-    const auto&                                PENDING_CLIENT_FS = m_fullscreenPolicy->pendingClientRequest();
-    requestedClientFSMode                                        = PENDING_CLIENT_FS.mode;
-    if (!requestedClientFSMode.has_value() && m_backend->isX11() && TRAITS.fullscreen)
-        requestedClientFSMode = Fullscreen::FSMODE_FULLSCREEN;
+    const auto&                                PENDING_CLIENT_FS                 = m_fullscreenPolicy->pendingClientRequest();
+    bool                                       requestedClientFSHasBackendOrigin = PENDING_CLIENT_FS.isFromBackend;
+    requestedClientFSMode                                                        = PENDING_CLIENT_FS.mode;
+    if (!requestedClientFSMode.has_value() && m_backend->isX11() && TRAITS.fullscreen) {
+        requestedClientFSMode             = Fullscreen::FSMODE_FULLSCREEN;
+        requestedClientFSHasBackendOrigin = true;
+    }
     MONITORID requestedFSMonitor = PENDING_CLIENT_FS.monitor.value_or(MONITOR_INVALID);
 
     auto      setStaticProps = [&]() {
@@ -1467,6 +1477,17 @@ void CWindow::mapWindow() {
     // It must emit before FS operations so that window has decorations data
     Event::bus()->m_events.window.open.emit(m_self.lock());
 
+    if (requestedClientFSMode == Fullscreen::FSMODE_FULLSCREEN && m_fullscreenPolicy->requestSuppression().fullscreen)
+        requestedClientFSMode.reset();
+    if (requestedClientFSMode == Fullscreen::FSMODE_MAXIMIZED && m_fullscreenPolicy->requestSuppression().maximize)
+        requestedClientFSMode.reset();
+
+    const auto TAKEOVER_MODE = Fullscreen::controller()->getFullscreenWindow(m_workspace) && !(m_state & WINDOW_STATE_NO_INITIAL_FOCUS) && requestedClientFSHasBackendOrigin &&
+        requestedClientFSMode == Fullscreen::FSMODE_FULLSCREEN;
+
+    if (TAKEOVER_MODE)
+        Fullscreen::controller()->beginFullscreenTakeover(m_self.lock());
+
     if (Fullscreen::controller()->hasFullscreen(m_workspace) && !requestedInternalFSMode.has_value() && !requestedClientFSMode.has_value() && !m_target->floating()) {
         if (*PNEWTAKESOVERFS == 0)
             m_state |= WINDOW_STATE_NO_INITIAL_FOCUS;
@@ -1490,11 +1511,6 @@ void CWindow::mapWindow() {
         m_presentation->alpha(WINDOW_ALPHA_ACTIVE)->setValueAndWarp(*PINACTIVEALPHA);
         m_presentation->warpDimPercent(0.F);
     }
-
-    if (requestedClientFSMode == Fullscreen::FSMODE_FULLSCREEN && m_fullscreenPolicy->requestSuppression().fullscreen)
-        requestedClientFSMode.reset();
-    if (requestedClientFSMode == Fullscreen::FSMODE_MAXIMIZED && m_fullscreenPolicy->requestSuppression().maximize)
-        requestedClientFSMode.reset();
 
     if (!(m_state & WINDOW_STATE_NO_INITIAL_FOCUS) && (requestedInternalFSMode.has_value() || requestedClientFSMode.has_value() || requestedFSState.has_value())) {
         // fix fullscreen on requested (basically do a switcheroo)
@@ -1596,7 +1612,10 @@ void CWindow::unmapWindow() {
     const auto SWALLOW_UNMAP_RESULT    = m_swallowing->onUnmap(IS_CURRENT_WINDOW_FS ? std::optional(CURRENT_WINDOW_FS_MODES.internal) : std::nullopt, CURRENT_FS_LAYOUT_HANDLED);
     const auto RESTORED_SWALLOW_WINDOW = SWALLOW_UNMAP_RESULT.restoredWindow;
 
-    if (IS_CURRENT_WINDOW_FS) {
+    const auto TAKEOVER_EXECUTED     = Fullscreen::controller()->endFullscreenTakeover(m_self.lock());
+    const auto FULLSCREEN_OPS_NEEDED = IS_CURRENT_WINDOW_FS && !TAKEOVER_EXECUTED; // otherwise we trust the Fullscreen controller to keep the consistent state
+
+    if (FULLSCREEN_OPS_NEEDED) {
         if (SWALLOW_UNMAP_RESULT.transferredInternalFullscreen)
             Fullscreen::controller()->setFullscreenMode(m_self.lock(), std::nullopt, Fullscreen::FSMODE_NONE, std::nullopt, Fullscreen::FULLSCREEN_MUTATION_TRANSFER);
         else
@@ -1674,7 +1693,7 @@ void CWindow::unmapWindow() {
             else
                 Desktop::focusState()->fullWindowFocus(candidate, m_target->floating() ? FOCUS_REASON_UNMAP_WINDOW_FLOATING : FOCUS_REASON_UNMAP_WINDOW_TILING);
 
-            if ((*PEXITRETAINSFS == 1 || (candidate != nextInGroup && *PEXITRETAINSFS == 3) || (candidate == nextInGroup && *PEXITRETAINSFS == 2)) && IS_CURRENT_WINDOW_FS)
+            if ((*PEXITRETAINSFS == 1 || (candidate != nextInGroup && *PEXITRETAINSFS == 3) || (candidate == nextInGroup && *PEXITRETAINSFS == 2)) && FULLSCREEN_OPS_NEEDED)
                 // set the candidate to the current window's FS state - use the current window's layoutAware FS behaviour
                 Fullscreen::controller()->setFullscreenMode(candidate, CURRENT_WINDOW_FS_MODES.internal, std::nullopt, CURRENT_FS_LAYOUT_HANDLED);
         }

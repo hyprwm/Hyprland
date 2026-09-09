@@ -26,8 +26,9 @@ const SPendingClientFullscreenRequest& CWindowFullscreenPolicy::pendingClientReq
     return m_pendingClientRequest;
 }
 
-void CWindowFullscreenPolicy::setPendingClientRequest(Fullscreen::eFullscreenMode mode, std::optional<MONITORID> monitor) {
-    m_pendingClientRequest.mode = mode;
+void CWindowFullscreenPolicy::setPendingClientRequest(Fullscreen::eFullscreenMode mode, std::optional<MONITORID> monitor, bool backendOrigin) {
+    m_pendingClientRequest.mode          = mode;
+    m_pendingClientRequest.isFromBackend = backendOrigin;
     if (mode == Fullscreen::FSMODE_FULLSCREEN)
         m_pendingClientRequest.monitor = monitor;
     else

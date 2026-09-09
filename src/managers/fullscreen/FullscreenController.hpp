@@ -58,6 +58,12 @@ namespace Fullscreen {
         void setFullscreenMode(const PHLWINDOW window, std::optional<eFullscreenMode> internal = std::nullopt, std::optional<eFullscreenMode> client = std::nullopt,
                                std::optional<bool> layoutAware = std::nullopt, eFullscreenMutationContext context = FULLSCREEN_MUTATION_NORMAL);
 
+        void beginFullscreenTakeover(const PHLWINDOW window);
+
+        bool endFullscreenTakeover(const PHLWINDOW window);
+
+        void cancelFullscreenTakeover(const PHLWINDOW window);
+
         // Misc. Operations
 
         // In order to avoid re-setting an FS window's size over and over again if it's FS and already set to the correct value.
@@ -69,6 +75,16 @@ namespace Fullscreen {
             const WP<IFullscreenHandler> TILED_DEFAULT_FS_HANDLER;
             const WP<IFullscreenHandler> FLOATING_FS_HANDLER;
         };
+
+        struct SFullscreenTakeover {
+            const PHLWINDOWREF    displaced;
+            const PHLWINDOWREF    displacer;
+            const PHLWORKSPACEREF workspace;
+            SFullscreenMode       mode;
+            bool                  layoutAware = false;
+        };
+
+        std::unordered_map<PHLWINDOWREF, SFullscreenTakeover> m_takeovers;
 
         // FS Mode Setter Helpers
         void setWindowFullscreenModeInternal(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware, eFullscreenMutationContext context);

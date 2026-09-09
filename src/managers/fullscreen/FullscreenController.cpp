@@ -19,7 +19,10 @@
 #include "../../output/Monitor.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../debug/log/Logger.hpp"
+#include "managers/fullscreen/FullscreenTypes.hpp"
+#include <hyprutils/utils/ScopeGuard.hpp>
 #include <optional>
+#include <unordered_map>
 
 using namespace Fullscreen;
 
@@ -290,6 +293,77 @@ std::string CFullscreenController::getFullscreenHandlerNameAsString(const PHLWIN
     }
 }
 
+void CFullscreenController::beginFullscreenTakeover(const PHLWINDOW window) {
+    if (!window || !window->m_workspace)
+        return;
+
+    const auto& CURRENT_FS_WINDOW = getFullscreenWindow(window->m_workspace);
+    if (!CURRENT_FS_WINDOW || CURRENT_FS_WINDOW == window)
+        return;
+
+    const auto [_, TAKEOVER_PUT] = m_takeovers.try_emplace(window,
+                                                           SFullscreenTakeover{
+                                                               .displaced   = CURRENT_FS_WINDOW,
+                                                               .displacer   = window,
+                                                               .workspace   = window->m_workspace,
+                                                               .mode        = getFullscreenModes(CURRENT_FS_WINDOW),
+                                                               .layoutAware = layoutManagedFS(CURRENT_FS_WINDOW),
+                                                           });
+
+    if (!TAKEOVER_PUT)
+        LOG(Log::WARN, "failed to place takeover of {:c}", window->m_self.lock());
+    else
+        LOG(Log::INFO, "beginning takeover of {:c}", window->m_self.lock());
+}
+
+void CFullscreenController::cancelFullscreenTakeover(const PHLWINDOW window) {
+    const auto ERASED = m_takeovers.erase(window);
+    if (ERASED)
+        LOG(Log::DEBUG, "erased takeover request for window {:c}", window);
+    else
+        LOG(Log::DEBUG, "not found entry to erase from takeover storage for window {:c}", window);
+}
+
+bool CFullscreenController::endFullscreenTakeover(const PHLWINDOW window) {
+    if (!window)
+        return false;
+
+    const auto IT = m_takeovers.find(window);
+    if (IT == m_takeovers.end()) {
+        LOG(Log::DEBUG, "not found takeover for window {:c}", window);
+        return false;
+    }
+
+    const auto TAKEOVER  = IT->second;
+    const auto DISPLACED = TAKEOVER.displaced.lock();
+    const auto DISPLACER = TAKEOVER.displacer.lock();
+    const auto WORKSPACE = TAKEOVER.workspace.lock();
+
+    if (!DISPLACED || !DISPLACER || !WORKSPACE) {
+        LOG(Log::DEBUG, "incomplete takeover stored");
+        m_takeovers.erase(IT);
+        return false;
+    }
+
+    const auto CURRENT = getFullscreenWindow(WORKSPACE);
+    if (/*!DISPLACED->m_isMapped || */
+        DISPLACED->m_workspace != WORKSPACE || (CURRENT && CURRENT != window)) {
+
+        LOG(Log::DEBUG, "incomplete takeover stored");
+        m_takeovers.erase(IT);
+        return false;
+    }
+
+    m_takeovers.erase(IT);
+
+    setFullscreenMode(DISPLACER, eFullscreenMode::FSMODE_NONE, eFullscreenMode::FSMODE_NONE);
+    setFullscreenMode(DISPLACED, TAKEOVER.mode.internal, TAKEOVER.mode.client, TAKEOVER.layoutAware);
+
+    LOG(Log::DEBUG, "takeover complete from {:c} to {:c}", DISPLACER, DISPLACED);
+
+    return true;
+}
+
 void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optional<eFullscreenMode> internal, std::optional<eFullscreenMode> client,
                                               std::optional<bool> layoutAware, eFullscreenMutationContext context) {
     if (!window)
@@ -309,6 +383,8 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
 
     eFullscreenMode targetInternalMode = internal.value_or(FSMODE_NONE);
     eFullscreenMode targetClientMode   = client.value_or(FSMODE_NONE);
+
+    LOG(Log::INFO, "setFullscreenMode for window: {}, internal: {}, client: {}", window->m_self.lock(), sc<int8_t>(targetInternalMode), sc<int8_t>(targetClientMode));
 
     /*
         If the past handled mode and current handled mode is not the same for an already FS window, it implies that the window IS FS; we need to move it to the new handler we will use for the current FS request

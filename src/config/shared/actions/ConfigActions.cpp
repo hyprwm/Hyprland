@@ -437,9 +437,8 @@ ActionResult Actions::moveToWorkspace(PHLWORKSPACE ws, bool silent, std::optiona
 
 ActionResult Actions::moveToWorkspace(const std::string& ws, bool silent, std::optional<PHLWINDOW> w) {
     const auto WORKSPACE = findOrCreateWorkspace(ws);
-    // clang-format off
+    // clang-format off-one-line
     Hyprutils::Utils::CScopeGuard x([&]() { if (WORKSPACE) WORKSPACE->ready(); });
-    // clang-format on
     return Actions::moveToWorkspace(WORKSPACE, silent, w);
 }
 
@@ -1091,9 +1090,8 @@ ActionResult Actions::changeWorkspace(PHLWORKSPACE ws) {
 
 ActionResult Actions::changeWorkspace(const std::string& ws) {
     const auto WORKSPACE = resolveWorkspaceForChange(ws);
-    // clang-format off
+    // clang-format off-one-line
     Hyprutils::Utils::CScopeGuard x([&]() { if (WORKSPACE) WORKSPACE->ready(); });
-    // clang-format on
     return Actions::changeWorkspace(WORKSPACE);
 }
 
@@ -1155,9 +1153,8 @@ ActionResult Actions::changeWorkspaceOnCurrentMonitor(PHLWORKSPACE ws) {
 
 ActionResult Actions::changeWorkspaceOnCurrentMonitor(const std::string& ws) {
     const auto WORKSPACE = resolveWorkspaceForChange(ws);
-    // clang-format off
+    // clang-format off-one-line
     Hyprutils::Utils::CScopeGuard x([&]() { if (WORKSPACE) WORKSPACE->ready(); });
-    // clang-format on
     return Actions::changeWorkspaceOnCurrentMonitor(WORKSPACE);
 }
 

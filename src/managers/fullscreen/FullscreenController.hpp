@@ -4,6 +4,7 @@
 #include "desktop/DesktopTypes.hpp"
 #include "FullscreenTypes.hpp"
 #include <optional>
+#include <unordered_map>
 
 namespace Fullscreen {
 

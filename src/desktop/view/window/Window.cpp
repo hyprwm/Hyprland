@@ -1482,8 +1482,8 @@ void CWindow::mapWindow() {
     if (requestedClientFSMode == Fullscreen::FSMODE_MAXIMIZED && m_fullscreenPolicy->requestSuppression().maximize)
         requestedClientFSMode.reset();
 
-    const auto TAKEOVER_MODE = Fullscreen::controller()->getFullscreenWindow(m_workspace) && !(m_state & WINDOW_STATE_NO_INITIAL_FOCUS) && requestedClientFSHasBackendOrigin &&
-        requestedClientFSMode == Fullscreen::FSMODE_FULLSCREEN;
+    const auto TAKEOVER_MODE = Fullscreen::controller()->getFullscreenWindow(m_workspace) && !(m_state & WINDOW_STATE_NO_INITIAL_FOCUS) && !requestedFSState.has_value() &&
+        requestedClientFSHasBackendOrigin && requestedClientFSMode == Fullscreen::FSMODE_FULLSCREEN;
 
     if (TAKEOVER_MODE)
         Fullscreen::controller()->beginFullscreenTakeover(m_self.lock());

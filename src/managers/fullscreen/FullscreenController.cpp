@@ -19,10 +19,7 @@
 #include "../../output/Monitor.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../debug/log/Logger.hpp"
-#include "managers/fullscreen/FullscreenTypes.hpp"
-#include <hyprutils/utils/ScopeGuard.hpp>
 #include <optional>
-#include <unordered_map>
 
 using namespace Fullscreen;
 
@@ -298,7 +295,7 @@ void CFullscreenController::beginFullscreenTakeover(const PHLWINDOW window) {
         return;
 
     const auto& CURRENT_FS_WINDOW = getFullscreenWindow(window->m_workspace);
-    if (!CURRENT_FS_WINDOW || CURRENT_FS_WINDOW == window)
+    if (!CURRENT_FS_WINDOW || CURRENT_FS_WINDOW == window || layoutManagedFS(CURRENT_FS_WINDOW))
         return;
 
     const auto [_, TAKEOVER_PUT] = m_takeovers.try_emplace(window,
@@ -346,8 +343,7 @@ bool CFullscreenController::endFullscreenTakeover(const PHLWINDOW window) {
     }
 
     const auto CURRENT = getFullscreenWindow(WORKSPACE);
-    if (/*!DISPLACED->m_isMapped || */
-        DISPLACED->m_workspace != WORKSPACE || (CURRENT && CURRENT != window)) {
+    if (!DISPLACED->mapped() || DISPLACED->m_workspace != WORKSPACE || CURRENT != DISPLACER) {
 
         LOG(Log::DEBUG, "incomplete takeover stored");
         m_takeovers.erase(IT);
@@ -357,7 +353,8 @@ bool CFullscreenController::endFullscreenTakeover(const PHLWINDOW window) {
     m_takeovers.erase(IT);
 
     setFullscreenMode(DISPLACER, eFullscreenMode::FSMODE_NONE, eFullscreenMode::FSMODE_NONE);
-    setFullscreenMode(DISPLACED, TAKEOVER.mode.internal, TAKEOVER.mode.client, TAKEOVER.layoutAware);
+    // Restore the exact mode pair without sync_fullscreen rewriting it or normal collision handling.
+    setFullscreenMode(DISPLACED, TAKEOVER.mode.internal, TAKEOVER.mode.client, TAKEOVER.layoutAware, FULLSCREEN_MUTATION_TRANSFER);
 
     LOG(Log::DEBUG, "takeover complete from {:c} to {:c}", DISPLACER, DISPLACED);
 

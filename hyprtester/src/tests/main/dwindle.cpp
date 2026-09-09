@@ -1232,7 +1232,6 @@ TEST_CASE(dwindleFloatingOntopFullscreenWorkspaceFocusRetention) {
 
     OK(getFromSocket("/eval hl.config({ general = { layout = 'dwindle' } })"));
 
-
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
 
     OK(getFromSocket("/eval hl.window_rule({ match = { class = 'kitty_floated' }, float = true })"));
@@ -1276,13 +1275,10 @@ TEST_CASE(dwindleFloatingOntopFullscreenWorkspaceFocusRetention) {
 
     test_default_handled_behaviour(true);
 
-
     Tests::killAllWindows();
     Tests::waitUntilWindowsN(0);
 
     // Then Maximise
 
-
     test_default_handled_behaviour(false);
-
 }

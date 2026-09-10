@@ -375,7 +375,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Int>("input:scroll_button", "Sets the scroll button. 0 means default.", 0, {.min = 0, .max = 300, .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<Bool>("input:scroll_button_lock", "If the scroll button lock is enabled, the button does not need to be held down.", false,
                  {.refresh = Supplementary::REFRESH_INPUT_DEVICES}),
-        MS<Float>("input:scroll_factor", "Multiplier added to scroll movement for external mice.", 1, {.min = 0, .max = 2, .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
+        MS<Float>("input:scroll_factor", "Multiplier added to scroll movement for external mice.", 1, {.min = 0, .max = 100, .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<Bool>("input:natural_scroll", "Inverts scrolling direction.", false, {.refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<Int>("input:follow_mouse", "Specify if and how cursor movement should affect window focus.", 1,
                 {.min = 0, .max = 3, .map = OptionMap{{"disabled", 0}, {"follow", 1}, {"detached", 2}, {"separate", 3}}, .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
@@ -403,7 +403,8 @@ std::vector<SP<IValue>> Values::getConfigValues() {
 
         MS<Bool>("input:touchpad:disable_while_typing", "Disable the touchpad while typing.", true, {.refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<Bool>("input:touchpad:natural_scroll", "Inverts scrolling direction.", false, {.refresh = Supplementary::REFRESH_INPUT_DEVICES}),
-        MS<Float>("input:touchpad:scroll_factor", "Multiplier applied to the amount of scroll movement.", 1, {.min = 0, .max = 2, .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
+        MS<Float>("input:touchpad:scroll_factor", "Multiplier applied to the amount of scroll movement.", 1,
+                  {.min = 0, .max = 100, .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<Bool>("input:touchpad:middle_button_emulation", "Sending LMB and RMB simultaneously will be interpreted as a middle click.", false,
                  {.refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<String>("input:touchpad:tap_button_map", "Sets the tap button mapping for touchpad button emulation. [lrm/lmr]", STRVAL_EMPTY,

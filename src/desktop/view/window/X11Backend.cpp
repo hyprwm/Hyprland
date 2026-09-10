@@ -342,6 +342,7 @@ void CX11Backend::configure(const CBox& logicalBox, PHLMONITOR preferredMonitor_
 
     m_reportedPosition    = CLIENT_BOX.pos();
     m_pendingReportedSize = CLIENT_BOX.size();
+    recordConfiguredSize(CLIENT_BOX.size());
     SURFACE->configure(CLIENT_BOX);
 }
 

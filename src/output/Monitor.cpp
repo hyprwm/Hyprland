@@ -506,14 +506,16 @@ static NColorManagement::eTransferFunction chooseTF(NTransferFunction::eTF tf) {
 }
 
 void CMonitor::applyCMType(NCMType::eCMType cmType, NTransferFunction::eTF cmSdrEotf) {
+    // SDR presets must not carry EDID HDR metadata, or clients see headroom an SDR transfer function can't encode
+    const bool                                                        hdrPreset           = cmType == NCMType::CM_HDR || cmType == NCMType::CM_HDR_EDID;
     auto                                                              oldImageDescription = m_imageDescription;
     const auto                                                        chosenSdrEotf       = chooseTF(cmSdrEotf);
 
     const auto                                                        masteringPrimaries  = getMasteringPrimaries();
-    const NColorManagement::SImageDescription::SPCMasteringLuminances masteringLuminances = getMasteringLuminances();
+    const NColorManagement::SImageDescription::SPCMasteringLuminances masteringLuminances = hdrPreset ? getMasteringLuminances() : SImageDescription::SPCMasteringLuminances{};
 
-    const auto                                                        maxFALL = this->maxFALL();
-    const auto                                                        maxCLL  = this->maxCLL();
+    const auto                                                        maxFALL = hdrPreset ? this->maxFALL() : 0;
+    const auto                                                        maxCLL  = hdrPreset ? this->maxCLL() : 0;
 
     switch (cmType) {
         case NCMType::CM_SRGB:
@@ -601,7 +603,7 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, NTransferFunction::eTF cmSdr
             break;
         default: UNREACHABLE();
     }
-    if ((minLuminance() >= 0 || maxLuminance() > 0) && (cmType == NCMType::CM_HDR || cmType == NCMType::CM_HDR_EDID))
+    if ((minLuminance() >= 0 || maxLuminance() > 0) && hdrPreset)
         m_imageDescription = m_imageDescription->with({
             .min       = minLuminance() >= 0 ? minLuminance() : m_imageDescription->value().luminances.min, //
             .max       = maxLuminance() > 0 ? maxLuminance() : m_imageDescription->value().luminances.max,  //

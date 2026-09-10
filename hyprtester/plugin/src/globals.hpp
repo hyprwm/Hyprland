@@ -15,6 +15,7 @@ extern "C" {
 }
 
 #include <string>
+#include <utility>
 #include <vector>
 
 inline HANDLE PHANDLE = nullptr;
@@ -148,7 +149,21 @@ inline int luaResult(lua_State* L, const SDispatchResult& result) {
     return lua_error(L);
 }
 
-inline void registerLuaFn(const std::string& name, PLUGIN_LUA_FN fn) {
+inline std::vector<std::pair<std::string, PLUGIN_LUA_FN>> registeredLuaFunctions;
+
+inline void                                               registerLuaFn(const std::string& name, PLUGIN_LUA_FN fn) {
+    for (const auto& [registeredName, registeredFn] : registeredLuaFunctions) {
+        if (registeredName == name) {
+            LOG(Log::ERR, "hyprtester plugin: hl.plugin.test.{} is already registered", name);
+            abort();
+        }
+        if (registeredFn == fn) {
+            LOG(Log::ERR, "hyprtester plugin: test fn is already registered as hl.plugin.test.{}", name);
+            abort();
+        }
+    }
+    registeredLuaFunctions.emplace_back(name, fn);
+
     if (!HyprlandAPI::addLuaFunction(PHANDLE, "test", name, fn))
         LOG(Log::ERR, "hyprtester plugin: failed to register hl.plugin.test.{}", name);
 }

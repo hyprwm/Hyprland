@@ -62,6 +62,13 @@ struct SSurfaceState {
             bool alphaModifier : 1;
             bool hyprlandSurface : 1;
             bool backgroundEffect : 1;
+            bool subsurfacePlacement : 1;
+            bool sessionLock : 1;
+            bool imePopup : 1;
+            bool dndIcon : 1;
+            bool cursor : 1;
+            bool xwayland : 1;
+            bool xdgPopup : 1;
         } bits;
     } updated;
 

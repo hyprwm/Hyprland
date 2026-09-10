@@ -130,7 +130,7 @@ CMouse::CMouse(SP<Aquamarine::IPointer> mouse_) : m_mouse(mouse_) {
     m_deviceName = m_mouse->getName();
 }
 
-bool CMouse::isVirtual() {
+bool CMouse::isVirtual() const {
     return false;
 }
 

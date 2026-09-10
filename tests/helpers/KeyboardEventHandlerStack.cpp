@@ -4,7 +4,7 @@
 
 class CTestKeyboard : public IKeyboard {
   public:
-    virtual bool isVirtual() override {
+    virtual bool isVirtual() const override {
         return false;
     }
 

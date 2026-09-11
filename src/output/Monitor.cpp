@@ -1477,7 +1477,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace, bool noFocus)
         // remove special if exists
         if (m_activeSpecialWorkspace) {
             m_activeSpecialWorkspace->setVisible(false);
-            Animation::Workspace::startAnimation(m_activeSpecialWorkspace, Animation::Workspace::ANIMATION_TYPE_OUT, false);
+            Animation::Workspace::startAnimation(m_activeSpecialWorkspace, Animation::Workspace::ANIMATION_TYPE_OUT, false, false, m_activeSpecialWorkspace->m_animationStyle);
             IPC::Socket2::sock()->postEvent({"activespecial", std::format(",{}", m_name)});
             IPC::Socket2::sock()->postEvent({"activespecialv2", std::format(",,{}", m_name)});
 
@@ -1516,7 +1516,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace, bool noFocus)
 
     if (m_activeSpecialWorkspace) {
         m_activeSpecialWorkspace->setVisible(false);
-        Animation::Workspace::startAnimation(m_activeSpecialWorkspace, Animation::Workspace::ANIMATION_TYPE_OUT, false);
+        Animation::Workspace::startAnimation(m_activeSpecialWorkspace, Animation::Workspace::ANIMATION_TYPE_OUT, false, false, pWorkspace->m_animationStyle);
     }
 
     bool wasActive = false;
@@ -1575,7 +1575,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace, bool noFocus)
         pWorkspace->m_events.activeChanged.emit();
 
     if (!wasActive)
-        Animation::Workspace::startAnimation(pWorkspace, Animation::Workspace::ANIMATION_TYPE_IN, true);
+        Animation::Workspace::startAnimation(pWorkspace, Animation::Workspace::ANIMATION_TYPE_IN, true, false, pWorkspace->m_animationStyle);
 
     for (auto const& w : Desktop::windowState()->windows()) {
         if (w->m_workspace == pWorkspace) {

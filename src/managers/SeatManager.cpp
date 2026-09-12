@@ -7,7 +7,6 @@
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/InputCapture.hpp"
-#include "../protocols/PointerConstraints.hpp"
 #include "../Compositor.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../devices/IKeyboard.hpp"
@@ -366,10 +365,6 @@ void CSeatManager::setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& 
 
     m_listeners.pointerSurfaceDestroy.reset();
 
-    const auto OLDSURF = Desktop::View::CWLSurface::fromResource(m_state.pointerFocus.lock());
-    if (OLDSURF && OLDSURF->constraint())
-        OLDSURF->constraint()->deactivate();
-
     for (auto const& p : PROTO::seat->m_pointers) {
         if (!p)
             continue;
@@ -388,10 +383,6 @@ void CSeatManager::setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& 
         m_events.pointerFocusChange.emit();
         return;
     }
-
-    const auto SURF = Desktop::View::CWLSurface::fromResource(surf);
-    if (SURF && SURF->constraint())
-        SURF->constraint()->activate();
 
     m_state.dndPointerFocus = surf;
 

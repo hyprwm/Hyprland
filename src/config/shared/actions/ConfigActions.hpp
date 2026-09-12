@@ -97,8 +97,8 @@ namespace Config::Actions {
 
     ActionResult mouse(const std::string& action);
 
-    ActionResult lockGroups(eTogglableAction action);
-    ActionResult lockActiveGroup(eTogglableAction action);
+    ActionResult lockGroup(eTogglableAction action, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
+    ActionResult lockAllGroups(eTogglableAction action);
     ActionResult moveIntoGroup(Math::eDirection direction, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult moveOutOfGroup(Math::eDirection direction, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult moveGroupWindow(bool forward = true);

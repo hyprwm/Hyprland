@@ -108,8 +108,6 @@ IHyprRenderer::IHyprRenderer() {
                 m_nvidia = true;
             else if (name.contains("i915"))
                 m_intel = true;
-            else if (name.contains("softpipe") || name.contains("Software Rasterizer") || name.contains("llvmpipe"))
-                m_software = true;
 
             LOG(Log::DEBUG, "DRM driver information: {} v{}.{}.{} from {} description {}", name, DRMV->version_major, DRMV->version_minor, DRMV->version_patchlevel,
                 std::string{DRMV->date, DRMV->date_len}, std::string{DRMV->desc, DRMV->desc_len});
@@ -130,8 +128,6 @@ IHyprRenderer::IHyprRenderer() {
                 m_nvidia = true;
             else if (name.contains("i915"))
                 m_intel = true;
-            else if (name.contains("softpipe") || name.contains("Software Rasterizer") || name.contains("llvmpipe"))
-                m_software = true;
 
             LOG(Log::DEBUG, "Primary DRM driver information: {} v{}.{}.{} from {} description {}", name, DRMV->version_major, DRMV->version_minor, DRMV->version_patchlevel,
                 std::string{DRMV->date, DRMV->date_len}, std::string{DRMV->desc, DRMV->desc_len});

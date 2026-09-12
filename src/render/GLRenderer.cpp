@@ -45,6 +45,13 @@ extern "C" {
 }
 
 CHyprGLRenderer::CHyprGLRenderer() : IHyprRenderer(), m_elementRenderer(makeUnique<CGLElementRenderer>()) {
+    // KMS can be display-only; classify the active GL renderer instead of the DRM driver.
+    g_pHyprOpenGL->makeEGLCurrent();
+    if (const auto* renderer = rc<const char*>(glGetString(GL_RENDERER))) {
+        const std::string name{renderer};
+        m_software = name.contains("llvmpipe") || name.contains("softpipe") || name.contains("Software Rasterizer");
+    }
+
     refreshBlurProvider();
     m_preRenderListener = Event::bus()->m_events.render.pre.listen([this](PHLMONITOR monitor) { preRender(monitor); });
 }

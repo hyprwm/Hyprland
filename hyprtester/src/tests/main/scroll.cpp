@@ -851,8 +851,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         ASSERT_CONTAINS(floatingOne, "class: floatingOne");
         ASSERT_CONTAINS(floatingOne, "floating: 1");
 
-        // The window itself is FS so allowedOverFullscreen = 0
-        ASSERT_CONTAINS(floatingOne, "allowedOverFullscreen: 0");
+        ASSERT_CONTAINS(floatingOne, "allowedOverFullscreen: 1");
         ASSERT_CONTAINS(floatingOne, "acceptsInput: 1");
 
         ASSERT_CONTAINS(floatingOne, "fullscreen: 1");
@@ -1638,6 +1637,61 @@ TEST_CASE(scroll_LAYOUT_HANDLED_respectFocusFitMethodOnUnFs) {
     }
 }
 
+TEST_CASE(scroll_LAYOUT_HANDLED_FloatingOntopFullscreenWorkspaceFocusRetention) {
+
+    OK(getFromSocket("/eval hl.config({ general = { layout = 'scrolling' } })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+
+    OK(getFromSocket("/eval hl.window_rule({ match = { class = 'kitty_floated' }, float = true })"));
+
+    const auto test_default_layout_handled_behaviour = [&](bool fullscreen, bool layoutAware) -> void {
+        SPAWN_KITTY("kitty_tiled");
+
+        OK(getFromSocket(std::format("/dispatch hl.dsp.window.fullscreen({{ mode = '{}', action = 'set', layout_aware = {}, window = 'class:kitty_tiled' }})",
+                                     (fullscreen ? "fullscreen" : "maximized"), (layoutAware ? "true" : "false"))));
+        {
+            auto str = getFromSocket("/activewindow");
+            EXPECT_CONTAINS(str, "class: kitty_tiled");
+            EXPECT_CONTAINS(str, "floating: 0")
+            EXPECT_CONTAINS(str, std::format("fullscreen: {}", (fullscreen ? "2" : "1")));
+            EXPECT_CONTAINS(str, std::format("fullscreenClient: {}", (fullscreen ? "2" : "1")));
+        }
+
+        SPAWN_KITTY("kitty_floated");
+        {
+            auto str = getFromSocket("/activewindow");
+            EXPECT_CONTAINS(str, "class: kitty_floated");
+            EXPECT_CONTAINS(str, "floating: 1")
+            EXPECT_CONTAINS(str, "fullscreen: 0");
+            EXPECT_CONTAINS(str, "fullscreenClient: 0");
+        }
+
+        OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2' })"));
+        OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+
+        // Expect the focus to be on the floating window ontop of the covering FS still
+        {
+            auto str = getFromSocket("/activewindow");
+            EXPECT_CONTAINS(str, "class: kitty_floated");
+            EXPECT_CONTAINS(str, "floating: 1")
+            EXPECT_CONTAINS(str, "fullscreen: 0");
+            EXPECT_CONTAINS(str, "fullscreenClient: 0");
+        }
+    };
+
+    // Fullscreen First
+
+    test_default_layout_handled_behaviour(true, true);
+
+    Tests::killAllWindows();
+    Tests::waitUntilWindowsN(0);
+
+    // Then Maximise
+
+    test_default_layout_handled_behaviour(false, true);
+}
+
 TEST_CASE(scroll_DEFAULT_HANDLED_fullscreenMaximiseDispatchers) {
 
     // Shared test among all default handled FS
@@ -2387,6 +2441,61 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenNonInterference) {
         EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "at"), greenPos);
         EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "size"), greenSize);
     }
+}
+
+TEST_CASE(scroll_DEFAULT_HANDLED_FloatingOntopFullscreenWorkspaceFocusRetention) {
+
+    OK(getFromSocket("/eval hl.config({ general = { layout = 'scrolling' } })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+
+    OK(getFromSocket("/eval hl.window_rule({ match = { class = 'kitty_floated' }, float = true })"));
+
+    const auto test_default_layout_handled_behaviour = [&](bool fullscreen, bool layoutAware) -> void {
+        SPAWN_KITTY("kitty_tiled");
+
+        OK(getFromSocket(std::format("/dispatch hl.dsp.window.fullscreen({{ mode = '{}', action = 'set', layout_aware = {}, window = 'class:kitty_tiled' }})",
+                                     (fullscreen ? "fullscreen" : "maximized"), (layoutAware ? "true" : "false"))));
+        {
+            auto str = getFromSocket("/activewindow");
+            EXPECT_CONTAINS(str, "class: kitty_tiled");
+            EXPECT_CONTAINS(str, "floating: 0")
+            EXPECT_CONTAINS(str, std::format("fullscreen: {}", (fullscreen ? "2" : "1")));
+            EXPECT_CONTAINS(str, std::format("fullscreenClient: {}", (fullscreen ? "2" : "1")));
+        }
+
+        SPAWN_KITTY("kitty_floated");
+        {
+            auto str = getFromSocket("/activewindow");
+            EXPECT_CONTAINS(str, "class: kitty_floated");
+            EXPECT_CONTAINS(str, "floating: 1")
+            EXPECT_CONTAINS(str, "fullscreen: 0");
+            EXPECT_CONTAINS(str, "fullscreenClient: 0");
+        }
+
+        OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2' })"));
+        OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+
+        // Expect the focus to be on the floating window ontop of the covering FS still
+        {
+            auto str = getFromSocket("/activewindow");
+            EXPECT_CONTAINS(str, "class: kitty_floated");
+            EXPECT_CONTAINS(str, "floating: 1")
+            EXPECT_CONTAINS(str, "fullscreen: 0");
+            EXPECT_CONTAINS(str, "fullscreenClient: 0");
+        }
+    };
+
+    // Fullscreen First
+
+    test_default_layout_handled_behaviour(true, false);
+
+    Tests::killAllWindows();
+    Tests::waitUntilWindowsN(0);
+
+    // Then Maximise
+
+    test_default_layout_handled_behaviour(false, false);
 }
 
 /* Scroll viewport tests */

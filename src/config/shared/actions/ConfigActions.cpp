@@ -1295,21 +1295,8 @@ ActionResult Actions::event(const std::string& data) {
     return {};
 }
 
-ActionResult Actions::lockGroups(eTogglableAction action) {
-    switch (action) {
-        case TOGGLE_ACTION_TOGGLE: Desktop::windowState()->setGroupsLocked(!Desktop::windowState()->groupsLocked()); break;
-        case TOGGLE_ACTION_ENABLE: Desktop::windowState()->setGroupsLocked(true); break;
-        case TOGGLE_ACTION_DISABLE: Desktop::windowState()->setGroupsLocked(false); break;
-    }
-
-    IPC::Socket2::sock()->postEvent({.event = "lockgroups", .data = Desktop::windowState()->groupsLocked() ? "1" : "0"});
-    Desktop::globalWindowController()->updateAllWindowsDecorations();
-
-    return {};
-}
-
-ActionResult Actions::lockActiveGroup(eTogglableAction action) {
-    const auto PWINDOW = Desktop::focusState()->window();
+ActionResult Actions::lockGroup(eTogglableAction action, std::optional<PHLWINDOW> window) {
+    const auto PWINDOW = xtract(window);
     if (!PWINDOW)
         return actionError("No window found", eActionErrorLevel::INFO, eActionErrorCode::NO_TARGET);
 
@@ -1323,6 +1310,19 @@ ActionResult Actions::lockActiveGroup(eTogglableAction action) {
     }
 
     PWINDOW->presentation().refreshValues();
+
+    return {};
+}
+
+ActionResult Actions::lockAllGroups(eTogglableAction action) {
+    switch (action) {
+        case TOGGLE_ACTION_TOGGLE: Desktop::windowState()->setGroupsLocked(!Desktop::windowState()->groupsLocked()); break;
+        case TOGGLE_ACTION_ENABLE: Desktop::windowState()->setGroupsLocked(true); break;
+        case TOGGLE_ACTION_DISABLE: Desktop::windowState()->setGroupsLocked(false); break;
+    }
+
+    IPC::Socket2::sock()->postEvent({.event = "lockgroups", .data = Desktop::windowState()->groupsLocked() ? "1" : "0"});
+    Desktop::globalWindowController()->updateAllWindowsDecorations();
 
     return {};
 }

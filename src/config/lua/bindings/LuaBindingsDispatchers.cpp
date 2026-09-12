@@ -67,12 +67,12 @@ static int dsp_moveGroupWindow(lua_State* L) {
     return Internal::checkResult(L, CA::moveGroupWindow(lua_toboolean(L, lua_upvalueindex(1))));
 }
 
-static int dsp_lockGroups(lua_State* L) {
-    return Internal::checkResult(L, CA::lockGroups(sc<CA::eTogglableAction>((int)lua_tonumber(L, lua_upvalueindex(1)))));
+static int dsp_lockGroup(lua_State* L) {
+    return Internal::checkResult(L, CA::lockGroup(sc<CA::eTogglableAction>(lua_tonumber(L, lua_upvalueindex(1))), Internal::windowFromUpval(L, 2)));
 }
 
-static int dsp_lockActiveGroup(lua_State* L) {
-    return Internal::checkResult(L, CA::lockActiveGroup(sc<CA::eTogglableAction>((int)lua_tonumber(L, lua_upvalueindex(1)))));
+static int dsp_lockAllGroups(lua_State* L) {
+    return Internal::checkResult(L, CA::lockAllGroups(sc<CA::eTogglableAction>(lua_tonumber(L, lua_upvalueindex(1)))));
 }
 
 static int hlCursorMoveToCorner(lua_State* L) {
@@ -138,18 +138,30 @@ static int hlGroupActive(lua_State* L) {
 }
 
 static int hlGroupLock(lua_State* L) {
+    bool needs_remove = false;
+    if (lua_gettop(L) == 0) {
+        lua_newtable(L);
+        needs_remove = true;
+    } else {
+        if (!lua_istable(L, 1))
+            return Internal::configError(L, "hl.group.lock: expected a table { window?, all?, action? } or no args");
+    }
+
     const auto action = Internal::tableToggleAction(L, 1);
+    lua_pushnumber(L, static_cast<int>(action));
 
-    lua_pushnumber(L, (int)action);
-    lua_pushcclosure(L, dsp_lockGroups, 1);
-    return 1;
-}
+    const auto all = Internal::tableOptBool(L, 1, "all");
+    if (all.value_or(false)) {
+        // global group lock
+        lua_pushcclosure(L, dsp_lockAllGroups, 1);
+    } else {
+        // lock specified window's group
+        Internal::pushWindowUpval(L, 1);
+        lua_pushcclosure(L, dsp_lockGroup, 2);
+    }
 
-static int hlGroupLockActive(lua_State* L) {
-    const auto action = Internal::tableToggleAction(L, 1);
-
-    lua_pushnumber(L, (int)action);
-    lua_pushcclosure(L, dsp_lockActiveGroup, 1);
+    if (needs_remove)
+        lua_remove(L, 1);
     return 1;
 }
 
@@ -1315,7 +1327,6 @@ void Internal::registerDispatcherBindings(lua_State* L) {
         Internal::setFn(L, "active", hlGroupActive);
         Internal::setFn(L, "move_window", hlGroupMoveWindow);
         Internal::setFn(L, "lock", hlGroupLock);
-        Internal::setFn(L, "lock_active", hlGroupLockActive);
         lua_setfield(L, -2, "group");
 
         lua_newtable(L);

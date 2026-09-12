@@ -14,7 +14,7 @@ jobs:
   moderate:
     runs-on: ubuntu-latest
     steps:
-      - uses: erstarr/TriggerHappy@v0.2
+      - uses: erstarr/TriggerHappy@v0.3
         with:
           github_token:  ${{ secrets.GITHUB_TOKEN }}
           storage_token: ${{ secrets.CROSS_REPO_TOKEN }}

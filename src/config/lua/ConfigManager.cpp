@@ -40,6 +40,7 @@
 #include "../../ipc/s2/S2.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../managers/input/trackpad/TrackpadGestures.hpp"
+#include "../../managers/input/trackpad/TriggeredGestures.hpp"
 #include "../../notification/NotificationOverlay.hpp"
 #include "../../helpers/MiscFunctions.hpp"
 
@@ -714,6 +715,7 @@ void CConfigManager::reload() {
     Config::monitorRuleMgr()->clear();
     Desktop::Rule::ruleEngine()->clearAllRules();
     g_pTrackpadGestures->clearGestures();
+    g_pTriggeredGestures->clearGestures();
     cleanTimers();
     clearLuaLayoutProviders();
     m_luaWindowRules.clear();

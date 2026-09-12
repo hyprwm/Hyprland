@@ -704,9 +704,11 @@ def generate_stub(root: Path) -> str:
         emit_class_block(
             "HL.GestureSpec",
             [
-                ("fingers", "integer", False),
+                ("fingers", "integer", True),
+                ("button", "string", True),
+                ("source", '"mouse"|"wheel"|"finger"|"continuous"|"wheel_tilt"', True),
                 ("direction", "string", False),
-                ("action", "string|function", False),
+                ("action", "string|function|table", False),
                 ("mods", "string", True),
                 ("scale", "number", True),
                 ("mode", "string", True),

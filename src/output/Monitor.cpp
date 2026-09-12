@@ -1419,8 +1419,8 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
         g_layoutManager->recalculateMonitor(m_self.lock(), Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_WORKSPACE_CHANGE);
 
         if (!noFocus) {
-            IPC::Socket2::sock()->postEvent({"workspace", pWorkspace->displayName()});
-            IPC::Socket2::sock()->postEvent({"workspacev2", std::format("{},{}", Workspace::selector(*pWorkspace), pWorkspace->displayName())});
+            IPC::Socket2::sock()->postEvent({"workspace", pWorkspace->addressableName()});
+            IPC::Socket2::sock()->postEvent({"workspacev2", std::format("{},{}", pWorkspace->addressableName(), pWorkspace->addressableName())});
             Event::bus()->m_events.workspace.active.emit(pWorkspace);
         }
     }
@@ -1615,7 +1615,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace, bool noFocus)
     }
 
     IPC::Socket2::sock()->postEvent({"activespecial", std::format("{},{}", pWorkspace->displayName(), m_name)});
-    IPC::Socket2::sock()->postEvent({"activespecialv2", std::format("{},{},{}", Workspace::selector(*pWorkspace), pWorkspace->displayName(), m_name)});
+    IPC::Socket2::sock()->postEvent({"activespecialv2", std::format("{},{},{}", pWorkspace->addressableName(), pWorkspace->addressableName(), m_name)});
 
     g_pHyprRenderer->damageMonitor(m_self.lock());
 

@@ -223,18 +223,18 @@ void CPlacementController::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR
             Desktop::FOCUS_REASON_DESKTOP_STATE_CHANGE);
 
         const auto PNEWWORKSPACE = pMonitorA->m_id == Desktop::focusState()->monitor()->m_id ? PWORKSPACEB : PWORKSPACEA;
-        IPC::Socket2::sock()->postEvent({.event = "workspace", .data = PNEWWORKSPACE->displayName()});
-        IPC::Socket2::sock()->postEvent({.event = "workspacev2", .data = std::format("{},{}", ::Workspace::selector(*PNEWWORKSPACE), PNEWWORKSPACE->displayName())});
+        IPC::Socket2::sock()->postEvent({.event = "workspace", .data = PNEWWORKSPACE->addressableName()});
+        IPC::Socket2::sock()->postEvent({.event = "workspacev2", .data = std::format("{},{}", PNEWWORKSPACE->addressableName(), PNEWWORKSPACE->addressableName())});
         Event::bus()->m_events.workspace.active.emit(PNEWWORKSPACE);
     }
 
     // events
-    IPC::Socket2::sock()->postEvent({.event = "moveworkspace", .data = std::format("{},{}", PWORKSPACEA->displayName(), pMonitorB->m_name)});
+    IPC::Socket2::sock()->postEvent({.event = "moveworkspace", .data = std::format("{},{}", PWORKSPACEA->addressableName(), pMonitorB->m_name)});
     IPC::Socket2::sock()->postEvent(
-        {.event = "moveworkspacev2", .data = std::format("{},{},{}", ::Workspace::selector(*PWORKSPACEA), PWORKSPACEA->displayName(), pMonitorB->m_name)});
-    IPC::Socket2::sock()->postEvent({.event = "moveworkspace", .data = std::format("{},{}", PWORKSPACEB->displayName(), pMonitorA->m_name)});
+        {.event = "moveworkspacev2", .data = std::format("{},{},{}", PWORKSPACEA->addressableName(), PWORKSPACEA->addressableName(), pMonitorB->m_name)});
+    IPC::Socket2::sock()->postEvent({.event = "moveworkspace", .data = std::format("{},{}", PWORKSPACEB->addressableName(), pMonitorA->m_name)});
     IPC::Socket2::sock()->postEvent(
-        {.event = "moveworkspacev2", .data = std::format("{},{},{}", ::Workspace::selector(*PWORKSPACEB), PWORKSPACEB->displayName(), pMonitorA->m_name)});
+        {.event = "moveworkspacev2", .data = std::format("{},{},{}", PWORKSPACEB->addressableName(), PWORKSPACEB->addressableName(), pMonitorA->m_name)});
 
     Event::bus()->m_events.workspace.moveToMonitor.emit(PWORKSPACEA, pMonitorB);
     Event::bus()->m_events.workspace.moveToMonitor.emit(PWORKSPACEB, pMonitorA);
@@ -379,8 +379,8 @@ void CPlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMO
     Desktop::globalWindowController()->updateSuspendedStates();
 
     // event
-    IPC::Socket2::sock()->postEvent({.event = "moveworkspace", .data = std::format("{},{}", pWorkspace->displayName(), pMonitor->m_name)});
-    IPC::Socket2::sock()->postEvent({.event = "moveworkspacev2", .data = std::format("{},{},{}", ::Workspace::selector(*pWorkspace), pWorkspace->displayName(), pMonitor->m_name)});
+    IPC::Socket2::sock()->postEvent({.event = "moveworkspace", .data = std::format("{},{}", pWorkspace->addressableName(), pMonitor->m_name)});
+    IPC::Socket2::sock()->postEvent({.event = "moveworkspacev2", .data = std::format("{},{},{}", pWorkspace->addressableName(), pWorkspace->addressableName(), pMonitor->m_name)});
 
     Event::bus()->m_events.workspace.moveToMonitor.emit(pWorkspace, pMonitor);
 }

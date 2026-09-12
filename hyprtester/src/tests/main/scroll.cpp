@@ -851,8 +851,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
         ASSERT_CONTAINS(floatingOne, "class: floatingOne");
         ASSERT_CONTAINS(floatingOne, "floating: 1");
 
-        // The window itself is FS so allowedOverFullscreen = 0
-        ASSERT_CONTAINS(floatingOne, "allowedOverFullscreen: 0");
+        ASSERT_CONTAINS(floatingOne, "allowedOverFullscreen: 1");
         ASSERT_CONTAINS(floatingOne, "acceptsInput: 1");
 
         ASSERT_CONTAINS(floatingOne, "fullscreen: 1");

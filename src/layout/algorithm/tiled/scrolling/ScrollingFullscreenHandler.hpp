@@ -86,6 +86,7 @@ namespace Fullscreen::ScrollingFullscreenHandler {
         /// Tracks FSed Targets (internal OR client)
         std::unordered_map<WP<Layout::ITarget>, SFullscreenScrollState> m_fsTargets;
         bool                                                            m_syncingFullscreenTargets = false;
+        bool                                                            m_updatingTargetRulesAndDecs = false;
 
         const eFullscreenHandler                                        FULLSCREEN_HANDLER_TYPE = FULLSCREEN_HANDLER_SCROLLING;
 

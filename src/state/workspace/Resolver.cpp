@@ -309,7 +309,6 @@ State::Workspace::STarget CWorkspaceResolver::getWorkspaceTargetFromString(const
         return {};
     }
 
-
     // if it's a number, it's either valid (1 to 32b limit) or invalid
     // signed 32b limit is documented on the wiki, our internal storage is irrelevant
     if (isNumber(in)) {

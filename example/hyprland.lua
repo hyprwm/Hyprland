@@ -239,6 +239,16 @@ hl.gesture({
     action = "workspace"
 })
 
+-- Hold Super + X and move the mouse horizontally to move a scrolling layout.
+-- `button` and `fingers` are mutually exclusive.
+-- hl.gesture({
+--     button = "X", -- accepts keyboard keys and mouse:<button>
+--     mods = "SUPER",
+--     source = "mouse", -- also "wheel", "finger", "continuous", or "wheel_tilt"
+--     direction = "horizontal",
+--     action = "scroll_move",
+-- })
+
 -- Example per-device config
 -- See https://wiki.hypr.land/Configuring/Advanced-and-Cool/Devices/ for more
 hl.device({

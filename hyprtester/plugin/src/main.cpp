@@ -324,6 +324,7 @@ class CPinchScaleRecorder : public ITrackpadGesture {
 };
 
 SP<CTestMouse>             g_mouse;
+SP<CTestMouse>             g_trackpad;
 SP<CTestKeyboard>          g_keyboard;
 SP<CTestKeyboard>          g_keyboard2;
 SP<CKeyboardEventRecorder> g_keyboardEventRecorder;
@@ -592,22 +593,58 @@ static SDispatchResult scroll(std::string in) {
 }
 
 static SDispatchResult click(std::string in) {
-    CVarList2 data(std::move(in));
+    CVarList2  data(std::move(in));
 
-    uint32_t  button;
-    bool      pressed;
-    try {
-        button  = std::stoul(std::string{data[0]});
-        pressed = std::stoul(std::string{data[1]}) == 1;
-    } catch (...) { return {.success = false, .error = "invalid input"}; }
+    const auto button  = strToNumber<uint32_t>(data[0]);
+    const auto pressed = strToNumber<uint32_t>(data[1]);
+    if (!button || !pressed)
+        return {.success = false, .error = "invalid input"};
 
-    LOG(Log::DEBUG, "tester: mouse button {} state {}", button, pressed);
+    LOG(Log::DEBUG, "tester: mouse button {} state {}", *button, *pressed);
 
     g_mouse->m_pointerEvents.button.emit(IPointer::SButtonEvent{
         .timeMs = sc<uint32_t>(Time::millis(Time::steadyNow())),
-        .button = button,
-        .state  = pressed ? WL_POINTER_BUTTON_STATE_PRESSED : WL_POINTER_BUTTON_STATE_RELEASED,
+        .button = *button,
+        .state  = *pressed == 1 ? WL_POINTER_BUTTON_STATE_PRESSED : WL_POINTER_BUTTON_STATE_RELEASED,
         .mouse  = true,
+    });
+
+    return {};
+}
+
+static SDispatchResult pointerMove(std::string in) {
+    CVarList2  data(std::move(in));
+
+    const auto x = strToNumber<double>(data[0]);
+    const auto y = strToNumber<double>(data[1]);
+    if (!x || !y)
+        return {.success = false, .error = "invalid input"};
+
+    const auto pointer = data[2] == "1" ? g_trackpad : g_mouse;
+    pointer->m_pointerEvents.motion.emit(IPointer::SMotionEvent{
+        .timeMs  = sc<uint32_t>(Time::millis(Time::steadyNow())),
+        .delta   = {*x, *y},
+        .unaccel = {*x, *y},
+        .mouse   = true,
+        .device  = pointer,
+    });
+
+    return {};
+}
+
+static SDispatchResult mouseWarp(std::string in) {
+    CVarList2  data(std::move(in));
+
+    const auto x = strToNumber<double>(data[0]);
+    const auto y = strToNumber<double>(data[1]);
+    if (!x || !y)
+        return {.success = false, .error = "invalid input"};
+
+    g_pInputManager->onMouseWarp(IPointer::SMotionAbsoluteEvent{
+        .timeMs   = sc<uint32_t>(Time::millis(Time::steadyNow())),
+        .absolute = {*x, *y},
+        .device   = g_mouse,
+        .mouse    = false,
     });
 
     return {};
@@ -974,6 +1011,14 @@ static int luaClick(lua_State* L) {
     return luaResult(L, ::click(std::format("{},{}", button, pressed)));
 }
 
+static int luaPointerMove(lua_State* L) {
+    return luaResult(L, ::pointerMove(std::format("{},{},{}", luaL_checknumber(L, 1), luaL_checknumber(L, 2), lua_toboolean(L, 3))));
+}
+
+static int luaMouseWarp(lua_State* L) {
+    return luaResult(L, ::mouseWarp(std::format("{},{}", luaL_checknumber(L, 1), luaL_checknumber(L, 2))));
+}
+
 static int luaKeybind(lua_State* L) {
     const auto press    = (int)luaL_checkinteger(L, 1);
     const auto modifier = (int)luaL_checkinteger(L, 2);
@@ -1104,6 +1149,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     addLuaFn("expect_cursor_zoom", ::luaExpectCursorZoom);
     addLuaFn("scroll", ::luaScroll);
     addLuaFn("click", ::luaClick);
+    addLuaFn("pointer_move", ::luaPointerMove);
+    addLuaFn("mouse_warp", ::luaMouseWarp);
     addLuaFn("keybind", ::luaKeybind);
     addLuaFn("keybind2", ::luaKeybind2);
     addLuaFn("keybind_modmask", ::luaKeybindMask);
@@ -1129,6 +1176,10 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     g_mouse = CTestMouse::create(false);
     g_pInputManager->newMouse(g_mouse);
 
+    g_trackpad               = CTestMouse::create(false);
+    g_trackpad->m_isTouchpad = true;
+    g_pInputManager->newMouse(g_trackpad);
+
     // init keyboard
     g_keyboard = CTestKeyboard::create(false);
     g_pInputManager->newKeyboard(g_keyboard);
@@ -1143,6 +1194,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 APICALL EXPORT void PLUGIN_EXIT() {
     removeKeyboardEventRecorder("");
     g_keyboardEventRecorder.reset();
+    g_trackpad->destroy();
+    g_trackpad.reset();
     g_mouse->destroy();
     g_mouse.reset();
     g_keyboard->destroy();

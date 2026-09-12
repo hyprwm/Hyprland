@@ -203,6 +203,185 @@ TEST_CASE(live_gesture_callbacks) {
     EXPECT_CONTAINS(evalLua("hl.gesture({ fingers = 8, direction = 'up', action = {} })"), "must define at least one of start, update, end, or finish");
     EXPECT_CONTAINS(evalLua("hl.gesture({ fingers = 8, direction = 'up', action = function() end, scale = 0 })"),
                     "value must be between -10 and -0.1 or between 0.1 and 10 - It's currently: 0");
+    EXPECT_CONTAINS(evalLua("hl.gesture({ direction = 'left', action = 'workspace' })"), "require either fingers or button");
+    EXPECT_CONTAINS(evalLua("hl.gesture({ fingers = 3, button = 'mouse:274', direction = 'left', action = 'workspace' })"), "cannot use fingers and button together");
+    EXPECT_CONTAINS(evalLua("hl.gesture({ button = 'mouse:abc', direction = 'left', action = 'workspace' })"), "button must be mouse:<numeric code>");
+
+    OK(evalLua(R"(
+        local originalCursor = hl.get_cursor_pos()
+        __pointerGesture = { start = 0, update = 0, finish = 0 }
+        hl.gesture({
+            button = 'mouse:299',
+            direction = 'left',
+            action = {
+                start = function(e)
+                    __pointerGesture.start = __pointerGesture.start + 1
+                    if e.fingers ~= 0 then error('invalid pointer gesture fingers') end
+                    if __pointerGesture.start == 1 and e.delta.x ~= -300 then error('invalid relative pointer gesture start') end
+                    if __pointerGesture.start == 2 and e.delta.x >= 0 then error('invalid absolute pointer gesture start') end
+                end,
+                update = function(e)
+                    __pointerGesture.update = __pointerGesture.update + 1
+                    if __pointerGesture.update == 1 and e.delta.x ~= -300 then error('invalid relative pointer gesture update') end
+                    if __pointerGesture.update == 2 and e.delta.x >= 0 then error('invalid absolute pointer gesture update') end
+                end,
+                finish = function(e)
+                    __pointerGesture.finish = __pointerGesture.finish + 1
+                    if e.cancelled then error('pointer gesture unexpectedly cancelled') end
+                end,
+            },
+        })
+        hl.plugin.test.click(299, 1)
+        hl.plugin.test.mouse_move(-300, 0)
+        hl.plugin.test.click(299, 0)
+        if __pointerGesture.start ~= 1 or __pointerGesture.update ~= 1 or __pointerGesture.finish ~= 1 then
+            error('unexpected pointer gesture callback counts')
+        end
+
+        hl.plugin.test.mouse_warp(0.9, 0.1)
+        hl.plugin.test.click(299, 1)
+        hl.plugin.test.mouse_warp(0.1, 0.1)
+        hl.plugin.test.click(299, 0)
+        if __pointerGesture.start ~= 2 or __pointerGesture.update ~= 2 or __pointerGesture.finish ~= 2 then
+            error('absolute pointer gesture did not run')
+        end
+
+        local currentCursor = hl.get_cursor_pos()
+        hl.plugin.test.mouse_move(originalCursor.x - currentCursor.x, originalCursor.y - currentCursor.y)
+    )"));
+}
+
+TEST_CASE(pointer_gesture_config) {
+    CScopeGuard guard = {[&]() {
+        evalLua("hl.gesture({ button = 'A', source = 'finger', direction = 'left', action = 'unset' })");
+        evalLua("hl.gesture({ button = 'B', source = 'continuous', direction = 'left', action = 'unset' })");
+        evalLua("hl.gesture({ button = 'C', source = 'wheel_tilt', direction = 'left', action = 'unset' })");
+        evalLua("hl.gesture({ button = 'D', source = 'wheel', direction = 'left', action = 'unset' })");
+        evalLua("hl.gesture({ button = 'D', source = 'finger', direction = 'left', action = 'unset' })");
+    }};
+
+    EXPECT_CONTAINS(evalLua("hl.gesture({ direction = 'left', action = 'workspace' })"), "require either fingers or button");
+    EXPECT_CONTAINS(evalLua("hl.gesture({ fingers = 3, button = 'mouse:274', direction = 'left', action = 'workspace' })"), "cannot use fingers and button together");
+    EXPECT_CONTAINS(evalLua("hl.gesture({ button = 'X', direction = 'left', action = 'workspace' })"), "require a source");
+    EXPECT_CONTAINS(evalLua("hl.gesture({ button = 'X', source = 'trackpad', direction = 'left', action = 'workspace' })"), "require source = \"mouse\"");
+    EXPECT_CONTAINS(evalLua("hl.gesture({ button = 'X', source = 'pointer', direction = 'left', action = 'workspace' })"), "require source = \"mouse\"");
+    OK(evalLua("hl.gesture({ button = 'A', source = 'finger', direction = 'left', action = 'workspace' })"));
+    OK(evalLua("hl.gesture({ button = 'B', source = 'continuous', direction = 'left', action = 'workspace' })"));
+    OK(evalLua("hl.gesture({ button = 'C', source = 'wheel_tilt', direction = 'left', action = 'workspace' })"));
+    OK(evalLua("hl.gesture({ button = 'D', source = 'wheel', direction = 'left', action = 'workspace' })"));
+    OK(evalLua("hl.gesture({ button = 'D', source = 'finger', direction = 'left', action = 'workspace' })"));
+    EXPECT_CONTAINS(evalLua("hl.gesture({ fingers = 3, source = 'mouse', direction = 'left', action = 'workspace' })"), "source can only be used with button");
+    EXPECT_CONTAINS(evalLua("hl.gesture({ button = '', source = 'mouse', direction = 'left', action = 'workspace' })"), "button must not be empty");
+    EXPECT_CONTAINS(evalLua("hl.gesture({ button = 'X', source = 'mouse', direction = 'pinch', action = 'workspace' })"), "do not support pinch directions");
+    EXPECT_CONTAINS(evalLua("hl.gesture({ button = 'not_a_key', source = 'mouse', direction = 'left', action = 'workspace' })"), "Unknown key");
+}
+
+TEST_CASE(pointer_gesture_callbacks) {
+    CScopeGuard guard = {[&]() {
+        evalLua(R"(
+            hl.plugin.test.click(299, 0)
+            hl.gesture({ button = 'mouse:299', source = 'mouse', direction = 'left', action = 'unset' })
+            if __pointerCursor then
+                local cursor = hl.get_cursor_pos()
+                hl.plugin.test.pointer_move(__pointerCursor.x - cursor.x, __pointerCursor.y - cursor.y)
+            end
+            __pointerCursor = nil
+        )");
+    }};
+
+    OK(evalLua(R"(
+        __pointerCursor = hl.get_cursor_pos()
+        local events = { start = {}, update = {}, finish = {} }
+        hl.gesture({
+            button = 'mouse:299',
+            source = 'mouse',
+            direction = 'left',
+            action = {
+                start = function(e) table.insert(events.start, e) end,
+                update = function(e) table.insert(events.update, e) end,
+                finish = function(e) table.insert(events.finish, e) end,
+            },
+        })
+        hl.plugin.test.click(299, 1)
+        hl.plugin.test.pointer_move(-300, 0)
+        hl.plugin.test.click(299, 0)
+        if #events.start ~= 1 or #events.update ~= 1 or #events.finish ~= 1 then
+            error('unexpected pointer gesture callback counts')
+        end
+
+        hl.plugin.test.mouse_warp(0.9, 0.1)
+        hl.plugin.test.click(299, 1)
+        hl.plugin.test.mouse_warp(0.1, 0.1)
+        hl.plugin.test.click(299, 0)
+        if #events.start ~= 2 or #events.update ~= 2 or #events.finish ~= 2 then
+            error('absolute pointer gesture did not run')
+        end
+
+        hl.plugin.test.pointer_move(-300, 0)
+        if #events.update ~= 2 then error('gesture continued after release') end
+        -- Assert outside callbacks: callback errors are logged rather than propagated to eval.
+        for _, phase in ipairs({ 'start', 'update' }) do
+            if events[phase][1].delta.x ~= -300 then error('invalid relative delta in ' .. phase) end
+            if events[phase][2].delta.x >= 0 then error('invalid absolute delta in ' .. phase) end
+            for _, event in ipairs(events[phase]) do
+                if event.fingers ~= 0 then error('invalid pointer gesture fingers') end
+            end
+        end
+        for _, event in ipairs(events.finish) do
+            if event.cancelled then error('pointer gesture unexpectedly cancelled') end
+        end
+    )"));
+}
+
+TEST_CASE(pointer_gesture_wheel_source) {
+    CScopeGuard guard = {[&]() {
+        evalLua(R"(
+            hl.plugin.test.click(298, 0)
+            pcall(hl.gesture, { button = 'mouse:298', source = 'wheel', direction = 'down', action = 'unset' })
+        )");
+    }};
+
+    OK(evalLua(R"(
+        local updates = 0
+        hl.gesture({
+            button = 'mouse:298',
+            source = 'wheel',
+            direction = 'down',
+            action = { update = function() updates = updates + 1 end },
+        })
+        hl.plugin.test.click(298, 1)
+        hl.plugin.test.scroll(20)
+        hl.plugin.test.click(298, 0)
+        if updates ~= 1 then error('wheel source did not update the gesture') end
+    )"));
+}
+
+TEST_CASE(pointer_gesture_mouse_source) {
+    CScopeGuard guard = {[&]() {
+        evalLua(R"(
+            hl.plugin.test.keybind_modmask(0, 0, 53)
+            pcall(hl.gesture, { button = 'X', mods = 'SUPER', source = 'mouse', direction = 'left', action = 'unset' })
+        )");
+    }};
+
+    OK(evalLua(R"(
+        local updates = 0
+        hl.gesture({
+            button = 'X',
+            mods = 'SUPER',
+            source = 'mouse',
+            direction = 'left',
+            action = { update = function() updates = updates + 1 end },
+        })
+        local function press() hl.plugin.test.keybind_modmask(1, 64, 53) end
+        local function release() hl.plugin.test.keybind_modmask(0, 0, 53) end
+
+        press()
+        hl.plugin.test.pointer_move(-20, 0, true)
+        hl.plugin.test.pointer_move(-20, 0)
+        release()
+        if updates ~= 2 then error('mouse source did not accept pointer motion') end
+    )"));
 }
 
 // TODO: decompose this into multiple test cases

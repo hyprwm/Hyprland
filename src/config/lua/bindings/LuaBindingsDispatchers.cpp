@@ -44,7 +44,7 @@ static int            requestBindRelease(lua_State* L, int results) {
 }
 
 static int dsp_moveCursorToCorner(lua_State* L) {
-    return Internal::checkResult(L, CA::moveCursorToCorner((int)lua_tonumber(L, lua_upvalueindex(1)), Internal::windowFromUpval(L, 2)));
+    return Internal::checkResult(L, CA::moveCursorToCorner(sc<int>(lua_tonumber(L, lua_upvalueindex(1))), Internal::windowFromUpval(L, 2)));
 }
 
 static int dsp_moveCursor(lua_State* L) {
@@ -60,7 +60,7 @@ static int dsp_changeGroupActive(lua_State* L) {
 }
 
 static int dsp_setGroupActive(lua_State* L) {
-    return Internal::checkResult(L, CA::setGroupActive((int)lua_tonumber(L, lua_upvalueindex(1)), Internal::windowFromUpval(L, 2)));
+    return Internal::checkResult(L, CA::setGroupActive(sc<int>(lua_tonumber(L, lua_upvalueindex(1))), Internal::windowFromUpval(L, 2)));
 }
 
 static int dsp_moveGroupWindow(lua_State* L) {

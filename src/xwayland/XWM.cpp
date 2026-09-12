@@ -431,7 +431,8 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
 
     } else if (e->type == HYPRATOMS["_NET_WM_STATE"]) {
         if (e->format == 32) {
-            uint32_t action = e->data.data32[0];
+            uint32_t action           = e->data.data32[0];
+            bool     demandsAttention = false;
             for (size_t i = 0; i < 2; ++i) {
                 xcb_atom_t prop = e->data.data32[1 + i];
 
@@ -457,7 +458,12 @@ void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
                     XSURF->m_state.requestsMinimize = updateState(action, XSURF->m_minimized);
                 if (prop == HYPRATOMS["_NET_WM_STATE_MAXIMIZED_VERT"] || prop == HYPRATOMS["_NET_WM_STATE_MAXIMIZED_HORZ"])
                     XSURF->m_state.requestsMaximize = updateState(action, XSURF->m_maximized);
+                if (prop == HYPRATOMS["_NET_WM_STATE_DEMANDS_ATTENTION"] && updateState(action, false))
+                    demandsAttention = true;
             }
+
+            if (demandsAttention)
+                XSURF->m_events.activate.emit();
 
             XSURF->m_events.stateChanged.emit();
         }
@@ -1037,9 +1043,19 @@ CXWM::CXWM() : m_connection(makeUnique<CXCBConnection>(g_pXWayland->m_server->m_
     xcb_composite_redirect_subwindows(getConnection(), m_screen->root, XCB_COMPOSITE_REDIRECT_MANUAL);
 
     xcb_atom_t supported[] = {
-        HYPRATOMS["_NET_WM_STATE"],        HYPRATOMS["_NET_ACTIVE_WINDOW"],       HYPRATOMS["_NET_WM_MOVERESIZE"],           HYPRATOMS["_NET_WM_STATE_FOCUSED"],
-        HYPRATOMS["_NET_WM_STATE_MODAL"],  HYPRATOMS["_NET_WM_STATE_FULLSCREEN"], HYPRATOMS["_NET_WM_STATE_MAXIMIZED_VERT"], HYPRATOMS["_NET_WM_STATE_MAXIMIZED_HORZ"],
-        HYPRATOMS["_NET_WM_STATE_HIDDEN"], HYPRATOMS["_NET_CLIENT_LIST"],         HYPRATOMS["_NET_CLIENT_LIST_STACKING"],    HYPRATOMS["_NET_WORKAREA"],
+        HYPRATOMS["_NET_WM_STATE"],
+        HYPRATOMS["_NET_ACTIVE_WINDOW"],
+        HYPRATOMS["_NET_WM_MOVERESIZE"],
+        HYPRATOMS["_NET_WM_STATE_FOCUSED"],
+        HYPRATOMS["_NET_WM_STATE_MODAL"],
+        HYPRATOMS["_NET_WM_STATE_FULLSCREEN"],
+        HYPRATOMS["_NET_WM_STATE_MAXIMIZED_VERT"],
+        HYPRATOMS["_NET_WM_STATE_MAXIMIZED_HORZ"],
+        HYPRATOMS["_NET_WM_STATE_HIDDEN"],
+        HYPRATOMS["_NET_CLIENT_LIST"],
+        HYPRATOMS["_NET_CLIENT_LIST_STACKING"],
+        HYPRATOMS["_NET_WORKAREA"],
+        HYPRATOMS["_NET_WM_STATE_DEMANDS_ATTENTION"],
     };
     xcb_change_property(getConnection(), XCB_PROP_MODE_REPLACE, m_screen->root, HYPRATOMS["_NET_SUPPORTED"], XCB_ATOM_ATOM, 32, sizeof(supported) / sizeof(*supported), supported);
 

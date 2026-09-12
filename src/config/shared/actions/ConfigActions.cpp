@@ -1076,6 +1076,7 @@ ActionResult Actions::changeWorkspace(const std::string& ws) {
     auto p = resolveWorkspaceForChange(ws);
     if (!p)
         return actionError("Bad workspace", eActionErrorLevel::WARNING, eActionErrorCode::NO_TARGET);
+    Hyprutils::Utils::CScopeGuard x([&]() { p->ready(); });
     return Actions::changeWorkspace(p);
 }
 

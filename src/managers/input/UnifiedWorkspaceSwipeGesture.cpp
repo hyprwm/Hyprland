@@ -344,8 +344,10 @@ void CUnifiedWorkspaceSwipeGesture::end() {
 
     g_pInputManager->refocus();
 
-    // apply alpha
     if (pSwitchedTo) {
+        pSwitchedTo->ready();
+
+        // apply alpha
         const auto  FSWINDOW         = Fullscreen::controller()->getFullscreenWindow(pSwitchedTo);
         const auto  FS_MODE_INTERNAL = FSWINDOW ? Fullscreen::controller()->getFullscreenModes(FSWINDOW).internal : Fullscreen::FSMODE_NONE;
         const auto& SPACE            = pSwitchedTo->space();

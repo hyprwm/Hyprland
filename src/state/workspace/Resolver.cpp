@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <charconv>
 #include <cstdint>
+#include <limits>
 #include <optional>
 #include <set>
 #include <vector>
@@ -114,6 +115,14 @@ static std::optional<int64_t> offsetAvailableWorkspace(uint32_t current, int64_t
     return result;
 }
 
+// Resolution here is done in stages, to support all resolution modes.
+// prefix special / special: / name: -> shortcuts
+// prefix empty -> shortcut for empty matching.
+// prev / previous / next -> cycling
+// selectors + (+/-/~) + number -> relative selectors
+// (+/-) + number -> relative moves
+// contains [] -> workspace filters, this is bad input for the resolver
+// fallback: named or ID'd workspace
 State::Workspace::STarget CWorkspaceResolver::getWorkspaceTargetFromString(const std::string& in, std::optional<PHLMONITOR> baseMon) {
     const auto BASEMONITOR = baseMon.value_or(Desktop::focusState()->monitor());
     if (in.empty())
@@ -165,7 +174,7 @@ State::Workspace::STarget CWorkspaceResolver::getWorkspaceTargetFromString(const
         return {};
     }
 
-    if (in.starts_with("prev")) {
+    if (in == "prev" || in == "previous") {
         if (!BASEMONITOR || !valid(BASEMONITOR->m_activeWorkspace))
             return {};
         return Desktop::History::workspaceTracker()->previousWorkspace(BASEMONITOR->m_activeWorkspace).target;
@@ -295,10 +304,23 @@ State::Workspace::STarget CWorkspaceResolver::getWorkspaceTargetFromString(const
         return numberedTarget(std::max(VALUE, sc<int64_t>(1)));
     }
 
-    if (isNumber(in)) {
-        const auto ID = Hyprutils::String::strToNumber<int64_t>(in);
-        return ID ? numberedTarget(std::max(*ID, sc<int64_t>(1))) : State::Workspace::STarget{};
+    if (in.contains('[') || in.contains(']')) {
+        LOG(Log::ERR, "Resolver cannot take workspace filters");
+        return {};
     }
 
-    return targetFor(State::Workspace::state()->query().input(in).run());
+
+    // if it's a number, it's either valid (1 to 32b limit) or invalid
+    // signed 32b limit is documented on the wiki, our internal storage is irrelevant
+    if (isNumber(in)) {
+        const auto ID = Hyprutils::String::strToNumber<int64_t>(in);
+        if (!ID || *ID == 0 || *ID > std::numeric_limits<int32_t>::max()) {
+            LOG(Log::ERR, "Invalid workspace ID for resolving: {}", in);
+            return {};
+        }
+        return numberedTarget(std::max(*ID, sc<int64_t>(1)));
+    }
+
+    // return a named workspace, e.g. "amongus"
+    return {.id = ::Workspace::SWorkspaceSpecialID{}, .address = in, .displayName = in, .type = ::Workspace::eWorkspaceType::NORMAL};
 }

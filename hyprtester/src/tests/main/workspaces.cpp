@@ -1277,3 +1277,9 @@ TEST_CASE(workspaceSwitchUnfocusesWindowFromOldWorkspace) {
     // TODO: also test when workspaces 1 and 2 are on different workspaces.
     //       At the time of writing, it is broken (i.e., the test would fail).
 }
+
+TEST_CASE(luaFocusCreatesBareNamedWorkspace) {
+    ASSERT(getFromSocket("/repl hl.get_workspace('hi')"), "nil");
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'hi' })"));
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace hi (hi)");
+}

@@ -216,7 +216,7 @@ class CTestKeyboard : public IKeyboard {
         return keeb;
     }
 
-    virtual bool isVirtual() {
+    virtual bool isVirtual() const {
         return m_isVirtual;
     }
 
@@ -257,7 +257,7 @@ class CTestMouse : public IPointer {
         return maus;
     }
 
-    virtual bool isVirtual() {
+    virtual bool isVirtual() const {
         return m_isVirtual;
     }
 

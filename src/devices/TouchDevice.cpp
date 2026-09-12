@@ -55,7 +55,7 @@ CTouchDevice::CTouchDevice(SP<Aquamarine::ITouch> touch_) : m_touch(touch_) {
     m_deviceName = m_touch->getName();
 }
 
-bool CTouchDevice::isVirtual() {
+bool CTouchDevice::isVirtual() const {
     return false;
 }
 

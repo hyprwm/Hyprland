@@ -45,7 +45,7 @@ CVirtualPointer::CVirtualPointer(SP<CVirtualPointerV1Resource> resource) : m_poi
     m_deviceName = m_pointer->m_name;
 }
 
-bool CVirtualPointer::isVirtual() {
+bool CVirtualPointer::isVirtual() const {
     return true;
 }
 

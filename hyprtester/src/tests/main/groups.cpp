@@ -308,7 +308,7 @@ TEST_CASE(groupLock) {
         }
         OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
         OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ window = 'pid:{}' }})", lockedWin->pid())));
-        OK(getFromSocket("/dispatch hl.dsp.group.lock_active({ action = 'set' })"));
+        OK(getFromSocket("/dispatch hl.dsp.group.lock({ action = 'set' })"));
 
         SPAWN_KITTY("top");
 

@@ -18,10 +18,10 @@ jobs:
         with:
           github_token:  ${{ secrets.GITHUB_TOKEN }}
           storage_token: ${{ secrets.CROSS_REPO_TOKEN }}
-          storage_repo:  your_org/yourRepo
-          config_path:   discussion_moderator/config.yml
-          banned_path:   discussion_moderator/banned.yml
-          strikes_path:  discussion_moderator/strikes.yml
+          storage_repo:  hyprwm/.github
+          config_path:   discussion_moderator/hyprland/config.yml
+          banned_path:   discussion_moderator/hyprland/banned.yml
+          strikes_path:  discussion_moderator/hyprland/strikes.yml
 
           strikes_to_ban: 3
           auto_close_regex: '[\s\S]*\#\#\#\ I\ acknowledge\ that:\r?\n\r?\n\-\ \[X\]\ I\ have\ searched\ \*\*all\*\*\ \(open\ and\ closed\)\ discussions\ and\ issues(?:\ and\ my\ problem\ is\ not\ there\.|,\ checked\ the\ wiki,\ and\ my\ feature\ is\ not\ there\.)\r?\n\-\ \[X\]\ I\ have\ read\ the\ \[Code\ of\ Conduct\]\(https://github\.com/hyprwm/\.github/blob/main/policies/CODE_OF_CONDUCT\.md\)\ and\ agree\ to\ follow\ it\.\r?\n\-\ \[X\]\ I\ wrote\ this\ request\ with\ my\ own\ hands,\ my\ own\ keyboard,\ and\ in\ my\ own\ words\.\s*\Z'

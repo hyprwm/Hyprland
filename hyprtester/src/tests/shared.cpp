@@ -168,6 +168,20 @@ bool Tests::killAllLayers() {
     return true;
 }
 
+void Tests::waitUntilLayersN(int n) {
+
+    int counter = 0;
+    while (Tests::layerCount() != n) {
+        counter++;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+        if (counter > 50) {
+            std::println("{}Timed out waiting for layers", Colors::RED);
+            return;
+        }
+    }
+}
+
 std::string Tests::execAndGet(const std::string& cmd) {
     CProcess proc("/bin/sh", {"-c", cmd});
 

@@ -1,4 +1,5 @@
 #include "FullscreenController.hpp"
+#include "../../config/ConfigValue.hpp"
 
 #include "../../managers/fullscreen/handler/FullscreenHandler.hpp"
 #include "../../ipc/s2/S2.hpp"
@@ -28,6 +29,15 @@ using namespace Fullscreen;
 UP<CFullscreenController>& Fullscreen::controller() {
     static UP<CFullscreenController> p = makeUnique<CFullscreenController>();
     return p;
+}
+
+CFullscreenController::CFullscreenController() {
+    m_configListener = Event::bus()->m_events.config.props_refreshed.listen([this](const bool) {
+        static auto PEXITRETAINSFS = CConfigValue<Config::INTEGER>("misc:exit_window_retains_fullscreen");
+
+        if (*PEXITRETAINSFS != 0)
+            m_takeovers.clear();
+    });
 }
 
 bool CFullscreenController::isFullscreen(const PHLWINDOW window, const std::optional<eFullscreenMode> mode, const std::optional<bool> covering) {
@@ -293,6 +303,14 @@ std::string CFullscreenController::getFullscreenHandlerNameAsString(const PHLWIN
 }
 
 void CFullscreenController::beginFullscreenTakeover(const PHLWINDOW window) {
+    static auto PEXITRETAINSFS   = CConfigValue<Config::INTEGER>("misc:exit_window_retains_fullscreen");
+    const bool  TAKEOVER_SUPPORT = *PEXITRETAINSFS == 0;
+
+    if (!TAKEOVER_SUPPORT) {
+        m_takeovers.clear();
+        return;
+    }
+
     if (!window || !window->m_workspace)
         return;
 
@@ -323,22 +341,27 @@ void CFullscreenController::cancelFullscreenTakeover(const PHLWINDOW window) {
 }
 
 bool CFullscreenController::endFullscreenTakeover(const PHLWINDOW window) {
+    static auto PEXITRETAINSFS   = CConfigValue<Config::INTEGER>("misc:exit_window_retains_fullscreen");
+    const bool  TAKEOVER_SUPPORT = *PEXITRETAINSFS == 0;
+
+    if (!TAKEOVER_SUPPORT) {
+        m_takeovers.clear();
+        return false;
+    }
+
     if (!window)
         return false;
 
     const auto IT = m_takeovers.find(window);
-    if (IT == m_takeovers.end()) {
+    if (IT == m_takeovers.end())
         return false;
-    }
 
-    std::once_flag                once{};
-    const auto                    erase = [&once, this, IT] { std::call_once(once, [this, IT] { m_takeovers.erase(IT); }); };
-    Hyprutils::Utils::CScopeGuard eraser(erase);
+    const auto TAKEOVER = IT->second;
+    m_takeovers.erase(IT);
 
-    const auto                    TAKEOVER  = IT->second;
-    const auto                    DISPLACED = TAKEOVER.displaced.lock();
-    const auto                    DISPLACER = TAKEOVER.displacer.lock();
-    const auto                    WORKSPACE = TAKEOVER.workspace.lock();
+    const auto DISPLACED = TAKEOVER.displaced.lock();
+    const auto DISPLACER = TAKEOVER.displacer.lock();
+    const auto WORKSPACE = TAKEOVER.workspace.lock();
 
     if (!DISPLACED || !DISPLACER || !WORKSPACE) {
         LOG(Log::DEBUG, "incomplete takeover stored");
@@ -352,11 +375,9 @@ bool CFullscreenController::endFullscreenTakeover(const PHLWINDOW window) {
     }
 
     if (CURRENT != DISPLACER) {
-        LOG(Log::DEBUG, "end takeover: skipping restoration (FS state was changed deliberatlely since the takeover record)");
+        LOG(Log::DEBUG, "end takeover: skipping restoration (fullscreen owner changed since the takeover)");
         return false;
     }
-
-    erase(); // cleaning up current takeover before the actions to avoid any potential recursion cases
 
     setFullscreenMode(DISPLACER, eFullscreenMode::FSMODE_NONE, eFullscreenMode::FSMODE_NONE);
 

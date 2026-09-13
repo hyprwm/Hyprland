@@ -1,7 +1,8 @@
 #pragma once
 
 #include "../../helpers/memory/Memory.hpp"
-#include "desktop/DesktopTypes.hpp"
+#include "../../helpers/signal/Signal.hpp"
+#include "../../desktop/DesktopTypes.hpp"
 #include "FullscreenTypes.hpp"
 #include <optional>
 #include <unordered_map>
@@ -13,7 +14,7 @@ namespace Fullscreen {
     class CFullscreenController {
 
       public:
-        CFullscreenController()  = default;
+        CFullscreenController();
         ~CFullscreenController() = default;
 
         // Window
@@ -86,6 +87,7 @@ namespace Fullscreen {
         };
 
         std::unordered_map<PHLWINDOWREF, SFullscreenTakeover> m_takeovers;
+        CHyprSignalListener                                   m_configListener;
 
         // FS Mode Setter Helpers
         void setWindowFullscreenModeInternal(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware, eFullscreenMutationContext context);

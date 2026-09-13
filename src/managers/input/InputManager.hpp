@@ -14,6 +14,9 @@
 #include "../../devices/Tablet.hpp"
 #include "../SessionLockManager.hpp"
 #include "../SeatManager.hpp"
+#include "../eventLoop/EventLoopTimer.hpp"
+
+#include <array>
 
 class CPointerConstraint;
 class CIdleInhibitor;
@@ -305,15 +308,21 @@ class CInputManager {
         uint32_t lastEventTime     = 0;
         uint32_t accumulatedScroll = 0;
     } m_scrollWheelState;
-    // touchpad scroll acceleration state
-    struct {
-        bool     initialized    = false;
-        uint32_t lastTime       = 0;
-        double   lastDelta      = 0;
-        double   velocity       = 0;
-        double   lastFactor     = 1.0;
-        wl_pointer_axis lastAxis = WL_POINTER_AXIS_VERTICAL_SCROLL;
-    } m_touchpadScrollState;
+    // touchpad scroll acceleration + inertial coasting state
+    struct STouchpadScrollAxis {
+        double          vel        = 0; // EMA |delta|/ms, drives the accel factor
+        double          signedVel  = 0; // last signed instantaneous delta/ms, seeds the coast
+        uint32_t        lastTime   = 0; // last event timestamp (input clock), reused for synthetic ticks
+        Time::steady_tp lastSteady;     // last event time (steady clock) for the watchdog
+        bool            hasLast    = false;
+        bool            coasting   = false;
+        double          coastVel   = 0; // signed delta/ms at finger lift
+        Time::steady_tp coastStart;
+    };
+    std::array<STouchpadScrollAxis, 2> m_touchScrollAxes; // [vertical, horizontal]
+    SP<CEventLoopTimer>                m_scrollCoastTimer;
+
+    void                  onScrollCoastTick();
     bool                  m_pointerAxisFramePending = false;
 
     bool                  shareKeyFromAllKBs(uint32_t key, bool pressed);

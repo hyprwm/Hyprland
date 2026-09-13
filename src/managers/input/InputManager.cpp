@@ -38,6 +38,7 @@
 #include "../../pointer/PointerManager.hpp"
 #include "../../pointer/PointerController.hpp"
 #include "../../managers/SeatManager.hpp"
+#include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../keybinds/Manager.hpp"
 #include "../../keybinds/Resolver.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
@@ -63,6 +64,13 @@
 #include <hyprutils/string/VarList2.hpp>
 
 using namespace Hyprutils::String;
+using namespace Hyprutils::OS;
+
+// touchpad scroll coasting tuning
+static constexpr int    SCROLL_COAST_WATCHDOG_MS = 24;   // silence before a lift is assumed
+static constexpr int    SCROLL_COAST_TICK_MS     = 16;   // synthetic event interval while coasting
+static constexpr double SCROLL_COAST_MIN_VEL     = 0.12; // delta/ms below which no coast starts
+static constexpr double SCROLL_COAST_MAX_VEL     = 4.0;  // delta/ms clamp for the coast seed
 
 CInputManager::CInputManager() {
     m_listeners.setCursorShape = PROTO::cursorShape->m_events.setShape.listen([this](const CCursorShapeProtocol::SSetShapeEvent& event) {
@@ -975,6 +983,7 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
     static auto PSCROLLACCELPROFILE   = CConfigValue<Config::INTEGER>("input:touchpad:scroll_accel_profile");
     static auto PSCROLLACCELSPEED     = CConfigValue<Config::FLOAT>("input:touchpad:scroll_accel_speed");
     static auto PSCROLLACCELMAX       = CConfigValue<Config::FLOAT>("input:touchpad:scroll_accel_max");
+    static auto PSCROLLDECEL          = CConfigValue<Config::INTEGER>("input:touchpad:scroll_decel");
     static auto PEMULATEDISCRETE      = CConfigValue<Config::INTEGER>("input:emulate_discrete_scroll");
     static auto PFOLLOWMOUSE          = CConfigValue<Config::INTEGER>("input:follow_mouse");
 
@@ -985,38 +994,45 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
     const bool ISTOUCHPADSCROLL = *PTOUCHPADSCROLLFACTOR <= 0.f || e.source == WL_POINTER_AXIS_SOURCE_FINGER;
     auto       factor           = ISTOUCHPADSCROLL ? *PTOUCHPADSCROLLFACTOR : *PINPUTSCROLLFACTOR;
 
-    // apply scroll acceleration for touchpads
+    // apply scroll acceleration + inertial coasting for touchpads
     if (ISTOUCHPADSCROLL && *PSCROLLACCELPROFILE > 0) {
-        const uint32_t now = e.timeMs;
-        if (!m_touchpadScrollState.initialized || now - m_touchpadScrollState.lastTime > 100) {
-            m_touchpadScrollState.velocity = 0;
-            m_touchpadScrollState.lastFactor = 1.0;
-        } else {
-            const double dt = (now - m_touchpadScrollState.lastTime) / 1000.0;
-            if (dt > 0) {
-                const double instVel = std::abs(e.delta) / dt;
-                m_touchpadScrollState.velocity = m_touchpadScrollState.velocity * 0.7 + instVel * 0.3;
+        const size_t   AXISIDX = e.axis == WL_POINTER_AXIS_HORIZONTAL_SCROLL ? 1 : 0;
+        auto&          A       = m_touchScrollAxes[AXISIDX];
+        const uint32_t now     = e.timeMs;
+
+        if (e.delta != 0) {
+            // real motion: cancel any coasting on this axis and update the velocity EMA
+            A.coasting = false;
+
+            if (!A.hasLast || now - A.lastTime > 100) {
+                A.vel       = 0;
+                A.signedVel = 0;
+            } else {
+                const double dt = now - A.lastTime; // ms
+                if (dt > 0) {
+                    const double instVel = std::abs(e.delta) / dt;
+                    A.vel       = A.vel * 0.7 + instVel * 0.3;
+                    A.signedVel = e.delta / dt;
+                }
             }
+
+            A.hasLast    = true;
+            A.lastTime   = now;
+            A.lastSteady = Time::steadyNow();
+
+            double accelFactor = 1.0;
+            if (*PSCROLLACCELPROFILE == 1) {
+                // linear: factor proportional to velocity
+                accelFactor = 1.0 + (A.vel / *PSCROLLACCELSPEED) * (*PSCROLLACCELMAX - 1.0);
+            } else if (*PSCROLLACCELPROFILE == 2) {
+                // adaptive: smoothstep curve
+                const double t = std::clamp(A.vel / *PSCROLLACCELSPEED, 0.0, 1.0);
+                accelFactor    = 1.0 + (t * t * (3 - 2 * t)) * (*PSCROLLACCELMAX - 1.0);
+            }
+
+            accelFactor = std::clamp(accelFactor, 1.0, (double)*PSCROLLACCELMAX);
+            factor *= accelFactor;
         }
-
-        m_touchpadScrollState.initialized = true;
-        m_touchpadScrollState.lastTime = now;
-        m_touchpadScrollState.lastDelta = e.delta;
-        m_touchpadScrollState.lastAxis = e.axis;
-
-        double accelFactor = 1.0;
-        if (*PSCROLLACCELPROFILE == 1) {
-            // linear: factor proportional to velocity
-            accelFactor = 1.0 + (m_touchpadScrollState.velocity / *PSCROLLACCELSPEED) * (*PSCROLLACCELMAX - 1.0);
-        } else if (*PSCROLLACCELPROFILE == 2) {
-            // adaptive: smoothstep curve
-            const double t = std::clamp(m_touchpadScrollState.velocity / *PSCROLLACCELSPEED, 0.0, 1.0);
-            accelFactor = 1.0 + (t * t * (3 - 2 * t)) * (*PSCROLLACCELMAX - 1.0);
-        }
-
-        accelFactor = std::clamp(accelFactor, 1.0, (double)*PSCROLLACCELMAX);
-        m_touchpadScrollState.lastFactor = accelFactor;
-        factor *= accelFactor;
     }
 
     if (pointer && pointer->m_scrollFactor.has_value())
@@ -1121,6 +1137,16 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
 
     g_pSeatManager->sendPointerAxis(e.timeMs, e.axis, delta, deltaDiscrete, value120, e.source, WL_POINTER_AXIS_RELATIVE_DIRECTION_IDENTICAL);
 
+    // arm the coast watchdog: if no further events arrive, the tick starts the inertial coast
+    if (ISTOUCHPADSCROLL && e.delta != 0 && *PSCROLLACCELPROFILE > 0 && *PSCROLLDECEL > 0) {
+        if (!m_scrollCoastTimer) {
+            m_scrollCoastTimer = makeShared<CEventLoopTimer>(std::chrono::milliseconds(SCROLL_COAST_WATCHDOG_MS),
+                                                             [this](SP<CEventLoopTimer> self, void* data) { onScrollCoastTick(); }, nullptr);
+            g_pEventLoopManager->addTimer(m_scrollCoastTimer);
+        } else
+            m_scrollCoastTimer->updateTimeout(std::chrono::milliseconds(SCROLL_COAST_WATCHDOG_MS));
+    }
+
     const bool deferPointerFrame = e.source == WL_POINTER_AXIS_SOURCE_FINGER || e.source == WL_POINTER_AXIS_SOURCE_CONTINUOUS;
     if (deferPointerFrame) {
         m_pointerAxisFramePending = true;
@@ -1142,6 +1168,64 @@ void CInputManager::onPointerFrame() {
 
     m_pointerAxisFramePending = false;
     g_pSeatManager->sendPointerFrame();
+}
+
+void CInputManager::onScrollCoastTick() {
+    static auto PSCROLLDECEL = CConfigValue<Config::INTEGER>("input:touchpad:scroll_decel");
+
+    const auto NOW           = Time::steadyNow();
+    const int  DECALMS       = std::clamp((int)*PSCROLLDECEL, 0, 5000);
+    bool       anyActive     = false;
+
+    for (size_t i = 0; i < 2; ++i) {
+        auto& A = m_touchScrollAxes[i];
+
+        if (!A.coasting) {
+            // watchdog fired: if this axis went silent with enough velocity, start coasting
+            if (!A.hasLast || std::chrono::duration<double, std::milli>(NOW - A.lastSteady).count() < SCROLL_COAST_WATCHDOG_MS)
+                continue;
+
+            if (DECALMS <= 0 || std::abs(A.signedVel) < SCROLL_COAST_MIN_VEL)
+                continue;
+
+            A.coasting   = true;
+            A.coastVel   = std::clamp(A.signedVel, -SCROLL_COAST_MAX_VEL, SCROLL_COAST_MAX_VEL) * 0.9;
+            A.coastStart = NOW;
+        }
+
+        const double ELAPSED = std::chrono::duration<double, std::milli>(NOW - A.coastStart).count();
+        const auto   AXIS    = i == 0 ? WL_POINTER_AXIS_VERTICAL_SCROLL : WL_POINTER_AXIS_HORIZONTAL_SCROLL;
+
+        if (ELAPSED >= DECALMS) {
+            // coast done: drop the state and send a clean stop so clients end the gesture
+            A.coasting = false;
+            A.hasLast  = false;
+            g_pSeatManager->sendPointerAxis(A.lastTime, AXIS, 0, 0, 0, WL_POINTER_AXIS_SOURCE_FINGER, WL_POINTER_AXIS_RELATIVE_DIRECTION_IDENTICAL);
+            g_pSeatManager->sendPointerFrame();
+            continue;
+        }
+
+        anyActive = true;
+
+        // quadratic ease-out decay, macOS-like
+        const double T     = ELAPSED / DECALMS;
+        const double DELTA = A.coastVel * (1.0 - T) * (1.0 - T) * SCROLL_COAST_TICK_MS;
+
+        if (std::abs(DELTA) < 0.01)
+            continue;
+
+        g_pSeatManager->sendPointerAxis(A.lastTime + (uint32_t)ELAPSED, AXIS, DELTA, 0, 0, WL_POINTER_AXIS_SOURCE_FINGER,
+                                        WL_POINTER_AXIS_RELATIVE_DIRECTION_IDENTICAL);
+        g_pSeatManager->sendPointerFrame();
+    }
+
+    if (!m_scrollCoastTimer)
+        return;
+
+    if (anyActive)
+        m_scrollCoastTimer->updateTimeout(std::chrono::milliseconds(SCROLL_COAST_TICK_MS));
+    else
+        m_scrollCoastTimer->updateTimeout(std::nullopt);
 }
 
 Vector2D CInputManager::getMouseCoordsInternal() {

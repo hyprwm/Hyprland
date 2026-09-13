@@ -68,9 +68,9 @@ using namespace Hyprutils::OS;
 
 // touchpad scroll coasting tuning
 static constexpr int    SCROLL_COAST_WATCHDOG_MS = 24;   // silence before a lift is assumed
-static constexpr int    SCROLL_COAST_TICK_MS     = 16;   // synthetic event interval while coasting
-static constexpr double SCROLL_COAST_MIN_VEL     = 0.12; // delta/ms below which no coast starts
-static constexpr double SCROLL_COAST_MAX_VEL     = 4.0;  // delta/ms clamp for the coast seed
+static constexpr int    SCROLL_COAST_TICK_MS     = 8;    // synthetic event interval while coasting
+static constexpr double SCROLL_COAST_MIN_VEL     = 0.15; // EMA delta/ms below which no coast starts
+static constexpr double SCROLL_COAST_MAX_VEL     = 8.0;  // delta/ms clamp for the coast seed
 
 CInputManager::CInputManager() {
     m_listeners.setCursorShape = PROTO::cursorShape->m_events.setShape.listen([this](const CCursorShapeProtocol::SSetShapeEvent& event) {
@@ -1185,12 +1185,16 @@ void CInputManager::onScrollCoastTick() {
             if (!A.hasLast || std::chrono::duration<double, std::milli>(NOW - A.lastSteady).count() < SCROLL_COAST_WATCHDOG_MS)
                 continue;
 
-            if (DECALMS <= 0 || std::abs(A.signedVel) < SCROLL_COAST_MIN_VEL)
+            if (DECALMS <= 0 || A.vel < SCROLL_COAST_MIN_VEL) {
+                A.hasLast = false;
                 continue;
+            }
 
+            // seed from the gesture's smoothed velocity, not the (tiny) last instantaneous sample
             A.coasting   = true;
-            A.coastVel   = std::clamp(A.signedVel, -SCROLL_COAST_MAX_VEL, SCROLL_COAST_MAX_VEL) * 0.9;
+            A.coastVel   = std::copysign(std::min(A.vel, SCROLL_COAST_MAX_VEL), A.signedVel >= 0 ? 1.0 : -1.0);
             A.coastStart = NOW;
+            A.coastAccum = 0;
         }
 
         const double ELAPSED = std::chrono::duration<double, std::milli>(NOW - A.coastStart).count();
@@ -1213,6 +1217,8 @@ void CInputManager::onScrollCoastTick() {
 
         if (std::abs(DELTA) < 0.01)
             continue;
+
+        A.coastAccum += std::abs(DELTA);
 
         g_pSeatManager->sendPointerAxis(A.lastTime + (uint32_t)ELAPSED, AXIS, DELTA, 0, 0, WL_POINTER_AXIS_SOURCE_FINGER,
                                         WL_POINTER_AXIS_RELATIVE_DIRECTION_IDENTICAL);

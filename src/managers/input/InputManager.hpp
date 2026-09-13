@@ -317,6 +317,7 @@ class CInputManager {
         bool            hasLast    = false;
         bool            coasting   = false;
         double          coastVel   = 0; // signed delta/ms at finger lift
+        double          coastAccum = 0; // total units coasted (diagnostics)
         Time::steady_tp coastStart;
     };
     std::array<STouchpadScrollAxis, 2> m_touchScrollAxes; // [vertical, horizontal]

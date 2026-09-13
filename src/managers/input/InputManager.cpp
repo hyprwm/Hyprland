@@ -1014,7 +1014,7 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
             accelFactor = 1.0 + (t * t * (3 - 2 * t)) * (*PSCROLLACCELMAX - 1.0);
         }
 
-        accelFactor = std::clamp(accelFactor, 1.0, *PSCROLLACCELMAX);
+        accelFactor = std::clamp(accelFactor, 1.0, (double)*PSCROLLACCELMAX);
         m_touchpadScrollState.lastFactor = accelFactor;
         factor *= accelFactor;
     }

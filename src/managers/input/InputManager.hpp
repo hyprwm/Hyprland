@@ -305,6 +305,15 @@ class CInputManager {
         uint32_t lastEventTime     = 0;
         uint32_t accumulatedScroll = 0;
     } m_scrollWheelState;
+    // touchpad scroll acceleration state
+    struct {
+        bool     initialized    = false;
+        uint32_t lastTime       = 0;
+        double   lastDelta      = 0;
+        double   velocity       = 0;
+        double   lastFactor     = 1.0;
+        wl_pointer_axis lastAxis = WL_POINTER_AXIS_VERTICAL_SCROLL;
+    } m_touchpadScrollState;
     bool                  m_pointerAxisFramePending = false;
 
     bool                  shareKeyFromAllKBs(uint32_t key, bool pressed);

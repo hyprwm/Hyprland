@@ -972,6 +972,9 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
     static auto POFFWINDOWAXIS        = CConfigValue<Config::INTEGER>("input:off_window_axis_events");
     static auto PINPUTSCROLLFACTOR    = CConfigValue<Config::FLOAT>("input:scroll_factor");
     static auto PTOUCHPADSCROLLFACTOR = CConfigValue<Config::FLOAT>("input:touchpad:scroll_factor");
+    static auto PSCROLLACCELPROFILE   = CConfigValue<Config::INTEGER>("input:touchpad:scroll_accel_profile");
+    static auto PSCROLLACCELSPEED     = CConfigValue<Config::FLOAT>("input:touchpad:scroll_accel_speed");
+    static auto PSCROLLACCELMAX       = CConfigValue<Config::FLOAT>("input:touchpad:scroll_accel_max");
     static auto PEMULATEDISCRETE      = CConfigValue<Config::INTEGER>("input:emulate_discrete_scroll");
     static auto PFOLLOWMOUSE          = CConfigValue<Config::INTEGER>("input:follow_mouse");
 
@@ -981,6 +984,40 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
 
     const bool ISTOUCHPADSCROLL = *PTOUCHPADSCROLLFACTOR <= 0.f || e.source == WL_POINTER_AXIS_SOURCE_FINGER;
     auto       factor           = ISTOUCHPADSCROLL ? *PTOUCHPADSCROLLFACTOR : *PINPUTSCROLLFACTOR;
+
+    // apply scroll acceleration for touchpads
+    if (ISTOUCHPADSCROLL && *PSCROLLACCELPROFILE > 0) {
+        const uint32_t now = e.timeMs;
+        if (!m_touchpadScrollState.initialized || now - m_touchpadScrollState.lastTime > 100) {
+            m_touchpadScrollState.velocity = 0;
+            m_touchpadScrollState.lastFactor = 1.0;
+        } else {
+            const double dt = (now - m_touchpadScrollState.lastTime) / 1000.0;
+            if (dt > 0) {
+                const double instVel = std::abs(e.delta) / dt;
+                m_touchpadScrollState.velocity = m_touchpadScrollState.velocity * 0.7 + instVel * 0.3;
+            }
+        }
+
+        m_touchpadScrollState.initialized = true;
+        m_touchpadScrollState.lastTime = now;
+        m_touchpadScrollState.lastDelta = e.delta;
+        m_touchpadScrollState.lastAxis = e.axis;
+
+        double accelFactor = 1.0;
+        if (*PSCROLLACCELPROFILE == 1) {
+            // linear: factor proportional to velocity
+            accelFactor = 1.0 + (m_touchpadScrollState.velocity / *PSCROLLACCELSPEED) * (*PSCROLLACCELMAX - 1.0);
+        } else if (*PSCROLLACCELPROFILE == 2) {
+            // adaptive: smoothstep curve
+            const double t = std::clamp(m_touchpadScrollState.velocity / *PSCROLLACCELSPEED, 0.0, 1.0);
+            accelFactor = 1.0 + (t * t * (3 - 2 * t)) * (*PSCROLLACCELMAX - 1.0);
+        }
+
+        accelFactor = std::clamp(accelFactor, 1.0, *PSCROLLACCELMAX);
+        m_touchpadScrollState.lastFactor = accelFactor;
+        factor *= accelFactor;
+    }
 
     if (pointer && pointer->m_scrollFactor.has_value())
         factor = *pointer->m_scrollFactor;

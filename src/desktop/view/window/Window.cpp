@@ -468,9 +468,9 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
     Desktop::globalWindowController()->updateAllWindowsDecorations();
 
     if (valid(pWorkspace)) {
-        IPC::Socket2::sock()->postEvent({.event = "movewindow", .data = std::format("{:x},{}", rc<uintptr_t>(this), pWorkspace->displayName())});
+        IPC::Socket2::sock()->postEvent({.event = "movewindow", .data = std::format("{:x},{}", rc<uintptr_t>(this), pWorkspace->addressableName())});
         IPC::Socket2::sock()->postEvent(
-            {.event = "movewindowv2", .data = std::format("{:x},{},{}", rc<uintptr_t>(this), Workspace::selector(*pWorkspace), pWorkspace->displayName())});
+            {.event = "movewindowv2", .data = std::format("{:x},{},{}", rc<uintptr_t>(this), pWorkspace->addressableName(), pWorkspace->addressableName())});
         Event::bus()->m_events.window.moveToWorkspace.emit(m_self.lock(), pWorkspace);
     }
 
@@ -1422,7 +1422,7 @@ void CWindow::mapWindow() {
     m_swallowing->reserveCandidate();
 
     // emit the IPC event before the layout might focus the window to avoid a focus event first
-    IPC::Socket2::sock()->postEvent({"openwindow", std::format("{:x},{},{},{}", m_self.lock(), PWORKSPACE->displayName(), m_metadata->appID(), m_metadata->title())});
+    IPC::Socket2::sock()->postEvent({"openwindow", std::format("{:x},{},{},{}", m_self.lock(), PWORKSPACE->addressableName(), m_metadata->appID(), m_metadata->title())});
     Event::bus()->m_events.window.openEarly.emit(m_self.lock());
 
     if (m_swallowing->activate()) {

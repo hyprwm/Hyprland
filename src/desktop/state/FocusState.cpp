@@ -288,8 +288,8 @@ void CFocusState::rawMonitorFocus(PHLMONITOR pMonitor) {
 
     const auto PWORKSPACE = pMonitor->m_activeWorkspace;
 
-    const auto WORKSPACE_ADDRESS = PWORKSPACE ? Workspace::selector(*PWORKSPACE) : "";
-    const auto WORKSPACE_NAME    = PWORKSPACE ? PWORKSPACE->displayName() : "?";
+    const auto WORKSPACE_ADDRESS = PWORKSPACE ? PWORKSPACE->addressableName() : "";
+    const auto WORKSPACE_NAME    = PWORKSPACE ? PWORKSPACE->addressableName() : "?";
 
     IPC::Socket2::sock()->postEvent({.event = "focusedmon", .data = std::format("{},{}", pMonitor->m_name, WORKSPACE_NAME)});
     IPC::Socket2::sock()->postEvent({.event = "focusedmonv2", .data = std::format("{},{}", pMonitor->m_name, WORKSPACE_ADDRESS)});

@@ -20,7 +20,7 @@ eMonitorRuleComparisonResult CMonitorRule::compare(const CMonitorRule& other) co
     const auto SAME_CM = other.m_cmType == m_cmType && other.m_sdrSaturation == m_sdrSaturation && other.m_sdrBrightness == m_sdrBrightness &&
         other.m_sdrMinLuminance == m_sdrMinLuminance && other.m_sdrMaxLuminance == m_sdrMaxLuminance && other.m_supportsWideColor == m_supportsWideColor &&
         other.m_supportsHDR == m_supportsHDR && other.m_minLuminance == m_minLuminance && other.m_maxLuminance == m_maxLuminance && other.m_maxAvgLuminance == m_maxAvgLuminance &&
-        other.m_iccFile == m_iccFile;
+        other.m_referenceLuminance == m_referenceLuminance && other.m_iccFile == m_iccFile;
     const auto SAME_POS       = m_offset == other.m_offset;
     const auto SAME_TRANSFORM = m_transform == other.m_transform;
     const auto SAME_AUTO_DIR  = m_autoDir == other.m_autoDir;

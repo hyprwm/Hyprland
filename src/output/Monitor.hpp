@@ -331,6 +331,7 @@ namespace Monitor {
         float                                                       minLuminance(float defaultValue = 0);
         int                                                         maxLuminance(int defaultValue = 80);
         int                                                         maxAvgLuminance(int defaultValue = 80);
+        int                                                         referenceLuminance(int defaultValue);
         float                                                       maxFALL();
         float                                                       maxCLL();
 
@@ -417,10 +418,11 @@ namespace Monitor {
             CHyprSignalListener commitResult;
         } m_listeners;
 
-        int   m_supportsWideColor = 0;
-        int   m_supportsHDR       = 0;
-        float m_minLuminance      = -1.0f;
-        int   m_maxLuminance      = -1;
-        int   m_maxAvgLuminance   = -1;
+        int   m_supportsWideColor  = 0;
+        int   m_supportsHDR        = 0;
+        float m_minLuminance       = -1.0f;
+        int   m_maxLuminance       = -1;
+        int   m_maxAvgLuminance    = -1;
+        int   m_referenceLuminance = -1;
     };
 }

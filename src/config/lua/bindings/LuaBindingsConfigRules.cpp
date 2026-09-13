@@ -175,6 +175,11 @@ namespace {
              p.rule().m_maxAvgLuminance = sc<int>(*sc<const Config::INTEGER*>(v->data()));
              return true;
          }},
+        {"reference_luminance", []() -> ILuaConfigValue* { return new CLuaConfigInt(-1); },
+         [](ILuaConfigValue* v, CMonitorRuleParser& p) {
+             p.rule().m_referenceLuminance = sc<int>(*sc<const Config::INTEGER*>(v->data()));
+             return true;
+         }},
     };
 
     static_assert(sizeof(Internal::WINDOW_RULE_EFFECT_DESCS) / sizeof(Internal::SWindowRuleEffectDesc) == Internal::WE::WINDOW_RULE_EFFECT_LAST_STATIC - 1);

@@ -602,11 +602,11 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, NTransferFunction::eTF cmSdr
             break;
         default: UNREACHABLE();
     }
-    if ((minLuminance() >= 0 || maxLuminance() > 0) && (cmType == NCMType::CM_HDR || cmType == NCMType::CM_HDR_EDID))
+    if ((minLuminance() >= 0 || maxLuminance() > 0 || m_referenceLuminance > 0) && (cmType == NCMType::CM_HDR || cmType == NCMType::CM_HDR_EDID))
         m_imageDescription = m_imageDescription->with({
             .min       = minLuminance() >= 0 ? minLuminance() : m_imageDescription->value().luminances.min, //
             .max       = maxLuminance() > 0 ? maxLuminance() : m_imageDescription->value().luminances.max,  //
-            .reference = m_imageDescription->value().luminances.reference                                   //
+            .reference = sc<uint32_t>(referenceLuminance(m_imageDescription->value().luminances.reference)) //
         });
 
     if (oldImageDescription != m_imageDescription) {
@@ -642,9 +642,10 @@ bool CMonitor::applyMonitorRuleSoft(Config::CMonitorRule&& pMonitorRule) {
         m_sdrMinLuminance = m_activeMonitorRule.m_sdrMinLuminance;
         m_sdrMaxLuminance = m_activeMonitorRule.m_sdrMaxLuminance;
 
-        m_minLuminance    = m_activeMonitorRule.m_minLuminance;
-        m_maxLuminance    = m_activeMonitorRule.m_maxLuminance;
-        m_maxAvgLuminance = m_activeMonitorRule.m_maxAvgLuminance;
+        m_minLuminance       = m_activeMonitorRule.m_minLuminance;
+        m_maxLuminance       = m_activeMonitorRule.m_maxLuminance;
+        m_maxAvgLuminance    = m_activeMonitorRule.m_maxAvgLuminance;
+        m_referenceLuminance = m_activeMonitorRule.m_referenceLuminance;
 
         applyCMType(m_cmType, m_sdrEotf);
 
@@ -2361,6 +2362,10 @@ float CMonitor::minLuminance(float defaultValue) {
 
 int CMonitor::maxLuminance(int defaultValue) {
     return m_maxLuminance >= 0 ? m_maxLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance : defaultValue);
+}
+
+int CMonitor::referenceLuminance(int defaultValue) {
+    return m_referenceLuminance > 0 ? m_referenceLuminance : defaultValue;
 }
 
 int CMonitor::maxAvgLuminance(int defaultValue) {

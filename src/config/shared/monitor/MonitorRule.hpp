@@ -61,9 +61,10 @@ namespace Config {
         int                          m_sdrMaxLuminance   = 80;   // SDR -> HDR
 
         // Incorrect values will result in reduced luminance range or incorrect tonemapping. Shouldn't damage the HW. Use with care in case of a faulty monitor firmware.
-        float              m_minLuminance    = -1.F; // >= 0 overrides EDID
-        int                m_maxLuminance    = -1;   // >= 0 overrides EDID
-        int                m_maxAvgLuminance = -1;   // >= 0 overrides EDID
+        float              m_minLuminance       = -1.F; // >= 0 overrides EDID
+        int                m_maxLuminance       = -1;   // >= 0 overrides EDID
+        int                m_maxAvgLuminance    = -1;   // >= 0 overrides EDID
+        int                m_referenceLuminance = -1;   // > 0 overrides HDR_REF_LUMINANCE (BT.2408 reference white) for color-managed clients
 
         drmModeModeInfo    m_drmMode = {};
         std::optional<int> m_vrr;

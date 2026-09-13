@@ -346,8 +346,13 @@ bool CFullscreenController::endFullscreenTakeover(const PHLWINDOW window) {
     }
 
     const auto CURRENT = getFullscreenWindow(WORKSPACE);
-    if (!DISPLACED->mapped() || DISPLACED->m_workspace != WORKSPACE || CURRENT != DISPLACER) {
-        LOG(Log::DEBUG, "incomplete takeover stored");
+    if (!DISPLACED->mapped() || DISPLACED->m_workspace != WORKSPACE) {
+        LOG(Log::DEBUG, "end takeover: skipping restoration (target was unmapped / moved out of the workspace)");
+        return false;
+    }
+
+    if (CURRENT != DISPLACER) {
+        LOG(Log::DEBUG, "end takeover: skipping restoration (FS state was changed deliberatlely since the takeover record)");
         return false;
     }
 
@@ -358,7 +363,7 @@ bool CFullscreenController::endFullscreenTakeover(const PHLWINDOW window) {
     // Restore the exact mode pair without sync_fullscreen rewriting it or normal collision handling.
     setFullscreenMode(DISPLACED, TAKEOVER.mode.internal, TAKEOVER.mode.client, TAKEOVER.layoutAware, FULLSCREEN_MUTATION_TRANSFER);
 
-    LOG(Log::DEBUG, "takeover complete from {:c} to {:c}", DISPLACER, DISPLACED);
+    LOG(Log::DEBUG, "takeover restoration complete from {:c} to {:c}", DISPLACER, DISPLACED);
 
     return true;
 }

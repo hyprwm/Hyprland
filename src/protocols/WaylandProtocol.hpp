@@ -33,5 +33,9 @@ class IWaylandProtocol {
 
   private:
     std::string m_name;
-    wl_global*  m_global = nullptr;
+    wl_global*  m_global          = nullptr;
+    // Guards against onDisplayDestroy() running its wl_list_remove/wl_global_destroy
+    // body twice for the same object (once via the wl_display destroy-listener
+    // firing, once via ~IWaylandProtocol() unconditionally calling it too).
+    bool        m_displayDestroyed = false;
 };

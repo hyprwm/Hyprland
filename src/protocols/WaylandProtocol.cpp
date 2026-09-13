@@ -12,6 +12,10 @@ static void displayDestroyInternal(struct wl_listener* listener, void* data) {
 }
 
 void IWaylandProtocol::onDisplayDestroy() {
+    if (m_displayDestroyed)
+        return;
+    m_displayDestroyed = true;
+
     wl_list_remove(&m_liDisplayDestroy.listener.link);
     wl_list_init(&m_liDisplayDestroy.listener.link);
     if (m_global) {
@@ -23,12 +27,20 @@ void IWaylandProtocol::onDisplayDestroy() {
 IWaylandProtocol::IWaylandProtocol(const wl_interface* iface, const int& ver, const std::string& name) :
     m_name(name), m_global(wl_global_create(g_pCompositor->m_wlDisplay, iface, ver, this, &bindManagerInternal)) {
 
+    // wl_list_init() must run unconditionally, even if wl_global_create() failed
+    // below (which can happen legitimately, e.g. a runtime wayland-protocols
+    // version older than what this interface was requested at). Without this,
+    // m_liDisplayDestroy.listener.link is left as uninitialized memory on that
+    // path, and onDisplayDestroy()'s wl_list_remove() on it is a segfault on
+    // whatever garbage happens to be there -- deterministically, on every
+    // graceful exit, for any protocol whose global creation ever fails this way.
+    wl_list_init(&m_liDisplayDestroy.listener.link);
+
     if UNLIKELY (!m_global) {
         LOG(Log::ERR, "could not create a global [{}]", m_name);
         return;
     }
 
-    wl_list_init(&m_liDisplayDestroy.listener.link);
     m_liDisplayDestroy.listener.notify = displayDestroyInternal;
     m_liDisplayDestroy.parent          = this;
     wl_display_add_destroy_listener(g_pCompositor->m_wlDisplay, &m_liDisplayDestroy.listener);

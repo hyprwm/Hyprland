@@ -629,7 +629,8 @@ void CConfigManager::reinitLuaState() {
                     lua_pop(L, 1);
                 }
                 lua_pop(L, nstack);
-                out.pop_back();
+                if (!out.empty())
+                    out.pop_back();
                 mgr->m_prints.emplace_back(out);
             }
             return 0;

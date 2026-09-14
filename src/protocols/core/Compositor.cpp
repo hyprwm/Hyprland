@@ -753,8 +753,16 @@ bool CWLSurfaceResource::hasVisibleSubsurface() {
         if (!subsurface || !subsurface->m_surface)
             continue;
 
-        const auto& surf = subsurface->m_surface;
-        if (surf->m_current.size.x > 0 && surf->m_current.size.y > 0)
+        if (subsurface->m_zIndex < 0 && m_current.buffer && m_current.buffer->m_opaque) {
+            const bool isCovered = subsurface->m_position.x >= 0 && subsurface->m_position.y >= 0 &&
+                subsurface->m_position.x + subsurface->m_surface->m_current.size.x <= m_current.size.x &&
+                subsurface->m_position.y + subsurface->m_surface->m_current.size.y <= m_current.size.y;
+            if (isCovered)
+                continue;
+        }
+
+        const auto& surf = subsurface->m_surface.lock();
+        if (surf->m_current.buffer && surf->m_current.size.x > 0 && surf->m_current.size.y > 0)
             return true;
     }
 

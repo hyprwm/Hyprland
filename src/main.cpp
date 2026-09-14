@@ -55,9 +55,6 @@ static void reapZombieChildrenAutomatically() {
 
 int main(int argc, char** argv) {
 
-    if (!getenv("XDG_RUNTIME_DIR"))
-        throwError("XDG_RUNTIME_DIR is not set!");
-
     // export HYPRLAND_CMD
     std::string cmd = argv[0];
     for (int i = 1; i < argc; ++i)
@@ -202,6 +199,11 @@ int main(int argc, char** argv) {
         }
     }
 
+    if (auto env = getenv("XDG_RUNTIME_DIR"); !env || env[0] == '\0') {
+        std::println(stderr, "[ ERROR ] XDG_RUNTIME_DIR is not set. Make sure you're running on a real, properly set up user.");
+        return 1;
+    }
+
     if (!ignoreSudo && NInit::isSudo()) {
         std::println(stderr,
                      "[ ERROR ] Hyprland was launched with superuser privileges, but the privileges check is not omitted.\n"
@@ -222,34 +224,34 @@ int main(int argc, char** argv) {
     if (!verifyConfig) {
         std::println("Welcome to Hyprland!");
         std::println(R"#(
-                                                  
-                     YY    UJ                     
-                    YYY    UUJ                    
-                   XXXY    UUUU                   
-                  zXXXX    UUUUU                  
-                zzzzX        UUUUJ                
-               cczzz          UUUUJ               
-             vccccz            UUUUUJ             
-            vvcccc              UUUUUJ            
-           vvvvv                  UUUUJ           
-          uuuvv                    UUUUJ          
-         uuuuu                      UUUUU         
-        nnnuu                        UUUUU        
-       nnnnn                          YUUUU       
-       xxnn                            YUUU       
-       xxxn                            YYUU       
-      xxxx                              YYUU      
-      rxxx                              YYYY      
-      rrrx                              YYYY      
-       rrrx                            XXXY       
-       rrrr                            XXXX       
-        rrrr                          zzXX        
-         rrrr                        zzzz         
-          rrrrr                    ccczz          
-           rrrrrx                vccccc           
-             rrrrxxxx        uuvvvvvc             
-                rrxxxxxxnnnnuuuuuv                
-                    xxxxxnnnnu                    
+
+                     YY    UJ
+                    YYY    UUJ
+                   XXXY    UUUU
+                  zXXXX    UUUUU
+                zzzzX        UUUUJ
+               cczzz          UUUUJ
+             vccccz            UUUUUJ
+            vvcccc              UUUUUJ
+           vvvvv                  UUUUJ
+          uuuvv                    UUUUJ
+         uuuuu                      UUUUU
+        nnnuu                        UUUUU
+       nnnnn                          YUUUU
+       xxnn                            YUUU
+       xxxn                            YYUU
+      xxxx                              YYUU
+      rxxx                              YYYY
+      rrrx                              YYYY
+       rrrx                            XXXY
+       rrrr                            XXXX
+        rrrr                          zzXX
+         rrrr                        zzzz
+          rrrrr                    ccczz
+           rrrrrx                vccccc
+             rrrrxxxx        uuvvvvvc
+                rrxxxxxxnnnnuuuuuv
+                    xxxxxnnnnu
 
 
 )#");

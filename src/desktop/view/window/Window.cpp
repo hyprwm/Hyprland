@@ -1075,31 +1075,33 @@ SP<CWLSurfaceResource> CWindow::getSolitaryResource() const {
     if (popupTreeSize())
         return nullptr;
 
-    if (res->m_subsurfaces.size() == 0)
+    if (res->m_subsurfaces.empty())
         return res;
 
-    if (res->m_subsurfaces.size() >= 1) {
-        if (!res->hasVisibleSubsurface())
-            return res;
+    if (!res->hasVisibleSubsurface())
+        return res;
 
-        if (res->m_subsurfaces.size() == 1) {
-            if (res->m_subsurfaces[0].expired() || res->m_subsurfaces[0]->m_surface.expired())
-                return nullptr;
+    const auto TOP_SUBSURFACE = std::ranges::max_element(res->m_subsurfaces, {}, [](const auto& s) { return s->m_zIndex; });
+    if (TOP_SUBSURFACE != res->m_subsurfaces.end()) {
+        if (TOP_SUBSURFACE->expired())
+            return nullptr;
 
-            auto subsurf = res->m_subsurfaces[0];
+        const auto& SUB_SURF = *TOP_SUBSURFACE;
+        if (SUB_SURF->m_surface.expired())
+            return nullptr;
 
-            // A subsurface under the main surface cannot result in a solitary resource
-            if (subsurf->m_zIndex < 0)
-                return nullptr;
+        // A subsurface under the main surface cannot result in a solitary resource
+        if (SUB_SURF->m_zIndex < 0)
+            return nullptr;
 
-            auto surf = subsurf->m_surface.lock();
+        auto surf = SUB_SURF->m_surface.lock();
 
-            // check if the subsurface covers the main surface
-            if (!surf || surf->m_subsurfaces.size() != 0 || surf->extends() != res->extends() || !surf->m_current.texture || !surf->m_current.texture->m_opaque)
-                return nullptr;
+        // TODO recurse subsurfaces
+        // check if the subsurface covers the main surface
+        if (!surf || !surf->m_subsurfaces.empty() || surf->extends() != res->extends() || !surf->m_current.texture || !surf->m_current.texture->m_opaque)
+            return nullptr;
 
-            return surf;
-        }
+        return surf;
     }
 
     return nullptr;

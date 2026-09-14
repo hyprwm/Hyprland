@@ -43,23 +43,27 @@ namespace Workspace {
 
         bool                                m_wasCreatedEmpty = true;
 
-        MONITORID                           monitorID() const;
-        PHLWINDOW                           getLastFocusedWindow() const;
-        void                                rememberFocusedWindow(PHLWINDOW window);
-        PHLWINDOW                           getFocusCandidate() const;
-        bool                                matchesStaticSelector(const std::string& selector) const;
-        void                                updateWindowDecos();
-        void                                updateWindowData();
-        int                                 getWindowCount(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {}) const;
-        int                                 getGroups(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {}) const;
-        bool                                hasUrgentWindow() const;
-        PHLWINDOW                           getFirstWindow() const;
-        PHLWINDOW                           getTopLeftWindow() const;
-        bool                                isVisibleNotCovered() const;
-        void                                rename(const std::string& name = "");
-        void                                changeID(SWorkspaceNumberedID id);
-        void                                forceReportSizesToWindows();
-        void                                updateWindows();
+        // Fire events and such, after a new workspace has been fully set up.
+        // Safe to call multiple times if unsure.
+        void      ready();
+
+        MONITORID monitorID() const;
+        PHLWINDOW getLastFocusedWindow() const;
+        void      rememberFocusedWindow(PHLWINDOW window);
+        PHLWINDOW getFocusCandidate() const;
+        bool      matchesStaticSelector(const std::string& selector) const;
+        void      updateWindowDecos();
+        void      updateWindowData();
+        int       getWindowCount(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {}) const;
+        int       getGroups(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {}) const;
+        bool      hasUrgentWindow() const;
+        PHLWINDOW getFirstWindow() const;
+        PHLWINDOW getTopLeftWindow() const;
+        bool      isVisibleNotCovered() const;
+        void      rename(const std::string& name = "");
+        void      changeID(SWorkspaceNumberedID id);
+        void      forceReportSizesToWindows();
+        void      updateWindows();
 
         struct {
             CSignalT<> destroy;
@@ -70,8 +74,13 @@ namespace Workspace {
         } m_events;
 
       protected:
-        CHLWorkspace(WorkspaceID id, PHLMONITOR monitor, std::string displayName, std::string addressableName, eWorkspaceType type, bool isEmpty = true);
+        CHLWorkspace(WorkspaceID id, PHLMONITOR monitor, std::string displayName, std::string addressableName, eWorkspaceType type);
 
+        // NOTE: For newly created workspaces, you must call their ready()
+        // method once they've been set up! For example, if you're going to
+        // move or focus the workspace, do that *beforehand*, so when event
+        // callbacks run they can see the fully set-up workspace. You may want
+        // to automate this with a CScopeGuard.
         void         init(PHLWORKSPACE self);
         virtual void applyTypeSpecificRules(const Config::CWorkspaceRule&);
 
@@ -81,6 +90,7 @@ namespace Workspace {
         std::string                  m_name       = "";
         bool                         m_visible    = false;
         bool                         m_wasRenamed = false;
+        bool                         m_ready      = false;
         WorkspaceID                  m_id;
         std::string                  m_addressableName;
     };

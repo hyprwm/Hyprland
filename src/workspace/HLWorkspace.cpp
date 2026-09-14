@@ -32,8 +32,8 @@
 using namespace Hyprutils::String;
 using namespace Desktop::View;
 
-Workspace::CHLWorkspace::CHLWorkspace(WorkspaceID id, PHLMONITOR monitor, std::string displayName, std::string addressableName, eWorkspaceType type, bool isEmpty) :
-    Workspace::IAbstractWorkspace(type), m_monitor(monitor), m_wasCreatedEmpty(isEmpty), m_focusTracker(this), m_name(std::move(displayName)), m_id(std::move(id)),
+Workspace::CHLWorkspace::CHLWorkspace(WorkspaceID id, PHLMONITOR monitor, std::string displayName, std::string addressableName, eWorkspaceType type) :
+    Workspace::IAbstractWorkspace(type), m_monitor(monitor), m_focusTracker(this), m_name(std::move(displayName)), m_id(std::move(id)),
     m_addressableName(std::move(addressableName)) {
     ;
 }
@@ -91,17 +91,22 @@ void Workspace::CHLWorkspace::init(PHLWORKSPACE self) {
 
     applyTypeSpecificRules(RULEFORTHIS);
 
-    if (self->m_wasCreatedEmpty)
-        if (auto cmd = RULEFORTHIS.m_onCreatedEmptyRunCmd)
-            Config::Supplementary::executor()->spawnWithRules(*cmd, self);
-
+    LOG(Log::DEBUG, "Creating workspace {}", addressableName());
     IPC::Socket2::sock()->postEvent({.event = "createworkspace", .data = m_name});
     IPC::Socket2::sock()->postEvent({.event = "createworkspacev2", .data = std::format("{},{}", Workspace::selector(*this), displayName())});
-    Event::bus()->m_events.workspace.created.emit(self);
+    Event::bus()->m_events.workspace.createdEarly.emit(self);
 }
 
 void Workspace::CHLWorkspace::applyTypeSpecificRules(const Config::CWorkspaceRule&) {
     ;
+}
+
+void Workspace::CHLWorkspace::ready() {
+    if (!m_ready) {
+        m_ready = true;
+        LOG(Log::DEBUG, "Workspace {} ready", m_name);
+        Event::bus()->m_events.workspace.createdLate.emit(m_self);
+    }
 }
 
 Workspace::CHLWorkspace::~CHLWorkspace() {

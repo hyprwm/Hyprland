@@ -1,6 +1,7 @@
 #include "LuaBindingsInternal.hpp"
 
 #include <lua.h>
+#include <hyprutils/utils/ScopeGuard.hpp>
 
 #include "Check.hpp"
 
@@ -443,7 +444,9 @@ static int dsp_moveToWorkspace(lua_State* L) {
     auto ws = Internal::resolveWorkspaceStr(lua_tostring(L, lua_upvalueindex(1)));
     if (!ws)
         return Internal::dispatcherError(L, "Invalid workspace", ERR, C_INVARG);
+    Hyprutils::Utils::CScopeGuard x([&]() { ws->ready(); });
 
+    //
     bool silent = lua_toboolean(L, lua_upvalueindex(2));
     return Internal::checkResult(L, CA::moveToWorkspace(ws, silent, Internal::windowFromUpval(L, 3)));
 }
@@ -1091,6 +1094,7 @@ static int dsp_focusWorkspaceOnCurrentMonitor(lua_State* L) {
     auto ws = Internal::resolveWorkspaceStr(lua_tostring(L, lua_upvalueindex(1)));
     if (!ws)
         return Internal::dispatcherError(L, "Invalid workspace", ERR, C_INVARG);
+    Hyprutils::Utils::CScopeGuard x([&]() { ws->ready(); });
     return Internal::checkResult(L, CA::changeWorkspaceOnCurrentMonitor(ws));
 }
 
@@ -1175,6 +1179,7 @@ static int dsp_toggleSpecial(lua_State* L) {
     if (!ws)
         return Internal::dispatcherError(L, "Could not resolve special workspace", ERR, C_UNAVAIL);
 
+    Hyprutils::Utils::CScopeGuard x([&]() { ws->ready(); });
     return Internal::checkResult(L, CA::toggleSpecial(ws));
 }
 

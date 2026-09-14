@@ -140,9 +140,9 @@ class CHyprlandPolicyContext final : public IPolicyContext {
         finishLifecycleTransition(m_createdWorkspace);
     }
 
-    void moveWorkspace(const SWorkspaceIdentity& identity, std::string_view monitorAddress) override {
+    void moveWorkspace(const SWorkspaceIdentity& identity, std::string_view monitorAddress, bool replace) override {
         const auto WORKSPACE = findWorkspace(identity);
-        placementController()->moveWorkspaceToMonitor(WORKSPACE, findMonitor(monitorAddress), true, false);
+        placementController()->moveWorkspaceToMonitor(WORKSPACE, findMonitor(monitorAddress), true, false, replace);
         finishLifecycleTransition(WORKSPACE);
     }
 

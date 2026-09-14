@@ -374,6 +374,8 @@ void CMonitor::onConnect(bool noRule) {
     IPC::Socket2::sock()->postEvent({"monitoradded", m_name});
     IPC::Socket2::sock()->postEvent({"monitoraddedv2", std::format("{},{},{}", m_id, m_name, m_shortDescription)});
     Event::bus()->m_events.monitor.added.emit(m_self.lock());
+
+    m_activeWorkspace->ready();
 }
 
 void CMonitor::onDisconnect(bool destroy) {

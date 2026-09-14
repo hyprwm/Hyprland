@@ -1277,3 +1277,101 @@ TEST_CASE(workspaceSwitchUnfocusesWindowFromOldWorkspace) {
     // TODO: also test when workspaces 1 and 2 are on different workspaces.
     //       At the time of writing, it is broken (i.e., the test would fail).
 }
+
+SUBTEST(workspaceCreateEventFocus) {
+    // switch to a new workspace
+    NLog::log("{}Focusing a new workspace", Colors::YELLOW);
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 2 })"));
+
+    // should have a kitty window appear on it
+    {
+        Tests::waitUntilWindowsN(1);
+        auto str = getFromSocket("/activeworkspace");
+        ASSERT_CONTAINS(str, "workspace 2 (2) on monitor HEADLESS-2:");
+        ASSERT_CONTAINS(str, "windows: 1");
+    }
+
+    // clean up
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 1 })"));
+    Tests::waitUntilWindowsN(1);
+    Tests::killAllWindows();
+}
+
+SUBTEST(workspaceCreateEventSilent) {
+    // spawn window to a new workspace, without focusing
+    NLog::log("{}Spawning window on a new workspace", Colors::YELLOW);
+    OK(getFromSocket("/dispatch hl.dsp.exec_cmd('kitty', { workspace = '2 silent' })"));
+
+    // should have a kitty window appear on it, and another on the current workspace from the event handler
+    {
+        Tests::waitUntilWindowsN(2);
+        auto str = getFromSocket("/workspaces");
+        ASSERT_CONTAINS(str, "workspace 2 (2) on monitor HEADLESS-2:");
+        ASSERT(Tests::countOccurrences(str, "windows: 1"), 2);
+    }
+
+    // clean up
+    Tests::killAllWindows();
+}
+
+SUBTEST(workspaceCreateEventSpecial) {
+    // create a special workspace
+    NLog::log("{}Focusing a special workspace", Colors::YELLOW);
+    OK(getFromSocket("/dispatch hl.dsp.workspace.toggle_special()"));
+
+    // should have a kitty window appear on it
+    {
+        Tests::waitUntilWindowsN(1);
+        int counter = 0;
+        while (getFromSocket("/repl hl.get_active_special_workspace().windows") != "1") {
+            counter++;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            if (counter > 50) {
+                std::println("{}Timed out waiting for windows", Colors::RED);
+                MARK_TEST_FAILED_SILENT();
+                return;
+            }
+        }
+        LOG_OK("Got a window on special workspace{}", "");
+        ASSERT(getFromSocket("/repl hl.get_active_special_workspace().name"), "special:special");
+        ASSERT(getFromSocket("/repl hl.get_active_special_workspace().monitor.name"), "HEADLESS-2");
+    }
+
+    // clean up
+    OK(getFromSocket("/dispatch hl.dsp.workspace.toggle_special()"));
+    Tests::killAllWindows();
+}
+
+SUBTEST(workspaceCreateEventNewMonitor) {
+    static constexpr const char* SECOND_MONITOR = "HEADLESS-3";
+
+    // add a new monitor
+    NLog::log("{}Adding a new monitor", Colors::YELLOW);
+    OK(getFromSocket(std::format("/output create headless {}", SECOND_MONITOR)));
+
+    // should have a kitty window appear on it
+    {
+        Tests::waitUntilWindowsN(1);
+        auto str = getFromSocket("/workspaces");
+        ASSERT_CONTAINS(str, std::format("workspace 2 (2) on monitor {}:", SECOND_MONITOR));
+        ASSERT_CONTAINS(str, "windows: 1");
+    }
+
+    // clean up
+    Tests::killAllWindows();
+    OK(getFromSocket(std::format("/output remove {}", SECOND_MONITOR)));
+    ASSERT(waitForMonitorListed(SECOND_MONITOR, false), true);
+
+    // make sure removing the monitor didn't spawn a workspace and trigger the event
+    ASSERT(Tests::windowCount(), 0);
+}
+
+TEST_CASE(workspaceCreateEvents) {
+    // event handler to put a kitty instance on new workspaces
+    OK(getFromSocket("/eval hl.on('workspace.created', function(ws) hl.exec_cmd('kitty') end)"));
+
+    CALL_SUBTEST(workspaceCreateEventFocus);
+    CALL_SUBTEST(workspaceCreateEventSilent);
+    CALL_SUBTEST(workspaceCreateEventSpecial);
+    CALL_SUBTEST(workspaceCreateEventNewMonitor);
+}

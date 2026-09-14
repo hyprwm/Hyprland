@@ -33,6 +33,7 @@ FixNamespaceComments: false
 IncludeBlocks: Preserve
 IndentCaseLabels: true
 IndentWidth: 4
+OneLineFormatOffRegex: //<?[ \t]*clang-format[ \t]+off-one-line$
 PointerAlignment: Left
 ReflowComments: false
 SortIncludes: false

@@ -175,7 +175,8 @@ namespace Event {
                 Event<PHLWORKSPACE, PHLMONITOR> moveToMonitor;
                 Event<PHLWORKSPACE>             active;
                 Event<PHLWORKSPACE, PHLMONITOR> specialActive;
-                Event<PHLWORKSPACEREF>          created;
+                Event<PHLWORKSPACEREF>          createdEarly;
+                Event<PHLWORKSPACEREF>          createdLate;
                 Event<PHLWORKSPACEREF>          removed;
                 Event<PHLWORKSPACEREF>          renamed;
             } workspace;

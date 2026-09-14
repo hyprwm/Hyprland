@@ -81,18 +81,18 @@ PHLWORKSPACE CState::find(const STarget& target) const {
     return query().identity(*target.id, target.address, target.type).run();
 }
 
-PHLWORKSPACE CState::create(const STarget& target, PHLMONITOR monitor, bool isEmpty) {
+PHLWORKSPACE CState::create(const STarget& target, PHLMONITOR monitor) {
     if (!target.valid() || !monitor)
         return nullptr;
 
     if (const auto NUMBERED = std::get_if<::Workspace::SWorkspaceNumberedID>(&*target.id); NUMBERED)
-        return createNumbered(*NUMBERED, std::move(monitor), target.displayName, isEmpty);
+        return createNumbered(*NUMBERED, std::move(monitor), target.displayName);
     if (target.type == ::Workspace::eWorkspaceType::SPECIAL)
-        return createSpecial(target.address, std::move(monitor), isEmpty);
-    return createNamed(target.address, std::move(monitor), target.displayName, isEmpty);
+        return createSpecial(target.address, std::move(monitor));
+    return createNamed(target.address, std::move(monitor), target.displayName);
 }
 
-PHLWORKSPACE CState::createNumbered(::Workspace::SWorkspaceNumberedID id, PHLMONITOR monitor, std::string displayName, bool isEmpty) {
+PHLWORKSPACE CState::createNumbered(::Workspace::SWorkspaceNumberedID id, PHLMONITOR monitor, std::string displayName) {
     const auto ADDRESS = std::to_string(id.value);
     if (query().numbered(id).run()) {
         LOG(Log::ERR, "Refusing duplicate numbered workspace {}", id.value);
@@ -105,7 +105,7 @@ PHLWORKSPACE CState::createNumbered(::Workspace::SWorkspaceNumberedID id, PHLMON
         return nullptr;
     }
 
-    auto workspace = ::Workspace::CRegularWorkspace::create(id, std::move(monitor), std::move(displayName), isEmpty);
+    auto workspace = ::Workspace::CRegularWorkspace::create(id, std::move(monitor), std::move(displayName));
     if (!workspace)
         return nullptr;
 
@@ -115,7 +115,7 @@ PHLWORKSPACE CState::createNumbered(::Workspace::SWorkspaceNumberedID id, PHLMON
     return workspace;
 }
 
-PHLWORKSPACE CState::createNamed(std::string address, PHLMONITOR monitor, std::string displayName, bool isEmpty) {
+PHLWORKSPACE CState::createNamed(std::string address, PHLMONITOR monitor, std::string displayName) {
     if (query().identity(::Workspace::SWorkspaceSpecialID{}, address, ::Workspace::eWorkspaceType::NORMAL).run()) {
         LOG(Log::ERR, "Refusing duplicate named workspace {}", address);
         return nullptr;
@@ -127,7 +127,7 @@ PHLWORKSPACE CState::createNamed(std::string address, PHLMONITOR monitor, std::s
         return nullptr;
     }
 
-    auto workspace = ::Workspace::CRegularWorkspace::createNamed(std::move(monitor), std::move(address), std::move(displayName), isEmpty);
+    auto workspace = ::Workspace::CRegularWorkspace::createNamed(std::move(monitor), std::move(address), std::move(displayName));
     if (!workspace)
         return nullptr;
 
@@ -137,7 +137,7 @@ PHLWORKSPACE CState::createNamed(std::string address, PHLMONITOR monitor, std::s
     return workspace;
 }
 
-PHLWORKSPACE CState::createSpecial(std::string address, PHLMONITOR monitor, bool isEmpty) {
+PHLWORKSPACE CState::createSpecial(std::string address, PHLMONITOR monitor) {
     if (address == "special")
         address = "special:special";
     else if (!address.starts_with("special:"))
@@ -150,7 +150,7 @@ PHLWORKSPACE CState::createSpecial(std::string address, PHLMONITOR monitor, bool
     if (!monitor)
         return nullptr;
 
-    auto workspace = ::Workspace::CSpecialWorkspace::create(std::move(monitor), std::move(address), isEmpty);
+    auto workspace = ::Workspace::CSpecialWorkspace::create(std::move(monitor), std::move(address));
     if (!workspace)
         return nullptr;
 

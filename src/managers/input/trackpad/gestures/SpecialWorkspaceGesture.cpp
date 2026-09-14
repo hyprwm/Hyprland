@@ -58,6 +58,7 @@ void CSpecialWorkspaceGesture::begin(const ITrackpadGesture::STrackpadGestureBeg
         if (!WS)
             return;
         m_monitor->setSpecialWorkspace(WS);
+        WS->ready();
         m_specialWorkspace = WS;
     }
 

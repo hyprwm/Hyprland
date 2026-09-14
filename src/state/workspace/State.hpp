@@ -22,10 +22,10 @@ namespace State::Workspace {
         void                       clear();
 
         PHLWORKSPACE               find(const STarget& target) const;
-        [[nodiscard]] PHLWORKSPACE create(const STarget& target, PHLMONITOR monitor, bool isEmpty = true);
-        [[nodiscard]] PHLWORKSPACE createNumbered(::Workspace::SWorkspaceNumberedID id, PHLMONITOR monitor, std::string displayName = {}, bool isEmpty = true);
-        [[nodiscard]] PHLWORKSPACE createNamed(std::string address, PHLMONITOR monitor, std::string displayName = {}, bool isEmpty = true);
-        [[nodiscard]] PHLWORKSPACE createSpecial(std::string address, PHLMONITOR monitor, bool isEmpty = true);
+        [[nodiscard]] PHLWORKSPACE create(const STarget& target, PHLMONITOR monitor);
+        [[nodiscard]] PHLWORKSPACE createNumbered(::Workspace::SWorkspaceNumberedID id, PHLMONITOR monitor, std::string displayName = {});
+        [[nodiscard]] PHLWORKSPACE createNamed(std::string address, PHLMONITOR monitor, std::string displayName = {});
+        [[nodiscard]] PHLWORKSPACE createSpecial(std::string address, PHLMONITOR monitor);
 
       private:
         std::vector<PHLWORKSPACEREF> m_workspaces;

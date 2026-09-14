@@ -1370,7 +1370,7 @@ void CWindow::mapWindow() {
             auto pWorkspace = State::Workspace::state()->find(target);
 
             if (!pWorkspace)
-                pWorkspace = State::Workspace::state()->create(target, m_monitor.lock(), false);
+                pWorkspace = State::Workspace::state()->create(target, m_monitor.lock());
 
             if (!pWorkspace) {
                 LOG(Log::ERR, "Failed to create requested workspace {}", joined);
@@ -1588,6 +1588,7 @@ void CWindow::mapWindow() {
         m_workspace->updateWindows();
 
     Event::bus()->m_events.window.openLate.emit(m_self.lock());
+    PWORKSPACE->ready();
 }
 
 void CWindow::unmapWindow() {

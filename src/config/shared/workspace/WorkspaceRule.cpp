@@ -27,8 +27,6 @@ void CWorkspaceRule::mergeLeft(const CWorkspaceRule& other) {
         m_decorate = other.m_decorate;
     if (other.m_noShadow.has_value())
         m_noShadow = other.m_noShadow;
-    if (other.m_onCreatedEmptyRunCmd.has_value())
-        m_onCreatedEmptyRunCmd = other.m_onCreatedEmptyRunCmd;
     if (other.m_defaultName.has_value())
         m_defaultName = other.m_defaultName;
     if (other.m_layout.has_value())

@@ -1547,6 +1547,18 @@ void CInputManager::destroyKeyboard(SP<IKeyboard> pKeyboard) {
     g_pSeatManager->m_keyboardEventHandlers.onKeyboardRemoved(pKeyboard);
     std::erase_if(m_keyboards, [pKeyboard](const auto& other) { return other == pKeyboard; });
 
+    std::erase_if(m_pressed, [this](uint32_t key) {
+        for (auto const& k : m_keyboards) {
+            if (!k || !k->shareStates() || !k->m_enabled)
+                continue;
+
+            if (k->getPressed(key))
+                return false;
+        }
+
+        return true;
+    });
+
     if (!m_keyboards.empty()) {
         bool found = false;
         for (auto const& k : m_keyboards | std::views::reverse) {

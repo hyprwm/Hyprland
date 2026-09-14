@@ -418,7 +418,7 @@ else()
   add_compile_definitions(USES_SYSTEMD)
 
   install(FILES ${CMAKE_SOURCE_DIR}/systemd/hyprland-session.target
-          DESTINATION ${CMAKE_INSTALL_LIBDIR}/systemd/user)
+          DESTINATION lib/systemd/user)
 
   # session file -uwsm
   if(NO_UWSM)

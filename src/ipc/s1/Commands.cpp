@@ -5,6 +5,7 @@
 #include "../../desktop/view/window/WindowSwallowController.hpp"
 #include "../../output/Monitor.hpp"
 #include "../../pointer/PointerManager.hpp"
+#include "workspace/AbstractWorkspace.hpp"
 
 #include <algorithm>
 #include <array>
@@ -233,13 +234,11 @@ std::string CCommandFormatter::getMonitorData(PHLMONITOR m, eHyprCtlOutputFormat
     "x": {},
     "y": {},
     "activeWorkspace": {{
-        "address": "{}",
-        "type": "{}",
+        "address": "{}",{}
         "name": "{}"
     }},
     "specialWorkspace": {{
-        "address": "{}",
-        "type": "{}",
+        "address": "{}",{}
         "name": "{}"
     }},
     "reserved": [{}, {}, {}, {}],
@@ -276,10 +275,11 @@ std::string CCommandFormatter::getMonitorData(PHLMONITOR m, eHyprCtlOutputFormat
             m->m_id, escapeJSONStrings(m->m_name), escapeJSONStrings(m->m_shortDescription), escapeJSONStrings(m->m_output->make), escapeJSONStrings(m->m_output->model),
             escapeJSONStrings(m->m_output->serial), sc<int>(m->m_pixelSize.x), sc<int>(m->m_pixelSize.y), sc<int>(m->m_output->physicalSize.x),
             sc<int>(m->m_output->physicalSize.y), m->m_refreshRate, sc<int>(m->m_position.x), sc<int>(m->m_position.y),
-            escapeJSONStrings(m->m_activeWorkspace ? m->m_activeWorkspace->addressableName() : ""), m->m_activeWorkspace ? Workspace::identityTypeName(*m->m_activeWorkspace) : "",
+            escapeJSONStrings(m->m_activeWorkspace ? m->m_activeWorkspace->addressableName() : ""),
+            (m->m_activeWorkspace && m->m_activeWorkspace->numberedID() ? std::format("\n        \"id\": {},", *m->m_activeWorkspace->numberedID()) : ""),
             (!m->m_activeWorkspace ? "" : escapeJSONStrings(m->m_activeWorkspace->displayName())),
             escapeJSONStrings(m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->addressableName() : ""),
-            m->m_activeSpecialWorkspace ? Workspace::identityTypeName(*m->m_activeSpecialWorkspace) : "",
+            (m->m_activeSpecialWorkspace && m->m_activeSpecialWorkspace->numberedID() ? std::format("\n\t\t\"id\": {},\n", *m->m_activeSpecialWorkspace->numberedID()) : ""),
             escapeJSONStrings(m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->displayName() : ""), sc<int>(m->m_reservedArea.left()), sc<int>(m->m_reservedArea.top()),
             sc<int>(m->m_reservedArea.right()), sc<int>(m->m_reservedArea.bottom()), m->m_scale, sc<int>(m->m_transform), tf(m == Desktop::focusState()->monitor()),
             tf(m->m_dpmsStatus), tf(m->m_output->state->state().adaptiveSync), rc<uint64_t>(m->m_solitaryClient.get()), getSolitaryBlockedReason(m, format),
@@ -403,8 +403,7 @@ std::string CCommandFormatter::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat f
     "at": [{}, {}],
     "size": [{}, {}],
     "workspace": {{
-        "address": "{}",
-        "type": "{}",
+        "address": "{}",{}
         "name": "{}"
     }},
     "floating": {},
@@ -435,7 +434,8 @@ std::string CCommandFormatter::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat f
             rc<uintptr_t>(w.get()), (w->mapped() ? "true" : "false"), (w->isHidden() ? "true" : "false"), (VISIBLE ? "true" : "false"), (w->acceptsInput() ? "true" : "false"),
             sc<int>(w->position(Desktop::View::IGeometric::GEOMETRIC_GOAL).x), sc<int>(w->position(Desktop::View::IGeometric::GEOMETRIC_GOAL).y),
             sc<int>(w->size(Desktop::View::IGeometric::GEOMETRIC_GOAL).x), sc<int>(w->size(Desktop::View::IGeometric::GEOMETRIC_GOAL).y), escapeJSONStrings(WORKSPACE_ADDRESS),
-            w->workspaceType(), escapeJSONStrings(!w->m_workspace ? "" : w->m_workspace->displayName()), (sc<int>(w->isFloating()) == 1 ? "true" : "false"), w->monitorID(),
+            (w->m_workspace && w->m_workspace->numberedID() ? std::format("\n        \"id\": {},", *w->m_workspace->numberedID()) : ""),
+            escapeJSONStrings(!w->m_workspace ? "" : w->m_workspace->displayName()), (sc<int>(w->isFloating()) == 1 ? "true" : "false"), w->monitorID(),
             escapeJSONStrings(w->metadata().appID()), escapeJSONStrings(w->metadata().title()), escapeJSONStrings(w->metadata().initialAppID()),
             escapeJSONStrings(w->metadata().initialTitle()), w->backend().pid(), (w->backend().isX11() ? "true" : "false"),
             ((w->m_state & Desktop::View::WINDOW_STATE_PINNED) ? "true" : "false"), (w->fullscreenPolicy().pinFullscreened() ? "true" : "false"),
@@ -513,8 +513,7 @@ std::string CCommandFormatter::getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFo
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         return std::format(R"#({{
-    "address": "{}",
-    "type": "{}",
+    "address": "{}",{}
     "name": "{}",
     "monitor": "{}",
     "monitorID": {},
@@ -525,8 +524,9 @@ std::string CCommandFormatter::getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFo
     "ispersistent": {},
     "tiledLayout": "{}"
 }})#",
-                           escapeJSONStrings(w->addressableName()), Workspace::identityTypeName(*w), escapeJSONStrings(w->displayName()),
-                           escapeJSONStrings(PMONITOR ? PMONITOR->m_name : "?"), escapeJSONStrings(PMONITOR ? std::to_string(PMONITOR->m_id) : "null"), w->getWindowCount(),
+                           escapeJSONStrings(w->addressableName()), (w->numberedID() ? std::format("\n    \"id\": {},", *w->numberedID()) : ""),
+                           escapeJSONStrings(w->displayName()), escapeJSONStrings(PMONITOR ? PMONITOR->m_name : "?"),
+                           escapeJSONStrings(PMONITOR ? std::to_string(PMONITOR->m_id) : "null"), w->getWindowCount(),
                            Fullscreen::controller()->hasFullscreen(w) ? "true" : "false", rc<uintptr_t>(PLASTW.get()), PLASTW ? escapeJSONStrings(PLASTW->metadata().title()) : "",
                            PERSISTENT ? "true" : "false", escapeJSONStrings(layoutName));
     } else {

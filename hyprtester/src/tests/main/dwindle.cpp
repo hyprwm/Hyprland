@@ -1223,3 +1223,62 @@ TEST_CASE(dwindleFullsreenCenterDispatchSavesPos) {
         EXPECT_CONTAINS(str, "fullscreenClient: 0");
     }
 }
+
+TEST_CASE(dwindleFloatingOntopFullscreenWorkspaceFocusRetention) {
+
+    /*
+        This serves as the test for Default Handled test for all but layouts that have layout FS handlers
+    */
+
+    OK(getFromSocket("/eval hl.config({ general = { layout = 'dwindle' } })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+
+    OK(getFromSocket("/eval hl.window_rule({ match = { class = 'kitty_floated' }, float = true })"));
+
+    const auto test_default_handled_behaviour = [&](bool fullscreen) -> void {
+        SPAWN_KITTY("kitty_tiled");
+
+        OK(getFromSocket(std::format("/dispatch hl.dsp.window.fullscreen({{ mode = '{}', action = 'set', layout_aware = false, window = 'class:kitty_tiled' }})",
+                                     fullscreen ? "fullscreen" : "maximized")));
+        {
+            auto str = getFromSocket("/activewindow");
+            EXPECT_CONTAINS(str, "class: kitty_tiled");
+            EXPECT_CONTAINS(str, "floating: 0")
+            EXPECT_CONTAINS(str, std::format("fullscreen: {}", (fullscreen ? "2" : "1")));
+            EXPECT_CONTAINS(str, std::format("fullscreenClient: {}", (fullscreen ? "2" : "1")));
+        }
+
+        SPAWN_KITTY("kitty_floated");
+        {
+            auto str = getFromSocket("/activewindow");
+            EXPECT_CONTAINS(str, "class: kitty_floated");
+            EXPECT_CONTAINS(str, "floating: 1")
+            EXPECT_CONTAINS(str, "fullscreen: 0");
+            EXPECT_CONTAINS(str, "fullscreenClient: 0");
+        }
+
+        OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2' })"));
+        OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+
+        // Expect the focus to be on the floating window ontop of the covering FS still
+        {
+            auto str = getFromSocket("/activewindow");
+            EXPECT_CONTAINS(str, "class: kitty_floated");
+            EXPECT_CONTAINS(str, "floating: 1")
+            EXPECT_CONTAINS(str, "fullscreen: 0");
+            EXPECT_CONTAINS(str, "fullscreenClient: 0");
+        }
+    };
+
+    // Fullscreen First
+
+    test_default_handled_behaviour(true);
+
+    Tests::killAllWindows();
+    Tests::waitUntilWindowsN(0);
+
+    // Then Maximise
+
+    test_default_handled_behaviour(false);
+}

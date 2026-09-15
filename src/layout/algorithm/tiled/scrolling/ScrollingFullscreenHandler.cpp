@@ -390,14 +390,13 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen(const std::optiona
         return;
     }
 
-    // Have a defult handled covering FS window
-    if (Fullscreen::controller()->getFullscreenHandlerName(COVERING_FS_WINDOW) != FULLSCREEN_HANDLER_SCROLLING) {
-        setNoMembersAboveFS_layoutUnaware(true);
+    // Have a defult handled Tiled covering FS window
+    if (COVERING_FS_WINDOW && !LAYOUT_TILED_COVERING_FS_WINDOW && !COVERING_FS_WINDOW->isFloating()) {
         return;
     }
 
     // There's only a floating FS window - which is always default handled
-    if (COVERING_FS_WINDOW && !LAYOUT_TILED_COVERING_FS_WINDOW) {
+    if (COVERING_FS_WINDOW && !LAYOUT_TILED_COVERING_FS_WINDOW && COVERING_FS_WINDOW->isFloating()) {
         LOG(Log::WARN, "non-scroll-handled FS window called CScrollingFullscreenHandler::setNoMembersAboveFullscreen(). This is a bug, but is not fatal. Recovering...");
 
         clear_hiddenFloatingWindowsUnderFSWindow();

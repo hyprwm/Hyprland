@@ -470,7 +470,7 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
     if (valid(pWorkspace)) {
         IPC::Socket2::sock()->postEvent({.event = "movewindow", .data = std::format("{:x},{}", rc<uintptr_t>(this), pWorkspace->addressableName())});
         IPC::Socket2::sock()->postEvent(
-            {.event = "movewindowv2", .data = std::format("{:x},{},{}", rc<uintptr_t>(this), pWorkspace->addressableName(), pWorkspace->addressableName())});
+            {.event = "movewindowv2", .data = std::format("{:x},{},{}", rc<uintptr_t>(this), pWorkspace->addressableName(), pWorkspace->displayName())});
         Event::bus()->m_events.window.moveToWorkspace.emit(m_self.lock(), pWorkspace);
     }
 

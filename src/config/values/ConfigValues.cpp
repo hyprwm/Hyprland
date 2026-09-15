@@ -380,6 +380,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Int>("input:follow_mouse", "Specify if and how cursor movement should affect window focus.", 1,
                 {.min = 0, .max = 3, .map = OptionMap{{"disabled", 0}, {"follow", 1}, {"detached", 2}, {"separate", 3}}, .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<Float>("input:follow_mouse_threshold", "The smallest distance in logical pixels the mouse needs to travel for the window under it to get focused.", 0),
+        MS<Bool>("input:swallow_focus_click", "If enabled, the click that changes window focus is not forwarded to the window.", false),
         MS<Int>("input:focus_on_close", "Controls the window focus behavior when a window is closed.", 0,
                 {.min = 0, .max = 2, .map = OptionMap{{"next", 0}, {"cursor", 1}, {"mru", 2}}, .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<Bool>("input:mouse_refocus", "if disabled, mouse focus won't switch to the hovered window unless the mouse crosses a window boundary when follow_mouse=1.", true),

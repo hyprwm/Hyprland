@@ -33,8 +33,6 @@ namespace Workspace {
 
     class IAbstractWorkspace;
 
-    std::string_view identityTypeName(const IAbstractWorkspace& workspace);
-
     enum class eWorkspaceType : uint8_t {
         NORMAL,
         SPECIAL,

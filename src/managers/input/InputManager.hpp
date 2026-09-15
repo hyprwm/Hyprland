@@ -241,6 +241,7 @@ class CInputManager {
 
     void               processMouseDownNormal(const IPointer::SButtonEvent& e, SP<IPointer>);
     void               processMouseDownKill(const IPointer::SButtonEvent& e);
+    void               updatePointerGesture(const SP<IHID>& device, uint32_t timeMs, const Vector2D& delta);
 
     bool               cursorImageUnlocked();
 

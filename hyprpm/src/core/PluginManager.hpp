@@ -5,6 +5,7 @@
 #include <optional>
 #include <string>
 #include <expected>
+#include <hyprutils/os/FileDescriptor.hpp>
 #include "Plugin.hpp"
 
 enum eHeadersErrors {
@@ -71,10 +72,15 @@ class CPluginManager {
 
     bool                   hasDeps();
 
-    bool                   m_bVerbose   = false;
-    bool                   m_bNoShallow = false;
-    bool                   m_bNoNix     = false;
-    std::string            m_szCustomHlUrl, m_szUsername, m_szArgv0;
+    // takes the local repository cache lock, but only if a cache actually exists
+    bool        lockExistingRepositoryCache();
+
+    bool        m_bVerbose           = false;
+    bool        m_bNoShallow         = false;
+    bool        m_bNoNix             = false;
+    bool        m_bExperimentalCache = false;
+    size_t      m_jobs               = 0;
+    std::string m_szCustomHlUrl, m_szUsername, m_szArgv0;
 
     // will delete recursively if exists!!
     bool createSafeDirectory(const std::string& path);
@@ -83,10 +89,20 @@ class CPluginManager {
     std::string                             headerError(const eHeadersErrors err);
     std::string                             headerErrorShort(const eHeadersErrors err);
     bool                                    validArg(const std::string& s);
+    bool                                    acquireRepositoryCacheLock();
+    bool                                    preparePluginRepository(const std::string& url);
+    bool                                    cloneIntoRepositoryCache(const std::string& url);
+    void                                    removeRepositoryCache(const std::string& url);
+    bool                                    preparePluginOutput(const std::string& output);
+    bool                                    pluginOutputValid(const std::string& output);
+    std::string                             getPluginOutputPath(const std::string& output);
+    void                                    cleanWorkingPluginDirectory();
+    std::string                             getPluginRepositoryPath(const std::string& url);
 
     std::expected<std::string, std::string> nixDevelopIfNeeded(const std::string& cmd, const SHyprlandVersion& ver);
 
     std::string                             m_szWorkingPluginDirectory;
+    Hyprutils::OS::CFileDescriptor          m_repositoryCacheLock;
 };
 
 inline std::unique_ptr<CPluginManager> g_pPluginManager;

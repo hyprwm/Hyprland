@@ -307,8 +307,14 @@ void CScrollingFullscreenHandler::updateTargetRulesAndDecos(const SP<Layout::ITa
     // Normally, FS controller's FS state setter's method of handling window rules should be used; but calling g_layoutManager->recalculateMonitor(MONITOR) and getSpace()->recalculate()
     // here would lead to an inf recursion
     // Concern: if the user executes a premature prop refresh, this might cause another prop refresh to be enqueued if the variables in the if cond aren't properly updated by setNoMembersAboveFullscreen()
-    Config::Supplementary::refresher()->scheduleRefresh(Config::Supplementary::REFRESH_WINDOW_STATES | Config::Supplementary::REFRESH_MONITOR_STATES);
-}
+    if (!m_updatingTargetRulesAndDecs) {
+        m_updatingTargetRulesAndDecs = true;
+        g_layoutManager->recalculateMonitor(MONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN);
+        getSpace()->recalculate(Layout::RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN);
+        m_updatingTargetRulesAndDecs = false;
+    }
+
+    }
 
 void CScrollingFullscreenHandler::setTargetSizeAndPosition(const SP<Layout::ITarget> target) {
     // We don't need to do anything explicitly here because in scrolling, pos/size setting as well as managing window/workspace rules are done in scrolling's recalculate() and its FS helper

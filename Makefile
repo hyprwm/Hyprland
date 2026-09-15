@@ -48,7 +48,7 @@ install: cmake_smartbuild
 	cmake --install $(BUILDDIR)
 
 uninstall:
-	xargs rm < $(BUILDDIR)/install_manifest.txt
+	sed 's#^#$(DESTDIR)/#' $(BUILDDIR)/install_manifest.txt | xargs rm
 
 pluginenv:
 	@echo -en "$(MAKE) pluginenv has been deprecated.\nPlease run $(MAKE) all && sudo $(MAKE) installheaders\n"

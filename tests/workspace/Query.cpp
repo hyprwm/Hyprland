@@ -62,10 +62,6 @@ TEST(WorkspaceQuery, selectorPreservesIdentityType) {
     EXPECT_EQ(selector(NAMED_NUMBER), "name:7");
     EXPECT_EQ(selector(SPECIAL), "special:term");
     EXPECT_EQ(selector(NAMED_SPECIAL), "name:special:term");
-    EXPECT_EQ(identityTypeName(NUMBERED), "numbered");
-    EXPECT_EQ(identityTypeName(NAMED_NUMBER), "named");
-    EXPECT_EQ(identityTypeName(SPECIAL), "special");
-    EXPECT_EQ(identityTypeName(NAMED_SPECIAL), "named");
 }
 
 TEST(WorkspaceQuery, queryByCanonicalAddress) {

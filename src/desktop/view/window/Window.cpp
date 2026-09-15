@@ -502,7 +502,6 @@ void CWindow::onUnmap() {
 
     m_lastWorkspaceAddress = m_workspace->addressableName();
     m_lastWorkspaceSpecial = m_workspace->type() == Workspace::eWorkspaceType::SPECIAL;
-    m_lastWorkspaceType    = Workspace::identityTypeName(*m_workspace);
 
     // if the special workspace now has 0 windows, it will be closed, and this
     // window will no longer pass render checks, cuz the workspace will be nuked.
@@ -512,7 +511,6 @@ void CWindow::onUnmap() {
         if (PMONITOR) {
             m_lastWorkspaceAddress = PMONITOR->m_activeWorkspace ? PMONITOR->m_activeWorkspace->addressableName() : "";
             m_lastWorkspaceSpecial = false;
-            m_lastWorkspaceType    = PMONITOR->m_activeWorkspace ? Workspace::identityTypeName(*PMONITOR->m_activeWorkspace) : "";
         }
     }
 
@@ -740,10 +738,6 @@ bool CWindow::onSpecialWorkspace() {
 
 const std::string& CWindow::workspaceAddress() const {
     return m_workspace ? m_workspace->addressableName() : m_lastWorkspaceAddress;
-}
-
-std::string_view CWindow::workspaceType() const {
-    return m_workspace ? Workspace::identityTypeName(*m_workspace) : m_lastWorkspaceType;
 }
 
 std::unordered_map<std::string, std::string> CWindow::getEnv() {

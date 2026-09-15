@@ -214,7 +214,6 @@ namespace Desktop::View {
         MONITORID                  monitorID();
         bool                       onSpecialWorkspace();
         const std::string&         workspaceAddress() const;
-        std::string_view           workspaceType() const;
         void                       activate(bool force = false);
         bool                       clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize);
         float                      getScrollMouse();
@@ -278,7 +277,6 @@ namespace Desktop::View {
         bool        m_suspended = false;
         bool        m_isMapped  = false;
         std::string m_lastWorkspaceAddress;
-        std::string m_lastWorkspaceType;
         bool        m_lastWorkspaceSpecial = false;
 
         struct {

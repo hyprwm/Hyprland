@@ -172,9 +172,11 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLS
         PWORKSPACE->rememberFocusedWindow(pWindow);
         if (PWORKSPACE->type() == Workspace::eWorkspaceType::SPECIAL)
             m_focusMonitor->changeWorkspace(PWORKSPACE, false, true); // if special ws, open on current monitor
-        else if (PMONITOR)
+        else if (PMONITOR) {
             PMONITOR->changeWorkspace(PWORKSPACE, false, true);
-        // changeworkspace already calls focusWindow
+            // Call again with a hard focus reason so that on scrolling layout the viewport scrolls to the focused window
+            Desktop::focusState()->fullWindowFocus(pWindow, Desktop::FOCUS_REASON_SWITCH_TO_WINDOW_HARD);
+        }
         return;
     }
 

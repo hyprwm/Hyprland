@@ -38,6 +38,13 @@ namespace Workspace {
         SPECIAL,
     };
 
+    constexpr const char* workspaceTypeToString(eWorkspaceType t) {
+        switch (t) {
+            case eWorkspaceType::NORMAL: return "Normal";
+            case eWorkspaceType::SPECIAL: return "Special";
+        }
+    }
+
     /*
      * An abstract workspace, this basically has very few things:
      *  - an ID

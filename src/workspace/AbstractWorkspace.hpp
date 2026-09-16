@@ -6,6 +6,7 @@
 #include <variant>
 
 #include "../helpers/memory/Memory.hpp"
+#include "macros.hpp"
 
 namespace Monitor {
     class IMonitorAddressable;
@@ -43,6 +44,8 @@ namespace Workspace {
             case eWorkspaceType::NORMAL: return "Normal";
             case eWorkspaceType::SPECIAL: return "Special";
         }
+        UNREACHABLE();
+        return nullptr;
     }
 
     /*

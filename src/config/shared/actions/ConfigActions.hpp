@@ -71,8 +71,8 @@ namespace Config::Actions {
     ActionResult changeGroupActive(bool forward = true, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult setGroupActive(int index, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
 
-    ActionResult changeWorkspace(PHLWORKSPACE ws);
-    ActionResult changeWorkspace(const std::string& ws);
+    ActionResult changeWorkspace(PHLWORKSPACE ws, bool noFocus = false);
+    ActionResult changeWorkspace(const std::string& ws, bool noFocus = false);
     ActionResult renameWorkspace(PHLWORKSPACE ws, const std::string& s);
     ActionResult changeWorkspaceID(PHLWORKSPACE ws, int64_t id);
     ActionResult moveToMonitor(PHLWORKSPACE ws, PHLMONITOR mon);

@@ -932,12 +932,11 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e, SP<I
         case WL_POINTER_BUTTON_STATE_RELEASED: break;
     }
 
-    bool swallowed;
-    if (e.state == WL_POINTER_BUTTON_STATE_PRESSED) {
+    bool swallowed = false;
+    if (e.state == WL_POINTER_BUTTON_STATE_PRESSED)
         swallowed = std::ranges::any_of(m_swallowedFocusButtons, [&](const auto& b) { return b.button == e.button && b.pointer.lock() == mouse; });
-    } else {
+    else
         swallowed = std::erase_if(m_swallowedFocusButtons, [&](const auto& b) { return b.button == e.button && b.pointer.lock() == mouse; });
-    }
 
     if (!swallowed)
         // notify app if we didn't handle it

@@ -278,7 +278,7 @@ class CInputManager {
     std::list<SHeldPointerButton> m_currentlyHeldButtons;
 
     // for swallowing button presses that triggered a focus change
-    std::list<SHeldPointerButton> m_swallowedFocusButtons;
+    std::vector<SHeldPointerButton> m_swallowedFocusButtons;
 
     // idle inhibitors
     struct SIdleInhibitor {

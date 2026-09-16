@@ -6,10 +6,12 @@
 #include <format>
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
+#include <hyprutils/utils/ScopeGuard.hpp>
 #include "../shared.hpp"
 
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
+using namespace Hyprutils::Utils;
 
 #define UP CUniquePointer
 #define SP CSharedPointer
@@ -41,6 +43,13 @@ static std::string    getCommandStdOut(std::string command) {
 
 static bool descriptionsMatch(const std::string& filter) {
     CProcess jqProc("bash", {"-c", std::format("hyprctl descriptions | jq -e '{}'", filter)});
+    jqProc.addEnv("HYPRLAND_INSTANCE_SIGNATURE", HIS);
+    jqProc.runSync();
+    return jqProc.exitCode() == 0;
+}
+
+static bool hyprctlJsonMatches(const std::string& command, const std::string& filter) {
+    CProcess jqProc("bash", {"-c", std::format("hyprctl -j {} | jq -e '{}'", command, filter)});
     jqProc.addEnv("HYPRLAND_INSTANCE_SIGNATURE", HIS);
     jqProc.runSync();
     return jqProc.exitCode() == 0;
@@ -242,6 +251,70 @@ TEST_CASE(hyprctlBindsJson) {
     }
 
     EXPECT(getFromSocket("/eval hl.unbind('SUPER + F12')"), "ok");
+}
+
+TEST_CASE(hyprctlWorkspaceJson) {
+    static constexpr auto WORKSPACE_ID      = 4201;
+    static constexpr auto WORKSPACE_NAME    = "hyprctl_workspace_json";
+    static constexpr auto SPECIAL_WORKSPACE = "hyprctl_workspace_json_special";
+
+    CScopeGuard           guard = {[&]() {
+        if (getFromSocket("/monitors").contains(std::format("(special:{})", SPECIAL_WORKSPACE)))
+            getFromSocket(std::format("/dispatch hl.dsp.workspace.toggle_special('{}')", SPECIAL_WORKSPACE));
+        getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })");
+    }};
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+    OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ workspace = '{}' }})", WORKSPACE_ID)));
+    OK(getFromSocket(std::format("/dispatch hl.dsp.workspace.rename({{ workspace = '{}', name = '{}' }})", WORKSPACE_ID, WORKSPACE_NAME)));
+    OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ workspace = 'special:{}' }})", SPECIAL_WORKSPACE)));
+
+    EXPECT(hyprctlJsonMatches("monitors",
+                              std::format(R"(
+        type == "array" and
+        any(.[];
+            .name == "HEADLESS-2" and
+            (.activeWorkspace |
+                (.id | type) == "number" and
+                .id == {} and
+                (.name | type) == "string" and
+                .name == "{}" and
+                (.type | type) == "string" and
+                .type == "Normal"
+            ) and
+            (.specialWorkspace |
+                has("id") == false and
+                (.name | type) == "string" and
+                .name == "special:{}" and
+                (.type | type) == "string" and
+                .type == "Special"
+            )
+        )
+    )",
+                                          WORKSPACE_ID, WORKSPACE_NAME, SPECIAL_WORKSPACE)),
+           true);
+
+    EXPECT(hyprctlJsonMatches("workspaces",
+                              std::format(R"(
+        type == "array" and
+        any(.[];
+            (.id | type) == "number" and
+            .id == {} and
+            (.name | type) == "string" and
+            .name == "{}" and
+            (.type | type) == "string" and
+            .type == "Normal"
+        ) and
+        any(.[];
+            has("id") == false and
+            (.name | type) == "string" and
+            .name == "special:{}" and
+            (.type | type) == "string" and
+            .type == "Special"
+        )
+    )",
+                                          WORKSPACE_ID, WORKSPACE_NAME, SPECIAL_WORKSPACE)),
+           true);
 }
 
 TEST_CASE(hyprctlREPL) {

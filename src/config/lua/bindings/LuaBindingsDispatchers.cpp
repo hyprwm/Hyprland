@@ -5,6 +5,7 @@
 #include "Check.hpp"
 
 #include "../../supplementary/executor/Executor.hpp"
+#include "../../shared/actions/ConfigActions.hpp"
 
 #include "../../../managers/fullscreen/FullscreenController.hpp"
 #include "../../../state/MonitorState.hpp"
@@ -13,7 +14,6 @@
 #include "../../../workspace/WorkspaceUtils.hpp"
 #include "../../../desktop/rule/windowRule/WindowRule.hpp"
 #include "../../../keybinds/Resolver.hpp"
-#include "config/shared/actions/ConfigActions.hpp"
 
 using namespace Config;
 using namespace Config::Lua;
@@ -21,6 +21,9 @@ using namespace Config::Lua::Bindings;
 
 namespace CA = Config::Actions;
 
+static std::vector<std::pair<std::string, std::string>> deprecated;
+
+//
 static constexpr auto ERR        = CA::eActionErrorLevel::ERROR;
 static constexpr auto WARN       = CA::eActionErrorLevel::WARNING;
 static constexpr auto INFO       = CA::eActionErrorLevel::INFO;
@@ -1383,4 +1386,8 @@ void Internal::registerDispatcherBindings(lua_State* L) {
     }
 
     lua_setfield(L, -2, "dsp");
+}
+
+std::vector<std::pair<std::string, std::string>>& Internal::deprecationNotices() {
+    return deprecated;
 }

@@ -319,8 +319,16 @@ void CMonitor::onConnect(bool noRule) {
 
     m_enabled = true;
 
+    // Inherit the compositor-wide DPMS state. A monitor that (re)appears while
+    // DPMS is off — typically a panel that dropped HPD after losing signal and
+    // reconnected — must not come up lit and must not retrain its link. Bring
+    // it up disabled; the normal dpms-on paths enable it later.
+    m_dpmsStatus = g_pCompositor->m_dpmsStateOn;
+    if (!m_dpmsStatus)
+        LOG(Log::DEBUG, "Monitor {} connected while DPMS is off; bringing it up disabled", m_name);
+
     m_output->state->resetExplicitFences();
-    m_output->state->setEnabled(true);
+    m_output->state->setEnabled(m_dpmsStatus);
 
     // set mode, also applies
     if (!noRule) {

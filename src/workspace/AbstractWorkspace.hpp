@@ -6,6 +6,7 @@
 #include <variant>
 
 #include "../helpers/memory/Memory.hpp"
+#include "macros.hpp"
 
 namespace Monitor {
     class IMonitorAddressable;
@@ -33,12 +34,19 @@ namespace Workspace {
 
     class IAbstractWorkspace;
 
-    std::string_view identityTypeName(const IAbstractWorkspace& workspace);
-
     enum class eWorkspaceType : uint8_t {
         NORMAL,
         SPECIAL,
     };
+
+    constexpr const char* workspaceTypeToString(eWorkspaceType t) {
+        switch (t) {
+            case eWorkspaceType::NORMAL: return "normal";
+            case eWorkspaceType::SPECIAL: return "special";
+        }
+        UNREACHABLE();
+        return nullptr;
+    }
 
     /*
      * An abstract workspace, this basically has very few things:

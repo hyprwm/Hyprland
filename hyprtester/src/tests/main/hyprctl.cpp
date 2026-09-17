@@ -280,14 +280,14 @@ TEST_CASE(hyprctlWorkspaceJson) {
                 (.name | type) == "string" and
                 .name == "{}" and
                 (.type | type) == "string" and
-                .type == "Normal"
+                .type == "normal"
             ) and
             (.specialWorkspace |
                 has("id") == false and
                 (.name | type) == "string" and
                 .name == "special:{}" and
                 (.type | type) == "string" and
-                .type == "Special"
+                .type == "special"
             )
         )
     )",
@@ -303,14 +303,14 @@ TEST_CASE(hyprctlWorkspaceJson) {
             (.name | type) == "string" and
             .name == "{}" and
             (.type | type) == "string" and
-            .type == "Normal"
+            .type == "normal"
         ) and
         any(.[];
             has("id") == false and
             (.name | type) == "string" and
             .name == "special:{}" and
             (.type | type) == "string" and
-            .type == "Special"
+            .type == "special"
         )
     )",
                                           WORKSPACE_ID, WORKSPACE_NAME, SPECIAL_WORKSPACE)),

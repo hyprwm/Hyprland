@@ -41,8 +41,8 @@ namespace Workspace {
 
     constexpr const char* workspaceTypeToString(eWorkspaceType t) {
         switch (t) {
-            case eWorkspaceType::NORMAL: return "Normal";
-            case eWorkspaceType::SPECIAL: return "Special";
+            case eWorkspaceType::NORMAL: return "normal";
+            case eWorkspaceType::SPECIAL: return "special";
         }
         UNREACHABLE();
         return nullptr;

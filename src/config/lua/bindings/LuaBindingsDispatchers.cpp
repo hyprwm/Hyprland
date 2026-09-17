@@ -168,6 +168,18 @@ static int hlGroupLock(lua_State* L) {
     return 1;
 }
 
+// TODO: Remove this later
+static int hlGroupLockActive(lua_State* L) {
+    deprecated.emplace_back(std::pair("hl.dsp.group.lock_active()", "The group.lock_active() dispatcher is deprecated, use group.lock() instead"));
+
+    const auto action = Internal::tableToggleAction(L, 1);
+
+    lua_pushnumber(L, static_cast<int>(action));
+    lua_pushnil(L);
+    lua_pushcclosure(L, dsp_lockGroup, 2);
+    return 1;
+}
+
 static int dsp_execCmd(lua_State* L) {
     auto proc = lua_tostring(L, lua_upvalueindex(1));
 
@@ -1330,6 +1342,7 @@ void Internal::registerDispatcherBindings(lua_State* L) {
         Internal::setFn(L, "active", hlGroupActive);
         Internal::setFn(L, "move_window", hlGroupMoveWindow);
         Internal::setFn(L, "lock", hlGroupLock);
+        Internal::setFn(L, "lock_active", hlGroupLockActive);
         lua_setfield(L, -2, "group");
 
         lua_newtable(L);

@@ -800,7 +800,7 @@ SUBTEST(perDeviceSubmap) {
 
     NLog::log("{}Testing per-device submaps - Matching device name", Colors::MAGENTA);
 
-    OK(getFromSocket("/eval hl.bind('SUPER + y', hl.dsp.submap('keyboard-submap'))"));
+    OK(getFromSocket("/eval hl.bind('SUPER + y', hl.dsp.submap({ name = 'keyboard-submap' }))"));
     press(KEY_Y, MOD_META);
     EXPECT_CONTAINS(getFromSocket("/submap"), "keyboard-submap");
     press(KEY_P);
@@ -809,7 +809,7 @@ SUBTEST(perDeviceSubmap) {
 
     NLog::log("{}Testing per-device submaps - Matching device tag", Colors::MAGENTA);
 
-    OK(getFromSocket("/eval hl.bind('SUPER + y', hl.dsp.submap('tag-submap'))"));
+    OK(getFromSocket("/eval hl.bind('SUPER + y', hl.dsp.submap({ name = 'tag-submap' }))"));
     press(KEY_Y, MOD_META);
     EXPECT_CONTAINS(getFromSocket("/submap"), "tag-submap");
     press(KEY_P);
@@ -818,7 +818,7 @@ SUBTEST(perDeviceSubmap) {
 
     NLog::log("{}Testing per-device submaps - Non-matching device tag", Colors::MAGENTA);
 
-    OK(getFromSocket("/eval hl.bind('SUPER + y', hl.dsp.submap('hidden-tag-submap'))"));
+    OK(getFromSocket("/eval hl.bind('SUPER + y', hl.dsp.submap({ name = 'hidden-tag-submap' }))"));
     press(KEY_Y, MOD_META);
     EXPECT_CONTAINS(getFromSocket("/submap"), "default");
     OK(getFromSocket("/eval hl.unbind('SUPER + y')"));

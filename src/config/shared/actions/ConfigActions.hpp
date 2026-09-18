@@ -89,7 +89,7 @@ namespace Config::Actions {
     ActionResult exit();
     ActionResult forceRendererReload();
     ActionResult toggleSwallow();
-    ActionResult setSubmap(const std::string& submap);
+    ActionResult setSubmap(eTogglableAction action, const std::string& submap);
     ActionResult dpms(eTogglableAction action, std::optional<PHLMONITOR> mon);
     ActionResult forceIdle(float seconds);
     ActionResult global(const std::string& action);

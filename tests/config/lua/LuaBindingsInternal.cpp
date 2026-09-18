@@ -349,6 +349,8 @@ TEST_F(CConfigLuaDispatchers, enforcesFactoryArgumentLimits) {
         {"exit", "", 0},
         {"reload_config", "", 0},
         {"submap", "'test'"},
+        {"submap", "{ name = 'test' }"},
+        {"submap", "{ name = 'test', action = 'toggle' }"},
         {"pass", "{ window = 'active' }"},
         {"send_shortcut", "{ mods = 'SUPER', key = 'Q' }"},
         {"send_key_state", "{ mods = 'SUPER', key = 'Q', state = 'down' }"},

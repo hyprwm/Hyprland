@@ -216,7 +216,9 @@ static int dsp_reload_config(lua_State* L) {
 }
 
 static int dsp_submap(lua_State* L) {
-    return Internal::checkResult(L, CA::setSubmap(lua_tostring(L, lua_upvalueindex(1))));
+    auto action = sc<CA::eTogglableAction>(lua_tonumber(L, lua_upvalueindex(1)));
+    auto submap = lua_tostring(L, lua_upvalueindex(2));
+    return Internal::checkResult(L, CA::setSubmap(action, submap));
 }
 
 static int dsp_pass(lua_State* L) {
@@ -304,12 +306,21 @@ static int hlReloadConfig(lua_State* L) {
 }
 
 static int hlSubmap(lua_State* L) {
-    auto str = Check::string(L, 1);
-    if (!str)
-        return Internal::configError(L, std::format("submap: bad argument 1: {}", str.error()));
+    CA::eTogglableAction       action = Internal::tableToggleAction(L, 1);
+    std::optional<std::string> submap = std::nullopt;
 
-    lua_pushstring(L, str->c_str());
-    lua_pushcclosure(L, dsp_submap, 1);
+    if (lua_istable(L, 1))
+        submap = Internal::tableOptStr(L, 1, "name");
+
+    if (!submap && lua_isstring(L, 1))
+        submap = lua_tostring(L, 1);
+    else if (!submap)
+        return Internal::configError(L, "submap: bad argument: expected a string or { name?, action? }");
+
+    lua_pushinteger(L, action);
+    lua_pushstring(L, submap->c_str());
+    lua_pushcclosure(L, dsp_submap, 2);
+
     return 1;
 }
 

@@ -1684,7 +1684,7 @@ ActionResult Actions::mouse(const std::string& action) {
     return {};
 }
 
-ActionResult Actions::setSubmap(const std::string& submap) {
+ActionResult Actions::setSubmap(eTogglableAction action, const std::string& submap) {
     if (submap == "reset" || submap.empty()) {
         Config::Actions::state()->m_currentSubmap = "";
         IPC::Socket2::sock()->postEvent({.event = "submap", .data = ""});

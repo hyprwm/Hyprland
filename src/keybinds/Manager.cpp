@@ -256,13 +256,13 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> keyboard) {
         auto* pressedInput = m_inputState.find(KEY, keyboard);
         auto  result       = processEvent(
             {
-                .heldKeys         = m_inputState.heldKeys(),
-                .trigger          = KEY,
-                .modifiersNow     = MODIFIERS,
-                .modifiersAtPress = MODIFIERS,
-                .pressed          = true,
-                .device           = keyboard,
-                .submap           = std::string{currentSubmap()},
+                       .heldKeys         = m_inputState.heldKeys(),
+                       .trigger          = KEY,
+                       .modifiersNow     = MODIFIERS,
+                       .modifiersAtPress = MODIFIERS,
+                       .pressed          = true,
+                       .device           = keyboard,
+                       .submap           = std::string{currentSubmap()},
             },
             keyboard, pressedInput);
 
@@ -336,12 +336,12 @@ bool CKeybindManager::onAxisEvent(const IPointer::SAxisEvent& event, SP<IPointer
     const SResolvedKey KEY{.event = name};
     const auto         RESULT = processEvent(
         {
-            .heldKeys     = m_inputState.heldKeys(),
-            .trigger      = KEY,
-            .modifiersNow = sc<ModifierMask>(g_pInputManager->getModsFromAllKBs()),
-            .pressed      = true,
-            .device       = pointer,
-            .submap       = std::string{currentSubmap()},
+                    .heldKeys     = m_inputState.heldKeys(),
+                    .trigger      = KEY,
+                    .modifiersNow = sc<ModifierMask>(g_pInputManager->getModsFromAllKBs()),
+                    .pressed      = true,
+                    .device       = pointer,
+                    .submap       = std::string{currentSubmap()},
         },
         nullptr);
 
@@ -379,13 +379,13 @@ bool CKeybindManager::onMouseEvent(const IPointer::SButtonEvent& event, SP<IPoin
         auto* pressedInput = m_inputState.find(KEY, pointer);
         auto  result       = processEvent(
             {
-                .heldKeys         = m_inputState.heldKeys(),
-                .trigger          = KEY,
-                .modifiersNow     = MODIFIERS,
-                .modifiersAtPress = MODIFIERS,
-                .pressed          = true,
-                .device           = pointer,
-                .submap           = std::string{currentSubmap()},
+                       .heldKeys         = m_inputState.heldKeys(),
+                       .trigger          = KEY,
+                       .modifiersNow     = MODIFIERS,
+                       .modifiersAtPress = MODIFIERS,
+                       .pressed          = true,
+                       .device           = pointer,
+                       .submap           = std::string{currentSubmap()},
             },
             nullptr, pressedInput);
 
@@ -620,7 +620,7 @@ SBindResult CKeybindManager::invokeBind(const PBind& bind, bool pressed, SPresse
 
     const auto& RESET = bind->metadata().submapReset;
     if (!RESET.empty() && SUBMAP_BEFORE == currentSubmap())
-        Config::Actions::setSubmap(RESET);
+        Config::Actions::setSubmap({}, RESET);
 
     return result;
 }

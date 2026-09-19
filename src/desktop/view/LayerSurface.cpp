@@ -19,6 +19,7 @@
 #include "../../state/MonitorState.hpp"
 #include "popup/WaylandPopupBackend.hpp"
 #include "Popup.hpp"
+#include "wlr-layer-shell-unstable-v1.hpp"
 
 using namespace Desktop;
 using namespace Desktop::View;
@@ -223,7 +224,13 @@ void CLayerSurface::onMap() {
     m_realPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("layersIn"));
     m_realSize->setConfig(Config::animationTree()->getAnimationPropertyConfig("layersIn"));
     m_alpha.get(LS_ALPHA_FADE)->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeLayersIn"));
-    m_animationController.apply(m_animationController.animateIn());
+
+    static auto PALLOWNEWTOPOVERFULLSCREEN = CConfigValue<Config::INTEGER>("misc.allow_new_top_layers_over_existing_fullscreen");
+    // if PALLOWNEWTOPOVERFULLSCREEN = true: guard against making top layer elements, like bars, visible ontop of fullscreen
+    // Monitor only considers fullscreen to be FS, which is what we want
+    const auto minLayer = *PALLOWNEWTOPOVERFULLSCREEN ? ZWLR_LAYER_SHELL_V1_LAYER_TOP : ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY;
+    if (!Fullscreen::controller()->hasFullscreen(PMONITOR, true) || m_layer >= minLayer)
+        m_animationController.apply(m_animationController.animateIn());
 
     IPC::Socket2::sock()->postEvent({.event = "openlayer", .data = m_namespace});
     Event::bus()->m_events.layer.opened.emit(m_self.lock());
@@ -341,7 +348,7 @@ void CLayerSurface::onCommit() {
                 m_flags &= ~LAYER_FLAG_ABOVE_FULLSCREEN;
 
             // if in fullscreen, only overlay can be above.
-            *m_alpha.get(LS_ALPHA_FADE) = Fullscreen::controller()->hasFullscreen(PMONITOR) ? (m_layer >= ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY ? 1.F : 0.F) : 1.F;
+            *m_alpha.get(LS_ALPHA_FADE) = Fullscreen::controller()->hasFullscreen(PMONITOR, true) ? (m_layer >= ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY ? 1.F : 0.F) : 1.F;
 
             if (m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
                 PMONITOR->m_blurFBDirty = true; // so that blur is recalc'd

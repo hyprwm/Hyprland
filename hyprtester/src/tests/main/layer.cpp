@@ -6,6 +6,8 @@
 #include <format>
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
+#include <string_view>
+#include <thread>
 
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
@@ -75,11 +77,45 @@ TEST_CASE(layerPointerFocusPreservedOnKeyboardRefocus) {
 
 TEST_CASE(layerVisibilityOnFs) {
 
-    // For default handled fullscreen
+    const auto doMassacre = [&]() -> void {
+        Tests::killAllLayers();
+        Tests::waitUntilLayersN(0);
+        Tests::killAllWindows();
+        Tests::waitUntilWindowsN(0);
+    };
 
     static constexpr const char* LAYER_NAMESPACE = "bar-like-layer";
 
-    ASSERT(spawnLayer(LAYER_NAMESPACE, {"--edge=top", "--layer=top", "--lines=48px", "--focus-policy=not-allowed"}), true);
+    const auto                   waitUntilLayerAlphaSetCorrectly = [&](std::string_view str, int alpha) {
+        int counter = 0;
+        while (!str.contains(std::format("a: {}", alpha))) {
+            counter++;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+            if (counter > 50) {
+                std::println("{}Timed out waiting for layer to get correct alpha value!", Colors::RED);
+                // will just fail anyway. Instead of extracting fail logic from test templates i'll just piggyback off this
+                EXPECT_CONTAINS(str, std::format("a: {}", alpha));
+                return;
+            }
+        }
+        EXPECT_CONTAINS(str, std::format("a: {}", alpha));
+    };
+
+    const auto spawnLayerAndWaitTillSuccess_TOP = [&]() {
+        ASSERT(spawnLayer(LAYER_NAMESPACE, {"--edge=top", "--layer=top", "--lines=48px", "--focus-policy=not-allowed"}), true);
+        Tests::waitUntilLayersN(1);
+    };
+
+    const auto spawnLayerAndWaitTillSuccess_OVERLAY = [&]() {
+        ASSERT(spawnLayer(LAYER_NAMESPACE, {"--edge=top", "--layer=overlay", "--lines=48px", "--focus-policy=not-allowed"}), true);
+        Tests::waitUntilLayersN(1);
+    };
+
+    // For default handled fullscreen
+
+    // FS after a layer has been created
+    spawnLayerAndWaitTillSuccess_TOP();
 
     SPAWN_KITTY("cat");
 
@@ -94,7 +130,7 @@ TEST_CASE(layerVisibilityOnFs) {
     {
 
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
-        EXPECT_CONTAINS(str, "a: 1")
+        waitUntilLayerAlphaSetCorrectly(str, 1);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 1");
     }
 
@@ -102,7 +138,7 @@ TEST_CASE(layerVisibilityOnFs) {
 
     {
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
-        EXPECT_CONTAINS(str, "a: 1")
+        waitUntilLayerAlphaSetCorrectly(str, 1);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 0");
     }
 
@@ -110,7 +146,7 @@ TEST_CASE(layerVisibilityOnFs) {
 
     {
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
-        EXPECT_CONTAINS(str, "a: 0")
+        waitUntilLayerAlphaSetCorrectly(str, 0);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 2");
     }
 
@@ -118,7 +154,172 @@ TEST_CASE(layerVisibilityOnFs) {
 
     {
         auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
-        EXPECT_CONTAINS(str, "a: 1")
+        waitUntilLayerAlphaSetCorrectly(str, 1);
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 0");
+    }
+
+    // TOP Layer spawn after FS
+
+    // allow_new_top_layers_over_existing_fullscreen = true
+    OK(getFromSocket("/eval hl.config({ misc = { allow_new_top_layers_over_existing_fullscreen = true },})"));
+
+    doMassacre();
+    SPAWN_KITTY("cat");
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', action = 'set', window = 'class:cat' })"));
+    spawnLayerAndWaitTillSuccess_TOP();
+    {
+
+        auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
+        waitUntilLayerAlphaSetCorrectly(str, 1);
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 1");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', action = 'unset', window = 'class:cat' })"));
+    {
+        auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
+        waitUntilLayerAlphaSetCorrectly(str, 1);
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 0");
+    }
+
+    doMassacre();
+    SPAWN_KITTY("cat");
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set', window = 'class:cat' })"));
+    spawnLayerAndWaitTillSuccess_TOP();
+    {
+        auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
+        waitUntilLayerAlphaSetCorrectly(str, 1);
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 2");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'unset', window = 'class:cat' })"));
+    {
+        auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
+        waitUntilLayerAlphaSetCorrectly(str, 1);
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 0");
+    }
+
+    // allow_new_top_layers_over_existing_fullscreen = false
+    OK(getFromSocket("/eval hl.config({ misc = { allow_new_top_layers_over_existing_fullscreen = false },})"));
+
+    doMassacre();
+    SPAWN_KITTY("cat");
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', action = 'set', window = 'class:cat' })"));
+    spawnLayerAndWaitTillSuccess_TOP();
+    {
+
+        auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
+        waitUntilLayerAlphaSetCorrectly(str, 1);
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 1");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', action = 'unset', window = 'class:cat' })"));
+    {
+        auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
+        waitUntilLayerAlphaSetCorrectly(str, 1);
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 0");
+    }
+
+    doMassacre();
+    SPAWN_KITTY("cat");
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set', window = 'class:cat' })"));
+    spawnLayerAndWaitTillSuccess_TOP();
+    {
+        auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
+        waitUntilLayerAlphaSetCorrectly(str, 0);
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 2");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'unset', window = 'class:cat' })"));
+    {
+        auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
+        waitUntilLayerAlphaSetCorrectly(str, 1);
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 0");
+    }
+
+    doMassacre();
+
+    // Overlay is always ontop, spawn later or before FS
+
+    // FS after a layer has been created
+    spawnLayerAndWaitTillSuccess_OVERLAY();
+
+    SPAWN_KITTY("cat");
+
+    {
+        auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
+        waitUntilLayerAlphaSetCorrectly(str, 1);
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 0");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', action = 'set', window = 'class:cat' })"));
+    {
+
+        auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
+        waitUntilLayerAlphaSetCorrectly(str, 1);
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 1");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', action = 'unset', window = 'class:cat' })"));
+    {
+        auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
+        waitUntilLayerAlphaSetCorrectly(str, 1);
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 0");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set', window = 'class:cat' })"));
+    {
+        auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
+        waitUntilLayerAlphaSetCorrectly(str, 1);
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 2");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'unset', window = 'class:cat' })"));
+    {
+        auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
+        waitUntilLayerAlphaSetCorrectly(str, 1);
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 0");
+    }
+
+    // overlay Layer spawn after FS
+
+    doMassacre();
+    SPAWN_KITTY("cat");
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', action = 'set', window = 'class:cat' })"));
+    spawnLayerAndWaitTillSuccess_OVERLAY();
+    {
+
+        auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
+        waitUntilLayerAlphaSetCorrectly(str, 1);
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 1");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', action = 'unset', window = 'class:cat' })"));
+    {
+        auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
+        waitUntilLayerAlphaSetCorrectly(str, 1);
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 0");
+    }
+
+    doMassacre();
+    SPAWN_KITTY("cat");
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set', window = 'class:cat' })"));
+    spawnLayerAndWaitTillSuccess_OVERLAY();
+    {
+        auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
+        waitUntilLayerAlphaSetCorrectly(str, 1);
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 2");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'unset', window = 'class:cat' })"));
+    {
+        auto str = getLayerLine(getFromSocket("/layers"), LAYER_NAMESPACE);
+        waitUntilLayerAlphaSetCorrectly(str, 1);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 0");
     }
 }

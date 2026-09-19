@@ -16,6 +16,7 @@
 #include "config/ConfigValue.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../state/MonitorState.hpp"
+#include "../../xwayland/XWayland.hpp"
 #include "protocols/types/SurfaceRole.hpp"
 #include "render/Texture.hpp"
 #include <cstring>
@@ -145,7 +146,13 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
             // that's not the case, an invalid_size error is sent.
             // https://gitlab.freedesktop.org/wayland/wayland/-/issues/194
             // https://github.com/hyprwm/Hyprland/discussions/15673
-            if (m_role->role() != SURFACE_ROLE_CURSOR && m_role->role() != SURFACE_ROLE_UNASSIGNED) {
+            const bool ISXWAYLAND =
+#ifndef NO_XWAYLAND
+                g_pXWayland && g_pXWayland->m_server && m_client == g_pXWayland->m_server->m_xwaylandClient;
+#else
+                false;
+#endif
+            if (!ISXWAYLAND && m_role->role() != SURFACE_ROLE_CURSOR && m_role->role() != SURFACE_ROLE_UNASSIGNED) {
                 if (sc<int>(m_pending.bufferSize.x) % m_pending.scale != 0 || sc<int>(m_pending.bufferSize.y) % m_pending.scale != 0) {
                     r->error(WL_SURFACE_ERROR_INVALID_SIZE, "buffer size is not an integer multiple of the buffer scale");
                     dropPendingBuffer();

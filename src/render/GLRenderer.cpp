@@ -29,6 +29,8 @@
 #include "./gl/blur/Provider.hpp"
 
 #include <cstdint>
+#include <hyprutils/math/Box.hpp>
+#include <hyprutils/math/Region.hpp>
 #include <ranges>
 #include <hyprutils/memory/SharedPtr.hpp>
 #include <hyprutils/memory/UniquePtr.hpp>
@@ -98,7 +100,11 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
     const auto  PMONITOR           = g_pHyprRenderer->m_renderData.pMonitor;
     static auto PNVIDIAANTIFLICKER = CConfigValue<Config::INTEGER>("opengl:nvidia_anti_flicker");
 
-    g_pHyprRenderer->m_renderData.damage = m_renderPass.render(g_pHyprRenderer->m_renderData.damage);
+    if (m_renderMode == RENDER_MODE_TO_OVERLAY) {
+        m_renderPass.render({0, 0, g_pHyprRenderer->m_renderData.pMonitor->m_pixelSize.x, g_pHyprRenderer->m_renderData.pMonitor->m_pixelSize.y});
+    } else {
+        g_pHyprRenderer->m_renderData.damage = m_renderPass.render(g_pHyprRenderer->m_renderData.damage);
+    }
 
     auto cleanup = CScopeGuard([this]() {
         if (m_currentRenderbuffer)
@@ -117,6 +123,16 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
 
     if (m_renderMode == RENDER_MODE_FULL_FAKE)
         return;
+
+    if (m_renderMode == RENDER_MODE_TO_OVERLAY) {
+        const auto& plane = PMONITOR->m_output->getOverlayPlane();
+        LOG(Log::ERR, "overlay enabling {}", plane->index);
+        PMONITOR->m_output->state->setPlaneEnabled(plane->index, true);
+        PMONITOR->m_output->state->setPlaneBuffer(plane->index, m_currentBuffer);
+        PMONITOR->m_output->state->setPlaneGeometry(plane->index, {0, 0, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y});
+        PMONITOR->m_output->state->addPlaneDamage(plane->index, {0, 0, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y});
+        return;
+    }
 
     if (m_renderMode == RENDER_MODE_NORMAL)
         PMONITOR->m_output->state->setBuffer(m_currentBuffer);

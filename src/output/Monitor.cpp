@@ -56,6 +56,9 @@
 #include "debug/log/Logger.hpp"
 #include "notification/NotificationOverlay.hpp"
 #include "MonitorFrameScheduler.hpp"
+#include <cstdint>
+#include <drm_fourcc.h>
+#include <hyprgraphics/egl/Egl.hpp>
 #include <hyprutils/memory/UniquePtr.hpp>
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -2741,7 +2744,7 @@ bool CMonitorState::test() {
     return m_owner->m_output->test();
 }
 
-bool CMonitorState::updateSwapchain(SP<Aquamarine::CSwapchain> swapchain) {
+bool CMonitorState::updateSwapchain(SP<Aquamarine::CSwapchain> swapchain, bool needsAlpha) {
     if (!m_owner->m_output)
         return false;
 
@@ -2753,11 +2756,28 @@ bool CMonitorState::updateSwapchain(SP<Aquamarine::CSwapchain> swapchain) {
         return true;
     }
 
-    if (OPTIONS.format == m_owner->m_drmFormat && OPTIONS.scanout && OPTIONS.length == 3 && OPTIONS.size == MODE->pixelSize)
+    uint32_t drmFormat = m_owner->m_drmFormat;
+    if (needsAlpha) {
+        const auto& format = Hyprgraphics::Egl::getPixelFormatFromDRM(drmFormat);
+        if (!format->withAlpha) {
+            // TODO update and use Hyprgraphics
+            switch (drmFormat) {
+                case DRM_FORMAT_XRGB8888: drmFormat = DRM_FORMAT_ARGB8888; break;
+                case DRM_FORMAT_XBGR8888: drmFormat = DRM_FORMAT_ABGR8888; break;
+                case DRM_FORMAT_XRGB2101010: drmFormat = DRM_FORMAT_ARGB2101010; break;
+                case DRM_FORMAT_XBGR2101010: drmFormat = DRM_FORMAT_ABGR2101010; break;
+                case DRM_FORMAT_XRGB16161616F: drmFormat = DRM_FORMAT_ARGB16161616F; break;
+                case DRM_FORMAT_XBGR16161616F: drmFormat = DRM_FORMAT_ABGR16161616F; break;
+                default: drmFormat = DRM_FORMAT_ARGB8888;
+            }
+        }
+    }
+
+    if (OPTIONS.format == drmFormat && OPTIONS.scanout && OPTIONS.length == 3 && OPTIONS.size == MODE->pixelSize)
         return true;
 
     auto options    = OPTIONS;
-    options.format  = m_owner->m_drmFormat;
+    options.format  = drmFormat;
     options.scanout = true;
     options.length  = 3;
     options.size    = MODE->pixelSize;

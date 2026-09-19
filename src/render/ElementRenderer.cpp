@@ -107,9 +107,18 @@ void IElementRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceRes
             const bool SCALE_UNAWARE    = pMonitor->m_scale != 1.f && (MONITOR_WL_SCALE == pSurface->m_current.scale || !pSurface->m_current.viewport.hasDestination);
             const auto EXPECTED_SIZE    = getSurfaceExpectedSize(pWindow, pSurface, pMonitor, main).value_or((projSize * pMonitor->m_scale).round());
 
+            // mid animation the box is transient, so it cant tell us whether the texture is undersized.
+            // judge that against the animation goal instead, if the texture is already the size the window
+            // is heading for, nothing is undersized and expanding would only clamp the UVs past 1.0 and
+            // smear its last row/column. cropping stays fine though, the box is animating towards the size
+            // the texture already has, so it uncrops itself by the time the animation ends.
+            const auto GOALSIZE = pWindow ? (pWindow->size(Desktop::View::IGeometric::GEOMETRIC_GOAL) * pMonitor->m_scale).round() : Vector2D{};
+            const bool ANIMONLYMISMATCH =
+                pWindow && pWindow->sizeAnimation()->isBeingAnimated() && DELTALESSTHAN(GOALSIZE.x, EXPECTED_SIZE.x, 2) && DELTALESSTHAN(GOALSIZE.y, EXPECTED_SIZE.y, 2);
+
             const auto RATIO = projSize / EXPECTED_SIZE;
             if (!SCALE_UNAWARE || MONITOR_WL_SCALE == 1) {
-                if (*PEXPANDEDGES && !SCALE_UNAWARE && (RATIO.x > 1 || RATIO.y > 1)) {
+                if (*PEXPANDEDGES && !ANIMONLYMISMATCH && !SCALE_UNAWARE && (RATIO.x > 1 || RATIO.y > 1)) {
                     const auto FIX = RATIO.clamp(Vector2D{1, 1}, Vector2D{1000000, 1000000});
                     uvBR           = uvBR * FIX;
                 }

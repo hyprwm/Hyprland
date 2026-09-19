@@ -95,7 +95,7 @@ void Workspace::CHLWorkspace::init(PHLWORKSPACE self) {
         if (auto cmd = RULEFORTHIS.m_onCreatedEmptyRunCmd)
             Config::Supplementary::executor()->spawnWithRules(*cmd, self);
 
-    IPC::Socket2::sock()->postEvent({.event = "createworkspace", .data = m_name});
+    IPC::Socket2::sock()->postEvent({.event = "createworkspace", .data = addressableName()});
     IPC::Socket2::sock()->postEvent({.event = "createworkspacev2", .data = std::format("{},{}", addressableName(), displayName())});
     Event::bus()->m_events.workspace.created.emit(self);
 }
@@ -110,7 +110,7 @@ Workspace::CHLWorkspace::~CHLWorkspace() {
     State::Workspace::workspaceDestroyed({id(), addressableName(), type()});
 
     if (IPC::Socket2::sock()) {
-        IPC::Socket2::sock()->postEvent({.event = "destroyworkspace", .data = m_name});
+        IPC::Socket2::sock()->postEvent({.event = "destroyworkspace", .data = addressableName()});
         IPC::Socket2::sock()->postEvent({.event = "destroyworkspacev2", .data = std::format("{},{}", addressableName(), displayName())});
     }
 

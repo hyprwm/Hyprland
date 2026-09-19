@@ -1616,7 +1616,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace, bool noFocus)
             g_pInputManager->refocus();
     }
 
-    IPC::Socket2::sock()->postEvent({"activespecial", std::format("{},{}", pWorkspace->displayName(), m_name)});
+    IPC::Socket2::sock()->postEvent({"activespecial", std::format("{},{}", pWorkspace->addressableName(), m_name)});
     IPC::Socket2::sock()->postEvent({"activespecialv2", std::format("{},{},{}", pWorkspace->addressableName(), pWorkspace->displayName(), m_name)});
 
     g_pHyprRenderer->damageMonitor(m_self.lock());

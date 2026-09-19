@@ -7,6 +7,7 @@
 #include <ranges>
 
 void CTrackpadGestures::clearGestures() {
+    m_activeGesture.reset();
     m_gestures.clear();
 }
 
@@ -38,23 +39,6 @@ eTrackpadGestureDirection CTrackpadGestures::dirForString(const std::string_view
     return TRACKPAD_GESTURE_DIR_NONE;
 }
 
-const char* CTrackpadGestures::stringForDir(eTrackpadGestureDirection dir) {
-    switch (dir) {
-        case TRACKPAD_GESTURE_DIR_HORIZONTAL: return "HORIZONTAL";
-        case TRACKPAD_GESTURE_DIR_VERTICAL: return "VERTICAL";
-        case TRACKPAD_GESTURE_DIR_LEFT: return "LEFT";
-        case TRACKPAD_GESTURE_DIR_RIGHT: return "RIGHT";
-        case TRACKPAD_GESTURE_DIR_UP: return "UP";
-        case TRACKPAD_GESTURE_DIR_DOWN: return "DOWN";
-        case TRACKPAD_GESTURE_DIR_SWIPE: return "SWIPE";
-        case TRACKPAD_GESTURE_DIR_PINCH: return "PINCH";
-        case TRACKPAD_GESTURE_DIR_PINCH_IN: return "PINCH_IN";
-        case TRACKPAD_GESTURE_DIR_PINCH_OUT: return "PINCH_OUT";
-        default: return "ERROR";
-    }
-    return "ERROR";
-}
-
 std::expected<void, std::string> CTrackpadGestures::addGesture(UP<ITrackpadGesture>&& gesture, size_t fingerCount, eTrackpadGestureDirection direction, Input::ModifierMask modMask,
                                                                float deltaScale, bool disableInhibit) {
     for (const auto& g : m_gestures) {
@@ -64,25 +48,9 @@ std::expected<void, std::string> CTrackpadGestures::addGesture(UP<ITrackpadGestu
         if (g->modMask != modMask)
             continue;
 
-        eTrackpadGestureDirection axis = TRACKPAD_GESTURE_DIR_NONE;
-        switch (direction) {
-            case TRACKPAD_GESTURE_DIR_UP:
-            case TRACKPAD_GESTURE_DIR_DOWN:
-            case TRACKPAD_GESTURE_DIR_VERTICAL: axis = TRACKPAD_GESTURE_DIR_VERTICAL; break;
-            case TRACKPAD_GESTURE_DIR_LEFT:
-            case TRACKPAD_GESTURE_DIR_RIGHT:
-            case TRACKPAD_GESTURE_DIR_HORIZONTAL: axis = TRACKPAD_GESTURE_DIR_HORIZONTAL; break;
-            case TRACKPAD_GESTURE_DIR_SWIPE: axis = TRACKPAD_GESTURE_DIR_SWIPE; break;
-            case TRACKPAD_GESTURE_DIR_PINCH:
-            case TRACKPAD_GESTURE_DIR_PINCH_IN:
-            case TRACKPAD_GESTURE_DIR_PINCH_OUT: axis = TRACKPAD_GESTURE_DIR_PINCH; break;
-            default: TRACKPAD_GESTURE_DIR_NONE; break;
-        }
-
-        if (g->direction == axis || g->direction == direction ||
-            ((axis == TRACKPAD_GESTURE_DIR_VERTICAL || axis == TRACKPAD_GESTURE_DIR_HORIZONTAL) && g->direction == TRACKPAD_GESTURE_DIR_SWIPE)) {
-            return std::unexpected(
-                std::format("Gesture will be overshadowed by a previous gesture. Previous {} shadows new {}", stringForDir(g->direction), stringForDir(direction)));
+        if (gestureDirectionOvershadows(g->direction, direction)) {
+            return std::unexpected(std::format("Gesture will be overshadowed by a previous gesture. Previous {} shadows new {}", gestureDirectionToString(g->direction),
+                                               gestureDirectionToString(direction)));
         }
     }
 
@@ -99,6 +67,9 @@ std::expected<void, std::string> CTrackpadGestures::removeGesture(size_t fingerC
 
     if (IT == m_gestures.end())
         return std::unexpected("Can't remove a non-existent gesture");
+
+    if (m_activeGesture == *IT)
+        m_activeGesture.reset();
 
     std::erase(m_gestures, *IT);
 
@@ -134,13 +105,7 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SSwipeUpdateEvent& e) {
     if (!m_activeGesture) {
         // try to find a gesture that matches our current state
 
-        auto direction = TRACKPAD_GESTURE_DIR_NONE;
-        auto axis      = std::abs(m_currentTotalDelta.x) > std::abs(m_currentTotalDelta.y) ? TRACKPAD_GESTURE_DIR_HORIZONTAL : TRACKPAD_GESTURE_DIR_VERTICAL;
-
-        if (axis == TRACKPAD_GESTURE_DIR_HORIZONTAL)
-            direction = m_currentTotalDelta.x < 0 ? TRACKPAD_GESTURE_DIR_LEFT : TRACKPAD_GESTURE_DIR_RIGHT;
-        else
-            direction = m_currentTotalDelta.y < 0 ? TRACKPAD_GESTURE_DIR_UP : TRACKPAD_GESTURE_DIR_DOWN;
+        const auto [axis, direction] = gestureSwipeDirectionForDelta(m_currentTotalDelta);
 
         const auto MODS = g_pInputManager->getModsFromAllKBs();
 

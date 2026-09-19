@@ -6,11 +6,13 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <vector>
 
 namespace Keybinds {
 
     std::optional<Input::eKeyboardModifiers> modifierFromString(std::string_view modifier);
     Input::ModifierMask                      modMaskFromString(std::string modifiers);
+    std::vector<std::string>                 modMaskToKeyNames(Input::ModifierMask modMask);
 
     class CResolver {
       public:

@@ -197,6 +197,7 @@ namespace Desktop::View {
         void                       updateToplevel();
         void                       updateSurfaceScaleTransformDetails(bool force = false);
         void                       moveToWorkspace(PHLWORKSPACE);
+        void                       syncInitialWorkspaceToken(PHLWORKSPACE);
         void                       onUnmap();
         void                       onMap();
         void                       setHidden(bool hidden);

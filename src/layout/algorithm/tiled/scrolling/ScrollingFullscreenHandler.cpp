@@ -176,23 +176,30 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
 
         if (!isFullscreen(TARGET, FSMODE_FULLSCREEN, std::nullopt)) {
 
-            float targetColumnWidth = 0.0F;
-
-            if (isFullscreen(TARGET, FSMODE_MAXIMIZED, std::nullopt))
-                targetColumnWidth = getTargetColumnWidthBeforeFullscreenOrMaximise(TARGET);
-            else {
-                targetColumnWidth = currentCol ?
-                    // 0.5f as the fallback - but it won't matter here since if current col doesn't exist here restoreColumnWidth will be = nullptr anyway. This is to prevent segfault if !currentCol
-                    currentCol->getColumnWidth() :
-                    0.5f;
-            }
-
             expelIfMoreThanOneTargetInColDuringFS();
 
             // We might have expelled the target if it was in a col with more than one target
             currentCol = TDATA->column.lock();
             if (!currentCol || currentCol->targetDatas.size() > 1)
                 return FULLSCREEN_REQUEST_FAILED;
+
+
+            float targetColumnWidth = 0.0F;
+
+            if (isFullscreen(TARGET, FSMODE_MAXIMIZED, std::nullopt)) {
+                targetColumnWidth = getTargetColumnWidthBeforeFullscreenOrMaximise(TARGET);
+                if (m_fullscreenViewportRestoreToken.shouldRestoreViewportState && m_fullscreenViewportRestoreToken.fsTarget != TARGET)
+                    invalidateFullscreenViewportRestoreToken();
+            }
+            else {
+                targetColumnWidth = currentCol ?
+                    // 0.5f as the fallback - but it won't matter here since if current col doesn't exist here restoreColumnWidth will be = nullptr anyway. This is to prevent segfault if !currentCol
+                    currentCol->getColumnWidth() :
+                    0.5f;
+                m_fullscreenViewportRestoreToken = {.shouldRestoreViewportState = true, .fsTarget = TARGET, .storedViewportOffset = m_scrollingAlgorithm->m_scrollingData->controller->getOffset()};
+            }
+
+
 
             const auto ITR = m_fsTargets.find(TARGET);
             if (ITR != m_fsTargets.end())
@@ -214,12 +221,6 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
 
         if (!isFullscreen(TARGET, FSMODE_MAXIMIZED, std::nullopt)) {
 
-            float targetColumnWidth = 0.0F;
-
-            if (isFullscreen(TARGET, FSMODE_FULLSCREEN, std::nullopt))
-                targetColumnWidth = getTargetColumnWidthBeforeFullscreenOrMaximise(TARGET);
-            else
-                targetColumnWidth = currentCol->getColumnWidth();
 
             expelIfMoreThanOneTargetInColDuringFS();
 
@@ -227,6 +228,27 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
             currentCol = TDATA->column.lock();
             if (!currentCol || currentCol->targetDatas.size() > 1)
                 return FULLSCREEN_REQUEST_FAILED;
+            
+
+
+            float targetColumnWidth = 0.0F;
+
+            if (isFullscreen(TARGET, FSMODE_FULLSCREEN, std::nullopt)) {
+                targetColumnWidth = getTargetColumnWidthBeforeFullscreenOrMaximise(TARGET);
+                if (m_fullscreenViewportRestoreToken.shouldRestoreViewportState && m_fullscreenViewportRestoreToken.fsTarget != TARGET)
+                        invalidateFullscreenViewportRestoreToken();
+            }
+            else {
+                targetColumnWidth = currentCol ?
+                    // 0.5f as the fallback - but it won't matter here since if current col doesn't exist here restoreColumnWidth will be = nullptr anyway. This is to prevent segfault if !currentCol
+                    currentCol->getColumnWidth() :
+                    0.5f;
+                m_fullscreenViewportRestoreToken = {.shouldRestoreViewportState = true, .fsTarget = TARGET, .storedViewportOffset = m_scrollingAlgorithm->m_scrollingData->controller->getOffset()};
+            }
+
+
+
+
 
             const auto ITR = m_fsTargets.find(TARGET);
             if (ITR != m_fsTargets.end())
@@ -702,7 +724,7 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
 }
 
 void CScrollingFullscreenHandler::invalidateFullscreenViewportRestoreToken() {
-    m_fullscreenViewportRestoreToken.shouldRestoreViewportState = false;
+    m_fullscreenViewportRestoreToken = {};
 }
 
 void CScrollingFullscreenHandler::saveCurrentFsAndAllHiddenFloatingWindows(PHLWINDOW fullscreenWindow) {

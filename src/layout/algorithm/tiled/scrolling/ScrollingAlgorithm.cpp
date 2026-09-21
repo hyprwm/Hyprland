@@ -314,7 +314,7 @@ bool SColumnData::has(SP<ITarget> t) {
 }
 
 SScrollingData::SScrollingData(CScrollingAlgorithm* algo) : algorithm(algo) {
-    controller = makeUnique<CScrollTapeController>(SCROLL_DIR_RIGHT);
+    controller = makeUnique<CScrollTapeController>(algo, SCROLL_DIR_RIGHT);
 }
 
 SP<SColumnData> SScrollingData::add(std::optional<float> width) {

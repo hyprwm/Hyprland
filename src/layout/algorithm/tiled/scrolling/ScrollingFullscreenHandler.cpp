@@ -701,7 +701,7 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
     }
 }
 
-void CScrollingFullscreenHandler::invaludateFullscreenViewportRestoreToken() {
+void CScrollingFullscreenHandler::invalidateFullscreenViewportRestoreToken() {
     m_fullscreenViewportRestoreToken.shouldRestoreViewportState = false;
 }
 

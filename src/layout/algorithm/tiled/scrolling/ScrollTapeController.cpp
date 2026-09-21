@@ -1,12 +1,14 @@
 #include "ScrollTapeController.hpp"
 #include "ScrollingAlgorithm.hpp"
+#include "../../../../layout/algorithm/tiled/scrolling/ScrollingFullscreenHandler.hpp"
 #include "../../../../config/ConfigValue.hpp"
+#include "hyprutils/memory/Casts.hpp"
 #include <algorithm>
 #include <cmath>
 
 using namespace Layout::Tiled;
 
-CScrollTapeController::CScrollTapeController(eScrollDirection direction) : m_direction(direction) {
+CScrollTapeController::CScrollTapeController(CScrollingAlgorithm* scrollingAlgo, eScrollDirection direction) : m_scrollingAlgo(scrollingAlgo), m_direction(direction) {
     ;
 }
 
@@ -42,8 +44,15 @@ void CScrollTapeController::setOffset(double offset) {
     if (getScrollInhibitor().isInhibited) {
         m_offset = getScrollInhibitor().offsetWhenInhibited;
         LOG(Log::DEBUG, "m_offset not set - scrolling inhibited");
-    } else
+    } else {
+        // If this returns false, this is a bug, but even if that happens no need to tear down the whole building, let the token invalidation fail instead.
+        if (m_scrollingAlgo && m_scrollingAlgo->getFSHandler()) {
+            const auto fsHandler = dc<Fullscreen::ScrollingFullscreenHandler::CScrollingFullscreenHandler*>(m_scrollingAlgo->getFSHandler().get());
+            fsHandler->invalidateFullscreenViewportRestoreToken();
+        } else
+            LOG(Log::CRIT, "Scrolling Tape Controller has !m_scrollingAlgo or scrolling algo doesn't have its FS handler. This is a bug and should be reported.");
         m_offset = offset;
+    }
 }
 
 double CScrollTapeController::getOffset() const {
@@ -51,6 +60,13 @@ double CScrollTapeController::getOffset() const {
 }
 
 void CScrollTapeController::adjustOffset(double delta) {
+
+    if (m_scrollingAlgo && m_scrollingAlgo->getFSHandler()) {
+        const auto fsHandler = dc<Fullscreen::ScrollingFullscreenHandler::CScrollingFullscreenHandler*>(m_scrollingAlgo->getFSHandler().get());
+        fsHandler->invalidateFullscreenViewportRestoreToken();
+    } else
+        LOG(Log::CRIT, "Scrolling Tape Controller has !m_scrollingAlgo or scrolling algo doesn't have its FS handler. This is a bug and should be reported.");
+
     m_offset += delta;
 }
 
@@ -257,7 +273,7 @@ void CScrollTapeController::centerStrip(size_t stripIndex, const CBox& usableAre
     const double stripStart    = calculateStripStart(stripIndex, usableArea, fullscreenOnOne);
     const double stripSize     = calculateStripSize(stripIndex, usableArea, fullscreenOnOne);
 
-    setOffset(stripStart - (usablePrimary - stripSize) / 2.0);
+    setOffset(stripStart - ((usablePrimary - stripSize) / 2.0));
 }
 
 void CScrollTapeController::fitStrip(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne) {
@@ -274,7 +290,7 @@ void CScrollTapeController::fitStrip(size_t stripIndex, const CBox& usableArea, 
     if (lo > hi) {
         // strip is wider than viewport (e.g. during monitor reconnection after suspend),
         // center the strip instead of hitting the std::clamp assertion
-        setOffset(stripStart - (usablePrimary - stripSize) / 2.0);
+        setOffset(stripStart - ((usablePrimary - stripSize) / 2.0));
         return;
     }
 
@@ -301,7 +317,7 @@ size_t CScrollTapeController::getStripAtCenter(const CBox& usableArea, bool full
         return 0;
 
     const double usablePrimary = getPrimary(usableArea.size());
-    const double viewCenter    = m_offset + usablePrimary / 2.0;
+    const double viewCenter    = m_offset + (usablePrimary / 2.0);
     double       currentEnd    = 0.0;
 
     for (size_t i = 0; i < m_strips.size(); ++i) {

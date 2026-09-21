@@ -72,7 +72,7 @@ namespace Fullscreen::ScrollingFullscreenHandler {
 
         void sScrollingDataRecalculateHelper(const SP<Layout::Tiled::SScrollingTargetData> CURRENT_COVERING_FS_TDATA, const PHLMONITOR MONITOR);
 
-        void invaludateFullscreenViewportRestoreToken();
+        void invalidateFullscreenViewportRestoreToken();
 
       private:
         struct SScrollingFullscreenWindowHidingState {

@@ -1027,7 +1027,7 @@ static int hlWindowDrag(lua_State* L) {
 
 static int hlWindowResize(lua_State* L) {
     if (lua_gettop(L) == 0 || lua_isnil(L, 1)) {
-        lua_pushnumber(L, 0);
+        lua_pushstring(L, "");
         lua_pushcclosure(L, dsp_mouseResize, 1);
         return 1;
     }
@@ -1049,7 +1049,7 @@ static int hlWindowResize(lua_State* L) {
 
     auto keepAspectRatio = Internal::tableOptBool(L, 1, "keep_aspect_ratio");
     if (keepAspectRatio) {
-        lua_pushnumber(L, *keepAspectRatio ? 1 : 2);
+        lua_pushstring(L, *keepAspectRatio ? "1" : "2");
         lua_pushcclosure(L, dsp_mouseResize, 1);
         return 1;
     }

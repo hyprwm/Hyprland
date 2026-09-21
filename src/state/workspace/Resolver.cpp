@@ -180,6 +180,12 @@ State::Workspace::STarget CWorkspaceResolver::getWorkspaceTargetFromString(const
         return Desktop::History::workspaceTracker()->previousWorkspace(BASEMONITOR->m_activeWorkspace).target;
     }
 
+    if (in == "previous_per_monitor") {
+        if (!BASEMONITOR || !valid(BASEMONITOR->m_activeWorkspace))
+            return {};
+        return Desktop::History::workspaceTracker()->previousWorkspace(BASEMONITOR->m_activeWorkspace, BASEMONITOR).target;
+    }
+
     if (in == "next") {
         if (!BASEMONITOR || !BASEMONITOR->m_activeWorkspace) {
             LOG(Log::ERR, "no active monitor or workspace for 'next'");

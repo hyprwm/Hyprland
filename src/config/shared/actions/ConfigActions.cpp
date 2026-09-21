@@ -147,6 +147,57 @@ static std::string dirToString(Math::eDirection dir) {
     }
 }
 
+static PHLWORKSPACE findOrCreateWorkspace(const State::Workspace::STarget target) {
+    if (!target.valid())
+        return nullptr;
+
+    auto ws = State::Workspace::state()->find(target);
+    if (!ws) {
+        const auto PMONITOR = Desktop::focusState()->monitor();
+        if (PMONITOR)
+            ws = State::Workspace::state()->create(target, PMONITOR, false);
+    }
+
+    return ws;
+}
+
+static PHLWORKSPACE findOrCreateWorkspace(const std::string& args) {
+    const auto TARGET = State::Workspace::resolver()->getWorkspaceTargetFromString(args);
+    return findOrCreateWorkspace(TARGET);
+}
+
+static PHLWORKSPACE resolveWorkspaceForChange(const std::string& args) {
+    static auto PBACKANDFORTH = CConfigValue<Config::INTEGER>("binds:workspace_back_and_forth");
+    static auto PPERMONITOR   = CConfigValue<Config::INTEGER>("binds:back_and_forth_per_monitor");
+
+    const auto  PMONITOR = Desktop::focusState()->monitor();
+    if (!PMONITOR)
+        return nullptr;
+
+    const auto PCURRENTWORKSPACE = PMONITOR->m_activeWorkspace;
+
+    auto ws = findOrCreateWorkspace(args);
+    if (!ws)
+        return nullptr;
+
+    if (!PCURRENTWORKSPACE)
+        return nullptr;
+
+    // back_and_forth: if switching to current workspace, go to previous
+    if (ws == PCURRENTWORKSPACE && *PBACKANDFORTH) {
+        const auto PREVIOUS = *PPERMONITOR ? Desktop::History::workspaceTracker()->previousWorkspace(PCURRENTWORKSPACE, PMONITOR) :
+                                             Desktop::History::workspaceTracker()->previousWorkspace(PCURRENTWORKSPACE);
+
+        auto pPrevWorkspace = findOrCreateWorkspace(PREVIOUS.target);
+        if (!pPrevWorkspace)
+            return ws;
+
+        return pPrevWorkspace;
+    }
+
+    return ws;
+}
+
 ActionResult Actions::closeWindow(std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
@@ -378,6 +429,10 @@ ActionResult Actions::moveToWorkspace(PHLWORKSPACE ws, bool silent, std::optiona
     }
 
     return {};
+}
+
+ActionResult Actions::moveToWorkspace(const std::string& ws, bool silent, std::optional<PHLWINDOW> w) {
+    return Actions::moveToWorkspace(findOrCreateWorkspace(ws), silent, w);
 }
 
 ActionResult Actions::moveFocus(Math::eDirection dir) {
@@ -1022,61 +1077,8 @@ ActionResult Actions::changeWorkspace(PHLWORKSPACE ws) {
     return {};
 }
 
-static PHLWORKSPACE resolveWorkspaceForChange(const std::string& args) {
-    static auto PBACKANDFORTH = CConfigValue<Config::INTEGER>("binds:workspace_back_and_forth");
-
-    const auto  PMONITOR = Desktop::focusState()->monitor();
-    if (!PMONITOR)
-        return nullptr;
-
-    const auto PCURRENTWORKSPACE = PMONITOR->m_activeWorkspace;
-    if (!PCURRENTWORKSPACE)
-        return nullptr;
-
-    const bool EXPLICITPREVIOUS = args.contains("previous");
-
-    // handle "previous" workspace
-    if (args.starts_with("previous")) {
-        const bool PER_MON  = args.contains("_per_monitor");
-        const auto PREVIOUS = PER_MON ? Desktop::History::workspaceTracker()->previousWorkspace(PCURRENTWORKSPACE, PMONITOR) :
-                                        Desktop::History::workspaceTracker()->previousWorkspace(PCURRENTWORKSPACE);
-        if (!PREVIOUS.target.valid() || State::Workspace::state()->find(PREVIOUS.target) == PCURRENTWORKSPACE)
-            return nullptr;
-
-        auto ws = State::Workspace::state()->find(PREVIOUS.target);
-        if (!ws)
-            ws = State::Workspace::state()->create(PREVIOUS.target, PMONITOR);
-        return ws;
-    }
-
-    const auto TARGET = State::Workspace::resolver()->getWorkspaceTargetFromString(args);
-    if (!TARGET.valid())
-        return nullptr;
-
-    // back_and_forth: if switching to current workspace, go to previous
-    if (State::Workspace::state()->find(TARGET) == PCURRENTWORKSPACE && (*PBACKANDFORTH || EXPLICITPREVIOUS)) {
-        const auto PREVIOUS = args.contains("_per_monitor") ? Desktop::History::workspaceTracker()->previousWorkspace(PCURRENTWORKSPACE, PMONITOR) :
-                                                              Desktop::History::workspaceTracker()->previousWorkspace(PCURRENTWORKSPACE);
-        if (!PREVIOUS.target.valid())
-            return nullptr;
-
-        auto ws = State::Workspace::state()->find(PREVIOUS.target);
-        if (!ws)
-            ws = State::Workspace::state()->create(PREVIOUS.target, PMONITOR);
-        return ws;
-    }
-
-    auto ws = State::Workspace::state()->find(TARGET);
-    if (!ws)
-        ws = State::Workspace::state()->create(TARGET, PMONITOR);
-    return ws;
-}
-
 ActionResult Actions::changeWorkspace(const std::string& ws) {
-    auto p = resolveWorkspaceForChange(ws);
-    if (!p)
-        return actionError("Bad workspace", eActionErrorLevel::WARNING, eActionErrorCode::NO_TARGET);
-    return Actions::changeWorkspace(p);
+    return Actions::changeWorkspace(resolveWorkspaceForChange(ws));
 }
 
 ActionResult Actions::renameWorkspace(PHLWORKSPACE ws, const std::string& s) {
@@ -1133,6 +1135,10 @@ ActionResult Actions::changeWorkspaceOnCurrentMonitor(PHLWORKSPACE ws) {
     }
 
     return changeWorkspace(ws);
+}
+
+ActionResult Actions::changeWorkspaceOnCurrentMonitor(const std::string& ws) {
+    return Actions::changeWorkspaceOnCurrentMonitor(resolveWorkspaceForChange(ws));
 }
 
 ActionResult Actions::toggleSpecial(PHLWORKSPACE special) {

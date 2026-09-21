@@ -505,7 +505,6 @@ function(protocolnew protoPath protoName external)
            ${CMAKE_SOURCE_DIR}/protocols/${protoName}.hpp
     COMMAND hyprwayland-scanner ${path}/${protoName}.xml
             ${CMAKE_SOURCE_DIR}/protocols/
-    DEPENDS ${path}/${protoName}.xml
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
   target_sources(hyprland_lib PRIVATE protocols/${protoName}.cpp
                                   protocols/${protoName}.hpp)
@@ -524,7 +523,6 @@ function(protocolWayland)
     COMMAND
       hyprwayland-scanner --wayland-enums
       ${WAYLAND_SCANNER_PKGDATA_DIR}/wayland.xml ${CMAKE_SOURCE_DIR}/protocols/
-    DEPENDS ${WAYLAND_SCANNER_PKGDATA_DIR}/wayland.xml
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
   target_sources(hyprland_lib PRIVATE protocols/wayland.cpp protocols/wayland.hpp)
   target_sources(generate-protocol-headers

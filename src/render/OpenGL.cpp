@@ -1185,6 +1185,7 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
                       .allowCustomUV               = true,
                       .allowDim                    = false,
                       .noAA                        = false,
+                      .mirrorBlurCM                = true,
                       .primarySurfaceUVTopLeft     = blurUV.pos(),
                       .primarySurfaceUVBottomRight = blurUV.pos() + blurUV.size(),
                   });
@@ -1468,6 +1469,11 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
     if (data.blur && data.blurredBG && (*PBLEND || data.forceBlurBlend))
         shaderFeatures |= SH_FEAT_BLUR;
 
+    const bool MIRROR_BLUR_CM = *PENABLECM && m_cmSupported && !g_pHyprRenderer->m_renderData.pMonitor->doesNoShaderCM() &&
+        (data.mirrorBlurCM || (shaderFeatures & SH_FEAT_BLUR)) && (globalFeatures() & SH_FEAT_MIRROR) && WORK_BUFFER_IMAGE_DESCRIPTION->needsCM(DEFAULT_SRGB_IMAGE_DESCRIPTION);
+    if (MIRROR_BLUR_CM)
+        shaderFeatures |= SH_FEAT_MIRROR_BLUR_CM;
+
     if (data.blur && data.blurredBG && data.blurAlphaMatte && (*PBLEND || data.forceBlurBlend))
         shaderFeatures |= SH_FEAT_BLUR_MATTE;
 
@@ -1525,6 +1531,23 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
         if (!shader)
             shader = getShaderVariant(SH_FRAG_SURFACE, shaderFeatures | globalFeatures());
         shader = useShader(shader);
+    }
+
+    if (MIRROR_BLUR_CM) {
+        auto settings = g_pHyprRenderer->getCMSettings(WORK_BUFFER_IMAGE_DESCRIPTION, DEFAULT_SRGB_IMAGE_DESCRIPTION, nullptr, false, -1.F, -1, false);
+        settings.dstTFRange = {
+            .min = DEFAULT_SRGB_IMAGE_DESCRIPTION->value().getTFMinLuminance(g_pHyprRenderer->m_renderData.pMonitor->m_sdrMinLuminance),
+            .max = DEFAULT_SRGB_IMAGE_DESCRIPTION->value().getTFMaxLuminance(g_pHyprRenderer->m_renderData.pMonitor->m_sdrMaxLuminance),
+        };
+        const auto&                  convert   = settings.convertMatrix;
+        const std::array<GLfloat, 9> glConvert = {
+            convert[0][0], convert[1][0], convert[2][0], convert[0][1], convert[1][1], convert[2][1], convert[0][2], convert[1][2], convert[2][2],
+        };
+
+        shader->setUniformInt(SHADER_MIRROR_BLUR_SOURCE_TF, settings.sourceTF);
+        shader->setUniformFloat2(SHADER_MIRROR_BLUR_SRC_TF_RANGE, settings.srcTFRange.min, settings.srcTFRange.max);
+        shader->setUniformFloat2(SHADER_MIRROR_BLUR_DST_TF_RANGE, settings.dstTFRange.min, settings.dstTFRange.max);
+        shader->setUniformMatrix3fv(SHADER_MIRROR_BLUR_CONVERT_MATRIX, 1, false, glConvert);
     }
 
     shader->setUniformFloat(SHADER_ALPHA, alpha);
@@ -1937,6 +1960,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
                                   .noAA           = false,
                                   .wrapX          = data.wrapX,
                                   .wrapY          = data.wrapY,
+                                  .mirrorBlurCM   = true,
                                   .discardMode    = data.discardMode,
                                   .discardOpacity = data.discardOpacity,
                                   .clipRegion     = blurClipRegion,

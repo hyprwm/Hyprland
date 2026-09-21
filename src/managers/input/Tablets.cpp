@@ -107,6 +107,9 @@ static Vector2D transformToActiveRegion(const Vector2D pos, const CBox activeAre
 }
 
 void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
+    if (!e.tablet->m_enabled)
+        return;
+
     Event::SCallbackInfo info;
     Event::bus()->m_events.input.tablet.axis.emit(e, info);
     if (info.cancelled)
@@ -115,7 +118,9 @@ void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
     const auto PTAB  = e.tablet;
     const auto PTOOL = ensureTabletToolPresent(e.tool);
 
-    if (PTOOL->m_active && (e.updatedAxes & (CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_X | CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_Y))) {
+    if (e.updatedAxes & (CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_X | CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_Y)) {
+        PTOOL->m_active = true;
+
         double   x  = (e.updatedAxes & CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_X) ? e.axis.x : NAN;
         double   dx = (e.updatedAxes & CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_X) ? e.axisDelta.x : NAN;
         double   y  = (e.updatedAxes & CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_Y) ? e.axis.y : NAN;
@@ -176,6 +181,16 @@ void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
 }
 
 void CInputManager::onTabletTip(CTablet::STipEvent e) {
+    if (!e.tablet->m_enabled) {
+        if (!e.in) {
+            const auto PTOOL = ensureTabletToolPresent(e.tool);
+            if (PTOOL->m_isDown)
+                PROTO::tablet->up(PTOOL);
+            PTOOL->m_isDown = false;
+        }
+        return;
+    }
+
     Event::SCallbackInfo info;
     Event::bus()->m_events.input.tablet.tip.emit(e, info);
     if (info.cancelled)
@@ -204,6 +219,15 @@ void CInputManager::onTabletTip(CTablet::STipEvent e) {
 }
 
 void CInputManager::onTabletButton(CTablet::SButtonEvent e) {
+    if (!e.tablet->m_enabled) {
+        if (!e.down) {
+            const auto PTOOL = ensureTabletToolPresent(e.tool);
+            if (std::erase(PTOOL->m_buttonsDown, e.button) > 0)
+                PROTO::tablet->buttonTool(PTOOL, e.button, false);
+        }
+        return;
+    }
+
     Event::SCallbackInfo info;
     Event::bus()->m_events.input.tablet.button.emit(e, info);
     if (info.cancelled)
@@ -223,6 +247,19 @@ void CInputManager::onTabletButton(CTablet::SButtonEvent e) {
 }
 
 void CInputManager::onTabletProximity(CTablet::SProximityEvent e) {
+    if (!e.tablet->m_enabled) {
+        if (!e.in) {
+            const auto PTOOL = ensureTabletToolPresent(e.tool);
+            if (PTOOL->getSurface())
+                unfocusTool(PTOOL);
+            PTOOL->m_active = false;
+            PTOOL->m_isDown = false;
+            PTOOL->m_buttonsDown.clear();
+            m_lastInputTablet = false;
+        }
+        return;
+    }
+
     Event::SCallbackInfo info;
     Event::bus()->m_events.input.tablet.proximity.emit(e, info);
     if (info.cancelled)

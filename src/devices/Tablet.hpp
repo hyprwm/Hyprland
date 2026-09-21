@@ -92,6 +92,7 @@ class CTablet : public IHID {
 
     bool        m_relativeInput = false;
     bool        m_absolutePos   = false;
+    bool        m_enabled       = true;
     std::string m_boundOutput   = "";
     CBox        m_activeArea;
     CBox        m_boundBox;

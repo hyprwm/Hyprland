@@ -176,7 +176,7 @@ static PHLWORKSPACE resolveWorkspaceForChange(const std::string& args) {
 
     const auto PCURRENTWORKSPACE = PMONITOR->m_activeWorkspace;
 
-    auto ws = findOrCreateWorkspace(args);
+    auto       ws = findOrCreateWorkspace(args);
     if (!ws)
         return nullptr;
 
@@ -188,7 +188,7 @@ static PHLWORKSPACE resolveWorkspaceForChange(const std::string& args) {
         const auto PREVIOUS = *PPERMONITOR ? Desktop::History::workspaceTracker()->previousWorkspace(PCURRENTWORKSPACE, PMONITOR) :
                                              Desktop::History::workspaceTracker()->previousWorkspace(PCURRENTWORKSPACE);
 
-        auto pPrevWorkspace = findOrCreateWorkspace(PREVIOUS.target);
+        auto       pPrevWorkspace = findOrCreateWorkspace(PREVIOUS.target);
         if (!pPrevWorkspace)
             return ws;
 

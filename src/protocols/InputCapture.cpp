@@ -357,10 +357,8 @@ void CInputCaptureProtocol::onCreateSession(CHyprlandInputCaptureManagerV1* pMgr
 
 void CInputCaptureProtocol::destroyResource(CInputCaptureResource* resource) {
     //`active` holds a strong ref, so the erase alone would not destroy the session
-    if (active && active.get() == resource) {
+    if (active && active.get() == resource)
         forceRelease();
-        g_pHyprRenderer->ensureCursorRenderingMode();
-    }
 
     std::erase_if(m_Sessions, [resource](const auto& other) { return other.get() == resource; });
 }

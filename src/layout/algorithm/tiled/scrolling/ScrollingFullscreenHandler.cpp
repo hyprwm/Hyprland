@@ -767,8 +767,13 @@ bool CScrollingFullscreenHandler::columnCoversWorkArea(SP<Layout::Tiled::SColumn
 void CScrollingFullscreenHandler::updateFullscreenFade(bool coversMonitor) {
 
     if (!coversMonitor) {
-        // prevent stuck focus
-        g_pInputManager->unconstrainMouse();
+        // prevent stuck focus. Only release pointer constraints when this workspace is actually
+        // visible: a recalc of a hidden scrolling workspace (e.g. arrangeLayersForMonitor ->
+        // invalidateMonitorGeometries when any layer surface maps on the monitor) must not drop the
+        // pointer lock of a fullscreen window on the monitor's active workspace.
+        const auto WORKSPACE = getSpace() ? getSpace()->workspace() : nullptr;
+        if (WORKSPACE && WORKSPACE->visible())
+            g_pInputManager->unconstrainMouse();
         for (const auto& fs : m_fsTargets) {
             if (!fs.first)
                 continue;

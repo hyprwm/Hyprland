@@ -52,8 +52,14 @@ bool CQuery::matches(const IAbstractWorkspace& workspace) const {
         if (input->starts_with("name:")) {
             if (input->size() == 5)
                 return false;
+
+            auto addr = input->substr(5);
+
+            if (isNumber2(addr))
+                return false;
+
             identity = SWorkspaceSpecialID{};
-            address  = input->substr(5);
+            address  = addr;
             type     = eWorkspaceType::NORMAL;
         } else if (*input == "special") {
             identity = SWorkspaceSpecialID{};

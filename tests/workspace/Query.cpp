@@ -1,3 +1,4 @@
+#include "workspace/AbstractWorkspace.hpp"
 #include <workspace/query/Query.hpp>
 
 #include <gtest/gtest.h>
@@ -78,6 +79,7 @@ TEST(WorkspaceQuery, compatibilityInputNormalizesNamePrefix) {
     EXPECT_TRUE(std::move(CQuery{}).input("code").matches(addressed(SWorkspaceSpecialID{}, "code")));
     EXPECT_TRUE(std::move(CQuery{}).input("name:name:foo").matches(addressed(SWorkspaceSpecialID{}, "name:foo")));
     EXPECT_FALSE(std::move(CQuery{}).input("name:").matches(addressed(SWorkspaceSpecialID{}, "")));
+    EXPECT_FALSE(std::move(CQuery{}).input("name:2").matches(numbered(2))); // name:2 should not match numbered 2 - name:number is invalid
 }
 
 TEST(WorkspaceQuery, numericInputUsesNumberedIdentity) {

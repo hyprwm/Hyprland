@@ -168,7 +168,7 @@ static PHLWORKSPACE findOrCreateWorkspace(const std::string& args) {
 
 static PHLWORKSPACE resolveWorkspaceForChange(const std::string& args) {
     static auto PBACKANDFORTH = CConfigValue<Config::INTEGER>("binds:workspace_back_and_forth");
-    static auto PPERMONITOR   = CConfigValue<Config::INTEGER>("binds:back_and_forth_per_monitor");
+    static auto PPERMONITOR   = CConfigValue<Config::INTEGER>("binds:workspace_back_and_forth_per_monitor");
 
     const auto  PMONITOR = Desktop::focusState()->monitor();
     if (!PMONITOR)

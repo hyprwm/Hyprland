@@ -227,7 +227,7 @@ SUBTEST(multimonBAF) {
     NLog::log("{}Testing multimon back and forth", Colors::YELLOW);
 
     OK(getFromSocket("/eval hl.config({ binds = { workspace_back_and_forth = 1 } })"));
-    OK(getFromSocket("/eval hl.config({ binds = { back_and_forth_per_monitor = 0 } })"));
+    OK(getFromSocket("/eval hl.config({ binds = { workspace_back_and_forth_per_monitor = 0 } })"));
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
@@ -306,7 +306,7 @@ SUBTEST(multimonBAF) {
         EXPECT_CONTAINS(str, "on monitor HEADLESS-3:");
     }
 
-    OK(getFromSocket("/eval hl.config({ binds = { back_and_forth_per_monitor = 1 } })"));
+    OK(getFromSocket("/eval hl.config({ binds = { workspace_back_and_forth_per_monitor = 1 } })"));
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));

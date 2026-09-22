@@ -141,6 +141,10 @@ State::Workspace::STarget CWorkspaceResolver::getWorkspaceTargetFromString(const
         const auto ADDRESS = in.substr(5);
         if (ADDRESS.empty())
             return {};
+        if (isNumber2(ADDRESS)) {
+            LOG(Log::ERR, "name: cannot name a workspace with a number");
+            return {};
+        }
         return {.id = ::Workspace::SWorkspaceSpecialID{}, .address = ADDRESS, .displayName = ADDRESS, .type = ::Workspace::eWorkspaceType::NORMAL};
     }
 

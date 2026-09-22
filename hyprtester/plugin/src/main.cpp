@@ -125,6 +125,101 @@ static SDispatchResult expectWorkspaceRenameEvent(const std::string& workspaceSe
     return {};
 }
 
+struct SMonitorRenderRecording {
+    PHLMONITORREF             monitor;
+    PHLMONITORREF             renderingMonitor;
+    std::vector<eRenderStage> stages;
+    bool                      complete = false;
+    CHyprSignalListener       pre;
+    CHyprSignalListener       stage;
+};
+
+static SP<SMonitorRenderRecording> g_monitorRenderRecording;
+
+static SDispatchResult             armMonitorRenderRecording(const std::string& name) {
+    g_monitorRenderRecording.reset();
+
+    // Mirrors are absent from the active monitor list.
+    const auto MONITOR = State::monitorState()->query().name(name).includeDisabled(true).run();
+    if (!MONITOR || !MONITOR->m_enabled)
+        return {.success = false, .error = std::format("No enabled monitor named '{}'", name)};
+
+    g_monitorRenderRecording                         = makeShared<SMonitorRenderRecording>();
+    g_monitorRenderRecording->monitor                = MONITOR;
+    const WP<SMonitorRenderRecording> WEAK_RECORDING = g_monitorRenderRecording;
+
+    // RENDER_PRE precedes beginRender(), and RENDER_POST follows endRender().
+    // Use the monitor-bearing event rather than relying on bound render data.
+    g_monitorRenderRecording->pre   = Event::bus()->m_events.render.pre.listen([WEAK_RECORDING](PHLMONITOR monitor) {
+        if (const auto RECORDING = WEAK_RECORDING.lock(); RECORDING && !RECORDING->complete)
+            RECORDING->renderingMonitor = monitor;
+    });
+    g_monitorRenderRecording->stage = Event::bus()->m_events.render.stage.listen([WEAK_RECORDING](eRenderStage stage) {
+        const auto RECORDING = WEAK_RECORDING.lock();
+        if (!RECORDING || RECORDING->complete || RECORDING->monitor.expired() || RECORDING->renderingMonitor != RECORDING->monitor)
+            return;
+
+        RECORDING->stages.emplace_back(stage);
+        // Freeze the first completed frame, so later frames cannot hide a routing failure.
+        RECORDING->complete = stage == RENDER_POST;
+    });
+
+    // The renderer's damageMonitor ignores mirrors. Damage the queried output
+    // directly so even an already-scheduled frame must take the damaged branch.
+    MONITOR->addDamage(CBox{0, 0, MONITOR->m_transformedSize.x, MONITOR->m_transformedSize.y});
+    MONITOR->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
+    return {};
+}
+
+static std::string describeRenderStages(const std::vector<eRenderStage>& stages) {
+    std::string result;
+    for (const auto stage : stages) {
+        if (!result.empty())
+            result += " -> ";
+
+        switch (stage) {
+            case RENDER_PRE: result += "PRE"; break;
+            case RENDER_BEGIN: result += "BEGIN"; break;
+            case RENDER_POST_WALLPAPER: result += "POST_WALLPAPER"; break;
+            case RENDER_PRE_WINDOWS: result += "PRE_WINDOWS"; break;
+            case RENDER_POST_WINDOWS: result += "POST_WINDOWS"; break;
+            case RENDER_LAST_MOMENT: result += "LAST_MOMENT"; break;
+            case RENDER_POST: result += "POST"; break;
+            case RENDER_POST_MIRROR: result += "POST_MIRROR"; break;
+            case RENDER_PRE_WINDOW: result += "PRE_WINDOW"; break;
+            case RENDER_POST_WINDOW: result += "POST_WINDOW"; break;
+            default: result += std::format("unknown({})", sc<int>(stage)); break;
+        }
+    }
+    return result;
+}
+
+static SDispatchResult checkMonitorRenderRecording(bool mirror) {
+    if (!g_monitorRenderRecording)
+        return {.success = false, .error = "Monitor render recorder is not armed"};
+    if (g_monitorRenderRecording->monitor.expired())
+        return {.success = false, .error = "Recorded monitor disappeared"};
+    if (!g_monitorRenderRecording->complete)
+        return {.success = false, .error = std::format("Monitor render pending: [{}]", describeRenderStages(g_monitorRenderRecording->stages))};
+
+    // These test outputs have empty workspaces: require the entire frame, with no
+    // duplicate stages or workspace stages leaking into the mirror path.
+    const std::vector<eRenderStage> EXPECTED = mirror ?
+        std::vector<eRenderStage>{
+            RENDER_PRE, RENDER_BEGIN, RENDER_POST_MIRROR, RENDER_LAST_MOMENT, RENDER_POST,
+        } :
+        std::vector<eRenderStage>{
+            RENDER_PRE, RENDER_BEGIN, RENDER_POST_WALLPAPER, RENDER_PRE_WINDOWS, RENDER_POST_WINDOWS, RENDER_LAST_MOMENT, RENDER_POST,
+        };
+
+    if (g_monitorRenderRecording->stages != EXPECTED)
+        return {.success = false,
+                .error   = std::format("Expected {} frame [{}], recorded [{}]", mirror ? "mirror" : "normal", describeRenderStages(EXPECTED),
+                                       describeRenderStages(g_monitorRenderRecording->stages))};
+
+    return {};
+}
+
 static SDispatchResult testDragLifecycle(const std::string& cls) {
     const auto WINDOW = windowByClass(cls);
     if (!WINDOW)
@@ -899,6 +994,20 @@ static int luaExpectWorkspaceRenameEvent(lua_State* L) {
     return luaResult(L, ::expectWorkspaceRenameEvent(luaL_checkstring(L, 1), luaL_checkstring(L, 2)));
 }
 
+static int luaArmMonitorRenderRecording(lua_State* L) {
+    return luaResult(L, ::armMonitorRenderRecording(luaL_checkstring(L, 1)));
+}
+
+static int luaCheckMonitorRenderRecording(lua_State* L) {
+    luaL_checktype(L, 1, LUA_TBOOLEAN);
+    return luaResult(L, ::checkMonitorRenderRecording(lua_toboolean(L, 1)));
+}
+
+static int luaResetMonitorRenderRecording(lua_State* L) {
+    g_monitorRenderRecording.reset();
+    return 0;
+}
+
 static int luaTestDragLifecycle(lua_State* L) {
     return luaResult(L, ::testDragLifecycle(luaL_checkstring(L, 1)));
 }
@@ -1073,6 +1182,9 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     addLuaFn("drag_window", ::luaDragWindow);
     addLuaFn("expect_window_at_workspace", ::luaExpectWindowAtWorkspace);
     addLuaFn("expect_workspace_rename_event", ::luaExpectWorkspaceRenameEvent);
+    addLuaFn("arm_monitor_render_recording", ::luaArmMonitorRenderRecording);
+    addLuaFn("check_monitor_render_recording", ::luaCheckMonitorRenderRecording);
+    addLuaFn("reset_monitor_render_recording", ::luaResetMonitorRenderRecording);
     addLuaFn("test_drag_lifecycle", ::luaTestDragLifecycle);
     addLuaFn("test_pinch_delta_scale", ::luaTestPinchDeltaScale);
     addLuaFn("vkb", ::luaVkb);
@@ -1119,6 +1231,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 }
 
 APICALL EXPORT void PLUGIN_EXIT() {
+    g_monitorRenderRecording.reset();
     removeKeyboardEventRecorder("");
     g_keyboardEventRecorder.reset();
     g_mouse->destroy();

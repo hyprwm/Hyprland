@@ -70,6 +70,24 @@ static bool waitForMirror(const std::string& source, const std::string& targetID
     return false;
 }
 
+static std::string expectMonitorRenderStages(const std::string& name, bool mirror) {
+    CScopeGuard resetRecording([] { getFromSocket("/eval hl.plugin.test.reset_monitor_render_recording()"); });
+    const auto  ARMED = getFromSocket(std::format("/eval hl.plugin.test.arm_monitor_render_recording('{}')", name));
+    if (ARMED != "ok")
+        return ARMED;
+
+    std::string result;
+    for (int i = 0; i < 50; ++i) {
+        result = getFromSocket(std::format("/eval hl.plugin.test.check_monitor_render_recording({})", mirror ? "true" : "false"));
+        if (!result.contains("Monitor render pending:"))
+            return result;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    return std::format("Timed out waiting for {} frame on '{}': {}", mirror ? "mirror" : "normal", name, result);
+}
+
 static void removeMirrorTestOutputs() {
     if (!monitorBlock(TEST_MIRROR_TARGET, false).empty()) {
         getFromSocket(std::format("/output remove {}", TEST_MIRROR_TARGET));
@@ -97,6 +115,7 @@ TEST_CASE(monitorMirrorAppliedWhenTargetAppears) {
     ASSERT(waitForMonitor(TEST_MIRROR_SOURCE, true), true);
     EXPECT_CONTAINS(monitorBlock(TEST_MIRROR_SOURCE), "mirrorOf: none");
     EXPECT(monitorBlock(TEST_MIRROR_SOURCE, false).empty(), false);
+    OK(expectMonitorRenderStages(TEST_MIRROR_SOURCE, false));
 
     OK(getFromSocket(std::format("/output create headless {}", TEST_MIRROR_TARGET)));
     ASSERT(waitForMonitor(TEST_MIRROR_TARGET, true), true);
@@ -106,12 +125,15 @@ TEST_CASE(monitorMirrorAppliedWhenTargetAppears) {
     ASSERT(waitForMirror(TEST_MIRROR_SOURCE, *TARGET_ID), true);
     EXPECT(monitorBlock(TEST_MIRROR_SOURCE, false).empty(), true);
     EXPECT(monitorBlock(TEST_MIRROR_TARGET, false).empty(), false);
+    OK(expectMonitorRenderStages(TEST_MIRROR_SOURCE, true));
+    OK(expectMonitorRenderStages(TEST_MIRROR_TARGET, false));
     ASSERT_CONTAINS(getFromSocket("/version"), "Hyprland");
 
     OK(getFromSocket(std::format("/output remove {}", TEST_MIRROR_TARGET)));
     ASSERT(waitForMonitor(TEST_MIRROR_TARGET, false), true);
     ASSERT(waitForMonitor(TEST_MIRROR_SOURCE, true, false), true);
     EXPECT_CONTAINS(monitorBlock(TEST_MIRROR_SOURCE), "mirrorOf: none");
+    OK(expectMonitorRenderStages(TEST_MIRROR_SOURCE, false));
 
     OK(getFromSocket(std::format("/output create headless {}", TEST_MIRROR_TARGET)));
     ASSERT(waitForMonitor(TEST_MIRROR_TARGET, true), true);
@@ -120,4 +142,5 @@ TEST_CASE(monitorMirrorAppliedWhenTargetAppears) {
     ASSERT(RECREATED_TARGET_ID.has_value(), true);
     ASSERT(waitForMirror(TEST_MIRROR_SOURCE, *RECREATED_TARGET_ID), true);
     EXPECT(monitorBlock(TEST_MIRROR_SOURCE, false).empty(), true);
+    OK(expectMonitorRenderStages(TEST_MIRROR_SOURCE, true));
 }

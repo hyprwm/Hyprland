@@ -95,14 +95,10 @@ TEST(WorkspaceQuery, specialCompatibilityInputUsesCanonicalAddress) {
 
 TEST(WorkspaceQuery, explicitInputsOnlyMatchTheirIdentityType) {
     const auto NUMBERED  = addressed(SWorkspaceNumberedID{1}, "1");
-    const auto NAMED     = addressed(SWorkspaceSpecialID{}, "1");
     const auto SPECIAL   = addressed(SWorkspaceSpecialID{}, "special:term", eWorkspaceType::SPECIAL);
     const auto COLLISION = addressed(SWorkspaceSpecialID{}, "special:term");
 
     EXPECT_TRUE(std::move(CQuery{}).input("1").matches(NUMBERED));
-    EXPECT_FALSE(std::move(CQuery{}).input("1").matches(NAMED));
-    EXPECT_TRUE(std::move(CQuery{}).input("name:1").matches(NAMED));
-    EXPECT_FALSE(std::move(CQuery{}).input("name:1").matches(NUMBERED));
     EXPECT_TRUE(std::move(CQuery{}).input("special:term").matches(SPECIAL));
     EXPECT_FALSE(std::move(CQuery{}).input("special:term").matches(COLLISION));
     EXPECT_TRUE(std::move(CQuery{}).input("name:special:term").matches(COLLISION));

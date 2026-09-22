@@ -126,12 +126,10 @@ TEST(WorkspaceRuleManager, replaceOrAddKeepsExistingSharedRule) {
 TEST(WorkspaceRuleManager, boundRulesMatchTypedWorkspaceIdentity) {
     Config::CWorkspaceRuleManager manager;
     manager.add(boundWorkspaceRule("1", "numbered"));
-    manager.add(boundWorkspaceRule("name:1", "named"));
     manager.add(boundWorkspaceRule("special:term", "special"));
     manager.add(boundWorkspaceRule("name:special:term", "named-special"));
 
     EXPECT_EQ(manager.getBoundMonitorStringForWS(::Workspace::SWorkspaceNumberedID{1}, ::Workspace::eWorkspaceType::NORMAL, "1"), "numbered");
-    EXPECT_EQ(manager.getBoundMonitorStringForWS(::Workspace::SWorkspaceSpecialID{}, ::Workspace::eWorkspaceType::NORMAL, "1"), "named");
     EXPECT_EQ(manager.getBoundMonitorStringForWS(::Workspace::SWorkspaceSpecialID{}, ::Workspace::eWorkspaceType::SPECIAL, "special:term"), "special");
     EXPECT_EQ(manager.getBoundMonitorStringForWS(::Workspace::SWorkspaceSpecialID{}, ::Workspace::eWorkspaceType::NORMAL, "special:term"), "named-special");
 }

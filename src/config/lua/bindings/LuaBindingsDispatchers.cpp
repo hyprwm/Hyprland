@@ -151,7 +151,7 @@ static int hlGroupLock(lua_State* L) {
     }
 
     const auto action = Internal::tableToggleAction(L, 1);
-    lua_pushnumber(L, static_cast<int>(action));
+    lua_pushnumber(L, sc<int>(action));
 
     const auto all = Internal::tableOptBool(L, 1, "all");
     if (all.value_or(false)) {
@@ -174,7 +174,7 @@ static int hlGroupLockActive(lua_State* L) {
 
     const auto action = Internal::tableToggleAction(L, 1);
 
-    lua_pushnumber(L, static_cast<int>(action));
+    lua_pushnumber(L, sc<int>(action));
     lua_pushnil(L);
     lua_pushcclosure(L, dsp_lockGroup, 2);
     return 1;

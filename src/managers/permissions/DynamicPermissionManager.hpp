@@ -55,6 +55,13 @@ class CDynamicPermissionRule {
 
     wl_client* client() const;
 
+    CDynamicPermissionRule(CDynamicPermissionRule&&)      = delete;
+    CDynamicPermissionRule(CDynamicPermissionRule&)       = delete;
+    CDynamicPermissionRule(const CDynamicPermissionRule&) = delete;
+
+    CDynamicPermissionRule& operator=(const CDynamicPermissionRule&) = delete;
+    CDynamicPermissionRule& operator=(CDynamicPermissionRule&&)      = delete;
+
   private:
     // config rule
     CDynamicPermissionRule(const std::string& binaryPathRegex, eDynamicPermissionType type, eDynamicPermissionAllowMode defaultAllowMode = PERMISSION_RULE_ALLOW_MODE_ASK);

@@ -30,7 +30,7 @@ CDynamicPermissionRule::CDynamicPermissionRule(wl_client* const client, eDynamic
     wl_list_init(&m_destroyWrapper.listener.link);
     m_destroyWrapper.listener.notify = ::clientDestroyInternal;
     m_destroyWrapper.parent          = this;
-    wl_display_add_destroy_listener(g_pCompositor->m_wlDisplay, &m_destroyWrapper.listener);
+    wl_client_add_destroy_listener(client, &m_destroyWrapper.listener);
 }
 
 CDynamicPermissionRule::~CDynamicPermissionRule() {

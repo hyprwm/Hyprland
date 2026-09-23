@@ -1591,6 +1591,7 @@ void CInputManager::destroyPointer(SP<IPointer> mouse) {
         it = m_currentlyHeldButtons.erase(it);
     }
     std::erase_if(m_pointers, [mouse](const auto& other) { return other == mouse; });
+    std::erase_if(m_swallowedFocusButtons, [mouse](const auto& b) { return b.pointer.lock() == mouse; });
 
     g_pSeatManager->setMouse(!m_pointers.empty() ? m_pointers.front() : nullptr);
 
@@ -2240,6 +2241,7 @@ void CInputManager::releaseAllMouseButtons() {
     }
 
     m_currentlyHeldButtons.clear();
+    m_swallowedFocusButtons.clear();
 }
 
 void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {

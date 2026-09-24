@@ -166,7 +166,7 @@ bool CScreenshareManager::isOutputDSBlocked(PHLMONITOR monitor) {
     return std::ranges::any_of(m_sessions, [monitor](const auto& s) {
         if (!s)
             return false;
-        return s->isActive() && s->monitor() == monitor;
+        return s->isActive() && !s->isStale() && s->monitor() == monitor;
     });
 }
 

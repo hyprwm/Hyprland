@@ -46,6 +46,7 @@ namespace Screenshare {
         UP<CScreenshareFrame> nextFrame(bool overlayCursor);
         void                  stop();
         bool                  isActive();
+        bool                  isStale();
 
         // constraints
         const std::vector<DRMFormat>& allowedFormats() const;
@@ -80,6 +81,7 @@ namespace Screenshare {
 
         SP<CEventLoopTimer>      m_shareStopTimer;
         bool                     m_sharing = false;
+        bool                     m_stale   = false;
 
         struct {
             CHyprSignalListener monitorDestroyed;

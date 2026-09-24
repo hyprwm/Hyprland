@@ -10,11 +10,15 @@
 
 #include "DeviceList.hpp"
 #include "Key.hpp"
+#include "Submap.hpp"
 
+#include "../config/shared/actions/ConfigActions.hpp"
 #include "../devices/IHID.hpp"
 #include "../helpers/memory/Memory.hpp"
 
 namespace Keybinds {
+
+    using SubmapList = std::unordered_set<WSubmap>;
 
     enum eBindFlags : uint16_t {
         BIND_FLAG_LOCKED              = (1 << 0),
@@ -35,9 +39,9 @@ namespace Keybinds {
         //       m_devices attribute. let's keep the flag around for now to not
         //       introduce breaking changes just yet, but we might consider
         //       removing it eventually
-        BIND_FLAG_DEVICE_INCLUSIVE    = (1 << 13),
-        BIND_FLAG_CATCH_ALL           = (1 << 14),
-        BIND_FLAG_MOUSE               = (1 << 15),
+        BIND_FLAG_DEVICE_INCLUSIVE = (1 << 13),
+        BIND_FLAG_CATCH_ALL        = (1 << 14),
+        BIND_FLAG_MOUSE            = (1 << 15),
     };
 
     using BindFlags = std::underlying_type_t<eBindFlags>;
@@ -71,13 +75,13 @@ namespace Keybinds {
     using BindCallback = std::function<SBindResult()>;
 
     struct SBindEventContext {
-        std::span<const SResolvedKey> heldKeys = {};
-        std::optional<SResolvedKey>   trigger;
-        Input::ModifierMask           modifiersNow     = Input::HL_MODIFIER_NONE;
-        Input::ModifierMask           modifiersAtPress = Input::HL_MODIFIER_NONE;
-        bool                          pressed          = true;
-        SP<IHID>                      device           = nullptr;
-        std::string                   submap           = {};
+        std::span<const SResolvedKey>    heldKeys = {};
+        std::optional<SResolvedKey>      trigger;
+        Config::Actions::CSubmapContext* submap;
+        Input::ModifierMask              modifiersNow     = Input::HL_MODIFIER_NONE;
+        Input::ModifierMask              modifiersAtPress = Input::HL_MODIFIER_NONE;
+        bool                             pressed          = true;
+        SP<IHID>                         device           = nullptr;
     };
 
     enum eBindMatch : uint8_t {
@@ -95,8 +99,8 @@ namespace Keybinds {
         CBind(const CBind&)                                  = delete;
         CBind&                       operator=(const CBind&) = delete;
 
-        eBindMatch                   matches(const SBindEventContext& ctx = {}) const;
-        bool                         matchesContext(const SBindEventContext& ctx) const;
+        eBindMatch                   matches(const SBindEventContext& ctx) const;
+        bool                         matchesContext(const SBindEventContext& ctx = {}) const;
         SBindResult                  invoke() const;
         bool                         enabled() const;
         void                         setEnabled(bool x);

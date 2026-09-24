@@ -384,9 +384,18 @@ static int hlGetWorkspaceWindows(lua_State* L) {
     return 1;
 }
 
-static int hlGetCurrentSubmap(lua_State* L) {
-    lua_pushstring(L, Config::Actions::state()->m_currentSubmap.c_str());
+static int hlGetActiveSubmaps(lua_State* L) {
+    auto        submaps = Config::Actions::state()->m_currentSubmap.submaps();
+
+    std::string submaps_view = submaps | std::views::transform([](const auto& submap) { return submap->name(); }) | std::views::join_with('\n') | std::ranges::to<std::string>();
+
+    lua_pushstring(L, submaps_view.c_str());
     return 1;
+}
+
+static int hlGetCurrentSubmap(lua_State* L) {
+    Internal::configError(L, "hl.get_current_submap is deprecated and will be removed in 0.58. use hl.get_active_submaps instead", Config::Actions::eActionErrorLevel::WARNING);
+    return hlGetActiveSubmaps(L);
 }
 
 void Internal::registerQueryBindings(lua_State* L) {
@@ -409,4 +418,5 @@ void Internal::registerQueryBindings(lua_State* L) {
     Internal::setFn(L, "get_last_window", hlGetLastWindow);
     Internal::setFn(L, "get_last_workspace", hlGetLastWorkspace);
     Internal::setFn(L, "get_current_submap", hlGetCurrentSubmap);
+    Internal::setFn(L, "get_active_submaps", hlGetActiveSubmaps);
 }

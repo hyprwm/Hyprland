@@ -1684,28 +1684,81 @@ ActionResult Actions::mouse(const std::string& action) {
     return {};
 }
 
+static inline std::pair<bool, std::optional<const Keybinds::PSubmap>> findSubmap(std::string_view name) {
+    const auto  DEVICE   = Config::Actions::state()->m_lastDevice;
+    const auto& REGISTRY = Keybinds::mgr()->registry();
+
+    auto        match  = REGISTRY.findSubmap(name, DEVICE);
+    bool        exists = match.has_value() || REGISTRY.hasSubmap(name);
+
+    return {exists, match};
+}
+
 ActionResult Actions::setSubmap(eTogglableAction action, const std::string& submap) {
-    if (submap == "reset" || submap.empty()) {
-        Config::Actions::state()->m_currentSubmap = "";
-        IPC::Socket2::sock()->postEvent({.event = "submap", .data = ""});
-        Event::bus()->m_events.keybinds.submap.emit(std::string(""));
-        return {};
+    // TODO: what should we do if we use reset weirdly, like DISABLE "reset" ?
+    if (submap == "reset") {
+        return resetSubmaps();
     }
 
-    const auto device = Config::Actions::state()->m_lastDevice;
-
-    if (Keybinds::mgr()->registry().findSubmap(submap, device)) {
-        Config::Actions::state()->m_currentSubmap = submap;
-        IPC::Socket2::sock()->postEvent({.event = "submap", .data = submap});
-        Event::bus()->m_events.keybinds.submap.emit(submap);
-        return {};
+    switch (action) {
+        case eTogglableAction::TOGGLE_ACTION_ENABLE: return turnOnSubmap(submap);
+        case eTogglableAction::TOGGLE_ACTION_DISABLE: return turnOffSubmap(submap);
+        case eTogglableAction::TOGGLE_ACTION_TOGGLE:
+        default: return toggleSubmap(submap);
     }
+}
 
-    if (Keybinds::mgr()->registry().hasSubmap(submap)) {
+ActionResult Actions::turnOnSubmap(const std::string& submap) {
+    const auto [EXISTS, REFERENCE] = findSubmap(submap);
+
+    if (!REFERENCE && !EXISTS)
+        return std::unexpected(std::format("Cannot set submap {}, submap doesn't exist (wasn't registered!)", submap));
+    else if (EXISTS)
         return {};
-    }
 
-    return std::unexpected(std::format("Cannot set submap {}, submap doesn't exist (wasn't registered!)", submap));
+    Config::Actions::state()->m_currentSubmap.add(Keybinds::PSubmap(*REFERENCE));
+    // NOTE: we should define later seperate events for each submap action.
+    //       for now, we'll just follow the current submap event API
+    IPC::Socket2::sock()->postEvent({.event = "submap", .data = submap});
+    Event::bus()->m_events.keybinds.submap.emit(std::string(submap));
+    return {};
+}
+
+ActionResult Actions::turnOffSubmap(const std::string& submap) {
+    const auto [EXISTS, REFERENCE] = findSubmap(submap);
+
+    if (!REFERENCE)
+        return std::unexpected(std::format("Cannot unset submap {}, submap doesn't exist (wasn't registered!)", submap));
+    else if (!EXISTS)
+        return {};
+
+    // should we raise an error if submap was not active?
+
+    Config::Actions::state()->m_currentSubmap.remove(*REFERENCE);
+    IPC::Socket2::sock()->postEvent({.event = "submap", .data = submap});
+    Event::bus()->m_events.keybinds.submap.emit(std::string(submap));
+    return {};
+}
+
+ActionResult Actions::toggleSubmap(const std::string& submap) {
+    const auto [EXISTS, REFERENCE] = findSubmap(submap);
+
+    if (!REFERENCE && !EXISTS)
+        return std::unexpected(std::format("Cannot toggle submap {}, submap doesn't exist (wasn't registered!)", submap));
+    else if (!REFERENCE)
+        return {};
+
+    Config::Actions::state()->m_currentSubmap.toggle(Keybinds::PSubmap(*REFERENCE));
+    IPC::Socket2::sock()->postEvent({.event = "submap", .data = submap});
+    Event::bus()->m_events.keybinds.submap.emit(std::string(submap));
+    return {};
+}
+
+ActionResult Actions::resetSubmaps() {
+    Config::Actions::state()->m_currentSubmap.reset();
+    IPC::Socket2::sock()->postEvent({.event = "submap", .data = ""});
+    Event::bus()->m_events.keybinds.submap.emit(std::string(""));
+    return {};
 }
 
 ActionResult Actions::cycleNext(const bool next, std::optional<bool> onlyTiled, std::optional<bool> onlyFloating, std::optional<PHLWINDOW> w) {
@@ -1796,4 +1849,8 @@ ActionResult Actions::moveIntoOrCreateGroup(Math::eDirection dir, std::optional<
 ActionResult Actions::releaseInputCapture() {
     PROTO::inputCapture->forceRelease();
     return {};
+}
+
+void CActionState::clear() {
+    m_currentSubmap.reset();
 }

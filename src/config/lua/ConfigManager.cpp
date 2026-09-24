@@ -708,6 +708,7 @@ void CConfigManager::reload() {
     }
 
     // phase 2: syntax is valid, reset and load.
+    Actions::state()->clear();
     Config::animationTree()->reset();
     Config::workspaceRuleMgr()->clear();
     Config::monitorRuleMgr()->clear();

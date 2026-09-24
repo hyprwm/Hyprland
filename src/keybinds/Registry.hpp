@@ -10,7 +10,6 @@
 namespace Keybinds {
 
     using PBind   = SP<CBind>;
-    using PSubmap = SP<CSubmap>;
 
     class CRegistry {
       public:

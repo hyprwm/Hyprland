@@ -42,6 +42,20 @@ static bool           matchCaseInsensitive(std::string_view a, std::string_view 
     return true;
 }
 
+static inline bool matchesSubmapContext(const CBind& bind, const Config::Actions::CSubmapContext* ctx) {
+    if (bind.flags() & BIND_FLAG_SUBMAP_UNIVERSAL)
+        return true;
+
+    const std::string& SUBMAP = bind.metadata().submap;
+
+    if (ctx == nullptr || ctx->empty())
+        return SUBMAP.empty();
+
+    const auto MATCH = ctx->find(SUBMAP);
+
+    return MATCH.has_value();
+}
+
 static eBindMatch matchKeySets(const std::vector<const CKey*>& bound, const std::vector<const SResolvedKey*>& held) {
     std::vector<int> heldMatches(held.size(), -1);
 
@@ -200,7 +214,7 @@ bool CBind::matchesContext(const SBindEventContext& ctx) const {
     if (!m_enabled || !matchesDevice(ctx.device))
         return false;
 
-    if (!(m_flags & BIND_FLAG_SUBMAP_UNIVERSAL) && m_metadata.submap != ctx.submap)
+    if (!matchesSubmapContext(*this, ctx.submap))
         return false;
 
     auto effectiveMods = ctx.pressed ? ctx.modifiersNow : ctx.modifiersAtPress;

@@ -4,6 +4,7 @@
 #include "Registry.hpp"
 #include "Submap.hpp"
 
+#include "../config/shared/actions/ConfigActions.hpp"
 #include "../devices/IPointer.hpp"
 #include "../helpers/time/Timer.hpp"
 #include "../managers/eventLoop/EventLoopTimer.hpp"
@@ -14,6 +15,8 @@
 class IKeyboard;
 
 namespace Keybinds {
+
+    using CSubmapContext = Config::Actions::CSubmapContext;
 
     class CKeybindManager {
       public:
@@ -42,7 +45,7 @@ namespace Keybinds {
         const CRegistry&   registry() const;
         CInputState&       inputState();
         const CInputState& inputState() const;
-        std::string_view   currentSubmap() const;
+        CSubmapContext&    currentSubmap() const;
 
       private:
         struct STimedBatch {

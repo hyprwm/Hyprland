@@ -173,8 +173,5 @@ UP<CScreenshareFrame> CScreenshareSession::nextFrame(bool overlayCursor) {
 
     Screenshare::mgr()->m_pendingFrames.emplace_back(frame);
 
-    // there is now a pending frame, so block ds
-    g_pHyprRenderer->m_directScanoutBlocked = true;
-
     return frame;
 }

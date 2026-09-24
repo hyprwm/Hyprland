@@ -1966,7 +1966,7 @@ uint16_t CMonitor::isDSBlocked(bool full) {
             return reasons;
     }
 
-    if (g_pHyprRenderer->m_directScanoutBlocked) {
+    if (Screenshare::mgr()->isOutputDSBlocked(m_self.lock())) {
         reasons |= DS_BLOCK_RECORD;
         if (!full)
             return reasons;

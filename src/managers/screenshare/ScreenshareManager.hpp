@@ -225,6 +225,7 @@ namespace Screenshare {
 
         void                    onOutputCommit(PHLMONITOR monitor);
         bool                    isOutputBeingSSd(PHLMONITOR monitor);
+        bool                    isOutputDSBlocked(PHLMONITOR monitor);
         bool                    outputNeedsCopyFB(PHLMONITOR monitor);
         SOutputCopyFBState      outputCopyFBState(PHLMONITOR monitor);
 

@@ -10,6 +10,7 @@
 #include "../../../input/Keys.hpp"
 #include "../../../helpers/math/Direction.hpp"
 #include "../ConfigErrors.hpp"
+#include "SubmapContext.hpp"
 
 namespace Fullscreen {
     enum eFullscreenMode : int8_t;
@@ -90,6 +91,10 @@ namespace Config::Actions {
     ActionResult forceRendererReload();
     ActionResult toggleSwallow();
     ActionResult setSubmap(eTogglableAction action, const std::string& submap);
+    ActionResult turnOnSubmap(const std::string& submap);
+    ActionResult turnOffSubmap(const std::string& submap);
+    ActionResult toggleSubmap(const std::string& submap);
+    ActionResult resetSubmaps();
     ActionResult dpms(eTogglableAction action, std::optional<PHLMONITOR> mon);
     ActionResult forceIdle(float seconds);
     ActionResult global(const std::string& action);
@@ -113,14 +118,16 @@ namespace Config::Actions {
         CActionState()  = default;
         ~CActionState() = default;
 
-        int         m_passPressed         = -1; // -1 = dynamic (press+release), 0 = released, 1 = pressed
-        int         m_bindInvocationDepth = 0;
-        bool        m_requestBindRelease  = false;
-        uint32_t    m_lastCode            = 0;  // last keycode (keyboard event), 0 if last was mouse
-        uint32_t    m_lastMouseCode       = 0;  // last mouse button code, 0 if last was keyboard
-        uint32_t    m_timeLastMs          = 0;  // timestamp of last key/mouse event
-        std::string m_currentSubmap       = ""; // current keybind submap name
-        WP<IHID>    m_lastDevice;               // device used to press last keycode
+        void clear();
+
+        int            m_passPressed         = -1; // -1 = dynamic (press+release), 0 = released, 1 = pressed
+        int            m_bindInvocationDepth = 0;
+        bool           m_requestBindRelease  = false;
+        uint32_t       m_lastCode            = 0; // last keycode (keyboard event), 0 if last was mouse
+        uint32_t       m_lastMouseCode       = 0; // last mouse button code, 0 if last was keyboard
+        uint32_t       m_timeLastMs          = 0; // timestamp of last key/mouse event
+        CSubmapContext m_currentSubmap;           // current keybind submap name
+        WP<IHID>       m_lastDevice;              // device used to press last keycode
     };
 
     UP<CActionState>& state();

@@ -6,6 +6,8 @@ using namespace Keybinds;
 
 CSubmap::CSubmap(std::string& name, SSubmapArgs&& args) : m_name(std::move(name)), m_devices(std::move(args.device)) {};
 
+CSubmap::CSubmap(std::string_view name) : m_name(name) {};
+
 std::string_view CSubmap::name() const {
     return m_name;
 }

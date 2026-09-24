@@ -93,6 +93,8 @@ std::string CWorkspaceRuleManager::getBoundMonitorStringForWS(const std::string&
             return "";
         return getBoundMonitorStringForWS(::Workspace::SWorkspaceNumberedID{*ID}, ::Workspace::eWorkspaceType::NORMAL, wsname);
     }
+    if (wsname.starts_with("name:") && isNumber2(std::string_view{wsname}.substr(5)))
+        return "";
     return getBoundMonitorStringForWS(::Workspace::SWorkspaceSpecialID{}, ::Workspace::eWorkspaceType::NORMAL,
                                       wsname.starts_with("name:") ? std::string_view{wsname}.substr(5) : std::string_view{wsname});
 }
@@ -109,9 +111,11 @@ std::string CWorkspaceRuleManager::getBoundMonitorStringForWS(const ::Workspace:
         ::Workspace::WorkspaceID ruleID   = ::Workspace::SWorkspaceSpecialID{};
         auto                     ruleType = ::Workspace::eWorkspaceType::NORMAL;
         std::string_view         address  = SELECTOR;
-        if (SELECTOR.starts_with("name:"))
+        if (SELECTOR.starts_with("name:")) {
+            if (isNumber2(std::string_view{SELECTOR}.substr(5)))
+                continue;
             address.remove_prefix(5);
-        else if (SELECTOR == "special") {
+        } else if (SELECTOR == "special") {
             ruleType = ::Workspace::eWorkspaceType::SPECIAL;
             address  = "special:special";
         } else if (SELECTOR.starts_with("special:"))

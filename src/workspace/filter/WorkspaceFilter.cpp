@@ -186,7 +186,14 @@ CWorkspaceFilter::CWorkspaceFilter(const std::string& filter, const IDataSource*
             return;
         }
 
-        m_statements.emplace_back(makeUnique<CNamedAddressableNameStatement>(std::string{FILTER.substr(5)}));
+        auto ADDRESS = FILTER.substr(5);
+
+        if (isNumber2(ADDRESS)) {
+            m_error = "name: cannot name a workspace with a number";
+            return;
+        }
+
+        m_statements.emplace_back(makeUnique<CNamedAddressableNameStatement>(std::move(ADDRESS)));
         return;
     }
 

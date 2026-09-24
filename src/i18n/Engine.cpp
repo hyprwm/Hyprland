@@ -29,6 +29,54 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->setFallbackLocale("en_US");
     localeStr = huEngine->getSystemLocale().locale();
 
+    // sv_SE (Swedish)
+    registerEntry("sv_SE", TXT_KEY_ANR_TITLE, "Programmet svarar inte");
+    registerEntry("sv_SE", TXT_KEY_ANR_CONTENT, "Programmet {title} – {class} svarar inte.\nVad vill du göra?");
+    registerEntry("sv_SE", TXT_KEY_ANR_OPTION_TERMINATE, "Tvångsavsluta");
+    registerEntry("sv_SE", TXT_KEY_ANR_OPTION_WAIT, "Vänta");
+    registerEntry("sv_SE", TXT_KEY_ANR_PROP_UNKNOWN, "(okänt)");
+    registerEntry("sv_SE", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "Programmet <b>{app}</b> begär en okänd behörighet.");
+    registerEntry("sv_SE", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "Programmet <b>{app}</b> försöker spela in skärmen.\n\nVill du tillåta det?");
+    registerEntry("sv_SE", TXT_KEY_PERMISSION_REQUEST_CURSOR_POS, "Programmet <b>{app}</b> begär åtkomst till pekarens position.\n\nVill du tillåta det?");
+    registerEntry("sv_SE", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "Programmet <b>{app}</b> försöker läsa in tillägget <b>{plugin}</b>.\n\nVill du tillåta det?");
+    registerEntry("sv_SE", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Ett nytt tangentbord har upptäckts: <b>{keyboard}</b>.\n\nVill du tillåta det?");
+    registerEntry("sv_SE", TXT_KEY_PERMISSION_REQUEST_INPUT_CAPTURE, "Programmet <b>{app}</b> begär att få fånga tangentbords- och musinmatning.\n\nVill du tillåta det?");
+    registerEntry("sv_SE", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(okänt)");
+    registerEntry("sv_SE", TXT_KEY_PERMISSION_TITLE, "Begäran om behörighet");
+    registerEntry("sv_SE", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Tips: Du kan ange beständiga regler för detta i Hyprlands konfigurationsfil.");
+    registerEntry("sv_SE", TXT_KEY_PERMISSION_ALLOW, "Tillåt");
+    registerEntry("sv_SE", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Tillåt och kom ihåg");
+    registerEntry("sv_SE", TXT_KEY_PERMISSION_ALLOW_ONCE, "Tillåt en gång");
+    registerEntry("sv_SE", TXT_KEY_PERMISSION_DENY, "Neka");
+    registerEntry("sv_SE", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Okänt program (Wayland-klient-ID {wayland_id})");
+    registerEntry("sv_SE", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP, "Miljövariabeln XDG_CURRENT_DESKTOP verkar hanteras externt. Aktuellt värde: {value}.\nDet kan orsaka problem om det inte är avsiktligt.");
+    registerEntry("sv_SE", TXT_KEY_NOTIF_NO_GUIUTILS, "hyprland-guiutils är inte installerat på systemet. Det behövs för vissa dialogrutor.");
+    registerEntry("sv_SE", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        const int count = std::stoi(vars.at("count"));
+        if (count == 1)
+            return "Hyprland kunde inte läsa in {count} nödvändig resurs. Kontakta distributionens paketerare om problemet.";
+        return "Hyprland kunde inte läsa in {count} nödvändiga resurser. Kontakta distributionens paketerare om problemet.";
+    });
+    registerEntry("sv_SE", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT, "Bildskärmslayouten är felaktig. Bildskärmen {name} överlappar en annan bildskärm.\nSe wiki-sidan Monitors för mer information. Detta kommer <b>garanterat</b> att orsaka problem.");
+    registerEntry("sv_SE", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Bildskärmen {name} kunde inte ställas in på något av de begärda lägena. Återgår till läget {mode}.");
+    registerEntry("sv_SE", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Ogiltig skalning för bildskärmen {name}: {scale}. Använder föreslagen skalning: {fixed_scale}.");
+    registerEntry("sv_SE", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Kunde inte läsa in tillägget {name}: {error}");
+    registerEntry("sv_SE", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Kunde inte läsa in CM-skuggaren på nytt. Återgår till rgba/rgbx.");
+    registerEntry("sv_SE", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Bildskärmen {name}: brett färgomfång är tillgängligt, men bildskärmen kör inte i 10-bitarsläge.");
+    registerEntry("sv_SE", TXT_KEY_NOTIF_NO_WATCHDOG, "Hyprland startades utan start-hyprland. Det rekommenderas inte, utom vid felsökning.");
+    registerEntry("sv_SE", TXT_KEY_NOTIF_DEPRECATED_CONFIG_OPTS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        const int count = std::stoi(vars.at("count"));
+        if (count == 1)
+            return "Du använder {count} föråldrat konfigurationsalternativ. Kör hyprctl deprecated-config för mer information.";
+        return "Du använder {count} föråldrade konfigurationsalternativ. Kör hyprctl deprecated-config för mer information.";
+    });
+    registerEntry("sv_SE", TXT_KEY_NOTIF_NO_FP16, "Ditt grafikkort stöder inte FP16-buffertar. Vissa effekter och färghanteringsinställningar kan därför saknas.");
+    registerEntry("sv_SE", TXT_KEY_SAFE_MODE_TITLE, "Felsäkert läge");
+    registerEntry("sv_SE", TXT_KEY_SAFE_MODE_DESCRIPTION, "Den föregående sessionen kraschade.\nHyprland körs nu i felsäkert läge och läser inte in din konfiguration. Du kan felsöka i detta läge eller läsa in konfigurationen på nytt med knappen nedan.\nStandardgenvägar: SUPER+Q (kitty), SUPER+R (kör), SUPER+M (avsluta).\nHyprland återgår till normalt läge efter omstart.");
+    registerEntry("sv_SE", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "Öppna mappen med kraschrapporter");
+    registerEntry("sv_SE", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "Läs in konfiguration");
+    registerEntry("sv_SE", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "Jag förstår");
+
     // be_BY (Belarusian)
     registerEntry("be_BY", TXT_KEY_ANR_TITLE, "Праграма не адказвае");
     registerEntry("be_BY", TXT_KEY_ANR_CONTENT, "Праграма {title} - {class} не адказвае.\nШто хочаце з ёй зрабіць?");

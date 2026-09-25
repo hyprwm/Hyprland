@@ -352,7 +352,7 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
     LOG(Log::DEBUG, "{}", Helpers::SystemInfo::getSystemInfo());
     LOG(Log::DEBUG, "========================");
     LOG(Log::DEBUG, "\n\n"); // pad
-    LOG(Log::INFO, "If you are crashing, or encounter any bugs, please consult https://wiki.hypr.land/Crashes-and-Bugs/\n\n");
+    LOG(Log::INFO, "If you are crashing, or encounter any bugs, please consult https://wiki.hypr.land/crashes-and-bugs/\n\n");
     LOG(Log::DEBUG, "\nCurrent splash: {}\n\n", m_currentSplash);
 
     m_drm.fd = m_aqBackend->drmFD();

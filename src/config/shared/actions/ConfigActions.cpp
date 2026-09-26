@@ -979,9 +979,8 @@ ActionResult Actions::changeWorkspace(PHLWORKSPACE ws, bool noFocus) {
 
     updateRelativeCursorCoords();
 
-    if (!noFocus) {
+    if (!noFocus)
         Desktop::focusState()->rawMonitorFocus(PMONITORWORKSPACEOWNER);
-    }
 
     if (*PHIDESPECIALONWORKSPACECHANGE)
         PMONITORWORKSPACEOWNER->setSpecialWorkspace(nullptr);

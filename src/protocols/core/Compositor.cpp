@@ -187,6 +187,11 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
             // remove any pending states.
             m_stateQueue.clear();
             m_pending.reset();
+
+            // gtk destroys its dialog/toplevel on hiding to tray, commits a null buffer
+            // but keeps the surface alive, next time when its time to show its going to think
+            // its already m_mapped, because we never unmapped it. so unmap it on null buffers..
+            unmap();
             return;
         }
 

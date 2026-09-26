@@ -58,6 +58,9 @@
 #include "debug/log/Logger.hpp"
 #include "notification/NotificationOverlay.hpp"
 #include "MonitorFrameScheduler.hpp"
+#include <cstdint>
+#include <drm_fourcc.h>
+#include <hyprgraphics/egl/Egl.hpp>
 #include <hyprutils/memory/UniquePtr.hpp>
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -1725,43 +1728,6 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
         return reasons;
     }
 
-    // Monitor considers only FSMODE_FULLSCREEN as FS
-    if (Fullscreen::controller()->getFullscreenModes(m_self.lock()).internal != Fullscreen::FSMODE_FULLSCREEN) {
-        reasons |= SC_WINDOWED;
-        if (!full)
-            return reasons;
-    }
-
-    if (m_activeSpecialWorkspace) {
-        reasons |= SC_SPECIAL;
-        if (!full)
-            return reasons;
-    }
-
-    if (Notification::overlay()->hasAny()) {
-        reasons |= SC_NOTIFICATION;
-        if (!full)
-            return reasons;
-    }
-
-    if (ErrorOverlay::overlay()->active() && Desktop::focusState()->monitor() == m_self) {
-        reasons |= SC_ERRORBAR;
-        if (!full)
-            return reasons;
-    }
-
-    if (g_pSessionLockManager->isSessionLocked()) {
-        reasons |= SC_LOCK;
-        if (!full)
-            return reasons;
-    }
-
-    if (PROTO::data->dndActive()) {
-        reasons |= SC_DND;
-        if (!full)
-            return reasons;
-    }
-
     if (PWORKSPACE->m_alpha->value() != 1.f) {
         reasons |= SC_ALPHA;
         if (!full)
@@ -1774,7 +1740,20 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
             return reasons;
     }
 
-    const auto PCANDIDATE = Fullscreen::controller()->getFullscreenWindow(m_self.lock());
+    // Monitor considers only FSMODE_FULLSCREEN as FS
+    if (Fullscreen::controller()->getFullscreenModes(PWORKSPACE).internal != Fullscreen::FSMODE_FULLSCREEN) {
+        reasons |= SC_WINDOWED;
+        if (!full)
+            return reasons;
+    }
+
+    if (g_pSessionLockManager->isSessionLocked()) {
+        reasons |= SC_LOCK;
+        if (!full)
+            return reasons;
+    }
+
+    const auto PCANDIDATE = Fullscreen::controller()->getFullscreenWindow(PWORKSPACE);
 
     if (!PCANDIDATE) {
         reasons |= SC_CANDIDATE;
@@ -1794,47 +1773,73 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
             return reasons;
     }
 
-    if (!m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY].empty()) {
-        reasons |= SC_OVERLAYS;
-        if (!full)
-            return reasons;
-    }
+    if (!g_pHyprRenderer->shouldUseOverlay(m_self.lock(), PWORKSPACE, true)) {
+        if (m_activeSpecialWorkspace) {
+            reasons |= SC_SPECIAL;
+            if (!full)
+                return reasons;
+        }
 
-    for (auto const& topls : m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-        if (topls->alpha()[LS_ALPHA_FADE]->value() != 0.F) {
+        if (Notification::overlay()->hasAny()) {
+            reasons |= SC_NOTIFICATION;
+            if (!full)
+                return reasons;
+        }
+
+        if (ErrorOverlay::overlay()->active() && Desktop::focusState()->monitor() == m_self) {
+            reasons |= SC_ERRORBAR;
+            if (!full)
+                return reasons;
+        }
+
+        if (PROTO::data->dndActive()) {
+            reasons |= SC_DND;
+            if (!full)
+                return reasons;
+        }
+
+        if (!m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY].empty()) {
             reasons |= SC_OVERLAYS;
             if (!full)
                 return reasons;
         }
-    }
 
-    for (auto const& fadeout : Desktop::fadingOutState()->fadeouts()) {
-        if (!fadeout || fadeout->monitor() != m_self)
-            continue;
+        for (auto const& topls : m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+            if (topls->alpha()[LS_ALPHA_FADE]->value() != 0.F) {
+                reasons |= SC_OVERLAYS;
+                if (!full)
+                    return reasons;
+            }
+        }
 
-        reasons |= SC_FADEOUT;
-        if (!full)
-            return reasons;
-    }
+        for (auto const& fadeout : Desktop::fadingOutState()->fadeouts()) {
+            if (!fadeout || fadeout->monitor() != m_self)
+                continue;
 
-    for (auto const& w : Desktop::windowState()->windows()) {
-        if (w == PCANDIDATE || !w->mapped() || !w->acceptsInput() || !w->alphaNonZero())
-            continue;
-
-        if (w->m_workspace == PCANDIDATE->m_workspace && w->isFloating() && w->isAllowedOverFullscreen() && w->presentation().visibleOnMonitor(m_self.lock())) {
-            reasons |= SC_FLOAT;
+            reasons |= SC_FADEOUT;
             if (!full)
                 return reasons;
         }
-    }
 
-    for (auto const& ws : State::Workspace::state()->workspaces()) {
-        if (ws->m_alpha->value() <= 0.F || ws->type() != Workspace::eWorkspaceType::SPECIAL || ws->m_monitor != m_self)
-            continue;
+        for (auto const& w : Desktop::windowState()->windows()) {
+            if (w == PCANDIDATE || !w->mapped() || !w->acceptsInput() || !w->alphaNonZero())
+                continue;
 
-        reasons |= SC_WORKSPACES;
-        if (!full)
-            return reasons;
+            if (w->m_workspace == PCANDIDATE->m_workspace && w->isFloating() && w->isAllowedOverFullscreen() && w->presentation().visibleOnMonitor(m_self.lock())) {
+                reasons |= SC_FLOAT;
+                if (!full)
+                    return reasons;
+            }
+        }
+
+        for (auto const& ws : State::Workspace::state()->workspaces()) {
+            if (ws->m_alpha->value() <= 0.F || ws->type() != Workspace::eWorkspaceType::SPECIAL || ws->m_monitor != m_self)
+                continue;
+
+            reasons |= SC_WORKSPACES;
+            if (!full)
+                return reasons;
+        }
     }
 
     // check if it did not open any subsurfaces or shit
@@ -1854,7 +1859,7 @@ void CMonitor::recheckSolitary() {
     if (isSolitaryBlocked())
         return;
 
-    m_solitaryClient = Fullscreen::controller()->getFullscreenWindow(m_self.lock());
+    m_solitaryClient = Fullscreen::controller()->getFullscreenWindow(PWORKSPACE);
 }
 
 uint8_t CMonitor::isTearingBlocked(bool full) {
@@ -2620,11 +2625,11 @@ bool CMonitorState::test() {
     return m_owner->m_output->test();
 }
 
-bool CMonitorState::updateSwapchain() {
+bool CMonitorState::updateSwapchain(SP<Aquamarine::CSwapchain> swapchain, bool needsAlpha) {
     if (!m_owner->m_output)
         return false;
 
-    const auto& OPTIONS = m_owner->m_output->swapchain->currentOptions();
+    const auto& OPTIONS = swapchain->currentOptions();
     const auto& STATE   = m_owner->m_output->state->state();
     const auto& MODE    = STATE.mode ? STATE.mode : STATE.customMode;
     if (!MODE) {
@@ -2632,16 +2637,41 @@ bool CMonitorState::updateSwapchain() {
         return true;
     }
 
-    if (OPTIONS.format == m_owner->m_drmFormat && OPTIONS.scanout && OPTIONS.length == 3 && OPTIONS.size == MODE->pixelSize)
+    uint32_t drmFormat = m_owner->m_drmFormat;
+    if (needsAlpha) {
+        const auto& format = Hyprgraphics::Egl::getPixelFormatFromDRM(drmFormat);
+        if (!format->withAlpha) {
+            // TODO update and use Hyprgraphics
+            switch (drmFormat) {
+                case DRM_FORMAT_XRGB8888: drmFormat = DRM_FORMAT_ARGB8888; break;
+                case DRM_FORMAT_XBGR8888: drmFormat = DRM_FORMAT_ABGR8888; break;
+                case DRM_FORMAT_XRGB2101010: drmFormat = DRM_FORMAT_ARGB2101010; break;
+                case DRM_FORMAT_XBGR2101010: drmFormat = DRM_FORMAT_ABGR2101010; break;
+                case DRM_FORMAT_XRGB16161616F: drmFormat = DRM_FORMAT_ARGB16161616F; break;
+                case DRM_FORMAT_XBGR16161616F: drmFormat = DRM_FORMAT_ABGR16161616F; break;
+                default: drmFormat = DRM_FORMAT_ARGB8888;
+            }
+        }
+    }
+
+    if (OPTIONS.format == drmFormat && OPTIONS.scanout && OPTIONS.length == 3 && OPTIONS.size == MODE->pixelSize)
         return true;
 
     auto options    = OPTIONS;
-    options.format  = m_owner->m_drmFormat;
+    options.format  = drmFormat;
     options.scanout = true;
     options.length  = 3;
     options.size    = MODE->pixelSize;
-    return m_owner->m_output->swapchain->reconfigure(options);
+    return swapchain->reconfigure(options);
 }
+
+bool CMonitorState::updateSwapchain() {
+    if (!m_owner->m_output)
+        return false;
+
+    return updateSwapchain(m_owner->m_output->swapchain);
+}
+
 void CMonitorState::applyModeWithSwapchain(const SP<Aquamarine::SOutputMode>& mode) {
     m_owner->m_output->state->setMode(mode);
     updateSwapchain();

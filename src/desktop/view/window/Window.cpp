@@ -421,29 +421,35 @@ void CWindow::updateSurfaceScaleTransformDetails(bool force) {
         nullptr);
 }
 
-void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
-    if (!pWorkspace || m_workspace == pWorkspace)
+void CWindow::syncInitialWorkspaceToken(PHLWORKSPACE pWorkspace) {
+    if (m_initialWorkspaceToken.empty() || !pWorkspace)
         return;
 
     static auto PINITIALWSTRACKING = CConfigValue<Config::INTEGER>("misc:initial_workspace_tracking");
 
-    if (!m_initialWorkspaceToken.empty()) {
-        const auto TOKEN = g_pTokenManager->getToken(m_initialWorkspaceToken);
-        if (TOKEN) {
-            if (*PINITIALWSTRACKING == 2) {
-                // persistent
-                try {
-                    SInitialWorkspaceToken token = std::any_cast<SInitialWorkspaceToken>(TOKEN->m_data);
-                    if (token.primaryOwner == m_self) {
-                        token.workspaceID      = pWorkspace->id();
-                        token.workspaceAddress = pWorkspace->addressableName();
-                        token.workspaceType    = pWorkspace->type();
-                        TOKEN->m_data          = token;
-                    }
-                } catch (const std::bad_any_cast& e) { ; }
-            }
-        }
-    }
+    if (*PINITIALWSTRACKING != 2)
+        return;
+
+    const auto TOKEN = g_pTokenManager->getToken(m_initialWorkspaceToken);
+    if (!TOKEN)
+        return;
+
+    try {
+        auto token = std::any_cast<SInitialWorkspaceToken>(TOKEN->m_data);
+        if (token.primaryOwner != m_self)
+            return;
+        token.workspaceID      = pWorkspace->id();
+        token.workspaceAddress = pWorkspace->addressableName();
+        token.workspaceType    = pWorkspace->type();
+        TOKEN->m_data          = token;
+    } catch (const std::bad_any_cast& e) { ; }
+}
+
+void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
+    if (!pWorkspace || m_workspace == pWorkspace)
+        return;
+
+    syncInitialWorkspaceToken(pWorkspace);
 
     static auto PCLOSEONLASTSPECIAL = CConfigValue<Config::INTEGER>("misc:close_special_on_empty");
 
@@ -1412,6 +1418,8 @@ void CWindow::mapWindow() {
     }
 
     PMONITOR = m_monitor.lock();
+
+    syncInitialWorkspaceToken(m_workspace);
 
     m_swallowing->reserveCandidate();
 

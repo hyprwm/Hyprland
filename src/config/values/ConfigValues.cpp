@@ -612,6 +612,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Bool>("binds:pass_mouse_when_bound", "if disabled, will not pass the mouse events to apps / dragging windows around if a keybind has been triggered.", false),
         MS<Int>("binds:scroll_event_delay", "in ms, how many ms to wait after a scroll event to allow passing another one for the binds.", 300, {.min = 0, .max = 2000}),
         MS<Bool>("binds:workspace_back_and_forth", "If enabled, an attempt to switch to the currently focused workspace will instead switch to the previous workspace.", false),
+        MS<Bool>("binds:workspace_back_and_forth_per_monitor", "If enabled, workspace_back_and_forth will not consider the workspaces of other monitors", false),
         MS<Bool>("binds:hide_special_on_workspace_change", "If enabled, changing the active workspace will hide the special workspace on the monitor.", false),
         MS<Bool>("binds:allow_workspace_cycles", "If enabled, workspaces don't forget their previous workspace.", false),
         MS<Int>("binds:workspace_center_on", "Whether switching workspaces should center the cursor on the workspace (0) or on the last active window (1)", 1,

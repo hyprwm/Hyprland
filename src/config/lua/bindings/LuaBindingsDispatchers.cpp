@@ -5,6 +5,7 @@
 #include "Check.hpp"
 
 #include "../../supplementary/executor/Executor.hpp"
+#include "../../shared/actions/ConfigActions.hpp"
 
 #include "../../../managers/fullscreen/FullscreenController.hpp"
 #include "../../../state/MonitorState.hpp"
@@ -13,7 +14,6 @@
 #include "../../../workspace/WorkspaceUtils.hpp"
 #include "../../../desktop/rule/windowRule/WindowRule.hpp"
 #include "../../../keybinds/Resolver.hpp"
-#include "config/shared/actions/ConfigActions.hpp"
 
 using namespace Config;
 using namespace Config::Lua;
@@ -21,6 +21,9 @@ using namespace Config::Lua::Bindings;
 
 namespace CA = Config::Actions;
 
+static std::vector<std::pair<std::string, std::string>> deprecated;
+
+//
 static constexpr auto ERR        = CA::eActionErrorLevel::ERROR;
 static constexpr auto WARN       = CA::eActionErrorLevel::WARNING;
 static constexpr auto INFO       = CA::eActionErrorLevel::INFO;
@@ -44,7 +47,7 @@ static int            requestBindRelease(lua_State* L, int results) {
 }
 
 static int dsp_moveCursorToCorner(lua_State* L) {
-    return Internal::checkResult(L, CA::moveCursorToCorner((int)lua_tonumber(L, lua_upvalueindex(1)), Internal::windowFromUpval(L, 2)));
+    return Internal::checkResult(L, CA::moveCursorToCorner(sc<int>(lua_tonumber(L, lua_upvalueindex(1))), Internal::windowFromUpval(L, 2)));
 }
 
 static int dsp_moveCursor(lua_State* L) {
@@ -60,19 +63,19 @@ static int dsp_changeGroupActive(lua_State* L) {
 }
 
 static int dsp_setGroupActive(lua_State* L) {
-    return Internal::checkResult(L, CA::setGroupActive((int)lua_tonumber(L, lua_upvalueindex(1)), Internal::windowFromUpval(L, 2)));
+    return Internal::checkResult(L, CA::setGroupActive(sc<int>(lua_tonumber(L, lua_upvalueindex(1))), Internal::windowFromUpval(L, 2)));
 }
 
 static int dsp_moveGroupWindow(lua_State* L) {
     return Internal::checkResult(L, CA::moveGroupWindow(lua_toboolean(L, lua_upvalueindex(1))));
 }
 
-static int dsp_lockGroups(lua_State* L) {
-    return Internal::checkResult(L, CA::lockGroups(sc<CA::eTogglableAction>((int)lua_tonumber(L, lua_upvalueindex(1)))));
+static int dsp_lockGroup(lua_State* L) {
+    return Internal::checkResult(L, CA::lockGroup(sc<CA::eTogglableAction>(lua_tonumber(L, lua_upvalueindex(1))), Internal::windowFromUpval(L, 2)));
 }
 
-static int dsp_lockActiveGroup(lua_State* L) {
-    return Internal::checkResult(L, CA::lockActiveGroup(sc<CA::eTogglableAction>((int)lua_tonumber(L, lua_upvalueindex(1)))));
+static int dsp_lockAllGroups(lua_State* L) {
+    return Internal::checkResult(L, CA::lockAllGroups(sc<CA::eTogglableAction>(lua_tonumber(L, lua_upvalueindex(1)))));
 }
 
 static int hlCursorMoveToCorner(lua_State* L) {
@@ -138,18 +141,42 @@ static int hlGroupActive(lua_State* L) {
 }
 
 static int hlGroupLock(lua_State* L) {
-    const auto action = Internal::tableToggleAction(L, 1);
+    bool needs_remove = false;
+    if (lua_gettop(L) == 0) {
+        lua_newtable(L);
+        needs_remove = true;
+    } else {
+        if (!lua_istable(L, 1))
+            return Internal::configError(L, "hl.group.lock: expected a table { window?, all?, action? } or no args");
+    }
 
-    lua_pushnumber(L, (int)action);
-    lua_pushcclosure(L, dsp_lockGroups, 1);
+    const auto action = Internal::tableToggleAction(L, 1);
+    lua_pushnumber(L, sc<int>(action));
+
+    const auto all = Internal::tableOptBool(L, 1, "all");
+    if (all.value_or(false)) {
+        // global group lock
+        lua_pushcclosure(L, dsp_lockAllGroups, 1);
+    } else {
+        // lock specified window's group
+        Internal::pushWindowUpval(L, 1);
+        lua_pushcclosure(L, dsp_lockGroup, 2);
+    }
+
+    if (needs_remove)
+        lua_remove(L, 1);
     return 1;
 }
 
+// TODO: Remove this later
 static int hlGroupLockActive(lua_State* L) {
+    deprecated.emplace_back(std::pair("hl.dsp.group.lock_active()", "The group.lock_active() dispatcher is deprecated, use group.lock() instead"));
+
     const auto action = Internal::tableToggleAction(L, 1);
 
-    lua_pushnumber(L, (int)action);
-    lua_pushcclosure(L, dsp_lockActiveGroup, 1);
+    lua_pushnumber(L, sc<int>(action));
+    lua_pushnil(L);
+    lua_pushcclosure(L, dsp_lockGroup, 2);
     return 1;
 }
 
@@ -1372,4 +1399,8 @@ void Internal::registerDispatcherBindings(lua_State* L) {
     }
 
     lua_setfield(L, -2, "dsp");
+}
+
+std::vector<std::pair<std::string, std::string>>& Internal::deprecationNotices() {
+    return deprecated;
 }

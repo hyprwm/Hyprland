@@ -182,6 +182,7 @@ namespace Render::GL {
             uint8_t                wrapX = WRAP_CLAMP_TO_EDGE, wrapY = WRAP_CLAMP_TO_EDGE;
             bool                   cmBackToSRGB   = false;
             bool                   finalMonitorCM = false;
+            bool                   mirrorBlurCM   = false;
 
             uint8_t                discardMode    = DISCARD_OPAQUE;
             float                  discardOpacity = 0.f;

@@ -63,6 +63,23 @@ const mat3 targetPrimariesXYZ = mat3(0.0);
 #include "CM.glsl"
 #endif
 
+#if USE_MIRROR_BLUR_CM
+#if !USE_CM
+#include "cm_helpers.glsl"
+#endif
+uniform int   mirrorBlurSourceTF;
+uniform vec2  mirrorBlurSrcTFRange;
+uniform vec2  mirrorBlurDstTFRange;
+uniform mat3  mirrorBlurConvertMatrix;
+
+vec3 mirrorBlurColor(vec3 color) {
+    vec4 result = vec4(mirrorBlurConvertMatrix * toLinearRGB(color, mirrorBlurSourceTF), 1.0);
+    if (mirrorBlurSourceTF != CM_TRANSFER_FUNCTION_LINEAR)
+        result = toNit(result, mirrorBlurSrcTFRange);
+    return fromLinearNit(result, CM_TRANSFER_FUNCTION_SRGB, mirrorBlurDstTFRange).rgb;
+}
+#endif
+
 layout(location = 0) out vec4 fragColor;
 #if USE_MIRROR
 layout(location = 1) out vec4 mirrorColor;
@@ -125,6 +142,9 @@ void main() {
     mirrorColor = pixColors[1];
 #else
     mirrorColor = pixColor;
+#endif
+#if USE_MIRROR_BLUR_CM && !USE_BLUR
+    mirrorColor.rgb = mirrorBlurColor(mirrorColor.rgb);
 #endif
 #endif
 
@@ -189,6 +209,9 @@ void main() {
         mirrorBlurAlphaMask = 0.0;
 #endif
     vec3 blurredMirrorColor = texture(blurredBG, blurUV).rgb;
+#if USE_MIRROR_BLUR_CM
+    blurredMirrorColor = mirrorBlurColor(blurredMirrorColor);
+#endif
     float mirrorBlurBgAlpha = (1.0 - mirrorColor.a) * mirrorBlurAlphaMask;
     mirrorColor             = vec4(mirrorColor.rgb + blurredMirrorColor * mirrorBlurBgAlpha, mirrorColor.a + mirrorBlurBgAlpha);
 #else
@@ -201,6 +224,9 @@ void main() {
         float mirrorBlurAlphaMask = 1.0;
 #endif
         vec3 blurredMirrorColor = texture(blurredBG, blurUV).rgb;
+#if USE_MIRROR_BLUR_CM
+        blurredMirrorColor = mirrorBlurColor(blurredMirrorColor);
+#endif
         float mirrorBlurBgAlpha = (1.0 - mirrorColor.a) * mirrorBlurAlphaMask;
         mirrorColor             = vec4(mirrorColor.rgb + blurredMirrorColor * mirrorBlurBgAlpha, mirrorColor.a + mirrorBlurBgAlpha);
 #if USE_BLUR_ALPHA_MASK

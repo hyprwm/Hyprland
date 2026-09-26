@@ -1545,6 +1545,8 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
         return windowPropToString(PWINDOW->m_ruleApplicator->noAnim());
     else if (PROP == "no_blur")
         return windowPropToString(PWINDOW->m_ruleApplicator->noBlur());
+    else if (PROP == "workspace_blur")
+        return windowPropToString(PWINDOW->m_ruleApplicator->workspaceBlur());
     else if (PROP == "no_dim")
         return windowPropToString(PWINDOW->m_ruleApplicator->noDim());
     else if (PROP == "no_focus")

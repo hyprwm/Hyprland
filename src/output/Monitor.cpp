@@ -1654,10 +1654,17 @@ void CMonitor::updateWorkspaceRuleBlur() {
     if (!m_workspaceRuleBlurAlpha)
         return;
 
-    const auto  PWORKSPACE    = m_activeSpecialWorkspace ? m_activeSpecialWorkspace : m_activeWorkspace;
-    const auto  WORKSPACERULE = PWORKSPACE ? Config::workspaceRuleMgr()->getWorkspaceRuleFor(PWORKSPACE) : std::nullopt;
-    const bool  SHOULD_BLUR   = WORKSPACERULE && WORKSPACERULE->m_blur.value_or(false) && PWORKSPACE->getWindowCount(std::nullopt, std::nullopt, true) > 0;
-    const float BLUR_ALPHA    = SHOULD_BLUR ? 1.F : 0.F;
+    const auto  PWORKSPACE     = m_activeSpecialWorkspace ? m_activeSpecialWorkspace : m_activeWorkspace;
+    const auto  WORKSPACERULE  = PWORKSPACE ? Config::workspaceRuleMgr()->getWorkspaceRuleFor(PWORKSPACE) : std::nullopt;
+    const auto  SPACE          = PWORKSPACE ? PWORKSPACE->space() : nullptr;
+    const bool  WORKSPACE_BLUR = WORKSPACERULE && WORKSPACERULE->m_blur.value_or(false);
+    const bool  SHOULD_BLUR    = SPACE && std::ranges::any_of(SPACE->targets(), [WORKSPACE_BLUR](const auto& target) {
+                                 const auto WINDOW = target ? target->window() : nullptr;
+                                 return WINDOW && !WINDOW->isHidden() &&
+                                     !WINDOW->isInputBlockedReasonAnyOf(FOCUS_BLOCK_GROUP_INACTIVE | FOCUS_BLOCK_MONOCLE_INACTIVE | FOCUS_BLOCK_BELOW_FULLSCREEN) &&
+                                     WINDOW->m_ruleApplicator->workspaceBlur().valueOr(WORKSPACE_BLUR);
+                             });
+    const float BLUR_ALPHA     = SHOULD_BLUR ? 1.F : 0.F;
 
     m_workspaceRuleBlurAlpha->setConfig(Config::animationTree()->getAnimationPropertyConfig(SHOULD_BLUR ? "fadeIn" : "fadeOut"));
 

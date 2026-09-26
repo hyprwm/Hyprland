@@ -4,8 +4,10 @@
 
 #include <pwd.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #include <sstream>
 #include <print>
+#include <format>
 #include <filesystem>
 #include <algorithm>
 #include <sstream>
@@ -161,6 +163,17 @@ bool NSys::root::install(const std::string& what, const std::string& where, cons
     CProcess proc(subin(), {"install", std::format("-m{}", mode), "-o", "0", "-g", "0", what, where});
 
     return proc.runSync() && proc.exitCode() == 0;
+}
+
+bool NSys::root::installFromFD(int fd, const std::string& where, const std::string& mode) {
+    if (fd < 0)
+        return false;
+
+    struct stat statBuf;
+    if (fstat(fd, &statBuf) != 0 || !S_ISREG(statBuf.st_mode))
+        return false;
+
+    return install(std::format("/proc/{}/fd/{}", getpid(), fd), where, mode);
 }
 
 std::string NSys::root::runAsSuperuserUnsafe(const std::string& cmd) {

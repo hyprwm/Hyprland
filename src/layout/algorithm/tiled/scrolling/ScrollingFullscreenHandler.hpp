@@ -15,7 +15,7 @@ namespace Layout::Tiled {
 
 namespace Fullscreen::ScrollingFullscreenHandler {
 
-    struct SFullscreenScrollState {
+    struct SScrollingFullscreenState {
         SFullscreenMode      mode;
         std::optional<float> restoreColumnWidth = std::nullopt;
     };
@@ -72,6 +72,8 @@ namespace Fullscreen::ScrollingFullscreenHandler {
 
         void sScrollingDataRecalculateHelper(const SP<Layout::Tiled::SScrollingTargetData> CURRENT_COVERING_FS_TDATA, const PHLMONITOR MONITOR);
 
+        void invalidateFullscreenViewportRestoreToken();
+
       private:
         struct SScrollingFullscreenWindowHidingState {
 
@@ -81,10 +83,19 @@ namespace Fullscreen::ScrollingFullscreenHandler {
 
         } m_fullscreenWindowHidingState;
 
+        struct SScrolliongFullscreenViewportRestoreToken {
+        // To restore the viewport offset for an FS window.
+        // Any viewport move after FSing a window invalidates this token - therefore this is guaranteed to be valid only for one window at a time
+            bool shouldRestoreViewportState = false;
+            WP<Layout::ITarget> fsTarget = nullptr;
+            double storedViewportOffset = 0.0;
+        } m_fullscreenViewportRestoreToken;
+
+
         Layout::Tiled::CScrollingAlgorithm* const m_scrollingAlgorithm;
 
         /// Tracks FSed Targets (internal OR client)
-        std::unordered_map<WP<Layout::ITarget>, SFullscreenScrollState> m_fsTargets;
+        std::unordered_map<WP<Layout::ITarget>, SScrollingFullscreenState> m_fsTargets;
         bool                                                            m_syncingFullscreenTargets = false;
 
         const eFullscreenHandler                                        FULLSCREEN_HANDLER_TYPE = FULLSCREEN_HANDLER_SCROLLING;

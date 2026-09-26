@@ -6,6 +6,7 @@
 
 namespace Layout::Tiled {
 
+    class CScrollingAlgorithm;
     struct SColumnData;
 
     enum eScrollDirection : uint8_t {
@@ -36,7 +37,7 @@ namespace Layout::Tiled {
 
     class CScrollTapeController {
       public:
-        CScrollTapeController(eScrollDirection direction = SCROLL_DIR_RIGHT);
+        CScrollTapeController(CScrollingAlgorithm* algo, eScrollDirection direction = SCROLL_DIR_RIGHT);
         ~CScrollTapeController() = default;
 
         void                     setDirection(eScrollDirection dir);
@@ -75,6 +76,9 @@ namespace Layout::Tiled {
         size_t                   getStripAtCenter(const CBox& usableArea, bool fullscreenOnOne = false) const;
 
       private:
+
+        CScrollingAlgorithm*    m_scrollingAlgo = nullptr;
+
         eScrollDirection        m_direction = SCROLL_DIR_RIGHT;
         std::vector<SStripData> m_strips;
         double                  m_offset = 0.0;

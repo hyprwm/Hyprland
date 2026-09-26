@@ -50,6 +50,7 @@
 #include "pass/RendererHintsPassElement.hpp"
 #include "pass/SurfacePassElement.hpp"
 #include "pass/BackdropScopePassElement.hpp"
+#include "scene/MonitorScene.hpp"
 #include "../debug/log/Logger.hpp"
 #include "../protocols/ColorManagement.hpp"
 #include "../protocols/types/ContentType.hpp"
@@ -2233,20 +2234,13 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     if (pMonitor->m_solitaryClient && (!finalDamage.empty() || *PSOLDAMAGE))
         renderWindow(pMonitor->m_solitaryClient.lock(), pMonitor, NOW, false, RENDER_PASS_MAIN /* solitary = no popups */);
     else if (!finalDamage.empty()) {
-        if (pMonitor->isMirror()) {
-            blend(false);
-            renderMirrored();
-            blend(true);
-            Event::bus()->m_events.render.stage.emit(RENDER_POST_MIRROR);
+        const bool    IS_MIRROR = pMonitor->isMirror();
+        CMonitorScene scene(pMonitor);
+        scene.draw(NOW);
+
+        if (IS_MIRROR)
             renderCursor = false;
-        } else {
-            CBox renderBox = {0, 0, sc<int>(pMonitor->m_transformedSize.x), sc<int>(pMonitor->m_transformedSize.y)};
-            renderWorkspace(pMonitor, pMonitor->m_activeWorkspace, NOW, renderBox);
-            renderLockscreen(pMonitor, NOW, renderBox);
-
-            // render IME even above the lockscreen - allow the user to use it to potentially input stuff on it.
-            renderIME(pMonitor, NOW, renderBox);
-
+        else {
             if (pMonitor == Desktop::focusState()->monitor()) {
                 Notification::overlay()->draw(pMonitor);
                 ErrorOverlay::overlay()->draw();

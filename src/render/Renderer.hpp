@@ -58,6 +58,7 @@ namespace Render {
 
     class IElementRenderer;
     class CRenderPass;
+    class CMonitorScene;
 
     class IHyprRenderer {
       public:
@@ -322,6 +323,7 @@ namespace Render {
         friend class Pointer::CPointerManager;
         friend class Monitor::CMonitor;
         friend class CMonitorFrameScheduler;
+        friend class CMonitorScene;
 
       private:
         void bindOffMain();

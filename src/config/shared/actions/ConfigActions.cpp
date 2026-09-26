@@ -290,6 +290,8 @@ ActionResult Actions::fullscreenWindow(Fullscreen::eFullscreenMode mode, bool la
     if (!window)
         return {};
 
+    Fullscreen::controller()->cancelFullscreenTakeover(window);
+
     if (Fullscreen::controller()->isFullscreen(window, mode))
         Fullscreen::controller()->setFullscreenMode(window, Fullscreen::FSMODE_NONE, std::nullopt, layoutAware);
     else
@@ -302,6 +304,8 @@ ActionResult Actions::fullscreenWindow(Fullscreen::eFullscreenMode internalMode,
     auto window = xtract(w);
     if (!window)
         return {};
+
+    Fullscreen::controller()->cancelFullscreenTakeover(window);
 
     const bool KEEP_INTERNAL = (internalMode == -1);
     const bool KEEP_CLIENT   = (clientMode == -1);

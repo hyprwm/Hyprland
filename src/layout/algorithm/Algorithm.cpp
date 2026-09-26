@@ -2,6 +2,7 @@
 
 #include "FloatingAlgorithm.hpp"
 #include "TiledAlgorithm.hpp"
+#include "tiled/dwindle/DwindleAlgorithm.hpp"
 #include "../target/WindowTarget.hpp"
 #include "../space/Space.hpp"
 #include "../../desktop/view/window/Window.hpp"
@@ -52,6 +53,12 @@ void CAlgorithm::removeTarget(SP<ITarget> target) {
 
     if (IS_TILED) {
         std::erase(m_tiledTargets, target);
+
+        // A suspended Dwindle tree still owns this target's split node. Remove
+        // it while the target is live so the saved tree remains valid.
+        if (auto dwindle = dynamic_cast<Tiled::CDwindleAlgorithm*>(m_suspendedDwindle.get()); dwindle && dwindle->getNodeFromWindow(target->window()))
+            m_suspendedDwindle->removeTarget(target);
+
         m_tiled->removeTarget(target);
         return;
     }
@@ -196,6 +203,22 @@ void CAlgorithm::updateFloatingAlgo(UP<IFloatingAlgorithm>&& algo) {
 void CAlgorithm::updateTiledAlgo(UP<ITiledAlgorithm>&& algo) {
     algo->m_parent = m_self;
 
+    const bool RESTORING_DWINDLE  = dynamic_cast<Tiled::CDwindleAlgorithm*>(algo.get()) && m_suspendedDwindle;
+    const bool SUSPENDING_DWINDLE = dynamic_cast<Tiled::CDwindleAlgorithm*>(m_tiled.get());
+
+    if (RESTORING_DWINDLE) {
+        // The matcher creates a fresh algorithm on every layout change. Replace
+        // that empty instance with the workspace's saved Dwindle tree.
+        algo           = std::move(m_suspendedDwindle);
+        algo->m_parent = m_self;
+    }
+
+    if (SUSPENDING_DWINDLE) {
+        // Keep the current tree intact. The other layout receives the same
+        // targets below, but Dwindle's internal split nodes remain untouched.
+        m_suspendedDwindle = std::move(m_tiled);
+    }
+
     const auto FOCUSED_WINDOW = Desktop::focusState()->window();
     const auto FOCUSED_TARGET = FOCUSED_WINDOW ? FOCUSED_WINDOW->layoutTarget() : nullptr;
 
@@ -210,14 +233,27 @@ void CAlgorithm::updateTiledAlgo(UP<ITiledAlgorithm>&& algo) {
         if (WINDOW)
             WINDOW->setHidden(false);
 
-        m_tiled->removeTarget(TARGET);
-        algo->newTarget(TARGET);
+        if (!SUSPENDING_DWINDLE)
+            m_tiled->removeTarget(TARGET);
+
+        if (RESTORING_DWINDLE) {
+            // Targets added while another layout was active have no node in
+            // the saved tree yet. Add only those; existing nodes keep their
+            // original placement, order, and split ratios.
+            auto dwindle = dynamic_cast<Tiled::CDwindleAlgorithm*>(algo.get());
+            if (!dwindle->getNodeFromWindow(TARGET->window()))
+                algo->newTarget(TARGET);
+        } else
+            algo->newTarget(TARGET);
     }
 
     if (FOCUSED_TARGET && FOCUSED_TARGET->space() == m_space && !FOCUSED_TARGET->floating())
         Desktop::focusState()->fullWindowFocus(FOCUSED_WINDOW, Desktop::eFocusReason::FOCUS_REASON_DESKTOP_STATE_CHANGE);
 
     m_tiled = std::move(algo);
+
+    if (RESTORING_DWINDLE)
+        m_tiled->recalculate();
 }
 
 const UP<ITiledAlgorithm>& CAlgorithm::tiledAlgo() const {

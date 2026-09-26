@@ -57,7 +57,10 @@ namespace Layout {
       private:
         CAlgorithm(UP<ITiledAlgorithm>&& tiled, UP<IFloatingAlgorithm>&& floating, SP<CSpace> space);
 
-        UP<ITiledAlgorithm>      m_tiled;
+        UP<ITiledAlgorithm> m_tiled;
+        // Keep Dwindle's tree while another tiled layout is active so switching
+        // back restores the workspace's previous splits and ratios.
+        UP<ITiledAlgorithm>      m_suspendedDwindle;
         UP<IFloatingAlgorithm>   m_floating;
         WP<CSpace>               m_space;
         WP<CAlgorithm>           m_self;

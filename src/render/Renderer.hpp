@@ -112,7 +112,6 @@ namespace Render {
         bool                                m_bBlockSurfaceFeedback = false;
         bool                                m_bRenderingSnapshot    = false;
         PHLMONITORREF                       m_mostHzMonitor;
-        bool                                m_directScanoutBlocked = false;
 
         void                                setSurfaceScanoutMode(SP<CWLSurfaceResource> surface, PHLMONITOR monitor); // nullptr monitor resets
 

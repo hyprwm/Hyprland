@@ -21,7 +21,6 @@ void CScreenshareManager::onOutputCommit(PHLMONITOR monitor) {
                 return;
         }
 
-        g_pHyprRenderer->m_directScanoutBlocked = false;
         return; // nothing to share
     }
 
@@ -160,6 +159,14 @@ bool CScreenshareManager::isOutputBeingSSd(PHLMONITOR monitor) {
         if (!s)
             return false;
         return s->isActive() && (s->m_type == SHARE_MONITOR || s->m_type == SHARE_REGION) && s->m_monitor == monitor;
+    });
+}
+
+bool CScreenshareManager::isOutputDSBlocked(PHLMONITOR monitor) {
+    return std::ranges::any_of(m_sessions, [monitor](const auto& s) {
+        if (!s)
+            return false;
+        return s->isActive() && !s->isStale() && s->monitor() == monitor;
     });
 }
 

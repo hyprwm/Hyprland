@@ -1,5 +1,7 @@
 #pragma once
 
+#include <hyprutils/math/Vector2D.hpp>
+
 #include <cstdint>
 
 enum eTrackpadGestureDirection : uint8_t {
@@ -15,3 +17,14 @@ enum eTrackpadGestureDirection : uint8_t {
     TRACKPAD_GESTURE_DIR_PINCH_OUT,
     TRACKPAD_GESTURE_DIR_PINCH_IN,
 };
+
+const char*               gestureDirectionToString(eTrackpadGestureDirection direction);
+eTrackpadGestureDirection gestureDirectionAxis(eTrackpadGestureDirection direction);
+bool                      gestureDirectionOvershadows(eTrackpadGestureDirection existing, eTrackpadGestureDirection candidate);
+
+struct SGestureSwipeDirection {
+    eTrackpadGestureDirection axis;
+    eTrackpadGestureDirection direction;
+};
+
+SGestureSwipeDirection gestureSwipeDirectionForDelta(const Hyprutils::Math::Vector2D& delta);

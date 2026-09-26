@@ -1,11 +1,28 @@
 #pragma once
 
 #include <cstdint>
+#include <string_view>
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/string/Numeric.hpp>
 #include <aquamarine/backend/Backend.hpp>
 
 namespace StringUtils {
+    // Whether haystack contains needle, ignoring ASCII case only; all other bytes must match exactly.
+    inline bool containsCaseInsensitive(const std::string_view haystack, const std::string_view needle) {
+        const auto lower = [](const unsigned char c) { return c >= 'A' && c <= 'Z' ? c + ('a' - 'A') : c; };
+
+        for (size_t i = 0; i + needle.size() <= haystack.size(); ++i) {
+            size_t j = 0;
+            while (j < needle.size() && lower(haystack[i + j]) == lower(needle[j]))
+                ++j;
+
+            if (j == needle.size())
+                return true;
+        }
+
+        return false;
+    }
+
     inline std::string backendStr(Aquamarine::eBackendType t) {
         switch (t) {
             case Aquamarine::AQ_BACKEND_DRM: return "drm";

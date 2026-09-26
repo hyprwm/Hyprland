@@ -20,6 +20,7 @@
 #include "../debug/log/Logger.hpp"
 #include "../protocols/types/ContentType.hpp"
 #include "../state/MonitorState.hpp"
+#include "../helpers/string/StringUtils.hpp"
 #include "OpenGL.hpp"
 #include "Renderer.hpp"
 #include "./gl/GLElementRenderer.hpp"
@@ -45,6 +46,14 @@ extern "C" {
 }
 
 CHyprGLRenderer::CHyprGLRenderer() : IHyprRenderer(), m_elementRenderer(makeUnique<CGLElementRenderer>()) {
+    // KMS can be display-only; classify the active GL renderer instead of the DRM driver.
+    g_pHyprOpenGL->makeEGLCurrent();
+    if (const auto* renderer = rc<const char*>(glGetString(GL_RENDERER))) {
+        const std::string_view name{renderer};
+        m_software = StringUtils::containsCaseInsensitive(name, "llvmpipe") || StringUtils::containsCaseInsensitive(name, "softpipe") ||
+            StringUtils::containsCaseInsensitive(name, "Software Rasterizer");
+    }
+
     refreshBlurProvider();
     m_preRenderListener = Event::bus()->m_events.render.pre.listen([this](PHLMONITOR monitor) { preRender(monitor); });
 }

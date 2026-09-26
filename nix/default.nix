@@ -97,7 +97,7 @@ in
 assert assertMsg (!nvidiaPatches) "The option `nvidiaPatches` has been removed.";
 assert assertMsg (!enableNvidiaPatches) "The option `enableNvidiaPatches` has been removed.";
 assert assertMsg (!hidpiXWayland)
-  "The option `hidpiXWayland` has been removed. Please refer https://wiki.hypr.land/Configuring/XWayland";
+  "The option `hidpiXWayland` has been removed. Please refer https://wiki.hypr.land/configuring/extra/xwayland/";
 assert assertMsg (
   !legacyRenderer
 ) "The option `legacyRenderer` has been removed. Legacy renderer is no longer supported.";

@@ -640,15 +640,21 @@ set(CMAKE_INSTALL_DEFAULT_DIRECTORY_PERMISSIONS
     GROUP_READ GROUP_EXECUTE
     WORLD_READ WORLD_EXECUTE)
 
-# binary and symlink
+# binary
 install(TARGETS Hyprland)
-
+# symlink: create link at install time, install it, and clean it up
 install(
   CODE "execute_process( \
         COMMAND ${CMAKE_COMMAND} -E create_symlink \
         ${CMAKE_INSTALL_FULL_BINDIR}/Hyprland \
-        \"\$ENV{DESTDIR}${CMAKE_INSTALL_FULL_BINDIR}/hyprland\" \
+        ${CMAKE_CURRENT_BINARY_DIR}/hyprland.link \
         )")
+install(
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/hyprland.link
+  DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}
+  RENAME hyprland)
+install(CODE "file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/hyprland.link)")
+
 # session file
 configure_file(
     ${CMAKE_SOURCE_DIR}/example/hyprland.desktop.in

@@ -55,6 +55,7 @@
 #include "../../../helpers/Color.hpp"
 #include "../../../helpers/math/Expression.hpp"
 #include "../../../render/Renderer.hpp"
+#include "../../../output/Monitor.hpp"
 #include "../../../ipc/s2/S2.hpp"
 #include "../../../managers/input/InputManager.hpp"
 #include "../../../pointer/PointerController.hpp"
@@ -608,6 +609,9 @@ void CWindow::onMap() {
 void CWindow::setHidden(bool hidden) {
     m_hidden = hidden;
 
+    if (m_workspace)
+        m_workspace->updateWindows();
+
     if (hidden)
         m_events.hide.emit();
 
@@ -640,6 +644,9 @@ bool CWindow::shouldBlur() const {
 void CWindow::onInputBlockStateUpdated(bool blocked) {
     if (blocked && Desktop::focusState()->window() == m_self)
         Desktop::focusState()->fullWindowFocus(nullptr, eFocusReason::FOCUS_REASON_SWITCH_TO_WINDOW_SOFT);
+
+    if (const auto PMONITOR = m_monitor.lock(); PMONITOR)
+        PMONITOR->updateWorkspaceRuleBlur();
 }
 
 bool CWindow::isAllowedOverFullscreen() const {

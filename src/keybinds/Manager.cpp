@@ -851,7 +851,9 @@ void CKeybindManager::updateXKBTranslationState() {
 
     if (!keymap) {
         ErrorOverlay::overlay()->queueCreate(
-            std::format("[Runtime Error] Invalid keyboard layout passed. ( rules: {}, model: {}, variant: {}, options: {}, layout: {} )", RULES, MODEL, VARIANT, OPTIONS, LAYOUT),
+            std::format("[Runtime Error] Invalid keyboard layout passed. ( rules: {}, model: {}, variant: {}, options: {}, layout: {} )\n"
+                        "List keyboard layout codes and descriptions with:\nxkbcli list | awk -F ': ' '/^- layout:/ {{c=$2}} /description:/ && c && !seen[c]++ {{print c, $2}}'",
+                        RULES, MODEL, VARIANT, OPTIONS, LAYOUT),
             ErrorOverlay::Colors::ERROR);
         rules  = {};
         keymap = xkb_keymap_new_from_names2(CONTEXT, &rules, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);

@@ -100,8 +100,10 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
         m_xkbKeymap = xkb_keymap_new_from_names2(CONTEXT, &XKBRULES, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
 
     if (!m_xkbKeymap) {
-        ErrorOverlay::overlay()->queueError(std::format("Invalid keyboard layout passed. ( rules: {}, model: {}, variant: {}, options: {}, layout: {} )", rules.rules, rules.model,
-                                                        rules.variant, rules.options, rules.layout));
+        ErrorOverlay::overlay()->queueError(
+            std::format("Invalid keyboard layout passed. ( rules: {}, model: {}, variant: {}, options: {}, layout: {} )\n"
+                        "List keyboard layout codes and descriptions with:\nxkbcli list | awk -F ': ' '/^- layout:/ {{c=$2}} /description:/ && c && !seen[c]++ {{print c, $2}}'",
+                        rules.rules, rules.model, rules.variant, rules.options, rules.layout));
 
         LOG(Log::ERR, "Keyboard layout {} with variant {} (rules: {}, model: {}, options: {}) couldn't have been loaded.", rules.layout, rules.variant, rules.rules, rules.model,
             rules.options);

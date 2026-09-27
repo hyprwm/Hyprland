@@ -168,7 +168,6 @@ static PHLWORKSPACE findOrCreateWorkspace(const std::string& args) {
 
 static PHLWORKSPACE resolveWorkspaceForChange(const std::string& args) {
     static auto PBACKANDFORTH = CConfigValue<Config::INTEGER>("binds:workspace_back_and_forth");
-    static auto PPERMONITOR   = CConfigValue<Config::INTEGER>("binds:workspace_back_and_forth_per_monitor");
 
     const auto  PMONITOR = Desktop::focusState()->monitor();
     if (!PMONITOR)
@@ -185,8 +184,8 @@ static PHLWORKSPACE resolveWorkspaceForChange(const std::string& args) {
 
     // back_and_forth: if switching to current workspace, go to previous
     if (ws == PCURRENTWORKSPACE && *PBACKANDFORTH) {
-        const auto PREVIOUS = *PPERMONITOR ? Desktop::History::workspaceTracker()->previousWorkspace(PCURRENTWORKSPACE, PMONITOR) :
-                                             Desktop::History::workspaceTracker()->previousWorkspace(PCURRENTWORKSPACE);
+        const auto PREVIOUS = *PBACKANDFORTH == 2 ? Desktop::History::workspaceTracker()->previousWorkspace(PCURRENTWORKSPACE, PMONITOR) :
+                                                    Desktop::History::workspaceTracker()->previousWorkspace(PCURRENTWORKSPACE);
 
         auto       pPrevWorkspace = findOrCreateWorkspace(PREVIOUS.target);
         if (!pPrevWorkspace)

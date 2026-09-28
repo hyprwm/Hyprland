@@ -638,15 +638,17 @@ SUBTEST(submap) {
     // submap 2 resets to submap 1
     press(KEY_U);
     EXPECT_CONTAINS(getFromSocket("/submap"), "submap2");
-    press(KEY_O);
+    press(KEY_A);
     Tests::waitUntilWindowsN(2);
     EXPECT_CONTAINS(getFromSocket("/submap"), "submap1");
+    EXPECT_NOT_CONTAINS(getFromSocket("/submap"), "submap2");
     // submap 3 resets to default
     press(KEY_I);
     EXPECT_CONTAINS(getFromSocket("/submap"), "submap3");
-    press(KEY_O);
+    press(KEY_B);
     Tests::waitUntilWindowsN(3);
     EXPECT_CONTAINS(getFromSocket("/submap"), "default");
+    EXPECT_NOT_CONTAINS(getFromSocket("/submap"), "submap3");
     // submap 1 reset via keybind
     press(KEY_U, MOD_META);
     EXPECT_CONTAINS(getFromSocket("/submap"), "submap1");
@@ -658,10 +660,41 @@ SUBTEST(submap) {
     EXPECT_CONTAINS(getFromSocket("/submap"), "submap1");
     press(KEY_U, MOD_META);
     EXPECT_CONTAINS(getFromSocket("/submap"), "submap3");
-    press(KEY_O);
+    press(KEY_B);
     Tests::waitUntilWindowsN(4);
     EXPECT_CONTAINS(getFromSocket("/submap"), "default");
     Tests::killAllWindows();
+}
+
+SUBTEST(multiSubmap) {
+    NLog::log("{}Testing multi-submaps", Colors::GREEN);
+
+    const auto press = [this](const uint32_t key, const uint32_t mod = 0) {
+        // +8 because udev -> XKB keycode.
+        OK(getFromSocket(pluginKeybindCmd(true, mod, key + 8)));
+        OK(getFromSocket(pluginKeybindCmd(false, mod, key + 8)));
+    };
+
+    press(KEY_U, MOD_META);
+    ASSERT_CONTAINS(getFromSocket("/submap"), "submap1");
+
+    press(KEY_U);
+    EXPECT_CONTAINS(getFromSocket("/submap"), "submap1");
+    EXPECT_CONTAINS(getFromSocket("/submap"), "submap2");
+
+    press(KEY_A);
+    Tests::waitUntilWindowsN(1);
+    EXPECT_CONTAINS(getFromSocket("/submap"), "submap1");
+    EXPECT_NOT_CONTAINS(getFromSocket("/submap"), "submap2");
+
+    press(KEY_U, MOD_META);
+    EXPECT_CONTAINS(getFromSocket("/submap"), "submap1");
+    EXPECT_CONTAINS(getFromSocket("/submap"), "submap3");
+
+    press(KEY_B);
+    Tests::waitUntilWindowsN(2);
+    EXPECT_NOT_CONTAINS(getFromSocket("/submap"), "submap1");
+    EXPECT_NOT_CONTAINS(getFromSocket("/submap"), "submap3");
 }
 
 SUBTEST(submapMouseBinds) {
@@ -859,6 +892,7 @@ TEST_CASE(keybinds) {
     CALL_SUBTEST(shortcutRepeat);
     CALL_SUBTEST(shortcutRepeatKeyRelease);
     CALL_SUBTEST(submap);
+    CALL_SUBTEST(multiSubmap);
     CALL_SUBTEST(perDeviceSubmap);
     CALL_SUBTEST(submapMouseBinds);
     CALL_SUBTEST(submapUniversal);

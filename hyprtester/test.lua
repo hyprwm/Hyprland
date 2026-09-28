@@ -232,11 +232,11 @@ hl.define_submap("submap1", function()
 end)
 
 hl.define_submap("submap2", "submap1", function()
-    hl.bind("o", hl.dsp.exec_cmd(terminal))
+    hl.bind("a", hl.dsp.exec_cmd(terminal))
 end)
 
 hl.define_submap("submap3", "reset", function()
-    hl.bind("o", hl.dsp.exec_cmd(terminal))
+    hl.bind("b", hl.dsp.exec_cmd(terminal))
 end)
 
 hl.define_submap("keyboard-submap", function()

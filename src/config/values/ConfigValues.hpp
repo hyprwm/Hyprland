@@ -157,6 +157,7 @@ namespace Config::Values {
         "input:touchdevice:output",
         "input:tablet:output",
         "input:touchdevice:enabled",
+        "input:tablet:enabled",
         "input:tablet:region_position",
         "input:tablet:absolute_region_position",
         "input:tablet:region_size",

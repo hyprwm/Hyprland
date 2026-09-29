@@ -1154,6 +1154,9 @@ void CPointerManager::attachTablet(SP<CTablet> tablet) {
     listener->axis = tablet->m_tabletEvents.axis.listen([](const CTablet::SAxisEvent& event) {
         g_pInputManager->onTabletAxis(event);
 
+        if (!event.tablet->m_enabled)
+            return;
+
         PROTO::idle->onActivity();
 
         if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS) // NOLINTNEXTLINE
@@ -1162,11 +1165,18 @@ void CPointerManager::attachTablet(SP<CTablet> tablet) {
 
     listener->proximity = tablet->m_tabletEvents.proximity.listen([](const CTablet::SProximityEvent& event) {
         g_pInputManager->onTabletProximity(event);
+
+        if (!event.tablet->m_enabled)
+            return;
+
         PROTO::idle->onActivity();
     });
 
     listener->tip = tablet->m_tabletEvents.tip.listen([](const CTablet::STipEvent& event) {
         g_pInputManager->onTabletTip(event);
+
+        if (!event.tablet->m_enabled)
+            return;
 
         PROTO::idle->onActivity();
 
@@ -1176,6 +1186,10 @@ void CPointerManager::attachTablet(SP<CTablet> tablet) {
 
     listener->button = tablet->m_tabletEvents.button.listen([](const CTablet::SButtonEvent& event) {
         g_pInputManager->onTabletButton(event);
+
+        if (!event.tablet->m_enabled)
+            return;
+
         PROTO::idle->onActivity();
     });
     // clang-format on

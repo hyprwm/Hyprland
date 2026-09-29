@@ -2104,6 +2104,8 @@ void CInputManager::setTouchDeviceConfigs(SP<ITouch> dev) {
 
 void CInputManager::setTabletConfigs() {
     for (auto const& t : m_tablets) {
+        t->m_enabled = Config::mgr()->getDeviceInt(t->m_hlName, "enabled", "input:tablet:enabled") != 0;
+
         if (t->aq()->getLibinputHandle()) {
             const auto NAME        = t->m_hlName;
             const auto LIBINPUTDEV = t->aq()->getLibinputHandle();

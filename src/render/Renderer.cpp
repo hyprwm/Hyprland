@@ -787,17 +787,18 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
             if (pWindow->m_ruleApplicator->nearestNeighbor().valueOrDefault())
                 renderdata.useNearestNeighbor = true;
 
-            renderdata.surfaceCounter = 0;
+            renderdata.surfaceCounter  = 0;
+            const auto PARENTFADEALPHA = renderdata.fadeAlpha;
 
             pWindow->popupHead()->breadthfirst(
-                [this, &renderdata](WP<Desktop::View::CPopup> popup, void* data) {
+                [this, &renderdata, PARENTFADEALPHA](WP<Desktop::View::CPopup> popup, void* data) {
                     if (!popup->mapped() || !popup->acceptsInput() || !popup->alphaNonZero())
                         return;
 
                     const auto     pos    = popup->coordsRelativeToParent();
                     const Vector2D oldPos = renderdata.pos;
                     renderdata.pos += pos;
-                    renderdata.fadeAlpha = popup->alpha()[POPUP_ALPHA_FADE]->value();
+                    renderdata.fadeAlpha = PARENTFADEALPHA * popup->alpha()[POPUP_ALPHA_FADE]->value();
 
                     popup->wlSurface()->resource()->breadthfirst(
                         [this, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
@@ -820,7 +821,8 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
                 },
                 &renderdata);
 
-            renderdata.alpha = 1.F;
+            renderdata.fadeAlpha = PARENTFADEALPHA;
+            renderdata.alpha     = 1.F;
         }
 
         if (decorate) {

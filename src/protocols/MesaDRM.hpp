@@ -9,7 +9,7 @@
 
 class CMesaDRMBufferResource {
   public:
-    CMesaDRMBufferResource(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs attrs);
+    CMesaDRMBufferResource(uint32_t id, wl_client* client, const Aquamarine::SDMABUFAttrs& attrs, std::array<Hyprutils::OS::CFileDescriptor, 4> fds);
     ~CMesaDRMBufferResource();
 
     bool good();

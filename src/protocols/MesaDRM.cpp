@@ -6,13 +6,13 @@
 #include "types/WLBuffer.hpp"
 #include "../render/OpenGL.hpp"
 
-CMesaDRMBufferResource::CMesaDRMBufferResource(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs attrs_) {
+CMesaDRMBufferResource::CMesaDRMBufferResource(uint32_t id, wl_client* client, const Aquamarine::SDMABUFAttrs& attrs_, std::array<Hyprutils::OS::CFileDescriptor, 4> fds) {
     LOG(Log::DEBUG, "Creating a Mesa dmabuf, with id {}: size {}, fmt {}, planes {}", id, attrs_.size, attrs_.format, attrs_.planes);
     for (int i = 0; i < attrs_.planes; ++i) {
         LOG(Log::DEBUG, " | plane {}: mod {} fd {} stride {} offset {}", i, attrs_.modifier, attrs_.fds[i], attrs_.strides[i], attrs_.offsets[i]);
     }
 
-    m_buffer                       = makeShared<CDMABuffer>(id, client, attrs_);
+    m_buffer                       = makeShared<CDMABuffer>(id, client, attrs_, std::move(fds));
     m_buffer->m_resource->m_buffer = m_buffer;
 
     m_listeners.bufferResourceDestroy = m_buffer->events.destroy.listen([this] {
@@ -55,6 +55,9 @@ CMesaDRMResource::CMesaDRMResource(SP<CWlDrm> resource_) : m_resource(resource_)
 
     m_resource->setCreatePrimeBuffer(
         [this](CWlDrm* r, uint32_t id, int32_t nameFd, int32_t w, int32_t h, uint32_t fmt, int32_t off0, int32_t str0, int32_t off1, int32_t str1, int32_t off2, int32_t str2) {
+            std::array<Hyprutils::OS::CFileDescriptor, 4> fds;
+            fds[0] = Hyprutils::OS::CFileDescriptor{nameFd};
+
             if (off0 < 0 || w <= 0 || h <= 0) {
                 r->error(WL_DRM_ERROR_INVALID_FORMAT, "Invalid w, h, or offset");
                 return;
@@ -87,7 +90,7 @@ CMesaDRMResource::CMesaDRMResource(SP<CWlDrm> resource_) : m_resource(resource_)
             attrs.fds[0]     = nameFd;
             attrs.format     = fmt;
 
-            const auto RESOURCE = PROTO::mesaDRM->m_buffers.emplace_back(makeShared<CMesaDRMBufferResource>(id, m_resource->client(), attrs));
+            const auto RESOURCE = PROTO::mesaDRM->m_buffers.emplace_back(makeShared<CMesaDRMBufferResource>(id, m_resource->client(), attrs, std::move(fds)));
 
             if UNLIKELY (!RESOURCE->good()) {
                 r->noMemory();

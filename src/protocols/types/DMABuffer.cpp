@@ -9,7 +9,10 @@
 using namespace Hyprutils::OS;
 using namespace Hyprgraphics::Egl;
 
-CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs const& attrs_) : m_attrs(attrs_) {
+CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, const Aquamarine::SDMABUFAttrs& attrs_, std::array<CFileDescriptor, 4> fds) : m_attrs(attrs_), m_fds(std::move(fds)) {
+    for (size_t i = 0; i < m_fds.size(); ++i)
+        m_attrs.fds[i] = m_fds[i].get();
+
     m_listeners.resourceDestroy = events.destroy.listen([this] {
         closeFDs();
         m_listeners.resourceDestroy.reset();
@@ -17,8 +20,11 @@ CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs 
 
     size       = m_attrs.size;
     m_resource = CWLBufferResource::create(makeShared<CWlBuffer>(client, 1, id));
-    m_opaque   = isDrmFormatOpaque(m_attrs.format);
-    m_texture  = g_pHyprRenderer->createTexture(m_attrs, m_opaque); // texture takes ownership of the eglImage
+    if UNLIKELY (!m_resource->good())
+        return;
+
+    m_opaque  = isDrmFormatOpaque(m_attrs.format);
+    m_texture = g_pHyprRenderer->createTexture(m_attrs, m_opaque); // texture takes ownership of the eglImage
 
     if UNLIKELY (!m_texture) {
         LOG(Log::ERR, "CDMABuffer: failed to import EGLImage, retrying as implicit");
@@ -78,12 +84,10 @@ bool CDMABuffer::good() {
 }
 
 void CDMABuffer::closeFDs() {
-    for (int i = 0; i < m_attrs.planes; ++i) {
-        if (m_attrs.fds[i] == -1)
-            continue;
-        close(m_attrs.fds[i]);
-        m_attrs.fds[i] = -1;
-    }
+    for (auto& fd : m_fds)
+        fd.reset();
+
+    m_attrs.fds.fill(-1);
     m_attrs.planes = 0;
 }
 

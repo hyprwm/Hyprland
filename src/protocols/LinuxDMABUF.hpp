@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <array>
 #include <cstdint>
 #include "WaylandProtocol.hpp"
 #include "wayland.hpp"
@@ -16,7 +17,7 @@ class CWLSurfaceResource;
 
 class CLinuxDMABuffer {
   public:
-    CLinuxDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs attrs);
+    CLinuxDMABuffer(uint32_t id, wl_client* client, const Aquamarine::SDMABUFAttrs& attrs, std::array<Hyprutils::OS::CFileDescriptor, 4> fds);
     ~CLinuxDMABuffer();
 
     bool good();
@@ -71,9 +72,11 @@ class CLinuxDMABUFParamsResource {
 
   private:
     UP<CZwpLinuxBufferParamsV1> m_resource;
+    // m_attrs contains borrowed descriptors, owned here until buffer construction.
+    std::array<Hyprutils::OS::CFileDescriptor, 4> m_fds;
 
-    bool                        verify();
-    bool                        commence();
+    bool                                          verify();
+    bool                                          commence();
 };
 
 class CLinuxDMABUFFeedbackResource {

@@ -1029,6 +1029,20 @@ static int luaTestDragLifecycle(lua_State* L) {
     return luaResult(L, ::testDragLifecycle(luaL_checkstring(L, 1)));
 }
 
+static int luaExpectDragState(lua_State* L) {
+    luaL_checktype(L, 1, LUA_TBOOLEAN);
+    luaL_checktype(L, 2, LUA_TBOOLEAN);
+    const bool  ACTIVE     = lua_toboolean(L, 1);
+    const bool  REACHED    = lua_toboolean(L, 2);
+    const auto& CONTROLLER = g_layoutManager->dragController();
+    return luaResult(
+        L,
+        {
+            .success = !!CONTROLLER->target() == ACTIVE && CONTROLLER->dragThresholdReached() == REACHED,
+            .error   = std::format("Expected drag active {} threshold {}, got active {} threshold {}", ACTIVE, REACHED, !!CONTROLLER->target(), CONTROLLER->dragThresholdReached()),
+        });
+}
+
 static int luaTestPinchDeltaScale(lua_State* L) {
     return luaResult(L, ::testPinchDeltaScale(luaL_checknumber(L, 1)));
 }
@@ -1207,6 +1221,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     addLuaFn("check_monitor_render_recording", ::luaCheckMonitorRenderRecording);
     addLuaFn("reset_monitor_render_recording", ::luaResetMonitorRenderRecording);
     addLuaFn("test_drag_lifecycle", ::luaTestDragLifecycle);
+    addLuaFn("expect_drag_state", ::luaExpectDragState);
     addLuaFn("test_pinch_delta_scale", ::luaTestPinchDeltaScale);
     addLuaFn("vkb", ::luaVkb);
     addLuaFn("alt", ::luaAlt);

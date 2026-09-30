@@ -18,36 +18,80 @@ bool CUnifiedWorkspaceSwipeGesture::isGestureInProgress() {
     return !!m_workspaceBegin;
 }
 
-void CUnifiedWorkspaceSwipeGesture::acquire(PHLWORKSPACE workspace) {
-    if (!workspace)
-        return;
+uint64_t CUnifiedWorkspaceSwipeGesture::sessionID() const {
+    return m_sessionID;
+}
 
-    if (std::ranges::none_of(m_participants, [&workspace](const auto& participant) { return participant.workspace == workspace; }))
-        m_participants.emplace_back(SParticipant{
-            .workspace = workspace,
-            .offset    = workspace->m_renderOffset->goal(),
-            .alpha     = workspace->m_alpha->goal(),
-            .forced    = workspace->m_forceRendering,
-        });
+bool CUnifiedWorkspaceSwipeGesture::validOrigin() const {
+    const auto MONITOR = m_monitor.lock();
+    return MONITOR && MONITOR->m_enabled && m_workspaceBegin && m_workspaceBegin->m_monitor == MONITOR && MONITOR->m_activeWorkspace == m_workspaceBegin;
+}
 
+void CUnifiedWorkspaceSwipeGesture::resetListeners() {
+    m_listeners.monitorDisconnect.reset();
+    m_listeners.monitorDestroy.reset();
+    m_listeners.workspaceMonitorChanged.reset();
+    m_listeners.workspaceActiveChanged.reset();
+}
+
+CUnifiedWorkspaceSwipeGesture::SParticipant& CUnifiedWorkspaceSwipeGesture::acquire(PHLWORKSPACE workspace) {
+    const auto IT = std::ranges::find_if(m_participants, [&workspace](const auto& participant) { return participant.workspace == workspace; });
+    if (IT != m_participants.end()) {
+        workspace->m_forceRendering = true;
+        return *IT;
+    }
+
+    auto& participant           = m_participants.emplace_back(SParticipant{
+        .workspace = workspace,
+        .offset    = workspace->m_renderOffset->goal(),
+        .alpha     = workspace->m_alpha->goal(),
+        .forced    = workspace->m_forceRendering,
+    });
     workspace->m_forceRendering = true;
+    return participant;
+}
+
+void CUnifiedWorkspaceSwipeGesture::setPreviewOffset(PHLWORKSPACE workspace, const Vector2D& offset) {
+    acquire(workspace).previewOffset = offset;
+    workspace->m_renderOffset->setValueAndWarp(offset);
+}
+
+void CUnifiedWorkspaceSwipeGesture::setPreviewAlpha(PHLWORKSPACE workspace, float alpha) {
+    acquire(workspace).previewAlpha = alpha;
+    workspace->m_alpha->setValueAndWarp(alpha);
 }
 
 void CUnifiedWorkspaceSwipeGesture::restore(const SParticipant& participant) {
     const auto WORKSPACE = participant.workspace.lock();
-    const auto MONITOR   = m_monitor.lock();
-    if (!WORKSPACE || !MONITOR || WORKSPACE->m_monitor != MONITOR)
+    const auto MONITOR   = WORKSPACE ? WORKSPACE->m_monitor.lock() : nullptr;
+    if (!WORKSPACE || !MONITOR)
         return;
-    if (WORKSPACE == m_workspaceBegin ? MONITOR->m_activeWorkspace != WORKSPACE : WORKSPACE->visible())
-        return; // Placement or activation has superseded this preview.
+    if (WORKSPACE != m_workspaceBegin && (WORKSPACE->visible() || MONITOR->m_activeWorkspace == WORKSPACE))
+        return; // An activated neighbor must not regain its hidden preview baseline.
 
+    // Placement may move an untouched preview or replace it with a new animation.
+    // Restore only properties that still belong to this gesture, independently.
+    const bool OFFSET = participant.previewOffset && !WORKSPACE->m_renderOffset->isBeingAnimated() && WORKSPACE->m_renderOffset->value() == *participant.previewOffset &&
+        WORKSPACE->m_renderOffset->goal() == *participant.previewOffset;
+    const bool ALPHA = participant.previewAlpha && !WORKSPACE->m_alpha->isBeingAnimated() && WORKSPACE->m_alpha->value() == *participant.previewAlpha &&
+        WORKSPACE->m_alpha->goal() == *participant.previewAlpha;
+    if (!OFFSET && !ALPHA)
+        return;
+
+    if (const auto ORIGINAL = m_monitor.lock(); ORIGINAL && ORIGINAL != MONITOR)
+        g_pHyprRenderer->damageMonitor(ORIGINAL);
     g_pHyprRenderer->damageMonitor(MONITOR);
-    WORKSPACE->m_renderOffset->setValueAndWarp(participant.offset);
-    WORKSPACE->m_alpha->setValueAndWarp(participant.alpha);
+    if (OFFSET)
+        WORKSPACE->m_renderOffset->setValueAndWarp(participant.offset);
+    if (ALPHA)
+        WORKSPACE->m_alpha->setValueAndWarp(participant.alpha);
     WORKSPACE->updateWindowDecos();
 }
 
 void CUnifiedWorkspaceSwipeGesture::release(PHLWORKSPACE workspace) {
+    if (!workspace)
+        return;
+
     const auto IT = std::ranges::find_if(m_participants, [&workspace](const auto& participant) { return participant.workspace == workspace; });
     if (IT == m_participants.end())
         return;
@@ -101,15 +145,18 @@ void CUnifiedWorkspaceSwipeGesture::restoreLayers() {
 }
 
 void CUnifiedWorkspaceSwipeGesture::reset() {
+    resetListeners();
     m_workspaceBegin.reset();
     m_monitor.reset();
     m_delta            = 0;
     m_initialDirection = 0;
     m_avgSpeed         = 0;
     m_speedPoints      = 0;
+    m_sessionID        = 0;
 }
 
 void CUnifiedWorkspaceSwipeGesture::cancel() {
+    resetListeners();
     for (const auto& participant : m_participants) {
         restore(participant);
         if (const auto WORKSPACE = participant.workspace.lock())
@@ -121,22 +168,37 @@ void CUnifiedWorkspaceSwipeGesture::cancel() {
 }
 
 void CUnifiedWorkspaceSwipeGesture::begin() {
-    if (isGestureInProgress())
-        return;
+    begin(Desktop::focusState()->monitor());
+}
 
-    const auto MONITOR = Desktop::focusState()->monitor();
-    if (!MONITOR || !MONITOR->m_activeWorkspace)
-        return;
+bool CUnifiedWorkspaceSwipeGesture::begin(PHLMONITOR monitor) {
+    if (isGestureInProgress())
+        return false;
+
+    const auto MONITOR = monitor;
+    if (!MONITOR || !MONITOR->m_enabled || !MONITOR->m_activeWorkspace)
+        return false;
 
     const auto PWORKSPACE = MONITOR->m_activeWorkspace;
 
     LOG(Log::DEBUG, "CUnifiedWorkspaceSwipeGesture::begin: Starting a swipe from {}", PWORKSPACE->displayName());
 
-    m_workspaceBegin = PWORKSPACE;
-    m_delta          = 0;
-    m_monitor        = MONITOR;
-    m_avgSpeed       = 0;
-    m_speedPoints    = 0;
+    m_workspaceBegin   = PWORKSPACE;
+    m_delta            = 0;
+    m_monitor          = MONITOR;
+    m_avgSpeed         = 0;
+    m_speedPoints      = 0;
+    m_initialDirection = 0;
+    m_sessionID        = ++m_sessionSerial;
+
+    const auto VALIDATE = [this] {
+        if (!validOrigin())
+            cancel();
+    };
+    m_listeners.monitorDisconnect       = MONITOR->m_events.disconnect.listen([this] { cancel(); });
+    m_listeners.monitorDestroy          = MONITOR->m_events.destroy.listen([this] { cancel(); });
+    m_listeners.workspaceMonitorChanged = PWORKSPACE->m_events.monitorChanged.listen(VALIDATE);
+    m_listeners.workspaceActiveChanged  = PWORKSPACE->m_events.activeChanged.listen(VALIDATE);
 
     const auto FSWINDOW         = Fullscreen::controller()->getFullscreenWindow(PWORKSPACE);
     const auto INTERNAL_FS_MODE = FSWINDOW ? Fullscreen::controller()->getFullscreenModes(FSWINDOW).internal : Fullscreen::FSMODE_NONE;
@@ -146,12 +208,13 @@ void CUnifiedWorkspaceSwipeGesture::begin() {
             *ls->alpha()[Desktop::View::LS_ALPHA_FADE] = 1.F;
         }
     }
+    return true;
 }
 
 void CUnifiedWorkspaceSwipeGesture::update(double delta) {
     if (!isGestureInProgress())
         return;
-    if (!m_monitor) {
+    if (!validOrigin()) {
         cancel();
         return;
     }
@@ -175,8 +238,8 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
     m_avgSpeed = (m_avgSpeed * m_speedPoints + abs(d)) / (m_speedPoints + 1);
     m_speedPoints++;
 
-    auto workspaceLeft  = State::Workspace::resolver()->getWorkspaceTargetFromString((*PSWIPEUSER ? "r-1" : "m-1"));
-    auto workspaceRight = State::Workspace::resolver()->getWorkspaceTargetFromString((*PSWIPEUSER ? "r+1" : "m+1"));
+    auto workspaceLeft  = State::Workspace::resolver()->getWorkspaceTargetFromString((*PSWIPEUSER ? "r-1" : "m-1"), m_monitor.lock());
+    auto workspaceRight = State::Workspace::resolver()->getWorkspaceTargetFromString((*PSWIPEUSER ? "r+1" : "m+1"), m_monitor.lock());
 
     if (!workspaceLeft.valid() || !workspaceRight.valid() || (sameWorkspaceIdentity(workspaceLeft, m_workspaceBegin) && !*PSWIPENEW)) {
         cancel();
@@ -197,7 +260,7 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
         m_delta = 0;
         releaseOtherParticipants(nullptr);
         g_pHyprRenderer->damageMonitor(m_monitor.lock());
-        m_workspaceBegin->m_renderOffset->setValueAndWarp(Vector2D(0.0, 0.0));
+        setPreviewOffset(m_workspaceBegin, Vector2D(0.0, 0.0));
         return;
     }
 
@@ -218,9 +281,9 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
                 g_pHyprRenderer->damageMonitor(m_monitor.lock());
 
                 if (VERTANIMS)
-                    m_workspaceBegin->m_renderOffset->setValueAndWarp(Vector2D(0.0, ((-m_delta) / SWIPEDISTANCE) * YDISTANCE));
+                    setPreviewOffset(m_workspaceBegin, Vector2D(0.0, ((-m_delta) / SWIPEDISTANCE) * YDISTANCE));
                 else
-                    m_workspaceBegin->m_renderOffset->setValueAndWarp(Vector2D(((-m_delta) / SWIPEDISTANCE) * XDISTANCE, 0.0));
+                    setPreviewOffset(m_workspaceBegin, Vector2D(((-m_delta) / SWIPEDISTANCE) * XDISTANCE, 0.0));
 
                 m_workspaceBegin->updateWindowDecos();
                 return;
@@ -229,15 +292,14 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
             return;
         }
 
-        acquire(PWORKSPACE);
-        PWORKSPACE->m_alpha->setValueAndWarp(1.f);
+        setPreviewAlpha(PWORKSPACE, 1.f);
 
         if (VERTANIMS) {
-            PWORKSPACE->m_renderOffset->setValueAndWarp(Vector2D(0.0, ((-m_delta) / SWIPEDISTANCE) * YDISTANCE - YDISTANCE));
-            m_workspaceBegin->m_renderOffset->setValueAndWarp(Vector2D(0.0, ((-m_delta) / SWIPEDISTANCE) * YDISTANCE));
+            setPreviewOffset(PWORKSPACE, Vector2D(0.0, ((-m_delta) / SWIPEDISTANCE) * YDISTANCE - YDISTANCE));
+            setPreviewOffset(m_workspaceBegin, Vector2D(0.0, ((-m_delta) / SWIPEDISTANCE) * YDISTANCE));
         } else {
-            PWORKSPACE->m_renderOffset->setValueAndWarp(Vector2D(((-m_delta) / SWIPEDISTANCE) * XDISTANCE - XDISTANCE, 0.0));
-            m_workspaceBegin->m_renderOffset->setValueAndWarp(Vector2D(((-m_delta) / SWIPEDISTANCE) * XDISTANCE, 0.0));
+            setPreviewOffset(PWORKSPACE, Vector2D(((-m_delta) / SWIPEDISTANCE) * XDISTANCE - XDISTANCE, 0.0));
+            setPreviewOffset(m_workspaceBegin, Vector2D(((-m_delta) / SWIPEDISTANCE) * XDISTANCE, 0.0));
         }
 
         PWORKSPACE->updateWindowDecos();
@@ -249,9 +311,9 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
                 g_pHyprRenderer->damageMonitor(m_monitor.lock());
 
                 if (VERTANIMS)
-                    m_workspaceBegin->m_renderOffset->setValueAndWarp(Vector2D(0.0, ((-m_delta) / SWIPEDISTANCE) * YDISTANCE));
+                    setPreviewOffset(m_workspaceBegin, Vector2D(0.0, ((-m_delta) / SWIPEDISTANCE) * YDISTANCE));
                 else
-                    m_workspaceBegin->m_renderOffset->setValueAndWarp(Vector2D(((-m_delta) / SWIPEDISTANCE) * XDISTANCE, 0.0));
+                    setPreviewOffset(m_workspaceBegin, Vector2D(((-m_delta) / SWIPEDISTANCE) * XDISTANCE, 0.0));
 
                 m_workspaceBegin->updateWindowDecos();
                 return;
@@ -260,15 +322,14 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
             return;
         }
 
-        acquire(PWORKSPACE);
-        PWORKSPACE->m_alpha->setValueAndWarp(1.f);
+        setPreviewAlpha(PWORKSPACE, 1.f);
 
         if (VERTANIMS) {
-            PWORKSPACE->m_renderOffset->setValueAndWarp(Vector2D(0.0, ((-m_delta) / SWIPEDISTANCE) * YDISTANCE + YDISTANCE));
-            m_workspaceBegin->m_renderOffset->setValueAndWarp(Vector2D(0.0, ((-m_delta) / SWIPEDISTANCE) * YDISTANCE));
+            setPreviewOffset(PWORKSPACE, Vector2D(0.0, ((-m_delta) / SWIPEDISTANCE) * YDISTANCE + YDISTANCE));
+            setPreviewOffset(m_workspaceBegin, Vector2D(0.0, ((-m_delta) / SWIPEDISTANCE) * YDISTANCE));
         } else {
-            PWORKSPACE->m_renderOffset->setValueAndWarp(Vector2D(((-m_delta) / SWIPEDISTANCE) * XDISTANCE + XDISTANCE, 0.0));
-            m_workspaceBegin->m_renderOffset->setValueAndWarp(Vector2D(((-m_delta) / SWIPEDISTANCE) * XDISTANCE, 0.0));
+            setPreviewOffset(PWORKSPACE, Vector2D(((-m_delta) / SWIPEDISTANCE) * XDISTANCE + XDISTANCE, 0.0));
+            setPreviewOffset(m_workspaceBegin, Vector2D(((-m_delta) / SWIPEDISTANCE) * XDISTANCE, 0.0));
         }
 
         PWORKSPACE->updateWindowDecos();
@@ -280,19 +341,32 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
 
     if (*PSWIPEFOREVER) {
         if (abs(m_delta) >= SWIPEDISTANCE) {
-            end();
-            begin();
+            const auto MONITOR = m_monitor.lock();
+            const auto SESSION = m_sessionID;
+            const auto SERIAL  = m_sessionSerial;
+            // Refocus callbacks may start (and even finish) a replacement after our reset.
+            if (endSegment() && !isGestureInProgress() && m_sessionSerial == SERIAL && begin(MONITOR))
+                m_sessionID = SESSION;
         }
     }
 }
 
 void CUnifiedWorkspaceSwipeGesture::end() {
+    endSegment();
+}
+
+bool CUnifiedWorkspaceSwipeGesture::endSegment() {
     if (!isGestureInProgress())
-        return;
-    if (!m_monitor) {
+        return false;
+    if (!validOrigin()) {
         cancel();
-        return;
+        return false;
     }
+
+    const auto  SESSION      = m_sessionID;
+    const auto  ORIGIN       = m_workspaceBegin;
+    const auto  MONITOR      = m_monitor.lock();
+    const auto  OWNS_SESSION = [this, SESSION, &ORIGIN, &MONITOR] { return m_sessionID == SESSION && m_workspaceBegin == ORIGIN && m_monitor == MONITOR; };
 
     static auto PSWIPEPERC    = CConfigValue<Config::FLOAT>("gestures:workspace_swipe_cancel_ratio");
     static auto PSWIPEDIST    = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_distance");
@@ -304,8 +378,8 @@ void CUnifiedWorkspaceSwipeGesture::end() {
     const bool  VERTANIMS     = ANIMSTYLE == "slidevert" || ANIMSTYLE.starts_with("slidefadevert");
 
     // commit
-    auto       workspaceLeft  = State::Workspace::resolver()->getWorkspaceTargetFromString((*PSWIPEUSER ? "r-1" : "m-1"));
-    auto       workspaceRight = State::Workspace::resolver()->getWorkspaceTargetFromString((*PSWIPEUSER ? "r+1" : "m+1"));
+    auto       workspaceLeft  = State::Workspace::resolver()->getWorkspaceTargetFromString((*PSWIPEUSER ? "r-1" : "m-1"), m_monitor.lock());
+    auto       workspaceRight = State::Workspace::resolver()->getWorkspaceTargetFromString((*PSWIPEUSER ? "r+1" : "m+1"), m_monitor.lock());
     const auto SWIPEDISTANCE  = std::clamp(*PSWIPEDIST, sc<int64_t>(1LL), sc<int64_t>(UINT32_MAX));
 
     // If we've been swiping off the right end with PSWIPENEW enabled, there is
@@ -313,12 +387,15 @@ void CUnifiedWorkspaceSwipeGesture::end() {
     const auto BEGIN_ID = m_workspaceBegin->numberedID();
     const auto RIGHT_ID = workspaceRight.id ? std::get_if<Workspace::SWorkspaceNumberedID>(&*workspaceRight.id) : nullptr;
     if (BEGIN_ID && RIGHT_ID && RIGHT_ID->value <= *BEGIN_ID && *PSWIPENEW)
-        workspaceRight = State::Workspace::resolver()->getWorkspaceTargetFromString("r+1");
+        workspaceRight = State::Workspace::resolver()->getWorkspaceTargetFromString("r+1", m_monitor.lock());
 
     if (!workspaceLeft.valid() || !workspaceRight.valid()) {
         cancel();
-        return;
+        return false;
     }
+
+    // Our own activation emits the same signals that invalidate an externally replaced session.
+    resetListeners();
 
     auto       PWORKSPACER = State::Workspace::state()->find(workspaceRight); // not guaranteed if PSWIPENEW || PSWIPENUMBER
     auto       PWORKSPACEL = State::Workspace::state()->find(workspaceLeft);  // not guaranteed if PSWIPENUMBER
@@ -338,7 +415,6 @@ void CUnifiedWorkspaceSwipeGesture::end() {
         } else {
             if (m_delta < 0) {
                 // to left
-
                 if (PWORKSPACEL) {
                     if (VERTANIMS)
                         *PWORKSPACEL->m_renderOffset = Vector2D{0.0, -YDISTANCE};
@@ -355,20 +431,26 @@ void CUnifiedWorkspaceSwipeGesture::end() {
 
             *m_workspaceBegin->m_renderOffset = Vector2D();
         }
-
     } else if (m_delta < 0) {
         // switch to left
         const auto RENDEROFFSET = PWORKSPACEL ? PWORKSPACEL->m_renderOffset->value() : Vector2D();
 
-        if (PWORKSPACEL)
-            m_monitor->changeWorkspace(PWORKSPACEL);
-        else {
-            PWORKSPACEL = State::Workspace::state()->create(workspaceLeft, m_monitor.lock());
-            if (!PWORKSPACEL) {
+        if (!PWORKSPACEL) {
+            PWORKSPACEL = State::Workspace::state()->create(workspaceLeft, MONITOR);
+            if (!OWNS_SESSION())
+                return false;
+            if (!PWORKSPACEL || !validOrigin()) {
                 cancel();
-                return;
+                return false;
             }
-            m_monitor->changeWorkspace(PWORKSPACEL);
+        }
+        MONITOR->changeWorkspace(PWORKSPACEL);
+        if (!OWNS_SESSION())
+            return false;
+
+        if (!MONITOR->m_enabled || ORIGIN->m_monitor != MONITOR || MONITOR->m_activeWorkspace != PWORKSPACEL) {
+            cancel();
+            return false;
         }
 
         if (PWORKSPACEL) {
@@ -386,20 +468,26 @@ void CUnifiedWorkspaceSwipeGesture::end() {
         g_pInputManager->unconstrainMouse();
 
         LOG(Log::DEBUG, "Ended swipe to the left");
-
     } else {
         // switch to right
         const auto RENDEROFFSET = PWORKSPACER ? PWORKSPACER->m_renderOffset->value() : Vector2D();
 
-        if (PWORKSPACER)
-            m_monitor->changeWorkspace(PWORKSPACER);
-        else {
-            PWORKSPACER = State::Workspace::state()->create(workspaceRight, m_monitor.lock());
-            if (!PWORKSPACER) {
+        if (!PWORKSPACER) {
+            PWORKSPACER = State::Workspace::state()->create(workspaceRight, MONITOR);
+            if (!OWNS_SESSION())
+                return false;
+            if (!PWORKSPACER || !validOrigin()) {
                 cancel();
-                return;
+                return false;
             }
-            m_monitor->changeWorkspace(PWORKSPACER);
+        }
+        MONITOR->changeWorkspace(PWORKSPACER);
+        if (!OWNS_SESSION())
+            return false;
+
+        if (!MONITOR->m_enabled || ORIGIN->m_monitor != MONITOR || MONITOR->m_activeWorkspace != PWORKSPACER) {
+            cancel();
+            return false;
         }
 
         if (PWORKSPACER) {
@@ -425,4 +513,5 @@ void CUnifiedWorkspaceSwipeGesture::end() {
     restoreLayers();
     reset();
     g_pInputManager->refocus();
+    return true;
 }

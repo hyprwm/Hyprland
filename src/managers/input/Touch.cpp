@@ -30,9 +30,27 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
     if (info.cancelled)
         return;
 
+    if (!e.device)
+        return;
+
+    std::erase_if(m_touchData.consumedTouches, [](const auto& touch) { return touch.device.expired(); });
+
+    // Keep every suppressed finger consumed through its up or hardware cancel, even if the swipe is cancelled internally.
+    if (m_touchData.workspaceSwipe || !m_touchData.consumedTouches.empty() || g_pUnifiedWorkspaceSwipe->isGestureInProgress()) {
+        if (std::ranges::none_of(m_touchData.consumedTouches, [&e](const auto& touch) { return touch.device == e.device && touch.id == e.touchID; }))
+            m_touchData.consumedTouches.emplace_back(STouchData::SConsumedTouch{
+                .device = e.device,
+                .id     = e.touchID,
+            });
+        return;
+    }
+
     auto PMONITOR = State::monitorState()->query().name(!e.device->m_boundOutput.empty() ? e.device->m_boundOutput : "").run();
 
     PMONITOR = PMONITOR ? PMONITOR : Desktop::focusState()->monitor();
+
+    if (!PMONITOR || !PMONITOR->m_activeWorkspace || PMONITOR->m_size.x <= 0 || PMONITOR->m_size.y <= 0)
+        return;
 
     if (PMONITOR != Desktop::focusState()->monitor())
         Desktop::focusState()->rawMonitorFocus(PMONITOR);
@@ -50,25 +68,37 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
         return;
     }
 
-    // Don't propagate new touches when a workspace swipe is in progress.
-    if (g_pUnifiedWorkspaceSwipe->isGestureInProgress()) {
-        return;
-        // TODO: Don't swipe if you touched a floating window.
-    } else if (*PSWIPETOUCH && (m_foundLSToFocus.expired() || m_foundLSToFocus->m_layer <= 1) && !g_pSessionLockManager->isSessionLocked()) {
+    // TODO: Don't swipe if you touched a floating window.
+    if (*PSWIPETOUCH && (m_foundLSToFocus.expired() || m_foundLSToFocus->m_layer <= 1) && !g_pSessionLockManager->isSessionLocked()) {
         const auto   PWORKSPACE  = PMONITOR->m_activeWorkspace;
         const auto   STYLE       = PWORKSPACE->m_renderOffset->getStyle();
         const bool   VERTANIMS   = STYLE == "slidevert" || STYLE.starts_with("slidefadevert");
         const double TARGETLEFT  = ((VERTANIMS ? gapsOut.m_top : gapsOut.m_left) + *PBORDERSIZE) / (VERTANIMS ? PMONITOR->m_size.y : PMONITOR->m_size.x);
         const double TARGETRIGHT = 1 - (((VERTANIMS ? gapsOut.m_bottom : gapsOut.m_right) + *PBORDERSIZE) / (VERTANIMS ? PMONITOR->m_size.y : PMONITOR->m_size.x));
         const double POSITION    = (VERTANIMS ? e.pos.y : e.pos.x);
-        if (POSITION < TARGETLEFT || POSITION > TARGETRIGHT) {
-            g_pUnifiedWorkspaceSwipe->begin();
-            g_pUnifiedWorkspaceSwipe->m_touchID = e.touchID;
-            // Set the initial direction based on which edge you started from
-            if (POSITION > 0.5)
-                g_pUnifiedWorkspaceSwipe->m_initialDirection = *PSWIPEINVR ? -1 : 1;
-            else
-                g_pUnifiedWorkspaceSwipe->m_initialDirection = *PSWIPEINVR ? 1 : -1;
+        if ((POSITION < TARGETLEFT || POSITION > TARGETRIGHT) && g_pUnifiedWorkspaceSwipe->begin(PMONITOR)) {
+            auto& swipe         = m_touchData.workspaceSwipe.emplace();
+            swipe.device        = e.device;
+            swipe.id            = e.touchID;
+            swipe.sessionID     = g_pUnifiedWorkspaceSwipe->sessionID();
+            swipe.monitor       = PMONITOR;
+            swipe.fromEnd       = POSITION > 0.5;
+            swipe.deviceDestroy = e.device->m_events.destroy.listen([this, device = WP<ITouch>(e.device)] {
+                std::erase_if(m_touchData.consumedTouches, [&device](const auto& touch) { return touch.device == device; });
+                if (!m_touchData.workspaceSwipe || m_touchData.workspaceSwipe->device != device)
+                    return;
+
+                const auto SESSION = m_touchData.workspaceSwipe->sessionID;
+                m_touchData.workspaceSwipe.reset();
+                if (g_pUnifiedWorkspaceSwipe && SESSION == g_pUnifiedWorkspaceSwipe->sessionID())
+                    g_pUnifiedWorkspaceSwipe->cancel();
+            });
+            m_touchData.consumedTouches.emplace_back(STouchData::SConsumedTouch{
+                .device = e.device,
+                .id     = e.touchID,
+            });
+            // Direction locking belongs to the unified gesture; the physical edge survives forever restarts.
+            g_pUnifiedWorkspaceSwipe->m_initialDirection = (swipe.fromEnd ? 1 : -1) * (*PSWIPEINVR ? -1 : 1);
             return;
         }
     }
@@ -117,26 +147,49 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
     g_pSeatManager->sendTouchDown(m_touchData.touchFocusSurface.lock(), e.timeMs, e.touchID, local);
 }
 
-void CInputManager::onTouchUp(ITouch::SUpEvent e) {
+void CInputManager::onTouchUp(ITouch::SUpEvent e, SP<ITouch> device) {
     m_lastInputTouch = true;
 
     Event::SCallbackInfo info;
     Event::bus()->m_events.input.touch.up.emit(e, info);
-    if (info.cancelled)
-        return;
-
-    if (g_pUnifiedWorkspaceSwipe->isGestureInProgress()) {
-        // If there was a swipe from this finger, end it.
-        if (e.touchID == g_pUnifiedWorkspaceSwipe->m_touchID)
-            g_pUnifiedWorkspaceSwipe->end();
+    const auto CONSUMED = std::erase_if(m_touchData.consumedTouches, [&e, &device](const auto& touch) { return touch.device == device && touch.id == e.touchID; });
+    if (CONSUMED) {
+        if (m_touchData.workspaceSwipe && m_touchData.workspaceSwipe->device == device && m_touchData.workspaceSwipe->id == e.touchID) {
+            const auto SESSION = m_touchData.workspaceSwipe->sessionID;
+            m_touchData.workspaceSwipe.reset();
+            if (SESSION == g_pUnifiedWorkspaceSwipe->sessionID()) {
+                if (info.cancelled)
+                    g_pUnifiedWorkspaceSwipe->cancel();
+                else
+                    g_pUnifiedWorkspaceSwipe->end();
+            }
+        }
         return;
     }
+
+    if (info.cancelled)
+        return;
 
     if (m_touchData.touchFocusSurface)
         g_pSeatManager->sendTouchUp(e.timeMs, e.touchID);
 }
 
-void CInputManager::onTouchMove(ITouch::SMotionEvent e) {
+void CInputManager::onTouchCancel(ITouch::SCancelEvent e, SP<ITouch> device) {
+    if (!device)
+        return;
+
+    // Aquamarine forwards libinput's seat slot for cancel, so this terminates one contact, just like up.
+    std::erase_if(m_touchData.consumedTouches, [&e, &device](const auto& touch) { return touch.device == device && touch.id == e.touchID; });
+    if (!m_touchData.workspaceSwipe || m_touchData.workspaceSwipe->device != device || m_touchData.workspaceSwipe->id != e.touchID)
+        return;
+
+    const auto SESSION = m_touchData.workspaceSwipe->sessionID;
+    m_touchData.workspaceSwipe.reset();
+    if (SESSION && g_pUnifiedWorkspaceSwipe && SESSION == g_pUnifiedWorkspaceSwipe->sessionID())
+        g_pUnifiedWorkspaceSwipe->cancel();
+}
+
+void CInputManager::onTouchMove(ITouch::SMotionEvent e, SP<ITouch> device) {
     m_lastInputTouch = true;
 
     m_lastCursorMovement.reset();
@@ -144,7 +197,9 @@ void CInputManager::onTouchMove(ITouch::SMotionEvent e) {
     // Cache the global touch position so listeners (in particular the dnd
     // touchMove listener emitted just below) and renderers can resolve where
     // the finger currently is in layout coordinates.
-    if (const auto PMONITOR = Desktop::focusState()->monitor(); PMONITOR)
+    const bool SWIPE_FINGER = m_touchData.workspaceSwipe && m_touchData.workspaceSwipe->device == device && m_touchData.workspaceSwipe->id == e.touchID;
+    const auto PMONITOR     = SWIPE_FINGER ? m_touchData.workspaceSwipe->monitor.lock() : Desktop::focusState()->monitor();
+    if (PMONITOR)
         m_touchData.lastTouchPos = PMONITOR->m_position + (e.pos * PMONITOR->m_size);
 
     Event::SCallbackInfo info;
@@ -152,30 +207,19 @@ void CInputManager::onTouchMove(ITouch::SMotionEvent e) {
     if (info.cancelled)
         return;
 
-    if (g_pUnifiedWorkspaceSwipe->isGestureInProgress()) {
-        // Do nothing if this is using a different finger.
-        if (e.touchID != g_pUnifiedWorkspaceSwipe->m_touchID)
+    if (std::ranges::any_of(m_touchData.consumedTouches, [&e, &device](const auto& touch) { return touch.device == device && touch.id == e.touchID; })) {
+        if (!m_touchData.workspaceSwipe || m_touchData.workspaceSwipe->device != device || m_touchData.workspaceSwipe->id != e.touchID ||
+            m_touchData.workspaceSwipe->sessionID != g_pUnifiedWorkspaceSwipe->sessionID())
             return;
 
-        const auto  ANIMSTYLE     = g_pUnifiedWorkspaceSwipe->m_workspaceBegin->m_renderOffset->getStyle();
-        const bool  VERTANIMS     = ANIMSTYLE == "slidevert" || ANIMSTYLE.starts_with("slidefadevert");
-        static auto PSWIPEINVR    = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_touch_invert");
-        static auto PSWIPEDIST    = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_distance");
-        const auto  SWIPEDISTANCE = std::clamp(*PSWIPEDIST, sc<int64_t>(1LL), sc<int64_t>(UINT32_MAX));
-        // Handle the workspace swipe if there is one
-        if (g_pUnifiedWorkspaceSwipe->m_initialDirection == -1) {
-            if (*PSWIPEINVR)
-                // go from 0 to -SWIPEDISTANCE
-                g_pUnifiedWorkspaceSwipe->update(SWIPEDISTANCE * ((VERTANIMS ? e.pos.y : e.pos.x) - 1));
-            else
-                // go from 0 to -SWIPEDISTANCE
-                g_pUnifiedWorkspaceSwipe->update(SWIPEDISTANCE * (-1 * (VERTANIMS ? e.pos.y : e.pos.x)));
-        } else if (*PSWIPEINVR)
-            // go from 0 to SWIPEDISTANCE
-            g_pUnifiedWorkspaceSwipe->update(SWIPEDISTANCE * (VERTANIMS ? e.pos.y : e.pos.x));
-        else
-            // go from 0 to SWIPEDISTANCE
-            g_pUnifiedWorkspaceSwipe->update(SWIPEDISTANCE * (1 - (VERTANIMS ? e.pos.y : e.pos.x)));
+        const auto   ANIMSTYLE     = g_pUnifiedWorkspaceSwipe->m_workspaceBegin->m_renderOffset->getStyle();
+        const bool   VERTANIMS     = ANIMSTYLE == "slidevert" || ANIMSTYLE.starts_with("slidefadevert");
+        static auto  PSWIPEINVR    = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_touch_invert");
+        static auto  PSWIPEDIST    = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_distance");
+        const auto   SWIPEDISTANCE = std::clamp(*PSWIPEDIST, sc<int64_t>(1LL), sc<int64_t>(UINT32_MAX));
+        const double POSITION      = VERTANIMS ? e.pos.y : e.pos.x;
+        const double DELTA         = m_touchData.workspaceSwipe->fromEnd ? 1 - POSITION : -POSITION;
+        g_pUnifiedWorkspaceSwipe->update(SWIPEDISTANCE * DELTA * (*PSWIPEINVR ? -1 : 1));
         return;
     }
     // During a drag-and-drop session, repick the surface under the finger so

@@ -4,6 +4,8 @@
 #include <thread>
 #include <utility>
 
+#include <hyprutils/utils/ScopeGuard.hpp>
+
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
 #include "../shared.hpp"
@@ -219,6 +221,11 @@ TEST_CASE(dragThresholdSurvivesScrollEvents) {
         // Let the client configure and animated geometry settle before the hit-tested grab.
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 350, y = 300 })"));
+        bool                          buttonHeld = true;
+        Hyprutils::Utils::CScopeGuard releaseButton([&] {
+            if (buttonHeld)
+                getFromSocket("/eval hl.plugin.test.click(272, 0)");
+        });
         OK(getFromSocket("/eval hl.plugin.test.click(272, 1)"));
         EXPECT_OK(getFromSocket(std::format("/eval hl.plugin.test.expect_drag_state(true, {})", THRESHOLD == 0)));
 
@@ -246,12 +253,15 @@ TEST_CASE(dragThresholdSurvivesScrollEvents) {
         EXPECT(nearly(AFTER_Y, BEFORE_Y), true);
 
         OK(getFromSocket("/eval hl.plugin.test.click(272, 0)"));
+        buttonHeld = false;
         EXPECT_OK(getFromSocket("/eval hl.plugin.test.expect_drag_state(false, false)"));
 
         // A new drag starts with its own threshold, not the previous drag's latch.
+        buttonHeld = true;
         OK(getFromSocket("/eval hl.plugin.test.click(272, 1)"));
         EXPECT_OK(getFromSocket(std::format("/eval hl.plugin.test.expect_drag_state(true, {})", THRESHOLD == 0)));
         OK(getFromSocket("/eval hl.plugin.test.click(272, 0)"));
+        buttonHeld = false;
         EXPECT_OK(getFromSocket("/eval hl.plugin.test.expect_drag_state(false, false)"));
     }
 

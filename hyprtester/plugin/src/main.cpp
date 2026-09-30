@@ -36,6 +36,7 @@
 #undef private
 #undef protected
 
+#include <src/config/ConfigValue.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/VarList.hpp>
@@ -135,13 +136,17 @@ struct SMonitorRenderRecording {
     PHLMONITORREF             renderingMonitor;
     std::vector<eRenderStage> stages;
     bool                      complete = false;
+    std::optional<bool>       workspaceProbe;
+    SDispatchResult           result;
     CHyprSignalListener       pre;
     CHyprSignalListener       stage;
 };
 
 static SP<SMonitorRenderRecording> g_monitorRenderRecording;
 
-static SDispatchResult             armMonitorRenderRecording(const std::string& name) {
+static SDispatchResult             probeWorkspaceBackground(PHLMONITOR monitor, bool withWorkspace);
+
+static SDispatchResult             armMonitorRenderRecording(const std::string& name, std::optional<bool> workspaceProbe = std::nullopt) {
     g_monitorRenderRecording.reset();
 
     // Mirrors are absent from the active monitor list.
@@ -151,6 +156,7 @@ static SDispatchResult             armMonitorRenderRecording(const std::string& 
 
     g_monitorRenderRecording                         = makeShared<SMonitorRenderRecording>();
     g_monitorRenderRecording->monitor                = MONITOR;
+    g_monitorRenderRecording->workspaceProbe         = workspaceProbe;
     const WP<SMonitorRenderRecording> WEAK_RECORDING = g_monitorRenderRecording;
 
     // RENDER_PRE precedes beginRender(), and RENDER_POST follows endRender().
@@ -163,6 +169,14 @@ static SDispatchResult             armMonitorRenderRecording(const std::string& 
         const auto RECORDING = WEAK_RECORDING.lock();
         if (!RECORDING || RECORDING->complete || RECORDING->monitor.expired() || RECORDING->renderingMonitor != RECORDING->monitor)
             return;
+
+        if (RECORDING->workspaceProbe) {
+            if (stage == RENDER_BEGIN) {
+                RECORDING->complete = true; // Ignore the probe's nested stage emissions.
+                RECORDING->result   = probeWorkspaceBackground(RECORDING->monitor.lock(), *RECORDING->workspaceProbe);
+            }
+            return;
+        }
 
         RECORDING->stages.emplace_back(stage);
         // Freeze the first completed frame, so later frames cannot hide a routing failure.
@@ -199,6 +213,46 @@ static std::string describeRenderStages(const std::vector<eRenderStage>& stages)
     return result;
 }
 
+static SDispatchResult probeWorkspaceBackground(PHLMONITOR monitor, bool withWorkspace) {
+    if (!monitor->m_activeWorkspace || std::ranges::any_of(Desktop::windowState()->windows(), [](const auto& window) { return window->mapped(); }) ||
+        !Desktop::layerState()->layers().empty())
+        return {.success = false, .error = "Background probe requires an active workspace and no mapped clients or layers"};
+
+    auto&                     renderer  = *g_pHyprRenderer;
+    auto&                     entries   = renderer.m_renderPass.m_passElements;
+    const auto                BEGIN     = entries.size();
+    const auto                OLD_DATA  = renderer.m_renderData;
+    const auto                ROOT_PASS = renderer.redirectPass(nullptr);
+    CScopeGuard               restore([&] {
+        entries.resize(BEGIN);
+        renderer.m_renderData = OLD_DATA;
+    });
+
+    std::vector<eRenderStage> stages;
+    bool                      backgroundBeforeEvent = true;
+    const auto                LISTENER              = Event::bus()->m_events.render.stage.listen([&](eRenderStage stage) {
+        stages.emplace_back(stage);
+        if (stage == RENDER_POST_WALLPAPER)
+            backgroundBeforeEvent &= entries.size() == BEGIN + 1 && entries[BEGIN].element->type() == EK_CLEAR;
+    });
+    renderer.renderAllClientsForWorkspace(monitor, withWorkspace ? monitor->m_activeWorkspace : nullptr, Time::steadyNow());
+
+    const bool                WALLPAPER = !withWorkspace || !*CConfigValue<Config::INTEGER>("render:xp_mode");
+    std::vector<eRenderStage> expected;
+    if (WALLPAPER)
+        expected.emplace_back(RENDER_POST_WALLPAPER);
+    if (withWorkspace) {
+        expected.emplace_back(RENDER_PRE_WINDOWS);
+        expected.emplace_back(RENDER_POST_WINDOWS);
+    }
+    const auto CLEARS = std::count_if(entries.begin() + BEGIN, entries.end(), [](const auto& entry) { return entry.element->type() == EK_CLEAR; });
+    if (stages != expected || !backgroundBeforeEvent || CLEARS != (WALLPAPER ? 1 : 0))
+        return {.success = false,
+                .error   = std::format("Background probe: expected [{}], got [{}], clears {}, background before event {}", describeRenderStages(expected),
+                                       describeRenderStages(stages), CLEARS, backgroundBeforeEvent)};
+    return {};
+}
+
 static SDispatchResult checkMonitorRenderRecording(bool mirror) {
     if (!g_monitorRenderRecording)
         return {.success = false, .error = "Monitor render recorder is not armed"};
@@ -206,6 +260,8 @@ static SDispatchResult checkMonitorRenderRecording(bool mirror) {
         return {.success = false, .error = "Recorded monitor disappeared"};
     if (!g_monitorRenderRecording->complete)
         return {.success = false, .error = std::format("Monitor render pending: [{}]", describeRenderStages(g_monitorRenderRecording->stages))};
+    if (g_monitorRenderRecording->workspaceProbe)
+        return g_monitorRenderRecording->result;
 
     // These test outputs have empty workspaces: require the entire frame, with no
     // duplicate stages or workspace stages leaking into the mirror path.
@@ -1152,7 +1208,12 @@ static int luaExpectWorkspaceRenameEvent(lua_State* L) {
 }
 
 static int luaArmMonitorRenderRecording(lua_State* L) {
-    return luaResult(L, ::armMonitorRenderRecording(luaL_checkstring(L, 1)));
+    std::optional<bool> workspaceProbe;
+    if (lua_gettop(L) > 1) {
+        luaL_checktype(L, 2, LUA_TBOOLEAN);
+        workspaceProbe = lua_toboolean(L, 2);
+    }
+    return luaResult(L, ::armMonitorRenderRecording(luaL_checkstring(L, 1), workspaceProbe));
 }
 
 static int luaCheckMonitorRenderRecording(lua_State* L) {

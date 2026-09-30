@@ -325,6 +325,7 @@ namespace Render {
         friend class CMonitorScene;
 
       private:
+        void renderMonitorBackground(PHLMONITOR pMonitor, const Time::steady_tp& time);
         void bindOffMain();
         void bindBackOnMain();
     };

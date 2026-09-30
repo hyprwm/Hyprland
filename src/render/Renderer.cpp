@@ -1101,6 +1101,15 @@ void IHyprRenderer::renderSessionLockSurface(WP<SSessionLockSurface> pSurface, P
         &renderdata);
 }
 
+void IHyprRenderer::renderMonitorBackground(PHLMONITOR pMonitor, const Time::steady_tp& time) {
+    renderBackground(pMonitor);
+
+    for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
+        renderLayer(ls.lock(), pMonitor, time);
+    }
+    renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_BACKGROUND);
+}
+
 void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time, const Vector2D& translate, const float& scale) {
     static auto PXPMODE          = CConfigValue<Config::INTEGER>("render:xp_mode");
     static auto PSESSIONLOCKXRAY = CConfigValue<Config::INTEGER>("misc:session_lock_xray");
@@ -1133,12 +1142,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     if UNLIKELY (!pWorkspace) {
         // allow rendering without a workspace. In this case, just render layers.
 
-        renderBackground(pMonitor);
-
-        for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
-            renderLayer(ls.lock(), pMonitor, time);
-        }
-        renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_BACKGROUND);
+        renderMonitorBackground(pMonitor, time);
 
         Event::bus()->m_events.render.stage.emit(RENDER_POST_WALLPAPER);
 
@@ -1161,12 +1165,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     }
 
     if LIKELY (!*PXPMODE) {
-        renderBackground(pMonitor);
-
-        for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
-            renderLayer(ls.lock(), pMonitor, time);
-        }
-        renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_BACKGROUND);
+        renderMonitorBackground(pMonitor, time);
 
         Event::bus()->m_events.render.stage.emit(RENDER_POST_WALLPAPER);
 

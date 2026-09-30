@@ -95,43 +95,6 @@ namespace Render::GL {
         std::array<std::map<Render::SShaderVariant, SP<CShader>>, Render::SH_FRAG_LAST> fragVariants;
     };
 
-    struct SCurrentRenderData {
-        PHLMONITORREF            pMonitor;
-        Mat3x3                   projection;
-        Mat3x3                   savedProjection;
-        Mat3x3                   monitorProjection;
-
-        SP<IFramebuffer>         currentFB = nullptr; // current rendering to
-        SP<IFramebuffer>         mainFB    = nullptr; // main to render to
-        SP<IFramebuffer>         outFB     = nullptr; // out to render to (if offloaded, etc)
-
-        CRegion                  damage;
-        CRegion                  finalDamage; // damage used for final off -> main
-
-        Render::SRenderModifData renderModif;
-        float                    mouseZoomFactor            = 1.f;
-        bool                     mouseZoomUseMouse          = true; // true by default
-        bool                     useNearestNeighbor         = false;
-        bool                     blockScreenShader          = false;
-        bool                     simplePass                 = false;
-        bool                     transformDamage            = true;
-        bool                     noSimplify                 = false;
-        bool                     renderingTransformedSource = false;
-
-        Vector2D                 primarySurfaceUVTopLeft     = Vector2D(-1, -1);
-        Vector2D                 primarySurfaceUVBottomRight = Vector2D(-1, -1);
-
-        CBox                     clipBox = {}; // scaled coordinates
-        CRegion                  clipRegion;
-
-        uint32_t                 discardMode    = DISCARD_OPAQUE;
-        float                    discardOpacity = 0.f;
-
-        PHLLSREF                 currentLS;
-        PHLWINDOWREF             currentWindow;
-        WP<CWLSurfaceResource>   surface;
-    };
-
     class CEGLSync : public ISyncFDManager {
       public:
         static UP<CEGLSync> create();
@@ -370,7 +333,6 @@ namespace Render::GL {
                                    bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
         void        passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription);
         void        passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription, const SCMSettings& settings);
-        void        renderRectInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
         void        renderRectWithBlurInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
         void        renderRectWithDamageInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
         WP<CShader> renderScreenShaderInternal();

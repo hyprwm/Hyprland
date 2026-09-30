@@ -812,7 +812,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
                             renderdata.texture     = s->m_current.texture;
                             renderdata.surface     = s;
                             renderdata.mainSurface = false;
-                            m_renderPass.add(makeUnique<CSurfacePassElement>(renderdata));
+                            addPassElement(makeUnique<CSurfacePassElement>(renderdata));
                             renderdata.surfaceCounter++;
                         },
                         data);

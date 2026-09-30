@@ -25,7 +25,7 @@ static std::string waitForPopupProbe() {
     return result;
 }
 
-TEST_CASE(popupOpacityInheritsParentFade) {
+SUBTEST(popupRender, bool redirected) {
     CProcess client(std::format("{}/popup-render", binaryDir), {});
     client.addEnv("WAYLAND_DISPLAY", WLDISPLAY);
     ASSERT(client.runAsync(), true);
@@ -38,13 +38,19 @@ TEST_CASE(popupOpacityInheritsParentFade) {
     std::string ready;
     for (size_t i = 0; i < 100; ++i) {
         ASSERT(Tests::processAlive(client.pid()), true);
-        ready = getFromSocket("/eval hl.plugin.test.arm_popup_opacity('popup-render', 0.5, false)");
+        ready = getFromSocket(std::format("/eval hl.plugin.test.arm_popup_opacity('popup-render', 0.5, false, {})", redirected ? "true" : "false"));
         if (ready == "ok")
             break;
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
     OK(ready);
     EXPECT_OK(waitForPopupProbe()); // ALL: sibling fades must be 0.2 and 0.4.
+
+    if (redirected) {
+        OK(getFromSocket("/eval hl.plugin.test.arm_popup_opacity('popup-render', 0.5, true, true)"));
+        EXPECT_OK(waitForPopupProbe()); // POPUP: both siblings, no toplevel or root leakage.
+        return;
+    }
 
     for (const bool POPUP_ONLY : {false, true}) {
         for (const float FADE : {0.5F, 0.1F, 1.F, 0.F}) {
@@ -55,4 +61,12 @@ TEST_CASE(popupOpacityInheritsParentFade) {
             EXPECT_OK(waitForPopupProbe());
         }
     }
+}
+
+TEST_CASE(popupOpacityInheritsParentFade) {
+    CALL_SUBTEST(popupRender, false);
+}
+
+TEST_CASE(popupRespectsPassRedirection) {
+    CALL_SUBTEST(popupRender, true);
 }

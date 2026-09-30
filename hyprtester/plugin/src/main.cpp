@@ -233,7 +233,7 @@ struct SPopupRenderRecording {
 
 static SP<SPopupRenderRecording> g_popupRenderRecording;
 
-static SDispatchResult           probePopupOpacity(PHLWINDOW window, float parentFade, Render::eRenderPassMode mode) {
+static SDispatchResult           probePopupOpacity(PHLWINDOW window, float parentFade, Render::eRenderPassMode mode, bool redirected) {
     using namespace Desktop::View;
 
     // The client has two direct siblings, identified by their distinct buffer widths.
@@ -269,15 +269,16 @@ static SDispatchResult           probePopupOpacity(PHLWINDOW window, float paren
     for (size_t i = 0; i < ALPHAS.size(); ++i)
         oldAlpha[i] = ALPHAS[i]->value();
 
-    auto&      renderer = *g_pHyprRenderer;
-    auto&      entries  = renderer.m_renderPass.m_passElements;
-    const auto BEGIN    = entries.size();
-    const auto OLD_DATA = renderer.m_renderData;
-    // Probe on the root pass: opacity must be testable before popup routing is fixed.
-    const auto  ROOT_PASS = renderer.redirectPass(nullptr);
+    auto&               renderer    = *g_pHyprRenderer;
+    auto&               rootEntries = renderer.m_renderPass.m_passElements;
+    const auto          BEGIN       = rootEntries.size();
+    const auto          OLD_DATA    = renderer.m_renderData;
+    Render::CRenderPass previousPass, redirectedPass;
+    // Root opacity remains independent of routing. Routing also tests nested guard restoration.
+    const auto  OUTER_PASS = renderer.redirectPass(redirected ? &previousPass : nullptr);
     CScopeGuard restore([&] {
         // Drop every test item, including non-surface items, before the real frame draws.
-        entries.resize(BEGIN);
+        rootEntries.resize(BEGIN);
         renderer.m_renderData = OLD_DATA;
         for (size_t i = 0; i < ALPHAS.size(); ++i)
             ALPHAS[i]->setValueAndWarp(oldAlpha[i]);
@@ -290,7 +291,15 @@ static SDispatchResult           probePopupOpacity(PHLWINDOW window, float paren
     ALPHAS[2]->setValueAndWarp(parentFade == 0.F ? 0.F : 1.F);
     ALPHAS[3]->setValueAndWarp(0.4F);
     ALPHAS[4]->setValueAndWarp(0.8F);
-    renderer.renderWindow(window, window->m_monitor.lock(), Time::steadyNow(), false, mode, true);
+    const auto PREVIOUS_PASS = renderer.m_currentPass;
+    {
+        const auto REDIRECT = renderer.redirectPass(redirected ? &redirectedPass : nullptr);
+        renderer.renderWindow(window, window->m_monitor.lock(), Time::steadyNow(), false, mode, true);
+    }
+    if (renderer.m_currentPass != PREVIOUS_PASS || &renderer.currentPass() != (redirected ? &previousPass : &renderer.m_renderPass))
+        return {.success = false, .error = "Popup render did not restore the previous pass"};
+
+    const auto&                                 entries = (redirected ? redirectedPass : renderer.m_renderPass).m_passElements;
 
     const std::array<SP<CWLSurfaceResource>, 3> SURFACES = {
         window->wlSurface()->resource(),
@@ -299,8 +308,10 @@ static SDispatchResult           probePopupOpacity(PHLWINDOW window, float paren
     };
     const std::array<float, 3> EXPECTED_FADE = {parentFade, parentFade * 0.4F, parentFade * 0.8F};
     std::array<size_t, 3>      counts        = {};
-    std::string                opacityError;
-    for (size_t i = BEGIN; i < entries.size(); ++i) {
+    std::string                probeError;
+    if (redirected && (rootEntries.size() != BEGIN || !previousPass.m_passElements.empty()))
+        probeError = std::format("Pass leakage: root additions {}, previous-pass additions {}; ", rootEntries.size() - BEGIN, previousPass.m_passElements.size());
+    for (size_t i = redirected ? 0 : BEGIN; i < entries.size(); ++i) {
         if (entries[i].element->type() != EK_SURFACE)
             continue;
 
@@ -314,19 +325,18 @@ static SDispatchResult           probePopupOpacity(PHLWINDOW window, float paren
         if (data.pWindow != window || data.popup != (INDEX != 0) || data.mainSurface != (INDEX == 0))
             return {.success = false, .error = std::format("Incorrect identity/flags for surface {}", INDEX)};
         if (!(std::abs(data.fadeAlpha - EXPECTED_FADE[INDEX]) <= 0.00001F) || !(std::abs(data.alpha - 0.75F) <= 0.00001F))
-            opacityError += std::format("surface {}: expected fade {} alpha 0.75, got fade {} alpha {}; ", INDEX, EXPECTED_FADE[INDEX], data.fadeAlpha, data.alpha);
+            probeError += std::format("surface {}: expected fade {} alpha 0.75, got fade {} alpha {}; ", INDEX, EXPECTED_FADE[INDEX], data.fadeAlpha, data.alpha);
     }
 
     const std::array<size_t, 3> EXPECTED_COUNTS = {mode == Render::RENDER_PASS_ALL ? 1UZ : 0UZ, 1, 1};
     if (counts != EXPECTED_COUNTS)
-        return {.success = false,
-                .error =
-                    std::format("Expected surface counts {}/{}/{}, got {}/{}/{}", EXPECTED_COUNTS[0], EXPECTED_COUNTS[1], EXPECTED_COUNTS[2], counts[0], counts[1], counts[2])};
+        probeError += std::format("Expected {} surface counts {}/{}/{}, got {}/{}/{}", redirected ? "redirected" : "root", EXPECTED_COUNTS[0], EXPECTED_COUNTS[1],
+                                  EXPECTED_COUNTS[2], counts[0], counts[1], counts[2]);
 
-    return {.success = opacityError.empty(), .error = opacityError};
+    return {.success = probeError.empty(), .error = probeError};
 }
 
-static SDispatchResult armPopupOpacity(const std::string& cls, float parentFade, bool popupOnly) {
+static SDispatchResult armPopupOpacity(const std::string& cls, float parentFade, bool popupOnly, bool redirected) {
     g_popupRenderRecording.reset();
     const auto WINDOW = windowByClass(cls);
     if (!WINDOW || !WINDOW->mapped() || !WINDOW->m_monitor || !WINDOW->m_workspace || WINDOW->popupHead()->allMappedChildrenCount() != 2)
@@ -337,7 +347,7 @@ static SDispatchResult armPopupOpacity(const std::string& cls, float parentFade,
     g_popupRenderRecording                         = makeShared<SPopupRenderRecording>();
     const WP<SPopupRenderRecording> WEAK_RECORDING = g_popupRenderRecording;
     const PHLWINDOWREF              WEAK_WINDOW    = WINDOW;
-    g_popupRenderRecording->stage                  = Event::bus()->m_events.render.stage.listen([WEAK_RECORDING, WEAK_WINDOW, parentFade, popupOnly](eRenderStage stage) {
+    g_popupRenderRecording->stage = Event::bus()->m_events.render.stage.listen([WEAK_RECORDING, WEAK_WINDOW, parentFade, popupOnly, redirected](eRenderStage stage) {
         const auto RECORDING = WEAK_RECORDING.lock();
         const auto WINDOW    = WEAK_WINDOW.lock();
         if (!RECORDING || RECORDING->complete || !WINDOW || stage != RENDER_BEGIN || g_pHyprRenderer->m_renderData.pMonitor != WINDOW->m_monitor)
@@ -345,7 +355,7 @@ static SDispatchResult armPopupOpacity(const std::string& cls, float parentFade,
 
         // RENDER_BEGIN has a bound framebuffer; renderWindow only queues the probe.
         RECORDING->complete = true;
-        RECORDING->result   = probePopupOpacity(WINDOW, parentFade, popupOnly ? Render::RENDER_PASS_POPUP : Render::RENDER_PASS_ALL);
+        RECORDING->result   = probePopupOpacity(WINDOW, parentFade, popupOnly ? Render::RENDER_PASS_POPUP : Render::RENDER_PASS_ALL, redirected);
     });
     g_pHyprRenderer->damageMonitor(WINDOW->m_monitor.lock());
     return {};
@@ -1163,7 +1173,9 @@ static int luaArmPopupOpacity(lua_State* L) {
     const auto CLS  = std::string{luaL_checkstring(L, 1)};
     const auto FADE = sc<float>(luaL_checknumber(L, 2));
     luaL_checktype(L, 3, LUA_TBOOLEAN);
-    return luaResult(L, armPopupOpacity(CLS, FADE, lua_toboolean(L, 3)));
+    if (lua_gettop(L) > 3)
+        luaL_checktype(L, 4, LUA_TBOOLEAN);
+    return luaResult(L, armPopupOpacity(CLS, FADE, lua_toboolean(L, 3), lua_toboolean(L, 4)));
 }
 
 static int luaCheckPopupOpacity(lua_State* L) {

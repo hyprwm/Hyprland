@@ -2,21 +2,33 @@
 #include "../managers/screenshare/ScreenshareManager.hpp"
 #include "../helpers/cm/ColorManagement.hpp"
 #include "../render/Renderer.hpp"
+#include "../render/OpenGL.hpp"
 #include "../config/ConfigValue.hpp"
-#include <algorithm>
 #include <cstdint>
 #include <format>
+#include <limits>
 
 using namespace Monitor;
 using namespace NColorManagement;
 
-static const int          MAX_WORK_BUFFERS             = 8;
-static const int          MAX_UNUSED_SECONDS           = 5;
-static constexpr uint64_t MAX_SIZED_WORK_BUFFER_PIXELS = 64ULL * 1024ULL * 1024ULL;
+static void prepareWorkBufferRelease() {
+    // Timer expiry also runs when no frame has made the rendering context current.
+    if (Render::GL::g_pHyprOpenGL)
+        Render::GL::g_pHyprOpenGL->makeEGLCurrent();
+}
 
 CMonitorResources::CMonitorResources(WP<CMonitor> monitor, DRMFormat format, Vector2D size, NColorManagement::PImageDescription imageDescription) :
     m_stencilTex(g_pHyprRenderer->createStencilTexture(size.x, size.y)), m_blurFB(g_pHyprRenderer->createFB(std::format("Monitor {} blur FB", monitor->m_name))),
-    m_monitor(monitor), m_drmFormat(format), m_size(size), m_imageDescription(imageDescription) {
+    m_monitor(monitor), m_drmFormat(format), m_size(size), m_imageDescription(imageDescription),
+    m_workBuffers(
+        [this] {
+            auto buffer = g_pHyprRenderer->createFB(std::format("Monitor {} workbuffer", m_monitor->m_name));
+            if (buffer)
+                buffer->addStencil(m_stencilTex);
+            return buffer;
+        },
+        prepareWorkBufferRelease, std::numeric_limits<uint64_t>::max()),
+    m_sizedWorkBuffers([this] { return g_pHyprRenderer->createFB(std::format("Monitor {} sized workbuffer", m_monitor->m_name)); }, prepareWorkBufferRelease) {
     initFB(m_blurFB);
     monitor->m_blurFBDirty = true;
 }
@@ -32,10 +44,8 @@ void CMonitorResources::setImageDescription(NColorManagement::PImageDescription 
         return;
     m_imageDescription = imageDescription;
     m_blurFB->setImageDescription(imageDescription);
-    for (const auto& res : m_workBuffers)
-        res.buffer->setImageDescription(imageDescription);
-    for (const auto& res : m_sizedWorkBuffers)
-        res.buffer->setImageDescription(imageDescription);
+    m_workBuffers.setImageDescription(imageDescription);
+    m_sizedWorkBuffers.setImageDescription(imageDescription);
     if (m_monitorMirrorFB)
         m_monitorMirrorFB->setImageDescription(getMirrorTexImageDescription());
     if (m_mirrorTex)
@@ -44,87 +54,16 @@ void CMonitorResources::setImageDescription(NColorManagement::PImageDescription 
 }
 
 SP<Render::IFramebuffer> CMonitorResources::getUnusedWorkBuffer() {
-    std::erase_if(m_workBuffers, [](const auto& res) { return res.lastUsed.getSeconds() >= MAX_UNUSED_SECONDS; });
-
-    auto found = std::ranges::find_if(m_workBuffers, [](const auto& res) { return res.buffer.strongRef() < 2; });
-    if (found != m_workBuffers.end()) {
-        found->lastUsed.reset();
-        return found->buffer;
-    }
-    if (m_workBuffers.size() >= MAX_WORK_BUFFERS)
-        return nullptr;
-
-    auto& res = m_workBuffers.emplace_back(g_pHyprRenderer->createFB(std::format("Monitor {} workbuffer", m_monitor->m_name)));
-    initFB(res.buffer);
-    res.lastUsed.reset();
-    return res.buffer;
+    return m_workBuffers.acquire(m_size, m_drmFormat, m_imageDescription);
 }
 
 SP<Render::IFramebuffer> CMonitorResources::getUnusedWorkBuffer(const Vector2D& size) {
-    RASSERT((size.x > 0 && size.y > 0), "cannot get a workbuffer with negative / zero size! (attempted {}x{})", size.x, size.y);
-
-    std::erase_if(m_sizedWorkBuffers, [](const auto& res) { return res.lastUsed.getSeconds() >= MAX_UNUSED_SECONDS; });
-
-    auto found = std::ranges::find_if(m_sizedWorkBuffers, [&](const auto& res) {
-        return res.buffer.strongRef() < 2 && res.buffer->isAllocated() && res.buffer->m_size == size && res.buffer->m_drmFormat == m_drmFormat;
-    });
-    if (found != m_sizedWorkBuffers.end()) {
-        found->lastUsed.reset();
-        return found->buffer;
-    }
-
-    const uint64_t REQUESTEDPIXELS = sc<uint64_t>(size.x) * sc<uint64_t>(size.y);
-    if (REQUESTEDPIXELS > MAX_SIZED_WORK_BUFFER_PIXELS)
-        return nullptr;
-
-    uint64_t allocatedPixels = 0;
-    for (const auto& resource : m_sizedWorkBuffers)
-        allocatedPixels += sc<uint64_t>(resource.buffer->m_size.x) * sc<uint64_t>(resource.buffer->m_size.y);
-
-    for (auto resource = m_sizedWorkBuffers.begin(); resource != m_sizedWorkBuffers.end() && allocatedPixels + REQUESTEDPIXELS > MAX_SIZED_WORK_BUFFER_PIXELS;) {
-        if (resource->buffer.strongRef() >= 2) {
-            ++resource;
-            continue;
-        }
-
-        allocatedPixels -= sc<uint64_t>(resource->buffer->m_size.x) * sc<uint64_t>(resource->buffer->m_size.y);
-        resource = m_sizedWorkBuffers.erase(resource);
-    }
-
-    if (allocatedPixels + REQUESTEDPIXELS > MAX_SIZED_WORK_BUFFER_PIXELS)
-        return nullptr;
-
-    if (m_sizedWorkBuffers.size() < MAX_WORK_BUFFERS) {
-        auto& res = m_sizedWorkBuffers.emplace_back(g_pHyprRenderer->createFB(std::format("Monitor {} sized workbuffer", m_monitor->m_name)));
-        if (!res.buffer->alloc(size.x, size.y, m_drmFormat)) {
-            m_sizedWorkBuffers.pop_back();
-            return nullptr;
-        }
-        res.buffer->setImageDescription(m_imageDescription);
-        res.lastUsed.reset();
-        return res.buffer;
-    }
-
-    found = std::ranges::find_if(m_sizedWorkBuffers, [](const auto& res) { return res.buffer.strongRef() < 2; });
-    if (found == m_sizedWorkBuffers.end() || !found->buffer->alloc(size.x, size.y, m_drmFormat))
-        return nullptr;
-
-    found->buffer->setImageDescription(m_imageDescription);
-    found->lastUsed.reset();
-    return found->buffer;
+    return m_sizedWorkBuffers.acquire(size, m_drmFormat, m_imageDescription);
 }
 
 void CMonitorResources::forEachUnusedFB(std::function<void(SP<Render::IFramebuffer>)> callback, bool includeNamed) {
-    const auto FOR_EACH_UNUSED = [&](const auto& buffers) {
-        for (const auto& res : buffers) {
-            if (res.buffer.strongRef() > 1)
-                continue;
-
-            callback(res.buffer);
-        }
-    };
-    FOR_EACH_UNUSED(m_workBuffers);
-    FOR_EACH_UNUSED(m_sizedWorkBuffers);
+    m_workBuffers.forEachUnused(callback);
+    m_sizedWorkBuffers.forEachUnused(callback);
     if (includeNamed) {
         if (m_blurFB && m_blurFB->isAllocated() && m_blurFB.strongRef() < 2)
             callback(m_blurFB);

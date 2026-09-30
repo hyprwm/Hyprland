@@ -541,3 +541,33 @@ TEST(ConfigLuaRequire, packagePathPreservesLuaDefaultsAfterConfigDirectory) {
     const auto configPath = std::format("{};{}", (tmp.path() / "?.lua").string(), (tmp.path() / "?/init.lua").string());
     EXPECT_EQ(packagePath(CConfigManagerPluginLuaTestAccessor::luaState(mgr)), std::format("{};{}", configPath, defaultPath));
 }
+
+TEST(ConfigLuaHlGlobal, hlGlobalCannotBeReassigned) {
+    CScopedCompositor compositor;
+    CTempDir          tmp;
+    const auto        mainConfig = tmp.path() / "hyprland.lua";
+    writeFile(mainConfig, "");
+
+    CConfigManager mgr;
+    CConfigManagerPluginLuaTestAccessor::initializeOwnedLuaState(mgr, mainConfig);
+
+    // hl resolves to the API table.
+    EXPECT_EQ(mgr.eval("return type(hl)", true).value_or(""), "table");
+
+    // Clobbering the global fails loudly instead of bricking Lua IPC...
+    const auto evil = mgr.eval("hl = true", true);
+    ASSERT_TRUE(evil.has_value());
+    EXPECT_NE(evil->find("read-only"), std::string::npos) << *evil;
+
+    // ...and the API table is intact afterwards.
+    EXPECT_EQ(mgr.eval("return type(hl)", true).value_or(""), "table");
+    EXPECT_EQ(mgr.eval("return type(hl.dispatch)", true).value_or(""), "function");
+
+    // Ordinary globals are unaffected.
+    EXPECT_FALSE(mgr.eval("my_test_global = 123", true).has_value());
+    EXPECT_EQ(mgr.eval("return my_test_global", true).value_or(""), "123");
+
+    // Extending the API table still works (the plugin pattern).
+    EXPECT_FALSE(mgr.eval("hl.my_test_ext = {}", true).has_value());
+    EXPECT_EQ(mgr.eval("return type(hl.my_test_ext)", true).value_or(""), "table");
+}

@@ -512,6 +512,60 @@ void CConfigManager::cleanTimers() {
     m_luaTimers.clear();
 }
 
+// The `hl` global is the compositor's Lua API table. Config code, plugins and
+// `hyprctl eval` all execute in this state, so without protection any of them
+// can permanently replace it (e.g. `hyprctl eval "hl = true"`), which bricks
+// every subsequent Lua IPC dispatch with "attempt to index a boolean value".
+// Expose it through the globals metatable instead of as a raw field: reads
+// resolve via __index, writes hit __newindex and are refused with a clear
+// error. A plain __newindex guard would not suffice, as Lua only consults
+// __newindex for absent keys.
+static bool hlGlobalKey(lua_State* L, int idx) {
+    if (lua_type(L, idx) != LUA_TSTRING)
+        return false;
+    size_t      len = 0;
+    const char* key = lua_tolstring(L, idx, &len);
+    return key && len == 2 && key[0] == 'h' && key[1] == 'l';
+}
+
+static int hlGlobalIndex(lua_State* L) {
+    // stack: _G, key
+    if (hlGlobalKey(L, 2)) {
+        lua_getfield(L, LUA_REGISTRYINDEX, "hl_api_table");
+        return 1;
+    }
+    lua_pushnil(L);
+    return 1;
+}
+
+static int hlGlobalNewIndex(lua_State* L) {
+    // stack: _G, key, value
+    if (hlGlobalKey(L, 2))
+        return luaL_error(L, "hl is a read-only global provided by Hyprland and cannot be reassigned");
+    lua_rawset(L, 1);
+    return 0;
+}
+
+static void protectHlGlobal(lua_State* L) {
+    lua_getglobal(L, "hl"); // [hl]
+    lua_setfield(L, LUA_REGISTRYINDEX, "hl_api_table"); // []
+
+    // Drop the raw field so that __newindex is consulted on writes.
+    lua_pushglobaltable(L); // [_G]
+    lua_pushnil(L); // [_G, nil]
+    lua_setfield(L, -2, "hl"); // [_G]
+    lua_pop(L, 1); // []
+
+    lua_getglobal(L, "_G"); // [_G]
+    lua_newtable(L); // [_G, mt]
+    lua_pushcfunction(L, hlGlobalIndex); // [_G, mt, __index]
+    lua_setfield(L, -2, "__index"); // [_G, mt]
+    lua_pushcfunction(L, hlGlobalNewIndex); // [_G, mt, __newindex]
+    lua_setfield(L, -2, "__newindex"); // [_G, mt]
+    lua_setmetatable(L, -2); // [_G]
+    lua_pop(L, 1); // []
+}
+
 void CConfigManager::reinitLuaState() {
     // Destroy the event handler first so its luaL_unref calls happen while m_lua is still valid.
     m_eventHandler.reset();
@@ -569,12 +623,7 @@ void CConfigManager::reinitLuaState() {
 
     Bindings::registerBindings(m_lua, this);
 
-    // Stash a protected reference to the hl API table. hyprctl eval/dispatch
-    // resolves hl through the mutable _G, so if user Lua code (or a stray
-    // eval) overwrites the global, IPC actuation breaks. eval() restores it
-    // from here when the global is no longer the API table.
-    lua_getglobal(m_lua, "hl");
-    lua_setfield(m_lua, LUA_REGISTRYINDEX, "hyprland_hl_api");
+    protectHlGlobal(m_lua);
 
     m_eventHandler = makeUnique<CLuaEventHandler>(m_lua);
 
@@ -897,20 +946,6 @@ void CConfigManager::addEvalIssue(const Config::SConfigError& err) {
 std::optional<std::string> CConfigManager::eval(const std::string& code, bool repl) {
     if (!m_lua)
         return "error: lua state not initialized";
-
-    // The IPC dispatch path evaluates hl.dispatch(...) against _G["hl"].
-    // If user code overwrote the global, restore the API table stashed in
-    // the registry so hyprctl eval/dispatch keep working.
-    lua_getglobal(m_lua, "hl");
-    if (!lua_istable(m_lua, -1)) {
-        lua_pop(m_lua, 1);
-        lua_getfield(m_lua, LUA_REGISTRYINDEX, "hyprland_hl_api");
-        if (lua_istable(m_lua, -1))
-            lua_setglobal(m_lua, "hl");
-        else
-            lua_pop(m_lua, 1);
-    } else
-        lua_pop(m_lua, 1);
 
     m_errors.clear();
     m_evalIssues.clear();

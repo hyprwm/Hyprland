@@ -17,7 +17,7 @@ CXDGSystemBellManagerResource::CXDGSystemBellManagerResource(UP<CXdgSystemBellV1
     m_resource->setOnDestroy([this](CXdgSystemBellV1*) { PROTO::xdgBell->destroyResource(this); });
 
     m_resource->setRing([](CXdgSystemBellV1*, wl_resource* surface) {
-        const auto           WINDOW = Desktop::viewState()->query().surface(CWLSurfaceResource::fromResource(surface)).type(Desktop::View::VIEW_TYPE_WINDOW).runWindow();
+        const auto WINDOW = surface ? Desktop::viewState()->query().surface(CWLSurfaceResource::fromResource(surface)).type(Desktop::View::VIEW_TYPE_WINDOW).runWindow() : nullptr;
 
         Event::SCallbackInfo info;
         Event::bus()->m_events.window.bell.emit(WINDOW, info);

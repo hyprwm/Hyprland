@@ -110,8 +110,8 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
     m_tableFD = std::move(fds[1]);
 }
 
-CLinuxDMABuffer::CLinuxDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs attrs) {
-    m_buffer = makeShared<CDMABuffer>(id, client, attrs);
+CLinuxDMABuffer::CLinuxDMABuffer(uint32_t id, wl_client* client, const Aquamarine::SDMABUFAttrs& attrs, std::array<CFileDescriptor, 4> fds) {
+    m_buffer = makeShared<CDMABuffer>(id, client, attrs, std::move(fds));
 
     m_buffer->m_resource->m_buffer = m_buffer;
 
@@ -148,6 +148,8 @@ CLinuxDMABUFParamsResource::CLinuxDMABUFParamsResource(UP<CZwpLinuxBufferParamsV
     m_attrs->success = true;
 
     m_resource->setAdd([this](CZwpLinuxBufferParamsV1* r, int32_t fd, uint32_t plane, uint32_t offset, uint32_t stride, uint32_t modHi, uint32_t modLo) {
+        CFileDescriptor ownedFD{fd};
+
         if (m_used) {
             r->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_ALREADY_USED, "Already used");
             return;
@@ -171,7 +173,8 @@ CLinuxDMABUFParamsResource::CLinuxDMABUFParamsResource(UP<CZwpLinuxBufferParamsV
             return;
         }
 
-        m_attrs->fds[plane]     = fd;
+        m_fds[plane]            = std::move(ownedFD);
+        m_attrs->fds[plane]     = m_fds[plane].get();
         m_attrs->strides[plane] = stride;
         m_attrs->offsets[plane] = offset;
         m_attrs->modifier       = modifier;
@@ -246,7 +249,11 @@ void CLinuxDMABUFParamsResource::create(uint32_t id) {
         LOG(Log::DEBUG, " | plane {}: mod {} fd {} stride {} offset {}", i, m_attrs->modifier, m_attrs->fds[i], m_attrs->strides[i], m_attrs->offsets[i]);
     }
 
-    auto& buf = PROTO::linuxDma->m_buffers.emplace_back(makeUnique<CLinuxDMABuffer>(id, m_resource->client(), *m_attrs));
+    auto& buf = PROTO::linuxDma->m_buffers.emplace_back(makeUnique<CLinuxDMABuffer>(id, m_resource->client(), *m_attrs, std::move(m_fds)));
+
+    // The buffer now owns the planes, even if construction failed.
+    m_attrs->fds.fill(-1);
+    m_attrs->planes = 0;
 
     if UNLIKELY (!buf->good() || !buf->m_buffer->m_success) {
         m_resource->sendFailed();

@@ -1,11 +1,12 @@
 #pragma once
 
 #include "Buffer.hpp"
+#include <array>
 #include <hyprutils/os/FileDescriptor.hpp>
 
 class CDMABuffer : public IHLBuffer {
   public:
-    CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs const& attrs_);
+    CDMABuffer(uint32_t id, wl_client* client, const Aquamarine::SDMABUFAttrs& attrs_, std::array<Hyprutils::OS::CFileDescriptor, 4> fds);
     virtual ~CDMABuffer();
 
     virtual Aquamarine::eBufferCapability          caps();
@@ -21,7 +22,9 @@ class CDMABuffer : public IHLBuffer {
     bool                                           m_success = false;
 
   private:
-    Aquamarine::SDMABUFAttrs m_attrs;
+    // Attribute copies are borrowed views; only m_fds owns the planes.
+    Aquamarine::SDMABUFAttrs                      m_attrs;
+    std::array<Hyprutils::OS::CFileDescriptor, 4> m_fds;
 
     struct {
         CHyprSignalListener resourceDestroy;

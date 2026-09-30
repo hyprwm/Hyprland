@@ -1,6 +1,7 @@
 #include <cmath>
 #include <format>
 #include <string>
+#include <thread>
 #include <utility>
 
 #include "../../shared.hpp"
@@ -197,6 +198,62 @@ TEST_CASE(dragLifecycleSignals) {
     OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 200, y = 200, window = 'class:drag_lifecycle' })"));
 
     OK(getFromSocket("/eval hl.plugin.test.test_drag_lifecycle('drag_lifecycle')"));
+
+    Tests::killAllWindows();
+    OK(getFromSocket("/reload"));
+}
+
+TEST_CASE(dragThresholdSurvivesScrollEvents) {
+    OK(getFromSocket("/eval hl.config({ general = { snap = { enabled = false } } })"));
+    OK(getFromSocket("/eval hl.config({ binds = { scroll_event_delay = 0 } })"));
+    OK(getFromSocket("/eval hl.unbind('SUPER + mouse:272'); hl.bind('mouse:272', hl.dsp.window.drag(), { mouse = true })"));
+    SPAWN_KITTY("drag_threshold");
+    ASSERT(Tests::windowCount(), 1);
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:drag_threshold' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.resize({ x = 300, y = 200, window = 'class:drag_threshold' })"));
+
+    for (const int THRESHOLD : {0, 40}) {
+        OK(getFromSocket(std::format("/eval hl.config({{ binds = {{ drag_threshold = {} }} }})", THRESHOLD)));
+        OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 200, y = 200, window = 'class:drag_threshold' })"));
+        // Let the client configure and animated geometry settle before the hit-tested grab.
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 350, y = 300 })"));
+        OK(getFromSocket("/eval hl.plugin.test.click(272, 1)"));
+        EXPECT_OK(getFromSocket(std::format("/eval hl.plugin.test.expect_drag_state(true, {})", THRESHOLD == 0)));
+
+        if (THRESHOLD > 0) {
+            // Motion below the threshold must not pick up the window.
+            OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 360, y = 300 })"));
+            EXPECT_OK(getFromSocket("/eval hl.plugin.test.expect_drag_state(true, false)"));
+            EXPECT(nearly(activeWindowAt().first, 200), true);
+        }
+
+        OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 410, y = 300 })"));
+        EXPECT_OK(getFromSocket("/eval hl.plugin.test.expect_drag_state(true, true)"));
+        const auto [BEFORE_X, BEFORE_Y] = activeWindowAt();
+
+        // Scroll events run processEvent without ending the mouse drag.
+        OK(getFromSocket("/eval hl.plugin.test.scroll(120)"));
+        EXPECT_OK(getFromSocket("/eval hl.plugin.test.expect_drag_state(true, true)"));
+        OK(getFromSocket("/eval hl.plugin.test.scroll(-120)"));
+        EXPECT_OK(getFromSocket("/eval hl.plugin.test.expect_drag_state(true, true)"));
+
+        // A small move must follow immediately, without requiring the threshold again.
+        OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 420, y = 300 })"));
+        const auto [AFTER_X, AFTER_Y] = activeWindowAt();
+        EXPECT(nearly(AFTER_X, BEFORE_X + 10), true);
+        EXPECT(nearly(AFTER_Y, BEFORE_Y), true);
+
+        OK(getFromSocket("/eval hl.plugin.test.click(272, 0)"));
+        EXPECT_OK(getFromSocket("/eval hl.plugin.test.expect_drag_state(false, false)"));
+
+        // A new drag starts with its own threshold, not the previous drag's latch.
+        OK(getFromSocket("/eval hl.plugin.test.click(272, 1)"));
+        EXPECT_OK(getFromSocket(std::format("/eval hl.plugin.test.expect_drag_state(true, {})", THRESHOLD == 0)));
+        OK(getFromSocket("/eval hl.plugin.test.click(272, 0)"));
+        EXPECT_OK(getFromSocket("/eval hl.plugin.test.expect_drag_state(false, false)"));
+    }
 
     Tests::killAllWindows();
     OK(getFromSocket("/reload"));

@@ -569,6 +569,13 @@ void CConfigManager::reinitLuaState() {
 
     Bindings::registerBindings(m_lua, this);
 
+    // Stash a protected reference to the hl API table. hyprctl eval/dispatch
+    // resolves hl through the mutable _G, so if user Lua code (or a stray
+    // eval) overwrites the global, IPC actuation breaks. eval() restores it
+    // from here when the global is no longer the API table.
+    lua_getglobal(m_lua, "hl");
+    lua_setfield(m_lua, LUA_REGISTRYINDEX, "hyprland_hl_api");
+
     m_eventHandler = makeUnique<CLuaEventHandler>(m_lua);
 
     // Hook package.searchers[2] (the Lua file searcher) to track require()'d paths.
@@ -890,6 +897,20 @@ void CConfigManager::addEvalIssue(const Config::SConfigError& err) {
 std::optional<std::string> CConfigManager::eval(const std::string& code, bool repl) {
     if (!m_lua)
         return "error: lua state not initialized";
+
+    // The IPC dispatch path evaluates hl.dispatch(...) against _G["hl"].
+    // If user code overwrote the global, restore the API table stashed in
+    // the registry so hyprctl eval/dispatch keep working.
+    lua_getglobal(m_lua, "hl");
+    if (!lua_istable(m_lua, -1)) {
+        lua_pop(m_lua, 1);
+        lua_getfield(m_lua, LUA_REGISTRYINDEX, "hyprland_hl_api");
+        if (lua_istable(m_lua, -1))
+            lua_setglobal(m_lua, "hl");
+        else
+            lua_pop(m_lua, 1);
+    } else
+        lua_pop(m_lua, 1);
 
     m_errors.clear();
     m_evalIssues.clear();

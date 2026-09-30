@@ -7,7 +7,19 @@
 
 #include "../../UnifiedWorkspaceSwipeGesture.hpp"
 
+CWorkspaceSwipeGesture::~CWorkspaceSwipeGesture() {
+    cancel();
+}
+
+void CWorkspaceSwipeGesture::cancel() {
+    const auto SESSION = m_sessionID;
+    m_sessionID        = 0;
+    if (SESSION && g_pUnifiedWorkspaceSwipe && SESSION == g_pUnifiedWorkspaceSwipe->sessionID())
+        g_pUnifiedWorkspaceSwipe->cancel();
+}
+
 void CWorkspaceSwipeGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
+    cancel();
     ITrackpadGesture::begin(e);
 
     static auto PSWIPENEW = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_create_new");
@@ -15,20 +27,25 @@ void CWorkspaceSwipeGesture::begin(const ITrackpadGesture::STrackpadGestureBegin
     if (g_pSessionLockManager->isSessionLocked() || g_pUnifiedWorkspaceSwipe->isGestureInProgress())
         return;
 
+    const auto MONITOR = Desktop::focusState()->monitor();
+    if (!MONITOR)
+        return;
+
     int onMonitor = 0;
     for (auto const& w : State::Workspace::state()->workspaces()) {
-        if (w->m_monitor == Desktop::focusState()->monitor() && w->type() != Workspace::eWorkspaceType::SPECIAL)
+        if (w->m_monitor == MONITOR && w->type() != Workspace::eWorkspaceType::SPECIAL)
             onMonitor++;
     }
 
     if (onMonitor < 2 && !*PSWIPENEW)
         return; // disallow swiping when there's 1 workspace on a monitor
 
-    g_pUnifiedWorkspaceSwipe->begin();
+    if (g_pUnifiedWorkspaceSwipe->begin(MONITOR))
+        m_sessionID = g_pUnifiedWorkspaceSwipe->sessionID();
 }
 
 void CWorkspaceSwipeGesture::update(const ITrackpadGesture::STrackpadGestureUpdate& e) {
-    if (!g_pUnifiedWorkspaceSwipe->isGestureInProgress())
+    if (!m_sessionID || m_sessionID != g_pUnifiedWorkspaceSwipe->sessionID())
         return;
 
     const float  DELTA = distance(e);
@@ -40,7 +57,9 @@ void CWorkspaceSwipeGesture::update(const ITrackpadGesture::STrackpadGestureUpda
 }
 
 void CWorkspaceSwipeGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) {
-    if (!g_pUnifiedWorkspaceSwipe->isGestureInProgress())
+    const auto SESSION = m_sessionID;
+    m_sessionID        = 0;
+    if (!SESSION || SESSION != g_pUnifiedWorkspaceSwipe->sessionID())
         return;
 
     g_pUnifiedWorkspaceSwipe->end();

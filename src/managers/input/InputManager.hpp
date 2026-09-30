@@ -55,12 +55,29 @@ enum eBorderIconDirection : uint8_t {
 };
 
 struct STouchData {
-    WP<SSessionLockSurface> touchFocusLockSurface;
-    PHLWINDOWREF            touchFocusWindow;
-    PHLLSREF                touchFocusLS;
-    WP<CWLSurfaceResource>  touchFocusSurface;
-    Vector2D                touchSurfaceOrigin;
-    Vector2D                lastTouchPos;
+    struct SConsumedTouch {
+        WP<ITouch> device;
+        int32_t    id = 0;
+    };
+
+    struct SWorkspaceSwipe {
+        WP<ITouch>          device;
+        int32_t             id        = 0;
+        uint64_t            sessionID = 0;
+        PHLMONITORREF       monitor;
+        bool                fromEnd = false;
+        CHyprSignalListener deviceDestroy;
+    };
+
+    std::optional<SWorkspaceSwipe> workspaceSwipe;
+    std::vector<SConsumedTouch>    consumedTouches;
+
+    WP<SSessionLockSurface>        touchFocusLockSurface;
+    PHLWINDOWREF                   touchFocusWindow;
+    PHLLSREF                       touchFocusLS;
+    WP<CWLSurfaceResource>         touchFocusSurface;
+    Vector2D                       touchSurfaceOrigin;
+    Vector2D                       lastTouchPos;
 };
 
 // The third row is always 0 0 1 and is not expected by `libinput_device_config_calibration_set_matrix`
@@ -140,8 +157,9 @@ class CInputManager {
     void               processMouseRequest(const CSeatManager::SSetCursorEvent& event);
 
     void               onTouchDown(ITouch::SDownEvent);
-    void               onTouchUp(ITouch::SUpEvent);
-    void               onTouchMove(ITouch::SMotionEvent);
+    void               onTouchUp(ITouch::SUpEvent, SP<ITouch> device);
+    void               onTouchMove(ITouch::SMotionEvent, SP<ITouch> device);
+    void               onTouchCancel(ITouch::SCancelEvent, SP<ITouch> device);
 
     void               onSwipeBegin(IPointer::SSwipeBeginEvent);
     void               onSwipeEnd(IPointer::SSwipeEndEvent);

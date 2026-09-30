@@ -70,9 +70,10 @@ static bool waitForMirror(const std::string& source, const std::string& targetID
     return false;
 }
 
-static std::string expectMonitorRenderStages(const std::string& name, bool mirror) {
+static std::string expectMonitorRenderStages(const std::string& name, bool mirror, std::optional<bool> workspaceProbe = std::nullopt) {
     CScopeGuard resetRecording([] { getFromSocket("/eval hl.plugin.test.reset_monitor_render_recording()"); });
-    const auto  ARMED = getFromSocket(std::format("/eval hl.plugin.test.arm_monitor_render_recording('{}')", name));
+    const auto  ARMED =
+        getFromSocket(std::format("/eval hl.plugin.test.arm_monitor_render_recording('{}'{})", name, workspaceProbe ? (*workspaceProbe ? ", true" : ", false") : ""));
     if (ARMED != "ok")
         return ARMED;
 
@@ -143,4 +144,22 @@ TEST_CASE(monitorMirrorAppliedWhenTargetAppears) {
     ASSERT(waitForMirror(TEST_MIRROR_SOURCE, *RECREATED_TARGET_ID), true);
     EXPECT(monitorBlock(TEST_MIRROR_SOURCE, false).empty(), true);
     OK(expectMonitorRenderStages(TEST_MIRROR_SOURCE, true));
+}
+
+TEST_CASE(monitorBackgroundWorkspaceAndXpMode) {
+    removeMirrorTestOutputs();
+    CScopeGuard cleanup([] { removeMirrorTestOutputs(); });
+    OK(getFromSocket(std::format("/eval hl.monitor({{ output = '{}', mode = '1920x1080@60', position = 'auto-right', scale = '1' }}); "
+                                 "hl.config({{ misc = {{ disable_hyprland_logo = true, disable_splash_rendering = true }} }})",
+                                 TEST_MIRROR_SOURCE)));
+    OK(getFromSocket(std::format("/output create headless {}", TEST_MIRROR_SOURCE)));
+    ASSERT(waitForMonitor(TEST_MIRROR_SOURCE, true, false), true);
+    OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", TEST_MIRROR_SOURCE)));
+    for (const bool XP_MODE : {false, true}) {
+        OK(getFromSocket(std::format("/eval hl.config({{ render = {{ xp_mode = {} }} }})", XP_MODE ? "true" : "false")));
+        for (const bool WITH_WORKSPACE : {true, false}) {
+            NLog::log("Checking background: workspace {}, xp_mode {}", WITH_WORKSPACE, XP_MODE);
+            EXPECT_OK(expectMonitorRenderStages(TEST_MIRROR_SOURCE, false, WITH_WORKSPACE));
+        }
+    }
 }

@@ -50,6 +50,7 @@ extern "C" {
 
 #include "globals.hpp"
 #include "WorkspaceGestures.hpp"
+#include "SpecialWorkspaceGestures.hpp"
 
 // Do NOT change this function.
 APICALL EXPORT std::string PLUGIN_API_VERSION() {
@@ -1504,6 +1505,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     addLuaFn("expect_workspace_lifecycle_state", ::luaExpectWorkspaceLifecycleState);
     addLuaFn("expect_no_maximize_echo", ::luaExpectNoMaximizeEcho);
     WorkspaceGestures::registerFunctions();
+    SpecialWorkspaceGestures::registerFunctions();
 
     // init mouse
     g_mouse = CTestMouse::create(false);
@@ -1522,6 +1524,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
 APICALL EXPORT void PLUGIN_EXIT() {
     WorkspaceGestures::reset();
+    SpecialWorkspaceGestures::reset();
     g_popupRenderRecording.reset();
     g_monitorRenderRecording.reset();
     removeKeyboardEventRecorder("");

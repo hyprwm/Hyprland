@@ -119,5 +119,6 @@ clientNew("shortcut-inhibitor" PROTOS "xdg-shell" "keyboard-shortcuts-inhibit-un
 clientNew("keyboard-modifiers" PROTOS "xdg-shell")
 clientNew("fullscreen-with-monitor" PROTOS "xdg-shell")
 clientNew("xdg-initial-maximize" PROTOS "xdg-shell")
+clientNew("popup-render" PROTOS "xdg-shell")
 clientNew("wlr-foreign-toplevel" PROTOS "wlr-foreign-toplevel-management-unstable-v1")
 clientNew("toplevel-capture" PROTOS "wlr-foreign-toplevel-management-unstable-v1" "hyprland-toplevel-export-v1")

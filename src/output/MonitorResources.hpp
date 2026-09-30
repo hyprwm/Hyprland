@@ -1,11 +1,10 @@
 #pragma once
 
 #include "Monitor.hpp"
+#include "WorkBufferPool.hpp"
 #include "../helpers/Format.hpp"
-#include "../helpers/time/Timer.hpp"
 #include "../render/Framebuffer.hpp"
 #include <hyprutils/math/Vector2D.hpp>
-#include <vector>
 
 namespace Monitor {
     class CMonitorResources {
@@ -39,11 +38,6 @@ namespace Monitor {
         NColorManagement::PImageDescription getMirrorTexImageDescription();
         Vector2D                            mirrorFBDamageSize() const;
 
-        struct SResource {
-            SP<Render::IFramebuffer> buffer;
-            CTimer                   lastUsed;
-        };
-
         SP<Render::IFramebuffer>            m_monitorMirrorFB;
         CRegion                             m_mirrorFBStaleDamage;
         WP<CMonitor>                        m_monitor;
@@ -53,8 +47,8 @@ namespace Monitor {
         bool                                m_mirrorFBValid            = false;
         bool                                m_mirrorFBNeedsFullRefresh = true;
 
-        std::vector<SResource>              m_workBuffers;
-        std::vector<SResource>              m_sizedWorkBuffers;
+        CWorkBufferPool                     m_workBuffers;
+        CWorkBufferPool                     m_sizedWorkBuffers;
 
         friend class CMonitor;
     };

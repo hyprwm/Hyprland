@@ -26,6 +26,7 @@ namespace Desktop::View {
         virtual bool                          desktopComponent() const  = 0;
         virtual std::optional<CBox>           logicalBox() const        = 0;
         virtual std::optional<CBox>           surfaceLogicalBox() const = 0;
+        virtual bool                          cantLockCursor() const    = 0;
 
       protected:
         IView(SP<Desktop::View::CWLSurface> pWlSurface);

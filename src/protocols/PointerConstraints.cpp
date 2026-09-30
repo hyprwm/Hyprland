@@ -121,7 +121,7 @@ void CPointerConstraint::activate() {
 
     // TODO: hack, probably not a super duper great idea
     if (g_pSeatManager->m_state.pointerFocus != m_hlSurface->resource()) {
-        if (const auto W = Desktop::View::CWindow::fromView(m_hlSurface->view()); !W || !W->cantLockCursor()) {
+        if (const auto VIEW = m_hlSurface->view(); !VIEW || !VIEW->cantLockCursor()) {
             const auto SURFBOX = m_hlSurface->getSurfaceBoxGlobal();
             const auto LOCAL   = SURFBOX.has_value() ? logicPositionHint() - SURFBOX->pos() : Vector2D{};
             g_pSeatManager->setPointerFocus(m_hlSurface->resource(), LOCAL);
@@ -239,7 +239,7 @@ void CPointerConstraintsProtocol::onNewConstraint(SP<CPointerConstraint> constra
 
     g_pInputManager->m_constraints.emplace_back(constraint);
 
-    if (Desktop::focusState()->surface() == OWNER->resource())
+    if (g_pSeatManager->m_state.pointerFocus == OWNER->resource())
         constraint->activate();
 }
 

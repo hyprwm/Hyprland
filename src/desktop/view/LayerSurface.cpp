@@ -35,6 +35,7 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     pLS->m_namespace      = resource->m_layerNamespace;
     pLS->m_layer          = std::clamp(resource->m_current.layer, ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND, ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY);
     pLS->setPopupHead(CPopup::create(pLS));
+    pLS->setSubsurfaceHead(CSubsurface::create(pLS));
 
     Animation::mgr()->createAnimation(0.f, pLS->m_alpha.get(LS_ALPHA_FADE), Config::animationTree()->getAnimationPropertyConfig("fadeLayersIn"), pLS, AVARDAMAGE_ENTIRE);
     Animation::mgr()->createAnimation(Vector2D(0, 0), pLS->positionAnimation(), Config::animationTree()->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
@@ -144,6 +145,7 @@ void CLayerSurface::onDestroy() {
     }
 
     resetPopupHead();
+    resetSubsurfaceHead();
 
     m_flags |= LAYER_FLAG_DEAD;
 
@@ -495,4 +497,8 @@ bool CLayerSurface::shouldBlur() const {
         return !surface->m_blurRegion.empty();
 
     return m_ruleApplicator->blur().valueOrDefault();
+}
+
+bool CLayerSurface::cantLockCursor() const {
+    return false;
 }

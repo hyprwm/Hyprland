@@ -16,10 +16,12 @@ namespace Desktop::View {
         // root dummy nodes
         static SP<CSubsurface> create(PHLWINDOW pOwner);
         static SP<CSubsurface> create(WP<Desktop::View::CPopup> pOwner);
+        static SP<CSubsurface> create(PHLLS pOwner);
 
         // real nodes
         static SP<CSubsurface> create(SP<CWLSubsurfaceResource> pSubsurface, PHLWINDOW pOwner);
         static SP<CSubsurface> create(SP<CWLSubsurfaceResource> pSubsurface, WP<Desktop::View::CPopup> pOwner);
+        static SP<CSubsurface> create(SP<CWLSubsurfaceResource> pSubsurface, PHLLS pOwner);
 
         static SP<CSubsurface> fromView(SP<IView>);
 
@@ -34,6 +36,7 @@ namespace Desktop::View {
         virtual Vector2D               position(eGeometricValueType) const override;
         virtual Vector2D               size(eGeometricValueType) const override;
         virtual CBox                   geometricBox(eGeometricValueType) const override;
+        virtual bool                   cantLockCursor() const override;
 
         Vector2D                       coordsRelativeToParent() const;
         Vector2D                       coordsGlobal() const;
@@ -75,6 +78,7 @@ namespace Desktop::View {
 
         PHLWINDOWREF                                m_windowParent;
         WP<Desktop::View::CPopup>                   m_popupParent;
+        PHLLSREF                                    m_layerSurfaceParent;
 
         std::vector<SP<Desktop::View::CSubsurface>> m_children;
 

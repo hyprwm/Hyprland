@@ -764,3 +764,24 @@ TEST_CASE(groupedExitWindowRetainsFullscreen) {
         EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
 }
+
+TEST_CASE(windowOpenInGroupReceivesCursorFocus) {
+    // Bash command that will terminate on mouse input event
+    std::vector<std::string> waitMouseEventCmd = {"bash", "-c", R"(echo -e '\e[?1000h'; read -n 1)"};
+    SPAWN_KITTY("kittyA", waitMouseEventCmd);
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+    SPAWN_KITTY("kittyB", waitMouseEventCmd);
+
+    // The last open window is active
+    auto str = getFromSocket("/activewindow");
+    ASSERT_CONTAINS(str, "class: kittyB\n");
+    auto groupped = Tests::getAttribute(str, "grouped");
+    // Two windows in the group, delimited with one comma
+    ASSERT(Tests::countOccurrences(groupped, ","), 1);
+
+    // Since kittyB is active, it should receive the mouse input (and, subseqeuntly, terminate)
+    OK(getFromSocket("/dispatch hl.dsp.send_shortcut({ mods = '', key = 'mouse:272' })"));
+    Tests::waitUntilWindowsN(1);
+    str = getFromSocket("/activewindow");
+    ASSERT_CONTAINS(str, "class: kittyA");
+}

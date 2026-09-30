@@ -271,6 +271,7 @@ customStdenv.mkDerivation (finalAttrs: {
       install hyprtester/fullscreen-with-monitor -t $out/bin
       install hyprtester/surface-scale-transform -t $out/bin
       install hyprtester/xdg-interactive -t $out/bin
+      install hyprtester/xdg-activation -t $out/bin
       install hyprtester/xdg-initial-maximize -t $out/bin
       install hyprtester/wlr-foreign-toplevel -t $out/bin
       install hyprtester/toplevel-capture -t $out/bin

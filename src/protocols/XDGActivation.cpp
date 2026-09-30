@@ -1,6 +1,7 @@
 #include "XDGActivation.hpp"
 #include "../managers/TokenManager.hpp"
 #include "../Compositor.hpp"
+#include "../managers/SeatManager.hpp"
 #include "core/Compositor.hpp"
 #include <algorithm>
 
@@ -16,14 +17,27 @@ CXDGActivationToken::CXDGActivationToken(SP<CXdgActivationTokenV1> resource_) : 
     m_resource->setSetAppId([this](CXdgActivationTokenV1* r, const char* appid) { m_appID = appid; });
 
     m_resource->setCommit([this](CXdgActivationTokenV1* r) {
+        auto rej = [this] {
+            // is this fucking correct? Or should we just never send done???
+            m_resource->sendDone("");
+        };
+
         // TODO: should we send a protocol error of already_used here
         // if it was used? the protocol spec doesn't say _when_ it should be sent...
         if UNLIKELY (m_committed) {
-            LOG(Log::WARN, "possible protocol error, two commits from one token. Ignoring.");
+            LOG(Log::WARN, "possible protocol error, two commits from one token, rejecting");
+            rej();
             return;
         }
 
         m_committed = true;
+
+        if UNLIKELY (!m_serial || !g_pSeatManager->serialValid(g_pSeatManager->seatResourceForClient(m_resource->client()), m_serial)) {
+            LOG(Log::WARN, "invalid serial {} for activation token, rejecting", m_serial);
+            rej();
+            return;
+        }
+
         // send done with a new token
         m_token = g_pTokenManager->registerNewToken({}, std::chrono::months{12});
 

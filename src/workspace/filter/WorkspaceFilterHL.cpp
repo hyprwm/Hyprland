@@ -38,7 +38,7 @@ namespace {
             if (!SELF || !Fullscreen::controller()->hasFullscreen(SELF))
                 return -1;
 
-            const auto MODES = Fullscreen::controller()->getFullscreenModes(SELF);
+            const auto MODES = Fullscreen::controller()->getFullscreenModes(SELF, true);
             if (MODES.internal == Fullscreen::FSMODE_MAXIMIZED)
                 return 1;
             if (MODES.internal == Fullscreen::FSMODE_FULLSCREEN && MODES.client != Fullscreen::FSMODE_FULLSCREEN)

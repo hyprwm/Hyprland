@@ -152,26 +152,6 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
         }
     };
 
-    /* Setting DS and VRR */
-
-    // If a window is being un-FSed, set its DS and VRR in requestFullscreen()
-    // If we are scrolling away from an FS window that is not unFSed yet, we set its DS and VRR in sScrollingDataRecalculateHelper()
-    // If a window is being FS-ed, or we are scrolling onto a FSed window, we set its DS and VRR in sScrollingDataRecalculateHelper()
-
-    if (REQUESTED_MODE == FSMODE_NONE) {
-
-        // send a regular tranche if we are exiting fullscreen.
-        // ignore if DS is disabled.
-        static auto PDIRECTSCANOUT = CConfigValue<Config::INTEGER>("render:direct_scanout");
-
-        if (*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && WINDOW->getContentType() == NContentType::CONTENT_TYPE_GAME)) {
-            auto surf = WINDOW->getSolitaryResource();
-            if (surf)
-                g_pHyprRenderer->setSurfaceScanoutMode(surf, nullptr);
-        }
-        Config::monitorRuleMgr()->ensureVRR(MONITOR);
-    }
-
     if (REQUESTED_MODE == FSMODE_FULLSCREEN) {
 
         if (!isFullscreen(TARGET, FSMODE_FULLSCREEN, std::nullopt)) {
@@ -208,6 +188,8 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
 
         setTargetFullscreenModeInternal(TARGET, FSMODE_FULLSCREEN);
 
+        m_scrollingAlgorithm->recalculate(Layout::RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN);
+
         return FULLSCREEN_REQUEST_LAYOUT_HANDLED;
 
     } else if (REQUESTED_MODE == FSMODE_MAXIMIZED) {
@@ -241,16 +223,39 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
 
         setTargetFullscreenModeInternal(TARGET, FSMODE_MAXIMIZED);
 
+        m_scrollingAlgorithm->recalculate(Layout::RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN);
+
         return FULLSCREEN_REQUEST_LAYOUT_HANDLED;
     }
+
+    // REQUESTED_MODE == FSMODE_NONE case
 
     // Because we use MONBOX for a fullscreen window, we need to offset the fact that it's larger than a 1.F column and thus leave the viewport a few pixels to the right when unFullscreened
     if (request.currentMode == FSMODE_FULLSCREEN)
         m_scrollingAlgorithm->m_scrollingData->controller->adjustOffset(MONITOR->logicalBox().x - WORKSPACE->space()->workArea().x);
 
-    // UnFS target
     setTargetFullscreenModeInternal(TARGET, FSMODE_NONE);
     m_scrollingAlgorithm->m_scrollingData->centerOrFitCol(currentCol);
+
+    /* Setting DS and VRR */
+
+    // If a window is being un-FSed, set its DS and VRR in requestFullscreen()
+    // If we are scrolling away from an FS window that is not unFSed yet, we set its DS and VRR in sScrollingDataRecalculateHelper()
+    // If a window is being FS-ed, or we are scrolling onto a FSed window, we set its DS and VRR in sScrollingDataRecalculateHelper()
+
+    // send a regular tranche if we are exiting fullscreen.
+    // ignore if DS is disabled.
+    static auto PDIRECTSCANOUT = CConfigValue<Config::INTEGER>("render:direct_scanout");
+
+    if (*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && WINDOW->getContentType() == NContentType::CONTENT_TYPE_GAME)) {
+        auto surf = WINDOW->getSolitaryResource();
+        if (surf)
+            g_pHyprRenderer->setSurfaceScanoutMode(surf, nullptr);
+    }
+    Config::monitorRuleMgr()->ensureVRR(MONITOR);
+
+    m_scrollingAlgorithm->recalculate(Layout::RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN);
+
     return (REQUESTED_MODE == FSMODE_NONE && !isFullscreen(TARGET, std::nullopt, std::nullopt)) ? FULLSCREEN_REQUEST_LAYOUT_HANDLED : FULLSCREEN_REQUEST_FAILED;
 }
 
@@ -288,8 +293,15 @@ void CScrollingFullscreenHandler::updateTargetRulesAndDecos(const SP<Layout::ITa
     if (!target || !target->window() || !target->workspace() || !target->workspace()->m_monitor)
         return;
 
-    const auto MONITOR = target->workspace()->m_monitor.lock();
-    const auto WINDOW  = target->window();
+    // Need to guard against inf recursion since scrolling's recalculate() calls this function also.
+    // set the decorations and rules correctly once; if nothing is broken it should get the correct values in all subsequent checks.
+    if (m_updatingTargetRulesAndDecs)
+        return;
+    m_updatingTargetRulesAndDecs = true;
+    Hyprutils::Utils::CScopeGuard guard([this] { m_updatingTargetRulesAndDecs = false; });
+
+    const auto                    MONITOR = target->workspace()->m_monitor.lock();
+    const auto                    WINDOW  = target->window();
 
     // If window is in a group, we need to update these values for ALL members of the group.
     if (WINDOW->grouping().group()) {
@@ -304,10 +316,8 @@ void CScrollingFullscreenHandler::updateTargetRulesAndDecos(const SP<Layout::ITa
         WINDOW->presentation().updateDecorations();
     }
 
-    // Normally, FS controller's FS state setter's method of handling window rules should be used; but calling g_layoutManager->recalculateMonitor(MONITOR) and getSpace()->recalculate()
-    // here would lead to an inf recursion
-    // Concern: if the user executes a premature prop refresh, this might cause another prop refresh to be enqueued if the variables in the if cond aren't properly updated by setNoMembersAboveFullscreen()
-    Config::Supplementary::refresher()->scheduleRefresh(Config::Supplementary::REFRESH_WINDOW_STATES | Config::Supplementary::REFRESH_MONITOR_STATES);
+    g_layoutManager->recalculateMonitor(MONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN);
+    getSpace()->recalculate(Layout::RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN);
 }
 
 void CScrollingFullscreenHandler::setTargetSizeAndPosition(const SP<Layout::ITarget> target) {
@@ -572,42 +582,17 @@ eFullscreenHandler CScrollingFullscreenHandler::getFullscreenHandlerName() const
     return FULLSCREEN_HANDLER_TYPE;
 }
 
-void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layout::Tiled::SScrollingTargetData> CURRENT_COVERING_FS_TDATA, const PHLMONITOR MONITOR) {
+void CScrollingFullscreenHandler::sScrollingDataRecalculateDecorationsHelper(const SP<Layout::Tiled::SScrollingTargetData> CURRENT_COVERING_FS_TDATA) {
 
-    // TODO Decouple FS logic from SScrollingData::recalculate() to avoid having to schedule a prop refresh: it has to be here and it's a mess because recalculate() handled scrolling
-    // onto/away from FS windows and this process doesn't call the controller's FS setters which are normally responsible for handling window rule checks.
-
-    if (CURRENT_COVERING_FS_TDATA && !CURRENT_COVERING_FS_TDATA->target && getSpace() && getSpace()->workspace())
-        return;
-
-    // This would not have been updated to the new value it might have yet at this point
-    const auto LAST_FS_LAYOUT_HANDLED_TILED_WINDOW = m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow.lock();
-    // If window group, grabs the current window
-    const auto CURRENT_LAYOUT_HANDLED_FS_WINDOW = CURRENT_COVERING_FS_TDATA ? CURRENT_COVERING_FS_TDATA->target->window() : nullptr;
-
-    /* These checks must be kept synced with CScrollingFullscreenHandler::setNoMembersAboveFullscreen()'s */
-
-    // If there's a new covering FS window, the covering FS window has its mode changed (maximised -> fullscreen), or we scrolled onto a covering FS window
-    const bool coveringFsWindowStatePositive = CURRENT_COVERING_FS_TDATA &&
-        (CURRENT_LAYOUT_HANDLED_FS_WINDOW != LAST_FS_LAYOUT_HANDLED_TILED_WINDOW ||
-         getFullscreenModes(CURRENT_COVERING_FS_TDATA->target.lock()).internal != m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindowMode);
-
-    // check that LAST_FS_LAYOUTMANAGED_TILED_WINDOW was not unfullscreened
-    const bool scrollingAwayFromCoveringFsWindow = LAST_FS_LAYOUT_HANDLED_TILED_WINDOW &&
-        getFullscreenModes(LAST_FS_LAYOUT_HANDLED_TILED_WINDOW->layoutTarget()).internal != FSMODE_NONE &&
-        // Current widnow is not FS or it's not the same FS window we were on
-        (!CURRENT_COVERING_FS_TDATA || LAST_FS_LAYOUT_HANDLED_TILED_WINDOW != CURRENT_LAYOUT_HANDLED_FS_WINDOW);
-
-    // If scrolling away from or unFsing the covering FS window
-    const bool coveringFsWindowStateNegative = scrollingAwayFromCoveringFsWindow ||
-        (!CURRENT_COVERING_FS_TDATA && LAST_FS_LAYOUT_HANDLED_TILED_WINDOW && getFullscreenModes(LAST_FS_LAYOUT_HANDLED_TILED_WINDOW->layoutTarget()).internal == FSMODE_NONE);
+    const auto [LAST_FS_LAYOUT_HANDLED_TILED_WINDOW, CURRENT_LAYOUT_HANDLED_FS_WINDOW, COVERING_FS_WINDOW_STATE_POSITIVE, SCROLLING_AWAY_FROM_COVERING_FS_WINDOW,
+                COVERING_FS_WINDOW_STATE_NEGATIVE] = sScrollingDataRecalculateDataHelper(CURRENT_COVERING_FS_TDATA);
 
     /*
         Refreshing window rules and decos
     */
 
     // Scrolling onto or have a new FS window
-    if (coveringFsWindowStatePositive) {
+    if (COVERING_FS_WINDOW_STATE_POSITIVE) {
 
         // If window group, get the current window
         const auto LAST_FS_WINDOW_TARGET = CURRENT_COVERING_FS_TDATA->target->window()->windowTarget();
@@ -617,8 +602,18 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
         updateTargetRulesAndDecos(LAST_FS_WINDOW_TARGET);
     }
     // Scrolling away from an FS window
-    else if (coveringFsWindowStateNegative)
+    else if (COVERING_FS_WINDOW_STATE_NEGATIVE)
         updateTargetRulesAndDecos(LAST_FS_LAYOUT_HANDLED_TILED_WINDOW->windowTarget());
+}
+
+void CScrollingFullscreenHandler::sScrollingDataRecalculateVisibilityHelper(const SP<Layout::Tiled::SScrollingTargetData> CURRENT_COVERING_FS_TDATA, const PHLMONITOR MONITOR) {
+
+    // Need only run this function once
+    if (m_updatingTargetRulesAndDecs)
+        return;
+
+    const auto [LAST_FS_LAYOUT_HANDLED_TILED_WINDOW, CURRENT_LAYOUT_HANDLED_FS_WINDOW, COVERING_FS_WINDOW_STATE_POSITIVE, SCROLLING_AWAY_FROM_COVERING_FS_WINDOW,
+                COVERING_FS_WINDOW_STATE_NEGATIVE] = sScrollingDataRecalculateDataHelper(CURRENT_COVERING_FS_TDATA);
 
     /*
         Setting DS and VRR
@@ -632,7 +627,7 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
 
     // If we are scrolling away from a layout managed tiled FS window, send it a regular tranche
     // we need only check its internal state as if the window was saved in lastTiledLayoutManagedFsWindow, it is guaranteed to be as its name suggests
-    if (scrollingAwayFromCoveringFsWindow) {
+    if (SCROLLING_AWAY_FROM_COVERING_FS_WINDOW) {
         // send a regular tranche
         // ignore if DS is disabled.
         if ((*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && LAST_FS_LAYOUT_HANDLED_TILED_WINDOW->getContentType() == NContentType::CONTENT_TYPE_GAME))) {
@@ -642,7 +637,7 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
         }
     }
     // If we are scrolling onto, or have newly FSed a window
-    else if (coveringFsWindowStatePositive) {
+    else if (COVERING_FS_WINDOW_STATE_POSITIVE) {
 
         static auto PDIRECTSCANOUT = CConfigValue<Config::INTEGER>("render:direct_scanout");
         if (*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && CURRENT_LAYOUT_HANDLED_FS_WINDOW->getContentType() == NContentType::CONTENT_TYPE_GAME)) {
@@ -682,7 +677,7 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
         return false;
     };
 
-    if (coveringFsWindowStatePositive || scrollingAwayFromCoveringFsWindow || coveringFsWindowStateNegative ||
+    if (COVERING_FS_WINDOW_STATE_POSITIVE || SCROLLING_AWAY_FROM_COVERING_FS_WINDOW || COVERING_FS_WINDOW_STATE_NEGATIVE ||
         // For when you unFS the (default handled) covering floating FS window ontop of a Layout handled tiled covering FS window.
         (CURRENT_COVERING_FS_TDATA && detectIfWindowHidingOutOfSync())) {
 
@@ -697,6 +692,41 @@ void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layou
         // Must run after setNoMembersAboveFullscreen() so it can properly set the windows' allowedOverFullscreen attributes
         updateFullscreenFade(sc<bool>(CURRENT_COVERING_FS_TDATA));
     }
+}
+
+std::tuple<PHLWINDOW, PHLWINDOW, bool, bool, bool>
+CScrollingFullscreenHandler::sScrollingDataRecalculateDataHelper(const SP<Layout::Tiled::SScrollingTargetData> CURRENT_COVERING_FS_TDATA) {
+
+    // TODO Decouple FS logic from SScrollingData::recalculate() to avoid having to schedule a prop refresh: it has to be here and it's a mess because recalculate() handled scrolling
+    // onto/away from FS windows and this process doesn't call the controller's FS setters which are normally responsible for handling window rule checks.
+
+    if (CURRENT_COVERING_FS_TDATA && !CURRENT_COVERING_FS_TDATA->target && getSpace() && getSpace()->workspace())
+        return {};
+
+    // This would not have been updated to the new value it might have yet at this point
+    const auto LAST_FS_LAYOUT_HANDLED_TILED_WINDOW = m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow.lock();
+    // If window group, grabs the current window
+    const auto CURRENT_LAYOUT_HANDLED_FS_WINDOW = CURRENT_COVERING_FS_TDATA ? CURRENT_COVERING_FS_TDATA->target->window() : nullptr;
+
+    /* These checks must be kept synced with CScrollingFullscreenHandler::setNoMembersAboveFullscreen()'s */
+
+    // If there's a new covering FS window, the covering FS window has its mode changed (maximised -> fullscreen), or we scrolled onto a covering FS window
+    const bool COVERING_FS_WINDOW_STATE_POSITIVE = CURRENT_COVERING_FS_TDATA &&
+        (CURRENT_LAYOUT_HANDLED_FS_WINDOW != LAST_FS_LAYOUT_HANDLED_TILED_WINDOW ||
+         getFullscreenModes(CURRENT_COVERING_FS_TDATA->target.lock()).internal != m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindowMode);
+
+    // check that LAST_FS_LAYOUTMANAGED_TILED_WINDOW was not unfullscreened
+    const bool SCROLLING_AWAY_FROM_COVERING_FS_WINDOW = LAST_FS_LAYOUT_HANDLED_TILED_WINDOW &&
+        getFullscreenModes(LAST_FS_LAYOUT_HANDLED_TILED_WINDOW->layoutTarget()).internal != FSMODE_NONE &&
+        // Current widnow is not FS or it's not the same FS window we were on
+        (!CURRENT_COVERING_FS_TDATA || LAST_FS_LAYOUT_HANDLED_TILED_WINDOW != CURRENT_LAYOUT_HANDLED_FS_WINDOW);
+
+    // If scrolling away from or unFsing the covering FS window
+    const bool COVERING_FS_WINDOW_STATE_NEGATIVE = SCROLLING_AWAY_FROM_COVERING_FS_WINDOW ||
+        (!CURRENT_COVERING_FS_TDATA && LAST_FS_LAYOUT_HANDLED_TILED_WINDOW && getFullscreenModes(LAST_FS_LAYOUT_HANDLED_TILED_WINDOW->layoutTarget()).internal == FSMODE_NONE);
+
+    return std::tuple<PHLWINDOW, PHLWINDOW, bool, bool, bool>{LAST_FS_LAYOUT_HANDLED_TILED_WINDOW, CURRENT_LAYOUT_HANDLED_FS_WINDOW, COVERING_FS_WINDOW_STATE_POSITIVE,
+                                                              SCROLLING_AWAY_FROM_COVERING_FS_WINDOW, COVERING_FS_WINDOW_STATE_NEGATIVE};
 }
 
 void CScrollingFullscreenHandler::saveCurrentFsAndAllHiddenFloatingWindows(PHLWINDOW fullscreenWindow) {

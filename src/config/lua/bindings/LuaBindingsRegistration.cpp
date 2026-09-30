@@ -1,5 +1,6 @@
 #include "LuaBindingsInternal.hpp"
 
+#include "../objects/LuaDevice.hpp"
 #include "../objects/LuaEventSubscription.hpp"
 #include "../objects/LuaKeybind.hpp"
 #include "../objects/LuaLayerRule.hpp"
@@ -28,6 +29,7 @@ static int hlPrint(lua_State* L) {
 }
 
 void Internal::registerBindingsImpl(lua_State* L, CConfigManager* mgr) {
+    Objects::CLuaDevice{}.setup(L);
     Objects::CLuaTimer{}.setup(L);
     Objects::CLuaEventSubscription{}.setup(L);
     Objects::CLuaWindowRule{}.setup(L);

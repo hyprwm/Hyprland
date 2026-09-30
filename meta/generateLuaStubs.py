@@ -549,6 +549,7 @@ def generate_stub(root: Path) -> str:
         "hl.get_layers": "fun(filters?: HL.LayerQueryFilter): HL.LayerSurface[]",
         "hl.get_workspace_windows": "fun(workspace: HL.WorkspaceSelector): HL.Window[]",
         "hl.get_cursor_pos": "fun(): HL.Vec2|nil",
+        "hl.get_devices": "fun(): HL.Device[]",
         "hl.get_last_window": "fun(): HL.Window|nil",
         "hl.get_last_workspace": "fun(monitor?: HL.MonitorSelector): HL.Workspace|nil",
         "hl.get_current_submap": "fun(): string",
@@ -568,6 +569,28 @@ def generate_stub(root: Path) -> str:
     object_method_signatures: dict[tuple[str, str], str] = {
         ("HL.Group", "add"): "fun(self: HL.Group, window: HL.Window, index?: integer)",
         ("HL.Group", "remove"): "fun(self: HL.Group, window_or_index: HL.Window|integer)",
+    }
+
+    # Helper-based __index implementations need explicit field types and optionality.
+    object_field_overrides: dict[str, dict[str, tuple[str, bool]]] = {
+        "HL.Device": {
+            "type": ('"pointer"|"keyboard"|"tablet"|"tablet_pad"|"tablet_tool"|"touch"|"switch"', True),
+            "address": ("string", True),
+            "name": ("string", True),
+            "default_speed": ("number", True),
+            "scroll_factor": ("number", True),
+            "rules": ("string", True),
+            "model": ("string", True),
+            "layout": ("string", True),
+            "variant": ("string", True),
+            "options": ("string", True),
+            "active_keymap": ("string", True),
+            "active_layout_index": ("integer", True),
+            "caps_lock": ("boolean", True),
+            "num_lock": ("boolean", True),
+            "main": ("boolean", True),
+            "belongs_to": ("{address:string, name:string}", True),
+        },
     }
 
     lines: list[str] = []
@@ -781,10 +804,12 @@ def generate_stub(root: Path) -> str:
         for key in sorted(obj.methods):
             method_type = object_method_signatures.get((class_name, key), f"fun(self: {class_name}, ...): any")
             fields.append((key, method_type, False))
-        for key, typ in sorted(obj.fields.items()):
+        field_types = {key: (typ, False) for key, typ in obj.fields.items()}
+        field_types.update(object_field_overrides.get(class_name, {}))
+        for key, (typ, optional) in sorted(field_types.items()):
             if key in obj.methods:
                 continue
-            fields.append((key, typ, False))
+            fields.append((key, typ, optional))
 
         lines.extend(emit_class_block(class_name, fields))
         lines.append("")

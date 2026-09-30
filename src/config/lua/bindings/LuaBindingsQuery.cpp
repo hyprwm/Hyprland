@@ -2,6 +2,7 @@
 
 #include "Check.hpp"
 
+#include "../objects/LuaDevice.hpp"
 #include "../objects/LuaLayerSurface.hpp"
 #include "../objects/LuaMonitor.hpp"
 #include "../objects/LuaWindow.hpp"
@@ -235,6 +236,39 @@ static int hlGetMonitors(lua_State* L) {
     return 1;
 }
 
+static int hlGetDevices(lua_State* L) {
+    lua_newtable(L);
+    if (!g_pInputManager)
+        return 1;
+
+    int        i      = 1;
+    const auto append = [&](const auto& devices) {
+        for (const auto& device : devices) {
+            if (!device)
+                continue;
+
+            Objects::CLuaDevice::push(L, WP<IHID>{device});
+            lua_rawseti(L, -2, i++);
+        }
+    };
+
+    append(g_pInputManager->m_pointers);
+    append(g_pInputManager->m_keyboards);
+    append(g_pInputManager->m_tabletPads);
+    append(g_pInputManager->m_tablets);
+    append(g_pInputManager->m_tabletTools);
+    append(g_pInputManager->m_touches);
+    for (const auto& device : g_pInputManager->m_switches) {
+        if (!device.pDevice)
+            continue;
+
+        Objects::CLuaDevice::push(L, device.pDevice, rc<uintptr_t>(&device));
+        lua_rawseti(L, -2, i++);
+    }
+
+    return 1;
+}
+
 static int hlGetMonitor(lua_State* L) {
     const auto PMONITOR = Internal::monitorFromLuaSelectorOrObject(L, 1, "hl.get_monitor");
     if (!PMONITOR) {
@@ -414,6 +448,7 @@ static int hlGetCurrentSubmap(lua_State* L) {
 }
 
 void Internal::registerQueryBindings(lua_State* L) {
+    Internal::setFn(L, "get_devices", hlGetDevices);
     Internal::setFn(L, "get_windows", hlGetWindows);
     Internal::setFn(L, "get_window", hlGetWindow);
     Internal::setFn(L, "get_active_window", hlGetActiveWindow);

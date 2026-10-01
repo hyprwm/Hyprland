@@ -46,14 +46,14 @@ void CScrollTapeController::setOffset(double offset) {
         m_offset = offset;
 }
 
-double CScrollTapeController::getOffset() const {
-    return m_offset;
-}
-
 void CScrollTapeController::adjustOffset(double delta) {
     if (getScrollInhibitor().isInhibited)
         return;
     m_offset += delta;
+}
+
+double CScrollTapeController::getOffset() const {
+    return m_offset;
 }
 
 struct SScrollInhibitor& CScrollTapeController::getScrollInhibitor() {

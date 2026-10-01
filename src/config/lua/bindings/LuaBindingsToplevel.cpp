@@ -95,8 +95,8 @@ static int hlBind(lua_State* L) {
     const std::string handler = luaL_tolstring(L, 2, nullptr);
     lua_pop(L, 1);
 
-    if (!Internal::pushDispatcherFunction(L, 2))
-        return Internal::configError(L, "hl.bind: dispatcher must be a dispatcher (e.g. hl.dsp.window.close()) or a lua function");
+    if (const auto result = Internal::pushDispatcherFunction(L, 2); !result)
+        return Internal::configError(L, std::format("hl.bind: {}", result.error()));
 
     if (DISPLAY_KEYS == "catchall" && mgr->m_currentSubmap.empty())
         return Internal::configError(L, "hl.bind: catchall keybinds are only allowed in submaps.");
@@ -345,8 +345,8 @@ static int hlClearCrashedLockscreen(lua_State* L) {
 }
 
 static int hlDispatch(lua_State* L) {
-    if (!Internal::pushDispatcherFunction(L, 1))
-        return Internal::configError(L, "hl.dispatch: expected a dispatcher (e.g. hl.dsp.window.close())");
+    if (const auto result = Internal::pushDispatcherFunction(L, 1); !result)
+        return Internal::configError(L, std::format("hl.dispatch: {}", result.error()));
 
     int status = LUA_OK;
     if (auto* mgr = CConfigManager::fromLuaState(L); mgr)

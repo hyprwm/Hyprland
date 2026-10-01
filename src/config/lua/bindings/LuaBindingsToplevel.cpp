@@ -11,8 +11,9 @@
 #include "../../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../../managers/SessionLockManager.hpp"
 #include "../../../plugins/PluginSystem.hpp"
-#include "keybinds/Manager.hpp"
-#include "keybinds/Resolver.hpp"
+#include "../../../keybinds/Manager.hpp"
+#include "../../../keybinds/Resolver.hpp"
+#include "../../../helpers/string/StringUtils.hpp"
 
 #include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/String.hpp>
@@ -44,6 +45,17 @@ static std::expected<std::vector<std::string>, std::string> parseKeyString(std::
 
     if (keys.empty())
         return std::unexpected("A bind requires a key");
+
+    // check duplicates
+    for (const auto& k : keys) {
+        for (const auto& k2 : keys) {
+            if (&k == &k2)
+                continue;
+
+            if (StringUtils::cmpCaseInsensitive(k, k2))
+                return std::unexpected("Repeated key in the key string");
+        }
+    }
 
     return keys;
 }

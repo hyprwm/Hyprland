@@ -23,6 +23,20 @@ namespace StringUtils {
         return false;
     }
 
+    inline bool cmpCaseInsensitive(const std::string_view a, const std::string_view b) {
+        if (a.size() != b.size())
+            return false;
+
+        const auto lower = [](const unsigned char c) { return c >= 'A' && c <= 'Z' ? c + ('a' - 'A') : c; };
+
+        for (size_t i = 0; i < a.size(); ++i) {
+            if (lower(a[i]) != lower(b[i]))
+                return false;
+        }
+
+        return true;
+    }
+
     inline std::string backendStr(Aquamarine::eBackendType t) {
         switch (t) {
             case Aquamarine::AQ_BACKEND_DRM: return "drm";

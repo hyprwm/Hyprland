@@ -1,5 +1,6 @@
 #include "VirtualPointer.hpp"
 #include "core/Output.hpp"
+#include "../debug/log/Logger.hpp"
 
 CVirtualPointerV1Resource::CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> resource_, PHLMONITORREF boundOutput_) : m_boundOutput(boundOutput_), m_resource(resource_) {
     if UNLIKELY (!good())
@@ -42,8 +43,14 @@ CVirtualPointerV1Resource::CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> r
     });
 
     m_resource->setAxis([this](CZwlrVirtualPointerV1* r, uint32_t timeMs, uint32_t axis_, wl_fixed_t value) {
-        if UNLIKELY (m_axis > WL_POINTER_AXIS_HORIZONTAL_SCROLL) {
+        if UNLIKELY (axis_ > WL_POINTER_AXIS_HORIZONTAL_SCROLL) {
             r->error(ZWLR_VIRTUAL_POINTER_V1_ERROR_INVALID_AXIS, "Invalid axis");
+            return;
+        }
+
+        if UNLIKELY (axis_ > m_axisEvents.size()) {
+            // this could silently happen if the protocol gets updated, in theory.
+            LOG(Log::ERR, "FIXME: Axis is accepted by protocol, but not accepted by backend.");
             return;
         }
 
@@ -66,8 +73,13 @@ CVirtualPointerV1Resource::CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> r
     m_resource->setAxisSource([this](CZwlrVirtualPointerV1* r, uint32_t source) { m_axisEvents[m_axis].source = sc<wl_pointer_axis_source>(source); });
 
     m_resource->setAxisStop([this](CZwlrVirtualPointerV1* r, uint32_t timeMs, uint32_t axis_) {
-        if UNLIKELY (m_axis > WL_POINTER_AXIS_HORIZONTAL_SCROLL) {
+        if UNLIKELY (axis_ > WL_POINTER_AXIS_HORIZONTAL_SCROLL) {
             r->error(ZWLR_VIRTUAL_POINTER_V1_ERROR_INVALID_AXIS, "Invalid axis");
+            return;
+        }
+
+        if UNLIKELY (axis_ > m_axisEvents.size()) {
+            LOG(Log::ERR, "FIXME: Axis is accepted by protocol, but not accepted by backend.");
             return;
         }
 
@@ -80,8 +92,13 @@ CVirtualPointerV1Resource::CVirtualPointerV1Resource(SP<CZwlrVirtualPointerV1> r
     });
 
     m_resource->setAxisDiscrete([this](CZwlrVirtualPointerV1* r, uint32_t timeMs, uint32_t axis_, wl_fixed_t value, int32_t discrete) {
-        if UNLIKELY (m_axis > WL_POINTER_AXIS_HORIZONTAL_SCROLL) {
+        if UNLIKELY (axis_ > WL_POINTER_AXIS_HORIZONTAL_SCROLL) {
             r->error(ZWLR_VIRTUAL_POINTER_V1_ERROR_INVALID_AXIS, "Invalid axis");
+            return;
+        }
+
+        if UNLIKELY (axis_ > m_axisEvents.size()) {
+            LOG(Log::ERR, "FIXME: Axis is accepted by protocol, but not accepted by backend.");
             return;
         }
 

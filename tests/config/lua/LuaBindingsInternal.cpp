@@ -232,6 +232,131 @@ TEST_F(CConfigLuaDispatchers, rejectsInvalidDispatcherValues) {
     }
 }
 
+TEST_F(CConfigLuaDispatchers, enforcesFactoryArgumentLimits) {
+    struct SFactoryCase {
+        std::string_view name;
+        std::string_view args;
+        int              maxArgs = 1;
+    };
+
+    static constexpr SFactoryCase CASES[] = {
+        {"cursor.move_to_corner", "{ corner = 0 }"},
+        {"cursor.move", "{ x = 10, y = 20 }"},
+        {"group.toggle", "{}"},
+        {"group.next", "{}"},
+        {"group.prev", "{}"},
+        {"group.active", "{ index = 1 }"},
+        {"group.move_window", "{ forward = true }"},
+        {"group.lock", "{}"},
+        {"group.lock_active", "{}"},
+        {"window.close", "{}"},
+        {"window.kill", "{}"},
+        {"window.signal", "{ signal = 15 }"},
+        {"window.float", "{}"},
+        {"window.fullscreen", "{}"},
+        {"window.fullscreen_state", "{ internal = 0, client = 0 }"},
+        {"window.pseudo", "{}"},
+        {"window.move", "{ direction = 'left' }"},
+        {"window.swap", "{ direction = 'left' }"},
+        {"window.center", "{}"},
+        {"window.cycle_next", "{}"},
+        {"window.tag", "{ tag = 'test' }"},
+        {"window.clear_tags", "{}"},
+        {"window.toggle_swallow", "", 0},
+        {"window.pin", "{}"},
+        {"window.bring_to_top", "", 0},
+        {"window.alter_zorder", "{ mode = 'top' }"},
+        {"window.set_prop", "{ prop = 'opaque', value = '1' }"},
+        {"window.deny_from_group", "{}"},
+        {"window.drag", "", 0},
+        {"window.resize", "{ x = 10, y = 20 }"},
+        {"workspace.rename", "{ workspace = '1', name = 'test' }"},
+        {"workspace.change_id", "{ workspace = '1', id = 2 }"},
+        {"workspace.move", "{ monitor = 'DP-1' }"},
+        {"workspace.swap_monitors", "{ monitor1 = 'DP-1', monitor2 = 'DP-2' }"},
+        {"workspace.toggle_special", "'test'"},
+        {"exec_cmd", "'true', { float = true }", 2},
+        {"exec_raw", "'true'"},
+        {"exit", "", 0},
+        {"reload_config", "", 0},
+        {"submap", "'test'"},
+        {"pass", "{ window = 'active' }"},
+        {"send_shortcut", "{ mods = 'SUPER', key = 'Q' }"},
+        {"send_key_state", "{ mods = 'SUPER', key = 'Q', state = 'down' }"},
+        {"layout", "'test'"},
+        {"dpms", "{}"},
+        {"event", "'test'"},
+        {"global", "'test:shortcut'"},
+        {"force_renderer_reload", "", 0},
+        {"force_idle", "1"},
+        {"release_input_capture", "", 0},
+        {"focus", "{ direction = 'left' }"},
+        {"no_op", "", 0},
+    };
+
+    for (const auto& test : CASES) {
+        SCOPED_TRACE(test.name);
+        const auto valid = m_manager->eval(std::format("assert(type(hl.dsp.{}({})) == 'userdata')", test.name, test.args));
+        EXPECT_FALSE(valid.has_value()) << valid.value_or("");
+
+        for (const auto* extra : {"{ float = true }", "nil"}) {
+            SCOPED_TRACE(extra);
+            const auto result = m_manager->eval(std::format("assert(hl.dsp.{}({}{}{}) == nil)", test.name, test.args, test.maxArgs == 0 ? "" : ", ", extra));
+            ASSERT_TRUE(result.has_value());
+            const auto shortName = test.name.substr(test.name.find_last_of('.') + 1);
+            EXPECT_NE(result->find(std::format("{}: expected at most {} argument{}, got {}", shortName, test.maxArgs, test.maxArgs == 1 ? "" : "s", test.maxArgs + 1)),
+                      std::string::npos);
+            EXPECT_EQ(m_manager->m_errors.size(), 1);
+            EXPECT_EQ(lua_gettop(m_lua), 0);
+        }
+    }
+}
+
+TEST_F(CConfigLuaDispatchers, preservesOptionalFactoryArguments) {
+    const auto result = m_manager->eval(R"(
+        local factories = {
+            hl.dsp.group.toggle, hl.dsp.group.next, hl.dsp.group.prev,
+            hl.dsp.group.move_window, hl.dsp.group.lock, hl.dsp.group.lock_active,
+            hl.dsp.window.close, hl.dsp.window.kill, hl.dsp.window.float,
+            hl.dsp.window.fullscreen, hl.dsp.window.pseudo, hl.dsp.window.center,
+            hl.dsp.window.cycle_next, hl.dsp.window.clear_tags, hl.dsp.window.pin,
+            hl.dsp.window.deny_from_group, hl.dsp.window.resize,
+            hl.dsp.workspace.toggle_special, hl.dsp.dpms,
+        }
+        for _, factory in ipairs(factories) do
+            assert(type(factory()) == 'userdata')
+            assert(type(factory(nil)) == 'userdata')
+        end
+        assert(type(hl.dsp.exec_cmd('true')) == 'userdata')
+        assert(type(hl.dsp.exec_cmd('true', nil)) == 'userdata')
+        assert(type(hl.dsp.exec_raw(123)) == 'userdata')
+    )");
+    EXPECT_FALSE(result.has_value()) << result.value_or("");
+    EXPECT_EQ(lua_gettop(m_lua), 0);
+}
+
+TEST_F(CConfigLuaDispatchers, reportsFactoryArgumentErrorsAtCallsite) {
+    const auto result = m_manager->eval(R"-(
+        local chunk = assert(load("hl.bind('SUPER + Q', hl.dsp.exec_raw('true', { float = true }))", '@dispatcher-arity.lua'))
+        chunk()
+    )-");
+    ASSERT_TRUE(result.has_value());
+    EXPECT_NE(result->find("dispatcher-arity.lua:1: exec_raw: expected at most 1 argument, got 2"), std::string::npos);
+    EXPECT_TRUE(Keybinds::mgr()->registry().empty());
+    EXPECT_EQ(lua_gettop(m_lua), 0);
+}
+
+TEST_F(CConfigLuaDispatchers, preservesRequiredFactoryArgumentChecks) {
+    for (const auto* args : {"", "{}"}) {
+        SCOPED_TRACE(args);
+        const auto result = m_manager->eval(std::format("assert(hl.dsp.exec_raw({}) == nil)", args));
+        ASSERT_TRUE(result.has_value());
+        EXPECT_NE(result->find("exec_raw: bad argument 1:"), std::string::npos);
+        EXPECT_EQ(m_manager->m_errors.size(), 1);
+        EXPECT_EQ(lua_gettop(m_lua), 0);
+    }
+}
+
 TEST(ConfigLuaBindingsInternal, parseDirectionAliases) {
     EXPECT_EQ(Internal::parseDirectionStr("left"), Math::DIRECTION_LEFT);
     EXPECT_EQ(Internal::parseDirectionStr("l"), Math::DIRECTION_LEFT);

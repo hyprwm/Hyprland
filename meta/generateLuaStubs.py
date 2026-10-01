@@ -95,7 +95,7 @@ def parse_binding_tree(root: Path) -> tuple[ApiNode, set[str]]:
     register_header = re.compile(
         r"void\s+(?:(?:Config::Lua::Bindings::)?Internal::)?register\w+Bindings\s*\([^)]*\)\s*\{", re.MULTILINE
     )
-    set_fn = re.compile(r'(?:Internal::)?set(?:Mgr)?Fn\(\s*L\s*,(?:\s*mgr\s*,)?\s*"([^"]+)"\s*,')
+    set_fn = re.compile(r'(?:Internal::)?set(?:Mgr|Dispatcher)?Fn\(\s*L\s*,(?:\s*mgr\s*,)?\s*"([^"]+)"\s*,')
     set_field = re.compile(r'lua_setfield\(L,\s*-2,\s*"([^"]+)"\s*\);')
 
     for cpp in sorted(lua_dir.rglob("*.cpp")):
@@ -522,6 +522,8 @@ def generate_stub(root: Path) -> str:
         "hl.on": "fun(event: HL.EventName, cb: fun(...)): HL.EventSubscription",
         "hl.bind": "fun(keys: string, dispatcher: HL.Dispatcher|function, opts?: HL.BindOptions): HL.Keybind",
         "hl.dispatch": "fun(dispatcher: HL.Dispatcher|function): any",
+        "hl.dsp.exec_raw": "fun(cmd: string): HL.Dispatcher",
+        "hl.dsp.exec_cmd": "fun(cmd: string, rules?: table<string, string|number|boolean>): HL.Dispatcher",
         "hl.define_submap": "fun(name: string, reset_or_fn: string|function, fn?: function): nil",
         "hl.timer": "fun(callback: function, opts: HL.TimerOptions): HL.Timer",
         "hl.config": "fun(config: HL.ConfigOpt): nil",

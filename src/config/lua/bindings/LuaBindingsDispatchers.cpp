@@ -360,7 +360,7 @@ static int hlForceIdle(lua_State* L) {
 }
 
 static int hlReleaseInputCapture(lua_State* L) {
-    lua_pushcclosure(L, dsp_releaseInputCapture, 1);
+    lua_pushcclosure(L, dsp_releaseInputCapture, 0);
     return 1;
 }
 
@@ -1298,77 +1298,72 @@ static int hlWorkspaceSwapMonitors(lua_State* L) {
 
 void Internal::registerDispatcherBindings(lua_State* L) {
     lua_newtable(L);
-    Internal::markDispatcherTable(L);
 
     {
         lua_newtable(L);
-        Internal::markDispatcherTable(L);
-        Internal::setFn(L, "move_to_corner", hlCursorMoveToCorner);
-        Internal::setFn(L, "move", hlCursorMove);
+        Internal::setDispatcherFn(L, "move_to_corner", hlCursorMoveToCorner, 1);
+        Internal::setDispatcherFn(L, "move", hlCursorMove, 1);
         lua_setfield(L, -2, "cursor");
 
         lua_newtable(L);
-        Internal::markDispatcherTable(L);
-        Internal::setFn(L, "toggle", hlGroupToggle);
-        Internal::setFn(L, "next", hlGroupNext);
-        Internal::setFn(L, "prev", hlGroupPrev);
-        Internal::setFn(L, "active", hlGroupActive);
-        Internal::setFn(L, "move_window", hlGroupMoveWindow);
-        Internal::setFn(L, "lock", hlGroupLock);
-        Internal::setFn(L, "lock_active", hlGroupLockActive);
+        Internal::setDispatcherFn(L, "toggle", hlGroupToggle, 1);
+        Internal::setDispatcherFn(L, "next", hlGroupNext, 1);
+        Internal::setDispatcherFn(L, "prev", hlGroupPrev, 1);
+        Internal::setDispatcherFn(L, "active", hlGroupActive, 1);
+        Internal::setDispatcherFn(L, "move_window", hlGroupMoveWindow, 1);
+        Internal::setDispatcherFn(L, "lock", hlGroupLock, 1);
+        Internal::setDispatcherFn(L, "lock_active", hlGroupLockActive, 1);
         lua_setfield(L, -2, "group");
 
         lua_newtable(L);
-        Internal::markDispatcherTable(L);
-        Internal::setFn(L, "close", hlWindowClose);
-        Internal::setFn(L, "kill", hlWindowKill);
-        Internal::setFn(L, "signal", hlWindowSignal);
-        Internal::setFn(L, "float", hlWindowFloat);
-        Internal::setFn(L, "fullscreen", hlWindowFullscreen);
-        Internal::setFn(L, "fullscreen_state", hlWindowFullscreenState);
-        Internal::setFn(L, "pseudo", hlWindowPseudo);
-        Internal::setFn(L, "move", hlWindowMove);
-        Internal::setFn(L, "swap", hlWindowSwap);
-        Internal::setFn(L, "center", hlWindowCenter);
-        Internal::setFn(L, "cycle_next", hlWindowCycleNext);
-        Internal::setFn(L, "tag", hlWindowTag);
-        Internal::setFn(L, "clear_tags", hlWindowClearTags);
-        Internal::setFn(L, "toggle_swallow", hlWindowToggleSwallow);
-        Internal::setFn(L, "pin", hlWindowPin);
-        Internal::setFn(L, "bring_to_top", hlWindowBringToTop);
-        Internal::setFn(L, "alter_zorder", hlWindowAlterZOrder);
-        Internal::setFn(L, "set_prop", hlWindowSetProp);
-        Internal::setFn(L, "deny_from_group", hlWindowDenyFromGroup);
-        Internal::setFn(L, "drag", hlWindowDrag);
-        Internal::setFn(L, "resize", hlWindowResize);
+        Internal::setDispatcherFn(L, "close", hlWindowClose, 1);
+        Internal::setDispatcherFn(L, "kill", hlWindowKill, 1);
+        Internal::setDispatcherFn(L, "signal", hlWindowSignal, 1);
+        Internal::setDispatcherFn(L, "float", hlWindowFloat, 1);
+        Internal::setDispatcherFn(L, "fullscreen", hlWindowFullscreen, 1);
+        Internal::setDispatcherFn(L, "fullscreen_state", hlWindowFullscreenState, 1);
+        Internal::setDispatcherFn(L, "pseudo", hlWindowPseudo, 1);
+        Internal::setDispatcherFn(L, "move", hlWindowMove, 1);
+        Internal::setDispatcherFn(L, "swap", hlWindowSwap, 1);
+        Internal::setDispatcherFn(L, "center", hlWindowCenter, 1);
+        Internal::setDispatcherFn(L, "cycle_next", hlWindowCycleNext, 1);
+        Internal::setDispatcherFn(L, "tag", hlWindowTag, 1);
+        Internal::setDispatcherFn(L, "clear_tags", hlWindowClearTags, 1);
+        Internal::setDispatcherFn(L, "toggle_swallow", hlWindowToggleSwallow, 0);
+        Internal::setDispatcherFn(L, "pin", hlWindowPin, 1);
+        Internal::setDispatcherFn(L, "bring_to_top", hlWindowBringToTop, 0);
+        Internal::setDispatcherFn(L, "alter_zorder", hlWindowAlterZOrder, 1);
+        Internal::setDispatcherFn(L, "set_prop", hlWindowSetProp, 1);
+        Internal::setDispatcherFn(L, "deny_from_group", hlWindowDenyFromGroup, 1);
+        Internal::setDispatcherFn(L, "drag", hlWindowDrag, 0);
+        Internal::setDispatcherFn(L, "resize", hlWindowResize, 1);
         lua_setfield(L, -2, "window");
 
         lua_newtable(L);
-        Internal::markDispatcherTable(L);
-        Internal::setFn(L, "rename", hlWorkspaceRename);
-        Internal::setFn(L, "change_id", hlWorkspaceChangeID);
-        Internal::setFn(L, "move", hlWorkspaceMove);
-        Internal::setFn(L, "swap_monitors", hlWorkspaceSwapMonitors);
-        Internal::setFn(L, "toggle_special", hlWorkspaceToggleSpecial);
+        Internal::setDispatcherFn(L, "rename", hlWorkspaceRename, 1);
+        Internal::setDispatcherFn(L, "change_id", hlWorkspaceChangeID, 1);
+        Internal::setDispatcherFn(L, "move", hlWorkspaceMove, 1);
+        Internal::setDispatcherFn(L, "swap_monitors", hlWorkspaceSwapMonitors, 1);
+        Internal::setDispatcherFn(L, "toggle_special", hlWorkspaceToggleSpecial, 1);
         lua_setfield(L, -2, "workspace");
 
-        Internal::setFn(L, "exec_cmd", hlExecCmd);
-        Internal::setFn(L, "exec_raw", hlExecRaw);
-        Internal::setFn(L, "exit", hlExit);
-        Internal::setFn(L, "reload_config", hlReloadConfig);
-        Internal::setFn(L, "submap", hlSubmap);
-        Internal::setFn(L, "pass", hlPass);
-        Internal::setFn(L, "send_shortcut", hlSendShortcut);
-        Internal::setFn(L, "send_key_state", hlSendKeyState);
-        Internal::setFn(L, "layout", hlLayout);
-        Internal::setFn(L, "dpms", hlDpms);
-        Internal::setFn(L, "event", hlEvent);
-        Internal::setFn(L, "global", hlGlobal);
-        Internal::setFn(L, "force_renderer_reload", hlForceRendererReload);
-        Internal::setFn(L, "force_idle", hlForceIdle);
-        Internal::setFn(L, "release_input_capture", hlReleaseInputCapture);
-        Internal::setFn(L, "focus", hlFocus);
-        Internal::setFn(L, "no_op", hlNoop);
+        Internal::setDispatcherFn(L, "exec_cmd", hlExecCmd, 2);
+        Internal::setDispatcherFn(L, "exec_raw", hlExecRaw, 1);
+        Internal::setDispatcherFn(L, "exit", hlExit, 0);
+        Internal::setDispatcherFn(L, "reload_config", hlReloadConfig, 0);
+        Internal::setDispatcherFn(L, "submap", hlSubmap, 1);
+        Internal::setDispatcherFn(L, "pass", hlPass, 1);
+        Internal::setDispatcherFn(L, "send_shortcut", hlSendShortcut, 1);
+        Internal::setDispatcherFn(L, "send_key_state", hlSendKeyState, 1);
+        Internal::setDispatcherFn(L, "layout", hlLayout, 1);
+        Internal::setDispatcherFn(L, "dpms", hlDpms, 1);
+        Internal::setDispatcherFn(L, "event", hlEvent, 1);
+        Internal::setDispatcherFn(L, "global", hlGlobal, 1);
+        Internal::setDispatcherFn(L, "force_renderer_reload", hlForceRendererReload, 0);
+        Internal::setDispatcherFn(L, "force_idle", hlForceIdle, 1);
+        Internal::setDispatcherFn(L, "release_input_capture", hlReleaseInputCapture, 0);
+        Internal::setDispatcherFn(L, "focus", hlFocus, 1);
+        Internal::setDispatcherFn(L, "no_op", hlNoop, 0);
     }
 
     lua_setfield(L, -2, "dsp");

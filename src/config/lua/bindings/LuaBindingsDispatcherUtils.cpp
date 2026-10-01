@@ -3,7 +3,6 @@
 using namespace Config::Lua::Bindings;
 
 static constexpr const char* DISPATCHER_MT = "HL.Dispatcher";
-static char                  DISPATCHER_TABLES_REGISTRY_KEY;
 
 namespace {
     struct SDispatcherRef {
@@ -59,28 +58,11 @@ static void ensureDispatcherMetatable(lua_State* L) {
     lua_pop(L, 1);
 }
 
-static bool isDispatcherTable(lua_State* L, int idx) {
-    if (!lua_istable(L, idx))
-        return false;
-
-    idx = lua_absindex(L, idx);
-    lua_pushlightuserdata(L, &DISPATCHER_TABLES_REGISTRY_KEY);
-    lua_rawget(L, LUA_REGISTRYINDEX);
-
-    if (!lua_istable(L, -1)) {
-        lua_pop(L, 1);
-        return false;
-    }
-
-    lua_pushvalue(L, idx);
-    lua_rawget(L, -2);
-    const bool result = lua_toboolean(L, -1);
-    lua_pop(L, 2);
-    return result;
-}
-
 static int dispatcherFactory(lua_State* L) {
-    const int nargs = lua_gettop(L);
+    const int nargs   = lua_gettop(L);
+    const int maxArgs = sc<int>(lua_tointeger(L, lua_upvalueindex(3)));
+    if (nargs > maxArgs)
+        return Internal::configError(L, std::format("{}: expected at most {} argument{}, got {}", lua_tostring(L, lua_upvalueindex(2)), maxArgs, maxArgs == 1 ? "" : "s", nargs));
 
     lua_pushvalue(L, lua_upvalueindex(1));
     lua_insert(L, 1);
@@ -96,35 +78,16 @@ static int dispatcherFactory(lua_State* L) {
 }
 
 void Internal::setFn(lua_State* L, const char* name, lua_CFunction fn) {
-    if (isDispatcherTable(L, -1)) {
-        lua_pushcfunction(L, fn);
-        lua_pushstring(L, name);
-        lua_pushcclosure(L, dispatcherFactory, 2);
-    } else
-        lua_pushcfunction(L, fn);
-
+    lua_pushcfunction(L, fn);
     lua_setfield(L, -2, name);
 }
 
-void Internal::markDispatcherTable(lua_State* L) {
-    if (!lua_istable(L, -1))
-        return;
-
-    lua_pushlightuserdata(L, &DISPATCHER_TABLES_REGISTRY_KEY);
-    lua_rawget(L, LUA_REGISTRYINDEX);
-
-    if (!lua_istable(L, -1)) {
-        lua_pop(L, 1);
-        lua_newtable(L);
-        lua_pushlightuserdata(L, &DISPATCHER_TABLES_REGISTRY_KEY);
-        lua_pushvalue(L, -2);
-        lua_rawset(L, LUA_REGISTRYINDEX);
-    }
-
-    lua_pushvalue(L, -2);
-    lua_pushboolean(L, true);
-    lua_rawset(L, -3);
-    lua_pop(L, 1);
+void Internal::setDispatcherFn(lua_State* L, const char* name, lua_CFunction fn, int maxArgs) {
+    lua_pushcfunction(L, fn);
+    lua_pushstring(L, name);
+    lua_pushinteger(L, maxArgs);
+    lua_pushcclosure(L, dispatcherFactory, 3);
+    lua_setfield(L, -2, name);
 }
 
 int Internal::wrapDispatcher(lua_State* L) {

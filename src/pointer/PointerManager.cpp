@@ -39,6 +39,51 @@ UP<CPointerManager>& Pointer::mgr() {
     return p;
 }
 
+Vector2D CPointerManager::SCursorImageData::logicalSize() const {
+    return size / scale;
+}
+
+CBox CPointerManager::SCursorImageData::logicalBox(const Vector2D& pointerPos) const {
+    return CBox{pointerPos - hotspot, logicalSize()};
+}
+
+Vector2D CPointerManager::SCursorImageData::outputSize(float outputScale) const {
+    return (logicalSize() * outputScale).round();
+}
+
+Vector2D CPointerManager::SCursorImageData::planeSize(float outputScale, wl_output_transform transform) const {
+    const auto SIZE = outputSize(outputScale);
+    return transform % 2 == 1 ? Vector2D{SIZE.y, SIZE.x} : SIZE;
+}
+
+Vector2D CPointerManager::SCursorImageData::planeHotspot(float outputScale, wl_output_transform transform, const Vector2D& planeSize) const {
+    const auto SIZE = transform % 2 == 1 ? Vector2D{planeSize.y, planeSize.x} : planeSize;
+    return CBox{hotspot * outputScale, {0, 0}}.transform(Math::wlTransformToHyprutils(Math::invertTransform(transform)), SIZE.x, SIZE.y).pos();
+}
+
+cairo_matrix_t CPointerManager::SCursorImageData::cairoMatrix(const Vector2D& textureSize, float outputScale, wl_output_transform transform, const Vector2D& planeSize) const {
+    const auto     SCALE = textureSize / outputSize(outputScale);
+    const auto     SX = SCALE.x, SY = SCALE.y;
+    const auto     BW = planeSize.x, BH = planeSize.y;
+    cairo_matrix_t matrix = {};
+
+    // Cairo maps plane coordinates back to the source. Match the GL projection,
+    // including its rounded destination and the padding of a non-square plane.
+    switch (transform) {
+        case WL_OUTPUT_TRANSFORM_NORMAL:
+        default: cairo_matrix_init(&matrix, SX, 0, 0, SY, 0, 0); break;
+        case WL_OUTPUT_TRANSFORM_90: cairo_matrix_init(&matrix, 0, SY, -SX, 0, SX * BH, 0); break;
+        case WL_OUTPUT_TRANSFORM_180: cairo_matrix_init(&matrix, -SX, 0, 0, -SY, SX * BW, SY * BH); break;
+        case WL_OUTPUT_TRANSFORM_270: cairo_matrix_init(&matrix, 0, -SY, SX, 0, 0, SY * BW); break;
+        case WL_OUTPUT_TRANSFORM_FLIPPED: cairo_matrix_init(&matrix, -SX, 0, 0, SY, SX * BW, 0); break;
+        case WL_OUTPUT_TRANSFORM_FLIPPED_90: cairo_matrix_init(&matrix, 0, SY, SX, 0, 0, 0); break;
+        case WL_OUTPUT_TRANSFORM_FLIPPED_180: cairo_matrix_init(&matrix, SX, 0, 0, -SY, 0, SY * BH); break;
+        case WL_OUTPUT_TRANSFORM_FLIPPED_270: cairo_matrix_init(&matrix, 0, -SY, -SX, 0, SX * BH, SY * BW); break;
+    }
+
+    return matrix;
+}
+
 CPointerManager::CPointerManager() {
     m_hooks.monitorAdded = Event::bus()->m_events.monitor.added.listen([this](PHLMONITOR monitor) {
         onMonitorLayoutChange();
@@ -145,10 +190,11 @@ SP<CPointerManager::SMonitorPointerState> CPointerManager::stateFor(PHLMONITOR m
 
 void CPointerManager::setCursorBuffer(SP<Aquamarine::IBuffer> buf, const Vector2D& hotspot, const float& scale) {
     damageIfSoftware();
-    if (buf == m_currentCursorImage.pBuffer) {
+    if (m_cursorImages.empty() && !m_currentCursorImage.surface && buf == m_currentCursorImage.pBuffer) {
         if (hotspot != m_currentCursorImage.hotspot || scale != m_currentCursorImage.scale) {
             m_currentCursorImage.hotspot = hotspot;
             m_currentCursorImage.scale   = scale;
+            recheckEnteredOutputs();
             updateCursorBackend();
             damageIfSoftware();
             m_events.cursorChanged.emit();
@@ -157,16 +203,53 @@ void CPointerManager::setCursorBuffer(SP<Aquamarine::IBuffer> buf, const Vector2
         return;
     }
 
+    const auto texture = buf == m_currentCursorImage.pBuffer ? m_currentCursorImage.bufferTex : nullptr;
     resetCursorImage(false);
 
     if (buf) {
-        m_currentCursorImage.size    = buf->size;
-        m_currentCursorImage.pBuffer = buf;
+        m_currentCursorImage.size      = buf->size;
+        m_currentCursorImage.pBuffer   = buf;
+        m_currentCursorImage.bufferTex = texture;
     }
 
     m_currentCursorImage.hotspot = hotspot;
     m_currentCursorImage.scale   = scale;
 
+    recheckEnteredOutputs();
+    updateCursorBackend();
+    damageIfSoftware();
+    m_events.cursorChanged.emit();
+}
+
+void CPointerManager::setCursorBuffers(const std::vector<SCursorImageData>& images) {
+    auto pending = images;
+    for (auto& image : pending) {
+        if (image.pBuffer == m_currentCursorImage.pBuffer && m_currentCursorImage.bufferTex) {
+            image.bufferTex = m_currentCursorImage.bufferTex;
+            continue;
+        }
+
+        const auto OLD = std::ranges::find_if(m_cursorImages, [&image](const auto& old) { return old.pBuffer == image.pBuffer && old.bufferTex; });
+        if (OLD != m_cursorImages.end())
+            image.bufferTex = OLD->bufferTex;
+    }
+
+    damageIfSoftware();
+
+    if (m_currentCursorImage.surface)
+        resetCursorImage(false);
+
+    SCursorImageData representative;
+    if (!pending.empty()) {
+        const auto REPRESENTATIVE = std::ranges::max_element(pending, {}, &SCursorImageData::scale);
+        representative            = *REPRESENTATIVE;
+        pending.erase(REPRESENTATIVE);
+    }
+
+    sc<SCursorImageData&>(m_currentCursorImage) = std::move(representative);
+    m_cursorImages                              = std::move(pending);
+
+    recheckEnteredOutputs();
     updateCursorBackend();
     damageIfSoftware();
     m_events.cursorChanged.emit();
@@ -175,10 +258,11 @@ void CPointerManager::setCursorBuffer(SP<Aquamarine::IBuffer> buf, const Vector2
 void CPointerManager::setCursorSurface(SP<Desktop::View::CWLSurface> surf, const Vector2D& hotspot) {
     damageIfSoftware();
 
-    if (surf == m_currentCursorImage.surface) {
+    if (m_cursorImages.empty() && !m_currentCursorImage.pBuffer && surf == m_currentCursorImage.surface) {
         if (hotspot != m_currentCursorImage.hotspot || (surf && surf->resource() ? surf->resource()->m_current.scale : 1.F) != m_currentCursorImage.scale) {
             m_currentCursorImage.hotspot = hotspot;
             m_currentCursorImage.scale   = surf && surf->resource() ? surf->resource()->m_current.scale : 1.F;
+            recheckEnteredOutputs();
             updateCursorBackend();
             damageIfSoftware();
             m_events.cursorChanged.emit();
@@ -221,16 +305,14 @@ void CPointerManager::setCursorSurface(SP<Desktop::View::CWLSurface> surf, const
 }
 
 void CPointerManager::recheckEnteredOutputs() {
-    if (!hasCursor())
-        return;
+    for (auto const& monitor : State::monitorState()->monitors()) {
+        const auto s = stateFor(monitor);
+        s->box       = getCursorBoxLogicalForMonitor(monitor);
 
-    auto box = getCursorBoxGlobal();
-
-    for (auto const& s : m_monitorStates) {
-        if (s->monitor.expired() || s->monitor->isMirror() || !s->monitor->m_enabled)
+        if (monitor->isMirror() || !monitor->m_enabled)
             continue;
 
-        const bool overlaps = box.overlaps(s->monitor->logicalBox());
+        const bool overlaps = hasCursor() && s->box.overlaps(CBox{{}, monitor->m_size});
 
         if (!s->entered && overlaps) {
             s->entered = true;
@@ -259,6 +341,7 @@ void CPointerManager::recheckEnteredOutputs() {
 
 void CPointerManager::resetCursorImage(bool apply) {
     damageIfSoftware();
+    m_cursorImages.clear();
 
     if (m_currentCursorImage.surface) {
         for (auto const& m : State::monitorState()->monitors()) {
@@ -278,12 +361,14 @@ void CPointerManager::resetCursorImage(bool apply) {
 
     m_currentCursorImage.scale   = 1.F;
     m_currentCursorImage.hotspot = {0, 0};
+    m_currentCursorImage.size    = {};
 
     for (auto const& s : m_monitorStates) {
         if (s->monitor.expired() || s->monitor->isMirror() || !s->monitor->m_enabled)
             continue;
 
         s->entered = false;
+        s->box     = getCursorBoxLogicalForMonitor(s->monitor.lock());
     }
 
     if (!apply)
@@ -306,8 +391,6 @@ void CPointerManager::resetCursorImage(bool apply) {
 }
 
 void CPointerManager::updateCursorBackend() {
-    const auto CURSORBOX = getCursorBoxGlobal();
-
     const auto damageSoftwareLeftover = [](const SP<SMonitorPointerState>& state, const PHLMONITOR& m) {
         if (!state->swRendered)
             return;
@@ -317,13 +400,15 @@ void CPointerManager::updateCursorBackend() {
     };
 
     for (auto const& m : State::monitorState()->monitors()) {
+        auto state = stateFor(m);
+        state->box = getCursorBoxLogicalForMonitor(m);
+
         if (!m->m_enabled || !m->m_dpmsStatus) {
             LOG(Log::TRACE, "Not updating hw cursors: disabled / dpms off display");
             continue;
         }
 
-        auto CROSSES = !m->logicalBox().intersection(CURSORBOX).empty();
-        auto state   = stateFor(m);
+        const auto CROSSES = hasCursor() && !state->box.intersection(CBox{{}, m->m_size}).empty();
 
         // previous display manager might have left a cursor on the plane.
         // so clear the plane once, even if we never have set it ourselves.
@@ -342,7 +427,6 @@ void CPointerManager::updateCursorBackend() {
 
         if (state->softwareLocks > 0 || m->shouldUseSoftwareCursors() || !attemptHardwareCursor(state)) {
             LOG(Log::TRACE, "Output {} rejected hardware cursors, falling back to sw", m->m_name);
-            state->box            = getCursorBoxLogicalForMonitor(state->monitor.lock());
             state->hardwareFailed = true;
 
             if (state->hwApplied)
@@ -360,15 +444,14 @@ void CPointerManager::onCursorMoved() {
     if (!hasCursor())
         return;
 
-    const auto CURSORBOX = getCursorBoxGlobal();
-    bool       recalc    = false;
+    bool recalc = false;
 
     for (auto const& m : State::monitorState()->monitors()) {
         auto state = stateFor(m);
 
         state->box = getCursorBoxLogicalForMonitor(state->monitor.lock());
 
-        auto CROSSES = !m->logicalBox().intersection(CURSORBOX).empty();
+        const auto CROSSES = !state->box.intersection(CBox{{}, m->m_size}).empty();
 
         if (!CROSSES && state->cursorFrontBuffer) {
             LOG(Log::TRACE, "onCursorMoved for output {}: cursor left the viewport, removing it from the backend", m->m_name);
@@ -406,7 +489,7 @@ bool CPointerManager::attemptHardwareCursor(SP<CPointerManager::SMonitorPointerS
     const auto CURSORPOS = getCursorPosForMonitor(state->monitor.lock());
     state->monitor->m_output->moveCursor(CURSORPOS, state->monitor->shouldSkipScheduleFrameOnMouseEvent());
 
-    auto texture = getCurrentCursorTexture();
+    auto texture = cursorTextureForImage(cursorImageForMonitor(state->monitor.lock()));
 
     if (!texture) {
         LOG(Log::TRACE, "[pointer] no texture for hw cursor -> hiding");
@@ -457,20 +540,21 @@ bool CPointerManager::setHWCursorBuffer(SP<SMonitorPointerState> state, SP<Aquam
 
 SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager::SMonitorPointerState> state, SP<Render::ITexture> texture) {
     auto        maxSize    = state->monitor->m_output->cursorPlaneSize();
-    auto const& cursorSize = m_currentCursorImage.size;
+    auto const& image      = cursorImageForMonitor(state->monitor.lock());
+    const auto  cursorSize = image.planeSize(state->monitor->m_scale, state->monitor->m_transform);
 
     static auto PCPUBUFFER = CConfigValue<Config::INTEGER>("cursor:use_cpu_buffer");
 
     const bool  shouldUseCpuBuffer = *PCPUBUFFER == 1 || (*PCPUBUFFER != 0 && g_pHyprRenderer->isNvidia());
 
-    if (maxSize == Vector2D{}) {
-        LOG(Log::TRACE, "hardware cursor has zero max size {}, current {}", maxSize, m_currentCursorImage.size);
+    if (maxSize == Vector2D{} || cursorSize.x <= 0 || cursorSize.y <= 0) {
+        LOG(Log::TRACE, "hardware cursor has zero max size {}, current {}", maxSize, cursorSize);
         return nullptr;
     }
 
     if (maxSize != Vector2D{-1, -1}) {
         if (cursorSize.x > maxSize.x || cursorSize.y > maxSize.y) {
-            LOG(Log::TRACE, "hardware cursor too big! {} > {}", m_currentCursorImage.size, maxSize);
+            LOG(Log::TRACE, "hardware cursor too big! {} > {}", cursorSize, maxSize);
             return nullptr;
         }
     } else
@@ -585,31 +669,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
         const auto PATTERNPRE = cairo_pattern_create_for_surface(CAIRODATASURFACE);
         cairo_pattern_set_filter(PATTERNPRE, CAIRO_FILTER_BILINEAR);
-        cairo_matrix_t matrixPre;
-        cairo_matrix_init_identity(&matrixPre);
-
-        const auto TR = state->monitor->m_transform;
-
-        // we need to scale the cursor to the right size, because it might not be (esp with XCursor)
-        const auto SCALE = texture->m_size / (m_currentCursorImage.size / m_currentCursorImage.scale * state->monitor->m_scale);
-        const auto SX = SCALE.x, SY = SCALE.y;
-        const auto BW = sc<double>(DMABUF.size.x), BH = sc<double>(DMABUF.size.y);
-
-        // Cairo pattern matrix maps destination coords to source coords (inverse of visual transform).
-        // x_src = xx * x_dst + xy * y_dst + x0
-        // y_src = yx * x_dst + yy * y_dst + y0
-        // cairo_matrix_init(&m, xx, yx, xy, yy, x0, y0)
-        switch (TR) {
-            case WL_OUTPUT_TRANSFORM_NORMAL:
-            default: cairo_matrix_init(&matrixPre, SX, 0, 0, SY, 0, 0); break;
-            case WL_OUTPUT_TRANSFORM_90: cairo_matrix_init(&matrixPre, 0, SY, -SX, 0, SX * BW, 0); break;
-            case WL_OUTPUT_TRANSFORM_180: cairo_matrix_init(&matrixPre, -SX, 0, 0, -SY, SX * BW, SY * BH); break;
-            case WL_OUTPUT_TRANSFORM_270: cairo_matrix_init(&matrixPre, 0, -SY, SX, 0, 0, SY * BH); break;
-            case WL_OUTPUT_TRANSFORM_FLIPPED: cairo_matrix_init(&matrixPre, -SX, 0, 0, SY, SX * BW, 0); break;
-            case WL_OUTPUT_TRANSFORM_FLIPPED_90: cairo_matrix_init(&matrixPre, 0, SY, SX, 0, 0, 0); break;
-            case WL_OUTPUT_TRANSFORM_FLIPPED_180: cairo_matrix_init(&matrixPre, SX, 0, 0, -SY, 0, SY * BH); break;
-            case WL_OUTPUT_TRANSFORM_FLIPPED_270: cairo_matrix_init(&matrixPre, 0, -SY, -SX, 0, SX * BW, SY * BH); break;
-        }
+        const auto matrixPre = image.cairoMatrix(texture->m_size, state->monitor->m_scale, state->monitor->m_transform, DMABUF.size);
 
         cairo_pattern_set_matrix(PATTERNPRE, &matrixPre);
         cairo_set_source(CAIRO, PATTERNPRE);
@@ -653,9 +713,9 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     g_pHyprRenderer->startRenderPass();
     g_pHyprRenderer->draw(CClearPassElement::SClearData{{0.F, 0.F, 0.F, 0.F}});
 
-    CBox xbox = {{}, Vector2D{m_currentCursorImage.size / m_currentCursorImage.scale * state->monitor->m_scale}.round()};
-    LOG(Log::TRACE, "[pointer] monitor: {}, size: {}, hw buf: {}, scale: {:.2f}, monscale: {:.2f}, xbox: {}", state->monitor->m_name, m_currentCursorImage.size, cursorSize,
-        m_currentCursorImage.scale, state->monitor->m_scale, xbox.size());
+    CBox xbox = {{}, image.outputSize(state->monitor->m_scale)};
+    LOG(Log::TRACE, "[pointer] monitor: {}, size: {}, hw buf: {}, scale: {:.2f}, monscale: {:.2f}, xbox: {}", state->monitor->m_name, image.size, cursorSize, image.scale,
+        state->monitor->m_scale, xbox.size());
 
     g_pHyprRenderer->draw(CTexPassElement::SRenderData{.tex = texture, .box = xbox}, damageRegion);
 
@@ -684,18 +744,13 @@ void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::
     if (screencopy && !forceRender && (state->hardwareFailed || state->softwareLocks != 0))
         return;
 
-    auto box = state->box.copy();
-    if (overridePos.has_value()) {
-        box.x = overridePos->x;
-        box.y = overridePos->y;
-
-        box.translate(-m_currentCursorImage.hotspot);
-    }
+    auto& image = cursorImageForMonitor(pMonitor);
+    auto  box   = overridePos ? image.logicalBox(*overridePos) : state->box.copy();
 
     if (box.intersection(CBox{{}, {pMonitor->m_size}}).empty())
         return;
 
-    auto texture = getCurrentCursorTexture();
+    auto texture = cursorTextureForImage(image);
     if (!texture)
         return;
 
@@ -733,18 +788,15 @@ Vector2D CPointerManager::transformedHotspot(PHLMONITOR pMonitor) {
     if (!pMonitor->m_cursorSwapchain)
         return {}; // doesn't matter, we have no hw cursor, and this is only for hw cursors
 
-    return CBox{m_currentCursorImage.hotspot * pMonitor->m_scale, {0, 0}}
-        .transform(Math::wlTransformToHyprutils(Math::invertTransform(pMonitor->m_transform)), pMonitor->m_cursorSwapchain->currentOptions().size.x,
-                   pMonitor->m_cursorSwapchain->currentOptions().size.y)
-        .pos();
+    return cursorImageForMonitor(pMonitor).planeHotspot(pMonitor->m_scale, pMonitor->m_transform, pMonitor->m_cursorSwapchain->currentOptions().size);
 }
 
 CBox CPointerManager::getCursorBoxLogicalForMonitor(PHLMONITOR pMonitor) {
-    return getCursorBoxGlobal().translate(-pMonitor->m_position);
+    return cursorImageForMonitor(pMonitor).logicalBox(m_pointerPos - pMonitor->m_position);
 }
 
 CBox CPointerManager::getCursorBoxGlobal() {
-    return CBox{m_pointerPos, m_currentCursorImage.size / m_currentCursorImage.scale}.translate(-m_currentCursorImage.hotspot);
+    return m_currentCursorImage.logicalBox(m_pointerPos);
 }
 
 Vector2D CPointerManager::closestValid(const Vector2D& pos) {
@@ -824,8 +876,6 @@ Vector2D CPointerManager::closestValid(const Vector2D& pos) {
 }
 
 void CPointerManager::damageIfSoftware() {
-    auto b = getCursorBoxGlobal().expand(4);
-
     for (auto const& mw : m_monitorStates) {
         auto monitor = mw->monitor.lock();
         if (!monitor || !monitor->m_output || monitor->isMirror())
@@ -835,7 +885,8 @@ void CPointerManager::damageIfSoftware() {
         if (!usesSoftwareCursor)
             continue;
 
-        auto shouldAddDamage = !monitor->shouldSkipScheduleFrameOnMouseEvent() && b.overlaps({monitor->m_position, monitor->m_size});
+        auto b               = cursorImageForMonitor(monitor).logicalBox(m_pointerPos).expand(4);
+        auto shouldAddDamage = !monitor->shouldSkipScheduleFrameOnMouseEvent() && b.overlaps(monitor->logicalBox());
         if (!shouldAddDamage)
             continue;
 
@@ -991,16 +1042,22 @@ const CPointerManager::SCursorImage& CPointerManager::currentCursorImage() {
 }
 
 SP<Render::ITexture> CPointerManager::getCurrentCursorTexture() {
-    if (!m_currentCursorImage.pBuffer && (!m_currentCursorImage.surface || !m_currentCursorImage.surface->resource()->m_current.texture))
-        return nullptr;
+    return cursorTextureForImage(m_currentCursorImage);
+}
 
-    if (m_currentCursorImage.pBuffer) {
-        if (!m_currentCursorImage.bufferTex)
-            m_currentCursorImage.bufferTex = g_pHyprRenderer->createTexture(m_currentCursorImage.pBuffer, true);
-        return m_currentCursorImage.bufferTex;
+CPointerManager::SCursorImageData& CPointerManager::cursorImageForMonitor(PHLMONITOR pMonitor) {
+    const auto IMAGE = std::ranges::find_if(m_cursorImages, [pMonitor](const auto& image) { return image.scale == sc<float>(pMonitor->m_scale); });
+    return IMAGE == m_cursorImages.end() ? m_currentCursorImage : *IMAGE;
+}
+
+SP<Render::ITexture> CPointerManager::cursorTextureForImage(SCursorImageData& image) {
+    if (image.pBuffer) {
+        if (!image.bufferTex)
+            image.bufferTex = g_pHyprRenderer->createTexture(image.pBuffer, true);
+        return image.bufferTex;
     }
 
-    return m_currentCursorImage.surface->resource()->m_current.texture;
+    return m_currentCursorImage.surface ? m_currentCursorImage.surface->resource()->m_current.texture : nullptr;
 }
 
 void CPointerManager::attachPointer(SP<IPointer> pointer) {
@@ -1212,7 +1269,7 @@ void CPointerManager::damageCursor(PHLMONITOR pMonitor, bool skipFrameSchedule) 
         if (mw->monitor != pMonitor)
             continue;
 
-        auto b = getCursorBoxGlobal().intersection(pMonitor->logicalBox());
+        auto b = cursorImageForMonitor(pMonitor).logicalBox(m_pointerPos).intersection(pMonitor->logicalBox());
 
         if (b.empty())
             return;
@@ -1224,7 +1281,7 @@ void CPointerManager::damageCursor(PHLMONITOR pMonitor, bool skipFrameSchedule) 
 }
 
 Vector2D CPointerManager::cursorSizeLogical() {
-    return m_currentCursorImage.size / m_currentCursorImage.scale;
+    return m_currentCursorImage.logicalSize();
 }
 
 void CPointerManager::addTransformer(const SP<CPointerTransformer>& transformer) {

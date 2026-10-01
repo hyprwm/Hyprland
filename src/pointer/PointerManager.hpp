@@ -9,7 +9,9 @@
 #include "../helpers/sync/SyncTimeline.hpp"
 #include "../helpers/time/Time.hpp"
 #include "../helpers/signal/Signal.hpp"
+#include <cairo/cairo.h>
 #include <tuple>
+#include <vector>
 
 class IHID;
 namespace Render {
@@ -81,19 +83,30 @@ namespace Pointer {
         // returns the thing in global coords
         CBox getCursorBoxGlobal();
 
-        struct SCursorImage {
-            SP<Aquamarine::IBuffer>       pBuffer;
-            SP<Render::ITexture>          bufferTex;
+        struct SCursorImageData {
+            SP<Aquamarine::IBuffer> pBuffer;
+            SP<Render::ITexture>    bufferTex;
+
+            Vector2D                hotspot; // logical
+            Vector2D                size;    // pixels
+            float                   scale = 1.F;
+
+            Vector2D                logicalSize() const;
+            CBox                    logicalBox(const Vector2D& pointerPos) const;
+            Vector2D                outputSize(float outputScale) const;
+            Vector2D                planeSize(float outputScale, wl_output_transform transform) const;
+            Vector2D                planeHotspot(float outputScale, wl_output_transform transform, const Vector2D& planeSize) const;
+            cairo_matrix_t          cairoMatrix(const Vector2D& textureSize, float outputScale, wl_output_transform transform, const Vector2D& planeSize) const;
+        };
+
+        struct SCursorImage : SCursorImageData {
             WP<Desktop::View::CWLSurface> surface;
-
-            Vector2D                      hotspot;
-            Vector2D                      size;
-            float                         scale = 1.F;
-
             CHyprSignalListener           destroySurface;
             CHyprSignalListener           commitSurface;
         };
 
+        // One image per output scale; the highest scale is the representative for monitor-independent APIs.
+        void                 setCursorBuffers(const std::vector<SCursorImageData>& images);
         const SCursorImage&  currentCursorImage();
         SP<Render::ITexture> getCurrentCursorTexture();
 
@@ -117,9 +130,11 @@ namespace Pointer {
         // returns the thing in device coordinates. Is NOT offset by the hotspot, relies on set_cursor with hotspot.
         Vector2D getCursorPosForMonitor(PHLMONITOR pMonitor);
         // returns the thing in logical coordinates of the monitor
-        CBox     getCursorBoxLogicalForMonitor(PHLMONITOR pMonitor);
+        CBox                 getCursorBoxLogicalForMonitor(PHLMONITOR pMonitor);
 
-        Vector2D transformedHotspot(PHLMONITOR pMonitor);
+        Vector2D             transformedHotspot(PHLMONITOR pMonitor);
+        SCursorImageData&    cursorImageForMonitor(PHLMONITOR pMonitor);
+        SP<Render::ITexture> cursorTextureForImage(SCursorImageData& image);
 
         struct SPointerListener {
             CHyprSignalListener destroy;
@@ -171,9 +186,11 @@ namespace Pointer {
             std::vector<CBox> monitorBoxes;
         } m_currentMonitorLayout;
 
-        SCursorImage m_currentCursorImage; // TODO: support various sizes per-output so we can have pixel-perfect cursors
+        SCursorImage m_currentCursorImage;
+        // The representative lives only in m_currentCursorImage, including its texture cache.
+        std::vector<SCursorImageData> m_cursorImages;
 
-        Vector2D     m_pointerPos = {0, 0};
+        Vector2D                      m_pointerPos = {0, 0};
 
         struct SMonitorPointerState {
             SMonitorPointerState(const PHLMONITOR& m) : monitor(m) {}

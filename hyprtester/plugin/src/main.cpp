@@ -4,6 +4,7 @@
 #include <sstream>
 #include <any>
 #include <cmath>
+#include <cstring>
 #include <vector>
 #include <array>
 
@@ -12,6 +13,9 @@
 #include <src/render/Renderer.hpp>
 #include <src/managers/input/InputManager.hpp>
 #include <src/pointer/PointerManager.hpp>
+#include <src/pointer/cursor/CursorManager.hpp>
+#include <src/render/pass/TexPassElement.hpp>
+#include <src/render/Texture.hpp>
 #include <src/pointer/PointerController.hpp>
 #include <src/managers/SeatManager.hpp>
 #include <src/managers/input/trackpad/TrackpadGestures.hpp>
@@ -146,9 +150,135 @@ struct SMonitorRenderRecording {
 
 static SP<SMonitorRenderRecording> g_monitorRenderRecording;
 
-static SDispatchResult             probeWorkspaceBackground(PHLMONITOR monitor, bool withWorkspace);
+struct SCursorFixture {
+    std::string theme;
+    std::string name;
+    int         size = 24;
+    Vector2D    position;
+};
 
-static SDispatchResult             armMonitorRenderRecording(const std::string& name, std::optional<bool> workspaceProbe = std::nullopt) {
+struct SCursorRenderRecording {
+    bool                complete = false;
+    SDispatchResult     result;
+    CHyprSignalListener stage;
+};
+
+static std::optional<SCursorFixture> g_cursorFixture;
+static SP<SCursorRenderRecording>    g_cursorRenderRecording;
+
+static void                          restoreCursorFixture() {
+    g_cursorRenderRecording.reset();
+    if (!g_cursorFixture)
+        return;
+
+    const auto OLD = *g_cursorFixture;
+    g_cursorFixture.reset();
+    Pointer::Cursor::mgr()->changeTheme(OLD.theme, OLD.size);
+    Pointer::Cursor::mgr()->setCursorFromName(OLD.name);
+    Pointer::mgr()->warpTo(OLD.position);
+}
+
+static SDispatchResult startCursorFixture(const std::string& theme) {
+    if (g_cursorFixture)
+        return {.success = false, .error = "Cursor fixture already active"};
+
+    auto& cursor    = *Pointer::Cursor::mgr();
+    g_cursorFixture = SCursorFixture{
+        cursor.m_theme,
+        cursor.m_lastCursorName,
+        cursor.m_size,
+        Pointer::mgr()->untransformedPosition(),
+    };
+    cursor.changeTheme(theme, 24);
+    if (!cursor.m_hyprcursor || !cursor.m_hyprcursor->valid())
+        return {.success = false, .error = "Failed to load the hyprcursor fixture"};
+
+    // Straddle both outputs without client input changing the named image.
+    Pointer::mgr()->warpTo({5798, 100});
+    cursor.setCursorFromName("default");
+    return {};
+}
+
+static SDispatchResult probeCursorRender(PHLMONITOR monitor, int pixels) {
+    auto&       pointer = *Pointer::mgr();
+    auto&       entries = g_pHyprRenderer->m_renderPass.m_passElements;
+    const auto  BEGIN   = entries.size();
+    CScopeGuard restore([&] { entries.resize(BEGIN); });
+    CRegion     damage{CBox{{}, monitor->m_transformedSize}};
+
+    // The forced screencopy path queues the same texture/box, regardless of HW
+    // support, and leaves the normal software-rendered bookkeeping untouched.
+    pointer.renderSoftwareCursorsFor(monitor, Time::steadyNow(), damage, std::nullopt, true, true);
+    if (pixels == 0) {
+        if (entries.size() != BEGIN || pointer.hasCursor() || !pointer.m_cursorImages.empty() || pointer.m_currentCursorImage.bufferTex)
+            return {.success = false, .error = "Cleared cursor retained an image or queued a texture"};
+        return {};
+    }
+
+    if (entries.size() != BEGIN + 1 || entries[BEGIN].element->type() != EK_TEXTURE)
+        return {.success = false, .error = "Expected exactly one cursor texture pass element"};
+
+    const auto& DATA  = sc<CTexPassElement*>(entries[BEGIN].element.get())->m_data;
+    auto&       image = pointer.cursorImageForMonitor(monitor);
+    const auto  SIZE  = Vector2D{pixels, pixels};
+    if (!DATA.tex || DATA.tex->m_size != SIZE || image.size != SIZE || image.scale != monitor->m_scale)
+        return {.success = false,
+                .error   = std::format("{}: expected {}px at scale {}, got image {}x{} at scale {}, texture {}x{}", monitor->m_name, pixels, monitor->m_scale, image.size.x,
+                                       image.size.y, image.scale, DATA.tex ? DATA.tex->m_size.x : 0, DATA.tex ? DATA.tex->m_size.y : 0)};
+
+    if (DATA.tex != pointer.cursorTextureForImage(image))
+        return {.success = false, .error = "Cursor render did not use the output's resolved texture"};
+
+    // Cairo ARGB32, copied by createTexture(..., true). Check every pixel so
+    // matching dimensions alone cannot disguise the wrong theme or a resample.
+    const auto& BYTES = DATA.tex->dataCopy();
+    const auto  COLOR = pixels == 24 ? 0xFFFF0000U : 0xFF00FF00U;
+    if (BYTES.size() != sc<size_t>(pixels * pixels * 4))
+        return {.success = false, .error = "Cursor texture has no complete CPU data copy"};
+    for (size_t i = 0; i < BYTES.size(); i += 4) {
+        uint32_t pixel = 0;
+        std::memcpy(&pixel, BYTES.data() + i, sizeof(pixel));
+        if (pixel != COLOR)
+            return {.success = false, .error = std::format("{}: unexpected cursor pixel {:#x}, expected {:#x}", monitor->m_name, pixel, COLOR)};
+    }
+
+    // Derive the oracle from fixture metadata, not the image geometry helpers.
+    // Even at 1.25, resize_algorithm=none must draw 32 native pixels, not 30.
+    const auto POS      = (pointer.untransformedPosition() - monitor->m_position) * monitor->m_scale;
+    const auto EXPECTED = CBox{std::round(POS.x - pixels / 4.0), std::round(POS.y - pixels / 2.0), sc<double>(pixels), sc<double>(pixels)};
+    if (DATA.box != EXPECTED)
+        return {.success = false,
+                .error   = std::format("{}: expected cursor box {},{}/{}x{}, got {},{}/{}x{}", monitor->m_name, EXPECTED.x, EXPECTED.y, EXPECTED.w, EXPECTED.h, DATA.box.x,
+                                       DATA.box.y, DATA.box.w, DATA.box.h)};
+    return {};
+}
+
+static SDispatchResult armCursorRender(const std::string& name, int pixels) {
+    g_cursorRenderRecording.reset();
+    const auto MONITOR = State::monitorState()->query().name(name).run();
+    if (!g_cursorFixture || !MONITOR || !MONITOR->m_enabled || (pixels != 0 && pixels != 24 && pixels != 32))
+        return {.success = false, .error = "Invalid cursor probe fixture, monitor or size"};
+
+    g_cursorRenderRecording                 = makeShared<SCursorRenderRecording>();
+    const WP<SCursorRenderRecording> WEAK   = g_cursorRenderRecording;
+    const PHLMONITORREF              TARGET = MONITOR;
+    g_cursorRenderRecording->stage          = Event::bus()->m_events.render.stage.listen([WEAK, TARGET, pixels](eRenderStage stage) {
+        const auto RECORDING = WEAK.lock();
+        const auto MONITOR   = TARGET.lock();
+        if (!RECORDING || RECORDING->complete || !MONITOR || stage != RENDER_BEGIN || g_pHyprRenderer->m_renderData.pMonitor != MONITOR)
+            return;
+
+        RECORDING->complete = true;
+        RECORDING->result   = probeCursorRender(MONITOR, pixels);
+    });
+    g_pHyprRenderer->damageMonitor(MONITOR);
+    MONITOR->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
+    return {};
+}
+
+static SDispatchResult probeWorkspaceBackground(PHLMONITOR monitor, bool withWorkspace);
+
+static SDispatchResult armMonitorRenderRecording(const std::string& name, std::optional<bool> workspaceProbe = std::nullopt) {
     g_monitorRenderRecording.reset();
 
     // Mirrors are absent from the active monitor list.
@@ -1211,6 +1341,47 @@ static int luaTest(lua_State* L) {
     return luaResult(L, ::test(""));
 }
 
+static int luaStartCursorFixture(lua_State* L) {
+    return luaResult(L, startCursorFixture(luaL_checkstring(L, 1)));
+}
+
+static int luaRestoreCursorFixture(lua_State* L) {
+    restoreCursorFixture();
+    return 0;
+}
+
+static int luaCursorFixtureImage(lua_State* L) {
+    const std::string ACTION = luaL_checkstring(L, 1);
+    if (!g_cursorFixture)
+        return luaResult(L, {.success = false, .error = "Cursor fixture is not active"});
+
+    if (ACTION == "default")
+        Pointer::Cursor::mgr()->setCursorFromName("default");
+    else if (ACTION == "reset")
+        Pointer::mgr()->resetCursorImage();
+    else if (ACTION == "surface")
+        Pointer::mgr()->setCursorSurface(nullptr, {});
+    else if (ACTION == "refresh") {
+        Pointer::Cursor::mgr()->tickAnimatedCursor();
+        Pointer::Cursor::mgr()->updateTheme();
+        Pointer::Cursor::mgr()->tickAnimatedCursor();
+    } else
+        return luaResult(L, {.success = false, .error = "Unknown cursor fixture action"});
+    return 0;
+}
+
+static int luaArmCursorRender(lua_State* L) {
+    return luaResult(L, armCursorRender(luaL_checkstring(L, 1), sc<int>(luaL_checkinteger(L, 2))));
+}
+
+static int luaCheckCursorRender(lua_State* L) {
+    if (!g_cursorRenderRecording)
+        return luaResult(L, {.success = false, .error = "Cursor render probe is not armed"});
+    if (!g_cursorRenderRecording->complete)
+        return luaResult(L, {.success = false, .error = "Cursor render pending"});
+    return luaResult(L, g_cursorRenderRecording->result);
+}
+
 static int luaSnapMove(lua_State* L) {
     return luaResult(L, ::snapMove(""));
 }
@@ -1463,6 +1634,11 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     };
 
     addLuaFn("test", ::luaTest);
+    addLuaFn("start_cursor_fixture", ::luaStartCursorFixture);
+    addLuaFn("restore_cursor_fixture", ::luaRestoreCursorFixture);
+    addLuaFn("cursor_fixture_image", ::luaCursorFixtureImage);
+    addLuaFn("arm_cursor_render", ::luaArmCursorRender);
+    addLuaFn("check_cursor_render", ::luaCheckCursorRender);
     addLuaFn("snapmove", ::luaSnapMove);
     addLuaFn("drag_window", ::luaDragWindow);
     addLuaFn("expect_window_at_workspace", ::luaExpectWindowAtWorkspace);
@@ -1525,6 +1701,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 APICALL EXPORT void PLUGIN_EXIT() {
     WorkspaceGestures::reset();
     SpecialWorkspaceGestures::reset();
+    restoreCursorFixture();
     g_popupRenderRecording.reset();
     g_monitorRenderRecording.reset();
     removeKeyboardEventRecorder("");

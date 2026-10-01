@@ -1,4 +1,5 @@
 #include "CursorManager.hpp"
+#include "CursorShape.hpp"
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../PointerManager.hpp"
@@ -6,6 +7,7 @@
 #include "../../output/Monitor.hpp"
 #include "../../event/EventBus.hpp"
 #include "../../state/MonitorState.hpp"
+#include <map>
 
 using namespace Pointer;
 using namespace Pointer::Cursor;
@@ -129,8 +131,7 @@ CCursorManager::~CCursorManager() {
         m_animationTimer.reset();
     }
 
-    if (m_hyprcursor->valid() && m_currentStyleInfo.size > 0)
-        m_hyprcursor->cursorSurfaceStyleDone(m_currentStyleInfo);
+    releaseStyles();
 }
 
 SP<Aquamarine::IBuffer> CCursorManager::getCursorBuffer() {
@@ -138,6 +139,8 @@ SP<Aquamarine::IBuffer> CCursorManager::getCursorBuffer() {
 }
 
 void CCursorManager::setCursorSurface(SP<Desktop::View::CWLSurface> surf, const Vector2D& hotspot) {
+    m_animationTimer->updateTimeout(std::nullopt);
+    m_scaledShapes.clear();
     if (!surf || !surf->resource())
         Pointer::mgr()->resetCursorImage();
     else
@@ -147,6 +150,7 @@ void CCursorManager::setCursorSurface(SP<Desktop::View::CWLSurface> surf, const 
 }
 
 void CCursorManager::setCursorBuffer(SP<CCursorBuffer> buf, const Vector2D& hotspot, const float& scale) {
+    m_scaledShapes.clear();
     m_cursorBuffers.emplace_back(buf);
     Pointer::mgr()->setCursorBuffer(getCursorBuffer(), hotspot, scale);
     if (m_cursorBuffers.size() > 1)
@@ -190,57 +194,90 @@ void CCursorManager::setCursorFromName(const std::string& name) {
         setAnimationTimer(frame, delay);
     };
 
-    auto setHyprCursor = [this](auto const& name) {
-        m_currentCursorShapeData = m_hyprcursor->getShape(name.c_str(), m_currentStyleInfo);
+    if (!m_hyprcursor->valid() || !*PUSEHYPRCURSOR || !prepareHyprcursor(name))
+        setXCursor(name);
+    else {
+        m_animationStarted   = Time::steadyNow();
+        m_ourBufferConnected = true;
+        publishHyprcursor();
+    }
+}
 
-        if (m_currentCursorShapeData.images.empty()) {
-            // try with '_' first (old hc, etc)
-            std::string newName = name;
-            std::ranges::replace(newName, '-', '_');
-
-            m_currentCursorShapeData = m_hyprcursor->getShape(newName.c_str(), m_currentStyleInfo);
-        }
-
-        if (m_currentCursorShapeData.images.empty()) {
-            // fallback to a default if available
-            constexpr const std::array<const char*, 3> fallbackShapes = {"default", "left_ptr", "left-ptr"};
-
-            for (auto const& s : fallbackShapes) {
-                m_currentCursorShapeData = m_hyprcursor->getShape(s, m_currentStyleInfo);
-
-                if (!m_currentCursorShapeData.images.empty())
-                    break;
-            }
-
-            if (m_currentCursorShapeData.images.empty()) {
-                LOG(Log::ERR, "BUG THIS: No fallback found for a cursor in setCursorFromName");
-                return false;
-            }
-        }
-
-        auto buf = makeShared<CCursorBuffer>(m_currentCursorShapeData.images[0].surface, Vector2D{m_currentCursorShapeData.images[0].size, m_currentCursorShapeData.images[0].size},
-                                             Vector2D{m_currentCursorShapeData.images[0].hotspotX, m_currentCursorShapeData.images[0].hotspotY});
-        auto hotspot = Vector2D{m_currentCursorShapeData.images[0].hotspotX, m_currentCursorShapeData.images[0].hotspotY} / m_cursorScale;
-        setCursorBuffer(buf, hotspot, m_cursorScale);
-
-        int delay = 0;
-        int frame = 0;
-        if (m_currentCursorShapeData.images.size() > 1)
-            delay = m_currentCursorShapeData.images[frame].delay;
-
-        setAnimationTimer(frame, delay);
-        return true;
+bool CCursorManager::prepareHyprcursor(const std::string& name) {
+    std::string legacyName = name;
+    std::ranges::replace(legacyName, '-', '_');
+    const std::array candidates = {
+        name, legacyName, std::string{"default"}, std::string{"left_ptr"}, std::string{"left-ptr"},
     };
 
-    if (!m_hyprcursor->valid() || !*PUSEHYPRCURSOR || !setHyprCursor(name))
-        setXCursor(name);
+    std::vector<SScaledShape>                shapes;
+    std::map<unsigned int, SP<CCursorShape>> shapesBySize;
+    for (const auto scale : m_scales) {
+        const Hyprcursor::SCursorStyleInfo style{.size = sc<unsigned int>(std::round(m_size * scale))};
+        auto&                              shape = shapesBySize[style.size];
+        if (!shape) {
+            for (const auto& candidate : candidates) {
+                const auto data = m_hyprcursor->getShape(candidate.c_str(), style);
+                if (data.images.empty())
+                    continue;
+
+                shape = makeShared<CCursorShape>(data);
+                if (shape->valid())
+                    break;
+            }
+        }
+
+        if (!shape || !shape->valid()) {
+            LOG(Log::ERR, "Failed to load hyprcursor shape {} at size {}", name, style.size);
+            return false;
+        }
+
+        shapes.emplace_back(SScaledShape{.scale = scale, .shape = shape});
+    }
+
+    m_scaledShapes = std::move(shapes);
+    return !m_scaledShapes.empty();
+}
+
+void CCursorManager::publishHyprcursor() {
+    const auto                                     elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(Time::steadyNow() - m_animationStarted);
+    std::optional<std::chrono::milliseconds>       nextFrame;
+    std::vector<CPointerManager::SCursorImageData> images;
+    images.reserve(m_scaledShapes.size());
+
+    for (const auto& variant : m_scaledShapes) {
+        const auto& frame = variant.shape->frame(variant.shape->frameAt(elapsed));
+        images.emplace_back(CPointerManager::SCursorImageData{
+            .pBuffer = frame.buffer,
+            .hotspot = frame.hotspot / variant.scale,
+            .size    = frame.buffer->size,
+            .scale   = variant.scale,
+        });
+
+        const auto next = variant.shape->timeUntilNextFrame(elapsed);
+        if (next && (!nextFrame || *next < *nextFrame))
+            nextFrame = next;
+    }
+
+    // Keep the legacy getter representative, without owning an additional copy of every frame.
+    const auto representative = std::ranges::max_element(m_scaledShapes, {}, &SScaledShape::scale);
+    m_cursorBuffers           = {representative->shape->frame(representative->shape->frameAt(elapsed)).buffer};
+    Pointer::mgr()->setCursorBuffers(images);
+    m_animationTimer->updateTimeout(nextFrame);
 }
 
 void CCursorManager::tickAnimatedCursor() {
-    if (!m_ourBufferConnected)
+    if (!m_ourBufferConnected || Pointer::mgr()->currentCursorImage().pBuffer != getCursorBuffer()) {
+        m_animationTimer->updateTimeout(std::nullopt);
         return;
+    }
 
-    if (!m_hyprcursor->valid() && m_currentXcursor->images.size() > 1) {
+    if (!m_scaledShapes.empty()) {
+        publishHyprcursor();
+        return;
+    }
+
+    if (m_currentXcursor && m_currentXcursor->images.size() > 1) {
         m_currentAnimationFrame++;
 
         if (sc<size_t>(m_currentAnimationFrame) >= m_currentXcursor->images.size())
@@ -251,20 +288,6 @@ void CCursorManager::tickAnimatedCursor() {
         auto  buf   = makeShared<CCursorBuffer>(rc<uint8_t*>(icon.pixels.data()), icon.size, icon.hotspot);
         setCursorBuffer(buf, icon.hotspot / scale, scale);
         setAnimationTimer(m_currentAnimationFrame, m_currentXcursor->images[m_currentAnimationFrame].delay);
-    } else if (m_currentCursorShapeData.images.size() > 1) {
-        m_currentAnimationFrame++;
-
-        if (sc<size_t>(m_currentAnimationFrame) >= m_currentCursorShapeData.images.size())
-            m_currentAnimationFrame = 0;
-
-        auto hotspot =
-            Vector2D{m_currentCursorShapeData.images[m_currentAnimationFrame].hotspotX, m_currentCursorShapeData.images[m_currentAnimationFrame].hotspotY} / m_cursorScale;
-        auto buf = makeShared<CCursorBuffer>(
-            m_currentCursorShapeData.images[m_currentAnimationFrame].surface,
-            Vector2D{m_currentCursorShapeData.images[m_currentAnimationFrame].size, m_currentCursorShapeData.images[m_currentAnimationFrame].size},
-            Vector2D{m_currentCursorShapeData.images[m_currentAnimationFrame].hotspotX, m_currentCursorShapeData.images[m_currentAnimationFrame].hotspotY});
-        setCursorBuffer(buf, hotspot, m_cursorScale);
-        setAnimationTimer(m_currentAnimationFrame, m_currentCursorShapeData.images[m_currentAnimationFrame].delay);
     }
 }
 
@@ -295,33 +318,57 @@ void CCursorManager::setXWaylandCursor() {
     }
 }
 
+void CCursorManager::releaseStyles() {
+    m_scaledShapes.clear();
+    if (m_hyprcursor->valid()) {
+        for (const auto& style : m_styles)
+            m_hyprcursor->cursorSurfaceStyleDone(style);
+    }
+    m_styles.clear();
+}
+
 void CCursorManager::updateTheme() {
     static auto PUSEHYPRCURSOR = CConfigValue<Config::INTEGER>("cursor:enable_hyprcursor");
     float       highestScale   = 1.0;
+    const bool  RESTORE_CURSOR = m_ourBufferConnected && Pointer::mgr()->currentCursorImage().pBuffer == getCursorBuffer();
+
+    releaseStyles();
+    m_scales.clear();
 
     for (auto const& m : State::monitorState()->monitors()) {
         if (m->m_scale > highestScale)
             highestScale = m->m_scale;
+        if (std::ranges::find(m_scales, m->m_scale) == m_scales.end())
+            m_scales.push_back(m->m_scale);
     }
 
-    m_cursorScale            = highestScale;
-    m_currentCursorShapeData = {};
+    if (m_scales.empty())
+        m_scales.push_back(1.F);
+
+    m_cursorScale = highestScale;
 
     if (*PUSEHYPRCURSOR) {
-        if (m_currentStyleInfo.size > 0 && m_hyprcursor->valid())
-            m_hyprcursor->cursorSurfaceStyleDone(m_currentStyleInfo);
-
         m_currentStyleInfo.size = std::round(m_size * highestScale);
 
-        if (m_hyprcursor->valid())
-            m_hyprcursor->loadThemeStyle(m_currentStyleInfo);
+        // Retain the representative style for XWayland even if all outputs are below 1x.
+        m_styles.push_back(m_currentStyleInfo);
+        for (const auto scale : m_scales) {
+            const Hyprcursor::SCursorStyleInfo style{.size = sc<unsigned int>(std::round(m_size * scale))};
+            if (std::ranges::find(m_styles, style.size, &Hyprcursor::SCursorStyleInfo::size) == m_styles.end())
+                m_styles.push_back(style);
+        }
+
+        if (m_hyprcursor->valid()) {
+            for (const auto& style : m_styles)
+                m_hyprcursor->loadThemeStyle(style);
+        }
     }
 
     for (auto const& m : State::monitorState()->monitors()) {
         m->m_forceFullFrames = 5;
         m->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_SHAPE);
     }
-    if (m_ourBufferConnected)
+    if (RESTORE_CURSOR)
         setCursorFromName(m_lastCursorName);
 }
 
@@ -332,11 +379,11 @@ bool CCursorManager::changeTheme(const std::string& name, const int size) {
     auto xcursor_theme         = getenv("XCURSOR_THEME") ? getenv("XCURSOR_THEME") : "default";
 
     if (*PUSEHYPRCURSOR) {
+        releaseStyles();
         auto options                 = Hyprcursor::SManagerOptions();
         options.logFn                = hcLogger;
         options.allowDefaultFallback = false;
         m_theme                      = name.empty() ? "" : name;
-        m_size                       = size;
 
         m_hyprcursor = makeUnique<Hyprcursor::CHyprcursorManager>(m_theme.empty() ? nullptr : m_theme.c_str(), options);
         if (!m_hyprcursor->valid()) {

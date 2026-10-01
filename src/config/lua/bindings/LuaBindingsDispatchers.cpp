@@ -1083,8 +1083,8 @@ static int dsp_focusCurrentOrLast(lua_State* L) {
     return Internal::checkResult(L, CA::focusCurrentOrLast());
 }
 
-static int dsp_changeWorkspace(lua_State* L) {
-    return Internal::checkResult(L, CA::changeWorkspace(std::string(lua_tostring(L, lua_upvalueindex(1)))));
+static int dsp_focusWorkspace(lua_State* L) {
+    return Internal::checkResult(L, CA::changeWorkspace(std::string(lua_tostring(L, lua_upvalueindex(1))), false));
 }
 
 static int dsp_focusWorkspaceOnCurrentMonitor(lua_State* L) {
@@ -1124,7 +1124,7 @@ static int hlFocus(lua_State* L) {
         if (onCurrentMon.value_or(false))
             lua_pushcclosure(L, dsp_focusWorkspaceOnCurrentMonitor, 1);
         else
-            lua_pushcclosure(L, dsp_changeWorkspace, 1);
+            lua_pushcclosure(L, dsp_focusWorkspace, 1);
 
         return 1;
     }
@@ -1296,6 +1296,21 @@ static int hlWorkspaceSwapMonitors(lua_State* L) {
     return 1;
 }
 
+static int dsp_showWorkspace(lua_State* L) {
+    auto ws = Internal::resolveWorkspaceStr(lua_tostring(L, lua_upvalueindex(1)));
+    return Internal::checkResult(L, CA::changeWorkspace(ws, true));
+}
+
+static int hlWorkspaceShow(lua_State* L) {
+    if (!lua_istable(L, 1))
+        return Internal::configError(L, "hl.workspace.show: expected a table, e.g. { workspace }");
+
+    auto wsStr = Internal::tableOptWorkspaceSelector(L, 1, "workspace", "hl.workspace.show");
+    lua_pushstring(L, wsStr->c_str());
+    lua_pushcclosure(L, dsp_showWorkspace, 1);
+    return 1;
+}
+
 void Internal::registerDispatcherBindings(lua_State* L) {
     lua_newtable(L);
     Internal::markDispatcherTable(L);
@@ -1348,6 +1363,7 @@ void Internal::registerDispatcherBindings(lua_State* L) {
         Internal::setFn(L, "rename", hlWorkspaceRename);
         Internal::setFn(L, "change_id", hlWorkspaceChangeID);
         Internal::setFn(L, "move", hlWorkspaceMove);
+        Internal::setFn(L, "show", hlWorkspaceShow);
         Internal::setFn(L, "swap_monitors", hlWorkspaceSwapMonitors);
         Internal::setFn(L, "toggle_special", hlWorkspaceToggleSpecial);
         lua_setfield(L, -2, "workspace");

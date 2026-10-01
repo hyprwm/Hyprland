@@ -1,5 +1,6 @@
 #include <config/lua/bindings/LuaBindingsInternal.hpp>
 #include <config/lua/ConfigManager.hpp>
+#include <config/shared/inotify/ConfigWatcher.hpp>
 
 #include <Compositor.hpp>
 
@@ -143,6 +144,91 @@ namespace {
     void expectTracked(CConfigManager& mgr, const std::filesystem::path& path) {
         const auto& paths = mgr.getConfigPaths();
         EXPECT_NE(std::ranges::find(paths, normalizedPath(path)), paths.end());
+    }
+}
+
+class CConfigLuaDispatchers : public testing::Test {
+  protected:
+    void SetUp() override {
+        m_previousWatcher = std::move(Config::watcher());
+        Config::watcher() = makeUnique<Config::CConfigWatcher>();
+        m_previousManager = std::move(Config::mgr());
+        Config::mgr()     = makeUnique<CConfigManager>();
+        m_manager         = Config::Lua::mgr();
+        CConfigManagerPluginLuaTestAccessor::initializeOwnedLuaState(*m_manager, m_tmp.path() / "hyprland.lua");
+        m_lua = CConfigManagerPluginLuaTestAccessor::luaState(*m_manager);
+    }
+
+    void TearDown() override {
+        Keybinds::mgr()->clearBinds();
+        Config::mgr()     = std::move(m_previousManager);
+        Config::watcher() = std::move(m_previousWatcher);
+    }
+
+    WP<CConfigManager> m_manager;
+    lua_State*         m_lua = nullptr;
+
+  private:
+    CScopedCompositor          m_compositor;
+    CTempDir                   m_tmp;
+    UP<Config::IConfigManager> m_previousManager;
+    UP<Config::CConfigWatcher> m_previousWatcher;
+};
+
+TEST_F(CConfigLuaDispatchers, rejectsFactoriesInBindAndDispatch) {
+    for (const auto* factory : {"hl.dsp.exec_raw", "hl.dsp.no_op", "hl.dsp.window.close"}) {
+        SCOPED_TRACE(factory);
+        const auto aliasResult = m_manager->eval(std::format("factory = {}", factory));
+        ASSERT_FALSE(aliasResult.has_value()) << aliasResult.value_or("");
+
+        for (const auto* value : {factory, "factory"}) {
+            for (const auto* api : {"hl.bind", "hl.dispatch"}) {
+                SCOPED_TRACE(std::format("{}({})", api, value));
+                const auto code   = std::string_view{api} == "hl.bind" ? std::format("hl.bind('SUPER + Q', {})", value) : std::format("hl.dispatch({})", value);
+                const auto result = m_manager->eval(code);
+                ASSERT_TRUE(result.has_value());
+                EXPECT_NE(result->find(std::format("{}: dispatcher factory supplied", api)), std::string::npos);
+                EXPECT_NE(result->find("missing parentheses?"), std::string::npos);
+                EXPECT_TRUE(Keybinds::mgr()->registry().empty());
+                EXPECT_EQ(lua_gettop(m_lua), 0);
+            }
+        }
+    }
+}
+
+TEST_F(CConfigLuaDispatchers, acceptsDispatchersAndCallbacks) {
+    const auto result = m_manager->eval(R"-(
+        calls = 0
+        local function callback() calls = calls + 1 end
+        local dispatcher = hl.dsp.no_op()
+        assert(type(dispatcher) == 'userdata')
+        assert(tostring(dispatcher) == 'HL.Dispatcher(no_op)')
+        assert(hl.bind('SUPER + Q', dispatcher) ~= nil)
+        assert(hl.bind('SUPER + W', callback) ~= nil)
+        assert(hl.bind('SUPER + E', collectgarbage) ~= nil)
+        assert(hl.dispatch(dispatcher).ok)
+        assert(hl.dispatch(callback).ok)
+        assert(calls == 1)
+    )-");
+    ASSERT_FALSE(result.has_value()) << result.value_or("");
+    ASSERT_EQ(Keybinds::mgr()->registry().size(), 3);
+    for (const auto& bind : Keybinds::mgr()->registry().binds()) {
+        EXPECT_TRUE(bind->invoke().success);
+    }
+
+    const auto callbackResult = m_manager->eval("assert(calls == 2)");
+    EXPECT_FALSE(callbackResult.has_value()) << callbackResult.value_or("");
+    EXPECT_EQ(lua_gettop(m_lua), 0);
+}
+
+TEST_F(CConfigLuaDispatchers, rejectsInvalidDispatcherValues) {
+    for (const auto* value : {"nil", "42", "{}", "'invalid'"}) {
+        SCOPED_TRACE(value);
+        const auto result = m_manager->eval(std::format("hl.bind('SUPER + Q', {})", value));
+        ASSERT_TRUE(result.has_value());
+        EXPECT_NE(result->find("hl.bind: expected a dispatcher"), std::string::npos);
+        EXPECT_TRUE(Keybinds::mgr()->registry().empty());
+        EXPECT_EQ(lua_gettop(m_lua), 0);
     }
 }
 

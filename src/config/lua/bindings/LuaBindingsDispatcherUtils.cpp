@@ -143,20 +143,23 @@ int Internal::wrapDispatcher(lua_State* L) {
     return 1;
 }
 
-bool Internal::pushDispatcherFunction(lua_State* L, int idx) {
+std::expected<void, std::string> Internal::pushDispatcherFunction(lua_State* L, int idx) {
+    if (lua_iscfunction(L, idx) && lua_tocfunction(L, idx) == dispatcherFactory)
+        return std::unexpected("dispatcher factory supplied instead of a dispatcher; call the factory first (missing parentheses?)");
+
     if (lua_isfunction(L, idx)) {
         lua_pushvalue(L, idx);
-        return true;
+        return {};
     }
 
     auto* dispatcher = sc<SDispatcherRef*>(luaL_testudata(L, idx, DISPATCHER_MT));
     if (!dispatcher || dispatcher->ref == LUA_NOREF)
-        return false;
+        return std::unexpected("expected a dispatcher (e.g. hl.dsp.window.close()) or a lua function");
 
     lua_rawgeti(L, LUA_REGISTRYINDEX, dispatcher->ref);
     if (lua_isfunction(L, -1))
-        return true;
+        return {};
 
     lua_pop(L, 1);
-    return false;
+    return std::unexpected("dispatcher has no valid function");
 }

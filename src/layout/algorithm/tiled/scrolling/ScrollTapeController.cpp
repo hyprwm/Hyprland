@@ -51,6 +51,8 @@ double CScrollTapeController::getOffset() const {
 }
 
 void CScrollTapeController::adjustOffset(double delta) {
+    if (getScrollInhibitor().isInhibited)
+        return;
     m_offset += delta;
 }
 

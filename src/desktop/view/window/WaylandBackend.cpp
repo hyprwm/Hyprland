@@ -131,6 +131,8 @@ CWaylandBackend::CWaylandBackend(SP<CXDGSurfaceResource> resource) : m_resource(
     m_listeners.unmap   = resource->m_events.unmap.listen([this] {
         m_mapped = false;
         m_events.unmap.emit();
+        m_initialCommit = true;
+        m_pendingReportedSize.reset();
     });
     m_listeners.commit  = resource->m_events.commit.listen([this] {
         const bool INITIAL = m_initialCommit;

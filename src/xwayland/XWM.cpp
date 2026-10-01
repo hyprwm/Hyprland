@@ -1570,6 +1570,10 @@ bool SXSelection::sendData(xcb_selection_request_event_t* e, std::string mime) {
         return false;
     }
 
+    // Never reflect an imported X11 clipboard back into the same X server.
+    if ((this == &g_pXWayland->m_wm->m_clipboard || this == &g_pXWayland->m_wm->m_primarySelection) && selection->type() == DATA_SOURCE_TYPE_X11)
+        return false;
+
     const auto MIMES = selection->mimes();
 
     if (MIMES.empty()) {

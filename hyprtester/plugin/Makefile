@@ -3,7 +3,7 @@ INCLUDES = `pkg-config --cflags pixman-1 libdrm pangocairo libinput libudev wayl
 LIBS = `pkg-config --libs pangocairo`
 LUA_FLAGS = $(if $(strip $(LUA_INCLUDES)),-I$(LUA_INCLUDES),)
 
-SRC = src/main.cpp src/WorkspaceGestures.cpp src/SpecialWorkspaceGestures.cpp
+SRC = src/main.cpp src/WorkspaceGestures.cpp src/SpecialWorkspaceGestures.cpp src/XWaylandSelection.cpp
 TARGET = hyprtestplugin.so
 
 all: $(TARGET)

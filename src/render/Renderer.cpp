@@ -2453,11 +2453,16 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
             const auto WANTED  = wantHDR ? createHDRMetadata(pMonitor->m_imageDescription->value(), pMonitor) : NO_HDR_METADATA;
             const auto CURRENT = pMonitor->m_output->state->state().hdrMetadata;
 
-            if (HDR_CHANGED || pMonitor->m_hdrMetadataFromSurface || (wantHDR && !hdrMetadataEqual(WANTED, CURRENT))) {
+            // Required in order to clear stale HDR metadata
+            const bool INITIAL_SDR               = !pMonitor->m_needsHDRupdate && !wantHDR;
+            const bool HDR_METADATA_CHANGED      = wantHDR && !hdrMetadataEqual(WANTED, CURRENT);
+
+            if (HDR_CHANGED || INITIAL_SDR || pMonitor->m_hdrMetadataFromSurface || HDR_METADATA_CHANGED) {
                 LOG(Log::INFO, wantHDR ? "[CM] Updating HDR metadata from monitor" : "[CM] Restoring SDR mode");
                 pMonitor->m_output->state->setHDRMetadata(WANTED);
                 pMonitor->m_hdrMetadataFromSurface = false;
             }
+            
             pMonitor->m_needsHDRupdate = true;
         }
     }

@@ -110,6 +110,8 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
     g_pHyprRenderer->m_renderData.damage = m_renderPass.render(g_pHyprRenderer->m_renderData.damage);
 
     auto cleanup = CScopeGuard([this]() {
+        // Presentation pointers share workspace ownership; retain them only for this frame.
+        m_renderPass.clear();
         if (m_currentRenderbuffer)
             m_currentRenderbuffer->unbind();
         m_currentRenderbuffer = nullptr;
@@ -312,13 +314,14 @@ void CHyprGLRenderer::blend(bool enabled) {
     g_pHyprOpenGL->blend(enabled);
 }
 
-void CHyprGLRenderer::drawShadow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a) {
-    g_pHyprOpenGL->renderRoundedShadow(box, round, roundingPower, range, color, a);
+void CHyprGLRenderer::drawShadow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a,
+                                 const SP<Workspace::CWorkspacePresentable>& presentation) {
+    g_pHyprOpenGL->renderRoundedShadow(box, round, roundingPower, range, color, a, presentation);
 }
 
 void CHyprGLRenderer::drawShadow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2,
-                                 float lerp, float a) {
-    g_pHyprOpenGL->renderRoundedShadow(box, round, roundingPower, range, grad1, grad2, lerp, a);
+                                 float lerp, float a, const SP<Workspace::CWorkspacePresentable>& presentation) {
+    g_pHyprOpenGL->renderRoundedShadow(box, round, roundingPower, range, grad1, grad2, lerp, a, presentation);
 }
 
 void CHyprGLRenderer::drawGlow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a) {

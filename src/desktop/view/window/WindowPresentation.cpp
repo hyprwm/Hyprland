@@ -216,15 +216,17 @@ void CWindowPresentation::invalidateBorderSize() {
 }
 
 bool CWindowPresentation::opaque() const {
+    return opaque(dynamicPointerCast<Workspace::CWorkspacePresentable>(m_window.m_workspace));
+}
+
+bool CWindowPresentation::opaque(const SP<Workspace::CWorkspacePresentable>& presentation) const {
     if (alphaValue(WINDOW_ALPHA_FADE) != 1.f || alphaValue(WINDOW_ALPHA_FULLSCREEN) != 1.f || alphaValue(WINDOW_ALPHA_ACTIVE) != 1.f)
         return false;
-
-    const auto PWORKSPACE = m_window.m_workspace;
 
     if (m_window.wlSurface()->small() && !m_window.wlSurface()->m_fillIgnoreSmall)
         return false;
 
-    if (PWORKSPACE && PWORKSPACE->m_alpha->value() != 1.f)
+    if (presentation && presentation->m_alpha->value() != 1.f)
         return false;
 
     auto solitaryResource = m_window.getSolitaryResource();

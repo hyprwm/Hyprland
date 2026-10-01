@@ -204,6 +204,7 @@ namespace Desktop::View {
         void                       setHidden(bool hidden);
         bool                       isHidden() const;
         bool                       shouldBlur() const;
+        bool                       shouldBlur(const SP<Workspace::CWorkspacePresentable>& presentation) const;
         bool                       isAllowedOverFullscreen() const;
         bool                       isBlockedByFullscreen() const;
         bool                       isFadingOutUnderFullscreen() const;

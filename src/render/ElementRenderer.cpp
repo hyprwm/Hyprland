@@ -317,7 +317,8 @@ void IElementRenderer::drawSurface(WP<CSurfacePassElement> element, const CRegio
         roundingPower = 2.0f;
     }
 
-    const bool WINDOWOPAQUE    = m_data.pWindow && m_data.pWindow->wlSurface()->resource() == m_data.surface ? m_data.pWindow->presentation().opaque() : false;
+    const bool WINDOWOPAQUE =
+        m_data.pWindow && m_data.pWindow->wlSurface()->resource() == m_data.surface ? m_data.pWindow->presentation().opaque(m_data.workspacePresentation) : false;
     const bool CANDISABLEBLEND = ALPHA >= 1.f && OVERALL_ALPHA >= 1.f && rounding <= 0 && WINDOWOPAQUE;
 
     if (CANDISABLEBLEND)
@@ -353,25 +354,27 @@ void IElementRenderer::drawSurface(WP<CSurfacePassElement> element, const CRegio
                             .clipRegion            = clipRegion,
                             .currentLS             = m_data.pLS,
                             .blurOwner             = m_data.pWindow,
+                            .workspacePresentation = m_data.workspacePresentation,
                         }),
 
                         surfaceDamage());
         } else
             drawElement(makeShared<CTexPassElement>(CTexPassElement::SRenderData{
-                            .tex            = TEXTURE,
-                            .box            = windowBox,
-                            .a              = ALPHA * OVERALL_ALPHA,
-                            .round          = rounding,
-                            .roundingPower  = roundingPower,
-                            .discardActive  = false,
-                            .allowCustomUV  = true,
-                            .surface        = m_data.surface,
-                            .wrapX          = m_data.wrapX,
-                            .wrapY          = m_data.wrapY,
-                            .discardMode    = m_data.discardMode,
-                            .discardOpacity = m_data.discardOpacity,
-                            .clipRegion     = clipRegion,
-                            .currentLS      = m_data.pLS,
+                            .tex                   = TEXTURE,
+                            .box                   = windowBox,
+                            .a                     = ALPHA * OVERALL_ALPHA,
+                            .round                 = rounding,
+                            .roundingPower         = roundingPower,
+                            .discardActive         = false,
+                            .allowCustomUV         = true,
+                            .surface               = m_data.surface,
+                            .wrapX                 = m_data.wrapX,
+                            .wrapY                 = m_data.wrapY,
+                            .discardMode           = m_data.discardMode,
+                            .discardOpacity        = m_data.discardOpacity,
+                            .clipRegion            = clipRegion,
+                            .currentLS             = m_data.pLS,
+                            .workspacePresentation = m_data.workspacePresentation,
                         }),
                         surfaceDamage());
     } else {
@@ -394,24 +397,26 @@ void IElementRenderer::drawSurface(WP<CSurfacePassElement> element, const CRegio
                             .discardOpacity        = m_data.discardOpacity,
                             .clipRegion            = clipRegion,
                             .currentLS             = m_data.pLS,
+                            .workspacePresentation = m_data.workspacePresentation,
                         }),
                         surfaceDamage());
         else
             drawElement(makeShared<CTexPassElement>(CTexPassElement::SRenderData{
-                            .tex            = TEXTURE,
-                            .box            = windowBox,
-                            .a              = ALPHA * OVERALL_ALPHA,
-                            .round          = rounding,
-                            .roundingPower  = roundingPower,
-                            .discardActive  = false,
-                            .allowCustomUV  = true,
-                            .surface        = m_data.surface,
-                            .wrapX          = m_data.wrapX,
-                            .wrapY          = m_data.wrapY,
-                            .discardMode    = m_data.discardMode,
-                            .discardOpacity = m_data.discardOpacity,
-                            .clipRegion     = clipRegion,
-                            .currentLS      = m_data.pLS,
+                            .tex                   = TEXTURE,
+                            .box                   = windowBox,
+                            .a                     = ALPHA * OVERALL_ALPHA,
+                            .round                 = rounding,
+                            .roundingPower         = roundingPower,
+                            .discardActive         = false,
+                            .allowCustomUV         = true,
+                            .surface               = m_data.surface,
+                            .wrapX                 = m_data.wrapX,
+                            .wrapY                 = m_data.wrapY,
+                            .discardMode           = m_data.discardMode,
+                            .discardOpacity        = m_data.discardOpacity,
+                            .clipRegion            = clipRegion,
+                            .currentLS             = m_data.pLS,
+                            .workspacePresentation = m_data.workspacePresentation,
                         }),
                         surfaceDamage());
     }
@@ -520,7 +525,9 @@ void IElementRenderer::drawTex(WP<CTexPassElement> element, const CRegion& damag
                         .roundingPower = element->m_data.roundingPower,
                     };
             }
-            blurredFB = g_pHyprRenderer->blurMainFramebuffer(element->m_data.a, inverseOpaque, {.patternBox = patternBox, .owner = element->m_data.blurOwner, .shape = shape});
+            blurredFB = g_pHyprRenderer->blurMainFramebuffer(
+                element->m_data.a, inverseOpaque,
+                {.patternBox = patternBox, .owner = element->m_data.blurOwner, .shape = shape, .workspacePresentation = element->m_data.workspacePresentation});
             element->m_data.blurredBG = blurredFB->getTexture();
         } else
             element->m_data.blurredBG = m_renderData.pMonitor->resources()->m_blurFB->getTexture();
@@ -809,10 +816,11 @@ void IElementRenderer::drawTransformedWindow(WP<CTransformedWindowPassElement> e
     }
 
     CTexPassElement::SRenderData data;
-    data.tex        = last.framebuffer->getTexture();
-    data.box        = outputBox;
-    data.a          = 1.F;
-    data.motionBlur = motionBlur;
+    data.tex                   = last.framebuffer->getTexture();
+    data.box                   = outputBox;
+    data.a                     = 1.F;
+    data.motionBlur            = motionBlur;
+    data.workspacePresentation = element->m_data.workspacePresentation;
 
     CRegion outputRegion{outputBox};
     renderData.renderModif.applyToRegion(outputRegion);

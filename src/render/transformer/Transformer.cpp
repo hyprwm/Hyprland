@@ -47,6 +47,6 @@ CBox IWindowTransformer::transformBoxForDamage(const CBox& currentBox) const {
     return transformedExtents(currentBox);
 }
 
-void IWindowTransformer::amendTransformedRenderData(const CBox& currentBox, SMotionBlurData* pMotionBlurData) {
+void IWindowTransformer::amendTransformedRenderData(const CBox& currentBox, SMotionBlurData* pMotionBlurData, const SP<Workspace::CWorkspacePresentable>& presentation) {
     ;
 }

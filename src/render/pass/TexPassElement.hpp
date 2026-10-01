@@ -8,6 +8,10 @@ namespace Render {
 }
 class CSyncTimeline;
 
+namespace Workspace {
+    class CWorkspacePresentable;
+}
+
 enum eDiscardMode : uint8_t {
     DISCARD_OPAQUE = 1,
     DISCARD_ALPHA  = 1 << 1
@@ -33,42 +37,43 @@ struct SMotionBlurData {
 class CTexPassElement : public IPassElement {
   public:
     struct SRenderData {
-        SP<Render::ITexture>   tex;
-        CBox                   box;
-        float                  a        = 1.F;
-        float                  blurA    = 1.F;
-        float                  overallA = 1.F;
-        CRegion                damage;
-        bool                   useProvidedDamage = false;
-        int                    round             = 0;
-        float                  roundingPower     = 2.0f;
-        CBox                   clipBox;
-        bool                   blur           = false;
-        bool                   forceBlurBlend = false;
-        std::optional<CBox>    blurPatternBox;
-        std::optional<float>   ignoreAlpha;
-        std::optional<bool>    blockBlurOptimization;
-        std::optional<bool>    liveBlurOverride;
-        bool                   cmBackToSRGB = false;
+        SP<Render::ITexture>                 tex;
+        CBox                                 box;
+        float                                a        = 1.F;
+        float                                blurA    = 1.F;
+        float                                overallA = 1.F;
+        CRegion                              damage;
+        bool                                 useProvidedDamage = false;
+        int                                  round             = 0;
+        float                                roundingPower     = 2.0f;
+        CBox                                 clipBox;
+        bool                                 blur           = false;
+        bool                                 forceBlurBlend = false;
+        std::optional<CBox>                  blurPatternBox;
+        std::optional<float>                 ignoreAlpha;
+        std::optional<bool>                  blockBlurOptimization;
+        std::optional<bool>                  liveBlurOverride;
+        bool                                 cmBackToSRGB = false;
 
-        bool                   discardActive = false;
-        bool                   allowCustomUV = false;
-        SP<CWLSurfaceResource> surface       = nullptr;
+        bool                                 discardActive = false;
+        bool                                 allowCustomUV = false;
+        SP<CWLSurfaceResource>               surface       = nullptr;
 
-        uint8_t                wrapX = WRAP_CLAMP_TO_EDGE;
-        uint8_t                wrapY = WRAP_CLAMP_TO_EDGE;
+        uint8_t                              wrapX = WRAP_CLAMP_TO_EDGE;
+        uint8_t                              wrapY = WRAP_CLAMP_TO_EDGE;
 
-        uint8_t                discardMode    = DISCARD_OPAQUE;
-        float                  discardOpacity = 0.f;
+        uint8_t                              discardMode    = DISCARD_OPAQUE;
+        float                                discardOpacity = 0.f;
 
-        CRegion                clipRegion;
-        PHLLSREF               currentLS;
-        PHLWINDOWREF           blurOwner;
+        CRegion                              clipRegion;
+        PHLLSREF                             currentLS;
+        PHLWINDOWREF                         blurOwner;
 
-        SP<Render::ITexture>   blurredBG;
-        SP<Render::ITexture>   blurAlphaMatte;
-        SMotionBlurData        motionBlur;
-        bool                   blurShapeInvalid = false;
+        SP<Render::ITexture>                 blurredBG;
+        SP<Render::ITexture>                 blurAlphaMatte;
+        SMotionBlurData                      motionBlur;
+        bool                                 blurShapeInvalid = false;
+        SP<Workspace::CWorkspacePresentable> workspacePresentation;
     };
 
     CTexPassElement(const SRenderData& data);

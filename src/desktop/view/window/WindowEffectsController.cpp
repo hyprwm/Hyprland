@@ -157,8 +157,8 @@ void CWindowEffectsController::preWindowRender(CSurfacePassElement::SRenderData*
     m_transformers->preWindowRender(renderData);
 }
 
-void CWindowEffectsController::amendTransformedRenderData(const CBox& currentBox, SMotionBlurData* motionBlurData) const {
-    m_transformers->amendTransformedRenderData(currentBox, motionBlurData);
+void CWindowEffectsController::amendTransformedRenderData(const CBox& currentBox, SMotionBlurData* motionBlurData, const SP<Workspace::CWorkspacePresentable>& presentation) const {
+    m_transformers->amendTransformedRenderData(currentBox, motionBlurData, presentation);
 }
 
 const UP<Render::CWindowTransformerList>& CWindowEffectsController::transformers() const {

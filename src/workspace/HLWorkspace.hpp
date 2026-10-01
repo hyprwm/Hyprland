@@ -2,6 +2,7 @@
 
 #include "AbstractWorkspace.hpp"
 #include "WorkspaceWindowFocusTracker.hpp"
+#include "presentation/WorkspacePresentable.hpp"
 #include "../desktop/DesktopTypes.hpp"
 #include "../helpers/AnimatedVariable.hpp"
 #include "../helpers/signal/Signal.hpp"
@@ -18,7 +19,7 @@ namespace Config {
 }
 
 namespace Workspace {
-    class CHLWorkspace : public IAbstractWorkspace {
+    class CHLWorkspace : public IAbstractWorkspace, public CWorkspacePresentable {
       public:
         ~CHLWorkspace() override;
 
@@ -35,12 +36,7 @@ namespace Workspace {
         WP<CHLWorkspace>                    m_self;
 
         PHLMONITORREF                       m_monitor;
-
-        PHLANIMVAR<Vector2D>                m_renderOffset;
-        PHLANIMVAR<float>                   m_alpha;
-        bool                                m_forceRendering = false;
-        std::optional<std::string>          m_animationStyle;
-
+        bool                                m_forceRendering  = false;
         bool                                m_wasCreatedEmpty = true;
 
         MONITORID                           monitorID() const;

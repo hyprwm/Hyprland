@@ -40,26 +40,29 @@ void CHyprBorderDecoration::onPositioningReply(const SDecorationPositioningReply
 }
 
 CBox CHyprBorderDecoration::assignedBoxGlobal() {
+    return assignedBoxGlobal(dynamicPointerCast<Workspace::CWorkspacePresentable>(m_window->m_workspace));
+}
+
+CBox CHyprBorderDecoration::assignedBoxGlobal(const SP<Workspace::CWorkspacePresentable>& presentation) {
     CBox box = m_assignedGeometry;
     box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_BOTTOM | DECORATION_EDGE_LEFT | DECORATION_EDGE_RIGHT | DECORATION_EDGE_TOP, m_window));
 
-    const auto PWORKSPACE = m_window->m_workspace;
-
-    if (!PWORKSPACE)
-        return box;
-
-    const auto WORKSPACEOFFSET = PWORKSPACE && !(m_window->m_state & Desktop::View::WINDOW_STATE_PINNED) ? PWORKSPACE->m_renderOffset->value() : Vector2D();
+    const auto WORKSPACEOFFSET = presentation && !(m_window->m_state & Desktop::View::WINDOW_STATE_PINNED) ? presentation->m_renderOffset->value() : Vector2D();
     return box.translate(WORKSPACEOFFSET);
 }
 
-void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a) {
+void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation) {
     if (doesntWantBorders())
         return;
 
     if (m_assignedGeometry.width < m_extents.topLeft.x + 1 || m_assignedGeometry.height < m_extents.topLeft.y + 1)
         return;
 
-    CBox windowBox = assignedBoxGlobal().translate(-pMonitor->m_position + m_window->presentation().floatingOffset()).expand(-borderSize()).scale(pMonitor->m_scale).round();
+    CBox windowBox = assignedBoxGlobal(presentation)
+                         .translate(-pMonitor->m_position + (presentation ? m_window->presentation().floatingOffset() : Vector2D()))
+                         .expand(-borderSize())
+                         .scale(pMonitor->m_scale)
+                         .round();
 
     if (windowBox.width < 1 || windowBox.height < 1)
         return;

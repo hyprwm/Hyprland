@@ -585,6 +585,9 @@ void CCompositor::cleanup() {
 
     cleanEnvironment();
 
+    if (g_pHyprRenderer)
+        g_pHyprRenderer->m_renderPass.clear();
+
     // unload all remaining plugins while the compositor is
     // still in a normal working state.
     g_pPluginSystem->unloadAllPlugins();

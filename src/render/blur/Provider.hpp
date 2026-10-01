@@ -6,6 +6,10 @@
 
 #include <optional>
 
+namespace Workspace {
+    class CWorkspacePresentable;
+}
+
 namespace Render {
     struct SBlurShape {
         CBox  box;
@@ -14,9 +18,10 @@ namespace Render {
     };
 
     struct SBlurContext {
-        std::optional<CBox>       patternBox;
-        PHLWINDOWREF              owner;
-        std::optional<SBlurShape> shape;
+        std::optional<CBox>                  patternBox;
+        PHLWINDOWREF                         owner;
+        std::optional<SBlurShape>            shape;
+        SP<Workspace::CWorkspacePresentable> workspacePresentation;
     };
 
     enum class eBlurType : uint8_t {

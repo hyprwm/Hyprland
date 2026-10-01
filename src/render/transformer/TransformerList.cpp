@@ -73,10 +73,10 @@ void CWindowTransformerList::preWindowRender(CSurfacePassElement::SRenderData* p
     }
 }
 
-void CWindowTransformerList::amendTransformedRenderData(const CBox& currentBox, SMotionBlurData* pMotionBlurData) const {
+void CWindowTransformerList::amendTransformedRenderData(const CBox& currentBox, SMotionBlurData* pMotionBlurData, const SP<Workspace::CWorkspacePresentable>& presentation) const {
     for (auto const& transformer : m_transformers) {
         if (transformer->active())
-            transformer->amendTransformedRenderData(currentBox, pMotionBlurData);
+            transformer->amendTransformedRenderData(currentBox, pMotionBlurData, presentation);
     }
 }
 

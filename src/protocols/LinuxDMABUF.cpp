@@ -143,9 +143,7 @@ CLinuxDMABUFParamsResource::CLinuxDMABUFParamsResource(UP<CZwpLinuxBufferParamsV
     m_resource->setOnDestroy([this](CZwpLinuxBufferParamsV1* r) { PROTO::linuxDma->destroyResource(this); });
     m_resource->setDestroy([this](CZwpLinuxBufferParamsV1* r) { PROTO::linuxDma->destroyResource(this); });
 
-    m_attrs = makeShared<Aquamarine::SDMABUFAttrs>();
-
-    m_attrs->success = true;
+    m_attrs.success = true;
 
     m_resource->setAdd([this](CZwpLinuxBufferParamsV1* r, int32_t fd, uint32_t plane, uint32_t offset, uint32_t stride, uint32_t modHi, uint32_t modLo) {
         CFileDescriptor ownedFD{fd};
@@ -160,24 +158,24 @@ CLinuxDMABUFParamsResource::CLinuxDMABUFParamsResource(UP<CZwpLinuxBufferParamsV
             return;
         }
 
-        if (m_attrs->fds.at(plane) != -1) {
+        if (m_attrs.fds.at(plane) != -1) {
             r->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_PLANE_IDX, "plane used");
             return;
         }
 
         const uint64_t modifier = (sc<uint64_t>(modHi) << 32) | modLo;
 
-        const bool     anyPlaneSet = std::ranges::any_of(m_attrs->fds, [](int planeFD) { return planeFD != -1; });
-        if (m_resource->version() >= 5 && anyPlaneSet && m_attrs->modifier != modifier) {
+        const bool     anyPlaneSet = std::ranges::any_of(m_attrs.fds, [](int planeFD) { return planeFD != -1; });
+        if (m_resource->version() >= 5 && anyPlaneSet && m_attrs.modifier != modifier) {
             r->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_INVALID_FORMAT, "planes have different modifiers");
             return;
         }
 
-        m_fds[plane]            = std::move(ownedFD);
-        m_attrs->fds[plane]     = m_fds[plane].get();
-        m_attrs->strides[plane] = stride;
-        m_attrs->offsets[plane] = offset;
-        m_attrs->modifier       = modifier;
+        m_fds[plane]           = std::move(ownedFD);
+        m_attrs.fds[plane]     = m_fds[plane].get();
+        m_attrs.strides[plane] = stride;
+        m_attrs.offsets[plane] = offset;
+        m_attrs.modifier       = modifier;
     });
 
     m_resource->setCreate([this](CZwpLinuxBufferParamsV1* r, int32_t w, int32_t h, uint32_t fmt, zwpLinuxBufferParamsV1Flags flags) {
@@ -193,15 +191,15 @@ CLinuxDMABUFParamsResource::CLinuxDMABUFParamsResource(UP<CZwpLinuxBufferParamsV
         }
 
         if (m_resource->version() >= 4 && std::ranges::none_of(PROTO::linuxDma->m_formatTable->m_rendererTranche.formats, [this, fmt](const auto format) {
-                return format.drmFormat == fmt && std::ranges::any_of(format.modifiers, [this](const auto mod) { return !mod || mod == m_attrs->modifier; });
+                return format.drmFormat == fmt && std::ranges::any_of(format.modifiers, [this](const auto mod) { return !mod || mod == m_attrs.modifier; });
             })) {
             r->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_INVALID_FORMAT, "format + modifier pair is not supported");
             return;
         }
 
-        m_attrs->size   = {w, h};
-        m_attrs->format = fmt;
-        m_attrs->planes = 4 - std::ranges::count(m_attrs->fds, -1);
+        m_attrs.size   = {w, h};
+        m_attrs.format = fmt;
+        m_attrs.planes = 4 - std::ranges::count(m_attrs.fds, -1);
 
         create(0);
     });
@@ -218,9 +216,9 @@ CLinuxDMABUFParamsResource::CLinuxDMABUFParamsResource(UP<CZwpLinuxBufferParamsV
             return;
         }
 
-        m_attrs->size   = {w, h};
-        m_attrs->format = fmt;
-        m_attrs->planes = 4 - std::ranges::count(m_attrs->fds, -1);
+        m_attrs.size   = {w, h};
+        m_attrs.format = fmt;
+        m_attrs.planes = 4 - std::ranges::count(m_attrs.fds, -1);
 
         create(id);
     });
@@ -244,16 +242,16 @@ void CLinuxDMABUFParamsResource::create(uint32_t id) {
         return;
     }
 
-    LOG(Log::DEBUG, "Creating a dmabuf, with id {}: size {}, fmt {}, planes {}", id, m_attrs->size, NFormatUtils::drmFormatName(m_attrs->format), m_attrs->planes);
-    for (int i = 0; i < m_attrs->planes; ++i) {
-        LOG(Log::DEBUG, " | plane {}: mod {} fd {} stride {} offset {}", i, m_attrs->modifier, m_attrs->fds[i], m_attrs->strides[i], m_attrs->offsets[i]);
+    LOG(Log::DEBUG, "Creating a dmabuf, with id {}: size {}, fmt {}, planes {}", id, m_attrs.size, NFormatUtils::drmFormatName(m_attrs.format), m_attrs.planes);
+    for (int i = 0; i < m_attrs.planes; ++i) {
+        LOG(Log::DEBUG, " | plane {}: mod {} fd {} stride {} offset {}", i, m_attrs.modifier, m_attrs.fds[i], m_attrs.strides[i], m_attrs.offsets[i]);
     }
 
-    auto& buf = PROTO::linuxDma->m_buffers.emplace_back(makeUnique<CLinuxDMABuffer>(id, m_resource->client(), *m_attrs, std::move(m_fds)));
+    auto& buf = PROTO::linuxDma->m_buffers.emplace_back(makeUnique<CLinuxDMABuffer>(id, m_resource->client(), m_attrs, std::move(m_fds)));
 
     // The buffer now owns the planes, even if construction failed.
-    m_attrs->fds.fill(-1);
-    m_attrs->planes = 0;
+    m_attrs.fds.fill(-1);
+    m_attrs.planes = 0;
 
     if UNLIKELY (!buf->good() || !buf->m_buffer->m_success) {
         m_resource->sendFailed();
@@ -271,11 +269,11 @@ bool CLinuxDMABUFParamsResource::commence() {
     if (!PROTO::linuxDma->m_mainDeviceFD.isValid())
         return true;
 
-    for (int i = 0; i < m_attrs->planes; i++) {
+    for (int i = 0; i < m_attrs.planes; i++) {
         uint32_t handle = 0;
 
-        if (drmPrimeFDToHandle(PROTO::linuxDma->m_mainDeviceFD.get(), m_attrs->fds.at(i), &handle)) {
-            LOG(Log::ERR, "Failed to import dmabuf fd {} on plane {}", m_attrs->fds.at(i), i);
+        if (drmPrimeFDToHandle(PROTO::linuxDma->m_mainDeviceFD.get(), m_attrs.fds.at(i), &handle)) {
+            LOG(Log::ERR, "Failed to import dmabuf fd {} on plane {}", m_attrs.fds.at(i), i);
             return false;
         }
 
@@ -289,18 +287,18 @@ bool CLinuxDMABUFParamsResource::commence() {
 }
 
 bool CLinuxDMABUFParamsResource::verify() {
-    if UNLIKELY (m_attrs->planes <= 0) {
+    if UNLIKELY (m_attrs.planes <= 0) {
         m_resource->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_INCOMPLETE, "No planes added");
         return false;
     }
 
-    if UNLIKELY (m_attrs->fds.at(0) < 0) {
+    if UNLIKELY (m_attrs.fds.at(0) < 0) {
         m_resource->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_INCOMPLETE, "No plane 0");
         return false;
     }
 
     bool empty = false;
-    for (auto const& plane : m_attrs->fds) {
+    for (auto const& plane : m_attrs.fds) {
         if (empty && plane != -1) {
             m_resource->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_INVALID_FORMAT, "Gap in planes");
             return false;
@@ -312,17 +310,17 @@ bool CLinuxDMABUFParamsResource::verify() {
         }
     }
 
-    if UNLIKELY (m_attrs->size.x < 1 || m_attrs->size.y < 1) {
+    if UNLIKELY (m_attrs.size.x < 1 || m_attrs.size.y < 1) {
         m_resource->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_INVALID_DIMENSIONS, "x/y < 1");
         return false;
     }
 
-    for (size_t i = 0; i < sc<size_t>(m_attrs->planes); ++i) {
-        const auto computedSize = sc<uint64_t>(m_attrs->offsets.at(i)) + sc<uint64_t>(m_attrs->strides.at(i)) * m_attrs->size.y;
+    for (size_t i = 0; i < sc<size_t>(m_attrs.planes); ++i) {
+        const auto computedSize = sc<uint64_t>(m_attrs.offsets.at(i)) + sc<uint64_t>(m_attrs.strides.at(i)) * m_attrs.size.y;
         if (computedSize > UINT32_MAX) {
             m_resource->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_OUT_OF_BOUNDS,
-                              std::format("size overflow on plane {}: offset {} + stride {} * height {} = {}, overflows UINT32_MAX", i, sc<uint64_t>(m_attrs->offsets.at(i)),
-                                          sc<uint64_t>(m_attrs->strides.at(i)), m_attrs->size.y, computedSize));
+                              std::format("size overflow on plane {}: offset {} + stride {} * height {} = {}, overflows UINT32_MAX", i, sc<uint64_t>(m_attrs.offsets.at(i)),
+                                          sc<uint64_t>(m_attrs.strides.at(i)), m_attrs.size.y, computedSize));
             return false;
         }
     }

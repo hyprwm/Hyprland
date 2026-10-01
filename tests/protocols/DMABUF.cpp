@@ -128,6 +128,12 @@ void CDMABUFParamsTest::expectClosed(const CFileDescriptor& reader) {
     EXPECT_EQ(read(reader.get(), &byte, 1), 0);
 }
 
+TEST_F(CDMABUFParamsTest, NewParamsHaveNoPlaneDescriptors) {
+    EXPECT_TRUE(m_params->m_attrs.success);
+    for (const auto fd : m_params->m_attrs.fds)
+        EXPECT_EQ(fd, -1);
+}
+
 TEST_F(CDMABUFParamsTest, AbandonedParamsCloseAllPlanes) {
     std::array<CFileDescriptor, 4> readers;
     for (uint32_t plane = 0; plane < readers.size(); ++plane) {
@@ -163,7 +169,7 @@ TEST_F(CDMABUFParamsTest, AttributeCopiesDoNotOwnPlanes) {
     addPlane(0, reader);
     ASSERT_TRUE(m_params);
     {
-        auto attrs = *m_params->m_attrs;
+        auto attrs = m_params->m_attrs;
         EXPECT_NE(fcntl(attrs.fds[0], F_GETFD), -1);
     }
     expectOpen(reader);
@@ -463,8 +469,8 @@ TEST_F(CDMABUFBufferTest, TransferredPlanesSurviveParamsAndAttributeCopies) {
     ASSERT_TRUE(buffer->good());
     ASSERT_EQ(renderer().m_imports.size(), 1U);
     ASSERT_TRUE(m_params);
-    EXPECT_EQ(m_params->m_attrs->planes, 0);
-    for (const auto fd : m_params->m_attrs->fds)
+    EXPECT_EQ(m_params->m_attrs.planes, 0);
+    for (const auto fd : m_params->m_attrs.fds)
         EXPECT_EQ(fd, -1);
 
     m_params.reset();

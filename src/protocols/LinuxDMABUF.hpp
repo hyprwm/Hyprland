@@ -63,12 +63,12 @@ class CLinuxDMABUFParamsResource {
     CLinuxDMABUFParamsResource(UP<CZwpLinuxBufferParamsV1>&& resource_);
     ~CLinuxDMABUFParamsResource() = default;
 
-    bool                         good();
-    void                         create(uint32_t id); // 0 means not immed
+    bool                     good();
+    void                     create(uint32_t id); // 0 means not immed
 
-    SP<Aquamarine::SDMABUFAttrs> m_attrs;
-    WP<CLinuxDMABuffer>          m_createdBuffer;
-    bool                         m_used = false;
+    Aquamarine::SDMABUFAttrs m_attrs{};
+    WP<CLinuxDMABuffer>      m_createdBuffer;
+    bool                     m_used = false;
 
   private:
     UP<CZwpLinuxBufferParamsV1> m_resource;

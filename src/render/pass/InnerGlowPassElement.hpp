@@ -3,11 +3,16 @@
 
 class CHyprInnerGlowDecoration;
 
+namespace Workspace {
+    class CWorkspacePresentable;
+}
+
 class CInnerGlowPassElement : public IPassElement {
   public:
     struct SInnerGlowData {
-        WP<CHyprInnerGlowDecoration> deco;
-        float                        a = 1.F;
+        WP<CHyprInnerGlowDecoration>         deco;
+        float                                a = 1.F;
+        SP<Workspace::CWorkspacePresentable> presentation;
     };
 
     CInnerGlowPassElement(const SInnerGlowData& data_);

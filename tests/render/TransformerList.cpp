@@ -1,4 +1,5 @@
 #include <render/transformer/TransformerList.hpp>
+#include <workspace/presentation/WorkspacePresentable.hpp>
 
 #include <gtest/gtest.h>
 
@@ -63,6 +64,23 @@ class CTestRegionTransformer : public Render::IWindowTransformer {
     double m_translation = 0.0;
 };
 
+class CTestPresentationTransformer : public CTestDamageTransformer {
+  public:
+    CTestPresentationTransformer(bool active) : CTestDamageTransformer(0, 1.0, 0.0, active) {
+        ;
+    }
+
+    virtual void amendTransformedRenderData(const CBox& currentBox, SMotionBlurData* motionBlurData, const SP<Workspace::CWorkspacePresentable>& presentation) {
+        ++m_amendCount;
+        m_presentation = presentation;
+        if (motionBlurData)
+            motionBlurData->current = currentBox;
+    }
+
+    int                                  m_amendCount = 0;
+    SP<Workspace::CWorkspacePresentable> m_presentation;
+};
+
 TEST(Render, transformerListDamageBoxFollowsPriorityOrder) {
     Render::CWindowTransformerList list;
     list.emplace<CTestDamageTransformer>(20, 2.0, 0.0);
@@ -104,4 +122,28 @@ TEST(Render, transformerListPlansRequiredSourceInReverseOrder) {
 
 TEST(Render, transformerPixelBoxRoundsOutward) {
     EXPECT_EQ(Render::pixelBoxForLogical({-1.25, 2.25, 3.5, 4.5}, 2.0), CBox(-3, 4, 8, 10));
+}
+
+TEST(Render, transformerListAmendsWithExplicitPresentationPerRender) {
+    Render::CWindowTransformerList list;
+    const auto                     ACTIVE   = list.emplace<CTestPresentationTransformer>(true);
+    const auto                     INACTIVE = list.emplace<CTestPresentationTransformer>(false);
+    const auto                     FIRST    = makeShared<Workspace::CWorkspacePresentable>();
+    const auto                     SECOND   = makeShared<Workspace::CWorkspacePresentable>();
+    const CBox                     BOX      = {1, 2, 10, 20};
+    SMotionBlurData                motionBlur;
+
+    list.amendTransformedRenderData(BOX, &motionBlur, FIRST);
+    EXPECT_EQ(ACTIVE->m_presentation, FIRST);
+    EXPECT_EQ(ACTIVE->m_amendCount, 1);
+    EXPECT_EQ(motionBlur.current, BOX);
+
+    list.amendTransformedRenderData(BOX, &motionBlur, nullptr);
+    EXPECT_FALSE(ACTIVE->m_presentation);
+    EXPECT_EQ(ACTIVE->m_amendCount, 2);
+
+    list.amendTransformedRenderData(BOX, &motionBlur, SECOND);
+    EXPECT_EQ(ACTIVE->m_presentation, SECOND);
+    EXPECT_EQ(ACTIVE->m_amendCount, 3);
+    EXPECT_EQ(INACTIVE->m_amendCount, 0);
 }

@@ -20,7 +20,7 @@ class CHyprDropShadowDecoration : public IHyprWindowDecoration {
 
     virtual void                       onPositioningReply(const SDecorationPositioningReply& reply);
 
-    virtual void                       draw(PHLMONITOR, float const& a);
+    virtual void                       draw(PHLMONITOR, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation);
 
     virtual eDecorationType            getDecorationType();
 
@@ -40,11 +40,11 @@ class CHyprDropShadowDecoration : public IHyprWindowDecoration {
     virtual void                       onWindowFocus() override;
 
     bool                               canRender(PHLMONITOR);
-    SShadowRenderData                  getRenderData(PHLMONITOR, float const& a);
+    SShadowRenderData                  getRenderData(PHLMONITOR, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation);
     void                               reposition();
 
     // TODO remove
-    void render(PHLMONITOR, float const& a);
+    void render(PHLMONITOR, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation);
 
   private:
     SBoxExtents                 m_extents;
@@ -57,9 +57,10 @@ class CHyprDropShadowDecoration : public IHyprWindowDecoration {
     Vector2D                    m_lastWindowPos;
     Vector2D                    m_lastWindowSize;
 
-    void                        drawShadowInternal(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad, float a);
+    void                        drawShadowInternal(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad, float a,
+                                                   const SP<Workspace::CWorkspacePresentable>& presentation);
     void drawShadowInternal(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2,
-                            float lerp, float a);
+                            float lerp, float a, const SP<Workspace::CWorkspacePresentable>& presentation);
 
     CBox m_lastWindowBox          = {0};
     CBox m_lastWindowBoxWithDecos = {0};

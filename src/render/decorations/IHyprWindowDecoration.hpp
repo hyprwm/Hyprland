@@ -29,6 +29,10 @@ enum eDecorationFlags : uint8_t {
 
 class CDecorationPositioner;
 
+namespace Workspace {
+    class CWorkspacePresentable;
+}
+
 namespace Desktop::View {
     class CWindowPresentation;
 }
@@ -42,7 +46,7 @@ class IHyprWindowDecoration {
 
     virtual void                       onPositioningReply(const SDecorationPositioningReply& reply) = 0;
 
-    virtual void                       draw(PHLMONITOR, float const& a) = 0;
+    virtual void                       draw(PHLMONITOR, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation) = 0;
 
     virtual eDecorationType            getDecorationType() = 0;
 

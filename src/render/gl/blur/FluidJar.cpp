@@ -10,7 +10,7 @@
 #include "../../../config/ConfigValue.hpp"
 #include "../../../desktop/view/window/Window.hpp"
 #include "../../../desktop/view/window/WindowPresentation.hpp"
-#include "../../../workspace/HLWorkspace.hpp"
+#include "../../../workspace/presentation/WorkspacePresentable.hpp"
 #include "../../../event/EventBus.hpp"
 #include "../../../helpers/Color.hpp"
 #include "../../../helpers/cm/ColorManagement.hpp"
@@ -70,13 +70,16 @@ static bool geometryDiscontinuous(const CBox& oldExtent, const CBox& newExtent, 
     return horizontalDelta > width * 0.75 || verticalDelta > height * 0.75;
 }
 
-static CBox renderedWindowBox(PHLWINDOW window) {
+static CBox renderedWindowBox(PHLWINDOW window, const SP<Workspace::CWorkspacePresentable>& presentation) {
     if (!window)
         return {};
 
-    auto position = window->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT) + window->presentation().floatingOffset();
-    if (!(window->m_state & Desktop::View::WINDOW_STATE_PINNED) && window->m_workspace)
-        position += window->m_workspace->m_renderOffset->value();
+    auto position = window->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+    if (presentation) {
+        position += window->presentation().floatingOffset();
+        if (!(window->m_state & Desktop::View::WINDOW_STATE_PINNED))
+            position += presentation->m_renderOffset->value();
+    }
 
     const auto size = window->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
     return {position.x, position.y, size.x, size.y};
@@ -120,7 +123,7 @@ void CFluidJarBlurMaterial::prepare(const SBlurMaterialContext& context) {
     const auto state         = stateForContext(context.blurContext, true);
     const auto renderExtent  = transformedPatternBox(context.blurContext);
     const auto window        = context.blurContext.owner.lock();
-    const auto physicsExtent = renderedWindowBox(window);
+    const auto physicsExtent = renderedWindowBox(window, context.blurContext.workspacePresentation);
     if (!state || physicsExtent.width <= 0 || physicsExtent.height <= 0 || renderExtent.width <= 0 || renderExtent.height <= 0 || !g_pHyprRenderer->m_renderData.pMonitor)
         return;
 

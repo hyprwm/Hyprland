@@ -46,6 +46,15 @@ SUBTEST(popupRender, bool redirected) {
     OK(ready);
     EXPECT_OK(waitForPopupProbe()); // ALL: sibling fades must be 0.2 and 0.4.
 
+    for (const auto* PRESENTATION : {"normal", "none", "custom"}) {
+        for (const bool POPUP_ONLY : {false, true}) {
+            NLog::log("Checking workspace presentation: {}, mode {}, redirected {}", PRESENTATION, POPUP_ONLY ? "POPUP" : "ALL", redirected);
+            OK(getFromSocket(std::format("/eval hl.plugin.test.arm_popup_opacity('popup-render', 0.5, {}, {}, '{}')", POPUP_ONLY ? "true" : "false", redirected ? "true" : "false",
+                                         PRESENTATION)));
+            EXPECT_OK(waitForPopupProbe());
+        }
+    }
+
     if (redirected) {
         OK(getFromSocket("/eval hl.plugin.test.arm_popup_opacity('popup-render', 0.5, true, true)"));
         EXPECT_OK(waitForPopupProbe()); // POPUP: both siblings, no toplevel or root leakage.

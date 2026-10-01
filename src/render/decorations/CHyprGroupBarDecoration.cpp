@@ -98,7 +98,7 @@ void CHyprGroupBarDecoration::damageEntire() {
     g_pHyprRenderer->damageBox(box);
 }
 
-void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
+void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation) {
     // get how many bars we will draw
     int        barsToDraw = m_dwGroupMembers.size();
 
@@ -140,7 +140,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     auto* const GROUPCOLACTIVELOCKED       = sc<Config::CGradientValueData*>((PGROUPCOLACTIVELOCKED.ptr()));
     auto* const GROUPCOLINACTIVELOCKED     = sc<Config::CGradientValueData*>((PGROUPCOLINACTIVELOCKED.ptr()));
 
-    const auto  ASSIGNEDBOX = assignedBoxGlobal();
+    const auto  ASSIGNEDBOX = assignedBoxGlobal(presentation);
 
     const auto  ONEBARHEIGHT = *POUTERGAP + *PINDICATORHEIGHT + *PINDICATORGAP + (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0);
     m_barWidth               = *PSTACKED ? ASSIGNEDBOX.w : (ASSIGNEDBOX.w - *PINNERGAP * (barsToDraw - 1)) / barsToDraw;
@@ -158,7 +158,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     for (int i = 0; i < barsToDraw; ++i) {
         const auto WINDOWINDEX = *PSTACKED ? m_dwGroupMembers.size() - i - 1 : i;
 
-        const auto FLOATING_OFFSET = m_window->presentation().floatingOffset();
+        const auto FLOATING_OFFSET = presentation ? m_window->presentation().floatingOffset() : Vector2D();
         CBox rect = {ASSIGNEDBOX.x + xoff - pMonitor->m_position.x + FLOATING_OFFSET.x,
                      ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - *PINDICATORHEIGHT - *POUTERGAP - pMonitor->m_position.y + FLOATING_OFFSET.y, m_barWidth, *PINDICATORHEIGHT};
 
@@ -173,9 +173,10 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
 
         if (!rect.empty()) {
             CRectPassElement::SRectData rectdata;
-            rectdata.color = color;
-            rectdata.blur  = blur;
-            rectdata.box   = rect;
+            rectdata.color                 = color;
+            rectdata.blur                  = blur;
+            rectdata.box                   = rect;
+            rectdata.workspacePresentation = presentation;
             if (*PROUNDING) {
                 rectdata.round         = *PROUNDING;
                 rectdata.roundingPower = *PROUNDINGPOWER;
@@ -207,10 +208,11 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                                                                                                              (GROUPLOCKED ? m_tGradientLockedInactive : m_tGradientInactive));
                 if (GRADIENTTEX && GRADIENTTEX->ok()) {
                     CTexPassElement::SRenderData data;
-                    data.tex  = GRADIENTTEX;
-                    data.blur = blur;
-                    data.box  = rect;
-                    data.a    = a;
+                    data.tex                   = GRADIENTTEX;
+                    data.blur                  = blur;
+                    data.box                   = rect;
+                    data.a                     = a;
+                    data.workspacePresentation = presentation;
                     if (*PGRADIENTROUNDING) {
                         data.round         = *PGRADIENTROUNDING;
                         data.roundingPower = *PGRADIENTROUNDINGPOWER;
@@ -540,13 +542,15 @@ std::string CHyprGroupBarDecoration::getDisplayName() {
 }
 
 CBox CHyprGroupBarDecoration::assignedBoxGlobal() {
+    return assignedBoxGlobal(dynamicPointerCast<Workspace::CWorkspacePresentable>(m_window->m_workspace));
+}
+
+CBox CHyprGroupBarDecoration::assignedBoxGlobal(const SP<Workspace::CWorkspacePresentable>& presentation) {
     CBox box = m_assignedBox;
     box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_TOP, m_window));
 
-    const auto PWORKSPACE = m_window->m_workspace;
-
-    if (PWORKSPACE && !(m_window->m_state & Desktop::View::WINDOW_STATE_PINNED))
-        box.translate(PWORKSPACE->m_renderOffset->value());
+    if (presentation && !(m_window->m_state & Desktop::View::WINDOW_STATE_PINNED))
+        box.translate(presentation->m_renderOffset->value());
 
     return box.round();
 }

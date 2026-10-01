@@ -10,6 +10,10 @@ namespace Render {
 }
 class CSyncTimeline;
 
+namespace Workspace {
+    class CWorkspacePresentable;
+}
+
 class CSurfacePassElement : public IPassElement {
   public:
     struct SRenderData {
@@ -43,14 +47,15 @@ class CSurfacePassElement : public IPassElement {
         bool      popup = false;
 
         // counts how many surfaces this pass has rendered
-        int     surfaceCounter = 0;
+        int                                  surfaceCounter = 0;
 
-        CBox    clipBox = {}; // scaled coordinates
+        CBox                                 clipBox = {}; // scaled coordinates
 
-        uint8_t discardMode    = DISCARD_OPAQUE;
-        float   discardOpacity = 0.f;
+        uint8_t                              discardMode    = DISCARD_OPAQUE;
+        float                                discardOpacity = 0.f;
 
-        bool    useNearestNeighbor = false;
+        bool                                 useNearestNeighbor = false;
+        SP<Workspace::CWorkspacePresentable> workspacePresentation;
     };
 
     CSurfacePassElement(const SRenderData& data);

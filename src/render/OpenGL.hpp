@@ -50,6 +50,10 @@ namespace Config {
     class CGradientValueData;
 }
 
+namespace Workspace {
+    class CWorkspacePresentable;
+}
+
 namespace Render::GL {
     class CDualKawaseBlurProvider;
 
@@ -116,14 +120,15 @@ namespace Render::GL {
         ~CHyprOpenGLImpl();
 
         struct SRectRenderData {
-            const CRegion*      damage        = nullptr;
-            int                 round         = 0;
-            float               roundingPower = 2.F;
-            bool                blur          = false;
-            float               blurA         = 1.F;
-            bool                xray          = false;
-            std::optional<CBox> blurPatternBox;
-            PHLWINDOWREF        blurOwner;
+            const CRegion*                       damage        = nullptr;
+            int                                  round         = 0;
+            float                                roundingPower = 2.F;
+            bool                                 blur          = false;
+            float                                blurA         = 1.F;
+            bool                                 xray          = false;
+            std::optional<CBox>                  blurPatternBox;
+            PHLWINDOWREF                         blurOwner;
+            SP<Workspace::CWorkspacePresentable> workspacePresentation;
         };
 
         struct STextureRenderData {
@@ -174,9 +179,10 @@ namespace Render::GL {
         void renderRect(const CBox&, const CHyprColor&, SRectRenderData data);
         void renderTexture(SP<ITexture>, const CBox&, STextureRenderData data);
         void renderTextureMesh(SP<ITexture>, const CBox&, const std::vector<SMeshRenderVertex>& vertices, STextureRenderData data);
-        void renderRoundedShadow(const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a = 1.0);
+        void renderRoundedShadow(const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a,
+                                 const SP<Workspace::CWorkspacePresentable>& presentation);
         void renderRoundedShadow(const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2,
-                                 float lerp, float a = 1.0);
+                                 float lerp, float a, const SP<Workspace::CWorkspacePresentable>& presentation);
         void renderInnerGlow(const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& color, int glowPower, float a = 1.0);
         void renderInnerGlow(const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2, float lerp,
                              int glowPower, float a = 1.0);

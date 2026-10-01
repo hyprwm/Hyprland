@@ -37,6 +37,8 @@
 #undef protected
 
 #include <src/config/ConfigValue.hpp>
+#include <src/config/shared/animation/AnimationTree.hpp>
+#include <src/animation/AnimationManager.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/VarList.hpp>
@@ -291,7 +293,7 @@ struct SPopupRenderRecording {
 
 static SP<SPopupRenderRecording> g_popupRenderRecording;
 
-static SDispatchResult           probePopupOpacity(PHLWINDOW window, float parentFade, Render::eRenderPassMode mode, bool redirected, bool& ready) {
+static SDispatchResult probePopupOpacity(PHLWINDOW window, float parentFade, Render::eRenderPassMode mode, bool redirected, const std::string& presentationMode, bool& ready) {
     using namespace Desktop::View;
 
     // Only fixture readiness may retry; all assertion failures are terminal.
@@ -339,6 +341,19 @@ static SDispatchResult           probePopupOpacity(PHLWINDOW window, float paren
     for (size_t i = 0; i < ALPHAS.size(); ++i)
         oldAlpha[i] = ALPHAS[i]->value();
 
+    // An explicit mode also probes geometry; omitted modes retain the original opacity cases.
+    const bool CHECK_PRESENTATION = !presentationMode.empty();
+    auto       presentation       = dynamicPointerCast<Workspace::CWorkspacePresentable>(window->m_workspace);
+    if (presentationMode == "none")
+        presentation.reset();
+    else if (presentationMode == "custom") {
+        presentation      = makeShared<Workspace::CWorkspacePresentable>();
+        const auto CONFIG = Config::animationTree()->getAnimationPropertyConfig("workspacesIn");
+        Animation::mgr()->createAnimation(Vector2D{37, 23}, presentation->m_renderOffset, CONFIG, AVARDAMAGE_NONE);
+        Animation::mgr()->createAnimation(0.6F, presentation->m_alpha, CONFIG, AVARDAMAGE_NONE);
+    }
+    const auto          OLD_FLOATING_OFFSET = window->presentation().floatingOffset();
+
     auto&               renderer    = *g_pHyprRenderer;
     auto&               rootEntries = renderer.m_renderPass.m_passElements;
     const auto          BEGIN       = rootEntries.size();
@@ -352,6 +367,8 @@ static SDispatchResult           probePopupOpacity(PHLWINDOW window, float paren
         renderer.m_renderData = OLD_DATA;
         for (size_t i = 0; i < ALPHAS.size(); ++i)
             ALPHAS[i]->setValueAndWarp(oldAlpha[i]);
+        if (CHECK_PRESENTATION)
+            window->presentation().setFloatingOffset(OLD_FLOATING_OFFSET);
     });
 
     // A zero window alpha returns early. Use the workspace contribution for zero
@@ -361,10 +378,18 @@ static SDispatchResult           probePopupOpacity(PHLWINDOW window, float paren
     ALPHAS[2]->setValueAndWarp(parentFade == 0.F ? 0.F : 1.F);
     ALPHAS[3]->setValueAndWarp(0.4F);
     ALPHAS[4]->setValueAndWarp(0.8F);
+    if (CHECK_PRESENTATION) {
+        // Distinct live/custom alpha catches accidentally reading window->m_workspace.
+        ALPHAS[2]->setValueAndWarp(0.25F);
+        window->presentation().setFloatingOffset({7, 11});
+    }
+    const float EXPECTED_PARENT_FADE = CHECK_PRESENTATION ? ALPHAS[0]->value() * (presentationMode == "none" ? 1.F : presentationMode == "custom" ? 0.6F : 0.25F) : parentFade;
+    const auto  EXPECTED_POSITION    = window->position(IGeometric::GEOMETRIC_CURRENT) +
+        (presentation ? (presentationMode == "custom" ? Vector2D{37, 23} : window->m_workspace->m_renderOffset->value()) + Vector2D{7, 11} : Vector2D{});
     const auto PREVIOUS_PASS = renderer.m_currentPass;
     {
         const auto REDIRECT = renderer.redirectPass(redirected ? &redirectedPass : nullptr);
-        renderer.renderWindow(window, window->m_monitor.lock(), Time::steadyNow(), false, mode, true);
+        renderer.renderWindow(window, window->m_monitor.lock(), presentation, Time::steadyNow(), false, mode, !CHECK_PRESENTATION);
     }
     if (renderer.m_currentPass != PREVIOUS_PASS || &renderer.currentPass() != (redirected ? &previousPass : &renderer.m_renderPass))
         return {.success = false, .error = "Popup render did not restore the previous pass"};
@@ -377,9 +402,9 @@ static SDispatchResult           probePopupOpacity(PHLWINDOW window, float paren
         popups[1]->wlSurface()->resource(),
     };
     const std::array<float, 3> EXPECTED_FADE = {
-        parentFade,
-        parentFade * 0.4F,
-        parentFade * 0.8F,
+        EXPECTED_PARENT_FADE,
+        EXPECTED_PARENT_FADE * 0.4F,
+        EXPECTED_PARENT_FADE * 0.8F,
     };
     std::array<size_t, 3> counts = {};
     std::string           probeError;
@@ -398,6 +423,15 @@ static SDispatchResult           probePopupOpacity(PHLWINDOW window, float paren
         ++counts[INDEX];
         if (data.pWindow != window || data.popup != (INDEX != 0) || data.mainSurface != (INDEX == 0))
             return {.success = false, .error = std::format("Incorrect identity/flags for surface {}", INDEX)};
+        if (data.workspacePresentation != presentation)
+            return {.success = false, .error = std::format("Incorrect workspace presentation for surface {}", INDEX)};
+        if (CHECK_PRESENTATION) {
+            const auto POSITION = EXPECTED_POSITION + (INDEX == 0 ? Vector2D{} : popups[INDEX - 1]->coordsRelativeToParent() - window->backend().geometry().box.pos());
+            if (!((data.pos - POSITION).size() <= 0.00001) || data.localPos != Vector2D{})
+                probeError += std::format("surface {}: incorrect position for presentation {}; ", INDEX, presentationMode);
+            if (!presentation && (data.clipBox.w != 0 || data.clipBox.h != 0))
+                probeError += std::format("surface {}: null presentation retained transition clipping; ", INDEX);
+        }
         if (!(std::abs(data.fadeAlpha - EXPECTED_FADE[INDEX]) <= 0.00001F) || !(std::abs(data.alpha - 0.75F) <= 0.00001F))
             probeError += std::format("surface {}: expected fade {} alpha 0.75, got fade {} alpha {}; ", INDEX, EXPECTED_FADE[INDEX], data.fadeAlpha, data.alpha);
     }
@@ -414,32 +448,35 @@ static SDispatchResult           probePopupOpacity(PHLWINDOW window, float paren
     return {.success = probeError.empty(), .error = probeError};
 }
 
-static SDispatchResult armPopupOpacity(const std::string& cls, float parentFade, bool popupOnly, bool redirected) {
+static SDispatchResult armPopupOpacity(const std::string& cls, float parentFade, bool popupOnly, bool redirected, const std::string& presentationMode) {
     g_popupRenderRecording.reset();
     const auto WINDOW = windowByClass(cls);
     if (!WINDOW || !WINDOW->mapped() || !WINDOW->m_monitor || !WINDOW->m_workspace || WINDOW->popupHead()->allMappedChildrenCount() != 2)
         return {.success = false, .error = "Waiting for popup-render parent and two mapped popups"};
     if (!std::isfinite(parentFade) || parentFade < 0.F || parentFade > 1.F)
         return {.success = false, .error = "Invalid parent fade"};
+    if (!presentationMode.empty() && presentationMode != "normal" && presentationMode != "none" && presentationMode != "custom")
+        return {.success = false, .error = "Invalid workspace presentation mode"};
 
     g_popupRenderRecording                         = makeShared<SPopupRenderRecording>();
     const WP<SPopupRenderRecording> WEAK_RECORDING = g_popupRenderRecording;
     const PHLWINDOWREF              WEAK_WINDOW    = WINDOW;
-    g_popupRenderRecording->stage = Event::bus()->m_events.render.stage.listen([WEAK_RECORDING, WEAK_WINDOW, parentFade, popupOnly, redirected](eRenderStage stage) {
-        const auto RECORDING = WEAK_RECORDING.lock();
-        const auto WINDOW    = WEAK_WINDOW.lock();
-        if (!RECORDING || RECORDING->complete || !WINDOW || stage != RENDER_BEGIN || g_pHyprRenderer->m_renderData.pMonitor != WINDOW->m_monitor)
-            return;
+    g_popupRenderRecording->stage =
+        Event::bus()->m_events.render.stage.listen([WEAK_RECORDING, WEAK_WINDOW, parentFade, popupOnly, redirected, presentationMode](eRenderStage stage) {
+            const auto RECORDING = WEAK_RECORDING.lock();
+            const auto WINDOW    = WEAK_WINDOW.lock();
+            if (!RECORDING || RECORDING->complete || !WINDOW || stage != RENDER_BEGIN || g_pHyprRenderer->m_renderData.pMonitor != WINDOW->m_monitor)
+                return;
 
-        // RENDER_BEGIN has a bound framebuffer; renderWindow only queues the probe.
-        bool ready          = false;
-        RECORDING->result   = probePopupOpacity(WINDOW, parentFade, popupOnly ? Render::RENDER_PASS_POPUP : Render::RENDER_PASS_ALL, redirected, ready);
-        RECORDING->complete = ready;
-        if (const auto MONITOR = WINDOW->m_monitor.lock(); !ready && MONITOR) {
-            g_pHyprRenderer->damageMonitor(MONITOR);
-            MONITOR->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
-        }
-    });
+            // RENDER_BEGIN has a bound framebuffer; renderWindow only queues the probe.
+            bool ready          = false;
+            RECORDING->result   = probePopupOpacity(WINDOW, parentFade, popupOnly ? Render::RENDER_PASS_POPUP : Render::RENDER_PASS_ALL, redirected, presentationMode, ready);
+            RECORDING->complete = ready;
+            if (const auto MONITOR = WINDOW->m_monitor.lock(); !ready && MONITOR) {
+                g_pHyprRenderer->damageMonitor(MONITOR);
+                MONITOR->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
+            }
+        });
     g_pHyprRenderer->damageMonitor(WINDOW->m_monitor.lock());
     return {};
 }
@@ -1263,7 +1300,7 @@ static int luaArmPopupOpacity(lua_State* L) {
     luaL_checktype(L, 3, LUA_TBOOLEAN);
     if (lua_gettop(L) > 3)
         luaL_checktype(L, 4, LUA_TBOOLEAN);
-    return luaResult(L, armPopupOpacity(CLS, FADE, lua_toboolean(L, 3), lua_toboolean(L, 4)));
+    return luaResult(L, armPopupOpacity(CLS, FADE, lua_toboolean(L, 3), lua_toboolean(L, 4), luaL_optstring(L, 5, "")));
 }
 
 static int luaCheckPopupOpacity(lua_State* L) {

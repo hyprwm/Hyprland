@@ -28,9 +28,10 @@ namespace Render::GL {
         SP<IFramebuffer>        createFB(const std::string& name = "") override;
         void                    disableScissor() override;
         void                    blend(bool enabled) override;
-        void                    drawShadow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a) override;
+        void                    drawShadow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a,
+                                           const SP<Workspace::CWorkspacePresentable>& presentation) override;
         void drawShadow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2, float lerp,
-                        float a) override;
+                        float a, const SP<Workspace::CWorkspacePresentable>& presentation) override;
 
         void drawGlow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a) override;
         void drawGlow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2, float lerp,

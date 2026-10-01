@@ -181,20 +181,21 @@ namespace Render {
         virtual SP<ITexture>         renderText(Hyprgraphics::CTextResource::STextResourceData&& data);
         SP<ITexture>                 loadAsset(const std::string& filename);
         virtual bool                 shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow);
-        virtual bool                 explicitSyncSupported()                                                                                                     = 0;
-        virtual bool                 fp16Supported()                                                                                                             = 0;
-        virtual std::vector<SDRMFormat> getDRMFormats()                                                                                                          = 0;
-        virtual std::vector<uint64_t>   getDRMFormatModifiers(DRMFormat format)                                                                                  = 0;
-        virtual SP<IFramebuffer>        createFB(const std::string& name = "")                                                                                   = 0;
-        virtual void                    disableScissor()                                                                                                         = 0;
-        virtual void                    blend(bool enabled)                                                                                                      = 0;
-        virtual void                    drawShadow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a) = 0;
+        virtual bool                 explicitSyncSupported()                                                                                    = 0;
+        virtual bool                 fp16Supported()                                                                                            = 0;
+        virtual std::vector<SDRMFormat> getDRMFormats()                                                                                         = 0;
+        virtual std::vector<uint64_t>   getDRMFormatModifiers(DRMFormat format)                                                                 = 0;
+        virtual SP<IFramebuffer>        createFB(const std::string& name = "")                                                                  = 0;
+        virtual void                    disableScissor()                                                                                        = 0;
+        virtual void                    blend(bool enabled)                                                                                     = 0;
+        virtual void                    drawShadow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a,
+                                                   const SP<Workspace::CWorkspacePresentable>& presentation)                                    = 0;
         virtual void     drawShadow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2,
-                                    float lerp, float a)                                                                                                         = 0;
-        virtual void     drawGlow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a)                  = 0;
+                                    float lerp, float a, const SP<Workspace::CWorkspacePresentable>& presentation)                              = 0;
+        virtual void     drawGlow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a) = 0;
         virtual void     drawGlow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2,
-                                  float lerp, float a)                                                                                                           = 0;
-        virtual void     setViewport(int x, int y, int width, int height)                                                                                        = 0;
+                                  float lerp, float a)                                                                                          = 0;
+        virtual void     setViewport(int x, int y, int width, int height)                                                                       = 0;
 
         bool             preBlurQueued(PHLMONITORREF pMonitor);
         void             sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now);
@@ -270,7 +271,8 @@ namespace Render {
         void renderWorkspaceWindowsFullscreen(PHLMONITOR, PHLWORKSPACE, const Time::steady_tp&); // renders workspace windows (fullscreen) (tiled, floating, pinned, but no special)
         void renderWorkspaceWindows(PHLMONITOR, PHLWORKSPACE, const Time::steady_tp&); // renders workspace windows (no fullscreen) (tiled, floating, pinned, but no special)
         void renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
-        void renderWindow(PHLWINDOW, PHLMONITOR, const Time::steady_tp&, bool, eRenderPassMode, bool ignorePosition = false, bool standalone = false);
+        void renderWindow(PHLWINDOW, PHLMONITOR, const SP<Workspace::CWorkspacePresentable>&, const Time::steady_tp&, bool, eRenderPassMode, bool ignorePosition = false,
+                          bool standalone = false);
         void renderLayer(PHLLS, PHLMONITOR, const Time::steady_tp&, bool popups = false, bool lockscreen = false);
         void renderSessionLockSurface(WP<SSessionLockSurface>, PHLMONITOR, const Time::steady_tp&);
         void renderDragIcon(PHLMONITOR, const Time::steady_tp&);

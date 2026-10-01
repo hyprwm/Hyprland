@@ -84,16 +84,18 @@ void CGLElementRenderer::draw(WP<CRectPassElement> element, const CRegion& damag
     const auto& m_data = element->m_data;
 
     if (m_data.color.a == 1.F || !m_data.blur)
-        g_pHyprOpenGL->renderRect(m_data.box, m_data.color, {.damage = &damage, .round = m_data.round, .roundingPower = m_data.roundingPower});
+        g_pHyprOpenGL->renderRect(m_data.box, m_data.color,
+                                  {.damage = &damage, .round = m_data.round, .roundingPower = m_data.roundingPower, .workspacePresentation = m_data.workspacePresentation});
     else
         g_pHyprOpenGL->renderRect(m_data.box, m_data.color,
-                                  {.round          = m_data.round,
-                                   .roundingPower  = m_data.roundingPower,
-                                   .blur           = true,
-                                   .blurA          = m_data.blurA,
-                                   .xray           = m_data.xray,
-                                   .blurPatternBox = m_data.blurPatternBox,
-                                   .blurOwner      = m_data.blurOwner});
+                                  {.round                 = m_data.round,
+                                   .roundingPower         = m_data.roundingPower,
+                                   .blur                  = true,
+                                   .blurA                 = m_data.blurA,
+                                   .xray                  = m_data.xray,
+                                   .blurPatternBox        = m_data.blurPatternBox,
+                                   .blurOwner             = m_data.blurOwner,
+                                   .workspacePresentation = m_data.workspacePresentation});
 };
 
 void CGLElementRenderer::draw(WP<CShadowPassElement> element, const CRegion& damage) {
@@ -101,7 +103,7 @@ void CGLElementRenderer::draw(WP<CShadowPassElement> element, const CRegion& dam
     const auto  DECO   = m_data.deco.lock();
     if (!DECO)
         return;
-    DECO->render(g_pHyprRenderer->m_renderData.pMonitor.lock(), m_data.a);
+    DECO->render(g_pHyprRenderer->m_renderData.pMonitor.lock(), m_data.a, m_data.presentation);
 };
 
 void CGLElementRenderer::draw(WP<CInnerGlowPassElement> element, const CRegion& damage) {
@@ -109,7 +111,7 @@ void CGLElementRenderer::draw(WP<CInnerGlowPassElement> element, const CRegion& 
     const auto  DECO   = m_data.deco.lock();
     if (!DECO)
         return;
-    DECO->render(g_pHyprRenderer->m_renderData.pMonitor.lock(), m_data.a);
+    DECO->render(g_pHyprRenderer->m_renderData.pMonitor.lock(), m_data.a, m_data.presentation);
 };
 
 void CGLElementRenderer::draw(WP<CTexPassElement> element, const CRegion& damage) {

@@ -1167,9 +1167,11 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
             .roundingPower = data.roundingPower,
         };
     const bool usePrecomputedBlur = data.xray && !g_pHyprRenderer->blurProviderRequiresLiveBlur();
-    const auto blurredFB = usePrecomputedBlur ? g_pHyprRenderer->m_renderData.pMonitor->resources()->m_blurFB :
-                                                g_pHyprRenderer->blurMainFramebuffer(data.blurA, damage, {.patternBox = patternBox, .owner = data.blurOwner, .shape = shape});
-    const auto blurredBG = blurredFB->getTexture();
+    const auto blurredFB          = usePrecomputedBlur ?
+        g_pHyprRenderer->m_renderData.pMonitor->resources()->m_blurFB :
+        g_pHyprRenderer->blurMainFramebuffer(data.blurA, damage,
+                                             {.patternBox = patternBox, .owner = data.blurOwner, .shape = shape, .workspacePresentation = data.workspacePresentation});
+    const auto blurredBG          = blurredFB->getTexture();
 
     const auto SAVEDRENDERMODIF               = g_pHyprRenderer->m_renderData.renderModif;
     g_pHyprRenderer->m_renderData.renderModif = {}; // fix shit
@@ -2170,12 +2172,13 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValue
     blend(BLEND);
 }
 
-void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad, float a) {
-    renderRoundedShadow(box, round, roundingPower, range, grad, Config::CGradientValueData{}, 0.f, a);
+void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad, float a,
+                                          const SP<Workspace::CWorkspacePresentable>& presentation) {
+    renderRoundedShadow(box, round, roundingPower, range, grad, Config::CGradientValueData{}, 0.f, a, presentation);
 }
 
 void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
-                                          const Config::CGradientValueData& grad2, float lerp, float a) {
+                                          const Config::CGradientValueData& grad2, float lerp, float a, const SP<Workspace::CWorkspacePresentable>& presentation) {
     auto& m_renderData = g_pHyprRenderer->m_renderData;
     RASSERT(m_renderData.pMonitor, "Tried to render shadow without begin()!");
     RASSERT((box.width > 0 && box.height > 0), "Tried to render shadow with width/height < 0!");
@@ -2251,13 +2254,13 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
         const auto PWINDOW = g_pHyprRenderer->m_renderData.currentWindow.lock();
         if (PWINDOW) {
             if (const auto WINDOWBOX = PWINDOW->surfaceLogicalBox(); WINDOWBOX.has_value()) {
-                CBox       scaledWindowBox = WINDOWBOX.value();
+                CBox scaledWindowBox = WINDOWBOX.value();
 
-                const auto PWORKSPACE = PWINDOW->m_workspace;
-                if (PWORKSPACE && !(PWINDOW->m_state & WINDOW_STATE_PINNED))
-                    scaledWindowBox.translate(PWORKSPACE->m_renderOffset->value());
+                if (presentation && !(PWINDOW->m_state & WINDOW_STATE_PINNED))
+                    scaledWindowBox.translate(presentation->m_renderOffset->value());
 
-                scaledWindowBox.translate(PWINDOW->presentation().floatingOffset());
+                if (presentation)
+                    scaledWindowBox.translate(PWINDOW->presentation().floatingOffset());
                 scaledWindowBox.translate(-m_renderData.pMonitor->m_position);
                 scaledWindowBox.scale(m_renderData.pMonitor->m_scale).round();
                 m_renderData.renderModif.applyToBox(scaledWindowBox);

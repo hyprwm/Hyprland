@@ -3,11 +3,16 @@
 
 class CHyprDropShadowDecoration;
 
+namespace Workspace {
+    class CWorkspacePresentable;
+}
+
 class CShadowPassElement : public IPassElement {
   public:
     struct SShadowData {
-        WP<CHyprDropShadowDecoration> deco;
-        float                         a = 1.F;
+        WP<CHyprDropShadowDecoration>        deco;
+        float                                a = 1.F;
+        SP<Workspace::CWorkspacePresentable> presentation;
     };
 
     CShadowPassElement(const SShadowData& data_);

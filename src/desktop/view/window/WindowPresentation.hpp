@@ -13,6 +13,10 @@ class CHyprBorderDecoration;
 class CHyprDropShadowDecoration;
 class CHyprInnerGlowDecoration;
 
+namespace Workspace {
+    class CWorkspacePresentable;
+}
+
 namespace Desktop::View {
     class CWindow;
     enum eWindowAlpha : uint8_t;
@@ -50,6 +54,7 @@ namespace Desktop::View {
         int                                               borderSize() const;
         void                                              invalidateBorderSize();
         bool                                              opaque() const;
+        bool                                              opaque(const SP<Workspace::CWorkspacePresentable>& presentation) const;
         float                                             rounding();
         float                                             roundingPower();
         bool                                              isInCurvedCorner(double x, double y);

@@ -12,7 +12,7 @@ class CHyprInnerGlowDecoration : public IHyprWindowDecoration {
 
     virtual void                       onPositioningReply(const SDecorationPositioningReply& reply);
 
-    virtual void                       draw(PHLMONITOR, float const& a);
+    virtual void                       draw(PHLMONITOR, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation);
 
     virtual eDecorationType            getDecorationType();
 
@@ -31,7 +31,7 @@ class CHyprInnerGlowDecoration : public IHyprWindowDecoration {
     virtual void                       onWindowMap() override;
     virtual void                       onWindowFocus() override;
 
-    void                               render(PHLMONITOR, float const& a);
+    void                               render(PHLMONITOR, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation);
 
   private:
     bool visible();

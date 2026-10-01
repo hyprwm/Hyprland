@@ -37,3 +37,13 @@ TEST(Helpers, stringUtilsTruthy) {
     EXPECT_FALSE(StringUtils::truthy("false"));
     EXPECT_FALSE(StringUtils::truthy("my balls itch"));
 }
+
+TEST(Helpers, cmpCaseInsensitive) {
+    EXPECT_TRUE(StringUtils::cmpCaseInsensitive("AAAABBBB", "aaaAbbbB"));
+    EXPECT_TRUE(StringUtils::cmpCaseInsensitive("FUCK YOU", "fUcK yOu"));
+    EXPECT_TRUE(StringUtils::cmpCaseInsensitive("a 優しい friend", "A 優しい friend"));
+    EXPECT_FALSE(StringUtils::cmpCaseInsensitive("a 優しい foe", "A 優しい friend"));
+    EXPECT_FALSE(StringUtils::cmpCaseInsensitive("a", "B"));
+    EXPECT_FALSE(StringUtils::cmpCaseInsensitive("a", ""));
+    EXPECT_FALSE(StringUtils::cmpCaseInsensitive("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", ""));
+}

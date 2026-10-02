@@ -1,5 +1,6 @@
 #include "MonitorZoomController.hpp"
 
+#include <algorithm>
 #include <hyprlang.hpp>
 #include "../config/ConfigValue.hpp"
 #include "../pointer/PointerManager.hpp"
@@ -8,6 +9,13 @@
 #include "render/Renderer.hpp"
 
 using namespace Monitor;
+
+float CMonitorZoomController::zoomFactor(float cursorZoom, float startupProgress, bool pointerOnMonitor) {
+    if (startupProgress != 1.F)
+        return 2.F - startupProgress;
+
+    return pointerOnMonitor ? std::max(1.F, cursorZoom) : 1.F;
+}
 
 void CMonitorZoomController::pinAnchor(const Vector2D& anchor) {
     m_pinnedAnchor = anchor;

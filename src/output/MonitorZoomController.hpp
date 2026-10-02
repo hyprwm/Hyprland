@@ -10,13 +10,14 @@ namespace Render {
 namespace Monitor {
     class CMonitorZoomController {
       public:
-        bool m_resetCameraState = true;
+        bool         m_resetCameraState = true;
 
-        void pinAnchor(const Vector2D& anchor);
-        void clearAnchor();
+        void         pinAnchor(const Vector2D& anchor);
+        void         clearAnchor();
 
-        void applyZoomTransform(Render::CRenderContext& ctx, CBox& monbox);
-        bool shouldDamageEntire(float zoomLevel);
+        void         applyZoomTransform(Render::CRenderContext& ctx, CBox& monbox);
+        bool         shouldDamageEntire(float zoomLevel);
+        static float zoomFactor(float cursorZoom, float startupProgress, bool pointerOnMonitor);
 
       private:
         void     zoomWithDetachedCamera(Render::CRenderContext& ctx, CBox& result);

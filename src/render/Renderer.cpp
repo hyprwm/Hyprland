@@ -2228,11 +2228,10 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     }
 
     SRenderOptions renderOptions;
-    if (ZOOMFACTOR != 1.f && pMonitor == State::monitorState()->query().vec(Pointer::mgr()->untransformedPosition()).run())
-        renderOptions.mouseZoomFactor = std::clamp(ZOOMFACTOR, 1.f, INFINITY);
+    renderOptions.mouseZoomFactor = Monitor::CMonitorZoomController::zoomFactor(ZOOMFACTOR, pMonitor->m_zoomAnimProgress->value(),
+                                                                                pMonitor == State::monitorState()->query().vec(Pointer::mgr()->untransformedPosition()).run());
 
     if (pMonitor->m_zoomAnimProgress->value() != 1) {
-        renderOptions.mouseZoomFactor    = 2.0 - pMonitor->m_zoomAnimProgress->value(); // 2x zoom -> 1x zoom
         renderOptions.mouseZoomUseMouse  = false;
         renderOptions.useNearestNeighbor = false;
     }

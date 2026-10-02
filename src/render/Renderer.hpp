@@ -107,7 +107,7 @@ namespace Render {
         bool                                beginFullFakeRender(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb);
         bool                                beginRenderToBuffer(PHLMONITOR pMonitor, CRegion& damage, SP<IHLBuffer> buffer, bool simple = false);
         virtual void                        startRenderPass() {};
-        virtual void                        endRender(const std::function<void()>& renderingDoneCallback = {}) = 0;
+        virtual SRenderResult               endRender(const std::function<void()>& renderingDoneCallback = {}) = 0;
 
         NColorManagement::PImageDescription workBufferImageDescription();
         bool                                m_bBlockSurfaceFeedback = false;
@@ -230,7 +230,7 @@ namespace Render {
         // if RENDER_MODE_NORMAL, provided damage will be written to.
         // otherwise, it will be the one used.
         bool beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode = RENDER_MODE_NORMAL, SP<IHLBuffer> buffer = {}, SP<IFramebuffer> fb = nullptr, bool simple = false,
-                         std::optional<Monitor::CDamageRing::CTransaction>* damageTransaction = nullptr);
+                         const SRenderOptions& options = {}, std::optional<Monitor::CDamageRing::CTransaction>* damageTransaction = nullptr);
 
         virtual bool beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple = false) {
             return false;

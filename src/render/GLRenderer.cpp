@@ -103,7 +103,7 @@ bool CHyprGLRenderer::beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, 
     return true;
 }
 
-void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallback) {
+SRenderResult CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallback) {
     const auto  PMONITOR           = g_pHyprRenderer->m_renderData.pMonitor;
     static auto PNVIDIAANTIFLICKER = CConfigValue<Config::INTEGER>("opengl:nvidia_anti_flicker");
 
@@ -126,8 +126,12 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
         g_pHyprRenderer->m_renderData.mouseZoomUseMouse = true;
     }
 
+    SRenderResult result{
+        .finalDamage = m_renderData.damage,
+    };
+
     if (m_renderMode == RENDER_MODE_FULL_FAKE)
-        return;
+        return result;
 
     if (m_renderMode == RENDER_MODE_NORMAL)
         PMONITOR->m_output->state->setBuffer(m_currentBuffer);
@@ -145,7 +149,7 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
         if (renderingDoneCallback)
             renderingDoneCallback();
 
-        return;
+        return result;
     }
 
     auto eglSync = createSyncFDManager();
@@ -189,6 +193,8 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
         if (renderingDoneCallback)
             renderingDoneCallback();
     }
+
+    return result;
 }
 
 void CHyprGLRenderer::renderOffToMain(SP<IFramebuffer> off) {

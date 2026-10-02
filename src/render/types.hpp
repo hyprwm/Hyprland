@@ -39,6 +39,17 @@ namespace Render {
         RENDER_MODE_TO_BUFFER_READ_ONLY = 3,
     };
 
+    struct SRenderOptions {
+        float mouseZoomFactor    = 1.f;
+        bool  mouseZoomUseMouse  = true;
+        bool  useNearestNeighbor = false;
+    };
+
+    struct SRenderResult {
+        // Damage after finalization, before the output transform.
+        CRegion finalDamage;
+    };
+
     struct SRenderWorkspaceUntilData {
         PHLLS     ls;
         PHLWINDOW w;

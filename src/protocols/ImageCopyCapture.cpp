@@ -38,7 +38,7 @@ CImageCopyCaptureSession::CImageCopyCaptureSession(SP<CExtImageCopyCaptureSessio
     else
         m_session = Screenshare::mgr()->newSession(m_resource->client(), m_source->m_window.lock());
 
-    if UNLIKELY (!m_session) {
+    if UNLIKELY (!m_session || !m_session->isActive()) {
         m_resource->sendStopped();
         return;
     }

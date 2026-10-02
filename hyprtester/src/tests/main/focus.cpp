@@ -107,6 +107,30 @@ TEST_CASE(crossMonitorFullscreenFocus) {
     OK(getFromSocket("/output remove HYPRTEST-2"));
 }
 
+TEST_CASE(silentMoveLastTiledWindowUnfocusesWindow) {
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+    ASSERT(Tests::windowCount(), 0);
+
+    SPAWN_KITTY("silent_move_last_tiled");
+    ASSERT(Tests::windowCount(), 1);
+
+    const auto active = getFromSocket("/activewindow");
+    ASSERT_CONTAINS(active, "class: silent_move_last_tiled");
+    ASSERT_CONTAINS(active, "workspace: 1 (1)");
+    ASSERT_CONTAINS(active, "floating: 0");
+
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '2', follow = false })"));
+
+    // Check focus before switching workspaces, which could hide stale focus.
+    EXPECT_CONTAINS(getFromSocket("/activeworkspace"), "workspace 1 ");
+    EXPECT(getFromSocket("/activewindow"), "Invalid");
+    ASSERT(Tests::windowCount(), 1);
+
+    const auto clients = getFromSocket("/clients");
+    EXPECT_CONTAINS(clients, "class: silent_move_last_tiled");
+    EXPECT_CONTAINS(clients, "workspace: 2 (2)");
+}
+
 TEST_CASE(crossMonitorEmptyWorkspaceUnfocusesWindow) {
     getFromSocket("/output remove HYPRTEST-UNFOCUS");
     OK(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-2', mode = '1920x1080@60', position = '0x0', scale = '1' })"));

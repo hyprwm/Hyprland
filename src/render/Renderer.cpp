@@ -1747,13 +1747,16 @@ void IHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
     }
 }
 
-bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode, SP<IHLBuffer> buffer, SP<IFramebuffer> fb, bool simple,
+bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode, SP<IHLBuffer> buffer, SP<IFramebuffer> fb, bool simple, const SRenderOptions& options,
                                 std::optional<Monitor::CDamageRing::CTransaction>* damageTransaction) {
     m_renderPass.clear();
     m_backdropCaptures.clear();
     clearCMSettingsCache();
-    m_renderMode          = mode;
-    m_renderData.pMonitor = pMonitor;
+    m_renderMode                    = mode;
+    m_renderData.pMonitor           = pMonitor;
+    m_renderData.mouseZoomFactor    = options.mouseZoomFactor;
+    m_renderData.mouseZoomUseMouse  = options.mouseZoomUseMouse;
+    m_renderData.useNearestNeighbor = options.useNearestNeighbor;
 
     if (simple) {
         m_renderData.fbSize = fb ? fb->m_size : buffer->m_texture->m_size;
@@ -2192,21 +2195,21 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         zoomLock = true;
     }
 
-    m_renderData.mouseZoomFactor = 1.f;
+    SRenderOptions renderOptions;
     if (ZOOMFACTOR != 1.f && pMonitor == State::monitorState()->query().vec(Pointer::mgr()->untransformedPosition()).run())
-        m_renderData.mouseZoomFactor = std::clamp(ZOOMFACTOR, 1.f, INFINITY);
+        renderOptions.mouseZoomFactor = std::clamp(ZOOMFACTOR, 1.f, INFINITY);
 
     if (pMonitor->m_zoomAnimProgress->value() != 1) {
-        m_renderData.mouseZoomFactor    = 2.0 - pMonitor->m_zoomAnimProgress->value(); // 2x zoom -> 1x zoom
-        m_renderData.mouseZoomUseMouse  = false;
-        m_renderData.useNearestNeighbor = false;
+        renderOptions.mouseZoomFactor    = 2.0 - pMonitor->m_zoomAnimProgress->value(); // 2x zoom -> 1x zoom
+        renderOptions.mouseZoomUseMouse  = false;
+        renderOptions.useNearestNeighbor = false;
     }
 
-    const bool                                        ZOOM_DAMAGE_ENTIRE = pMonitor->m_zoomController.shouldDamageEntire(m_renderData.mouseZoomFactor);
+    const bool                                        ZOOM_DAMAGE_ENTIRE = pMonitor->m_zoomController.shouldDamageEntire(renderOptions.mouseZoomFactor);
 
     CRegion                                           damage, finalDamage;
     std::optional<Monitor::CDamageRing::CTransaction> damageTransaction;
-    if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL, {}, nullptr, false, &damageTransaction)) {
+    if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL, {}, nullptr, false, renderOptions, &damageTransaction)) {
         LOG(Log::ERR, "renderer: couldn't beginRender()!");
         return;
     }
@@ -2290,11 +2293,11 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     Event::bus()->m_events.render.stage.emit(RENDER_LAST_MOMENT);
 
-    endRender();
+    const auto renderResult = endRender();
 
     TRACY_GPU_COLLECT;
 
-    CRegion    frameDamage{m_renderData.damage};
+    CRegion    frameDamage{renderResult.finalDamage};
 
     const auto TRANSFORM = Math::invertTransform(pMonitor->m_transform);
     frameDamage.transform(Math::wlTransformToHyprutils(TRANSFORM), pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y);
@@ -2310,11 +2313,11 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     pMonitor->m_output->state->addDamage(frameDamage);
     bool submitted = true;
     if (commit)
-        submitted = commitPendingAndDoExplicitSync(pMonitor, std::move(damageTransaction), m_renderData.damage);
+        submitted = commitPendingAndDoExplicitSync(pMonitor, std::move(damageTransaction), renderResult.finalDamage);
     else {
         if (damageTransaction)
             damageTransaction->commit();
-        pMonitor->m_commitCoordinator->stageRenderedDamage(m_renderData.damage, pMonitor->needsACopyFB());
+        pMonitor->m_commitCoordinator->stageRenderedDamage(renderResult.finalDamage, pMonitor->needsACopyFB());
     }
 
     if (shouldTear && submitted)

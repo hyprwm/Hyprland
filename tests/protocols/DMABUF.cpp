@@ -299,8 +299,8 @@ class CDMABUFTestRenderer : public Render::IHyprRenderer {
     eType type() override {
         return RT_GL;
     }
-    void endRender(const std::function<void()>&) override {
-        ;
+    Render::SRenderResult endRender(const std::function<void()>&) override {
+        return {};
     }
     UP<Render::ISyncFDManager> createSyncFDManager() override {
         return nullptr;

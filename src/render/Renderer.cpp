@@ -2110,8 +2110,13 @@ void IHyprRenderer::renderMirrored(CRenderContext& ctx) {
 }
 
 void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
-    if (m_context.active() || !pMonitor)
+    if (m_renderingMonitor || m_context.active() || !pMonitor)
         return;
+
+    // Hooks outside a render session must not re-enter monitor orchestration.
+    m_renderingMonitor = true;
+    const CScopeGuard                                     monitorRenderGuard([this] { m_renderingMonitor = false; });
+
     static std::chrono::high_resolution_clock::time_point renderStart        = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point renderStartOverlay = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point endRenderOverlay   = std::chrono::high_resolution_clock::now();

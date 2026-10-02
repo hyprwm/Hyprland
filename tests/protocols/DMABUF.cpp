@@ -1,10 +1,16 @@
 #include <protocols/LinuxDMABUF.hpp>
 #include <protocols/MesaDRM.hpp>
 #include <Compositor.hpp>
+#include <animation/AnimationManager.hpp>
+#include <config/ConfigValue.hpp>
+#include <config/lua/ConfigManager.hpp>
+#include <config/shared/animation/AnimationTree.hpp>
+#include <config/shared/inotify/ConfigWatcher.hpp>
 #include <event/EventBus.hpp>
 #include <managers/eventLoop/EventLoopManager.hpp>
 #include <render/Renderer.hpp>
 #include <render/SyncFDManager.hpp>
+#include <render/Renderbuffer.hpp>
 
 #include <gtest/gtest.h>
 
@@ -13,6 +19,7 @@
 #include <cstring>
 #include <memory>
 #include <stdexcept>
+#include <tuple>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -388,10 +395,13 @@ class CDMABUFTestRenderer : public Render::IHyprRenderer {
 
 class CDMABUFBufferTest : public CDMABUFParamsTest {
   protected:
-    void                 SetUp() override;
-    void                 TearDown() override;
-    CDMABUFTestRenderer& renderer();
-    SP<IHLBuffer>        createdBuffer();
+    void                              SetUp() override;
+    void                              TearDown() override;
+    CDMABUFTestRenderer&              renderer();
+    SP<IHLBuffer>                     createdBuffer();
+    virtual UP<Render::IHyprRenderer> makeRenderer() {
+        return makeUnique<CDMABUFTestRenderer>();
+    }
 
   private:
     bool                       m_installedGlobals = false;
@@ -428,7 +438,7 @@ void CDMABUFBufferTest::SetUp() {
     g_pCompositor->m_aqBackend = Aquamarine::CBackend::create({backend}, Aquamarine::SBackendOptions{});
     ASSERT_TRUE(g_pCompositor->m_aqBackend);
     g_pEventLoopManager = makeUnique<CEventLoopManager>(m_display.get(), g_pCompositor->m_wlEventLoop);
-    g_pHyprRenderer     = makeUnique<CDMABUFTestRenderer>();
+    g_pHyprRenderer     = makeRenderer();
     wl_event_source_timer_update(g_pHyprRenderer->m_cursorTicker, 0);
 
     // Do not emit ready: it would initialize real DRM format tables/devices.
@@ -500,6 +510,403 @@ TEST_F(CDMABUFBufferTest, AbortRenderReleasesPassAndAllowsReuse) {
     ASSERT_TRUE(context.begin());
     renderer().abortRender();
 }
+
+class CLifecycleFramebuffer : public Render::IFramebuffer {
+  public:
+    void release() override {
+        m_tex.reset();
+        m_fbAllocated = false;
+    }
+    bool readPixels(CHLBufferReference, uint32_t, uint32_t, uint32_t, uint32_t) override {
+        ADD_FAILURE() << "Unexpected readback";
+        return false;
+    }
+    void bind() override {
+        ;
+    }
+    void addStencil(SP<Render::ITexture> tex) override {
+        m_stencilTex = tex;
+    }
+
+  private:
+    bool internalAlloc(int w, int h, DRMFormat) override {
+        m_tex         = makeShared<CDMABUFTestTexture>(true);
+        m_tex->m_size = {w, h};
+        return true;
+    }
+};
+
+class CLifecycleBuffer : public IHLBuffer {
+  public:
+    Aquamarine::eBufferCapability caps() override {
+        return Aquamarine::BUFFER_CAPABILITY_NONE;
+    }
+    Aquamarine::eBufferType type() override {
+        return Aquamarine::BUFFER_TYPE_MISC;
+    }
+    void update(const CRegion&) override {
+        ADD_FAILURE() << "Unexpected buffer update";
+    }
+    bool isSynchronous() override {
+        return true;
+    }
+    bool good() override {
+        return true;
+    }
+};
+
+class CLifecycleOutput : public Aquamarine::IOutput {
+  public:
+    bool commit() override {
+        ADD_FAILURE() << "Unexpected output commit";
+        return false;
+    }
+    bool test() override {
+        ADD_FAILURE() << "Unexpected output test";
+        return false;
+    }
+    SP<Aquamarine::IBackendImplementation> getBackend() override {
+        return nullptr;
+    }
+    std::vector<SDRMFormat> getRenderFormats() override {
+        return {};
+    }
+    bool pendingPageFlip() override {
+        return false;
+    }
+    bool pendingIdleFrame() override {
+        return false;
+    }
+};
+
+// Use the real three-buffer rotation to observe missing/double rollback without
+// a DRM allocator or a production seam for intercepting CSwapchain::rollback.
+class CLifecycleAllocator : public Aquamarine::IAllocator {
+  public:
+    std::vector<SP<Aquamarine::IBuffer>> m_buffers;
+
+    SP<Aquamarine::IBuffer>              acquire(const Aquamarine::SAllocatorBufferParams&, SP<Aquamarine::CSwapchain>) override {
+        return m_buffers.emplace_back(makeShared<CLifecycleBuffer>());
+    }
+    SP<Aquamarine::CBackend> getBackend() override {
+        return g_pCompositor->m_aqBackend;
+    }
+    int drmFD() override {
+        return -1;
+    }
+    Aquamarine::eAllocatorType type() override {
+        return Aquamarine::AQ_ALLOCATOR_TYPE_DRM_DUMB;
+    }
+};
+
+class CLifecycleRenderbuffer : public Render::IRenderbuffer {
+  public:
+    CLifecycleRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format, int& unbinds) : IRenderbuffer(buffer, format), m_unbinds(unbinds) {
+        m_framebuffer = makeShared<CLifecycleFramebuffer>();
+        m_good        = true;
+    }
+    void bind() override {
+        ;
+    }
+    void unbind() override {
+        ++m_unbinds;
+    }
+
+  private:
+    int& m_unbinds;
+};
+
+class CLifecycleRenderer : public CDMABUFTestRenderer {
+  public:
+    using IHyprRenderer::beginRender;
+
+    enum eFailure {
+        NONE,
+        INIT_BUFFER,
+        BEGIN_FALSE,
+        BEGIN_THROW,
+        FULL_FAKE_FALSE,
+        FULL_FAKE_THROW,
+    };
+    eFailure                                m_failure = NONE;
+    int                                     m_inits = 0, m_begins = 0, m_fakeBegins = 0, m_unbinds = 0;
+    WP<Render::IRenderbuffer>               m_renderbuffer;
+    std::array<WP<Render::IFramebuffer>, 3> m_targets;
+    WP<Render::ITexture>                    m_passTexture;
+
+    SP<Render::IFramebuffer>                createFB(const std::string&) override {
+        return makeShared<CLifecycleFramebuffer>();
+    }
+
+  private:
+    bool initRenderBuffer(Render::CRenderContext& ctx, SP<Aquamarine::IBuffer> buffer, uint32_t format) override {
+        ++m_inits;
+        EXPECT_TRUE(ctx.active());
+        EXPECT_EQ(format, DRM_FORMAT_XRGB8888);
+        ctx.m_currentRenderbuffer = makeShared<CLifecycleRenderbuffer>(buffer, format, m_unbinds);
+        m_renderbuffer            = ctx.m_currentRenderbuffer;
+        if (m_failure != INIT_BUFFER)
+            return true;
+        // Fail with partial state retained so the production cleanup must release it.
+        retainPassState(ctx, CRegion{1, 2, 3, 4});
+        return false;
+    }
+    bool beginRenderInternal(Render::CRenderContext& ctx, PHLMONITOR, CRegion& damage, bool) override {
+        ++m_begins;
+        retainPassState(ctx, damage);
+        if (m_failure == BEGIN_THROW)
+            throw std::runtime_error("Injected render begin exception");
+        return m_failure != BEGIN_FALSE;
+    }
+    bool beginFullFakeRenderInternal(Render::CRenderContext& ctx, PHLMONITOR, CRegion& damage, SP<Render::IFramebuffer> fb, bool simple) override {
+        ++m_fakeBegins;
+        EXPECT_TRUE(simple);
+        EXPECT_EQ(ctx.m_data.fbSize, fb->m_size);
+        EXPECT_FALSE(ctx.m_currentBuffer);
+        EXPECT_FALSE(ctx.m_swapchainAcquired);
+        retainPassState(ctx, damage);
+        ctx.m_data.outFB = fb;
+        m_targets[2]     = fb;
+        if (m_failure == FULL_FAKE_THROW)
+            throw std::runtime_error("Injected full-fake begin exception");
+        return m_failure != FULL_FAKE_FALSE;
+    }
+    void retainPassState(Render::CRenderContext& ctx, const CRegion& damage) {
+        EXPECT_TRUE(ctx.active());
+        EXPECT_TRUE(ctx.m_data.damage.empty());
+        EXPECT_TRUE(ctx.m_data.finalDamage.empty());
+        ctx.m_data.currentFB = makeShared<CLifecycleFramebuffer>();
+        ctx.m_data.mainFB    = makeShared<CLifecycleFramebuffer>();
+        ctx.m_data.outFB     = makeShared<CLifecycleFramebuffer>();
+        m_targets            = {ctx.m_data.currentFB, ctx.m_data.mainFB, ctx.m_data.outFB};
+        auto texture         = makeShared<CDMABUFTestTexture>(true);
+        m_passTexture        = texture;
+        ctx.m_pass.add(makeUnique<CTexPassElement>(CTexPassElement::SRenderData{.tex = texture}));
+        setDamage(ctx, damage, std::nullopt);
+    }
+};
+
+class CRenderLifecycleTest : public CDMABUFBufferTest {
+  protected:
+    void SetUp() override {
+        CDMABUFBufferTest::SetUp();
+        if (HasFatalFailure())
+            return;
+        m_previousWatcher = std::move(Config::watcher());
+        Config::watcher() = makeUnique<Config::CConfigWatcher>();
+        m_previousConfig  = std::move(Config::mgr());
+        Config::mgr()     = makeUnique<Config::Lua::CConfigManager>();
+        CConfigValueBase::flushCaches();
+        m_previousAnimations    = std::move(Animation::mgr());
+        m_previousTree          = std::move(Config::animationTree());
+        Animation::mgr()        = makeUnique<Animation::CHyprAnimationManager>();
+        Config::animationTree() = makeUnique<Config::CAnimationTreeController>();
+        m_installedAnimations   = true;
+        auto output             = makeShared<CLifecycleOutput>();
+        output->name            = "render-lifecycle-test";
+        output->state->setFormat(DRM_FORMAT_XRGB8888);
+        m_allocator       = makeShared<CLifecycleAllocator>();
+        output->swapchain = Aquamarine::CSwapchain::create(m_allocator, nullptr);
+        ASSERT_TRUE(output->swapchain->reconfigure({.length = 3, .size = {64, 48}, .format = DRM_FORMAT_XRGB8888}));
+        m_monitor         = makeShared<Monitor::CMonitor>(output);
+        m_monitor->m_self = m_monitor;
+        m_monitor->m_size = m_monitor->m_pixelSize = m_monitor->m_transformedSize = {64, 48};
+    }
+    void TearDown() override {
+        if (m_installedAnimations) {
+            renderer().abortRender();
+            m_monitor.reset();
+            m_allocator.reset();
+            Animation::mgr()        = std::move(m_previousAnimations);
+            Config::animationTree() = std::move(m_previousTree);
+            Config::mgr()           = std::move(m_previousConfig);
+            Config::watcher()       = std::move(m_previousWatcher);
+            if (Config::mgr())
+                CConfigValueBase::flushCaches();
+        }
+        CDMABUFBufferTest::TearDown();
+    }
+    UP<Render::IHyprRenderer> makeRenderer() override {
+        return makeUnique<CLifecycleRenderer>();
+    }
+    CLifecycleRenderer& renderer() {
+        return sc<CLifecycleRenderer&>(*g_pHyprRenderer);
+    }
+    void expectClean() {
+        auto& ctx = renderer().context();
+        EXPECT_FALSE(ctx.active());
+        EXPECT_FALSE(ctx.m_currentBuffer);
+        EXPECT_FALSE(ctx.m_currentRenderbuffer);
+        EXPECT_FALSE(ctx.m_swapchainAcquired);
+        EXPECT_FALSE(ctx.m_data.pMonitor);
+        EXPECT_FALSE(ctx.m_data.currentFB);
+        EXPECT_FALSE(ctx.m_data.mainFB);
+        EXPECT_FALSE(ctx.m_data.outFB);
+        EXPECT_TRUE(ctx.m_data.damage.empty());
+        EXPECT_TRUE(ctx.m_data.finalDamage.empty());
+        EXPECT_TRUE(renderer().m_renderbuffer.expired());
+        EXPECT_TRUE(renderer().m_passTexture.expired());
+        for (const auto& target : renderer().m_targets)
+            EXPECT_TRUE(target.expired());
+    }
+
+    PHLMONITOR              m_monitor;
+    SP<CLifecycleAllocator> m_allocator;
+
+  private:
+    bool                                 m_installedAnimations = false;
+    UP<Animation::CHyprAnimationManager> m_previousAnimations;
+    UP<Config::CAnimationTreeController> m_previousTree;
+    UP<Config::IConfigManager>           m_previousConfig;
+    UP<Config::CConfigWatcher>           m_previousWatcher;
+};
+
+TEST_F(CRenderLifecycleTest, MonitorHookRejectsReentryAndUnwindsWhileAllowingOffscreenCapture) {
+    struct SStopRender {};
+    auto& r                        = renderer();
+    g_pCompositor->m_sessionActive = true;
+    m_monitor->m_scheduledRecalc   = true;
+    m_monitor->m_pendingFrame      = true;
+    m_monitor->m_damage.setSize(m_monitor->m_pixelSize);
+    m_monitor->m_damage.damage(CBox{1, 2, 3, 4});
+    const auto damage = m_monitor->m_damage.getBufferDamage(1);
+    auto       buffer = makeShared<CLifecycleBuffer>();
+    m_monitor->m_output->state->setBuffer(buffer);
+
+    int  callbacks = 0, expectedCallbacks = 0;
+    auto listener = Event::bus()->m_events.render.preChecks.listen([&](PHLMONITOR monitor) {
+        ++callbacks;
+        // Bound recursion if the production guard regresses, before reaching GPU code.
+        if (callbacks != expectedCallbacks)
+            throw SStopRender{};
+        EXPECT_EQ(monitor, m_monitor);
+        EXPECT_FALSE(r.context().active());
+        EXPECT_FALSE(monitor->m_renderingActive);
+        EXPECT_NO_THROW(r.renderMonitor(monitor));
+        EXPECT_EQ(callbacks, expectedCallbacks);
+        expectClean();
+        EXPECT_TRUE(monitor->m_scheduledRecalc);
+        EXPECT_TRUE(monitor->m_pendingFrame);
+        EXPECT_FALSE(monitor->m_renderingActive);
+        EXPECT_EQ(monitor->m_damage.getBufferDamage(1).getExtents(), damage.copy().getExtents());
+        EXPECT_EQ(monitor->m_output->state->state().buffer, buffer);
+        EXPECT_EQ(r.m_inits, 0);
+        EXPECT_EQ(r.m_begins, 0);
+
+        // PRE/POST hooks may still capture offscreen between render sessions.
+        auto fb = makeShared<CLifecycleFramebuffer>();
+        EXPECT_TRUE(fb->alloc(16, 12));
+        CRegion captureDamage{0, 0, 16, 12};
+        EXPECT_TRUE(r.beginFullFakeRender(monitor, captureDamage, fb));
+        r.abortRender();
+        throw SStopRender{};
+    });
+
+    for (expectedCallbacks = 1; expectedCallbacks <= 2; ++expectedCallbacks) {
+        EXPECT_THROW(r.renderMonitor(m_monitor), SStopRender);
+        EXPECT_EQ(callbacks, expectedCallbacks);
+        EXPECT_EQ(r.m_fakeBegins, expectedCallbacks);
+        expectClean();
+    }
+    EXPECT_EQ(m_monitor->m_output->swapchain->next(nullptr), m_allocator->m_buffers[1]);
+}
+
+class CRenderBufferFailureTest : public CRenderLifecycleTest, public ::testing::WithParamInterface<std::tuple<CLifecycleRenderer::eFailure, bool>> {};
+
+TEST_P(CRenderBufferFailureTest, CleansFailedBeginAndCanBeginAgain) {
+    const auto [failure, supplied]         = GetParam();
+    auto& r                                = renderer();
+    r.m_failure                            = failure;
+    auto                    buffer         = supplied ? makeShared<CLifecycleBuffer>() : nullptr;
+    WP<Aquamarine::IBuffer> suppliedBuffer = buffer;
+    CRegion                 damage{1, 2, 3, 4};
+    const auto              begin = [&] { return r.beginRender(m_monitor, damage, Render::RENDER_MODE_TO_BUFFER, buffer); };
+    if (failure == CLifecycleRenderer::BEGIN_THROW)
+        EXPECT_THROW(begin(), std::runtime_error);
+    else
+        EXPECT_FALSE(begin());
+
+    EXPECT_EQ(r.m_inits, 1);
+    EXPECT_EQ(r.m_begins, failure == CLifecycleRenderer::INIT_BUFFER ? 0 : 1);
+    EXPECT_EQ(r.m_unbinds, 1);
+    EXPECT_EQ(damage.getExtents(), CBox(1, 2, 3, 4));
+    expectClean();
+    r.abortRender();
+    EXPECT_EQ(r.m_unbinds, 1);
+    // A supplied buffer must not rotate/rollback the swapchain. An acquired
+    // buffer must roll back exactly once, including on exception or repeated abort.
+    EXPECT_EQ(m_monitor->m_output->swapchain->next(nullptr), m_allocator->m_buffers[1]);
+    if (supplied) {
+        ASSERT_FALSE(suppliedBuffer.expired());
+        buffer.reset();
+        EXPECT_TRUE(suppliedBuffer.expired());
+        buffer = makeShared<CLifecycleBuffer>();
+    }
+
+    r.m_failure = CLifecycleRenderer::NONE;
+    damage      = CRegion{10, 11, 12, 13};
+    const Render::SRenderOptions options{.mouseZoomFactor = 2.5F, .mouseZoomUseMouse = false, .useNearestNeighbor = true};
+    ASSERT_TRUE(r.beginRender(m_monitor, damage, Render::RENDER_MODE_TO_BUFFER, buffer, nullptr, false, options));
+    auto& ctx = r.context();
+    EXPECT_TRUE(ctx.active());
+    EXPECT_EQ(ctx.m_currentBuffer, supplied ? buffer : m_allocator->m_buffers[2]);
+    EXPECT_EQ(ctx.m_swapchainAcquired, !supplied);
+    EXPECT_EQ(ctx.m_mode, Render::RENDER_MODE_TO_BUFFER);
+    EXPECT_FLOAT_EQ(ctx.m_data.mouseZoomFactor, options.mouseZoomFactor);
+    EXPECT_EQ(ctx.m_data.mouseZoomUseMouse, options.mouseZoomUseMouse);
+    EXPECT_EQ(ctx.m_data.useNearestNeighbor, options.useNearestNeighbor);
+    EXPECT_EQ(ctx.m_data.damage.getExtents(), CBox(10, 11, 12, 13));
+    EXPECT_EQ(ctx.m_data.finalDamage.getExtents(), CBox(10, 11, 12, 13));
+    EXPECT_FALSE(r.m_passTexture.expired());
+    r.abortRender();
+    EXPECT_EQ(r.m_unbinds, 2);
+    expectClean();
+}
+
+INSTANTIATE_TEST_SUITE_P(BeginFailures, CRenderBufferFailureTest,
+                         ::testing::Combine(::testing::Values(CLifecycleRenderer::INIT_BUFFER, CLifecycleRenderer::BEGIN_FALSE, CLifecycleRenderer::BEGIN_THROW),
+                                            ::testing::Bool()));
+
+class CFullFakeFailureTest : public CRenderLifecycleTest, public ::testing::WithParamInterface<CLifecycleRenderer::eFailure> {};
+
+TEST_P(CFullFakeFailureTest, CleansEarlyFailureAndCanBeginAgain) {
+    auto& r     = renderer();
+    r.m_failure = GetParam();
+    CRegion damage{1, 2, 3, 4};
+    auto    fb = makeShared<CLifecycleFramebuffer>();
+    ASSERT_TRUE(fb->alloc(32, 24));
+    const auto begin = [&] { return r.beginFullFakeRender(m_monitor, damage, fb); };
+    if (GetParam() == CLifecycleRenderer::FULL_FAKE_THROW)
+        EXPECT_THROW(begin(), std::runtime_error);
+    else
+        EXPECT_FALSE(begin());
+    fb.reset();
+    EXPECT_EQ(r.m_fakeBegins, 1);
+    EXPECT_EQ(r.m_inits, 0);
+    EXPECT_EQ(r.m_begins, 0);
+    EXPECT_EQ(r.m_unbinds, 0);
+    expectClean();
+    r.abortRender();
+    EXPECT_EQ(m_monitor->m_output->swapchain->next(nullptr), m_allocator->m_buffers[1]);
+
+    r.m_failure = CLifecycleRenderer::NONE;
+    fb          = makeShared<CLifecycleFramebuffer>();
+    ASSERT_TRUE(fb->alloc(16, 12));
+    damage = CRegion{5, 6, 7, 8};
+    ASSERT_TRUE(begin());
+    EXPECT_TRUE(r.context().active());
+    EXPECT_EQ(r.context().m_mode, Render::RENDER_MODE_FULL_FAKE);
+    EXPECT_EQ(r.context().m_data.outFB, fb);
+    EXPECT_EQ(r.context().m_data.damage.getExtents(), CBox(5, 6, 7, 8));
+    fb.reset();
+    r.abortRender();
+    expectClean();
+    EXPECT_EQ(r.m_fakeBegins, 2);
+    EXPECT_EQ(r.m_inits, 0);
+    EXPECT_EQ(r.m_unbinds, 0);
+}
+
+INSTANTIATE_TEST_SUITE_P(EarlyFailures, CFullFakeFailureTest, ::testing::Values(CLifecycleRenderer::FULL_FAKE_FALSE, CLifecycleRenderer::FULL_FAKE_THROW));
 
 TEST_F(CDMABUFBufferTest, TransferredPlanesSurviveParamsAndAttributeCopies) {
     std::array<CFileDescriptor, 4> readers;

@@ -53,8 +53,8 @@ namespace Layout::Tiled {
         void                     swapStrips(size_t a, size_t b);
 
         void                     setOffset(double offset);
-        double                   getOffset() const;
         void                     adjustOffset(double delta);
+        double                   getOffset() const;
         struct SScrollInhibitor& getScrollInhibitor();
 
         double                   calculateMaxExtent(const CBox& usableArea, bool fullscreenOnOne = false) const;

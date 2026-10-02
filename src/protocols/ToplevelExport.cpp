@@ -63,6 +63,11 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
     m_resource->setDestroy([this](CHyprlandToplevelExportFrameV1* pFrame) { PROTO::toplevelExport->destroyResource(this); });
     m_resource->setCopy([this](CHyprlandToplevelExportFrameV1* pFrame, wl_resource* res, int32_t ignoreDamage) { shareFrame(res, !!ignoreDamage); });
 
+    if (!m_session || !m_session->isActive()) {
+        m_resource->sendFailed();
+        return;
+    }
+
     m_frame = m_session->nextFrame(overlayCursor);
 
     auto formats = m_session->allowedFormats();

@@ -397,21 +397,6 @@ int Internal::checkResult(lua_State* L, const CA::ActionResult& r) {
     return Internal::pushSuccessResult(L, *r);
 }
 
-PHLWORKSPACE Internal::resolveWorkspaceStr(const std::string& args) {
-    const auto TARGET = State::Workspace::resolver()->getWorkspaceTargetFromString(args);
-    if (!TARGET.valid())
-        return nullptr;
-
-    auto ws = State::Workspace::state()->find(TARGET);
-    if (!ws) {
-        const auto PMONITOR = Desktop::focusState()->monitor();
-        if (PMONITOR)
-            ws = State::Workspace::state()->create(TARGET, PMONITOR, false);
-    }
-
-    return ws;
-}
-
 PHLMONITOR Internal::resolveMonitorStr(const std::string& args) {
     auto mon = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(args).run();
     return mon;

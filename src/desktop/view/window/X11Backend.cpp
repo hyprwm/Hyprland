@@ -84,7 +84,7 @@ static SBackendTraits traitsFrom(const SP<CXWaylandSurface>& surface) {
     const bool FIXED_SIZE = HINTS && HINTS->min_width > 0 && HINTS->min_height > 0 && HINTS->max_width > 0 && HINTS->max_height > 0 && HINTS->min_width == HINTS->max_width &&
         HINTS->min_height == HINTS->max_height;
     const bool ROLE_FLOATS     = surface->m_role.contains("task_dialog") || surface->m_role.contains("pop-up");
-    const bool HAS_MODAL_CHILD = std::ranges::any_of(surface->m_children, [](const auto& child) { return child && child->m_modal; });
+    const bool HAS_MODAL_CHILD = std::ranges::any_of(surface->m_children, [](const auto& child) { return child && child->m_mapped && child->m_modal; });
 
     return {
         .overrideRedirect       = surface->m_overrideRedirect,

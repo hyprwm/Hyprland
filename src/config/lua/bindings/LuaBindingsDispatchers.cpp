@@ -440,11 +440,8 @@ static int hlSendKeyState(lua_State* L) {
 }
 
 static int dsp_moveToWorkspace(lua_State* L) {
-    auto ws = Internal::resolveWorkspaceStr(lua_tostring(L, lua_upvalueindex(1)));
-    if (!ws)
-        return Internal::dispatcherError(L, "Invalid workspace", ERR, C_INVARG);
-
-    bool silent = lua_toboolean(L, lua_upvalueindex(2));
+    std::string ws     = lua_tostring(L, lua_upvalueindex(1));
+    bool        silent = lua_toboolean(L, lua_upvalueindex(2));
     return Internal::checkResult(L, CA::moveToWorkspace(ws, silent, Internal::windowFromUpval(L, 3)));
 }
 
@@ -1088,10 +1085,7 @@ static int dsp_changeWorkspace(lua_State* L) {
 }
 
 static int dsp_focusWorkspaceOnCurrentMonitor(lua_State* L) {
-    auto ws = Internal::resolveWorkspaceStr(lua_tostring(L, lua_upvalueindex(1)));
-    if (!ws)
-        return Internal::dispatcherError(L, "Invalid workspace", ERR, C_INVARG);
-    return Internal::checkResult(L, CA::changeWorkspaceOnCurrentMonitor(ws));
+    return Internal::checkResult(L, CA::changeWorkspaceOnCurrentMonitor(std::string(lua_tostring(L, lua_upvalueindex(1)))));
 }
 
 static int hlFocus(lua_State* L) {

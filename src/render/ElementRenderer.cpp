@@ -437,14 +437,12 @@ void IElementRenderer::preDrawSurface(CRenderContext& ctx, WP<CSurfacePassElemen
     m_renderData.useNearestNeighbor = element->m_data.useNearestNeighbor;
     m_renderData.currentWindow      = element->m_data.pWindow;
 
-    drawSurface(ctx, element, damage);
-
     // add async (dmabuf) buffers to usedBuffers so we can handle release later
     // sync (shm) buffers will be released in commitState, so no need to track them here.
-    if (element->m_data.surface->m_current.buffer && !element->m_data.surface->m_current.buffer->isSynchronous() &&
-        std::ranges::none_of(element->m_data.pMonitor->m_usedAsyncBuffers,
-                             [&](const auto& e) { return e.first == element->m_data.surface && e.second == element->m_data.surface->m_current.buffer; }))
-        element->m_data.pMonitor->m_usedAsyncBuffers.emplace_back(element->m_data.surface, element->m_data.surface->m_current.buffer);
+    if (element->m_data.surface->m_current.buffer && !element->m_data.surface->m_current.buffer->isSynchronous())
+        addSurfaceBufferUse(ctx.m_usedAsyncBuffers, element->m_data.surface, element->m_data.surface->m_current.buffer);
+
+    drawSurface(ctx, element, damage);
 
     m_renderData.clipBox            = {};
     m_renderData.useNearestNeighbor = false;

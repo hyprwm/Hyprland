@@ -2,6 +2,7 @@
 
 #include "types.hpp"
 #include "pass/Pass.hpp"
+#include "SurfaceBufferUse.hpp"
 
 namespace Aquamarine {
     class IBuffer;
@@ -50,6 +51,9 @@ namespace Render {
         eRenderMode             m_mode        = RENDER_MODE_NORMAL;
         SP<Aquamarine::IBuffer> m_currentBuffer;
         SP<IRenderbuffer>       m_currentRenderbuffer;
+
+        // Transfer to the backend's pending batch or submission before reset.
+        std::vector<SSurfaceBufferUse> m_usedAsyncBuffers;
 
         struct SBackdropCapture {
             SP<SBackdropScope> scope;

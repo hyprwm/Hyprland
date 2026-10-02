@@ -58,7 +58,14 @@ CHyprGLRenderer::CHyprGLRenderer() : IHyprRenderer(), m_elementRenderer(makeUniq
     m_preRenderListener = Event::bus()->m_events.render.pre.listen([this](PHLMONITOR monitor) { preRender(monitor); });
 }
 
-CHyprGLRenderer::~CHyprGLRenderer() = default;
+CHyprGLRenderer::~CHyprGLRenderer() {
+    // The renderer is destroyed before OpenGL. Complete even submissions whose
+    // readable callbacks will only be discarded during event-loop teardown.
+    g_pHyprOpenGL->makeEGLCurrent();
+    glFinish();
+    m_context.m_usedAsyncBuffers.clear();
+    m_pendingBufferUses.clear();
+}
 
 IHyprRenderer::eType CHyprGLRenderer::type() {
     return RT_GL;
@@ -131,6 +138,11 @@ SRenderResult CHyprGLRenderer::endRender(const std::function<void()>& renderingD
     if (mode == RENDER_MODE_NORMAL)
         PMONITOR->m_output->state->setBuffer(m_context.m_currentBuffer);
 
+    // All draws use the same EGL context, so this submission also covers earlier
+    // snapshots and aborted draws. Detach their locks before resetting the session.
+    mergeSurfaceBufferUses(m_pendingBufferUses, m_context.m_usedAsyncBuffers);
+    auto completedBuffers = mode == RENDER_MODE_FULL_FAKE ? std::vector<SSurfaceBufferUse>{} : std::exchange(m_pendingBufferUses, {});
+
     // Callbacks may begin another render. Release this session before invoking them.
     finishRender();
     finished = true;
@@ -147,7 +159,7 @@ SRenderResult CHyprGLRenderer::endRender(const std::function<void()>& renderingD
         else
             glFlush(); // mark an implicit sync point
 
-        PMONITOR->m_usedAsyncBuffers.clear(); // release all buffer refs and hope implicit sync works
+        completedBuffers.clear(); // release all buffer refs and hope implicit sync works
         if (renderingDoneCallback)
             renderingDoneCallback();
 
@@ -156,48 +168,51 @@ SRenderResult CHyprGLRenderer::endRender(const std::function<void()>& renderingD
 
     auto eglSync = createSyncFDManager();
     if LIKELY (eglSync && eglSync->isValid()) {
-        auto completedBuffers = std::exchange(PMONITOR->m_usedAsyncBuffers, {});
-        for (auto& buf : completedBuffers) {
-            if (buf.first.expired()) // surface is gone.
-                continue;
-
-            for (const auto& releaser : buf.second->m_syncReleasers) {
-                releaser->addSyncFileFd(eglSync->fd());
-            }
-        }
-
-        // release buffer refs with release points now, since syncReleaser handles actual buffer release based on EGLSync
-        std::erase_if(completedBuffers, [](const auto& buf) { return buf.first.expired() || !buf.second->m_syncReleasers.empty(); });
-
-        auto completionFD = eglSync->fd().duplicate();
+        auto       completionFD      = eglSync->fd().duplicate();
+        const bool asyncReleaseReady = completionFD.isValid() && attachSurfaceBufferReleaseFences(completedBuffers, eglSync->fd());
         if (mode == RENDER_MODE_NORMAL) {
             PMONITOR->m_inFence = eglSync->takeFd();
             PMONITOR->m_output->state->setExplicitInFence(PMONITOR->m_inFence.get());
         }
 
         // This may run inline. Finish all monitor bookkeeping before handing off.
-        g_pEventLoopManager->doOnReadable(std::move(completionFD), [renderingDoneCallback, buffers = std::move(completedBuffers)]() mutable {
-            buffers.clear();
+        eglSync.reset();
+        if (!asyncReleaseReady) {
+            LOG(Log::ERR, "renderer: Failed to prepare release fences, waiting for GPU completion");
+            // A missing completion FD or release fence cannot protect explicit-sync clients.
+            glFinish();
+            completedBuffers.clear();
             if (renderingDoneCallback)
                 renderingDoneCallback();
-        });
-    } else {
-        LOG(Log::ERR, "renderer: Explicit sync failed, falling back to implicit sync");
+            return result;
+        }
 
-        // Establish an implicit synchronization point without blocking the render loop.
-        glFlush();
+        releaseSurfaceBuffersOnReadable(std::move(completionFD), std::move(completedBuffers), renderingDoneCallback);
+    } else {
+        LOG(Log::ERR, "renderer: Explicit sync failed, waiting for GPU completion");
+
+        // Without a fence, explicit-sync clients need GPU completion before release.
+        glFinish();
 
         if (mode == RENDER_MODE_NORMAL && PMONITOR) {
             PMONITOR->m_inFence.reset();
             PMONITOR->m_output->state->resetExplicitFences();
         }
 
-        PMONITOR->m_usedAsyncBuffers.clear();
+        eglSync.reset();
+        completedBuffers.clear();
         if (renderingDoneCallback)
             renderingDoneCallback();
     }
 
     return result;
+}
+
+void CHyprGLRenderer::abortRender() {
+    // Immediate draws may already have sampled these buffers. A later submission
+    // (or shutdown) must synchronize them, without reporting a completed frame.
+    mergeSurfaceBufferUses(m_pendingBufferUses, m_context.m_usedAsyncBuffers);
+    IHyprRenderer::abortRender();
 }
 
 void CHyprGLRenderer::renderOffToMain(CRenderContext& ctx, SP<IFramebuffer> off) {

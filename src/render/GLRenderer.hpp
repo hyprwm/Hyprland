@@ -13,6 +13,7 @@ namespace Render::GL {
 
         eType                   type() override;
         SRenderResult           endRender(const std::function<void()>& renderingDoneCallback = {}) override;
+        void                    abortRender() override;
         UP<ISyncFDManager>      createSyncFDManager() override;
         SP<ITexture>            createStencilTexture(const int width, const int height) override;
         SP<ITexture>            createTexture(bool opaque = false) override;
@@ -62,6 +63,9 @@ namespace Render::GL {
         UP<IElementRenderer> m_elementRenderer;
         UP<IGLBlurProvider>  m_blur;
         CHyprSignalListener  m_preRenderListener;
+
+        // FULL_FAKE and aborted draws share this backend's EGL command stream.
+        std::vector<SSurfaceBufferUse> m_pendingBufferUses;
 
         friend class CHyprOpenGLImpl;
     };

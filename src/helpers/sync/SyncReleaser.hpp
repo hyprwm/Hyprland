@@ -22,7 +22,8 @@ class CSyncReleaser {
     void drop();
 
     // wait for this sync_fd to signal before releasing
-    void addSyncFileFd(const Hyprutils::OS::CFileDescriptor& syncFd);
+    // Returns false on failure, preserving the previous fence.
+    bool addSyncFileFd(const Hyprutils::OS::CFileDescriptor& syncFd);
 
   private:
     SP<CSyncTimeline>              m_timeline;

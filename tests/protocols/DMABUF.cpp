@@ -344,23 +344,23 @@ class CDMABUFTestRenderer : public Render::IHyprRenderer {
     void blend(bool) override {
         ;
     }
-    void drawShadow(const CBox&, int, float, int, const Config::CGradientValueData&, float, const SP<Workspace::CWorkspacePresentable>&) override {
+    void drawShadow(Render::CRenderContext&, const CBox&, int, float, int, const Config::CGradientValueData&, float, const SP<Workspace::CWorkspacePresentable>&) override {
         ;
     }
-    void drawShadow(const CBox&, int, float, int, const Config::CGradientValueData&, const Config::CGradientValueData&, float, float,
+    void drawShadow(Render::CRenderContext&, const CBox&, int, float, int, const Config::CGradientValueData&, const Config::CGradientValueData&, float, float,
                     const SP<Workspace::CWorkspacePresentable>&) override {
         ;
     }
-    void drawGlow(const CBox&, int, float, int, const Config::CGradientValueData&, float) override {
+    void drawGlow(Render::CRenderContext&, const CBox&, int, float, int, const Config::CGradientValueData&, float) override {
         ;
     }
-    void drawGlow(const CBox&, int, float, int, const Config::CGradientValueData&, const Config::CGradientValueData&, float, float) override {
+    void drawGlow(Render::CRenderContext&, const CBox&, int, float, int, const Config::CGradientValueData&, const Config::CGradientValueData&, float, float) override {
         ;
     }
     void setViewport(int, int, int, int) override {
         ;
     }
-    SP<Render::IFramebuffer> blurFramebuffer(SP<Render::IFramebuffer>, float, const CRegion&, const Render::SBlurContext&) override {
+    SP<Render::IFramebuffer> blurFramebuffer(Render::CRenderContext&, SP<Render::IFramebuffer>, float, const CRegion&, const Render::SBlurContext&) override {
         return nullptr;
     }
     void refreshBlurProvider() override {
@@ -369,7 +369,7 @@ class CDMABUFTestRenderer : public Render::IHyprRenderer {
     void expandBlurDamage(CRegion&, float) const override {
         ;
     }
-    bool blurProviderIsAnimated() const override {
+    bool blurProviderIsAnimated(Render::CRenderContext&) const override {
         return false;
     }
     bool blurProviderRequiresLiveBlur() const override {
@@ -378,7 +378,7 @@ class CDMABUFTestRenderer : public Render::IHyprRenderer {
     bool reloadShaders(const std::string&) override {
         return false;
     }
-    void renderOffToMain(SP<Render::IFramebuffer>) override {
+    void renderOffToMain(Render::CRenderContext&, SP<Render::IFramebuffer>) override {
         ;
     }
     SP<Render::IRenderbuffer> getOrCreateRenderbufferInternal(SP<Aquamarine::IBuffer>, uint32_t) override {

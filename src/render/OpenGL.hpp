@@ -172,24 +172,24 @@ namespace Render::GL {
         };
 
         void makeEGLCurrent();
-        void begin(PHLMONITOR, const CRegion& damage, SP<IFramebuffer> fb = nullptr, std::optional<CRegion> finalDamage = {});
-        void beginSimple(PHLMONITOR, const CRegion& damage, SP<IRenderbuffer> rb = nullptr, SP<IFramebuffer> fb = nullptr);
-        void end();
+        void begin(CRenderContext& ctx, PHLMONITOR, const CRegion& damage, SP<IFramebuffer> fb = nullptr, std::optional<CRegion> finalDamage = {});
+        void beginSimple(CRenderContext& ctx, PHLMONITOR, const CRegion& damage, SP<IRenderbuffer> rb = nullptr, SP<IFramebuffer> fb = nullptr);
+        void end(CRenderContext& ctx);
 
-        void renderRect(const CBox&, const CHyprColor&, SRectRenderData data);
-        void renderTexture(SP<ITexture>, const CBox&, STextureRenderData data);
-        void renderTextureMesh(SP<ITexture>, const CBox&, const std::vector<SMeshRenderVertex>& vertices, STextureRenderData data);
-        void renderRoundedShadow(const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a,
+        void renderRect(CRenderContext& ctx, const CBox&, const CHyprColor&, SRectRenderData data);
+        void renderTexture(CRenderContext& ctx, SP<ITexture>, const CBox&, STextureRenderData data);
+        void renderTextureMesh(CRenderContext& ctx, SP<ITexture>, const CBox&, const std::vector<SMeshRenderVertex>& vertices, STextureRenderData data);
+        void renderRoundedShadow(CRenderContext& ctx, const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a,
                                  const SP<Workspace::CWorkspacePresentable>& presentation);
-        void renderRoundedShadow(const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2,
-                                 float lerp, float a, const SP<Workspace::CWorkspacePresentable>& presentation);
-        void renderInnerGlow(const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& color, int glowPower, float a = 1.0);
-        void renderInnerGlow(const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2, float lerp,
-                             int glowPower, float a = 1.0);
-        void renderBorder(const CBox&, const Config::CGradientValueData&, SBorderRenderData data);
-        void renderBorder(const CBox&, const Config::CGradientValueData&, const Config::CGradientValueData&, float lerp, SBorderRenderData data);
-        void renderTextureMatte(SP<ITexture> tex, const CBox& pBox, SP<IFramebuffer> matte);
-        void renderTexturePrimitive(SP<ITexture> tex, const CBox& box);
+        void renderRoundedShadow(CRenderContext& ctx, const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
+                                 const Config::CGradientValueData& grad2, float lerp, float a, const SP<Workspace::CWorkspacePresentable>& presentation);
+        void renderInnerGlow(CRenderContext& ctx, const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& color, int glowPower, float a = 1.0);
+        void renderInnerGlow(CRenderContext& ctx, const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
+                             const Config::CGradientValueData& grad2, float lerp, int glowPower, float a = 1.0);
+        void renderBorder(CRenderContext& ctx, const CBox&, const Config::CGradientValueData&, SBorderRenderData data);
+        void renderBorder(CRenderContext& ctx, const CBox&, const Config::CGradientValueData&, const Config::CGradientValueData&, float lerp, SBorderRenderData data);
+        void renderTextureMatte(CRenderContext& ctx, SP<ITexture> tex, const CBox& pBox, SP<IFramebuffer> matte);
+        void renderTexturePrimitive(CRenderContext& ctx, SP<ITexture> tex, const CBox& box);
 
         void setViewport(GLint x, GLint y, GLsizei width, GLsizei height);
         void setCapStatus(int cap, bool status);
@@ -203,17 +203,18 @@ namespace Render::GL {
         void                                      blend(bool enabled);
         bool                                      blendEnabled() const;
 
-        void                                      scissor(const CBox&, bool transform = true);
-        void                                      scissor(const pixman_box32*, bool transform = true);
-        void                                      scissor(const int x, const int y, const int w, const int h, bool transform = true);
+        void                                      disableScissor();
+        void                                      scissor(CRenderContext& ctx, const CBox&, bool transform = true);
+        void                                      scissor(CRenderContext& ctx, const pixman_box32*, bool transform = true);
+        void                                      scissor(CRenderContext& ctx, const int x, const int y, const int w, const int h, bool transform = true);
 
         void                                      destroyMonitorResources(PHLMONITORREF);
 
-        bool                                      saveBufferForMirror(const CBox&);
+        bool                                      saveBufferForMirror(CRenderContext& ctx, const CBox&);
 
         void                                      applyScreenShader(const std::string& path);
 
-        void                                      renderOffToMain(SP<IFramebuffer> off);
+        void                                      renderOffToMain(CRenderContext& ctx, SP<IFramebuffer> off);
 
         std::vector<SDRMFormat>                   getDRMFormats();
         std::vector<uint64_t>                     getDRMFormatModifiers(DRMFormat format);
@@ -332,16 +333,16 @@ namespace Render::GL {
 
         void        passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
                                    bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance, const SCMSettings& settings);
-        void        passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
-                                   bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
-        void        passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription);
-        void        passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription, const SCMSettings& settings);
-        void        renderRectWithBlurInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
-        void        renderRectWithDamageInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
-        WP<CShader> renderScreenShaderInternal();
-        WP<CShader> renderToFBInternal(SP<ITexture> tex, const STextureRenderData& data, eTextureType texType, const CBox& newBox);
-        void        renderTextureInternal(SP<ITexture>, const CBox&, const STextureRenderData& data);
-        void        renderTextureWithBlurInternal(SP<ITexture>, const CBox&, const STextureRenderData& data);
+        void passCMUniforms(CRenderContext& ctx, WP<CShader>, const NColorManagement::PImageDescription imageDescription,
+                            const NColorManagement::PImageDescription targetImageDescription, bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
+        void passCMUniforms(CRenderContext& ctx, WP<CShader>, const NColorManagement::PImageDescription imageDescription);
+        void passCMUniforms(CRenderContext& ctx, WP<CShader>, const NColorManagement::PImageDescription imageDescription, const SCMSettings& settings);
+        void renderRectWithBlurInternal(CRenderContext& ctx, const CBox&, const CHyprColor&, const SRectRenderData& data);
+        void renderRectWithDamageInternal(CRenderContext& ctx, const CBox&, const CHyprColor&, const SRectRenderData& data);
+        WP<CShader> renderScreenShaderInternal(CRenderContext& ctx);
+        WP<CShader> renderToFBInternal(CRenderContext& ctx, SP<ITexture> tex, const STextureRenderData& data, eTextureType texType, const CBox& newBox);
+        void        renderTextureInternal(CRenderContext& ctx, SP<ITexture>, const CBox&, const STextureRenderData& data);
+        void        renderTextureWithBlurInternal(CRenderContext& ctx, SP<ITexture>, const CBox&, const STextureRenderData& data);
 
         friend class IHyprRenderer;
         friend class CHyprGLRenderer;

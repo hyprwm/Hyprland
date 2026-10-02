@@ -12,7 +12,7 @@ class CHyprInnerGlowDecoration : public IHyprWindowDecoration {
 
     virtual void                       onPositioningReply(const SDecorationPositioningReply& reply);
 
-    virtual void                       draw(PHLMONITOR, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation);
+    virtual void                       draw(Render::CRenderContext& ctx, PHLMONITOR, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation);
 
     virtual eDecorationType            getDecorationType();
 
@@ -31,13 +31,13 @@ class CHyprInnerGlowDecoration : public IHyprWindowDecoration {
     virtual void                       onWindowMap() override;
     virtual void                       onWindowFocus() override;
 
-    void                               render(PHLMONITOR, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation);
+    void                               render(Render::CRenderContext& ctx, PHLMONITOR, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation);
 
   private:
     bool visible();
-    void drawGlowInternal(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad, float a);
-    void drawGlowInternal(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2, float lerp,
-                          float a);
+    void drawGlowInternal(Render::CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad, float a);
+    void drawGlowInternal(Render::CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
+                          const Config::CGradientValueData& grad2, float lerp, float a);
 
     PHLWINDOWREF                m_window;
 

@@ -4,10 +4,10 @@ CShadowPassElement::CShadowPassElement(const CShadowPassElement::SShadowData& da
     ;
 }
 
-bool CShadowPassElement::needsLiveBlur() {
+bool CShadowPassElement::needsLiveBlur(Render::CRenderContext& ctx) {
     return false;
 }
 
-bool CShadowPassElement::needsPrecomputeBlur() {
+bool CShadowPassElement::needsPrecomputeBlur(Render::CRenderContext& ctx) {
     return false;
 }

@@ -10,9 +10,9 @@ namespace Render::GL {
       public:
         CDropsBlurMaterial();
 
-        bool isAnimated() const noexcept override;
+        bool isAnimated(CRenderContext& ctx) const noexcept override;
 
-        void bindFinish(WP<CShader> shader, const SBlurMaterialContext& context) const override;
+        void bindFinish(CRenderContext& ctx, WP<CShader> shader, const SBlurMaterialContext& context) const override;
 
       private:
         void                    updateAnimation(float speed) const;

@@ -15,11 +15,24 @@
 #include "../SharedDefs.hpp"
 #include <unordered_map>
 #include <variant>
+#include <functional>
+#include <optional>
+
+namespace Render {
+    class CRenderContext;
+}
 
 namespace Desktop {
     enum eFocusReason : uint32_t;
 }
 namespace Event {
+    struct SRenderStageEvent {
+        eRenderStage stage = RENDER_PRE;
+        PHLMONITOR   monitor;
+        // Borrowed only for this synchronous emission; PRE and POST have no live context.
+        std::optional<std::reference_wrapper<Render::CRenderContext>> context;
+    };
+
     struct SCallbackInfo {
         bool cancelled = false; /* on cancellable events, will cancel the event. */
     };
@@ -136,7 +149,7 @@ namespace Event {
             struct {
                 Event<PHLMONITOR>   preChecks;
                 Event<PHLMONITOR>   pre;
-                Event<eRenderStage> stage;
+                Event<SRenderStageEvent> stage;
             } render;
 
             struct {

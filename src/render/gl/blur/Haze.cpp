@@ -26,7 +26,7 @@ int64_t CHazeBlurMaterial::blurSizeForDamage(int64_t size) const {
     return std::clamp<int64_t>(size, 1, 40);
 }
 
-void CHazeBlurMaterial::bindFinish(WP<CShader> shader, const SBlurMaterialContext& context) const {
+void CHazeBlurMaterial::bindFinish(CRenderContext& ctx, WP<CShader> shader, const SBlurMaterialContext& context) const {
     static auto PHAZEINTENSITY   = CConfigValue<Config::FLOAT>("decoration:blur:haze:intensity");
     static auto PHAZEIRIDESCENCE = CConfigValue<Config::FLOAT>("decoration:blur:haze:iridescence");
 

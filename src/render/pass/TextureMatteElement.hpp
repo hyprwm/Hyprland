@@ -18,8 +18,8 @@ class CTextureMatteElement : public IPassElement {
     CTextureMatteElement(const STextureMatteData& data_);
     virtual ~CTextureMatteElement() = default;
 
-    virtual bool        needsLiveBlur();
-    virtual bool        needsPrecomputeBlur();
+    virtual bool        needsLiveBlur(Render::CRenderContext& ctx);
+    virtual bool        needsPrecomputeBlur(Render::CRenderContext& ctx);
 
     virtual const char* passName() {
         return "CTextureMatteElement";

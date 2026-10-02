@@ -153,12 +153,13 @@ CBox CWindowEffectsController::transformBoxForDamage(const CBox& currentBox) con
     return m_transformers->transformBoxForDamage(currentBox);
 }
 
-void CWindowEffectsController::preWindowRender(CSurfacePassElement::SRenderData* renderData) const {
-    m_transformers->preWindowRender(renderData);
+void CWindowEffectsController::preWindowRender(Render::CRenderContext& ctx, CSurfacePassElement::SRenderData* renderData) const {
+    m_transformers->preWindowRender(ctx, renderData);
 }
 
-void CWindowEffectsController::amendTransformedRenderData(const CBox& currentBox, SMotionBlurData* motionBlurData, const SP<Workspace::CWorkspacePresentable>& presentation) const {
-    m_transformers->amendTransformedRenderData(currentBox, motionBlurData, presentation);
+void CWindowEffectsController::amendTransformedRenderData(Render::CRenderContext& ctx, const CBox& currentBox, SMotionBlurData* motionBlurData,
+                                                          const SP<Workspace::CWorkspacePresentable>& presentation) const {
+    m_transformers->amendTransformedRenderData(ctx, currentBox, motionBlurData, presentation);
 }
 
 const UP<Render::CWindowTransformerList>& CWindowEffectsController::transformers() const {

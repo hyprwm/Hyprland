@@ -4,10 +4,10 @@ CInnerGlowPassElement::CInnerGlowPassElement(const CInnerGlowPassElement::SInner
     ;
 }
 
-bool CInnerGlowPassElement::needsLiveBlur() {
+bool CInnerGlowPassElement::needsLiveBlur(Render::CRenderContext& ctx) {
     return false;
 }
 
-bool CInnerGlowPassElement::needsPrecomputeBlur() {
+bool CInnerGlowPassElement::needsPrecomputeBlur(Render::CRenderContext& ctx) {
     return false;
 }

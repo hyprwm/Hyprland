@@ -4,10 +4,10 @@ CBorderPassElement::CBorderPassElement(const CBorderPassElement::SBorderData& da
     ;
 }
 
-bool CBorderPassElement::needsLiveBlur() {
+bool CBorderPassElement::needsLiveBlur(Render::CRenderContext& ctx) {
     return false;
 }
 
-bool CBorderPassElement::needsPrecomputeBlur() {
+bool CBorderPassElement::needsPrecomputeBlur(Render::CRenderContext& ctx) {
     return false;
 }

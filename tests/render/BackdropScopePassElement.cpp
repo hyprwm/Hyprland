@@ -1,4 +1,5 @@
 #include <render/pass/BackdropScopePassElement.hpp>
+#include <render/Context.hpp>
 #include <render/pass/TexPassElement.hpp>
 #include <render/pass/TransformedWindowPassElement.hpp>
 
@@ -18,15 +19,16 @@ TEST(BackdropScopePassElement, MarkersAreBalancedPassMetadata) {
 }
 
 TEST(BackdropScopePassElement, MarkersSurviveSimplificationWithoutRequestingBlur) {
+    Render::CRenderContext    ctx;
     const auto                scope = makeShared<SBackdropScope>();
     CBackdropScopePassElement marker{CBackdropScopePassElement::eAction::BEGIN, scope};
 
-    EXPECT_TRUE(marker.undiscardable());
-    EXPECT_FALSE(marker.needsLiveBlur());
-    EXPECT_FALSE(marker.needsPrecomputeBlur());
-    EXPECT_FALSE(marker.disableSimplification());
-    EXPECT_FALSE(marker.boundingBox().has_value());
-    EXPECT_TRUE(marker.opaqueRegion().empty());
+    EXPECT_TRUE(marker.undiscardable(ctx));
+    EXPECT_FALSE(marker.needsLiveBlur(ctx));
+    EXPECT_FALSE(marker.needsPrecomputeBlur(ctx));
+    EXPECT_FALSE(marker.disableSimplification(ctx));
+    EXPECT_FALSE(marker.boundingBox(ctx).has_value());
+    EXPECT_TRUE(marker.opaqueRegion(ctx).empty());
 }
 
 TEST(BackdropScopePlanner, ActivatesOnlyInnermostScopeAndClipsDamage) {
@@ -61,6 +63,7 @@ TEST(BackdropScopePlanner, UnionsLiveBlurDamageWithinScope) {
 }
 
 TEST(BackdropScopePlanner, TransformedWindowReportsNestedLiveBlur) {
+    Render::CRenderContext ctx;
     auto nestedPass = makeUnique<Render::CRenderPass>();
     nestedPass->add(makeUnique<CTexPassElement>(CTexPassElement::SRenderData{
         .blur                  = true,
@@ -68,10 +71,11 @@ TEST(BackdropScopePlanner, TransformedWindowReportsNestedLiveBlur) {
     }));
 
     CTransformedWindowPassElement transformed{CTransformedWindowPassElement::SData{.pass = std::move(nestedPass)}};
-    EXPECT_TRUE(transformed.needsLiveBlur());
+    EXPECT_TRUE(transformed.needsLiveBlur(ctx));
 }
 
 TEST(BackdropScopePlanner, TransformedWindowReportsNestedPrecomputedBlur) {
+    Render::CRenderContext ctx;
     auto nestedPass = makeUnique<Render::CRenderPass>();
     nestedPass->add(makeUnique<CTexPassElement>(CTexPassElement::SRenderData{
         .blur             = true,
@@ -79,25 +83,27 @@ TEST(BackdropScopePlanner, TransformedWindowReportsNestedPrecomputedBlur) {
     }));
 
     CTransformedWindowPassElement transformed{CTransformedWindowPassElement::SData{.pass = std::move(nestedPass)}};
-    EXPECT_TRUE(transformed.needsPrecomputeBlur());
+    EXPECT_TRUE(transformed.needsPrecomputeBlur(ctx));
 }
 
 TEST(BackdropScopePlanner, TransformedWindowPreservesLiveBlurMode) {
+    Render::CRenderContext        ctx;
     CTransformedWindowPassElement transformed{CTransformedWindowPassElement::SData{
         .blur         = true,
         .blurUsesLive = true,
     }};
 
-    EXPECT_TRUE(transformed.needsLiveBlur());
-    EXPECT_FALSE(transformed.needsPrecomputeBlur());
+    EXPECT_TRUE(transformed.needsLiveBlur(ctx));
+    EXPECT_FALSE(transformed.needsPrecomputeBlur(ctx));
 }
 
 TEST(BackdropScopePlanner, TransformedWindowPreservesPrecomputedBlurMode) {
+    Render::CRenderContext        ctx;
     CTransformedWindowPassElement transformed{CTransformedWindowPassElement::SData{
         .blur         = true,
         .blurUsesLive = false,
     }};
 
-    EXPECT_FALSE(transformed.needsLiveBlur());
-    EXPECT_TRUE(transformed.needsPrecomputeBlur());
+    EXPECT_FALSE(transformed.needsLiveBlur(ctx));
+    EXPECT_TRUE(transformed.needsPrecomputeBlur(ctx));
 }

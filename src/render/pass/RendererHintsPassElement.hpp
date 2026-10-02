@@ -11,9 +11,9 @@ class CRendererHintsPassElement : public IPassElement {
     CRendererHintsPassElement(const SData& data);
     virtual ~CRendererHintsPassElement() = default;
 
-    virtual bool        needsLiveBlur();
-    virtual bool        needsPrecomputeBlur();
-    virtual bool        undiscardable();
+    virtual bool        needsLiveBlur(Render::CRenderContext& ctx);
+    virtual bool        needsPrecomputeBlur(Render::CRenderContext& ctx);
+    virtual bool        undiscardable(Render::CRenderContext& ctx);
 
     virtual const char* passName() {
         return "CRendererHintsPassElement";

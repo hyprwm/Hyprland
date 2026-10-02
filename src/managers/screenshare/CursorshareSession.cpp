@@ -112,32 +112,33 @@ eScreenshareError CCursorshareSession::share(PHLMONITOR monitor, SP<IHLBuffer> b
     return ERROR_NONE;
 }
 
-void CCursorshareSession::render() {
+void CCursorshareSession::render(Render::CRenderContext& ctx) {
     const auto  PERM = g_pDynamicPermissionManager->clientPermissionMode(m_client, PERMISSION_TYPE_CURSOR_POS);
 
     const auto& cursorImage = Pointer::mgr()->currentCursorImage();
 
     // TODO: implement a monitor independent render mode to buffer that does this in CHyprRenderer::begin() or something like that
-    g_pHyprRenderer->context().m_data.transformDamage = false;
+    ctx.m_data.transformDamage = false;
     g_pHyprRenderer->setViewport(0, 0, m_bufferSize.x, m_bufferSize.y);
 
     bool overlaps = Pointer::mgr()->getCursorBoxGlobal().overlaps(m_pendingFrame.sourceBoxCallback());
-    g_pHyprRenderer->startRenderPass();
+    g_pHyprRenderer->startRenderPass(ctx);
     if (PERM != PERMISSION_RULE_ALLOW_MODE_ALLOW || !overlaps) {
         // render black when not allowed
-        g_pHyprRenderer->draw(CClearPassElement::SClearData{Colors::BLACK});
+        g_pHyprRenderer->draw(ctx, CClearPassElement::SClearData{Colors::BLACK});
     } else if (!cursorImage.pBuffer || !cursorImage.surface || !cursorImage.bufferTex) {
         // render clear when cursor is probably hidden
-        g_pHyprRenderer->draw(CClearPassElement::SClearData{{0, 0, 0, 0}});
+        g_pHyprRenderer->draw(ctx, CClearPassElement::SClearData{{0, 0, 0, 0}});
     } else {
         // render cursor
-        g_pHyprRenderer->draw(CTexPassElement::SRenderData{
-            .tex = cursorImage.bufferTex,
-            .box = {{}, cursorImage.bufferTex->m_size},
-        });
+        g_pHyprRenderer->draw(ctx,
+                              CTexPassElement::SRenderData{
+                                  .tex = cursorImage.bufferTex,
+                                  .box = {{}, cursorImage.bufferTex->m_size},
+                              });
     }
 
-    g_pHyprRenderer->context().m_data.blockScreenShader = true;
+    ctx.m_data.blockScreenShader = true;
 }
 
 bool CCursorshareSession::copy() {
@@ -170,7 +171,7 @@ bool CCursorshareSession::copy() {
                 g_pHyprRenderer->abortRender();
         });
 
-        render();
+        render(g_pHyprRenderer->context());
 
         finishing = true;
         g_pHyprRenderer->endRender([callback = m_pendingFrame.callback]() {
@@ -198,7 +199,7 @@ bool CCursorshareSession::copy() {
                 g_pHyprRenderer->abortRender();
         });
 
-        render();
+        render(g_pHyprRenderer->context());
 
         finishing = true;
         g_pHyprRenderer->endRender();

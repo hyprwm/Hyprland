@@ -7,11 +7,11 @@ namespace Render::GL {
 
     class IGLBlurProvider : public Render::IBlurProvider {
       public:
-        SP<IFramebuffer> blur(SP<IFramebuffer> source, float strength, const CRegion& originalDamage, const SBlurContext& context = {}) final;
+        SP<IFramebuffer> blur(CRenderContext& ctx, SP<IFramebuffer> source, float strength, const CRegion& originalDamage, const SBlurContext& context = {}) final;
 
       protected:
         IGLBlurProvider() = default;
 
-        virtual SP<CGLFramebuffer> blurGL(SP<CGLFramebuffer> source, float strength, const CRegion& originalDamage, const SBlurContext& context) = 0;
+        virtual SP<CGLFramebuffer> blurGL(CRenderContext& ctx, SP<CGLFramebuffer> source, float strength, const CRegion& originalDamage, const SBlurContext& context) = 0;
     };
 }

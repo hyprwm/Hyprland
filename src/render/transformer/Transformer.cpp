@@ -15,7 +15,7 @@ CBox Render::pixelBoxForLogical(const CBox& box, double scale) {
     return {x1, y1, x2 - x1, y2 - y1};
 }
 
-void IWindowTransformer::preWindowRender(CSurfacePassElement::SRenderData* pRenderData) {
+void IWindowTransformer::preWindowRender(CRenderContext& ctx, CSurfacePassElement::SRenderData* pRenderData) {
     ;
 }
 
@@ -47,6 +47,7 @@ CBox IWindowTransformer::transformBoxForDamage(const CBox& currentBox) const {
     return transformedExtents(currentBox);
 }
 
-void IWindowTransformer::amendTransformedRenderData(const CBox& currentBox, SMotionBlurData* pMotionBlurData, const SP<Workspace::CWorkspacePresentable>& presentation) {
+void IWindowTransformer::amendTransformedRenderData(CRenderContext& ctx, const CBox& currentBox, SMotionBlurData* pMotionBlurData,
+                                                    const SP<Workspace::CWorkspacePresentable>& presentation) {
     ;
 }

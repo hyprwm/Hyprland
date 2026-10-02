@@ -11,6 +11,7 @@ namespace Workspace {
 }
 
 namespace Render {
+    class CRenderContext;
     struct SBlurShape {
         CBox  box;
         float radius        = 0.F;
@@ -44,11 +45,11 @@ namespace Render {
         virtual ~IBlurProvider() = default;
 
         virtual eBlurType        type() const noexcept             = 0;
-        virtual bool             isAnimated() const noexcept       = 0;
+        virtual bool             isAnimated(CRenderContext& ctx) const noexcept = 0;
         virtual bool             requiresLiveBlur() const noexcept = 0;
 
         virtual void             expandDamage(CRegion& damage, float multiplier = 1.F) const                                                    = 0;
-        virtual SP<IFramebuffer> blur(SP<IFramebuffer> source, float strength, const CRegion& originalDamage, const SBlurContext& context = {}) = 0;
+        virtual SP<IFramebuffer> blur(CRenderContext& ctx, SP<IFramebuffer> source, float strength, const CRegion& originalDamage, const SBlurContext& context = {}) = 0;
 
       protected:
         IBlurProvider() = default;

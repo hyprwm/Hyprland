@@ -80,7 +80,7 @@ CBox CSurfacePassElement::getTexBox() {
     return m_cachedTexBox;
 }
 
-bool CSurfacePassElement::needsLiveBlur() {
+bool CSurfacePassElement::needsLiveBlur(Render::CRenderContext& ctx) {
     auto        PSURFACE = Desktop::View::CWLSurface::fromResource(m_data.surface);
 
     const float ALPHA = m_data.alpha * m_data.fadeAlpha * (PSURFACE ? PSURFACE->m_alphaModifier * PSURFACE->m_overallOpacity : 1.F);
@@ -92,12 +92,12 @@ bool CSurfacePassElement::needsLiveBlur() {
     if (m_data.popup)
         return BLUR;
 
-    const bool NEWOPTIM = g_pHyprRenderer->shouldUseNewBlurOptimizations(m_data.pLS, m_data.pWindow);
+    const bool NEWOPTIM = g_pHyprRenderer->shouldUseNewBlurOptimizations(ctx, m_data.pLS, m_data.pWindow);
 
     return BLUR && (m_data.blockBlurOptimization || !NEWOPTIM);
 }
 
-bool CSurfacePassElement::needsPrecomputeBlur() {
+bool CSurfacePassElement::needsPrecomputeBlur(Render::CRenderContext& ctx) {
     auto        PSURFACE = Desktop::View::CWLSurface::fromResource(m_data.surface);
 
     const float ALPHA = m_data.alpha * m_data.fadeAlpha * (PSURFACE ? PSURFACE->m_alphaModifier * PSURFACE->m_overallOpacity : 1.F);
@@ -109,16 +109,16 @@ bool CSurfacePassElement::needsPrecomputeBlur() {
     if (m_data.popup)
         return false;
 
-    const bool NEWOPTIM = g_pHyprRenderer->shouldUseNewBlurOptimizations(m_data.pLS, m_data.pWindow);
+    const bool NEWOPTIM = g_pHyprRenderer->shouldUseNewBlurOptimizations(ctx, m_data.pLS, m_data.pWindow);
 
     return BLUR && NEWOPTIM && !m_data.blockBlurOptimization;
 }
 
-std::optional<CBox> CSurfacePassElement::boundingBox() {
+std::optional<CBox> CSurfacePassElement::boundingBox(Render::CRenderContext& ctx) {
     return getTexBox();
 }
 
-CRegion CSurfacePassElement::opaqueRegion() {
+CRegion CSurfacePassElement::opaqueRegion(Render::CRenderContext& ctx) {
     auto        PSURFACE = Desktop::View::CWLSurface::fromResource(m_data.surface);
 
     const float ALPHA = m_data.alpha * m_data.fadeAlpha * (PSURFACE ? PSURFACE->m_alphaModifier * PSURFACE->m_overallOpacity : 1.F);
@@ -133,10 +133,10 @@ CRegion CSurfacePassElement::opaqueRegion() {
         return opaqueSurf.translate(m_data.pos + m_data.localPos - m_data.pMonitor->m_position).expand(-m_data.rounding);
     }
 
-    return m_data.texture && m_data.texture->m_opaque ? boundingBox()->expand(-m_data.rounding) : CRegion{};
+    return m_data.texture && m_data.texture->m_opaque ? boundingBox(ctx)->expand(-m_data.rounding) : CRegion{};
 }
 
-CRegion CSurfacePassElement::visibleRegion(bool& cancel) {
+CRegion CSurfacePassElement::visibleRegion(Render::CRenderContext& ctx, bool& cancel) {
     auto PSURFACE = Desktop::View::CWLSurface::fromResource(m_data.surface);
     if (!PSURFACE)
         return {};
@@ -157,8 +157,8 @@ CRegion CSurfacePassElement::visibleRegion(bool& cancel) {
     // deal with any rounding errors that might come from scaling
     visibleRegion.expand(1);
 
-    auto uvTL = g_pHyprRenderer->context().m_data.primarySurfaceUVTopLeft;
-    auto uvBR = g_pHyprRenderer->context().m_data.primarySurfaceUVBottomRight;
+    auto uvTL = ctx.m_data.primarySurfaceUVTopLeft;
+    auto uvBR = ctx.m_data.primarySurfaceUVBottomRight;
 
     if (uvTL == Vector2D(-1, -1))
         uvTL = Vector2D(0, 0);
@@ -178,8 +178,8 @@ CRegion CSurfacePassElement::visibleRegion(bool& cancel) {
     return visibleRegion;
 }
 
-void CSurfacePassElement::discard() {
-    if (!g_pHyprRenderer->context().m_blockSurfaceFeedback) {
+void CSurfacePassElement::discard(Render::CRenderContext& ctx) {
+    if (!ctx.m_blockSurfaceFeedback) {
         LOG(Log::TRACE, "discard for invisible surface");
         m_data.surface->presentFeedback(m_data.when, m_data.pMonitor->m_self.lock(), true);
     }

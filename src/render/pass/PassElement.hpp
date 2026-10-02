@@ -3,6 +3,10 @@
 #include "../../defines.hpp"
 #include <vector>
 
+namespace Render {
+    class CRenderContext;
+}
+
 enum ePassElementType : uint8_t {
     EK_UNKNOWN = 0,
     EK_BORDER,
@@ -25,18 +29,18 @@ class IPassElement {
   public:
     virtual ~IPassElement() = default;
 
-    virtual std::vector<UP<IPassElement>> draw();
+    virtual std::vector<UP<IPassElement>> draw(Render::CRenderContext& ctx);
     //
-    virtual bool                needsLiveBlur()       = 0;
-    virtual bool                needsPrecomputeBlur() = 0;
+    virtual bool                needsLiveBlur(Render::CRenderContext& ctx)       = 0;
+    virtual bool                needsPrecomputeBlur(Render::CRenderContext& ctx) = 0;
     virtual const char*         passName()            = 0;
     virtual ePassElementType    type()                = 0;
-    virtual void                discard();
-    virtual bool                undiscardable();
-    virtual std::optional<CBox> boundingBox();  // in monitor-local logical coordinates
-    virtual CRegion             opaqueRegion(); // in monitor-local logical coordinates
-    virtual bool                disableSimplification();
-    virtual bool                requiresFullDamage();
+    virtual void                discard(Render::CRenderContext& ctx);
+    virtual bool                undiscardable(Render::CRenderContext& ctx);
+    virtual std::optional<CBox> boundingBox(Render::CRenderContext& ctx);  // in monitor-local logical coordinates
+    virtual CRegion             opaqueRegion(Render::CRenderContext& ctx); // in monitor-local logical coordinates
+    virtual bool                disableSimplification(Render::CRenderContext& ctx);
+    virtual bool                requiresFullDamage(Render::CRenderContext& ctx);
 
     // cached results, computed once per frame in CRenderPass::render()
     bool needsLiveBlurCached       = false;

@@ -105,16 +105,16 @@ void CRippleBlurMaterial::addImpulse() {
     damageImpulse(impulse);
 }
 
-bool CRippleBlurMaterial::isAnimated() const noexcept {
+bool CRippleBlurMaterial::isAnimated(CRenderContext& ctx) const noexcept {
     static auto PRIPPLESTRENGTH = CConfigValue<Config::FLOAT>("decoration:blur:ripple:strength");
     static auto PRIPPLEDURATION = CConfigValue<Config::FLOAT>("decoration:blur:ripple:duration");
     static auto PBLURENABLED    = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
 
-    if (!*PBLURENABLED || *PRIPPLESTRENGTH <= 0.F || *PRIPPLEDURATION <= 0.F || !g_pHyprRenderer->context().m_data.pMonitor)
+    if (!*PBLURENABLED || *PRIPPLESTRENGTH <= 0.F || *PRIPPLEDURATION <= 0.F || !ctx.m_data.pMonitor)
         return false;
 
     const auto now = Time::steadyNow();
-    return std::ranges::any_of(m_impulses, [&](const auto& impulse) { return impulseIsActive(impulse, g_pHyprRenderer->context().m_data.pMonitor, now, *PRIPPLEDURATION); });
+    return std::ranges::any_of(m_impulses, [&](const auto& impulse) { return impulseIsActive(impulse, ctx.m_data.pMonitor, now, *PRIPPLEDURATION); });
 }
 
 SBlurMaterialRequirements CRippleBlurMaterial::requirements() const noexcept {
@@ -123,13 +123,13 @@ SBlurMaterialRequirements CRippleBlurMaterial::requirements() const noexcept {
     };
 }
 
-void CRippleBlurMaterial::bindFinish(WP<CShader> shader, const SBlurMaterialContext& context) const {
+void CRippleBlurMaterial::bindFinish(CRenderContext& ctx, WP<CShader> shader, const SBlurMaterialContext& context) const {
     static auto        PRIPPLESTRENGTH = CConfigValue<Config::FLOAT>("decoration:blur:ripple:strength");
     static auto        PRIPPLERADIUS   = CConfigValue<Config::FLOAT>("decoration:blur:ripple:radius");
     static auto        PRIPPLEWIDTH    = CConfigValue<Config::FLOAT>("decoration:blur:ripple:width");
     static auto        PRIPPLEDURATION = CConfigValue<Config::FLOAT>("decoration:blur:ripple:duration");
 
-    const auto         monitor  = g_pHyprRenderer->context().m_data.pMonitor;
+    const auto         monitor  = ctx.m_data.pMonitor;
     const auto         now      = Time::steadyNow();
     const auto         duration = std::max(*PRIPPLEDURATION, 0.001F);
 

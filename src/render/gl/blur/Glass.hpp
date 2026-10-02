@@ -10,7 +10,7 @@ namespace Render::GL {
         eBlurType                 type() const noexcept override;
         SBlurMaterialRequirements requirements() const noexcept override;
         float                     sampleRadius() const override;
-        void                      bindFinish(WP<CShader> shader, const SBlurMaterialContext& context) const override;
+        void                      bindFinish(CRenderContext& ctx, WP<CShader> shader, const SBlurMaterialContext& context) const override;
 
       private:
         const eBlurType               m_type;

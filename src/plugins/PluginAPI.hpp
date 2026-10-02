@@ -18,7 +18,7 @@ Feel like the API is missing something you'd like to use in your plugin? Open an
 
 */
 
-#define HYPRLAND_API_VERSION "0.1"
+#define HYPRLAND_API_VERSION "0.2"
 
 #include "../helpers/Color.hpp"
 #include "HookSystem.hpp"

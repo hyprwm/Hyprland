@@ -23,6 +23,7 @@
 
 namespace Render {
     class ITexture;
+    struct SCMSettings;
 }
 
 namespace NColorManagement {
@@ -381,8 +382,8 @@ namespace NColorManagement {
 
     using PImageDescription = WP<const CImageDescription>;
 
-    RGBAColor         convertColor(RGBAColor color, PImageDescription srcDesc, PImageDescription dstDesc);
-    CHyprColor        convertColor(const CHyprColor& color, PImageDescription srcDesc, PImageDescription dstDesc);
+    RGBAColor         convertColor(RGBAColor color, PImageDescription srcDesc, PImageDescription dstDesc, const Render::SCMSettings& settings);
+    CHyprColor        convertColor(const CHyprColor& color, PImageDescription srcDesc, PImageDescription dstDesc, const Render::SCMSettings& settings);
 
     PImageDescription getDefaultImageDescription();
 

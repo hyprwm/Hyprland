@@ -181,13 +181,13 @@ void CScreenshareFrame::copy() {
         m_callback(RESULT_NOT_COPIED);
 }
 
-void CScreenshareFrame::renderMonitor() {
+void CScreenshareFrame::renderMonitor(Render::CRenderContext& ctx) {
     if ((m_session->m_type != SHARE_MONITOR && m_session->m_type != SHARE_REGION) || done())
         return;
 
     const auto PMONITOR = m_session->monitor();
 
-    auto       TEXTURE = g_pHyprRenderer->context().m_data.pMonitor->resources()->getMirrorTexture();
+    auto       TEXTURE = ctx.m_data.pMonitor->resources()->getMirrorTexture();
     if (!TEXTURE) {
         LOG(Log::ERR, "Invalid source texture");
         return;
@@ -196,33 +196,33 @@ void CScreenshareFrame::renderMonitor() {
     if (!TEXTURE->m_imageDescription)
         LOG(Log::ERR, "CM: FIXME no source image description for screenshare");
 
-    if (!g_pHyprRenderer->context().m_data.currentFB->imageDescription())
+    if (!ctx.m_data.currentFB->imageDescription())
         LOG(Log::ERR, "CM: FIXME no target image description for screenshare");
 
-    if (TEXTURE->m_imageDescription && g_pHyprRenderer->context().m_data.currentFB->imageDescription())
-        LOG(Log::TRACE, "CM: screenshot renderMonitor {} -> {}", TEXTURE->m_imageDescription->value(), g_pHyprRenderer->context().m_data.currentFB->imageDescription()->value());
+    if (TEXTURE->m_imageDescription && ctx.m_data.currentFB->imageDescription())
+        LOG(Log::TRACE, "CM: screenshot renderMonitor {} -> {}", TEXTURE->m_imageDescription->value(), ctx.m_data.currentFB->imageDescription()->value());
 
     const bool IS_CM_AWARE               = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_session->m_client);
-    g_pHyprRenderer->context().m_data.fbSize = m_bufferSize;
-    g_pHyprRenderer->setProjectionType(Render::RPT_EXPORT);
-    g_pHyprRenderer->context().m_data.transformDamage = false;
-    g_pHyprRenderer->context().m_data.noSimplify      = true;
+    ctx.m_data.fbSize                    = m_bufferSize;
+    g_pHyprRenderer->setProjectionType(ctx, Render::RPT_EXPORT);
+    ctx.m_data.transformDamage = false;
+    ctx.m_data.noSimplify      = true;
     g_pHyprRenderer->setViewport(0, 0, m_bufferSize.x, m_bufferSize.y);
 
     // render monitor texture
     CBox       monbox = CBox{{}, PMONITOR->m_transformedSize}.translate(-m_session->m_captureBox.pos());
 
-    const auto OLD                                        = g_pHyprRenderer->context().m_data.renderModif.enabled;
-    g_pHyprRenderer->context().m_data.renderModif.enabled = false;
-    g_pHyprRenderer->startRenderPass();
-    g_pHyprRenderer->draw(
-        CTexPassElement::SRenderData{
-            .tex          = TEXTURE,
-            .box          = monbox,
-            .cmBackToSRGB = !IS_CM_AWARE,
-        },
-        {0, 0, m_bufferSize.x, m_bufferSize.y});
-    g_pHyprRenderer->context().m_data.renderModif.enabled = OLD;
+    const auto OLD                 = ctx.m_data.renderModif.enabled;
+    ctx.m_data.renderModif.enabled = false;
+    g_pHyprRenderer->startRenderPass(ctx);
+    g_pHyprRenderer->draw(ctx,
+                          CTexPassElement::SRenderData{
+                              .tex          = TEXTURE,
+                              .box          = monbox,
+                              .cmBackToSRGB = !IS_CM_AWARE,
+                          },
+                          {0, 0, m_bufferSize.x, m_bufferSize.y});
+    ctx.m_data.renderModif.enabled = OLD;
 
     // render black boxes for noscreenshare
     auto hidePopups = [&](Vector2D popupBaseOffset) {
@@ -238,7 +238,7 @@ void CScreenshareFrame::renderMonitor() {
                         CBox{popupBaseOffset + popRel + localOff, size}.translate(PMONITOR->m_position).scale(PMONITOR->m_scale).translate(-m_session->m_captureBox.pos());
 
                     if LIKELY (surfBox.w > 0 && surfBox.h > 0)
-                        g_pHyprRenderer->draw(CRectPassElement::SRectData{.box = surfBox, .color = Colors::BLACK}, surfBox);
+                        g_pHyprRenderer->draw(ctx, CRectPassElement::SRectData{.box = surfBox, .color = Colors::BLACK}, surfBox);
                 },
                 nullptr);
         };
@@ -259,7 +259,7 @@ void CScreenshareFrame::renderMonitor() {
                                           .scale(PMONITOR->m_scale)
                                           .translate(-m_session->m_captureBox.pos());
 
-        g_pHyprRenderer->draw(CRectPassElement::SRectData{.box = noScreenShareBox, .color = Colors::BLACK}, noScreenShareBox);
+        g_pHyprRenderer->draw(ctx, CRectPassElement::SRectData{.box = noScreenShareBox, .color = Colors::BLACK}, noScreenShareBox);
 
         const auto     geom            = l->m_geometry;
         const Vector2D popupBaseOffset = REALPOS - Vector2D{geom.pos().x, geom.pos().y};
@@ -295,14 +295,14 @@ void CScreenshareFrame::renderMonitor() {
         const auto rounding      = dontRound ? 0 : w->presentation().rounding() * PMONITOR->m_scale;
         const auto roundingPower = dontRound ? 2.0f : w->presentation().roundingPower();
 
-        g_pHyprRenderer->draw(
-            CRectPassElement::SRectData{
-                .box           = noScreenShareBox,
-                .color         = Colors::BLACK,
-                .round         = rounding,
-                .roundingPower = roundingPower,
-            },
-            noScreenShareBox);
+        g_pHyprRenderer->draw(ctx,
+                              CRectPassElement::SRectData{
+                                  .box           = noScreenShareBox,
+                                  .color         = Colors::BLACK,
+                                  .round         = rounding,
+                                  .roundingPower = roundingPower,
+                              },
+                              noScreenShareBox);
 
         if (w->backend().isX11() || !w->popupHead())
             continue;
@@ -316,11 +316,11 @@ void CScreenshareFrame::renderMonitor() {
     if (m_overlayCursor) {
         CRegion  fakeDamage = {0, 0, m_bufferSize.x, m_bufferSize.y};
         Vector2D cursorPos  = Pointer::mgr()->untransformedPosition() - PMONITOR->m_position - m_session->m_captureBox.pos() / PMONITOR->m_scale;
-        Pointer::mgr()->renderSoftwareCursorsFor(PMONITOR, Time::steadyNow(), fakeDamage, cursorPos, true);
+        Pointer::mgr()->renderSoftwareCursorsFor(ctx, PMONITOR, Time::steadyNow(), fakeDamage, cursorPos, true);
     }
 }
 
-void CScreenshareFrame::renderWindow() {
+void CScreenshareFrame::renderWindow(Render::CRenderContext& ctx) {
     if (m_session->m_type != SHARE_WINDOW || done())
         return;
 
@@ -330,14 +330,14 @@ void CScreenshareFrame::renderWindow() {
     const auto NOW = Time::steadyNow();
 
     // TODO: implement a monitor independent render mode to buffer that does this in CHyprRenderer::begin() or something like that
-    g_pHyprRenderer->context().m_data.fbSize = m_bufferSize;
-    g_pHyprRenderer->setProjectionType(Render::RPT_EXPORT);
-    g_pHyprRenderer->context().m_data.transformDamage = false;
+    ctx.m_data.fbSize = m_bufferSize;
+    g_pHyprRenderer->setProjectionType(ctx, Render::RPT_EXPORT);
+    ctx.m_data.transformDamage = false;
     g_pHyprRenderer->setViewport(0, 0, m_bufferSize.x, m_bufferSize.y);
 
-    g_pHyprRenderer->context().m_blockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(PWINDOW); // block the feedback to avoid spamming the surface if it's visible
-    g_pHyprRenderer->renderWindow(PWINDOW, PMONITOR, nullptr, NOW, false, Render::RENDER_PASS_ALL, true, true);
-    g_pHyprRenderer->context().m_blockSurfaceFeedback = false;
+    ctx.m_blockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(PWINDOW); // block the feedback to avoid spamming the surface if it's visible
+    g_pHyprRenderer->renderWindow(ctx, PWINDOW, PMONITOR, nullptr, NOW, false, Render::RENDER_PASS_ALL, true, true);
+    ctx.m_blockSurfaceFeedback = false;
 
     if (!m_overlayCursor)
         return;
@@ -359,39 +359,39 @@ void CScreenshareFrame::renderWindow() {
         return;
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
-    Pointer::mgr()->renderSoftwareCursorsFor(PMONITOR->m_self.lock(), NOW, fakeDamage,
+    Pointer::mgr()->renderSoftwareCursorsFor(ctx, PMONITOR->m_self.lock(), NOW, fakeDamage,
                                              Pointer::mgr()->untransformedPosition() - PWINDOW->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT), true, true);
 }
 
-void CScreenshareFrame::render() {
+void CScreenshareFrame::render(Render::CRenderContext& ctx) {
     const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(m_session->m_client, PERMISSION_TYPE_SCREENCOPY);
 
     CRegion    frameRegion = {0, 0, m_bufferSize.x, m_bufferSize.y};
 
-    g_pHyprRenderer->draw(CClearPassElement::SClearData{{0, 0, 0, 0}}, frameRegion);
+    g_pHyprRenderer->draw(ctx, CClearPassElement::SClearData{{0, 0, 0, 0}}, frameRegion);
 
     if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING)
         return;
 
     bool windowShareDenied = m_session->m_type == SHARE_WINDOW && m_session->m_window->m_ruleApplicator && m_session->m_window->m_ruleApplicator->noScreenShare().valueOrDefault();
-    g_pHyprRenderer->startRenderPass();
+    g_pHyprRenderer->startRenderPass(ctx);
     if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY || windowShareDenied) {
         CBox texbox = CBox{m_bufferSize / 2.F, g_pHyprRenderer->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprRenderer->m_screencopyDeniedTexture->m_size / 2.F);
-        g_pHyprRenderer->draw(CTexPassElement::SRenderData{.tex = g_pHyprRenderer->m_screencopyDeniedTexture, .box = texbox}, texbox);
+        g_pHyprRenderer->draw(ctx, CTexPassElement::SRenderData{.tex = g_pHyprRenderer->m_screencopyDeniedTexture, .box = texbox}, texbox);
         return;
     }
 
     if (m_session->m_tempFB && m_session->m_tempFB->isAllocated()) {
         CBox texbox = {{}, m_bufferSize};
-        g_pHyprRenderer->draw(CTexPassElement::SRenderData{.tex = m_session->m_tempFB->getTexture(), .box = texbox}, texbox);
+        g_pHyprRenderer->draw(ctx, CTexPassElement::SRenderData{.tex = m_session->m_tempFB->getTexture(), .box = texbox}, texbox);
         m_session->m_tempFB->release();
         return;
     }
 
     switch (m_session->m_type) {
         case SHARE_REGION: // TODO: could this be better? this is how screencopy works
-        case SHARE_MONITOR: renderMonitor(); break;
-        case SHARE_WINDOW: renderWindow(); break;
+        case SHARE_MONITOR: renderMonitor(ctx); break;
+        case SHARE_WINDOW: renderWindow(ctx); break;
         case SHARE_NONE:
         default: return;
     }
@@ -410,11 +410,12 @@ bool CScreenshareFrame::copyDmabuf() {
         if (!finishing)
             g_pHyprRenderer->abortRender();
     });
-    g_pHyprRenderer->context().m_data.currentFB->setImageDescription(NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION);
+    auto&                     ctx = g_pHyprRenderer->context();
+    ctx.m_data.currentFB->setImageDescription(NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION);
 
-    render();
+    render(ctx);
 
-    g_pHyprRenderer->context().m_data.blockScreenShader = true;
+    ctx.m_data.blockScreenShader = true;
 
     m_copyInFlight = true;
 
@@ -464,9 +465,10 @@ bool CScreenshareFrame::copyShm() {
             g_pHyprRenderer->abortRender();
     });
 
-    render();
+    auto&                     ctx = g_pHyprRenderer->context();
+    render(ctx);
 
-    g_pHyprRenderer->context().m_data.blockScreenShader = true;
+    ctx.m_data.blockScreenShader = true;
 
     finishing = true;
     g_pHyprRenderer->endRender();
@@ -517,10 +519,11 @@ void CScreenshareFrame::storeTempFB() {
             g_pHyprRenderer->abortRender();
     });
 
+    auto&                     ctx = g_pHyprRenderer->context();
     switch (m_session->m_type) {
         case SHARE_REGION: // TODO: could this be better? this is how screencopy works
-        case SHARE_MONITOR: renderMonitor(); break;
-        case SHARE_WINDOW: renderWindow(); break;
+        case SHARE_MONITOR: renderMonitor(ctx); break;
+        case SHARE_WINDOW: renderWindow(ctx); break;
         case SHARE_NONE:
         default: return;
     }

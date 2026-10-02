@@ -8,7 +8,7 @@ namespace Render::GL {
         eBlurType                 type() const noexcept override;
         SBlurMaterialRequirements requirements() const noexcept override;
         int64_t                   blurSizeForDamage(int64_t size) const override;
-        void                      bindFinish(WP<CShader> shader, const SBlurMaterialContext& context) const override;
+        void                      bindFinish(CRenderContext& ctx, WP<CShader> shader, const SBlurMaterialContext& context) const override;
     };
 
     class CHazeBlurProvider final : public CDualKawaseBlurProvider {

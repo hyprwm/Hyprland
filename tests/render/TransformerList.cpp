@@ -1,4 +1,5 @@
 #include <render/transformer/TransformerList.hpp>
+#include <render/Context.hpp>
 #include <workspace/presentation/WorkspacePresentable.hpp>
 
 #include <gtest/gtest.h>
@@ -9,7 +10,7 @@ class CTestDamageTransformer : public Render::IWindowTransformer {
         ;
     }
 
-    virtual Render::SWindowTransformBuffer transform(const Render::SWindowTransformBuffer& in, const Render::SWindowTransformContext& context) {
+    virtual Render::SWindowTransformBuffer transform(Render::CRenderContext& ctx, const Render::SWindowTransformBuffer& in, const Render::SWindowTransformContext& context) {
         (void)context;
         return in;
     }
@@ -42,7 +43,7 @@ class CTestRegionTransformer : public Render::IWindowTransformer {
         ;
     }
 
-    virtual Render::SWindowTransformBuffer transform(const Render::SWindowTransformBuffer& in, const Render::SWindowTransformContext& context) {
+    virtual Render::SWindowTransformBuffer transform(Render::CRenderContext& ctx, const Render::SWindowTransformBuffer& in, const Render::SWindowTransformContext& context) {
         (void)context;
         return in;
     }
@@ -70,7 +71,8 @@ class CTestPresentationTransformer : public CTestDamageTransformer {
         ;
     }
 
-    virtual void amendTransformedRenderData(const CBox& currentBox, SMotionBlurData* motionBlurData, const SP<Workspace::CWorkspacePresentable>& presentation) {
+    virtual void amendTransformedRenderData(Render::CRenderContext& ctx, const CBox& currentBox, SMotionBlurData* motionBlurData,
+                                            const SP<Workspace::CWorkspacePresentable>& presentation) {
         ++m_amendCount;
         m_presentation = presentation;
         if (motionBlurData)
@@ -125,6 +127,7 @@ TEST(Render, transformerPixelBoxRoundsOutward) {
 }
 
 TEST(Render, transformerListAmendsWithExplicitPresentationPerRender) {
+    Render::CRenderContext         ctx;
     Render::CWindowTransformerList list;
     const auto                     ACTIVE   = list.emplace<CTestPresentationTransformer>(true);
     const auto                     INACTIVE = list.emplace<CTestPresentationTransformer>(false);
@@ -133,16 +136,16 @@ TEST(Render, transformerListAmendsWithExplicitPresentationPerRender) {
     const CBox                     BOX      = {1, 2, 10, 20};
     SMotionBlurData                motionBlur;
 
-    list.amendTransformedRenderData(BOX, &motionBlur, FIRST);
+    list.amendTransformedRenderData(ctx, BOX, &motionBlur, FIRST);
     EXPECT_EQ(ACTIVE->m_presentation, FIRST);
     EXPECT_EQ(ACTIVE->m_amendCount, 1);
     EXPECT_EQ(motionBlur.current, BOX);
 
-    list.amendTransformedRenderData(BOX, &motionBlur, nullptr);
+    list.amendTransformedRenderData(ctx, BOX, &motionBlur, nullptr);
     EXPECT_FALSE(ACTIVE->m_presentation);
     EXPECT_EQ(ACTIVE->m_amendCount, 2);
 
-    list.amendTransformedRenderData(BOX, &motionBlur, SECOND);
+    list.amendTransformedRenderData(ctx, BOX, &motionBlur, SECOND);
     EXPECT_EQ(ACTIVE->m_presentation, SECOND);
     EXPECT_EQ(ACTIVE->m_amendCount, 3);
     EXPECT_EQ(INACTIVE->m_amendCount, 0);

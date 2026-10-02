@@ -287,6 +287,6 @@ void CGLFramebuffer::clearAfterInvalidation() {
 
     m_cleared = true;
     glClearColor(0, 0, 0, 0);
-    g_pHyprOpenGL->scissor(nullptr);
+    g_pHyprOpenGL->disableScissor();
     glClear(GL_COLOR_BUFFER_BIT);
 }

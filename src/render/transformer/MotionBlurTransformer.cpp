@@ -33,7 +33,7 @@ bool CMotionBlurTransformer::shouldEnable(PHLWINDOW window) {
     return *PMBENABLED && *PMBSAMPLES > 1 && !Fullscreen::controller()->isFullscreen(window);
 }
 
-SWindowTransformBuffer CMotionBlurTransformer::transform(const SWindowTransformBuffer& in, const SWindowTransformContext&) {
+SWindowTransformBuffer CMotionBlurTransformer::transform(CRenderContext& ctx, const SWindowTransformBuffer& in, const SWindowTransformContext&) {
     return in;
 }
 
@@ -68,11 +68,12 @@ CBox CMotionBlurTransformer::transformBoxForDamage(const CBox& currentBox) const
     return damaged;
 }
 
-void CMotionBlurTransformer::amendTransformedRenderData(const CBox& currentBox, SMotionBlurData* pMotionBlurData, const SP<Workspace::CWorkspacePresentable>& presentation) {
+void CMotionBlurTransformer::amendTransformedRenderData(CRenderContext& ctx, const CBox& currentBox, SMotionBlurData* pMotionBlurData,
+                                                        const SP<Workspace::CWorkspacePresentable>& presentation) {
     if (!pMotionBlurData)
         return;
 
-    const auto PMONITOR = g_pHyprRenderer->context().m_data.pMonitor;
+    const auto PMONITOR = ctx.m_data.pMonitor;
     if (!PMONITOR)
         return;
 

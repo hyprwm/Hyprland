@@ -1,4 +1,6 @@
 #include <render/Context.hpp>
+#include <render/Renderer.hpp>
+#include <render/ElementRenderer.hpp>
 #include <render/pass/BackdropScopePassElement.hpp>
 #include <protocols/types/Buffer.hpp>
 
@@ -6,6 +8,131 @@
 #include <type_traits>
 
 namespace Render {
+    class CContextMetadataElement : public IPassElement {
+      public:
+        bool needsLiveBlur(CRenderContext& ctx) override {
+            return ctx.m_renderingSnapshot;
+        }
+        bool needsPrecomputeBlur(CRenderContext& ctx) override {
+            return !ctx.m_renderingSnapshot;
+        }
+        const char* passName() override {
+            return "CContextMetadataElement";
+        }
+        ePassElementType type() override {
+            return EK_CUSTOM;
+        }
+    };
+
+    class CContextChildrenElement : public CContextMetadataElement {
+      public:
+        explicit CContextChildrenElement(bool parent) : m_parent(parent) {
+            ;
+        }
+        std::vector<UP<IPassElement>> draw(CRenderContext& ctx) override {
+            ++ctx.m_data.mouseZoomFactor;
+            std::vector<UP<IPassElement>> children;
+            if (m_parent)
+                children.emplace_back(makeUnique<CContextChildrenElement>(false));
+            else
+                children.emplace_back(makeUnique<CBorderPassElement>(CBorderPassElement::SBorderData{}));
+            return children;
+        }
+
+      private:
+        bool m_parent = false;
+    };
+
+    class CContextElementRenderer : public IElementRenderer {
+      public:
+        size_t m_draws = 0;
+
+      private:
+        void draw(CRenderContext& ctx, WP<CBorderPassElement>, const CRegion& damage) override {
+            ++m_draws;
+            EXPECT_EQ(ctx.m_data.mouseZoomFactor, 5.F);
+            EXPECT_EQ(damage.copy().getExtents(), CBox(1, 2, 3, 4));
+            ctx.m_data.clipBox = damage.copy().getExtents();
+        }
+        void draw(CRenderContext&, WP<CClearPassElement>, const CRegion&) override {
+            ADD_FAILURE();
+        }
+        void draw(CRenderContext&, WP<CFramebufferElement>, const CRegion&) override {
+            ADD_FAILURE();
+        }
+        void draw(CRenderContext&, WP<CPreBlurElement>, const CRegion&) override {
+            ADD_FAILURE();
+        }
+        void draw(CRenderContext&, WP<CRectPassElement>, const CRegion&) override {
+            ADD_FAILURE();
+        }
+        void draw(CRenderContext&, WP<CShadowPassElement>, const CRegion&) override {
+            ADD_FAILURE();
+        }
+        void draw(CRenderContext&, WP<CInnerGlowPassElement>, const CRegion&) override {
+            ADD_FAILURE();
+        }
+        void draw(CRenderContext&, WP<CTexPassElement>, const CRegion&) override {
+            ADD_FAILURE();
+        }
+        void draw(CRenderContext&, WP<CTextureMatteElement>, const CRegion&) override {
+            ADD_FAILURE();
+        }
+    };
+
+    TEST(RenderContext, NestedPassMetadataUsesSuppliedContext) {
+        CRenderContext first, second;
+        first.m_renderingSnapshot = true;
+        auto nested               = makeUnique<CRenderPass>();
+        auto metadata             = makeUnique<CContextMetadataElement>();
+        nested->add(std::move(metadata));
+        CTransformedWindowPassElement element{CTransformedWindowPassElement::SData{.pass = std::move(nested)}};
+
+        EXPECT_TRUE(element.needsLiveBlur(first));
+        EXPECT_FALSE(element.needsPrecomputeBlur(first));
+        EXPECT_FALSE(element.needsLiveBlur(second));
+        EXPECT_TRUE(element.needsPrecomputeBlur(second));
+        EXPECT_TRUE(element.needsLiveBlur(first));
+    }
+
+    TEST(RenderContext, RoutingIsPerContextAndRestoresNestedDestinations) {
+        CRenderContext first, second;
+        CRenderPass    outer, inner;
+        auto           outerGuard = IHyprRenderer::redirectPass(first, &outer);
+        EXPECT_EQ(&IHyprRenderer::currentPass(first), &outer);
+        EXPECT_EQ(&IHyprRenderer::currentPass(second), &second.m_pass);
+
+        IHyprRenderer::addPassElement(first, makeUnique<CContextMetadataElement>());
+        IHyprRenderer::addPassElement(second, makeUnique<CContextMetadataElement>());
+        {
+            auto innerGuard = IHyprRenderer::redirectPass(first, &inner);
+            IHyprRenderer::addPassElement(first, makeUnique<CContextMetadataElement>());
+            EXPECT_EQ(&IHyprRenderer::currentPass(first), &inner);
+            EXPECT_EQ(&IHyprRenderer::currentPass(second), &second.m_pass);
+        }
+        EXPECT_EQ(&IHyprRenderer::currentPass(first), &outer);
+        EXPECT_TRUE(outer.single());
+        EXPECT_TRUE(inner.single());
+        EXPECT_TRUE(second.m_pass.single());
+        EXPECT_FALSE(first.m_pass.single());
+        outerGuard.reset();
+        EXPECT_EQ(&IHyprRenderer::currentPass(first), &first.m_pass);
+    }
+
+    TEST(RenderContext, CustomChildrenAndBackendReceiveSuppliedContext) {
+        CRenderContext first, second;
+        second.m_data.mouseZoomFactor = 3.F;
+        CContextElementRenderer renderer;
+        auto                    parent = makeUnique<CContextChildrenElement>(true);
+        renderer.drawElement(second, parent, CRegion{1, 2, 3, 4});
+
+        EXPECT_EQ(renderer.m_draws, 1U);
+        EXPECT_EQ(second.m_data.mouseZoomFactor, 5.F);
+        EXPECT_EQ(second.m_data.clipBox, CBox(1, 2, 3, 4));
+        EXPECT_EQ(first.m_data.mouseZoomFactor, 1.F);
+        EXPECT_TRUE(first.m_data.clipBox.empty());
+    }
+
     // Ownership tests only: any actual framebuffer operation is unexpected.
     class CContextTestFramebuffer : public IFramebuffer {
       public:

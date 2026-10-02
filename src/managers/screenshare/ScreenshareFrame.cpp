@@ -202,8 +202,8 @@ void CScreenshareFrame::renderMonitor(Render::CRenderContext& ctx) {
     if (TEXTURE->m_imageDescription && ctx.m_data.currentFB->imageDescription())
         LOG(Log::TRACE, "CM: screenshot renderMonitor {} -> {}", TEXTURE->m_imageDescription->value(), ctx.m_data.currentFB->imageDescription()->value());
 
-    const bool IS_CM_AWARE               = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_session->m_client);
-    ctx.m_data.fbSize                    = m_bufferSize;
+    const bool IS_CM_AWARE = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_session->m_client);
+    ctx.m_data.fbSize      = m_bufferSize;
     g_pHyprRenderer->setProjectionType(ctx, Render::RPT_EXPORT);
     ctx.m_data.transformDamage = false;
     ctx.m_data.noSimplify      = true;

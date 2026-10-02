@@ -332,8 +332,8 @@ namespace Render::GL {
         int                     m_drmFD = -1;
         std::string             m_extensions;
 
-        bool                    m_blend                = false;
-        bool                    m_cmSupported          = true;
+        bool                    m_blend       = false;
+        bool                    m_cmSupported = true;
 
         SP<CShader>             m_finalScreenShader;
         GLuint                  m_currentProgram;
@@ -351,8 +351,8 @@ namespace Render::GL {
         //
         std::optional<std::vector<uint64_t>> getModsForFormat(EGLint format);
 
-        void        passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
-                                   bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance, const SCMSettings& settings);
+        void passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
+                            bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance, const SCMSettings& settings);
         void passCMUniforms(CRenderContext& ctx, WP<CShader>, const NColorManagement::PImageDescription imageDescription,
                             const NColorManagement::PImageDescription targetImageDescription, bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
         void passCMUniforms(CRenderContext& ctx, WP<CShader>, const NColorManagement::PImageDescription imageDescription);

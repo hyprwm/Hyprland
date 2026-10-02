@@ -1917,9 +1917,9 @@ void IHyprRenderer::beginBackdropScope(CRenderContext& ctx, SP<SBackdropScope> s
     if (scope->required && !scope->damage.empty() && ctx.m_data.currentFB && ctx.m_data.currentFB->getTexture()) {
         backdrop = ctx.m_data.pMonitor->resources()->getUnusedWorkBuffer();
         if (backdrop) {
-            const auto                   renderTarget     = ctx.m_data.currentFB;
-            const auto backend          = glBackend();
-            const auto savedBlend       = backend && backend->blendEnabled();
+            const auto                   renderTarget = ctx.m_data.currentFB;
+            const auto                   backend      = glBackend();
+            const auto                   savedBlend   = backend && backend->blendEnabled();
 
             GL::CFramebufferBindingGuard bindings{backend};
             auto                         state = ctx.saveDrawState();

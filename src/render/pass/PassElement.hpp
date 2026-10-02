@@ -33,8 +33,8 @@ class IPassElement {
     //
     virtual bool                needsLiveBlur(Render::CRenderContext& ctx)       = 0;
     virtual bool                needsPrecomputeBlur(Render::CRenderContext& ctx) = 0;
-    virtual const char*         passName()            = 0;
-    virtual ePassElementType    type()                = 0;
+    virtual const char*         passName()                                       = 0;
+    virtual ePassElementType    type()                                           = 0;
     virtual void                discard(Render::CRenderContext& ctx);
     virtual bool                undiscardable(Render::CRenderContext& ctx);
     virtual std::optional<CBox> boundingBox(Render::CRenderContext& ctx);  // in monitor-local logical coordinates

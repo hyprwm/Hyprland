@@ -19,23 +19,23 @@ namespace Desktop::View {
         explicit CWindowEffectsController(CWindow& window);
         ~CWindowEffectsController();
 
-        CWindowEffectsController(const CWindowEffectsController&)                    = delete;
-        CWindowEffectsController(CWindowEffectsController&&)                         = delete;
-        CWindowEffectsController&         operator=(const CWindowEffectsController&) = delete;
-        CWindowEffectsController&         operator=(CWindowEffectsController&&)      = delete;
+        CWindowEffectsController(const CWindowEffectsController&)                            = delete;
+        CWindowEffectsController(CWindowEffectsController&&)                                 = delete;
+        CWindowEffectsController&                 operator=(const CWindowEffectsController&) = delete;
+        CWindowEffectsController&                 operator=(CWindowEffectsController&&)      = delete;
 
-        void                              onPositionUpdate(const CBox& previous, const CBox& current, eWindowUpdateSource source);
-        std::optional<MotionBlur::SState> motionBlurState(bool allowStale = false) const;
-        void                              damageMotionBlur(bool allowStale = false) const;
-        void                              resetMotionBlur();
-        void                              resetWobble();
-        void                              reset();
-        bool                              tickWobble();
+        void                                      onPositionUpdate(const CBox& previous, const CBox& current, eWindowUpdateSource source);
+        std::optional<MotionBlur::SState>         motionBlurState(bool allowStale = false) const;
+        void                                      damageMotionBlur(bool allowStale = false) const;
+        void                                      resetMotionBlur();
+        void                                      resetWobble();
+        void                                      reset();
+        bool                                      tickWobble();
 
-        bool                              hasActiveTransformers() const;
-        bool                              blocksDirectScanout() const;
-        CBox                              transformedExtents(const CBox& currentBox) const;
-        CBox                              transformBoxForDamage(const CBox& currentBox) const;
+        bool                                      hasActiveTransformers() const;
+        bool                                      blocksDirectScanout() const;
+        CBox                                      transformedExtents(const CBox& currentBox) const;
+        CBox                                      transformBoxForDamage(const CBox& currentBox) const;
         void                                      preWindowRender(Render::CRenderContext& ctx, CSurfacePassElement::SRenderData* renderData) const;
         void                                      amendTransformedRenderData(Render::CRenderContext& ctx, const CBox& currentBox, SMotionBlurData* motionBlurData,
                                                                              const SP<Workspace::CWorkspacePresentable>& presentation) const;

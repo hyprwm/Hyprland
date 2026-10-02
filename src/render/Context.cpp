@@ -5,7 +5,7 @@
 
 using namespace Render;
 
-CRenderContext::CRenderContext()  = default;
+CRenderContext::CRenderContext() = default;
 CRenderContext::~CRenderContext() {
     RASSERT(m_usedAsyncBuffers.empty(), "Render context destroyed with untransferred source buffer uses");
 }

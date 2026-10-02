@@ -21,6 +21,7 @@
 #include <glaze/util/parse.hpp>
 #include <hyprlang.hpp>
 #include <hyprutils/memory/SharedPtr.hpp>
+#include <hyprutils/os/FileDescriptor.hpp>
 #include <libeis.h>
 #include <optional>
 #include <string>
@@ -44,9 +45,8 @@ CInputCaptureResource::CInputCaptureResource(SP<CHyprlandInputCaptureV1> resourc
 
     m_eis = makeUnique<CEis>(std::format("eis-{}", eisCounter++));
 
-    const int EISFD = m_eis->getFileDescriptor();
-    if (EISFD >= 0)
-        m_resource->sendEisFd(EISFD);
+    if (Hyprutils::OS::CFileDescriptor eisFd{m_eis->getFileDescriptor()}; eisFd.isValid())
+        m_resource->sendEisFd(eisFd.get());
     else
         LOG(Log::ERR, "[input-capture]({}) failed to create EIS client fd", m_sessionId.c_str());
 

@@ -665,19 +665,14 @@ void IElementRenderer::drawTransformedWindow(CRenderContext& ctx, WP<CTransforme
         plan.outputBox = plan.sourceBox;
     }
 
-    const auto OLDRENDERDATA       = renderData;
-    const bool OLDBLURSHOULDRENDER = pMonitor->m_blurFBShouldRender;
-    const auto renderNestedDirect  = [&] {
-        {
-            auto guard               = g_pHyprRenderer->bindTempFB(ctx, OLDRENDERDATA.currentFB);
-            renderData.currentWindow = element->m_data.window;
-            renderData.surface.reset();
-            renderData.clipBox                    = {};
-            renderData.renderingTransformedSource = false;
-            element->m_data.pass->render(ctx, damage);
-        }
-        renderData                     = OLDRENDERDATA;
-        pMonitor->m_blurFBShouldRender = OLDBLURSHOULDRENDER;
+    GL::CFramebufferBindingGuard bindings{g_pHyprRenderer->glBackend()};
+    auto                         state              = ctx.saveDrawState();
+    const auto                   renderNestedDirect = [&] {
+        renderData.currentWindow = element->m_data.window;
+        renderData.surface.reset();
+        renderData.clipBox                    = {};
+        renderData.renderingTransformedSource = false;
+        element->m_data.pass->render(ctx, damage);
     };
 
     if (plan.sourceBox.empty() || !transformPlanFits(plan, pMonitor->m_scale, element->m_data.blur)) {
@@ -737,7 +732,9 @@ void IElementRenderer::drawTransformedWindow(CRenderContext& ctx, WP<CTransforme
 
     SWindowTransformBuffer last;
     {
-        auto guard = g_pHyprRenderer->bindTempFB(ctx, fb);
+        GL::CFramebufferBindingGuard bindings{g_pHyprRenderer->glBackend()};
+        auto                         state = ctx.saveDrawState();
+        g_pHyprRenderer->bindFB(ctx, fb);
 
         renderData.currentWindow = element->m_data.window;
         renderData.surface.reset();
@@ -764,7 +761,9 @@ void IElementRenderer::drawTransformedWindow(CRenderContext& ctx, WP<CTransforme
     if (matteFB) {
         SWindowTransformBuffer matteLast;
         {
-            auto guard = g_pHyprRenderer->bindTempFB(ctx, matteFB);
+            GL::CFramebufferBindingGuard bindings{g_pHyprRenderer->glBackend()};
+            auto                         state = ctx.saveDrawState();
+            g_pHyprRenderer->bindFB(ctx, matteFB);
 
             renderData.currentWindow = element->m_data.window;
             renderData.surface.reset();
@@ -778,6 +777,9 @@ void IElementRenderer::drawTransformedWindow(CRenderContext& ctx, WP<CTransforme
 
             renderData.renderModif = {};
             renderData.renderModif.modifs.emplace_back(std::make_pair<>(SRenderModifData::eRenderModifType::RMOD_TYPE_TRANSLATE, CANVASTRANSLATION));
+
+            renderData.noSimplify                 = true;
+            renderData.renderingTransformedSource = true;
 
             g_pHyprRenderer->draw(ctx,
                                   CRectPassElement::SRectData{
@@ -798,9 +800,6 @@ void IElementRenderer::drawTransformedWindow(CRenderContext& ctx, WP<CTransforme
             blurAlphaMatte   = matteLast.framebuffer->getTexture();
         }
     }
-
-    renderData                     = OLDRENDERDATA;
-    pMonitor->m_blurFBShouldRender = OLDBLURSHOULDRENDER;
 
     if (!last.framebuffer || !last.framebuffer->getTexture())
         return;

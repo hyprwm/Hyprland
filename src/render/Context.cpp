@@ -1,6 +1,7 @@
 #include "Context.hpp"
 #include "Renderbuffer.hpp"
 #include "pass/BackdropScopePassElement.hpp"
+#include "../output/Monitor.hpp"
 
 using namespace Render;
 
@@ -18,6 +19,24 @@ bool CRenderContext::begin() {
 
 bool CRenderContext::active() const {
     return m_active;
+}
+
+CRenderDataScope CRenderContext::saveDrawState() {
+    return CRenderDataScope{*this};
+}
+
+CRenderDataScope::CRenderDataScope(CRenderContext& ctx) :
+    m_ctx(ctx), m_data(ctx.m_data), m_backdropDepth(ctx.m_backdropCaptures.size()), m_blurShouldRender(m_data.pMonitor && m_data.pMonitor->m_blurFBShouldRender) {
+    ;
+}
+
+CRenderDataScope::~CRenderDataScope() {
+    // Nested draws may only pop captures they pushed, never inherited captures.
+    RASSERT(m_ctx.m_backdropCaptures.size() >= m_backdropDepth, "Nested draw popped an inherited backdrop capture");
+    m_ctx.m_data = std::move(m_data);
+    m_ctx.m_backdropCaptures.resize(m_backdropDepth);
+    if (m_ctx.m_data.pMonitor)
+        m_ctx.m_data.pMonitor->m_blurFBShouldRender = m_blurShouldRender;
 }
 
 void CRenderContext::reset() {

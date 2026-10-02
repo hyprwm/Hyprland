@@ -893,10 +893,19 @@ void IHyprRenderer::bindFB(CRenderContext& ctx, SP<IFramebuffer> fb) {
     ctx.m_data.currentFB = fb;
 }
 
-UP<CScopeGuard> IHyprRenderer::bindTempFB(CRenderContext& ctx, SP<IFramebuffer> fb) {
-    const auto oldFB = ctx.m_data.currentFB;
-    bindFB(ctx, fb);
-    return makeUnique<CScopeGuard>([this, &ctx, oldFB] { bindFB(ctx, oldFB); });
+CTempFramebufferScope IHyprRenderer::bindTempFB(CRenderContext& ctx, SP<IFramebuffer> fb) {
+    return CTempFramebufferScope{*this, ctx, std::move(fb)};
+}
+
+CTempFramebufferScope::CTempFramebufferScope(IHyprRenderer& renderer, CRenderContext& ctx, SP<IFramebuffer> fb) :
+    m_renderer(renderer), m_ctx(ctx), m_oldFB(ctx.m_data.currentFB), m_hasBackend(!!renderer.glBackend()), m_bindings(renderer.glBackend()) {
+    m_renderer.bindFB(m_ctx, std::move(fb));
+}
+
+CTempFramebufferScope::~CTempFramebufferScope() {
+    m_ctx.m_data.currentFB = std::move(m_oldFB);
+    if (!m_hasBackend && m_ctx.m_data.currentFB)
+        m_renderer.bindFB(m_ctx, m_ctx.m_data.currentFB);
 }
 
 bool IHyprRenderer::preBlurQueued(PHLMONITORREF pMonitor) {
@@ -1328,11 +1337,9 @@ SP<ITexture> IHyprRenderer::getBackground(CRenderContext& ctx, PHLMONITOR pMonit
             auto fb = createFB("BGTex scale");
             fb->alloc(monW, monH);
 
-            auto       guard = bindTempFB(ctx, fb);
-
-            const auto oldProjType     = ctx.m_data.projectionType;
-            const auto oldFbSize       = ctx.m_data.fbSize;
-            const auto oldTransformDmg = ctx.m_data.transformDamage;
+            GL::CFramebufferBindingGuard bindings{glBackend()};
+            auto                         state = ctx.saveDrawState();
+            bindFB(ctx, fb);
 
             ctx.m_data.fbSize = Vector2D{monW, monH};
             setProjectionType(ctx, RPT_EXPORT);
@@ -1348,11 +1355,6 @@ SP<ITexture> IHyprRenderer::getBackground(CRenderContext& ctx, PHLMONITOR pMonit
 
             CRegion      fullDamage = {0, 0, monW, monH};
             draw(ctx, CTexPassElement::SRenderData{.tex = backgroundTexture, .box = CBox{offX, offY, texW, texH}, .damage = fullDamage}, fullDamage);
-
-            ctx.m_data.fbSize          = oldFbSize;
-            ctx.m_data.transformDamage = oldTransformDmg;
-            setProjectionType(ctx, oldProjType);
-            setViewport(0, 0, (int)ctx.m_data.currentFB->m_size.x, (int)ctx.m_data.currentFB->m_size.y);
 
             backgroundTexture = fb->getTexture();
 
@@ -1915,26 +1917,19 @@ void IHyprRenderer::beginBackdropScope(CRenderContext& ctx, SP<SBackdropScope> s
     if (scope->required && !scope->damage.empty() && ctx.m_data.currentFB && ctx.m_data.currentFB->getTexture()) {
         backdrop = ctx.m_data.pMonitor->resources()->getUnusedWorkBuffer();
         if (backdrop) {
-            const auto renderTarget     = ctx.m_data.currentFB;
-            const auto savedDamage      = ctx.m_data.damage.copy();
-            const auto savedRenderModif = ctx.m_data.renderModif;
-            const auto savedNearest     = ctx.m_data.useNearestNeighbor;
+            const auto                   renderTarget     = ctx.m_data.currentFB;
             const auto backend          = glBackend();
             const auto savedBlend       = backend && backend->blendEnabled();
 
-            {
-                auto guard                    = bindTempFB(ctx, backdrop);
-                ctx.m_data.damage             = scope->damage;
-                ctx.m_data.renderModif        = {};
-                ctx.m_data.useNearestNeighbor = true;
-                blend(false);
-                renderOffToMain(ctx, renderTarget);
-                blend(savedBlend);
-            }
-
-            ctx.m_data.damage             = savedDamage;
-            ctx.m_data.renderModif        = savedRenderModif;
-            ctx.m_data.useNearestNeighbor = savedNearest;
+            GL::CFramebufferBindingGuard bindings{backend};
+            auto                         state = ctx.saveDrawState();
+            CScopeGuard                  restoreBlend{[this, savedBlend] { blend(savedBlend); }};
+            bindFB(ctx, backdrop);
+            ctx.m_data.damage             = scope->damage;
+            ctx.m_data.renderModif        = {};
+            ctx.m_data.useNearestNeighbor = true;
+            blend(false);
+            renderOffToMain(ctx, renderTarget);
         } else {
             static bool warned = false;
             if (!warned) {

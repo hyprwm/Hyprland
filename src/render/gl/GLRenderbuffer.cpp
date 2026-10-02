@@ -14,15 +14,13 @@
 using namespace Render::GL;
 
 CGLRenderbuffer::~CGLRenderbuffer() {
-    if (!g_pCompositor || g_pCompositor->m_isShuttingDown || !g_pHyprRenderer)
+    if (!g_pCompositor || g_pCompositor->m_isShuttingDown || !g_pHyprRenderer || !g_pHyprOpenGL)
         return;
 
     g_pHyprOpenGL->makeEGLCurrent();
 
-    if (m_framebuffer) {
-        unbind();
+    if (m_framebuffer)
         m_framebuffer->release();
-    }
 
     if (m_rbo)
         glDeleteRenderbuffers(1, &m_rbo);
@@ -32,6 +30,8 @@ CGLRenderbuffer::~CGLRenderbuffer() {
 }
 
 CGLRenderbuffer::CGLRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format) : IRenderbuffer(buffer, format) {
+    g_pHyprOpenGL->makeEGLCurrent();
+    CFramebufferBindingGuard bindings{g_pHyprOpenGL};
     auto dma = buffer->dmabuf();
 
     m_image = g_pHyprOpenGL->createEGLImage(dma);
@@ -57,8 +57,6 @@ CGLRenderbuffer::CGLRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format
         LOG(Log::ERR, "rbo: glCheckFramebufferStatus failed");
         return;
     }
-
-    GLFB(m_framebuffer)->unbind();
 
     m_listeners.destroyBuffer = buffer->events.destroy.listen([this] { g_pHyprRenderer->onRenderbufferDestroy(this); });
 

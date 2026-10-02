@@ -7,6 +7,7 @@
 #include "../../types/OverridableVar.hpp"
 #include "../../../event/EventBus.hpp"
 #include "../../../helpers/MiscFunctions.hpp"
+#include "../../../output/Monitor.hpp"
 #include "desktop/rule/windowRule/WindowRuleEffectContainer.hpp"
 
 #include <string>
@@ -47,9 +48,10 @@ std::unordered_set<CWindowRuleEffectContainer::storageType> CWindowRuleApplicato
             std::pair{std::ref(m_decorate), [this] { return decorateEffect(); }}, std::pair{std::ref(m_focusOnActivate), [this] { return focusOnActivateEffect(); }},
             std::pair{std::ref(m_keepAspectRatio), [this] { return keepAspectRatioEffect(); }}, std::pair{std::ref(m_nearestNeighbor), [this] { return nearestNeighborEffect(); }},
             std::pair{std::ref(m_noAnim), [this] { return noAnimEffect(); }}, std::pair{std::ref(m_noBlur), [this] { return noBlurEffect(); }},
-            std::pair{std::ref(m_noDim), [this] { return noDimEffect(); }}, std::pair{std::ref(m_noFocus), [this] { return noFocusEffect(); }},
-            std::pair{std::ref(m_noMaxSize), [this] { return noMaxSizeEffect(); }}, std::pair{std::ref(m_noShadow), [this] { return noShadowEffect(); }},
-            std::pair{std::ref(m_noGlow), [this] { return noGlowEffect(); }}, std::pair{std::ref(m_noWobble), [this] { return noWobbleEffect(); }},
+            std::pair{std::ref(m_workspaceBlur), [this] { return workspaceBlurEffect(); }}, std::pair{std::ref(m_noDim), [this] { return noDimEffect(); }},
+            std::pair{std::ref(m_noFocus), [this] { return noFocusEffect(); }}, std::pair{std::ref(m_noMaxSize), [this] { return noMaxSizeEffect(); }},
+            std::pair{std::ref(m_noShadow), [this] { return noShadowEffect(); }}, std::pair{std::ref(m_noGlow), [this] { return noGlowEffect(); }},
+            std::pair{std::ref(m_noWobble), [this] { return noWobbleEffect(); }},
             std::pair{std::ref(m_noShortcutsInhibit), [this] { return noShortcutsInhibitEffect(); }}, std::pair{std::ref(m_opaque), [this] { return opaqueEffect(); }},
             std::pair{std::ref(m_dimAround), [this] { return dimAroundEffect(); }}, std::pair{std::ref(m_RGBX), [this] { return RGBXEffect(); }},
             std::pair{std::ref(m_syncFullscreen), [this] { return syncFullscreenEffect(); }}, std::pair{std::ref(m_tearing), [this] { return tearingEffect(); }},
@@ -286,6 +288,11 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
             case WINDOW_RULE_EFFECT_NO_BLUR: {
                 m_noBlur.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_noBlur.second |= rule->getPropertiesMask();
+                break;
+            }
+            case WINDOW_RULE_EFFECT_WORKSPACE_BLUR: {
+                m_workspaceBlur.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
+                m_workspaceBlur.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_NO_DIM: {
@@ -614,6 +621,9 @@ void CWindowRuleApplicator::propertiesChanged(std::underlying_type_t<eRuleProper
     m_window->updateWindowData();
     m_window->presentation().updateDecorations();
     m_window->presentation().refreshValues();
+
+    if (const auto PMONITOR = m_window->m_monitor.lock(); PMONITOR)
+        PMONITOR->updateWorkspaceRuleBlur();
 
     if (needsRelayout)
         g_pDecorationPositioner->forceRecalcFor(m_window.lock());

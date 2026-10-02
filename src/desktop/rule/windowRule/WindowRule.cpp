@@ -242,6 +242,7 @@ static std::expected<WindowRuleEffectValue, std::string> parseWindowRuleEffect(C
         case WINDOW_RULE_EFFECT_NEAREST_NEIGHBOR:
         case WINDOW_RULE_EFFECT_NO_ANIM:
         case WINDOW_RULE_EFFECT_NO_BLUR:
+        case WINDOW_RULE_EFFECT_WORKSPACE_BLUR:
         case WINDOW_RULE_EFFECT_NO_DIM:
         case WINDOW_RULE_EFFECT_NO_FOCUS:
         case WINDOW_RULE_EFFECT_NO_FOLLOW_MOUSE:

@@ -885,6 +885,8 @@ ActionResult Actions::setProp(const std::string& PROP, const std::string& VAL, s
             parsePropTrivial(PWINDOW->m_ruleApplicator->noAnim(), VAL);
         else if (PROP == "no_blur")
             parsePropTrivial(PWINDOW->m_ruleApplicator->noBlur(), VAL);
+        else if (PROP == "workspace_blur")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->workspaceBlur(), VAL);
         else if (PROP == "no_dim")
             parsePropTrivial(PWINDOW->m_ruleApplicator->noDim(), VAL);
         else if (PROP == "no_focus")
@@ -948,6 +950,10 @@ ActionResult Actions::setProp(const std::string& PROP, const std::string& VAL, s
 
     if (PROP == "no_vrr")
         Config::monitorRuleMgr()->ensureVRR();
+    else if (PROP == "workspace_blur") {
+        if (const auto PMONITOR = PWINDOW->m_monitor.lock(); PMONITOR)
+            PMONITOR->updateWorkspaceRuleBlur();
+    }
 
     for (auto const& m : State::monitorState()->monitors()) {
         if (m->m_activeWorkspace)

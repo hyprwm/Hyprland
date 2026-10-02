@@ -86,6 +86,11 @@ void Workspace::CHLWorkspace::init(PHLWORKSPACE self) {
     if (RULEFORTHIS.m_animationStyle.has_value())
         m_animationStyle = RULEFORTHIS.m_animationStyle.value();
 
+    m_activeChangedHook = m_events.activeChanged.listen([this] {
+        if (const auto PMONITOR = m_monitor.lock(); PMONITOR)
+            PMONITOR->updateWorkspaceRuleBlur();
+    });
+
     m_space = Layout::CSpace::create(m_self.lock());
     m_space->setAlgorithmProvider(Layout::Supplementary::algoMatcher()->createAlgorithmForWorkspace(m_self.lock()));
 
@@ -260,6 +265,9 @@ void Workspace::CHLWorkspace::updateWindowData() {
 
         w->updateWindowData(WORKSPACERULE.value_or(Config::CWorkspaceRule{}));
     }
+
+    if (const auto PMONITOR = m_monitor.lock(); PMONITOR)
+        PMONITOR->updateWorkspaceRuleBlur();
 }
 
 void Workspace::CHLWorkspace::forceReportSizesToWindows() {
@@ -314,4 +322,7 @@ void Workspace::CHLWorkspace::updateWindows() {
         if (t->window())
             t->window()->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ON_WORKSPACE);
     }
+
+    if (const auto PMONITOR = m_monitor.lock(); PMONITOR)
+        PMONITOR->updateWorkspaceRuleBlur();
 }

@@ -99,6 +99,7 @@ namespace Desktop::Rule {
         DEFINE_PROP(bool, nearestNeighbor, false, WINDOW_RULE_EFFECT_NEAREST_NEIGHBOR)
         DEFINE_PROP(bool, noAnim, false, WINDOW_RULE_EFFECT_NO_ANIM)
         DEFINE_PROP(bool, noBlur, false, WINDOW_RULE_EFFECT_NO_BLUR)
+        DEFINE_PROP(bool, workspaceBlur, false, WINDOW_RULE_EFFECT_WORKSPACE_BLUR)
         DEFINE_PROP(bool, noDim, false, WINDOW_RULE_EFFECT_NO_DIM)
         DEFINE_PROP(bool, noFocus, false, WINDOW_RULE_EFFECT_NO_FOCUS)
         DEFINE_PROP(bool, noMaxSize, false, WINDOW_RULE_EFFECT_NO_MAX_SIZE)

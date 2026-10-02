@@ -3,7 +3,9 @@
 #include "tests.hpp"
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
+#include <chrono>
 #include <format>
+#include <thread>
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
 
@@ -71,6 +73,43 @@ TEST_CASE(layerPointerFocusPreservedOnKeyboardRefocus) {
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2' })"));
     ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: pointer_focus_ws2\n");
     OK(getFromSocket(std::format("/eval hl.plugin.test.check_pointer_focus_layer('{}')", LAYER_NAMESPACE)));
+}
+
+TEST_CASE(exclusiveLayerTakesPointerFocusFromRuleConfinedWindow) {
+    static constexpr const char* WINDOW_CLASS    = "layer_confined_window";
+    static constexpr const char* LAYER_NAMESPACE = "exclusive-confined-layer";
+
+    OK(getFromSocket("/eval hl.config({ input = { follow_mouse = 0 } })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+    OK(getFromSocket(std::format("/eval hl.window_rule({{ match = {{ class = '^{}$' }}, confine_pointer = true }})", WINDOW_CLASS)));
+
+    SPAWN_KITTY(WINDOW_CLASS);
+    OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ window = 'class:{}' }})", WINDOW_CLASS)));
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 960, y = 540 })"));
+
+    const auto WINDOW_POINTER_CHECK = std::format("/eval hl.plugin.test.check_pointer_focus_window('{}')", WINDOW_CLASS);
+    const auto LAYER_POINTER_CHECK  = std::format("/eval hl.plugin.test.check_pointer_focus_layer('{}')", LAYER_NAMESPACE);
+    OK(getFromSocket(WINDOW_POINTER_CHECK));
+
+    ASSERT(spawnLayer(LAYER_NAMESPACE,
+                      {
+                          "--edge=center",
+                          "--layer=overlay",
+                          "--focus-policy=exclusive",
+                          "--output-name=HEADLESS-1",
+                      }),
+           true);
+
+    // Registration can precede mapping. Wait without moving the cursor or explicitly setting pointer focus.
+    auto layerFocus = getFromSocket(LAYER_POINTER_CHECK);
+    for (int i = 0; i < 50 && layerFocus != "ok"; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        layerFocus = getFromSocket(LAYER_POINTER_CHECK);
+    }
+    OK(layerFocus);
+
+    ASSERT(Tests::killAllLayers(), true);
+    OK(getFromSocket(WINDOW_POINTER_CHECK));
 }
 
 TEST_CASE(layerVisibilityOnFs) {

@@ -85,8 +85,8 @@ namespace Render::GL {
         void drawVisualStep(CRenderContext& ctx, SState& state, int steps = 1) const;
         void preparePass(CRenderContext& ctx, SP<CGLFramebuffer> target, const Vector2D& size, WP<CShader> shader) const;
         CBox transformedPatternBox(CRenderContext& ctx, const SBlurContext& context) const;
-        void          scheduleNextFrame(const SState& state) const;
-        void          pruneStates();
+        void scheduleNextFrame(const SState& state) const;
+        void pruneStates();
 
         CHyprOpenGLImpl&    m_impl;
         std::vector<SState> m_states;

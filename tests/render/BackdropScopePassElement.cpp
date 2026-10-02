@@ -64,7 +64,7 @@ TEST(BackdropScopePlanner, UnionsLiveBlurDamageWithinScope) {
 
 TEST(BackdropScopePlanner, TransformedWindowReportsNestedLiveBlur) {
     Render::CRenderContext ctx;
-    auto nestedPass = makeUnique<Render::CRenderPass>();
+    auto                   nestedPass = makeUnique<Render::CRenderPass>();
     nestedPass->add(makeUnique<CTexPassElement>(CTexPassElement::SRenderData{
         .blur                  = true,
         .blockBlurOptimization = true,
@@ -76,7 +76,7 @@ TEST(BackdropScopePlanner, TransformedWindowReportsNestedLiveBlur) {
 
 TEST(BackdropScopePlanner, TransformedWindowReportsNestedPrecomputedBlur) {
     Render::CRenderContext ctx;
-    auto nestedPass = makeUnique<Render::CRenderPass>();
+    auto                   nestedPass = makeUnique<Render::CRenderPass>();
     nestedPass->add(makeUnique<CTexPassElement>(CTexPassElement::SRenderData{
         .blur             = true,
         .liveBlurOverride = false,

@@ -16,7 +16,7 @@ namespace Notification {
         CNotificationOverlay();
         ~CNotificationOverlay();
 
-        void                           draw(Render::CRenderContext& ctx, PHLMONITOR pMonitor);
+        void              draw(Render::CRenderContext& ctx, PHLMONITOR pMonitor);
         SP<CNotification> addNotification(const std::string& text, const CHyprColor& color, const float timeMs, const eIcons icon = ICON_NONE, const float fontSize = 13.f);
         void              dismissNotifications(const int amount);
         void              dismissNotification(const SP<CNotification>& notification);

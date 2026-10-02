@@ -826,12 +826,12 @@ void CHyprOpenGLImpl::end(CRenderContext& ctx) {
 
             blend(false);
 
-            const bool NEEDS_CM           = ctx.m_data.pMonitor->m_imageDescription->value() != ctx.m_data.mainFB->imageDescription()->value();
-            const bool WANTS_FINAL_SHADER = !ctx.m_data.blockScreenShader && (m_finalScreenShader->program() >= 1 || g_pHyprRenderer->m_crashingInProgress);
+            const bool                      NEEDS_CM           = ctx.m_data.pMonitor->m_imageDescription->value() != ctx.m_data.mainFB->imageDescription()->value();
+            const bool                      WANTS_FINAL_SHADER = !ctx.m_data.blockScreenShader && (m_finalScreenShader->program() >= 1 || g_pHyprRenderer->m_crashingInProgress);
 
-            auto       finalTexture = ctx.m_data.currentFB->getTexture();
-            CBox       finalBox     = monbox;
-            std::array<SP<IFramebuffer>, 2>                    postProcessFBs;
+            auto                            finalTexture = ctx.m_data.currentFB->getTexture();
+            CBox                            finalBox     = monbox;
+            std::array<SP<IFramebuffer>, 2> postProcessFBs;
             std::array<NColorManagement::PImageDescription, 2> savedDescriptions;
             size_t                                             postProcessCount = 0;
             bool                                               finalCMComplete  = false;

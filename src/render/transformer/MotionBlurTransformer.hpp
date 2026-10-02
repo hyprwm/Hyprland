@@ -8,19 +8,19 @@ namespace Render {
         CMotionBlurTransformer(PHLWINDOWREF window);
         virtual ~CMotionBlurTransformer();
 
-        static bool                    shouldEnable(PHLWINDOW window);
+        static bool                       shouldEnable(PHLWINDOW window);
 
         virtual SWindowTransformBuffer    transform(CRenderContext& ctx, const SWindowTransformBuffer& in, const SWindowTransformContext& context);
-        virtual int                    priority() const;
-        virtual bool                   active() const;
-        virtual bool                   allocatesOutputBuffer() const;
-        virtual CBox                   sourceBoxForOutput(const CBox& outputBox, const CBox& inputBox) const;
-        virtual CBox                   transformBoxForDamage(const CBox& currentBox) const;
+        virtual int                       priority() const;
+        virtual bool                      active() const;
+        virtual bool                      allocatesOutputBuffer() const;
+        virtual CBox                      sourceBoxForOutput(const CBox& outputBox, const CBox& inputBox) const;
+        virtual CBox                      transformBoxForDamage(const CBox& currentBox) const;
         virtual void                      amendTransformedRenderData(CRenderContext& ctx, const CBox& currentBox, SMotionBlurData* pMotionBlurData,
                                                                      const SP<Workspace::CWorkspacePresentable>& presentation);
 
-        void         record(const CBox& previous, const CBox& current);
-        void         reset();
+        void                              record(const CBox& previous, const CBox& current);
+        void                              reset();
 
         std::optional<MotionBlur::SState> state(bool allowStale = false) const;
 

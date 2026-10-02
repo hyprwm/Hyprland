@@ -5,7 +5,7 @@
 
 TEST(TexPassElement, ReportsNoBlur) {
     Render::CRenderContext ctx;
-    CTexPassElement element{CTexPassElement::SRenderData{}};
+    CTexPassElement        element{CTexPassElement::SRenderData{}};
 
     EXPECT_FALSE(element.needsLiveBlur(ctx));
     EXPECT_FALSE(element.needsPrecomputeBlur(ctx));
@@ -13,7 +13,7 @@ TEST(TexPassElement, ReportsNoBlur) {
 
 TEST(TexPassElement, ReportsExplicitLiveBlur) {
     Render::CRenderContext ctx;
-    CTexPassElement element{CTexPassElement::SRenderData{
+    CTexPassElement        element{CTexPassElement::SRenderData{
         .blur                  = true,
         .blockBlurOptimization = true,
     }};
@@ -24,7 +24,7 @@ TEST(TexPassElement, ReportsExplicitLiveBlur) {
 
 TEST(TexPassElement, LiveBlurOverrideForcesLiveBlur) {
     Render::CRenderContext ctx;
-    CTexPassElement element{CTexPassElement::SRenderData{
+    CTexPassElement        element{CTexPassElement::SRenderData{
         .blur             = true,
         .liveBlurOverride = true,
     }};
@@ -35,7 +35,7 @@ TEST(TexPassElement, LiveBlurOverrideForcesLiveBlur) {
 
 TEST(TexPassElement, LiveBlurOverrideForcesPrecomputedBlur) {
     Render::CRenderContext ctx;
-    CTexPassElement element{CTexPassElement::SRenderData{
+    CTexPassElement        element{CTexPassElement::SRenderData{
         .blur             = true,
         .liveBlurOverride = false,
     }};

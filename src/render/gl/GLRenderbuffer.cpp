@@ -32,7 +32,7 @@ CGLRenderbuffer::~CGLRenderbuffer() {
 CGLRenderbuffer::CGLRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format) : IRenderbuffer(buffer, format) {
     g_pHyprOpenGL->makeEGLCurrent();
     CFramebufferBindingGuard bindings{g_pHyprOpenGL};
-    auto dma = buffer->dmabuf();
+    auto                     dma = buffer->dmabuf();
 
     m_image = g_pHyprOpenGL->createEGLImage(dma);
     if (m_image == EGL_NO_IMAGE_KHR) {

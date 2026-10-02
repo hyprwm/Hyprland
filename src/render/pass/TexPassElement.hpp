@@ -97,5 +97,4 @@ class CTexPassElement : public IPassElement {
     };
 
     SRenderData m_data;
-
 };

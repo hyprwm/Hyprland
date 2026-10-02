@@ -595,7 +595,7 @@ static SDispatchResult armPopupOpacity(const std::string& cls, float parentFade,
                 return;
 
             // RENDER_BEGIN has a bound framebuffer; renderWindow only queues the probe.
-            bool ready          = false;
+            bool ready = false;
             RECORDING->result =
                 probePopupOpacity(event.context->get(), WINDOW, parentFade, popupOnly ? Render::RENDER_PASS_POPUP : Render::RENDER_PASS_ALL, redirected, presentationMode, ready);
             RECORDING->complete = ready;

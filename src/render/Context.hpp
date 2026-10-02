@@ -33,24 +33,24 @@ namespace Render {
       public:
         CRenderContext();
         ~CRenderContext();
-        CRenderContext(const CRenderContext&)               = delete;
-        CRenderContext& operator=(const CRenderContext&)    = delete;
-        CRenderContext(CRenderContext&&)                    = delete;
-        CRenderContext&         operator=(CRenderContext&&) = delete;
+        CRenderContext(const CRenderContext&)            = delete;
+        CRenderContext& operator=(const CRenderContext&) = delete;
+        CRenderContext(CRenderContext&&)                 = delete;
+        CRenderContext& operator=(CRenderContext&&)      = delete;
 
-        bool                    begin();
-        bool                    active() const;
-        void                    reset();
+        bool            begin();
+        bool            active() const;
+        void            reset();
 
         // Nested draws retain session routing, source buffers and persistent caches.
         [[nodiscard]] CRenderDataScope saveDrawState();
 
-        SRenderData             m_data;
-        CRenderPass             m_pass;
-        CRenderPass*            m_currentPass = nullptr;
-        eRenderMode             m_mode        = RENDER_MODE_NORMAL;
-        SP<Aquamarine::IBuffer> m_currentBuffer;
-        SP<IRenderbuffer>       m_currentRenderbuffer;
+        SRenderData                    m_data;
+        CRenderPass                    m_pass;
+        CRenderPass*                   m_currentPass = nullptr;
+        eRenderMode                    m_mode        = RENDER_MODE_NORMAL;
+        SP<Aquamarine::IBuffer>        m_currentBuffer;
+        SP<IRenderbuffer>              m_currentRenderbuffer;
 
         // Transfer to the backend's pending batch or submission before reset.
         std::vector<SSurfaceBufferUse> m_usedAsyncBuffers;

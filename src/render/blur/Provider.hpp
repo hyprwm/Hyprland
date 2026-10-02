@@ -44,11 +44,11 @@ namespace Render {
       public:
         virtual ~IBlurProvider() = default;
 
-        virtual eBlurType        type() const noexcept             = 0;
+        virtual eBlurType        type() const noexcept                          = 0;
         virtual bool             isAnimated(CRenderContext& ctx) const noexcept = 0;
-        virtual bool             requiresLiveBlur() const noexcept = 0;
+        virtual bool             requiresLiveBlur() const noexcept              = 0;
 
-        virtual void             expandDamage(CRegion& damage, float multiplier = 1.F) const                                                    = 0;
+        virtual void             expandDamage(CRegion& damage, float multiplier = 1.F) const                                                                         = 0;
         virtual SP<IFramebuffer> blur(CRenderContext& ctx, SP<IFramebuffer> source, float strength, const CRegion& originalDamage, const SBlurContext& context = {}) = 0;
 
       protected:

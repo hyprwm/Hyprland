@@ -147,8 +147,8 @@ namespace Event {
             } input;
 
             struct {
-                Event<PHLMONITOR>   preChecks;
-                Event<PHLMONITOR>   pre;
+                Event<PHLMONITOR>        preChecks;
+                Event<PHLMONITOR>        pre;
                 Event<SRenderStageEvent> stage;
             } render;
 

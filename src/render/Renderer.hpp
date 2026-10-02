@@ -24,6 +24,7 @@
 #include "./pass/TextureMatteElement.hpp"
 #include "./pass/TransformedWindowPassElement.hpp"
 #include "types.hpp"
+#include "Context.hpp"
 #include "../output/Monitor.hpp"
 #include "../desktop/state/Fadeout.hpp"
 #include "../desktop/view/LayerSurface.hpp"
@@ -108,10 +109,10 @@ namespace Render {
         bool                                beginRenderToBuffer(PHLMONITOR pMonitor, CRegion& damage, SP<IHLBuffer> buffer, bool simple = false);
         virtual void                        startRenderPass() {};
         virtual SRenderResult               endRender(const std::function<void()>& renderingDoneCallback = {}) = 0;
+        void                                abortRender();
+        CRenderContext&                     context();
 
         NColorManagement::PImageDescription workBufferImageDescription();
-        bool                                m_bBlockSurfaceFeedback = false;
-        bool                                m_bRenderingSnapshot    = false;
         PHLMONITORREF                       m_mostHzMonitor;
 
         void                                setSurfaceScanoutMode(SP<CWLSurfaceResource> surface, PHLMONITOR monitor); // nullptr monitor resets
@@ -134,8 +135,6 @@ namespace Render {
             std::string                                  name;
         } m_lastCursorData;
 
-        CRenderPass     m_renderPass;
-
         void            addPassElement(UP<IPassElement>&& element);
         CRenderPass&    currentPass();
         UP<CScopeGuard> redirectPass(CRenderPass* pass);
@@ -148,7 +147,6 @@ namespace Render {
                                                              uint32_t                fmt); // TODO? move to protected and fix CPointerManager::renderHWCursorBuffer
         bool                         commitPendingAndDoExplicitSync(PHLMONITOR pMonitor, std::optional<Monitor::CDamageRing::CTransaction> damage = std::nullopt,
                                                                     const CRegion& renderedDamage = {}); // TODO? move to protected and fix CMonitorFrameScheduler::onPresented
-        SRenderData                  m_renderData;                                                       // TODO? move to protected and fix CRenderPass
         SP<ITexture>                 m_screencopyDeniedTexture;                                          // TODO? make readonly
         uint                         m_failedAssetsNo     = 0;                                           // TODO? make readonly
         bool                         m_reloadScreenShader = true;                                        // at launch it can be set
@@ -223,6 +221,8 @@ namespace Render {
         virtual bool             reloadShaders(const std::string& path = "") = 0;
 
       protected:
+        CRenderContext            m_context;
+        void                      finishRender();
         virtual void              renderOffToMain(SP<IFramebuffer> off)                                         = 0;
         virtual SP<IRenderbuffer> getOrCreateRenderbufferInternal(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) = 0;
         void                      renderMirrored();
@@ -246,21 +246,10 @@ namespace Render {
         SP<ITexture>         getBackground(PHLMONITOR pMonitor);
         virtual SP<ITexture> getBlurTexture(PHLMONITORREF pMonitor);
 
-        struct SCMSettingsCacheEntry {
-            uint64_t    srcDescId = 0, dstDescId = 0;
-            void*       surfacePtr      = nullptr; // read-only!!
-            bool        modifySDR       = false;
-            float       sdrMinLuminance = -1.F;
-            int         sdrMaxLuminance = -1;
-            SCMSettings settings;
-        };
-        std::vector<SCMSettingsCacheEntry> m_cmSettingsCache;
-
         SP<ITexture>                       m_lockDeadTexture;
         SP<ITexture>                       m_lockDead2Texture;
         SP<ITexture>                       m_lockDead3Texture;
         SP<ITexture>                       m_lockTtyTextTexture;
-        CRenderPass*                       m_currentPass = nullptr;
 
         void                               handleFullscreenSettings(PHLMONITOR pMonitor);
 
@@ -291,8 +280,6 @@ namespace Render {
         bool                              m_cursorHidden            = false;
         bool                              m_cursorHiddenByCondition = false;
         bool                              m_cursorHasSurface        = false;
-        SP<Aquamarine::IBuffer>           m_currentBuffer           = nullptr;
-        eRenderMode                       m_renderMode              = RENDER_MODE_NORMAL;
         bool                              m_nvidia                  = false;
         bool                              m_intel                   = false;
         bool                              m_software                = false;
@@ -308,13 +295,6 @@ namespace Render {
         std::vector<SP<IRenderbuffer>> m_renderbuffers;
         std::vector<PHLWINDOWREF>      m_renderUnfocused;
         SP<CEventLoopTimer>            m_renderUnfocusedTimer;
-
-        struct SBackdropCapture {
-            SP<SBackdropScope> scope;
-            SP<IFramebuffer>   framebuffer;
-        };
-
-        std::vector<SBackdropCapture> m_backdropCaptures;
 
         friend class CRenderPass;
         friend class Render::GL::CHyprOpenGLImpl;

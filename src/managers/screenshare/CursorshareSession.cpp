@@ -118,7 +118,7 @@ void CCursorshareSession::render() {
     const auto& cursorImage = Pointer::mgr()->currentCursorImage();
 
     // TODO: implement a monitor independent render mode to buffer that does this in CHyprRenderer::begin() or something like that
-    g_pHyprRenderer->m_renderData.transformDamage = false;
+    g_pHyprRenderer->context().m_data.transformDamage = false;
     g_pHyprRenderer->setViewport(0, 0, m_bufferSize.x, m_bufferSize.y);
 
     bool overlaps = Pointer::mgr()->getCursorBoxGlobal().overlaps(m_pendingFrame.sourceBoxCallback());
@@ -137,15 +137,21 @@ void CCursorshareSession::render() {
         });
     }
 
-    g_pHyprRenderer->m_renderData.blockScreenShader = true;
+    g_pHyprRenderer->context().m_data.blockScreenShader = true;
 }
 
 bool CCursorshareSession::copy() {
+    if (g_pHyprRenderer->context().active())
+        return false;
+
     if (!m_pendingFrame.callback || !m_pendingFrame.monitor || !m_pendingFrame.callback || !m_pendingFrame.sourceBoxCallback)
         return false;
 
     // FIXME: this doesn't really make sense but just to be safe
     m_pendingFrame.callback(RESULT_TIMESTAMP);
+
+    if (g_pHyprRenderer->context().active())
+        return false;
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
     if (auto attrs = m_pendingFrame.buffer->dmabuf(); attrs.success) {
@@ -158,9 +164,15 @@ bool CCursorshareSession::copy() {
             LOG(Log::ERR, "Can't copy: failed to begin rendering to dmabuf");
             return false;
         }
+        bool                      finishing = false;
+        const Render::CScopeGuard cleanup([&] {
+            if (!finishing)
+                g_pHyprRenderer->abortRender();
+        });
 
         render();
 
+        finishing = true;
         g_pHyprRenderer->endRender([callback = m_pendingFrame.callback]() {
             if (callback)
                 callback(RESULT_COPIED);
@@ -180,9 +192,15 @@ bool CCursorshareSession::copy() {
             LOG(Log::ERR, "Can't copy: failed to begin rendering to shm");
             return false;
         }
+        bool                      finishing = false;
+        const Render::CScopeGuard cleanup([&] {
+            if (!finishing)
+                g_pHyprRenderer->abortRender();
+        });
 
         render();
 
+        finishing = true;
         g_pHyprRenderer->endRender();
 
         int glFormat = PFORMAT->glFormat;
@@ -204,12 +222,9 @@ bool CCursorshareSession::copy() {
         }
 
         if (!outFB->readPixels(m_pendingFrame.buffer, 0, 0, m_bufferSize.x, m_bufferSize.y)) {
-            g_pHyprRenderer->m_renderData.pMonitor.reset();
             LOG(Log::ERR, "Can't copy: failed to read cursor pixels to shm");
             return false;
         }
-
-        g_pHyprRenderer->m_renderData.pMonitor.reset();
 
         m_pendingFrame.callback(RESULT_COPIED);
     } else {

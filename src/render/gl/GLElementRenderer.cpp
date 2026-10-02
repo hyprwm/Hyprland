@@ -21,14 +21,14 @@ void CGLElementRenderer::draw(WP<CBorderPassElement> element, const CRegion& dam
 
 void CGLElementRenderer::draw(WP<CClearPassElement> element, const CRegion& damage) {
     const auto& color = element->m_data.color;
-    RASSERT(g_pHyprRenderer->m_renderData.pMonitor, "Tried to render without begin()!");
+    RASSERT(g_pHyprRenderer->context().m_data.pMonitor, "Tried to render without begin()!");
 
     TRACY_GPU_ZONE("RenderClear");
     const std::array<GLfloat, 4> c = {sc<GLfloat>(color.r), sc<GLfloat>(color.g), sc<GLfloat>(color.b), sc<GLfloat>(color.a)};
 
-    if (!g_pHyprRenderer->m_renderData.damage.empty()) {
-        g_pHyprRenderer->m_renderData.damage.forEachRect([&c](const auto& RECT) {
-            g_pHyprOpenGL->scissor(&RECT, g_pHyprRenderer->m_renderData.transformDamage);
+    if (!g_pHyprRenderer->context().m_data.damage.empty()) {
+        g_pHyprRenderer->context().m_data.damage.forEachRect([&c](const auto& RECT) {
+            g_pHyprOpenGL->scissor(&RECT, g_pHyprRenderer->context().m_data.transformDamage);
             glClearBufferfv(GL_COLOR, 0, c.data());
         });
 
@@ -38,15 +38,15 @@ void CGLElementRenderer::draw(WP<CClearPassElement> element, const CRegion& dama
 };
 
 void CGLElementRenderer::draw(WP<CFramebufferElement> element, const CRegion& damage) {
-    LOG(Log::ERR, "Deprecated CFramebufferElement. Use g_pHyprRenderer->m_renderData and CTexPassElement instead");
+    LOG(Log::ERR, "Deprecated CFramebufferElement. Use g_pHyprRenderer->context().m_data and CTexPassElement instead");
     // const auto       m_data = element->m_data;
     // SP<IFramebuffer> fb     = nullptr;
 
     // if (m_data.main) {
     //     switch (m_data.framebufferID) {
-    //         case FB_MONITOR_RENDER_MAIN: fb = g_pHyprRenderer->m_renderData.mainFB; break;
-    //         case FB_MONITOR_RENDER_CURRENT: fb = g_pHyprRenderer->m_renderData.currentFB; break;
-    //         case FB_MONITOR_RENDER_OUT: fb = g_pHyprRenderer->m_renderData.outFB; break;
+    //         case FB_MONITOR_RENDER_MAIN: fb = g_pHyprRenderer->context().m_data.mainFB; break;
+    //         case FB_MONITOR_RENDER_CURRENT: fb = g_pHyprRenderer->context().m_data.currentFB; break;
+    //         case FB_MONITOR_RENDER_OUT: fb = g_pHyprRenderer->context().m_data.outFB; break;
     //         default: fb = nullptr;
     //     }
 
@@ -57,12 +57,12 @@ void CGLElementRenderer::draw(WP<CFramebufferElement> element, const CRegion& da
 
     // } else {
     //     switch (m_data.framebufferID) {
-    //         case FB_MONITOR_RENDER_EXTRA_OFFLOAD: fb = g_pHyprRenderer->m_renderData.pMonitor->m_offloadFB; break;
-    //         case FB_MONITOR_RENDER_EXTRA_MIRROR: fb = g_pHyprRenderer->m_renderData.pMonitor->m_mirrorFB; break;
-    //         case FB_MONITOR_RENDER_EXTRA_MIRROR_SWAP: fb = g_pHyprRenderer->m_renderData.pMonitor->m_mirrorSwapFB; break;
-    //         case FB_MONITOR_RENDER_EXTRA_OFF_MAIN: fb = g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB; break;
-    //         case FB_MONITOR_RENDER_EXTRA_MONITOR_MIRROR: fb = g_pHyprRenderer->m_renderData.pMonitor->m_monitorMirrorFB; break;
-    //         case FB_MONITOR_RENDER_EXTRA_BLUR: fb = g_pHyprRenderer->m_renderData.pMonitor->m_blurFB; break;
+    //         case FB_MONITOR_RENDER_EXTRA_OFFLOAD: fb = g_pHyprRenderer->context().m_data.pMonitor->m_offloadFB; break;
+    //         case FB_MONITOR_RENDER_EXTRA_MIRROR: fb = g_pHyprRenderer->context().m_data.pMonitor->m_mirrorFB; break;
+    //         case FB_MONITOR_RENDER_EXTRA_MIRROR_SWAP: fb = g_pHyprRenderer->context().m_data.pMonitor->m_mirrorSwapFB; break;
+    //         case FB_MONITOR_RENDER_EXTRA_OFF_MAIN: fb = g_pHyprRenderer->context().m_data.pMonitor->m_offMainFB; break;
+    //         case FB_MONITOR_RENDER_EXTRA_MONITOR_MIRROR: fb = g_pHyprRenderer->context().m_data.pMonitor->m_monitorMirrorFB; break;
+    //         case FB_MONITOR_RENDER_EXTRA_BLUR: fb = g_pHyprRenderer->context().m_data.pMonitor->m_blurFB; break;
     //         default: fb = nullptr;
     //     }
 
@@ -103,7 +103,7 @@ void CGLElementRenderer::draw(WP<CShadowPassElement> element, const CRegion& dam
     const auto  DECO   = m_data.deco.lock();
     if (!DECO)
         return;
-    DECO->render(g_pHyprRenderer->m_renderData.pMonitor.lock(), m_data.a, m_data.presentation);
+    DECO->render(g_pHyprRenderer->context().m_data.pMonitor.lock(), m_data.a, m_data.presentation);
 };
 
 void CGLElementRenderer::draw(WP<CInnerGlowPassElement> element, const CRegion& damage) {
@@ -111,7 +111,7 @@ void CGLElementRenderer::draw(WP<CInnerGlowPassElement> element, const CRegion& 
     const auto  DECO   = m_data.deco.lock();
     if (!DECO)
         return;
-    DECO->render(g_pHyprRenderer->m_renderData.pMonitor.lock(), m_data.a, m_data.presentation);
+    DECO->render(g_pHyprRenderer->context().m_data.pMonitor.lock(), m_data.a, m_data.presentation);
 };
 
 void CGLElementRenderer::draw(WP<CTexPassElement> element, const CRegion& damage) {
@@ -145,8 +145,8 @@ void CGLElementRenderer::draw(WP<CTexPassElement> element, const CRegion& damage
             .clipRegion     = m_data.clipRegion,
             .currentLS      = m_data.currentLS,
 
-            .primarySurfaceUVTopLeft     = g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft,
-            .primarySurfaceUVBottomRight = g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight,
+            .primarySurfaceUVTopLeft     = g_pHyprRenderer->context().m_data.primarySurfaceUVTopLeft,
+            .primarySurfaceUVBottomRight = g_pHyprRenderer->context().m_data.primarySurfaceUVBottomRight,
             .motionBlur                  = m_data.motionBlur,
         });
 };

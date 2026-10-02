@@ -152,7 +152,8 @@ static int openRenderNode(int drmFd) {
 }
 
 static ShaderFeatureFlags globalFeatures() {
-    return g_pHyprRenderer->m_renderData.pMonitor && g_pHyprRenderer->m_renderData.pMonitor->needsUnmodifiedCopy() && g_pHyprRenderer->m_renderData.currentFB->getMirrorTexture() ?
+    return g_pHyprRenderer->context().m_data.pMonitor && g_pHyprRenderer->context().m_data.pMonitor->needsUnmodifiedCopy() &&
+            g_pHyprRenderer->context().m_data.currentFB->getMirrorTexture() ?
         SH_FEAT_MIRROR :
         0;
 }
@@ -679,7 +680,7 @@ EGLImageKHR CHyprOpenGLImpl::createEGLImage(const Aquamarine::SDMABUFAttrs& attr
 }
 
 void CHyprOpenGLImpl::beginSimple(PHLMONITOR pMonitor, const CRegion& damage, SP<IRenderbuffer> rb, SP<IFramebuffer> fb) {
-    g_pHyprRenderer->m_renderData.pMonitor = pMonitor;
+    g_pHyprRenderer->context().m_data.pMonitor = pMonitor;
 
     const GLenum RESETSTATUS = glGetGraphicsResetStatus();
     if (RESETSTATUS != GL_NO_ERROR) {
@@ -703,17 +704,17 @@ void CHyprOpenGLImpl::beginSimple(PHLMONITOR pMonitor, const CRegion& damage, SP
     if (!m_shadersInitialized)
         initShaders();
 
-    g_pHyprRenderer->m_renderData.transformDamage = false;
-    g_pHyprRenderer->m_renderData.damage.set(damage);
-    g_pHyprRenderer->m_renderData.finalDamage.set(damage);
+    g_pHyprRenderer->context().m_data.transformDamage = false;
+    g_pHyprRenderer->context().m_data.damage.set(damage);
+    g_pHyprRenderer->context().m_data.finalDamage.set(damage);
 
-    m_fakeFrame = true;
+    g_pHyprRenderer->context().m_gl.fakeFrame = true;
 
     g_pHyprRenderer->bindFB(FBO);
-    m_offloadedFramebuffer = false;
+    g_pHyprRenderer->context().m_gl.offloadedFramebuffer = false;
 
-    g_pHyprRenderer->m_renderData.mainFB = g_pHyprRenderer->m_renderData.currentFB;
-    g_pHyprRenderer->m_renderData.outFB  = FBO;
+    g_pHyprRenderer->context().m_data.mainFB = g_pHyprRenderer->context().m_data.currentFB;
+    g_pHyprRenderer->context().m_data.outFB  = FBO;
 }
 
 void CHyprOpenGLImpl::makeEGLCurrent() {
@@ -725,7 +726,7 @@ void CHyprOpenGLImpl::makeEGLCurrent() {
 }
 
 void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, SP<IFramebuffer> fb, std::optional<CRegion> finalDamage) {
-    g_pHyprRenderer->m_renderData.pMonitor = pMonitor;
+    g_pHyprRenderer->context().m_data.pMonitor = pMonitor;
 
     const GLenum RESETSTATUS = glGetGraphicsResetStatus();
     if (RESETSTATUS != GL_NO_ERROR) {
@@ -747,11 +748,11 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, SP<IFra
     if (!m_shadersInitialized)
         initShaders();
 
-    g_pHyprRenderer->m_renderData.transformDamage = false;
-    g_pHyprRenderer->m_renderData.damage.set(damage_);
-    g_pHyprRenderer->m_renderData.finalDamage.set(finalDamage.value_or(damage_));
+    g_pHyprRenderer->context().m_data.transformDamage = false;
+    g_pHyprRenderer->context().m_data.damage.set(damage_);
+    g_pHyprRenderer->context().m_data.finalDamage.set(finalDamage.value_or(damage_));
 
-    m_fakeFrame = !!fb;
+    g_pHyprRenderer->context().m_gl.fakeFrame = !!fb;
 
     if (g_pHyprRenderer->m_reloadScreenShader) {
         g_pHyprRenderer->m_reloadScreenShader = false;
@@ -759,47 +760,47 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, SP<IFra
         applyScreenShader(*PSHADER);
     }
 
-    g_pHyprRenderer->bindFB(g_pHyprRenderer->m_renderData.pMonitor->resources()->getUnusedWorkBuffer());
-    m_offloadedFramebuffer = true;
-    if (!g_pHyprRenderer->m_renderData.damage.empty())
-        GLFB(g_pHyprRenderer->m_renderData.currentFB)->clearAfterInvalidation();
+    g_pHyprRenderer->bindFB(g_pHyprRenderer->context().m_data.pMonitor->resources()->getUnusedWorkBuffer());
+    g_pHyprRenderer->context().m_gl.offloadedFramebuffer = true;
+    if (!g_pHyprRenderer->context().m_data.damage.empty())
+        GLFB(g_pHyprRenderer->context().m_data.currentFB)->clearAfterInvalidation();
 
-    g_pHyprRenderer->m_renderData.mainFB = g_pHyprRenderer->m_renderData.currentFB;
-    g_pHyprRenderer->m_renderData.outFB  = fb ? fb : dc<CHyprGLRenderer*>(g_pHyprRenderer.get())->m_currentRenderbuffer->getFB();
+    g_pHyprRenderer->context().m_data.mainFB = g_pHyprRenderer->context().m_data.currentFB;
+    g_pHyprRenderer->context().m_data.outFB  = fb ? fb : g_pHyprRenderer->context().m_currentRenderbuffer->getFB();
 
-    if UNLIKELY (g_pHyprRenderer->m_renderData.pMonitor->needsUnmodifiedCopy() && !m_fakeFrame) {
-        if (!g_pHyprRenderer->m_renderData.pMonitor->resources()->m_mirrorTex)
-            g_pHyprRenderer->m_renderData.pMonitor->resources()->enableMirror();
-        g_pHyprRenderer->m_renderData.mainFB->enableMirror(g_pHyprRenderer->m_renderData.pMonitor->resources()->m_mirrorTex);
+    if UNLIKELY (g_pHyprRenderer->context().m_data.pMonitor->needsUnmodifiedCopy() && !g_pHyprRenderer->context().m_gl.fakeFrame) {
+        if (!g_pHyprRenderer->context().m_data.pMonitor->resources()->m_mirrorTex)
+            g_pHyprRenderer->context().m_data.pMonitor->resources()->enableMirror();
+        g_pHyprRenderer->context().m_data.mainFB->enableMirror(g_pHyprRenderer->context().m_data.pMonitor->resources()->m_mirrorTex);
     } else {
-        if (g_pHyprRenderer->m_renderData.pMonitor->resources()->m_mirrorTex)
-            g_pHyprRenderer->m_renderData.pMonitor->resources()->disableMirror();
-        g_pHyprRenderer->m_renderData.mainFB->disableMirror();
+        if (g_pHyprRenderer->context().m_data.pMonitor->resources()->m_mirrorTex)
+            g_pHyprRenderer->context().m_data.pMonitor->resources()->disableMirror();
+        g_pHyprRenderer->context().m_data.mainFB->disableMirror();
     }
 }
 
 void CHyprOpenGLImpl::end() {
     static auto PZOOMDISABLEAA = CConfigValue<Config::INTEGER>("cursor:zoom_disable_aa");
-    auto&       m_renderData   = g_pHyprRenderer->m_renderData;
+    auto&       m_renderData   = g_pHyprRenderer->context().m_data;
     const auto  PMONITOR       = m_renderData.pMonitor;
     TRACY_GPU_ZONE("RenderEnd");
 
-    g_pHyprRenderer->m_renderData.currentWindow.reset();
-    g_pHyprRenderer->m_renderData.surface.reset();
-    g_pHyprRenderer->m_renderData.clipBox = {};
+    g_pHyprRenderer->context().m_data.currentWindow.reset();
+    g_pHyprRenderer->context().m_data.surface.reset();
+    g_pHyprRenderer->context().m_data.clipBox = {};
 
     // end the render, copy the data to the main framebuffer
-    if LIKELY (m_offloadedFramebuffer) {
-        g_pHyprRenderer->m_renderData.damage = g_pHyprRenderer->m_renderData.finalDamage;
-        if UNLIKELY (g_pHyprRenderer->m_renderMode != RENDER_MODE_NORMAL) {
-            const auto TARGET_SIZE = g_pHyprRenderer->m_renderData.outFB->m_size;
-            const auto TEXTURE     = g_pHyprRenderer->m_renderData.currentFB->getTexture();
+    if LIKELY (g_pHyprRenderer->context().m_gl.offloadedFramebuffer) {
+        g_pHyprRenderer->context().m_data.damage = g_pHyprRenderer->context().m_data.finalDamage;
+        if UNLIKELY (g_pHyprRenderer->context().m_mode != RENDER_MODE_NORMAL) {
+            const auto TARGET_SIZE = g_pHyprRenderer->context().m_data.outFB->m_size;
+            const auto TEXTURE     = g_pHyprRenderer->context().m_data.currentFB->getTexture();
 
-            g_pHyprRenderer->bindFB(g_pHyprRenderer->m_renderData.outFB);
-            g_pHyprRenderer->m_renderData.fbSize = TARGET_SIZE;
+            g_pHyprRenderer->bindFB(g_pHyprRenderer->context().m_data.outFB);
+            g_pHyprRenderer->context().m_data.fbSize = TARGET_SIZE;
             g_pHyprRenderer->setProjectionType(RPT_EXPORT);
-            g_pHyprRenderer->m_renderData.transformDamage = false;
-            g_pHyprRenderer->m_renderData.damage          = CRegion{0, 0, TARGET_SIZE.x, TARGET_SIZE.y};
+            g_pHyprRenderer->context().m_data.transformDamage = false;
+            g_pHyprRenderer->context().m_data.damage          = CRegion{0, 0, TARGET_SIZE.x, TARGET_SIZE.y};
             setViewport(0, 0, TARGET_SIZE.x, TARGET_SIZE.y);
 
             blend(false);
@@ -808,28 +809,28 @@ void CHyprOpenGLImpl::end() {
         } else {
             CBox monbox = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
 
-            if LIKELY (g_pHyprRenderer->m_renderData.mouseZoomFactor == 1.0f)
+            if LIKELY (g_pHyprRenderer->context().m_data.mouseZoomFactor == 1.0f)
                 m_renderData.pMonitor->m_zoomController.m_resetCameraState = true;
             m_renderData.pMonitor->m_zoomController.applyZoomTransform(monbox, m_renderData);
 
-            if UNLIKELY (g_pHyprRenderer->m_renderData.mouseZoomFactor != 1.F && g_pHyprRenderer->m_renderData.mouseZoomUseMouse && *PZOOMDISABLEAA)
-                g_pHyprRenderer->m_renderData.useNearestNeighbor = true;
+            if UNLIKELY (g_pHyprRenderer->context().m_data.mouseZoomFactor != 1.F && g_pHyprRenderer->context().m_data.mouseZoomUseMouse && *PZOOMDISABLEAA)
+                g_pHyprRenderer->context().m_data.useNearestNeighbor = true;
 
             // copy the damaged areas into the mirror buffer
             // we can't use the offloadFB for mirroring / ss, as it contains artifacts from blurring
-            if UNLIKELY (g_pHyprRenderer->m_renderData.pMonitor->needsACopyFB() && !m_fakeFrame) {
+            if UNLIKELY (g_pHyprRenderer->context().m_data.pMonitor->needsACopyFB() && !g_pHyprRenderer->context().m_gl.fakeFrame) {
                 if (saveBufferForMirror(monbox))
-                    g_pHyprRenderer->m_renderData.pMonitor->resources()->markMirrorFBUpdated();
+                    g_pHyprRenderer->context().m_data.pMonitor->resources()->markMirrorFBUpdated();
                 else
-                    g_pHyprRenderer->m_renderData.pMonitor->resources()->invalidateMirrorFB();
+                    g_pHyprRenderer->context().m_data.pMonitor->resources()->invalidateMirrorFB();
             }
 
             blend(false);
 
-            const bool NEEDS_CM = g_pHyprRenderer->m_renderData.pMonitor->m_imageDescription->value() != g_pHyprRenderer->m_renderData.mainFB->imageDescription()->value();
-            const bool WANTS_FINAL_SHADER = !g_pHyprRenderer->m_renderData.blockScreenShader && (m_finalScreenShader->program() >= 1 || g_pHyprRenderer->m_crashingInProgress);
+            const bool NEEDS_CM = g_pHyprRenderer->context().m_data.pMonitor->m_imageDescription->value() != g_pHyprRenderer->context().m_data.mainFB->imageDescription()->value();
+            const bool WANTS_FINAL_SHADER = !g_pHyprRenderer->context().m_data.blockScreenShader && (m_finalScreenShader->program() >= 1 || g_pHyprRenderer->m_crashingInProgress);
 
-            auto       finalTexture = g_pHyprRenderer->m_renderData.currentFB->getTexture();
+            auto       finalTexture = g_pHyprRenderer->context().m_data.currentFB->getTexture();
             CBox       finalBox     = monbox;
             std::array<SP<IFramebuffer>, 2>                    postProcessFBs;
             std::array<NColorManagement::PImageDescription, 2> savedDescriptions;
@@ -838,16 +839,16 @@ void CHyprOpenGLImpl::end() {
 
             if (WANTS_FINAL_SHADER) {
                 if (NEEDS_CM) {
-                    postProcessFBs[postProcessCount] = g_pHyprRenderer->m_renderData.pMonitor->resources()->getUnusedWorkBuffer();
+                    postProcessFBs[postProcessCount] = g_pHyprRenderer->context().m_data.pMonitor->resources()->getUnusedWorkBuffer();
                     if (postProcessFBs[postProcessCount]) {
                         savedDescriptions[postProcessCount] = postProcessFBs[postProcessCount]->imageDescription();
-                        postProcessFBs[postProcessCount]->setImageDescription(g_pHyprRenderer->m_renderData.pMonitor->m_imageDescription);
+                        postProcessFBs[postProcessCount]->setImageDescription(g_pHyprRenderer->context().m_data.pMonitor->m_imageDescription);
 
                         {
                             auto guard = g_pHyprRenderer->bindTempFB(postProcessFBs[postProcessCount]);
                             GLFB(postProcessFBs[postProcessCount])->clearAfterInvalidation();
                             g_pHyprRenderer->setProjectionType(RPT_MONITOR);
-                            g_pHyprRenderer->m_renderData.transformDamage = false;
+                            g_pHyprRenderer->context().m_data.transformDamage = false;
                             renderTexture(finalTexture, finalBox, {.finalMonitorCM = true});
                         }
 
@@ -861,19 +862,19 @@ void CHyprOpenGLImpl::end() {
                 }
 
                 if (!NEEDS_CM || finalCMComplete) {
-                    postProcessFBs[postProcessCount] = g_pHyprRenderer->m_renderData.pMonitor->resources()->getUnusedWorkBuffer();
+                    postProcessFBs[postProcessCount] = g_pHyprRenderer->context().m_data.pMonitor->resources()->getUnusedWorkBuffer();
                     if (postProcessFBs[postProcessCount]) {
                         savedDescriptions[postProcessCount] = postProcessFBs[postProcessCount]->imageDescription();
-                        postProcessFBs[postProcessCount]->setImageDescription(g_pHyprRenderer->m_renderData.pMonitor->m_imageDescription);
+                        postProcessFBs[postProcessCount]->setImageDescription(g_pHyprRenderer->context().m_data.pMonitor->m_imageDescription);
 
                         {
                             auto guard = g_pHyprRenderer->bindTempFB(postProcessFBs[postProcessCount]);
                             GLFB(postProcessFBs[postProcessCount])->clearAfterInvalidation();
                             g_pHyprRenderer->setProjectionType(RPT_MONITOR);
-                            g_pHyprRenderer->m_renderData.transformDamage = false;
-                            m_applyFinalShader                            = true;
+                            g_pHyprRenderer->context().m_data.transformDamage = false;
+                            g_pHyprRenderer->context().m_gl.applyFinalShader  = true;
                             renderTexture(finalTexture, finalBox, {.finalMonitorCM = true});
-                            m_applyFinalShader = false;
+                            g_pHyprRenderer->context().m_gl.applyFinalShader = false;
                         }
 
                         finalTexture = postProcessFBs[postProcessCount++]->getTexture();
@@ -885,10 +886,10 @@ void CHyprOpenGLImpl::end() {
                 }
             }
 
-            g_pHyprRenderer->bindFB(g_pHyprRenderer->m_renderData.outFB);
+            g_pHyprRenderer->bindFB(g_pHyprRenderer->context().m_data.outFB);
             setViewport(0, 0, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y);
             g_pHyprRenderer->setProjectionType(RPT_OUTPUT);
-            g_pHyprRenderer->m_renderData.transformDamage = true;
+            g_pHyprRenderer->context().m_data.transformDamage = true;
 
             if (NEEDS_CM && !finalCMComplete)
                 renderTexture(finalTexture, finalBox, {.finalMonitorCM = true});
@@ -901,29 +902,24 @@ void CHyprOpenGLImpl::end() {
             blend(true);
 
             g_pHyprRenderer->setProjectionType(RPT_MONITOR);
-            g_pHyprRenderer->m_renderData.transformDamage = false;
+            g_pHyprRenderer->context().m_data.transformDamage = false;
         }
 
-        g_pHyprRenderer->m_renderData.useNearestNeighbor = false;
-        m_applyFinalShader                               = false;
+        g_pHyprRenderer->context().m_data.useNearestNeighbor = false;
+        g_pHyprRenderer->context().m_gl.applyFinalShader     = false;
     }
 
-    // reset our data
-    g_pHyprRenderer->m_renderData.mouseZoomFactor   = 1.f;
-    g_pHyprRenderer->m_renderData.mouseZoomUseMouse = true;
-    g_pHyprRenderer->m_renderData.blockScreenShader = false;
-    g_pHyprRenderer->m_renderData.currentFB.reset();
-    g_pHyprRenderer->m_renderData.mainFB.reset();
-    g_pHyprRenderer->m_renderData.outFB.reset();
+    // Release the targets before finding unused work buffers to invalidate.
+    g_pHyprRenderer->context().m_data.currentFB.reset();
+    g_pHyprRenderer->context().m_data.mainFB.reset();
+    g_pHyprRenderer->context().m_data.outFB.reset();
     // invalidate our render FBs to signal to the driver we don't need them anymore
-    g_pHyprRenderer->m_renderData.pMonitor->resources()->forEachUnusedFB(
+    g_pHyprRenderer->context().m_data.pMonitor->resources()->forEachUnusedFB(
         [](const auto& fb) {
             fb->bind();
             GLFB(fb)->invalidate({GL_DEPTH_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
         },
         false);
-
-    m_renderData.pMonitor.reset();
 
     static const auto GLDEBUG = CConfigValue<Config::INTEGER>("debug:gl_debugging");
 
@@ -1092,7 +1088,7 @@ bool CHyprOpenGLImpl::blendEnabled() const {
 }
 
 void CHyprOpenGLImpl::scissor(const CBox& originalBox, bool transform) {
-    auto& m_renderData = g_pHyprRenderer->m_renderData;
+    auto& m_renderData = g_pHyprRenderer->context().m_data;
     RASSERT(m_renderData.pMonitor, "Tried to scissor without begin()!");
 
     // only call glScissor if the box has changed
@@ -1121,7 +1117,7 @@ void CHyprOpenGLImpl::scissor(const CBox& originalBox, bool transform) {
 }
 
 void CHyprOpenGLImpl::scissor(const pixman_box32* pBox, bool transform) {
-    RASSERT(g_pHyprRenderer->m_renderData.pMonitor, "Tried to scissor without begin()!");
+    RASSERT(g_pHyprRenderer->context().m_data.pMonitor, "Tried to scissor without begin()!");
 
     if (!pBox) {
         setCapStatus(GL_SCISSOR_TEST, false);
@@ -1140,7 +1136,7 @@ void CHyprOpenGLImpl::scissor(const int x, const int y, const int w, const int h
 
 void CHyprOpenGLImpl::renderRect(const CBox& box, const CHyprColor& col, SRectRenderData data) {
     if (!data.damage)
-        data.damage = &g_pHyprRenderer->m_renderData.damage;
+        data.damage = &g_pHyprRenderer->context().m_data.damage;
 
     if (data.blur)
         renderRectWithBlurInternal(box, col, data);
@@ -1152,13 +1148,13 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
     if (data.damage->empty())
         return;
 
-    CRegion damage{g_pHyprRenderer->m_renderData.damage};
+    CRegion damage{g_pHyprRenderer->context().m_data.damage};
     damage.intersect(box);
 
     auto patternBox = data.blurPatternBox.value_or(box);
-    g_pHyprRenderer->m_renderData.renderModif.applyToBox(patternBox);
+    g_pHyprRenderer->context().m_data.renderModif.applyToBox(patternBox);
     auto shapeBox = box;
-    g_pHyprRenderer->m_renderData.renderModif.applyToBox(shapeBox);
+    g_pHyprRenderer->context().m_data.renderModif.applyToBox(shapeBox);
     std::optional<SBlurShape> shape;
     if (std::abs(shapeBox.rot) < 0.0001F)
         shape = SBlurShape{
@@ -1168,13 +1164,13 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
         };
     const bool usePrecomputedBlur = data.xray && !g_pHyprRenderer->blurProviderRequiresLiveBlur();
     const auto blurredFB          = usePrecomputedBlur ?
-        g_pHyprRenderer->m_renderData.pMonitor->resources()->m_blurFB :
+        g_pHyprRenderer->context().m_data.pMonitor->resources()->m_blurFB :
         g_pHyprRenderer->blurMainFramebuffer(data.blurA, damage,
                                              {.patternBox = patternBox, .owner = data.blurOwner, .shape = shape, .workspacePresentation = data.workspacePresentation});
     const auto blurredBG          = blurredFB->getTexture();
 
-    const auto SAVEDRENDERMODIF               = g_pHyprRenderer->m_renderData.renderModif;
-    g_pHyprRenderer->m_renderData.renderModif = {}; // fix shit
+    const auto SAVEDRENDERMODIF                   = g_pHyprRenderer->context().m_data.renderModif;
+    g_pHyprRenderer->context().m_data.renderModif = {}; // fix shit
 
     const auto blurUV = resolveBlurUV(box, blurredBG->m_size);
 
@@ -1190,20 +1186,20 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
                       .primarySurfaceUVTopLeft     = blurUV.pos(),
                       .primarySurfaceUVBottomRight = blurUV.pos() + blurUV.size(),
                   });
-    g_pHyprRenderer->m_renderData.renderModif = SAVEDRENDERMODIF;
+    g_pHyprRenderer->context().m_data.renderModif = SAVEDRENDERMODIF;
 
     renderRectWithDamageInternal(box, col, data);
 }
 
 void CHyprOpenGLImpl::renderRectWithDamageInternal(const CBox& box, const CHyprColor& col, const SRectRenderData& data) {
-    auto& m_renderData = g_pHyprRenderer->m_renderData;
+    auto& m_renderData = g_pHyprRenderer->context().m_data;
     RASSERT((box.width > 0 && box.height > 0), "Tried to render rect with width/height < 0!");
     RASSERT(m_renderData.pMonitor, "Tried to render rect without begin()!");
 
     TRACY_GPU_ZONE("RenderRectWithDamage");
 
     CBox newBox = box;
-    g_pHyprRenderer->m_renderData.renderModif.applyToBox(newBox);
+    g_pHyprRenderer->context().m_data.renderModif.applyToBox(newBox);
 
     const auto& glMatrix = g_pHyprRenderer->projectBoxToTarget(newBox);
 
@@ -1227,20 +1223,20 @@ void CHyprOpenGLImpl::renderRectWithDamageInternal(const CBox& box, const CHyprC
 
     glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
 
-    if (g_pHyprRenderer->m_renderData.clipBox.width != 0 && g_pHyprRenderer->m_renderData.clipBox.height != 0) {
-        CRegion damageClip{g_pHyprRenderer->m_renderData.clipBox.x, g_pHyprRenderer->m_renderData.clipBox.y, g_pHyprRenderer->m_renderData.clipBox.width,
-                           g_pHyprRenderer->m_renderData.clipBox.height};
+    if (g_pHyprRenderer->context().m_data.clipBox.width != 0 && g_pHyprRenderer->context().m_data.clipBox.height != 0) {
+        CRegion damageClip{g_pHyprRenderer->context().m_data.clipBox.x, g_pHyprRenderer->context().m_data.clipBox.y, g_pHyprRenderer->context().m_data.clipBox.width,
+                           g_pHyprRenderer->context().m_data.clipBox.height};
         damageClip.intersect(*data.damage);
 
         if (!damageClip.empty()) {
             damageClip.forEachRect([this](const auto& RECT) {
-                scissor(&RECT, g_pHyprRenderer->m_renderData.transformDamage);
+                scissor(&RECT, g_pHyprRenderer->context().m_data.transformDamage);
                 glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             });
         }
     } else {
         data.damage->forEachRect([this](const auto& RECT) {
-            scissor(&RECT, g_pHyprRenderer->m_renderData.transformDamage);
+            scissor(&RECT, g_pHyprRenderer->context().m_data.transformDamage);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         });
     }
@@ -1250,13 +1246,13 @@ void CHyprOpenGLImpl::renderRectWithDamageInternal(const CBox& box, const CHyprC
 }
 
 void CHyprOpenGLImpl::renderTexture(SP<ITexture> tex, const CBox& box, STextureRenderData data) {
-    RASSERT(g_pHyprRenderer->m_renderData.pMonitor, "Tried to render texture without begin()!");
+    RASSERT(g_pHyprRenderer->context().m_data.pMonitor, "Tried to render texture without begin()!");
 
     if (!data.damage) {
-        if (g_pHyprRenderer->m_renderData.damage.empty())
+        if (g_pHyprRenderer->context().m_data.damage.empty())
             return;
 
-        data.damage = &g_pHyprRenderer->m_renderData.damage;
+        data.damage = &g_pHyprRenderer->context().m_data.damage;
     }
 
     if (data.blur && !data.forceBlurBlend)
@@ -1317,26 +1313,26 @@ void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const NColorManagement:
 void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const NColorManagement::PImageDescription imageDescription,
                                      const NColorManagement::PImageDescription targetImageDescription, bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance) {
     const auto settings = g_pHyprRenderer->getCMSettings(imageDescription, targetImageDescription,
-                                                         g_pHyprRenderer->m_renderData.surface.valid() ? g_pHyprRenderer->m_renderData.surface.lock() : nullptr, modifySDR,
+                                                         g_pHyprRenderer->context().m_data.surface.valid() ? g_pHyprRenderer->context().m_data.surface.lock() : nullptr, modifySDR,
                                                          sdrMinLuminance, sdrMaxLuminance);
     passCMUniforms(shader, imageDescription, targetImageDescription, modifySDR, sdrMinLuminance, sdrMaxLuminance, settings);
 }
 
 void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const PImageDescription imageDescription) {
-    passCMUniforms(shader, imageDescription, g_pHyprRenderer->workBufferImageDescription(), true, g_pHyprRenderer->m_renderData.pMonitor->m_sdrMinLuminance,
-                   g_pHyprRenderer->m_renderData.pMonitor->m_sdrMaxLuminance);
+    passCMUniforms(shader, imageDescription, g_pHyprRenderer->workBufferImageDescription(), true, g_pHyprRenderer->context().m_data.pMonitor->m_sdrMinLuminance,
+                   g_pHyprRenderer->context().m_data.pMonitor->m_sdrMaxLuminance);
 }
 
 void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const PImageDescription imageDescription, const SCMSettings& settings) {
-    passCMUniforms(shader, imageDescription, g_pHyprRenderer->workBufferImageDescription(), true, g_pHyprRenderer->m_renderData.pMonitor->m_sdrMinLuminance,
-                   g_pHyprRenderer->m_renderData.pMonitor->m_sdrMaxLuminance, settings);
+    passCMUniforms(shader, imageDescription, g_pHyprRenderer->workBufferImageDescription(), true, g_pHyprRenderer->context().m_data.pMonitor->m_sdrMinLuminance,
+                   g_pHyprRenderer->context().m_data.pMonitor->m_sdrMaxLuminance, settings);
 }
 
 WP<CShader> CHyprOpenGLImpl::renderScreenShaderInternal() {
     static const auto PDT            = CConfigValue<Config::INTEGER>("debug:damage_tracking");
     static const auto PCURSORTIMEOUT = CConfigValue<Config::FLOAT>("cursor:inactive_timeout");
 
-    auto&             m_renderData = g_pHyprRenderer->m_renderData;
+    auto&             m_renderData = g_pHyprRenderer->context().m_data;
 
     WP<CShader>       shader =
         g_pHyprRenderer->m_crashingInProgress ? getShaderVariant(SH_FRAG_GLITCH) : (m_finalScreenShader->program() ? m_finalScreenShader : getShaderVariant(SH_FRAG_PASSTHRURGBA));
@@ -1407,7 +1403,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
     static const auto  PENABLECM = CConfigValue<Config::INTEGER>("render:cm_enabled");
     static auto        PBLEND    = CConfigValue<Config::INTEGER>("render:use_shader_blur_blend");
 
-    auto&              m_renderData = g_pHyprRenderer->m_renderData;
+    auto&              m_renderData = g_pHyprRenderer->context().m_data;
 
     float              alpha = std::clamp(data.a, 0.f, 1.f);
 
@@ -1423,11 +1419,11 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
         default: RASSERT(false, "tex->m_iTarget unsupported!");
     }
 
-    if (data.finalMonitorCM || (g_pHyprRenderer->m_renderData.currentWindow && g_pHyprRenderer->m_renderData.currentWindow->m_ruleApplicator->RGBX().valueOrDefault()))
+    if (data.finalMonitorCM || (g_pHyprRenderer->context().m_data.currentWindow && g_pHyprRenderer->context().m_data.currentWindow->m_ruleApplicator->RGBX().valueOrDefault()))
         shaderFeatures &= ~SH_FEAT_RGBA;
 
-    const auto surface                       = g_pHyprRenderer->m_renderData.surface;
-    const auto WORK_BUFFER_IMAGE_DESCRIPTION = g_pHyprRenderer->m_renderData.pMonitor->workBufferImageDescription();
+    const auto surface                       = g_pHyprRenderer->context().m_data.surface;
+    const auto WORK_BUFFER_IMAGE_DESCRIPTION = g_pHyprRenderer->context().m_data.pMonitor->workBufferImageDescription();
 
     // chosenSdrEotf contains the valid eotf for this display
 
@@ -1452,8 +1448,8 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
     }();
 
     const auto TARGET_IMAGE_DESCRIPTION = [&] {
-        if (g_pHyprRenderer->m_renderData.currentFB->imageDescription())
-            return g_pHyprRenderer->m_renderData.currentFB->imageDescription();
+        if (g_pHyprRenderer->context().m_data.currentFB->imageDescription())
+            return g_pHyprRenderer->context().m_data.currentFB->imageDescription();
 
         // if we are CM'ing back, use default sRGB
         if (data.cmBackToSRGB)
@@ -1461,7 +1457,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
 
         // for final CM, use the target description
         if (data.finalMonitorCM)
-            return g_pHyprRenderer->m_renderData.pMonitor->m_imageDescription;
+            return g_pHyprRenderer->context().m_data.pMonitor->m_imageDescription;
         // otherwise, use chosen, we're drawing into the work buffer
         // NOLINTNEXTLINE
         return WORK_BUFFER_IMAGE_DESCRIPTION;
@@ -1483,15 +1479,16 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
         shaderFeatures |= SH_FEAT_DISCARD;
 
     const bool skipCM = !*PENABLECM || !m_cmSupported                   /* CM unsupported or disabled */
-        || g_pHyprRenderer->m_renderData.pMonitor->doesNoShaderCM()     /* no shader needed */
+        || g_pHyprRenderer->context().m_data.pMonitor->doesNoShaderCM() /* no shader needed */
         || !SOURCE_IMAGE_DESCRIPTION->needsCM(TARGET_IMAGE_DESCRIPTION) /* Source and target have matching image descriptions */
         ;
 
-    if (g_pHyprRenderer->m_renderData.pMonitor->needsACopyFB())
+    if (g_pHyprRenderer->context().m_data.pMonitor->needsACopyFB())
         LOG(Log::TRACE, "CM: render to FB skip={} {} -> {}", skipCM, SOURCE_IMAGE_DESCRIPTION->value(), TARGET_IMAGE_DESCRIPTION->value());
 
-    if (data.allowDim && g_pHyprRenderer->m_renderData.currentWindow &&
-        (g_pHyprRenderer->m_renderData.currentWindow->presentation().notRespondingTint() > 0 || g_pHyprRenderer->m_renderData.currentWindow->presentation().dimPercent() > 0))
+    if (data.allowDim && g_pHyprRenderer->context().m_data.currentWindow &&
+        (g_pHyprRenderer->context().m_data.currentWindow->presentation().notRespondingTint() > 0 ||
+         g_pHyprRenderer->context().m_data.currentWindow->presentation().dimPercent() > 0))
         shaderFeatures |= SH_FEAT_TINT;
 
     if (data.round > 0)
@@ -1500,7 +1497,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
     if (!skipCM) {
         const auto settings =
             g_pHyprRenderer->getCMSettings(SOURCE_IMAGE_DESCRIPTION, TARGET_IMAGE_DESCRIPTION, surface.valid() ? surface.lock() : nullptr, true,
-                                           g_pHyprRenderer->m_renderData.pMonitor->m_sdrMinLuminance, g_pHyprRenderer->m_renderData.pMonitor->m_sdrMaxLuminance, true);
+                                           g_pHyprRenderer->context().m_data.pMonitor->m_sdrMinLuminance, g_pHyprRenderer->context().m_data.pMonitor->m_sdrMaxLuminance, true);
 
         shaderFeatures |= SH_FEAT_CM;
 
@@ -1521,8 +1518,8 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
             shader = getShaderVariant(SH_FRAG_SURFACE, shaderFeatures | globalFeatures(), settings.sourceTF, settings.targetTF);
         shader = useShader(shader);
 
-        passCMUniforms(shader, SOURCE_IMAGE_DESCRIPTION, TARGET_IMAGE_DESCRIPTION, true, g_pHyprRenderer->m_renderData.pMonitor->m_sdrMinLuminance,
-                       g_pHyprRenderer->m_renderData.pMonitor->m_sdrMaxLuminance, settings);
+        passCMUniforms(shader, SOURCE_IMAGE_DESCRIPTION, TARGET_IMAGE_DESCRIPTION, true, g_pHyprRenderer->context().m_data.pMonitor->m_sdrMinLuminance,
+                       g_pHyprRenderer->context().m_data.pMonitor->m_sdrMaxLuminance, settings);
     } else {
         if (!shader)
             shader = getShaderVariant(SH_FRAG_SURFACE, shaderFeatures | globalFeatures());
@@ -1582,14 +1579,14 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
         shader->setUniformInt(SHADER_MOTION_SAMPLES, data.motionBlur.samples);
     }
 
-    if (data.allowDim && g_pHyprRenderer->m_renderData.currentWindow) {
-        if (g_pHyprRenderer->m_renderData.currentWindow->presentation().notRespondingTint() > 0) {
-            const auto DIM = g_pHyprRenderer->m_renderData.currentWindow->presentation().notRespondingTint();
+    if (data.allowDim && g_pHyprRenderer->context().m_data.currentWindow) {
+        if (g_pHyprRenderer->context().m_data.currentWindow->presentation().notRespondingTint() > 0) {
+            const auto DIM = g_pHyprRenderer->context().m_data.currentWindow->presentation().notRespondingTint();
             shader->setUniformInt(SHADER_APPLY_TINT, 1);
             shader->setUniformFloat3(SHADER_TINT, 1.f - DIM, 1.f - DIM, 1.f - DIM);
-        } else if (g_pHyprRenderer->m_renderData.currentWindow->presentation().dimPercent() > 0) {
+        } else if (g_pHyprRenderer->context().m_data.currentWindow->presentation().dimPercent() > 0) {
             shader->setUniformInt(SHADER_APPLY_TINT, 1);
-            const auto DIM = g_pHyprRenderer->m_renderData.currentWindow->presentation().dimPercent();
+            const auto DIM = g_pHyprRenderer->context().m_data.currentWindow->presentation().dimPercent();
             shader->setUniformFloat3(SHADER_TINT, 1.f - DIM, 1.f - DIM, 1.f - DIM);
         } else
             shader->setUniformInt(SHADER_APPLY_TINT, 0);
@@ -1611,7 +1608,7 @@ static GLenum wrapModeToGl(const uint8_t wrapMode) {
 }
 
 void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, const STextureRenderData& data) {
-    RASSERT(g_pHyprRenderer->m_renderData.pMonitor, "Tried to render texture without begin()!");
+    RASSERT(g_pHyprRenderer->context().m_data.pMonitor, "Tried to render texture without begin()!");
     RASSERT(tex, "Attempted to draw nullptr texture!");
     RASSERT(tex->ok(), "Attempted to draw invalid texture!");
 
@@ -1621,7 +1618,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, c
         return;
 
     CBox newBox = box;
-    g_pHyprRenderer->m_renderData.renderModif.applyToBox(newBox);
+    g_pHyprRenderer->context().m_data.renderModif.applyToBox(newBox);
 
     // get the needed transform for this texture
     // wl_surface::set_buffer_transform: "The compositor applies the inverse of this transformation whenever it uses the buffer contents."
@@ -1629,7 +1626,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, c
 
     const auto&                 glMatrix = g_pHyprRenderer->projectBoxToTarget(newBox, TRANSFORM);
 
-    const bool                  useScreenShader = m_applyFinalShader;
+    const bool                  useScreenShader = g_pHyprRenderer->context().m_gl.applyFinalShader;
 
     setActiveTexture(GL_TEXTURE0);
     tex->bind();
@@ -1637,7 +1634,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, c
     tex->setTexParameter(GL_TEXTURE_WRAP_S, wrapModeToGl(data.wrapX));
     tex->setTexParameter(GL_TEXTURE_WRAP_T, wrapModeToGl(data.wrapY));
 
-    if (g_pHyprRenderer->m_renderData.useNearestNeighbor) {
+    if (g_pHyprRenderer->context().m_data.useNearestNeighbor) {
         tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     } else {
@@ -1679,11 +1676,11 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, c
     } else
         GLCALL(glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO)));
 
-    if (!g_pHyprRenderer->m_renderData.clipBox.empty() || !data.clipRegion.empty()) {
-        CRegion damageClip = g_pHyprRenderer->m_renderData.clipBox;
+    if (!g_pHyprRenderer->context().m_data.clipBox.empty() || !data.clipRegion.empty()) {
+        CRegion damageClip = g_pHyprRenderer->context().m_data.clipBox;
 
         if (!data.clipRegion.empty()) {
-            if (g_pHyprRenderer->m_renderData.clipBox.empty())
+            if (g_pHyprRenderer->context().m_data.clipBox.empty())
                 damageClip = data.clipRegion;
             else
                 damageClip.intersect(data.clipRegion);
@@ -1693,13 +1690,13 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, c
 
         if (!damageClip.empty()) {
             damageClip.forEachRect([this](const auto& RECT) {
-                scissor(&RECT, g_pHyprRenderer->m_renderData.transformDamage);
+                scissor(&RECT, g_pHyprRenderer->context().m_data.transformDamage);
                 glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             });
         }
     } else {
         data.damage->forEachRect([this](const auto& RECT) {
-            scissor(&RECT, g_pHyprRenderer->m_renderData.transformDamage);
+            scissor(&RECT, g_pHyprRenderer->context().m_data.transformDamage);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         });
     }
@@ -1710,7 +1707,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, c
 }
 
 void CHyprOpenGLImpl::renderTextureMesh(SP<ITexture> tex, const CBox& box, const std::vector<SMeshRenderVertex>& vertices, STextureRenderData data) {
-    RASSERT(g_pHyprRenderer->m_renderData.pMonitor, "Tried to render texture mesh without begin()!");
+    RASSERT(g_pHyprRenderer->context().m_data.pMonitor, "Tried to render texture mesh without begin()!");
     RASSERT(tex, "Attempted to draw nullptr texture mesh!");
     RASSERT(tex->ok(), "Attempted to draw invalid texture mesh!");
 
@@ -1718,7 +1715,7 @@ void CHyprOpenGLImpl::renderTextureMesh(SP<ITexture> tex, const CBox& box, const
         return;
 
     CBox newBox = box;
-    g_pHyprRenderer->m_renderData.renderModif.applyToBox(newBox);
+    g_pHyprRenderer->context().m_data.renderModif.applyToBox(newBox);
 
     Hyprutils::Math::eTransform TRANSFORM = tex->m_transform;
 
@@ -1730,7 +1727,7 @@ void CHyprOpenGLImpl::renderTextureMesh(SP<ITexture> tex, const CBox& box, const
     tex->setTexParameter(GL_TEXTURE_WRAP_S, wrapModeToGl(data.wrapX));
     tex->setTexParameter(GL_TEXTURE_WRAP_T, wrapModeToGl(data.wrapY));
 
-    if (g_pHyprRenderer->m_renderData.useNearestNeighbor) {
+    if (g_pHyprRenderer->context().m_data.useNearestNeighbor) {
         tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     } else {
@@ -1748,11 +1745,11 @@ void CHyprOpenGLImpl::renderTextureMesh(SP<ITexture> tex, const CBox& box, const
     glBufferData(GL_ARRAY_BUFFER, sizeof(SMeshRenderVertex) * vertices.size(), nullptr, GL_DYNAMIC_DRAW);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(SMeshRenderVertex) * vertices.size(), vertices.data());
 
-    if (!g_pHyprRenderer->m_renderData.clipBox.empty() || !data.clipRegion.empty()) {
-        CRegion damageClip = g_pHyprRenderer->m_renderData.clipBox;
+    if (!g_pHyprRenderer->context().m_data.clipBox.empty() || !data.clipRegion.empty()) {
+        CRegion damageClip = g_pHyprRenderer->context().m_data.clipBox;
 
         if (!data.clipRegion.empty()) {
-            if (g_pHyprRenderer->m_renderData.clipBox.empty())
+            if (g_pHyprRenderer->context().m_data.clipBox.empty())
                 damageClip = data.clipRegion;
             else
                 damageClip.intersect(data.clipRegion);
@@ -1760,13 +1757,13 @@ void CHyprOpenGLImpl::renderTextureMesh(SP<ITexture> tex, const CBox& box, const
 
         if (!damageClip.empty()) {
             damageClip.forEachRect([this, &vertices](const auto& RECT) {
-                scissor(&RECT, g_pHyprRenderer->m_renderData.transformDamage);
+                scissor(&RECT, g_pHyprRenderer->context().m_data.transformDamage);
                 glDrawArrays(GL_TRIANGLES, 0, sc<GLsizei>(vertices.size()));
             });
         }
     } else {
         data.damage->forEachRect([this, &vertices](const auto& RECT) {
-            scissor(&RECT, g_pHyprRenderer->m_renderData.transformDamage);
+            scissor(&RECT, g_pHyprRenderer->context().m_data.transformDamage);
             glDrawArrays(GL_TRIANGLES, 0, sc<GLsizei>(vertices.size()));
         });
     }
@@ -1777,16 +1774,16 @@ void CHyprOpenGLImpl::renderTextureMesh(SP<ITexture> tex, const CBox& box, const
 }
 
 void CHyprOpenGLImpl::renderTexturePrimitive(SP<ITexture> tex, const CBox& box) {
-    RASSERT(g_pHyprRenderer->m_renderData.pMonitor, "Tried to render texture without begin()!");
+    RASSERT(g_pHyprRenderer->context().m_data.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex->ok()), "Attempted to draw nullptr texture!");
 
     TRACY_GPU_ZONE("RenderTexturePrimitive");
 
-    if (g_pHyprRenderer->m_renderData.damage.empty())
+    if (g_pHyprRenderer->context().m_data.damage.empty())
         return;
 
     CBox newBox = box;
-    g_pHyprRenderer->m_renderData.renderModif.applyToBox(newBox);
+    g_pHyprRenderer->context().m_data.renderModif.applyToBox(newBox);
 
     // get transform
     const auto& glMatrix = g_pHyprRenderer->projectBoxToTarget(newBox);
@@ -1796,7 +1793,7 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<ITexture> tex, const CBox& box) 
 
     // ensure the final blit uses the desired sampling filter
     // when cursor zoom is active we want nearest-neighbor (no anti-aliasing)
-    if (g_pHyprRenderer->m_renderData.useNearestNeighbor) {
+    if (g_pHyprRenderer->context().m_data.useNearestNeighbor) {
         tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     } else {
@@ -1809,8 +1806,8 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<ITexture> tex, const CBox& box) 
     shader->setUniformInt(SHADER_TEX, 0);
     glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
 
-    g_pHyprRenderer->m_renderData.damage.forEachRect([this](const auto& RECT) {
-        scissor(&RECT, g_pHyprRenderer->m_renderData.transformDamage);
+    g_pHyprRenderer->context().m_data.damage.forEachRect([this](const auto& RECT) {
+        scissor(&RECT, g_pHyprRenderer->context().m_data.transformDamage);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     });
 
@@ -1820,13 +1817,13 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<ITexture> tex, const CBox& box) 
 }
 
 void CHyprOpenGLImpl::renderTextureMatte(SP<ITexture> tex, const CBox& box, SP<IFramebuffer> matte) {
-    RASSERT(g_pHyprRenderer->m_renderData.pMonitor, "Tried to render texture without begin()!");
+    RASSERT(g_pHyprRenderer->context().m_data.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex->ok()), "Attempted to draw nullptr texture!");
 
     TRACY_GPU_ZONE("RenderTextureMatte");
 
     CBox newBox = box;
-    g_pHyprRenderer->m_renderData.renderModif.applyToBox(newBox);
+    g_pHyprRenderer->context().m_data.renderModif.applyToBox(newBox);
 
     // get transform
     const auto& glMatrix = g_pHyprRenderer->projectBoxToTarget(newBox);
@@ -1845,8 +1842,8 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<ITexture> tex, const CBox& box, SP<I
 
     glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
 
-    g_pHyprRenderer->m_renderData.damage.forEachRect([this](const auto& RECT) {
-        scissor(&RECT, g_pHyprRenderer->m_renderData.transformDamage);
+    g_pHyprRenderer->context().m_data.damage.forEachRect([this](const auto& RECT) {
+        scissor(&RECT, g_pHyprRenderer->context().m_data.transformDamage);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     });
 
@@ -1856,7 +1853,7 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<ITexture> tex, const CBox& box, SP<I
 }
 
 void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox& box, const STextureRenderData& data) {
-    auto& m_renderData = g_pHyprRenderer->m_renderData;
+    auto& m_renderData = g_pHyprRenderer->context().m_data;
     RASSERT(m_renderData.pMonitor, "Tried to render texture with blur without begin()!");
 
     TRACY_GPU_ZONE("RenderTextureWithBlur");
@@ -1881,7 +1878,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
 
             renderTexture(tex, box,
                           STextureRenderData{
-                              .damage                      = &g_pHyprRenderer->m_renderData.damage,
+                              .damage                      = &g_pHyprRenderer->context().m_data.damage,
                               .a                           = data.a,
                               .round                       = data.round,
                               .roundingPower               = data.roundingPower,
@@ -1893,8 +1890,8 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
                               .discardOpacity              = data.discardOpacity,
                               .clipRegion                  = data.clipRegion,
                               .currentLS                   = data.currentLS,
-                              .primarySurfaceUVTopLeft     = g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft,
-                              .primarySurfaceUVBottomRight = g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight,
+                              .primarySurfaceUVTopLeft     = g_pHyprRenderer->context().m_data.primarySurfaceUVTopLeft,
+                              .primarySurfaceUVBottomRight = g_pHyprRenderer->context().m_data.primarySurfaceUVBottomRight,
                           }); // discard opaque and alpha < discardOpacity
 
             glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -1924,9 +1921,9 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
                 blurClipRegion.intersect(protocolBlur);
         }
 
-        bool renderModif = g_pHyprRenderer->m_renderData.renderModif.enabled;
+        bool renderModif = g_pHyprRenderer->context().m_data.renderModif.enabled;
         if (!data.blockBlurOptimization)
-            g_pHyprRenderer->m_renderData.renderModif.enabled = false;
+            g_pHyprRenderer->context().m_data.renderModif.enabled = false;
 
         renderTextureInternal(data.blurredBG, box,
                               STextureRenderData{
@@ -1948,7 +1945,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
                                   .primarySurfaceUVBottomRight = (monitorSpaceBox.pos() + monitorSpaceBox.size()) / m_renderData.pMonitor->m_transformedSize,
                               });
 
-        g_pHyprRenderer->m_renderData.renderModif.enabled = renderModif;
+        g_pHyprRenderer->context().m_data.renderModif.enabled = renderModif;
 
         if (NEEDS_STENCIL)
             setCapStatus(GL_STENCIL_TEST, false);
@@ -1975,21 +1972,22 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
                               .clipRegion     = data.clipRegion,
                               .currentLS      = data.currentLS,
 
-                              .primarySurfaceUVTopLeft     = g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft,
-                              .primarySurfaceUVBottomRight = g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight,
+                              .primarySurfaceUVTopLeft     = g_pHyprRenderer->context().m_data.primarySurfaceUVTopLeft,
+                              .primarySurfaceUVBottomRight = g_pHyprRenderer->context().m_data.primarySurfaceUVBottomRight,
                           });
 
-    GLFB(g_pHyprRenderer->m_renderData.currentFB)->invalidate({GL_DEPTH_STENCIL_ATTACHMENT});
+    GLFB(g_pHyprRenderer->context().m_data.currentFB)->invalidate({GL_DEPTH_STENCIL_ATTACHMENT});
     scissor(nullptr);
 }
 
 static SShaderVariant getDecoVariant() {
     const bool IS_ICC   = g_pHyprRenderer->workBufferImageDescription()->value().icc.present;
-    const auto settings = g_pHyprRenderer->getCMSettings(g_pHyprRenderer->workBufferImageDescription(), getDefaultImageDescription(), nullptr, true,
-                                                         g_pHyprRenderer->m_renderData.pMonitor->m_sdrMinLuminance, g_pHyprRenderer->m_renderData.pMonitor->m_sdrMaxLuminance);
+    const auto settings =
+        g_pHyprRenderer->getCMSettings(g_pHyprRenderer->workBufferImageDescription(), getDefaultImageDescription(), nullptr, true,
+                                       g_pHyprRenderer->context().m_data.pMonitor->m_sdrMinLuminance, g_pHyprRenderer->context().m_data.pMonitor->m_sdrMaxLuminance);
     const auto uniformSettings =
         g_pHyprRenderer->getCMSettings(getDefaultImageDescription(), g_pHyprRenderer->workBufferImageDescription(), nullptr, true,
-                                       g_pHyprRenderer->m_renderData.pMonitor->m_sdrMinLuminance, g_pHyprRenderer->m_renderData.pMonitor->m_sdrMaxLuminance);
+                                       g_pHyprRenderer->context().m_data.pMonitor->m_sdrMinLuminance, g_pHyprRenderer->context().m_data.pMonitor->m_sdrMaxLuminance);
 
     ShaderFeatureFlags features = SH_FEAT_ROUNDING | SH_FEAT_CM | globalFeatures();
     if (IS_ICC)
@@ -2007,23 +2005,23 @@ static SShaderVariant getDecoVariant() {
 }
 
 void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValueData& grad, SBorderRenderData data) {
-    auto& m_renderData = g_pHyprRenderer->m_renderData;
+    auto& m_renderData = g_pHyprRenderer->context().m_data;
     RASSERT((box.width > 0 && box.height > 0), "Tried to render rect with width/height < 0!");
     RASSERT(m_renderData.pMonitor, "Tried to render rect without begin()!");
 
     TRACY_GPU_ZONE("RenderBorder");
 
-    if (g_pHyprRenderer->m_renderData.damage.empty())
+    if (g_pHyprRenderer->context().m_data.damage.empty())
         return;
 
     CBox innerBox = box;
-    g_pHyprRenderer->m_renderData.renderModif.applyToBox(innerBox);
+    g_pHyprRenderer->context().m_data.renderModif.applyToBox(innerBox);
 
     if (data.borderSize < 1)
         return;
 
     int scaledBorderSize = std::round(data.borderSize * m_renderData.pMonitor->m_scale);
-    scaledBorderSize     = std::round(scaledBorderSize * g_pHyprRenderer->m_renderData.renderModif.combinedScale());
+    scaledBorderSize     = std::round(scaledBorderSize * g_pHyprRenderer->context().m_data.renderModif.combinedScale());
 
     // adjust box
     CBox newBox = innerBox;
@@ -2070,15 +2068,15 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValue
 
     // calculate the border's region, which we need to render over. No need to run the shader on
     // things outside there
-    CRegion borderRegion = g_pHyprRenderer->m_renderData.damage.copy().intersect(newBox);
+    CRegion borderRegion = g_pHyprRenderer->context().m_data.damage.copy().intersect(newBox);
     borderRegion.subtract(innerBox.copy().expand(-scaledBorderSize - round));
 
-    if (g_pHyprRenderer->m_renderData.clipBox.width != 0 && g_pHyprRenderer->m_renderData.clipBox.height != 0)
-        borderRegion.intersect(g_pHyprRenderer->m_renderData.clipBox);
+    if (g_pHyprRenderer->context().m_data.clipBox.width != 0 && g_pHyprRenderer->context().m_data.clipBox.height != 0)
+        borderRegion.intersect(g_pHyprRenderer->context().m_data.clipBox);
 
     if (!borderRegion.empty()) {
         borderRegion.forEachRect([this](const auto& RECT) {
-            scissor(&RECT, g_pHyprRenderer->m_renderData.transformDamage);
+            scissor(&RECT, g_pHyprRenderer->context().m_data.transformDamage);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         });
     }
@@ -2089,23 +2087,23 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValue
 }
 
 void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2, float lerp, SBorderRenderData data) {
-    auto& m_renderData = g_pHyprRenderer->m_renderData;
+    auto& m_renderData = g_pHyprRenderer->context().m_data;
     RASSERT((box.width > 0 && box.height > 0), "Tried to render rect with width/height < 0!");
     RASSERT(m_renderData.pMonitor, "Tried to render rect without begin()!");
 
     TRACY_GPU_ZONE("RenderBorder2");
 
-    if (g_pHyprRenderer->m_renderData.damage.empty())
+    if (g_pHyprRenderer->context().m_data.damage.empty())
         return;
 
     CBox innerBox = box;
-    g_pHyprRenderer->m_renderData.renderModif.applyToBox(innerBox);
+    g_pHyprRenderer->context().m_data.renderModif.applyToBox(innerBox);
 
     if (data.borderSize < 1)
         return;
 
     int scaledBorderSize = std::round(data.borderSize * m_renderData.pMonitor->m_scale);
-    scaledBorderSize     = std::round(scaledBorderSize * g_pHyprRenderer->m_renderData.renderModif.combinedScale());
+    scaledBorderSize     = std::round(scaledBorderSize * g_pHyprRenderer->context().m_data.renderModif.combinedScale());
 
     // adjust box
     CBox newBox = innerBox;
@@ -2155,15 +2153,15 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValue
 
     // calculate the border's region, which we need to render over. No need to run the shader on
     // things outside there
-    CRegion borderRegion = g_pHyprRenderer->m_renderData.damage.copy().intersect(newBox);
+    CRegion borderRegion = g_pHyprRenderer->context().m_data.damage.copy().intersect(newBox);
     borderRegion.subtract(innerBox.copy().expand(-scaledBorderSize - round));
 
-    if (g_pHyprRenderer->m_renderData.clipBox.width != 0 && g_pHyprRenderer->m_renderData.clipBox.height != 0)
-        borderRegion.intersect(g_pHyprRenderer->m_renderData.clipBox);
+    if (g_pHyprRenderer->context().m_data.clipBox.width != 0 && g_pHyprRenderer->context().m_data.clipBox.height != 0)
+        borderRegion.intersect(g_pHyprRenderer->context().m_data.clipBox);
 
     if (!borderRegion.empty()) {
         borderRegion.forEachRect([this](const auto& RECT) {
-            scissor(&RECT, g_pHyprRenderer->m_renderData.transformDamage);
+            scissor(&RECT, g_pHyprRenderer->context().m_data.transformDamage);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         });
     }
@@ -2179,17 +2177,17 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
 
 void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
                                           const Config::CGradientValueData& grad2, float lerp, float a, const SP<Workspace::CWorkspacePresentable>& presentation) {
-    auto& m_renderData = g_pHyprRenderer->m_renderData;
+    auto& m_renderData = g_pHyprRenderer->context().m_data;
     RASSERT(m_renderData.pMonitor, "Tried to render shadow without begin()!");
     RASSERT((box.width > 0 && box.height > 0), "Tried to render shadow with width/height < 0!");
 
-    if (g_pHyprRenderer->m_renderData.damage.empty())
+    if (g_pHyprRenderer->context().m_data.damage.empty())
         return;
 
     TRACY_GPU_ZONE("RenderShadow");
 
     CBox newBox = box;
-    g_pHyprRenderer->m_renderData.renderModif.applyToBox(newBox);
+    g_pHyprRenderer->context().m_data.renderModif.applyToBox(newBox);
 
     static auto PSHADOWPOWER = CConfigValue<Config::INTEGER>("decoration:shadow:render_power");
 
@@ -2243,15 +2241,15 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
 
     CRegion drawRegion;
 
-    if (g_pHyprRenderer->m_renderData.clipBox.width != 0 && g_pHyprRenderer->m_renderData.clipBox.height != 0) {
-        drawRegion = {g_pHyprRenderer->m_renderData.clipBox.x, g_pHyprRenderer->m_renderData.clipBox.y, g_pHyprRenderer->m_renderData.clipBox.width,
-                      g_pHyprRenderer->m_renderData.clipBox.height};
-        drawRegion.intersect(g_pHyprRenderer->m_renderData.damage);
+    if (g_pHyprRenderer->context().m_data.clipBox.width != 0 && g_pHyprRenderer->context().m_data.clipBox.height != 0) {
+        drawRegion = {g_pHyprRenderer->context().m_data.clipBox.x, g_pHyprRenderer->context().m_data.clipBox.y, g_pHyprRenderer->context().m_data.clipBox.width,
+                      g_pHyprRenderer->context().m_data.clipBox.height};
+        drawRegion.intersect(g_pHyprRenderer->context().m_data.damage);
     } else
-        drawRegion = g_pHyprRenderer->m_renderData.damage;
+        drawRegion = g_pHyprRenderer->context().m_data.damage;
 
-    if (g_pHyprRenderer->m_renderData.currentWindow) {
-        const auto PWINDOW = g_pHyprRenderer->m_renderData.currentWindow.lock();
+    if (g_pHyprRenderer->context().m_data.currentWindow) {
+        const auto PWINDOW = g_pHyprRenderer->context().m_data.currentWindow.lock();
         if (PWINDOW) {
             if (const auto WINDOWBOX = PWINDOW->surfaceLogicalBox(); WINDOWBOX.has_value()) {
                 CBox scaledWindowBox = WINDOWBOX.value();
@@ -2282,7 +2280,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
 
     if (!drawRegion.empty())
         drawRegion.forEachRect([this](const auto& RECT) {
-            scissor(&RECT, g_pHyprRenderer->m_renderData.transformDamage);
+            scissor(&RECT, g_pHyprRenderer->context().m_data.transformDamage);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         });
 
@@ -2294,17 +2292,17 @@ void CHyprOpenGLImpl::renderInnerGlow(const CBox& box, int round, float rounding
 }
 void CHyprOpenGLImpl::renderInnerGlow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2,
                                       float lerp, int glowPower, float a) {
-    auto& m_renderData = g_pHyprRenderer->m_renderData;
+    auto& m_renderData = g_pHyprRenderer->context().m_data;
     RASSERT(m_renderData.pMonitor, "Tried to render inner glow without begin()!");
     RASSERT((box.width > 0 && box.height > 0), "Tried to render inner glow with width/height < 0!");
 
-    if (g_pHyprRenderer->m_renderData.damage.empty())
+    if (g_pHyprRenderer->context().m_data.damage.empty())
         return;
 
     TRACY_GPU_ZONE("RenderInnerGlow");
 
     CBox newBox = box;
-    g_pHyprRenderer->m_renderData.renderModif.applyToBox(newBox);
+    g_pHyprRenderer->context().m_data.renderModif.applyToBox(newBox);
 
     static auto PGLOWPOWER = CConfigValue<Config::INTEGER>("decoration:glow:render_power");
 
@@ -2350,20 +2348,20 @@ void CHyprOpenGLImpl::renderInnerGlow(const CBox& box, int round, float rounding
 
     glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
 
-    if (g_pHyprRenderer->m_renderData.clipBox.width != 0 && g_pHyprRenderer->m_renderData.clipBox.height != 0) {
-        CRegion damageClip{g_pHyprRenderer->m_renderData.clipBox.x, g_pHyprRenderer->m_renderData.clipBox.y, g_pHyprRenderer->m_renderData.clipBox.width,
-                           g_pHyprRenderer->m_renderData.clipBox.height};
-        damageClip.intersect(g_pHyprRenderer->m_renderData.damage);
+    if (g_pHyprRenderer->context().m_data.clipBox.width != 0 && g_pHyprRenderer->context().m_data.clipBox.height != 0) {
+        CRegion damageClip{g_pHyprRenderer->context().m_data.clipBox.x, g_pHyprRenderer->context().m_data.clipBox.y, g_pHyprRenderer->context().m_data.clipBox.width,
+                           g_pHyprRenderer->context().m_data.clipBox.height};
+        damageClip.intersect(g_pHyprRenderer->context().m_data.damage);
 
         if (!damageClip.empty()) {
             damageClip.forEachRect([this](const auto& RECT) {
-                scissor(&RECT, g_pHyprRenderer->m_renderData.transformDamage);
+                scissor(&RECT, g_pHyprRenderer->context().m_data.transformDamage);
                 glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             });
         }
     } else {
-        g_pHyprRenderer->m_renderData.damage.forEachRect([this](const auto& RECT) {
-            scissor(&RECT, g_pHyprRenderer->m_renderData.transformDamage);
+        g_pHyprRenderer->context().m_data.damage.forEachRect([this](const auto& RECT) {
+            scissor(&RECT, g_pHyprRenderer->context().m_data.transformDamage);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         });
     }
@@ -2372,22 +2370,22 @@ void CHyprOpenGLImpl::renderInnerGlow(const CBox& box, int round, float rounding
 }
 
 bool CHyprOpenGLImpl::saveBufferForMirror(const CBox& box) {
-    const auto TEX = g_pHyprRenderer->m_renderData.pMonitor->resources()->m_mirrorTex ? g_pHyprRenderer->m_renderData.pMonitor->resources()->m_mirrorTex :
-                                                                                        g_pHyprRenderer->m_renderData.currentFB->getTexture();
+    const auto TEX = g_pHyprRenderer->context().m_data.pMonitor->resources()->m_mirrorTex ? g_pHyprRenderer->context().m_data.pMonitor->resources()->m_mirrorTex :
+                                                                                            g_pHyprRenderer->context().m_data.currentFB->getTexture();
     if (!TEX) {
         LOG(Log::ERR, "Invalid source texture for mirror");
         return false;
     }
-    auto fb    = g_pHyprRenderer->m_renderData.pMonitor->resources()->mirrorFB();
+    auto fb    = g_pHyprRenderer->context().m_data.pMonitor->resources()->mirrorFB();
     auto guard = g_pHyprRenderer->bindTempFB(fb);
 
-    LOG(Log::TRACE, "CM: saveBufferForMirror {} -> {}", TEX->m_imageDescription->value(), g_pHyprRenderer->m_renderData.currentFB->imageDescription()->value());
+    LOG(Log::TRACE, "CM: saveBufferForMirror {} -> {}", TEX->m_imageDescription->value(), g_pHyprRenderer->context().m_data.currentFB->imageDescription()->value());
 
     blend(false);
 
     renderTexture(TEX, box,
                   STextureRenderData{
-                      .damage        = &g_pHyprRenderer->m_renderData.finalDamage,
+                      .damage        = &g_pHyprRenderer->context().m_data.finalDamage,
                       .a             = 1.F,
                       .round         = 0,
                       .discardActive = false,
@@ -2426,7 +2424,7 @@ void CHyprOpenGLImpl::destroyMonitorResources(PHLMONITORREF pMonitor) {
 }
 
 void CHyprOpenGLImpl::renderOffToMain(SP<IFramebuffer> off) {
-    CBox monbox = {0, 0, g_pHyprRenderer->m_renderData.pMonitor->m_transformedSize.x, g_pHyprRenderer->m_renderData.pMonitor->m_transformedSize.y};
+    CBox monbox = {0, 0, g_pHyprRenderer->context().m_data.pMonitor->m_transformedSize.x, g_pHyprRenderer->context().m_data.pMonitor->m_transformedSize.y};
     renderTexturePrimitive(off->getTexture(), monbox);
 }
 

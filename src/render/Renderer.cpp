@@ -528,12 +528,12 @@ void IHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
 }
 
 void IHyprRenderer::bindOffMain() {
-    bindFB(m_renderData.pMonitor->resources()->getUnusedWorkBuffer());
+    bindFB(m_context.m_data.pMonitor->resources()->getUnusedWorkBuffer());
     draw(CClearPassElement::SClearData{{0, 0, 0, 0}});
 }
 
 void IHyprRenderer::bindBackOnMain() {
-    bindFB(m_renderData.mainFB);
+    bindFB(m_context.m_data.mainFB);
 }
 
 void IHyprRenderer::addPassElement(UP<IPassElement>&& element) {
@@ -541,13 +541,13 @@ void IHyprRenderer::addPassElement(UP<IPassElement>&& element) {
 }
 
 CRenderPass& IHyprRenderer::currentPass() {
-    return m_currentPass ? *m_currentPass : m_renderPass;
+    return m_context.m_currentPass ? *m_context.m_currentPass : m_context.m_pass;
 }
 
 UP<CScopeGuard> IHyprRenderer::redirectPass(CRenderPass* pass) {
-    const auto oldPass = m_currentPass;
-    m_currentPass      = pass;
-    return makeUnique<CScopeGuard>([this, oldPass] { m_currentPass = oldPass; });
+    const auto oldPass      = m_context.m_currentPass;
+    m_context.m_currentPass = pass;
+    return makeUnique<CScopeGuard>([this, oldPass] { m_context.m_currentPass = oldPass; });
 }
 
 void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const SP<Workspace::CWorkspacePresentable>& presentation, const Time::steady_tp& time, bool decorate,
@@ -604,7 +604,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const S
         decorate && !pWindow->backend().traits().suggestsNoBorder && Fullscreen::controller()->getFullscreenModes(pWindow).internal != Fullscreen::FSMODE_FULLSCREEN;
     renderdata.rounding      = standalone || renderdata.dontRound ? 0 : pWindow->presentation().rounding() * pMonitor->m_scale;
     renderdata.roundingPower = standalone || renderdata.dontRound ? 2.0f : pWindow->presentation().roundingPower();
-    renderdata.blur          = !standalone && !m_bRenderingSnapshot && pWindow->shouldBlur(presentation);
+    renderdata.blur          = !standalone && !m_context.m_renderingSnapshot && pWindow->shouldBlur(presentation);
     renderdata.pWindow       = pWindow;
 
     if (standalone) {
@@ -619,14 +619,14 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const S
     renderdata.pWindow = pWindow;
 
     // for plugins
-    m_renderData.currentWindow = pWindow;
+    m_context.m_data.currentWindow = pWindow;
 
     Event::bus()->m_events.render.stage.emit(RENDER_PRE_WINDOW);
 
     const auto fullAlpha = renderdata.alpha * renderdata.fadeAlpha;
 
-    if (*PDIMAROUND && pWindow->m_ruleApplicator->dimAround().valueOrDefault() && !m_bRenderingSnapshot && mode != RENDER_PASS_POPUP) {
-        CBox                        monbox = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
+    if (*PDIMAROUND && pWindow->m_ruleApplicator->dimAround().valueOrDefault() && !m_context.m_renderingSnapshot && mode != RENDER_PASS_POPUP) {
+        CBox                        monbox = {0, 0, m_context.m_data.pMonitor->m_transformedSize.x, m_context.m_data.pMonitor->m_transformedSize.y};
         CRectPassElement::SRectData data;
         data.color = CHyprColor(0, 0, 0, *PDIMAROUND * fullAlpha);
         data.box   = monbox;
@@ -736,7 +736,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const S
             CBox            transformedBox = pWindow->effects().transformedExtents(currentBox);
 
             SMotionBlurData windowMotionBlur;
-            if (!standalone && !m_bRenderingSnapshot) {
+            if (!standalone && !m_context.m_renderingSnapshot) {
                 pWindow->effects().amendTransformedRenderData(transformedBox, &windowMotionBlur, presentation);
             }
 
@@ -756,7 +756,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const S
                 .transformedBox        = transformedBox,
                 .motionBlur            = windowMotionBlur,
                 .standalone            = standalone,
-                .renderingSnapshot     = m_bRenderingSnapshot,
+                .renderingSnapshot     = m_context.m_renderingSnapshot,
                 .workspacePresentation = presentation,
             }));
 
@@ -766,7 +766,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const S
         addPassElement(makeUnique<CBackdropScopePassElement>(CBackdropScopePassElement::eAction::END, backdropScope));
     }
 
-    m_renderData.clipBox = CBox();
+    m_context.m_data.clipBox = CBox();
 
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_POPUP) {
         if (!pWindow->backend().isX11()) {
@@ -780,7 +780,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const S
 
             static CConfigValue PBLURIGNOREA = CConfigValue<Config::FLOAT>("decoration:blur:popups_ignorealpha");
 
-            renderdata.blur = !m_bRenderingSnapshot && pWindow->popupHead()->shouldBlur();
+            renderdata.blur = !m_context.m_renderingSnapshot && pWindow->popupHead()->shouldBlur();
 
             if (renderdata.blur) {
                 renderdata.discardMode |= DISCARD_ALPHA;
@@ -840,7 +840,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const S
 
     Event::bus()->m_events.render.stage.emit(RENDER_POST_WINDOW);
 
-    m_renderData.currentWindow.reset();
+    m_context.m_data.currentWindow.reset();
 }
 
 void IHyprRenderer::draw(WP<IPassElement> element, const CRegion& damage) {
@@ -889,11 +889,11 @@ void IHyprRenderer::draw(const CTextureMatteElement::STextureMatteData& data, co
 
 void IHyprRenderer::bindFB(SP<IFramebuffer> fb) {
     fb->bind();
-    m_renderData.currentFB = fb;
+    m_context.m_data.currentFB = fb;
 }
 
 UP<CScopeGuard> IHyprRenderer::bindTempFB(SP<IFramebuffer> fb) {
-    const auto oldFB = m_renderData.currentFB;
+    const auto oldFB = m_context.m_data.currentFB;
     bindFB(fb);
     return makeUnique<CScopeGuard>([this, oldFB] { bindFB(oldFB); });
 }
@@ -951,11 +951,11 @@ void IHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
 
     static auto PDIMAROUND = CConfigValue<Config::FLOAT>("decoration:dim_around");
 
-    if (*PDIMAROUND && pLayer->m_ruleApplicator->dimAround().valueOrDefault() && !m_bRenderingSnapshot && !popups) {
+    if (*PDIMAROUND && pLayer->m_ruleApplicator->dimAround().valueOrDefault() && !m_context.m_renderingSnapshot && !popups) {
         CRectPassElement::SRectData data;
         data.box   = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
         data.color = CHyprColor(0, 0, 0, *PDIMAROUND * pLayer->alpha()[LS_ALPHA_FADE]->value());
-        m_renderPass.add(makeUnique<CRectPassElement>(data));
+        m_context.m_pass.add(makeUnique<CRectPassElement>(data));
     }
 
     TRACY_GPU_ZONE("RenderLayer");
@@ -965,7 +965,7 @@ void IHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
 
     CSurfacePassElement::SRenderData renderdata = {pMonitor, time, REALPOS};
     renderdata.fadeAlpha                        = pLayer->alpha()[LS_ALPHA_FADE]->value();
-    renderdata.blur                             = !m_bRenderingSnapshot && pLayer->shouldBlur();
+    renderdata.blur                             = !m_context.m_renderingSnapshot && pLayer->shouldBlur();
     renderdata.surface                          = pLayer->wlSurface()->resource();
     renderdata.decorate                         = false;
     renderdata.w                                = REALSIZ.x;
@@ -992,7 +992,7 @@ void IHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
                 renderdata.texture     = s->m_current.texture;
                 renderdata.surface     = s;
                 renderdata.mainSurface = s == pLayer->wlSurface()->resource();
-                m_renderPass.add(makeUnique<CSurfacePassElement>(renderdata));
+                m_context.m_pass.add(makeUnique<CSurfacePassElement>(renderdata));
                 renderdata.surfaceCounter++;
             },
             &renderdata);
@@ -1027,7 +1027,7 @@ void IHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
                 renderdata.texture     = SURF->m_current.texture;
                 renderdata.surface     = SURF;
                 renderdata.mainSurface = false;
-                m_renderPass.add(makeUnique<CSurfacePassElement>(renderdata));
+                m_context.m_pass.add(makeUnique<CSurfacePassElement>(renderdata));
                 renderdata.surfaceCounter++;
             },
             &renderdata);
@@ -1068,7 +1068,7 @@ void IHyprRenderer::renderIMEPopup(CInputPopup* pPopup, PHLMONITOR pMonitor, con
             renderdata.texture     = s->m_current.texture;
             renderdata.surface     = s;
             renderdata.mainSurface = s == SURF;
-            m_renderPass.add(makeUnique<CSurfacePassElement>(renderdata));
+            m_context.m_pass.add(makeUnique<CSurfacePassElement>(renderdata));
             renderdata.surfaceCounter++;
         },
         &renderdata);
@@ -1098,7 +1098,7 @@ void IHyprRenderer::renderSessionLockSurface(WP<SSessionLockSurface> pSurface, P
             renderdata.texture     = s->m_current.texture;
             renderdata.surface     = s;
             renderdata.mainSurface = s == pSurface->surface->surface();
-            m_renderPass.add(makeUnique<CSurfacePassElement>(renderdata));
+            m_context.m_pass.add(makeUnique<CSurfacePassElement>(renderdata));
             renderdata.surfaceCounter++;
         },
         &renderdata);
@@ -1134,11 +1134,11 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         RENDERMODIFDATA.modifs.emplace_back(SRenderModifData::eRenderModifType::RMOD_TYPE_SCALE, scale);
 
     if UNLIKELY (!RENDERMODIFDATA.modifs.empty())
-        m_renderPass.add(makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{RENDERMODIFDATA}));
+        m_context.m_pass.add(makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{RENDERMODIFDATA}));
 
     CScopeGuard x([&RENDERMODIFDATA] {
         if (!RENDERMODIFDATA.modifs.empty()) {
-            g_pHyprRenderer->m_renderPass.add(makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{SRenderModifData{}}));
+            g_pHyprRenderer->context().m_pass.add(makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{SRenderModifData{}}));
         }
     });
 
@@ -1180,7 +1180,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
 
     // pre window pass
     if (preBlurQueued(pMonitor))
-        m_renderPass.add(makeUnique<CPreBlurElement>());
+        m_context.m_pass.add(makeUnique<CPreBlurElement>());
 
     if UNLIKELY /* subjective? */ (Fullscreen::controller()->hasFullscreen(pWorkspace))
         renderWorkspaceWindowsFullscreen(pMonitor, pWorkspace, time);
@@ -1193,7 +1193,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
         data.color = CHyprColor(0, 0, 0, pMonitor->m_specialDim->value());
 
-        m_renderPass.add(makeUnique<CRectPassElement>(data));
+        m_context.m_pass.add(makeUnique<CRectPassElement>(data));
     }
 
     if UNLIKELY (pMonitor->m_specialBlur->value() != 0.F) {
@@ -1203,7 +1203,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         data.blur  = true;
         data.blurA = pMonitor->m_specialBlur->value();
 
-        m_renderPass.add(makeUnique<CRectPassElement>(data));
+        m_context.m_pass.add(makeUnique<CRectPassElement>(data));
     }
 
     // special
@@ -1274,11 +1274,11 @@ void IHyprRenderer::renderIME(PHLMONITOR pMonitor, const Time::steady_tp& now, c
         RENDERMODIFDATA.modifs.emplace_back(SRenderModifData::eRenderModifType::RMOD_TYPE_SCALE, scale);
 
     if UNLIKELY (!RENDERMODIFDATA.modifs.empty())
-        m_renderPass.add(makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{RENDERMODIFDATA}));
+        m_context.m_pass.add(makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{RENDERMODIFDATA}));
 
     CScopeGuard x([&RENDERMODIFDATA] {
         if (!RENDERMODIFDATA.modifs.empty()) {
-            g_pHyprRenderer->m_renderPass.add(makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{SRenderModifData{}}));
+            g_pHyprRenderer->context().m_pass.add(makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{SRenderModifData{}}));
         }
     });
 
@@ -1328,13 +1328,13 @@ SP<ITexture> IHyprRenderer::getBackground(PHLMONITOR pMonitor) {
 
             auto       guard = bindTempFB(fb);
 
-            const auto oldProjType     = m_renderData.projectionType;
-            const auto oldFbSize       = m_renderData.fbSize;
-            const auto oldTransformDmg = m_renderData.transformDamage;
+            const auto oldProjType     = m_context.m_data.projectionType;
+            const auto oldFbSize       = m_context.m_data.fbSize;
+            const auto oldTransformDmg = m_context.m_data.transformDamage;
 
-            m_renderData.fbSize = Vector2D{monW, monH};
+            m_context.m_data.fbSize = Vector2D{monW, monH};
             setProjectionType(RPT_EXPORT);
-            m_renderData.transformDamage = false;
+            m_context.m_data.transformDamage = false;
             setViewport(0, 0, monW, monH);
 
             draw(CClearPassElement::SClearData{{0.F, 0.F, 0.F, 0.F}});
@@ -1347,10 +1347,10 @@ SP<ITexture> IHyprRenderer::getBackground(PHLMONITOR pMonitor) {
             CRegion      fullDamage = {0, 0, monW, monH};
             draw(CTexPassElement::SRenderData{.tex = backgroundTexture, .box = CBox{offX, offY, texW, texH}, .damage = fullDamage}, fullDamage);
 
-            m_renderData.fbSize          = oldFbSize;
-            m_renderData.transformDamage = oldTransformDmg;
+            m_context.m_data.fbSize          = oldFbSize;
+            m_context.m_data.transformDamage = oldTransformDmg;
             setProjectionType(oldProjType);
-            setViewport(0, 0, (int)m_renderData.currentFB->m_size.x, (int)m_renderData.currentFB->m_size.y);
+            setViewport(0, 0, (int)m_context.m_data.currentFB->m_size.x, (int)m_context.m_data.currentFB->m_size.y);
 
             backgroundTexture = fb->getTexture();
 
@@ -1374,7 +1374,7 @@ void IHyprRenderer::renderBackground(PHLMONITOR pMonitor) {
     static auto PNOSPLASH        = CConfigValue<Config::INTEGER>("misc:disable_splash_rendering");
 
     if (*PRENDERTEX /* inverted cfg flag */ || pMonitor->m_backgroundOpacity->isBeingAnimated())
-        m_renderPass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(*PBACKGROUNDCOLOR)}));
+        m_context.m_pass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(*PBACKGROUNDCOLOR)}));
 
     if (!*PRENDERTEX) {
         static auto PBACKGROUNDCOLOR = CConfigValue<Config::INTEGER>("misc:background_color");
@@ -1383,29 +1383,29 @@ void IHyprRenderer::renderBackground(PHLMONITOR pMonitor) {
             pMonitor->m_background = getBackground(pMonitor);
 
         if (!pMonitor->m_background)
-            m_renderPass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(*PBACKGROUNDCOLOR)}));
+            m_context.m_pass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(*PBACKGROUNDCOLOR)}));
         else {
             CTexPassElement::SRenderData data;
-            const double                 MONRATIO = m_renderData.pMonitor->m_transformedSize.x / m_renderData.pMonitor->m_transformedSize.y;
+            const double                 MONRATIO = m_context.m_data.pMonitor->m_transformedSize.x / m_context.m_data.pMonitor->m_transformedSize.y;
             const double                 WPRATIO  = pMonitor->m_background->m_size.x / pMonitor->m_background->m_size.y;
             Vector2D                     origin;
             double                       scale = 1.0;
 
             if (MONRATIO > WPRATIO) {
-                scale    = m_renderData.pMonitor->m_transformedSize.x / pMonitor->m_background->m_size.x;
-                origin.y = (m_renderData.pMonitor->m_transformedSize.y - pMonitor->m_background->m_size.y * scale) / 2.0;
+                scale    = m_context.m_data.pMonitor->m_transformedSize.x / pMonitor->m_background->m_size.x;
+                origin.y = (m_context.m_data.pMonitor->m_transformedSize.y - pMonitor->m_background->m_size.y * scale) / 2.0;
             } else {
-                scale    = m_renderData.pMonitor->m_transformedSize.y / pMonitor->m_background->m_size.y;
-                origin.x = (m_renderData.pMonitor->m_transformedSize.x - pMonitor->m_background->m_size.x * scale) / 2.0;
+                scale    = m_context.m_data.pMonitor->m_transformedSize.y / pMonitor->m_background->m_size.y;
+                origin.x = (m_context.m_data.pMonitor->m_transformedSize.x - pMonitor->m_background->m_size.x * scale) / 2.0;
             }
 
             if (MONRATIO != WPRATIO)
-                m_renderPass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(*PBACKGROUNDCOLOR)}));
+                m_context.m_pass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(*PBACKGROUNDCOLOR)}));
 
             data.box = {origin, pMonitor->m_background->m_size * scale};
-            data.a   = m_renderData.pMonitor->m_backgroundOpacity->value();
+            data.a   = m_context.m_data.pMonitor->m_backgroundOpacity->value();
             data.tex = pMonitor->m_background;
-            m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+            m_context.m_pass.add(makeUnique<CTexPassElement>(std::move(data)));
         }
     }
 
@@ -1419,7 +1419,7 @@ void IHyprRenderer::renderBackground(PHLMONITOR pMonitor) {
             CTexPassElement::SRenderData data;
             data.box = {{(monitorSize.x - pMonitor->m_splash->m_size.x) / 2.0, monitorSize.y * 0.98 - pMonitor->m_splash->m_size.y}, pMonitor->m_splash->m_size};
             data.tex = pMonitor->m_splash;
-            m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+            m_context.m_pass.add(makeUnique<CTexPassElement>(std::move(data)));
         }
     }
 }
@@ -1529,7 +1529,7 @@ bool IHyprRenderer::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindo
     static auto PBLURNEWOPTIMIZE = CConfigValue<Config::INTEGER>("decoration:blur:new_optimizations");
     static auto PBLURXRAY        = CConfigValue<Config::INTEGER>("decoration:blur:xray");
 
-    if (!getBlurTexture(m_renderData.pMonitor))
+    if (!getBlurTexture(m_context.m_data.pMonitor))
         return false;
 
     if (blurProviderRequiresLiveBlur())
@@ -1715,7 +1715,7 @@ void IHyprRenderer::renderSessionLockPrimer(PHLMONITOR pMonitor) {
     data.color = CHyprColor(0, 0, 0, 1.f);
     data.box   = CBox{{}, pMonitor->m_transformedSize};
 
-    m_renderPass.add(makeUnique<CRectPassElement>(data));
+    m_context.m_pass.add(makeUnique<CRectPassElement>(data));
 }
 
 void IHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
@@ -1735,7 +1735,7 @@ void IHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
     data.box = monbox;
     data.a   = 1;
 
-    m_renderPass.add(makeUnique<CTexPassElement>(data));
+    m_context.m_pass.add(makeUnique<CTexPassElement>(data));
 
     if (!ANY_PRESENT && m_lockTtyTextTexture) {
         // also render text for the tty number
@@ -1743,56 +1743,67 @@ void IHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
         data.tex    = m_lockTtyTextTexture;
         data.box    = texbox;
 
-        m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+        m_context.m_pass.add(makeUnique<CTexPassElement>(std::move(data)));
     }
 }
 
 bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode, SP<IHLBuffer> buffer, SP<IFramebuffer> fb, bool simple, const SRenderOptions& options,
                                 std::optional<Monitor::CDamageRing::CTransaction>* damageTransaction) {
-    m_renderPass.clear();
-    m_backdropCaptures.clear();
-    clearCMSettingsCache();
-    m_renderMode                    = mode;
-    m_renderData.pMonitor           = pMonitor;
-    m_renderData.mouseZoomFactor    = options.mouseZoomFactor;
-    m_renderData.mouseZoomUseMouse  = options.mouseZoomUseMouse;
-    m_renderData.useNearestNeighbor = options.useNearestNeighbor;
+    if (!m_context.begin()) {
+        LOG(Log::ERR, "Cannot begin rendering while a render context is active");
+        return false;
+    }
+
+    bool              started = false;
+    const CScopeGuard cleanup([&] {
+        if (!started)
+            abortRender();
+    });
+
+    m_context.m_mode                    = mode;
+    m_context.m_data.pMonitor           = pMonitor;
+    m_context.m_data.mouseZoomFactor    = options.mouseZoomFactor;
+    m_context.m_data.mouseZoomUseMouse  = options.mouseZoomUseMouse;
+    m_context.m_data.useNearestNeighbor = options.useNearestNeighbor;
 
     if (simple) {
-        m_renderData.fbSize = fb ? fb->m_size : buffer->m_texture->m_size;
+        m_context.m_data.fbSize = fb ? fb->m_size : buffer->m_texture->m_size;
         setProjectionType(RPT_EXPORT);
     } else
         setProjectionType(RPT_MONITOR);
 
-    const auto RESOURCES     = g_pHyprRenderer->m_renderData.pMonitor->resources();
+    const auto RESOURCES     = g_pHyprRenderer->context().m_data.pMonitor->resources();
     const bool HAS_MIRROR_FB = RESOURCES->hasMirrorFB();
 
     if (HAS_MIRROR_FB && !RESOURCES->shouldKeepMirrorFB())
         RESOURCES->releaseMirrorFB();
 
-    if (m_renderMode == RENDER_MODE_FULL_FAKE)
-        return beginFullFakeRenderInternal(pMonitor, damage, fb, simple);
+    if (m_context.m_mode == RENDER_MODE_FULL_FAKE) {
+        started = beginFullFakeRenderInternal(pMonitor, damage, fb, simple);
+        return started;
+    }
 
     int bufferAge = 0;
 
     if (!buffer) {
-        m_currentBuffer = pMonitor->m_output->swapchain->next(&bufferAge);
-        if (!m_currentBuffer) {
+        m_context.m_currentBuffer = pMonitor->m_output->swapchain->next(&bufferAge);
+        if (!m_context.m_currentBuffer) {
             LOG(Log::ERR, "Failed to acquire swapchain buffer for {}", pMonitor->m_name);
             return false;
         }
+        m_context.m_swapchainAcquired = true;
     } else
-        m_currentBuffer = buffer;
+        m_context.m_currentBuffer = buffer;
 
     initRender();
 
-    if (!initRenderBuffer(m_currentBuffer, pMonitor->m_output->state->state().drmFormat)) {
+    if (!initRenderBuffer(m_context.m_currentBuffer, pMonitor->m_output->state->state().drmFormat)) {
         LOG(Log::ERR, "failed to start a render pass for output {}, no RBO could be obtained", pMonitor->m_name);
         return false;
     }
 
     std::optional<Monitor::CDamageRing::CTransaction> transaction;
-    if (m_renderMode == RENDER_MODE_NORMAL) {
+    if (m_context.m_mode == RENDER_MODE_NORMAL) {
         transaction.emplace(pMonitor->m_damage.beginTransaction());
         damage = transaction->getBufferDamage(bufferAge);
 
@@ -1801,16 +1812,13 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     }
 
     const auto  res     = beginRenderInternal(pMonitor, damage, simple);
+    if (!res)
+        return false;
+
     static bool initial = true;
     if (initial) {
         initAssets();
         initial = false;
-    }
-
-    if (!res) {
-        if (m_renderMode == RENDER_MODE_NORMAL && !buffer)
-            pMonitor->m_output->swapchain->rollback();
-        return false;
     }
 
     if (transaction) {
@@ -1820,12 +1828,33 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
             transaction->commit();
     }
 
+    started = true;
     return true;
 }
 
+void IHyprRenderer::abortRender() {
+    if (!m_context.active())
+        return;
+
+    if (m_context.m_swapchainAcquired)
+        m_context.m_data.pMonitor->m_output->swapchain->rollback();
+
+    finishRender();
+}
+
+void IHyprRenderer::finishRender() {
+    if (m_context.m_currentRenderbuffer)
+        m_context.m_currentRenderbuffer->unbind();
+    m_context.reset();
+}
+
+CRenderContext& IHyprRenderer::context() {
+    return m_context;
+}
+
 void IHyprRenderer::setDamage(const CRegion& damage_, std::optional<CRegion> finalDamage) {
-    m_renderData.damage.set(damage_);
-    m_renderData.finalDamage.set(finalDamage.value_or(damage_));
+    m_context.m_data.damage.set(damage_);
+    m_context.m_data.finalDamage.set(finalDamage.value_or(damage_));
 }
 
 static Mat3x3 getFBProjection(PHLMONITORREF pMonitor, const Vector2D& size) {
@@ -1837,40 +1866,41 @@ static Mat3x3 getFBProjection(PHLMONITORREF pMonitor, const Vector2D& size) {
 }
 
 void IHyprRenderer::setProjectionType(const Vector2D& fbSize) {
-    m_renderData.fbSize = fbSize;
+    m_context.m_data.fbSize = fbSize;
     setProjectionType(RPT_FB);
 }
 
 void IHyprRenderer::setProjectionType(eRenderProjectionType projectionType) {
-    m_renderData.projectionType = projectionType;
+    m_context.m_data.projectionType = projectionType;
     switch (projectionType) {
         case RPT_MONITOR:
-        case RPT_EXPORT: m_renderData.targetProjection = Mat3x3::identity(); break;
-        case RPT_OUTPUT: m_renderData.targetProjection = m_renderData.pMonitor->getTransformMatrix(); break;
-        case RPT_FB: m_renderData.targetProjection = getFBProjection(m_renderData.pMonitor, m_renderData.fbSize); break;
+        case RPT_EXPORT: m_context.m_data.targetProjection = Mat3x3::identity(); break;
+        case RPT_OUTPUT: m_context.m_data.targetProjection = m_context.m_data.pMonitor->getTransformMatrix(); break;
+        case RPT_FB: m_context.m_data.targetProjection = getFBProjection(m_context.m_data.pMonitor, m_context.m_data.fbSize); break;
         default: UNREACHABLE();
     }
 }
 
 Mat3x3 IHyprRenderer::getBoxProjection(const CBox& box, std::optional<eTransform> transform) {
-    return m_renderData.targetProjection.projectBox(box, transform.value_or(HYPRUTILS_TRANSFORM_NORMAL), box.rot);
+    return m_context.m_data.targetProjection.projectBox(box, transform.value_or(HYPRUTILS_TRANSFORM_NORMAL), box.rot);
 }
 
 Mat3x3 IHyprRenderer::projectBoxToTarget(const CBox& box, std::optional<eTransform> transform) {
-    const auto TARGET_SIZE = m_renderData.projectionType == RPT_MONITOR ? m_renderData.pMonitor->m_transformedSize : m_renderData.fbSize;
+    const auto TARGET_SIZE = m_context.m_data.projectionType == RPT_MONITOR ? m_context.m_data.pMonitor->m_transformedSize : m_context.m_data.fbSize;
     const auto OUTPUT_PROJECTION =
-        m_renderData.projectionType == RPT_OUTPUT ? m_renderData.pMonitor->getScaleMatrix() : Mat3x3::outputProjection(TARGET_SIZE, HYPRUTILS_TRANSFORM_NORMAL);
+        m_context.m_data.projectionType == RPT_OUTPUT ? m_context.m_data.pMonitor->getScaleMatrix() : Mat3x3::outputProjection(TARGET_SIZE, HYPRUTILS_TRANSFORM_NORMAL);
 
     return OUTPUT_PROJECTION.copy().multiply(getBoxProjection(box, transform));
 }
 
 SP<IFramebuffer> IHyprRenderer::blurMainFramebuffer(float strength, const CRegion& originalDamage, const SBlurContext& context) {
-    const auto renderTarget = m_renderData.currentFB;
-    const auto blurSource   = !m_backdropCaptures.empty() && m_backdropCaptures.back().framebuffer ? m_backdropCaptures.back().framebuffer : renderTarget;
+    const auto renderTarget = m_context.m_data.currentFB;
+    const auto blurSource =
+        !m_context.m_backdropCaptures.empty() && m_context.m_backdropCaptures.back().framebuffer ? m_context.m_backdropCaptures.back().framebuffer : renderTarget;
 
     if (!blurSource || !blurSource->getTexture()) {
         LOG(Log::ERR, "BUG THIS: null fb texture while attempting to blur main fb?! (introspection off?!)");
-        return m_renderData.pMonitor->resources()->m_blurFB; // return something to sample from at least
+        return m_context.m_data.pMonitor->resources()->m_blurFB; // return something to sample from at least
     }
 
     auto guard = bindTempFB(renderTarget); // blurFramebuffer messes with FB bindings
@@ -1881,29 +1911,29 @@ void IHyprRenderer::beginBackdropScope(SP<SBackdropScope> scope) {
     RASSERT(scope, "Cannot begin a null backdrop scope");
 
     SP<IFramebuffer> backdrop;
-    if (scope->required && !scope->damage.empty() && m_renderData.currentFB && m_renderData.currentFB->getTexture()) {
-        backdrop = m_renderData.pMonitor->resources()->getUnusedWorkBuffer();
+    if (scope->required && !scope->damage.empty() && m_context.m_data.currentFB && m_context.m_data.currentFB->getTexture()) {
+        backdrop = m_context.m_data.pMonitor->resources()->getUnusedWorkBuffer();
         if (backdrop) {
-            const auto renderTarget     = m_renderData.currentFB;
-            const auto savedDamage      = m_renderData.damage.copy();
-            const auto savedRenderModif = m_renderData.renderModif;
-            const auto savedNearest     = m_renderData.useNearestNeighbor;
+            const auto renderTarget     = m_context.m_data.currentFB;
+            const auto savedDamage      = m_context.m_data.damage.copy();
+            const auto savedRenderModif = m_context.m_data.renderModif;
+            const auto savedNearest     = m_context.m_data.useNearestNeighbor;
             const auto backend          = glBackend();
             const auto savedBlend       = backend && backend->blendEnabled();
 
             {
                 auto guard                      = bindTempFB(backdrop);
-                m_renderData.damage             = scope->damage;
-                m_renderData.renderModif        = {};
-                m_renderData.useNearestNeighbor = true;
+                m_context.m_data.damage             = scope->damage;
+                m_context.m_data.renderModif        = {};
+                m_context.m_data.useNearestNeighbor = true;
                 blend(false);
                 renderOffToMain(renderTarget);
                 blend(savedBlend);
             }
 
-            m_renderData.damage             = savedDamage;
-            m_renderData.renderModif        = savedRenderModif;
-            m_renderData.useNearestNeighbor = savedNearest;
+            m_context.m_data.damage             = savedDamage;
+            m_context.m_data.renderModif        = savedRenderModif;
+            m_context.m_data.useNearestNeighbor = savedNearest;
         } else {
             static bool warned = false;
             if (!warned) {
@@ -1913,17 +1943,17 @@ void IHyprRenderer::beginBackdropScope(SP<SBackdropScope> scope) {
         }
     }
 
-    m_backdropCaptures.emplace_back(SBackdropCapture{.scope = std::move(scope), .framebuffer = std::move(backdrop)});
+    m_context.m_backdropCaptures.emplace_back(CRenderContext::SBackdropCapture{.scope = std::move(scope), .framebuffer = std::move(backdrop)});
 }
 
 void IHyprRenderer::endBackdropScope(SP<SBackdropScope> scope) {
-    RASSERT(!m_backdropCaptures.empty() && m_backdropCaptures.back().scope == scope, "Unbalanced runtime backdrop scope");
-    m_backdropCaptures.pop_back();
+    RASSERT(!m_context.m_backdropCaptures.empty() && m_context.m_backdropCaptures.back().scope == scope, "Unbalanced runtime backdrop scope");
+    m_context.m_backdropCaptures.pop_back();
 }
 
 void IHyprRenderer::scheduleFrameForAnimatedBlur(const CRegion& damage, bool usesPrecomputedBlur) {
-    const auto monitor = m_renderData.pMonitor;
-    if (m_renderMode != RENDER_MODE_NORMAL || !monitor || monitor->isMirror() || damage.empty())
+    const auto monitor = m_context.m_data.pMonitor;
+    if (m_context.m_mode != RENDER_MODE_NORMAL || !monitor || monitor->isMirror() || damage.empty())
         return;
 
     if (usesPrecomputedBlur)
@@ -1938,14 +1968,14 @@ void IHyprRenderer::preBlurForCurrentMonitor(const CRegion& fakeDamage) {
     const auto blurredTex = blurredFB->getTexture();
 
     // render onto blurFB
-    auto guard = bindTempFB(m_renderData.pMonitor->resources()->m_blurFB);
+    auto guard = bindTempFB(m_context.m_data.pMonitor->resources()->m_blurFB);
 
     draw(CClearPassElement::SClearData{{0, 0, 0, 0}});
 
     draw(
         CTexPassElement::SRenderData{
             .tex    = blurredTex,
-            .box    = CBox{0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y},
+            .box    = CBox{0, 0, m_context.m_data.pMonitor->m_transformedSize.x, m_context.m_data.pMonitor->m_transformedSize.y},
             .damage = fakeDamage,
         },
         fakeDamage); // .noAA = true
@@ -1958,7 +1988,7 @@ static bool isSDR2HDR(const NColorManagement::SImageDescription& imageDescriptio
         (targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ||
          targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_HLG ||
          (targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_EXT_LINEAR &&
-          g_pHyprRenderer->m_renderData.pMonitor->m_imageDescription->value().transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ));
+          g_pHyprRenderer->context().m_data.pMonitor->m_imageDescription->value().transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ));
 }
 
 static bool isHDR2SDR(const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription) {
@@ -1970,16 +2000,16 @@ static bool isHDR2SDR(const NColorManagement::SImageDescription& imageDescriptio
 }
 
 void IHyprRenderer::clearCMSettingsCache() {
-    m_cmSettingsCache.clear();
+    m_context.m_cmSettingsCache.clear();
 }
 
 SCMSettings IHyprRenderer::getCMSettings(const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
                                          SP<CWLSurfaceResource> surface, bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance, bool shouldUseSurface) {
     const auto srcId = imageDescription->id();
     const auto dstId = targetImageDescription->id();
-    void*      sPtr  = shouldUseSurface ? m_renderData.surface.get() : nullptr;
+    void*      sPtr  = shouldUseSurface ? m_context.m_data.surface.get() : nullptr;
 
-    for (auto const& entry : m_cmSettingsCache) {
+    for (auto const& entry : m_context.m_cmSettingsCache) {
         if (entry.srcDescId == srcId && entry.dstDescId == dstId && entry.surfacePtr == sPtr && entry.modifySDR == modifySDR && entry.sdrMinLuminance == sdrMinLuminance &&
             entry.sdrMaxLuminance == sdrMaxLuminance)
             return entry.settings;
@@ -1988,11 +2018,11 @@ SCMSettings IHyprRenderer::getCMSettings(const NColorManagement::PImageDescripti
     const auto                          sdrEOTF = NTransferFunction::fromConfig();
     NColorManagement::eTransferFunction srcTF;
 
-    const int                           tonemapMode = shouldUseSurface && m_renderData.currentWindow ? m_renderData.currentWindow->m_ruleApplicator->tonemap().valueOr(1) : 1;
+    const int tonemapMode = shouldUseSurface && m_context.m_data.currentWindow ? m_context.m_data.currentWindow->m_ruleApplicator->tonemap().valueOr(1) : 1;
 
-    if (shouldUseSurface && m_renderData.surface.valid() &&
+    if (shouldUseSurface && m_context.m_data.surface.valid() &&
         (imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_GAMMA22 || imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_SRGB)) {
-        if (m_renderData.surface->m_colorManagement.valid()) {
+        if (m_context.m_data.surface->m_colorManagement.valid()) {
             if (sdrEOTF == NTransferFunction::TF_FORCED_GAMMA22 && imageDescription->value().transferFunction == NColorManagement::eTransferFunction::CM_TRANSFER_FUNCTION_SRGB)
                 srcTF = NColorManagement::eTransferFunction::CM_TRANSFER_FUNCTION_GAMMA22;
             else
@@ -2017,8 +2047,8 @@ SCMSettings IHyprRenderer::getCMSettings(const NColorManagement::PImageDescripti
     auto        toXYZ  = targetImageDescription->getPrimaries()->value().toXYZ();
 
     const bool  needsMod = needsSDRmod &&
-        ((m_renderData.pMonitor->m_sdrSaturation > 0 && m_renderData.pMonitor->m_sdrSaturation != 1.0f) ||
-         (m_renderData.pMonitor->m_sdrBrightness > 0 && m_renderData.pMonitor->m_sdrBrightness != 1.0f));
+        ((m_context.m_data.pMonitor->m_sdrSaturation > 0 && m_context.m_data.pMonitor->m_sdrSaturation != 1.0f) ||
+         (m_context.m_data.pMonitor->m_sdrBrightness > 0 && m_context.m_data.pMonitor->m_sdrBrightness != 1.0f));
 
     const bool needsTonemap = maxLuminance >= dstMaxLuminance * 1.01;
 
@@ -2040,11 +2070,11 @@ SCMSettings IHyprRenderer::getCMSettings(const NColorManagement::PImageDescripti
         .dstMaxLuminance         = dstMaxLuminance,
         .dstPrimaries2XYZ        = toXYZ.mat(),
         .needsSDRmod             = needsMod,
-        .sdrSaturation           = needsSDRmod && m_renderData.pMonitor->m_sdrSaturation > 0 ? m_renderData.pMonitor->m_sdrSaturation : 1.0f,
-        .sdrBrightnessMultiplier = needsSDRmod && m_renderData.pMonitor->m_sdrBrightness > 0 ? m_renderData.pMonitor->m_sdrBrightness : 1.0f,
+        .sdrSaturation           = needsSDRmod && m_context.m_data.pMonitor->m_sdrSaturation > 0 ? m_context.m_data.pMonitor->m_sdrSaturation : 1.0f,
+        .sdrBrightnessMultiplier = needsSDRmod && m_context.m_data.pMonitor->m_sdrBrightness > 0 ? m_context.m_data.pMonitor->m_sdrBrightness : 1.0f,
     };
 
-    m_cmSettingsCache.push_back({
+    m_context.m_cmSettingsCache.push_back({
         .srcDescId       = srcId,
         .dstDescId       = dstId,
         .surfacePtr      = sPtr,
@@ -2058,7 +2088,7 @@ SCMSettings IHyprRenderer::getCMSettings(const NColorManagement::PImageDescripti
 }
 
 void IHyprRenderer::renderMirrored() {
-    auto monitor  = m_renderData.pMonitor;
+    auto monitor  = m_context.m_data.pMonitor;
     auto mirrored = monitor->m_mirrorOf;
 
     // saveBufferForMirror should create it
@@ -2073,17 +2103,17 @@ void IHyprRenderer::renderMirrored() {
 
     const auto MIRROR_TEX = mirrored->resources()->getMirrorTexture();
 
-    m_renderPass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)}));
+    m_context.m_pass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)}));
 
     CTexPassElement::SRenderData data;
     data.tex = MIRROR_TEX;
     data.box = monbox;
 
-    m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+    m_context.m_pass.add(makeUnique<CTexPassElement>(std::move(data)));
 }
 
 void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
-    if (!pMonitor)
+    if (m_context.active() || !pMonitor)
         return;
     static std::chrono::high_resolution_clock::time_point renderStart        = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point renderStartOverlay = std::chrono::high_resolution_clock::now();
@@ -2213,6 +2243,11 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         LOG(Log::ERR, "renderer: couldn't beginRender()!");
         return;
     }
+    bool              finishing = false;
+    const CScopeGuard cleanup([&] {
+        if (!finishing)
+            abortRender();
+    });
 
     // if we have no tracking or full tracking, invalidate the entire monitor
     if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || pMonitor->m_forceFullFrames > 0 || damageBlinkCleanup > 0 ||
@@ -2261,7 +2296,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
                 CRectPassElement::SRectData data;
                 data.box   = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
                 data.color = CHyprColor(1.0, 0.0, 1.0, 100.0 / 255.0);
-                m_renderPass.add(makeUnique<CRectPassElement>(data));
+                m_context.m_pass.add(makeUnique<CRectPassElement>(data));
                 damageBlinkCleanup = 1;
             } else if (*PDAMAGEBLINK) {
                 damageBlinkCleanup++;
@@ -2280,7 +2315,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     if (renderCursor) {
         TRACY_GPU_ZONE("RenderCursor");
-        Pointer::mgr()->renderSoftwareCursorsFor(pMonitor->m_self.lock(), NOW, m_renderData.damage);
+        Pointer::mgr()->renderSoftwareCursorsFor(pMonitor->m_self.lock(), NOW, m_context.m_data.damage);
     }
 
     if (pMonitor->m_dpmsBlackOpacity->value() != 0.F) {
@@ -2288,11 +2323,12 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         CRectPassElement::SRectData data;
         data.box   = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
         data.color = Colors::BLACK.modifyA(pMonitor->m_dpmsBlackOpacity->value());
-        m_renderPass.add(makeUnique<CRectPassElement>(data));
+        m_context.m_pass.add(makeUnique<CRectPassElement>(data));
     }
 
     Event::bus()->m_events.render.stage.emit(RENDER_LAST_MOMENT);
 
+    finishing               = true;
     const auto renderResult = endRender();
 
     TRACY_GPU_COLLECT;
@@ -3099,7 +3135,7 @@ void IHyprRenderer::initiateManualCrash() {
 }
 
 const SRenderData& IHyprRenderer::renderData() {
-    return m_renderData;
+    return m_context.m_data;
 }
 
 SP<IRenderbuffer> IHyprRenderer::getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
@@ -3165,6 +3201,9 @@ static DRMFormat snapshotFormat(PHLMONITOR monitor) {
 }
 
 SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(PHLWINDOW pWindow) {
+    if (m_context.active())
+        return nullptr;
+
     // we trust the window is valid.
     const auto PMONITOR = pWindow->m_monitor.lock();
 
@@ -3186,9 +3225,15 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(PHLWINDOW pWindow) {
     PFRAMEBUFFER->alloc(PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y, snapshotFormat(PMONITOR));
     PFRAMEBUFFER->setImageDescription(PMONITOR->workBufferImageDescription());
 
-    beginFullFakeRender(PMONITOR, fakeDamage, PFRAMEBUFFER);
+    if (!beginFullFakeRender(PMONITOR, fakeDamage, PFRAMEBUFFER))
+        return nullptr;
+    bool              finishing = false;
+    const CScopeGuard cleanup([&] {
+        if (!finishing)
+            abortRender();
+    });
 
-    m_bRenderingSnapshot = true;
+    m_context.m_renderingSnapshot = true;
 
     draw(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)});
     startRenderPass();
@@ -3200,15 +3245,18 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(PHLWINDOW pWindow) {
 
     LOG(Log::DEBUG, "renderer: rendered a snapshot of {:x}", rc<uintptr_t>(pWindow.get()));
 
+    finishing = true;
     endRender();
 
     LOG(Log::DEBUG, "renderer: made a snapshot of {:x}", rc<uintptr_t>(pWindow.get()));
 
-    m_bRenderingSnapshot = false;
     return PFRAMEBUFFER;
 }
 
 SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(PHLLS pLayer) {
+    if (m_context.active())
+        return nullptr;
+
     // we trust the window is valid.
     const auto PMONITOR = pLayer->m_monitor.lock();
 
@@ -3227,9 +3275,15 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(PHLLS pLayer) {
     PFRAMEBUFFER->alloc(PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y, snapshotFormat(PMONITOR));
     PFRAMEBUFFER->setImageDescription(PMONITOR->workBufferImageDescription());
 
-    beginFullFakeRender(PMONITOR, fakeDamage, PFRAMEBUFFER);
+    if (!beginFullFakeRender(PMONITOR, fakeDamage, PFRAMEBUFFER))
+        return nullptr;
+    bool              finishing = false;
+    const CScopeGuard cleanup([&] {
+        if (!finishing)
+            abortRender();
+    });
 
-    m_bRenderingSnapshot = true;
+    m_context.m_renderingSnapshot = true;
 
     draw(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)});
     startRenderPass();
@@ -3241,15 +3295,18 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(PHLLS pLayer) {
 
     LOG(Log::DEBUG, "renderer: rendered a snapshot of layer {:x}", rc<uintptr_t>(pLayer.get()));
 
+    finishing = true;
     endRender();
 
     LOG(Log::DEBUG, "renderer: made a snapshot of layer {:x}", rc<uintptr_t>(pLayer.get()));
 
-    m_bRenderingSnapshot = false;
     return PFRAMEBUFFER;
 }
 
 SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(WP<Desktop::View::CPopup> popup) {
+    if (m_context.active())
+        return nullptr;
+
     // we trust the window is valid.
     const auto PMONITOR = popup->getMonitor();
 
@@ -3268,9 +3325,15 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(WP<Desktop::View::CPopup> popup) 
     PFRAMEBUFFER->alloc(PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y, snapshotFormat(PMONITOR));
     PFRAMEBUFFER->setImageDescription(PMONITOR->workBufferImageDescription());
 
-    beginFullFakeRender(PMONITOR, fakeDamage, PFRAMEBUFFER);
+    if (!beginFullFakeRender(PMONITOR, fakeDamage, PFRAMEBUFFER))
+        return nullptr;
+    bool              finishing = false;
+    const CScopeGuard cleanup([&] {
+        if (!finishing)
+            abortRender();
+    });
 
-    m_bRenderingSnapshot = true;
+    m_context.m_renderingSnapshot = true;
 
     draw(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)});
 
@@ -3295,14 +3358,14 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(WP<Desktop::View::CPopup> popup) 
             renderdata.texture     = s->m_current.texture;
             renderdata.surface     = s;
             renderdata.mainSurface = false;
-            m_renderPass.add(makeUnique<CSurfacePassElement>(renderdata));
+            m_context.m_pass.add(makeUnique<CSurfacePassElement>(renderdata));
             renderdata.surfaceCounter++;
         },
         nullptr);
 
+    finishing = true;
     endRender();
 
-    m_bRenderingSnapshot = false;
     return PFRAMEBUFFER;
 }
 
@@ -3335,7 +3398,7 @@ void IHyprRenderer::renderFadeouts(PHLMONITOR monitor, Desktop::eFadeoutPlane pl
             CRectPassElement::SRectData data;
             data.box   = {0, 0, monitor->m_transformedSize.x, monitor->m_transformedSize.y};
             data.color = CHyprColor(0, 0, 0, EFFECTS.dimAroundAlpha);
-            m_renderPass.add(makeUnique<CRectPassElement>(data));
+            m_context.m_pass.add(makeUnique<CRectPassElement>(data));
         }
 
         if (EFFECTS.preBlur) {
@@ -3347,7 +3410,7 @@ void IHyprRenderer::renderFadeouts(PHLMONITOR monitor, Desktop::eFadeoutPlane pl
             data.round         = EFFECTS.preBlur->round;
             data.roundingPower = EFFECTS.preBlur->roundingPower;
             data.xray          = EFFECTS.preBlur->xray;
-            m_renderPass.add(makeUnique<CRectPassElement>(data));
+            m_context.m_pass.add(makeUnique<CRectPassElement>(data));
         }
 
         CTexPassElement::SRenderData data;
@@ -3362,15 +3425,15 @@ void IHyprRenderer::renderFadeouts(PHLMONITOR monitor, Desktop::eFadeoutPlane pl
         data.ignoreAlpha           = EFFECTS.textureBlur.ignoreAlpha;
         data.blockBlurOptimization = EFFECTS.textureBlur.blockBlurOptimization;
 
-        m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+        m_context.m_pass.add(makeUnique<CTexPassElement>(std::move(data)));
     }
 }
 
 NColorManagement::PImageDescription IHyprRenderer::workBufferImageDescription() {
-    if (!m_renderData.pMonitor)
+    if (!m_context.m_data.pMonitor)
         return LINEAR_IMAGE_DESCRIPTION;
 
-    return m_renderData.pMonitor->workBufferImageDescription();
+    return m_context.m_data.pMonitor->workBufferImageDescription();
 }
 
 SP<ITexture> IHyprRenderer::renderSplash(const std::function<SP<ITexture>(const int, const int, unsigned char* const)>& handleData, const int fontSize, const int maxWidth,
@@ -3465,7 +3528,7 @@ static auto            colorConversionCache = []() {
 
 //
 CHyprColor IHyprRenderer::getConvertedColor(const CHyprColor& color) {
-    const auto DESCR = m_renderData.currentFB ? m_renderData.currentFB->imageDescription() : workBufferImageDescription();
+    const auto DESCR = m_context.m_data.currentFB ? m_context.m_data.currentFB->imageDescription() : workBufferImageDescription();
 
     if (!DESCR) {
         LOG(Log::ERR, "getConvertedColor: failed to get image description");

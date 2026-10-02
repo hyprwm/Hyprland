@@ -204,7 +204,7 @@ static SDispatchResult startCursorFixture(const std::string& theme) {
 
 static SDispatchResult probeCursorRender(PHLMONITOR monitor, int pixels) {
     auto&       pointer = *Pointer::mgr();
-    auto&       entries = g_pHyprRenderer->m_renderPass.m_passElements;
+    auto&       entries = g_pHyprRenderer->context().m_pass.m_passElements;
     const auto  BEGIN   = entries.size();
     CScopeGuard restore([&] { entries.resize(BEGIN); });
     CRegion     damage{CBox{{}, monitor->m_transformedSize}};
@@ -268,7 +268,7 @@ static SDispatchResult armCursorRender(const std::string& name, int pixels) {
     g_cursorRenderRecording->stage          = Event::bus()->m_events.render.stage.listen([WEAK, TARGET, pixels](eRenderStage stage) {
         const auto RECORDING = WEAK.lock();
         const auto MONITOR   = TARGET.lock();
-        if (!RECORDING || RECORDING->complete || !MONITOR || stage != RENDER_BEGIN || g_pHyprRenderer->m_renderData.pMonitor != MONITOR)
+        if (!RECORDING || RECORDING->complete || !MONITOR || stage != RENDER_BEGIN || g_pHyprRenderer->context().m_data.pMonitor != MONITOR)
             return;
 
         RECORDING->complete = true;
@@ -354,13 +354,13 @@ static SDispatchResult probeWorkspaceBackground(PHLMONITOR monitor, bool withWor
         return {.success = false, .error = "Background probe requires an active workspace and no mapped clients or layers"};
 
     auto&                     renderer  = *g_pHyprRenderer;
-    auto&                     entries   = renderer.m_renderPass.m_passElements;
+    auto&                     entries   = renderer.context().m_pass.m_passElements;
     const auto                BEGIN     = entries.size();
-    const auto                OLD_DATA  = renderer.m_renderData;
+    const auto                OLD_DATA  = renderer.context().m_data;
     const auto                ROOT_PASS = renderer.redirectPass(nullptr);
     CScopeGuard               restore([&] {
         entries.resize(BEGIN);
-        renderer.m_renderData = OLD_DATA;
+        renderer.context().m_data = OLD_DATA;
     });
 
     std::vector<eRenderStage> stages;
@@ -486,16 +486,16 @@ static SDispatchResult probePopupOpacity(PHLWINDOW window, float parentFade, Ren
     const auto          OLD_FLOATING_OFFSET = window->presentation().floatingOffset();
 
     auto&               renderer    = *g_pHyprRenderer;
-    auto&               rootEntries = renderer.m_renderPass.m_passElements;
+    auto&               rootEntries = renderer.context().m_pass.m_passElements;
     const auto          BEGIN       = rootEntries.size();
-    const auto          OLD_DATA    = renderer.m_renderData;
+    const auto          OLD_DATA    = renderer.context().m_data;
     Render::CRenderPass previousPass, redirectedPass;
     // Root opacity remains independent of routing. Routing also tests nested guard restoration.
     const auto  OUTER_PASS = renderer.redirectPass(redirected ? &previousPass : nullptr);
     CScopeGuard restore([&] {
         // Drop every test item, including non-surface items, before the real frame draws.
         rootEntries.resize(BEGIN);
-        renderer.m_renderData = OLD_DATA;
+        renderer.context().m_data = OLD_DATA;
         for (size_t i = 0; i < ALPHAS.size(); ++i)
             ALPHAS[i]->setValueAndWarp(oldAlpha[i]);
         if (CHECK_PRESENTATION)
@@ -517,15 +517,15 @@ static SDispatchResult probePopupOpacity(PHLWINDOW window, float parentFade, Ren
     const float EXPECTED_PARENT_FADE = CHECK_PRESENTATION ? ALPHAS[0]->value() * (presentationMode == "none" ? 1.F : presentationMode == "custom" ? 0.6F : 0.25F) : parentFade;
     const auto  EXPECTED_POSITION    = window->position(IGeometric::GEOMETRIC_CURRENT) +
         (presentation ? (presentationMode == "custom" ? Vector2D{37, 23} : window->m_workspace->m_renderOffset->value()) + Vector2D{7, 11} : Vector2D{});
-    const auto PREVIOUS_PASS = renderer.m_currentPass;
+    const auto PREVIOUS_PASS = renderer.context().m_currentPass;
     {
         const auto REDIRECT = renderer.redirectPass(redirected ? &redirectedPass : nullptr);
         renderer.renderWindow(window, window->m_monitor.lock(), presentation, Time::steadyNow(), false, mode, !CHECK_PRESENTATION);
     }
-    if (renderer.m_currentPass != PREVIOUS_PASS || &renderer.currentPass() != (redirected ? &previousPass : &renderer.m_renderPass))
+    if (renderer.context().m_currentPass != PREVIOUS_PASS || &renderer.currentPass() != (redirected ? &previousPass : &renderer.context().m_pass))
         return {.success = false, .error = "Popup render did not restore the previous pass"};
 
-    const auto&                                 entries = (redirected ? redirectedPass : renderer.m_renderPass).m_passElements;
+    const auto&                                 entries = (redirected ? redirectedPass : renderer.context().m_pass).m_passElements;
 
     const std::array<SP<CWLSurfaceResource>, 3> SURFACES = {
         window->wlSurface()->resource(),
@@ -596,7 +596,7 @@ static SDispatchResult armPopupOpacity(const std::string& cls, float parentFade,
         Event::bus()->m_events.render.stage.listen([WEAK_RECORDING, WEAK_WINDOW, parentFade, popupOnly, redirected, presentationMode](eRenderStage stage) {
             const auto RECORDING = WEAK_RECORDING.lock();
             const auto WINDOW    = WEAK_WINDOW.lock();
-            if (!RECORDING || RECORDING->complete || !WINDOW || stage != RENDER_BEGIN || g_pHyprRenderer->m_renderData.pMonitor != WINDOW->m_monitor)
+            if (!RECORDING || RECORDING->complete || !WINDOW || stage != RENDER_BEGIN || g_pHyprRenderer->context().m_data.pMonitor != WINDOW->m_monitor)
                 return;
 
             // RENDER_BEGIN has a bound framebuffer; renderWindow only queues the probe.

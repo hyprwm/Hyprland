@@ -58,7 +58,6 @@ namespace Render::GL {
 
         SP<ITexture>         getBlurTexture(PHLMONITORREF pMonitor) override;
 
-        SP<IRenderbuffer>    m_currentRenderbuffer;
         UP<IElementRenderer> m_elementRenderer;
         UP<IGLBlurProvider>  m_blur;
         CHyprSignalListener  m_preRenderListener;

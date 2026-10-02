@@ -74,8 +74,8 @@ bool CGLFramebuffer::internalAlloc(int w, int h, uint32_t drmFormat) {
     g_pHyprOpenGL->bindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
     // this can run mid frame in enableMirror() in begin() restore the draw fb the renderer had bound
-    if (g_pHyprRenderer && g_pHyprRenderer->m_renderData.currentFB)
-        g_pHyprRenderer->m_renderData.currentFB->bind();
+    if (g_pHyprRenderer && g_pHyprRenderer->context().m_data.currentFB)
+        g_pHyprRenderer->context().m_data.currentFB->bind();
     else
         g_pHyprOpenGL->bindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
@@ -136,8 +136,8 @@ void CGLFramebuffer::release() {
 
         // releasing can happen mid frame from a temp fb, rebind the fb the renderer
         // had previously bound, otherwise draws continue into fb 0 and raise GL_INVALID_FRAMEBUFFER_OPERATION
-        if (g_pHyprRenderer && g_pHyprRenderer->m_renderData.currentFB && g_pHyprRenderer->m_renderData.currentFB.get() != this)
-            g_pHyprRenderer->m_renderData.currentFB->bind();
+        if (g_pHyprRenderer && g_pHyprRenderer->context().m_data.currentFB && g_pHyprRenderer->context().m_data.currentFB.get() != this)
+            g_pHyprRenderer->context().m_data.currentFB->bind();
 
         m_fbAllocated = false;
         m_fb          = 0;

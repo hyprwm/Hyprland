@@ -311,10 +311,7 @@ namespace Render::GL {
         int                     m_drmFD = -1;
         std::string             m_extensions;
 
-        bool                    m_fakeFrame            = false;
-        bool                    m_applyFinalShader     = false;
         bool                    m_blend                = false;
-        bool                    m_offloadedFramebuffer = false;
         bool                    m_cmSupported          = true;
 
         SP<CShader>             m_finalScreenShader;

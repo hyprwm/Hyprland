@@ -539,6 +539,9 @@ bool CPointerManager::setHWCursorBuffer(SP<SMonitorPointerState> state, SP<Aquam
 }
 
 SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager::SMonitorPointerState> state, SP<Render::ITexture> texture) {
+    if (g_pHyprRenderer->context().active())
+        return nullptr;
+
     auto        maxSize    = state->monitor->m_output->cursorPlaneSize();
     auto const& image      = cursorImageForMonitor(state->monitor.lock());
     const auto  cursorSize = image.planeSize(state->monitor->m_scale, state->monitor->m_transform);
@@ -690,15 +693,11 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         return buf;
     }
 
-    g_pHyprRenderer->m_renderData.pMonitor = state->monitor;
-
     auto RBO = g_pHyprRenderer->getOrCreateRenderbuffer(buf, state->monitor->m_cursorSwapchain->currentOptions().format);
     if (!RBO) {
         LOG(Log::TRACE, "Failed to create cursor RB with format {}, mod {}", buf->dmabuf().format, buf->dmabuf().modifier);
         return nullptr;
     }
-
-    RBO->bind();
 
     // the cursor plane is blended after the FB is encoded into the output's colour space,
     // so tag it - otherwise a raw sRGB cursor gets reinterpreted there, blinding on PQ
@@ -706,10 +705,16 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     FB->setImageDescription(state->monitor->m_imageDescription);
 
     CRegion damageRegion = {0, 0, INT_MAX, INT_MAX};
-    g_pHyprRenderer->beginFullFakeRender(state->monitor.lock(), damageRegion, FB);
-    g_pHyprRenderer->m_renderData.fbSize = FB->m_size;
+    if (!g_pHyprRenderer->beginFullFakeRender(state->monitor.lock(), damageRegion, FB))
+        return nullptr;
+    bool                      finishing = false;
+    const Render::CScopeGuard cleanup([&] {
+        if (!finishing)
+            g_pHyprRenderer->abortRender();
+    });
+    g_pHyprRenderer->context().m_data.fbSize = FB->m_size;
     g_pHyprRenderer->setProjectionType(Render::RPT_FB);
-    g_pHyprRenderer->m_renderData.transformDamage = true;
+    g_pHyprRenderer->context().m_data.transformDamage = true;
     g_pHyprRenderer->startRenderPass();
     g_pHyprRenderer->draw(CClearPassElement::SClearData{{0.F, 0.F, 0.F, 0.F}});
 
@@ -719,8 +724,8 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
     g_pHyprRenderer->draw(CTexPassElement::SRenderData{.tex = texture, .box = xbox}, damageRegion);
 
+    finishing = true;
     g_pHyprRenderer->endRender();
-    g_pHyprRenderer->m_renderData.pMonitor.reset();
 
     return buf;
 }
@@ -764,7 +769,7 @@ void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::
     data.tex = texture;
     data.box = box.round();
 
-    g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+    g_pHyprRenderer->context().m_pass.add(makeUnique<CTexPassElement>(std::move(data)));
 
     // to erase the leftover in updateCursorBackend()
     if (!screencopy) {

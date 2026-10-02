@@ -89,7 +89,7 @@ SWindowTransformBuffer CWobbleTransformer::transform(const SWindowTransformBuffe
     if (VERTICES.empty())
         return {.framebuffer = in.framebuffer, .box = in.box, .success = false};
 
-    auto&         renderData    = g_pHyprRenderer->m_renderData;
+    auto&         renderData    = g_pHyprRenderer->context().m_data;
     const CRegion oldDamage     = renderData.damage.copy();
     const auto    oldProjection = renderData.projectionType;
     const auto    oldFBSize     = renderData.fbSize;

@@ -74,7 +74,7 @@ static SFPSGraphDrawResult drawFPSGraph(float x, float y, float idealFPS, const 
     bgData.box   = {x, y, LAYOUT.width, LAYOUT.height};
     bgData.color = CHyprColor{0.F, 0.F, 0.F, OVERLAY_FPS_GRAPH_BG_ALPHA};
     bgData.round = 2;
-    g_pHyprRenderer->m_renderPass.add(makeUnique<CRectPassElement>(bgData));
+    g_pHyprRenderer->context().m_pass.add(makeUnique<CRectPassElement>(bgData));
 
     const size_t BARCOUNT         = std::min(fpsHistory.size(), sc<size_t>(OVERLAY_FPS_GRAPH_HISTORY_SEC));
     const size_t LEADINGBLANKBARS = sc<size_t>(OVERLAY_FPS_GRAPH_HISTORY_SEC) - BARCOUNT;
@@ -89,7 +89,7 @@ static SFPSGraphDrawResult drawFPSGraph(float x, float y, float idealFPS, const 
         CRectPassElement::SRectData barData;
         barData.box   = {BARX, BARY, sc<float>(OVERLAY_FPS_GRAPH_BAR_WIDTH), BARHEIGHT};
         barData.color = fpsBarColor(NORMALIZEDFPS);
-        g_pHyprRenderer->m_renderPass.add(makeUnique<CRectPassElement>(barData));
+        g_pHyprRenderer->context().m_pass.add(makeUnique<CRectPassElement>(barData));
     }
 
     return {
@@ -300,7 +300,7 @@ int CMonitorOverlay::draw(int offset, bool& cacheUpdated) {
         data.tex = line.texture;
         data.box = {OVERLAY_MARGIN_LEFT + OVERLAY_BOX_MARGIN, y, line.texture->m_size.x, line.texture->m_size.y};
         data.a   = 1.F;
-        g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+        g_pHyprRenderer->context().m_pass.add(makeUnique<CTexPassElement>(std::move(data)));
 
         maxTextW = std::max(maxTextW, sc<float>(line.texture->m_size.x));
         y += line.texture->m_size.y + OVERLAY_LINE_GAP;
@@ -424,7 +424,7 @@ void COverlay::draw() {
             data.color = CHyprColor{0.1F, 0.1F, 0.1F, 0.6F};
             data.round = 10;
             data.blur  = true;
-            g_pHyprRenderer->m_renderPass.add(makeUnique<CRectPassElement>(std::move(data)));
+            g_pHyprRenderer->context().m_pass.add(makeUnique<CRectPassElement>(std::move(data)));
 
             createWarningTexture(fullSize.x);
         }
@@ -470,7 +470,7 @@ void COverlay::draw() {
             data.color = CHyprColor{0.1F, 0.1F, 0.1F, 0.6F};
             data.round = 10;
             data.blur  = true;
-            g_pHyprRenderer->m_renderPass.add(makeUnique<CRectPassElement>(std::move(data)));
+            g_pHyprRenderer->context().m_pass.add(makeUnique<CRectPassElement>(std::move(data)));
         }
 
         {
@@ -479,7 +479,7 @@ void COverlay::draw() {
                 Vector2D{OVERLAY_MARGIN_LEFT + ((maxWidth - m_warningTexture->m_size.x) / 2.F), sc<float>(offsetY) + (OVERLAY_MARGIN_TOP * 2) + (OVERLAY_BOX_MARGIN * 2)}.round(),
                 m_warningTexture->m_size};
             data.tex = m_warningTexture;
-            g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+            g_pHyprRenderer->context().m_pass.add(makeUnique<CTexPassElement>(std::move(data)));
         }
     }
 

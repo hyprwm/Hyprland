@@ -490,9 +490,9 @@ static RGBAColor tonemap(RGBAColor color, std::array<std::array<double, 3>, 3> d
 }
 
 RGBAColor NColorManagement::convertColor(RGBAColor color, PImageDescription srcDesc, PImageDescription dstDesc) {
-    const auto settings =
-        g_pHyprRenderer->getCMSettings(srcDesc, dstDesc, nullptr, true, g_pHyprRenderer->m_renderData.pMonitor ? g_pHyprRenderer->m_renderData.pMonitor->m_sdrMinLuminance : -1,
-                                       g_pHyprRenderer->m_renderData.pMonitor ? g_pHyprRenderer->m_renderData.pMonitor->m_sdrMaxLuminance : -1);
+    const auto settings = g_pHyprRenderer->getCMSettings(srcDesc, dstDesc, nullptr, true,
+                                                         g_pHyprRenderer->context().m_data.pMonitor ? g_pHyprRenderer->context().m_data.pMonitor->m_sdrMinLuminance : -1,
+                                                         g_pHyprRenderer->context().m_data.pMonitor ? g_pHyprRenderer->context().m_data.pMonitor->m_sdrMaxLuminance : -1);
 
     color /= std::max(color.c.a, 0.001);
     color = toLinearRGB(color, srcDesc->value().transferFunction);

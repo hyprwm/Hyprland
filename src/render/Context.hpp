@@ -11,6 +11,21 @@ struct SBackdropScope;
 
 namespace Render {
     class IRenderbuffer;
+    class CRenderContext;
+
+    class CRenderDataScope {
+      public:
+        explicit CRenderDataScope(CRenderContext& ctx);
+        ~CRenderDataScope();
+        CRenderDataScope(const CRenderDataScope&)            = delete;
+        CRenderDataScope& operator=(const CRenderDataScope&) = delete;
+
+      private:
+        CRenderContext& m_ctx;
+        SRenderData     m_data;
+        size_t          m_backdropDepth    = 0;
+        bool            m_blurShouldRender = false;
+    };
 
     // One reusable render session. Only m_data may be copied for nested draws.
     class CRenderContext {
@@ -25,6 +40,9 @@ namespace Render {
         bool                    begin();
         bool                    active() const;
         void                    reset();
+
+        // Nested draws retain session routing, source buffers and persistent caches.
+        [[nodiscard]] CRenderDataScope saveDrawState();
 
         SRenderData             m_data;
         CRenderPass             m_pass;

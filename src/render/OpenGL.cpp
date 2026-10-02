@@ -456,6 +456,8 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >
 }
 
 CHyprOpenGLImpl::~CHyprOpenGLImpl() {
+    m_monitorBGFBs.clear();
+
     if (m_eglDisplay && m_eglContext != EGL_NO_CONTEXT)
         eglDestroyContext(m_eglDisplay, m_eglContext);
 
@@ -2474,6 +2476,37 @@ void CHyprOpenGLImpl::onFramebufferDeleted(GLuint fb) {
         m_boundDrawFB = 0;
     if (m_boundReadFB == fb)
         m_boundReadFB = 0;
+
+    // Normalize every saved binding now, before GL can reuse the deleted name.
+    for (auto guard = m_bindingGuard; guard; guard = guard->m_previous) {
+        if (guard->m_drawFB == fb)
+            guard->m_drawFB = 0;
+        if (guard->m_readFB == fb)
+            guard->m_readFB = 0;
+    }
+}
+
+CFramebufferBindingGuard::CFramebufferBindingGuard(WP<CHyprOpenGLImpl> backend) : m_backend(std::move(backend)) {
+    if (!m_backend)
+        return;
+
+    m_previous                = m_backend->m_bindingGuard;
+    m_drawFB                  = m_backend->m_boundDrawFB;
+    m_readFB                  = m_backend->m_boundReadFB;
+    const auto& viewport      = m_backend->m_lastViewport;
+    m_viewport                = {viewport.x, viewport.y, viewport.width, viewport.height};
+    m_backend->m_bindingGuard = this;
+}
+
+CFramebufferBindingGuard::~CFramebufferBindingGuard() {
+    if (!m_backend)
+        return;
+
+    RASSERT(m_backend->m_bindingGuard == this, "Framebuffer binding guards must unwind in order");
+    m_backend->m_bindingGuard = m_previous;
+    m_backend->bindFramebuffer(GL_DRAW_FRAMEBUFFER, m_drawFB);
+    m_backend->bindFramebuffer(GL_READ_FRAMEBUFFER, m_readFB);
+    m_backend->setViewport(m_viewport[0], m_viewport[1], m_viewport[2], m_viewport[3]);
 }
 
 void CHyprOpenGLImpl::setCapStatus(int cap, bool status) {

@@ -60,6 +60,22 @@ namespace Render {
     class IElementRenderer;
     class CRenderPass;
     class CMonitorScene;
+    class IHyprRenderer;
+
+    class CTempFramebufferScope {
+      public:
+        CTempFramebufferScope(IHyprRenderer& renderer, CRenderContext& ctx, SP<IFramebuffer> fb);
+        ~CTempFramebufferScope();
+        CTempFramebufferScope(const CTempFramebufferScope&)            = delete;
+        CTempFramebufferScope& operator=(const CTempFramebufferScope&) = delete;
+
+      private:
+        IHyprRenderer&               m_renderer;
+        CRenderContext&              m_ctx;
+        SP<IFramebuffer>             m_oldFB;
+        bool                         m_hasBackend = false;
+        GL::CFramebufferBindingGuard m_bindings;
+    };
 
     class IHyprRenderer {
       public:
@@ -164,7 +180,8 @@ namespace Render {
         void                            draw(CRenderContext& ctx, const CTexPassElement::SRenderData& data, const CRegion& damage = {});
         void                            draw(CRenderContext& ctx, const CTextureMatteElement::STextureMatteData& data, const CRegion& damage = {});
         virtual void                    bindFB(CRenderContext& ctx, SP<IFramebuffer> fb);
-        UP<CScopeGuard>                 bindTempFB(CRenderContext& ctx, SP<IFramebuffer> fb);
+        // Restores currentFB and physical bindings/viewport only, not other draw state.
+        [[nodiscard]] CTempFramebufferScope bindTempFB(CRenderContext& ctx, SP<IFramebuffer> fb);
         virtual UP<ISyncFDManager>   createSyncFDManager()                                                                                                                     = 0;
         virtual WP<IElementRenderer> elementRenderer()                                                                                                                         = 0;
         virtual SP<ITexture>         createStencilTexture(const int width, const int height)                                                                                   = 0;

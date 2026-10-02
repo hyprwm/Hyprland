@@ -15,6 +15,7 @@ CGLFramebuffer::CGLFramebuffer(const std::string& name) : IFramebuffer(name), m_
 
 bool CGLFramebuffer::internalAlloc(int w, int h, uint32_t drmFormat) {
     g_pHyprOpenGL->makeEGLCurrent();
+    CFramebufferBindingGuard bindings{g_pHyprOpenGL};
     m_tempBuf = false;
 
     if (!m_tex) {
@@ -71,13 +72,6 @@ bool CGLFramebuffer::internalAlloc(int w, int h, uint32_t drmFormat) {
     LOG(Log::DEBUG, "Framebuffer \"{}\" created, status {}", m_name, status);
 
     glBindTexture(GL_TEXTURE_2D, 0);
-    g_pHyprOpenGL->bindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-
-    // this can run mid frame in enableMirror() in begin() restore the draw fb the renderer had bound
-    if (g_pHyprRenderer && g_pHyprRenderer->context().m_data.currentFB)
-        g_pHyprRenderer->context().m_data.currentFB->bind();
-    else
-        g_pHyprOpenGL->bindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
     return true;
 }
@@ -121,23 +115,13 @@ void CGLFramebuffer::unbind() {
 
 void CGLFramebuffer::release() {
     if (m_fbAllocated) {
-        if (g_pHyprOpenGL)
-            g_pHyprOpenGL->bindFramebuffer(GL_FRAMEBUFFER, m_fb);
-        else
-            glBindFramebuffer(GL_FRAMEBUFFER, m_fb);
-
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
-        if (m_mirrorTex)
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, 0, 0);
-
-        glDeleteFramebuffers(1, &m_fb);
-        if (g_pHyprOpenGL)
+        // Deletion detaches attachments without binding this framebuffer. Once the
+        // backend is gone, EGL teardown already owns the remaining GL resources.
+        if (g_pHyprOpenGL) {
+            g_pHyprOpenGL->makeEGLCurrent();
+            glDeleteFramebuffers(1, &m_fb);
             g_pHyprOpenGL->onFramebufferDeleted(m_fb);
-
-        // releasing can happen mid frame from a temp fb, rebind the fb the renderer
-        // had previously bound, otherwise draws continue into fb 0 and raise GL_INVALID_FRAMEBUFFER_OPERATION
-        if (g_pHyprRenderer && g_pHyprRenderer->context().m_data.currentFB && g_pHyprRenderer->context().m_data.currentFB.get() != this)
-            g_pHyprRenderer->context().m_data.currentFB->bind();
+        }
 
         m_fbAllocated = false;
         m_fb          = 0;
@@ -218,8 +202,8 @@ bool CGLFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uin
     }
 
     g_pHyprOpenGL->makeEGLCurrent();
+    CFramebufferBindingGuard bindings{g_pHyprOpenGL};
     g_pHyprOpenGL->bindFramebuffer(GL_READ_FRAMEBUFFER, getFBID());
-    bind();
 
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
@@ -253,10 +237,8 @@ bool CGLFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uin
         }
     }
 
-    unbind();
     glPixelStorei(GL_PACK_ALIGNMENT, 4);
 
-    g_pHyprOpenGL->bindFramebuffer(GL_READ_FRAMEBUFFER, 0);
     return true;
 }
 

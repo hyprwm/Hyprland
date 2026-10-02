@@ -5,6 +5,7 @@
 #include <protocols/types/Buffer.hpp>
 
 #include <gtest/gtest.h>
+#include <stdexcept>
 #include <type_traits>
 
 namespace Render {
@@ -157,9 +158,222 @@ namespace Render {
         }
     };
 
+    class CContextTestBuffer : public Aquamarine::IBuffer {
+      public:
+        Aquamarine::eBufferCapability caps() override {
+            return Aquamarine::BUFFER_CAPABILITY_NONE;
+        }
+        Aquamarine::eBufferType type() override {
+            return Aquamarine::BUFFER_TYPE_MISC;
+        }
+        void update(const CRegion&) override {
+            ADD_FAILURE();
+        }
+        bool isSynchronous() override {
+            return true;
+        }
+        bool good() override {
+            return true;
+        }
+    };
+
+    class CContextTestRenderbuffer : public IRenderbuffer {
+      public:
+        explicit CContextTestRenderbuffer(SP<Aquamarine::IBuffer> buffer) : IRenderbuffer(buffer, 0) {
+            ;
+        }
+        void bind() override {
+            ADD_FAILURE();
+        }
+        void unbind() override {
+            ADD_FAILURE();
+        }
+    };
+
     static_assert(!std::is_copy_constructible_v<CRenderContext>);
     static_assert(!std::is_move_constructible_v<CRenderContext>);
     static_assert(std::is_copy_constructible_v<SRenderData>);
+    static_assert(!std::is_copy_constructible_v<CRenderDataScope>);
+    static_assert(!std::is_move_constructible_v<CRenderDataScope>);
+    static_assert(!std::is_copy_constructible_v<CTempFramebufferScope>);
+    static_assert(!std::is_move_constructible_v<CTempFramebufferScope>);
+
+    TEST(RenderContext, ScopedDrawRestoresParentStateOnReturnAndException) {
+        CRenderContext ctx;
+        ctx.m_data.damage              = CRegion{1, 2, 30, 40};
+        ctx.m_data.finalDamage         = CRegion{5, 6, 70, 80};
+        ctx.m_data.targetProjection    = Mat3x3::identity().translate({12, 34}).rotate(0.5F);
+        ctx.m_data.projectionType      = RPT_FB;
+        ctx.m_data.fbSize              = {800, 600};
+        ctx.m_data.clipBox             = {7, 8, 90, 100};
+        ctx.m_data.renderModif.enabled = false;
+        ctx.m_data.renderModif.modifs.emplace_back(SRenderModifData::RMOD_TYPE_SCALE, 2.F);
+        ctx.m_data.mouseZoomFactor             = 3.F;
+        ctx.m_data.mouseZoomUseMouse           = false;
+        ctx.m_data.useNearestNeighbor          = true;
+        ctx.m_data.blockScreenShader           = true;
+        ctx.m_data.primarySurfaceUVTopLeft     = {0.1, 0.2};
+        ctx.m_data.primarySurfaceUVBottomRight = {0.8, 0.9};
+        ctx.m_data.transformDamage             = false;
+        ctx.m_data.noSimplify                  = true;
+        ctx.m_data.renderingTransformedSource  = true;
+        const auto parent                      = ctx.m_data;
+
+        for (bool fail : {false, true}) {
+            const auto nestedDraw = [&] {
+                auto state             = ctx.saveDrawState();
+                ctx.m_data             = {};
+                ctx.m_data.damage      = CRegion{0, 0, 200, 100};
+                ctx.m_data.finalDamage = ctx.m_data.damage;
+                if (fail)
+                    throw std::runtime_error("nested draw failed");
+                return;
+            };
+            if (fail)
+                EXPECT_THROW(nestedDraw(), std::runtime_error);
+            else
+                nestedDraw();
+
+            EXPECT_EQ(ctx.m_data.damage.getExtents(), parent.damage.copy().getExtents());
+            EXPECT_EQ(ctx.m_data.finalDamage.getExtents(), parent.finalDamage.copy().getExtents());
+            EXPECT_EQ(ctx.m_data.targetProjection, parent.targetProjection);
+            EXPECT_EQ(ctx.m_data.projectionType, parent.projectionType);
+            EXPECT_EQ(ctx.m_data.fbSize, parent.fbSize);
+            EXPECT_EQ(ctx.m_data.clipBox, parent.clipBox);
+            EXPECT_EQ(ctx.m_data.renderModif.enabled, parent.renderModif.enabled);
+            ASSERT_EQ(ctx.m_data.renderModif.modifs.size(), 1U);
+            EXPECT_EQ(ctx.m_data.renderModif.modifs[0].first, SRenderModifData::RMOD_TYPE_SCALE);
+            EXPECT_EQ(std::any_cast<float>(ctx.m_data.renderModif.modifs[0].second), 2.F);
+            EXPECT_EQ(ctx.m_data.mouseZoomFactor, parent.mouseZoomFactor);
+            EXPECT_EQ(ctx.m_data.mouseZoomUseMouse, parent.mouseZoomUseMouse);
+            EXPECT_EQ(ctx.m_data.useNearestNeighbor, parent.useNearestNeighbor);
+            EXPECT_EQ(ctx.m_data.blockScreenShader, parent.blockScreenShader);
+            EXPECT_EQ(ctx.m_data.primarySurfaceUVTopLeft, parent.primarySurfaceUVTopLeft);
+            EXPECT_EQ(ctx.m_data.primarySurfaceUVBottomRight, parent.primarySurfaceUVBottomRight);
+            EXPECT_EQ(ctx.m_data.transformDamage, parent.transformDamage);
+            EXPECT_EQ(ctx.m_data.noSimplify, parent.noSimplify);
+            EXPECT_EQ(ctx.m_data.renderingTransformedSource, parent.renderingTransformedSource);
+        }
+    }
+
+    TEST(RenderContext, NestedDrawRestoresStateBeforeFallback) {
+        CRenderContext ctx, other;
+        ctx.m_data.damage      = CRegion{1, 2, 3, 4};
+        ctx.m_data.finalDamage = CRegion{5, 6, 7, 8};
+        auto nestedDraw        = [&] {
+            auto state              = ctx.saveDrawState();
+            ctx.m_data.damage       = CRegion{10, 20, 30, 40};
+            ctx.m_data.finalDamage  = CRegion{50, 60, 70, 80};
+            const auto tryOffscreen = [&] {
+                auto state = ctx.saveDrawState();
+                ctx.m_data = {};
+                return false;
+            };
+            if (tryOffscreen())
+                return;
+
+            EXPECT_EQ(ctx.m_data.damage.getExtents(), CBox(10, 20, 30, 40));
+            EXPECT_EQ(ctx.m_data.finalDamage.getExtents(), CBox(50, 60, 70, 80));
+            auto                    fallback = ctx.saveDrawState();
+            CContextElementRenderer renderer;
+            auto                    parent = makeUnique<CContextChildrenElement>(true);
+            ctx.m_data.mouseZoomFactor     = 3.F;
+            renderer.drawElement(ctx, parent, CRegion{1, 2, 3, 4});
+            EXPECT_EQ(renderer.m_draws, 1U);
+        };
+        nestedDraw();
+        EXPECT_EQ(ctx.m_data.damage.getExtents(), CBox(1, 2, 3, 4));
+        EXPECT_EQ(ctx.m_data.finalDamage.getExtents(), CBox(5, 6, 7, 8));
+        EXPECT_TRUE(ctx.m_data.clipBox.empty());
+        EXPECT_EQ(ctx.m_data.mouseZoomFactor, 1.F);
+        EXPECT_TRUE(other.m_data.damage.empty());
+        EXPECT_TRUE(other.m_data.clipBox.empty());
+    }
+
+    TEST(RenderContext, ScopedDrawRetainsTargetsAndSessionRouting) {
+        CRenderContext ctx;
+        ASSERT_TRUE(ctx.begin());
+        ctx.m_data.currentFB     = makeShared<CContextTestFramebuffer>();
+        ctx.m_data.mainFB        = makeShared<CContextTestFramebuffer>();
+        ctx.m_data.outFB         = makeShared<CContextTestFramebuffer>();
+        WP<IFramebuffer> current = ctx.m_data.currentFB, main = ctx.m_data.mainFB, out = ctx.m_data.outFB;
+        CRenderPass      pass;
+        auto             route        = IHyprRenderer::redirectPass(ctx, &pass);
+        const auto       buffer       = makeShared<CContextTestBuffer>();
+        const auto       renderbuffer = makeShared<CContextTestRenderbuffer>(buffer);
+        ctx.m_currentBuffer           = buffer;
+        ctx.m_currentRenderbuffer     = renderbuffer;
+        ctx.m_mode                    = RENDER_MODE_TO_BUFFER;
+        ctx.m_blockSurfaceFeedback    = true;
+        ctx.m_renderingSnapshot       = true;
+        ctx.m_swapchainAcquired       = true;
+        ctx.m_gl                      = {.fakeFrame = true, .offloadedFramebuffer = true, .applyFinalShader = true};
+        {
+            auto state = ctx.saveDrawState();
+            ctx.m_data = {};
+            EXPECT_FALSE(current.expired());
+            EXPECT_FALSE(main.expired());
+            EXPECT_FALSE(out.expired());
+            EXPECT_TRUE(ctx.active());
+            EXPECT_EQ(ctx.m_currentBuffer, buffer);
+            EXPECT_EQ(ctx.m_currentRenderbuffer, renderbuffer);
+            EXPECT_EQ(&IHyprRenderer::currentPass(ctx), &pass);
+            IHyprRenderer::addPassElement(ctx, makeUnique<CContextMetadataElement>());
+        }
+        EXPECT_EQ(ctx.m_data.currentFB, current.lock());
+        EXPECT_EQ(ctx.m_data.mainFB, main.lock());
+        EXPECT_EQ(ctx.m_data.outFB, out.lock());
+        EXPECT_EQ(&IHyprRenderer::currentPass(ctx), &pass);
+        EXPECT_TRUE(pass.single());
+        EXPECT_EQ(ctx.m_currentBuffer, buffer);
+        EXPECT_EQ(ctx.m_currentRenderbuffer, renderbuffer);
+        EXPECT_TRUE(ctx.active());
+        EXPECT_EQ(ctx.m_mode, RENDER_MODE_TO_BUFFER);
+        EXPECT_TRUE(ctx.m_blockSurfaceFeedback);
+        EXPECT_TRUE(ctx.m_renderingSnapshot);
+        EXPECT_TRUE(ctx.m_swapchainAcquired);
+        EXPECT_TRUE(ctx.m_gl.fakeFrame);
+        EXPECT_TRUE(ctx.m_gl.offloadedFramebuffer);
+        EXPECT_TRUE(ctx.m_gl.applyFinalShader);
+    }
+
+    TEST(RenderContext, ScopedDrawRestoresInheritedBackdropsWithoutResettingCaches) {
+        CRenderContext ctx;
+        ctx.m_backdropCaptures.push_back({
+            .scope       = makeShared<SBackdropScope>(),
+            .framebuffer = makeShared<CContextTestFramebuffer>(),
+        });
+        WP<SBackdropScope> scope = ctx.m_backdropCaptures.back().scope;
+        WP<IFramebuffer>   fb    = ctx.m_backdropCaptures.back().framebuffer;
+        ctx.m_backdropCaptures.reserve(8);
+        const auto capacity   = ctx.m_backdropCaptures.capacity();
+        const auto nestedDraw = [&] {
+            auto state = ctx.saveDrawState();
+            ASSERT_EQ(ctx.m_backdropCaptures.size(), 1U);
+            EXPECT_EQ(ctx.m_backdropCaptures.back().framebuffer, fb.lock());
+            ctx.m_backdropCaptures.emplace_back();
+            {
+                auto inner = ctx.saveDrawState();
+                ctx.m_backdropCaptures.emplace_back();
+                ctx.m_backdropCaptures.pop_back();
+                ctx.m_backdropCaptures.emplace_back();
+            }
+            EXPECT_EQ(ctx.m_backdropCaptures.size(), 2U);
+            EXPECT_FALSE(scope.expired());
+            EXPECT_FALSE(fb.expired());
+            ctx.m_cmSettingsCache.emplace_back().srcDescId = 42;
+            throw std::runtime_error("unclosed nested backdrop");
+        };
+        EXPECT_THROW(nestedDraw(), std::runtime_error);
+        ASSERT_EQ(ctx.m_backdropCaptures.size(), 1U);
+        EXPECT_FALSE(scope.expired());
+        EXPECT_FALSE(fb.expired());
+        EXPECT_EQ(ctx.m_backdropCaptures.back().scope, scope.lock());
+        EXPECT_EQ(ctx.m_backdropCaptures.back().framebuffer, fb.lock());
+        EXPECT_EQ(ctx.m_backdropCaptures.capacity(), capacity);
+        ASSERT_EQ(ctx.m_cmSettingsCache.size(), 1U);
+        EXPECT_EQ(ctx.m_cmSettingsCache[0].srcDescId, 42U);
+    }
 
     TEST(RenderContext, ResetReleasesTargetsAndPassContents) {
         CRenderContext context;

@@ -56,6 +56,24 @@ namespace Workspace {
 
 namespace Render::GL {
     class CDualKawaseBlurProvider;
+    class CHyprOpenGLImpl;
+
+    // Only framebuffer bindings and viewport; all values come from the backend cache.
+    class CFramebufferBindingGuard {
+      public:
+        explicit CFramebufferBindingGuard(WP<CHyprOpenGLImpl> backend);
+        ~CFramebufferBindingGuard();
+        CFramebufferBindingGuard(const CFramebufferBindingGuard&)            = delete;
+        CFramebufferBindingGuard& operator=(const CFramebufferBindingGuard&) = delete;
+
+      private:
+        WP<CHyprOpenGLImpl>       m_backend;
+        CFramebufferBindingGuard* m_previous = nullptr;
+        GLuint                    m_drawFB = 0, m_readFB = 0;
+        std::array<GLint, 4>      m_viewport = {};
+
+        friend class CHyprOpenGLImpl;
+    };
 
     CBox resolveBlurUV(const CBox& destinationBox, const Vector2D& textureSize);
 
@@ -288,6 +306,8 @@ namespace Render::GL {
         };
 
       private:
+        CFramebufferBindingGuard* m_bindingGuard = nullptr;
+
         struct {
             GLint   x      = 0;
             GLint   y      = 0;
@@ -345,6 +365,7 @@ namespace Render::GL {
         void        renderTextureWithBlurInternal(CRenderContext& ctx, SP<ITexture>, const CBox&, const STextureRenderData& data);
 
         friend class IHyprRenderer;
+        friend class CFramebufferBindingGuard;
         friend class CHyprGLRenderer;
         friend class CGLElementRenderer;
         friend class CTexPassElement;

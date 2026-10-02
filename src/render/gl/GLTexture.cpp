@@ -14,7 +14,7 @@ CGLTexture::CGLTexture(bool opaque) {
 }
 
 CGLTexture::~CGLTexture() {
-    if (!g_pCompositor || g_pCompositor->m_isShuttingDown || !g_pHyprRenderer)
+    if (!g_pCompositor || g_pCompositor->m_isShuttingDown || !g_pHyprRenderer || !g_pHyprOpenGL)
         return;
 
     g_pHyprOpenGL->makeEGLCurrent();

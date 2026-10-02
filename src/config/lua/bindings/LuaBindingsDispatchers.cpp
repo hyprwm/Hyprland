@@ -645,7 +645,7 @@ static int dsp_mouseDrag(lua_State* L) {
 }
 
 static int dsp_mouseResize(lua_State* L) {
-    auto keepAspectRatio = Check::string(L, lua_upvalueindex(1));
+    auto keepAspectRatio = Check::number(L, lua_upvalueindex(1));
     if (!keepAspectRatio)
         return Internal::configError(L, std::format("resize: bad argument 1: {}", keepAspectRatio.error()));
 

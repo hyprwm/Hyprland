@@ -5,7 +5,13 @@ project(
     DESCRIPTION "Control utility for Hyprland"
 )
 
-pkg_check_modules(hyprctl_deps REQUIRED IMPORTED_TARGET hyprutils>=0.2.4 hyprwire re2 readline)
+set(READLINE readline)
+
+if(CMAKE_SYSTEM_NAME MATCHES "OpenBSD")
+    set(READLINE ereadline)
+endif()
+
+pkg_check_modules(hyprctl_deps REQUIRED IMPORTED_TARGET hyprutils>=0.2.4 hyprwire re2 ${READLINE})
 
 file(GLOB_RECURSE HYPRCTL_SRCFILES CONFIGURE_DEPENDS "src/*.cpp" "hw-protocols/*.cpp" "include/*.hpp")
 

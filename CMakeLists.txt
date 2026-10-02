@@ -129,17 +129,19 @@ find_package(OpenGL REQUIRED COMPONENTS ${GLES_VERSION})
 find_package(glslang CONFIG REQUIRED)
 
 find_package(glaze QUIET)
-if(NOT glaze_FOUND)
-  set(GLAZE_VERSION v7.2.0)
-  message(STATUS "glaze dependency not found, retrieving ${GLAZE_VERSION} with FetchContent")
-  include(FetchContent)
-  FetchContent_Declare(
-    glaze
-    GIT_REPOSITORY https://github.com/stephenberry/glaze.git
-    GIT_TAG ${GLAZE_VERSION}
-    GIT_SHALLOW TRUE
-    EXCLUDE_FROM_ALL)
-  FetchContent_MakeAvailable(glaze)
+if(NOT CMAKE_SYSTEM_NAME MATCHES "OpenBSD")
+  if(NOT glaze_FOUND)
+    set(GLAZE_VERSION v7.2.0)
+    message(STATUS "glaze dependency not found, retrieving ${GLAZE_VERSION} with FetchContent")
+    include(FetchContent)
+    FetchContent_Declare(
+      glaze
+      GIT_REPOSITORY https://github.com/stephenberry/glaze.git
+      GIT_TAG ${GLAZE_VERSION}
+      GIT_SHALLOW TRUE
+      EXCLUDE_FROM_ALL)
+    FetchContent_MakeAvailable(glaze)
+  endif()
 endif()
 
 set(AQUAMARINE_MINIMUM_VERSION 0.15.0)

@@ -1,4 +1,5 @@
 #include <render/scene/MonitorScene.hpp>
+#include <render/Context.hpp>
 #include <helpers/time/Time.hpp>
 
 #include <gtest/gtest.h>
@@ -8,5 +9,6 @@ TEST(MonitorScene, NullMonitorDrawIsNoOpThroughSceneInterface) {
     Render::IScene&       scene = monitorScene;
 
     // No compositor or renderer is initialized in this test.
-    EXPECT_NO_THROW(scene.draw(Time::steady_tp{}));
+    Render::CRenderContext ctx;
+    EXPECT_NO_THROW(scene.draw(ctx, Time::steady_tp{}));
 }

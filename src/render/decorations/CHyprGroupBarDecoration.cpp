@@ -98,7 +98,7 @@ void CHyprGroupBarDecoration::damageEntire() {
     g_pHyprRenderer->damageBox(box);
 }
 
-void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation) {
+void CHyprGroupBarDecoration::draw(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation) {
     // get how many bars we will draw
     int        barsToDraw = m_dwGroupMembers.size();
 
@@ -194,7 +194,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a, const SP
                     }
                 }
             }
-            g_pHyprRenderer->addPassElement(makeUnique<CRectPassElement>(rectdata));
+            g_pHyprRenderer->addPassElement(ctx, makeUnique<CRectPassElement>(rectdata));
         }
 
         rect = {ASSIGNEDBOX.x + xoff - pMonitor->m_position.x + FLOATING_OFFSET.x,
@@ -230,7 +230,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a, const SP
                             }
                         }
                     }
-                    g_pHyprRenderer->addPassElement(makeUnique<CTexPassElement>(data));
+                    g_pHyprRenderer->addPassElement(ctx, makeUnique<CTexPassElement>(data));
                 }
             }
 
@@ -261,7 +261,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a, const SP
                 data.tex = titleTex;
                 data.box = rect;
                 data.a   = a;
-                g_pHyprRenderer->addPassElement(makeUnique<CTexPassElement>(std::move(data)));
+                g_pHyprRenderer->addPassElement(ctx, makeUnique<CTexPassElement>(std::move(data)));
             }
         }
 

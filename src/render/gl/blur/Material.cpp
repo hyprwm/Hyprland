@@ -7,7 +7,7 @@
 using namespace Render;
 using namespace Render::GL;
 
-bool IGLBlurMaterial::isAnimated() const noexcept {
+bool IGLBlurMaterial::isAnimated(CRenderContext& ctx) const noexcept {
     return false;
 }
 
@@ -19,11 +19,11 @@ float IGLBlurMaterial::sampleRadius() const {
     return 0.F;
 }
 
-void IGLBlurMaterial::prepare(const SBlurMaterialContext&) {
+void IGLBlurMaterial::prepare(CRenderContext& ctx, const SBlurMaterialContext&) {
     ;
 }
 
-void IGLBlurMaterial::bindFinish(WP<CShader>, const SBlurMaterialContext&) const {
+void IGLBlurMaterial::bindFinish(CRenderContext& ctx, WP<CShader>, const SBlurMaterialContext&) const {
     ;
 }
 

@@ -56,7 +56,7 @@ namespace Render {
 
         // called by Hyprland. For more data about what is being rendered, inspect render data.
         // returns the output framebuffer and the monitor-local pixel box represented by it.
-        virtual SWindowTransformBuffer transform(const SWindowTransformBuffer& in, const SWindowTransformContext& context) = 0;
+        virtual SWindowTransformBuffer transform(CRenderContext& ctx, const SWindowTransformBuffer& in, const SWindowTransformContext& context) = 0;
 
         virtual int                    priority() const;
         virtual bool                   active() const;
@@ -67,9 +67,10 @@ namespace Render {
         virtual CBox                   transformBoxForDamage(const CBox& currentBox) const;
 
         // called by Hyprland before a window main pass is started.
-        virtual void preWindowRender(CSurfacePassElement::SRenderData* pRenderData);
+        virtual void preWindowRender(CRenderContext& ctx, CSurfacePassElement::SRenderData* pRenderData);
 
         // called by Hyprland before the transformed window fb is rendered back to the main fb.
-        virtual void amendTransformedRenderData(const CBox& currentBox, SMotionBlurData* pMotionBlurData, const SP<Workspace::CWorkspacePresentable>& presentation);
+        virtual void amendTransformedRenderData(CRenderContext& ctx, const CBox& currentBox, SMotionBlurData* pMotionBlurData,
+                                                const SP<Workspace::CWorkspacePresentable>& presentation);
     };
 }

@@ -1,4 +1,5 @@
 #include <render/gl/blur/Acrylic.hpp>
+#include <render/Context.hpp>
 #include <render/gl/blur/Aurora.hpp>
 #include <render/gl/blur/Kawase.hpp>
 #include <render/gl/blur/Glass.hpp>
@@ -15,6 +16,7 @@
 using namespace Render::GL;
 
 TEST(BlurMaterial, DefaultUsesPlainFinish) {
+    Render::CRenderContext     ctx;
     const CDefaultBlurMaterial material;
     const auto                 requirements = material.requirements();
 
@@ -22,7 +24,7 @@ TEST(BlurMaterial, DefaultUsesPlainFinish) {
     EXPECT_EQ(requirements.finishFragment, Render::SH_FRAG_BLURFINISH);
     EXPECT_FALSE(requirements.preparedInput);
     EXPECT_FALSE(requirements.liveBlur);
-    EXPECT_FALSE(material.isAnimated());
+    EXPECT_FALSE(material.isAnimated(ctx));
     EXPECT_EQ(material.blurSizeForDamage(100), 40);
     EXPECT_FLOAT_EQ(material.sampleRadius(), 0.F);
 }
@@ -62,6 +64,7 @@ TEST(BlurMaterial, AuroraUsesAnimatedGlassFinish) {
 }
 
 TEST(BlurMaterial, HazeUsesStaticPearlescentFinish) {
+    Render::CRenderContext  ctx;
     const CHazeBlurMaterial haze;
     const auto              requirements = haze.requirements();
 
@@ -69,12 +72,13 @@ TEST(BlurMaterial, HazeUsesStaticPearlescentFinish) {
     EXPECT_EQ(requirements.finishFragment, Render::SH_FRAG_HAZEFINISH);
     EXPECT_FALSE(requirements.preparedInput);
     EXPECT_FALSE(requirements.liveBlur);
-    EXPECT_FALSE(haze.isAnimated());
+    EXPECT_FALSE(haze.isAnimated(ctx));
     EXPECT_EQ(haze.blurSizeForDamage(100), 40);
     EXPECT_FLOAT_EQ(haze.sampleRadius(), 0.F);
 }
 
 TEST(BlurMaterial, AcrylicUsesPreparedLiveFinish) {
+    Render::CRenderContext     ctx;
     const CAcrylicBlurMaterial acrylic;
     const auto                 requirements = acrylic.requirements();
 
@@ -82,7 +86,7 @@ TEST(BlurMaterial, AcrylicUsesPreparedLiveFinish) {
     EXPECT_EQ(requirements.finishFragment, Render::SH_FRAG_ACRYLICFINISH);
     EXPECT_TRUE(requirements.preparedInput);
     EXPECT_TRUE(requirements.liveBlur);
-    EXPECT_FALSE(acrylic.isAnimated());
+    EXPECT_FALSE(acrylic.isAnimated(ctx));
 }
 
 TEST(BlurDamage, DualKawaseUsesOperationalMinimums) {

@@ -60,7 +60,7 @@ void CWobbleTransformer::ensureTickListener() {
     g_wobbleTickListener = Event::bus()->m_events.tick.listen([] { tickWobbles(); });
 }
 
-SWindowTransformBuffer CWobbleTransformer::transform(const SWindowTransformBuffer& in, const SWindowTransformContext& context) {
+SWindowTransformBuffer CWobbleTransformer::transform(CRenderContext& ctx, const SWindowTransformBuffer& in, const SWindowTransformContext& context) {
     if (!m_active || context.standalone || context.renderingSnapshot || !context.monitor || !in.framebuffer || !in.framebuffer->getTexture())
         return in;
 
@@ -89,25 +89,25 @@ SWindowTransformBuffer CWobbleTransformer::transform(const SWindowTransformBuffe
     if (VERTICES.empty())
         return {.framebuffer = in.framebuffer, .box = in.box, .success = false};
 
-    auto&         renderData    = g_pHyprRenderer->context().m_data;
+    auto&         renderData    = ctx.m_data;
     const CRegion oldDamage     = renderData.damage.copy();
     const auto    oldProjection = renderData.projectionType;
     const auto    oldFBSize     = renderData.fbSize;
 
     {
-        auto guard        = g_pHyprRenderer->bindTempFB(OUT);
+        auto guard        = g_pHyprRenderer->bindTempFB(ctx, OUT);
         renderData.damage = CRegion{0, 0, sc<int>(OUTPUTCANVAS.w), sc<int>(OUTPUTCANVAS.h)};
         renderData.fbSize = OUTPUTCANVAS.size();
-        g_pHyprRenderer->setProjectionType(RPT_EXPORT);
+        g_pHyprRenderer->setProjectionType(ctx, RPT_EXPORT);
 
-        g_pHyprRenderer->draw(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)});
-        GL::g_pHyprOpenGL->renderTextureMesh(in.framebuffer->getTexture(), LOCALOUTPUTBOX, VERTICES,
+        g_pHyprRenderer->draw(ctx, CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)});
+        GL::g_pHyprOpenGL->renderTextureMesh(ctx, in.framebuffer->getTexture(), LOCALOUTPUTBOX, VERTICES,
                                              GL::CHyprOpenGLImpl::STextureRenderData{.damage = &renderData.damage, .a = 1.F, .allowCustomUV = true});
     }
 
     renderData.damage = oldDamage;
     renderData.fbSize = oldFBSize;
-    g_pHyprRenderer->setProjectionType(oldProjection);
+    g_pHyprRenderer->setProjectionType(ctx, oldProjection);
     return {.framebuffer = OUT, .box = OUTPUTCANVAS};
 }
 

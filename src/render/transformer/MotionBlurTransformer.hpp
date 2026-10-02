@@ -10,13 +10,14 @@ namespace Render {
 
         static bool                    shouldEnable(PHLWINDOW window);
 
-        virtual SWindowTransformBuffer transform(const SWindowTransformBuffer& in, const SWindowTransformContext& context);
+        virtual SWindowTransformBuffer    transform(CRenderContext& ctx, const SWindowTransformBuffer& in, const SWindowTransformContext& context);
         virtual int                    priority() const;
         virtual bool                   active() const;
         virtual bool                   allocatesOutputBuffer() const;
         virtual CBox                   sourceBoxForOutput(const CBox& outputBox, const CBox& inputBox) const;
         virtual CBox                   transformBoxForDamage(const CBox& currentBox) const;
-        virtual void amendTransformedRenderData(const CBox& currentBox, SMotionBlurData* pMotionBlurData, const SP<Workspace::CWorkspacePresentable>& presentation);
+        virtual void                      amendTransformedRenderData(CRenderContext& ctx, const CBox& currentBox, SMotionBlurData* pMotionBlurData,
+                                                                     const SP<Workspace::CWorkspacePresentable>& presentation);
 
         void         record(const CBox& previous, const CBox& current);
         void         reset();

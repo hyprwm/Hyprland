@@ -32,8 +32,8 @@ namespace Render::GL {
         SBlurMaterialRequirements requirements() const noexcept override;
         int64_t                   blurSizeForDamage(int64_t size) const override;
         float                     sampleRadius() const override;
-        void                      prepare(const SBlurMaterialContext& context) override;
-        void                      bindFinish(WP<CShader> shader, const SBlurMaterialContext& context) const override;
+        void                      prepare(CRenderContext& ctx, const SBlurMaterialContext& context) override;
+        void                      bindFinish(CRenderContext& ctx, WP<CShader> shader, const SBlurMaterialContext& context) const override;
 
       private:
         struct SState {
@@ -65,24 +65,26 @@ namespace Render::GL {
 
         SState*       stateForContext(const SBlurContext& context, bool create);
         const SState* stateForContext(const SBlurContext& context) const;
-        void          updateState(SState& state, const CBox& extent);
-        void          initializeState(SState& state, const Vector2D& simulationSize, float fillAmount, float precision);
-        void          transformState(SState& state, const Vector2D& simulationSize, const SFluidJarGeometryTransform& transform, const std::array<float, 4>& wallVelocities);
+        void          updateState(CRenderContext& ctx, SState& state, const CBox& extent);
+        void          initializeState(CRenderContext& ctx, SState& state, const Vector2D& simulationSize, float fillAmount, float precision);
+        void          transformState(CRenderContext& ctx, SState& state, const Vector2D& simulationSize, const SFluidJarGeometryTransform& transform,
+                                     const std::array<float, 4>& wallVelocities);
         void          allocateBuffers(std::array<SP<CGLFramebuffer>, 2>& buffers, const Vector2D& size, const std::string& name, DRMFormat format = DRM_FORMAT_ABGR16161616F) const;
         void          clearBuffers(const std::array<SP<CGLFramebuffer>, 2>& buffers, const std::array<float, 4>& color) const;
         void          clearIntegerBuffers(const std::array<SP<CGLFramebuffer>, 2>& buffers) const;
-        void          drawInitialize(const SState& state, SP<CGLFramebuffer> target) const;
-        void          drawResample(const SState& state, SP<CGLFramebuffer> source, SP<CGLFramebuffer> target, const Vector2D& oldGridSize, int oldParticleCount,
-                                   const SFluidJarGeometryTransform& transform, const std::array<float, 4>& wallVelocities) const;
-        void          drawHistoryResample(SP<CGLFramebuffer> source, SP<CGLFramebuffer> target, const Vector2D& oldSize, const SFluidJarGeometryTransform& transform,
-                                          const std::array<float, 4>& fallback, bool linear) const;
-        void          drawParticleStep(SState& state, float dt) const;
-        void          drawGraphStep(SState& state) const;
-        void          drawTrackingStep(SState& state) const;
-        void          drawTrackingResample(SP<CGLFramebuffer> source, SP<CGLFramebuffer> target, const Vector2D& oldSize, const SFluidJarGeometryTransform& transform) const;
-        void          drawVisualStep(SState& state, int steps = 1) const;
-        void          preparePass(SP<CGLFramebuffer> target, const Vector2D& size, WP<CShader> shader) const;
-        CBox          transformedPatternBox(const SBlurContext& context) const;
+        void          drawInitialize(CRenderContext& ctx, const SState& state, SP<CGLFramebuffer> target) const;
+        void drawResample(CRenderContext& ctx, const SState& state, SP<CGLFramebuffer> source, SP<CGLFramebuffer> target, const Vector2D& oldGridSize, int oldParticleCount,
+                          const SFluidJarGeometryTransform& transform, const std::array<float, 4>& wallVelocities) const;
+        void drawHistoryResample(CRenderContext& ctx, SP<CGLFramebuffer> source, SP<CGLFramebuffer> target, const Vector2D& oldSize, const SFluidJarGeometryTransform& transform,
+                                 const std::array<float, 4>& fallback, bool linear) const;
+        void drawParticleStep(CRenderContext& ctx, SState& state, float dt) const;
+        void drawGraphStep(CRenderContext& ctx, SState& state) const;
+        void drawTrackingStep(CRenderContext& ctx, SState& state) const;
+        void drawTrackingResample(CRenderContext& ctx, SP<CGLFramebuffer> source, SP<CGLFramebuffer> target, const Vector2D& oldSize,
+                                  const SFluidJarGeometryTransform& transform) const;
+        void drawVisualStep(CRenderContext& ctx, SState& state, int steps = 1) const;
+        void preparePass(CRenderContext& ctx, SP<CGLFramebuffer> target, const Vector2D& size, WP<CShader> shader) const;
+        CBox transformedPatternBox(CRenderContext& ctx, const SBlurContext& context) const;
         void          scheduleNextFrame(const SState& state) const;
         void          pruneStates();
 

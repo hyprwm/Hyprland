@@ -4,18 +4,18 @@ CClearPassElement::CClearPassElement(const CClearPassElement::SClearData& data_)
     ;
 }
 
-bool CClearPassElement::needsLiveBlur() {
+bool CClearPassElement::needsLiveBlur(Render::CRenderContext& ctx) {
     return false;
 }
 
-bool CClearPassElement::needsPrecomputeBlur() {
+bool CClearPassElement::needsPrecomputeBlur(Render::CRenderContext& ctx) {
     return false;
 }
 
-std::optional<CBox> CClearPassElement::boundingBox() {
+std::optional<CBox> CClearPassElement::boundingBox(Render::CRenderContext& ctx) {
     return CBox{{}, {INT16_MAX, INT16_MAX}};
 }
 
-CRegion CClearPassElement::opaqueRegion() {
-    return *boundingBox();
+CRegion CClearPassElement::opaqueRegion(Render::CRenderContext& ctx) {
+    return *boundingBox(ctx);
 }

@@ -51,7 +51,7 @@ CBox CHyprBorderDecoration::assignedBoxGlobal(const SP<Workspace::CWorkspacePres
     return box.translate(WORKSPACEOFFSET);
 }
 
-void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation) {
+void CHyprBorderDecoration::draw(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation) {
     if (doesntWantBorders())
         return;
 
@@ -92,7 +92,7 @@ void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a, const SP<W
         data.lerp     = GRADIENT.progress;
     }
 
-    g_pHyprRenderer->addPassElement(makeUnique<CBorderPassElement>(data));
+    g_pHyprRenderer->addPassElement(ctx, makeUnique<CBorderPassElement>(data));
 }
 
 eDecorationType CHyprBorderDecoration::getDecorationType() {

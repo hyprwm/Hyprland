@@ -66,21 +66,23 @@ CBox CWindowTransformerList::transformBoxForDamage(const CBox& currentBox) const
     return box;
 }
 
-void CWindowTransformerList::preWindowRender(CSurfacePassElement::SRenderData* pRenderData) const {
+void CWindowTransformerList::preWindowRender(CRenderContext& ctx, CSurfacePassElement::SRenderData* pRenderData) const {
     for (auto const& transformer : m_transformers) {
         if (transformer->active())
-            transformer->preWindowRender(pRenderData);
+            transformer->preWindowRender(ctx, pRenderData);
     }
 }
 
-void CWindowTransformerList::amendTransformedRenderData(const CBox& currentBox, SMotionBlurData* pMotionBlurData, const SP<Workspace::CWorkspacePresentable>& presentation) const {
+void CWindowTransformerList::amendTransformedRenderData(CRenderContext& ctx, const CBox& currentBox, SMotionBlurData* pMotionBlurData,
+                                                        const SP<Workspace::CWorkspacePresentable>& presentation) const {
     for (auto const& transformer : m_transformers) {
         if (transformer->active())
-            transformer->amendTransformedRenderData(currentBox, pMotionBlurData, presentation);
+            transformer->amendTransformedRenderData(ctx, currentBox, pMotionBlurData, presentation);
     }
 }
 
-SWindowTransformBuffer CWindowTransformerList::transform(const SWindowTransformBuffer& in, const SWindowTransformPlan& plan, const SWindowTransformContext& context) const {
+SWindowTransformBuffer CWindowTransformerList::transform(CRenderContext& ctx, const SWindowTransformBuffer& in, const SWindowTransformPlan& plan,
+                                                         const SWindowTransformContext& context) const {
     SWindowTransformBuffer last  = in;
     size_t                 stage = 0;
     for (auto const& transformer : m_transformers) {
@@ -94,7 +96,7 @@ SWindowTransformBuffer CWindowTransformerList::transform(const SWindowTransformB
         stageContext.currentBox = plan.stages[stage].fullInputBox;
         stageContext.inputBox   = plan.stages[stage].inputBox;
         stageContext.outputBox  = plan.stages[stage].outputBox;
-        last                    = transformer->transform(last, stageContext);
+        last                    = transformer->transform(ctx, last, stageContext);
         if (!last.success)
             break;
 

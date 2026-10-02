@@ -44,9 +44,10 @@ namespace Render {
         SWindowTransformPlan   plan(const CBox& currentBox, const CBox& outputBox) const;
         CBox                   transformBoxForDamage(const CBox& currentBox) const;
 
-        void                   preWindowRender(CSurfacePassElement::SRenderData* pRenderData) const;
-        void                   amendTransformedRenderData(const CBox& currentBox, SMotionBlurData* pMotionBlurData, const SP<Workspace::CWorkspacePresentable>& presentation) const;
-        SWindowTransformBuffer transform(const SWindowTransformBuffer& in, const SWindowTransformPlan& plan, const SWindowTransformContext& context) const;
+        void                   preWindowRender(CRenderContext& ctx, CSurfacePassElement::SRenderData* pRenderData) const;
+        void                   amendTransformedRenderData(CRenderContext& ctx, const CBox& currentBox, SMotionBlurData* pMotionBlurData,
+                                                          const SP<Workspace::CWorkspacePresentable>& presentation) const;
+        SWindowTransformBuffer transform(CRenderContext& ctx, const SWindowTransformBuffer& in, const SWindowTransformPlan& plan, const SWindowTransformContext& context) const;
 
         void                   removeInactive();
 

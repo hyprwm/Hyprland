@@ -15,9 +15,9 @@ namespace Render::GL {
 
         eBlurType                 type() const noexcept override;
         SBlurMaterialRequirements requirements() const noexcept override;
-        bool                      isAnimated() const noexcept override;
+        bool                      isAnimated(CRenderContext& ctx) const noexcept override;
         float                     sampleRadius() const override;
-        void                      bindFinish(WP<CShader> shader, const SBlurMaterialContext& context) const override;
+        void                      bindFinish(CRenderContext& ctx, WP<CShader> shader, const SBlurMaterialContext& context) const override;
 
       private:
         static constexpr size_t MAX_IMPULSES = 256;

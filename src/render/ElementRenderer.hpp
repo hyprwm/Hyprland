@@ -20,32 +20,32 @@ namespace Render {
         IElementRenderer()          = default;
         virtual ~IElementRenderer() = default;
 
-        void drawElement(WP<IPassElement> element, const CRegion& damage);
+        void drawElement(CRenderContext& ctx, WP<IPassElement> element, const CRegion& damage);
 
       protected:
-        virtual void draw(WP<CBorderPassElement> element, const CRegion& damage)    = 0;
-        virtual void draw(WP<CClearPassElement> element, const CRegion& damage)     = 0;
-        virtual void draw(WP<CFramebufferElement> element, const CRegion& damage)   = 0;
-        virtual void draw(WP<CPreBlurElement> element, const CRegion& damage)       = 0;
-        virtual void draw(WP<CRectPassElement> element, const CRegion& damage)      = 0;
-        virtual void draw(WP<CShadowPassElement> element, const CRegion& damage)    = 0;
-        virtual void draw(WP<CInnerGlowPassElement> element, const CRegion& damage) = 0;
-        virtual void draw(WP<CTexPassElement> element, const CRegion& damage)       = 0;
-        virtual void draw(WP<CTextureMatteElement> element, const CRegion& damage)  = 0;
+        virtual void draw(CRenderContext& ctx, WP<CBorderPassElement> element, const CRegion& damage)    = 0;
+        virtual void draw(CRenderContext& ctx, WP<CClearPassElement> element, const CRegion& damage)     = 0;
+        virtual void draw(CRenderContext& ctx, WP<CFramebufferElement> element, const CRegion& damage)   = 0;
+        virtual void draw(CRenderContext& ctx, WP<CPreBlurElement> element, const CRegion& damage)       = 0;
+        virtual void draw(CRenderContext& ctx, WP<CRectPassElement> element, const CRegion& damage)      = 0;
+        virtual void draw(CRenderContext& ctx, WP<CShadowPassElement> element, const CRegion& damage)    = 0;
+        virtual void draw(CRenderContext& ctx, WP<CInnerGlowPassElement> element, const CRegion& damage) = 0;
+        virtual void draw(CRenderContext& ctx, WP<CTexPassElement> element, const CRegion& damage)       = 0;
+        virtual void draw(CRenderContext& ctx, WP<CTextureMatteElement> element, const CRegion& damage)  = 0;
 
       private:
-        void calculateUVForSurface(PHLWINDOW, SP<CWLSurfaceResource>, PHLMONITOR pMonitor, bool main = false, const Vector2D& projSize = {}, const Vector2D& projSizeUnscaled = {},
-                                   bool fixMisalignedFSV1 = false);
+        void calculateUVForSurface(CRenderContext& ctx, PHLWINDOW, SP<CWLSurfaceResource>, PHLMONITOR pMonitor, bool main = false, const Vector2D& projSize = {},
+                                   const Vector2D& projSizeUnscaled = {}, bool fixMisalignedFSV1 = false);
 
-        void drawRect(WP<CRectPassElement> element, const CRegion& damage);
-        void drawHints(WP<CRendererHintsPassElement> element, const CRegion& damage);
-        void drawPreBlur(WP<CPreBlurElement> element, const CRegion& damage);
-        void drawClear(WP<CClearPassElement> element, const CRegion& damage);
-        void drawSurface(WP<CSurfacePassElement> element, const CRegion& damage);
-        void preDrawSurface(WP<CSurfacePassElement> element, const CRegion& damage);
-        void drawTex(WP<CTexPassElement> element, const CRegion& damage);
-        void drawTexMatte(WP<CTextureMatteElement> element, const CRegion& damage);
-        void drawTransformedWindow(WP<CTransformedWindowPassElement> element, const CRegion& damage);
-        void drawCustom(WP<IPassElement> element, const CRegion& damage);
+        void drawRect(CRenderContext& ctx, WP<CRectPassElement> element, const CRegion& damage);
+        void drawHints(CRenderContext& ctx, WP<CRendererHintsPassElement> element, const CRegion& damage);
+        void drawPreBlur(CRenderContext& ctx, WP<CPreBlurElement> element, const CRegion& damage);
+        void drawClear(CRenderContext& ctx, WP<CClearPassElement> element, const CRegion& damage);
+        void drawSurface(CRenderContext& ctx, WP<CSurfacePassElement> element, const CRegion& damage);
+        void preDrawSurface(CRenderContext& ctx, WP<CSurfacePassElement> element, const CRegion& damage);
+        void drawTex(CRenderContext& ctx, WP<CTexPassElement> element, const CRegion& damage);
+        void drawTexMatte(CRenderContext& ctx, WP<CTextureMatteElement> element, const CRegion& damage);
+        void drawTransformedWindow(CRenderContext& ctx, WP<CTransformedWindowPassElement> element, const CRegion& damage);
+        void drawCustom(CRenderContext& ctx, WP<IPassElement> element, const CRegion& damage);
     };
 }

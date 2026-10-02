@@ -10,8 +10,8 @@ namespace Render::GL {
       public:
         CHeatShimmerBlurMaterial();
 
-        bool isAnimated() const noexcept override;
-        void bindFinish(WP<CShader> shader, const SBlurMaterialContext& context) const override;
+        bool isAnimated(CRenderContext& ctx) const noexcept override;
+        void bindFinish(CRenderContext& ctx, WP<CShader> shader, const SBlurMaterialContext& context) const override;
 
       private:
         void                    updateAnimation(float speed) const;

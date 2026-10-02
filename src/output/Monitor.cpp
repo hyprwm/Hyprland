@@ -1878,7 +1878,7 @@ uint8_t CMonitor::isTearingBlocked(bool full) {
         }
     }
 
-    if (g_pHyprRenderer->context().m_data.mouseZoomFactor != 1.0) {
+    if (m_zoomAnimProgress->value() != 1.F || (m_cursorZoom->value() > 1.F && m_self == State::monitorState()->query().vec(Pointer::mgr()->untransformedPosition()).run())) {
         reasons |= TC_ZOOM;
         if (!full) {
             LOG(Log::WARN, "Tearing commit requested but scale factor is not 1, ignoring");

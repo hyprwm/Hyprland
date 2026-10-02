@@ -1,5 +1,9 @@
 #pragma once
 
+namespace Render {
+    class CRenderContext;
+}
+
 #include "../defines.hpp"
 #include "../render/Texture.hpp"
 #include "../helpers/time/Timer.hpp"
@@ -17,7 +21,7 @@ namespace Debug {
 
     class CMonitorOverlay {
       public:
-        int         draw(int offset, bool& cacheUpdated);
+        int         draw(Render::CRenderContext& ctx, int offset, bool& cacheUpdated);
         const CBox& lastDrawnBox() const;
 
         void        renderData(PHLMONITOR pMonitor, float durationUs);
@@ -66,7 +70,7 @@ namespace Debug {
     class COverlay {
       public:
         COverlay();
-        void draw();
+        void draw(Render::CRenderContext& ctx);
         void renderData(PHLMONITOR, float durationUs);
         void renderDataNoOverlay(PHLMONITOR, float durationUs);
         void frameData(PHLMONITOR);

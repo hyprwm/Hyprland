@@ -826,7 +826,7 @@ void CWLDataDeviceProtocol::abortDrag() {
     g_pSeatManager->resendEnterEvents();
 }
 
-void CWLDataDeviceProtocol::renderDND(PHLMONITOR pMonitor, const Time::steady_tp& when) {
+void CWLDataDeviceProtocol::renderDND(Render::CRenderContext& ctx, PHLMONITOR pMonitor, const Time::steady_tp& when) {
     if (!m_dnd.dndSurface || !m_dnd.dndSurface->m_current.texture)
         return;
 
@@ -841,7 +841,7 @@ void CWLDataDeviceProtocol::renderDND(PHLMONITOR pMonitor, const Time::steady_tp
     CTexPassElement::SRenderData data;
     data.tex = m_dnd.dndSurface->m_current.texture;
     data.box = box;
-    g_pHyprRenderer->context().m_pass.add(makeUnique<CTexPassElement>(std::move(data)));
+    g_pHyprRenderer->addPassElement(ctx, makeUnique<CTexPassElement>(std::move(data)));
 
     CBox damageBox = CBox{surfacePos, m_dnd.dndSurface->m_current.size}.expand(5);
     g_pHyprRenderer->damageBox(damageBox);

@@ -12,12 +12,12 @@ namespace Render::GL {
         CDualKawaseBlurProvider(CHyprOpenGLImpl& impl, UP<IGLBlurMaterial> material);
 
         eBlurType type() const noexcept override;
-        bool      isAnimated() const noexcept override;
+        bool      isAnimated(CRenderContext& ctx) const noexcept override;
         bool      requiresLiveBlur() const noexcept override;
         void      expandDamage(CRegion& damage, float multiplier = 1.F) const override;
 
       protected:
-        SP<CGLFramebuffer> blurGL(SP<CGLFramebuffer> source, float strength, const CRegion& originalDamage, const SBlurContext& context) override;
+        SP<CGLFramebuffer> blurGL(CRenderContext& ctx, SP<CGLFramebuffer> source, float strength, const CRegion& originalDamage, const SBlurContext& context) override;
 
       private:
         float               damageRadius() const;

@@ -12,14 +12,14 @@ namespace Render {
       public:
         bool    empty() const;
         bool    single() const;
-        bool    needsLiveBlur();
-        bool    needsPrecomputeBlur();
+        bool    needsLiveBlur(CRenderContext& ctx);
+        bool    needsPrecomputeBlur(CRenderContext& ctx);
 
         void    add(UP<IPassElement>&& elem);
         void    clear();
         void    removeAllOfType(const std::string& type);
 
-        CRegion render(const CRegion& damage_);
+        CRegion render(CRenderContext& ctx, const CRegion& damage_);
 
       private:
         CRegion              m_damage;
@@ -34,9 +34,9 @@ namespace Render {
 
         std::vector<SPassElementData> m_passElements;
 
-        void                          simplify(bool willBlur, const CRegion& liveBlurRegion);
-        void                          planBackdropScopes();
-        void                          renderDebugData();
+        void                          simplify(CRenderContext& ctx, bool willBlur, const CRegion& liveBlurRegion);
+        void                          planBackdropScopes(CRenderContext& ctx);
+        void                          renderDebugData(CRenderContext& ctx);
 
         struct {
             bool         present = false;

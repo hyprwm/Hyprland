@@ -29,7 +29,7 @@ CHeatShimmerBlurProvider::CHeatShimmerBlurProvider(CHyprOpenGLImpl& impl) : CGla
     ;
 }
 
-bool CHeatShimmerBlurMaterial::isAnimated() const noexcept {
+bool CHeatShimmerBlurMaterial::isAnimated(CRenderContext& ctx) const noexcept {
     static auto PBLURENABLED     = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
     static auto PGLASSREFRACTION = CConfigValue<Config::FLOAT>("decoration:blur:glass:refraction");
     static auto PGLASSROUGHNESS  = CConfigValue<Config::FLOAT>("decoration:blur:glass:roughness");
@@ -39,8 +39,8 @@ bool CHeatShimmerBlurMaterial::isAnimated() const noexcept {
     return *PBLURENABLED && SPEED > 0.F && (*PGLASSREFRACTION > 0.F || *PGLASSROUGHNESS > 0.F);
 }
 
-void CHeatShimmerBlurMaterial::bindFinish(WP<CShader> shader, const SBlurMaterialContext& context) const {
-    CGlassBlurMaterial::bindFinish(shader, context);
+void CHeatShimmerBlurMaterial::bindFinish(CRenderContext& ctx, WP<CShader> shader, const SBlurMaterialContext& context) const {
+    CGlassBlurMaterial::bindFinish(ctx, shader, context);
     updateAnimation(heatShimmerSpeed());
     shader->setUniformFloat(SHADER_TIME, animationPhase());
 }

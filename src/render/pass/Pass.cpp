@@ -25,20 +25,20 @@ bool CRenderPass::single() const {
     return m_passElements.size() == 1;
 }
 
-bool CRenderPass::needsLiveBlur() {
-    return std::ranges::any_of(m_passElements, [](const auto& el) { return el.element->needsLiveBlur(); });
+bool CRenderPass::needsLiveBlur(CRenderContext& ctx) {
+    return std::ranges::any_of(m_passElements, [&ctx](const auto& el) { return el.element->needsLiveBlur(ctx); });
 }
 
-bool CRenderPass::needsPrecomputeBlur() {
-    return std::ranges::any_of(m_passElements, [](const auto& el) { return el.element->needsPrecomputeBlur(); });
+bool CRenderPass::needsPrecomputeBlur(CRenderContext& ctx) {
+    return std::ranges::any_of(m_passElements, [&ctx](const auto& el) { return el.element->needsPrecomputeBlur(ctx); });
 }
 
 void CRenderPass::add(UP<IPassElement>&& el) {
     m_passElements.emplace_back(SPassElementData{.element = std::move(el)});
 }
 
-void CRenderPass::simplify(bool willBlur, const CRegion& liveBlurRegion) {
-    const auto  pMonitor   = g_pHyprRenderer->context().m_data.pMonitor;
+void CRenderPass::simplify(CRenderContext& ctx, bool willBlur, const CRegion& liveBlurRegion) {
+    const auto  pMonitor   = ctx.m_data.pMonitor;
     static auto PDEBUGPASS = CConfigValue<Config::INTEGER>("debug:pass");
 
     // TODO: use precompute blur for instances where there is nothing in between
@@ -46,12 +46,12 @@ void CRenderPass::simplify(bool willBlur, const CRegion& liveBlurRegion) {
     CRegion newDamage = m_damage.copy().intersect(CBox{{}, pMonitor->m_transformedSize});
     for (auto& el : m_passElements | std::views::reverse) {
 
-        if (newDamage.empty() && !el.element->undiscardable()) {
+        if (newDamage.empty() && !el.element->undiscardable(ctx)) {
             el.discard = true;
             continue;
         }
 
-        auto bb1 = el.element->boundingBox();
+        auto bb1 = el.element->boundingBox(ctx);
         if (!bb1 || newDamage.empty()) {
             el.elementDamage = newDamage;
             continue;
@@ -67,7 +67,7 @@ void CRenderPass::simplify(bool willBlur, const CRegion& liveBlurRegion) {
 
         el.elementDamage = newDamage;
 
-        auto opaque = el.element->opaqueRegion();
+        auto opaque = el.element->opaqueRegion(ctx);
 
         if (!opaque.empty()) {
             // scale and rounding is very particular so we have to use CBoxes scale and round functions
@@ -101,7 +101,7 @@ void CRenderPass::simplify(bool willBlur, const CRegion& liveBlurRegion) {
             if (!el2.element->needsLiveBlurCached)
                 continue;
 
-            const auto BB = el2.element->boundingBox();
+            const auto BB = el2.element->boundingBox(ctx);
             RASSERT(BB, "No bounding box for an element with live blur is illegal");
 
             m_totalLiveBlurRegion.add(BB->copy().scale(pMonitor->m_scale));
@@ -116,9 +116,9 @@ void CRenderPass::clear() {
     m_totalLiveBlurRegion.clear();
 }
 
-void CRenderPass::planBackdropScopes() {
+void CRenderPass::planBackdropScopes(CRenderContext& ctx) {
     CBackdropScopePlanner planner;
-    const CBox            bounds = {{}, g_pHyprRenderer->context().m_data.pMonitor->m_transformedSize};
+    const CBox            bounds = {{}, ctx.m_data.pMonitor->m_transformedSize};
 
     for (auto& el : m_passElements) {
         if (el.element->type() != EK_BACKDROP_SCOPE) {
@@ -140,20 +140,20 @@ void CRenderPass::planBackdropScopes() {
     RASSERT(planner.empty(), "Unclosed backdrop scope marker");
 }
 
-CRegion CRenderPass::render(const CRegion& damage_) {
-    const auto  pMonitor   = g_pHyprRenderer->context().m_data.pMonitor;
+CRegion CRenderPass::render(CRenderContext& ctx, const CRegion& damage_) {
+    const auto  pMonitor   = ctx.m_data.pMonitor;
     static auto PDEBUGPASS = CConfigValue<Config::INTEGER>("debug:pass");
 
     // single pass: cache blur results and gather aggregate info
     bool    willBlur = false, willDisableSimplification = false, willPrecomputeBlur = false, requiresFullDamage = false;
     CRegion blurRegion;
     for (auto& el : m_passElements) {
-        el.element->needsLiveBlurCached       = el.element->needsLiveBlur();
-        el.element->needsPrecomputeBlurCached = el.element->needsPrecomputeBlur();
+        el.element->needsLiveBlurCached       = el.element->needsLiveBlur(ctx);
+        el.element->needsPrecomputeBlurCached = el.element->needsPrecomputeBlur(ctx);
 
         if (el.element->needsLiveBlurCached) {
             willBlur      = true;
-            const auto BB = el.element->boundingBox();
+            const auto BB = el.element->boundingBox(ctx);
             RASSERT(BB, "No bounding box for an element with live blur is illegal");
             blurRegion.add(*BB);
         }
@@ -161,10 +161,10 @@ CRegion CRenderPass::render(const CRegion& damage_) {
         if (el.element->needsPrecomputeBlurCached)
             willPrecomputeBlur = true;
 
-        if (el.element->disableSimplification())
+        if (el.element->disableSimplification(ctx))
             willDisableSimplification = true;
 
-        if (el.element->requiresFullDamage())
+        if (el.element->requiresFullDamage(ctx))
             requiresFullDamage = true;
     }
 
@@ -175,8 +175,8 @@ CRegion CRenderPass::render(const CRegion& damage_) {
     }
 
     if (m_damage.empty()) {
-        g_pHyprRenderer->context().m_data.damage      = m_damage;
-        g_pHyprRenderer->context().m_data.finalDamage = m_damage;
+        ctx.m_data.damage      = m_damage;
+        ctx.m_data.finalDamage = m_damage;
         return m_damage;
     }
 
@@ -201,7 +201,7 @@ CRegion CRenderPass::render(const CRegion& damage_) {
         blurRegion.intersect(m_damage);
         g_pHyprRenderer->expandBlurDamage(blurRegion);
 
-        g_pHyprRenderer->context().m_data.finalDamage = blurRegion.copy().add(m_damage);
+        ctx.m_data.finalDamage = blurRegion.copy().add(m_damage);
 
         // FIXME: why does this break on * 1.F ?
         // used to work when we expand all the damage... I think? Well, before pass.
@@ -210,45 +210,45 @@ CRegion CRenderPass::render(const CRegion& damage_) {
 
         m_damage = blurRegion.copy().add(m_damage);
     } else
-        g_pHyprRenderer->context().m_data.finalDamage = m_damage;
+        ctx.m_data.finalDamage = m_damage;
 
-    if (g_pHyprRenderer->context().m_data.noSimplify || willDisableSimplification) {
+    if (ctx.m_data.noSimplify || willDisableSimplification) {
         for (auto& el : m_passElements) {
             el.elementDamage = m_damage;
         }
     } else
-        simplify(willBlur, liveBlurRegion);
+        simplify(ctx, willBlur, liveBlurRegion);
 
-    planBackdropScopes();
+    planBackdropScopes(ctx);
 
-    if (g_pHyprRenderer->context().m_data.pMonitor)
-        g_pHyprRenderer->context().m_data.pMonitor->m_blurFBShouldRender = willPrecomputeBlur;
+    if (ctx.m_data.pMonitor)
+        ctx.m_data.pMonitor->m_blurFBShouldRender = willPrecomputeBlur;
 
     if (m_passElements.empty())
         return {};
 
-    const bool providerIsAnimated = g_pHyprRenderer->blurProviderIsAnimated();
+    const bool providerIsAnimated = g_pHyprRenderer->blurProviderIsAnimated(ctx);
     CRegion    animatedBlurDamage;
     bool       usesPrecomputedBlur = false;
 
     for (auto& el : m_passElements) {
         if (el.discard) {
-            el.element->discard();
+            el.element->discard(ctx);
             continue;
         }
 
-        g_pHyprRenderer->context().m_data.damage = el.elementDamage;
-        g_pHyprRenderer->draw(el.element, el.elementDamage);
+        ctx.m_data.damage = el.elementDamage;
+        g_pHyprRenderer->draw(ctx, el.element, el.elementDamage);
 
         if (!providerIsAnimated || (!el.element->needsLiveBlurCached && !el.element->needsPrecomputeBlurCached))
             continue;
 
-        const auto BB = el.element->boundingBox();
+        const auto BB = el.element->boundingBox(ctx);
         if (!BB)
             animatedBlurDamage.add(CBox{{}, pMonitor->m_transformedSize});
         else {
             auto box = BB->copy().scale(pMonitor->m_scale);
-            g_pHyprRenderer->context().m_data.renderModif.applyToBox(box);
+            ctx.m_data.renderModif.applyToBox(box);
             animatedBlurDamage.add(box);
         }
 
@@ -256,10 +256,10 @@ CRegion CRenderPass::render(const CRegion& damage_) {
     }
 
     animatedBlurDamage.intersect(CBox{{}, pMonitor->m_transformedSize});
-    g_pHyprRenderer->scheduleFrameForAnimatedBlur(animatedBlurDamage, usesPrecomputedBlur);
+    g_pHyprRenderer->scheduleFrameForAnimatedBlur(ctx, animatedBlurDamage, usesPrecomputedBlur);
 
     if (*PDEBUGPASS) {
-        renderDebugData();
+        renderDebugData(ctx);
         g_pEventLoopManager->doLater([] {
             for (auto& m : State::monitorState()->monitors()) {
                 g_pHyprRenderer->damageMonitor(m);
@@ -267,23 +267,23 @@ CRegion CRenderPass::render(const CRegion& damage_) {
         });
     }
 
-    g_pHyprRenderer->context().m_data.damage = m_damage;
+    ctx.m_data.damage = m_damage;
     return m_damage;
 }
 
-void CRenderPass::renderDebugData() {
-    const auto pMonitor = g_pHyprRenderer->context().m_data.pMonitor;
+void CRenderPass::renderDebugData(CRenderContext& ctx) {
+    const auto pMonitor = ctx.m_data.pMonitor;
     CBox       box      = {{}, pMonitor->m_transformedSize};
     for (const auto& rg : m_occludedRegions) {
-        g_pHyprRenderer->draw(CRectPassElement::SRectData{.box = box, .color = Colors::RED.modifyA(0.1F)}, rg);
+        g_pHyprRenderer->draw(ctx, CRectPassElement::SRectData{.box = box, .color = Colors::RED.modifyA(0.1F)}, rg);
     }
 
-    g_pHyprRenderer->draw(CRectPassElement::SRectData{.box = box, .color = Colors::GREEN.modifyA(0.1F)}, m_totalLiveBlurRegion);
+    g_pHyprRenderer->draw(ctx, CRectPassElement::SRectData{.box = box, .color = Colors::GREEN.modifyA(0.1F)}, m_totalLiveBlurRegion);
 
     std::unordered_map<CWLSurfaceResource*, float> offsets;
 
     // render focus stuff
-    auto renderHLSurface = [&offsets, pMonitor, this](SP<ITexture> texture, SP<CWLSurfaceResource> surface, const CHyprColor& color) {
+    auto renderHLSurface = [&ctx, &offsets, pMonitor, this](SP<ITexture> texture, SP<CWLSurfaceResource> surface, const CHyprColor& color) {
         if (!surface || !texture)
             return;
 
@@ -301,7 +301,7 @@ void CRenderPass::renderDebugData() {
         if (box.intersection(CBox{{}, pMonitor->m_size}).empty())
             return;
 
-        g_pHyprRenderer->draw(CRectPassElement::SRectData{.box = box, .color = color}, m_damage);
+        g_pHyprRenderer->draw(ctx, CRectPassElement::SRectData{.box = box, .color = color}, m_damage);
 
         if (offsets.contains(surface.get()))
             box.translate(Vector2D{0.F, offsets[surface.get()]});
@@ -310,15 +310,15 @@ void CRenderPass::renderDebugData() {
 
         box = {box.pos(), texture->m_size};
 
-        g_pHyprRenderer->draw(
-            CRectPassElement::SRectData{
-                .box   = box,
-                .color = color,
-                .round = std::min(5.0, box.size().y),
-            },
-            m_damage);
+        g_pHyprRenderer->draw(ctx,
+                              CRectPassElement::SRectData{
+                                  .box   = box,
+                                  .color = color,
+                                  .round = std::min(5.0, box.size().y),
+                              },
+                              m_damage);
 
-        g_pHyprRenderer->draw(CTexPassElement::SRenderData{.tex = texture, .box = box}, m_damage);
+        g_pHyprRenderer->draw(ctx, CTexPassElement::SRenderData{.tex = texture, .box = box}, m_damage);
 
         offsets[surface.get()] += texture->m_size.y;
     };
@@ -334,7 +334,7 @@ void CRenderPass::renderDebugData() {
             if (hlSurface) {
                 auto BOX = hlSurface->getSurfaceBoxGlobal();
                 if (BOX) {
-                    g_pHyprRenderer->draw(CRectPassElement::SRectData{.box = box, .color = CHyprColor{0.8F, 0.8F, 0.2F, 0.4F}}, m_damage);
+                    g_pHyprRenderer->draw(ctx, CRectPassElement::SRectData{.box = box, .color = CHyprColor{0.8F, 0.8F, 0.2F, 0.4F}}, m_damage);
                 }
             }
         }
@@ -346,19 +346,19 @@ void CRenderPass::renderDebugData() {
                                            Colors::WHITE, 12);
 
     if (tex)
-        g_pHyprRenderer->draw(
-            CTexPassElement::SRenderData{
-                .tex = tex,
-                .box = CBox{{0.F, pMonitor->m_size.y - tex->m_size.y}, tex->m_size}.scale(pMonitor->m_scale),
-            },
-            m_damage);
+        g_pHyprRenderer->draw(ctx,
+                              CTexPassElement::SRenderData{
+                                  .tex = tex,
+                                  .box = CBox{{0.F, pMonitor->m_size.y - tex->m_size.y}, tex->m_size}.scale(pMonitor->m_scale),
+                              },
+                              m_damage);
 
     std::string passStructure;
     auto        yn   = [](const bool val) -> const char* { return val ? "yes" : "no"; };
     auto        tick = [](const bool val) -> const char* { return val ? "✔" : "✖"; };
     for (const auto& el : m_passElements | std::views::reverse) {
-        passStructure += std::format("{} {} (bb: {} op: {}, pb: {}, lb: {})\n", tick(!el.discard), el.element->passName(), yn(el.element->boundingBox().has_value()),
-                                     yn(!el.element->opaqueRegion().empty()), yn(el.element->needsPrecomputeBlurCached), yn(el.element->needsLiveBlurCached));
+        passStructure += std::format("{} {} (bb: {} op: {}, pb: {}, lb: {})\n", tick(!el.discard), el.element->passName(), yn(el.element->boundingBox(ctx).has_value()),
+                                     yn(!el.element->opaqueRegion(ctx).empty()), yn(el.element->needsPrecomputeBlurCached), yn(el.element->needsLiveBlurCached));
     }
 
     if (!passStructure.empty())
@@ -366,12 +366,12 @@ void CRenderPass::renderDebugData() {
 
     tex = g_pHyprRenderer->renderText(passStructure, Colors::WHITE, 12);
     if (tex)
-        g_pHyprRenderer->draw(
-            CTexPassElement::SRenderData{
-                .tex = tex,
-                .box = CBox{{pMonitor->m_size.x - tex->m_size.x, pMonitor->m_size.y - tex->m_size.y}, tex->m_size}.scale(pMonitor->m_scale),
-            },
-            m_damage);
+        g_pHyprRenderer->draw(ctx,
+                              CTexPassElement::SRenderData{
+                                  .tex = tex,
+                                  .box = CBox{{pMonitor->m_size.x - tex->m_size.x, pMonitor->m_size.y - tex->m_size.y}, tex->m_size}.scale(pMonitor->m_scale),
+                              },
+                              m_damage);
 }
 
 void CRenderPass::removeAllOfType(const std::string& type) {

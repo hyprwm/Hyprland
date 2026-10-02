@@ -61,12 +61,12 @@ class CSurfacePassElement : public IPassElement {
     CSurfacePassElement(const SRenderData& data);
     virtual ~CSurfacePassElement() = default;
 
-    virtual bool                needsLiveBlur();
-    virtual bool                needsPrecomputeBlur();
-    virtual std::optional<CBox> boundingBox();
-    virtual CRegion             opaqueRegion();
-    virtual void                discard();
-    CRegion                     visibleRegion(bool& cancel);
+    virtual bool                needsLiveBlur(Render::CRenderContext& ctx);
+    virtual bool                needsPrecomputeBlur(Render::CRenderContext& ctx);
+    virtual std::optional<CBox> boundingBox(Render::CRenderContext& ctx);
+    virtual CRegion             opaqueRegion(Render::CRenderContext& ctx);
+    virtual void                discard(Render::CRenderContext& ctx);
+    CRegion                     visibleRegion(Render::CRenderContext& ctx, bool& cancel);
 
     virtual const char*         passName() {
         return "CSurfacePassElement";

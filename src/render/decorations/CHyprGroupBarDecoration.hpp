@@ -32,7 +32,7 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
 
     virtual void                       onPositioningReply(const SDecorationPositioningReply& reply);
 
-    virtual void                       draw(PHLMONITOR, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation);
+    virtual void                       draw(Render::CRenderContext& ctx, PHLMONITOR, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation);
 
     virtual eDecorationType            getDecorationType();
 

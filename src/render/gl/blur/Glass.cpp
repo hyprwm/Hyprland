@@ -41,7 +41,7 @@ SBlurMaterialRequirements CGlassBlurMaterial::requirements() const noexcept {
     };
 }
 
-void CGlassBlurMaterial::bindFinish(WP<CShader> shader, const SBlurMaterialContext& context) const {
+void CGlassBlurMaterial::bindFinish(CRenderContext& ctx, WP<CShader> shader, const SBlurMaterialContext& context) const {
     static auto PGLASSREFRACTION = CConfigValue<Config::FLOAT>("decoration:blur:glass:refraction");
     static auto PGLASSSIZE       = CConfigValue<Config::FLOAT>("decoration:blur:glass:size");
     static auto PGLASSROUGHNESS  = CConfigValue<Config::FLOAT>("decoration:blur:glass:roughness");

@@ -28,10 +28,10 @@ class CBackdropScopePassElement : public IPassElement {
     CBackdropScopePassElement(eAction action, SP<SBackdropScope> scope);
     virtual ~CBackdropScopePassElement() = default;
 
-    virtual std::vector<UP<IPassElement>> draw();
-    virtual bool                          needsLiveBlur();
-    virtual bool                          needsPrecomputeBlur();
-    virtual bool                          undiscardable();
+    virtual std::vector<UP<IPassElement>> draw(Render::CRenderContext& ctx);
+    virtual bool                          needsLiveBlur(Render::CRenderContext& ctx);
+    virtual bool                          needsPrecomputeBlur(Render::CRenderContext& ctx);
+    virtual bool                          undiscardable(Render::CRenderContext& ctx);
 
     virtual const char*                   passName();
     virtual ePassElementType              type();

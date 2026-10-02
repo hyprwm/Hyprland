@@ -6,11 +6,11 @@ class CPreBlurElement : public IPassElement {
     CPreBlurElement();
     virtual ~CPreBlurElement() = default;
 
-    virtual bool        needsLiveBlur();
-    virtual bool        needsPrecomputeBlur();
-    virtual bool        disableSimplification();
-    virtual bool        requiresFullDamage();
-    virtual bool        undiscardable();
+    virtual bool        needsLiveBlur(Render::CRenderContext& ctx);
+    virtual bool        needsPrecomputeBlur(Render::CRenderContext& ctx);
+    virtual bool        disableSimplification(Render::CRenderContext& ctx);
+    virtual bool        requiresFullDamage(Render::CRenderContext& ctx);
+    virtual bool        undiscardable(Render::CRenderContext& ctx);
 
     virtual const char* passName() {
         return "CPreBlurElement";

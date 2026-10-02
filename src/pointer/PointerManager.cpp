@@ -712,17 +712,18 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         if (!finishing)
             g_pHyprRenderer->abortRender();
     });
-    g_pHyprRenderer->context().m_data.fbSize = FB->m_size;
-    g_pHyprRenderer->setProjectionType(Render::RPT_FB);
-    g_pHyprRenderer->context().m_data.transformDamage = true;
-    g_pHyprRenderer->startRenderPass();
-    g_pHyprRenderer->draw(CClearPassElement::SClearData{{0.F, 0.F, 0.F, 0.F}});
+    auto&                     ctx = g_pHyprRenderer->context();
+    ctx.m_data.fbSize             = FB->m_size;
+    g_pHyprRenderer->setProjectionType(ctx, Render::RPT_FB);
+    ctx.m_data.transformDamage = true;
+    g_pHyprRenderer->startRenderPass(ctx);
+    g_pHyprRenderer->draw(ctx, CClearPassElement::SClearData{{0.F, 0.F, 0.F, 0.F}});
 
     CBox xbox = {{}, image.outputSize(state->monitor->m_scale)};
     LOG(Log::TRACE, "[pointer] monitor: {}, size: {}, hw buf: {}, scale: {:.2f}, monscale: {:.2f}, xbox: {}", state->monitor->m_name, image.size, cursorSize, image.scale,
         state->monitor->m_scale, xbox.size());
 
-    g_pHyprRenderer->draw(CTexPassElement::SRenderData{.tex = texture, .box = xbox}, damageRegion);
+    g_pHyprRenderer->draw(ctx, CTexPassElement::SRenderData{.tex = texture, .box = xbox}, damageRegion);
 
     finishing = true;
     g_pHyprRenderer->endRender();
@@ -730,8 +731,8 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     return buf;
 }
 
-void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::steady_tp& now, CRegion& damage, std::optional<Vector2D> overridePos, bool screencopy,
-                                               bool forceRender) {
+void CPointerManager::renderSoftwareCursorsFor(Render::CRenderContext& ctx, PHLMONITOR pMonitor, const Time::steady_tp& now, CRegion& damage, std::optional<Vector2D> overridePos,
+                                               bool screencopy, bool forceRender) {
     if (!hasCursor())
         return;
 
@@ -769,7 +770,7 @@ void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::
     data.tex = texture;
     data.box = box.round();
 
-    g_pHyprRenderer->context().m_pass.add(makeUnique<CTexPassElement>(std::move(data)));
+    g_pHyprRenderer->addPassElement(ctx, makeUnique<CTexPassElement>(std::move(data)));
 
     // to erase the leftover in updateCursorBackend()
     if (!screencopy) {

@@ -4,14 +4,14 @@ CRendererHintsPassElement::CRendererHintsPassElement(const CRendererHintsPassEle
     ;
 }
 
-bool CRendererHintsPassElement::needsLiveBlur() {
+bool CRendererHintsPassElement::needsLiveBlur(Render::CRenderContext& ctx) {
     return false;
 }
 
-bool CRendererHintsPassElement::needsPrecomputeBlur() {
+bool CRendererHintsPassElement::needsPrecomputeBlur(Render::CRenderContext& ctx) {
     return false;
 }
 
-bool CRendererHintsPassElement::undiscardable() {
+bool CRendererHintsPassElement::undiscardable(Render::CRenderContext& ctx) {
     return true;
 }

@@ -1,5 +1,9 @@
 #pragma once
 
+namespace Render {
+    class CRenderContext;
+}
+
 #include <vector>
 #include "../../helpers/memory/Memory.hpp"
 #include "../../protocols/types/Buffer.hpp"
@@ -147,7 +151,7 @@ namespace Screenshare {
         } m_listeners;
 
         bool copy();
-        void render();
+        void render(Render::CRenderContext& ctx);
         void calculateConstraints();
 
         friend class CScreenshareFrame;
@@ -185,10 +189,10 @@ namespace Screenshare {
         bool copyDmabuf();
         bool copyShm();
 
-        void render();
-        void renderMonitor();
-        void renderMonitorRegion();
-        void renderWindow();
+        void render(Render::CRenderContext& ctx);
+        void renderMonitor(Render::CRenderContext& ctx);
+        void renderMonitorRegion(Render::CRenderContext& ctx);
+        void renderWindow(Render::CRenderContext& ctx);
 
         void storeTempFB();
 

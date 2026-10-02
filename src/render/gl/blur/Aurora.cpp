@@ -29,9 +29,9 @@ static float srgbToLinear(float value) {
     return value <= 0.04045F ? value / 12.92F : std::pow((value + 0.055F) / 1.055F, 2.4F);
 }
 
-static float auroraLuminanceScale() {
+static float auroraLuminanceScale(CRenderContext& ctx) {
     const auto INTERMEDIATE = getDefaultImageDescription();
-    const auto WORKBUFFER   = g_pHyprRenderer->workBufferImageDescription();
+    const auto WORKBUFFER   = g_pHyprRenderer->workBufferImageDescription(ctx);
     if (!WORKBUFFER)
         return 1.F;
 
@@ -49,7 +49,7 @@ CAuroraBlurProvider::CAuroraBlurProvider(CHyprOpenGLImpl& impl) : CGlassBlurProv
     ;
 }
 
-bool CAuroraBlurMaterial::isAnimated() const noexcept {
+bool CAuroraBlurMaterial::isAnimated(CRenderContext& ctx) const noexcept {
     static auto PBLURENABLED     = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
     static auto PGLASSREFRACTION = CConfigValue<Config::FLOAT>("decoration:blur:glass:refraction");
     static auto PGLASSROUGHNESS  = CConfigValue<Config::FLOAT>("decoration:blur:glass:roughness");
@@ -65,17 +65,17 @@ bool CAuroraBlurMaterial::isAnimated() const noexcept {
     return *PBLURENABLED && SPEED > 0.F && (HAS_COLOR || *PGLASSREFRACTION > 0.F || *PGLASSROUGHNESS > 0.F);
 }
 
-void CAuroraBlurMaterial::bindFinish(WP<CShader> shader, const SBlurMaterialContext& context) const {
+void CAuroraBlurMaterial::bindFinish(CRenderContext& ctx, WP<CShader> shader, const SBlurMaterialContext& context) const {
     static auto PAURORAINTENSITY = CConfigValue<Config::FLOAT>("decoration:blur:aurora:intensity");
     static auto PAURORACOLOR1    = CConfigValue<Config::INTEGER>("decoration:blur:aurora:color1");
     static auto PAURORACOLOR2    = CConfigValue<Config::INTEGER>("decoration:blur:aurora:color2");
 
-    CGlassBlurMaterial::bindFinish(shader, context);
+    CGlassBlurMaterial::bindFinish(ctx, shader, context);
     updateAnimation(auroraSpeed());
 
     const auto COLOR1 = CHyprColor(*PAURORACOLOR1);
     const auto COLOR2 = CHyprColor(*PAURORACOLOR2);
-    const auto SCALE  = auroraLuminanceScale();
+    const auto SCALE  = auroraLuminanceScale(ctx);
 
     const auto bindColor = [&](eShaderUniform uniform, const CHyprColor& color) {
         const auto ALPHA = sc<float>(color.a);

@@ -1,5 +1,9 @@
 #pragma once
 
+namespace Render {
+    class CRenderContext;
+}
+
 /*
     Implementations for:
      - wl_data_offer
@@ -139,7 +143,7 @@ class CWLDataDeviceProtocol : public IWaylandProtocol {
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
     // renders and damages the dnd icon, if present
-    void renderDND(PHLMONITOR pMonitor, const Time::steady_tp& when);
+    void renderDND(Render::CRenderContext& ctx, PHLMONITOR pMonitor, const Time::steady_tp& when);
     // for inputmgr to force refocus
     // TODO: move handling to seatmgr
     bool dndActive();

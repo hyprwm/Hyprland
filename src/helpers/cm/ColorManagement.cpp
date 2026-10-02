@@ -489,11 +489,7 @@ static RGBAColor tonemap(RGBAColor color, std::array<std::array<double, 3>, 3> d
     return color;
 }
 
-RGBAColor NColorManagement::convertColor(RGBAColor color, PImageDescription srcDesc, PImageDescription dstDesc) {
-    const auto settings = g_pHyprRenderer->getCMSettings(srcDesc, dstDesc, nullptr, true,
-                                                         g_pHyprRenderer->context().m_data.pMonitor ? g_pHyprRenderer->context().m_data.pMonitor->m_sdrMinLuminance : -1,
-                                                         g_pHyprRenderer->context().m_data.pMonitor ? g_pHyprRenderer->context().m_data.pMonitor->m_sdrMaxLuminance : -1);
-
+RGBAColor NColorManagement::convertColor(RGBAColor color, PImageDescription srcDesc, PImageDescription dstDesc, const Render::SCMSettings& settings) {
     color /= std::max(color.c.a, 0.001);
     color = toLinearRGB(color, srcDesc->value().transferFunction);
     if (dstDesc->value().icc.present) {
@@ -520,8 +516,8 @@ RGBAColor NColorManagement::convertColor(RGBAColor color, PImageDescription srcD
     return color;
 }
 
-CHyprColor NColorManagement::convertColor(const CHyprColor& color, PImageDescription srcDesc, PImageDescription dstDesc) {
-    const auto& converted = convertColor(RGBAColor{{.r = color.r, .g = color.g, .b = color.b, .a = color.a}}, srcDesc, dstDesc);
+CHyprColor NColorManagement::convertColor(const CHyprColor& color, PImageDescription srcDesc, PImageDescription dstDesc, const Render::SCMSettings& settings) {
+    const auto& converted = convertColor(RGBAColor{{.r = color.r, .g = color.g, .b = color.b, .a = color.a}}, srcDesc, dstDesc, settings);
     return CHyprColor(converted.c.r, converted.c.g, converted.c.b, converted.c.a);
 }
 

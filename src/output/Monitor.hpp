@@ -370,7 +370,6 @@ namespace Monitor {
 
         bool                                                               m_blurFBDirty        = true;
         bool                                                               m_blurFBShouldRender = false;
-        std::vector<std::pair<WP<CWLSurfaceResource>, CHLBufferReference>> m_usedAsyncBuffers;
 
         // For the list lookup
 

@@ -6,7 +6,9 @@
 using namespace Render;
 
 CRenderContext::CRenderContext()  = default;
-CRenderContext::~CRenderContext() = default;
+CRenderContext::~CRenderContext() {
+    RASSERT(m_usedAsyncBuffers.empty(), "Render context destroyed with untransferred source buffer uses");
+}
 
 bool CRenderContext::begin() {
     if (m_active)
@@ -40,6 +42,8 @@ CRenderDataScope::~CRenderDataScope() {
 }
 
 void CRenderContext::reset() {
+    RASSERT(m_usedAsyncBuffers.empty(), "Render context reset with untransferred source buffer uses");
+
     // Keep the scratch vector's allocation, but release the values it contains.
     auto modifs = std::move(m_data.renderModif.modifs);
     modifs.clear();

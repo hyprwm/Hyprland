@@ -127,7 +127,7 @@ namespace Render {
             ;
         };
         virtual SRenderResult               endRender(const std::function<void()>& renderingDoneCallback = {}) = 0;
-        void                                abortRender();
+        virtual void                        abortRender();
         CRenderContext&                     context();
 
         NColorManagement::PImageDescription workBufferImageDescription(CRenderContext& ctx);

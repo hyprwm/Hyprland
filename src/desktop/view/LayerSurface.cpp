@@ -210,8 +210,7 @@ void CLayerSurface::onMap() {
         if (g_pSeatManager->m_seatGrab && !g_pSeatManager->m_seatGrab->accepts(m_wlSurface->resource()))
             g_pSeatManager->setGrab(nullptr);
 
-        g_pInputManager->releaseAllMouseButtons();
-        Desktop::focusState()->rawSurfaceFocus(m_wlSurface->resource());
+        takeKeyboardFocus();
     }
 
     // update pointer focus
@@ -412,8 +411,8 @@ void CLayerSurface::onCommit() {
         } else if (!WAS_KEYBOARD_EXCLUSIVE && KEYBOARD_EXCLUSIVE) {
             // if now exclusive and not previously
             g_pSeatManager->setGrab(nullptr);
-            g_pInputManager->releaseAllMouseButtons();
-            Desktop::focusState()->rawSurfaceFocus(m_wlSurface->resource());
+            takeKeyboardFocus();
+            g_pInputManager->simulateMouseMovement();
         }
     }
 
@@ -422,6 +421,16 @@ void CLayerSurface::onCommit() {
     g_pHyprRenderer->damageSurface(m_wlSurface->resource(), m_position.x, m_position.y);
 
     updateSurfaceScaleTransformDetails();
+}
+
+void CLayerSurface::takeKeyboardFocus() {
+    g_pInputManager->releaseAllMouseButtons();
+    Desktop::focusState()->rawSurfaceFocus(m_wlSurface->resource());
+
+    // Release the old pointer focus so native constraints and confine_pointer rules cannot
+    // prevent the subsequent mouse movement from hit-testing the layer.
+    if (g_pSeatManager->m_state.keyboardFocus == m_wlSurface->resource() && g_pSeatManager->m_state.pointerFocus != m_wlSurface->resource())
+        g_pSeatManager->setPointerFocus(nullptr, {});
 }
 
 MONITORID CLayerSurface::monitorID() {

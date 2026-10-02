@@ -1267,6 +1267,21 @@ static SDispatchResult checkLayerRule(std::string in) {
     return {};
 }
 
+static SDispatchResult checkPointerFocusWindow(std::string in) {
+    const auto POINTERSURF = g_pSeatManager->m_state.pointerFocus.lock();
+    if (!POINTERSURF)
+        return {.success = false, .error = "No pointer focus"};
+
+    const auto WINDOW = Desktop::viewState()->query().type(Desktop::View::VIEW_TYPE_WINDOW).surface(POINTERSURF).runWindow();
+    if (!WINDOW)
+        return {.success = false, .error = "Pointer focus surface is not a window"};
+
+    if (WINDOW->metadata().appID() != in)
+        return {.success = false, .error = std::format("Pointer focus window class is '{}', expected '{}'", WINDOW->metadata().appID(), in)};
+
+    return {};
+}
+
 static SDispatchResult checkPointerFocusLayer(std::string in) {
     const auto POINTERSURF = g_pSeatManager->m_state.pointerFocus.lock();
 
@@ -1639,6 +1654,10 @@ static int luaCheckLayerRule(lua_State* L) {
     return luaResult(L, ::checkLayerRule(""));
 }
 
+static int luaCheckPointerFocusWindow(lua_State* L) {
+    return luaResult(L, ::checkPointerFocusWindow(luaL_checkstring(L, 1)));
+}
+
 static int luaCheckPointerFocusLayer(lua_State* L) {
     return luaResult(L, ::checkPointerFocusLayer(luaL_checkstring(L, 1)));
 }
@@ -1712,6 +1731,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     addLuaFn("check_window_rule", ::luaCheckWindowRule);
     addLuaFn("add_layer_rule", ::luaAddLayerRule);
     addLuaFn("check_layer_rule", ::luaCheckLayerRule);
+    addLuaFn("check_pointer_focus_window", ::luaCheckPointerFocusWindow);
     addLuaFn("check_pointer_focus_layer", ::luaCheckPointerFocusLayer);
     addLuaFn("set_pointer_focus_layer", ::luaSetPointerFocusLayer);
     addLuaFn("window_soft_focus", ::luaSoftFocusWindowByClass);

@@ -101,6 +101,7 @@ namespace Desktop::View {
         } m_listeners;
 
         void registerCallbacks();
+        void takeKeyboardFocus();
 
         // fade in/out
         Desktop::Types::CMultiAVarContainer<float, std::underlying_type_t<eLayerAlpha>> m_alpha;

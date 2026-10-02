@@ -347,13 +347,16 @@ ActionResult Actions::moveToWorkspace(PHLWORKSPACE ws, bool silent, std::optiona
         const auto OLDMIDDLE = window->middle();
         Desktop::globalWindowController()->moveWindowToWorkspace(window, ws);
 
-        if (window == Desktop::focusState()->window()) {
+        if (window->m_workspace != POLDWS && window == Desktop::focusState()->window()) {
             if (const auto PATCOORDS =
                     Desktop::viewState()->hitTest().windowAt(OLDMIDDLE, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING, window);
                 PATCOORDS)
                 Desktop::focusState()->fullWindowFocus(PATCOORDS, Desktop::FOCUS_REASON_KEYBIND);
-            else
-                g_pInputManager->refocus();
+            else {
+                // try to focus anything. If there isn't anything, this will unfocus (nullptr)
+                const auto PATWS = POLDWS->getFirstWindow();
+                Desktop::focusState()->fullWindowFocus(PATWS, Desktop::FOCUS_REASON_KEYBIND);
+            }
         }
     } else {
         PHLMONITOR pMonitor = nullptr;

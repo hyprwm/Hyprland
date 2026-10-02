@@ -66,18 +66,17 @@ IHyprRenderer::eType CHyprGLRenderer::type() {
 
 void CHyprGLRenderer::initRender() {
     g_pHyprOpenGL->makeEGLCurrent();
-    g_pHyprRenderer->m_renderData.pMonitor = renderData().pMonitor;
 }
 
 bool CHyprGLRenderer::initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
     try {
-        m_currentRenderbuffer = getOrCreateRenderbuffer(m_currentBuffer, fmt);
+        m_context.m_currentRenderbuffer = getOrCreateRenderbuffer(buffer, fmt);
     } catch (std::exception& e) {
         LOG(Log::ERR, "getOrCreateRenderbuffer failed for {}", NFormatUtils::drmFormatName(fmt));
         return false;
     }
 
-    return !!m_currentRenderbuffer;
+    return !!m_context.m_currentRenderbuffer;
 }
 
 bool CHyprGLRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb, bool simple) {
@@ -94,9 +93,9 @@ bool CHyprGLRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& 
 
 bool CHyprGLRenderer::beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple) {
 
-    m_currentRenderbuffer->bind();
+    m_context.m_currentRenderbuffer->bind();
     if (simple)
-        g_pHyprOpenGL->beginSimple(pMonitor, damage, m_currentRenderbuffer);
+        g_pHyprOpenGL->beginSimple(pMonitor, damage, m_context.m_currentRenderbuffer);
     else
         g_pHyprOpenGL->begin(pMonitor, damage);
 
@@ -104,37 +103,39 @@ bool CHyprGLRenderer::beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, 
 }
 
 SRenderResult CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallback) {
-    const auto  PMONITOR           = g_pHyprRenderer->m_renderData.pMonitor;
-    static auto PNVIDIAANTIFLICKER = CConfigValue<Config::INTEGER>("opengl:nvidia_anti_flicker");
-
-    g_pHyprRenderer->m_renderData.damage = m_renderPass.render(g_pHyprRenderer->m_renderData.damage);
-
-    auto cleanup = CScopeGuard([this]() {
-        // Presentation pointers share workspace ownership; retain them only for this frame.
-        m_renderPass.clear();
-        if (m_currentRenderbuffer)
-            m_currentRenderbuffer->unbind();
-        m_currentRenderbuffer = nullptr;
-        m_currentBuffer       = nullptr;
-    });
-
-    if (m_renderMode != RENDER_MODE_TO_BUFFER_READ_ONLY)
-        g_pHyprOpenGL->end();
-    else {
-        g_pHyprRenderer->m_renderData.pMonitor.reset();
-        g_pHyprRenderer->m_renderData.mouseZoomFactor   = 1.f;
-        g_pHyprRenderer->m_renderData.mouseZoomUseMouse = true;
+    if (!m_context.active()) {
+        LOG(Log::ERR, "Cannot end rendering without an active render context");
+        return {};
     }
 
+    bool              finished = false;
+    const CScopeGuard cleanup([&] {
+        if (!finished)
+            abortRender();
+    });
+
+    const auto        PMONITOR           = m_context.m_data.pMonitor;
+    const auto        mode               = m_context.m_mode;
+    static auto       PNVIDIAANTIFLICKER = CConfigValue<Config::INTEGER>("opengl:nvidia_anti_flicker");
+
+    m_context.m_data.damage = m_context.m_pass.render(m_context.m_data.damage);
+
+    if (mode != RENDER_MODE_TO_BUFFER_READ_ONLY)
+        g_pHyprOpenGL->end();
+
     SRenderResult result{
-        .finalDamage = m_renderData.damage,
+        .finalDamage = m_context.m_data.damage,
     };
 
-    if (m_renderMode == RENDER_MODE_FULL_FAKE)
-        return result;
+    if (mode == RENDER_MODE_NORMAL)
+        PMONITOR->m_output->state->setBuffer(m_context.m_currentBuffer);
 
-    if (m_renderMode == RENDER_MODE_NORMAL)
-        PMONITOR->m_output->state->setBuffer(m_currentBuffer);
+    // Callbacks may begin another render. Release this session before invoking them.
+    finishRender();
+    finished = true;
+
+    if (mode == RENDER_MODE_FULL_FAKE)
+        return result;
 
     if (!explicitSyncSupported()) {
         LOG(Log::TRACE, "renderer: Explicit sync unsupported, falling back to implicit in endRender");
@@ -154,7 +155,8 @@ SRenderResult CHyprGLRenderer::endRender(const std::function<void()>& renderingD
 
     auto eglSync = createSyncFDManager();
     if LIKELY (eglSync && eglSync->isValid()) {
-        for (auto& buf : PMONITOR->m_usedAsyncBuffers) {
+        auto completedBuffers = std::exchange(PMONITOR->m_usedAsyncBuffers, {});
+        for (auto& buf : completedBuffers) {
             if (buf.first.expired()) // surface is gone.
                 continue;
 
@@ -164,27 +166,27 @@ SRenderResult CHyprGLRenderer::endRender(const std::function<void()>& renderingD
         }
 
         // release buffer refs with release points now, since syncReleaser handles actual buffer release based on EGLSync
-        std::erase_if(PMONITOR->m_usedAsyncBuffers, [](const auto& buf) { return buf.first.expired() || !buf.second->m_syncReleasers.empty(); });
+        std::erase_if(completedBuffers, [](const auto& buf) { return buf.first.expired() || !buf.second->m_syncReleasers.empty(); });
 
-        // release buffer refs without release points when EGLSync sync_file/fence is signalled
-        g_pEventLoopManager->doOnReadable(eglSync->fd().duplicate(), [renderingDoneCallback, prevbfs = std::move(PMONITOR->m_usedAsyncBuffers)]() mutable {
-            prevbfs.clear();
-            if (renderingDoneCallback)
-                renderingDoneCallback();
-        });
-        PMONITOR->m_usedAsyncBuffers.clear();
-
-        if (m_renderMode == RENDER_MODE_NORMAL) {
+        auto completionFD = eglSync->fd().duplicate();
+        if (mode == RENDER_MODE_NORMAL) {
             PMONITOR->m_inFence = eglSync->takeFd();
             PMONITOR->m_output->state->setExplicitInFence(PMONITOR->m_inFence.get());
         }
+
+        // This may run inline. Finish all monitor bookkeeping before handing off.
+        g_pEventLoopManager->doOnReadable(std::move(completionFD), [renderingDoneCallback, buffers = std::move(completedBuffers)]() mutable {
+            buffers.clear();
+            if (renderingDoneCallback)
+                renderingDoneCallback();
+        });
     } else {
         LOG(Log::ERR, "renderer: Explicit sync failed, falling back to implicit sync");
 
         // Establish an implicit synchronization point without blocking the render loop.
         glFlush();
 
-        if (m_renderMode == RENDER_MODE_NORMAL && PMONITOR) {
+        if (mode == RENDER_MODE_NORMAL && PMONITOR) {
             PMONITOR->m_inFence.reset();
             PMONITOR->m_output->state->resetExplicitFences();
         }

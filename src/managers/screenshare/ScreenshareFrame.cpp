@@ -148,12 +148,15 @@ eScreenshareError CScreenshareFrame::share(SP<IHLBuffer> buffer, const CRegion& 
 }
 
 void CScreenshareFrame::copy() {
-    if (done() || m_copyInFlight)
+    if (g_pHyprRenderer->context().active() || done() || m_copyInFlight)
         return;
 
     // tell client to send presented timestamp
     // TODO: is this right? this is right after we commit to aq, not when page flip happens..
     m_callback(RESULT_TIMESTAMP);
+
+    if (g_pHyprRenderer->context().active())
+        return;
 
     // store a snapshot before the permission popup so we don't break screenshots
     const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(m_session->m_client, PERMISSION_TYPE_SCREENCOPY);
@@ -184,7 +187,7 @@ void CScreenshareFrame::renderMonitor() {
 
     const auto PMONITOR = m_session->monitor();
 
-    auto       TEXTURE = g_pHyprRenderer->m_renderData.pMonitor->resources()->getMirrorTexture();
+    auto       TEXTURE = g_pHyprRenderer->context().m_data.pMonitor->resources()->getMirrorTexture();
     if (!TEXTURE) {
         LOG(Log::ERR, "Invalid source texture");
         return;
@@ -193,24 +196,24 @@ void CScreenshareFrame::renderMonitor() {
     if (!TEXTURE->m_imageDescription)
         LOG(Log::ERR, "CM: FIXME no source image description for screenshare");
 
-    if (!g_pHyprRenderer->m_renderData.currentFB->imageDescription())
+    if (!g_pHyprRenderer->context().m_data.currentFB->imageDescription())
         LOG(Log::ERR, "CM: FIXME no target image description for screenshare");
 
-    if (TEXTURE->m_imageDescription && g_pHyprRenderer->m_renderData.currentFB->imageDescription())
-        LOG(Log::TRACE, "CM: screenshot renderMonitor {} -> {}", TEXTURE->m_imageDescription->value(), g_pHyprRenderer->m_renderData.currentFB->imageDescription()->value());
+    if (TEXTURE->m_imageDescription && g_pHyprRenderer->context().m_data.currentFB->imageDescription())
+        LOG(Log::TRACE, "CM: screenshot renderMonitor {} -> {}", TEXTURE->m_imageDescription->value(), g_pHyprRenderer->context().m_data.currentFB->imageDescription()->value());
 
     const bool IS_CM_AWARE               = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_session->m_client);
-    g_pHyprRenderer->m_renderData.fbSize = m_bufferSize;
+    g_pHyprRenderer->context().m_data.fbSize = m_bufferSize;
     g_pHyprRenderer->setProjectionType(Render::RPT_EXPORT);
-    g_pHyprRenderer->m_renderData.transformDamage = false;
-    g_pHyprRenderer->m_renderData.noSimplify      = true;
+    g_pHyprRenderer->context().m_data.transformDamage = false;
+    g_pHyprRenderer->context().m_data.noSimplify      = true;
     g_pHyprRenderer->setViewport(0, 0, m_bufferSize.x, m_bufferSize.y);
 
     // render monitor texture
     CBox       monbox = CBox{{}, PMONITOR->m_transformedSize}.translate(-m_session->m_captureBox.pos());
 
-    const auto OLD                                    = g_pHyprRenderer->m_renderData.renderModif.enabled;
-    g_pHyprRenderer->m_renderData.renderModif.enabled = false;
+    const auto OLD                                        = g_pHyprRenderer->context().m_data.renderModif.enabled;
+    g_pHyprRenderer->context().m_data.renderModif.enabled = false;
     g_pHyprRenderer->startRenderPass();
     g_pHyprRenderer->draw(
         CTexPassElement::SRenderData{
@@ -219,7 +222,7 @@ void CScreenshareFrame::renderMonitor() {
             .cmBackToSRGB = !IS_CM_AWARE,
         },
         {0, 0, m_bufferSize.x, m_bufferSize.y});
-    g_pHyprRenderer->m_renderData.renderModif.enabled = OLD;
+    g_pHyprRenderer->context().m_data.renderModif.enabled = OLD;
 
     // render black boxes for noscreenshare
     auto hidePopups = [&](Vector2D popupBaseOffset) {
@@ -327,14 +330,14 @@ void CScreenshareFrame::renderWindow() {
     const auto NOW = Time::steadyNow();
 
     // TODO: implement a monitor independent render mode to buffer that does this in CHyprRenderer::begin() or something like that
-    g_pHyprRenderer->m_renderData.fbSize = m_bufferSize;
+    g_pHyprRenderer->context().m_data.fbSize = m_bufferSize;
     g_pHyprRenderer->setProjectionType(Render::RPT_EXPORT);
-    g_pHyprRenderer->m_renderData.transformDamage = false;
+    g_pHyprRenderer->context().m_data.transformDamage = false;
     g_pHyprRenderer->setViewport(0, 0, m_bufferSize.x, m_bufferSize.y);
 
-    g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(PWINDOW); // block the feedback to avoid spamming the surface if it's visible
+    g_pHyprRenderer->context().m_blockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(PWINDOW); // block the feedback to avoid spamming the surface if it's visible
     g_pHyprRenderer->renderWindow(PWINDOW, PMONITOR, nullptr, NOW, false, Render::RENDER_PASS_ALL, true, true);
-    g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
+    g_pHyprRenderer->context().m_blockSurfaceFeedback = false;
 
     if (!m_overlayCursor)
         return;
@@ -395,21 +398,27 @@ void CScreenshareFrame::render() {
 }
 
 bool CScreenshareFrame::copyDmabuf() {
-    if (done())
+    if (g_pHyprRenderer->context().active() || done())
         return false;
 
     if (!g_pHyprRenderer->beginRender(m_session->monitor(), m_damage, Render::RENDER_MODE_TO_BUFFER, m_buffer, nullptr, true)) {
         LOG(Log::ERR, "Can't copy: failed to begin rendering to dma frame");
         return false;
     }
-    g_pHyprRenderer->m_renderData.currentFB->setImageDescription(NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION);
+    bool                      finishing = false;
+    const Render::CScopeGuard cleanup([&] {
+        if (!finishing)
+            g_pHyprRenderer->abortRender();
+    });
+    g_pHyprRenderer->context().m_data.currentFB->setImageDescription(NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION);
 
     render();
 
-    g_pHyprRenderer->m_renderData.blockScreenShader = true;
+    g_pHyprRenderer->context().m_data.blockScreenShader = true;
 
     m_copyInFlight = true;
 
+    finishing = true;
     g_pHyprRenderer->endRender([self = m_self]() {
         if (!self || self.expired())
             return;
@@ -428,7 +437,7 @@ bool CScreenshareFrame::copyDmabuf() {
 }
 
 bool CScreenshareFrame::copyShm() {
-    if (done())
+    if (g_pHyprRenderer->context().active() || done())
         return false;
 
     auto       shm = m_buffer->shm();
@@ -449,11 +458,17 @@ bool CScreenshareFrame::copyShm() {
         LOG(Log::ERR, "Can't copy: failed to begin rendering");
         return false;
     }
+    bool                      finishing = false;
+    const Render::CScopeGuard cleanup([&] {
+        if (!finishing)
+            g_pHyprRenderer->abortRender();
+    });
 
     render();
 
-    g_pHyprRenderer->m_renderData.blockScreenShader = true;
+    g_pHyprRenderer->context().m_data.blockScreenShader = true;
 
+    finishing = true;
     g_pHyprRenderer->endRender();
 
     bool readSucceeded = true;
@@ -466,8 +481,6 @@ bool CScreenshareFrame::copyShm() {
         if (!outFB->readPixels(m_buffer, rect.x1, rect.y1, width, height))
             readSucceeded = false;
     });
-
-    g_pHyprRenderer->m_renderData.pMonitor.reset();
 
     if (!readSucceeded) {
         LOG(Log::ERR, "Can't copy: failed to read pixels to shm");
@@ -484,6 +497,9 @@ bool CScreenshareFrame::copyShm() {
 }
 
 void CScreenshareFrame::storeTempFB() {
+    if (g_pHyprRenderer->context().active())
+        return;
+
     if (!m_session->m_tempFB)
         m_session->m_tempFB = g_pHyprRenderer->createFB();
     m_session->m_tempFB->alloc(m_bufferSize.x, m_bufferSize.y);
@@ -495,6 +511,11 @@ void CScreenshareFrame::storeTempFB() {
         LOG(Log::ERR, "Can't copy: failed to begin rendering to temp fb");
         return;
     }
+    bool                      finishing = false;
+    const Render::CScopeGuard cleanup([&] {
+        if (!finishing)
+            g_pHyprRenderer->abortRender();
+    });
 
     switch (m_session->m_type) {
         case SHARE_REGION: // TODO: could this be better? this is how screencopy works
@@ -504,6 +525,7 @@ void CScreenshareFrame::storeTempFB() {
         default: return;
     }
 
+    finishing = true;
     g_pHyprRenderer->endRender();
 }
 

@@ -72,7 +72,7 @@ void CMotionBlurTransformer::amendTransformedRenderData(const CBox& currentBox, 
     if (!pMotionBlurData)
         return;
 
-    const auto PMONITOR = g_pHyprRenderer->m_renderData.pMonitor;
+    const auto PMONITOR = g_pHyprRenderer->context().m_data.pMonitor;
     if (!PMONITOR)
         return;
 

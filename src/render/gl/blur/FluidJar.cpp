@@ -124,7 +124,7 @@ void CFluidJarBlurMaterial::prepare(const SBlurMaterialContext& context) {
     const auto renderExtent  = transformedPatternBox(context.blurContext);
     const auto window        = context.blurContext.owner.lock();
     const auto physicsExtent = renderedWindowBox(window, context.blurContext.workspacePresentation);
-    if (!state || physicsExtent.width <= 0 || physicsExtent.height <= 0 || renderExtent.width <= 0 || renderExtent.height <= 0 || !g_pHyprRenderer->m_renderData.pMonitor)
+    if (!state || physicsExtent.width <= 0 || physicsExtent.height <= 0 || renderExtent.width <= 0 || renderExtent.height <= 0 || !g_pHyprRenderer->context().m_data.pMonitor)
         return;
 
     updateState(*state, physicsExtent);
@@ -143,7 +143,7 @@ void CFluidJarBlurMaterial::bindFinish(WP<CShader> shader, const SBlurMaterialCo
         return;
     }
 
-    const auto monitor = g_pHyprRenderer->m_renderData.pMonitor;
+    const auto monitor = g_pHyprRenderer->context().m_data.pMonitor;
     if (!monitor) {
         shader->setUniformInt(SHADER_FLUIDJAR_ENABLED, 0);
         return;
@@ -547,13 +547,13 @@ void CFluidJarBlurMaterial::preparePass(SP<CGLFramebuffer> target, const Vector2
     g_pHyprRenderer->setViewport(0, 0, sc<int>(size.x), sc<int>(size.y));
     g_pHyprRenderer->disableScissor();
     g_pHyprRenderer->blend(false);
-    const auto monitor = g_pHyprRenderer->m_renderData.pMonitor;
+    const auto monitor = g_pHyprRenderer->context().m_data.pMonitor;
     const auto matrix  = g_pHyprRenderer->projectBoxToTarget({0, 0, monitor->m_transformedSize.x, monitor->m_transformedSize.y});
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, matrix.getMatrix());
 }
 
 CBox CFluidJarBlurMaterial::transformedPatternBox(const SBlurContext& context) const {
-    const auto monitor = g_pHyprRenderer->m_renderData.pMonitor;
+    const auto monitor = g_pHyprRenderer->context().m_data.pMonitor;
     if (!monitor)
         return {};
 

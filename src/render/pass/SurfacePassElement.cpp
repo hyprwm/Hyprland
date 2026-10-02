@@ -157,8 +157,8 @@ CRegion CSurfacePassElement::visibleRegion(bool& cancel) {
     // deal with any rounding errors that might come from scaling
     visibleRegion.expand(1);
 
-    auto uvTL = g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft;
-    auto uvBR = g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight;
+    auto uvTL = g_pHyprRenderer->context().m_data.primarySurfaceUVTopLeft;
+    auto uvBR = g_pHyprRenderer->context().m_data.primarySurfaceUVBottomRight;
 
     if (uvTL == Vector2D(-1, -1))
         uvTL = Vector2D(0, 0);
@@ -179,7 +179,7 @@ CRegion CSurfacePassElement::visibleRegion(bool& cancel) {
 }
 
 void CSurfacePassElement::discard() {
-    if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) {
+    if (!g_pHyprRenderer->context().m_blockSurfaceFeedback) {
         LOG(Log::TRACE, "discard for invisible surface");
         m_data.surface->presentFeedback(m_data.when, m_data.pMonitor->m_self.lock(), true);
     }

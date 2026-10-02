@@ -61,7 +61,7 @@ float CDualKawaseBlurProvider::damageRadius() const {
 
 SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(SP<CGLFramebuffer> source, float strength, const CRegion& originalDamage, const SBlurContext& context) {
     TRACY_GPU_ZONE("RenderBlurFramebufferWithDamage");
-    auto&      m_renderData = g_pHyprRenderer->m_renderData;
+    auto&      m_renderData = g_pHyprRenderer->context().m_data;
 
     const auto BLENDBEFORE = m_impl.m_blend;
     m_impl.blend(false);

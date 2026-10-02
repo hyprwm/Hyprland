@@ -215,7 +215,7 @@ SShadowRenderData CHyprDropShadowDecoration::getRenderData(PHLMONITOR pMonitor, 
     if (fullBox.width < 1 || fullBox.height < 1)
         return {}; // don't draw invisible shadows
 
-    g_pHyprRenderer->m_renderData.currentWindow = m_window;
+    g_pHyprRenderer->context().m_data.currentWindow = m_window;
 
     fullBox.scale(pMonitor->m_scale).round();
 
@@ -232,7 +232,7 @@ void CHyprDropShadowDecoration::reposition() {
     if (m_extents != m_reportedExtents)
         g_pDecorationPositioner->repositionDeco(this);
 
-    g_pHyprRenderer->m_renderData.currentWindow.reset();
+    g_pHyprRenderer->context().m_data.currentWindow.reset();
 }
 
 // TODO remove

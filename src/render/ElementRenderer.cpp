@@ -59,7 +59,7 @@ static std::optional<Vector2D> getSurfaceExpectedSize(PHLWINDOW pWindow, SP<CWLS
 
 void IElementRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, PHLMONITOR pMonitor, bool main, const Vector2D& projSize,
                                              const Vector2D& projSizeUnscaled, bool fixMisalignedFSV1) {
-    auto& m_renderData = g_pHyprRenderer->m_renderData;
+    auto& m_renderData = g_pHyprRenderer->context().m_data;
 
     if (!pWindow || !pWindow->backend().isX11()) {
         static auto PEXPANDEDGES = CConfigValue<Hyprlang::INT>("render:expand_undersized_textures");
@@ -167,7 +167,7 @@ void IElementRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceRes
 
 void IElementRenderer::drawRect(WP<CRectPassElement> element, const CRegion& damage) {
     auto& data         = element->m_data;
-    auto& m_renderData = g_pHyprRenderer->m_renderData;
+    auto& m_renderData = g_pHyprRenderer->context().m_data;
 
     if (data.box.w <= 0 || data.box.h <= 0)
         return;
@@ -198,12 +198,12 @@ void IElementRenderer::drawRect(WP<CRectPassElement> element, const CRegion& dam
 void IElementRenderer::drawHints(WP<CRendererHintsPassElement> element, const CRegion& damage) {
     const auto& m_data = element->m_data;
     if (m_data.renderModif.has_value())
-        g_pHyprRenderer->m_renderData.renderModif = *m_data.renderModif;
+        g_pHyprRenderer->context().m_data.renderModif = *m_data.renderModif;
 }
 
 void IElementRenderer::drawPreBlur(WP<CPreBlurElement> element, const CRegion& damage) {
     TRACY_GPU_ZONE("RenderPreBlurForCurrentMonitor");
-    auto&      m_renderData = g_pHyprRenderer->m_renderData;
+    auto&      m_renderData = g_pHyprRenderer->context().m_data;
 
     const auto SAVEDRENDERMODIF = m_renderData.renderModif;
     const auto SAVEDDAMAGE      = m_renderData.damage;
@@ -230,11 +230,11 @@ void IElementRenderer::drawClear(WP<CClearPassElement> element, const CRegion& d
 
 void IElementRenderer::drawSurface(WP<CSurfacePassElement> element, const CRegion& damage) {
     const auto&                   m_data       = element->m_data;
-    auto&                         m_renderData = g_pHyprRenderer->m_renderData;
+    auto&                         m_renderData = g_pHyprRenderer->context().m_data;
 
     Hyprutils::Utils::CScopeGuard x = {[]() {
-        g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
-        g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
+        g_pHyprRenderer->context().m_data.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
+        g_pHyprRenderer->context().m_data.primarySurfaceUVBottomRight = Vector2D(-1, -1);
     }};
 
     if (!m_data.texture) {
@@ -423,12 +423,12 @@ void IElementRenderer::drawSurface(WP<CSurfacePassElement> element, const CRegio
 
     g_pHyprRenderer->blend(true);
 
-    if (!g_pHyprRenderer->m_bBlockSurfaceFeedback)
+    if (!g_pHyprRenderer->context().m_blockSurfaceFeedback)
         element->m_data.surface->presentFeedback(element->m_data.when, element->m_data.pMonitor->m_self.lock());
 };
 
 void IElementRenderer::preDrawSurface(WP<CSurfacePassElement> element, const CRegion& damage) {
-    auto& m_renderData              = g_pHyprRenderer->m_renderData;
+    auto& m_renderData              = g_pHyprRenderer->context().m_data;
     m_renderData.clipBox            = m_renderData.renderingTransformedSource ? CBox{} : element->m_data.clipBox;
     m_renderData.useNearestNeighbor = element->m_data.useNearestNeighbor;
     m_renderData.currentWindow      = element->m_data.pWindow;
@@ -448,7 +448,7 @@ void IElementRenderer::preDrawSurface(WP<CSurfacePassElement> element, const CRe
 }
 
 void IElementRenderer::drawTex(WP<CTexPassElement> element, const CRegion& damage) {
-    auto& m_renderData = g_pHyprRenderer->m_renderData;
+    auto& m_renderData = g_pHyprRenderer->context().m_data;
     if (!element->m_data.clipBox.empty())
         m_renderData.clipBox = element->m_data.clipBox;
 
@@ -461,8 +461,8 @@ void IElementRenderer::drawTex(WP<CTexPassElement> element, const CRegion& damag
     };
 
     Hyprutils::Utils::CScopeGuard x = {[]() {
-        g_pHyprRenderer->m_renderData.surface.reset();
-        g_pHyprRenderer->m_renderData.clipBox = {};
+        g_pHyprRenderer->context().m_data.surface.reset();
+        g_pHyprRenderer->context().m_data.clipBox = {};
     }};
 
     if (element->m_data.blur) {
@@ -541,14 +541,14 @@ void IElementRenderer::drawTex(WP<CTexPassElement> element, const CRegion& damag
 }
 
 void IElementRenderer::drawTexMatte(WP<CTextureMatteElement> element, const CRegion& damage) {
-    if (g_pHyprRenderer->m_renderData.damage.empty())
+    if (g_pHyprRenderer->context().m_data.damage.empty())
         return;
 
     const auto& m_data = element->m_data;
     if (m_data.disableTransformAndModify) {
-        g_pHyprRenderer->m_renderData.renderModif.enabled = false;
+        g_pHyprRenderer->context().m_data.renderModif.enabled = false;
         draw(element, damage);
-        g_pHyprRenderer->m_renderData.renderModif.enabled = true;
+        g_pHyprRenderer->context().m_data.renderModif.enabled = true;
     } else
         draw(element, damage);
 }
@@ -635,7 +635,7 @@ void IElementRenderer::drawTransformedWindow(WP<CTransformedWindowPassElement> e
     if (!element || !element->m_data.pass)
         return;
 
-    auto&      renderData = g_pHyprRenderer->m_renderData;
+    auto&      renderData = g_pHyprRenderer->context().m_data;
     const auto pMonitor   = renderData.pMonitor;
     if (!pMonitor)
         return;

@@ -460,6 +460,47 @@ SP<IHLBuffer> CDMABUFBufferTest::createdBuffer() {
     return CWLBufferResource::fromResource(resource)->m_buffer.lock();
 }
 
+// Reuse the inert renderer to exercise lifecycle entrypoints without a GPU.
+TEST_F(CDMABUFBufferTest, NestedRenderBeginDoesNotTouchActiveSession) {
+    auto& context = renderer().context();
+    ASSERT_TRUE(context.begin());
+    context.m_mode                 = Render::RENDER_MODE_TO_BUFFER_READ_ONLY;
+    context.m_data.mouseZoomFactor = 2.F;
+    context.m_pass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{}));
+
+    CRegion damage{1, 2, 3, 4};
+    // Invalid inputs must never be consulted when another session is active.
+    EXPECT_FALSE(renderer().beginFullFakeRender(nullptr, damage, nullptr));
+    EXPECT_FALSE(renderer().beginRenderToBuffer(nullptr, damage, nullptr));
+    EXPECT_FALSE(renderer().makeSnapshotFB(PHLWINDOW{}));
+    EXPECT_FALSE(renderer().makeSnapshotFB(PHLLS{}));
+    EXPECT_FALSE(renderer().makeSnapshotFB(WP<Desktop::View::CPopup>{}));
+    EXPECT_TRUE(context.active());
+    EXPECT_TRUE(context.m_pass.single());
+    EXPECT_EQ(context.m_mode, Render::RENDER_MODE_TO_BUFFER_READ_ONLY);
+    EXPECT_FLOAT_EQ(context.m_data.mouseZoomFactor, 2.F);
+    EXPECT_EQ(damage.getExtents(), CBox(1, 2, 3, 4));
+    renderer().abortRender();
+}
+
+TEST_F(CDMABUFBufferTest, AbortRenderReleasesPassAndAllowsReuse) {
+    auto& context = renderer().context();
+    ASSERT_TRUE(context.begin());
+    auto                 texture  = makeShared<CDMABUFTestTexture>(true);
+    WP<Render::ITexture> retained = texture;
+    context.m_pass.add(makeUnique<CTexPassElement>(CTexPassElement::SRenderData{.tex = texture}));
+    texture.reset();
+    ASSERT_FALSE(retained.expired());
+
+    renderer().abortRender();
+    EXPECT_FALSE(context.active());
+    EXPECT_TRUE(retained.expired());
+    renderer().abortRender();
+    EXPECT_FALSE(context.active());
+    ASSERT_TRUE(context.begin());
+    renderer().abortRender();
+}
+
 TEST_F(CDMABUFBufferTest, TransferredPlanesSurviveParamsAndAttributeCopies) {
     std::array<CFileDescriptor, 4> readers;
     for (uint32_t plane = 0; plane < readers.size(); ++plane)

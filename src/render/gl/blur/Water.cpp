@@ -83,13 +83,14 @@ bool CWaterBlurMaterial::isAnimated(CRenderContext& ctx) const noexcept {
     if (!*PBLURENABLED || *PWATERSTRENGTH <= 0.F)
         return false;
 
-    pruneStates();
+    if (!ctx.readOnlyEffects())
+        pruneStates();
 
     const auto monitor = ctx.m_data.pMonitor;
     if (!monitor)
         return false;
 
-    const auto now = Time::steadyNow();
+    const auto now = ctx.effectTime();
     return std::ranges::any_of(m_windowStates, [&](const auto& state) { return state.monitor == monitor && stateIsActive(state, now); }) ||
         std::ranges::any_of(m_monitorStates, [&](const auto& state) { return state.monitor == monitor && stateIsActive(state, now); });
 }
@@ -101,6 +102,9 @@ SBlurMaterialRequirements CWaterBlurMaterial::requirements() const noexcept {
 }
 
 void CWaterBlurMaterial::prepare(CRenderContext& ctx, const SBlurMaterialContext& context) {
+    if (ctx.readOnlyEffects())
+        return;
+
     pruneStates();
 
     const auto state = stateForContext(ctx, context.blurContext, false);
@@ -115,8 +119,9 @@ void CWaterBlurMaterial::prepare(CRenderContext& ctx, const SBlurMaterialContext
 void CWaterBlurMaterial::bindFinish(CRenderContext& ctx, WP<CShader> shader, const SBlurMaterialContext& context) const {
     static auto PWATERSTRENGTH = CConfigValue<Config::FLOAT>("decoration:blur:water:strength");
 
-    const auto  state = stateForContext(ctx, context.blurContext);
-    if (!state || !state->buffers[state->currentBuffer]) {
+    const auto  state   = stateForContext(ctx, context.blurContext);
+    const auto  texture = state ? materialTexture(state->buffers[state->currentBuffer]) : nullptr;
+    if (!texture || (ctx.readOnlyEffects() && state->reset) || state->simulationSize.x <= 0 || state->simulationSize.y <= 0) {
         shader->setUniformInt(SHADER_WATER_ENABLED, 0);
         return;
     }
@@ -128,7 +133,6 @@ void CWaterBlurMaterial::bindFinish(CRenderContext& ctx, WP<CShader> shader, con
     }
 
     glActiveTexture(GL_TEXTURE2);
-    const auto texture = state->buffers[state->currentBuffer]->getTexture();
     texture->bind();
     texture->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     texture->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -138,7 +142,7 @@ void CWaterBlurMaterial::bindFinish(CRenderContext& ctx, WP<CShader> shader, con
     shader->setUniformInt(SHADER_WATER_STATE_TEX, 2);
     shader->setUniformFloat2(SHADER_WATER_TEXEL_SIZE, 1.F / state->simulationSize.x, 1.F / state->simulationSize.y);
     shader->setUniformFloat4(SHADER_WATER_EXTENT, sc<float>(extent.x), sc<float>(extent.y), sc<float>(extent.width), sc<float>(extent.height));
-    const auto secondsRemaining = std::chrono::duration<float>(state->activeUntil - Time::steadyNow()).count();
+    const auto secondsRemaining = std::chrono::duration<float>(state->activeUntil - ctx.effectTime()).count();
     const auto fade             = std::clamp(secondsRemaining / WATER_FADE_DURATION, 0.F, 1.F);
     shader->setUniformFloat(SHADER_WATER_REFRACTION, std::clamp(*PWATERSTRENGTH, 0.F, MAX_WATER_DISPLACEMENT) * std::clamp(context.strength, 0.F, 1.F) * fade);
 }

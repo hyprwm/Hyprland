@@ -338,7 +338,8 @@ namespace Render {
         bool m_renderingMonitor = false;
 
         bool shouldRenderWindowInScene(PHLWINDOW window, PHLMONITOR monitor, PHLWORKSPACE workspace, eSceneMode mode);
-        void renderMonitorBackground(CRenderContext& ctx, PHLMONITOR pMonitor, const Time::steady_tp& time);
+        void renderMonitorBackground(CRenderContext& ctx, PHLMONITOR pMonitor, const Time::steady_tp& time, PHLWORKSPACE workspace, eSceneMode mode);
+        void renderFadeouts(CRenderContext& ctx, PHLMONITOR monitor, Desktop::eFadeoutPlane plane, PHLWORKSPACE workspace, eSceneMode mode);
         void bindOffMain(CRenderContext& ctx);
         void bindBackOnMain(CRenderContext& ctx);
     };

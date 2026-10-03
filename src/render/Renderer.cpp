@@ -378,7 +378,7 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
 
         renderWindow(ctx, w, pMonitor, dynamicPointerCast<Workspace::CWorkspacePresentable>(w->m_workspace), time, true, RENDER_PASS_ALL);
     }
-    renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_WINDOW_TILED, pWorkspace);
+    renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_WINDOW_TILED, pWorkspace, mode);
 
     // and floating ones too
     for (auto const& w : windows) {
@@ -396,7 +396,7 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
 
         renderWindow(ctx, w, pMonitor, dynamicPointerCast<Workspace::CWorkspacePresentable>(w->m_workspace), time, true, RENDER_PASS_ALL);
     }
-    renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_WINDOW_FLOATING, pWorkspace);
+    renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_WINDOW_FLOATING, pWorkspace, mode);
 
     // TODO: this pass sucks
     for (auto const& w : Desktop::windowState()->windows()) {
@@ -455,7 +455,7 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
 
         renderWindow(ctx, w, pMonitor, dynamicPointerCast<Workspace::CWorkspacePresentable>(w->m_workspace), time, true, RENDER_PASS_ALL);
     }
-    renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_WINDOW_OVER_FULLSCREEN, pWorkspace);
+    renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_WINDOW_OVER_FULLSCREEN, pWorkspace, mode);
 }
 
 void IHyprRenderer::renderWorkspaceWindows(CRenderContext& ctx, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {
@@ -510,7 +510,7 @@ void IHyprRenderer::renderWorkspaceWindows(CRenderContext& ctx, PHLMONITOR pMoni
 
     lastWindow.reset();
 
-    renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_WINDOW_TILED, pWorkspace);
+    renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_WINDOW_TILED, pWorkspace, mode);
 
     // Non-floating popup
     for (auto& w : windows) {
@@ -551,7 +551,7 @@ void IHyprRenderer::renderWorkspaceWindows(CRenderContext& ctx, PHLMONITOR pMoni
         // render the bad boy
         renderWindow(ctx, w.lock(), pMonitor, dynamicPointerCast<Workspace::CWorkspacePresentable>(w->m_workspace), time, true, RENDER_PASS_ALL);
     }
-    renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_WINDOW_FLOATING, pWorkspace);
+    renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_WINDOW_FLOATING, pWorkspace, mode);
 }
 
 void IHyprRenderer::bindOffMain(CRenderContext& ctx) {
@@ -1141,13 +1141,13 @@ void IHyprRenderer::renderSessionLockSurface(CRenderContext& ctx, WP<SSessionLoc
         &renderdata);
 }
 
-void IHyprRenderer::renderMonitorBackground(CRenderContext& ctx, PHLMONITOR pMonitor, const Time::steady_tp& time) {
+void IHyprRenderer::renderMonitorBackground(CRenderContext& ctx, PHLMONITOR pMonitor, const Time::steady_tp& time, PHLWORKSPACE workspace, eSceneMode mode) {
     renderBackground(ctx, pMonitor);
 
     for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
         renderLayer(ctx, ls.lock(), pMonitor, time);
     }
-    renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_LAYER_BACKGROUND);
+    renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_LAYER_BACKGROUND, workspace, mode);
 }
 
 void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time, const Vector2D& translate,
@@ -1191,7 +1191,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR
     if UNLIKELY (!pWorkspace) {
         // allow rendering without a workspace. In this case, just render layers.
 
-        renderMonitorBackground(ctx, pMonitor, time);
+        renderMonitorBackground(ctx, pMonitor, time, nullptr, mode);
 
         Event::bus()->m_events.render.stage.emit({RENDER_POST_WALLPAPER, pMonitor, ctx});
 
@@ -1213,15 +1213,16 @@ void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR
         return;
     }
 
+    const auto SHELL_WORKSPACE = mode == eSceneMode::MONITOR ? nullptr : pWorkspace;
     if LIKELY (sceneIncludesShell(mode) && !*PXPMODE) {
-        renderMonitorBackground(ctx, pMonitor, time);
+        renderMonitorBackground(ctx, pMonitor, time, SHELL_WORKSPACE, mode);
 
         Event::bus()->m_events.render.stage.emit({RENDER_POST_WALLPAPER, pMonitor, ctx});
 
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
             renderLayer(ctx, ls.lock(), pMonitor, time);
         }
-        renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_LAYER_BOTTOM);
+        renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_LAYER_BOTTOM, SHELL_WORKSPACE, mode);
     }
 
     // pre window pass
@@ -1282,26 +1283,28 @@ void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR
 
     Event::bus()->m_events.render.stage.emit({RENDER_POST_WINDOWS, pMonitor, ctx});
 
-    if (!sceneIncludesShell(mode))
+    if (!sceneIncludesShell(mode)) {
+        renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_POPUP, pWorkspace, mode);
         return;
+    }
 
     // Render surfaces above windows for monitor
     for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
         renderLayer(ctx, ls.lock(), pMonitor, time);
     }
-    renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_LAYER_TOP);
+    renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_LAYER_TOP, SHELL_WORKSPACE, mode);
 
     for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
         renderLayer(ctx, ls.lock(), pMonitor, time);
     }
-    renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_LAYER_OVERLAY);
+    renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_LAYER_OVERLAY, SHELL_WORKSPACE, mode);
 
     for (auto const& lsl : pMonitor->m_layerSurfaceLayers) {
         for (auto const& ls : lsl) {
             renderLayer(ctx, ls.lock(), pMonitor, time, true);
         }
     }
-    renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_POPUP);
+    renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_POPUP, SHELL_WORKSPACE, mode);
 
     if (mode == eSceneMode::MONITOR)
         renderDragIcon(ctx, pMonitor, time);
@@ -3422,7 +3425,14 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(WP<Desktop::View::CPopup> popup) 
 }
 
 void IHyprRenderer::renderFadeouts(CRenderContext& ctx, PHLMONITOR monitor, Desktop::eFadeoutPlane plane, PHLWORKSPACE workspace) {
+    renderFadeouts(ctx, monitor, plane, workspace, eSceneMode::MONITOR);
+}
+
+void IHyprRenderer::renderFadeouts(CRenderContext& ctx, PHLMONITOR monitor, Desktop::eFadeoutPlane plane, PHLWORKSPACE workspace, eSceneMode mode) {
     if (!monitor)
+        return;
+
+    if (mode != eSceneMode::MONITOR && !workspace)
         return;
 
     std::vector<SP<Desktop::IFadeout>> fadeouts;
@@ -3430,8 +3440,14 @@ void IHyprRenderer::renderFadeouts(CRenderContext& ctx, PHLMONITOR monitor, Desk
         if (!fadeout || fadeout->monitor() != monitor || fadeout->plane() != plane)
             continue;
 
-        if (fadeout->workspace() && fadeout->workspace() != workspace)
-            continue;
+        if (mode == eSceneMode::MONITOR) {
+            if (fadeout->workspace() && fadeout->workspace() != workspace)
+                continue;
+        } else {
+            const auto SOURCE = fadeout->source();
+            if (!sceneSelectsFadeout(mode, SOURCE.type, SOURCE.workspace && SOURCE.workspace == workspace))
+                continue;
+        }
 
         fadeouts.emplace_back(fadeout);
     }

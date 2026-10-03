@@ -51,6 +51,7 @@
 #include "pass/SurfacePassElement.hpp"
 #include "pass/BackdropScopePassElement.hpp"
 #include "scene/MonitorScene.hpp"
+#include "scene/SceneSelection.hpp"
 #include "../debug/log/Logger.hpp"
 #include "../protocols/ColorManagement.hpp"
 #include "../protocols/types/ContentType.hpp"
@@ -329,7 +330,23 @@ bool IHyprRenderer::shouldRenderMonitor(PHLMONITOR monitor) {
     return true;
 }
 
+bool IHyprRenderer::shouldRenderWindowInScene(PHLWINDOW window, PHLMONITOR monitor, PHLWORKSPACE workspace, eSceneMode mode) {
+    if (mode == eSceneMode::MONITOR)
+        return sceneSelectsWindow(mode, {.monitorVisible = shouldRenderWindow(window, monitor)});
+
+    return sceneSelectsWindow(mode,
+                              {
+                                  .mapped             = window->mapped(),
+                                  .hidden             = window->isHidden(),
+                                  .belongsToWorkspace = workspace && window->m_workspace == workspace,
+                              });
+}
+
 void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {
+    renderWorkspaceWindowsFullscreen(ctx, pMonitor, pWorkspace, time, eSceneMode::MONITOR);
+}
+
+void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time, eSceneMode mode) {
     PHLWINDOW  pWorkspaceWindow = nullptr;
     const bool SPECIAL          = pWorkspace->type() == Workspace::eWorkspaceType::SPECIAL;
 
@@ -339,7 +356,7 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
     std::vector<PHLWINDOW> windows;
     windows.reserve(Desktop::windowState()->windows().size());
     for (auto const& w : Desktop::windowState()->windows()) {
-        if (!shouldRenderWindow(w, pMonitor))
+        if (!shouldRenderWindowInScene(w, pMonitor, pWorkspace, mode))
             continue;
 
         if (w->presentation().alphaValue(WINDOW_ALPHA_FADE) * w->presentation().alphaValue(WINDOW_ALPHA_FULLSCREEN) == 0.f)
@@ -386,6 +403,9 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
         const auto PWORKSPACE = w->m_workspace;
 
         if (w->m_workspace != pWorkspace || !Fullscreen::controller()->isFullscreen(w)) {
+            if (mode != eSceneMode::MONITOR)
+                continue;
+
             if (!(PWORKSPACE && (PWORKSPACE->m_renderOffset->isBeingAnimated() || PWORKSPACE->m_alpha->isBeingAnimated() || PWORKSPACE->m_forceRendering)))
                 continue;
 
@@ -399,7 +419,7 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
         if (w->m_monitor == pWorkspace->m_monitor && SPECIAL != w->onSpecialWorkspace())
             continue;
 
-        if (shouldRenderWindow(w, pMonitor))
+        if (shouldRenderWindowInScene(w, pMonitor, pWorkspace, mode))
             renderWindow(ctx, w, pMonitor, dynamicPointerCast<Workspace::CWorkspacePresentable>(w->m_workspace), time,
                          Fullscreen::controller()->getFullscreenModes(pWorkspace).internal != Fullscreen::FSMODE_FULLSCREEN, RENDER_PASS_ALL);
 
@@ -420,6 +440,9 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
         if (shouldSkipWindow)
             continue;
 
+        if (mode != eSceneMode::MONITOR && !shouldRenderWindowInScene(w, pMonitor, pWorkspace, mode))
+            continue;
+
         const bool mismatchedSpecialWorkspace = w->m_monitor == pWorkspace->m_monitor && SPECIAL != w->onSpecialWorkspace();
 
         if (mismatchedSpecialWorkspace)
@@ -436,6 +459,10 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
 }
 
 void IHyprRenderer::renderWorkspaceWindows(CRenderContext& ctx, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {
+    renderWorkspaceWindows(ctx, pMonitor, pWorkspace, time, eSceneMode::MONITOR);
+}
+
+void IHyprRenderer::renderWorkspaceWindows(CRenderContext& ctx, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time, eSceneMode mode) {
     PHLWINDOW  lastWindow;
     const bool SPECIAL = pWorkspace->type() == Workspace::eWorkspaceType::SPECIAL;
 
@@ -450,7 +477,7 @@ void IHyprRenderer::renderWorkspaceWindows(CRenderContext& ctx, PHLMONITOR pMoni
         if (isNotRenderable)
             continue;
 
-        if (!shouldRenderWindow(w, pMonitor))
+        if (!shouldRenderWindowInScene(w, pMonitor, pWorkspace, mode))
             continue;
 
         windows.emplace_back(w);
@@ -1125,10 +1152,18 @@ void IHyprRenderer::renderMonitorBackground(CRenderContext& ctx, PHLMONITOR pMon
 
 void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time, const Vector2D& translate,
                                                  const float& scale) {
+    renderAllClientsForWorkspace(ctx, pMonitor, pWorkspace, time, eSceneMode::MONITOR, translate, scale);
+}
+
+void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time, eSceneMode mode,
+                                                 const Vector2D& translate, const float& scale) {
     static auto PXPMODE          = CConfigValue<Config::INTEGER>("render:xp_mode");
     static auto PSESSIONLOCKXRAY = CConfigValue<Config::INTEGER>("misc:session_lock_xray");
 
     if UNLIKELY (!pMonitor)
+        return;
+
+    if (mode != eSceneMode::MONITOR && !pWorkspace)
         return;
 
     if UNLIKELY (g_pSessionLockManager->isSessionLocked() && !*PSESSIONLOCKXRAY) {
@@ -1178,7 +1213,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR
         return;
     }
 
-    if LIKELY (!*PXPMODE) {
+    if LIKELY (sceneIncludesShell(mode) && !*PXPMODE) {
         renderMonitorBackground(ctx, pMonitor, time);
 
         Event::bus()->m_events.render.stage.emit({RENDER_POST_WALLPAPER, pMonitor, ctx});
@@ -1194,12 +1229,12 @@ void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR
         addPassElement(ctx, makeUnique<CPreBlurElement>());
 
     if UNLIKELY /* subjective? */ (Fullscreen::controller()->hasFullscreen(pWorkspace))
-        renderWorkspaceWindowsFullscreen(ctx, pMonitor, pWorkspace, time);
+        renderWorkspaceWindowsFullscreen(ctx, pMonitor, pWorkspace, time, mode);
     else
-        renderWorkspaceWindows(ctx, pMonitor, pWorkspace, time);
+        renderWorkspaceWindows(ctx, pMonitor, pWorkspace, time, mode);
 
     // and then special
-    if UNLIKELY (pMonitor->m_specialDim->value() != 0.F) {
+    if UNLIKELY (mode == eSceneMode::MONITOR && pMonitor->m_specialDim->value() != 0.F) {
         CRectPassElement::SRectData data;
         data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
         data.color = CHyprColor(0, 0, 0, pMonitor->m_specialDim->value());
@@ -1207,7 +1242,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR
         addPassElement(ctx, makeUnique<CRectPassElement>(data));
     }
 
-    if UNLIKELY (pMonitor->m_specialBlur->value() != 0.F) {
+    if UNLIKELY (mode == eSceneMode::MONITOR && pMonitor->m_specialBlur->value() != 0.F) {
         CRectPassElement::SRectData data;
         data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
         data.color = CHyprColor(0, 0, 0, 0);
@@ -1218,14 +1253,16 @@ void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR
     }
 
     // special
-    for (auto const& ws : State::Workspace::state()->workspaces()) {
-        if (ws->m_alpha->value() <= 0.F || ws->type() != Workspace::eWorkspaceType::SPECIAL)
-            continue;
+    if (mode == eSceneMode::MONITOR) {
+        for (auto const& ws : State::Workspace::state()->workspaces()) {
+            if (ws->m_alpha->value() <= 0.F || ws->type() != Workspace::eWorkspaceType::SPECIAL)
+                continue;
 
-        if (Fullscreen::controller()->hasFullscreen(ws.lock()))
-            renderWorkspaceWindowsFullscreen(ctx, pMonitor, ws.lock(), time);
-        else
-            renderWorkspaceWindows(ctx, pMonitor, ws.lock(), time);
+            if (Fullscreen::controller()->hasFullscreen(ws.lock()))
+                renderWorkspaceWindowsFullscreen(ctx, pMonitor, ws.lock(), time, mode);
+            else
+                renderWorkspaceWindows(ctx, pMonitor, ws.lock(), time, mode);
+        }
     }
 
     // pinned always above
@@ -1236,7 +1273,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR
         if (!(w->m_state & WINDOW_STATE_PINNED) || !w->isFloating())
             continue;
 
-        if (!shouldRenderWindow(w, pMonitor))
+        if (!shouldRenderWindowInScene(w, pMonitor, pWorkspace, mode))
             continue;
 
         // render the bad boy
@@ -1244,6 +1281,9 @@ void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR
     }
 
     Event::bus()->m_events.render.stage.emit({RENDER_POST_WINDOWS, pMonitor, ctx});
+
+    if (!sceneIncludesShell(mode))
+        return;
 
     // Render surfaces above windows for monitor
     for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
@@ -1263,7 +1303,8 @@ void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR
     }
     renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_POPUP);
 
-    renderDragIcon(ctx, pMonitor, time);
+    if (mode == eSceneMode::MONITOR)
+        renderDragIcon(ctx, pMonitor, time);
 }
 
 void IHyprRenderer::renderIME(CRenderContext& ctx, PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry) {
@@ -2618,6 +2659,18 @@ void IHyprRenderer::renderWorkspace(CRenderContext& ctx, PHLMONITOR pMonitor, PH
     }
 
     renderAllClientsForWorkspace(ctx, pMonitor, pWorkspace, now, translate, scale);
+}
+
+void IHyprRenderer::renderWorkspace(CRenderContext& ctx, PHLWORKSPACE workspace, const Time::steady_tp& now, eSceneMode mode) {
+    if (mode == eSceneMode::MONITOR || !workspace)
+        return;
+
+    const auto MONITOR = workspace->m_monitor.lock();
+    if (!MONITOR)
+        return;
+
+    // Selection only: use the owner's geometry without relayout or workspace activation.
+    renderAllClientsForWorkspace(ctx, MONITOR, workspace, now, mode);
 }
 
 void IHyprRenderer::sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now) {

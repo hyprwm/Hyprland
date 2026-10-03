@@ -61,6 +61,7 @@ namespace Render {
     class CRenderPass;
     class CMonitorScene;
     class IHyprRenderer;
+    enum class eSceneMode : uint8_t;
 
     class CTempFramebufferScope {
       public:
@@ -275,13 +276,18 @@ namespace Render {
         // old private:
         void         arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);
         void         renderWorkspace(CRenderContext& ctx, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry);
+        void         renderWorkspace(CRenderContext& ctx, PHLWORKSPACE workspace, const Time::steady_tp& now, eSceneMode mode);
         void         renderIME(CRenderContext& ctx, PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry);
         void         renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMONITOR, PHLWORKSPACE,
                                                       const Time::steady_tp&); // renders workspace windows (fullscreen) (tiled, floating, pinned, but no special)
+        void         renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMONITOR, PHLWORKSPACE, const Time::steady_tp&, eSceneMode);
         void         renderWorkspaceWindows(CRenderContext& ctx, PHLMONITOR, PHLWORKSPACE,
                                             const Time::steady_tp&); // renders workspace windows (no fullscreen) (tiled, floating, pinned, but no special)
+        void         renderWorkspaceWindows(CRenderContext& ctx, PHLMONITOR, PHLWORKSPACE, const Time::steady_tp&, eSceneMode);
         void         renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const Vector2D& translate = {0, 0},
                                                   const float& scale = 1.f);
+        void         renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, eSceneMode mode,
+                                                  const Vector2D& translate = {0, 0}, const float& scale = 1.f);
         void         renderWindow(CRenderContext& ctx, PHLWINDOW, PHLMONITOR, const SP<Workspace::CWorkspacePresentable>&, const Time::steady_tp&, bool, eRenderPassMode,
                                   bool ignorePosition = false, bool standalone = false);
         void         renderLayer(CRenderContext& ctx, PHLLS, PHLMONITOR, const Time::steady_tp&, bool popups = false, bool lockscreen = false);
@@ -331,6 +337,7 @@ namespace Render {
       private:
         bool m_renderingMonitor = false;
 
+        bool shouldRenderWindowInScene(PHLWINDOW window, PHLMONITOR monitor, PHLWORKSPACE workspace, eSceneMode mode);
         void renderMonitorBackground(CRenderContext& ctx, PHLMONITOR pMonitor, const Time::steady_tp& time);
         void bindOffMain(CRenderContext& ctx);
         void bindBackOnMain(CRenderContext& ctx);

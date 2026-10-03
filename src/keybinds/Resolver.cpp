@@ -41,6 +41,20 @@ Input::ModifierMask Keybinds::modMaskFromString(std::string modifiers) {
     return modMask;
 }
 
+std::vector<std::string> Keybinds::modMaskToKeyNames(Input::ModifierMask modMask) {
+    static constexpr std::pair<Input::eKeyboardModifiers, std::string_view> MODIFIER_KEY_NAMES[] = {
+        {HL_MODIFIER_SHIFT, "SHIFT"}, {HL_MODIFIER_CAPS, "CAPS"}, {HL_MODIFIER_MOD2, "MOD2"}, {HL_MODIFIER_MOD3, "MOD3"},
+        {HL_MODIFIER_MOD5, "MOD5"},   {HL_MODIFIER_CTRL, "CTRL"}, {HL_MODIFIER_ALT, "ALT"},   {HL_MODIFIER_META, "SUPER"},
+    };
+
+    std::vector<std::string> keyNames;
+    for (const auto& [modifier, name] : MODIFIER_KEY_NAMES) {
+        if (modMask & modifier)
+            keyNames.emplace_back(name);
+    }
+    return keyNames;
+}
+
 std::expected<uint32_t, std::string> CResolver::resolveKeycode(const std::string& key) {
     if (isNumber(key) && std::stoi(key) > 9)
         return (uint32_t)std::stoi(key);

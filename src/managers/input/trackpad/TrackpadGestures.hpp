@@ -2,12 +2,11 @@
 
 #include "../../../devices/IPointer.hpp"
 #include "../../../input/Keys.hpp"
-
 #include "gestures/ITrackpadGesture.hpp"
 #include "GestureTypes.hpp"
 
-#include <vector>
 #include <expected>
+#include <vector>
 
 class CTrackpadGestures {
   public:
@@ -25,21 +24,19 @@ class CTrackpadGestures {
     void                             gestureEnd(const IPointer::SPinchEndEvent& e);
 
     eTrackpadGestureDirection        dirForString(const std::string_view& s);
-    const char*                      stringForDir(eTrackpadGestureDirection dir);
 
   private:
     struct SGestureData {
         UP<ITrackpadGesture>      gesture;
         size_t                    fingerCount      = 0;
         Input::ModifierMask       modMask          = Input::HL_MODIFIER_NONE;
-        eTrackpadGestureDirection direction        = TRACKPAD_GESTURE_DIR_NONE; // configured dir
+        eTrackpadGestureDirection direction        = TRACKPAD_GESTURE_DIR_NONE;
         float                     deltaScale       = 1.F;
         bool                      disableInhibit   = false;
-        eTrackpadGestureDirection currentDirection = TRACKPAD_GESTURE_DIR_NONE; // actual dir of that select swipe
+        eTrackpadGestureDirection currentDirection = TRACKPAD_GESTURE_DIR_NONE;
     };
 
     std::vector<SP<SGestureData>> m_gestures;
-
     Vector2D                      m_currentTotalDelta = {};
     SP<SGestureData>              m_activeGesture     = nullptr;
     bool                          m_gestureFindFailed = false;

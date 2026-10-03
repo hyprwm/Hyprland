@@ -56,6 +56,7 @@
 
 #include "../../render/Renderer.hpp"
 #include "trackpad/TrackpadGestures.hpp"
+#include "trackpad/TriggeredGestures.hpp"
 #include "../../pointer/cursor/CursorShapeOverrideController.hpp"
 
 #include <aquamarine/input/Input.hpp>
@@ -146,6 +147,8 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
 
     const auto DELTA = *PNOACCEL == 1 ? unaccel : delta;
 
+    updatePointerGesture(e.device, e.timeMs, DELTA);
+
     if (e.mouse)
         recheckMouseWarpOnMouseInput();
 
@@ -175,7 +178,10 @@ void CInputManager::onMouseWarp(IPointer::SMotionAbsoluteEvent e) {
     if (e.mouse)
         recheckMouseWarpOnMouseInput();
 
+    const auto LASTPOS = getMouseCoordsInternal();
     Pointer::mgr()->warpAbsolute(e.absolute, e.device, e.output);
+
+    updatePointerGesture(e.device, e.timeMs, getMouseCoordsInternal() - LASTPOS);
 
     mouseMoveUnified(e.timeMs, false, e.mouse);
 
@@ -188,6 +194,19 @@ void CInputManager::onMouseWarp(IPointer::SMotionAbsoluteEvent e) {
         m_lastMousePos = Pointer::mgr()->untransformedPosition();
 
     g_pSeatManager->sendPointerFrame();
+}
+
+void CInputManager::updatePointerGesture(const SP<IHID>& device, uint32_t timeMs, const Vector2D& delta) {
+    if (!g_pTriggeredGestures->pointerGestureActive())
+        return;
+
+    if (PROTO::inputCapture->isCaptured()) {
+        g_pTriggeredGestures->pointerGestureEnd(true);
+        return;
+    }
+
+    if (dc<IPointer*>(device.get()))
+        g_pTriggeredGestures->pointerGestureUpdate({.timeMs = timeMs, .delta = delta});
 }
 
 void CInputManager::simulateMouseMovement() {
@@ -750,8 +769,11 @@ void CInputManager::onMouseButton(IPointer::SButtonEvent e, SP<IPointer> mouse) 
 
     if (PROTO::inputCapture->isCaptured()) {
         Keybinds::mgr()->onMouseEvent(e, mouse, true);
-        if (e.state == WL_POINTER_BUTTON_STATE_RELEASED)
+        if (e.state == WL_POINTER_BUTTON_STATE_RELEASED) {
+            g_pTriggeredGestures->pointerGestureEnd(true);
+
             std::erase_if(m_currentlyHeldButtons, [&](const auto& held) { return held.button == e.button && held.pointer.lock() == mouse; });
+        }
         return;
     }
 
@@ -999,6 +1021,14 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
     else if (e.delta == 0)
         PROTO::inputCapture->axisStop(e.axis);
     PROTO::inputCapture->frame();
+
+    if (PROTO::inputCapture->isCaptured()) {
+        g_pTriggeredGestures->pointerGestureEnd(true);
+        return;
+    }
+
+    if (g_pTriggeredGestures->axisGestureUpdate(e))
+        return;
 
     const bool BIND_PASSES = Keybinds::mgr()->onAxisEvent(e, pointer);
     bool       passEvent   = !PROTO::inputCapture->isCaptured() && BIND_PASSES;
@@ -1570,6 +1600,9 @@ void CInputManager::destroyPointer(SP<IPointer> mouse) {
     LOG(Log::DEBUG, "Pointer at {:x} removed", rc<uintptr_t>(mouse.get()));
 
     Keybinds::mgr()->onDeviceRemoved(mouse);
+
+    g_pTriggeredGestures->pointerGestureEnd(true);
+
     for (auto it = m_currentlyHeldButtons.begin(); it != m_currentlyHeldButtons.end();) {
         if (it->pointer.lock() != mouse) {
             ++it;

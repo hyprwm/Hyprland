@@ -514,6 +514,11 @@ void CSeatManager::sendTouchDown(SP<CWLSurfaceResource> surf, uint32_t timeMs, i
     m_state.touchFocusResource.reset();
     m_state.touchFocus = surf;
 
+    // A touch can land where no surface accepts it (e.g. a locked output without a lock
+    // surface). Focus stays cleared, so the rest of this touch is delivered nowhere.
+    if (!surf)
+        return;
+
     auto client = surf->client();
     for (auto const& r : m_seatResources | std::views::reverse) {
         if (r->resource->client() != client)

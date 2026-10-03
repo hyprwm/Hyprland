@@ -105,6 +105,11 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
 
     // could have abovelock surface, thus only use lock if no ls found
     if (g_pSessionLockManager->isSessionLocked() && m_foundLSToFocus.expired()) {
+        // Targets left over from the previous touch are behind the lock: never fall back to them,
+        // even when this output has no lock surface yet (e.g. right after resume or a hotplug).
+        m_touchData.touchFocusWindow.reset();
+        m_touchData.touchFocusLS.reset();
+        m_touchData.touchFocusSurface.reset();
         m_touchData.touchFocusLockSurface = g_pSessionLockManager->getSessionLockSurfaceForMonitor(PMONITOR->m_id);
         if (!m_touchData.touchFocusLockSurface)
             LOG(Log::WARN, "The session is locked but can't find a lock surface");

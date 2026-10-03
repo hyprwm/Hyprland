@@ -39,6 +39,7 @@
 #include "gl/GLFramebuffer.hpp"
 #include "gl/GLRenderbuffer.hpp"
 #include "pass/TexPassElement.hpp"
+#include "WindowRenderPresentation.hpp"
 
 #define GLFB(ifb) dc<CGLFramebuffer*>(ifb.get())
 
@@ -48,10 +49,6 @@ namespace Render {
 }
 namespace Config {
     class CGradientValueData;
-}
-
-namespace Workspace {
-    class CWorkspacePresentable;
 }
 
 namespace Render::GL {
@@ -138,15 +135,15 @@ namespace Render::GL {
         ~CHyprOpenGLImpl();
 
         struct SRectRenderData {
-            const CRegion*                       damage        = nullptr;
-            int                                  round         = 0;
-            float                                roundingPower = 2.F;
-            bool                                 blur          = false;
-            float                                blurA         = 1.F;
-            bool                                 xray          = false;
-            std::optional<CBox>                  blurPatternBox;
-            PHLWINDOWREF                         blurOwner;
-            SP<Workspace::CWorkspacePresentable> workspacePresentation;
+            const CRegion*                    damage        = nullptr;
+            int                               round         = 0;
+            float                             roundingPower = 2.F;
+            bool                              blur          = false;
+            float                             blurA         = 1.F;
+            bool                              xray          = false;
+            std::optional<CBox>               blurPatternBox;
+            PHLWINDOWREF                      blurOwner;
+            Render::SWindowRenderPresentation workspacePresentation;
         };
 
         struct STextureRenderData {
@@ -198,9 +195,9 @@ namespace Render::GL {
         void renderTexture(CRenderContext& ctx, SP<ITexture>, const CBox&, STextureRenderData data);
         void renderTextureMesh(CRenderContext& ctx, SP<ITexture>, const CBox&, const std::vector<SMeshRenderVertex>& vertices, STextureRenderData data);
         void renderRoundedShadow(CRenderContext& ctx, const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a,
-                                 const SP<Workspace::CWorkspacePresentable>& presentation);
+                                 const Render::SWindowRenderPresentation& presentation);
         void renderRoundedShadow(CRenderContext& ctx, const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
-                                 const Config::CGradientValueData& grad2, float lerp, float a, const SP<Workspace::CWorkspacePresentable>& presentation);
+                                 const Config::CGradientValueData& grad2, float lerp, float a, const Render::SWindowRenderPresentation& presentation);
         void renderInnerGlow(CRenderContext& ctx, const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& color, int glowPower, float a = 1.0);
         void renderInnerGlow(CRenderContext& ctx, const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
                              const Config::CGradientValueData& grad2, float lerp, int glowPower, float a = 1.0);

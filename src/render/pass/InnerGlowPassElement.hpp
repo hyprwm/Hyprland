@@ -1,18 +1,15 @@
 #pragma once
 #include "PassElement.hpp"
+#include "../WindowRenderPresentation.hpp"
 
 class CHyprInnerGlowDecoration;
-
-namespace Workspace {
-    class CWorkspacePresentable;
-}
 
 class CInnerGlowPassElement : public IPassElement {
   public:
     struct SInnerGlowData {
-        WP<CHyprInnerGlowDecoration>         deco;
-        float                                a = 1.F;
-        SP<Workspace::CWorkspacePresentable> presentation;
+        WP<CHyprInnerGlowDecoration>      deco;
+        float                             a = 1.F;
+        Render::SWindowRenderPresentation presentation;
     };
 
     CInnerGlowPassElement(const SInnerGlowData& data_);

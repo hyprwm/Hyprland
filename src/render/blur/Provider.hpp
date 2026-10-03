@@ -3,12 +3,9 @@
 #include "../../desktop/DesktopTypes.hpp"
 #include "../../helpers/math/Math.hpp"
 #include "../Framebuffer.hpp"
+#include "../WindowRenderPresentation.hpp"
 
 #include <optional>
-
-namespace Workspace {
-    class CWorkspacePresentable;
-}
 
 namespace Render {
     class CRenderContext;
@@ -19,10 +16,10 @@ namespace Render {
     };
 
     struct SBlurContext {
-        std::optional<CBox>                  patternBox;
-        PHLWINDOWREF                         owner;
-        std::optional<SBlurShape>            shape;
-        SP<Workspace::CWorkspacePresentable> workspacePresentation;
+        std::optional<CBox>               patternBox;
+        PHLWINDOWREF                      owner;
+        std::optional<SBlurShape>         shape;
+        Render::SWindowRenderPresentation workspacePresentation;
     };
 
     enum class eBlurType : uint8_t {

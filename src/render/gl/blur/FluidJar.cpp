@@ -7,10 +7,9 @@
 #include "../../Renderer.hpp"
 #include "../../Shader.hpp"
 #include "../../ShaderLoader.hpp"
+#include "../../WindowRenderPresentation.hpp"
 #include "../../../config/ConfigValue.hpp"
 #include "../../../desktop/view/window/Window.hpp"
-#include "../../../desktop/view/window/WindowPresentation.hpp"
-#include "../../../workspace/presentation/WorkspacePresentable.hpp"
 #include "../../../event/EventBus.hpp"
 #include "../../../helpers/Color.hpp"
 #include "../../../helpers/cm/ColorManagement.hpp"
@@ -70,16 +69,11 @@ static bool geometryDiscontinuous(const CBox& oldExtent, const CBox& newExtent, 
     return horizontalDelta > width * 0.75 || verticalDelta > height * 0.75;
 }
 
-static CBox renderedWindowBox(PHLWINDOW window, const SP<Workspace::CWorkspacePresentable>& presentation) {
+static CBox renderedWindowBox(PHLWINDOW window, const Render::SWindowRenderPresentation& presentation) {
     if (!window)
         return {};
 
-    auto position = window->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
-    if (presentation) {
-        position += window->presentation().floatingOffset();
-        if (!(window->m_state & Desktop::View::WINDOW_STATE_PINNED))
-            position += presentation->m_renderOffset->value();
-    }
+    const auto position = window->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT) + presentation.workspaceOffset + presentation.floatingOffset;
 
     const auto size = window->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
     return {position.x, position.y, size.x, size.y};

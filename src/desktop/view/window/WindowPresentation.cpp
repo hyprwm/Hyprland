@@ -12,6 +12,7 @@
 #include "../../../render/decorations/CHyprDropShadowDecoration.hpp"
 #include "../../../render/decorations/CHyprInnerGlowDecoration.hpp"
 #include "../../../render/decorations/DecorationPositioner.hpp"
+#include "../../../render/WindowRenderPresentation.hpp"
 #include "../../state/FocusState.hpp"
 
 #include <algorithm>
@@ -216,17 +217,17 @@ void CWindowPresentation::invalidateBorderSize() {
 }
 
 bool CWindowPresentation::opaque() const {
-    return opaque(dynamicPointerCast<Workspace::CWorkspacePresentable>(m_window.m_workspace));
+    return opaque(renderPresentation());
 }
 
-bool CWindowPresentation::opaque(const SP<Workspace::CWorkspacePresentable>& presentation) const {
+bool CWindowPresentation::opaque(const Render::SWindowRenderPresentation& presentation) const {
     if (alphaValue(WINDOW_ALPHA_FADE) != 1.f || alphaValue(WINDOW_ALPHA_FULLSCREEN) != 1.f || alphaValue(WINDOW_ALPHA_ACTIVE) != 1.f)
         return false;
 
     if (m_window.wlSurface()->small() && !m_window.wlSurface()->m_fillIgnoreSmall)
         return false;
 
-    if (presentation && presentation->m_alpha->value() != 1.f)
+    if (presentation.workspaceAlpha != 1.f)
         return false;
 
     auto solitaryResource = m_window.getSolitaryResource();
@@ -242,6 +243,33 @@ bool CWindowPresentation::opaque(const SP<Workspace::CWorkspacePresentable>& pre
         return true;
 
     return solitaryResource->m_current.texture->m_opaque;
+}
+
+Render::SWindowRenderPresentation CWindowPresentation::renderPresentation() const {
+    return renderPresentation(dynamicPointerCast<Workspace::CWorkspacePresentable>(m_window.m_workspace));
+}
+
+Render::SWindowRenderPresentation CWindowPresentation::renderPresentation(const SP<Workspace::CWorkspacePresentable>& presentation) const {
+    // Decoration geometry can be queried before all window animations are initialized.
+    const auto ALPHA = [this](eWindowAlpha channel) { return alpha(channel) ? alphaValue(channel) : 1.F; };
+
+    return Render::resolveWindowPresentation({
+        .workspaceOffset          = presentation ? presentation->m_renderOffset->value() : Vector2D{},
+        .floatingOffset           = floatingOffset(),
+        .workspaceAlpha           = presentation ? presentation->m_alpha->value() : 1.F,
+        .fade                     = ALPHA(WINDOW_ALPHA_FADE),
+        .active                   = ALPHA(WINDOW_ALPHA_ACTIVE),
+        .fullscreen               = ALPHA(WINDOW_ALPHA_FULLSCREEN),
+        .layout                   = ALPHA(WINDOW_ALPHA_LAYOUT),
+        .moveToWorkspace          = ALPHA(WINDOW_ALPHA_MOVE_TO_WORKSPACE),
+        .moveFromWorkspace        = ALPHA(WINDOW_ALPHA_MOVE_FROM_WORKSPACE),
+        .hasWorkspacePresentation = !!presentation,
+        .workspaceOffsetAnimating = presentation && presentation->m_renderOffset->isBeingAnimated(),
+        .pinned                   = !!(m_window.m_state & WINDOW_STATE_PINNED),
+        .movingFromMonitor        = movingFromMonitor(),
+        .workspaceVisible         = m_window.m_workspace && m_window.m_workspace->visible(),
+        .alphaAnimating           = m_alpha.isBeingAnimated(),
+    });
 }
 
 float CWindowPresentation::rounding() {

@@ -38,7 +38,7 @@ namespace Desktop::View {
         CBox                                      transformBoxForDamage(const CBox& currentBox) const;
         void                                      preWindowRender(Render::CRenderContext& ctx, CSurfacePassElement::SRenderData* renderData) const;
         void                                      amendTransformedRenderData(Render::CRenderContext& ctx, const CBox& currentBox, SMotionBlurData* motionBlurData,
-                                                                             const SP<Workspace::CWorkspacePresentable>& presentation) const;
+                                                                             const Render::SWindowRenderPresentation& presentation) const;
         const UP<Render::CWindowTransformerList>& transformers() const;
 
       private:

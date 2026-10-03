@@ -9,6 +9,7 @@
 #include "../../desktop/state/FocusState.hpp"
 #include "../pass/InnerGlowPassElement.hpp"
 #include "../Renderer.hpp"
+#include "../WindowRenderPresentation.hpp"
 #include "../OpenGL.hpp"
 
 CHyprInnerGlowDecoration::CHyprInnerGlowDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_window(pWindow) {
@@ -96,7 +97,7 @@ void CHyprInnerGlowDecoration::updateWindow(PHLWINDOW pWindow) {
     m_lastWindowSize   = PWINDOW->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
 }
 
-void CHyprInnerGlowDecoration::draw(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation) {
+void CHyprInnerGlowDecoration::draw(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a, const Render::SWindowRenderPresentation& presentation) {
     const auto SELF = dynamicPointerCast<CHyprInnerGlowDecoration>(self());
     if (!SELF)
         return;
@@ -108,7 +109,7 @@ void CHyprInnerGlowDecoration::draw(Render::CRenderContext& ctx, PHLMONITOR pMon
     g_pHyprRenderer->addPassElement(ctx, makeUnique<CInnerGlowPassElement>(data));
 }
 
-void CHyprInnerGlowDecoration::render(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation) {
+void CHyprInnerGlowDecoration::render(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a, const Render::SWindowRenderPresentation& presentation) {
     static auto PGLOW = CConfigValue<Config::INTEGER>("decoration:glow:enabled");
     if (!*PGLOW || !visible())
         return;
@@ -120,10 +121,9 @@ void CHyprInnerGlowDecoration::render(Render::CRenderContext& ctx, PHLMONITOR pM
 
     const auto ROUNDING      = PWINDOW->presentation().rounding() > 0 ? PWINDOW->presentation().rounding() - 1 : PWINDOW->presentation().rounding();
     const auto ROUNDINGPOWER = PWINDOW->presentation().roundingPower();
-    const auto WORKSPACEOFF  = presentation && !(PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED) ? presentation->m_renderOffset->value() : Vector2D();
 
     CBox       windowBox = {m_lastWindowPos.x, m_lastWindowPos.y, m_lastWindowSize.x, m_lastWindowSize.y};
-    windowBox.translate(-pMonitor->m_position + WORKSPACEOFF + (presentation ? PWINDOW->presentation().floatingOffset() : Vector2D()));
+    windowBox.translate(-pMonitor->m_position + presentation.workspaceOffset + presentation.floatingOffset);
     windowBox.scale(pMonitor->m_scale).round();
 
     if (windowBox.width < 1 || windowBox.height < 1)

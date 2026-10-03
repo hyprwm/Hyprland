@@ -17,7 +17,7 @@ namespace Render {
         virtual CBox                      sourceBoxForOutput(const CBox& outputBox, const CBox& inputBox) const;
         virtual CBox                      transformBoxForDamage(const CBox& currentBox) const;
         virtual void                      amendTransformedRenderData(CRenderContext& ctx, const CBox& currentBox, SMotionBlurData* pMotionBlurData,
-                                                                     const SP<Workspace::CWorkspacePresentable>& presentation);
+                                                                     const Render::SWindowRenderPresentation& presentation);
 
         void                              record(const CBox& previous, const CBox& current);
         void                              reset();

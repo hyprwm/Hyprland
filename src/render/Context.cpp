@@ -43,7 +43,8 @@ CRenderDataScope CRenderContext::saveDrawState() {
 }
 
 CRenderDataScope::CRenderDataScope(CRenderContext& ctx) :
-    m_ctx(ctx), m_data(ctx.m_data), m_backdropDepth(ctx.m_backdropCaptures.size()), m_blurShouldRender(m_data.pMonitor && m_data.pMonitor->m_blurFBShouldRender) {
+    m_ctx(ctx), m_data(ctx.m_data), m_backdropDepth(ctx.m_backdropCaptures.size()),
+    m_blurShouldRender(ctx.sceneResources() ? ctx.sceneResources()->blurQueued() : m_data.pMonitor && m_data.pMonitor->m_blurFBShouldRender) {
     ;
 }
 
@@ -52,7 +53,9 @@ CRenderDataScope::~CRenderDataScope() {
     RASSERT(m_ctx.m_backdropCaptures.size() >= m_backdropDepth, "Nested draw popped an inherited backdrop capture");
     m_ctx.m_data = std::move(m_data);
     m_ctx.m_backdropCaptures.resize(m_backdropDepth);
-    if (m_ctx.m_data.pMonitor)
+    if (m_ctx.sceneResources())
+        m_ctx.sceneResources()->setBlurQueued(m_blurShouldRender);
+    else if (m_ctx.m_data.pMonitor)
         m_ctx.m_data.pMonitor->m_blurFBShouldRender = m_blurShouldRender;
 }
 

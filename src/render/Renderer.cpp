@@ -937,6 +937,16 @@ bool IHyprRenderer::preBlurQueued(PHLMONITORREF pMonitor) {
     return pMonitor->m_blurFBDirty && *PBLURNEWOPTIMIZE && *PBLUR && pMonitor->m_blurFBShouldRender;
 }
 
+bool IHyprRenderer::preBlurQueued(CRenderContext& ctx) {
+    if (!ctx.readOnlyEffects())
+        return preBlurQueued(ctx.m_data.pMonitor);
+
+    static auto PBLUR     = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
+    const auto& resources = ctx.sceneResources();
+    // Insert a conditional marker before windows. Pass analysis determines demand.
+    return *PBLUR && resources->blurDirty() && resources->canPrecomputeBlur();
+}
+
 SP<ITexture> IHyprRenderer::createTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) {
     if (!buffer)
         return createTexture();
@@ -1219,7 +1229,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR
     }
 
     // pre window pass
-    if (preBlurQueued(pMonitor))
+    if (preBlurQueued(ctx))
         addPassElement(ctx, makeUnique<CPreBlurElement>());
 
     if UNLIKELY /* subjective? */ (Fullscreen::controller()->hasFullscreen(pWorkspace))
@@ -1566,11 +1576,17 @@ SP<ITexture> IHyprRenderer::getBlurTexture(PHLMONITORREF pMonitor) {
     return pMonitor->resources()->m_blurFB->getTexture();
 }
 
+SP<ITexture> IHyprRenderer::getBlurTexture(CRenderContext& ctx) {
+    if (ctx.sceneResources())
+        return ctx.sceneResources()->blurTexture();
+    return ctx.m_data.pMonitor ? getBlurTexture(ctx.m_data.pMonitor) : nullptr;
+}
+
 bool IHyprRenderer::shouldUseNewBlurOptimizations(CRenderContext& ctx, PHLLS pLayer, PHLWINDOW pWindow) {
     static auto PBLURNEWOPTIMIZE = CConfigValue<Config::INTEGER>("decoration:blur:new_optimizations");
     static auto PBLURXRAY        = CConfigValue<Config::INTEGER>("decoration:blur:xray");
 
-    if (!getBlurTexture(ctx.m_data.pMonitor))
+    if (ctx.readOnlyEffects() ? !ctx.sceneResources()->canPrecomputeBlur() : !getBlurTexture(ctx))
         return false;
 
     if (blurProviderRequiresLiveBlur())
@@ -1953,7 +1969,9 @@ SP<IFramebuffer> IHyprRenderer::blurMainFramebuffer(CRenderContext& ctx, float s
 
     if (!blurSource || !blurSource->getTexture()) {
         LOG(Log::ERR, "BUG THIS: null fb texture while attempting to blur main fb?! (introspection off?!)");
-        return ctx.m_data.pMonitor->resources()->m_blurFB; // return something to sample from at least
+        if (ctx.sceneResources())
+            return ctx.sceneResources()->blurTexture() ? ctx.sceneResources()->blurFramebuffer() : nullptr;
+        return ctx.m_data.pMonitor->resources()->m_blurFB;
     }
 
     auto guard = bindTempFB(ctx, renderTarget); // blurFramebuffer messes with FB bindings
@@ -2009,22 +2027,34 @@ void IHyprRenderer::scheduleFrameForAnimatedBlur(CRenderContext& ctx, const CReg
 }
 
 void IHyprRenderer::preBlurForCurrentMonitor(CRenderContext& ctx, const CRegion& fakeDamage) {
-
-    const auto blurredFB  = blurMainFramebuffer(ctx, 1, fakeDamage);
-    const auto blurredTex = blurredFB->getTexture();
+    const auto blurredFB   = blurMainFramebuffer(ctx, 1, fakeDamage);
+    const auto blurredTex  = blurredFB ? blurredFB->getTexture() : nullptr;
+    const auto resources   = ctx.sceneResources();
+    const auto destination = resources ? resources->blurFramebuffer() : ctx.m_data.pMonitor->resources()->m_blurFB;
+    if (!blurredTex || !destination || !destination->isAllocated())
+        return;
 
     // render onto blurFB
-    auto guard = bindTempFB(ctx, ctx.m_data.pMonitor->resources()->m_blurFB);
+    {
+        auto guard = bindTempFB(ctx, destination);
 
-    draw(ctx, CClearPassElement::SClearData{{0, 0, 0, 0}});
+        draw(ctx, CClearPassElement::SClearData{{0, 0, 0, 0}});
 
-    draw(ctx,
-         CTexPassElement::SRenderData{
-             .tex    = blurredTex,
-             .box    = CBox{0, 0, ctx.m_data.pMonitor->m_transformedSize.x, ctx.m_data.pMonitor->m_transformedSize.y},
-             .damage = fakeDamage,
-         },
-         fakeDamage); // .noAA = true
+        draw(ctx,
+             CTexPassElement::SRenderData{
+                 .tex    = blurredTex,
+                 .box    = CBox{0, 0, ctx.m_data.pMonitor->m_transformedSize.x, ctx.m_data.pMonitor->m_transformedSize.y},
+                 .damage = fakeDamage,
+             },
+             fakeDamage); // .noAA = true
+    }
+
+    if (resources)
+        resources->completePreBlur();
+    else {
+        ctx.m_data.pMonitor->m_blurFBDirty        = false;
+        ctx.m_data.pMonitor->m_blurFBShouldRender = false;
+    }
 }
 
 static bool isSDR2HDR(CRenderContext& ctx, const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription) {

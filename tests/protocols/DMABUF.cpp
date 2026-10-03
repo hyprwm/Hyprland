@@ -8,11 +8,14 @@
 #include <config/shared/inotify/ConfigWatcher.hpp>
 #include <event/EventBus.hpp>
 #include <managers/eventLoop/EventLoopManager.hpp>
+#include <output/MonitorResources.hpp>
 #include <render/Renderer.hpp>
+#include <render/SceneResources.hpp>
 #include <render/SyncFDManager.hpp>
 #include <render/Renderbuffer.hpp>
 
 #include <gtest/gtest.h>
+#include <hyprutils/utils/ScopeGuard.hpp>
 
 #include <array>
 #include <cerrno>
@@ -760,6 +763,202 @@ class CRenderLifecycleTest : public CDMABUFBufferTest {
     UP<Config::IConfigManager>           m_previousConfig;
     UP<Config::CConfigWatcher>           m_previousWatcher;
 };
+
+TEST_F(CRenderLifecycleTest, IsolatedBlurSelectionNeverReadsOrCompletesMonitorBlur) {
+    const auto monitorResources = m_monitor->resources();
+    const auto monitorTexture   = monitorResources->m_blurFB->getTexture();
+    ASSERT_TRUE(monitorTexture);
+    m_monitor->m_blurFBDirty        = true;
+    m_monitor->m_blurFBShouldRender = true;
+    auto  framebuffer               = makeShared<CLifecycleFramebuffer>();
+    auto  resources                 = makeShared<Render::CSceneResources>(framebuffer);
+    auto& ctx                       = renderer().context();
+    ASSERT_TRUE(ctx.begin(resources));
+    ctx.m_data.pMonitor = m_monitor;
+
+    EXPECT_FALSE(renderer().getBlurTexture(ctx));
+    ASSERT_TRUE(resources->prepare({64, 48}, DRM_FORMAT_XRGB8888, nullptr));
+    EXPECT_FALSE(renderer().getBlurTexture(ctx));
+    resources->setBlurQueued(true);
+    resources->completePreBlur();
+    EXPECT_EQ(renderer().getBlurTexture(ctx), framebuffer->getTexture());
+    EXPECT_NE(renderer().getBlurTexture(ctx), monitorTexture);
+    EXPECT_FALSE(resources->blurDirty());
+    EXPECT_FALSE(resources->blurQueued());
+    EXPECT_TRUE(m_monitor->m_blurFBDirty);
+    EXPECT_TRUE(m_monitor->m_blurFBShouldRender);
+    resources->setBlurDirty(true);
+    EXPECT_FALSE(renderer().getBlurTexture(ctx));
+    EXPECT_EQ(monitorResources->m_blurFB->getTexture(), monitorTexture);
+}
+
+TEST_F(CRenderLifecycleTest, IsolatedDrawScopesDoNotWriteBackMonitorFlags) {
+    auto  resources = makeShared<Render::CSceneResources>(makeShared<CLifecycleFramebuffer>());
+    auto& ctx       = renderer().context();
+    ASSERT_TRUE(ctx.begin(resources));
+    ctx.m_data.pMonitor = m_monitor;
+    for (const bool initial : {false, true}) {
+        SCOPED_TRACE(initial);
+        m_monitor->m_blurFBDirty        = initial;
+        m_monitor->m_blurFBShouldRender = initial;
+        resources->setBlurQueued(initial);
+        {
+            auto outer = ctx.saveDrawState();
+            resources->setBlurQueued(!initial);
+            {
+                auto inner = ctx.saveDrawState();
+                resources->setBlurQueued(initial);
+                m_monitor->m_blurFBDirty        = !initial;
+                m_monitor->m_blurFBShouldRender = !initial;
+            }
+            EXPECT_EQ(resources->blurQueued(), !initial);
+            EXPECT_EQ(m_monitor->m_blurFBDirty, !initial);
+            EXPECT_EQ(m_monitor->m_blurFBShouldRender, !initial);
+        }
+        EXPECT_EQ(resources->blurQueued(), initial);
+        EXPECT_EQ(m_monitor->m_blurFBDirty, !initial);
+        EXPECT_EQ(m_monitor->m_blurFBShouldRender, !initial);
+    }
+}
+
+TEST_F(CRenderLifecycleTest, DefaultRenderBeginSelectsActualMonitorResourceAdapter) {
+    const auto monitorResources = m_monitor->resources();
+    CRegion    damage{0, 0, 64, 48};
+    ASSERT_TRUE(renderer().beginRender(m_monitor, damage, Render::RENDER_MODE_TO_BUFFER, makeShared<CLifecycleBuffer>()));
+    auto& ctx = renderer().context();
+    ASSERT_EQ(ctx.sceneResources(), monitorResources->sceneResources());
+    ASSERT_TRUE(ctx.sceneResources());
+    EXPECT_FALSE(ctx.sceneResources()->isolated());
+    EXPECT_EQ(ctx.sceneResources()->blurFramebuffer(), monitorResources->m_blurFB);
+    EXPECT_EQ(renderer().getBlurTexture(ctx), monitorResources->m_blurFB->getTexture());
+    m_monitor->m_blurFBDirty        = true;
+    m_monitor->m_blurFBShouldRender = true;
+    {
+        auto scope = ctx.saveDrawState();
+        ctx.sceneResources()->completePreBlur();
+        EXPECT_FALSE(m_monitor->m_blurFBDirty);
+        EXPECT_FALSE(m_monitor->m_blurFBShouldRender);
+    }
+    EXPECT_FALSE(m_monitor->m_blurFBDirty);
+    EXPECT_TRUE(m_monitor->m_blurFBShouldRender);
+}
+
+TEST_F(CRenderLifecycleTest, UnselectedContextRetainsLegacyMonitorBlurAndQueueRestoration) {
+    const auto monitorResources = m_monitor->resources();
+    auto&      ctx              = renderer().context();
+    ASSERT_TRUE(ctx.begin());
+    EXPECT_FALSE(renderer().getBlurTexture(ctx));
+    ctx.m_data.pMonitor = m_monitor;
+    EXPECT_EQ(renderer().getBlurTexture(ctx), monitorResources->m_blurFB->getTexture());
+    for (const bool queued : {false, true}) {
+        SCOPED_TRACE(queued);
+        m_monitor->m_blurFBDirty        = true;
+        m_monitor->m_blurFBShouldRender = queued;
+        EXPECT_THROW(
+            {
+                auto scope                      = ctx.saveDrawState();
+                m_monitor->m_blurFBShouldRender = !queued;
+                m_monitor->m_blurFBDirty        = false;
+                ctx.m_data.pMonitor.reset();
+                throw std::runtime_error("Injected legacy draw exception");
+            },
+            std::runtime_error);
+        EXPECT_EQ(ctx.m_data.pMonitor, m_monitor);
+        EXPECT_EQ(m_monitor->m_blurFBShouldRender, queued);
+        EXPECT_FALSE(m_monitor->m_blurFBDirty);
+    }
+}
+
+TEST_F(CRenderLifecycleTest, IsolatedPreBlurMarkerUsesPreparedDirtyAllocationBeforeQueueOrContents) {
+    CConfigValue<Config::BOOL>          enabled{"decoration:blur:enabled"};
+    CConfigValue<Config::BOOL>          optimized{"decoration:blur:new_optimizations"};
+    CConfigValue<Config::BOOL>          xray{"decoration:blur:xray"};
+    const auto                          oldEnabled = *enabled, oldOptimized = *optimized, oldXray = *xray;
+    const Hyprutils::Utils::CScopeGuard restoreConfig{[&] {
+        *enabled.ptr()   = oldEnabled;
+        *optimized.ptr() = oldOptimized;
+        *xray.ptr()      = oldXray;
+    }};
+    *enabled.ptr()   = true;
+    *optimized.ptr() = true;
+    *xray.ptr()      = true;
+    ASSERT_TRUE(m_monitor->resources()->m_blurFB->getTexture());
+    m_monitor->m_blurFBDirty        = true;
+    m_monitor->m_blurFBShouldRender = true;
+    Render::CRenderContext legacy;
+    ASSERT_TRUE(legacy.begin());
+    legacy.m_data.pMonitor = m_monitor;
+    auto  resources        = makeShared<Render::CSceneResources>(makeShared<CLifecycleFramebuffer>());
+    auto& ctx              = renderer().context();
+    ASSERT_TRUE(ctx.begin(resources));
+    ctx.m_data.pMonitor = m_monitor;
+
+    EXPECT_TRUE(renderer().preBlurQueued(legacy));
+    EXPECT_FALSE(renderer().preBlurQueued(ctx));
+    EXPECT_FALSE(renderer().shouldUseNewBlurOptimizations(ctx, nullptr, nullptr));
+    ASSERT_TRUE(resources->prepare({64, 48}, DRM_FORMAT_XRGB8888, nullptr));
+    EXPECT_FALSE(resources->blurQueued());
+    EXPECT_FALSE(renderer().getBlurTexture(ctx));
+    EXPECT_TRUE(renderer().preBlurQueued(ctx));
+    EXPECT_TRUE(renderer().shouldUseNewBlurOptimizations(ctx, nullptr, nullptr));
+
+    *optimized.ptr() = false;
+    EXPECT_FALSE(renderer().preBlurQueued(legacy));
+    EXPECT_TRUE(renderer().preBlurQueued(ctx));
+    *optimized.ptr()                = true;
+    m_monitor->m_blurFBShouldRender = false;
+    EXPECT_FALSE(renderer().preBlurQueued(legacy));
+    EXPECT_TRUE(renderer().preBlurQueued(ctx));
+    m_monitor->m_blurFBShouldRender = true;
+    m_monitor->m_blurFBDirty        = false;
+    EXPECT_FALSE(renderer().preBlurQueued(legacy));
+    EXPECT_TRUE(renderer().preBlurQueued(ctx));
+    m_monitor->m_blurFBDirty = true;
+    *enabled.ptr()           = false;
+    EXPECT_FALSE(renderer().preBlurQueued(legacy));
+    EXPECT_FALSE(renderer().preBlurQueued(ctx));
+    *enabled.ptr() = true;
+
+    resources->completePreBlur();
+    resources->setBlurQueued(true);
+    EXPECT_FALSE(renderer().preBlurQueued(ctx));
+    resources->setBlurDirty(true);
+    EXPECT_TRUE(renderer().preBlurQueued(ctx));
+    EXPECT_FALSE(resources->prepare({0, 48}, DRM_FORMAT_XRGB8888, nullptr));
+    EXPECT_FALSE(renderer().preBlurQueued(ctx));
+    EXPECT_FALSE(renderer().shouldUseNewBlurOptimizations(ctx, nullptr, nullptr));
+    EXPECT_TRUE(renderer().preBlurQueued(legacy));
+}
+
+TEST_F(CRenderLifecycleTest, MissingIsolatedBlurSourceNeverFallsBackToMonitorFramebuffer) {
+    const auto monitorFramebuffer = m_monitor->resources()->m_blurFB;
+    ASSERT_TRUE(monitorFramebuffer->getTexture());
+    m_monitor->m_blurFBDirty        = true;
+    m_monitor->m_blurFBShouldRender = true;
+    auto  framebuffer               = makeShared<CLifecycleFramebuffer>();
+    auto  resources                 = makeShared<Render::CSceneResources>(framebuffer);
+    auto& ctx                       = renderer().context();
+    ASSERT_TRUE(ctx.begin(resources));
+    ctx.m_data.pMonitor = m_monitor;
+    ASSERT_FALSE(ctx.m_data.currentFB);
+    const CRegion damage{0, 0, 64, 48};
+    EXPECT_FALSE(renderer().blurMainFramebuffer(ctx, 1.F, damage));
+    ASSERT_TRUE(resources->prepare({64, 48}, DRM_FORMAT_XRGB8888, nullptr));
+    resources->setBlurQueued(true);
+    ASSERT_FALSE(renderer().blurMainFramebuffer(ctx, 1.F, damage));
+    renderer().preBlurForCurrentMonitor(ctx, damage);
+    EXPECT_TRUE(resources->blurDirty());
+    EXPECT_TRUE(resources->blurQueued());
+    EXPECT_FALSE(resources->blurTexture());
+    EXPECT_TRUE(m_monitor->m_blurFBDirty);
+    EXPECT_TRUE(m_monitor->m_blurFBShouldRender);
+
+    resources->completePreBlur();
+    EXPECT_EQ(renderer().blurMainFramebuffer(ctx, 1.F, damage), framebuffer);
+    EXPECT_NE(framebuffer, monitorFramebuffer);
+    resources->setBlurDirty(true);
+    EXPECT_FALSE(renderer().blurMainFramebuffer(ctx, 1.F, damage));
+}
 
 TEST_F(CRenderLifecycleTest, MonitorHookRejectsReentryAndUnwindsWhileAllowingOffscreenCapture) {
     struct SStopRender {};

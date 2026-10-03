@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 #include <chrono>
 #include <limits>
+#include <stdexcept>
 #include <thread>
 #include <vector>
 
@@ -78,10 +79,12 @@ namespace Render {
         EXPECT_TRUE(m_resources->blurDirty());
         EXPECT_FALSE(m_resources->blurQueued());
         EXPECT_FALSE(m_resources->blurTexture());
+        EXPECT_FALSE(m_resources->canPrecomputeBlur());
         EXPECT_EQ(m_stats->allocated, 0);
 
         ASSERT_TRUE(m_resources->prepare({100, 200}, DRM_FORMAT_ARGB8888, NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION));
         ASSERT_TRUE(m_framebuffer->getTexture());
+        EXPECT_TRUE(m_resources->canPrecomputeBlur());
         EXPECT_FALSE(m_resources->blurTexture());
         EXPECT_TRUE(m_resources->blurDirty());
         EXPECT_EQ(m_framebuffer->imageDescription(), NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION);
@@ -93,6 +96,7 @@ namespace Render {
         EXPECT_EQ(m_resources->blurTexture(), m_framebuffer->getTexture());
         EXPECT_FALSE(m_resources->blurDirty());
         EXPECT_FALSE(m_resources->blurQueued());
+        EXPECT_TRUE(m_resources->canPrecomputeBlur());
     }
 
     TEST_F(CSceneResourcesTest, IdenticalDescriptorsDoNotSharePixelsOrFlags) {
@@ -198,6 +202,7 @@ namespace Render {
         m_stats->failAllocation = true;
 
         EXPECT_FALSE(m_resources->prepare({200, 100}, DRM_FORMAT_ARGB8888, nullptr));
+        EXPECT_FALSE(m_resources->canPrecomputeBlur());
         EXPECT_FALSE(m_resources->blurTexture());
         EXPECT_TRUE(m_resources->blurDirty());
         EXPECT_FALSE(m_resources->blurQueued());
@@ -208,6 +213,7 @@ namespace Render {
 
         m_stats->failAllocation = false;
         ASSERT_TRUE(m_resources->prepare({200, 100}, DRM_FORMAT_ARGB8888, nullptr));
+        EXPECT_TRUE(m_resources->canPrecomputeBlur());
         EXPECT_FALSE(m_resources->blurTexture());
         m_resources->completePreBlur();
         ASSERT_TRUE(m_resources->blurTexture());
@@ -244,6 +250,7 @@ namespace Render {
             m_resources->setBlurQueued(true);
 
             EXPECT_FALSE(m_resources->prepare(size, DRM_FORMAT_ARGB8888, nullptr));
+            EXPECT_FALSE(m_resources->canPrecomputeBlur());
             EXPECT_FALSE(m_resources->blurTexture());
             EXPECT_TRUE(m_resources->blurDirty());
             EXPECT_FALSE(m_resources->blurQueued());
@@ -262,6 +269,7 @@ namespace Render {
         EXPECT_TRUE(resources.isolated());
         EXPECT_FALSE(resources.blurFramebuffer());
         EXPECT_FALSE(resources.prepare({100, 200}, DRM_FORMAT_ARGB8888, nullptr));
+        EXPECT_FALSE(resources.canPrecomputeBlur());
         EXPECT_TRUE(resources.blurDirty());
         resources.completePreBlur();
         EXPECT_FALSE(resources.blurTexture());
@@ -374,6 +382,73 @@ namespace Render {
         EXPECT_TRUE(context.active());
         EXPECT_TRUE(context.readOnlyEffects());
         EXPECT_EQ(other.sceneResources(), otherResources);
+    }
+
+    TEST_F(CSceneResourcesTest, NestedDrawScopesRestoreQueueButKeepCompletedContents) {
+        for (const bool queued : {false, true}) {
+            SCOPED_TRACE(queued);
+            ASSERT_TRUE(m_resources->prepare({100, 200}, DRM_FORMAT_ARGB8888, nullptr));
+            m_resources->setBlurQueued(queued);
+            CRenderContext context;
+            ASSERT_TRUE(context.begin(m_resources));
+            {
+                auto outer = context.saveDrawState();
+                m_resources->setBlurQueued(!queued);
+                {
+                    auto inner = context.saveDrawState();
+                    m_resources->completePreBlur();
+                    EXPECT_FALSE(m_resources->blurQueued());
+                    EXPECT_FALSE(m_resources->blurDirty());
+                    EXPECT_EQ(m_resources->blurTexture(), m_framebuffer->getTexture());
+                }
+                EXPECT_EQ(m_resources->blurQueued(), !queued);
+                EXPECT_FALSE(m_resources->blurDirty());
+                EXPECT_EQ(m_resources->blurTexture(), m_framebuffer->getTexture());
+            }
+            EXPECT_EQ(m_resources->blurQueued(), queued);
+            EXPECT_FALSE(m_resources->blurDirty());
+            EXPECT_EQ(m_resources->blurTexture(), m_framebuffer->getTexture());
+        }
+    }
+
+    TEST_F(CSceneResourcesTest, ExceptionUnwindsQueuesWithoutRollingBackCompletionOrInvalidation) {
+        ASSERT_TRUE(m_resources->prepare({100, 200}, DRM_FORMAT_ARGB8888, nullptr));
+        m_resources->setBlurQueued(true);
+        CRenderContext context;
+        ASSERT_TRUE(context.begin(m_resources));
+        EXPECT_THROW(
+            {
+                auto outer = context.saveDrawState();
+                m_resources->setBlurQueued(false);
+                try {
+                    auto inner = context.saveDrawState();
+                    m_resources->completePreBlur();
+                    m_resources->setBlurQueued(true);
+                    throw std::runtime_error("Injected nested draw exception");
+                } catch (const std::runtime_error&) {
+                    EXPECT_FALSE(m_resources->blurQueued());
+                    EXPECT_FALSE(m_resources->blurDirty());
+                    EXPECT_EQ(m_resources->blurTexture(), m_framebuffer->getTexture());
+                    throw;
+                }
+            },
+            std::runtime_error);
+        EXPECT_TRUE(m_resources->blurQueued());
+        EXPECT_FALSE(m_resources->blurDirty());
+        EXPECT_EQ(m_resources->blurTexture(), m_framebuffer->getTexture());
+
+        EXPECT_THROW(
+            {
+                auto scope = context.saveDrawState();
+                m_resources->setBlurQueued(false);
+                m_resources->setBlurDirty(true);
+                throw std::runtime_error("Injected invalidating draw exception");
+            },
+            std::runtime_error);
+        EXPECT_TRUE(m_resources->blurQueued());
+        EXPECT_TRUE(m_resources->blurDirty());
+        EXPECT_FALSE(m_resources->blurTexture());
+        EXPECT_TRUE(m_resources->canPrecomputeBlur());
     }
 
     TEST(SceneResources, DefaultContextUsesLiveEffectPolicy) {

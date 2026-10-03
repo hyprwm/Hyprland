@@ -59,6 +59,11 @@ bool CSceneResources::blurDirty() const {
     return m_isolated ? m_dirty : m_monitor && m_monitor->m_blurFBDirty;
 }
 
+bool CSceneResources::canPrecomputeBlur() const {
+    const auto FB = blurFramebuffer();
+    return (!m_isolated || m_prepared) && FB && FB->isAllocated();
+}
+
 void CSceneResources::setBlurDirty(bool dirty) {
     if (m_isolated) {
         m_dirty = dirty;

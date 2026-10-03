@@ -215,6 +215,8 @@ namespace Render {
         virtual void             setViewport(int x, int y, int width, int height)                                                                                            = 0;
 
         bool                     preBlurQueued(PHLMONITORREF pMonitor);
+        bool                     preBlurQueued(CRenderContext& ctx);
+        SP<ITexture>             getBlurTexture(CRenderContext& ctx);
         void                     sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now);
 
         void                     setProjectionType(CRenderContext& ctx, const Vector2D& fbSize);

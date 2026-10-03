@@ -13,6 +13,7 @@
 #include "../../../render/decorations/CHyprInnerGlowDecoration.hpp"
 #include "../../../render/decorations/DecorationPositioner.hpp"
 #include "../../../render/WindowRenderPresentation.hpp"
+#include "../../../render/scene/SceneSelection.hpp"
 #include "../../state/FocusState.hpp"
 
 #include <algorithm>
@@ -246,30 +247,39 @@ bool CWindowPresentation::opaque(const Render::SWindowRenderPresentation& presen
 }
 
 Render::SWindowRenderPresentation CWindowPresentation::renderPresentation() const {
-    return renderPresentation(dynamicPointerCast<Workspace::CWorkspacePresentable>(m_window.m_workspace));
+    return renderPresentation(Render::eSceneMode::MONITOR);
+}
+
+Render::SWindowRenderPresentation CWindowPresentation::renderPresentation(Render::eSceneMode mode) const {
+    return Render::resolveWindowPresentation(renderPresentationState(dynamicPointerCast<Workspace::CWorkspacePresentable>(m_window.m_workspace)), mode);
 }
 
 Render::SWindowRenderPresentation CWindowPresentation::renderPresentation(const SP<Workspace::CWorkspacePresentable>& presentation) const {
+    return Render::resolveWindowPresentation(renderPresentationState(presentation));
+}
+
+Render::SWindowPresentationState CWindowPresentation::renderPresentationState(const SP<Workspace::CWorkspacePresentable>& presentation) const {
     // Decoration geometry can be queried before all window animations are initialized.
     const auto ALPHA = [this](eWindowAlpha channel) { return alpha(channel) ? alphaValue(channel) : 1.F; };
 
-    return Render::resolveWindowPresentation({
-        .workspaceOffset          = presentation ? presentation->m_renderOffset->value() : Vector2D{},
-        .floatingOffset           = floatingOffset(),
-        .workspaceAlpha           = presentation ? presentation->m_alpha->value() : 1.F,
-        .fade                     = ALPHA(WINDOW_ALPHA_FADE),
-        .active                   = ALPHA(WINDOW_ALPHA_ACTIVE),
-        .fullscreen               = ALPHA(WINDOW_ALPHA_FULLSCREEN),
-        .layout                   = ALPHA(WINDOW_ALPHA_LAYOUT),
-        .moveToWorkspace          = ALPHA(WINDOW_ALPHA_MOVE_TO_WORKSPACE),
-        .moveFromWorkspace        = ALPHA(WINDOW_ALPHA_MOVE_FROM_WORKSPACE),
-        .hasWorkspacePresentation = !!presentation,
-        .workspaceOffsetAnimating = presentation && presentation->m_renderOffset->isBeingAnimated(),
-        .pinned                   = !!(m_window.m_state & WINDOW_STATE_PINNED),
-        .movingFromMonitor        = movingFromMonitor(),
-        .workspaceVisible         = m_window.m_workspace && m_window.m_workspace->visible(),
-        .alphaAnimating           = m_alpha.isBeingAnimated(),
-    });
+    return {
+        .workspaceOffset             = presentation ? presentation->m_renderOffset->value() : Vector2D{},
+        .floatingOffset              = floatingOffset(),
+        .workspaceAlpha              = presentation ? presentation->m_alpha->value() : 1.F,
+        .fade                        = ALPHA(WINDOW_ALPHA_FADE),
+        .active                      = ALPHA(WINDOW_ALPHA_ACTIVE),
+        .fullscreen                  = ALPHA(WINDOW_ALPHA_FULLSCREEN),
+        .layout                      = ALPHA(WINDOW_ALPHA_LAYOUT),
+        .moveToWorkspace             = ALPHA(WINDOW_ALPHA_MOVE_TO_WORKSPACE),
+        .moveFromWorkspace           = ALPHA(WINDOW_ALPHA_MOVE_FROM_WORKSPACE),
+        .hasWorkspacePresentation    = !!presentation,
+        .workspaceOffsetAnimating    = presentation && presentation->m_renderOffset->isBeingAnimated(),
+        .pinned                      = !!(m_window.m_state & WINDOW_STATE_PINNED),
+        .movingFromMonitor           = movingFromMonitor(),
+        .workspaceVisible            = m_window.m_workspace && m_window.m_workspace->visible(),
+        .alphaAnimating              = m_alpha.isBeingAnimated(),
+        .floatingOffsetFromWorkspace = floatingOffsetSource() == eFloatingOffsetSource::WORKSPACE,
+    };
 }
 
 float CWindowPresentation::rounding() {

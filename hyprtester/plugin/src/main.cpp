@@ -30,6 +30,7 @@
 #include <src/desktop/state/WindowState.hpp>
 #include <src/workspace/HLWorkspace.hpp>
 #include <src/layout/target/Target.hpp>
+#include <src/layout/target/WindowTarget.hpp>
 #include <src/keybinds/Key.hpp>
 #include <src/Compositor.hpp>
 #include <src/desktop/state/FocusState.hpp>
@@ -44,6 +45,7 @@
 #include <src/config/shared/animation/AnimationTree.hpp>
 #include <src/animation/AnimationManager.hpp>
 #include <src/render/WindowRenderPresentation.hpp>
+#include <src/render/scene/SceneSelection.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/VarList.hpp>
@@ -452,24 +454,30 @@ static SDispatchResult           probePopupOpacity(Render::CRenderContext& ctx, 
         window->m_workspace->m_alpha->value() != 1.F)
         return NOT_READY("Parent alpha must be settled at one before probing");
 
-    const std::array<PHLANIMVARREF<float>, 5> ALPHAS = {
+    const std::array<PHLANIMVARREF<float>, 9> ALPHAS = {
         window->presentation().alpha(WINDOW_ALPHA_FADE),
         window->presentation().alpha(WINDOW_ALPHA_ACTIVE),
         window->m_workspace->m_alpha,
         popups[0]->alpha()[POPUP_ALPHA_FADE],
         popups[1]->alpha()[POPUP_ALPHA_FADE],
+        window->presentation().alpha(WINDOW_ALPHA_FULLSCREEN),
+        window->presentation().alpha(WINDOW_ALPHA_LAYOUT),
+        window->presentation().alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE),
+        window->presentation().alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE),
     };
     for (const auto& alpha : ALPHAS) {
         if (alpha->isBeingAnimated() || alpha->value() != alpha->goal())
             return NOT_READY("Fixture alpha is still animating");
     }
 
-    std::array<float, 5> oldAlpha = {};
+    std::array<float, 9> oldAlpha = {};
     for (size_t i = 0; i < ALPHAS.size(); ++i)
         oldAlpha[i] = ALPHAS[i]->value();
 
     // An explicit mode also probes geometry; omitted modes retain the original opacity cases.
     const bool CHECK_PRESENTATION = !presentationMode.empty();
+    const bool ISOLATED           = presentationMode.starts_with("isolated-");
+    const bool WORKSPACE_OFFSET   = presentationMode.ends_with("workspace-offset");
     auto       presentation       = dynamicPointerCast<Workspace::CWorkspacePresentable>(window->m_workspace);
     if (presentationMode == "none")
         presentation.reset();
@@ -480,6 +488,11 @@ static SDispatchResult           probePopupOpacity(Render::CRenderContext& ctx, 
         Animation::mgr()->createAnimation(0.6F, presentation->m_alpha, CONFIG, AVARDAMAGE_NONE);
     }
     const auto          OLD_FLOATING_OFFSET = window->presentation().m_floatingOffset;
+    const auto          OLD_MOVED_FROM      = window->presentation().m_monitorMovedFrom;
+    const bool          OLD_FLOATING        = window->isFloating();
+    auto&               workspaceOffset     = *window->m_workspace->m_renderOffset;
+    const auto          OLD_OFFSET          = workspaceOffset.value();
+    const bool          OLD_OFFSET_ANIMATED = workspaceOffset.isBeingAnimated();
 
     auto&               renderer    = *g_pHyprRenderer;
     auto&               rootEntries = ctx.m_pass.m_passElements;
@@ -493,28 +506,58 @@ static SDispatchResult           probePopupOpacity(Render::CRenderContext& ctx, 
         rootEntries.resize(BEGIN);
         ctx.m_data = OLD_DATA;
         for (size_t i = 0; i < ALPHAS.size(); ++i)
-            ALPHAS[i]->setValueAndWarp(oldAlpha[i]);
+            ALPHAS[i]->value() = oldAlpha[i];
         if (CHECK_PRESENTATION)
             window->presentation().m_floatingOffset = OLD_FLOATING_OFFSET;
+        if (ISOLATED) {
+            workspaceOffset.value()                   = OLD_OFFSET;
+            workspaceOffset.m_bIsBeingAnimated        = OLD_OFFSET_ANIMATED;
+            window->presentation().m_monitorMovedFrom = OLD_MOVED_FROM;
+            window->m_target->setFloatingInitial(OLD_FLOATING);
+        }
     });
 
     // A zero window alpha returns early. Use the workspace contribution for zero
     // so we still require actual popup pass elements with zero inherited fade.
-    ALPHAS[0]->setValueAndWarp(parentFade == 0.F ? 1.F : parentFade);
-    ALPHAS[1]->setValueAndWarp(0.75F);
-    ALPHAS[2]->setValueAndWarp(parentFade == 0.F ? 0.F : 1.F);
-    ALPHAS[3]->setValueAndWarp(0.4F);
-    ALPHAS[4]->setValueAndWarp(0.8F);
+    // Only current values change: preserve goals/animation state and avoid callbacks.
+    const float WINDOW_FADE = parentFade == 0.F ? 1.F : parentFade;
+    ALPHAS[0]->value()      = WINDOW_FADE;
+    ALPHAS[1]->value()      = 0.75F;
+    ALPHAS[2]->value()      = parentFade == 0.F ? 0.F : 1.F;
+    ALPHAS[3]->value()      = 0.4F;
+    ALPHAS[4]->value()      = 0.8F;
     if (CHECK_PRESENTATION) {
         // Distinct live/custom alpha catches accidentally reading window->m_workspace.
-        ALPHAS[2]->setValueAndWarp(0.25F);
+        ALPHAS[2]->value() = ISOLATED && parentFade == 0.F ? 0.F : 0.25F;
         window->presentation().setFloatingOffset({7, 11});
     }
-    const float EXPECTED_PARENT_FADE = CHECK_PRESENTATION ? ALPHAS[0]->value() * (presentationMode == "none" ? 1.F : presentationMode == "custom" ? 0.6F : 0.25F) : parentFade;
-    const auto  EXPECTED_POSITION    = window->position(IGeometric::GEOMETRIC_CURRENT) +
-        (presentation ? (presentationMode == "custom" ? Vector2D{37, 23} : window->m_workspace->m_renderOffset->value()) + Vector2D{7, 11} : Vector2D{});
-    const auto RESOLVED_PRESENTATION = window->presentation().renderPresentation(presentation);
-    const auto PREVIOUS_PASS         = ctx.m_currentPass;
+    if (ISOLATED) {
+        ALPHAS[5]->value() = 0.6F;
+        ALPHAS[6]->value() = 0.8F;
+        ALPHAS[7]->value() = 0.F;
+        ALPHAS[8]->value() = 0.F;
+        // Synthetic slide state: no manager registration, callbacks or goal changes.
+        workspaceOffset.value()            = {37, 23};
+        workspaceOffset.m_bIsBeingAnimated = true;
+        window->presentation().setMonitorMovedFrom(0);
+        // Exercise the floating slide-clip path without changing layout membership or rules.
+        window->m_target->setFloatingInitial(true);
+        if (WORKSPACE_OFFSET)
+            window->presentation().m_floatingOffset.set({7, 11}, eFloatingOffsetSource::WORKSPACE);
+    }
+    const float PRESENTATION_ALPHA    = presentationMode == "none" ? 1.F : presentationMode == "custom" ? 0.6F : 0.25F;
+    const float EXPECTED_PARENT_FADE  = ISOLATED ? WINDOW_FADE * 0.6F * 0.8F : CHECK_PRESENTATION ? WINDOW_FADE * PRESENTATION_ALPHA : parentFade;
+    const auto  EXPECTED_OFFSET       = ISOLATED ? (WORKSPACE_OFFSET ? Vector2D{} : Vector2D{7, 11}) :
+        presentation                             ? (presentationMode == "custom" ? Vector2D{37, 23} : OLD_OFFSET) + Vector2D{7, 11} :
+                                                   Vector2D{};
+    const auto  EXPECTED_POSITION     = window->position(IGeometric::GEOMETRIC_CURRENT) + EXPECTED_OFFSET;
+    const auto  SCENE_MODE            = presentationMode.starts_with("isolated-shell-") ? Render::eSceneMode::WORKSPACE_WITH_SHELL : Render::eSceneMode::WORKSPACE_WINDOWS;
+    const auto  RESOLVED_PRESENTATION = ISOLATED ? window->presentation().renderPresentation(SCENE_MODE) : window->presentation().renderPresentation(presentation);
+    if (ISOLATED &&
+        (RESOLVED_PRESENTATION.workspaceOffset != Vector2D{} || RESOLVED_PRESENTATION.workspaceAlpha != 1.F || RESOLVED_PRESENTATION.workspaceOffsetAnimating ||
+         !RESOLVED_PRESENTATION.alphaVisible || RESOLVED_PRESENTATION.floatingOffset != EXPECTED_OFFSET))
+        return {.success = false, .error = "Isolated presentation retained workspace transition state or lost the window offset/visibility"};
+    const auto PREVIOUS_PASS = ctx.m_currentPass;
     {
         const auto REDIRECT = renderer.redirectPass(ctx, redirected ? &redirectedPass : nullptr);
         renderer.renderWindow(ctx, window, window->m_monitor.lock(), RESOLVED_PRESENTATION, Time::steadyNow(), false, mode, !CHECK_PRESENTATION);
@@ -557,8 +600,8 @@ static SDispatchResult           probePopupOpacity(Render::CRenderContext& ctx, 
             const auto POSITION = EXPECTED_POSITION + (INDEX == 0 ? Vector2D{} : popups[INDEX - 1]->coordsRelativeToParent() - window->backend().geometry().box.pos());
             if (!((data.pos - POSITION).size() <= 0.00001) || data.localPos != Vector2D{})
                 probeError += std::format("surface {}: incorrect position for presentation {}; ", INDEX, presentationMode);
-            if (!presentation && (data.clipBox.w != 0 || data.clipBox.h != 0))
-                probeError += std::format("surface {}: null presentation retained transition clipping; ", INDEX);
+            if ((!presentation || ISOLATED) && (data.clipBox.w != 0 || data.clipBox.h != 0))
+                probeError += std::format("surface {}: presentation {} retained transition clipping; ", INDEX, presentationMode);
         }
         if (!(std::abs(data.fadeAlpha - EXPECTED_FADE[INDEX]) <= 0.00001F) || !(std::abs(data.alpha - 0.75F) <= 0.00001F))
             probeError += std::format("surface {}: expected fade {} alpha 0.75, got fade {} alpha {}; ", INDEX, EXPECTED_FADE[INDEX], data.fadeAlpha, data.alpha);
@@ -583,7 +626,9 @@ static SDispatchResult armPopupOpacity(const std::string& cls, float parentFade,
         return {.success = false, .error = "Waiting for popup-render parent and two mapped popups"};
     if (!std::isfinite(parentFade) || parentFade < 0.F || parentFade > 1.F)
         return {.success = false, .error = "Invalid parent fade"};
-    if (!presentationMode.empty() && presentationMode != "normal" && presentationMode != "none" && presentationMode != "custom")
+    if (!presentationMode.empty() && presentationMode != "normal" && presentationMode != "none" && presentationMode != "custom" &&
+        presentationMode != "isolated-windows-window-offset" && presentationMode != "isolated-windows-workspace-offset" && presentationMode != "isolated-shell-window-offset" &&
+        presentationMode != "isolated-shell-workspace-offset")
         return {.success = false, .error = "Invalid workspace presentation mode"};
 
     g_popupRenderRecording                         = makeShared<SPopupRenderRecording>();

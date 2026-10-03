@@ -11,6 +11,7 @@
 #include <hyprutils/math/Vector2D.hpp>
 
 namespace Render {
+    class CSceneResources;
     const std::vector<const char*> ASSET_PATHS = {
 #ifdef DATAROOTDIR
         DATAROOTDIR,
@@ -40,9 +41,10 @@ namespace Render {
     };
 
     struct SRenderOptions {
-        float mouseZoomFactor    = 1.f;
-        bool  mouseZoomUseMouse  = true;
-        bool  useNearestNeighbor = false;
+        float               mouseZoomFactor    = 1.f;
+        bool                mouseZoomUseMouse  = true;
+        bool                useNearestNeighbor = false;
+        SP<CSceneResources> sceneResources;
     };
 
     struct SRenderResult {

@@ -21,8 +21,6 @@ using namespace Config::Lua::Bindings;
 
 namespace CA = Config::Actions;
 
-static std::vector<std::pair<std::string, std::string>> deprecated;
-
 //
 static constexpr auto ERR        = CA::eActionErrorLevel::ERROR;
 static constexpr auto WARN       = CA::eActionErrorLevel::WARNING;
@@ -170,7 +168,7 @@ static int hlGroupLock(lua_State* L) {
 
 // TODO: Remove this later
 static int hlGroupLockActive(lua_State* L) {
-    deprecated.emplace_back(std::pair("hl.dsp.group.lock_active()", "The group.lock_active() dispatcher is deprecated, use group.lock() instead"));
+    Bindings::warnDeprecated("hl.dsp.group.lock_active()", "The group.lock_active() dispatcher is deprecated, use group.lock() instead");
 
     const auto action = Internal::tableToggleAction(L, 1);
 
@@ -1388,8 +1386,4 @@ void Internal::registerDispatcherBindings(lua_State* L) {
     }
 
     lua_setfield(L, -2, "dsp");
-}
-
-std::vector<std::pair<std::string, std::string>>& Internal::deprecationNotices() {
-    return deprecated;
 }

@@ -212,7 +212,4 @@ namespace Config::Lua::Bindings::Internal {
     void registerConfigRuleBindings(lua_State* L, CConfigManager* mgr);
     void registerBindingsImpl(lua_State* L, CConfigManager* mgr);
     void registerDispatcherBindings(lua_State* L);
-
-    //
-    std::vector<std::pair<std::string, std::string>>& deprecationNotices();
 }

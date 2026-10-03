@@ -73,7 +73,7 @@ SWindowTransformBuffer CWobbleTransformer::transform(CRenderContext& ctx, const 
     if (OUTPUTCANVAS.empty())
         return in;
 
-    const auto OUT = context.monitor->resources()->getUnusedWorkBuffer(OUTPUTCANVAS.size());
+    const auto OUT = g_pHyprRenderer->getWorkBuffer(ctx, OUTPUTCANVAS.size());
     if (!OUT)
         return {
             .framebuffer = in.framebuffer,

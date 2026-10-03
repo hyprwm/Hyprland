@@ -555,9 +555,13 @@ void IHyprRenderer::renderWorkspaceWindows(CRenderContext& ctx, PHLMONITOR pMoni
     renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_WINDOW_FLOATING, pWorkspace, mode);
 }
 
-void IHyprRenderer::bindOffMain(CRenderContext& ctx) {
-    bindFB(ctx, ctx.m_data.pMonitor->resources()->getUnusedWorkBuffer());
+bool IHyprRenderer::bindOffMain(CRenderContext& ctx) {
+    const auto framebuffer = getWorkBuffer(ctx);
+    if (!framebuffer)
+        return false;
+    bindFB(ctx, framebuffer);
     draw(ctx, CClearPassElement::SClearData{{0, 0, 0, 0}});
+    return true;
 }
 
 void IHyprRenderer::bindBackOnMain(CRenderContext& ctx) {
@@ -1582,6 +1586,12 @@ SP<ITexture> IHyprRenderer::getBlurTexture(CRenderContext& ctx) {
     return ctx.m_data.pMonitor ? getBlurTexture(ctx.m_data.pMonitor) : nullptr;
 }
 
+SP<IFramebuffer> IHyprRenderer::getWorkBuffer(CRenderContext& ctx, std::optional<Vector2D> size) {
+    const auto resources   = ctx.m_data.pMonitor->resources();
+    auto       framebuffer = size ? resources->getUnusedWorkBuffer(*size) : resources->getUnusedWorkBuffer();
+    return ctx.sceneResources() ? ctx.sceneResources()->prepareWorkBuffer(std::move(framebuffer)) : framebuffer;
+}
+
 bool IHyprRenderer::shouldUseNewBlurOptimizations(CRenderContext& ctx, PHLLS pLayer, PHLWINDOW pWindow) {
     static auto PBLURNEWOPTIMIZE = CConfigValue<Config::INTEGER>("decoration:blur:new_optimizations");
     static auto PBLURXRAY        = CConfigValue<Config::INTEGER>("decoration:blur:xray");
@@ -1822,7 +1832,7 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     });
 
     if (m_context.readOnlyEffects()) {
-        if (mode == RENDER_MODE_NORMAL || (mode != RENDER_MODE_FULL_FAKE && !buffer)) {
+        if (mode == RENDER_MODE_NORMAL || (mode == RENDER_MODE_FULL_FAKE ? !fb : !buffer)) {
             LOG(Log::ERR, "Isolated scene resources require an offscreen destination");
             return false;
         }
@@ -1843,9 +1853,12 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     } else
         setProjectionType(m_context, RPT_MONITOR);
 
+    if (m_context.readOnlyEffects())
+        damage = CRegion{CBox{{}, simple ? m_context.m_data.fbSize : pMonitor->m_transformedSize}};
+
     const bool HAS_MIRROR_FB = RESOURCES->hasMirrorFB();
 
-    if (HAS_MIRROR_FB && !RESOURCES->shouldKeepMirrorFB())
+    if (!m_context.readOnlyEffects() && HAS_MIRROR_FB && !RESOURCES->shouldKeepMirrorFB())
         RESOURCES->releaseMirrorFB();
 
     if (m_context.m_mode == RENDER_MODE_FULL_FAKE) {
@@ -1983,7 +1996,7 @@ void IHyprRenderer::beginBackdropScope(CRenderContext& ctx, SP<SBackdropScope> s
 
     SP<IFramebuffer> backdrop;
     if (scope->required && !scope->damage.empty() && ctx.m_data.currentFB && ctx.m_data.currentFB->getTexture()) {
-        backdrop = ctx.m_data.pMonitor->resources()->getUnusedWorkBuffer();
+        backdrop = getWorkBuffer(ctx);
         if (backdrop) {
             const auto                   renderTarget = ctx.m_data.currentFB;
             const auto                   backend      = glBackend();
@@ -2017,7 +2030,7 @@ void IHyprRenderer::endBackdropScope(CRenderContext& ctx, SP<SBackdropScope> sco
 
 void IHyprRenderer::scheduleFrameForAnimatedBlur(CRenderContext& ctx, const CRegion& damage, bool usesPrecomputedBlur) {
     const auto monitor = ctx.m_data.pMonitor;
-    if (ctx.m_mode != RENDER_MODE_NORMAL || !monitor || monitor->isMirror() || damage.empty())
+    if (ctx.readOnlyEffects() || ctx.m_mode != RENDER_MODE_NORMAL || !monitor || monitor->isMirror() || damage.empty())
         return;
 
     if (usesPrecomputedBlur)

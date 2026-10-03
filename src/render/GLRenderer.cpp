@@ -94,7 +94,7 @@ bool CHyprGLRenderer::beginFullFakeRenderInternal(CRenderContext& ctx, PHLMONITO
     if (simple)
         g_pHyprOpenGL->beginSimple(ctx, pMonitor, damage, nullptr, fb);
     else
-        g_pHyprOpenGL->begin(ctx, pMonitor, damage, fb);
+        return g_pHyprOpenGL->begin(ctx, pMonitor, damage, fb);
     return true;
 }
 
@@ -105,7 +105,7 @@ bool CHyprGLRenderer::beginRenderInternal(CRenderContext& ctx, PHLMONITOR pMonit
     if (simple)
         g_pHyprOpenGL->beginSimple(ctx, pMonitor, damage, ctx.m_currentRenderbuffer);
     else
-        g_pHyprOpenGL->begin(ctx, pMonitor, damage);
+        return g_pHyprOpenGL->begin(ctx, pMonitor, damage);
 
     return true;
 }

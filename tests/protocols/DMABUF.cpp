@@ -516,6 +516,8 @@ TEST_F(CDMABUFBufferTest, AbortRenderReleasesPassAndAllowsReuse) {
 
 class CLifecycleFramebuffer : public Render::IFramebuffer {
   public:
+    bool m_failAllocation = false;
+
     void release() override {
         m_tex.reset();
         m_fbAllocated = false;
@@ -533,6 +535,8 @@ class CLifecycleFramebuffer : public Render::IFramebuffer {
 
   private:
     bool internalAlloc(int w, int h, DRMFormat) override {
+        if (m_failAllocation)
+            return false;
         m_tex         = makeShared<CDMABUFTestTexture>(true);
         m_tex->m_size = {w, h};
         return true;
@@ -958,6 +962,234 @@ TEST_F(CRenderLifecycleTest, MissingIsolatedBlurSourceNeverFallsBackToMonitorFra
     EXPECT_NE(framebuffer, monitorFramebuffer);
     resources->setBlurDirty(true);
     EXPECT_FALSE(renderer().blurMainFramebuffer(ctx, 1.F, damage));
+}
+
+TEST_F(CRenderLifecycleTest, IsolatedBeginUsesFullTargetDamageAndPreservesMonitorResources) {
+    const auto monitorResources  = m_monitor->resources();
+    const auto mirrorFramebuffer = monitorResources->mirrorFB();
+    const auto mirrorTexture     = mirrorFramebuffer->getTexture();
+    ASSERT_TRUE(mirrorTexture);
+    monitorResources->m_mirrorTex = makeShared<CDMABUFTestTexture>(true);
+    const auto mirrorAttachment   = monitorResources->m_mirrorTex;
+    const auto monitorBlurTexture = monitorResources->m_blurFB->getTexture();
+    m_monitor->m_damage.setSize(m_monitor->m_transformedSize);
+    m_monitor->m_damage.rotate();
+    m_monitor->m_damage.damage(CBox{1, 2, 3, 4});
+    auto outputBuffer = makeShared<CLifecycleBuffer>();
+    m_monitor->m_output->state->setBuffer(outputBuffer);
+
+    for (const auto mode : {Render::RENDER_MODE_FULL_FAKE, Render::RENDER_MODE_TO_BUFFER, Render::RENDER_MODE_TO_BUFFER_READ_ONLY}) {
+        SCOPED_TRACE(mode);
+        for (const bool stale : {false, true}) {
+            SCOPED_TRACE(stale);
+            monitorResources->markMirrorFBUpdated();
+            if (stale)
+                monitorResources->markMirrorFBStale(CRegion{5, 6, 7, 8});
+            const auto mirrorDamage           = monitorResources->pendingMirrorFBDamage();
+            m_monitor->m_blurFBDirty          = !stale;
+            m_monitor->m_blurFBShouldRender   = stale;
+            const auto expectMonitorUnchanged = [&] {
+                EXPECT_TRUE(monitorResources->hasMirrorFB());
+                EXPECT_TRUE(mirrorFramebuffer->isAllocated());
+                EXPECT_EQ(mirrorFramebuffer->getTexture(), mirrorTexture);
+                EXPECT_EQ(monitorResources->m_mirrorTex, mirrorAttachment);
+                EXPECT_TRUE(monitorResources->pendingMirrorFBDamage().subtract(mirrorDamage).empty());
+                EXPECT_TRUE(mirrorDamage.copy().subtract(monitorResources->pendingMirrorFBDamage()).empty());
+                EXPECT_EQ(monitorResources->m_blurFB->getTexture(), monitorBlurTexture);
+                EXPECT_EQ(m_monitor->m_blurFBDirty, !stale);
+                EXPECT_EQ(m_monitor->m_blurFBShouldRender, stale);
+                EXPECT_EQ(m_monitor->m_damage.getBufferDamage(1).getExtents(), CBox(1, 2, 3, 4));
+                EXPECT_EQ(m_monitor->m_output->state->state().buffer, outputBuffer);
+            };
+
+            auto privateFramebuffer = makeShared<CLifecycleFramebuffer>();
+            auto resources          = makeShared<Render::CSceneResources>(privateFramebuffer);
+            ASSERT_TRUE(resources->prepare({16, 12}, DRM_FORMAT_XRGB8888, nullptr));
+            resources->completePreBlur();
+            resources->setBlurQueued(true);
+            auto target = mode == Render::RENDER_MODE_FULL_FAKE ? makeShared<CLifecycleFramebuffer>() : nullptr;
+            auto buffer = mode == Render::RENDER_MODE_FULL_FAKE ? nullptr : makeShared<CLifecycleBuffer>();
+            ASSERT_TRUE(!target || target->alloc(stale ? 96 : 16, stale ? 72 : 12));
+            const CBox                   targetDamage{{}, target ? target->m_size : m_monitor->m_transformedSize};
+            const Render::SRenderOptions options{.sceneResources = resources};
+            CRegion                      damage{2, 3, 4, 5};
+            ASSERT_TRUE(renderer().beginRender(m_monitor, damage, mode, buffer, target, !!target, options));
+            auto& ctx = renderer().context();
+            EXPECT_EQ(ctx.sceneResources(), resources);
+            EXPECT_TRUE(ctx.readOnlyEffects());
+            EXPECT_EQ(ctx.m_mode, mode);
+            EXPECT_FALSE(ctx.m_swapchainAcquired);
+            EXPECT_EQ(ctx.m_currentBuffer, buffer);
+            EXPECT_EQ(damage.getExtents(), targetDamage);
+            EXPECT_EQ(ctx.m_data.damage.getExtents(), targetDamage);
+            EXPECT_EQ(ctx.m_data.finalDamage.getExtents(), targetDamage);
+            EXPECT_EQ(privateFramebuffer->m_size, m_monitor->m_transformedSize);
+            EXPECT_EQ(privateFramebuffer->m_drmFormat, monitorResources->m_blurFB->m_drmFormat);
+            EXPECT_EQ(privateFramebuffer->imageDescription(), monitorResources->m_blurFB->imageDescription());
+            EXPECT_TRUE(resources->canPrecomputeBlur());
+            EXPECT_TRUE(resources->blurDirty());
+            EXPECT_FALSE(resources->blurQueued());
+            EXPECT_FALSE(resources->blurTexture());
+            expectMonitorUnchanged();
+
+            target.reset();
+            renderer().abortRender();
+            expectClean();
+            EXPECT_FALSE(ctx.sceneResources());
+            expectMonitorUnchanged();
+        }
+    }
+    EXPECT_EQ(m_monitor->m_output->swapchain->next(nullptr), m_allocator->m_buffers[1]);
+}
+
+TEST_F(CRenderLifecycleTest, IsolatedBeginRejectsUnsafeModesAndMissingExternalDestinations) {
+    const auto monitorResources  = m_monitor->resources();
+    const auto mirrorFramebuffer = monitorResources->mirrorFB();
+    const auto mirrorTexture     = mirrorFramebuffer->getTexture();
+    monitorResources->markMirrorFBUpdated();
+    monitorResources->markMirrorFBStale(CRegion{5, 6, 7, 8});
+    m_monitor->m_blurFBDirty        = false;
+    m_monitor->m_blurFBShouldRender = true;
+    auto resources                  = makeShared<Render::CSceneResources>(makeShared<CLifecycleFramebuffer>());
+    ASSERT_TRUE(resources->prepare({16, 12}, DRM_FORMAT_XRGB8888, nullptr));
+    resources->completePreBlur();
+    resources->setBlurQueued(true);
+    const auto                   privateTexture = resources->blurTexture();
+    const Render::SRenderOptions options{.sceneResources = resources};
+    auto                         target = makeShared<CLifecycleFramebuffer>();
+    ASSERT_TRUE(target->alloc(16, 12));
+    auto buffer = makeShared<CLifecycleBuffer>();
+
+    for (const auto mode : {Render::RENDER_MODE_NORMAL, Render::RENDER_MODE_FULL_FAKE, Render::RENDER_MODE_TO_BUFFER, Render::RENDER_MODE_TO_BUFFER_READ_ONLY}) {
+        SCOPED_TRACE(mode);
+        CRegion damage{2, 3, 4, 5};
+        // NORMAL is forbidden even with both destinations. Other modes receive
+        // only the wrong destination type, so they must not acquire a swapchain.
+        EXPECT_FALSE(renderer().beginRender(m_monitor, damage, mode, mode == Render::RENDER_MODE_NORMAL || mode == Render::RENDER_MODE_FULL_FAKE ? buffer : nullptr,
+                                            mode == Render::RENDER_MODE_FULL_FAKE ? nullptr : target, false, options));
+        expectClean();
+        EXPECT_FALSE(renderer().context().sceneResources());
+        EXPECT_EQ(damage.getExtents(), CBox(2, 3, 4, 5));
+        EXPECT_EQ(resources->blurTexture(), privateTexture);
+        EXPECT_FALSE(resources->blurDirty());
+        EXPECT_TRUE(resources->blurQueued());
+        EXPECT_TRUE(mirrorFramebuffer->isAllocated());
+        EXPECT_EQ(mirrorFramebuffer->getTexture(), mirrorTexture);
+        EXPECT_EQ(monitorResources->pendingMirrorFBDamage().getExtents(), CBox(5, 6, 7, 8));
+        EXPECT_FALSE(m_monitor->m_blurFBDirty);
+        EXPECT_TRUE(m_monitor->m_blurFBShouldRender);
+    }
+    EXPECT_EQ(renderer().m_inits, 0);
+    EXPECT_EQ(renderer().m_begins, 0);
+    EXPECT_EQ(renderer().m_fakeBegins, 0);
+    EXPECT_EQ(m_monitor->m_output->swapchain->next(nullptr), m_allocator->m_buffers[1]);
+}
+
+TEST_F(CRenderLifecycleTest, FailedIsolatedPrepareCleansContextWithoutChangingMonitorState) {
+    const auto monitorResources  = m_monitor->resources();
+    const auto mirrorFramebuffer = monitorResources->mirrorFB();
+    const auto mirrorTexture     = mirrorFramebuffer->getTexture();
+    const auto blurTexture       = monitorResources->m_blurFB->getTexture();
+    monitorResources->markMirrorFBUpdated();
+    monitorResources->markMirrorFBStale(CRegion{5, 6, 7, 8});
+    m_monitor->m_blurFBDirty        = false;
+    m_monitor->m_blurFBShouldRender = true;
+    m_monitor->m_damage.setSize(m_monitor->m_transformedSize);
+    m_monitor->m_damage.rotate();
+    auto privateFramebuffer = makeShared<CLifecycleFramebuffer>();
+    auto resources          = makeShared<Render::CSceneResources>(privateFramebuffer);
+    ASSERT_TRUE(resources->prepare({16, 12}, DRM_FORMAT_XRGB8888, nullptr));
+    resources->completePreBlur();
+    privateFramebuffer->m_failAllocation = true;
+    const Render::SRenderOptions options{.sceneResources = resources};
+    auto                         target = makeShared<CLifecycleFramebuffer>();
+    ASSERT_TRUE(target->alloc(16, 12));
+    CRegion damage{2, 3, 4, 5};
+
+    EXPECT_FALSE(renderer().beginRender(m_monitor, damage, Render::RENDER_MODE_FULL_FAKE, nullptr, target, true, options));
+    expectClean();
+    EXPECT_FALSE(renderer().context().sceneResources());
+    EXPECT_FALSE(resources->canPrecomputeBlur());
+    EXPECT_FALSE(resources->blurTexture());
+    EXPECT_TRUE(resources->blurDirty());
+    EXPECT_EQ(damage.getExtents(), CBox(2, 3, 4, 5));
+    EXPECT_TRUE(mirrorFramebuffer->isAllocated());
+    EXPECT_EQ(mirrorFramebuffer->getTexture(), mirrorTexture);
+    EXPECT_EQ(monitorResources->pendingMirrorFBDamage().getExtents(), CBox(5, 6, 7, 8));
+    EXPECT_EQ(monitorResources->m_blurFB->getTexture(), blurTexture);
+    EXPECT_FALSE(m_monitor->m_blurFBDirty);
+    EXPECT_TRUE(m_monitor->m_blurFBShouldRender);
+    EXPECT_FALSE(m_monitor->m_damage.hasChanged());
+    EXPECT_EQ(renderer().m_inits, 0);
+    EXPECT_EQ(renderer().m_fakeBegins, 0);
+    EXPECT_EQ(m_monitor->m_output->swapchain->next(nullptr), m_allocator->m_buffers[1]);
+}
+
+TEST_F(CRenderLifecycleTest, WorkBufferRoutingDetachesOnlyIsolatedBorrowersFromActualPools) {
+    const auto monitorResources   = m_monitor->resources();
+    monitorResources->m_mirrorTex = makeShared<CDMABUFTestTexture>(true);
+    const auto mirror             = monitorResources->m_mirrorTex;
+    auto       resources          = makeShared<Render::CSceneResources>(makeShared<CLifecycleFramebuffer>());
+    ASSERT_TRUE(resources->prepare({64, 48}, DRM_FORMAT_XRGB8888, nullptr));
+    resources->completePreBlur();
+    resources->setBlurQueued(true);
+    const auto privateTexture       = resources->blurTexture();
+    m_monitor->m_blurFBDirty        = false;
+    m_monitor->m_blurFBShouldRender = true;
+    auto& ctx                       = renderer().context();
+
+    for (const auto size : {std::optional<Vector2D>{}, std::optional<Vector2D>{Vector2D{16, 12}}}) {
+        SCOPED_TRACE(size.has_value());
+        auto pooled = size ? monitorResources->getUnusedWorkBuffer(*size) : monitorResources->getUnusedWorkBuffer();
+        ASSERT_TRUE(pooled);
+        WP<Render::IFramebuffer> original = pooled;
+        pooled->enableMirror(mirror);
+        pooled.reset();
+        for (const auto& selected : {SP<Render::CSceneResources>{}, monitorResources->sceneResources(), resources}) {
+            ASSERT_TRUE(ctx.begin(selected));
+            ctx.m_data.pMonitor = m_monitor;
+            auto work           = renderer().getWorkBuffer(ctx, size);
+            ASSERT_TRUE(work);
+            EXPECT_EQ(work, original.lock());
+            EXPECT_EQ(work->m_size, size.value_or(m_monitor->m_transformedSize));
+            EXPECT_TRUE(work->isAllocated());
+            EXPECT_EQ(work->getMirrorTexture(), selected == resources ? nullptr : mirror);
+            EXPECT_EQ(monitorResources->m_mirrorTex, mirror);
+            EXPECT_EQ(resources->blurTexture(), privateTexture);
+            EXPECT_FALSE(resources->blurDirty());
+            EXPECT_TRUE(resources->blurQueued());
+            EXPECT_FALSE(m_monitor->m_blurFBDirty);
+            EXPECT_TRUE(m_monitor->m_blurFBShouldRender);
+            ctx.reset();
+        }
+    }
+    ASSERT_TRUE(ctx.begin(resources));
+    ctx.m_data.pMonitor = m_monitor;
+    EXPECT_FALSE(renderer().getWorkBuffer(ctx, Vector2D{0, 12}));
+}
+
+TEST_F(CRenderLifecycleTest, IsolatedAnimatedBlurNeverDamagesMonitorEvenInNormalMode) {
+    auto  resources = makeShared<Render::CSceneResources>(makeShared<CLifecycleFramebuffer>());
+    auto& ctx       = renderer().context();
+    ASSERT_TRUE(ctx.begin(resources));
+    ctx.m_data.pMonitor = m_monitor;
+    ctx.m_mode          = Render::RENDER_MODE_NORMAL;
+    ASSERT_TRUE(ctx.readOnlyEffects());
+    ASSERT_FALSE(m_monitor->isMirror());
+    m_monitor->m_damage.setSize(m_monitor->m_transformedSize);
+    m_monitor->m_damage.rotate();
+    m_monitor->m_blurFBDirty        = false;
+    m_monitor->m_blurFBShouldRender = true;
+    m_monitor->m_pendingFrame       = false;
+    for (const bool precomputed : {false, true}) {
+        SCOPED_TRACE(precomputed);
+        renderer().scheduleFrameForAnimatedBlur(ctx, CRegion{1, 2, 3, 4}, precomputed);
+        EXPECT_FALSE(m_monitor->m_damage.hasChanged());
+        EXPECT_TRUE(m_monitor->m_damage.getBufferDamage(1).empty());
+        EXPECT_FALSE(m_monitor->m_blurFBDirty);
+        EXPECT_TRUE(m_monitor->m_blurFBShouldRender);
+        EXPECT_FALSE(m_monitor->m_pendingFrame);
+    }
 }
 
 TEST_F(CRenderLifecycleTest, MonitorHookRejectsReentryAndUnwindsWhileAllowingOffscreenCapture) {

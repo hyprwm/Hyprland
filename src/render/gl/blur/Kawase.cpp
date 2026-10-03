@@ -61,9 +61,10 @@ float CDualKawaseBlurProvider::damageRadius() const {
 
 SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(CRenderContext& ctx, SP<CGLFramebuffer> source, float strength, const CRegion& originalDamage, const SBlurContext& context) {
     TRACY_GPU_ZONE("RenderBlurFramebufferWithDamage");
-    auto&      m_renderData = ctx.m_data;
+    auto&             m_renderData = ctx.m_data;
 
-    const auto BLENDBEFORE = m_impl.m_blend;
+    const auto        BLENDBEFORE = m_impl.m_blend;
+    const CScopeGuard restoreBlend([&] { m_impl.blend(BLENDBEFORE); });
     m_impl.blend(false);
     m_impl.setCapStatus(GL_STENCIL_TEST, false);
 
@@ -93,12 +94,14 @@ SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(CRenderContext& ctx, SP<CGLFr
     const auto MATERIAL_REQUIREMENTS   = m_material->requirements();
     const bool REQUIRES_PREPARED_INPUT = MATERIAL_REQUIREMENTS.preparedInput;
 
-    const auto PMIRRORFB     = dynamicPointerCast<CGLFramebuffer>(m_renderData.pMonitor->resources()->getUnusedWorkBuffer());
-    const auto PMIRRORSWAPFB = dynamicPointerCast<CGLFramebuffer>(m_renderData.pMonitor->resources()->getUnusedWorkBuffer());
-    RASSERT(PMIRRORFB && PMIRRORSWAPFB, "Failed to obtain GL work buffers for dual Kawase blur");
+    const auto PMIRRORFB     = dynamicPointerCast<CGLFramebuffer>(g_pHyprRenderer->getWorkBuffer(ctx));
+    const auto PMIRRORSWAPFB = dynamicPointerCast<CGLFramebuffer>(g_pHyprRenderer->getWorkBuffer(ctx));
+    if (!PMIRRORFB || !PMIRRORSWAPFB)
+        return nullptr;
 
-    const auto PPREPAREDFB = REQUIRES_PREPARED_INPUT ? dynamicPointerCast<CGLFramebuffer>(m_renderData.pMonitor->resources()->getUnusedWorkBuffer()) : PMIRRORSWAPFB;
-    RASSERT(PPREPAREDFB, "Failed to obtain GL prepared work buffer for dual Kawase blur");
+    const auto PPREPAREDFB = REQUIRES_PREPARED_INPUT ? dynamicPointerCast<CGLFramebuffer>(g_pHyprRenderer->getWorkBuffer(ctx)) : PMIRRORSWAPFB;
+    if (!PPREPAREDFB)
+        return nullptr;
 
     auto currentRenderToFB = PMIRRORFB;
 
@@ -286,7 +289,5 @@ SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(CRenderContext& ctx, SP<CGLFr
     }
 
     PMIRRORFB->getTexture()->unbind();
-    m_impl.blend(BLENDBEFORE);
-
     return currentRenderToFB;
 }

@@ -724,7 +724,7 @@ void CHyprOpenGLImpl::makeEGLCurrent() {
         eglMakeCurrent(g_pHyprOpenGL->m_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, g_pHyprOpenGL->m_eglContext);
 }
 
-void CHyprOpenGLImpl::begin(CRenderContext& ctx, PHLMONITOR pMonitor, const CRegion& damage_, SP<IFramebuffer> fb, std::optional<CRegion> finalDamage) {
+bool CHyprOpenGLImpl::begin(CRenderContext& ctx, PHLMONITOR pMonitor, const CRegion& damage_, SP<IFramebuffer> fb, std::optional<CRegion> finalDamage) {
     ctx.m_data.pMonitor = pMonitor;
 
     const GLenum RESETSTATUS = glGetGraphicsResetStatus();
@@ -737,7 +737,7 @@ void CHyprOpenGLImpl::begin(CRenderContext& ctx, PHLMONITOR pMonitor, const CReg
             default: errStr = "UNKNOWN??"; break;
         }
         RASSERT(false, "Aborting, glGetGraphicsResetStatus returned {}. Cannot continue until proper GPU reset handling is implemented.", errStr);
-        return;
+        return false;
     }
 
     TRACY_GPU_ZONE("RenderBegin");
@@ -753,13 +753,16 @@ void CHyprOpenGLImpl::begin(CRenderContext& ctx, PHLMONITOR pMonitor, const CReg
 
     ctx.m_gl.fakeFrame = !!fb;
 
-    if (g_pHyprRenderer->m_reloadScreenShader) {
+    if (!ctx.readOnlyEffects() && g_pHyprRenderer->m_reloadScreenShader) {
         g_pHyprRenderer->m_reloadScreenShader = false;
         static auto PSHADER                   = CConfigValue<std::string>("decoration:screen_shader");
         applyScreenShader(*PSHADER);
     }
 
-    g_pHyprRenderer->bindFB(ctx, ctx.m_data.pMonitor->resources()->getUnusedWorkBuffer());
+    const auto workBuffer = g_pHyprRenderer->getWorkBuffer(ctx);
+    if (!workBuffer)
+        return false;
+    g_pHyprRenderer->bindFB(ctx, workBuffer);
     ctx.m_gl.offloadedFramebuffer = true;
     if (!ctx.m_data.damage.empty())
         GLFB(ctx.m_data.currentFB)->clearAfterInvalidation();
@@ -767,7 +770,10 @@ void CHyprOpenGLImpl::begin(CRenderContext& ctx, PHLMONITOR pMonitor, const CReg
     ctx.m_data.mainFB = ctx.m_data.currentFB;
     ctx.m_data.outFB  = fb ? fb : ctx.m_currentRenderbuffer->getFB();
 
-    if UNLIKELY (ctx.m_data.pMonitor->needsUnmodifiedCopy() && !ctx.m_gl.fakeFrame) {
+    if (ctx.readOnlyEffects()) {
+        // Borrowed scratch must not write through an output's MRT attachment.
+        ctx.m_data.mainFB->disableMirror();
+    } else if UNLIKELY (ctx.m_data.pMonitor->needsUnmodifiedCopy() && !ctx.m_gl.fakeFrame) {
         if (!ctx.m_data.pMonitor->resources()->m_mirrorTex)
             ctx.m_data.pMonitor->resources()->enableMirror();
         ctx.m_data.mainFB->enableMirror(ctx.m_data.pMonitor->resources()->m_mirrorTex);
@@ -776,6 +782,7 @@ void CHyprOpenGLImpl::begin(CRenderContext& ctx, PHLMONITOR pMonitor, const CReg
             ctx.m_data.pMonitor->resources()->disableMirror();
         ctx.m_data.mainFB->disableMirror();
     }
+    return true;
 }
 
 void CHyprOpenGLImpl::end(CRenderContext& ctx) {
@@ -838,7 +845,7 @@ void CHyprOpenGLImpl::end(CRenderContext& ctx) {
 
             if (WANTS_FINAL_SHADER) {
                 if (NEEDS_CM) {
-                    postProcessFBs[postProcessCount] = ctx.m_data.pMonitor->resources()->getUnusedWorkBuffer();
+                    postProcessFBs[postProcessCount] = g_pHyprRenderer->getWorkBuffer(ctx);
                     if (postProcessFBs[postProcessCount]) {
                         savedDescriptions[postProcessCount] = postProcessFBs[postProcessCount]->imageDescription();
                         postProcessFBs[postProcessCount]->setImageDescription(ctx.m_data.pMonitor->m_imageDescription);
@@ -861,7 +868,7 @@ void CHyprOpenGLImpl::end(CRenderContext& ctx) {
                 }
 
                 if (!NEEDS_CM || finalCMComplete) {
-                    postProcessFBs[postProcessCount] = ctx.m_data.pMonitor->resources()->getUnusedWorkBuffer();
+                    postProcessFBs[postProcessCount] = g_pHyprRenderer->getWorkBuffer(ctx);
                     if (postProcessFBs[postProcessCount]) {
                         savedDescriptions[postProcessCount] = postProcessFBs[postProcessCount]->imageDescription();
                         postProcessFBs[postProcessCount]->setImageDescription(ctx.m_data.pMonitor->m_imageDescription);

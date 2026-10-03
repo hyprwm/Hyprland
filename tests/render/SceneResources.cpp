@@ -276,6 +276,80 @@ namespace Render {
         EXPECT_TRUE(resources.blurDirty());
     }
 
+    TEST_F(CSceneResourcesTest, IsolatedWorkBufferDetachesMirrorWithoutChangingPrivateBlurCache) {
+        ASSERT_TRUE(m_resources->prepare({100, 200}, DRM_FORMAT_ARGB8888, nullptr));
+        m_resources->completePreBlur();
+        m_resources->setBlurQueued(true);
+        const auto cacheTexture = m_resources->blurTexture();
+        auto       work         = makeShared<CSceneResourceFramebuffer>(m_stats);
+        ASSERT_TRUE(work->alloc(100, 200));
+        auto mirror = makeShared<CSceneResourceTexture>();
+        work->enableMirror(mirror);
+        ASSERT_EQ(work->getMirrorTexture(), mirror);
+        const auto allocations = m_stats->allocated;
+
+        EXPECT_EQ(m_resources->prepareWorkBuffer(work), work);
+        EXPECT_TRUE(work->isAllocated());
+        EXPECT_FALSE(work->getMirrorTexture());
+        EXPECT_EQ(m_stats->allocated, allocations + 1);
+        EXPECT_EQ(m_resources->prepareWorkBuffer(work), work);
+        EXPECT_EQ(m_stats->allocated, allocations + 1);
+        EXPECT_EQ(m_resources->blurFramebuffer(), m_framebuffer);
+        EXPECT_EQ(m_resources->blurTexture(), cacheTexture);
+        EXPECT_TRUE(m_resources->canPrecomputeBlur());
+        EXPECT_FALSE(m_resources->blurDirty());
+        EXPECT_TRUE(m_resources->blurQueued());
+    }
+
+    TEST_F(CSceneResourcesTest, MonitorWorkBufferKeepsMirrorWithoutReallocation) {
+        CSceneResources monitorResources{PHLMONITORREF{}};
+        auto            work = makeShared<CSceneResourceFramebuffer>(m_stats);
+        ASSERT_TRUE(work->alloc(100, 200));
+        auto mirror = makeShared<CSceneResourceTexture>();
+        work->enableMirror(mirror);
+        const auto texture     = work->getTexture();
+        const auto allocations = m_stats->allocated;
+
+        EXPECT_EQ(monitorResources.prepareWorkBuffer(work), work);
+        EXPECT_EQ(work->getMirrorTexture(), mirror);
+        EXPECT_EQ(work->getTexture(), texture);
+        EXPECT_EQ(m_stats->allocated, allocations);
+    }
+
+    TEST_F(CSceneResourcesTest, FailedMirrorDetachmentReturnsNoUsableWorkBuffer) {
+        ASSERT_TRUE(m_resources->prepare({100, 200}, DRM_FORMAT_ARGB8888, nullptr));
+        m_resources->completePreBlur();
+        const auto cacheTexture = m_resources->blurTexture();
+        auto       work         = makeShared<CSceneResourceFramebuffer>(m_stats);
+        ASSERT_TRUE(work->alloc(100, 200));
+        work->enableMirror(makeShared<CSceneResourceTexture>());
+        const auto allocations  = m_stats->allocated;
+        m_stats->failAllocation = true;
+
+        EXPECT_FALSE(m_resources->prepareWorkBuffer(work));
+        EXPECT_FALSE(work->getMirrorTexture());
+        EXPECT_FALSE(work->isAllocated());
+        EXPECT_EQ(m_stats->allocated, allocations + 1);
+        EXPECT_FALSE(m_resources->prepareWorkBuffer(work));
+        EXPECT_EQ(m_stats->allocated, allocations + 1);
+        EXPECT_EQ(m_resources->blurTexture(), cacheTexture);
+        EXPECT_TRUE(m_resources->canPrecomputeBlur());
+        EXPECT_FALSE(m_resources->blurDirty());
+    }
+
+    TEST_F(CSceneResourcesTest, NullAndUnallocatedWorkBuffersStayUnusable) {
+        auto work = makeShared<CSceneResourceFramebuffer>(m_stats);
+        for (const auto& resources : {m_resources, makeShared<CSceneResources>(PHLMONITORREF{})}) {
+            EXPECT_FALSE(resources->prepareWorkBuffer(nullptr));
+            EXPECT_FALSE(resources->prepareWorkBuffer(work));
+        }
+        EXPECT_EQ(m_stats->allocated, 0);
+        EXPECT_FALSE(work->isAllocated());
+        EXPECT_FALSE(m_resources->canPrecomputeBlur());
+        EXPECT_TRUE(m_resources->blurDirty());
+        EXPECT_FALSE(m_resources->blurQueued());
+    }
+
     TEST_F(CSceneResourcesTest, ContextResetPreservesExternallyOwnedResources) {
         ASSERT_TRUE(m_resources->prepare({100, 200}, DRM_FORMAT_ARGB8888, nullptr));
         m_resources->completePreBlur();

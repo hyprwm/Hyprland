@@ -13,6 +13,7 @@ struct SBackdropScope;
 namespace Render {
     class IRenderbuffer;
     class CRenderContext;
+    class CSceneResources;
 
     class CRenderDataScope {
       public:
@@ -33,14 +34,17 @@ namespace Render {
       public:
         CRenderContext();
         ~CRenderContext();
-        CRenderContext(const CRenderContext&)            = delete;
-        CRenderContext& operator=(const CRenderContext&) = delete;
-        CRenderContext(CRenderContext&&)                 = delete;
-        CRenderContext& operator=(CRenderContext&&)      = delete;
+        CRenderContext(const CRenderContext&)                  = delete;
+        CRenderContext& operator=(const CRenderContext&)       = delete;
+        CRenderContext(CRenderContext&&)                       = delete;
+        CRenderContext&            operator=(CRenderContext&&) = delete;
 
-        bool            begin();
-        bool            active() const;
-        void            reset();
+        bool                       begin(SP<CSceneResources> resources = nullptr);
+        bool                       active() const;
+        void                       reset();
+        const SP<CSceneResources>& sceneResources() const;
+        bool                       readOnlyEffects() const;
+        Time::steady_tp            effectTime() const;
 
         // Nested draws retain session routing, source buffers and persistent caches.
         [[nodiscard]] CRenderDataScope saveDrawState();
@@ -82,6 +86,8 @@ namespace Render {
         } m_gl;
 
       private:
-        bool m_active = false;
+        bool                m_active = false;
+        SP<CSceneResources> m_sceneResources;
+        Time::steady_tp     m_frameTime = {};
     };
 }

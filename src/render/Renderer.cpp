@@ -52,6 +52,7 @@
 #include "pass/BackdropScopePassElement.hpp"
 #include "scene/MonitorScene.hpp"
 #include "scene/SceneSelection.hpp"
+#include "SceneResources.hpp"
 #include "../debug/log/Logger.hpp"
 #include "../protocols/ColorManagement.hpp"
 #include "../protocols/types/ContentType.hpp"
@@ -1789,16 +1790,30 @@ void IHyprRenderer::renderSessionLockMissing(CRenderContext& ctx, PHLMONITOR pMo
 
 bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode, SP<IHLBuffer> buffer, SP<IFramebuffer> fb, bool simple, const SRenderOptions& options,
                                 std::optional<Monitor::CDamageRing::CTransaction>* damageTransaction) {
-    if (!m_context.begin()) {
+    if (m_context.active()) {
         LOG(Log::ERR, "Cannot begin rendering while a render context is active");
         return false;
     }
+
+    const auto RESOURCES = pMonitor->resources();
+    if (!m_context.begin(options.sceneResources ? options.sceneResources : RESOURCES->sceneResources()))
+        return false;
 
     bool              started = false;
     const CScopeGuard cleanup([&] {
         if (!started)
             abortRender();
     });
+
+    if (m_context.readOnlyEffects()) {
+        if (mode == RENDER_MODE_NORMAL || (mode != RENDER_MODE_FULL_FAKE && !buffer)) {
+            LOG(Log::ERR, "Isolated scene resources require an offscreen destination");
+            return false;
+        }
+        initRender();
+        if (!RESOURCES->prepareSceneResources(*m_context.sceneResources()))
+            return false;
+    }
 
     m_context.m_mode                    = mode;
     m_context.m_data.pMonitor           = pMonitor;
@@ -1812,7 +1827,6 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     } else
         setProjectionType(m_context, RPT_MONITOR);
 
-    const auto RESOURCES     = pMonitor->resources();
     const bool HAS_MIRROR_FB = RESOURCES->hasMirrorFB();
 
     if (HAS_MIRROR_FB && !RESOURCES->shouldKeepMirrorFB())

@@ -2,6 +2,7 @@
 #include "../managers/screenshare/ScreenshareManager.hpp"
 #include "../helpers/cm/ColorManagement.hpp"
 #include "../render/Renderer.hpp"
+#include "../render/SceneResources.hpp"
 #include "../render/OpenGL.hpp"
 #include "../config/ConfigValue.hpp"
 #include <cstdint>
@@ -31,6 +32,15 @@ CMonitorResources::CMonitorResources(WP<CMonitor> monitor, DRMFormat format, Vec
     m_sizedWorkBuffers([this] { return g_pHyprRenderer->createFB(std::format("Monitor {} sized workbuffer", m_monitor->m_name)); }, prepareWorkBufferRelease) {
     initFB(m_blurFB);
     monitor->m_blurFBDirty = true;
+    m_sceneResources       = makeShared<Render::CSceneResources>(monitor);
+}
+
+const SP<Render::CSceneResources>& CMonitorResources::sceneResources() const {
+    return m_sceneResources;
+}
+
+bool CMonitorResources::prepareSceneResources(Render::CSceneResources& resources) const {
+    return resources.prepare(m_size, m_drmFormat, m_imageDescription);
 }
 
 void CMonitorResources::initFB(SP<Render::IFramebuffer> fb) {

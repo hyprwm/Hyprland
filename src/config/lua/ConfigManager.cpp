@@ -694,6 +694,7 @@ void CConfigManager::reload() {
         lua_pop(m_lua, 2); // pop loaded, package
 
         if (luaL_loadfile(m_lua, m_mainConfigPath.c_str()) != LUA_OK) {
+            Bindings::deprecations().clear();
             m_errors.clear();
             addError(lua_tostring(m_lua, -1));
             lua_pop(m_lua, 1);
@@ -710,6 +711,7 @@ void CConfigManager::reload() {
     }
 
     // phase 2: syntax is valid, reset and load.
+    Bindings::deprecations().clear();
     Config::animationTree()->reset();
     Config::workspaceRuleMgr()->clear();
     Config::monitorRuleMgr()->clear();
@@ -1474,6 +1476,9 @@ std::vector<std::string> CConfigManager::deprecationNotices() const {
 
         accum.emplace_back(std::format("{}: {}", v.first, *v.second->deprecationNotice()));
     }
+
+    for (const auto& v : Bindings::deprecations())
+        accum.emplace_back(std::format("{}: {}", v.first, v.second));
 
     return accum;
 }

@@ -308,7 +308,23 @@ TEST_CASE(groupLock) {
         }
         OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
         OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ window = 'pid:{}' }})", lockedWin->pid())));
-        OK(getFromSocket("/dispatch hl.dsp.group.lock_active({ action = 'set' })"));
+        OK(getFromSocket("/dispatch hl.dsp.group.lock({ action = 'enable' })"));
+
+        SPAWN_KITTY("top");
+
+        // Verify it did NOT merge into the locked group
+        {
+            auto str = getFromSocket("/clients");
+            EXPECT_COUNT_STRING(str, "at: 22,22", 1);
+        }
+
+        // TODO: Remove this section when lock_active gets killed
+        OK(getFromSocket("/dispatch hl.dsp.window.kill()"));
+        Tests::waitUntilWindowsN(1);
+
+        // Unlock, and re-lock using alternate dispatcher
+        OK(getFromSocket("/dispatch hl.dsp.group.lock({ action = 'disable' })"));
+        OK(getFromSocket("/dispatch hl.dsp.group.lock_active({ action = 'enable' })"));
 
         SPAWN_KITTY("top");
 

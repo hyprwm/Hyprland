@@ -61,6 +61,7 @@ namespace Render {
     class CRenderPass;
     class CMonitorScene;
     class IHyprRenderer;
+    enum class eSceneMode : uint8_t;
 
     class CTempFramebufferScope {
       public:
@@ -205,15 +206,18 @@ namespace Render {
         virtual void                    disableScissor()                                                                                                                     = 0;
         virtual void                    blend(bool enabled)                                                                                                                  = 0;
         virtual void             drawShadow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a,
-                                            const SP<Workspace::CWorkspacePresentable>& presentation)                                                                        = 0;
+                                            const SWindowRenderPresentation& presentation)                                                                                   = 0;
         virtual void             drawShadow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
-                                            const Config::CGradientValueData& grad2, float lerp, float a, const SP<Workspace::CWorkspacePresentable>& presentation)          = 0;
+                                            const Config::CGradientValueData& grad2, float lerp, float a, const SWindowRenderPresentation& presentation)                     = 0;
         virtual void             drawGlow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a) = 0;
         virtual void             drawGlow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
                                           const Config::CGradientValueData& grad2, float lerp, float a)                                                                      = 0;
         virtual void             setViewport(int x, int y, int width, int height)                                                                                            = 0;
 
         bool                     preBlurQueued(PHLMONITORREF pMonitor);
+        bool                     preBlurQueued(CRenderContext& ctx);
+        SP<ITexture>             getBlurTexture(CRenderContext& ctx);
+        SP<IFramebuffer>         getWorkBuffer(CRenderContext& ctx, std::optional<Vector2D> size = std::nullopt);
         void                     sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now);
 
         void                     setProjectionType(CRenderContext& ctx, const Vector2D& fbSize);
@@ -273,29 +277,34 @@ namespace Render {
         void                 handleFullscreenSettings(PHLMONITOR pMonitor);
 
         // old private:
-        void         arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);
-        void         renderWorkspace(CRenderContext& ctx, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry);
-        void         renderIME(CRenderContext& ctx, PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry);
-        void         renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMONITOR, PHLWORKSPACE,
-                                                      const Time::steady_tp&); // renders workspace windows (fullscreen) (tiled, floating, pinned, but no special)
-        void         renderWorkspaceWindows(CRenderContext& ctx, PHLMONITOR, PHLWORKSPACE,
-                                            const Time::steady_tp&); // renders workspace windows (no fullscreen) (tiled, floating, pinned, but no special)
-        void         renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const Vector2D& translate = {0, 0},
-                                                  const float& scale = 1.f);
-        void         renderWindow(CRenderContext& ctx, PHLWINDOW, PHLMONITOR, const SP<Workspace::CWorkspacePresentable>&, const Time::steady_tp&, bool, eRenderPassMode,
-                                  bool ignorePosition = false, bool standalone = false);
-        void         renderLayer(CRenderContext& ctx, PHLLS, PHLMONITOR, const Time::steady_tp&, bool popups = false, bool lockscreen = false);
-        void         renderSessionLockSurface(CRenderContext& ctx, WP<SSessionLockSurface>, PHLMONITOR, const Time::steady_tp&);
-        void         renderDragIcon(CRenderContext& ctx, PHLMONITOR, const Time::steady_tp&);
-        void         renderIMEPopup(CRenderContext& ctx, CInputPopup*, PHLMONITOR, const Time::steady_tp&);
-        void         renderSessionLockPrimer(CRenderContext& ctx, PHLMONITOR pMonitor);
-        void         renderSessionLockMissing(CRenderContext& ctx, PHLMONITOR pMonitor);
-        void         renderBackground(CRenderContext& ctx, PHLMONITOR pMonitor);
-        void         requestBackgroundResource();
-        std::string  resolveAssetPath(const std::string& file);
-        void         initMissingAssetTexture();
-        void         initAssets();
-        SP<ITexture> m_missingAssetTexture;
+        void arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);
+        void renderWorkspace(CRenderContext& ctx, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry);
+        void renderWorkspace(CRenderContext& ctx, PHLWORKSPACE workspace, const Time::steady_tp& now, eSceneMode mode);
+        void renderIME(CRenderContext& ctx, PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry);
+        void renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMONITOR, PHLWORKSPACE,
+                                              const Time::steady_tp&); // renders workspace windows (fullscreen) (tiled, floating, pinned, but no special)
+        void renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMONITOR, PHLWORKSPACE, const Time::steady_tp&, eSceneMode);
+        void renderWorkspaceWindows(CRenderContext& ctx, PHLMONITOR, PHLWORKSPACE,
+                                    const Time::steady_tp&); // renders workspace windows (no fullscreen) (tiled, floating, pinned, but no special)
+        void renderWorkspaceWindows(CRenderContext& ctx, PHLMONITOR, PHLWORKSPACE, const Time::steady_tp&, eSceneMode);
+        void renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const Vector2D& translate = {0, 0},
+                                          const float& scale = 1.f);
+        void renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, eSceneMode mode,
+                                          const Vector2D& translate = {0, 0}, const float& scale = 1.f);
+        void renderWindow(CRenderContext& ctx, PHLWINDOW, PHLMONITOR, const SWindowRenderPresentation&, const Time::steady_tp&, bool, eRenderPassMode, bool ignorePosition = false,
+                          bool standalone = false);
+        void renderLayer(CRenderContext& ctx, PHLLS, PHLMONITOR, const Time::steady_tp&, bool popups = false, bool lockscreen = false);
+        void renderSessionLockSurface(CRenderContext& ctx, WP<SSessionLockSurface>, PHLMONITOR, const Time::steady_tp&);
+        void renderDragIcon(CRenderContext& ctx, PHLMONITOR, const Time::steady_tp&);
+        void renderIMEPopup(CRenderContext& ctx, CInputPopup*, PHLMONITOR, const Time::steady_tp&);
+        void renderSessionLockPrimer(CRenderContext& ctx, PHLMONITOR pMonitor);
+        void renderSessionLockMissing(CRenderContext& ctx, PHLMONITOR pMonitor);
+        void renderBackground(CRenderContext& ctx, PHLMONITOR pMonitor);
+        void requestBackgroundResource();
+        std::string                       resolveAssetPath(const std::string& file);
+        void                              initMissingAssetTexture();
+        void                              initAssets();
+        SP<ITexture>                      m_missingAssetTexture;
         ASP<Hyprgraphics::CImageResource> m_backgroundResource;
         bool                              m_backgroundResourceFailed = false;
 
@@ -331,8 +340,10 @@ namespace Render {
       private:
         bool m_renderingMonitor = false;
 
-        void renderMonitorBackground(CRenderContext& ctx, PHLMONITOR pMonitor, const Time::steady_tp& time);
-        void bindOffMain(CRenderContext& ctx);
+        bool shouldRenderWindowInScene(PHLWINDOW window, PHLMONITOR monitor, PHLWORKSPACE workspace, eSceneMode mode);
+        void renderMonitorBackground(CRenderContext& ctx, PHLMONITOR pMonitor, const Time::steady_tp& time, PHLWORKSPACE workspace, eSceneMode mode);
+        void renderFadeouts(CRenderContext& ctx, PHLMONITOR monitor, Desktop::eFadeoutPlane plane, PHLWORKSPACE workspace, eSceneMode mode);
+        bool bindOffMain(CRenderContext& ctx);
         void bindBackOnMain(CRenderContext& ctx);
     };
 

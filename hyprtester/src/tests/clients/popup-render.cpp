@@ -6,6 +6,7 @@
 #include <chrono>
 #include <csignal>
 #include <format>
+#include <string_view>
 #include <thread>
 
 #include <hyprutils/os/Process.hpp>
@@ -46,12 +47,19 @@ SUBTEST(popupRender, bool redirected) {
     OK(ready);
     EXPECT_OK(waitForPopupProbe()); // ALL: sibling fades must be 0.2 and 0.4.
 
-    for (const auto* PRESENTATION : {"normal", "none", "custom"}) {
+    for (const auto* PRESENTATION :
+         {"normal", "none", "custom", "isolated-windows-window-offset", "isolated-windows-workspace-offset", "isolated-shell-window-offset", "isolated-shell-workspace-offset"}) {
         for (const bool POPUP_ONLY : {false, true}) {
-            NLog::log("Checking workspace presentation: {}, mode {}, redirected {}", PRESENTATION, POPUP_ONLY ? "POPUP" : "ALL", redirected);
-            OK(getFromSocket(std::format("/eval hl.plugin.test.arm_popup_opacity('popup-render', 0.5, {}, {}, '{}')", POPUP_ONLY ? "true" : "false", redirected ? "true" : "false",
-                                         PRESENTATION)));
-            EXPECT_OK(waitForPopupProbe());
+            for (const float FADE : {0.5F, 0.F}) {
+                if (FADE == 0.F && !std::string_view{PRESENTATION}.starts_with("isolated-"))
+                    continue;
+                // Zero selects zero workspace alpha with a unit window fade, as in the original opacity probe.
+                NLog::log("Checking workspace presentation: {}, mode {}, redirected {}, zero workspace alpha {}", PRESENTATION, POPUP_ONLY ? "POPUP" : "ALL", redirected,
+                          FADE == 0.F);
+                OK(getFromSocket(std::format("/eval hl.plugin.test.arm_popup_opacity('popup-render', {}, {}, {}, '{}')", FADE, POPUP_ONLY ? "true" : "false",
+                                             redirected ? "true" : "false", PRESENTATION)));
+                EXPECT_OK(waitForPopupProbe());
+            }
         }
     }
 

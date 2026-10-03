@@ -94,7 +94,7 @@ bool CHyprGLRenderer::beginFullFakeRenderInternal(CRenderContext& ctx, PHLMONITO
     if (simple)
         g_pHyprOpenGL->beginSimple(ctx, pMonitor, damage, nullptr, fb);
     else
-        g_pHyprOpenGL->begin(ctx, pMonitor, damage, fb);
+        return g_pHyprOpenGL->begin(ctx, pMonitor, damage, fb);
     return true;
 }
 
@@ -105,7 +105,7 @@ bool CHyprGLRenderer::beginRenderInternal(CRenderContext& ctx, PHLMONITOR pMonit
     if (simple)
         g_pHyprOpenGL->beginSimple(ctx, pMonitor, damage, ctx.m_currentRenderbuffer);
     else
-        g_pHyprOpenGL->begin(ctx, pMonitor, damage);
+        return g_pHyprOpenGL->begin(ctx, pMonitor, damage);
 
     return true;
 }
@@ -339,12 +339,12 @@ void CHyprGLRenderer::blend(bool enabled) {
 }
 
 void CHyprGLRenderer::drawShadow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a,
-                                 const SP<Workspace::CWorkspacePresentable>& presentation) {
+                                 const Render::SWindowRenderPresentation& presentation) {
     g_pHyprOpenGL->renderRoundedShadow(ctx, box, round, roundingPower, range, color, a, presentation);
 }
 
 void CHyprGLRenderer::drawShadow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
-                                 const Config::CGradientValueData& grad2, float lerp, float a, const SP<Workspace::CWorkspacePresentable>& presentation) {
+                                 const Config::CGradientValueData& grad2, float lerp, float a, const Render::SWindowRenderPresentation& presentation) {
     g_pHyprOpenGL->renderRoundedShadow(ctx, box, round, roundingPower, range, grad1, grad2, lerp, a, presentation);
 }
 

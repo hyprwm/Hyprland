@@ -7,10 +7,13 @@
 #include <cstring>
 #include <vector>
 #include <array>
+#include <tuple>
 
 #define private   public
 #define protected public
 #include <src/render/Renderer.hpp>
+#include <src/render/SceneResources.hpp>
+#include <src/output/MonitorResources.hpp>
 #include <src/managers/input/InputManager.hpp>
 #include <src/pointer/PointerManager.hpp>
 #include <src/pointer/cursor/CursorManager.hpp>
@@ -30,6 +33,7 @@
 #include <src/desktop/state/WindowState.hpp>
 #include <src/workspace/HLWorkspace.hpp>
 #include <src/layout/target/Target.hpp>
+#include <src/layout/target/WindowTarget.hpp>
 #include <src/keybinds/Key.hpp>
 #include <src/Compositor.hpp>
 #include <src/desktop/state/FocusState.hpp>
@@ -43,6 +47,8 @@
 #include <src/config/ConfigValue.hpp>
 #include <src/config/shared/animation/AnimationTree.hpp>
 #include <src/animation/AnimationManager.hpp>
+#include <src/render/WindowRenderPresentation.hpp>
+#include <src/render/scene/SceneSelection.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/VarList.hpp>
@@ -341,10 +347,94 @@ static std::string describeRenderStages(const std::vector<eRenderStage>& stages)
     return result;
 }
 
+static SDispatchResult probeSceneResources(Render::CRenderContext& ctx, PHLMONITOR monitor) {
+    using namespace Render;
+    auto&                        renderer  = *g_pHyprRenderer;
+    const auto                   resources = monitor->resources();
+    GL::CFramebufferBindingGuard bindings{renderer.glBackend()}; // Outlive every allocation and release below.
+    if (!monitor->m_mirrors.empty() && !resources->hasMirrorFB())
+        return {.success = false, .error = "Scene resources: mirrored output requires a warmed monitor mirror cache"};
+    const auto TEXTURE_STATE = [](const SP<ITexture>& tex) {
+        return std::tuple{tex, tex ? tex->m_texID : 0U, tex ? tex->m_size : Vector2D{}, tex ? tex->m_drmFormat : 0U, tex ? glIsTexture(tex->m_texID) : GL_FALSE};
+    };
+    const auto FB_STATE = [&](const SP<IFramebuffer>& fb) {
+        return std::make_tuple(fb, fb && fb->isAllocated(), fb ? fb->m_size : Vector2D{}, fb ? fb->m_drmFormat : DRM_FORMAT_INVALID, TEXTURE_STATE(fb ? fb->getTexture() : nullptr),
+                               TEXTURE_STATE(fb ? fb->getMirrorTexture() : nullptr));
+    };
+    const auto STATE = [&] {
+        return std::make_tuple(FB_STATE(resources->m_blurFB), FB_STATE(resources->m_monitorMirrorFB), TEXTURE_STATE(resources->m_mirrorTex), resources->sceneResources(),
+                               monitor->m_blurFBDirty, monitor->m_blurFBShouldRender, resources->m_mirrorFBValid, resources->m_mirrorFBNeedsFullRefresh, ctx.sceneResources(),
+                               ctx.active(), ctx.m_frameTime, ctx.m_currentPass, ctx.m_pass.m_passElements.size(), renderer.currentPass(ctx).m_passElements.size(), ctx.m_mode,
+                               ctx.m_currentBuffer, ctx.m_currentRenderbuffer, ctx.m_swapchainAcquired, ctx.m_data.pMonitor, ctx.m_data.currentFB, ctx.m_data.mainFB,
+                               ctx.m_data.outFB, ctx.m_data.fbSize, ctx.m_data.targetProjection, ctx.m_usedAsyncBuffers.size(), ctx.m_backdropCaptures.size());
+    };
+    const auto OLD_STATE = STATE();
+    const auto OLD_STALE = resources->m_mirrorFBStaleDamage.copy();
+    const auto OLD_DATA  = ctx.m_data;
+    {
+        const auto     owner = makeShared<CSceneResources>(renderer.createFB("Scene resources probe"));
+        CRenderContext isolated;
+        if (!isolated.begin(owner) || !isolated.readOnlyEffects() || isolated.effectTime() != isolated.m_frameTime || owner->canPrecomputeBlur() ||
+            renderer.getBlurTexture(isolated))
+            return {.success = false, .error = "Scene resources: unprepared private cache was readable or ready"};
+        isolated.m_data.pMonitor = monitor;
+        isolated.m_data.fbSize   = ctx.m_data.fbSize;
+        if (!resources->prepareSceneResources(*owner) || !owner->canPrecomputeBlur() || !owner->blurDirty() || owner->blurQueued() || renderer.getBlurTexture(isolated) ||
+            owner->blurFramebuffer() == resources->m_blurFB || owner->blurFramebuffer()->m_size != resources->m_size ||
+            owner->blurFramebuffer()->m_drmFormat != resources->m_drmFormat || owner->blurFramebuffer()->imageDescription() != resources->m_imageDescription)
+            return {.success = false, .error = "Scene resources: private allocation/readiness did not use monitor geometry and format"};
+
+        for (const bool SIZED : {false, true}) {
+            const auto SIZE    = SIZED ? std::optional<Vector2D>{{37, 23}} : std::nullopt;
+            auto       scratch = SIZED ? resources->getUnusedWorkBuffer(*SIZE) : resources->getUnusedWorkBuffer();
+            if (!scratch || !scratch->isAllocated() || scratch == ctx.m_data.currentFB || scratch == resources->m_monitorMirrorFB || scratch == resources->m_blurFB)
+                return {.success = false, .error = "Scene resources: no independent scratch framebuffer"};
+            const WP<IFramebuffer> BORROWED = scratch;
+            const auto             mirror   = renderer.createTexture();
+            mirror->allocate(scratch->m_size, scratch->m_drmFormat);
+            const auto  MIRROR_ID = mirror->m_texID;
+            CScopeGuard detach([&] {
+                if (const auto FB = BORROWED.lock(); FB && FB->getMirrorTexture() == mirror)
+                    FB->disableMirror();
+            });
+            scratch->enableMirror(mirror);
+            scratch->bind();
+            GLint attachment = 0;
+            glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &attachment);
+            if (!scratch->isAllocated() || scratch->getMirrorTexture() != mirror || sc<GLuint>(attachment) != MIRROR_ID ||
+                glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+                return {.success = false, .error = "Scene resources: disposable mirror was not attached"};
+            scratch.reset(); // The weak identity must not prevent pool reuse.
+            scratch = renderer.getWorkBuffer(isolated, SIZE);
+            if (!scratch || scratch != BORROWED.lock() || !scratch->isAllocated() || scratch->getMirrorTexture() || scratch->m_size != SIZE.value_or(resources->m_size) ||
+                scratch->m_drmFormat != resources->m_drmFormat || scratch->imageDescription() != resources->m_imageDescription)
+                return {.success = false, .error = "Scene resources: isolated borrowing did not detach/reuse the scratch framebuffer"};
+            scratch->bind();
+            glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &attachment);
+            if (attachment != GL_NONE || glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE || mirror->m_texID != MIRROR_ID || !glIsTexture(MIRROR_ID) ||
+                mirror->m_size != scratch->m_size || mirror->m_drmFormat != scratch->m_drmFormat)
+                return {.success = false, .error = "Scene resources: GL mirror attachment survived or disposable texture was damaged"};
+        }
+        owner->setBlurQueued(true);
+        owner->completePreBlur(); // Bookkeeping only: these uninitialized pixels must never be sampled.
+        if (owner->blurDirty() || owner->blurQueued() || !isolated.readOnlyEffects() || isolated.effectTime() != isolated.m_frameTime ||
+            renderer.getBlurTexture(isolated) != owner->blurFramebuffer()->getTexture() || !renderer.getBlurTexture(isolated) ||
+            renderer.getBlurTexture(isolated) == resources->m_blurFB->getTexture())
+            return {.success = false, .error = "Scene resources: completed private cache did not route its own texture"};
+    }
+    if (STATE() != OLD_STATE || !pixman_region32_equal(OLD_STALE.pixman(), resources->m_mirrorFBStaleDamage.pixman()) ||
+        !pixman_region32_equal(OLD_DATA.damage.pixman(), ctx.m_data.damage.pixman()) || !pixman_region32_equal(OLD_DATA.finalDamage.pixman(), ctx.m_data.finalDamage.pixman()))
+        return {.success = false, .error = "Scene resources: monitor cache/mirror state or caller pass/session/damage changed"};
+    return {};
+}
+
 static SDispatchResult probeWorkspaceBackground(Render::CRenderContext& ctx, PHLMONITOR monitor, bool withWorkspace) {
     if (!monitor->m_activeWorkspace || std::ranges::any_of(Desktop::windowState()->windows(), [](const auto& window) { return window->mapped(); }) ||
         !Desktop::layerState()->layers().empty())
         return {.success = false, .error = "Background probe requires an active workspace and no mapped clients or layers"};
+
+    if (const auto RESULT = probeSceneResources(ctx, monitor); !RESULT.success)
+        return RESULT;
 
     auto&                     renderer  = *g_pHyprRenderer;
     auto&                     entries   = ctx.m_pass.m_passElements;
@@ -451,24 +541,30 @@ static SDispatchResult           probePopupOpacity(Render::CRenderContext& ctx, 
         window->m_workspace->m_alpha->value() != 1.F)
         return NOT_READY("Parent alpha must be settled at one before probing");
 
-    const std::array<PHLANIMVARREF<float>, 5> ALPHAS = {
+    const std::array<PHLANIMVARREF<float>, 9> ALPHAS = {
         window->presentation().alpha(WINDOW_ALPHA_FADE),
         window->presentation().alpha(WINDOW_ALPHA_ACTIVE),
         window->m_workspace->m_alpha,
         popups[0]->alpha()[POPUP_ALPHA_FADE],
         popups[1]->alpha()[POPUP_ALPHA_FADE],
+        window->presentation().alpha(WINDOW_ALPHA_FULLSCREEN),
+        window->presentation().alpha(WINDOW_ALPHA_LAYOUT),
+        window->presentation().alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE),
+        window->presentation().alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE),
     };
     for (const auto& alpha : ALPHAS) {
         if (alpha->isBeingAnimated() || alpha->value() != alpha->goal())
             return NOT_READY("Fixture alpha is still animating");
     }
 
-    std::array<float, 5> oldAlpha = {};
+    std::array<float, 9> oldAlpha = {};
     for (size_t i = 0; i < ALPHAS.size(); ++i)
         oldAlpha[i] = ALPHAS[i]->value();
 
     // An explicit mode also probes geometry; omitted modes retain the original opacity cases.
     const bool CHECK_PRESENTATION = !presentationMode.empty();
+    const bool ISOLATED           = presentationMode.starts_with("isolated-");
+    const bool WORKSPACE_OFFSET   = presentationMode.ends_with("workspace-offset");
     auto       presentation       = dynamicPointerCast<Workspace::CWorkspacePresentable>(window->m_workspace);
     if (presentationMode == "none")
         presentation.reset();
@@ -478,7 +574,12 @@ static SDispatchResult           probePopupOpacity(Render::CRenderContext& ctx, 
         Animation::mgr()->createAnimation(Vector2D{37, 23}, presentation->m_renderOffset, CONFIG, AVARDAMAGE_NONE);
         Animation::mgr()->createAnimation(0.6F, presentation->m_alpha, CONFIG, AVARDAMAGE_NONE);
     }
-    const auto          OLD_FLOATING_OFFSET = window->presentation().floatingOffset();
+    const auto          OLD_FLOATING_OFFSET = window->presentation().m_floatingOffset;
+    const auto          OLD_MOVED_FROM      = window->presentation().m_monitorMovedFrom;
+    const bool          OLD_FLOATING        = window->isFloating();
+    auto&               workspaceOffset     = *window->m_workspace->m_renderOffset;
+    const auto          OLD_OFFSET          = workspaceOffset.value();
+    const bool          OLD_OFFSET_ANIMATED = workspaceOffset.isBeingAnimated();
 
     auto&               renderer    = *g_pHyprRenderer;
     auto&               rootEntries = ctx.m_pass.m_passElements;
@@ -492,30 +593,61 @@ static SDispatchResult           probePopupOpacity(Render::CRenderContext& ctx, 
         rootEntries.resize(BEGIN);
         ctx.m_data = OLD_DATA;
         for (size_t i = 0; i < ALPHAS.size(); ++i)
-            ALPHAS[i]->setValueAndWarp(oldAlpha[i]);
+            ALPHAS[i]->value() = oldAlpha[i];
         if (CHECK_PRESENTATION)
-            window->presentation().setFloatingOffset(OLD_FLOATING_OFFSET);
+            window->presentation().m_floatingOffset = OLD_FLOATING_OFFSET;
+        if (ISOLATED) {
+            workspaceOffset.value()                   = OLD_OFFSET;
+            workspaceOffset.m_bIsBeingAnimated        = OLD_OFFSET_ANIMATED;
+            window->presentation().m_monitorMovedFrom = OLD_MOVED_FROM;
+            window->m_target->setFloatingInitial(OLD_FLOATING);
+        }
     });
 
     // A zero window alpha returns early. Use the workspace contribution for zero
     // so we still require actual popup pass elements with zero inherited fade.
-    ALPHAS[0]->setValueAndWarp(parentFade == 0.F ? 1.F : parentFade);
-    ALPHAS[1]->setValueAndWarp(0.75F);
-    ALPHAS[2]->setValueAndWarp(parentFade == 0.F ? 0.F : 1.F);
-    ALPHAS[3]->setValueAndWarp(0.4F);
-    ALPHAS[4]->setValueAndWarp(0.8F);
+    // Only current values change: preserve goals/animation state and avoid callbacks.
+    const float WINDOW_FADE = parentFade == 0.F ? 1.F : parentFade;
+    ALPHAS[0]->value()      = WINDOW_FADE;
+    ALPHAS[1]->value()      = 0.75F;
+    ALPHAS[2]->value()      = parentFade == 0.F ? 0.F : 1.F;
+    ALPHAS[3]->value()      = 0.4F;
+    ALPHAS[4]->value()      = 0.8F;
     if (CHECK_PRESENTATION) {
         // Distinct live/custom alpha catches accidentally reading window->m_workspace.
-        ALPHAS[2]->setValueAndWarp(0.25F);
+        ALPHAS[2]->value() = ISOLATED && parentFade == 0.F ? 0.F : 0.25F;
         window->presentation().setFloatingOffset({7, 11});
     }
-    const float EXPECTED_PARENT_FADE = CHECK_PRESENTATION ? ALPHAS[0]->value() * (presentationMode == "none" ? 1.F : presentationMode == "custom" ? 0.6F : 0.25F) : parentFade;
-    const auto  EXPECTED_POSITION    = window->position(IGeometric::GEOMETRIC_CURRENT) +
-        (presentation ? (presentationMode == "custom" ? Vector2D{37, 23} : window->m_workspace->m_renderOffset->value()) + Vector2D{7, 11} : Vector2D{});
+    if (ISOLATED) {
+        ALPHAS[5]->value() = 0.6F;
+        ALPHAS[6]->value() = 0.8F;
+        ALPHAS[7]->value() = 0.F;
+        ALPHAS[8]->value() = 0.F;
+        // Synthetic slide state: no manager registration, callbacks or goal changes.
+        workspaceOffset.value()            = {37, 23};
+        workspaceOffset.m_bIsBeingAnimated = true;
+        window->presentation().setMonitorMovedFrom(0);
+        // Exercise the floating slide-clip path without changing layout membership or rules.
+        window->m_target->setFloatingInitial(true);
+        if (WORKSPACE_OFFSET)
+            window->presentation().m_floatingOffset.set({7, 11}, eFloatingOffsetSource::WORKSPACE);
+    }
+    const float PRESENTATION_ALPHA    = presentationMode == "none" ? 1.F : presentationMode == "custom" ? 0.6F : 0.25F;
+    const float EXPECTED_PARENT_FADE  = ISOLATED ? WINDOW_FADE * 0.6F * 0.8F : CHECK_PRESENTATION ? WINDOW_FADE * PRESENTATION_ALPHA : parentFade;
+    const auto  EXPECTED_OFFSET       = ISOLATED ? (WORKSPACE_OFFSET ? Vector2D{} : Vector2D{7, 11}) :
+        presentation                             ? (presentationMode == "custom" ? Vector2D{37, 23} : OLD_OFFSET) + Vector2D{7, 11} :
+                                                   Vector2D{};
+    const auto  EXPECTED_POSITION     = window->position(IGeometric::GEOMETRIC_CURRENT) + EXPECTED_OFFSET;
+    const auto  SCENE_MODE            = presentationMode.starts_with("isolated-shell-") ? Render::eSceneMode::WORKSPACE_WITH_SHELL : Render::eSceneMode::WORKSPACE_WINDOWS;
+    const auto  RESOLVED_PRESENTATION = ISOLATED ? window->presentation().renderPresentation(SCENE_MODE) : window->presentation().renderPresentation(presentation);
+    if (ISOLATED &&
+        (RESOLVED_PRESENTATION.workspaceOffset != Vector2D{} || RESOLVED_PRESENTATION.workspaceAlpha != 1.F || RESOLVED_PRESENTATION.workspaceOffsetAnimating ||
+         !RESOLVED_PRESENTATION.alphaVisible || RESOLVED_PRESENTATION.floatingOffset != EXPECTED_OFFSET))
+        return {.success = false, .error = "Isolated presentation retained workspace transition state or lost the window offset/visibility"};
     const auto PREVIOUS_PASS = ctx.m_currentPass;
     {
         const auto REDIRECT = renderer.redirectPass(ctx, redirected ? &redirectedPass : nullptr);
-        renderer.renderWindow(ctx, window, window->m_monitor.lock(), presentation, Time::steadyNow(), false, mode, !CHECK_PRESENTATION);
+        renderer.renderWindow(ctx, window, window->m_monitor.lock(), RESOLVED_PRESENTATION, Time::steadyNow(), false, mode, !CHECK_PRESENTATION);
     }
     if (ctx.m_currentPass != PREVIOUS_PASS || &renderer.currentPass(ctx) != (redirected ? &previousPass : &ctx.m_pass))
         return {.success = false, .error = "Popup render did not restore the previous pass"};
@@ -549,14 +681,14 @@ static SDispatchResult           probePopupOpacity(Render::CRenderContext& ctx, 
         ++counts[INDEX];
         if (data.pWindow != window || data.popup != (INDEX != 0) || data.mainSurface != (INDEX == 0))
             return {.success = false, .error = std::format("Incorrect identity/flags for surface {}", INDEX)};
-        if (data.workspacePresentation != presentation)
+        if (data.workspacePresentation != RESOLVED_PRESENTATION)
             return {.success = false, .error = std::format("Incorrect workspace presentation for surface {}", INDEX)};
         if (CHECK_PRESENTATION) {
             const auto POSITION = EXPECTED_POSITION + (INDEX == 0 ? Vector2D{} : popups[INDEX - 1]->coordsRelativeToParent() - window->backend().geometry().box.pos());
             if (!((data.pos - POSITION).size() <= 0.00001) || data.localPos != Vector2D{})
                 probeError += std::format("surface {}: incorrect position for presentation {}; ", INDEX, presentationMode);
-            if (!presentation && (data.clipBox.w != 0 || data.clipBox.h != 0))
-                probeError += std::format("surface {}: null presentation retained transition clipping; ", INDEX);
+            if ((!presentation || ISOLATED) && (data.clipBox.w != 0 || data.clipBox.h != 0))
+                probeError += std::format("surface {}: presentation {} retained transition clipping; ", INDEX, presentationMode);
         }
         if (!(std::abs(data.fadeAlpha - EXPECTED_FADE[INDEX]) <= 0.00001F) || !(std::abs(data.alpha - 0.75F) <= 0.00001F))
             probeError += std::format("surface {}: expected fade {} alpha 0.75, got fade {} alpha {}; ", INDEX, EXPECTED_FADE[INDEX], data.fadeAlpha, data.alpha);
@@ -581,7 +713,9 @@ static SDispatchResult armPopupOpacity(const std::string& cls, float parentFade,
         return {.success = false, .error = "Waiting for popup-render parent and two mapped popups"};
     if (!std::isfinite(parentFade) || parentFade < 0.F || parentFade > 1.F)
         return {.success = false, .error = "Invalid parent fade"};
-    if (!presentationMode.empty() && presentationMode != "normal" && presentationMode != "none" && presentationMode != "custom")
+    if (!presentationMode.empty() && presentationMode != "normal" && presentationMode != "none" && presentationMode != "custom" &&
+        presentationMode != "isolated-windows-window-offset" && presentationMode != "isolated-windows-workspace-offset" && presentationMode != "isolated-shell-window-offset" &&
+        presentationMode != "isolated-shell-workspace-offset")
         return {.success = false, .error = "Invalid workspace presentation mode"};
 
     g_popupRenderRecording                         = makeShared<SPopupRenderRecording>();

@@ -12,6 +12,8 @@
 #include "../../../render/decorations/CHyprDropShadowDecoration.hpp"
 #include "../../../render/decorations/CHyprInnerGlowDecoration.hpp"
 #include "../../../render/decorations/DecorationPositioner.hpp"
+#include "../../../render/WindowRenderPresentation.hpp"
+#include "../../../render/scene/SceneSelection.hpp"
 #include "../../state/FocusState.hpp"
 
 #include <algorithm>
@@ -216,17 +218,17 @@ void CWindowPresentation::invalidateBorderSize() {
 }
 
 bool CWindowPresentation::opaque() const {
-    return opaque(dynamicPointerCast<Workspace::CWorkspacePresentable>(m_window.m_workspace));
+    return opaque(renderPresentation());
 }
 
-bool CWindowPresentation::opaque(const SP<Workspace::CWorkspacePresentable>& presentation) const {
+bool CWindowPresentation::opaque(const Render::SWindowRenderPresentation& presentation) const {
     if (alphaValue(WINDOW_ALPHA_FADE) != 1.f || alphaValue(WINDOW_ALPHA_FULLSCREEN) != 1.f || alphaValue(WINDOW_ALPHA_ACTIVE) != 1.f)
         return false;
 
     if (m_window.wlSurface()->small() && !m_window.wlSurface()->m_fillIgnoreSmall)
         return false;
 
-    if (presentation && presentation->m_alpha->value() != 1.f)
+    if (presentation.workspaceAlpha != 1.f)
         return false;
 
     auto solitaryResource = m_window.getSolitaryResource();
@@ -242,6 +244,42 @@ bool CWindowPresentation::opaque(const SP<Workspace::CWorkspacePresentable>& pre
         return true;
 
     return solitaryResource->m_current.texture->m_opaque;
+}
+
+Render::SWindowRenderPresentation CWindowPresentation::renderPresentation() const {
+    return renderPresentation(Render::eSceneMode::MONITOR);
+}
+
+Render::SWindowRenderPresentation CWindowPresentation::renderPresentation(Render::eSceneMode mode) const {
+    return Render::resolveWindowPresentation(renderPresentationState(dynamicPointerCast<Workspace::CWorkspacePresentable>(m_window.m_workspace)), mode);
+}
+
+Render::SWindowRenderPresentation CWindowPresentation::renderPresentation(const SP<Workspace::CWorkspacePresentable>& presentation) const {
+    return Render::resolveWindowPresentation(renderPresentationState(presentation));
+}
+
+Render::SWindowPresentationState CWindowPresentation::renderPresentationState(const SP<Workspace::CWorkspacePresentable>& presentation) const {
+    // Decoration geometry can be queried before all window animations are initialized.
+    const auto ALPHA = [this](eWindowAlpha channel) { return alpha(channel) ? alphaValue(channel) : 1.F; };
+
+    return {
+        .workspaceOffset             = presentation ? presentation->m_renderOffset->value() : Vector2D{},
+        .floatingOffset              = floatingOffset(),
+        .workspaceAlpha              = presentation ? presentation->m_alpha->value() : 1.F,
+        .fade                        = ALPHA(WINDOW_ALPHA_FADE),
+        .active                      = ALPHA(WINDOW_ALPHA_ACTIVE),
+        .fullscreen                  = ALPHA(WINDOW_ALPHA_FULLSCREEN),
+        .layout                      = ALPHA(WINDOW_ALPHA_LAYOUT),
+        .moveToWorkspace             = ALPHA(WINDOW_ALPHA_MOVE_TO_WORKSPACE),
+        .moveFromWorkspace           = ALPHA(WINDOW_ALPHA_MOVE_FROM_WORKSPACE),
+        .hasWorkspacePresentation    = !!presentation,
+        .workspaceOffsetAnimating    = presentation && presentation->m_renderOffset->isBeingAnimated(),
+        .pinned                      = !!(m_window.m_state & WINDOW_STATE_PINNED),
+        .movingFromMonitor           = movingFromMonitor(),
+        .workspaceVisible            = m_window.m_workspace && m_window.m_workspace->visible(),
+        .alphaAnimating              = m_alpha.isBeingAnimated(),
+        .floatingOffsetFromWorkspace = floatingOffsetSource() == eFloatingOffsetSource::WORKSPACE,
+    };
 }
 
 float CWindowPresentation::rounding() {
@@ -320,15 +358,19 @@ void CWindowPresentation::setNotResponding(bool notResponding) {
 }
 
 const Vector2D& CWindowPresentation::floatingOffset() const {
-    return m_floatingOffset;
+    return m_floatingOffset.value();
+}
+
+eFloatingOffsetSource CWindowPresentation::floatingOffsetSource() const {
+    return m_floatingOffset.source();
 }
 
 void CWindowPresentation::setFloatingOffset(const Vector2D& offset) {
-    m_floatingOffset = offset;
+    m_floatingOffset.set(offset);
 }
 
 void CWindowPresentation::clearFloatingOffset() {
-    m_floatingOffset = {};
+    m_floatingOffset.clear();
 }
 
 bool CWindowPresentation::movingFromMonitor() const {
@@ -410,7 +452,7 @@ void CWindowPresentation::onWorkspaceAnimUpdate() {
             offset.y += (WINDOW_BOX.y + WINDOW_BOX.height - MONITOR->m_position.y - MONITOR->m_size.y) * PROGRESS;
     }
 
-    m_floatingOffset = offset;
+    m_floatingOffset.set(offset, eFloatingOffsetSource::WORKSPACE);
 }
 
 void CWindowPresentation::onFocusAnimUpdate() {

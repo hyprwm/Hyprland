@@ -1,4 +1,5 @@
 #include "Pass.hpp"
+#include "../SceneResources.hpp"
 #include "../OpenGL.hpp"
 #include <algorithm>
 #include <ranges>
@@ -145,7 +146,7 @@ CRegion CRenderPass::render(CRenderContext& ctx, const CRegion& damage_) {
     static auto PDEBUGPASS = CConfigValue<Config::INTEGER>("debug:pass");
 
     // single pass: cache blur results and gather aggregate info
-    bool    willBlur = false, willDisableSimplification = false, willPrecomputeBlur = false, requiresFullDamage = false;
+    bool    willBlur = false, willDisableSimplification = false, willPrecomputeBlur = false, requiresFullDamage = false, conditionalPreBlur = false;
     CRegion blurRegion;
     for (auto& el : m_passElements) {
         el.element->needsLiveBlurCached       = el.element->needsLiveBlur(ctx);
@@ -161,11 +162,21 @@ CRegion CRenderPass::render(CRenderContext& ctx, const CRegion& damage_) {
         if (el.element->needsPrecomputeBlurCached)
             willPrecomputeBlur = true;
 
+        if (ctx.readOnlyEffects() && el.element->type() == EK_PRE_BLUR) {
+            conditionalPreBlur = true;
+            continue;
+        }
+
         if (el.element->disableSimplification(ctx))
             willDisableSimplification = true;
 
         if (el.element->requiresFullDamage(ctx))
             requiresFullDamage = true;
+    }
+
+    if (conditionalPreBlur && willPrecomputeBlur) {
+        willDisableSimplification = true;
+        requiresFullDamage        = true;
     }
 
     m_damage = *PDEBUGPASS ? CRegion{CBox{{}, {INT32_MAX, INT32_MAX}}} : requiresFullDamage ? CRegion{CBox{{}, pMonitor->m_transformedSize}} : damage_.copy();
@@ -221,7 +232,9 @@ CRegion CRenderPass::render(CRenderContext& ctx, const CRegion& damage_) {
 
     planBackdropScopes(ctx);
 
-    if (ctx.m_data.pMonitor)
+    if (ctx.sceneResources())
+        ctx.sceneResources()->setBlurQueued(willPrecomputeBlur);
+    else if (ctx.m_data.pMonitor)
         ctx.m_data.pMonitor->m_blurFBShouldRender = willPrecomputeBlur;
 
     if (m_passElements.empty())
@@ -260,11 +273,12 @@ CRegion CRenderPass::render(CRenderContext& ctx, const CRegion& damage_) {
 
     if (*PDEBUGPASS) {
         renderDebugData(ctx);
-        g_pEventLoopManager->doLater([] {
-            for (auto& m : State::monitorState()->monitors()) {
-                g_pHyprRenderer->damageMonitor(m);
-            }
-        });
+        if (!ctx.readOnlyEffects())
+            g_pEventLoopManager->doLater([] {
+                for (auto& m : State::monitorState()->monitors()) {
+                    g_pHyprRenderer->damageMonitor(m);
+                }
+            });
     }
 
     ctx.m_data.damage = m_damage;

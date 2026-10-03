@@ -38,15 +38,14 @@ namespace Render {
             return nullptr;
         }
 
-        bool                   empty() const;
-        bool                   blocksDirectScanout() const;
-        CBox                   transformedExtents(const CBox& currentBox) const;
-        SWindowTransformPlan   plan(const CBox& currentBox, const CBox& outputBox) const;
-        CBox                   transformBoxForDamage(const CBox& currentBox) const;
+        bool                 empty() const;
+        bool                 blocksDirectScanout() const;
+        CBox                 transformedExtents(const CBox& currentBox) const;
+        SWindowTransformPlan plan(const CBox& currentBox, const CBox& outputBox) const;
+        CBox                 transformBoxForDamage(const CBox& currentBox) const;
 
-        void                   preWindowRender(CRenderContext& ctx, CSurfacePassElement::SRenderData* pRenderData) const;
-        void                   amendTransformedRenderData(CRenderContext& ctx, const CBox& currentBox, SMotionBlurData* pMotionBlurData,
-                                                          const SP<Workspace::CWorkspacePresentable>& presentation) const;
+        void                 preWindowRender(CRenderContext& ctx, CSurfacePassElement::SRenderData* pRenderData) const;
+        void amendTransformedRenderData(CRenderContext& ctx, const CBox& currentBox, SMotionBlurData* pMotionBlurData, const Render::SWindowRenderPresentation& presentation) const;
         SWindowTransformBuffer transform(CRenderContext& ctx, const SWindowTransformBuffer& in, const SWindowTransformPlan& plan, const SWindowTransformContext& context) const;
 
         void                   removeInactive();

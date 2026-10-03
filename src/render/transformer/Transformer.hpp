@@ -9,11 +9,9 @@
 
 class CEventLoopTimer;
 
-namespace Workspace {
-    class CWorkspacePresentable;
-}
-
 namespace Render {
+    struct SWindowRenderPresentation;
+
     CBox pixelBoxForLogical(const CBox& box, double scale);
 
     struct SWindowTransformBuffer {
@@ -71,6 +69,6 @@ namespace Render {
 
         // called by Hyprland before the transformed window fb is rendered back to the main fb.
         virtual void amendTransformedRenderData(CRenderContext& ctx, const CBox& currentBox, SMotionBlurData* pMotionBlurData,
-                                                const SP<Workspace::CWorkspacePresentable>& presentation);
+                                                const Render::SWindowRenderPresentation& presentation);
     };
 }

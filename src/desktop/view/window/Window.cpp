@@ -622,10 +622,10 @@ bool CWindow::isHidden() const {
 }
 
 bool CWindow::shouldBlur() const {
-    return shouldBlur(dynamicPointerCast<Workspace::CWorkspacePresentable>(m_workspace));
+    return shouldBlur(presentation().renderPresentation());
 }
 
-bool CWindow::shouldBlur(const SP<Workspace::CWorkspacePresentable>& presentation) const {
+bool CWindow::shouldBlur(const Render::SWindowRenderPresentation& presentation) const {
     static auto PBLUR = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
     if (!*PBLUR)
         return false;

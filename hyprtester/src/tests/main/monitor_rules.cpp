@@ -128,6 +128,9 @@ TEST_CASE(monitorMirrorAppliedWhenTargetAppears) {
     EXPECT(monitorBlock(TEST_MIRROR_TARGET, false).empty(), false);
     OK(expectMonitorRenderStages(TEST_MIRROR_SOURCE, true));
     OK(expectMonitorRenderStages(TEST_MIRROR_TARGET, false));
+    // Exercise resource isolation with an existing monitor-owned mirror cache.
+    OK(getFromSocket("/eval hl.config({ misc = { disable_hyprland_logo = true, disable_splash_rendering = true } })"));
+    OK(expectMonitorRenderStages(TEST_MIRROR_TARGET, false, false));
     ASSERT_CONTAINS(getFromSocket("/version"), "Hyprland");
 
     OK(getFromSocket(std::format("/output remove {}", TEST_MIRROR_TARGET)));

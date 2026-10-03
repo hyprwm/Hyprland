@@ -1,6 +1,6 @@
 #include <render/transformer/TransformerList.hpp>
 #include <render/Context.hpp>
-#include <workspace/presentation/WorkspacePresentable.hpp>
+#include <render/WindowRenderPresentation.hpp>
 
 #include <gtest/gtest.h>
 
@@ -72,15 +72,15 @@ class CTestPresentationTransformer : public CTestDamageTransformer {
     }
 
     virtual void amendTransformedRenderData(Render::CRenderContext& ctx, const CBox& currentBox, SMotionBlurData* motionBlurData,
-                                            const SP<Workspace::CWorkspacePresentable>& presentation) {
+                                            const Render::SWindowRenderPresentation& presentation) {
         ++m_amendCount;
         m_presentation = presentation;
         if (motionBlurData)
             motionBlurData->current = currentBox;
     }
 
-    int                                  m_amendCount = 0;
-    SP<Workspace::CWorkspacePresentable> m_presentation;
+    int                               m_amendCount = 0;
+    Render::SWindowRenderPresentation m_presentation;
 };
 
 TEST(Render, transformerListDamageBoxFollowsPriorityOrder) {
@@ -127,26 +127,84 @@ TEST(Render, transformerPixelBoxRoundsOutward) {
 }
 
 TEST(Render, transformerListAmendsWithExplicitPresentationPerRender) {
-    Render::CRenderContext         ctx;
-    Render::CWindowTransformerList list;
-    const auto                     ACTIVE   = list.emplace<CTestPresentationTransformer>(true);
-    const auto                     INACTIVE = list.emplace<CTestPresentationTransformer>(false);
-    const auto                     FIRST    = makeShared<Workspace::CWorkspacePresentable>();
-    const auto                     SECOND   = makeShared<Workspace::CWorkspacePresentable>();
-    const CBox                     BOX      = {1, 2, 10, 20};
-    SMotionBlurData                motionBlur;
+    Render::CRenderContext                  ctx;
+    Render::CWindowTransformerList          list;
+    const auto                              ACTIVE   = list.emplace<CTestPresentationTransformer>(true);
+    const auto                              INACTIVE = list.emplace<CTestPresentationTransformer>(false);
+    const Render::SWindowRenderPresentation FIRST    = {
+        .workspaceOffset          = {100, -20},
+        .floatingOffset           = {5, 10},
+        .workspaceAlpha           = 0.5F,
+        .alpha                    = 0.25F,
+        .fadeAlpha                = 0.75F,
+        .workspaceOffsetAnimating = true,
+        .alphaVisible             = false,
+    };
+    const Render::SWindowRenderPresentation SECOND = {
+        .workspaceOffset = {-50, 40},
+        .floatingOffset  = {-5, 20},
+        .workspaceAlpha  = 0.8F,
+        .alpha           = 0.6F,
+        .fadeAlpha       = 0.9F,
+    };
+    const CBox      BOX = {1, 2, 10, 20};
+    SMotionBlurData motionBlur;
 
     list.amendTransformedRenderData(ctx, BOX, &motionBlur, FIRST);
     EXPECT_EQ(ACTIVE->m_presentation, FIRST);
     EXPECT_EQ(ACTIVE->m_amendCount, 1);
     EXPECT_EQ(motionBlur.current, BOX);
 
-    list.amendTransformedRenderData(ctx, BOX, &motionBlur, nullptr);
-    EXPECT_FALSE(ACTIVE->m_presentation);
+    list.amendTransformedRenderData(ctx, BOX, &motionBlur, {});
+    EXPECT_EQ(ACTIVE->m_presentation, Render::SWindowRenderPresentation{});
     EXPECT_EQ(ACTIVE->m_amendCount, 2);
 
     list.amendTransformedRenderData(ctx, BOX, &motionBlur, SECOND);
     EXPECT_EQ(ACTIVE->m_presentation, SECOND);
     EXPECT_EQ(ACTIVE->m_amendCount, 3);
     EXPECT_EQ(INACTIVE->m_amendCount, 0);
+}
+
+TEST(Render, transformerListPresentationCopyIsIndependent) {
+    Render::CRenderContext            ctx;
+    Render::CWindowTransformerList    list;
+    const auto                        ACTIVE       = list.emplace<CTestPresentationTransformer>(true);
+    const CBox                        BOX          = {1, 2, 10, 20};
+    Render::SWindowRenderPresentation presentation = {
+        .workspaceOffset          = {100, -20},
+        .floatingOffset           = {5, 10},
+        .workspaceAlpha           = 0.5F,
+        .alpha                    = 0.25F,
+        .fadeAlpha                = 0.75F,
+        .workspaceOffsetAnimating = true,
+        .alphaVisible             = false,
+    };
+    const auto ORIGINAL = presentation;
+
+    list.amendTransformedRenderData(ctx, BOX, nullptr, presentation);
+    presentation = {};
+    EXPECT_EQ(ACTIVE->m_presentation, ORIGINAL);
+
+    list.amendTransformedRenderData(ctx, BOX, nullptr, presentation);
+    EXPECT_EQ(ACTIVE->m_presentation, presentation);
+    EXPECT_NE(ACTIVE->m_presentation, ORIGINAL);
+    EXPECT_EQ(ACTIVE->m_amendCount, 2);
+}
+
+TEST(Render, transformerListPresentationIgnoresResolvedPresence) {
+    Render::CRenderContext           ctx;
+    Render::CWindowTransformerList   list;
+    const auto                       ACTIVE = list.emplace<CTestPresentationTransformer>(true);
+    const CBox                       BOX    = {1, 2, 10, 20};
+    Render::SWindowPresentationState state;
+    const auto                       ABSENT = Render::resolveWindowPresentation(state);
+    state.hasWorkspacePresentation          = true;
+    const auto PRESENT                      = Render::resolveWindowPresentation(state);
+
+    list.amendTransformedRenderData(ctx, BOX, nullptr, ABSENT);
+    const auto ABSENTCOPY = ACTIVE->m_presentation;
+    list.amendTransformedRenderData(ctx, BOX, nullptr, PRESENT);
+
+    EXPECT_EQ(ACTIVE->m_presentation, ABSENTCOPY);
+    EXPECT_EQ(ACTIVE->m_amendCount, 2);
 }

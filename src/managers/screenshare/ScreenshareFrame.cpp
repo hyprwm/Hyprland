@@ -336,7 +336,7 @@ void CScreenshareFrame::renderWindow(Render::CRenderContext& ctx) {
     g_pHyprRenderer->setViewport(0, 0, m_bufferSize.x, m_bufferSize.y);
 
     ctx.m_blockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(PWINDOW); // block the feedback to avoid spamming the surface if it's visible
-    g_pHyprRenderer->renderWindow(ctx, PWINDOW, PMONITOR, nullptr, NOW, false, Render::RENDER_PASS_ALL, true, true);
+    g_pHyprRenderer->renderWindow(ctx, PWINDOW, PMONITOR, PWINDOW->presentation().renderPresentation(nullptr), NOW, false, Render::RENDER_PASS_ALL, true, true);
     ctx.m_blockSurfaceFeedback = false;
 
     if (!m_overlayCursor)

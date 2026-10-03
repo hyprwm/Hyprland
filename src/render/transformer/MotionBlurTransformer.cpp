@@ -9,6 +9,7 @@
 #include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../../workspace/presentation/WorkspacePresentable.hpp"
 #include "../Renderer.hpp"
+#include "../WindowRenderPresentation.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -69,7 +70,7 @@ CBox CMotionBlurTransformer::transformBoxForDamage(const CBox& currentBox) const
 }
 
 void CMotionBlurTransformer::amendTransformedRenderData(CRenderContext& ctx, const CBox& currentBox, SMotionBlurData* pMotionBlurData,
-                                                        const SP<Workspace::CWorkspacePresentable>& presentation) {
+                                                        const Render::SWindowRenderPresentation& presentation) {
     if (!pMotionBlurData)
         return;
 
@@ -81,11 +82,7 @@ void CMotionBlurTransformer::amendTransformedRenderData(CRenderContext& ctx, con
     if (!shouldEnable(PWINDOW))
         return;
 
-    Vector2D renderOffset;
-    if (presentation)
-        renderOffset = ((PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED) ? Vector2D{} : presentation->m_renderOffset->value()) + PWINDOW->presentation().floatingOffset();
-
-    const auto STATE = stateForOffset(renderOffset, false);
+    const auto STATE = stateForOffset(presentation.workspaceOffset + presentation.floatingOffset, false);
     if (!STATE)
         return;
 

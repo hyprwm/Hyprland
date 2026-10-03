@@ -1,18 +1,15 @@
 #pragma once
 #include "PassElement.hpp"
+#include "../WindowRenderPresentation.hpp"
 
 class CHyprDropShadowDecoration;
-
-namespace Workspace {
-    class CWorkspacePresentable;
-}
 
 class CShadowPassElement : public IPassElement {
   public:
     struct SShadowData {
-        WP<CHyprDropShadowDecoration>        deco;
-        float                                a = 1.F;
-        SP<Workspace::CWorkspacePresentable> presentation;
+        WP<CHyprDropShadowDecoration>     deco;
+        float                             a = 1.F;
+        Render::SWindowRenderPresentation presentation;
     };
 
     CShadowPassElement(const SShadowData& data_);

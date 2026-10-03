@@ -12,6 +12,7 @@
 #include "../pass/TexPassElement.hpp"
 #include "../pass/RectPassElement.hpp"
 #include "../Renderer.hpp"
+#include "../WindowRenderPresentation.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../../layout/LayoutManager.hpp"
@@ -98,7 +99,7 @@ void CHyprGroupBarDecoration::damageEntire() {
     g_pHyprRenderer->damageBox(box);
 }
 
-void CHyprGroupBarDecoration::draw(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation) {
+void CHyprGroupBarDecoration::draw(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a, const Render::SWindowRenderPresentation& presentation) {
     // get how many bars we will draw
     int        barsToDraw = m_dwGroupMembers.size();
 
@@ -158,7 +159,7 @@ void CHyprGroupBarDecoration::draw(Render::CRenderContext& ctx, PHLMONITOR pMoni
     for (int i = 0; i < barsToDraw; ++i) {
         const auto WINDOWINDEX = *PSTACKED ? m_dwGroupMembers.size() - i - 1 : i;
 
-        const auto FLOATING_OFFSET = presentation ? m_window->presentation().floatingOffset() : Vector2D();
+        const auto FLOATING_OFFSET = presentation.floatingOffset;
         CBox rect = {ASSIGNEDBOX.x + xoff - pMonitor->m_position.x + FLOATING_OFFSET.x,
                      ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - *PINDICATORHEIGHT - *POUTERGAP - pMonitor->m_position.y + FLOATING_OFFSET.y, m_barWidth, *PINDICATORHEIGHT};
 
@@ -542,15 +543,14 @@ std::string CHyprGroupBarDecoration::getDisplayName() {
 }
 
 CBox CHyprGroupBarDecoration::assignedBoxGlobal() {
-    return assignedBoxGlobal(dynamicPointerCast<Workspace::CWorkspacePresentable>(m_window->m_workspace));
+    return assignedBoxGlobal(m_window->presentation().renderPresentation());
 }
 
-CBox CHyprGroupBarDecoration::assignedBoxGlobal(const SP<Workspace::CWorkspacePresentable>& presentation) {
+CBox CHyprGroupBarDecoration::assignedBoxGlobal(const Render::SWindowRenderPresentation& presentation) {
     CBox box = m_assignedBox;
     box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_TOP, m_window));
 
-    if (presentation && !(m_window->m_state & Desktop::View::WINDOW_STATE_PINNED))
-        box.translate(presentation->m_renderOffset->value());
+    box.translate(presentation.workspaceOffset);
 
     return box.round();
 }

@@ -73,6 +73,8 @@ CXDGPopupResource::CXDGPopupResource(SP<CXdgPopup> resource_, SP<CXDGSurfaceReso
         if (!pos)
             return;
         m_positionerRules = CXDGPositionerRules{pos};
+        if (m_surface && m_surface->m_surface)
+            m_surface->m_surface->m_pending.updated.bits.xdgPopup = true;
         m_events.reposition.emit();
     });
 

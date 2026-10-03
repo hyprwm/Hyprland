@@ -67,18 +67,14 @@ namespace Config {
         DEFINE_PROP(Config::INTEGER, borderSize, {std::string("general:border_size") COMMA static_cast<Config::INTEGER>(0) COMMA std::nullopt}, WORKSPACE_RULE_PROP_BORDER_SIZE)
         DEFINE_PROP(bool, decorate, true, WORKSPACE_RULE_PROP_DECORATE)
         DEFINE_PROP(std::string, defaultName, std::string(""), WORKSPACE_RULE_PROP_DEFAULT_NAME)
-
         DEFINE_PROP(CCssGapData, floatGaps, {std::string("general:float_gaps") COMMA Config::CCssGapData() COMMA std::nullopt},
                     WORKSPACE_RULE_PROP_GAPS_FLOAT) // ERSTARR TODO - max is def not nullopt
         DEFINE_PROP(CCssGapData, gapsIn, {std::string("general:gaps_in") COMMA Config::CCssGapData() COMMA std::nullopt},
                     WORKSPACE_RULE_PROP_GAPS_IN) // ERSTARR TODO - max is def not nullopt
         DEFINE_PROP(CCssGapData, gapsOut, {std::string("general:gaps_out") COMMA Config::CCssGapData() COMMA std::nullopt},
                     WORKSPACE_RULE_PROP_GAPS_OUT) // ERSTARR TODO - max is def not nullopt
-
         DEFINE_PROP(std::string, layout, {std::string("general:layout")}, WORKSPACE_RULE_PROP_LAYOUT)
-
         DEFINE_PROP(std::map<std::string COMMA std::string>, layoutOpts, {}, WORKSPACE_RULE_PROP_LAYOUT_OPTS)
-
         DEFINE_PROP(std::string, monitor, std::string(""), WORKSPACE_RULE_PROP_MONITOR) // ERSTARR TODO - NEED TO HANDLE THESE PROPERLY!! DEFAULT IS NO OVERRIDE
         DEFINE_PROP(bool, isDefault, false, WORKSPACE_RULE_PROP_DEFAULT)
         DEFINE_PROP(bool, noBorder, false, WORKSPACE_RULE_PROP_BORDER_DISABLE)

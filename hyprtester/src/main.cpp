@@ -231,7 +231,7 @@ int main(int argc, char** argv, char** envp) {
         if (testCases.contains(test)) {
             requestedTestCases.push_back(testCases.at(test));
         } else {
-            NLog::red("ERROR: Unknown test name '{}'", Colors::RED, test);
+            NLog::red("ERROR: Unknown test name '{}'", test);
             return EXIT_FAILURE;
         }
     }

@@ -20,6 +20,8 @@ namespace Workspace {
 
 namespace Render {
     struct SWindowRenderPresentation;
+    struct SWindowPresentationState;
+    enum class eSceneMode : uint8_t;
 }
 
 namespace Desktop::View {
@@ -61,6 +63,7 @@ namespace Desktop::View {
         bool                                              opaque() const;
         bool                                              opaque(const Render::SWindowRenderPresentation& presentation) const;
         Render::SWindowRenderPresentation                 renderPresentation() const;
+        Render::SWindowRenderPresentation                 renderPresentation(Render::eSceneMode mode) const;
         Render::SWindowRenderPresentation                 renderPresentation(const SP<Workspace::CWorkspacePresentable>& presentation) const;
         float                                             rounding();
         float                                             roundingPower();
@@ -94,6 +97,7 @@ namespace Desktop::View {
         void                                              applyAnimateIn() const;
 
       private:
+        Render::SWindowPresentationState           renderPresentationState(const SP<Workspace::CWorkspacePresentable>& presentation) const;
         void                                       addDecorationInternal(const SP<IHyprWindowDecoration>& decoration);
 
         CWindow&                                   m_window;

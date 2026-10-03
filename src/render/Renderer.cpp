@@ -376,7 +376,7 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
         if (SPECIAL != w->onSpecialWorkspace())
             continue;
 
-        renderWindow(ctx, w, pMonitor, w->presentation().renderPresentation(), time, true, RENDER_PASS_ALL);
+        renderWindow(ctx, w, pMonitor, w->presentation().renderPresentation(mode), time, true, RENDER_PASS_ALL);
     }
     renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_WINDOW_TILED, pWorkspace, mode);
 
@@ -394,7 +394,7 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
         if (w->isFadingOutUnderFullscreen())
             continue; // render these over fullscreen so the fade-out is visible
 
-        renderWindow(ctx, w, pMonitor, w->presentation().renderPresentation(), time, true, RENDER_PASS_ALL);
+        renderWindow(ctx, w, pMonitor, w->presentation().renderPresentation(mode), time, true, RENDER_PASS_ALL);
     }
     renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_WINDOW_FLOATING, pWorkspace, mode);
 
@@ -420,7 +420,7 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
             continue;
 
         if (shouldRenderWindowInScene(w, pMonitor, pWorkspace, mode))
-            renderWindow(ctx, w, pMonitor, w->presentation().renderPresentation(), time,
+            renderWindow(ctx, w, pMonitor, w->presentation().renderPresentation(mode), time,
                          Fullscreen::controller()->getFullscreenModes(pWorkspace).internal != Fullscreen::FSMODE_FULLSCREEN, RENDER_PASS_ALL);
 
         if (w->m_workspace != pWorkspace)
@@ -453,7 +453,7 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
         if (specialWorkspaceOnDifferentMonitor)
             continue; // special on another are rendered as a part of the base pass
 
-        renderWindow(ctx, w, pMonitor, w->presentation().renderPresentation(), time, true, RENDER_PASS_ALL);
+        renderWindow(ctx, w, pMonitor, w->presentation().renderPresentation(mode), time, true, RENDER_PASS_ALL);
     }
     renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_WINDOW_OVER_FULLSCREEN, pWorkspace, mode);
 }
@@ -501,12 +501,12 @@ void IHyprRenderer::renderWorkspaceWindows(CRenderContext& ctx, PHLMONITOR pMoni
         }
 
         // render the bad boy
-        renderWindow(ctx, w.lock(), pMonitor, w->presentation().renderPresentation(), time, true, RENDER_PASS_MAIN);
+        renderWindow(ctx, w.lock(), pMonitor, w->presentation().renderPresentation(mode), time, true, RENDER_PASS_MAIN);
         w.reset();
     }
 
     if (lastWindow)
-        renderWindow(ctx, lastWindow, pMonitor, lastWindow->presentation().renderPresentation(), time, true, RENDER_PASS_MAIN);
+        renderWindow(ctx, lastWindow, pMonitor, lastWindow->presentation().renderPresentation(mode), time, true, RENDER_PASS_MAIN);
 
     lastWindow.reset();
 
@@ -527,7 +527,7 @@ void IHyprRenderer::renderWorkspaceWindows(CRenderContext& ctx, PHLMONITOR pMoni
             continue;
 
         // render the bad boy
-        renderWindow(ctx, w.lock(), pMonitor, w->presentation().renderPresentation(), time, true, RENDER_PASS_POPUP);
+        renderWindow(ctx, w.lock(), pMonitor, w->presentation().renderPresentation(mode), time, true, RENDER_PASS_POPUP);
         w.reset();
     }
 
@@ -549,7 +549,7 @@ void IHyprRenderer::renderWorkspaceWindows(CRenderContext& ctx, PHLMONITOR pMoni
             continue; // special on another are rendered as a part of the base pass
 
         // render the bad boy
-        renderWindow(ctx, w.lock(), pMonitor, w->presentation().renderPresentation(), time, true, RENDER_PASS_ALL);
+        renderWindow(ctx, w.lock(), pMonitor, w->presentation().renderPresentation(mode), time, true, RENDER_PASS_ALL);
     }
     renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_WINDOW_FLOATING, pWorkspace, mode);
 }
@@ -1270,7 +1270,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR
             continue;
 
         // render the bad boy
-        renderWindow(ctx, w, pMonitor, w->presentation().renderPresentation(), time, true, RENDER_PASS_ALL);
+        renderWindow(ctx, w, pMonitor, w->presentation().renderPresentation(mode), time, true, RENDER_PASS_ALL);
     }
 
     Event::bus()->m_events.render.stage.emit({RENDER_POST_WINDOWS, pMonitor, ctx});

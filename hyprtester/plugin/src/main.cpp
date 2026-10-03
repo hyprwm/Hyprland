@@ -43,6 +43,7 @@
 #include <src/config/ConfigValue.hpp>
 #include <src/config/shared/animation/AnimationTree.hpp>
 #include <src/animation/AnimationManager.hpp>
+#include <src/render/WindowRenderPresentation.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/VarList.hpp>
@@ -478,7 +479,7 @@ static SDispatchResult           probePopupOpacity(Render::CRenderContext& ctx, 
         Animation::mgr()->createAnimation(Vector2D{37, 23}, presentation->m_renderOffset, CONFIG, AVARDAMAGE_NONE);
         Animation::mgr()->createAnimation(0.6F, presentation->m_alpha, CONFIG, AVARDAMAGE_NONE);
     }
-    const auto          OLD_FLOATING_OFFSET = window->presentation().floatingOffset();
+    const auto          OLD_FLOATING_OFFSET = window->presentation().m_floatingOffset;
 
     auto&               renderer    = *g_pHyprRenderer;
     auto&               rootEntries = ctx.m_pass.m_passElements;
@@ -494,7 +495,7 @@ static SDispatchResult           probePopupOpacity(Render::CRenderContext& ctx, 
         for (size_t i = 0; i < ALPHAS.size(); ++i)
             ALPHAS[i]->setValueAndWarp(oldAlpha[i]);
         if (CHECK_PRESENTATION)
-            window->presentation().setFloatingOffset(OLD_FLOATING_OFFSET);
+            window->presentation().m_floatingOffset = OLD_FLOATING_OFFSET;
     });
 
     // A zero window alpha returns early. Use the workspace contribution for zero
@@ -512,10 +513,11 @@ static SDispatchResult           probePopupOpacity(Render::CRenderContext& ctx, 
     const float EXPECTED_PARENT_FADE = CHECK_PRESENTATION ? ALPHAS[0]->value() * (presentationMode == "none" ? 1.F : presentationMode == "custom" ? 0.6F : 0.25F) : parentFade;
     const auto  EXPECTED_POSITION    = window->position(IGeometric::GEOMETRIC_CURRENT) +
         (presentation ? (presentationMode == "custom" ? Vector2D{37, 23} : window->m_workspace->m_renderOffset->value()) + Vector2D{7, 11} : Vector2D{});
-    const auto PREVIOUS_PASS = ctx.m_currentPass;
+    const auto RESOLVED_PRESENTATION = window->presentation().renderPresentation(presentation);
+    const auto PREVIOUS_PASS         = ctx.m_currentPass;
     {
         const auto REDIRECT = renderer.redirectPass(ctx, redirected ? &redirectedPass : nullptr);
-        renderer.renderWindow(ctx, window, window->m_monitor.lock(), presentation, Time::steadyNow(), false, mode, !CHECK_PRESENTATION);
+        renderer.renderWindow(ctx, window, window->m_monitor.lock(), RESOLVED_PRESENTATION, Time::steadyNow(), false, mode, !CHECK_PRESENTATION);
     }
     if (ctx.m_currentPass != PREVIOUS_PASS || &renderer.currentPass(ctx) != (redirected ? &previousPass : &ctx.m_pass))
         return {.success = false, .error = "Popup render did not restore the previous pass"};
@@ -549,7 +551,7 @@ static SDispatchResult           probePopupOpacity(Render::CRenderContext& ctx, 
         ++counts[INDEX];
         if (data.pWindow != window || data.popup != (INDEX != 0) || data.mainSurface != (INDEX == 0))
             return {.success = false, .error = std::format("Incorrect identity/flags for surface {}", INDEX)};
-        if (data.workspacePresentation != presentation)
+        if (data.workspacePresentation != RESOLVED_PRESENTATION)
             return {.success = false, .error = std::format("Incorrect workspace presentation for surface {}", INDEX)};
         if (CHECK_PRESENTATION) {
             const auto POSITION = EXPECTED_POSITION + (INDEX == 0 ? Vector2D{} : popups[INDEX - 1]->coordsRelativeToParent() - window->backend().geometry().box.pos());

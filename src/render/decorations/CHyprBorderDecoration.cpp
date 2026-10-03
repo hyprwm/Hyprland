@@ -10,6 +10,7 @@
 #include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../pass/BorderPassElement.hpp"
 #include "../Renderer.hpp"
+#include "../WindowRenderPresentation.hpp"
 #include "../../state/MonitorState.hpp"
 
 CHyprBorderDecoration::CHyprBorderDecoration(PHLWINDOW pWindow) :
@@ -40,29 +41,24 @@ void CHyprBorderDecoration::onPositioningReply(const SDecorationPositioningReply
 }
 
 CBox CHyprBorderDecoration::assignedBoxGlobal() {
-    return assignedBoxGlobal(dynamicPointerCast<Workspace::CWorkspacePresentable>(m_window->m_workspace));
+    return assignedBoxGlobal(m_window->presentation().renderPresentation());
 }
 
-CBox CHyprBorderDecoration::assignedBoxGlobal(const SP<Workspace::CWorkspacePresentable>& presentation) {
+CBox CHyprBorderDecoration::assignedBoxGlobal(const Render::SWindowRenderPresentation& presentation) {
     CBox box = m_assignedGeometry;
     box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_BOTTOM | DECORATION_EDGE_LEFT | DECORATION_EDGE_RIGHT | DECORATION_EDGE_TOP, m_window));
 
-    const auto WORKSPACEOFFSET = presentation && !(m_window->m_state & Desktop::View::WINDOW_STATE_PINNED) ? presentation->m_renderOffset->value() : Vector2D();
-    return box.translate(WORKSPACEOFFSET);
+    return box.translate(presentation.workspaceOffset);
 }
 
-void CHyprBorderDecoration::draw(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation) {
+void CHyprBorderDecoration::draw(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a, const Render::SWindowRenderPresentation& presentation) {
     if (doesntWantBorders())
         return;
 
     if (m_assignedGeometry.width < m_extents.topLeft.x + 1 || m_assignedGeometry.height < m_extents.topLeft.y + 1)
         return;
 
-    CBox windowBox = assignedBoxGlobal(presentation)
-                         .translate(-pMonitor->m_position + (presentation ? m_window->presentation().floatingOffset() : Vector2D()))
-                         .expand(-borderSize())
-                         .scale(pMonitor->m_scale)
-                         .round();
+    CBox windowBox = assignedBoxGlobal(presentation).translate(-pMonitor->m_position + presentation.floatingOffset).expand(-borderSize()).scale(pMonitor->m_scale).round();
 
     if (windowBox.width < 1 || windowBox.height < 1)
         return;

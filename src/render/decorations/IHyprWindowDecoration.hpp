@@ -2,6 +2,7 @@
 
 namespace Render {
     class CRenderContext;
+    struct SWindowRenderPresentation;
 }
 
 #include <any>
@@ -33,10 +34,6 @@ enum eDecorationFlags : uint8_t {
 
 class CDecorationPositioner;
 
-namespace Workspace {
-    class CWorkspacePresentable;
-}
-
 namespace Desktop::View {
     class CWindowPresentation;
 }
@@ -50,7 +47,7 @@ class IHyprWindowDecoration {
 
     virtual void                       onPositioningReply(const SDecorationPositioningReply& reply) = 0;
 
-    virtual void                       draw(Render::CRenderContext& ctx, PHLMONITOR, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation) = 0;
+    virtual void                       draw(Render::CRenderContext& ctx, PHLMONITOR, float const& a, const Render::SWindowRenderPresentation& presentation) = 0;
 
     virtual eDecorationType            getDecorationType() = 0;
 

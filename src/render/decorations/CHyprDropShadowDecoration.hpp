@@ -20,7 +20,7 @@ class CHyprDropShadowDecoration : public IHyprWindowDecoration {
 
     virtual void                       onPositioningReply(const SDecorationPositioningReply& reply);
 
-    virtual void                       draw(Render::CRenderContext& ctx, PHLMONITOR, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation);
+    virtual void                       draw(Render::CRenderContext& ctx, PHLMONITOR, float const& a, const Render::SWindowRenderPresentation& presentation);
 
     virtual eDecorationType            getDecorationType();
 
@@ -40,11 +40,11 @@ class CHyprDropShadowDecoration : public IHyprWindowDecoration {
     virtual void                       onWindowFocus() override;
 
     bool                               canRender(PHLMONITOR);
-    SShadowRenderData                  getRenderData(Render::CRenderContext& ctx, PHLMONITOR, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation);
+    SShadowRenderData                  getRenderData(Render::CRenderContext& ctx, PHLMONITOR, float const& a, const Render::SWindowRenderPresentation& presentation);
     void                               reposition(Render::CRenderContext& ctx);
 
     // TODO remove
-    void render(Render::CRenderContext& ctx, PHLMONITOR, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation);
+    void render(Render::CRenderContext& ctx, PHLMONITOR, float const& a, const Render::SWindowRenderPresentation& presentation);
 
   private:
     SBoxExtents                 m_extents;
@@ -58,9 +58,9 @@ class CHyprDropShadowDecoration : public IHyprWindowDecoration {
     Vector2D                    m_lastWindowSize;
 
     void drawShadowInternal(Render::CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad, float a,
-                            const SP<Workspace::CWorkspacePresentable>& presentation);
+                            const Render::SWindowRenderPresentation& presentation);
     void drawShadowInternal(Render::CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
-                            const Config::CGradientValueData& grad2, float lerp, float a, const SP<Workspace::CWorkspacePresentable>& presentation);
+                            const Config::CGradientValueData& grad2, float lerp, float a, const Render::SWindowRenderPresentation& presentation);
 
     CBox m_lastWindowBox          = {0};
     CBox m_lastWindowBoxWithDecos = {0};

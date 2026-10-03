@@ -27,6 +27,10 @@ namespace Config {
     class CWorkspaceRule;
 }
 
+namespace Render {
+    struct SWindowRenderPresentation;
+}
+
 namespace Layout {
     class ITarget;
     class CWindowTarget;
@@ -204,7 +208,7 @@ namespace Desktop::View {
         void                       setHidden(bool hidden);
         bool                       isHidden() const;
         bool                       shouldBlur() const;
-        bool                       shouldBlur(const SP<Workspace::CWorkspacePresentable>& presentation) const;
+        bool                       shouldBlur(const Render::SWindowRenderPresentation& presentation) const;
         bool                       isAllowedOverFullscreen() const;
         bool                       isBlockedByFullscreen() const;
         bool                       isFadingOutUnderFullscreen() const;

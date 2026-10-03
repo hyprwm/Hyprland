@@ -12,7 +12,7 @@ class CHyprBorderDecoration : public IHyprWindowDecoration {
 
     virtual void                       onPositioningReply(const SDecorationPositioningReply& reply);
 
-    virtual void                       draw(Render::CRenderContext& ctx, PHLMONITOR, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation);
+    virtual void                       draw(Render::CRenderContext& ctx, PHLMONITOR, float const& a, const Render::SWindowRenderPresentation& presentation);
 
     virtual eDecorationType            getDecorationType();
 
@@ -49,6 +49,6 @@ class CHyprBorderDecoration : public IHyprWindowDecoration {
     mutable bool                m_borderSizeCacheDirty = true;
 
     CBox                        assignedBoxGlobal();
-    CBox                        assignedBoxGlobal(const SP<Workspace::CWorkspacePresentable>& presentation);
+    CBox                        assignedBoxGlobal(const Render::SWindowRenderPresentation& presentation);
     bool                        doesntWantBorders();
 };

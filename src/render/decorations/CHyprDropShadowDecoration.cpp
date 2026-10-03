@@ -8,6 +8,7 @@
 #include "../../desktop/state/FocusState.hpp"
 #include "../pass/ShadowPassElement.hpp"
 #include "../Renderer.hpp"
+#include "../WindowRenderPresentation.hpp"
 #include "../pass/RectPassElement.hpp"
 #include "../pass/TextureMatteElement.hpp"
 #include "../../state/MonitorState.hpp"
@@ -122,7 +123,7 @@ void CHyprDropShadowDecoration::updateWindow(PHLWINDOW pWindow) {
     m_lastWindowBoxWithDecos = g_pDecorationPositioner->getBoxWithIncludedDecos(pWindow);
 }
 
-void CHyprDropShadowDecoration::draw(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation) {
+void CHyprDropShadowDecoration::draw(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a, const Render::SWindowRenderPresentation& presentation) {
     const auto SELF = dynamicPointerCast<CHyprDropShadowDecoration>(self());
     if (!SELF)
         return;
@@ -165,7 +166,7 @@ bool CHyprDropShadowDecoration::canRender(PHLMONITOR pMonitor) {
 }
 
 SShadowRenderData CHyprDropShadowDecoration::getRenderData(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a,
-                                                           const SP<Workspace::CWorkspacePresentable>& presentation) {
+                                                           const Render::SWindowRenderPresentation& presentation) {
     if (!canRender(pMonitor))
         return {};
 
@@ -180,7 +181,7 @@ SShadowRenderData CHyprDropShadowDecoration::getRenderData(Render::CRenderContex
     const auto  ROUNDINGPOWER    = PWINDOW->presentation().roundingPower();
     const auto  CORRECTIONOFFSET = (BORDERSIZE * (M_SQRT2 - 1) * std::max(2.0 - ROUNDINGPOWER, 0.0));
     const auto  ROUNDING         = ROUNDINGBASE > 0 ? (ROUNDINGBASE + BORDERSIZE) - CORRECTIONOFFSET : 0;
-    const auto  WORKSPACEOFFSET  = presentation && !(PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED) ? presentation->m_renderOffset->value() : Vector2D();
+    const auto  WORKSPACEOFFSET  = presentation.workspaceOffset;
 
     // draw the shadow
     CBox fullBox = m_lastWindowBoxWithDecos;
@@ -210,8 +211,7 @@ SShadowRenderData CHyprDropShadowDecoration::getRenderData(Render::CRenderContex
             },
     };
 
-    if (presentation)
-        fullBox.translate(PWINDOW->presentation().floatingOffset());
+    fullBox.translate(presentation.floatingOffset);
 
     if (fullBox.width < 1 || fullBox.height < 1)
         return {}; // don't draw invisible shadows
@@ -237,7 +237,7 @@ void CHyprDropShadowDecoration::reposition(Render::CRenderContext& ctx) {
 }
 
 // TODO remove
-void CHyprDropShadowDecoration::render(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a, const SP<Workspace::CWorkspacePresentable>& presentation) {
+void CHyprDropShadowDecoration::render(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a, const Render::SWindowRenderPresentation& presentation) {
     auto data = getRenderData(ctx, pMonitor, a, presentation);
     if (!data.valid)
         return;
@@ -262,7 +262,7 @@ eDecorationLayer CHyprDropShadowDecoration::getDecorationLayer() {
 }
 
 void CHyprDropShadowDecoration::drawShadowInternal(Render::CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad,
-                                                   float a, const SP<Workspace::CWorkspacePresentable>& presentation) {
+                                                   float a, const Render::SWindowRenderPresentation& presentation) {
     static auto PSHADOWSHARP = CConfigValue<Config::INTEGER>("decoration:shadow:sharp");
 
     if (box.w < 1 || box.h < 1)
@@ -286,7 +286,7 @@ void CHyprDropShadowDecoration::drawShadowInternal(Render::CRenderContext& ctx, 
 }
 
 void CHyprDropShadowDecoration::drawShadowInternal(Render::CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
-                                                   const Config::CGradientValueData& grad2, float lerp, float a, const SP<Workspace::CWorkspacePresentable>& presentation) {
+                                                   const Config::CGradientValueData& grad2, float lerp, float a, const Render::SWindowRenderPresentation& presentation) {
     static auto PSHADOWSHARP = CConfigValue<Config::INTEGER>("decoration:shadow:sharp");
 
     if (box.w < 1 || box.h < 1)

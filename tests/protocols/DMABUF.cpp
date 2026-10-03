@@ -351,11 +351,11 @@ class CDMABUFTestRenderer : public Render::IHyprRenderer {
     void blend(bool) override {
         ;
     }
-    void drawShadow(Render::CRenderContext&, const CBox&, int, float, int, const Config::CGradientValueData&, float, const SP<Workspace::CWorkspacePresentable>&) override {
+    void drawShadow(Render::CRenderContext&, const CBox&, int, float, int, const Config::CGradientValueData&, float, const Render::SWindowRenderPresentation&) override {
         ;
     }
     void drawShadow(Render::CRenderContext&, const CBox&, int, float, int, const Config::CGradientValueData&, const Config::CGradientValueData&, float, float,
-                    const SP<Workspace::CWorkspacePresentable>&) override {
+                    const Render::SWindowRenderPresentation&) override {
         ;
     }
     void drawGlow(Render::CRenderContext&, const CBox&, int, float, int, const Config::CGradientValueData&, float) override {

@@ -18,6 +18,10 @@ namespace Workspace {
     class CWorkspacePresentable;
 }
 
+namespace Render {
+    struct SWindowRenderPresentation;
+}
+
 namespace Desktop::View {
     class CWindow;
     enum eWindowAlpha : uint8_t;
@@ -55,7 +59,9 @@ namespace Desktop::View {
         int                                               borderSize() const;
         void                                              invalidateBorderSize();
         bool                                              opaque() const;
-        bool                                              opaque(const SP<Workspace::CWorkspacePresentable>& presentation) const;
+        bool                                              opaque(const Render::SWindowRenderPresentation& presentation) const;
+        Render::SWindowRenderPresentation                 renderPresentation() const;
+        Render::SWindowRenderPresentation                 renderPresentation(const SP<Workspace::CWorkspacePresentable>& presentation) const;
         float                                             rounding();
         float                                             roundingPower();
         bool                                              isInCurvedCorner(double x, double y);

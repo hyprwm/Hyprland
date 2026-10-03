@@ -7,7 +7,6 @@
 #include "../../../event/EventBus.hpp"
 
 #include <algorithm>
-#include <chrono>
 #include <cmath>
 
 using namespace Render;
@@ -22,8 +21,11 @@ static float            dropsSpeed() {
     return std::clamp(*PDROPSSPEED, 0.F, MAX_DROPS_SPEED);
 }
 
-CDropsBlurMaterial::CDropsBlurMaterial() : CGlassBlurMaterial(eBlurType::BLUR_DROPS, SH_FRAG_DROPSFINISH, true), m_lastAnimationUpdate(Time::steadyNow()) {
-    m_configListener = Event::bus()->m_events.config.props_refreshed.listen([this](const bool) { updateAnimation(dropsSpeed()); });
+CDropsBlurMaterial::CDropsBlurMaterial() : CGlassBlurMaterial(eBlurType::BLUR_DROPS, SH_FRAG_DROPSFINISH, true) {
+    m_configListener = Event::bus()->m_events.config.props_refreshed.listen([this](const bool) {
+        const auto SPEED = dropsSpeed();
+        m_animationClock.update(Time::steadyNow(), SPEED);
+    });
 }
 
 CDropsBlurProvider::CDropsBlurProvider(CHyprOpenGLImpl& impl) : CGlassBlurProvider(impl, makeUnique<CDropsBlurMaterial>()) {
@@ -36,31 +38,27 @@ bool CDropsBlurMaterial::isAnimated(CRenderContext& ctx) const noexcept {
     static auto PGLASSROUGHNESS  = CConfigValue<Config::FLOAT>("decoration:blur:glass:roughness");
 
     const auto  SPEED = dropsSpeed();
-    updateAnimation(SPEED);
+    if (!ctx.readOnlyEffects())
+        m_animationClock.update(ctx.effectTime(), SPEED);
     return *PBLURENABLED && SPEED > 0.F && (*PGLASSREFRACTION > 0.F || *PGLASSROUGHNESS > 0.F);
 }
 
 void CDropsBlurMaterial::bindFinish(CRenderContext& ctx, WP<CShader> shader, const SBlurMaterialContext& context) const {
     CGlassBlurMaterial::bindFinish(ctx, shader, context);
-    updateAnimation(dropsSpeed());
-    shader->setUniformFloat(SHADER_TIME, animationPhase());
+    shader->setUniformFloat(SHADER_TIME, animationPhase(ctx));
 
     const CBox patternBox = context.blurContext.patternBox.value_or(CBox{});
 
     shader->setUniformFloat2(SHADER_DROPS_POSITION, sc<float>(patternBox.x), sc<float>(patternBox.y));
 }
 
-void CDropsBlurMaterial::updateAnimation(float speed) const {
-    const auto NOW = Time::steadyNow();
-    m_animationTime += std::chrono::duration<double>(NOW - m_lastAnimationUpdate).count() * m_previousSpeed;
-    m_lastAnimationUpdate = NOW;
-    m_previousSpeed       = speed;
-}
-
-float CDropsBlurMaterial::animationPhase() const {
-    if (m_previousSpeed <= 0.F)
+float CDropsBlurMaterial::animationPhase(CRenderContext& ctx) const {
+    const auto SPEED = dropsSpeed();
+    const auto NOW   = ctx.effectTime();
+    const auto TIME  = ctx.readOnlyEffects() ? m_animationClock.sample(NOW) : m_animationClock.update(NOW, SPEED);
+    if (SPEED <= 0.F)
         return 0.F;
 
-    const auto PHASE = sc<float>(std::fmod(m_animationTime * DROPS_BASE_SPEED, DROPS_PATTERN_PERIOD));
+    const auto PHASE = sc<float>(std::fmod(TIME * DROPS_BASE_SPEED, DROPS_PATTERN_PERIOD));
     return std::max(PHASE, 0.00002F);
 }

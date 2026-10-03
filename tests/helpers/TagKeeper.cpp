@@ -61,6 +61,33 @@ TEST(TagKeeper, applyTagDynamicDoesNotDoubleAppendStar) {
     EXPECT_FALSE(keeper.getTags().contains("myTag**"));
 }
 
+TEST(TagKeeper, applyTagDynamicSetStripsPrefix) {
+    for (const auto& tag : {
+             "+myTag",
+             "+myTag*",
+         }) {
+        CTagKeeper keeper;
+        EXPECT_TRUE(keeper.applyTag(tag, true));
+        EXPECT_EQ(keeper.getTags(),
+                  (std::set<std::string>{
+                      "myTag*",
+                  }));
+        EXPECT_FALSE(keeper.applyTag(tag, true));
+    }
+}
+
+TEST(TagKeeper, applyTagDynamicUnsetPreservesStaticTag) {
+    CTagKeeper keeper;
+    keeper.applyTag("+myTag");
+    keeper.applyTag("+myTag", true);
+
+    EXPECT_TRUE(keeper.applyTag("-myTag", true));
+    EXPECT_EQ(keeper.getTags(),
+              (std::set<std::string>{
+                  "myTag",
+              }));
+}
+
 // --- isTagged: basic matching ---
 
 TEST(TagKeeper, isTaggedReturnsFalseWhenEmpty) {
@@ -130,6 +157,18 @@ TEST(TagKeeper, removeDynamicTagReturnsFalseIfNoDynamic) {
 TEST(TagKeeper, removeDynamicTagOnEmpty) {
     CTagKeeper keeper;
     EXPECT_FALSE(keeper.removeDynamicTag("myTag"));
+}
+
+TEST(TagKeeper, removeDynamicTagPreservesStaticNamesake) {
+    CTagKeeper keeper;
+    keeper.applyTag("+myTag");
+    keeper.applyTag("+myTag", true);
+
+    EXPECT_TRUE(keeper.removeDynamicTag("myTag"));
+    EXPECT_EQ(keeper.getTags(),
+              (std::set<std::string>{
+                  "myTag",
+              }));
 }
 
 // --- getTags ---

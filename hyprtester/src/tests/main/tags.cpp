@@ -3,6 +3,8 @@
 #include "../shared.hpp"
 #include "tests.hpp"
 
+#include <format>
+
 TEST_CASE(tags) {
     NLog::log("{}Spawning kittyProcA&B on ws 1", Colors::YELLOW);
     SPAWN_KITTY("tagged");
@@ -28,4 +30,40 @@ TEST_CASE(tags) {
     EXPECT_NOT_CONTAINS(getFromSocket("/activewindow"), "testTag");
     EXPECT_CONTAINS(getFromSocket("/getprop activewindow no_shadow"), "true");
     EXPECT_CONTAINS(getFromSocket("/getprop activewindow no_dim"), "false");
+}
+
+TEST_CASE(tags_fullscreen_cleanup) {
+    SPAWN_KITTY("hyprtester-16423-tags");
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:hyprtester-16423-tags' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.tag({ tag = '+hyprtester-16423-foo' })"));
+    ASSERT(Tests::getAttribute(getFromSocket("/activewindow"), "tags"), "hyprtester-16423-foo");
+
+    for (const auto& tag : {
+             "+hyprtester-16423-foo",
+             "hyprtester-16423-foo",
+             "+hyprtester-16423-foo*",
+             "hyprtester-16423-foo*",
+         }) {
+        OK(getFromSocket(std::format("/eval hl.window_rule({{ name = 'hyprtester-16423-rule-{}', "
+                                     "match = {{ class = '^hyprtester-16423-tags$', fullscreen = true }}, tag = '{}' }})",
+                                     tag, tag)));
+        Tests::sync();
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "tags"), "hyprtester-16423-foo");
+
+        for (int cycle = 0; cycle < 2; ++cycle) {
+            NLog::log("{}Testing fullscreen tag '{}' cleanup, cycle {}", Colors::YELLOW, tag, cycle + 1);
+
+            OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ action = 'set' })"));
+            Tests::sync();
+            // The static tag must coexist with exactly one normalized dynamic tag.
+            EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "tags"), "hyprtester-16423-foo, hyprtester-16423-foo*");
+
+            OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ action = 'unset' })"));
+            Tests::sync();
+            EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "tags"), "hyprtester-16423-foo");
+        }
+
+        OK(getFromSocket(std::format("/eval hl.window_rule({{ name = 'hyprtester-16423-rule-{}', enabled = false }})", tag)));
+        Tests::sync();
+    }
 }

@@ -177,7 +177,12 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                 break;
             }
             case WINDOW_RULE_EFFECT_TAG: {
-                m_dynamicTags.emplace_back(effect, rule->getPropertiesMask());
+                if (!effect.starts_with("-")) {
+                    auto tag = effect.starts_with("+") ? effect.substr(1) : effect;
+                    if (tag.ends_with("*"))
+                        tag.pop_back();
+                    m_dynamicTags.emplace_back(std::move(tag), rule->getPropertiesMask());
+                }
                 m_tagKeeper.applyTag(effect, true);
                 result.tagsChanged = true;
                 break;

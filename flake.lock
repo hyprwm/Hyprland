@@ -29,39 +29,6 @@
         "type": "github"
       }
     },
-    "aquamarine_2": {
-      "inputs": {
-        "hyprutils": [
-          "xdph",
-          "hyprutils"
-        ],
-        "hyprwayland-scanner": [
-          "xdph",
-          "hyprwayland-scanner"
-        ],
-        "nixpkgs": [
-          "xdph",
-          "nixpkgs"
-        ],
-        "systems": [
-          "xdph",
-          "systems"
-        ]
-      },
-      "locked": {
-        "lastModified": 1788444081,
-        "narHash": "sha256-I8i97p9WBQaZQyyBaHFMt8e01VfgfFZSaO+vAUd0u0A=",
-        "owner": "hyprwm",
-        "repo": "aquamarine",
-        "rev": "36b66db4ddd708ad19f5db850af6a478d8a19b2a",
-        "type": "github"
-      },
-      "original": {
-        "owner": "hyprwm",
-        "repo": "aquamarine",
-        "type": "github"
-      }
-    },
     "flake-compat": {
       "flake": false,
       "locked": {
@@ -170,7 +137,9 @@
         "hyprlang": [
           "hyprlang"
         ],
-        "hyprtoolkit": "hyprtoolkit",
+        "hyprtoolkit": [
+          "hyprtoolkit"
+        ],
         "hyprutils": [
           "hyprutils"
         ],
@@ -250,76 +219,24 @@
     "hyprtoolkit": {
       "inputs": {
         "aquamarine": [
-          "hyprland-guiutils",
           "aquamarine"
         ],
         "hyprgraphics": [
-          "hyprland-guiutils",
           "hyprgraphics"
         ],
         "hyprlang": [
-          "hyprland-guiutils",
           "hyprlang"
         ],
         "hyprutils": [
-          "hyprland-guiutils",
           "hyprutils"
         ],
         "hyprwayland-scanner": [
-          "hyprland-guiutils",
           "hyprwayland-scanner"
         ],
         "nixpkgs": [
-          "hyprland-guiutils",
           "nixpkgs"
         ],
         "systems": [
-          "hyprland-guiutils",
-          "systems"
-        ]
-      },
-      "locked": {
-        "lastModified": 1785930473,
-        "narHash": "sha256-DitTu625BhEYpZjtjxtGpjrEJwPwW+X/+jJvhSZNSJM=",
-        "owner": "hyprwm",
-        "repo": "hyprtoolkit",
-        "rev": "af515b69dfbe366dc7873aa1475cb2f4db3ebad7",
-        "type": "github"
-      },
-      "original": {
-        "owner": "hyprwm",
-        "repo": "hyprtoolkit",
-        "type": "github"
-      }
-    },
-    "hyprtoolkit_2": {
-      "inputs": {
-        "aquamarine": [
-          "xdph",
-          "aquamarine"
-        ],
-        "hyprgraphics": [
-          "xdph",
-          "hyprgraphics"
-        ],
-        "hyprlang": [
-          "xdph",
-          "hyprlang"
-        ],
-        "hyprutils": [
-          "xdph",
-          "hyprutils"
-        ],
-        "hyprwayland-scanner": [
-          "xdph",
-          "hyprwayland-scanner"
-        ],
-        "nixpkgs": [
-          "xdph",
-          "nixpkgs"
-        ],
-        "systems": [
-          "xdph",
           "systems"
         ]
       },
@@ -454,6 +371,7 @@
         "hyprland-guiutils": "hyprland-guiutils",
         "hyprland-protocols": "hyprland-protocols",
         "hyprlang": "hyprlang",
+        "hyprtoolkit": "hyprtoolkit",
         "hyprutils": "hyprutils",
         "hyprwayland-scanner": "hyprwayland-scanner",
         "hyprwire": "hyprwire",
@@ -480,7 +398,9 @@
     },
     "xdph": {
       "inputs": {
-        "aquamarine": "aquamarine_2",
+        "aquamarine": [
+          "aquamarine"
+        ],
         "hyprgraphics": "hyprgraphics_2",
         "hyprland-protocols": [
           "hyprland-protocols"
@@ -488,7 +408,9 @@
         "hyprlang": [
           "hyprlang"
         ],
-        "hyprtoolkit": "hyprtoolkit_2",
+        "hyprtoolkit": [
+          "hyprtoolkit"
+        ],
         "hyprutils": [
           "hyprutils"
         ],

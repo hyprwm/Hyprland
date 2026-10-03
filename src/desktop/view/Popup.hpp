@@ -51,6 +51,7 @@ namespace Desktop::View {
         virtual bool                                              cantLockCursor() const override;
 
         SP<Desktop::View::CWLSurface>                             getT1Owner() const;
+        PHLWINDOW                                                 windowOwner() const;
         PHLLS                                                     layerOwner() const;
         Vector2D                                                  coordsRelativeToParent() const;
         Vector2D                                                  coordsGlobal() const;

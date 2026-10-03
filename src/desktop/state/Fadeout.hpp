@@ -23,6 +23,18 @@ namespace Desktop {
         FADEOUT_PLANE_POPUP,
     };
 
+    enum class eFadeoutSource : uint8_t {
+        UNKNOWN,
+        WINDOW,
+        LAYER,
+    };
+
+    // Snapshot origin, independent of the legacy monitor workspace filter.
+    struct SFadeoutSource {
+        eFadeoutSource  type = eFadeoutSource::UNKNOWN;
+        PHLWORKSPACEREF workspace;
+    };
+
     struct SFadeoutPreBlur {
         CBox  box;
         int   round         = 0;
@@ -58,6 +70,7 @@ namespace Desktop {
         virtual float                 alpha() const     = 0;
         virtual bool                  done() const      = 0;
         virtual SFadeoutRenderEffects effects() const;
+        virtual SFadeoutSource        source() const;
 
       protected:
         IFadeout() = default;

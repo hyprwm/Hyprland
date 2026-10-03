@@ -14,11 +14,13 @@ namespace Desktop {
         virtual float                 alpha() const override;
         virtual bool                  done() const override;
         virtual SFadeoutRenderEffects effects() const override;
+        virtual SFadeoutSource        source() const override;
 
       private:
         CPopupFadeout() = default;
 
         PHLMONITORREF     m_monitor;
+        SFadeoutSource    m_source;
         int               m_zIndex = 0;
         PHLANIMVAR<float> m_alpha;
     };

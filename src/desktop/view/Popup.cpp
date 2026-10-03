@@ -386,6 +386,10 @@ SP<Desktop::View::CWLSurface> CPopup::getT1Owner() const {
         return m_layerOwner->wlSurface();
 }
 
+PHLWINDOW CPopup::windowOwner() const {
+    return m_windowOwner.lock();
+}
+
 PHLLS CPopup::layerOwner() const {
     return m_layerOwner.lock();
 }

@@ -23,6 +23,7 @@ namespace Render {
         bool             prepare(const Vector2D& size, DRMFormat format, NColorManagement::PImageDescription description);
         SP<IFramebuffer> blurFramebuffer() const;
         SP<ITexture>     blurTexture() const;
+        bool             canPrecomputeBlur() const;
         bool             blurDirty() const;
         void             setBlurDirty(bool dirty);
         bool             blurQueued() const;

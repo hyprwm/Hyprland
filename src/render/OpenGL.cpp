@@ -1167,10 +1167,14 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(CRenderContext& ctx, const CBox
         };
     const bool usePrecomputedBlur = data.xray && !g_pHyprRenderer->blurProviderRequiresLiveBlur();
     const auto blurredFB          = usePrecomputedBlur ?
-        ctx.m_data.pMonitor->resources()->m_blurFB :
+        nullptr :
         g_pHyprRenderer->blurMainFramebuffer(ctx, data.blurA, damage,
                                              {.patternBox = patternBox, .owner = data.blurOwner, .shape = shape, .workspacePresentation = data.workspacePresentation});
-    const auto blurredBG          = blurredFB->getTexture();
+    const auto blurredBG          = usePrecomputedBlur ? g_pHyprRenderer->getBlurTexture(ctx) : blurredFB ? blurredFB->getTexture() : nullptr;
+    if (!blurredBG) {
+        renderRectWithDamageInternal(ctx, box, col, data);
+        return;
+    }
 
     const auto SAVEDRENDERMODIF = ctx.m_data.renderModif;
     ctx.m_data.renderModif      = {}; // fix shit
@@ -1859,7 +1863,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(CRenderContext& ctx, SP<ITex
     static auto PBLEND        = CConfigValue<Config::INTEGER>("render:use_shader_blur_blend");
     const auto  NEEDS_STENCIL = data.discardMode != 0 && (!data.blockBlurOptimization || (data.discardMode & DISCARD_ALPHA));
     const bool  SHADERBLEND   = *PBLEND || data.forceBlurBlend;
-    if (!SHADERBLEND) {
+    if (!SHADERBLEND && data.blurredBG) {
 
         if (NEEDS_STENCIL) {
             disableScissor(); // allow the entire window and stencil to render

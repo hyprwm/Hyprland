@@ -1,4 +1,5 @@
 #include "ElementRenderer.hpp"
+#include "SceneResources.hpp"
 #include "Renderer.hpp"
 #include "../layout/LayoutManager.hpp"
 #include "../desktop/view/window/Window.hpp"
@@ -202,12 +203,18 @@ void IElementRenderer::drawHints(CRenderContext& ctx, WP<CRendererHintsPassEleme
 }
 
 void IElementRenderer::drawPreBlur(CRenderContext& ctx, WP<CPreBlurElement> element, const CRegion& damage) {
+    if (ctx.readOnlyEffects() && !ctx.sceneResources()->blurQueued())
+        return;
     TRACY_GPU_ZONE("RenderPreBlurForCurrentMonitor");
-    auto&      m_renderData = ctx.m_data;
+    auto&             m_renderData = ctx.m_data;
 
-    const auto SAVEDRENDERMODIF = m_renderData.renderModif;
-    const auto SAVEDDAMAGE      = m_renderData.damage;
-    m_renderData.renderModif    = {}; // fix shit
+    const auto        SAVEDRENDERMODIF = m_renderData.renderModif;
+    const auto        SAVEDDAMAGE      = m_renderData.damage;
+    const CScopeGuard restore([&] {
+        m_renderData.renderModif = SAVEDRENDERMODIF;
+        m_renderData.damage      = SAVEDDAMAGE;
+    });
+    m_renderData.renderModif = {}; // fix shit
 
     // make the fake dmg
     CRegion fakeDamage{0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
@@ -215,12 +222,6 @@ void IElementRenderer::drawPreBlur(CRenderContext& ctx, WP<CPreBlurElement> elem
     m_renderData.damage = fakeDamage; // the clear inside scissors to renderData.damage, it has to match the blit
 
     draw(ctx, element, fakeDamage);
-
-    m_renderData.pMonitor->m_blurFBDirty        = false;
-    m_renderData.pMonitor->m_blurFBShouldRender = false;
-
-    m_renderData.renderModif = SAVEDRENDERMODIF;
-    m_renderData.damage      = SAVEDDAMAGE;
 }
 
 void IElementRenderer::drawClear(CRenderContext& ctx, WP<CClearPassElement> element, const CRegion& damage) {
@@ -530,9 +531,9 @@ void IElementRenderer::drawTex(CRenderContext& ctx, WP<CTexPassElement> element,
             blurredFB = g_pHyprRenderer->blurMainFramebuffer(
                 ctx, element->m_data.a, inverseOpaque,
                 {.patternBox = patternBox, .owner = element->m_data.blurOwner, .shape = shape, .workspacePresentation = element->m_data.workspacePresentation});
-            element->m_data.blurredBG = blurredFB->getTexture();
+            element->m_data.blurredBG = blurredFB ? blurredFB->getTexture() : nullptr;
         } else
-            element->m_data.blurredBG = m_renderData.pMonitor->resources()->m_blurFB->getTexture();
+            element->m_data.blurredBG = g_pHyprRenderer->getBlurTexture(ctx);
 
         transformClipRegion();
         draw(ctx, element, damage);

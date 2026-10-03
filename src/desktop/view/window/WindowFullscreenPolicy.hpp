@@ -21,6 +21,7 @@ namespace Desktop::View {
     struct SPendingClientFullscreenRequest {
         std::optional<Fullscreen::eFullscreenMode> mode;
         std::optional<MONITORID>                   monitor;
+        bool                                       isFromBackend{};
     };
 
     class CWindowFullscreenPolicy {
@@ -33,19 +34,19 @@ namespace Desktop::View {
         void                                   setRequestSuppression(const SFullscreenRequestSuppression& suppression);
 
         const SPendingClientFullscreenRequest& pendingClientRequest() const;
-        void                                   setPendingClientRequest(Fullscreen::eFullscreenMode mode, std::optional<MONITORID> monitor = std::nullopt);
-        void                                   clearPendingClientMode(Fullscreen::eFullscreenMode mode);
-        SPendingClientFullscreenRequest        consumePendingClientRequest();
+        void                            setPendingClientRequest(Fullscreen::eFullscreenMode mode, std::optional<MONITORID> monitor = std::nullopt, bool backendOrigin = false);
+        void                            clearPendingClientMode(Fullscreen::eFullscreenMode mode);
+        SPendingClientFullscreenRequest consumePendingClientRequest();
 
-        void                                   expectMaximizeEcho();
-        void                                   clearExpectedMaximizeEcho();
-        bool                                   consumeExpectedMaximizeEcho(bool maximized);
+        void                            expectMaximizeEcho();
+        void                            clearExpectedMaximizeEcho();
+        bool                            consumeExpectedMaximizeEcho(bool maximized);
 
-        bool                                   pinFullscreened() const;
-        void                                   setPinFullscreened(bool pinFullscreened);
+        bool                            pinFullscreened() const;
+        void                            setPinFullscreened(bool pinFullscreened);
 
-        bool                                   restoreClientMaximized() const;
-        void                                   setRestoreClientMaximized(bool restore);
+        bool                            restoreClientMaximized() const;
+        void                            setRestoreClientMaximized(bool restore);
 
       private:
         bool                            m_allowedOverFullscreen = true;

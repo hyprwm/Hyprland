@@ -52,8 +52,8 @@ class CFakePolicyContext final : public IPolicyContext {
         m_workspaces.emplace_back(SWorkspaceSnapshot{identity, std::string{monitorAddress}});
     }
 
-    void moveWorkspace(const SWorkspaceIdentity& identity, std::string_view monitorAddress) override {
-        m_actions.emplace_back(SRecordedAction{SRecordedAction::eType::MOVE, identity.address, std::string{monitorAddress}});
+    void moveWorkspace(const SWorkspaceIdentity& identity, std::string_view monitorAddress, bool replace) override {
+        m_actions.emplace_back(SRecordedAction{SRecordedAction::eType::MOVE, identity.address, std::format("{} {}", monitorAddress, replace)});
 
         const auto WORKSPACE = std::ranges::find(m_workspaces, identity, &SWorkspaceSnapshot::identity);
         ASSERT_NE(WORKSPACE, m_workspaces.end());
@@ -154,7 +154,7 @@ TEST(WorkspaceLifecyclePolicy, configuredDefaultMovesExistingWorkspaceAndActivat
 
     EXPECT_EQ(context.m_actions,
               (std::vector<SRecordedAction>{
-                  {SRecordedAction::eType::MOVE, "development", "monitor:right"},
+                  {SRecordedAction::eType::MOVE, "development", "monitor:right true"},
                   {SRecordedAction::eType::ACTIVATE, "development", "monitor:right"},
               }));
 }
@@ -203,7 +203,7 @@ TEST(WorkspaceLifecyclePolicy, disconnectRemembersActiveAddressAndReconnectResto
     EXPECT_FALSE(policy.returnMonitorAddress(identity("workspace:left")).has_value());
     EXPECT_EQ(context.m_actions,
               (std::vector<SRecordedAction>{
-                  {SRecordedAction::eType::MOVE, "workspace:left", "monitor:left"},
+                  {SRecordedAction::eType::MOVE, "workspace:left", "monitor:left true"},
                   {SRecordedAction::eType::ACTIVATE, "workspace:left", "monitor:left"},
               }));
 }
@@ -231,7 +231,7 @@ TEST(WorkspaceLifecyclePolicy, reconnectToleratesWorkspaceDestructionDuringMove)
 
     EXPECT_FALSE(policy.returnMonitorAddress(WORKSPACE).has_value());
     EXPECT_FALSE(policy.rememberedActiveWorkspace("monitor:left").has_value());
-    EXPECT_EQ(context.m_actions, (std::vector<SRecordedAction>{{SRecordedAction::eType::MOVE, "workspace:left", "monitor:left"}}));
+    EXPECT_EQ(context.m_actions, (std::vector<SRecordedAction>{{SRecordedAction::eType::MOVE, "workspace:left", "monitor:left true"}}));
 }
 
 TEST(WorkspaceLifecyclePolicy, fallbackRecoveryPreservesRealMonitorProvenance) {
@@ -257,7 +257,7 @@ TEST(WorkspaceLifecyclePolicy, fallbackRecoveryPreservesRealMonitorProvenance) {
     EXPECT_FALSE(policy.returnMonitorAddress(identity("name:active")).has_value());
     EXPECT_EQ(context.m_actions,
               (std::vector<SRecordedAction>{
-                  {SRecordedAction::eType::MOVE, "name:active", "monitor:real"},
+                  {SRecordedAction::eType::MOVE, "name:active", "monitor:real true"},
                   {SRecordedAction::eType::ACTIVATE, "name:active", "monitor:real"},
               }));
 }

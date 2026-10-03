@@ -360,7 +360,7 @@ void CExtWorkspaceManagerResource::onWorkspaceCreated(const PHLWORKSPACE& worksp
 }
 
 CExtWorkspaceProtocol::CExtWorkspaceProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    static auto P1 = Event::bus()->m_events.workspace.created.listen([this](PHLWORKSPACEREF workspace) {
+    static auto P1 = Event::bus()->m_events.workspace.createdEarly.listen([this](PHLWORKSPACEREF workspace) {
         for (auto const& m : m_managers) {
             m->onWorkspaceCreated(workspace.lock());
         }

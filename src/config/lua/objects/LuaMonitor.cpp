@@ -56,6 +56,7 @@ static int monitorSetWorkspace(lua_State* L) {
 
     State::Workspace::placementController()->moveWorkspaceToMonitor(ws, ref->lock(), true, false);
     (*ref)->changeWorkspace(ws, false, true, Desktop::focusState()->monitor() != *ref);
+    ws->ready();
 
     return 0;
 }
@@ -82,6 +83,7 @@ static int monitorSetSpecialWorkspace(lua_State* L) {
         ws = State::Workspace::state()->create(TARGET, ref->lock());
 
     (*ref)->setSpecialWorkspace(ws, true);
+    ws->ready();
 
     return 0;
 }

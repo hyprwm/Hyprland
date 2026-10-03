@@ -1,6 +1,7 @@
 #include "LuaBindingsInternal.hpp"
 
 #include <lua.h>
+#include <hyprutils/utils/ScopeGuard.hpp>
 
 #include "Check.hpp"
 
@@ -1169,6 +1170,7 @@ static int dsp_toggleSpecial(lua_State* L) {
     if (!ws)
         return Internal::dispatcherError(L, "Could not resolve special workspace", ERR, C_UNAVAIL);
 
+    Hyprutils::Utils::CScopeGuard x([&]() { ws->ready(); });
     return Internal::checkResult(L, CA::toggleSpecial(ws));
 }
 

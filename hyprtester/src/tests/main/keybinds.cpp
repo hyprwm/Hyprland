@@ -832,7 +832,7 @@ TEST_CASE(keybinds) {
     CALL_SUBTEST(unbind);
 }
 
-TEST_CASE(unorderedSubChordDeferral) {
+TEST_CASE(orderedSubChordDeferral) {
     constexpr uint32_t X = KEY_X + 8;
     constexpr uint32_t D = KEY_D + 8;
     constexpr uint32_t F = KEY_F + 8;
@@ -853,8 +853,9 @@ TEST_CASE(unorderedSubChordDeferral) {
     OK(getFromSocket(pluginKeybindCmd(false, 0, X)));
     EXPECT(counts(), "1:0:0");
 
+    // Without X held first, D cannot extend the longer chord and fires immediately.
     OK(getFromSocket(pluginKeybindCmd(true, MOD_META, D)));
-    EXPECT(counts(), "1:0:0");
+    EXPECT(counts(), "1:1:0");
     OK(getFromSocket(pluginKeybindCmd(false, 0, D)));
     EXPECT(counts(), "1:1:0");
 

@@ -217,6 +217,7 @@ namespace Render {
         bool                     preBlurQueued(PHLMONITORREF pMonitor);
         bool                     preBlurQueued(CRenderContext& ctx);
         SP<ITexture>             getBlurTexture(CRenderContext& ctx);
+        SP<IFramebuffer>         getWorkBuffer(CRenderContext& ctx, std::optional<Vector2D> size = std::nullopt);
         void                     sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now);
 
         void                     setProjectionType(CRenderContext& ctx, const Vector2D& fbSize);
@@ -342,7 +343,7 @@ namespace Render {
         bool shouldRenderWindowInScene(PHLWINDOW window, PHLMONITOR monitor, PHLWORKSPACE workspace, eSceneMode mode);
         void renderMonitorBackground(CRenderContext& ctx, PHLMONITOR pMonitor, const Time::steady_tp& time, PHLWORKSPACE workspace, eSceneMode mode);
         void renderFadeouts(CRenderContext& ctx, PHLMONITOR monitor, Desktop::eFadeoutPlane plane, PHLWORKSPACE workspace, eSceneMode mode);
-        void bindOffMain(CRenderContext& ctx);
+        bool bindOffMain(CRenderContext& ctx);
         void bindBackOnMain(CRenderContext& ctx);
     };
 

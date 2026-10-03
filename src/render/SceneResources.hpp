@@ -24,6 +24,7 @@ namespace Render {
         SP<IFramebuffer> blurFramebuffer() const;
         SP<ITexture>     blurTexture() const;
         bool             canPrecomputeBlur() const;
+        SP<IFramebuffer> prepareWorkBuffer(SP<IFramebuffer> framebuffer) const;
         bool             blurDirty() const;
         void             setBlurDirty(bool dirty);
         bool             blurQueued() const;

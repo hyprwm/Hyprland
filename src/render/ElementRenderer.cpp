@@ -692,8 +692,8 @@ void IElementRenderer::drawTransformedWindow(CRenderContext& ctx, WP<CTransforme
 
     const double CANVASPADDING = 1.0 / pMonitor->m_scale;
     CBox         SOURCECANVAS  = pixelBoxForLogical(plan.sourceBox.copy().expand(CANVASPADDING), pMonitor->m_scale);
-    auto         fb            = pMonitor->resources()->getUnusedWorkBuffer(SOURCECANVAS.size());
-    auto         matteFB       = element->m_data.blur ? pMonitor->resources()->getUnusedWorkBuffer(SOURCECANVAS.size()) : nullptr;
+    auto         fb            = g_pHyprRenderer->getWorkBuffer(ctx, SOURCECANVAS.size());
+    auto         matteFB       = element->m_data.blur ? g_pHyprRenderer->getWorkBuffer(ctx, SOURCECANVAS.size()) : nullptr;
     if (!fb || (element->m_data.blur && !matteFB)) {
         fb.reset();
         matteFB.reset();
@@ -704,8 +704,8 @@ void IElementRenderer::drawTransformedWindow(CRenderContext& ctx, WP<CTransforme
         plan.sourceBox    = MONITORBOX;
         plan.outputBox    = MONITORBOX;
         SOURCECANVAS      = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
-        fb                = pMonitor->resources()->getUnusedWorkBuffer();
-        matteFB           = element->m_data.blur ? pMonitor->resources()->getUnusedWorkBuffer() : nullptr;
+        fb                = g_pHyprRenderer->getWorkBuffer(ctx);
+        matteFB           = element->m_data.blur ? g_pHyprRenderer->getWorkBuffer(ctx) : nullptr;
         if (!fb || (element->m_data.blur && !matteFB)) {
             renderNestedDirect();
             return;

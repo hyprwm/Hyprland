@@ -64,6 +64,14 @@ bool CSceneResources::canPrecomputeBlur() const {
     return (!m_isolated || m_prepared) && FB && FB->isAllocated();
 }
 
+SP<IFramebuffer> CSceneResources::prepareWorkBuffer(SP<IFramebuffer> framebuffer) const {
+    if (!framebuffer)
+        return nullptr;
+    if (m_isolated)
+        framebuffer->disableMirror();
+    return framebuffer->isAllocated() ? framebuffer : nullptr;
+}
+
 void CSceneResources::setBlurDirty(bool dirty) {
     if (m_isolated) {
         m_dirty = dirty;

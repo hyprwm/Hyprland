@@ -187,7 +187,7 @@ namespace Render::GL {
         };
 
         void makeEGLCurrent();
-        void begin(CRenderContext& ctx, PHLMONITOR, const CRegion& damage, SP<IFramebuffer> fb = nullptr, std::optional<CRegion> finalDamage = {});
+        bool begin(CRenderContext& ctx, PHLMONITOR, const CRegion& damage, SP<IFramebuffer> fb = nullptr, std::optional<CRegion> finalDamage = {});
         void beginSimple(CRenderContext& ctx, PHLMONITOR, const CRegion& damage, SP<IRenderbuffer> rb = nullptr, SP<IFramebuffer> fb = nullptr);
         void end(CRenderContext& ctx);
 

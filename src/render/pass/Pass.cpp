@@ -273,11 +273,12 @@ CRegion CRenderPass::render(CRenderContext& ctx, const CRegion& damage_) {
 
     if (*PDEBUGPASS) {
         renderDebugData(ctx);
-        g_pEventLoopManager->doLater([] {
-            for (auto& m : State::monitorState()->monitors()) {
-                g_pHyprRenderer->damageMonitor(m);
-            }
-        });
+        if (!ctx.readOnlyEffects())
+            g_pEventLoopManager->doLater([] {
+                for (auto& m : State::monitorState()->monitors()) {
+                    g_pHyprRenderer->damageMonitor(m);
+                }
+            });
     }
 
     ctx.m_data.damage = m_damage;

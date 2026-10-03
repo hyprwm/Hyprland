@@ -458,8 +458,12 @@ void CWLDataDeviceProtocol::sendSelectionToDevice(SP<IDataDevice> dev, SP<IDataS
         offer           = OFFER;
     }
 #ifndef NO_XWAYLAND
-    else if (const auto X11 = dev->getX11(); X11)
-        offer = g_pXWayland->m_wm->createX11DataOffer(g_pSeatManager->m_state.keyboardFocus.lock(), sel);
+    else if (dev->getX11()) {
+        // Clipboard delivery to X11 is SXSelection, not a drag offer.
+        // createX11DataOffer() clears m_dndDataOffers, so a focus change onto
+        // VLC replaced the in-progress Nautilus drag with the clipboard.
+        return;
+    }
 #endif
 
     if UNLIKELY (!offer) {

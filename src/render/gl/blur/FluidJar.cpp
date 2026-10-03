@@ -109,7 +109,7 @@ int64_t CFluidJarBlurMaterial::blurSizeForDamage(int64_t size) const {
 }
 
 void CFluidJarBlurMaterial::prepare(CRenderContext& ctx, const SBlurMaterialContext& context) {
-    if (!m_supported || context.blurContext.owner.expired())
+    if (ctx.readOnlyEffects() || !m_supported || context.blurContext.owner.expired())
         return;
 
     pruneStates();
@@ -125,8 +125,9 @@ void CFluidJarBlurMaterial::prepare(CRenderContext& ctx, const SBlurMaterialCont
 }
 
 void CFluidJarBlurMaterial::bindFinish(CRenderContext& ctx, WP<CShader> shader, const SBlurMaterialContext& context) const {
-    const auto state = stateForContext(context.blurContext);
-    if (!m_supported || !state || !state->visual[state->currentVisual]) {
+    const auto state   = stateForContext(context.blurContext);
+    const auto texture = m_supported && state ? materialTexture(state->visual[state->currentVisual]) : nullptr;
+    if (!texture) {
         shader->setUniformInt(SHADER_FLUIDJAR_ENABLED, 0);
         return;
     }
@@ -147,7 +148,6 @@ void CFluidJarBlurMaterial::bindFinish(CRenderContext& ctx, WP<CShader> shader, 
     const auto outputTransform = fluidJarOutputTransform(HYPRUTILS_TRANSFORM_NORMAL);
 
     glActiveTexture(GL_TEXTURE2);
-    const auto texture = state->visual[state->currentVisual]->getTexture();
     texture->bind();
     texture->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     texture->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);

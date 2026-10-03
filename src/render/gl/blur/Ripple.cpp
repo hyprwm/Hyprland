@@ -113,7 +113,7 @@ bool CRippleBlurMaterial::isAnimated(CRenderContext& ctx) const noexcept {
     if (!*PBLURENABLED || *PRIPPLESTRENGTH <= 0.F || *PRIPPLEDURATION <= 0.F || !ctx.m_data.pMonitor)
         return false;
 
-    const auto now = Time::steadyNow();
+    const auto now = ctx.effectTime();
     return std::ranges::any_of(m_impulses, [&](const auto& impulse) { return impulseIsActive(impulse, ctx.m_data.pMonitor, now, *PRIPPLEDURATION); });
 }
 
@@ -130,7 +130,7 @@ void CRippleBlurMaterial::bindFinish(CRenderContext& ctx, WP<CShader> shader, co
     static auto        PRIPPLEDURATION = CConfigValue<Config::FLOAT>("decoration:blur:ripple:duration");
 
     const auto         monitor  = ctx.m_data.pMonitor;
-    const auto         now      = Time::steadyNow();
+    const auto         now      = ctx.effectTime();
     const auto         duration = std::max(*PRIPPLEDURATION, 0.001F);
 
     std::vector<float> impulses;

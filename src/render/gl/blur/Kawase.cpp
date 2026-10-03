@@ -86,7 +86,7 @@ SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(CRenderContext& ctx, SP<CGLFr
         .outputDamage = outputDamage,
         .strength     = strength,
     };
-    m_material->prepare(ctx, materialContext);
+    m_material->prepareForFrame(ctx, materialContext);
 
     CRegion workingDamage{outputDamage};
     expandDamage(workingDamage);

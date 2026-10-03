@@ -7,10 +7,13 @@
 #include <cstring>
 #include <vector>
 #include <array>
+#include <tuple>
 
 #define private   public
 #define protected public
 #include <src/render/Renderer.hpp>
+#include <src/render/SceneResources.hpp>
+#include <src/output/MonitorResources.hpp>
 #include <src/managers/input/InputManager.hpp>
 #include <src/pointer/PointerManager.hpp>
 #include <src/pointer/cursor/CursorManager.hpp>
@@ -344,10 +347,94 @@ static std::string describeRenderStages(const std::vector<eRenderStage>& stages)
     return result;
 }
 
+static SDispatchResult probeSceneResources(Render::CRenderContext& ctx, PHLMONITOR monitor) {
+    using namespace Render;
+    auto&                        renderer  = *g_pHyprRenderer;
+    const auto                   resources = monitor->resources();
+    GL::CFramebufferBindingGuard bindings{renderer.glBackend()}; // Outlive every allocation and release below.
+    if (!monitor->m_mirrors.empty() && !resources->hasMirrorFB())
+        return {.success = false, .error = "Scene resources: mirrored output requires a warmed monitor mirror cache"};
+    const auto TEXTURE_STATE = [](const SP<ITexture>& tex) {
+        return std::tuple{tex, tex ? tex->m_texID : 0U, tex ? tex->m_size : Vector2D{}, tex ? tex->m_drmFormat : 0U, tex ? glIsTexture(tex->m_texID) : GL_FALSE};
+    };
+    const auto FB_STATE = [&](const SP<IFramebuffer>& fb) {
+        return std::make_tuple(fb, fb && fb->isAllocated(), fb ? fb->m_size : Vector2D{}, fb ? fb->m_drmFormat : DRM_FORMAT_INVALID, TEXTURE_STATE(fb ? fb->getTexture() : nullptr),
+                               TEXTURE_STATE(fb ? fb->getMirrorTexture() : nullptr));
+    };
+    const auto STATE = [&] {
+        return std::make_tuple(FB_STATE(resources->m_blurFB), FB_STATE(resources->m_monitorMirrorFB), TEXTURE_STATE(resources->m_mirrorTex), resources->sceneResources(),
+                               monitor->m_blurFBDirty, monitor->m_blurFBShouldRender, resources->m_mirrorFBValid, resources->m_mirrorFBNeedsFullRefresh, ctx.sceneResources(),
+                               ctx.active(), ctx.m_frameTime, ctx.m_currentPass, ctx.m_pass.m_passElements.size(), renderer.currentPass(ctx).m_passElements.size(), ctx.m_mode,
+                               ctx.m_currentBuffer, ctx.m_currentRenderbuffer, ctx.m_swapchainAcquired, ctx.m_data.pMonitor, ctx.m_data.currentFB, ctx.m_data.mainFB,
+                               ctx.m_data.outFB, ctx.m_data.fbSize, ctx.m_data.targetProjection, ctx.m_usedAsyncBuffers.size(), ctx.m_backdropCaptures.size());
+    };
+    const auto OLD_STATE = STATE();
+    const auto OLD_STALE = resources->m_mirrorFBStaleDamage.copy();
+    const auto OLD_DATA  = ctx.m_data;
+    {
+        const auto     owner = makeShared<CSceneResources>(renderer.createFB("Scene resources probe"));
+        CRenderContext isolated;
+        if (!isolated.begin(owner) || !isolated.readOnlyEffects() || isolated.effectTime() != isolated.m_frameTime || owner->canPrecomputeBlur() ||
+            renderer.getBlurTexture(isolated))
+            return {.success = false, .error = "Scene resources: unprepared private cache was readable or ready"};
+        isolated.m_data.pMonitor = monitor;
+        isolated.m_data.fbSize   = ctx.m_data.fbSize;
+        if (!resources->prepareSceneResources(*owner) || !owner->canPrecomputeBlur() || !owner->blurDirty() || owner->blurQueued() || renderer.getBlurTexture(isolated) ||
+            owner->blurFramebuffer() == resources->m_blurFB || owner->blurFramebuffer()->m_size != resources->m_size ||
+            owner->blurFramebuffer()->m_drmFormat != resources->m_drmFormat || owner->blurFramebuffer()->imageDescription() != resources->m_imageDescription)
+            return {.success = false, .error = "Scene resources: private allocation/readiness did not use monitor geometry and format"};
+
+        for (const bool SIZED : {false, true}) {
+            const auto SIZE    = SIZED ? std::optional<Vector2D>{{37, 23}} : std::nullopt;
+            auto       scratch = SIZED ? resources->getUnusedWorkBuffer(*SIZE) : resources->getUnusedWorkBuffer();
+            if (!scratch || !scratch->isAllocated() || scratch == ctx.m_data.currentFB || scratch == resources->m_monitorMirrorFB || scratch == resources->m_blurFB)
+                return {.success = false, .error = "Scene resources: no independent scratch framebuffer"};
+            const WP<IFramebuffer> BORROWED = scratch;
+            const auto             mirror   = renderer.createTexture();
+            mirror->allocate(scratch->m_size, scratch->m_drmFormat);
+            const auto  MIRROR_ID = mirror->m_texID;
+            CScopeGuard detach([&] {
+                if (const auto FB = BORROWED.lock(); FB && FB->getMirrorTexture() == mirror)
+                    FB->disableMirror();
+            });
+            scratch->enableMirror(mirror);
+            scratch->bind();
+            GLint attachment = 0;
+            glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &attachment);
+            if (!scratch->isAllocated() || scratch->getMirrorTexture() != mirror || sc<GLuint>(attachment) != MIRROR_ID ||
+                glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+                return {.success = false, .error = "Scene resources: disposable mirror was not attached"};
+            scratch.reset(); // The weak identity must not prevent pool reuse.
+            scratch = renderer.getWorkBuffer(isolated, SIZE);
+            if (!scratch || scratch != BORROWED.lock() || !scratch->isAllocated() || scratch->getMirrorTexture() || scratch->m_size != SIZE.value_or(resources->m_size) ||
+                scratch->m_drmFormat != resources->m_drmFormat || scratch->imageDescription() != resources->m_imageDescription)
+                return {.success = false, .error = "Scene resources: isolated borrowing did not detach/reuse the scratch framebuffer"};
+            scratch->bind();
+            glGetFramebufferAttachmentParameteriv(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &attachment);
+            if (attachment != GL_NONE || glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE || mirror->m_texID != MIRROR_ID || !glIsTexture(MIRROR_ID) ||
+                mirror->m_size != scratch->m_size || mirror->m_drmFormat != scratch->m_drmFormat)
+                return {.success = false, .error = "Scene resources: GL mirror attachment survived or disposable texture was damaged"};
+        }
+        owner->setBlurQueued(true);
+        owner->completePreBlur(); // Bookkeeping only: these uninitialized pixels must never be sampled.
+        if (owner->blurDirty() || owner->blurQueued() || !isolated.readOnlyEffects() || isolated.effectTime() != isolated.m_frameTime ||
+            renderer.getBlurTexture(isolated) != owner->blurFramebuffer()->getTexture() || !renderer.getBlurTexture(isolated) ||
+            renderer.getBlurTexture(isolated) == resources->m_blurFB->getTexture())
+            return {.success = false, .error = "Scene resources: completed private cache did not route its own texture"};
+    }
+    if (STATE() != OLD_STATE || !pixman_region32_equal(OLD_STALE.pixman(), resources->m_mirrorFBStaleDamage.pixman()) ||
+        !pixman_region32_equal(OLD_DATA.damage.pixman(), ctx.m_data.damage.pixman()) || !pixman_region32_equal(OLD_DATA.finalDamage.pixman(), ctx.m_data.finalDamage.pixman()))
+        return {.success = false, .error = "Scene resources: monitor cache/mirror state or caller pass/session/damage changed"};
+    return {};
+}
+
 static SDispatchResult probeWorkspaceBackground(Render::CRenderContext& ctx, PHLMONITOR monitor, bool withWorkspace) {
     if (!monitor->m_activeWorkspace || std::ranges::any_of(Desktop::windowState()->windows(), [](const auto& window) { return window->mapped(); }) ||
         !Desktop::layerState()->layers().empty())
         return {.success = false, .error = "Background probe requires an active workspace and no mapped clients or layers"};
+
+    if (const auto RESULT = probeSceneResources(ctx, monitor); !RESULT.success)
+        return RESULT;
 
     auto&                     renderer  = *g_pHyprRenderer;
     auto&                     entries   = ctx.m_pass.m_passElements;

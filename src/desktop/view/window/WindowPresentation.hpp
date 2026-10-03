@@ -8,6 +8,7 @@
 #include "../../../render/decorations/IHyprWindowDecoration.hpp"
 #include "../../types/MultiAnimatedVariable.hpp"
 #include "../animationControllers/WindowAnimationController.hpp"
+#include "FloatingOffset.hpp"
 
 class CHyprBorderDecoration;
 class CHyprDropShadowDecoration;
@@ -67,6 +68,7 @@ namespace Desktop::View {
         void                                              setNotResponding(bool notResponding);
 
         const Vector2D&                                   floatingOffset() const;
+        eFloatingOffsetSource                             floatingOffsetSource() const;
         void                                              setFloatingOffset(const Vector2D& offset);
         void                                              clearFloatingOffset();
         bool                                              movingFromMonitor() const;
@@ -97,7 +99,7 @@ namespace Desktop::View {
         Types::CMultiAVarContainer<float, uint8_t> m_alpha;
         PHLANIMVAR<float>                          m_dimPercent;
         PHLANIMVAR<float>                          m_notRespondingTint;
-        Vector2D                                   m_floatingOffset;
+        CFloatingOffset                            m_floatingOffset;
         int                                        m_monitorMovedFrom = -1;
         bool                                       m_animatingIn      = false;
         CWindowAnimationController                 m_animationController;

@@ -320,15 +320,19 @@ void CWindowPresentation::setNotResponding(bool notResponding) {
 }
 
 const Vector2D& CWindowPresentation::floatingOffset() const {
-    return m_floatingOffset;
+    return m_floatingOffset.value();
+}
+
+eFloatingOffsetSource CWindowPresentation::floatingOffsetSource() const {
+    return m_floatingOffset.source();
 }
 
 void CWindowPresentation::setFloatingOffset(const Vector2D& offset) {
-    m_floatingOffset = offset;
+    m_floatingOffset.set(offset);
 }
 
 void CWindowPresentation::clearFloatingOffset() {
-    m_floatingOffset = {};
+    m_floatingOffset.clear();
 }
 
 bool CWindowPresentation::movingFromMonitor() const {
@@ -410,7 +414,7 @@ void CWindowPresentation::onWorkspaceAnimUpdate() {
             offset.y += (WINDOW_BOX.y + WINDOW_BOX.height - MONITOR->m_position.y - MONITOR->m_size.y) * PROGRESS;
     }
 
-    m_floatingOffset = offset;
+    m_floatingOffset.set(offset, eFloatingOffsetSource::WORKSPACE);
 }
 
 void CWindowPresentation::onFocusAnimUpdate() {

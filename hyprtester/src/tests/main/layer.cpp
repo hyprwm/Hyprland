@@ -8,8 +8,6 @@
 #include <thread>
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
-#include <string_view>
-#include <thread>
 
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;

@@ -6,7 +6,6 @@
 #include <format>
 
 #include <hyprutils/utils/ScopeGuard.hpp>
-#include <thread>
 
 using namespace Hyprutils::Utils;
 

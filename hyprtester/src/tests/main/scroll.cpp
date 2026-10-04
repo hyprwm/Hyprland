@@ -1175,12 +1175,10 @@ TEST_CASE(scroll_LAYOUT_HANDLED_layerVisibilityOnFs) {
 
     static constexpr const char* LAYER_NAMESPACE = "bar-like-layer";
 
-    const auto spawnLayerAndWaitTillSuccess_TOP = [&]() {
+    const auto                   spawnLayerAndWaitTillSuccess_TOP = [&]() {
         ASSERT(spawnLayer(LAYER_NAMESPACE, {"--edge=top", "--layer=top", "--lines=48px", "--focus-policy=not-allowed"}), true);
         Tests::waitUntilLayersN(1);
     };
-
-
 
     OK(getFromSocket("/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -2459,10 +2457,6 @@ TEST_CASE(scroll_DEFAULT_HANDLED_layerVisibilityOnFs) {
 
     OK(getFromSocket("/eval hl.config({ general = { layout = 'scrolling' } })"));
 
-
-
-
-
     const auto doMassacre = [&]() -> void {
         Tests::killAllLayers();
         Tests::waitUntilLayersN(0);
@@ -2693,11 +2687,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_layerVisibilityOnFs) {
         EXPECT_CONTAINS(str, "a: 1");
         EXPECT_CONTAINS(getFromSocket("/activewindow"), "fullscreen: 0");
     }
-
-
 }
-
-
 
 /* Scroll viewport tests */
 

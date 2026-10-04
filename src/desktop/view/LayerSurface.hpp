@@ -25,8 +25,8 @@ namespace Desktop::View {
     };
 
     enum class eLayerFlags : uint8_t {
-        LAYER_FLAG_NONE             = 0,
-        LAYER_FLAG_DEAD             = (1 << 0),
+        LAYER_FLAG_NONE = 0,
+        LAYER_FLAG_DEAD = (1 << 0),
         // is the layer present, or allowed to be, above fullscreen (FSMODE_FULLSCREEN) window
         LAYER_FLAG_ABOVE_FULLSCREEN = (1 << 1),
     };

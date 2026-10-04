@@ -49,7 +49,7 @@ template <typename... Args>
 #define RASSERT(expr, reason, ...)                                                                                                                                                 \
     if (!(expr)) [[unlikely]] {                                                                                                                                                    \
         constexpr auto FILENAME = std::string_view(__FILE__).substr(std::string_view(__FILE__).find_last_of('/') + 1);                                                             \
-        assertImpl(__LINE__, FILENAME, reason, ##__VA_ARGS__);                                                                                                                     \
+        assertImpl(__LINE__, FILENAME, reason __VA_OPT__(, ) __VA_ARGS__);                                                                                                         \
     }
 
 #define ASSERT(expr) RASSERT(expr, "?")

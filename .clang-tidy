@@ -19,6 +19,7 @@ WarningsAsErrors: >
   -cppcoreguidelines-pro-type-const-cast,
   -cppcoreguidelines-owning-memory,
   -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
   -cppcoreguidelines-pro-bounds-constant-array-index,
   -cppcoreguidelines-avoid-const-or-ref-data-members,
   -cppcoreguidelines-non-private-member-variables-in-classes,
@@ -103,6 +104,7 @@ WarningsAsErrors: >
   -readability-make-member-function-const,
   -readability-isolate-declaration,
   -readability-inconsistent-declaration-parameter-name,
+  -readability-inconsistent-ifelse-braces,
   -clang-diagnostic-error,
 
 HeaderFilterRegex: '.*\.hpp'
@@ -123,6 +125,7 @@ Checks: >
   -cppcoreguidelines-avoid-magic-numbers,
   -cppcoreguidelines-pro-bounds-constant-array-index,
   -cppcoreguidelines-avoid-const-or-ref-data-members,
+  -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
   -cppcoreguidelines-non-private-member-variables-in-classes,
   -cppcoreguidelines-avoid-goto,
   -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
@@ -187,6 +190,7 @@ Checks: >
   -readability-make-member-function-const,
   -readability-isolate-declaration,
   -readability-inconsistent-declaration-parameter-name,
+  -readability-inconsistent-ifelse-braces,
   -clang-diagnostic-error,
 
 CheckOptions:

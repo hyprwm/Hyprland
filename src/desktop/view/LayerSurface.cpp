@@ -226,7 +226,7 @@ void CLayerSurface::onMap() {
     m_realSize->setConfig(Config::animationTree()->getAnimationPropertyConfig("layersIn"));
     m_alpha.get(LS_ALPHA_FADE)->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeLayersIn"));
 
-    static auto PALLOWNEWTOPOVERFULLSCREEN = CConfigValue<Config::INTEGER>("misc.allow_new_top_layers_over_existing_fullscreen");
+    static auto PALLOWNEWTOPOVERFULLSCREEN = CConfigValue<Config::INTEGER>("misc:allow_new_top_layers_over_existing_fullscreen");
     // if PALLOWNEWTOPOVERFULLSCREEN = true: guard against making top layer elements, like bars, visible ontop of fullscreen
     // Monitor only considers fullscreen to be FS, which is what we want
     const auto minLayer = *PALLOWNEWTOPOVERFULLSCREEN ? ZWLR_LAYER_SHELL_V1_LAYER_TOP : ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY;

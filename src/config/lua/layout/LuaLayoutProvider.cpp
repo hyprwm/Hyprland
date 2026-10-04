@@ -44,6 +44,7 @@ void CLuaTiledAlgorithm::removeTarget(SP<Layout::ITarget> target) {
 }
 
 void CLuaTiledAlgorithm::resizeTarget(const Vector2D& Δ, SP<Layout::ITarget> target, Layout::eRectCorner corner) {
+    callResizeTarget(Δ, target, corner);
     recalculate();
 }
 
@@ -210,6 +211,54 @@ bool CLuaTiledAlgorithm::callRecalculate(const std::vector<SP<Layout::ITarget>>&
 
     lua_settop(L, top);
     return true;
+}
+
+void CLuaTiledAlgorithm::callResizeTarget(const Vector2D& Δ, SP<Layout::ITarget> target, Layout::eRectCorner corner) {
+    if (!m_provider || !m_provider->active || !m_provider->state || !m_provider->manager)
+        return;
+
+    auto parent = m_parent.lock();
+    auto space  = parent ? parent->space() : nullptr;
+    if (!space)
+        return;
+
+    auto       targets = liveTargets();
+    const auto IT      = std::ranges::find(targets, target);
+    if (IT == targets.end())
+        return;
+
+    lua_State* L   = m_provider->state;
+    const int  top = lua_gettop(L);
+
+    lua_rawgeti(L, LUA_REGISTRYINDEX, m_provider->tableRef);
+    lua_getfield(L, -1, "resize_target");
+    lua_remove(L, -2);
+
+    if (!lua_isfunction(L, -1)) {
+        lua_settop(L, top);
+        return;
+    }
+
+    pushLayoutContext(L, targets, space->workArea());
+    pushLayoutTarget(L, target, sc<size_t>(IT - targets.begin()) + 1);
+
+    lua_newtable(L);
+    lua_pushnumber(L, Δ.x);
+    lua_setfield(L, -2, "x");
+    lua_pushnumber(L, Δ.y);
+    lua_setfield(L, -2, "y");
+
+    lua_pushinteger(L, sc<lua_Integer>(corner));
+
+    const int status = m_provider->manager->guardedPCall(4, 0, 0, CConfigManager::LUA_TIMEOUT_LAYOUT_CALLBACK_MS, "lua layout resize_target callback");
+    if (status != LUA_OK) {
+        std::string err = lua_tostring(L, -1) ? lua_tostring(L, -1) : "unknown lua error";
+        lua_settop(L, top);
+        reportError(err);
+        return;
+    }
+
+    lua_settop(L, top);
 }
 
 void CLuaTiledAlgorithm::applyDefaultGrid(const std::vector<SP<Layout::ITarget>>& targets) {

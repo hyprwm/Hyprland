@@ -338,5 +338,26 @@ hl.layout.register("grid", {
     end,
 })
 
+-- resize_target moves the border between the first target and the rest.
+local splitWidth = nil
+
+hl.layout.register("split", {
+    recalculate = function(ctx)
+        local a = ctx.area
+        local w = splitWidth or a.w / 2
+        for i, target in ipairs(ctx.targets) do
+            if i == 1 then
+                target:place({ x = a.x, y = a.y, w = w, h = a.h })
+            else
+                target:place({ x = a.x + w, y = a.y, w = a.w - w, h = a.h })
+            end
+        end
+    end,
+    resize_target = function(ctx, target, delta, corner)
+        local w = splitWidth or ctx.area.w / 2
+        splitWidth = target.index == 1 and w + delta.x or w - delta.x
+    end,
+})
+
 -- this is here to guard a crash, see #15521
 hl.dispatch(hl.dsp.submap("reset"))

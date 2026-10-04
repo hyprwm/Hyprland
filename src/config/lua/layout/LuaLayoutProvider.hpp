@@ -52,6 +52,7 @@ namespace Config::Lua::Layouts {
 
         std::vector<SP<Layout::ITarget>> liveTargets();
         bool                             callRecalculate(const std::vector<SP<Layout::ITarget>>& targets);
+        void                             callResizeTarget(const Vector2D& Δ, SP<Layout::ITarget> target, Layout::eRectCorner corner);
         void                             applyDefaultGrid(const std::vector<SP<Layout::ITarget>>& targets);
         void                             reportError(const std::string& message);
     };

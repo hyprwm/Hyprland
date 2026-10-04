@@ -1428,7 +1428,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
         }
     }
 
-    // set all LSes as not above fullscreen on workspace changes
+    // Reset layer surfaces state on workspace change
     for (auto const& ls : Desktop::layerState()->layers()) {
         if (ls->m_monitor == m_self)
             ls->m_flags &= ~LAYER_FLAG_ABOVE_FULLSCREEN;
@@ -1545,7 +1545,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace, bool noFocus)
         IPC::Socket2::sock()->postEvent({"activespecial", std::format(",{}", PMONITOR->m_name)});
         IPC::Socket2::sock()->postEvent({"activespecialv2", std::format(",,{}", PMONITOR->m_name)});
 
-        // Reset layer surfaces on the old monitor when special workspace is stolen
+        // Reset layer surfaces state on the old monitor when special workspace is stolen
         for (auto const& ls : Desktop::layerState()->layers()) {
             if (ls->m_monitor == PMONITOR)
                 ls->m_flags &= ~LAYER_FLAG_ABOVE_FULLSCREEN;

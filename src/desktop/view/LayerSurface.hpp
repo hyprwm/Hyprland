@@ -27,6 +27,7 @@ namespace Desktop::View {
     enum class eLayerFlags : uint8_t {
         LAYER_FLAG_NONE             = 0,
         LAYER_FLAG_DEAD             = (1 << 0),
+        // is the layer present, or allowed to be, above fullscreen (FSMODE_FULLSCREEN) window
         LAYER_FLAG_ABOVE_FULLSCREEN = (1 << 1),
     };
 
@@ -62,7 +63,7 @@ namespace Desktop::View {
         WP<CLayerShellResource>                                   m_layerSurface;
         bool                                                      shouldBlur() const;
 
-        LayerFlags                                                m_flags = LAYER_FLAG_ABOVE_FULLSCREEN;
+        LayerFlags                                                m_flags = LAYER_FLAG_NONE;
 
         // the header providing the enum type cannot be imported here
         int                                     m_keyboardInteractivity = 0;

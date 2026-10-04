@@ -248,7 +248,7 @@ TEST_CASE(scrollWindowRule) {
 
     // not the greatest test, but as long as res and gaps don't change, we good.
     // if this test breaks, it's likely you broke equal sizing
-    ASSERT_CONTAINS(getFromSocket("/activewindow"), "size: 179,1036");
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "size: 174,1036");
 }
 
 /*
@@ -534,8 +534,8 @@ TEST_CASE(scroll_LAYOUT_HANDLED_TestFsingGroupedWindows) {
                 auto entryStart  = clients.rfind("Window ", classPos);
                 auto entryEnd    = clients.find("\n\n", classPos);
                 auto windowEntry = clients.substr(entryStart, entryEnd - entryStart);
-                EXPECT_CONTAINS(windowEntry, "size: 1915,1059");
-                EXPECT_CONTAINS(windowEntry, "at: 0,21");
+                EXPECT_CONTAINS(windowEntry, "size: 1910,1059");
+                EXPECT_CONTAINS(windowEntry, "at: 5,21");
             }
         };
 
@@ -562,9 +562,9 @@ TEST_CASE(scroll_LAYOUT_HANDLED_TestFsingGroupedWindows) {
                 auto entryStart  = clients.rfind("Window ", classPos);
                 auto entryEnd    = clients.find("\n\n", classPos);
                 auto windowEntry = clients.substr(entryStart, entryEnd - entryStart);
-                EXPECT_CONTAINS(windowEntry, "at: -940,41");
+                EXPECT_CONTAINS(windowEntry, "at: -935,41");
                 // cuz the gaps and borders workspace rule now applies as it is no longer covering
-                EXPECT_CONTAINS(windowEntry, "size: 1875,1019");
+                EXPECT_CONTAINS(windowEntry, "size: 1870,1019");
                 EXPECT_CONTAINS(windowEntry, "fullscreen: 0");
             }
         };
@@ -575,8 +575,8 @@ TEST_CASE(scroll_LAYOUT_HANDLED_TestFsingGroupedWindows) {
             // check position and size for the focused group member (kitten2).
             auto str = getFromSocket("/activewindow");
             EXPECT_CONTAINS(str, "class: kitten2");
-            EXPECT_CONTAINS(str, "at: 0,21");
-            EXPECT_CONTAINS(str, "size: 1915,1059");
+            EXPECT_CONTAINS(str, "at: 5,21");
+            EXPECT_CONTAINS(str, "size: 1910,1059");
         }
         checkHiddenGroupMember_tiled("kitten1");
 
@@ -587,8 +587,8 @@ TEST_CASE(scroll_LAYOUT_HANDLED_TestFsingGroupedWindows) {
             // check position and size for the focused group member (kitten2).
             auto str = getFromSocket("/activewindow");
             EXPECT_CONTAINS(str, "class: kitten1");
-            EXPECT_CONTAINS(str, "at: 0,21");
-            EXPECT_CONTAINS(str, "size: 1915,1059");
+            EXPECT_CONTAINS(str, "at: 5,21");
+            EXPECT_CONTAINS(str, "size: 1910,1059");
         }
         checkHiddenGroupMember_tiled("kitten2");
 
@@ -605,8 +605,8 @@ TEST_CASE(scroll_LAYOUT_HANDLED_TestFsingGroupedWindows) {
             // check position and size for the focused group member (kitten2).
             auto str = getFromSocket("/activewindow");
             EXPECT_CONTAINS(str, "class: kitten2");
-            EXPECT_CONTAINS(str, "at: -940,41");
-            EXPECT_CONTAINS(str, "size: 1875,1019");
+            EXPECT_CONTAINS(str, "at: -935,41");
+            EXPECT_CONTAINS(str, "size: 1870,1019");
             EXPECT_CONTAINS(str, "fullscreen: 1");
         }
         checkHiddenGroupMember_notCovering("kitten1");
@@ -621,8 +621,8 @@ TEST_CASE(scroll_LAYOUT_HANDLED_TestFsingGroupedWindows) {
             // check position and size for the focused group member (kitten2).
             auto str = getFromSocket("/activewindow");
             EXPECT_CONTAINS(str, "class: kitten1");
-            EXPECT_CONTAINS(str, "at: -940,41");
-            EXPECT_CONTAINS(str, "size: 1875,1019");
+            EXPECT_CONTAINS(str, "at: -935,41");
+            EXPECT_CONTAINS(str, "size: 1870,1019");
             EXPECT_CONTAINS(str, "fullscreen: 1");
         }
         checkHiddenGroupMember_notCovering("kitten2");

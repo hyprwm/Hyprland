@@ -1707,7 +1707,7 @@ void CWindow::unmapWindow() {
                 Fullscreen::controller()->setFullscreenMode(candidate, CURRENT_WINDOW_FS_MODES.internal, std::nullopt, CURRENT_FS_LAYOUT_HANDLED);
         }
 
-        if (!candidate && m_workspace && (m_workspace->getWindowCount() == 0 || PMONITOR->m_activeSpecialWorkspace))
+        if (!candidate && m_workspace && (m_workspace->getWindowCount() == 0 || (PMONITOR && PMONITOR->m_activeSpecialWorkspace)))
             g_pInputManager->refocus();
 
         g_pInputManager->sendMotionEventsToFocused();

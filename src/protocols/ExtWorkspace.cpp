@@ -243,6 +243,14 @@ void CExtWorkspaceResource::commit() {
     m_pendingState.targetMonitor.reset();
 }
 
+wl_resource* CExtWorkspaceResource::resource() const {
+    return m_resource->resource();
+}
+
+PHLWORKSPACE CExtWorkspaceResource::workspace() const {
+    return m_workspace.lock();
+}
+
 CExtWorkspaceManagerResource::CExtWorkspaceManagerResource(UP<CExtWorkspaceManagerV1> resource) : m_resource(std::move(resource)) {
     if (!good())
         return;
@@ -382,6 +390,15 @@ void CExtWorkspaceProtocol::bindManager(wl_client* client, void* data, uint32_t 
         wl_client_post_no_memory(client);
         return;
     }
+}
+
+PHLWORKSPACE CExtWorkspaceProtocol::workspaceFromHandle(wl_resource* res) {
+    for (const auto& h : m_workspaces) {
+        if (h->resource() == res)
+            return h->workspace();
+    }
+
+    return nullptr;
 }
 
 void CExtWorkspaceProtocol::destroyGroup(const WP<CExtWorkspaceGroupResource>& group) {

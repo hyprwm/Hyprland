@@ -4,6 +4,7 @@
 
 namespace Desktop {
     enum class eFadeoutSource : uint8_t;
+    enum eFadeoutPlane : uint8_t;
 }
 
 namespace Render {
@@ -18,9 +19,13 @@ namespace Render {
         bool hidden             = false;
         bool belongsToWorkspace = false;
         bool monitorVisible     = false;
+        bool floating           = false;
+        bool pinned             = false;
+        bool onOwnerMonitor     = false;
     };
 
-    bool sceneIncludesShell(eSceneMode mode);
-    bool sceneSelectsWindow(eSceneMode mode, const SSceneWindowState& window);
-    bool sceneSelectsFadeout(eSceneMode mode, Desktop::eFadeoutSource source, bool belongsToWorkspace);
+    bool                   sceneIncludesShell(eSceneMode mode);
+    bool                   sceneSelectsWindow(eSceneMode mode, const SSceneWindowState& window);
+    bool                   sceneSelectsFadeout(eSceneMode mode, Desktop::eFadeoutSource source, bool belongsToWorkspace, bool pinnedOnMonitor = false);
+    Desktop::eFadeoutPlane sceneFadeoutPlane(eSceneMode mode, Desktop::eFadeoutPlane plane, bool pinned);
 }

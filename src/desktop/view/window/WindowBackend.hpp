@@ -116,6 +116,10 @@ namespace Desktop::View {
         virtual double                 surfaceScale() const                     = 0;
         virtual Vector2D               reportedSize() const                     = 0;
 
+        // whether we configured the client to (roughly) this size in the last few configures.
+        // a client presenting a buffer for one of these that isn't the current one is behind, not small.
+        bool                           configuredSizeRecently(const Vector2D& size) const;
+
         virtual CBox                   clientToLogical(const CBox& box, PHLMONITOR preferredMonitor) const = 0;
         virtual CBox                   logicalToClient(const CBox& box, PHLMONITOR preferredMonitor) const = 0;
         virtual Vector2D               surfaceLocalToBuffer(const Vector2D& local) const                   = 0;
@@ -161,6 +165,12 @@ namespace Desktop::View {
 
         virtual void attach(PHLWINDOWREF window) = 0;
 
+        void         recordConfiguredSize(const Vector2D& size);
+
         friend class CWindow;
+
+      private:
+        // the last few sizes we configured the client to, newest last. see configuredSizeRecently().
+        std::vector<Vector2D> m_recentConfiguredSizes;
     };
 }

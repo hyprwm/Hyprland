@@ -17,6 +17,7 @@ namespace Monitor {
 
         SP<Render::IFramebuffer>           getUnusedWorkBuffer();
         SP<Render::IFramebuffer>           getUnusedWorkBuffer(const Vector2D& size);
+        SP<Render::IFramebuffer>           getUnusedWorkBuffer(DRMFormat format, NColorManagement::PImageDescription imageDescription, std::optional<Vector2D> size = std::nullopt);
         void                               forEachUnusedFB(std::function<void(SP<Render::IFramebuffer>)> callback, bool includeNamed = false);
         bool                               hasMirrorFB() const;
         bool                               shouldKeepMirrorFB() const;

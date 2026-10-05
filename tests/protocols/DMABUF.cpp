@@ -644,6 +644,11 @@ class CLifecycleRenderer : public CDMABUFTestRenderer {
     SP<Render::IFramebuffer>                createFB(const std::string&) override {
         return makeShared<CLifecycleFramebuffer>();
     }
+    SP<Render::ITexture> createStencilTexture(int w, int h) override {
+        auto texture    = makeShared<CDMABUFTestTexture>(true);
+        texture->m_size = {w, h};
+        return texture;
+    }
 
   private:
     bool initRenderBuffer(Render::CRenderContext& ctx, SP<Aquamarine::IBuffer> buffer, uint32_t format) override {
@@ -667,8 +672,10 @@ class CLifecycleRenderer : public CDMABUFTestRenderer {
     }
     bool beginFullFakeRenderInternal(Render::CRenderContext& ctx, PHLMONITOR, CRegion& damage, SP<Render::IFramebuffer> fb, bool simple) override {
         ++m_fakeBegins;
-        EXPECT_TRUE(simple);
-        EXPECT_EQ(ctx.m_data.fbSize, fb->m_size);
+        if (simple)
+            EXPECT_EQ(ctx.m_data.fbSize, fb->m_size);
+        else
+            EXPECT_EQ(ctx.m_data.projectionType, Render::RPT_MONITOR);
         EXPECT_FALSE(ctx.m_currentBuffer);
         EXPECT_FALSE(ctx.m_swapchainAcquired);
         retainPassState(ctx, damage);
@@ -1026,6 +1033,7 @@ TEST_F(CRenderLifecycleTest, IsolatedBeginUsesFullTargetDamageAndPreservesMonito
             EXPECT_EQ(privateFramebuffer->m_size, m_monitor->m_transformedSize);
             EXPECT_EQ(privateFramebuffer->m_drmFormat, monitorResources->m_blurFB->m_drmFormat);
             EXPECT_EQ(privateFramebuffer->imageDescription(), monitorResources->m_blurFB->imageDescription());
+            EXPECT_EQ(renderer().workBufferImageDescription(ctx), m_monitor->workBufferImageDescription());
             EXPECT_TRUE(resources->canPrecomputeBlur());
             EXPECT_TRUE(resources->blurDirty());
             EXPECT_FALSE(resources->blurQueued());
@@ -1083,6 +1091,137 @@ TEST_F(CRenderLifecycleTest, IsolatedBeginRejectsUnsafeModesAndMissingExternalDe
     EXPECT_EQ(renderer().m_begins, 0);
     EXPECT_EQ(renderer().m_fakeBegins, 0);
     EXPECT_EQ(m_monitor->m_output->swapchain->next(nullptr), m_allocator->m_buffers[1]);
+}
+
+TEST_F(CRenderLifecycleTest, ExplicitSceneBeginRoutesPreblurAndAllScratchWithoutChangingMonitorState) {
+    using namespace NColorManagement;
+    auto icc        = DEFAULT_SRGB_IMAGE_DESCRIPTION->value();
+    icc.icc.present = true;
+    const Render::SSceneBufferDescription descriptor{DRM_FORMAT_ARGB8888, DEFAULT_SRGB_IMAGE_DESCRIPTION};
+    auto                                  resources = makeShared<Render::CSceneResources>(makeShared<CLifecycleFramebuffer>(), descriptor);
+    auto                                  target    = makeShared<CLifecycleFramebuffer>();
+    ASSERT_TRUE(target->alloc(32, 24, descriptor.format));
+    target->setImageDescription(descriptor.imageDescription);
+
+    for (const auto& monitorDescription : {DEFAULT_HDR_IMAGE_DESCRIPTION, CImageDescription::from(icc)}) {
+        m_monitor->m_imageDescription = monitorDescription;
+        m_monitor->m_output->state->setFormat(DRM_FORMAT_XRGB2101010);
+        const auto monitorResources   = m_monitor->resources();
+        const auto monitorWorkDesc    = m_monitor->workBufferImageDescription();
+        const auto monitorBlur        = monitorResources->m_blurFB->getTexture();
+        const auto mirrorFramebuffer  = monitorResources->mirrorFB();
+        const auto mirrorTexture      = mirrorFramebuffer->getTexture();
+        auto       mirror             = makeShared<CDMABUFTestTexture>(true);
+        monitorResources->m_mirrorTex = mirror;
+        monitorResources->markMirrorFBUpdated();
+        monitorResources->markMirrorFBStale(CRegion{5, 6, 7, 8});
+        m_monitor->m_blurFBDirty        = false;
+        m_monitor->m_blurFBShouldRender = true;
+        m_monitor->m_damage.setSize(m_monitor->m_transformedSize);
+        m_monitor->m_damage.rotate();
+
+        // Fill both pools with attached monitor-format buffers so explicit
+        // acquisition must also exercise reuse across a format change.
+        for (const auto size : {std::optional<Vector2D>{}, std::optional<Vector2D>{Vector2D{16, 12}}}) {
+            std::vector<SP<Render::IFramebuffer>> held;
+            for (int i = 0; i < 8; ++i) {
+                auto work = size ? monitorResources->getUnusedWorkBuffer(*size) : monitorResources->getUnusedWorkBuffer();
+                ASSERT_TRUE(work);
+                work->enableMirror(mirror);
+                held.push_back(work);
+            }
+        }
+
+        CRegion                      damage{1, 2, 3, 4};
+        const Render::SRenderOptions options{.sceneResources = resources};
+        ASSERT_TRUE(renderer().beginRender(m_monitor, damage, Render::RENDER_MODE_FULL_FAKE, nullptr, target, false, options));
+        auto& ctx = renderer().context();
+        EXPECT_TRUE(ctx.readOnlyEffects());
+        EXPECT_EQ(damage.getExtents(), CBox(0, 0, 64, 48));
+        EXPECT_EQ(renderer().workBufferImageDescription(ctx), descriptor.imageDescription);
+        EXPECT_EQ(resources->blurFramebuffer()->m_size, m_monitor->m_transformedSize);
+        EXPECT_EQ(resources->blurFramebuffer()->m_drmFormat, descriptor.format);
+        EXPECT_EQ(resources->blurFramebuffer()->imageDescription(), descriptor.imageDescription);
+        EXPECT_FALSE(resources->blurTexture());
+
+        for (const auto size : {std::optional<Vector2D>{}, std::optional<Vector2D>{Vector2D{16, 12}}}) {
+            auto work = renderer().getWorkBuffer(ctx, size);
+            ASSERT_TRUE(work);
+            EXPECT_EQ(work->m_size, size.value_or(m_monitor->m_transformedSize));
+            EXPECT_EQ(work->m_drmFormat, descriptor.format);
+            EXPECT_EQ(work->imageDescription(), descriptor.imageDescription);
+            EXPECT_FALSE(work->getMirrorTexture());
+            EXPECT_EQ(work->getStencilTex(), size ? nullptr : monitorResources->m_stencilTex);
+            ASSERT_TRUE(monitorResources->m_stencilTex);
+            EXPECT_EQ(monitorResources->m_stencilTex->m_size, m_monitor->m_transformedSize);
+        }
+        EXPECT_FALSE(renderer().getWorkBuffer(ctx, Vector2D{0, 12}));
+        resources->completePreBlur();
+        ASSERT_TRUE(resources->blurTexture());
+        EXPECT_EQ(resources->blurTexture()->m_imageDescription, descriptor.imageDescription);
+        renderer().abortRender();
+
+        ASSERT_TRUE(ctx.begin(monitorResources->sceneResources()));
+        ctx.m_data.pMonitor = m_monitor;
+        EXPECT_EQ(renderer().workBufferImageDescription(ctx), monitorWorkDesc);
+        for (const auto size : {std::optional<Vector2D>{}, std::optional<Vector2D>{Vector2D{16, 12}}}) {
+            auto work = renderer().getWorkBuffer(ctx, size);
+            ASSERT_TRUE(work);
+            EXPECT_EQ(work->m_drmFormat, DRM_FORMAT_XRGB2101010);
+            EXPECT_EQ(work->imageDescription(), monitorWorkDesc);
+            EXPECT_EQ(work->getMirrorTexture(), mirror);
+        }
+        ctx.reset();
+        EXPECT_EQ(renderer().workBufferImageDescription(ctx), LINEAR_IMAGE_DESCRIPTION);
+        EXPECT_EQ(m_monitor->m_imageDescription, monitorDescription);
+        EXPECT_EQ(monitorResources->m_blurFB->getTexture(), monitorBlur);
+        EXPECT_EQ(monitorResources->m_blurFB->imageDescription(), monitorWorkDesc);
+        EXPECT_FALSE(m_monitor->m_blurFBDirty);
+        EXPECT_TRUE(m_monitor->m_blurFBShouldRender);
+        EXPECT_FALSE(m_monitor->m_damage.hasChanged());
+        EXPECT_EQ(monitorResources->m_mirrorTex, mirror);
+        EXPECT_EQ(mirrorFramebuffer->getTexture(), mirrorTexture);
+        EXPECT_EQ(monitorResources->pendingMirrorFBDamage().getExtents(), CBox(5, 6, 7, 8));
+    }
+}
+
+TEST_F(CRenderLifecycleTest, InvalidExplicitSceneDescriptorFailsBeginAndScratchWithoutMonitorFallback) {
+    using namespace NColorManagement;
+    const auto monitorResources  = m_monitor->resources();
+    const auto monitorBlur       = monitorResources->m_blurFB->getTexture();
+    const auto mirrorFramebuffer = monitorResources->mirrorFB();
+    const auto mirrorTexture     = mirrorFramebuffer->getTexture();
+    monitorResources->markMirrorFBUpdated();
+    m_monitor->m_blurFBDirty        = false;
+    m_monitor->m_blurFBShouldRender = true;
+    auto target                     = makeShared<CLifecycleFramebuffer>();
+    ASSERT_TRUE(target->alloc(32, 24));
+
+    for (const auto& descriptor : std::vector<Render::SSceneBufferDescription>{
+             {DRM_FORMAT_INVALID, DEFAULT_SRGB_IMAGE_DESCRIPTION},
+             {DRM_FORMAT_ARGB8888, nullptr},
+         }) {
+        auto                         resources = makeShared<Render::CSceneResources>(makeShared<CLifecycleFramebuffer>(), descriptor);
+        const Render::SRenderOptions options{.sceneResources = resources};
+        CRegion                      damage{1, 2, 3, 4};
+        EXPECT_FALSE(renderer().beginRender(m_monitor, damage, Render::RENDER_MODE_FULL_FAKE, nullptr, target, false, options));
+        expectClean();
+        EXPECT_EQ(damage.getExtents(), CBox(1, 2, 3, 4));
+        EXPECT_FALSE(resources->canPrecomputeBlur());
+        auto& ctx = renderer().context();
+        ASSERT_TRUE(ctx.begin(resources));
+        ctx.m_data.pMonitor = m_monitor;
+        EXPECT_FALSE(renderer().getWorkBuffer(ctx));
+        EXPECT_FALSE(renderer().getWorkBuffer(ctx, Vector2D{16, 12}));
+        ctx.reset();
+        EXPECT_EQ(monitorResources->m_blurFB->getTexture(), monitorBlur);
+        EXPECT_EQ(mirrorFramebuffer->getTexture(), mirrorTexture);
+        EXPECT_TRUE(monitorResources->pendingMirrorFBDamage().empty());
+        EXPECT_FALSE(m_monitor->m_blurFBDirty);
+        EXPECT_TRUE(m_monitor->m_blurFBShouldRender);
+    }
+    EXPECT_EQ(renderer().m_inits, 0);
+    EXPECT_EQ(renderer().m_fakeBegins, 0);
 }
 
 TEST_F(CRenderLifecycleTest, FailedIsolatedPrepareCleansContextWithoutChangingMonitorState) {

@@ -82,7 +82,7 @@ void CWorkBufferPool::expire() {
         armTimer();
 }
 
-SP<Render::IFramebuffer> CWorkBufferPool::acquire(const Vector2D& size, DRMFormat format, NColorManagement::PImageDescription imageDescription) {
+SP<Render::IFramebuffer> CWorkBufferPool::acquire(const Vector2D& size, DRMFormat format, NColorManagement::PImageDescription imageDescription, bool detachMirror) {
     const auto BYTES = bufferBytes(size, format, m_byteLimit);
     if (!BYTES)
         return nullptr;
@@ -91,6 +91,12 @@ SP<Render::IFramebuffer> CWorkBufferPool::acquire(const Vector2D& size, DRMForma
         return resource.buffer.strongRef() == 1 && resource.buffer->isAllocated() && resource.buffer->m_size == size && resource.buffer->m_drmFormat == format;
     });
     if (exact != m_resources.end()) {
+        if (detachMirror)
+            exact->buffer->disableMirror();
+        if (!exact->buffer->isAllocated()) {
+            m_resources.erase(exact);
+            return nullptr;
+        }
         exact->idleSince.reset();
         exact->buffer->setImageDescription(imageDescription);
         return exact->buffer;
@@ -130,6 +136,10 @@ SP<Render::IFramebuffer> CWorkBufferPool::acquire(const Vector2D& size, DRMForma
 
     if (!buffer)
         buffer = m_createBuffer();
+    // internalAlloc() can reallocate an attached output mirror texture. Detach
+    // it before changing either the dimensions or format for an isolated scene.
+    if (buffer && detachMirror)
+        buffer->disableMirror();
     // A failed resize may have already destroyed the old allocation. Drop it
     // instead of retaining stale size/accounting or returning an invalid FB.
     if (!buffer || !buffer->alloc(sc<int>(size.x), sc<int>(size.y), format))

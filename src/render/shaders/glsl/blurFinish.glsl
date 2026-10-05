@@ -32,7 +32,7 @@ vec4 blurFinish(vec4 pixColor, vec2 v_texcoord, float noise, float brightness
     float linearNoise = sign(sdrNoise) * toLinearRGB(vec3(abs(sdrNoise)), sourceTF).r * (SDR_MAX_LUMINANCE - SDR_MIN_LUMINANCE) /
         max(srcTFRange.y - srcTFRange.x, 0.001);
 #else
-    pixColor.rgb += noiseAmount * noise;
+    pixColor.rgb += noiseAmount * noise * pixColor.a;
 #endif
 
     // brightness

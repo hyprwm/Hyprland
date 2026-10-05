@@ -2503,11 +2503,9 @@ TEST_CASE(scroll_DEFAULT_HANDLED_posAndSizeSyncWhileFS) {
         This is a scrolling default FS specific test - not relevant for other layouts
     */
 
-    // When a window is maximised, add or remove an overlay top bar. Its position is meant to change.
-    
+    // When a window is maximised, add or remove an overlay top bar. Its pos/size is meant to change (since work area changed).
 
     SPAWN_KITTY("kot");
-
 
     ASSERT(spawnLayer("top-bar", {"--edge=top", "--layer=overlay", "--lines=48px", "--focus-policy=not-allowed"}), true);
 
@@ -2521,18 +2519,15 @@ TEST_CASE(scroll_DEFAULT_HANDLED_posAndSizeSyncWhileFS) {
     }
 
     Tests::killAllLayers();
-    // Tests::waitUntilLayersN(0);
+    Tests::waitUntilLayersN(0);
 
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "class: kot");
         EXPECT_CONTAINS(str, "fullscreen: 1");
         EXPECT_CONTAINS(str, "fullscreenClient: 1");
-        ASSERT_CONTAINS(str, "size: 10101");
+        ASSERT_CONTAINS(str, "size: 1876,1036");
     }
-
-
-
 }
 
 /* Scroll viewport tests */

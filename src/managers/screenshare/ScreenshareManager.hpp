@@ -242,6 +242,7 @@ namespace Screenshare {
         bool                    isOutputDSBlocked(PHLMONITOR monitor);
         bool                    outputNeedsCopyFB(PHLMONITOR monitor);
         SOutputCopyFBState      outputCopyFBState(PHLMONITOR monitor);
+        bool                    needsWorkspaceCaptureSnapshot(PHLWINDOW window) const;
 
       private:
         std::vector<WP<CScreenshareSession>> m_sessions;

@@ -5,6 +5,8 @@
 #include "../../protocols/core/Seat.hpp"
 #include "../../state/MonitorState.hpp"
 #include "WorkspaceCaptureSource.hpp"
+#include "../permissions/DynamicPermissionManager.hpp"
+#include "hyprland-workspace-image-capture-source-v1.hpp"
 
 using namespace Screenshare;
 
@@ -241,6 +243,39 @@ CScreenshareManager::SOutputCopyFBState CScreenshareManager::outputCopyFBState(P
     }
 
     return state;
+}
+
+bool CScreenshareManager::needsWorkspaceCaptureSnapshot(PHLWINDOW window) const {
+    if (!window || !window->mapped() || window->isHidden() || (window->m_ruleApplicator && window->m_ruleApplicator->noScreenShare().valueOrDefault()))
+        return false;
+
+    const auto MONITOR = window->m_monitor.lock();
+    if (!MONITOR)
+        return false;
+
+    const auto includesWindow = [&](const WP<CScreenshareSession>& session) {
+        if (!session || !session->isActive() || session->m_type != SHARE_WORKSPACE || !session->m_workspace)
+            return false;
+
+        const auto WORKSPACE = session->m_workspace->workspace();
+        if (!WORKSPACE || session->monitor() != MONITOR)
+            return false;
+
+        if (window->m_workspace != WORKSPACE &&
+            !(session->m_workspace->mode() == HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_EVERYTHING &&
+              (window->m_state & Desktop::View::WINDOW_STATE_PINNED) && window->isFloating()))
+            return false;
+
+        return g_pDynamicPermissionManager && g_pDynamicPermissionManager->clientPermissionMode(session->m_client, PERMISSION_TYPE_SCREENCOPY) == PERMISSION_RULE_ALLOW_MODE_ALLOW;
+    };
+
+    // Fresh sessions are not stale yet, but only actual copies set m_sharing.
+    for (const auto& session : m_sessions) {
+        if (session && session->m_sharing && includesWindow(session))
+            return true;
+    }
+
+    return std::ranges::any_of(m_pendingFrames, [&](const auto& frame) { return frame && frame->m_shared && !frame->done() && includesWindow(frame->m_session); });
 }
 
 CScreenshareManager::SManagedSession::SManagedSession(UP<CScreenshareSession>&& session) : m_session(std::move(session)) {

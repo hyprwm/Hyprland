@@ -169,6 +169,7 @@ TEST_F(CWorkspaceCaptureSourceTest, UsesTransformedPixelsAndPreservesBothModes) 
          {HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_WINDOWS_ONLY, HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_EVERYTHING}) {
         SCOPED_TRACE(mode);
         Screenshare::CWorkspaceCaptureSource source{m_workspace, mode};
+        EXPECT_EQ(source.workspace(), m_workspace);
         EXPECT_EQ(source.monitor(), m_monitor);
         EXPECT_EQ(source.bufferSize(), Vector2D(1080, 1920));
         EXPECT_EQ(source.name(), "73");
@@ -187,6 +188,7 @@ TEST_F(CWorkspaceCaptureSourceTest, MoveReplacesModeListenerAndIgnoresInvalidSiz
     m_workspace->m_monitor                    = next;
     m_workspace->m_events.monitorChanged.emit();
     EXPECT_EQ(changes, 1);
+    EXPECT_EQ(source.workspace(), m_workspace);
     EXPECT_EQ(source.monitor(), next);
     EXPECT_EQ(source.bufferSize(), Vector2D(2560, 1440));
 
@@ -234,6 +236,7 @@ TEST_F(CWorkspaceCaptureSourceTest, RenameAndRemovalFreezeStateAndDetachListener
     m_workspace->m_events.destroy.emit();
     EXPECT_EQ(changes, 2);
     EXPECT_TRUE(source.removed());
+    EXPECT_FALSE(source.workspace());
     EXPECT_EQ(source.monitor(), m_monitor);
 
     m_monitor->m_transformedSize = {800, 600};
@@ -244,6 +247,7 @@ TEST_F(CWorkspaceCaptureSourceTest, RenameAndRemovalFreezeStateAndDetachListener
     m_workspace->m_events.monitorChanged.emit();
     m_workspace->m_events.destroy.emit();
     EXPECT_EQ(changes, 2);
+    EXPECT_FALSE(source.workspace());
     EXPECT_EQ(source.monitor(), m_monitor);
     EXPECT_EQ(source.bufferSize(), Vector2D(1080, 1920));
     EXPECT_EQ(source.name(), "renamed");
@@ -257,8 +261,10 @@ TEST_F(CWorkspaceCaptureSourceTest, SurvivesWorkspaceDestructionWithoutOwningWor
     int             changes   = 0;
     auto            listener  = source->m_changed.listen([&] { ++changes; });
 
+    EXPECT_EQ(source->workspace(), m_workspace);
     m_workspace.reset();
     EXPECT_TRUE(workspace.expired());
+    EXPECT_FALSE(source->workspace());
     EXPECT_TRUE(source->removed());
     EXPECT_EQ(changes, 1);
     EXPECT_EQ(source->monitor(), m_monitor);
@@ -273,6 +279,7 @@ TEST_F(CWorkspaceCaptureSourceTest, SurvivesWorkspaceDestructionWithoutOwningWor
 TEST_F(CWorkspaceCaptureSourceTest, NullWorkspaceAndInitiallyMissingMonitor) {
     Screenshare::CWorkspaceCaptureSource removed{nullptr, 1};
     EXPECT_TRUE(removed.removed());
+    EXPECT_FALSE(removed.workspace());
     EXPECT_FALSE(removed.monitor());
     EXPECT_EQ(removed.bufferSize(), Vector2D(0, 0));
     EXPECT_TRUE(removed.name().empty());
@@ -281,12 +288,30 @@ TEST_F(CWorkspaceCaptureSourceTest, NullWorkspaceAndInitiallyMissingMonitor) {
     m_workspace->m_monitor.reset();
     Screenshare::CWorkspaceCaptureSource source{m_workspace, 0};
     EXPECT_FALSE(source.removed());
+    EXPECT_EQ(source.workspace(), m_workspace);
     EXPECT_FALSE(source.monitor());
     EXPECT_EQ(source.bufferSize(), Vector2D(0, 0));
     m_workspace->m_monitor = m_monitor;
     m_workspace->m_events.monitorChanged.emit();
     EXPECT_EQ(source.monitor(), m_monitor);
     EXPECT_EQ(source.bufferSize(), Vector2D(1080, 1920));
+}
+
+TEST_F(CWorkspaceCaptureSourceTest, WorkspaceAccessorLocksOnlyForTheReturnedReference) {
+    Screenshare::CWorkspaceCaptureSource source{m_workspace, 0};
+    PHLWORKSPACEREF                      weak      = m_workspace;
+    auto                                 workspace = source.workspace();
+    ASSERT_EQ(workspace, m_workspace);
+
+    m_workspace.reset();
+    EXPECT_FALSE(weak.expired());
+    EXPECT_EQ(source.workspace(), workspace);
+    EXPECT_FALSE(source.removed());
+
+    workspace.reset();
+    EXPECT_TRUE(weak.expired());
+    EXPECT_FALSE(source.workspace());
+    EXPECT_TRUE(source.removed());
 }
 
 // Exercise generated request dispatch over a private socketpair. Only the

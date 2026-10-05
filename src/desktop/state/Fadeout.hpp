@@ -9,6 +9,7 @@
 
 namespace Render {
     class IFramebuffer;
+    enum class eSceneMode : uint8_t;
 }
 
 namespace Desktop {
@@ -70,6 +71,7 @@ namespace Desktop {
         virtual eFadeoutPlane         plane() const  = 0;
         virtual int                   zIndex() const = 0;
         SP<Render::IFramebuffer>      framebuffer() const;
+        SP<Render::IFramebuffer>      framebuffer(Render::eSceneMode mode) const;
         virtual CBox                  renderBox() const = 0;
         virtual float                 alpha() const     = 0;
         virtual bool                  done() const      = 0;
@@ -80,6 +82,8 @@ namespace Desktop {
         IFadeout() = default;
 
         SP<Render::IFramebuffer> m_framebuffer;
+        // Neutral window pixels only; never a fallback for the monitor snapshot.
+        SP<Render::IFramebuffer> m_workspaceFramebuffer;
         PHLWORKSPACEREF          m_workspace;
         SFadeoutRenderEffects    m_effects;
         SFadeoutSource           m_source;

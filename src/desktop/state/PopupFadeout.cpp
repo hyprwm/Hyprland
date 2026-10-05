@@ -33,17 +33,18 @@ static void damageWeakFadeout(WP<T> fadeout) {
         damageFadeoutMonitor(FADEOUT->monitor());
 }
 
-SP<CPopupFadeout> CPopupFadeout::create(SP<CPopup> popup, SP<Render::IFramebuffer> snapshot, float sourceAlpha) {
-    if (!popup || !snapshot)
+SP<CPopupFadeout> CPopupFadeout::create(SP<CPopup> popup, SP<Render::IFramebuffer> snapshot, float sourceAlpha, SP<Render::IFramebuffer> workspaceSnapshot) {
+    if (!popup || (!snapshot && !workspaceSnapshot))
         return nullptr;
 
     const auto MONITOR = popup->getMonitor();
     if (!MONITOR)
         return nullptr;
 
-    auto fadeout           = SP<CPopupFadeout>(new CPopupFadeout());
-    fadeout->m_monitor     = MONITOR;
-    fadeout->m_framebuffer = snapshot;
+    auto fadeout                    = SP<CPopupFadeout>(new CPopupFadeout());
+    fadeout->m_monitor              = MONITOR;
+    fadeout->m_framebuffer          = snapshot;
+    fadeout->m_workspaceFramebuffer = workspaceSnapshot;
 
     if (const auto WINDOW = popup->windowOwner(); WINDOW) {
         fadeout->m_windowOwner = WINDOW;

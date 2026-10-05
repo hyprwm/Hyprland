@@ -46,6 +46,9 @@ class CExtWorkspaceResource {
 
     void               commit();
 
+    wl_resource*       resource() const;
+    PHLWORKSPACE       workspace() const;
+
   private:
     WP<CExtWorkspaceResource>        m_self;
     WP<CExtWorkspaceManagerResource> m_manager;
@@ -104,6 +107,8 @@ class CExtWorkspaceProtocol : public IWaylandProtocol {
     CExtWorkspaceProtocol(const wl_interface* iface, const int& var, const std::string& name);
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+
+    PHLWORKSPACE workspaceFromHandle(wl_resource* res);
 
     void         destroyManager(const WP<CExtWorkspaceManagerResource>& manager);
     void         destroyGroup(const WP<CExtWorkspaceGroupResource>& group);

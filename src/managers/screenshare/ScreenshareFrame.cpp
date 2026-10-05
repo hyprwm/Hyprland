@@ -1,4 +1,5 @@
 #include "ScreenshareManager.hpp"
+#include "WorkspaceCaptureSource.hpp"
 #include "../../pointer/PointerManager.hpp"
 #include "../SeatManager.hpp"
 #include "../permissions/DynamicPermissionManager.hpp"
@@ -52,6 +53,9 @@ bool CScreenshareFrame::done() const {
         return true;
 
     if (m_session->m_type == SHARE_REGION && !m_session->monitor())
+        return true;
+
+    if (m_session->m_type == SHARE_WORKSPACE && !m_session->monitor())
         return true;
 
     if (m_session->m_type == SHARE_WINDOW && (!m_session->monitor() || !validMapped(m_session->m_window)))
@@ -126,7 +130,7 @@ eScreenshareError CScreenshareFrame::share(SP<IHLBuffer> buffer, const CRegion& 
     }
 
     // schedule a frame so that when a screenshare starts it isn't black until the output is updated
-    if (m_isFirst) {
+    if (m_isFirst || m_session->m_type == SHARE_WORKSPACE) {
         const auto PMONITOR = m_session->monitor();
         if (PMONITOR)
             PMONITOR->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
@@ -161,10 +165,16 @@ void CScreenshareFrame::copy() {
     // store a snapshot before the permission popup so we don't break screenshots
     const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(m_session->m_client, PERMISSION_TYPE_SCREENCOPY);
     if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
-        if (!m_session->m_tempFB || !m_session->m_tempFB->isAllocated())
+        if (m_session->m_type != SHARE_WORKSPACE && (!m_session->m_tempFB || !m_session->m_tempFB->isAllocated()))
             storeTempFB();
 
         // don't copy a frame while allow is pending because screenshot tools will only take the first frame we give, which is empty
+        return;
+    }
+
+    if (m_session->m_type == SHARE_WORKSPACE && (PERM == PERMISSION_RULE_ALLOW_MODE_DENY || m_bufferSize != m_session->bufferSize())) {
+        m_failed = true;
+        m_callback(RESULT_NOT_COPIED);
         return;
     }
 
@@ -367,10 +377,12 @@ void CScreenshareFrame::render(Render::CRenderContext& ctx) {
     const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(m_session->m_client, PERMISSION_TYPE_SCREENCOPY);
 
     CRegion    frameRegion = {0, 0, m_bufferSize.x, m_bufferSize.y};
+    CHyprColor clearColor  = {0, 0, 0, 0};
+    if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW && m_session->m_type == SHARE_WORKSPACE && !m_session->m_workspace->removed())
+        clearColor = {0, 1, 0, 1};
+    g_pHyprRenderer->draw(ctx, CClearPassElement::SClearData{clearColor}, frameRegion);
 
-    g_pHyprRenderer->draw(ctx, CClearPassElement::SClearData{{0, 0, 0, 0}}, frameRegion);
-
-    if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING)
+    if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING || m_session->m_type == SHARE_WORKSPACE)
         return;
 
     bool windowShareDenied = m_session->m_type == SHARE_WINDOW && m_session->m_window->m_ruleApplicator && m_session->m_window->m_ruleApplicator->noScreenShare().valueOrDefault();

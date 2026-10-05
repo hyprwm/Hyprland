@@ -25,11 +25,14 @@ class CImageCopyCaptureFrame {
     bool good();
 
   private:
+    void                               fail(extImageCopyCaptureFrameV1FailureReason reason);
+
     SP<CExtImageCopyCaptureFrameV1>    m_resource;
     WP<CImageCopyCaptureSession>       m_session;
     UP<Screenshare::CScreenshareFrame> m_frame;
 
     bool                               m_captured = false;
+    bool                               m_finished = false;
     SP<IHLBuffer>                      m_buffer;
     CRegion                            m_clientDamage;
 

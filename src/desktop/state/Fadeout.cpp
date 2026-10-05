@@ -16,6 +16,9 @@ SFadeoutRenderEffects IFadeout::effects() const {
 }
 
 SFadeoutSource IFadeout::source() const {
+    if (m_source.type != eFadeoutSource::UNKNOWN)
+        return m_source;
+
     switch (plane()) {
         case FADEOUT_PLANE_WINDOW_TILED:
         case FADEOUT_PLANE_WINDOW_FLOATING:

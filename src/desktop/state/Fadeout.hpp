@@ -21,6 +21,8 @@ namespace Desktop {
         FADEOUT_PLANE_LAYER_TOP,
         FADEOUT_PLANE_LAYER_OVERLAY,
         FADEOUT_PLANE_POPUP,
+        // Workspace scene placement only; snapshots retain their monitor plane.
+        FADEOUT_PLANE_WINDOW_PINNED,
     };
 
     enum class eFadeoutSource : uint8_t {
@@ -33,6 +35,7 @@ namespace Desktop {
     struct SFadeoutSource {
         eFadeoutSource  type = eFadeoutSource::UNKNOWN;
         PHLWORKSPACEREF workspace;
+        bool            pinned = false; // Floating, output-global window (including its popups).
     };
 
     struct SFadeoutPreBlur {
@@ -78,5 +81,6 @@ namespace Desktop {
         SP<Render::IFramebuffer> m_framebuffer;
         PHLWORKSPACEREF          m_workspace;
         SFadeoutRenderEffects    m_effects;
+        SFadeoutSource           m_source;
     };
 }

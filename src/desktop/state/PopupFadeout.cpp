@@ -45,10 +45,17 @@ SP<CPopupFadeout> CPopupFadeout::create(SP<CPopup> popup, SP<Render::IFramebuffe
     fadeout->m_monitor     = MONITOR;
     fadeout->m_framebuffer = snapshot;
 
-    if (const auto WINDOW = popup->windowOwner(); WINDOW)
-        fadeout->m_source = {.type = eFadeoutSource::WINDOW, .workspace = WINDOW->m_workspace};
-    else if (popup->layerOwner())
-        fadeout->m_source.type = eFadeoutSource::LAYER;
+    if (const auto WINDOW = popup->windowOwner(); WINDOW) {
+        fadeout->m_source = {
+            .type      = eFadeoutSource::WINDOW,
+            .workspace = WINDOW->m_workspace,
+            .pinned    = WINDOW->isFloating() && (WINDOW->m_state & WINDOW_STATE_PINNED),
+        };
+    } else if (const auto LAYER = popup->layerOwner(); LAYER) {
+        fadeout->m_source = {
+            .type = eFadeoutSource::LAYER,
+        };
+    }
 
     static CConfigValue PBLURIGNOREA = CConfigValue<Config::FLOAT>("decoration:blur:popups_ignorealpha");
     if (shouldBlurPopup()) {

@@ -455,7 +455,11 @@ void SScrollingData::recalculate(bool forceInstant) {
     // If there is a default covering fullscreen window (tiled or floating)
     if (const auto FULLSCREEN_WINDOW = Fullscreen::controller()->getFullscreenWindow(WORKSPACE, true);
         FULLSCREEN_WINDOW && !Fullscreen::controller()->layoutManagedFS(FULLSCREEN_WINDOW)) {
+
+        // This will function the same way as m_defaultFullscreenHandler's setNoMembersAboveFullscreen() function call
         algorithm->m_scrollingFullscreenHandler->setNoMembersAboveFullscreen();
+        // This will sync the size of the FS window
+        algorithm->m_defaultFullscreenHandler->syncTargetSizeAndPosition();
         return;
     }
 

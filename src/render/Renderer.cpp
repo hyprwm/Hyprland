@@ -340,6 +340,9 @@ bool IHyprRenderer::shouldRenderWindowInScene(PHLWINDOW window, PHLMONITOR monit
                                   .mapped             = window->mapped(),
                                   .hidden             = window->isHidden(),
                                   .belongsToWorkspace = workspace && window->m_workspace == workspace,
+                                  .floating           = window->isFloating(),
+                                  .pinned             = sc<bool>(window->m_state & WINDOW_STATE_PINNED),
+                                  .onOwnerMonitor     = window->m_monitor == monitor,
                               });
 }
 
@@ -358,6 +361,10 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
     windows.reserve(Desktop::windowState()->windows().size());
     for (auto const& w : Desktop::windowState()->windows()) {
         if (!shouldRenderWindowInScene(w, pMonitor, pWorkspace, mode))
+            continue;
+
+        // Workspace scenes draw pinned windows exactly once, above fullscreen.
+        if (mode != eSceneMode::MONITOR && w->isFloating() && (w->m_state & WINDOW_STATE_PINNED))
             continue;
 
         if (w->presentation().alphaValue(WINDOW_ALPHA_FADE) * w->presentation().alphaValue(WINDOW_ALPHA_FULLSCREEN) == 0.f)
@@ -401,6 +408,9 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
 
     // TODO: this pass sucks
     for (auto const& w : Desktop::windowState()->windows()) {
+        if (mode != eSceneMode::MONITOR && w->isFloating() && (w->m_state & WINDOW_STATE_PINNED))
+            continue;
+
         const auto PWORKSPACE = w->m_workspace;
 
         if (w->m_workspace != pWorkspace || !Fullscreen::controller()->isFullscreen(w)) {
@@ -435,6 +445,9 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
 
     // then render windows over fullscreen.
     for (auto const& w : Desktop::windowState()->windows()) {
+        if (mode != eSceneMode::MONITOR && w->isFloating() && (w->m_state & WINDOW_STATE_PINNED))
+            continue;
+
         const bool shouldSkipWindow =
             w->m_workspace != pWorkspaceWindow->m_workspace || !w->isFloating() || !w->shouldRenderOverFullscreen() || !w->mapped() || Fullscreen::controller()->isFullscreen(w);
 
@@ -1287,6 +1300,9 @@ void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR
         // render the bad boy
         renderWindow(ctx, w, pMonitor, w->presentation().renderPresentation(mode), time, true, RENDER_PASS_ALL);
     }
+
+    if (mode != eSceneMode::MONITOR)
+        renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_WINDOW_PINNED, pWorkspace, mode);
 
     Event::bus()->m_events.render.stage.emit({RENDER_POST_WINDOWS, pMonitor, ctx});
 
@@ -3495,15 +3511,18 @@ void IHyprRenderer::renderFadeouts(CRenderContext& ctx, PHLMONITOR monitor, Desk
 
     std::vector<SP<Desktop::IFadeout>> fadeouts;
     for (auto const& fadeout : Desktop::fadingOutState()->fadeouts()) {
-        if (!fadeout || fadeout->monitor() != monitor || fadeout->plane() != plane)
+        if (!fadeout || fadeout->monitor() != monitor)
+            continue;
+
+        const auto SOURCE = fadeout->source();
+        if (sceneFadeoutPlane(mode, fadeout->plane(), SOURCE.pinned) != plane)
             continue;
 
         if (mode == eSceneMode::MONITOR) {
             if (fadeout->workspace() && fadeout->workspace() != workspace)
                 continue;
         } else {
-            const auto SOURCE = fadeout->source();
-            if (!sceneSelectsFadeout(mode, SOURCE.type, SOURCE.workspace && SOURCE.workspace == workspace))
+            if (!sceneSelectsFadeout(mode, SOURCE.type, SOURCE.workspace && SOURCE.workspace == workspace, SOURCE.pinned))
                 continue;
         }
 

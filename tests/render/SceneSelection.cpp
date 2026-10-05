@@ -1,4 +1,5 @@
 #include <render/scene/SceneSelection.hpp>
+#include <render/Context.hpp>
 #include <desktop/state/Fadeout.hpp>
 
 #include <gtest/gtest.h>
@@ -211,5 +212,24 @@ TEST(SceneSelection, StoredOriginPreservesPinnedWindowAndPopupSelectionWithoutAL
         EXPECT_FALSE(source.workspace);
         EXPECT_TRUE(sceneSelectsFadeout(eSceneMode::WORKSPACE_WITH_SHELL, source.type, false, source.pinned));
         EXPECT_FALSE(sceneSelectsFadeout(eSceneMode::WORKSPACE_WINDOWS, source.type, false, source.pinned));
+    }
+}
+
+TEST(SceneSelection, FadeoutPrivacyPersistsForWindowLayerAndPopupOrigins) {
+    CRenderContext ctx;
+    for (const auto type : {Desktop::eFadeoutSource::WINDOW, Desktop::eFadeoutSource::LAYER}) {
+        for (const auto plane : {Desktop::FADEOUT_PLANE_WINDOW_FLOATING, Desktop::FADEOUT_PLANE_LAYER_TOP, Desktop::FADEOUT_PLANE_POPUP}) {
+            for (const bool noScreenShare : {false, true}) {
+                Desktop::SFadeoutSource  origin{.type = type, .noScreenShare = noScreenShare};
+                const CSourceTestFadeout fadeout{plane, origin};
+                origin = {};
+                EXPECT_EQ(fadeout.source().type, type);
+                EXPECT_EQ(fadeout.source().noScreenShare, noScreenShare);
+                ctx.m_renderingCapture = true;
+                EXPECT_EQ(ctx.shouldRenderContent(fadeout.source().noScreenShare), !noScreenShare);
+                ctx.m_renderingCapture = false;
+                EXPECT_TRUE(ctx.shouldRenderContent(fadeout.source().noScreenShare));
+            }
+        }
     }
 }

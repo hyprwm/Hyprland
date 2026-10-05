@@ -306,6 +306,7 @@ namespace Render {
         ctx.m_mode                    = RENDER_MODE_TO_BUFFER;
         ctx.m_blockSurfaceFeedback    = true;
         ctx.m_renderingSnapshot       = true;
+        ctx.m_renderingCapture        = true;
         ctx.m_swapchainAcquired       = true;
         ctx.m_gl                      = {.fakeFrame = true, .offloadedFramebuffer = true, .applyFinalShader = true};
         {
@@ -331,6 +332,7 @@ namespace Render {
         EXPECT_EQ(ctx.m_mode, RENDER_MODE_TO_BUFFER);
         EXPECT_TRUE(ctx.m_blockSurfaceFeedback);
         EXPECT_TRUE(ctx.m_renderingSnapshot);
+        EXPECT_TRUE(ctx.m_renderingCapture);
         EXPECT_TRUE(ctx.m_swapchainAcquired);
         EXPECT_TRUE(ctx.m_gl.fakeFrame);
         EXPECT_TRUE(ctx.m_gl.offloadedFramebuffer);
@@ -410,6 +412,7 @@ namespace Render {
         context.m_mode                 = RENDER_MODE_TO_BUFFER;
         context.m_currentPass          = &nestedPass;
         context.m_data.mouseZoomFactor = 2.5F;
+        context.m_renderingCapture     = true;
         context.m_data.damage          = CRegion{10, 20, 30, 40};
         auto fb                        = makeShared<CContextTestFramebuffer>();
         context.m_data.currentFB       = fb;
@@ -422,6 +425,7 @@ namespace Render {
         EXPECT_EQ(context.m_currentPass, &nestedPass);
         EXPECT_EQ(context.m_data.currentFB, fb);
         EXPECT_FLOAT_EQ(context.m_data.mouseZoomFactor, 2.5F);
+        EXPECT_TRUE(context.m_renderingCapture);
         EXPECT_EQ(context.m_data.damage.getExtents(), CBox(10, 20, 30, 40));
         EXPECT_TRUE(context.m_pass.single());
     }
@@ -458,6 +462,7 @@ namespace Render {
             context.m_backdropCaptures.emplace_back();
             context.m_blockSurfaceFeedback = true;
             context.m_renderingSnapshot    = true;
+            context.m_renderingCapture     = true;
             context.m_swapchainAcquired    = true;
             context.m_gl                   = {.fakeFrame = true, .offloadedFramebuffer = true, .applyFinalShader = true};
 
@@ -484,6 +489,7 @@ namespace Render {
             EXPECT_TRUE(context.m_backdropCaptures.empty());
             EXPECT_FALSE(context.m_blockSurfaceFeedback);
             EXPECT_FALSE(context.m_renderingSnapshot);
+            EXPECT_FALSE(context.m_renderingCapture);
             EXPECT_FALSE(context.m_swapchainAcquired);
             EXPECT_FALSE(context.m_gl.fakeFrame);
             EXPECT_FALSE(context.m_gl.offloadedFramebuffer);
@@ -500,10 +506,12 @@ namespace Render {
         context.m_data.currentFB      = makeShared<CContextTestFramebuffer>();
         WP<IFramebuffer> staleTarget  = context.m_data.currentFB;
         context.m_renderingSnapshot   = true;
+        context.m_renderingCapture    = true;
         context.m_gl.applyFinalShader = true;
         ASSERT_TRUE(context.begin());
         EXPECT_TRUE(staleTarget.expired());
         EXPECT_FALSE(context.m_renderingSnapshot);
+        EXPECT_FALSE(context.m_renderingCapture);
         EXPECT_FALSE(context.m_gl.applyFinalShader);
     }
 }

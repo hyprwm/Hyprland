@@ -14,6 +14,7 @@
 #include "../managers/input/InputManager.hpp"
 #include "../animation/AnimationManager.hpp"
 #include "../managers/fullscreen/FullscreenController.hpp"
+#include "../managers/screenshare/ScreenshareManager.hpp"
 #include "../desktop/view/window/Window.hpp"
 #include "../desktop/view/window/WindowEffectsController.hpp"
 #include "../desktop/view/window/WindowPresentation.hpp"
@@ -644,7 +645,7 @@ void IHyprRenderer::renderWindow(CRenderContext& ctx, PHLWINDOW pWindow, PHLMONI
     if (ignorePosition) {
         renderdata.pos.x = pMonitor->m_position.x;
         renderdata.pos.y = pMonitor->m_position.y;
-    } else {
+    } else if (!ctx.readOnlyEffects()) {
         pWindow->presentation().setNotResponding(pWindow->isNotResponding());
     }
 
@@ -3351,7 +3352,15 @@ static DRMFormat snapshotFormat(PHLMONITOR monitor) {
 }
 
 SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(PHLWINDOW pWindow) {
+    return makeSnapshotFB(pWindow, eSceneMode::MONITOR);
+}
+
+SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(PHLWINDOW pWindow, eSceneMode mode) {
     if (m_context.active())
+        return nullptr;
+
+    const bool WORKSPACE = mode != eSceneMode::MONITOR;
+    if (WORKSPACE && (!Screenshare::mgr() || !Screenshare::mgr()->needsWorkspaceCaptureSnapshot(pWindow)))
         return nullptr;
 
     // we trust the window is valid.
@@ -3360,7 +3369,7 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(PHLWINDOW pWindow) {
     if (!PMONITOR || !PMONITOR->m_output || PMONITOR->m_pixelSize.x <= 0 || PMONITOR->m_pixelSize.y <= 0)
         return nullptr;
 
-    if (!shouldRenderWindow(pWindow))
+    if (!WORKSPACE && !shouldRenderWindow(pWindow))
         return nullptr; // ignore, window is not being rendered
 
     LOG(Log::DEBUG, "renderer: making a snapshot of {:x}", rc<uintptr_t>(pWindow.get()));
@@ -3370,12 +3379,18 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(PHLWINDOW pWindow) {
     // this is temporary, doesn't mess with the actual damage
     CRegion    fakeDamage{0, 0, sc<int>(PMONITOR->m_transformedSize.x), sc<int>(PMONITOR->m_transformedSize.y)};
 
-    const auto PFRAMEBUFFER = createFB("window snapshot");
+    const auto PFRAMEBUFFER = createFB(WORKSPACE ? "workspace window snapshot" : "window snapshot");
 
-    PFRAMEBUFFER->alloc(PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y, snapshotFormat(PMONITOR));
-    PFRAMEBUFFER->setImageDescription(PMONITOR->workBufferImageDescription());
+    if (!PFRAMEBUFFER->alloc(PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y, WORKSPACE ? DRM_FORMAT_ARGB8888 : snapshotFormat(PMONITOR)))
+        return nullptr;
+    PFRAMEBUFFER->setImageDescription(WORKSPACE ? DEFAULT_SRGB_IMAGE_DESCRIPTION : PMONITOR->workBufferImageDescription());
 
-    if (!beginFullFakeRender(PMONITOR, fakeDamage, PFRAMEBUFFER))
+    SRenderOptions options;
+    if (WORKSPACE)
+        options.sceneResources = makeShared<CSceneResources>(createFB("workspace snapshot blur"),
+                                                             SSceneBufferDescription{.format = DRM_FORMAT_ARGB8888, .imageDescription = DEFAULT_SRGB_IMAGE_DESCRIPTION});
+
+    if (!beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, PFRAMEBUFFER, true, options))
         return nullptr;
     bool              finishing = false;
     const CScopeGuard cleanup([&] {
@@ -3383,14 +3398,17 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(PHLWINDOW pWindow) {
             abortRender();
     });
 
-    m_context.m_renderingSnapshot = true;
+    m_context.m_renderingSnapshot    = true;
+    m_context.m_renderingCapture     = WORKSPACE;
+    m_context.m_blockSurfaceFeedback = WORKSPACE;
 
     draw(m_context, CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)});
     startRenderPass(m_context);
 
     LOG(Log::DEBUG, "renderer: cleared a snapshot of {:x}", rc<uintptr_t>(pWindow.get()));
 
-    renderWindow(m_context, pWindow, PMONITOR, pWindow->presentation().renderPresentation(), Time::steadyNow(), !pWindow->backend().traits().suggestsNoBorder, RENDER_PASS_ALL);
+    const auto PRESENTATION = resolveWindowSnapshotPresentation(pWindow->presentation().renderPresentation(mode));
+    renderWindow(m_context, pWindow, PMONITOR, PRESENTATION, Time::steadyNow(), !pWindow->backend().traits().suggestsNoBorder, RENDER_PASS_ALL);
 
     LOG(Log::DEBUG, "renderer: rendered a snapshot of {:x}", rc<uintptr_t>(pWindow.get()));
 
@@ -3453,7 +3471,16 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(PHLLS pLayer) {
 }
 
 SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(WP<Desktop::View::CPopup> popup) {
+    return makeSnapshotFB(popup, eSceneMode::MONITOR);
+}
+
+SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(WP<Desktop::View::CPopup> popup, eSceneMode mode) {
     if (m_context.active())
+        return nullptr;
+
+    const bool WORKSPACE = mode != eSceneMode::MONITOR;
+    const auto WINDOW    = popup->windowOwner();
+    if (WORKSPACE && (!Screenshare::mgr() || !Screenshare::mgr()->needsWorkspaceCaptureSnapshot(WINDOW) || !shouldRenderPopup(popup, true)))
         return nullptr;
 
     // we trust the window is valid.
@@ -3462,19 +3489,25 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(WP<Desktop::View::CPopup> popup) 
     if (!PMONITOR || !PMONITOR->m_output || PMONITOR->m_pixelSize.x <= 0 || PMONITOR->m_pixelSize.y <= 0)
         return nullptr;
 
-    if (!popup->mapped() || !popup->acceptsInput() || !popup->alphaNonZero())
+    if (!WORKSPACE && (!popup->mapped() || !popup->acceptsInput() || !popup->alphaNonZero()))
         return nullptr;
 
     LOG(Log::DEBUG, "renderer: making a snapshot of {:x}", rc<uintptr_t>(popup.get()));
 
     CRegion    fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
 
-    const auto PFRAMEBUFFER = createFB("popup shapshot");
+    const auto PFRAMEBUFFER = createFB(WORKSPACE ? "workspace popup snapshot" : "popup shapshot");
 
-    PFRAMEBUFFER->alloc(PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y, snapshotFormat(PMONITOR));
-    PFRAMEBUFFER->setImageDescription(PMONITOR->workBufferImageDescription());
+    if (!PFRAMEBUFFER->alloc(PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y, WORKSPACE ? DRM_FORMAT_ARGB8888 : snapshotFormat(PMONITOR)))
+        return nullptr;
+    PFRAMEBUFFER->setImageDescription(WORKSPACE ? DEFAULT_SRGB_IMAGE_DESCRIPTION : PMONITOR->workBufferImageDescription());
 
-    if (!beginFullFakeRender(PMONITOR, fakeDamage, PFRAMEBUFFER))
+    SRenderOptions options;
+    if (WORKSPACE)
+        options.sceneResources = makeShared<CSceneResources>(createFB("workspace snapshot blur"),
+                                                             SSceneBufferDescription{.format = DRM_FORMAT_ARGB8888, .imageDescription = DEFAULT_SRGB_IMAGE_DESCRIPTION});
+
+    if (!beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, PFRAMEBUFFER, true, options))
         return nullptr;
     bool              finishing = false;
     const CScopeGuard cleanup([&] {
@@ -3482,7 +3515,9 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(WP<Desktop::View::CPopup> popup) 
             abortRender();
     });
 
-    m_context.m_renderingSnapshot = true;
+    m_context.m_renderingSnapshot    = true;
+    m_context.m_renderingCapture     = WORKSPACE;
+    m_context.m_blockSurfaceFeedback = WORKSPACE;
 
     auto& ctx = m_context;
     draw(ctx, CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)});
@@ -3495,6 +3530,16 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(WP<Desktop::View::CPopup> popup) 
     renderdata.squishOversized = false; // don't squish popups
     renderdata.popup           = true;
     renderdata.blur            = false;
+
+    if (WORKSPACE) {
+        renderdata.workspacePresentation = WINDOW->presentation().renderPresentation(mode);
+        // coordsGlobal() contains the raw window position, without workspace offsets.
+        renderdata.pos += renderdata.workspacePresentation.floatingOffset - WINDOW->backend().geometry().box.pos();
+        renderdata.alpha              = WINDOW->m_ruleApplicator->opaque().valueOrDefault() ? 1.F : renderdata.workspacePresentation.alpha;
+        renderdata.fadeAlpha          = renderdata.workspacePresentation.fadeAlpha;
+        renderdata.pWindow            = WINDOW;
+        renderdata.useNearestNeighbor = WINDOW->m_ruleApplicator->nearestNeighbor().valueOrDefault();
+    }
 
     popup->wlSurface()->resource()->breadthfirst(
         [this, &ctx, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
@@ -3557,7 +3602,7 @@ void IHyprRenderer::renderFadeouts(CRenderContext& ctx, PHLMONITOR monitor, Desk
 
     CRegion fakeDamage{0, 0, monitor->m_transformedSize.x, monitor->m_transformedSize.y};
     for (auto const& fadeout : fadeouts) {
-        const auto FB = fadeout->framebuffer();
+        const auto FB = fadeout->framebuffer(mode);
         if (!FB || !FB->getTexture())
             continue;
 

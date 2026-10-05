@@ -71,6 +71,13 @@ SP<Render::IFramebuffer> CMonitorResources::getUnusedWorkBuffer(const Vector2D& 
     return m_sizedWorkBuffers.acquire(size, m_drmFormat, m_imageDescription);
 }
 
+SP<Render::IFramebuffer> CMonitorResources::getUnusedWorkBuffer(DRMFormat format, NColorManagement::PImageDescription imageDescription, std::optional<Vector2D> size) {
+    if (!imageDescription)
+        return nullptr;
+
+    return size ? m_sizedWorkBuffers.acquire(*size, format, imageDescription, true) : m_workBuffers.acquire(m_size, format, imageDescription, true);
+}
+
 void CMonitorResources::forEachUnusedFB(std::function<void(SP<Render::IFramebuffer>)> callback, bool includeNamed) {
     m_workBuffers.forEachUnused(callback);
     m_sizedWorkBuffers.forEachUnused(callback);

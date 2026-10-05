@@ -119,8 +119,10 @@ namespace Render {
         bool                            isMgpu();
         void                            addWindowToRenderUnfocused(PHLWINDOW window);
         SP<IFramebuffer>                makeSnapshotFB(PHLWINDOW);
+        SP<IFramebuffer>                makeSnapshotFB(PHLWINDOW, eSceneMode mode);
         SP<IFramebuffer>                makeSnapshotFB(PHLLS);
         SP<IFramebuffer>                makeSnapshotFB(WP<Desktop::View::CPopup>);
+        SP<IFramebuffer>                makeSnapshotFB(WP<Desktop::View::CPopup>, eSceneMode mode);
         void                            renderFadeouts(CRenderContext& ctx, PHLMONITOR monitor, Desktop::eFadeoutPlane plane, PHLWORKSPACE workspace = nullptr);
         bool                            beginFullFakeRender(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb);
         bool                            beginRenderToBuffer(PHLMONITOR pMonitor, CRegion& damage, SP<IHLBuffer> buffer, bool simple = false);

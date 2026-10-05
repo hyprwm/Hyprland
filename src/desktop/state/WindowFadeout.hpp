@@ -5,7 +5,7 @@
 namespace Desktop {
     class CWindowFadeout final : public IFadeout {
       public:
-        static SP<CWindowFadeout>     create(PHLWINDOW window, SP<Render::IFramebuffer> snapshot, float sourceAlpha);
+        static SP<CWindowFadeout>     create(PHLWINDOW window, SP<Render::IFramebuffer> snapshot, float sourceAlpha, SP<Render::IFramebuffer> workspaceSnapshot = nullptr);
 
         virtual PHLMONITORREF         monitor() const override;
         virtual eFadeoutPlane         plane() const override;

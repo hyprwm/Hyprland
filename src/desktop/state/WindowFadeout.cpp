@@ -49,22 +49,23 @@ static void damageWeakFadeout(WP<T> fadeout) {
         damageFadeoutMonitor(FADEOUT->monitor());
 }
 
-SP<CWindowFadeout> CWindowFadeout::create(PHLWINDOW window, SP<Render::IFramebuffer> snapshot, float sourceAlpha) {
-    if (!window || !snapshot)
+SP<CWindowFadeout> CWindowFadeout::create(PHLWINDOW window, SP<Render::IFramebuffer> snapshot, float sourceAlpha, SP<Render::IFramebuffer> workspaceSnapshot) {
+    if (!window || (!snapshot && !workspaceSnapshot))
         return nullptr;
 
     const auto MONITOR = window->m_monitor.lock();
     if (!MONITOR)
         return nullptr;
 
-    auto fadeout           = SP<CWindowFadeout>(new CWindowFadeout());
-    fadeout->m_monitor     = MONITOR;
-    fadeout->m_workspace   = window->m_workspace;
-    fadeout->m_framebuffer = snapshot;
-    fadeout->m_zIndex      = windowZIndex(window);
-    fadeout->m_sourcePos   = window->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT) - MONITOR->m_position;
-    fadeout->m_sourceSize  = window->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
-    fadeout->m_source      = {
+    auto fadeout                    = SP<CWindowFadeout>(new CWindowFadeout());
+    fadeout->m_monitor              = MONITOR;
+    fadeout->m_workspace            = window->m_workspace;
+    fadeout->m_framebuffer          = snapshot;
+    fadeout->m_workspaceFramebuffer = workspaceSnapshot;
+    fadeout->m_zIndex               = windowZIndex(window);
+    fadeout->m_sourcePos            = window->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT) - MONITOR->m_position;
+    fadeout->m_sourceSize           = window->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+    fadeout->m_source               = {
         .type          = eFadeoutSource::WINDOW,
         .workspace     = window->m_workspace,
         .pinned        = window->isFloating() && (window->m_state & WINDOW_STATE_PINNED),

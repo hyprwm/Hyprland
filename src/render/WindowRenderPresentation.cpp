@@ -31,3 +31,11 @@ Render::SWindowRenderPresentation Render::resolveWindowPresentation(const SWindo
         .alphaVisible             = TOTAL_ALPHA != 0.F || state.alphaAnimating,
     };
 }
+
+Render::SWindowRenderPresentation Render::resolveWindowSnapshotPresentation(SWindowRenderPresentation presentation) {
+    // Neutral window fadeouts apply these channels on replay. Keep the original visibility decision.
+    if (presentation.workspaceScene)
+        presentation.fadeAlpha = 1.F;
+
+    return presentation;
+}

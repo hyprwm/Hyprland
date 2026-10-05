@@ -35,4 +35,5 @@ namespace Render {
 
     SWindowRenderPresentation resolveWindowPresentation(const SWindowPresentationState& state);
     SWindowRenderPresentation resolveWindowPresentation(const SWindowPresentationState& state, eSceneMode mode);
+    SWindowRenderPresentation resolveWindowSnapshotPresentation(SWindowRenderPresentation presentation);
 }

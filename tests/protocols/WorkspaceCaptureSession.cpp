@@ -5,9 +5,12 @@
 #include <config/shared/animation/AnimationTree.hpp>
 #include <config/shared/inotify/ConfigWatcher.hpp>
 #include <desktop/state/WindowState.hpp>
+#include <desktop/view/window/WaylandBackend.hpp>
+#include <desktop/view/window/Window.hpp>
 #include <event/EventBus.hpp>
 #include <ipc/s2/Impl.hpp>
 #include <ipc/s2/S2.hpp>
+#include <layout/target/WindowTarget.hpp>
 #include <managers/eventLoop/EventLoopManager.hpp>
 #include <managers/permissions/DynamicPermissionManager.hpp>
 #include <managers/screenshare/ScreenshareManager.hpp>
@@ -19,6 +22,7 @@
 #include <render/SyncFDManager.hpp>
 #include <state/MonitorState.hpp>
 #include <workspace/HLWorkspace.hpp>
+#include <hyprland-workspace-image-capture-source-v1.hpp>
 
 #include <gtest/gtest.h>
 
@@ -26,6 +30,7 @@
 #include <memory>
 #include <sys/socket.h>
 #include <thread>
+#include <utility>
 
 // Like the source fixture, omit CHLWorkspace::init and drive public lifecycle
 // signals directly, without layouts, workspace rules, or a compositor session.
@@ -734,4 +739,230 @@ TEST_F(CWorkspaceCaptureFrameTest, StaleSessionBlocksDirectScanoutOnlyWhileSubmi
     EXPECT_FALSE(Screenshare::mgr()->outputNeedsCopyFB(m_monitor));
     session->stop();
     EXPECT_FALSE(Screenshare::mgr()->isOutputDSBlocked(m_monitor));
+}
+
+// Seed only compositor-owned mapped state, without invoking the live map/layout
+// lifecycle. Explicit instantiation keeps this test access out of production headers.
+static bool& snapshotTestMapped(PHLWINDOW window);
+
+template <bool Desktop::View::CWindow::* Mapped>
+struct SSnapshotTestMappedAccess {
+    friend bool& snapshotTestMapped(PHLWINDOW window) {
+        return window.get()->*Mapped;
+    }
+};
+
+template struct SSnapshotTestMappedAccess<&Desktop::View::CWindow::m_isMapped>;
+
+static PHLWINDOW makeSnapshotTestWindow(PHLWORKSPACE workspace) {
+    auto window = Desktop::View::CWindow::create(makeUnique<Desktop::View::CWaylandBackend>(nullptr));
+    // Query tests need window metadata, not a window in the rendered scene.
+    Desktop::windowState()->removeSafe(window);
+    window->m_workspace        = workspace;
+    window->m_monitor          = workspace->m_monitor;
+    snapshotTestMapped(window) = true;
+    return window;
+}
+
+TEST_F(CWorkspaceCaptureFrameTest, SnapshotDemandRequiresSubmittedFrameRatherThanFreshSession) {
+    auto window = makeSnapshotTestWindow(m_workspace);
+    EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+    auto session = Screenshare::mgr()->newSession(m_client, source());
+    ASSERT_TRUE(session);
+    ASSERT_FALSE(session->isStale());
+    EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+
+    auto frame = session->nextFrame(false);
+    EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+    EXPECT_EQ(frame->share(nullptr, {}, [](auto) { ; }), Screenshare::ERROR_NO_BUFFER);
+    EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+    ASSERT_EQ(frame->share(buffer(session->bufferSize()), {}, [](auto) { ; }), Screenshare::ERROR_NONE);
+    EXPECT_TRUE(std::as_const(*Screenshare::mgr()).needsWorkspaceCaptureSnapshot(window));
+
+    frame.reset();
+    EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+    frame = session->nextFrame(false);
+    ASSERT_EQ(frame->share(buffer(session->bufferSize()), {}, [](auto) { ; }), Screenshare::ERROR_NONE);
+    EXPECT_TRUE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+    session->stop();
+    EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+    session.reset();
+    EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+}
+
+TEST_F(CWorkspaceCaptureFrameTest, SnapshotDemandRetainsRecentCopiesAndAcceptsPendingFramesAfterInactivity) {
+    auto window  = makeSnapshotTestWindow(m_workspace);
+    auto session = Screenshare::mgr()->newSession(m_client, source());
+    ASSERT_TRUE(session);
+    auto frame = session->nextFrame(false);
+    ASSERT_EQ(frame->share(buffer(session->bufferSize()), {}, [](auto) { ; }), Screenshare::ERROR_NONE);
+    Screenshare::mgr()->onOutputCommit(m_monitor, false);
+    ASSERT_TRUE(frame->done());
+    frame.reset();
+    EXPECT_TRUE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(550));
+    g_pEventLoopManager->onTimerFire();
+    ASSERT_TRUE(session->isActive());
+    ASSERT_TRUE(session->isStale());
+    EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+    frame = session->nextFrame(false);
+    EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+    ASSERT_EQ(frame->share(buffer(session->bufferSize()), {}, [](auto) { ; }), Screenshare::ERROR_NONE);
+    EXPECT_TRUE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+    frame.reset();
+    EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+}
+
+TEST_F(CWorkspaceCaptureFrameTest, SnapshotDemandRejectsUnmappedHiddenAndNoScreenShareWindows) {
+    auto window  = makeSnapshotTestWindow(m_workspace);
+    auto session = Screenshare::mgr()->newSession(m_client, source());
+    ASSERT_TRUE(session);
+    auto frame = session->nextFrame(false);
+    ASSERT_EQ(frame->share(buffer(session->bufferSize()), {}, [](auto) { ; }), Screenshare::ERROR_NONE);
+    EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(nullptr));
+    EXPECT_TRUE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+
+    snapshotTestMapped(window) = false;
+    EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+    snapshotTestMapped(window) = true;
+    window->setHidden(true);
+    EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+    window->setHidden(false);
+    EXPECT_TRUE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+    window->m_ruleApplicator->noScreenShare().set(true, Desktop::Types::PRIORITY_SET_PROP);
+    EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+    window->m_ruleApplicator->noScreenShare().unset(Desktop::Types::PRIORITY_SET_PROP);
+    EXPECT_TRUE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+    window->m_monitor.reset();
+    EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+}
+
+TEST_F(CWorkspaceCaptureFrameTest, SnapshotDemandRequiresLiveSourceAndMatchingWorkspaceAndMonitor) {
+    auto window  = makeSnapshotTestWindow(m_workspace);
+    auto state   = source();
+    auto session = Screenshare::mgr()->newSession(m_client, state);
+    ASSERT_TRUE(session);
+    auto frame = session->nextFrame(false);
+    ASSERT_EQ(frame->share(buffer(session->bufferSize()), {}, [](auto) { ; }), Screenshare::ERROR_NONE);
+    auto otherWorkspace    = makeShared<CSessionTestWorkspace>(m_monitor);
+    otherWorkspace->m_self = otherWorkspace;
+    window->m_workspace    = otherWorkspace;
+    EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+    window->m_workspace = m_workspace;
+    EXPECT_TRUE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+
+    auto otherMonitor      = makeMonitor({1080, 1920});
+    m_workspace->m_monitor = otherMonitor;
+    m_workspace->m_events.monitorChanged.emit();
+    EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+    window->m_monitor = otherMonitor;
+    EXPECT_TRUE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+
+    m_workspace->m_events.destroy.emit();
+    ASSERT_TRUE(state->removed());
+    ASSERT_TRUE(session->isActive());
+    EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+}
+
+TEST_F(CWorkspaceCaptureFrameTest, SnapshotDemandIncludesOutputGlobalPinnedFloatersOnlyInEverythingMode) {
+    auto otherWorkspace    = makeShared<CSessionTestWorkspace>(m_monitor);
+    otherWorkspace->m_self = otherWorkspace;
+    auto window            = makeSnapshotTestWindow(otherWorkspace);
+    window->m_state |= Desktop::View::WINDOW_STATE_PINNED;
+    window->windowTarget()->setFloatingInitial(true);
+
+    for (const auto mode :
+         {HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_WINDOWS_ONLY, HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_EVERYTHING}) {
+        SCOPED_TRACE(mode);
+        auto session = Screenshare::mgr()->newSession(m_client, source(mode));
+        ASSERT_TRUE(session);
+        auto frame = session->nextFrame(false);
+        ASSERT_EQ(frame->share(buffer(session->bufferSize()), {}, [](auto) { ; }), Screenshare::ERROR_NONE);
+        EXPECT_EQ(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window), mode == HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_EVERYTHING);
+        window->m_state &= ~Desktop::View::WINDOW_STATE_PINNED;
+        EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+        window->m_state |= Desktop::View::WINDOW_STATE_PINNED;
+        window->windowTarget()->setFloatingInitial(false);
+        EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+        window->windowTarget()->setFloatingInitial(true);
+        auto otherMonitor = makeMonitor({1080, 1920});
+        window->m_monitor = otherMonitor;
+        EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+        window->m_monitor = m_monitor;
+    }
+}
+
+TEST_F(CWorkspaceCaptureFrameTest, SnapshotDemandRejectsPendingAndDeniedPermissionIncludingRecentCopies) {
+    auto window  = makeSnapshotTestWindow(m_workspace);
+    auto session = Screenshare::mgr()->newSession(m_client, source());
+    ASSERT_TRUE(session);
+    auto frame = session->nextFrame(false);
+    ASSERT_EQ(frame->share(buffer(session->bufferSize()), {}, [](auto) { ; }), Screenshare::ERROR_NONE);
+    *CConfigValue<Config::INTEGER>("ecosystem:enforce_permissions").ptr() = 1;
+
+    for (const auto mode : {PERMISSION_RULE_ALLOW_MODE_PENDING, PERMISSION_RULE_ALLOW_MODE_DENY, PERMISSION_RULE_ALLOW_MODE_ALLOW}) {
+        SCOPED_TRACE(mode);
+        g_pDynamicPermissionManager->clearConfigPermissions();
+        g_pDynamicPermissionManager->addConfigPermissionRule(".*", PERMISSION_TYPE_SCREENCOPY, mode);
+        EXPECT_EQ(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window), mode == PERMISSION_RULE_ALLOW_MODE_ALLOW);
+        EXPECT_FALSE(frame->done());
+        EXPECT_EQ(renderer().m_begins, 0);
+    }
+
+    Screenshare::mgr()->onOutputCommit(m_monitor, false);
+    ASSERT_TRUE(frame->done());
+    frame.reset();
+    EXPECT_TRUE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+    g_pDynamicPermissionManager->clearConfigPermissions();
+    g_pDynamicPermissionManager->addConfigPermissionRule(".*", PERMISSION_TYPE_SCREENCOPY, PERMISSION_RULE_ALLOW_MODE_DENY);
+    EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+}
+
+TEST_F(CWorkspaceCaptureFrameTest, SnapshotDemandCombinesOnlyMatchingSessionsAndTheirOwnPendingFrames) {
+    auto window            = makeSnapshotTestWindow(m_workspace);
+    auto otherWorkspace    = makeShared<CSessionTestWorkspace>(m_monitor);
+    otherWorkspace->m_self = otherWorkspace;
+    auto otherSource       = makeShared<Screenshare::CWorkspaceCaptureSource>(otherWorkspace, 0);
+    auto otherSession      = Screenshare::mgr()->newSession(m_client, otherSource);
+    auto first             = Screenshare::mgr()->newSession(m_client, source());
+    auto second            = Screenshare::mgr()->newSession(m_client, source());
+    ASSERT_TRUE(otherSession);
+    ASSERT_TRUE(first);
+    ASSERT_TRUE(second);
+    auto otherFrame = otherSession->nextFrame(false);
+    ASSERT_EQ(otherFrame->share(buffer(otherSession->bufferSize()), {}, [](auto) { ; }), Screenshare::ERROR_NONE);
+    EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+
+    auto firstFrame  = first->nextFrame(false);
+    auto secondFrame = second->nextFrame(false);
+    ASSERT_EQ(firstFrame->share(buffer(first->bufferSize()), {}, [](auto) { ; }), Screenshare::ERROR_NONE);
+    ASSERT_EQ(secondFrame->share(buffer(second->bufferSize()), {}, [](auto) { ; }), Screenshare::ERROR_NONE);
+    first->stop();
+    EXPECT_TRUE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+    second.reset();
+    EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+}
+
+TEST_F(CWorkspaceCaptureFrameTest, SnapshotDemandIgnoresOtherCaptureTypes) {
+    auto window = makeSnapshotTestWindow(m_workspace);
+    window->sizeAnimation()->setValueAndWarp({100, 80});
+    m_monitor->m_output->state->setFormat(DRM_FORMAT_XRGB8888);
+    auto workspaceSession = Screenshare::mgr()->newSession(m_client, source());
+    ASSERT_TRUE(workspaceSession);
+
+    for (const auto type : {Screenshare::SHARE_MONITOR, Screenshare::SHARE_REGION, Screenshare::SHARE_WINDOW}) {
+        SCOPED_TRACE(type);
+        UP<Screenshare::CScreenshareSession> session;
+        switch (type) {
+            case Screenshare::SHARE_MONITOR: session = Screenshare::mgr()->newSession(m_client, m_monitor); break;
+            case Screenshare::SHARE_REGION: session = Screenshare::mgr()->newSession(m_client, m_monitor, CBox{0, 0, 50, 50}); break;
+            case Screenshare::SHARE_WINDOW: session = Screenshare::mgr()->newSession(m_client, window); break;
+            default: FAIL() << "Unexpected capture type";
+        }
+        ASSERT_TRUE(session);
+        auto frame = session->nextFrame(false);
+        ASSERT_EQ(frame->share(buffer(session->bufferSize()), {}, [](auto) { ; }), Screenshare::ERROR_NONE);
+        EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
+    }
 }

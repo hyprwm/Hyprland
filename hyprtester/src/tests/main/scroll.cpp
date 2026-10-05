@@ -2498,6 +2498,43 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FloatingOntopFullscreenWorkspaceFocusRetention)
     test_default_layout_handled_behaviour(false, false);
 }
 
+TEST_CASE(scroll_DEFAULT_HANDLED_posAndSizeSyncWhileFS) {
+    /*
+        This is a scrolling default FS specific test - not relevant for other layouts
+    */
+
+    // When a window is maximised, add or remove an overlay top bar. Its position is meant to change.
+    
+
+    SPAWN_KITTY("kot");
+
+
+    ASSERT(spawnLayer("top-bar", {"--edge=top", "--layer=overlay", "--lines=48px", "--focus-policy=not-allowed"}), true);
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', window = 'class:kot', layout_aware = false, })"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: kot");
+        EXPECT_CONTAINS(str, "fullscreen: 1");
+        EXPECT_CONTAINS(str, "fullscreenClient: 1");
+        ASSERT_CONTAINS(str, "size: 1876,987");
+    }
+
+    Tests::killAllLayers();
+    // Tests::waitUntilLayersN(0);
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: kot");
+        EXPECT_CONTAINS(str, "fullscreen: 1");
+        EXPECT_CONTAINS(str, "fullscreenClient: 1");
+        ASSERT_CONTAINS(str, "size: 10101");
+    }
+
+
+
+}
+
 /* Scroll viewport tests */
 
 TEST_CASE(scrollNegativeScaleGesture) {

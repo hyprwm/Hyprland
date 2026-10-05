@@ -2,6 +2,7 @@
 
 namespace Render {
     class CRenderContext;
+    class CSceneResources;
 }
 
 #include <vector>
@@ -87,6 +88,7 @@ namespace Screenshare {
         Vector2D                    m_bufferSize = Vector2D(0, 0);
 
         SP<Render::IFramebuffer>    m_tempFB;
+        SP<Render::CSceneResources> m_sceneResources;
 
         SP<CEventLoopTimer>         m_shareStopTimer;
         bool                        m_sharing = false;
@@ -194,11 +196,13 @@ namespace Screenshare {
         void copy();
         bool copyDmabuf();
         bool copyShm();
+        bool beginCopy(SP<Render::IFramebuffer> framebuffer = nullptr);
 
         void render(Render::CRenderContext& ctx);
         void renderMonitor(Render::CRenderContext& ctx);
         void renderMonitorRegion(Render::CRenderContext& ctx);
         void renderWindow(Render::CRenderContext& ctx);
+        void renderWorkspace(Render::CRenderContext& ctx);
 
         void storeTempFB();
 

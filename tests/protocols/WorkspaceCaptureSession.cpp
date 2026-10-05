@@ -4,7 +4,11 @@
 #include <config/lua/ConfigManager.hpp>
 #include <config/shared/animation/AnimationTree.hpp>
 #include <config/shared/inotify/ConfigWatcher.hpp>
+#include <desktop/state/FadingOutState.hpp>
+#include <desktop/state/FocusState.hpp>
+#include <desktop/state/PopupFadeout.hpp>
 #include <desktop/state/WindowState.hpp>
+#include <desktop/view/Popup.hpp>
 #include <desktop/view/window/WaylandBackend.hpp>
 #include <desktop/view/window/Window.hpp>
 #include <event/EventBus.hpp>
@@ -12,13 +16,21 @@
 #include <ipc/s2/S2.hpp>
 #include <layout/target/WindowTarget.hpp>
 #include <managers/eventLoop/EventLoopManager.hpp>
+#include <managers/SessionLockManager.hpp>
 #include <managers/permissions/DynamicPermissionManager.hpp>
 #include <managers/screenshare/ScreenshareManager.hpp>
 #include <managers/screenshare/WorkspaceCaptureSource.hpp>
 #include <output/Monitor.hpp>
 #include <output/MonitorResources.hpp>
+#include <pointer/PointerManager.hpp>
+#include <protocols/LayerShell.hpp>
+#include <protocols/LockNotify.hpp>
+#include <protocols/PresentationTime.hpp>
+#include <protocols/SessionLock.hpp>
+#include <protocols/core/Compositor.hpp>
 #include <render/ElementRenderer.hpp>
 #include <render/Renderbuffer.hpp>
+#include <render/SceneResources.hpp>
 #include <render/SyncFDManager.hpp>
 #include <state/MonitorState.hpp>
 #include <workspace/HLWorkspace.hpp>
@@ -68,13 +80,14 @@ class CSessionTestOutput : public Aquamarine::IOutput {
 class CSessionTestBuffer : public IHLBuffer {
   public:
     uint32_t                      m_format = DRM_FORMAT_ARGB8888;
+    bool                          m_dma    = false;
     std::vector<CBox>             m_readbacks;
 
     Aquamarine::eBufferCapability caps() override {
         return Aquamarine::BUFFER_CAPABILITY_NONE;
     }
     Aquamarine::eBufferType type() override {
-        return Aquamarine::BUFFER_TYPE_SHM;
+        return m_dma ? Aquamarine::BUFFER_TYPE_DMABUF : Aquamarine::BUFFER_TYPE_SHM;
     }
     void update(const CRegion&) override {
         ADD_FAILURE() << "Unexpected buffer upload";
@@ -86,7 +99,36 @@ class CSessionTestBuffer : public IHLBuffer {
         return true;
     }
     Aquamarine::SSHMAttrs shm() override {
+        if (m_dma)
+            return {};
         return {.success = true, .fd = -1, .format = m_format, .size = size, .stride = sc<int>(size.x) * 4};
+    }
+    Aquamarine::SDMABUFAttrs dmabuf() override {
+        Aquamarine::SDMABUFAttrs attrs;
+        attrs.success = m_dma;
+        attrs.size    = size;
+        attrs.format  = m_format;
+        return attrs; // Metadata only: the fake renderbuffer never imports an FD.
+    }
+};
+
+class CSessionTestTexture : public Render::ITexture {
+  public:
+    explicit CSessionTestTexture(const Vector2D& size) {
+        m_size             = size;
+        m_imageDescription = NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION;
+    }
+    bool ok() override {
+        return true;
+    }
+    void setTexParameter(GLenum, GLint) override {
+        ADD_FAILURE() << "Unexpected texture operation";
+    }
+    void allocate(const Vector2D&, uint32_t) override {
+        ADD_FAILURE() << "Unexpected texture allocation";
+    }
+    void update(uint32_t, uint8_t*, uint32_t, const CRegion&) override {
+        ADD_FAILURE() << "Unexpected texture upload";
     }
 };
 
@@ -99,6 +141,8 @@ class CSessionTestFramebuffer : public Render::IFramebuffer {
     bool readPixels(CHLBufferReference buffer, uint32_t x, uint32_t y, uint32_t width, uint32_t height) override {
         EXPECT_EQ(buffer->size, m_size);
         EXPECT_EQ(buffer->shm().format, m_drmFormat);
+        EXPECT_LE(x + width, m_size.x);
+        EXPECT_LE(y + height, m_size.y);
         sc<CSessionTestBuffer&>(*buffer.m_buffer).m_readbacks.emplace_back(x, y, width, height);
         return true;
     }
@@ -115,17 +159,37 @@ class CSessionTestFramebuffer : public Render::IFramebuffer {
     }
 };
 
+// Fadeout rendering requires a texture, but only its metadata participates here.
+class CSessionTestSnapshotFramebuffer : public CSessionTestFramebuffer {
+  private:
+    bool internalAlloc(int width, int height, DRMFormat format) override {
+        m_tex              = makeShared<CSessionTestTexture>(Vector2D{width, height});
+        m_tex->m_drmFormat = format;
+        return true;
+    }
+};
+
 class CSessionTestElements : public Render::IElementRenderer {
   public:
     struct SClear {
         CHyprColor color;
         CRegion    damage;
+        Vector2D   framebufferSize;
+        Vector2D   exportSize;
     };
     std::vector<SClear> m_clears;
+    struct STexture {
+        WP<Render::ITexture>   texture;
+        WP<CWLSurfaceResource> surface;
+        CBox                   box;
+    };
+    std::vector<STexture> m_textures;
 
   protected:
-    void draw(Render::CRenderContext&, WP<CClearPassElement> element, const CRegion& damage) override {
-        m_clears.push_back({element->m_data.color, damage});
+    void draw(Render::CRenderContext& ctx, WP<CClearPassElement> element, const CRegion& damage) override {
+        EXPECT_TRUE(ctx.m_renderingCapture);
+        EXPECT_TRUE(ctx.m_blockSurfaceFeedback);
+        m_clears.push_back({element->m_data.color, damage, ctx.m_data.currentFB->m_size, ctx.m_data.outFB->m_size});
     }
     void draw(Render::CRenderContext&, WP<CBorderPassElement>, const CRegion&) override {
         ADD_FAILURE() << "Unexpected border draw";
@@ -145,12 +209,35 @@ class CSessionTestElements : public Render::IElementRenderer {
     void draw(Render::CRenderContext&, WP<CInnerGlowPassElement>, const CRegion&) override {
         ADD_FAILURE() << "Unexpected glow draw";
     }
-    void draw(Render::CRenderContext&, WP<CTexPassElement>, const CRegion&) override {
-        ADD_FAILURE() << "Unexpected texture draw";
+    void draw(Render::CRenderContext& ctx, WP<CTexPassElement> element, const CRegion&) override {
+        EXPECT_TRUE(ctx.m_renderingCapture);
+        EXPECT_TRUE(ctx.m_blockSurfaceFeedback);
+        EXPECT_TRUE(ctx.m_data.blockScreenShader);
+        m_textures.push_back({element->m_data.tex, element->m_data.surface, element->m_data.box});
     }
     void draw(Render::CRenderContext&, WP<CTextureMatteElement>, const CRegion&) override {
         ADD_FAILURE() << "Unexpected texture matte draw";
     }
+};
+
+class CSessionTestRenderbuffer : public Render::IRenderbuffer {
+  public:
+    CSessionTestRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format, int& unbinds) : IRenderbuffer(buffer, format), m_unbinds(unbinds) {
+        m_framebuffer = makeShared<CSessionTestFramebuffer>();
+        m_framebuffer->alloc(buffer->size.x, buffer->size.y, buffer->dmabuf().format);
+        m_good = true;
+    }
+    void bind() override {
+        ;
+    }
+    void unbind() override {
+        EXPECT_TRUE(g_pHyprRenderer->context().m_renderingCapture);
+        EXPECT_TRUE(g_pHyprRenderer->context().m_blockSurfaceFeedback);
+        ++m_unbinds;
+    }
+
+  private:
+    int& m_unbinds;
 };
 
 // Exercise the real render lifecycle and element dispatch without a GL backend.
@@ -160,6 +247,9 @@ class CSessionTestRenderer : public Render::IHyprRenderer {
 
     UP<CSessionTestElements> m_elements = makeUnique<CSessionTestElements>();
     int                      m_begins = 0, m_ends = 0;
+    int                                      m_dmaBegins = 0, m_unbinds = 0, m_passStarts = 0;
+    int                                      m_blurs = 0;
+    std::vector<WP<Render::CSceneResources>> m_resources;
 
     eType                    type() override {
         return RT_GL;
@@ -167,11 +257,23 @@ class CSessionTestRenderer : public Render::IHyprRenderer {
     Render::SRenderResult endRender(const std::function<void()>& callback) override {
         EXPECT_TRUE(context().active());
         EXPECT_TRUE(context().m_data.blockScreenShader);
+        expectCapture(context());
+        expectCaptureTarget(context());
         ++m_ends;
+        // Match the backend's deferred dispatch, including surface feedback guards.
+        currentPass(context()).render(context(), context().m_data.damage);
+        expectCapture(context());
         finishRender();
         if (callback)
             callback();
         return {};
+    }
+    void startRenderPass(Render::CRenderContext& ctx) override {
+        expectCapture(ctx);
+        ++m_passStarts;
+    }
+    SP<Render::ITexture> renderText(const std::string&, CHyprColor, int, bool, const std::string&, int, int) override {
+        return nullptr; // initAssets must not load fonts in this fixture.
     }
     UP<Render::ISyncFDManager> createSyncFDManager() override {
         return nullptr;
@@ -238,6 +340,7 @@ class CSessionTestRenderer : public Render::IHyprRenderer {
         ;
     }
     SP<Render::IFramebuffer> blurFramebuffer(Render::CRenderContext&, SP<Render::IFramebuffer>, float, const CRegion&, const Render::SBlurContext&) override {
+        ++m_blurs;
         return nullptr;
     }
     void refreshBlurProvider() override {
@@ -263,15 +366,59 @@ class CSessionTestRenderer : public Render::IHyprRenderer {
     }
 
   private:
-    bool beginFullFakeRenderInternal(Render::CRenderContext& ctx, PHLMONITOR, CRegion& damage, SP<Render::IFramebuffer> fb, bool simple) override {
+    void expectCapture(Render::CRenderContext& ctx) {
         EXPECT_TRUE(ctx.active());
-        EXPECT_TRUE(simple);
-        EXPECT_EQ(ctx.m_mode, Render::RENDER_MODE_FULL_FAKE);
-        EXPECT_EQ(ctx.m_data.fbSize, fb->m_size);
+        EXPECT_TRUE(ctx.m_renderingCapture);
+        EXPECT_TRUE(ctx.m_blockSurfaceFeedback);
+        EXPECT_FALSE(ctx.m_renderingSnapshot);
+        EXPECT_TRUE(ctx.readOnlyEffects());
+        EXPECT_FALSE(ctx.m_swapchainAcquired);
+    }
+    void expectCaptureTarget(Render::CRenderContext& ctx) {
+        ASSERT_TRUE(ctx.m_data.outFB);
+        EXPECT_EQ(ctx.m_data.outFB->imageDescription(), NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION);
+        EXPECT_EQ(ctx.m_data.outFB->m_drmFormat, DRM_FORMAT_ARGB8888);
+    }
+    void prepareTarget(Render::CRenderContext& ctx, PHLMONITOR monitor, CRegion& damage, SP<Render::IFramebuffer> fb, bool simple) {
+        EXPECT_TRUE(ctx.active());
+        EXPECT_FALSE(simple);
+        EXPECT_EQ(ctx.m_data.projectionType, Render::RPT_MONITOR);
+        ASSERT_TRUE(ctx.sceneResources());
+        EXPECT_TRUE(ctx.sceneResources()->isolated());
+        EXPECT_NE(ctx.sceneResources(), monitor->resources()->sceneResources());
+        ASSERT_TRUE(ctx.sceneResources()->bufferDescription());
+        const auto& description = *ctx.sceneResources()->bufferDescription();
+        EXPECT_EQ(description.format, DRM_FORMAT_ARGB8888);
+        EXPECT_EQ(description.imageDescription, NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION);
+        ASSERT_TRUE(ctx.sceneResources()->blurFramebuffer());
+        EXPECT_EQ(ctx.sceneResources()->blurFramebuffer()->m_drmFormat, DRM_FORMAT_ARGB8888);
+        EXPECT_EQ(ctx.sceneResources()->blurFramebuffer()->imageDescription(), NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION);
+        m_resources.emplace_back(ctx.sceneResources());
         ++m_begins;
-        ctx.m_data.currentFB = ctx.m_data.outFB = fb;
+        // Keep output and working FB distinct so setting only currentFB's
+        // description cannot accidentally satisfy the DMA output assertion.
+        ctx.m_data.currentFB = ctx.m_data.mainFB = makeShared<CSessionTestFramebuffer>();
+        ctx.m_data.currentFB->alloc(monitor->m_transformedSize.x, monitor->m_transformedSize.y, DRM_FORMAT_ARGB8888);
+        ctx.m_data.currentFB->setImageDescription(description.imageDescription);
+        ctx.m_data.outFB  = fb;
+        ctx.m_data.fbSize = monitor->m_transformedSize;
         setDamage(ctx, damage, std::nullopt);
+    }
+    bool initRenderBuffer(Render::CRenderContext& ctx, SP<Aquamarine::IBuffer> buffer, uint32_t format) override {
+        EXPECT_TRUE(buffer->dmabuf().success);
+        ctx.m_currentRenderbuffer = makeShared<CSessionTestRenderbuffer>(buffer, format, m_unbinds);
         return true;
+    }
+    bool beginRenderInternal(Render::CRenderContext& ctx, PHLMONITOR monitor, CRegion& damage, bool simple) override {
+        EXPECT_EQ(ctx.m_mode, Render::RENDER_MODE_TO_BUFFER);
+        ++m_dmaBegins;
+        prepareTarget(ctx, monitor, damage, ctx.m_currentRenderbuffer->getFB(), simple);
+        return !::testing::Test::HasFatalFailure();
+    }
+    bool beginFullFakeRenderInternal(Render::CRenderContext& ctx, PHLMONITOR monitor, CRegion& damage, SP<Render::IFramebuffer> fb, bool simple) override {
+        EXPECT_EQ(ctx.m_mode, Render::RENDER_MODE_FULL_FAKE);
+        prepareTarget(ctx, monitor, damage, fb, simple);
+        return !::testing::Test::HasFatalFailure();
     }
 };
 
@@ -555,11 +702,24 @@ class CWorkspaceCaptureFrameTest : public CWorkspaceCaptureSessionTest {
 
         m_previousMonitors          = std::move(State::monitorState());
         m_previousPermissions       = std::move(g_pDynamicPermissionManager);
+        m_previousSessionLock       = std::move(g_pSessionLockManager);
+        m_previousLockProtocol      = std::move(PROTO::sessionLock);
+        m_previousFadeouts          = std::move(Desktop::fadingOutState());
         m_installedFrameGlobals     = true;
         State::monitorState()       = makeUnique<CSessionTestMonitorState>(m_monitor);
         g_pDynamicPermissionManager = makeUnique<CDynamicPermissionManager>();
+        PROTO::sessionLock          = makeUnique<CSessionLockProtocol>(&ext_session_lock_manager_v1_interface, 1, "workspace-capture-lock-test");
+        g_pSessionLockManager       = makeUnique<CSessionLockManager>();
+        Desktop::fadingOutState()   = makeUnique<Desktop::CFadingOutState>();
 
         *CConfigValue<Config::INTEGER>("ecosystem:enforce_permissions").ptr() = 0;
+        *CConfigValue<Config::INTEGER>("misc:disable_hyprland_logo").ptr()    = 1;
+        *CConfigValue<Config::INTEGER>("misc:disable_splash_rendering").ptr() = 1;
+        *CConfigValue<Config::INTEGER>("misc:background_color").ptr()         = 0;
+        *CConfigValue<Config::INTEGER>("render:xp_mode").ptr()                = 0;
+        *CConfigValue<Config::INTEGER>("debug:pass").ptr()                    = 0;
+        *CConfigValue<Config::BOOL>("decoration:blur:enabled").ptr()          = false;
+        m_monitor->m_output->state->setFormat(DRM_FORMAT_XRGB8888);
 
         std::array<int, 2> sockets = {-1, -1};
         ASSERT_EQ(socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0, sockets.data()), 0);
@@ -574,16 +734,20 @@ class CWorkspaceCaptureFrameTest : public CWorkspaceCaptureSessionTest {
         if (m_display)
             wl_display_destroy_clients(m_display.get());
         if (m_installedFrameGlobals) {
+            Desktop::fadingOutState()   = std::move(m_previousFadeouts);
+            g_pSessionLockManager       = std::move(m_previousSessionLock);
+            PROTO::sessionLock          = std::move(m_previousLockProtocol);
             g_pDynamicPermissionManager = std::move(m_previousPermissions);
             State::monitorState()       = std::move(m_previousMonitors);
         }
         CWorkspaceCaptureSessionTest::TearDown();
     }
 
-    SP<CSessionTestBuffer> buffer(const Vector2D& size, uint32_t format = DRM_FORMAT_ARGB8888) {
+    SP<CSessionTestBuffer> buffer(const Vector2D& size, uint32_t format = DRM_FORMAT_ARGB8888, bool dma = false) {
         auto buffer                  = makeShared<CSessionTestBuffer>();
         buffer->size                 = size;
         buffer->m_format             = format;
+        buffer->m_dma                = dma;
         buffer->m_resource           = CWLBufferResource::create(makeShared<CWlBuffer>(m_client, 1, m_nextID++));
         buffer->m_resource->m_buffer = buffer;
         EXPECT_TRUE(buffer->m_resource->good());
@@ -594,6 +758,24 @@ class CWorkspaceCaptureFrameTest : public CWorkspaceCaptureSessionTest {
         return sc<CSessionTestRenderer&>(*g_pHyprRenderer);
     }
 
+    void capture(Screenshare::CScreenshareSession& session, bool dma = false, bool overlayCursor = false) {
+        renderer().m_elements->m_clears.clear();
+        renderer().m_elements->m_textures.clear();
+        std::vector<Screenshare::eScreenshareResult> results;
+        const auto                                   target = buffer(session.bufferSize(), DRM_FORMAT_ARGB8888, dma);
+        auto                                         frame  = session.nextFrame(overlayCursor);
+        ASSERT_EQ(frame->share(target, {}, [&](auto result) { results.push_back(result); }), Screenshare::ERROR_NONE);
+        Screenshare::mgr()->onOutputCommit(session.monitor(), false);
+        EXPECT_TRUE(frame->done());
+        EXPECT_EQ(results, (std::vector<Screenshare::eScreenshareResult>{Screenshare::RESULT_TIMESTAMP, Screenshare::RESULT_COPIED}));
+        EXPECT_EQ(target->m_readbacks.size(), dma ? 0U : 1U);
+        EXPECT_FALSE(renderer().context().active());
+        EXPECT_FALSE(renderer().context().m_renderingCapture);
+        EXPECT_FALSE(renderer().context().m_blockSurfaceFeedback);
+        EXPECT_FALSE(renderer().context().sceneResources());
+        EXPECT_FALSE(Screenshare::mgr()->outputNeedsCopyFB(session.monitor()));
+    }
+
     void expectClear(size_t index, const CHyprColor& color, const Vector2D& size) {
         ASSERT_LT(index, renderer().m_elements->m_clears.size());
         const auto& clear = renderer().m_elements->m_clears[index];
@@ -602,22 +784,26 @@ class CWorkspaceCaptureFrameTest : public CWorkspaceCaptureSessionTest {
         EXPECT_NEAR(clear.color.g, color.g, 1e-5);
         EXPECT_NEAR(clear.color.b, color.b, 1e-5);
         EXPECT_FLOAT_EQ(clear.color.a, color.a);
+        EXPECT_EQ(clear.framebufferSize, size);
         const CRegion full{CBox{{}, size}};
         EXPECT_TRUE(clear.damage.copy().subtract(full).empty());
         EXPECT_TRUE(full.copy().subtract(clear.damage).empty());
     }
 
     wl_client* m_client = nullptr; // Owned by the isolated display.
+    uint32_t   m_nextID = 2;
 
   private:
     bool                            m_installedFrameGlobals = false;
-    uint32_t                        m_nextID                = 2;
     Hyprutils::OS::CFileDescriptor  m_socket;
     UP<State::CMonitorStateTracker> m_previousMonitors;
     UP<CDynamicPermissionManager>   m_previousPermissions;
+    UP<CSessionLockManager>         m_previousSessionLock;
+    UP<CSessionLockProtocol>        m_previousLockProtocol;
+    UP<Desktop::CFadingOutState>    m_previousFadeouts;
 };
 
-TEST_F(CWorkspaceCaptureFrameTest, LiveAndRemovedFramesClearTheFullBufferWithoutCopyFB) {
+TEST_F(CWorkspaceCaptureFrameTest, EmptyAndRemovedFramesClearTransparentWithoutCopyFB) {
     for (const auto mode : {0U, 1U}) {
         SCOPED_TRACE(mode);
         auto state   = source(mode);
@@ -643,8 +829,10 @@ TEST_F(CWorkspaceCaptureFrameTest, LiveAndRemovedFramesClearTheFullBufferWithout
             EXPECT_TRUE(frame->done());
             EXPECT_TRUE(session->isActive());
             EXPECT_FALSE(renderer().context().active());
-            ASSERT_EQ(renderer().m_elements->m_clears.size(), 1U);
-            expectClear(0, removed ? CHyprColor{0, 0, 0, 0} : CHyprColor{0, 1, 0, 1}, session->bufferSize());
+            // Everything additionally draws the fixture's transparent background.
+            ASSERT_EQ(renderer().m_elements->m_clears.size(), !removed && mode == HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_EVERYTHING ? 2U : 1U);
+            for (size_t i = 0; i < renderer().m_elements->m_clears.size(); ++i)
+                expectClear(i, CHyprColor{0, 0, 0, 0}, session->bufferSize());
             EXPECT_EQ(target->m_readbacks, (std::vector<CBox>{CBox{{}, session->bufferSize()}}));
             EXPECT_FALSE(m_monitor->resources()->hasMirrorFB());
             Screenshare::mgr()->onOutputCommit(m_monitor, false);
@@ -741,6 +929,517 @@ TEST_F(CWorkspaceCaptureFrameTest, StaleSessionBlocksDirectScanoutOnlyWhileSubmi
     EXPECT_FALSE(Screenshare::mgr()->isOutputDSBlocked(m_monitor));
 }
 
+TEST_F(CWorkspaceCaptureFrameTest, DmaAndShmRetainSessionOwnedSRGBResourcesThroughDeferredEnd) {
+    auto first  = Screenshare::mgr()->newSession(m_client, source());
+    auto second = Screenshare::mgr()->newSession(m_client, source());
+    ASSERT_TRUE(first);
+    ASSERT_TRUE(second);
+    m_monitor->m_imageDescription   = NColorManagement::LINEAR_IMAGE_DESCRIPTION;
+    const auto monitorResources     = m_monitor->resources();
+    m_monitor->m_blurFBDirty        = false;
+    m_monitor->m_blurFBShouldRender = true;
+
+    capture(*first);
+    ASSERT_EQ(renderer().m_resources.size(), 1U);
+    auto firstResources = renderer().m_resources.back();
+    ASSERT_TRUE(firstResources);
+    capture(*first, true);
+    ASSERT_EQ(renderer().m_resources.size(), 2U);
+    EXPECT_EQ(renderer().m_resources.back(), firstResources);
+    capture(*second, true);
+    ASSERT_EQ(renderer().m_resources.size(), 3U);
+    EXPECT_NE(renderer().m_resources.back(), firstResources);
+    EXPECT_FALSE(m_monitor->m_blurFBDirty);
+    EXPECT_TRUE(m_monitor->m_blurFBShouldRender);
+    EXPECT_EQ(monitorResources->m_blurFB->imageDescription(), NColorManagement::LINEAR_IMAGE_DESCRIPTION);
+    EXPECT_FALSE(monitorResources->hasMirrorFB());
+    EXPECT_EQ(renderer().m_dmaBegins, 2);
+    EXPECT_EQ(renderer().m_unbinds, 2);
+    EXPECT_EQ(renderer().m_begins, 3);
+    EXPECT_EQ(renderer().m_ends, 3);
+    EXPECT_GE(renderer().m_passStarts, 3);
+
+    first.reset();
+    EXPECT_TRUE(firstResources.expired());
+}
+
+// Seed mapped state without emitting map signals, which arrange outputs and
+// change focus. As with the snapshot tests below, all access stays test-only.
+static bool& sessionTestLayerMapped(PHLLS layer);
+
+template <bool Desktop::View::CLayerSurface::* Mapped>
+struct SSessionTestLayerAccess {
+    friend bool& sessionTestLayerMapped(PHLLS layer) {
+        return layer.get()->*Mapped;
+    }
+};
+
+template struct SSessionTestLayerAccess<&Desktop::View::CLayerSurface::m_mapped>;
+
+static void seedSessionCursor(Pointer::CPointerManager& pointer, SP<Desktop::View::CWLSurface> surface, const Vector2D& position);
+
+template <auto Image, auto Position>
+struct SSessionTestCursorAccess {
+    friend void seedSessionCursor(Pointer::CPointerManager& pointer, SP<Desktop::View::CWLSurface> surface, const Vector2D& position) {
+        auto& image       = pointer.*Image;
+        image.surface     = surface;
+        image.size        = surface->resource()->m_current.size;
+        image.hotspot     = {1, 2};
+        image.scale       = 1.F;
+        pointer.*Position = position;
+    }
+};
+
+template struct SSessionTestCursorAccess<&Pointer::CPointerManager::m_currentCursorImage, &Pointer::CPointerManager::m_pointerPos>;
+
+class CWorkspaceCaptureSceneTest : public CWorkspaceCaptureFrameTest {
+  protected:
+    void SetUp() override {
+        CWorkspaceCaptureFrameTest::SetUp();
+        if (HasFatalFailure())
+            return;
+        m_previousPresentation  = std::move(PROTO::presentation);
+        m_previousLockNotify    = std::move(PROTO::lockNotify);
+        m_previousPointer       = std::move(Pointer::mgr());
+        m_installedSceneGlobals = true;
+        PROTO::presentation     = makeUnique<CPresentationProtocol>(&wp_presentation_interface, 2, "workspace-capture-presentation-test");
+        PROTO::lockNotify       = makeUnique<CLockNotifyProtocol>(&hyprland_lock_notifier_v1_interface, 1, "workspace-capture-lock-notify-test");
+        Pointer::mgr()          = makeUnique<Pointer::CPointerManager>();
+        Animation::mgr()->createAnimation(Vector2D{}, m_workspace->m_renderOffset, Config::animationTree()->getAnimationPropertyConfig("workspacesIn"), AVARDAMAGE_NONE);
+        Animation::mgr()->createAnimation(1.F, m_workspace->m_alpha, Config::animationTree()->getAnimationPropertyConfig("workspacesIn"), AVARDAMAGE_NONE);
+    }
+
+    void TearDown() override {
+        if (m_installedSceneGlobals) {
+            renderer().m_elements->m_textures.clear();
+            Pointer::mgr() = std::move(m_previousPointer);
+            m_layers.clear();
+            m_layerResources.clear();
+            m_surfaces.clear();
+            PROTO::presentation = std::move(m_previousPresentation);
+            PROTO::lockNotify   = std::move(m_previousLockNotify);
+        }
+        CWorkspaceCaptureFrameTest::TearDown();
+    }
+
+    SP<CWLSurfaceResource> surface(const Vector2D& size = {40, 30}) {
+        auto wire    = makeShared<CWlSurface>(m_client, 6, m_nextID++);
+        auto surface = makeShared<CWLSurfaceResource>(wire);
+        EXPECT_TRUE(surface->good());
+        // This fixture owns resources directly instead of a compositor protocol.
+        wire->setDestroy([](CWlSurface*) { ADD_FAILURE() << "Unexpected surface destroy request"; });
+        wire->setOnDestroy([](CWlSurface*) { ; });
+        surface->m_self         = surface;
+        surface->m_current.size = surface->m_current.bufferSize = size;
+        surface->m_current.texture                              = makeShared<CSessionTestTexture>(size);
+        surface->m_current.callbacks.emplace_back(makeShared<CWLCallbackResource>(makeShared<CWlCallback>(m_client, 1, m_nextID++)));
+        m_surfaces.emplace_back(surface);
+        return surface;
+    }
+
+    PHLLS layer(zwlrLayerShellV1Layer plane, const Vector2D& position = {10, 20}) {
+        auto surf     = surface();
+        auto wire     = makeShared<CZwlrLayerSurfaceV1>(m_client, 4, m_nextID++);
+        auto resource = makeShared<CLayerShellResource>(wire, surf, "workspace-capture-test", m_monitor, plane);
+        EXPECT_TRUE(resource->good());
+        wire->setDestroy([](CZwlrLayerSurfaceV1*) { ADD_FAILURE() << "Unexpected layer destroy request"; });
+        wire->setOnDestroy([](CZwlrLayerSurfaceV1*) { ; });
+        auto layer                    = Desktop::View::CLayerSurface::create(resource);
+        sessionTestLayerMapped(layer) = true;
+        resource->m_mapped            = true;
+        layer->positionAnimation()->setValueAndWarp(position + m_monitor->m_position);
+        layer->sizeAnimation()->setValueAndWarp(surf->m_current.size);
+        layer->alpha()[Desktop::View::LS_ALPHA_FADE]->setValueAndWarp(1.F);
+        m_layerResources.emplace_back(resource);
+        m_layers.emplace_back(layer);
+        EXPECT_TRUE(layer->mapped());
+        EXPECT_EQ(layer->m_monitor, m_monitor);
+        return layer;
+    }
+
+    std::vector<WP<CWLSurfaceResource>> drawnSurfaces() {
+        std::vector<WP<CWLSurfaceResource>> surfaces;
+        for (const auto& texture : renderer().m_elements->m_textures) {
+            if (texture.surface)
+                surfaces.emplace_back(texture.surface);
+        }
+        return surfaces;
+    }
+
+    void expectUnpaced(SP<CWLSurfaceResource> surface) {
+        ASSERT_EQ(surface->m_current.callbacks.size(), 1U);
+        EXPECT_TRUE(surface->m_current.callbacks.front()->good());
+    }
+
+    SP<Render::IFramebuffer> popupSnapshot() {
+        auto snapshot = makeShared<CSessionTestSnapshotFramebuffer>();
+        EXPECT_TRUE(snapshot->alloc(m_monitor->m_transformedSize.x, m_monitor->m_transformedSize.y, DRM_FORMAT_ARGB8888));
+        snapshot->setImageDescription(NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION);
+        return snapshot;
+    }
+
+    void releaseLayer(PHLLS& layer) {
+        std::erase(m_layers, layer);
+        layer.reset();
+    }
+
+  private:
+    bool                                 m_installedSceneGlobals = false;
+    UP<CPresentationProtocol>            m_previousPresentation;
+    UP<CLockNotifyProtocol>              m_previousLockNotify;
+    UP<Pointer::CPointerManager>         m_previousPointer;
+    std::vector<SP<CWLSurfaceResource>>  m_surfaces;
+    std::vector<SP<CLayerShellResource>> m_layerResources;
+    std::vector<PHLLS>                   m_layers;
+};
+
+TEST_F(CWorkspaceCaptureSceneTest, ModesSelectShellSurfacesAndFilterPrivateContentAtCopyTime) {
+    auto bottom       = layer(ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM);
+    auto top          = layer(ZWLR_LAYER_SHELL_V1_LAYER_TOP, {80, 20});
+    auto privateLayer = layer(ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY, {140, 20});
+    privateLayer->m_ruleApplicator->noScreenShare().set(true, Desktop::Types::PRIORITY_SET_PROP);
+
+    for (const bool dma : {false, true}) {
+        for (const auto mode :
+             {HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_WINDOWS_ONLY, HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_EVERYTHING}) {
+            SCOPED_TRACE(dma);
+            SCOPED_TRACE(mode);
+            auto session = Screenshare::mgr()->newSession(m_client, source(mode));
+            ASSERT_TRUE(session);
+            capture(*session, dma);
+            const std::vector<WP<CWLSurfaceResource>> expected = mode == HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_EVERYTHING ?
+                std::vector<WP<CWLSurfaceResource>>{bottom->resource(), top->resource()} :
+                std::vector<WP<CWLSurfaceResource>>{};
+            EXPECT_EQ(drawnSurfaces(), expected);
+            expectUnpaced(bottom->resource());
+            expectUnpaced(top->resource());
+            expectUnpaced(privateLayer->resource());
+        }
+    }
+
+    auto session = Screenshare::mgr()->newSession(m_client, source(HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_EVERYTHING));
+    ASSERT_TRUE(session);
+    privateLayer->m_ruleApplicator->noScreenShare().unset(Desktop::Types::PRIORITY_SET_PROP);
+    capture(*session);
+    EXPECT_EQ(drawnSurfaces(), (std::vector<WP<CWLSurfaceResource>>{bottom->resource(), top->resource(), privateLayer->resource()}));
+    auto frame = session->nextFrame(false);
+    ASSERT_EQ(frame->share(buffer(session->bufferSize()), {}, [](auto) { ; }), Screenshare::ERROR_NONE);
+    privateLayer->m_ruleApplicator->noScreenShare().set(true, Desktop::Types::PRIORITY_SET_PROP);
+    renderer().m_elements->m_textures.clear();
+    Screenshare::mgr()->onOutputCommit(m_monitor, false);
+    EXPECT_TRUE(frame->done());
+    EXPECT_EQ(drawnSurfaces(), (std::vector<WP<CWLSurfaceResource>>{bottom->resource(), top->resource()}));
+}
+
+TEST_F(CWorkspaceCaptureSceneTest, LayerPopupFadeoutTracksLivePrivacyWithoutRetainingOwner) {
+    auto           owner     = layer(ZWLR_LAYER_SHELL_V1_LAYER_TOP);
+    const PHLLSREF weakOwner = owner;
+    auto           popup     = Desktop::View::CPopup::create(owner);
+    auto           snapshot  = popupSnapshot();
+    auto           fadeout   = Desktop::CPopupFadeout::create(popup, snapshot, 1.F);
+    ASSERT_TRUE(fadeout);
+    ASSERT_TRUE(snapshot->isAllocated());
+    EXPECT_EQ(fadeout->source().type, Desktop::eFadeoutSource::LAYER);
+    EXPECT_FALSE(fadeout->source().noScreenShare);
+    Desktop::fadingOutState()->add(fadeout);
+    auto session = Screenshare::mgr()->newSession(m_client, source(HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_EVERYTHING));
+    ASSERT_TRUE(session);
+
+    for (const bool dma : {false, true}) {
+        SCOPED_TRACE(dma);
+        capture(*session, dma);
+        ASSERT_EQ(renderer().m_elements->m_textures.size(), 2U);
+        EXPECT_EQ(renderer().m_elements->m_textures.back().texture, snapshot->getTexture());
+
+        // The snapshot already exists and the frame is pending when privacy changes.
+        auto frame = session->nextFrame(false);
+        ASSERT_EQ(frame->share(buffer(session->bufferSize(), DRM_FORMAT_ARGB8888, dma), {}, [](auto) { ; }), Screenshare::ERROR_NONE);
+        owner->m_ruleApplicator->noScreenShare().set(true, Desktop::Types::PRIORITY_SET_PROP);
+        EXPECT_TRUE(fadeout->source().noScreenShare);
+        renderer().m_elements->m_textures.clear();
+        Screenshare::mgr()->onOutputCommit(m_monitor, false);
+        EXPECT_TRUE(frame->done());
+        EXPECT_TRUE(renderer().m_elements->m_textures.empty());
+        expectUnpaced(owner->resource());
+
+        owner->m_ruleApplicator->noScreenShare().unset(Desktop::Types::PRIORITY_SET_PROP);
+        EXPECT_FALSE(fadeout->source().noScreenShare);
+    }
+
+    owner->m_ruleApplicator->noScreenShare().set(true, Desktop::Types::PRIORITY_SET_PROP);
+    releaseLayer(owner);
+    EXPECT_TRUE(weakOwner.expired());
+    EXPECT_FALSE(popup->layerOwner());
+    EXPECT_EQ(fadeout->source().type, Desktop::eFadeoutSource::LAYER);
+    EXPECT_FALSE(fadeout->source().noScreenShare); // The initial snapshot was permitted.
+    capture(*session);
+    ASSERT_EQ(renderer().m_elements->m_textures.size(), 1U);
+    EXPECT_EQ(renderer().m_elements->m_textures.front().texture, snapshot->getTexture());
+}
+
+TEST_F(CWorkspaceCaptureSceneTest, LayerPopupFadeoutKeepsInitialDenialAndSuppressesEffectsAfterOwnerExpiry) {
+    auto           owner     = layer(ZWLR_LAYER_SHELL_V1_LAYER_TOP);
+    const PHLLSREF weakOwner = owner;
+    owner->m_ruleApplicator->noScreenShare().set(true, Desktop::Types::PRIORITY_SET_PROP);
+    *CConfigValue<Config::BOOL>("decoration:blur:enabled").ptr()   = true;
+    *CConfigValue<Config::INTEGER>("decoration:blur:popups").ptr() = 1;
+    auto popup                                                     = Desktop::View::CPopup::create(owner);
+    auto snapshot                                                  = popupSnapshot();
+    auto fadeout                                                   = Desktop::CPopupFadeout::create(popup, snapshot, 1.F);
+    ASSERT_TRUE(fadeout);
+    ASSERT_TRUE(fadeout->effects().textureBlur.enabled);
+    // Snapshot effects are frozen; disabling live blur must not remove this check.
+    *CConfigValue<Config::BOOL>("decoration:blur:enabled").ptr() = false;
+    Desktop::fadingOutState()->add(fadeout);
+    auto session = Screenshare::mgr()->newSession(m_client, source(HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_EVERYTHING));
+    ASSERT_TRUE(session);
+
+    capture(*session);
+    EXPECT_TRUE(renderer().m_elements->m_textures.empty());
+    owner->m_ruleApplicator->noScreenShare().unset(Desktop::Types::PRIORITY_SET_PROP);
+    EXPECT_FALSE(owner->m_ruleApplicator->noScreenShare().valueOrDefault());
+    EXPECT_TRUE(fadeout->source().noScreenShare);
+    for (const bool dma : {false, true}) {
+        capture(*session, dma);
+        ASSERT_EQ(renderer().m_elements->m_textures.size(), 1U);
+        EXPECT_EQ(renderer().m_elements->m_textures.front().surface, owner->resource());
+        EXPECT_EQ(renderer().m_blurs, 0);
+    }
+
+    releaseLayer(owner);
+    EXPECT_TRUE(weakOwner.expired());
+    EXPECT_FALSE(popup->layerOwner());
+    EXPECT_EQ(fadeout->source().type, Desktop::eFadeoutSource::LAYER);
+    EXPECT_TRUE(fadeout->source().noScreenShare);
+    EXPECT_TRUE(fadeout->effects().textureBlur.enabled);
+    for (const bool dma : {false, true}) {
+        capture(*session, dma);
+        EXPECT_TRUE(renderer().m_elements->m_textures.empty());
+        EXPECT_EQ(renderer().m_blurs, 0);
+    }
+}
+
+TEST_F(CWorkspaceCaptureSceneTest, DeferredSurfaceDrawAndDiscardDoNotConsumeFrameOrPresentationFeedback) {
+    auto shell    = layer(ZWLR_LAYER_SHELL_V1_LAYER_TOP);
+    auto surf     = shell->resource();
+    auto feedback = makeShared<CPresentationFeedback>(makeUnique<CWpPresentationFeedback>(m_client, 2, m_nextID++), surf);
+    ASSERT_TRUE(feedback->good());
+    surf->m_current.presentationFeedbacks.emplace_back(feedback);
+    auto session = Screenshare::mgr()->newSession(m_client, source(HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_EVERYTHING));
+    ASSERT_TRUE(session);
+    for (const bool dma : {false, true}) {
+        for (const bool visible : {true, false}) {
+            SCOPED_TRACE(dma);
+            SCOPED_TRACE(visible);
+            shell->positionAnimation()->setValueAndWarp(m_monitor->m_position + (visible ? Vector2D{10, 20} : Vector2D{2000, 3000}));
+            capture(*session, dma);
+            EXPECT_EQ(drawnSurfaces(), visible ? std::vector<WP<CWLSurfaceResource>>{surf} : std::vector<WP<CWLSurfaceResource>>{});
+            expectUnpaced(surf);
+            ASSERT_EQ(surf->m_current.presentationFeedbacks.size(), 1U);
+            EXPECT_EQ(surf->m_current.presentationFeedbacks.front(), feedback);
+            EXPECT_FALSE(PROTO::presentation->hasPendingFeedbacks());
+        }
+    }
+}
+
+TEST_F(CWorkspaceCaptureSceneTest, LockAndRemovalSuppressQueuedContentEvenWithLockXrayEnabled) {
+    auto shell         = layer(ZWLR_LAYER_SHELL_V1_LAYER_TOP);
+    auto cursorSurface = surface({12, 16});
+    auto cursor        = Desktop::View::CWLSurface::create();
+    cursor->assign(cursorSurface);
+    seedSessionCursor(*Pointer::mgr(), cursor, m_monitor->m_position + Vector2D{20, 30});
+    m_monitor->m_activeWorkspace                                   = m_workspace;
+    *CConfigValue<Config::INTEGER>("misc:session_lock_xray").ptr() = 1;
+    for (const bool dma : {false, true}) {
+        auto state   = source(HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_EVERYTHING);
+        auto session = Screenshare::mgr()->newSession(m_client, state);
+        ASSERT_TRUE(session);
+        capture(*session, dma);
+        ASSERT_FALSE(drawnSurfaces().empty());
+        for (const bool removed : {false, true}) {
+            auto frame = session->nextFrame(true);
+            ASSERT_EQ(frame->share(buffer(session->bufferSize(), DRM_FORMAT_ARGB8888, dma), {}, [](auto) { ; }), Screenshare::ERROR_NONE);
+            // State changes after submission must govern the copy, not its request.
+            if (removed)
+                m_workspace->m_events.destroy.emit();
+            else
+                PROTO::sessionLock->forceLock();
+            renderer().m_elements->m_clears.clear();
+            renderer().m_elements->m_textures.clear();
+            Screenshare::mgr()->onOutputCommit(m_monitor, false);
+            EXPECT_TRUE(frame->done());
+            EXPECT_TRUE(session->isActive());
+            EXPECT_TRUE(renderer().m_elements->m_textures.empty());
+            ASSERT_EQ(renderer().m_elements->m_clears.size(), 1U);
+            expectClear(0, {0, 0, 0, 0}, session->bufferSize());
+            expectUnpaced(shell->resource());
+            expectUnpaced(cursorSurface);
+            if (!removed)
+                PROTO::sessionLock->forceUnlock();
+        }
+    }
+}
+
+TEST_F(CWorkspaceCaptureSceneTest, RemovedSourceClearsResizedScratchAndPreservesFrozenExportDamage) {
+    auto shell   = layer(ZWLR_LAYER_SHELL_V1_LAYER_TOP);
+    auto state   = source(HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_EVERYTHING);
+    auto session = Screenshare::mgr()->newSession(m_client, state);
+    ASSERT_TRUE(session);
+    const auto    exportSize = session->bufferSize();
+    const CRegion exportDamage{CBox{{}, exportSize}};
+    int           changes = 0;
+    auto          changed = session->m_events.constraintsChanged.listen([&] { ++changes; });
+
+    capture(*session);
+    ASSERT_EQ(drawnSurfaces(), (std::vector<WP<CWLSurfaceResource>>{shell->resource()}));
+    m_workspace->m_events.destroy.emit();
+    ASSERT_TRUE(state->removed());
+
+    // The owner can grow or shrink after removal; exports keep their last size.
+    for (const auto& scratchSize : {Vector2D{1440, 2560}, Vector2D{640, 480}}) {
+        for (const bool dma : {false, true}) {
+            SCOPED_TRACE(::testing::Message() << scratchSize.x << "x" << scratchSize.y);
+            SCOPED_TRACE(dma);
+            std::vector<Screenshare::eScreenshareResult> results;
+            auto                                         target = buffer(exportSize, DRM_FORMAT_ARGB8888, dma);
+            auto                                         frame  = session->nextFrame(false);
+            ASSERT_EQ(frame->share(target, {-10, -10, 20, 20}, [&](auto result) { results.push_back(result); }), Screenshare::ERROR_NONE);
+            m_monitor->m_transformedSize = scratchSize;
+            m_monitor->m_pixelSize       = {scratchSize.y, scratchSize.x};
+            m_monitor->m_size            = scratchSize / m_monitor->m_scale;
+            m_monitor->m_events.modeChanged.emit();
+            EXPECT_EQ(changes, 0);
+            EXPECT_EQ(session->bufferSize(), exportSize);
+            EXPECT_EQ(frame->bufferSize(), exportSize);
+
+            renderer().m_elements->m_clears.clear();
+            renderer().m_elements->m_textures.clear();
+            Screenshare::mgr()->onOutputCommit(m_monitor, false);
+            EXPECT_TRUE(frame->done());
+            EXPECT_TRUE(session->isActive());
+            EXPECT_EQ(results, (std::vector<Screenshare::eScreenshareResult>{Screenshare::RESULT_TIMESTAMP, Screenshare::RESULT_COPIED}));
+            ASSERT_EQ(renderer().m_elements->m_clears.size(), 1U);
+            expectClear(0, {0, 0, 0, 0}, scratchSize);
+            EXPECT_EQ(renderer().m_elements->m_clears.front().exportSize, exportSize);
+            EXPECT_TRUE(renderer().m_elements->m_textures.empty());
+            EXPECT_TRUE(frame->damage().copy().subtract(exportDamage).empty());
+            EXPECT_TRUE(exportDamage.copy().subtract(frame->damage()).empty());
+            EXPECT_EQ(target->m_readbacks, (dma ? std::vector<CBox>{} : std::vector<CBox>{CBox{{}, exportSize}}));
+            EXPECT_FALSE(renderer().context().active());
+            expectUnpaced(shell->resource());
+        }
+    }
+}
+
+TEST_F(CWorkspaceCaptureSceneTest, PendingPermissionDefersSceneAndDeniedPermissionNeverRenders) {
+    auto shell                                                            = layer(ZWLR_LAYER_SHELL_V1_LAYER_TOP);
+    *CConfigValue<Config::INTEGER>("ecosystem:enforce_permissions").ptr() = 1;
+    for (const bool dma : {false, true}) {
+        g_pDynamicPermissionManager->clearConfigPermissions();
+        g_pDynamicPermissionManager->addConfigPermissionRule(".*", PERMISSION_TYPE_SCREENCOPY, PERMISSION_RULE_ALLOW_MODE_PENDING);
+        auto session = Screenshare::mgr()->newSession(m_client, source(HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_EVERYTHING));
+        ASSERT_TRUE(session);
+        std::vector<Screenshare::eScreenshareResult> results;
+        auto                                         target = buffer(session->bufferSize(), DRM_FORMAT_ARGB8888, dma);
+        auto                                         frame  = session->nextFrame(false);
+        ASSERT_EQ(frame->share(target, {}, [&](auto result) { results.push_back(result); }), Screenshare::ERROR_NONE);
+        const auto begins = renderer().m_begins;
+        Screenshare::mgr()->onOutputCommit(m_monitor, false);
+        EXPECT_FALSE(frame->done());
+        EXPECT_EQ(results, (std::vector<Screenshare::eScreenshareResult>{Screenshare::RESULT_TIMESTAMP}));
+        EXPECT_EQ(renderer().m_begins, begins);
+        EXPECT_TRUE(target->m_readbacks.empty());
+
+        g_pDynamicPermissionManager->clearConfigPermissions();
+        g_pDynamicPermissionManager->addConfigPermissionRule(".*", PERMISSION_TYPE_SCREENCOPY, PERMISSION_RULE_ALLOW_MODE_ALLOW);
+        renderer().m_elements->m_textures.clear();
+        Screenshare::mgr()->onOutputCommit(m_monitor, false);
+        EXPECT_TRUE(frame->done());
+        EXPECT_EQ(results, (std::vector<Screenshare::eScreenshareResult>{Screenshare::RESULT_TIMESTAMP, Screenshare::RESULT_TIMESTAMP, Screenshare::RESULT_COPIED}));
+        EXPECT_EQ(drawnSurfaces(), (std::vector<WP<CWLSurfaceResource>>{shell->resource()}));
+
+        results.clear();
+        frame = session->nextFrame(false);
+        ASSERT_EQ(frame->share(target, {}, [&](auto result) { results.push_back(result); }), Screenshare::ERROR_NONE);
+        g_pDynamicPermissionManager->clearConfigPermissions();
+        g_pDynamicPermissionManager->addConfigPermissionRule(".*", PERMISSION_TYPE_SCREENCOPY, PERMISSION_RULE_ALLOW_MODE_DENY);
+        renderer().m_elements->m_textures.clear();
+        Screenshare::mgr()->onOutputCommit(m_monitor, false);
+        EXPECT_TRUE(frame->done());
+        EXPECT_EQ(results, (std::vector<Screenshare::eScreenshareResult>{Screenshare::RESULT_TIMESTAMP, Screenshare::RESULT_NOT_COPIED}));
+        EXPECT_EQ(renderer().m_begins, begins + 1);
+        EXPECT_TRUE(renderer().m_elements->m_textures.empty());
+        expectUnpaced(shell->resource());
+    }
+}
+
+TEST_F(CWorkspaceCaptureSceneTest, InactiveCaptureDoesNotChangeWorkspaceSwitchOrMonitorState) {
+    auto active    = makeShared<CSessionTestWorkspace>(m_monitor);
+    active->m_self = active;
+    active->setVisible(true);
+    m_monitor->m_activeWorkspace = active;
+    m_workspace->setVisible(false);
+    m_workspace->m_renderOffset->setValueAndWarp({700, -300});
+    m_workspace->m_alpha->setValueAndWarp(0.F);
+    const auto focusWindow  = Desktop::focusState()->window();
+    const auto focusMonitor = Desktop::focusState()->monitor();
+    const auto position     = m_monitor->m_position;
+    const auto transform    = m_monitor->m_transform;
+    auto       shell        = layer(ZWLR_LAYER_SHELL_V1_LAYER_TOP);
+    auto       session      = Screenshare::mgr()->newSession(m_client, source(HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_EVERYTHING));
+    ASSERT_TRUE(session);
+    capture(*session);
+    EXPECT_EQ(drawnSurfaces(), (std::vector<WP<CWLSurfaceResource>>{shell->resource()}));
+    EXPECT_EQ(m_monitor->m_activeWorkspace, active);
+    EXPECT_FALSE(m_workspace->visible());
+    EXPECT_TRUE(active->visible());
+    EXPECT_EQ(m_workspace->m_renderOffset->value(), Vector2D(700, -300));
+    EXPECT_FLOAT_EQ(m_workspace->m_alpha->value(), 0.F);
+    EXPECT_EQ(m_monitor->m_position, position);
+    EXPECT_EQ(m_monitor->m_transform, transform);
+    EXPECT_EQ(Desktop::focusState()->window(), focusWindow);
+    EXPECT_EQ(Desktop::focusState()->monitor(), focusMonitor);
+}
+
+TEST_F(CWorkspaceCaptureSceneTest, CursorRequiresOverlayAndActiveOwnerAndOutputIntersectionWithoutPacing) {
+    auto cursorSurface = surface({12, 16});
+    auto cursor        = Desktop::View::CWLSurface::create();
+    cursor->assign(cursorSurface);
+    auto other    = makeShared<CSessionTestWorkspace>(m_monitor);
+    other->m_self = other;
+    // Visibility alone is not enough: another output can also display a workspace.
+    m_workspace->setVisible(true);
+    for (const bool dma : {false, true}) {
+        for (const bool active : {false, true}) {
+            m_monitor->m_activeWorkspace = active ? m_workspace : other;
+            for (const bool overlay : {false, true}) {
+                for (const auto& [pos, intersects] : std::array<std::pair<Vector2D, bool>, 3>{
+                         std::pair{Vector2D{20, 30}, true},
+                         std::pair{Vector2D{-2, 30}, true},
+                         std::pair{Vector2D{2000, 3000}, false},
+                     }) {
+                    SCOPED_TRACE(dma);
+                    SCOPED_TRACE(active);
+                    SCOPED_TRACE(overlay);
+                    SCOPED_TRACE(intersects);
+                    seedSessionCursor(*Pointer::mgr(), cursor, m_monitor->m_position + pos);
+                    auto session = Screenshare::mgr()->newSession(m_client, source());
+                    ASSERT_TRUE(session);
+                    capture(*session, dma, overlay);
+                    const bool expected = active && overlay && intersects;
+                    ASSERT_EQ(renderer().m_elements->m_textures.size(), expected ? 1U : 0U);
+                    if (expected) {
+                        const auto& texture = renderer().m_elements->m_textures.front();
+                        EXPECT_EQ(texture.texture, cursorSurface->m_current.texture);
+                        EXPECT_EQ(texture.box, (CBox{pos - Vector2D{1, 2}, cursorSurface->m_current.size}.scale(m_monitor->m_scale)));
+                    }
+                    expectUnpaced(cursorSurface);
+                }
+            }
+        }
+    }
+}
+
 // Seed only compositor-owned mapped state, without invoking the live map/layout
 // lifecycle. Explicit instantiation keeps this test access out of production headers.
 static bool& snapshotTestMapped(PHLWINDOW window);
@@ -762,6 +1461,53 @@ static PHLWINDOW makeSnapshotTestWindow(PHLWORKSPACE workspace) {
     window->m_monitor          = workspace->m_monitor;
     snapshotTestMapped(window) = true;
     return window;
+}
+
+TEST_F(CWorkspaceCaptureSceneTest, WindowPopupFadeoutsKeepOriginAndInitialPrivacyWithWeakOwners) {
+    auto               owner     = makeSnapshotTestWindow(m_workspace);
+    const PHLWINDOWREF weakOwner = owner;
+    owner->m_state |= Desktop::View::WINDOW_STATE_PINNED;
+    owner->windowTarget()->setFloatingInitial(true);
+    auto popup             = Desktop::View::CPopup::create(owner);
+    auto permittedSnapshot = popupSnapshot();
+    auto permitted         = Desktop::CPopupFadeout::create(popup, nullptr, 1.F, permittedSnapshot);
+    ASSERT_TRUE(permitted);
+    EXPECT_FALSE(permitted->source().noScreenShare);
+
+    owner->m_ruleApplicator->noScreenShare().set(true, Desktop::Types::PRIORITY_SET_PROP);
+    auto denied = Desktop::CPopupFadeout::create(popup, nullptr, 1.F, popupSnapshot());
+    ASSERT_TRUE(denied);
+    EXPECT_TRUE(permitted->source().noScreenShare);
+    EXPECT_TRUE(denied->source().noScreenShare);
+    Desktop::fadingOutState()->add(permitted);
+    Desktop::fadingOutState()->add(denied);
+    auto session = Screenshare::mgr()->newSession(m_client, source());
+    ASSERT_TRUE(session);
+    capture(*session);
+    EXPECT_TRUE(renderer().m_elements->m_textures.empty());
+
+    owner->m_ruleApplicator->noScreenShare().unset(Desktop::Types::PRIORITY_SET_PROP);
+    EXPECT_FALSE(permitted->source().noScreenShare);
+    EXPECT_TRUE(denied->source().noScreenShare);
+    capture(*session);
+    ASSERT_EQ(renderer().m_elements->m_textures.size(), 1U);
+    EXPECT_EQ(renderer().m_elements->m_textures.front().texture, permittedSnapshot->getTexture());
+
+    owner->m_state &= ~Desktop::View::WINDOW_STATE_PINNED;
+    owner.reset();
+    EXPECT_TRUE(weakOwner.expired());
+    EXPECT_FALSE(popup->windowOwner());
+    for (const auto& fadeout : {permitted, denied}) {
+        const auto origin = fadeout->source();
+        EXPECT_EQ(origin.type, Desktop::eFadeoutSource::WINDOW);
+        EXPECT_EQ(origin.workspace.lock(), PHLWORKSPACE{m_workspace});
+        EXPECT_TRUE(origin.pinned);
+    }
+    EXPECT_FALSE(permitted->source().noScreenShare);
+    EXPECT_TRUE(denied->source().noScreenShare);
+    capture(*session, true);
+    ASSERT_EQ(renderer().m_elements->m_textures.size(), 1U);
+    EXPECT_EQ(renderer().m_elements->m_textures.front().texture, permittedSnapshot->getTexture());
 }
 
 TEST_F(CWorkspaceCaptureFrameTest, SnapshotDemandRequiresSubmittedFrameRatherThanFreshSession) {

@@ -739,7 +739,7 @@ void CPointerManager::renderSoftwareCursorsFor(Render::CRenderContext& ctx, PHLM
     auto state = stateFor(pMonitor);
 
     if (!state->hardwareFailed && state->softwareLocks == 0 && !screencopy) {
-        if (m_currentCursorImage.surface)
+        if (m_currentCursorImage.surface && !ctx.m_blockSurfaceFeedback)
             m_currentCursorImage.surface->resource()->frame(now);
         return;
     }
@@ -778,7 +778,7 @@ void CPointerManager::renderSoftwareCursorsFor(Render::CRenderContext& ctx, PHLM
         state->swRenderedBox = logicalBox;
     }
 
-    if (m_currentCursorImage.surface)
+    if (m_currentCursorImage.surface && !ctx.m_blockSurfaceFeedback)
         m_currentCursorImage.surface->resource()->frame(now);
 }
 

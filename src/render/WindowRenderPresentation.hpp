@@ -13,6 +13,7 @@ namespace Render {
         float                     alpha = 1.F, fadeAlpha = 1.F;
         bool                      workspaceOffsetAnimating = false;
         bool                      alphaVisible             = true;
+        bool                      workspaceScene           = false;
 
         bool                      operator==(const SWindowRenderPresentation&) const = default;
     };

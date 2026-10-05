@@ -293,7 +293,7 @@ namespace Render {
                                           const Vector2D& translate = {0, 0}, const float& scale = 1.f);
         void renderWindow(CRenderContext& ctx, PHLWINDOW, PHLMONITOR, const SWindowRenderPresentation&, const Time::steady_tp&, bool, eRenderPassMode, bool ignorePosition = false,
                           bool standalone = false);
-        void renderLayer(CRenderContext& ctx, PHLLS, PHLMONITOR, const Time::steady_tp&, bool popups = false, bool lockscreen = false);
+        void renderLayer(CRenderContext& ctx, PHLLS, PHLMONITOR, const Time::steady_tp&, bool popups = false, bool lockscreen = false, bool workspaceScene = false);
         void renderSessionLockSurface(CRenderContext& ctx, WP<SSessionLockSurface>, PHLMONITOR, const Time::steady_tp&);
         void renderDragIcon(CRenderContext& ctx, PHLMONITOR, const Time::steady_tp&);
         void renderIMEPopup(CRenderContext& ctx, CInputPopup*, PHLMONITOR, const Time::steady_tp&);

@@ -24,8 +24,17 @@ namespace Render {
         bool onOwnerMonitor     = false;
     };
 
+    struct SScenePopupState {
+        bool mapped       = false;
+        bool hasResource  = false;
+        bool alphaVisible = false;
+        bool inert        = false;
+        bool acceptsInput = false;
+    };
+
     bool                   sceneIncludesShell(eSceneMode mode);
     bool                   sceneSelectsWindow(eSceneMode mode, const SSceneWindowState& window);
+    bool                   sceneSelectsPopup(bool workspaceScene, const SScenePopupState& popup);
     bool                   sceneSelectsFadeout(eSceneMode mode, Desktop::eFadeoutSource source, bool belongsToWorkspace, bool pinnedOnMonitor = false);
     Desktop::eFadeoutPlane sceneFadeoutPlane(eSceneMode mode, Desktop::eFadeoutPlane plane, bool pinned);
 }

@@ -46,14 +46,18 @@ SP<CPopupFadeout> CPopupFadeout::create(SP<CPopup> popup, SP<Render::IFramebuffe
     fadeout->m_framebuffer = snapshot;
 
     if (const auto WINDOW = popup->windowOwner(); WINDOW) {
-        fadeout->m_source = {
-            .type      = eFadeoutSource::WINDOW,
-            .workspace = WINDOW->m_workspace,
-            .pinned    = WINDOW->isFloating() && (WINDOW->m_state & WINDOW_STATE_PINNED),
+        fadeout->m_windowOwner = WINDOW;
+        fadeout->m_source      = {
+            .type          = eFadeoutSource::WINDOW,
+            .workspace     = WINDOW->m_workspace,
+            .pinned        = WINDOW->isFloating() && (WINDOW->m_state & WINDOW_STATE_PINNED),
+            .noScreenShare = WINDOW->m_ruleApplicator->noScreenShare().valueOrDefault(),
         };
     } else if (const auto LAYER = popup->layerOwner(); LAYER) {
-        fadeout->m_source = {
-            .type = eFadeoutSource::LAYER,
+        fadeout->m_layerOwner = LAYER;
+        fadeout->m_source     = {
+            .type          = eFadeoutSource::LAYER,
+            .noScreenShare = LAYER->m_ruleApplicator->noScreenShare().valueOrDefault(),
         };
     }
 
@@ -116,5 +120,10 @@ SFadeoutRenderEffects CPopupFadeout::effects() const {
 }
 
 SFadeoutSource CPopupFadeout::source() const {
-    return m_source;
+    auto source = m_source;
+    if (const auto WINDOW = m_windowOwner.lock(); WINDOW)
+        source.noScreenShare |= WINDOW->m_ruleApplicator->noScreenShare().valueOrDefault();
+    if (const auto LAYER = m_layerOwner.lock(); LAYER)
+        source.noScreenShare |= LAYER->m_ruleApplicator->noScreenShare().valueOrDefault();
+    return source;
 }

@@ -20,6 +20,8 @@ namespace Desktop {
         CPopupFadeout() = default;
 
         PHLMONITORREF     m_monitor;
+        PHLWINDOWREF      m_windowOwner;
+        PHLLSREF          m_layerOwner;
         int               m_zIndex = 0;
         PHLANIMVAR<float> m_alpha;
     };

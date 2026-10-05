@@ -612,6 +612,9 @@ static bool shouldRenderPopup(WP<Desktop::View::CPopup> popup, bool workspaceSce
 
 void IHyprRenderer::renderWindow(CRenderContext& ctx, PHLWINDOW pWindow, PHLMONITOR pMonitor, const SWindowRenderPresentation& presentation, const Time::steady_tp& time,
                                  bool decorate, eRenderPassMode mode, bool ignorePosition, bool standalone) {
+    if (!ctx.shouldRenderContent(pWindow->m_ruleApplicator->noScreenShare().valueOrDefault()))
+        return;
+
     if (pWindow->isHidden() && !standalone)
         return;
 
@@ -1011,6 +1014,9 @@ SP<ITexture> IHyprRenderer::createTexture(const SP<Aquamarine::IBuffer> buffer, 
 
 void IHyprRenderer::renderLayer(CRenderContext& ctx, PHLLS pLayer, PHLMONITOR pMonitor, const Time::steady_tp& time, bool popups, bool lockscreen, bool workspaceScene) {
     if (!pLayer)
+        return;
+
+    if (!ctx.shouldRenderContent(pLayer->m_ruleApplicator->noScreenShare().valueOrDefault()))
         return;
 
     if (!pLayer->mapped() || (!workspaceScene && !pLayer->acceptsInput()) || !pLayer->alphaNonZero())
@@ -3530,6 +3536,9 @@ void IHyprRenderer::renderFadeouts(CRenderContext& ctx, PHLMONITOR monitor, Desk
             continue;
 
         const auto SOURCE = fadeout->source();
+        if (!ctx.shouldRenderContent(SOURCE.noScreenShare))
+            continue;
+
         if (sceneFadeoutPlane(mode, fadeout->plane(), SOURCE.pinned) != plane)
             continue;
 

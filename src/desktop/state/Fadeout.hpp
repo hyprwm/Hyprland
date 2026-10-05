@@ -35,7 +35,8 @@ namespace Desktop {
     struct SFadeoutSource {
         eFadeoutSource  type = eFadeoutSource::UNKNOWN;
         PHLWORKSPACEREF workspace;
-        bool            pinned = false; // Floating, output-global window (including its popups).
+        bool            pinned        = false; // Floating, output-global window (including its popups).
+        bool            noScreenShare = false;
     };
 
     struct SFadeoutPreBlur {

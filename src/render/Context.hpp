@@ -44,6 +44,7 @@ namespace Render {
         void                       reset();
         const SP<CSceneResources>& sceneResources() const;
         bool                       readOnlyEffects() const;
+        bool                       shouldRenderContent(bool noScreenShare) const;
         Time::steady_tp            effectTime() const;
 
         // Nested draws retain session routing, source buffers and persistent caches.
@@ -77,6 +78,7 @@ namespace Render {
 
         bool                               m_blockSurfaceFeedback = false;
         bool                               m_renderingSnapshot    = false;
+        bool                               m_renderingCapture     = false;
         bool                               m_swapchainAcquired    = false;
 
         struct {

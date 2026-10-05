@@ -3,6 +3,7 @@
 #include "OpenGL.hpp"
 #include "../output/Monitor.hpp"
 #include "../output/MonitorResources.hpp"
+#include <hyprgraphics/egl/Egl.hpp>
 #include <cmath>
 #include <limits>
 
@@ -12,7 +13,8 @@ CSceneResources::CSceneResources(PHLMONITORREF monitor) : m_monitor(monitor) {
     ;
 }
 
-CSceneResources::CSceneResources(SP<IFramebuffer> blurFramebuffer) : m_blurFramebuffer(std::move(blurFramebuffer)), m_isolated(true) {
+CSceneResources::CSceneResources(SP<IFramebuffer> blurFramebuffer, std::optional<SSceneBufferDescription> bufferDescription) :
+    m_blurFramebuffer(std::move(blurFramebuffer)), m_bufferDescription(std::move(bufferDescription)), m_isolated(true) {
     ;
 }
 
@@ -25,16 +27,31 @@ bool CSceneResources::isolated() const {
     return m_isolated;
 }
 
+const std::optional<SSceneBufferDescription>& CSceneResources::bufferDescription() const {
+    return m_bufferDescription;
+}
+
 bool CSceneResources::prepare(const Vector2D& size, DRMFormat format, NColorManagement::PImageDescription description) {
     if (!m_isolated)
         return false;
 
-    m_dirty                   = true;
-    m_queued                  = false;
-    m_valid                   = false;
-    m_prepared                = false;
+    m_dirty    = true;
+    m_queued   = false;
+    m_valid    = false;
+    m_prepared = false;
+    if (m_bufferDescription) {
+        format      = m_bufferDescription->format;
+        description = m_bufferDescription->imageDescription;
+        if (!description)
+            return false;
+    }
+
     const auto validDimension = [](double value) { return std::isfinite(value) && value > 0 && value <= std::numeric_limits<int>::max() && std::floor(value) == value; };
-    if (!m_blurFramebuffer || !validDimension(size.x) || !validDimension(size.y) || !m_blurFramebuffer->alloc(sc<int>(size.x), sc<int>(size.y), format))
+    if (!m_blurFramebuffer || !validDimension(size.x) || !validDimension(size.y) || !Hyprgraphics::Egl::getPixelFormatFromDRM(format))
+        return false;
+
+    m_blurFramebuffer->disableMirror();
+    if (!m_blurFramebuffer->alloc(sc<int>(size.x), sc<int>(size.y), format))
         return false;
 
     m_blurFramebuffer->setImageDescription(description);

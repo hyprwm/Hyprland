@@ -1587,8 +1587,13 @@ SP<ITexture> IHyprRenderer::getBlurTexture(CRenderContext& ctx) {
 }
 
 SP<IFramebuffer> IHyprRenderer::getWorkBuffer(CRenderContext& ctx, std::optional<Vector2D> size) {
-    const auto resources   = ctx.m_data.pMonitor->resources();
-    auto       framebuffer = size ? resources->getUnusedWorkBuffer(*size) : resources->getUnusedWorkBuffer();
+    const auto resources = ctx.m_data.pMonitor->resources();
+    if (ctx.sceneResources() && ctx.sceneResources()->bufferDescription()) {
+        const auto& description = *ctx.sceneResources()->bufferDescription();
+        return ctx.sceneResources()->prepareWorkBuffer(resources->getUnusedWorkBuffer(description.format, description.imageDescription, size));
+    }
+
+    auto framebuffer = size ? resources->getUnusedWorkBuffer(*size) : resources->getUnusedWorkBuffer();
     return ctx.sceneResources() ? ctx.sceneResources()->prepareWorkBuffer(std::move(framebuffer)) : framebuffer;
 }
 
@@ -3551,6 +3556,9 @@ void IHyprRenderer::renderFadeouts(CRenderContext& ctx, PHLMONITOR monitor, Desk
 }
 
 NColorManagement::PImageDescription IHyprRenderer::workBufferImageDescription(CRenderContext& ctx) {
+    if (ctx.sceneResources() && ctx.sceneResources()->bufferDescription())
+        return ctx.sceneResources()->bufferDescription()->imageDescription;
+
     if (!ctx.m_data.pMonitor)
         return LINEAR_IMAGE_DESCRIPTION;
 

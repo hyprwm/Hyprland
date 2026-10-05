@@ -11,6 +11,7 @@
 #include "OpenGL.hpp"
 #include "../desktop/view/window/WindowPresentation.hpp"
 #include "Renderer.hpp"
+#include "SceneResources.hpp"
 #include "../Compositor.hpp"
 #include "../helpers/MiscFunctions.hpp"
 #include "../helpers/CursorShapes.hpp"
@@ -1435,7 +1436,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(CRenderContext& ctx, SP<ITexture
         shaderFeatures &= ~SH_FEAT_RGBA;
 
     const auto surface                       = ctx.m_data.surface;
-    const auto WORK_BUFFER_IMAGE_DESCRIPTION = ctx.m_data.pMonitor->workBufferImageDescription();
+    const auto WORK_BUFFER_IMAGE_DESCRIPTION = g_pHyprRenderer->workBufferImageDescription(ctx);
 
     // chosenSdrEotf contains the valid eotf for this display
 
@@ -1490,8 +1491,9 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(CRenderContext& ctx, SP<ITexture
     if (data.discardActive)
         shaderFeatures |= SH_FEAT_DISCARD;
 
-    const bool skipCM = !*PENABLECM || !m_cmSupported                   /* CM unsupported or disabled */
-        || ctx.m_data.pMonitor->doesNoShaderCM()                        /* no shader needed */
+    const bool EXPLICIT_SCENE = ctx.sceneResources() && ctx.sceneResources()->bufferDescription().has_value();
+    const bool skipCM         = !*PENABLECM || !m_cmSupported           /* CM unsupported or disabled */
+        || (!EXPLICIT_SCENE && ctx.m_data.pMonitor->doesNoShaderCM())   /* monitor-only optimization */
         || !SOURCE_IMAGE_DESCRIPTION->needsCM(TARGET_IMAGE_DESCRIPTION) /* Source and target have matching image descriptions */
         ;
 

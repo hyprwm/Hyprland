@@ -473,72 +473,126 @@ I18n::CI18nEngine::CI18nEngine() {
 
     // fa_IR (Persian)
     registerEntry("fa_IR", TXT_KEY_ANR_TITLE, "برنامه پاسخ نمی‌دهد");
-    registerEntry("fa_IR", TXT_KEY_ANR_CONTENT, "برنامه {title} - {class} پاسخی نمی‌دهد.\nمی‌خواهید چه کاری انجام شود؟");
-    registerEntry("fa_IR", TXT_KEY_ANR_OPTION_TERMINATE, "بستن برنامه");
-    registerEntry("fa_IR", TXT_KEY_ANR_OPTION_WAIT, "صبر کنید");
-    registerEntry("fa_IR", TXT_KEY_ANR_PROP_UNKNOWN, "(نامشخص)");
+    registerEntry("fa_IR", TXT_KEY_ANR_CONTENT,
+                  "برنامه {title} {class} پاسخ نمی‌دهد.\n"
+                  "می‌خواهید با آن چه کار کنید؟");
 
-    registerEntry("fa_IR", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "برنامه <b>{app}</b> در حال درخواست یک مجوز ناشناخته است.");
+    registerEntry("fa_IR", TXT_KEY_ANR_OPTION_TERMINATE, "بستن برنامه");
+    registerEntry("fa_IR", TXT_KEY_ANR_OPTION_WAIT, "منتظر ماندن");
+    registerEntry("fa_IR", TXT_KEY_ANR_PROP_UNKNOWN, "(نامشخص)");
+    registerEntry("fa_IR", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "برنامه <b>{app}</b> درخواست یک مجوز ناشناخته را دارد.");
 
     registerEntry("fa_IR", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY,
-                  "برنامه <b>{app}</b> می‌خواهد صفحه‌نمایش شما را ضبط کند.\n\nآیا اجازه می‌دهید؟");
+                  "برنامه <b>{app}</b> می‌خواهد محتوای صفحه نمایش شما را ضبط کند.\n\n"
+                  "آیا اجازه می‌دهید؟");
 
-    registerEntry(
-        "fa_IR", TXT_KEY_PERMISSION_REQUEST_PLUGIN,
-        "برنامه <b>{app}</b> می‌خواهد پلاگین <b>{plugin}</b> را بارگذاری کند.\n\nآیا اجازه می‌دهید پلاگین بارگذاری "
-        "شود؟");
+    registerEntry("fa_IR", TXT_KEY_PERMISSION_REQUEST_CURSOR_POS,
+                  "برنامه <b>{app}</b> می‌خواهد موقعیت نشانگر ماوس شما را دریافت کند.\n\n"
+                  "آیا اجازه می‌دهید؟");
+
+    registerEntry("fa_IR", TXT_KEY_PERMISSION_REQUEST_PLUGIN,
+                  "برنامه <b>{app}</b> می‌خواهد افزونه <b>{plugin}</b> را بارگذاری کند.\n\n"
+                  "آیا اجازه می‌دهید؟");
 
     registerEntry("fa_IR", TXT_KEY_PERMISSION_REQUEST_KEYBOARD,
-                  "یک کیبورد جدید شناسایی شد: <b>{keyboard}</b>.\n\nآیا اجازه استفاده از آن را صادر می‌کنید؟");
+                  "یک صفحه کلید جدید شناسایی شد: <b>{keyboard}</b>.\n\n"
+                  "آیا اجازه استفاده از آن را می‌دهید؟");
+
+    huEngine->registerEntry("fa_IR", TXT_KEY_PERMISSION_REQUEST_INPUT_CAPTURE,
+                            "برنامه <b>{app}</b> می‌خواهد ورودی‌های شما را دریافت کند.\n\n"
+                            "آیا اجازه می‌دهید؟");
 
     registerEntry("fa_IR", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(نامشخص)");
     registerEntry("fa_IR", TXT_KEY_PERMISSION_TITLE, "درخواست مجوز");
 
     registerEntry("fa_IR", TXT_KEY_PERMISSION_PERSISTENCE_HINT,
-                  "نکته: می‌توانید قوانین دائمی مرتبط را در فایل تنظیمات هایپرلند تعریف کنید.");
+                  "نکته: می‌توانید قوانین دائمی مربوط به این مجوزها را "
+                  "در فایل تنظیمات هایپرلند تعریف کنید.");
 
     registerEntry("fa_IR", TXT_KEY_PERMISSION_ALLOW, "اجازه");
     registerEntry("fa_IR", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "اجازه و ذخیره");
     registerEntry("fa_IR", TXT_KEY_PERMISSION_ALLOW_ONCE, "اجازه یک‌بار");
-    registerEntry("fa_IR", TXT_KEY_PERMISSION_DENY, "عدم اجازه");
-
-    registerEntry("fa_IR", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "برنامه ناشناخته (شناسه Wayland: {wayland_id})");
-
+    registerEntry("fa_IR", TXT_KEY_PERMISSION_DENY, "رد کردن");
+    registerEntry("fa_IR", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "برنامه ناشناخته (شناسه کلاینت Wayland: {wayland_id})");
     registerEntry("fa_IR", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
-                  "متغیر XDG_CURRENT_DESKTOP توسط محیطی خارجی تنظیم شده است و مقدار فعلی آن {value} است.\n"
-                  "اگر این کار عمدی نباشد ممکن است باعث ایجاد مشکل شود.");
+                  "به نظر می‌رسد متغیر محیطی XDG_CURRENT_DESKTOP "
+                  "خارج از هایپرلند تنظیم شده است و مقدار فعلی آن {value} است.\n"
+                  "اگر این کار عمدی نباشد، ممکن است باعث بروز مشکل شود.");
 
-    registerEntry(
-        "fa_IR", TXT_KEY_NOTIF_NO_GUIUTILS,
-        "بستهٔ hyprland-guiutils در سیستم نصب نیست. این بسته برای برخی از پنجره‌ها و دیالوگ‌ها لازم است. نصب "
-        "آن "
-        "پیشنهاد "
-        "می‌شود.");
+    registerEntry("fa_IR", TXT_KEY_NOTIF_NO_GUIUTILS,
+                  "بسته hyprland-guiutils روی سیستم نصب نیست. "
+                  "این بسته برای اجرای بعضی پنجره‌ها و دیالوگ‌ها لازم است.\n"
+                  "پیشنهاد می‌شود آن را نصب کنید.");
 
     registerEntry("fa_IR", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
         int assetsNo = std::stoi(vars.at("count"));
+
         if (assetsNo <= 1)
-            return "هایپرلند نتوانست یک فایل ضروری را بارگذاری کند؛ ممکن است بسته‌بندی توزیع مشکل داشته "
-                   "باشد.";
-        return "هایپرلند نتوانست {count} فایل ضروری را بارگذاری کند؛ ممکن است بسته‌بندی توزیع مشکل داشته "
-               "باشد.";
+            return "هایپرلند نتوانست {count} فایل ضروری را بارگذاری کند. "
+                   "احتمالاً بسته هایپرلند در توزیع شما به درستی ساخته نشده است.";
+
+        return "هایپرلند نتوانست {count} فایل ضروری را بارگذاری کند. "
+               "احتمالاً بسته های هایپرلند در توزیع شما به درستی ساخته نشده‌اند.";
     });
 
     registerEntry("fa_IR", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
-                  "چیدمان مانیتورها صحیح نیست. مانیتور {name} با یک یا چند مانیتور دیگر تداخل دارد.\n"
-                  "برای اطلاعات بیشتر به صفحهٔ مانیتورها در ویکی مراجعه کنید. این موضوع <b>حتماً</b> باعث مشکل "
-                  "می‌شود.");
+                  "چیدمان نمایشگرها درست تنظیم نشده است. "
+                  "نمایشگر {name} با یک یا چند نمایشگر دیگر هم‌پوشانی دارد.\n"
+                  "برای اطلاعات بیشتر، صفحه نمایشگرها را در ویکی ببینید. "
+                  "این وضعیت <b>حتماً</b> باعث بروز مشکل خواهد شد.");
 
     registerEntry("fa_IR", TXT_KEY_NOTIF_MONITOR_MODE_FAIL,
-                  "مانیتور {name} نتوانست هیچ‌کدام از حالت‌های درخواستی را اعمال کند؛ بازگشت به حالت {mode}.");
+                  "نمایشگر {name} نتوانست هیچ‌کدام از حالت‌های درخواستی را اعمال کند؛ "
+                  "حالت {mode} جایگزین شد.");
 
-    registerEntry("fa_IR", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "مقیاس واردشده برای مانیتور {name} نامعتبر است: {scale}. مقیاس پیشنهادی اعمال شد: {fixed_scale}");
+    registerEntry("fa_IR", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE,
+                  "مقیاس واردشده برای نمایشگر {name} نامعتبر است: {scale}.\n"
+                  "مقیاس پیشنهادی، یعنی {fixed_scale}، اعمال شد.");
 
-    registerEntry("fa_IR", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "بارگذاری پلاگین {name} با خطا روبه‌رو شد: {error}");
+    registerEntry("fa_IR", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "بارگذاری افزونه {name} انجام نشد: {error}");
 
-    registerEntry("fa_IR", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "بارگذاری دوبارهٔ شیدر CM ناموفق بود؛ از حالت rgba/rgbx استفاده شد.");
+    registerEntry("fa_IR", TXT_KEY_NOTIF_CM_RELOAD_FAILED,
+                  "بارگذاری دوباره شیدر CM انجام نشد؛ "
+                  "از حالت rgba/rgbx استفاده می‌شود.");
 
-    registerEntry("fa_IR", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "مانیتور {name}: گسترهٔ رنگ وسیع فعال است اما نمایشگر در حالت ۱۰ بیتی نیست.");
+    registerEntry("fa_IR", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B,
+                  "نمایشگر {name}: گستره رنگی وسیع فعال است، "
+                  "اما نمایشگر در حالت ۱۰ بیتی قرار ندارد.");
+
+    registerEntry("fa_IR", TXT_KEY_NOTIF_NO_WATCHDOG,
+                  "هایپرلند بدون start-hyprland اجرا شده است. "
+                  "استفاده از این حالت، مگر برای اشکال‌زدایی، توصیه نمی‌شود.");
+
+    registerEntry("fa_IR", TXT_KEY_NOTIF_DEPRECATED_CONFIG_OPTS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        int optionsNo = std::stoi(vars.at("count"));
+
+        if (optionsNo <= 1)
+            return "از {count} گزینه منسوخ شده در تنظیمات استفاده می‌کنید. "
+                   "برای اطلاعات بیشتر، دستور hyprctl deprecated-config "
+                   "را اجرا کنید.";
+
+        return "از {count} گزینه منسوخ شده در تنظیمات استفاده می‌کنید. "
+               "برای اطلاعات بیشتر، دستور hyprctl deprecated-config "
+               "را اجرا کنید.";
+    });
+
+    registerEntry("fa_IR", TXT_KEY_NOTIF_NO_FP16,
+                  "کارت گرافیک شما از رندر کردن در بافرهای FP16 پشتیبانی نمی‌کند. "
+                  "ممکن است بعضی جلوه‌ها و تنظیمات CM در دسترس نباشند.");
+
+    registerEntry("fa_IR", TXT_KEY_SAFE_MODE_TITLE, "حالت ایمن");
+
+    registerEntry("fa_IR", TXT_KEY_SAFE_MODE_DESCRIPTION,
+                  "هایپرلند در حالت ایمن اجرا شده است؛ یعنی نشست قبلی شما با خطا بسته شده است.\n"
+                  "در این حالت، فایل تنظیمات شما بارگذاری نمی‌شود. می‌توانید مشکل را در همین "
+                  "محیط بررسی کنید یا با استفاده از دکمه زیر فایل تنظیمات را بارگذاری کنید.\n"
+                  "میانبرهای پیش فرض فعال هستند: SUPER+Q برای اجرای kitty، "
+                  "SUPER+R برای اجرای یک اجراکننده ساده و SUPER+M برای خروج.\n"
+                  "با راه‌اندازی دوباره هایپرلند، حالت عادی دوباره فعال می‌شود.");
+
+    registerEntry("fa_IR", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "بارگذاری تنظیمات");
+    registerEntry("fa_IR", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "باز کردن پوشه گزارش‌های خطا");
+    registerEntry("fa_IR", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "متوجه شدم، بستن");
 
     // fi_FI (Finnish)
     registerEntry("fi_FI", TXT_KEY_ANR_TITLE, "Sovellus ei vastaa");

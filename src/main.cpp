@@ -257,8 +257,10 @@ int main(int argc, char** argv) {
 )#");
     }
 
+#if !defined(__OpenBSD__)
     NInit::lowerAmbientCaps();
-
+#endif
+    
     // let's init the compositor.
     // it initializes basic Wayland stuff in the constructor.
     try {

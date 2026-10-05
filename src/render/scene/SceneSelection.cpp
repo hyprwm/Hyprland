@@ -13,6 +13,10 @@ bool Render::sceneSelectsWindow(eSceneMode mode, const SSceneWindowState& window
     return window.mapped && !window.hidden && (window.belongsToWorkspace || OUTPUT_GLOBAL);
 }
 
+bool Render::sceneSelectsPopup(bool workspaceScene, const SScenePopupState& popup) {
+    return popup.mapped && popup.hasResource && popup.alphaVisible && (workspaceScene ? !popup.inert : popup.acceptsInput);
+}
+
 bool Render::sceneSelectsFadeout(eSceneMode mode, Desktop::eFadeoutSource source, bool belongsToWorkspace, bool pinnedOnMonitor) {
     if (mode == eSceneMode::MONITOR)
         return true;

@@ -516,7 +516,8 @@ void IHyprRenderer::renderWorkspaceWindows(CRenderContext& ctx, PHLMONITOR pMoni
 
         // render the bad boy
         renderWindow(ctx, w.lock(), pMonitor, w->presentation().renderPresentation(mode), time, true, RENDER_PASS_MAIN);
-        w.reset();
+        if (mode == eSceneMode::MONITOR)
+            w.reset();
     }
 
     if (lastWindow)
@@ -593,6 +594,20 @@ UP<CScopeGuard> IHyprRenderer::redirectPass(CRenderContext& ctx, CRenderPass* pa
     const auto oldPass = ctx.m_currentPass;
     ctx.m_currentPass  = pass;
     return makeUnique<CScopeGuard>([&ctx, oldPass] { ctx.m_currentPass = oldPass; });
+}
+
+static bool shouldRenderPopup(WP<Desktop::View::CPopup> popup, bool workspaceScene) {
+    if (!popup || !popup->mapped() || !popup->resource())
+        return false;
+
+    return sceneSelectsPopup(workspaceScene,
+                             {
+                                 .mapped       = true,
+                                 .hasResource  = true,
+                                 .alphaVisible = popup->alphaNonZero(),
+                                 .inert        = popup->inert(),
+                                 .acceptsInput = !workspaceScene && popup->acceptsInput(),
+                             });
 }
 
 void IHyprRenderer::renderWindow(CRenderContext& ctx, PHLWINDOW pWindow, PHLMONITOR pMonitor, const SWindowRenderPresentation& presentation, const Time::steady_tp& time,
@@ -833,7 +848,7 @@ void IHyprRenderer::renderWindow(CRenderContext& ctx, PHLWINDOW pWindow, PHLMONI
 
             pWindow->popupHead()->breadthfirst(
                 [this, &ctx, &renderdata, PARENTFADEALPHA](WP<Desktop::View::CPopup> popup, void* data) {
-                    if (!popup->mapped() || !popup->acceptsInput() || !popup->alphaNonZero())
+                    if (!shouldRenderPopup(popup, renderdata.workspacePresentation.workspaceScene))
                         return;
 
                     const auto     pos    = popup->coordsRelativeToParent();
@@ -994,11 +1009,11 @@ SP<ITexture> IHyprRenderer::createTexture(const SP<Aquamarine::IBuffer> buffer, 
     return tex;
 }
 
-void IHyprRenderer::renderLayer(CRenderContext& ctx, PHLLS pLayer, PHLMONITOR pMonitor, const Time::steady_tp& time, bool popups, bool lockscreen) {
+void IHyprRenderer::renderLayer(CRenderContext& ctx, PHLLS pLayer, PHLMONITOR pMonitor, const Time::steady_tp& time, bool popups, bool lockscreen, bool workspaceScene) {
     if (!pLayer)
         return;
 
-    if (!pLayer->mapped() || !pLayer->acceptsInput() || !pLayer->alphaNonZero())
+    if (!pLayer->mapped() || (!workspaceScene && !pLayer->acceptsInput()) || !pLayer->alphaNonZero())
         return;
 
     // skip rendering based on abovelock rule and make sure to not render abovelock layers twice
@@ -1067,8 +1082,8 @@ void IHyprRenderer::renderLayer(CRenderContext& ctx, PHLLS pLayer, PHLMONITOR pM
     renderdata.surfaceCounter = 0;
     if (popups) {
         pLayer->popupHead()->breadthfirst(
-            [this, &ctx, &renderdata](WP<Desktop::View::CPopup> popup, void* data) {
-                if (!popup->mapped() || !popup->acceptsInput() || !popup->alphaNonZero())
+            [this, &ctx, &renderdata, workspaceScene](WP<Desktop::View::CPopup> popup, void* data) {
+                if (!shouldRenderPopup(popup, workspaceScene))
                     return;
 
                 const auto SURF = popup->wlSurface()->resource();
@@ -1165,7 +1180,7 @@ void IHyprRenderer::renderMonitorBackground(CRenderContext& ctx, PHLMONITOR pMon
     renderBackground(ctx, pMonitor);
 
     for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
-        renderLayer(ctx, ls.lock(), pMonitor, time);
+        renderLayer(ctx, ls.lock(), pMonitor, time, false, false, mode != eSceneMode::MONITOR);
     }
     renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_LAYER_BACKGROUND, workspace, mode);
 }
@@ -1240,7 +1255,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR
         Event::bus()->m_events.render.stage.emit({RENDER_POST_WALLPAPER, pMonitor, ctx});
 
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
-            renderLayer(ctx, ls.lock(), pMonitor, time);
+            renderLayer(ctx, ls.lock(), pMonitor, time, false, false, mode != eSceneMode::MONITOR);
         }
         renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_LAYER_BOTTOM, SHELL_WORKSPACE, mode);
     }
@@ -1313,18 +1328,18 @@ void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR
 
     // Render surfaces above windows for monitor
     for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-        renderLayer(ctx, ls.lock(), pMonitor, time);
+        renderLayer(ctx, ls.lock(), pMonitor, time, false, false, mode != eSceneMode::MONITOR);
     }
     renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_LAYER_TOP, SHELL_WORKSPACE, mode);
 
     for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
-        renderLayer(ctx, ls.lock(), pMonitor, time);
+        renderLayer(ctx, ls.lock(), pMonitor, time, false, false, mode != eSceneMode::MONITOR);
     }
     renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_LAYER_OVERLAY, SHELL_WORKSPACE, mode);
 
     for (auto const& lsl : pMonitor->m_layerSurfaceLayers) {
         for (auto const& ls : lsl) {
-            renderLayer(ctx, ls.lock(), pMonitor, time, true);
+            renderLayer(ctx, ls.lock(), pMonitor, time, true, false, mode != eSceneMode::MONITOR);
         }
     }
     renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_POPUP, SHELL_WORKSPACE, mode);

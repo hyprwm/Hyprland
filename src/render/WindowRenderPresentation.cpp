@@ -13,6 +13,7 @@ Render::SWindowRenderPresentation Render::resolveWindowPresentation(const SWindo
             .alpha          = state.active,
             .fadeAlpha      = FADE,
             .alphaVisible   = state.fade * state.active * state.fullscreen * state.layout != 0.F || state.alphaAnimating,
+            .workspaceScene = true,
         };
     }
 

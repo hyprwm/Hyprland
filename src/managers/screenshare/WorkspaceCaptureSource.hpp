@@ -14,6 +14,7 @@ namespace Screenshare {
         CWorkspaceCaptureSource(const CWorkspaceCaptureSource&) = delete;
         CWorkspaceCaptureSource(CWorkspaceCaptureSource&&)      = delete;
 
+        PHLWORKSPACE       workspace() const;
         PHLMONITOR         monitor() const;
         Vector2D           bufferSize() const;
         const std::string& name() const;

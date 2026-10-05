@@ -30,6 +30,10 @@ CWorkspaceCaptureSource::CWorkspaceCaptureSource(PHLWORKSPACE workspace, uint32_
     m_listeners.idChanged = workspace->m_events.idChanged.listen(updateName);
 }
 
+PHLWORKSPACE CWorkspaceCaptureSource::workspace() const {
+    return m_removed ? nullptr : m_workspace.lock();
+}
+
 PHLMONITOR CWorkspaceCaptureSource::monitor() const {
     if (m_removed)
         return m_lastMonitor.lock();

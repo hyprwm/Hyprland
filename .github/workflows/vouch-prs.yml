@@ -26,6 +26,36 @@ jobs:
             "/repos/${{ github.repository_owner }}/.github/contents/vouch/VOUCHED.td?ref=${{ github.event.repository.default_branch }}" \
             >/dev/null
 
+      - name: Check whether the MR is exempt from Vouch
+        id: exempt
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          TITLE: ${{ github.event.pull_request.title }}
+          EXEMPT_REGEX: '^src/i18n/'
+        run: |
+          # Title override
+          if [[ ${TITLE,,} == language/localisation* ]]; then
+            echo "only_exempt=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+ 
+          # File Match - All changed files must match
+          files=$(gh api --paginate "repos/$REPO/pulls/$PR/files?per_page=100" \
+            --jq '.[] | .filename, (.previous_filename // empty)')
+ 
+          only_exempt=true
+          [ -n "$files" ] || only_exempt=false                      # no files listed
+          [ "$(wc -l <<< "$files")" -lt 3000 ] || only_exempt=false # API cap is 3000 files, assume there might have been more if it hits the 3000 mark
+ 
+          while IFS= read -r f; do
+            [[ $f =~ $EXEMPT_REGEX ]] || only_exempt=false
+          done <<< "$files"
+ 
+          echo "only_exempt=$only_exempt" >> "$GITHUB_OUTPUT"
+
       - name: Enforce central Vouch list
         if: ${{ !startsWith(github.event.pull_request.title, 'language/localisation') }}
         uses: mitchellh/vouch/action/check-pr@v1
@@ -35,21 +65,8 @@ jobs:
           vouched-repo: ${{ github.repository_owner }}/.github
           vouched-file: vouch/VOUCHED.td
           template-file: .github/vouch_pr_message.md
-          require-vouch: true
-          auto-close: true
-          dry-run: false
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-
-      - name: Enforce central Vouch list (denounced only)
-        if: ${{ startsWith(github.event.pull_request.title, 'language/localisation') }}
-        uses: mitchellh/vouch/action/check-pr@v1
-        with:
-          pr-number: ${{ github.event.pull_request.number }}
-          repo: ${{ github.repository }}
-          vouched-repo: ${{ github.repository_owner }}/.github
-          vouched-file: vouch/VOUCHED.td
-          require-vouch: false
+          # Denounce check is before isVouched check so this filters denounced people out while letting unVouched people through
+          require-vouch: ${{ steps.exempt.outputs.only_exempt != 'true' }}
           auto-close: true
           dry-run: false
         env:

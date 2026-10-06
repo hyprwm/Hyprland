@@ -57,7 +57,6 @@ jobs:
           echo "only_exempt=$only_exempt" >> "$GITHUB_OUTPUT"
 
       - name: Enforce central Vouch list
-        if: ${{ !startsWith(github.event.pull_request.title, 'language/localisation') }}
         uses: mitchellh/vouch/action/check-pr@v1
         with:
           pr-number: ${{ github.event.pull_request.number }}

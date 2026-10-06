@@ -3,7 +3,7 @@ WARNING: PRs from unvouched users (new contributors) will be automatically close
 You MUST be vouched to be able to open PRs. Check out the PR guidelines
 on our wiki: https://wiki.hyprland.org/Contributing-and-Debugging/PR-Guidelines/
 
-IMPORTANT: If your PR is about i18n (localisation), and it touches files other than src/i18n/*, plase make sure the tite starts with `language/localisation`. PRs for this topic are exempt from the vouch requirement
+IMPORTANT: If your PR is about i18n (localisation), and it touches files other than src/i18n/*, plase make sure the tite starts with `language/localisation:`. PRs for this topic are exempt from the vouch requirement.
 -->
 
 

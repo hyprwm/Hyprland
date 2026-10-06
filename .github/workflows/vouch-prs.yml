@@ -37,7 +37,7 @@ jobs:
           EXEMPT_REGEX: '^src/i18n/'
         run: |
           # Title override
-          if [[ ${TITLE,,} == language/localisation* ]]; then
+          if [[ ${TITLE,,} == language/localisation:* ]]; then
             echo "only_exempt=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi

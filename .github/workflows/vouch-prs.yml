@@ -27,6 +27,7 @@ jobs:
             >/dev/null
 
       - name: Enforce central Vouch list
+        if: ${{ !startsWith(github.event.pull_request.title, 'language/localisation') }}
         uses: mitchellh/vouch/action/check-pr@v1
         with:
           pr-number: ${{ github.event.pull_request.number }}
@@ -35,6 +36,20 @@ jobs:
           vouched-file: vouch/VOUCHED.td
           template-file: .github/vouch_pr_message.md
           require-vouch: true
+          auto-close: true
+          dry-run: false
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Enforce central Vouch list (denounced only)
+        if: ${{ startsWith(github.event.pull_request.title, 'language/localisation') }}
+        uses: mitchellh/vouch/action/check-pr@v1
+        with:
+          pr-number: ${{ github.event.pull_request.number }}
+          repo: ${{ github.repository }}
+          vouched-repo: ${{ github.repository_owner }}/.github
+          vouched-file: vouch/VOUCHED.td
+          require-vouch: false
           auto-close: true
           dry-run: false
         env:

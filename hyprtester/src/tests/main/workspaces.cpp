@@ -1403,25 +1403,61 @@ SUBTEST(workspaceCreateEventSpecial) {
 SUBTEST(workspaceCreateEventNewMonitor) {
     static constexpr const char* SECOND_MONITOR = "HEADLESS-3";
 
+    // set up a persistent workspace on the second monitor
+    OK(getFromSocket(std::format("/eval rule = hl.workspace_rule({{ workspace = 'persistent', monitor = '{}', persistent = true }})", SECOND_MONITOR)));
+
     // add a new monitor
     NLog::log("{}Adding a new monitor", Colors::YELLOW);
     OK(getFromSocket(std::format("/output create headless {}", SECOND_MONITOR)));
 
-    // should have a kitty window appear on it
+    // each workspace should have a kitty window appear on it
     {
-        Tests::waitUntilWindowsN(1);
+        Tests::waitUntilWindowsN(2);
         auto str = getFromSocket("/workspaces");
         ASSERT_CONTAINS(str, std::format("workspace 2 (2) on monitor {}:", SECOND_MONITOR));
-        ASSERT_CONTAINS(str, "windows: 1");
+        ASSERT_CONTAINS(str, std::format("workspace persistent (persistent) on monitor {}:", SECOND_MONITOR));
+        ASSERT_COUNT_STRING(str, "windows: 1", 2);
     }
 
     // clean up
     Tests::killAllWindows();
+    OK(getFromSocket("/eval rule:set_enabled(false)"));
     OK(getFromSocket(std::format("/output remove {}", SECOND_MONITOR)));
     ASSERT(waitForMonitorListed(SECOND_MONITOR, false), true);
 
     // make sure removing the monitor didn't spawn a workspace and trigger the event
     ASSERT(Tests::windowCount(), 0);
+}
+
+SUBTEST(workspaceCreateEventLuaMethods) {
+    // focus a new workspace with Lua
+    NLog::log("{}Setting normal workspace with Lua", Colors::YELLOW);
+    OK(getFromSocket("/eval hl.get_active_monitor():set_workspace(2)"));
+
+    // should have a kitty window appear on it
+    {
+        Tests::waitUntilWindowsN(1);
+        auto str = getFromSocket("/activeworkspace");
+        ASSERT_CONTAINS(str, "workspace 2 (2) on monitor HEADLESS-2:");
+        ASSERT_CONTAINS(str, "windows: 1");
+    }
+
+    // and a special workspace
+    NLog::log("{}Setting special workspace with Lua", Colors::YELLOW);
+    OK(getFromSocket("/eval hl.get_active_monitor():set_special_workspace('asdf')"));
+
+    // should have a kitty window appear on it
+    {
+        Tests::waitUntilWindowsN(2);
+        ASSERT(getFromSocket("/repl hl.get_active_special_workspace().addressable_name"), "special:asdf");
+        ASSERT(getFromSocket("/repl hl.get_active_special_workspace().windows"), "1");
+    }
+
+    // clean up
+    OK(getFromSocket("/eval hl.get_active_monitor():set_special_workspace(nil)"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 1 })"));
+    Tests::waitUntilWindowsN(3);
+    Tests::killAllWindows();
 }
 
 TEST_CASE(workspaceCreateEvents) {
@@ -1432,4 +1468,5 @@ TEST_CASE(workspaceCreateEvents) {
     CALL_SUBTEST(workspaceCreateEventSilent);
     CALL_SUBTEST(workspaceCreateEventSpecial);
     CALL_SUBTEST(workspaceCreateEventNewMonitor);
+    CALL_SUBTEST(workspaceCreateEventLuaMethods);
 }

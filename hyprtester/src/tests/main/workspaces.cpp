@@ -1351,7 +1351,7 @@ SUBTEST(workspaceCreateEventFocus) {
 
     // clean up
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 1 })"));
-    Tests::waitUntilWindowsN(1);
+    Tests::waitUntilWindowsN(2);
     Tests::killAllWindows();
 }
 
@@ -1360,12 +1360,12 @@ SUBTEST(workspaceCreateEventSilent) {
     NLog::log("{}Spawning window on a new workspace", Colors::YELLOW);
     OK(getFromSocket("/dispatch hl.dsp.exec_cmd('kitty', { workspace = '2 silent' })"));
 
-    // should have a kitty window appear on it, and another on the current workspace from the event handler
+    // should have a kitty window appear on it, and another from the event handler
     {
         Tests::waitUntilWindowsN(2);
         auto str = getFromSocket("/workspaces");
         ASSERT_CONTAINS(str, "workspace 2 (2) on monitor HEADLESS-2:");
-        ASSERT(Tests::countOccurrences(str, "windows: 1"), 2);
+        ASSERT_CONTAINS(str, "windows: 2");
     }
 
     // clean up
@@ -1426,7 +1426,7 @@ SUBTEST(workspaceCreateEventNewMonitor) {
 
 TEST_CASE(workspaceCreateEvents) {
     // event handler to put a kitty instance on new workspaces
-    OK(getFromSocket("/eval hl.on('workspace.created', function(ws) hl.exec_cmd('kitty') end)"));
+    OK(getFromSocket("/eval hl.on('workspace.created', function(ws) hl.exec_cmd('kitty', { workspace = ws.addressable_name..' silent' }) end)"));
 
     CALL_SUBTEST(workspaceCreateEventFocus);
     CALL_SUBTEST(workspaceCreateEventSilent);

@@ -8,7 +8,6 @@
 #include "../../ipc/s2/S2.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../managers/SeatManager.hpp"
-#include "../../protocols/PointerConstraints.hpp"
 #include "animation/WorkspaceAnimationController.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../../layout/LayoutManager.hpp"
@@ -125,7 +124,7 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLS
     if (pWindow)
         g_layoutManager->bringTargetToTop(pWindow->windowTarget());
 
-    g_pInputManager->unconstrainMouse();
+    auto constraintGuard = g_pInputManager->pointerConstraints().suspend();
 
     if (!pWindow || !validMapped(pWindow)) {
 
@@ -240,6 +239,8 @@ void CFocusState::rawSurfaceFocus(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWi
         LOG(Log::DEBUG, "surface {:x} won't receive kb focus because grab rejected it", rc<uintptr_t>(pSurface.get()));
         return;
     }
+
+    auto constraintGuard = g_pInputManager->pointerConstraints().suspend();
 
     // Unfocus last surface if should
     if (m_focusSurface && !pWindowOwner)

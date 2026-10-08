@@ -6,6 +6,7 @@
 #include "../../helpers/WLClasses.hpp"
 #include "../../helpers/time/Timer.hpp"
 #include "InputMethodRelay.hpp"
+#include "PointerConstraintController.hpp"
 #include "../../helpers/signal/Signal.hpp"
 #include "../../desktop/view/WLSurface.hpp"
 #include "../../devices/IPointer.hpp"
@@ -139,6 +140,7 @@ class CInputManager {
 
     Vector2D           getMouseCoordsInternal();
     void               refocus(std::optional<Vector2D> overridePos = std::nullopt);
+    void               refocusPointer();
     bool               refocusLastWindow(PHLMONITOR pMonitor);
     void               simulateMouseMovement();
     void               sendMotionEventsToFocused();
@@ -194,6 +196,7 @@ class CInputManager {
     std::vector<PHLLSREF> m_exclusiveKeyboardLSes;
 
     // constraints
+    CPointerConstraintController&       pointerConstraints();
     std::vector<WP<CPointerConstraint>> m_constraints;
 
     //
@@ -237,6 +240,8 @@ class CInputManager {
     bool m_emptyFocusCursorSet = false;
 
   private:
+    CPointerConstraintController m_pointerConstraints;
+
     // Listeners
     struct {
         CHyprSignalListener setCursorShape;
@@ -266,7 +271,7 @@ class CInputManager {
 
     uint32_t           m_capabilities = 0;
 
-    void               mouseMoveUnified(uint32_t, bool refocus = false, bool mouse = false, std::optional<Vector2D> overridePos = std::nullopt);
+    void               mouseMoveUnified(uint32_t, bool refocus = false, bool mouse = false, std::optional<Vector2D> overridePos = std::nullopt, bool pointerOnly = false);
     void               recheckMouseWarpOnMouseInput();
 
     SP<CTabletTool>    ensureTabletToolPresent(SP<Aquamarine::ITabletTool>);

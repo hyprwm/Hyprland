@@ -1364,8 +1364,9 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
     if (pWorkspace == m_activeWorkspace)
         return;
 
+    auto constraintGuard = g_pInputManager->pointerConstraints().suspend();
+
     if (!internal) {
-        g_pInputManager->unconstrainMouse();
         g_pInputManager->m_emptyFocusCursorSet = false;
         g_pInputManager->releaseAllMouseButtons();
     }
@@ -1476,7 +1477,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace, bool noFocus)
 
     g_pHyprRenderer->damageMonitor(m_self.lock());
 
-    g_pInputManager->unconstrainMouse();
+    auto constraintGuard = g_pInputManager->pointerConstraints().suspend();
 
     if (!pWorkspace) {
         // remove special if exists

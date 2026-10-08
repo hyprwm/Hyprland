@@ -265,6 +265,7 @@ customStdenv.mkDerivation (finalAttrs: {
 
     ${optionalString withTests ''
       install hyprtester/pointer-warp -t $out/bin
+      install hyprtester/pointer-constraints -t $out/bin
       install hyprtester/pointer-scroll -t $out/bin
       install hyprtester/shortcut-inhibitor -t $out/bin
       install hyprtester/keyboard-modifiers -t $out/bin

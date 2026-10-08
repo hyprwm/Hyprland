@@ -168,7 +168,7 @@ static int hlGroupLock(lua_State* L) {
 
 // TODO: Remove this later
 static int hlGroupLockActive(lua_State* L) {
-    Bindings::warnDeprecated("hl.dsp.group.lock_active()", "The group.lock_active() dispatcher is deprecated, use group.lock() instead");
+    Config::mgr()->warnDeprecated("hl.dsp.group.lock_active()", "The group.lock_active() dispatcher is deprecated, use group.lock() instead");
 
     const auto action = Internal::tableToggleAction(L, 1);
 

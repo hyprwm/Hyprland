@@ -5,7 +5,13 @@
 #include "managers/SeatManager.hpp"
 #include "state/MonitorState.hpp"
 #include "output/Monitor.hpp"
+
+#if defined(__OpenBSD__) || defined(__FreeBSD__)
+#include <stdlib.h>
+#else
 #include <alloca.h>
+#endif
+
 #include <cstdint>
 #include <hyprutils/os/FileDescriptor.hpp>
 #include <libeis.h>

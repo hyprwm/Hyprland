@@ -35,8 +35,10 @@ CImageCopyCaptureSession::CImageCopyCaptureSession(SP<CExtImageCopyCaptureSessio
 
     if (m_source->m_monitor)
         m_session = Screenshare::mgr()->newSession(m_resource->client(), m_source->m_monitor.lock());
-    else
+    else if (m_source->m_window)
         m_session = Screenshare::mgr()->newSession(m_resource->client(), m_source->m_window.lock());
+    else if (m_source->m_workspace)
+        m_session = Screenshare::mgr()->newSession(m_resource->client(), m_source->m_workspace);
 
     if UNLIKELY (!m_session || !m_session->isActive()) {
         m_resource->sendStopped();
@@ -45,8 +47,16 @@ CImageCopyCaptureSession::CImageCopyCaptureSession(SP<CExtImageCopyCaptureSessio
 
     sendConstraints();
 
-    m_listeners.constraintsChanged = m_session->m_events.constraintsChanged.listen([this]() { sendConstraints(); });
-    m_listeners.stopped            = m_session->m_events.stopped.listen([this]() { m_resource->sendStopped(); });
+    m_listeners.constraintsChanged = m_session->m_events.constraintsChanged.listen([this]() {
+        if (m_frame && m_frame->m_captured && m_bufferSize != m_session->bufferSize())
+            m_frame->fail(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_BUFFER_CONSTRAINTS);
+        sendConstraints();
+    });
+    m_listeners.stopped            = m_session->m_events.stopped.listen([this]() {
+        if (m_frame && m_frame->m_captured)
+            m_frame->fail(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_STOPPED);
+        m_resource->sendStopped();
+    });
 }
 
 CImageCopyCaptureSession::~CImageCopyCaptureSession() {
@@ -99,16 +109,6 @@ CImageCopyCaptureCursorSession::CImageCopyCaptureCursorSession(SP<CExtImageCopyC
     if UNLIKELY (!good())
         return;
 
-    if (!m_source || (!m_source->m_monitor && !m_source->m_window))
-        return;
-
-    const auto PMONITOR = m_source->m_monitor.expired() ? m_source->m_window->m_monitor.lock() : m_source->m_monitor.lock();
-
-    // TODO: add listeners for source being destroyed
-
-    sendCursorEvents();
-    m_listeners.commit = PMONITOR->m_events.commit.listen([this, PMONITOR]() { sendCursorEvents(); });
-
     m_resource->setDestroy([this](CExtImageCopyCaptureCursorSessionV1* pMgr) { PROTO::imageCopyCapture->destroyResource(this); });
     m_resource->setOnDestroy([this](CExtImageCopyCaptureCursorSessionV1* pMgr) { PROTO::imageCopyCapture->destroyResource(this); });
 
@@ -125,7 +125,7 @@ CImageCopyCaptureCursorSession::CImageCopyCaptureCursorSession(SP<CExtImageCopyC
         m_sessionResource->setOnDestroy([this](CExtImageCopyCaptureSessionV1* pMgr) { destroyCaptureSession(); });
 
         m_sessionResource->setCreateFrame([this](CExtImageCopyCaptureSessionV1* pMgr, uint32_t id) {
-            if UNLIKELY (!m_session || !m_sessionResource)
+            if UNLIKELY (!m_sessionResource)
                 return;
 
             if (m_frameResource) {
@@ -136,6 +136,12 @@ CImageCopyCaptureCursorSession::CImageCopyCaptureCursorSession(SP<CExtImageCopyC
 
             createFrame(makeShared<CExtImageCopyCaptureFrameV1>(pMgr->client(), pMgr->version(), id));
         });
+
+        // Workspace captures are a cursor-free placeholder for now.
+        if (!m_source || m_source->m_workspace || (!m_source->m_monitor && !m_source->m_window)) {
+            m_sessionResource->sendStopped();
+            return;
+        }
 
         m_session = Screenshare::mgr()->newCursorSession(pMgr->client(), m_pointer);
         if UNLIKELY (!m_session) {
@@ -148,6 +154,17 @@ CImageCopyCaptureCursorSession::CImageCopyCaptureCursorSession(SP<CExtImageCopyC
         m_listeners.constraintsChanged = m_session->m_events.constraintsChanged.listen([this]() { sendConstraints(); });
         m_listeners.stopped            = m_session->m_events.stopped.listen([this]() { destroyCaptureSession(); });
     });
+
+    if (!m_source || m_source->m_workspace || (!m_source->m_monitor && !m_source->m_window))
+        return;
+
+    const auto PMONITOR = m_source->m_monitor.expired() ? m_source->m_window->m_monitor.lock() : m_source->m_monitor.lock();
+    if (!PMONITOR)
+        return;
+
+    // TODO: add listeners for source being destroyed
+    sendCursorEvents();
+    m_listeners.commit = PMONITOR->m_events.commit.listen([this, PMONITOR]() { sendCursorEvents(); });
 }
 
 CImageCopyCaptureCursorSession::~CImageCopyCaptureCursorSession() {
@@ -162,7 +179,7 @@ void CImageCopyCaptureCursorSession::destroyCaptureSession() {
     m_listeners.constraintsChanged.reset();
     m_listeners.stopped.reset();
 
-    if (m_frameResource && m_frameResource->resource())
+    if (m_session && m_frameResource && m_frameResource->resource())
         m_frameResource->sendFailed(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_STOPPED);
     m_frameResource.reset();
 
@@ -231,6 +248,12 @@ void CImageCopyCaptureCursorSession::createFrame(SP<CExtImageCopyCaptureFrameV1>
             return;
         }
 
+        if (!m_session) {
+            m_captured = true;
+            m_frameResource->sendFailed(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_STOPPED);
+            return;
+        }
+
         const auto PMONITOR = m_source->m_monitor.expired() ? m_source->m_window->m_monitor.lock() : m_source->m_monitor.lock();
 
         auto       sourceBoxCallback = [this]() { return m_source ? m_source->logicalBox() : CBox(); };
@@ -262,6 +285,9 @@ void CImageCopyCaptureCursorSession::createFrame(SP<CExtImageCopyCaptureFrameV1>
             case ERROR_UNKNOWN: m_frameResource->sendFailed(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_UNKNOWN); break;
         }
     });
+
+    if (!m_session)
+        return;
 
     // we should always copy over the entire cursor image, it doesn't cost much
     m_frameResource->sendDamage(0, 0, m_bufferSize.x, m_bufferSize.y);
@@ -342,13 +368,8 @@ CImageCopyCaptureFrame::CImageCopyCaptureFrame(SP<CExtImageCopyCaptureFrameV1> r
     if UNLIKELY (!good())
         return;
 
-    if (m_session->m_bufferSize != m_session->m_session->bufferSize()) {
-        m_session->sendConstraints();
-        m_resource->sendFailed(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_UNKNOWN);
-        return;
-    }
-
-    m_frame = m_session->m_session->nextFrame(m_session->m_paintCursor);
+    if (m_session->m_session && m_session->m_session->isActive())
+        m_frame = m_session->m_session->nextFrame(m_session->m_paintCursor);
 
     m_resource->setDestroy([this](CExtImageCopyCaptureFrameV1* pMgr) { PROTO::imageCopyCapture->destroyResource(this); });
     m_resource->setOnDestroy([this](CExtImageCopyCaptureFrameV1* pMgr) { PROTO::imageCopyCapture->destroyResource(this); });
@@ -392,10 +413,24 @@ CImageCopyCaptureFrame::CImageCopyCaptureFrame(SP<CExtImageCopyCaptureFrameV1> r
             return;
         }
 
+        m_captured = true;
+        if (!m_frame || !m_session || !m_session->m_session || !m_session->m_session->isActive()) {
+            fail(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_STOPPED);
+            return;
+        }
+
         auto error = m_frame->share(m_buffer, m_clientDamage, [this](eScreenshareResult result) {
+            if (m_finished)
+                return;
             switch (result) {
-                case RESULT_COPIED: m_resource->sendReady(); break;
-                case RESULT_NOT_COPIED: m_resource->sendFailed(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_UNKNOWN); break;
+                case RESULT_COPIED:
+                    m_finished = true;
+                    m_resource->sendReady();
+                    break;
+                case RESULT_NOT_COPIED:
+                    m_finished = true;
+                    m_resource->sendFailed(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_UNKNOWN);
+                    break;
                 case RESULT_TIMESTAMP:
                     auto [sec, nsec] = Time::secNsec(Time::steadyNow());
                     uint32_t tvSecHi = (sizeof(sec) > 4) ? sec >> 32 : 0;
@@ -406,16 +441,19 @@ CImageCopyCaptureFrame::CImageCopyCaptureFrame(SP<CExtImageCopyCaptureFrameV1> r
         });
 
         switch (error) {
-            case ERROR_NONE: m_captured = true; break;
+            case ERROR_NONE: break;
             case ERROR_NO_BUFFER: m_resource->error(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_ERROR_NO_BUFFER, "no buffer attached"); break;
             case ERROR_BUFFER_SIZE:
-            case ERROR_BUFFER_FORMAT: m_resource->sendFailed(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_BUFFER_CONSTRAINTS); break;
-            case ERROR_STOPPED: m_resource->sendFailed(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_STOPPED); break;
-            case ERROR_UNKNOWN: m_resource->sendFailed(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_UNKNOWN); break;
+            case ERROR_BUFFER_FORMAT: fail(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_BUFFER_CONSTRAINTS); break;
+            case ERROR_STOPPED: fail(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_STOPPED); break;
+            case ERROR_UNKNOWN: fail(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_UNKNOWN); break;
         }
     });
 
     m_clientDamage.clear();
+
+    if (!m_frame)
+        return;
 
     // TODO: see ScreenshareFrame::share() for "add a damage ring for output damage since last shared frame"
     m_resource->sendDamage(0, 0, m_session->m_bufferSize.x, m_session->m_bufferSize.y);
@@ -424,8 +462,19 @@ CImageCopyCaptureFrame::CImageCopyCaptureFrame(SP<CExtImageCopyCaptureFrameV1> r
 }
 
 CImageCopyCaptureFrame::~CImageCopyCaptureFrame() {
+    m_finished = true;
+    m_frame.reset();
     if (m_session)
         m_session->m_frame.reset();
+}
+
+void CImageCopyCaptureFrame::fail(extImageCopyCaptureFrameV1FailureReason reason) {
+    if (m_finished)
+        return;
+
+    m_finished = true;
+    m_resource->sendFailed(reason);
+    m_frame.reset();
 }
 
 bool CImageCopyCaptureFrame::good() {

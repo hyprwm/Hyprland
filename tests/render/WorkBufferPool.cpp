@@ -21,11 +21,15 @@ namespace Monitor {
 
     class CWorkBufferTexture : public Render::ITexture {
       public:
+        int  m_allocations = 0;
+
         void setTexParameter(GLenum, GLint) override {
             ;
         }
-        void allocate(const Vector2D&, uint32_t) override {
-            ;
+        void allocate(const Vector2D& size, uint32_t format) override {
+            ++m_allocations;
+            m_size      = size;
+            m_drmFormat = format;
         }
         void update(uint32_t, uint8_t*, uint32_t, const CRegion&) override {
             ;
@@ -56,8 +60,12 @@ namespace Monitor {
         }
 
       private:
-        bool internalAlloc(int, int, DRMFormat) override {
+        bool internalAlloc(int w, int h, DRMFormat) override {
             ++m_stats->allocated;
+            // Match GL's attachment reallocation so detaching after alloc fails
+            // these tests even if the returned framebuffer has no mirror.
+            if (m_mirrorTex)
+                m_mirrorTex->allocate({w, h}, m_mirrorTex->m_drmFormat);
             if (m_stats->failAllocation)
                 return false;
             m_tex = makeShared<CWorkBufferTexture>();
@@ -144,6 +152,106 @@ namespace Monitor {
         }
         EXPECT_EQ(m_stats->created, 8);
         EXPECT_EQ(count(*cache), 8);
+    }
+
+    TEST_F(CWorkBufferPoolTest, ExactIsolatedAcquisitionDetachesMirrorAndKeepsStencil) {
+        auto cache   = pool();
+        auto buffer  = cache->acquire({100, 100}, DRM_FORMAT_ARGB8888, NColorManagement::DEFAULT_HDR_IMAGE_DESCRIPTION);
+        auto mirror  = makeShared<CWorkBufferTexture>();
+        auto stencil = makeShared<CWorkBufferTexture>();
+        ASSERT_TRUE(buffer);
+        mirror->m_imageDescription = NColorManagement::DEFAULT_HDR_IMAGE_DESCRIPTION;
+        buffer->addStencil(stencil);
+        buffer->enableMirror(mirror);
+        const auto               mirrorAllocations = mirror->m_allocations;
+        WP<Render::IFramebuffer> original          = buffer;
+        buffer.reset();
+
+        // Default monitor acquisitions must keep the attachment.
+        buffer = cache->acquire({100, 100}, DRM_FORMAT_ARGB8888, NColorManagement::DEFAULT_HDR_IMAGE_DESCRIPTION);
+        ASSERT_TRUE(buffer);
+        EXPECT_EQ(buffer, original.lock());
+        EXPECT_EQ(buffer->getMirrorTexture(), mirror);
+        buffer.reset();
+
+        buffer = cache->acquire({100, 100}, DRM_FORMAT_ARGB8888, NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION, true);
+        ASSERT_TRUE(buffer);
+        EXPECT_EQ(buffer, original.lock());
+        EXPECT_FALSE(buffer->getMirrorTexture());
+        EXPECT_EQ(buffer->getStencilTex(), stencil);
+        EXPECT_EQ(buffer->imageDescription(), NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION);
+        EXPECT_EQ(mirror->m_imageDescription, NColorManagement::DEFAULT_HDR_IMAGE_DESCRIPTION);
+        EXPECT_EQ(mirror->m_allocations, mirrorAllocations);
+    }
+
+    TEST_F(CWorkBufferPoolTest, IsolatedFormatAndSizeChangesDetachBeforeReallocating) {
+        for (const auto& size : {Vector2D{100, 100}, Vector2D{50, 100}}) {
+            auto cache   = pool(100 * 100 * 8);
+            auto buffer  = cache->acquire({100, 100}, DRM_FORMAT_ABGR16161616F, NColorManagement::DEFAULT_HDR_IMAGE_DESCRIPTION);
+            auto mirror  = makeShared<CWorkBufferTexture>();
+            auto stencil = makeShared<CWorkBufferTexture>();
+            ASSERT_TRUE(buffer);
+            mirror->m_drmFormat = DRM_FORMAT_XRGB2101010;
+            buffer->addStencil(stencil);
+            buffer->enableMirror(mirror);
+            const auto               mirrorAllocations = mirror->m_allocations;
+            WP<Render::IFramebuffer> original          = buffer;
+            buffer.reset();
+
+            // The old allocation fills the budget, forcing reuse rather than a
+            // new framebuffer that would hide an attached-mirror regression.
+            buffer = cache->acquire(size, DRM_FORMAT_ARGB8888, NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION, true);
+            ASSERT_TRUE(buffer);
+            EXPECT_EQ(buffer, original.lock());
+            EXPECT_EQ(buffer->m_size, size);
+            EXPECT_EQ(buffer->m_drmFormat, DRM_FORMAT_ARGB8888);
+            EXPECT_EQ(buffer->imageDescription(), NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION);
+            EXPECT_FALSE(buffer->getMirrorTexture());
+            EXPECT_EQ(buffer->getStencilTex(), stencil);
+            EXPECT_EQ(mirror->m_allocations, mirrorAllocations);
+            EXPECT_EQ(mirror->m_size, Vector2D(100, 100));
+            EXPECT_EQ(mirror->m_drmFormat, DRM_FORMAT_XRGB2101010);
+            EXPECT_EQ(count(*cache), 1);
+        }
+    }
+
+    TEST_F(CWorkBufferPoolTest, FailedIsolatedDetachmentOrResizeDropsEntryWithoutTouchingMirror) {
+        for (const auto format : {DRM_FORMAT_ARGB8888, DRM_FORMAT_XRGB2101010}) {
+            auto cache  = pool(100 * 100 * 4);
+            auto buffer = cache->acquire({100, 100}, DRM_FORMAT_ARGB8888, nullptr);
+            auto mirror = makeShared<CWorkBufferTexture>();
+            ASSERT_TRUE(buffer);
+            buffer->enableMirror(mirror);
+            const auto mirrorAllocations = mirror->m_allocations;
+            buffer.reset();
+
+            m_stats->failAllocation = true;
+            EXPECT_FALSE(cache->acquire({100, 100}, format, NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION, true));
+            EXPECT_EQ(count(*cache), 0);
+            EXPECT_EQ(mirror->m_allocations, mirrorAllocations);
+
+            m_stats->failAllocation = false;
+            EXPECT_TRUE(cache->acquire({100, 100}, format, NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION, true));
+            EXPECT_EQ(count(*cache), 1);
+        }
+    }
+
+    TEST_F(CWorkBufferPoolTest, InvalidIsolatedRequestsLeaveCachedMirrorAttached) {
+        auto cache  = pool();
+        auto buffer = cache->acquire({100, 100}, DRM_FORMAT_ARGB8888, nullptr);
+        auto mirror = makeShared<CWorkBufferTexture>();
+        ASSERT_TRUE(buffer);
+        buffer->enableMirror(mirror);
+        const auto               allocations = m_stats->allocated;
+        WP<Render::IFramebuffer> original    = buffer;
+        buffer.reset();
+
+        EXPECT_FALSE(cache->acquire({0, 100}, DRM_FORMAT_ARGB8888, NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION, true));
+        EXPECT_FALSE(cache->acquire({100, 100}, DRM_FORMAT_INVALID, NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION, true));
+        EXPECT_EQ(count(*cache), 1);
+        EXPECT_EQ(m_stats->allocated, allocations);
+        ASSERT_FALSE(original.expired());
+        EXPECT_EQ(original.lock()->getMirrorTexture(), mirror);
     }
 
     TEST_F(CWorkBufferPoolTest, AlternatingSizesAllocateOnlyDuringWarmup) {

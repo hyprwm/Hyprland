@@ -33,22 +33,34 @@ static void damageWeakFadeout(WP<T> fadeout) {
         damageFadeoutMonitor(FADEOUT->monitor());
 }
 
-SP<CPopupFadeout> CPopupFadeout::create(SP<CPopup> popup, SP<Render::IFramebuffer> snapshot, float sourceAlpha) {
-    if (!popup || !snapshot)
+SP<CPopupFadeout> CPopupFadeout::create(SP<CPopup> popup, SP<Render::IFramebuffer> snapshot, float sourceAlpha, SP<Render::IFramebuffer> workspaceSnapshot) {
+    if (!popup || (!snapshot && !workspaceSnapshot))
         return nullptr;
 
     const auto MONITOR = popup->getMonitor();
     if (!MONITOR)
         return nullptr;
 
-    auto fadeout           = SP<CPopupFadeout>(new CPopupFadeout());
-    fadeout->m_monitor     = MONITOR;
-    fadeout->m_framebuffer = snapshot;
+    auto fadeout                    = SP<CPopupFadeout>(new CPopupFadeout());
+    fadeout->m_monitor              = MONITOR;
+    fadeout->m_framebuffer          = snapshot;
+    fadeout->m_workspaceFramebuffer = workspaceSnapshot;
 
-    if (const auto WINDOW = popup->windowOwner(); WINDOW)
-        fadeout->m_source = {.type = eFadeoutSource::WINDOW, .workspace = WINDOW->m_workspace};
-    else if (popup->layerOwner())
-        fadeout->m_source.type = eFadeoutSource::LAYER;
+    if (const auto WINDOW = popup->windowOwner(); WINDOW) {
+        fadeout->m_windowOwner = WINDOW;
+        fadeout->m_source      = {
+            .type          = eFadeoutSource::WINDOW,
+            .workspace     = WINDOW->m_workspace,
+            .pinned        = WINDOW->isFloating() && (WINDOW->m_state & WINDOW_STATE_PINNED),
+            .noScreenShare = WINDOW->m_ruleApplicator->noScreenShare().valueOrDefault(),
+        };
+    } else if (const auto LAYER = popup->layerOwner(); LAYER) {
+        fadeout->m_layerOwner = LAYER;
+        fadeout->m_source     = {
+            .type          = eFadeoutSource::LAYER,
+            .noScreenShare = LAYER->m_ruleApplicator->noScreenShare().valueOrDefault(),
+        };
+    }
 
     static CConfigValue PBLURIGNOREA = CConfigValue<Config::FLOAT>("decoration:blur:popups_ignorealpha");
     if (shouldBlurPopup()) {
@@ -109,5 +121,10 @@ SFadeoutRenderEffects CPopupFadeout::effects() const {
 }
 
 SFadeoutSource CPopupFadeout::source() const {
-    return m_source;
+    auto source = m_source;
+    if (const auto WINDOW = m_windowOwner.lock(); WINDOW)
+        source.noScreenShare |= WINDOW->m_ruleApplicator->noScreenShare().valueOrDefault();
+    if (const auto LAYER = m_layerOwner.lock(); LAYER)
+        source.noScreenShare |= LAYER->m_ruleApplicator->noScreenShare().valueOrDefault();
+    return source;
 }

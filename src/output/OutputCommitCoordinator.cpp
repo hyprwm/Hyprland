@@ -193,16 +193,16 @@ void COutputCommitCoordinator::submitted(SFrame& frame, bool async) {
     if (!async && frame.kind == FRAME_COMPOSED)
         m_monitor->m_directScanoutIsActive = false;
 
-    if (!async && frame.kind == FRAME_COMPOSED && frame.copyFBPrepared && Screenshare::mgr())
-        Screenshare::mgr()->onOutputCommit(m_monitor->m_self.lock());
+    if (!async && frame.kind == FRAME_COMPOSED && Screenshare::mgr())
+        Screenshare::mgr()->onOutputCommit(m_monitor->m_self.lock(), frame.copyFBPrepared);
 }
 
 void COutputCommitCoordinator::onPresented(uint64_t id, bool presented) {
     if (!ownsCommit(id))
         return;
 
-    if (presented && m_pending->kind == FRAME_COMPOSED && m_pending->copyFBPrepared && Screenshare::mgr())
-        Screenshare::mgr()->onOutputCommit(m_monitor->m_self.lock());
+    if (presented && m_pending->kind == FRAME_COMPOSED && Screenshare::mgr())
+        Screenshare::mgr()->onOutputCommit(m_monitor->m_self.lock(), m_pending->copyFBPrepared);
 
     if (!presented) {
         auto frame = std::move(*m_pending);

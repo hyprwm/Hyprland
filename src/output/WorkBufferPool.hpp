@@ -26,7 +26,7 @@ namespace Monitor {
         CWorkBufferPool(CWorkBufferPool&&)                    = delete;
         CWorkBufferPool&         operator=(CWorkBufferPool&&) = delete;
 
-        SP<Render::IFramebuffer> acquire(const Vector2D& size, DRMFormat format, NColorManagement::PImageDescription imageDescription);
+        SP<Render::IFramebuffer> acquire(const Vector2D& size, DRMFormat format, NColorManagement::PImageDescription imageDescription, bool detachMirror = false);
         void                     setImageDescription(NColorManagement::PImageDescription imageDescription);
         void                     forEachUnused(const std::function<void(SP<Render::IFramebuffer>)>& callback);
 

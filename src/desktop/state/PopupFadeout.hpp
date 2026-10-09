@@ -5,7 +5,7 @@
 namespace Desktop {
     class CPopupFadeout final : public IFadeout {
       public:
-        static SP<CPopupFadeout>      create(SP<View::CPopup> popup, SP<Render::IFramebuffer> snapshot, float sourceAlpha);
+        static SP<CPopupFadeout>      create(SP<View::CPopup> popup, SP<Render::IFramebuffer> snapshot, float sourceAlpha, SP<Render::IFramebuffer> workspaceSnapshot = nullptr);
 
         virtual PHLMONITORREF         monitor() const override;
         virtual eFadeoutPlane         plane() const override;
@@ -20,7 +20,8 @@ namespace Desktop {
         CPopupFadeout() = default;
 
         PHLMONITORREF     m_monitor;
-        SFadeoutSource    m_source;
+        PHLWINDOWREF      m_windowOwner;
+        PHLLSREF          m_layerOwner;
         int               m_zIndex = 0;
         PHLANIMVAR<float> m_alpha;
     };

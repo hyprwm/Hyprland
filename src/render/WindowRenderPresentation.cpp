@@ -13,6 +13,7 @@ Render::SWindowRenderPresentation Render::resolveWindowPresentation(const SWindo
             .alpha          = state.active,
             .fadeAlpha      = FADE,
             .alphaVisible   = state.fade * state.active * state.fullscreen * state.layout != 0.F || state.alphaAnimating,
+            .workspaceScene = true,
         };
     }
 
@@ -29,4 +30,12 @@ Render::SWindowRenderPresentation Render::resolveWindowPresentation(const SWindo
         .workspaceOffsetAnimating = state.hasWorkspacePresentation && state.workspaceOffsetAnimating,
         .alphaVisible             = TOTAL_ALPHA != 0.F || state.alphaAnimating,
     };
+}
+
+Render::SWindowRenderPresentation Render::resolveWindowSnapshotPresentation(SWindowRenderPresentation presentation) {
+    // Neutral window fadeouts apply these channels on replay. Keep the original visibility decision.
+    if (presentation.workspaceScene)
+        presentation.fadeAlpha = 1.F;
+
+    return presentation;
 }

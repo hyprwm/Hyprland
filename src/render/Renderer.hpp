@@ -119,8 +119,10 @@ namespace Render {
         bool                            isMgpu();
         void                            addWindowToRenderUnfocused(PHLWINDOW window);
         SP<IFramebuffer>                makeSnapshotFB(PHLWINDOW);
+        SP<IFramebuffer>                makeSnapshotFB(PHLWINDOW, eSceneMode mode);
         SP<IFramebuffer>                makeSnapshotFB(PHLLS);
         SP<IFramebuffer>                makeSnapshotFB(WP<Desktop::View::CPopup>);
+        SP<IFramebuffer>                makeSnapshotFB(WP<Desktop::View::CPopup>, eSceneMode mode);
         void                            renderFadeouts(CRenderContext& ctx, PHLMONITOR monitor, Desktop::eFadeoutPlane plane, PHLWORKSPACE workspace = nullptr);
         bool                            beginFullFakeRender(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb);
         bool                            beginRenderToBuffer(PHLMONITOR pMonitor, CRegion& damage, SP<IHLBuffer> buffer, bool simple = false);
@@ -293,7 +295,7 @@ namespace Render {
                                           const Vector2D& translate = {0, 0}, const float& scale = 1.f);
         void renderWindow(CRenderContext& ctx, PHLWINDOW, PHLMONITOR, const SWindowRenderPresentation&, const Time::steady_tp&, bool, eRenderPassMode, bool ignorePosition = false,
                           bool standalone = false);
-        void renderLayer(CRenderContext& ctx, PHLLS, PHLMONITOR, const Time::steady_tp&, bool popups = false, bool lockscreen = false);
+        void renderLayer(CRenderContext& ctx, PHLLS, PHLMONITOR, const Time::steady_tp&, bool popups = false, bool lockscreen = false, bool workspaceScene = false);
         void renderSessionLockSurface(CRenderContext& ctx, WP<SSessionLockSurface>, PHLMONITOR, const Time::steady_tp&);
         void renderDragIcon(CRenderContext& ctx, PHLMONITOR, const Time::steady_tp&);
         void renderIMEPopup(CRenderContext& ctx, CInputPopup*, PHLMONITOR, const Time::steady_tp&);

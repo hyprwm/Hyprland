@@ -14,6 +14,7 @@
 #include "../managers/input/InputManager.hpp"
 #include "../animation/AnimationManager.hpp"
 #include "../managers/fullscreen/FullscreenController.hpp"
+#include "../managers/screenshare/ScreenshareManager.hpp"
 #include "../desktop/view/window/Window.hpp"
 #include "../desktop/view/window/WindowEffectsController.hpp"
 #include "../desktop/view/window/WindowPresentation.hpp"
@@ -340,6 +341,9 @@ bool IHyprRenderer::shouldRenderWindowInScene(PHLWINDOW window, PHLMONITOR monit
                                   .mapped             = window->mapped(),
                                   .hidden             = window->isHidden(),
                                   .belongsToWorkspace = workspace && window->m_workspace == workspace,
+                                  .floating           = window->isFloating(),
+                                  .pinned             = sc<bool>(window->m_state & WINDOW_STATE_PINNED),
+                                  .onOwnerMonitor     = window->m_monitor == monitor,
                               });
 }
 
@@ -358,6 +362,10 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
     windows.reserve(Desktop::windowState()->windows().size());
     for (auto const& w : Desktop::windowState()->windows()) {
         if (!shouldRenderWindowInScene(w, pMonitor, pWorkspace, mode))
+            continue;
+
+        // Workspace scenes draw pinned windows exactly once, above fullscreen.
+        if (mode != eSceneMode::MONITOR && w->isFloating() && (w->m_state & WINDOW_STATE_PINNED))
             continue;
 
         if (w->presentation().alphaValue(WINDOW_ALPHA_FADE) * w->presentation().alphaValue(WINDOW_ALPHA_FULLSCREEN) == 0.f)
@@ -401,6 +409,9 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
 
     // TODO: this pass sucks
     for (auto const& w : Desktop::windowState()->windows()) {
+        if (mode != eSceneMode::MONITOR && w->isFloating() && (w->m_state & WINDOW_STATE_PINNED))
+            continue;
+
         const auto PWORKSPACE = w->m_workspace;
 
         if (w->m_workspace != pWorkspace || !Fullscreen::controller()->isFullscreen(w)) {
@@ -435,6 +446,9 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
 
     // then render windows over fullscreen.
     for (auto const& w : Desktop::windowState()->windows()) {
+        if (mode != eSceneMode::MONITOR && w->isFloating() && (w->m_state & WINDOW_STATE_PINNED))
+            continue;
+
         const bool shouldSkipWindow =
             w->m_workspace != pWorkspaceWindow->m_workspace || !w->isFloating() || !w->shouldRenderOverFullscreen() || !w->mapped() || Fullscreen::controller()->isFullscreen(w);
 
@@ -503,7 +517,8 @@ void IHyprRenderer::renderWorkspaceWindows(CRenderContext& ctx, PHLMONITOR pMoni
 
         // render the bad boy
         renderWindow(ctx, w.lock(), pMonitor, w->presentation().renderPresentation(mode), time, true, RENDER_PASS_MAIN);
-        w.reset();
+        if (mode == eSceneMode::MONITOR)
+            w.reset();
     }
 
     if (lastWindow)
@@ -582,8 +597,25 @@ UP<CScopeGuard> IHyprRenderer::redirectPass(CRenderContext& ctx, CRenderPass* pa
     return makeUnique<CScopeGuard>([&ctx, oldPass] { ctx.m_currentPass = oldPass; });
 }
 
+static bool shouldRenderPopup(WP<Desktop::View::CPopup> popup, bool workspaceScene) {
+    if (!popup || !popup->mapped() || !popup->resource())
+        return false;
+
+    return sceneSelectsPopup(workspaceScene,
+                             {
+                                 .mapped       = true,
+                                 .hasResource  = true,
+                                 .alphaVisible = popup->alphaNonZero(),
+                                 .inert        = popup->inert(),
+                                 .acceptsInput = !workspaceScene && popup->acceptsInput(),
+                             });
+}
+
 void IHyprRenderer::renderWindow(CRenderContext& ctx, PHLWINDOW pWindow, PHLMONITOR pMonitor, const SWindowRenderPresentation& presentation, const Time::steady_tp& time,
                                  bool decorate, eRenderPassMode mode, bool ignorePosition, bool standalone) {
+    if (!ctx.shouldRenderContent(pWindow->m_ruleApplicator->noScreenShare().valueOrDefault()))
+        return;
+
     if (pWindow->isHidden() && !standalone)
         return;
 
@@ -613,7 +645,7 @@ void IHyprRenderer::renderWindow(CRenderContext& ctx, PHLWINDOW pWindow, PHLMONI
     if (ignorePosition) {
         renderdata.pos.x = pMonitor->m_position.x;
         renderdata.pos.y = pMonitor->m_position.y;
-    } else {
+    } else if (!ctx.readOnlyEffects()) {
         pWindow->presentation().setNotResponding(pWindow->isNotResponding());
     }
 
@@ -820,7 +852,7 @@ void IHyprRenderer::renderWindow(CRenderContext& ctx, PHLWINDOW pWindow, PHLMONI
 
             pWindow->popupHead()->breadthfirst(
                 [this, &ctx, &renderdata, PARENTFADEALPHA](WP<Desktop::View::CPopup> popup, void* data) {
-                    if (!popup->mapped() || !popup->acceptsInput() || !popup->alphaNonZero())
+                    if (!shouldRenderPopup(popup, renderdata.workspacePresentation.workspaceScene))
                         return;
 
                     const auto     pos    = popup->coordsRelativeToParent();
@@ -981,11 +1013,14 @@ SP<ITexture> IHyprRenderer::createTexture(const SP<Aquamarine::IBuffer> buffer, 
     return tex;
 }
 
-void IHyprRenderer::renderLayer(CRenderContext& ctx, PHLLS pLayer, PHLMONITOR pMonitor, const Time::steady_tp& time, bool popups, bool lockscreen) {
+void IHyprRenderer::renderLayer(CRenderContext& ctx, PHLLS pLayer, PHLMONITOR pMonitor, const Time::steady_tp& time, bool popups, bool lockscreen, bool workspaceScene) {
     if (!pLayer)
         return;
 
-    if (!pLayer->mapped() || !pLayer->acceptsInput() || !pLayer->alphaNonZero())
+    if (!ctx.shouldRenderContent(pLayer->m_ruleApplicator->noScreenShare().valueOrDefault()))
+        return;
+
+    if (!pLayer->mapped() || (!workspaceScene && !pLayer->acceptsInput()) || !pLayer->alphaNonZero())
         return;
 
     // skip rendering based on abovelock rule and make sure to not render abovelock layers twice
@@ -1054,8 +1089,8 @@ void IHyprRenderer::renderLayer(CRenderContext& ctx, PHLLS pLayer, PHLMONITOR pM
     renderdata.surfaceCounter = 0;
     if (popups) {
         pLayer->popupHead()->breadthfirst(
-            [this, &ctx, &renderdata](WP<Desktop::View::CPopup> popup, void* data) {
-                if (!popup->mapped() || !popup->acceptsInput() || !popup->alphaNonZero())
+            [this, &ctx, &renderdata, workspaceScene](WP<Desktop::View::CPopup> popup, void* data) {
+                if (!shouldRenderPopup(popup, workspaceScene))
                     return;
 
                 const auto SURF = popup->wlSurface()->resource();
@@ -1152,7 +1187,7 @@ void IHyprRenderer::renderMonitorBackground(CRenderContext& ctx, PHLMONITOR pMon
     renderBackground(ctx, pMonitor);
 
     for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
-        renderLayer(ctx, ls.lock(), pMonitor, time);
+        renderLayer(ctx, ls.lock(), pMonitor, time, false, false, mode != eSceneMode::MONITOR);
     }
     renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_LAYER_BACKGROUND, workspace, mode);
 }
@@ -1227,7 +1262,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR
         Event::bus()->m_events.render.stage.emit({RENDER_POST_WALLPAPER, pMonitor, ctx});
 
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM]) {
-            renderLayer(ctx, ls.lock(), pMonitor, time);
+            renderLayer(ctx, ls.lock(), pMonitor, time, false, false, mode != eSceneMode::MONITOR);
         }
         renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_LAYER_BOTTOM, SHELL_WORKSPACE, mode);
     }
@@ -1288,6 +1323,9 @@ void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR
         renderWindow(ctx, w, pMonitor, w->presentation().renderPresentation(mode), time, true, RENDER_PASS_ALL);
     }
 
+    if (mode != eSceneMode::MONITOR)
+        renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_WINDOW_PINNED, pWorkspace, mode);
+
     Event::bus()->m_events.render.stage.emit({RENDER_POST_WINDOWS, pMonitor, ctx});
 
     if (!sceneIncludesShell(mode)) {
@@ -1297,18 +1335,18 @@ void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR
 
     // Render surfaces above windows for monitor
     for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-        renderLayer(ctx, ls.lock(), pMonitor, time);
+        renderLayer(ctx, ls.lock(), pMonitor, time, false, false, mode != eSceneMode::MONITOR);
     }
     renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_LAYER_TOP, SHELL_WORKSPACE, mode);
 
     for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
-        renderLayer(ctx, ls.lock(), pMonitor, time);
+        renderLayer(ctx, ls.lock(), pMonitor, time, false, false, mode != eSceneMode::MONITOR);
     }
     renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_LAYER_OVERLAY, SHELL_WORKSPACE, mode);
 
     for (auto const& lsl : pMonitor->m_layerSurfaceLayers) {
         for (auto const& ls : lsl) {
-            renderLayer(ctx, ls.lock(), pMonitor, time, true);
+            renderLayer(ctx, ls.lock(), pMonitor, time, true, false, mode != eSceneMode::MONITOR);
         }
     }
     renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_POPUP, SHELL_WORKSPACE, mode);
@@ -1587,8 +1625,13 @@ SP<ITexture> IHyprRenderer::getBlurTexture(CRenderContext& ctx) {
 }
 
 SP<IFramebuffer> IHyprRenderer::getWorkBuffer(CRenderContext& ctx, std::optional<Vector2D> size) {
-    const auto resources   = ctx.m_data.pMonitor->resources();
-    auto       framebuffer = size ? resources->getUnusedWorkBuffer(*size) : resources->getUnusedWorkBuffer();
+    const auto resources = ctx.m_data.pMonitor->resources();
+    if (ctx.sceneResources() && ctx.sceneResources()->bufferDescription()) {
+        const auto& description = *ctx.sceneResources()->bufferDescription();
+        return ctx.sceneResources()->prepareWorkBuffer(resources->getUnusedWorkBuffer(description.format, description.imageDescription, size));
+    }
+
+    auto framebuffer = size ? resources->getUnusedWorkBuffer(*size) : resources->getUnusedWorkBuffer();
     return ctx.sceneResources() ? ctx.sceneResources()->prepareWorkBuffer(std::move(framebuffer)) : framebuffer;
 }
 
@@ -3309,7 +3352,15 @@ static DRMFormat snapshotFormat(PHLMONITOR monitor) {
 }
 
 SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(PHLWINDOW pWindow) {
+    return makeSnapshotFB(pWindow, eSceneMode::MONITOR);
+}
+
+SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(PHLWINDOW pWindow, eSceneMode mode) {
     if (m_context.active())
+        return nullptr;
+
+    const bool WORKSPACE = mode != eSceneMode::MONITOR;
+    if (WORKSPACE && (!Screenshare::mgr() || !Screenshare::mgr()->needsWorkspaceCaptureSnapshot(pWindow)))
         return nullptr;
 
     // we trust the window is valid.
@@ -3318,7 +3369,7 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(PHLWINDOW pWindow) {
     if (!PMONITOR || !PMONITOR->m_output || PMONITOR->m_pixelSize.x <= 0 || PMONITOR->m_pixelSize.y <= 0)
         return nullptr;
 
-    if (!shouldRenderWindow(pWindow))
+    if (!WORKSPACE && !shouldRenderWindow(pWindow))
         return nullptr; // ignore, window is not being rendered
 
     LOG(Log::DEBUG, "renderer: making a snapshot of {:x}", rc<uintptr_t>(pWindow.get()));
@@ -3328,12 +3379,18 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(PHLWINDOW pWindow) {
     // this is temporary, doesn't mess with the actual damage
     CRegion    fakeDamage{0, 0, sc<int>(PMONITOR->m_transformedSize.x), sc<int>(PMONITOR->m_transformedSize.y)};
 
-    const auto PFRAMEBUFFER = createFB("window snapshot");
+    const auto PFRAMEBUFFER = createFB(WORKSPACE ? "workspace window snapshot" : "window snapshot");
 
-    PFRAMEBUFFER->alloc(PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y, snapshotFormat(PMONITOR));
-    PFRAMEBUFFER->setImageDescription(PMONITOR->workBufferImageDescription());
+    if (!PFRAMEBUFFER->alloc(PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y, WORKSPACE ? DRM_FORMAT_ARGB8888 : snapshotFormat(PMONITOR)))
+        return nullptr;
+    PFRAMEBUFFER->setImageDescription(WORKSPACE ? DEFAULT_SRGB_IMAGE_DESCRIPTION : PMONITOR->workBufferImageDescription());
 
-    if (!beginFullFakeRender(PMONITOR, fakeDamage, PFRAMEBUFFER))
+    SRenderOptions options;
+    if (WORKSPACE)
+        options.sceneResources = makeShared<CSceneResources>(createFB("workspace snapshot blur"),
+                                                             SSceneBufferDescription{.format = DRM_FORMAT_ARGB8888, .imageDescription = DEFAULT_SRGB_IMAGE_DESCRIPTION});
+
+    if (!beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, PFRAMEBUFFER, true, options))
         return nullptr;
     bool              finishing = false;
     const CScopeGuard cleanup([&] {
@@ -3341,14 +3398,17 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(PHLWINDOW pWindow) {
             abortRender();
     });
 
-    m_context.m_renderingSnapshot = true;
+    m_context.m_renderingSnapshot    = true;
+    m_context.m_renderingCapture     = WORKSPACE;
+    m_context.m_blockSurfaceFeedback = WORKSPACE;
 
     draw(m_context, CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)});
     startRenderPass(m_context);
 
     LOG(Log::DEBUG, "renderer: cleared a snapshot of {:x}", rc<uintptr_t>(pWindow.get()));
 
-    renderWindow(m_context, pWindow, PMONITOR, pWindow->presentation().renderPresentation(), Time::steadyNow(), !pWindow->backend().traits().suggestsNoBorder, RENDER_PASS_ALL);
+    const auto PRESENTATION = resolveWindowSnapshotPresentation(pWindow->presentation().renderPresentation(mode));
+    renderWindow(m_context, pWindow, PMONITOR, PRESENTATION, Time::steadyNow(), !pWindow->backend().traits().suggestsNoBorder, RENDER_PASS_ALL);
 
     LOG(Log::DEBUG, "renderer: rendered a snapshot of {:x}", rc<uintptr_t>(pWindow.get()));
 
@@ -3411,7 +3471,16 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(PHLLS pLayer) {
 }
 
 SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(WP<Desktop::View::CPopup> popup) {
+    return makeSnapshotFB(popup, eSceneMode::MONITOR);
+}
+
+SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(WP<Desktop::View::CPopup> popup, eSceneMode mode) {
     if (m_context.active())
+        return nullptr;
+
+    const bool WORKSPACE = mode != eSceneMode::MONITOR;
+    const auto WINDOW    = popup->windowOwner();
+    if (WORKSPACE && (!Screenshare::mgr() || !Screenshare::mgr()->needsWorkspaceCaptureSnapshot(WINDOW) || !shouldRenderPopup(popup, true)))
         return nullptr;
 
     // we trust the window is valid.
@@ -3420,19 +3489,25 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(WP<Desktop::View::CPopup> popup) 
     if (!PMONITOR || !PMONITOR->m_output || PMONITOR->m_pixelSize.x <= 0 || PMONITOR->m_pixelSize.y <= 0)
         return nullptr;
 
-    if (!popup->mapped() || !popup->acceptsInput() || !popup->alphaNonZero())
+    if (!WORKSPACE && (!popup->mapped() || !popup->acceptsInput() || !popup->alphaNonZero()))
         return nullptr;
 
     LOG(Log::DEBUG, "renderer: making a snapshot of {:x}", rc<uintptr_t>(popup.get()));
 
     CRegion    fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
 
-    const auto PFRAMEBUFFER = createFB("popup shapshot");
+    const auto PFRAMEBUFFER = createFB(WORKSPACE ? "workspace popup snapshot" : "popup shapshot");
 
-    PFRAMEBUFFER->alloc(PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y, snapshotFormat(PMONITOR));
-    PFRAMEBUFFER->setImageDescription(PMONITOR->workBufferImageDescription());
+    if (!PFRAMEBUFFER->alloc(PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y, WORKSPACE ? DRM_FORMAT_ARGB8888 : snapshotFormat(PMONITOR)))
+        return nullptr;
+    PFRAMEBUFFER->setImageDescription(WORKSPACE ? DEFAULT_SRGB_IMAGE_DESCRIPTION : PMONITOR->workBufferImageDescription());
 
-    if (!beginFullFakeRender(PMONITOR, fakeDamage, PFRAMEBUFFER))
+    SRenderOptions options;
+    if (WORKSPACE)
+        options.sceneResources = makeShared<CSceneResources>(createFB("workspace snapshot blur"),
+                                                             SSceneBufferDescription{.format = DRM_FORMAT_ARGB8888, .imageDescription = DEFAULT_SRGB_IMAGE_DESCRIPTION});
+
+    if (!beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, PFRAMEBUFFER, true, options))
         return nullptr;
     bool              finishing = false;
     const CScopeGuard cleanup([&] {
@@ -3440,7 +3515,9 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(WP<Desktop::View::CPopup> popup) 
             abortRender();
     });
 
-    m_context.m_renderingSnapshot = true;
+    m_context.m_renderingSnapshot    = true;
+    m_context.m_renderingCapture     = WORKSPACE;
+    m_context.m_blockSurfaceFeedback = WORKSPACE;
 
     auto& ctx = m_context;
     draw(ctx, CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)});
@@ -3453,6 +3530,16 @@ SP<IFramebuffer> IHyprRenderer::makeSnapshotFB(WP<Desktop::View::CPopup> popup) 
     renderdata.squishOversized = false; // don't squish popups
     renderdata.popup           = true;
     renderdata.blur            = false;
+
+    if (WORKSPACE) {
+        renderdata.workspacePresentation = WINDOW->presentation().renderPresentation(mode);
+        // coordsGlobal() contains the raw window position, without workspace offsets.
+        renderdata.pos += renderdata.workspacePresentation.floatingOffset - WINDOW->backend().geometry().box.pos();
+        renderdata.alpha              = WINDOW->m_ruleApplicator->opaque().valueOrDefault() ? 1.F : renderdata.workspacePresentation.alpha;
+        renderdata.fadeAlpha          = renderdata.workspacePresentation.fadeAlpha;
+        renderdata.pWindow            = WINDOW;
+        renderdata.useNearestNeighbor = WINDOW->m_ruleApplicator->nearestNeighbor().valueOrDefault();
+    }
 
     popup->wlSurface()->resource()->breadthfirst(
         [this, &ctx, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
@@ -3490,15 +3577,21 @@ void IHyprRenderer::renderFadeouts(CRenderContext& ctx, PHLMONITOR monitor, Desk
 
     std::vector<SP<Desktop::IFadeout>> fadeouts;
     for (auto const& fadeout : Desktop::fadingOutState()->fadeouts()) {
-        if (!fadeout || fadeout->monitor() != monitor || fadeout->plane() != plane)
+        if (!fadeout || fadeout->monitor() != monitor)
+            continue;
+
+        const auto SOURCE = fadeout->source();
+        if (!ctx.shouldRenderContent(SOURCE.noScreenShare))
+            continue;
+
+        if (sceneFadeoutPlane(mode, fadeout->plane(), SOURCE.pinned) != plane)
             continue;
 
         if (mode == eSceneMode::MONITOR) {
             if (fadeout->workspace() && fadeout->workspace() != workspace)
                 continue;
         } else {
-            const auto SOURCE = fadeout->source();
-            if (!sceneSelectsFadeout(mode, SOURCE.type, SOURCE.workspace && SOURCE.workspace == workspace))
+            if (!sceneSelectsFadeout(mode, SOURCE.type, SOURCE.workspace && SOURCE.workspace == workspace, SOURCE.pinned))
                 continue;
         }
 
@@ -3509,7 +3602,7 @@ void IHyprRenderer::renderFadeouts(CRenderContext& ctx, PHLMONITOR monitor, Desk
 
     CRegion fakeDamage{0, 0, monitor->m_transformedSize.x, monitor->m_transformedSize.y};
     for (auto const& fadeout : fadeouts) {
-        const auto FB = fadeout->framebuffer();
+        const auto FB = fadeout->framebuffer(mode);
         if (!FB || !FB->getTexture())
             continue;
 
@@ -3551,6 +3644,9 @@ void IHyprRenderer::renderFadeouts(CRenderContext& ctx, PHLMONITOR monitor, Desk
 }
 
 NColorManagement::PImageDescription IHyprRenderer::workBufferImageDescription(CRenderContext& ctx) {
+    if (ctx.sceneResources() && ctx.sceneResources()->bufferDescription())
+        return ctx.sceneResources()->bufferDescription()->imageDescription;
+
     if (!ctx.m_data.pMonitor)
         return LINEAR_IMAGE_DESCRIPTION;
 

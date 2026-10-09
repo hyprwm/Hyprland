@@ -13,6 +13,7 @@ namespace Render {
         float                     alpha = 1.F, fadeAlpha = 1.F;
         bool                      workspaceOffsetAnimating = false;
         bool                      alphaVisible             = true;
+        bool                      workspaceScene           = false;
 
         bool                      operator==(const SWindowRenderPresentation&) const = default;
     };
@@ -34,4 +35,5 @@ namespace Render {
 
     SWindowRenderPresentation resolveWindowPresentation(const SWindowPresentationState& state);
     SWindowRenderPresentation resolveWindowPresentation(const SWindowPresentationState& state, eSceneMode mode);
+    SWindowRenderPresentation resolveWindowSnapshotPresentation(SWindowRenderPresentation presentation);
 }

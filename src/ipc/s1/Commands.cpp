@@ -690,6 +690,9 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
 )#",
                     layerLevel);
                 for (auto const& layer : level) {
+                    // Don't add the layer prematurely, before it's mapped, cuz some of its values are only correctly resolved when it's mapped
+                    if (!layer->mapped())
+                        continue;
                     result += std::format(
                         R"#(                {{
                     "address": "0x{:x}",
@@ -733,6 +736,10 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
                 result += std::format("\tLayer level {} ({}):\n", layerLevel, levelNames[layerLevel]);
 
                 for (auto const& layer : level) {
+                    // Don't add the layer prematurely, before it's mapped, cuz some of its values are only correctly resolved when it's mapped
+                    if (!layer->mapped())
+                        continue;
+
                     result += std::format("\t\tLayer {:x}: xywh: {} {} {} {}, a: {}, namespace: {}, pid: {}\n", rc<uintptr_t>(layer.get()), layer->m_geometry.x,
                                           layer->m_geometry.y, layer->m_geometry.width, layer->m_geometry.height, std::clamp(sc<double>(layer->alpha().goal()), 0.0, 1.0),
                                           layer->m_namespace, layer->getPID());

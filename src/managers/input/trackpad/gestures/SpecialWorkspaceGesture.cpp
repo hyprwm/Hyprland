@@ -86,6 +86,8 @@ void CSpecialWorkspaceGesture::begin(const ITrackpadGesture::STrackpadGestureBeg
     if (!ANIMATING_OUT)
         MONITOR->setSpecialWorkspace(workspace);
 
+    workspace->ready();
+
     if (!MONITOR->m_enabled || workspace->m_monitor != MONITOR || MONITOR->m_activeSpecialWorkspace != workspace || !workspace->visible())
         return;
 

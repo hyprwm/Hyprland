@@ -39,13 +39,13 @@ namespace State::Workspace {
         virtual ~IPolicyContext() = default;
 
         // Mutation callbacks are synchronous: later snapshot reads must observe their effects.
-        virtual std::vector<SMonitorSnapshot>           monitors() const                                                                       = 0;
-        virtual std::vector<SWorkspaceSnapshot>         workspaces() const                                                                     = 0;
-        virtual std::optional<SWorkspaceIdentity>       configuredDefaultWorkspace(std::string_view monitorAddress) const                      = 0;
-        virtual std::vector<SDefaultWorkspaceCandidate> defaultWorkspaceCandidates(std::string_view monitorAddress) const                      = 0;
-        virtual void                                    createWorkspace(const SWorkspaceIdentity& identity, std::string_view monitorAddress)   = 0;
-        virtual void                                    moveWorkspace(const SWorkspaceIdentity& identity, std::string_view monitorAddress)     = 0;
-        virtual void                                    activateWorkspace(const SWorkspaceIdentity& identity, std::string_view monitorAddress) = 0;
+        virtual std::vector<SMonitorSnapshot>           monitors() const                                                                                        = 0;
+        virtual std::vector<SWorkspaceSnapshot>         workspaces() const                                                                                      = 0;
+        virtual std::optional<SWorkspaceIdentity>       configuredDefaultWorkspace(std::string_view monitorAddress) const                                       = 0;
+        virtual std::vector<SDefaultWorkspaceCandidate> defaultWorkspaceCandidates(std::string_view monitorAddress) const                                       = 0;
+        virtual void                                    createWorkspace(const SWorkspaceIdentity& identity, std::string_view monitorAddress)                    = 0;
+        virtual void                                    moveWorkspace(const SWorkspaceIdentity& identity, std::string_view monitorAddress, bool replace = true) = 0;
+        virtual void                                    activateWorkspace(const SWorkspaceIdentity& identity, std::string_view monitorAddress)                  = 0;
     };
 
     class CMonitorLifecyclePolicy {

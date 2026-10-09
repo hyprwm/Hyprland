@@ -651,9 +651,9 @@ bool CWindow::isAllowedOverFullscreen() const {
     if (!m_workspace)
         return false;
 
-    const auto FSWINDOW = Fullscreen::controller()->getFullscreenWindow(m_workspace);
+    const auto FSWINDOW = Fullscreen::controller()->getFullscreenWindow(m_workspace, true);
     return m_fullscreenPolicy->effectiveAllowedOverFullscreen({
-        .isFullscreenWindow    = m_self == Fullscreen::controller()->getFullscreenWindow(m_workspace, true),
+        .isFullscreenWindow    = (m_self == FSWINDOW),
         .pinned                = sc<bool>(m_state & WINDOW_STATE_PINNED),
         .groupedWithFullscreen = FSWINDOW && FSWINDOW->grouping().group() && FSWINDOW->grouping().group()->has(m_self.lock()),
     });

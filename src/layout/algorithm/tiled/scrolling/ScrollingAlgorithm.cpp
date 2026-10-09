@@ -443,14 +443,24 @@ void SScrollingData::recalculate(bool forceInstant) {
     const auto        WORKSPACE = algorithm->m_parent->space()->workspace();
     const auto        MONITOR   = WORKSPACE->m_monitor.lock();
 
-    const CBox        USABLE   = algorithm->usableArea();
-    const auto        WORKAREA = algorithm->m_parent->space()->workArea();
-    const CBox        MONBOX   = MONITOR->logicalBox();
+    CBox              usableArea = algorithm->usableArea();
+    auto              workArea   = algorithm->m_parent->space()->workArea();
+    const CBox        MONBOX     = MONITOR->logicalBox();
 
-    const auto        WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(WORKSPACE);
-    static auto       PGAPSINDATA   = CConfigValue<Config::IComplexConfigValue>("general:gaps_in");
-    auto* const       PGAPSIN       = sc<Config::CCssGapData*>((PGAPSINDATA.ptr()));
-    const auto        GAPSIN        = (WORKSPACERULE && WORKSPACERULE->m_gapsIn.has_value()) ? WORKSPACERULE->m_gapsIn.value() : *PGAPSIN;
+    const auto        WORKSPACE_RULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(WORKSPACE);
+    static auto       PGAPSINDATA    = CConfigValue<Config::IComplexConfigValue>("general:gaps_in");
+    auto* const       PGAPSIN        = sc<Config::CCssGapData*>((PGAPSINDATA.ptr()));
+    const auto        GAPSIN         = (WORKSPACE_RULE && WORKSPACE_RULE->m_gapsIn.has_value()) ? WORKSPACE_RULE->m_gapsIn.value() : *PGAPSIN;
+
+    const auto        refreshDecorationsAndAreas = [&](const SP<Layout::Tiled::SScrollingTargetData> CURRENT_COVERING_FS_TDATA) {
+        // Handles setting decorations values correctly before setting the target's size and pos for FS windows. For other decoration changes, it is assumes that they call recalculate() themselves
+        // after they make their modifications -- for FS case, recalculate itself checks if a window is covering FS
+        algorithm->m_scrollingFullscreenHandler->sScrollingDataRecalculateDecorationsHelper(CURRENT_COVERING_FS_TDATA);
+
+        // must refresh after decorations have been updated.
+        usableArea = algorithm->usableArea();
+        workArea   = algorithm->m_parent->space()->workArea();
+    };
 
     // If there is a default covering fullscreen window (tiled or floating)
     if (const auto FULLSCREEN_WINDOW = Fullscreen::controller()->getFullscreenWindow(WORKSPACE, true);
@@ -514,7 +524,7 @@ void SScrollingData::recalculate(bool forceInstant) {
                     }
                     // Target is non-covering fullscreen
                     else {
-                        TDATA->layoutBox = controller->calculateStripBox(i, USABLE, WORKAREA.pos(), *PFSONONE);
+                        TDATA->layoutBox = controller->calculateStripBox(i, usableArea, workArea.pos(), *PFSONONE);
                         if (controller->isPrimaryHorizontal()) {
                             TDATA->layoutBox.y = MONBOX.y;
                             TDATA->layoutBox.h = MONBOX.h;
@@ -526,27 +536,29 @@ void SScrollingData::recalculate(bool forceInstant) {
                 } else if (TARGET_FS_MODE == Fullscreen::FSMODE_MAXIMIZED) {
                     // Target is Covering Maximised
                     if (algorithm->m_scrollingFullscreenHandler->isFullscreen(TARGET, Fullscreen::FSMODE_MAXIMIZED, true)) {
-                        TDATA->layoutBox           = WORKAREA;
+                        refreshDecorationsAndAreas(TDATA);
+
+                        TDATA->layoutBox           = workArea;
                         currentCoveringFsTdata     = TDATA;
                         targetIsCoveringFullscreen = true;
                     }
                     // Target is non-covering Maximied
                     else {
-                        TDATA->layoutBox = controller->calculateStripBox(i, USABLE, WORKAREA.pos(), *PFSONONE);
+                        TDATA->layoutBox = controller->calculateStripBox(i, usableArea, workArea.pos(), *PFSONONE);
                         if (controller->isPrimaryHorizontal()) {
-                            TDATA->layoutBox.y = WORKAREA.y;
-                            TDATA->layoutBox.h = WORKAREA.h;
+                            TDATA->layoutBox.y = workArea.y;
+                            TDATA->layoutBox.h = workArea.h;
                         } else {
-                            TDATA->layoutBox.x = WORKAREA.x;
-                            TDATA->layoutBox.w = WORKAREA.w;
+                            TDATA->layoutBox.x = workArea.x;
+                            TDATA->layoutBox.w = workArea.w;
                         }
                     }
                 }
                 // Target is FS but isn't Maximised or Fullscreen - This shouldn't be possible
                 else
-                    TDATA->layoutBox = CBox{WORKAREA.pos() - Vector2D{100000.0, 100000.0}, Vector2D{1.0, 1.0}};
+                    TDATA->layoutBox = CBox{workArea.pos() - Vector2D{100000.0, 100000.0}, Vector2D{1.0, 1.0}};
             } else
-                TDATA->layoutBox = controller->calculateTargetBox(i, j, USABLE, WORKAREA.pos(), *PFSONONE);
+                TDATA->layoutBox = controller->calculateTargetBox(i, j, usableArea, workArea.pos(), *PFSONONE);
 
             if (TDATA->target) {
                 if (targetIsCoveringFullscreen)
@@ -561,8 +573,8 @@ void SScrollingData::recalculate(bool forceInstant) {
         }
     }
 
-    // Handles covering FS's setting pos , warp pos and size, and more
-    algorithm->m_scrollingFullscreenHandler->sScrollingDataRecalculateHelper(currentCoveringFsTdata, MONITOR);
+    // Handles window,layer hiding, animations, DSO, VRR, etc...
+    algorithm->m_scrollingFullscreenHandler->sScrollingDataRecalculateVisibilityHelper(currentCoveringFsTdata, MONITOR);
 }
 
 double SScrollingData::maxWidth() {

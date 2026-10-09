@@ -7,22 +7,6 @@ extern "C" {
 #include <lauxlib.h>
 }
 
-static const char* directionToString(eTrackpadGestureDirection dir) {
-    switch (dir) {
-        case TRACKPAD_GESTURE_DIR_HORIZONTAL: return "HORIZONTAL";
-        case TRACKPAD_GESTURE_DIR_VERTICAL: return "VERTICAL";
-        case TRACKPAD_GESTURE_DIR_LEFT: return "LEFT";
-        case TRACKPAD_GESTURE_DIR_RIGHT: return "RIGHT";
-        case TRACKPAD_GESTURE_DIR_UP: return "UP";
-        case TRACKPAD_GESTURE_DIR_DOWN: return "DOWN";
-        case TRACKPAD_GESTURE_DIR_SWIPE: return "SWIPE";
-        case TRACKPAD_GESTURE_DIR_PINCH: return "PINCH";
-        case TRACKPAD_GESTURE_DIR_PINCH_IN: return "PINCH_IN";
-        case TRACKPAD_GESTURE_DIR_PINCH_OUT: return "PINCH_OUT";
-        default: return "NONE";
-    }
-}
-
 static void pushVec2(lua_State* L, const Vector2D& vec) {
     lua_newtable(L);
     lua_pushnumber(L, vec.x);
@@ -35,7 +19,7 @@ static void pushGestureBase(lua_State* L, const char* phase, eTrackpadGestureDir
     lua_newtable(L);
     lua_pushstring(L, phase);
     lua_setfield(L, -2, "phase");
-    lua_pushstring(L, directionToString(direction));
+    lua_pushstring(L, gestureDirectionToString(direction));
     lua_setfield(L, -2, "direction");
 }
 

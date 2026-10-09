@@ -694,6 +694,7 @@ void CConfigManager::reload() {
         lua_pop(m_lua, 2); // pop loaded, package
 
         if (luaL_loadfile(m_lua, m_mainConfigPath.c_str()) != LUA_OK) {
+            clearDeprecations();
             m_errors.clear();
             addError(lua_tostring(m_lua, -1));
             lua_pop(m_lua, 1);
@@ -717,6 +718,7 @@ void CConfigManager::reload() {
     g_pTrackpadGestures->clearGestures();
     cleanTimers();
     clearLuaLayoutProviders();
+    clearDeprecations();
     m_luaWindowRules.clear();
     m_luaLayerRules.clear();
     m_errors.clear();
@@ -1462,6 +1464,14 @@ void CConfigManager::reregisterLuaPluginFns() {
     }
 }
 
+void CConfigManager::warnDeprecated(std::string what, std::string why) {
+    m_extraDeprecations.emplace_back(what, why);
+}
+
+void CConfigManager::clearDeprecations() {
+    m_extraDeprecations.clear();
+}
+
 std::vector<std::string> CConfigManager::deprecationNotices() const {
     std::vector<std::string> accum;
 
@@ -1474,6 +1484,9 @@ std::vector<std::string> CConfigManager::deprecationNotices() const {
 
         accum.emplace_back(std::format("{}: {}", v.first, *v.second->deprecationNotice()));
     }
+
+    for (const auto& v : m_extraDeprecations)
+        accum.emplace_back(std::format("{}: {}", v.first, v.second));
 
     return accum;
 }

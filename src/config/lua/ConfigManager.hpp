@@ -89,6 +89,8 @@ namespace Config::Lua {
         virtual std::expected<void, std::string> registerPluginValue(void* handle, SP<Config::Values::IValue> value) override;
         virtual void                             onPluginUnload(void* handle) override;
 
+        virtual void                             warnDeprecated(std::string what, std::string why) override;
+        virtual void                             clearDeprecations() override;
         virtual std::vector<std::string>         deprecationNotices() const override;
 
         int                                      invokePluginLuaFunctionByID(uint64_t id, lua_State* L);
@@ -189,6 +191,9 @@ namespace Config::Lua {
 
         std::vector<int>                             m_heldLuaRefs;
         std::vector<SP<Layouts::SLuaLayoutProvider>> m_luaLayoutProviders;
+
+        // additional deprecation notices, added at runtime
+        std::vector<std::pair<std::string, std::string>> m_extraDeprecations;
 
         // this is here for legacy reasons.
         std::unordered_map<std::string, const void*> m_configPtrMap;

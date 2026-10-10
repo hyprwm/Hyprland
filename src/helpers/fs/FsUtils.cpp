@@ -10,48 +10,51 @@
 using namespace Hyprutils::String;
 
 std::optional<std::string> NFsUtils::getDataHome() {
-    const auto  DATA_HOME = getenv("XDG_DATA_HOME");
+    const char* const     XDGDATA = std::getenv("XDG_DATA_HOME");
+    std::filesystem::path basePath;
 
-    std::string dataRoot;
+    if (XDGDATA != nullptr && *XDGDATA != '\0') {
+        basePath = XDGDATA;
+        if (!basePath.is_absolute()) {
+            LOG(Log::WARN, "FsUtils::getDataHome: $XDG_DATA_HOME is relative ('{}'), falling back to $HOME", basePath.string());
+            basePath.clear();
+        }
+    }
 
-    if (!DATA_HOME) {
-        const auto HOME = getenv("HOME");
-
-        if (!HOME) {
-            LOG(Log::ERR, "FsUtils::getDataHome: can't get data home: no $HOME or $XDG_DATA_HOME");
+    if (basePath.empty()) {
+        const char* const HOME = std::getenv("HOME");
+        if (HOME == nullptr || *HOME == '\0') {
+            LOG(Log::ERR, "FsUtils::getDataHome: can't get data home: neither $XDG_DATA_HOME nor $HOME is set");
             return std::nullopt;
         }
 
-        dataRoot = HOME + std::string{"/.local/share/"};
-    } else
-        dataRoot = DATA_HOME + std::string{"/"};
+        basePath = std::filesystem::path(HOME) / ".local" / "share";
+    }
 
-    std::error_code ec;
-    if (!std::filesystem::exists(dataRoot, ec) || ec) {
-        LOG(Log::ERR, "FsUtils::getDataHome: can't get data home: inaccessible / missing");
+    const std::filesystem::path hyprlandDataDir = basePath / "hyprland";
+    std::error_code             ec;
+
+    const bool                  created = std::filesystem::create_directories(hyprlandDataDir, ec);
+    if (ec) {
+        LOG(Log::ERR, "FsUtils::getDataHome: failed to create data directory '{}': {}", hyprlandDataDir.string(), ec.message());
         return std::nullopt;
     }
 
-    dataRoot += "hyprland/";
+    if (!std::filesystem::is_directory(hyprlandDataDir, ec) || ec) {
+        LOG(Log::ERR, "FsUtils::getDataHome: path '{}' exists, but is not a directory", hyprlandDataDir.string());
+        return std::nullopt;
+    }
 
-    if (!std::filesystem::exists(dataRoot, ec) || ec) {
-        LOG(Log::DEBUG, "FsUtils::getDataHome: no hyprland data home, creating.");
-        std::filesystem::create_directory(dataRoot, ec);
+    if (created) {
+        LOG(Log::DEBUG, "FsUtils::getDataHome: created new hyprland data directory: {}", hyprlandDataDir.string());
+        std::filesystem::permissions(hyprlandDataDir, std::filesystem::perms::owner_all, std::filesystem::perm_options::replace, ec);
+
         if (ec) {
-            LOG(Log::ERR, "FsUtils::getDataHome: can't create new data home for hyprland");
-            return std::nullopt;
+            LOG(Log::WARN, "FsUtils::getDataHome: couldn't set perms on '{}': {}. Proceeding anyways.", hyprlandDataDir.string(), ec.message());
         }
-        std::filesystem::permissions(dataRoot, std::filesystem::perms::owner_read | std::filesystem::perms::owner_write | std::filesystem::perms::owner_exec, ec);
-        if (ec)
-            LOG(Log::WARN, "FsUtils::getDataHome: couldn't set perms on hyprland data store. Proceeding anyways.");
     }
 
-    if (!std::filesystem::exists(dataRoot, ec) || ec) {
-        LOG(Log::ERR, "FsUtils::getDataHome: no hyprland data home, failed to create.");
-        return std::nullopt;
-    }
-
-    return dataRoot;
+    return hyprlandDataDir.string();
 }
 
 std::optional<std::string> NFsUtils::readFileAsString(const std::string& path) {

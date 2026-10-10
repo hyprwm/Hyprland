@@ -12,6 +12,7 @@ in
       {
         environment.systemPackages = with pkgs; [
           # Programs needed for tests
+          git
           jq
           kitty
           wl-clipboard

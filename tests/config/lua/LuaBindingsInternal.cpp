@@ -221,6 +221,35 @@ TEST_F(CConfigLuaDispatchers, acceptsDispatchersAndCallbacks) {
     EXPECT_EQ(lua_gettop(m_lua), 0);
 }
 
+TEST_F(CConfigLuaDispatchers, expiredKeybindHandlesAreInert) {
+    for (const auto* dispatcher : {"hl.dsp.no_op()", "function() end"}) {
+        SCOPED_TRACE(dispatcher);
+        for (const auto* removal : {"hl.unbind('SUPER + Q')", "binding:unbind()", "binding:remove()"}) {
+            SCOPED_TRACE(removal);
+            const auto result = m_manager->eval(std::format(R"-(
+                local binding = hl.bind('SUPER + Q', {}, {{ description = 'original' }})
+                assert(binding:is_enabled())
+                {}
+                local replacement = hl.bind('SUPER + Q', hl.dsp.no_op())
+                binding:unbind()
+                binding:remove()
+                binding:set_enabled(false)
+                binding:set_enabled(true)
+                assert(binding:is_enabled() == nil)
+                assert(binding.enabled == nil)
+                assert(binding.description == nil)
+                assert(tostring(binding) == 'HL.Keybind(expired)')
+                assert(replacement:is_enabled())
+                replacement:remove()
+            )-",
+                                                            dispatcher, removal));
+            ASSERT_FALSE(result.has_value()) << result.value_or("");
+            EXPECT_TRUE(Keybinds::mgr()->registry().empty());
+            EXPECT_EQ(lua_gettop(m_lua), 0);
+        }
+    }
+}
+
 TEST_F(CConfigLuaDispatchers, rejectsInvalidDispatcherValues) {
     for (const auto* value : {"nil", "42", "{}", "'invalid'"}) {
         SCOPED_TRACE(value);

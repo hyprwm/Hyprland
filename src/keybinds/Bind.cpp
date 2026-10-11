@@ -77,6 +77,27 @@ static eBindMatch matchKeySets(const std::vector<const CKey*>& bound, const std:
     return BIND_MATCH_NONE;
 }
 
+static eBindMatch matchKeyChord(const std::vector<const CKey*>& bound, const std::vector<const SResolvedKey*>& held, const SResolvedKey& trigger) {
+    size_t matches        = 0;
+    bool   triggerMatches = false;
+
+    // Held keys retain press order. Only the event advancing the prefix can claim a partial match.
+    for (const auto* key : held) {
+        if (matches == bound.size())
+            break;
+        if (!bound[matches]->matches(*key))
+            continue;
+
+        ++matches;
+        triggerMatches = key->code == trigger.code && key->sym == trigger.sym;
+    }
+
+    if (!triggerMatches)
+        return BIND_MATCH_NONE;
+
+    return matches == bound.size() && matches == held.size() ? BIND_MATCH_FULL : BIND_MATCH_PARTIAL;
+}
+
 // NOLINTNEXTLINE SHUT THE FUCK UP CLANG TIDY
 std::expected<CBind, std::string> CBind::make(std::vector<std::string>&& keys, BindFlags flags, BindCallback&& callback, SExtraBindArgs&& args) {
     CBind ret;
@@ -179,9 +200,9 @@ eBindMatch CBind::matches(const SBindEventContext& ctx) const {
     if (!boundSidedMods.empty() && matchKeySets(boundSidedMods, heldSidedMods) != BIND_MATCH_FULL)
         return BIND_MATCH_NONE;
 
-    const auto KEY_MATCH       = matchKeySets(boundKeys, heldKeys);
+    const auto KEY_MATCH = boundKeys.size() > 1 && ctx.trigger && !ctx.trigger->modifier ? matchKeyChord(boundKeys, heldKeys, *ctx.trigger) : matchKeySets(boundKeys, heldKeys);
     const bool TRIGGER_MATCHES = ctx.trigger && !m_keys.empty() && m_keys.back().matches(*ctx.trigger);
-    const bool TRIGGER_ONLY    = boundKeys.size() == 1 || (m_flags & BIND_FLAG_RELEASE);
+    const bool TRIGGER_ONLY    = boundKeys.size() == 1 || ((m_flags & BIND_FLAG_RELEASE) && (boundKeys.empty() || !ctx.pressed));
 
     if (KEY_MATCH == BIND_MATCH_NONE && ctx.trigger && std::ranges::any_of(boundSidedMods, [&ctx](const auto* key) { return key->matches(*ctx.trigger); }))
         return BIND_MATCH_PARTIAL;
@@ -278,7 +299,8 @@ bool CBind::isFullyHeld(const SBindEventContext& ctx) const {
             heldSidedMods.emplace_back(&key);
     }
 
-    return matchKeySets(boundSidedMods, heldSidedMods) == BIND_MATCH_FULL && matchKeySets(boundKeys, heldKeys) == BIND_MATCH_FULL;
+    const auto KEY_MATCH = boundKeys.size() > 1 ? matchKeyChord(boundKeys, heldKeys, *ctx.trigger) : matchKeySets(boundKeys, heldKeys);
+    return matchKeySets(boundSidedMods, heldSidedMods) == BIND_MATCH_FULL && KEY_MATCH == BIND_MATCH_FULL;
 }
 
 bool CBind::isSubChordOf(const CBind& other, const SBindEventContext& ctx) const {

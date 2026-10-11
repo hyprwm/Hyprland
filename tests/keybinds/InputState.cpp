@@ -44,6 +44,32 @@ TEST(KeybindsInputState, IgnoresDuplicatePress) {
     EXPECT_EQ(state.pressed().size(), 1);
 }
 
+TEST(KeybindsInputState, HeldKeysRetainPressOrderAcrossDevices) {
+    CInputState state;
+    const auto  FIRST  = makeShared<CTestHID>();
+    const auto  SECOND = makeShared<CTestHID>();
+    const auto  A      = SResolvedKey{.sym = XKB_KEY_a, .code = 38};
+    const auto  B      = SResolvedKey{.sym = XKB_KEY_b, .code = 56};
+
+    EXPECT_TRUE(state.press({.key = A, .device = FIRST}));
+    EXPECT_TRUE(state.press({.key = B, .device = SECOND}));
+    EXPECT_TRUE(state.press({.key = A, .device = SECOND}));
+    ASSERT_EQ(state.heldKeys().size(), 2);
+    EXPECT_EQ(state.heldKeys()[0].code, A.code);
+    EXPECT_EQ(state.heldKeys()[1].code, B.code);
+
+    EXPECT_TRUE(state.release(A, FIRST).has_value());
+    ASSERT_EQ(state.heldKeys().size(), 2);
+    EXPECT_EQ(state.heldKeys()[0].code, B.code);
+    EXPECT_EQ(state.heldKeys()[1].code, A.code);
+
+    EXPECT_TRUE(state.release(B, SECOND).has_value());
+    EXPECT_TRUE(state.press({.key = B, .device = FIRST}));
+    ASSERT_EQ(state.heldKeys().size(), 2);
+    EXPECT_EQ(state.heldKeys()[0].code, A.code);
+    EXPECT_EQ(state.heldKeys()[1].code, B.code);
+}
+
 TEST(KeybindsInputState, DoesNotRetainDevice) {
     CInputState state;
     auto        device = makeShared<CTestHID>();

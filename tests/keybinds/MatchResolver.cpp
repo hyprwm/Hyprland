@@ -63,7 +63,7 @@ TEST(KeybindsMatchResolver, FullPrefixWaitsForLongerChord) {
     EXPECT_EQ(RESOLUTION.deferred.front(), SHORT);
 }
 
-TEST(KeybindsMatchResolver, NonPrefixSubChordWaitsForLongerChord) {
+TEST(KeybindsMatchResolver, OutOfOrderSubChordDoesNotWaitForLongerChord) {
     const auto              SHORT = makeResolverBind({"SUPER", "Q"});
     const auto              LONG  = makeResolverBind({"SUPER", "K", "Q"});
     const auto              Q     = resolverKey("Q", 24);
@@ -79,9 +79,9 @@ TEST(KeybindsMatchResolver, NonPrefixSubChordWaitsForLongerChord) {
     };
 
     const auto RESOLUTION = resolveChordMatches(CANDIDATES, CONTEXT);
-    EXPECT_TRUE(RESOLUTION.immediate.empty());
-    ASSERT_EQ(RESOLUTION.deferred.size(), 1);
-    EXPECT_EQ(RESOLUTION.deferred.front(), SHORT);
+    ASSERT_EQ(RESOLUTION.immediate.size(), 1);
+    EXPECT_EQ(RESOLUTION.immediate.front(), SHORT);
+    EXPECT_TRUE(RESOLUTION.deferred.empty());
 }
 
 TEST(KeybindsMatchResolver, MiddleSubChordWaitsForLongerChord) {

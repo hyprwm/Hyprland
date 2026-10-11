@@ -1412,9 +1412,9 @@ SDispatchResult CConfigManager::callLuaFnBind(int ref) {
 
     if (status != LUA_OK) {
         Config::Lua::Bindings::Internal::reportError(m_lua,
-                                                     Config::Actions::SActionError{std::format("error in keybind lambda: {}", lua_tostring(m_lua, -1)),
+                                                     Config::Actions::SActionError{std::format("error in keybind lambda: {}", luaL_tolstring(m_lua, -1, nullptr)),
                                                                                    Config::Actions::eActionErrorLevel::ERROR, Config::Actions::eActionErrorCode::LUA_ERROR});
-        lua_pop(m_lua, 1);
+        lua_pop(m_lua, 2);
         return {.success = false, .error = "lua keybind error"};
     }
 

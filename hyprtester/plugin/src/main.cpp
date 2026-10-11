@@ -1326,12 +1326,28 @@ static SDispatchResult checkKeyboardFocusWindow(std::string in) {
     if (!KBSURF)
         return {.success = false, .error = "No keyboard focus"};
 
-    const auto PWINDOW = Desktop::focusState()->window();
+    const auto PWINDOW = Desktop::viewState()->query().type(Desktop::View::VIEW_TYPE_WINDOW).surface(KBSURF).runWindow();
     if (!PWINDOW)
         return {.success = false, .error = "Keyboard focus surface is not a window"};
 
     if (PWINDOW->metadata().appID() != in)
         return {.success = false, .error = std::format("Keyboard focus window class is '{}', expected '{}'", PWINDOW->metadata().appID(), in)};
+
+    return {};
+}
+
+static SDispatchResult checkKeyboardFocusLayer(std::string in) {
+    const auto KBSURF = g_pSeatManager->m_state.keyboardFocus.lock();
+    if (!KBSURF)
+        return {.success = false, .error = "No keyboard focus"};
+
+    const auto HLSURF = Desktop::View::CWLSurface::fromResource(KBSURF);
+    const auto VIEW   = HLSURF ? HLSURF->view() : nullptr;
+    const auto LAYER  = Desktop::View::CLayerSurface::fromView(VIEW);
+    if (!LAYER)
+        return {.success = false, .error = "Keyboard focus surface is not a layer"};
+    if (LAYER->m_namespace != in)
+        return {.success = false, .error = std::format("Keyboard focus layer namespace is '{}', expected '{}'", LAYER->m_namespace, in)};
 
     return {};
 }
@@ -1768,6 +1784,18 @@ static int luaCheckKeyboardFocusWindow(lua_State* L) {
     return luaResult(L, ::checkKeyboardFocusWindow(luaL_checkstring(L, 1)));
 }
 
+static int luaCheckKeyboardFocusLayer(lua_State* L) {
+    return luaResult(L, ::checkKeyboardFocusLayer(luaL_checkstring(L, 1)));
+}
+
+static int luaCheckKeyboardFocusNone(lua_State* L) {
+    return luaResult(L, {.success = g_pSeatManager->m_state.keyboardFocus.expired(), .error = "Expected no keyboard focus"});
+}
+
+static int luaCheckPointerFocusNone(lua_State* L) {
+    return luaResult(L, {.success = g_pSeatManager->m_state.pointerFocus.expired(), .error = "Expected no pointer focus"});
+}
+
 static int luaAddWindowRule(lua_State* L) {
     return luaResult(L, ::addWindowRule(""));
 }
@@ -1857,12 +1885,15 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     addLuaFn("nullfocus", ::luaNullfocus);
     addLuaFn("clear_surface_focus", ::luaClearSurfaceFocus);
     addLuaFn("check_keyboard_focus_window", ::luaCheckKeyboardFocusWindow);
+    addLuaFn("check_keyboard_focus_layer", ::luaCheckKeyboardFocusLayer);
+    addLuaFn("check_keyboard_focus_none", ::luaCheckKeyboardFocusNone);
     addLuaFn("add_window_rule", ::luaAddWindowRule);
     addLuaFn("check_window_rule", ::luaCheckWindowRule);
     addLuaFn("add_layer_rule", ::luaAddLayerRule);
     addLuaFn("check_layer_rule", ::luaCheckLayerRule);
     addLuaFn("check_pointer_focus_window", ::luaCheckPointerFocusWindow);
     addLuaFn("check_pointer_focus_layer", ::luaCheckPointerFocusLayer);
+    addLuaFn("check_pointer_focus_none", ::luaCheckPointerFocusNone);
     addLuaFn("set_pointer_focus_layer", ::luaSetPointerFocusLayer);
     addLuaFn("window_soft_focus", ::luaSoftFocusWindowByClass);
     addLuaFn("floating_focus_on_fullscreen", ::luaFloatingFocusOnFullscreen);

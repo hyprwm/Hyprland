@@ -76,7 +76,7 @@ static void switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool forceFSCycle = fals
     if (PWINDOWTOCHANGETO == PLASTWINDOW || !PWINDOWTOCHANGETO)
         return;
 
-    g_pInputManager->unconstrainMouse();
+    auto constraintGuard = g_pInputManager->pointerConstraints().suspend();
 
     if (PLASTWINDOW && PLASTWINDOW->m_workspace == PWINDOWTOCHANGETO->m_workspace &&
         (Fullscreen::controller()->isFullscreen(PLASTWINDOW) && !Fullscreen::controller()->layoutManagedFS(PLASTWINDOW)))
@@ -112,11 +112,11 @@ static bool tryMoveFocusToMonitor(PHLMONITOR monitor) {
     static auto PFOLLOWMOUSE = CConfigValue<Config::INTEGER>("input:follow_mouse");
     static auto PNOWARPS     = CConfigValue<Config::INTEGER>("cursor:no_warps");
 
-    g_pInputManager->unconstrainMouse();
+    auto        constraintGuard = g_pInputManager->pointerConstraints().suspend();
 
-    const auto PNEWMAINWORKSPACE = monitor->m_activeWorkspace;
-    const auto PNEWWORKSPACE     = monitor->m_activeSpecialWorkspace ? monitor->m_activeSpecialWorkspace : PNEWMAINWORKSPACE;
-    auto       PNEWWINDOW        = PNEWWORKSPACE->getFocusCandidate();
+    const auto  PNEWMAINWORKSPACE = monitor->m_activeWorkspace;
+    const auto  PNEWWORKSPACE     = monitor->m_activeSpecialWorkspace ? monitor->m_activeSpecialWorkspace : PNEWMAINWORKSPACE;
+    auto        PNEWWINDOW        = PNEWWORKSPACE->getFocusCandidate();
 
     if (PNEWWINDOW) {
         updateRelativeCursorCoords();
@@ -388,6 +388,8 @@ ActionResult Actions::moveToWorkspace(PHLWORKSPACE ws, bool silent, std::optiona
     if (ws == window->m_workspace)
         return {};
 
+    auto       constraintGuard = g_pInputManager->pointerConstraints().suspend();
+
     const auto POLDWS = window->m_workspace;
 
     updateRelativeCursorCoords();
@@ -533,6 +535,8 @@ ActionResult Actions::focus(PHLWINDOW window) {
     const auto PWORKSPACE = window->m_workspace;
     if (!PWORKSPACE)
         return actionError("Window has no workspace", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
+
+    auto constraintGuard = g_pInputManager->pointerConstraints().suspend();
 
     updateRelativeCursorCoords();
 
@@ -1024,6 +1028,8 @@ ActionResult Actions::changeWorkspace(PHLWORKSPACE ws) {
     if (!PMONITOR)
         return actionError("No focused monitor", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
+    auto constraintGuard = g_pInputManager->pointerConstraints().suspend();
+
     if (ws->type() == Workspace::eWorkspaceType::SPECIAL) {
         PMONITOR->setSpecialWorkspace(ws);
         g_pInputManager->simulateMouseMovement();
@@ -1503,6 +1509,8 @@ ActionResult Actions::pass(std::optional<PHLWINDOW> w) {
     if (!g_pSeatManager->m_keyboard)
         return actionError("No keyboard connected", eActionErrorLevel::INFO, eActionErrorCode::NO_TARGET);
 
+    auto        constraintGuard = g_pInputManager->pointerConstraints().suspend();
+
     const auto& S             = *Config::Actions::state();
     const auto  XWTOXW        = window->backend().isX11() && Desktop::focusState()->window() && Desktop::focusState()->window()->backend().isX11();
     const auto  LASTMOUSESURF = g_pSeatManager->m_state.pointerFocus.lock();
@@ -1567,6 +1575,8 @@ ActionResult Actions::pass(Input::ModifierMask modMask, uint32_t key, std::optio
 
     if (!g_pSeatManager->m_keyboard && !isMouse)
         return actionError("No keyboard connected", eActionErrorLevel::INFO, eActionErrorCode::NO_TARGET);
+
+    auto        constraintGuard = g_pInputManager->pointerConstraints().suspend();
 
     const auto& S           = *Config::Actions::state();
     const auto  LASTSURFACE = Desktop::focusState()->surface();

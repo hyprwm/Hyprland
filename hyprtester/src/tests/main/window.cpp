@@ -622,6 +622,18 @@ TEST_CASE(issue14134) {
     OK(getFromSocket("/output remove HEADLESS-4"));
 }
 
+TEST_CASE(centerFalseKeepsMove) {
+    OK(getFromSocket("/eval hl.window_rule({ match = { class = 'center_false_kitty' }, float = true, size = { 400, 300 }, move = { 123, 234 } })"));
+    OK(getFromSocket("/eval hl.window_rule({ match = { class = 'center_false_kitty' }, center = false })"));
+
+    SPAWN_KITTY("center_false_kitty");
+
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 123,234");
+
+    OK(getFromSocket("/reload"));
+    Tests::killAllWindows();
+}
+
 TEST_CASE(specialFloatRecenters) {
     SPAWN_KITTY("kitty_special_float_recenter");
 

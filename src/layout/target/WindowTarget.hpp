@@ -34,7 +34,7 @@ namespace Layout {
         virtual void                                                warpPositionSize();
         virtual void                                                onUpdateSpace();
 
-        bool                                                        clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize);
+        bool clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize, bool keepCenter = true);
         std::optional<Vector2D>                                     calculateExpression(const Math::SExpressionVec2& expr);
         void                                                        sendWindowSize(bool force = false);
 

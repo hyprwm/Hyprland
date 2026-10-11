@@ -730,8 +730,8 @@ void CWindow::setSuspended(bool suspend) {
         m_suspended = suspend;
 }
 
-bool CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize) {
-    return m_target->clampWindowSize(minSize, maxSize);
+bool CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize, bool keepCenter) {
+    return m_target->clampWindowSize(minSize, maxSize, keepCenter);
 }
 
 MONITORID CWindow::monitorID() {
@@ -1770,7 +1770,7 @@ void CWindow::commitWindow(bool initialCommit) {
 
     if (!m_backend->isX11() && !Fullscreen::controller()->isFullscreen(m_self.lock()) && m_target->floating()) {
         const auto HINTS = m_backend->geometryHints(eBackendState::BACKEND_STATE_CURRENT);
-        if (clampWindowSize(HINTS.minSize, HINTS.maxSize))
+        if (clampWindowSize(HINTS.minSize, HINTS.maxSize, false))
             g_pHyprRenderer->damageWindow(m_self.lock());
     }
 

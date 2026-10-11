@@ -460,8 +460,9 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyStaticRule(const 
                 break;
             }
             case WINDOW_RULE_EFFECT_CENTER: {
-                static_.position.reset();
                 static_.center = std::get<bool>(value);
+                if (*static_.center)
+                    static_.position.reset();
                 break;
             }
             case WINDOW_RULE_EFFECT_PSEUDO: {

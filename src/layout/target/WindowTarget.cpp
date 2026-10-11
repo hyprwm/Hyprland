@@ -415,15 +415,15 @@ std::optional<Vector2D> CWindowTarget::maxSize() {
     return m_window->backend().geometryHints(Desktop::View::eBackendState::BACKEND_STATE_CURRENT).maxSize;
 }
 
-bool CWindowTarget::clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize) {
+bool CWindowTarget::clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize, bool keepCenter) {
     const Vector2D REALSIZE = m_window->size(Desktop::View::IGeometric::GEOMETRIC_GOAL);
     const Vector2D MAX      = Fullscreen::controller()->isFullscreen(m_window.lock()) ? Vector2D{INFINITY, INFINITY} : maxSize.value_or(Vector2D{INFINITY, INFINITY});
     const Vector2D NEWSIZE  = REALSIZE.clamp(minSize.value_or(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}), MAX);
     const bool     changed  = !(NEWSIZE == REALSIZE);
 
     if (changed) {
-        const Vector2D DELTA = REALSIZE - NEWSIZE;
-        m_window->layoutTarget()->setPositionGlobal(CBox{m_window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL) + DELTA / 2.0, NEWSIZE});
+        const Vector2D DELTA = keepCenter ? (REALSIZE - NEWSIZE) / 2.0 : Vector2D{};
+        m_window->layoutTarget()->setPositionGlobal(CBox{m_window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL) + DELTA, NEWSIZE});
     }
 
     return changed;

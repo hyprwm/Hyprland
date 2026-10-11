@@ -217,7 +217,7 @@ namespace Desktop::View {
         bool                       onSpecialWorkspace();
         const std::string&         workspaceAddress() const;
         void                       activate(bool force = false);
-        bool                       clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize);
+        bool                       clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize, bool keepCenter = true);
         float                      getScrollMouse();
         float                      getScrollTouchpad();
         bool                       isScrollMouseOverridden();

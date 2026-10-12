@@ -4,7 +4,7 @@
   stdenvAdapters,
   pkg-config,
   pkgconf,
-  makeWrapper,
+  makeBinaryWrapper,
   cmake,
   aquamarine,
   binutils,
@@ -164,7 +164,7 @@ customStdenv.mkDerivation (finalAttrs: {
   nativeBuildInputs = [
     hyprwayland-scanner
     hyprwire
-    makeWrapper
+    makeBinaryWrapper
     cmake
     pkg-config
     python3

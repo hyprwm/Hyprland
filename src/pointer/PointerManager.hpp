@@ -131,6 +131,9 @@ namespace Pointer {
         // closest valid point to a given one
         Vector2D closestValid(const Vector2D& pos);
 
+        // holds the cursor at the edge of the monitor it's on until enough push has been built up to cross onto another one
+        Vector2D applyEdgeResistance(const Vector2D& oldPos, Vector2D newPos);
+
         // returns the thing in device coordinates. Is NOT offset by the hotspot, relies on set_cursor with hotspot.
         Vector2D getCursorPosForMonitor(PHLMONITOR pMonitor);
         // returns the thing in logical coordinates of the monitor
@@ -195,6 +198,10 @@ namespace Pointer {
         std::vector<SCursorImageData> m_cursorImages;
 
         Vector2D                      m_pointerPos = {0, 0};
+
+        // push accumulated against a monitor edge, per axis, and when it was last added to
+        Vector2D        m_edgePressure = {0, 0};
+        Time::steady_tp m_lastEdgePush;
 
         struct SMonitorPointerState {
             SMonitorPointerState(const PHLMONITOR& m) : monitor(m) {}

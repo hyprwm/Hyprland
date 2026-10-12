@@ -881,6 +881,65 @@ Vector2D CPointerManager::closestValid(const Vector2D& pos) {
     return hotBox.middle();
 }
 
+Vector2D CPointerManager::applyEdgeResistance(const Vector2D& oldPos, Vector2D newPos) {
+    static auto PRESISTANCE = CConfigValue<Config::INTEGER>("cursor:edge_resistance");
+    static auto PTIMEOUT    = CConfigValue<Config::INTEGER>("cursor:edge_resistance_timeout");
+
+    const auto& BOXES = m_currentMonitorLayout.monitorBoxes;
+
+    if (*PRESISTANCE <= 0 || BOXES.size() < 2)
+        return newPos;
+
+    const CBox* current = nullptr;
+    for (auto const& b : BOXES) {
+        if (b.containsPoint(oldPos)) {
+            current = &b;
+            break;
+        }
+    }
+
+    // staying put on the same monitor, nothing to resist
+    if (!current || current->containsPoint(newPos)) {
+        m_edgePressure = {};
+        return newPos;
+    }
+
+    // headed into dead space and not onto another monitor, closestValid will clamp us anyways
+    const bool ONTO_OTHER = std::ranges::any_of(BOXES, [current, &newPos](const CBox& b) { return &b != current && b.containsPoint(newPos); });
+    if (!ONTO_OTHER) {
+        m_edgePressure = {};
+        return newPos;
+    }
+
+    // a push that went stale doesn't count towards crossing anymore
+    if (std::chrono::duration_cast<std::chrono::milliseconds>(Time::steadyNow() - m_lastEdgePush).count() > *PTIMEOUT)
+        m_edgePressure = {};
+
+    m_lastEdgePush = Time::steadyNow();
+
+    const auto  DELTA = newPos - oldPos;
+
+    static auto RESIST_AXIS = [](double& coord, const double LO, const double HI, const double DELTA, double& pressure) {
+        if (coord >= LO && coord <= HI)
+            return; // this axis isn't the one crossing over
+
+        pressure += std::abs(DELTA);
+
+        if (pressure >= *PRESISTANCE) {
+            pressure = 0; // pushed hard enough, let it through
+            return;
+        }
+
+        coord = std::clamp(coord, LO, HI);
+    };
+
+    // the -1 keeps a pinned coord inside current, so that mouseMoveUnified won't hand focus to the monitor we are being held away from
+    RESIST_AXIS(newPos.x, current->x, current->x + current->w - 1, DELTA.x, m_edgePressure.x);
+    RESIST_AXIS(newPos.y, current->y, current->y + current->h - 1, DELTA.y, m_edgePressure.y);
+
+    return newPos;
+}
+
 void CPointerManager::damageIfSoftware() {
     for (auto const& mw : m_monitorStates) {
         auto monitor = mw->monitor.lock();
@@ -924,7 +983,7 @@ void CPointerManager::move(const Vector2D& deltaLogical) {
     if (PROTO::inputCapture->isCaptured())
         return;
 
-    warpTo(newPos);
+    warpTo(applyEdgeResistance(oldPos, newPos));
 }
 
 void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev, WP<Aquamarine::IOutput> output) {
@@ -1026,6 +1085,7 @@ void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev, WP<Aquamarine::IO
 }
 
 void CPointerManager::onMonitorLayoutChange() {
+    m_edgePressure = {}; // the boxes we were pushing against are about to be gone
     m_currentMonitorLayout.monitorBoxes.clear();
     for (auto const& m : State::monitorState()->monitors()) {
         if (m->isMirror() || !m->m_enabled || !m->m_output)

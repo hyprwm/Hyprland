@@ -686,6 +686,8 @@ std::vector<SP<IValue>> Values::getConfigValues() {
                 {.min = 0, .max = 2, .map = OptionMap{{"disable", 0}, {"enable", 1}, {"auto", 2}}}),
         MS<Int>("cursor:min_refresh_rate", "minimum refresh rate for cursor movement when no_break_fs_vrr is active.", 24, {.min = 10, .max = 500}),
         MS<Int>("cursor:hotspot_padding", "the padding, in logical px, between screen edges and the cursor", 0, {.min = 0, .max = 20}),
+        MS<Int>("cursor:edge_resistance", "the push, in logical px, needed to move the cursor onto another monitor. 0 to disable", 0, {.min = 0, .max = 500}),
+        MS<Int>("cursor:edge_resistance_timeout", "in ms, after how long of not pushing against an edge the accumulated push is reset", 150, {.min = 0, .max = 2000}),
         MS<Float>("cursor:inactive_timeout", "in seconds, after how many seconds of cursor's inactivity to hide it. Set to 0 for never.", 0, {.min = 0, .max = 20}),
         MS<Bool>("cursor:no_warps", "if true, will not warp the cursor in many cases", false),
         MS<Bool>("cursor:persistent_warps", "When a window is refocused, the cursor returns to its last position relative to that window.", false),

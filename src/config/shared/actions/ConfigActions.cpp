@@ -7,6 +7,7 @@
 #include "../../../desktop/view/window/Window.hpp"
 #include "../../../desktop/view/window/WindowGroupMembership.hpp"
 #include "../../../desktop/view/window/WindowPresentation.hpp"
+#include "../../../desktop/view/window/WindowStateTracker.hpp"
 #include "../../../desktop/view/window/WindowSwallowController.hpp"
 #include "../../../desktop/view/Group.hpp"
 #include "../../../desktop/history/WindowHistoryTracker.hpp"
@@ -317,6 +318,7 @@ ActionResult Actions::pinWindow(eTogglableAction action, std::optional<PHLWINDOW
         window->m_state |= Desktop::View::WINDOW_STATE_PINNED;
     else
         window->m_state &= ~Desktop::View::WINDOW_STATE_PINNED;
+    window->stateTracker().scheduleUpdate();
     window->updateFullscreenInputState();
     *window->presentation().alpha(Desktop::View::WINDOW_ALPHA_FULLSCREEN) = window->isBlockedByFullscreen() ? 0.F : 1.F;
 

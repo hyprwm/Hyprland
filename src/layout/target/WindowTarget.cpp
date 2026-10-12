@@ -1,6 +1,7 @@
 #include "WindowTarget.hpp"
 #include "../../desktop/view/window/Window.hpp"
 #include "../../desktop/view/window/WindowPresentation.hpp"
+#include "../../desktop/view/window/WindowStateTracker.hpp"
 
 #include "../space/Space.hpp"
 #include "../algorithm/Algorithm.hpp"
@@ -290,6 +291,7 @@ void CWindowTarget::setFloating(bool x) {
 
     m_floating = x;
     m_window->m_state &= ~Desktop::View::WINDOW_STATE_PINNED;
+    m_window->stateTracker().scheduleUpdate();
 
     m_window->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FLOATING);
 }

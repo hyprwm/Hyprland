@@ -48,6 +48,7 @@ namespace Desktop::View {
     class CWindowGroupMembership;
     class CWindowMetadata;
     class CWindowPresentation;
+    class CWindowStateEventTracker;
     class CWindowSwallowController;
 
     enum eWindowUpdateSource : uint8_t {
@@ -145,6 +146,7 @@ namespace Desktop::View {
         const CWindowFullscreenPolicy&                            fullscreenPolicy() const;
         CWindowGroupMembership&                                   grouping();
         const CWindowGroupMembership&                             grouping() const;
+        CWindowStateEventTracker&                                 stateTracker();
 
         virtual eViewType                                         type() const override;
         virtual bool                                              mapped() const override;
@@ -299,6 +301,7 @@ namespace Desktop::View {
         UP<CWindowMetadata>          m_metadata;
         UP<CWindowPresentation>      m_presentation;
         UP<CWindowEffectsController> m_effects;
+        UP<CWindowStateEventTracker> m_stateTracker;
         SP<Layout::CWindowTarget>    m_target;
         struct {
             CHyprSignalListener map;

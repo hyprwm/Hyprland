@@ -25,6 +25,11 @@ namespace Render {
 namespace Desktop {
     enum eFocusReason : uint32_t;
 }
+
+namespace Desktop::View {
+    struct SWindowStateUpdate;
+}
+
 namespace Event {
     struct SRenderStageEvent {
         eRenderStage stage = RENDER_PRE;
@@ -87,24 +92,25 @@ namespace Event {
             Event<> exit;
 
             struct {
-                Event<PHLWINDOW>                        create;
-                Event<PHLWINDOW>                        open;
-                Event<PHLWINDOW>                        openEarly;
-                Event<PHLWINDOW>                        openLate;
-                Event<PHLWINDOWREF>                     destroy;
-                Event<PHLWINDOW>                        close;
-                Event<PHLWINDOW>                        kill;
-                Event<PHLWINDOW, Desktop::eFocusReason> active;
-                Event<PHLWINDOW>                        urgent;
-                Event<PHLWINDOW>                        title;
-                Event<PHLWINDOW>                        class_;
-                Event<PHLWINDOW>                        pin;
-                Event<PHLWINDOW>                        fullscreen;
-                Event<PHLWINDOW, bool>                  minimize;
-                Event<PHLWINDOW>                        floating;
-                Event<PHLWINDOW>                        updateRules;
-                Event<PHLWINDOW, PHLWORKSPACE>          moveToWorkspace;
-                Cancellable<PHLWINDOW>                  bell;
+                Event<PHLWINDOW>                                           create;
+                Event<PHLWINDOW>                                           open;
+                Event<PHLWINDOW>                                           openEarly;
+                Event<PHLWINDOW>                                           openLate;
+                Event<PHLWINDOWREF>                                        destroy;
+                Event<PHLWINDOW>                                           close;
+                Event<PHLWINDOW>                                           kill;
+                Event<PHLWINDOW, Desktop::eFocusReason>                    active;
+                Event<PHLWINDOW>                                           urgent;
+                Event<PHLWINDOW>                                           title;
+                Event<PHLWINDOW>                                           class_;
+                Event<PHLWINDOW>                                           pin;
+                Event<PHLWINDOW>                                           fullscreen;
+                Event<PHLWINDOW, bool>                                     minimize;
+                Event<PHLWINDOW>                                           floating;
+                Event<PHLWINDOW, const Desktop::View::SWindowStateUpdate&> updateState;
+                Event<PHLWINDOW>                                           updateRules;
+                Event<PHLWINDOW, PHLWORKSPACE>                             moveToWorkspace;
+                Cancellable<PHLWINDOW>                                     bell;
             } window;
 
             struct {

@@ -22,7 +22,11 @@ CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_,
         PROTO::sessionLock->destroyResource(this);
     });
 
-    m_resource->setAckConfigure([this](CExtSessionLockSurfaceV1* r, uint32_t serial) { m_ackdConfigure = true; });
+    m_resource->setAckConfigure([this](CExtSessionLockSurfaceV1* r, uint32_t serial) {
+        m_ackdConfigure = true;
+        if (m_surface)
+            m_surface->m_pending.updated.bits.sessionLock = true;
+    });
 
     m_listeners.surfaceCommit = m_surface->m_events.commit.listen([this] {
         if (!m_surface->m_current.texture) {

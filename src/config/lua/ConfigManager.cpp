@@ -426,7 +426,6 @@ CConfigManager::~CConfigManager() {
 
     cleanTimers();
     clearLuaLayoutProviders();
-    clearHeldLuaRefs();
 
     if (m_luaStateLifetime)
         m_luaStateLifetime->state = nullptr;
@@ -500,20 +499,14 @@ void CConfigManager::registerValue(const char* name, UP<ILuaConfigValue>&& val) 
 }
 
 void CConfigManager::cleanTimers() {
-    for (auto& t : m_luaTimers) {
-        t.timer->cancel();
-        g_pEventLoopManager->removeTimer(t.timer);
-
-        if (m_lua && t.luaRef != LUA_NOREF) {
-            luaL_unref(m_lua, LUA_REGISTRYINDEX, t.luaRef);
-            t.luaRef = LUA_NOREF;
-        }
+    for (const auto& t : m_luaTimers) {
+        t->cancel();
+        g_pEventLoopManager->removeTimer(t);
     }
     m_luaTimers.clear();
 }
 
 void CConfigManager::reinitLuaState() {
-    // Destroy the event handler first so its luaL_unref calls happen while m_lua is still valid.
     m_eventHandler.reset();
 
     cleanTimers();
@@ -723,7 +716,6 @@ void CConfigManager::reload() {
     m_deviceConfigs.clear();
     m_registeredPlugins.clear();
     m_eventHandler->clearEvents();
-    clearHeldLuaRefs();
 
     if (Keybinds::mgr())
         Keybinds::mgr()->clearBinds();
@@ -1361,21 +1353,6 @@ void CConfigManager::onPluginUnload(void* handle) {
     });
 }
 
-void CConfigManager::registerLuaRef(int ref) {
-    m_heldLuaRefs.emplace_back(ref);
-}
-
-void CConfigManager::callLuaFn(int ref) {
-    lua_rawgeti(m_lua, LUA_REGISTRYINDEX, ref);
-
-    int status = guardedPCall(0, 0, 0, CConfigManager::LUA_TIMEOUT_KEYBIND_CALLBACK_MS, "keybind callback");
-
-    if (status != LUA_OK) {
-        addError(std::format("error in callLuaFn: {}", lua_tostring(m_lua, -1)));
-        lua_pop(m_lua, 1);
-    }
-}
-
 static SDispatchResult dispatchResultFromLua(lua_State* L, int idx) {
     SDispatchResult result;
 
@@ -1405,8 +1382,9 @@ static SDispatchResult dispatchResultFromLua(lua_State* L, int idx) {
     return result;
 }
 
-SDispatchResult CConfigManager::callLuaFnBind(int ref) {
-    lua_rawgeti(m_lua, LUA_REGISTRYINDEX, ref);
+SDispatchResult CConfigManager::callLuaFnBind(const CLuaRef& fn) {
+    if (!fn.push())
+        return {.success = false, .error = "Lua keybind belongs to an expired config state"};
 
     int status = guardedPCall(0, 1, 0, CConfigManager::LUA_TIMEOUT_KEYBIND_CALLBACK_MS, "keybind callback");
 
@@ -1423,11 +1401,9 @@ SDispatchResult CConfigManager::callLuaFnBind(int ref) {
     return result;
 }
 
-void CConfigManager::callLuaFn(int ref, const std::function<int(lua_State*)>& pushArgs, int timeoutMs, std::string_view context) {
-    if (ref == LUA_NOREF || ref == LUA_REFNIL)
+void CConfigManager::callLuaFn(const CLuaRef& fn, const std::function<int(lua_State*)>& pushArgs, int timeoutMs, std::string_view context) {
+    if (!fn.push())
         return;
-
-    lua_rawgeti(m_lua, LUA_REGISTRYINDEX, ref);
 
     const int nargs  = pushArgs ? pushArgs(m_lua) : 0;
     const int status = guardedPCall(nargs, 0, 0, timeoutMs, context);
@@ -1436,14 +1412,6 @@ void CConfigManager::callLuaFn(int ref, const std::function<int(lua_State*)>& pu
         addError(std::format("error in {}: {}", context, lua_tostring(m_lua, -1)));
         lua_pop(m_lua, 1);
     }
-}
-
-void CConfigManager::clearHeldLuaRefs() {
-    for (const auto& r : m_heldLuaRefs) {
-        luaL_unref(m_lua, LUA_REGISTRYINDEX, r);
-    }
-
-    m_heldLuaRefs.clear();
 }
 
 bool CConfigManager::isDynamicParse() const {

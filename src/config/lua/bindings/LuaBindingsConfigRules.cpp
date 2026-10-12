@@ -755,66 +755,32 @@ static int hlGesture(lua_State* L) {
     if (direction == TRACKPAD_GESTURE_DIR_NONE)
         return Internal::configError(L, std::format("hl.gesture: invalid direction \"{}\"", dirParser.parsed()));
 
-    struct SLuaGestureRefGuard {
-        lua_State*       L = nullptr;
-        std::vector<int> refs;
-        bool             disarm = false;
+    const auto MGR      = Lua::mgr();
+    const auto LIFETIME = MGR ? MGR->luaStateLifetime() : nullptr;
 
-        ~SLuaGestureRefGuard() {
-            if (disarm)
-                return;
-
-            for (const auto ref : refs) {
-                if (ref != LUA_NOREF && ref != LUA_REFNIL)
-                    luaL_unref(L, LUA_REGISTRYINDEX, ref);
-            }
-        }
-
-        void add(int ref) {
-            if (ref != LUA_NOREF && ref != LUA_REFNIL)
-                refs.emplace_back(ref);
-        }
-
-        bool hasRefs() const {
-            return !refs.empty();
-        }
-
-        void registerWithManager() {
-            const auto mgr = Lua::mgr();
-            if (!mgr)
-                return;
-
-            for (const auto ref : refs) {
-                mgr->registerLuaRef(ref);
-            }
-
-            disarm = true;
-        }
-    } luaGestureRefs{.L = L};
-
-    int functionRef = LUA_NOREF;
-    int startRef    = LUA_NOREF;
-    int updateRef   = LUA_NOREF;
-    int endRef      = LUA_NOREF;
+    CLuaRef    functionRef, startRef, updateRef, endRef;
 
     {
         // check if the action arg is a lua fn, that's fine
         // we can ref that fucker and call him later
         lua_getfield(L, 1, "action");
 
-        if (lua_isfunction(L, -1)) {
-            lua_pushvalue(L, -1);
-            functionRef = luaL_ref(L, LUA_REGISTRYINDEX);
-            luaGestureRefs.add(functionRef);
-        } else if (lua_istable(L, -1)) {
+        if ((lua_isfunction(L, -1) || lua_istable(L, -1)) && !LIFETIME) {
+            lua_pop(L, 1);
+            return Internal::configError(L, "hl.gesture: internal error: lua callback manager unavailable");
+        }
+
+        if (lua_isfunction(L, -1))
+            functionRef = CLuaRef{LIFETIME, L, -1};
+        else if (lua_istable(L, -1)) {
             const int actionIdx = lua_gettop(L);
 
-            auto      readCallback = [&](const char* name) -> std::expected<int, std::string> {
+            auto      readCallback = [&](const char* name) -> std::expected<CLuaRef, std::string> {
                 lua_getfield(L, actionIdx, name);
 
                 if (lua_isnil(L, -1)) {
                     lua_pop(L, 1);
-                    return LUA_NOREF;
+                    return CLuaRef{};
                 }
 
                 if (!lua_isfunction(L, -1)) {
@@ -822,8 +788,8 @@ static int hlGesture(lua_State* L) {
                     return std::unexpected(std::format("action.{} must be a function", name));
                 }
 
-                const int ref = luaL_ref(L, LUA_REGISTRYINDEX);
-                luaGestureRefs.add(ref);
+                CLuaRef ref{LIFETIME, L, -1};
+                lua_pop(L, 1);
                 return ref;
             };
 
@@ -832,23 +798,23 @@ static int hlGesture(lua_State* L) {
                 lua_pop(L, 1);
                 return Internal::configError(L, std::format("hl.gesture: {}", startResult.error()));
             }
-            startRef = *startResult;
+            startRef = std::move(*startResult);
 
             auto updateResult = readCallback("update");
             if (!updateResult) {
                 lua_pop(L, 1);
                 return Internal::configError(L, std::format("hl.gesture: {}", updateResult.error()));
             }
-            updateRef = *updateResult;
+            updateRef = std::move(*updateResult);
 
             auto endResult = readCallback("finish");
             if (!endResult) {
                 lua_pop(L, 1);
                 return Internal::configError(L, std::format("hl.gesture: {}", endResult.error()));
             }
-            endRef = *endResult;
+            endRef = std::move(*endResult);
 
-            if (startRef == LUA_NOREF && updateRef == LUA_NOREF && endRef == LUA_NOREF) {
+            if (!startRef.state() && !updateRef.state() && !endRef.state()) {
                 lua_pop(L, 1);
                 return Internal::configError(L, "hl.gesture: action callback table must define at least one of start, update, end, or finish");
             }
@@ -925,14 +891,12 @@ static int hlGesture(lua_State* L) {
 
     std::expected<void, std::string> result;
 
-    if (luaGestureRefs.hasRefs() && !Lua::mgr())
-        return Internal::configError(L, "hl.gesture: internal error: lua callback manager unavailable");
-
-    if (functionRef != LUA_NOREF) {
+    if (functionRef.state()) {
         // this is a lua fn gesture
-        result = g_pTrackpadGestures->addGesture(makeUnique<CLuaFunctionGesture>(functionRef), fingerCount, direction, modMask, deltaScale, disableInhibit);
-    } else if (startRef != LUA_NOREF || updateRef != LUA_NOREF || endRef != LUA_NOREF) {
-        result = g_pTrackpadGestures->addGesture(makeUnique<CLuaFunctionGesture>(startRef, updateRef, endRef), fingerCount, direction, modMask, deltaScale, disableInhibit);
+        result = g_pTrackpadGestures->addGesture(makeUnique<CLuaFunctionGesture>(std::move(functionRef)), fingerCount, direction, modMask, deltaScale, disableInhibit);
+    } else if (startRef.state() || updateRef.state() || endRef.state()) {
+        result = g_pTrackpadGestures->addGesture(makeUnique<CLuaFunctionGesture>(std::move(startRef), std::move(updateRef), std::move(endRef)), fingerCount, direction, modMask,
+                                                 deltaScale, disableInhibit);
     } else {
         CLuaConfigString actionParser("");
         auto             actionErr = Internal::parseTableField(L, 1, "action", actionParser);
@@ -967,8 +931,6 @@ static int hlGesture(lua_State* L) {
 
     if (!result)
         return Internal::configError(L, std::format("hl.gesture: {}", result.error()));
-
-    luaGestureRefs.registerWithManager();
 
     return 0;
 }

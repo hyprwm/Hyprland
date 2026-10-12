@@ -13,6 +13,7 @@
 #include "../../helpers/signal/Signal.hpp"
 #include "../../desktop/DesktopTypes.hpp"
 #include "event/EventBus.hpp"
+#include "LuaRef.hpp"
 
 extern "C" {
 #include <lua.h>
@@ -31,9 +32,9 @@ namespace Config::Lua {
         explicit CLuaEventHandler(lua_State* L);
         ~CLuaEventHandler();
 
-        // Store a Lua function (as a registry ref) to be called when `name` fires.
+        // Store a Lua function to be called when `name` fires.
         // Returns a subscription handle, or std::nullopt if the event name is unknown.
-        std::optional<uint64_t>                registerEvent(const std::string& name, int luaRef);
+        std::optional<uint64_t>                registerEvent(const std::string& name, CLuaRef&& fn);
         bool                                   unregisterEvent(uint64_t handle);
 
         void                                   clearEvents();
@@ -46,7 +47,7 @@ namespace Config::Lua {
       private:
         struct SSubscription {
             std::string eventName;
-            int         luaRef = -1;
+            CLuaRef     fn;
         };
 
         lua_State*                                             m_lua = nullptr;

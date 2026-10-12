@@ -121,11 +121,12 @@ static int pushGestureEvent(lua_State* L, const ITrackpadGesture::STrackpadGestu
     return 1;
 }
 
-CLuaFunctionGesture::CLuaFunctionGesture(int ref) : m_luaEndFnId(ref), m_legacyEndOnly(true) {
+CLuaFunctionGesture::CLuaFunctionGesture(Config::Lua::CLuaRef&& fn) : m_luaEndFn(std::move(fn)), m_legacyEndOnly(true) {
     ;
 }
 
-CLuaFunctionGesture::CLuaFunctionGesture(int startRef, int updateRef, int endRef) : m_luaStartFnId(startRef), m_luaUpdateFnId(updateRef), m_luaEndFnId(endRef) {
+CLuaFunctionGesture::CLuaFunctionGesture(Config::Lua::CLuaRef&& start, Config::Lua::CLuaRef&& update, Config::Lua::CLuaRef&& end) :
+    m_luaStartFn(std::move(start)), m_luaUpdateFn(std::move(update)), m_luaEndFn(std::move(end)) {
     ;
 }
 
@@ -136,7 +137,7 @@ void CLuaFunctionGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e
     if (!MGR)
         return;
 
-    MGR->callLuaFn(m_luaStartFnId, [&](lua_State* L) { return pushGestureEvent(L, e); }, Config::Lua::CConfigManager::LUA_TIMEOUT_EVENT_CALLBACK_MS, "gesture start callback");
+    MGR->callLuaFn(m_luaStartFn, [&](lua_State* L) { return pushGestureEvent(L, e); }, Config::Lua::CConfigManager::LUA_TIMEOUT_EVENT_CALLBACK_MS, "gesture start callback");
 }
 
 void CLuaFunctionGesture::update(const ITrackpadGesture::STrackpadGestureUpdate& e) {
@@ -144,7 +145,7 @@ void CLuaFunctionGesture::update(const ITrackpadGesture::STrackpadGestureUpdate&
     if (!MGR)
         return;
 
-    MGR->callLuaFn(m_luaUpdateFnId, [&](lua_State* L) { return pushGestureEvent(L, e); }, Config::Lua::CConfigManager::LUA_TIMEOUT_EVENT_CALLBACK_MS, "gesture update callback");
+    MGR->callLuaFn(m_luaUpdateFn, [&](lua_State* L) { return pushGestureEvent(L, e); }, Config::Lua::CConfigManager::LUA_TIMEOUT_EVENT_CALLBACK_MS, "gesture update callback");
 }
 
 void CLuaFunctionGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) {
@@ -152,8 +153,9 @@ void CLuaFunctionGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) {
     if (!MGR)
         return;
 
+    // fires once, like a bind
     if (m_legacyEndOnly)
-        MGR->callLuaFn(m_luaEndFnId);
+        MGR->callLuaFn(m_luaEndFn, {}, Config::Lua::CConfigManager::LUA_TIMEOUT_KEYBIND_CALLBACK_MS, "gesture callback");
     else
-        MGR->callLuaFn(m_luaEndFnId, [&](lua_State* L) { return pushGestureEvent(L, e); }, Config::Lua::CConfigManager::LUA_TIMEOUT_EVENT_CALLBACK_MS, "gesture end callback");
+        MGR->callLuaFn(m_luaEndFn, [&](lua_State* L) { return pushGestureEvent(L, e); }, Config::Lua::CConfigManager::LUA_TIMEOUT_EVENT_CALLBACK_MS, "gesture end callback");
 }

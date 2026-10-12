@@ -31,10 +31,12 @@ namespace {
         lua_State* m_lua = nullptr;
     };
 
-    int refGlobalFunction(lua_State* L, const char* name) {
+    CLuaRef refGlobalFunction(lua_State* L, const char* name) {
         lua_getglobal(L, name);
         EXPECT_TRUE(lua_isfunction(L, -1));
-        return luaL_ref(L, LUA_REGISTRYINDEX);
+        CLuaRef ref{makeShared<SLuaStateLifetime>(L), L, -1};
+        lua_pop(L, 1);
+        return ref;
     }
 
     int getGlobalInt(lua_State* L, const char* name) {
@@ -74,8 +76,8 @@ TEST(ConfigLuaEventHandler, registerDispatchAndUnregister) {
     )"),
               LUA_OK);
 
-    const int  ref    = refGlobalFunction(L, "onSubmap");
-    const auto handle = handler.registerEvent("keybinds.submap", ref);
+    auto       ref    = refGlobalFunction(L, "onSubmap");
+    const auto handle = handler.registerEvent("keybinds.submap", std::move(ref));
     ASSERT_TRUE(handle.has_value());
 
     Event::bus()->m_events.keybinds.submap.emit("main");
@@ -95,11 +97,10 @@ TEST(ConfigLuaEventHandler, registerUnknownEventReturnsNullopt) {
 
     ASSERT_EQ(luaL_dostring(L, "function cb() end"), LUA_OK);
 
-    const int  ref    = refGlobalFunction(L, "cb");
-    const auto handle = handler.registerEvent("totally.unknown", ref);
+    auto       ref    = refGlobalFunction(L, "cb");
+    const auto handle = handler.registerEvent("totally.unknown", std::move(ref));
 
     EXPECT_FALSE(handle.has_value());
-    luaL_unref(L, LUA_REGISTRYINDEX, ref);
 }
 
 TEST(ConfigLuaEventHandler, callbackLuaErrorDoesNotCrashDispatch) {
@@ -109,8 +110,8 @@ TEST(ConfigLuaEventHandler, callbackLuaErrorDoesNotCrashDispatch) {
 
     ASSERT_EQ(luaL_dostring(L, "function broken() error('boom') end"), LUA_OK);
 
-    const int  ref = refGlobalFunction(L, "broken");
-    const auto h   = handler.registerEvent("config.reloaded", ref);
+    auto       ref = refGlobalFunction(L, "broken");
+    const auto h   = handler.registerEvent("config.reloaded", std::move(ref));
     ASSERT_TRUE(h.has_value());
 
     Event::bus()->m_events.config.reloaded.emit();
@@ -137,8 +138,8 @@ TEST(ConfigLuaEventHandler, addCustomEventAndDispatchToLua) {
     EXPECT_TRUE(Event::bus()->addPluginEvent(e));
     EXPECT_TRUE(CLuaEventHandler::knownEvents().contains("plugin.my_event"));
 
-    const int  ref    = refGlobalFunction(L, "onMyEvent");
-    const auto handle = handler.registerEvent("plugin.my_event", ref);
+    auto       ref    = refGlobalFunction(L, "onMyEvent");
+    const auto handle = handler.registerEvent("plugin.my_event", std::move(ref));
     ASSERT_TRUE(handle.has_value());
 
     EXPECT_TRUE(e->emit({67, std::string("hello from plugin")}));

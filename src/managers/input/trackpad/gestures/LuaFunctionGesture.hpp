@@ -1,11 +1,12 @@
 #pragma once
 
 #include "ITrackpadGesture.hpp"
+#include "../../../../config/lua/LuaRef.hpp"
 
 class CLuaFunctionGesture : public ITrackpadGesture {
   public:
-    CLuaFunctionGesture(int ref);
-    CLuaFunctionGesture(int startRef, int updateRef, int endRef);
+    CLuaFunctionGesture(Config::Lua::CLuaRef&& fn);
+    CLuaFunctionGesture(Config::Lua::CLuaRef&& start, Config::Lua::CLuaRef&& update, Config::Lua::CLuaRef&& end);
     virtual ~CLuaFunctionGesture() = default;
 
     virtual void begin(const ITrackpadGesture::STrackpadGestureBegin& e);
@@ -13,8 +14,8 @@ class CLuaFunctionGesture : public ITrackpadGesture {
     virtual void end(const ITrackpadGesture::STrackpadGestureEnd& e);
 
   private:
-    int  m_luaStartFnId  = -2;
-    int  m_luaUpdateFnId = -2;
-    int  m_luaEndFnId    = -2;
-    bool m_legacyEndOnly = false;
+    Config::Lua::CLuaRef m_luaStartFn;
+    Config::Lua::CLuaRef m_luaUpdateFn;
+    Config::Lua::CLuaRef m_luaEndFn;
+    bool                 m_legacyEndOnly = false;
 };

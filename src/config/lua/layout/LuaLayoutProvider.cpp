@@ -88,7 +88,7 @@ void CLuaTiledAlgorithm::moveTargetInDirection(SP<Layout::ITarget> t, Math::eDir
 }
 
 Config::ErrorResult CLuaTiledAlgorithm::layoutMsg(const std::string_view& sv) {
-    if (!m_provider || !m_provider->active || !m_provider->state)
+    if (!m_provider || !m_provider->table.state())
         return {};
 
     auto targets = liveTargets();
@@ -97,10 +97,10 @@ Config::ErrorResult CLuaTiledAlgorithm::layoutMsg(const std::string_view& sv) {
     if (!space)
         return {};
 
-    lua_State* L   = m_provider->state;
+    lua_State* L   = m_provider->table.state();
     const int  top = lua_gettop(L);
 
-    lua_rawgeti(L, LUA_REGISTRYINDEX, m_provider->tableRef);
+    m_provider->table.push();
     lua_getfield(L, -1, "layout_msg");
     lua_remove(L, -2);
 
@@ -178,7 +178,7 @@ std::vector<SP<Layout::ITarget>> CLuaTiledAlgorithm::liveTargets() {
 }
 
 bool CLuaTiledAlgorithm::callRecalculate(const std::vector<SP<Layout::ITarget>>& targets) {
-    if (!m_provider || !m_provider->active || !m_provider->state || !m_provider->manager)
+    if (!m_provider || !m_provider->table.state() || !m_provider->manager)
         return false;
 
     auto parent = m_parent.lock();
@@ -186,10 +186,10 @@ bool CLuaTiledAlgorithm::callRecalculate(const std::vector<SP<Layout::ITarget>>&
     if (!space)
         return false;
 
-    lua_State* L   = m_provider->state;
+    lua_State* L   = m_provider->table.state();
     const int  top = lua_gettop(L);
 
-    lua_rawgeti(L, LUA_REGISTRYINDEX, m_provider->tableRef);
+    m_provider->table.push();
     lua_getfield(L, -1, "recalculate");
     lua_remove(L, -2);
 
@@ -261,17 +261,13 @@ std::expected<void, std::string> CConfigManager::registerLuaLayoutProvider(std::
     if (!hasRecalculate)
         return std::unexpected("provider table must define recalculate(ctx)");
 
-    lua_pushvalue(L, providerTableIdx);
-    const int ref = luaL_ref(L, LUA_REGISTRYINDEX);
-
-    auto      provider = makeShared<SLuaLayoutProvider>();
-    provider->manager  = this;
-    provider->state    = L;
-    provider->name     = name;
-    provider->tableRef = ref;
+    auto provider     = makeShared<SLuaLayoutProvider>();
+    provider->manager = this;
+    provider->name    = name;
+    provider->table   = CLuaRef{m_luaStateLifetime, L, providerTableIdx};
 
     if (!Layout::Supplementary::algoMatcher()->registerTiledAlgo(name, &typeid(CLuaTiledAlgorithm), [provider] { return makeUnique<CLuaTiledAlgorithm>(provider); })) {
-        luaL_unref(L, LUA_REGISTRYINDEX, ref);
+        provider->table = {};
         return std::unexpected(std::format("layout '{}' is already registered", name));
     }
 
@@ -283,21 +279,15 @@ void CConfigManager::clearLuaLayoutProviders() {
     if (m_luaLayoutProviders.empty())
         return;
 
+    // before unregistering, which can recalculate
     for (auto& provider : m_luaLayoutProviders) {
         if (provider)
-            provider->active = false;
+            provider->table = {};
     }
 
     for (auto& provider : m_luaLayoutProviders) {
         if (provider)
             Layout::Supplementary::algoMatcher()->unregisterAlgo(provider->name);
-    }
-
-    for (auto& provider : m_luaLayoutProviders) {
-        if (provider && m_lua && provider->tableRef != LUA_NOREF) {
-            luaL_unref(m_lua, LUA_REGISTRYINDEX, provider->tableRef);
-            provider->tableRef = LUA_NOREF;
-        }
     }
 
     m_luaLayoutProviders.clear();

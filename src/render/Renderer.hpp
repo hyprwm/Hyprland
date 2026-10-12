@@ -63,6 +63,10 @@ namespace Render {
     class IHyprRenderer;
     enum class eSceneMode : uint8_t;
 
+    // Source peak handed to the tonemap shader, which compares it against dstMaxLuminance.
+    float tonemapShaderMaxLuminance(NColorManagement::eTransferFunction srcTF, NColorManagement::eTransferFunction targetTF, float maxLuminance, float dstMaxLuminance,
+                                    float srcRefLuminance, float dstRefLuminance);
+
     class CTempFramebufferScope {
       public:
         CTempFramebufferScope(IHyprRenderer& renderer, CRenderContext& ctx, SP<IFramebuffer> fb);

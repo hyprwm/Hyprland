@@ -1065,8 +1065,6 @@ ActionResult Actions::changeWorkspace(PHLWORKSPACE ws) {
     if (!g_pInputManager->m_lastFocusOnLS) {
         if (Desktop::focusState()->surface())
             g_pInputManager->sendMotionEventsToFocused();
-        else
-            g_pInputManager->simulateMouseMovement();
     }
 
     const static auto PWARPONWORKSPACECHANGE = CConfigValue<Config::INTEGER>("cursor:warp_on_change_workspace");

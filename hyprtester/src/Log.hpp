@@ -47,4 +47,11 @@ namespace NLog {
         auto msg = std::vformat(fmt.get(), std::make_format_args(args...));
         log("{}{}", Colors::RED, msg);
     }
+
+    template <typename... Args>
+    // NOLINTNEXTLINE
+    void blue(std::format_string<Args...> fmt, Args&&... args) {
+        auto msg = std::vformat(fmt.get(), std::make_format_args(args...));
+        log("{}{}", Colors::BLUE, msg);
+    }
 }

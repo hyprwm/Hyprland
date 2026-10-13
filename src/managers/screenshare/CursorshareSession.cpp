@@ -145,7 +145,7 @@ bool CCursorshareSession::copy() {
     if (g_pHyprRenderer->context().active())
         return false;
 
-    if (!m_pendingFrame.callback || !m_pendingFrame.monitor || !m_pendingFrame.callback || !m_pendingFrame.sourceBoxCallback)
+    if (!m_pendingFrame.callback || !m_pendingFrame.monitor || !m_pendingFrame.monitor->m_enabled || !m_pendingFrame.callback || !m_pendingFrame.sourceBoxCallback)
         return false;
 
     // FIXME: this doesn't really make sense but just to be safe

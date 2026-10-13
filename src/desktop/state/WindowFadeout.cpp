@@ -50,6 +50,8 @@ static void damageWeakFadeout(WP<T> fadeout) {
 }
 
 SP<CWindowFadeout> CWindowFadeout::create(PHLWINDOW window, SP<Render::IFramebuffer> snapshot, float sourceAlpha) {
+    static auto PBLURXRAY = CConfigValue<Config::INTEGER>("decoration:blur:xray");
+
     if (!window || !snapshot)
         return nullptr;
 
@@ -70,7 +72,7 @@ SP<CWindowFadeout> CWindowFadeout::create(PHLWINDOW window, SP<Render::IFramebuf
     fadeout->m_rounding      = window->presentation().rounding();
     fadeout->m_roundingPower = window->presentation().roundingPower();
     fadeout->m_blur          = shouldBlurWindow(window);
-    fadeout->m_blurXray      = window->m_ruleApplicator->xray().valueOr(false);
+    fadeout->m_blurXray      = window->m_ruleApplicator->xray().valueOr(*PBLURXRAY != 0);
 
     static auto PDIMAROUND = CConfigValue<Config::FLOAT>("decoration:dim_around");
     if (*PDIMAROUND && window->m_ruleApplicator->dimAround().valueOrDefault())

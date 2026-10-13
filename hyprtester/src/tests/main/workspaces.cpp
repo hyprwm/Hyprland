@@ -1334,11 +1334,25 @@ SUBTEST(switchWorkspaceAndCheckActiveWindowFocusIsLostAndRestored) {
 TEST_CASE(workspaceSwitchUnfocusesWindowFromOldWorkspace) {
     SPAWN_KITTY("a");
     for (int followMouse = 0; followMouse <= 3; ++followMouse) {
+        NLog::blue("Setting follow_mouse = {}", followMouse);
         OK(getFromSocket(std::format("/eval hl.config({{ input = {{ follow_mouse = {} }} }})", followMouse)));
         CALL_SUBTEST(switchWorkspaceAndCheckActiveWindowFocusIsLostAndRestored);
     }
-    // TODO: also test when workspaces 1 and 2 are on different workspaces.
-    //       At the time of writing, it is broken (i.e., the test would fail).
+
+    Tests::killAllWindows();
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+    OK(getFromSocket("/eval hl.workspace_rule({ workspace = '2', monitor = 'HEADLESS-1' })"));
+    OK(getFromSocket("/output create headless HEADLESS-1"));
+    CScopeGuard guard = {[this]() { OK(getFromSocket("/output remove HEADLESS-1")); }};
+
+    std::string resp = getFromSocket("/activeworkspace");
+    ASSERT_CONTAINS(resp, "workspace 1 (");
+    SPAWN_KITTY("a");
+    for (int followMouse = 0; followMouse <= 3; ++followMouse) {
+        NLog::blue("Setting follow_mouse = {}", followMouse);
+        OK(getFromSocket(std::format("/eval hl.config({{ input = {{ follow_mouse = {} }} }})", followMouse)));
+        CALL_SUBTEST(switchWorkspaceAndCheckActiveWindowFocusIsLostAndRestored);
+    }
 }
 
 TEST_CASE(luaFocusCreatesBareNamedWorkspace) {

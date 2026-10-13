@@ -139,14 +139,16 @@ static int hlGroupActive(lua_State* L) {
 }
 
 static int hlGroupLock(lua_State* L) {
-    bool needs_remove = false;
-    if (lua_gettop(L) == 0) {
-        lua_newtable(L);
-        needs_remove = true;
-    } else {
-        if (!lua_istable(L, 1))
-            return Internal::configError(L, "hl.group.lock: expected a table { window?, all?, action? } or no args");
+    if (lua_gettop(L) == 0 || lua_isnil(L, 1)) {
+        // toggle lock on active window's group
+        lua_pushnumber(L, sc<int>(CA::TOGGLE_ACTION_TOGGLE));
+        lua_pushnil(L);
+        lua_pushcclosure(L, dsp_lockGroup, 2);
+        return 1;
     }
+
+    if (!lua_istable(L, 1))
+        return Internal::configError(L, "hl.group.lock: expected a table { window?, all?, action? } or no args");
 
     const auto action = Internal::tableToggleAction(L, 1);
     lua_pushnumber(L, sc<int>(action));
@@ -160,9 +162,6 @@ static int hlGroupLock(lua_State* L) {
         Internal::pushWindowUpval(L, 1);
         lua_pushcclosure(L, dsp_lockGroup, 2);
     }
-
-    if (needs_remove)
-        lua_remove(L, 1);
     return 1;
 }
 

@@ -260,6 +260,12 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
             return;
         }
 
+        // Shoutout mongoloid idiots writing Xorg for this thing and I can't even submit a patch
+        // because hurr durr you are hitler you said a bad word in 2022 you must be publicly
+        // executed waaaah
+        if (reply->value_len > XCB_ICCCM_NUM_WM_HINTS_ELEMENTS)
+            return;
+
         auto hints = makeUnique<xcb_icccm_wm_hints_t>();
         if (!xcb_icccm_get_wm_hints_from_reply(hints.get(), reply))
             return;

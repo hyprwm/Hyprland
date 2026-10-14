@@ -272,10 +272,11 @@ hl.bind(mainMod .. " + down",  hl.dsp.focus({ direction = "down" }))
 
 -- Switch workspaces with mainMod + [0-9]
 -- Move active window to a workspace with mainMod + SHIFT + [0-9]
+-- Using keycodes for compatibility with some non-qwerty keyboard layouts
 for i = 1, 10 do
-    local key = i % 10 -- 10 maps to key 0
-    hl.bind(mainMod .. " + " .. key,             hl.dsp.focus({ workspace = i}))
-    hl.bind(mainMod .. " + SHIFT + " .. key,     hl.dsp.window.move({ workspace = i }))
+    local keycode = i + 9 -- 10 maps to keycode 19 (key 0)
+    hl.bind(mainMod .. " + code:" .. key,             hl.dsp.focus({ workspace = i}))
+    hl.bind(mainMod .. " + SHIFT + code:" .. key,     hl.dsp.window.move({ workspace = i }))
 end
 
 -- Example special workspace (scratchpad)

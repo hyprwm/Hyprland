@@ -2205,3 +2205,73 @@ TEST_CASE(floatingMoveExpression) {
 
     Tests::killAllWindows();
 }
+
+TEST_CASE(newFullscreenWindowReceivesCursorFocus) {
+    NLog::red("This functionality seems broken. Skipping test");
+    return;
+
+    // Bash command that will terminate on mouse input event
+    std::vector<std::string> waitMouseEventCmd = {"bash", "-c", R"(echo -e '\e[?1000h'; read -n 1)"};
+
+    // SPAWN_KITTY("kittyA", waitMouseEventCmd);
+    SPAWN_KITTY("kittyA");
+    auto str = getFromSocket("/activewindow");
+    ASSERT_CONTAINS(str, "class: kittyA\n");
+    ASSERT_CONTAINS(str, "fullscreen: 0\n");
+
+    // Opens fullscreen and terminates on mouse input event
+    OK(getFromSocket("/eval hl.exec_cmd(\"kitty --class kittyB bash -c \\\"echo -e '\\\\e[?1000h'; read -n 1\\\"\", { fullscreen = true })"));
+    Tests::waitUntilWindowsN(2);
+    str = getFromSocket("/activewindow");
+    ASSERT_CONTAINS(str, "class: kittyB\n");
+    ASSERT_CONTAINS(str, "fullscreen: 2\n");
+
+    // Since kittyB is active, it should receive the mouse input (and, subseqeuntly, terminate)
+    OK(getFromSocket("/dispatch hl.dsp.send_shortcut({ mods = '', key = 'mouse:272' })"));
+    Tests::waitUntilWindowsN(1);
+    str = getFromSocket("/activewindow");
+    ASSERT_CONTAINS(str, "class: kittyA\n");
+}
+
+TEST_CASE(windowGoesFullscreenAndReceivesCursorFocus) {
+    NLog::red("This functionality seems broken. Skipping test");
+    return;
+
+    // Bash command that will terminate on mouse input event
+    std::vector<std::string> waitMouseEventCmd = {"bash", "-c", R"(echo -e '\e[?1000h'; read -n 1)"};
+
+    SPAWN_KITTY("kittyA", waitMouseEventCmd);
+    SPAWN_KITTY("kittyB", waitMouseEventCmd);
+    // Focus A and warp cursor to it
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kittyA' })"));
+    // Make B fullscreen
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set', window = 'class:kittyB' })"));
+
+    auto str = getFromSocket("/activewindow");
+    ASSERT_CONTAINS(str, "class: kittyB\n");
+    // Since kittyB is active, it should receive the mouse input (and, subseqeuntly, terminate)
+    OK(getFromSocket("/dispatch hl.dsp.send_shortcut({ mods = '', key = 'mouse:272' })"));
+    Tests::waitUntilWindowsN(1);
+    str = getFromSocket("/activewindow");
+    ASSERT_CONTAINS(str, "class: kittyA\n");
+}
+
+TEST_CASE(windowThatGoesFullscreenBecomesActive) {
+    NLog::red("This functionality seems broken. Skipping test");
+    return;
+
+    SPAWN_KITTY("kittyA");
+    SPAWN_KITTY("kittyB");
+
+    auto str = getFromSocket("/activewindow");
+    ASSERT_CONTAINS(str, "class: kittyB\n");
+    EXPECT_CONTAINS(str, "fullscreen: 0\n");
+
+    // kittyA goes to fullscreen
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set', window = 'class:kittyA' })"));
+
+    // It should be active now
+    str = getFromSocket("/activewindow");
+    ASSERT_CONTAINS(str, "class: kittyA\n");
+    EXPECT_CONTAINS(str, "fullscreen: 2\n");
+}

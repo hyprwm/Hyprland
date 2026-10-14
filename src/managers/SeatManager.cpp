@@ -753,6 +753,10 @@ void CSeatManager::setCurrentPrimarySelection(SP<IDataSource> source) {
 }
 
 void CSeatManager::setGrab(SP<CSeatGrab> grab) {
+    // Do not grab when we have a lockscreen - no surface should grab in those cases.
+    if (g_pInputManager->isLocked() && grab)
+        return;
+
     if (m_seatGrab) {
         auto oldGrab = m_seatGrab;
 

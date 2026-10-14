@@ -502,8 +502,8 @@ bool CLayerSurface::shouldBlur() const {
         return false;
 
     auto surface = wlSurface();
-    if (surface && surface->m_hasBackgroundEffect)
-        return !surface->m_blurRegion.empty();
+    if (surface && surface->m_hasBackgroundEffect && !surface->m_blurRegion.empty())
+        return true;
 
     return m_ruleApplicator->blur().valueOrDefault();
 }

@@ -31,6 +31,7 @@
 #include "../../../animation/AnimationManager.hpp"
 #include "../../../managers/input/InputManager.hpp"
 #include "../../../managers/input/trackpad/TrackpadGestures.hpp"
+#include "../../../managers/input/trackpad/TriggeredGestures.hpp"
 #include "../../../managers/input/trackpad/gestures/CloseGesture.hpp"
 #include "../../../managers/input/trackpad/gestures/CursorZoomGesture.hpp"
 #include "../../../managers/input/trackpad/gestures/FloatGesture.hpp"
@@ -45,6 +46,7 @@
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 
+#include <variant>
 #include <vector>
 
 using namespace Config;
@@ -735,16 +737,84 @@ static int hlWorkspaceRule(lua_State* L) {
     return 1;
 }
 
+struct SFingerGestureInput {
+    size_t fingerCount;
+};
+
+struct STriggeredGestureInput {
+    std::string         trigger;
+    eGestureDeltaSource source;
+};
+
+using GestureInput = std::variant<SFingerGestureInput, STriggeredGestureInput>;
+
+static std::optional<eGestureDeltaSource> gestureSourceForString(const std::string& source) {
+    if (source == "mouse")
+        return GESTURE_DELTA_SOURCE_MOUSE;
+    if (source == "wheel")
+        return GESTURE_DELTA_SOURCE_WHEEL;
+    if (source == "finger")
+        return GESTURE_DELTA_SOURCE_FINGER;
+    if (source == "continuous")
+        return GESTURE_DELTA_SOURCE_CONTINUOUS;
+    if (source == "wheel_tilt")
+        return GESTURE_DELTA_SOURCE_WHEEL_TILT;
+    return std::nullopt;
+}
+
+static std::expected<GestureInput, std::string> parseGestureInput(lua_State* L) {
+    const bool HAS_FINGERS = Internal::hasTableField(L, 1, "fingers");
+    const bool HAS_BUTTON  = Internal::hasTableField(L, 1, "button");
+    const bool HAS_SOURCE  = Internal::hasTableField(L, 1, "source");
+
+    if (!HAS_FINGERS && !HAS_BUTTON)
+        return std::unexpected("require either fingers or button");
+
+    if (HAS_FINGERS && HAS_BUTTON)
+        return std::unexpected("cannot use fingers and button together");
+
+    if (HAS_FINGERS && HAS_SOURCE)
+        return std::unexpected("source can only be used with button");
+
+    if (HAS_FINGERS) {
+        CLuaConfigInt fingersParser(0, 2, 9);
+        const auto    fingersErr = Internal::parseTableField(L, 1, "fingers", fingersParser);
+        if (fingersErr.errorCode != PARSE_ERROR_OK)
+            return std::unexpected(fingersErr.message);
+        return SFingerGestureInput{.fingerCount = fingersParser.parsed()};
+    }
+
+    CLuaConfigString buttonParser("");
+    const auto       buttonErr = Internal::parseTableField(L, 1, "button", buttonParser);
+    if (buttonErr.errorCode != PARSE_ERROR_OK)
+        return std::unexpected(buttonErr.message);
+
+    const auto trigger = buttonParser.parsed();
+    if (trigger.empty())
+        return std::unexpected("button must not be empty");
+
+    if (!HAS_SOURCE)
+        return std::unexpected("button gestures require a source");
+
+    CLuaConfigString sourceParser("");
+    const auto       sourceErr = Internal::parseTableField(L, 1, "source", sourceParser);
+    if (sourceErr.errorCode != PARSE_ERROR_OK)
+        return std::unexpected(sourceErr.message);
+
+    const auto source = gestureSourceForString(sourceParser.parsed());
+    if (!source)
+        return std::unexpected("button gestures require source = \"mouse\", \"wheel\", \"finger\", \"continuous\", or \"wheel_tilt\"");
+
+    return STriggeredGestureInput{.trigger = trigger, .source = *source};
+}
+
 static int hlGesture(lua_State* L) {
     if (!lua_istable(L, 1))
         return Internal::configError(L, R"(hl.gesture: expected a table, e.g. { fingers = 3, direction = "horizontal", action = "workspace" })");
 
-    CLuaConfigInt fingersParser(0, 2, 9);
-    auto          fingersErr = Internal::parseTableField(L, 1, "fingers", fingersParser);
-    if (fingersErr.errorCode != PARSE_ERROR_OK)
-        return Internal::configError(L, std::format("hl.gesture: {}", fingersErr.message));
-
-    size_t           fingerCount = fingersParser.parsed();
+    const auto input = parseGestureInput(L);
+    if (!input)
+        return Internal::configError(L, std::format("hl.gesture: {}", input.error()));
 
     CLuaConfigString dirParser("");
     auto             dirErr = Internal::parseTableField(L, 1, "direction", dirParser);
@@ -754,6 +824,17 @@ static int hlGesture(lua_State* L) {
     const auto direction = g_pTrackpadGestures->dirForString(dirParser.parsed());
     if (direction == TRACKPAD_GESTURE_DIR_NONE)
         return Internal::configError(L, std::format("hl.gesture: invalid direction \"{}\"", dirParser.parsed()));
+
+    if (std::holds_alternative<STriggeredGestureInput>(*input)) {
+        switch (direction) {
+            case TRACKPAD_GESTURE_DIR_LEFT:
+            case TRACKPAD_GESTURE_DIR_RIGHT:
+            case TRACKPAD_GESTURE_DIR_UP:
+            case TRACKPAD_GESTURE_DIR_DOWN:
+            case TRACKPAD_GESTURE_DIR_SWIPE: break;
+            default: return Internal::configError(L, "hl.gesture: triggered gestures support only left, right, up, down, or swipe directions");
+        }
+    }
 
     struct SLuaGestureRefGuard {
         lua_State*       L = nullptr;
@@ -923,16 +1004,15 @@ static int hlGesture(lua_State* L) {
     }
     lua_pop(L, 1);
 
-    std::expected<void, std::string> result;
+    UP<ITrackpadGesture> gesture;
 
     if (luaGestureRefs.hasRefs() && !Lua::mgr())
         return Internal::configError(L, "hl.gesture: internal error: lua callback manager unavailable");
 
     if (functionRef != LUA_NOREF) {
-        // this is a lua fn gesture
-        result = g_pTrackpadGestures->addGesture(makeUnique<CLuaFunctionGesture>(functionRef), fingerCount, direction, modMask, deltaScale, disableInhibit);
+        gesture = makeUnique<CLuaFunctionGesture>(functionRef);
     } else if (startRef != LUA_NOREF || updateRef != LUA_NOREF || endRef != LUA_NOREF) {
-        result = g_pTrackpadGestures->addGesture(makeUnique<CLuaFunctionGesture>(startRef, updateRef, endRef), fingerCount, direction, modMask, deltaScale, disableInhibit);
+        gesture = makeUnique<CLuaFunctionGesture>(startRef, updateRef, endRef);
     } else {
         CLuaConfigString actionParser("");
         auto             actionErr = Internal::parseTableField(L, 1, "action", actionParser);
@@ -942,27 +1022,41 @@ static int hlGesture(lua_State* L) {
         const auto& action = actionParser.parsed();
 
         if (action == "workspace")
-            result = g_pTrackpadGestures->addGesture(makeUnique<CWorkspaceSwipeGesture>(), fingerCount, direction, modMask, deltaScale, disableInhibit);
+            gesture = makeUnique<CWorkspaceSwipeGesture>();
         else if (action == "resize")
-            result = g_pTrackpadGestures->addGesture(makeUnique<CResizeTrackpadGesture>(), fingerCount, direction, modMask, deltaScale, disableInhibit);
+            gesture = makeUnique<CResizeTrackpadGesture>();
         else if (action == "move")
-            result = g_pTrackpadGestures->addGesture(makeUnique<CMoveTrackpadGesture>(), fingerCount, direction, modMask, deltaScale, disableInhibit);
+            gesture = makeUnique<CMoveTrackpadGesture>();
         else if (action == "special")
-            result = g_pTrackpadGestures->addGesture(makeUnique<CSpecialWorkspaceGesture>(workspaceName), fingerCount, direction, modMask, deltaScale, disableInhibit);
+            gesture = makeUnique<CSpecialWorkspaceGesture>(workspaceName);
         else if (action == "close")
-            result = g_pTrackpadGestures->addGesture(makeUnique<CCloseTrackpadGesture>(), fingerCount, direction, modMask, deltaScale, disableInhibit);
+            gesture = makeUnique<CCloseTrackpadGesture>();
         else if (action == "float")
-            result = g_pTrackpadGestures->addGesture(makeUnique<CFloatTrackpadGesture>(mode), fingerCount, direction, modMask, deltaScale, disableInhibit);
+            gesture = makeUnique<CFloatTrackpadGesture>(mode);
         else if (action == "fullscreen")
-            result = g_pTrackpadGestures->addGesture(makeUnique<CFullscreenTrackpadGesture>(mode), fingerCount, direction, modMask, deltaScale, disableInhibit);
+            gesture = makeUnique<CFullscreenTrackpadGesture>(mode);
         else if (action == "cursor_zoom" || action == "cursorZoom")
-            result = g_pTrackpadGestures->addGesture(makeUnique<CCursorZoomTrackpadGesture>(zoomLevel, mode), fingerCount, direction, modMask, deltaScale, disableInhibit);
+            gesture = makeUnique<CCursorZoomTrackpadGesture>(zoomLevel, mode);
         else if (action == "scroll_move")
-            result = g_pTrackpadGestures->addGesture(makeUnique<CScrollMoveTrackpadGesture>(), fingerCount, direction, modMask, deltaScale, disableInhibit);
+            gesture = makeUnique<CScrollMoveTrackpadGesture>();
         else if (action == "unset")
-            result = g_pTrackpadGestures->removeGesture(fingerCount, direction, modMask, deltaScale, disableInhibit);
+            gesture = nullptr;
         else
             return Internal::configError(L, std::format("hl.gesture: unknown action \"{}\"", action));
+    }
+
+    std::expected<void, std::string> result;
+    if (const auto* triggered = std::get_if<STriggeredGestureInput>(&*input)) {
+        if (!gesture)
+            result = g_pTriggeredGestures->removeGesture(triggered->trigger, triggered->source, direction, modMask, deltaScale, disableInhibit);
+        else
+            result = g_pTriggeredGestures->addGesture(std::move(gesture), triggered->trigger, triggered->source, direction, modMask, deltaScale, disableInhibit);
+    } else {
+        const auto& fingers = std::get<SFingerGestureInput>(*input);
+        if (!gesture)
+            result = g_pTrackpadGestures->removeGesture(fingers.fingerCount, direction, modMask, deltaScale, disableInhibit);
+        else
+            result = g_pTrackpadGestures->addGesture(std::move(gesture), fingers.fingerCount, direction, modMask, deltaScale, disableInhibit);
     }
 
     if (!result)

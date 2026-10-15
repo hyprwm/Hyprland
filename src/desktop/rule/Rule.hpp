@@ -32,6 +32,7 @@ namespace Desktop::Rule {
         RULE_PROP_NAMESPACE                = (1 << 17),
         RULE_PROP_EXEC_TOKEN               = (1 << 18),
         RULE_PROP_EXEC_PID                 = (1 << 19),
+        RULE_PROP_MAPPED                   = (1 << 20),
 
         RULE_PROP_ALL = std::numeric_limits<std::underlying_type_t<eRuleProperty>>::max(),
     };

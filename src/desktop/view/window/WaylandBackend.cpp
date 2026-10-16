@@ -301,6 +301,10 @@ Vector2D CWaylandBackend::bufferToSurfaceLocal(const Vector2D& buffer) const {
     return buffer;
 }
 
+Vector2D CWaylandBackend::globalToBuffer(const Vector2D& pos, const Vector2D& origin) const {
+    return pos - origin;
+}
+
 void CWaylandBackend::configure(const CBox& logicalBox, PHLMONITOR preferredMonitor, bool force) {
     const auto RESOURCE = m_resource.lock();
     const auto TOPLEVEL = RESOURCE ? RESOURCE->m_toplevel.lock() : nullptr;

@@ -282,6 +282,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     SP<CWLSurfaceResource> foundSurface;
     Vector2D               surfaceCoords;
     Vector2D               surfacePos = Vector2D(-1337, -1337);
+    std::optional<CBox>    heldSurfaceBox;
     PHLWINDOW              pFoundWindow;
     PHLLS                  pFoundLayerSurface;
     const auto             FOCUS_REASON = refocus ? Desktop::FOCUS_REASON_CLICK : Desktop::FOCUS_REASON_FFM;
@@ -410,6 +411,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
                     const auto PWINDOW = Desktop::View::CWindow::fromView(HLSurface->view());
                     const auto LS      = Desktop::View::CLayerSurface::fromView(HLSurface->view());
                     surfacePos         = BOX->pos();
+                    heldSurfaceBox     = BOX;
 
                     if (PWINDOW && PWINDOW->acceptsInput())
                         pFoundWindow = PWINDOW;
@@ -595,8 +597,14 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
     Vector2D surfaceLocal = surfacePos == Vector2D(-1337, -1337) ? surfaceCoords : mouseCoords - surfacePos;
 
-    if (pFoundWindow && pFoundWindow->backend().isX11()) // for x11 force scale zero
-        surfaceLocal = pFoundWindow->backend().surfaceLocalToBuffer(surfaceLocal);
+    if (pFoundWindow && pFoundWindow->backend().isX11()) {
+        // a held button keeps the focus on this surface while the cursor may already be on another monitor (e.g. dragging),
+        // and X11 lays monitors out differently, so map the cursor where it really is instead of extrapolating from the surface
+        if (heldSurfaceBox && !heldSurfaceBox->containsPoint(mouseCoords))
+            surfaceLocal = pFoundWindow->backend().globalToBuffer(mouseCoords, surfacePos);
+        else // for x11 force scale zero
+            surfaceLocal = pFoundWindow->backend().surfaceLocalToBuffer(surfaceLocal);
+    }
 
     if (pointerOnly) {
         g_pSeatManager->setPointerFocus(foundSurface, surfaceLocal);

@@ -64,6 +64,7 @@ extern "C" {
 #include "WorkspaceGestures.hpp"
 #include "SpecialWorkspaceGestures.hpp"
 #include "XWaylandSelection.hpp"
+#include "XWaylandPointer.hpp"
 
 // Do NOT change this function.
 APICALL EXPORT std::string PLUGIN_API_VERSION() {
@@ -1902,6 +1903,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     WorkspaceGestures::registerFunctions();
     SpecialWorkspaceGestures::registerFunctions();
     XWaylandSelection::registerFunctions();
+    XWaylandPointer::registerFunctions();
 
     // init mouse
     g_mouse = CTestMouse::create(false);

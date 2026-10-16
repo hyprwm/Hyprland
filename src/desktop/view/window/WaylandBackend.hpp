@@ -30,6 +30,7 @@ namespace Desktop::View {
         CBox                   logicalToClient(const CBox& box, PHLMONITOR preferredMonitor) const override;
         Vector2D               surfaceLocalToBuffer(const Vector2D& local) const override;
         Vector2D               bufferToSurfaceLocal(const Vector2D& buffer) const override;
+        Vector2D               globalToBuffer(const Vector2D& pos, const Vector2D& origin) const override;
 
         void                   configure(const CBox& logicalBox, PHLMONITOR preferredMonitor, bool force = false) override;
         void                   acknowledgeConfigure(const CBox& clientBox) override;

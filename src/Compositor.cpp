@@ -78,9 +78,12 @@
 #include <sys/stat.h>
 #include <sys/resource.h>
 #include <sys/ioctl.h>
-#include <malloc.h>
 #include <unistd.h>
 #include <xf86drm.h>
+
+#if !defined(__OpenBSD__)
+#include <malloc.h>
+#endif
 
 #if defined(__linux__)
 #include <linux/vt.h>

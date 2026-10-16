@@ -1,5 +1,7 @@
+#if !defined(__OpenBSD__)
 #include <linux/capability.h>
 #include <sys/prctl.h>
+#endif
 
 #include "initHelpers.hpp"
 
@@ -19,11 +21,13 @@ bool NInit::isSudo() {
     return getuid() != geteuid() || !geteuid();
 }
 
+#if !defined(__OpenBSD__)
 // NixOS-specific fix to prevent all children from inheriting
 // CAP_SYS_NICE due to how the security wrapper works.
 void NInit::lowerAmbientCaps() {
     prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_LOWER, CAP_SYS_NICE, 0, 0);
 }
+#endif
 
 // Asks the kernel directly to put the calling thread on SCHED_RR. Only succeeds if
 // the process is privileged to go realtime on its own: CAP_SYS_NICE (e.g. granted via

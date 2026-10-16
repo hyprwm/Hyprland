@@ -3,6 +3,7 @@
 #include <set>
 #include <tuple>
 #include "../helpers/MiscFunctions.hpp"
+#include "../helpers/Format.hpp"
 #include <sys/mman.h>
 #include <xf86drm.h>
 #include <fcntl.h>
@@ -69,6 +70,10 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
     for (auto& [monitor, tranche] : m_monitorTranches) {
         tranche.indices.clear();
         for (auto const& fmt : tranche.formats) {
+            // Scanout feedback must not re-advertise unsupported YUV formats.
+            if (NFormatUtils::isFormatYUV(fmt.drmFormat))
+                continue;
+
             for (auto const& mod : fmt.modifiers) {
                 LOG(Log::TRACE, "[DMA] Monitor format 0x{:x} ({}) with mod 0x{:x} ({})", fmt.drmFormat, NFormatUtils::drmFormatName(fmt.drmFormat), mod,
                     NFormatUtils::drmModifierName(mod));

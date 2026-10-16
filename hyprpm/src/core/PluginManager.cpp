@@ -506,7 +506,7 @@ bool CPluginManager::updateHeaders(bool force) {
 
     const auto CURRENTHEADERS = headersValid();
 
-    if (!force && (CURRENTHEADERS == HEADERS_OK || CURRENTHEADERS == HEADERS_ABI_MISMATCH)) {
+    if (!force && CURRENTHEADERS == HEADERS_OK) {
         std::println("\n{}", successString("Headers up to date."));
         return true;
     }

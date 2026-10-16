@@ -355,7 +355,7 @@ TEST_CASE(swallow) {
     // A locked candidate group must remain intact and must not be swallowed.
     spawnRemoteControlKitty("locked_swallowee");
     OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
-    OK(getFromSocket("/dispatch hl.dsp.group.lock_active({ action = 'set' })"));
+    OK(getFromSocket("/dispatch hl.dsp.group.lock({ action = 'set' })"));
     ASSERT(spawnSwallower("locked_swallowee", "locked_swallower"), true);
     ASSERT(swallowingCount(), 0);
     ASSERT_COUNT_STRING(getFromSocket("/clients"), "grouped: 0\n", 1);

@@ -308,7 +308,23 @@ TEST_CASE(groupLock) {
         }
         OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
         OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ window = 'pid:{}' }})", lockedWin->pid())));
-        OK(getFromSocket("/dispatch hl.dsp.group.lock_active({ action = 'set' })"));
+        OK(getFromSocket("/dispatch hl.dsp.group.lock({ action = 'enable' })"));
+
+        SPAWN_KITTY("top");
+
+        // Verify it did NOT merge into the locked group
+        {
+            auto str = getFromSocket("/clients");
+            EXPECT_COUNT_STRING(str, "at: 22,22", 1);
+        }
+
+        // TODO: Remove this section when lock_active gets killed
+        OK(getFromSocket("/dispatch hl.dsp.window.kill()"));
+        Tests::waitUntilWindowsN(1);
+
+        // Unlock, and re-lock using alternate dispatcher
+        OK(getFromSocket("/dispatch hl.dsp.group.lock({ action = 'disable' })"));
+        OK(getFromSocket("/dispatch hl.dsp.group.lock_active({ action = 'enable' })"));
 
         SPAWN_KITTY("top");
 
@@ -763,4 +779,33 @@ TEST_CASE(groupedExitWindowRetainsFullscreen) {
         EXPECT_CONTAINS(str, "fullscreen: 2");
         EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
+}
+
+TEST_CASE(windowOpenInGroupReceivesCursorFocus) {
+    // Bash command that will terminate on mouse input event
+    std::vector<std::string> waitMouseEventCmd = {"bash", "-c", R"(echo -e '\e[?1000h'; read -n 1)"};
+    SPAWN_KITTY("kittyA", waitMouseEventCmd);
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+    SPAWN_KITTY("kittyB", waitMouseEventCmd);
+
+    // The last open window is active
+    auto str = getFromSocket("/activewindow");
+    ASSERT_CONTAINS(str, "class: kittyB\n");
+    auto groupped = Tests::getAttribute(str, "grouped");
+    // Two windows in the group, delimited with one comma
+    ASSERT(Tests::countOccurrences(groupped, ","), 1);
+
+    NLog::log("Cursor is at {}", getFromSocket("/cursorpos"));
+    // Since kittyB is active, it should receive the mouse input (and, subseqeuntly, terminate)
+    OK(getFromSocket("/dispatch hl.dsp.send_shortcut({ mods = '', key = 'mouse:272' })"));
+    Tests::waitUntilWindowsN(1);
+    // For some reason, which I could not establish, the above `send_shortcut` is sometimes spuriously lost.
+    // If that's the case, the above `waitUntilWindowsN` times out, but we retry again here, then it works.
+    if (Tests::windowCount() == 2) {
+        NLog::yellow("windowOpenInGroupReceivesCursorFocus: warning: the mouse event was not received by either window. Retrying");
+        OK(getFromSocket("/dispatch hl.dsp.send_shortcut({ mods = '', key = 'mouse:272' })"));
+        Tests::waitUntilWindowsN(1);
+    }
+    str = getFromSocket("/activewindow");
+    ASSERT_CONTAINS(str, "class: kittyA");
 }

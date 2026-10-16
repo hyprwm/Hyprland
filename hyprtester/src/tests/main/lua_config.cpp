@@ -1,8 +1,11 @@
 #include "tests.hpp"
+#include "../shared.hpp"
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
 
 #include <array>
+#include <chrono>
+#include <thread>
 #include <filesystem>
 #include <string_view>
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -205,4 +208,138 @@ TEST_CASE(luaDevicesRetainedKeyboardTracksLayoutChanges) {
         assert(keyboard.active_layout_index == 0)
         assert(type(keyboard.active_keymap) == 'string')
     end)"));
+}
+
+// weak-keyed, so an entry survives collectgarbage() only while the compositor holds it
+static constexpr auto LUA_REF_PROBE_SETUP   = "/eval _G.hyprtester_ref_probe = setmetatable({}, { __mode = 'k' })";
+static constexpr auto LUA_REF_PROBE_CLEANUP = "/eval _G.hyprtester_ref_probe = nil; _G.hyprtester_ref_fired = nil";
+
+static std::string    luaRefProbeEmpty() {
+    return getFromSocket("/repl collectgarbage(); collectgarbage(); return next(_G.hyprtester_ref_probe) == nil");
+}
+
+static bool waitForRepl(std::string_view expr, std::string_view expected) {
+    for (int i = 0; i < 50; ++i) {
+        if (getFromSocket(std::format("/repl return {}", expr)) == expected)
+            return true;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
+
+    return false;
+}
+
+TEST_CASE(luaRefBindReleasedOnUnbind) {
+    CScopeGuard guard = {[&]() {
+        getFromSocket("/eval hl.unbind('SUPER + SHIFT + F12')");
+        getFromSocket(LUA_REF_PROBE_CLEANUP);
+    }};
+
+    OK(getFromSocket(LUA_REF_PROBE_SETUP));
+    OK(getFromSocket("/eval do local fn = function() end; _G.hyprtester_ref_probe[fn] = true; hl.bind('SUPER + SHIFT + F12', fn) end"));
+    ASSERT(luaRefProbeEmpty(), "false");
+
+    OK(getFromSocket("/eval hl.unbind('SUPER + SHIFT + F12')"));
+    ASSERT(luaRefProbeEmpty(), "true");
+}
+
+TEST_CASE(luaRefEventReleasedOnRemove) {
+    CScopeGuard guard = {[&]() {
+        getFromSocket("/eval _G.hyprtester_ref_sub = nil");
+        getFromSocket(LUA_REF_PROBE_CLEANUP);
+    }};
+
+    OK(getFromSocket(LUA_REF_PROBE_SETUP));
+    OK(getFromSocket("/eval do local fn = function() end; _G.hyprtester_ref_probe[fn] = true; _G.hyprtester_ref_sub = hl.on('config.props_refreshed', fn) end"));
+    ASSERT(luaRefProbeEmpty(), "false");
+
+    OK(getFromSocket("/eval _G.hyprtester_ref_sub:remove()"));
+    ASSERT(luaRefProbeEmpty(), "true");
+}
+
+TEST_CASE(luaRefUnknownEventReleased) {
+    CScopeGuard guard = {[&]() { getFromSocket(LUA_REF_PROBE_CLEANUP); }};
+
+    OK(getFromSocket(LUA_REF_PROBE_SETUP));
+    getFromSocket("/eval do local fn = function() end; _G.hyprtester_ref_probe[fn] = true; hl.on('hyprtester.no_such_event', fn) end");
+    ASSERT(luaRefProbeEmpty(), "true");
+}
+
+TEST_CASE(luaRefGestureReleasedOnUnset) {
+    CScopeGuard guard = {[&]() {
+        getFromSocket("/eval hl.gesture({ fingers = 7, direction = 'up', action = 'unset' })");
+        getFromSocket("/eval hl.gesture({ fingers = 7, direction = 'down', action = 'unset' })");
+        getFromSocket(LUA_REF_PROBE_CLEANUP);
+    }};
+
+    OK(getFromSocket(LUA_REF_PROBE_SETUP));
+    OK(getFromSocket("/eval do local fn = function() end; _G.hyprtester_ref_probe[fn] = true; hl.gesture({ fingers = 7, direction = 'up', action = fn }) end"));
+    OK(getFromSocket("/eval do local s, u, f = function() end, function() end, function() end; _G.hyprtester_ref_probe[s] = true; _G.hyprtester_ref_probe[u] = true; "
+                     "_G.hyprtester_ref_probe[f] = true; hl.gesture({ fingers = 7, direction = 'down', action = { start = s, update = u, finish = f } }) end"));
+    ASSERT(luaRefProbeEmpty(), "false");
+
+    OK(getFromSocket("/eval hl.gesture({ fingers = 7, direction = 'up', action = 'unset' })"));
+    OK(getFromSocket("/eval hl.gesture({ fingers = 7, direction = 'down', action = 'unset' })"));
+    ASSERT(luaRefProbeEmpty(), "true");
+}
+
+TEST_CASE(luaRefGestureReleasedOnBadCallback) {
+    CScopeGuard guard = {[&]() { getFromSocket(LUA_REF_PROBE_CLEANUP); }};
+
+    OK(getFromSocket(LUA_REF_PROBE_SETUP));
+    // start is referenced before update fails validation
+    ASSERT_CONTAINS(getFromSocket("/eval do local s = function() end; _G.hyprtester_ref_probe[s] = true; hl.gesture({ fingers = 7, direction = 'left', action = { start = s, "
+                                  "update = 1 } }) end"),
+                    "action.update must be a function");
+    ASSERT(luaRefProbeEmpty(), "true");
+}
+
+TEST_CASE(luaRefOneshotTimerReleasedAfterFiring) {
+    CScopeGuard guard = {[&]() { getFromSocket(LUA_REF_PROBE_CLEANUP); }};
+
+    OK(getFromSocket(LUA_REF_PROBE_SETUP));
+    OK(getFromSocket("/eval do _G.hyprtester_ref_fired = 0; local fn = function() _G.hyprtester_ref_fired = _G.hyprtester_ref_fired + 1 end; _G.hyprtester_ref_probe[fn] = true; "
+                     "hl.timer(fn, { timeout = 1, type = 'oneshot' }) end"));
+
+    ASSERT(waitForRepl("_G.hyprtester_ref_fired", "1"), true);
+    ASSERT(luaRefProbeEmpty(), "true");
+}
+
+TEST_CASE(luaRefRepeatTimerKeptUntilReload) {
+    // cancels the timer if an assertion bails out early
+    CScopeGuard guard = {[&]() {
+        getFromSocket("/reload");
+        getFromSocket(LUA_REF_PROBE_CLEANUP);
+    }};
+
+    OK(getFromSocket(LUA_REF_PROBE_SETUP));
+    OK(getFromSocket("/eval do _G.hyprtester_ref_fired = 0; local fn = function() _G.hyprtester_ref_fired = _G.hyprtester_ref_fired + 1 end; _G.hyprtester_ref_probe[fn] = true; "
+                     "hl.timer(fn, { timeout = 1, type = 'repeat' }) end"));
+
+    ASSERT(waitForRepl("_G.hyprtester_ref_fired >= 2", "true"), true);
+    ASSERT(luaRefProbeEmpty(), "false");
+
+    OK(getFromSocket("/reload"));
+    OK(getFromSocket("/eval _G.hyprtester_ref_fired = 0"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    EXPECT(getFromSocket("/repl return _G.hyprtester_ref_fired"), "0");
+}
+
+TEST_CASE(luaRefLayoutProviderDroppedOnReload) {
+    OK(getFromSocket(R"(/eval hl.layout.register('hyprtester_ref_layout', {
+        recalculate = function(ctx)
+            for i, target in ipairs(ctx.targets) do
+                target:place(ctx:column(i, #ctx.targets))
+            end
+        end,
+    }))"));
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'lua:hyprtester_ref_layout' } })"));
+
+    SPAWN_KITTY("kitty_ref_layout");
+    EXPECT_CONTAINS(getFromSocket("/clients"), "kitty_ref_layout");
+
+    // eval-registered, so reload drops it while still in use
+    OK(getFromSocket("/reload"));
+    EXPECT_CONTAINS(getFromSocket("/clients"), "kitty_ref_layout");
+    EXPECT_NOT_CONTAINS(getFromSocket("/getoption general:layout"), "hyprtester_ref_layout");
 }

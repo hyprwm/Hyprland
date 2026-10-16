@@ -3,16 +3,12 @@
 #include "../../../helpers/memory/Memory.hpp"
 #include "../../../helpers/math/Math.hpp"
 #include "../../../layout/algorithm/TiledAlgorithm.hpp"
+#include "../LuaRef.hpp"
 
 #include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
-
-extern "C" {
-#include <lua.h>
-#include <lauxlib.h>
-}
 
 namespace Config::Lua {
     class CConfigManager;
@@ -22,10 +18,8 @@ namespace Config::Lua::Layouts {
 
     struct SLuaLayoutProvider {
         CConfigManager* manager = nullptr;
-        lua_State*      state   = nullptr;
         std::string     name;
-        int             tableRef = LUA_NOREF;
-        bool            active   = true;
+        CLuaRef         table; // empty once the provider is unregistered
         bool            didError = false;
     };
 

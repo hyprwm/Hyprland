@@ -61,7 +61,9 @@ void CLuaEventHandler::dispatch(const std::string& name, int nargs, const std::f
         m_activeHandles.emplace(handle);
         ++m_dispatchDepth;
 
-        lua_rawgeti(m_lua, LUA_REGISTRYINDEX, sub->second.luaRef);
+        if (!sub->second.fn.push())
+            continue;
+
         pushArgs(m_lua);
 
         auto* mgr = CConfigManager::fromLuaState(m_lua);
@@ -201,13 +203,13 @@ CLuaEventHandler::~CLuaEventHandler() {
     clearEvents();
 }
 
-std::optional<uint64_t> CLuaEventHandler::registerEvent(const std::string& name, int luaRef) {
+std::optional<uint64_t> CLuaEventHandler::registerEvent(const std::string& name, CLuaRef&& fn) {
     if (!knownEvents().contains(name))
         return std::nullopt;
 
     const auto handle = m_nextHandle++;
     m_callbacks[name].push_back(handle);
-    m_subscriptions[handle] = {.eventName = name, .luaRef = luaRef};
+    m_subscriptions.emplace(handle, SSubscription{.eventName = name, .fn = std::move(fn)});
 
     return handle;
 }
@@ -216,8 +218,6 @@ bool CLuaEventHandler::unregisterEvent(uint64_t handle) {
     const auto it = m_subscriptions.find(handle);
     if (it == m_subscriptions.end())
         return false;
-
-    luaL_unref(m_lua, LUA_REGISTRYINDEX, it->second.luaRef);
 
     auto callbacksIt = m_callbacks.find(it->second.eventName);
     if (callbacksIt != m_callbacks.end()) {
@@ -234,10 +234,6 @@ bool CLuaEventHandler::unregisterEvent(uint64_t handle) {
 }
 
 void CLuaEventHandler::clearEvents() {
-    for (const auto& s : m_subscriptions) {
-        luaL_unref(m_lua, LUA_REGISTRYINDEX, s.second.luaRef);
-    }
-
     m_subscriptions.clear();
     m_activeHandles.clear();
     m_reentrancyWarnedHandles.clear();

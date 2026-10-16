@@ -35,6 +35,13 @@ CTextInputV3::CTextInputV3(SP<CZwpTextInputV3> resource_) : m_resource(resource_
 
         m_pending.enabled.isEnablePending  = false;
         m_pending.enabled.isDisablePending = false;
+
+        // The serial in done must equal the number of commits, and clients
+        // hold back pending state (e.g. set_cursor_rectangle) until they
+        // receive a done with a matching serial. Ack every commit, otherwise
+        // clients that follow the spec strictly deadlock until the IM happens
+        // to push state back (updateIMEState).
+        sendDone();
     });
 
     m_resource->setSetSurroundingText([this](CZwpTextInputV3* r, const char* text, int32_t cursor, int32_t anchor) {

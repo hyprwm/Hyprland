@@ -141,6 +141,7 @@ namespace Config::Lua::Bindings::Internal {
     int                                                checkResult(lua_State* L, const Config::Actions::ActionResult& r);
     int                                                pushSuccessResult(lua_State* L, const Config::Actions::SActionResult& r = {});
     int                                                pushErrorResult(lua_State* L, const Config::Actions::SActionError& e);
+    Keybinds::SBindResult                              bindResultFromTable(lua_State* L, int idx);
     void                                               reportError(lua_State* L, const Config::Actions::SActionError& e);
     PHLMONITOR                                         resolveMonitorStr(const std::string& args);
     std::string                                        getSourceInfo(lua_State* L, int stackLevel = 1);

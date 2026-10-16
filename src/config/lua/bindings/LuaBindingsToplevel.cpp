@@ -1,4 +1,5 @@
 #include "LuaBindingsInternal.hpp"
+#include "../LuaCaller.hpp"
 #include "Check.hpp"
 
 #include "../objects/LuaEventSubscription.hpp"
@@ -212,13 +213,13 @@ static int hlBind(lua_State* L) {
             if (!mgr)
                 return Keybinds::SBindResult{.success = false, .error = "Lua keybind belongs to an expired config state"};
 
-            const auto result = mgr->callLuaFnBind(*LUA_REF);
-            return Keybinds::SBindResult{
-                .passEvent = result.passEvent,
-                .success   = result.success,
-                .error     = result.error,
-                .followUp  = result.requestRelease ? Keybinds::BIND_FOLLOW_UP_TRIGGER_RELEASE : Keybinds::BIND_FOLLOW_UP_NONE,
-            };
+            Keybinds::SBindResult result;
+            const auto            CALLED = mgr->caller().call(*LUA_REF, CLuaCaller::LUA_TIMEOUT_KEYBIND_CALLBACK_MS, "hl.bind callback", {},
+                                                              [&result](lua_State* L) { result = Internal::bindResultFromTable(L, -1); });
+            if (!CALLED)
+                return Keybinds::SBindResult{.success = false, .error = CALLED.error()};
+
+            return result;
         },
         std::move(args));
     if (!bind) {
@@ -251,8 +252,8 @@ static int hlDefineSubmap(lua_State* L) {
     mgr->m_currentSubmapReset = reset;
 
     lua_pushvalue(L, fnIdx);
-    if (mgr->guardedPCall(0, 0, 0, CConfigManager::LUA_TIMEOUT_DISPATCH_MS, std::format("hl.define_submap(\"{}\")", *name)) != LUA_OK) {
-        mgr->addError(std::format("hl.define_submap: error in submap \"{}\": {}", *name, lua_tostring(L, -1)));
+    if (mgr->caller().guardedPCall(L, 0, 0, 0, CLuaCaller::LUA_TIMEOUT_DISPATCH_MS, std::format("hl.define_submap(\"{}\")", *name)) != LUA_OK) {
+        mgr->addError(std::format("hl.define_submap: error in submap \"{}\": {}", *name, mgr->caller().errorToString(L, -1)));
         lua_pop(L, 1);
     }
 
@@ -328,17 +329,11 @@ static int hlDispatch(lua_State* L) {
     if (const auto result = Internal::pushDispatcherFunction(L, 1); !result)
         return Internal::configError(L, std::format("hl.dispatch: {}", result.error()));
 
-    int status = LUA_OK;
-    if (auto* mgr = CConfigManager::fromLuaState(L); mgr)
-        status = mgr->guardedPCall(0, 1, 0, CConfigManager::LUA_TIMEOUT_DISPATCH_MS, "hl.dispatch");
-    else
-        status = lua_pcall(L, 0, 1, 0);
-
-    if (status != LUA_OK) {
-        const char* err = lua_tostring(L, -1);
+    auto* caller = CLuaCaller::fromLuaState(L);
+    if (caller->guardedPCall(L, 0, 1, 0, CLuaCaller::LUA_TIMEOUT_DISPATCH_MS, "hl.dispatch") != LUA_OK) {
+        const auto ERR = caller->errorToString(L, -1);
         lua_pop(L, 1);
-        return Internal::dispatcherError(L, std::format("hl.dispatch: {}", err ? err : "unknown error"), Config::Actions::eActionErrorLevel::ERROR,
-                                         Config::Actions::eActionErrorCode::LUA_ERROR);
+        return Internal::dispatcherError(L, std::format("hl.dispatch: {}", ERR), Config::Actions::eActionErrorLevel::ERROR, Config::Actions::eActionErrorCode::LUA_ERROR);
     }
 
     if (lua_isnil(L, -1)) {
@@ -449,14 +444,7 @@ static int hlTimer(lua_State* L) {
             if (repeat)
                 self->updateTimeout(std::chrono::milliseconds(timeoutMs));
 
-            if (!fn->push())
-                return;
-
-            const auto L = fn->state();
-            if (mgr->guardedPCall(0, 0, 0, CConfigManager::LUA_TIMEOUT_TIMER_CALLBACK_MS, "hl.timer callback") != LUA_OK) {
-                LOG(Log::ERR, "[Lua] error in timer callback: {}", lua_tostring(L, -1));
-                lua_pop(L, 1);
-            }
+            mgr->caller().call(*fn, CLuaCaller::LUA_TIMEOUT_TIMER_CALLBACK_MS, "hl.timer callback");
 
             // drop every owner so fn is released right away
             if (!repeat) {

@@ -20,6 +20,7 @@ extern "C" {
 }
 
 namespace Config::Lua {
+    class CLuaCaller;
 
     // Manages hl.on() event subscriptions for a single Lua state lifetime.
     // Destroyed (and recreated) on every config reload so callbacks never double-up.
@@ -29,7 +30,7 @@ namespace Config::Lua {
     // __index; accessing a field on a destroyed object raises a Lua error.
     class CLuaEventHandler {
       public:
-        explicit CLuaEventHandler(lua_State* L);
+        explicit CLuaEventHandler(CLuaCaller& caller);
         ~CLuaEventHandler();
 
         // Store a Lua function to be called when `name` fires.
@@ -50,17 +51,12 @@ namespace Config::Lua {
             CLuaRef     fn;
         };
 
-        lua_State*                                             m_lua = nullptr;
+        CLuaCaller&                                            m_caller;
         std::unordered_map<std::string, std::vector<uint64_t>> m_callbacks;
         std::unordered_map<uint64_t, SSubscription>            m_subscriptions;
-        std::unordered_set<uint64_t>                           m_activeHandles;
-        std::unordered_set<uint64_t>                           m_reentrancyWarnedHandles;
-        uint64_t                                               m_nextHandle    = 1;
-        size_t                                                 m_dispatchDepth = 0;
+        uint64_t                                               m_nextHandle = 1;
         std::vector<CHyprSignalListener>                       m_listeners;
         std::unordered_map<std::string, CHyprSignalListener>   m_pluginListeners;
-
-        static constexpr size_t                                MAX_DISPATCH_DEPTH = 32;
 
         void                                                   dispatch(const std::string& name, int nargs, const std::function<void(lua_State*)>& pushArgs);
     };

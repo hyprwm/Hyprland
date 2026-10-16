@@ -2,7 +2,6 @@
 #include "../../debug/log/Logger.hpp"
 
 #include <cstdlib>
-#include <filesystem>
 #include <fstream>
 
 #include <hyprutils/string/String.hpp>

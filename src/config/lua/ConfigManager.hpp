@@ -5,9 +5,6 @@
 #include <vector>
 #include <string>
 #include <optional>
-#include <chrono>
-#include <functional>
-#include <string_view>
 #include <unordered_map>
 #include <expected>
 
@@ -39,6 +36,7 @@ namespace Config::Supplementary {
 namespace Config::Lua {
     class CConfigManager;
     class CConfigManagerPluginLuaTestAccessor;
+    class CLuaCaller;
 }
 
 namespace Config::Lua::Layouts {
@@ -98,26 +96,14 @@ namespace Config::Lua {
         void                                     addError(std::string&& str);
         void                                     addEvalIssue(const Config::SConfigError& err);
 
-        void                                     callLuaFn(const CLuaRef& fn, const std::function<int(lua_State*)>& pushArgs, int timeoutMs, std::string_view context);
         std::expected<void, std::string>         registerLuaLayoutProvider(std::string name, lua_State* L, int providerTableIdx);
-        SDispatchResult                          callLuaFnBind(const CLuaRef& fn);
         SP<SLuaStateLifetime>                    luaStateLifetime() const;
+        CLuaCaller&                              caller();
 
         // execute an arbitrary lua string on the current state.
         std::optional<std::string>                           eval(const std::string& code, bool repl = false);
 
-        int                                                  guardedPCall(int nargs, int nresults, int errfunc, int timeoutMs, std::string_view context);
-
         static CConfigManager*                               fromLuaState(lua_State* L);
-
-        static constexpr int                                 LUA_WATCHDOG_INSTRUCTION_INTERVAL = 10000;
-        static constexpr int                                 LUA_TIMEOUT_CONFIG_RELOAD_MS      = 1500;
-        static constexpr int                                 LUA_TIMEOUT_EVENT_CALLBACK_MS     = 50;
-        static constexpr int                                 LUA_TIMEOUT_KEYBIND_CALLBACK_MS   = 100;
-        static constexpr int                                 LUA_TIMEOUT_TIMER_CALLBACK_MS     = 50;
-        static constexpr int                                 LUA_TIMEOUT_LAYOUT_CALLBACK_MS    = 50;
-        static constexpr int                                 LUA_TIMEOUT_EVAL_MS               = 250;
-        static constexpr int                                 LUA_TIMEOUT_DISPATCH_MS           = 100;
 
         bool                                                 isFirstLaunch() const;
         bool                                                 isDynamicParse() const;
@@ -160,22 +146,17 @@ namespace Config::Lua {
         void                                         erasePluginLuaFunction(uint64_t id);
         void                                         reregisterLuaPluginFns();
 
-        static void                                  watchdogHook(lua_State* L, lua_Debug* ar);
-
         lua_State*                                   m_lua          = nullptr;
         bool                                         m_ownsLuaState = false;
         SP<SLuaStateLifetime>                        m_luaStateLifetime;
+        UP<CLuaCaller>                               m_caller;
 
         bool                                         m_lastConfigVerificationWasSuccessful = true;
         bool                                         m_isFirstLaunch                       = true;
         bool                                         m_manualCrashInitiated                = false;
-        bool                                         m_watchdogActive                      = false;
         bool                                         m_isParsingConfig                     = false;
         bool                                         m_isEvaluating                        = false;
         bool                                         m_isREPL                              = false;
-
-        std::chrono::steady_clock::time_point        m_watchdogDeadline;
-        std::string                                  m_watchdogContext;
 
         std::string                                  m_mainConfigPath;
 

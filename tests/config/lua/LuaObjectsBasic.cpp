@@ -1,4 +1,5 @@
 #include <config/lua/LuaEventHandler.hpp>
+#include <config/lua/LuaCaller.hpp>
 
 #include <config/lua/objects/LuaEventSubscription.hpp>
 #include <config/lua/objects/LuaKeybind.hpp>
@@ -286,7 +287,8 @@ TEST(ConfigLuaObjects, eventSubscriptionRemoveAndIsActive) {
     const auto L = S.get();
 
     Objects::CLuaEventSubscription{}.setup(L);
-    CLuaEventHandler handler(L);
+    CLuaCaller       caller(L, [](std::string&&) {});
+    CLuaEventHandler handler(caller);
 
     ASSERT_EQ(luaL_dostring(L, R"(
         count = 0
@@ -327,7 +329,8 @@ TEST(ConfigLuaObjects, eventSubscriptionSupportsEqAndToString) {
     const auto L = S.get();
 
     Objects::CLuaEventSubscription{}.setup(L);
-    CLuaEventHandler handler(L);
+    CLuaCaller       caller(L, [](std::string&&) {});
+    CLuaEventHandler handler(caller);
 
     ASSERT_EQ(luaL_dostring(L, R"(
         function cbA() end

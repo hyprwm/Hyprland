@@ -334,6 +334,12 @@ void CMonitor::onConnect(bool noRule) {
 
     LOG(Log::DEBUG, "Added new monitor with name {} at {:j0} with size {:j0}, pointer {:x}", m_name, m_position, m_pixelSize, rc<uintptr_t>(m_output.get()));
 
+    // Arrange monitors before handing workspaces back to this monitor. A freshly created monitor has an unset
+    // position (-1, -1) until it's arranged, and moveWorkspaceToMonitor translates floating windows relative to
+    // the target's position. CMonitor::moveTo deliberately doesn't shift windows when moving away from the unset
+    // position, so arranging afterwards would leave returning floating windows outside of the monitor.
+    State::monitorLayoutController()->arrange();
+
     if (!isMirror())
         State::Workspace::monitorConnected(m_self.lock());
 

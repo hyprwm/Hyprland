@@ -13,6 +13,7 @@
 #include "Renderer.hpp"
 #include "../Compositor.hpp"
 #include "../helpers/MiscFunctions.hpp"
+#include "../helpers/Format.hpp"
 #include "../helpers/CursorShapes.hpp"
 #include "../helpers/TransferFunction.hpp"
 #include "../config/ConfigValue.hpp"
@@ -562,6 +563,10 @@ void CHyprOpenGLImpl::initDRMFormats() {
     dmaFormats.reserve(formats.size());
 
     for (auto const& fmt : formats) {
+        // Do not advertise YUV until the renderer supports it.
+        if (NFormatUtils::isFormatYUV(fmt))
+            continue;
+
         std::vector<uint64_t> mods;
         if (!DISABLE_MODS) {
             auto ret = getModsForFormat(fmt);

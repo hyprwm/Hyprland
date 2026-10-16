@@ -1,5 +1,5 @@
 #include "LuaEventHandler.hpp"
-#include "ConfigManager.hpp"
+#include "LuaCaller.hpp"
 #include "objects/LuaWindow.hpp"
 #include "objects/LuaWorkspace.hpp"
 #include "objects/LuaGroup.hpp"
@@ -22,68 +22,28 @@ using namespace Config::Lua;
 using namespace Config::Lua::Objects;
 
 void CLuaEventHandler::dispatch(const std::string& name, int nargs, const std::function<void(lua_State*)>& pushArgs) {
-    auto it = m_callbacks.find(name);
+    const auto it = m_callbacks.find(name);
     if (it == m_callbacks.end() || it->second.empty())
         return;
 
-    if (m_dispatchDepth >= MAX_DISPATCH_DEPTH) {
-        LOG(Log::WARN, "[LuaEvents] max dispatch depth ({}) reached while handling '{}'", MAX_DISPATCH_DEPTH, name);
-        return;
-    }
+    const auto CONTEXT = std::format("hl.on(\"{}\") callback", name);
+    const auto HANDLES = it->second;
 
-    const auto handles = it->second;
-
-    for (const auto handle : handles) {
+    for (const auto handle : HANDLES) {
         const auto sub = m_subscriptions.find(handle);
         if (sub == m_subscriptions.end())
             continue;
 
-        if (m_activeHandles.contains(handle)) {
-            if (m_reentrancyWarnedHandles.emplace(handle).second)
-                LOG(Log::WARN, "[LuaEvents] suppressed recursive hl.on(\"{}\") callback invocation", name);
-            continue;
-        }
-
-        struct SDispatchScope {
-            CLuaEventHandler* self   = nullptr;
-            uint64_t          handle = 0;
-
-            ~SDispatchScope() {
-                if (!self)
-                    return;
-
-                self->m_activeHandles.erase(handle);
-                if (self->m_dispatchDepth > 0)
-                    --self->m_dispatchDepth;
-            }
-        } dispatchScope{.self = this, .handle = handle};
-
-        m_activeHandles.emplace(handle);
-        ++m_dispatchDepth;
-
-        if (!sub->second.fn.push())
-            continue;
-
-        pushArgs(m_lua);
-
-        auto* mgr = CConfigManager::fromLuaState(m_lua);
-
-        int   status = LUA_OK;
-        if (mgr)
-            status = mgr->guardedPCall(nargs, 0, 0, CConfigManager::LUA_TIMEOUT_EVENT_CALLBACK_MS, std::format("hl.on(\"{}\") callback", name));
-        else
-            status = lua_pcall(m_lua, nargs, 0, 0);
-
-        if (status != LUA_OK) {
-            const char* err = lua_tostring(m_lua, -1);
-            if (mgr)
-                mgr->addError(std::format("hl.on(\"{}\") callback: {}", name, err ? err : "(unknown)"));
-            lua_pop(m_lua, 1);
-        }
+        m_caller.call(sub->second.fn, CLuaCaller::LUA_TIMEOUT_EVENT_CALLBACK_MS, CONTEXT, [&](lua_State* L) {
+            pushArgs(L);
+            return nargs;
+        });
     }
 }
 
-CLuaEventHandler::CLuaEventHandler(lua_State* L) : m_lua(L) {
+CLuaEventHandler::CLuaEventHandler(CLuaCaller& caller) : m_caller(caller) {
+    const auto L = m_caller.state();
+
     CLuaWindow{}.setup(L);
     Objects::CLuaGroup{}.setup(L);
     CLuaWorkspace{}.setup(L);
@@ -227,16 +187,12 @@ bool CLuaEventHandler::unregisterEvent(uint64_t handle) {
     }
 
     m_subscriptions.erase(it);
-    m_activeHandles.erase(handle);
-    m_reentrancyWarnedHandles.erase(handle);
 
     return true;
 }
 
 void CLuaEventHandler::clearEvents() {
     m_subscriptions.clear();
-    m_activeHandles.clear();
-    m_reentrancyWarnedHandles.clear();
     m_callbacks.clear();
 }
 

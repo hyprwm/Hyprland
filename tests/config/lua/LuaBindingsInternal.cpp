@@ -1,6 +1,8 @@
 #include <config/lua/bindings/LuaBindingsInternal.hpp>
+#include <config/lua/LuaCaller.hpp>
 #include <config/lua/ConfigManager.hpp>
 #include <config/shared/inotify/ConfigWatcher.hpp>
+#include <managers/input/trackpad/gestures/LuaFunctionGesture.hpp>
 
 #include <Compositor.hpp>
 
@@ -27,7 +29,8 @@ namespace Config::Lua {
     class CConfigManagerPluginLuaTestAccessor {
       public:
         static void initializeLuaState(CConfigManager& mgr, lua_State* L) {
-            mgr.m_lua = L;
+            mgr.m_lua    = L;
+            mgr.m_caller = makeUnique<CLuaCaller>(L, [&mgr](std::string&& e) { mgr.addError(std::move(e)); });
             lua_pushlightuserdata(L, &mgr);
             lua_setfield(L, LUA_REGISTRYINDEX, "hl_lua_manager");
         }
@@ -218,6 +221,43 @@ TEST_F(CConfigLuaDispatchers, acceptsDispatchersAndCallbacks) {
 
     const auto callbackResult = m_manager->eval("assert(calls == 2)");
     EXPECT_FALSE(callbackResult.has_value()) << callbackResult.value_or("");
+    EXPECT_EQ(lua_gettop(m_lua), 0);
+}
+
+TEST_F(CConfigLuaDispatchers, dispatchInsideCoroutineRunsTheDispatcher) {
+    const auto result = m_manager->eval(R"-(
+        ran = false
+        coroutine.wrap(function() assert(hl.dispatch(function() ran = true end).ok) end)()
+        assert(ran)
+    )-");
+    EXPECT_FALSE(result.has_value()) << result.value_or("");
+    EXPECT_EQ(lua_gettop(m_lua), 0);
+}
+
+TEST_F(CConfigLuaDispatchers, nonStringErrorInSubmapIsReported) {
+    const auto result = m_manager->eval("hl.define_submap('regression', function() error({}) end)");
+    ASSERT_TRUE(result.has_value());
+    EXPECT_NE(result->find("error in submap \"regression\": table: "), std::string::npos) << *result;
+    EXPECT_EQ(lua_gettop(m_lua), 0);
+}
+
+TEST_F(CConfigLuaDispatchers, nonStringErrorInGestureCallbackIsSurvived) {
+    ASSERT_EQ(luaL_dostring(m_lua, "return function() error({}) end"), LUA_OK);
+    CLuaFunctionGesture gesture{CLuaRef{m_manager->luaStateLifetime(), m_lua, -1}};
+    lua_pop(m_lua, 1);
+
+    gesture.end({});
+    EXPECT_EQ(lua_gettop(m_lua), 0);
+}
+
+TEST_F(CConfigLuaDispatchers, bindReturningHostileTableDoesNotAbort) {
+    const auto result = m_manager->eval("hl.bind('SUPER + Q', function() return setmetatable({}, { __index = function() error('nope') end }) end)");
+    ASSERT_FALSE(result.has_value()) << result.value_or("");
+    ASSERT_EQ(Keybinds::mgr()->registry().size(), 1);
+
+    for (const auto& bind : Keybinds::mgr()->registry().binds()) {
+        EXPECT_TRUE(bind->invoke().success);
+    }
     EXPECT_EQ(lua_gettop(m_lua), 0);
 }
 
@@ -751,4 +791,44 @@ TEST(ConfigLuaRequire, packagePathPreservesLuaDefaultsAfterConfigDirectory) {
 
     const auto configPath = std::format("{};{}", (tmp.path() / "?.lua").string(), (tmp.path() / "?/init.lua").string());
     EXPECT_EQ(packagePath(CConfigManagerPluginLuaTestAccessor::luaState(mgr)), std::format("{};{}", configPath, defaultPath));
+}
+
+TEST(ConfigLuaBindingsInternal, bindResultReadsWhatResultWritersWrite) {
+    CLuaState  S;
+    const auto L = S.get();
+
+    Internal::pushSuccessResult(L, {.passEvent = true});
+    Internal::markRequestRelease(L, -1);
+    const auto SUCCESS = Internal::bindResultFromTable(L, -1);
+    lua_pop(L, 1);
+    EXPECT_TRUE(SUCCESS.success);
+    EXPECT_TRUE(SUCCESS.passEvent);
+    EXPECT_EQ(SUCCESS.followUp, Keybinds::BIND_FOLLOW_UP_TRIGGER_RELEASE);
+
+    Internal::pushErrorResult(L, Config::Actions::SActionError{"boom", Config::Actions::eActionErrorLevel::ERROR, Config::Actions::eActionErrorCode::LUA_ERROR});
+    const auto FAILURE = Internal::bindResultFromTable(L, -1);
+    lua_pop(L, 1);
+    EXPECT_FALSE(FAILURE.success);
+    EXPECT_EQ(FAILURE.error, "boom");
+    EXPECT_EQ(FAILURE.followUp, Keybinds::BIND_FOLLOW_UP_NONE);
+
+    // a callback that returns nothing succeeded
+    lua_pushnil(L);
+    EXPECT_TRUE(Internal::bindResultFromTable(L, -1).success);
+    lua_pop(L, 1);
+
+    EXPECT_EQ(lua_gettop(L), 0);
+}
+
+TEST(ConfigLuaBindingsInternal, bindResultIgnoresMetamethods) {
+    CLuaState  S;
+    const auto L = S.get();
+
+    // read outside any protected call: a raising __index must not be invoked
+    ASSERT_EQ(luaL_dostring(L, "return setmetatable({}, { __index = function() error('nope') end })"), LUA_OK);
+    const auto RESULT = Internal::bindResultFromTable(L, -1);
+    lua_pop(L, 1);
+
+    EXPECT_TRUE(RESULT.success);
+    EXPECT_EQ(lua_gettop(L), 0);
 }

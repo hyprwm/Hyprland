@@ -1,4 +1,5 @@
 #include "ConfigManager.hpp"
+#include "LuaCaller.hpp"
 #include "../../desktop/view/window/WindowPresentation.hpp"
 #include "LuaBindings.hpp"
 #include "DefaultConfig.hpp"
@@ -430,12 +431,18 @@ CConfigManager::~CConfigManager() {
     if (m_luaStateLifetime)
         m_luaStateLifetime->state = nullptr;
 
+    m_caller.reset();
+
     if (m_lua && m_ownsLuaState)
         lua_close(m_lua);
 }
 
 SP<SLuaStateLifetime> CConfigManager::luaStateLifetime() const {
     return m_luaStateLifetime;
+}
+
+CLuaCaller& CConfigManager::caller() {
+    return *m_caller;
 }
 
 CConfigManager* CConfigManager::fromLuaState(lua_State* L) {
@@ -446,48 +453,6 @@ CConfigManager* CConfigManager::fromLuaState(lua_State* L) {
     auto* mgr = sc<CConfigManager*>(lua_touserdata(L, -1));
     lua_pop(L, 1);
     return mgr;
-}
-
-void CConfigManager::watchdogHook(lua_State* L, lua_Debug* /*ar*/) {
-    auto* mgr = fromLuaState(L);
-    if (!mgr || !mgr->m_watchdogActive)
-        return;
-
-    if (std::chrono::steady_clock::now() <= mgr->m_watchdogDeadline)
-        return;
-
-    const auto& context = mgr->m_watchdogContext;
-    if (context.empty())
-        luaL_error(L, "[Lua] execution timed out");
-
-    luaL_error(L, "[Lua] execution timed out in %s", context.c_str());
-}
-
-int CConfigManager::guardedPCall(int nargs, int nresults, int errfunc, int timeoutMs, std::string_view context) {
-    if (!m_lua)
-        return LUA_ERRERR;
-
-    const auto                                  prevHook  = lua_gethook(m_lua);
-    const int                                   prevMask  = lua_gethookmask(m_lua);
-    const int                                   prevCount = lua_gethookcount(m_lua);
-
-    const bool                                  prevWatchdogActive   = m_watchdogActive;
-    const std::chrono::steady_clock::time_point prevWatchdogDeadline = m_watchdogDeadline;
-    const std::string                           prevWatchdogContext  = m_watchdogContext;
-
-    m_watchdogActive   = timeoutMs > 0;
-    m_watchdogDeadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(std::max(timeoutMs, 1));
-    m_watchdogContext  = context;
-
-    lua_sethook(m_lua, &CConfigManager::watchdogHook, LUA_MASKCOUNT, LUA_WATCHDOG_INSTRUCTION_INTERVAL);
-    const int result = lua_pcall(m_lua, nargs, nresults, errfunc);
-
-    lua_sethook(m_lua, prevHook, prevMask, prevCount);
-    m_watchdogActive   = prevWatchdogActive;
-    m_watchdogDeadline = prevWatchdogDeadline;
-    m_watchdogContext  = prevWatchdogContext;
-
-    return result;
 }
 
 eConfigManagerType CConfigManager::type() {
@@ -515,6 +480,8 @@ void CConfigManager::reinitLuaState() {
     if (m_luaStateLifetime)
         m_luaStateLifetime->state = nullptr;
 
+    m_caller.reset();
+
     if (m_lua && m_ownsLuaState) {
         lua_close(m_lua);
     }
@@ -523,6 +490,7 @@ void CConfigManager::reinitLuaState() {
     m_lua              = luaL_newstate();
     m_ownsLuaState     = true;
     m_luaStateLifetime = makeShared<SLuaStateLifetime>(m_lua);
+    m_caller           = makeUnique<CLuaCaller>(m_lua, [this](std::string&& e) { addError(std::move(e)); });
     luaL_openlibs(m_lua);
 
     lua_getglobal(m_lua, "debug");
@@ -562,7 +530,7 @@ void CConfigManager::reinitLuaState() {
 
     Bindings::registerBindings(m_lua, this);
 
-    m_eventHandler = makeUnique<CLuaEventHandler>(m_lua);
+    m_eventHandler = makeUnique<CLuaEventHandler>(*m_caller);
 
     // Hook package.searchers[2] (the Lua file searcher) to track require()'d paths.
     lua_getglobal(m_lua, "package");
@@ -746,7 +714,7 @@ void CConfigManager::reload() {
     });
     lua_insert(m_lua, 1);
 
-    if (guardedPCall(0, 0, 1, LUA_TIMEOUT_CONFIG_RELOAD_MS, "config reload") != LUA_OK) {
+    if (m_caller->guardedPCall(m_lua, 0, 0, 1, CLuaCaller::LUA_TIMEOUT_CONFIG_RELOAD_MS, "config reload") != LUA_OK) {
         addError(lua_tostring(m_lua, -1));
         lua_pop(m_lua, 1);
         m_lastConfigVerificationWasSuccessful = false;
@@ -906,7 +874,7 @@ std::optional<std::string> CConfigManager::eval(const std::string& code, bool re
         }
     }
 
-    if (guardedPCall(0, LUA_MULTRET, 0, LUA_TIMEOUT_EVAL_MS, "hyprctl eval") != LUA_OK) {
+    if (m_caller->guardedPCall(m_lua, 0, LUA_MULTRET, 0, CLuaCaller::LUA_TIMEOUT_EVAL_MS, "hyprctl eval") != LUA_OK) {
         std::string err = lua_tostring(m_lua, -1);
         lua_pop(m_lua, 1);
         return std::format("error: {}", err);
@@ -1353,67 +1321,6 @@ void CConfigManager::onPluginUnload(void* handle) {
 
         return NEEDS_REMOVE;
     });
-}
-
-static SDispatchResult dispatchResultFromLua(lua_State* L, int idx) {
-    SDispatchResult result;
-
-    if (!lua_istable(L, idx))
-        return result;
-
-    lua_getfield(L, idx, "pass_event");
-    result.passEvent = lua_toboolean(L, -1);
-    lua_pop(L, 1);
-
-    lua_getfield(L, idx, "ok");
-    if (lua_isboolean(L, -1))
-        result.success = lua_toboolean(L, -1);
-    lua_pop(L, 1);
-
-    lua_getfield(L, idx, "request_release");
-    result.requestRelease = lua_toboolean(L, -1);
-    lua_pop(L, 1);
-
-    if (!result.success) {
-        lua_getfield(L, idx, "error");
-        if (lua_isstring(L, -1))
-            result.error = lua_tostring(L, -1);
-        lua_pop(L, 1);
-    }
-
-    return result;
-}
-
-SDispatchResult CConfigManager::callLuaFnBind(const CLuaRef& fn) {
-    if (!fn.push())
-        return {.success = false, .error = "Lua keybind belongs to an expired config state"};
-
-    int status = guardedPCall(0, 1, 0, CConfigManager::LUA_TIMEOUT_KEYBIND_CALLBACK_MS, "keybind callback");
-
-    if (status != LUA_OK) {
-        Config::Lua::Bindings::Internal::reportError(m_lua,
-                                                     Config::Actions::SActionError{std::format("error in keybind lambda: {}", luaL_tolstring(m_lua, -1, nullptr)),
-                                                                                   Config::Actions::eActionErrorLevel::ERROR, Config::Actions::eActionErrorCode::LUA_ERROR});
-        lua_pop(m_lua, 2);
-        return {.success = false, .error = "lua keybind error"};
-    }
-
-    auto result = dispatchResultFromLua(m_lua, -1);
-    lua_pop(m_lua, 1);
-    return result;
-}
-
-void CConfigManager::callLuaFn(const CLuaRef& fn, const std::function<int(lua_State*)>& pushArgs, int timeoutMs, std::string_view context) {
-    if (!fn.push())
-        return;
-
-    const int nargs  = pushArgs ? pushArgs(m_lua) : 0;
-    const int status = guardedPCall(nargs, 0, 0, timeoutMs, context);
-
-    if (status != LUA_OK) {
-        addError(std::format("error in {}: {}", context, lua_tostring(m_lua, -1)));
-        lua_pop(m_lua, 1);
-    }
 }
 
 bool CConfigManager::isDynamicParse() const {

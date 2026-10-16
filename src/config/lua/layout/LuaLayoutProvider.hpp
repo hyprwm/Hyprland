@@ -19,8 +19,9 @@ namespace Config::Lua::Layouts {
     struct SLuaLayoutProvider {
         CConfigManager* manager = nullptr;
         std::string     name;
+        std::string     recalculateContext;
+        std::string     layoutMsgContext;
         CLuaRef         table; // empty once the provider is unregistered
-        bool            didError = false;
     };
 
     class CLuaTiledAlgorithm : public Layout::ITiledAlgorithm {
@@ -47,7 +48,6 @@ namespace Config::Lua::Layouts {
         std::vector<SP<Layout::ITarget>> liveTargets();
         bool                             callRecalculate(const std::vector<SP<Layout::ITarget>>& targets);
         void                             applyDefaultGrid(const std::vector<SP<Layout::ITarget>>& targets);
-        void                             reportError(const std::string& message);
     };
 
 }

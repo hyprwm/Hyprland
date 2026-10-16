@@ -39,8 +39,7 @@ static int            requestBindRelease(lua_State* L, int results) {
     if (results != 1 || !lua_istable(L, -1))
         return results;
 
-    lua_pushboolean(L, true);
-    lua_setfield(L, -2, "request_release");
+    Internal::markRequestRelease(L, -1);
     return results;
 }
 

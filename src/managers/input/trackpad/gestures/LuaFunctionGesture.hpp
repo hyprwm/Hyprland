@@ -5,7 +5,7 @@
 
 class CLuaFunctionGesture : public ITrackpadGesture {
   public:
-    CLuaFunctionGesture(Config::Lua::CLuaRef&& fn);
+    explicit CLuaFunctionGesture(Config::Lua::CLuaRef&& fn);
     CLuaFunctionGesture(Config::Lua::CLuaRef&& start, Config::Lua::CLuaRef&& update, Config::Lua::CLuaRef&& end);
     virtual ~CLuaFunctionGesture() = default;
 

@@ -3,6 +3,7 @@
 #include "LuaLayoutContext.hpp"
 #include "LuaLayoutTarget.hpp"
 #include "../ConfigManager.hpp"
+#include "../LuaCaller.hpp"
 #include "../bindings/Check.hpp"
 #include "../bindings/LuaBindingsInternal.hpp"
 
@@ -112,23 +113,18 @@ Config::ErrorResult CLuaTiledAlgorithm::layoutMsg(const std::string_view& sv) {
     pushLayoutContext(L, targets, space->workArea());
     lua_pushlstring(L, sv.data(), sv.size());
 
-    const int status = m_provider->manager->guardedPCall(2, 1, 0, CConfigManager::LUA_TIMEOUT_LAYOUT_CALLBACK_MS, "lua layout_msg callback");
-    if (status != LUA_OK) {
-        std::string err = lua_tostring(L, -1) ? lua_tostring(L, -1) : "unknown lua error";
-        lua_settop(L, top);
-        reportError(err);
-        return Config::configError(std::format("lua layout {} layout_msg failed: {}", m_provider->name, err), Config::eConfigErrorLevel::ERROR,
-                                   Config::eConfigErrorCode::LUA_ERROR);
-    }
-
     Config::ErrorResult result = {};
-    if (lua_isboolean(L, -1) && !lua_toboolean(L, -1))
-        result =
-            Config::configError(std::format("lua layout {} rejected layoutmsg", m_provider->name), Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT);
-    else if (lua_isstring(L, -1))
-        result = Config::configError(lua_tostring(L, -1), Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT);
+    const auto          CALLED = m_provider->manager->caller().callPushed(2, CLuaCaller::LUA_TIMEOUT_LAYOUT_CALLBACK_MS, m_provider->layoutMsgContext, [&](lua_State* L) {
+        if (lua_isboolean(L, -1) && !lua_toboolean(L, -1))
+            result = Config::configError(std::format("lua layout {} rejected layoutmsg", m_provider->name), Config::eConfigErrorLevel::ERROR,
+                                         Config::eConfigErrorCode::INVALID_ARGUMENT);
+        else if (lua_isstring(L, -1))
+            result = Config::configError(lua_tostring(L, -1), Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT);
+    });
 
-    lua_settop(L, top);
+    if (!CALLED)
+        return Config::configError(CALLED.error(), Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::LUA_ERROR);
+
     recalculate();
     return result;
 }
@@ -200,16 +196,7 @@ bool CLuaTiledAlgorithm::callRecalculate(const std::vector<SP<Layout::ITarget>>&
 
     pushLayoutContext(L, targets, space->workArea());
 
-    const int status = m_provider->manager->guardedPCall(1, 0, 0, CConfigManager::LUA_TIMEOUT_LAYOUT_CALLBACK_MS, "lua layout recalculate callback");
-    if (status != LUA_OK) {
-        std::string err = lua_tostring(L, -1) ? lua_tostring(L, -1) : "unknown lua error";
-        lua_settop(L, top);
-        reportError(err);
-        return false;
-    }
-
-    lua_settop(L, top);
-    return true;
+    return m_provider->manager->caller().callPushed(1, CLuaCaller::LUA_TIMEOUT_LAYOUT_CALLBACK_MS, m_provider->recalculateContext).has_value();
 }
 
 void CLuaTiledAlgorithm::applyDefaultGrid(const std::vector<SP<Layout::ITarget>>& targets) {
@@ -227,19 +214,6 @@ void CLuaTiledAlgorithm::applyDefaultGrid(const std::vector<SP<Layout::ITarget>>
         const int row = sc<int>(i) / cols;
         targets[i]->setPositionGlobal(CBox{AREA.x + AREA.w * col / cols, AREA.y + AREA.h * row / rows, AREA.w / cols, AREA.h / rows}.noNegativeSize());
     }
-}
-
-void CLuaTiledAlgorithm::reportError(const std::string& message) {
-    if (!m_provider)
-        return;
-
-    LOG(Log::ERR, "[lua] layout {} error: {}", m_provider->name, message);
-
-    if (m_provider->didError || !m_provider->manager)
-        return;
-
-    m_provider->didError = true;
-    m_provider->manager->addError(std::format("lua layout {} error: {}", m_provider->name, message));
 }
 
 std::expected<void, std::string> CConfigManager::registerLuaLayoutProvider(std::string name, lua_State* L, int providerTableIdx) {
@@ -261,10 +235,12 @@ std::expected<void, std::string> CConfigManager::registerLuaLayoutProvider(std::
     if (!hasRecalculate)
         return std::unexpected("provider table must define recalculate(ctx)");
 
-    auto provider     = makeShared<SLuaLayoutProvider>();
-    provider->manager = this;
-    provider->name    = name;
-    provider->table   = CLuaRef{m_luaStateLifetime, L, providerTableIdx};
+    auto provider                = makeShared<SLuaLayoutProvider>();
+    provider->manager            = this;
+    provider->name               = name;
+    provider->recalculateContext = std::format("hl.layout \"{}\" recalculate", name);
+    provider->layoutMsgContext   = std::format("hl.layout \"{}\" layout_msg", name);
+    provider->table              = CLuaRef{m_luaStateLifetime, L, providerTableIdx};
 
     if (!Layout::Supplementary::algoMatcher()->registerTiledAlgo(name, &typeid(CLuaTiledAlgorithm), [provider] { return makeUnique<CLuaTiledAlgorithm>(provider); })) {
         provider->table = {};

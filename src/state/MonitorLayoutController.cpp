@@ -54,7 +54,11 @@ void CMonitorLayoutController::checkOverlapsAndNotify() const {
 }
 
 void CMonitorLayoutController::arrange() const {
-    static auto                                   PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
+    static auto PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
+
+    // make sure monitors that were just enabled (e.g. a monitor in the middle of onConnect) get a position now,
+    // instead of only being picked up by the layoutChanged event after everything else was arranged.
+    State::monitorState()->syncActiveMonitors();
 
     std::vector<SP<Monitor::IMonitorArrangeable>> arrangeableMonitors;
     arrangeableMonitors.reserve(State::monitorState()->monitors().size());

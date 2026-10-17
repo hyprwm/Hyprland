@@ -1,13 +1,18 @@
 #include "ScreenshareManager.hpp"
+#include "WorkspaceCaptureSource.hpp"
 #include "../../pointer/PointerManager.hpp"
 #include "../SeatManager.hpp"
+#include "../SessionLockManager.hpp"
 #include "../permissions/DynamicPermissionManager.hpp"
 #include "../../protocols/ColorManagement.hpp"
 #include "../../Compositor.hpp"
 #include "../../render/Renderer.hpp"
+#include "../../render/SceneResources.hpp"
+#include "../../render/scene/SceneSelection.hpp"
 #include "../../render/OpenGL.hpp"
 #include "../../output/Monitor.hpp"
 #include "../../state/MonitorState.hpp"
+#include "../../workspace/HLWorkspace.hpp"
 #include "../../desktop/view/window/Window.hpp"
 #include "../../desktop/view/window/WindowPresentation.hpp"
 #include "../../desktop/state/FocusState.hpp"
@@ -17,6 +22,7 @@
 #include "../../managers/fullscreen/FullscreenController.hpp"
 #include <hyprutils/math/Region.hpp>
 #include <hyprgraphics/egl/Egl.hpp>
+#include <hyprland-workspace-image-capture-source-v1.hpp>
 
 using namespace Hyprgraphics::Egl;
 using namespace Screenshare;
@@ -52,6 +58,9 @@ bool CScreenshareFrame::done() const {
         return true;
 
     if (m_session->m_type == SHARE_REGION && !m_session->monitor())
+        return true;
+
+    if (m_session->m_type == SHARE_WORKSPACE && !m_session->monitor())
         return true;
 
     if (m_session->m_type == SHARE_WINDOW && (!m_session->monitor() || !validMapped(m_session->m_window)))
@@ -126,7 +135,7 @@ eScreenshareError CScreenshareFrame::share(SP<IHLBuffer> buffer, const CRegion& 
     }
 
     // schedule a frame so that when a screenshare starts it isn't black until the output is updated
-    if (m_isFirst) {
+    if (m_isFirst || m_session->m_type == SHARE_WORKSPACE) {
         const auto PMONITOR = m_session->monitor();
         if (PMONITOR)
             PMONITOR->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
@@ -161,10 +170,16 @@ void CScreenshareFrame::copy() {
     // store a snapshot before the permission popup so we don't break screenshots
     const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(m_session->m_client, PERMISSION_TYPE_SCREENCOPY);
     if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
-        if (!m_session->m_tempFB || !m_session->m_tempFB->isAllocated())
+        if (m_session->m_type != SHARE_WORKSPACE && (!m_session->m_tempFB || !m_session->m_tempFB->isAllocated()))
             storeTempFB();
 
         // don't copy a frame while allow is pending because screenshot tools will only take the first frame we give, which is empty
+        return;
+    }
+
+    if (m_session->m_type == SHARE_WORKSPACE && (PERM == PERMISSION_RULE_ALLOW_MODE_DENY || m_bufferSize != m_session->bufferSize())) {
+        m_failed = true;
+        m_callback(RESULT_NOT_COPIED);
         return;
     }
 
@@ -363,12 +378,39 @@ void CScreenshareFrame::renderWindow(Render::CRenderContext& ctx) {
                                              Pointer::mgr()->untransformedPosition() - PWINDOW->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT), true, true);
 }
 
+void CScreenshareFrame::renderWorkspace(Render::CRenderContext& ctx) {
+    const auto WORKSPACE = m_session->m_workspace->workspace();
+    const auto MONITOR   = ctx.m_data.pMonitor.lock();
+    if (!WORKSPACE || WORKSPACE->m_monitor != MONITOR || g_pSessionLockManager->isSessionLocked())
+        return;
+
+    const auto MODE = m_session->m_workspace->mode() == HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_WINDOWS_ONLY ? Render::eSceneMode::WORKSPACE_WINDOWS :
+                                                                                                                                       Render::eSceneMode::WORKSPACE_WITH_SHELL;
+    const auto NOW  = Time::steadyNow();
+    g_pHyprRenderer->startRenderPass(ctx);
+    g_pHyprRenderer->renderWorkspace(ctx, WORKSPACE, NOW, MODE);
+
+    if (!m_overlayCursor || (MONITOR->m_activeWorkspace != WORKSPACE && MONITOR->m_activeSpecialWorkspace != WORKSPACE))
+        return;
+
+    CRegion damage{0, 0, m_bufferSize.x, m_bufferSize.y};
+    Pointer::mgr()->renderSoftwareCursorsFor(ctx, MONITOR, NOW, damage, Pointer::mgr()->untransformedPosition() - MONITOR->m_position, true, true);
+}
+
 void CScreenshareFrame::render(Render::CRenderContext& ctx) {
     const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(m_session->m_client, PERMISSION_TYPE_SCREENCOPY);
 
-    CRegion    frameRegion = {0, 0, m_bufferSize.x, m_bufferSize.y};
-
+    // Removed sources keep their last export size even if the output changes size.
+    // Clear all scene scratch, not just the frozen export rectangle.
+    const auto CLEAR_SIZE  = m_session->m_type == SHARE_WORKSPACE ? ctx.m_data.currentFB->m_size : m_bufferSize;
+    CRegion    frameRegion = {0, 0, CLEAR_SIZE.x, CLEAR_SIZE.y};
     g_pHyprRenderer->draw(ctx, CClearPassElement::SClearData{{0, 0, 0, 0}}, frameRegion);
+
+    if (m_session->m_type == SHARE_WORKSPACE) {
+        if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW)
+            renderWorkspace(ctx);
+        return;
+    }
 
     if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING)
         return;
@@ -397,11 +439,38 @@ void CScreenshareFrame::render(Render::CRenderContext& ctx) {
     }
 }
 
+bool CScreenshareFrame::beginCopy(SP<Render::IFramebuffer> framebuffer) {
+    const bool             WORKSPACE = m_session->m_type == SHARE_WORKSPACE;
+    Render::SRenderOptions options;
+    if (WORKSPACE) {
+        if (!m_session->m_sceneResources)
+            m_session->m_sceneResources = makeShared<Render::CSceneResources>(g_pHyprRenderer->createFB("workspace capture blur"),
+                                                                              Render::SSceneBufferDescription{
+                                                                                  .format           = DRM_FORMAT_ARGB8888,
+                                                                                  .imageDescription = NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION,
+                                                                              });
+        options.sceneResources = m_session->m_sceneResources;
+    }
+
+    // beginRender may replace scene damage. Preserve the client's export damage.
+    CRegion damage = m_damage;
+    if (!g_pHyprRenderer->beginRender(m_session->monitor(), damage, framebuffer ? Render::RENDER_MODE_FULL_FAKE : Render::RENDER_MODE_TO_BUFFER, framebuffer ? nullptr : m_buffer,
+                                      framebuffer, !WORKSPACE, options))
+        return false;
+
+    auto& ctx = g_pHyprRenderer->context();
+    ctx.m_data.outFB->setImageDescription(NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION);
+    ctx.m_data.blockScreenShader = true;
+    ctx.m_renderingCapture       = WORKSPACE;
+    ctx.m_blockSurfaceFeedback   = WORKSPACE;
+    return true;
+}
+
 bool CScreenshareFrame::copyDmabuf() {
     if (g_pHyprRenderer->context().active() || done())
         return false;
 
-    if (!g_pHyprRenderer->beginRender(m_session->monitor(), m_damage, Render::RENDER_MODE_TO_BUFFER, m_buffer, nullptr, true)) {
+    if (!beginCopy()) {
         LOG(Log::ERR, "Can't copy: failed to begin rendering to dma frame");
         return false;
     }
@@ -411,11 +480,7 @@ bool CScreenshareFrame::copyDmabuf() {
             g_pHyprRenderer->abortRender();
     });
     auto&                     ctx = g_pHyprRenderer->context();
-    ctx.m_data.currentFB->setImageDescription(NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION);
-
     render(ctx);
-
-    ctx.m_data.blockScreenShader = true;
 
     m_copyInFlight = true;
 
@@ -449,13 +514,12 @@ bool CScreenshareFrame::copyShm() {
         return false;
     }
 
-    const auto PMONITOR = m_session->monitor();
-
     auto       outFB = g_pHyprRenderer->createFB();
-    outFB->alloc(m_bufferSize.x, m_bufferSize.y, shm.format);
+    if (!outFB || !outFB->alloc(m_bufferSize.x, m_bufferSize.y, shm.format))
+        return false;
     outFB->setImageDescription(NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION);
 
-    if (!g_pHyprRenderer->beginFullFakeRender(PMONITOR, m_damage, outFB)) {
+    if (!beginCopy(outFB)) {
         LOG(Log::ERR, "Can't copy: failed to begin rendering");
         return false;
     }
@@ -467,8 +531,6 @@ bool CScreenshareFrame::copyShm() {
 
     auto&                     ctx = g_pHyprRenderer->context();
     render(ctx);
-
-    ctx.m_data.blockScreenShader = true;
 
     finishing = true;
     g_pHyprRenderer->endRender();

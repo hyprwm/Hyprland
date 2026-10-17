@@ -54,6 +54,10 @@ SP<CLayerFadeout> CLayerFadeout::create(PHLLS layer, SP<Render::IFramebuffer> sn
     fadeout->m_framebuffer = snapshot;
     fadeout->m_geometry    = layer->m_geometry;
     fadeout->m_zIndex      = layerZIndex(layer);
+    fadeout->m_source      = {
+        .type          = eFadeoutSource::LAYER,
+        .noScreenShare = layer->m_ruleApplicator->noScreenShare().valueOrDefault(),
+    };
 
     static auto PDIMAROUND = CConfigValue<Config::FLOAT>("decoration:dim_around");
     if (*PDIMAROUND && layer->m_ruleApplicator->dimAround().valueOrDefault())

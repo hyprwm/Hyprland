@@ -75,6 +75,7 @@ namespace Render {
 
     TEST_F(CSceneResourcesTest, InitialAndPreparedContentsRemainInvalidUntilCompleted) {
         EXPECT_TRUE(m_resources->isolated());
+        EXPECT_FALSE(m_resources->bufferDescription());
         EXPECT_EQ(m_resources->blurFramebuffer(), m_framebuffer);
         EXPECT_TRUE(m_resources->blurDirty());
         EXPECT_FALSE(m_resources->blurQueued());
@@ -97,6 +98,68 @@ namespace Render {
         EXPECT_FALSE(m_resources->blurDirty());
         EXPECT_FALSE(m_resources->blurQueued());
         EXPECT_TRUE(m_resources->canPrecomputeBlur());
+    }
+
+    TEST_F(CSceneResourcesTest, ExplicitDescriptorOverridesMonitorDefaultsAcrossPreparations) {
+        const SSceneBufferDescription descriptor{DRM_FORMAT_ARGB8888, NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION};
+        CSceneResources               resources{m_framebuffer, descriptor};
+        ASSERT_TRUE(resources.bufferDescription());
+        EXPECT_EQ(resources.bufferDescription()->format, descriptor.format);
+        EXPECT_EQ(resources.bufferDescription()->imageDescription, descriptor.imageDescription);
+
+        for (const auto format : {DRM_FORMAT_XRGB2101010, DRM_FORMAT_ABGR16161616F}) {
+            ASSERT_TRUE(resources.prepare({100, 200}, format, NColorManagement::DEFAULT_HDR_IMAGE_DESCRIPTION));
+            EXPECT_EQ(m_framebuffer->m_drmFormat, descriptor.format);
+            EXPECT_EQ(m_framebuffer->imageDescription(), descriptor.imageDescription);
+            EXPECT_TRUE(resources.blurDirty());
+            EXPECT_FALSE(resources.blurTexture());
+            resources.completePreBlur();
+            ASSERT_TRUE(resources.blurTexture());
+            EXPECT_EQ(resources.blurTexture()->m_imageDescription, descriptor.imageDescription);
+        }
+        EXPECT_EQ(m_stats->allocated, 1);
+    }
+
+    TEST_F(CSceneResourcesTest, InvalidExplicitDescriptorDoesNotFallBackOrAllocate) {
+        for (const auto& descriptor : std::vector<SSceneBufferDescription>{
+                 {DRM_FORMAT_INVALID, NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION},
+                 {std::numeric_limits<DRMFormat>::max(), NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION},
+                 {DRM_FORMAT_ARGB8888, nullptr},
+             }) {
+            CSceneResources resources{m_framebuffer, descriptor};
+            EXPECT_FALSE(resources.prepare({100, 200}, DRM_FORMAT_XRGB8888, NColorManagement::DEFAULT_HDR_IMAGE_DESCRIPTION));
+            EXPECT_FALSE(resources.canPrecomputeBlur());
+            resources.completePreBlur();
+            EXPECT_FALSE(resources.blurTexture());
+            EXPECT_TRUE(resources.blurDirty());
+        }
+        EXPECT_EQ(m_stats->allocated, 0);
+    }
+
+    TEST_F(CSceneResourcesTest, ExplicitDescriptorSurvivesFailedPreparationWithoutExposingOldPixels) {
+        const SSceneBufferDescription descriptor{DRM_FORMAT_ARGB8888, NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION};
+        CSceneResources               resources{m_framebuffer, descriptor};
+        ASSERT_TRUE(resources.prepare({100, 200}, DRM_FORMAT_XRGB8888, nullptr));
+        resources.completePreBlur();
+        EXPECT_FALSE(resources.prepare({0, 200}, DRM_FORMAT_XRGB8888, nullptr));
+        EXPECT_EQ(m_stats->allocated, 1);
+        EXPECT_FALSE(resources.canPrecomputeBlur());
+        EXPECT_FALSE(resources.blurTexture());
+
+        m_stats->failAllocation = true;
+        EXPECT_FALSE(resources.prepare({200, 100}, DRM_FORMAT_XRGB8888, nullptr));
+        EXPECT_FALSE(resources.canPrecomputeBlur());
+        resources.completePreBlur();
+        EXPECT_FALSE(resources.blurTexture());
+        EXPECT_EQ(resources.bufferDescription()->imageDescription, descriptor.imageDescription);
+
+        m_stats->failAllocation = false;
+        ASSERT_TRUE(resources.prepare({200, 100}, DRM_FORMAT_XRGB8888, nullptr));
+        EXPECT_EQ(m_framebuffer->m_drmFormat, descriptor.format);
+        EXPECT_EQ(m_framebuffer->imageDescription(), descriptor.imageDescription);
+        EXPECT_FALSE(resources.blurTexture());
+        resources.completePreBlur();
+        EXPECT_TRUE(resources.blurTexture());
     }
 
     TEST_F(CSceneResourcesTest, IdenticalDescriptorsDoNotSharePixelsOrFlags) {
@@ -544,6 +607,7 @@ namespace Render {
     TEST(SceneResources, NullMonitorAdapterRemainsNonIsolated) {
         auto resources = makeShared<CSceneResources>(PHLMONITORREF{});
         EXPECT_FALSE(resources->isolated());
+        EXPECT_FALSE(resources->bufferDescription());
         EXPECT_FALSE(resources->prepare({100, 200}, DRM_FORMAT_ARGB8888, nullptr));
         EXPECT_FALSE(resources->blurFramebuffer());
         EXPECT_FALSE(resources->blurTexture());

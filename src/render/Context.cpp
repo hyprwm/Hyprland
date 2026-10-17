@@ -34,6 +34,10 @@ bool CRenderContext::readOnlyEffects() const {
     return m_sceneResources && m_sceneResources->isolated();
 }
 
+bool CRenderContext::shouldRenderContent(bool noScreenShare) const {
+    return !m_renderingCapture || !noScreenShare;
+}
+
 Time::steady_tp CRenderContext::effectTime() const {
     return readOnlyEffects() ? m_frameTime : Time::steadyNow();
 }
@@ -79,6 +83,7 @@ void CRenderContext::reset() {
     m_frameTime            = {};
     m_blockSurfaceFeedback = false;
     m_renderingSnapshot    = false;
+    m_renderingCapture     = false;
     m_swapchainAcquired    = false;
     m_gl                   = {};
     m_active               = false;

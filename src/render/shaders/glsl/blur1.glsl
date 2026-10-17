@@ -111,9 +111,11 @@ vec4 blur1(vec2 v_texcoord, sampler2D tex, float radius, vec2 halfpixel, int pas
 
     vec4 color = sum / 8.0;
 
-    if (vibrancy == 0.0) {
+    if (vibrancy == 0.0 || color.a <= 0.0) {
         return color;
     } else {
+        color.rgb /= color.a;
+
         // Invert it so that it correctly maps to the config setting
         float vibrancy_darkness1 = 1.0 - vibrancy_darkness;
 
@@ -129,6 +131,6 @@ vec4 blur1(vec2 v_texcoord, sampler2D tex, float radius, vec2 halfpixel, int pas
 
         vec3  newColor = hsl2rgb(vec3(hsl[0], saturation, hsl[2]));
 
-        return vec4(newColor, color[3]);
+        return vec4(newColor * color.a, color.a);
     }
 }

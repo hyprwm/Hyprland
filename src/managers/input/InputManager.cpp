@@ -28,6 +28,7 @@
 #include "../../protocols/core/DataDevice.hpp"
 #include "../../protocols/core/Compositor.hpp"
 #include "../../protocols/InputCapture.hpp"
+#include "../../protocols/XXHotkey.hpp"
 
 #include "../../devices/Mouse.hpp"
 #include "../../devices/VirtualPointer.hpp"
@@ -727,6 +728,11 @@ void CInputManager::onMouseButton(IPointer::SButtonEvent e, SP<IPointer> mouse) 
 
     PROTO::inputCapture->button(e.button, e.state);
 
+    if (PROTO::xxHotkey->onButton(e, mouse)) {
+        Keybinds::mgr()->onMouseEvent(e, mouse, PROTO::inputCapture->isCaptured());
+        return;
+    }
+
     if (PROTO::inputCapture->isCaptured()) {
         Keybinds::mgr()->onMouseEvent(e, mouse, true);
         if (e.state == WL_POINTER_BUTTON_STATE_RELEASED)
@@ -978,6 +984,8 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
     else if (e.delta == 0)
         PROTO::inputCapture->axisStop(e.axis);
     PROTO::inputCapture->frame();
+
+    PROTO::xxHotkey->onAxis();
 
     const bool BIND_PASSES = Keybinds::mgr()->onAxisEvent(e, pointer);
     bool       passEvent   = !PROTO::inputCapture->isCaptured() && BIND_PASSES;
@@ -1696,8 +1704,10 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
 
     bool passEvent = DISALLOWACTION && !PROTO::inputCapture->isCaptured();
 
-    if (!DISALLOWACTION)
-        passEvent = Keybinds::mgr()->onKeyEvent(event, pKeyboard) && !PROTO::inputCapture->isCaptured();
+    if (!DISALLOWACTION) {
+        const bool HOTKEY_CONSUMED = PROTO::xxHotkey->onKey(event, pKeyboard);
+        passEvent                  = Keybinds::mgr()->onKeyEvent(event, pKeyboard) && !HOTKEY_CONSUMED && !PROTO::inputCapture->isCaptured();
+    }
 
     if (g_pSeatManager->m_keyboardEventHandlers.dispatch(event, pKeyboard, passEvent))
         return;

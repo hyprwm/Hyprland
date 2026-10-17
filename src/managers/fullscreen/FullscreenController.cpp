@@ -1,4 +1,5 @@
 #include "FullscreenController.hpp"
+#include "../../config/ConfigValue.hpp"
 
 #include "../../managers/fullscreen/handler/FullscreenHandler.hpp"
 #include "../../ipc/s2/S2.hpp"
@@ -19,13 +20,24 @@
 #include "../../output/Monitor.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../debug/log/Logger.hpp"
+#include <hyprutils/utils/ScopeGuard.hpp>
 #include <optional>
+#include <mutex>
 
 using namespace Fullscreen;
 
 UP<CFullscreenController>& Fullscreen::controller() {
     static UP<CFullscreenController> p = makeUnique<CFullscreenController>();
     return p;
+}
+
+CFullscreenController::CFullscreenController() {
+    m_configListener = Event::bus()->m_events.config.props_refreshed.listen([this](const bool) {
+        static auto PEXITRETAINSFS = CConfigValue<Config::INTEGER>("misc:exit_window_retains_fullscreen");
+
+        if (*PEXITRETAINSFS != 0)
+            m_takeovers.clear();
+    });
 }
 
 bool CFullscreenController::isFullscreen(const PHLWINDOW window, const std::optional<eFullscreenMode> mode, const std::optional<bool> covering) {
@@ -287,6 +299,93 @@ std::string CFullscreenController::getFullscreenHandlerNameAsString(const PHLWIN
         case FULLSCREEN_HANDLER_SCROLLING: return "scrolling";
         default: return "unknown";
     }
+}
+
+void CFullscreenController::beginFullscreenTakeover(const PHLWINDOW window) {
+    static auto PEXITRETAINSFS   = CConfigValue<Config::INTEGER>("misc:exit_window_retains_fullscreen");
+    const bool  TAKEOVER_SUPPORT = *PEXITRETAINSFS == 0;
+
+    if (!TAKEOVER_SUPPORT) {
+        m_takeovers.clear();
+        return;
+    }
+
+    if (!window || !window->m_workspace)
+        return;
+
+    const auto& CURRENT_FS_WINDOW = getFullscreenWindow(window->m_workspace);
+    if (!CURRENT_FS_WINDOW || CURRENT_FS_WINDOW == window || layoutManagedFS(CURRENT_FS_WINDOW))
+        return;
+
+    const auto [_, TAKEOVER_PUT] = m_takeovers.try_emplace(window,
+                                                           SFullscreenTakeover{
+                                                               .displaced   = CURRENT_FS_WINDOW,
+                                                               .displacer   = window,
+                                                               .workspace   = window->m_workspace,
+                                                               .mode        = getFullscreenModes(CURRENT_FS_WINDOW),
+                                                               .layoutAware = layoutManagedFS(CURRENT_FS_WINDOW),
+                                                           });
+    if (TAKEOVER_PUT)
+        LOG(Log::DEBUG, "beginning takeover {:c} --> {:c}", CURRENT_FS_WINDOW, window->m_self.lock());
+    else
+        LOG(Log::WARN, "failed to place takeover of {:c}", window->m_self.lock());
+}
+
+void CFullscreenController::cancelFullscreenTakeover(const PHLWINDOW window) {
+    const auto ERASED = m_takeovers.erase(window);
+    if (ERASED)
+        LOG(Log::DEBUG, "erased takeover request for window {:c}", window);
+    else
+        LOG(Log::DEBUG, "not found entry to erase from takeover storage for window {:c}", window);
+}
+
+bool CFullscreenController::endFullscreenTakeover(const PHLWINDOW window) {
+    static auto PEXITRETAINSFS   = CConfigValue<Config::INTEGER>("misc:exit_window_retains_fullscreen");
+    const bool  TAKEOVER_SUPPORT = *PEXITRETAINSFS == 0;
+
+    if (!TAKEOVER_SUPPORT) {
+        m_takeovers.clear();
+        return false;
+    }
+
+    if (!window)
+        return false;
+
+    const auto IT = m_takeovers.find(window);
+    if (IT == m_takeovers.end())
+        return false;
+
+    const auto TAKEOVER = IT->second;
+    m_takeovers.erase(IT);
+
+    const auto DISPLACED = TAKEOVER.displaced.lock();
+    const auto DISPLACER = TAKEOVER.displacer.lock();
+    const auto WORKSPACE = TAKEOVER.workspace.lock();
+
+    if (!DISPLACED || !DISPLACER || !WORKSPACE) {
+        LOG(Log::DEBUG, "incomplete takeover stored");
+        return false;
+    }
+
+    const auto CURRENT = getFullscreenWindow(WORKSPACE);
+    if (!DISPLACED->mapped() || DISPLACED->m_workspace != WORKSPACE) {
+        LOG(Log::DEBUG, "end takeover: skipping restoration (target was unmapped / moved out of the workspace)");
+        return false;
+    }
+
+    if (CURRENT != DISPLACER) {
+        LOG(Log::DEBUG, "end takeover: skipping restoration (fullscreen owner changed since the takeover)");
+        return false;
+    }
+
+    setFullscreenMode(DISPLACER, eFullscreenMode::FSMODE_NONE, eFullscreenMode::FSMODE_NONE);
+
+    // Restore the exact mode pair without sync_fullscreen rewriting it or normal collision handling.
+    setFullscreenMode(DISPLACED, TAKEOVER.mode.internal, TAKEOVER.mode.client, TAKEOVER.layoutAware, FULLSCREEN_MUTATION_TRANSFER);
+
+    LOG(Log::DEBUG, "takeover restoration complete from {:c} to {:c}", DISPLACER, DISPLACED);
+
+    return true;
 }
 
 void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optional<eFullscreenMode> internal, std::optional<eFullscreenMode> client,

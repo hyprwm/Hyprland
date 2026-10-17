@@ -350,6 +350,12 @@ SUBTEST(multimonFocus) {
         SPAWN_KITTY(win);
     }
 
+    // Test that focus of a workspace with no windows works.
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 8 })"));
+    auto str = getFromSocket("/activeworkspace");
+    ASSERT_CONTAINS(str, "workspace 8 (");
+    ASSERT_CONTAINS(str, ") on monitor HEADLESS-3:\n");
+
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:a' })"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'right' })"));
 
@@ -793,7 +799,12 @@ TEST_CASE(workspacesCombined) {
     Tests::killAllWindows();
 
     CALL_SUBTEST(multimonBAF);
-    CALL_SUBTEST(multimonFocus);
+    // Test with both `no_warps=true` and `no_warps=false`
+    for (std::string conf : {"cursor={no_warps=true}", "cursor={no_warps=false}"}) {
+        NLog::yellow("Setting hl.config({{{}}})", conf);
+        OK(getFromSocket("/eval hl.config({" + conf + "})"));
+        CALL_SUBTEST(multimonFocus);
+    }
     CALL_SUBTEST(workspaceHistoryMultiMon);
 
     // destroy the headless output
@@ -1323,11 +1334,25 @@ SUBTEST(switchWorkspaceAndCheckActiveWindowFocusIsLostAndRestored) {
 TEST_CASE(workspaceSwitchUnfocusesWindowFromOldWorkspace) {
     SPAWN_KITTY("a");
     for (int followMouse = 0; followMouse <= 3; ++followMouse) {
+        NLog::blue("Setting follow_mouse = {}", followMouse);
         OK(getFromSocket(std::format("/eval hl.config({{ input = {{ follow_mouse = {} }} }})", followMouse)));
         CALL_SUBTEST(switchWorkspaceAndCheckActiveWindowFocusIsLostAndRestored);
     }
-    // TODO: also test when workspaces 1 and 2 are on different workspaces.
-    //       At the time of writing, it is broken (i.e., the test would fail).
+
+    Tests::killAllWindows();
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+    OK(getFromSocket("/eval hl.workspace_rule({ workspace = '2', monitor = 'HEADLESS-1' })"));
+    OK(getFromSocket("/output create headless HEADLESS-1"));
+    CScopeGuard guard = {[this]() { OK(getFromSocket("/output remove HEADLESS-1")); }};
+
+    std::string resp = getFromSocket("/activeworkspace");
+    ASSERT_CONTAINS(resp, "workspace 1 (");
+    SPAWN_KITTY("a");
+    for (int followMouse = 0; followMouse <= 3; ++followMouse) {
+        NLog::blue("Setting follow_mouse = {}", followMouse);
+        OK(getFromSocket(std::format("/eval hl.config({{ input = {{ follow_mouse = {} }} }})", followMouse)));
+        CALL_SUBTEST(switchWorkspaceAndCheckActiveWindowFocusIsLostAndRestored);
+    }
 }
 
 TEST_CASE(luaFocusCreatesBareNamedWorkspace) {

@@ -445,6 +445,7 @@ bool CUnifiedWorkspaceSwipeGesture::endSegment() {
             }
         }
         MONITOR->changeWorkspace(PWORKSPACEL);
+        PWORKSPACEL->ready();
         if (!OWNS_SESSION())
             return false;
 
@@ -482,6 +483,7 @@ bool CUnifiedWorkspaceSwipeGesture::endSegment() {
             }
         }
         MONITOR->changeWorkspace(PWORKSPACER);
+        PWORKSPACER->ready();
         if (!OWNS_SESSION())
             return false;
 

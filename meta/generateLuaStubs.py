@@ -519,7 +519,6 @@ def generate_stub(root: Path) -> str:
     query_types, query_overrides = parse_query_filter_types(root)
 
     api_signatures: dict[str, str] = {
-        "hl.on": "fun(event: HL.EventName, cb: fun(...)): HL.EventSubscription",
         "hl.bind": "fun(keys: string, dispatcher: HL.Dispatcher|function, opts?: HL.BindOptions): HL.Keybind",
         "hl.dispatch": "fun(dispatcher: HL.Dispatcher|function): any",
         "hl.dsp.exec_raw": "fun(cmd: string): HL.Dispatcher",
@@ -614,6 +613,17 @@ def generate_stub(root: Path) -> str:
     lines.append("")
     lines.append("---@class HL.Dispatcher")
     lines.append("local __HL_Dispatcher = {}")
+    lines.append("")
+
+    lines.extend(
+        emit_class_block(
+            "HL.WindowStateUpdate",
+            [
+                ("float", "boolean", True),
+                ("pin", "boolean", True),
+            ],
+        )
+    )
     lines.append("")
 
     lines.extend(
@@ -824,6 +834,8 @@ def generate_stub(root: Path) -> str:
 
         for method in sorted(node.methods):
             full_name = f"{full_prefix}.{method}"
+            if full_name == "hl.on":
+                continue
             default_method_type = "fun(...): HL.Dispatcher" if path and path[0] == "dsp" else "fun(...): any"
             method_type = api_signatures.get(full_name, default_method_type)
             fields.append((method, method_type, False))
@@ -845,6 +857,13 @@ def generate_stub(root: Path) -> str:
             emit_namespace(node.children[child_name], path + [child_name])
 
     emit_namespace(api_tree, [])
+
+    lines.append('---@overload fun(event: "window.update_state", cb: fun(window: HL.Window|nil, changes: HL.WindowStateUpdate)): HL.EventSubscription')
+    lines.append("---@param event HL.EventName")
+    lines.append("---@param cb fun(...)")
+    lines.append("---@return HL.EventSubscription")
+    lines.append("function __HL_API.on(event, cb) end")
+    lines.append("")
 
     lines.append("---@type HL.API")
     lines.append("hl = {}")

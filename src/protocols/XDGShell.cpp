@@ -9,6 +9,7 @@
 #include "core/Compositor.hpp"
 #include "../desktop/DesktopTypes.hpp"
 #include "../desktop/view/window/Window.hpp"
+#include "../desktop/view/window/WindowStateTracker.hpp"
 #include "../desktop/view/window/WaylandBackend.hpp"
 #include "protocols/core/Output.hpp"
 #include <cstddef>
@@ -354,8 +355,10 @@ void CXDGToplevelResource::setNewParent(SP<CXDGToplevelResource> newParent) {
     m_parent = newParent;
     if (m_parent) {
         m_parent->m_children.emplace_back(m_self);
-        if (m_parent->m_window && (m_parent->m_window->m_state & Desktop::View::WINDOW_STATE_PINNED))
+        if (m_parent->m_window && (m_parent->m_window->m_state & Desktop::View::WINDOW_STATE_PINNED)) {
             m_self->m_window->m_state |= Desktop::View::WINDOW_STATE_PINNED;
+            m_self->m_window->stateTracker().scheduleUpdate();
+        }
     }
     LOG(Log::DEBUG, "Toplevel {:x} sets parent to {:x}{}", (uintptr_t)this, (uintptr_t)newParent.get(), (oldParent ? std::format(" (was {:x})", (uintptr_t)oldParent.get()) : ""));
 }

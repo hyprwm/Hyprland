@@ -13,7 +13,7 @@ endif()
 
 pkg_check_modules(hyprctl_deps REQUIRED IMPORTED_TARGET hyprutils>=0.2.4 hyprwire re2 ${READLINE})
 
-file(GLOB_RECURSE HYPRCTL_SRCFILES CONFIGURE_DEPENDS "src/*.cpp" "hw-protocols/*.cpp" "include/*.hpp")
+file(GLOB_RECURSE HYPRCTL_SRCFILES CONFIGURE_DEPENDS "src/*.cpp" "include/*.hpp")
 
 add_executable(hyprctl ${HYPRCTL_SRCFILES})
 set_target_properties(hyprctl PROPERTIES CXX_VISIBILITY_PRESET hidden)

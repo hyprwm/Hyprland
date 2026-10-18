@@ -7,7 +7,7 @@
 #include <algorithm>
 
 #include <hyprutils/string/String.hpp>
-#include <hyprutils/string/VarList.hpp>
+#include <hyprutils/string/VarList2.hpp>
 using namespace Hyprutils::String;
 
 std::optional<std::string> NFsUtils::getDataHome() {
@@ -89,19 +89,12 @@ bool NFsUtils::executableExistsInPath(const std::string& exe) {
     if (path == nullptr)
         return false;
 
-    static CVarList paths(path, 0, ':', true);
+    static CVarList2      paths(std::string{path}, 0, ':', true);
 
-    std::string     fullPath;
-    fullPath.reserve(256);
-
-    return std::ranges::any_of(paths, [&](const std::string& dir) -> bool {
+    std::filesystem::path fullPath;
+    return std::ranges::any_of(paths, [&](std::string_view dir) -> bool {
         fullPath = dir;
-
-        if (!fullPath.ends_with('/')) {
-            fullPath.push_back('/');
-        }
-
-        fullPath += exe;
+        fullPath /= exe;
 
         std::error_code ec;
         auto            status = std::filesystem::status(fullPath, ec);

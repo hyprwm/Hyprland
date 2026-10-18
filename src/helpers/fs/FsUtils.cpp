@@ -99,9 +99,8 @@ bool NFsUtils::executableExistsInPath(const std::string& exe) {
         std::error_code ec;
         auto            status = std::filesystem::status(fullPath, ec);
 
-        if (ec || !std::filesystem::is_regular_file(status)) {
+        if (ec || !std::filesystem::is_regular_file(status))
             return false;
-        }
 
         return (status.permissions() & std::filesystem::perms::others_exec) != std::filesystem::perms::none;
     });

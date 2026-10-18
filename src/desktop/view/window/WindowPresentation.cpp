@@ -238,12 +238,7 @@ bool CWindowPresentation::opaque(const Render::SWindowRenderPresentation& presen
     if (m_window.backend().isX11())
         return solitaryResource->m_current.texture->m_opaque;
 
-    // TODO: this is wrong
-    const auto EXTENTS = solitaryResource->m_current.opaque.getExtents();
-    if (EXTENTS.w >= solitaryResource->m_current.bufferSize.x && EXTENTS.h >= solitaryResource->m_current.bufferSize.y)
-        return true;
-
-    return solitaryResource->m_current.texture->m_opaque;
+    return solitaryResource->isOpaque();
 }
 
 Render::SWindowRenderPresentation CWindowPresentation::renderPresentation() const {

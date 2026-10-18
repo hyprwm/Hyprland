@@ -761,6 +761,21 @@ bool CWLSurfaceResource::hasVisibleSubsurface() {
     return false;
 }
 
+bool CWLSurfaceResource::isOpaque() {
+    if (!m_current.texture)
+        return false;
+
+    if (m_current.texture->m_opaque)
+        return true;
+
+    if (m_current.size.x <= 0 || m_current.size.y <= 0)
+        return false;
+
+    CRegion uncovered = CBox{{}, m_current.size};
+    uncovered.subtract(m_current.opaque);
+    return uncovered.empty();
+}
+
 bool CWLSurfaceResource::isTearing() {
     if (m_enteredOutputs.empty() && m_hlSurface) {
         for (auto& m : State::monitorState()->monitors()) {

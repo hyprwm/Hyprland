@@ -1095,34 +1095,35 @@ SP<CWLSurfaceResource> CWindow::getSolitaryResource() const {
     if (popupTreeSize())
         return nullptr;
 
-    if (res->m_subsurfaces.size() == 0)
+    if (res->m_subsurfaces.size() == 0 || !res->hasVisibleSubsurface())
         return res;
 
-    if (res->m_subsurfaces.size() >= 1) {
-        if (!res->hasVisibleSubsurface())
-            return res;
+    SP<CWLSubsurfaceResource> subsurf;
+    for (auto const& subsurface : res->m_subsurfaces) {
+        if (!subsurface || !subsurface->m_surface)
+            continue;
 
-        if (res->m_subsurfaces.size() == 1) {
-            if (res->m_subsurfaces[0].expired() || res->m_subsurfaces[0]->m_surface.expired())
-                return nullptr;
+        const auto& surf = subsurface->m_surface;
+        if (surf->m_current.size.x <= 0 || surf->m_current.size.y <= 0)
+            continue;
 
-            auto subsurf = res->m_subsurfaces[0];
+        if (subsurf)
+            return nullptr;
 
-            // A subsurface under the main surface cannot result in a solitary resource
-            if (subsurf->m_zIndex < 0)
-                return nullptr;
-
-            auto surf = subsurf->m_surface.lock();
-
-            // check if the subsurface covers the main surface
-            if (!surf || surf->m_subsurfaces.size() != 0 || surf->extends() != res->extends() || !surf->m_current.texture || !surf->m_current.texture->m_opaque)
-                return nullptr;
-
-            return surf;
-        }
+        subsurf = subsurface.lock();
     }
 
-    return nullptr;
+    // A subsurface under the main surface cannot result in a solitary resource
+    if (!subsurf || subsurf->m_zIndex < 0 || subsurf->m_position != Vector2D{})
+        return nullptr;
+
+    auto surf = subsurf->m_surface.lock();
+
+    // check if the subsurface covers the main surface
+    if (!surf || surf->hasVisibleSubsurface() || surf->extends() != res->extends() || !surf->isOpaque())
+        return nullptr;
+
+    return surf;
 }
 
 std::optional<Vector2D> CWindow::calculateExpression(const Math::SExpressionVec2& expr) {

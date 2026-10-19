@@ -437,7 +437,7 @@ ActionResult Actions::moveToWorkspace(PHLWORKSPACE ws, bool silent, std::optiona
 
 ActionResult Actions::moveToWorkspace(const std::string& ws, bool silent, std::optional<PHLWINDOW> w) {
     const auto WORKSPACE = findOrCreateWorkspace(ws, false);
-    const auto res = Actions::moveToWorkspace(WORKSPACE, silent, w);
+    const auto res       = Actions::moveToWorkspace(WORKSPACE, silent, w);
     if (WORKSPACE)
         WORKSPACE->ready();
     return res;
@@ -1091,7 +1091,7 @@ ActionResult Actions::changeWorkspace(PHLWORKSPACE ws) {
 
 ActionResult Actions::changeWorkspace(const std::string& ws) {
     const auto WORKSPACE = resolveWorkspaceForChange(ws);
-    const auto res = Actions::changeWorkspace(WORKSPACE);
+    const auto res       = Actions::changeWorkspace(WORKSPACE);
     if (WORKSPACE)
         WORKSPACE->ready();
     return res;
@@ -1155,7 +1155,7 @@ ActionResult Actions::changeWorkspaceOnCurrentMonitor(PHLWORKSPACE ws) {
 
 ActionResult Actions::changeWorkspaceOnCurrentMonitor(const std::string& ws) {
     const auto WORKSPACE = resolveWorkspaceForChange(ws);
-    const auto res = Actions::changeWorkspaceOnCurrentMonitor(WORKSPACE);
+    const auto res       = Actions::changeWorkspaceOnCurrentMonitor(WORKSPACE);
     if (WORKSPACE)
         WORKSPACE->ready();
     return res;

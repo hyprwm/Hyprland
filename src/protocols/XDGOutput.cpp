@@ -66,10 +66,8 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32
         return;
     }
 
-    if UNLIKELY (!PMONITOR) {
-        LOG(Log::ERR, "New xdg_output from client {:x} ({}) has no CMonitor?!", (uintptr_t)CLIENT, pXDGOutput->m_isXWayland ? "xwayland" : "not xwayland");
+    if (pXDGOutput->isInert())
         return;
-    }
 
     LOG(Log::DEBUG, "New xdg_output for {}: client {:x} ({})", PMONITOR->m_name, (uintptr_t)CLIENT, pXDGOutput->m_isXWayland ? "xwayland" : "not xwayland");
 
@@ -91,7 +89,7 @@ void CXDGOutputProtocol::updateAllOutputs() {
     LOG(Log::DEBUG, "updating all xdg_output heads");
 
     for (auto const& o : m_xdgOutputs) {
-        if (!o->m_monitor)
+        if (o->isInert())
             continue;
 
         o->sendDetails();
@@ -110,13 +108,17 @@ CXDGOutput::CXDGOutput(SP<CZxdgOutputV1> resource_, PHLMONITOR monitor_) : m_mon
     m_resource->setOnDestroy([](CZxdgOutputV1* pMgr) { PROTO::xdgOutput->onOutputResourceDestroy(pMgr->resource()); });
 }
 
-void CXDGOutput::sendDetails() {
-    static auto PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
+bool CXDGOutput::isInert() const {
+    return !m_monitor || !m_monitor->m_output || !m_outputProto || m_outputProto->isDefunct();
+}
 
-    if UNLIKELY (!m_monitor || !m_outputProto || m_outputProto->isDefunct())
+void CXDGOutput::sendDetails() {
+    if (isInert())
         return;
 
-    const auto POS = m_isXWayland ? m_monitor->m_xwaylandPosition : m_monitor->m_position;
+    static auto PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
+
+    const auto  POS = m_isXWayland ? m_monitor->m_xwaylandPosition : m_monitor->m_position;
     m_resource->sendLogicalPosition(POS.x, POS.y);
 
     if (*PXWLFORCESCALEZERO && m_isXWayland)

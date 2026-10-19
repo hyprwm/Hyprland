@@ -4,9 +4,10 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <algorithm>
 
 #include <hyprutils/string/String.hpp>
-#include <hyprutils/string/VarList.hpp>
+#include <hyprutils/string/VarList2.hpp>
 using namespace Hyprutils::String;
 
 std::optional<std::string> NFsUtils::getDataHome() {
@@ -84,28 +85,23 @@ bool NFsUtils::writeToFile(const std::string& path, const std::string& content) 
 }
 
 bool NFsUtils::executableExistsInPath(const std::string& exe) {
-    if (!getenv("PATH"))
+    const char* const path = std::getenv("PATH");
+    if (path == nullptr)
         return false;
 
-    static CVarList paths(getenv("PATH"), 0, ':', true);
+    static CVarList2      paths(std::string{path}, 0, ':', true);
 
-    for (auto& p : paths) {
-        std::string     path = p + std::string{"/"} + exe;
+    std::filesystem::path fullPath;
+    return std::ranges::any_of(paths, [&](std::string_view dir) -> bool {
+        fullPath = dir;
+        fullPath /= exe;
+
         std::error_code ec;
-        if (!std::filesystem::exists(path, ec) || ec)
-            continue;
+        auto            status = std::filesystem::status(fullPath, ec);
 
-        if (!std::filesystem::is_regular_file(path, ec) || ec)
-            continue;
+        if (ec || !std::filesystem::is_regular_file(status))
+            return false;
 
-        auto stat = std::filesystem::status(path, ec);
-        if (ec)
-            continue;
-
-        auto perms = stat.permissions();
-
-        return std::filesystem::perms::none != (perms & std::filesystem::perms::others_exec);
-    }
-
-    return false;
+        return (status.permissions() & std::filesystem::perms::others_exec) != std::filesystem::perms::none;
+    });
 }

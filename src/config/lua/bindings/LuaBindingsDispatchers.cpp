@@ -1194,8 +1194,9 @@ static int dsp_toggleSpecial(lua_State* L) {
     if (!ws)
         return Internal::dispatcherError(L, "Could not resolve special workspace", ERR, C_UNAVAIL);
 
-    Hyprutils::Utils::CScopeGuard x([&]() { ws->ready(); });
-    return Internal::checkResult(L, CA::toggleSpecial(ws));
+    const auto res = Internal::checkResult(L, CA::toggleSpecial(ws));
+    ws->ready();
+    return res;
 }
 
 static int dsp_renameWorkspace(lua_State* L) {

@@ -437,9 +437,10 @@ ActionResult Actions::moveToWorkspace(PHLWORKSPACE ws, bool silent, std::optiona
 
 ActionResult Actions::moveToWorkspace(const std::string& ws, bool silent, std::optional<PHLWINDOW> w) {
     const auto WORKSPACE = findOrCreateWorkspace(ws);
-    // clang-format off-one-line
-    Hyprutils::Utils::CScopeGuard x([&]() { if (WORKSPACE) WORKSPACE->ready(); });
-    return Actions::moveToWorkspace(WORKSPACE, silent, w);
+    const auto res = Actions::moveToWorkspace(WORKSPACE, silent, w);
+    if (WORKSPACE)
+        WORKSPACE->ready();
+    return res;
 }
 
 ActionResult Actions::moveFocus(Math::eDirection dir) {
@@ -1090,9 +1091,10 @@ ActionResult Actions::changeWorkspace(PHLWORKSPACE ws) {
 
 ActionResult Actions::changeWorkspace(const std::string& ws) {
     const auto WORKSPACE = resolveWorkspaceForChange(ws);
-    // clang-format off-one-line
-    Hyprutils::Utils::CScopeGuard x([&]() { if (WORKSPACE) WORKSPACE->ready(); });
-    return Actions::changeWorkspace(WORKSPACE);
+    const auto res = Actions::changeWorkspace(WORKSPACE);
+    if (WORKSPACE)
+        WORKSPACE->ready();
+    return res;
 }
 
 ActionResult Actions::renameWorkspace(PHLWORKSPACE ws, const std::string& s) {
@@ -1153,9 +1155,10 @@ ActionResult Actions::changeWorkspaceOnCurrentMonitor(PHLWORKSPACE ws) {
 
 ActionResult Actions::changeWorkspaceOnCurrentMonitor(const std::string& ws) {
     const auto WORKSPACE = resolveWorkspaceForChange(ws);
-    // clang-format off-one-line
-    Hyprutils::Utils::CScopeGuard x([&]() { if (WORKSPACE) WORKSPACE->ready(); });
-    return Actions::changeWorkspaceOnCurrentMonitor(WORKSPACE);
+    const auto res = Actions::changeWorkspaceOnCurrentMonitor(WORKSPACE);
+    if (WORKSPACE)
+        WORKSPACE->ready();
+    return res;
 }
 
 ActionResult Actions::toggleSpecial(PHLWORKSPACE special) {

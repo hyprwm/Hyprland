@@ -13,9 +13,13 @@ class COutputPower {
     bool good();
 
   private:
+    void                   fail();
+    void                   sendMode();
+
     SP<CZwlrOutputPowerV1> m_resource;
 
     PHLMONITORREF          m_monitor;
+    bool                   m_failed = false;
 
     struct {
         CHyprSignalListener monitorDestroy;

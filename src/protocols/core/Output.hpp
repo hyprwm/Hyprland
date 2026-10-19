@@ -10,7 +10,7 @@ class CWLOutputProtocol;
 
 class CWLOutputResource {
   public:
-    CWLOutputResource(SP<CWlOutput> resource_, PHLMONITOR pMonitor);
+    CWLOutputResource(SP<CWlOutput> resource_, PHLMONITOR pMonitor, WP<CWLOutputProtocol> owner);
     static SP<CWLOutputResource> fromResource(wl_resource*);
 
     bool                         good();

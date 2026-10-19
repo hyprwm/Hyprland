@@ -1797,7 +1797,7 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
     }
 
     for (auto const& overlayls : m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]) {
-        if (overlayls->alpha()[LS_ALPHA_FADE]->value() != 0.F) {
+        if (overlayls->alpha()[LS_ALPHA_FADE]->goal() != 0.F) {
             reasons |= SC_OVERLAYS;
             if (!full)
                 return reasons;

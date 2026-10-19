@@ -1336,6 +1336,13 @@ TEST_CASE(luaFocusCreatesBareNamedWorkspace) {
     ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace hi (hi)");
 }
 
+TEST_CASE(workspaceOnCreatedEmpty) {
+    OK(getFromSocket("/eval hl.workspace_rule({ workspace = 2, on_created_empty = 'kitty' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 2 })"));
+    Tests::waitUntilWindowsN(1);
+    ASSERT(Tests::windowCount(), 1);
+}
+
 SUBTEST(workspaceCreateEventFocus) {
     // switch to a new workspace
     NLog::log("{}Focusing a new workspace", Colors::YELLOW);

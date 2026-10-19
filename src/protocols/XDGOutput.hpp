@@ -14,6 +14,8 @@ class CXDGOutput {
     void sendDetails();
 
   private:
+    bool                  isInert() const;
+
     PHLMONITORREF         m_monitor;
     SP<CZxdgOutputV1>     m_resource;
     WP<CWLOutputProtocol> m_outputProto;

@@ -11,9 +11,6 @@ CWLOutputResource::CWLOutputResource(SP<CWlOutput> resource_, PHLMONITOR pMonito
 
     m_client = m_resource->client();
 
-    if (!m_monitor)
-        return;
-
     // route through the owning protocol object, not a name lookup: after a monitor
     // unplug/replug PROTO::outputs.at(name) is a *new* global, and releases meant for the
     // old defunct one would never drain it.
@@ -25,6 +22,9 @@ CWLOutputResource::CWLOutputResource(SP<CWlOutput> resource_, PHLMONITOR pMonito
         if (m_owner)
             m_owner->destroyResource(this);
     });
+
+    if (!m_monitor)
+        return;
 
     if (m_resource->version() >= 4) {
         m_resource->sendName(m_monitor->m_name.c_str());

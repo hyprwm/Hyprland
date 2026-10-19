@@ -33,13 +33,10 @@ CMonitorStateTracker::CMonitorStateTracker() {
 }
 
 void CMonitorStateTracker::syncActiveMonitors() {
-    std::erase_if(m_monitors, [](const auto& m) { return m->isMirror(); });
+    m_monitors.clear();
 
     for (const auto& rm : m_realMonitors) {
         if (!rm->m_enabled || rm->isMirror())
-            continue;
-
-        if (std::ranges::contains(m_monitors, rm))
             continue;
 
         m_monitors.emplace_back(rm);

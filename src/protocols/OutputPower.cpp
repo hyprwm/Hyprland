@@ -11,25 +11,51 @@ COutputPower::COutputPower(SP<CZwlrOutputPowerV1> resource_, PHLMONITOR pMonitor
     m_resource->setOnDestroy([this](CZwlrOutputPowerV1* r) { PROTO::outputPower->destroyOutputPower(this); });
 
     m_resource->setSetMode([this](CZwlrOutputPowerV1* r, zwlrOutputPowerV1Mode mode) {
-        if (!m_monitor)
+        if (m_failed)
             return;
+
+        if (!m_monitor || !m_monitor->m_output) {
+            fail();
+            return;
+        }
 
         m_monitor->setDPMS(mode == ZWLR_OUTPUT_POWER_V1_MODE_ON);
     });
 
-    m_resource->sendMode(m_monitor->m_dpmsStatus ? ZWLR_OUTPUT_POWER_V1_MODE_ON : ZWLR_OUTPUT_POWER_V1_MODE_OFF);
+    sendMode();
+    if (m_failed)
+        return;
 
     m_listeners.monitorDestroy = Event::bus()->m_events.monitor.destroyMon.listen([this](PHLMONITOR m) {
         if (m != m_monitor)
             return;
-        m_monitor.reset();
-        m_resource->sendFailed();
+        fail();
     });
 
-    m_listeners.monitorDpms =
-        m_monitor->m_events.dpmsChanged.listen([this] { m_resource->sendMode(m_monitor->m_dpmsStatus ? ZWLR_OUTPUT_POWER_V1_MODE_ON : ZWLR_OUTPUT_POWER_V1_MODE_OFF); });
-    m_listeners.monitorState =
-        m_monitor->m_events.modeChanged.listen([this] { m_resource->sendMode(m_monitor->m_dpmsStatus ? ZWLR_OUTPUT_POWER_V1_MODE_ON : ZWLR_OUTPUT_POWER_V1_MODE_OFF); });
+    m_listeners.monitorDpms  = m_monitor->m_events.dpmsChanged.listen([this] { sendMode(); });
+    m_listeners.monitorState = m_monitor->m_events.modeChanged.listen([this] { sendMode(); });
+}
+
+void COutputPower::fail() {
+    if (m_failed)
+        return;
+
+    m_failed    = true;
+    m_listeners = {};
+    m_monitor.reset();
+    m_resource->sendFailed();
+}
+
+void COutputPower::sendMode() {
+    if (m_failed)
+        return;
+
+    if (!m_monitor || !m_monitor->m_output) {
+        fail();
+        return;
+    }
+
+    m_resource->sendMode(m_monitor->m_dpmsStatus ? ZWLR_OUTPUT_POWER_V1_MODE_ON : ZWLR_OUTPUT_POWER_V1_MODE_OFF);
 }
 
 bool COutputPower::good() {

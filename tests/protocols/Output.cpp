@@ -1,6 +1,7 @@
 #include <protocols/core/Output.hpp>
 #include <protocols/core/Compositor.hpp>
 #include <protocols/XDGOutput.hpp>
+#include <protocols/OutputPower.hpp>
 #include <Compositor.hpp>
 #include <animation/AnimationManager.hpp>
 #include <config/ConfigValue.hpp>
@@ -19,6 +20,7 @@
 #include <array>
 #include <cerrno>
 #include <cstring>
+#include <initializer_list>
 #include <memory>
 #include <string>
 #include <utility>
@@ -626,3 +628,208 @@ TEST_P(CXDGOutputVersionTest, HealthyOutputPreservesVersionedEvents) {
 
 // XDG v1/v2 use their own done; v3 uses core done only if wl_output supports it.
 INSTANTIATE_TEST_SUITE_P(Versions, CXDGOutputVersionTest, ::testing::Values(std::pair{1U, 4U}, std::pair{2U, 4U}, std::pair{3U, 1U}, std::pair{3U, 2U}));
+
+class COutputPowerTest : public COutputTest {
+  protected:
+    void SetUp() override;
+    void TearDown() override;
+    void sendPowerRequest(std::initializer_list<uint32_t> request);
+    void requestOutputPower(uint32_t id = 4);
+    void setPowerMode(zwlrOutputPowerV1Mode mode);
+    void destroyPowerResource(uint32_t id = 4);
+    void expectPowerEvents(const std::vector<SOutputTestEvent>& expected = {});
+    void expectFailedPower(uint32_t id = 4);
+    void expectPowerStaysInert();
+
+  private:
+    bool                     m_installedOutputPower = false;
+    UP<COutputPowerProtocol> m_previousOutputPower;
+};
+
+void COutputPowerTest::SetUp() {
+    ASSERT_NO_FATAL_FAILURE(COutputTest::SetUp());
+    m_previousOutputPower  = std::move(PROTO::outputPower);
+    m_installedOutputPower = true;
+    PROTO::outputPower     = makeUnique<COutputPowerProtocol>(&zwlr_output_power_manager_v1_interface, 1, "zwlr_output_power_manager_v1");
+    ASSERT_NE(PROTO::outputPower->getGlobal(), nullptr);
+    m_monitor->m_dpmsStatus = true;
+
+    // Requests after removal still use an output bound while it was healthy.
+    ASSERT_NO_FATAL_FAILURE(bindOutput());
+    ASSERT_EQ(m_boundCount, 1);
+    std::vector<uint32_t> events;
+    ASSERT_NO_FATAL_FAILURE(readOutputEvents(events));
+    auto initialEvents = outputStateEvents(4);
+    initialEvents.insert(initialEvents.begin(), {WL_OUTPUT_NAME, WL_OUTPUT_DESCRIPTION});
+    ASSERT_EQ(events, initialEvents);
+    PROTO::outputPower->bindManager(m_client, nullptr, 1, 3);
+    ASSERT_NE(wl_client_get_object(m_client, 3), nullptr);
+}
+
+void COutputPowerTest::TearDown() {
+    // Resource destruction dispatches through PROTO::outputPower.
+    if (m_display)
+        wl_display_destroy_clients(m_display.get());
+    m_client = nullptr;
+    if (m_installedOutputPower)
+        PROTO::outputPower = std::move(m_previousOutputPower);
+    COutputTest::TearDown();
+}
+
+void COutputPowerTest::sendPowerRequest(std::initializer_list<uint32_t> request) {
+    const auto size = request.size() * sizeof(uint32_t);
+    ASSERT_EQ(send(m_socket.get(), request.begin(), size, MSG_NOSIGNAL), sc<ssize_t>(size));
+    ASSERT_EQ(wl_event_loop_dispatch(wl_display_get_event_loop(m_display.get()), 0), 0);
+}
+
+void COutputPowerTest::requestOutputPower(uint32_t id) {
+    // zwlr_output_power_manager_v1.get_output_power(new_id, wl_output 2), opcode 0.
+    ASSERT_NO_FATAL_FAILURE(sendPowerRequest({3U, 16U << 16, id, 2U}));
+    auto resource = wl_client_get_object(m_client, id);
+    ASSERT_NE(resource, nullptr);
+    EXPECT_STREQ(wl_resource_get_class(resource), "zwlr_output_power_v1");
+    EXPECT_EQ(wl_resource_get_version(resource), 1);
+}
+
+void COutputPowerTest::setPowerMode(zwlrOutputPowerV1Mode mode) {
+    // zwlr_output_power_v1.set_mode, opcode 0.
+    ASSERT_NO_FATAL_FAILURE(sendPowerRequest({4U, 12U << 16, mode}));
+}
+
+void COutputPowerTest::destroyPowerResource(uint32_t id) {
+    // Both the manager and power object use destroy opcode 1.
+    ASSERT_NO_FATAL_FAILURE(sendPowerRequest({id, (8U << 16) | 1U}));
+    ASSERT_EQ(wl_client_get_object(m_client, id), nullptr);
+    ASSERT_NO_FATAL_FAILURE(expectPowerEvents());
+}
+
+void COutputPowerTest::expectPowerEvents(const std::vector<SOutputTestEvent>& expected) {
+    std::vector<SOutputTestEvent> events;
+    ASSERT_NO_FATAL_FAILURE(readOutputEvents(events));
+    // modeChanged also updates wl_output; delete_id may flush with a later event.
+    // Keep display errors and every other unexpected object/event visible.
+    std::erase_if(events, [](const auto& event) { return event.objectID == 2 || (event.objectID == 1 && event.opcode == WL_DISPLAY_DELETE_ID); });
+    ASSERT_EQ(events, expected);
+}
+
+void COutputPowerTest::expectFailedPower(uint32_t id) {
+    ASSERT_NE(wl_client_get_object(m_client, id), nullptr);
+    ASSERT_NO_FATAL_FAILURE(expectPowerEvents({{id, 1U, {}}})); // failed, without mode
+}
+
+void COutputPowerTest::expectPowerStaysInert() {
+    const auto status = m_monitor->m_dpmsStatus;
+    const auto mode   = status ? ZWLR_OUTPUT_POWER_V1_MODE_OFF : ZWLR_OUTPUT_POWER_V1_MODE_ON;
+    ASSERT_NO_FATAL_FAILURE(setPowerMode(mode));
+    ASSERT_NO_FATAL_FAILURE(setPowerMode(mode));
+    ASSERT_EQ(m_monitor->m_dpmsStatus, status);
+    m_monitor->m_events.dpmsChanged.emit();
+    m_monitor->m_events.modeChanged.emit();
+    Event::bus()->m_events.monitor.destroyMon.emit(m_monitor);
+    ASSERT_NO_FATAL_FAILURE(expectPowerEvents());
+}
+
+class COutputPowerUnavailableTest : public COutputPowerTest, public ::testing::WithParamInterface<bool> {};
+
+TEST_P(COutputPowerUnavailableTest, InitialFailureIsInertAndDrains) {
+    if (GetParam())
+        ASSERT_NO_FATAL_FAILURE(removeAndExpireMonitor());
+    else
+        m_monitor->m_output.reset();
+    ASSERT_NO_FATAL_FAILURE(requestOutputPower());
+    ASSERT_NO_FATAL_FAILURE(expectFailedPower());
+    ASSERT_NO_FATAL_FAILURE(setPowerMode(ZWLR_OUTPUT_POWER_V1_MODE_OFF));
+    ASSERT_NO_FATAL_FAILURE(setPowerMode(ZWLR_OUTPUT_POWER_V1_MODE_ON));
+    ASSERT_NO_FATAL_FAILURE(expectPowerEvents());
+    EXPECT_TRUE(!m_monitor || m_monitor->m_dpmsStatus);
+    ASSERT_NO_FATAL_FAILURE(destroyPowerResource());
+    EXPECT_FALSE(m_resource.expired());
+
+    // Fresh ID: no dependence on immediate delivery of delete_id for object 4.
+    ASSERT_NO_FATAL_FAILURE(requestOutputPower(5));
+    ASSERT_NO_FATAL_FAILURE(expectFailedPower(5));
+    ASSERT_NO_FATAL_FAILURE(disconnectClient());
+    EXPECT_TRUE(m_resource.expired());
+    EXPECT_FALSE(m_protocol->hasBoundResources());
+}
+
+INSTANTIATE_TEST_SUITE_P(Unavailable, COutputPowerUnavailableTest, ::testing::Values(false, true));
+
+enum class eOutputPowerFirstNotification : uint8_t {
+    SET_MODE,
+    DPMS_CHANGED,
+    MODE_CHANGED,
+};
+
+class COutputPowerBackendLossTest : public COutputPowerTest, public ::testing::WithParamInterface<eOutputPowerFirstNotification> {};
+
+TEST_P(COutputPowerBackendLossTest, FailureIsSentOnceAndBackendRestorationDoesNotRevive) {
+    ASSERT_NO_FATAL_FAILURE(requestOutputPower());
+    ASSERT_NO_FATAL_FAILURE(expectPowerEvents({{4U, 0U, {ZWLR_OUTPUT_POWER_V1_MODE_ON}}}));
+    auto backend = std::move(m_monitor->m_output);
+    switch (GetParam()) {
+        case eOutputPowerFirstNotification::SET_MODE: ASSERT_NO_FATAL_FAILURE(setPowerMode(ZWLR_OUTPUT_POWER_V1_MODE_OFF)); break;
+        case eOutputPowerFirstNotification::DPMS_CHANGED: m_monitor->m_events.dpmsChanged.emit(); break;
+        case eOutputPowerFirstNotification::MODE_CHANGED: m_monitor->m_events.modeChanged.emit(); break;
+    }
+    ASSERT_NO_FATAL_FAILURE(expectFailedPower());
+    ASSERT_TRUE(m_monitor->m_dpmsStatus);
+    ASSERT_NO_FATAL_FAILURE(expectPowerStaysInert());
+
+    m_monitor->m_output     = std::move(backend);
+    m_monitor->m_dpmsStatus = false;
+    ASSERT_NO_FATAL_FAILURE(expectPowerStaysInert());
+    ASSERT_NO_FATAL_FAILURE(destroyPowerResource());
+    ASSERT_NO_FATAL_FAILURE(drainOutput(4));
+}
+
+INSTANTIATE_TEST_SUITE_P(FirstNotification, COutputPowerBackendLossTest,
+                         ::testing::Values(eOutputPowerFirstNotification::SET_MODE, eOutputPowerFirstNotification::DPMS_CHANGED, eOutputPowerFirstNotification::MODE_CHANGED));
+
+TEST_F(COutputPowerTest, OnlyMatchingMonitorDestructionFailsAndRetainedMonitorSignalsAreSafe) {
+    ASSERT_NO_FATAL_FAILURE(requestOutputPower());
+    ASSERT_NO_FATAL_FAILURE(expectPowerEvents({{4U, 0U, {ZWLR_OUTPUT_POWER_V1_MODE_ON}}}));
+    auto unrelated = makeMonitor();
+    Event::bus()->m_events.monitor.destroyMon.emit(unrelated);
+    ASSERT_NO_FATAL_FAILURE(expectPowerEvents());
+
+    Event::bus()->m_events.monitor.destroyMon.emit(m_monitor);
+    ASSERT_NO_FATAL_FAILURE(expectFailedPower());
+    ASSERT_NO_FATAL_FAILURE(expectPowerStaysInert());
+    ASSERT_NO_FATAL_FAILURE(destroyPowerResource());
+    m_monitor->m_events.dpmsChanged.emit();
+    m_monitor->m_events.modeChanged.emit();
+    ASSERT_NO_FATAL_FAILURE(expectPowerEvents());
+    ASSERT_NO_FATAL_FAILURE(disconnectClient());
+    EXPECT_TRUE(m_resource.expired());
+}
+
+class COutputPowerModeTest : public COutputPowerTest, public ::testing::WithParamInterface<bool> {};
+
+TEST_P(COutputPowerModeTest, HealthyModesAreForwardedAndChildOutlivesOutputAndManager) {
+    m_monitor->m_dpmsStatus = GetParam();
+    const auto initialMode  = GetParam() ? ZWLR_OUTPUT_POWER_V1_MODE_ON : ZWLR_OUTPUT_POWER_V1_MODE_OFF;
+    const auto changedMode  = GetParam() ? ZWLR_OUTPUT_POWER_V1_MODE_OFF : ZWLR_OUTPUT_POWER_V1_MODE_ON;
+    ASSERT_NO_FATAL_FAILURE(requestOutputPower());
+    ASSERT_NO_FATAL_FAILURE(expectPowerEvents({{4U, 0U, {initialMode}}}));
+    // Same-mode requests return before animation or backend work in setDPMS.
+    ASSERT_NO_FATAL_FAILURE(setPowerMode(initialMode));
+    ASSERT_NO_FATAL_FAILURE(expectPowerEvents());
+
+    m_monitor->m_dpmsStatus = !GetParam();
+    m_monitor->m_events.dpmsChanged.emit();
+    ASSERT_NO_FATAL_FAILURE(expectPowerEvents({{4U, 0U, {changedMode}}}));
+    m_monitor->m_events.modeChanged.emit();
+    ASSERT_NO_FATAL_FAILURE(expectPowerEvents({{4U, 0U, {changedMode}}}));
+
+    ASSERT_NO_FATAL_FAILURE(drainOutput(4));
+    ASSERT_NO_FATAL_FAILURE(destroyPowerResource(3));
+    ASSERT_NE(wl_client_get_object(m_client, 4), nullptr);
+    m_monitor->m_dpmsStatus = GetParam();
+    m_monitor->m_events.dpmsChanged.emit();
+    m_monitor->m_events.modeChanged.emit();
+    ASSERT_NO_FATAL_FAILURE(expectPowerEvents({{4U, 0U, {initialMode}}, {4U, 0U, {initialMode}}}));
+    ASSERT_NO_FATAL_FAILURE(destroyPowerResource());
+}
+
+INSTANTIATE_TEST_SUITE_P(Modes, COutputPowerModeTest, ::testing::Values(false, true));

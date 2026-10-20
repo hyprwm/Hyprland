@@ -126,7 +126,9 @@ bool CImageDescription::needsCM(WP<const CImageDescription> target) const {
         //|| m_imageDescription.transferFunctionPower != target->m_imageDescription.transferFunctionPower // TODO unsupported
         || m_imageDescription.getPrimaries() != target->m_imageDescription.getPrimaries() //
         // || m_imageDescription.masteringPrimaries != target->m_imageDescription.masteringPrimaries // TODO unused
-        || m_imageDescription.luminances != target->m_imageDescription.luminances //
+        || m_imageDescription.luminances != target->m_imageDescription.luminances                   //
+        || m_imageDescription.getTFMinLuminance() != target->m_imageDescription.getTFMinLuminance() //
+        || m_imageDescription.getTFMaxLuminance() != target->m_imageDescription.getTFMaxLuminance() //
         // || m_imageDescription.masteringLuminances != target->m_imageDescription.masteringLuminances // TODO unused
         ;
 }

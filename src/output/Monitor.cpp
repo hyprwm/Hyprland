@@ -2477,6 +2477,8 @@ bool CMonitor::canNoShaderCM(bool forDSmode) {
     return (
         isCompatibleTF(SRC_DESC_VALUE.transferFunction, DST_DESC->value().transferFunction) //
         && SRC_DESC_VALUE.transferFunctionPower == DST_DESC->value().transferFunctionPower  //
+        && SRC_DESC_VALUE.getTFMinLuminance() == DST_DESC->value().getTFMinLuminance()      //
+        && SRC_DESC_VALUE.getTFMaxLuminance() == DST_DESC->value().getTFMaxLuminance()      //
         && (!inHDR() || SRC_DESC_VALUE.luminances == DST_DESC->value().luminances)
         // not used by shaders atm
         // && SRC_DESC_VALUE.masteringLuminances == m_imageDescription->value().masteringLuminances && SRC_DESC_VALUE.maxCLL == m_imageDescription->value().maxCLL && SRC_DESC_VALUE.maxFALL == m_imageDescription->value().maxFALL

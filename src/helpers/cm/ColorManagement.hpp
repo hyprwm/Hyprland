@@ -431,6 +431,8 @@ namespace NColorManagement {
 
     inline const auto LINEAR_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
         .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_EXT_LINEAR,
+        // Keep scRGB's 80-nit encoding independently of the monitor's luminance metadata.
+        .isWindows        = true,
         .primariesNameSet = true,
         .primariesNamed   = NColorManagement::CM_PRIMARIES_SRGB,
         .primaries        = NColorPrimaries::BT709,

@@ -592,25 +592,25 @@ TEST_CASE(luaWindowUpdateStateDeltas) {
     ASSERT(windowStateUpdates(), "");
 
     // Ignore another window's update, and target our window independently of focus.
-    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = _G.hyprtester_window_state.other })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'enable', window = _G.hyprtester_window_state.other })"));
     ASSERT(windowStateUpdates(), "");
     OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'toggle', window = _G.hyprtester_window_state.window })"));
     ASSERT(windowStateUpdates(), "true:nil");
 
-    OK(getFromSocket("/dispatch hl.dsp.window.pin({ action = 'set', window = _G.hyprtester_window_state.window })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.pin({ action = 'enable', window = _G.hyprtester_window_state.window })"));
     ASSERT(windowStateUpdates(), "true:nil,nil:true");
-    OK(getFromSocket("/dispatch hl.dsp.window.pin({ action = 'unset', window = _G.hyprtester_window_state.window })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.pin({ action = 'disable', window = _G.hyprtester_window_state.window })"));
     ASSERT(windowStateUpdates(), "true:nil,nil:true,nil:false");
 
     // Setting the existing values must not report an empty delta.
     OK(getFromSocket(R"(/eval do
         local window = _G.hyprtester_window_state.window
-        assert(hl.dispatch(hl.dsp.window.float({ action = 'set', window = window })).ok)
-        assert(hl.dispatch(hl.dsp.window.pin({ action = 'unset', window = window })).ok)
+        assert(hl.dispatch(hl.dsp.window.float({ action = 'enable', window = window })).ok)
+        assert(hl.dispatch(hl.dsp.window.pin({ action = 'disable', window = window })).ok)
     end)"));
     ASSERT(windowStateUpdates(), "true:nil,nil:true,nil:false");
 
-    OK(getFromSocket("/dispatch hl.dsp.window.pin({ action = 'set', window = _G.hyprtester_window_state.window })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.pin({ action = 'enable', window = _G.hyprtester_window_state.window })"));
     ASSERT(windowStateUpdates(), "true:nil,nil:true,nil:false,nil:true");
     // Tiling a pinned window reports both false values in one notification.
     OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'toggle', window = _G.hyprtester_window_state.window })"));
@@ -620,8 +620,8 @@ TEST_CASE(luaWindowUpdateStateDeltas) {
     OK(getFromSocket(R"(/eval do
         local window = _G.hyprtester_window_state.window
         assert(hl.dispatch(hl.dsp.window.float({ action = 'toggle', window = window })).ok)
-        assert(hl.dispatch(hl.dsp.window.pin({ action = 'set', window = window })).ok)
-        assert(hl.dispatch(hl.dsp.window.pin({ action = 'unset', window = window })).ok)
+        assert(hl.dispatch(hl.dsp.window.pin({ action = 'enable', window = window })).ok)
+        assert(hl.dispatch(hl.dsp.window.pin({ action = 'disable', window = window })).ok)
     end)"));
     ASSERT(windowStateUpdates(), "true:nil,nil:true,nil:false,nil:true,false:false,true:nil");
 
@@ -630,8 +630,8 @@ TEST_CASE(luaWindowUpdateStateDeltas) {
         local window = _G.hyprtester_window_state.window
         assert(hl.dispatch(hl.dsp.window.float({ action = 'toggle', window = window })).ok)
         assert(hl.dispatch(hl.dsp.window.float({ action = 'toggle', window = window })).ok)
-        assert(hl.dispatch(hl.dsp.window.pin({ action = 'set', window = window })).ok)
-        assert(hl.dispatch(hl.dsp.window.pin({ action = 'unset', window = window })).ok)
+        assert(hl.dispatch(hl.dsp.window.pin({ action = 'enable', window = window })).ok)
+        assert(hl.dispatch(hl.dsp.window.pin({ action = 'disable', window = window })).ok)
     end)"));
     ASSERT(windowStateUpdates(), "true:nil,nil:true,nil:false,nil:true,false:false,true:nil");
 
@@ -640,7 +640,7 @@ TEST_CASE(luaWindowUpdateStateDeltas) {
         local state = _G.hyprtester_window_state
         assert(hl.dispatch(hl.dsp.window.float({ action = 'toggle', window = state.window })).ok)
         assert(hl.dispatch(hl.dsp.window.float({ action = 'toggle', window = state.window })).ok)
-        assert(hl.dispatch(hl.dsp.window.pin({ action = 'set', window = state.window })).ok)
+        assert(hl.dispatch(hl.dsp.window.pin({ action = 'enable', window = state.window })).ok)
         assert(hl.dispatch(hl.dsp.window.float({ action = 'toggle', window = state.other })).ok)
     end)"));
     ASSERT(windowStateUpdates(), "true:nil,nil:true,nil:false,nil:true,false:false,true:nil,nil:true");
@@ -661,7 +661,7 @@ TEST_CASE(luaWindowUpdateStateCallbackMutation) {
             table.insert(state.callback_order, 'enter:' .. tostring(delta.float))
             if delta.float == true and not state.mutated then
                 state.mutated = true
-                state.change_result = hl.dispatch(hl.dsp.window.float({ action = 'unset', window = window })).ok
+                state.change_result = hl.dispatch(hl.dsp.window.float({ action = 'disable', window = window })).ok
             end
             table.insert(state.callback_order, 'leave:' .. tostring(delta.float))
         end)
@@ -669,7 +669,7 @@ TEST_CASE(luaWindowUpdateStateCallbackMutation) {
     ASSERT(windowStateUpdates(), "");
 
     // The callback's reversion must compare against the just-delivered true baseline.
-    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = _G.hyprtester_window_state.window })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'enable', window = _G.hyprtester_window_state.window })"));
     ASSERT(windowStateUpdates(), "true:nil,false:nil");
 
     // Callback errors are swallowed: check successful dispatch and nonrecursive delivery externally.
@@ -692,8 +692,8 @@ TEST_CASE(luaWindowUpdateStateFullscreenPin) {
     SPAWN_KITTY("hyprtester_window_state");
     OK(getFromSocket(R"(/eval do
         local window = _G.hyprtester_window_state.window
-        assert(hl.dispatch(hl.dsp.window.float({ action = 'set', window = window })).ok)
-        assert(hl.dispatch(hl.dsp.window.pin({ action = 'set', window = window })).ok)
+        assert(hl.dispatch(hl.dsp.window.float({ action = 'enable', window = window })).ok)
+        assert(hl.dispatch(hl.dsp.window.pin({ action = 'enable', window = window })).ok)
     end)"));
     ASSERT(windowStateUpdates(), "true:true");
 
@@ -738,7 +738,7 @@ TEST_CASE(luaWindowUpdateStateLifecycle) {
         local state = _G.hyprtester_window_state
         state.subscriptions.change_on_open = hl.on('window.open', function(window)
             if window.class ~= 'hyprtester_window_state' then return end
-            state.open_result = hl.dispatch(hl.dsp.window.pin({ action = 'unset', window = window })).ok
+            state.open_result = hl.dispatch(hl.dsp.window.pin({ action = 'disable', window = window })).ok
         end)
     end)"));
     SPAWN_KITTY("hyprtester_window_state");

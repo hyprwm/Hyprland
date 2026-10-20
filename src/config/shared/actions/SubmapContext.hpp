@@ -12,20 +12,19 @@ namespace Config::Actions {
 
         SP<CSubmapContext>                           snapshot();
 
-        bool                                         contains(const std::string& submap) const;
-        bool                                         contains(const Keybinds::PSubmap& submap) const;
-        std::optional<Keybinds::PSubmap>             find(const std::string& submap) const;
-        std::optional<Keybinds::PSubmap>             find(const Keybinds::PSubmap& submap) const;
         bool                                         empty() const;
-        void                                         add(Keybinds::PSubmap&& submap);
-        void                                         remove(const std::string& submap);
-        void                                         remove(const Keybinds::PSubmap& submap);
-        void                                         toggle(Keybinds::PSubmap&& submap);
+        bool                                         contains(const std::string& submap) const;
+        std::optional<Keybinds::PSubmap>             find(const std::string& name, const SP<IHID>& device) const;
         void                                         reset();
+        void                                         add(Keybinds::PSubmap&& submap);
+        void                                         remove(const Keybinds::PSubmap& submap);
+        void                                         remove(const std::string& submapName);
+        void                                         toggle(Keybinds::PSubmap&& submap);
+        void                                         uniset(Keybinds::PSubmap&& submap);
 
-        const std::unordered_set<Keybinds::PSubmap>& submaps() const;
+        const std::vector<Keybinds::PSubmap>& submaps() const;
 
       private:
-        std::unordered_set<Keybinds::PSubmap> m_submaps;
+        std::vector<Keybinds::PSubmap> m_submaps;
     };
 }

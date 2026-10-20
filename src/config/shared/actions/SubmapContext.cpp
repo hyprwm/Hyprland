@@ -7,65 +7,64 @@ using namespace Config::Actions;
 
 SP<CSubmapContext> CSubmapContext::snapshot() {
     auto snapshot = makeShared<CSubmapContext>();
-    snapshot->m_submaps.insert_range(m_submaps);
+    snapshot->m_submaps = m_submaps;
     return snapshot;
-}
-
-bool CSubmapContext::contains(const std::string& submap) const {
-    return find(submap) != std::nullopt;
-}
-
-bool CSubmapContext::contains(const Keybinds::PSubmap& submap) const {
-    return m_submaps.contains(submap);
-}
-
-std::optional<Keybinds::PSubmap> CSubmapContext::find(const std::string& submap) const {
-    const auto MATCH = std::ranges::find_if(m_submaps, [submap](const auto& s) { return s->name() == submap; });
-
-    if (MATCH == m_submaps.end())
-        return std::nullopt;
-
-    return *MATCH;
-}
-
-std::optional<Keybinds::PSubmap> CSubmapContext::find(const Keybinds::PSubmap& submap) const {
-    const auto MATCH = m_submaps.find(submap);
-
-    if (MATCH == m_submaps.end())
-        return std::nullopt;
-
-    return *MATCH;
 }
 
 bool CSubmapContext::empty() const {
     return m_submaps.empty();
 }
 
-void CSubmapContext::add(Keybinds::PSubmap&& submap) {
-    m_submaps.emplace(std::move(submap));
+bool CSubmapContext::contains(const std::string& submap) const {
+    const auto NAMES = m_submaps | std::views::transform(&Keybinds::CSubmap::name);
+    return std::ranges::contains(NAMES, submap);
 }
 
-void CSubmapContext::remove(const std::string& submap) {
-    std::erase_if(m_submaps, [submap](const auto& s) { return s->name() == submap; });
-}
+std::optional<Keybinds::PSubmap> CSubmapContext::find(const std::string& name, const SP<IHID>& device) const {
+    const auto MATCH = std::ranges::find_if(
+        m_submaps,
+        [device, name](const Keybinds::PSubmap& submap) {
+            return submap->name() == name && submap->matchesDevice(device);
+        }
+    );
 
-void CSubmapContext::remove(const Keybinds::PSubmap& submap) {
-    m_submaps.erase(submap);
-}
+    if (MATCH == m_submaps.end()) {
+        return std::nullopt;
+    }
 
-void CSubmapContext::toggle(Keybinds::PSubmap&& submap) {
-    const size_t HAS_REMOVED = m_submaps.erase(submap);
-
-    if (HAS_REMOVED)
-        return;
-
-    add(std::move(submap));
+    return *MATCH;
 }
 
 void CSubmapContext::reset() {
     m_submaps.clear();
 }
 
-const std::unordered_set<Keybinds::PSubmap>& CSubmapContext::submaps() const {
+void CSubmapContext::add(Keybinds::PSubmap&& submap) {
+    m_submaps.insert(m_submaps.begin(), std::move(submap));
+}
+
+void CSubmapContext::remove(const Keybinds::PSubmap& submap) {
+    std::erase(m_submaps, submap);
+}
+
+void CSubmapContext::remove(const std::string& submapName) {
+    std::erase_if(m_submaps, [submapName](const auto submap){ return submap->name() == submapName; });
+}
+
+void CSubmapContext::toggle(Keybinds::PSubmap&& submap) {
+    const std::size_t HAS_REMOVED = std::erase(m_submaps, submap);
+
+    if (HAS_REMOVED > 0)
+        return;
+
+    add(std::move(submap));
+}
+
+void CSubmapContext::uniset(Keybinds::PSubmap&& submap) {
+    reset();
+    add(std::move(submap));
+}
+
+const std::vector<Keybinds::PSubmap>& CSubmapContext::submaps() const {
     return m_submaps;
 }

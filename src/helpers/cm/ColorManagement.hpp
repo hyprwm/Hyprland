@@ -282,7 +282,7 @@ namespace NColorManagement {
 
         float getTFMinLuminance(float sdrMinLuminance = -1.0f) const {
             switch (transferFunction) {
-                case CM_TRANSFER_FUNCTION_EXT_LINEAR: return 0;
+                case CM_TRANSFER_FUNCTION_EXT_LINEAR: return isWindows ? 0.0f : luminances.min;
                 case CM_TRANSFER_FUNCTION_ST2084_PQ:
                 case CM_TRANSFER_FUNCTION_HLG: return HDR_MIN_LUMINANCE;
                 case CM_TRANSFER_FUNCTION_BT1886: return 0.01;
@@ -302,7 +302,8 @@ namespace NColorManagement {
         float getTFMaxLuminance(int sdrMaxLuminance = -1) const {
             switch (transferFunction) {
                 case CM_TRANSFER_FUNCTION_EXT_LINEAR:
-                    return SDR_MAX_LUMINANCE; // assume Windows scRGB. white color range 1.0 - 125.0 maps to SDR_MAX_LUMINANCE (80) - HDR_MAX_LUMINANCE (10000)
+                    // Windows scRGB uses a fixed 80-nit scale, independently of the luminance metadata.
+                    return isWindows ? SDR_MAX_LUMINANCE : luminances.max;
                 case CM_TRANSFER_FUNCTION_ST2084_PQ: return HDR_MAX_LUMINANCE;
                 case CM_TRANSFER_FUNCTION_HLG: return HLG_MAX_LUMINANCE;
                 case CM_TRANSFER_FUNCTION_BT1886: return 100;
@@ -321,7 +322,7 @@ namespace NColorManagement {
 
         float getTFRefLuminance(int sdrRefLuminance = -1) const {
             switch (transferFunction) {
-                case CM_TRANSFER_FUNCTION_EXT_LINEAR:
+                case CM_TRANSFER_FUNCTION_EXT_LINEAR: return isWindows ? HDR_REF_LUMINANCE : luminances.reference;
                 case CM_TRANSFER_FUNCTION_ST2084_PQ:
                 case CM_TRANSFER_FUNCTION_HLG: return HDR_REF_LUMINANCE;
                 case CM_TRANSFER_FUNCTION_BT1886: return 100;

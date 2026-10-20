@@ -77,12 +77,15 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
         const double TARGETRIGHT = 1 - (((VERTANIMS ? gapsOut.m_bottom : gapsOut.m_right) + *PBORDERSIZE) / (VERTANIMS ? PMONITOR->m_size.y : PMONITOR->m_size.x));
         const double POSITION    = (VERTANIMS ? e.pos.y : e.pos.x);
         if ((POSITION < TARGETLEFT || POSITION > TARGETRIGHT) && g_pUnifiedWorkspaceSwipe->begin(PMONITOR)) {
-            auto& swipe         = m_touchData.workspaceSwipe.emplace();
-            swipe.device        = e.device;
-            swipe.id            = e.touchID;
-            swipe.sessionID     = g_pUnifiedWorkspaceSwipe->sessionID();
-            swipe.monitor       = PMONITOR;
-            swipe.fromEnd       = POSITION > 0.5;
+            m_touchData.workspaceSwipe = STouchData::SWorkspaceSwipe{};
+
+            auto& swipe     = m_touchData.workspaceSwipe.value();
+            swipe.device    = e.device;
+            swipe.id        = e.touchID;
+            swipe.sessionID = g_pUnifiedWorkspaceSwipe->sessionID();
+            swipe.monitor   = PMONITOR;
+            swipe.fromEnd   = POSITION > 0.5;
+
             swipe.deviceDestroy = e.device->m_events.destroy.listen([this, device = WP<ITouch>(e.device)] {
                 std::erase_if(m_touchData.consumedTouches, [&device](const auto& touch) { return touch.device == device; });
                 if (!m_touchData.workspaceSwipe || m_touchData.workspaceSwipe->device != device)
@@ -93,10 +96,12 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
                 if (g_pUnifiedWorkspaceSwipe && SESSION == g_pUnifiedWorkspaceSwipe->sessionID())
                     g_pUnifiedWorkspaceSwipe->cancel();
             });
+
             m_touchData.consumedTouches.emplace_back(STouchData::SConsumedTouch{
                 .device = e.device,
                 .id     = e.touchID,
             });
+
             // Direction locking belongs to the unified gesture; the physical edge survives forever restarts.
             g_pUnifiedWorkspaceSwipe->m_initialDirection = (swipe.fromEnd ? 1 : -1) * (*PSWIPEINVR ? -1 : 1);
             return;

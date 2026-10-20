@@ -934,13 +934,14 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e, SP<I
 
     bool swallowed = false;
     if (e.state == WL_POINTER_BUTTON_STATE_PRESSED)
-        swallowed = std::ranges::any_of(m_swallowedFocusButtons, [&](const auto& b) { return b.button == e.button && b.pointer.lock() == mouse; });
+        swallowed = std::ranges::any_of(m_swallowedFocusButtons, [&](const auto& b) { return b.button == e.button && b.pointer == mouse; });
     else
-        swallowed = std::erase_if(m_swallowedFocusButtons, [&](const auto& b) { return b.button == e.button && b.pointer.lock() == mouse; });
+        swallowed = std::erase_if(m_swallowedFocusButtons, [&](const auto& b) { return b.button == e.button && b.pointer == mouse; });
 
-    if (!swallowed)
+    if (!swallowed) {
         // notify app if we didn't handle it
         g_pSeatManager->sendPointerButton(e.timeMs, e.button, e.state);
+    }
 
     if (const auto PMON = State::monitorState()->query().vec(mouseCoords).run(); PMON != Desktop::focusState()->monitor() && PMON)
         Desktop::focusState()->rawMonitorFocus(PMON);
@@ -1591,7 +1592,7 @@ void CInputManager::destroyPointer(SP<IPointer> mouse) {
         it = m_currentlyHeldButtons.erase(it);
     }
     std::erase_if(m_pointers, [mouse](const auto& other) { return other == mouse; });
-    std::erase_if(m_swallowedFocusButtons, [mouse](const auto& b) { return b.pointer.lock() == mouse; });
+    std::erase_if(m_swallowedFocusButtons, [mouse](const auto& b) { return b.pointer == mouse; });
 
     g_pSeatManager->setMouse(!m_pointers.empty() ? m_pointers.front() : nullptr);
 

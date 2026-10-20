@@ -621,8 +621,8 @@ SBindResult CKeybindManager::invokeBind(const PBind& bind, bool pressed, SPresse
     const std::string& RESET  = bind->metadata().submapReset;
 
     if (!RESET.empty() && m_registry.hasSubmap(SUBMAP)) {
-        Config::Actions::setSubmap(Config::Actions::eTogglableAction::TOGGLE_ACTION_DISABLE, bind->metadata().submap);
-        Config::Actions::setSubmap(Config::Actions::eTogglableAction::TOGGLE_ACTION_ENABLE, RESET);
+        Config::Actions::setSubmap(Config::Actions::eSubmapAction::SUBMAP_ACTION_DISABLE, SUBMAP);
+        Config::Actions::setSubmap(Config::Actions::eSubmapAction::SUBMAP_ACTION_ENABLE, RESET);
     }
 
     return result;

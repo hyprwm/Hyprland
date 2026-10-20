@@ -36,6 +36,13 @@ namespace Config::Actions {
         TOGGLE_ACTION_DISABLE,
     };
 
+    enum eSubmapAction : uint8_t {
+        SUBMAP_ACTION_TOGGLE = sc<int>(TOGGLE_ACTION_TOGGLE),
+        SUBMAP_ACTION_ENABLE,
+        SUBMAP_ACTION_DISABLE,
+        SUBMAP_ACTION_UNISET,
+    };
+
     using ActionResult = std::expected<SActionResult, SActionError>;
 
     ActionResult closeWindow(std::optional<PHLWINDOW> window = std::nullopt /* Active */);
@@ -93,11 +100,7 @@ namespace Config::Actions {
     ActionResult reloadConfig();
     ActionResult forceRendererReload();
     ActionResult toggleSwallow();
-    ActionResult setSubmap(eTogglableAction action, const std::string& submap);
-    ActionResult turnOnSubmap(const std::string& submap);
-    ActionResult turnOffSubmap(const std::string& submap);
-    ActionResult toggleSubmap(const std::string& submap);
-    ActionResult resetSubmaps();
+    ActionResult setSubmap(eSubmapAction action, const std::string& submap);
     ActionResult dpms(eTogglableAction action, std::optional<PHLMONITOR> mon);
     ActionResult forceIdle(float seconds);
     ActionResult global(const std::string& action);

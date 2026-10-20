@@ -239,6 +239,47 @@ hl.define_submap("submap3", "reset", function()
     hl.bind("b", hl.dsp.exec_cmd(terminal))
 end)
 
+hl.bind(
+    mainMod .. " + z",
+    function()
+        local function enable(name)
+            hl.dispatch(
+                hl.dsp.submap({ action = "enable", name = name })
+            )
+        end
+
+        enable("multiSubReset")
+        enable("multiSub1")
+        enable("multiSub2")
+        enable("multiSub3")
+    end
+)
+
+hl.define_submap(
+    "multiSubReset",
+    function()
+        local function disable(name)
+            hl.dispatch(
+                hl.dsp.submap({ action = "disable", name = name })
+            )
+        end
+
+        hl.bind(
+            mainMod .. " + z",
+            function()
+                disable("multiSub3")
+                disable("multiSub2")
+                disable("multiSub1")
+                disable("multiSubReset")
+            end
+        )
+    end
+)
+
+hl.define_submap("multiSub1", function() end)
+hl.define_submap("multiSub2", function() end)
+hl.define_submap("multiSub3", function() end)
+
 hl.define_submap("keyboard-submap", function()
     hl.bind("p", hl.dsp.submap({ name = "reset" }))
 end, { device = keyboard_device })

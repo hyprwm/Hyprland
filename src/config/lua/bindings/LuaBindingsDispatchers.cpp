@@ -216,7 +216,7 @@ static int dsp_reload_config(lua_State* L) {
 }
 
 static int dsp_submap(lua_State* L) {
-    auto action = sc<CA::eTogglableAction>(lua_tonumber(L, lua_upvalueindex(1)));
+    auto action = sc<CA::eSubmapAction>(lua_tonumber(L, lua_upvalueindex(1)));
     auto submap = lua_tostring(L, lua_upvalueindex(2));
     return Internal::checkResult(L, CA::setSubmap(action, submap));
 }
@@ -306,7 +306,7 @@ static int hlReloadConfig(lua_State* L) {
 }
 
 static int hlSubmap(lua_State* L) {
-    CA::eTogglableAction       action = Internal::tableToggleAction(L, 1);
+    CA::eSubmapAction          action = Internal::tableSubmapAction(L, 1);
     std::optional<std::string> submap = std::nullopt;
 
     if (lua_istable(L, 1))

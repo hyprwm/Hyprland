@@ -1747,26 +1747,12 @@ static inline std::pair<bool, std::optional<const Keybinds::PSubmap>> findSubmap
     return {exists, match};
 }
 
-ActionResult Actions::setSubmap(eTogglableAction action, const std::string& submap) {
-    // TODO: what should we do if we use reset weirdly, like DISABLE "reset" ?
-    if (submap == "reset") {
-        return resetSubmaps();
-    }
-
-    switch (action) {
-        case eTogglableAction::TOGGLE_ACTION_ENABLE: return turnOnSubmap(submap);
-        case eTogglableAction::TOGGLE_ACTION_DISABLE: return turnOffSubmap(submap);
-        case eTogglableAction::TOGGLE_ACTION_TOGGLE:
-        default: return toggleSubmap(submap);
-    }
-}
-
-ActionResult Actions::turnOnSubmap(const std::string& submap) {
+static ActionResult turnOnSubmap(const std::string& submap) {
     const auto [EXISTS, REFERENCE] = findSubmap(submap);
 
     if (!REFERENCE && !EXISTS)
         return std::unexpected(std::format("Cannot set submap {}, submap doesn't exist (wasn't registered!)", submap));
-    else if (EXISTS)
+    else if (!REFERENCE)
         return {};
 
     Config::Actions::state()->m_currentSubmap.add(Keybinds::PSubmap(*REFERENCE));
@@ -1777,12 +1763,12 @@ ActionResult Actions::turnOnSubmap(const std::string& submap) {
     return {};
 }
 
-ActionResult Actions::turnOffSubmap(const std::string& submap) {
+static ActionResult turnOffSubmap(const std::string& submap) {
     const auto [EXISTS, REFERENCE] = findSubmap(submap);
 
-    if (!REFERENCE)
+    if (!REFERENCE && !EXISTS)
         return std::unexpected(std::format("Cannot unset submap {}, submap doesn't exist (wasn't registered!)", submap));
-    else if (!EXISTS)
+    else if (!REFERENCE)
         return {};
 
     // should we raise an error if submap was not active?
@@ -1793,7 +1779,7 @@ ActionResult Actions::turnOffSubmap(const std::string& submap) {
     return {};
 }
 
-ActionResult Actions::toggleSubmap(const std::string& submap) {
+static ActionResult toggleSubmap(const std::string& submap) {
     const auto [EXISTS, REFERENCE] = findSubmap(submap);
 
     if (!REFERENCE && !EXISTS)
@@ -1807,11 +1793,39 @@ ActionResult Actions::toggleSubmap(const std::string& submap) {
     return {};
 }
 
-ActionResult Actions::resetSubmaps() {
+static ActionResult resetSubmaps() {
     Config::Actions::state()->m_currentSubmap.reset();
     IPC::Socket2::sock()->postEvent({.event = "submap", .data = ""});
     Event::bus()->m_events.keybinds.submap.emit(std::string(""));
     return {};
+}
+
+static ActionResult unisetSubmap(const std::string& submap) {
+    const auto [EXISTS, REFERENCE] = findSubmap(submap);
+
+    if (!REFERENCE && !EXISTS)
+        return std::unexpected(std::format("Cannot set submap {}, submap doesn't exist (wasn't registered!)", submap));
+    else if (!REFERENCE)
+        return {};
+
+    Config::Actions::state()->m_currentSubmap.uniset(Keybinds::PSubmap(*REFERENCE));
+    IPC::Socket2::sock()->postEvent({.event = "submap", .data = submap});
+    Event::bus()->m_events.keybinds.submap.emit(std::string(submap));
+    return {};
+}
+
+ActionResult Actions::setSubmap(eSubmapAction action, const std::string& submap) {
+    if (submap == "reset") {
+        return resetSubmaps();
+    }
+
+    switch (action) {
+        case eSubmapAction::SUBMAP_ACTION_ENABLE: return turnOnSubmap(submap);
+        case eSubmapAction::SUBMAP_ACTION_DISABLE: return turnOffSubmap(submap);
+        case eSubmapAction::SUBMAP_ACTION_TOGGLE: return toggleSubmap(submap);
+        case eSubmapAction::SUBMAP_ACTION_UNISET:
+        default: return unisetSubmap(submap);
+    }
 }
 
 ActionResult Actions::cycleNext(const bool next, std::optional<bool> onlyTiled, std::optional<bool> onlyFloating, std::optional<PHLWINDOW> w) {

@@ -484,6 +484,16 @@ CA::eTogglableAction Internal::tableToggleAction(lua_State* L, int idx, const ch
     return CA::TOGGLE_ACTION_TOGGLE;
 }
 
+CA::eSubmapAction Internal::tableSubmapAction(lua_State* L, int idx, const char* field) {
+    if (!lua_istable(L, idx))
+        return CA::SUBMAP_ACTION_UNISET;
+
+    if (const auto action = tableOptStr(L, idx, field); action.has_value() && !action->empty() && *action != "uniset")
+        return sc<CA::eSubmapAction>(parseToggleStr(*action));
+
+    return CA::SUBMAP_ACTION_UNISET;
+}
+
 void Internal::setMgrFn(lua_State* L, CConfigManager* mgr, const char* name, lua_CFunction fn) {
     lua_pushlightuserdata(L, mgr);
     lua_pushcclosure(L, fn, 1);

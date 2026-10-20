@@ -676,26 +676,18 @@ SUBTEST(multiSubmap) {
         OK(getFromSocket(pluginKeybindCmd(false, mod, key + 8)));
     };
 
-    press(KEY_U, MOD_META);
-    ASSERT_CONTAINS(getFromSocket("/submap"), "submap1");
+    press(KEY_Z, MOD_META);
+    ASSERT_CONTAINS(getFromSocket("/submap"), "multiSubReset");
+    EXPECT_CONTAINS(getFromSocket("/submap"), "multiSub1");
+    EXPECT_CONTAINS(getFromSocket("/submap"), "multiSub2");
+    EXPECT_CONTAINS(getFromSocket("/submap"), "multiSub3");
 
-    press(KEY_U);
-    EXPECT_CONTAINS(getFromSocket("/submap"), "submap1");
-    EXPECT_CONTAINS(getFromSocket("/submap"), "submap2");
-
-    press(KEY_A);
-    Tests::waitUntilWindowsN(1);
-    EXPECT_CONTAINS(getFromSocket("/submap"), "submap1");
-    EXPECT_NOT_CONTAINS(getFromSocket("/submap"), "submap2");
-
-    press(KEY_U, MOD_META);
-    EXPECT_CONTAINS(getFromSocket("/submap"), "submap1");
-    EXPECT_CONTAINS(getFromSocket("/submap"), "submap3");
-
-    press(KEY_B);
-    Tests::waitUntilWindowsN(2);
-    EXPECT_NOT_CONTAINS(getFromSocket("/submap"), "submap1");
-    EXPECT_NOT_CONTAINS(getFromSocket("/submap"), "submap3");
+    press(KEY_Z, MOD_META);
+    EXPECT_NOT_CONTAINS(getFromSocket("/submap"), "multiSub1");
+    EXPECT_NOT_CONTAINS(getFromSocket("/submap"), "multiSub2");
+    EXPECT_NOT_CONTAINS(getFromSocket("/submap"), "multiSub3");
+    EXPECT_NOT_CONTAINS(getFromSocket("/submap"), "multiSubReset");
+    EXPECT_CONTAINS(getFromSocket("/submap"), "default");
 }
 
 SUBTEST(submapMouseBinds) {

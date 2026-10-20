@@ -27,6 +27,7 @@ runs:
           gtest \
           hyprlang \
           hyprcursor \
+          hyprland-protocols \
           jq \
           libc++ \
           libcanberra \

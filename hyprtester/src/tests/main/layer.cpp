@@ -80,7 +80,7 @@ TEST_CASE(plugin_layerrules) {
     EXPECT(spawnLayer("rule-layer"), true);
 
     EXPECT(spawnLayer("norule-layer"), true);
-    
+
     Tests::waitUntilLayersN(2);
 
     OK(getFromSocket("/eval hl.plugin.test.check_layer_rule()"));
@@ -139,7 +139,6 @@ TEST_CASE(exclusiveLayerTakesPointerFocusFromRuleConfinedWindow) {
                       }),
            true);
     Tests::waitUntilLayersN(1);
-
 
     // Registration can precede mapping. Wait without moving the cursor or explicitly setting pointer focus.
     auto layerFocus = getFromSocket(LAYER_POINTER_CHECK);

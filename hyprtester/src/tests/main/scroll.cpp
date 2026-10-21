@@ -1431,9 +1431,6 @@ TEST_CASE(scroll_LAYOUT_HANDLED_focusInDirectionFocusFollowFocusTrue) {
 
     OK(getFromSocket("r/eval hl.config({ binds = { movefocus_cycles_fullscreen = true } })"));
 
-    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:fs' })"));
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set', window = 'class:fs' })"));
-
     // on_focus_under_fullscreen = 0
     OK(getFromSocket("r/eval hl.config({ misc = { on_focus_under_fullscreen = 0 } })"));
 

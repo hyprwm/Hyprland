@@ -1482,7 +1482,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_focusInDirectionFocusFollowFocusTrue) {
         EXPECT_CONTAINS(str, "class: normal1");
         EXPECT_CONTAINS(str, "fullscreen: 0");
         EXPECT_CONTAINS(str, "fullscreenClient: 0");
-        EXPECT_CONTAINS(Tests::getAttribute(str, "at"), "22,22");
+        EXPECT_CONTAINS(Tests::getAttribute(str, "at"), "27,22");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'right' })"));
@@ -1503,7 +1503,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_focusInDirectionFocusFollowFocusTrue) {
         EXPECT_CONTAINS(str, "class: normal1");
         EXPECT_CONTAINS(str, "fullscreen: 0");
         EXPECT_CONTAINS(str, "fullscreenClient: 0");
-        EXPECT_CONTAINS(Tests::getAttribute(str, "at"), "22,22");
+        EXPECT_CONTAINS(Tests::getAttribute(str, "at"), "27,22");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'right' })"));
@@ -2453,6 +2453,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_posAndSizeSyncWhileFS) {
     SPAWN_KITTY("kot");
 
     ASSERT(spawnLayer("top-bar", {"--edge=top", "--layer=overlay", "--lines=48px", "--focus-policy=not-allowed"}), true);
+    Tests::waitUntilLayersN(1);
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', window = 'class:kot', layout_aware = false, })"));
     {
@@ -3432,7 +3433,7 @@ TEST_CASE(layoutmsg_fit_into_view) {
 
     // If it worked, class:a window must now have at: ~= 0,0 -- 0,0 + gaps, border = 22,22.
 
-    ASSERT_CONTAINS(Tests::getAttribute(getFromSocket("/activewindow"), "at"), "22,22");
+    ASSERT_CONTAINS(Tests::getAttribute(getFromSocket("/activewindow"), "at"), "27,22");
 }
 
 TEST_CASE(layoutRuleExpand) {

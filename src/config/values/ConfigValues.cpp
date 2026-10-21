@@ -570,8 +570,6 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Bool>("misc:key_press_enables_dpms", "If DPMS is set to off, wake up the monitors if a key is pressed.", false),
         MS<Bool>("misc:name_vk_after_proc", "Name virtual keyboards after the processes that create them.", true),
         MS<Bool>("misc:always_follow_on_dnd", "Will make mouse focus follow the mouse when drag and dropping.", true),
-        MS<Bool>("misc:layers_hog_keyboard_focus", "If true, will make keyboard-interactive layers keep their focus on mouse move.", true),
-        MS<Bool>("misc:allow_new_top_layers_over_existing_fullscreen", "If true, allows new top layers to go over a fullscreen window.", true),
         MS<Bool>("misc:animate_manual_resizes", "If true, will animate manual window resizes/moves", false),
         MS<Bool>("misc:animate_mouse_windowdragging", "If true, will animate windows being dragged by mouse.", false),
         MS<Bool>("misc:disable_autoreload", "If true, the config will not reload automatically on save.", false, {.refresh = Supplementary::REFRESH_CONFIG_WATCHER}),
@@ -607,9 +605,18 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Int>("misc:new_float_force_onscreen", "whether new floating windows must be placed fully/partially on-screen", 2),
         MS<Int>("misc:float_force_onscreen", "whether existing floating windows must remain fully/partially on-screen", 0),
 
+
+
+        /*
+         * layer:
+        */
+        MS<Bool>("layers:layers_hog_keyboard_focus", "If true, will make keyboard-interactive layers keep their focus on mouse move.", true),
+        MS<Bool>("layers:allow_new_top_layers_over_existing_fullscreen", "If true, allows new top layers to go over a fullscreen window.", true),
+
+
         /*
          * binds:
-         */
+        */
 
         MS<Bool>("binds:pass_mouse_when_bound", "if disabled, will not pass the mouse events to apps / dragging windows around if a keybind has been triggered.", false),
         MS<Int>("binds:scroll_event_delay", "in ms, how many ms to wait after a scroll event to allow passing another one for the binds.", 300, {.min = 0, .max = 2000}),

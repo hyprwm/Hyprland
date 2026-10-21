@@ -289,6 +289,8 @@ void IFullscreenHandler::setNoMembersAboveFullscreen(const std::optional<SP<Layo
             w->updateFullscreenInputState();
         }
     }
+
+    // Hide the top layer window when fullscreening a window
     for (auto const& ls : Desktop::layerState()->layers()) {
         if (ls->m_monitor != MONITOR)
             continue;

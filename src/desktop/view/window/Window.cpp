@@ -21,6 +21,7 @@
 #include "WindowGroupMembership.hpp"
 #include "WindowMetadata.hpp"
 #include "WindowPresentation.hpp"
+#include "WindowStateTracker.hpp"
 #include "WindowSwallowController.hpp"
 #include "../LayerSurface.hpp"
 #include "../Popup.hpp"
@@ -152,7 +153,7 @@ void CWindow::attachBackendListeners() {
 CWindow::CWindow(UP<IWindowBackend> backend) :
     IView(CWLSurface::create()), m_grouping(makeUnique<CWindowGroupMembership>(*this)), m_swallowing(makeUnique<CWindowSwallowController>(*this)),
     m_fullscreenPolicy(makeUnique<CWindowFullscreenPolicy>()), m_backend(std::move(backend)), m_metadata(makeUnique<CWindowMetadata>()),
-    m_presentation(makeUnique<CWindowPresentation>(*this)), m_effects(makeUnique<CWindowEffectsController>(*this)) {
+    m_presentation(makeUnique<CWindowPresentation>(*this)), m_effects(makeUnique<CWindowEffectsController>(*this)), m_stateTracker(makeUnique<CWindowStateEventTracker>(*this)) {
     ;
 }
 
@@ -1593,6 +1594,7 @@ void CWindow::mapWindow() {
     if (m_workspace)
         m_workspace->updateWindows();
 
+    m_stateTracker->start();
     Event::bus()->m_events.window.openLate.emit(m_self.lock());
 }
 
@@ -1612,6 +1614,7 @@ void CWindow::unmapWindow() {
 
     const auto PMONITOR = m_monitor.lock();
 
+    m_stateTracker->stop();
     m_events.unmap.emit();
     IPC::Socket2::sock()->postEvent({"closewindow", std::format("{:x}", m_self.lock())});
     Event::bus()->m_events.window.close.emit(m_self.lock());
@@ -1809,6 +1812,7 @@ void CWindow::commitWindow(bool initialCommit) {
 void CWindow::destroyWindow() {
     LOG(Log::DEBUG, "{:c} destroyed, queueing.", m_self.lock());
 
+    m_stateTracker->stop();
     m_swallowing->onDestroy();
 
     if (m_self.lock() == Desktop::focusState()->window()) {
@@ -1957,6 +1961,10 @@ CWindowGroupMembership& CWindow::grouping() {
 
 const CWindowGroupMembership& CWindow::grouping() const {
     return *m_grouping;
+}
+
+CWindowStateEventTracker& CWindow::stateTracker() {
+    return *m_stateTracker;
 }
 
 void CWindow::sendClose() {

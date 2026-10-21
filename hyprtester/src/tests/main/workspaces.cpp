@@ -1309,7 +1309,7 @@ TEST_CASE(workspacesDistinctTiledAndFloatGaps) {
 }
 
 SUBTEST(switchWorkspaceAndCheckActiveWindowFocusIsLostAndRestored) {
-    std::string resp1 = getFromSocket("/activewindow");
+    std::string resp1 = Tests::getWindowID(getFromSocket("/activewindow"));
     ASSERT_NOT("Invalid", resp1);
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 2 })"));
@@ -1317,7 +1317,7 @@ SUBTEST(switchWorkspaceAndCheckActiveWindowFocusIsLostAndRestored) {
     EXPECT("Invalid", resp2);
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = \"previous\" })"));
     resp2 = getFromSocket("/activewindow");
-    ASSERT(resp1, resp2);
+    ASSERT(resp1, Tests::getWindowID(resp2));
 }
 
 TEST_CASE(workspaceSwitchUnfocusesWindowFromOldWorkspace) {

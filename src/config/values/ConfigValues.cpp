@@ -605,14 +605,11 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Int>("misc:new_float_force_onscreen", "whether new floating windows must be placed fully/partially on-screen", 2),
         MS<Int>("misc:float_force_onscreen", "whether existing floating windows must remain fully/partially on-screen", 0),
 
-
-
         /*
          * layer:
         */
         MS<Bool>("layers:layers_hog_keyboard_focus", "If true, will make keyboard-interactive layers keep their focus on mouse move.", true),
         MS<Bool>("layers:allow_new_top_layers_over_existing_fullscreen", "If true, allows new top layers to go over a fullscreen window.", true),
-
 
         /*
          * binds:

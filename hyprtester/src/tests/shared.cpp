@@ -220,4 +220,3 @@ std::string Tests::getWindowID(const std::string& hyprlandActiveWindowResponse) 
 
     return hyprlandActiveWindowResponse.substr(7, 12);
 }
-

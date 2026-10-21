@@ -1335,9 +1335,9 @@ TEST_CASE(scroll_LAYOUT_HANDLED_focusInDirectionFocusFollowFocusTrue) {
 
     // if movefocus_cycles_fullscreen = false, all focus({direction}) is disallowed from moving focus from FS window
 
-    // if movefocus_cycles_fullscreen = true, standard behaviour of the config option won't be followed but focus will move in the firection specified as if window was not FS
+    // if movefocus_cycles_fullscreen = true, standard behaviour of the config option won't be followed but focus will move in the direction specified as if window was not FS
     // if on_focus_under_fullscreen = 0 focus({direction}) is disallowed from moving focus from FS window
-    // if on_focus_under_fullscreen = 1/2, standard behaviour of the config option won't be followed but focus will move in the firection specified as if window was not FS
+    // if on_focus_under_fullscreen = 1/2, standard behaviour of the config option won't be followed but focus will move in the direction specified as if window was not FS
 
     OK(getFromSocket("/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -1427,7 +1427,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_focusInDirectionFocusFollowFocusTrue) {
         EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
 
-    // if movefocus_cycles_fullscreen = true, standard behaviour of the config option won't be followed but focus will move in the firection specified as if window was not FS
+    // if movefocus_cycles_fullscreen = true, standard behaviour of the config option won't be followed but focus will move in the direction specified as if window was not FS
 
     OK(getFromSocket("r/eval hl.config({ binds = { movefocus_cycles_fullscreen = true } })"));
 

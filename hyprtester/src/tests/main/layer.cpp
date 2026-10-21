@@ -80,6 +80,8 @@ TEST_CASE(plugin_layerrules) {
     EXPECT(spawnLayer("rule-layer"), true);
 
     EXPECT(spawnLayer("norule-layer"), true);
+    
+    Tests::waitUntilLayersN(2);
 
     OK(getFromSocket("/eval hl.plugin.test.check_layer_rule()"));
 }
@@ -99,6 +101,7 @@ TEST_CASE(layerPointerFocusPreservedOnKeyboardRefocus) {
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:pointer_focus_ws1' })"));
 
     ASSERT(spawnLayer(LAYER_NAMESPACE, {"--edge=top", "--layer=top", "--lines=48px", "--focus-policy=not-allowed"}), true);
+    Tests::waitUntilLayersN(1);
 
     OK(getFromSocket(std::format("/eval hl.plugin.test.set_pointer_focus_layer('{}')", LAYER_NAMESPACE)));
     OK(getFromSocket(std::format("/eval hl.plugin.test.check_pointer_focus_layer('{}')", LAYER_NAMESPACE)));
@@ -135,6 +138,8 @@ TEST_CASE(exclusiveLayerTakesPointerFocusFromRuleConfinedWindow) {
                           "--output-name=HEADLESS-1",
                       }),
            true);
+    Tests::waitUntilLayersN(1);
+
 
     // Registration can precede mapping. Wait without moving the cursor or explicitly setting pointer focus.
     auto layerFocus = getFromSocket(LAYER_POINTER_CHECK);
@@ -234,6 +239,7 @@ TEST_CASE(ruleConfinedWindowFocusRestoredAfterCrossMonitorExclusiveLayer) {
                           std::format("--output-name={}", OUTPUT),
                       }),
            true);
+    Tests::waitUntilLayersN(1);
     OK(waitForLayerFocus(LAYER_NAMESPACE));
 
     // Return while the layer still owns the keyboard. Dismissal must restore both seat surfaces by itself.

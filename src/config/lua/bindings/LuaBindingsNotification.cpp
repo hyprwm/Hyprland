@@ -130,7 +130,7 @@ static int hlGetNotifications(lua_State* L) {
 
 void Internal::registerNotificationBindings(lua_State* L) {
     lua_newtable(L);
-    Internal::setFn(L, "create", hlNotificationCreate);
-    Internal::setFn(L, "get", hlGetNotifications);
+    setFn(L, "create", hlNotificationCreate, ALLOWED_IN_PREDICATE);
+    setFn(L, "get", hlGetNotifications, ALLOWED_IN_PREDICATE);
     lua_setfield(L, -2, "notification");
 }

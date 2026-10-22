@@ -1181,8 +1181,9 @@ std::expected<void, std::string> CConfigManager::registerPluginLuaFunctionInStat
         return std::unexpected(std::format("hl.plugin.{}.{} already exists", namespace_, name));
     }
 
+    // a plugin function may do anything, so it's never allowed in a predicate
     lua_pushinteger(m_lua, sc<lua_Integer>(id));
-    lua_pushcclosure(m_lua, pluginLuaFunctionDispatcher, 1);
+    pushFn(m_lua, pluginLuaFunctionDispatcher, FORBIDDEN_IN_PREDICATE, 1);
     lua_setfield(m_lua, namespaceTableIdx, name.c_str());
 
     lua_pop(m_lua, 3);

@@ -54,9 +54,9 @@ static int eventSubscriptionIndex(lua_State* L) {
     const std::string_view key = luaL_checkstring(L, 2);
 
     if (key == "remove")
-        lua_pushcfunction(L, eventSubscriptionRemove);
+        pushFn(L, eventSubscriptionRemove, FORBIDDEN_IN_PREDICATE);
     else if (key == "is_active")
-        lua_pushcfunction(L, eventSubscriptionIsActive);
+        pushFn(L, eventSubscriptionIsActive, ALLOWED_IN_PREDICATE);
     else
         lua_pushnil(L);
 

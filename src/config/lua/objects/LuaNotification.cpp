@@ -328,41 +328,41 @@ static int notificationIndex(lua_State* L) {
     const std::string_view key = luaL_checkstring(L, 2);
 
     if (key == "pause")
-        lua_pushcfunction(L, notificationPause);
+        pushFn(L, notificationPause, ALLOWED_IN_PREDICATE);
     else if (key == "resume")
-        lua_pushcfunction(L, notificationResume);
+        pushFn(L, notificationResume, ALLOWED_IN_PREDICATE);
     else if (key == "set_paused")
-        lua_pushcfunction(L, notificationSetPaused);
+        pushFn(L, notificationSetPaused, ALLOWED_IN_PREDICATE);
     else if (key == "is_paused")
-        lua_pushcfunction(L, notificationIsPaused);
+        pushFn(L, notificationIsPaused, ALLOWED_IN_PREDICATE);
     else if (key == "set_text")
-        lua_pushcfunction(L, notificationSetText);
+        pushFn(L, notificationSetText, ALLOWED_IN_PREDICATE);
     else if (key == "set_timeout")
-        lua_pushcfunction(L, notificationSetTimeout);
+        pushFn(L, notificationSetTimeout, ALLOWED_IN_PREDICATE);
     else if (key == "set_color")
-        lua_pushcfunction(L, notificationSetColor);
+        pushFn(L, notificationSetColor, ALLOWED_IN_PREDICATE);
     else if (key == "set_icon")
-        lua_pushcfunction(L, notificationSetIcon);
+        pushFn(L, notificationSetIcon, ALLOWED_IN_PREDICATE);
     else if (key == "set_font_size")
-        lua_pushcfunction(L, notificationSetFontSize);
+        pushFn(L, notificationSetFontSize, ALLOWED_IN_PREDICATE);
     else if (key == "dismiss")
-        lua_pushcfunction(L, notificationDismiss);
+        pushFn(L, notificationDismiss, ALLOWED_IN_PREDICATE);
     else if (key == "get_text")
-        lua_pushcfunction(L, notificationGetText);
+        pushFn(L, notificationGetText, ALLOWED_IN_PREDICATE);
     else if (key == "get_timeout")
-        lua_pushcfunction(L, notificationGetTimeout);
+        pushFn(L, notificationGetTimeout, ALLOWED_IN_PREDICATE);
     else if (key == "get_color")
-        lua_pushcfunction(L, notificationGetColor);
+        pushFn(L, notificationGetColor, ALLOWED_IN_PREDICATE);
     else if (key == "get_icon")
-        lua_pushcfunction(L, notificationGetIcon);
+        pushFn(L, notificationGetIcon, ALLOWED_IN_PREDICATE);
     else if (key == "get_font_size")
-        lua_pushcfunction(L, notificationGetFontSize);
+        pushFn(L, notificationGetFontSize, ALLOWED_IN_PREDICATE);
     else if (key == "get_elapsed")
-        lua_pushcfunction(L, notificationGetElapsed);
+        pushFn(L, notificationGetElapsed, ALLOWED_IN_PREDICATE);
     else if (key == "get_elapsed_since_creation")
-        lua_pushcfunction(L, notificationGetElapsedSinceCreation);
+        pushFn(L, notificationGetElapsedSinceCreation, ALLOWED_IN_PREDICATE);
     else if (key == "is_alive")
-        lua_pushcfunction(L, notificationIsAlive);
+        pushFn(L, notificationIsAlive, ALLOWED_IN_PREDICATE);
     else
         lua_pushnil(L);
 

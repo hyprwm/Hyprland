@@ -60,9 +60,9 @@ static int layerRuleIndex(lua_State* L) {
     const std::string_view key = luaL_checkstring(L, 2);
 
     if (key == "set_enabled")
-        lua_pushcfunction(L, layerRuleSetEnabled);
+        pushFn(L, layerRuleSetEnabled, FORBIDDEN_IN_PREDICATE);
     else if (key == "is_enabled")
-        lua_pushcfunction(L, layerRuleIsEnabled);
+        pushFn(L, layerRuleIsEnabled, ALLOWED_IN_PREDICATE);
     else
         lua_pushnil(L);
 

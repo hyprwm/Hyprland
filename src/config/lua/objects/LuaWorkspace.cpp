@@ -166,9 +166,9 @@ static int workspaceIndex(lua_State* L) {
         else
             lua_pushnil(L);
     } else if (key == "get_windows")
-        lua_pushcfunction(L, workspaceGetWindows);
+        pushFn(L, workspaceGetWindows, ALLOWED_IN_PREDICATE);
     else if (key == "get_groups")
-        lua_pushcfunction(L, workspaceGetGroups);
+        pushFn(L, workspaceGetGroups, ALLOWED_IN_PREDICATE);
     else if (key == "groups")
         lua_pushinteger(L, sc<lua_Integer>(ws->getGroups()));
     else

@@ -44,7 +44,7 @@ Equal radii use the existing single-region rendering path. Unequal radii split
 damaged regions into disjoint quadrants and reuse the existing shaders. This
 adds draw calls for asymmetric corners, without adding fragment-shader
 branches. Offset shadows partition the shadow and window cutout separately.
-The extra draw calls are a tradeoff to assess before upstream submission.
+The extra draw calls are a performance tradeoff for asymmetric corners.
 
 Local validation on 2026-10-22:
 
@@ -55,11 +55,21 @@ Local validation on 2026-10-22:
   defaults, window rule priority, inheritance, and workspace `no_rounding`.
 - Visual checks cover circles and superellipses, moving between a display
   corner and its interior, four different radii, offset shadows, inner glow,
-  translucent acrylic blur, scale 1.25, a rotated output, and fullscreen.
-- In a continuously redrawn 1600x1000@60 scene, two five-second CPU samples
-  used 4.8%/4.6% of one core for uniform radii and 5.8%/4.4% for asymmetric
-  radii. These short samples do not establish a performance difference.
-  GPU engine counters were unavailable in the test environment.
+  translucent Kawase blur, scale 1.25, a rotated output, and fullscreen.
+- GPU elapsed-time queries on a continuously redrawn 2880x1800@120 scene
+  compare uniform and selective radii in six randomized blocks per case.
+  Median composition times are 2.555/2.548 ms for circles, 2.555/2.552 ms
+  for superellipses, and 3.669/3.666 ms for superellipses with transparency,
+  shadows, and glow. None of the paired mean-difference confidence intervals
+  excludes zero; these measurements establish neither an overhead nor a
+  speedup on this GPU. GPU clocks were not fixed and the host shared the GPU.
+  This compares two configurations of the patched binary, not patched versus
+  unpatched Hyprland. Nearly equal but unequal radii were also measured to
+  exercise the quadrant split with minimal change in visible shape.
+- Blur was inactive in those timed scenes because the terminal explicitly
+  disabled it through the background-effect protocol. A separate visual check
+  enabled the client's blur request and verified Kawase blur. Blur overhead
+  and acrylic blur remain unvalidated.
 
 The compositor ran on Mesa Intel Graphics (LNL) inside omabox, with a private
 Aquamarine 0.15.1 build. Physical display geometry, XWayland, HDR, and multiple

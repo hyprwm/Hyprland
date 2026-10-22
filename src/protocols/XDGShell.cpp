@@ -2,6 +2,7 @@
 #include "XDGDialog.hpp"
 #include <algorithm>
 #include "../Compositor.hpp"
+#include "../helpers/string/StringUtils.hpp"
 #include "../managers/SeatManager.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../output/Monitor.hpp"
@@ -183,11 +184,13 @@ CXDGToplevelResource::CXDGToplevelResource(SP<CXdgToplevel> resource_, SP<CXDGSu
 
     m_resource->setSetTitle([this](CXdgToplevel* r, const char* t) {
         m_state.title = t;
+        StringUtils::truncUTF8InPlace(m_state.title);
         m_events.metadataChanged.emit();
     });
 
     m_resource->setSetAppId([this](CXdgToplevel* r, const char* id) {
         m_state.appid = id;
+        StringUtils::truncUTF8InPlace(m_state.appid);
         m_events.metadataChanged.emit();
     });
 

@@ -214,3 +214,9 @@ std::string Tests::getAttribute(const std::string& hyprlandResponse, std::string
     auto pos2 = hyprlandResponse.find('\n', pos);
     return hyprlandResponse.substr(pos, pos2 - pos);
 }
+
+std::string Tests::getWindowID(const std::string& hyprlandActiveWindowResponse) {
+    // Depends on the window ID line being formatted like `Window 6205fe70d6e0 -> bash:` -- i.e. 12 char ID after `Window`
+
+    return hyprlandActiveWindowResponse.substr(7, 12);
+}

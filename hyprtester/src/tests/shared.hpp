@@ -29,4 +29,9 @@ namespace Tests {
      * For example, `Tests::getAttribute(getFromSocket("/activewindow"), "at")` returns the active window's coordinates, e.g., `"2,32"`
      */
     std::string getAttribute(const std::string& hyprlandResponse, std::string attr);
+
+    /**
+    * Extracts window ID from activeWindow output
+    */
+    std::string getWindowID(const std::string& hyprlandActiveWindowResponse);
 };

@@ -11,7 +11,7 @@ const std::vector<SP<IFadeout>>& CFadingOutState::fadeouts() const {
 }
 
 void CFadingOutState::add(SP<IFadeout> fadeout) {
-    if (!fadeout)
+    if (!fadeout || fadeout->monitor().expired() || fadeout->done())
         return;
 
     m_fadeouts.emplace_back(fadeout);

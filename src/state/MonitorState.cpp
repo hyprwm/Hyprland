@@ -29,21 +29,18 @@ CMonitorStateTracker::CMonitorStateTracker() {
     m_listeners.monitorRemoved = Event::bus()->m_events.monitor.removed.listen([this](PHLMONITOR m) { std::erase(m_monitors, m); });
 
     // keep track of mirrors
-    m_listeners.layoutChanged = Event::bus()->m_events.monitor.layoutChanged.listen([this]() {
-        std::erase_if(m_monitors, [](const auto& m) { return m->isMirror(); });
+    m_listeners.layoutChanged = Event::bus()->m_events.monitor.layoutChanged.listen([this]() { syncActiveMonitors(); });
+}
 
-        for (const auto& rm : m_realMonitors) {
-            if (!rm->m_enabled || rm->isMirror())
-                continue;
+void CMonitorStateTracker::syncActiveMonitors() {
+    m_monitors.clear();
 
-            const bool HAS = std::ranges::contains(m_monitors, rm);
+    for (const auto& rm : m_realMonitors) {
+        if (!rm->m_enabled || rm->isMirror())
+            continue;
 
-            if (HAS)
-                continue;
-
-            m_monitors.emplace_back(rm);
-        }
-    });
+        m_monitors.emplace_back(rm);
+    }
 }
 
 const std::vector<PHLMONITOR>& CMonitorStateTracker::allMonitors() const {

@@ -25,6 +25,9 @@ namespace State {
 
         void                                   finish();
 
+        // adds enabled, non-mirror real monitors that aren't in monitors() yet
+        void syncActiveMonitors();
+
       private:
         MONITORID                                  getNextAvailableMonitorID(const std::string& name);
 

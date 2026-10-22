@@ -700,6 +700,14 @@ void CWindow::updateWindowData(const Config::CWorkspaceRule& workspaceRule) {
     m_ruleApplicator->decorate().matchOptional(workspaceRule.m_decorate, Desktop::Types::PRIORITY_WORKSPACE_RULE);
     m_ruleApplicator->rounding().matchOptional(workspaceRule.m_noRounding.value_or(false) ? std::optional<Config::INTEGER>(0) : std::nullopt,
                                                Desktop::Types::PRIORITY_WORKSPACE_RULE);
+    m_ruleApplicator->roundingTopLeft().matchOptional(workspaceRule.m_noRounding.value_or(false) ? std::optional<Config::INTEGER>(0) : std::nullopt,
+                                                      Desktop::Types::PRIORITY_WORKSPACE_RULE);
+    m_ruleApplicator->roundingTopRight().matchOptional(workspaceRule.m_noRounding.value_or(false) ? std::optional<Config::INTEGER>(0) : std::nullopt,
+                                                       Desktop::Types::PRIORITY_WORKSPACE_RULE);
+    m_ruleApplicator->roundingBottomRight().matchOptional(workspaceRule.m_noRounding.value_or(false) ? std::optional<Config::INTEGER>(0) : std::nullopt,
+                                                          Desktop::Types::PRIORITY_WORKSPACE_RULE);
+    m_ruleApplicator->roundingBottomLeft().matchOptional(workspaceRule.m_noRounding.value_or(false) ? std::optional<Config::INTEGER>(0) : std::nullopt,
+                                                         Desktop::Types::PRIORITY_WORKSPACE_RULE);
     m_ruleApplicator->noShadow().matchOptional(workspaceRule.m_noShadow, Desktop::Types::PRIORITY_WORKSPACE_RULE);
 
     m_presentation->invalidateBorderSize();

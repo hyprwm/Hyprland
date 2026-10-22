@@ -119,7 +119,7 @@ void CHyprInnerGlowDecoration::render(Render::CRenderContext& ctx, PHLMONITOR pM
     if (!validMapped(PWINDOW))
         return;
 
-    const auto ROUNDING      = PWINDOW->presentation().rounding() > 0 ? PWINDOW->presentation().rounding() - 1 : PWINDOW->presentation().rounding();
+    const auto ROUNDING      = PWINDOW->presentation().cornerRadii() - 1;
     const auto ROUNDINGPOWER = PWINDOW->presentation().roundingPower();
 
     CBox       windowBox = {m_lastWindowPos.x, m_lastWindowPos.y, m_lastWindowSize.x, m_lastWindowSize.y};
@@ -146,8 +146,8 @@ void CHyprInnerGlowDecoration::render(Render::CRenderContext& ctx, PHLMONITOR pM
     ctx.m_data.currentWindow.reset();
 }
 
-void CHyprInnerGlowDecoration::drawGlowInternal(Render::CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad,
-                                                float a) {
+void CHyprInnerGlowDecoration::drawGlowInternal(Render::CRenderContext& ctx, const CBox& box, SCornerRadii round, float roundingPower, int range,
+                                                const Config::CGradientValueData& grad, float a) {
     if (box.w < 1 || box.h < 1)
         return;
     g_pHyprRenderer->blend(true);
@@ -156,8 +156,8 @@ void CHyprInnerGlowDecoration::drawGlowInternal(Render::CRenderContext& ctx, con
     ctx.m_data.currentWindow.reset();
 }
 
-void CHyprInnerGlowDecoration::drawGlowInternal(Render::CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
-                                                const Config::CGradientValueData& grad2, float lerp, float a) {
+void CHyprInnerGlowDecoration::drawGlowInternal(Render::CRenderContext& ctx, const CBox& box, SCornerRadii round, float roundingPower, int range,
+                                                const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2, float lerp, float a) {
     if (box.w < 1 || box.h < 1)
         return;
     g_pHyprRenderer->blend(true);

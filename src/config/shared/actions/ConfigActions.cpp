@@ -940,6 +940,14 @@ ActionResult Actions::setProp(const std::string& PROP, const std::string& VAL, s
             parsePropTrivial(PWINDOW->m_ruleApplicator->borderSize(), VAL);
         else if (PROP == "rounding")
             parsePropTrivial(PWINDOW->m_ruleApplicator->rounding(), VAL);
+        else if (PROP == "rounding_top_left")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->roundingTopLeft(), VAL);
+        else if (PROP == "rounding_top_right")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->roundingTopRight(), VAL);
+        else if (PROP == "rounding_bottom_right")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->roundingBottomRight(), VAL);
+        else if (PROP == "rounding_bottom_left")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->roundingBottomLeft(), VAL);
         else if (PROP == "rounding_power")
             parsePropTrivial(PWINDOW->m_ruleApplicator->roundingPower(), VAL);
         else if (PROP == "scroll_mouse")

@@ -170,6 +170,18 @@ TEST_CASE(hyprctlGetprop) {
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty rounding"), "4");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty rounding -j"), R"({"rounding": 4})");
 
+    // Per-corner values inherit rounding by default; zero explicitly keeps a corner square.
+    for (const auto& corner : {"top_left", "top_right", "bottom_right", "bottom_left"}) {
+        const auto prop = std::string("rounding_") + corner;
+        EXPECT(getCommandStdOut("hyprctl getprop class:kitty " + prop), "-1");
+        setWindowProp("class:kitty", prop, "0");
+        EXPECT(getCommandStdOut("hyprctl getprop class:kitty " + prop), "0");
+        setWindowProp("class:kitty", prop, "24");
+        EXPECT(getCommandStdOut("hyprctl getprop class:kitty " + prop), "24");
+        setWindowProp("class:kitty", prop, "-1");
+        EXPECT(getCommandStdOut("hyprctl getprop class:kitty " + prop), "-1");
+    }
+
     // float window properties
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty rounding_power"), "2");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty rounding_power -j"), R"({"rounding_power": 2})");

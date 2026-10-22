@@ -1,4 +1,5 @@
 #pragma once
+#include "../../helpers/CornerRadii.hpp"
 
 #include "Pass.hpp"
 #include "TexPassElement.hpp"
@@ -14,7 +15,7 @@ class CTransformedWindowPassElement : public IPassElement {
         bool                              blur              = false;
         bool                              blurUsesLive      = false;
         float                             blurA             = 1.F;
-        int                               blurRound         = 0;
+        SCornerRadii                      blurRound         = 0;
         float                             blurRoundingPower = 2.F;
         CBox                              transformedBox;
         SMotionBlurData                   motionBlur;

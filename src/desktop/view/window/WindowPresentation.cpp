@@ -283,13 +283,26 @@ Render::SWindowPresentationState CWindowPresentation::renderPresentationState(co
 }
 
 float CWindowPresentation::rounding() {
-    static auto PROUNDING      = CConfigValue<Config::INTEGER>("decoration:rounding");
-    static auto PROUNDINGPOWER = CConfigValue<Config::FLOAT>("decoration:rounding_power");
+    return cornerRadii().max();
+}
 
-    float       roundingPower = m_window.m_ruleApplicator->roundingPower().valueOr(*PROUNDINGPOWER);
-    float       rounding      = m_window.m_ruleApplicator->rounding().valueOr(*PROUNDING) * (roundingPower / 2.0); /* Make perceived roundness consistent. */
-
-    return rounding;
+SCornerRadii CWindowPresentation::cornerRadii() {
+    static auto PROUNDING     = CConfigValue<Config::INTEGER>("decoration:rounding");
+    static auto PTOP_LEFT     = CConfigValue<Config::INTEGER>("decoration:rounding_top_left");
+    static auto PTOP_RIGHT    = CConfigValue<Config::INTEGER>("decoration:rounding_top_right");
+    static auto PBOTTOM_RIGHT = CConfigValue<Config::INTEGER>("decoration:rounding_bottom_right");
+    static auto PBOTTOM_LEFT  = CConfigValue<Config::INTEGER>("decoration:rounding_bottom_left");
+    const auto  base          = m_window.m_ruleApplicator->rounding().valueOr(*PROUNDING);
+    const auto  resolve       = [base](Config::INTEGER radius) { return radius < 0 ? base : radius; };
+    auto        radii =
+        SCornerRadii{
+            sc<float>(resolve(m_window.m_ruleApplicator->roundingTopLeft().valueOr(*PTOP_LEFT))),
+            sc<float>(resolve(m_window.m_ruleApplicator->roundingTopRight().valueOr(*PTOP_RIGHT))),
+            sc<float>(resolve(m_window.m_ruleApplicator->roundingBottomRight().valueOr(*PBOTTOM_RIGHT))),
+            sc<float>(resolve(m_window.m_ruleApplicator->roundingBottomLeft().valueOr(*PBOTTOM_LEFT))),
+        } *
+        (roundingPower() / 2.0);
+    return radii.uniform() ? radii : radii.clamped(m_window.size(IGeometric::GEOMETRIC_CURRENT));
 }
 
 float CWindowPresentation::roundingPower() {
@@ -301,29 +314,11 @@ float CWindowPresentation::roundingPower() {
 // Check if the point is hidden under a rounded corner. The point is assumed to
 // be within the real window box; behavior outside it is undefined.
 bool CWindowPresentation::isInCurvedCorner(double x, double y) {
-    const int ROUNDING      = rounding();
-    const int ROUNDINGPOWER = roundingPower();
-    if (borderSize() >= ROUNDING)
-        return false;
-
-    // (x0, y0), (x0, y1), ... are the center point of rounding at each corner
-    const auto POSITION = m_window.position(IGeometric::GEOMETRIC_CURRENT);
-    const auto SIZE     = m_window.size(IGeometric::GEOMETRIC_CURRENT);
-    double     x0       = POSITION.x + ROUNDING;
-    double     y0       = POSITION.y + ROUNDING;
-    double     x1       = POSITION.x + SIZE.x - ROUNDING;
-    double     y1       = POSITION.y + SIZE.y - ROUNDING;
-
-    if (x < x0 && y < y0)
-        return std::pow(x0 - x, ROUNDINGPOWER) + std::pow(y0 - y, ROUNDINGPOWER) > std::pow(sc<double>(ROUNDING), ROUNDINGPOWER);
-    if (x > x1 && y < y0)
-        return std::pow(x - x1, ROUNDINGPOWER) + std::pow(y0 - y, ROUNDINGPOWER) > std::pow(sc<double>(ROUNDING), ROUNDINGPOWER);
-    if (x < x0 && y > y1)
-        return std::pow(x0 - x, ROUNDINGPOWER) + std::pow(y - y1, ROUNDINGPOWER) > std::pow(sc<double>(ROUNDING), ROUNDINGPOWER);
-    if (x > x1 && y > y1)
-        return std::pow(x - x1, ROUNDINGPOWER) + std::pow(y - y1, ROUNDINGPOWER) > std::pow(sc<double>(ROUNDING), ROUNDINGPOWER);
-
-    return false;
+    auto radii = cornerRadii().truncated();
+    for (auto& radius : radii.values)
+        if (borderSize() >= radius)
+            radius = 0;
+    return !radii.contains(Vector2D{x, y} - m_window.position(IGeometric::GEOMETRIC_CURRENT), m_window.size(IGeometric::GEOMETRIC_CURRENT), roundingPower());
 }
 
 bool CWindowPresentation::visibleOnMonitor(PHLMONITOR monitor) {

@@ -1175,7 +1175,7 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(CRenderContext& ctx, const CBox
     if (std::abs(shapeBox.rot) < 0.0001F)
         shape = SBlurShape{
             .box           = shapeBox,
-            .radius        = std::max(sc<float>(data.round), 0.F),
+            .radius        = (data.round - 0.F).truncated(),
             .roundingPower = data.roundingPower,
         };
     const bool usePrecomputedBlur = data.xray && !g_pHyprRenderer->blurProviderRequiresLiveBlur();
@@ -1211,6 +1211,32 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(CRenderContext& ctx, const CBox
     renderRectWithDamageInternal(ctx, box, col, data);
 }
 
+template <typename F = std::nullptr_t>
+static void drawRoundedDamage(CRenderContext& ctx, const CBox& box, const SCornerRadii& radii, const CRegion& damage, WP<CShader> shader, const F& update = nullptr,
+                              GLenum primitive = GL_TRIANGLE_STRIP, GLsizei count = 4) {
+    const auto draw = [&ctx, primitive, count](const CRegion& region) {
+        region.forEachRect([&ctx, primitive, count](const auto& rect) {
+            g_pHyprOpenGL->scissor(ctx, &rect, ctx.m_data.transformDamage);
+            glDrawArrays(primitive, 0, count);
+        });
+    };
+    if (radii.uniform()) {
+        if constexpr (!std::is_same_v<F, std::nullptr_t>)
+            update(0, radii.values[0]);
+        draw(damage);
+        return;
+    }
+    const auto regions = cornerRegions(box, damage, false);
+    for (size_t i = 0; i < regions.size(); ++i) {
+        if (regions[i].empty())
+            continue;
+        shader->setUniformFloat(SHADER_RADIUS, radii.values[i]);
+        if constexpr (!std::is_same_v<F, std::nullptr_t>)
+            update(i, radii.values[i]);
+        draw(regions[i]);
+    }
+}
+
 void CHyprOpenGLImpl::renderRectWithDamageInternal(CRenderContext& ctx, const CBox& box, const CHyprColor& col, const SRectRenderData& data) {
     auto& m_renderData = ctx.m_data;
     RASSERT((box.width > 0 && box.height > 0), "Tried to render rect with width/height < 0!");
@@ -1223,7 +1249,7 @@ void CHyprOpenGLImpl::renderRectWithDamageInternal(CRenderContext& ctx, const CB
 
     const auto& glMatrix = g_pHyprRenderer->projectBoxToTarget(ctx, newBox);
 
-    auto        shader = useShader(getShaderVariant(SH_FRAG_QUAD, (data.round > 0 ? SH_FEAT_ROUNDING : 0) | globalFeatures(ctx)));
+    auto        shader = useShader(getShaderVariant(SH_FRAG_QUAD, (data.round.truncated().max() > 0 ? SH_FEAT_ROUNDING : 0) | globalFeatures(ctx)));
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
 
     // premultiply the color as well as we don't work with straight alpha
@@ -1238,7 +1264,7 @@ void CHyprOpenGLImpl::renderRectWithDamageInternal(CRenderContext& ctx, const CB
     // Rounded corners
     shader->setUniformFloat2(SHADER_TOP_LEFT, sc<float>(TOPLEFT.x), sc<float>(TOPLEFT.y));
     shader->setUniformFloat2(SHADER_FULL_SIZE, sc<float>(FULLSIZE.x), sc<float>(FULLSIZE.y));
-    shader->setUniformFloat(SHADER_RADIUS, data.round);
+    shader->setUniformFloat(SHADER_RADIUS, data.round.truncated().max());
     shader->setUniformFloat(SHADER_ROUNDING_POWER, data.roundingPower);
 
     glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
@@ -1247,18 +1273,10 @@ void CHyprOpenGLImpl::renderRectWithDamageInternal(CRenderContext& ctx, const CB
         CRegion damageClip{ctx.m_data.clipBox.x, ctx.m_data.clipBox.y, ctx.m_data.clipBox.width, ctx.m_data.clipBox.height};
         damageClip.intersect(*data.damage);
 
-        if (!damageClip.empty()) {
-            damageClip.forEachRect([this, &ctx](const auto& RECT) {
-                scissor(ctx, &RECT, ctx.m_data.transformDamage);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            });
-        }
-    } else {
-        data.damage->forEachRect([this, &ctx](const auto& RECT) {
-            scissor(ctx, &RECT, ctx.m_data.transformDamage);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        });
-    }
+        if (!damageClip.empty())
+            drawRoundedDamage(ctx, newBox, data.round.truncated(), damageClip, shader);
+    } else
+        drawRoundedDamage(ctx, newBox, data.round.truncated(), *data.damage, shader);
 
     glBindVertexArray(0);
     disableScissor();
@@ -1509,7 +1527,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(CRenderContext& ctx, SP<ITexture
         (ctx.m_data.currentWindow->presentation().notRespondingTint() > 0 || ctx.m_data.currentWindow->presentation().dimPercent() > 0))
         shaderFeatures |= SH_FEAT_TINT;
 
-    if (data.round > 0)
+    if (data.round.truncated().max() > 0)
         shaderFeatures |= SH_FEAT_ROUNDING;
 
     if (!skipCM) {
@@ -1577,7 +1595,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(CRenderContext& ctx, SP<ITexture
     // Rounded corners
     shader->setUniformFloat2(SHADER_TOP_LEFT, TOPLEFT.x, TOPLEFT.y);
     shader->setUniformFloat2(SHADER_FULL_SIZE, FULLSIZE.x, FULLSIZE.y);
-    shader->setUniformFloat(SHADER_RADIUS, data.round);
+    shader->setUniformFloat(SHADER_RADIUS, data.round.truncated().max());
     shader->setUniformFloat(SHADER_ROUNDING_POWER, data.roundingPower);
 
     if (data.motionBlur.enabled) {
@@ -1704,18 +1722,10 @@ void CHyprOpenGLImpl::renderTextureInternal(CRenderContext& ctx, SP<ITexture> te
 
         damageClip.intersect(*data.damage);
 
-        if (!damageClip.empty()) {
-            damageClip.forEachRect([this, &ctx](const auto& RECT) {
-                scissor(ctx, &RECT, ctx.m_data.transformDamage);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            });
-        }
-    } else {
-        data.damage->forEachRect([this, &ctx](const auto& RECT) {
-            scissor(ctx, &RECT, ctx.m_data.transformDamage);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        });
-    }
+        if (!damageClip.empty())
+            drawRoundedDamage(ctx, newBox, data.round.truncated(), damageClip, shader);
+    } else
+        drawRoundedDamage(ctx, newBox, data.round.truncated(), *data.damage, shader);
 
     GLCALL(glBindVertexArray(0));
     bindArrayBuffer(0);
@@ -1771,18 +1781,10 @@ void CHyprOpenGLImpl::renderTextureMesh(CRenderContext& ctx, SP<ITexture> tex, c
                 damageClip.intersect(data.clipRegion);
         }
 
-        if (!damageClip.empty()) {
-            damageClip.forEachRect([this, &ctx, &vertices](const auto& RECT) {
-                scissor(ctx, &RECT, ctx.m_data.transformDamage);
-                glDrawArrays(GL_TRIANGLES, 0, sc<GLsizei>(vertices.size()));
-            });
-        }
-    } else {
-        data.damage->forEachRect([this, &ctx, &vertices](const auto& RECT) {
-            scissor(ctx, &RECT, ctx.m_data.transformDamage);
-            glDrawArrays(GL_TRIANGLES, 0, sc<GLsizei>(vertices.size()));
-        });
-    }
+        if (!damageClip.empty())
+            drawRoundedDamage(ctx, newBox, data.round.truncated(), damageClip, shader, nullptr, GL_TRIANGLES, sc<GLsizei>(vertices.size()));
+    } else
+        drawRoundedDamage(ctx, newBox, data.round.truncated(), *data.damage, shader, nullptr, GL_TRIANGLES, sc<GLsizei>(vertices.size()));
 
     GLCALL(glBindVertexArray(0));
     bindArrayBuffer(0);
@@ -2044,7 +2046,7 @@ void CHyprOpenGLImpl::renderBorder(CRenderContext& ctx, const CBox& box, const C
     newBox.width += 2 * scaledBorderSize;
     newBox.height += 2 * scaledBorderSize;
 
-    float       round = data.round + (data.round == 0 ? 0 : scaledBorderSize);
+    const auto  round = data.round.truncated().expanded(scaledBorderSize);
 
     const auto& glMatrix = g_pHyprRenderer->projectBoxToTarget(ctx, newBox);
 
@@ -2073,8 +2075,8 @@ void CHyprOpenGLImpl::renderBorder(CRenderContext& ctx, const CBox& box, const C
     shader->setUniformFloat2(SHADER_TOP_LEFT, sc<float>(TOPLEFT.x), sc<float>(TOPLEFT.y));
     shader->setUniformFloat2(SHADER_FULL_SIZE, sc<float>(FULLSIZE.x), sc<float>(FULLSIZE.y));
     shader->setUniformFloat2(SHADER_FULL_SIZE_UNTRANSFORMED, sc<float>(newBox.width), sc<float>(newBox.height));
-    shader->setUniformFloat(SHADER_RADIUS, round);
-    shader->setUniformFloat(SHADER_RADIUS_OUTER, data.outerRound == -1 ? round : data.outerRound);
+    shader->setUniformFloat(SHADER_RADIUS, round.truncated().max());
+    shader->setUniformFloat(SHADER_RADIUS_OUTER, data.outerRound.max() == -1 ? round.max() : data.outerRound.truncated().max());
     shader->setUniformFloat(SHADER_ROUNDING_POWER, data.roundingPower);
     shader->setUniformFloat(SHADER_THICK, scaledBorderSize);
 
@@ -2083,15 +2085,14 @@ void CHyprOpenGLImpl::renderBorder(CRenderContext& ctx, const CBox& box, const C
     // calculate the border's region, which we need to render over. No need to run the shader on
     // things outside there
     CRegion borderRegion = ctx.m_data.damage.copy().intersect(newBox);
-    borderRegion.subtract(innerBox.copy().expand(-scaledBorderSize - round));
+    borderRegion.subtract(innerBox.copy().expand(-scaledBorderSize - round.max()));
 
     if (ctx.m_data.clipBox.width != 0 && ctx.m_data.clipBox.height != 0)
         borderRegion.intersect(ctx.m_data.clipBox);
 
     if (!borderRegion.empty()) {
-        borderRegion.forEachRect([this, &ctx](const auto& RECT) {
-            scissor(ctx, &RECT, ctx.m_data.transformDamage);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        drawRoundedDamage(ctx, newBox, round, borderRegion, shader, [&data, &shader](size_t corner, float radius) {
+            shader->setUniformFloat(SHADER_RADIUS_OUTER, data.outerRound.values[corner] < 0 ? radius : std::trunc(data.outerRound.values[corner]));
         });
     }
 
@@ -2127,7 +2128,7 @@ void CHyprOpenGLImpl::renderBorder(CRenderContext& ctx, const CBox& box, const C
     newBox.width += 2 * scaledBorderSize;
     newBox.height += 2 * scaledBorderSize;
 
-    float       round = data.round + (data.round == 0 ? 0 : scaledBorderSize);
+    const auto  round = data.round.truncated().expanded(scaledBorderSize);
 
     const auto& glMatrix = g_pHyprRenderer->projectBoxToTarget(ctx, newBox);
 
@@ -2159,8 +2160,8 @@ void CHyprOpenGLImpl::renderBorder(CRenderContext& ctx, const CBox& box, const C
     shader->setUniformFloat2(SHADER_TOP_LEFT, sc<float>(TOPLEFT.x), sc<float>(TOPLEFT.y));
     shader->setUniformFloat2(SHADER_FULL_SIZE, sc<float>(FULLSIZE.x), sc<float>(FULLSIZE.y));
     shader->setUniformFloat2(SHADER_FULL_SIZE_UNTRANSFORMED, sc<float>(newBox.width), sc<float>(newBox.height));
-    shader->setUniformFloat(SHADER_RADIUS, round);
-    shader->setUniformFloat(SHADER_RADIUS_OUTER, data.outerRound == -1 ? round : data.outerRound);
+    shader->setUniformFloat(SHADER_RADIUS, round.truncated().max());
+    shader->setUniformFloat(SHADER_RADIUS_OUTER, data.outerRound.max() == -1 ? round.max() : data.outerRound.truncated().max());
     shader->setUniformFloat(SHADER_ROUNDING_POWER, data.roundingPower);
     shader->setUniformFloat(SHADER_THICK, scaledBorderSize);
 
@@ -2169,15 +2170,14 @@ void CHyprOpenGLImpl::renderBorder(CRenderContext& ctx, const CBox& box, const C
     // calculate the border's region, which we need to render over. No need to run the shader on
     // things outside there
     CRegion borderRegion = ctx.m_data.damage.copy().intersect(newBox);
-    borderRegion.subtract(innerBox.copy().expand(-scaledBorderSize - round));
+    borderRegion.subtract(innerBox.copy().expand(-scaledBorderSize - round.max()));
 
     if (ctx.m_data.clipBox.width != 0 && ctx.m_data.clipBox.height != 0)
         borderRegion.intersect(ctx.m_data.clipBox);
 
     if (!borderRegion.empty()) {
-        borderRegion.forEachRect([this, &ctx](const auto& RECT) {
-            scissor(ctx, &RECT, ctx.m_data.transformDamage);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        drawRoundedDamage(ctx, newBox, round, borderRegion, shader, [&data, &shader](size_t corner, float radius) {
+            shader->setUniformFloat(SHADER_RADIUS_OUTER, data.outerRound.values[corner] < 0 ? radius : std::trunc(data.outerRound.values[corner]));
         });
     }
 
@@ -2185,12 +2185,12 @@ void CHyprOpenGLImpl::renderBorder(CRenderContext& ctx, const CBox& box, const C
     blend(BLEND);
 }
 
-void CHyprOpenGLImpl::renderRoundedShadow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad, float a,
+void CHyprOpenGLImpl::renderRoundedShadow(CRenderContext& ctx, const CBox& box, SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& grad, float a,
                                           const Render::SWindowRenderPresentation& presentation) {
     renderRoundedShadow(ctx, box, round, roundingPower, range, grad, Config::CGradientValueData{}, 0.f, a, presentation);
 }
 
-void CHyprOpenGLImpl::renderRoundedShadow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
+void CHyprOpenGLImpl::renderRoundedShadow(CRenderContext& ctx, const CBox& box, SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& grad1,
                                           const Config::CGradientValueData& grad2, float lerp, float a, const Render::SWindowRenderPresentation& presentation) {
     auto& m_renderData = ctx.m_data;
     RASSERT(m_renderData.pMonitor, "Tried to render shadow without begin()!");
@@ -2236,15 +2236,15 @@ void CHyprOpenGLImpl::renderRoundedShadow(CRenderContext& ctx, const CBox& box, 
     shader->setUniformFloat(SHADER_ALPHA, a);
     shader->setUniformFloat(SHADER_GRADIENT_LERP, lerp);
 
-    const auto TOPLEFT     = Vector2D(range + round, range + round);
-    const auto BOTTOMRIGHT = Vector2D(newBox.width - (range + round), newBox.height - (range + round));
+    const auto TOPLEFT     = Vector2D(range + round.max(), range + round.max());
+    const auto BOTTOMRIGHT = Vector2D(newBox.width - (range + round.max()), newBox.height - (range + round.max()));
     const auto FULLSIZE    = Vector2D(newBox.width, newBox.height);
 
     // Rounded corners
     shader->setUniformFloat2(SHADER_TOP_LEFT, sc<float>(TOPLEFT.x), sc<float>(TOPLEFT.y));
     shader->setUniformFloat2(SHADER_BOTTOM_RIGHT, sc<float>(BOTTOMRIGHT.x), sc<float>(BOTTOMRIGHT.y));
     shader->setUniformFloat2(SHADER_FULL_SIZE, sc<float>(FULLSIZE.x), sc<float>(FULLSIZE.y));
-    shader->setUniformFloat(SHADER_RADIUS, round);
+    shader->setUniformFloat(SHADER_RADIUS, round.truncated().max());
     shader->setUniformFloat(SHADER_ROUNDING_POWER, roundingPower);
     shader->setUniformFloat(SHADER_RANGE, range);
     shader->setUniformFloat(SHADER_SHADOW_POWER, SHADOWPOWER);
@@ -2254,7 +2254,9 @@ void CHyprOpenGLImpl::renderRoundedShadow(CRenderContext& ctx, const CBox& box, 
 
     glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
 
-    CRegion drawRegion;
+    CRegion      drawRegion;
+    CBox         cutoutBox;
+    SCornerRadii cutoutRadii;
 
     if (ctx.m_data.clipBox.width != 0 && ctx.m_data.clipBox.height != 0) {
         drawRegion = {ctx.m_data.clipBox.x, ctx.m_data.clipBox.y, ctx.m_data.clipBox.width, ctx.m_data.clipBox.height};
@@ -2276,8 +2278,11 @@ void CHyprOpenGLImpl::renderRoundedShadow(CRenderContext& ctx, const CBox& box, 
                 const auto cutoutTopLeft     = scaledWindowBox.pos() - newBox.pos();
                 const auto cutoutBottomRight = cutoutTopLeft + scaledWindowBox.size();
 
-                float      cutoutRadius = std::max(0.F, sc<float>(PWINDOW->presentation().rounding() * m_renderData.pMonitor->m_scale));
-                cutoutRadius            = std::round(cutoutRadius * m_renderData.renderModif.combinedScale());
+                cutoutRadii = PWINDOW->presentation().cornerRadii() * m_renderData.pMonitor->m_scale * m_renderData.renderModif.combinedScale();
+                for (auto& radius : cutoutRadii.values)
+                    radius = std::round(std::max(0.F, radius));
+                cutoutBox               = scaledWindowBox;
+                const auto cutoutRadius = cutoutRadii.max();
 
                 shader->setUniformFloat2(SHADER_WINDOW_TOP_LEFT, sc<float>(cutoutTopLeft.x), sc<float>(cutoutTopLeft.y));
                 shader->setUniformFloat2(SHADER_WINDOW_BOTTOM_RIGHT, sc<float>(cutoutBottomRight.x), sc<float>(cutoutBottomRight.y));
@@ -2288,20 +2293,25 @@ void CHyprOpenGLImpl::renderRoundedShadow(CRenderContext& ctx, const CBox& box, 
         }
     }
 
-    if (!drawRegion.empty())
-        drawRegion.forEachRect([this, &ctx](const auto& RECT) {
-            scissor(ctx, &RECT, ctx.m_data.transformDamage);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    const auto cutoutRegions = cornerRegions(cutoutBox, drawRegion, cutoutRadii.uniform());
+    for (size_t i = 0; i < cutoutRegions.size(); ++i) {
+        if (cutoutRegions[i].empty())
+            continue;
+        shader->setUniformFloat(SHADER_THICK, cutoutRadii.values[i]);
+        drawRoundedDamage(ctx, newBox, round.truncated(), cutoutRegions[i], shader, [&shader, &newBox, range](size_t, float radius) {
+            shader->setUniformFloat2(SHADER_TOP_LEFT, range + radius, range + radius);
+            shader->setUniformFloat2(SHADER_BOTTOM_RIGHT, newBox.width - range - radius, newBox.height - range - radius);
         });
+    }
 
     glBindVertexArray(0);
 }
 
-void CHyprOpenGLImpl::renderInnerGlow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad, int glowPower,
-                                      float a) {
+void CHyprOpenGLImpl::renderInnerGlow(CRenderContext& ctx, const CBox& box, SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& grad,
+                                      int glowPower, float a) {
     renderInnerGlow(ctx, box, round, roundingPower, range, grad, Config::CGradientValueData{}, 0.f, glowPower, a);
 }
-void CHyprOpenGLImpl::renderInnerGlow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
+void CHyprOpenGLImpl::renderInnerGlow(CRenderContext& ctx, const CBox& box, SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& grad1,
                                       const Config::CGradientValueData& grad2, float lerp, int glowPower, float a) {
     auto& m_renderData = ctx.m_data;
     RASSERT(m_renderData.pMonitor, "Tried to render inner glow without begin()!");
@@ -2345,14 +2355,14 @@ void CHyprOpenGLImpl::renderInnerGlow(CRenderContext& ctx, const CBox& box, int 
     shader->setUniformFloat(SHADER_ALPHA, a);
     shader->setUniformFloat(SHADER_GRADIENT_LERP, lerp);
 
-    const auto TOPLEFT     = Vector2D(round, round);
-    const auto BOTTOMRIGHT = Vector2D(newBox.width - round, newBox.height - round);
+    const auto TOPLEFT     = Vector2D(round.max(), round.max());
+    const auto BOTTOMRIGHT = Vector2D(newBox.width - round.max(), newBox.height - round.max());
     const auto FULLSIZE    = Vector2D(newBox.width, newBox.height);
 
     shader->setUniformFloat2(SHADER_TOP_LEFT, sc<float>(TOPLEFT.x), sc<float>(TOPLEFT.y));
     shader->setUniformFloat2(SHADER_BOTTOM_RIGHT, sc<float>(BOTTOMRIGHT.x), sc<float>(BOTTOMRIGHT.y));
     shader->setUniformFloat2(SHADER_FULL_SIZE, sc<float>(FULLSIZE.x), sc<float>(FULLSIZE.y));
-    shader->setUniformFloat(SHADER_RADIUS, round);
+    shader->setUniformFloat(SHADER_RADIUS, round.truncated().max());
     shader->setUniformFloat(SHADER_ROUNDING_POWER, roundingPower);
     shader->setUniformFloat(SHADER_RANGE, range);
     shader->setUniformFloat(SHADER_SHADOW_POWER, GLOWPOWER);
@@ -2364,15 +2374,15 @@ void CHyprOpenGLImpl::renderInnerGlow(CRenderContext& ctx, const CBox& box, int 
         damageClip.intersect(ctx.m_data.damage);
 
         if (!damageClip.empty()) {
-            damageClip.forEachRect([this, &ctx](const auto& RECT) {
-                scissor(ctx, &RECT, ctx.m_data.transformDamage);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            drawRoundedDamage(ctx, newBox, round.truncated(), damageClip, shader, [&shader, &newBox](size_t, float radius) {
+                shader->setUniformFloat2(SHADER_TOP_LEFT, radius, radius);
+                shader->setUniformFloat2(SHADER_BOTTOM_RIGHT, newBox.width - radius, newBox.height - radius);
             });
         }
     } else {
-        ctx.m_data.damage.forEachRect([this, &ctx](const auto& RECT) {
-            scissor(ctx, &RECT, ctx.m_data.transformDamage);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        drawRoundedDamage(ctx, newBox, round.truncated(), ctx.m_data.damage, shader, [&shader, &newBox](size_t, float radius) {
+            shader->setUniformFloat2(SHADER_TOP_LEFT, radius, radius);
+            shader->setUniformFloat2(SHADER_BOTTOM_RIGHT, newBox.width - radius, newBox.height - radius);
         });
     }
 

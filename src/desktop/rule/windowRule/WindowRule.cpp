@@ -325,6 +325,18 @@ static std::expected<WindowRuleEffectValue, std::string> parseWindowRuleEffect(C
             return *parsed;
         }
 
+        case WINDOW_RULE_EFFECT_ROUNDING_TOP_LEFT:
+        case WINDOW_RULE_EFFECT_ROUNDING_TOP_RIGHT:
+        case WINDOW_RULE_EFFECT_ROUNDING_BOTTOM_RIGHT:
+        case WINDOW_RULE_EFFECT_ROUNDING_BOTTOM_LEFT: {
+            auto parsed = parseInt(EFFECT_NAME, raw);
+            if (!parsed)
+                return std::unexpected(parsed.error());
+            if (*parsed < -1)
+                return std::unexpected(std::format("{} rule must be -1 or non-negative", EFFECT_NAME));
+            return *parsed;
+        }
+
         case WINDOW_RULE_EFFECT_ROUNDING_POWER: {
             auto parsed = parseFloat(EFFECT_NAME, raw);
             if (!parsed)

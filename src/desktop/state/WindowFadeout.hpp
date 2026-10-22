@@ -1,4 +1,5 @@
 #pragma once
+#include "../../helpers/CornerRadii.hpp"
 
 #include "Fadeout.hpp"
 
@@ -27,7 +28,7 @@ namespace Desktop {
 
         bool              m_blur          = false;
         bool              m_blurXray      = false;
-        int               m_rounding      = 0;
+        SCornerRadii      m_rounding      = 0;
         float             m_roundingPower = 2.F;
     };
 }

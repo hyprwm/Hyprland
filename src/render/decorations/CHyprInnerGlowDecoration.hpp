@@ -1,4 +1,5 @@
 #pragma once
+#include "../../helpers/CornerRadii.hpp"
 
 #include "AnimatedDecorationGradient.hpp"
 #include "IHyprWindowDecoration.hpp"
@@ -34,12 +35,12 @@ class CHyprInnerGlowDecoration : public IHyprWindowDecoration {
     void                               render(Render::CRenderContext& ctx, PHLMONITOR, float const& a, const Render::SWindowRenderPresentation& presentation);
 
   private:
-    bool         visible();
-    void         drawGlowInternal(Render::CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad, float a);
-    void         drawGlowInternal(Render::CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
-                                  const Config::CGradientValueData& grad2, float lerp, float a);
+    bool visible();
+    void drawGlowInternal(Render::CRenderContext& ctx, const CBox& box, SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& grad, float a);
+    void drawGlowInternal(Render::CRenderContext& ctx, const CBox& box, SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& grad1,
+                          const Config::CGradientValueData& grad2, float lerp, float a);
 
-    PHLWINDOWREF m_window;
+    PHLWINDOWREF                m_window;
 
     CAnimatedDecorationGradient m_gradient;
 

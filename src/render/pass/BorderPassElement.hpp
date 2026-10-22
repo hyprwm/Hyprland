@@ -1,4 +1,5 @@
 #pragma once
+#include "../../helpers/CornerRadii.hpp"
 #include "PassElement.hpp"
 #include "../../config/shared/complex/ComplexDataTypes.hpp"
 
@@ -9,7 +10,8 @@ class CBorderPassElement : public IPassElement {
         Config::CGradientValueData grad1, grad2;
         bool                       hasGrad2 = false;
         float                      lerp = 0.F, a = 1.F;
-        int                        round = 0, borderSize = 1, outerRound = -1;
+        SCornerRadii               round = 0, outerRound = -1;
+        int                        borderSize    = 1;
         float                      roundingPower = 2.F;
         PHLWINDOWREF               window;
     };

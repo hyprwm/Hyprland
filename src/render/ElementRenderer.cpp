@@ -308,10 +308,10 @@ void IElementRenderer::drawSurface(CRenderContext& ctx, WP<CSurfacePassElement> 
     if (MISALIGNEDFSV1)
         m_renderData.useNearestNeighbor = true;
 
-    float rounding      = m_data.rounding;
+    auto  rounding      = m_data.rounding;
     float roundingPower = m_data.roundingPower;
 
-    rounding -= 1; // to fix a border issue
+    rounding = rounding - 1; // to fix a border issue
 
     if (m_data.dontRound) {
         rounding      = 0;
@@ -320,7 +320,7 @@ void IElementRenderer::drawSurface(CRenderContext& ctx, WP<CSurfacePassElement> 
 
     const bool WINDOWOPAQUE =
         m_data.pWindow && m_data.pWindow->wlSurface()->resource() == m_data.surface ? m_data.pWindow->presentation().opaque(m_data.workspacePresentation) : false;
-    const bool CANDISABLEBLEND = ALPHA >= 1.f && OVERALL_ALPHA >= 1.f && rounding <= 0 && WINDOWOPAQUE;
+    const bool CANDISABLEBLEND = ALPHA >= 1.f && OVERALL_ALPHA >= 1.f && rounding.max() <= 0 && WINDOWOPAQUE;
 
     if (CANDISABLEBLEND)
         g_pHyprRenderer->blend(false);
@@ -524,7 +524,7 @@ void IElementRenderer::drawTex(CRenderContext& ctx, WP<CTexPassElement> element,
                 if (std::abs(shapeBox.rot) < 0.0001F)
                     shape = SBlurShape{
                         .box           = shapeBox,
-                        .radius        = std::max(sc<float>(element->m_data.round), 0.F),
+                        .radius        = (element->m_data.round - 0.F).truncated(),
                         .roundingPower = element->m_data.roundingPower,
                     };
             }

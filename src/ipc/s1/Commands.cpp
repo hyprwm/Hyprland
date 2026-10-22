@@ -1596,6 +1596,14 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
         return windowPropToString(PWINDOW->m_ruleApplicator->borderSize());
     else if (PROP == "rounding")
         return windowPropToString(PWINDOW->m_ruleApplicator->rounding());
+    else if (PROP == "rounding_top_left")
+        return windowPropToString(PWINDOW->m_ruleApplicator->roundingTopLeft());
+    else if (PROP == "rounding_top_right")
+        return windowPropToString(PWINDOW->m_ruleApplicator->roundingTopRight());
+    else if (PROP == "rounding_bottom_right")
+        return windowPropToString(PWINDOW->m_ruleApplicator->roundingBottomRight());
+    else if (PROP == "rounding_bottom_left")
+        return windowPropToString(PWINDOW->m_ruleApplicator->roundingBottomLeft());
     else if (PROP == "rounding_power")
         return windowPropToString(PWINDOW->m_ruleApplicator->roundingPower());
     else if (PROP == "scroll_mouse")

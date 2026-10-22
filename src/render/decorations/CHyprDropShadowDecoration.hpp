@@ -1,14 +1,15 @@
 #pragma once
+#include "../../helpers/CornerRadii.hpp"
 
 #include "AnimatedDecorationGradient.hpp"
 #include "IHyprWindowDecoration.hpp"
 
 struct SShadowRenderData {
-    bool  valid = false;
-    CBox  fullBox;
-    float rounding      = 0;
-    float roundingPower = 0;
-    int   size          = 0;
+    bool         valid = false;
+    CBox         fullBox;
+    SCornerRadii rounding      = 0;
+    float        roundingPower = 0;
+    int          size          = 0;
 };
 
 class CHyprDropShadowDecoration : public IHyprWindowDecoration {
@@ -57,9 +58,9 @@ class CHyprDropShadowDecoration : public IHyprWindowDecoration {
     Vector2D                    m_lastWindowPos;
     Vector2D                    m_lastWindowSize;
 
-    void drawShadowInternal(Render::CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad, float a,
+    void drawShadowInternal(Render::CRenderContext& ctx, const CBox& box, SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& grad, float a,
                             const Render::SWindowRenderPresentation& presentation);
-    void drawShadowInternal(Render::CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
+    void drawShadowInternal(Render::CRenderContext& ctx, const CBox& box, SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& grad1,
                             const Config::CGradientValueData& grad2, float lerp, float a, const Render::SWindowRenderPresentation& presentation);
 
     CBox m_lastWindowBox          = {0};

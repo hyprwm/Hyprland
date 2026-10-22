@@ -76,7 +76,7 @@ SP<CWindowFadeout> CWindowFadeout::create(PHLWINDOW window, SP<Render::IFramebuf
     const bool OVERFULLSCREEN =
         window->isFloating() && window->shouldRenderOverFullscreen() && window->m_workspace && Fullscreen::controller()->hasFullscreen(window->m_workspace, true);
     fadeout->m_plane         = !window->isFloating() ? FADEOUT_PLANE_WINDOW_TILED : (OVERFULLSCREEN ? FADEOUT_PLANE_WINDOW_OVER_FULLSCREEN : FADEOUT_PLANE_WINDOW_FLOATING);
-    fadeout->m_rounding      = window->presentation().rounding();
+    fadeout->m_rounding      = window->presentation().cornerRadii();
     fadeout->m_roundingPower = window->presentation().roundingPower();
     fadeout->m_blur          = shouldBlurWindow(window);
     fadeout->m_blurXray      = window->m_ruleApplicator->xray().valueOr(*PBLURXRAY != 0);

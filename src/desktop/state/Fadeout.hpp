@@ -1,4 +1,5 @@
 #pragma once
+#include "../../helpers/CornerRadii.hpp"
 
 #include "../DesktopTypes.hpp"
 #include "../view/types/GeometricAnimated.hpp"
@@ -41,11 +42,11 @@ namespace Desktop {
     };
 
     struct SFadeoutPreBlur {
-        CBox  box;
-        int   round         = 0;
-        float roundingPower = 2.F;
-        bool  xray          = false;
-        float alpha         = 1.F;
+        CBox         box;
+        SCornerRadii round         = 0;
+        float        roundingPower = 2.F;
+        bool         xray          = false;
+        float        alpha         = 1.F;
     };
 
     struct SFadeoutTextureBlur {

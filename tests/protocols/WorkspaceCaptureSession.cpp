@@ -323,17 +323,17 @@ class CSessionTestRenderer : public Render::IHyprRenderer {
     void blend(bool) override {
         ;
     }
-    void drawShadow(Render::CRenderContext&, const CBox&, int, float, int, const Config::CGradientValueData&, float, const Render::SWindowRenderPresentation&) override {
+    void drawShadow(Render::CRenderContext&, const CBox&, SCornerRadii, float, int, const Config::CGradientValueData&, float, const Render::SWindowRenderPresentation&) override {
         ;
     }
-    void drawShadow(Render::CRenderContext&, const CBox&, int, float, int, const Config::CGradientValueData&, const Config::CGradientValueData&, float, float,
+    void drawShadow(Render::CRenderContext&, const CBox&, SCornerRadii, float, int, const Config::CGradientValueData&, const Config::CGradientValueData&, float, float,
                     const Render::SWindowRenderPresentation&) override {
         ;
     }
-    void drawGlow(Render::CRenderContext&, const CBox&, int, float, int, const Config::CGradientValueData&, float) override {
+    void drawGlow(Render::CRenderContext&, const CBox&, SCornerRadii, float, int, const Config::CGradientValueData&, float) override {
         ;
     }
-    void drawGlow(Render::CRenderContext&, const CBox&, int, float, int, const Config::CGradientValueData&, const Config::CGradientValueData&, float, float) override {
+    void drawGlow(Render::CRenderContext&, const CBox&, SCornerRadii, float, int, const Config::CGradientValueData&, const Config::CGradientValueData&, float, float) override {
         ;
     }
     void setViewport(int, int, int, int) override {

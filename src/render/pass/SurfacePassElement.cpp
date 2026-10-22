@@ -130,10 +130,10 @@ CRegion CSurfacePassElement::opaqueRegion(Render::CRenderContext& ctx) {
         CRegion    opaqueSurf = m_data.surface->m_current.opaque.copy().intersect(CBox{{}, {m_data.w, m_data.h}});
         const auto texBox     = getTexBox();
         opaqueSurf.scale(texBox.size() / Vector2D{m_data.w, m_data.h});
-        return opaqueSurf.translate(m_data.pos + m_data.localPos - m_data.pMonitor->m_position).expand(-m_data.rounding);
+        return opaqueSurf.translate(m_data.pos + m_data.localPos - m_data.pMonitor->m_position).expand(-m_data.rounding.max());
     }
 
-    return m_data.texture && m_data.texture->m_opaque ? boundingBox(ctx)->expand(-m_data.rounding) : CRegion{};
+    return m_data.texture && m_data.texture->m_opaque ? boundingBox(ctx)->expand(-m_data.rounding.max()) : CRegion{};
 }
 
 CRegion CSurfacePassElement::visibleRegion(Render::CRenderContext& ctx, bool& cancel) {

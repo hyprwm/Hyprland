@@ -338,21 +338,21 @@ void CHyprGLRenderer::blend(bool enabled) {
     g_pHyprOpenGL->blend(enabled);
 }
 
-void CHyprGLRenderer::drawShadow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a,
+void CHyprGLRenderer::drawShadow(CRenderContext& ctx, const CBox& box, SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& color, float a,
                                  const Render::SWindowRenderPresentation& presentation) {
     g_pHyprOpenGL->renderRoundedShadow(ctx, box, round, roundingPower, range, color, a, presentation);
 }
 
-void CHyprGLRenderer::drawShadow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
+void CHyprGLRenderer::drawShadow(CRenderContext& ctx, const CBox& box, SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& grad1,
                                  const Config::CGradientValueData& grad2, float lerp, float a, const Render::SWindowRenderPresentation& presentation) {
     g_pHyprOpenGL->renderRoundedShadow(ctx, box, round, roundingPower, range, grad1, grad2, lerp, a, presentation);
 }
 
-void CHyprGLRenderer::drawGlow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a) {
+void CHyprGLRenderer::drawGlow(CRenderContext& ctx, const CBox& box, SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& color, float a) {
     g_pHyprOpenGL->renderInnerGlow(ctx, box, round, roundingPower, range, color, 0, a);
 }
 
-void CHyprGLRenderer::drawGlow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
+void CHyprGLRenderer::drawGlow(CRenderContext& ctx, const CBox& box, SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& grad1,
                                const Config::CGradientValueData& grad2, float lerp, float a) {
     g_pHyprOpenGL->renderInnerGlow(ctx, box, round, roundingPower, range, grad1, grad2, lerp, 0, a);
 }

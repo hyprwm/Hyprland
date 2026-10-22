@@ -1,4 +1,5 @@
 #pragma once
+#include "../../helpers/CornerRadii.hpp"
 
 #include "../../desktop/DesktopTypes.hpp"
 #include "../../helpers/math/Math.hpp"
@@ -10,9 +11,9 @@
 namespace Render {
     class CRenderContext;
     struct SBlurShape {
-        CBox  box;
-        float radius        = 0.F;
-        float roundingPower = 2.F;
+        CBox         box;
+        SCornerRadii radius        = 0.F;
+        float        roundingPower = 2.F;
     };
 
     struct SBlurContext {

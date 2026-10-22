@@ -126,6 +126,14 @@ namespace Desktop::Rule {
 
         DEFINE_PROP(Config::INTEGER, borderSize, {std::string("general:border_size") COMMA sc<Config::INTEGER>(0) COMMA std::nullopt}, WINDOW_RULE_EFFECT_BORDER_SIZE)
         DEFINE_PROP(Config::INTEGER, rounding, {std::string("decoration:rounding") COMMA sc<Config::INTEGER>(0) COMMA std::nullopt}, WINDOW_RULE_EFFECT_ROUNDING)
+        DEFINE_PROP(Config::INTEGER, roundingTopLeft, {std::string("decoration:rounding_top_left") COMMA sc<Config::INTEGER>(-1) COMMA std::nullopt},
+                    WINDOW_RULE_EFFECT_ROUNDING_TOP_LEFT)
+        DEFINE_PROP(Config::INTEGER, roundingTopRight, {std::string("decoration:rounding_top_right") COMMA sc<Config::INTEGER>(-1) COMMA std::nullopt},
+                    WINDOW_RULE_EFFECT_ROUNDING_TOP_RIGHT)
+        DEFINE_PROP(Config::INTEGER, roundingBottomRight, {std::string("decoration:rounding_bottom_right") COMMA sc<Config::INTEGER>(-1) COMMA std::nullopt},
+                    WINDOW_RULE_EFFECT_ROUNDING_BOTTOM_RIGHT)
+        DEFINE_PROP(Config::INTEGER, roundingBottomLeft, {std::string("decoration:rounding_bottom_left") COMMA sc<Config::INTEGER>(-1) COMMA std::nullopt},
+                    WINDOW_RULE_EFFECT_ROUNDING_BOTTOM_LEFT)
         DEFINE_PROP(Config::INTEGER, tonemap, 1, WINDOW_RULE_EFFECT_TONEMAP)
 
         DEFINE_PROP(Config::FLOAT, roundingPower, {std::string("decoration:rounding_power")}, WINDOW_RULE_EFFECT_ROUNDING_POWER)

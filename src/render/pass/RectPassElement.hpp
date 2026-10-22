@@ -1,4 +1,5 @@
 #pragma once
+#include "../../helpers/CornerRadii.hpp"
 #include "PassElement.hpp"
 #include "../WindowRenderPresentation.hpp"
 #include <hyprutils/math/Region.hpp>
@@ -9,7 +10,7 @@ class CRectPassElement : public IPassElement {
     struct SRectData {
         CBox                              box;
         CHyprColor                        color;
-        int                               round         = 0;
+        SCornerRadii                      round         = 0;
         float                             roundingPower = 2.0f;
         bool                              blur = false, xray = false;
         float                             blurA = 1.F;

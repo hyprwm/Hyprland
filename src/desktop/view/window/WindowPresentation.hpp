@@ -1,6 +1,7 @@
 #pragma once
 
 #include <any>
+#include "../../../helpers/CornerRadii.hpp"
 #include <span>
 #include <vector>
 
@@ -66,6 +67,7 @@ namespace Desktop::View {
         Render::SWindowRenderPresentation                 renderPresentation(Render::eSceneMode mode) const;
         Render::SWindowRenderPresentation                 renderPresentation(const SP<Workspace::CWorkspacePresentable>& presentation) const;
         float                                             rounding();
+        SCornerRadii                                      cornerRadii();
         float                                             roundingPower();
         bool                                              isInCurvedCorner(double x, double y);
         bool                                              visibleOnMonitor(PHLMONITOR monitor);

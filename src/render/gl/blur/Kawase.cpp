@@ -274,10 +274,23 @@ SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(CRenderContext& ctx, SP<CGLFr
         glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
 
         if (!outputDamage.empty()) {
-            outputDamage.forEachRect([this, &ctx](const auto& RECT) {
-                m_impl.scissor(ctx, &RECT, false /* this region is already transformed */);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            });
+            const auto draw = [this, &ctx](const CRegion& damage) {
+                damage.forEachRect([this, &ctx](const auto& rect) {
+                    m_impl.scissor(ctx, &rect, false /* this region is already transformed */);
+                    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                });
+            };
+            const auto& shape = materialContext.blurContext.shape;
+            if (m_material->type() == eBlurType::BLUR_ACRYLIC && shape && !shape->radius.uniform()) {
+                const auto regions = cornerRegions(shape->box, outputDamage, false);
+                for (size_t i = 0; i < regions.size(); ++i) {
+                    if (regions[i].empty())
+                        continue;
+                    shader->setUniformFloat(SHADER_ACRYLIC_RADIUS, shape->radius.values[i]);
+                    draw(regions[i]);
+                }
+            } else
+                draw(outputDamage);
         }
 
         glBindVertexArray(0);

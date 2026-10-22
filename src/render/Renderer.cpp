@@ -658,7 +658,7 @@ void IHyprRenderer::renderWindow(CRenderContext& ctx, PHLWINDOW pWindow, PHLMONI
     renderdata.alpha     = presentation.alpha;
     renderdata.decorate =
         decorate && !pWindow->backend().traits().suggestsNoBorder && Fullscreen::controller()->getFullscreenModes(pWindow).internal != Fullscreen::FSMODE_FULLSCREEN;
-    renderdata.rounding      = standalone || renderdata.dontRound ? 0 : pWindow->presentation().rounding() * pMonitor->m_scale;
+    renderdata.rounding      = standalone || renderdata.dontRound ? 0 : pWindow->presentation().cornerRadii() * pMonitor->m_scale;
     renderdata.roundingPower = standalone || renderdata.dontRound ? 2.0f : pWindow->presentation().roundingPower();
     renderdata.blur          = !standalone && !ctx.m_renderingSnapshot && pWindow->shouldBlur(presentation);
     renderdata.pWindow       = pWindow;
@@ -808,7 +808,7 @@ void IHyprRenderer::renderWindow(CRenderContext& ctx, PHLWINDOW pWindow, PHLMONI
                                .blur                  = windowBlur,
                                .blurUsesLive          = windowBlurUsesLive,
                                .blurA                 = renderdata.fadeAlpha,
-                               .blurRound             = renderdata.dontRound ? 0 : std::max(renderdata.rounding - 1, 0),
+                               .blurRound             = renderdata.dontRound ? 0 : renderdata.rounding - 1,
                                .blurRoundingPower     = renderdata.roundingPower,
                                .transformedBox        = transformedBox,
                                .motionBlur            = windowMotionBlur,

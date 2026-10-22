@@ -1,4 +1,5 @@
 #pragma once
+#include "../../helpers/CornerRadii.hpp"
 #include "PassElement.hpp"
 #include "TexPassElement.hpp"
 #include "../WindowRenderPresentation.hpp"
@@ -23,7 +24,7 @@ class CSurfacePassElement : public IPassElement {
         SP<Render::ITexture>   texture     = nullptr;
         bool                   mainSurface = true;
         double                 w = 0, h = 0;
-        int                    rounding      = 0;
+        SCornerRadii           rounding      = 0;
         bool                   dontRound     = true;
         float                  roundingPower = 2.0F;
         bool                   decorate      = false;

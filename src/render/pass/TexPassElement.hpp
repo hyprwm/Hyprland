@@ -1,4 +1,5 @@
 #pragma once
+#include "../../helpers/CornerRadii.hpp"
 #include "PassElement.hpp"
 #include "../WindowRenderPresentation.hpp"
 #include <optional>
@@ -41,7 +42,7 @@ class CTexPassElement : public IPassElement {
         float                             overallA = 1.F;
         CRegion                           damage;
         bool                              useProvidedDamage = false;
-        int                               round             = 0;
+        SCornerRadii                      round             = 0;
         float                             roundingPower     = 2.0f;
         CBox                              clipBox;
         bool                              blur           = false;

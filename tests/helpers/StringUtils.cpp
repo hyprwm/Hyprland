@@ -47,3 +47,36 @@ TEST(Helpers, cmpCaseInsensitive) {
     EXPECT_FALSE(StringUtils::cmpCaseInsensitive("a", ""));
     EXPECT_FALSE(StringUtils::cmpCaseInsensitive("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", ""));
 }
+
+TEST(Helpers, truncUTF8InPlaceByteLimit) {
+    for (const size_t LENGTH : {0, 1, 511, 512, 513, 8192}) {
+        const std::string INPUT(LENGTH, 'a');
+        auto              text = INPUT;
+        StringUtils::truncUTF8InPlace(text);
+        EXPECT_EQ(text, INPUT.substr(0, 512));
+
+        const auto TRUNCATED = text;
+        StringUtils::truncUTF8InPlace(text);
+        EXPECT_EQ(text, TRUNCATED);
+    }
+}
+
+TEST(Helpers, truncUTF8InPlaceCodepointBoundaries) {
+    for (const std::string CODEPOINT : {"\xC3\xA9", "\xE2\x82\xAC", "\xF0\x9F\x98\x80"}) {
+        for (size_t bytesBeforeLimit = 0; bytesBeforeLimit <= CODEPOINT.size(); ++bytesBeforeLimit) {
+            const std::string PREFIX(512 - bytesBeforeLimit, 'a');
+            auto              text = PREFIX + CODEPOINT + "suffix";
+            StringUtils::truncUTF8InPlace(text);
+            EXPECT_EQ(text, bytesBeforeLimit == CODEPOINT.size() ? PREFIX + CODEPOINT : PREFIX);
+        }
+    }
+}
+
+TEST(Helpers, truncUTF8InPlaceSmallLimits) {
+    const std::string INPUT = "\xF0\x9F\x98\x80";
+    for (size_t limit = 0; limit <= INPUT.size() + 1; ++limit) {
+        auto text = INPUT;
+        StringUtils::truncUTF8InPlace(text, limit);
+        EXPECT_EQ(text, limit < INPUT.size() ? "" : INPUT);
+    }
+}

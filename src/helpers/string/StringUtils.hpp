@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../memory/Memory.hpp"
 #include <cstdint>
 #include <string_view>
 #include <hyprutils/string/String.hpp>
@@ -69,5 +70,18 @@ namespace StringUtils {
         }
 
         return "error";
+    }
+
+    inline void truncUTF8InPlace(std::string& x, size_t maxBytes = 512) {
+        if (x.size() <= maxBytes)
+            return;
+
+        size_t cut = maxBytes;
+
+        while (cut > 0 && (sc<unsigned char>(x[cut]) & 0xC0) == 0x80) {
+            --cut;
+        }
+
+        x.resize(cut);
     }
 }

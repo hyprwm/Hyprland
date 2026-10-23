@@ -142,7 +142,14 @@ namespace Layout::Tiled {
 
         static int hlScrollingGetOffset(lua_State* L) {
 
-            const auto WORKSPACE = Desktop::focusState()->monitor()->getCurrentWorkspace();
+            const auto MONITOR = Desktop::focusState()->monitor();
+
+            if (!MONITOR) {
+                lua_pushnil(L);
+                return 1;
+            }
+
+            const auto WORKSPACE = MONITOR->getCurrentWorkspace();
             if (!WORKSPACE || !WORKSPACE->space() || !WORKSPACE->space()->algorithm()) {
                 lua_pushnil(L);
                 return 1;
@@ -160,26 +167,49 @@ namespace Layout::Tiled {
 
         static int hlScrollingSetOffset(lua_State* L) {
 
-            const auto WORKSPACE = Desktop::focusState()->monitor()->getCurrentWorkspace();
+            if (!lua_isnumber(L, 1)) {
+                Config::Lua::Bindings::Internal::configError(L, "hl.set_scrolling_offset expects a number as argument.");
+                lua_pushboolean(L, false);
+                return 1;
+            }
+
+            const auto MONITOR = Desktop::focusState()->monitor();
+
+            if (!MONITOR) {
+                lua_pushboolean(L, false);
+                return 1;
+            }
+
+            const auto WORKSPACE = MONITOR->getCurrentWorkspace();
             if (!WORKSPACE || !WORKSPACE->space() || !WORKSPACE->space()->algorithm()) {
-                lua_pushnil(L);
+                lua_pushboolean(L, false);
                 return 1;
             }
 
             const auto SCROLLING_ALGO = dynamic_cast<Layout::Tiled::CScrollingAlgorithm*>(WORKSPACE->space()->algorithm()->tiledAlgo().get());
             if (!SCROLLING_ALGO) {
-                lua_pushnil(L);
+                lua_pushboolean(L, false);
                 return 1;
             }
 
-            if (!lua_isnumber(L, 1))
-                return Config::Lua::Bindings::Internal::configError(L, "hl.set_scrolling_offset expects a number as argument.");
+            if (SCROLLING_ALGO->m_scrollingData->controller->getScrollInhibitor().isInhibited) {
+                lua_pushboolean(L, false);
+                return 1;
+            }
 
             const double NEW_OFFSET = sc<double>(lua_tonumber(L, 1));
 
-            SCROLLING_ALGO->m_scrollingData->controller->setOffset(NEW_OFFSET);
-            SCROLLING_ALGO->recalculate();
+            if (!std::isfinite(NEW_OFFSET)) {
+                Config::Lua::Bindings::Internal::configError(L, "hl.set_scrolling_offset expects a finite number.");
+                lua_pushboolean(L, false);
+                return 1;
+            }
 
+            SCROLLING_ALGO->m_scrollingData->controller->setOffset(NEW_OFFSET);
+            // avoid pulling in the currently focused col on screen
+            SCROLLING_ALGO->m_scrollingData->recalculate();
+
+            lua_pushboolean(L, true);
             return 1;
         }
 

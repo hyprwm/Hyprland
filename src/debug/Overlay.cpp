@@ -110,7 +110,7 @@ COverlay::COverlay() {
 }
 
 void CMonitorOverlay::renderData(PHLMONITOR pMonitor, float durationUs) {
-    static auto PDEBUGOVERLAY = CConfigValue<Config::INTEGER>("debug:overlay");
+    static auto PDEBUGOVERLAY = CConfigValue<Config::BOOL>("debug:overlay");
 
     if (!*PDEBUGOVERLAY)
         return;
@@ -126,7 +126,7 @@ void CMonitorOverlay::renderData(PHLMONITOR pMonitor, float durationUs) {
 }
 
 void CMonitorOverlay::renderDataNoOverlay(PHLMONITOR pMonitor, float durationUs) {
-    static auto PDEBUGOVERLAY = CConfigValue<Config::INTEGER>("debug:overlay");
+    static auto PDEBUGOVERLAY = CConfigValue<Config::BOOL>("debug:overlay");
 
     if (!*PDEBUGOVERLAY)
         return;
@@ -142,7 +142,7 @@ void CMonitorOverlay::renderDataNoOverlay(PHLMONITOR pMonitor, float durationUs)
 }
 
 void CMonitorOverlay::frameData(PHLMONITOR pMonitor) {
-    static auto PDEBUGOVERLAY = CConfigValue<Config::INTEGER>("debug:overlay");
+    static auto PDEBUGOVERLAY = CConfigValue<Config::BOOL>("debug:overlay");
 
     if (!*PDEBUGOVERLAY)
         return;
@@ -327,7 +327,7 @@ Vector2D CMonitorOverlay::size() const {
 }
 
 void COverlay::renderData(PHLMONITOR pMonitor, float durationUs) {
-    static auto PDEBUGOVERLAY = CConfigValue<Config::INTEGER>("debug:overlay");
+    static auto PDEBUGOVERLAY = CConfigValue<Config::BOOL>("debug:overlay");
 
     if (!*PDEBUGOVERLAY)
         return;
@@ -336,7 +336,7 @@ void COverlay::renderData(PHLMONITOR pMonitor, float durationUs) {
 }
 
 void COverlay::renderDataNoOverlay(PHLMONITOR pMonitor, float durationUs) {
-    static auto PDEBUGOVERLAY = CConfigValue<Config::INTEGER>("debug:overlay");
+    static auto PDEBUGOVERLAY = CConfigValue<Config::BOOL>("debug:overlay");
 
     if (!*PDEBUGOVERLAY)
         return;
@@ -345,7 +345,7 @@ void COverlay::renderDataNoOverlay(PHLMONITOR pMonitor, float durationUs) {
 }
 
 void COverlay::frameData(PHLMONITOR pMonitor) {
-    static auto PDEBUGOVERLAY = CConfigValue<Config::INTEGER>("debug:overlay");
+    static auto PDEBUGOVERLAY = CConfigValue<Config::BOOL>("debug:overlay");
 
     if (!*PDEBUGOVERLAY)
         return;

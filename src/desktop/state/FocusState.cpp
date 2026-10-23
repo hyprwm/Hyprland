@@ -85,7 +85,7 @@ void CFocusState::fullWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWL
         }
     }
 
-    static auto PMODALPARENTBLOCKING = CConfigValue<Config::INTEGER>("general:modal_parent_blocking");
+    static auto PMODALPARENTBLOCKING = CConfigValue<Config::BOOL>("general:modal_parent_blocking");
 
     if (*PMODALPARENTBLOCKING && pWindow && !pWindow->backend().isX11() && pWindow->backend().traits().hasModalChild) {
         LOG(Log::DEBUG, "Refusing focus to window shadowed by modal dialog");
@@ -97,7 +97,7 @@ void CFocusState::fullWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWL
 
 void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLSurfaceResource> surface) {
     static auto PFOLLOWMOUSE        = CConfigValue<Config::INTEGER>("input:follow_mouse");
-    static auto PSPECIALFALLTHROUGH = CConfigValue<Config::INTEGER>("input:special_fallthrough");
+    static auto PSPECIALFALLTHROUGH = CConfigValue<Config::BOOL>("input:special_fallthrough");
 
     if (pWindow == m_focusWindow && surface == m_focusSurface && m_focusSurface)
         return;

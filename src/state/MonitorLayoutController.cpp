@@ -54,7 +54,7 @@ void CMonitorLayoutController::checkOverlapsAndNotify() const {
 }
 
 void CMonitorLayoutController::arrange() const {
-    static auto PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
+    static auto PXWLFORCESCALEZERO = CConfigValue<Config::BOOL>("xwayland:force_zero_scaling");
 
     // make sure monitors that were just enabled (e.g. a monitor in the middle of onConnect) get a position now,
     // instead of only being picked up by the layoutChanged event after everything else was arranged.
@@ -109,7 +109,7 @@ bool CMonitorLayoutController::isPointOnReservedArea(const Vector2D& point, cons
 }
 
 std::optional<CBox> CMonitorLayoutController::calculateUnifiedX11WorkArea() const {
-    static auto PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
+    static auto PXWLFORCESCALEZERO = CConfigValue<Config::BOOL>("xwayland:force_zero_scaling");
     // We more than likely won't be able to calculate one
     // and even if we could this is minor
     if (State::monitorState()->monitors().size() > 1 || State::monitorState()->monitors().empty())

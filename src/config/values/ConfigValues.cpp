@@ -260,6 +260,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Bool>("decoration:blur:ignore_opacity", "make the blur layer ignore the opacity of the window", true, {.refresh = Supplementary::REFRESH_BLUR_FB}),
         MS<Bool>("decoration:blur:new_optimizations", "whether to enable further optimizations to the blur.", true, {.refresh = Supplementary::REFRESH_BLUR_FB}),
         MS<Bool>("decoration:blur:xray", "if enabled, floating windows will ignore tiled windows in their blur.", false, {.refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Bool>("decoration:blur:proportional", "if enabled, blur strength will be proportional to pixel opacity", false),
         MS<Float>("decoration:blur:noise", "how much noise to apply.", 0.0117, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),
         MS<Float>("decoration:blur:contrast", "contrast modulation for blur.", 0.8916, {.min = 0, .max = 2, .refresh = Supplementary::REFRESH_BLUR_FB}),
         MS<Float>("decoration:blur:brightness", "brightness modulation for blur.", 1, {.min = 0, .max = 2, .refresh = Supplementary::REFRESH_BLUR_FB}),

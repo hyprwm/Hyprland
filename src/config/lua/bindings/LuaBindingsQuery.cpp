@@ -17,6 +17,9 @@
 #include "../../../pointer/PointerManager.hpp"
 #include "../../../state/MonitorState.hpp"
 #include "../../../state/WorkspaceState.hpp"
+#include "../../../layout/algorithm/tiled/scrolling/ScrollingAlgorithm.hpp"
+#include "layout/algorithm/Algorithm.hpp"
+
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 
@@ -468,4 +471,11 @@ void Internal::registerQueryBindings(lua_State* L) {
     Internal::setFn(L, "get_last_window", hlGetLastWindow);
     Internal::setFn(L, "get_last_workspace", hlGetLastWorkspace);
     Internal::setFn(L, "get_current_submap", hlGetCurrentSubmap);
+
+    // Layout specific helpers
+
+    // Scrolling
+    Internal::setFn(L, "get_scrolling_offset", Layout::Tiled::CScrollingAlgorithm::hlScrollingGetOffset);
+    Internal::setFn(L, "set_scrolling_offset", Layout::Tiled::CScrollingAlgorithm::hlScrollingSetOffset);
+
 }

@@ -1,7 +1,12 @@
 #pragma once
 
 #include "../../TiledAlgorithm.hpp"
+#include "../../../../layout/algorithm/Algorithm.hpp"
 #include "ScrollTapeController.hpp"
+
+#include <lua.h>
+#include "../../../../config/lua/bindings/LuaBindingsInternal.hpp"
+
 
 namespace Fullscreen::ScrollingFullscreenHandler {
     class CScrollingFullscreenHandler;
@@ -133,6 +138,55 @@ namespace Layout::Tiled {
             INPUT_MODE_CLICK,
             INPUT_MODE_HARD
         };
+
+
+
+
+        // lua config helper functions
+
+        static int hlScrollingGetOffset(lua_State* L) {
+            const auto   WORKSPACE = L ? Config::Lua::Bindings::Internal::workspaceFromLuaSelectorOrObject(L, 1, "hl.get_scrolling_offset") : Desktop::focusState()->monitor()->getCurrentWorkspace();
+            if (!WORKSPACE || !WORKSPACE->space() || !WORKSPACE->space()->algorithm()) {
+                lua_pushnil(L);
+                return 1;
+            }
+
+            const auto ALGO = WORKSPACE->space()->algorithm();
+            if (ALGO->tiledAlgo()->layoutName() != "scrolling") {
+                lua_pushnil(L);
+                return 1;
+            }
+
+            lua_pushnumber(L, dynamic_cast<Layout::Tiled::CScrollingAlgorithm*>(ALGO->tiledAlgo().get())->m_scrollingData->controller->getOffset());
+            return 1;
+        }
+
+        
+        static int hlScrollingSetOffset(lua_State* L) {
+
+            const auto   WORKSPACE = L ? Config::Lua::Bindings::Internal::workspaceFromLuaSelectorOrObject(L, 1, "hl.get_scrolling_offset") : Desktop::focusState()->monitor()->getCurrentWorkspace();
+            if (!WORKSPACE || !WORKSPACE->space() || !WORKSPACE->space()->algorithm()) {
+                lua_pushnil(L);
+                return 1;
+            }
+
+            const auto ALGO = WORKSPACE->space()->algorithm();
+            if (ALGO->tiledAlgo()->layoutName() != "scrolling") {
+                lua_pushnil(L);
+                return 1;
+            }
+
+            if (!lua_isnumber(L, 0))
+                return Config::Lua::Bindings::Internal::configError(L, "hl.set_scrolling_offset expects a number as argument.");
+
+            const double NEW_OFFSET = sc<double>(lua_tonumber(L, 0));
+
+            dynamic_cast<Layout::Tiled::CScrollingAlgorithm*>(ALGO->tiledAlgo().get())->m_scrollingData->controller->setOffset(NEW_OFFSET);
+            
+            return 1;
+        }
+
+
 
       private:
         SP<SScrollingData>                                                            m_scrollingData;

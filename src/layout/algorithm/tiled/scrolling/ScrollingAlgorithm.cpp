@@ -634,7 +634,7 @@ CScrollingAlgorithm::CScrollingAlgorithm() : m_scrollingFullscreenHandler(makeUn
 
         // click-down shouldn't cause viewport moves
         if (*PFOLLOW_FOCUS && e.state == WL_POINTER_BUTTON_STATE_RELEASED && Desktop::focusState()->window())
-            focusOnInput(Desktop::focusState()->window()->layoutTarget(), (*PFOLLOW_FOCUS == 2) ? INPUT_MODE_CLICK : INPUT_MODE_SOFT);
+            focusOnInput(Desktop::focusState()->window()->layoutTarget(), (*PFOLLOW_FOCUS == 1) ? INPUT_MODE_CLICK : INPUT_MODE_SOFT);
     });
 
     m_focusCallback = Event::bus()->m_events.window.active.listen([this](PHLWINDOW pWindow, Desktop::eFocusReason reason) {

@@ -282,7 +282,7 @@ void CMasterAlgorithm::removeTarget(SP<ITarget> target) {
     if (Fullscreen::controller()->isFullscreen(target->window()))
         Fullscreen::controller()->setFullscreenMode(target->window(), Fullscreen::FSMODE_NONE);
 
-    if (PNODE->isMaster && (MASTERSLEFT <= 1 || *SMALLSPLIT == 1)) {
+    if (PNODE->isMaster && (MASTERSLEFT <= 1 || (*SMALLSPLIT) )) {
         // find a new master from top of the list
         for (auto& nd : m_masterNodesData) {
             if (!nd->isMaster) {
@@ -699,7 +699,7 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
         const auto  MASTERS    = getMastersNo();
         static auto SMALLSPLIT = CConfigValue<Config::BOOL>("master:allow_small_split");
 
-        if (MASTERS + 2 > WINDOWS && *SMALLSPLIT == 0)
+        if (MASTERS + 2 > WINDOWS && !(*SMALLSPLIT))
             return stateErr("nothing to do");
 
         Fullscreen::controller()->setFullscreenMode(PWINDOW, Fullscreen::FSMODE_NONE);

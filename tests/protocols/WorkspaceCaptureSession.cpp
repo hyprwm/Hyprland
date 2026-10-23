@@ -712,12 +712,12 @@ class CWorkspaceCaptureFrameTest : public CWorkspaceCaptureSessionTest {
         g_pSessionLockManager       = makeUnique<CSessionLockManager>();
         Desktop::fadingOutState()   = makeUnique<Desktop::CFadingOutState>();
 
-        *CConfigValue<Config::INTEGER>("ecosystem:enforce_permissions").ptr() = 0;
+        *CConfigValue<Config::BOOL>("ecosystem:enforce_permissions").ptr() = 0;
         *CConfigValue<Config::BOOL>("misc:disable_hyprland_logo").ptr()       = 1;
         *CConfigValue<Config::BOOL>("misc:disable_splash_rendering").ptr()    = 1;
         *CConfigValue<Config::INTEGER>("misc:background_color").ptr()         = 0;
-        *CConfigValue<Config::INTEGER>("render:xp_mode").ptr()                = 0;
-        *CConfigValue<Config::INTEGER>("debug:pass").ptr()                    = 0;
+        *CConfigValue<Config::BOOL>("render:xp_mode").ptr()                = 0;
+        *CConfigValue<Config::BOOL>("debug:pass").ptr()                    = 0;
         *CConfigValue<Config::BOOL>("decoration:blur:enabled").ptr()          = false;
         m_monitor->m_output->state->setFormat(DRM_FORMAT_XRGB8888);
 
@@ -1182,7 +1182,7 @@ TEST_F(CWorkspaceCaptureSceneTest, LayerPopupFadeoutKeepsInitialDenialAndSuppres
     const PHLLSREF weakOwner = owner;
     owner->m_ruleApplicator->noScreenShare().set(true, Desktop::Types::PRIORITY_SET_PROP);
     *CConfigValue<Config::BOOL>("decoration:blur:enabled").ptr() = true;
-    *CConfigValue<Config::BOOL>("decoration:blur:popups").ptr()  = 1;
+    *CConfigValue<Config::BOOL>("decoration:blur:popups").ptr()  = true;
     auto popup                                                   = Desktop::View::CPopup::create(owner);
     auto snapshot                                                = popupSnapshot();
     auto fadeout                                                 = Desktop::CPopupFadeout::create(popup, snapshot, 1.F);
@@ -1333,7 +1333,7 @@ TEST_F(CWorkspaceCaptureSceneTest, RemovedSourceClearsResizedScratchAndPreserves
 
 TEST_F(CWorkspaceCaptureSceneTest, PendingPermissionDefersSceneAndDeniedPermissionNeverRenders) {
     auto shell                                                            = layer(ZWLR_LAYER_SHELL_V1_LAYER_TOP);
-    *CConfigValue<Config::INTEGER>("ecosystem:enforce_permissions").ptr() = 1;
+    *CConfigValue<Config::BOOL>("ecosystem:enforce_permissions").ptr() = true;
     for (const bool dma : {false, true}) {
         g_pDynamicPermissionManager->clearConfigPermissions();
         g_pDynamicPermissionManager->addConfigPermissionRule(".*", PERMISSION_TYPE_SCREENCOPY, PERMISSION_RULE_ALLOW_MODE_PENDING);
@@ -1645,7 +1645,7 @@ TEST_F(CWorkspaceCaptureFrameTest, SnapshotDemandRejectsPendingAndDeniedPermissi
     ASSERT_TRUE(session);
     auto frame = session->nextFrame(false);
     ASSERT_EQ(frame->share(buffer(session->bufferSize()), {}, [](auto) { ; }), Screenshare::ERROR_NONE);
-    *CConfigValue<Config::INTEGER>("ecosystem:enforce_permissions").ptr() = 1;
+    *CConfigValue<Config::BOOL>("ecosystem:enforce_permissions").ptr() = true;
 
     for (const auto mode : {PERMISSION_RULE_ALLOW_MODE_PENDING, PERMISSION_RULE_ALLOW_MODE_DENY, PERMISSION_RULE_ALLOW_MODE_ALLOW}) {
         SCOPED_TRACE(mode);

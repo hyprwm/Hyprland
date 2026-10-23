@@ -712,12 +712,12 @@ class CWorkspaceCaptureFrameTest : public CWorkspaceCaptureSessionTest {
         g_pSessionLockManager       = makeUnique<CSessionLockManager>();
         Desktop::fadingOutState()   = makeUnique<Desktop::CFadingOutState>();
 
-        *CConfigValue<Config::BOOL>("ecosystem:enforce_permissions").ptr() = 0;
-        *CConfigValue<Config::BOOL>("misc:disable_hyprland_logo").ptr()    = 1;
-        *CConfigValue<Config::BOOL>("misc:disable_splash_rendering").ptr() = 1;
+        *CConfigValue<Config::BOOL>("ecosystem:enforce_permissions").ptr() = false;
+        *CConfigValue<Config::BOOL>("misc:disable_hyprland_logo").ptr()    = true;
+        *CConfigValue<Config::BOOL>("misc:disable_splash_rendering").ptr() = true;
         *CConfigValue<Config::INTEGER>("misc:background_color").ptr()      = 0;
-        *CConfigValue<Config::BOOL>("render:xp_mode").ptr()                = 0;
-        *CConfigValue<Config::BOOL>("debug:pass").ptr()                    = 0;
+        *CConfigValue<Config::BOOL>("render:xp_mode").ptr()                = false;
+        *CConfigValue<Config::BOOL>("debug:pass").ptr()                    = false;
         *CConfigValue<Config::BOOL>("decoration:blur:enabled").ptr()       = false;
         m_monitor->m_output->state->setFormat(DRM_FORMAT_XRGB8888);
 

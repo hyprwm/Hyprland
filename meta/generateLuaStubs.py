@@ -565,7 +565,7 @@ def generate_stub(root: Path) -> str:
         "hl.exec_scheduled_prop_refresh_immediately": "fun(): nil",
         "hl.unbind": "fun(key: string): nil",
         "hl.get_scrolling_offset": "fun(): number | nil",
-        "hl.set_scrolling_offset": "fun(key: number): bool"
+        "hl.set_scrolling_offset": "fun(key: number): boolean"
     }
     api_signatures.update(query_overrides)
 

@@ -1,105 +1,14 @@
 #include "XXHotkey.hpp"
-#include "../Compositor.hpp"
-#include "../managers/input/InputManager.hpp"
-#include "../managers/SessionLockManager.hpp"
+#include "../hotkeys/Manager.hpp"
 
-#include <format>
-#include <linux/input-event-codes.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
 
-static constexpr Input::ModifierMask RELEVANT_MODS = Input::HL_MODIFIER_SHIFT | Input::HL_MODIFIER_CTRL | Input::HL_MODIFIER_ALT | Input::HL_MODIFIER_META;
-static constexpr uint32_t            ALL_PROTO_MODS =
-    XX_HOTKEY_MANAGER_V1_MODIFIERS_SHIFT | XX_HOTKEY_MANAGER_V1_MODIFIERS_CTRL | XX_HOTKEY_MANAGER_V1_MODIFIERS_ALT | XX_HOTKEY_MANAGER_V1_MODIFIERS_SUPER;
-
-static Input::ModifierMask protoModsToHL(uint32_t mods) {
-    Input::ModifierMask out = Input::HL_MODIFIER_NONE;
-    if (mods & XX_HOTKEY_MANAGER_V1_MODIFIERS_SHIFT)
-        out |= Input::HL_MODIFIER_SHIFT;
-    if (mods & XX_HOTKEY_MANAGER_V1_MODIFIERS_CTRL)
-        out |= Input::HL_MODIFIER_CTRL;
-    if (mods & XX_HOTKEY_MANAGER_V1_MODIFIERS_ALT)
-        out |= Input::HL_MODIFIER_ALT;
-    if (mods & XX_HOTKEY_MANAGER_V1_MODIFIERS_SUPER)
-        out |= Input::HL_MODIFIER_META;
-    return out;
-}
-
-static bool isModifierKeysym(xkb_keysym_t sym) {
-    switch (sym) {
-        case XKB_KEY_ISO_Level3_Shift:
-        case XKB_KEY_ISO_Level3_Latch:
-        case XKB_KEY_ISO_Level3_Lock:
-        case XKB_KEY_ISO_Level5_Shift:
-        case XKB_KEY_ISO_Level5_Latch:
-        case XKB_KEY_ISO_Level5_Lock:
-        case XKB_KEY_Mode_switch:
-        case XKB_KEY_Num_Lock:
-        case XKB_KEY_Scroll_Lock: return true;
-        default: break;
+static xxHotkeyV1DenyReason denyReason(Hotkeys::eDenyReason reason) {
+    switch (reason) {
+        case Hotkeys::eDenyReason::ALREADY_BOUND: return XX_HOTKEY_V1_DENY_REASON_ALREADY_BOUND;
+        case Hotkeys::eDenyReason::NOT_PERMITTED: return XX_HOTKEY_V1_DENY_REASON_NOT_PERMITTED;
     }
-    return sym >= XKB_KEY_Shift_L && sym <= XKB_KEY_Hyper_R;
-}
-
-static bool isKeypadKeysym(xkb_keysym_t sym) {
-    return sym >= XKB_KEY_KP_Space && sym <= XKB_KEY_KP_Equal;
-}
-
-static std::string keysymName(xkb_keysym_t sym) {
-    char name[64] = {0};
-    if (xkb_keysym_get_name(sym, name, sizeof(name)) <= 0)
-        return "";
-    return name;
-}
-
-static bool isDeadKeysym(xkb_keysym_t sym) {
-    return keysymName(sym).starts_with("dead_");
-}
-
-static bool isAuxiliaryButton(uint32_t button) {
-    switch (button) {
-        case BTN_SIDE:
-        case BTN_EXTRA:
-        case BTN_FORWARD:
-        case BTN_BACK:
-        case BTN_TASK: return true;
-        default: break;
-    }
-    return false;
-}
-
-static bool keyProducesKeysym(SP<IKeyboard> keyboard, uint32_t keycode, xkb_keysym_t sym) {
-    const auto KEYMAP = keyboard->m_xkbKeymap;
-    if (!KEYMAP)
-        return false;
-
-    const auto LAYOUTS = xkb_keymap_num_layouts_for_key(KEYMAP, keycode);
-    for (xkb_layout_index_t layout = 0; layout < LAYOUTS; ++layout) {
-        const xkb_keysym_t* syms  = nullptr;
-        const int           NSYMS = xkb_keymap_key_get_syms_by_level(KEYMAP, keycode, layout, 0, &syms);
-        for (int i = 0; i < NSYMS; ++i) {
-            if (syms[i] == sym)
-                return true;
-        }
-    }
-
-    return false;
-}
-
-static std::string modsLabel(Input::ModifierMask mods) {
-    std::string out;
-    if (mods & Input::HL_MODIFIER_META)
-        out += "SUPER+";
-    if (mods & Input::HL_MODIFIER_CTRL)
-        out += "CTRL+";
-    if (mods & Input::HL_MODIFIER_ALT)
-        out += "ALT+";
-    if (mods & Input::HL_MODIFIER_SHIFT)
-        out += "SHIFT+";
-    return out;
-}
-
-static uint32_t nextSerial() {
-    return wl_display_next_serial(g_pCompositor->m_wlDisplay);
+    return XX_HOTKEY_V1_DENY_REASON_NOT_PERMITTED;
 }
 
 CXXHotkeyManagerResource::CXXHotkeyManagerResource(SP<CXxHotkeyManagerV1> resource) : m_resource(resource) {
@@ -153,65 +62,42 @@ CXXHotkeyResource::CXXHotkeyResource(SP<CXxHotkeyV1> resource, WP<CXXHotkeyManag
             return;
         }
 
-        if (mods & ~ALL_PROTO_MODS) {
+        if (!Hotkeys::validProtocolMods(mods)) {
             m_resource->error(XX_HOTKEY_V1_ERROR_INVALID_TRIGGER, "unknown modifier bits");
             return;
         }
 
-        m_pendingTrigger = STrigger{
-            .type = eTriggerType::TRIGGER_KEY,
-            .code = xkb_keysym_to_lower(keysym),
-            .mods = protoModsToHL(mods),
+        m_pendingTrigger = Hotkeys::STrigger{
+            .type = Hotkeys::eTriggerType::KEY,
+            .code = keysym,
+            .mods = Hotkeys::modsFromProtocol(mods),
         };
     });
 
     m_resource->setSetButtonTrigger([this](CXxHotkeyV1*, uint32_t button, uint32_t mods) {
-        if (mods & ~ALL_PROTO_MODS) {
+        if (!Hotkeys::validProtocolMods(mods)) {
             m_resource->error(XX_HOTKEY_V1_ERROR_INVALID_TRIGGER, "unknown modifier bits");
             return;
         }
 
-        m_pendingTrigger = STrigger{
-            .type = eTriggerType::TRIGGER_BUTTON,
+        m_pendingTrigger = Hotkeys::STrigger{
+            .type = Hotkeys::eTriggerType::BUTTON,
             .code = button,
-            .mods = protoModsToHL(mods),
+            .mods = Hotkeys::modsFromProtocol(mods),
         };
     });
 
     m_resource->setCommit([this](CXxHotkeyV1*) { commit(); });
+
+    m_hotkey = Hotkeys::mgr()->create();
+
+    m_listeners.triggered = m_hotkey->m_events.triggered.listen([this](uint32_t serial, uint32_t timeMs) { m_resource->sendTriggered(serial, timeMs); });
+    m_listeners.released  = m_hotkey->m_events.released.listen([this](uint32_t serial, uint32_t timeMs) { m_resource->sendReleased(serial, timeMs); });
+    m_listeners.revoked   = m_hotkey->m_events.revoked.listen([this](const std::string& message) { m_resource->sendRevoked(message.c_str()); });
 }
 
 bool CXXHotkeyResource::good() {
     return m_resource->resource();
-}
-
-bool CXXHotkeyResource::isTap() const {
-    return m_trigger.type == eTriggerType::TRIGGER_KEY && isModifierKeysym(m_trigger.code);
-}
-
-void CXXHotkeyResource::resetHeld() {
-    m_held       = false;
-    m_tapPending = false;
-    m_heldCode   = 0;
-    m_heldDevice.reset();
-}
-
-bool CXXHotkeyResource::acceptable(const STrigger& trigger) {
-    if (trigger.mods & (Input::HL_MODIFIER_CTRL | Input::HL_MODIFIER_ALT | Input::HL_MODIFIER_META))
-        return true;
-
-    if (trigger.type == eTriggerType::TRIGGER_BUTTON)
-        return isAuxiliaryButton(trigger.code);
-
-    if (isModifierKeysym(trigger.code))
-        return true;
-    if (isKeypadKeysym(trigger.code))
-        return true;
-    if (isDeadKeysym(trigger.code))
-        return false;
-    if (xkb_keysym_to_utf32(trigger.code) != 0)
-        return false;
-    return true;
 }
 
 void CXXHotkeyResource::commit() {
@@ -220,23 +106,19 @@ void CXXHotkeyResource::commit() {
         return;
     }
 
+    std::string appId;
     if (const auto MGR = m_manager.lock()) {
         MGR->m_committed = true;
-        m_appId          = MGR->m_appId;
-    }
+        appId            = MGR->m_appId;
+    } else
+        appId = m_hotkey->appId();
 
-    const auto& TRIGGER = *m_pendingTrigger;
-
-    if (!acceptable(TRIGGER)) {
-        const auto MESSAGE = TRIGGER.type == eTriggerType::TRIGGER_BUTTON ? "an unmodified button trigger must be an auxiliary button" :
-                                                                            "an unmodified key trigger must not be a key that produces text";
-        m_resource->sendDenied(XX_HOTKEY_V1_DENY_REASON_NOT_PERMITTED, MESSAGE);
+    const auto RESULT = m_hotkey->commit(*m_pendingTrigger, appId, m_pendingDescription);
+    if (RESULT.denied) {
+        m_resource->sendDenied(denyReason(*RESULT.denied), RESULT.message.c_str());
         return;
     }
 
-    m_trigger     = TRIGGER;
-    m_description = m_pendingDescription;
-    m_bound       = true;
     m_resource->sendBound();
 }
 
@@ -273,136 +155,4 @@ void CXXHotkeyProtocol::destroyManager(CXXHotkeyManagerResource* mgr) {
 
 void CXXHotkeyProtocol::destroyHotkey(CXXHotkeyResource* hk) {
     std::erase_if(m_hotkeys, [&](const auto& other) { return other.get() == hk; });
-}
-
-void CXXHotkeyProtocol::cancelTaps(uint32_t exceptCode, const WP<IHID>& exceptDevice) {
-    for (const auto& hk : m_hotkeys) {
-        if (!hk->m_held || !hk->m_tapPending)
-            continue;
-        if (exceptCode && hk->m_heldCode == exceptCode && hk->m_heldDevice == exceptDevice)
-            continue;
-
-        hk->resetHeld();
-    }
-}
-
-bool CXXHotkeyProtocol::onKey(const IKeyboard::SKeyEvent& event, SP<IKeyboard> keyboard) {
-    if (!g_pCompositor->m_sessionActive || !keyboard->m_allowBinds)
-        return false;
-
-    const auto     KEYCODE  = event.keycode + 8;
-    const bool     PRESSED  = event.state == WL_KEYBOARD_KEY_STATE_PRESSED;
-    const WP<IHID> DEVICE   = keyboard;
-    const auto     MODS     = g_pInputManager->getModsFromAllKBs() & RELEVANT_MODS;
-    const bool     LOCKED   = g_pSessionLockManager->isSessionLocked();
-    bool           consumed = false;
-
-    cancelTaps(LOCKED ? 0 : KEYCODE, DEVICE);
-
-    for (const auto& hk : m_hotkeys) {
-        if (hk->m_held && hk->m_heldDevice.expired())
-            hk->resetHeld();
-
-        if (PRESSED) {
-            if (LOCKED || !hk->m_bound || hk->m_held || hk->m_trigger.type != CXXHotkeyResource::eTriggerType::TRIGGER_KEY)
-                continue;
-            if (hk->m_trigger.mods != MODS || !keyProducesKeysym(keyboard, KEYCODE, hk->m_trigger.code))
-                continue;
-
-            hk->m_held       = true;
-            hk->m_heldCode   = KEYCODE;
-            hk->m_heldDevice = DEVICE;
-
-            if (hk->isTap()) {
-                hk->m_tapPending = true;
-                continue;
-            }
-
-            hk->m_resource->sendTriggered(nextSerial(), event.timeMs);
-            consumed = true;
-            continue;
-        }
-
-        if (!hk->m_held || hk->m_heldCode != KEYCODE || hk->m_heldDevice != DEVICE)
-            continue;
-
-        const bool TAP = hk->m_tapPending;
-        hk->resetHeld();
-
-        if (TAP)
-            hk->m_resource->sendTriggered(nextSerial(), event.timeMs);
-        hk->m_resource->sendReleased(nextSerial(), event.timeMs);
-        consumed = consumed || !TAP;
-    }
-
-    return consumed;
-}
-
-bool CXXHotkeyProtocol::onButton(const IPointer::SButtonEvent& event, SP<IPointer> pointer) {
-    if (!g_pCompositor->m_sessionActive)
-        return false;
-
-    const bool     PRESSED  = event.state == WL_POINTER_BUTTON_STATE_PRESSED;
-    const WP<IHID> DEVICE   = pointer;
-    const auto     MODS     = g_pInputManager->getModsFromAllKBs() & RELEVANT_MODS;
-    const bool     LOCKED   = g_pSessionLockManager->isSessionLocked();
-    bool           consumed = false;
-
-    cancelTaps();
-
-    for (const auto& hk : m_hotkeys) {
-        if (hk->m_held && hk->m_heldDevice.expired())
-            hk->resetHeld();
-
-        if (PRESSED) {
-            if (LOCKED || !hk->m_bound || hk->m_held || hk->m_trigger.type != CXXHotkeyResource::eTriggerType::TRIGGER_BUTTON)
-                continue;
-            if (hk->m_trigger.mods != MODS || hk->m_trigger.code != event.button)
-                continue;
-
-            hk->m_held       = true;
-            hk->m_heldCode   = event.button;
-            hk->m_heldDevice = DEVICE;
-            hk->m_resource->sendTriggered(nextSerial(), event.timeMs);
-            consumed = true;
-            continue;
-        }
-
-        if (!hk->m_held || hk->m_heldCode != event.button || hk->m_heldDevice != DEVICE)
-            continue;
-
-        hk->resetHeld();
-        hk->m_resource->sendReleased(nextSerial(), event.timeMs);
-        consumed = true;
-    }
-
-    return consumed;
-}
-
-void CXXHotkeyProtocol::onAxis() {
-    cancelTaps();
-}
-
-std::vector<CXXHotkeyProtocol::SHotkeyInfo> CXXHotkeyProtocol::getAllShortcuts() {
-    std::vector<SHotkeyInfo> out;
-    out.reserve(m_hotkeys.size());
-
-    for (const auto& hk : m_hotkeys) {
-        if (!hk->m_bound)
-            continue;
-
-        std::string trigger = modsLabel(hk->m_trigger.mods);
-        if (hk->m_trigger.type == CXXHotkeyResource::eTriggerType::TRIGGER_BUTTON)
-            trigger += std::format("mouse:{}", hk->m_trigger.code);
-        else
-            trigger += keysymName(hk->m_trigger.code);
-
-        out.emplace_back(SHotkeyInfo{
-            .appId       = hk->m_appId,
-            .trigger     = trigger,
-            .description = hk->m_description,
-        });
-    }
-
-    return out;
 }

@@ -608,8 +608,11 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         /*
          * layer:
          */
+        MS<Bool>("layers:allow_new_top_layers_over_existing_fullscreen",
+                 "If false, newly mapped layers are not allowed to render over existing covering fullscreen window. Note that fullscreen hides all pre-existing top layers "
+                 "regardless of this setting",
+                 true),
         MS<Bool>("layers:layers_hog_keyboard_focus", "If true, will make keyboard-interactive layers keep their focus on mouse move.", true),
-        MS<Bool>("layers:allow_new_top_layers_over_existing_fullscreen", "If true, allows new top layers to go over a fullscreen window.", true),
 
         /*
          * binds:

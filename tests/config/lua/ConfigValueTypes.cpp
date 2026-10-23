@@ -65,8 +65,11 @@ TEST(ConfigLuaValueTypes, boolParseAndReset) {
     const auto     L = S.get();
 
     CLuaConfigBool value(false);
+    const auto*    setByUser = value.setByUserPtr();
+    ASSERT_NE(setByUser, nullptr);
     EXPECT_FALSE(value.parsed());
     EXPECT_FALSE(value.setByUser());
+    EXPECT_FALSE(*setByUser);
 
     lua_pushboolean(L, true);
     const auto err = value.parse(L);
@@ -75,12 +78,18 @@ TEST(ConfigLuaValueTypes, boolParseAndReset) {
     EXPECT_EQ(err.errorCode, PARSE_ERROR_OK);
     EXPECT_TRUE(value.parsed());
     EXPECT_TRUE(value.setByUser());
+    EXPECT_EQ(value.setByUserPtr(), setByUser);
+    EXPECT_TRUE(*setByUser);
 
     value.reset();
     EXPECT_FALSE(value.parsed());
+    EXPECT_TRUE(value.setByUser());
+    EXPECT_TRUE(*setByUser);
 
     value.resetSetByUser();
     EXPECT_FALSE(value.setByUser());
+    EXPECT_EQ(value.setByUserPtr(), setByUser);
+    EXPECT_FALSE(*setByUser);
 }
 
 TEST(ConfigLuaValueTypes, boolBadType) {

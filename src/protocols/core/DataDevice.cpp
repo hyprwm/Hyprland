@@ -262,7 +262,7 @@ CWLDataDeviceResource::CWLDataDeviceResource(SP<CWlDataDevice> resource_) : m_re
     });
 
     m_resource->setStartDrag([](CWlDataDevice* r, wl_resource* sourceR, wl_resource* origin, wl_resource* icon, uint32_t serial) {
-        auto source = CWLDataSourceResource::fromResource(sourceR);
+        auto source = sourceR ? CWLDataSourceResource::fromResource(sourceR) : CSharedPointer<CWLDataSourceResource>{};
         if (!source) {
             LOG(Log::ERR, "No source in drag");
             return;

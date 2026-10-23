@@ -72,7 +72,7 @@ Vector2D CHyprXWaylandManager::waylandToXWaylandCoords(const Vector2D& coord) {
 }
 
 Vector2D CHyprXWaylandManager::waylandToXWaylandCoords(const Vector2D& coord, PHLMONITOR preferredMonitor) {
-    static auto PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
+    static auto PXWLFORCESCALEZERO = CConfigValue<Config::BOOL>("xwayland:force_zero_scaling");
 
     PHLMONITOR  pMonitor = preferredMonitor;
     if (!pMonitor) {
@@ -109,7 +109,7 @@ Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord) {
 
 Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord, PHLMONITOR preferredMonitor) {
 
-    static auto PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
+    static auto PXWLFORCESCALEZERO = CConfigValue<Config::BOOL>("xwayland:force_zero_scaling");
 
     PHLMONITOR  pMonitor = preferredMonitor;
     if (!pMonitor) {

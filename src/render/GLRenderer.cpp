@@ -124,7 +124,7 @@ SRenderResult CHyprGLRenderer::endRender(const std::function<void()>& renderingD
 
     const auto        PMONITOR           = m_context.m_data.pMonitor;
     const auto        mode               = m_context.m_mode;
-    static auto       PNVIDIAANTIFLICKER = CConfigValue<Config::INTEGER>("opengl:nvidia_anti_flicker");
+    static auto       PNVIDIAANTIFLICKER = CConfigValue<Config::BOOL>("opengl:nvidia_anti_flicker");
 
     m_context.m_data.damage = m_context.m_pass.render(m_context, m_context.m_data.damage);
 
@@ -386,9 +386,9 @@ bool CHyprGLRenderer::blurProviderRequiresLiveBlur() const {
 }
 
 void CHyprGLRenderer::preRender(PHLMONITOR pMonitor) {
-    static auto PBLURNEWOPTIMIZE = CConfigValue<Config::INTEGER>("decoration:blur:new_optimizations");
-    static auto PBLURXRAY        = CConfigValue<Config::INTEGER>("decoration:blur:xray");
-    static auto PBLUR            = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
+    static auto PBLURNEWOPTIMIZE = CConfigValue<Config::BOOL>("decoration:blur:new_optimizations");
+    static auto PBLURXRAY        = CConfigValue<Config::BOOL>("decoration:blur:xray");
+    static auto PBLUR            = CConfigValue<Config::BOOL>("decoration:blur:enabled");
 
     // Resource changes can invalidate the blur framebuffer, so resolve them before checking its state.
     (void)pMonitor->resources();

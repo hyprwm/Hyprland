@@ -96,7 +96,7 @@ template <typename... Args>
 #define GLCALL(__CALL__)                                                                                                                                                           \
     {                                                                                                                                                                              \
         __CALL__;                                                                                                                                                                  \
-        static const auto GLDEBUG = CConfigValue<Config::INTEGER>("debug:gl_debugging");                                                                                           \
+        static const auto GLDEBUG = CConfigValue<Config::BOOL>("debug:gl_debugging");                                                                                           \
         if (*GLDEBUG) {                                                                                                                                                            \
             auto err = glGetError();                                                                                                                                               \
             if (err != GL_NO_ERROR) {                                                                                                                                              \

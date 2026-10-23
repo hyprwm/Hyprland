@@ -234,7 +234,7 @@ void CWindowTarget::updatePos(uint8_t flags) {
 
     Vector2D    availableSpace = calcSize;
 
-    static auto PCLAMP_TILED = CConfigValue<Config::INTEGER>("misc:size_limits_tiled");
+    static auto PCLAMP_TILED = CConfigValue<Config::BOOL>("misc:size_limits_tiled");
 
     if (*PCLAMP_TILED) {
         Vector2D minSize = m_window->m_ruleApplicator->minSize().valueOr(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE});

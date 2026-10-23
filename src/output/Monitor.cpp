@@ -662,7 +662,7 @@ bool CMonitor::applyMonitorRuleSoft(Config::CMonitorRule&& pMonitorRule) {
 
 bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
 
-    static auto PDISABLESCALECHECKS = CConfigValue<Config::INTEGER>("debug:disable_scale_checks");
+    static auto PDISABLESCALECHECKS = CConfigValue<Config::BOOL>("debug:disable_scale_checks");
 
     LOG(Log::DEBUG, "Applying monitor rule for {}", m_name);
 
@@ -981,7 +981,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
             } else {
                 if (!autoScale) {
                     LOG(Log::ERR, "Invalid scale passed to monitor, {} found suggestion {}", m_scale, searchScale);
-                    static auto PDISABLENOTIFICATION = CConfigValue<Config::INTEGER>("misc:disable_scale_notification");
+                    static auto PDISABLENOTIFICATION = CConfigValue<Config::BOOL>("misc:disable_scale_notification");
                     if (!*PDISABLENOTIFICATION) {
                         Notification::overlay()->addNotification(
                             I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_MONITOR_AUTO_SCALE,
@@ -1306,7 +1306,7 @@ float CMonitor::getDefaultScale() {
 }
 
 static bool shouldWraparound(const Workspace::WorkspaceIDContainer id1, const Workspace::WorkspaceIDContainer id2) {
-    static auto PWORKSPACEWRAPAROUND = CConfigValue<Config::INTEGER>("animations:workspace_wraparound");
+    static auto PWORKSPACEWRAPAROUND = CConfigValue<Config::BOOL>("animations:workspace_wraparound");
 
     if (!*PWORKSPACEWRAPAROUND)
         return false;
@@ -1427,8 +1427,8 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
 
 void CMonitor::setSpecialWorkspaceVisualState(bool active) {
     static auto PDIMSPECIAL  = CConfigValue<Config::FLOAT>("decoration:dim_special");
-    static auto PBLURSPECIAL = CConfigValue<Config::INTEGER>("decoration:blur:special");
-    static auto PBLUR        = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
+    static auto PBLURSPECIAL = CConfigValue<Config::BOOL>("decoration:blur:special");
+    static auto PBLUR        = CConfigValue<Config::BOOL>("decoration:blur:enabled");
 
     const auto  ANIM = active ? "specialWorkspaceIn" : "specialWorkspaceOut";
 
@@ -1829,7 +1829,7 @@ void CMonitor::recheckSolitary() {
 uint8_t CMonitor::isTearingBlocked(bool full) {
     uint8_t     reasons = 0;
 
-    static auto PTEARINGENABLED = CConfigValue<Config::INTEGER>("general:allow_tearing");
+    static auto PTEARINGENABLED = CConfigValue<Config::BOOL>("general:allow_tearing");
 
     if (!m_tearingState.nextRenderTorn) {
         reasons |= TC_NOT_TORN;
@@ -1996,8 +1996,8 @@ uint16_t CMonitor::isDSBlocked(bool full) {
 }
 
 bool CMonitor::attemptDirectScanout() {
-    static const auto PSAME     = CConfigValue<Config::INTEGER>("debug:ds_handle_same_buffer");
-    static const auto PSAMEFIFO = CConfigValue<Config::INTEGER>("debug:ds_handle_same_buffer_fifo");
+    static const auto PSAME     = CConfigValue<Config::BOOL>("debug:ds_handle_same_buffer");
+    static const auto PSAMEFIFO = CConfigValue<Config::BOOL>("debug:ds_handle_same_buffer_fifo");
 
     const auto        blockedReason = isDSBlocked();
     if (blockedReason)
@@ -2196,7 +2196,7 @@ bool CMonitor::isMultiGPU() {
 
 bool CMonitor::shouldUseSoftwareCursors() {
     static auto PNOHW      = CConfigValue<Config::INTEGER>("cursor:no_hardware_cursors");
-    static auto PINVISIBLE = CConfigValue<Config::INTEGER>("cursor:invisible");
+    static auto PINVISIBLE = CConfigValue<Config::BOOL>("cursor:invisible");
 
     if (m_tearingState.activelyTearing)
         return true;
@@ -2424,7 +2424,7 @@ NColorManagement::PImageDescription CMonitor::getHDRImageDescription(NCMType::eC
 }
 
 uint32_t CMonitor::getPreferredReadFormat() {
-    static const auto PFORCE8BIT = CConfigValue<Config::INTEGER>("misc:screencopy_force_8b");
+    static const auto PFORCE8BIT = CConfigValue<Config::BOOL>("misc:screencopy_force_8b");
 
     auto              monFmt = m_output->state->state().drmFormat;
 

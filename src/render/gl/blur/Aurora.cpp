@@ -52,7 +52,7 @@ CAuroraBlurProvider::CAuroraBlurProvider(CHyprOpenGLImpl& impl) : CGlassBlurProv
 }
 
 bool CAuroraBlurMaterial::isAnimated(CRenderContext& ctx) const noexcept {
-    static auto PBLURENABLED     = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
+    static auto PBLURENABLED     = CConfigValue<Config::BOOL>("decoration:blur:enabled");
     static auto PGLASSREFRACTION = CConfigValue<Config::FLOAT>("decoration:blur:glass:refraction");
     static auto PGLASSROUGHNESS  = CConfigValue<Config::FLOAT>("decoration:blur:glass:roughness");
     static auto PAURORAINTENSITY = CConfigValue<Config::FLOAT>("decoration:blur:aurora:intensity");

@@ -248,7 +248,7 @@ TEST_CASE(scrollWindowRule) {
 
     // not the greatest test, but as long as res and gaps don't change, we good.
     // if this test breaks, it's likely you broke equal sizing
-    ASSERT_CONTAINS(getFromSocket("/activewindow"), "size: 179,1036");
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "size: 174,1036");
 }
 
 /*
@@ -534,8 +534,8 @@ TEST_CASE(scroll_LAYOUT_HANDLED_TestFsingGroupedWindows) {
                 auto entryStart  = clients.rfind("Window ", classPos);
                 auto entryEnd    = clients.find("\n\n", classPos);
                 auto windowEntry = clients.substr(entryStart, entryEnd - entryStart);
-                EXPECT_CONTAINS(windowEntry, "size: 1915,1059");
-                EXPECT_CONTAINS(windowEntry, "at: 0,21");
+                EXPECT_CONTAINS(windowEntry, "size: 1910,1059");
+                EXPECT_CONTAINS(windowEntry, "at: 5,21");
             }
         };
 
@@ -562,9 +562,9 @@ TEST_CASE(scroll_LAYOUT_HANDLED_TestFsingGroupedWindows) {
                 auto entryStart  = clients.rfind("Window ", classPos);
                 auto entryEnd    = clients.find("\n\n", classPos);
                 auto windowEntry = clients.substr(entryStart, entryEnd - entryStart);
-                EXPECT_CONTAINS(windowEntry, "at: -940,41");
+                EXPECT_CONTAINS(windowEntry, "at: -935,41");
                 // cuz the gaps and borders workspace rule now applies as it is no longer covering
-                EXPECT_CONTAINS(windowEntry, "size: 1875,1019");
+                EXPECT_CONTAINS(windowEntry, "size: 1870,1019");
                 EXPECT_CONTAINS(windowEntry, "fullscreen: 0");
             }
         };
@@ -575,8 +575,8 @@ TEST_CASE(scroll_LAYOUT_HANDLED_TestFsingGroupedWindows) {
             // check position and size for the focused group member (kitten2).
             auto str = getFromSocket("/activewindow");
             EXPECT_CONTAINS(str, "class: kitten2");
-            EXPECT_CONTAINS(str, "at: 0,21");
-            EXPECT_CONTAINS(str, "size: 1915,1059");
+            EXPECT_CONTAINS(str, "at: 5,21");
+            EXPECT_CONTAINS(str, "size: 1910,1059");
         }
         checkHiddenGroupMember_tiled("kitten1");
 
@@ -587,8 +587,8 @@ TEST_CASE(scroll_LAYOUT_HANDLED_TestFsingGroupedWindows) {
             // check position and size for the focused group member (kitten2).
             auto str = getFromSocket("/activewindow");
             EXPECT_CONTAINS(str, "class: kitten1");
-            EXPECT_CONTAINS(str, "at: 0,21");
-            EXPECT_CONTAINS(str, "size: 1915,1059");
+            EXPECT_CONTAINS(str, "at: 5,21");
+            EXPECT_CONTAINS(str, "size: 1910,1059");
         }
         checkHiddenGroupMember_tiled("kitten2");
 
@@ -605,8 +605,8 @@ TEST_CASE(scroll_LAYOUT_HANDLED_TestFsingGroupedWindows) {
             // check position and size for the focused group member (kitten2).
             auto str = getFromSocket("/activewindow");
             EXPECT_CONTAINS(str, "class: kitten2");
-            EXPECT_CONTAINS(str, "at: -940,41");
-            EXPECT_CONTAINS(str, "size: 1875,1019");
+            EXPECT_CONTAINS(str, "at: -935,41");
+            EXPECT_CONTAINS(str, "size: 1870,1019");
             EXPECT_CONTAINS(str, "fullscreen: 1");
         }
         checkHiddenGroupMember_notCovering("kitten1");
@@ -621,8 +621,8 @@ TEST_CASE(scroll_LAYOUT_HANDLED_TestFsingGroupedWindows) {
             // check position and size for the focused group member (kitten2).
             auto str = getFromSocket("/activewindow");
             EXPECT_CONTAINS(str, "class: kitten1");
-            EXPECT_CONTAINS(str, "at: -940,41");
-            EXPECT_CONTAINS(str, "size: 1875,1019");
+            EXPECT_CONTAINS(str, "at: -935,41");
+            EXPECT_CONTAINS(str, "size: 1870,1019");
             EXPECT_CONTAINS(str, "fullscreen: 1");
         }
         checkHiddenGroupMember_notCovering("kitten2");
@@ -1335,9 +1335,9 @@ TEST_CASE(scroll_LAYOUT_HANDLED_focusInDirectionFocusFollowFocusTrue) {
 
     // if movefocus_cycles_fullscreen = false, all focus({direction}) is disallowed from moving focus from FS window
 
-    // if movefocus_cycles_fullscreen = true, standard behaviour of the config option won't be followed but focus will move in the firection specified as if window was not FS
+    // if movefocus_cycles_fullscreen = true, standard behaviour of the config option won't be followed but focus will move in the direction specified as if window was not FS
     // if on_focus_under_fullscreen = 0 focus({direction}) is disallowed from moving focus from FS window
-    // if on_focus_under_fullscreen = 1/2, standard behaviour of the config option won't be followed but focus will move in the firection specified as if window was not FS
+    // if on_focus_under_fullscreen = 1/2, standard behaviour of the config option won't be followed but focus will move in the direction specified as if window was not FS
 
     OK(getFromSocket("/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -1427,12 +1427,9 @@ TEST_CASE(scroll_LAYOUT_HANDLED_focusInDirectionFocusFollowFocusTrue) {
         EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
 
-    // if movefocus_cycles_fullscreen = true, standard behaviour of the config option won't be followed but focus will move in the firection specified as if window was not FS
+    // if movefocus_cycles_fullscreen = true, standard behaviour of the config option won't be followed but focus will move in the direction specified as if window was not FS
 
     OK(getFromSocket("r/eval hl.config({ binds = { movefocus_cycles_fullscreen = true } })"));
-
-    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:fs' })"));
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set', window = 'class:fs' })"));
 
     // on_focus_under_fullscreen = 0
     OK(getFromSocket("r/eval hl.config({ misc = { on_focus_under_fullscreen = 0 } })"));
@@ -1485,7 +1482,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_focusInDirectionFocusFollowFocusTrue) {
         EXPECT_CONTAINS(str, "class: normal1");
         EXPECT_CONTAINS(str, "fullscreen: 0");
         EXPECT_CONTAINS(str, "fullscreenClient: 0");
-        EXPECT_CONTAINS(Tests::getAttribute(getFromSocket("/activewindow"), "at"), "22,22");
+        EXPECT_CONTAINS(Tests::getAttribute(str, "at"), "27,22");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'right' })"));
@@ -1494,7 +1491,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_focusInDirectionFocusFollowFocusTrue) {
         EXPECT_CONTAINS(str, "class: fs");
         EXPECT_CONTAINS(str, "fullscreen: 2");
         EXPECT_CONTAINS(str, "fullscreenClient: 2");
-        EXPECT_CONTAINS(Tests::getAttribute(getFromSocket("/activewindow"), "at"), "0,0");
+        EXPECT_CONTAINS(Tests::getAttribute(str, "at"), "0,0");
     }
 
     // on_focus_under_fullscreen = 2 - Won't dispel FS, but will simply switch to that window (viewport moves if follow_focus = true)
@@ -1506,7 +1503,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_focusInDirectionFocusFollowFocusTrue) {
         EXPECT_CONTAINS(str, "class: normal1");
         EXPECT_CONTAINS(str, "fullscreen: 0");
         EXPECT_CONTAINS(str, "fullscreenClient: 0");
-        EXPECT_CONTAINS(Tests::getAttribute(getFromSocket("/activewindow"), "at"), "22,22");
+        EXPECT_CONTAINS(Tests::getAttribute(str, "at"), "27,22");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'right' })"));
@@ -1515,7 +1512,7 @@ TEST_CASE(scroll_LAYOUT_HANDLED_focusInDirectionFocusFollowFocusTrue) {
         EXPECT_CONTAINS(str, "class: fs");
         EXPECT_CONTAINS(str, "fullscreen: 2");
         EXPECT_CONTAINS(str, "fullscreenClient: 2");
-        EXPECT_CONTAINS(Tests::getAttribute(getFromSocket("/activewindow"), "at"), "0,0");
+        EXPECT_CONTAINS(Tests::getAttribute(str, "at"), "0,0");
     }
 }
 
@@ -2456,6 +2453,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_posAndSizeSyncWhileFS) {
     SPAWN_KITTY("kot");
 
     ASSERT(spawnLayer("top-bar", {"--edge=top", "--layer=overlay", "--lines=48px", "--focus-policy=not-allowed"}), true);
+    Tests::waitUntilLayersN(1);
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', window = 'class:kot', layout_aware = false, })"));
     {
@@ -3435,7 +3433,7 @@ TEST_CASE(layoutmsg_fit_into_view) {
 
     // If it worked, class:a window must now have at: ~= 0,0 -- 0,0 + gaps, border = 22,22.
 
-    ASSERT_CONTAINS(Tests::getAttribute(getFromSocket("/activewindow"), "at"), "22,22");
+    ASSERT_CONTAINS(Tests::getAttribute(getFromSocket("/activewindow"), "at"), "27,22");
 }
 
 TEST_CASE(layoutRuleExpand) {

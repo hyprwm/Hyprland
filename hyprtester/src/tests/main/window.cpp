@@ -1948,8 +1948,8 @@ TEST_CASE(sendFsWindowToAnotherWorkspace) {
     // scroll
     {
         const auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "at: 2,2");
-        ASSERT_CONTAINS(str, "size: 1916,1076");
+        ASSERT_CONTAINS(str, "at: 7,2");
+        ASSERT_CONTAINS(str, "size: 1906,1076");
         ASSERT_CONTAINS(str, "workspace: 4");
         ASSERT_CONTAINS(str, "fullscreen: 1");
         ASSERT_CONTAINS(str, "fullscreenClient: 1");
@@ -1960,8 +1960,8 @@ TEST_CASE(sendFsWindowToAnotherWorkspace) {
     OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = '5' })"));
     {
         const auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "at: 2,2");
-        ASSERT_CONTAINS(str, "size: 1916,1076");
+        ASSERT_CONTAINS(str, "at: 7,2");
+        ASSERT_CONTAINS(str, "size: 1906,1076");
         ASSERT_CONTAINS(str, "workspace: 5");
         ASSERT_CONTAINS(str, "fullscreen: 1");
         ASSERT_CONTAINS(str, "fullscreenClient: 1");

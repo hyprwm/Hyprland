@@ -808,8 +808,8 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Int>("scrolling:focus_fit_method", "When a column is focused, what method should be used to bring it into view", 1,
                 {.min = 0, .max = 1, .map = OptionMap{{"center", 0}, {"fit", 1}}}),
         MS<Int>("scrolling:follow_focus",
-                "behaviour of the scrolling tape when a window is in focus. 0: focus doesn't cause tape move. 1: focus causes tape move, mouse click always moves the tape. 2: "
-                "focus causes tape move.",
+                "Behaviour of the scrolling tape when a window is in focus. 0: Focus doesn't cause tape move. 1: Focus may cause tape move, mouse click always moves the tape. 2: "
+                "Focus may cause tape move.",
                 1),
         MS<Float>("scrolling:follow_min_visible", "when a window is focused, require that at least a given fraction of it is visible for focus to follow", 0.4,
                   {.min = 0.0, .max = 1.0}),

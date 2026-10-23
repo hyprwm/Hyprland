@@ -4,7 +4,6 @@
 #include "hyprtester/src/tests/shared.hpp"
 #include <hyprutils/os/FileDescriptor.hpp>
 #include <hyprutils/os/Process.hpp>
-#include <hyprutils/utils/ScopeGuard.hpp>
 #include <optional>
 #include <sys/poll.h>
 #include <csignal>
@@ -194,10 +193,7 @@ TEST_CASE(clientFullscreenRequestDefaultHandled) {
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
     OK(getFromSocket("r/eval hl.config({ binds = { client_requested_fs_uses_layout_handler = false } })"));
 
-    // restore the default so later tests aren't affected
-    Hyprutils::Utils::CScopeGuard resetOpt([&] { getFromSocket("r/eval hl.config({ binds = { client_requested_fs_uses_layout_handler = true } })"); });
-
-    std::optional<CFsMonClient>   client;
+    std::optional<CFsMonClient> client;
     try {
         client.emplace();
     } catch (...) { FAIL_TEST("Failed to start fullscreen-with-monitor client"); }

@@ -16,8 +16,10 @@
 #include "../../desktop/view/window/Window.hpp"
 #include "../../desktop/view/window/WindowPresentation.hpp"
 #include "../../desktop/state/FocusState.hpp"
+#include "../../desktop/state/FadingOutState.hpp"
 #include "../../render/pass/ClearPassElement.hpp"
 #include "../../render/pass/RectPassElement.hpp"
+#include "../../render/pass/RendererHintsPassElement.hpp"
 #include "helpers/cm/ColorManagement.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
 #include <hyprutils/math/Region.hpp>
@@ -200,7 +202,53 @@ void CScreenshareFrame::renderMonitor(Render::CRenderContext& ctx) {
     if ((m_session->m_type != SHARE_MONITOR && m_session->m_type != SHARE_REGION) || done())
         return;
 
-    const auto PMONITOR = m_session->monitor();
+    const auto PMONITOR      = m_session->monitor();
+    const auto SCENEMONITOR  = PMONITOR->isMirror() ? PMONITOR->m_mirrorOf.lock() : PMONITOR;
+    const auto RENDER_CURSOR = [&] {
+        if (!m_overlayCursor)
+            return;
+
+        CRegion  fakeDamage = {0, 0, m_bufferSize.x, m_bufferSize.y};
+        Vector2D cursorPos  = Pointer::mgr()->untransformedPosition() - PMONITOR->m_position - m_session->m_captureBox.pos() / PMONITOR->m_scale;
+        Pointer::mgr()->renderSoftwareCursorsFor(ctx, PMONITOR, Time::steadyNow(), fakeDamage, cursorPos, true);
+    };
+
+    const auto ANY_NO_SCREEN_SHARE_VIEWS = [&SCENEMONITOR] {
+        if (!SCENEMONITOR)
+            return false;
+
+        for (auto const& l : Desktop::layerState()->layers()) {
+            if (l->m_monitor != SCENEMONITOR || !l->m_ruleApplicator->noScreenShare().valueOrDefault())
+                continue;
+
+            if UNLIKELY (!l->mapped() || !l->acceptsInput() || !l->alphaNonZero())
+                continue;
+
+            return true;
+        }
+
+        for (auto const& w : Desktop::windowState()->windows()) {
+            if (!w->m_ruleApplicator->noScreenShare().valueOrDefault() || w->isHidden() || !g_pHyprRenderer->shouldRenderWindow(w, SCENEMONITOR))
+                continue;
+
+            return true;
+        }
+
+        for (auto const& fadeout : Desktop::fadingOutState()->fadeouts()) {
+            if (!fadeout || fadeout->monitor() != SCENEMONITOR || !fadeout->source().noScreenShare)
+                continue;
+
+            return true;
+        }
+
+        return false;
+    };
+
+    if (SCENEMONITOR && ANY_NO_SCREEN_SHARE_VIEWS()) {
+        renderMonitorScene(ctx, SCENEMONITOR);
+        RENDER_CURSOR();
+        return;
+    }
 
     auto       TEXTURE = ctx.m_data.pMonitor->resources()->getMirrorTexture();
     if (!TEXTURE) {
@@ -239,7 +287,12 @@ void CScreenshareFrame::renderMonitor(Render::CRenderContext& ctx) {
                           {0, 0, m_bufferSize.x, m_bufferSize.y});
     ctx.m_data.renderModif.enabled = OLD;
 
-    // render black boxes for noscreenshare
+    if (SCENEMONITOR) {
+        RENDER_CURSOR();
+        return;
+    }
+
+     // Fall back to masking protected views when the mirrored source scene could not be re-rendered.
     auto hidePopups = [&](Vector2D popupBaseOffset) {
         return [&, popupBaseOffset](WP<Desktop::View::CPopup> popup, void*) {
             if (!popup->wlSurface() || !popup->wlSurface()->resource() || !popup->mapped() || !popup->acceptsInput() || !popup->alphaNonZero())
@@ -328,11 +381,54 @@ void CScreenshareFrame::renderMonitor(Render::CRenderContext& ctx) {
         w->popupHead()->breadthfirst(hidePopups(popupBaseOffset), nullptr);
     }
 
-    if (m_overlayCursor) {
-        CRegion  fakeDamage = {0, 0, m_bufferSize.x, m_bufferSize.y};
-        Vector2D cursorPos  = Pointer::mgr()->untransformedPosition() - PMONITOR->m_position - m_session->m_captureBox.pos() / PMONITOR->m_scale;
-        Pointer::mgr()->renderSoftwareCursorsFor(ctx, PMONITOR, Time::steadyNow(), fakeDamage, cursorPos, true);
-    }
+    RENDER_CURSOR();
+}
+
+void CScreenshareFrame::renderMonitorScene(Render::CRenderContext& ctx, PHLMONITOR monitor) {
+    const auto CAPTUREMONITOR = m_session->monitor();
+
+    ctx.m_data.fbSize = m_bufferSize;
+    g_pHyprRenderer->setProjectionType(ctx, Render::RPT_EXPORT);
+    ctx.m_data.transformDamage = false;
+    ctx.m_data.noSimplify      = true;
+    g_pHyprRenderer->setViewport(0, 0, m_bufferSize.x, m_bufferSize.y);
+
+    const auto   NOW          = Time::steadyNow();
+    const double MIRROR_SCALE = std::min(CAPTUREMONITOR->m_transformedSize.x / monitor->m_transformedSize.x, CAPTUREMONITOR->m_transformedSize.y / monitor->m_transformedSize.y);
+    CBox         MIRRORBOX    = {0, 0, monitor->m_transformedSize.x * MIRROR_SCALE, monitor->m_transformedSize.y * MIRROR_SCALE};
+    MIRRORBOX.x               = (CAPTUREMONITOR->m_transformedSize.x - MIRRORBOX.w) / 2.0;
+    MIRRORBOX.y               = (CAPTUREMONITOR->m_transformedSize.y - MIRRORBOX.h) / 2.0;
+
+    const auto CAPTUREPOS = m_session->m_captureBox.pos();
+    const CBox RENDERBOX  = {(MIRRORBOX.x - CAPTUREPOS.x) / MIRROR_SCALE, (MIRRORBOX.y - CAPTUREPOS.y) / MIRROR_SCALE, MIRRORBOX.w, MIRRORBOX.h};
+
+    const auto OLD_RENDERING_CAPTURE = ctx.m_renderingCapture;
+    ctx.m_renderingCapture           = true;
+    // The scene pass is deferred until endRender, so keep surface feedback blocked for the pass.
+    ctx.m_blockSurfaceFeedback = true;
+
+    g_pHyprRenderer->startRenderPass(ctx);
+    g_pHyprRenderer->renderWorkspace(ctx, monitor, monitor->m_activeWorkspace, NOW, RENDERBOX);
+
+    const float              RENDER_SCALE      = sc<float>(RENDERBOX.w / monitor->m_transformedSize.x);
+    const Vector2D           TRANSLATE         = {RENDERBOX.x, RENDERBOX.y};
+    const bool               MODIFY_LOCKSCREEN = TRANSLATE != Vector2D{} || RENDER_SCALE != 1.F;
+    Render::SRenderModifData LOCKSCREEN_MODIFS;
+    if (TRANSLATE != Vector2D{})
+        LOCKSCREEN_MODIFS.modifs.emplace_back(Render::SRenderModifData::RMOD_TYPE_TRANSLATE, TRANSLATE);
+    if (RENDER_SCALE != 1.F)
+        LOCKSCREEN_MODIFS.modifs.emplace_back(Render::SRenderModifData::RMOD_TYPE_SCALE, RENDER_SCALE);
+    if (MODIFY_LOCKSCREEN)
+        g_pHyprRenderer->addPassElement(ctx, makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{LOCKSCREEN_MODIFS}));
+
+    g_pHyprRenderer->renderLockscreen(ctx, monitor, NOW, RENDERBOX);
+
+    if (MODIFY_LOCKSCREEN)
+        g_pHyprRenderer->addPassElement(ctx, makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{Render::SRenderModifData{}}));
+
+    g_pHyprRenderer->renderIME(ctx, monitor, NOW, RENDERBOX);
+
+    ctx.m_renderingCapture = OLD_RENDERING_CAPTURE;
 }
 
 void CScreenshareFrame::renderWindow(Render::CRenderContext& ctx) {

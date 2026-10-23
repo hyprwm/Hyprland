@@ -201,6 +201,7 @@ namespace Screenshare {
         void render(Render::CRenderContext& ctx);
         void renderMonitor(Render::CRenderContext& ctx);
         void renderMonitorRegion(Render::CRenderContext& ctx);
+        void renderMonitorScene(Render::CRenderContext& ctx, PHLMONITOR monitor);
         void renderWindow(Render::CRenderContext& ctx);
         void renderWorkspace(Render::CRenderContext& ctx);
 

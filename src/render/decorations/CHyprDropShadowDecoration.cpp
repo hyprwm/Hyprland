@@ -81,7 +81,7 @@ void CHyprDropShadowDecoration::onWindowFocus() {
 void CHyprDropShadowDecoration::damageEntire() {
     static auto PSHADOWS = CConfigValue<Config::BOOL>("decoration:shadow:enabled");
 
-    if (*PSHADOWS != 1)
+    if (!(*PSHADOWS))
         return; // disabled
 
     const auto PWINDOW = m_window.lock();
@@ -135,7 +135,7 @@ void CHyprDropShadowDecoration::draw(Render::CRenderContext& ctx, PHLMONITOR pMo
 
 bool CHyprDropShadowDecoration::canRender(PHLMONITOR pMonitor) {
     static auto PSHADOWS = CConfigValue<Config::BOOL>("decoration:shadow:enabled");
-    if (*PSHADOWS != 1)
+    if (!(*PSHADOWS))
         return false; // disabled
 
     const auto PWINDOW = m_window.lock();

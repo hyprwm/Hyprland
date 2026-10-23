@@ -36,7 +36,7 @@ CRippleBlurMaterial::CRippleBlurMaterial() {
 
         static auto PRIPPLESTRENGTH = CConfigValue<Config::FLOAT>("decoration:blur:ripple:strength");
         static auto PRIPPLEDURATION = CConfigValue<Config::FLOAT>("decoration:blur:ripple:duration");
-        static auto PBLURENABLED    = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
+        static auto PBLURENABLED    = CConfigValue<Config::BOOL>("decoration:blur:enabled");
 
         if (!*PBLURENABLED || *PRIPPLESTRENGTH <= 0.F || *PRIPPLEDURATION <= 0.F)
             return;
@@ -50,7 +50,7 @@ CRippleBlurMaterial::CRippleBlurMaterial() {
 
         static auto PRIPPLESTRENGTH = CConfigValue<Config::FLOAT>("decoration:blur:ripple:strength");
         static auto PRIPPLEDURATION = CConfigValue<Config::FLOAT>("decoration:blur:ripple:duration");
-        static auto PBLURENABLED    = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
+        static auto PBLURENABLED    = CConfigValue<Config::BOOL>("decoration:blur:enabled");
 
         if (!*PBLURENABLED || *PRIPPLESTRENGTH <= 0.F || *PRIPPLEDURATION <= 0.F)
             return;
@@ -80,7 +80,7 @@ void CRippleBlurMaterial::addImpulse() {
     static auto PRIPPLERADIUS   = CConfigValue<Config::FLOAT>("decoration:blur:ripple:radius");
     static auto PRIPPLEWIDTH    = CConfigValue<Config::FLOAT>("decoration:blur:ripple:width");
     static auto PRIPPLEDURATION = CConfigValue<Config::FLOAT>("decoration:blur:ripple:duration");
-    static auto PBLURENABLED    = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
+    static auto PBLURENABLED    = CConfigValue<Config::BOOL>("decoration:blur:enabled");
 
     const auto  POS      = Pointer::mgr()->untransformedPosition();
     const auto  PMONITOR = State::monitorState()->query().vec(POS).run();
@@ -108,7 +108,7 @@ void CRippleBlurMaterial::addImpulse() {
 bool CRippleBlurMaterial::isAnimated(CRenderContext& ctx) const noexcept {
     static auto PRIPPLESTRENGTH = CConfigValue<Config::FLOAT>("decoration:blur:ripple:strength");
     static auto PRIPPLEDURATION = CConfigValue<Config::FLOAT>("decoration:blur:ripple:duration");
-    static auto PBLURENABLED    = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
+    static auto PBLURENABLED    = CConfigValue<Config::BOOL>("decoration:blur:enabled");
 
     if (!*PBLURENABLED || *PRIPPLESTRENGTH <= 0.F || *PRIPPLEDURATION <= 0.F || !ctx.m_data.pMonitor)
         return false;

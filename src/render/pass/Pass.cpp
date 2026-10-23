@@ -40,7 +40,7 @@ void CRenderPass::add(UP<IPassElement>&& el) {
 
 void CRenderPass::simplify(CRenderContext& ctx, bool willBlur, const CRegion& liveBlurRegion) {
     const auto  pMonitor   = ctx.m_data.pMonitor;
-    static auto PDEBUGPASS = CConfigValue<Config::INTEGER>("debug:pass");
+    static auto PDEBUGPASS = CConfigValue<Config::BOOL>("debug:pass");
 
     // TODO: use precompute blur for instances where there is nothing in between
 
@@ -143,7 +143,7 @@ void CRenderPass::planBackdropScopes(CRenderContext& ctx) {
 
 CRegion CRenderPass::render(CRenderContext& ctx, const CRegion& damage_) {
     const auto  pMonitor   = ctx.m_data.pMonitor;
-    static auto PDEBUGPASS = CConfigValue<Config::INTEGER>("debug:pass");
+    static auto PDEBUGPASS = CConfigValue<Config::BOOL>("debug:pass");
 
     // single pass: cache blur results and gather aggregate info
     bool    willBlur = false, willDisableSimplification = false, willPrecomputeBlur = false, requiresFullDamage = false, conditionalPreBlur = false;

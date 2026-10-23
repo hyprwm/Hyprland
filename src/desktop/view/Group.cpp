@@ -95,7 +95,7 @@ bool CGroup::has(PHLWINDOW w) const {
 }
 
 void CGroup::add(PHLWINDOW w, std::optional<size_t> index) {
-    static auto INSERT_AFTER_CURRENT          = CConfigValue<Config::INTEGER>("group:insert_after_current");
+    static auto INSERT_AFTER_CURRENT          = CConfigValue<Config::BOOL>("group:insert_after_current");
     static auto PDISABLE                      = CConfigValue<Config::BOOL>("group:groupbar:disable_when_only");
     const auto  GROUPBAR_DISABLED_ONLY_MEMBER = (*PDISABLE && m_windows.size() == 1) ? m_windows.at(0).lock() : nullptr;
 

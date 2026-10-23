@@ -20,7 +20,7 @@ using namespace Hyprutils::OS;
 constexpr const char* VERSION_FILE_NAME = "lastVersion";
 
 CVersionKeeperManager::CVersionKeeperManager() {
-    static auto PNONOTIFY = CConfigValue<Config::INTEGER>("ecosystem:no_update_news");
+    static auto PNONOTIFY = CConfigValue<Config::BOOL>("ecosystem:no_update_news");
 
     const auto  DATAROOT = NFsUtils::getDataHome();
 

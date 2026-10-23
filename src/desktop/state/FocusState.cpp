@@ -326,6 +326,6 @@ bool Desktop::isHardInputFocusReason(eFocusReason r) {
 
     static const auto PFOLLOW_FOCUS = CConfigValue<Config::INTEGER>("scrolling:follow_focus");
 
-    return r == FOCUS_REASON_NEW_WINDOW || r == FOCUS_REASON_KEYBIND || r == FOCUS_REASON_GHOSTS || ((*PFOLLOW_FOCUS == 2) ? (r == FOCUS_REASON_CLICK_UP) : false) || r == FOCUS_REASON_DESKTOP_STATE_CHANGE ||
-        r == FOCUS_REASON_UNMAP_WINDOW_TILING || r == FOCUS_REASON_SWITCH_TO_WINDOW_HARD;
+    return r == FOCUS_REASON_NEW_WINDOW || r == FOCUS_REASON_KEYBIND || r == FOCUS_REASON_GHOSTS || ((*PFOLLOW_FOCUS == 2) ? (r == FOCUS_REASON_CLICK_UP) : false) ||
+        r == FOCUS_REASON_DESKTOP_STATE_CHANGE || r == FOCUS_REASON_UNMAP_WINDOW_TILING || r == FOCUS_REASON_SWITCH_TO_WINDOW_HARD;
 }

@@ -250,7 +250,7 @@ void CScreenshareFrame::renderMonitor(Render::CRenderContext& ctx) {
         return;
     }
 
-    auto       TEXTURE = ctx.m_data.pMonitor->resources()->getMirrorTexture();
+    auto TEXTURE = ctx.m_data.pMonitor->resources()->getMirrorTexture();
     if (!TEXTURE) {
         LOG(Log::ERR, "Invalid source texture");
         return;
@@ -292,7 +292,7 @@ void CScreenshareFrame::renderMonitor(Render::CRenderContext& ctx) {
         return;
     }
 
-     // Fall back to masking protected views when the mirrored source scene could not be re-rendered.
+    // Fall back to masking protected views when the mirrored source scene could not be re-rendered.
     auto hidePopups = [&](Vector2D popupBaseOffset) {
         return [&, popupBaseOffset](WP<Desktop::View::CPopup> popup, void*) {
             if (!popup->wlSurface() || !popup->wlSurface()->resource() || !popup->mapped() || !popup->acceptsInput() || !popup->alphaNonZero())

@@ -192,11 +192,6 @@ namespace Layout::Tiled {
                 return 1;
             }
 
-            if (SCROLLING_ALGO->m_scrollingData->controller->getScrollInhibitor().isInhibited) {
-                lua_pushboolean(L, false);
-                return 1;
-            }
-
             const double NEW_OFFSET = sc<double>(lua_tonumber(L, 1));
 
             if (!std::isfinite(NEW_OFFSET)) {

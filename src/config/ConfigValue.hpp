@@ -13,7 +13,7 @@
 
 // giga hack to avoid including configManager here
 // NOLINTNEXTLINE
-void            local__configValuePopulate(void* const** p, void* const** hlangp, std::type_index* ti, const std::string& val);
+void            local__configValuePopulate(void* const** p, void* const** hlangp, const bool** setByUser, std::type_index* ti, const std::string& val);
 std::type_index local__configValueTypeIdx(const std::string& val);
 
 class CConfigValueBase {
@@ -22,6 +22,7 @@ class CConfigValueBase {
     void* const*    m_p         = nullptr;
     void* const*    m_hlangp    = nullptr;
     std::type_index m_typeIndex = typeid(void);
+    const bool*     m_setByUser = nullptr;
 
     CConfigValueBase();
     ~CConfigValueBase();
@@ -57,6 +58,10 @@ class CConfigValue : private CConfigValueBase {
 
     bool good() const {
         return m_p || m_hlangp;
+    }
+
+    bool setByUser() const {
+        return *m_setByUser;
     }
 };
 

@@ -3,7 +3,6 @@
 
 #include <algorithm>
 #include "../../Compositor.hpp"
-#include "../../config/ConfigManager.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../desktop/state/FocusState.hpp"
 #include "../pass/ShadowPassElement.hpp"
@@ -68,8 +67,7 @@ void CHyprDropShadowDecoration::updateState() {
         return;
     }
 
-    const auto COLORINACTIVE = Config::mgr()->getConfigValue("decoration:shadow:color_inactive");
-    m_gradient.setTarget(*COLORINACTIVE.setByUser ? *SHADOWCOLINACTIVE : *SHADOWCOL);
+    m_gradient.setTarget(PSHADOWCOLINACTIVE.setByUser() ? *SHADOWCOLINACTIVE : *SHADOWCOL);
 }
 
 void CHyprDropShadowDecoration::onWindowMap() {

@@ -48,3 +48,7 @@ std::optional<const char*> ILuaConfigValue::deprecationNotice() const {
 void ILuaConfigValue::setDeprecated(const char* x) {
     m_deprecated = x;
 }
+
+const bool* ILuaConfigValue::setByUserPtr() const {
+    return &m_bSetByUser;
+}

@@ -21,7 +21,7 @@ namespace Config {
         // <type>* const*
         void* const*          dataptr   = nullptr;
         const std::type_info* type      = nullptr;
-        bool                  setByUser = false;
+        const bool*           setByUser = nullptr;
     };
 
     enum eConfigManagerType : uint8_t {

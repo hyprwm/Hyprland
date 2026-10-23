@@ -272,7 +272,7 @@ static std::expected<void, std::string> buildPrimaries(cmsHPROFILE profile, SIma
 }
 
 std::expected<SImageDescription, std::string> SImageDescription::fromICC(const std::filesystem::path& file) {
-    static auto     PVCGTENABLED = CConfigValue<Config::INTEGER>("render:icc_vcgt_enabled");
+    static auto     PVCGTENABLED = CConfigValue<Config::BOOL>("render:icc_vcgt_enabled");
 
     std::error_code ec;
     if (!std::filesystem::exists(file, ec) || ec)

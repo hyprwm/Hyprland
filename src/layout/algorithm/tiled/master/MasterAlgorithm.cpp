@@ -45,9 +45,9 @@ void CMasterAlgorithm::movedTarget(SP<ITarget> target, std::optional<Vector2D> f
 
 void CMasterAlgorithm::addTarget(SP<ITarget> target, bool firstMap) {
     static auto PNEWONACTIVE      = CConfigValue<std::string>("master:new_on_active");
-    static auto PNEWONTOP         = CConfigValue<Config::INTEGER>("master:new_on_top");
+    static auto PNEWONTOP         = CConfigValue<Config::BOOL>("master:new_on_top");
     static auto PNEWSTATUS        = CConfigValue<std::string>("master:new_status");
-    static auto PDROPATCURSOR     = CConfigValue<Config::INTEGER>("master:drop_at_cursor");
+    static auto PDROPATCURSOR     = CConfigValue<Config::BOOL>("master:drop_at_cursor");
     static auto PSLAVECOUNTCENTER = CConfigValue<Config::INTEGER>("master:slave_count_for_center_master");
 
     const auto  PWORKSPACE = m_parent->space()->workspace();
@@ -272,7 +272,7 @@ void CMasterAlgorithm::addTarget(SP<ITarget> target, bool firstMap) {
 
 void CMasterAlgorithm::removeTarget(SP<ITarget> target) {
     const auto  MASTERSLEFT = getMastersNo();
-    static auto SMALLSPLIT  = CConfigValue<Config::INTEGER>("master:allow_small_split");
+    static auto SMALLSPLIT  = CConfigValue<Config::BOOL>("master:allow_small_split");
 
     const auto  PNODE = getNodeFromTarget(target);
 
@@ -323,7 +323,7 @@ void CMasterAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRec
 
     const auto   PMONITOR            = m_parent->space()->workspace()->m_monitor;
     static auto  SLAVECOUNTFORCENTER = CConfigValue<Config::INTEGER>("master:slave_count_for_center_master");
-    static auto  PSMARTRESIZING      = CConfigValue<Config::INTEGER>("master:smart_resizing");
+    static auto  PSMARTRESIZING      = CConfigValue<Config::BOOL>("master:smart_resizing");
 
     const auto   WORKAREA      = PMONITOR->logicalBoxMinusReserved();
     const bool   DISPLAYBOTTOM = STICKS(PNODE->position.y + PNODE->size.y, WORKAREA.y + WORKAREA.h);
@@ -468,7 +468,7 @@ void CMasterAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
 }
 
 void CMasterAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent) {
-    static auto PMONITORFALLBACK = CConfigValue<Config::INTEGER>("binds:window_direction_monitor_fallback");
+    static auto PMONITORFALLBACK = CConfigValue<Config::BOOL>("binds:window_direction_monitor_fallback");
 
     const auto  PWINDOW2 = Desktop::windowState()->query().inDirection(t->window(), dir);
 
@@ -697,7 +697,7 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
 
         const auto  WINDOWS    = getNodesNo();
         const auto  MASTERS    = getMastersNo();
-        static auto SMALLSPLIT = CConfigValue<Config::INTEGER>("master:allow_small_split");
+        static auto SMALLSPLIT = CConfigValue<Config::BOOL>("master:allow_small_split");
 
         if (MASTERS + 2 > WINDOWS && *SMALLSPLIT == 0)
             return stateErr("nothing to do");
@@ -1045,8 +1045,8 @@ void CMasterAlgorithm::calculateWorkspace() {
     bool                          centerMasterWindow  = false;
     static auto                   SLAVECOUNTFORCENTER = CConfigValue<Config::INTEGER>("master:slave_count_for_center_master");
     static auto                   CMFALLBACK          = CConfigValue<std::string>("master:center_master_fallback");
-    static auto                   PIGNORERESERVED     = CConfigValue<Config::INTEGER>("master:center_ignores_reserved");
-    static auto                   PSMARTRESIZING      = CConfigValue<Config::INTEGER>("master:smart_resizing");
+    static auto                   PIGNORERESERVED     = CConfigValue<Config::BOOL>("master:center_ignores_reserved");
+    static auto                   PSMARTRESIZING      = CConfigValue<Config::BOOL>("master:smart_resizing");
 
     const auto                    MASTERS          = getMastersNo();
     const auto                    WINDOWS          = getNodesNo();
@@ -1093,7 +1093,7 @@ void CMasterAlgorithm::calculateWorkspace() {
 
     // compute placement of master window(s)
     if (WINDOWS == 1 && !centerMasterWindow) {
-        static auto PALWAYSKEEPPOSITION = CConfigValue<Config::INTEGER>("master:always_keep_position");
+        static auto PALWAYSKEEPPOSITION = CConfigValue<Config::BOOL>("master:always_keep_position");
         if (*PALWAYSKEEPPOSITION) {
             const float WIDTH = WORKAREA.w * PMASTERNODE->percMaster;
             float       nextX = 0;

@@ -30,7 +30,7 @@ CFileDescriptor& CConfigWatcher::getInotifyFD() {
 }
 
 void CConfigWatcher::update() {
-    static const auto PDISABLEAUTORELOAD = CConfigValue<Config::INTEGER>("misc:disable_autoreload");
+    static const auto PDISABLEAUTORELOAD = CConfigValue<Config::BOOL>("misc:disable_autoreload");
     setWatchList(*PDISABLEAUTORELOAD ? std::vector<std::string>{} : Config::mgr()->getConfigPaths());
 }
 

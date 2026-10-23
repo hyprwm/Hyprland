@@ -20,7 +20,6 @@
 #include "../../../layout/algorithm/tiled/scrolling/ScrollingAlgorithm.hpp"
 #include "layout/algorithm/Algorithm.hpp"
 
-
 #include <hyprutils/utils/ScopeGuard.hpp>
 
 using namespace Config;
@@ -477,5 +476,4 @@ void Internal::registerQueryBindings(lua_State* L) {
     // Scrolling
     Internal::setFn(L, "get_scrolling_offset", Layout::Tiled::CScrollingAlgorithm::hlScrollingGetOffset);
     Internal::setFn(L, "set_scrolling_offset", Layout::Tiled::CScrollingAlgorithm::hlScrollingSetOffset);
-
 }

@@ -3,7 +3,6 @@
 
 #include <algorithm>
 
-#include "../../config/ConfigManager.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../Compositor.hpp"
 #include "../../desktop/state/FocusState.hpp"
@@ -64,8 +63,7 @@ void CHyprInnerGlowDecoration::updateState() {
         return;
     }
 
-    const auto COLORINACTIVE = Config::mgr()->getConfigValue("decoration:glow:color_inactive");
-    m_gradient.setTarget(*COLORINACTIVE.setByUser ? *GLOWCOLINACTIVE : *GLOWCOL);
+    m_gradient.setTarget(PGLOWCOLINACTIVE.setByUser() ? *GLOWCOLINACTIVE : *GLOWCOL);
 }
 
 void CHyprInnerGlowDecoration::onWindowMap() {

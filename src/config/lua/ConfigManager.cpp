@@ -1009,7 +1009,7 @@ SConfigOptionReply CConfigManager::getConfigValue(const std::string& s) {
 
         m_configPtrMap[s] = cv->data();
 
-        return SConfigOptionReply{.dataptr = cc<void* const*>(&m_configPtrMap.at(s)), .type = cv->underlying(), .setByUser = cv->setByUser()};
+        return SConfigOptionReply{.dataptr = cc<void* const*>(&m_configPtrMap.at(s)), .type = cv->underlying(), .setByUser = cv->setByUserPtr()};
     }
 
     std::string s2 = luaConfigValueName(s);
@@ -1021,7 +1021,7 @@ SConfigOptionReply CConfigManager::getConfigValue(const std::string& s) {
 
     m_configPtrMap[s2] = cv->data();
 
-    return SConfigOptionReply{.dataptr = cc<void* const*>(&m_configPtrMap.at(s2)), .type = cv->underlying(), .setByUser = cv->setByUser()};
+    return SConfigOptionReply{.dataptr = cc<void* const*>(&m_configPtrMap.at(s2)), .type = cv->underlying(), .setByUser = cv->setByUserPtr()};
 }
 
 std::string CConfigManager::getMainConfigPath() {

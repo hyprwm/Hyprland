@@ -53,5 +53,7 @@ namespace Config::Lua {
 
         virtual std::optional<const char*>     deprecationNotice() const;
         virtual void                           setDeprecated(const char*);
+
+        const bool*                            setByUserPtr() const;
     };
 };

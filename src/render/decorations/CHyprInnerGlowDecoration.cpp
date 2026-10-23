@@ -65,7 +65,7 @@ void CHyprInnerGlowDecoration::updateState() {
     }
 
     const auto COLORINACTIVE = Config::mgr()->getConfigValue("decoration:glow:color_inactive");
-    m_gradient.setTarget(COLORINACTIVE.setByUser ? *GLOWCOLINACTIVE : *GLOWCOL);
+    m_gradient.setTarget(*COLORINACTIVE.setByUser ? *GLOWCOLINACTIVE : *GLOWCOL);
 }
 
 void CHyprInnerGlowDecoration::onWindowMap() {

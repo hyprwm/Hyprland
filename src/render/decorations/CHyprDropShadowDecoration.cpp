@@ -69,7 +69,7 @@ void CHyprDropShadowDecoration::updateState() {
     }
 
     const auto COLORINACTIVE = Config::mgr()->getConfigValue("decoration:shadow:color_inactive");
-    m_gradient.setTarget(COLORINACTIVE.setByUser ? *SHADOWCOLINACTIVE : *SHADOWCOL);
+    m_gradient.setTarget(*COLORINACTIVE.setByUser ? *SHADOWCOLINACTIVE : *SHADOWCOL);
 }
 
 void CHyprDropShadowDecoration::onWindowMap() {

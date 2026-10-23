@@ -713,12 +713,12 @@ class CWorkspaceCaptureFrameTest : public CWorkspaceCaptureSessionTest {
         Desktop::fadingOutState()   = makeUnique<Desktop::CFadingOutState>();
 
         *CConfigValue<Config::BOOL>("ecosystem:enforce_permissions").ptr() = 0;
-        *CConfigValue<Config::BOOL>("misc:disable_hyprland_logo").ptr()       = 1;
-        *CConfigValue<Config::BOOL>("misc:disable_splash_rendering").ptr()    = 1;
-        *CConfigValue<Config::INTEGER>("misc:background_color").ptr()         = 0;
+        *CConfigValue<Config::BOOL>("misc:disable_hyprland_logo").ptr()    = 1;
+        *CConfigValue<Config::BOOL>("misc:disable_splash_rendering").ptr() = 1;
+        *CConfigValue<Config::INTEGER>("misc:background_color").ptr()      = 0;
         *CConfigValue<Config::BOOL>("render:xp_mode").ptr()                = 0;
         *CConfigValue<Config::BOOL>("debug:pass").ptr()                    = 0;
-        *CConfigValue<Config::BOOL>("decoration:blur:enabled").ptr()          = false;
+        *CConfigValue<Config::BOOL>("decoration:blur:enabled").ptr()       = false;
         m_monitor->m_output->state->setFormat(DRM_FORMAT_XRGB8888);
 
         std::array<int, 2> sockets = {-1, -1};
@@ -1332,7 +1332,7 @@ TEST_F(CWorkspaceCaptureSceneTest, RemovedSourceClearsResizedScratchAndPreserves
 }
 
 TEST_F(CWorkspaceCaptureSceneTest, PendingPermissionDefersSceneAndDeniedPermissionNeverRenders) {
-    auto shell                                                            = layer(ZWLR_LAYER_SHELL_V1_LAYER_TOP);
+    auto shell                                                         = layer(ZWLR_LAYER_SHELL_V1_LAYER_TOP);
     *CConfigValue<Config::BOOL>("ecosystem:enforce_permissions").ptr() = true;
     for (const bool dma : {false, true}) {
         g_pDynamicPermissionManager->clearConfigPermissions();

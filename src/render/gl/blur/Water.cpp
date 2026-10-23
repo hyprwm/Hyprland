@@ -77,7 +77,7 @@ eBlurType CWaterBlurMaterial::type() const noexcept {
 }
 
 bool CWaterBlurMaterial::isAnimated(CRenderContext& ctx) const noexcept {
-    static auto PBLURENABLED   = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
+    static auto PBLURENABLED   = CConfigValue<Config::BOOL>("decoration:blur:enabled");
     static auto PWATERSTRENGTH = CConfigValue<Config::FLOAT>("decoration:blur:water:strength");
 
     if (!*PBLURENABLED || *PWATERSTRENGTH <= 0.F)
@@ -194,7 +194,7 @@ CWaterBlurMaterial::SState* CWaterBlurMaterial::monitorState(PHLMONITORREF monit
 }
 
 void CWaterBlurMaterial::addImpulse() {
-    static auto PBLURENABLED   = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
+    static auto PBLURENABLED   = CConfigValue<Config::BOOL>("decoration:blur:enabled");
     static auto PWATERSTRENGTH = CConfigValue<Config::FLOAT>("decoration:blur:water:strength");
     static auto PWATERRADIUS   = CConfigValue<Config::FLOAT>("decoration:blur:water:radius");
 

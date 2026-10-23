@@ -734,7 +734,7 @@ void IHyprRenderer::renderWindow(CRenderContext& ctx, PHLWINDOW pWindow, PHLMONI
             }
         }
 
-        static auto PXWLUSENN = CConfigValue<Config::INTEGER>("xwayland:use_nearest_neighbor");
+        static auto PXWLUSENN = CConfigValue<Config::BOOL>("xwayland:use_nearest_neighbor");
         if ((pWindow->backend().isX11() && *PXWLUSENN) || pWindow->m_ruleApplicator->nearestNeighbor().valueOrDefault())
             renderdata.useNearestNeighbor = true;
 
@@ -965,8 +965,8 @@ CTempFramebufferScope::~CTempFramebufferScope() {
 }
 
 bool IHyprRenderer::preBlurQueued(PHLMONITORREF pMonitor) {
-    static auto PBLURNEWOPTIMIZE = CConfigValue<Config::INTEGER>("decoration:blur:new_optimizations");
-    static auto PBLUR            = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
+    static auto PBLURNEWOPTIMIZE = CConfigValue<Config::BOOL>("decoration:blur:new_optimizations");
+    static auto PBLUR            = CConfigValue<Config::BOOL>("decoration:blur:enabled");
 
     if (!pMonitor)
         return false;
@@ -977,7 +977,7 @@ bool IHyprRenderer::preBlurQueued(CRenderContext& ctx) {
     if (!ctx.readOnlyEffects())
         return preBlurQueued(ctx.m_data.pMonitor);
 
-    static auto PBLUR     = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
+    static auto PBLUR     = CConfigValue<Config::BOOL>("decoration:blur:enabled");
     const auto& resources = ctx.sceneResources();
     // Insert a conditional marker before windows. Pass analysis determines demand.
     return *PBLUR && resources->blurDirty() && resources->canPrecomputeBlur();
@@ -1125,8 +1125,8 @@ void IHyprRenderer::renderIMEPopup(CRenderContext& ctx, CInputPopup* pPopup, PHL
     renderdata.w        = SURF->m_current.size.x;
     renderdata.h        = SURF->m_current.size.y;
 
-    static auto PBLUR        = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
-    static auto PBLURIMES    = CConfigValue<Config::INTEGER>("decoration:blur:input_methods");
+    static auto PBLUR        = CConfigValue<Config::BOOL>("decoration:blur:enabled");
+    static auto PBLURIMES    = CConfigValue<Config::BOOL>("decoration:blur:input_methods");
     static auto PBLURIGNOREA = CConfigValue<Config::FLOAT>("decoration:blur:input_methods_ignorealpha");
 
     renderdata.blur = *PBLURIMES && *PBLUR;
@@ -1199,8 +1199,8 @@ void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR
 
 void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time, eSceneMode mode,
                                                  const Vector2D& translate, const float& scale) {
-    static auto PXPMODE          = CConfigValue<Config::INTEGER>("render:xp_mode");
-    static auto PSESSIONLOCKXRAY = CConfigValue<Config::INTEGER>("misc:session_lock_xray");
+    static auto PXPMODE          = CConfigValue<Config::BOOL>("render:xp_mode");
+    static auto PSESSIONLOCKXRAY = CConfigValue<Config::BOOL>("misc:session_lock_xray");
 
     if UNLIKELY (!pMonitor)
         return;
@@ -1462,9 +1462,9 @@ SP<ITexture> IHyprRenderer::getBackground(CRenderContext& ctx, PHLMONITOR pMonit
 }
 
 void IHyprRenderer::renderBackground(CRenderContext& ctx, PHLMONITOR pMonitor) {
-    static auto PRENDERTEX       = CConfigValue<Config::INTEGER>("misc:disable_hyprland_logo");
+    static auto PRENDERTEX       = CConfigValue<Config::BOOL>("misc:disable_hyprland_logo");
     static auto PBACKGROUNDCOLOR = CConfigValue<Config::INTEGER>("misc:background_color");
-    static auto PNOSPLASH        = CConfigValue<Config::INTEGER>("misc:disable_splash_rendering");
+    static auto PNOSPLASH        = CConfigValue<Config::BOOL>("misc:disable_splash_rendering");
 
     if (*PRENDERTEX /* inverted cfg flag */ || pMonitor->m_backgroundOpacity->isBeingAnimated())
         addPassElement(ctx, makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(*PBACKGROUNDCOLOR)}));
@@ -1521,7 +1521,7 @@ void IHyprRenderer::requestBackgroundResource() {
     if (m_backgroundResource)
         return;
 
-    static auto PNOWALLPAPER    = CConfigValue<Config::INTEGER>("misc:disable_hyprland_logo");
+    static auto PNOWALLPAPER    = CConfigValue<Config::BOOL>("misc:disable_hyprland_logo");
     static auto PFORCEWALLPAPER = CConfigValue<Config::INTEGER>("misc:force_default_wallpaper");
 
     const auto  FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, sc<int64_t>(-1), sc<int64_t>(2));
@@ -1636,8 +1636,8 @@ SP<IFramebuffer> IHyprRenderer::getWorkBuffer(CRenderContext& ctx, std::optional
 }
 
 bool IHyprRenderer::shouldUseNewBlurOptimizations(CRenderContext& ctx, PHLLS pLayer, PHLWINDOW pWindow) {
-    static auto PBLURNEWOPTIMIZE = CConfigValue<Config::INTEGER>("decoration:blur:new_optimizations");
-    static auto PBLURXRAY        = CConfigValue<Config::INTEGER>("decoration:blur:xray");
+    static auto PBLURNEWOPTIMIZE = CConfigValue<Config::BOOL>("decoration:blur:new_optimizations");
+    static auto PBLURXRAY        = CConfigValue<Config::BOOL>("decoration:blur:xray");
 
     if (ctx.readOnlyEffects() ? !ctx.sceneResources()->canPrecomputeBlur() : !getBlurTexture(ctx))
         return false;
@@ -1817,7 +1817,7 @@ void IHyprRenderer::renderLockscreen(CRenderContext& ctx, PHLMONITOR pMonitor, c
 }
 
 void IHyprRenderer::renderSessionLockPrimer(CRenderContext& ctx, PHLMONITOR pMonitor) {
-    static auto PSESSIONLOCKXRAY = CConfigValue<Config::INTEGER>("misc:session_lock_xray");
+    static auto PSESSIONLOCKXRAY = CConfigValue<Config::BOOL>("misc:session_lock_xray");
     if (*PSESSIONLOCKXRAY)
         return;
 
@@ -2257,11 +2257,11 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     static std::chrono::high_resolution_clock::time_point renderStartOverlay = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point endRenderOverlay   = std::chrono::high_resolution_clock::now();
 
-    static auto                                           PDEBUGOVERLAY       = CConfigValue<Config::INTEGER>("debug:overlay");
+    static auto                                           PDEBUGOVERLAY       = CConfigValue<Config::BOOL>("debug:overlay");
     static auto                                           PDAMAGETRACKINGMODE = CConfigValue<Config::INTEGER>("debug:damage_tracking");
-    static auto                                           PDAMAGEBLINK        = CConfigValue<Config::INTEGER>("debug:damage_blink");
-    static auto                                           PSOLDAMAGE          = CConfigValue<Config::INTEGER>("debug:render_solitary_wo_damage");
-    static auto                                           PVFR                = CConfigValue<Config::INTEGER>("debug:vfr");
+    static auto                                           PDAMAGEBLINK        = CConfigValue<Config::BOOL>("debug:damage_blink");
+    static auto                                           PSOLDAMAGE          = CConfigValue<Config::BOOL>("debug:render_solitary_wo_damage");
+    static auto                                           PVFR                = CConfigValue<Config::BOOL>("debug:vfr");
 
     static int                                            damageBlinkCleanup = 0; // because double-buffered
 
@@ -2571,7 +2571,7 @@ static bool hdrMetadataEqual(const hdr_output_metadata& a, const hdr_output_meta
 }
 
 void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
-    static auto PCT        = CConfigValue<Config::INTEGER>("render:send_content_type");
+    static auto PCT        = CConfigValue<Config::BOOL>("render:send_content_type");
     static auto PAUTOHDR   = CConfigValue<Config::INTEGER>("render:cm_auto_hdr");
     static auto PNONSHADER = CConfigValue<Config::INTEGER>("render:non_shader_cm");
     static auto PNSINTEROP = CConfigValue<Config::INTEGER>("render:non_shader_cm_interop");
@@ -3018,7 +3018,7 @@ void IHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
         m->addDamage(damageBoxForEach);
     }
 
-    static auto PLOGDAMAGE = CConfigValue<Config::INTEGER>("debug:log_damage");
+    static auto PLOGDAMAGE = CConfigValue<Config::BOOL>("debug:log_damage");
 
     if (*PLOGDAMAGE)
         LOG(Log::DEBUG, "Damage: Surface (extents): xy: {}, {} wh: {}, {}", damageBox.pixman()->extents.x1, damageBox.pixman()->extents.y1,
@@ -3041,7 +3041,7 @@ void IHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
         }
     }
 
-    static auto PLOGDAMAGE = CConfigValue<Config::INTEGER>("debug:log_damage");
+    static auto PLOGDAMAGE = CConfigValue<Config::BOOL>("debug:log_damage");
 
     if (*PLOGDAMAGE)
         LOG(Log::DEBUG, "Damage: Window ({}): xy: {}, {} wh: {}, {}", pWindow->metadata().title(), windowBox.x, windowBox.y, windowBox.width, windowBox.height);
@@ -3054,7 +3054,7 @@ void IHyprRenderer::damageMonitor(PHLMONITOR pMonitor) {
     CBox damageBox = {0, 0, INT16_MAX, INT16_MAX};
     pMonitor->addDamage(damageBox);
 
-    static auto PLOGDAMAGE = CConfigValue<Config::INTEGER>("debug:log_damage");
+    static auto PLOGDAMAGE = CConfigValue<Config::BOOL>("debug:log_damage");
 
     if (*PLOGDAMAGE)
         LOG(Log::DEBUG, "Damage: Monitor {}", pMonitor->m_name);
@@ -3071,7 +3071,7 @@ void IHyprRenderer::damageBox(const CBox& box, bool skipFrameSchedule) {
         }
     }
 
-    static auto PLOGDAMAGE = CConfigValue<Config::INTEGER>("debug:log_damage");
+    static auto PLOGDAMAGE = CConfigValue<Config::BOOL>("debug:log_damage");
 
     if (*PLOGDAMAGE)
         LOG(Log::DEBUG, "Damage: Box: xy: {}, {} wh: {}, {}", box.x, box.y, box.w, box.h);
@@ -3180,11 +3180,11 @@ void IHyprRenderer::setCursorFromName(const std::string& name, bool force) {
 }
 
 void IHyprRenderer::ensureCursorRenderingMode() {
-    static auto PINVISIBLE     = CConfigValue<Config::INTEGER>("cursor:invisible");
+    static auto PINVISIBLE     = CConfigValue<Config::BOOL>("cursor:invisible");
     static auto PCURSORTIMEOUT = CConfigValue<Config::FLOAT>("cursor:inactive_timeout");
-    static auto PHIDEONTOUCH   = CConfigValue<Config::INTEGER>("cursor:hide_on_touch");
-    static auto PHIDEONTABLET  = CConfigValue<Config::INTEGER>("cursor:hide_on_tablet");
-    static auto PHIDEONKEY     = CConfigValue<Config::INTEGER>("cursor:hide_on_key_press");
+    static auto PHIDEONTOUCH   = CConfigValue<Config::BOOL>("cursor:hide_on_touch");
+    static auto PHIDEONTABLET  = CConfigValue<Config::BOOL>("cursor:hide_on_tablet");
+    static auto PHIDEONKEY     = CConfigValue<Config::BOOL>("cursor:hide_on_key_press");
 
     if (*PCURSORTIMEOUT <= 0)
         m_cursorHiddenConditions.hiddenOnTimeout = false;

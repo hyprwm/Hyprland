@@ -220,11 +220,11 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
     }
 
     static auto  PSWIPEDIST             = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_distance");
-    static auto  PSWIPENEW              = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_create_new");
-    static auto  PSWIPEDIRLOCK          = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_direction_lock");
+    static auto  PSWIPENEW              = CConfigValue<Config::BOOL>("gestures:workspace_swipe_create_new");
+    static auto  PSWIPEDIRLOCK          = CConfigValue<Config::BOOL>("gestures:workspace_swipe_direction_lock");
     static auto  PSWIPEDIRLOCKTHRESHOLD = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_direction_lock_threshold");
-    static auto  PSWIPEFOREVER          = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_forever");
-    static auto  PSWIPEUSER             = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_use_r");
+    static auto  PSWIPEFOREVER          = CConfigValue<Config::BOOL>("gestures:workspace_swipe_forever");
+    static auto  PSWIPEUSER             = CConfigValue<Config::BOOL>("gestures:workspace_swipe_use_r");
     static auto  PWORKSPACEGAP          = CConfigValue<Config::INTEGER>("general:gaps_workspaces");
 
     const auto   SWIPEDISTANCE = std::clamp(*PSWIPEDIST, sc<int64_t>(1LL), sc<int64_t>(UINT32_MAX));
@@ -371,8 +371,8 @@ bool CUnifiedWorkspaceSwipeGesture::endSegment() {
     static auto PSWIPEPERC    = CConfigValue<Config::FLOAT>("gestures:workspace_swipe_cancel_ratio");
     static auto PSWIPEDIST    = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_distance");
     static auto PSWIPEFORC    = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_min_speed_to_force");
-    static auto PSWIPENEW     = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_create_new");
-    static auto PSWIPEUSER    = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_use_r");
+    static auto PSWIPENEW     = CConfigValue<Config::BOOL>("gestures:workspace_swipe_create_new");
+    static auto PSWIPEUSER    = CConfigValue<Config::BOOL>("gestures:workspace_swipe_use_r");
     static auto PWORKSPACEGAP = CConfigValue<Config::INTEGER>("general:gaps_workspaces");
     const auto  ANIMSTYLE     = m_workspaceBegin->m_renderOffset->getStyle();
     const bool  VERTANIMS     = ANIMSTYLE == "slidevert" || ANIMSTYLE.starts_with("slidefadevert");

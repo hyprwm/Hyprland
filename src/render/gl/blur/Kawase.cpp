@@ -110,7 +110,7 @@ SP<CGLFramebuffer> CDualKawaseBlurProvider::blurGL(CRenderContext& ctx, SP<CGLFr
     {
         static auto PBLURCONTRAST   = CConfigValue<Config::FLOAT>("decoration:blur:contrast");
         static auto PBLURBRIGHTNESS = CConfigValue<Config::FLOAT>("decoration:blur:brightness");
-        static auto PBLEND          = CConfigValue<Config::INTEGER>("render:use_shader_blur_blend");
+        static auto PBLEND          = CConfigValue<Config::BOOL>("render:use_shader_blur_blend");
 
         PPREPAREDFB->bind();
         PPREPAREDFB->clearAfterInvalidation();

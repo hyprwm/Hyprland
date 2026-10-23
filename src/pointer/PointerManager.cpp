@@ -1070,7 +1070,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
     if (!pointer)
         return;
 
-    static auto PMOUSEDPMS = CConfigValue<Config::INTEGER>("misc:mouse_move_enables_dpms");
+    static auto PMOUSEDPMS = CConfigValue<Config::BOOL>("misc:mouse_move_enables_dpms");
 
     //
     auto listener = m_pointerListeners.emplace_back(makeShared<SPointerListener>());
@@ -1164,7 +1164,7 @@ void CPointerManager::attachTouch(SP<ITouch> touch) {
     if (!touch)
         return;
 
-    static auto PMOUSEDPMS = CConfigValue<Config::INTEGER>("misc:mouse_move_enables_dpms");
+    static auto PMOUSEDPMS = CConfigValue<Config::BOOL>("misc:mouse_move_enables_dpms");
 
     //
     auto listener = m_touchListeners.emplace_back(makeShared<STouchListener>());
@@ -1203,7 +1203,7 @@ void CPointerManager::attachTablet(SP<CTablet> tablet) {
     if (!tablet)
         return;
 
-    static auto PMOUSEDPMS = CConfigValue<Config::INTEGER>("misc:mouse_move_enables_dpms");
+    static auto PMOUSEDPMS = CConfigValue<Config::BOOL>("misc:mouse_move_enables_dpms");
 
     //
     auto listener = m_tabletListeners.emplace_back(makeShared<STabletListener>());

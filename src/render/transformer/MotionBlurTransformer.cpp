@@ -25,7 +25,7 @@ CMotionBlurTransformer::~CMotionBlurTransformer() {
 }
 
 bool CMotionBlurTransformer::shouldEnable(PHLWINDOW window) {
-    static auto PMBENABLED = CConfigValue<Config::INTEGER>("decoration:motion_blur:enabled");
+    static auto PMBENABLED = CConfigValue<Config::BOOL>("decoration:motion_blur:enabled");
     static auto PMBSAMPLES = CConfigValue<Config::INTEGER>("decoration:motion_blur:samples");
 
     if (!window)

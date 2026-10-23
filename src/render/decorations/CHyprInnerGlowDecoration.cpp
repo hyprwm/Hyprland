@@ -110,7 +110,7 @@ void CHyprInnerGlowDecoration::draw(Render::CRenderContext& ctx, PHLMONITOR pMon
 }
 
 void CHyprInnerGlowDecoration::render(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a, const Render::SWindowRenderPresentation& presentation) {
-    static auto PGLOW = CConfigValue<Config::INTEGER>("decoration:glow:enabled");
+    static auto PGLOW = CConfigValue<Config::BOOL>("decoration:glow:enabled");
     if (!*PGLOW || !visible())
         return;
 
@@ -171,6 +171,6 @@ eDecorationLayer CHyprInnerGlowDecoration::getDecorationLayer() {
 }
 
 bool CHyprInnerGlowDecoration::visible() {
-    static auto PENABLED = CConfigValue<Config::INTEGER>("decoration:glow:enabled");
+    static auto PENABLED = CConfigValue<Config::BOOL>("decoration:glow:enabled");
     return *PENABLED && m_window->m_ruleApplicator->decorate().valueOrDefault() && !m_window->m_ruleApplicator->noGlow().valueOrDefault();
 }

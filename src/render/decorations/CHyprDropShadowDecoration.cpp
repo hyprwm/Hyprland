@@ -81,9 +81,9 @@ void CHyprDropShadowDecoration::onWindowFocus() {
 }
 
 void CHyprDropShadowDecoration::damageEntire() {
-    static auto PSHADOWS = CConfigValue<Config::INTEGER>("decoration:shadow:enabled");
+    static auto PSHADOWS = CConfigValue<Config::BOOL>("decoration:shadow:enabled");
 
-    if (*PSHADOWS != 1)
+    if (!(*PSHADOWS))
         return; // disabled
 
     const auto PWINDOW = m_window.lock();
@@ -136,8 +136,8 @@ void CHyprDropShadowDecoration::draw(Render::CRenderContext& ctx, PHLMONITOR pMo
 }
 
 bool CHyprDropShadowDecoration::canRender(PHLMONITOR pMonitor) {
-    static auto PSHADOWS = CConfigValue<Config::INTEGER>("decoration:shadow:enabled");
-    if (*PSHADOWS != 1)
+    static auto PSHADOWS = CConfigValue<Config::BOOL>("decoration:shadow:enabled");
+    if (!(*PSHADOWS))
         return false; // disabled
 
     const auto PWINDOW = m_window.lock();
@@ -263,7 +263,7 @@ eDecorationLayer CHyprDropShadowDecoration::getDecorationLayer() {
 
 void CHyprDropShadowDecoration::drawShadowInternal(Render::CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad,
                                                    float a, const Render::SWindowRenderPresentation& presentation) {
-    static auto PSHADOWSHARP = CConfigValue<Config::INTEGER>("decoration:shadow:sharp");
+    static auto PSHADOWSHARP = CConfigValue<Config::BOOL>("decoration:shadow:sharp");
 
     if (box.w < 1 || box.h < 1)
         return;
@@ -287,7 +287,7 @@ void CHyprDropShadowDecoration::drawShadowInternal(Render::CRenderContext& ctx, 
 
 void CHyprDropShadowDecoration::drawShadowInternal(Render::CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
                                                    const Config::CGradientValueData& grad2, float lerp, float a, const Render::SWindowRenderPresentation& presentation) {
-    static auto PSHADOWSHARP = CConfigValue<Config::INTEGER>("decoration:shadow:sharp");
+    static auto PSHADOWSHARP = CConfigValue<Config::BOOL>("decoration:shadow:sharp");
 
     if (box.w < 1 || box.h < 1)
         return;

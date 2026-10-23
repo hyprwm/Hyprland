@@ -188,7 +188,7 @@ void CLayerSurface::onMap() {
     if (!PMONITOR)
         return;
 
-    static auto PALLOWNEWTOPOVERFULLSCREEN = CConfigValue<Config::INTEGER>("misc:allow_new_top_layers_over_existing_fullscreen");
+    static auto PALLOWNEWTOPOVERFULLSCREEN = CConfigValue<Config::BOOL>("misc:allow_new_top_layers_over_existing_fullscreen");
 
     // if PALLOWNEWTOPOVERFULLSCREEN = true: guard against making top layer elements, like bars, visible ontop of fullscreen
     // Monitor only recognises a window as FS if it is FSMODE_FULLSCREEN so that's guaranteed here
@@ -349,7 +349,7 @@ void CLayerSurface::onCommit() {
 
             m_layer = NEW_LAYER;
 
-            static auto PALLOWNEWTOPOVERFULLSCREEN = CConfigValue<Config::INTEGER>("misc:allow_new_top_layers_over_existing_fullscreen");
+            static auto PALLOWNEWTOPOVERFULLSCREEN = CConfigValue<Config::BOOL>("misc:allow_new_top_layers_over_existing_fullscreen");
 
             // if PALLOWNEWTOPOVERFULLSCREEN = true: guard against making top layer elements, like bars, visible ontop of fullscreen
             // Monitor only recognises a window as FS if it is FSMODE_FULLSCREEN so that's guaranteed here
@@ -514,7 +514,7 @@ std::optional<uint8_t> CLayerSurface::alphaGenericToKey(eAlphaModifiableProp p) 
 }
 
 bool CLayerSurface::shouldBlur() const {
-    static auto PBLUR = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
+    static auto PBLUR = CConfigValue<Config::BOOL>("decoration:blur:enabled");
     if (!*PBLUR)
         return false;
 

@@ -445,7 +445,7 @@ void CKeybindManager::onDeviceRemoved(const SP<IHID>& device) {
 }
 
 SBindResult CKeybindManager::processEvent(const SBindEventContext& context, const SP<IKeyboard>& keyboard, SPressedInput* pressedInput) {
-    static auto                      PDISABLEINHIBIT = CConfigValue<Config::INTEGER>("binds:disable_keybind_grabbing");
+    static auto                      PDISABLEINHIBIT = CConfigValue<Config::BOOL>("binds:disable_keybind_grabbing");
     static auto                      PDRAGTHRESHOLD  = CConfigValue<Config::INTEGER>("binds:drag_threshold");
 
     const bool                       INHIBITED = !*PDISABLEINHIBIT && PROTO::shortcutsInhibit->isInhibited();
@@ -895,7 +895,7 @@ bool CKeybindManager::handleInternalKeybinds(xkb_keysym_t keysym) {
 }
 
 bool CKeybindManager::canInvokeNow(const PBind& bind) const {
-    static auto PDISABLEINHIBIT = CConfigValue<Config::INTEGER>("binds:disable_keybind_grabbing");
+    static auto PDISABLEINHIBIT = CConfigValue<Config::BOOL>("binds:disable_keybind_grabbing");
 
     if (!bind->enabled() || !m_registry.contains(bind) || m_shadowed.contains(bind))
         return false;

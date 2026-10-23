@@ -239,7 +239,7 @@ void CPlacementController::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR
 }
 
 void CPlacementController::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMonitor, bool noWarpCursor, bool carryFocus) const {
-    static auto PHIDESPECIALONWORKSPACECHANGE = CConfigValue<Config::INTEGER>("binds:hide_special_on_workspace_change");
+    static auto PHIDESPECIALONWORKSPACECHANGE = CConfigValue<Config::BOOL>("binds:hide_special_on_workspace_change");
 
     if (!pWorkspace || !pMonitor)
         return;

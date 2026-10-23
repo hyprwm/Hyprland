@@ -114,7 +114,7 @@ namespace WorkspaceGestures {
         const auto MONITOR = Desktop::focusState()->monitor();
         if (!MONITOR || !MONITOR->m_activeWorkspace || g_pUnifiedWorkspaceSwipe->isGestureInProgress())
             return "Workspace swipe fixture requires an idle active monitor";
-        if (*CConfigValue<Config::INTEGER>("animations:enabled"))
+        if (*CConfigValue<Config::BOOL>("animations:enabled"))
             return "Disable animations before preparing the workspace swipe fixture";
 
         g_monitor                           = MONITOR;
@@ -311,7 +311,7 @@ namespace WorkspaceGestures {
             neighborOffset     = NEIGHBOR->m_renderOffset->goal();
         });
 
-        const bool FOREVER = *CConfigValue<Config::INTEGER>("gestures:workspace_swipe_forever");
+        const bool FOREVER = *CConfigValue<Config::BOOL>("gestures:workspace_swipe_forever");
         g_pUnifiedWorkspaceSwipe->update(direction * (FOREVER ? 300 : 180));
         if (!FOREVER)
             g_pUnifiedWorkspaceSwipe->end();
@@ -390,7 +390,7 @@ namespace WorkspaceGestures {
     }
 
     static int luaInvalidEnd(lua_State* L) {
-        if (!g_swiping || !g_pUnifiedWorkspaceSwipe->isGestureInProgress() || !*CConfigValue<Config::INTEGER>("gestures:workspace_swipe_use_r") ||
+        if (!g_swiping || !g_pUnifiedWorkspaceSwipe->isGestureInProgress() || !*CConfigValue<Config::BOOL>("gestures:workspace_swipe_use_r") ||
             State::Workspace::resolver()->getWorkspaceTargetFromString("r+1").valid())
             return luaL_error(L, "Invalid-end probe requires a live preview and an invalid real r+1 target");
         g_pUnifiedWorkspaceSwipe->end();

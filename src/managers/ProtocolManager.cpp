@@ -131,10 +131,10 @@ void CProtocolManager::onMonitorModeChange(PHLMONITOR pMonitor) {
 
 CProtocolManager::CProtocolManager() {
 
-    static const auto PENABLECM = CConfigValue<Config::INTEGER>("render:cm_enabled");
-    static const auto PDEBUGCM  = CConfigValue<Config::INTEGER>("debug:full_cm_proto");
-    static const auto PCMV1_2   = CConfigValue<Config::INTEGER>("experimental:wp_cm_1_2");
-    static const auto PENABLECT = CConfigValue<Config::INTEGER>("render:commit_timing_enabled");
+    static const auto PENABLECM = CConfigValue<Config::BOOL>("render:cm_enabled");
+    static const auto PDEBUGCM  = CConfigValue<Config::BOOL>("debug:full_cm_proto");
+    static const auto PCMV1_2   = CConfigValue<Config::BOOL>("experimental:wp_cm_1_2");
+    static const auto PENABLECT = CConfigValue<Config::BOOL>("render:commit_timing_enabled");
 
     // Outputs are a bit dumb, we have to agree.
     static auto P = Event::bus()->m_events.monitor.added.listen([this](PHLMONITOR M) {

@@ -326,7 +326,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >
         loadGLProc(&m_proc.eglQueryDisplayAttribEXT, "eglQueryDisplayAttribEXT");
     }
 
-    static const auto GLDEBUG = CConfigValue<Config::INTEGER>("debug:gl_debugging");
+    static const auto GLDEBUG = CConfigValue<Config::BOOL>("debug:gl_debugging");
     if (EGLEXTENSIONS.contains("EGL_KHR_debug") && *GLDEBUG) {
         loadGLProc(&m_proc.eglDebugMessageControlKHR, "eglDebugMessageControlKHR");
         static const EGLAttrib debugAttrs[] = {
@@ -792,7 +792,7 @@ bool CHyprOpenGLImpl::begin(CRenderContext& ctx, PHLMONITOR pMonitor, const CReg
 }
 
 void CHyprOpenGLImpl::end(CRenderContext& ctx) {
-    static auto PZOOMDISABLEAA = CConfigValue<Config::INTEGER>("cursor:zoom_disable_aa");
+    static auto PZOOMDISABLEAA = CConfigValue<Config::BOOL>("cursor:zoom_disable_aa");
     auto&       m_renderData   = ctx.m_data;
     const auto  PMONITOR       = m_renderData.pMonitor;
     TRACY_GPU_ZONE("RenderEnd");
@@ -933,7 +933,7 @@ void CHyprOpenGLImpl::end(CRenderContext& ctx) {
         },
         false);
 
-    static const auto GLDEBUG = CConfigValue<Config::INTEGER>("debug:gl_debugging");
+    static const auto GLDEBUG = CConfigValue<Config::BOOL>("debug:gl_debugging");
 
     if (*GLDEBUG) {
         // check for gl errors
@@ -987,7 +987,7 @@ const std::array<std::string, SH_FRAG_LAST> FRAG_SHADERS = {
 
 bool CHyprOpenGLImpl::initShaders(const std::string& path) {
     auto              shaders = makeShared<SPreparedShaders>();
-    static const auto PCM     = CConfigValue<Config::INTEGER>("render:cm_enabled");
+    static const auto PCM     = CConfigValue<Config::BOOL>("render:cm_enabled");
 
     try {
         auto shaderLoader = makeUnique<CShaderLoader>(SHADER_INCLUDES, FRAG_SHADERS, path);
@@ -1418,8 +1418,8 @@ WP<CShader> CHyprOpenGLImpl::renderScreenShaderInternal(CRenderContext& ctx) {
 }
 
 WP<CShader> CHyprOpenGLImpl::renderToFBInternal(CRenderContext& ctx, SP<ITexture> tex, const STextureRenderData& data, eTextureType texType, const CBox& newBox) {
-    static const auto  PENABLECM = CConfigValue<Config::INTEGER>("render:cm_enabled");
-    static auto        PBLEND    = CConfigValue<Config::INTEGER>("render:use_shader_blur_blend");
+    static const auto  PENABLECM = CConfigValue<Config::BOOL>("render:cm_enabled");
+    static auto        PBLEND    = CConfigValue<Config::BOOL>("render:use_shader_blur_blend");
 
     auto&              m_renderData = ctx.m_data;
 
@@ -1874,7 +1874,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(CRenderContext& ctx, SP<ITex
 
     TRACY_GPU_ZONE("RenderTextureWithBlur");
 
-    static auto PBLEND        = CConfigValue<Config::INTEGER>("render:use_shader_blur_blend");
+    static auto PBLEND        = CConfigValue<Config::BOOL>("render:use_shader_blur_blend");
     const auto  NEEDS_STENCIL = data.discardMode != 0 && (!data.blockBlurOptimization || (data.discardMode & DISCARD_ALPHA));
     const bool  SHADERBLEND   = *PBLEND || data.forceBlurBlend;
     if (!SHADERBLEND && data.blurredBG) {
@@ -1920,7 +1920,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(CRenderContext& ctx, SP<ITex
         // stencil done. Render everything.
         const CBox  monitorSpaceBox = box;
 
-        static auto PBLURIGNOREOPACITY = CConfigValue<Config::INTEGER>("decoration:blur:ignore_opacity");
+        static auto PBLURIGNOREOPACITY = CConfigValue<Config::BOOL>("decoration:blur:ignore_opacity");
 
         // handle ext-background-effect-v1 blur region if specified
         CRegion blurClipRegion = data.clipRegion;

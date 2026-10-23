@@ -80,7 +80,7 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionMode(wl_c
 
     static auto PPERM = CConfigValue<Config::BOOL>("ecosystem:enforce_permissions");
 
-    if (*PPERM == 0)
+    if (!(*PPERM))
         return PERMISSION_RULE_ALLOW_MODE_ALLOW;
 
     const auto LOOKUP = binaryNameForWlClient(client);
@@ -152,7 +152,7 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionMode(wl_c
 eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionModeWithString(pid_t pid, const std::string& str, eDynamicPermissionType permission) {
     static auto PPERM = CConfigValue<Config::BOOL>("ecosystem:enforce_permissions");
 
-    if (*PPERM == 0)
+    if (!(*PPERM))
         return PERMISSION_RULE_ALLOW_MODE_ALLOW;
 
     std::optional<std::string>              binaryName;

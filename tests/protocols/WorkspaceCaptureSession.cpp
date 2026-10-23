@@ -713,8 +713,8 @@ class CWorkspaceCaptureFrameTest : public CWorkspaceCaptureSessionTest {
         Desktop::fadingOutState()   = makeUnique<Desktop::CFadingOutState>();
 
         *CConfigValue<Config::INTEGER>("ecosystem:enforce_permissions").ptr() = 0;
-        *CConfigValue<Config::INTEGER>("misc:disable_hyprland_logo").ptr()    = 1;
-        *CConfigValue<Config::INTEGER>("misc:disable_splash_rendering").ptr() = 1;
+        *CConfigValue<Config::BOOL>("misc:disable_hyprland_logo").ptr()    = 1;
+        *CConfigValue<Config::BOOL>("misc:disable_splash_rendering").ptr() = 1;
         *CConfigValue<Config::INTEGER>("misc:background_color").ptr()         = 0;
         *CConfigValue<Config::INTEGER>("render:xp_mode").ptr()                = 0;
         *CConfigValue<Config::INTEGER>("debug:pass").ptr()                    = 0;
@@ -1182,7 +1182,7 @@ TEST_F(CWorkspaceCaptureSceneTest, LayerPopupFadeoutKeepsInitialDenialAndSuppres
     const PHLLSREF weakOwner = owner;
     owner->m_ruleApplicator->noScreenShare().set(true, Desktop::Types::PRIORITY_SET_PROP);
     *CConfigValue<Config::BOOL>("decoration:blur:enabled").ptr()   = true;
-    *CConfigValue<Config::INTEGER>("decoration:blur:popups").ptr() = 1;
+    *CConfigValue<Config::BOOL>("decoration:blur:popups").ptr() = 1;
     auto popup                                                     = Desktop::View::CPopup::create(owner);
     auto snapshot                                                  = popupSnapshot();
     auto fadeout                                                   = Desktop::CPopupFadeout::create(popup, snapshot, 1.F);

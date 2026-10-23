@@ -59,7 +59,7 @@ static PHLWINDOW xtract(std::optional<PHLWINDOW> window) {
 }
 
 static void updateRelativeCursorCoords() {
-    static auto PNOWARPS = CConfigValue<Config::INTEGER>("cursor:no_warps");
+    static auto PNOWARPS = CConfigValue<Config::BOOL>("cursor:no_warps");
 
     if (*PNOWARPS)
         return;
@@ -70,7 +70,7 @@ static void updateRelativeCursorCoords() {
 
 static void switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool forceFSCycle = false) {
     static auto PFOLLOWMOUSE = CConfigValue<Config::INTEGER>("input:follow_mouse");
-    static auto PNOWARPS     = CConfigValue<Config::INTEGER>("cursor:no_warps");
+    static auto PNOWARPS     = CConfigValue<Config::BOOL>("cursor:no_warps");
 
     const auto  PLASTWINDOW = Desktop::focusState()->window();
 
@@ -111,7 +111,7 @@ static bool tryMoveFocusToMonitor(PHLMONITOR monitor) {
         return false;
 
     static auto PFOLLOWMOUSE = CConfigValue<Config::INTEGER>("input:follow_mouse");
-    static auto PNOWARPS     = CConfigValue<Config::INTEGER>("cursor:no_warps");
+    static auto PNOWARPS     = CConfigValue<Config::BOOL>("cursor:no_warps");
 
     auto        constraintGuard = g_pInputManager->pointerConstraints().suspend();
 
@@ -442,11 +442,11 @@ ActionResult Actions::moveToWorkspace(const std::string& ws, bool silent, std::o
 }
 
 ActionResult Actions::moveFocus(Math::eDirection dir) {
-    static auto PFULLCYCLE      = CConfigValue<Config::INTEGER>("binds:movefocus_cycles_fullscreen");
+    static auto PFULLCYCLE      = CConfigValue<Config::BOOL>("binds:movefocus_cycles_fullscreen");
     static auto PNEWTAKESOVERFS = CConfigValue<Config::INTEGER>("misc:on_focus_under_fullscreen");
 
-    static auto PGROUPCYCLE      = CConfigValue<Config::INTEGER>("binds:movefocus_cycles_groupfirst");
-    static auto PMONITORFALLBACK = CConfigValue<Config::INTEGER>("binds:window_direction_monitor_fallback");
+    static auto PGROUPCYCLE      = CConfigValue<Config::BOOL>("binds:movefocus_cycles_groupfirst");
+    static auto PMONITORFALLBACK = CConfigValue<Config::BOOL>("binds:window_direction_monitor_fallback");
 
     const auto  PLASTWINDOW = Desktop::focusState()->window();
     if (!PLASTWINDOW || !PLASTWINDOW->mapped() || !PLASTWINDOW->acceptsInput()) {
@@ -480,7 +480,7 @@ ActionResult Actions::moveFocus(Math::eDirection dir) {
     if (*PMONITORFALLBACK && tryMoveFocusToMonitor(State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).inDirection(dir).run()))
         return {};
 
-    static auto PNOFALLBACK = CConfigValue<Config::INTEGER>("general:no_focus_fallback");
+    static auto PNOFALLBACK = CConfigValue<Config::BOOL>("general:no_focus_fallback");
     if (*PNOFALLBACK)
         return actionError(std::format("Nothing to focus to in direction {}", Math::toString(dir)), eActionErrorLevel::INFO, eActionErrorCode::NOT_FOUND);
 
@@ -1023,7 +1023,7 @@ ActionResult Actions::changeWorkspace(PHLWORKSPACE ws) {
     if (!ws)
         return actionError("Invalid workspace", eActionErrorLevel::WARNING, eActionErrorCode::NO_TARGET);
 
-    static auto PHIDESPECIALONWORKSPACECHANGE = CConfigValue<Config::INTEGER>("binds:hide_special_on_workspace_change");
+    static auto PHIDESPECIALONWORKSPACECHANGE = CConfigValue<Config::BOOL>("binds:hide_special_on_workspace_change");
     static auto PWORKSPACECENTERON            = CConfigValue<Config::INTEGER>("binds:workspace_center_on");
 
     const auto  PMONITOR = Desktop::focusState()->monitor();
@@ -1362,7 +1362,7 @@ static void moveWindowIntoGroupHelper(PHLWINDOW pWindow, PHLWINDOW pWindowInDire
 }
 
 static void moveWindowOutOfGroupHelper(PHLWINDOW pWindow, Math::eDirection direction = Math::DIRECTION_DEFAULT) {
-    static auto BFOCUSREMOVEDWINDOW = CConfigValue<Config::INTEGER>("group:focus_removed_window");
+    static auto BFOCUSREMOVEDWINDOW = CConfigValue<Config::BOOL>("group:focus_removed_window");
 
     if (!pWindow->grouping().group())
         return;
@@ -1383,7 +1383,7 @@ static void moveWindowOutOfGroupHelper(PHLWINDOW pWindow, Math::eDirection direc
 }
 
 ActionResult Actions::moveIntoGroup(Math::eDirection direction, std::optional<PHLWINDOW> w) {
-    static auto PIGNOREGROUPLOCK = CConfigValue<Config::INTEGER>("binds:ignore_group_lock");
+    static auto PIGNOREGROUPLOCK = CConfigValue<Config::BOOL>("binds:ignore_group_lock");
 
     if (!*PIGNOREGROUPLOCK && Desktop::windowState()->groupsLocked())
         return {};
@@ -1406,7 +1406,7 @@ ActionResult Actions::moveIntoGroup(Math::eDirection direction, std::optional<PH
 }
 
 ActionResult Actions::moveOutOfGroup(Math::eDirection direction, std::optional<PHLWINDOW> w) {
-    static auto PIGNOREGROUPLOCK = CConfigValue<Config::INTEGER>("binds:ignore_group_lock");
+    static auto PIGNOREGROUPLOCK = CConfigValue<Config::BOOL>("binds:ignore_group_lock");
 
     if (!*PIGNOREGROUPLOCK && Desktop::windowState()->groupsLocked())
         return actionError("Groups locked", eActionErrorLevel::INFO, eActionErrorCode::INVALID_STATE);
@@ -1440,7 +1440,7 @@ ActionResult Actions::moveGroupWindow(bool forward) {
 }
 
 ActionResult Actions::moveWindowOrGroup(Math::eDirection direction, std::optional<PHLWINDOW> w) {
-    static auto PIGNOREGROUPLOCK = CConfigValue<Config::INTEGER>("binds:ignore_group_lock");
+    static auto PIGNOREGROUPLOCK = CConfigValue<Config::BOOL>("binds:ignore_group_lock");
 
     auto        window = xtract(w);
     if (!window)

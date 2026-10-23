@@ -78,7 +78,7 @@ void CDynamicPermissionManager::addConfigPermissionRule(const std::string& binar
 
 eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionMode(wl_client* client, eDynamicPermissionType permission) {
 
-    static auto PPERM = CConfigValue<Config::INTEGER>("ecosystem:enforce_permissions");
+    static auto PPERM = CConfigValue<Config::BOOL>("ecosystem:enforce_permissions");
 
     if (*PPERM == 0)
         return PERMISSION_RULE_ALLOW_MODE_ALLOW;
@@ -150,7 +150,7 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionMode(wl_c
 }
 
 eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionModeWithString(pid_t pid, const std::string& str, eDynamicPermissionType permission) {
-    static auto PPERM = CConfigValue<Config::INTEGER>("ecosystem:enforce_permissions");
+    static auto PPERM = CConfigValue<Config::BOOL>("ecosystem:enforce_permissions");
 
     if (*PPERM == 0)
         return PERMISSION_RULE_ALLOW_MODE_ALLOW;

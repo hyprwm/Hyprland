@@ -14,7 +14,7 @@ UP<CPointerController>& Pointer::pointerController() {
 }
 
 void CPointerController::warpTo(const Vector2D& pos, bool force) const {
-    static auto PNOWARPS = CConfigValue<Config::INTEGER>("cursor:no_warps");
+    static auto PNOWARPS = CConfigValue<Config::BOOL>("cursor:no_warps");
 
     if (*PNOWARPS && !force) {
         const auto PMONITORNEW = State::monitorState()->query().vec(pos).run();

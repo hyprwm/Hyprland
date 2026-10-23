@@ -61,7 +61,7 @@ void CGlobalWindowController::moveWindowToWorkspace(PHLWINDOW pWindow, PHLWORKSP
     pWindow->moveToWorkspace(pWorkspace);
     pWindow->m_monitor = pWorkspace->m_monitor;
 
-    static auto PGROUPONMOVETOWORKSPACE = CConfigValue<Config::INTEGER>("group:group_on_movetoworkspace");
+    static auto PGROUPONMOVETOWORKSPACE = CConfigValue<Config::BOOL>("group:group_on_movetoworkspace");
     if (*PGROUPONMOVETOWORKSPACE && visibleWindowsOnWorkspace == 1 && pFirstWindowOnWorkspace && pFirstWindowOnWorkspace != pWindow &&
         pFirstWindowOnWorkspace->grouping().group() && pWindow->grouping().canBeGroupedInto(pFirstWindowOnWorkspace->grouping().group())) {
         pFirstWindowOnWorkspace->grouping().group()->add(pWindow);

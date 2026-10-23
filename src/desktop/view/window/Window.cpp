@@ -453,7 +453,7 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 
     syncInitialWorkspaceToken(pWorkspace);
 
-    static auto PCLOSEONLASTSPECIAL = CConfigValue<Config::INTEGER>("misc:close_special_on_empty");
+    static auto PCLOSEONLASTSPECIAL = CConfigValue<Config::BOOL>("misc:close_special_on_empty");
 
     const auto  OLDWORKSPACE = m_workspace;
 
@@ -491,7 +491,7 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 }
 
 void CWindow::onUnmap() {
-    static auto PCLOSEONLASTSPECIAL = CConfigValue<Config::INTEGER>("misc:close_special_on_empty");
+    static auto PCLOSEONLASTSPECIAL = CConfigValue<Config::BOOL>("misc:close_special_on_empty");
     static auto PINITIALWSTRACKING  = CConfigValue<Config::INTEGER>("misc:initial_workspace_tracking");
 
     if (!m_initialWorkspaceToken.empty()) {
@@ -628,7 +628,7 @@ bool CWindow::shouldBlur() const {
 }
 
 bool CWindow::shouldBlur(const Render::SWindowRenderPresentation& presentation) const {
-    static auto PBLUR = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
+    static auto PBLUR = CConfigValue<Config::BOOL>("decoration:blur:enabled");
     if (!*PBLUR)
         return false;
 
@@ -724,7 +724,7 @@ bool CWindow::isScrollTouchpadOverridden() {
 }
 
 bool CWindow::canBeTorn() {
-    static auto PTEARING = CConfigValue<Config::INTEGER>("general:allow_tearing");
+    static auto PTEARING = CConfigValue<Config::BOOL>("general:allow_tearing");
     return m_ruleApplicator->tearing().valueOr(sc<bool>(m_hints & WINDOW_HINT_TEAR)) && *PTEARING;
 }
 
@@ -816,7 +816,7 @@ void CWindow::activate(bool force) {
     if (Desktop::focusState()->window() == m_self)
         return;
 
-    static auto PFOCUSONACTIVATE = CConfigValue<Config::INTEGER>("misc:focus_on_activate");
+    static auto PFOCUSONACTIVATE = CConfigValue<Config::BOOL>("misc:focus_on_activate");
 
     m_hints |= WINDOW_HINT_URGENT;
 
@@ -1008,7 +1008,7 @@ void CWindow::onConfigureRequest(const CBox& box) {
 }
 
 void CWindow::warpCursor(bool force) {
-    static auto PERSISTENTWARPS        = CConfigValue<Config::INTEGER>("cursor:persistent_warps");
+    static auto PERSISTENTWARPS        = CConfigValue<Config::BOOL>("cursor:persistent_warps");
     const auto  coords                 = m_relativeCursorCoordsOnLastWarp;
     m_relativeCursorCoordsOnLastWarp.x = -1; // reset m_vRelativeCursorCoordsOnLastWarp
 
@@ -1153,7 +1153,7 @@ void CWindow::mapWindow() {
     static auto PDIMSTRENGTH       = CConfigValue<Config::FLOAT>("decoration:dim_strength");
     static auto PNEWTAKESOVERFS    = CConfigValue<Config::INTEGER>("misc:on_focus_under_fullscreen");
     static auto PINITIALWSTRACKING = CConfigValue<Config::INTEGER>("misc:initial_workspace_tracking");
-    static auto PAUTOGROUP         = CConfigValue<Config::INTEGER>("group:auto_group");
+    static auto PAUTOGROUP         = CConfigValue<Config::BOOL>("group:auto_group");
 
     auto        PMONITOR = Desktop::focusState()->monitor();
     if (!Desktop::focusState()->monitor()) {

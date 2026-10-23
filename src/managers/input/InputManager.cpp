@@ -127,7 +127,7 @@ CInputManager::~CInputManager() {
 }
 
 void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
-    static auto PNOACCEL = CConfigValue<Config::INTEGER>("input:force_no_accel");
+    static auto PNOACCEL = CConfigValue<Config::BOOL>("input:force_no_accel");
 
     Vector2D    delta   = e.delta;
     Vector2D    unaccel = e.unaccel;
@@ -260,12 +260,12 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
     static auto PFOLLOWMOUSE          = CConfigValue<Config::INTEGER>("input:follow_mouse");
     static auto PFOLLOWMOUSETHRESHOLD = CConfigValue<Config::FLOAT>("input:follow_mouse_threshold");
-    static auto PMOUSEREFOCUS         = CConfigValue<Config::INTEGER>("input:mouse_refocus");
-    static auto PFOLLOWONDND          = CConfigValue<Config::INTEGER>("misc:always_follow_on_dnd");
+    static auto PMOUSEREFOCUS         = CConfigValue<Config::BOOL>("input:mouse_refocus");
+    static auto PFOLLOWONDND          = CConfigValue<Config::BOOL>("misc:always_follow_on_dnd");
     static auto PFLOATBEHAVIOR        = CConfigValue<Config::INTEGER>("input:float_switch_override_focus");
-    static auto PMOUSEFOCUSMON        = CConfigValue<Config::INTEGER>("misc:mouse_move_focuses_monitor");
-    static auto PRESIZEONBORDER       = CConfigValue<Config::INTEGER>("general:resize_on_border");
-    static auto PRESIZECURSORICON     = CConfigValue<Config::INTEGER>("general:hover_icon_on_border");
+    static auto PMOUSEFOCUSMON        = CConfigValue<Config::BOOL>("misc:mouse_move_focuses_monitor");
+    static auto PRESIZEONBORDER       = CConfigValue<Config::BOOL>("general:resize_on_border");
+    static auto PRESIZECURSORICON     = CConfigValue<Config::BOOL>("general:hover_icon_on_border");
 
     const auto  FOLLOWMOUSE = *PFOLLOWONDND && PROTO::data->dndActive() ? 1 : *PFOLLOWMOUSE;
 
@@ -839,10 +839,10 @@ void CInputManager::setClickMode(eClickBehaviorMode mode) {
 void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e, SP<IPointer> mouse) {
 
     // notify the keybind manager
-    static auto PPASSMOUSE        = CConfigValue<Config::INTEGER>("binds:pass_mouse_when_bound");
+    static auto PPASSMOUSE        = CConfigValue<Config::BOOL>("binds:pass_mouse_when_bound");
     const auto  PASS              = Keybinds::mgr()->onMouseEvent(e, mouse);
     static auto PFOLLOWMOUSE      = CConfigValue<Config::INTEGER>("input:follow_mouse");
-    static auto PRESIZEONBORDER   = CConfigValue<Config::INTEGER>("general:resize_on_border");
+    static auto PRESIZEONBORDER   = CConfigValue<Config::BOOL>("general:resize_on_border");
     static auto PBORDERSIZE       = CConfigValue<Config::INTEGER>("general:border_size");
     static auto PBORDERGRABEXTEND = CConfigValue<Config::INTEGER>("general:extend_border_grab_area");
     const auto  BORDER_GRAB_AREA  = *PRESIZEONBORDER ? *PBORDERSIZE + *PBORDERGRABEXTEND : 0;
@@ -1115,7 +1115,7 @@ void CInputManager::newVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keyboard) 
 }
 
 void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
-    static auto PDPMS = CConfigValue<Config::INTEGER>("misc:key_press_enables_dpms");
+    static auto PDPMS = CConfigValue<Config::BOOL>("misc:key_press_enables_dpms");
 
     m_hids.emplace_back(keeb);
 
@@ -2282,7 +2282,7 @@ void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
 }
 
 void CInputManager::recheckMouseWarpOnMouseInput() {
-    static auto PWARPFORNONMOUSE = CConfigValue<Config::INTEGER>("cursor:warp_back_after_non_mouse_input");
+    static auto PWARPFORNONMOUSE = CConfigValue<Config::BOOL>("cursor:warp_back_after_non_mouse_input");
 
     if (!m_lastInputMouse && *PWARPFORNONMOUSE)
         Pointer::mgr()->warpTo(m_lastMousePos);

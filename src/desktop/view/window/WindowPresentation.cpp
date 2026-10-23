@@ -469,8 +469,8 @@ void CWindowPresentation::refreshValues() {
     static auto PACTIVEALPHA     = CConfigValue<Config::FLOAT>("decoration:active_opacity");
     static auto PFULLSCREENALPHA = CConfigValue<Config::FLOAT>("decoration:fullscreen_opacity");
     static auto PDIMSTRENGTH     = CConfigValue<Config::FLOAT>("decoration:dim_strength");
-    static auto PDIMENABLED      = CConfigValue<Config::INTEGER>("decoration:dim_inactive");
-    static auto PDIMMODAL        = CConfigValue<Config::INTEGER>("decoration:dim_modal");
+    static auto PDIMENABLED      = CConfigValue<Config::BOOL>("decoration:dim_inactive");
+    static auto PDIMMODAL        = CConfigValue<Config::BOOL>("decoration:dim_modal");
 
     const bool  IS_SHADOWED_BY_MODAL = m_window.backend().traits().hasModalChild;
 

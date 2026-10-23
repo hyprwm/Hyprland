@@ -390,7 +390,7 @@ void SScrollingData::centerCol(SP<SColumnData> c) {
     if (!c)
         return;
 
-    static const auto PFSONONE = CConfigValue<Config::INTEGER>("scrolling:fullscreen_on_one_column");
+    static const auto PFSONONE = CConfigValue<Config::BOOL>("scrolling:fullscreen_on_one_column");
     const auto        USABLE   = algorithm->usableArea();
     int64_t           colIdx   = idx(c);
 
@@ -402,7 +402,7 @@ void SScrollingData::fitCol(SP<SColumnData> c) {
     if (!c)
         return;
 
-    static const auto PFSONONE = CConfigValue<Config::INTEGER>("scrolling:fullscreen_on_one_column");
+    static const auto PFSONONE = CConfigValue<Config::BOOL>("scrolling:fullscreen_on_one_column");
     const auto        USABLE   = algorithm->usableArea();
     int64_t           colIdx   = idx(c);
 
@@ -423,7 +423,7 @@ void SScrollingData::centerOrFitCol(SP<SColumnData> c) {
 }
 
 SP<SColumnData> SScrollingData::atCenter() {
-    static const auto PFSONONE = CConfigValue<Config::INTEGER>("scrolling:fullscreen_on_one_column");
+    static const auto PFSONONE = CConfigValue<Config::BOOL>("scrolling:fullscreen_on_one_column");
     const auto        USABLE   = algorithm->usableArea();
 
     size_t            centerIdx = controller->getStripAtCenter(USABLE, *PFSONONE);
@@ -438,7 +438,7 @@ void SScrollingData::recalculate(bool forceInstant) {
     if (!algorithm->m_parent || !algorithm->m_parent->space() || !algorithm->m_parent->space()->workspace() || !algorithm->m_parent->space()->workspace()->m_monitor)
         return;
 
-    static const auto PFSONONE = CConfigValue<Config::INTEGER>("scrolling:fullscreen_on_one_column");
+    static const auto PFSONONE = CConfigValue<Config::BOOL>("scrolling:fullscreen_on_one_column");
 
     const auto        WORKSPACE = algorithm->m_parent->space()->workspace();
     const auto        MONITOR   = WORKSPACE->m_monitor.lock();
@@ -570,14 +570,14 @@ void SScrollingData::recalculate(bool forceInstant) {
 }
 
 double SScrollingData::maxWidth() {
-    static const auto PFSONONE = CConfigValue<Config::INTEGER>("scrolling:fullscreen_on_one_column");
+    static const auto PFSONONE = CConfigValue<Config::BOOL>("scrolling:fullscreen_on_one_column");
     const auto        USABLE   = algorithm->usableArea();
 
     return controller->calculateMaxExtent(USABLE, *PFSONONE);
 }
 
 bool SScrollingData::visible(SP<SColumnData> c, bool full) {
-    static const auto PFSONONE = CConfigValue<Config::INTEGER>("scrolling:fullscreen_on_one_column");
+    static const auto PFSONONE = CConfigValue<Config::BOOL>("scrolling:fullscreen_on_one_column");
     const auto        USABLE   = algorithm->usableArea();
     int64_t           colIdx   = idx(c);
 
@@ -632,7 +632,7 @@ CScrollingAlgorithm::CScrollingAlgorithm() : m_scrollingFullscreenHandler(makeUn
     });
 
     m_mouseButtonCallback = Event::bus()->m_events.input.mouse.button.listen([this](IPointer::SButtonEvent e, Event::SCallbackInfo&) {
-        static const auto PFOLLOW_FOCUS = CConfigValue<Config::INTEGER>("scrolling:follow_focus");
+        static const auto PFOLLOW_FOCUS = CConfigValue<Config::BOOL>("scrolling:follow_focus");
 
         if (*PFOLLOW_FOCUS && e.state == WL_POINTER_BUTTON_STATE_RELEASED && Desktop::focusState()->window())
             focusOnInput(Desktop::focusState()->window()->layoutTarget(), INPUT_MODE_CLICK);
@@ -642,7 +642,7 @@ CScrollingAlgorithm::CScrollingAlgorithm() : m_scrollingFullscreenHandler(makeUn
         if (!pWindow)
             return;
 
-        static const auto PFOLLOW_FOCUS = CConfigValue<Config::INTEGER>("scrolling:follow_focus");
+        static const auto PFOLLOW_FOCUS = CConfigValue<Config::BOOL>("scrolling:follow_focus");
 
         if (!*PFOLLOW_FOCUS && !Desktop::isHardInputFocusReason(reason))
             return;
@@ -840,7 +840,7 @@ void CScrollingAlgorithm::resizeTarget(const Vector2D& delta, SP<ITarget> target
     if (!DATA->column || !DATA->column->scrollingData)
         return;
 
-    static const auto PFSONONE = CConfigValue<Config::INTEGER>("scrolling:fullscreen_on_one_column");
+    static const auto PFSONONE = CConfigValue<Config::BOOL>("scrolling:fullscreen_on_one_column");
 
     const auto        ADJUSTED_DELTA = m_scrollingData->controller->isPrimaryHorizontal() ? delta : Vector2D{delta.y, delta.x};
     const auto        USABLE         = usableArea();
@@ -1024,7 +1024,7 @@ void CScrollingAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection 
 }
 
 void CScrollingAlgorithm::moveTargetTo(SP<ITarget> t, Math::eDirection dir, bool silent) {
-    static auto PMONITORFALLBACK = CConfigValue<Config::INTEGER>("binds:window_direction_monitor_fallback");
+    static auto PMONITORFALLBACK = CConfigValue<Config::BOOL>("binds:window_direction_monitor_fallback");
 
     const auto  DATA = dataFor(t);
 
@@ -1461,8 +1461,8 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
         }
     } else if (ARGS[0] == "focus") {
         const auto        TDATA          = dataFor(Desktop::focusState()->window() ? Desktop::focusState()->window()->layoutTarget() : nullptr);
-        static const auto PNOFALLBACK    = CConfigValue<Config::INTEGER>("general:no_focus_fallback");
-        static const auto PCONFWRAPFOCUS = CConfigValue<Config::INTEGER>("scrolling:wrap_focus");
+        static const auto PNOFALLBACK    = CConfigValue<Config::BOOL>("general:no_focus_fallback");
+        static const auto PCONFWRAPFOCUS = CConfigValue<Config::BOOL>("scrolling:wrap_focus");
 
         if (!TDATA || ARGS[1].empty())
             return noTarget("no window to focus");
@@ -1615,7 +1615,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
 
         m_scrollingData->recalculate();
     } else if (ARGS[0] == "swapcol") {
-        static const auto PCONFWRAPSWAPCOL = CConfigValue<Config::INTEGER>("scrolling:wrap_swapcol");
+        static const auto PCONFWRAPSWAPCOL = CConfigValue<Config::BOOL>("scrolling:wrap_swapcol");
 
         if (ARGS.size() < 2)
             return invalidArg("not enough args");
@@ -1731,7 +1731,7 @@ void CScrollingAlgorithm::snapToGrid() {
 }
 
 SP<SColumnData> CScrollingAlgorithm::snapToProjectedOffset(double projectedNormalizedOffset) {
-    static const auto PFSONONE   = CConfigValue<Config::INTEGER>("scrolling:fullscreen_on_one_column");
+    static const auto PFSONONE   = CConfigValue<Config::BOOL>("scrolling:fullscreen_on_one_column");
     static const auto PFITMETHOD = CConfigValue<Config::INTEGER>("scrolling:focus_fit_method");
 
     const auto        USABLE     = usableArea();

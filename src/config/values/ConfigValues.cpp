@@ -1,4 +1,5 @@
 #include "ConfigValues.hpp"
+#include "config/shared/Types.hpp"
 
 using namespace Config;
 using namespace Config::Values;
@@ -806,7 +807,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Float>("scrolling:column_width", "the default width of a column.", 0.5, {.min = 0.1, .max = 1.0}),
         MS<Int>("scrolling:focus_fit_method", "When a column is focused, what method should be used to bring it into view", 1,
                 {.min = 0, .max = 1, .map = OptionMap{{"center", 0}, {"fit", 1}}}),
-        MS<Bool>("scrolling:follow_focus", "when a window is focused, should the layout move to bring it into view automatically", true),
+        MS<Int>("scrolling:follow_focus", "behaviour of the scrolling tape when a window is in focus.", 1),
         MS<Float>("scrolling:follow_min_visible", "when a window is focused, require that at least a given fraction of it is visible for focus to follow", 0.4,
                   {.min = 0.0, .max = 1.0}),
         MS<String>("scrolling:explicit_column_widths", "A comma-separated list of preconfigured widths for colresize +conf/-conf", "0.333, 0.5, 0.667, 1.0"),

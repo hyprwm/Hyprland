@@ -47,7 +47,7 @@ CWindowSwallowController::CWindowSwallowController(CWindow& window) : m_window(w
 PHLWINDOW CWindowSwallowController::findCandidate() const {
     static auto PSWALLOWREGEX   = CConfigValue<std::string>("misc:swallow_regex");
     static auto PSWALLOWEXREGEX = CConfigValue<std::string>("misc:swallow_exception_regex");
-    static auto PSWALLOW        = CConfigValue<Config::INTEGER>("misc:enable_swallow");
+    static auto PSWALLOW        = CConfigValue<Config::BOOL>("misc:enable_swallow");
 
     if (!*PSWALLOW || std::string{*PSWALLOWREGEX} == STRVAL_EMPTY || (*PSWALLOWREGEX).empty())
         return nullptr;

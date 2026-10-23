@@ -39,11 +39,11 @@ PHLWINDOW CViewHitTester::windowAtInternal(const Vector2D& pos, uint16_t propert
     if (!PMONITOR)
         return nullptr;
 
-    static auto PRESIZEONBORDER       = CConfigValue<Config::INTEGER>("general:resize_on_border");
+    static auto PRESIZEONBORDER       = CConfigValue<Config::BOOL>("general:resize_on_border");
     static auto PBORDERSIZE           = CConfigValue<Config::INTEGER>("general:border_size");
     static auto PBORDERGRABEXTEND     = CConfigValue<Config::INTEGER>("general:extend_border_grab_area");
-    static auto PSPECIALFALLTHRU      = CConfigValue<Config::INTEGER>("input:special_fallthrough");
-    static auto PMODALPARENTBLOCKING  = CConfigValue<Config::INTEGER>("general:modal_parent_blocking");
+    static auto PSPECIALFALLTHRU      = CConfigValue<Config::BOOL>("input:special_fallthrough");
+    static auto PMODALPARENTBLOCKING  = CConfigValue<Config::BOOL>("general:modal_parent_blocking");
     static auto PFOLLOWMOUSESHRINK    = CConfigValue<Config::INTEGER>("input:follow_mouse_shrink");
     const auto  BORDER_GRAB_AREA      = *PRESIZEONBORDER ? *PBORDERSIZE + *PBORDERGRABEXTEND : 0;
     const bool  ONLY_PRIORITY         = properties & FOCUS_PRIORITY;

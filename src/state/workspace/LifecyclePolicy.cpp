@@ -115,7 +115,7 @@ void CMonitorLifecyclePolicy::monitorDisconnected(const SMonitorSnapshot& monito
             m_returnMonitors.emplace_back(workspace.identity, monitor.address);
 
         if (BACKUP != MONITORS.end())
-            context.moveWorkspace(workspace.identity, BACKUP->address);
+            context.moveWorkspace(workspace.identity, BACKUP->address, false);
     }
 }
 

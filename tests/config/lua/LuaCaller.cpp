@@ -65,7 +65,11 @@ static int reenter(lua_State* L) {
     if (IDX < 1 || IDX > sc<int>(reentry->refs.size()))
         return 0;
 
-    lua_pushboolean(L, reentry->caller->call(*reentry->refs[IDX - 1], 0, "reentry", {}, [reentry](lua_State*) { ++reentry->reads; }).has_value());
+    const auto READ = [reentry](lua_State*) -> std::expected<void, std::string> {
+        ++reentry->reads;
+        return {};
+    };
+    lua_pushboolean(L, reentry->caller->call(*reentry->refs[IDX - 1], 0, "reentry", {}, READ).has_value());
     return 1;
 }
 
@@ -73,6 +77,17 @@ static void installReentry(lua_State* L, SReentry* reentry) {
     lua_pushlightuserdata(L, reentry);
     lua_pushcclosure(L, reenter, 1);
     lua_setglobal(L, "reenter");
+}
+
+static int reenterPredicate(lua_State* L) {
+    auto* reentry = sc<SReentry*>(lua_touserdata(L, lua_upvalueindex(1)));
+    lua_pushboolean(L, reentry->caller->predicate(*reentry->refs.front(), "nested"));
+    return 1;
+}
+
+static int inPredicate(lua_State* L) {
+    lua_pushboolean(L, CLuaCaller::fromLuaState(L)->inPredicate());
+    return 1;
 }
 
 TEST_F(CConfigLuaCaller, passesArgsAndReadsResults) {
@@ -86,7 +101,10 @@ TEST_F(CConfigLuaCaller, passesArgsAndReadsResults) {
             lua_pushinteger(L, 3);
             return 2;
         },
-        [&sum](lua_State* L) { sum = sc<int>(lua_tointeger(L, -1)); });
+        [&sum](lua_State* L) -> std::expected<void, std::string> {
+            sum = sc<int>(lua_tointeger(L, -1));
+            return {};
+        });
 
     EXPECT_TRUE(result.has_value());
     EXPECT_EQ(sum, 5);
@@ -217,5 +235,81 @@ TEST_F(CConfigLuaCaller, guardedPCallRunsOnTheGivenThread) {
 
     // only the thread object itself is on the main stack
     EXPECT_EQ(lua_gettop(m_lua), 1);
+    lua_pop(m_lua, 1);
+}
+
+TEST_F(CConfigLuaCaller, predicateReturnsTheBoolean) {
+    auto& yes = ref("return function() return true end");
+    auto& no  = ref("return function() return false end");
+    auto& arg = ref("return function(x) return x == 42 end");
+
+    EXPECT_TRUE(m_caller->predicate(yes, "ctx"));
+    EXPECT_FALSE(m_caller->predicate(no, "ctx"));
+    EXPECT_TRUE(m_caller->predicate(arg, "ctx", [](lua_State* L) {
+        lua_pushinteger(L, 42);
+        return 1;
+    }));
+    EXPECT_TRUE(m_errors.empty());
+    EXPECT_EQ(lua_gettop(m_lua), 0);
+}
+
+TEST_F(CConfigLuaCaller, predicateRequiresABoolean) {
+    auto& nothing = ref("return function() end");
+    auto& truthy  = ref("return function() return 'yes' end");
+
+    EXPECT_FALSE(m_caller->predicate(nothing, "ctx"));
+    EXPECT_FALSE(m_caller->predicate(nothing, "ctx"));
+    EXPECT_FALSE(m_caller->predicate(truthy, "ctx"));
+
+    EXPECT_EQ(m_errors, (std::vector<std::string>{"ctx: must return a boolean, got nil", "ctx: must return a boolean, got string"}));
+    EXPECT_EQ(lua_gettop(m_lua), 0);
+}
+
+TEST_F(CConfigLuaCaller, failedPredicateIsFalse) {
+    auto& raises = ref("return function() error('boom', 0) end");
+    auto& spins  = ref("return function() while true do end end");
+
+    EXPECT_FALSE(m_caller->predicate(raises, "ctx"));
+    EXPECT_FALSE(m_caller->predicate(spins, "ctx"));
+    EXPECT_EQ(m_errors.size(), 2);
+    EXPECT_EQ(m_errors.front(), "ctx: boom");
+    EXPECT_EQ(lua_gettop(m_lua), 0);
+}
+
+TEST_F(CConfigLuaCaller, skippedPredicateIsFalseAndNotReported) {
+    SReentry reentry{.caller = m_caller.get()};
+    lua_pushlightuserdata(m_lua, &reentry);
+    lua_pushcclosure(m_lua, reenterPredicate, 1);
+    lua_setglobal(m_lua, "reenter_predicate");
+
+    reentry.refs.push_back(&ref("return function() nested = reenter_predicate() return true end"));
+
+    EXPECT_TRUE(m_caller->predicate(*reentry.refs.front(), "ctx"));
+    lua_getglobal(m_lua, "nested");
+    EXPECT_FALSE(lua_toboolean(m_lua, -1));
+    lua_pop(m_lua, 1);
+    EXPECT_TRUE(m_errors.empty());
+}
+
+TEST_F(CConfigLuaCaller, inPredicateLastsForTheCall) {
+    lua_pushcfunction(m_lua, inPredicate);
+    lua_setglobal(m_lua, "in_predicate");
+
+    auto& seen   = ref("return function() return in_predicate() end");
+    auto& raises = ref("return function() error('boom') end");
+
+    EXPECT_FALSE(m_caller->inPredicate());
+    EXPECT_TRUE(m_caller->predicate(seen, "ctx"));
+    EXPECT_FALSE(m_caller->inPredicate());
+
+    EXPECT_FALSE(m_caller->predicate(raises, "ctx"));
+    EXPECT_FALSE(m_caller->inPredicate());
+
+    // a regular callback is not a predicate
+    auto& probe = ref("return function() probed = in_predicate() end");
+    EXPECT_TRUE(m_caller->call(probe, 0, "ctx").has_value());
+    lua_getglobal(m_lua, "probed");
+    EXPECT_TRUE(lua_isboolean(m_lua, -1));
+    EXPECT_FALSE(lua_toboolean(m_lua, -1));
     lua_pop(m_lua, 1);
 }

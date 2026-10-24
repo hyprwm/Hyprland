@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <format>
+#include <optional>
 #include <hyprutils/utils/ScopeGuard.hpp>
 
 using namespace Config::Lua;
@@ -112,8 +113,7 @@ int CLuaCaller::guardedPCall(lua_State* L, int nargs, int nresults, int errfunc,
     return RESULT;
 }
 
-std::expected<void, std::string> CLuaCaller::call(const CLuaRef& fn, int timeoutMs, std::string_view context, const std::function<int(lua_State*)>& pushArgs,
-                                                  const std::function<void(lua_State*)>& readResult) {
+std::expected<void, std::string> CLuaCaller::call(const CLuaRef& fn, int timeoutMs, std::string_view context, const FPushArgs& pushArgs, const FReadResult& readResult) {
     if (!fn.push())
         return std::unexpected(std::format("{}: callback belongs to an expired config state", context));
 
@@ -121,7 +121,7 @@ std::expected<void, std::string> CLuaCaller::call(const CLuaRef& fn, int timeout
     return callPushed(NARGS, timeoutMs, context, readResult);
 }
 
-std::expected<void, std::string> CLuaCaller::callPushed(int nargs, int timeoutMs, std::string_view context, const std::function<void(lua_State*)>& readResult) {
+std::expected<void, std::string> CLuaCaller::callPushed(int nargs, int timeoutMs, std::string_view context, const FReadResult& readResult) {
     const int  FN_IDX    = lua_gettop(m_lua) - nargs;
     const int  BASE      = FN_IDX - 1;
     const auto KEY       = lua_topointer(m_lua, FN_IDX);
@@ -144,23 +144,50 @@ std::expected<void, std::string> CLuaCaller::callPushed(int nargs, int timeoutMs
     m_running.push_back(KEY);
     Hyprutils::Utils::CScopeGuard x([this] { m_running.pop_back(); });
 
-    if (guardedPCall(m_lua, nargs, readResult ? 1 : 0, 0, timeoutMs, context) != LUA_OK) {
-        auto message = std::format("{}: {}", context, errorToString(m_lua, -1));
-
-        if (markReported(FN_IDX, message)) {
-            LOG(Log::ERR, "[Lua] {}", message);
-            m_onError(std::string{message});
-        }
-
-        lua_settop(m_lua, BASE);
-        return std::unexpected(std::move(message));
+    std::optional<std::string>    error;
+    if (guardedPCall(m_lua, nargs, readResult ? 1 : 0, 0, timeoutMs, context) != LUA_OK)
+        error = errorToString(m_lua, -1);
+    else if (readResult) {
+        if (auto read = readResult(m_lua); !read)
+            error = std::move(read.error());
     }
 
-    if (readResult)
-        readResult(m_lua);
+    if (!error) {
+        lua_settop(m_lua, BASE);
+        return {};
+    }
+
+    auto message = std::format("{}: {}", context, *error);
+
+    if (markReported(FN_IDX, message)) {
+        LOG(Log::ERR, "[Lua] {}", message);
+        m_onError(std::string{message});
+    }
 
     lua_settop(m_lua, BASE);
-    return {};
+    return std::unexpected(std::move(message));
+}
+
+bool CLuaCaller::predicate(const CLuaRef& fn, std::string_view context, const FPushArgs& pushArgs) {
+    const bool PREV = m_inPredicate;
+    m_inPredicate   = true;
+    Hyprutils::Utils::CScopeGuard x([this, PREV] { m_inPredicate = PREV; });
+
+    // stays false if the call fails or is skipped
+    bool       result = false;
+    const auto CALLED = call(fn, LUA_TIMEOUT_PREDICATE_MS, context, pushArgs, [&result](lua_State* L) -> std::expected<void, std::string> {
+        if (!lua_isboolean(L, -1))
+            return std::unexpected(std::format("must return a boolean, got {}", luaL_typename(L, -1)));
+
+        result = lua_toboolean(L, -1);
+        return {};
+    });
+
+    return CALLED && result;
+}
+
+bool CLuaCaller::inPredicate() const {
+    return m_inPredicate;
 }
 
 bool CLuaCaller::markReported(int fnIdx, const std::string& message) {

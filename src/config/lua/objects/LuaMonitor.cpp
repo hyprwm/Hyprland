@@ -223,9 +223,9 @@ static int monitorIndex(lua_State* L) {
     // Fns
 
     else if (key == "set_workspace")
-        lua_pushcfunction(L, monitorSetWorkspace);
+        pushFn(L, monitorSetWorkspace, FORBIDDEN_IN_PREDICATE);
     else if (key == "set_special_workspace")
-        lua_pushcfunction(L, monitorSetSpecialWorkspace);
+        pushFn(L, monitorSetSpecialWorkspace, FORBIDDEN_IN_PREDICATE);
     else
         lua_pushnil(L);
 

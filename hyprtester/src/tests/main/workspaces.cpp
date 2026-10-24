@@ -1335,3 +1335,48 @@ TEST_CASE(luaFocusCreatesBareNamedWorkspace) {
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'hi' })"));
     ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace hi (hi)");
 }
+
+TEST_CASE(workspaceShowWithoutFocussingMonitor) {
+    static constexpr const char* SECOND_MONITOR = "HEADLESS-3";
+
+    CScopeGuard                  guard = {[&]() {
+        if (getFromSocket("/monitors all").contains(SECOND_MONITOR))
+            getFromSocket(std::format("/output remove {}", SECOND_MONITOR));
+    }};
+
+    // add a new monitor
+    NLog::log("{}Adding a new monitor", Colors::YELLOW);
+    ASSERT(getFromSocket(std::format("/output create headless {}", SECOND_MONITOR)), "ok");
+    ASSERT(waitForMonitorListed(SECOND_MONITOR, true), true);
+
+    // Workspaces '10' and '11' are bound to 'HEADLESS-2' monitor.
+    OK(getFromSocket("/eval hl.workspace_rule({ workspace = '10', monitor = 'HEADLESS-2' })"));
+    OK(getFromSocket("/eval hl.workspace_rule({ workspace = '11', monitor = 'HEADLESS-2' })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '10' })"));
+    SPAWN_KITTY("a");
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '11' })"));
+    SPAWN_KITTY("a");
+
+    OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", SECOND_MONITOR)));
+
+    OK(getFromSocket("/dispatch hl.dsp.workspace.show({ workspace = '10' })"));
+    {
+        auto str = getFromSocket("/activeworkspace");
+        // Showing the workspace '10' should not focus 'HEADLESS-2'.
+        EXPECT_CONTAINS(str, SECOND_MONITOR);
+        EXPECT_NOT_CONTAINS(str, "workspace 10 (10)");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.workspace.show({ workspace = '11' })"));
+    {
+        auto str = getFromSocket("/activeworkspace");
+        // Showing the workspace '11' should not focus 'HEADLESS-2'.
+        EXPECT_CONTAINS(str, SECOND_MONITOR);
+        EXPECT_NOT_CONTAINS(str, "workspace 11 (11)");
+    }
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+    OK(getFromSocket(std::format("/output remove {}", SECOND_MONITOR)));
+}

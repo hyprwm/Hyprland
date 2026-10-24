@@ -80,6 +80,7 @@ std::string CShaderLoader::getDefines(const SShaderVariant& variant) {
         {"USE_BLUR_ALPHA_MASK", SH_FEAT_BLUR_ALPHA_MASK},
         {"USE_BLUR_MATTE", SH_FEAT_BLUR_MATTE},
         {"USE_ALT_TONEMAP", SH_FEAT_ALT_TONEMAP},
+        {"USE_BLUR_PROPORTIONAL", SH_FEAT_BLUR_PROPORTIONAL},
     });
 
     std::string           res;

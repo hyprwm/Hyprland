@@ -153,15 +153,16 @@ namespace Render::GL {
             bool                   blockBlurOptimization = false;
             SP<ITexture>           blurredBG;
             SP<ITexture>           blurAlphaMatte;
-            const CRegion*         damage        = nullptr;
-            SP<CWLSurfaceResource> surface       = nullptr;
-            float                  a             = 1.F;
-            int                    round         = 0;
-            float                  roundingPower = 2.F;
-            bool                   discardActive = false;
-            bool                   allowCustomUV = false;
-            bool                   allowDim      = true;
-            bool                   noAA          = false; // unused
+            const CRegion*         damage           = nullptr;
+            SP<CWLSurfaceResource> surface          = nullptr;
+            float                  a                = 1.F;
+            int                    round            = 0;
+            float                  roundingPower    = 2.F;
+            bool                   blurProportional = false;
+            bool                   discardActive    = false;
+            bool                   allowCustomUV    = false;
+            bool                   allowDim         = true;
+            bool                   noAA             = false; // unused
             uint8_t                wrapX = WRAP_CLAMP_TO_EDGE, wrapY = WRAP_CLAMP_TO_EDGE;
             bool                   cmBackToSRGB   = false;
             bool                   finalMonitorCM = false;

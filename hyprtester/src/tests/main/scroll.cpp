@@ -3522,6 +3522,8 @@ TEST_CASE(scrollTapeWithMouseClick) {
 
     // Focus moved, viewport didn't
     OK(getFromSocket("r/dispatch hl.dsp.cursor.move({ x = 1600, y = 540 })"));
+    // cuz github CI is slow
+    OK(getFromSocket("/eval hl.plugin.test.window_soft_focus('B')"));
     {
         const auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "class: B");
@@ -3553,6 +3555,8 @@ TEST_CASE(scrollTapeWithMouseClick) {
 
     // Focus moved, viewport didn't
     OK(getFromSocket("r/dispatch hl.dsp.cursor.move({ x = 1600, y = 540 })"));
+    // cuz github CI is slow
+    OK(getFromSocket("/eval hl.plugin.test.window_soft_focus('B')"));
     {
         const auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "class: B");
@@ -3598,6 +3602,8 @@ TEST_CASE(followFocusBoolToIntConfChangeRegressionTest) {
 
         // Focus moved, viewport didn't
         OK(getFromSocket("r/dispatch hl.dsp.cursor.move({ x = 1600, y = 540 })"));
+        // cuz github CI is slow
+        OK(getFromSocket("/eval hl.plugin.test.window_soft_focus('B')"));
         {
             const auto str = getFromSocket("/activewindow");
             EXPECT_CONTAINS(str, "class: B");

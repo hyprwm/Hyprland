@@ -3570,6 +3570,63 @@ TEST_CASE(scrollTapeWithMouseClick) {
     }
 }
 
+TEST_CASE(followFocusBoolToIntConfChangeRegressionTest) {
+
+    // With #16641, follow_focus has changed from bool to int. This isn't a breaking change because = true is interpreted as = 1 which keeps the same behaviour. This test is to confirm that.
+
+    // follow_focus = 1
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
+
+    // expect that click moves
+    OK(getFromSocket("r/eval hl.config({ scrolling = { follow_focus = 1 } })"));
+
+    const auto setupEnvironment = [&]() {
+        SPAWN_KITTY("A");
+        OK(getFromSocket("r/dispatch hl.dsp.layout('colresize 0.8')"));
+        SPAWN_KITTY("B");
+        OK(getFromSocket("r/dispatch hl.dsp.layout('focus l')"));
+        // [A (0.8) | (0.2) ] B (0.3)
+    };
+
+    const auto testSuite = [&]() {
+        {
+            const auto str = getFromSocket("/activewindow");
+            EXPECT_CONTAINS(str, "class: A");
+            EXPECT_CONTAINS(str, "at: 27,22");
+        }
+
+        // Focus moved, viewport didn't
+        OK(getFromSocket("r/dispatch hl.dsp.cursor.move({ x = 1600, y = 540 })"));
+        {
+            const auto str = getFromSocket("/activewindow");
+            EXPECT_CONTAINS(str, "class: B");
+            EXPECT_CONTAINS(str, "at: 1531,22");
+        }
+
+        // full click
+        OK(getFromSocket("/eval hl.plugin.test.click(272, 1)"));
+        OK(getFromSocket("/eval hl.plugin.test.click(272, 0)"));
+        // expect that viewport moved
+        {
+            const auto str = getFromSocket("/activewindow");
+            EXPECT_CONTAINS(str, "class: B");
+            EXPECT_CONTAINS(str, "at: 967,22");
+        }
+    };
+
+    setupEnvironment();
+    testSuite();
+
+    Tests::killAllWindows();
+    Tests::waitUntilWindowsN(0);
+
+    // Expect the exact same behaviour with follow_focus = true
+    OK(getFromSocket("r/eval hl.config({ scrolling = { follow_focus = true } })"));
+    setupEnvironment();
+    testSuite();
+}
+
 TEST_CASE(scrollTapeWithMouseClickUpDown) {
 
     // follow_focus = 1, follow_mouse = 2 --> test that mouse-down moves the view but does NOT move the viewport. mouse-up moves the viewport (only full click moves the viewport)

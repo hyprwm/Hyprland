@@ -3431,7 +3431,7 @@ TEST_CASE(layoutmsg_fit_into_view) {
 
     OK(getFromSocket("/dispatch hl.dsp.layout('fit_into_view')"));
 
-    // If it worked, class:a window must now have at: ~= 0,0 -- 0,0 + gaps, border = 22,22.
+    // If it worked, class:a window must now have at: ~= 0,0 -- 0,0 + gaps, border = 27,22.
 
     ASSERT_CONTAINS(Tests::getAttribute(getFromSocket("/activewindow"), "at"), "27,22");
 }
@@ -3517,7 +3517,7 @@ TEST_CASE(scrollTapeWithMouseClick) {
     {
         const auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "class: A");
-        EXPECT_CONTAINS(str, "at: 22,22");
+        EXPECT_CONTAINS(str, "at: 27,22");
     }
 
     // Focus moved, viewport didn't
@@ -3548,7 +3548,7 @@ TEST_CASE(scrollTapeWithMouseClick) {
     {
         const auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "class: A");
-        EXPECT_CONTAINS(str, "at: 22,22");
+        EXPECT_CONTAINS(str, "at: 27,22");
     }
 
     // Focus moved, viewport didn't
@@ -3623,7 +3623,7 @@ TEST_CASE(scrollTapeWithMouseClickUpDown) {
         ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: wee");
 
         // expect viewport to have moved
-        // focused over wee now and since w is now supposed to have moved into view, it should no longer be hidden on the left. Combined with prev test block, this proves it moved
+        // focused over wee now and since wee is now supposed to have moved into view, it should no longer be hidden on the left. Combined with prev test block, this proves it moved
         ExpectViewportMoved(true);
     }
 }

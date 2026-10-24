@@ -578,8 +578,9 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
     m_dnd.originSurface = origin;
     m_dnd.dndSurface    = dragSurface;
     if (dragSurface) {
-        m_dnd.dndSurfaceDestroy = dragSurface->m_events.destroy.listen([this] { abortDrag(); });
-        m_dnd.dndSurfaceCommit  = dragSurface->m_events.commit.listen([this] {
+        dragSurface->m_pending.updated.bits.dndIcon = true;
+        m_dnd.dndSurfaceDestroy                     = dragSurface->m_events.destroy.listen([this] { abortDrag(); });
+        m_dnd.dndSurfaceCommit                      = dragSurface->m_events.commit.listen([this] {
             if (m_dnd.dndSurface->m_current.texture && !m_dnd.dndSurface->m_mapped) {
                 m_dnd.dndSurface->map();
                 return;

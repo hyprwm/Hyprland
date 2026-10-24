@@ -570,6 +570,8 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Bool>("misc:key_press_enables_dpms", "If DPMS is set to off, wake up the monitors if a key is pressed.", false),
         MS<Bool>("misc:name_vk_after_proc", "Name virtual keyboards after the processes that create them.", true),
         MS<Bool>("misc:always_follow_on_dnd", "Will make mouse focus follow the mouse when drag and dropping.", true),
+        MS<Bool>("misc:layers_hog_keyboard_focus", "If true, will make keyboard-interactive layers keep their focus on mouse move.", true,
+                 {.deprecationNotice = "Moved to layers category. Use layers:layers_hog_keyboard_focus instead."}),
         MS<Bool>("misc:animate_manual_resizes", "If true, will animate manual window resizes/moves", false),
         MS<Bool>("misc:animate_mouse_windowdragging", "If true, will animate windows being dragged by mouse.", false),
         MS<Bool>("misc:disable_autoreload", "If true, the config will not reload automatically on save.", false, {.refresh = Supplementary::REFRESH_CONFIG_WATCHER}),

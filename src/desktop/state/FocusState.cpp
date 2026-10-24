@@ -323,6 +323,9 @@ bool CFocusState::isWindowActive(PHLWINDOW pWindow) const {
 }
 
 bool Desktop::isHardInputFocusReason(eFocusReason r) {
-    return r == FOCUS_REASON_NEW_WINDOW || r == FOCUS_REASON_KEYBIND || r == FOCUS_REASON_GHOSTS || r == FOCUS_REASON_CLICK_UP || r == FOCUS_REASON_DESKTOP_STATE_CHANGE ||
-        r == FOCUS_REASON_UNMAP_WINDOW_TILING || r == FOCUS_REASON_SWITCH_TO_WINDOW_HARD;
+
+    static const auto PFOLLOW_FOCUS = CConfigValue<Config::INTEGER>("scrolling:follow_focus");
+
+    return r == FOCUS_REASON_NEW_WINDOW || r == FOCUS_REASON_KEYBIND || r == FOCUS_REASON_GHOSTS || ((*PFOLLOW_FOCUS == 1) ? (r == FOCUS_REASON_CLICK_UP) : false) ||
+        r == FOCUS_REASON_DESKTOP_STATE_CHANGE || r == FOCUS_REASON_UNMAP_WINDOW_TILING || r == FOCUS_REASON_SWITCH_TO_WINDOW_HARD;
 }

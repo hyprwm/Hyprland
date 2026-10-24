@@ -15,7 +15,6 @@
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../pointer/PointerManager.hpp"
-#include "../protocols/Hotkey.hpp"
 #include "../protocols/InputCapture.hpp"
 #include "../protocols/ShortcutsInhibit.hpp"
 #include "../protocols/core/DataDevice.hpp"
@@ -216,8 +215,6 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> keyboard) {
         return false;
 
     const auto MODIFIERS = g_pInputManager->getModsFromAllKBs();
-    if (PROTO::hotkey && PROTO::hotkey->onKey(KEYSYM, MODIFIERS, KEYCODE, KEY_EVENT.state == WL_KEYBOARD_KEY_STATE_PRESSED, KEY_EVENT.timeMs))
-        return false;
 
     Config::Actions::state()->m_timeLastMs    = KEY_EVENT.timeMs;
     Config::Actions::state()->m_lastCode      = KEYCODE;

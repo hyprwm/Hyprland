@@ -580,41 +580,9 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, NTransferFunction::eTF cmSdr
                                                           .maxFALL             = maxFALL});
             break;
         case NCMType::CM_HDR:
-            m_imageDescription = CImageDescription::from({.transferFunction    = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
-                                                          .primariesNameSet    = true,
-                                                          .primariesNamed      = NColorManagement::CM_PRIMARIES_BT2020,
-                                                          .primaries           = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
-                                                          .masteringPrimaries  = masteringPrimaries,
-                                                          .luminances          = {.min       = DEFAULT_HDR_IMAGE_DESCRIPTION->value().getTFMinLuminance(),
-                                                                                  .max       = DEFAULT_HDR_IMAGE_DESCRIPTION->value().getTFMaxLuminance(),
-                                                                                  .reference = DEFAULT_HDR_IMAGE_DESCRIPTION->value().getTFRefLuminance()},
-                                                          .masteringLuminances = masteringLuminances,
-                                                          .maxCLL              = maxCLL,
-                                                          .maxFALL             = maxFALL});
-            break;
-        case NCMType::CM_HDR_EDID:
-            m_imageDescription = CImageDescription::from(
-                {.transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
-                 .primariesNameSet = false,
-                 .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
-                 .primaries = m_output->parsedEDID.chromaticityCoords.has_value() ? masteringPrimaries : NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
-                 .masteringPrimaries  = masteringPrimaries,
-                 .luminances          = {.min       = DEFAULT_HDR_IMAGE_DESCRIPTION->value().getTFMinLuminance(),
-                                         .max       = DEFAULT_HDR_IMAGE_DESCRIPTION->value().getTFMaxLuminance(),
-                                         .reference = DEFAULT_HDR_IMAGE_DESCRIPTION->value().getTFRefLuminance()},
-                 .masteringLuminances = masteringLuminances,
-                 .maxCLL              = maxCLL,
-                 .maxFALL             = maxFALL});
-
-            break;
+        case NCMType::CM_HDR_EDID: m_imageDescription = getHDRImageDescription(cmType); break;
         default: UNREACHABLE();
     }
-    if ((minLuminance() >= 0 || maxLuminance() > 0) && hdrPreset)
-        m_imageDescription = m_imageDescription->with({
-            .min       = minLuminance() >= 0 ? minLuminance() : m_imageDescription->value().luminances.min, //
-            .max       = maxLuminance() > 0 ? maxLuminance() : m_imageDescription->value().luminances.max,  //
-            .reference = m_imageDescription->value().luminances.reference                                   //
-        });
 
     if (oldImageDescription != m_imageDescription) {
         if (PROTO::colorManagement)
@@ -2417,6 +2385,28 @@ NColorManagement::SImageDescription::SPCMasteringLuminances CMonitor::getMasteri
         .min = m_minLuminance >= 0 ? m_minLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMinLuminance : 0),
         .max = m_maxLuminance >= 0 ? m_maxLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance : 0),
     };
+}
+
+NColorManagement::PImageDescription CMonitor::getHDRImageDescription(NCMType::eCMType cmType) {
+    const auto  masteringPrimaries = getMasteringPrimaries();
+    const auto& defaultHDR         = DEFAULT_HDR_IMAGE_DESCRIPTION->value();
+    const bool  edidPrimaries      = cmType == NCMType::CM_HDR_EDID;
+    const auto  primaries =
+        edidPrimaries && m_output->parsedEDID.chromaticityCoords.has_value() ? masteringPrimaries : NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020);
+
+    return CImageDescription::from({
+        .transferFunction    = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
+        .primariesNameSet    = !edidPrimaries,
+        .primariesNamed      = NColorManagement::CM_PRIMARIES_BT2020,
+        .primaries           = primaries,
+        .masteringPrimaries  = masteringPrimaries,
+        .luminances          = {.min       = minLuminance() >= 0 ? minLuminance() : defaultHDR.getTFMinLuminance(),
+                                .max       = maxLuminance() > 0 ? sc<uint32_t>(maxLuminance()) : sc<uint32_t>(defaultHDR.getTFMaxLuminance()),
+                                .reference = sc<uint32_t>(defaultHDR.getTFRefLuminance())},
+        .masteringLuminances = getMasteringLuminances(),
+        .maxCLL              = maxCLL(),
+        .maxFALL             = maxFALL(),
+    });
 }
 
 uint32_t CMonitor::getPreferredReadFormat() {

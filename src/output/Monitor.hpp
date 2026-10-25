@@ -344,6 +344,7 @@ namespace Monitor {
 
         NColorManagement::SPCPRimaries                              getMasteringPrimaries();
         NColorManagement::SImageDescription::SPCMasteringLuminances getMasteringLuminances();
+        NColorManagement::PImageDescription                         getHDRImageDescription(NCMType::eCMType cmType);
 
         uint32_t                                                    getPreferredReadFormat();
 

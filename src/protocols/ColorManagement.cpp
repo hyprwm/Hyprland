@@ -892,14 +892,17 @@ void CColorManagementProtocol::onImagePreferredChanged(uint32_t preferredId) {
     }
 }
 
+void CColorManagementProtocol::recheckFeedbacks() {
+    for (auto const& feedback : m_feedbackSurfaces)
+        feedback->onPreferredChanged();
+}
+
 void CColorManagementProtocol::onMonitorImageDescriptionChanged(PHLMONITORREF monitor) {
     for (auto const& output : m_outputs) {
         if (output->m_output && output->m_output->m_monitor == monitor)
             output->m_resource->sendImageDescriptionChanged();
     }
-    // recheck feedbacks
-    for (auto const& feedback : m_feedbackSurfaces)
-        feedback->onPreferredChanged();
+    recheckFeedbacks();
 }
 
 bool CColorManagementProtocol::isClientCMAware(wl_client* client) {

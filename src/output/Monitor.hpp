@@ -341,6 +341,7 @@ namespace Monitor {
         bool                                                        gammaRampsInUse();
 
         std::optional<NColorManagement::PImageDescription>          getFSImageDescription();
+        std::optional<NColorManagement::PImageDescription>          getAutoHDRImageDescription(const SP<CWLSurfaceResource>& surface);
 
         NColorManagement::SPCPRimaries                              getMasteringPrimaries();
         NColorManagement::SImageDescription::SPCMasteringLuminances getMasteringLuminances();
@@ -357,6 +358,7 @@ namespace Monitor {
         bool                                m_renderingInitPassed = false;
 
         PHLWINDOWREF                        m_previousFSWindow;
+        PHLWINDOWREF                        m_autoHDRWindow;
         bool                                m_needsHDRupdate         = false;
         bool                                m_hdrMetadataFromSurface = false;
 

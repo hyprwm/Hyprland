@@ -457,6 +457,9 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
 }
 
 void CColorManagementFeedbackSurface::onPreferredChanged() {
+    if (m_surface.expired())
+        return;
+
     if (m_surface->m_enteredOutputs.size() == 1) {
         const auto newId = m_surface->getPreferredImageDescription()->id();
         if (m_currentPreferredId != newId) {

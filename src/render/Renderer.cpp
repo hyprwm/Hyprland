@@ -2720,6 +2720,12 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
         pMonitor->m_output->state->setCTM(pMonitor->m_ctm);
     }
 
+    // the fullscreen surface's preferred description depends on the fullscreen window, see getPreferredImageDescription()
+    if (*PAUTOHDR && PROTO::colorManagement && pMonitor->supportsHDR() && FULLSCREEN_WINDOW != pMonitor->m_autoHDRWindow) {
+        pMonitor->m_autoHDRWindow = FULLSCREEN_WINDOW;
+        PROTO::colorManagement->recheckFeedbacks();
+    }
+
     pMonitor->m_previousFSWindow = FULLSCREEN_WINDOW;
 }
 

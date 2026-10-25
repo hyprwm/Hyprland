@@ -720,7 +720,11 @@ PImageDescription CWLSurfaceResource::getPreferredImageDescription() {
     else if (m_hlSurface.valid() && WINDOW)
         monitor = WINDOW->m_monitor;
 
-    return monitor ? monitor->m_imageDescription : g_pCompositor->getPreferredImageDescription();
+    if (!monitor)
+        return g_pCompositor->getPreferredImageDescription();
+
+    // auto HDR only switches once a fullscreen client submits HDR content, so offer it the description it would switch to
+    return monitor->getAutoHDRImageDescription(parent.lock()).value_or(monitor->m_imageDescription);
 }
 
 void CWLSurfaceResource::sortSubsurfaces() {

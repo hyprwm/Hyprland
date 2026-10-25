@@ -2369,6 +2369,20 @@ std::optional<NColorManagement::PImageDescription> CMonitor::getFSImageDescripti
     return SURF ? NColorManagement::CImageDescription::from(SURF->m_colorManagement->imageDescription()) : getDefaultImageDescription();
 }
 
+// the HDR description auto HDR would switch to, offered to the fullscreen surface so it can trigger the switch
+std::optional<NColorManagement::PImageDescription> CMonitor::getAutoHDRImageDescription(const SP<CWLSurfaceResource>& surface) {
+    static const auto PAUTOHDR = CConfigValue<Config::INTEGER>("render:cm_auto_hdr");
+
+    if (!*PAUTOHDR || !supportsHDR() || !m_activeMonitorRule.m_iccFile.empty() || m_cmType == NCMType::CM_HDR || m_cmType == NCMType::CM_HDR_EDID)
+        return {};
+
+    const auto FS_WINDOW = Fullscreen::controller()->getFullscreenWindow(m_self.lock());
+    if (!FS_WINDOW || FS_WINDOW->wlSurface()->resource() != surface || FS_WINDOW->m_ruleApplicator->noAutoHDR().valueOrDefault())
+        return {};
+
+    return getHDRImageDescription(*PAUTOHDR == 2 ? NCMType::CM_HDR_EDID : NCMType::CM_HDR);
+}
+
 NColorManagement::SPCPRimaries CMonitor::getMasteringPrimaries() {
     return m_output->parsedEDID.chromaticityCoords.has_value() ?
         NColorManagement::SPCPRimaries{

@@ -145,13 +145,11 @@ if(NOT CMAKE_SYSTEM_NAME MATCHES "OpenBSD")
 endif()
 
 set(AQUAMARINE_MINIMUM_VERSION 0.15.0)
-set(HYPRLANG_MINIMUM_VERSION 0.6.7)
 set(HYPRCURSOR_MINIMUM_VERSION 0.1.7)
 set(HYPRUTILS_MINIMUM_VERSION 0.14.3)
 set(HYPRGRAPHICS_MINIMUM_VERSION 0.5.1)
 
 pkg_check_modules(aquamarine_dep REQUIRED IMPORTED_TARGET aquamarine>=${AQUAMARINE_MINIMUM_VERSION})
-pkg_check_modules(hyprlang_dep REQUIRED IMPORTED_TARGET hyprlang>=${HYPRLANG_MINIMUM_VERSION})
 pkg_check_modules(hyprcursor_dep REQUIRED IMPORTED_TARGET hyprcursor>=${HYPRCURSOR_MINIMUM_VERSION})
 pkg_check_modules(hyprutils_dep REQUIRED IMPORTED_TARGET hyprutils>=${HYPRUTILS_MINIMUM_VERSION})
 pkg_check_modules(hyprgraphics_dep REQUIRED IMPORTED_TARGET hyprgraphics>=${HYPRGRAPHICS_MINIMUM_VERSION})
@@ -165,7 +163,6 @@ set(AQUAMARINE_VERSION "${aquamarine_dep_VERSION}")
 set(AQUAMARINE_VERSION_MAJOR "${AQ_VERSION_MAJOR}")
 set(AQUAMARINE_VERSION_MINOR "${AQ_VERSION_MINOR}")
 set(AQUAMARINE_VERSION_PATCH "${AQ_VERSION_PATCH}")
-set(HYPRLANG_VERSION "${hyprlang_dep_VERSION}")
 set(HYPRUTILS_VERSION "${hyprutils_dep_VERSION}")
 set(HYPRCURSOR_VERSION "${hyprcursor_dep_VERSION}")
 set(HYPRGRAPHICS_VERSION "${hyprgraphics_dep_VERSION}")
@@ -445,7 +442,6 @@ target_link_libraries(
   hyprland_lib
   PUBLIC
   PkgConfig::aquamarine_dep
-  PkgConfig::hyprlang_dep
   PkgConfig::hyprutils_dep
   PkgConfig::hyprcursor_dep
   PkgConfig::hyprgraphics_dep

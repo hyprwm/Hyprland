@@ -268,6 +268,13 @@ int main(int argc, char** argv, char** envp) {
     HIS       = INSTANCES.back().id;
     WLDISPLAY = INSTANCES.back().wlSocket;
 
+    // With no enabled outputs, startup must retain FALLBACK until an output becomes usable.
+    if (const auto R = getFromSocket("/monitors"); not R.starts_with("Monitor FALLBACK (ID 1):")) {
+        NLog::red("Startup output check failed: {}", R);
+        getFromSocket("/dispatch hl.dsp.exit()");
+        return 1;
+    }
+
     NLog::yellow("trying to get create headless output");
     const auto CREATE_HEADLESS_2 = getFromSocket("/output create headless HEADLESS-2");
     if (CREATE_HEADLESS_2 != "ok" && CREATE_HEADLESS_2 != "Name already taken") {

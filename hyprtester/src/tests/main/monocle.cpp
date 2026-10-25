@@ -76,6 +76,43 @@ TEST_CASE(monocleWorkspaceRule) {
     }
 }
 
+TEST_CASE(monocleWorkspaceRulePredicate) {
+    OK(getFromSocket("/eval hl.config({ general = { layout = 'monocle' } })"));
+
+    // monocleWorkspaceRule's w[tv1], written as a predicate
+    OK(getFromSocket("/eval hl.workspace_rule({ workspace = function(ws) return ws:count_windows({ tiled = true, visible = true }) == 1 end, gaps_out = 40 })"));
+    EXPECT_CONTAINS(getFromSocket("/workspacerules"), "Workspace rule <function>");
+
+    SPAWN_KITTY("neutral_cat");
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: neutral_cat")
+        EXPECT_CONTAINS(str, "size: 1836,996")
+        EXPECT_CONTAINS(str, "at: 42,42")
+    }
+
+    // monocle shows one tiled window at a time, so this still counts one
+    SPAWN_KITTY("happy_cat");
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: happy_cat")
+        EXPECT_CONTAINS(str, "size: 1836,996")
+        EXPECT_CONTAINS(str, "at: 42,42")
+    }
+}
+
+TEST_CASE(workspaceRulePredicateThatAnswersNo) {
+    OK(getFromSocket("/eval hl.config({ general = { layout = 'monocle' } })"));
+    OK(getFromSocket("/eval hl.workspace_rule({ workspace = function() return false end, gaps_out = 40 })"));
+
+    SPAWN_KITTY("neutral_cat");
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: neutral_cat")
+        EXPECT_NOT_CONTAINS(str, "at: 42,42")
+    }
+}
+
 /*
     Fullscreen Tests
 

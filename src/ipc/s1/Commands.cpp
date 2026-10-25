@@ -546,6 +546,7 @@ std::string CCommandFormatter::getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFo
 
 static std::string getWorkspaceRuleData(const Config::CWorkspaceRule& r, eHyprCtlOutputFormat format) {
     const auto boolToString = [](const bool b) -> std::string { return b ? "true" : "false"; };
+    const auto SELECTOR     = r.m_workspacePredicate.isSet() ? r.m_workspacePredicate.toString() : r.m_workspaceString;
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         const std::string monitor     = r.m_monitor.empty() ? "" : std::format(",\n    \"monitor\": \"{}\"", escapeJSONStrings(r.m_monitor));
         const std::string enabled     = std::format(",\n    \"enabled\": {}", boolToString(r.isEnabled()));
@@ -569,8 +570,8 @@ static std::string getWorkspaceRuleData(const Config::CWorkspaceRule& r, eHyprCt
         std::string result = std::format(R"#({{
     "workspaceString": "{}"{}{}{}{}{}{}{}{}{}{}{}{}{}
 }})#",
-                                         escapeJSONStrings(r.m_workspaceString), enabled, monitor, default_, persistent, gapsIn, gapsOut, borderSize, border, rounding, decorate,
-                                         shadow, defaultName, onCreatedEmpty);
+                                         escapeJSONStrings(SELECTOR), enabled, monitor, default_, persistent, gapsIn, gapsOut, borderSize, border, rounding, decorate, shadow,
+                                         defaultName, onCreatedEmpty);
 
         return result;
     } else {
@@ -594,8 +595,8 @@ static std::string getWorkspaceRuleData(const Config::CWorkspaceRule& r, eHyprCt
         const std::string defaultName    = std::format("\tdefaultName: {}\n", r.m_defaultName.value_or("<unset>"));
         const std::string onCreatedEmpty = std::format("\tonCreatedEmpty: {}\n", r.m_onCreatedEmptyRunCmd.value_or("<unset>"));
 
-        std::string result = std::format("Workspace rule {}:\n{}{}{}{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.m_workspaceString), enabled, monitor, default_, persistent, gapsIn,
-                                         gapsOut, borderSize, border, rounding, decorate, shadow, defaultName, onCreatedEmpty);
+        std::string result = std::format("Workspace rule {}:\n{}{}{}{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(SELECTOR), enabled, monitor, default_, persistent, gapsIn, gapsOut,
+                                         borderSize, border, rounding, decorate, shadow, defaultName, onCreatedEmpty);
 
         return result;
     }

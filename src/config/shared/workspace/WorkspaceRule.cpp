@@ -1,5 +1,7 @@
 #include "WorkspaceRule.hpp"
 
+#include "../../../workspace/HLWorkspace.hpp"
+
 using namespace Config;
 
 void CWorkspaceRule::mergeLeft(const CWorkspaceRule& other) {
@@ -48,4 +50,11 @@ void CWorkspaceRule::setEnabled(bool enabled) {
 
 bool CWorkspaceRule::isEnabled() const {
     return m_enabled;
+}
+
+bool CWorkspaceRule::matches(const PHLWORKSPACE& workspace) const {
+    if (m_workspacePredicate.isSet())
+        return m_workspacePredicate(workspace);
+
+    return workspace->matchesStaticSelector(m_workspaceString);
 }

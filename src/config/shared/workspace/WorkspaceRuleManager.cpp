@@ -24,7 +24,11 @@ SP<CWorkspaceRule> CWorkspaceRuleManager::add(CWorkspaceRule&& x) {
 }
 
 SP<CWorkspaceRule> CWorkspaceRuleManager::replaceOrAdd(CWorkspaceRule&& x) {
-    auto it = std::ranges::find_if(m_rules, [&x](const auto& r) { return r->isEnabled() && r->m_workspaceString == x.m_workspaceString; });
+    // two predicates are never the same rule
+    if (x.m_workspacePredicate.isSet())
+        return add(std::move(x));
+
+    auto it = std::ranges::find_if(m_rules, [&x](const auto& r) { return r->isEnabled() && !r->m_workspacePredicate.isSet() && r->m_workspaceString == x.m_workspaceString; });
     if (it == m_rules.end())
         return add(std::move(x));
 
@@ -40,7 +44,7 @@ std::optional<CWorkspaceRule> CWorkspaceRuleManager::getWorkspaceRuleFor(PHLWORK
         if (!rule->isEnabled())
             continue;
 
-        if (!workspace->matchesStaticSelector(rule->m_workspaceString))
+        if (!rule->matches(workspace))
             continue;
 
         mergedRule.mergeLeft(*rule);

@@ -1,6 +1,6 @@
 #include "LuaPredicate.hpp"
 
-#include "LuaCaller.hpp"
+#include "objects/LuaWorkspace.hpp"
 #include "../../macros.hpp"
 
 using namespace Config::Lua;
@@ -36,4 +36,8 @@ void Config::Lua::pushFn(lua_State* L, lua_CFunction fn, ePredicateAccess access
         case 1: lua_pushcclosure(L, predicateForbidden<1>, 2); break;
         default: RASSERT(false, "pushFn: unsupported upvalue count {}", nupvalues);
     }
+}
+
+void Config::Lua::pushArg(lua_State* L, const PHLWORKSPACE& workspace) {
+    Objects::CLuaWorkspace::push(L, workspace);
 }

@@ -5,6 +5,7 @@
 #include <map>
 
 #include "../complex/ComplexDataTypes.hpp"
+#include "../complex/PredicateData.hpp"
 #include "../../../defines.hpp"
 
 namespace Config {
@@ -23,9 +24,11 @@ namespace Config {
         void                               mergeLeft(const CWorkspaceRule& other);
         void                               setEnabled(bool enabled);
         bool                               isEnabled() const;
+        bool                               matches(const PHLWORKSPACE& workspace) const;
 
         std::string                        m_monitor         = "";
         std::string                        m_workspaceString = "";
+        CPredicateData<PHLWORKSPACE>       m_workspacePredicate; // when set, matches instead of m_workspaceString
         std::optional<bool>                m_isDefault;
         std::optional<bool>                m_isPersistent;
         std::optional<CCssGapData>         m_gapsIn;

@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <lua.h>
+#include <optional>
 #include <string_view>
 #include <variant>
 
@@ -45,6 +46,35 @@ static int workspaceToString(lua_State* L) {
         lua_pushfstring(L, "HL.Workspace(%s:%s)", ws->addressableName().c_str(), ws->displayName().c_str());
 
     return 1;
+}
+
+// opts mirror the w[...] selector: true counts only those, false only the others, unset any
+static int countFor(lua_State* L, bool groups) {
+    auto*               ref = sc<PHLWORKSPACEREF*>(luaL_checkudata(L, 1, MT));
+
+    std::optional<bool> tiled, pinned, visible;
+    if (!lua_isnoneornil(L, 2)) {
+        luaL_checktype(L, 2, LUA_TTABLE);
+        tiled   = Bindings::Internal::tableOptBool(L, 2, "tiled");
+        pinned  = Bindings::Internal::tableOptBool(L, 2, "pinned");
+        visible = Bindings::Internal::tableOptBool(L, 2, "visible");
+    }
+
+    const auto ws = ref->lock();
+    if (!ws)
+        lua_pushinteger(L, 0);
+    else
+        lua_pushinteger(L, groups ? ws->getGroups(tiled, pinned, visible) : ws->getWindowCount(tiled, pinned, visible));
+
+    return 1;
+}
+
+static int workspaceCountWindows(lua_State* L) {
+    return countFor(L, false);
+}
+
+static int workspaceCountGroups(lua_State* L) {
+    return countFor(L, true);
 }
 
 static int workspaceGetWindows(lua_State* L) {
@@ -169,6 +199,10 @@ static int workspaceIndex(lua_State* L) {
         pushFn(L, workspaceGetWindows, ALLOWED_IN_PREDICATE);
     else if (key == "get_groups")
         pushFn(L, workspaceGetGroups, ALLOWED_IN_PREDICATE);
+    else if (key == "count_windows")
+        pushFn(L, workspaceCountWindows, ALLOWED_IN_PREDICATE);
+    else if (key == "count_groups")
+        pushFn(L, workspaceCountGroups, ALLOWED_IN_PREDICATE);
     else if (key == "groups")
         lua_pushinteger(L, sc<lua_Integer>(ws->getGroups()));
     else

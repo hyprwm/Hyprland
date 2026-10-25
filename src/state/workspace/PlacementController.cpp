@@ -53,7 +53,7 @@ void CPlacementController::ensurePersistentWorkspacesPresent(const std::vector<S
 
         PHLWORKSPACE PWORKSPACE = nullptr;
         if (pWorkspace) {
-            if (pWorkspace->matchesStaticSelector(rule.m_workspaceString))
+            if (rule.matches(pWorkspace))
                 PWORKSPACE = pWorkspace;
             else
                 continue;

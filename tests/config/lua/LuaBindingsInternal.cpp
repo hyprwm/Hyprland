@@ -1,6 +1,7 @@
 #include <config/lua/bindings/LuaBindingsInternal.hpp>
 #include <config/lua/LuaCaller.hpp>
 #include <config/lua/ConfigManager.hpp>
+#include <config/shared/workspace/WorkspaceRuleManager.hpp>
 #include <config/shared/inotify/ConfigWatcher.hpp>
 #include <managers/input/trackpad/gestures/LuaFunctionGesture.hpp>
 
@@ -10,6 +11,7 @@
 #include <config/values/types/IntValue.hpp>
 
 #include <gtest/gtest.h>
+#include <hyprutils/utils/ScopeGuard.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -290,6 +292,46 @@ TEST_F(CConfigLuaDispatchers, predicateCanRead) {
 
     EXPECT_TRUE(runPredicate(*m_manager, m_lua, "probe"));
     EXPECT_EQ(lua_gettop(m_lua), 0);
+}
+
+TEST_F(CConfigLuaDispatchers, workspaceRuleAcceptsAPredicate) {
+    Hyprutils::Utils::CScopeGuard clear([] { Config::workspaceRuleMgr()->clear(); });
+
+    const auto                    added = m_manager->eval(R"-(
+        hl.workspace_rule({ workspace = function(ws) return ws == nil end, gaps_out = 0, default_name = 'web' })
+        hl.workspace_rule({ workspace = function() end, gaps_out = 0 })
+    )-");
+    ASSERT_FALSE(added.has_value()) << added.value_or("");
+
+    const auto& RULES = Config::workspaceRuleMgr()->getAllWorkspaceRules();
+    ASSERT_EQ(RULES.size(), 2);
+    EXPECT_TRUE(RULES[0]->matches(nullptr));
+    EXPECT_TRUE(RULES[0]->m_workspaceString.empty());
+    EXPECT_TRUE(RULES[0]->m_gapsOut.has_value());
+    EXPECT_EQ(RULES[0]->m_defaultName, "web");
+
+    // a predicate that returns nothing doesn't match
+    EXPECT_FALSE(RULES[1]->matches(nullptr));
+    EXPECT_EQ(lua_gettop(m_lua), 0);
+}
+
+TEST_F(CConfigLuaDispatchers, workspaceRulePredicateCannotNameAWorkspace) {
+    Hyprutils::Utils::CScopeGuard             clear([] { Config::workspaceRuleMgr()->clear(); });
+
+    const std::pair<const char*, const char*> FIELDS[] = {
+        {"monitor", "'DP-1'"},
+        {"default", "true"},
+        {"persistent", "true"},
+    };
+
+    for (const auto& [field, value] : FIELDS) {
+        SCOPED_TRACE(field);
+        const auto result = m_manager->eval(std::format("hl.workspace_rule({{ workspace = function() return true end, {} = {} }})", field, value));
+        ASSERT_TRUE(result.has_value());
+        EXPECT_NE(result->find(std::format("hl.workspace_rule: '{}' can't be used with a predicate, it needs a workspace name or id", field)), std::string::npos) << *result;
+    }
+
+    EXPECT_TRUE(Config::workspaceRuleMgr()->getAllWorkspaceRules().empty());
 }
 
 TEST_F(CConfigLuaDispatchers, expiredKeybindHandlesAreInert) {

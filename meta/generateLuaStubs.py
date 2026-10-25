@@ -369,7 +369,7 @@ def parse_descriptor_fields(root: Path) -> dict[str, dict[str, str]]:
     out["HL.MonitorSpec"]["output"] = "string"
     out["HL.MonitorSpec"]["scale"] = "string|number"
     out["HL.DeviceSpec"]["name"] = "string"
-    out["HL.WorkspaceRuleSpec"]["workspace"] = "string"
+    out["HL.WorkspaceRuleSpec"]["workspace"] = "string|fun(workspace: HL.Workspace): boolean"
     out["HL.WorkspaceRuleSpec"]["enabled"] = "boolean"
     out["HL.WorkspaceRuleSpec"]["layout_opts"] = "table<string, string|number|boolean>"
     out["HL.WindowRuleSpec"]["name"] = "string"
@@ -570,6 +570,8 @@ def generate_stub(root: Path) -> str:
     object_method_signatures: dict[tuple[str, str], str] = {
         ("HL.Group", "add"): "fun(self: HL.Group, window: HL.Window, index?: integer)",
         ("HL.Group", "remove"): "fun(self: HL.Group, window_or_index: HL.Window|integer)",
+        ("HL.Workspace", "count_windows"): "fun(self: HL.Workspace, opts?: { tiled?: boolean, pinned?: boolean, visible?: boolean }): integer",
+        ("HL.Workspace", "count_groups"): "fun(self: HL.Workspace, opts?: { tiled?: boolean, pinned?: boolean, visible?: boolean }): integer",
     }
 
     # Helper-based __index implementations need explicit field types and optionality.

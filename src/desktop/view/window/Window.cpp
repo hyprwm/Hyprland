@@ -1597,6 +1597,7 @@ void CWindow::mapWindow() {
 
     m_stateTracker->start();
     Event::bus()->m_events.window.openLate.emit(m_self.lock());
+    PWORKSPACE->ready();
 }
 
 void CWindow::unmapWindow() {

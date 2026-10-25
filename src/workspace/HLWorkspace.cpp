@@ -95,13 +95,22 @@ void Workspace::CHLWorkspace::init(PHLWORKSPACE self) {
         if (auto cmd = RULEFORTHIS.m_onCreatedEmptyRunCmd)
             Config::Supplementary::executor()->spawnWithRules(*cmd, self);
 
+    LOG(Log::DEBUG, "Creating workspace {}", addressableName());
     IPC::Socket2::sock()->postEvent({.event = "createworkspace", .data = addressableName()});
     IPC::Socket2::sock()->postEvent({.event = "createworkspacev2", .data = std::format("{},{}", addressableName(), displayName())});
-    Event::bus()->m_events.workspace.created.emit(self);
+    Event::bus()->m_events.workspace.createdEarly.emit(self);
 }
 
 void Workspace::CHLWorkspace::applyTypeSpecificRules(const Config::CWorkspaceRule&) {
     ;
+}
+
+void Workspace::CHLWorkspace::ready() {
+    if (!m_ready) {
+        m_ready = true;
+        LOG(Log::DEBUG, "Workspace {} ready", m_name);
+        Event::bus()->m_events.workspace.createdLate.emit(m_self);
+    }
 }
 
 Workspace::CHLWorkspace::~CHLWorkspace() {

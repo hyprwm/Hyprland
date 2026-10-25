@@ -155,6 +155,35 @@ SP<Render::ITexture> CMonitorResources::getMirrorTexture() {
     return hasMirrorFB() ? mirrorFB()->getTexture() : nullptr;
 }
 
+SP<Render::IFramebuffer> CMonitorResources::getScreensharePrivacyFB(const Vector2D& size) {
+    if (!m_screensharePrivacyFB)
+        m_screensharePrivacyFB = g_pHyprRenderer->createFB(std::format("Monitor {} screenshare privacy FB", m_monitor->m_name));
+
+    if (!m_screensharePrivacyFB || !m_screensharePrivacyFB->alloc(size.x, size.y, DRM_FORMAT_ARGB8888))
+        return nullptr;
+
+    m_screensharePrivacyFB->setImageDescription(DEFAULT_SRGB_IMAGE_DESCRIPTION);
+    return m_screensharePrivacyFB;
+}
+
+SP<Render::CSceneResources> CMonitorResources::getScreensharePrivacySceneResources() {
+    static auto PBLURENABLED = CConfigValue<Config::BOOL>("decoration:blur:enabled");
+    if (!*PBLURENABLED)
+        return nullptr;
+
+    if (!m_screensharePrivacySceneResources)
+        m_screensharePrivacySceneResources =
+            makeShared<Render::CSceneResources>(g_pHyprRenderer->createFB(std::format("Monitor {} screenshare privacy blur FB", m_monitor->m_name)));
+
+    return m_screensharePrivacySceneResources;
+}
+
+void CMonitorResources::releaseScreensharePrivacyFB() {
+    m_screensharePrivacySceneResources.reset();
+    if (m_screensharePrivacyFB)
+        m_screensharePrivacyFB->release();
+}
+
 NColorManagement::PImageDescription CMonitorResources::getMirrorTexImageDescription() {
     const auto TF = m_imageDescription->value().transferFunction;
     if (TF == CM_TRANSFER_FUNCTION_GAMMA22 || TF == CM_TRANSFER_FUNCTION_SRGB)

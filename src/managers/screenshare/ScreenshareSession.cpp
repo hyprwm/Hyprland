@@ -205,6 +205,14 @@ void CScreenshareSession::screenshareEvents(bool startSharing) {
 
         Event::bus()->m_events.screenshare.state.emit(false, m_type, m_name);
     }
+
+    if (!startSharing && (m_type == SHARE_MONITOR || m_type == SHARE_REGION)) {
+        const auto  CAPTUREMONITOR = monitor();
+        const auto  SCENEMONITOR   = CAPTUREMONITOR && CAPTUREMONITOR->isMirror() ? CAPTUREMONITOR->m_mirrorOf.lock() : CAPTUREMONITOR;
+        const auto& MANAGER        = Screenshare::mgr();
+        if (MANAGER)
+            MANAGER->releasePrivacySceneIfUnused(SCENEMONITOR);
+    }
 }
 
 const std::vector<DRMFormat>& CScreenshareSession::allowedFormats() const {

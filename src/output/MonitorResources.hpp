@@ -31,6 +31,9 @@ namespace Monitor {
         void                               disableMirror();
         SP<Render::IFramebuffer>           mirrorFB();
         SP<Render::ITexture>               getMirrorTexture();
+        SP<Render::IFramebuffer>           getScreensharePrivacyFB(const Vector2D& size);
+        SP<Render::CSceneResources>        getScreensharePrivacySceneResources();
+        void                               releaseScreensharePrivacyFB();
         void                               refreshBlurFB();
         const SP<Render::CSceneResources>& sceneResources() const;
         bool                               prepareSceneResources(Render::CSceneResources& resources) const;
@@ -46,6 +49,8 @@ namespace Monitor {
         Vector2D                            mirrorFBDamageSize() const;
 
         SP<Render::IFramebuffer>            m_monitorMirrorFB;
+        SP<Render::IFramebuffer>            m_screensharePrivacyFB;
+        SP<Render::CSceneResources>         m_screensharePrivacySceneResources;
         CRegion                             m_mirrorFBStaleDamage;
         WP<CMonitor>                        m_monitor;
         DRMFormat                           m_drmFormat;

@@ -1874,8 +1874,10 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
             abortRender();
     });
 
+    const bool        FAKE_MODE = mode == RENDER_MODE_FULL_FAKE || mode == RENDER_MODE_FULL_FAKE_FENCED;
+
     if (m_context.readOnlyEffects()) {
-        if (mode == RENDER_MODE_NORMAL || (mode == RENDER_MODE_FULL_FAKE ? !fb : !buffer)) {
+        if (mode == RENDER_MODE_NORMAL || (FAKE_MODE ? !fb : !buffer)) {
             LOG(Log::ERR, "Isolated scene resources require an offscreen destination");
             return false;
         }
@@ -1904,7 +1906,7 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     if (!m_context.readOnlyEffects() && HAS_MIRROR_FB && !RESOURCES->shouldKeepMirrorFB())
         RESOURCES->releaseMirrorFB();
 
-    if (m_context.m_mode == RENDER_MODE_FULL_FAKE) {
+    if (FAKE_MODE) {
         started = beginFullFakeRenderInternal(m_context, pMonitor, damage, fb, simple);
         return started;
     }

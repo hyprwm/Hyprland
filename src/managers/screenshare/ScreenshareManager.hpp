@@ -181,6 +181,12 @@ namespace Screenshare {
         const CRegion&      damage() const;
 
       private:
+        struct SMonitorCaptureScene {
+            SP<Render::IFramebuffer> framebuffer;
+            bool                     prepared             = false;
+            bool                     containsPrivateViews = false;
+        };
+
         WP<CScreenshareFrame>   m_self;
         WP<CScreenshareSession> m_session;
         FScreenshareCallback    m_callback;
@@ -193,18 +199,20 @@ namespace Screenshare {
         bool                    m_isFirst       = false;
 
         //
-        void copy();
-        bool copyDmabuf();
-        bool copyShm();
-        bool beginCopy(SP<Render::IFramebuffer> framebuffer = nullptr);
+        void                     copy(SMonitorCaptureScene& monitorScene);
+        bool                     copyDmabuf(const SMonitorCaptureScene& monitorScene);
+        bool                     copyShm(const SMonitorCaptureScene& monitorScene);
+        bool                     beginCopy(SP<Render::IFramebuffer> framebuffer = nullptr);
 
-        void render(Render::CRenderContext& ctx);
-        void renderMonitor(Render::CRenderContext& ctx);
-        void renderMonitorRegion(Render::CRenderContext& ctx);
-        void renderWindow(Render::CRenderContext& ctx);
-        void renderWorkspace(Render::CRenderContext& ctx);
+        void                     render(Render::CRenderContext& ctx, const SMonitorCaptureScene& monitorScene);
+        void                     renderMonitor(Render::CRenderContext& ctx, const SMonitorCaptureScene& monitorScene);
+        void                     renderMonitorRegion(Render::CRenderContext& ctx);
+        void                     renderWindow(Render::CRenderContext& ctx);
+        void                     renderWorkspace(Render::CRenderContext& ctx);
 
-        void storeTempFB();
+        void                     prepareMonitorScene(SMonitorCaptureScene& monitorScene);
+        SP<Render::IFramebuffer> createMonitorScene(PHLMONITOR monitor);
+        void                     storeTempFB(const SMonitorCaptureScene& monitorScene);
 
         friend class CScreenshareManager;
         friend class CScreenshareSession;
@@ -249,6 +257,8 @@ namespace Screenshare {
         bool                    needsWorkspaceCaptureSnapshot(PHLWINDOW window) const;
 
       private:
+        void                                 releasePrivacySceneIfUnused(PHLMONITOR monitor);
+
         std::vector<WP<CScreenshareSession>> m_sessions;
         std::vector<WP<CCursorshareSession>> m_cursorSessions;
         std::vector<WP<CScreenshareFrame>>   m_pendingFrames;

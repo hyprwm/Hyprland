@@ -27,6 +27,8 @@ void CScreenshareManager::onOutputCommit(PHLMONITOR monitor, bool copyFBPrepared
         return; // nothing to share
     }
 
+    CScreenshareFrame::SMonitorCaptureScene monitorScene;
+
     std::ranges::for_each(m_pendingFrames, [&](WP<CScreenshareFrame>& frame) {
         if (frame.expired() || !frame->m_shared || frame->done())
             return;
@@ -43,10 +45,42 @@ void CScreenshareManager::onOutputCommit(PHLMONITOR monitor, bool copyFBPrepared
                 return;
         }
 
-        frame->copy();
+        frame->copy(monitorScene);
     });
 
     std::erase_if(m_pendingFrames, [&](const WP<CScreenshareFrame>& frame) { return frame.expired() || frame->done(); });
+}
+
+void CScreenshareManager::releasePrivacySceneIfUnused(PHLMONITOR monitor) {
+    if (!monitor)
+        return;
+
+    const auto SHARES_MONITOR = [monitor](PHLMONITOR captureMonitor) {
+        if (!captureMonitor)
+            return false;
+
+        const auto SCENEMONITOR = captureMonitor->isMirror() ? captureMonitor->m_mirrorOf.lock() : captureMonitor;
+        return SCENEMONITOR == monitor;
+    };
+
+    for (const auto& session : m_sessions) {
+        if (!session || !session->m_sharing || (session->m_type != SHARE_MONITOR && session->m_type != SHARE_REGION))
+            continue;
+
+        if (SHARES_MONITOR(session->monitor()))
+            return;
+    }
+
+    for (const auto& frame : m_pendingFrames) {
+        if (!frame || frame->done() || !frame->m_shared || (frame->m_session->m_type != SHARE_MONITOR && frame->m_session->m_type != SHARE_REGION))
+            continue;
+
+        if (SHARES_MONITOR(frame->m_session->monitor()))
+            return;
+    }
+
+    if (const auto RESOURCES = monitor->resources(); RESOURCES)
+        RESOURCES->releaseScreensharePrivacyFB();
 }
 
 UP<CScreenshareSession> CScreenshareManager::newSession(wl_client* client, PHLMONITOR monitor) {

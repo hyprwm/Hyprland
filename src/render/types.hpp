@@ -38,6 +38,7 @@ namespace Render {
         RENDER_MODE_FULL_FAKE           = 1,
         RENDER_MODE_TO_BUFFER           = 2,
         RENDER_MODE_TO_BUFFER_READ_ONLY = 3,
+        RENDER_MODE_FULL_FAKE_FENCED    = 4, // Fake offscreen render that synchronizes sampled buffers on completion.
     };
 
     struct SRenderOptions {

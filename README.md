@@ -1,150 +1,45 @@
-<div align = center>
+# BreakLand
 
-<img src="https://raw.githubusercontent.com/hyprwm/Hyprland/main/assets/header.svg" width="750" height="300" alt="banner">
+**A Nix-first Wayland compositor.**
 
-<br>
+BreakLand is an independent Wayland compositor built from Hyprland, with a different philosophy: configuration should be declarative, common desktop tasks should be simple, and good defaults should not require hours of customization.
 
-[![Badge Workflow]][Workflow]
-[![Badge License]][License] 
-![Badge Language] 
-[![Badge Pull Requests]][Pull Requests] 
-[![Badge Issues]][Issues] 
-![Badge Hi Mom]<br>
+BreakLand is designed primarily for NixOS and Home Manager users.
 
-<br>
+## Philosophy
 
-Hyprland is a 100% independent, dynamic tiling Wayland compositor that doesn't sacrifice on its looks.
+**1. Declarative by design.**
 
-It provides the latest Wayland features, is highly customizable, has all the eyecandy, the most powerful plugins,
-easy IPC, much more QoL stuff than other compositors and more...
-<br>
-<br>
+Configuration is defined through typed Nix modules rather than an imperative scripting language. The desktop should be reproducible, understandable, and easy to maintain.
 
----
+**2. Good defaults are a feature.**
 
-**[<kbd> <br> Install <br> </kbd>][Install]** 
-**[<kbd> <br> Quick Start <br> </kbd>][Quick Start]** 
-**[<kbd> <br> Configure <br> </kbd>][Configure]** 
-**[<kbd> <br> Contribute <br> </kbd>][Contribute]**
+A clean, preconfigured Waybar, sensible keybindings, consistent animations, and practical window behavior should be available without downloading somebody else's dotfiles.
 
----
+**3. Scrolling is a first-class workflow.**
 
-<br>
+Scrolling window layouts are central to BreakLand's design, not an afterthought. Window navigation should feel natural and predictable.
 
-</div>
+**4. Simple things should stay simple.**
 
-# Features
+Mirroring or extending displays should take a click. A wallpaper should automatically apply to every connected screen. Users shouldn't need to write scripts for ordinary desktop tasks.
 
-- All of the eyecandy: gradient borders, many types of blur, animations, glow, shadows and much more
-- A lot of customization
-- 100% independent, no wlroots, no libweston, no kwin, no mutter.
-- Custom bezier and spring curves for the best animations
-- Powerful plugin support
-- Built-in plugin manager
-- Tearing support for better gaming performance
-- Easily expandable and readable codebase
-- Fast and active development
-- Not afraid to provide bleeding-edge features
-- Config reloaded instantly upon saving
-- Global keybinds passed to your apps of choice
-- Tiling/pseudotiling/floating/fullscreen windows
-- Special workspaces (scratchpads)
-- Window groups (tabbed mode)
-- Powerful window/monitor/layer rules
-- Socket-based IPC
-- Native IME and Input Panels Support
-- Fully dynamic workspaces
-- Extensive layout support
-    - Dwindle
-    - Scrolling
-    - Master
-    - Monocle
-    - Custom layout with Lua
-    - Custom layouts with plugins
-- Per Workspace Layouts
-- and much more...
+**5. No unnecessary decoration.**
 
-<br>
-<br>
+BreakLand ships without a default wallpaper and avoids unnecessary visual clutter. Appearance is customizable, but usability always comes first.
 
-<div align = center>
+**6. Breaking compatibility is acceptable. Breaking functionality is not.**
 
-# Gallery
+BreakLand does not promise compatibility with Hyprland's configuration format, plugins, or internal APIs. Breaking changes must serve a clear technical or usability purpose.
 
-<br>
+**7. Independent and transparent.**
 
-![Preview A]
+BreakLand follows its own technical roadmap. Sponsorship must not grant exclusive control over development priorities.
 
-<br>
+## Origins
 
-![Preview B]
+BreakLand is an independent fork of Hyprland, originally developed by the Hyprland contributors.
 
-<br>
+It is not affiliated with or endorsed by the Hyprland project.
 
-![Preview C]
-
-<br>
-<br>
-
-</div>
-
-# Special Thanks
-
-<br>
-
-**[wlroots]** - *For powering Hyprland in the past*
-
-**[tinywl]** - *For showing how 2 do stuff*
-
-**[Sway]** - *For showing how 2 do stuff the overkill way*
-
-**[Vivarium]** - *For showing how 2 do stuff the simple way*
-
-**[dwl]** - *For showing how 2 do stuff the hacky way*
-
-**[Wayfire]** - *For showing how 2 do some graphics stuff*
-
-
-<!----------------------------------------------------------------------------->
-
-[Configure]: https://wiki.hypr.land/configuring/
-[Stars]: https://starchart.cc/hyprwm/Hyprland
-[Hypr]: https://github.com/hyprwm/Hypr
-
-[Pull Requests]: https://github.com/hyprwm/Hyprland/pulls
-[Issues]: https://github.com/hyprwm/Hyprland/issues
-[Todo]: https://github.com/hyprwm/Hyprland/projects?type=beta
-
-[Contribute]: https://wiki.hypr.land/contributing-and-debugging/
-[Install]: https://wiki.hypr.land/getting-started/installation/
-[Quick Start]: https://wiki.hypr.land/getting-started/master-tutorial/
-[Workflow]: https://github.com/hyprwm/Hyprland/actions/workflows/ci.yaml
-[License]: LICENSE
-
-
-<!----------------------------------{ Thanks }--------------------------------->
-
-[Vivarium]: https://github.com/inclement/vivarium
-[WlRoots]: https://gitlab.freedesktop.org/wlroots/wlroots
-[Wayfire]: https://github.com/WayfireWM/wayfire
-[TinyWl]: https://gitlab.freedesktop.org/wlroots/wlroots/-/blob/master/tinywl/tinywl.c
-[Sway]: https://github.com/swaywm/sway
-[DWL]: https://codeberg.org/dwl/dwl
-
-<!----------------------------------{ Images }--------------------------------->
-
-[Preview A]: ./assets/prev1.png
-[Preview B]: ./assets/prev2.png
-[Preview C]: ./assets/prev3.png
-
-
-<!----------------------------------{ Badges }--------------------------------->
-
-[Badge Workflow]: https://github.com/hyprwm/Hyprland/actions/workflows/ci.yaml/badge.svg
-
-[Badge Issues]: https://img.shields.io/github/issues/hyprwm/Hyprland
-[Badge Pull Requests]: https://img.shields.io/github/issues-pr/hyprwm/Hyprland
-[Badge Language]: https://img.shields.io/github/languages/top/hyprwm/Hyprland
-[Badge License]: https://img.shields.io/github/license/hyprwm/Hyprland
-[Badge Lines]: https://img.shields.io/tokei/lines/github/hyprwm/Hyprland
-[Badge Hi Mom]: https://img.shields.io/badge/Hi-mom!-ff69b4
+BreakLand retains the required upstream copyright notices and applicable open-source licenses.

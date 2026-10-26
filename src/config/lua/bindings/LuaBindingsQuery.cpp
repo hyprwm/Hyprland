@@ -449,6 +449,76 @@ static int hlGetCurrentSubmap(lua_State* L) {
     return 1;
 }
 
+// Layout specific convenience functions
+
+static int hlScrollingGetOffset(lua_State* L) {
+
+    const auto MONITOR = Desktop::focusState()->monitor();
+
+    if (!MONITOR) {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    const auto WORKSPACE = MONITOR->getCurrentWorkspace();
+    if (!WORKSPACE || !WORKSPACE->space() || !WORKSPACE->space()->algorithm()) {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    const auto SCROLLING_ALGO = dynamic_cast<Layout::Tiled::CScrollingAlgorithm*>(WORKSPACE->space()->algorithm()->tiledAlgo().get());
+    if (!SCROLLING_ALGO) {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    lua_pushnumber(L, SCROLLING_ALGO->getScrollingTapeOffset());
+    return 1;
+}
+
+static int hlScrollingSetOffset(lua_State* L) {
+
+    if (!lua_isnumber(L, 1)) {
+        Config::Lua::Bindings::Internal::configError(L, "hl.set_scrolling_offset expects a number as argument.");
+        lua_pushboolean(L, false);
+        return 1;
+    }
+
+    const auto MONITOR = Desktop::focusState()->monitor();
+
+    if (!MONITOR) {
+        lua_pushboolean(L, false);
+        return 1;
+    }
+
+    const auto WORKSPACE = MONITOR->getCurrentWorkspace();
+    if (!WORKSPACE || !WORKSPACE->space() || !WORKSPACE->space()->algorithm()) {
+        lua_pushboolean(L, false);
+        return 1;
+    }
+
+    const auto SCROLLING_ALGO = dynamic_cast<Layout::Tiled::CScrollingAlgorithm*>(WORKSPACE->space()->algorithm()->tiledAlgo().get());
+    if (!SCROLLING_ALGO) {
+        lua_pushboolean(L, false);
+        return 1;
+    }
+
+    const double NEW_OFFSET = sc<double>(lua_tonumber(L, 1));
+
+    if (!std::isfinite(NEW_OFFSET) || NEW_OFFSET < 0) {
+        Config::Lua::Bindings::Internal::configError(L, "hl.set_scrolling_offset expects a finite positive number.");
+        lua_pushboolean(L, false);
+        return 1;
+    }
+
+    const double CURRENT_OFFSET = SCROLLING_ALGO->getScrollingTapeOffset();
+
+    SCROLLING_ALGO->moveTape(CURRENT_OFFSET - NEW_OFFSET);
+
+    lua_pushboolean(L, true);
+    return 1;
+}
+
 void Internal::registerQueryBindings(lua_State* L) {
     Internal::setFn(L, "get_devices", hlGetDevices);
     Internal::setFn(L, "get_windows", hlGetWindows);
@@ -474,6 +544,6 @@ void Internal::registerQueryBindings(lua_State* L) {
     // Layout specific helpers
 
     // Scrolling
-    Internal::setFn(L, "get_scrolling_offset", Layout::Tiled::CScrollingAlgorithm::hlScrollingGetOffset);
-    Internal::setFn(L, "set_scrolling_offset", Layout::Tiled::CScrollingAlgorithm::hlScrollingSetOffset);
+    Internal::setFn(L, "get_scrolling_offset", hlScrollingGetOffset);
+    Internal::setFn(L, "set_scrolling_offset", hlScrollingSetOffset);
 }

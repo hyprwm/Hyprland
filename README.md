@@ -34,7 +34,11 @@ BreakLand does not promise compatibility with Hyprland's configuration format, p
 
 **7. Independent and transparent.**
 
-BreakLand follows its own technical roadmap. Sponsorship must not grant exclusive control over development priorities.
+BreakLand follows its own technical roadmap. **Sponsorship must not grant exclusive control over development priorities.  ;-) ... for those who are in the know**
+
+**8. Compatibility with other BreakLand versions**
+
+Old BreakLand version will look the same way on the newest version. Old configs are fully reproducible.
 
 ## Origins
 

@@ -2691,12 +2691,14 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
                     };
                     conversion = conversion * Hyprgraphics::CMatrix3(values);
                 }
-                const auto                 mat = conversion.mat();
+                const auto mat = conversion.mat();
+                // clang-format off
                 const std::array<float, 9> CTM = {
                     mat[0][0], mat[0][1], mat[0][2], //
                     mat[1][0], mat[1][1], mat[1][2], //
                     mat[2][0], mat[2][1], mat[2][2], //
                 };
+                // clang-format on
                 pMonitor->m_output->state->setCTM(CTM);
             } else if (!INTEROP && pMonitor->m_ctm != Mat3x3::identity()) {
                 LOG(Log::INFO, "[CM] Setting identity CTM");

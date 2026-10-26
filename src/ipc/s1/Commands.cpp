@@ -46,6 +46,7 @@ using namespace Hyprutils::String;
 #include "../../devices/ITouch.hpp"
 #include "../../devices/Tablet.hpp"
 #include "../../protocols/GlobalShortcuts.hpp"
+#include "../../hotkeys/Manager.hpp"
 #include "../../debug/log/RollingLogFollow.hpp"
 #include "../../config/ConfigManager.hpp"
 #include "../../helpers/MiscFunctions.hpp"
@@ -1032,9 +1033,13 @@ static std::string rollinglogRequest(eHyprCtlOutputFormat format, std::string re
 static std::string globalShortcutsRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string ret       = "";
     const auto  SHORTCUTS = PROTO::globalShortcuts->getAllShortcuts();
+    const auto  HOTKEYS   = Hotkeys::mgr()->bound();
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
         for (auto const& sh : SHORTCUTS) {
             ret += std::format("{}:{} -> {}\n", sh.appid, sh.id, sh.description);
+        }
+        for (auto const& hk : HOTKEYS) {
+            ret += std::format("{}:{} -> {}\n", hk->appId(), hk->trigger().label(), hk->description());
         }
         if (ret.empty())
             ret = "none";
@@ -1047,6 +1052,17 @@ static std::string globalShortcutsRequest(eHyprCtlOutputFormat format, std::stri
     "description": "{}"
 }},)#",
                                escapeJSONStrings(std::format("{}:{}", sh.appid, sh.id)), escapeJSONStrings(sh.description));
+        }
+        for (auto const& hk : HOTKEYS) {
+            ret += std::format(R"#(
+{{
+    "name": "{}",
+    "description": "{}",
+    "app_id": "{}",
+    "trigger": "{}"
+}},)#",
+                               escapeJSONStrings(std::format("{}:{}", hk->appId(), hk->trigger().label())), escapeJSONStrings(hk->description()), escapeJSONStrings(hk->appId()),
+                               escapeJSONStrings(hk->trigger().label()));
         }
         trimTrailingComma(ret);
         ret += "]\n";

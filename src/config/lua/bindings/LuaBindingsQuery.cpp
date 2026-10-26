@@ -17,6 +17,7 @@
 #include "../../../pointer/PointerManager.hpp"
 #include "../../../state/MonitorState.hpp"
 #include "../../../state/WorkspaceState.hpp"
+
 #include "../../../layout/algorithm/tiled/scrolling/ScrollingAlgorithm.hpp"
 #include "layout/algorithm/Algorithm.hpp"
 

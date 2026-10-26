@@ -1,11 +1,7 @@
 #pragma once
 
 #include "../../TiledAlgorithm.hpp"
-#include "../../../../layout/algorithm/Algorithm.hpp"
 #include "ScrollTapeController.hpp"
-
-#include <lua.h>
-#include "../../../../config/lua/bindings/LuaBindingsInternal.hpp"
 
 namespace Fullscreen::ScrollingFullscreenHandler {
     class CScrollingFullscreenHandler;

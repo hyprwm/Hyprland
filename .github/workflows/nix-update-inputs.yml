@@ -8,7 +8,7 @@ on:
 
 jobs:
   update:
-    if: github.repository == 'hyprwm/Hyprland'
+    if: github.repository == 'BarB256/BreakLand'
     name: inputs
     runs-on: ubuntu-latest
     steps:

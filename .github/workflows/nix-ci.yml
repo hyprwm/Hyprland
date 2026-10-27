@@ -1,4 +1,4 @@
-name: Nix
+name: BreakLand Nix
 
 on: [push, pull_request, workflow_dispatch]
 
@@ -8,22 +8,22 @@ jobs:
     uses: ./.github/workflows/nix-update-inputs.yml
     secrets: inherit
 
-  hyprland:
+  breakland:
     if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork)
     uses: hyprwm/actions/.github/workflows/nix.yml@main
     secrets: inherit
     with:
       checkout: false
-      command: nix build 'github:${{ github.repository }}?ref=${{ github.ref }}' -L --extra-substituters "https://hyprland.cachix.org"
+      command: nix build 'github:${{ github.repository }}?ref=${{ github.ref }}#breakland' -L
 
-  xdph:
+  portal:
     if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork)
-    needs: hyprland
+    needs: breakland
     uses: hyprwm/actions/.github/workflows/nix.yml@main
     secrets: inherit
     with:
       checkout: false
-      command: nix build 'github:${{ github.repository }}?ref=${{ github.ref }}#xdg-desktop-portal-hyprland' -L --extra-substituters "https://hyprland.cachix.org"
+      command: nix build 'github:${{ github.repository }}?ref=${{ github.ref }}#xdg-desktop-portal-breakland' -L
 
   test:
     if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork)

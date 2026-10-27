@@ -1,10 +1,10 @@
-name: Build Hyprland
+name: Build BreakLand
 
 on: [push, pull_request, workflow_dispatch]
 jobs:
   gcc:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
-    name: "Build Hyprland (Arch)"
+    name: "Build BreakLand (Arch)"
     runs-on: ubuntu-latest
     container:
       image: archlinux
@@ -19,26 +19,26 @@ jobs:
         with:
           INSTALL_XORG_PKGS: true
 
-      - name: Build Hyprland
+      - name: Build BreakLand
         run: |
           CFLAGS=-Werror CXXFLAGS=-Werror make nopch
 
       - name: Compress and package artifacts
         run: |
           mkdir x86_64-pc-linux-gnu
-          mkdir hyprland
-          cp ./LICENSE hyprland/
-          cp build/Hyprland hyprland/
-          cp build/hyprctl/hyprctl hyprland/
-          cp -r example/ hyprland/
-          cp -r assets/ hyprland/
-          tar -cvJf Hyprland.tar.xz hyprland
+          mkdir breakland
+          cp ./LICENSE breakland/
+          cp build/breakland breakland/
+          cp build/hyprctl/breakctl breakland/
+          cp -r example/ breakland/
+          cp -r assets/ breakland/
+          tar -cvJf BreakLand.tar.xz breakland
 
       - name: Release
         uses: actions/upload-artifact@v7
         with:
           name: Build archive
-          path: Hyprland.tar.xz
+          path: BreakLand.tar.xz
 
   clang-format:
     permissions: read-all

@@ -116,7 +116,7 @@ runs:
           xorg-xkbcomp \
           xorg-xwayland
 
-    - name: Checkout Hyprland
+    - name: Checkout BreakLand
       uses: actions/checkout@v6
       with:
         submodules: recursive
@@ -125,4 +125,4 @@ runs:
     - name: Mark directory as safe for git
       shell: bash
       run: |
-        git config --global --add safe.directory /__w/Hyprland/Hyprland
+        git config --global --add safe.directory /__w/BreakLand/BreakLand

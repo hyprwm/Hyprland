@@ -1,4 +1,4 @@
-name: Nix (Test)
+name: BreakLand Nix (Test)
 
 on:
   workflow_call:
@@ -15,12 +15,12 @@ jobs:
           CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
       - name: Run test VM
-        run: nix build 'github:${{ github.repository }}?ref=${{ github.ref }}#checks.x86_64-linux.tests' -L --extra-substituters "https://hyprland.cachix.org"
+        run: nix build 'github:${{ github.repository }}?ref=${{ github.ref }}#checks.x86_64-linux.tests' -L
 
-       - name: Check exit status
-         run: |
-           grep 0 result/exit_status_gtests || echo "gtests failed"
-           [ 0 = $(cat result/exit_status_gtests) ]
+      - name: Check exit status
+        run: |
+          grep 0 result/exit_status_gtests || echo "BreakLand gtests failed"
+          [ 0 = $(cat result/exit_status_gtests) ]
 
       - name: Upload artifacts
         if: always()

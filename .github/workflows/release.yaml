@@ -1,4 +1,4 @@
-name: Release artifacts
+name: BreakLand release artifacts
 
 on:
   release:
@@ -43,14 +43,14 @@ jobs:
       - name: Create tarball with submodules
         id: tar
         run: |
-          mkdir hyprland-source; mv ./* ./hyprland-source || tar -czv --owner=0 --group=0 --no-same-owner --no-same-permissions -f source.tar.gz *
+           mkdir breakland-source; mv ./* ./breakland-source || tar -czv --owner=0 --group=0 --no-same-owner --no-same-permissions -f source.tar.gz *
 
       - id: whatrelease
         name: Get latest release
         uses: pozetroninc/github-action-get-latest-release@master
         with:
-          owner: hyprwm
-          repo: Hyprland
+           owner: BarB256
+           repo: BreakLand
           excludes: prerelease, draft
 
       - name: Upload to release

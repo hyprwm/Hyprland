@@ -67,10 +67,10 @@ static std::expected<void, std::string> doWallpaper(const std::string_view& RHS)
     if (!RTDIR || RTDIR[0] == '\0')
         return std::unexpected("can't send: no XDG_RUNTIME_DIR");
 
-    const auto HIS = getenv("HYPRLAND_INSTANCE_SIGNATURE");
+    const auto HIS = getenv("BREAKLAND_INSTANCE_SIGNATURE");
 
     if (!HIS || HIS[0] == '\0')
-        return std::unexpected("can't send: no HYPRLAND_INSTANCE_SIGNATURE (not running under hyprland)");
+        return std::unexpected("can't send: no BREAKLAND_INSTANCE_SIGNATURE (not running under BreakLand)");
 
     const auto PATH = getFullPath(PATH_RAW);
 
@@ -142,10 +142,10 @@ static std::expected<void, std::string> doListActive() {
     if (!RTDIR || RTDIR[0] == '\0')
         return std::unexpected("can't send: no XDG_RUNTIME_DIR");
 
-    const auto HIS = getenv("HYPRLAND_INSTANCE_SIGNATURE");
+    const auto HIS = getenv("BREAKLAND_INSTANCE_SIGNATURE");
 
     if (!HIS || HIS[0] == '\0')
-        return std::unexpected("can't send: no HYPRLAND_INSTANCE_SIGNATURE (not running under hyprland)");
+        return std::unexpected("can't send: no BREAKLAND_INSTANCE_SIGNATURE (not running under BreakLand)");
 
     auto socketPath = std::format("{}/hypr/{}/{}", RTDIR, HIS, SOCKET_NAME);
 

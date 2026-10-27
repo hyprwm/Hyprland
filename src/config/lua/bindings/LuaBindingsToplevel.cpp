@@ -262,7 +262,7 @@ static int hlDefineSubmap(lua_State* L) {
 }
 
 static int hlVersion(lua_State* L) {
-    lua_pushstring(L, HYPRLAND_VERSION);
+    lua_pushstring(L, BREAKLAND_VERSION);
     return 1;
 }
 

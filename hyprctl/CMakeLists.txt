@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.19)
 
 project(
-    hyprctl
-    DESCRIPTION "Control utility for Hyprland"
+    breakctl
+    DESCRIPTION "Control utility for BreakLand"
 )
 
 set(READLINE readline)
@@ -15,11 +15,11 @@ pkg_check_modules(hyprctl_deps REQUIRED IMPORTED_TARGET hyprutils>=0.2.4 hyprwir
 
 file(GLOB_RECURSE HYPRCTL_SRCFILES CONFIGURE_DEPENDS "src/*.cpp" "hw-protocols/*.cpp" "include/*.hpp")
 
-add_executable(hyprctl ${HYPRCTL_SRCFILES})
-set_target_properties(hyprctl PROPERTIES CXX_VISIBILITY_PRESET hidden)
+add_executable(breakctl ${HYPRCTL_SRCFILES})
+set_target_properties(breakctl PROPERTIES CXX_VISIBILITY_PRESET hidden)
 
-target_link_libraries(hyprctl PUBLIC PkgConfig::hyprctl_deps)
-target_include_directories(hyprctl PRIVATE "hw-protocols")
+target_link_libraries(breakctl PUBLIC PkgConfig::hyprctl_deps)
+target_include_directories(breakctl PRIVATE "hw-protocols")
 
 # Hyprwire
 
@@ -32,7 +32,7 @@ function(hyprprotocol protoPath protoName)
     COMMAND hyprwire-scanner --client ${path}/${protoName}.xml
             ${CMAKE_CURRENT_SOURCE_DIR}/hw-protocols/
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-  target_sources(hyprctl PRIVATE hw-protocols/${protoName}-client.cpp
+  target_sources(breakctl PRIVATE hw-protocols/${protoName}-client.cpp
                                    hw-protocols/${protoName}-client.hpp
                                    hw-protocols/${protoName}-spec.hpp)
 endfunction()
@@ -40,4 +40,4 @@ endfunction()
 hyprprotocol(hw-protocols hyprpaper_core)
 
 # binary
-install(TARGETS hyprctl)
+install(TARGETS breakctl)

@@ -1,7 +1,7 @@
 PREFIX = /usr/local
 
 stub:
-	@echo "Do not run $(MAKE) directly without any arguments. Please refer to the wiki on how to compile Hyprland."
+	@echo "Do not run $(MAKE) directly without any arguments. Please refer to the BreakLand build documentation."
 
 release:
 	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:STRING=${PREFIX} -S . -B ./build
@@ -31,26 +31,26 @@ uninstall:
 	xargs rm < ./build/install_manifest.txt
 
 man:
-	pandoc ./docs/Hyprland.1.rst \
+	pandoc ./docs/BreakLand.1.rst \
 		--standalone \
-		--variable=header:"Hyprland User Manual" \
+		--variable=header:"BreakLand User Manual" \
 		--variable=date:"${DATE}" \
 		--variable=section:1 \
 		--from rst \
-		--to man > ./docs/Hyprland.1
+		--to man > ./docs/BreakLand.1
 
-	pandoc ./docs/hyprctl.1.rst \
+	pandoc ./docs/breakctl.1.rst \
 		--standalone \
-		--variable=header:"hyprctl User Manual" \
+		--variable=header:"breakctl User Manual" \
 		--variable=date:"${DATE}" \
 		--variable=section:1 \
 		--from rst \
-		--to man > ./docs/hyprctl.1
+		--to man > ./docs/breakctl.1
 
 asan:
 	@echo -en "!!WARNING!!\nOnly run this in the TTY.\n"
-	@pidof Hyprland > /dev/null && echo -ne "Refusing to run with Hyprland running.\n" || echo ""
-	@pidof Hyprland > /dev/null && exit 1 || echo ""
+	@pidof breakland > /dev/null && echo -ne "Refusing to run with BreakLand running.\n" || echo ""
+	@pidof breakland > /dev/null && exit 1 || echo ""
 
 	rm -rf ./wayland
 	#git reset --hard
@@ -67,9 +67,9 @@ asan:
 	patch -p1 < ./scripts/hyprlandStaticAsan.diff
 	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Debug -DWITH_ASAN:STRING=True -DUSE_TRACY:STRING=False -DUSE_TRACY_GPU:STRING=False -S . -B ./build
 	cmake --build ./build --config Debug --target all
-	@echo "Hyprland done"
+	@echo "BreakLand done"
 
-	ASAN_OPTIONS="detect_odr_violation=0,log_path=asan.log" HYPRLAND_NO_CRASHREPORTER=1 ./build/Hyprland -c ~/.config/hypr/hyprland.lua
+	ASAN_OPTIONS="detect_odr_violation=0,log_path=asan.log" BREAKLAND_NO_CRASHREPORTER=1 ./build/breakland -c ~/.config/breakland/breakland.lua
 
 format-check:
 	@find src hyprctl start tests -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" \) \
@@ -85,4 +85,4 @@ format-fix:
 
 test:
 	$(MAKE) debug
-	./build/hyprland_gtests $(TESTS)
+	./build/breakland_gtests $(TESTS)

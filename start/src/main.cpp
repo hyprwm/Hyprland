@@ -16,11 +16,11 @@ using namespace Hyprutils::CLI;
         std::abort();                                                                                                                                                              \
     }
 
-constexpr const char* HELP_INFO = R"#(start-hyprland - A binary to properly start Hyprland via a watchdog process.
-Any arguments after -- are passed to Hyprland. For Hyprland help, run start-hyprland -- --help or Hyprland --help
+constexpr const char* HELP_INFO = R"#(start-breakland - A binary to properly start BreakLand via a watchdog process.
+Any arguments after -- are passed to BreakLand. For BreakLand help, run start-breakland -- --help or breakland --help
 
-Additional arguments for start-hyprland:
- --path [path]       -> Override Hyprland path
+Additional arguments for start-breakland:
+ --path [path]       -> Override BreakLand path
  --no-nixgl          -> Force disable nixGL
  --force-nixgl       -> Force enable nixGL
 )#";
@@ -48,7 +48,7 @@ static void terminateChildOnSignal(int signal) {
 
 int main(int argc, const char** argv, const char** envp) {
     g_logger = makeUnique<Hyprutils::CLI::CLoggerConnection>(*g_loggerMain);
-    g_logger->setName("start-hyprland");
+    g_logger->setName("start-breakland");
     g_logger->setLogLevel(Hyprutils::CLI::LOG_DEBUG);
 
     terminateChildOnSignal(SIGTERM);
@@ -90,7 +90,7 @@ int main(int argc, const char** argv, const char** envp) {
         g_state->rawArgvNoBinPath = std::span<const char*>{argv + startArgv, argc - startArgv};
 
     if (!g_state->rawArgvNoBinPath.empty())
-        g_logger->log(Hyprutils::CLI::LOG_WARN, "Arguments after -- are passed to Hyprland");
+        g_logger->log(Hyprutils::CLI::LOG_WARN, "Arguments after -- are passed to BreakLand");
 
     // check if our environment is OK
     if (const auto RET = Nix::nixEnvironmentOk(); !RET) {
@@ -99,7 +99,7 @@ int main(int argc, const char** argv, const char** envp) {
     }
 
     if (Nix::shouldUseNixGL())
-        g_logger->log(Hyprutils::CLI::LOG_DEBUG, "Hyprland was compiled with Nix - will use nixGL");
+        g_logger->log(Hyprutils::CLI::LOG_DEBUG, "BreakLand was compiled with Nix - will use nixGL");
 
     bool safeMode    = false;
     bool lockedCrash = false;
@@ -111,12 +111,12 @@ int main(int argc, const char** argv, const char** envp) {
         g_instance.reset();
 
         if (!RET) {
-            g_logger->log(Hyprutils::CLI::LOG_ERR, "Hyprland exit not-cleanly, restarting");
+            g_logger->log(Hyprutils::CLI::LOG_ERR, "BreakLand exit not-cleanly, restarting");
             safeMode = true;
             continue;
         }
 
-        g_logger->log(Hyprutils::CLI::LOG_DEBUG, "Hyprland exit cleanly.");
+        g_logger->log(Hyprutils::CLI::LOG_DEBUG, "BreakLand exit cleanly.");
         break;
     }
 

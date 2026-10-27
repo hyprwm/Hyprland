@@ -40,7 +40,7 @@ CVersionKeeperManager::CVersionKeeperManager() {
         return;
     }
 
-    NFsUtils::writeToFile(std::format("{}/{}", *DATAROOT, VERSION_FILE_NAME), HYPRLAND_VERSION);
+    NFsUtils::writeToFile(std::format("{}/{}", *DATAROOT, VERSION_FILE_NAME), BREAKLAND_VERSION);
 
     if (*PNONOTIFY) {
         LOG(Log::DEBUG, "CVersionKeeperManager: updated, but update news is disabled in the config :(");
@@ -55,7 +55,7 @@ CVersionKeeperManager::CVersionKeeperManager() {
     m_fired = true;
 
     g_pEventLoopManager->doLater([]() {
-        CProcess proc("hyprland-update-screen", {"--new-version", HYPRLAND_VERSION});
+        CProcess proc("breakland-update-screen", {"--new-version", BREAKLAND_VERSION});
         proc.runAsync();
     });
 }
@@ -66,7 +66,7 @@ bool CVersionKeeperManager::isMajorVersionOlderThanRunning(const std::string& ve
     const int             V1 = strToNumber<uint32_t>(verStrings[0]).value_or(0);
     const int             V2 = strToNumber<uint32_t>(verStrings[1]).value_or(0);
 
-    static const CVarList runningStrings(HYPRLAND_VERSION, 0, '.', true);
+    static const CVarList runningStrings(BREAKLAND_VERSION, 0, '.', true);
 
     static const int      R1 = strToNumber<uint32_t>(runningStrings[0]).value_or(0);
     static const int      R2 = strToNumber<uint32_t>(runningStrings[1]).value_or(0);

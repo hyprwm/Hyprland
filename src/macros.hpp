@@ -10,7 +10,7 @@
 #include "debug/log/Logger.hpp"
 
 #ifndef NDEBUG
-#ifdef HYPRLAND_DEBUG
+#ifdef BREAKLAND_DEBUG
 #define ISDEBUG true
 #else
 #define ISDEBUG false
@@ -42,7 +42,7 @@ template <typename... Args>
 [[gnu::noinline]] [[gnu::cold]] void assertImpl(int line, std::string_view filename, std::format_string<Args...> reason, Args&&... args) {
     LOG(Log::CRIT, "\n==========================================================================================\nASSERTION FAILED! \n\n{}\n\nat: line {} in {}",
         std::format(reason, std::forward<Args>(args)...), line, filename);
-    std::print("Assertion failed! See the log in /tmp/hypr/hyprland.log for more info.");
+    std::print("Assertion failed! See the log in /tmp/breakland/breakland.log for more info.");
     raise(SIGABRT);
 }
 

@@ -1,7 +1,7 @@
 [Desktop Entry]
-Name=Hyprland (uwsm-managed)
+Name=BreakLand (uwsm-managed)
 Comment=An intelligent dynamic tiling Wayland compositor
-Exec=uwsm start -e -D Hyprland hyprland.desktop
+Exec=uwsm start -e -D BreakLand breakland.desktop
 TryExec=uwsm
-DesktopNames=Hyprland
+DesktopNames=BreakLand
 Type=Application

@@ -50,7 +50,7 @@ CDonationNagManager::CDonationNagManager() {
 
     uint64_t   currentMajor = 0;
     try {
-        CVarList vl(HYPRLAND_VERSION, 0, '.');
+    CVarList vl(BREAKLAND_VERSION, 0, '.');
         currentMajor = std::stoull(vl[1]);
     } catch (...) {
         // ????

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.19)
 
-project(start-hyprland DESCRIPTION "Hyprland watchdog binary")
+project(start-breakland DESCRIPTION "BreakLand watchdog binary")
 
 include(GNUInstallDirs)
 
@@ -32,9 +32,9 @@ endif()
 
 file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")
 
-add_executable(start-hyprland ${SRCFILES})
+add_executable(start-breakland ${SRCFILES})
 
-target_link_libraries(start-hyprland PUBLIC PkgConfig::starthyprland_deps)
-target_link_libraries(start-hyprland PUBLIC glaze::glaze)
+target_link_libraries(start-breakland PUBLIC PkgConfig::starthyprland_deps)
+target_link_libraries(start-breakland PUBLIC glaze::glaze)
 
-install(TARGETS start-hyprland)
+install(TARGETS start-breakland)

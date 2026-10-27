@@ -196,9 +196,9 @@ CCompositor::CCompositor(bool onlyConfig) : m_onlyConfigVerification(onlyConfig)
     setMallocThreshold();
 
     const auto* XDG_RUNTIME_DIR = getenv("XDG_RUNTIME_DIR");
-    m_hyprTempDataRoot          = std::format("{}/hypr", XDG_RUNTIME_DIR ? XDG_RUNTIME_DIR : "");
+    m_hyprTempDataRoot          = std::format("{}/breakland", XDG_RUNTIME_DIR ? XDG_RUNTIME_DIR : "");
 
-    if (m_hyprTempDataRoot.starts_with("/hypr")) {
+    if (m_hyprTempDataRoot.starts_with("/breakland")) {
         std::println("Bailing out, $XDG_RUNTIME_DIR is invalid");
         throw std::runtime_error("CCompositor() failed");
     }
@@ -212,7 +212,7 @@ CCompositor::CCompositor(bool onlyConfig) : m_onlyConfigVerification(onlyConfig)
 
     m_instanceSignature = std::format("{}_{}_{}", GIT_COMMIT_HASH, std::time(nullptr), distribution(engine));
 
-    setenv("HYPRLAND_INSTANCE_SIGNATURE", m_instanceSignature.c_str(), true);
+    setenv("BREAKLAND_INSTANCE_SIGNATURE", m_instanceSignature.c_str(), true);
 
     if (!std::filesystem::exists(m_hyprTempDataRoot))
         mkdir(m_hyprTempDataRoot.c_str(), S_IRWXU);
@@ -294,7 +294,7 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
     // register crit signal handler
     m_critSigSource = wl_event_loop_add_signal(m_wlEventLoop, SIGTERM, handleCritSignal, nullptr);
 
-    if (!Env::envEnabled("HYPRLAND_NO_CRASHREPORTER")) {
+    if (!Env::envEnabled("BREAKLAND_NO_CRASHREPORTER")) {
         signal(SIGSEGV, handleUnrecoverableSignal);
         signal(SIGABRT, handleUnrecoverableSignal);
     }
@@ -535,15 +535,15 @@ void CCompositor::cleanEnvironment() {
     // in compositor constructor
     unsetenv("WAYLAND_DISPLAY");
     // in startCompositor
-    unsetenv("HYPRLAND_INSTANCE_SIGNATURE");
+    unsetenv("BREAKLAND_INSTANCE_SIGNATURE");
 
     // in main
-    unsetenv("HYPRLAND_CMD");
+    unsetenv("BREAKLAND_CMD");
     unsetenv("XDG_BACKEND");
     if (m_desktopEnvSet)
         unsetenv("XDG_CURRENT_DESKTOP");
 
-    if (m_aqBackend->hasSession() && !Env::envEnabled("HYPRLAND_NO_SD_VARS") && !getenv("MANAGERPID")) {
+    if (m_aqBackend->hasSession() && !Env::envEnabled("BREAKLAND_NO_SD_VARS") && !getenv("MANAGERPID")) {
 #ifdef USES_SYSTEMD
         if (m_sdSessionTarget)
             // stopping hyprland-session doesn't wait for dependent services; this does
@@ -551,10 +551,10 @@ void CCompositor::cleanEnvironment() {
 #endif
         const auto CMD =
 #ifdef USES_SYSTEMD
-            "systemctl --user unset-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS && hash "
+            "systemctl --user unset-environment DISPLAY WAYLAND_DISPLAY BREAKLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS && hash "
             "dbus-update-activation-environment 2>/dev/null && "
 #endif
-            "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS";
+            "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP BREAKLAND_INSTANCE_SIGNATURE QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS";
         Config::Supplementary::executor()->spawn(CMD);
     }
 }
@@ -581,7 +581,7 @@ void CCompositor::cleanup() {
     m_isShuttingDown = true;
 
 #ifdef USES_SYSTEMD
-    if (NSystemd::sdBooted() > 0 && !Env::envEnabled("HYPRLAND_NO_SD_NOTIFY"))
+    if (NSystemd::sdBooted() > 0 && !Env::envEnabled("BREAKLAND_NO_SD_NOTIFY"))
         NSystemd::sdNotify(0, "STOPPING=1");
 #endif
 
@@ -766,7 +766,7 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 }
 
 void CCompositor::createLockFile() {
-    const auto    PATH = std::format("{}/hyprland.lock", m_instancePath);
+            const auto    PATH = std::format("{}/breakland.lock", m_instancePath);
 
     std::ofstream ofs(PATH, std::ios::trunc);
 
@@ -776,7 +776,7 @@ void CCompositor::createLockFile() {
 }
 
 void CCompositor::removeLockFile() {
-    const auto PATH = std::format("{}/hyprland.lock", m_instancePath);
+    const auto PATH = std::format("{}/breakland.lock", m_instancePath);
 
     if (std::filesystem::exists(PATH))
         std::filesystem::remove(PATH);
@@ -789,18 +789,18 @@ void CCompositor::startCompositor() {
         /* Session-less Hyprland usually means a nest, don't update the env in that case */
         m_aqBackend->hasSession() &&
         /* Activation environment management is not disabled */
-        !Env::envEnabled("HYPRLAND_NO_SD_VARS") &&
+        !Env::envEnabled("BREAKLAND_NO_SD_VARS") &&
         /* Being executed under systemd */
         !getenv("MANAGERPID")) {
         const auto CMD =
 #ifdef USES_SYSTEMD
-            "systemctl --user import-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS && hash "
+            "systemctl --user import-environment DISPLAY WAYLAND_DISPLAY BREAKLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS && hash "
             "dbus-update-activation-environment 2>/dev/null && "
 #endif
-            "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS";
+            "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP BREAKLAND_INSTANCE_SIGNATURE QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS";
         Config::Supplementary::executor()->spawn(CMD);
 #ifdef USES_SYSTEMD
-        if (!Env::envEnabled("HYPRLAND_NO_SD_TARGET")) {
+        if (!Env::envEnabled("BREAKLAND_NO_SD_TARGET")) {
             m_sdSessionTarget = true;
             Config::Supplementary::executor()->spawn("systemctl --user start hyprland-session.target");
         }
@@ -814,7 +814,7 @@ void CCompositor::startCompositor() {
 #ifdef USES_SYSTEMD
     if (NSystemd::sdBooted() > 0) {
         // tell systemd that we are ready so it can start other bond, following, related units
-        if (!Env::envEnabled("HYPRLAND_NO_SD_NOTIFY"))
+        if (!Env::envEnabled("BREAKLAND_NO_SD_NOTIFY"))
             NSystemd::sdNotify(0, "READY=1");
     } else
         LOG(Log::DEBUG, "systemd integration is baked in but system itself is not booted à la systemd!");
@@ -829,7 +829,7 @@ void CCompositor::startCompositor() {
             LOG(Log::ERR, "startCompositor: failed to write to watchdogWriteFd {}: {}", m_watchdogWriteFd.get(), strerror(errno));
     }
 
-    if (!Env::envEnabled("HYPRLAND_NO_RT"))
+    if (!Env::envEnabled("BREAKLAND_NO_RT"))
         NInit::gainRealTime();
 
     // This blocks until we are done.
@@ -954,10 +954,10 @@ void CCompositor::openSafeModeBox() {
 
             if (CACHE_HOME && CACHE_HOME[0] != '\0') {
                 reportPath += CACHE_HOME;
-                reportPath += "/hyprland/";
+                reportPath += "/breakland/";
             } else if (HOME && HOME[0] != '\0') {
                 reportPath += HOME;
-                reportPath += "/.cache/hyprland/";
+                reportPath += "/.cache/breakland/";
             }
             Hyprutils::OS::CProcess proc("xdg-open", {reportPath});
 

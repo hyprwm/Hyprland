@@ -187,12 +187,12 @@ std::string CShaderLoader::loadShader(const std::string& filename) {
     }
     const auto home = Hyprutils::Path::getHome();
     if (home.has_value()) {
-        const auto src = NFsUtils::readFileAsString(std::format("{}/hypr/shaders/{}", home.value(), filename));
+        const auto src = NFsUtils::readFileAsString(std::format("{}/breakland/shaders/{}", home.value(), filename));
         if (src.has_value())
             return src.value();
     }
     for (auto& e : ASSET_PATHS) {
-        const auto src = NFsUtils::readFileAsString(std::format("{}/hypr/shaders/{}", e, filename));
+        const auto src = NFsUtils::readFileAsString(std::format("{}/breakland/shaders/{}", e, filename));
         if (src.has_value())
             return src.value();
     }

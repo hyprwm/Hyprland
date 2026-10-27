@@ -89,7 +89,7 @@ bool Nix::shouldUseNixGL() {
         return false;
 
     // check if installed hyprland is nix'd
-    CProcess proc("Hyprland", {"--version-json"});
+            CProcess proc("breakland", {"--version-json"});
     if (!proc.runSync()) {
         g_logger->log(Hyprutils::CLI::LOG_ERR, "failed to obtain hyprland version string");
         return false;

@@ -2,7 +2,7 @@
 
 #include <string_view>
 
-const std::string_view USAGE = R"#(usage: hyprctl [flags] <command> [args...|--help]
+const std::string_view USAGE = R"#(usage: breakctl [flags] <command> [args...|--help]
 
 commands:
     activewindow        → Gets the active window name and its properties
@@ -24,7 +24,7 @@ commands:
     globalshortcuts     → Lists all global shortcuts
     hyprpaper ...       → Issue a hyprpaper request
     hyprsunset ...      → Issue a hyprsunset request
-    instances           → Lists all running instances of Hyprland with
+    instances           → Lists all running instances of BreakLand with
                           their info
     keyword <name> <value> → Issue a keyword to call a config keyword
                           dynamically
@@ -35,7 +35,7 @@ commands:
     layouts             → Lists all layouts available (including plugin'd ones)
     monitors            → Lists active outputs with their properties,
                           'monitors all' lists active and inactive outputs
-    notify ...          → Sends a notification using the built-in Hyprland
+    notify ...          → Sends a notification using the built-in BreakLand
                           notification system
     output ...          → Allows you to add and remove fake outputs to your
                           preferred backend
@@ -57,7 +57,7 @@ commands:
     status              → Get internal status information
     switchxkblayout ... → Sets the xkb layout index for a keyboard
     systeminfo          → Get system info
-    version             → Prints the hyprland version, meaning flags, commit
+    version             → Prints the BreakLand version, meaning flags, commit
                           and branch of build.
     workspacerules      → Lists all workspace rules
     workspaces          → Lists all workspaces with their properties
@@ -82,7 +82,7 @@ requests:
                       Arguments are [mon],[path],[fit_mode]. Fit mode is optional.
 
 flags:
-    See 'hyprctl --help')#";
+    See 'breakctl --help')#";
 
 const std::string_view HYPRSUNSET_HELP = R"#(usage: hyprctl [flags] hyprsunset <request>
 
@@ -128,16 +128,6 @@ create <backend>:
 remove <name>:
     Removes virtual output. Pass the output's name, as found in
     'hyprctl monitors'
-
-flags:
-    See 'hyprctl --help')#";
-
-const std::string_view PLUGIN_HELP = R"#(usage: hyprctl [flags] plugin <request>
-
-requests:
-    load <path>     → Loads a plugin. Path must be absolute
-    unload <path>   → Unloads a plugin. Path must be absolute
-    list            → Lists all loaded plugins
 
 flags:
     See 'hyprctl --help')#";

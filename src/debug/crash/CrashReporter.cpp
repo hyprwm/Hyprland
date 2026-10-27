@@ -63,10 +63,10 @@ void CrashReporter::createAndSaveCrash(int sig) {
 
         if (CACHE_HOME && CACHE_HOME[0] != '\0') {
             reportPath += CACHE_HOME;
-            reportPath += "/hyprland";
+        reportPath += "/breakland";
         } else if (HOME && HOME[0] != '\0') {
             reportPath += HOME;
-            reportPath += "/.cache/hyprland";
+        reportPath += "/.cache/breakland";
         } else {
             exitWithError("$CACHE_HOME and $HOME not set, nowhere to report crash\n");
             return;
@@ -76,7 +76,7 @@ void CrashReporter::createAndSaveCrash(int sig) {
         if (ret < 0 && errno != EEXIST)
             exitWithError("failed to mkdir() crash report directory\n");
 
-        reportPath += "/hyprlandCrashReport";
+        reportPath += "/breaklandCrashReport";
         reportPath.writeNum(getpid());
         reportPath += ".txt";
 

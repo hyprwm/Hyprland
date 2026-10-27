@@ -105,7 +105,7 @@ static std::optional<SInstanceData> parseInstance(const std::filesystem::directo
     if (!entry.is_directory())
         return std::nullopt;
 
-    const auto    lockPath = entry.path() / "hyprland.lock";
+        const auto    lockPath = entry.path() / "breakland.lock";
     std::ifstream ifs(lockPath);
     if (!ifs.is_open())
         return std::nullopt;
@@ -224,7 +224,7 @@ int request(std::string_view arg, int minArgs = 0, bool needRoll = false, bool i
     }
 
     if (instanceSignature.empty()) {
-        log("HYPRLAND_INSTANCE_SIGNATURE was not set! (Is Hyprland running?) (3)");
+        log("BREAKLAND_INSTANCE_SIGNATURE was not set! (Is BreakLand running?) (3)");
         return 3;
     }
 
@@ -261,7 +261,7 @@ int request(std::string_view arg, int minArgs = 0, bool needRoll = false, bool i
             if (errno == EINTR)
                 continue;
             if (errno == EWOULDBLOCK)
-                log("Hyprland IPC didn't respond in time\n");
+                log("BreakLand IPC didn't respond in time\n");
             log("Couldn't read (6)");
             return 6;
         }
@@ -297,7 +297,7 @@ int requestIPC(std::string_view filename, std::string_view arg) {
     }
 
     if (instanceSignature.empty()) {
-        log("HYPRLAND_INSTANCE_SIGNATURE was not set! (Is Hyprland running?)");
+        log("BREAKLAND_INSTANCE_SIGNATURE was not set! (Is BreakLand running?)");
         return 2;
     }
 
@@ -454,8 +454,6 @@ int main(int argc, char** argv) {
                     std::println("{}", NOTIFY_HELP);
                 } else if (cmd == "output") {
                     std::println("{}", OUTPUT_HELP);
-                } else if (cmd == "plugin") {
-                    std::println("{}", PLUGIN_HELP);
                 } else if (cmd == "setprop") {
                     std::println("{}", SETPROP_HELP);
                 } else if (cmd == "getprop") {
@@ -517,10 +515,10 @@ int main(int argc, char** argv) {
 
         instanceSignature = INSTANCES[INSTANCENO].id;
     } else {
-        const auto ISIG = getenv("HYPRLAND_INSTANCE_SIGNATURE");
+        const auto ISIG = getenv("BREAKLAND_INSTANCE_SIGNATURE");
 
         if (!ISIG) {
-            log("HYPRLAND_INSTANCE_SIGNATURE not set! (is hyprland running?)\n");
+            log("BREAKLAND_INSTANCE_SIGNATURE not set! (is BreakLand running?)\n");
             return 1;
         }
 

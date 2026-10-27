@@ -36,7 +36,7 @@ void CLogger::log(Hyprutils::CLI::eLogLevel level, const std::string_view loc, c
 
 void CLogger::initIS(const std::string_view& IS) {
     // NOLINTNEXTLINE
-    m_logger.setOutputFile(std::string{IS} + (ISDEBUG ? "/hyprlandd.log" : "/hyprland.log"));
+    m_logger.setOutputFile(std::string{IS} + (ISDEBUG ? "/breaklandd.log" : "/breakland.log"));
     m_logger.setEnableRolling(true);
     m_logger.setEnableColor(false);
     m_logger.setEnableStdout(true);

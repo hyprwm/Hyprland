@@ -1,7 +1,7 @@
 [Desktop Entry]
-Name=Hyprland
+Name=BreakLand
 Comment=An intelligent dynamic tiling Wayland compositor
-Exec=@PREFIX@/@CMAKE_INSTALL_BINDIR@/start-hyprland
+Exec=@PREFIX@/@CMAKE_INSTALL_BINDIR@/start-breakland
 Type=Application
-DesktopNames=Hyprland
+DesktopNames=BreakLand
 Keywords=tiling;wayland;compositor;

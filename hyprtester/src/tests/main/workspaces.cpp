@@ -1477,3 +1477,70 @@ TEST_CASE(workspaceCreateEvents) {
     CALL_SUBTEST(workspaceCreateEventNewMonitor);
     CALL_SUBTEST(workspaceCreateEventLuaMethods);
 }
+
+TEST_CASE(workspaceLastFocusedWindowRetention) {
+    // move to workspace `1`
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+
+    // creates 2 tiled (T_1, T_2) and 2 floating (F_1, F_2) windows on the focused workspace
+    auto spawnWindows = [&]() {
+        SPAWN_KITTY("T_1");
+        SPAWN_KITTY("T_2");
+
+        SPAWN_KITTY("F_1");
+        OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:F_1' })"));
+        SPAWN_KITTY("F_2");
+        OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:F_2' })"));
+    };
+
+    spawnWindows();
+
+    // normal workspace <--> normal workspace
+
+    // tiled test
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:T_1' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: T_1");
+
+    // floating test
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:F_1' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: F_1");
+
+    // normal workspace <--> special workspace (windows stay on workspace 1)
+
+    // tiled test
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:T_1' })"));
+    OK(getFromSocket("/dispatch hl.dsp.workspace.toggle_special('retention_a')"));
+    OK(getFromSocket("/dispatch hl.dsp.workspace.toggle_special('retention_a')"));
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: T_1");
+
+    // floating test
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:F_1' })"));
+    OK(getFromSocket("/dispatch hl.dsp.workspace.toggle_special('retention_a')"));
+    OK(getFromSocket("/dispatch hl.dsp.workspace.toggle_special('retention_a')"));
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: F_1");
+
+    // special workspace <--> special workspace (windows live on special:retention_a)
+
+    // class names repeat, so get rid of the workspace 1 windows first
+    Tests::killAllWindows();
+    ASSERT(Tests::windowCount(), 0);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'special:retention_a' })"));
+    spawnWindows();
+
+    // tiled test
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:T_1' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'special:retention_b' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'special:retention_a' })"));
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: T_1");
+
+    // floating test
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:F_1' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'special:retention_b' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'special:retention_a' })"));
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: F_1");
+}

@@ -234,24 +234,8 @@ static bool bindRegistry(SWlState& state) {
         state, [&state]() { return state.compositor && state.subcompositor && state.shm && state.xdgShell && state.fractional && state.xrgb8888; }, 100, 100);
 }
 
-static bool setupToplevel(SWlState& state) {
-    state.xdgShell->setPing([&](CCXdgWmBase*, uint32_t serial) { state.xdgShell->sendPong(serial); });
-
-    state.surface = makeShared<CCWlSurface>(state.compositor->sendCreateSurface());
-    if (!state.surface) {
-        state.setupError = "surface";
-        return false;
-    }
-
-    setSurfaceListeners(state.surface, state.stats, false);
-
-    state.rootFractional = makeShared<CCWpFractionalScaleV1>(state.fractional->sendGetFractionalScale(state.surface->resource()));
-    if (!state.rootFractional) {
-        state.setupError = "fractional";
-        return false;
-    }
-
-    setFractionalListener(state.rootFractional, state.stats, false);
+static bool createToplevel(SWlState& state) {
+    state.configured = false;
 
     state.xdgSurface = makeShared<CCXdgSurface>(state.xdgShell->sendGetXdgSurface(state.surface->resource()));
     if (!state.xdgSurface) {
@@ -278,6 +262,7 @@ static bool setupToplevel(SWlState& state) {
 
     state.xdgToplevel->sendSetTitle("surface scale transform test");
     state.xdgToplevel->sendSetAppId("surface-scale-transform");
+    // Keep this initial commit otherwise empty, including when recreating the role on an existing wl_surface.
     state.surface->sendCommit();
 
     if (!waitForDisplayState(state, [&state]() { return state.configured; }, 100, 100)) {
@@ -285,15 +270,40 @@ static bool setupToplevel(SWlState& state) {
         return false;
     }
 
+    if (!state.rootBuffer)
+        state.setupError = "buffer";
+
+    return state.rootBuffer != nullptr;
+}
+
+static bool setupToplevel(SWlState& state) {
+    state.xdgShell->setPing([&](CCXdgWmBase*, uint32_t serial) { state.xdgShell->sendPong(serial); });
+
+    state.surface = makeShared<CCWlSurface>(state.compositor->sendCreateSurface());
+    if (!state.surface) {
+        state.setupError = "surface";
+        return false;
+    }
+
+    setSurfaceListeners(state.surface, state.stats, false);
+
+    state.rootFractional = makeShared<CCWpFractionalScaleV1>(state.fractional->sendGetFractionalScale(state.surface->resource()));
+    if (!state.rootFractional) {
+        state.setupError = "fractional";
+        return false;
+    }
+
+    setFractionalListener(state.rootFractional, state.stats, false);
+
+    if (!createToplevel(state))
+        return false;
+
     if (!waitForDisplayState(state, [&state]() { return state.stats.rootScale != -1 && state.stats.rootTransform != -1 && state.stats.rootFraction != -1; }, 100, 100)) {
         state.setupError = "surface-events";
         return false;
     }
 
-    if (!state.rootBuffer)
-        state.setupError = "buffer";
-
-    return state.rootBuffer != nullptr;
+    return true;
 }
 
 static bool createChild(SWlState& state) {
@@ -347,6 +357,20 @@ static void handleCommand(SWlState& state, const std::string& command) {
         sendLine("ok");
     } else if (command == "remap") {
         sendLine(remapRoot(state) ? "ok" : "error");
+    } else if (command == "hide") {
+        state.xdgToplevel->sendDestroy();
+        state.xdgToplevel.reset();
+        state.xdgSurface->sendDestroy();
+        state.xdgSurface.reset();
+        state.configured = false;
+
+        // Clear the buffer after removing the XDG role, preserving the wl_surface for reopening.
+        state.surface->sendAttach(nullptr, 0, 0);
+        state.surface->sendCommit();
+        sendLine(pollDisplay(state, 100) ? "ok" : "error");
+    } else if (command == "reopen") {
+        // Flush the buffer commit queued by the new configure before waiting for another command.
+        sendLine(createToplevel(state) && pollDisplay(state, 100) ? "ok" : "error");
     } else if (command == "subsurface")
         sendLine(createChild(state) ? "ok" : "error");
     else if (command == "exit")

@@ -41,9 +41,8 @@ in
     self.overlays.hyprland
   ];
 
-  # Hyprland with its internal dependencies.
+  # BreakLand with its internal dependencies.
   hyprland = lib.composeManyExtensions (with self.overlays; [
-    udis86
     glaze
     hyprland-no-deps
   ]);
@@ -66,11 +65,6 @@ in
       hyprland-unwrapped = final.hyprland.override { wrapRuntimeDeps = false; };
 
       hyprland-with-tests = final.hyprland.override { withTests = true; };
-
-      hyprland-with-hyprtester = builtins.trace ''
-        hyprland-with-hyprtester was removed. Please use the hyprland package.
-        Hyprtester is always built now.
-      '' final.hyprland;
 
       # deprecated packages
       hyprland-legacy-renderer = builtins.trace ''
@@ -106,24 +100,6 @@ in
   hyprland-extras = lib.composeManyExtensions [
     inputs.xdph.overlays.default
   ];
-
-  # udis86 from nixpkgs is too old, and also does not provide a .pc file
-  # this version is the one used in the git submodule, and allows us to
-  # fetch the source without '?submodules=1'
-  udis86 = final: prev: {
-    udis86-hyprland = prev.udis86.overrideAttrs (
-      _self: _super: {
-        src = final.fetchFromGitHub {
-          owner = "canihavesomecoffee";
-          repo = "udis86";
-          rev = "5336633af70f3917760a6d441ff02d93477b0c86";
-          hash = "sha256-HifdUQPGsKQKQprByeIznvRLONdOXeolOsU5nkwIv3g=";
-        };
-
-        patches = [ ];
-      }
-    );
-  };
 
   # Even though glaze itself disables it by default, nixpkgs sets ENABLE_SSL set to true.
   # Since we don't include openssl, the build failes without the `enableSSL = false;` override

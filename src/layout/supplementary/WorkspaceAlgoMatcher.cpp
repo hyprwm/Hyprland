@@ -82,8 +82,6 @@ bool CWorkspaceAlgoMatcher::unregisterAlgo(const std::string& name) {
     else
         m_tiledAlgos.erase(name);
 
-    // this is needed here to avoid situations where a plugin unloads and we still have a UP
-    // to a plugin layout
     updateWorkspaceLayouts();
 
     return true;

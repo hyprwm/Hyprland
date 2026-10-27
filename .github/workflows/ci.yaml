@@ -30,7 +30,6 @@ jobs:
           cp ./LICENSE hyprland/
           cp build/Hyprland hyprland/
           cp build/hyprctl/hyprctl hyprland/
-          cp build/hyprpm/hyprpm hyprland/
           cp -r example/ hyprland/
           cp -r assets/ hyprland/
           tar -cvJf Hyprland.tar.xz hyprland

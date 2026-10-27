@@ -14,12 +14,6 @@ pkg_check_modules(hyprtester_deps REQUIRED IMPORTED_TARGET hyprutils>=0.5.0)
 file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")
 
 add_executable(hyprtester ${SRCFILES})
-add_custom_command(
-  TARGET hyprtester
-  POST_BUILD
-  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/plugin/build.sh "${LUA_INCLUDE_DIRS}"
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/plugin)
-
 target_link_libraries(hyprtester PUBLIC PkgConfig::hyprtester_deps)
 
 install(TARGETS hyprtester)
@@ -30,19 +24,12 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test.lua
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lua-require
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr)
 
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/plugin/hyprtestplugin.so
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
-
 file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/src/tests/clients/build.hpp
   "#include <string>\n"
   "static const std::string binaryDir = \"${CMAKE_CURRENT_BINARY_DIR}\";"
 )
 
 ######## wayland protocols testing stuff
-
-if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
-  set(CMAKE_EXECUTABLE_ENABLE_EXPORTS TRUE)
-endif()
 
 find_package(hyprwayland-scanner 0.4.0 REQUIRED)
 pkg_check_modules(

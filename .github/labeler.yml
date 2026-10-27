@@ -10,10 +10,6 @@ hyprctl:
   - changed-files:
       - any-glob-to-any-file: "hyprctl/**"
 
-hyprpm:
-  - changed-files:
-      - any-glob-to-any-file: "hyprpm/**"
-
 nix:
   - changed-files:
       - any-glob-to-any-file: "nix/**"
@@ -73,10 +69,6 @@ managers:
 pch:
   - changed-files:
       - any-glob-to-any-file: "src/pch/**"
-
-plugins:
-  - changed-files:
-      - any-glob-to-any-file: "src/plugins/**"
 
 render:
   - changed-files:

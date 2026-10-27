@@ -160,17 +160,6 @@ CLuaEventHandler::CLuaEventHandler(CLuaCaller& caller) : m_caller(caller) {
         dispatch("hyprland.shutdown", 0, [](lua_State* L) {});
     }));
 
-    m_listeners.push_back(bus()->m_events.pluginEventAdded.listen([this](SP<Event::CEventBus::CCustomEvent> event) {
-        auto ret = addCustomEvent(event);
-        if (!ret)
-            LOG(Log::ERR, "failed to register plugin event for lua {}: {}", event->m_name, ret.error());
-    }));
-    m_listeners.push_back(bus()->m_events.pluginEventRemoved.listen([this](const std::string& name) {
-        auto ret = removeCustomEvent(name);
-        if (!ret)
-            LOG(Log::ERR, "failed to unregister plugin event for lua {}: {}", name, ret.error());
-    }));
-
     m_listeners.push_back(bus()->m_events.input.keyboard.key.listen([this](const IKeyboard::SKeyEvent& keyEvent, const SCallbackInfo& _) {
         dispatch("input.keyboard.key", 3, [&](lua_State* L) {
             lua_pushinteger(L, keyEvent.keycode + 8); // Because to xkbcommon it's +8 from libinput
@@ -217,37 +206,6 @@ void CLuaEventHandler::clearEvents() {
     m_callbacks.clear();
 }
 
-std::expected<void, std::string> CLuaEventHandler::addCustomEvent(SP<Event::CEventBus::CCustomEvent> event) {
-    using namespace Event;
-
-    auto listener = event->m_event.listen([this, event](const std::vector<CEventBus::CCustomEvent::ValidVariant>& args) {
-        dispatch(event->m_name, event->m_argTypes.size(), [args](lua_State* L) {
-            for (const auto& arg : args) {
-                switch (arg.index()) {
-                    case CEventBus::CCustomEvent::TYPE_BOOL: lua_pushboolean(L, std::get<bool>(arg)); break;
-                    case CEventBus::CCustomEvent::TYPE_INT: lua_pushinteger(L, std::get<int>(arg)); break;
-                    case CEventBus::CCustomEvent::TYPE_DOUBLE: lua_pushnumber(L, std::get<double>(arg)); break;
-                    case CEventBus::CCustomEvent::TYPE_STRING: lua_pushstring(L, std::get<std::string>(arg).c_str()); break;
-                    case CEventBus::CCustomEvent::TYPE_WINDOW: CLuaWindow::push(L, std::get<PHLWINDOWREF>(arg)); break;
-                    case CEventBus::CCustomEvent::TYPE_WORKSPACE: CLuaWorkspace::push(L, std::get<PHLWORKSPACEREF>(arg)); break;
-                    case CEventBus::CCustomEvent::TYPE_LAYER_SURFACE: CLuaLayerSurface::push(L, std::get<PHLLSREF>(arg)); break;
-                    case CEventBus::CCustomEvent::TYPE_MONITOR: CLuaMonitor::push(L, std::get<PHLMONITORREF>(arg)); break;
-                }
-            }
-        });
-    });
-    if (!m_pluginListeners.try_emplace(event->m_name, listener).second)
-        return std::unexpected("event already exists.");
-
-    return {};
-}
-
-std::expected<void, std::string> CLuaEventHandler::removeCustomEvent(const std::string& name) {
-    if (!m_pluginListeners.erase(name))
-        return std::unexpected("event not found.");
-    return {};
-}
-
 std::unordered_set<std::string> CLuaEventHandler::knownEvents() {
     std::unordered_set<std::string> EVENTS = {
         "window.open",
@@ -287,7 +245,5 @@ std::unordered_set<std::string> CLuaEventHandler::knownEvents() {
         "hyprland.shutdown",
         "input.keyboard.key",
     };
-    for (auto& kv : Event::bus()->m_events.plugin)
-        EVENTS.emplace(kv.first);
     return EVENTS;
 }

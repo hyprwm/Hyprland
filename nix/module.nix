@@ -13,15 +13,6 @@ in
 {
   options = {
     programs.hyprland = {
-      plugins = lib.mkOption {
-        type = with lib.types; listOf (either package path);
-        default = [ ];
-        description = ''
-          List of Hyprland plugins to use. Can either be packages or
-          absolute plugin paths.
-        '';
-      };
-
       settings = lib.mkOption {
         type =
           with lib.types;
@@ -49,11 +40,6 @@ in
 
           Special categories (e.g `devices`) should be written as
           `"devices[device-name]"`.
-
-          ::: {.note}
-          Use the [](#programs.hyprland.plugins) option to
-          declare plugins.
-          :::
 
         '';
         example = lib.literalExpression ''
@@ -134,29 +120,11 @@ in
 
       environment.etc."xdg/hypr/hyprland.conf" =
         let
-          shouldGenerate = cfg.extraConfig != "" || cfg.settings != { } || cfg.plugins != [ ];
-
-          pluginsToHyprlang =
-            _plugins:
-            selflib.toHyprlang
-              {
-                topCommandsPrefixes = cfg.topPrefixes;
-                bottomCommandsPrefixes = cfg.bottomPrefixes;
-              }
-              {
-                "exec-once" =
-                  let
-                    mkEntry =
-                      entry: if lib.types.package.check entry then "${entry}/lib/lib${entry.pname}.so" else entry;
-                    hyprctl = lib.getExe' config.programs.hyprland.package "hyprctl";
-                  in
-                  map (p: "${hyprctl} plugin load ${mkEntry p}") cfg.plugins;
-              };
+          shouldGenerate = cfg.extraConfig != "" || cfg.settings != { };
         in
         lib.mkIf shouldGenerate {
           text =
-            lib.optionalString (cfg.plugins != [ ]) (pluginsToHyprlang cfg.plugins)
-            + lib.optionalString (cfg.settings != { }) (
+            lib.optionalString (cfg.settings != { }) (
               selflib.toHyprlang {
                 topCommandsPrefixes = cfg.topPrefixes;
                 bottomCommandsPrefixes = cfg.bottomPrefixes;

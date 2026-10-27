@@ -61,7 +61,6 @@ runs:
           sdbus-cpp \
           seatd \
           systemd \
-          tomlplusplus \
           wayland \
           wayland-protocols \
           xcb-util-errors \

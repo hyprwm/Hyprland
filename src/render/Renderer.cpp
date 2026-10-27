@@ -674,7 +674,6 @@ void IHyprRenderer::renderWindow(CRenderContext& ctx, PHLWINDOW pWindow, PHLMONI
 
     renderdata.pWindow = pWindow;
 
-    // for plugins
     ctx.m_data.currentWindow = pWindow;
 
     Event::bus()->m_events.render.stage.emit({RENDER_PRE_WINDOW, pMonitor, ctx});

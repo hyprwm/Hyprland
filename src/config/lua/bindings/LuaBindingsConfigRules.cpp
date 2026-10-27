@@ -544,25 +544,6 @@ static int hlEnv(lua_State* L) {
     return 0;
 }
 
-static int hlPluginLoad(lua_State* L) {
-    auto*            mgr = sc<CConfigManager*>(lua_touserdata(L, lua_upvalueindex(1)));
-
-    CLuaConfigString pathParser("");
-    lua_pushvalue(L, 1);
-    auto pathErr = pathParser.parse(L);
-    lua_pop(L, 1);
-    if (pathErr.errorCode != PARSE_ERROR_OK)
-        return Internal::configError(L, std::format("hl.plugin.load: first argument (path) must be a string: {}", pathErr.message));
-
-    const auto& path = pathParser.parsed();
-
-    if (path.empty())
-        return Internal::configError(L, "hl.plugin.load: path must not be empty");
-
-    mgr->m_registeredPlugins.emplace_back(path);
-    return 0;
-}
-
 static int hlPermission(lua_State* L) {
     auto*       mgr = sc<CConfigManager*>(lua_touserdata(L, lua_upvalueindex(1)));
 
@@ -606,8 +587,6 @@ static int hlPermission(lua_State* L) {
         type = PERMISSION_TYPE_SCREENCOPY;
     else if (typeStr == "cursorpos")
         type = PERMISSION_TYPE_CURSOR_POS;
-    else if (typeStr == "plugin")
-        type = PERMISSION_TYPE_PLUGIN;
     else if (typeStr == "keyboard" || typeStr == "keeb")
         type = PERMISSION_TYPE_KEYBOARD;
     else if (typeStr == "input-capture")
@@ -1373,10 +1352,6 @@ void Internal::registerConfigRuleBindings(lua_State* L, CConfigManager* mgr) {
     Internal::setMgrFn(L, mgr, "workspace_rule", hlWorkspaceRule);
     Internal::setMgrFn(L, mgr, "env", hlEnv);
     Internal::setMgrFn(L, mgr, "permission", hlPermission);
-
-    lua_newtable(L);
-    Internal::setMgrFn(L, mgr, "load", hlPluginLoad);
-    lua_setfield(L, -2, "plugin");
 
     Internal::setFn(L, "gesture", hlGesture);
     Internal::setFn(L, "curve", hlCurve);

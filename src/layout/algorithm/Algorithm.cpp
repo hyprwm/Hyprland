@@ -205,7 +205,7 @@ void CAlgorithm::updateTiledAlgo(UP<ITiledAlgorithm>&& algo) {
             continue;
 
         // Unhide windows when switching layouts to prevent them from being permanently lost
-        // This is a safeguard for layouts (including third-party plugins) that use setHidden
+        // This is a safeguard for custom layouts that use setHidden
         const auto WINDOW = TARGET->window();
         if (WINDOW)
             WINDOW->setHidden(false);

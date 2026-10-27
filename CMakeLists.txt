@@ -36,22 +36,6 @@ endif()
 find_package(PkgConfig REQUIRED)
 find_package(Python3 COMPONENTS Interpreter QUIET)
 
-# Try to find canihavesomecoffee's udis86 using pkgconfig vmd/udis86 does not
-# provide a .pc file and won't be detected this way
-pkg_check_modules(udis_dep IMPORTED_TARGET udis86>=1.7.2)
-
-# Find non-pkgconfig udis86, otherwise fallback to subproject
-if(NOT udis_dep_FOUND)
-  find_library(udis_nopc udis86)
-  if(NOT("${udis_nopc}" MATCHES "udis_nopc-NOTFOUND"))
-    message(STATUS "Found udis86 at ${udis_nopc}")
-  else()
-    add_subdirectory("subprojects/udis86")
-    include_directories("subprojects/udis86")
-    message(STATUS "udis86 dependency not found, falling back to subproject")
-  endif()
-endif()
-
 find_library(librt rt)
 if("${librt}" MATCHES "librt-NOTFOUND")
   unset(LIBRT)
@@ -114,10 +98,6 @@ add_compile_options(
   -frtti
   -fmacro-prefix-map=${CMAKE_SOURCE_DIR}/=)
 
-# disable lto as it may break plugins
-add_compile_options(-fno-lto)
-
-set(CMAKE_EXECUTABLE_ENABLE_EXPORTS TRUE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
 message(STATUS "Checking deps...")
@@ -411,8 +391,6 @@ else()
   target_link_libraries(hyprland_lib PUBLIC PkgConfig::xdeps)
 endif()
 
-configure_file(hyprland.pc.in hyprland.pc @ONLY)
-
 if(NO_SYSTEMD)
   message(STATUS "SYSTEMD support is disabled...")
 else()
@@ -458,20 +436,7 @@ target_link_libraries(
   PkgConfig::LUA
 )
 
-target_link_libraries(
-  Hyprland
-  ${LIBRT}
-  hyprland_lib)
-if(udis_dep_FOUND)
-  target_link_libraries(hyprland_lib PUBLIC PkgConfig::udis_dep)
-elseif(NOT("${udis_nopc}" MATCHES "udis_nopc-NOTFOUND"))
-  target_link_libraries(hyprland_lib PUBLIC ${udis_nopc})
-else()
-  target_link_libraries(hyprland_lib PUBLIC libudis86)
-endif()
-
-# used by `make installheaders`, to ensure the headers are generated
-add_custom_target(generate-protocol-headers)
+target_link_libraries(Hyprland ${LIBRT} hyprland_lib)
 
 if(Python3_Interpreter_FOUND)
   add_custom_target(
@@ -510,9 +475,6 @@ function(protocolnew protoPath protoName external)
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
   target_sources(hyprland_lib PRIVATE protocols/${protoName}.cpp
                                   protocols/${protoName}.hpp)
-  target_sources(generate-protocol-headers
-                 PRIVATE ${CMAKE_SOURCE_DIR}/protocols/${protoName}.hpp)
-
   list(APPEND PROTOCOL_SOURCES "${CMAKE_SOURCE_DIR}/protocols/${protoName}.cpp")
   set(PROTOCOL_SOURCES "${PROTOCOL_SOURCES}" PARENT_SCOPE)
   list(APPEND PROTOCOL_SOURCES "${CMAKE_SOURCE_DIR}/protocols/${protoName}.hpp")
@@ -527,9 +489,6 @@ function(protocolWayland)
       ${WAYLAND_SCANNER_PKGDATA_DIR}/wayland.xml ${CMAKE_SOURCE_DIR}/protocols/
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
   target_sources(hyprland_lib PRIVATE protocols/wayland.cpp protocols/wayland.hpp)
-  target_sources(generate-protocol-headers
-                 PRIVATE ${CMAKE_SOURCE_DIR}/protocols/wayland.hpp)
-
   list(APPEND PROTOCOL_SOURCES "${CMAKE_SOURCE_DIR}/protocols/wayland.hpp")
   set(PROTOCOL_SOURCES "${PROTOCOL_SOURCES}" PARENT_SCOPE)
   list(APPEND PROTOCOL_SOURCES "${CMAKE_SOURCE_DIR}/protocols/wayland.cpp")
@@ -625,13 +584,6 @@ protocolwayland()
 add_subdirectory(hyprctl)
 add_subdirectory(start)
 
-if(NO_HYPRPM)
-  message(STATUS "hyprpm is disabled")
-else()
-  add_subdirectory(hyprpm)
-  message(STATUS "hyprpm is enabled (NO_HYPRPM not defined)")
-endif()
-
 # Set proper permissions for directories, otherwise they could end up 700
 set(CMAKE_INSTALL_DEFAULT_DIRECTORY_PERMISSIONS
     OWNER_READ OWNER_WRITE OWNER_EXECUTE
@@ -680,33 +632,8 @@ install(FILES ${CMAKE_SOURCE_DIR}/assets/hyprland-portals.conf
 file(GLOB_RECURSE MANPAGES "docs/*.1")
 install(FILES ${MANPAGES} DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 
-# pkgconfig entry
-install(FILES ${CMAKE_BINARY_DIR}/hyprland.pc
-        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
-
-# protocol headers
-set(HEADERS_PROTO "${CMAKE_CURRENT_SOURCE_DIR}/protocols")
-install(
-  DIRECTORY ${HEADERS_PROTO}
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hyprland
-  FILES_MATCHING
-  PATTERN "*.h*")
-
-# hyprland headers
-set(HEADERS_SRC "${CMAKE_CURRENT_SOURCE_DIR}/src")
-install(
-  DIRECTORY ${HEADERS_SRC}
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hyprland
-  FILES_MATCHING
-  PATTERN "*.h"
-  PATTERN "*.hpp"
-  PATTERN "*.inc")
-
 if(BUILD_TESTING OR WITH_TESTS)
   message(STATUS "Building tests")
-
-  # hyprtester
-  add_subdirectory(hyprtester)
 
   # GTest
   find_package(GTest CONFIG REQUIRED)

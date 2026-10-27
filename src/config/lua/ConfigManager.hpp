@@ -77,21 +77,13 @@ namespace Config::Lua {
 
         virtual std::expected<void, std::string> generateDefaultConfig(const std::filesystem::path&, bool safeMode) override;
 
-        virtual void                             handlePluginLoads() override;
         virtual bool                             configLoaded() override;
         virtual bool                             configVerifPassed() override;
 
-        virtual std::expected<void, std::string> registerPluginValue(void* handle, SP<Config::Values::IValue> value) override;
-        virtual void                             onPluginUnload(void* handle) override;
 
         virtual void                             warnDeprecated(std::string what, std::string why) override;
         virtual void                             clearDeprecations() override;
         virtual std::vector<std::string>         deprecationNotices() const override;
-
-        int                                      invokePluginLuaFunctionByID(uint64_t id, lua_State* L);
-
-        std::expected<void, std::string>         registerPluginLuaFunction(void* handle, const std::string& namespace_, const std::string& name, PLUGIN_LUA_FN fn);
-        std::expected<void, std::string>         unregisterPluginLuaFunction(void* handle, const std::string& namespace_, const std::string& name);
 
         void                                     addError(std::string&& str);
         void                                     addEvalIssue(const Config::SConfigError& err);
@@ -116,8 +108,6 @@ namespace Config::Lua {
 
         std::vector<SP<CEventLoopTimer>>                     m_luaTimers;
 
-        std::vector<std::string>                             m_registeredPlugins;
-
         std::unordered_map<std::string, UP<ILuaConfigValue>> m_configValues;
 
         struct SDeviceConfig {
@@ -141,10 +131,6 @@ namespace Config::Lua {
         void                                         cleanTimers();
         void                                         clearLuaLayoutProviders();
         std::string                                  luaConfigValueName(const std::string& s);
-        std::expected<void, std::string>             registerPluginLuaFunctionInState(uint64_t id, const std::string& namespace_, const std::string& name);
-        std::expected<void, std::string>             unregisterPluginLuaFunctionInState(const std::string& namespace_, const std::string& name);
-        void                                         erasePluginLuaFunction(uint64_t id);
-        void                                         reregisterLuaPluginFns();
 
         lua_State*                                   m_lua          = nullptr;
         bool                                         m_ownsLuaState = false;
@@ -167,18 +153,6 @@ namespace Config::Lua {
 
         // this is here for legacy reasons.
         std::unordered_map<std::string, const void*> m_configPtrMap;
-
-        // this is here for plugin reasons.
-        std::unordered_map<void* /* HANDLE */, std::vector<std::string>> m_pluginValues;
-
-        struct SPluginLuaFunction {
-            uint64_t              id     = 0;
-            void*                 handle = nullptr;
-            std::string           namespace_;
-            std::string           name;
-            Config::PLUGIN_LUA_FN fn = nullptr;
-        };
-        std::vector<SPluginLuaFunction> m_pluginLuaFunctions;
 
         ILuaConfigValue*                findDeviceValue(const std::string& dev, const std::string& field);
 

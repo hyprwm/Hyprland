@@ -16,7 +16,6 @@ namespace re2 {
 enum eDynamicPermissionType : uint8_t {
     PERMISSION_TYPE_UNKNOWN = 0,
     PERMISSION_TYPE_SCREENCOPY,
-    PERMISSION_TYPE_PLUGIN,
     PERMISSION_TYPE_KEYBOARD,
     PERMISSION_TYPE_CURSOR_POS,
     PERMISSION_TYPE_INPUT_CAPTURE,
@@ -95,7 +94,6 @@ class CDynamicPermissionManager {
     // (will continue returning false if the user does not agree, of course.)
     eDynamicPermissionAllowMode clientPermissionMode(wl_client* client, eDynamicPermissionType permission);
 
-    // for plugins for now. Pid 0 means unknown
     eDynamicPermissionAllowMode clientPermissionModeWithString(pid_t pid, const std::string& str, eDynamicPermissionType permission);
 
     // get a promise for the result. Returns null if there already was one requested for the client.

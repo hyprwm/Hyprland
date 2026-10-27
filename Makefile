@@ -30,29 +30,6 @@ install:
 uninstall:
 	xargs rm < ./build/install_manifest.txt
 
-pluginenv:
-	@echo -en "$(MAKE) pluginenv has been deprecated.\nPlease run $(MAKE) all && sudo $(MAKE) installheaders\n"
-	@exit 1
-
-installheaders:
-	@if [ ! -f ./src/version.h ]; then echo -en "You need to run $(MAKE) all first.\n" && exit 1; fi
-
-	# remove previous headers from hyprpm's dir
-	rm -fr ${PREFIX}/include/hyprland
-	mkdir -p ${PREFIX}/include/hyprland
-	mkdir -p ${PREFIX}/include/hyprland/protocols
-	mkdir -p ${PREFIX}/share/pkgconfig
-
-	cmake --build ./build --config Release --target generate-protocol-headers
-
-	find src -type f \( -name '*.hpp' -o -name '*.h' -o -name '*.inc' \) -print0 | cpio --quiet -0dump ${PREFIX}/include/hyprland
-	cp ./protocols/*.h* ${PREFIX}/include/hyprland/protocols
-	cp ./build/hyprland.pc ${PREFIX}/share/pkgconfig
-	if [ -d /usr/share/pkgconfig ]; then cp ./build/hyprland.pc /usr/share/pkgconfig 2>/dev/null || true; fi
-
-	chmod -R 755 ${PREFIX}/include/hyprland
-	chmod 755 ${PREFIX}/share/pkgconfig
-
 man:
 	pandoc ./docs/Hyprland.1.rst \
 		--standalone \
@@ -95,19 +72,17 @@ asan:
 	ASAN_OPTIONS="detect_odr_violation=0,log_path=asan.log" HYPRLAND_NO_CRASHREPORTER=1 ./build/Hyprland -c ~/.config/hypr/hyprland.lua
 
 format-check:
-	@find src hyprctl hyprpm start tests hyprtester -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" \) \
+	@find src hyprctl start tests -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" \) \
 		! -path "src/render/shaders/Shaders.hpp" \
 		! -path "hyprctl/hw-protocols/*" \
-		! -path "hyprtester/protocols/*" \
 		| xargs clang-format --dry-run --Werror
 
 format-fix:
-	@find src hyprctl hyprpm start tests hyprtester -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" \) \
+	@find src hyprctl start tests -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.h" \) \
 		! -path "src/render/shaders/Shaders.hpp" \
 		! -path "hyprctl/hw-protocols/*" \
-		! -path "hyprtester/protocols/*" \
 		| xargs clang-format -i
 
 test:
 	$(MAKE) debug
-	./build/hyprtester/hyprtester -c hyprtester/test.lua -b ./build/Hyprland -p hyprtester/plugin/hyprtestplugin.so $(TESTS)
+	./build/hyprland_gtests $(TESTS)

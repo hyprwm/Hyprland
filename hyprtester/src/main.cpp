@@ -6,7 +6,6 @@
 // NOTE: This tester has to be ran from its directory!!
 
 // Some TODO:
-// - Add a plugin built alongside so that we can do more detailed tests (e.g. simulating keystrokes)
 // - test coverage
 // - maybe figure out a way to do some visual tests too?
 
@@ -52,7 +51,6 @@ namespace {
     struct SSettings {
         Path                     configPath;
         Path                     binaryPath;
-        Path                     pluginPath;
         std::vector<std::string> requestedTests;
     };
 
@@ -85,7 +83,6 @@ static bool hyprlandAlive() {
     --help              -h         - Show this message again
     --config FILE       -c FILE    - Specify config file to use (default: './test.lua')
     --binary FILE       -b FILE    - Specify Hyprland binary to use (default: '../build/Hyprland')
-    --plugin FILE       -p FILE    - Specify the location of the test plugin (default: './')
     [TEST_NAMES]                   - Specify list of tests to run (separated by spaces).
                                      If omitted, all tests will run.)");
 
@@ -124,13 +121,6 @@ static SSettings parseSettings(const std::span<const char*> args) {
 
             settings.binaryPath = validatePathOrDie(*std::next(it));
             it++;
-        } else if (value == "--plugin" || value == "-p") {
-            if (std::next(it) == args.end()) {
-                helpAndDie(EXIT_FAILURE);
-            }
-
-            settings.pluginPath = validatePathOrDie(*std::next(it));
-            it++;
         } else if (value == "--help" || value == "-h") {
             helpAndDie(EXIT_SUCCESS);
         } else if (!value.starts_with("-")) {
@@ -146,9 +136,6 @@ static SSettings parseSettings(const std::span<const char*> args) {
         settings.configPath = validatePathOrDie(cwd / "test.lua");
     if (settings.binaryPath.empty())
         settings.binaryPath = validatePathOrDie(cwd / "../build/Hyprland");
-    if (settings.pluginPath.empty())
-        settings.pluginPath = cwd;
-
     return settings;
 }
 
@@ -275,15 +262,6 @@ int main(int argc, char** argv, char** envp) {
         getFromSocket("/dispatch hl.dsp.exit()");
         return 1;
     }
-
-    NLog::yellow("trying to load plugin");
-    if (const auto R = getFromSocket(std::format("/plugin load {}", settings.pluginPath.string())); R != "ok") {
-        NLog::red("Failed to load the test plugin: {}", R);
-        getFromSocket("/dispatch hl.dsp.exit()");
-        return 1;
-    }
-
-    NLog::yellow("Loaded plugin");
 
     STestsRunResult result = runTests(requestedTestCases);
 

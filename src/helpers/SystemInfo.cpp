@@ -3,8 +3,6 @@
 
 #include "../Compositor.hpp"
 #include "../version.h"
-#include "../plugins/PluginAPI.hpp"
-#include "../plugins/PluginSystem.hpp"
 #include "../render/OpenGL.hpp"
 #include "../config/ConfigManager.hpp"
 #include "../state/MonitorState.hpp"
@@ -222,14 +220,6 @@ std::string SystemInfo::getSystemInfo() {
         result += std::format("os-release: {}\n\n", buffer.str());
     } else
         result += "os-release: error\n\n";
-
-    result += "plugins:\n";
-    if (g_pPluginSystem) {
-        for (auto const& pl : g_pPluginSystem->getAllPlugins()) {
-            result += std::format("  {} by {} ver {}\n", pl->m_name, pl->m_author, pl->m_version);
-        }
-    } else
-        result += "\tunknown: not runtime\n";
 
     if (g_pHyprOpenGL) {
         result += std::format("\nExplicit sync: {}", g_pHyprOpenGL->m_exts.EGL_ANDROID_native_fence_sync_ext ? "supported" : "missing");

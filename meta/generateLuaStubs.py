@@ -558,7 +558,6 @@ def generate_stub(root: Path) -> str:
         "hl.notification.get": "fun(): HL.Notification[]",
         "hl.layout.register": "fun(name: string, provider: HL.LayoutProvider): nil",
         "hl.exec_cmd": "fun(cmd: string, rules?: table<string, string|number|boolean>): nil",
-        "hl.get_loaded_plugins": "fun(): HL.Plugin[]",
         "hl.is_key_down": "fun(key: number|string): boolean",
         "hl.version": "fun(): string",
         "hl.clear_crashed_lockscreen": "fun(): nil",
@@ -842,9 +841,6 @@ def generate_stub(root: Path) -> str:
 
         for child_name in sorted(node.children.keys()):
             fields.append((child_name, namespace_class_name(path + [child_name]), False))
-
-        if path == ["plugin"]:
-            fields.append(("[string]", "any", False))
 
         operator_call = None
         if path and path[-1] in callable_namespaces:

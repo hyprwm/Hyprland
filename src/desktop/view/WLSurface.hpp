@@ -49,7 +49,7 @@ namespace Desktop::View {
         void                   appendConstraint(WP<CPointerConstraint> constraint);
         SP<CPointerConstraint> constraint() const;
 
-        // allow stretching. Useful for plugins.
+        // allow stretching for custom surface behavior.
         bool m_fillIgnoreSmall = false;
 
         //

@@ -46,8 +46,6 @@
   re2,
   sdbus-cpp_2,
   systemd,
-  tomlplusplus,
-  udis86-hyprland,
   wayland,
   wayland-protocols,
   wayland-scanner,
@@ -67,7 +65,6 @@
   nvidiaPatches ? false,
   hidpiXWayland ? false,
   legacyRenderer ? false,
-  withHyprtester ? false,
 }:
 let
   inherit (builtins) foldl' readFile;
@@ -86,6 +83,7 @@ let
     trim
     ;
   fs = lib.fileset;
+  sourceVersion = trim (readFile ../VERSION);
 
   adapters = flatten [
     stdenvAdapters.useMoldLinker
@@ -101,9 +99,6 @@ assert assertMsg (!hidpiXWayland)
 assert assertMsg (
   !legacyRenderer
 ) "The option `legacyRenderer` has been removed. Legacy renderer is no longer supported.";
-assert assertMsg (
-  !withHyprtester
-) "The option `withHyprtester` has been removed. Hyprtester is always built now.";
 customStdenv.mkDerivation (finalAttrs: {
   pname = "hyprland${optionalString debug "-debug"}";
   inherit version withTests;
@@ -119,8 +114,6 @@ customStdenv.mkDerivation (finalAttrs: {
             ../assets/hyprland-portals.conf
             ../assets/install
             ../hyprctl
-            ../hyprland.pc.in
-            ../hyprpm
             ../LICENSE
             ../meta
             ../protocols
@@ -134,7 +127,6 @@ customStdenv.mkDerivation (finalAttrs: {
             (fs.fileFilter (file: file.name == "CMakeLists.txt") ../.)
             (optional withTests [
               ../tests
-              ../hyprtester
             ])
           ])
         );
@@ -145,7 +137,6 @@ customStdenv.mkDerivation (finalAttrs: {
     sed -i "s#/usr#$out#" src/render/OpenGL.cpp
 
     # Remove extra @PREFIX@ to fix some paths
-    sed -i "s#@PREFIX@/##g" hyprland.pc.in
     sed -i "s#@PREFIX@/##g" example/hyprland.desktop.in
   '';
 
@@ -154,7 +145,7 @@ customStdenv.mkDerivation (finalAttrs: {
     GIT_COMMIT_DATE = date;
     GIT_COMMIT_HASH = commit;
     GIT_DIRTY = if (commit == "") then "clean" else "dirty";
-    GIT_TAG = "v${trim (readFile "${finalAttrs.src}/VERSION")}";
+    GIT_TAG = "v${sourceVersion}";
   };
 
   depsBuildBuild = [
@@ -206,8 +197,6 @@ customStdenv.mkDerivation (finalAttrs: {
       pciutils
       re2
       sdbus-cpp_2
-      tomlplusplus
-      udis86-hyprland
       wayland
       wayland-protocols
       wayland-scanner
@@ -244,12 +233,6 @@ customStdenv.mkDerivation (finalAttrs: {
     "WITH_TESTS" = withTests;
   };
 
-  preConfigure = ''
-    substituteInPlace hyprtester/CMakeLists.txt --replace-fail \
-      "\''${CMAKE_CURRENT_BINARY_DIR}" \
-      "${placeholder "out"}/bin"
-  '';
-
   postInstall = ''
     ${optionalString wrapRuntimeDeps ''
       wrapProgram $out/bin/Hyprland \
@@ -264,21 +247,7 @@ customStdenv.mkDerivation (finalAttrs: {
     ''}
 
     ${optionalString withTests ''
-      install hyprtester/pointer-warp -t $out/bin
-      install hyprtester/pointer-constraints -t $out/bin
-      install hyprtester/pointer-scroll -t $out/bin
-      install hyprtester/shortcut-inhibitor -t $out/bin
-      install hyprtester/keyboard-modifiers -t $out/bin
-      install hyprtester/fullscreen-with-monitor -t $out/bin
-      install hyprtester/surface-scale-transform -t $out/bin
-      install hyprtester/xdg-interactive -t $out/bin
-      install hyprtester/xdg-activation -t $out/bin
-      install hyprtester/xdg-initial-maximize -t $out/bin
-      install hyprtester/popup-render -t $out/bin
-      install hyprtester/wlr-foreign-toplevel -t $out/bin
-      install hyprtester/toplevel-capture -t $out/bin
       install hyprland_gtests -t $out/bin
-      install hyprtester/child-window -t $out/bin
     ''}
   '';
 

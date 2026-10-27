@@ -38,7 +38,3 @@ target_link_libraries(start-hyprland PUBLIC PkgConfig::starthyprland_deps)
 target_link_libraries(start-hyprland PUBLIC glaze::glaze)
 
 install(TARGETS start-hyprland)
-
-if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
-  set(CMAKE_EXECUTABLE_ENABLE_EXPORTS TRUE)
-endif()

@@ -58,33 +58,6 @@ namespace Event {
         template <typename... Args>
         using Cancellable = CSignalT<Args..., SCallbackInfo&>;
 
-        class CCustomEvent {
-          public:
-            // maps a name to a ValidVariant
-            // must have the same order as ValidVariant
-            enum eType : uint8_t {
-                TYPE_BOOL          = 0,
-                TYPE_INT           = 1,
-                TYPE_DOUBLE        = 2,
-                TYPE_STRING        = 3,
-                TYPE_WINDOW        = 4,
-                TYPE_WORKSPACE     = 5,
-                TYPE_LAYER_SURFACE = 6,
-                TYPE_MONITOR       = 7,
-            };
-
-            using ValidVariant = std::variant<bool, int, double, std::string, PHLWINDOWREF, PHLWORKSPACEREF, PHLLSREF, PHLMONITORREF>;
-
-            CCustomEvent(std::string name, std::vector<eType> argTypes);
-            ~CCustomEvent();
-
-            std::expected<void, std::string>        emit(const std::vector<ValidVariant>& args);
-
-            std::string                             m_name;
-            std::vector<eType>                      m_argTypes;
-            Event<const std::vector<ValidVariant>&> m_event;
-        };
-
         struct {
             Event<> ready;
             Event<> tick;
@@ -210,14 +183,7 @@ namespace Event {
                 Event<const std::string&> submap;
             } keybinds;
 
-            Event<SP<CCustomEvent>>                           pluginEventAdded;
-            Event<std::string>                                pluginEventRemoved;
-            std::unordered_map<std::string, SP<CCustomEvent>> plugin;
-
         } m_events;
-
-        std::expected<void, std::string> addPluginEvent(SP<CCustomEvent> event);
-        std::expected<void, std::string> removePluginEvent(const std::string& name);
     };
 
     UP<CEventBus>& bus();

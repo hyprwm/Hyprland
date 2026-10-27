@@ -33,6 +33,7 @@ namespace {
         ~CClient();
 
         std::string command(const std::string& command);
+        bool        waitForWindow(bool mapped);
 
       private:
         SP<CProcess>           m_proc;
@@ -42,12 +43,12 @@ namespace {
     };
 }
 
-static bool waitForClientWindow(pid_t pid, int timeoutMs) {
-    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeoutMs);
-    const auto needle   = std::format("pid: {}", pid);
+bool CClient::waitForWindow(bool mapped) {
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+    const auto needle   = std::format("pid: {}\n", m_proc->pid());
 
-    while (Tests::processAlive(pid)) {
-        if (getFromSocket("/clients").contains(needle))
+    while (Tests::processAlive(m_proc->pid())) {
+        if (getFromSocket("/clients").contains(needle) == mapped)
             return true;
 
         if (std::chrono::steady_clock::now() >= deadline)
@@ -100,7 +101,7 @@ CClient::CClient() {
         throw std::runtime_error(std::format("client reported '{}'", ret));
     }
 
-    if (!waitForClientWindow(m_proc->pid(), 10000)) {
+    if (!waitForWindow(true)) {
         NLog::log("{}Timed out waiting for surface-scale-transform window. count before: {}, count after: {}", Colors::RED, COUNT_BEFORE, Tests::windowCount());
         throw std::runtime_error(std::format("window did not appear for pid {}, count before {}, count after {}", m_proc->pid(), COUNT_BEFORE, Tests::windowCount()));
     }
@@ -195,6 +196,13 @@ TEST_CASE(surfaceScaleTransform) {
     EXPECT_CONTAINS(afterRemap, "root_scale=2");
     EXPECT_CONTAINS(afterRemap, "root_fraction=180");
     EXPECT_NOT(afterRemap, beforeUnmap);
+
+    for (int cycle = 0; cycle < 2; ++cycle) {
+        ASSERT(client->command("hide"), "ok");
+        ASSERT(client->waitForWindow(false), true);
+        ASSERT(client->command("reopen"), "ok");
+        ASSERT(client->waitForWindow(true), true);
+    }
 
     ASSERT(client->command("subsurface"), "ok");
     const auto withChild = client->command("report");

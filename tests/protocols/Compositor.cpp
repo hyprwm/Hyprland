@@ -223,3 +223,69 @@ TEST_F(CSurfaceCommitTest, CursorReusedAfterNullBufferReleasesOnDeselection) {
     EXPECT_FALSE(replacement->locked());
     EXPECT_EQ(replacement->m_releases, 1);
 }
+
+class CSubsurfacePlacementTest : public CSurfaceCommitTest, public ::testing::WithParamInterface<uint32_t> {};
+
+TEST_P(CSubsurfacePlacementTest, ParentOnlyCommitNotifiesPlacementObservers) {
+    auto parent = surface(), child = surface();
+    auto [sub, id] = subsurface(child, parent);
+    attach(parent, buffer());
+    parent->map();
+    if (GetParam() == 2)
+        request(id, 3, {parent->id()}); // Start below the parent for place_above.
+    attach(child, buffer());
+    commit(parent);
+    ASSERT_TRUE(child->m_mapped);
+
+    int  parentCommits = 0, childCommits = 0;
+    auto parentListener = parent->m_events.commit.listen([&] { ++parentCommits; });
+    auto childListener  = child->m_events.commit.listen([&] { ++childCommits; });
+    commit(parent);
+    EXPECT_EQ(parentCommits, 0);
+    EXPECT_EQ(childCommits, 0);
+
+    if (GetParam() == 1)
+        request(id, 1, {12, 24}); // set_position
+    else
+        request(id, GetParam(), {parent->id()}); // place_above / place_below
+    EXPECT_EQ(parentCommits, 0);
+    EXPECT_EQ(childCommits, 0);
+
+    // Placement is parent-buffered; no child commit should be necessary.
+    commit(parent);
+    EXPECT_EQ(parentCommits, 1);
+    EXPECT_EQ(childCommits, 1);
+    commit(parent);
+    EXPECT_EQ(parentCommits, 1);
+    EXPECT_EQ(childCommits, 1);
+}
+
+INSTANTIATE_TEST_SUITE_P(PlacementRequests, CSubsurfacePlacementTest, ::testing::Values(1U, 2U, 3U));
+
+TEST_F(CSurfaceCommitTest, PlacementOnSynchronizedParentPropagatesAfterParentCommit) {
+    auto root = surface(), parent = surface(), child = surface();
+    auto [parentSub, parentID] = subsurface(parent, root);
+    auto [childSub, childID]   = subsurface(child, parent);
+    attach(root, buffer());
+    root->map();
+    attach(parent, buffer());
+    attach(child, buffer());
+    commit(root);
+    ASSERT_TRUE(parent->m_mapped);
+    ASSERT_TRUE(child->m_mapped);
+
+    int  parentCommits = 0, childCommits = 0;
+    auto parentListener = parent->m_events.commit.listen([&] { ++parentCommits; });
+    auto childListener  = child->m_events.commit.listen([&] { ++childCommits; });
+    request(childID, 1, {12, 24});
+    commit(root);
+    EXPECT_EQ(parentCommits, 0);
+    EXPECT_EQ(childCommits, 0);
+
+    commit(parent);
+    EXPECT_EQ(parentCommits, 0);
+    EXPECT_EQ(childCommits, 0);
+    commit(root);
+    EXPECT_EQ(parentCommits, 1);
+    EXPECT_EQ(childCommits, 1);
+}

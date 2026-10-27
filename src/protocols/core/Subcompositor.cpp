@@ -114,8 +114,8 @@ void CWLSubsurfaceResource::destroy() {
 }
 
 void CWLSubsurfaceResource::markPlacementPending() {
-    if (m_surface)
-        m_surface->m_pending.updated.bits.subsurfacePlacement = true;
+    if (m_parent)
+        m_parent->m_pending.updated.bits.subsurfacePlacement = true;
 }
 
 void CWLSubsurfaceResource::unlinkFromParent() {

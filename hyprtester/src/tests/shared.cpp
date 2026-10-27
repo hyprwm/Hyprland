@@ -12,6 +12,9 @@
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
 
+// TODO: when run locally, the user's default shell affects the behavior of kitty.
+//       For instance, the `fish` shell will change the window name shortly after a window is open.
+//       Should we always launch kitty with `sh` by default?
 CUniquePointer<CProcess> Tests::spawnKitty(const std::string& class_, const std::vector<std::string> args) {
     const auto               COUNT_BEFORE = windowCount();
 

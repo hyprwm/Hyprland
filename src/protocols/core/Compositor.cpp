@@ -188,10 +188,10 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
             m_stateQueue.clear();
             m_pending.reset();
 
-            // gtk destroys its dialog/toplevel on hiding to tray, commits a null buffer
-            // but keeps the surface alive, next time when its time to show its going to think
-            // its already m_mapped, because we never unmapped it. so unmap it on null buffers..
-            unmap();
+            // A destroyed role can leave the wl_surface mapped, suppressing a new role's
+            // empty initial commit. Assigned roles manage their own unmap timing.
+            if (m_role->role() == SURFACE_ROLE_UNASSIGNED)
+                unmap();
             return;
         }
 

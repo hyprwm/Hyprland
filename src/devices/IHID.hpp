@@ -5,6 +5,8 @@
 #include <set>
 #include "../helpers/signal/Signal.hpp"
 
+struct libinput_device;
+
 enum eHIDCapabilityType : uint8_t {
     HID_INPUT_CAPABILITY_KEYBOARD = (1 << 0),
     HID_INPUT_CAPABILITY_POINTER  = (1 << 1),
@@ -39,5 +41,10 @@ class IHID {
 
     std::string           m_deviceName;
     std::string           m_hlName;
+    std::string           m_sysname;
     std::set<std::string> m_deviceTags;
+
+  protected:
+    IHID() = default;
+    explicit IHID(libinput_device* device);
 };

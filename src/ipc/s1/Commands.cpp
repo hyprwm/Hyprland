@@ -870,19 +870,6 @@ static std::string configErrorsRequest(eHyprCtlOutputFormat format, std::string 
     return result;
 }
 
-template <typename T>
-static std::string deviceSysname(const T& dev) {
-    if (!dev)
-        return "";
-
-    auto* const LIBINPUT_HANDLE = dev->getLibinputHandle();
-    if (!LIBINPUT_HANDLE)
-        return "";
-
-    const char* const SYSNAME = libinput_device_get_sysname(LIBINPUT_HANDLE);
-    return SYSNAME ? SYSNAME : "";
-}
-
 static std::string devicesRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string result = "";
 
@@ -908,7 +895,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         "defaultSpeed": {:.5f},
         "scrollFactor": {:.2f}
     }},)#",
-                rc<uintptr_t>(m.get()), escapeJSONStrings(m->m_hlName), escapeJSONStrings(deviceSysname(m->aq())),
+                rc<uintptr_t>(m.get()), escapeJSONStrings(m->m_hlName), escapeJSONStrings(m->m_sysname),
                 m->aq() && m->aq()->getLibinputHandle() ? libinput_device_config_accel_get_default_speed(m->aq()->getLibinputHandle()) : 0.f, m->m_scrollFactor.value_or(-1));
         }
 
@@ -936,7 +923,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         "numLock": {},
         "main": {}
     }},)#",
-                rc<uintptr_t>(k.get()), escapeJSONStrings(k->m_hlName), escapeJSONStrings(deviceSysname(k->aq())), escapeJSONStrings(k->m_currentRules.rules),
+                rc<uintptr_t>(k.get()), escapeJSONStrings(k->m_hlName), escapeJSONStrings(k->m_sysname), escapeJSONStrings(k->m_currentRules.rules),
                 escapeJSONStrings(k->m_currentRules.model), escapeJSONStrings(k->m_currentRules.layout), escapeJSONStrings(k->m_currentRules.variant),
                 escapeJSONStrings(k->m_currentRules.options), KI, escapeJSONStrings(KM), (getModState(k, XKB_MOD_NAME_CAPS) ? "true" : "false"),
                 (getModState(k, XKB_MOD_NAME_NUM) ? "true" : "false"), (k->m_active ? "true" : "false"));
@@ -958,7 +945,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
             "name": "{}"
         }}
     }},)#",
-                rc<uintptr_t>(d.get()), escapeJSONStrings(deviceSysname(d->aq())), rc<uintptr_t>(d->m_parent.get()), escapeJSONStrings(d->m_parent ? d->m_parent->m_hlName : ""));
+                rc<uintptr_t>(d.get()), escapeJSONStrings(d->m_sysname), rc<uintptr_t>(d->m_parent.get()), escapeJSONStrings(d->m_parent ? d->m_parent->m_hlName : ""));
         }
 
         for (auto const& d : g_pInputManager->m_tablets) {
@@ -968,7 +955,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         "name": "{}",
         "sysname": "{}"
     }},)#",
-                rc<uintptr_t>(d.get()), escapeJSONStrings(d->m_hlName), escapeJSONStrings(deviceSysname(d->aq())));
+                rc<uintptr_t>(d.get()), escapeJSONStrings(d->m_hlName), escapeJSONStrings(d->m_sysname));
         }
 
         for (auto const& d : g_pInputManager->m_tabletTools) {
@@ -992,7 +979,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         "name": "{}",
         "sysname": "{}"
     }},)#",
-                rc<uintptr_t>(d.get()), escapeJSONStrings(d->m_hlName), escapeJSONStrings(deviceSysname(d->aq())));
+                rc<uintptr_t>(d.get()), escapeJSONStrings(d->m_hlName), escapeJSONStrings(d->m_sysname));
         }
 
         trimTrailingComma(result);
@@ -1007,7 +994,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         "name": "{}",
         "sysname": "{}"
     }},)#",
-                rc<uintptr_t>(&d), escapeJSONStrings(d.pDevice ? d.pDevice->getName() : ""), escapeJSONStrings(deviceSysname(d.pDevice)));
+                rc<uintptr_t>(&d), escapeJSONStrings(d.pDevice ? d.pDevice->getName() : ""), escapeJSONStrings(d.sysname));
         }
 
         trimTrailingComma(result);
@@ -1019,10 +1006,9 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         result += "mice:\n";
 
         for (auto const& m : g_pInputManager->m_pointers) {
-            result +=
-                std::format("\tMouse at {:x}:\n\t\t{}\n\t\t\tsysname: {}\n\t\t\tdefault speed: {:.5f}\n\t\t\tscroll factor: {:.2f}\n", rc<uintptr_t>(m.get()), m->m_hlName,
-                            deviceSysname(m->aq()), (m->aq() && m->aq()->getLibinputHandle() ? libinput_device_config_accel_get_default_speed(m->aq()->getLibinputHandle()) : 0.f),
-                            m->m_scrollFactor.value_or(-1));
+            result += std::format("\tMouse at {:x}:\n\t\t{}\n\t\t\tsysname: {}\n\t\t\tdefault speed: {:.5f}\n\t\t\tscroll factor: {:.2f}\n", rc<uintptr_t>(m.get()), m->m_hlName,
+                                  m->m_sysname, (m->aq() && m->aq()->getLibinputHandle() ? libinput_device_config_accel_get_default_speed(m->aq()->getLibinputHandle()) : 0.f),
+                                  m->m_scrollFactor.value_or(-1));
         }
 
         result += "\n\nKeyboards:\n";
@@ -1035,7 +1021,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
                                   "{}\n\t\t\tactive keymap: "
                                   "{}\n\t\t\tcapsLock: "
                                   "{}\n\t\t\tnumLock: {}\n\t\t\tmain: {}\n",
-                                  rc<uintptr_t>(k.get()), k->m_hlName, deviceSysname(k->aq()), k->m_currentRules.rules, k->m_currentRules.model, k->m_currentRules.layout,
+                                  rc<uintptr_t>(k.get()), k->m_hlName, k->m_sysname, k->m_currentRules.rules, k->m_currentRules.model, k->m_currentRules.layout,
                                   k->m_currentRules.variant, k->m_currentRules.options, KI, KM, (getModState(k, XKB_MOD_NAME_CAPS) ? "yes" : "no"),
                                   (getModState(k, XKB_MOD_NAME_NUM) ? "yes" : "no"), (k->m_active ? "yes" : "no"));
         }
@@ -1044,12 +1030,12 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
 
         for (auto const& d : g_pInputManager->m_tabletPads) {
             result += std::format("\tTablet Pad at {:x} (belongs to {:x} -> {})\n\t\t\tsysname: {}\n", rc<uintptr_t>(d.get()), rc<uintptr_t>(d->m_parent.get()),
-                                  d->m_parent ? d->m_parent->m_hlName : "", deviceSysname(d->aq()));
+                                  d->m_parent ? d->m_parent->m_hlName : "", d->m_sysname);
         }
 
         for (auto const& d : g_pInputManager->m_tablets) {
-            result += std::format("\tTablet at {:x}:\n\t\t{}\n\t\t\tsysname: {}\n\t\t\tsize: {}x{}mm\n", rc<uintptr_t>(d.get()), d->m_hlName, deviceSysname(d->aq()),
-                                  d->aq()->physicalSize.x, d->aq()->physicalSize.y);
+            result += std::format("\tTablet at {:x}:\n\t\t{}\n\t\t\tsysname: {}\n\t\t\tsize: {}x{}mm\n", rc<uintptr_t>(d.get()), d->m_hlName, d->m_sysname, d->aq()->physicalSize.x,
+                                  d->aq()->physicalSize.y);
         }
 
         for (auto const& d : g_pInputManager->m_tabletTools) {
@@ -1059,13 +1045,13 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
         result += "\n\nTouch:\n";
 
         for (auto const& d : g_pInputManager->m_touches) {
-            result += std::format("\tTouch Device at {:x}:\n\t\t{}\n\t\t\tsysname: {}\n", rc<uintptr_t>(d.get()), d->m_hlName, deviceSysname(d->aq()));
+            result += std::format("\tTouch Device at {:x}:\n\t\t{}\n\t\t\tsysname: {}\n", rc<uintptr_t>(d.get()), d->m_hlName, d->m_sysname);
         }
 
         result += "\n\nSwitches:\n";
 
         for (auto const& d : g_pInputManager->m_switches) {
-            result += std::format("\tSwitch Device at {:x}:\n\t\t{}\n\t\t\tsysname: {}\n", rc<uintptr_t>(&d), d.pDevice ? d.pDevice->getName() : "", deviceSysname(d.pDevice));
+            result += std::format("\tSwitch Device at {:x}:\n\t\t{}\n\t\t\tsysname: {}\n", rc<uintptr_t>(&d), d.pDevice ? d.pDevice->getName() : "", d.sysname);
         }
     }
 

@@ -119,4 +119,7 @@ class IPointer : public IHID {
     std::optional<float> m_scrollFactor = {};
 
     WP<IPointer>         m_self;
+
+  protected:
+    using IHID::IHID;
 };

@@ -65,7 +65,7 @@ SP<Aquamarine::ITablet> CTablet::aq() {
     return m_tablet.lock();
 }
 
-CTablet::CTablet(SP<Aquamarine::ITablet> tablet_) : m_tablet(tablet_) {
+CTablet::CTablet(SP<Aquamarine::ITablet> tablet_) : IHID(tablet_ ? tablet_->getLibinputHandle() : nullptr), m_tablet(tablet_) {
     if (!m_tablet)
         return;
 
@@ -144,7 +144,7 @@ eHIDType CTabletPad::getType() {
     return HID_TYPE_TABLET_PAD;
 }
 
-CTabletPad::CTabletPad(SP<Aquamarine::ITabletPad> pad_) : m_pad(pad_) {
+CTabletPad::CTabletPad(SP<Aquamarine::ITabletPad> pad_) : IHID(pad_ ? pad_->getLibinputHandle() : nullptr), m_pad(pad_) {
     if (!m_pad)
         return;
 
@@ -206,7 +206,7 @@ eHIDType CTabletTool::getType() {
     return HID_TYPE_TABLET_TOOL;
 }
 
-CTabletTool::CTabletTool(SP<Aquamarine::ITabletTool> tool_) : m_tool(tool_) {
+CTabletTool::CTabletTool(SP<Aquamarine::ITabletTool> tool_) : IHID(tool_ ? tool_->getLibinputHandle() : nullptr), m_tool(tool_) {
     if (!m_tool)
         return;
 

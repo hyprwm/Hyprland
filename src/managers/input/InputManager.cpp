@@ -440,8 +440,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
         foundSurface =
             Desktop::viewState()->hitTest().layerSurfaceAt(mouseCoords, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &surfaceCoords, &pFoundLayerSurface);
 
-    // also top layers
-    if (!foundSurface)
+    // also top layers if config option permits
+    static auto PTOPLAYERONTOPFS         = CConfigValue<Config::BOOL>("layers:allow_new_top_layers_over_existing_fullscreen");
+    if (!foundSurface && (*PTOPLAYERONTOPFS))
         foundSurface =
             Desktop::viewState()->hitTest().layerSurfaceAt(mouseCoords, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords, &pFoundLayerSurface);
 

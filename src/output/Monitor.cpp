@@ -1408,10 +1408,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
             !(Desktop::focusState()->window() && (Desktop::focusState()->window()->m_state & WINDOW_STATE_PINNED) && Desktop::focusState()->window()->m_monitor == m_self)) {
             static auto PFOLLOWMOUSE = CConfigValue<Config::INTEGER>("input:follow_mouse");
 
-            const auto  PLAST_FOCUSED_WINDOW = pWorkspace->getLastFocusedWindow();
-            const auto  PCOVERING_FS_WINDOW = Fullscreen::controller()->hasFullscreen(pWorkspace, true) ? Fullscreen::controller()->getFullscreenWindow(pWorkspace, true) : nullptr;
-
-            auto        pWindow = PLAST_FOCUSED_WINDOW;
+            auto        pWindow = pWorkspace->getLastFocusedWindow();
 
             if (!pWindow) {
                 if (*PFOLLOWMOUSE == 1)

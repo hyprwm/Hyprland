@@ -1477,3 +1477,90 @@ TEST_CASE(workspaceCreateEvents) {
     CALL_SUBTEST(workspaceCreateEventNewMonitor);
     CALL_SUBTEST(workspaceCreateEventLuaMethods);
 }
+
+TEST_CASE(workspaceLastFocusedWindowRetention) {
+    // move to workspace `1`
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+
+    // creates 2 tiled (T_1, T_2) and 2 floating (F_1, F_2) windows on the focused workspace
+    auto spawnWindows = [&]() {
+        SPAWN_KITTY("T_1");
+        SPAWN_KITTY("T_2");
+
+        SPAWN_KITTY("F_1");
+        OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:F_1' })"));
+        SPAWN_KITTY("F_2");
+        OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:F_2' })"));
+    };
+
+    // remember a point inside the window `cls` (call while its workspace is visible)
+    auto captureCursorTarget = [&](const std::string& cls) {
+        OK(getFromSocket(std::format("/eval local w = hl.get_window('class:^{}$'); _G.retention_cx = w.at.x + 10; _G.retention_cy = w.at.y + 10", cls)));
+    };
+
+    // put the cursor on the remembered point (call while on the other workspace)
+    auto moveCursorToTarget = [&]() { OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = _G.retention_cx, y = _G.retention_cy })")); };
+
+    spawnWindows();
+
+    // normal workspace <--> normal workspace
+
+    // tiled test: cursor ends up over T_2, T_1 must still be focused
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:T_1' })"));
+    captureCursorTarget("T_2");
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2' })"));
+    moveCursorToTarget();
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: T_1");
+
+    // floating test: cursor ends up over F_2, F_1 must still be focused
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:F_1' })"));
+    captureCursorTarget("F_2");
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2' })"));
+    moveCursorToTarget();
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: F_1");
+
+    // normal workspace <--> special workspace (windows stay on workspace 1)
+
+    // tiled test
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:T_1' })"));
+    captureCursorTarget("T_2");
+    OK(getFromSocket("/dispatch hl.dsp.workspace.toggle_special('retention_a')"));
+    moveCursorToTarget();
+    OK(getFromSocket("/dispatch hl.dsp.workspace.toggle_special('retention_a')"));
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: T_1");
+
+    // floating test
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:F_1' })"));
+    captureCursorTarget("F_2");
+    OK(getFromSocket("/dispatch hl.dsp.workspace.toggle_special('retention_a')"));
+    moveCursorToTarget();
+    OK(getFromSocket("/dispatch hl.dsp.workspace.toggle_special('retention_a')"));
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: F_1");
+
+    // special workspace <--> special workspace (windows live on special:retention_a)
+
+    // class names repeat, so get rid of the workspace 1 windows first
+    Tests::killAllWindows();
+    ASSERT(Tests::windowCount(), 0);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'special:retention_a' })"));
+    spawnWindows();
+
+    // tiled test
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:T_1' })"));
+    captureCursorTarget("T_2");
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'special:retention_b' })"));
+    moveCursorToTarget();
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'special:retention_a' })"));
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: T_1");
+
+    // floating test
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:F_1' })"));
+    captureCursorTarget("F_2");
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'special:retention_b' })"));
+    moveCursorToTarget();
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'special:retention_a' })"));
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: F_1");
+}

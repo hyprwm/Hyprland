@@ -2,6 +2,7 @@
 #include <event/EventBus.hpp>
 #include <managers/eventLoop/EventLoopManager.hpp>
 #include <pointer/PointerManager.hpp>
+#include <protocols/InputMethodV2.hpp>
 #include <protocols/PresentationTime.hpp>
 #include <protocols/core/Compositor.hpp>
 #include <protocols/core/Seat.hpp>
@@ -288,4 +289,29 @@ TEST_F(CSurfaceCommitTest, PlacementOnSynchronizedParentPropagatesAfterParentCom
     commit(root);
     EXPECT_EQ(parentCommits, 1);
     EXPECT_EQ(childCommits, 1);
+}
+
+TEST_F(CSurfaceCommitTest, InputRectangleDoesNotRearmEmptyPopupCommits) {
+    auto                surf = surface();
+    CInputMethodPopupV2 popup{makeShared<CZwpInputPopupSurfaceV2>(m_client, 1, m_nextID++), nullptr, surf};
+    attach(surf, buffer());
+    ASSERT_TRUE(popup.m_mapped);
+
+    int  commits  = 0;
+    auto listener = popup.m_events.commit.listen([&] {
+        ++commits;
+        // CInputPopup::onCommit sends the current rectangle back to the client.
+        popup.sendInputRectangle({0, 0, 16, 16});
+    });
+
+    popup.sendInputRectangle({0, 0, 16, 16});
+    commit(surf);
+    commit(surf);
+    EXPECT_EQ(commits, 0);
+
+    request(surf->id(), 2, {0, 0, 16, 16}); // wl_surface.damage
+    commit(surf);
+    EXPECT_EQ(commits, 1);
+    commit(surf);
+    EXPECT_EQ(commits, 1);
 }

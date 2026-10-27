@@ -639,6 +639,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Bool>("binds:window_direction_monitor_fallback", "If enabled, moving a window or focus over the edge of a monitor with a direction will move it to the next monitor.",
                  true),
         MS<Bool>("binds:allow_pin_fullscreen", "Allows fullscreen to pinned windows, and restore their pinned status afterwards", false),
+        MS<Bool>("binds:client_requested_fs_uses_layout_handler", "If false, client requested FS will use default FS handler", true),
         MS<Int>("binds:drag_threshold", "Movement threshold in pixels for window dragging and c/g bind flags. 0 to disable.", 0,
                 {.min = 0, .max = std::numeric_limits<int>::max()}),
         MS<Bool>("binds:drag_center_window", "If enabled, dragging a tiled or fullscreen window will center it on the cursor when it becomes floating.", true),

@@ -154,3 +154,67 @@ TEST_CASE(fullscreenWithExplicitMonitor) {
 
     EXPECT_CONTAINS(getFromSocket("/clients"), "workspace: special:A (special:A)")
 }
+
+TEST_CASE(clientFullscreenRequestLayoutHandled) {
+    NLog::log("{}Testing client FS request with binds:client_requested_fs_uses_layout_handler = true", Colors::GREEN);
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
+    OK(getFromSocket("r/eval hl.config({ binds = { client_requested_fs_uses_layout_handler = true } })"));
+
+    std::optional<CFsMonClient> client;
+    try {
+        client.emplace();
+    } catch (...) { FAIL_TEST("Failed to start fullscreen-with-monitor client"); }
+
+    client->requestFullscreen();
+    EXPECT(client->isFullscreen(), true);
+
+    {
+        const auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: fullscreen-with-monitor");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+        EXPECT_CONTAINS(str, "fullscreenHandler: scrolling");
+    }
+
+    client->requestUnFullscreen();
+    EXPECT(client->isFullscreen(), false);
+
+    {
+        const auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
+    }
+}
+
+TEST_CASE(clientFullscreenRequestDefaultHandled) {
+    NLog::log("{}Testing client FS request with binds:client_requested_fs_uses_layout_handler = false", Colors::GREEN);
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
+    OK(getFromSocket("r/eval hl.config({ binds = { client_requested_fs_uses_layout_handler = false } })"));
+
+    std::optional<CFsMonClient> client;
+    try {
+        client.emplace();
+    } catch (...) { FAIL_TEST("Failed to start fullscreen-with-monitor client"); }
+
+    client->requestFullscreen();
+    EXPECT(client->isFullscreen(), true);
+
+    {
+        const auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: fullscreen-with-monitor");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+        EXPECT_CONTAINS(str, "fullscreenHandler: default");
+    }
+
+    client->requestUnFullscreen();
+    EXPECT(client->isFullscreen(), false);
+
+    {
+        const auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
+    }
+}

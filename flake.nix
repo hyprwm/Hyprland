@@ -1,5 +1,5 @@
 {
-  description = "Hyprland is a dynamic tiling Wayland compositor that doesn't sacrifice on its looks";
+  description = "BreakLand is a focused tiling Wayland compositor";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -118,8 +118,8 @@
         import nixpkgs {
           localSystem = system;
           overlays = with self.overlays; [
-            hyprland-packages
-            hyprland-extras
+             breakland-packages
+             breakland-extras
           ];
         }
       );
@@ -129,8 +129,8 @@
           localSystem = system;
           inherit crossSystem;
           overlays = with self.overlays; [
-            hyprland-packages
-            hyprland-extras
+             breakland-packages
+             breakland-extras
           ];
         }
       );
@@ -139,7 +139,7 @@
         import nixpkgs {
           localSystem = system;
           overlays = with self.overlays; [
-            hyprland-debug
+             breakland-debug
           ];
         }
       );
@@ -149,7 +149,7 @@
           localSystem = system;
           inherit crossSystem;
           overlays = with self.overlays; [
-            hyprland-debug
+             breakland-debug
           ];
         }
       );
@@ -160,14 +160,14 @@
       checks = eachSystem (
         system:
         (lib.filterAttrs (
-          n: _: (lib.hasPrefix "hyprland" n) && !(lib.hasSuffix "debug" n)
+           n: _: (lib.hasPrefix "breakland" n) && !(lib.hasSuffix "debug" n)
         ) self.packages.${system})
         // {
-          inherit (self.packages.${system}) xdg-desktop-portal-hyprland;
+          inherit (self.packages.${system}) xdg-desktop-portal-breakland;
           pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {
             src = ./.;
             hooks = {
-              hyprland-treewide-formatter = {
+              breakland-treewide-formatter = {
                 enable = true;
                 entry = "${self.formatter.${system}}/bin/hyprland-treewide-formatter";
                 pass_filenames = false;
@@ -181,18 +181,16 @@
       );
 
       packages = eachSystem (system: {
-        default = self.packages.${system}.hyprland;
+        default = self.packages.${system}.breakland;
         inherit (pkgsFor.${system})
-          # hyprland-packages
-          hyprland
-          hyprland-unwrapped
-          hyprland-with-tests
-          # hyprland-extras
-          xdg-desktop-portal-hyprland
+           breakland
+           breakland-unwrapped
+           breakland-with-tests
+           xdg-desktop-portal-breakland
           ;
-        inherit (pkgsDebugFor.${system}) hyprland-debug;
-        hyprland-cross = (pkgsCrossFor.${system} "aarch64-linux").hyprland;
-        hyprland-debug-cross = (pkgsDebugCrossFor.${system} "aarch64-linux").hyprland-debug;
+        inherit (pkgsDebugFor.${system}) breakland-debug;
+        breakland-cross = (pkgsCrossFor.${system} "aarch64-linux").breakland;
+        breakland-debug-cross = (pkgsDebugCrossFor.${system} "aarch64-linux").breakland-debug;
       });
 
       devShells = eachSystem (system: {
@@ -202,9 +200,9 @@
               inherit (self.packages.${system}.default) stdenv;
             }
             {
-              name = "hyprland-shell";
+               name = "breakland-shell";
               hardeningDisable = [ "fortify" ];
-              inputsFrom = [ pkgsFor.${system}.hyprland ];
+               inputsFrom = [ pkgsFor.${system}.breakland ];
               packages = [ pkgsFor.${system}.clang-tools ];
               inherit (self.checks.${system}.pre-commit-check) shellHook;
             };

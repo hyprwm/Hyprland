@@ -11,7 +11,7 @@
   cairo,
   epoll-shim,
   git,
-  glaze-hyprland,
+  glaze-breakland,
   glslang,
   gtest,
   hyprcursor,
@@ -100,7 +100,7 @@ assert assertMsg (
   !legacyRenderer
 ) "The option `legacyRenderer` has been removed. Legacy renderer is no longer supported.";
 customStdenv.mkDerivation (finalAttrs: {
-  pname = "hyprland${optionalString debug "-debug"}";
+  pname = "breakland${optionalString debug "-debug"}";
   inherit version withTests;
 
   src = fs.toSource {
@@ -111,7 +111,7 @@ customStdenv.mkDerivation (finalAttrs: {
         (fs.gitTracked ../.)
         (
           fs.unions (flatten [
-            ../assets/hyprland-portals.conf
+            ../assets/breakland-portals.conf
             ../assets/install
             ../hyprctl
             ../LICENSE
@@ -137,7 +137,7 @@ customStdenv.mkDerivation (finalAttrs: {
     sed -i "s#/usr#$out#" src/render/OpenGL.cpp
 
     # Remove extra @PREFIX@ to fix some paths
-    sed -i "s#@PREFIX@/##g" example/hyprland.desktop.in
+    sed -i "s#@PREFIX@/##g" example/breakland.desktop.in
   '';
 
   env = {
@@ -172,7 +172,7 @@ customStdenv.mkDerivation (finalAttrs: {
       aquamarine
       cairo
       git
-      glaze-hyprland
+      glaze-breakland
       glslang
       gtest
       hyprcursor
@@ -235,7 +235,7 @@ customStdenv.mkDerivation (finalAttrs: {
 
   postInstall = ''
     ${optionalString wrapRuntimeDeps ''
-      wrapProgram $out/bin/Hyprland \
+      wrapProgram $out/bin/breakland \
         --suffix PATH : ${
           makeBinPath [
             binutils
@@ -247,17 +247,17 @@ customStdenv.mkDerivation (finalAttrs: {
     ''}
 
     ${optionalString withTests ''
-      install hyprland_gtests -t $out/bin
+      install breakland_gtests -t $out/bin
     ''}
   '';
 
-  passthru.providedSessions = [ "hyprland" ] ++ optionals withSystemd [ "hyprland-uwsm" ];
+  passthru.providedSessions = [ "breakland" ] ++ optionals withSystemd [ "breakland-uwsm" ];
 
   meta = {
-    homepage = "https://github.com/hyprwm/Hyprland";
-    description = "Dynamic tiling Wayland compositor that doesn't sacrifice on its looks";
+    homepage = "https://github.com/BarB256/BreakLand";
+    description = "A focused tiling Wayland compositor";
     license = lib.licenses.bsd3;
     platforms = lib.platforms.linux;
-    mainProgram = "Hyprland";
+    mainProgram = "breakland";
   };
 })

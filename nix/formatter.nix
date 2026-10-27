@@ -7,7 +7,7 @@
   fd,
 }:
 writeShellApplication {
-  name = "hyprland-treewide-formatter";
+  name = "breakland-treewide-formatter";
   runtimeInputs = [
     deadnix
     statix

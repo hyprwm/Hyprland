@@ -8,11 +8,25 @@ inputs:
 let
   inherit (pkgs.stdenv.hostPlatform) system;
   selflib = import ./lib.nix lib;
-  cfg = config.programs.hyprland;
+  cfg = config.programs.breakland;
 in
 {
   options = {
-    programs.hyprland = {
+    programs.breakland = {
+      enable = lib.mkEnableOption "BreakLand";
+
+      package = lib.mkOption {
+        type = lib.types.package;
+        default = inputs.self.packages.${system}.breakland;
+        description = "The BreakLand package to install.";
+      };
+
+      portalPackage = lib.mkOption {
+        type = lib.types.nullOr lib.types.package;
+        default = inputs.self.packages.${system}.xdg-desktop-portal-breakland;
+        description = "The BreakLand desktop portal package.";
+      };
+
       settings = lib.mkOption {
         type =
           with lib.types;
@@ -28,13 +42,13 @@ in
                 (listOf valueType)
               ])
               // {
-                description = "Hyprland configuration value";
+          description = "BreakLand configuration value";
               };
           in
           valueType;
         default = { };
         description = ''
-          Hyprland configuration written in Nix. Entries with the same key
+          BreakLand configuration written in Nix. Entries with the same key
           should be written as lists. Variables' and colors' names should be
           quoted. See <https://wiki.hypr.land> for more examples.
 
@@ -77,7 +91,7 @@ in
           submap = reset
         '';
         description = ''
-          Extra configuration lines to add to `/etc/xdg/hypr/hyprland.conf`.
+          Extra configuration lines to add to `/etc/xdg/breakland/breakland.conf`.
         '';
       };
 
@@ -109,16 +123,16 @@ in
   };
   config = lib.mkMerge [
     {
-      programs.hyprland = {
-        package = lib.mkDefault inputs.self.packages.${system}.hyprland;
-        portalPackage = lib.mkDefault inputs.self.packages.${system}.xdg-desktop-portal-hyprland;
+      programs.breakland = {
+        package = lib.mkDefault inputs.self.packages.${system}.breakland;
+        portalPackage = lib.mkDefault inputs.self.packages.${system}.xdg-desktop-portal-breakland;
       };
     }
     (lib.mkIf cfg.enable {
-      # Allows lua stub file to be accessed from /run/current-system/sw/share/hypr
-      environment.pathsToLink = [ "/share/hypr" ];
+      # Allows BreakLand assets to be accessed from the system profile.
+      environment.pathsToLink = [ "/share/breakland" ];
 
-      environment.etc."xdg/hypr/hyprland.conf" =
+      environment.etc."xdg/breakland/breakland.conf" =
         let
           shouldGenerate = cfg.extraConfig != "" || cfg.settings != { };
         in

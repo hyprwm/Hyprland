@@ -11,6 +11,6 @@ let
 in
 {
   config = {
-    wayland.windowManager.hyprland.package = lib.mkDefault package;
+    wayland.windowManager.breakland.package = lib.mkDefault package;
   };
 }

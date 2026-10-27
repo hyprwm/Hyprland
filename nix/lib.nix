@@ -14,13 +14,13 @@ let
     ;
 
   /**
-    Convert a structured Nix attribute set into Hyprland's configuration format.
+     Convert a structured Nix attribute set into BreakLand's configuration format.
 
-    This function takes a nested attribute set and converts it into Hyprland-compatible
+     This function takes a nested attribute set and converts it into BreakLand-compatible
     configuration syntax, supporting top, bottom, and regular command sections.
 
     Commands are flattened using the `flattenAttrs` function, and attributes are formatted as
-    `key = value` pairs. Lists are expanded as duplicate keys to match Hyprland's expected format.
+     `key = value` pairs. Lists are expanded as duplicate keys to match BreakLand's expected format.
 
     Configuration:
 
@@ -31,7 +31,7 @@ let
 
     - The function ensures top commands appear **first** and bottom commands **last**.
     - The generated configuration is a **single string**, suitable for writing to a config file.
-    - Lists are converted into multiple entries, ensuring compatibility with Hyprland.
+     - Lists are converted into multiple entries, ensuring compatibility with BreakLand.
 
     # Inputs
 
@@ -46,7 +46,7 @@ let
 
     Value:
 
-    : The attribute set to be converted to Hyprland configuration format.
+     : The attribute set to be converted to BreakLand configuration format.
 
     # Type
 

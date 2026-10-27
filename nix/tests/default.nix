@@ -1,15 +1,17 @@
 inputs: pkgs:
 let
   flake = inputs.self.packages.${pkgs.stdenv.hostPlatform.system};
-  hyprland = flake.hyprland-with-tests;
+  breakland = flake.breakland-with-tests;
 in
 {
   tests = pkgs.testers.runNixOSTest {
-    name = "hyprland-tests";
+    name = "breakland-tests";
 
     nodes.machine =
       { pkgs, ... }:
       {
+        imports = [ inputs.self.nixosModules.default ];
+
         environment.systemPackages = with pkgs; [
           # Programs needed for tests
           jq
@@ -36,9 +38,9 @@ in
           initial_window_height 400
         '';
 
-        programs.hyprland = {
+         programs.breakland = {
           enable = true;
-          package = hyprland;
+           package = breakland;
           # We don't need portals in this test, so we don't set portalPackage
         };
 
@@ -76,7 +78,7 @@ in
 
       # Run gtests
       print("Running gtests")
-      exit_status, _out = machine.execute("su - alice -c 'hyprland_gtests 2>&1 | tee /tmp/gtestslog; exit ''${PIPESTATUS[0]}'")
+       exit_status, _out = machine.execute("su - alice -c 'breakland_gtests 2>&1 | tee /tmp/gtestslog; exit ''${PIPESTATUS[0]}'")
       machine.execute(f'echo {exit_status} > /tmp/exit_status_gtests')
 
       # Print logs for visibility in CI

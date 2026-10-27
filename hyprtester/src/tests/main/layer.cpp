@@ -375,7 +375,7 @@ TEST_CASE(layerVisibilityOnFs) {
     doMassacre();
 
     // allow_new_top_layers_over_existing_fullscreen = true
-    OK(getFromSocket("/eval hl.config({ misc = { allow_new_top_layers_over_existing_fullscreen = true } })"));
+    OK(getFromSocket("/eval hl.config({ layers = { allow_new_top_layers_over_existing_fullscreen = true } })"));
 
     SPAWN_KITTY("cat");
 
@@ -416,7 +416,7 @@ TEST_CASE(layerVisibilityOnFs) {
 
     doMassacre();
 
-    OK(getFromSocket("/eval hl.config({ misc = { allow_new_top_layers_over_existing_fullscreen = false },})"));
+    OK(getFromSocket("/eval hl.config({ layers = { allow_new_top_layers_over_existing_fullscreen = false },})"));
 
     SPAWN_KITTY("cat");
 

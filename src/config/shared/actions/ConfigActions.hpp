@@ -124,7 +124,7 @@ namespace Config::Actions {
         CActionState()  = default;
         ~CActionState() = default;
 
-        void clear();
+        void           clear();
 
         int            m_passPressed         = -1; // -1 = dynamic (press+release), 0 = released, 1 = pressed
         int            m_bindInvocationDepth = 0;

@@ -1,12 +1,11 @@
 #include "SubmapContext.hpp"
 
-#include <algorithm>
-#include <utility>
+#include <ranges>
 
 using namespace Config::Actions;
 
 SP<CSubmapContext> CSubmapContext::snapshot() {
-    auto snapshot = makeShared<CSubmapContext>();
+    auto snapshot       = makeShared<CSubmapContext>();
     snapshot->m_submaps = m_submaps;
     return snapshot;
 }
@@ -21,12 +20,7 @@ bool CSubmapContext::contains(const std::string& submap) const {
 }
 
 std::optional<Keybinds::PSubmap> CSubmapContext::find(const std::string& name, const SP<IHID>& device) const {
-    const auto MATCH = std::ranges::find_if(
-        m_submaps,
-        [device, name](const Keybinds::PSubmap& submap) {
-            return submap->name() == name && submap->matchesDevice(device);
-        }
-    );
+    const auto MATCH = std::ranges::find_if(m_submaps, [device, name](const Keybinds::PSubmap& submap) { return submap->name() == name && submap->matchesDevice(device); });
 
     if (MATCH == m_submaps.end()) {
         return std::nullopt;
@@ -48,7 +42,7 @@ void CSubmapContext::remove(const Keybinds::PSubmap& submap) {
 }
 
 void CSubmapContext::remove(const std::string& submapName) {
-    std::erase_if(m_submaps, [submapName](const auto submap){ return submap->name() == submapName; });
+    std::erase_if(m_submaps, [submapName](const auto submap) { return submap->name() == submapName; });
 }
 
 void CSubmapContext::toggle(Keybinds::PSubmap&& submap) {

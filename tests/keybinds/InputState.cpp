@@ -1,8 +1,7 @@
 #include <keybinds/InputState.hpp>
+#include <keybinds/Manager.hpp>
 
 #include <gtest/gtest.h>
-
-#include <keybinds/Manager.hpp>
 
 using namespace Keybinds;
 using namespace Input;

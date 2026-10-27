@@ -1,12 +1,9 @@
-#include "helpers/memory/Memory.hpp"
-#include <hyprutils/memory/UniquePtr.hpp>
 #include <keybinds/Bind.hpp>
+#include <keybinds/Manager.hpp>
 
 #include <gtest/gtest.h>
 
 #include <array>
-
-#include <keybinds/Manager.hpp>
 
 using namespace Keybinds;
 using namespace Input;
@@ -105,7 +102,6 @@ TEST(Keybinds, UnsidedModifierAloneDoesNotPartiallyMatch) {
 
     const auto       SUPER = resolvedKey("SUPER_L", 133, HL_MODIFIER_META);
     const std::array held  = {SUPER};
-
     EXPECT_EQ(result->matches({.heldKeys = held, .trigger = SUPER, .modifiersNow = HL_MODIFIER_META}), BIND_MATCH_NONE);
 }
 

@@ -1,5 +1,7 @@
 #include "DeviceList.hpp"
 
+#include <algorithm>
+
 using namespace Keybinds;
 
 CDeviceList::CDeviceList(bool inclusive, DeviceList&& devices) : m_inclusive(inclusive), m_devices(std::move(devices)) {};

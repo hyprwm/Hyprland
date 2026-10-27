@@ -315,7 +315,7 @@ static int hlSubmap(lua_State* L) {
     if (!submap && lua_isstring(L, 1))
         submap = lua_tostring(L, 1);
     else if (!submap)
-        return Internal::configError(L, "submap: bad argument: expected a string or { name?, action? }");
+        return Internal::configError(L, "submap: bad argument: expected a string or { name, action? }");
 
     lua_pushinteger(L, action);
     lua_pushstring(L, submap->c_str());

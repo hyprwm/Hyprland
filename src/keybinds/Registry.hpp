@@ -9,7 +9,7 @@
 
 namespace Keybinds {
 
-    using PBind   = SP<CBind>;
+    using PBind = SP<CBind>;
 
     class CRegistry {
       public:

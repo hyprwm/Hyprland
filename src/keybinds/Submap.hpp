@@ -14,7 +14,7 @@ namespace Keybinds {
 
     class CSubmap {
       public:
-        CSubmap(std::string& name, SSubmapArgs&& args);
+        CSubmap(std::string& name, SSubmapArgs& args);
         CSubmap(std::string_view name);
 
         CSubmap(CSubmap&&) noexcept            = default;
@@ -33,5 +33,5 @@ namespace Keybinds {
     };
 
     using PSubmap = SP<CSubmap>;
-    using WSubmap = WP<Keybinds::CSubmap>;
+    using WSubmap = WP<CSubmap>;
 }

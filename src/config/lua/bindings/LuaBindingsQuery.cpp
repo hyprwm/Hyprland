@@ -443,17 +443,21 @@ static int hlGetWorkspaceWindows(lua_State* L) {
 }
 
 static int hlGetActiveSubmaps(lua_State* L) {
-    auto        submaps = Config::Actions::state()->m_currentSubmap.submaps();
+    auto submaps = Config::Actions::state()->m_currentSubmap.submaps();
 
-    // TODO: should become a table instead
-    const std::string VIEW = submaps | std::views::transform(&Keybinds::CSubmap::name) | std::views::join_with('\n') | std::ranges::to<std::string>();
+    lua_createtable(L, submaps.size(), 0);
 
-    lua_pushstring(L, VIEW.c_str());
+    for (size_t i = 0; i < submaps.size(); i++) {
+        std::string_view name = submaps[i]->name();
+        lua_pushlstring(L, name.data(), name.size());
+        lua_seti(L, -2, i + 1);
+    }
+
     return 1;
 }
 
 static int hlGetCurrentSubmap(lua_State* L) {
-    Internal::configError(L, "hl.get_current_submap is deprecated and will be removed in 0.58. use hl.get_active_submaps instead", Config::Actions::eActionErrorLevel::WARNING);
+    Internal::configError(L, "hl.get_current_submap is deprecated and will be removed in 0.59. use hl.get_active_submaps instead", Config::Actions::eActionErrorLevel::WARNING);
     return hlGetActiveSubmaps(L);
 }
 

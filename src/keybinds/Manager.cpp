@@ -256,13 +256,13 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> keyboard) {
         auto* pressedInput = m_inputState.find(KEY, keyboard);
         auto  result       = processEvent(
             {
-                       .heldKeys         = m_inputState.heldKeys(),
-                       .trigger          = KEY,
-                       .submap           = &currentSubmap(),
-                       .modifiersNow     = MODIFIERS,
-                       .modifiersAtPress = MODIFIERS,
-                       .pressed          = true,
-                       .device           = keyboard,
+                .heldKeys         = m_inputState.heldKeys(),
+                .trigger          = KEY,
+                .submap           = &currentSubmap(),
+                .modifiersNow     = MODIFIERS,
+                .modifiersAtPress = MODIFIERS,
+                .pressed          = true,
+                .device           = keyboard,
             },
             keyboard, pressedInput);
 
@@ -336,12 +336,12 @@ bool CKeybindManager::onAxisEvent(const IPointer::SAxisEvent& event, SP<IPointer
     const SResolvedKey KEY{.event = name};
     const auto         RESULT = processEvent(
         {
-                    .heldKeys     = m_inputState.heldKeys(),
-                    .trigger      = KEY,
-                    .submap       = &currentSubmap(),
-                    .modifiersNow = sc<ModifierMask>(g_pInputManager->getModsFromAllKBs()),
-                    .pressed      = true,
-                    .device       = pointer,
+            .heldKeys     = m_inputState.heldKeys(),
+            .trigger      = KEY,
+            .submap       = &currentSubmap(),
+            .modifiersNow = sc<ModifierMask>(g_pInputManager->getModsFromAllKBs()),
+            .pressed      = true,
+            .device       = pointer,
         },
         nullptr);
 
@@ -379,13 +379,13 @@ bool CKeybindManager::onMouseEvent(const IPointer::SButtonEvent& event, SP<IPoin
         auto* pressedInput = m_inputState.find(KEY, pointer);
         auto  result       = processEvent(
             {
-                       .heldKeys         = m_inputState.heldKeys(),
-                       .trigger          = KEY,
-                       .submap           = &currentSubmap(),
-                       .modifiersNow     = MODIFIERS,
-                       .modifiersAtPress = MODIFIERS,
-                       .pressed          = true,
-                       .device           = pointer,
+                .heldKeys         = m_inputState.heldKeys(),
+                .trigger          = KEY,
+                .submap           = &currentSubmap(),
+                .modifiersNow     = MODIFIERS,
+                .modifiersAtPress = MODIFIERS,
+                .pressed          = true,
+                .device           = pointer,
             },
             nullptr, pressedInput);
 

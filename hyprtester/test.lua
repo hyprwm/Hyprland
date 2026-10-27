@@ -219,24 +219,24 @@ local keyboard_device = { inclusive = true, list = { "test-keyboard-1" } }
 local available_device_tag = { inclusive = true, list = { "test-tag" } }
 local hidden_device_tag = { inclusive = true, list = { "hidden-tag" } }
 
-hl.bind(mainMod .. " + u", hl.dsp.submap({ name = "submap1" }))
+hl.bind(mainMod .. " + u", hl.dsp.submap("submap1"))
 
 hl.define_submap("submap1", function()
-    hl.bind("u", hl.dsp.submap({ name = "submap2" }))
-    hl.bind(mainMod .. " + u", hl.dsp.submap({ name = "submap3" }))
-    hl.bind("i", hl.dsp.submap({ name = "submap3" }))
+    hl.bind("u", hl.dsp.submap("submap2"))
+    hl.bind(mainMod .. " + u", hl.dsp.submap("submap3"))
+    hl.bind("i", hl.dsp.submap("submap3"))
     hl.bind("o", hl.dsp.exec_cmd(terminal))
-    hl.bind("p", hl.dsp.submap({ name = "reset" }))
+    hl.bind("p", hl.dsp.submap("reset"))
     hl.bind("mouse_down", hl.dsp.exec_cmd("touch /tmp/hyprtester-keybinds.txt"))
     hl.bind("mouse:272", hl.dsp.exec_cmd("touch /tmp/hyprtester-keybinds.txt"))
 end)
 
 hl.define_submap("submap2", "submap1", function()
-    hl.bind("a", hl.dsp.exec_cmd(terminal))
+    hl.bind("o", hl.dsp.exec_cmd(terminal))
 end)
 
 hl.define_submap("submap3", "reset", function()
-    hl.bind("b", hl.dsp.exec_cmd(terminal))
+    hl.bind("o", hl.dsp.exec_cmd(terminal))
 end)
 
 hl.bind(
@@ -281,15 +281,15 @@ hl.define_submap("multiSub2", function() end)
 hl.define_submap("multiSub3", function() end)
 
 hl.define_submap("keyboard-submap", function()
-    hl.bind("p", hl.dsp.submap({ name = "reset" }))
+    hl.bind("p", hl.dsp.submap("reset"))
 end, { device = keyboard_device })
 
 hl.define_submap("tag-submap", function()
-    hl.bind("p", hl.dsp.submap({ name = "reset" }))
+    hl.bind("p", hl.dsp.submap("reset"))
 end, { device = available_device_tag })
 
 hl.define_submap("hidden-tag-submap", function()
-    hl.bind("p", hl.dsp.submap({ name = "reset" }))
+    hl.bind("p", hl.dsp.submap("reset"))
 end, { device = hidden_device_tag })
 
 hl.window_rule({
@@ -396,4 +396,4 @@ hl.layout.register("grid", {
 })
 
 -- this is here to guard a crash, see #15521
-hl.dispatch(hl.dsp.submap({ name = "reset" }))
+hl.dispatch(hl.dsp.submap("reset"))

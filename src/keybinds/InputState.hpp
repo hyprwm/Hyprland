@@ -3,6 +3,7 @@
 #include "Registry.hpp"
 
 #include "../devices/IHID.hpp"
+#include "../helpers/math/Math.hpp"
 
 #include <optional>
 #include <functional>

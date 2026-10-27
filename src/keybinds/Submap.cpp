@@ -1,10 +1,8 @@
 #include "Submap.hpp"
 
-#include <algorithm>
-
 using namespace Keybinds;
 
-CSubmap::CSubmap(std::string& name, SSubmapArgs&& args) : m_name(std::move(name)), m_devices(std::move(args.device)) {};
+CSubmap::CSubmap(std::string& name, SSubmapArgs& args) : m_name(std::move(name)), m_devices(std::move(args.device)) {};
 
 CSubmap::CSubmap(std::string_view name) : m_name(name) {};
 

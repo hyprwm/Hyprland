@@ -639,14 +639,14 @@ SUBTEST(submap) {
     // submap 2 resets to submap 1
     press(KEY_U);
     EXPECT_CONTAINS(getFromSocket("/submap"), "submap2");
-    press(KEY_A);
+    press(KEY_O);
     Tests::waitUntilWindowsN(2);
     EXPECT_CONTAINS(getFromSocket("/submap"), "submap1");
     EXPECT_NOT_CONTAINS(getFromSocket("/submap"), "submap2");
     // submap 3 resets to default
     press(KEY_I);
     EXPECT_CONTAINS(getFromSocket("/submap"), "submap3");
-    press(KEY_B);
+    press(KEY_O);
     Tests::waitUntilWindowsN(3);
     EXPECT_CONTAINS(getFromSocket("/submap"), "default");
     EXPECT_NOT_CONTAINS(getFromSocket("/submap"), "submap3");
@@ -661,7 +661,7 @@ SUBTEST(submap) {
     EXPECT_CONTAINS(getFromSocket("/submap"), "submap1");
     press(KEY_U, MOD_META);
     EXPECT_CONTAINS(getFromSocket("/submap"), "submap3");
-    press(KEY_B);
+    press(KEY_O);
     Tests::waitUntilWindowsN(4);
     EXPECT_CONTAINS(getFromSocket("/submap"), "default");
     Tests::killAllWindows();

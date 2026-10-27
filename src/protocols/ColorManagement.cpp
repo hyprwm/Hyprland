@@ -841,13 +841,13 @@ CColorManagementImageDescriptionInfo::CColorManagementImageDescriptionInfo(SP<CW
                                       m_settings.masteringPrimaries.blue.x != 0 || m_settings.masteringPrimaries.blue.y != 0) ?
         m_settings.masteringPrimaries :
         m_settings.primaries;
-
+    // clang-format off
     m_resource->sendTargetPrimaries(                                        //
         toProto(targetPrimaries.red.x), toProto(targetPrimaries.red.y),     //
         toProto(targetPrimaries.green.x), toProto(targetPrimaries.green.y), //
         toProto(targetPrimaries.blue.x), toProto(targetPrimaries.blue.y),   //
         toProto(targetPrimaries.white.x), toProto(targetPrimaries.white.y));
-
+    // clang-format on
     if (m_settings.masteringLuminances.max > 0)
         m_resource->sendTargetLuminance(std::round(m_settings.masteringLuminances.min * 10000), m_settings.masteringLuminances.max);
     else

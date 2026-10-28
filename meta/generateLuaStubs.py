@@ -192,7 +192,7 @@ def parse_object_classes(root: Path) -> dict[str, ObjectClass]:
             if not keys:
                 continue
 
-            is_method = "lua_pushcfunction" in segment
+            is_method = "lua_pushcfunction" in segment or "pushFn(" in segment
 
             if is_method:
                 for key in keys:

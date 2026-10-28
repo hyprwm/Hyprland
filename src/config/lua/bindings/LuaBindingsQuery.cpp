@@ -448,24 +448,24 @@ static int hlGetCurrentSubmap(lua_State* L) {
 }
 
 void Internal::registerQueryBindings(lua_State* L) {
-    Internal::setFn(L, "get_devices", hlGetDevices);
-    Internal::setFn(L, "get_windows", hlGetWindows);
-    Internal::setFn(L, "get_window", hlGetWindow);
-    Internal::setFn(L, "get_active_window", hlGetActiveWindow);
-    Internal::setFn(L, "get_urgent_window", hlGetUrgentWindow);
-    Internal::setFn(L, "get_workspaces", hlGetWorkspaces);
-    Internal::setFn(L, "get_workspace", hlGetWorkspace);
-    Internal::setFn(L, "get_active_workspace", hlGetActiveWorkspace);
-    Internal::setFn(L, "get_active_special_workspace", hlGetActiveSpecialWorkspace);
-    Internal::setFn(L, "get_monitors", hlGetMonitors);
-    Internal::setFn(L, "get_monitor", hlGetMonitor);
-    Internal::setFn(L, "get_active_monitor", hlGetActiveMonitor);
-    Internal::setFn(L, "get_monitor_at", hlGetMonitorAt);
-    Internal::setFn(L, "get_monitor_at_cursor", hlGetMonitorAtCursor);
-    Internal::setFn(L, "get_layers", hlGetLayers);
-    Internal::setFn(L, "get_workspace_windows", hlGetWorkspaceWindows);
-    Internal::setFn(L, "get_cursor_pos", hlGetCursorPos);
-    Internal::setFn(L, "get_last_window", hlGetLastWindow);
-    Internal::setFn(L, "get_last_workspace", hlGetLastWorkspace);
-    Internal::setFn(L, "get_current_submap", hlGetCurrentSubmap);
+    setFn(L, "get_devices", hlGetDevices, ALLOWED_IN_PREDICATE);
+    setFn(L, "get_windows", hlGetWindows, ALLOWED_IN_PREDICATE);
+    setFn(L, "get_window", hlGetWindow, ALLOWED_IN_PREDICATE);
+    setFn(L, "get_active_window", hlGetActiveWindow, ALLOWED_IN_PREDICATE);
+    setFn(L, "get_urgent_window", hlGetUrgentWindow, ALLOWED_IN_PREDICATE);
+    setFn(L, "get_workspaces", hlGetWorkspaces, ALLOWED_IN_PREDICATE);
+    setFn(L, "get_workspace", hlGetWorkspace, ALLOWED_IN_PREDICATE);
+    setFn(L, "get_active_workspace", hlGetActiveWorkspace, ALLOWED_IN_PREDICATE);
+    setFn(L, "get_active_special_workspace", hlGetActiveSpecialWorkspace, ALLOWED_IN_PREDICATE);
+    setFn(L, "get_monitors", hlGetMonitors, ALLOWED_IN_PREDICATE);
+    setFn(L, "get_monitor", hlGetMonitor, ALLOWED_IN_PREDICATE);
+    setFn(L, "get_active_monitor", hlGetActiveMonitor, ALLOWED_IN_PREDICATE);
+    setFn(L, "get_monitor_at", hlGetMonitorAt, ALLOWED_IN_PREDICATE);
+    setFn(L, "get_monitor_at_cursor", hlGetMonitorAtCursor, ALLOWED_IN_PREDICATE);
+    setFn(L, "get_layers", hlGetLayers, ALLOWED_IN_PREDICATE);
+    setFn(L, "get_workspace_windows", hlGetWorkspaceWindows, ALLOWED_IN_PREDICATE);
+    setFn(L, "get_cursor_pos", hlGetCursorPos, ALLOWED_IN_PREDICATE);
+    setFn(L, "get_last_window", hlGetLastWindow, ALLOWED_IN_PREDICATE);
+    setFn(L, "get_last_workspace", hlGetLastWorkspace, ALLOWED_IN_PREDICATE);
+    setFn(L, "get_current_submap", hlGetCurrentSubmap, ALLOWED_IN_PREDICATE);
 }

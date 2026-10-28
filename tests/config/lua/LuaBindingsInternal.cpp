@@ -224,6 +224,74 @@ TEST_F(CConfigLuaDispatchers, acceptsDispatchersAndCallbacks) {
     EXPECT_EQ(lua_gettop(m_lua), 0);
 }
 
+static bool runPredicate(CConfigManager& mgr, lua_State* L, const char* global) {
+    lua_getglobal(L, global);
+    CLuaRef fn{mgr.luaStateLifetime(), L, -1};
+    lua_pop(L, 1);
+    return mgr.caller().predicate(fn, "test predicate");
+}
+
+TEST_F(CConfigLuaDispatchers, predicateCannotChangeState) {
+    const auto setup = m_manager->eval(R"-(
+        calls = 0
+        keybind = hl.bind('SUPER + Q', function() end)
+        function probe()
+            results = {}
+            local attempts = {
+                dispatch = function() hl.dispatch(function() calls = calls + 1 end) end,
+                bind = function() hl.bind('SUPER + W', function() end) end,
+                config = function() hl.config({ general = { border_size = 7 } }) end,
+                set_enabled = function() keybind:set_enabled(false) end,
+            }
+            for name, attempt in pairs(attempts) do
+                local ok, err = pcall(attempt)
+                results[name] = ok and 'ran' or err
+            end
+            -- called from C, so there is no name to report
+            local _, unnamed = pcall(hl.dispatch, function() calls = calls + 1 end)
+            results.unnamed = unnamed
+            -- the restriction follows the call, not where the code lives
+            local _, nested = pcall(coroutine.wrap(function() hl.dispatch(function() calls = calls + 1 end) end))
+            results.nested = nested
+            return true
+        end
+    )-");
+    ASSERT_FALSE(setup.has_value()) << setup.value_or("");
+
+    EXPECT_TRUE(runPredicate(*m_manager, m_lua, "probe"));
+
+    const auto checked = m_manager->eval(R"-(
+        for _, name in ipairs({ 'dispatch', 'bind', 'config', 'set_enabled' }) do
+            assert(results[name]:find("'" .. name .. "' can't be used in a predicate, defer it with hl.timer", 1, true), name .. ': ' .. results[name])
+        end
+        assert(results.unnamed:find("this function can't be used in a predicate, defer it with hl.timer", 1, true), results.unnamed)
+        assert(results.nested:find("'dispatch' can't be used in a predicate", 1, true), results.nested)
+        assert(calls == 0)
+        assert(keybind:is_enabled())
+        assert(hl.get_config('general.border_size') ~= 7)
+    )-");
+    EXPECT_FALSE(checked.has_value()) << checked.value_or("");
+    EXPECT_EQ(Keybinds::mgr()->registry().size(), 1);
+
+    // the same calls work outside a predicate
+    const auto outside = m_manager->eval("hl.dispatch(function() calls = calls + 1 end) keybind:set_enabled(false) assert(calls == 1 and not keybind:is_enabled())");
+    EXPECT_FALSE(outside.has_value()) << outside.value_or("");
+    EXPECT_EQ(lua_gettop(m_lua), 0);
+}
+
+TEST_F(CConfigLuaDispatchers, predicateCanRead) {
+    const auto setup = m_manager->eval(R"-(
+        function probe()
+            local _ = hl.get_config('general.border_size'), hl.get_windows(), hl.get_active_workspace(), hl.version()
+            return true
+        end
+    )-");
+    ASSERT_FALSE(setup.has_value()) << setup.value_or("");
+
+    EXPECT_TRUE(runPredicate(*m_manager, m_lua, "probe"));
+    EXPECT_EQ(lua_gettop(m_lua), 0);
+}
+
 TEST_F(CConfigLuaDispatchers, expiredKeybindHandlesAreInert) {
     for (const auto* dispatcher : {"hl.dsp.no_op()", "function() end"}) {
         SCOPED_TRACE(dispatcher);

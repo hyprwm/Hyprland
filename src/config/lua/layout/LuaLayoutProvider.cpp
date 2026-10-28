@@ -114,13 +114,16 @@ Config::ErrorResult CLuaTiledAlgorithm::layoutMsg(const std::string_view& sv) {
     lua_pushlstring(L, sv.data(), sv.size());
 
     Config::ErrorResult result = {};
-    const auto          CALLED = m_provider->manager->caller().callPushed(2, CLuaCaller::LUA_TIMEOUT_LAYOUT_CALLBACK_MS, m_provider->layoutMsgContext, [&](lua_State* L) {
-        if (lua_isboolean(L, -1) && !lua_toboolean(L, -1))
-            result = Config::configError(std::format("lua layout {} rejected layoutmsg", m_provider->name), Config::eConfigErrorLevel::ERROR,
-                                         Config::eConfigErrorCode::INVALID_ARGUMENT);
-        else if (lua_isstring(L, -1))
-            result = Config::configError(lua_tostring(L, -1), Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT);
-    });
+    const auto          CALLED = m_provider->manager->caller().callPushed(
+        2, CLuaCaller::LUA_TIMEOUT_LAYOUT_CALLBACK_MS, m_provider->layoutMsgContext, [&](lua_State* L) -> std::expected<void, std::string> {
+            if (lua_isboolean(L, -1) && !lua_toboolean(L, -1))
+                result = Config::configError(std::format("lua layout {} rejected layoutmsg", m_provider->name), Config::eConfigErrorLevel::ERROR,
+                                             Config::eConfigErrorCode::INVALID_ARGUMENT);
+            else if (lua_isstring(L, -1))
+                result = Config::configError(lua_tostring(L, -1), Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT);
+
+            return {};
+        });
 
     if (!CALLED)
         return Config::configError(CALLED.error(), Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::LUA_ERROR);
@@ -288,6 +291,6 @@ void Config::Lua::Bindings::Internal::registerLayoutBindings(lua_State* L, CConf
     setupLayoutTarget(L);
 
     lua_newtable(L);
-    setMgrFn(L, mgr, "register", hlLayoutRegister);
+    setMgrFn(L, mgr, "register", hlLayoutRegister, FORBIDDEN_IN_PREDICATE);
     lua_setfield(L, -2, "layout");
 }

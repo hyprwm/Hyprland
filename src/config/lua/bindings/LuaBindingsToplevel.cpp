@@ -214,8 +214,11 @@ static int hlBind(lua_State* L) {
                 return Keybinds::SBindResult{.success = false, .error = "Lua keybind belongs to an expired config state"};
 
             Keybinds::SBindResult result;
-            const auto            CALLED = mgr->caller().call(*LUA_REF, CLuaCaller::LUA_TIMEOUT_KEYBIND_CALLBACK_MS, "hl.bind callback", {},
-                                                              [&result](lua_State* L) { result = Internal::bindResultFromTable(L, -1); });
+            const auto            CALLED =
+                mgr->caller().call(*LUA_REF, CLuaCaller::LUA_TIMEOUT_KEYBIND_CALLBACK_MS, "hl.bind callback", {}, [&result](lua_State* L) -> std::expected<void, std::string> {
+                    result = Internal::bindResultFromTable(L, -1);
+                    return {};
+                });
             if (!CALLED)
                 return Keybinds::SBindResult{.success = false, .error = CALLED.error()};
 
@@ -468,21 +471,21 @@ static int hlExecuteScheduledRefreshImmediately(lua_State* L) {
 }
 
 void Internal::registerToplevelBindings(lua_State* L, CConfigManager* mgr) {
-    Internal::setMgrFn(L, mgr, "on", hlOn);
-    Internal::setMgrFn(L, mgr, "bind", hlBind);
-    Internal::setMgrFn(L, mgr, "define_submap", hlDefineSubmap);
-    Internal::setMgrFn(L, mgr, "timer", hlTimer);
+    setMgrFn(L, mgr, "on", hlOn, FORBIDDEN_IN_PREDICATE);
+    setMgrFn(L, mgr, "bind", hlBind, FORBIDDEN_IN_PREDICATE);
+    setMgrFn(L, mgr, "define_submap", hlDefineSubmap, FORBIDDEN_IN_PREDICATE);
+    setMgrFn(L, mgr, "timer", hlTimer, ALLOWED_IN_PREDICATE);
 
-    Internal::setFn(L, "dispatch", hlDispatch);
-    Internal::setFn(L, "version", hlVersion);
-    Internal::setFn(L, "get_loaded_plugins", hlGetPlugins);
-    Internal::setFn(L, "exec_cmd", hlExecCmd);
+    setFn(L, "dispatch", hlDispatch, FORBIDDEN_IN_PREDICATE);
+    setFn(L, "version", hlVersion, ALLOWED_IN_PREDICATE);
+    setFn(L, "get_loaded_plugins", hlGetPlugins, ALLOWED_IN_PREDICATE);
+    setFn(L, "exec_cmd", hlExecCmd, FORBIDDEN_IN_PREDICATE);
 
-    Internal::setFn(L, "clear_crashed_lockscreen", hlClearCrashedLockscreen);
+    setFn(L, "clear_crashed_lockscreen", hlClearCrashedLockscreen, FORBIDDEN_IN_PREDICATE);
 
-    Internal::setFn(L, "exec_scheduled_prop_refresh_immediately", hlExecuteScheduledRefreshImmediately);
+    setFn(L, "exec_scheduled_prop_refresh_immediately", hlExecuteScheduledRefreshImmediately, FORBIDDEN_IN_PREDICATE);
 
-    Internal::setFn(L, "unbind", hlUnbind);
+    setFn(L, "unbind", hlUnbind, FORBIDDEN_IN_PREDICATE);
 
-    Internal::setFn(L, "is_key_down", hlIsKeyDown);
+    setFn(L, "is_key_down", hlIsKeyDown, ALLOWED_IN_PREDICATE);
 }

@@ -55,7 +55,7 @@ void CPlacementController::ensurePersistentWorkspacesPresent(const std::vector<S
         // clang-format off-one-line
         Hyprutils::Utils::CScopeGuard x([&]() { if (PWORKSPACE) PWORKSPACE->ready(); });
         if (pWorkspace) {
-            if (pWorkspace->matchesStaticSelector(rule.m_workspaceString))
+            if (rule.matches(pWorkspace))
                 PWORKSPACE = pWorkspace;
             else
                 continue;

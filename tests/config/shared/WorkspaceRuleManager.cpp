@@ -155,3 +155,34 @@ TEST(WorkspaceRuleManager, bareNamedRuleMatchesAddressableName) {
     EXPECT_EQ(manager.getBoundMonitorStringForWS("vaxry"), "DP-1");
     EXPECT_EQ(manager.getBoundMonitorStringForWS(::Workspace::SWorkspaceSpecialID{}, ::Workspace::eWorkspaceType::NORMAL, "vaxry"), "DP-1");
 }
+
+static Config::CWorkspaceRule predicateRule(bool answer, int& calls) {
+    Config::CWorkspaceRule rule;
+    rule.m_workspacePredicate = Config::CPredicateData<PHLWORKSPACE>{[answer, &calls](const PHLWORKSPACE&) {
+        ++calls;
+        return answer;
+    }};
+    return rule;
+}
+
+TEST(WorkspaceRuleManager, predicateRuleMatchesThroughItsPredicate) {
+    int calls = 0;
+
+    EXPECT_TRUE(predicateRule(true, calls).matches(nullptr));
+    EXPECT_FALSE(predicateRule(false, calls).matches(nullptr));
+    EXPECT_EQ(calls, 2);
+}
+
+TEST(WorkspaceRuleManager, predicateRulesAreNeverMerged) {
+    Config::CWorkspaceRuleManager manager;
+    int                           calls = 0;
+
+    manager.replaceOrAdd(predicateRule(true, calls));
+    manager.replaceOrAdd(predicateRule(true, calls));
+    EXPECT_EQ(manager.getAllWorkspaceRules().size(), 2);
+
+    // an empty string selector is not the same rule as a predicate either
+    manager.replaceOrAdd(Config::CWorkspaceRule{});
+    EXPECT_EQ(manager.getAllWorkspaceRules().size(), 3);
+    EXPECT_EQ(calls, 0);
+}

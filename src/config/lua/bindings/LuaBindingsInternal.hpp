@@ -3,6 +3,7 @@
 #include "../LuaBindings.hpp"
 
 #include "../ConfigManager.hpp"
+#include "../LuaPredicate.hpp"
 #include "../types/LuaConfigValue.hpp"
 #include "../types/LuaConfigBool.hpp"
 #include "../types/LuaConfigFloat.hpp"
@@ -184,8 +185,8 @@ namespace Config::Lua::Bindings::Internal {
         return nullptr;
     }
 
-    void                             setFn(lua_State* L, const char* name, lua_CFunction fn);
-    void                             setMgrFn(lua_State* L, CConfigManager* mgr, const char* name, lua_CFunction fn);
+    void                             setFn(lua_State* L, const char* name, lua_CFunction fn, ePredicateAccess access);
+    void                             setMgrFn(lua_State* L, CConfigManager* mgr, const char* name, lua_CFunction fn, ePredicateAccess access);
     void                             setDispatcherFn(lua_State* L, const char* name, lua_CFunction fn, int maxArgs);
     int                              wrapDispatcher(lua_State* L);
     std::expected<void, std::string> pushDispatcherFunction(lua_State* L, int idx);

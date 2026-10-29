@@ -1,6 +1,8 @@
 #include "LuaBindingsInternal.hpp"
 #include "Check.hpp"
 
+#include "../LuaPredicate.hpp"
+
 #include "../objects/LuaLayerRule.hpp"
 #include "../objects/LuaWindowRule.hpp"
 #include "../objects/LuaWorkspaceRule.hpp"
@@ -639,15 +641,20 @@ static int hlWorkspaceRule(lua_State* L) {
         return 0;
     }
 
-    const std::string sourceInfo = Internal::getSourceInfo(L);
+    const std::string      sourceInfo = Internal::getSourceInfo(L);
+
+    Config::CWorkspaceRule wsRule;
 
     lua_getfield(L, 1, "workspace");
-    if (!lua_isstring(L, -1)) {
-        self->addError(std::format("{}: hl.workspace_rule: 'workspace' field is required and must be a string", sourceInfo));
+    if (lua_isfunction(L, -1))
+        wsRule.m_workspacePredicate = makePredicate<PHLWORKSPACE>(makeShared<CLuaRef>(self->luaStateLifetime(), L, -1), std::format("hl.workspace_rule ({})", sourceInfo));
+    else if (lua_isstring(L, -1))
+        wsRule.m_workspaceString = lua_tostring(L, -1);
+    else {
+        self->addError(std::format("{}: hl.workspace_rule: 'workspace' field is required and must be a string or a function", sourceInfo));
         lua_pop(L, 1);
         return 0;
     }
-    const std::string wsStr = lua_tostring(L, -1);
     lua_pop(L, 1);
 
     bool enabled = true;
@@ -656,8 +663,6 @@ static int hlWorkspaceRule(lua_State* L) {
         enabled = lua_toboolean(L, -1) != 0;
     lua_pop(L, 1);
 
-    Config::CWorkspaceRule wsRule;
-    wsRule.m_workspaceString = wsStr;
     wsRule.setEnabled(enabled);
 
     lua_pushnil(L);
@@ -730,6 +735,23 @@ static int hlWorkspaceRule(lua_State* L) {
             desc->apply(val.get(), wsRule);
 
         lua_pop(L, 1);
+    }
+
+    // these create or bind a workspace before it exists, and a predicate needs one to look at
+    if (wsRule.m_workspacePredicate.isSet()) {
+        const std::pair<const char*, bool> IDENTITY_FIELDS[] = {
+            {"monitor", !wsRule.m_monitor.empty()},
+            {"default", wsRule.m_isDefault.has_value()},
+            {"persistent", wsRule.m_isPersistent.has_value()},
+        };
+
+        for (const auto& [field, set] : IDENTITY_FIELDS) {
+            if (!set)
+                continue;
+
+            self->addError(std::format("{}: hl.workspace_rule: '{}' can't be used with a predicate, it needs a workspace name or id", sourceInfo, field));
+            return 0;
+        }
     }
 
     const auto RULE = Config::workspaceRuleMgr()->replaceOrAdd(std::move(wsRule));
@@ -1364,21 +1386,21 @@ static int hlLayerRule(lua_State* L) {
 }
 
 void Internal::registerConfigRuleBindings(lua_State* L, CConfigManager* mgr) {
-    Internal::setMgrFn(L, mgr, "config", hlConfig);
-    Internal::setMgrFn(L, mgr, "get_config", hlGetConfig);
-    Internal::setMgrFn(L, mgr, "device", hlDevice);
-    Internal::setMgrFn(L, mgr, "monitor", hlMonitor);
-    Internal::setMgrFn(L, mgr, "window_rule", hlWindowRule);
-    Internal::setMgrFn(L, mgr, "layer_rule", hlLayerRule);
-    Internal::setMgrFn(L, mgr, "workspace_rule", hlWorkspaceRule);
-    Internal::setMgrFn(L, mgr, "env", hlEnv);
-    Internal::setMgrFn(L, mgr, "permission", hlPermission);
+    setMgrFn(L, mgr, "config", hlConfig, FORBIDDEN_IN_PREDICATE);
+    setMgrFn(L, mgr, "get_config", hlGetConfig, ALLOWED_IN_PREDICATE);
+    setMgrFn(L, mgr, "device", hlDevice, FORBIDDEN_IN_PREDICATE);
+    setMgrFn(L, mgr, "monitor", hlMonitor, FORBIDDEN_IN_PREDICATE);
+    setMgrFn(L, mgr, "window_rule", hlWindowRule, FORBIDDEN_IN_PREDICATE);
+    setMgrFn(L, mgr, "layer_rule", hlLayerRule, FORBIDDEN_IN_PREDICATE);
+    setMgrFn(L, mgr, "workspace_rule", hlWorkspaceRule, FORBIDDEN_IN_PREDICATE);
+    setMgrFn(L, mgr, "env", hlEnv, FORBIDDEN_IN_PREDICATE);
+    setMgrFn(L, mgr, "permission", hlPermission, FORBIDDEN_IN_PREDICATE);
 
     lua_newtable(L);
-    Internal::setMgrFn(L, mgr, "load", hlPluginLoad);
+    setMgrFn(L, mgr, "load", hlPluginLoad, FORBIDDEN_IN_PREDICATE);
     lua_setfield(L, -2, "plugin");
 
-    Internal::setFn(L, "gesture", hlGesture);
-    Internal::setFn(L, "curve", hlCurve);
-    Internal::setFn(L, "animation", hlAnimation);
+    setFn(L, "gesture", hlGesture, FORBIDDEN_IN_PREDICATE);
+    setFn(L, "curve", hlCurve, FORBIDDEN_IN_PREDICATE);
+    setFn(L, "animation", hlAnimation, FORBIDDEN_IN_PREDICATE);
 }

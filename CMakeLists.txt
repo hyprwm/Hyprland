@@ -244,6 +244,7 @@ if(Git_FOUND)
     endif()
     execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags
       WORKING_DIRECTORY ${GIT_TOPLEVEL}
+      ERROR_QUIET
       OUTPUT_VARIABLE GIT_TAG OUTPUT_STRIP_TRAILING_WHITESPACE)
     execute_process(COMMAND ${GIT_EXECUTABLE} rev-list --count HEAD
       WORKING_DIRECTORY ${GIT_TOPLEVEL}
@@ -251,6 +252,11 @@ if(Git_FOUND)
   else()
     message(WARNING "No Git repository detected in ${CMAKE_SOURCE_DIR}")
   endif()
+endif()
+
+#fix version issue
+if(NOT GIT_TAG OR GIT_TAG STREQUAL "unknown")
+  set(GIT_TAG "v${VER}")
 endif()
 
 configure_file(

@@ -145,6 +145,8 @@ class CXWM {
     SP<CXWaylandSurface> windowForWayland(SP<CWLSurfaceResource> surf);
 
     void                 readWindowData(SP<CXWaylandSurface> surf);
+    SP<CXWaylandSurface> registerWindow(xcb_window_t wid);
+    void                 tryAssociateFromCache(SP<CXWaylandSurface> surf);
     void                 associate(SP<CXWaylandSurface> surf, SP<CWLSurfaceResource> wlSurf);
     void                 dissociate(SP<CXWaylandSurface> surf);
 
@@ -152,6 +154,7 @@ class CXWM {
 
     // event handlers
     void         handleCreate(xcb_create_notify_event_t* e);
+    void         handleReparent(xcb_reparent_notify_event_t* e);
     void         handleDestroy(xcb_destroy_notify_event_t* e);
     void         handleConfigureRequest(xcb_configure_request_event_t* e);
     void         handleConfigureNotify(xcb_configure_notify_event_t* e);
@@ -203,19 +206,26 @@ class CXWM {
 
     std::vector<WP<CXWaylandSurfaceResource>> m_shellResources;
     std::vector<SP<CXWaylandSurface>>         m_surfaces;
-    std::vector<WP<CXWaylandSurface>>         m_mappedSurfaces;         // ordered by map time
-    std::vector<WP<CXWaylandSurface>>         m_mappedSurfacesStacking; // ordered by stacking
 
-    WP<CXWaylandSurface>                      m_focusedSurface;
-    uint64_t                                  m_lastFocusSeq = 0;
+    // WL_SURFACE_ID / WL_SURFACE_SERIAL can arrive before we know the window:
+    // clients that create a window as a child and only then reparent it to the
+    // root send these while the window is still untracked. Keep them keyed by
+    // xid until the window gets registered.
+    std::unordered_map<xcb_window_t, uint32_t> m_pendingWlIDs;
+    std::unordered_map<xcb_window_t, uint64_t> m_pendingWlSerials;
+    std::vector<WP<CXWaylandSurface>>          m_mappedSurfaces;         // ordered by map time
+    std::vector<WP<CXWaylandSurface>>          m_mappedSurfacesStacking; // ordered by stacking
 
-    SXSelection                               m_clipboard;
-    SXSelection                               m_primarySelection;
-    SXSelection                               m_dndSelection;
-    SP<CX11DataDevice>                        m_dndDataDevice = makeShared<CX11DataDevice>();
-    std::vector<SP<CX11DataOffer>>            m_dndDataOffers;
+    WP<CXWaylandSurface>                       m_focusedSurface;
+    uint64_t                                   m_lastFocusSeq = 0;
 
-    inline xcb_connection_t*                  getConnection() {
+    SXSelection                                m_clipboard;
+    SXSelection                                m_primarySelection;
+    SXSelection                                m_dndSelection;
+    SP<CX11DataDevice>                         m_dndDataDevice = makeShared<CX11DataDevice>();
+    std::vector<SP<CX11DataOffer>>             m_dndDataOffers;
+
+    inline xcb_connection_t*                   getConnection() {
         return m_connection ? *m_connection : nullptr;
     }
     struct {

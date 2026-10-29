@@ -64,10 +64,16 @@ void CXWM::handleCreate(xcb_create_notify_event_t* e) {
 
     const auto WINDOW = Desktop::View::CWindow::create(makeUnique<Desktop::View::CX11Backend>(XSURF));
     LOG(Log::DEBUG, "[xwm] New XWayland window at {:x} for surf {:x}", rc<uintptr_t>(WINDOW.get()), rc<uintptr_t>(XSURF.get()));
+
+    // A reparented window's WL_SURFACE_ID/SERIAL may have arrived before its
+    // CreateNotify. Apply it now if we cached one.
+    tryAssociateFromCache(XSURF);
 }
 
 void CXWM::handleDestroy(xcb_destroy_notify_event_t* e) {
     removeTransfersForWindow(e->window);
+    m_pendingWlIDs.erase(e->window);
+    m_pendingWlSerials.erase(e->window);
 
     const auto XSURF = windowForXID(e->window);
 
@@ -109,7 +115,13 @@ void CXWM::handleConfigureNotify(xcb_configure_notify_event_t* e) {
 }
 
 void CXWM::handleMapRequest(xcb_map_request_event_t* e) {
-    const auto XSURF = windowForXID(e->window);
+    auto XSURF = windowForXID(e->window);
+
+    // A window created as a child of another window and only later reparented
+    // onto the root never gets a CreateNotify we see, and its MapRequest used
+    // to be dropped here. Register it on the spot.
+    if (!XSURF)
+        XSURF = registerWindow(e->window);
 
     if (!XSURF)
         return;
@@ -393,8 +405,16 @@ void CXWM::handlePropertyNotify(xcb_property_notify_event_t* e) {
 void CXWM::handleClientMessage(xcb_client_message_event_t* e) {
     const auto XSURF = windowForXID(e->window);
 
-    if (!XSURF)
+    if (!XSURF) {
+        // The window isn't tracked yet (see handleReparent). Remember how it
+        // wants to be paired with its wl_surface so we can associate it the
+        // moment it gets registered.
+        if (e->type == HYPRATOMS["WL_SURFACE_ID"])
+            m_pendingWlIDs[e->window] = e->data.data32[0];
+        else if (e->type == HYPRATOMS["WL_SURFACE_SERIAL"])
+            m_pendingWlSerials[e->window] = (sc<uint64_t>(e->data.data32[1]) << 32) | e->data.data32[0];
         return;
+    }
 
     std::string propName = getAtomName(e->type);
 
@@ -897,6 +917,7 @@ int CXWM::onEvent(int fd, uint32_t mask) {
 
         switch (event->response_type & XCB_EVENT_RESPONSE_TYPE_MASK) {
             case XCB_CREATE_NOTIFY: handleCreate(rc<xcb_create_notify_event_t*>(event.get())); break;
+            case XCB_REPARENT_NOTIFY: handleReparent(rc<xcb_reparent_notify_event_t*>(event.get())); break;
             case XCB_DESTROY_NOTIFY: handleDestroy(rc<xcb_destroy_notify_event_t*>(event.get())); break;
             case XCB_CONFIGURE_REQUEST: handleConfigureRequest(rc<xcb_configure_request_event_t*>(event.get())); break;
             case XCB_CONFIGURE_NOTIFY: handleConfigureNotify(rc<xcb_configure_notify_event_t*>(event.get())); break;
@@ -1214,6 +1235,82 @@ SP<CXWaylandSurface> CXWM::windowForWayland(SP<CWLSurfaceResource> surf) {
     }
 
     return nullptr;
+}
+
+SP<CXWaylandSurface> CXWM::registerWindow(xcb_window_t wid) {
+    if (isWMWindow(wid))
+        return nullptr;
+
+    if (const auto EXISTING = windowForXID(wid))
+        return EXISTING;
+
+    const auto                                     cookie = xcb_get_geometry(getConnection(), wid);
+    XCBReplyPtr<xcb_get_geometry_reply_t>          geom(xcb_get_geometry_reply(getConnection(), cookie, nullptr));
+
+    const auto                                     acookie = xcb_get_window_attributes(getConnection(), wid);
+    XCBReplyPtr<xcb_get_window_attributes_reply_t> attrs(xcb_get_window_attributes_reply(getConnection(), acookie, nullptr));
+
+    if (!geom || !attrs) {
+        LOG(Log::ERR, "[xwm] registerWindow: failed to query window {}", wid);
+        return nullptr;
+    }
+
+    const auto XSURF = m_surfaces.emplace_back(SP<CXWaylandSurface>(new CXWaylandSurface(wid, CBox{geom->x, geom->y, geom->width, geom->height}, attrs->override_redirect)));
+    XSURF->m_self    = XSURF;
+    LOG(Log::DEBUG, "[xwm] New XSurface at {:x} with xid of {}", rc<uintptr_t>(XSURF.get()), wid);
+
+    const auto WINDOW = Desktop::View::CWindow::create(makeUnique<Desktop::View::CX11Backend>(XSURF));
+    LOG(Log::DEBUG, "[xwm] New XWayland window at {:x} for surf {:x}", rc<uintptr_t>(WINDOW.get()), rc<uintptr_t>(XSURF.get()));
+
+    tryAssociateFromCache(XSURF);
+
+    return XSURF;
+}
+
+void CXWM::handleReparent(xcb_reparent_notify_event_t* e) {
+    const auto XSURF = windowForXID(e->window);
+
+    if (e->parent == m_screen->root) {
+        // A window we never saw created just arrived at the root. Register it
+        // now; its MapRequest would otherwise be silently discarded.
+        if (!XSURF && !isWMWindow(e->window)) {
+            LOG(Log::DEBUG, "[xwm] Reparent of unknown window {} onto root, registering", e->window);
+            registerWindow(e->window);
+        }
+        return;
+    }
+
+    // A tracked window left the root. Leave it registered: it may come back,
+    // and dropping it here would race with events still in flight for it.
+    if (XSURF)
+        LOG(Log::DEBUG, "[xwm] Window {} reparented off the root, keeping it registered", e->window);
+}
+
+void CXWM::tryAssociateFromCache(SP<CXWaylandSurface> surf) {
+    if (const auto it = m_pendingWlSerials.find(surf->m_xID); it != m_pendingWlSerials.end()) {
+        surf->m_wlSerial = it->second;
+        m_pendingWlSerials.erase(it);
+
+        for (auto const& res : m_shellResources) {
+            if (!res || res->m_serial != surf->m_wlSerial || !surf->m_wlSerial)
+                continue;
+
+            associate(surf, res->m_surface.lock());
+            break;
+        }
+    }
+
+    if (const auto it = m_pendingWlIDs.find(surf->m_xID); it != m_pendingWlIDs.end()) {
+        const auto WLID = it->second;
+        m_pendingWlIDs.erase(it);
+
+        if (!surf->m_surface) {
+            if (auto* resource = wl_client_get_object(g_pXWayland->m_server->m_xwaylandClient, WLID))
+                associate(surf, CWLSurfaceResource::fromResource(resource));
+            else
+                surf->m_wlID = WLID; // the wl_surface isn't here yet; onNewSurface matches m_wlID
+        }
+    }
 }
 
 void CXWM::associate(SP<CXWaylandSurface> surf, SP<CWLSurfaceResource> wlSurf) {

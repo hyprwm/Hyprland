@@ -97,6 +97,7 @@ TEST_CASE(luaDevicesEnumerationAndHyprctlParity) {
             assert(type(index) == 'number' and index % 1 == 0 and index >= 1 and index <= #devices)
             assert(type(device) == 'userdata' and types[device.type])
             assert(type(device.address) == 'string' and device.address:match('^0x%x+$'))
+            assert(type(device.sysname) == 'string')
             assert(not byAddress[device.address], 'duplicate device address')
             byAddress[device.address] = device
             count = count + 1

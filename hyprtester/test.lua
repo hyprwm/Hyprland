@@ -215,6 +215,10 @@ hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = tr
 hl.bind("XF86AudioPlay", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
 hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("playerctl previous"), { locked = true })
 
+local keyboard_device = { inclusive = true, list = { "test-keyboard-1" } }
+local available_device_tag = { inclusive = true, list = { "test-tag" } }
+local hidden_device_tag = { inclusive = true, list = { "hidden-tag" } }
+
 hl.bind(mainMod .. " + u", hl.dsp.submap("submap1"))
 
 hl.define_submap("submap1", function()
@@ -234,6 +238,59 @@ end)
 hl.define_submap("submap3", "reset", function()
     hl.bind("o", hl.dsp.exec_cmd(terminal))
 end)
+
+hl.bind(
+    mainMod .. " + z",
+    function()
+        local function enable(name)
+            hl.dispatch(
+                hl.dsp.submap({ action = "enable", name = name })
+            )
+        end
+
+        enable("multiSubReset")
+        enable("multiSub1")
+        enable("multiSub2")
+        enable("multiSub3")
+    end
+)
+
+hl.define_submap(
+    "multiSubReset",
+    function()
+        local function disable(name)
+            hl.dispatch(
+                hl.dsp.submap({ action = "disable", name = name })
+            )
+        end
+
+        hl.bind(
+            mainMod .. " + z",
+            function()
+                disable("multiSub3")
+                disable("multiSub2")
+                disable("multiSub1")
+                disable("multiSubReset")
+            end
+        )
+    end
+)
+
+hl.define_submap("multiSub1", function() end)
+hl.define_submap("multiSub2", function() end)
+hl.define_submap("multiSub3", function() end)
+
+hl.define_submap("keyboard-submap", function()
+    hl.bind("p", hl.dsp.submap("reset"))
+end, { device = keyboard_device })
+
+hl.define_submap("tag-submap", function()
+    hl.bind("p", hl.dsp.submap("reset"))
+end, { device = available_device_tag })
+
+hl.define_submap("hidden-tag-submap", function()
+    hl.bind("p", hl.dsp.submap("reset"))
+end, { device = hidden_device_tag })
 
 hl.window_rule({
     name = "fix-xwayland-drags",

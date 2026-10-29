@@ -2052,11 +2052,14 @@ static std::string getDescriptions(eHyprCtlOutputFormat format, std::string requ
 }
 
 static std::string submapRequest(eHyprCtlOutputFormat format, std::string request) {
-    std::string submap{Keybinds::mgr()->currentSubmap()};
-    if (submap.empty())
-        submap = "default";
+    const auto& CONTEXT = Keybinds::mgr()->currentSubmap();
 
-    return format == FORMAT_JSON ? std::format("\"{}\"\n", escapeJSONStrings(submap)) : std::format("{}\n", submap);
+    std::string submaps = CONTEXT.submaps() | std::views::transform(&Keybinds::CSubmap::name) | std::views::join_with('\n') | std::ranges::to<std::string>();
+
+    if (submaps.empty())
+        submaps = "default";
+
+    return format == FORMAT_JSON ? std::format("\"{}\"\n", escapeJSONStrings(submaps)) : std::format("{}\n", submaps);
 }
 
 static std::string reloadShaders(eHyprCtlOutputFormat format, std::string request) {

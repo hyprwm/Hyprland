@@ -42,6 +42,20 @@ static bool           matchCaseInsensitive(std::string_view a, std::string_view 
     return true;
 }
 
+static inline bool matchesSubmapContext(const CBind& bind, const Config::Actions::CSubmapContext* ctx, const SP<IHID> device) {
+    if (bind.flags() & BIND_FLAG_SUBMAP_UNIVERSAL)
+        return true;
+
+    const std::string& SUBMAP = bind.metadata().submap;
+
+    if (ctx == nullptr || ctx->empty())
+        return SUBMAP.empty();
+
+    const auto MATCH = ctx->find(SUBMAP, device);
+
+    return MATCH.has_value();
+}
+
 static eBindMatch matchKeySets(const std::vector<const CKey*>& bound, const std::vector<const SResolvedKey*>& held) {
     std::vector<int> heldMatches(held.size(), -1);
 
@@ -100,6 +114,8 @@ static eBindMatch matchKeyChord(const std::vector<const CKey*>& bound, const std
 
 // NOLINTNEXTLINE SHUT THE FUCK UP CLANG TIDY
 std::expected<CBind, std::string> CBind::make(std::vector<std::string>&& keys, BindFlags flags, BindCallback&& callback, SExtraBindArgs&& args) {
+    flags |= args.devices.inclusive() ? Keybinds::BIND_FLAG_DEVICE_INCLUSIVE : 0;
+
     CBind ret;
     ret.m_devices  = std::move(args.devices);
     ret.m_metadata = std::move(args.metadata);
@@ -160,11 +176,7 @@ std::expected<CBind, std::string> CBind::make(std::vector<std::string>&& keys, B
 }
 
 bool CBind::matchesDevice(SP<IHID> dev) const {
-    if (!dev)
-        return !(m_flags & BIND_FLAG_DEVICE_INCLUSIVE);
-
-    const bool LISTED = m_devices.contains(dev->m_hlName) || std::ranges::any_of(dev->m_deviceTags, [this](const auto& tag) { return m_devices.contains(tag); });
-    return (m_flags & BIND_FLAG_DEVICE_INCLUSIVE) ? LISTED : !LISTED;
+    return m_devices.contains(dev);
 }
 
 eBindMatch CBind::matches(const SBindEventContext& ctx) const {
@@ -223,7 +235,7 @@ bool CBind::matchesContext(const SBindEventContext& ctx) const {
     if (!m_enabled || !matchesDevice(ctx.device))
         return false;
 
-    if (!(m_flags & BIND_FLAG_SUBMAP_UNIVERSAL) && m_metadata.submap != ctx.submap)
+    if (!matchesSubmapContext(*this, ctx.submap, ctx.device))
         return false;
 
     auto effectiveMods = ctx.pressed ? ctx.modifiersNow : ctx.modifiersAtPress;
@@ -345,7 +357,7 @@ std::span<const std::string> CBind::keyNames() const {
     return m_keyNames;
 }
 
-const std::unordered_set<std::string>& CBind::devices() const {
+const CDeviceList& CBind::devices() const {
     return m_devices;
 }
 

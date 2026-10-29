@@ -1,4 +1,5 @@
 #include <keybinds/InputState.hpp>
+#include <keybinds/Manager.hpp>
 
 #include <gtest/gtest.h>
 
@@ -94,15 +95,20 @@ TEST(KeybindsInputState, PreservesDifferentSymbolsForSameCode) {
 }
 
 TEST(KeybindsInputState, PreservesPressMetadata) {
-    CInputState state;
-    const auto  DEVICE = makeShared<CTestHID>();
-    const auto  KEY    = SResolvedKey{.sym = XKB_KEY_k, .code = 45};
+    CInputState    state;
+    CSubmapContext submaps;
+    auto           resize = makeShared<CSubmap>("resize");
+    const auto     DEVICE = makeShared<CTestHID>();
+    const auto     KEY    = SResolvedKey{.sym = XKB_KEY_k, .code = 45};
+
+    submaps.add(SP(resize));
+    ASSERT_TRUE(submaps.contains("resize"));
 
     state.press({
         .key              = KEY,
         .modifiersAtPress = HL_MODIFIER_META,
         .forwarded        = false,
-        .submapAtPress    = "resize",
+        .submapAtPress    = submaps.snapshot(),
         .positionAtPress  = {10, 20},
         .device           = DEVICE,
     });
@@ -111,7 +117,7 @@ TEST(KeybindsInputState, PreservesPressMetadata) {
     ASSERT_TRUE(RELEASED.has_value());
     EXPECT_EQ(RELEASED->modifiersAtPress, HL_MODIFIER_META);
     EXPECT_FALSE(RELEASED->forwarded);
-    EXPECT_EQ(RELEASED->submapAtPress, "resize");
+    EXPECT_TRUE(RELEASED->submapAtPress->contains("resize"));
     EXPECT_EQ(RELEASED->positionAtPress, Vector2D(10, 20));
 }
 

@@ -14,6 +14,7 @@
 #include "../../../plugins/PluginSystem.hpp"
 #include "../../../keybinds/Manager.hpp"
 #include "../../../keybinds/Resolver.hpp"
+#include "../../../keybinds/Submap.hpp"
 #include "../../../helpers/string/StringUtils.hpp"
 
 #include <hyprutils/string/Numeric.hpp>
@@ -59,6 +60,31 @@ static std::expected<std::vector<std::string>, std::string> parseKeyString(std::
     }
 
     return keys;
+}
+
+static std::expected<Keybinds::CDeviceList, std::string> parseDeviceList(lua_State* L, int idx) {
+    bool                 inclusive = false;
+    Keybinds::DeviceList devices;
+
+    if (lua_istable(L, idx)) {
+        lua_getfield(L, idx, "inclusive");
+        inclusive = lua_isnil(L, -1) || lua_toboolean(L, -1);
+        lua_pop(L, 1);
+
+        lua_getfield(L, idx, "list");
+
+        if (lua_istable(L, -1)) {
+            lua_pushnil(L);
+            while (lua_next(L, -2)) {
+                if (auto device_name = Check::string(L, -1); device_name)
+                    devices.emplace(*device_name);
+                lua_pop(L, 1);
+            }
+            lua_pop(L, 1);
+        }
+    }
+
+    return Keybinds::CDeviceList(inclusive, std::move(devices));
 }
 
 static int hlBind(lua_State* L) {
@@ -183,24 +209,15 @@ static int hlBind(lua_State* L) {
         flags |= drag ? Keybinds::BIND_FLAG_DRAG : 0;
 
         lua_getfield(L, optsIdx, "device");
-        if (lua_istable(L, -1)) {
-            lua_getfield(L, -1, "inclusive");
-            const bool INCLUSIVE = lua_isnil(L, -1) ? true : lua_toboolean(L, -1);
-            flags |= INCLUSIVE ? Keybinds::BIND_FLAG_DEVICE_INCLUSIVE : 0;
-            lua_pop(L, 1);
 
-            lua_getfield(L, -1, "list");
-            if (lua_istable(L, -1)) {
-                lua_pushnil(L);
-                while (lua_next(L, -2)) {
-                    if (lua_isstring(L, -1))
-                        args.devices.emplace(lua_tostring(L, -1));
-                    lua_pop(L, 1);
-                }
-            }
-            lua_pop(L, 1);
-        }
+        auto devices = parseDeviceList(L, -1);
+        if (!devices)
+            return Internal::configError(L, std::format("hl.bind: {}", devices.error()));
+
+        args.devices = std::move(*devices);
+        flags |= args.devices.inclusive() ? Keybinds::BIND_FLAG_DEVICE_INCLUSIVE : 0;
         flags |= getBool("allow_input_capture") ? Keybinds::BIND_FLAG_ALLOW_INPUT_CAPTURE : 0;
+
         lua_pop(L, 1);
     }
 
@@ -244,16 +261,37 @@ static int hlDefineSubmap(lua_State* L) {
         fnIdx = 3;
     }
 
+    const int             optsIdx = fnIdx + 1;
+    Keybinds::SSubmapArgs args;
+
+    if (lua_gettop(L) >= optsIdx) {
+        if (!lua_istable(L, optsIdx))
+            return Internal::configError(L, "define_submap: last argument must be a table");
+
+        lua_getfield(L, optsIdx, "device");
+        auto device = parseDeviceList(L, -1);
+        if (!device)
+            return Internal::configError(L, std::format("define_submap: {}", device.error()));
+        lua_pop(L, 1);
+
+        args.device = std::move(*device);
+    }
+
+    Keybinds::CSubmap submap = Keybinds::CSubmap(*name, args);
+    const auto        SUBMAP = Keybinds::mgr()->addSubmap(std::move(submap));
+
+    const std::string NAME{SUBMAP->name()};
+
     luaL_checktype(L, fnIdx, LUA_TFUNCTION);
 
     std::string prev          = mgr->m_currentSubmap;
     std::string prevReset     = mgr->m_currentSubmapReset;
-    mgr->m_currentSubmap      = *name;
+    mgr->m_currentSubmap      = NAME;
     mgr->m_currentSubmapReset = reset;
 
     lua_pushvalue(L, fnIdx);
-    if (mgr->caller().guardedPCall(L, 0, 0, 0, CLuaCaller::LUA_TIMEOUT_DISPATCH_MS, std::format("hl.define_submap(\"{}\")", *name)) != LUA_OK) {
-        mgr->addError(std::format("hl.define_submap: error in submap \"{}\": {}", *name, mgr->caller().errorToString(L, -1)));
+    if (mgr->caller().guardedPCall(L, 0, 0, 0, CLuaCaller::LUA_TIMEOUT_DISPATCH_MS, std::format("hl.define_submap(\"{}\")", NAME)) != LUA_OK) {
+        mgr->addError(std::format("hl.define_submap: error in submap \"{}\": {}", NAME, mgr->caller().errorToString(L, -1)));
         lua_pop(L, 1);
     }
 

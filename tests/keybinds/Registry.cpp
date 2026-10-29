@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include "Utils.hpp"
+
 using namespace Keybinds;
 using namespace Input;
 
@@ -45,6 +47,13 @@ TEST(KeybindsRegistry, FindsSubmap) {
 
     EXPECT_TRUE(registry.hasSubmap("resize"));
     EXPECT_FALSE(registry.hasSubmap("missing"));
+}
+
+TEST(KeybindsRegistry, FindsSubmapNewAPI) {
+    CRegistry registry;
+    registry.addSubmap(makeSubmap("example", {}, false));
+
+    EXPECT_TRUE(registry.findSubmap("example", nullptr));
 }
 
 TEST(KeybindsRegistry, FindsShortcutWithSidedModifier) {

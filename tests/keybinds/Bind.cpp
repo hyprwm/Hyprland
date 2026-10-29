@@ -1,4 +1,5 @@
 #include <keybinds/Bind.hpp>
+#include <keybinds/Manager.hpp>
 
 #include <gtest/gtest.h>
 
@@ -322,7 +323,20 @@ TEST(Keybinds, CatchAllContextHonorsSubmapAndModifiers) {
     auto result = CBind::make({"SUPER", "catchall"}, BIND_FLAG_CATCH_ALL, [] { return SBindResult{}; }, {.metadata = {.submap = "resize"}});
     ASSERT_TRUE(result.has_value());
 
-    EXPECT_TRUE(result->matchesContext({.modifiersNow = HL_MODIFIER_META, .submap = "resize"}));
-    EXPECT_FALSE(result->matchesContext({.modifiersNow = HL_MODIFIER_META, .submap = "other"}));
-    EXPECT_FALSE(result->matchesContext({.submap = "resize"}));
+    auto           resize = makeShared<CSubmap>("resize");
+    auto           other  = makeShared<CSubmap>("other");
+    CSubmapContext submapContext;
+
+    submapContext.add(PSubmap(resize));
+    ASSERT_TRUE(submapContext.contains("resize"));
+
+    EXPECT_TRUE(result->matchesContext({.submap = &submapContext, .modifiersNow = HL_MODIFIER_META}));
+    EXPECT_FALSE(result->matchesContext({.submap = &submapContext}));
+
+    submapContext.remove(resize);
+    submapContext.add(PSubmap(other));
+    ASSERT_FALSE(submapContext.contains("resize"));
+    ASSERT_TRUE(submapContext.contains("other"));
+
+    EXPECT_FALSE(result->matchesContext({.submap = &submapContext, .modifiersNow = HL_MODIFIER_META}));
 }

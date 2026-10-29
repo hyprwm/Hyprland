@@ -642,12 +642,14 @@ SUBTEST(submap) {
     press(KEY_O);
     Tests::waitUntilWindowsN(2);
     EXPECT_CONTAINS(getFromSocket("/submap"), "submap1");
+    EXPECT_NOT_CONTAINS(getFromSocket("/submap"), "submap2");
     // submap 3 resets to default
     press(KEY_I);
     EXPECT_CONTAINS(getFromSocket("/submap"), "submap3");
     press(KEY_O);
     Tests::waitUntilWindowsN(3);
     EXPECT_CONTAINS(getFromSocket("/submap"), "default");
+    EXPECT_NOT_CONTAINS(getFromSocket("/submap"), "submap3");
     // submap 1 reset via keybind
     press(KEY_U, MOD_META);
     EXPECT_CONTAINS(getFromSocket("/submap"), "submap1");
@@ -663,6 +665,29 @@ SUBTEST(submap) {
     Tests::waitUntilWindowsN(4);
     EXPECT_CONTAINS(getFromSocket("/submap"), "default");
     Tests::killAllWindows();
+}
+
+SUBTEST(multiSubmap) {
+    NLog::log("{}Testing multi-submaps", Colors::GREEN);
+
+    const auto press = [this](const uint32_t key, const uint32_t mod = 0) {
+        // +8 because udev -> XKB keycode.
+        OK(getFromSocket(pluginKeybindCmd(true, mod, key + 8)));
+        OK(getFromSocket(pluginKeybindCmd(false, mod, key + 8)));
+    };
+
+    press(KEY_Z, MOD_META);
+    ASSERT_CONTAINS(getFromSocket("/submap"), "multiSubReset");
+    EXPECT_CONTAINS(getFromSocket("/submap"), "multiSub1");
+    EXPECT_CONTAINS(getFromSocket("/submap"), "multiSub2");
+    EXPECT_CONTAINS(getFromSocket("/submap"), "multiSub3");
+
+    press(KEY_Z, MOD_META);
+    EXPECT_NOT_CONTAINS(getFromSocket("/submap"), "multiSub1");
+    EXPECT_NOT_CONTAINS(getFromSocket("/submap"), "multiSub2");
+    EXPECT_NOT_CONTAINS(getFromSocket("/submap"), "multiSub3");
+    EXPECT_NOT_CONTAINS(getFromSocket("/submap"), "multiSubReset");
+    EXPECT_CONTAINS(getFromSocket("/submap"), "default");
 }
 
 SUBTEST(submapMouseBinds) {
@@ -790,6 +815,41 @@ SUBTEST(perDeviceKeybind) {
     EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
 }
 
+SUBTEST(perDeviceSubmap) {
+    NLog::log("{}Testing per-device submaps", Colors::GREEN);
+
+    const auto press = [this](const uint32_t key, const uint32_t mod = 0) {
+        // +8 because udev -> XKB keycode.
+        OK(getFromSocket(pluginKeybindCmd(true, mod, key + 8)));
+        OK(getFromSocket(pluginKeybindCmd(false, mod, key + 8)));
+    };
+
+    NLog::log("{}Testing per-device submaps - Matching device name", Colors::MAGENTA);
+
+    OK(getFromSocket("/eval hl.bind('SUPER + y', hl.dsp.submap({ name = 'keyboard-submap' }))"));
+    press(KEY_Y, MOD_META);
+    EXPECT_CONTAINS(getFromSocket("/submap"), "keyboard-submap");
+    press(KEY_P);
+    EXPECT_CONTAINS(getFromSocket("/submap"), "default");
+    OK(getFromSocket("/eval hl.unbind('SUPER + y')"));
+
+    NLog::log("{}Testing per-device submaps - Matching device tag", Colors::MAGENTA);
+
+    OK(getFromSocket("/eval hl.bind('SUPER + y', hl.dsp.submap({ name = 'tag-submap' }))"));
+    press(KEY_Y, MOD_META);
+    EXPECT_CONTAINS(getFromSocket("/submap"), "tag-submap");
+    press(KEY_P);
+    EXPECT_CONTAINS(getFromSocket("/submap"), "default");
+    OK(getFromSocket("/eval hl.unbind('SUPER + y')"));
+
+    NLog::log("{}Testing per-device submaps - Non-matching device tag", Colors::MAGENTA);
+
+    OK(getFromSocket("/eval hl.bind('SUPER + y', hl.dsp.submap({ name = 'hidden-tag-submap' }))"));
+    press(KEY_Y, MOD_META);
+    EXPECT_CONTAINS(getFromSocket("/submap"), "default");
+    OK(getFromSocket("/eval hl.unbind('SUPER + y')"));
+}
+
 SUBTEST(unbind) {
     NLog::log("{}Testing unbind behavior", Colors::GREEN);
 
@@ -825,6 +885,8 @@ TEST_CASE(keybinds) {
     CALL_SUBTEST(shortcutRepeat);
     CALL_SUBTEST(shortcutRepeatKeyRelease);
     CALL_SUBTEST(submap);
+    CALL_SUBTEST(multiSubmap);
+    CALL_SUBTEST(perDeviceSubmap);
     CALL_SUBTEST(submapMouseBinds);
     CALL_SUBTEST(submapUniversal);
     CALL_SUBTEST(bindsAfterScroll);

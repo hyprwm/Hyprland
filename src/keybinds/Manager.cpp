@@ -25,6 +25,7 @@
 #include <cmath>
 #include <fcntl.h>
 #include <format>
+#include <string_view>
 
 #if defined(__linux__)
 #include <linux/vt.h>
@@ -146,6 +147,10 @@ PBind CKeybindManager::addBind(CBind&& bind) {
     return m_registry.add(std::move(bind));
 }
 
+PSubmap CKeybindManager::addSubmap(CSubmap&& submap) {
+    return m_registry.addSubmap(std::move(submap));
+};
+
 bool CKeybindManager::removeBind(const PBind& bind) {
     cancelTimedBinds();
     invokeReleaseCallbacks(m_inputState.takeReleaseCallbacks(bind));
@@ -219,6 +224,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> keyboard) {
     Config::Actions::state()->m_timeLastMs    = KEY_EVENT.timeMs;
     Config::Actions::state()->m_lastCode      = KEYCODE;
     Config::Actions::state()->m_lastMouseCode = 0;
+    Config::Actions::state()->m_lastDevice    = keyboard;
 
     const bool DRAG_WAS_ACTIVE = g_layoutManager->endDragTarget();
     cancelTimedBinds();
@@ -239,7 +245,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> keyboard) {
                 .capturedAtPress  = PROTO::inputCapture->isCaptured(),
                 .actionCode       = KEYCODE,
                 .actionTimeMs     = KEY_EVENT.timeMs,
-                .submapAtPress    = std::string{currentSubmap()},
+                .submapAtPress    = currentSubmap().snapshot(),
                 .positionAtPress  = Pointer::mgr()->untransformedPosition(),
                 .device           = keyboard,
             })) {
@@ -252,11 +258,11 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> keyboard) {
             {
                 .heldKeys         = m_inputState.heldKeys(),
                 .trigger          = KEY,
+                .submap           = &currentSubmap(),
                 .modifiersNow     = MODIFIERS,
                 .modifiersAtPress = MODIFIERS,
                 .pressed          = true,
                 .device           = keyboard,
-                .submap           = std::string{currentSubmap()},
             },
             keyboard, pressedInput);
 
@@ -275,11 +281,11 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> keyboard) {
             {
                 .heldKeys         = m_inputState.heldKeys(),
                 .trigger          = KEY,
+                .submap           = &currentSubmap(),
                 .modifiersNow     = MODIFIERS,
                 .modifiersAtPress = MODIFIERS,
                 .pressed          = false,
                 .device           = keyboard,
-                .submap           = std::string{currentSubmap()},
             },
             keyboard);
         return result.passEvent && !DRAG_WAS_ACTIVE;
@@ -297,11 +303,11 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> keyboard) {
         {
             .heldKeys         = m_inputState.heldKeys(),
             .trigger          = pressedInput->key,
+            .submap           = pressedInput->submapAtPress.get(),
             .modifiersNow     = MODIFIERS,
             .modifiersAtPress = pressedInput->modifiersAtPress,
             .pressed          = false,
             .device           = keyboard,
-            .submap           = pressedInput->submapAtPress,
         },
         keyboard, pressedInput);
     m_inputState.release(KEY, keyboard);
@@ -332,10 +338,10 @@ bool CKeybindManager::onAxisEvent(const IPointer::SAxisEvent& event, SP<IPointer
         {
             .heldKeys     = m_inputState.heldKeys(),
             .trigger      = KEY,
+            .submap       = &currentSubmap(),
             .modifiersNow = sc<ModifierMask>(g_pInputManager->getModsFromAllKBs()),
             .pressed      = true,
             .device       = pointer,
-            .submap       = std::string{currentSubmap()},
         },
         nullptr);
 
@@ -349,6 +355,7 @@ bool CKeybindManager::onMouseEvent(const IPointer::SButtonEvent& event, SP<IPoin
     Config::Actions::state()->m_lastMouseCode = event.button;
     Config::Actions::state()->m_lastCode      = 0;
     Config::Actions::state()->m_timeLastMs    = event.timeMs;
+    Config::Actions::state()->m_lastDevice    = pointer;
 
     const bool DRAG_WAS_ACTIVE = captured ? false : g_layoutManager->endDragTarget();
     cancelTimedBinds();
@@ -361,7 +368,7 @@ bool CKeybindManager::onMouseEvent(const IPointer::SButtonEvent& event, SP<IPoin
                 .capturedAtPress  = captured,
                 .actionMouseCode  = event.button,
                 .actionTimeMs     = event.timeMs,
-                .submapAtPress    = std::string{currentSubmap()},
+                .submapAtPress    = currentSubmap().snapshot(),
                 .positionAtPress  = Pointer::mgr()->untransformedPosition(),
                 .device           = pointer,
             })) {
@@ -374,11 +381,11 @@ bool CKeybindManager::onMouseEvent(const IPointer::SButtonEvent& event, SP<IPoin
             {
                 .heldKeys         = m_inputState.heldKeys(),
                 .trigger          = KEY,
+                .submap           = &currentSubmap(),
                 .modifiersNow     = MODIFIERS,
                 .modifiersAtPress = MODIFIERS,
                 .pressed          = true,
                 .device           = pointer,
-                .submap           = std::string{currentSubmap()},
             },
             nullptr, pressedInput);
 
@@ -404,11 +411,11 @@ bool CKeybindManager::onMouseEvent(const IPointer::SButtonEvent& event, SP<IPoin
         {
             .heldKeys         = m_inputState.heldKeys(),
             .trigger          = KEY,
+            .submap           = pressedInput->submapAtPress.get(),
             .modifiersNow     = MODIFIERS,
             .modifiersAtPress = pressedInput->modifiersAtPress,
             .pressed          = false,
             .device           = pointer,
-            .submap           = pressedInput->submapAtPress,
         },
         nullptr, pressedInput);
     m_inputState.release(KEY, pointer);
@@ -419,19 +426,19 @@ bool CKeybindManager::onMouseEvent(const IPointer::SButtonEvent& event, SP<IPoin
 void CKeybindManager::onSwitchEvent(const std::string& switchName) {
     const SResolvedKey KEY{.event = std::format("switch:{}", switchName)};
     cancelTimedBinds();
-    processEvent({.heldKeys = m_inputState.heldKeys(), .trigger = KEY, .pressed = true, .submap = std::string{currentSubmap()}}, nullptr);
+    processEvent({.heldKeys = m_inputState.heldKeys(), .trigger = KEY, .pressed = true}, nullptr);
 }
 
 void CKeybindManager::onSwitchOnEvent(const std::string& switchName) {
     const SResolvedKey KEY{.event = std::format("switch:on:{}", switchName)};
     cancelTimedBinds();
-    processEvent({.heldKeys = m_inputState.heldKeys(), .trigger = KEY, .pressed = true, .submap = std::string{currentSubmap()}}, nullptr);
+    processEvent({.heldKeys = m_inputState.heldKeys(), .trigger = KEY, .pressed = true}, nullptr);
 }
 
 void CKeybindManager::onSwitchOffEvent(const std::string& switchName) {
     const SResolvedKey KEY{.event = std::format("switch:off:{}", switchName)};
     cancelTimedBinds();
-    processEvent({.heldKeys = m_inputState.heldKeys(), .trigger = KEY, .pressed = true, .submap = std::string{currentSubmap()}}, nullptr);
+    processEvent({.heldKeys = m_inputState.heldKeys(), .trigger = KEY, .pressed = true}, nullptr);
 }
 
 void CKeybindManager::onDeviceRemoved(const SP<IHID>& device) {
@@ -599,7 +606,6 @@ SBindResult CKeybindManager::invokeBind(const PBind& bind, bool pressed, SPresse
             state.m_requestBindRelease = false;
     });
 
-    const std::string             SUBMAP_BEFORE{currentSubmap()};
     auto                          result = bind->invoke();
     if (actionState.m_requestBindRelease)
         result.followUp = BIND_FOLLOW_UP_TRIGGER_RELEASE;
@@ -611,9 +617,13 @@ SBindResult CKeybindManager::invokeBind(const PBind& bind, bool pressed, SPresse
     } else if (!INPUT_KEY && pressed && result.followUp == BIND_FOLLOW_UP_TRIGGER_RELEASE)
         invokeBind(bind, false);
 
-    const auto& RESET = bind->metadata().submapReset;
-    if (!RESET.empty() && SUBMAP_BEFORE == currentSubmap())
-        Config::Actions::setSubmap(RESET);
+    const std::string& SUBMAP = bind->metadata().submap;
+    const std::string& RESET  = bind->metadata().submapReset;
+
+    if (!RESET.empty() && m_registry.hasSubmap(SUBMAP)) {
+        Config::Actions::setSubmap(Config::Actions::eSubmapAction::SUBMAP_ACTION_DISABLE, SUBMAP);
+        Config::Actions::setSubmap(Config::Actions::eSubmapAction::SUBMAP_ACTION_ENABLE, RESET);
+    }
 
     return result;
 }
@@ -624,22 +634,26 @@ void CKeybindManager::invokeReleaseCallbacks(std::vector<SPendingRelease>&& rele
         const auto PREVIOUS_CODE      = state.m_lastCode;
         const auto PREVIOUS_MOUSECODE = state.m_lastMouseCode;
         const auto PREVIOUS_TIME      = state.m_timeLastMs;
+        const auto PREVIOUS_DEVICE    = state.m_lastDevice;
         state.m_lastCode              = release.actionCode;
         state.m_lastMouseCode         = release.actionMouseCode;
         state.m_timeLastMs            = release.actionTimeMs;
-        Hyprutils::Utils::CScopeGuard guard([&state, PREVIOUS_CODE, PREVIOUS_MOUSECODE, PREVIOUS_TIME] {
+        state.m_lastDevice            = release.device;
+        Hyprutils::Utils::CScopeGuard guard([&state, PREVIOUS_CODE, PREVIOUS_MOUSECODE, PREVIOUS_TIME, PREVIOUS_DEVICE] {
             state.m_lastCode      = PREVIOUS_CODE;
             state.m_lastMouseCode = PREVIOUS_MOUSECODE;
             state.m_timeLastMs    = PREVIOUS_TIME;
+            state.m_lastDevice    = PREVIOUS_DEVICE;
         });
         invokeBind(release.bind, false, m_inputState.find(release.key, release.device.lock()));
     }
 }
 
 void CKeybindManager::invokeDeferredBinds(const SResolvedKey& key, const SP<IHID>& device, const SP<IKeyboard>& keyboard) {
-    const auto KEY    = key;
-    const auto DEVICE = device;
-    auto*      input  = m_inputState.find(KEY, DEVICE);
+    const auto     KEY    = key;
+    const auto     DEVICE = device;
+    CSubmapContext emptySubmapContext;
+    auto*          input = m_inputState.find(KEY, DEVICE);
     if (!input)
         return;
 
@@ -667,6 +681,7 @@ void CKeybindManager::invokeDeferredBinds(const SResolvedKey& key, const SP<IHID
             const SBindEventContext context{
                 .heldKeys = m_inputState.heldKeys(),
                 .trigger  = KEY,
+                .submap   = &emptySubmapContext,
             };
             suppressSubChords(bind, context);
             input = m_inputState.find(KEY, DEVICE);
@@ -779,11 +794,11 @@ void CKeybindManager::shadowBinds(const std::optional<SResolvedKey>& excluded, c
             const SBindEventContext CONTEXT{
                 .heldKeys         = m_inputState.heldKeys(),
                 .trigger          = input.key,
+                .submap           = input.submapAtPress.get(),
                 .modifiersNow     = MODIFIERS,
                 .modifiersAtPress = input.modifiersAtPress,
                 .pressed          = !MATCH_RELEASE,
                 .device           = device,
-                .submap           = input.submapAtPress,
             };
 
             if (bind->matches(CONTEXT) == BIND_MATCH_FULL) {
@@ -814,7 +829,7 @@ const CInputState& CKeybindManager::inputState() const {
     return m_inputState;
 }
 
-std::string_view CKeybindManager::currentSubmap() const {
+CSubmapContext& CKeybindManager::currentSubmap() const {
     return Config::Actions::state()->m_currentSubmap;
 }
 

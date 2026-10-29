@@ -8,26 +8,25 @@
 #include <optional>
 #include <functional>
 #include <span>
-#include <string>
 #include <vector>
 
 namespace Keybinds {
 
     struct SPressedInput {
-        SResolvedKey           key;
-        Input::ModifierMask    modifiersAtPress = Input::HL_MODIFIER_NONE;
-        bool                   forwarded        = true;
-        bool                   capturedAtPress  = false;
-        uint32_t               actionCode       = 0;
-        uint32_t               actionMouseCode  = 0;
-        uint32_t               actionTimeMs     = 0;
-        std::string            submapAtPress;
-        Vector2D               positionAtPress;
-        WP<IHID>               device;
-        std::vector<WP<CBind>> releaseCallbacks;
-        std::vector<WP<CBind>> deferredBinds;
-        std::vector<WP<CBind>> suppressedBinds;
-        std::vector<WP<CBind>> armedReleaseBinds;
+        SResolvedKey                        key;
+        Input::ModifierMask                 modifiersAtPress = Input::HL_MODIFIER_NONE;
+        bool                                forwarded        = true;
+        bool                                capturedAtPress  = false;
+        uint32_t                            actionCode       = 0;
+        uint32_t                            actionMouseCode  = 0;
+        uint32_t                            actionTimeMs     = 0;
+        SP<Config::Actions::CSubmapContext> submapAtPress;
+        Vector2D                            positionAtPress;
+        WP<IHID>                            device;
+        std::vector<WP<CBind>>              releaseCallbacks;
+        std::vector<WP<CBind>>              deferredBinds;
+        std::vector<WP<CBind>>              suppressedBinds;
+        std::vector<WP<CBind>>              armedReleaseBinds;
     };
 
     struct SPendingRelease {

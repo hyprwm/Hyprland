@@ -1737,22 +1737,95 @@ ActionResult Actions::mouse(const std::string& action) {
     return {};
 }
 
-ActionResult Actions::setSubmap(const std::string& submap) {
-    if (submap == "reset" || submap.empty()) {
-        Config::Actions::state()->m_currentSubmap = "";
-        IPC::Socket2::sock()->postEvent({.event = "submap", .data = ""});
-        Event::bus()->m_events.keybinds.submap.emit(std::string(""));
+static inline std::pair<bool, std::optional<const Keybinds::PSubmap>> findSubmap(std::string_view name) {
+    const auto  DEVICE   = Config::Actions::state()->m_lastDevice;
+    const auto& REGISTRY = Keybinds::mgr()->registry();
+
+    auto        match  = REGISTRY.findSubmap(name, DEVICE);
+    bool        exists = match.has_value() || REGISTRY.hasSubmap(name);
+
+    return {exists, match};
+}
+
+static ActionResult turnOnSubmap(const std::string& submap) {
+    const auto [EXISTS, REFERENCE] = findSubmap(submap);
+
+    if (!REFERENCE && !EXISTS)
+        return std::unexpected(std::format("Cannot set submap {}, submap doesn't exist (wasn't registered!)", submap));
+    else if (!REFERENCE)
         return {};
+
+    Config::Actions::state()->m_currentSubmap.add(Keybinds::PSubmap(*REFERENCE));
+    // NOTE: we should define later seperate events for each submap action.
+    //       for now, we'll just follow the current submap event API
+    IPC::Socket2::sock()->postEvent({.event = "submap", .data = submap});
+    Event::bus()->m_events.keybinds.submap.emit(std::string(submap));
+    return {};
+}
+
+static ActionResult turnOffSubmap(const std::string& submap) {
+    const auto [EXISTS, REFERENCE] = findSubmap(submap);
+
+    if (!REFERENCE && !EXISTS)
+        return std::unexpected(std::format("Cannot unset submap {}, submap doesn't exist (wasn't registered!)", submap));
+    else if (!REFERENCE)
+        return {};
+
+    // should we raise an error if submap was not active?
+
+    Config::Actions::state()->m_currentSubmap.remove(*REFERENCE);
+    IPC::Socket2::sock()->postEvent({.event = "submap", .data = submap});
+    Event::bus()->m_events.keybinds.submap.emit(std::string(submap));
+    return {};
+}
+
+static ActionResult toggleSubmap(const std::string& submap) {
+    const auto [EXISTS, REFERENCE] = findSubmap(submap);
+
+    if (!REFERENCE && !EXISTS)
+        return std::unexpected(std::format("Cannot toggle submap {}, submap doesn't exist (wasn't registered!)", submap));
+    else if (!REFERENCE)
+        return {};
+
+    Config::Actions::state()->m_currentSubmap.toggle(Keybinds::PSubmap(*REFERENCE));
+    IPC::Socket2::sock()->postEvent({.event = "submap", .data = submap});
+    Event::bus()->m_events.keybinds.submap.emit(std::string(submap));
+    return {};
+}
+
+static ActionResult resetSubmaps() {
+    Config::Actions::state()->m_currentSubmap.reset();
+    IPC::Socket2::sock()->postEvent({.event = "submap", .data = ""});
+    Event::bus()->m_events.keybinds.submap.emit(std::string(""));
+    return {};
+}
+
+static ActionResult unisetSubmap(const std::string& submap) {
+    const auto [EXISTS, REFERENCE] = findSubmap(submap);
+
+    if (!REFERENCE && !EXISTS)
+        return std::unexpected(std::format("Cannot set submap {}, submap doesn't exist (wasn't registered!)", submap));
+    else if (!REFERENCE)
+        return {};
+
+    Config::Actions::state()->m_currentSubmap.uniset(Keybinds::PSubmap(*REFERENCE));
+    IPC::Socket2::sock()->postEvent({.event = "submap", .data = submap});
+    Event::bus()->m_events.keybinds.submap.emit(std::string(submap));
+    return {};
+}
+
+ActionResult Actions::setSubmap(eSubmapAction action, const std::string& submap) {
+    if (submap == "reset") {
+        return resetSubmaps();
     }
 
-    if (Keybinds::mgr()->registry().hasSubmap(submap)) {
-        Config::Actions::state()->m_currentSubmap = submap;
-        IPC::Socket2::sock()->postEvent({.event = "submap", .data = submap});
-        Event::bus()->m_events.keybinds.submap.emit(submap);
-        return {};
+    switch (action) {
+        case eSubmapAction::SUBMAP_ACTION_ENABLE: return turnOnSubmap(submap);
+        case eSubmapAction::SUBMAP_ACTION_DISABLE: return turnOffSubmap(submap);
+        case eSubmapAction::SUBMAP_ACTION_TOGGLE: return toggleSubmap(submap);
+        case eSubmapAction::SUBMAP_ACTION_UNISET:
+        default: return unisetSubmap(submap);
     }
-
-    return std::unexpected(std::format("Cannot set submap {}, submap doesn't exist (wasn't registered!)", submap));
 }
 
 ActionResult Actions::cycleNext(const bool next, std::optional<bool> onlyTiled, std::optional<bool> onlyFloating, std::optional<PHLWINDOW> w) {
@@ -1843,4 +1916,8 @@ ActionResult Actions::moveIntoOrCreateGroup(Math::eDirection dir, std::optional<
 ActionResult Actions::releaseInputCapture() {
     PROTO::inputCapture->forceRelease();
     return {};
+}
+
+void CActionState::clear() {
+    m_currentSubmap.reset();
 }

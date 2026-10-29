@@ -2,7 +2,9 @@
 
 #include "InputState.hpp"
 #include "Registry.hpp"
+#include "Submap.hpp"
 
+#include "../config/shared/actions/ConfigActions.hpp"
 #include "../devices/IPointer.hpp"
 #include "../helpers/time/Timer.hpp"
 #include "../managers/eventLoop/EventLoopTimer.hpp"
@@ -14,12 +16,15 @@ class IKeyboard;
 
 namespace Keybinds {
 
+    using CSubmapContext = Config::Actions::CSubmapContext;
+
     class CKeybindManager {
       public:
         CKeybindManager();
         ~CKeybindManager();
 
         PBind              addBind(CBind&& bind);
+        PSubmap            addSubmap(CSubmap&& submap);
         bool               removeBind(const PBind& bind);
         size_t             removeBinds(std::string_view displayKey);
         void               clearBinds();
@@ -40,7 +45,7 @@ namespace Keybinds {
         const CRegistry&   registry() const;
         CInputState&       inputState();
         const CInputState& inputState() const;
-        std::string_view   currentSubmap() const;
+        CSubmapContext&    currentSubmap() const;
 
       private:
         struct STimedBatch {

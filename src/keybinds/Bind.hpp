@@ -7,6 +7,7 @@
 #include <type_traits>
 #include <functional>
 #include <optional>
+#include <span>
 
 #include "Key.hpp"
 

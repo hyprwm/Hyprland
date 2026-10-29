@@ -921,6 +921,8 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
 
     m_pixelSize = m_size;
 
+    m_output->state->setMaxBpc(RULE->m_enable10bit ? 10 : 8);
+
     static constexpr auto formats10bit = std::to_array<uint32_t>({DRM_FORMAT_XRGB2101010, DRM_FORMAT_XBGR2101010});
     static constexpr auto formats8bit  = std::to_array<uint32_t>({DRM_FORMAT_XRGB8888, DRM_FORMAT_XBGR8888});
 

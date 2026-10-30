@@ -888,7 +888,7 @@ void CWindow::requestClientFullscreen(const SClientFullscreenRequest& request) {
             if (!BACKEND_REQUEST || !m_fullscreenPolicy->consumeExpectedMaximizeEcho(request.maximized.value())) {
                 const auto WINDOW       = m_self.lock();
                 const auto CLIENT_STATE = Fullscreen::controller()->getFullscreenModes(WINDOW).client;
-                if (request.maximized.value())
+                if (request.maximized.value() && CLIENT_STATE != Fullscreen::FSMODE_FULLSCREEN)
                     Fullscreen::controller()->setFullscreenMode(WINDOW, std::nullopt, Fullscreen::FSMODE_MAXIMIZED);
                 else if (CLIENT_STATE == Fullscreen::FSMODE_MAXIMIZED)
                     Fullscreen::controller()->setFullscreenMode(WINDOW, std::nullopt, Fullscreen::FSMODE_NONE);

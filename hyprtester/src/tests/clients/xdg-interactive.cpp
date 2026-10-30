@@ -6,6 +6,7 @@
 
 #include <hyprutils/os/FileDescriptor.hpp>
 #include <hyprutils/os/Process.hpp>
+#include <hyprutils/utils/ScopeGuard.hpp>
 
 #include <array>
 #include <chrono>

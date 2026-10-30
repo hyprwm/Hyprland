@@ -1864,6 +1864,10 @@ double CScrollingAlgorithm::normalizedTapeOffset() {
     return m_scrollingData->controller->getOffset() / primary;
 }
 
+double CScrollingAlgorithm::getScrollingTapeOffset() {
+    return m_scrollingData->controller->getOffset();
+}
+
 std::optional<Vector2D> CScrollingAlgorithm::predictSizeForNewTarget() {
     return std::nullopt;
 }

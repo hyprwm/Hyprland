@@ -30,19 +30,33 @@ namespace Config::Values {
         };
     }
 
+    // Takes a list of string choices for values.
+    // putting * at the end makes it a prefix.
     inline auto strChoice(std::vector<std::string> rawVec) {
         return [vec = std::move(rawVec)](const Config::STRING& v) -> std::expected<void, std::string> {
-            if (!std::ranges::contains(vec, v)) {
-                std::string allowed = "";
-                for (const auto& e : vec) {
-                    allowed += std::format("\"{}\", ", e);
+            for (const auto& e : vec) {
+                if (e.empty())
+                    continue;
+
+                if (e.back() == '*') {
+                    if (v.starts_with(std::string_view{e}.substr(0, e.length() - 1)))
+                        return {}; // pass
+                    continue;
                 }
 
-                allowed.resize(allowed.size() - 2);
-
-                return std::unexpected(std::format("bad value \"{}\", allowed values are: {}", v, allowed));
+                if (e == v)
+                    return {}; // pass
             }
-            return {};
+
+            // bad input
+            std::string allowed = "";
+            for (const auto& e : vec) {
+                allowed += std::format("\"{}\", ", e);
+            }
+
+            allowed.resize(allowed.size() - 2);
+
+            return std::unexpected(std::format("bad value \"{}\", allowed values are: {}", v, allowed));
         };
     }
 

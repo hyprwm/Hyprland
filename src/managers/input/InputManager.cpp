@@ -613,7 +613,14 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
             allowKeyboardRefocus = false;
     }
 
-    // set the values for use
+
+    if (!overridePos.has_value()) {
+        g_pSeatManager->setPointerFocus(foundSurface, surfaceLocal);
+        if (!m_pointerConstraints.apply(time, mouseCoords))
+            g_pSeatManager->sendPointerMotion(time, surfaceLocal);
+    }
+
+    // set the values for use ---- NEED TO TAP THE WINDOW BEFORE THIS SO THE SUBSEQUENT VALUES LIKE CURSOR TYPE ARE PROPERLY OBTAINED
     if (refocus) {
         m_foundLSToFocus      = pFoundLayerSurface;
         m_foundWindowToFocus  = pFoundWindow;
@@ -646,7 +653,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
             m_borderIconDirection = BORDERICON_NONE;
             Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_WINDOW_EDGE);
         }
-
+        // this place needs examination
         if (FOLLOWMOUSE != 1 && !refocus) {
             if (pFoundWindow != Desktop::focusState()->window() && Desktop::focusState()->window() &&
                 ((pFoundWindow->isFloating() && *PFLOATBEHAVIOR == 2) || (Desktop::focusState()->window()->isFloating() != pFoundWindow->isFloating() && *PFLOATBEHAVIOR != 0))) {
@@ -708,12 +715,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
         if (pFoundLayerSurface)
             m_lastFocusOnLS = true;
-    }
-
-    if (!overridePos.has_value()) {
-        g_pSeatManager->setPointerFocus(foundSurface, surfaceLocal);
-        if (!m_pointerConstraints.apply(time, mouseCoords))
-            g_pSeatManager->sendPointerMotion(time, surfaceLocal);
     }
 }
 

@@ -12,10 +12,10 @@
 
 using namespace Hyprutils::Utils;
 
-static constexpr const char* TEST_MONITOR_LEFT  = "HEADLESS-2";
-static constexpr const char* TEST_MONITOR_RIGHT = "HYPRTEST-REFACTOR-R";
+#define TEST_MONITOR_LEFT  "HEADLESS-2"
+#define TEST_MONITOR_RIGHT "HYPRTEST-REFACTOR-R"
 
-static bool                  waitForMonitorAvailable(const std::string& name) {
+static bool waitForMonitorAvailable(const std::string& name) {
     for (int i = 0; i < 50; ++i) {
         if (getFromSocket("/monitors all").contains(name))
             return true;
@@ -318,4 +318,74 @@ TEST_CASE(cursorWarpFocusOnMonitorChange) {
     CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, true, 2, 0, false);
     CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, true, 2, 1, false);
     CALL_SUBTEST(checkCursorWarpWhenSwitchingMonitor, true, 2, 2, true);
+}
+
+// 1. Note that this test currently passes for a BUGGY BEHAVIOR! If it is failing for you,
+//    maybe you fixed the bug! Or, possibly, just changed the way that bug manifestates.
+//    Feel free to ping @kolayne for help/comments if anything is unclear.
+// 2. Once the test `cursorWarpFocusOnMonitorChange` and subtest `checkCursorWarpWhenSwitchingMonitor`
+//    are complete (i.e., there are no more TODOs and commented out blocks of code in them), this test
+//    can be removed, since `cursorWarpFocusOnMonitorChange` will then become a generalized version of this.
+// 3. If you modify this test, please invite @kolayne to review your PR!
+//
+// This test case triggers a scenario where the compositor's focus state is not updated correctly, as observed
+// with unexpected cursor warp behavior. See the comments in the function for details.
+TEST_CASE(inconsistentHlDspFocus) {
+    CScopeGuard guard = {[&]() { cleanupRefactorStateMonitors(); }};
+    ASSERT(prepareRefactorStateMonitors(), true);
+
+    OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", TEST_MONITOR_RIGHT)));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '301' })"));
+    SPAWN_KITTY("kitty301");
+    OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", TEST_MONITOR_LEFT)));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '300' })"));
+    SPAWN_KITTY("kitty300");
+
+    // One of the configurations for which the bug is triggered.
+    OK(getFromSocket("/eval hl.config({ cursor = { no_warps = true, warp_on_change_workspace = 2 } })"));
+
+    auto resp = getFromSocket("/activeworkspace");
+    ASSERT_CONTAINS(resp, "workspace 300 (");
+    ASSERT_CONTAINS(resp, ") on monitor " TEST_MONITOR_LEFT);
+
+    // Move cursor to 5,5, then focus the other workspace with `hl.dsp.focus({ **workspace** = ... })` - works correctly in both ways
+    // Way 1, 300 -> 301
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 5, y = 5 })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 301 })"));
+    resp = getFromSocket("/activeworkspace");
+    ASSERT_CONTAINS(resp, "workspace 301 (");
+    ASSERT_CONTAINS(resp, ") on monitor " TEST_MONITOR_RIGHT);
+    EXPECT_NOT(getFromSocket("/cursorpos"), "5, 5"); // Expected behavior ✅
+    // Way 2, 301 -> 300
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 5, y = 5 })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 300 })"));
+    resp = getFromSocket("/activeworkspace");
+    ASSERT_CONTAINS(resp, "workspace 300 (");
+    ASSERT_CONTAINS(resp, ") on monitor " TEST_MONITOR_LEFT);
+    EXPECT_NOT(getFromSocket("/cursorpos"), "5, 5"); // Expected behavior ✅
+
+    // Now, do the exact same thing, but with `hl.dsp.focus({ **window** = ... })` - fails in one way
+    // Way 1, 300 -> 301
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 5, y = 5 })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty301' })"));
+    resp = getFromSocket("/activeworkspace");
+    ASSERT_CONTAINS(resp, "workspace 301 (");
+    ASSERT_CONTAINS(resp, ") on monitor " TEST_MONITOR_RIGHT);
+    EXPECT_NOT(getFromSocket("/cursorpos"), "5, 5"); // Expected behavior ✅
+    // Way 2, 301 -> 300
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 5, y = 5 })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty300' })"));
+    resp = getFromSocket("/activeworkspace");
+    ASSERT_CONTAINS(resp, "workspace 300 (");
+    ASSERT_CONTAINS(resp, ") on monitor " TEST_MONITOR_LEFT);
+    EXPECT(getFromSocket("/cursorpos"), "5, 5"); // WRONG BEHAVIOR! ❌
+    // EXPECT_NOT(getFromSocket("/cursorpos"), "5, 5"); // Expected behavior ✅
+
+    // See? We are doing four seemingly identical things switching back and forth between
+    // two identically configured workspaces. And the cursor behavior is the same in three
+    // cases, but the fourth one fails.
+    //
+    // This originates from the fact that (at the time of writing) the refocusing code in the compositor
+    // (the one that handles the `hl.dsp.focus` dispatcher) is very different for when focusing a workspace,
+    // a window, and a monitor. After they are unified, this behavior should be fixed.
 }

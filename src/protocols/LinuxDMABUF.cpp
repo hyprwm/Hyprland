@@ -556,8 +556,12 @@ void CLinuxDMABufV1Protocol::resetFormatTable() {
     // this might be a big copy
     auto newFormatTable = makeUnique<CDMABUFFormatTable>(m_formatTable->m_rendererTranche, m_formatTable->m_monitorTranches);
 
+    // Feedback helpers must use indices from the table being sent. Keep the old
+    // table alive until all replacement feedback has been queued.
+    std::swap(m_formatTable, newFormatTable);
+
     for (auto const& feedback : m_feedbacks) {
-        feedback->m_resource->sendFormatTable(newFormatTable->m_tableFD.get(), newFormatTable->m_tableSize);
+        feedback->m_resource->sendFormatTable(m_formatTable->m_tableFD.get(), m_formatTable->m_tableSize);
         if (feedback->m_lastFeedbackWasScanout) {
             PHLMONITOR mon;
             auto       HLSurface = Desktop::View::CWLSurface::fromResource(feedback->m_surface);
@@ -574,14 +578,11 @@ void CLinuxDMABufV1Protocol::resetFormatTable() {
                 continue;
             }
 
-            updateScanoutTranche(feedback->m_surface, mon);
+            feedback->sendScanoutFeedback(mon);
         } else {
             feedback->sendDefaultFeedback();
         }
     }
-
-    // delete old table after we sent new one
-    m_formatTable = std::move(newFormatTable);
 }
 
 void CLinuxDMABufV1Protocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
@@ -611,31 +612,28 @@ void CLinuxDMABufV1Protocol::destroyResource(CLinuxDMABuffer* resource) {
 }
 
 void CLinuxDMABufV1Protocol::updateScanoutTranche(SP<CWLSurfaceResource> surface, PHLMONITOR pMonitor) {
-    WP<CLinuxDMABUFFeedbackResource> feedbackResource;
     for (auto const& f : m_feedbacks) {
         if (f->m_surface != surface)
             continue;
 
-        feedbackResource = f;
-        break;
+        f->sendScanoutFeedback(pMonitor);
     }
+}
 
-    if (!feedbackResource) {
-        LOG(Log::DEBUG, "updateScanoutTranche: surface has no dmabuf_feedback");
-        return;
-    }
-
+void CLinuxDMABUFFeedbackResource::sendScanoutFeedback(PHLMONITOR pMonitor) {
     if (!pMonitor) {
         LOG(Log::DEBUG, "updateScanoutTranche: resetting feedback");
-        feedbackResource->sendDefaultFeedback();
+        sendDefaultFeedback();
         return;
     }
 
+    auto&       formatTable = PROTO::linuxDma->m_formatTable;
     const auto& monitorTranchePair =
-        std::ranges::find_if(m_formatTable->m_monitorTranches, [pMonitor](std::pair<PHLMONITORREF, SDMABUFTranche> pair) { return pair.first == pMonitor; });
+        std::ranges::find_if(formatTable->m_monitorTranches, [pMonitor](std::pair<PHLMONITORREF, SDMABUFTranche> pair) { return pair.first == pMonitor; });
 
-    if (monitorTranchePair == m_formatTable->m_monitorTranches.end()) {
+    if (monitorTranchePair == formatTable->m_monitorTranches.end()) {
         LOG(Log::DEBUG, "updateScanoutTranche: monitor has no tranche");
+        sendDefaultFeedback();
         return;
     }
 
@@ -643,20 +641,21 @@ void CLinuxDMABufV1Protocol::updateScanoutTranche(SP<CWLSurfaceResource> surface
 
     LOG(Log::DEBUG, "updateScanoutTranche: sending a scanout tranche");
 
-    struct wl_array deviceArr = {
-        .size = sizeof(m_mainDevice),
-        .data = sc<void*>(&m_mainDevice),
+    auto            mainDevice = PROTO::linuxDma->m_mainDevice;
+    struct wl_array deviceArr  = {
+        .size = sizeof(mainDevice),
+        .data = sc<void*>(&mainDevice),
     };
-    feedbackResource->m_resource->sendMainDevice(&deviceArr);
+    m_resource->sendMainDevice(&deviceArr);
 
-    // prioritize scnaout tranche but have renderer fallback tranche
+    // prioritize scanout tranche but have renderer fallback tranche
     // also yes formats can be duped here because different tranche flags (ds and no ds)
-    feedbackResource->sendTranche(monitorTranche);
-    feedbackResource->sendTranche(m_formatTable->m_rendererTranche);
+    sendTranche(monitorTranche);
+    sendTranche(formatTable->m_rendererTranche);
 
-    feedbackResource->m_resource->sendDone();
+    m_resource->sendDone();
 
-    feedbackResource->m_lastFeedbackWasScanout = true;
+    m_lastFeedbackWasScanout = true;
 }
 
 dev_t CLinuxDMABufV1Protocol::getMainDevice() {

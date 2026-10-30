@@ -86,6 +86,7 @@ class CLinuxDMABUFFeedbackResource {
 
     bool                   good();
     void                   sendDefaultFeedback();
+    void                   sendScanoutFeedback(PHLMONITOR monitor);
     void                   sendTranche(SDMABUFTranche& tranche);
 
     SP<CWLSurfaceResource> m_surface; // optional, for surface feedbacks
@@ -140,6 +141,7 @@ class CLinuxDMABufV1Protocol : public IWaylandProtocol {
     friend class CLinuxDMABUFFeedbackResource;
     friend class CLinuxDMABUFParamsResource;
     friend class CLinuxDMABuffer;
+    friend class CDMABUFFeedbackTest;
 };
 
 namespace PROTO {

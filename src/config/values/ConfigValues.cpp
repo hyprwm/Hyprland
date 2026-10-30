@@ -365,7 +365,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Float>("input:sensitivity", "Sets the mouse input sensitivity. Value is clamped to the range -1.0 to 1.0.", 0,
                   {.min = -1, .max = 1, .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<String>("input:accel_profile", "Sets the cursor acceleration profile. [adaptive/flat/custom]", STRVAL_EMPTY,
-                   {.validator = strChoice({"adaptive", "flat", "custom"}), .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
+                   {.validator = strChoice({"adaptive", "flat", "custom"}, true), .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<Bool>("input:force_no_accel", "Force no cursor acceleration.", false, {.refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<Int>("input:rotation", "Sets the rotation of a device in degrees clockwise. Value is clamped to the range 0 to 359.", 0,
                 {.min = 0, .max = 359, .refresh = Supplementary::REFRESH_INPUT_DEVICES}),

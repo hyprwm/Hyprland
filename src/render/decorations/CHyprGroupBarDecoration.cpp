@@ -201,7 +201,7 @@ void CHyprGroupBarDecoration::draw(Render::CRenderContext& ctx, PHLMONITOR pMoni
         rect = {ASSIGNEDBOX.x + xoff - pMonitor->m_position.x + FLOATING_OFFSET.x,
                 ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - ONEBARHEIGHT - pMonitor->m_position.y + FLOATING_OFFSET.y, m_barWidth,
                 (*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0)};
-        rect.scale(pMonitor->m_scale);
+        rect.scale(pMonitor->m_scale).round();
 
         if (!rect.empty()) {
             if (*PGRADIENTS) {
@@ -552,7 +552,7 @@ CBox CHyprGroupBarDecoration::assignedBoxGlobal(const Render::SWindowRenderPrese
 
     box.translate(presentation.workspaceOffset);
 
-    return box.round();
+    return box;
 }
 
 bool CHyprGroupBarDecoration::visible() {

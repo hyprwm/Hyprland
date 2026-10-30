@@ -36,7 +36,7 @@ CBox CSurfacePassElement::getTexBox() {
         // center the surface if it's smaller than the viewport we assign it
         if (PSURFACE && !PSURFACE->m_fillIgnoreSmall && PSURFACE->small() /* guarantees PWINDOW */) {
             const auto CORRECT  = PSURFACE->correctSmallVec();
-            const auto SIZE     = PSURFACE->getViewporterCorrectedSize();
+            const auto SIZE     = PSURFACE->resource()->m_current.size;
             const auto REPORTED = PWINDOW->backend().reportedSize();
 
             if (!INTERACTIVERESIZEINPROGRESS) {

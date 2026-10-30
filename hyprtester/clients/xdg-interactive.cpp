@@ -47,6 +47,7 @@ struct SWlState {
     uint32_t                       lastButtonSerial   = 0;
     bool                           requestActive      = false;
     bool                           resizing           = false;
+    bool                           fullscreen         = false;
     uint32_t                       leaveAfterRequest  = 0;
     uint32_t                       motionAfterRequest = 0;
     uint32_t                       buttonPresses      = 0;
@@ -229,7 +230,8 @@ static bool setupToplevel(SWlState& state) {
         if (started && RESIZING != state.resizing)
             clientLog("configure resizing={}", RESIZING ? 1 : 0);
 
-        state.resizing = RESIZING;
+        state.resizing   = RESIZING;
+        state.fullscreen = stateArrayContains(arr, XDG_TOPLEVEL_STATE_FULLSCREEN);
     });
 
     state.xdgSurf->setConfigure([&](CCXdgSurface* p, uint32_t serial) {
@@ -355,9 +357,27 @@ static void parseRequest(SWlState& state, std::string req) {
         uint32_t edge = 0;
         iss >> edge;
         requestResize(state, state.lastButtonSerial, static_cast<xdgToplevelResizeEdge>(edge));
+    } else if (command == "set-maximized" || command == "unset-maximized") {
+        if (command == "set-maximized")
+            state.xdgToplevel->sendSetMaximized();
+        else
+            state.xdgToplevel->sendUnsetMaximized();
+
+        // An unchanged-state assertion must wait until the compositor has handled the request.
+        if (wl_display_roundtrip(state.display) < 0) {
+            shouldExit = true;
+            return;
+        }
+
+        clientLog("completed {}", command);
     } else if (command == "status") {
-        clientLog("status leave={} motion_after_request={} last_button={} button_presses={} resizing={}", state.leaveAfterRequest, state.motionAfterRequest, state.lastButtonSerial,
-                  state.buttonPresses, state.resizing ? 1 : 0);
+        if (wl_display_roundtrip(state.display) < 0) {
+            shouldExit = true;
+            return;
+        }
+
+        clientLog("status leave={} motion_after_request={} last_button={} button_presses={} resizing={} fullscreen={}", state.leaveAfterRequest, state.motionAfterRequest,
+                  state.lastButtonSerial, state.buttonPresses, state.resizing ? 1 : 0, state.fullscreen ? 1 : 0);
     }
 }
 

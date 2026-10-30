@@ -555,8 +555,6 @@ int main(int argc, char** argv) {
         exitStatus = request(fullRequest, 1);
     else if (fullRequest.contains("/dispatch"))
         exitStatus = request(fullRequest, 1);
-    else if (fullRequest.contains("/keyword"))
-        exitStatus = request(fullRequest, 2);
     else if (fullRequest.contains("/decorations"))
         exitStatus = request(fullRequest, 1);
     else if (fullRequest.contains("/eval"))

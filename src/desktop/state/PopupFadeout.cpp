@@ -16,8 +16,8 @@ using namespace Desktop;
 using namespace Desktop::View;
 
 static bool shouldBlurPopup() {
-    static CConfigValue PBLURPOPUPS = CConfigValue<Config::INTEGER>("decoration:blur:popups");
-    static CConfigValue PBLUR       = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
+    static CConfigValue PBLURPOPUPS = CConfigValue<Config::BOOL>("decoration:blur:popups");
+    static CConfigValue PBLUR       = CConfigValue<Config::BOOL>("decoration:blur:enabled");
 
     return *PBLURPOPUPS && *PBLUR;
 }

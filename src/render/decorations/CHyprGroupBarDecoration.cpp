@@ -29,8 +29,8 @@ static SP<ITexture> m_tGradientLockedInactive;
 constexpr int       BAR_TEXT_PAD = 2;
 
 CHyprGroupBarDecoration::CHyprGroupBarDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_window(pWindow) {
-    static auto PENABLED   = CConfigValue<Config::INTEGER>("group:groupbar:enabled");
-    static auto PGRADIENTS = CConfigValue<Config::INTEGER>("group:groupbar:gradients");
+    static auto PENABLED   = CConfigValue<Config::BOOL>("group:groupbar:enabled");
+    static auto PGRADIENTS = CConfigValue<Config::BOOL>("group:groupbar:gradients");
 
     if (*PENABLED && *PGRADIENTS)
         refreshGroupBarGradients();
@@ -40,12 +40,12 @@ SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
     static auto                PHEIGHT          = CConfigValue<Config::INTEGER>("group:groupbar:height");
     static auto                PINDICATORGAP    = CConfigValue<Config::INTEGER>("group:groupbar:indicator_gap");
     static auto                PINDICATORHEIGHT = CConfigValue<Config::INTEGER>("group:groupbar:indicator_height");
-    static auto                PRENDERTITLES    = CConfigValue<Config::INTEGER>("group:groupbar:render_titles");
-    static auto                PGRADIENTS       = CConfigValue<Config::INTEGER>("group:groupbar:gradients");
+    static auto                PRENDERTITLES    = CConfigValue<Config::BOOL>("group:groupbar:render_titles");
+    static auto                PGRADIENTS       = CConfigValue<Config::BOOL>("group:groupbar:gradients");
     static auto                PPRIORITY        = CConfigValue<Config::INTEGER>("group:groupbar:priority");
-    static auto                PSTACKED         = CConfigValue<Config::INTEGER>("group:groupbar:stacked");
+    static auto                PSTACKED         = CConfigValue<Config::BOOL>("group:groupbar:stacked");
     static auto                POUTERGAP        = CConfigValue<Config::INTEGER>("group:groupbar:gaps_out");
-    static auto                PKEEPUPPERGAP    = CConfigValue<Config::INTEGER>("group:groupbar:keep_upper_gap");
+    static auto                PKEEPUPPERGAP    = CConfigValue<Config::BOOL>("group:groupbar:keep_upper_gap");
 
     SDecorationPositioningInfo info;
     info.policy   = DECORATION_POSITION_STICKY;
@@ -113,29 +113,29 @@ void CHyprGroupBarDecoration::draw(Render::CRenderContext& ctx, PHLMONITOR pMoni
     if (!VISIBLE)
         return;
 
-    static auto PRENDERTITLES              = CConfigValue<Config::INTEGER>("group:groupbar:render_titles");
+    static auto PRENDERTITLES              = CConfigValue<Config::BOOL>("group:groupbar:render_titles");
     static auto PTITLEFONTSIZE             = CConfigValue<Config::INTEGER>("group:groupbar:font_size");
     static auto PHEIGHT                    = CConfigValue<Config::INTEGER>("group:groupbar:height");
     static auto PINDICATORGAP              = CConfigValue<Config::INTEGER>("group:groupbar:indicator_gap");
     static auto PINDICATORHEIGHT           = CConfigValue<Config::INTEGER>("group:groupbar:indicator_height");
-    static auto PGRADIENTS                 = CConfigValue<Config::INTEGER>("group:groupbar:gradients");
-    static auto PSTACKED                   = CConfigValue<Config::INTEGER>("group:groupbar:stacked");
+    static auto PGRADIENTS                 = CConfigValue<Config::BOOL>("group:groupbar:gradients");
+    static auto PSTACKED                   = CConfigValue<Config::BOOL>("group:groupbar:stacked");
     static auto PROUNDING                  = CConfigValue<Config::INTEGER>("group:groupbar:rounding");
     static auto PROUNDINGPOWER             = CConfigValue<Config::FLOAT>("group:groupbar:rounding_power");
     static auto PGRADIENTROUNDING          = CConfigValue<Config::INTEGER>("group:groupbar:gradient_rounding");
     static auto PGRADIENTROUNDINGPOWER     = CConfigValue<Config::FLOAT>("group:groupbar:gradient_rounding_power");
-    static auto PGRADIENTROUNDINGONLYEDGES = CConfigValue<Config::INTEGER>("group:groupbar:gradient_round_only_edges");
-    static auto PROUNDONLYEDGES            = CConfigValue<Config::INTEGER>("group:groupbar:round_only_edges");
+    static auto PGRADIENTROUNDINGONLYEDGES = CConfigValue<Config::BOOL>("group:groupbar:gradient_round_only_edges");
+    static auto PROUNDONLYEDGES            = CConfigValue<Config::BOOL>("group:groupbar:round_only_edges");
     static auto PGROUPCOLACTIVE            = CConfigValue<Config::IComplexConfigValue>("group:groupbar:col.active");
     static auto PGROUPCOLINACTIVE          = CConfigValue<Config::IComplexConfigValue>("group:groupbar:col.inactive");
     static auto PGROUPCOLACTIVELOCKED      = CConfigValue<Config::IComplexConfigValue>("group:groupbar:col.locked_active");
     static auto PGROUPCOLINACTIVELOCKED    = CConfigValue<Config::IComplexConfigValue>("group:groupbar:col.locked_inactive");
     static auto POUTERGAP                  = CConfigValue<Config::INTEGER>("group:groupbar:gaps_out");
     static auto PINNERGAP                  = CConfigValue<Config::INTEGER>("group:groupbar:gaps_in");
-    static auto PKEEPUPPERGAP              = CConfigValue<Config::INTEGER>("group:groupbar:keep_upper_gap");
+    static auto PKEEPUPPERGAP              = CConfigValue<Config::BOOL>("group:groupbar:keep_upper_gap");
     static auto PTEXTOFFSET                = CConfigValue<Config::INTEGER>("group:groupbar:text_offset");
     static auto PTEXTPADDING               = CConfigValue<Config::INTEGER>("group:groupbar:text_padding");
-    static auto PBLUR                      = CConfigValue<Config::INTEGER>("group:groupbar:blur");
+    static auto PBLUR                      = CConfigValue<Config::BOOL>("group:groupbar:blur");
     auto* const GROUPCOLACTIVE             = sc<Config::CGradientValueData*>((PGROUPCOLACTIVE.ptr()));
     auto* const GROUPCOLINACTIVE           = sc<Config::CGradientValueData*>((PGROUPCOLINACTIVE.ptr()));
     auto* const GROUPCOLACTIVELOCKED       = sc<Config::CGradientValueData*>((PGROUPCOLACTIVELOCKED.ptr()));
@@ -390,7 +390,7 @@ void refreshGroupBarGradients() {
 }
 
 bool CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
-    static auto PSTACKED  = CConfigValue<Config::INTEGER>("group:groupbar:stacked");
+    static auto PSTACKED  = CConfigValue<Config::BOOL>("group:groupbar:stacked");
     static auto POUTERGAP = CConfigValue<Config::INTEGER>("group:groupbar:gaps_out");
     static auto PINNERGAP = CConfigValue<Config::INTEGER>("group:groupbar:gaps_in");
     if (m_window->grouping().group()->size() == 1)
@@ -424,9 +424,9 @@ bool CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
 
 bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWINDOW pDraggedWindow) {
     static auto PDRAGINTOGROUP                   = CConfigValue<Config::INTEGER>("group:drag_into_group");
-    static auto PMERGEFLOATEDINTOTILEDONGROUPBAR = CConfigValue<Config::INTEGER>("group:merge_floated_into_tiled_on_groupbar");
-    static auto PMERGEGROUPSONGROUPBAR           = CConfigValue<Config::INTEGER>("group:merge_groups_on_groupbar");
-    static auto PSTACKED                         = CConfigValue<Config::INTEGER>("group:groupbar:stacked");
+    static auto PMERGEFLOATEDINTOTILEDONGROUPBAR = CConfigValue<Config::BOOL>("group:merge_floated_into_tiled_on_groupbar");
+    static auto PMERGEGROUPSONGROUPBAR           = CConfigValue<Config::BOOL>("group:merge_groups_on_groupbar");
+    static auto PSTACKED                         = CConfigValue<Config::BOOL>("group:groupbar:stacked");
     static auto POUTERGAP                        = CConfigValue<Config::INTEGER>("group:groupbar:gaps_out");
     static auto PINNERGAP                        = CConfigValue<Config::INTEGER>("group:groupbar:gaps_in");
     const bool  FLOATEDINTOTILED                 = !m_window->isFloating() && !g_layoutManager->dragController()->draggingTiled();
@@ -450,10 +450,10 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
 }
 
 bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPointer::SButtonEvent& e) {
-    static auto PSTACKED          = CConfigValue<Config::INTEGER>("group:groupbar:stacked");
+    static auto PSTACKED          = CConfigValue<Config::BOOL>("group:groupbar:stacked");
     static auto POUTERGAP         = CConfigValue<Config::INTEGER>("group:groupbar:gaps_out");
     static auto PINNERGAP         = CConfigValue<Config::INTEGER>("group:groupbar:gaps_in");
-    static auto PMIDDLECLICKCLOSE = CConfigValue<Config::INTEGER>("group:groupbar:middle_click_close");
+    static auto PMIDDLECLICKCLOSE = CConfigValue<Config::BOOL>("group:groupbar:middle_click_close");
     if (Fullscreen::controller()->getFullscreenModes(m_window.lock()).internal == Fullscreen::FSMODE_FULLSCREEN)
         return true;
 
@@ -507,7 +507,7 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPo
 }
 
 bool CHyprGroupBarDecoration::onScrollOnDeco(const Vector2D& pos, const IPointer::SAxisEvent e) {
-    static auto PGROUPBARSCROLLING = CConfigValue<Config::INTEGER>("group:groupbar:scrolling");
+    static auto PGROUPBARSCROLLING = CConfigValue<Config::BOOL>("group:groupbar:scrolling");
 
     if (!*PGROUPBARSCROLLING || !m_window->grouping().group())
         return false;

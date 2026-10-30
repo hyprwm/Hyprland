@@ -204,8 +204,8 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
 
     static auto  SNAPWINDOWGAP     = CConfigValue<Config::INTEGER>("general:snap:window_gap");
     static auto  SNAPMONITORGAP    = CConfigValue<Config::INTEGER>("general:snap:monitor_gap");
-    static auto  SNAPBORDEROVERLAP = CConfigValue<Config::INTEGER>("general:snap:border_overlap");
-    static auto  SNAPRESPECTGAPS   = CConfigValue<Config::INTEGER>("general:snap:respect_gaps");
+    static auto  SNAPBORDEROVERLAP = CConfigValue<Config::BOOL>("general:snap:border_overlap");
+    static auto  SNAPRESPECTGAPS   = CConfigValue<Config::BOOL>("general:snap:respect_gaps");
 
     static auto  PGAPSIN  = CConfigValue<Config::IComplexConfigValue>("general:gaps_in");
     static auto  PGAPSOUT = CConfigValue<Config::IComplexConfigValue>("general:gaps_out");

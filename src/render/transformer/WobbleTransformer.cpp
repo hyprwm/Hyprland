@@ -42,7 +42,7 @@ CWobbleTransformer::CWobbleTransformer(PHLWINDOWREF window) : m_window(window), 
 }
 
 bool CWobbleTransformer::shouldEnable(PHLWINDOW window) {
-    static auto PENABLED = CConfigValue<Config::INTEGER>("decoration:wobble:enabled");
+    static auto PENABLED = CConfigValue<Config::BOOL>("decoration:wobble:enabled");
 
     if (!window)
         return false;

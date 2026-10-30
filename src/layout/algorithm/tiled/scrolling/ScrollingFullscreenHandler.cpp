@@ -750,7 +750,7 @@ bool CScrollingFullscreenHandler::columnCoversMonitor(SP<Layout::Tiled::SColumnD
     if (COL_IDX < 0)
         return false;
 
-    static const auto PFSONONE = CConfigValue<Config::INTEGER>("scrolling:fullscreen_on_one_column");
+    static const auto PFSONONE = CConfigValue<Config::BOOL>("scrolling:fullscreen_on_one_column");
 
     const auto        USABLE        = m_scrollingAlgorithm->usableArea();
     const bool        PRIMARY_HORIZ = SCROLLINGDATA->controller->isPrimaryHorizontal();

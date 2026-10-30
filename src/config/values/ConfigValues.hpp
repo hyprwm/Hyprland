@@ -30,9 +30,9 @@ namespace Config::Values {
         };
     }
 
-    inline auto strChoice(std::vector<std::string> rawVec) {
+    inline auto strChoice(std::vector<std::string> rawVec, bool compoundStr = false) {
         return [vec = std::move(rawVec)](const Config::STRING& v) -> std::expected<void, std::string> {
-            if (!std::ranges::contains(vec, v)) {
+            if (!std::ranges::contains(vec, v) || (compoundStr && !std::ranges::contains_subrange(vec, v))) {
                 std::string allowed = "";
                 for (const auto& e : vec) {
                     allowed += std::format("\"{}\", ", e);

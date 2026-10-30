@@ -29,7 +29,8 @@ static std::optional<dev_t> devIDFromFD(int fd) {
 CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vector<std::pair<PHLMONITORREF, SDMABUFTranche>> tranches_) :
     m_rendererTranche(_rendererTranche), m_monitorTranches(tranches_) {
 
-    static const auto                       PSKIP_NON_KMS = CConfigValue<Config::INTEGER>("quirks:skip_non_kms_dmabuf_formats");
+    static const auto PSKIP_NON_KMS = CConfigValue<Config::BOOL>("quirks:skip_non_kms_dmabuf_formats");
+    m_skipNonKMSFormats             = *PSKIP_NON_KMS;
 
     std::vector<SDMABUFFormatTableEntry>    formatsVec;
     std::set<std::pair<uint32_t, uint64_t>> formats;
@@ -41,7 +42,7 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
     for (auto const& fmt : m_rendererTranche.formats) {
         for (auto const& mod : fmt.modifiers) {
             LOG(Log::TRACE, "Render format 0x{:x} ({}) with mod 0x{:x} ({})", fmt.drmFormat, NFormatUtils::drmFormatName(fmt.drmFormat), mod, NFormatUtils::drmModifierName(mod));
-            if (*PSKIP_NON_KMS && !m_monitorTranches.empty()) {
+            if (m_skipNonKMSFormats && !m_monitorTranches.empty()) {
                 if (std::ranges::none_of(m_monitorTranches, [fmt, mod](const std::pair<PHLMONITORREF, SDMABUFTranche>& pair) {
                         return std::ranges::any_of(pair.second.formats, [fmt, mod](const SDRMFormat& format) {
                             return format.drmFormat == fmt.drmFormat && std::ranges::any_of(format.modifiers, [mod](uint64_t modifier) { return mod == modifier; });
@@ -451,6 +452,17 @@ void CLinuxDMABUFResource::sendMods() {
 }
 
 CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
+    m_configRefreshed = Event::bus()->m_events.config.props_refreshed.listen([this](const bool) {
+        if (!m_formatTable)
+            return;
+
+        static const auto PSKIP_NON_KMS = CConfigValue<Config::BOOL>("quirks:skip_non_kms_dmabuf_formats");
+        if (m_formatTable->m_skipNonKMSFormats == *PSKIP_NON_KMS)
+            return;
+
+        resetFormatTable();
+    });
+
     static auto P = Event::bus()->m_events.ready.listen([this] {
         int  rendererFD = g_pCompositor->m_drmRenderNode.fd >= 0 ? g_pCompositor->m_drmRenderNode.fd : g_pCompositor->m_drm.fd;
         auto dev        = devIDFromFD(rendererFD);
@@ -497,15 +509,6 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
             static auto monitorRemoved = Event::bus()->m_events.monitor.removed.listen([this](PHLMONITOR mon) {
                 std::erase_if(m_formatTable->m_monitorTranches, [mon](std::pair<PHLMONITORREF, SDMABUFTranche> pair) { return pair.first == mon; });
                 resetFormatTable();
-            });
-
-            static auto configReloaded = Event::bus()->m_events.config.reloaded.listen([this] {
-                static const auto PSKIP_NON_KMS = CConfigValue<Config::INTEGER>("quirks:skip_non_kms_dmabuf_formats");
-                static auto       prev          = *PSKIP_NON_KMS;
-                if (prev != *PSKIP_NON_KMS) {
-                    prev = *PSKIP_NON_KMS;
-                    resetFormatTable();
-                }
             });
         }
 

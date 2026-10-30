@@ -53,7 +53,8 @@ class CDMABUFFormatTable {
     ~CDMABUFFormatTable() = default;
 
     Hyprutils::OS::CFileDescriptor                        m_tableFD;
-    size_t                                                m_tableSize = 0;
+    size_t                                                m_tableSize         = 0;
+    bool                                                  m_skipNonKMSFormats = false;
     SDMABUFTranche                                        m_rendererTranche;
     std::vector<std::pair<PHLMONITORREF, SDMABUFTranche>> m_monitorTranches;
 };
@@ -136,6 +137,7 @@ class CLinuxDMABufV1Protocol : public IWaylandProtocol {
     UP<CDMABUFFormatTable>                        m_formatTable;
     dev_t                                         m_mainDevice;
     Hyprutils::OS::CFileDescriptor                m_mainDeviceFD;
+    CHyprSignalListener                           m_configRefreshed;
 
     friend class CLinuxDMABUFResource;
     friend class CLinuxDMABUFFeedbackResource;

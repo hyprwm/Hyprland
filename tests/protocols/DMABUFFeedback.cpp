@@ -3,12 +3,15 @@
 #include <animation/AnimationManager.hpp>
 #include <config/ConfigValue.hpp>
 #include <config/lua/ConfigManager.hpp>
+#include <config/lua/LuaBindings.hpp>
 #include <config/shared/animation/AnimationTree.hpp>
 #include <config/shared/inotify/ConfigWatcher.hpp>
 #include <config/supplementary/jeremy/Jeremy.hpp>
+#include <config/supplementary/propRefresher/PropRefresher.hpp>
 #include <desktop/view/window/Window.hpp>
 #include <desktop/view/window/WaylandBackend.hpp>
 #include <event/EventBus.hpp>
+#include <managers/eventLoop/EventLoopManager.hpp>
 #include <protocols/LinuxDMABUF.hpp>
 #include <protocols/PresentationTime.hpp>
 #include <protocols/core/Compositor.hpp>
@@ -22,6 +25,10 @@
 #include <memory>
 #include <sys/socket.h>
 #include <unistd.h>
+
+extern "C" {
+#include <lauxlib.h>
+}
 
 // Synthetic format lists exercise feedback policy without a DRM device or GPU.
 class CDMABUFFormatTableTest : public ::testing::Test {
@@ -258,6 +265,10 @@ class CDMABUFFeedbackTest : public CDMABUFFormatTableTest {
         rebuild();
     }
 
+    WP<CSignalListener> configListener(CLinuxDMABufV1Protocol& protocol) {
+        return protocol.m_configRefreshed;
+    }
+
     void readFeedback() {
         wl_display_flush_clients(m_display.get());
         std::vector<uint32_t>                       wire;
@@ -434,4 +445,118 @@ TEST_F(CDMABUFFeedbackTest, RemovedScanoutTargetGetsCompleteRendererFallback) {
     expectFeedback(id, false);
     EXPECT_EQ(m_feedback.at(id).tableEvents, 2U);
     EXPECT_EQ(m_feedback.at(id).doneEvents, 3U);
+}
+
+class CDMABUFConfigFeedbackTest : public CDMABUFFeedbackTest {
+  protected:
+    void SetUp() override {
+        CDMABUFFeedbackTest::SetUp();
+        m_previousEventLoop                = std::move(g_pEventLoopManager);
+        m_previousRefresher                = std::move(Config::Supplementary::refresher());
+        g_pEventLoopManager                = makeUnique<CEventLoopManager>(g_pCompositor->m_wlDisplay, g_pCompositor->m_wlEventLoop);
+        Config::Supplementary::refresher() = makeUnique<Config::Supplementary::CPropRefresher>();
+        m_lua.reset(luaL_newstate());
+        ASSERT_TRUE(m_lua);
+        Config::Lua::Bindings::registerBindings(m_lua.get(), Config::Lua::mgr().get());
+    }
+
+    void TearDown() override {
+        m_lua.reset();
+        Config::Supplementary::refresher() = std::move(m_previousRefresher);
+        g_pEventLoopManager                = std::move(m_previousEventLoop);
+        CDMABUFFeedbackTest::TearDown();
+    }
+
+    void setRuntimeFiltering(bool enabled) {
+        const auto code = std::format("hl.config({{ quirks = {{ skip_non_kms_dmabuf_formats = {} }} }})", enabled ? "true" : "false");
+        ASSERT_EQ(luaL_dostring(m_lua.get(), code.c_str()), LUA_OK);
+        EXPECT_TRUE(Config::Lua::mgr()->m_errors.empty());
+    }
+
+    void dispatchRefresh() {
+        ASSERT_EQ(wl_event_loop_dispatch(g_pCompositor->m_wlEventLoop, 0), 0);
+        readFeedback();
+    }
+
+  private:
+    std::unique_ptr<lua_State, decltype(&lua_close)> m_lua{nullptr, lua_close};
+    UP<CEventLoopManager>                            m_previousEventLoop;
+    UP<Config::Supplementary::CPropRefresher>        m_previousRefresher;
+};
+
+TEST_F(CDMABUFConfigFeedbackTest, RuntimeConfigRefreshesBothDirectionsAndSkipsUnchangedValues) {
+    uint32_t id = 0;
+    bindFeedback(id);
+    readFeedback();
+    for (const bool filtered : {true, false}) {
+        const auto count = m_feedback.at(id).doneEvents;
+        setRuntimeFiltering(filtered);
+        dispatchRefresh();
+        expectFeedback(id, filtered);
+        EXPECT_EQ(m_feedback.at(id).doneEvents, count + 1);
+        EXPECT_EQ(m_feedback.at(id).tableEvents, count + 1);
+
+        setRuntimeFiltering(filtered);
+        dispatchRefresh();
+        EXPECT_EQ(m_feedback.at(id).doneEvents, count + 1);
+        EXPECT_EQ(m_feedback.at(id).tableEvents, count + 1);
+
+        uint32_t fresh = 0;
+        bindFeedback(fresh);
+        readFeedback();
+        expectFeedback(fresh, filtered);
+    }
+}
+
+TEST_F(CDMABUFConfigFeedbackTest, FirstReloadPropertyRefreshAppliesChangedSetting) {
+    uint32_t id = 0;
+    bindFeedback(id);
+    readFeedback();
+    setFiltering(true);
+    // Model reload completion: parsed values, reloaded notification, then the
+    // deferred property refresh. Other compositor properties need no refresh here.
+    Event::bus()->m_events.config.reloaded.emit();
+    Config::Supplementary::refresher()->scheduleRefresh(0);
+    dispatchRefresh();
+    expectFeedback(id, true);
+    EXPECT_EQ(m_feedback.at(id).doneEvents, 2U);
+    EXPECT_EQ(m_feedback.at(id).tableEvents, 2U);
+}
+
+TEST_F(CDMABUFConfigFeedbackTest, BatchedChangesCompareAgainstAppliedTable) {
+    uint32_t id = 0;
+    bindFeedback(id);
+    readFeedback();
+    setRuntimeFiltering(true);
+    setRuntimeFiltering(false);
+    dispatchRefresh();
+    expectFeedback(id, false);
+    EXPECT_EQ(m_feedback.at(id).doneEvents, 1U);
+    EXPECT_EQ(m_feedback.at(id).tableEvents, 1U);
+}
+
+TEST_F(CDMABUFConfigFeedbackTest, MonitorRebuildRecordsSettingBeforeDeferredRefresh) {
+    uint32_t id = 0;
+    bindFeedback(id);
+    readFeedback();
+    setRuntimeFiltering(true);
+    removeMonitor();
+    readFeedback();
+    expectFeedback(id, false); // No KMS tranches remain, so retain all renderer formats.
+    EXPECT_EQ(m_feedback.at(id).doneEvents, 2U);
+    dispatchRefresh();
+    EXPECT_EQ(m_feedback.at(id).doneEvents, 2U);
+    EXPECT_EQ(m_feedback.at(id).tableEvents, 2U);
+}
+
+TEST_F(CDMABUFConfigFeedbackTest, RefreshBeforeInitializationAndAfterDestructionIsSafe) {
+    auto       protocol = makeUnique<CLinuxDMABufV1Protocol>(&zwp_linux_dmabuf_v1_interface, 5, "uninitialized-dmabuf-test");
+    const auto listener = configListener(*protocol);
+    ASSERT_FALSE(listener.expired());
+    setRuntimeFiltering(true);
+    dispatchRefresh();
+    protocol.reset();
+    EXPECT_TRUE(listener.expired());
+    setRuntimeFiltering(false);
+    dispatchRefresh();
 }

@@ -19,7 +19,7 @@ SP<Aquamarine::IKeyboard> CKeyboard::aq() {
     return m_keyboard.lock();
 }
 
-CKeyboard::CKeyboard(SP<Aquamarine::IKeyboard> keeb) : m_keyboard(keeb) {
+CKeyboard::CKeyboard(SP<Aquamarine::IKeyboard> keeb) : IKeyboard(keeb ? keeb->getLibinputHandle() : nullptr), m_keyboard(keeb) {
     if (!keeb)
         return;
 

@@ -265,7 +265,7 @@ static int hlGetDevices(lua_State* L) {
         if (!device.pDevice)
             continue;
 
-        Objects::CLuaDevice::push(L, device.pDevice, rc<uintptr_t>(&device));
+        Objects::CLuaDevice::push(L, device.pDevice, rc<uintptr_t>(&device), device.sysname);
         lua_rawseti(L, -2, i++);
     }
 

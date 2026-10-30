@@ -2151,6 +2151,11 @@ void CInputManager::setTabletToolConfigs() {
 void CInputManager::newSwitch(SP<Aquamarine::ISwitch> pDevice) {
     const auto PNEWDEV = &m_switches.emplace_back();
     PNEWDEV->pDevice   = pDevice;
+    if (const auto LIBINPUTDEV = pDevice->getLibinputHandle()) {
+        const auto SYSNAME = libinput_device_get_sysname(LIBINPUTDEV);
+        if (SYSNAME)
+            PNEWDEV->sysname = SYSNAME;
+    }
 
     LOG(Log::DEBUG, "New switch with name \"{}\" added", pDevice->getName());
 

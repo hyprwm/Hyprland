@@ -17,6 +17,7 @@ AQUAMARINE_FORWARD(ISwitch);
 
 struct SSwitchDevice {
     WP<Aquamarine::ISwitch> pDevice;
+    std::string             sysname;
 
     struct {
         CHyprSignalListener destroy;

@@ -79,12 +79,12 @@ static bool findTarget(SState& state) {
 
 int main(int argc, char** argv) {
     if (argc != 3) {
-        std::println(stderr, "usage: wlr-foreign-toplevel APP_ID minimize|restore");
+        std::println(stderr, "usage: wlr-foreign-toplevel APP_ID minimize|restore|maximize|unmaximize");
         return 1;
     }
 
     const std::string_view ACTION = argv[2];
-    if (ACTION != "minimize" && ACTION != "restore") {
+    if (ACTION != "minimize" && ACTION != "restore" && ACTION != "maximize" && ACTION != "unmaximize") {
         std::println(stderr, "unknown action: {}", ACTION);
         return 1;
     }
@@ -112,14 +112,18 @@ int main(int argc, char** argv) {
 
     if (ACTION == "minimize")
         state.target->sendSetMinimized();
-    else
+    else if (ACTION == "restore")
         state.target->sendUnsetMinimized();
+    else if (ACTION == "maximize")
+        state.target->sendSetMaximized();
+    else
+        state.target->sendUnsetMaximized();
 
     const bool ROUNDTRIP_OK = wl_display_roundtrip(state.display) >= 0;
     disconnect(state);
 
     if (!ROUNDTRIP_OK) {
-        std::println(stderr, "failed to synchronize minimize request");
+        std::println(stderr, "failed to synchronize {} request", ACTION);
         return 1;
     }
 

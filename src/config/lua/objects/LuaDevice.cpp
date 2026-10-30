@@ -112,17 +112,14 @@ static int deviceIndex(lua_State* L) {
         return 1;
     }
 
-    if (key == "sysname") {
-        lua_pushstring(L, ref.sysname.c_str());
-        return 1;
-    }
-
     if (const auto switchRef = std::get_if<WP<Aquamarine::ISwitch>>(&ref.device)) {
         const auto device = switchRef->lock();
         if (key == "type")
             lua_pushstring(L, "switch");
         else if (key == "name")
             lua_pushstring(L, device->getName().c_str());
+        else if (key == "sysname")
+            lua_pushstring(L, ref.sysname.c_str());
         else
             lua_pushnil(L);
         return 1;
@@ -132,6 +129,8 @@ static int deviceIndex(lua_State* L) {
     const auto type   = device->getType();
     if (key == "type")
         lua_pushstring(L, deviceType(type));
+    else if (key == "sysname" && type != HID_TYPE_TABLET_TOOL)
+        lua_pushstring(L, device->m_sysname.c_str());
     else if (key == "name" && type != HID_TYPE_TABLET_PAD && type != HID_TYPE_TABLET_TOOL)
         lua_pushstring(L, device->m_hlName.c_str());
     else {
@@ -173,7 +172,6 @@ void Objects::CLuaDevice::push(lua_State* L, WP<IHID> device) {
     auto* ref = new (lua_newuserdata(L, sizeof(SDeviceRef))) SDeviceRef{
         .device  = device,
         .address = rc<uintptr_t>(locked.get()),
-        .sysname = locked->m_sysname,
     };
     ref->destroy = locked->m_events.destroy.listen([ref] { ref->removed = true; });
     luaL_getmetatable(L, MT);

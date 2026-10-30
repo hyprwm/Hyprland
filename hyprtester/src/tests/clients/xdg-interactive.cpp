@@ -6,6 +6,7 @@
 
 #include <hyprutils/os/FileDescriptor.hpp>
 #include <hyprutils/os/Process.hpp>
+#include <hyprutils/utils/ScopeGuard.hpp>
 
 #include <array>
 #include <chrono>
@@ -518,4 +519,46 @@ TEST_CASE(xdgInteractiveMaximizeToggle) {
         ASSERT(client->requestMaximize(MAXIMIZED), true);
         ASSERT(client->waitFullscreenMode(0), true);
     }
+}
+
+SUBTEST(maximizePreservesFullscreen, bool floating, bool maximized) {
+    Hyprutils::Utils::CScopeGuard workspaceGuard = {[]() { getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"); }};
+
+    std::optional<CClient>        client;
+    try {
+        client.emplace();
+    } catch (...) { FAIL_TEST("Couldn't start the xdg-interactive client"); }
+
+    OK(getFromSocket(std::format("/dispatch hl.dsp.window.float({{ action = '{}', window = 'pid:{}' }})", floating ? "enable" : "disable", client->pid())));
+    ASSERT(Tests::getAttribute(getFromSocket("/activewindow"), "floating"), floating ? "1" : "0");
+    ASSERT(client->waitFullscreenMode(0), true);
+    OK(getFromSocket(std::format("/dispatch hl.dsp.window.fullscreen({{ mode = 'fullscreen', action = 'set', window = 'pid:{}' }})", client->pid())));
+    ASSERT(client->waitFullscreenMode(2), true);
+
+    ASSERT(client->requestMaximize(maximized), true);
+    ASSERT(client->waitFullscreenMode(2), true);
+
+    // Focus changes cause new configures, which can prompt Wine to unset maximized again.
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '101' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+    ASSERT(focusClient(client->pid()), true);
+    ASSERT(client->waitFullscreenMode(2), true);
+    ASSERT(client->requestMaximize(maximized), true);
+    ASSERT(client->waitFullscreenMode(2), true);
+}
+
+TEST_CASE(xdgFloatingSetMaximizedPreservesFullscreen) {
+    CALL_SUBTEST(maximizePreservesFullscreen, true, true);
+}
+
+TEST_CASE(xdgFloatingUnsetMaximizedPreservesFullscreen) {
+    CALL_SUBTEST(maximizePreservesFullscreen, true, false);
+}
+
+TEST_CASE(xdgTiledSetMaximizedPreservesFullscreen) {
+    CALL_SUBTEST(maximizePreservesFullscreen, false, true);
+}
+
+TEST_CASE(xdgTiledUnsetMaximizedPreservesFullscreen) {
+    CALL_SUBTEST(maximizePreservesFullscreen, false, false);
 }

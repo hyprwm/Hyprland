@@ -6,6 +6,7 @@
 #include <ranges>
 #include <algorithm>
 #include "../../config/ConfigValue.hpp"
+#include "config/shared/complex/ComplexDataTypes.hpp"
 
 namespace Desktop::Types {
 
@@ -35,7 +36,7 @@ namespace Desktop::Types {
         return std::clamp(value, min.value_or(std::numeric_limits<T>::min()), max.value_or(std::numeric_limits<T>::max()));
     }
 
-    template <typename T, bool Extended = std::is_same_v<T, bool> || std::is_same_v<T, Config::INTEGER> || std::is_same_v<T, Config::FLOAT>>
+    template <typename T, bool Extended = std::is_same_v<T, bool> || std::is_same_v<T, Config::INTEGER> || std::is_same_v<T, Config::FLOAT> || std::is_same_v<T, Config::CCssGapData>>
     class COverridableVar {
       public:
         COverridableVar(T const& value, eOverridePriority priority) {
@@ -60,7 +61,7 @@ namespace Desktop::Types {
                 return *this;
 
             for (size_t i = 0; i < PRIORITY_END; ++i) {
-                if constexpr (Extended && !std::is_same_v<T, bool>)
+                if constexpr (Extended && !std::is_same_v<T, bool> && std::numeric_limits<T>::is_specialized)
                     m_values[i] = other.m_values[i].has_value() ? clampOptional(*other.m_values[i], m_minValue, m_maxValue) : other.m_values[i];
                 else if (other.m_values[i].has_value())
                     m_values[i] = other.m_values[i];

@@ -70,7 +70,8 @@ namespace Fullscreen::ScrollingFullscreenHandler {
 
         // Scrolling Specific Helpers
 
-        void sScrollingDataRecalculateHelper(const SP<Layout::Tiled::SScrollingTargetData> CURRENT_COVERING_FS_TDATA, const PHLMONITOR MONITOR);
+        void sScrollingDataRecalculateDecorationsHelper(const SP<Layout::Tiled::SScrollingTargetData> CURRENT_COVERING_FS_TDATA);
+        void sScrollingDataRecalculateVisibilityHelper(const SP<Layout::Tiled::SScrollingTargetData> CURRENT_COVERING_FS_TDATA, const PHLMONITOR MONITOR);
 
       private:
         struct SScrollingFullscreenWindowHidingState {
@@ -85,20 +86,23 @@ namespace Fullscreen::ScrollingFullscreenHandler {
 
         /// Tracks FSed Targets (internal OR client)
         std::unordered_map<WP<Layout::ITarget>, SFullscreenScrollState> m_fsTargets;
-        bool                                                            m_syncingFullscreenTargets = false;
+        bool                                                            m_syncingFullscreenTargets   = false;
+        bool                                                            m_updatingTargetRulesAndDecs = false;
 
         const eFullscreenHandler                                        FULLSCREEN_HANDLER_TYPE = FULLSCREEN_HANDLER_SCROLLING;
 
         // Internal helpers for Scrolling FS behaviour
 
         // fullscreenWindow is must be tiled, layout handled, and cover the whole monitor or work area.
-        void  saveCurrentFsAndAllHiddenFloatingWindows(PHLWINDOW fullscreenWindow);
+        void                                               saveCurrentFsAndAllHiddenFloatingWindows(PHLWINDOW fullscreenWindow);
 
-        float fullscreenColumnWidth() const;
-        bool  columnCoversMonitor(SP<Layout::Tiled::SColumnData> col) const;
-        bool  columnCoversWorkArea(SP<Layout::Tiled::SColumnData> col) const;
-        void  updateFullscreenFade(bool coversMonitor);
+        float                                              fullscreenColumnWidth() const;
+        bool                                               columnCoversMonitor(SP<Layout::Tiled::SColumnData> col) const;
+        bool                                               columnCoversWorkArea(SP<Layout::Tiled::SColumnData> col) const;
+        void                                               updateFullscreenFade(bool coversMonitor);
 
-        float getTargetColumnWidthBeforeFullscreenOrMaximise(const SP<Layout::ITarget> target);
+        float                                              getTargetColumnWidthBeforeFullscreenOrMaximise(const SP<Layout::ITarget> target);
+
+        std::tuple<PHLWINDOW, PHLWINDOW, bool, bool, bool> sScrollingDataRecalculateDataHelper(const SP<Layout::Tiled::SScrollingTargetData> CURRENT_COVERING_FS_TDATA);
     };
 }

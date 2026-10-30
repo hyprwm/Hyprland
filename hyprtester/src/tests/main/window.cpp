@@ -534,6 +534,25 @@ TEST_CASE(pinnedWorkspacesValid) {
     }
 }
 
+TEST_CASE(unpinOntoSpecialWorkspace) {
+    getFromSocket("/dispatch hl.dsp.focus({ workspace = '1339' })");
+
+    SPAWN_KITTY("kitty");
+
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:kitty' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.pin({ action = 'enable', window = 'class:kitty' })"));
+    OK(getFromSocket("/dispatch hl.dsp.workspace.toggle_special('pinspecial')"));
+    OK(getFromSocket("/dispatch hl.dsp.window.pin({ action = 'disable', window = 'class:kitty' })"));
+
+    {
+        auto str = getFromSocket("/clients");
+        EXPECT(str.contains("special:pinspecial"), true);
+        EXPECT(str.contains("pinned: 0"), true);
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.workspace.toggle_special('pinspecial')"));
+}
+
 static std::string recordWindowStateUpdates() {
     return getFromSocket(R"(/eval do
         local state = { events = {}, subscriptions = {} }

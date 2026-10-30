@@ -11,6 +11,7 @@
 #include "helpers/Splashes.hpp"
 #include "helpers/SystemInfo.hpp"
 #include "init/initHelpers.hpp"
+#include "init/RealtimeWatchdog.hpp"
 #include "config/ConfigValue.hpp"
 #include "config/shared/inotify/ConfigWatcher.hpp"
 #include "config/shared/monitor/MonitorRuleManager.hpp"
@@ -652,6 +653,9 @@ void CCompositor::cleanup() {
 
     // this frees all wayland resources, including sockets
     wl_display_destroy(m_wlDisplay);
+
+    // last, teardown can still hit slow driver paths
+    NInit::stopRealtimeWatchdog();
 }
 
 void CCompositor::initManagers(eManagersInitStage stage) {

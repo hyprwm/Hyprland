@@ -162,6 +162,8 @@ void CMonitor::onConnect(bool noRule) {
             return;
         }
 
+        m_lastPresentationTimer.reset();
+
         if (m_pendingDpmsAnimation) {
             m_pendingDpmsAnimationCounter++;
             // we give ourselves 5 frames of a buffer. The first presentation event still doesn't usually say that we actually

@@ -47,7 +47,8 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
             return;
         }
 
-        m_surface->m_pending.barrierSet = true;
+        m_surface->m_pending.barrierSet        = true;
+        m_surface->m_pending.updated.bits.fifo = true;
     });
 
     m_resource->setWaitBarrier([this](CWpFifoV1* r) {
@@ -56,7 +57,8 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
             return;
         }
 
-        m_surface->m_pending.barrierWait = true;
+        m_surface->m_pending.barrierWait       = true;
+        m_surface->m_pending.updated.bits.fifo = true;
     });
 
     m_listeners.surfaceStateCommit = m_surface->m_events.stateCommit.listen([this](auto state) {

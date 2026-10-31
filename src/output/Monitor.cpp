@@ -162,6 +162,8 @@ void CMonitor::onConnect(bool noRule) {
             return;
         }
 
+        m_lastPresentationTimer.reset();
+
         if (m_pendingDpmsAnimation) {
             m_pendingDpmsAnimationCounter++;
             // we give ourselves 5 frames of a buffer. The first presentation event still doesn't usually say that we actually
@@ -2009,9 +2011,6 @@ bool CMonitor::attemptDirectScanout() {
 
     // #TODO this entire bit needs figuring out, vrr goes down the drain without it
     if (PBUFFER == m_output->state->state().buffer && *PSAME) {
-        PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
-        PROTO::presentation->tagQueued(m_self.lock(), 0, m_tearingState.activelyTearing, m_vrrActive);
-
         if (m_scanoutNeedsCursorUpdate) {
             if (!m_state.test()) {
                 LOG(Log::TRACE, "attemptDirectScanout: failed basic test on cursor update");
@@ -2027,7 +2026,8 @@ bool CMonitor::attemptDirectScanout() {
             m_scanoutNeedsCursorUpdate = false;
         }
 
-        //#TODO this entire bit is bootleg deluxe, above bit is to not make vrr go down the drain, returning early here means fifo gets forever locked.
+        PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock(), true);
+
         if (PSURFACE->m_fifo && !m_tearingState.activelyTearing && *PSAMEFIFO)
             PSURFACE->m_stateQueue.unlockFirst(LOCK_REASON_FIFO);
 

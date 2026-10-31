@@ -90,7 +90,6 @@ void SSurfaceState::reset() {
     barrierWait           = false;
     waitingOnPresentation = false;
 
-    pendingTimeout.reset();
     commitTimingTarget.reset();
     timer.reset(); // CEventLoopManager::nudgeTimers should handle it eventually
 }

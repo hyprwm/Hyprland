@@ -119,9 +119,8 @@ struct SSurfaceState {
     bool waitingOnPresentation = false;
 
     // commit timing
-    std::optional<Time::steady_dur> pendingTimeout;
-    std::optional<Time::steady_tp>  commitTimingTarget;
-    SP<CEventLoopTimer>             timer;
+    std::optional<timespec> commitTimingTarget;
+    SP<CEventLoopTimer>     timer;
 
     // helpers
     CRegion accumulateBufferDamage();       // transforms state.damage and merges it into state.bufferDamage

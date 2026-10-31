@@ -264,6 +264,9 @@ PHLVIEW CViewQuery::bySurface() const {
     if (view && typeMatches(view))
         return view;
 
+    if (view && view->type() == View::VIEW_TYPE_WINDOW)
+        return nullptr;
+
     if (!m_type || *m_type == View::VIEW_TYPE_LAYER_SURFACE)
         return layerBySurface();
 

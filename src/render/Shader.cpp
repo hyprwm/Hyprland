@@ -140,6 +140,7 @@ void CShader::getUniformLocations() {
     m_uniformLocations[SHADER_DST_REF_LUMINANCE]    = getUniform("dstRefLuminance");
     m_uniformLocations[SHADER_SDR_SATURATION]       = getUniform("sdrSaturation");
     m_uniformLocations[SHADER_SDR_BRIGHTNESS]       = getUniform("sdrBrightnessMultiplier");
+    m_uniformLocations[SHADER_SDR_TO_HDR_GAMMA]     = getUniform("sdrToHDRGamma");
     m_uniformLocations[SHADER_CONVERT_MATRIX]       = getUniform("convertMatrix");
     m_uniformLocations[SHADER_LUT_3D]               = getUniform("iccLut3D");
     m_uniformLocations[SHADER_LUT_SIZE]             = getUniform("iccLutSize");

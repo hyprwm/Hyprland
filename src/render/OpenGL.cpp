@@ -1296,6 +1296,7 @@ void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const NColorManagement:
     shader->setUniformInt(SHADER_TONEMAP_MODE, settings.tonemapMode);
     shader->setUniformFloat(SHADER_SDR_SATURATION, settings.sdrSaturation);
     shader->setUniformFloat(SHADER_SDR_BRIGHTNESS, settings.sdrBrightnessMultiplier);
+    shader->setUniformFloat(SHADER_SDR_TO_HDR_GAMMA, settings.sdrToHDRGamma);
 
     if (!targetImageDescription->value().icc.present) {
         const auto cacheKey = std::pair{imageDescription->id(), targetImageDescription->id()};

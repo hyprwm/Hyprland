@@ -142,5 +142,9 @@ namespace Render {
         bool                                 needsSDRmod             = false;
         float                                sdrSaturation           = 1.0;
         float                                sdrBrightnessMultiplier = 1.0;
+        // 0 = off. When > 0, SDR content shown on an HDR output is mapped with a
+        // gamma-adjusted (BT.2408/BT.2446 hybrid-linear) curve instead of a pure
+        // luminance scaling, which preserves the perceived SDR contrast.
+        float                                sdrToHDRGamma           = 0.0;
     };
 }

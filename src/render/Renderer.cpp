@@ -2138,6 +2138,8 @@ void IHyprRenderer::clearCMSettingsCache(CRenderContext& ctx) {
 SCMSettings IHyprRenderer::getCMSettings(CRenderContext& ctx, const NColorManagement::PImageDescription imageDescription,
                                          const NColorManagement::PImageDescription targetImageDescription, SP<CWLSurfaceResource> surface, bool modifySDR, float sdrMinLuminance,
                                          int sdrMaxLuminance, bool shouldUseSurface) {
+    static auto PCMGAMMA = CConfigValue<Config::FLOAT>("render:cm_sdr_gamma");
+
     const auto srcId = imageDescription->id();
     const auto dstId = targetImageDescription->id();
     void*      sPtr  = shouldUseSurface ? ctx.m_data.surface.get() : nullptr;
@@ -2169,6 +2171,16 @@ SCMSettings IHyprRenderer::getCMSettings(CRenderContext& ctx, const NColorManage
     } else
         srcTF = imageDescription->value().transferFunction;
 
+    // Runtime overrides: changing these only updates uniforms, so the values can
+    // be adjusted live without re-applying the monitor (which causes a mode set).
+    static auto PSDRWHITE = CConfigValue<Config::INTEGER>("render:cm_sdr_white");
+    static auto PSDRBLACK = CConfigValue<Config::FLOAT>("render:cm_sdr_black");
+    static auto PSDRSAT   = CConfigValue<Config::FLOAT>("render:cm_sdr_saturation");
+    if (*PSDRWHITE >= 0)
+        sdrMaxLuminance = *PSDRWHITE;
+    if (*PSDRBLACK >= 0)
+        sdrMinLuminance = *PSDRBLACK;
+
     const bool  needsSDRmod     = modifySDR && isSDR2HDR(ctx, imageDescription->value(), targetImageDescription->value());
     const bool  needsHDRmod     = !needsSDRmod && isHDR2SDR(imageDescription->value(), targetImageDescription->value());
     const float maxLuminance    = needsHDRmod ?
@@ -2179,9 +2191,9 @@ SCMSettings IHyprRenderer::getCMSettings(CRenderContext& ctx, const NColorManage
     auto        matrix = imageDescription->getPrimaries()->convertMatrix(targetImageDescription->getPrimaries());
     auto        toXYZ  = targetImageDescription->getPrimaries()->value().toXYZ();
 
-    const bool  needsMod = needsSDRmod &&
-        ((ctx.m_data.pMonitor->m_sdrSaturation > 0 && ctx.m_data.pMonitor->m_sdrSaturation != 1.0f) ||
-         (ctx.m_data.pMonitor->m_sdrBrightness > 0 && ctx.m_data.pMonitor->m_sdrBrightness != 1.0f));
+    const float effectiveSat = *PSDRSAT >= 0 ? *PSDRSAT : ctx.m_data.pMonitor->m_sdrSaturation;
+    const bool  needsMod     = needsSDRmod &&
+        ((effectiveSat > 0 && effectiveSat != 1.0f) || (ctx.m_data.pMonitor->m_sdrBrightness > 0 && ctx.m_data.pMonitor->m_sdrBrightness != 1.0f));
 
     const bool needsTonemap = maxLuminance >= dstMaxLuminance * 1.01;
 
@@ -2203,8 +2215,9 @@ SCMSettings IHyprRenderer::getCMSettings(CRenderContext& ctx, const NColorManage
         .dstMaxLuminance         = dstMaxLuminance,
         .dstPrimaries2XYZ        = toXYZ.mat(),
         .needsSDRmod             = needsMod,
-        .sdrSaturation           = needsSDRmod && ctx.m_data.pMonitor->m_sdrSaturation > 0 ? ctx.m_data.pMonitor->m_sdrSaturation : 1.0f,
+        .sdrSaturation           = needsSDRmod && effectiveSat > 0 ? effectiveSat : 1.0f,
         .sdrBrightnessMultiplier = needsSDRmod && ctx.m_data.pMonitor->m_sdrBrightness > 0 ? ctx.m_data.pMonitor->m_sdrBrightness : 1.0f,
+        .sdrToHDRGamma           = needsSDRmod ? *PCMGAMMA : 0.0f,
     };
 
     ctx.m_cmSettingsCache.push_back({

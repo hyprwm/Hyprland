@@ -8,6 +8,13 @@
 #include "defines.h"
 #include "constants.h"
 
+// Declared here, not in CM.glsl: shaders that include cm_helpers without CM.glsl
+// (blur, border, shadow, inner_glow) would otherwise fail to compile.
+#ifndef SDR_TO_HDR_GAMMA_DECL
+#define SDR_TO_HDR_GAMMA_DECL
+uniform float sdrToHDRGamma;
+#endif
+
 #if USE_SDR_MOD
 vec4 saturate(vec4 color, mat3 primaries, float saturation) {
     if (saturation == 1.0)
@@ -160,6 +167,18 @@ vec4 toNit(vec4 color, vec2 range) {
     return color;
 }
 
+// SDR content shown on an HDR output. A pure luminance scaling keeps the
+// numbers but not the look: PQ is perceptual, so linear scaling makes SDR
+// midtones read flat and grey. ITU-R BT.2408 / BT.2446 solve this with a
+// gamma-adjusted ("hybrid-linear") mapping, which is what this implements:
+// white stays at the configured SDR white, midtones are darkened by GAMMA.
+vec4 sdrToHDRGammaMap(vec4 color, float white, float gamma) {
+    if (white <= 0.0 || gamma <= 0.0)
+        return color;
+    color.rgb = vec3(white) * pow(max(color.rgb / vec3(white), vec3(0.0)), vec3(gamma));
+    return color;
+}
+
 vec3 fromLinearRGB(vec3 color, int tf) {
     switch (tf) {
         case CM_TRANSFER_FUNCTION_EXT_LINEAR: return color;
@@ -243,6 +262,8 @@ vec4
     pixColor.rgb = convertMatrix * pixColor.rgb;
     if (srcTF != CM_TRANSFER_FUNCTION_LINEAR)
         pixColor = toNit(pixColor, srcTFRange);
+    if (sdrToHDRGamma > 0.0)
+        pixColor = sdrToHDRGammaMap(pixColor, srcTFRange.y, sdrToHDRGamma);
     pixColor.a   = finalAlpha;
     pixColor.rgb *= pixColor.a;
 #if USE_TONEMAP
@@ -254,10 +275,16 @@ vec4
     vec4 mirrorColor = fromLinearNit(pixColor, CM_TRANSFER_FUNCTION_SRGB,
                                      srcTF == CM_TRANSFER_FUNCTION_GAMMA22 || srcTF == CM_TRANSFER_FUNCTION_SRGB ? srcTFRange : vec2(SDR_MIN_LUMINANCE, SDR_MAX_LUMINANCE));
 #endif
+#if USE_SDR_MOD
+    // SDR brightness is a luminance multiplier, so it has to be applied in nit
+    // space (linear light), before the destination transfer function is encoded.
+    // Scaling the encoded signal (PQ/sRGB code values) is not a brightness change:
+    // it crushes midtones and clips highlights, which reads as a washed-out image.
+    pixColor.rgb *= sdrBrightnessMultiplier;
+#endif
     pixColor = fromLinearNit(pixColor, dstTF, dstTFRange);
 #if USE_SDR_MOD
     pixColor = saturate(pixColor, dstxyz, sdrSaturation);
-    pixColor.rgb *= sdrBrightnessMultiplier;
 #endif
 #endif
 

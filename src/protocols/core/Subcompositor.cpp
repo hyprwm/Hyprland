@@ -137,7 +137,7 @@ Vector2D CWLSubsurfaceResource::posRelativeToParent() {
 
     while (surf->m_role->role() == SURFACE_ROLE_SUBSURFACE && std::ranges::find_if(surfacesVisited, [surf](const auto& other) { return surf == other; }) == surfacesVisited.end()) {
         surfacesVisited.emplace_back(surf);
-        auto subsurface = sc<CSubsurfaceRole*>(m_parent->m_role.get())->m_subsurface.lock();
+        auto subsurface = sc<CSubsurfaceRole*>(surf->m_role.get())->m_subsurface.lock();
         pos += subsurface->m_position;
         surf = subsurface->m_parent.lock();
     }
@@ -154,7 +154,7 @@ SP<CWLSurfaceResource> CWLSubsurfaceResource::t1Parent() {
 
     while (surf->m_role->role() == SURFACE_ROLE_SUBSURFACE && std::ranges::find_if(surfacesVisited, [surf](const auto& other) { return surf == other; }) == surfacesVisited.end()) {
         surfacesVisited.emplace_back(surf);
-        auto subsurface = sc<CSubsurfaceRole*>(m_parent->m_role.get())->m_subsurface.lock();
+        auto subsurface = sc<CSubsurfaceRole*>(surf->m_role.get())->m_subsurface.lock();
         surf            = subsurface->m_parent.lock();
     }
     return surf;

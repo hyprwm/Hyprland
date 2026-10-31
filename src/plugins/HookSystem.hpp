@@ -6,8 +6,13 @@
 #include <unordered_set>
 #include "../helpers/memory/Memory.hpp"
 
-#define HANDLE                   void*
+#define HANDLE void*
+#if defined(__aarch64__)
+// up to 5 displaced instructions, each expanding to at most 16B of code + 8B literal, plus the jump back
+#define HOOK_TRAMPOLINE_MAX_SIZE 192
+#else
 #define HOOK_TRAMPOLINE_MAX_SIZE 32
+#endif
 
 class CFunctionHook {
   public:
@@ -49,6 +54,8 @@ class CFunctionHook {
     SInstructionProbe getInstructionLenAt(void* start);
 
     SAssembly         fixInstructionProbeRIPCalls(const SInstructionProbe& probe);
+
+    bool              hookAArch64();
 
     friend class CHookSystem;
 };

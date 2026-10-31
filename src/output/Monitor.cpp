@@ -17,6 +17,7 @@
 #include "../protocols/PresentationTime.hpp"
 #include "../protocols/DRMLease.hpp"
 #include "../protocols/DRMSyncobj.hpp"
+#include "../protocols/Fifo.hpp"
 #include "../protocols/core/Output.hpp"
 #include "../protocols/Screencopy.hpp"
 #include "../protocols/ToplevelExport.hpp"
@@ -2011,9 +2012,6 @@ bool CMonitor::attemptDirectScanout() {
 
     // #TODO this entire bit needs figuring out, vrr goes down the drain without it
     if (PBUFFER == m_output->state->state().buffer && *PSAME) {
-        PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
-        PROTO::presentation->tagQueued(m_self.lock(), 0, m_tearingState.activelyTearing, m_vrrActive);
-
         if (m_scanoutNeedsCursorUpdate) {
             if (!m_state.test()) {
                 LOG(Log::TRACE, "attemptDirectScanout: failed basic test on cursor update");
@@ -2029,9 +2027,10 @@ bool CMonitor::attemptDirectScanout() {
             m_scanoutNeedsCursorUpdate = false;
         }
 
-        //#TODO this entire bit is bootleg deluxe, above bit is to not make vrr go down the drain, returning early here means fifo gets forever locked.
-        if (PSURFACE->m_fifo && !m_tearingState.activelyTearing && *PSAMEFIFO)
-            PSURFACE->m_stateQueue.unlockFirst(LOCK_REASON_FIFO);
+        PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock(), true);
+
+        if (PSURFACE->m_fifo && !m_tearingState.activelyTearing && *PSAMEFIFO && !m_output->pendingPageFlip())
+            PSURFACE->m_fifo->presented();
 
         return true;
     }

@@ -4,6 +4,5 @@
 
 namespace NInit {
     bool isSudo();
-    void lowerAmbientCaps();
     void gainRealTime();
 };

@@ -37,7 +37,7 @@ class CWLSubsurfaceResource {
     bool                      good();
     SP<CWLSurfaceResource>    t1Parent();
 
-    bool                      m_sync = false;
+    bool                      m_sync = true;
     Vector2D                  m_position;
 
     WP<CWLSurfaceResource>    m_surface;

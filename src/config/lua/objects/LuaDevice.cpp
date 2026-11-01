@@ -99,6 +99,21 @@ static void pushTabletPadProperty(lua_State* L, CTabletPad& pad, std::string_vie
     lua_setfield(L, -2, "name");
 }
 
+static void pushSysname(lua_State* L, const SDeviceRef& ref) {
+    if (std::get_if<WP<Aquamarine::ISwitch>>(&ref.device)) {
+        lua_pushstring(L, ref.sysname.c_str());
+        return;
+    }
+
+    const auto device = std::get<WP<IHID>>(ref.device).lock();
+    if (device->getType() == HID_TYPE_TABLET_TOOL) {
+        lua_pushnil(L);
+        return;
+    }
+
+    lua_pushstring(L, device->m_sysname.c_str());
+}
+
 static int deviceIndex(lua_State* L) {
     const auto& ref = *sc<SDeviceRef*>(luaL_checkudata(L, 1, MT));
     if (!deviceAvailable(ref)) {
@@ -112,14 +127,17 @@ static int deviceIndex(lua_State* L) {
         return 1;
     }
 
+    if (key == "sysname") {
+        pushSysname(L, ref);
+        return 1;
+    }
+
     if (const auto switchRef = std::get_if<WP<Aquamarine::ISwitch>>(&ref.device)) {
         const auto device = switchRef->lock();
         if (key == "type")
             lua_pushstring(L, "switch");
         else if (key == "name")
             lua_pushstring(L, device->getName().c_str());
-        else if (key == "sysname")
-            lua_pushstring(L, ref.sysname.c_str());
         else
             lua_pushnil(L);
         return 1;
@@ -129,8 +147,6 @@ static int deviceIndex(lua_State* L) {
     const auto type   = device->getType();
     if (key == "type")
         lua_pushstring(L, deviceType(type));
-    else if (key == "sysname" && type != HID_TYPE_TABLET_TOOL)
-        lua_pushstring(L, device->m_sysname.c_str());
     else if (key == "name" && type != HID_TYPE_TABLET_PAD && type != HID_TYPE_TABLET_TOOL)
         lua_pushstring(L, device->m_hlName.c_str());
     else {

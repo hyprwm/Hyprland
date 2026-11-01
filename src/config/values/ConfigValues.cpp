@@ -449,17 +449,17 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Int>("input:tablet:transform", "transform the input from tablets.", 0, {.min = 0, .max = 6, .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<String>("input:tablet:output", "the monitor to bind tablets.", STRVAL_EMPTY, {.refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<Vec2>("input:tablet:region_position", "position of the mapped region in monitor layout.", Config::VEC2{},
-                 {.validator = vec2Range(-20000, -20000, 20000, 20000), .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
+                 {.validator = vec2Range(-100000, -100000, 100000, 100000), .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<Bool>("input:tablet:absolute_region_position", "whether to treat the region_position as an absolute position in monitor layout.", false,
                  {.refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<Vec2>("input:tablet:region_size", "size of the mapped region.", Config::VEC2{},
-                 {.validator = vec2Range(-100, -100, 4000, 4000), .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
+                 {.validator = vec2Range(1, 1, 100000, 100000), .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<Bool>("input:tablet:relative_input", "whether the input should be relative", false, {.refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<Bool>("input:tablet:left_handed", "if enabled, the tablet will be rotated 180 degrees", false, {.refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<Vec2>("input:tablet:active_area_size", "size of tablet's active area in mm", Config::VEC2{},
-                 {.validator = vec2Range(0, 0, 500, 500), .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
+                 {.validator = vec2Range(0, 0, 5000, 5000), .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<Vec2>("input:tablet:active_area_position", "position of the active area in mm", Config::VEC2{},
-                 {.validator = vec2Range(0, 0, 500, 500), .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
+                 {.validator = vec2Range(0, 0, 5000, 5000), .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
 
         /*
          * input:tablettool:

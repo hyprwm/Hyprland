@@ -112,7 +112,7 @@ namespace Monitor {
         float                       m_sdrSaturation    = 1.0f;
         float                       m_sdrBrightness    = 1.0f;
         float                       m_sdrMinLuminance  = 0.2f;
-        int                         m_sdrMaxLuminance  = 80;
+        int                         m_sdrMaxLuminance  = 203;
         bool                        m_createdByUser    = false;
         bool                        m_isUnsafeFallback = false;
 

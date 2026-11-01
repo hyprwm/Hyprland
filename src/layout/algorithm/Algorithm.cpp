@@ -234,6 +234,9 @@ SP<ITarget> CAlgorithm::getNextCandidate(SP<ITarget> old) {
     if (old->floating() || *FOCUSONCLOSE == 2) {
         // use window history to determine best target
         for (const auto& w : Desktop::History::windowTracker()->fullHistory() | std::views::reverse) {
+            if (!w || (old && w == old->window()) || !w->mapped() || w->isHidden() || !w->acceptsInput())
+                continue;
+
             if (!w->m_workspace || w->m_workspace->space() != m_space || !w->layoutTarget() || !w->layoutTarget()->space())
                 continue;
 
@@ -251,10 +254,17 @@ SP<ITarget> CAlgorithm::getNextCandidate(SP<ITarget> old) {
     }
 
     // fallback: try to focus anything
-    if (!m_tiledTargets.empty())
-        return m_tiledTargets.back().lock();
-    if (!m_floatingTargets.empty())
-        return m_floatingTargets.back().lock();
+    if (old->floating()) {
+        if (!m_floatingTargets.empty())
+            return m_floatingTargets.back().lock();
+        if (!m_tiledTargets.empty())
+            return m_tiledTargets.back().lock();
+    } else {
+        if (!m_tiledTargets.empty())
+            return m_tiledTargets.back().lock();
+        if (!m_floatingTargets.empty())
+            return m_floatingTargets.back().lock();
+    }
 
     // god damn it, maybe empty?
     return nullptr;

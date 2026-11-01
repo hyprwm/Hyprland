@@ -205,6 +205,47 @@ TEST_CASE(focusMRUAfterClose) {
     }
 }
 
+TEST_CASE(focusFloatingAfterCloseFloating) {
+    NLog::log("{}Testing focus after closing floating window (MRU order)", Colors::GREEN);
+
+    OK(getFromSocket("/reload"));
+    OK(getFromSocket("/eval hl.config({ dwindle = { default_split_ratio = 1.25 } })"));
+
+    SPAWN_KITTY("kitty_A");
+    SPAWN_KITTY("kitty_B");
+    SPAWN_KITTY("kitty_C");
+
+    // Float B and C
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_B' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'toggle' })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_C' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'toggle' })"));
+
+    // Ensure focus order: A (tiled), then B (floating), then C (floating)
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_A' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_B' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_C' })"));
+
+    // Kill C: focus should return to B (floating), not A (tiled)
+    OK(getFromSocket("/dispatch hl.dsp.window.kill()"));
+    Tests::waitUntilWindowsN(2);
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT(str.contains("class: kitty_B"), true);
+    }
+
+    // Kill B: focus should return to A (tiled)
+    OK(getFromSocket("/dispatch hl.dsp.window.kill()"));
+    Tests::waitUntilWindowsN(1);
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT(str.contains("class: kitty_A"), true);
+    }
+}
+
 TEST_CASE(focusPreservedLayoutChange) {
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'master' } })"));
 

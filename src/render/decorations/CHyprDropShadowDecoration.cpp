@@ -88,7 +88,8 @@ void CHyprDropShadowDecoration::damageEntire() {
     const auto pos     = PWINDOW->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
     const auto size    = PWINDOW->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
 
-    CBox       shadowBox = {pos.x - m_extents.topLeft.x, pos.y - m_extents.topLeft.y, pos.x + size.x + m_extents.bottomRight.x, pos.y + size.y + m_extents.bottomRight.y};
+    CBox       shadowBox = {pos.x - m_extents.topLeft.x, pos.y - m_extents.topLeft.y, size.x + m_extents.topLeft.x + m_extents.bottomRight.x,
+                            size.y + m_extents.topLeft.y + m_extents.bottomRight.y};
 
     const auto PWORKSPACE  = PWINDOW->m_workspace;
     const auto applyOffset = [&](CBox& b) {

@@ -414,16 +414,15 @@ TEST_F(CConfigLuaDevice, switchUsesSuppliedAddressAndWeakIdentity) {
     auto first  = makeShared<CLuaDeviceSwitch>();
     auto second = makeShared<CLuaDeviceSwitch>();
     // An opaque address must never be dereferenced, nor used as device identity.
-    Objects::CLuaDevice::push(m_lua, first, 0x1234, "event10");
+    Objects::CLuaDevice::push(m_lua, first, 0x1234);
     lua_setglobal(m_lua, "device");
-    Objects::CLuaDevice::push(m_lua, first, 0x5678, "event11");
+    Objects::CLuaDevice::push(m_lua, first, 0x5678);
     lua_setglobal(m_lua, "alias");
-    Objects::CLuaDevice::push(m_lua, second, 0x1234, "event12");
+    Objects::CLuaDevice::push(m_lua, second, 0x1234);
     lua_setglobal(m_lua, "other");
     ASSERT_EQ(luaL_dostring(m_lua, R"(
         assert(device.type == 'switch' and device.name == 'test-switch')
         assert(device.address == '0x1234')
-        assert(device.sysname == 'event10' and alias.sysname == 'event11' and other.sysname == 'event12')
         assert(device == alias and device ~= other)
         assert(device.default_speed == nil and device.active_keymap == nil)
     )"),
@@ -443,7 +442,7 @@ TEST_F(CConfigLuaDevice, collectionAndLuaCloseDisconnectDestructionListeners) {
     const auto switchDevice = makeShared<CLuaDeviceSwitch>();
     for (int i = 0; i < 32; ++i) {
         push(mouse);
-        Objects::CLuaDevice::push(m_lua, switchDevice, 0x1234, "event10");
+        Objects::CLuaDevice::push(m_lua, switchDevice, 0x1234);
         lua_setglobal(m_lua, "switchDevice");
     }
     ASSERT_EQ(luaL_dostring(m_lua, R"(
@@ -457,7 +456,7 @@ TEST_F(CConfigLuaDevice, collectionAndLuaCloseDisconnectDestructionListeners) {
               LUA_OK)
         << lua_tostring(m_lua, -1);
     push(mouse);
-    Objects::CLuaDevice::push(m_lua, switchDevice, 0x1234, "event10");
+    Objects::CLuaDevice::push(m_lua, switchDevice, 0x1234);
     lua_setglobal(m_lua, "switchDevice");
     mouse->m_events.destroy.emit();
     switchDevice->events.destroy.emit();
@@ -466,7 +465,7 @@ TEST_F(CConfigLuaDevice, collectionAndLuaCloseDisconnectDestructionListeners) {
     const auto retained       = CMouse::create(nullptr);
     const auto retainedSwitch = makeShared<CLuaDeviceSwitch>();
     push(retained);
-    Objects::CLuaDevice::push(m_lua, retainedSwitch, 0x5678, "event11");
+    Objects::CLuaDevice::push(m_lua, retainedSwitch, 0x5678);
     lua_setglobal(m_lua, "retainedSwitch");
     lua_close(m_lua);
     m_lua = nullptr;

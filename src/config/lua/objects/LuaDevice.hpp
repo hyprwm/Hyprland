@@ -3,7 +3,6 @@
 #include "LuaObjectHelpers.hpp"
 
 #include <cstdint>
-#include <string>
 
 class IHID;
 namespace Aquamarine {
@@ -15,6 +14,6 @@ namespace Config::Lua::Objects {
       public:
         void        setup(lua_State* L) override;
         static void push(lua_State* L, WP<IHID> device);
-        static void push(lua_State* L, WP<Aquamarine::ISwitch> device, uintptr_t address, const std::string& sysname);
+        static void push(lua_State* L, WP<Aquamarine::ISwitch> device, uintptr_t address);
     };
 }

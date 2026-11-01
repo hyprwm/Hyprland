@@ -19,7 +19,6 @@ static constexpr const char* MT = "HL.Device";
 struct SDeviceRef {
     std::variant<WP<IHID>, WP<Aquamarine::ISwitch>> device;
     uintptr_t                                       address = 0;
-    std::string                                     sysname;
     bool                                            removed = false;
     CHyprSignalListener                             destroy;
 };
@@ -99,19 +98,13 @@ static void pushTabletPadProperty(lua_State* L, CTabletPad& pad, std::string_vie
     lua_setfield(L, -2, "name");
 }
 
-static void pushSysname(lua_State* L, const SDeviceRef& ref) {
-    if (std::get_if<WP<Aquamarine::ISwitch>>(&ref.device)) {
-        lua_pushstring(L, ref.sysname.c_str());
-        return;
-    }
-
-    const auto device = std::get<WP<IHID>>(ref.device).lock();
-    if (device->getType() == HID_TYPE_TABLET_TOOL) {
+static void pushSysname(lua_State* L, IHID& device) {
+    if (device.getType() == HID_TYPE_TABLET_TOOL) {
         lua_pushnil(L);
         return;
     }
 
-    lua_pushstring(L, device->m_sysname.c_str());
+    lua_pushstring(L, device.m_sysname.c_str());
 }
 
 static int deviceIndex(lua_State* L) {
@@ -124,11 +117,6 @@ static int deviceIndex(lua_State* L) {
     const std::string_view key = luaL_checkstring(L, 2);
     if (key == "address") {
         pushAddress(L, ref.address);
-        return 1;
-    }
-
-    if (key == "sysname") {
-        pushSysname(L, ref);
         return 1;
     }
 
@@ -147,6 +135,8 @@ static int deviceIndex(lua_State* L) {
     const auto type   = device->getType();
     if (key == "type")
         lua_pushstring(L, deviceType(type));
+    else if (key == "sysname")
+        pushSysname(L, *device);
     else if (key == "name" && type != HID_TYPE_TABLET_PAD && type != HID_TYPE_TABLET_TOOL)
         lua_pushstring(L, device->m_hlName.c_str());
     else {
@@ -194,7 +184,7 @@ void Objects::CLuaDevice::push(lua_State* L, WP<IHID> device) {
     lua_setmetatable(L, -2);
 }
 
-void Objects::CLuaDevice::push(lua_State* L, WP<Aquamarine::ISwitch> device, uintptr_t address, const std::string& sysname) {
+void Objects::CLuaDevice::push(lua_State* L, WP<Aquamarine::ISwitch> device, uintptr_t address) {
     const auto locked = device.lock();
     if (!locked) {
         lua_pushnil(L);
@@ -204,7 +194,6 @@ void Objects::CLuaDevice::push(lua_State* L, WP<Aquamarine::ISwitch> device, uin
     auto* ref = new (lua_newuserdata(L, sizeof(SDeviceRef))) SDeviceRef{
         .device  = device,
         .address = address,
-        .sysname = sysname,
     };
     ref->destroy = locked->events.destroy.listen([ref] { ref->removed = true; });
     luaL_getmetatable(L, MT);

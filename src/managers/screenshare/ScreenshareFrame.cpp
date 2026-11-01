@@ -135,7 +135,7 @@ eScreenshareError CScreenshareFrame::share(SP<IHLBuffer> buffer, const CRegion& 
     }
 
     // schedule a frame so that when a screenshare starts it isn't black until the output is updated
-    if (m_isFirst || m_session->m_type == SHARE_WORKSPACE) {
+    if (m_isFirst || m_session->m_type == SHARE_WINDOW || m_session->m_type == SHARE_WORKSPACE) {
         const auto PMONITOR = m_session->monitor();
         if (PMONITOR)
             PMONITOR->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);

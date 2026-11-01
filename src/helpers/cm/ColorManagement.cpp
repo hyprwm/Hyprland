@@ -509,11 +509,11 @@ RGBAColor NColorManagement::convertColor(RGBAColor color, PImageDescription srcD
         if (settings.needsTonemap)
             color = tonemap(color, settings.dstPrimaries2XYZ, settings.maxLuminance, settings.dstMaxLuminance, settings.dstRefLuminance, settings.srcRefLuminance);
 
-        color = fromLinearNit(color, dstDesc->value().transferFunction, settings.dstTFRange);
-        if (settings.needsSDRmod) {
-            color = saturate(color, settings.dstPrimaries2XYZ, settings.sdrSaturation);
+        if (settings.needsSDRmod)
             color *= settings.sdrBrightnessMultiplier;
-        }
+        color = fromLinearNit(color, dstDesc->value().transferFunction, settings.dstTFRange);
+        if (settings.needsSDRmod)
+            color = saturate(color, settings.dstPrimaries2XYZ, settings.sdrSaturation);
     }
     return color;
 }

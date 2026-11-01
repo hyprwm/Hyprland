@@ -41,7 +41,7 @@ CGLTexture::CGLTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, con
     m_size          = size_;
     m_isSynchronous = true;
     m_target        = GL_TEXTURE_2D;
-    allocate(size_);
+    allocate(size_, drmFormat);
     bind();
     setTexParameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     setTexParameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);

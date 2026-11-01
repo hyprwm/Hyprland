@@ -73,6 +73,7 @@
 #include <hyprutils/memory/UniquePtr.hpp>
 #include <optional>
 #include <pango/pangocairo.h>
+#include <tuple>
 #include <type_traits>
 #include <unordered_map>
 
@@ -3723,7 +3724,7 @@ SP<ITexture> IHyprRenderer::renderSplash(const std::function<SP<ITexture>(const 
     return tex;
 }
 
-using ColorConversionKey = std::tuple<float, float, float, float, uint64_t>;
+using ColorConversionKey = std::tuple<float, float, float, float, uint64_t, float, float, float, float, bool, float, float>;
 
 struct SColorConversionKeyHash {
     size_t operator()(const ColorConversionKey& key) const {
@@ -3734,11 +3735,7 @@ struct SColorConversionKeyHash {
         // distribute bits and reduce collisions between adjacent fields.
         const auto hashCombine = [&hash](const auto& value) { hash ^= std::hash<std::decay_t<decltype(value)>>{}(value) + 0x9e3779b97f4a7c15ULL + (hash << 6) + (hash >> 2); };
 
-        hashCombine(std::get<0>(key));
-        hashCombine(std::get<1>(key));
-        hashCombine(std::get<2>(key));
-        hashCombine(std::get<3>(key));
-        hashCombine(std::get<4>(key));
+        std::apply([&](const auto&... values) { (hashCombine(values), ...); }, key);
 
         return hash;
     }
@@ -3764,13 +3761,26 @@ CHyprColor IHyprRenderer::getConvertedColor(CRenderContext& ctx, const CHyprColo
     if (colorConversionCache.size() >= MAX_COLOR_CONVERSION_CACHE_SIZE)
         colorConversionCache.clear();
 
-    const ColorConversionKey key = {color.r, color.g, color.b, color.a, DESCR->id()};
+    const auto               settings = getCMSettings(ctx, DEFAULT_SRGB_IMAGE_DESCRIPTION, DESCR, nullptr, true, ctx.m_data.pMonitor ? ctx.m_data.pMonitor->m_sdrMinLuminance : -1,
+                                                      ctx.m_data.pMonitor ? ctx.m_data.pMonitor->m_sdrMaxLuminance : -1);
+    const ColorConversionKey key      = {
+        color.r,
+        color.g,
+        color.b,
+        color.a,
+        DESCR->id(),
+        settings.srcTFRange.min,
+        settings.srcTFRange.max,
+        settings.dstTFRange.min,
+        settings.dstTFRange.max,
+        settings.needsSDRmod,
+        settings.sdrBrightnessMultiplier,
+        settings.sdrSaturation,
+    };
 
     if (const auto IT = colorConversionCache.find(key); IT != colorConversionCache.end())
         return IT->second;
 
-    const auto settings  = getCMSettings(ctx, DEFAULT_SRGB_IMAGE_DESCRIPTION, DESCR, nullptr, true, ctx.m_data.pMonitor ? ctx.m_data.pMonitor->m_sdrMinLuminance : -1,
-                                         ctx.m_data.pMonitor ? ctx.m_data.pMonitor->m_sdrMaxLuminance : -1);
     const auto converted = convertColor(color, DEFAULT_SRGB_IMAGE_DESCRIPTION, DESCR, settings);
     colorConversionCache.emplace(key, converted);
 

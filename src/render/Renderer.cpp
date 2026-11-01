@@ -28,6 +28,7 @@
 #include "../protocols/core/DataDevice.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/DRMSyncobj.hpp"
+#include "../protocols/Fifo.hpp"
 #include "../protocols/LinuxDMABUF.hpp"
 #include "../protocols/InputCapture.hpp"
 #include "../errorOverlay/Overlay.hpp"
@@ -206,7 +207,8 @@ IHyprRenderer::IHyprRenderer() {
 
                 w->wlSurface()->resource()->breadthfirst(
                     [](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) {
-                        surf->m_stateQueue.unlockFirst(LOCK_REASON_FENCE | LOCK_REASON_FIFO | LOCK_REASON_TIMER);
+                        if (surf->m_fifo)
+                            surf->m_fifo->presented();
                         surf->presentFeedback(Time::steadyNow(), Desktop::focusState()->monitor(), true);
                     },
                     nullptr);

@@ -1,3 +1,5 @@
+#include "../../../../Compositor.hpp"
+
 #include "../../../../config/shared/monitor/MonitorRuleManager.hpp"
 #include "../../../../render/Renderer.hpp"
 
@@ -29,6 +31,10 @@ CScrollingFullscreenHandler::CScrollingFullscreenHandler(Layout::Tiled::CScrolli
 }
 
 CScrollingFullscreenHandler::~CScrollingFullscreenHandler() {
+
+    // No need for extra cleanup of FS lists when compositor is shutting down anyway
+    if (g_pCompositor->m_isShuttingDown)
+        return;
 
     // sift through any expired entries in case the following loop fucks us - read CScrollingFullscreenHandler::removeFsTarget()
     std::erase_if(m_fsTargets, [&](const auto& it) { return !it.first; });

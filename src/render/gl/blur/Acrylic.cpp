@@ -83,7 +83,8 @@ void CAcrylicBlurMaterial::bindFinish(CRenderContext& ctx, WP<CShader> shader, c
 
     shader->setUniformInt(SHADER_ACRYLIC_ENABLED, 1);
     shader->setUniformFloat4(SHADER_ACRYLIC_EXTENT, sc<float>(extent.x), sc<float>(extent.y), sc<float>(extent.width), sc<float>(extent.height));
-    shader->setUniformFloat(SHADER_ACRYLIC_RADIUS, std::max(context.blurContext.shape->radius, 0.F));
+    const auto RADII = context.blurContext.shape->radius.clamped(extent.size());
+    shader->setUniformFloat4(SHADER_ACRYLIC_RADIUS, RADII.topLeft, RADII.topRight, RADII.bottomRight, RADII.bottomLeft);
     shader->setUniformFloat(SHADER_ACRYLIC_ROUNDING_POWER, std::max(context.blurContext.shape->roundingPower, 1.F));
     shader->setUniformFloat(SHADER_ACRYLIC_REFRACTION, std::clamp(*PACRYLICREFRACTION, 0.F, MAX_ACRYLIC_REFRACTION));
     shader->setUniformFloat(SHADER_ACRYLIC_BULB, std::clamp(*PACRYLICBULB, MIN_ACRYLIC_BULB, MAX_ACRYLIC_BULB));

@@ -15,6 +15,7 @@
 #include <managers/eventLoop/EventLoopManager.hpp>
 #include <output/Monitor.hpp>
 #include <render/Renderer.hpp>
+#include <render/pass/SurfacePassElement.hpp>
 
 #include <gtest/gtest.h>
 #include <hyprutils/os/FileDescriptor.hpp>
@@ -406,6 +407,50 @@ TEST_F(COutputTest, LockSurfaceRequestedAfterMonitorRemovalIsInertAndDestroyable
     ASSERT_EQ(events.size(), 1U);
     EXPECT_EQ(events.front().objectID, 8U);
     EXPECT_EQ(events.front().opcode, WL_CALLBACK_DONE);
+}
+
+TEST_F(COutputTest, HiDpiRoundedSurfaceKeepsCornerBackdropAtFractionalPositions) {
+    auto                                previousPresentation = std::move(PROTO::presentation);
+    const Hyprutils::Utils::CScopeGuard restorePresentation{[&] { PROTO::presentation = std::move(previousPresentation); }};
+    PROTO::presentation = makeUnique<CPresentationProtocol>(&wp_presentation_interface, 2, "wp_presentation");
+
+    auto surface              = makeShared<CWLSurfaceResource>(makeShared<CWlSurface>(m_client, 6, 2));
+    surface->m_self           = surface;
+    surface->m_current.size   = {100, 100};
+    surface->m_current.opaque = CBox{{}, surface->m_current.size};
+    m_monitor->m_scale        = 2.F;
+
+    Render::CRenderContext ctx;
+    ctx.m_data.pMonitor = m_monitor;
+    for (const auto& rounding :
+         {Math::SCornerRadii{1}, Math::SCornerRadii{1, 0, 0, 0}, Math::SCornerRadii{0, 1, 0, 0}, Math::SCornerRadii{0, 0, 1, 0}, Math::SCornerRadii{0, 0, 0, 1}}) {
+        for (const double position : {100.75, -100.75}) {
+            CSurfacePassElement element{CSurfacePassElement::SRenderData{
+                .pMonitor  = m_monitor,
+                .pos       = {position, position},
+                .surface   = surface,
+                .w         = 100,
+                .h         = 100,
+                .rounding  = rounding * m_monitor->m_scale,
+                .dontRound = false,
+            }};
+
+            const auto          box    = element.getTexBox().scale(m_monitor->m_scale).round();
+            auto                opaque = element.opaqueRegion(ctx);
+            ASSERT_FALSE(opaque.empty());
+            // Match the logical-to-pixel conversion used by pass simplification.
+            opaque = opaque.getExtents().scale(m_monitor->m_scale).round();
+            EXPECT_TRUE(opaque.containsPoint(box.pos() + box.size() / 2.0));
+
+            for (const Vector2D offset : {Vector2D{0, 0}, Vector2D{199, 0}, Vector2D{199, 199}, Vector2D{0, 199}}) {
+                if (rounding.at(offset, box.size()) <= 0.F)
+                    continue;
+
+                // The one-pixel rendered radius leaves these corner pixels partially transparent.
+                EXPECT_FALSE(opaque.containsPoint(box.pos() + offset)) << "position=" << position << ", corner=" << offset.x << ',' << offset.y;
+            }
+        }
+    }
 }
 
 static std::vector<uint32_t> outputStateEvents(uint32_t version) {

@@ -10,7 +10,7 @@ uniform sampler2D sharpTex;
 
 uniform int acrylicEnabled;
 uniform vec4 acrylicExtent;
-uniform float acrylicRadius;
+uniform vec4      acrylicRadius;
 uniform float acrylicRoundingPower;
 uniform float acrylicRefraction;
 uniform float acrylicBulb;
@@ -32,6 +32,7 @@ uniform int targetTF;
 
 #include "cm_helpers.glsl"
 #include "blurFinish.glsl"
+#include "rounding.glsl"
 
 layout(location = 0) out vec4 fragColor;
 
@@ -101,7 +102,7 @@ vec4 applyAcrylic(vec4 blurred) {
     if (minimumHalfSize <= 0.0001)
         return blurred;
 
-    float boundaryRadius = clamp(acrylicRadius, 0.0, minimumHalfSize);
+    float boundaryRadius = clamp(cornerRadius(acrylicRadius, position), 0.0, minimumHalfSize);
     float bulbWidth = min(max(acrylicBulb, 1.0), minimumHalfSize * 0.8);
 
     float boundarySdf = roundedBoxSDF(position, halfSize, boundaryRadius, power);

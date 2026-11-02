@@ -767,7 +767,7 @@ void IHyprRenderer::renderWindow(CRenderContext& ctx, PHLWINDOW pWindow, PHLMONI
             CRectPassElement::SRectData data;
             data.color                 = CHyprColor(0, 0, 0, 0);
             data.box                   = wb;
-            data.round                 = renderdata.dontRound ? 0 : renderdata.rounding - 1;
+            data.round                 = renderdata.dontRound ? Math::SCornerRadii{} : renderdata.rounding.inset(1.F);
             data.blur                  = true;
             data.blurA                 = renderdata.fadeAlpha;
             data.xray                  = shouldUseNewBlurOptimizations(ctx, nullptr, pWindow);
@@ -831,7 +831,7 @@ void IHyprRenderer::renderWindow(CRenderContext& ctx, PHLWINDOW pWindow, PHLMONI
                                .blur                  = windowBlur,
                                .blurUsesLive          = windowBlurUsesLive,
                                .blurA                 = renderdata.fadeAlpha,
-                               .blurRound             = renderdata.dontRound ? 0 : std::max(renderdata.rounding - 1, 0),
+                               .blurRound             = renderdata.dontRound ? Math::SCornerRadii{} : renderdata.rounding.inset(1.F),
                                .blurRoundingPower     = renderdata.roundingPower,
                                .transformedBox        = transformedBox,
                                .motionBlur            = windowMotionBlur,

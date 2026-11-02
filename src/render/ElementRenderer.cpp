@@ -524,7 +524,7 @@ void IElementRenderer::drawTex(CRenderContext& ctx, WP<CTexPassElement> element,
                 if (std::abs(shapeBox.rot) < 0.0001F)
                     shape = SBlurShape{
                         .box           = shapeBox,
-                        .radius        = element->m_data.round,
+                        .radius        = element->m_data.round.clamped(shapeBox.size()),
                         .roundingPower = element->m_data.roundingPower,
                     };
             }

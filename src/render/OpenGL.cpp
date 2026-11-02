@@ -1175,7 +1175,7 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(CRenderContext& ctx, const CBox
     if (std::abs(shapeBox.rot) < 0.0001F)
         shape = SBlurShape{
             .box           = shapeBox,
-            .radius        = data.round,
+            .radius        = data.round.clamped(shapeBox.size()),
             .roundingPower = data.roundingPower,
         };
     const bool usePrecomputedBlur = data.xray && !g_pHyprRenderer->blurProviderRequiresLiveBlur();
@@ -1221,9 +1221,10 @@ void CHyprOpenGLImpl::renderRectWithDamageInternal(CRenderContext& ctx, const CB
     CBox newBox = box;
     ctx.m_data.renderModif.applyToBox(newBox);
 
+    const auto  ROUNDING = data.round.clamped(newBox.size());
     const auto& glMatrix = g_pHyprRenderer->projectBoxToTarget(ctx, newBox);
 
-    auto        shader = useShader(getShaderVariant(SH_FRAG_QUAD, (data.round.isRounded() ? SH_FEAT_ROUNDING : 0) | globalFeatures(ctx)));
+    auto        shader = useShader(getShaderVariant(SH_FRAG_QUAD, (ROUNDING.isRounded() ? SH_FEAT_ROUNDING : 0) | globalFeatures(ctx)));
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
 
     // premultiply the color as well as we don't work with straight alpha
@@ -1238,7 +1239,7 @@ void CHyprOpenGLImpl::renderRectWithDamageInternal(CRenderContext& ctx, const CB
     // Rounded corners
     shader->setUniformFloat2(SHADER_TOP_LEFT, sc<float>(TOPLEFT.x), sc<float>(TOPLEFT.y));
     shader->setUniformFloat2(SHADER_FULL_SIZE, sc<float>(FULLSIZE.x), sc<float>(FULLSIZE.y));
-    shader->setUniformFloat4(SHADER_RADIUS, data.round.topLeft, data.round.topRight, data.round.bottomRight, data.round.bottomLeft);
+    shader->setUniformFloat4(SHADER_RADIUS, ROUNDING.topLeft, ROUNDING.topRight, ROUNDING.bottomRight, ROUNDING.bottomLeft);
     shader->setUniformFloat(SHADER_ROUNDING_POWER, data.roundingPower);
 
     glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
@@ -1427,7 +1428,8 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(CRenderContext& ctx, SP<ITexture
 
     auto&              m_renderData = ctx.m_data;
 
-    float              alpha = std::clamp(data.a, 0.f, 1.f);
+    float              alpha    = std::clamp(data.a, 0.f, 1.f);
+    const auto         ROUNDING = data.round.clamped(newBox.size());
 
     WP<CShader>        shader;
     ShaderFeatureFlags shaderFeatures = 0;
@@ -1516,7 +1518,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(CRenderContext& ctx, SP<ITexture
         (ctx.m_data.currentWindow->presentation().notRespondingTint() > 0 || ctx.m_data.currentWindow->presentation().dimPercent() > 0))
         shaderFeatures |= SH_FEAT_TINT;
 
-    if (data.round.isRounded())
+    if (ROUNDING.isRounded())
         shaderFeatures |= SH_FEAT_ROUNDING;
 
     if (!skipCM) {
@@ -1584,7 +1586,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(CRenderContext& ctx, SP<ITexture
     // Rounded corners
     shader->setUniformFloat2(SHADER_TOP_LEFT, TOPLEFT.x, TOPLEFT.y);
     shader->setUniformFloat2(SHADER_FULL_SIZE, FULLSIZE.x, FULLSIZE.y);
-    shader->setUniformFloat4(SHADER_RADIUS, data.round.topLeft, data.round.topRight, data.round.bottomRight, data.round.bottomLeft);
+    shader->setUniformFloat4(SHADER_RADIUS, ROUNDING.topLeft, ROUNDING.topRight, ROUNDING.bottomRight, ROUNDING.bottomLeft);
     shader->setUniformFloat(SHADER_ROUNDING_POWER, data.roundingPower);
 
     if (data.motionBlur.enabled) {
@@ -2053,8 +2055,8 @@ void CHyprOpenGLImpl::renderBorder(CRenderContext& ctx, const CBox& box, const C
     newBox.width += 2 * scaledBorderSize;
     newBox.height += 2 * scaledBorderSize;
 
-    const auto  round      = data.round.expanded(scaledBorderSize);
-    const auto  outerRound = data.outerRound == Math::SCornerRadii{-1.F} ? round : data.outerRound;
+    const auto  round      = data.round.expanded(scaledBorderSize).clamped(newBox.size());
+    const auto  outerRound = data.outerRound == Math::SCornerRadii{-1.F} ? round : data.outerRound.clamped(newBox.size());
 
     const auto& glMatrix = g_pHyprRenderer->projectBoxToTarget(ctx, newBox);
 
@@ -2137,8 +2139,8 @@ void CHyprOpenGLImpl::renderBorder(CRenderContext& ctx, const CBox& box, const C
     newBox.width += 2 * scaledBorderSize;
     newBox.height += 2 * scaledBorderSize;
 
-    const auto  round      = data.round.expanded(scaledBorderSize);
-    const auto  outerRound = data.outerRound == Math::SCornerRadii{-1.F} ? round : data.outerRound;
+    const auto  round      = data.round.expanded(scaledBorderSize).clamped(newBox.size());
+    const auto  outerRound = data.outerRound == Math::SCornerRadii{-1.F} ? round : data.outerRound.clamped(newBox.size());
 
     const auto& glMatrix = g_pHyprRenderer->projectBoxToTarget(ctx, newBox);
 
@@ -2250,6 +2252,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(CRenderContext& ctx, const CBox& box, 
     const auto TOPLEFT     = Vector2D(range, range);
     const auto BOTTOMRIGHT = Vector2D(newBox.width - range, newBox.height - range);
     const auto FULLSIZE    = Vector2D(newBox.width, newBox.height);
+    round                  = round.clamped(BOTTOMRIGHT - TOPLEFT);
 
     // Rounded corners
     shader->setUniformFloat2(SHADER_TOP_LEFT, sc<float>(TOPLEFT.x), sc<float>(TOPLEFT.y));
@@ -2361,6 +2364,7 @@ void CHyprOpenGLImpl::renderInnerGlow(CRenderContext& ctx, const CBox& box, Math
     const auto TOPLEFT     = Vector2D(0, 0);
     const auto BOTTOMRIGHT = Vector2D(newBox.width, newBox.height);
     const auto FULLSIZE    = Vector2D(newBox.width, newBox.height);
+    round                  = round.clamped(FULLSIZE);
 
     shader->setUniformFloat2(SHADER_TOP_LEFT, sc<float>(TOPLEFT.x), sc<float>(TOPLEFT.y));
     shader->setUniformFloat2(SHADER_BOTTOM_RIGHT, sc<float>(BOTTOMRIGHT.x), sc<float>(BOTTOMRIGHT.y));

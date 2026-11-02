@@ -289,7 +289,7 @@ Math::SCornerRadii CWindowPresentation::rounding() {
     const float              ROUNDINGPOWER = m_window.m_ruleApplicator->roundingPower().valueOr(*PROUNDINGPOWER);
     const Math::SCornerRadii ROUNDING{sc<float>(m_window.m_ruleApplicator->rounding().valueOr(*PROUNDING))};
 
-    return ROUNDING * (ROUNDINGPOWER / 2.F); /* Make perceived roundness consistent. */
+    return effectiveWindowRounding(ROUNDING, ROUNDINGPOWER, m_window.size(IGeometric::GEOMETRIC_CURRENT));
 }
 
 float CWindowPresentation::roundingPower() {

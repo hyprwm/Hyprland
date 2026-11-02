@@ -465,11 +465,17 @@ SUBTEST(dynamicWsEffects) {
 
     SPAWN_KITTY("bitch");
 
+    OK(getFromSocket("r/eval hl.config({ decoration = { rounding = { top_left = 5, top_right = 10, bottom_right = 15, bottom_left = 20 } } })"));
+    ASSERT(getFromSocket("/getprop class:bitch rounding"), "5 10 15 20");
+
     OK(getFromSocket("r/eval hl.workspace_rule({ workspace = '69', border_size = 20 })"));
     OK(getFromSocket("r/eval hl.workspace_rule({ workspace = '69', no_rounding = true })"));
 
     ASSERT(getFromSocket("/getprop class:bitch border_size"), "20");
     ASSERT(getFromSocket("/getprop class:bitch rounding"), "0");
+
+    OK(getFromSocket("r/eval hl.workspace_rule({ workspace = '69', no_rounding = false })"));
+    ASSERT(getFromSocket("/getprop class:bitch rounding"), "5 10 15 20");
 
     OK(getFromSocket("/reload"));
 

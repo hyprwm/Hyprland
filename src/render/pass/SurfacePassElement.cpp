@@ -128,7 +128,7 @@ CRegion CSurfacePassElement::opaqueRegion(Render::CRenderContext& ctx) {
         return {};
 
     const auto opaqueBox = [this](CBox box) -> CBox {
-        box.expand(-m_data.rounding);
+        box.expand(-std::max(0.F, m_data.rounding.max()));
 
         // Only claim fully covered logical pixels, after all fractional transforms.
         const double left = std::ceil(box.x), top = std::ceil(box.y);

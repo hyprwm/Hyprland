@@ -5,6 +5,7 @@
 #include "../helpers/Color.hpp"
 #include "../helpers/time/Timer.hpp"
 #include "../helpers/math/Math.hpp"
+#include "../helpers/math/CornerRadii.hpp"
 #include "../helpers/Format.hpp"
 #include "../helpers/cm/ColorRepresentation.hpp"
 #include "../helpers/DeformableMesh.hpp"
@@ -138,8 +139,8 @@ namespace Render::GL {
         ~CHyprOpenGLImpl();
 
         struct SRectRenderData {
-            const CRegion*                    damage        = nullptr;
-            int                               round         = 0;
+            const CRegion*                    damage = nullptr;
+            Math::SCornerRadii                round;
             float                             roundingPower = 2.F;
             bool                              blur          = false;
             float                             blurA         = 1.F;
@@ -156,10 +157,10 @@ namespace Render::GL {
             bool                   blockBlurOptimization = false;
             SP<ITexture>           blurredBG;
             SP<ITexture>           blurAlphaMatte;
-            const CRegion*         damage           = nullptr;
-            SP<CWLSurfaceResource> surface          = nullptr;
-            float                  a                = 1.F;
-            int                    round            = 0;
+            const CRegion*         damage  = nullptr;
+            SP<CWLSurfaceResource> surface = nullptr;
+            float                  a       = 1.F;
+            Math::SCornerRadii     round;
             float                  roundingPower    = 2.F;
             bool                   blurProportional = false;
             bool                   discardActive    = false;

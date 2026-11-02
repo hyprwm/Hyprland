@@ -26,7 +26,7 @@ void CMonitorFrameScheduler::onSyncFired() {
     // Sync fired: reset submitted state, set as rendered. Check the last render time. If we are running
     // late, we will instantly render here.
 
-    if (std::chrono::duration_cast<std::chrono::microseconds>(hrc::now() - m_lastRenderBegun).count() / 1000.F < 1000.F / PMONITOR->m_refreshRate) {
+    if (std::chrono::duration_cast<std::chrono::microseconds>(stc::now() - m_lastRenderBegun).count() / 1000.F < 1000.F / PMONITOR->m_refreshRate) {
         // we are in. Frame is valid. We can just render as normal.
         LOG(Log::TRACE, "CMonitorFrameScheduler: {} -> onSyncFired, didn't miss.", PMONITOR->m_name);
         m_renderAtFrame = true;
@@ -39,7 +39,7 @@ void CMonitorFrameScheduler::onSyncFired() {
     m_pendingThird  = true;
     m_renderAtFrame = false; // block frame rendering, we already scheduled
 
-    m_lastRenderBegun = hrc::now();
+    m_lastRenderBegun = stc::now();
 
     // get a ref to ourselves. renderMonitor can destroy this scheduler if it decides to perform a monitor reload
     // FIXME: this is horrible. "renderMonitor" should not be able to do that.
@@ -114,7 +114,7 @@ void CMonitorFrameScheduler::onFrame() {
 
     LOG(Log::TRACE, "CMonitorFrameScheduler: {} -> frame event, render = true, rendering normally.", PMONITOR->m_name);
 
-    m_lastRenderBegun = hrc::now();
+    m_lastRenderBegun = stc::now();
 
     // get a ref to ourselves. renderMonitor can destroy this scheduler if it decides to perform a monitor reload
     // FIXME: this is horrible. "renderMonitor" should not be able to do that.

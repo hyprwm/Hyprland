@@ -153,9 +153,9 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
 }
 
 void CHyprAnimationManager::tick() {
-    static std::chrono::time_point lastTick = std::chrono::high_resolution_clock::now();
-    m_lastTickTimeMs                        = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - lastTick).count() / 1000.0;
-    lastTick                                = std::chrono::high_resolution_clock::now();
+    static std::chrono::time_point lastTick = std::chrono::steady_clock::now();
+    m_lastTickTimeMs                        = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - lastTick).count() / 1000.0;
+    lastTick                                = std::chrono::steady_clock::now();
 
     static auto PANIMENABLED = CConfigValue<Config::INTEGER>("animations:enabled");
 

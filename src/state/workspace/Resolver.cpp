@@ -258,11 +258,19 @@ State::Workspace::STarget CWorkspaceResolver::getWorkspaceTargetFromString(const
         }
 
         const auto ID = offsetAvailableWorkspace(ACTIVE_NUMBERED.value_or(0), remains, unavailable);
+
         if (ID)
             return numberedTarget(*ID);
+
         if (remains < 0 && !named.empty())
             return targetFor(named.back());
-        return remains < 0 ? numberedTarget(1) : State::Workspace::STarget{};
+
+        if (remains < 0) {
+            const auto FIRST = availableWorkspaceAt(1, unavailable);
+            return FIRST ? numberedTarget(*FIRST) : State::Workspace::STarget{};
+        }
+
+        return {};
     }
 
     if (in.size() > 2 && (in[0] == 'm' || in[0] == 'e') && (in[1] == '-' || in[1] == '+' || in[1] == '~') && isNumber(in.substr(2))) {

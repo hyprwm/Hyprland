@@ -913,6 +913,69 @@ TEST_CASE(modifierReleaseBindShadowing) {
                      "end"));
 }
 
+TEST_CASE(modifierReleaseBindAfterScroll) {
+    constexpr uint32_t SUPER_L = KEY_LEFTMETA + 8;
+
+    const auto         counts = [] { return getFromSocket("/repl return _G.hyprtester_scroll_release .. ':' .. _G.hyprtester_scroll_bind"); };
+
+    OK(getFromSocket("/eval do "
+                     "hl.config({ binds = { scroll_event_delay = 0 } }); "
+                     "hl.unbind('SUPER + mouse_up'); "
+                     "_G.hyprtester_scroll_release = 0; "
+                     "_G.hyprtester_scroll_bind = 0; "
+                     "hl.bind('Super_L', function() _G.hyprtester_scroll_release = _G.hyprtester_scroll_release + 1 end, { release = true }); "
+                     "hl.bind('SUPER + mouse_up', function() _G.hyprtester_scroll_bind = _G.hyprtester_scroll_bind + 1 end) "
+                     "end"));
+
+    OK(getFromSocket(pluginKeybindCmd(true, 0, SUPER_L)));
+    EXPECT(counts(), "0:0");
+    OK(getFromSocket(pluginScrollCmd(-120)));
+    EXPECT(counts(), "0:1");
+    OK(getFromSocket(pluginKeybindCmd(false, 0, SUPER_L)));
+    EXPECT(counts(), "0:1");
+
+    OK(getFromSocket(pluginKeybindCmd(true, 0, SUPER_L)));
+    EXPECT(counts(), "0:1");
+    OK(getFromSocket(pluginKeybindCmd(false, 0, SUPER_L)));
+    EXPECT(counts(), "1:1");
+
+    OK(getFromSocket("/eval _G.hyprtester_scroll_release = nil; _G.hyprtester_scroll_bind = nil"));
+    OK(getFromSocket("/reload"));
+}
+
+TEST_CASE(mouseReleaseBindShadowing) {
+    constexpr uint32_t F24 = KEY_F24 + 8;
+
+    const auto         counts = [] { return getFromSocket("/repl return _G.hyprtester_mouse_press .. ':' .. _G.hyprtester_mouse_release"); };
+
+    OK(getFromSocket("/eval do "
+                     "_G.hyprtester_mouse_press = 0; "
+                     "_G.hyprtester_mouse_release = 0; "
+                     "hl.bind('mouse:275', function() _G.hyprtester_mouse_press = _G.hyprtester_mouse_press + 1 end); "
+                     "hl.bind('mouse:275', function() _G.hyprtester_mouse_release = _G.hyprtester_mouse_release + 1 end, { release = true }) "
+                     "end"));
+
+    OK(getFromSocket(pluginClickCmd(true, BTN_SIDE)));
+    EXPECT(counts(), "1:0");
+    OK(getFromSocket(pluginClickCmd(false, BTN_SIDE)));
+    EXPECT(counts(), "1:1");
+
+    OK(getFromSocket(pluginClickCmd(true, BTN_SIDE)));
+    EXPECT(counts(), "2:1");
+    // Releasing an unrelated key must not shadow the held mouse button's release bind.
+    OK(getFromSocket(pluginKeybindCmd(true, 0, F24)));
+    OK(getFromSocket(pluginKeybindCmd(false, 0, F24)));
+    EXPECT(counts(), "2:1");
+    OK(getFromSocket(pluginClickCmd(false, BTN_SIDE)));
+    EXPECT(counts(), "2:2");
+
+    OK(getFromSocket("/eval do "
+                     "hl.unbind('mouse:275'); "
+                     "_G.hyprtester_mouse_press = nil; "
+                     "_G.hyprtester_mouse_release = nil "
+                     "end"));
+}
+
 TEST_CASE(luaDispatcherStrings) {
     OK(getFromSocket("/eval B = hl.bind('SUPER + F24', hl.dsp.exec_cmd('true'))"));
     EXPECT(getFromSocket("/repl return B.handler"), "HL.Dispatcher(exec_cmd)");

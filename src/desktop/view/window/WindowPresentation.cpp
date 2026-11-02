@@ -1,4 +1,5 @@
 #include "WindowPresentation.hpp"
+#include "WindowCornerGeometry.hpp"
 
 #include "Window.hpp"
 #include "../../../animation/AnimationManager.hpp"
@@ -18,7 +19,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cmath>
 #include <ranges>
 
 using namespace Desktop;
@@ -282,14 +282,14 @@ Render::SWindowPresentationState CWindowPresentation::renderPresentationState(co
     };
 }
 
-float CWindowPresentation::rounding() {
-    static auto PROUNDING      = CConfigValue<Config::INTEGER>("decoration:rounding");
-    static auto PROUNDINGPOWER = CConfigValue<Config::FLOAT>("decoration:rounding_power");
+Math::SCornerRadii CWindowPresentation::rounding() {
+    static auto              PROUNDING      = CConfigValue<Config::INTEGER>("decoration:rounding");
+    static auto              PROUNDINGPOWER = CConfigValue<Config::FLOAT>("decoration:rounding_power");
 
-    float       roundingPower = m_window.m_ruleApplicator->roundingPower().valueOr(*PROUNDINGPOWER);
-    float       rounding      = m_window.m_ruleApplicator->rounding().valueOr(*PROUNDING) * (roundingPower / 2.0); /* Make perceived roundness consistent. */
+    const float              ROUNDINGPOWER = m_window.m_ruleApplicator->roundingPower().valueOr(*PROUNDINGPOWER);
+    const Math::SCornerRadii ROUNDING{sc<float>(m_window.m_ruleApplicator->rounding().valueOr(*PROUNDING))};
 
-    return rounding;
+    return ROUNDING * (ROUNDINGPOWER / 2.F); /* Make perceived roundness consistent. */
 }
 
 float CWindowPresentation::roundingPower() {
@@ -301,29 +301,9 @@ float CWindowPresentation::roundingPower() {
 // Check if the point is hidden under a rounded corner. The point is assumed to
 // be within the real window box; behavior outside it is undefined.
 bool CWindowPresentation::isInCurvedCorner(double x, double y) {
-    const int ROUNDING      = rounding();
-    const int ROUNDINGPOWER = roundingPower();
-    if (borderSize() >= ROUNDING)
-        return false;
-
-    // (x0, y0), (x0, y1), ... are the center point of rounding at each corner
     const auto POSITION = m_window.position(IGeometric::GEOMETRIC_CURRENT);
     const auto SIZE     = m_window.size(IGeometric::GEOMETRIC_CURRENT);
-    double     x0       = POSITION.x + ROUNDING;
-    double     y0       = POSITION.y + ROUNDING;
-    double     x1       = POSITION.x + SIZE.x - ROUNDING;
-    double     y1       = POSITION.y + SIZE.y - ROUNDING;
-
-    if (x < x0 && y < y0)
-        return std::pow(x0 - x, ROUNDINGPOWER) + std::pow(y0 - y, ROUNDINGPOWER) > std::pow(sc<double>(ROUNDING), ROUNDINGPOWER);
-    if (x > x1 && y < y0)
-        return std::pow(x - x1, ROUNDINGPOWER) + std::pow(y0 - y, ROUNDINGPOWER) > std::pow(sc<double>(ROUNDING), ROUNDINGPOWER);
-    if (x < x0 && y > y1)
-        return std::pow(x0 - x, ROUNDINGPOWER) + std::pow(y - y1, ROUNDINGPOWER) > std::pow(sc<double>(ROUNDING), ROUNDINGPOWER);
-    if (x > x1 && y > y1)
-        return std::pow(x - x1, ROUNDINGPOWER) + std::pow(y - y1, ROUNDINGPOWER) > std::pow(sc<double>(ROUNDING), ROUNDINGPOWER);
-
-    return false;
+    return isInWindowCorner(Vector2D{x, y} - POSITION, SIZE, rounding(), roundingPower(), borderSize());
 }
 
 bool CWindowPresentation::visibleOnMonitor(PHLMONITOR monitor) {

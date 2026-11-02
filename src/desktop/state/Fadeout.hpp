@@ -3,6 +3,7 @@
 #include "../DesktopTypes.hpp"
 #include "../view/types/GeometricAnimated.hpp"
 #include "../../helpers/AnimatedVariable.hpp"
+#include "../../helpers/math/CornerRadii.hpp"
 #include "../../helpers/time/Time.hpp"
 
 #include <optional>
@@ -41,11 +42,11 @@ namespace Desktop {
     };
 
     struct SFadeoutPreBlur {
-        CBox  box;
-        int   round         = 0;
-        float roundingPower = 2.F;
-        bool  xray          = false;
-        float alpha         = 1.F;
+        CBox               box;
+        Math::SCornerRadii round;
+        float              roundingPower = 2.F;
+        bool               xray          = false;
+        float              alpha         = 1.F;
     };
 
     struct SFadeoutTextureBlur {

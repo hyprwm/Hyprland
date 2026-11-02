@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "../../../helpers/AnimatedVariable.hpp"
+#include "../../../helpers/math/CornerRadii.hpp"
 #include "../../../render/decorations/IHyprWindowDecoration.hpp"
 #include "../../types/MultiAnimatedVariable.hpp"
 #include "../animationControllers/WindowAnimationController.hpp"
@@ -65,7 +66,7 @@ namespace Desktop::View {
         Render::SWindowRenderPresentation                 renderPresentation() const;
         Render::SWindowRenderPresentation                 renderPresentation(Render::eSceneMode mode) const;
         Render::SWindowRenderPresentation                 renderPresentation(const SP<Workspace::CWorkspacePresentable>& presentation) const;
-        float                                             rounding();
+        Math::SCornerRadii                                rounding();
         float                                             roundingPower();
         bool                                              isInCurvedCorner(double x, double y);
         bool                                              visibleOnMonitor(PHLMONITOR monitor);

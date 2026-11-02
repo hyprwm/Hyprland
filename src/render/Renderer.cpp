@@ -658,7 +658,7 @@ void IHyprRenderer::renderWindow(CRenderContext& ctx, PHLWINDOW pWindow, PHLMONI
     renderdata.alpha     = presentation.alpha;
     renderdata.decorate =
         decorate && !pWindow->backend().traits().suggestsNoBorder && Fullscreen::controller()->getFullscreenModes(pWindow).internal != Fullscreen::FSMODE_FULLSCREEN;
-    renderdata.rounding      = standalone || renderdata.dontRound ? 0 : pWindow->presentation().rounding() * pMonitor->m_scale;
+    renderdata.rounding      = standalone || renderdata.dontRound ? Math::SCornerRadii{} : pWindow->presentation().rounding() * pMonitor->m_scale;
     renderdata.roundingPower = standalone || renderdata.dontRound ? 2.0f : pWindow->presentation().roundingPower();
     renderdata.blur          = !standalone && !ctx.m_renderingSnapshot && pWindow->shouldBlur(presentation);
     renderdata.pWindow       = pWindow;

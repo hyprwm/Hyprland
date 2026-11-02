@@ -14,11 +14,11 @@ uniform vec2  bottomRight;
 uniform vec2  windowTopLeft;
 uniform vec2  windowBottomRight;
 uniform vec2  fullSize;
-uniform float radius;
+uniform vec4  radius;
 uniform float roundingPower;
 uniform float range;
 uniform float shadowPower;
-uniform float thick;
+uniform vec4  thick;
 
 // Gradients are in OkLabA!!!! {l, a, b, alpha}
 uniform vec4  gradient[10];

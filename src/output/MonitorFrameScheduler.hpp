@@ -8,7 +8,7 @@
 namespace Monitor {
     class CMonitorFrameScheduler {
       public:
-        using hrc = std::chrono::high_resolution_clock;
+        using stc = std::chrono::steady_clock;
 
         CMonitorFrameScheduler(PHLMONITOR m);
 
@@ -28,7 +28,7 @@ namespace Monitor {
 
         bool                       m_renderAtFrame = true;
         bool                       m_pendingThird  = false;
-        hrc::time_point            m_lastRenderBegun;
+        stc::time_point            m_lastRenderBegun;
 
         PHLMONITORREF              m_monitor;
 

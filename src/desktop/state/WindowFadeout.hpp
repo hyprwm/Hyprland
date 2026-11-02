@@ -31,9 +31,9 @@ namespace Desktop {
         bool                m_noAnim         = false;
         bool                m_noGeometryAnim = false;
 
-        bool                m_blur          = false;
-        bool                m_blurXray      = false;
-        int                 m_rounding      = 0;
+        bool                m_blur     = false;
+        bool                m_blurXray = false;
+        Math::SCornerRadii  m_rounding;
         float               m_roundingPower = 2.F;
     };
 }

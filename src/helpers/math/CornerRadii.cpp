@@ -1,13 +1,15 @@
 #include "CornerRadii.hpp"
 
-#include "../../config/shared/complex/ComplexDataTypes.hpp"
+#include "../../config/shared/complex/CornersData.hpp"
 #include <hyprutils/math/Vector2D.hpp>
+#include <hyprutils/memory/Casts.hpp>
 
 #include <algorithm>
 #include <cmath>
 
 using namespace Math;
 using Hyprutils::Math::Vector2D;
+using Hyprutils::Memory::sc;
 
 SCornerRadii::SCornerRadii(float radius) : SCornerRadii(radius, radius, radius, radius) {
     ;
@@ -17,7 +19,7 @@ SCornerRadii::SCornerRadii(float tl, float tr, float br, float bl) : topLeft(tl)
     ;
 }
 
-SCornerRadii::SCornerRadii(const Config::CCssGapData& value) : SCornerRadii(value.m_top, value.m_right, value.m_bottom, value.m_left) {
+SCornerRadii::SCornerRadii(const Config::CCornersData& value) : SCornerRadii(value.m_topLeft, value.m_topRight, value.m_bottomRight, value.m_bottomLeft) {
     ;
 }
 

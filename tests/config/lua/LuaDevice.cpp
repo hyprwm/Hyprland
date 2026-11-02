@@ -52,7 +52,7 @@ class CConfigLuaDevice : public testing::Test {
         ASSERT_EQ(luaL_dostring(m_lua, R"(
             function assertExpired(device)
                 for _, field in ipairs({
-                    'type', 'address', 'name', 'default_speed', 'scroll_factor',
+                    'type', 'address', 'sysname', 'name', 'default_speed', 'scroll_factor',
                     'rules', 'model', 'layout', 'variant', 'options', 'main',
                     'active_layout_index', 'active_keymap', 'caps_lock', 'num_lock', 'belongs_to'
                 }) do
@@ -82,6 +82,7 @@ TEST_F(CConfigLuaDevice, pointerReadsLiveValuesWithoutBackend) {
     const auto mouse    = CMouse::create(nullptr);
     mouse->m_deviceName = "backend-name";
     mouse->m_hlName     = "test-pointer";
+    mouse->m_sysname    = "event10";
     push(mouse);
 
     const auto ADDRESS = std::format("0x{:x}", rc<uintptr_t>(mouse.get()));
@@ -91,6 +92,7 @@ TEST_F(CConfigLuaDevice, pointerReadsLiveValuesWithoutBackend) {
         assert(type(device) == 'userdata')
         assert(device.type == 'pointer')
         assert(device.address == expectedAddress)
+        assert(device.sysname == 'event10')
         assert(device.name == 'test-pointer')
         assert(device.default_speed == 0)
         assert(device.scroll_factor == -1)
@@ -315,6 +317,9 @@ TEST_F(CConfigLuaDevice, tabletFamilyPropertiesAndPadParentAreLive) {
     tablet->m_hlName     = "test-tablet";
     pad->m_hlName        = "hidden-pad-name";
     tool->m_hlName       = "test-tool";
+    tablet->m_sysname    = "event10";
+    pad->m_sysname       = "event11";
+    tool->m_sysname      = "event10";
     push(tablet, "tablet");
     push(pad, "pad");
     push(tool, "tool");
@@ -322,6 +327,8 @@ TEST_F(CConfigLuaDevice, tabletFamilyPropertiesAndPadParentAreLive) {
         assert(tablet.type == 'tablet' and tablet.name == 'test-tablet')
         assert(pad.type == 'tablet_pad' and pad.name == nil)
         assert(tool.type == 'tablet_tool' and tool.name == nil)
+        assert(tablet.sysname == 'event10' and pad.sysname == 'event11')
+        assert(tool.sysname == nil)
         for _, device in ipairs({ tablet, pad, tool }) do
             assert(type(device.address) == 'string' and device.address:match('^0x%x+$'))
             assert(device.belongs_to == nil)

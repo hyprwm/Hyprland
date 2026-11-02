@@ -115,6 +115,9 @@ class IKeyboard : public IHID {
 
     WP<IKeyboard>                  m_self;
 
+  protected:
+    using IHID::IHID;
+
   private:
     void                  clearManuallyAllocd();
 

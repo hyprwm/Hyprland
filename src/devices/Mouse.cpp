@@ -10,7 +10,7 @@ SP<CMouse> CMouse::create(SP<Aquamarine::IPointer> mouse) {
     return pMouse;
 }
 
-CMouse::CMouse(SP<Aquamarine::IPointer> mouse_) : m_mouse(mouse_) {
+CMouse::CMouse(SP<Aquamarine::IPointer> mouse_) : IPointer(mouse_ ? mouse_->getLibinputHandle() : nullptr), m_mouse(mouse_) {
     if (!m_mouse)
         return;
 

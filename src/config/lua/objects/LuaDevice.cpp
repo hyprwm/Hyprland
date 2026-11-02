@@ -98,6 +98,15 @@ static void pushTabletPadProperty(lua_State* L, CTabletPad& pad, std::string_vie
     lua_setfield(L, -2, "name");
 }
 
+static void pushSysname(lua_State* L, IHID& device) {
+    if (device.getType() == HID_TYPE_TABLET_TOOL) {
+        lua_pushnil(L);
+        return;
+    }
+
+    lua_pushstring(L, device.m_sysname.c_str());
+}
+
 static int deviceIndex(lua_State* L) {
     const auto& ref = *sc<SDeviceRef*>(luaL_checkudata(L, 1, MT));
     if (!deviceAvailable(ref)) {
@@ -126,6 +135,8 @@ static int deviceIndex(lua_State* L) {
     const auto type   = device->getType();
     if (key == "type")
         lua_pushstring(L, deviceType(type));
+    else if (key == "sysname")
+        pushSysname(L, *device);
     else if (key == "name" && type != HID_TYPE_TABLET_PAD && type != HID_TYPE_TABLET_TOOL)
         lua_pushstring(L, device->m_hlName.c_str());
     else {

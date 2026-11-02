@@ -47,4 +47,7 @@ class ITouch : public IHID {
     std::string m_boundOutput = "";
 
     WP<ITouch>  m_self;
+
+  protected:
+    using IHID::IHID;
 };

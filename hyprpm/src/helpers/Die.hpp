@@ -1,7 +1,7 @@
 #pragma once
 
 #include <format>
-#include <iostream>
+#include <print>
 #include <utility>
 
 // NOLINTNEXTLINE
@@ -10,7 +10,7 @@ namespace Debug {
     void die(std::format_string<Args...> fmt, Args&&... args) {
         const std::string logMsg = std::format(fmt, std::forward<Args>(args)...);
 
-        std::cout << "\n[ERR] " << logMsg << "\n";
+        std::println("\n[ERR] {}", logMsg);
         exit(1);
     }
 };

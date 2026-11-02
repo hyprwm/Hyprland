@@ -7,6 +7,7 @@
 
 #include "cm_helpers.glsl"
 #include "gradient.glsl"
+#include "rounding.glsl"
 
 float innerGlowAlpha(float distFromEdge, float range, float glowPower) {
     if (distFromEdge >= range)
@@ -16,10 +17,6 @@ float innerGlowAlpha(float distFromEdge, float range, float glowPower) {
         return 1.0;
 
     return pow(1.0 - distFromEdge / range, glowPower);
-}
-
-float innerGlowModifiedLength(vec2 a, float roundingPower) {
-    return pow(pow(abs(a.x), roundingPower) + pow(abs(a.y), roundingPower), 1.0 / roundingPower);
 }
 
 float innerGlowSmin(float a, float b, float k) {
@@ -32,7 +29,7 @@ vec4[2]
 #else
 vec4
 #endif
-    getInnerGlow(vec4 pixColor, vec2 v_texcoord, float radius, float roundingPower, vec2 topLeft, vec2 fullSize, float range, float glowPower, vec2 bottomRight, int gradientLength,
+    getInnerGlow(vec4 pixColor, vec2 v_texcoord, vec4 radii, float roundingPower, vec2 topLeft, vec2 fullSize, float range, float glowPower, vec2 bottomRight, int gradientLength,
                  vec4 gradient[10], float angle, int gradient2Length, vec4 gradient2[10], float angle2, float gradientLerp, float alpha
 #if USE_CM
                  ,
@@ -61,16 +58,19 @@ vec4
     if (gradientLength > 0 || gradient2Length > 0)
         pixColor = getColorForCoord(v_texcoord, gradientLength, gradient, angle, gradient2Length, gradient2, angle2, gradientLerp);
 
-    // clip to the rounded rectangle shape using actual SDF
-    vec2  center  = fullSize * 0.5;
-    vec2  p       = abs(pixCoord - center);
-    vec2  q       = p - (center - vec2(radius));
-    vec2  qc      = max(q, vec2(0.0));
-    float cornerD = (qc.x > 0.0 || qc.y > 0.0) ? innerGlowModifiedLength(qc, roundingPower) : 0.0;
-    float sdfDist = cornerD + min(max(q.x, q.y), 0.0) - radius;
+    // Match the border's inner corner contour and antialiasing.
+    vec2  cornerCoord = pixCoord - fullSize * 0.5;
+    float radius      = cornerRadius(radii, cornerCoord);
+    cornerCoord       = abs(cornerCoord) - (fullSize * 0.5 - radius);
+    cornerCoord      += vec2(1.0) / fullSize;
 
-    if (sdfDist > 0.0)
-        discard;
+    if (radius > 0.0 && min(cornerCoord.x, cornerCoord.y) > 0.0) {
+        float dist = distanceWithRounding(cornerCoord, roundingPower);
+        if (dist > radius + SMOOTHING_CONSTANT)
+            discard;
+
+        pixColor.a *= 1.0 - smoothstep(radius - SMOOTHING_CONSTANT, radius + SMOOTHING_CONSTANT, dist);
+    }
 
     // smooth-min of edge distances for rounded glow contours
     float distT = pixCoord.y;

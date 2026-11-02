@@ -30,6 +30,7 @@ using namespace Hyprutils::String;
 #include <aquamarine/input/Input.hpp>
 
 #include "../../config/shared/complex/ComplexDataTypes.hpp"
+#include "../../config/shared/complex/CornersData.hpp"
 #include "../../config/lua/ConfigManager.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../config/shared/parserUtils/ParserUtils.hpp"
@@ -1710,9 +1711,10 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
         return windowPropToString(PWINDOW->m_ruleApplicator->idleInhibitMode());
     else if (PROP == "border_size")
         return windowPropToString(PWINDOW->m_ruleApplicator->borderSize());
-    else if (PROP == "rounding")
-        return windowPropToString(PWINDOW->m_ruleApplicator->rounding());
-    else if (PROP == "rounding_power")
+    else if (PROP == "rounding") {
+        const auto value = PWINDOW->m_ruleApplicator->roundingValue();
+        return FORMNORM ? value.toString() : std::format(R"({{"rounding": {}}})", value.toJson());
+    } else if (PROP == "rounding_power")
         return windowPropToString(PWINDOW->m_ruleApplicator->roundingPower());
     else if (PROP == "scroll_mouse")
         return windowPropToString(PWINDOW->m_ruleApplicator->scrollMouse());
@@ -1749,6 +1751,19 @@ static std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string re
 
     const auto VAL  = VAR.dataptr;
     const auto TYPE = std::type_index(*VAR.type);
+
+    if (TYPE == typeid(Config::CCornersData)) {
+        const auto& value = **rc<Config::CCornersData* const*>(VAL);
+        if (value.isUniform()) {
+            if (format == FORMAT_NORMAL)
+                return std::format("int: {}\nset: {}", value.m_topLeft, *VAR.setByUser);
+            return std::format(R"({{"option": "{}", "int": {}, "set": {} }})", curitem, value.m_topLeft, *VAR.setByUser);
+        }
+
+        if (format == FORMAT_NORMAL)
+            return std::format("corners: {}\nset: {}", value.toString(), *VAR.setByUser);
+        return std::format(R"({{"option": "{}", "corners": "{}", "set": {} }})", curitem, value.toString(), *VAR.setByUser);
+    }
 
     if (format == FORMAT_NORMAL) {
         if (TYPE == typeid(Config::INTEGER))

@@ -1,7 +1,7 @@
 #pragma once
 
 namespace Config {
-    class CCssGapData;
+    class CCornersData;
 }
 
 namespace Hyprutils::Math {
@@ -12,7 +12,7 @@ namespace Math {
     struct SCornerRadii {
         SCornerRadii(float radius = 0.F);
         SCornerRadii(float topLeft, float topRight, float bottomRight, float bottomLeft);
-        explicit SCornerRadii(const Config::CCssGapData& value);
+        explicit SCornerRadii(const Config::CCornersData& value);
 
         float        topLeft = 0.F, topRight = 0.F, bottomRight = 0.F, bottomLeft = 0.F;
 

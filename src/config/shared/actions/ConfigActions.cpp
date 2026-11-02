@@ -1,5 +1,6 @@
 #include "ConfigActions.hpp"
 #include "../parserUtils/ParserUtils.hpp"
+#include "../rounding/Rounding.hpp"
 #include "../../ConfigManager.hpp"
 #include "../../../desktop/state/FocusState.hpp"
 #include "../../../desktop/state/GlobalWindowController.hpp"
@@ -942,9 +943,17 @@ ActionResult Actions::setProp(const std::string& PROP, const std::string& VAL, s
             parsePropTrivial(PWINDOW->m_ruleApplicator->idleInhibitMode(), VAL);
         else if (PROP == "border_size")
             parsePropTrivial(PWINDOW->m_ruleApplicator->borderSize(), VAL);
-        else if (PROP == "rounding")
-            parsePropTrivial(PWINDOW->m_ruleApplicator->rounding(), VAL);
-        else if (PROP == "rounding_power")
+        else if (PROP == "rounding") {
+            auto& rounding = PWINDOW->m_ruleApplicator->rounding();
+            if (VAL == "unset")
+                rounding.unset(Desktop::Types::PRIORITY_SET_PROP);
+            else {
+                const auto value = Rounding::parseProp(VAL, PWINDOW->m_ruleApplicator->roundingValue());
+                if (!value)
+                    return actionError(value.error(), eActionErrorLevel::ERROR, eActionErrorCode::INVALID_ARGUMENT);
+                rounding.set(*value, Desktop::Types::PRIORITY_SET_PROP);
+            }
+        } else if (PROP == "rounding_power")
             parsePropTrivial(PWINDOW->m_ruleApplicator->roundingPower(), VAL);
         else if (PROP == "scroll_mouse")
             parsePropTrivial(PWINDOW->m_ruleApplicator->scrollMouse(), VAL);

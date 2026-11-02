@@ -698,7 +698,7 @@ void CWindow::updateWindowData(const Config::CWorkspaceRule& workspaceRule) {
     else
         m_ruleApplicator->borderSize().matchOptional(std::nullopt, Desktop::Types::PRIORITY_WORKSPACE_RULE);
     m_ruleApplicator->decorate().matchOptional(workspaceRule.m_decorate, Desktop::Types::PRIORITY_WORKSPACE_RULE);
-    m_ruleApplicator->rounding().matchOptional(workspaceRule.m_noRounding.value_or(false) ? std::optional<Config::INTEGER>(0) : std::nullopt,
+    m_ruleApplicator->rounding().matchOptional(workspaceRule.m_noRounding.value_or(false) ? std::optional<Config::CCornersData>(0) : std::nullopt,
                                                Desktop::Types::PRIORITY_WORKSPACE_RULE);
     m_ruleApplicator->noShadow().matchOptional(workspaceRule.m_noShadow, Desktop::Types::PRIORITY_WORKSPACE_RULE);
 

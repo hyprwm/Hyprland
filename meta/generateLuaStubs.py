@@ -244,6 +244,7 @@ def lua_type_from_config_ctor(ctor: str) -> str:
         "CLuaConfigColor": "string",
         "CLuaConfigVec2": "HL.Vec2Like",
         "CLuaConfigCssGap": "integer|HL.CssGap",
+        "CLuaConfigCorners": "integer|boolean|HL.Corners",
         "CLuaConfigFontWeight": "integer|string",
         "CLuaConfigGradient": "string|HL.Gradient",
     }
@@ -263,6 +264,7 @@ def parse_config_values(root: Path) -> dict[str, str]:
         "Color": "string",
         "Vec2": "HL.Vec2Like",
         "CssGap": "integer|HL.CssGap",
+        "Corners": "integer|boolean|HL.Corners",
         "FontWeight": "integer|string",
         "Gradient": "string|HL.Gradient",
     }
@@ -342,6 +344,7 @@ def extract_initializer_body(source: str, array_name: str) -> str:
 
 def parse_descriptor_fields(root: Path) -> dict[str, dict[str, str]]:
     source = read_text(root / "src/config/lua/bindings/LuaBindingsConfigRules.cpp")
+    source += "\n" + read_text(root / "src/config/lua/bindings/LuaBindingsInternal.hpp")
     arrays = {
         "MONITOR_FIELDS": "HL.MonitorSpec",
         "DEVICE_FIELDS": "HL.DeviceSpec",
@@ -611,6 +614,7 @@ def generate_stub(root: Path) -> str:
     lines.append("---@alias HL.WindowSelector string|integer|HL.Window")
     lines.append("---@alias HL.Vec2Like HL.Vec2|{x:number, y:number}|{number, number}|string")
     lines.append("---@alias HL.CssGap integer|{top?:integer, right?:integer, bottom?:integer, left?:integer}")
+    lines.append("---@alias HL.Corners {top_left?:integer, top_right?:integer, bottom_right?:integer, bottom_left?:integer}")
     lines.append("---@alias HL.Gradient string|{colors:string[], angle?:number}")
     lines.append("")
     lines.append("---@class HL.Dispatcher")

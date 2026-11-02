@@ -223,13 +223,17 @@ uint64_t CEventLoopManager::doLater(const std::function<void()>& fn) {
     m_idle.eventSource = wl_event_loop_add_idle(
         m_wayland.loop,
         [](void* data) {
-            auto IDLE = sc<CEventLoopManager::SIdleData*>(data);
-            auto fns  = std::move(IDLE->fns);
-            IDLE->fns.clear();
+            auto IDLE         = sc<CEventLoopManager::SIdleData*>(data);
             IDLE->eventSource = nullptr;
-            for (auto& f : fns) {
-                if (f.second)
-                    f.second();
+
+            const uint64_t LAST_SEQ = LAST_DO_LATER_SEQ;
+
+            while (!IDLE->fns.empty() && IDLE->fns.front().first <= LAST_SEQ) {
+                auto fn = std::move(IDLE->fns.front().second);
+                IDLE->fns.pop_front();
+
+                if (fn)
+                    fn();
             }
         },
         &m_idle);

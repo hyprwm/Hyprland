@@ -11,6 +11,7 @@
 #include <hyprutils/math/Box.hpp>
 #include <hyprutils/math/Vector2D.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
+#include <cmath>
 using namespace Hyprutils::Utils;
 
 CSurfacePassElement::CSurfacePassElement(const CSurfacePassElement::SRenderData& data_) : m_data(data_) {
@@ -126,14 +127,21 @@ CRegion CSurfacePassElement::opaqueRegion(Render::CRenderContext& ctx) {
     if (ALPHA < 1.F)
         return {};
 
-    if (m_data.surface && m_data.surface->m_current.size == Vector2D{m_data.w, m_data.h}) {
+    const bool OPAQUE_SURFACE = m_data.surface && m_data.surface->m_current.size == Vector2D{m_data.w, m_data.h};
+    if (!OPAQUE_SURFACE && (!m_data.texture || !m_data.texture->m_opaque))
+        return {};
+
+    // Keep the conservative pixel-radius inset: logical region translation truncates fractional positions before scaling.
+    const auto ROUNDING = std::ceil(std::max(0.F, m_data.rounding.max()));
+
+    if (OPAQUE_SURFACE) {
         CRegion    opaqueSurf = m_data.surface->m_current.opaque.copy().intersect(CBox{{}, {m_data.w, m_data.h}});
         const auto texBox     = getTexBox();
         opaqueSurf.scale(texBox.size() / Vector2D{m_data.w, m_data.h});
-        return opaqueSurf.translate(m_data.pos + m_data.localPos - m_data.pMonitor->m_position).expand(-m_data.rounding);
+        return opaqueSurf.translate(m_data.pos + m_data.localPos - m_data.pMonitor->m_position).expand(-ROUNDING);
     }
 
-    return m_data.texture && m_data.texture->m_opaque ? boundingBox(ctx)->expand(-m_data.rounding) : CRegion{};
+    return boundingBox(ctx)->expand(-ROUNDING);
 }
 
 CRegion CSurfacePassElement::visibleRegion(Render::CRenderContext& ctx, bool& cancel) {

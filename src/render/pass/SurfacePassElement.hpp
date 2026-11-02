@@ -23,7 +23,7 @@ class CSurfacePassElement : public IPassElement {
         SP<Render::ITexture>   texture     = nullptr;
         bool                   mainSurface = true;
         double                 w = 0, h = 0;
-        int                    rounding      = 0;
+        Math::SCornerRadii     rounding;
         bool                   dontRound     = true;
         float                  roundingPower = 2.0F;
         bool                   decorate      = false;

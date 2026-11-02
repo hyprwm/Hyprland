@@ -9,7 +9,7 @@ in vec2                    v_texcoord;
 uniform samplerExternalOES tex;
 uniform float              alpha;
 
-uniform float              radius;
+uniform vec4               radius;
 uniform float              roundingPower;
 uniform vec2               topLeft;
 uniform vec2               fullSize;
@@ -36,7 +36,7 @@ void main() {
         pixColor[2] = pixColor[2] * tint[2];
     }
 
-    if (radius > 0.0)
+    if (any(greaterThan(radius, vec4(0.0))))
         pixColor = rounding(pixColor, radius, roundingPower, topLeft, fullSize);
 
     fragColor = pixColor * alpha;

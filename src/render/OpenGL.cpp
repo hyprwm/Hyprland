@@ -1175,7 +1175,7 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(CRenderContext& ctx, const CBox
     if (std::abs(shapeBox.rot) < 0.0001F)
         shape = SBlurShape{
             .box           = shapeBox,
-            .radius        = std::max(sc<float>(data.round), 0.F),
+            .radius        = data.round,
             .roundingPower = data.roundingPower,
         };
     const bool usePrecomputedBlur = data.xray && !g_pHyprRenderer->blurProviderRequiresLiveBlur();
@@ -1223,7 +1223,7 @@ void CHyprOpenGLImpl::renderRectWithDamageInternal(CRenderContext& ctx, const CB
 
     const auto& glMatrix = g_pHyprRenderer->projectBoxToTarget(ctx, newBox);
 
-    auto        shader = useShader(getShaderVariant(SH_FRAG_QUAD, (data.round > 0 ? SH_FEAT_ROUNDING : 0) | globalFeatures(ctx)));
+    auto        shader = useShader(getShaderVariant(SH_FRAG_QUAD, (data.round.isRounded() ? SH_FEAT_ROUNDING : 0) | globalFeatures(ctx)));
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
 
     // premultiply the color as well as we don't work with straight alpha
@@ -1238,7 +1238,7 @@ void CHyprOpenGLImpl::renderRectWithDamageInternal(CRenderContext& ctx, const CB
     // Rounded corners
     shader->setUniformFloat2(SHADER_TOP_LEFT, sc<float>(TOPLEFT.x), sc<float>(TOPLEFT.y));
     shader->setUniformFloat2(SHADER_FULL_SIZE, sc<float>(FULLSIZE.x), sc<float>(FULLSIZE.y));
-    shader->setUniformFloat(SHADER_RADIUS, data.round);
+    shader->setUniformFloat4(SHADER_RADIUS, data.round.topLeft, data.round.topRight, data.round.bottomRight, data.round.bottomLeft);
     shader->setUniformFloat(SHADER_ROUNDING_POWER, data.roundingPower);
 
     glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
@@ -1516,7 +1516,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(CRenderContext& ctx, SP<ITexture
         (ctx.m_data.currentWindow->presentation().notRespondingTint() > 0 || ctx.m_data.currentWindow->presentation().dimPercent() > 0))
         shaderFeatures |= SH_FEAT_TINT;
 
-    if (data.round > 0)
+    if (data.round.isRounded())
         shaderFeatures |= SH_FEAT_ROUNDING;
 
     if (!skipCM) {
@@ -1584,7 +1584,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(CRenderContext& ctx, SP<ITexture
     // Rounded corners
     shader->setUniformFloat2(SHADER_TOP_LEFT, TOPLEFT.x, TOPLEFT.y);
     shader->setUniformFloat2(SHADER_FULL_SIZE, FULLSIZE.x, FULLSIZE.y);
-    shader->setUniformFloat(SHADER_RADIUS, data.round);
+    shader->setUniformFloat4(SHADER_RADIUS, data.round.topLeft, data.round.topRight, data.round.bottomRight, data.round.bottomLeft);
     shader->setUniformFloat(SHADER_ROUNDING_POWER, data.roundingPower);
 
     if (data.motionBlur.enabled) {

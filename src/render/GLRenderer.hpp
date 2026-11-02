@@ -33,14 +33,14 @@ namespace Render::GL {
         SP<IFramebuffer>        createFB(const std::string& name = "") override;
         void                    disableScissor() override;
         void                    blend(bool enabled) override;
-        void                    drawShadow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a,
-                                           const Render::SWindowRenderPresentation& presentation) override;
-        void                    drawShadow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
-                                           const Config::CGradientValueData& grad2, float lerp, float a, const Render::SWindowRenderPresentation& presentation) override;
+        void drawShadow(CRenderContext& ctx, const CBox& box, Math::SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& color, float a,
+                        const Render::SWindowRenderPresentation& presentation) override;
+        void drawShadow(CRenderContext& ctx, const CBox& box, Math::SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& grad1,
+                        const Config::CGradientValueData& grad2, float lerp, float a, const Render::SWindowRenderPresentation& presentation) override;
 
-        void                 drawGlow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a) override;
-        void                 drawGlow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
-                                      const Config::CGradientValueData& grad2, float lerp, float a) override;
+        void drawGlow(CRenderContext& ctx, const CBox& box, Math::SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& color, float a) override;
+        void drawGlow(CRenderContext& ctx, const CBox& box, Math::SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& grad1,
+                      const Config::CGradientValueData& grad2, float lerp, float a) override;
         SP<IFramebuffer>     blurFramebuffer(CRenderContext& ctx, SP<IFramebuffer> source, float strength, const CRegion& originalDamage,
                                              const Render::SBlurContext& context = {}) override;
         void                 refreshBlurProvider() override;

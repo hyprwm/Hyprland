@@ -2196,12 +2196,12 @@ void CHyprOpenGLImpl::renderBorder(CRenderContext& ctx, const CBox& box, const C
     blend(BLEND);
 }
 
-void CHyprOpenGLImpl::renderRoundedShadow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad, float a,
-                                          const Render::SWindowRenderPresentation& presentation) {
+void CHyprOpenGLImpl::renderRoundedShadow(CRenderContext& ctx, const CBox& box, Math::SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& grad,
+                                          float a, const Render::SWindowRenderPresentation& presentation) {
     renderRoundedShadow(ctx, box, round, roundingPower, range, grad, Config::CGradientValueData{}, 0.f, a, presentation);
 }
 
-void CHyprOpenGLImpl::renderRoundedShadow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
+void CHyprOpenGLImpl::renderRoundedShadow(CRenderContext& ctx, const CBox& box, Math::SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& grad1,
                                           const Config::CGradientValueData& grad2, float lerp, float a, const Render::SWindowRenderPresentation& presentation) {
     auto& m_renderData = ctx.m_data;
     RASSERT(m_renderData.pMonitor, "Tried to render shadow without begin()!");
@@ -2247,21 +2247,21 @@ void CHyprOpenGLImpl::renderRoundedShadow(CRenderContext& ctx, const CBox& box, 
     shader->setUniformFloat(SHADER_ALPHA, a);
     shader->setUniformFloat(SHADER_GRADIENT_LERP, lerp);
 
-    const auto TOPLEFT     = Vector2D(range + round, range + round);
-    const auto BOTTOMRIGHT = Vector2D(newBox.width - (range + round), newBox.height - (range + round));
+    const auto TOPLEFT     = Vector2D(range, range);
+    const auto BOTTOMRIGHT = Vector2D(newBox.width - range, newBox.height - range);
     const auto FULLSIZE    = Vector2D(newBox.width, newBox.height);
 
     // Rounded corners
     shader->setUniformFloat2(SHADER_TOP_LEFT, sc<float>(TOPLEFT.x), sc<float>(TOPLEFT.y));
     shader->setUniformFloat2(SHADER_BOTTOM_RIGHT, sc<float>(BOTTOMRIGHT.x), sc<float>(BOTTOMRIGHT.y));
     shader->setUniformFloat2(SHADER_FULL_SIZE, sc<float>(FULLSIZE.x), sc<float>(FULLSIZE.y));
-    shader->setUniformFloat(SHADER_RADIUS, round);
+    shader->setUniformFloat4(SHADER_RADIUS, round.topLeft, round.topRight, round.bottomRight, round.bottomLeft);
     shader->setUniformFloat(SHADER_ROUNDING_POWER, roundingPower);
     shader->setUniformFloat(SHADER_RANGE, range);
     shader->setUniformFloat(SHADER_SHADOW_POWER, SHADOWPOWER);
     shader->setUniformFloat2(SHADER_WINDOW_TOP_LEFT, -1.F, -1.F);
     shader->setUniformFloat2(SHADER_WINDOW_BOTTOM_RIGHT, -1.F, -1.F);
-    shader->setUniformFloat(SHADER_THICK, 0.F);
+    shader->setUniformFloat4(SHADER_THICK, 0.F, 0.F, 0.F, 0.F);
 
     glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
 
@@ -2287,14 +2287,16 @@ void CHyprOpenGLImpl::renderRoundedShadow(CRenderContext& ctx, const CBox& box, 
                 const auto cutoutTopLeft     = scaledWindowBox.pos() - newBox.pos();
                 const auto cutoutBottomRight = cutoutTopLeft + scaledWindowBox.size();
 
-                float      cutoutRadius = std::max(0.F, sc<float>(PWINDOW->presentation().rounding() * m_renderData.pMonitor->m_scale));
-                cutoutRadius            = std::round(cutoutRadius * m_renderData.renderModif.combinedScale());
+                auto       cutoutRadius = Math::SCornerRadii{PWINDOW->presentation().rounding()} * m_renderData.pMonitor->m_scale * m_renderData.renderModif.combinedScale();
+                cutoutRadius            = Math::SCornerRadii{std::round(cutoutRadius.topLeft), std::round(cutoutRadius.topRight), std::round(cutoutRadius.bottomRight),
+                                                             std::round(cutoutRadius.bottomLeft)}
+                                              .clamped(scaledWindowBox.size());
 
                 shader->setUniformFloat2(SHADER_WINDOW_TOP_LEFT, sc<float>(cutoutTopLeft.x), sc<float>(cutoutTopLeft.y));
                 shader->setUniformFloat2(SHADER_WINDOW_BOTTOM_RIGHT, sc<float>(cutoutBottomRight.x), sc<float>(cutoutBottomRight.y));
-                shader->setUniformFloat(SHADER_THICK, cutoutRadius);
+                shader->setUniformFloat4(SHADER_THICK, cutoutRadius.topLeft, cutoutRadius.topRight, cutoutRadius.bottomRight, cutoutRadius.bottomLeft);
 
-                drawRegion.subtract(scaledWindowBox.copy().expand(-sc<int>(std::round(cutoutRadius))));
+                drawRegion.subtract(scaledWindowBox.copy().expand(-std::ceil(cutoutRadius.max())));
             }
         }
     }
@@ -2308,11 +2310,11 @@ void CHyprOpenGLImpl::renderRoundedShadow(CRenderContext& ctx, const CBox& box, 
     glBindVertexArray(0);
 }
 
-void CHyprOpenGLImpl::renderInnerGlow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad, int glowPower,
-                                      float a) {
+void CHyprOpenGLImpl::renderInnerGlow(CRenderContext& ctx, const CBox& box, Math::SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& grad,
+                                      int glowPower, float a) {
     renderInnerGlow(ctx, box, round, roundingPower, range, grad, Config::CGradientValueData{}, 0.f, glowPower, a);
 }
-void CHyprOpenGLImpl::renderInnerGlow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
+void CHyprOpenGLImpl::renderInnerGlow(CRenderContext& ctx, const CBox& box, Math::SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& grad1,
                                       const Config::CGradientValueData& grad2, float lerp, int glowPower, float a) {
     auto& m_renderData = ctx.m_data;
     RASSERT(m_renderData.pMonitor, "Tried to render inner glow without begin()!");
@@ -2356,14 +2358,14 @@ void CHyprOpenGLImpl::renderInnerGlow(CRenderContext& ctx, const CBox& box, int 
     shader->setUniformFloat(SHADER_ALPHA, a);
     shader->setUniformFloat(SHADER_GRADIENT_LERP, lerp);
 
-    const auto TOPLEFT     = Vector2D(round, round);
-    const auto BOTTOMRIGHT = Vector2D(newBox.width - round, newBox.height - round);
+    const auto TOPLEFT     = Vector2D(0, 0);
+    const auto BOTTOMRIGHT = Vector2D(newBox.width, newBox.height);
     const auto FULLSIZE    = Vector2D(newBox.width, newBox.height);
 
     shader->setUniformFloat2(SHADER_TOP_LEFT, sc<float>(TOPLEFT.x), sc<float>(TOPLEFT.y));
     shader->setUniformFloat2(SHADER_BOTTOM_RIGHT, sc<float>(BOTTOMRIGHT.x), sc<float>(BOTTOMRIGHT.y));
     shader->setUniformFloat2(SHADER_FULL_SIZE, sc<float>(FULLSIZE.x), sc<float>(FULLSIZE.y));
-    shader->setUniformFloat(SHADER_RADIUS, round);
+    shader->setUniformFloat4(SHADER_RADIUS, round.topLeft, round.topRight, round.bottomRight, round.bottomLeft);
     shader->setUniformFloat(SHADER_ROUNDING_POWER, roundingPower);
     shader->setUniformFloat(SHADER_RANGE, range);
     shader->setUniformFloat(SHADER_SHADOW_POWER, GLOWPOWER);

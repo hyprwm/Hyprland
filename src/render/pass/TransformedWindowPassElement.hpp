@@ -11,10 +11,10 @@ class CTransformedWindowPassElement : public IPassElement {
         PHLWINDOWREF                      window;
         CBox                              currentBox;
         CBox                              blurBox;
-        bool                              blur              = false;
-        bool                              blurUsesLive      = false;
-        float                             blurA             = 1.F;
-        int                               blurRound         = 0;
+        bool                              blur         = false;
+        bool                              blurUsesLive = false;
+        float                             blurA        = 1.F;
+        Math::SCornerRadii                blurRound;
         float                             blurRoundingPower = 2.F;
         CBox                              transformedBox;
         SMotionBlurData                   motionBlur;

@@ -1,6 +1,7 @@
 #pragma once
 #include "PassElement.hpp"
 #include "../WindowRenderPresentation.hpp"
+#include "../../helpers/math/CornerRadii.hpp"
 #include <optional>
 
 class CWLSurfaceResource;
@@ -41,8 +42,8 @@ class CTexPassElement : public IPassElement {
         float                             overallA = 1.F;
         CRegion                           damage;
         bool                              useProvidedDamage = false;
-        int                               round             = 0;
-        float                             roundingPower     = 2.0f;
+        Math::SCornerRadii                round;
+        float                             roundingPower = 2.0f;
         CBox                              clipBox;
         bool                              blur           = false;
         bool                              forceBlurBlend = false;

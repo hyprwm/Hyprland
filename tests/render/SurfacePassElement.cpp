@@ -300,3 +300,12 @@ TEST_F(CSurfacePassElementTest, VisibleRegionUsesRoundedTextureOriginOnOffsetMon
     EXPECT_FALSE(cancel);
     EXPECT_EQ(visible.getExtents(), CBox(10, 10, 22, 22));
 }
+
+TEST(SurfacePassElement, EmptySurfaceDoesNotRequireMonitorForOpaqueRegion) {
+    Render::CRenderContext ctx;
+    CSurfacePassElement    element{CSurfacePassElement::SRenderData{
+        .rounding = Math::SCornerRadii{0, 12, 24, 6},
+    }};
+
+    EXPECT_TRUE(element.opaqueRegion(ctx).empty());
+}

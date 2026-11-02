@@ -185,10 +185,10 @@ class CSessionTestElements : public Render::IElementRenderer {
     };
     std::vector<STexture> m_textures;
     struct SRectangle {
-        CBox       box;
-        CHyprColor color;
-        int        round = 0;
-        CRegion    damage;
+        CBox               box;
+        CHyprColor         color;
+        Math::SCornerRadii round;
+        CRegion            damage;
     };
     bool                    m_recordRectangles = false;
     std::vector<SRectangle> m_rectangles;

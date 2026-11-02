@@ -508,7 +508,7 @@ SBindResult CKeybindManager::processEvent(const SBindEventContext& context, cons
             suppressSubChords(bind, context);
         }
 
-        if (context.pressed && (bind->hasFlag(BIND_FLAG_NON_CONSUMING) || bind->hasFlag(BIND_FLAG_RELEASE) || bind->hasFlag(BIND_FLAG_AUTO_CONSUMING)))
+        if (context.pressed && (bind->hasFlag(BIND_FLAG_NON_CONSUMING) || bind->hasFlag(BIND_FLAG_AUTO_CONSUMING)))
             continue;
 
         claimed = true;

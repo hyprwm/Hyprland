@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <format>
 #include <linux/input-event-codes.h>
+#include <utility>
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 
@@ -30,6 +31,35 @@ TEST_CASE(pluginKeyboardEventHandler) {
     OK(getFromSocket(std::format("/eval hl.plugin.test.keybind(1, 0, {})", XKB_KEY)));
     OK(getFromSocket(std::format("/eval hl.plugin.test.keybind(0, 0, {})", XKB_KEY)));
     OK(getFromSocket(std::format("/eval hl.plugin.test.expect_keyboard_events({}, 1, {}, 0)", KEY, KEY)));
+}
+
+TEST_CASE(releaseBindConsumption) {
+    constexpr uint32_t KEY  = KEY_F24;
+    const auto         BIND = std::format("code:{}", KEY + 8);
+
+    for (const auto& [flags, forwarded] : {
+             std::pair{"release = true", false},
+             std::pair{"release = true, non_consuming = true", true},
+             std::pair{"release = true, auto_consuming = true", true},
+         }) {
+        CScopeGuard guard = {[&]() {
+            EXPECT_OK(getFromSocket(std::format("/eval hl.unbind('{}'); _G.hyprtester_release_count = nil", BIND)));
+            EXPECT_OK(getFromSocket("/eval hl.plugin.test.remove_keyboard_event_recorder()"));
+        }};
+
+        OK(getFromSocket(std::format("/eval _G.hyprtester_release_count = 0; "
+                                     "hl.bind('{}', function() _G.hyprtester_release_count = _G.hyprtester_release_count + 1 end, {{ {} }})",
+                                     BIND, flags)));
+        OK(getFromSocket("/eval hl.plugin.test.register_keyboard_event_recorder()"));
+
+        // Consumption is decided on press, before the release callback runs.
+        EXPECT_OK(keyboardKey(true, KEY));
+        EXPECT(getFromSocket("/repl return _G.hyprtester_release_count"), "0");
+        EXPECT_OK(getFromSocket(forwarded ? std::format("/eval hl.plugin.test.expect_keyboard_events({}, 1)", KEY) : "/eval hl.plugin.test.expect_keyboard_events()"));
+        EXPECT_OK(keyboardKey(false, KEY));
+        EXPECT(getFromSocket("/repl return _G.hyprtester_release_count"), "1");
+        EXPECT_OK(getFromSocket(forwarded ? std::format("/eval hl.plugin.test.expect_keyboard_events({}, 1, {}, 0)", KEY, KEY) : "/eval hl.plugin.test.expect_keyboard_events()"));
+    }
 }
 
 TEST_CASE(orderedChordConsumption) {

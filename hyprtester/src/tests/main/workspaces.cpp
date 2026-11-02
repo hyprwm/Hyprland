@@ -476,6 +476,99 @@ SUBTEST(dynamicWsEffects) {
     Tests::killAllWindows();
 }
 
+TEST_CASE(workspaceRelativeNegativeClamp) {
+    bool        monitorCreated = false;
+    CScopeGuard guard          = {[this, &monitorCreated]() {
+        EXPECT(Tests::killAllWindows(), true);
+        if (monitorCreated) {
+            EXPECT_OK(getFromSocket("/output remove HEADLESS-3"));
+            EXPECT(waitForMonitorListed("HEADLESS-3", false), true);
+        }
+        EXPECT_OK(getFromSocket("/reload"));
+        EXPECT_OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+        EXPECT_OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+    }};
+
+    OK(getFromSocket("/eval hl.config({ binds = { workspace_back_and_forth = 0 }, input = { follow_mouse = 0 } })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1', on_current_monitor = true })"));
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace 1 (1) on monitor HEADLESS-2:");
+    SPAWN_KITTY("workspace_relative_negative_clamp");
+
+    ASSERT_NOT_CONTAINS(getFromSocket("/monitors all"), "HEADLESS-3");
+    OK(getFromSocket("/output create headless HEADLESS-3"));
+    monitorCreated = true;
+    ASSERT(waitForMonitorListed("HEADLESS-3", true), true);
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-3' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2', on_current_monitor = true })"));
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace 2 (2) on monitor HEADLESS-3:");
+
+    // Regresses #16748: underflow must not focus workspace 1 on the other monitor.
+    for (const auto& selector : {"r-1", "r-100"}) {
+        OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ workspace = '{}' }})", selector)));
+        ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace 2 (2) on monitor HEADLESS-3:");
+        ASSERT_CONTAINS(getFromSocket("/workspaces"), "workspace 1 (1) on monitor HEADLESS-2:");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'r+1' })"));
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace 3 (3) on monitor HEADLESS-3:");
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'r-1' })"));
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace 2 (2) on monitor HEADLESS-3:");
+
+    // Clamp to the first available workspace, not simply the current workspace.
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '4' })"));
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace 4 (4) on monitor HEADLESS-3:");
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'r-100' })"));
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace 2 (2) on monitor HEADLESS-3:");
+    ASSERT_CONTAINS(getFromSocket("/workspaces"), "workspace 1 (1) on monitor HEADLESS-2:");
+}
+
+TEST_CASE(workspaceRelativeNegativeClampRules) {
+    bool        monitorCreated = false;
+    CScopeGuard guard          = {[this, &monitorCreated]() {
+        if (monitorCreated) {
+            EXPECT_OK(getFromSocket("/output remove HEADLESS-3"));
+            EXPECT(waitForMonitorListed("HEADLESS-3", false), true);
+        }
+        EXPECT_OK(getFromSocket("/reload"));
+        EXPECT_OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+        EXPECT_OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+    }};
+
+    OK(getFromSocket("/eval hl.config({ binds = { workspace_back_and_forth = 0 }, input = { follow_mouse = 0 } })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '10', on_current_monitor = true })"));
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace 10 (10) on monitor HEADLESS-2:");
+
+    ASSERT_NOT_CONTAINS(getFromSocket("/monitors all"), "HEADLESS-3");
+    OK(getFromSocket("/output create headless HEADLESS-3"));
+    monitorCreated = true;
+    ASSERT(waitForMonitorListed("HEADLESS-3", true), true);
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-3' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '4', on_current_monitor = true })"));
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace 4 (4) on monitor HEADLESS-3:");
+
+    OK(getFromSocket("/eval hl.workspace_rule({ workspace = '1', monitor = 'HEADLESS-2', persistent = false })"));
+    OK(getFromSocket("/eval hl.workspace_rule({ workspace = '2', monitor = 'HEADLESS-2', persistent = false })"));
+    Tests::sync();
+
+    // Only rules exclude 1 and 2; the first available workspace must be created.
+    const auto INITIAL_WORKSPACES = getFromSocket("/workspaces");
+    ASSERT_NOT_CONTAINS(INITIAL_WORKSPACES, "workspace 1 (1)");
+    ASSERT_NOT_CONTAINS(INITIAL_WORKSPACES, "workspace 2 (2)");
+    ASSERT_NOT_CONTAINS(INITIAL_WORKSPACES, "workspace 3 (3)");
+
+    for (const auto& selector : {"r-100", "r-1"}) {
+        OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ workspace = '{}' }})", selector)));
+        ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace 3 (3) on monitor HEADLESS-3:");
+
+        const auto WORKSPACES = getFromSocket("/workspaces");
+        ASSERT_NOT_CONTAINS(WORKSPACES, "workspace 1 (1)");
+        ASSERT_NOT_CONTAINS(WORKSPACES, "workspace 2 (2)");
+        ASSERT_CONTAINS(WORKSPACES, "workspace 10 (10) on monitor HEADLESS-2:");
+    }
+}
+
 // TODO: decompose this into multiple test cases
 TEST_CASE(workspacesCombined) {
     NLog::log("{}Checking persistent no-mon", Colors::YELLOW);

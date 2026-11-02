@@ -2,6 +2,8 @@
 #include <protocols/core/Compositor.hpp>
 #include <protocols/XDGOutput.hpp>
 #include <protocols/OutputPower.hpp>
+#include <protocols/PresentationTime.hpp>
+#include <protocols/SessionLock.hpp>
 #include <Compositor.hpp>
 #include <animation/AnimationManager.hpp>
 #include <config/ConfigValue.hpp>
@@ -16,6 +18,7 @@
 
 #include <gtest/gtest.h>
 #include <hyprutils/os/FileDescriptor.hpp>
+#include <hyprutils/utils/ScopeGuard.hpp>
 
 #include <array>
 #include <cerrno>
@@ -351,6 +354,58 @@ TEST_F(COutputTest, DrainingDefunctOutputPreservesSameNameReplacement) {
     ASSERT_TRUE(PROTO::outputs.contains(m_monitor->m_name));
     EXPECT_EQ(PROTO::outputs.at(m_monitor->m_name), replacement);
     EXPECT_FALSE(replacement->isDefunct());
+}
+
+TEST_F(COutputTest, LockSurfaceRequestedAfterMonitorRemovalIsInertAndDestroyable) {
+    auto                                previousLock         = std::move(PROTO::sessionLock);
+    auto                                previousPresentation = std::move(PROTO::presentation);
+    const Hyprutils::Utils::CScopeGuard restoreProtocols{[&] {
+        wl_display_destroy_clients(m_display.get());
+        m_client            = nullptr;
+        PROTO::sessionLock  = std::move(previousLock);
+        PROTO::presentation = std::move(previousPresentation);
+    }};
+    PROTO::sessionLock  = makeUnique<CSessionLockProtocol>(&ext_session_lock_manager_v1_interface, 1, "ext_session_lock_manager_v1");
+    PROTO::presentation = makeUnique<CPresentationProtocol>(&wp_presentation_interface, 2, "wp_presentation");
+
+    CHyprSignalListener newSurface;
+    auto                newLock = PROTO::sessionLock->m_events.newLock.listen(
+        [&](const auto& lock) { newSurface = lock->m_events.newLockSurface.listen([](const auto&) { ADD_FAILURE() << "Removed output must not get an active lock surface"; }); });
+    const auto sendRequest = [&](std::initializer_list<uint32_t> request) {
+        const auto size = request.size() * sizeof(uint32_t);
+        ASSERT_EQ(send(m_socket.get(), request.begin(), size, MSG_NOSIGNAL), sc<ssize_t>(size));
+        ASSERT_EQ(wl_event_loop_dispatch(wl_display_get_event_loop(m_display.get()), 0), 0);
+    };
+
+    ASSERT_NO_FATAL_FAILURE(bindOutput());
+    std::vector<SOutputTestEvent> events;
+    ASSERT_NO_FATAL_FAILURE(readOutputEvents(events));
+    PROTO::compositor->bindManager(m_client, nullptr, 6, 3);
+    ASSERT_NO_FATAL_FAILURE(sendRequest({3U, 12U << 16, 4U})); // wl_compositor.create_surface(4)
+    PROTO::sessionLock->bindManager(m_client, nullptr, 1, 5);
+    ASSERT_NE(wl_client_get_object(m_client, 5), nullptr);
+    ASSERT_NO_FATAL_FAILURE(sendRequest({5U, (12U << 16) | 1U, 6U})); // ext_session_lock_manager_v1.lock(6)
+    ASSERT_NE(wl_client_get_object(m_client, 4), nullptr);
+    ASSERT_NE(wl_client_get_object(m_client, 6), nullptr);
+
+    ASSERT_NO_FATAL_FAILURE(removeAndExpireMonitor());
+    // get_lock_surface(7, surface 4, output 2) races with output removal.
+    ASSERT_NO_FATAL_FAILURE(sendRequest({6U, (20U << 16) | 1U, 7U, 4U, 2U}));
+    const auto resource = wl_client_get_object(m_client, 7);
+    ASSERT_NE(resource, nullptr);
+    EXPECT_STREQ(wl_resource_get_class(resource), "ext_session_lock_surface_v1");
+    EXPECT_EQ(wl_resource_get_version(resource), 1);
+    ASSERT_NO_FATAL_FAILURE(readOutputEvents(events));
+    EXPECT_TRUE(events.empty()); // No configure for the removed output.
+
+    ASSERT_NO_FATAL_FAILURE(sendRequest({7U, 8U << 16})); // ext_session_lock_surface_v1.destroy
+    ASSERT_EQ(wl_client_get_object(m_client, 7), nullptr);
+    ASSERT_NO_FATAL_FAILURE(sendRequest({1U, 12U << 16, 8U})); // wl_display.sync(8)
+    ASSERT_NO_FATAL_FAILURE(readOutputEvents(events));
+    std::erase_if(events, [](const auto& event) { return event.objectID == 1 && event.opcode == WL_DISPLAY_DELETE_ID; });
+    ASSERT_EQ(events.size(), 1U);
+    EXPECT_EQ(events.front().objectID, 8U);
+    EXPECT_EQ(events.front().opcode, WL_CALLBACK_DONE);
 }
 
 static std::vector<uint32_t> outputStateEvents(uint32_t version) {

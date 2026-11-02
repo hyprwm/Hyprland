@@ -189,6 +189,138 @@ TEST_CASE(hyprctlSubmap) {
     EXPECT(getCommandStdOut("hyprctl submap -j | jq -r \".\""), "default");
 }
 
+TEST_CASE(hyprctlRoundingConfigOutput) {
+    CScopeGuard guard = {[]() { getFromSocket("/reload"); }};
+
+    OK(getFromSocket("/eval hl.config({ decoration = { rounding = 10 } })"));
+    EXPECT(getFromSocket("/getoption decoration:rounding"), "int: 10\nset: true");
+    EXPECT(hyprctlJsonMatches("getoption decoration:rounding", ".int == 10 and (has(\"corners\") | not) and (has(\"css\") | not)"), true);
+    EXPECT(getFromSocket("/getoption decoration.rounding"), "int: 10\nset: true");
+    EXPECT(hyprctlJsonMatches("getoption decoration.rounding", ".int == 10 and (has(\"corners\") | not) and (has(\"css\") | not)"), true);
+    OK(getFromSocket("/eval assert(hl.get_config('decoration:rounding') == 10)"));
+
+    OK(getFromSocket("/eval hl.config({ decoration = { rounding = { top_left = 1, top_right = 2, bottom_right = 3, bottom_left = 4 } } })"));
+    EXPECT(getFromSocket("/getoption decoration:rounding"), "corners: 1 2 3 4\nset: true");
+    EXPECT(hyprctlJsonMatches("getoption decoration:rounding", ".corners == \"1 2 3 4\" and (has(\"int\") | not) and (has(\"css\") | not)"), true);
+    EXPECT(hyprctlJsonMatches("getoption decoration.rounding", ".corners == \"1 2 3 4\" and (has(\"int\") | not) and (has(\"css\") | not)"), true);
+    EXPECT(descriptionsMatch(R"(any(.[]; .name == "decoration:rounding" and .default == 0 and .current == "1 2 3 4" and .min == 0 and .max == 100))"), true);
+    OK(getFromSocket("/eval local r = hl.get_config('decoration:rounding'); assert(type(r) == 'table' and r.top_left == 1 and r.top_right == 2 and r.bottom_right == 3 and "
+                     "r.bottom_left == 4 and r.top == nil and r.right == nil and r.bottom == nil and r.left == nil)"));
+
+    for (const auto invalid : {
+             "{top = 9}",
+             "{right = 9}",
+             "{bottom = 9}",
+             "{left = 9}",
+             "{top_left = 9, unknown = 5}",
+             "{1, 2, 3, 4}",
+             "{top_left = 9, [1] = 2}",
+             "-1",
+             "101",
+             "{top_left = 9, bottom_left = 101}",
+         }) {
+        NOK(getFromSocket(std::format("/eval hl.config({{ decoration = {{ rounding = {} }} }})", invalid)));
+        EXPECT(getFromSocket("/getoption decoration:rounding"), "corners: 1 2 3 4\nset: true");
+    }
+    OK(getFromSocket("/eval local r = hl.get_config('decoration:rounding'); assert(r.top_left == 1 and r.top_right == 2 and r.bottom_right == 3 and r.bottom_left == 4)"));
+
+    OK(getFromSocket("/eval hl.config({ decoration = { rounding = { top_right = 7 } } })"));
+    EXPECT(hyprctlJsonMatches("getoption decoration:rounding", ".corners == \"0 7 0 0\""), true);
+
+    // Equal named fields preserve the original scalar API shape, too.
+    OK(getFromSocket("/eval hl.config({ decoration = { rounding = { top_left = 4, top_right = 4, bottom_right = 4, bottom_left = 4 } } })"));
+    EXPECT(getFromSocket("/getoption decoration:rounding"), "int: 4\nset: true");
+    EXPECT(hyprctlJsonMatches("getoption decoration:rounding", ".int == 4"), true);
+    EXPECT(descriptionsMatch(R"(any(.[]; .name == "decoration:rounding" and .default == 0 and .current == 4))"), true);
+    OK(getFromSocket("/eval assert(hl.get_config('decoration:rounding') == 4)"));
+
+    OK(getFromSocket("/eval hl.config({ decoration = { rounding = true } }); assert(hl.get_config('decoration:rounding') == 1)"));
+    OK(getFromSocket("/eval hl.config({ decoration = { rounding = {} } }); assert(hl.get_config('decoration:rounding') == 0)"));
+}
+
+TEST_CASE(hyprctlRoundingOverrides) {
+    CScopeGuard guard = {[]() {
+        Tests::killAllWindows();
+        getFromSocket("/reload");
+        getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })");
+    }};
+
+    OK(getFromSocket("/eval hl.config({ decoration = { rounding = { top_left = 1, top_right = 2, bottom_right = 3, bottom_left = 4 }, rounding_power = 4 } })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '69' })"));
+    SPAWN_KITTY("kitty_rounding");
+
+    const auto rounding = []() { return getFromSocket("/getprop class:kitty_rounding rounding"); };
+    EXPECT(rounding(), "1 2 3 4");
+    setWindowProp("class:kitty_rounding", "rounding", "relative +2");
+    EXPECT(rounding(), "3 4 5 6");
+    setWindowProp("class:kitty_rounding", "rounding", "unset");
+    EXPECT(rounding(), "1 2 3 4");
+
+    OK(getFromSocket("r/eval hl.workspace_rule({ workspace = '69', no_rounding = true })"));
+    EXPECT(rounding(), "0");
+    setWindowProp("class:kitty_rounding", "rounding", "relative 1");
+    EXPECT(rounding(), "1");
+    setWindowProp("class:kitty_rounding", "rounding", "unset");
+    EXPECT(rounding(), "0");
+
+    OK(getFromSocket("r/eval _G.hyprtester_rounding_rule = hl.window_rule({ name = 'hyprtester-rounding', match = { class = '^kitty_rounding$' }, "
+                     "rounding = { top_left = 10, top_right = 20, bottom_right = 30, bottom_left = 40 } })"));
+    EXPECT(rounding(), "10 20 30 40");
+
+    for (const auto invalid : {
+             "{top = 9}",
+             "{right = 9}",
+             "{bottom = 9}",
+             "{left = 9}",
+             "{top_left = 9, unknown = 5}",
+             "{1, 2, 3, 4}",
+             "{top_left = 9, [1] = 2}",
+             "-1",
+             "101",
+             "{top_left = 9, bottom_left = 101}",
+         }) {
+        NOK(getFromSocket(std::format("r/eval hl.window_rule({{ name = 'hyprtester-rounding', rounding = {} }})", invalid)));
+        EXPECT(rounding(), "10 20 30 40");
+    }
+
+    // Raw values survive power adjustment and a window smaller than the requested radii.
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:kitty_rounding' })"));
+    setWindowProp("class:kitty_rounding", "max_size", "40 40");
+    setWindowProp("class:kitty_rounding", "rounding", "100 200 300 400");
+    EXPECT(rounding(), "100 200 300 400");
+    EXPECT(getFromSocket("j/getprop class:kitty_rounding rounding"), R"({"rounding": [100,200,300,400]})");
+
+    OK(getFromSocket("r/eval hl.window_rule({ name = 'hyprtester-rounding', rounding = { top_right = 7 } })"));
+    EXPECT(rounding(), "100 200 300 400");
+    setWindowProp("class:kitty_rounding", "rounding", "unset");
+    EXPECT(rounding(), "0 7 0 0");
+    setWindowProp("class:kitty_rounding", "rounding", "relative -3");
+    EXPECT(rounding(), "0 4 0 0");
+    setWindowProp("class:kitty_rounding", "rounding", "-1 202 -3 404");
+    EXPECT(rounding(), "0 202 0 404");
+
+    NOK(getFromSocket("/dispatch hl.dsp.window.set_prop({ window = 'class:kitty_rounding', prop = 'rounding', value = '1 2 3 bad' })"));
+    EXPECT(rounding(), "0 202 0 404");
+    setWindowProp("class:kitty_rounding", "rounding", "1 2 3 9223372036854775807");
+    NOK(getFromSocket("/dispatch hl.dsp.window.set_prop({ window = 'class:kitty_rounding', prop = 'rounding', value = 'relative 1' })"));
+    EXPECT(rounding(), "1 2 3 9223372036854775807");
+
+    setWindowProp("class:kitty_rounding", "rounding", "unset");
+    EXPECT(rounding(), "0 7 0 0");
+    OK(getFromSocket("r/eval hl.window_rule({ name = 'hyprtester-rounding', rounding = true })"));
+    EXPECT(rounding(), "1");
+    EXPECT(getFromSocket("j/getprop class:kitty_rounding rounding"), R"({"rounding": 1})");
+    OK(getFromSocket("/eval _G.hyprtester_rounding_rule:set_enabled(false)"));
+    EXPECT(rounding(), "0");
+    OK(getFromSocket("r/eval hl.workspace_rule({ workspace = '69', no_rounding = false })"));
+    EXPECT(rounding(), "1 2 3 4");
+
+    OK(getFromSocket("r/eval hl.config({ decoration = { rounding = { bottom_left = 9 } } })"));
+    EXPECT(rounding(), "0 0 0 9");
+    OK(getFromSocket("/reload"));
+    EXPECT(rounding(), "10");
+}
+
 TEST_CASE(hyprctlJsonErrors) {
     EXPECT(descriptionsMatch(R"(type == "array")"), true);
 }

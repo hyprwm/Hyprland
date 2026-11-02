@@ -2059,7 +2059,8 @@ void CHyprOpenGLImpl::renderBorder(CRenderContext& ctx, const CBox& box, const C
     newBox.width += 2 * scaledBorderSize;
     newBox.height += 2 * scaledBorderSize;
 
-    float       round = data.round + (data.round == 0 ? 0 : scaledBorderSize);
+    const auto  round      = data.round.expanded(scaledBorderSize);
+    const auto  outerRound = data.outerRound == Math::SCornerRadii{-1.F} ? round : data.outerRound;
 
     const auto& glMatrix = g_pHyprRenderer->projectBoxToTarget(ctx, newBox);
 
@@ -2094,8 +2095,8 @@ void CHyprOpenGLImpl::renderBorder(CRenderContext& ctx, const CBox& box, const C
     shader->setUniformFloat2(SHADER_TOP_LEFT, sc<float>(TOPLEFT.x), sc<float>(TOPLEFT.y));
     shader->setUniformFloat2(SHADER_FULL_SIZE, sc<float>(FULLSIZE.x), sc<float>(FULLSIZE.y));
     shader->setUniformFloat2(SHADER_FULL_SIZE_UNTRANSFORMED, sc<float>(newBox.width), sc<float>(newBox.height));
-    shader->setUniformFloat(SHADER_RADIUS, round);
-    shader->setUniformFloat(SHADER_RADIUS_OUTER, data.outerRound == -1 ? round : data.outerRound);
+    shader->setUniformFloat4(SHADER_RADIUS, round.topLeft, round.topRight, round.bottomRight, round.bottomLeft);
+    shader->setUniformFloat4(SHADER_RADIUS_OUTER, outerRound.topLeft, outerRound.topRight, outerRound.bottomRight, outerRound.bottomLeft);
     shader->setUniformFloat(SHADER_ROUNDING_POWER, data.roundingPower);
     shader->setUniformFloat(SHADER_THICK, scaledBorderSize);
 
@@ -2104,7 +2105,7 @@ void CHyprOpenGLImpl::renderBorder(CRenderContext& ctx, const CBox& box, const C
     // calculate the border's region, which we need to render over. No need to run the shader on
     // things outside there
     CRegion borderRegion = ctx.m_data.damage.copy().intersect(newBox);
-    borderRegion.subtract(innerBox.copy().expand(-scaledBorderSize - round));
+    borderRegion.subtract(innerBox.copy().expand(-scaledBorderSize - std::max(round.max(), outerRound.max())));
 
     if (ctx.m_data.clipBox.width != 0 && ctx.m_data.clipBox.height != 0)
         borderRegion.intersect(ctx.m_data.clipBox);
@@ -2148,7 +2149,8 @@ void CHyprOpenGLImpl::renderBorder(CRenderContext& ctx, const CBox& box, const C
     newBox.width += 2 * scaledBorderSize;
     newBox.height += 2 * scaledBorderSize;
 
-    float       round = data.round + (data.round == 0 ? 0 : scaledBorderSize);
+    const auto  round      = data.round.expanded(scaledBorderSize);
+    const auto  outerRound = data.outerRound == Math::SCornerRadii{-1.F} ? round : data.outerRound;
 
     const auto& glMatrix = g_pHyprRenderer->projectBoxToTarget(ctx, newBox);
 
@@ -2186,8 +2188,8 @@ void CHyprOpenGLImpl::renderBorder(CRenderContext& ctx, const CBox& box, const C
     shader->setUniformFloat2(SHADER_TOP_LEFT, sc<float>(TOPLEFT.x), sc<float>(TOPLEFT.y));
     shader->setUniformFloat2(SHADER_FULL_SIZE, sc<float>(FULLSIZE.x), sc<float>(FULLSIZE.y));
     shader->setUniformFloat2(SHADER_FULL_SIZE_UNTRANSFORMED, sc<float>(newBox.width), sc<float>(newBox.height));
-    shader->setUniformFloat(SHADER_RADIUS, round);
-    shader->setUniformFloat(SHADER_RADIUS_OUTER, data.outerRound == -1 ? round : data.outerRound);
+    shader->setUniformFloat4(SHADER_RADIUS, round.topLeft, round.topRight, round.bottomRight, round.bottomLeft);
+    shader->setUniformFloat4(SHADER_RADIUS_OUTER, outerRound.topLeft, outerRound.topRight, outerRound.bottomRight, outerRound.bottomLeft);
     shader->setUniformFloat(SHADER_ROUNDING_POWER, data.roundingPower);
     shader->setUniformFloat(SHADER_THICK, scaledBorderSize);
 
@@ -2196,7 +2198,7 @@ void CHyprOpenGLImpl::renderBorder(CRenderContext& ctx, const CBox& box, const C
     // calculate the border's region, which we need to render over. No need to run the shader on
     // things outside there
     CRegion borderRegion = ctx.m_data.damage.copy().intersect(newBox);
-    borderRegion.subtract(innerBox.copy().expand(-scaledBorderSize - round));
+    borderRegion.subtract(innerBox.copy().expand(-scaledBorderSize - std::max(round.max(), outerRound.max())));
 
     if (ctx.m_data.clipBox.width != 0 && ctx.m_data.clipBox.height != 0)
         borderRegion.intersect(ctx.m_data.clipBox);

@@ -45,24 +45,24 @@ namespace Debug {
             float var = 0.F;
         };
 
-        void                                           updateLine(size_t idx, const std::string& text, const CHyprColor& color, int fontSize, const std::string& fontFamily);
-        void                                           rebuildCache();
+        void                                  updateLine(size_t idx, const std::string& text, const CHyprColor& color, int fontSize, const std::string& fontFamily);
+        void                                  rebuildCache();
 
-        std::deque<float>                              m_lastFrametimes;
-        std::deque<float>                              m_lastFPSPerSecond;
-        std::deque<float>                              m_lastRenderTimes;
-        std::deque<float>                              m_lastRenderTimesNoOverlay;
-        std::deque<float>                              m_lastAnimationTicks;
-        std::chrono::high_resolution_clock::time_point m_lastFrame;
-        std::chrono::high_resolution_clock::time_point m_fpsSecondStart;
-        size_t                                         m_framesInCurrentSecond = 0;
-        PHLMONITORREF                                  m_monitor;
+        std::deque<float>                     m_lastFrametimes;
+        std::deque<float>                     m_lastFPSPerSecond;
+        std::deque<float>                     m_lastRenderTimes;
+        std::deque<float>                     m_lastRenderTimesNoOverlay;
+        std::deque<float>                     m_lastAnimationTicks;
+        std::chrono::steady_clock::time_point m_lastFrame;
+        std::chrono::steady_clock::time_point m_fpsSecondStart;
+        size_t                                m_framesInCurrentSecond = 0;
+        PHLMONITORREF                         m_monitor;
 
-        std::vector<STextLine>                         m_cachedLines;
-        bool                                           m_cacheValid = false;
-        CTimer                                         m_cacheTimer;
+        std::vector<STextLine>                m_cachedLines;
+        bool                                  m_cacheValid = false;
+        CTimer                                m_cacheTimer;
 
-        CBox                                           m_lastDrawnBox;
+        CBox                                  m_lastDrawnBox;
 
         friend class Render::IHyprRenderer;
     };

@@ -181,11 +181,11 @@ namespace Render::GL {
         };
 
         struct SBorderRenderData {
-            int   round         = 0;
-            float roundingPower = 2.F;
-            int   borderSize    = 1;
-            float a             = 1.0;
-            int   outerRound    = -1; /* use round */
+            Math::SCornerRadii round         = 0;
+            float              roundingPower = 2.F;
+            int                borderSize    = 1;
+            float              a             = 1.0;
+            Math::SCornerRadii outerRound    = -1; /* use round */
         };
 
         void makeEGLCurrent();

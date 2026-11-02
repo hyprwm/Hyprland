@@ -65,11 +65,11 @@ void CHyprBorderDecoration::draw(Render::CRenderContext& ctx, PHLMONITOR pMonito
 
     const auto                      GRADIENT         = m_gradient.renderState();
     int                             borderSize       = this->borderSize();
-    const auto                      ROUNDINGBASE     = m_window->presentation().rounding();
+    const auto                      ROUNDINGBASE     = Math::SCornerRadii{m_window->presentation().rounding()};
     const auto                      ROUNDING         = ROUNDINGBASE * pMonitor->m_scale;
     const auto                      ROUNDINGPOWER    = m_window->presentation().roundingPower();
     const auto                      CORRECTIONOFFSET = (borderSize * (M_SQRT2 - 1) * std::max(2.0 - ROUNDINGPOWER, 0.0));
-    const auto                      OUTERROUND       = ((ROUNDINGBASE + borderSize) - CORRECTIONOFFSET) * pMonitor->m_scale;
+    const auto                      OUTERROUND       = ROUNDINGBASE.expanded(borderSize - CORRECTIONOFFSET) * pMonitor->m_scale;
 
     CBorderPassElement::SBorderData data;
     data.box           = windowBox;
@@ -117,7 +117,7 @@ void CHyprBorderDecoration::damageEntire() {
     if (GLOBAL_BOX.w <= 0 || GLOBAL_BOX.h <= 0)
         return;
 
-    const auto ROUNDING   = m_window->presentation().rounding();
+    const auto ROUNDING   = Math::SCornerRadii{m_window->presentation().rounding()}.max();
     const auto BORDERSIZE = borderSize() + 1;
 
     CRegion    borderRegion(GLOBAL_BOX);

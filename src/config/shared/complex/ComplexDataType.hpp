@@ -9,6 +9,7 @@ namespace Config {
         CVD_TYPE_GRADIENT    = 0,
         CVD_TYPE_CSS_VALUE   = 1,
         CVD_TYPE_FONT_WEIGHT = 2,
+        CVD_TYPE_CORNERS     = 3,
     };
 
     class IComplexConfigValue {

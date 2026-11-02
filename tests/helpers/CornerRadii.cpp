@@ -1,5 +1,5 @@
 #include <helpers/math/CornerRadii.hpp>
-#include <config/shared/complex/ComplexDataTypes.hpp>
+#include <config/shared/complex/CornersData.hpp>
 #include <hyprutils/math/Vector2D.hpp>
 
 #include <gtest/gtest.h>
@@ -7,8 +7,8 @@
 using namespace Math;
 using Hyprutils::Math::Vector2D;
 
-TEST(CornerRadii, CssFieldsFollowClockwiseCornerOrder) {
-    const SCornerRadii RADII{Config::CCssGapData{3, 7, 11, 19}};
+TEST(CornerRadii, ConfigFieldsFollowClockwiseCornerOrder) {
+    const SCornerRadii RADII{Config::CCornersData{3, 7, 11, 19}};
     EXPECT_EQ(RADII.at({0, 0}, {100, 80}), 3.F);
     EXPECT_EQ(RADII.at({100, 0}, {100, 80}), 7.F);
     EXPECT_EQ(RADII.at({100, 80}, {100, 80}), 11.F);

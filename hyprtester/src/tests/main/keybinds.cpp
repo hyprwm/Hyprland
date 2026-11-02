@@ -913,6 +913,36 @@ TEST_CASE(modifierReleaseBindShadowing) {
                      "end"));
 }
 
+TEST_CASE(modifierReleaseBindAfterScroll) {
+    constexpr uint32_t SUPER_L = KEY_LEFTMETA + 8;
+
+    const auto         counts = [] { return getFromSocket("/repl return _G.hyprtester_scroll_release .. ':' .. _G.hyprtester_scroll_bind"); };
+
+    OK(getFromSocket("/eval do "
+                     "hl.config({ binds = { scroll_event_delay = 0 } }); "
+                     "hl.unbind('SUPER + mouse_up'); "
+                     "_G.hyprtester_scroll_release = 0; "
+                     "_G.hyprtester_scroll_bind = 0; "
+                     "hl.bind('Super_L', function() _G.hyprtester_scroll_release = _G.hyprtester_scroll_release + 1 end, { release = true }); "
+                     "hl.bind('SUPER + mouse_up', function() _G.hyprtester_scroll_bind = _G.hyprtester_scroll_bind + 1 end) "
+                     "end"));
+
+    OK(getFromSocket(pluginKeybindCmd(true, 0, SUPER_L)));
+    EXPECT(counts(), "0:0");
+    OK(getFromSocket(pluginScrollCmd(-120)));
+    EXPECT(counts(), "0:1");
+    OK(getFromSocket(pluginKeybindCmd(false, 0, SUPER_L)));
+    EXPECT(counts(), "0:1");
+
+    OK(getFromSocket(pluginKeybindCmd(true, 0, SUPER_L)));
+    EXPECT(counts(), "0:1");
+    OK(getFromSocket(pluginKeybindCmd(false, 0, SUPER_L)));
+    EXPECT(counts(), "1:1");
+
+    OK(getFromSocket("/eval _G.hyprtester_scroll_release = nil; _G.hyprtester_scroll_bind = nil"));
+    OK(getFromSocket("/reload"));
+}
+
 TEST_CASE(mouseReleaseBindShadowing) {
     constexpr uint32_t F24 = KEY_F24 + 8;
 

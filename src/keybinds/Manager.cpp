@@ -339,6 +339,9 @@ bool CKeybindManager::onAxisEvent(const IPointer::SAxisEvent& event, SP<IPointer
         },
         nullptr);
 
+    if (!RESULT.passEvent)
+        shadowBinds();
+
     return RESULT.passEvent;
 }
 

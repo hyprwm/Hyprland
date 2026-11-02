@@ -12,6 +12,7 @@
 #include "./types/IValue.hpp"
 #include "./types/BoolValue.hpp"
 #include "./types/ColorValue.hpp"
+#include "./types/CornersValue.hpp"
 #include "./types/CssGapValue.hpp"
 #include "./types/FloatValue.hpp"
 #include "./types/FontWeightValue.hpp"
@@ -62,6 +63,7 @@ namespace Config::Values {
 
     using Bool       = CBoolValue;
     using Color      = CColorValue;
+    using Corners    = CCornersValue;
     using CssGap     = CCssGapValue;
     using Float      = CFloatValue;
     using FontWeight = CFontWeightValue;
@@ -81,6 +83,11 @@ namespace Config::Values {
     template <>
     struct SValueOptions<CColorValue> {
         using type = SColorValueOptions;
+    };
+
+    template <>
+    struct SValueOptions<CCornersValue> {
+        using type = SCornersValueOptions;
     };
 
     template <>

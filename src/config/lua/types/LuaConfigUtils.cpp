@@ -6,6 +6,7 @@
 #include "LuaConfigColor.hpp"
 #include "LuaConfigVec2.hpp"
 #include "LuaConfigCssGap.hpp"
+#include "LuaConfigCorners.hpp"
 #include "LuaConfigFontWeight.hpp"
 #include "LuaConfigGradient.hpp"
 #include "../../values/types/IntValue.hpp"
@@ -15,6 +16,7 @@
 #include "../../values/types/ColorValue.hpp"
 #include "../../values/types/Vec2Value.hpp"
 #include "../../values/types/CssGapValue.hpp"
+#include "../../values/types/CornersValue.hpp"
 #include "../../values/types/FontWeightValue.hpp"
 #include "../../values/types/GradientValue.hpp"
 
@@ -43,6 +45,8 @@ UP<ILuaConfigValue> Lua::fromGenericValue(SP<Config::Values::IValue> v) {
         return populate(makeUnique<CLuaConfigColor>(p->defaultVal()));
     if (auto p = dc<Config::Values::CVec2Value*>(v.get()))
         return populate(makeUnique<CLuaConfigVec2>(p->defaultVal(), p->validator()));
+    if (auto p = dc<Config::Values::CCornersValue*>(v.get()))
+        return populate(makeUnique<CLuaConfigCorners>(p->defaultVal().m_topLeft, p->m_min, p->m_max));
     if (auto p = dc<Config::Values::CCssGapValue*>(v.get()))
         return populate(makeUnique<CLuaConfigCssGap>(p->defaultVal().m_top, p->m_min, p->m_max));
     if (auto p = dc<Config::Values::CFontWeightValue*>(v.get()))

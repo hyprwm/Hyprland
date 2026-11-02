@@ -70,7 +70,7 @@ class CRoundingShaders : public testing::Test {
 };
 
 TEST_F(CRoundingShaders, RoundedDrawVariantsCompileWithoutGpu) {
-    for (const auto* shader : {"quad.frag", "surface.frag", "ext.frag", "border.frag"}) {
+    for (const auto* shader : {"quad.frag", "surface.frag", "ext.frag", "border.frag", "shadow.frag"}) {
         for (int rounding = 0; rounding <= 1; ++rounding) {
             for (int mirror = 0; mirror <= 1; ++mirror) {
                 for (int cm = 0; cm <= 1; ++cm) {
@@ -100,6 +100,11 @@ TEST_F(CRoundingShaders, BorderIccVariantsCompileWithoutGpu) {
 TEST_F(CRoundingShaders, AcrylicFinishVariantsCompileWithoutGpu) {
     for (int cm = 0; cm <= 1; ++cm)
         compile("acrylicfinish.frag", std::format("#define USE_CM {}\n#define SOURCE_TF 9\n#define TARGET_TF 9\n", cm));
+}
+
+TEST_F(CRoundingShaders, InnerGlowVariantsCompileWithoutGpu) {
+    for (int cm = 0; cm <= 1; ++cm)
+        compile("inner_glow.frag", std::format("#define USE_CM {}\n#define SOURCE_TF 9\n#define TARGET_TF 9\n", cm));
 }
 
 TEST_F(CRoundingShaders, SurfaceBlurAndMotionVariantsCompileWithoutGpu) {

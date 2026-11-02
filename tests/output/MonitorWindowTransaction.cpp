@@ -149,17 +149,19 @@ class CTransactionTestRenderer : public Render::IHyprRenderer {
     void blend(bool) override {
         ;
     }
-    void drawShadow(Render::CRenderContext&, const CBox&, int, float, int, const Config::CGradientValueData&, float, const Render::SWindowRenderPresentation&) override {
-        ADD_FAILURE() << "Unexpected shadow draw";
-    }
-    void drawShadow(Render::CRenderContext&, const CBox&, int, float, int, const Config::CGradientValueData&, const Config::CGradientValueData&, float, float,
+    void drawShadow(Render::CRenderContext&, const CBox&, Math::SCornerRadii, float, int, const Config::CGradientValueData&, float,
                     const Render::SWindowRenderPresentation&) override {
         ADD_FAILURE() << "Unexpected shadow draw";
     }
-    void drawGlow(Render::CRenderContext&, const CBox&, int, float, int, const Config::CGradientValueData&, float) override {
+    void drawShadow(Render::CRenderContext&, const CBox&, Math::SCornerRadii, float, int, const Config::CGradientValueData&, const Config::CGradientValueData&, float, float,
+                    const Render::SWindowRenderPresentation&) override {
+        ADD_FAILURE() << "Unexpected shadow draw";
+    }
+    void drawGlow(Render::CRenderContext&, const CBox&, Math::SCornerRadii, float, int, const Config::CGradientValueData&, float) override {
         ADD_FAILURE() << "Unexpected glow draw";
     }
-    void drawGlow(Render::CRenderContext&, const CBox&, int, float, int, const Config::CGradientValueData&, const Config::CGradientValueData&, float, float) override {
+    void drawGlow(Render::CRenderContext&, const CBox&, Math::SCornerRadii, float, int, const Config::CGradientValueData&, const Config::CGradientValueData&, float,
+                  float) override {
         ADD_FAILURE() << "Unexpected glow draw";
     }
     void setViewport(int, int, int, int) override {

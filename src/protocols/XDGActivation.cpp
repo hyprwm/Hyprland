@@ -5,6 +5,30 @@
 #include "core/Compositor.hpp"
 #include <algorithm>
 
+static constexpr const size_t MAX_TOKENS_IN_CACHE   = 1024;
+static constexpr const size_t MAX_TOKENS_PER_CLIENT = 16;
+
+CHyprlandActivationToken::CHyprlandActivationToken(wl_client* client, bool canActivate) :
+    m_token(g_pTokenManager->registerNewToken({}, std::chrono::months{12})), m_canActivate(canActivate), m_client(client) {
+    ;
+}
+
+CHyprlandActivationToken::~CHyprlandActivationToken() {
+    g_pTokenManager->removeToken(g_pTokenManager->getToken(m_token));
+}
+
+bool CHyprlandActivationToken::canActivate() const {
+    return m_canActivate;
+}
+
+const std::string& CHyprlandActivationToken::token() const {
+    return m_token;
+}
+
+wl_client* CHyprlandActivationToken::client() const {
+    return m_client;
+}
+
 CXDGActivationToken::CXDGActivationToken(SP<CXdgActivationTokenV1> resource_) : m_resource(resource_) {
     if UNLIKELY (!resource_->resource())
         return;
@@ -32,38 +56,19 @@ CXDGActivationToken::CXDGActivationToken(SP<CXdgActivationTokenV1> resource_) : 
 
         m_committed = true;
 
-        if UNLIKELY (!m_serial || !g_pSeatManager->serialValid(g_pSeatManager->seatResourceForClient(m_resource->client()), m_serial)) {
-            LOG(Log::WARN, "invalid serial {} for activation token, rejecting", m_serial);
-            rej();
-            return;
-        }
+        const bool CAN_ACTIVATE = m_serial && g_pSeatManager->serialValid(g_pSeatManager->seatResourceForClient(m_resource->client()), m_serial);
 
         // send done with a new token
-        m_token = g_pTokenManager->registerNewToken({}, std::chrono::months{12});
+        const auto& TOKEN = PROTO::activation->m_sentTokens.emplace_back(makeUnique<CHyprlandActivationToken>(m_resource->client(), CAN_ACTIVATE));
 
-        LOG(Log::DEBUG, "assigned new xdg-activation token {}", m_token);
+        LOG(Log::DEBUG, "assigned new xdg-activation token {}", TOKEN->token());
 
-        m_resource->sendDone(m_token.c_str());
+        if (!CAN_ACTIVATE)
+            LOG(Log::DEBUG, "new xdg activation token {} has no activation rights, will be urgent-only", TOKEN->token());
 
-        PROTO::activation->m_sentTokens.push_back({m_token, m_resource->client()});
-
-        auto count = std::ranges::count_if(PROTO::activation->m_sentTokens, [this](const auto& other) { return other.client == m_resource->client(); });
-
-        if UNLIKELY (count > 10) {
-            // remove first token. Too many, dear app.
-            for (auto i = PROTO::activation->m_sentTokens.begin(); i != PROTO::activation->m_sentTokens.end(); ++i) {
-                if (i->client == m_resource->client()) {
-                    PROTO::activation->m_sentTokens.erase(i);
-                    break;
-                }
-            }
-        }
+        m_resource->sendDone(TOKEN->token().c_str());
+        PROTO::activation->cleanupTokens();
     });
-}
-
-CXDGActivationToken::~CXDGActivationToken() {
-    if (m_committed)
-        g_pTokenManager->removeToken(g_pTokenManager->getToken(m_token));
 }
 
 bool CXDGActivationToken::good() {
@@ -81,12 +86,14 @@ void CXDGActivationProtocol::bindManager(wl_client* client, void* data, uint32_t
     RESOURCE->setDestroy([this](CXdgActivationV1* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });
     RESOURCE->setGetActivationToken([this](CXdgActivationV1* pMgr, uint32_t id) { this->onGetToken(pMgr, id); });
     RESOURCE->setActivate([this](CXdgActivationV1* pMgr, const char* token, wl_resource* surface) {
-        auto TOKEN = std::ranges::find_if(m_sentTokens, [token](const auto& t) { return t.token == token; });
+        auto TOKEN = std::ranges::find_if(m_sentTokens, [token](const auto& t) { return t->token() == token; });
 
         if UNLIKELY (TOKEN == m_sentTokens.end()) {
             LOG(Log::WARN, "activate event for non-existent token {}??", token);
             return;
         }
+
+        const bool CAN_ACTIVATE = (*TOKEN)->canActivate();
 
         // remove token. It's been now spent.
         m_sentTokens.erase(TOKEN);
@@ -99,8 +106,31 @@ void CXDGActivationProtocol::bindManager(wl_client* client, void* data, uint32_t
             return;
         }
 
-        PWINDOW->activate();
+        if (CAN_ACTIVATE)
+            PWINDOW->activate();
+        else
+            PWINDOW->markUrgent();
     });
+}
+
+void CXDGActivationProtocol::cleanupTokens() {
+    if (m_sentTokens.empty())
+        return;
+
+    // Called after each insertion, so only the newest token's client can exceed its limit.
+    const auto CLIENT = m_sentTokens.back()->client();
+    size_t     count  = std::ranges::count_if(m_sentTokens, [CLIENT](const auto& token) { return token->client() == CLIENT; });
+
+    std::erase_if(m_sentTokens, [CLIENT, &count](const auto& token) {
+        if (token->client() != CLIENT || count <= MAX_TOKENS_PER_CLIENT)
+            return false;
+
+        --count;
+        return true;
+    });
+
+    if (m_sentTokens.size() > MAX_TOKENS_IN_CACHE)
+        m_sentTokens.erase(m_sentTokens.begin(), m_sentTokens.begin() + (m_sentTokens.size() - MAX_TOKENS_IN_CACHE));
 }
 
 void CXDGActivationProtocol::onManagerResourceDestroy(wl_resource* res) {

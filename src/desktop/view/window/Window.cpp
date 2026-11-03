@@ -812,16 +812,23 @@ std::unordered_map<std::string, std::string> CWindow::getEnv() {
     return results;
 }
 
+void CWindow::markUrgent() {
+    if (Desktop::focusState()->window() == m_self)
+        return;
+
+    m_hints |= WINDOW_HINT_URGENT;
+
+    IPC::Socket2::sock()->postEvent({.event = "urgent", .data = std::format("{:x}", rc<uintptr_t>(this))});
+    Event::bus()->m_events.window.urgent.emit(m_self.lock());
+}
+
 void CWindow::activate(bool force) {
     if (Desktop::focusState()->window() == m_self)
         return;
 
     static auto PFOCUSONACTIVATE = CConfigValue<Config::INTEGER>("misc:focus_on_activate");
 
-    m_hints |= WINDOW_HINT_URGENT;
-
-    IPC::Socket2::sock()->postEvent({.event = "urgent", .data = std::format("{:x}", rc<uintptr_t>(this))});
-    Event::bus()->m_events.window.urgent.emit(m_self.lock());
+    markUrgent();
 
     if (!force && (!m_ruleApplicator->focusOnActivate().valueOr(*PFOCUSONACTIVATE) || m_requestSuppression.activateFocusOnly || m_requestSuppression.activate))
         return;

@@ -247,12 +247,14 @@ TEST_CASE(xdgActivationSerial) {
     CActivationClient client;
     ASSERT(client.start(), true);
     ASSERT(focusSource(), true);
+    EXPECT(getFromSocket("/repl hl.get_urgent_window() == nil"), "true");
 
     NLog::green("Testing activation without set_serial");
     const auto MISSING = client.activate();
     ASSERT(MISSING.has_value(), true);
     EXPECT(focused(SOURCE), true);
-    EXPECT(MISSING->emptyToken, true);
+    EXPECT(MISSING->emptyToken, false);
+    EXPECT(getFromSocket(std::format("/repl hl.get_urgent_window() == hl.get_window('class:^{}$')", TARGET)), "true");
     EXPECT(Tests::windowCount(), 2);
 
     NLog::green("Testing activation with a real pointer-button serial");
@@ -269,12 +271,14 @@ TEST_CASE(xdgActivationSerial) {
     ASSERT(VALID.has_value(), true);
     EXPECT(VALID->emptyToken, false);
     ASSERT(waitUntil([] { return focused(TARGET); }), true);
+    EXPECT(getFromSocket("/repl hl.get_urgent_window() == nil"), "true");
 
     NLog::green("Testing activation with an already-consumed serial");
     ASSERT(focusSource(), true);
     const auto CONSUMED = client.activate(*SERIAL);
     ASSERT(CONSUMED.has_value(), true);
     EXPECT(focused(SOURCE), true);
-    EXPECT(CONSUMED->emptyToken, true);
+    EXPECT(CONSUMED->emptyToken, false);
+    EXPECT(getFromSocket(std::format("/repl hl.get_urgent_window() == hl.get_window('class:^{}$')", TARGET)), "true");
     EXPECT(Tests::windowCount(), 2);
 }

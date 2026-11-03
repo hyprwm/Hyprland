@@ -224,6 +224,7 @@ namespace Desktop::View {
         bool                       onSpecialWorkspace();
         const std::string&         workspaceAddress() const;
         void                       activate(bool force = false);
+        void                       markUrgent();
         bool                       clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize);
         float                      getScrollMouse();
         float                      getScrollTouchpad();

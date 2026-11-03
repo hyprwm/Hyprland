@@ -422,19 +422,43 @@ bool CKeybindManager::onMouseEvent(const IPointer::SButtonEvent& event, SP<IPoin
 void CKeybindManager::onSwitchEvent(const std::string& switchName) {
     const SResolvedKey KEY{.event = std::format("switch:{}", switchName)};
     cancelTimedBinds();
-    processEvent({.heldKeys = m_inputState.heldKeys(), .trigger = KEY, .pressed = true, .submap = std::string{currentSubmap()}}, nullptr);
+    processEvent(
+        {
+            .heldKeys     = m_inputState.heldKeys(),
+            .trigger      = KEY,
+            .modifiersNow = g_pInputManager->getModsFromAllKBs(),
+            .pressed      = true,
+            .submap       = std::string{currentSubmap()},
+        },
+        nullptr);
 }
 
 void CKeybindManager::onSwitchOnEvent(const std::string& switchName) {
     const SResolvedKey KEY{.event = std::format("switch:on:{}", switchName)};
     cancelTimedBinds();
-    processEvent({.heldKeys = m_inputState.heldKeys(), .trigger = KEY, .pressed = true, .submap = std::string{currentSubmap()}}, nullptr);
+    processEvent(
+        {
+            .heldKeys     = m_inputState.heldKeys(),
+            .trigger      = KEY,
+            .modifiersNow = g_pInputManager->getModsFromAllKBs(),
+            .pressed      = true,
+            .submap       = std::string{currentSubmap()},
+        },
+        nullptr);
 }
 
 void CKeybindManager::onSwitchOffEvent(const std::string& switchName) {
     const SResolvedKey KEY{.event = std::format("switch:off:{}", switchName)};
     cancelTimedBinds();
-    processEvent({.heldKeys = m_inputState.heldKeys(), .trigger = KEY, .pressed = true, .submap = std::string{currentSubmap()}}, nullptr);
+    processEvent(
+        {
+            .heldKeys     = m_inputState.heldKeys(),
+            .trigger      = KEY,
+            .modifiersNow = g_pInputManager->getModsFromAllKBs(),
+            .pressed      = true,
+            .submap       = std::string{currentSubmap()},
+        },
+        nullptr);
 }
 
 void CKeybindManager::onDeviceRemoved(const SP<IHID>& device) {

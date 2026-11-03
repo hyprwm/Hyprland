@@ -2,13 +2,31 @@
 
 #include <vector>
 #include <cstdint>
+#include <string>
 #include "WaylandProtocol.hpp"
 #include "xdg-activation-v1.hpp"
+#include "../macros/Class.hpp"
+
+class CHyprlandActivationToken {
+  public:
+    CHyprlandActivationToken(wl_client* client, bool canActivate);
+    ~CHyprlandActivationToken();
+
+    NON_MOVABLE(CHyprlandActivationToken);
+
+    bool               canActivate() const;
+    const std::string& token() const;
+    wl_client*         client() const;
+
+  private:
+    std::string m_token;
+    bool        m_canActivate = false;
+    wl_client*  m_client      = nullptr; // READ-ONLY: can be dead
+};
 
 class CXDGActivationToken {
   public:
     CXDGActivationToken(SP<CXdgActivationTokenV1> resource_);
-    ~CXDGActivationToken();
 
     bool good();
 
@@ -18,8 +36,6 @@ class CXDGActivationToken {
     uint32_t                  m_serial    = 0;
     std::string               m_appID     = "";
     bool                      m_committed = false;
-
-    std::string               m_token = "";
 
     friend class CXDGActivationProtocol;
 };
@@ -35,11 +51,11 @@ class CXDGActivationProtocol : public IWaylandProtocol {
     void destroyToken(CXDGActivationToken* pointer);
     void onGetToken(CXdgActivationV1* pMgr, uint32_t id);
 
-    struct SSentToken {
-        std::string token;
-        wl_client*  client = nullptr; // READ-ONLY: can be dead
-    };
-    std::vector<SSentToken> m_sentTokens;
+    // enforces per-client and global token cache limits
+    void cleanupTokens();
+
+    // tokens sent to apps
+    std::vector<UP<CHyprlandActivationToken>> m_sentTokens;
 
     //
     std::vector<UP<CXdgActivationV1>>    m_managers;

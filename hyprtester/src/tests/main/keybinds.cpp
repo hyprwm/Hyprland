@@ -927,7 +927,7 @@ TEST_CASE(modifierReleaseBindAfterScroll) {
                      "hl.bind('SUPER + mouse_up', function() _G.hyprtester_scroll_bind = _G.hyprtester_scroll_bind + 1 end) "
                      "end"));
 
-    OK(getFromSocket(pluginKeybindCmd(true, 0, SUPER_L)));
+    OK(getFromSocket(pluginKeybindCmd(true, MOD_META, SUPER_L)));
     EXPECT(counts(), "0:0");
     OK(getFromSocket(pluginScrollCmd(-120)));
     EXPECT(counts(), "0:1");

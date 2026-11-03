@@ -83,6 +83,35 @@ TEST(Keybinds, UnsidedModifierMatchesEitherSide) {
               BIND_MATCH_FULL);
 }
 
+TEST(Keybinds, HeldModifierKeysymDoesNotOverrideXkbMask) {
+    auto controlBind = makeBind({"SUPER", "CONTROL", "W"});
+    auto capsBind    = makeBind({"SUPER", "CAPS", "W"});
+    ASSERT_TRUE(controlBind.has_value());
+    ASSERT_TRUE(capsBind.has_value());
+
+    const auto       SUPER = resolvedKey("SUPER_L", 133, HL_MODIFIER_META);
+    const auto       CAPS  = resolvedKey("Caps_Lock", 66, HL_MODIFIER_CAPS);
+    const auto       W     = resolvedKey("W", 25);
+    const std::array held  = {SUPER, CAPS, W};
+
+    // caps:ctrl_modifier keeps the Caps_Lock keysym but activates Control.
+    SBindEventContext context{
+        .heldKeys     = held,
+        .trigger      = W,
+        .modifiersNow = HL_MODIFIER_META | HL_MODIFIER_CTRL,
+    };
+    EXPECT_EQ(controlBind->matches(context), BIND_MATCH_FULL);
+    EXPECT_EQ(capsBind->matches(context), BIND_MATCH_NONE);
+
+    context.modifiersNow = HL_MODIFIER_META | HL_MODIFIER_CAPS;
+    EXPECT_EQ(controlBind->matches(context), BIND_MATCH_NONE);
+    EXPECT_EQ(capsBind->matches(context), BIND_MATCH_FULL);
+
+    context.modifiersNow |= HL_MODIFIER_CTRL;
+    EXPECT_EQ(controlBind->matches(context), BIND_MATCH_NONE);
+    EXPECT_EQ(capsBind->matches(context), BIND_MATCH_NONE);
+}
+
 TEST(Keybinds, SidedModifierAfterOrdinaryChordKeysDoesNotPartiallyMatch) {
     auto result = makeBind({"SHIFT_L", "A", "B"});
     ASSERT_TRUE(result.has_value());

@@ -227,12 +227,8 @@ bool CBind::matchesContext(const SBindEventContext& ctx) const {
         return false;
 
     auto effectiveMods = ctx.pressed ? ctx.modifiersNow : ctx.modifiersAtPress;
-    if (ctx.pressed) {
-        for (const auto& key : ctx.heldKeys) {
-            if (key.modifier)
-                effectiveMods |= *key.modifier;
-        }
-    } else if (ctx.trigger && ctx.trigger->modifier)
+    // Only the trigger's modifier may be missing from XKB; held keys can have remapped modifier actions.
+    if (ctx.trigger && ctx.trigger->modifier)
         effectiveMods |= *ctx.trigger->modifier;
 
     return (m_flags & BIND_FLAG_IGNORE_MODS) || effectiveMods == m_modmask;

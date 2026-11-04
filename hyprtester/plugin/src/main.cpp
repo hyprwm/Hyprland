@@ -1738,6 +1738,21 @@ static int luaKeybindMask(lua_State* L) {
     return luaResult(L, ::keybindModmask(std::format("{},{},{}", press, modifierMask, key)));
 }
 
+// unplugs a test device and plugs in a new one, so its held keys or buttons are never released
+static int luaReplugKeyboard2(lua_State* L) {
+    g_keyboard2->destroy();
+    g_keyboard2 = CTestKeyboard::create(false);
+    g_pInputManager->newKeyboard(g_keyboard2);
+    return luaResult(L, {});
+}
+
+static int luaReplugMouse(lua_State* L) {
+    g_mouse->destroy();
+    g_mouse = CTestMouse::create(false);
+    g_pInputManager->newMouse(g_mouse);
+    return luaResult(L, {});
+}
+
 static int luaSetMods(lua_State* L) {
     const auto kbIndex   = (int)luaL_checkinteger(L, 1);
     const auto depressed = (int)luaL_checkinteger(L, 2);
@@ -1879,6 +1894,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     addLuaFn("keybind2", ::luaKeybind2);
     addLuaFn("keybind_modmask", ::luaKeybindMask);
     addLuaFn("set_mods", ::luaSetMods);
+    addLuaFn("replug_keyboard2", ::luaReplugKeyboard2);
+    addLuaFn("replug_mouse", ::luaReplugMouse);
     addLuaFn("register_keyboard_event_recorder", ::luaRegisterKeyboardEventRecorder);
     addLuaFn("remove_keyboard_event_recorder", ::luaRemoveKeyboardEventRecorder);
     addLuaFn("expect_keyboard_events", ::luaExpectKeyboardEvents);

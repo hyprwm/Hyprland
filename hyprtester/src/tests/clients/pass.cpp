@@ -273,8 +273,9 @@ TEST_CASE(passHeldMouseButtonTargetLost) {
     }
 }
 
-// F6, as an xkb / X keycode
+// F6 and F7, as xkb / X keycodes. F7 is for binds that pass a different key than the one pressed.
 static constexpr uint32_t PASS_KEY = KEY_F6 + 8;
+static constexpr uint32_t BIND_KEY = KEY_F7 + 8;
 
 // presses or releases the key, with the modifiers held
 static std::string keyCmd(uint32_t key, bool pressed, const SMods& mods) {
@@ -284,6 +285,7 @@ static std::string keyCmd(uint32_t key, bool pressed, const SMods& mods) {
 static void unbindKeys() {
     for (const auto& mods : MODS) {
         getFromSocket(std::format("/eval hl.unbind('{}')", bindKey(mods, "F6")));
+        getFromSocket(std::format("/eval hl.unbind('{}')", bindKey(mods, "F7")));
     }
 }
 
@@ -309,8 +311,8 @@ static bool waitX11(CPipeClient& client, const std::string& cmd, const std::stri
     return false;
 }
 
-static bool waitKeyHeld(CPipeClient& client, bool held) {
-    return waitX11(client, std::format("held {}", PASS_KEY), held ? "1" : "0");
+static bool waitKeyHeld(CPipeClient& client, bool held, uint32_t key = PASS_KEY) {
+    return waitX11(client, std::format("held {}", key), held ? "1" : "0");
 }
 
 static bool waitXMods(CPipeClient& client, uint16_t mask) {
@@ -573,5 +575,497 @@ TEST_CASE(passHeldKeyXwaylandTargetLost) {
 
             unbindKeys();
         }
+    }
+}
+
+TEST_CASE(passSendShortcutHeldXwayland) {
+    // send_shortcut passes a key other than the bind's, so its release only comes from the bind's
+    // release. It must be held as long as the bind's key is, with or without modifiers on either.
+    CScopeGuard cleanup([] {
+        unbindKeys();
+        getFromSocket(setModsCmd(NO_MODS));
+        Tests::killAllWindows();
+    });
+
+    Tests::killAllWindows();
+
+    std::optional<CPipeClient> target, other;
+    try {
+        target.emplace("x11-keys", "x11-keys-a", "DISPLAY", xDisplay());
+        other.emplace("pass-target", "pass-other", "WAYLAND_DISPLAY", WLDISPLAY);
+    } catch (std::exception& e) { FAIL_TEST("Couldn't start the clients: {}", e.what()); }
+
+    for (const auto& mods : MODS) {
+        for (const auto& SHORTCUTMODS : {"", "CTRL"}) {
+            NLog::log("{}Passing {} from {}", Colors::YELLOW, std::string{SHORTCUTMODS}.empty() ? "F6" : std::format("{} + F6", SHORTCUTMODS), bindKey(mods, "F7"));
+            OK(getFromSocket(
+                std::format("/eval hl.bind('{}', hl.dsp.send_shortcut({{ mods = '{}', key = 'F6', window = 'class:^x11-keys-a$' }}))", bindKey(mods, "F7"), SHORTCUTMODS)));
+
+            ASSERT(focusWindow("pass-other"), true);
+            targetEvents(*other);
+
+            OK(getFromSocket(keyCmd(BIND_KEY, true, mods)));
+            EXPECT(waitKeyHeld(*target, true), true);
+            EXPECT(keyStaysHeld(*target), true);
+            EXPECT(waitKeyHeld(*target, false, BIND_KEY), true);
+            EXPECT(keptFocus(*other, "pass-other"), true);
+
+            OK(getFromSocket(keyCmd(BIND_KEY, false, mods)));
+            EXPECT(waitKeyHeld(*target, false), true);
+            EXPECT(keptFocus(*other, "pass-other"), true);
+
+            OK(getFromSocket(setModsCmd(NO_MODS)));
+            EXPECT(waitXMods(*target, 0), true);
+
+            unbindKeys();
+        }
+    }
+}
+
+TEST_CASE(passSendShortcutHeldXwaylandTargetLost) {
+    // If the target stops matching during the hold, the release can't be passed. The passed key must
+    // still be released with the bind's key, which isn't the passed key here.
+    CScopeGuard cleanup([] {
+        unbindKeys();
+        getFromSocket(setModsCmd(NO_MODS));
+        Tests::killAllWindows();
+    });
+
+    Tests::killAllWindows();
+
+    std::optional<CPipeClient> target, otherX11, other;
+    try {
+        target.emplace("x11-keys", "x11-keys-a", "DISPLAY", xDisplay());
+        otherX11.emplace("x11-keys", "x11-keys-b", "DISPLAY", xDisplay());
+        other.emplace("pass-target", "pass-other", "WAYLAND_DISPLAY", WLDISPLAY);
+    } catch (std::exception& e) { FAIL_TEST("Couldn't start the clients: {}", e.what()); }
+
+    for (const auto& mods : MODS) {
+        for (const auto& FOCUSED : {"pass-other", "x11-keys-b"}) {
+            NLog::log("{}Passing F6 from {}, {} focused on release", Colors::YELLOW, bindKey(mods, "F7"), FOCUSED);
+            OK(getFromSocket(std::format("/eval hl.bind('{}', hl.dsp.send_shortcut({{ mods = '', key = 'F6', window = 'class:^x11-keys-a$' }}))", bindKey(mods, "F7"))));
+
+            ASSERT(focusWindow("pass-other"), true);
+
+            OK(getFromSocket(keyCmd(BIND_KEY, true, mods)));
+            EXPECT(waitKeyHeld(*target, true), true);
+
+            ASSERT(focusWindow(FOCUSED), true);
+            ASSERT(target->request("class x11-keys-gone"), "ok");
+            Tests::sync();
+            EXPECT_CONTAINS(getFromSocket(keyCmd(BIND_KEY, false, mods)), "window not found");
+            EXPECT(waitKeyHeld(*target, false), true);
+
+            OK(getFromSocket(setModsCmd(NO_MODS)));
+            EXPECT(waitXMods(*target, 0), true);
+
+            ASSERT(target->request("class x11-keys-a"), "ok");
+            unbindKeys();
+        }
+    }
+}
+
+TEST_CASE(passSendKeyStateXwayland) {
+    // A key passed by send_key_state from a bind is held as long as the bind's key, also without an "up",
+    // so it can never stay held.
+    CScopeGuard cleanup([] {
+        unbindKeys();
+        getFromSocket(setModsCmd(NO_MODS));
+        Tests::killAllWindows();
+    });
+
+    Tests::killAllWindows();
+
+    std::optional<CPipeClient> target, other;
+    try {
+        target.emplace("x11-keys", "x11-keys-a", "DISPLAY", xDisplay());
+        other.emplace("pass-target", "pass-other", "WAYLAND_DISPLAY", WLDISPLAY);
+    } catch (std::exception& e) { FAIL_TEST("Couldn't start the clients: {}", e.what()); }
+
+    for (const auto& mods : MODS) {
+        for (const auto& SHORTCUTMODS : {"", "CTRL"}) {
+            NLog::log("{}Passing {} down from {}", Colors::YELLOW, std::string{SHORTCUTMODS}.empty() ? "F6" : std::format("{} + F6", SHORTCUTMODS), bindKey(mods, "F7"));
+            OK(getFromSocket(std::format("/eval hl.bind('{}', hl.dsp.send_key_state({{ mods = '{}', key = 'F6', state = 'down', window = 'class:^x11-keys-a$' }}))",
+                                         bindKey(mods, "F7"), SHORTCUTMODS)));
+
+            ASSERT(focusWindow("pass-other"), true);
+            targetEvents(*other);
+
+            OK(getFromSocket(keyCmd(BIND_KEY, true, mods)));
+            EXPECT(waitKeyHeld(*target, true), true);
+            EXPECT(keyStaysHeld(*target), true);
+            EXPECT(keptFocus(*other, "pass-other"), true);
+
+            OK(getFromSocket(keyCmd(BIND_KEY, false, mods)));
+            EXPECT(waitKeyHeld(*target, false), true);
+            EXPECT(keptFocus(*other, "pass-other"), true);
+
+            OK(getFromSocket(setModsCmd(NO_MODS)));
+            EXPECT(waitXMods(*target, 0), true);
+
+            unbindKeys();
+        }
+    }
+}
+
+TEST_CASE(passSendKeyStateDispatched) {
+    // Dispatched outside of a bind, nothing physical is held for send_key_state's "down", so nothing
+    // is kept held: the target is left as before, which releases what was passed.
+    CScopeGuard cleanup([] { Tests::killAllWindows(); });
+
+    Tests::killAllWindows();
+
+    std::optional<CPipeClient> target, mouseTarget, other;
+    try {
+        target.emplace("x11-keys", "x11-keys-a", "DISPLAY", xDisplay());
+        mouseTarget.emplace("pass-target", "pass-target", "WAYLAND_DISPLAY", WLDISPLAY);
+        other.emplace("pass-target", "pass-other", "WAYLAND_DISPLAY", WLDISPLAY);
+    } catch (std::exception& e) { FAIL_TEST("Couldn't start the clients: {}", e.what()); }
+
+    ASSERT(focusWindow("pass-other"), true);
+    targetEvents(*mouseTarget);
+    targetEvents(*other);
+
+    OK(getFromSocket("/dispatch hl.dsp.send_key_state({ mods = '', key = 'F6', state = 'down', window = 'class:^x11-keys-a$' })"));
+    EXPECT(keyStaysHeld(*target), false);
+    EXPECT(keptFocus(*other, "pass-other"), true);
+    OK(getFromSocket("/dispatch hl.dsp.send_key_state({ mods = '', key = 'F6', state = 'up', window = 'class:^x11-keys-a$' })"));
+    EXPECT(waitKeyHeld(*target, false), true);
+
+    OK(getFromSocket(std::format("/dispatch hl.dsp.send_key_state({{ mods = '', key = 'mouse:{}', state = 'down', window = 'class:^pass-target$' }})", BTN_EXTRA)));
+    auto events = targetEvents(*mouseTarget);
+    EXPECT_CONTAINS(events, std::format("button:{}:1", BTN_EXTRA));
+    EXPECT_CONTAINS(events, std::format("button:{}:0", BTN_EXTRA));
+    EXPECT(keptFocus(*other, "pass-other"), true);
+    OK(getFromSocket(std::format("/dispatch hl.dsp.send_key_state({{ mods = '', key = 'mouse:{}', state = 'up', window = 'class:^pass-target$' }})", BTN_EXTRA)));
+    EXPECT_NOT_CONTAINS(targetEvents(*mouseTarget), "button:");
+}
+
+TEST_CASE(passKeyWayland) {
+    // Holding passed keys only concerns Xwayland, a Wayland target must get the same events as before.
+    CScopeGuard cleanup([] {
+        unbindKeys();
+        getFromSocket(setModsCmd(NO_MODS));
+        Tests::killAllWindows();
+    });
+
+    Tests::killAllWindows();
+
+    std::optional<CPipeClient> target, other;
+    try {
+        target.emplace("pass-target", "pass-target", "WAYLAND_DISPLAY", WLDISPLAY);
+        other.emplace("pass-target", "pass-other", "WAYLAND_DISPLAY", WLDISPLAY);
+    } catch (std::exception& e) { FAIL_TEST("Couldn't start the clients: {}", e.what()); }
+
+    for (const auto& mods : MODS) {
+        for (const auto& DISPATCHER :
+             {std::string{"hl.dsp.pass({ window = 'class:^pass-target$' })"}, std::string{"hl.dsp.send_shortcut({ mods = 'CTRL', key = 'F6', window = 'class:^pass-target$' })"}}) {
+            NLog::log("{}Passing {} with {}", Colors::YELLOW, bindKey(mods, "F6"), DISPATCHER);
+            OK(getFromSocket(std::format("/eval hl.bind('{}', {})", bindKey(mods, "F6"), DISPATCHER)));
+
+            ASSERT(focusWindow("pass-other"), true);
+            targetEvents(*target);
+            targetEvents(*other);
+
+            OK(getFromSocket(keyCmd(PASS_KEY, true, mods)));
+            auto events = targetEvents(*target);
+            EXPECT_CONTAINS(events, std::format("key:{}:1", KEY_F6));
+            EXPECT_NOT_CONTAINS(events, std::format("key:{}:0", KEY_F6));
+            EXPECT(keptFocus(*other, "pass-other"), true);
+
+            OK(getFromSocket(keyCmd(PASS_KEY, false, mods)));
+            events = targetEvents(*target);
+            EXPECT_CONTAINS(events, std::format("key:{}:0", KEY_F6));
+            EXPECT(keptFocus(*other, "pass-other"), true);
+
+            OK(getFromSocket(setModsCmd(NO_MODS)));
+            unbindKeys();
+        }
+    }
+}
+
+TEST_CASE(passSendShortcutHeldMouseButton) {
+    // A mouse button passed from a key bind must be held as long as the key is, and not stay tracked
+    // as pressed afterwards, which would drop the next real click.
+    CScopeGuard cleanup([] {
+        unbindKeys();
+        getFromSocket(setModsCmd(NO_MODS));
+        Tests::killAllWindows();
+    });
+
+    Tests::killAllWindows();
+
+    std::optional<CPipeClient> target, other;
+    try {
+        target.emplace("pass-target", "pass-target", "WAYLAND_DISPLAY", WLDISPLAY);
+        other.emplace("pass-target", "pass-other", "WAYLAND_DISPLAY", WLDISPLAY);
+    } catch (std::exception& e) { FAIL_TEST("Couldn't start the clients: {}", e.what()); }
+
+    for (const auto& mods : MODS) {
+        NLog::log("{}Passing mouse:{} from {}", Colors::YELLOW, BTN_EXTRA, bindKey(mods, "F7"));
+        OK(getFromSocket(
+            std::format("/eval hl.bind('{}', hl.dsp.send_shortcut({{ mods = '', key = 'mouse:{}', window = 'class:^pass-target$' }}))", bindKey(mods, "F7"), BTN_EXTRA)));
+
+        ASSERT(focusWindow("pass-other"), true);
+        targetEvents(*target);
+        targetEvents(*other);
+
+        OK(getFromSocket(keyCmd(BIND_KEY, true, mods)));
+        auto events = targetEvents(*target);
+        EXPECT_CONTAINS(events, std::format("button:{}:1", BTN_EXTRA));
+        EXPECT_NOT_CONTAINS(events, std::format("button:{}:0", BTN_EXTRA));
+        EXPECT(keptFocus(*other, "pass-other"), true);
+
+        OK(getFromSocket(keyCmd(BIND_KEY, false, mods)));
+        EXPECT_CONTAINS(targetEvents(*target), std::format("button:{}:0", BTN_EXTRA));
+        EXPECT(keptFocus(*other, "pass-other"), true);
+
+        OK(getFromSocket(setModsCmd(NO_MODS)));
+        unbindKeys();
+
+        // a real click on the target afterwards
+        ASSERT(focusWindow("pass-target"), true);
+        targetEvents(*target);
+
+        OK(getFromSocket(clickCmd(BTN_EXTRA, true)));
+        OK(getFromSocket(clickCmd(BTN_EXTRA, false)));
+        events = targetEvents(*target);
+        EXPECT_CONTAINS(events, std::format("button:{}:1", BTN_EXTRA));
+        EXPECT_CONTAINS(events, std::format("button:{}:0", BTN_EXTRA));
+    }
+}
+
+TEST_CASE(passSendShortcutHeldMouseButtonTargetLost) {
+    // If the target stops matching during the hold, the release can't be passed. The target must still
+    // get the release with the bind's key, instead of the button staying pressed for it.
+    CScopeGuard cleanup([] {
+        unbindKeys();
+        getFromSocket(setModsCmd(NO_MODS));
+        Tests::killAllWindows();
+    });
+
+    Tests::killAllWindows();
+
+    std::optional<CPipeClient> target, other;
+    try {
+        target.emplace("pass-target", "pass-target", "WAYLAND_DISPLAY", WLDISPLAY);
+        other.emplace("pass-target", "pass-other", "WAYLAND_DISPLAY", WLDISPLAY);
+    } catch (std::exception& e) { FAIL_TEST("Couldn't start the clients: {}", e.what()); }
+
+    for (const auto& mods : MODS) {
+        NLog::log("{}Passing mouse:{} from {}", Colors::YELLOW, BTN_EXTRA, bindKey(mods, "F7"));
+        OK(getFromSocket(
+            std::format("/eval hl.bind('{}', hl.dsp.send_shortcut({{ mods = '', key = 'mouse:{}', window = 'class:^pass-target$' }}))", bindKey(mods, "F7"), BTN_EXTRA)));
+
+        ASSERT(focusWindow("pass-other"), true);
+        targetEvents(*target);
+
+        OK(getFromSocket(keyCmd(BIND_KEY, true, mods)));
+        auto events = targetEvents(*target);
+        EXPECT_CONTAINS(events, std::format("button:{}:1", BTN_EXTRA));
+        EXPECT_NOT_CONTAINS(events, std::format("button:{}:0", BTN_EXTRA));
+
+        ASSERT(target->request("appid pass-gone"), "ok");
+        Tests::sync();
+        EXPECT_CONTAINS(getFromSocket(keyCmd(BIND_KEY, false, mods)), "window not found");
+        EXPECT_CONTAINS(targetEvents(*target), std::format("button:{}:0", BTN_EXTRA));
+        EXPECT(keptFocus(*other, "pass-other"), true);
+
+        OK(getFromSocket(setModsCmd(NO_MODS)));
+        ASSERT(target->request("appid pass-target"), "ok");
+        unbindKeys();
+
+        // a real click on the target afterwards
+        ASSERT(focusWindow("pass-target"), true);
+        targetEvents(*target);
+
+        OK(getFromSocket(clickCmd(BTN_EXTRA, true)));
+        OK(getFromSocket(clickCmd(BTN_EXTRA, false)));
+        events = targetEvents(*target);
+        EXPECT_CONTAINS(events, std::format("button:{}:1", BTN_EXTRA));
+        EXPECT_CONTAINS(events, std::format("button:{}:0", BTN_EXTRA));
+    }
+}
+
+TEST_CASE(passSendKeyStateMouseButton) {
+    // A button passed by send_key_state from a bind is held as long as the bind's key, also without an
+    // "up", so it can never stay pressed.
+    CScopeGuard cleanup([] {
+        unbindKeys();
+        Tests::killAllWindows();
+    });
+
+    Tests::killAllWindows();
+
+    std::optional<CPipeClient> target, other;
+    try {
+        target.emplace("pass-target", "pass-target", "WAYLAND_DISPLAY", WLDISPLAY);
+        other.emplace("pass-target", "pass-other", "WAYLAND_DISPLAY", WLDISPLAY);
+    } catch (std::exception& e) { FAIL_TEST("Couldn't start the clients: {}", e.what()); }
+
+    OK(getFromSocket(std::format("/eval hl.bind('F7', hl.dsp.send_key_state({{ mods = '', key = 'mouse:{}', state = 'down', window = 'class:^pass-target$' }}))", BTN_EXTRA)));
+
+    ASSERT(focusWindow("pass-other"), true);
+    targetEvents(*target);
+    targetEvents(*other);
+
+    OK(getFromSocket(keyCmd(BIND_KEY, true, NO_MODS)));
+    auto events = targetEvents(*target);
+    EXPECT_CONTAINS(events, std::format("button:{}:1", BTN_EXTRA));
+    EXPECT_NOT_CONTAINS(events, std::format("button:{}:0", BTN_EXTRA));
+    EXPECT(keptFocus(*other, "pass-other"), true);
+
+    OK(getFromSocket(keyCmd(BIND_KEY, false, NO_MODS)));
+    EXPECT_CONTAINS(targetEvents(*target), std::format("button:{}:0", BTN_EXTRA));
+    EXPECT(keptFocus(*other, "pass-other"), true);
+    unbindKeys();
+
+    // a real click on the target afterwards
+    ASSERT(focusWindow("pass-target"), true);
+    targetEvents(*target);
+
+    OK(getFromSocket(clickCmd(BTN_EXTRA, true)));
+    OK(getFromSocket(clickCmd(BTN_EXTRA, false)));
+    events = targetEvents(*target);
+    EXPECT_CONTAINS(events, std::format("button:{}:1", BTN_EXTRA));
+    EXPECT_CONTAINS(events, std::format("button:{}:0", BTN_EXTRA));
+}
+
+TEST_CASE(passHeldDeviceRemoved) {
+    // A device removed during a hold never releases what it holds, so what's passed for it must be
+    // released with its removal, also when the release can't be passed as the target was lost.
+    CScopeGuard cleanup([] {
+        unbindKeys();
+        unbindButtons();
+        Tests::killAllWindows();
+    });
+
+    Tests::killAllWindows();
+
+    std::optional<CPipeClient> target, mouseTarget, other;
+    try {
+        target.emplace("x11-keys", "x11-keys-a", "DISPLAY", xDisplay());
+        mouseTarget.emplace("pass-target", "pass-target", "WAYLAND_DISPLAY", WLDISPLAY);
+        other.emplace("pass-target", "pass-other", "WAYLAND_DISPLAY", WLDISPLAY);
+    } catch (std::exception& e) { FAIL_TEST("Couldn't start the clients: {}", e.what()); }
+
+    NLog::log("{}Removing the keyboard holding the bind of a button", Colors::YELLOW);
+    OK(getFromSocket(std::format("/eval hl.bind('F7', hl.dsp.send_shortcut({{ mods = '', key = 'mouse:{}', window = 'class:^pass-target$' }}))", BTN_EXTRA)));
+
+    ASSERT(focusWindow("pass-other"), true);
+    targetEvents(*mouseTarget);
+
+    OK(getFromSocket(std::format("/eval hl.plugin.test.keybind2(1, 0, {})", BIND_KEY)));
+    auto events = targetEvents(*mouseTarget);
+    EXPECT_CONTAINS(events, std::format("button:{}:1", BTN_EXTRA));
+    EXPECT_NOT_CONTAINS(events, std::format("button:{}:0", BTN_EXTRA));
+
+    ASSERT(mouseTarget->request("appid pass-gone"), "ok");
+    Tests::sync();
+    EXPECT_CONTAINS(getFromSocket("/eval hl.plugin.test.replug_keyboard2()"), "window not found");
+    EXPECT_CONTAINS(targetEvents(*mouseTarget), std::format("button:{}:0", BTN_EXTRA));
+    ASSERT(mouseTarget->request("appid pass-target"), "ok");
+    unbindKeys();
+
+    NLog::log("{}Removing the mouse holding the bind of a key", Colors::YELLOW);
+    OK(getFromSocket(std::format("/eval hl.bind('{}', hl.dsp.send_shortcut({{ mods = '', key = 'F6', window = 'class:^x11-keys-a$' }}))", PASS_BUTTON)));
+
+    ASSERT(focusWindow("pass-other"), true);
+
+    OK(getFromSocket(clickCmd(BTN_EXTRA, true)));
+    EXPECT(waitKeyHeld(*target, true), true);
+
+    ASSERT(target->request("class x11-keys-gone"), "ok");
+    Tests::sync();
+    EXPECT_CONTAINS(getFromSocket("/eval hl.plugin.test.replug_mouse()"), "window not found");
+    EXPECT(waitKeyHeld(*target, false), true);
+    EXPECT(keptFocus(*other, "pass-other"), true);
+}
+
+TEST_CASE(passGlobalShortcut) {
+    // Global shortcuts, e.g. push-to-talk in an app through the portal, must keep working alongside
+    // passing keys: on their own, on the same key as a pass, and during a pass' hold.
+    CScopeGuard cleanup([] {
+        unbindKeys();
+        getFromSocket(setModsCmd(NO_MODS));
+        Tests::killAllWindows();
+    });
+
+    Tests::killAllWindows();
+
+    std::optional<CPipeClient> target, other, shortcutApp;
+    try {
+        target.emplace("x11-keys", "x11-keys-a", "DISPLAY", xDisplay());
+        other.emplace("pass-target", "pass-other", "WAYLAND_DISPLAY", WLDISPLAY);
+        shortcutApp.emplace("pass-target", "pass-shortcuts", "WAYLAND_DISPLAY", WLDISPLAY);
+    } catch (std::exception& e) { FAIL_TEST("Couldn't start the clients: {}", e.what()); }
+
+    ASSERT(shortcutApp->request("global pass-shortcuts ptt"), "ok");
+
+    for (const auto& mods : MODS) {
+        NLog::log("{}Global shortcut on {}", Colors::YELLOW, bindKey(mods, "F6"));
+        OK(getFromSocket(std::format("/eval hl.bind('{}', hl.dsp.global('pass-shortcuts:ptt'))", bindKey(mods, "F6"))));
+
+        ASSERT(focusWindow("pass-other"), true);
+        targetEvents(*shortcutApp);
+        targetEvents(*other);
+
+        OK(getFromSocket(keyCmd(PASS_KEY, true, mods)));
+        auto events = targetEvents(*shortcutApp);
+        EXPECT_CONTAINS(events, "gpressed:ptt");
+        EXPECT_NOT_CONTAINS(events, "greleased:ptt");
+        EXPECT(keptFocus(*other, "pass-other"), true);
+
+        OK(getFromSocket(keyCmd(PASS_KEY, false, mods)));
+        EXPECT_CONTAINS(targetEvents(*shortcutApp), "greleased:ptt");
+
+        OK(getFromSocket(setModsCmd(NO_MODS)));
+
+        NLog::log("{}Global shortcut and pass on {}", Colors::YELLOW, bindKey(mods, "F6"));
+        OK(getFromSocket(std::format("/eval hl.bind('{}', hl.dsp.pass({{ window = 'class:^x11-keys-a$' }}))", bindKey(mods, "F6"))));
+        targetEvents(*shortcutApp);
+
+        OK(getFromSocket(keyCmd(PASS_KEY, true, mods)));
+        EXPECT(waitKeyHeld(*target, true), true);
+        events = targetEvents(*shortcutApp);
+        EXPECT_CONTAINS(events, "gpressed:ptt");
+        EXPECT_NOT_CONTAINS(events, "greleased:ptt");
+        EXPECT(keyStaysHeld(*target), true);
+        EXPECT(keptFocus(*other, "pass-other"), true);
+
+        OK(getFromSocket(keyCmd(PASS_KEY, false, mods)));
+        EXPECT(waitKeyHeld(*target, false), true);
+        EXPECT_CONTAINS(targetEvents(*shortcutApp), "greleased:ptt");
+        EXPECT(keptFocus(*other, "pass-other"), true);
+
+        OK(getFromSocket(setModsCmd(NO_MODS)));
+        EXPECT(waitXMods(*target, 0), true);
+        unbindKeys();
+
+        NLog::log("{}Global shortcut on {} during a pass' hold", Colors::YELLOW, bindKey(mods, "F7"));
+        OK(getFromSocket(std::format("/eval hl.bind('{}', hl.dsp.pass({{ window = 'class:^x11-keys-a$' }}))", bindKey(NO_MODS, "F6"))));
+        OK(getFromSocket(std::format("/eval hl.bind('{}', hl.dsp.global('pass-shortcuts:ptt'))", bindKey(mods, "F7"))));
+        targetEvents(*shortcutApp);
+
+        OK(getFromSocket(keyCmd(PASS_KEY, true, NO_MODS)));
+        EXPECT(waitKeyHeld(*target, true), true);
+
+        OK(getFromSocket(keyCmd(BIND_KEY, true, mods)));
+        events = targetEvents(*shortcutApp);
+        EXPECT_CONTAINS(events, "gpressed:ptt");
+        EXPECT_NOT_CONTAINS(events, "greleased:ptt");
+        EXPECT(keyStaysHeld(*target), true);
+
+        OK(getFromSocket(keyCmd(BIND_KEY, false, mods)));
+        EXPECT_CONTAINS(targetEvents(*shortcutApp), "greleased:ptt");
+        EXPECT(keyStaysHeld(*target), true);
+
+        OK(getFromSocket(keyCmd(PASS_KEY, false, NO_MODS)));
+        EXPECT(waitKeyHeld(*target, false), true);
+        EXPECT(keptFocus(*other, "pass-other"), true);
+
+        OK(getFromSocket(setModsCmd(NO_MODS)));
+        EXPECT(waitXMods(*target, 0), true);
+        unbindKeys();
     }
 }

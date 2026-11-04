@@ -12,6 +12,7 @@
 #include <wayland-client.h>
 #include <wayland.hpp>
 #include <xdg-shell.hpp>
+#include <hyprland-global-shortcuts-v1.hpp>
 
 #include <hyprutils/memory/Casts.hpp>
 #include <hyprutils/memory/SharedPtr.hpp>
@@ -22,13 +23,14 @@ using Hyprutils::Math::Vector2D;
 using namespace Hyprutils::Memory;
 using namespace Hyprutils::OS;
 
-// A plain toplevel that records the wl_pointer and wl_keyboard events it receives, so tests can
-// check what a window that `pass` targets sees.
+// A plain toplevel that records the wl_pointer, wl_keyboard and global shortcut events it receives,
+// so tests can check what a window that `pass` targets, or that has focus during a pass, sees.
 //
 // stdin commands:
-//   events      prints the recorded events, separated by spaces, and clears them
-//   appid <id>  sets the app id
-//   exit        exits
+//   events             prints the recorded events, separated by spaces, and clears them
+//   appid <id>         sets the app id
+//   global <app> <id>  registers the global shortcut <app>:<id>
+//   exit               exits
 
 namespace {
     struct SWlState {
@@ -52,6 +54,11 @@ namespace {
 
         CSharedPointer<CCWlPointer>    pointer;
         CSharedPointer<CCWlKeyboard>   keyboard;
+
+        struct {
+            CSharedPointer<CCHyprlandGlobalShortcutsManagerV1>      manager;
+            std::vector<CSharedPointer<CCHyprlandGlobalShortcutV1>> shortcuts;
+        } globalShortcuts;
     };
 }
 
@@ -78,6 +85,9 @@ static bool bindRegistry(SWlState& state) {
             state.wlSeat = makeShared<CCWlSeat>(sc<wl_proxy*>(wl_registry_bind(rc<wl_registry*>(state.registry->resource()), id, &wl_seat_interface, 9)));
         else if (NAME == "xdg_wm_base")
             state.xdgShell = makeShared<CCXdgWmBase>(sc<wl_proxy*>(wl_registry_bind(rc<wl_registry*>(state.registry->resource()), id, &xdg_wm_base_interface, 1)));
+        else if (NAME == "hyprland_global_shortcuts_manager_v1")
+            state.globalShortcuts.manager = makeShared<CCHyprlandGlobalShortcutsManagerV1>(
+                sc<wl_proxy*>(wl_registry_bind(rc<wl_registry*>(state.registry->resource()), id, &hyprland_global_shortcuts_manager_v1_interface, 1)));
     });
 
     wl_display_roundtrip(state.display);
@@ -177,8 +187,25 @@ static bool setupSeat(SWlState& state) {
     state.keyboard->setLeave([](CCWlKeyboard* p, uint32_t serial, wl_proxy* surf) { events.emplace_back("kleave"); });
     state.keyboard->setKey(
         [](CCWlKeyboard* p, uint32_t serial, uint32_t time, uint32_t key, wl_keyboard_key_state state) { events.emplace_back(std::format("key:{}:{}", key, sc<int>(state))); });
+    state.keyboard->setModifiers(
+        [](CCWlKeyboard* p, uint32_t serial, uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group) { events.emplace_back(std::format("mods:{}", depressed)); });
 
     return true;
+}
+
+static bool registerShortcut(SWlState& state, const std::string& appId, const std::string& id) {
+    if (!state.globalShortcuts.manager || appId.empty() || id.empty())
+        return false;
+
+    auto shortcut = makeShared<CCHyprlandGlobalShortcutV1>(state.globalShortcuts.manager->sendRegisterShortcut(id.c_str(), appId.c_str(), "", ""));
+    if (!shortcut->resource())
+        return false;
+
+    shortcut->setPressed([id](CCHyprlandGlobalShortcutV1* p, uint32_t secHi, uint32_t secLo, uint32_t nsec) { events.emplace_back(std::format("gpressed:{}", id)); });
+    shortcut->setReleased([id](CCHyprlandGlobalShortcutV1* p, uint32_t secHi, uint32_t secLo, uint32_t nsec) { events.emplace_back(std::format("greleased:{}", id)); });
+    state.globalShortcuts.shortcuts.emplace_back(std::move(shortcut));
+
+    return wl_display_roundtrip(state.display) != -1;
 }
 
 static void parseRequest(SWlState& state, const std::string& req) {
@@ -198,6 +225,16 @@ static void parseRequest(SWlState& state, const std::string& req) {
         state.surf->sendCommit();
         wl_display_flush(state.display);
         clientLog("ok");
+    } else if (req.starts_with("global ")) {
+        auto args = req.substr(7);
+        while (!args.empty() && (args.back() == '\n' || args.back() == ' '))
+            args.pop_back();
+
+        const auto SPACE = args.find(' ');
+        if (SPACE == std::string::npos || !registerShortcut(state, args.substr(0, SPACE), args.substr(SPACE + 1)))
+            clientLog("error");
+        else
+            clientLog("ok");
     } else if (req.starts_with("exit"))
         shouldExit = true;
 }

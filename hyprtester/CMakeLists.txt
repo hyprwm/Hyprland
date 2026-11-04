@@ -109,6 +109,7 @@ protocolnew("staging/xdg-activation" "xdg-activation-v1" false)
 protocolnew("unstable/keyboard-shortcuts-inhibit" "keyboard-shortcuts-inhibit-unstable-v1" false)
 protocolnew("../protocols" "wlr-foreign-toplevel-management-unstable-v1" true)
 protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-toplevel-export-v1" true)
+protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-global-shortcuts-v1" true)
 
 clientNew("pointer-warp" PROTOS "pointer-warp-v1" "xdg-shell")
 clientNew("pointer-constraints" PROTOS "pointer-constraints-unstable-v1" "xdg-shell")
@@ -124,7 +125,7 @@ clientNew("xdg-initial-maximize" PROTOS "xdg-shell")
 clientNew("popup-render" PROTOS "xdg-shell")
 clientNew("wlr-foreign-toplevel" PROTOS "wlr-foreign-toplevel-management-unstable-v1")
 clientNew("toplevel-capture" PROTOS "wlr-foreign-toplevel-management-unstable-v1" "hyprland-toplevel-export-v1")
-clientNew("pass-target" PROTOS "xdg-shell")
+clientNew("pass-target" PROTOS "xdg-shell" "hyprland-global-shortcuts-v1")
 
 ######## X11 testing stuff
 

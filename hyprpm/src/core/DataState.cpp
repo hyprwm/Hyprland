@@ -12,7 +12,7 @@
 static std::string getTempRoot() {
     static auto ENV = getenv("XDG_RUNTIME_DIR");
     if (!ENV) {
-        std::cerr << "\nERROR: XDG_RUNTIME_DIR not set!\n";
+        std::println("\nERROR: XDG_RUNTIME_DIR not set!");
         exit(1);
     }
 

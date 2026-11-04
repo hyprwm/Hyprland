@@ -8,14 +8,14 @@
 #include "../helpers/Sys.hpp"
 #include "../helpers/Die.hpp"
 
+#include <algorithm>
 #include <cstdio>
 #include <iostream>
 #include <filesystem>
-#include <string>
-#include <print>
-#include <fstream>
-#include <algorithm>
 #include <format>
+#include <fstream>
+#include <print>
+#include <string>
 #include <string_view>
 
 #include <sys/types.h>
@@ -47,7 +47,7 @@ static std::string execAndGet(std::string cmd) {
 static std::string getTempRoot() {
     static auto ENV = getenv("XDG_RUNTIME_DIR");
     if (!ENV) {
-        std::cerr << "\nERROR: XDG_RUNTIME_DIR not set!\n";
+        std::println("\nERROR: XDG_RUNTIME_DIR not set!");
         exit(1);
     }
 
@@ -175,10 +175,11 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
         return false;
     }
 
-    std::cout << Colors::GREEN << "✔" << Colors::RESET << Colors::RED << " adding a new plugin repository " << Colors::RESET << "from " << url << "\n  " << Colors::RED
-              << "MAKE SURE" << Colors::RESET << " that you trust the authors. " << Colors::RED << "DO NOT" << Colors::RESET
-              << " install random plugins without verifying the code and author.\n  "
-              << "Are you sure? [Y/n] ";
+    std::println("{}✔{} {} adding a new plugin repository {}from {}\n  {}"
+                 "MAKE SURE{} that you trust the authors. {}DO NOT{} "
+                 "install random plugins without verifying the code and author.\n  "
+                 "Are you sure? [Y/n] ",
+                 Colors::GREEN, Colors::RESET, Colors::RED, Colors::RESET, url, Colors::RED, Colors::RESET, Colors::RED, Colors::RESET);
     std::fflush(stdout);
     std::string input;
     std::getline(std::cin, input);
@@ -397,8 +398,9 @@ bool CPluginManager::removePluginRepo(const SPluginRepoIdentifier& identifier) {
         return false;
     }
 
-    std::cout << Colors::YELLOW << "!" << Colors::RESET << Colors::RED << " removing a plugin repository: " << Colors::RESET << identifier.toString() << "\n  "
-              << "Are you sure? [Y/n] ";
+    std::println("{}!{} {} removing a plugin repository: {} {}\n  "
+                 "Are you sure? [Y/n] ",
+                 Colors::YELLOW, Colors::RESET, Colors::RED, Colors::RESET, identifier.toString());
     std::fflush(stdout);
     std::string input;
     std::getline(std::cin, input);

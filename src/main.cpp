@@ -16,7 +16,6 @@ using namespace Hyprutils::String;
 using namespace Hyprutils::Memory;
 
 #include <fcntl.h>
-#include <iostream>
 #include <iterator>
 #include <vector>
 #include <stdexcept>

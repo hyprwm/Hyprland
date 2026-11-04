@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <format>
 #include <iostream>
+#include <print>
 #include <string>
 #include <sys/mman.h>
 #include <sys/poll.h>
@@ -62,7 +63,7 @@ struct SWlState {
 };
 
 static void sendLine(const std::string& line) {
-    std::cout << line << std::endl;
+    std::println("{}", line);
 }
 
 static bool pollDisplay(SWlState& state, int timeoutMs) {

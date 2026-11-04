@@ -1,7 +1,9 @@
 #include <format>
 #include <iostream>
+#include <print>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <sys/mman.h>
 #include <unistd.h>
 
@@ -228,10 +230,10 @@ int main() {
     SWlState state;
     state.display = wl_display_connect(nullptr);
     if (!state.display || !setup(state)) {
-        std::cout << "error setup" << std::endl;
+        std::println("error setup");
         return 1;
     }
-    std::cout << "started" << std::endl;
+    std::println("started");
 
     // Like surface-scale-transform, every command is a display synchronization point.
     std::string command;
@@ -239,7 +241,7 @@ int main() {
         if (!sync(state))
             return 1;
         if (command == "report")
-            std::cout << report(state) << std::endl;
+            std::println("{}", report(state));
         else if (command == "destroy") {
             if (state.lock)
                 state.lock->sendDestroy();
@@ -249,9 +251,16 @@ int main() {
             state.confine.reset();
             // Destroy has no unlocked/unconfined event; retain all observed event counters.
             state.active = false;
-            std::cout << (sync(state) ? "ok" : "error destroy") << std::endl;
-        } else
-            std::cout << (constrain(state, command) ? "ok" : "error command") << std::endl;
+            if (sync(state))
+                std::println("ok");
+            else
+                std::println("error destroy");
+        } else {
+            if (constrain(state, command))
+                std::println("ok");
+            else
+                std::println("error command");
+        }
     }
     const auto display = state.display;
     state              = {};

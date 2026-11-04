@@ -58,7 +58,6 @@ runs:
           pkgconf \
           pugixml \
           scdoc \
-          sdbus-cpp \
           seatd \
           systemd \
           tomlplusplus \

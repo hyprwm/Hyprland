@@ -10,7 +10,6 @@
 #include "desktop/history/WorkspaceHistoryTracker.hpp"
 #include "helpers/Splashes.hpp"
 #include "helpers/SystemInfo.hpp"
-#include "init/initHelpers.hpp"
 #include "config/ConfigValue.hpp"
 #include "config/shared/inotify/ConfigWatcher.hpp"
 #include "config/shared/monitor/MonitorRuleManager.hpp"
@@ -838,9 +837,6 @@ void CCompositor::startCompositor() {
         if (!writeWatchdogFd("vax"))
             LOG(Log::ERR, "startCompositor: failed to write to watchdogWriteFd {}: {}", m_watchdogWriteFd.get(), strerror(errno));
     }
-
-    if (!Env::envEnabled("HYPRLAND_NO_RT"))
-        NInit::gainRealTime();
 
     // This blocks until we are done.
     LOG(Log::DEBUG, "Hyprland is ready, running the event loop!");

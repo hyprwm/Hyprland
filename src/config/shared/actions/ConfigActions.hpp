@@ -121,6 +121,8 @@ namespace Config::Actions {
         uint32_t    m_lastCode            = 0;  // last keycode (keyboard event), 0 if last was mouse
         uint32_t    m_lastMouseCode       = 0;  // last mouse button code, 0 if last was keyboard
         uint32_t    m_timeLastMs          = 0;  // timestamp of last key/mouse event
+        uint32_t    m_heldCode            = 0;  // keycode of the key held for the bind being invoked, 0 if none
+        uint32_t    m_heldMouseCode       = 0;  // mouse button held for the bind being invoked, 0 if none
         std::string m_currentSubmap       = ""; // current keybind submap name
     };
 

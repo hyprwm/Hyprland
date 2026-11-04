@@ -612,15 +612,22 @@ SBindResult CKeybindManager::invokeBind(const PBind& bind, bool pressed, SPresse
     const auto INPUT_KEY    = pressedInput ? std::optional{pressedInput->key} : std::nullopt;
     const auto INPUT_DEVICE = pressedInput ? pressedInput->device.lock() : nullptr;
 
-    auto&      actionState      = *Config::Actions::state();
-    const auto PREVIOUS_PRESSED = actionState.m_passPressed;
-    const bool OUTERMOST        = actionState.m_bindInvocationDepth++ == 0;
+    auto&      actionState          = *Config::Actions::state();
+    const auto PREVIOUS_PRESSED     = actionState.m_passPressed;
+    const auto PREVIOUS_HELD        = actionState.m_heldCode;
+    const auto PREVIOUS_HELD_BUTTON = actionState.m_heldMouseCode;
+    const bool OUTERMOST            = actionState.m_bindInvocationDepth++ == 0;
     if (OUTERMOST)
         actionState.m_requestBindRelease = false;
     actionState.m_passPressed = sc<int>(pressed);
-    Hyprutils::Utils::CScopeGuard guard([PREVIOUS_PRESSED, OUTERMOST] {
-        auto& state         = *Config::Actions::state();
-        state.m_passPressed = PREVIOUS_PRESSED;
+    // the input that stays held while the bind is, none for e.g. axis and switch binds
+    actionState.m_heldCode      = pressed && pressedInput ? pressedInput->actionCode : 0;
+    actionState.m_heldMouseCode = pressed && pressedInput ? pressedInput->actionMouseCode : 0;
+    Hyprutils::Utils::CScopeGuard guard([PREVIOUS_PRESSED, PREVIOUS_HELD, PREVIOUS_HELD_BUTTON, OUTERMOST] {
+        auto& state           = *Config::Actions::state();
+        state.m_passPressed   = PREVIOUS_PRESSED;
+        state.m_heldCode      = PREVIOUS_HELD;
+        state.m_heldMouseCode = PREVIOUS_HELD_BUTTON;
         --state.m_bindInvocationDepth;
         if (OUTERMOST)
             state.m_requestBindRelease = false;

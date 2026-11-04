@@ -42,3 +42,18 @@ install(TARGETS start-hyprland)
 if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
   set(CMAKE_EXECUTABLE_ENABLE_EXPORTS TRUE)
 endif()
+
+if(BUILD_TESTING OR WITH_TESTS)
+  enable_testing()
+  if(NOT Python3_Interpreter_FOUND)
+    find_package(Python3 COMPONENTS Interpreter REQUIRED)
+  endif()
+
+  foreach(termination IN ITEMS exit-0 exit-23 sigterm sigkill)
+    add_test(
+      NAME start-hyprland-${termination}
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/termination.py"
+              "$<TARGET_FILE:start-hyprland>" "${termination}")
+    set_tests_properties(start-hyprland-${termination} PROPERTIES TIMEOUT 20)
+  endforeach()
+endif()

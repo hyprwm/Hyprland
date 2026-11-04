@@ -736,7 +736,7 @@ if(BUILD_TESTING)
   enable_testing()
   add_custom_target(tests)
 
-  add_dependencies(tests hyprland_gtests)
+  add_dependencies(tests hyprland_gtests start-hyprland)
 
 else()
   message(STATUS "Testing is disabled")

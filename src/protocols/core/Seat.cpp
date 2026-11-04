@@ -182,26 +182,53 @@ void CWLPointerResource::sendEnter(SP<CWLSurfaceResource> surface, const Vector2
     m_resource->sendEnter(g_pSeatManager->nextSerial(m_owner.lock(), true), surface->getResource().get(), wl_fixed_from_double(fixedLocal.x), wl_fixed_from_double(fixedLocal.y));
 }
 
-void CWLPointerResource::sendLeave() {
+void CWLPointerResource::sendLeave(bool releaseButtons) {
     if (!m_owner || !m_currentSurface || !m_currentSurface->getResource()->resource())
         return;
 
     if (!(PROTO::seat->m_currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_POINTER))
         return;
 
-    // release all buttons unless we have a dnd going on in which case
-    // the events shall be lost.
-    if (!PROTO::data->dndActive()) {
-        for (auto const& b : m_pressedButtons) {
-            sendButton(Time::millis(Time::steadyNow()), b, WL_POINTER_BUTTON_STATE_RELEASED);
+    // when not releasing, keep m_pressedButtons so a later release can still be delivered
+    if (releaseButtons) {
+        // release all buttons unless we have a dnd going on in which case
+        // the events shall be lost.
+        if (!PROTO::data->dndActive()) {
+            for (auto const& b : m_pressedButtons) {
+                sendButton(Time::millis(Time::steadyNow()), b, WL_POINTER_BUTTON_STATE_RELEASED);
+            }
         }
-    }
 
-    m_pressedButtons.clear();
+        m_pressedButtons.clear();
+    }
 
     m_resource->sendLeave(g_pSeatManager->nextSerial(m_owner.lock()), m_currentSurface->getResource().get());
     m_currentSurface.reset();
     m_listeners.destroySurface.reset();
+}
+
+void CWLPointerResource::releaseButton(uint32_t timeMs, uint32_t button, SP<CWLSurfaceResource> surface) {
+    // a button kept pressed by sendLeave(false)
+    if (!m_owner || !std::ranges::contains(m_pressedButtons, button))
+        return;
+
+    // button events need pointer focus, enter the surface it was pressed on just for the release
+    const bool ENTER = !m_currentSurface && surface && surface->client() == m_owner->client();
+    if (ENTER)
+        sendEnter(surface, {1, 1});
+
+    if (m_currentSurface) {
+        sendButton(timeMs, button, WL_POINTER_BUTTON_STATE_RELEASED);
+        sendFrame();
+    }
+
+    // also when it couldn't be sent, e.g. as the surface is gone, so it doesn't stay tracked
+    std::erase(m_pressedButtons, button);
+
+    if (ENTER) {
+        sendLeave(false);
+        sendFrame();
+    }
 }
 
 void CWLPointerResource::sendMotion(uint32_t timeMs, const Vector2D& local) {

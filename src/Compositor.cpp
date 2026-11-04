@@ -523,6 +523,9 @@ void CCompositor::initAllSignals() {
                 LOG(Log::DEBUG, "Session got deactivated!");
 
                 m_sessionActive = false;
+
+                // the releases of held input won't be seen
+                g_pSeatManager->releasePassHolds([](const auto&) { return true; });
             }
         });
     }

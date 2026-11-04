@@ -76,7 +76,8 @@ class CWLPointerResource {
     bool                good();
     int                 version();
     void                sendEnter(SP<CWLSurfaceResource> surface, const Vector2D& local);
-    void                sendLeave();
+    void                sendLeave(bool releaseButtons = true);
+    void                releaseButton(uint32_t timeMs, uint32_t button, SP<CWLSurfaceResource> surface);
     void                sendMotion(uint32_t timeMs, const Vector2D& local);
     void                sendButton(uint32_t timeMs, uint32_t button, wl_pointer_button_state state);
     void                sendAxis(uint32_t timeMs, wl_pointer_axis axis, double value);

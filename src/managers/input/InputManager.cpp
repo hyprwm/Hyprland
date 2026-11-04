@@ -62,8 +62,10 @@
 #include <aquamarine/input/Input.hpp>
 #include <hyprutils/string/VarList.hpp>
 #include <hyprutils/string/VarList2.hpp>
+#include <hyprutils/utils/ScopeGuard.hpp>
 
 using namespace Hyprutils::String;
+using namespace Hyprutils::Utils;
 
 CInputManager::CInputManager() {
     m_listeners.setCursorShape = PROTO::cursorShape->m_events.setShape.listen([this](const CCursorShapeProtocol::SSetShapeEvent& event) {
@@ -718,6 +720,12 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 }
 
 void CInputManager::onMouseButton(IPointer::SButtonEvent e, SP<IPointer> mouse) {
+    // after binds ran, which pass the releases of what pass() keeps held for the button normally
+    CScopeGuard          releasePassHolds([&e] {
+        if (e.state == WL_POINTER_BUTTON_STATE_RELEASED)
+            g_pSeatManager->releasePassHolds([&e](const auto& trigger) { return trigger.mouse && trigger.code == e.button; });
+    });
+
     Event::SCallbackInfo info;
     Event::bus()->m_events.input.mouse.button.emit(e, info);
     if (info.cancelled)
@@ -1546,6 +1554,10 @@ void CInputManager::destroyKeyboard(SP<IKeyboard> pKeyboard) {
     g_pSeatManager->m_keyboardEventHandlers.onKeyboardRemoved(pKeyboard);
     std::erase_if(m_keyboards, [pKeyboard](const auto& other) { return other == pKeyboard; });
 
+    // its held keys won't be released
+    g_pSeatManager->releasePassHolds(
+        [this](const auto& trigger) { return !trigger.mouse && std::ranges::none_of(m_keyboards, [&trigger](const auto& kb) { return kb->getPressed(trigger.code); }); });
+
     if (!m_keyboards.empty()) {
         bool found = false;
         for (auto const& k : m_keyboards | std::views::reverse) {
@@ -1569,6 +1581,7 @@ void CInputManager::destroyPointer(SP<IPointer> mouse) {
     LOG(Log::DEBUG, "Pointer at {:x} removed", rc<uintptr_t>(mouse.get()));
 
     Keybinds::mgr()->onDeviceRemoved(mouse);
+    std::vector<uint32_t> releasedButtons;
     for (auto it = m_currentlyHeldButtons.begin(); it != m_currentlyHeldButtons.end();) {
         if (it->pointer.lock() != mouse) {
             ++it;
@@ -1576,8 +1589,16 @@ void CInputManager::destroyPointer(SP<IPointer> mouse) {
         }
 
         g_pSeatManager->sendPointerButton(Time::millis(Time::steadyNow()), it->button, WL_POINTER_BUTTON_STATE_RELEASED);
+        releasedButtons.emplace_back(it->button);
         it = m_currentlyHeldButtons.erase(it);
     }
+
+    // its held buttons won't be released
+    g_pSeatManager->releasePassHolds([&](const auto& trigger) {
+        return trigger.mouse && std::ranges::contains(releasedButtons, trigger.code) &&
+            std::ranges::none_of(m_currentlyHeldButtons, [&trigger](const auto& held) { return held.button == trigger.code; });
+    });
+
     std::erase_if(m_pointers, [mouse](const auto& other) { return other == mouse; });
     std::erase_if(m_swallowedFocusButtons, [mouse](const auto& b) { return b.pointer == mouse; });
 
@@ -1699,6 +1720,12 @@ uint32_t CInputManager::hyprlandModsToXkb(SP<IKeyboard> relative, Input::Modifie
 }
 
 void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboard> pKeyboard) {
+    // after binds ran, which pass the releases of what pass() keeps held for the key normally
+    CScopeGuard releasePassHolds([&event] {
+        if (event.state == WL_KEYBOARD_KEY_STATE_RELEASED)
+            g_pSeatManager->releasePassHolds([&event](const auto& trigger) { return !trigger.mouse && trigger.code == event.keycode; });
+    });
+
     if (!pKeyboard->m_enabled || !pKeyboard->m_allowed)
         return;
 

@@ -6,12 +6,14 @@
 #include "../helpers/math/Math.hpp"
 #include "../protocols/types/DataDevice.hpp"
 #include "../devices/IKeyboard.hpp"
+#include <functional>
 #include <vector>
 
 constexpr size_t MAX_SERIAL_STORE_LEN = 100;
 
 class CWLSurfaceResource;
 class CWLSeatResource;
+class CWLPointerResource;
 class IPointer;
 
 class IKeyboardEventHandler {
@@ -72,6 +74,15 @@ class CSeatGrab {
 
 class CSeatManager {
   public:
+    // The physical key (as an evdev keycode) or mouse button held for the bind a pass comes from.
+    // What it passes is kept held until either its release is passed, or this is released.
+    struct SPassTrigger {
+        uint32_t code  = 0;
+        bool     mouse = false;
+
+        bool     operator==(const SPassTrigger&) const = default;
+    };
+
     CSeatManager();
 
     void                       updateCapabilities(uint32_t capabilities); // in IHID caps
@@ -84,9 +95,14 @@ class CSeatManager {
     void                       sendKeyboardKey(uint32_t timeMs, uint32_t key, wl_keyboard_key_state state);
     void                       sendKeyboardMods(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group);
 
+    void                       holdPassedButton(uint32_t button, SP<CWLSurfaceResource> surface, const SPassTrigger& trigger);
+    void                       releasePassedButton(uint32_t button, SP<CWLSurfaceResource> surface);
+    bool                       holdsPassedButtons() const;
+    void                       releasePassHolds(const std::function<bool(const SPassTrigger&)>& released);
+
     CKeyboardEventHandlerStack m_keyboardEventHandlers;
 
-    void                       setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& local);
+    void                       setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& local, bool releaseButtons = true);
     void                       sendPointerMotion(uint32_t timeMs, const Vector2D& local);
     void                       sendPointerButton(uint32_t timeMs, uint32_t key, wl_pointer_button_state state);
     void                       sendPointerFrame();
@@ -185,6 +201,16 @@ class CSeatManager {
     SP<SSeatResourceContainer>              containerForResource(SP<CWLSeatResource> seatResource);
 
     void                                    refocusGrab();
+
+    struct SPassedButton {
+        uint32_t                            button = 0;
+        WP<CWLSurfaceResource>              surface;
+        std::vector<WP<CWLPointerResource>> pointers; // the target's, which got the press
+        SPassTrigger                        trigger;
+    };
+
+    // buttons passed that are still held, they're kept pressed when the target loses pointer focus
+    std::vector<SPassedButton> m_passedButtons;
 
     struct {
         CHyprSignalListener newSeatResource;

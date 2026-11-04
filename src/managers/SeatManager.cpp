@@ -12,6 +12,7 @@
 #include "../devices/IKeyboard.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../helpers/time/Time.hpp"
 #include "../state/MonitorState.hpp"
 #include "devices/IHID.hpp"
 #include "wlr-layer-shell-unstable-v1.hpp"
@@ -343,7 +344,54 @@ void CSeatManager::sendKeyboardMods(uint32_t depressed, uint32_t latched, uint32
     }
 }
 
-void CSeatManager::setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& local) {
+void CSeatManager::holdPassedButton(uint32_t button, SP<CWLSurfaceResource> surface, const SPassTrigger& trigger) {
+    if (!surface || std::ranges::any_of(m_passedButtons, [&](const auto& held) { return held.button == button && held.surface == surface && held.trigger == trigger; }))
+        return;
+
+    SPassedButton held = {.button = button, .surface = surface, .trigger = trigger};
+    for (auto const& p : PROTO::seat->m_pointers) {
+        if (p && p->m_owner && p->m_owner->client() == surface->client())
+            held.pointers.emplace_back(p);
+    }
+
+    m_passedButtons.emplace_back(std::move(held));
+}
+
+void CSeatManager::releasePassedButton(uint32_t button, SP<CWLSurfaceResource> surface) {
+    std::erase_if(m_passedButtons, [&](const auto& held) { return held.button == button && held.surface == surface; });
+}
+
+bool CSeatManager::holdsPassedButtons() const {
+    return !m_passedButtons.empty();
+}
+
+void CSeatManager::releasePassHolds(const std::function<bool(const SPassTrigger&)>& released) {
+    // A hold normally ends with its release being passed. These are the ones whose release couldn't be,
+    // e.g. as the target stopped matching, so nothing stays held after what triggered it is released.
+    const auto                 TIMEMS = Time::millis(Time::steadyNow());
+
+    std::vector<SPassedButton> buttons;
+    std::erase_if(m_passedButtons, [&](const auto& held) {
+        if (!released(held.trigger))
+            return false;
+
+        buttons.emplace_back(held);
+        return true;
+    });
+
+    for (const auto& held : buttons) {
+        // still held for another trigger
+        if (std::ranges::any_of(m_passedButtons, [&](const auto& other) { return other.button == held.button && other.surface == held.surface; }))
+            continue;
+
+        for (auto const& p : held.pointers) {
+            if (p)
+                p->releaseButton(TIMEMS, held.button, held.surface.lock());
+        }
+    }
+}
+
+void CSeatManager::setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& local, bool releaseButtons) {
     const bool dndActive = PROTO::data && PROTO::data->dndActive();
 
     if (m_state.pointerFocus == surf)
@@ -374,7 +422,7 @@ void CSeatManager::setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& 
         if (!p)
             continue;
 
-        p->sendLeave();
+        p->sendLeave(releaseButtons);
     }
 
     auto lastPointerFocusResource = m_state.pointerFocusResource;

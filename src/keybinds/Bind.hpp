@@ -2,6 +2,7 @@
 
 #include <unordered_set>
 #include <vector>
+#include <span>
 #include <string>
 #include <expected>
 #include <type_traits>

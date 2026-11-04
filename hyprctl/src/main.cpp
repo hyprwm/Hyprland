@@ -19,7 +19,6 @@
 #include <optional>
 #include <charconv>
 
-#include <iostream>
 #include <string>
 #include <print>
 #include <fstream>
@@ -599,6 +598,6 @@ int main(int argc, char** argv) {
         exitStatus = request(fullRequest);
     }
 
-    std::cout << std::flush;
+    std::fflush(stdout);
     return exitStatus;
 }

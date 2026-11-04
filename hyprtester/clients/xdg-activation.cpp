@@ -4,9 +4,9 @@
 #include <charconv>
 #include <cstdint>
 #include <deque>
-#include <iostream>
 #include <limits>
 #include <optional>
+#include <print>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -95,7 +95,7 @@ static CSharedPointer<T> wrapResource(wl_proxy* proxy) {
 }
 
 static void fail(SState& state, std::string_view message) {
-    std::cerr << "xdg-activation: " << message << '\n';
+    std::println(stderr, "xdg-activation: {}", message);
     state.failed = true;
 }
 
@@ -120,8 +120,10 @@ static void updatePointer(SState& state, wl_seat_capability capabilities) {
     });
     state.pointer->setLeave([&state](CCWlPointer*, uint32_t, wl_proxy*) { state.pointerOnSource = false; });
     state.pointer->setButton([&state](CCWlPointer*, uint32_t serial, uint32_t, uint32_t button, wl_pointer_button_state buttonState) {
-        if (state.pointerOnSource && button == BTN_LEFT && buttonState == WL_POINTER_BUTTON_STATE_PRESSED)
-            std::cout << "button " << serial << '\n' << std::flush;
+        if (state.pointerOnSource && button == BTN_LEFT && buttonState == WL_POINTER_BUTTON_STATE_PRESSED) {
+            std::println("button {}", serial);
+            std::fflush(stdout);
+        }
     });
 }
 
@@ -217,7 +219,8 @@ static bool setupWindow(SState& state, SWindow& window, const char* appID) {
 
         if (!state.ready && state.source.submitted && state.target.submitted) {
             state.ready = true;
-            std::cout << "ready\n" << std::flush;
+            std::println("ready");
+            std::fflush(stdout);
         }
     });
     window.toplevel->sendSetTitle(appID);
@@ -323,7 +326,8 @@ static void advanceRequests(SState& state) {
             return;
         }
         state.sync->setDone([&state, id, EMPTY](CCWlCallback*, uint32_t) {
-            std::cout << "activated " << id << " empty=" << (EMPTY ? 1 : 0) << '\n' << std::flush;
+            std::println("activated {} empty={}", id, EMPTY ? 1 : 0);
+            std::fflush(stdout);
             state.requestFinished = true;
         });
     });
@@ -390,19 +394,19 @@ int main() {
     // Declared first so all protocol wrappers are destroyed before disconnect.
     const SConnection CONNECTION;
     if (!CONNECTION.display) {
-        std::cerr << "xdg-activation: failed to connect to Wayland\n";
+        std::println(stderr, "xdg-activation: failed to connect to Wayland");
         return 1;
     }
 
     SState state;
     state.display = CONNECTION.display;
     if (!bindRegistry(state) || !setupWindow(state, state.source, "xdg-activation-source") || !setupWindow(state, state.target, "xdg-activation-target")) {
-        std::cerr << "xdg-activation: failed to initialize protocols or windows\n";
+        std::println(stderr, "xdg-activation: failed to initialize protocols or windows");
         return 1;
     }
 
     if (!run(state)) {
-        std::cerr << "xdg-activation: client failed\n";
+        std::println(stderr, "xdg-activation: client failed");
         return 1;
     }
     return 0;

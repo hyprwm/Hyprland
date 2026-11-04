@@ -95,6 +95,8 @@ class CSeatManager {
     void                       sendKeyboardKey(uint32_t timeMs, uint32_t key, wl_keyboard_key_state state);
     void                       sendKeyboardMods(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group);
 
+    void                       holdPassedKey(uint32_t key, const SPassTrigger& trigger);
+    void                       releasePassedKey(uint32_t key);
     void                       holdPassedButton(uint32_t button, SP<CWLSurfaceResource> surface, const SPassTrigger& trigger);
     void                       releasePassedButton(uint32_t button, SP<CWLSurfaceResource> surface);
     bool                       holdsPassedButtons() const;
@@ -201,6 +203,13 @@ class CSeatManager {
     SP<SSeatResourceContainer>              containerForResource(SP<CWLSeatResource> seatResource);
 
     void                                    refocusGrab();
+    wl_client*                              passedKeysClient();
+    void                                    leavePassedKeysClient(wl_client* client);
+
+    struct SPassedKey {
+        uint32_t     key = 0;
+        SPassTrigger trigger;
+    };
 
     struct SPassedButton {
         uint32_t                            button = 0;
@@ -209,6 +218,8 @@ class CSeatManager {
         SPassTrigger                        trigger;
     };
 
+    // keys passed to Xwayland that are still held, see setKeyboardFocus()
+    std::vector<SPassedKey> m_passedKeys;
     // buttons passed that are still held, they're kept pressed when the target loses pointer focus
     std::vector<SPassedButton> m_passedButtons;
 

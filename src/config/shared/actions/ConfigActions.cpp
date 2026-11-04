@@ -1576,6 +1576,12 @@ ActionResult Actions::pass(std::optional<PHLWINDOW> w) {
             g_pSeatManager->holdPassedButton(S.m_lastMouseCode, window->wlSurface()->resource(), *TRIGGER);
         else if (S.m_passPressed == 0)
             g_pSeatManager->releasePassedButton(S.m_lastMouseCode, window->wlSurface()->resource());
+    } else {
+        // Xwayland releases held keys on leave, so it's kept entered
+        if (S.m_passPressed == 1 && TRIGGER && window->backend().isX11())
+            g_pSeatManager->holdPassedKey(S.m_lastCode - 8, *TRIGGER);
+        else if (S.m_passPressed == 0)
+            g_pSeatManager->releasePassedKey(S.m_lastCode - 8);
     }
 
     if (XWTOXW)
@@ -1614,6 +1620,7 @@ ActionResult Actions::pass(Input::ModifierMask modMask, uint32_t key, std::optio
     const auto& S             = *Config::Actions::state();
     const auto  LASTSURFACE   = Desktop::focusState()->surface();
     const auto  TARGETSURFACE = window ? window->wlSurface()->resource() : nullptr;
+    const bool  XWLTARGET     = window && window->backend().isX11();
 
     if (window) {
         if (!isMouse)
@@ -1658,6 +1665,11 @@ ActionResult Actions::pass(Input::ModifierMask modMask, uint32_t key, std::optio
             g_pSeatManager->holdPassedButton(key, TARGETSURFACE, *TRIGGER);
         else if (S.m_passPressed == 0)
             g_pSeatManager->releasePassedButton(key, TARGETSURFACE);
+    } else {
+        if (S.m_passPressed == 1 && TRIGGER && XWLTARGET)
+            g_pSeatManager->holdPassedKey(key - 8, *TRIGGER);
+        else if (S.m_passPressed == 0)
+            g_pSeatManager->releasePassedKey(key - 8);
     }
 
     g_pSeatManager->sendKeyboardMods(0, 0, 0, 0);

@@ -125,3 +125,10 @@ clientNew("popup-render" PROTOS "xdg-shell")
 clientNew("wlr-foreign-toplevel" PROTOS "wlr-foreign-toplevel-management-unstable-v1")
 clientNew("toplevel-capture" PROTOS "wlr-foreign-toplevel-management-unstable-v1" "hyprland-toplevel-export-v1")
 clientNew("pass-target" PROTOS "xdg-shell")
+
+######## X11 testing stuff
+
+pkg_check_modules(x11_client_deps REQUIRED IMPORTED_TARGET xcb)
+
+add_executable(x11-keys clients/x11-keys.cpp)
+target_link_libraries(x11-keys PUBLIC PkgConfig::x11_client_deps)

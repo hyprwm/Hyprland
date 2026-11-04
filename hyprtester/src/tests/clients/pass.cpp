@@ -26,7 +26,7 @@ using namespace Hyprutils::Utils;
 #define SP CSharedPointer
 
 namespace {
-    // A test client driven over stdin/stdout, see clients/pass-target.cpp
+    // A test client driven over stdin/stdout, see clients/pass-target.cpp and clients/x11-keys.cpp
     class CPipeClient {
       public:
         CPipeClient(const std::string& binary, const std::string& arg, const std::string& envName, const std::string& envValue);
@@ -270,5 +270,308 @@ TEST_CASE(passHeldMouseButtonTargetLost) {
 
         OK(getFromSocket(setModsCmd(NO_MODS)));
         unbindButtons();
+    }
+}
+
+// F6, as an xkb / X keycode
+static constexpr uint32_t PASS_KEY = KEY_F6 + 8;
+
+// presses or releases the key, with the modifiers held
+static std::string keyCmd(uint32_t key, bool pressed, const SMods& mods) {
+    return std::format("/eval hl.plugin.test.keybind_modmask({}, {}, {})", pressed ? 1 : 0, mods.xkbMask, key);
+}
+
+static void unbindKeys() {
+    for (const auto& mods : MODS) {
+        getFromSocket(std::format("/eval hl.unbind('{}')", bindKey(mods, "F6")));
+    }
+}
+
+static std::string xDisplay() {
+    auto display = getFromSocket("/repl os.getenv('DISPLAY')");
+    while (!display.empty() && (display.back() == '\n' || display.back() == ' '))
+        display.pop_back();
+    return display;
+}
+
+// Xwayland handles key state asynchronously, wait for it to settle
+static bool waitX11(CPipeClient& client, const std::string& cmd, const std::string& expected) {
+    std::string got;
+    for (int i = 0; i < 20; ++i) {
+        got = client.request(cmd);
+        if (got == expected)
+            return true;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(25));
+    }
+
+    NLog::log("{}x11-keys: {} is {}, expected {}", Colors::RED, cmd, got, expected);
+    return false;
+}
+
+static bool waitKeyHeld(CPipeClient& client, bool held) {
+    return waitX11(client, std::format("held {}", PASS_KEY), held ? "1" : "0");
+}
+
+static bool waitXMods(CPipeClient& client, uint16_t mask) {
+    return waitX11(client, "mods", std::to_string(mask));
+}
+
+// a release would also reach Xwayland asynchronously, so give it time to arrive before checking
+static bool keyStaysHeld(CPipeClient& client) {
+    Tests::sync();
+    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    return client.request(std::format("held {}", PASS_KEY)) == "1";
+}
+
+// The focused window, e.g. a game, must keep focus during a pass, and see neither the bind's key nor
+// the passed one.
+static bool keptFocus(CPipeClient& client, const std::string& cls) {
+    const auto ACTIVE = Tests::getAttribute(getFromSocket("/activewindow"), "class");
+    if (ACTIVE != cls) {
+        NLog::log("{}The active window is {}, expected {}", Colors::RED, ACTIVE, cls);
+        return false;
+    }
+
+    const auto EVENTS = targetEvents(client);
+    const auto LEAVE  = EVENTS.rfind("kleave");
+    const auto ENTER  = EVENTS.rfind("kenter");
+    if (LEAVE != std::string::npos && (ENTER == std::string::npos || ENTER < LEAVE)) {
+        NLog::log("{}{} lost keyboard focus", Colors::RED, cls);
+        return false;
+    }
+
+    if (EVENTS.contains("key:")) {
+        NLog::log("{}{} got key events", Colors::RED, cls);
+        return false;
+    }
+
+    return true;
+}
+
+TEST_CASE(passHeldKeyXwayland) {
+    // Xwayland releases all keys on wl_keyboard.leave, so restoring keyboard focus after pass(), or
+    // moving focus between Wayland windows, used to release the passed key during the hold.
+    CScopeGuard cleanup([] {
+        unbindKeys();
+        getFromSocket(setModsCmd(NO_MODS));
+        Tests::killAllWindows();
+    });
+
+    Tests::killAllWindows();
+
+    std::optional<CPipeClient> target, other, other2;
+    try {
+        target.emplace("x11-keys", "x11-keys-a", "DISPLAY", xDisplay());
+        other.emplace("pass-target", "pass-other", "WAYLAND_DISPLAY", WLDISPLAY);
+        other2.emplace("pass-target", "pass-other2", "WAYLAND_DISPLAY", WLDISPLAY);
+    } catch (std::exception& e) { FAIL_TEST("Couldn't start the clients: {}", e.what()); }
+
+    for (const auto& mods : MODS) {
+        NLog::log("{}Passing {}", Colors::YELLOW, bindKey(mods, "F6"));
+        OK(getFromSocket(std::format("/eval hl.bind('{}', hl.dsp.pass({{ window = 'class:^x11-keys-a$' }}))", bindKey(mods, "F6"))));
+
+        ASSERT(focusWindow("pass-other"), true);
+        EXPECT(waitKeyHeld(*target, false), true);
+        targetEvents(*other);
+
+        OK(getFromSocket(keyCmd(PASS_KEY, true, mods)));
+        EXPECT(waitKeyHeld(*target, true), true);
+        EXPECT(waitXMods(*target, mods.xMask), true);
+        EXPECT(keptFocus(*other, "pass-other"), true);
+
+        ASSERT(focusWindow("pass-other2"), true);
+        EXPECT(keyStaysHeld(*target), true);
+        targetEvents(*other2);
+
+        OK(getFromSocket(keyCmd(PASS_KEY, false, mods)));
+        EXPECT(waitKeyHeld(*target, false), true);
+        EXPECT(keptFocus(*other2, "pass-other2"), true);
+
+        OK(getFromSocket(setModsCmd(NO_MODS)));
+        EXPECT(waitXMods(*target, 0), true);
+
+        unbindKeys();
+    }
+}
+
+TEST_CASE(passHeldKeyXwaylandModsReleasedFirst) {
+    // Releasing the modifier before the key must keep the key held until it's released too.
+    CScopeGuard cleanup([] {
+        unbindKeys();
+        getFromSocket(setModsCmd(NO_MODS));
+        Tests::killAllWindows();
+    });
+
+    Tests::killAllWindows();
+
+    std::optional<CPipeClient> target, other;
+    try {
+        target.emplace("x11-keys", "x11-keys-a", "DISPLAY", xDisplay());
+        other.emplace("pass-target", "pass-other", "WAYLAND_DISPLAY", WLDISPLAY);
+    } catch (std::exception& e) { FAIL_TEST("Couldn't start the clients: {}", e.what()); }
+
+    const auto& MODS_HELD = MODS[1];
+    OK(getFromSocket(std::format("/eval hl.bind('{}', hl.dsp.pass({{ window = 'class:^x11-keys-a$' }}))", bindKey(MODS_HELD, "F6"))));
+
+    ASSERT(focusWindow("pass-other"), true);
+    targetEvents(*other);
+
+    OK(getFromSocket(keyCmd(PASS_KEY, true, MODS_HELD)));
+    EXPECT(waitKeyHeld(*target, true), true);
+
+    OK(getFromSocket(setModsCmd(NO_MODS)));
+    EXPECT(keyStaysHeld(*target), true);
+
+    OK(getFromSocket(keyCmd(PASS_KEY, false, NO_MODS)));
+    EXPECT(waitKeyHeld(*target, false), true);
+    EXPECT(waitXMods(*target, 0), true);
+    EXPECT(keptFocus(*other, "pass-other"), true);
+}
+
+TEST_CASE(passHeldKeyXwaylandFocusX11) {
+    // Focus entering an Xwayland surface during the hold used to release the passed key, as the
+    // enter's key array didn't contain it.
+    CScopeGuard cleanup([] {
+        unbindKeys();
+        getFromSocket(setModsCmd(NO_MODS));
+        Tests::killAllWindows();
+    });
+
+    Tests::killAllWindows();
+
+    std::optional<CPipeClient> target, otherX11, other;
+    try {
+        target.emplace("x11-keys", "x11-keys-a", "DISPLAY", xDisplay());
+        otherX11.emplace("x11-keys", "x11-keys-b", "DISPLAY", xDisplay());
+        other.emplace("pass-target", "pass-other", "WAYLAND_DISPLAY", WLDISPLAY);
+    } catch (std::exception& e) { FAIL_TEST("Couldn't start the clients: {}", e.what()); }
+
+    for (const auto& mods : MODS) {
+        NLog::log("{}Passing {}", Colors::YELLOW, bindKey(mods, "F6"));
+        OK(getFromSocket(std::format("/eval hl.bind('{}', hl.dsp.pass({{ window = 'class:^x11-keys-a$' }}))", bindKey(mods, "F6"))));
+
+        ASSERT(focusWindow("pass-other"), true);
+
+        OK(getFromSocket(keyCmd(PASS_KEY, true, mods)));
+        EXPECT(waitKeyHeld(*target, true), true);
+
+        ASSERT(focusWindow("x11-keys-b"), true);
+        EXPECT(keyStaysHeld(*target), true);
+
+        OK(getFromSocket(keyCmd(PASS_KEY, false, mods)));
+        EXPECT(waitKeyHeld(*target, false), true);
+
+        OK(getFromSocket(setModsCmd(NO_MODS)));
+        EXPECT(waitXMods(*target, 0), true);
+
+        unbindKeys();
+    }
+}
+
+TEST_CASE(passHeldKeyXwaylandTargetClosed) {
+    // Passing from one X11 window to another sends the key to the focused one. Closing the target during
+    // the hold must not stop the withheld leave from being sent to Xwayland on release.
+    CScopeGuard cleanup([] {
+        unbindKeys();
+        getFromSocket(setModsCmd(NO_MODS));
+        Tests::killAllWindows();
+    });
+
+    Tests::killAllWindows();
+
+    std::optional<CPipeClient> focused, other;
+    try {
+        focused.emplace("x11-keys", "x11-keys-b", "DISPLAY", xDisplay());
+        other.emplace("pass-target", "pass-other", "WAYLAND_DISPLAY", WLDISPLAY);
+    } catch (std::exception& e) { FAIL_TEST("Couldn't start the clients: {}", e.what()); }
+
+    for (const auto& mods : MODS) {
+        NLog::log("{}Passing {}", Colors::YELLOW, bindKey(mods, "F6"));
+        OK(getFromSocket(std::format("/eval hl.bind('{}', hl.dsp.pass({{ window = 'class:^x11-keys-a$' }}))", bindKey(mods, "F6"))));
+
+        std::optional<CPipeClient> target;
+        try {
+            target.emplace("x11-keys", "x11-keys-a", "DISPLAY", xDisplay());
+        } catch (std::exception& e) { FAIL_TEST("Couldn't start the target: {}", e.what()); }
+
+        ASSERT(focusWindow("x11-keys-b"), true);
+
+        OK(getFromSocket(keyCmd(PASS_KEY, true, mods)));
+        EXPECT(waitKeyHeld(*focused, true), true);
+
+        ASSERT(focusWindow("pass-other"), true);
+        EXPECT(keyStaysHeld(*focused), true);
+
+        const int COUNT_BEFORE = Tests::windowCount();
+        target.reset();
+        for (int i = 0; i < 50 && Tests::windowCount() == COUNT_BEFORE; ++i) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+        EXPECT(Tests::windowCount(), COUNT_BEFORE - 1);
+
+        EXPECT_CONTAINS(getFromSocket(keyCmd(PASS_KEY, false, mods)), "window not found");
+        EXPECT(waitKeyHeld(*focused, false), true);
+
+        OK(getFromSocket(setModsCmd(NO_MODS)));
+        EXPECT(waitXMods(*focused, 0), true);
+
+        unbindKeys();
+    }
+}
+
+TEST_CASE(passHeldKeyXwaylandTargetLost) {
+    // If the target stops matching during the hold, the release can't be passed. The key must still
+    // be released on the physical release, also when an XWayland window has focus by then, which
+    // gets no leave to release it.
+    CScopeGuard cleanup([] {
+        unbindKeys();
+        getFromSocket(setModsCmd(NO_MODS));
+        Tests::killAllWindows();
+    });
+
+    Tests::killAllWindows();
+
+    std::optional<CPipeClient> target, otherX11, other;
+    try {
+        target.emplace("x11-keys", "x11-keys-a", "DISPLAY", xDisplay());
+        otherX11.emplace("x11-keys", "x11-keys-b", "DISPLAY", xDisplay());
+        other.emplace("pass-target", "pass-other", "WAYLAND_DISPLAY", WLDISPLAY);
+    } catch (std::exception& e) { FAIL_TEST("Couldn't start the clients: {}", e.what()); }
+
+    for (const auto& mods : MODS) {
+        for (const auto& FOCUSED : {"pass-other", "x11-keys-b"}) {
+            NLog::log("{}Passing {}, {} focused on release", Colors::YELLOW, bindKey(mods, "F6"), FOCUSED);
+            OK(getFromSocket(std::format("/eval hl.bind('{}', hl.dsp.pass({{ window = 'class:^x11-keys-a$' }}))", bindKey(mods, "F6"))));
+
+            ASSERT(focusWindow("pass-other"), true);
+
+            OK(getFromSocket(keyCmd(PASS_KEY, true, mods)));
+            EXPECT(waitKeyHeld(*target, true), true);
+
+            ASSERT(focusWindow(FOCUSED), true);
+            ASSERT(target->request("class x11-keys-gone"), "ok");
+            Tests::sync();
+            EXPECT_CONTAINS(getFromSocket(keyCmd(PASS_KEY, false, mods)), "window not found");
+            EXPECT(waitKeyHeld(*target, false), true);
+
+            OK(getFromSocket(setModsCmd(NO_MODS)));
+            EXPECT(waitXMods(*target, 0), true);
+
+            // and passing works normally again afterwards
+            ASSERT(target->request("class x11-keys-a"), "ok");
+            ASSERT(focusWindow("pass-other"), true);
+
+            OK(getFromSocket(keyCmd(PASS_KEY, true, mods)));
+            EXPECT(waitKeyHeld(*target, true), true);
+
+            OK(getFromSocket(keyCmd(PASS_KEY, false, mods)));
+            EXPECT(waitKeyHeld(*target, false), true);
+
+            OK(getFromSocket(setModsCmd(NO_MODS)));
+            EXPECT(waitXMods(*target, 0), true);
+
+            unbindKeys();
+        }
     }
 }

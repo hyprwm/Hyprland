@@ -290,6 +290,19 @@ void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {
             std::ranges::copy(PRESSED, sc<uint32_t*>(PKEYS));
     }
 
+    // Xwayland released passed keys on the leave, report them as held again on enter
+    if (PASSEDCLIENT && surf->client() == PASSEDCLIENT) {
+        std::vector<uint32_t> added;
+        for (const auto& held : m_passedKeys) {
+            if (std::ranges::contains(PRESSED, held.key) || std::ranges::contains(added, held.key))
+                continue;
+
+            if (const auto PKEY = sc<uint32_t*>(wl_array_add(&keys, sizeof(uint32_t))))
+                *PKEY = held.key;
+            added.emplace_back(held.key);
+        }
+    }
+
     auto client = surf->client();
     for (auto const& r : m_seatResources | std::views::reverse) {
         if (r->resource->client() != client)

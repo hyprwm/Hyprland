@@ -22,8 +22,8 @@ CWorkspaceCaptureSource::CWorkspaceCaptureSource(PHLWORKSPACE workspace, uint32_
         m_changed.emit();
     });
     const auto updateName      = [this]() {
-        if (const auto WORKSPACE = m_workspace.lock())
-            m_name = WORKSPACE->addressableName();
+        if (m_workspace)
+            m_name = m_workspace->addressableName();
         m_changed.emit();
     };
     m_listeners.renamed   = workspace->m_events.renamed.listen(updateName);
@@ -31,15 +31,14 @@ CWorkspaceCaptureSource::CWorkspaceCaptureSource(PHLWORKSPACE workspace, uint32_
 }
 
 PHLWORKSPACE CWorkspaceCaptureSource::workspace() const {
-    return m_removed ? nullptr : m_workspace.lock();
+    return m_removed ? nullptr : m_workspace;
 }
 
 PHLMONITOR CWorkspaceCaptureSource::monitor() const {
     if (m_removed)
         return m_lastMonitor.lock();
 
-    const auto WORKSPACE = m_workspace.lock();
-    return WORKSPACE ? WORKSPACE->m_monitor.lock() : nullptr;
+    return m_workspace ? m_workspace->m_monitor.lock() : nullptr;
 }
 
 Vector2D CWorkspaceCaptureSource::bufferSize() const {

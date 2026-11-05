@@ -184,8 +184,11 @@ std::vector<SP<IValue>> Values::getConfigValues() {
                 {.min = 0, .max = 100}),
         MS<Bool>("general:hover_icon_on_border", "show a cursor icon when hovering over borders, only used when general:resize_on_border is on.", true),
         MS<Bool>("general:allow_tearing", "master switch for allowing tearing to occur.", false),
-        MS<Int>("general:resize_corner", "force floating windows to use a specific corner when being resized (1-4 going clockwise from top left, 0 to disable)", 0,
-                {.min = 0, .max = 4, .map = OptionMap{{"disable", 0}, {"top_left", 1}, {"top_right", 2}, {"bottom_right", 3}, {"bottom_left", 4}}}),
+        MS<Int>(
+            "general:resize_corner", "force floating windows to use a specific corner when being resized (1-4 going clockwise from top left, 0 to disable)", 0,
+            {.min = 0,
+             .max = 8,
+             .map = OptionMap{{"disable", 0}, {"top_left", 1}, {"top_right", 2}, {"bottom_right", 3}, {"bottom_left", 4}, {"top", 5}, {"right", 6}, {"bottom", 7}, {"left", 8}}}),
         MS<Bool>("general:snap:enabled", "enable snapping for floating windows", false),
         MS<Int>("general:snap:window_gap", "minimum gap in pixels between windows before snapping", 10, {.min = 0, .max = 100}),
         MS<Int>("general:snap:monitor_gap", "minimum gap in pixels between window and monitor edges before snapping", 10, {.min = 0, .max = 100}),

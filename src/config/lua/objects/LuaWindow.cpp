@@ -30,10 +30,10 @@ using namespace Config::Lua;
 static constexpr const char* MT = "HL.Window";
 
 //
-static int getFocusHistoryID(PHLWINDOW wnd) {
+static int getFocusHistoryID(const PHLWINDOWREF& wnd) {
     const auto& history = Desktop::History::windowTracker()->fullHistory();
     for (size_t i = 0; i < history.size(); ++i) {
-        if (history[i].lock() == wnd)
+        if (history[i] == wnd)
             return sc<int>(history.size() - i - 1); // reverse order for backwards compat
     }
 
@@ -44,13 +44,13 @@ static int windowEq(lua_State* L) {
     const auto* lhs = sc<PHLWINDOWREF*>(luaL_checkudata(L, 1, MT));
     const auto* rhs = sc<PHLWINDOWREF*>(luaL_checkudata(L, 2, MT));
 
-    lua_pushboolean(L, lhs->lock() == rhs->lock());
+    lua_pushboolean(L, *lhs == *rhs);
     return 1;
 }
 
 static int windowToString(lua_State* L) {
     const auto* ref = sc<PHLWINDOWREF*>(luaL_checkudata(L, 1, MT));
-    const auto  w   = ref->lock();
+    const auto  w   = *ref;
 
     if (!w)
         lua_pushstring(L, "HL.Window(expired)");
@@ -61,8 +61,8 @@ static int windowToString(lua_State* L) {
 }
 
 static int windowIndex(lua_State* L) {
-    auto*      ref = sc<PHLWINDOWREF*>(luaL_checkudata(L, 1, MT));
-    const auto w   = ref->lock();
+    const auto* ref = sc<PHLWINDOWREF*>(luaL_checkudata(L, 1, MT));
+    const auto  w   = *ref;
     if (!w) {
         LOG(Log::DEBUG, "[lua] Tried to access an expired object");
         lua_pushnil(L);
@@ -122,15 +122,24 @@ static int windowIndex(lua_State* L) {
         lua_pushboolean(L, sc<bool>(w->m_state & Desktop::View::WINDOW_STATE_PINNED));
     else if (key == "pin_fullscreened")
         lua_pushboolean(L, w->fullscreenPolicy().pinFullscreened());
-    else if (key == "fullscreen")
-        lua_pushinteger(L, sc<lua_Integer>(sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w).internal)));
-    else if (key == "fullscreen_client")
-        lua_pushinteger(L, sc<lua_Integer>(sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w).client)));
-    else if (key == "allowed_over_fullscreen")
+    else if (key == "fullscreen") {
+        if (!w.expired())
+            lua_pushinteger(L, sc<lua_Integer>(sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w.lock()).internal)));
+        else
+            lua_pushnil(L);
+    } else if (key == "fullscreen_client") {
+        if (!w.expired())
+            lua_pushinteger(L, sc<lua_Integer>(sc<uint8_t>(Fullscreen::controller()->getFullscreenModes(w.lock()).client)));
+        else
+            lua_pushnil(L);
+    } else if (key == "allowed_over_fullscreen")
         lua_pushboolean(L, w->fullscreenPolicy().allowedOverFullscreen());
-    else if (key == "fullscreen_handler")
-        lua_pushstring(L, Fullscreen::controller()->getFullscreenHandlerNameAsString(w).c_str());
-    else if (key == "group") {
+    else if (key == "fullscreen_handler") {
+        if (!w.expired())
+            lua_pushstring(L, Fullscreen::controller()->getFullscreenHandlerNameAsString(w.lock()).c_str());
+        else
+            lua_pushnil(L);
+    } else if (key == "group") {
         if (!w->grouping().group()) {
             lua_pushnil(L);
             return 1;
@@ -153,9 +162,12 @@ static int windowIndex(lua_State* L) {
             lua_pushnil(L);
     } else if (key == "focus_history_id")
         lua_pushinteger(L, sc<lua_Integer>(getFocusHistoryID(w)));
-    else if (key == "inhibiting_idle")
-        lua_pushboolean(L, g_pInputManager && g_pInputManager->isWindowInhibiting(w, false));
-    else if (key == "xdg_tag") {
+    else if (key == "inhibiting_idle") {
+        if (!w.expired())
+            lua_pushboolean(L, g_pInputManager && g_pInputManager->isWindowInhibiting(w.lock(), false));
+        else
+            lua_pushnil(L);
+    } else if (key == "xdg_tag") {
         const auto xdgTag = w->backend().metadata().tag;
         if (xdgTag)
             lua_pushstring(L, xdgTag->c_str());
@@ -172,6 +184,11 @@ static int windowIndex(lua_State* L) {
     else if (key == "stable_id")
         lua_pushstring(L, std::format("{:x}", w->metadata().stableID()).c_str());
     else if (key == "layout") {
+        if (w.expired()) {
+            lua_pushnil(L);
+            return 1;
+        }
+
         const auto target = w->layoutTarget();
         if (!target || target->floating() || !w->m_workspace || !w->m_workspace->space()) {
             lua_pushnil(L);
@@ -261,7 +278,7 @@ void Objects::CLuaWindow::push(lua_State* L, PHLWINDOWREF w) {
         return;
     }
 
-    new (lua_newuserdata(L, sizeof(PHLWINDOWREF))) PHLWINDOWREF(w ? w->m_self : nullptr);
+    new (lua_newuserdata(L, sizeof(PHLWINDOWREF))) PHLWINDOWREF(w);
     luaL_getmetatable(L, MT);
     lua_setmetatable(L, -2);
 }

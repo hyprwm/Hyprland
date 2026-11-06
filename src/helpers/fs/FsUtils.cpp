@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <fstream>
 #include <algorithm>
+#include <unistd.h>
 
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/string/VarList2.hpp>
@@ -102,6 +103,6 @@ bool NFsUtils::executableExistsInPath(const std::string& exe) {
         if (ec || !std::filesystem::is_regular_file(status))
             return false;
 
-        return (status.permissions() & std::filesystem::perms::others_exec) != std::filesystem::perms::none;
+        return access(fullPath.c_str(), X_OK) == 0;
     });
 }

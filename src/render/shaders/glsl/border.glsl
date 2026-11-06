@@ -4,16 +4,14 @@
 #endif
 #include "cm_helpers.glsl"
 #include "gradient.glsl"
-#if USE_ROUNDING
 #include "rounding.glsl"
-#endif
 
 #if USE_MIRROR
 vec4[2]
 #else
 vec4
 #endif
-    getBorder(vec2 v_texcoord, float alpha, vec2 fullSizeUntransformed, float radiusOuter, float thick, float radius, float roundingPower, vec2 topLeft, vec2 fullSize,
+    getBorder(vec2 v_texcoord, float alpha, vec2 fullSizeUntransformed, vec4 radiiOuter, float thick, vec4 radii, float roundingPower, vec2 topLeft, vec2 fullSize,
               int gradientLength, vec4 gradient[10], float angle, int gradient2Length, vec4 gradient2[10], float angle2, float gradientLerp
 #if USE_CM
               ,
@@ -48,6 +46,8 @@ vec4
     bool  done = false;
 
     pixCoord -= topLeft + fullSize * 0.5;
+    float radius      = cornerRadius(radii, pixCoord);
+    float radiusOuter = cornerRadius(radiiOuter, pixCoord);
     pixCoord *= vec2(lessThan(pixCoord, vec2(0.0))) * -2.0 + 1.0;
     pixCoordOuter = pixCoord;
     pixCoord -= fullSize * 0.5 - radius;

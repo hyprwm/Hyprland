@@ -152,7 +152,7 @@ SFadeoutRenderEffects CWindowFadeout::effects() const {
     if (m_blur && MONITOR) {
         effects.preBlur = SFadeoutPreBlur{
             .box           = CBox{m_realPosition->value(), m_realSize->value()}.translate(-MONITOR->m_position).scale(MONITOR->m_scale).round(),
-            .round         = m_rounding,
+            .round         = m_rounding * MONITOR->m_scale,
             .roundingPower = m_roundingPower,
             .xray          = m_blurXray,
             .alpha         = std::sqrt(std::max(alpha(), 0.F)),

@@ -36,6 +36,11 @@ CWindowRuleApplicator::CWindowRuleApplicator(PHLWINDOW w) : m_window(w) {
     ;
 }
 
+Config::CCornersData CWindowRuleApplicator::roundingValue() const {
+    static auto PROUNDING = CConfigValue<Config::IComplexConfigValue>("decoration:rounding");
+    return m_rounding.first.valueOr(*sc<Config::CCornersData*>(PROUNDING.ptr()));
+}
+
 std::unordered_set<CWindowRuleEffectContainer::storageType> CWindowRuleApplicator::resetProps(std::underlying_type_t<eRuleProperty> props, Types::eOverridePriority prio) {
     std::unordered_set<CWindowRuleEffectContainer::storageType> effectsNuked;
 
@@ -137,7 +142,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                 break;
             }
             case WINDOW_RULE_EFFECT_ROUNDING: {
-                m_rounding.first.set(std::get<int64_t>(value), Types::PRIORITY_WINDOW_RULE);
+                m_rounding.first.set(std::get<Config::CCornersData>(value), Types::PRIORITY_WINDOW_RULE);
                 m_rounding.second |= rule->getPropertiesMask();
                 break;
             }

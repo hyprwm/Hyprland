@@ -2,6 +2,7 @@
 
 #include "../../desktop/DesktopTypes.hpp"
 #include "../../helpers/math/Math.hpp"
+#include "../../helpers/math/CornerRadii.hpp"
 #include "../Framebuffer.hpp"
 #include "../WindowRenderPresentation.hpp"
 
@@ -10,9 +11,9 @@
 namespace Render {
     class CRenderContext;
     struct SBlurShape {
-        CBox  box;
-        float radius        = 0.F;
-        float roundingPower = 2.F;
+        CBox               box;
+        Math::SCornerRadii radius;
+        float              roundingPower = 2.F;
     };
 
     struct SBlurContext {

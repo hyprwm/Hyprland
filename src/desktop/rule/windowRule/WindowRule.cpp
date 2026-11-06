@@ -9,6 +9,7 @@
 #include "../../../desktop/state/FocusState.hpp"
 #include "../../../protocols/types/ContentType.hpp"
 #include "../../../config/shared/parserUtils/ParserUtils.hpp"
+#include "../../../config/shared/rounding/Rounding.hpp"
 #include "../../../desktop/view/Group.hpp"
 
 #include <hyprutils/string/Numeric.hpp>
@@ -310,11 +311,9 @@ static std::expected<WindowRuleEffectValue, std::string> parseWindowRuleEffect(C
         }
 
         case WINDOW_RULE_EFFECT_ROUNDING: {
-            auto parsed = parseInt(EFFECT_NAME, raw);
+            auto parsed = Config::Rounding::parse(raw);
             if (!parsed)
-                return std::unexpected(parsed.error());
-            if (*parsed < 0)
-                return std::unexpected(std::format("{} rule \"{}\" must be non-negative", EFFECT_NAME, raw));
+                return std::unexpected(std::format("{} rule \"{}\" failed with: {}", EFFECT_NAME, raw, parsed.error()));
             return *parsed;
         }
 

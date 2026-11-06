@@ -11,6 +11,7 @@
 #include "../../../helpers/math/Expression.hpp"
 #include "../../../helpers/TagKeeper.hpp"
 #include "../../../config/shared/complex/ComplexDataTypes.hpp"
+#include "../../../config/shared/complex/CornersData.hpp"
 
 namespace Desktop::Rule {
     class CWindowRule;
@@ -36,6 +37,7 @@ namespace Desktop::Rule {
                                                                                Types::eOverridePriority              prio = Types::PRIORITY_WINDOW_RULE);
         bool                                                        readStaticRules(bool preRead = false);
         void                                                        recheckStaticRules();
+        Config::CCornersData                                        roundingValue() const;
 
         // static props
         struct {
@@ -125,7 +127,7 @@ namespace Desktop::Rule {
         DEFINE_PROP(int, idleInhibitMode, false, WINDOW_RULE_EFFECT_IDLE_INHIBIT)
 
         DEFINE_PROP(Config::INTEGER, borderSize, {std::string("general:border_size") COMMA sc<Config::INTEGER>(0) COMMA std::nullopt}, WINDOW_RULE_EFFECT_BORDER_SIZE)
-        DEFINE_PROP(Config::INTEGER, rounding, {std::string("decoration:rounding") COMMA sc<Config::INTEGER>(0) COMMA std::nullopt}, WINDOW_RULE_EFFECT_ROUNDING)
+        DEFINE_PROP(Config::CCornersData, rounding, {}, WINDOW_RULE_EFFECT_ROUNDING)
         DEFINE_PROP(Config::INTEGER, tonemap, 1, WINDOW_RULE_EFFECT_TONEMAP)
 
         DEFINE_PROP(Config::FLOAT, roundingPower, {std::string("decoration:rounding_power")}, WINDOW_RULE_EFFECT_ROUNDING_POWER)

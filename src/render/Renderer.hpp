@@ -200,25 +200,25 @@ namespace Render {
         virtual SP<ITexture> renderText(Hyprgraphics::CTextResource::STextResourceData&& data);
         SP<ITexture>         loadAsset(const std::string& filename);
         virtual bool         shouldUseNewBlurOptimizations(CRenderContext& ctx, PHLLS pLayer, PHLWINDOW pWindow);
-        virtual bool         explicitSyncSupported()                                                                                                                         = 0;
-        virtual bool         fp16Supported()                                                                                                                                 = 0;
-        virtual std::vector<SDRMFormat> getDRMFormats()                                                                                                                      = 0;
-        virtual std::vector<uint64_t>   getDRMFormatModifiers(DRMFormat format)                                                                                              = 0;
-        virtual SP<IFramebuffer>        createFB(const std::string& name = "")                                                                                               = 0;
-        virtual void                    disableScissor()                                                                                                                     = 0;
-        virtual void                    blend(bool enabled)                                                                                                                  = 0;
-        virtual void             drawShadow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a,
-                                            const SWindowRenderPresentation& presentation)                                                                                   = 0;
-        virtual void             drawShadow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
-                                            const Config::CGradientValueData& grad2, float lerp, float a, const SWindowRenderPresentation& presentation)                     = 0;
-        virtual void             drawGlow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a) = 0;
-        virtual void             drawGlow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
-                                          const Config::CGradientValueData& grad2, float lerp, float a)                                                                      = 0;
-        virtual void             setViewport(int x, int y, int width, int height)                                                                                            = 0;
+        virtual bool         explicitSyncSupported()                                                                                                                            = 0;
+        virtual bool         fp16Supported()                                                                                                                                    = 0;
+        virtual std::vector<SDRMFormat> getDRMFormats()                                                                                                                         = 0;
+        virtual std::vector<uint64_t>   getDRMFormatModifiers(DRMFormat format)                                                                                                 = 0;
+        virtual SP<IFramebuffer>        createFB(const std::string& name = "")                                                                                                  = 0;
+        virtual void                    disableScissor()                                                                                                                        = 0;
+        virtual void                    blend(bool enabled)                                                                                                                     = 0;
+        virtual void drawShadow(CRenderContext& ctx, const CBox& box, Math::SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& color, float a,
+                                const SWindowRenderPresentation& presentation)                                                                                                  = 0;
+        virtual void drawShadow(CRenderContext& ctx, const CBox& box, Math::SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& grad1,
+                                const Config::CGradientValueData& grad2, float lerp, float a, const SWindowRenderPresentation& presentation)                                    = 0;
+        virtual void drawGlow(CRenderContext& ctx, const CBox& box, Math::SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& color, float a) = 0;
+        virtual void drawGlow(CRenderContext& ctx, const CBox& box, Math::SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& grad1,
+                              const Config::CGradientValueData& grad2, float lerp, float a)                                                                                     = 0;
+        virtual void setViewport(int x, int y, int width, int height)                                                                                                           = 0;
 
-        bool                     preBlurQueued(PHLMONITORREF pMonitor);
-        bool                     preBlurQueued(CRenderContext& ctx);
-        SP<ITexture>             getBlurTexture(CRenderContext& ctx);
+        bool         preBlurQueued(PHLMONITORREF pMonitor);
+        bool         preBlurQueued(CRenderContext& ctx);
+        SP<ITexture> getBlurTexture(CRenderContext& ctx);
         SP<IFramebuffer>         getWorkBuffer(CRenderContext& ctx, std::optional<Vector2D> size = std::nullopt);
         void                     sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now);
 

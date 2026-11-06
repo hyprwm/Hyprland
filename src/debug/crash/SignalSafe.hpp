@@ -35,6 +35,11 @@ namespace SignalSafe {
         }
 
         void writeNum(size_t num) {
+            if (num == 0) {
+                write('0');
+                return;
+            }
+
             size_t d = 1;
 
             while (num / 10 >= d) {

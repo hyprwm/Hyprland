@@ -990,11 +990,13 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
     if (e.mouse)
         recheckMouseWarpOnMouseInput();
 
-    PROTO::inputCapture->axis(e.axis, e.delta);
-    if (e.source == 0)
-        PROTO::inputCapture->axisValue120(e.axis, e.delta);
-    else if (e.delta == 0)
-        PROTO::inputCapture->axisStop(e.axis);
+    if (e.source == WL_POINTER_AXIS_SOURCE_WHEEL)
+        PROTO::inputCapture->axisValue120(e.axis, e.deltaDiscrete);
+    else {
+        PROTO::inputCapture->axis(e.axis, e.delta);
+        if (e.delta == 0)
+            PROTO::inputCapture->axisStop(e.axis);
+    }
     PROTO::inputCapture->frame();
 
     Hotkeys::mgr()->onAxis();

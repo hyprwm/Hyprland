@@ -50,6 +50,17 @@ std::optional<CWorkspaceRule> CWorkspaceRuleManager::getWorkspaceRuleFor(PHLWORK
     if (!any)
         return std::nullopt;
 
+
+    // Compare the persisted values vs the newly calced merged rule - need to overload operator!=.
+    if (workspace->activeWorkspaceRule != mergedRule)
+        // ERSTARR TODO: fire event
+        ;
+    else
+    // ERSTARR TODO: since merged workspace rule is computed every time anything queries it, we assume that the latest applying in at least some way is latest queried.
+    //               It would be more derirable to persist the state of currently applying properties for a workspace like window rules do for individual windows for the namesake of the variable to be more accurate
+    //               Perf cost of copying every time is pointless. For now, this just allows for testing the feesibility of this approach
+        workspace->activeWorkspaceRule = mergedRule;
+
     return mergedRule;
 }
 

@@ -2,6 +2,7 @@
 
 #include "MatchEngine.hpp"
 #include <string>
+#include <vector>
 
 namespace Desktop::Rule {
     class CTagMatchEngine : public IMatchEngine {
@@ -12,6 +13,6 @@ namespace Desktop::Rule {
         virtual bool match(const CTagKeeper& keeper);
 
       private:
-        std::string m_tag;
+        std::vector<std::string> m_tags;
     };
 }

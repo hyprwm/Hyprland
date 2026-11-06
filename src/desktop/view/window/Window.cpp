@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <cmath>
-#include <optional>
 #include <ranges>
 #include <utility>
 #include <hyprutils/animation/AnimatedVariable.hpp>

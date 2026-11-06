@@ -13,7 +13,7 @@ using namespace Config;
 using namespace Hyprutils::String;
 
 static bool parseModeLine(const std::string& modeline, drmModeModeInfo& mode) {
-    auto args = CVarList2(std::string{modeline}, 0, 's');
+    auto args = CVarList2(std::string{modeline}, 0, 's', true);
 
     auto keyword = std::string{args[0]};
     std::ranges::transform(keyword, keyword.begin(), ::tolower);

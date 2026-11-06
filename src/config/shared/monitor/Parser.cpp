@@ -71,7 +71,7 @@ static bool parseModeLine(const std::string& modeline, drmModeModeInfo& mode) {
         {"-hsync", DRM_MODE_FLAG_NHSYNC},
         {"+vsync", DRM_MODE_FLAG_PVSYNC},
         {"-vsync", DRM_MODE_FLAG_NVSYNC},
-        {"Interlace", DRM_MODE_FLAG_INTERLACE},
+        {"interlace", DRM_MODE_FLAG_INTERLACE},
     };
     // clang-format on
 
@@ -86,6 +86,9 @@ static bool parseModeLine(const std::string& modeline, drmModeModeInfo& mode) {
         else
             LOG(Log::ERR, "Invalid flag {} in modeline", key);
     }
+
+    if (mode.flags & DRM_MODE_FLAG_INTERLACE)
+        mode.vrefresh *= 2;
 
     const auto [nameEnd, size] = std::format_to_n(mode.name, sizeof(mode.name) - 1, "{}x{}@{}", mode.hdisplay, mode.vdisplay, mode.vrefresh / 1000);
     *nameEnd                   = '\0';

@@ -1628,7 +1628,7 @@ I18n::CI18nEngine::CI18nEngine() {
     registerEntry("sr_RS@latin", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Ponovno učitavanje CM šejdera nije uspelo, vraćanje na rgba/rgbx.");
     registerEntry("sr_RS@latin", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: širok spektar boja je omogućen ali ekran nije u 10-bitnom režimu.");
 
-    // tr_TR (Turkish)
+        // tr_TR (Turkish)
     registerEntry("tr_TR", TXT_KEY_ANR_TITLE, "Uygulama Yanıt Vermiyor");
     registerEntry("tr_TR", TXT_KEY_ANR_CONTENT, "Bir uygulama {title} - {class} yanıt vermiyor.\nBununla ne yapmak istiyorsun?");
     registerEntry("tr_TR", TXT_KEY_ANR_OPTION_TERMINATE, "Sonlandır");
@@ -1637,8 +1637,11 @@ I18n::CI18nEngine::CI18nEngine() {
 
     registerEntry("tr_TR", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "Bir uygulama <b>{app}</b> bilinmeyen bir izin istiyor.");
     registerEntry("tr_TR", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "Bir uygulama <b>{app}</b> ekran kaydı yapmaya çalışıyor.\n\nİzin vermek istiyor musun?");
+    registerEntry("tr_TR", TXT_KEY_PERMISSION_REQUEST_CURSOR_POS, "Bir uygulama <b>{app}</b> imleç konumunu yakalamaya çalışıyor.\n\nİzin vermek istiyor musun?");
     registerEntry("tr_TR", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "Bir uygulama <b>{app}</b> bir eklenti kurmaya çalışıyor: <b>{plugin}</b>.\n\nİzin vermek istiyor musun?");
     registerEntry("tr_TR", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Yeni bir klavye algılandı: <b>{keyboard}</b>.\n\nÇalışmasına izin vermek istiyor musun?");
+    huEngine->registerEntry("tr_TR", TXT_KEY_PERMISSION_REQUEST_INPUT_CAPTURE,
+                            "Bir uygulama <b>{app}</b> girdilerini yakalamaya çalışıyor.\n\nBunu yapmasına izin vermek istiyor musun?");
     registerEntry("tr_TR", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(bilinmiyor)");
     registerEntry("tr_TR", TXT_KEY_PERMISSION_TITLE, "İzin isteği");
     registerEntry("tr_TR", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "İpucu: Hyprland config dosyasında bunlar için kalıcı kurallar atayabilirsin.");
@@ -1662,7 +1665,21 @@ I18n::CI18nEngine::CI18nEngine() {
     registerEntry("tr_TR", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "{name} plugini yüklenemedi: {error}");
     registerEntry("tr_TR", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM shader yeniden yüklemesi başarısız, rgba/rgbx'e geri dönülüyor.");
     registerEntry("tr_TR", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitör {name}: wide color gamut etkinleştirildi ama ekran 10-bit modunda değil.");
+    registerEntry("tr_TR", TXT_KEY_NOTIF_NO_WATCHDOG, "Hyprland, start-hyprland olmadan başlatıldı. Hata ayıklama ortamında değilsen bu kesinlikle tavsiye edilmez.");
+    registerEntry("tr_TR", TXT_KEY_NOTIF_DEPRECATED_CONFIG_OPTS,
+                  "{count} kullanımdan kaldırılmış config seçeneği kullanıyorsun. Daha fazla bilgi için hyprctl deprecated-config komutunu çalıştır.");
+    registerEntry("tr_TR", TXT_KEY_NOTIF_NO_FP16, "Grafik kartın FP16 buffer'lara render almayı desteklemiyor, bazı efektler ve CM ayarları kullanılamayabilir.");
 
+    registerEntry("tr_TR", TXT_KEY_SAFE_MODE_TITLE, "Güvenli Mod");
+    registerEntry("tr_TR", TXT_KEY_SAFE_MODE_DESCRIPTION,
+                  "Hyprland güvenli modda başlatıldı, yani son oturumun çöktü.\nGüvenli mod, config dosyanın yüklenmesini engeller. Bu ortamda "
+                  "sorun giderebilir ya da aşağıdaki butonla config'ini yükleyebilirsin.\nVarsayılan kısayollar geçerli: kitty için SUPER+Q, basit bir çalıştırıcı için SUPER+R, "
+                  "çıkmak için SUPER+M.\nHyprland'i yeniden başlatırsan "
+                  "normal modda açılır.");
+    registerEntry("tr_TR", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "Config'i yükle");
+    registerEntry("tr_TR", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "Çökme raporu dizinini aç");
+    registerEntry("tr_TR", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "Tamam, kapat");
+    
     // tt_RU (Tatar)
     registerEntry("tt_RU", TXT_KEY_ANR_TITLE, "Программа җавап бирми");
     registerEntry("tt_RU", TXT_KEY_ANR_CONTENT, "Программасы {title} - {class} җавап бирми.\nСез аның белән нәрсә эшләргә телисез?");

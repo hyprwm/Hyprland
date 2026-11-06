@@ -343,7 +343,7 @@ int requestHyprsunset(std::string_view arg) {
     return requestIPC(".hyprsunset.sock", arg);
 }
 
-void batchRequest(std::string_view arg, bool json) {
+int batchRequest(std::string_view arg, bool json) {
     std::string commands(arg.substr(arg.find_first_of(' ') + 1));
 
     if (json) {
@@ -352,7 +352,7 @@ void batchRequest(std::string_view arg, bool json) {
     }
 
     std::string rq = std::format("[[BATCH]]{}", commands);
-    request(rq);
+    return request(rq);
 }
 
 void instancesRequest(bool json) {
@@ -529,7 +529,7 @@ int main(int argc, char** argv) {
     int exitStatus = 0;
 
     if (fullRequest.contains("/--batch"))
-        batchRequest(fullRequest, json);
+        exitStatus = batchRequest(fullRequest, json);
     else if (fullRequest.contains("/hyprpaper")) {
         auto result = Hyprpaper::makeHyprpaperRequest(fullRequest);
         if (!result)

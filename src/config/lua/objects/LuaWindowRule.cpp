@@ -60,9 +60,9 @@ static int windowRuleIndex(lua_State* L) {
     const std::string_view key = luaL_checkstring(L, 2);
 
     if (key == "set_enabled")
-        lua_pushcfunction(L, windowRuleSetEnabled);
+        pushFn(L, windowRuleSetEnabled, FORBIDDEN_IN_PREDICATE);
     else if (key == "is_enabled")
-        lua_pushcfunction(L, windowRuleIsEnabled);
+        pushFn(L, windowRuleIsEnabled, ALLOWED_IN_PREDICATE);
     else
         lua_pushnil(L);
 

@@ -60,7 +60,7 @@ static int layoutTargetIndex(lua_State* L) {
     } else if (*key == "box")
         pushBox(L, target->position());
     else if (*key == "place" || *key == "set_box")
-        lua_pushcfunction(L, layoutTargetPlace);
+        pushFn(L, layoutTargetPlace, FORBIDDEN_IN_PREDICATE);
     else
         lua_pushnil(L);
 

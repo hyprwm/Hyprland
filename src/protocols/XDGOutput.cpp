@@ -116,7 +116,7 @@ void CXDGOutput::sendDetails() {
     if (isInert())
         return;
 
-    static auto PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
+    static auto PXWLFORCESCALEZERO = CConfigValue<Config::BOOL>("xwayland:force_zero_scaling");
 
     const auto  POS = m_isXWayland ? m_monitor->m_xwaylandPosition : m_monitor->m_position;
     m_resource->sendLogicalPosition(POS.x, POS.y);

@@ -361,7 +361,7 @@ void CDragStateController::mouseMove(const Vector2D& mousePos) {
     const auto  DELTA     = Vector2D(mousePos.x - m_beginDragXY.x, mousePos.y - m_beginDragXY.y);
     const auto  TICKDELTA = Vector2D(mousePos.x - m_lastDragXY.x, mousePos.y - m_lastDragXY.y);
 
-    static auto SNAPENABLED = CConfigValue<Config::INTEGER>("general:snap:enabled");
+    static auto SNAPENABLED = CConfigValue<Config::BOOL>("general:snap:enabled");
 
     const auto  TIMERDELTA    = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - TIMER).count();
     const auto  MSDELTA       = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - MSTIMER).count();

@@ -47,7 +47,7 @@ void CMonitorZoomController::zoomWithDetachedCamera(Render::CRenderContext& ctx,
     const auto  ZOOM   = ctx.m_data.mouseZoomFactor;
     const auto  MOUSE  = getAnchor(m);
 
-    if (m_lastZoomLevel != ZOOM) {
+    if (m_resetCameraState || m_lastZoomLevel != ZOOM) {
         if (m_resetCameraState) {
             m_resetCameraState = false;
             m_camera           = CBox(0, 0, m->m_size.x, m->m_size.y);

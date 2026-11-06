@@ -1,5 +1,7 @@
 #include "DataDevice.hpp"
 #include <algorithm>
+#include <array>
+#include <bit>
 #include "../../managers/SeatManager.hpp"
 #include "../../pointer/PointerManager.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
@@ -16,6 +18,8 @@
 #include "../../xwayland/Dnd.hpp"
 #include "../../event/EventBus.hpp"
 using namespace Hyprutils::OS;
+
+static constexpr uint32_t DND_ACTIONS = WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY | WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE | WL_DATA_DEVICE_MANAGER_DND_ACTION_ASK;
 
 CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataSource> source_) : m_source(source_), m_resource(resource_) {
     if UNLIKELY (!good())
@@ -37,8 +41,8 @@ CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataS
 
         LOG(Log::DEBUG, "Offer {:x} accepts data from source {:x} with mime {}", (uintptr_t)this, (uintptr_t)m_source.get(), mime ? mime : "null");
 
-        m_source->accepted(mime ? mime : "");
-        m_accepted = mime;
+        m_accepted = mime && std::ranges::contains(m_source->mimes(), mime);
+        m_source->accepted(m_accepted ? mime : "");
     });
 
     m_resource->setReceive([this](CWlDataOffer* r, const char* mime, int fd) {
@@ -61,27 +65,75 @@ CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataS
         }
 
         m_source->send(mime ? mime : "", std::move(sendFd));
+    });
 
-        m_recvd = true;
+    m_resource->setSetActions([this](CWlDataOffer* r, uint32_t actions, uint32_t preferred) {
+        if (!m_source || !m_source->hasDnd()) {
+            r->error(WL_DATA_OFFER_ERROR_INVALID_OFFER, "set_actions is only valid for drag-and-drop offers");
+            return;
+        }
+        if (actions & ~DND_ACTIONS) {
+            r->error(WL_DATA_OFFER_ERROR_INVALID_ACTION_MASK, "Invalid drag-and-drop action mask");
+            return;
+        }
+        if (preferred && (!std::has_single_bit(preferred) || !(preferred & actions))) {
+            r->error(WL_DATA_OFFER_ERROR_INVALID_ACTION, "Preferred action must be a single supported action");
+            return;
+        }
+        if (m_dead)
+            return;
+        if (m_dropped && !m_inAsk)
+            return;
+        if (m_inAsk && preferred && !(preferred & m_source->actions())) {
+            r->error(WL_DATA_OFFER_ERROR_INVALID_ACTION, "Final action is not supported by the source");
+            return;
+        }
 
-        // if (source->hasDnd())
-        //     PROTO::data->completeDrag();
+        m_destinationActions = actions;
+        m_preferredAction    = preferred;
+        updateAction();
     });
 
     m_resource->setFinish([this](CWlDataOffer* r) {
+        if (!m_source || !m_source->hasDnd() || m_dead || !m_dropped || !m_accepted || m_action == WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE ||
+            m_action == WL_DATA_DEVICE_MANAGER_DND_ACTION_ASK) {
+            r->error(WL_DATA_OFFER_ERROR_INVALID_FINISH, "Offer cannot be finished before an accepted drop and a final action");
+            return;
+        }
+
+        if (m_inAsk)
+            m_source->sendDndAction(m_action);
         m_dead = true;
-        if (!m_source || !m_recvd || !m_accepted)
-            PROTO::data->abortDrag();
-        else
-            PROTO::data->completeDrag();
+        PROTO::data->completeDrag();
     });
 }
 
-CWLDataOfferResource::~CWLDataOfferResource() {
-    if (!m_source || !m_source->hasDnd() || m_dead)
+void CWLDataOfferResource::updateAction() {
+    if (!m_source || m_dead || !m_source->hasDnd())
         return;
 
-    m_source->sendDndFinished();
+    const auto       DESTINATION_ACTIONS = m_resource->version() >= 3 ? m_destinationActions : sc<uint32_t>(WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY);
+    const auto       AVAILABLE           = m_source->actions() & DESTINATION_ACTIONS;
+    const std::array PRIORITY            = {
+        sc<wl_data_device_manager_dnd_action>(m_preferredAction),
+        WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY,
+        WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE,
+        WL_DATA_DEVICE_MANAGER_DND_ACTION_ASK,
+    };
+    const auto SELECTED = std::ranges::find_if(PRIORITY, [AVAILABLE](auto candidate) { return AVAILABLE & candidate; });
+    const auto ACTION   = SELECTED == PRIORITY.end() ? WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE : *SELECTED;
+
+    if (ACTION == m_action)
+        return;
+
+    m_action = ACTION;
+    // ASK sends the final source action in finish
+    if (m_inAsk)
+        return;
+
+    m_source->sendDndAction(m_action);
+    if (m_resource->version() >= 3)
+        m_resource->sendAction(m_action);
 }
 
 bool CWLDataOfferResource::good() {
@@ -92,18 +144,10 @@ void CWLDataOfferResource::sendData() {
     if (!m_source)
         return;
 
-    const auto SOURCEACTIONS = m_source->actions();
-
-    if (m_resource->version() >= 3 && SOURCEACTIONS > 0) {
-        m_resource->sendSourceActions(SOURCEACTIONS);
-        if (SOURCEACTIONS & WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE)
-            m_resource->sendAction(WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE);
-        else if (SOURCEACTIONS & WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY)
-            m_resource->sendAction(WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY);
-        else {
-            LOG(Log::ERR, "Client bug? dnd source has no action move or copy. Sending move, f this.");
-            m_resource->sendAction(WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE);
-        }
+    if (m_source->hasDnd()) {
+        if (m_resource->version() >= 3)
+            m_resource->sendSourceActions(m_source->actions());
+        updateAction();
     }
 
     for (auto const& m : m_source->mimes()) {
@@ -148,7 +192,12 @@ CWLDataSourceResource::CWLDataSourceResource(SP<CWlDataSource> resource_, SP<CWL
     m_resource->setOffer([this](CWlDataSource* r, const char* mime) { m_mimeTypes.emplace_back(mime); });
     m_resource->setSetActions([this](CWlDataSource* r, uint32_t a) {
         LOG(Log::DEBUG, "DataSource {:x} actions {}", (uintptr_t)this, a);
+        if (a & ~DND_ACTIONS || m_actionsSet || used()) {
+            r->error(WL_DATA_SOURCE_ERROR_INVALID_ACTION_MASK, "Actions must be valid and set once before start_drag");
+            return;
+        }
         m_supportedActions = a;
+        m_actionsSet       = true;
     });
 }
 
@@ -229,7 +278,7 @@ void CWLDataSourceResource::sendDndAction(wl_data_device_manager_dnd_action a) {
 }
 
 uint32_t CWLDataSourceResource::actions() {
-    return m_supportedActions;
+    return m_resource->version() < 3 ? sc<uint32_t>(WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY) : m_supportedActions;
 }
 
 eDataSourceType CWLDataSourceResource::type() {
@@ -423,6 +472,14 @@ void CWLDataDeviceProtocol::destroyResource(CWLDataSourceResource* resource) {
 }
 
 void CWLDataDeviceProtocol::destroyResource(CWLDataOfferResource* resource) {
+    // refocusing below can destroy the offer
+    const auto OFFER = resource->m_self.lock();
+    if (OFFER && m_dnd.currentOffer == OFFER && !OFFER->m_dead) {
+        if (OFFER->m_dropped && OFFER->m_resource->version() < 3)
+            completeDrag();
+        else
+            abortDrag();
+    }
     std::erase_if(m_offers, [&](const auto& other) { return other.get() == resource; });
 }
 
@@ -545,11 +602,8 @@ void CWLDataDeviceProtocol::onKeyboardFocus() {
 }
 
 void CWLDataDeviceProtocol::onDndPointerFocus() {
-    for (auto const& o : m_offers) {
-        if (o->m_source && !o->m_source->hasDnd())
-            continue;
-        o->m_dead = true;
-    }
+    if (m_dnd.currentOffer && m_dnd.currentOffer->m_dropped)
+        return;
 
     updateDrag();
 }
@@ -671,6 +725,14 @@ void CWLDataDeviceProtocol::updateDrag() {
     if (m_dnd.focusedDevice)
         m_dnd.focusedDevice->sendLeave();
 
+    m_dnd.focusedDevice.reset();
+    if (m_dnd.currentOffer) {
+        if (m_dnd.currentOffer->m_action != WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE)
+            m_dnd.currentSource->sendDndAction(WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE);
+        m_dnd.currentOffer->m_dead = true;
+        m_dnd.currentOffer.reset();
+    }
+
     auto surface = g_pSeatManager->m_state.dndPointerFocus.lock();
     if (!surface)
         return;
@@ -690,9 +752,9 @@ void CWLDataDeviceProtocol::updateDrag() {
             m_offers.pop_back();
             return;
         }
-        OFFER->m_source = m_dnd.currentSource;
-        OFFER->m_self   = OFFER;
-        offer           = OFFER;
+        OFFER->m_self      = OFFER;
+        m_dnd.currentOffer = OFFER;
+        offer              = OFFER;
     }
 #ifndef NO_XWAYLAND
     else if (const auto X11 = m_dnd.focusedDevice->getX11(); X11)
@@ -726,8 +788,12 @@ void CWLDataDeviceProtocol::cleanupDndState(bool resetDevice, bool resetSource, 
 
     if (resetDevice)
         m_dnd.focusedDevice.reset();
-    if (resetSource)
+    if (resetSource) {
+        if (m_dnd.currentOffer)
+            m_dnd.currentOffer->m_dead = true;
+        m_dnd.currentOffer.reset();
         m_dnd.currentSource.reset();
+    }
 
     if (simulateInput) {
         g_pInputManager->simulateMouseMovement();
@@ -736,47 +802,43 @@ void CWLDataDeviceProtocol::cleanupDndState(bool resetDevice, bool resetSource, 
 }
 
 void CWLDataDeviceProtocol::dropDrag() {
-    if (!m_dnd.focusedDevice || !m_dnd.currentSource) {
+    if (!canDrop()) {
         if (m_dnd.currentSource)
             abortDrag();
         return;
     }
 
-    if (!wasDragSuccessful()) {
-        abortDrag();
-        return;
+    if (m_dnd.currentOffer) {
+        m_dnd.currentOffer->m_dropped = true;
+        m_dnd.currentOffer->m_inAsk   = m_dnd.currentOffer->m_action == WL_DATA_DEVICE_MANAGER_DND_ACTION_ASK;
     }
-
+    m_dnd.currentSource->sendDndDropPerformed();
     m_dnd.focusedDevice->sendDrop();
-
-#ifndef NO_XWAYLAND
-    if (m_dnd.focusedDevice->getX11()) {
-        m_dnd.focusedDevice->sendLeave();
-        if (m_dnd.overriddenCursor)
-            Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_DND);
-        m_dnd.overriddenCursor = false;
-        cleanupDndState(true, true, true);
-        return;
-    }
-#endif
 
     m_dnd.focusedDevice->sendLeave();
     if (m_dnd.overriddenCursor)
         Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_DND);
     m_dnd.overriddenCursor = false;
+
+#ifndef NO_XWAYLAND
+    if (m_dnd.focusedDevice->getX11()) {
+        cleanupDndState(true, true, true);
+        return;
+    }
+#endif
+
     cleanupDndState(false, false, false);
 }
 
-bool CWLDataDeviceProtocol::wasDragSuccessful() {
-    if (!m_dnd.currentSource)
+bool CWLDataDeviceProtocol::canDrop() {
+    if (!m_dnd.currentSource || !m_dnd.focusedDevice)
         return false;
 
-    for (auto const& o : m_offers) {
-        if (o->m_dead || o->m_source != m_dnd.currentSource)
-            continue;
-
-        if (o->m_recvd || o->m_accepted)
-            return true;
+    if (m_dnd.currentOffer) {
+        if (m_dnd.currentOffer->m_dead)
+            return false;
+        // v1/v2 don't require MIME acceptance before drop
+        return m_dnd.currentOffer->m_action != WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE && (m_dnd.currentOffer->m_resource->version() < 3 || m_dnd.currentOffer->m_accepted);
     }
 
 #ifndef NO_XWAYLAND
@@ -791,10 +853,8 @@ void CWLDataDeviceProtocol::completeDrag() {
     if (!m_dnd.focusedDevice && !m_dnd.currentSource)
         return;
 
-    if (m_dnd.currentSource) {
-        m_dnd.currentSource->sendDndDropPerformed();
+    if (m_dnd.currentSource)
         m_dnd.currentSource->sendDndFinished();
-    }
 
     cleanupDndState(true, true, true);
 }
@@ -820,6 +880,9 @@ void CWLDataDeviceProtocol::abortDrag() {
     if (m_dnd.currentSource)
         m_dnd.currentSource->cancelled();
 
+    if (m_dnd.currentOffer)
+        m_dnd.currentOffer->m_dead = true;
+    m_dnd.currentOffer.reset();
     m_dnd.focusedDevice.reset();
     m_dnd.currentSource.reset();
 

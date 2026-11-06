@@ -2,7 +2,6 @@
 #include "../../debug/log/Logger.hpp"
 
 #include <cstdlib>
-#include <filesystem>
 #include <fstream>
 #include <algorithm>
 
@@ -58,17 +57,14 @@ std::optional<std::string> NFsUtils::getDataHome() {
     return hyprlandDataDir.string();
 }
 
-std::optional<std::string> NFsUtils::readFileAsString(const std::string& path) {
-    std::error_code ec;
-
-    if (!std::filesystem::exists(path, ec) || ec)
+std::optional<std::string> NFsUtils::readFileAsString(const std::filesystem::path& path) {
+    std::ifstream ifs(path);
+    if (!ifs.is_open()) {
         return std::nullopt;
+    }
 
-    std::ifstream file(path);
-    if (!file.good())
-        return std::nullopt;
-
-    return trim(std::string((std::istreambuf_iterator<char>(file)), (std::istreambuf_iterator<char>())));
+    std::string data(std::istreambuf_iterator<char>{ifs}, std::istreambuf_iterator<char>{});
+    return trim(data);
 }
 
 bool NFsUtils::writeToFile(const std::string& path, const std::string& content) {

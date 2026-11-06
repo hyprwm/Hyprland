@@ -135,15 +135,15 @@ void CInputPopup::updateBox() {
 
     damageSurface();
 
-    if (const auto PM = State::monitorState()->query().vec(g_pInputManager->getMouseCoordsInternal()).run(); PM && PM->m_id != m_lastMonitor) {
+    if (pMonitor->m_id != m_lastMonitor) {
         const auto PML = State::monitorState()->query().id(m_lastMonitor).run();
 
         if (PML)
             m_surface->resource()->leave(PML->m_self.lock());
 
-        m_surface->resource()->enter(PM->m_self.lock());
+        m_surface->resource()->enter(pMonitor->m_self.lock());
 
-        m_lastMonitor = PM->m_id;
+        m_lastMonitor = pMonitor->m_id;
     }
 }
 

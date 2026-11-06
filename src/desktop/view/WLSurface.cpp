@@ -57,7 +57,7 @@ bool CWLSurface::small() const {
 }
 
 Vector2D CWLSurface::correctSmallVec() const {
-    if (!m_view || m_view->type() != VIEW_TYPE_WINDOW || !exists() || !small() || !m_fillIgnoreSmall)
+    if (!m_view || m_view->type() != VIEW_TYPE_WINDOW || !exists() || !small() || m_fillIgnoreSmall)
         return {};
 
     const auto SIZE = getViewporterCorrectedSize();

@@ -33,10 +33,8 @@ namespace Desktop::View {
 
         SP<CWLSurfaceResource> resource() const;
         bool                   exists() const;
-        bool                   small() const;              // means surface is smaller than the requested size
-        Vector2D               correctSmallVec() const;    // returns a corrective vector for small() surfaces
-        Vector2D               correctSmallVecBuf() const; // returns a corrective vector for small() surfaces, in BL coords
-        Vector2D               getViewporterCorrectedSize() const;
+        bool                   small() const;                                       // means surface is smaller than the requested size
+        Vector2D               correctSmallVec() const;                             // returns a corrective vector for small() surfaces
         CRegion                computeDamage(const std::optional<CBox>& box) const; // logical coordinates. May be wrong if the surface is unassigned
         bool                   keyboardFocusable() const;
         void                   sendScale(float scale) const;

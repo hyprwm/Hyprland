@@ -7,6 +7,7 @@
 #include <hyprutils/string/String.hpp>
 #include <string>
 #include <algorithm>
+#include <cmath>
 #include <format>
 
 using namespace Config;
@@ -48,7 +49,8 @@ static bool parseModeLine(const std::string& modeline, drmModeModeInfo& mode) {
 
     mode.type = DRM_MODE_TYPE_USERDEF;
 
-    ASSIGN_OR_FAIL(mode.clock, float);
+    double pixelClock = 0;
+    ASSIGN_OR_FAIL(pixelClock, double);
     ASSIGN_OR_FAIL(mode.hdisplay, int);
     ASSIGN_OR_FAIL(mode.hsync_start, int);
     ASSIGN_OR_FAIL(mode.hsync_end, int);
@@ -58,7 +60,7 @@ static bool parseModeLine(const std::string& modeline, drmModeModeInfo& mode) {
     ASSIGN_OR_FAIL(mode.vsync_end, int);
     ASSIGN_OR_FAIL(mode.vtotal, int);
 
-    mode.clock *= 1000;
+    mode.clock    = std::round(pixelClock * 1000);
     mode.vrefresh = mode.clock * 1000.0 * 1000.0 / mode.htotal / mode.vtotal;
 
 #undef ASSIGN_OR_FAIL

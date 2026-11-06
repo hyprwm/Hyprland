@@ -103,7 +103,7 @@ void CInputPopup::updateBox() {
         cursorBoxParent = {0, 0, sc<int>(parentBox.w), sc<int>(parentBox.h)};
     }
 
-    Vector2D   currentPopupSize = m_surface->getViewporterCorrectedSize() / m_surface->resource()->m_current.scale;
+    Vector2D   currentPopupSize = m_surface->resource()->m_current.size;
 
     PHLMONITOR pMonitor = State::monitorState()->query().vec(parentBox.middle()).run();
 

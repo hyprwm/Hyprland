@@ -65,10 +65,10 @@ TEST_CASE(luaProcessSpawning) {
 
     const auto SOCK_TIMEOUT = 5;
     static_assert(SOCK_TIMEOUT > DURATION);
-    auto       t = timeval{.tv_sec = 5, .tv_usec = 0};
+    auto t = timeval{.tv_sec = 5, .tv_usec = 0};
     setsockopt(SERVERSOCKET, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(struct timeval));
 
-    std::string reply  = "";
+    std::string reply = "";
 
     if (SERVERSOCKET < 0) {
         std::println("socket: Couldn't open a socket (1)");
@@ -78,11 +78,11 @@ TEST_CASE(luaProcessSpawning) {
     sockaddr_un serverAddress = {0};
     serverAddress.sun_family  = AF_UNIX;
 
-    const auto RUNTIMEDIR = []{
+    const auto RUNTIMEDIR = [] {
         const auto XDG = getenv("XDG_RUNTIME_DIR");
         if (!XDG) {
-            const auto UID   = getuid();
-            const auto PWUID = getpwuid(UID);
+            const auto UID        = getuid();
+            const auto PWUID      = getpwuid(UID);
             const auto ACTUAL_UID = PWUID ? PWUID->pw_uid : UID;
             return std::format("/run/user/{}/hypr", ACTUAL_UID);
         }
@@ -111,9 +111,7 @@ TEST_CASE(luaProcessSpawning) {
     pid_t             sleepPid;
     try {
         sleepPid = std::stoull(sleepPidS);
-    } catch (...) {
-        NLog::log("{}Sleep was not spawned or several sleeps are running: pgrep returned '{}'", Colors::RED, sleepPidS);
-    }
+    } catch (...) { NLog::log("{}Sleep was not spawned or several sleeps are running: pgrep returned '{}'", Colors::RED, sleepPidS); }
 
     const std::string sleepParentComm = Tests::execAndGet(std::format("cat \"/proc/$(ps -o ppid:1= -p {})/comm\"", sleepPidS));
     NLog::log("{}Expecting that sleep's parent is Hyprland", Colors::YELLOW);
@@ -121,7 +119,7 @@ TEST_CASE(luaProcessSpawning) {
 
     // Now read
     char buffer[8192] = {0};
-    sizeWritten = read(SERVERSOCKET, buffer, 8192);
+    sizeWritten       = read(SERVERSOCKET, buffer, 8192);
 
     if (sizeWritten < 0) {
         if (errno == EWOULDBLOCK)

@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cmath>
+#include <optional>
 #include <ranges>
 #include <utility>
 #include <hyprutils/animation/AnimatedVariable.hpp>
@@ -878,7 +879,7 @@ void CWindow::requestClientFullscreen(const SClientFullscreenRequest& request) {
         if (m_isMapped) {
             if (request.fullscreen.value()) {
                 static auto PCLIENTREQFSHANDLER = CConfigValue<Config::BOOL>("binds:client_requested_fs_uses_layout_handler");
-                Fullscreen::controller()->setFullscreenMode(m_self.lock(), std::nullopt, Fullscreen::FSMODE_FULLSCREEN, *PCLIENTREQFSHANDLER);
+                Fullscreen::controller()->setFullscreenMode(m_self.lock(), std::nullopt, Fullscreen::FSMODE_FULLSCREEN, (*PCLIENTREQFSHANDLER) ? std::nullopt : std::optional<bool>(false));
             } else {
                 // If window's fullscreen, un-fullscreen it. if it's not FS, let it keep its current FS mode
                 if (Fullscreen::controller()->getFullscreenModes(m_self.lock()).client == Fullscreen::FSMODE_FULLSCREEN)

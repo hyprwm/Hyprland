@@ -2275,10 +2275,8 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     if (!*PDAMAGEBLINK)
         damageBlinkCleanup = 0;
 
-    if (*PDEBUGOVERLAY == 1) {
+    if (*PDEBUGOVERLAY == 1)
         renderStart = std::chrono::high_resolution_clock::now();
-        Debug::overlay()->frameData(pMonitor);
-    }
 
     if (!g_pCompositor->m_sessionActive)
         return;
@@ -2311,6 +2309,9 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         pMonitor->m_pendingFrame = true;
         return;
     }
+
+    if (*PDEBUGOVERLAY == 1)
+        Debug::overlay()->frameData(pMonitor);
 
     // tearing and DS first
     bool       shouldTear              = pMonitor->updateTearing();

@@ -89,7 +89,7 @@ bool NFsUtils::executableExistsInPath(const std::string& exe) {
     if (path == nullptr)
         return false;
 
-    static CVarList2      paths(std::string{path}, 0, ':', true);
+    const CVarList2       paths(std::string{path}, 0, ':', true);
 
     std::filesystem::path fullPath;
     return std::ranges::any_of(paths, [&](std::string_view dir) -> bool {

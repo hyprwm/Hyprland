@@ -3,7 +3,6 @@
 #include "../event/EventBus.hpp"
 #include <string>
 #include <unordered_map>
-#include <hyprlang.hpp>
 
 using namespace NTransferFunction;
 

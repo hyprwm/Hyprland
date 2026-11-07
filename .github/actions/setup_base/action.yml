@@ -25,7 +25,6 @@ runs:
           glslang \
           go \
           gtest \
-          hyprlang \
           hyprcursor \
           hyprland-protocols \
           jq \

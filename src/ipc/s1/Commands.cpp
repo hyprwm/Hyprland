@@ -1759,14 +1759,8 @@ static std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string re
             return std::format("float: {:2f}\nset: {}", **rc<Config::FLOAT* const*>(VAL), *VAR.setByUser);
         else if (TYPE == typeid(Config::VEC2))
             return std::format("vec2: [{}, {}]\nset: {}", (*rc<Config::VEC2* const*>(VAL))->x, (*rc<Config::VEC2* const*>(VAL))->y, *VAR.setByUser);
-        else if (TYPE == typeid(Hyprlang::VEC2))
-            return std::format("vec2: [{}, {}]\nset: {}", (*rc<Config::VEC2* const*>(VAL))->x, (*rc<Config::VEC2* const*>(VAL))->y, *VAR.setByUser);
-        else if (TYPE == typeid(Hyprlang::STRING))
-            return std::format("str: {}\nset: {}", *rc<Hyprlang::STRING const*>(VAL), *VAR.setByUser);
         else if (TYPE == typeid(Config::STRING))
             return std::format("str: {}\nset: {}", **rc<Config::STRING* const*>(VAL), *VAR.setByUser);
-        else if (TYPE == typeid(void*))
-            return std::format("custom type: {}\nset: {}", rc<Config::IComplexConfigValue*>((*rc<Hyprlang::CUSTOMTYPE* const*>(VAL))->getData())->toString(), *VAR.setByUser);
         else if (TYPE == typeid(Config::IComplexConfigValue))
             return std::format("custom type: {}\nset: {}", (*rc<Config::IComplexConfigValue* const*>(VAL))->toString(), *VAR.setByUser);
         else if (TYPE == typeid(Config::CCssGapData))
@@ -1785,16 +1779,8 @@ static std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string re
         else if (TYPE == typeid(Config::VEC2))
             return std::format(R"({{"option": "{}", "vec2": [{},{}], "set": {} }})", curitem, (*rc<Config::VEC2* const*>(VAL))->x, (*rc<Config::VEC2* const*>(VAL))->y,
                                *VAR.setByUser);
-        else if (TYPE == typeid(Hyprlang::VEC2))
-            return std::format(R"({{"option": "{}", "vec2": [{},{}], "set": {} }})", curitem, (*rc<Config::VEC2* const*>(VAL))->x, (*rc<Config::VEC2* const*>(VAL))->y,
-                               *VAR.setByUser);
-        else if (TYPE == typeid(Hyprlang::STRING))
-            return std::format(R"({{"option": "{}", "str": "{}", "set": {} }})", curitem, escapeJSONStrings(*rc<Hyprlang::STRING const*>(VAL)), *VAR.setByUser);
         else if (TYPE == typeid(Config::STRING))
             return std::format(R"({{"option": "{}", "str": "{}", "set": {} }})", curitem, **rc<Config::STRING* const*>(VAL), *VAR.setByUser);
-        else if (TYPE == typeid(void*))
-            return std::format(R"({{"option": "{}", "custom": "{}", "set": {} }})", curitem,
-                               rc<Config::IComplexConfigValue*>((*rc<Hyprlang::CUSTOMTYPE* const*>(VAL))->getData())->toString(), *VAR.setByUser);
         else if (TYPE == typeid(Config::IComplexConfigValue))
             return std::format(R"({{"option": "{}", "custom": "{}", "set": {} }})", curitem, (*rc<Config::IComplexConfigValue* const*>(VAL))->toString(), *VAR.setByUser);
         else if (TYPE == typeid(Config::CCssGapData))
@@ -1882,7 +1868,7 @@ static std::string dispatchOutput(eHyprCtlOutputFormat format, std::string reque
             return "output not found";
 
         if (!PMONITOR->m_createdByUser)
-            return "cannot remove a real display. Use the monitor keyword.";
+            return "cannot remove a real display. Use hl.monitor to disable it instead.";
 
         PMONITOR->m_output->destroy();
     }

@@ -33,19 +33,6 @@ CONTROL COMMANDS
 
         **hyprctl** *dispatch "hl.dsp.window.close()"*
 
-**keyword**
-
-    Set a config keyword dynamically.
-
-    This will not work if your config provider is lua (refer to **eval**)
-
-    Returns: *ok* on success, and an error message on failure.
-
-    Examples:
-        **hyprctl** *keyword bind SUPER,0,pseudo*
-
-        **hyprctl** *keyword general:border_size 10*
-
 **eval**
 
     Evaluate arbitrary Lua expressions dynamically when using a Lua-based config provider.
@@ -56,6 +43,21 @@ CONTROL COMMANDS
         **hyprctl** *eval 'hl.bind("SUPER + SHIFT + Q", hl.dsp.exec_cmd("firefox"))'*
 
         **hyprctl** *eval 'hl.config({ general = { border_size = 10 } })'*
+
+**repl**
+
+    When a Lua expression is provided, works like **eval**, but prints the result of the expression rather than *ok*.
+    When no argument is provided, enters an interactive read-evaluate-print loop (REPL), useful for interactive testing and debugging.
+
+    Returns: Lua expression result, or enters interactive mode if no expression is given.
+
+    Examples:
+        **hyprctl** *repl 'hl.get_cursor_pos()'*
+
+        **hyprctl** *repl*
+        > print("stuff")
+        stuff
+        >
 
 **reload**
 
@@ -113,7 +115,7 @@ OPTIONS
     Specify a batch of commands to execute.
 
     Example:
-        **hyprctl** *--batch "keyword general:border_size 2 ; keyword general:gaps_out 20"*
+        **hyprctl** *--batch 'eval hl.config({ ["general.border_size"] = 2 }) ; repl hl.get_active_window().title"*
 
         *;* separates the commands.
 

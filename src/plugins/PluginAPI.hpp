@@ -34,7 +34,6 @@ Feel like the API is missing something you'd like to use in your plugin? Open an
 #include <functional>
 #include <string>
 #include <string_view>
-#include <hyprlang.hpp>
 
 using PLUGIN_DESCRIPTION_INFO = struct {
     std::string name;
@@ -128,41 +127,6 @@ using PPLUGIN_EXIT_FUNC = OPTIONAL void (*)();
 
 // NOLINTNEXTLINE(readability-identifier-naming)
 namespace HyprlandAPI {
-
-    /*
-        Add a config value.
-        All config values MUST be in the plugin: namespace
-        This method may only be called in "pluginInit"
-
-        After you have registered ALL of your config values, you may call `getConfigValue`
-
-        returns: true on success, false on fail
-
-        deprecated: please use V2
-    */
-    APICALL [[deprecated]] bool addConfigValue(HANDLE handle, const std::string& name, const Hyprlang::CConfigValue& value);
-
-    /*
-        Add a config keyword.
-        This method may only be called in "pluginInit"
-
-        returns: true on success, false on fail
-
-        deprecated: please use V2
-    */
-    APICALL [[deprecated]] bool addConfigKeyword(HANDLE handle, const std::string& name, Hyprlang::PCONFIGHANDLERFUNC fn, Hyprlang::SHandlerOptions opts);
-
-    /*
-        Get a config value.
-
-        Please see the <hyprlang.hpp> header or https://hypr.land/hyprlang/ for docs regarding Hyprlang types.
-
-        returns: a pointer to the config value struct, which is guaranteed to be valid for the life of this plugin, unless another `addConfigValue` is called afterwards.
-                nullptr on error.
-
-        Deprecated: please use V2
-    */
-    APICALL [[deprecated]] Hyprlang::CConfigValue* getConfigValue(HANDLE handle, const std::string& name);
 
     /*
         Deprecated: doesn't do anything anymore, use Event::bus()
@@ -401,8 +365,8 @@ APICALL inline EXPORT const char* __hyprland_api_get_client_hash() {
         return std::string{v.substr(0, v.find_last_of('.'))};
     };
 
-    static const std::string ver = std::format("{}_aq_{}_hu_{}_hg_{}_hc_{}_hlg_{}", GIT_COMMIT_HASH, stripPatch(AQUAMARINE_VERSION), stripPatch(HYPRUTILS_VERSION),
-                                               stripPatch(HYPRGRAPHICS_VERSION), stripPatch(HYPRCURSOR_VERSION), stripPatch(HYPRLANG_VERSION));
+    static const std::string ver = std::format("{}_aq_{}_hu_{}_hg_{}_hc_{}", GIT_COMMIT_HASH, stripPatch(AQUAMARINE_VERSION), stripPatch(HYPRUTILS_VERSION),
+                                               stripPatch(HYPRGRAPHICS_VERSION), stripPatch(HYPRCURSOR_VERSION));
 
     return ver.c_str();
 }

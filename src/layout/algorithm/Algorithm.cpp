@@ -229,7 +229,7 @@ const UP<IFloatingAlgorithm>& CAlgorithm::floatingAlgo() const {
 }
 
 SP<ITarget> CAlgorithm::getNextCandidate(SP<ITarget> old) {
-    static auto FOCUSONCLOSE = CConfigValue<Hyprlang::INT>("input:focus_on_close");
+    static auto FOCUSONCLOSE = CConfigValue<Config::INTEGER>("input:focus_on_close");
 
     if (old->floating() || *FOCUSONCLOSE == 2) {
         // use window history to determine best target

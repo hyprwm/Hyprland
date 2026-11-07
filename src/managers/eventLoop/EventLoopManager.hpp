@@ -4,6 +4,7 @@
 #include <map>
 #include <mutex>
 #include <thread>
+#include <deque>
 #include <wayland-server.h>
 #include "../../helpers/signal/Signal.hpp"
 #include <hyprutils/os/FileDescriptor.hpp>
@@ -68,8 +69,8 @@ class CEventLoopManager {
     [[nodiscard]] UP<SEventLoopDoLaterLock> doLaterLock(const std::function<void()>& fn);
 
     struct SIdleData {
-        wl_event_source*                                        eventSource = nullptr;
-        std::vector<std::pair<uint64_t, std::function<void()>>> fns;
+        wl_event_source*                                       eventSource = nullptr;
+        std::deque<std::pair<uint64_t, std::function<void()>>> fns;
     };
 
     WP<SReadableWaiter> doOnReadable(Hyprutils::OS::CFileDescriptor fd, std::function<void()>&& fn);

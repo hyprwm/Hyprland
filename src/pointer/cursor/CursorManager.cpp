@@ -8,6 +8,7 @@
 #include "../../event/EventBus.hpp"
 #include "../../state/MonitorState.hpp"
 #include <map>
+#include <algorithm>
 
 using namespace Pointer;
 using namespace Pointer::Cursor;
@@ -365,7 +366,7 @@ void CCursorManager::updateTheme() {
     }
 
     for (auto const& m : State::monitorState()->monitors()) {
-        m->m_forceFullFrames = 5;
+        m->m_forceFullFrames = std::max(m_forceFullFrames, 5);
         m->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_SHAPE);
     }
     if (RESTORE_CURSOR)

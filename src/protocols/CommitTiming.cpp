@@ -20,29 +20,23 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
             return;
         }
 
-        if (m_surface->m_pending.pendingTimeout.has_value()) {
+        if (m_surface->m_pending.commitTimingTarget.has_value()) {
             r->error(WP_COMMIT_TIMER_V1_ERROR_TIMESTAMP_EXISTS, "Timestamp is already set");
             return;
         }
 
-        const timespec target{
+        m_surface->m_pending.commitTimingTarget = timespec{
             .tv_sec  = sc<time_t>((sc<uint64_t>(tvHi) << 32) | sc<uint64_t>(tvLo)),
             .tv_nsec = sc<long>(tvNsec),
         };
-
-        const auto delay = Time::till(target);
-
-        if (delay.count() <= 0) {
-            m_surface->m_pending.pendingTimeout.reset();
-            m_surface->m_pending.commitTimingTarget.reset();
-        } else {
-            m_surface->m_pending.pendingTimeout     = delay;
-            m_surface->m_pending.commitTimingTarget = Time::fromTimespec(&target);
-        }
     });
 
     m_listeners.surfaceStateCommit = m_surface->m_events.stateCommit2.listen([this](auto state) {
-        if (!state || !state->pendingTimeout.has_value() || !m_surface || m_surface->isTearing())
+        if (!state || !state->commitTimingTarget.has_value() || !m_surface || m_surface->isTearing())
+            return;
+
+        const auto timeout = Time::till(*state->commitTimingTarget);
+        if (timeout <= Time::steady_dur::zero())
             return;
 
         m_surface->m_stateQueue.lock(state, LOCK_REASON_TIMER);
@@ -52,7 +46,7 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
 
         if (!state->timer) {
             state->timer = makeShared<CEventLoopTimer>(
-                state->pendingTimeout,
+                timeout,
                 [surface = m_surface, state](SP<CEventLoopTimer> self, void* data) {
                     if (!surface || !state)
                         return;
@@ -62,9 +56,7 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
                 nullptr);
             g_pEventLoopManager->addTimer(state->timer);
         } else
-            state->timer->updateTimeout(state->pendingTimeout);
-
-        state->pendingTimeout.reset();
+            state->timer->updateTimeout(timeout);
     });
 }
 
@@ -76,7 +68,7 @@ void CCommitTimerResource::releaseDueStates(const Time::steady_tp& upcomingFlip)
         if (!ws)
             return true;
 
-        if (!ws->commitTimingTarget.has_value() || *ws->commitTimingTarget > upcomingFlip)
+        if (!ws->commitTimingTarget.has_value() || Time::fromTimespec(&*ws->commitTimingTarget) > upcomingFlip)
             return false; // not due yet, keep waiting
 
         m_surface->m_stateQueue.unlock(ws, LOCK_REASON_TIMER);

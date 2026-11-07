@@ -155,7 +155,7 @@ namespace {
              p.rule().m_sdrMinLuminance = *sc<const Config::FLOAT*>(v->data());
              return true;
          }},
-        {"sdr_max_luminance", []() -> ILuaConfigValue* { return new CLuaConfigInt(80); },
+        {"sdr_max_luminance", []() -> ILuaConfigValue* { return new CLuaConfigInt(203); },
          [](ILuaConfigValue* v, CMonitorRuleParser& p) {
              p.rule().m_sdrMaxLuminance = sc<int>(*sc<const Config::INTEGER*>(v->data()));
              return true;

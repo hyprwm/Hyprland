@@ -12,7 +12,7 @@
 vec4 saturate(vec4 color, mat3 primaries, float saturation) {
     if (saturation == 1.0)
         return color;
-    vec3  brightness = vec3(primaries[1][0], primaries[1][1], primaries[1][2]);
+    vec3  brightness = vec3(primaries[0][1], primaries[1][1], primaries[2][1]);
     float Y          = dot(color.rgb, brightness);
     return vec4(mix(vec3(Y), color.rgb, saturation), color[3]);
 }
@@ -254,10 +254,12 @@ vec4
     vec4 mirrorColor = fromLinearNit(pixColor, CM_TRANSFER_FUNCTION_SRGB,
                                      srcTF == CM_TRANSFER_FUNCTION_GAMMA22 || srcTF == CM_TRANSFER_FUNCTION_SRGB ? srcTFRange : vec2(SDR_MIN_LUMINANCE, SDR_MAX_LUMINANCE));
 #endif
+#if USE_SDR_MOD
+    pixColor.rgb *= sdrBrightnessMultiplier;
+#endif
     pixColor = fromLinearNit(pixColor, dstTF, dstTFRange);
 #if USE_SDR_MOD
     pixColor = saturate(pixColor, dstxyz, sdrSaturation);
-    pixColor.rgb *= sdrBrightnessMultiplier;
 #endif
 #endif
 

@@ -148,7 +148,7 @@ void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, const timespec& whe
         if (data->m_monitor != pMonitor)
             continue;
 
-        if (data->m_commitID && *data->m_commitID != commitID)
+        if (!data->m_commitID || *data->m_commitID != commitID)
             continue;
 
         if (!presented)
@@ -178,7 +178,7 @@ void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, const timespec& whe
 
     std::erase_if(m_feedbacks, [](const auto& other) { return !other->m_surface || other->m_done; });
     std::erase_if(m_queue, [pMonitor, commitID](const auto& other) {
-        return !other->m_surface || (other->m_monitor == pMonitor && (!other->m_commitID || *other->m_commitID == commitID)) || !other->m_monitor;
+        return !other->m_surface || (other->m_monitor == pMonitor && other->m_commitID && *other->m_commitID == commitID) || !other->m_monitor;
     });
 }
 
@@ -188,7 +188,7 @@ void CPresentationProtocol::queueData(UP<CQueuedPresentationData>&& data) {
 
 void CPresentationProtocol::tagQueued(PHLMONITOR monitor, uint64_t commitID, bool tearing, bool vrr) {
     for (const auto& data : m_queue) {
-        if (!data->m_surface || data->m_monitor != monitor || !data->m_commitID.has_value())
+        if (!data->m_surface || data->m_monitor != monitor || data->m_commitID.has_value())
             continue;
 
         data->setCommitInfo(commitID, tearing, vrr);

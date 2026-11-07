@@ -17,6 +17,7 @@
 #include "../protocols/PresentationTime.hpp"
 #include "../protocols/DRMLease.hpp"
 #include "../protocols/DRMSyncobj.hpp"
+#include "../protocols/Fifo.hpp"
 #include "../protocols/core/Output.hpp"
 #include "../protocols/Screencopy.hpp"
 #include "../protocols/ToplevelExport.hpp"
@@ -343,8 +344,7 @@ void CMonitor::onConnect(bool noRule) {
     if (!isMirror())
         State::Workspace::monitorConnected(m_self.lock());
 
-    m_forceFullFrames = 3; // force 3 full frames to make sure there is no blinking due to double-buffering.
-    //
+    m_forceFullFrames = std::max(m_forceFullFrames, 3); // force at least 3 full frames to make sure there is no blinking due to double-buffering.
 
     if (!m_activeMonitorRule.m_mirrorOf.empty())
         setMirror(m_activeMonitorRule.m_mirrorOf);
@@ -2011,9 +2011,6 @@ bool CMonitor::attemptDirectScanout() {
 
     // #TODO this entire bit needs figuring out, vrr goes down the drain without it
     if (PBUFFER == m_output->state->state().buffer && *PSAME) {
-        PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
-        PROTO::presentation->tagQueued(m_self.lock(), 0, m_tearingState.activelyTearing, m_vrrActive);
-
         if (m_scanoutNeedsCursorUpdate) {
             if (!m_state.test()) {
                 LOG(Log::TRACE, "attemptDirectScanout: failed basic test on cursor update");
@@ -2029,9 +2026,10 @@ bool CMonitor::attemptDirectScanout() {
             m_scanoutNeedsCursorUpdate = false;
         }
 
-        //#TODO this entire bit is bootleg deluxe, above bit is to not make vrr go down the drain, returning early here means fifo gets forever locked.
-        if (PSURFACE->m_fifo && !m_tearingState.activelyTearing && *PSAMEFIFO)
-            PSURFACE->m_stateQueue.unlockFirst(LOCK_REASON_FIFO);
+        PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock(), true);
+
+        if (PSURFACE->m_fifo && !m_tearingState.activelyTearing && *PSAMEFIFO && !m_output->pendingPageFlip())
+            PSURFACE->m_fifo->presented();
 
         return true;
     }
@@ -2444,15 +2442,10 @@ bool CMonitor::needsCM() {
 }
 
 static bool isCompatibleTF(eTransferFunction sourceTF, eTransferFunction targetTF) {
-    static auto PNONSHADER = CConfigValue<Hyprlang::INT>("render:non_shader_cm");
-    const auto  sdrEOTF    = NTransferFunction::fromConfig();
-    return sourceTF == targetTF                                                                                                         // same
-        || (sdrEOTF == NTransferFunction::TF_FORCED_GAMMA22 && sourceTF == NColorManagement::CM_TRANSFER_FUNCTION_SRGB                  // forced source gamma22 to output gamma22
-            && targetTF == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22)                                                              //
-        || (*PNONSHADER == CM_NS_ONDEMAND                                                                                               // FIXME incorrect but good enough for DS
-            && (sourceTF == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 || sourceTF == NColorManagement::CM_TRANSFER_FUNCTION_SRGB)  //
-            && (targetTF == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 || targetTF == NColorManagement::CM_TRANSFER_FUNCTION_SRGB)) //
-        ;
+    const auto sdrEOTF = NTransferFunction::fromConfig();
+
+    return sourceTF == targetTF ||
+        (sdrEOTF == NTransferFunction::TF_FORCED_GAMMA22 && sourceTF == NColorManagement::CM_TRANSFER_FUNCTION_SRGB && targetTF == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22);
 }
 
 // TODO support more drm properties
@@ -2730,7 +2723,7 @@ PImageDescription CMonitor::workBufferImageDescription() {
 }
 
 WP<CMonitorResources> CMonitor::resources() {
-    const auto DRM_FORMAT = useFP16() ? DRM_FORMAT_ABGR16161616F : m_output->state->state().drmFormat;
+    const auto DRM_FORMAT = useFP16() ? DRM_FORMAT_XBGR16161616F : m_output->state->state().drmFormat;
     const auto DESC       = workBufferImageDescription();
 
     if (!m_resources || m_resources->m_drmFormat != DRM_FORMAT || m_resources->m_size != m_transformedSize)

@@ -976,7 +976,7 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
     if (e.source == WL_POINTER_AXIS_SOURCE_WHEEL && e.deltaDiscrete == 0 && e.delta != 0)
         e.deltaDiscrete = std::round(e.delta * 8.0);
 
-    const bool ISTOUCHPADSCROLL = *PTOUCHPADSCROLLFACTOR <= 0.f || e.source == WL_POINTER_AXIS_SOURCE_FINGER;
+    const bool ISTOUCHPADSCROLL = e.source == WL_POINTER_AXIS_SOURCE_FINGER;
     auto       factor           = ISTOUCHPADSCROLL ? *PTOUCHPADSCROLLFACTOR : *PINPUTSCROLLFACTOR;
 
     if (pointer && pointer->m_scrollFactor.has_value())
@@ -990,11 +990,13 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
     if (e.mouse)
         recheckMouseWarpOnMouseInput();
 
-    PROTO::inputCapture->axis(e.axis, e.delta);
-    if (e.source == 0)
-        PROTO::inputCapture->axisValue120(e.axis, e.delta);
-    else if (e.delta == 0)
-        PROTO::inputCapture->axisStop(e.axis);
+    if (e.source == WL_POINTER_AXIS_SOURCE_WHEEL)
+        PROTO::inputCapture->axisValue120(e.axis, e.deltaDiscrete);
+    else {
+        PROTO::inputCapture->axis(e.axis, e.delta);
+        if (e.delta == 0)
+            PROTO::inputCapture->axisStop(e.axis);
+    }
     PROTO::inputCapture->frame();
 
     Hotkeys::mgr()->onAxis();
@@ -1048,7 +1050,7 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
     double discrete = (e.deltaDiscrete != 0) ? (factor * e.deltaDiscrete / std::abs(e.deltaDiscrete)) : 0;
     double delta    = e.delta * factor;
 
-    if (e.source == 0) {
+    if (e.source == 0 && factor != 0) {
         // if an application supports v120, it should ignore discrete anyways
         if ((*PEMULATEDISCRETE >= 1 && std::abs(e.deltaDiscrete) != 120) || *PEMULATEDISCRETE >= 2) {
 

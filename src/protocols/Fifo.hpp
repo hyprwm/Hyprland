@@ -14,6 +14,7 @@ class CFifoResource {
     CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> surface);
     ~CFifoResource();
 
+    void presented();
     bool good();
 
   private:
@@ -25,7 +26,6 @@ class CFifoResource {
         CHyprSignalListener surfaceStateCommit;
     } m_listeners;
 
-    void presented();
     bool checkMonitors();
 
     friend class CFifoProtocol;

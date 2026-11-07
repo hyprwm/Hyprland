@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <algorithm>
 #include <hyprcursor/hyprcursor.hpp>
 #include "../../includes.hpp"
 #include "../../desktop/view/WLSurface.hpp"

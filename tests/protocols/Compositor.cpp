@@ -1,4 +1,8 @@
 #include <Compositor.hpp>
+#include <config/ConfigValue.hpp>
+#include <config/lua/ConfigManager.hpp>
+#include <config/shared/inotify/ConfigWatcher.hpp>
+#include <config/supplementary/jeremy/Jeremy.hpp>
 #include <event/EventBus.hpp>
 #include <managers/eventLoop/EventLoopManager.hpp>
 #include <pointer/PointerManager.hpp>
@@ -72,12 +76,14 @@ class CSurfaceCommitTest : public ::testing::Test {
         ASSERT_NE(m_client, nullptr);
         server.take();
 
-        m_previousCompositor   = std::move(g_pCompositor);
-        m_previousEventLoop    = std::move(g_pEventLoopManager);
-        m_previousMonitorState = std::move(State::monitorState());
-        m_previousEventBus     = std::move(Event::bus());
-        m_previousPresentation = std::move(PROTO::presentation);
-        m_installedGlobals     = true;
+        m_previousCompositor     = std::move(g_pCompositor);
+        m_previousEventLoop      = std::move(g_pEventLoopManager);
+        m_previousMonitorState   = std::move(State::monitorState());
+        m_previousEventBus       = std::move(Event::bus());
+        m_previousPresentation   = std::move(PROTO::presentation);
+        m_previousCoreCompositor = std::move(PROTO::compositor);
+        m_previousSubcompositor  = std::move(PROTO::subcompositor);
+        m_installedGlobals       = true;
 
         Event::bus()               = makeUnique<Event::CEventBus>();
         State::monitorState()      = makeUnique<State::CMonitorStateTracker>();
@@ -85,6 +91,8 @@ class CSurfaceCommitTest : public ::testing::Test {
         g_pCompositor->m_wlDisplay = m_display.get();
         g_pEventLoopManager        = makeUnique<CEventLoopManager>(m_display.get(), wl_display_get_event_loop(m_display.get()));
         PROTO::presentation        = makeUnique<CPresentationProtocol>(&wp_presentation_interface, 2, "surface-commit-test");
+        PROTO::compositor          = makeUnique<CWLCompositorProtocol>(&wl_compositor_interface, 6, "surface-commit-test-compositor");
+        PROTO::subcompositor       = makeUnique<CWLSubcompositorProtocol>(&wl_subcompositor_interface, 1, "surface-commit-test-subcompositor");
     }
 
     void TearDown() override {
@@ -93,6 +101,8 @@ class CSurfaceCommitTest : public ::testing::Test {
         if (!m_installedGlobals)
             return;
 
+        PROTO::subcompositor  = std::move(m_previousSubcompositor);
+        PROTO::compositor     = std::move(m_previousCoreCompositor);
         PROTO::presentation   = std::move(m_previousPresentation);
         g_pEventLoopManager   = std::move(m_previousEventLoop);
         g_pCompositor         = std::move(m_previousCompositor);
@@ -145,6 +155,16 @@ class CSurfaceCommitTest : public ::testing::Test {
         request(surface->id(), 6); // wl_surface.commit
     }
 
+    void expectProtocolError(uint32_t objectID, uint32_t code) {
+        // The rejected request disconnects the client and flushes wl_display.error.
+        std::array<uint32_t, 4> error = {};
+        ASSERT_EQ(recv(m_socket.get(), error.data(), sizeof(error), MSG_DONTWAIT), sc<ssize_t>(sizeof(error)));
+        EXPECT_EQ(error[0], 1U);           // wl_display
+        EXPECT_EQ(error[1] & 0xFFFFU, 0U); // error
+        EXPECT_EQ(error[2], objectID);
+        EXPECT_EQ(error[3], code);
+    }
+
     void attach(SP<CWLSurfaceResource> surface, SP<CCommitTestBuffer> buffer = nullptr) {
         request(surface->id(), 1, {buffer ? wl_resource_get_id(buffer->m_resource->getResource()) : 0, 0, 0}); // wl_surface.attach
         commit(surface);
@@ -162,6 +182,8 @@ class CSurfaceCommitTest : public ::testing::Test {
     UP<State::CMonitorStateTracker>                            m_previousMonitorState;
     UP<Event::CEventBus>                                       m_previousEventBus;
     UP<CPresentationProtocol>                                  m_previousPresentation;
+    UP<CWLCompositorProtocol>                                  m_previousCoreCompositor;
+    UP<CWLSubcompositorProtocol>                               m_previousSubcompositor;
 };
 
 TEST_F(CSurfaceCommitTest, NullBufferAfterRoleRemovalAllowsEmptyInitialCommit) {
@@ -226,6 +248,131 @@ TEST_F(CSurfaceCommitTest, SubsurfaceAncestryStopsAtCycle) {
 
     EXPECT_EQ(childSub->posRelativeToParent(), Vector2D(111, 222));
     EXPECT_EQ(childSub->t1Parent(), first);
+}
+
+TEST_F(CSurfaceCommitTest, SubsurfaceAncestryHandlesExpiredParentDuringChildDestruction) {
+    auto parent = surface(), child = surface();
+    auto [sub, id] = subsurface(child, parent);
+    request(id, 1, {7, 13}); // wl_subsurface.set_position
+    parent.reset();
+    ASSERT_TRUE(sub->m_parent.expired());
+
+    int  destroys = 0;
+    auto listener = child->m_events.destroy.listen([&] {
+        ++destroys;
+        EXPECT_EQ(sub->posRelativeToParent(), Vector2D(7, 13));
+        EXPECT_FALSE(sub->t1Parent());
+    });
+    child.reset();
+    EXPECT_EQ(destroys, 1);
+}
+
+TEST_F(CSurfaceCommitTest, SubsurfaceAncestryHandlesExpiredIntermediateAncestor) {
+    auto root = surface(), ancestor = surface(), parent = surface(), child = surface();
+    auto [ancestorSub, ancestorID] = subsurface(ancestor, root);
+    auto [parentSub, parentID]     = subsurface(parent, ancestor);
+    auto [childSub, childID]       = subsurface(child, parent);
+    request(ancestorID, 1, {100, 200}); // wl_subsurface.set_position
+    request(parentID, 1, {10, 20});
+    request(childID, 1, {1, 2});
+    ancestor.reset();
+    ASSERT_TRUE(childSub->m_parent.lock());
+    ASSERT_TRUE(parentSub->m_parent.expired());
+
+    EXPECT_EQ(childSub->posRelativeToParent(), Vector2D(11, 22));
+    EXPECT_FALSE(childSub->t1Parent());
+}
+
+TEST_F(CSurfaceCommitTest, SubsurfaceAncestryHandlesDestroyingParentRole) {
+    auto root = surface(), parent = surface(), child = surface();
+    auto [parentSub, parentID] = subsurface(parent, root);
+    auto [childSub, childID]   = subsurface(child, parent);
+    request(parentID, 1, {10, 20}); // wl_subsurface.set_position
+    request(childID, 1, {1, 2});
+
+    int  destroys = 0;
+    auto listener = parentSub->m_events.destroy.listen([&] {
+        ++destroys;
+        ASSERT_EQ(parent->m_role->role(), SURFACE_ROLE_SUBSURFACE);
+        ASSERT_TRUE(sc<CSubsurfaceRole*>(parent->m_role.get())->m_subsurface.expired());
+        EXPECT_EQ(childSub->posRelativeToParent(), Vector2D(1, 2));
+        EXPECT_FALSE(childSub->t1Parent());
+    });
+    parentSub.reset();
+    EXPECT_EQ(destroys, 1);
+}
+
+TEST_F(CSurfaceCommitTest, GetSubsurfaceRejectsExpiredParentRole) {
+    auto parent = surface(), child = surface();
+    // Model the expired role reference visible during subsurface destruction.
+    parent->m_role       = makeShared<CSubsurfaceRole>(nullptr);
+    const auto managerID = m_nextID++;
+    PROTO::subcompositor->bindManager(m_client, nullptr, 1, managerID);
+    ASSERT_NE(wl_client_get_object(m_client, managerID), nullptr);
+
+    request(managerID, 1, {m_nextID++, child->id(), parent->id()}); // wl_subcompositor.get_subsurface
+    expectProtocolError(managerID, WL_SUBCOMPOSITOR_ERROR_BAD_PARENT);
+    EXPECT_EQ(child->m_role->role(), SURFACE_ROLE_UNASSIGNED);
+}
+
+class CSubsurfaceImageDescriptionTest : public CSurfaceCommitTest {
+  protected:
+    void SetUp() override {
+        CSurfaceCommitTest::SetUp();
+        if (HasFatalFailure())
+            return;
+
+        m_previousConfig   = std::move(Config::mgr());
+        m_previousWatcher  = std::move(Config::watcher());
+        m_installedGlobals = true;
+
+        // Construct defaults only; do not load the user's config.
+        g_pCompositor->m_explicitConfigPath = "subsurface-image-description-test.lua";
+        Config::Supplementary::Jeremy::flushCachedCfgPath();
+        Config::watcher() = makeUnique<Config::CConfigWatcher>();
+        Config::mgr()     = makeUnique<Config::Lua::CConfigManager>();
+        CConfigValueBase::flushCaches();
+    }
+
+    void TearDown() override {
+        if (m_installedGlobals) {
+            Config::mgr()     = std::move(m_previousConfig);
+            Config::watcher() = std::move(m_previousWatcher);
+            if (Config::mgr())
+                CConfigValueBase::flushCaches();
+        }
+        CSurfaceCommitTest::TearDown();
+        Config::Supplementary::Jeremy::flushCachedCfgPath();
+    }
+
+  private:
+    bool                       m_installedGlobals = false;
+    UP<Config::IConfigManager> m_previousConfig;
+    UP<Config::CConfigWatcher> m_previousWatcher;
+};
+
+TEST_F(CSubsurfaceImageDescriptionTest, OrphanedSubsurfaceUsesFallback) {
+    auto parent = surface(), child = surface();
+    auto [sub, id] = subsurface(child, parent);
+    parent.reset();
+    ASSERT_TRUE(sub->m_parent.expired());
+
+    EXPECT_EQ(child->getPreferredImageDescription(), g_pCompositor->getPreferredImageDescription());
+}
+
+TEST_F(CSubsurfaceImageDescriptionTest, DestroyingSubsurfaceRoleUsesFallback) {
+    auto parent = surface(), child = surface();
+    auto [sub, id] = subsurface(child, parent);
+
+    int  destroys = 0;
+    auto listener = sub->m_events.destroy.listen([&] {
+        ++destroys;
+        ASSERT_EQ(child->m_role->role(), SURFACE_ROLE_SUBSURFACE);
+        ASSERT_TRUE(sc<CSubsurfaceRole*>(child->m_role.get())->m_subsurface.expired());
+        EXPECT_EQ(child->getPreferredImageDescription(), g_pCompositor->getPreferredImageDescription());
+    });
+    sub.reset();
+    EXPECT_EQ(destroys, 1);
 }
 
 TEST_F(CSurfaceCommitTest, CursorReusedAfterNullBufferReleasesOnDeselection) {

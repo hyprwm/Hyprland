@@ -51,9 +51,16 @@ bool CWLSurface::small() const {
     if (!O || !O->mapped() || !O->acceptsInput() || !O->alphaNonZero())
         return false;
 
-    const auto REPORTED_SIZE = O->backend().reportedSize();
+    const auto  REPORTED_SIZE = O->backend().reportedSize();
+    const auto& CURRENT_SIZE  = m_resource->m_current.size;
 
-    return REPORTED_SIZE.x > m_resource->m_current.size.x + 1 || REPORTED_SIZE.y > m_resource->m_current.size.y + 1;
+    if (REPORTED_SIZE.x <= CURRENT_SIZE.x + 1 && REPORTED_SIZE.y <= CURRENT_SIZE.y + 1)
+        return false;
+
+    // acking a configure and attaching the buffer for it are separate commits, and we may have
+    // configured the window again since. a buffer matching an older configure is behind, not small:
+    // shrinking the box down to it would leave the rest of the window unpainted until it catches up.
+    return !O->backend().configuredSizeRecently(CURRENT_SIZE);
 }
 
 Vector2D CWLSurface::correctSmallVec() const {

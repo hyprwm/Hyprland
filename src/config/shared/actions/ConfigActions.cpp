@@ -307,7 +307,8 @@ ActionResult Actions::pinWindow(eTogglableAction action, std::optional<PHLWINDOW
     if (!PMONITOR)
         return actionError("Window has no monitor", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
-    if (!PMONITOR->m_activeWorkspace || !PMONITOR->m_activeWorkspace->space())
+    const auto TARGETWORKSPACE = PMONITOR->getCurrentWorkspace();
+    if (!TARGETWORKSPACE || !TARGETWORKSPACE->space())
         return actionError("Monitor has no active workspace", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     const auto LAYOUTTARGET = window->layoutTarget();
@@ -322,7 +323,7 @@ ActionResult Actions::pinWindow(eTogglableAction action, std::optional<PHLWINDOW
     window->updateFullscreenInputState();
     *window->presentation().alpha(Desktop::View::WINDOW_ALPHA_FULLSCREEN) = window->isBlockedByFullscreen() ? 0.F : 1.F;
 
-    LAYOUTTARGET->assignToSpace(PMONITOR->m_activeWorkspace->space());
+    LAYOUTTARGET->assignToSpace(TARGETWORKSPACE->space());
     window->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_PINNED);
 
     const auto PWORKSPACE = window->m_workspace;

@@ -91,14 +91,6 @@ void CDefaultFloatingAlgorithm::newTarget(SP<ITarget> target) {
     if (!posOverridden && (!DESIRED_GEOM || !DESIRED_GEOM->pos))
         windowGeometry = CBox{WORK_AREA.middle() - windowGeometry.size() / 2.F, windowGeometry.size()};
 
-    if (!posOverridden                                                                                     // pos is overridden by a rule
-        && !(DESIRED_GEOM && DESIRED_GEOM->pos && target->window() && target->window()->backend().isX11()) // X11 window with a geom
-    ) {
-        const auto POS   = WORK_AREA.middle() - windowGeometry.size() / 2.f;
-        windowGeometry.x = POS.x;
-        windowGeometry.y = POS.y;
-    }
-
     static auto PFORCEONSCREEN = CConfigValue<Config::INTEGER>("misc:new_float_force_onscreen");
     switch (*PFORCEONSCREEN) {
         default:

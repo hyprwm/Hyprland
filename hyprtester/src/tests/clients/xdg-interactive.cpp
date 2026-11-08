@@ -66,6 +66,7 @@ namespace {
         bool                       requestResizeWithSerial(uint32_t serial, const std::string& edge);
         bool                       requestRawResize(uint32_t edge);
         bool                       requestMaximize(bool maximized);
+        bool                       createChild();
         bool                       waitFullscreenMode(int mode);
         bool                       waitResizing(bool resizing);
         bool                       waitForDisconnect(int timeoutMs = 1500);
@@ -81,16 +82,41 @@ static std::pair<int, int> parsePair(const std::string& str) {
     return {std::stoi(str.substr(0, COMMA)), std::stoi(str.substr(COMMA + 1))};
 }
 
-static SGeometry activeGeometry() {
-    const auto RESPONSE = getFromSocket("/activewindow");
-    const auto AT       = parsePair(Tests::getAttribute(RESPONSE, "at"));
-    const auto SIZE     = parsePair(Tests::getAttribute(RESPONSE, "size"));
+static SGeometry geometryFromResponse(const std::string& response) {
+    const auto AT   = parsePair(Tests::getAttribute(response, "at"));
+    const auto SIZE = parsePair(Tests::getAttribute(response, "size"));
     return {
         .x = AT.first,
         .y = AT.second,
         .w = SIZE.first,
         .h = SIZE.second,
     };
+}
+
+static SGeometry activeGeometry() {
+    return geometryFromResponse(getFromSocket("/activewindow"));
+}
+
+static bool waitForClientGeometry(pid_t pid, const std::string& appID, const SGeometry& geometry) {
+    const auto  START = std::chrono::steady_clock::now();
+    std::string response;
+    while (std::chrono::steady_clock::now() - START < std::chrono::seconds(2)) {
+        // Parent and child share a PID, so select the toplevel by app ID as well.
+        if (getFromSocket(std::format("/dispatch hl.dsp.focus({{ window = 'class:^{}$' }})", appID)) == "ok") {
+            response = getFromSocket("/activewindow");
+            if (Tests::getAttribute(response, "class") == appID && Tests::getAttribute(response, "pid") == std::to_string(pid) &&
+                Tests::getAttribute(response, "floating") == "1") {
+                const auto CURRENT = geometryFromResponse(response);
+                if (CURRENT.x == geometry.x && CURRENT.y == geometry.y && CURRENT.w == geometry.w && CURRENT.h == geometry.h)
+                    return true;
+            }
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
+
+    NLog::red("Timed out waiting for {} geometry {},{} {}x{}: {}", appID, geometry.x, geometry.y, geometry.w, geometry.h, response);
+    return false;
 }
 
 static bool focusClient(pid_t pid) {
@@ -361,6 +387,10 @@ bool CClient::requestMaximize(bool maximized) {
     return sendCommand(COMMAND + "\n") && waitLineContaining("completed " + COMMAND).has_value();
 }
 
+bool CClient::createChild() {
+    return sendCommand("create-child\n") && waitLineContaining("child started", 2000).has_value();
+}
+
 bool CClient::waitFullscreenMode(int mode) {
     const auto  START = std::chrono::steady_clock::now();
     std::string response;
@@ -561,4 +591,47 @@ TEST_CASE(xdgTiledSetMaximizedPreservesFullscreen) {
 
 TEST_CASE(xdgTiledUnsetMaximizedPreservesFullscreen) {
     CALL_SUBTEST(maximizePreservesFullscreen, false, false);
+}
+
+SUBTEST(xdgChildPlacement, int forceOnscreen, const std::string& rule, const SGeometry& childGeometry) {
+    Hyprutils::Utils::CScopeGuard cleanup([&] {
+        EXPECT(Tests::killAllWindows(), true);
+        EXPECT_OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+        EXPECT_OK(getFromSocket("/reload"));
+    });
+
+    OK(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-2', mode = '1920x1080@60', position = '0x0', scale = '1', transform = 0 })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:xdg_child_placement' })"));
+    OK(getFromSocket(
+        std::format("/eval hl.config({{ animations = {{ enabled = false }}, input = {{ follow_mouse = 0 }}, misc = {{ new_float_force_onscreen = {} }} }})", forceOnscreen)));
+    if (!rule.empty())
+        OK(getFromSocket(std::format("/eval hl.window_rule({{ match = {{ class = '^xdg-interactive-child$' }}, {} }})", rule)));
+
+    std::optional<CClient> client;
+    try {
+        client.emplace();
+    } catch (...) { FAIL_TEST("Couldn't start the xdg-interactive client"); }
+
+    // Keep the parent off-center and both windows fully onscreen, so clamping cannot hide a placement error.
+    const SGeometry PARENT = {.x = 200, .y = 200, .w = 600, .h = 400};
+    ASSERT(setClientGeometry(client->pid(), PARENT), true);
+    ASSERT(client->createChild(), true);
+    ASSERT(waitForClientGeometry(client->pid(), "xdg-interactive-child", childGeometry), true);
+    EXPECT(Tests::windowCount(), 2);
+    EXPECT(waitForClientGeometry(client->pid(), "xdg-interactive", PARENT), true);
+}
+
+TEST_CASE(xdgChildCenteredOnParent) {
+    for (const int MODE : {0, 1, 2}) {
+        CALL_SUBTEST(xdgChildPlacement, MODE, "", SGeometry{.x = 380, .y = 320, .w = 240, .h = 160});
+    }
+}
+
+TEST_CASE(xdgChildMoveRuleOverridesParentPlacement) {
+    CALL_SUBTEST(xdgChildPlacement, 2, "move = {700, 250}", SGeometry{.x = 700, .y = 250, .w = 240, .h = 160});
+}
+
+TEST_CASE(xdgChildCenterRuleOverridesParentPlacement) {
+    CALL_SUBTEST(xdgChildPlacement, 2, "center = true", SGeometry{.x = 840, .y = 460, .w = 240, .h = 160});
 }

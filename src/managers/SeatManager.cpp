@@ -14,6 +14,7 @@
 #include "../managers/input/InputManager.hpp"
 #include "../state/MonitorState.hpp"
 #include "devices/IHID.hpp"
+#include "managers/SessionLockManager.hpp"
 #include "wlr-layer-shell-unstable-v1.hpp"
 #include <algorithm>
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -754,7 +755,7 @@ void CSeatManager::setCurrentPrimarySelection(SP<IDataSource> source) {
 
 void CSeatManager::setGrab(SP<CSeatGrab> grab) {
     // Do not grab when we have a lockscreen - no surface should grab in those cases.
-    if (g_pInputManager->isLocked() && grab)
+    if (g_pSessionLockManager->isSessionLocked() && grab)
         return;
 
     if (m_seatGrab) {

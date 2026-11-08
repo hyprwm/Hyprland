@@ -7,12 +7,13 @@ CMAKE_GENERATE_CMD = cmake -Wno-unused-cli $(CMAKE_ARGS) -S . -B $(BUILDDIR)
 CMAKE_BUILD_CMD = cmake --build $(BUILDDIR) --config $(CMAKE_BUILD_TYPE) --target all -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
 
 .DEFAULT: stub
-.PHONY: stub cmake_smartbuild release debug nopch clean all install uninstall pluginenv installheaders man asan format-check format-fix gtest hyprtest test
+.PHONY: stub cmake cmake_smartbuild release debug nopch clean all install uninstall installheaders man asan format-check format-fix gtest hyprtest test
 
 stub:
 	@echo "Do not run $(MAKE) directly without any arguments. Please refer to the wiki on how to compile Hyprland."
 
-# Cache CMake options, do initial build if needed
+# Cache CMake options, do initial generate step if needed
+cmake \
 $(CMAKE_BUILDTYPE_FILE):
 	mkdir -p "$(BUILDDIR)"
 	if [ ! -f "$(CMAKE_BUILDTYPE_FILE)" ]; then $(CMAKE_GENERATE_CMD); fi
@@ -50,13 +51,7 @@ install: cmake_smartbuild
 uninstall:
 	sed 's#^#$(DESTDIR)/#' $(BUILDDIR)/install_manifest.txt | xargs rm
 
-pluginenv:
-	@echo -en "$(MAKE) pluginenv has been deprecated.\nPlease run $(MAKE) all && sudo $(MAKE) installheaders\n"
-	@exit 1
-
-installheaders: cmake_smartbuild
-	@if [ ! -f ./src/version.h ]; then echo -en "You need to run $(MAKE) all first.\n" && exit 1; fi
-
+installheaders: $(CMAKE_BUILDTYPE_FILE)
 	# remove previous headers from hyprpm's dir
 	rm -fr ${PREFIX}/include/hyprland
 	mkdir -p ${PREFIX}/include/hyprland

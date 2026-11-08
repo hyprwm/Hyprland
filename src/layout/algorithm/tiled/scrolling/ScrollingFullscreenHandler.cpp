@@ -482,8 +482,7 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
         }
 
         const auto TARGET_FS_MODES = getFullscreenModes(TARGET);
-        const auto TDATA = m_scrollingAlgorithm->dataFor(TARGET, true);
-
+        const auto TDATA           = m_scrollingAlgorithm->dataFor(TARGET, true);
 
         if (!isFullscreen(TARGET, std::nullopt, std::nullopt)) {
             if (TARGET_FS_MODES.client == FSMODE_NONE) {
@@ -513,7 +512,7 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
                     removeFsTarget(TARGET, true);
                 it = m_fsTargets.begin();
                 continue;
-            }            
+            }
         }
 
         // If ITarget's underlying type is CWindowGroupTarget; only store the current window, NOT the whole group

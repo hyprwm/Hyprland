@@ -13,6 +13,7 @@ stub:
 	@echo "Do not run $(MAKE) directly without any arguments. Please refer to the wiki on how to compile Hyprland."
 
 # Cache CMake options, do initial generate step if needed
+# hyprpm needs this!
 cmake \
 $(CMAKE_BUILDTYPE_FILE):
 	mkdir -p "$(BUILDDIR)"
@@ -51,6 +52,7 @@ install: cmake_smartbuild
 uninstall:
 	sed 's#^#$(DESTDIR)/#' $(BUILDDIR)/install_manifest.txt | xargs rm
 
+# hyprpm neds this!
 installheaders: $(CMAKE_BUILDTYPE_FILE)
 	# remove previous headers from hyprpm's dir
 	rm -fr ${PREFIX}/include/hyprland

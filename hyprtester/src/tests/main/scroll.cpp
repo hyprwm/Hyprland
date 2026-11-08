@@ -1637,6 +1637,45 @@ TEST_CASE(scroll_LAYOUT_HANDLED_FloatingOntopFullscreenWorkspaceFocusRetention) 
     test_default_layout_handled_behaviour(false, true);
 }
 
+TEST_CASE(scroll_LAYOUT_HANDLED_onlyInternalUnFsRestoresColWidth) {
+
+    OK(getFromSocket("/eval hl.config({ general = { layout = 'scrolling' } })"));
+
+    SPAWN_KITTY("kitty_scroll_A");
+    SPAWN_KITTY("kitty_scroll_B");
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_scroll_A' })"));
+
+    // A is focused, so this gives A's column 0.8 width
+    OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
+
+    const auto REGULAR_POS  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
+    const auto REGULAR_SIZE = Tests::getAttribute(getFromSocket("/activewindow"), "size");
+
+    // FS (2,2)
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 2, client = 2, action = 'set' })"));
+
+    {
+        const auto WINDOW = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(WINDOW, "class: kitty_scroll_A");
+        ASSERT_CONTAINS(WINDOW, "fullscreen: 2");
+        ASSERT_CONTAINS(WINDOW, "fullscreenClient: 2");
+        ASSERT_CONTAINS(WINDOW, "size: 1920,1080");
+    }
+
+    // un-FS internal only, keep client: (0,2)
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 0, client = -1, action = 'set' })"));
+
+    {
+        const auto WINDOW = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(WINDOW, "class: kitty_scroll_A");
+        ASSERT_CONTAINS(WINDOW, "fullscreen: 0");
+        ASSERT_CONTAINS(WINDOW, "fullscreenClient: 2");
+        ASSERT(Tests::getAttribute(WINDOW, "at"), REGULAR_POS);
+        ASSERT(Tests::getAttribute(WINDOW, "size"), REGULAR_SIZE);
+    }
+}
+
 TEST_CASE(scroll_DEFAULT_HANDLED_fullscreenMaximiseDispatchers) {
 
     // Shared test among all default handled FS

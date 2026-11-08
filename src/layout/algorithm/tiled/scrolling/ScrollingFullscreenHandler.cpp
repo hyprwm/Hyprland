@@ -482,30 +482,36 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
         }
 
         const auto TARGET_FS_MODES = getFullscreenModes(TARGET);
+        const auto TDATA           = m_scrollingAlgorithm->dataFor(TARGET, true);
 
-        if (!isFullscreen(TARGET, std::nullopt, std::nullopt) && TARGET_FS_MODES.client == FSMODE_NONE) {
-            it = removeFsTargetAndreturnNextIter(it, TARGET);
-            continue;
+        if (!isFullscreen(TARGET, std::nullopt, std::nullopt)) {
+            if (TARGET_FS_MODES.client == FSMODE_NONE) {
+                it = removeFsTargetAndreturnNextIter(it, TARGET);
+                continue;
+            }
+            // If target is no longer intenal FS but still client FS, restore its column width
+            if (it->second.restoreColumnWidth.has_value()) {
+                TDATA->column->setColumnWidth(it->second.restoreColumnWidth.value());
+                it->second.restoreColumnWidth = std::nullopt;
+                continue;
+            }
         }
 
         // This might happen if the target was moved to another col, so we need to unFS it properly
-        if (const auto TARGET_WINDOW = TARGET->window(); TARGET_WINDOW && m_scrollingAlgorithm->dataFor(TARGET, true)->column) {
-            const auto STDATA = m_scrollingAlgorithm->dataFor(TARGET, true);
-            if (STDATA) {
-                const auto COL_DATA = m_scrollingAlgorithm->dataFor(TARGET, true)->column;
-                // use TARGET_FS_MODES.internal != FSMODE_NONE here because isFullscreen() would catch that target isn't alone in col and return false
-                if (COL_DATA && TARGET_FS_MODES.internal != FSMODE_NONE && COL_DATA->targetDatas.size() != 1) {
-                    // Empty the list now so the unFS operation has an updated tracked FS target list it can check
-                    for (const auto& e : toInsert) {
-                        m_fsTargets.emplace(e.first, e.second);
-                    }
-                    toInsert.clear();
-                    controller()->setFullscreenMode(TARGET_WINDOW, FSMODE_NONE, std::nullopt, true);
-                    if (getFullscreenModes(TARGET).internal != FSMODE_NONE)
-                        removeFsTarget(TARGET, true);
-                    it = m_fsTargets.begin();
-                    continue;
+        if (const auto TARGET_WINDOW = TARGET->window(); TARGET_WINDOW && TDATA->column) {
+            const auto COL_DATA = m_scrollingAlgorithm->dataFor(TARGET, true)->column;
+            // use TARGET_FS_MODES.internal != FSMODE_NONE here because isFullscreen() would catch that target isn't alone in col and return false
+            if (COL_DATA && TARGET_FS_MODES.internal != FSMODE_NONE && COL_DATA->targetDatas.size() != 1) {
+                // Empty the list now so the unFS operation has an updated tracked FS target list it can check
+                for (const auto& e : toInsert) {
+                    m_fsTargets.emplace(e.first, e.second);
                 }
+                toInsert.clear();
+                controller()->setFullscreenMode(TARGET_WINDOW, FSMODE_NONE, std::nullopt, true);
+                if (getFullscreenModes(TARGET).internal != FSMODE_NONE)
+                    removeFsTarget(TARGET, true);
+                it = m_fsTargets.begin();
+                continue;
             }
         }
 

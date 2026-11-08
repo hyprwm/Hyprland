@@ -227,7 +227,7 @@ void CLayerSurface::onMap() {
     }
 
     // update pointer focus
-    g_pInputManager->simulateMouseMovement();
+    g_pInputManager->refocusPointer();
 
     m_position = Vector2D(m_geometry.x, m_geometry.y);
 

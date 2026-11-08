@@ -17,10 +17,29 @@
 #include <xdg-shell.hpp>
 
 #include <hyprutils/math/Vector2D.hpp>
+#include <hyprutils/memory/Casts.hpp>
 #include <hyprutils/memory/SharedPtr.hpp>
+#include <hyprutils/os/FileDescriptor.hpp>
 
 using Hyprutils::Math::Vector2D;
 using namespace Hyprutils::Memory;
+using Hyprutils::OS::CFileDescriptor;
+
+struct SShmState {
+    CFileDescriptor             fd;
+    CSharedPointer<CCWlShmPool> pool;
+    CSharedPointer<CCWlBuffer>  buffer;
+    size_t                      size = 0;
+};
+
+struct SChildState {
+    SShmState                     shm;
+    CSharedPointer<CCWlSurface>   surf;
+    CSharedPointer<CCXdgSurface>  xdgSurf;
+    CSharedPointer<CCXdgToplevel> xdgToplevel;
+    Vector2D                      geom    = {240, 160};
+    bool                          started = false;
+};
 
 struct SWlState {
     wl_display*                    display = nullptr;
@@ -31,10 +50,7 @@ struct SWlState {
     CSharedPointer<CCWlShm>        wlShm;
     CSharedPointer<CCXdgWmBase>    xdgShell;
 
-    CSharedPointer<CCWlShmPool>    shmPool;
-    CSharedPointer<CCWlBuffer>     shmBuf;
-    int                            shmFd            = -1;
-    size_t                         shmBufSize       = 0;
+    SShmState                      shm;
     bool                           xrgb8888_support = false;
 
     CSharedPointer<CCWlSurface>    surf;
@@ -51,6 +67,8 @@ struct SWlState {
     uint32_t                       leaveAfterRequest  = 0;
     uint32_t                       motionAfterRequest = 0;
     uint32_t                       buttonPresses      = 0;
+
+    std::optional<SChildState>     child;
 };
 
 static bool debug, started, shouldExit;
@@ -139,58 +157,55 @@ static bool bindRegistry(SWlState& state) {
     return true;
 }
 
-static bool createShm(SWlState& state, Vector2D geom) {
+static bool createShm(SWlState& state, SShmState& shm, Vector2D geom) {
     if (!state.xrgb8888_support)
         return false;
 
-    const int width  = std::max(1, static_cast<int>(geom.x));
-    const int height = std::max(1, static_cast<int>(geom.y));
+    const int width  = std::max(1, sc<int>(geom.x));
+    const int height = std::max(1, sc<int>(geom.y));
     size_t    stride = width * 4;
     size_t    size   = height * stride;
 
-    if (!state.shmPool) {
+    if (!shm.pool) {
         const std::string name = std::format("/wl-shm-xdg-interactive-{}", getpid());
-        state.shmFd            = shm_open(name.c_str(), O_RDWR | O_CREAT | O_EXCL, 0600);
-        if (state.shmFd < 0)
+        shm.fd                 = CFileDescriptor{shm_open(name.c_str(), O_RDWR | O_CREAT | O_EXCL, 0600)};
+        if (!shm.fd.isValid())
             return false;
 
-        if (shm_unlink(name.c_str()) < 0 || ftruncate(state.shmFd, size) < 0) {
-            close(state.shmFd);
-            state.shmFd = -1;
-            return false;
-        }
-
-        state.shmPool = makeShared<CCWlShmPool>(state.wlShm->sendCreatePool(state.shmFd, size));
-        if (!state.shmPool->resource()) {
-            close(state.shmFd);
-            state.shmFd = -1;
-            state.shmPool.reset();
+        if (shm_unlink(name.c_str()) < 0 || ftruncate(shm.fd.get(), size) < 0) {
+            shm.fd.reset();
             return false;
         }
 
-        state.shmBufSize = size;
-    } else if (size > state.shmBufSize) {
-        if (ftruncate(state.shmFd, size) < 0) {
-            close(state.shmFd);
-            state.shmFd = -1;
-            state.shmPool.reset();
+        shm.pool = makeShared<CCWlShmPool>(state.wlShm->sendCreatePool(shm.fd.get(), size));
+        if (!shm.pool->resource()) {
+            shm.fd.reset();
+            shm.pool.reset();
             return false;
         }
 
-        state.shmPool->sendResize(size);
-        state.shmBufSize = size;
+        shm.size = size;
+    } else if (size > shm.size) {
+        if (ftruncate(shm.fd.get(), size) < 0) {
+            shm.fd.reset();
+            shm.pool.reset();
+            return false;
+        }
+
+        shm.pool->sendResize(size);
+        shm.size = size;
     }
 
-    auto buf = makeShared<CCWlBuffer>(state.shmPool->sendCreateBuffer(0, width, height, stride, WL_SHM_FORMAT_XRGB8888));
+    auto buf = makeShared<CCWlBuffer>(shm.pool->sendCreateBuffer(0, width, height, stride, WL_SHM_FORMAT_XRGB8888));
     if (!buf->resource())
         return false;
 
-    if (state.shmBuf) {
-        state.shmBuf->sendDestroy();
-        state.shmBuf.reset();
+    if (shm.buffer) {
+        shm.buffer->sendDestroy();
+        shm.buffer.reset();
     }
 
-    state.shmBuf = buf;
+    shm.buffer = buf;
 
     return true;
 }
@@ -223,7 +238,7 @@ static bool setupToplevel(SWlState& state) {
         if (h > 0)
             state.geom.y = h;
 
-        if (!createShm(state, state.geom))
+        if (!createShm(state, state.shm, state.geom))
             exit(-1);
 
         const bool RESIZING = stateArrayContains(arr, XDG_TOPLEVEL_STATE_RESIZING);
@@ -235,12 +250,12 @@ static bool setupToplevel(SWlState& state) {
     });
 
     state.xdgSurf->setConfigure([&](CCXdgSurface* p, uint32_t serial) {
-        if (!state.shmBuf)
+        if (!state.shm.buffer)
             debugLog("xdgSurf configure but no buf made yet?");
 
         state.xdgSurf->sendSetWindowGeometry(0, 0, state.geom.x, state.geom.y);
         state.xdgSurf->sendAckConfigure(serial);
-        state.surf->sendAttach(state.shmBuf.get(), 0, 0);
+        state.surf->sendAttach(state.shm.buffer.get(), 0, 0);
         state.surf->sendCommit();
 
         if (!started) {
@@ -254,6 +269,55 @@ static bool setupToplevel(SWlState& state) {
 
     state.surf->sendAttach(nullptr, 0, 0);
     state.surf->sendCommit();
+
+    return true;
+}
+
+static bool setupChild(SWlState& state) {
+    auto& child = state.child.emplace();
+
+    child.surf = makeShared<CCWlSurface>(state.wlCompositor->sendCreateSurface());
+    if (!child.surf->resource())
+        return false;
+
+    child.xdgSurf = makeShared<CCXdgSurface>(state.xdgShell->sendGetXdgSurface(child.surf->resource()));
+    if (!child.xdgSurf->resource())
+        return false;
+
+    child.xdgToplevel = makeShared<CCXdgToplevel>(child.xdgSurf->sendGetToplevel());
+    if (!child.xdgToplevel->resource())
+        return false;
+
+    child.xdgToplevel->setClose([](CCXdgToplevel*) { shouldExit = true; });
+    child.xdgToplevel->setConfigure([&child](CCXdgToplevel*, int32_t w, int32_t h, wl_array*) {
+        if (w > 0)
+            child.geom.x = w;
+        if (h > 0)
+            child.geom.y = h;
+    });
+
+    child.xdgSurf->setConfigure([&state, &child](CCXdgSurface*, uint32_t serial) {
+        if (!createShm(state, child.shm, child.geom)) {
+            clientLog("Failed to create child buffer");
+            shouldExit = true;
+            return;
+        }
+
+        child.xdgSurf->sendSetWindowGeometry(0, 0, sc<int32_t>(child.geom.x), sc<int32_t>(child.geom.y));
+        child.xdgSurf->sendAckConfigure(serial);
+        child.surf->sendAttach(child.shm.buffer.get(), 0, 0);
+        child.surf->sendCommit();
+
+        if (!child.started) {
+            child.started = true;
+            clientLog("child started");
+        }
+    });
+
+    child.xdgToplevel->sendSetTitle("xdg interactive child test client");
+    child.xdgToplevel->sendSetAppId("xdg-interactive-child");
+    child.xdgToplevel->sendSetParent(state.xdgToplevel.get());
+    child.surf->sendCommit();
 
     return true;
 }
@@ -324,6 +388,14 @@ static void parseRequest(SWlState& state, std::string req) {
 
     if (command == "exit") {
         shouldExit = true;
+    } else if (command == "create-child") {
+        if (state.child)
+            clientLog("child already exists");
+        else if (!setupChild(state)) {
+            clientLog("Failed to create child");
+            shouldExit = true;
+        } else
+            wl_display_flush(state.display);
     } else if (command == "move") {
         requestMove(state, state.lastButtonSerial);
     } else if (command == "move-serial") {
@@ -453,8 +525,7 @@ int main(int argc, char** argv) {
     }
 
     wl_display* display = state.display;
-    if (state.shmFd >= 0)
-        close(state.shmFd);
+    state.child.reset();
     state = {};
 
     wl_display_disconnect(display);

@@ -589,10 +589,7 @@ bool CPluginManager::updateHeaders(bool force) {
     if (m_bVerbose)
         progress.printMessageAbove(verboseString("setting PREFIX for cmake to {}", DataState::getHeadersPath()));
 
-    const auto CONFIGURE_CMD =
-        nixDevelopIfNeeded(std::format("cd {} && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:STRING=\"{}\" -S . -B ./build", WORKINGDIR,
-                                       DataState::getHeadersPath()),
-                           HLVER);
+    const auto CONFIGURE_CMD = nixDevelopIfNeeded(std::format("make -C '{}' PREFIX='{}' cmake", WORKINGDIR, DataState::getHeadersPath()), HLVER);
 
     if (!CONFIGURE_CMD) {
         std::println(stderr, "\n{}", failureString("Could not configure hyprland: {}", CONFIGURE_CMD.error()));
@@ -625,14 +622,8 @@ bool CPluginManager::updateHeaders(bool force) {
     progress.m_szCurrentMessage = "Installing sources";
     progress.print();
 
-    std::string cmd = std::format("sed -i -e \"s#PREFIX = /usr/local#PREFIX = {}#\" {}/Makefile", DataState::getHeadersPath(), WORKINGDIR);
-    if (m_bVerbose)
-        progress.printMessageAbove(verboseString("prepare install will run: {}", cmd));
-
-    ret = execAndGet(cmd);
-
-    cmd = std::format("make -C '{}' installheaders && chmod -R 644 '{}' && find '{}' -type d -exec chmod a+x {{}} \\;", WORKINGDIR, DataState::getHeadersPath(),
-                      DataState::getHeadersPath());
+    auto cmd =
+        std::format("make -C '{0}' PREFIX='{1}' installheaders && chmod -R 644 '{1}' && find '{1}' -type d -exec chmod a+x {{}} \\;", WORKINGDIR, DataState::getHeadersPath());
 
     if (m_bVerbose)
         progress.printMessageAbove(verboseString("install will run as sudo: {}", cmd));

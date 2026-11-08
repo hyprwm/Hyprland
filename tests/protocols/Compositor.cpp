@@ -202,6 +202,32 @@ TEST_F(CSurfaceCommitTest, SynchronizedNullBufferUnmapsOnlyOnParentCommit) {
     EXPECT_EQ(unmaps, 1);
 }
 
+TEST_F(CSurfaceCommitTest, SubsurfaceAncestryTraversesEveryParent) {
+    auto root = surface(), ancestor = surface(), parent = surface(), child = surface();
+    auto [ancestorSub, ancestorID] = subsurface(ancestor, root);
+    auto [parentSub, parentID]     = subsurface(parent, ancestor);
+    auto [childSub, childID]       = subsurface(child, parent);
+    request(ancestorID, 1, {100, 200}); // wl_subsurface.set_position
+    request(parentID, 1, {10, 20});
+    request(childID, 1, {1, 2});
+
+    EXPECT_EQ(childSub->posRelativeToParent(), Vector2D(111, 222));
+    EXPECT_EQ(childSub->t1Parent(), root);
+}
+
+TEST_F(CSurfaceCommitTest, SubsurfaceAncestryStopsAtCycle) {
+    auto first = surface(), second = surface(), child = surface();
+    auto [firstSub, firstID]   = subsurface(first, second);
+    auto [secondSub, secondID] = subsurface(second, first);
+    auto [childSub, childID]   = subsurface(child, first);
+    request(firstID, 1, {100, 200}); // wl_subsurface.set_position
+    request(secondID, 1, {10, 20});
+    request(childID, 1, {1, 2});
+
+    EXPECT_EQ(childSub->posRelativeToParent(), Vector2D(111, 222));
+    EXPECT_EQ(childSub->t1Parent(), first);
+}
+
 TEST_F(CSurfaceCommitTest, CursorReusedAfterNullBufferReleasesOnDeselection) {
     auto surf      = surface();
     surf->m_role   = makeShared<CCursorSurfaceRole>();

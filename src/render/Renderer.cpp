@@ -2049,7 +2049,12 @@ void IHyprRenderer::beginBackdropScope(CRenderContext& ctx, SP<SBackdropScope> s
             auto                         state = ctx.saveDrawState();
             CScopeGuard                  restoreBlend{[this, savedBlend] { blend(savedBlend); }};
             bindFB(ctx, backdrop);
-            ctx.m_data.damage             = scope->damage;
+
+            CRegion copyDamage = scope->damage.copy();
+            expandBlurDamage(copyDamage);
+            copyDamage.intersect(CBox{{}, ctx.m_data.pMonitor->m_transformedSize});
+
+            ctx.m_data.damage             = copyDamage;
             ctx.m_data.renderModif        = {};
             ctx.m_data.useNearestNeighbor = true;
             blend(false);

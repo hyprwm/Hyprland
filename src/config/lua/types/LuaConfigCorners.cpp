@@ -16,6 +16,11 @@ static constexpr std::array FIELDS = {
     std::pair{"bottom_left", &CCornersData::m_bottomLeft},
 };
 
+template <typename T>
+static std::string optionalOrStr(const std::optional<T>& v) {
+    return v.has_value() ? std::format("{}", *v) : "none";
+}
+
 CLuaConfigCorners::CLuaConfigCorners(Config::INTEGER def, std::optional<int64_t> min, std::optional<int64_t> max) : m_default(def), m_data(def), m_min(min), m_max(max) {
     ;
 }
@@ -24,7 +29,7 @@ SParseError CLuaConfigCorners::parse(lua_State* s) {
     if (!lua_istable(s, -1)) {
         // Preserve integer options' scalar acceptance, including booleans.
         CLuaConfigInt scalar(m_default, m_min, m_max);
-        const auto    error = scalar.parse(s);
+        auto          error = scalar.parse(s);
         if (error.errorCode != PARSE_ERROR_OK)
             return error;
 
@@ -59,14 +64,17 @@ SParseError CLuaConfigCorners::parse(lua_State* s) {
         }
         if ((m_min && value < *m_min) || (m_max && value > *m_max)) {
             lua_pop(s, 2);
-            return {.errorCode = PARSE_ERROR_OUT_OF_RANGE, .message = std::format("corners \"{}\" value {} is out of range", entry->first, value)};
+            return {
+                .errorCode = PARSE_ERROR_OUT_OF_RANGE,
+                .message   = std::format("corners \"{}\" value {} is out of range [{} - {}]", entry->first, value, optionalOrStr(m_min), optionalOrStr(m_max)),
+            };
         }
 
-        parsed.*(entry->second) = value;
+        parsed.*entry->second = value;
         lua_pop(s, 1);
     }
 
-    m_data       = parsed;
+    m_data       = std::move(parsed);
     m_bSetByUser = true;
     return {.errorCode = PARSE_ERROR_OK};
 }

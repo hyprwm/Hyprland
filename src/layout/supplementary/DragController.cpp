@@ -190,8 +190,8 @@ void CDragStateController::dragBegin(SP<ITarget> target, eMouseBindMode mode, st
         return;
 
     // get the grab corner
-    static auto RESIZECORNER = CConfigValue<Config::INTEGER>("general:resize_corner");
-    static auto RESIZEEDGE_ENABLE   = CConfigValue<Config::BOOL>("general:resize_edge");
+    static auto RESIZECORNER      = CConfigValue<Config::INTEGER>("general:resize_corner");
+    static auto RESIZEEDGE_ENABLE = CConfigValue<Config::BOOL>("general:resize_edge");
     if (m_forcedGrabbedCorner && *m_forcedGrabbedCorner != CORNER_NONE) {
         m_grabbedCorner = *m_forcedGrabbedCorner;
     } else if (*RESIZECORNER != 0 && *RESIZECORNER <= 8 && (*RESIZECORNER <= 4 || *RESIZEEDGE_ENABLE) && DRAGGINGTARGET->floating()) {
@@ -207,7 +207,8 @@ void CDragStateController::dragBegin(SP<ITarget> target, eMouseBindMode mode, st
         }
     } else if (m_beginDragXY.x < m_beginDragPositionXY.x + m_beginDragSizeXY.x / 2.F) {
         if (m_beginDragXY.y < m_beginDragPositionXY.y + m_beginDragSizeXY.y / 2.F) {
-            if (*RESIZEEDGE_ENABLE && m_beginDragXY.x < m_beginDragPositionXY.x + m_beginDragSizeXY.x / 4.F && m_beginDragXY.y > m_beginDragPositionXY.y + m_beginDragSizeXY.y / 4.F) {
+            if (*RESIZEEDGE_ENABLE && m_beginDragXY.x < m_beginDragPositionXY.x + m_beginDragSizeXY.x / 4.F &&
+                m_beginDragXY.y > m_beginDragPositionXY.y + m_beginDragSizeXY.y / 4.F) {
                 m_grabbedCorner = CORNER_LEFT;
             } else if (*RESIZEEDGE_ENABLE && m_beginDragXY.x > m_beginDragPositionXY.x + m_beginDragSizeXY.x / 4.F &&
                        m_beginDragXY.y < m_beginDragPositionXY.y + m_beginDragSizeXY.y / 4.F) {
@@ -216,7 +217,8 @@ void CDragStateController::dragBegin(SP<ITarget> target, eMouseBindMode mode, st
                 m_grabbedCorner = CORNER_TOPLEFT;
             }
         } else {
-            if (*RESIZEEDGE_ENABLE && m_beginDragXY.x < m_beginDragPositionXY.x + m_beginDragSizeXY.x / 4.F && m_beginDragXY.y < m_beginDragPositionXY.y + 3 * m_beginDragSizeXY.y / 4.F) {
+            if (*RESIZEEDGE_ENABLE && m_beginDragXY.x < m_beginDragPositionXY.x + m_beginDragSizeXY.x / 4.F &&
+                m_beginDragXY.y < m_beginDragPositionXY.y + 3 * m_beginDragSizeXY.y / 4.F) {
                 m_grabbedCorner = CORNER_LEFT;
             } else if (*RESIZEEDGE_ENABLE && m_beginDragXY.x > m_beginDragPositionXY.x + m_beginDragSizeXY.x / 4.F &&
                        m_beginDragXY.y > m_beginDragPositionXY.y + 3 * m_beginDragSizeXY.y / 4.F) {
@@ -227,7 +229,8 @@ void CDragStateController::dragBegin(SP<ITarget> target, eMouseBindMode mode, st
         }
     } else {
         if (m_beginDragXY.y < m_beginDragPositionXY.y + m_beginDragSizeXY.y / 2.F) {
-            if (*RESIZEEDGE_ENABLE && m_beginDragXY.x < m_beginDragPositionXY.x + 3 * m_beginDragSizeXY.x / 4.F && m_beginDragXY.y < m_beginDragPositionXY.y + m_beginDragSizeXY.y / 4.F) {
+            if (*RESIZEEDGE_ENABLE && m_beginDragXY.x < m_beginDragPositionXY.x + 3 * m_beginDragSizeXY.x / 4.F &&
+                m_beginDragXY.y < m_beginDragPositionXY.y + m_beginDragSizeXY.y / 4.F) {
                 m_grabbedCorner = CORNER_TOP;
             } else if (*RESIZEEDGE_ENABLE && m_beginDragXY.x > m_beginDragPositionXY.x + 3 * m_beginDragSizeXY.x / 4.F &&
                        m_beginDragXY.y > m_beginDragPositionXY.y + m_beginDragSizeXY.y / 4.F) {

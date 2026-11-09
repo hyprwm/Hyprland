@@ -8,7 +8,7 @@
 #include <variant>
 
 namespace Desktop::Rule {
-    using LayerRuleEffectValue = std::variant<std::monostate, bool, int64_t, float, std::string>;
+    using LayerRuleEffectValue = std::variant<std::monostate, bool, int64_t, float, std::string, STypedRuleValue>;
 
     struct SLayerRuleEffect {
         using storageType = CLayerRuleEffectContainer::storageType;

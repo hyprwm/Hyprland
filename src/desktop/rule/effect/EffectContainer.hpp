@@ -22,7 +22,7 @@ namespace Desktop::Rule {
         using storageType = std::conditional_t<(sizeof(std::underlying_type_t<T>) >= 2), std::underlying_type_t<T>, uint16_t>;
 
         IEffectContainer(std::vector<std::string>&& defaultKeys) : m_keys(std::move(defaultKeys)), m_originalSize(m_keys.size()) {
-            ;
+            m_luaValues.resize(m_originalSize);
         }
         virtual ~IEffectContainer() = default;
 
@@ -30,14 +30,11 @@ namespace Desktop::Rule {
             if (!value || m_keys.size() >= std::numeric_limits<storageType>::max())
                 return 0;
             if (auto it = std::ranges::find(m_keys, name); it != m_keys.end()) {
-                const auto IDX     = sc<storageType>(it - m_keys.begin());
-                const auto LUA_IDX = luaValueIndex(IDX);
-                if (!LUA_IDX.has_value())
+                const auto IDX = sc<storageType>(it - m_keys.begin());
+                if (!isEffectDynamic(IDX))
                     return 0;
 
-                if (*LUA_IDX >= m_luaValues.size())
-                    m_luaValues.resize(*LUA_IDX + 1);
-                m_luaValues[*LUA_IDX] = std::move(value);
+                m_luaValues[IDX] = std::move(value);
                 return IDX;
             }
             m_keys.emplace_back(std::move(name));
@@ -50,8 +47,8 @@ namespace Desktop::Rule {
                 return;
 
             m_keys[id] = DEFAULT_MISSING_KEY;
-            if (const auto LUA_IDX = luaValueIndex(id); LUA_IDX.has_value() && *LUA_IDX < m_luaValues.size())
-                m_luaValues[*LUA_IDX] = nullptr;
+            if (id < m_luaValues.size())
+                m_luaValues[id] = nullptr;
         }
 
         virtual void unregisterEffect(const std::string& name) {
@@ -64,11 +61,10 @@ namespace Desktop::Rule {
         }
 
         virtual SP<Config::Values::IValue> getLuaValue(storageType id) const {
-            const auto LUA_IDX = luaValueIndex(id);
-            if (!LUA_IDX.has_value() || *LUA_IDX >= m_luaValues.size())
+            if (id >= m_luaValues.size())
                 return nullptr;
 
-            return m_luaValues[*LUA_IDX];
+            return m_luaValues[id];
         }
 
         virtual const std::string& get(storageType idx) {
@@ -97,13 +93,13 @@ namespace Desktop::Rule {
         }
 
       protected:
-        // Values are only stored for dynamically registered effects. Static
-        // effects have their own typed descriptors and do not need an entry.
-        std::optional<size_t> luaValueIndex(storageType id) const {
-            if (id < m_originalSize)
-                return std::nullopt;
+        // Static effects are registered by their derived container during construction.
+        // Dynamic effects are registered through registerEffect().
+        void registerStaticEffect(storageType id, SP<Config::Values::IValue> value) {
+            if (!value || id == 0 || id >= m_originalSize)
+                return;
 
-            return static_cast<size_t>(id - m_originalSize);
+            m_luaValues[id] = std::move(value);
         }
 
         std::vector<std::string>                m_keys;

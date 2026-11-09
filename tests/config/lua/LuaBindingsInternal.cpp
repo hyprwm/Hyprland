@@ -6,11 +6,17 @@
 
 #include <Compositor.hpp>
 
+#include <config/lua/types/LuaConfigCssGap.hpp>
 #include <config/lua/types/LuaConfigInt.hpp>
+#include <config/lua/types/LuaConfigString.hpp>
+#include <config/lua/types/LuaConfigUtils.hpp>
 #include <config/values/types/CssGapValue.hpp>
 #include <config/values/types/StringValue.hpp>
 #include <config/values/types/IntValue.hpp>
 #include <desktop/rule/windowRule/WindowRule.hpp>
+
+#include <desktop/rule/windowRule/WindowRuleEffectContainer.hpp>
+#include <desktop/rule/layerRule/LayerRuleEffectContainer.hpp>
 
 #include <gtest/gtest.h>
 
@@ -622,13 +628,15 @@ TEST(ConfigLuaBindingsInternal, borderColorRulePreservesLegacyEndpoints) {
 TEST(ConfigLuaBindingsInternal, borderColorRuleRoundTripsIndependentWholeMonitorEndpoints) {
     CLuaState  state;
     const auto lua  = state.get();
-    const auto desc = Internal::findDescByName(Internal::WINDOW_RULE_EFFECT_DESCS, "border_color");
-    ASSERT_NE(desc, nullptr);
+    const auto type = Desktop::Rule::windowEffects()->getLuaValue(Desktop::Rule::WINDOW_RULE_EFFECT_BORDER_COLOR);
+    ASSERT_NE(type, nullptr);
 
     for (const bool activeWholeMonitor : {false, true}) {
         for (const bool inactiveWholeMonitor : {false, true}) {
-            auto       active       = UP<ILuaConfigValue>(desc->factory());
-            auto       inactive     = UP<ILuaConfigValue>(desc->factory());
+            auto active   = Config::Lua::fromGenericValue(type);
+            auto inactive = Config::Lua::fromGenericValue(type);
+            ASSERT_NE(active, nullptr);
+            ASSERT_NE(inactive, nullptr);
             const auto activeCode   = std::format("return {{ colors = {{ '0xFF112233', '0xFF445566' }}, angle = 90, whole_monitor = {} }}", activeWholeMonitor);
             const auto inactiveCode = std::format("return {{ colors = {{ '0xFF778899', '0xFFAABBCC' }}, angle = 180, whole_monitor = {} }}", inactiveWholeMonitor);
             ASSERT_EQ(luaL_dostring(lua, activeCode.c_str()), LUA_OK);
@@ -657,7 +665,7 @@ TEST(ConfigLuaBindingsInternal, borderColorRuleRoundTripsIndependentWholeMonitor
             for (const auto& test : CASES) {
                 SCOPED_TRACE(test.raw);
                 Desktop::Rule::CWindowRule rule;
-                const auto                 result = rule.addEffect(desc->effect, test.raw);
+                const auto                 result = rule.addEffect(Desktop::Rule::WINDOW_RULE_EFFECT_BORDER_COLOR, test.raw);
                 ASSERT_TRUE(result.has_value()) << result.error();
                 ASSERT_EQ(rule.effects().size(), 1);
                 const auto border = std::get_if<Desktop::Rule::SBorderColorRule>(&rule.effects().front().value);
@@ -683,12 +691,10 @@ TEST(ConfigLuaBindingsInternal, borderColorRuleRoundTripsIndependentWholeMonitor
 TEST(ConfigLuaBindingsInternal, borderColorLuaTablePreservesWholeMonitorAndRejectsInvalidType) {
     CLuaState  state;
     const auto lua  = state.get();
-    const auto desc = Internal::findDescByName(Internal::WINDOW_RULE_EFFECT_DESCS, "border_color");
-    ASSERT_NE(desc, nullptr);
     const auto rule = makeShared<Desktop::Rule::CWindowRule>();
 
     ASSERT_EQ(luaL_dostring(lua, "return { colors = { '0xFF112233' }, angle = 90, whole_monitor = true }"), LUA_OK);
-    const auto result = Internal::addWindowRuleEffectFromLua(lua, *desc, rule);
+    const auto result = Internal::addWindowRuleEffectFromLua(lua, Desktop::Rule::WINDOW_RULE_EFFECT_BORDER_COLOR, rule);
     ASSERT_TRUE(result.has_value()) << result.error();
     lua_pop(lua, 1);
     ASSERT_EQ(rule->effects().size(), 1);
@@ -700,7 +706,7 @@ TEST(ConfigLuaBindingsInternal, borderColorLuaTablePreservesWholeMonitorAndRejec
     EXPECT_EQ(rule->effects().front().raw, "0xFF112233 whole_monitor 90deg");
 
     ASSERT_EQ(luaL_dostring(lua, "return { colors = { '0xFF445566' }, whole_monitor = 1 }"), LUA_OK);
-    const auto invalid = Internal::addWindowRuleEffectFromLua(lua, *desc, rule);
+    const auto invalid = Internal::addWindowRuleEffectFromLua(lua, Desktop::Rule::WINDOW_RULE_EFFECT_BORDER_COLOR, rule);
     ASSERT_FALSE(invalid.has_value());
     EXPECT_NE(invalid.error().find("whole_monitor"), std::string::npos);
     lua_pop(lua, 1);
@@ -806,19 +812,44 @@ TEST(ConfigLuaBindingsInternal, dynamicRuleValueUsesTypedFactory) {
     lua_pushinteger(L, 4);
     lua_setfield(L, -2, "left");
 
-    const auto RESULT = Internal::ruleValueToString(L, makeShared<Config::Values::CCssGapValue>("test", "", 0));
+    const auto RESULT = Internal::parseRuleValue(L, makeShared<Config::Values::CCssGapValue>("test", "", 0));
     ASSERT_TRUE(RESULT.has_value()) << RESULT.error();
-    EXPECT_EQ(*RESULT, "1 2 3 4");
+    const auto GAP = dynamicPointerCast<CLuaConfigCssGap>(*RESULT);
+    ASSERT_TRUE(GAP);
+    EXPECT_EQ(GAP->parsed().m_top, 1);
+    EXPECT_EQ(GAP->parsed().m_right, 2);
+    EXPECT_EQ(GAP->parsed().m_bottom, 3);
+    EXPECT_EQ(GAP->parsed().m_left, 4);
     lua_pop(L, 1);
 
     lua_pushstring(L, "hello");
-    const auto STRING = Internal::ruleValueToString(L, makeShared<Config::Values::CStringValue>("test", "", ""));
+    const auto STRING = Internal::parseRuleValue(L, makeShared<Config::Values::CStringValue>("test", "", ""));
     ASSERT_TRUE(STRING.has_value()) << STRING.error();
-    EXPECT_EQ(*STRING, "hello");
+    const auto STR = dynamicPointerCast<CLuaConfigString>(*STRING);
+    ASSERT_TRUE(STR);
+    EXPECT_EQ(STR->parsed(), "hello");
     lua_pop(L, 1);
 
-    const auto NOVALUE = Internal::ruleValueToString(L, nullptr);
+    const auto NOVALUE = Internal::parseRuleValue(L, nullptr);
     EXPECT_FALSE(NOVALUE.has_value());
+}
+
+TEST(ConfigLuaBindingsInternal, everyStaticRuleEffectHasATypedValue) {
+    CScopedCompositor compositor;
+
+    using WE = Desktop::Rule::eWindowRuleEffect;
+    for (auto i = static_cast<WE>(1); i < WE::WINDOW_RULE_EFFECT_LAST_STATIC; i = static_cast<WE>(static_cast<int>(i) + 1)) {
+        const auto& name = Desktop::Rule::windowEffects()->get(i);
+        EXPECT_TRUE(Desktop::Rule::windowEffects()->getLuaValue(i)) << name;
+        EXPECT_FALSE(Desktop::Rule::windowEffects()->isEffectDynamic(i)) << name;
+    }
+
+    using LE = Desktop::Rule::eLayerRuleEffect;
+    for (auto i = static_cast<LE>(1); i < LE::LAYER_RULE_EFFECT_LAST_STATIC; i = static_cast<LE>(static_cast<int>(i) + 1)) {
+        const auto& name = Desktop::Rule::layerEffects()->get(i);
+        EXPECT_TRUE(Desktop::Rule::layerEffects()->getLuaValue(i)) << name;
+        EXPECT_FALSE(Desktop::Rule::layerEffects()->isEffectDynamic(i)) << name;
+    }
 }
 
 TEST(ConfigLuaBindingsInternal, pluginLuaFnIsUnloadedWithoutDanglingCall) {

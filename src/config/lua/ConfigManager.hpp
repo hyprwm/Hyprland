@@ -118,12 +118,12 @@ namespace Config::Lua {
 
         std::vector<std::string>                             m_registeredPlugins;
 
-        std::unordered_map<std::string, UP<ILuaConfigValue>> m_configValues;
+        std::unordered_map<std::string, SP<ILuaConfigValue>> m_configValues;
 
         struct SDeviceConfig {
             SDeviceConfig();
 
-            std::unordered_map<std::string, UP<ILuaConfigValue>> values;
+            std::unordered_map<std::string, SP<ILuaConfigValue>> values;
         };
 
         std::unordered_map<std::string, SDeviceConfig> m_deviceConfigs;
@@ -137,7 +137,7 @@ namespace Config::Lua {
       private:
         void                                         reinitLuaState();
         void                                         postConfigReload();
-        void                                         registerValue(const char* name, UP<ILuaConfigValue>&& val);
+        void                                         registerValue(const char* name, SP<ILuaConfigValue>&& val);
         void                                         cleanTimers();
         void                                         clearLuaLayoutProviders();
         std::string                                  luaConfigValueName(const std::string& s);

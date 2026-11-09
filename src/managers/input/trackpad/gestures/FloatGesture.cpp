@@ -42,10 +42,11 @@ void CFloatTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin&
         return;
     }
 
-    g_layoutManager->changeFloatingMode(m_window->layoutTarget());
+    m_posFrom  = m_window->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
+    m_sizeFrom = m_window->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
 
-    m_posFrom  = m_window->positionAnimation()->begun();
-    m_sizeFrom = m_window->sizeAnimation()->begun();
+    g_layoutManager->changeFloatingMode(m_window->layoutTarget());
+    m_window->flushPendingGeometry();
 
     m_posTo  = m_window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
     m_sizeTo = m_window->size(Desktop::View::IGeometric::GEOMETRIC_GOAL);

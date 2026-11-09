@@ -43,6 +43,7 @@ void CFullscreenTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureB
     m_originalMode = Fullscreen::controller()->getFullscreenModes(m_window.lock()).internal;
 
     Fullscreen::controller()->setFullscreenMode(m_window.lock(), !Fullscreen::controller()->isFullscreen(m_window.lock()) ? fsModeForMode(m_mode) : Fullscreen::FSMODE_NONE);
+    m_window->flushPendingGeometry();
 
     m_posTo  = m_window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
     m_sizeTo = m_window->size(Desktop::View::IGeometric::GEOMETRIC_GOAL);

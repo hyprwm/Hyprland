@@ -66,12 +66,14 @@
 #include "../../../layout/LayoutManager.hpp"
 #include "../../../layout/target/WindowTarget.hpp"
 #include "../../../layout/target/WindowGroupTarget.hpp"
+#include "../../../output/MonitorWindowTransaction.hpp"
 #include "../../../event/EventBus.hpp"
 
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/VarList.hpp>
 #include <hyprutils/string/VarList2.hpp>
+#include <hyprutils/utils/ScopeGuard.hpp>
 
 using namespace Hyprutils::String;
 using namespace Hyprutils::Animation;
@@ -681,7 +683,7 @@ void CWindow::updateFullscreenInputState() {
 }
 
 Vector2D CWindow::middle() {
-    return m_realPosition->goal() + m_realSize->goal() / 2.f;
+    return position(GEOMETRIC_GOAL) + size(GEOMETRIC_GOAL) / 2.f;
 }
 
 void CWindow::updateWindowData() {
@@ -993,14 +995,14 @@ void CWindow::onConfigureRequest(const CBox& box) {
     if (!m_workspace || !m_workspace->visible())
         return; // further things are only for visible windows
 
-    const auto monitorByRequestedPosition = State::monitorState()->query().vec(m_realPosition->goal() + m_realSize->goal() / 2.f).run();
+    const auto monitorByRequestedPosition = State::monitorState()->query().vec(middle()).run();
     const auto currentMonitor             = m_workspace->m_monitor.lock();
 
     LOG(Log::DEBUG,
         "onX11ConfigureRequest: window '{}' ({:#x}) - workspace '{}' (special={}), currentMonitor='{}', monitorByRequestedPosition='{}', pos={:.0f},{:.0f}, size={:.0f},{:.0f}",
         m_metadata->title(), (uintptr_t)this, m_workspace->displayName(), m_workspace->type() == Workspace::eWorkspaceType::SPECIAL,
-        currentMonitor ? currentMonitor->m_name : "null", monitorByRequestedPosition ? monitorByRequestedPosition->m_name : "null", m_realPosition->goal().x,
-        m_realPosition->goal().y, m_realSize->goal().x, m_realSize->goal().y);
+        currentMonitor ? currentMonitor->m_name : "null", monitorByRequestedPosition ? monitorByRequestedPosition->m_name : "null", position(GEOMETRIC_GOAL).x,
+        position(GEOMETRIC_GOAL).y, size(GEOMETRIC_GOAL).x, size(GEOMETRIC_GOAL).y);
 
     // Reassign workspace only when moving to a different monitor and not on a special workspace
     // X11 apps send configure requests with positions based on XWayland's monitor layout, such as "0,0",
@@ -1158,14 +1160,18 @@ static void setVector2DAnimToMove(WP<CBaseAnimatedVariable> pav) {
 }
 
 void CWindow::mapWindow() {
-    static auto PINACTIVEALPHA     = CConfigValue<Config::FLOAT>("decoration:inactive_opacity");
-    static auto PACTIVEALPHA       = CConfigValue<Config::FLOAT>("decoration:active_opacity");
-    static auto PDIMSTRENGTH       = CConfigValue<Config::FLOAT>("decoration:dim_strength");
-    static auto PNEWTAKESOVERFS    = CConfigValue<Config::INTEGER>("misc:on_focus_under_fullscreen");
-    static auto PINITIALWSTRACKING = CConfigValue<Config::INTEGER>("misc:initial_workspace_tracking");
-    static auto PAUTOGROUP         = CConfigValue<Config::INTEGER>("group:auto_group");
+    cancelPendingGeometry();
+    m_geometryTransactionsBlocked = true;
+    const Hyprutils::Utils::CScopeGuard geometryGuard([this] { m_geometryTransactionsBlocked = false; });
 
-    auto        PMONITOR = Desktop::focusState()->monitor();
+    static auto                         PINACTIVEALPHA     = CConfigValue<Config::FLOAT>("decoration:inactive_opacity");
+    static auto                         PACTIVEALPHA       = CConfigValue<Config::FLOAT>("decoration:active_opacity");
+    static auto                         PDIMSTRENGTH       = CConfigValue<Config::FLOAT>("decoration:dim_strength");
+    static auto                         PNEWTAKESOVERFS    = CConfigValue<Config::INTEGER>("misc:on_focus_under_fullscreen");
+    static auto                         PINITIALWSTRACKING = CConfigValue<Config::INTEGER>("misc:initial_workspace_tracking");
+    static auto                         PAUTOGROUP         = CConfigValue<Config::INTEGER>("group:auto_group");
+
+    auto                                PMONITOR = Desktop::focusState()->monitor();
     if (!Desktop::focusState()->monitor()) {
         Desktop::focusState()->rawMonitorFocus(State::monitorState()->query().vec({}).run());
         PMONITOR = Desktop::focusState()->monitor();
@@ -1469,7 +1475,7 @@ void CWindow::mapWindow() {
 
         // set the pseudo size to the GOAL of our current size
         // because the windows are animated on RealSize
-        m_target->setPseudoSize(m_realSize->goal());
+        m_target->setPseudoSize(size(GEOMETRIC_GOAL));
 
         Desktop::windowState()->raise(m_self.lock());
     } else {
@@ -1487,7 +1493,7 @@ void CWindow::mapWindow() {
         }
 
         if (!setPseudo)
-            m_target->setPseudoSize(m_realSize->goal() - Vector2D(10, 10));
+            m_target->setPseudoSize(size(GEOMETRIC_GOAL) - Vector2D(10, 10));
     }
 
     const auto PFOCUSEDWINDOWPREV = Desktop::focusState()->window();
@@ -1573,7 +1579,7 @@ void CWindow::mapWindow() {
     m_state &= ~WINDOW_STATE_FIRST_MAP;
     m_fullscreenPolicy->consumePendingClientRequest();
 
-    LOG(Log::DEBUG, "Map request dispatched, monitor {}, window pos: {:5j}, window size: {:5j}", PMONITOR->m_name, m_realPosition->goal(), m_realSize->goal());
+    LOG(Log::DEBUG, "Map request dispatched, monitor {}, window pos: {:5j}, window size: {:5j}", PMONITOR->m_name, position(GEOMETRIC_GOAL), size(GEOMETRIC_GOAL));
 
     // apply data from default decos. Borders, shadows.
     g_pDecorationPositioner->forceRecalcFor(m_self.lock());
@@ -1611,6 +1617,11 @@ void CWindow::mapWindow() {
 }
 
 void CWindow::unmapWindow() {
+    const auto PENDING_SIZE = m_pendingGeometry.transform([](const auto& geometry) { return geometry.box.size(); });
+    cancelPendingGeometry();
+    m_geometryTransactionsBlocked = true;
+    const Hyprutils::Utils::CScopeGuard geometryGuard([this] { m_geometryTransactionsBlocked = false; });
+
     LOG(Log::DEBUG, "{:c} unmapped", m_self.lock());
 
     static auto PEXITRETAINSFS = CConfigValue<Config::INTEGER>("misc:exit_window_retains_fullscreen");
@@ -1632,8 +1643,9 @@ void CWindow::unmapWindow() {
     Event::bus()->m_events.window.close.emit(m_self.lock());
 
     if (m_target->floating() && !m_backend->isX11() && m_ruleApplicator->persistentSize().valueOrDefault()) {
-        LOG(Log::DEBUG, "storing floating size {}x{} for window {}::{} on close", m_realSize->value().x, m_realSize->value().y, m_metadata->appID(), m_metadata->title());
-        Desktop::floatState()->remember(m_self.lock(), m_realSize->value());
+        const auto SIZE = PENDING_SIZE.value_or(size(GEOMETRIC_CURRENT));
+        LOG(Log::DEBUG, "storing floating size {}x{} for window {}::{} on close", SIZE.x, SIZE.y, m_metadata->appID(), m_metadata->title());
+        Desktop::floatState()->remember(m_self.lock(), SIZE);
     }
 
     const auto SWALLOW_UNMAP_RESULT    = m_swallowing->onUnmap(IS_CURRENT_WINDOW_FS ? std::optional(CURRENT_WINDOW_FS_MODES.internal) : std::nullopt, CURRENT_FS_LAYOUT_HANDLED);
@@ -1785,6 +1797,9 @@ void CWindow::commitWindow(bool initialCommit) {
         return;
     }
 
+    if (m_isMapped && m_geometryTransaction)
+        m_geometryTransaction->onWindowCommit(m_self.lock());
+
     if (!m_isMapped || isHidden())
         return;
 
@@ -1802,7 +1817,8 @@ void CWindow::commitWindow(bool initialCommit) {
     // damageSurface consumes damage, so snapshot it for the tearing check below
     const bool HADDAMAGE = !wlSurface()->resource()->m_current.damage.empty() || !wlSurface()->resource()->m_current.bufferDamage.empty();
 
-    g_pHyprRenderer->damageSurface(wlSurface()->resource(), m_realPosition->goal().x, m_realPosition->goal().y, 1.0 / m_backend->surfaceScale());
+    const auto POSITION = position(GEOMETRIC_CURRENT);
+    g_pHyprRenderer->damageSurface(wlSurface()->resource(), POSITION.x, POSITION.y, 1.0 / m_backend->surfaceScale());
 
     if (!m_backend->isX11()) {
         subsurfaceHead()->recheckDamageForSubsurfaces();
@@ -1895,8 +1911,8 @@ void CWindow::unmanagedSetGeometry(const CBox& box) {
     if (!m_isMapped || !m_backend->traits().overrideRedirect)
         return;
 
-    const auto POS = m_realPosition->goal();
-    const auto SIZ = m_realSize->goal();
+    const auto POS = position(GEOMETRIC_GOAL);
+    const auto SIZ = size(GEOMETRIC_GOAL);
 
     if (box.size() > Vector2D{1, 1})
         setHidden(false);

@@ -10,6 +10,7 @@
 #include "../../protocols/core/Compositor.hpp"
 #include "../../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../../output/Monitor.hpp"
+#include "../../output/MonitorWindowTransaction.hpp"
 #include "../../Compositor.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../desktop/state/FloatState.hpp"
@@ -60,8 +61,6 @@ void CWindowTarget::updatePos(uint8_t flags) {
     g_pHyprRenderer->damageWindow(m_window.lock());
     CScopeGuard x([this] { g_pHyprRenderer->damageWindow(m_window.lock()); });
 
-    const bool  CONFIGURECLIENT = !(flags & TARGET_UPDATE_NO_CLIENT_CONFIGURE);
-
     if (!m_space || !m_space->workspace())
         return;
 
@@ -81,11 +80,7 @@ void CWindowTarget::updatePos(uint8_t flags) {
 
     // Non-FS Floating Windows
     if (floating() && m_window && !Fullscreen::controller()->isFullscreen(effectiveWindow())) {
-        m_window->setBox(m_box.logicalBox);
-
-        if (CONFIGURECLIENT)
-            sendWindowSize();
-        m_window->presentation().updateDecorations();
+        updateWindowGeometry(m_box.logicalBox, flags);
 
         return;
     }
@@ -111,7 +106,7 @@ void CWindowTarget::updatePos(uint8_t flags) {
     if (const auto FSMODES = Fullscreen::controller()->getFullscreenModes(effectiveWindow());
         FSMODES.internal != Fullscreen::FSMODE_NONE && !Fullscreen::controller()->layoutManagedFS(effectiveWindow())) {
         if (FSMODES.internal == Fullscreen::FSMODE_FULLSCREEN) {
-            m_window->setBox(m_box.logicalBox);
+            updateWindowGeometry(m_box.logicalBox, flags);
 
         } else if (FSMODES.internal == Fullscreen::FSMODE_MAXIMIZED) {
             CBox nodeBox   = m_box.logicalBox;
@@ -121,12 +116,9 @@ void CWindowTarget::updatePos(uint8_t flags) {
 
             // Reserved area must be updated before this is called
             // Reserved area for all windows in a group are owned by the leading window. Other windows are hidden anyway so this simply ensures their sizes are uniform when FSed
-            m_window->setBox(contentBox(visualBox, effectiveWindow()));
+            updateWindowGeometry(contentBox(visualBox, effectiveWindow()), flags);
         }
 
-        m_window->presentation().updateDecorations();
-        if (CONFIGURECLIENT)
-            sendWindowSize();
         return;
     }
 
@@ -139,17 +131,14 @@ void CWindowTarget::updatePos(uint8_t flags) {
         nodeBox.round();
         visualBox.round();
         if (FSMODES.internal == Fullscreen::FSMODE_FULLSCREEN) {
-            m_window->setBox(visualBox);
+            updateWindowGeometry(visualBox, flags);
         } else if (FSMODES.internal == Fullscreen::FSMODE_MAXIMIZED) {
 
             // Reserved area must be updated before this is called
             // Reserved area for all windows in a group are owned by the leading window. Other windows are hidden anyway so this simply ensures their sizes are uniform when FSed
-            m_window->setBox(contentBox(visualBox, effectiveWindow()));
+            updateWindowGeometry(contentBox(visualBox, effectiveWindow()), flags);
         }
 
-        m_window->presentation().updateDecorations();
-        if (CONFIGURECLIENT)
-            sendWindowSize();
         return;
     }
 
@@ -258,10 +247,20 @@ void CWindowTarget::updatePos(uint8_t flags) {
     if (!pixelAlignedBorder(m_window.lock()))
         wb.round();
 
-    m_window->setBox(wb);
+    updateWindowGeometry(wb, flags);
+}
 
-    m_window->presentation().updateDecorations();
-    if (CONFIGURECLIENT)
+void CWindowTarget::updateWindowGeometry(const CBox& box, uint8_t flags) {
+    const auto MONITOR = m_space && m_space->workspace() ? m_space->workspace()->m_monitor.lock() : m_window->m_monitor.lock();
+    if (MONITOR && MONITOR->m_enabled && MONITOR->m_windowTransaction && m_window->canStageGeometry() && !(flags & TARGET_UPDATE_NO_CLIENT_CONFIGURE)) {
+        if (!MONITOR->m_windowTransaction->queue(m_window.lock(), box))
+            m_window->presentation().updateDecorations();
+    } else {
+        m_window->setBox(box);
+        m_window->presentation().updateDecorations();
+    }
+
+    if (!(flags & TARGET_UPDATE_NO_CLIENT_CONFIGURE))
         sendWindowSize();
 }
 
@@ -470,7 +469,7 @@ std::optional<Vector2D> CWindowTarget::calculateExpression(const Math::SExpressi
 }
 
 void CWindowTarget::sendWindowSize(bool force) {
-    const auto PMONITOR = m_window->m_monitor.lock();
+    const auto PMONITOR = m_space && m_space->workspace() ? m_space->workspace()->m_monitor.lock() : m_window->m_monitor.lock();
 
     LOG(Log::TRACE, "sendWindowSize: window:{:x},title:{} with real pos {}, real size {} (force: {})", rc<uintptr_t>(m_window.get()), m_window->metadata().title(),
         m_window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL), m_window->size(Desktop::View::IGeometric::GEOMETRIC_GOAL), force);

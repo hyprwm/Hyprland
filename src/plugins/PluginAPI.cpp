@@ -415,6 +415,84 @@ APICALL bool HyprlandAPI::removeLuaFunction(HANDLE handle, const std::string& na
     return true;
 }
 
+APICALL uint16_t HyprlandAPI::addWindowEffect(HANDLE handle, const std::string& name, SP<Config::Values::IValue> value) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN || name.empty() || !value)
+        return 0;
+
+    if (const auto EFFECT = Desktop::Rule::windowEffects()->get(name); EFFECT.has_value()) {
+        if (std::ranges::find(PLUGIN->m_registeredWindowEffects, *EFFECT) == PLUGIN->m_registeredWindowEffects.end()) {
+            LOG(Log::ERR, "failed to add plugin window effect \"{}\": name taken", name);
+            return 0;
+        }
+
+        Desktop::Rule::windowEffects()->registerEffect(std::string{name}, std::move(value));
+        return *EFFECT;
+    }
+
+    const auto IDX = Desktop::Rule::windowEffects()->registerEffect(std::string{name}, std::move(value));
+    if (!IDX)
+        return 0;
+
+    PLUGIN->m_registeredWindowEffects.emplace_back(IDX);
+
+    return IDX;
+}
+
+APICALL uint16_t HyprlandAPI::addLayerEffect(HANDLE handle, const std::string& name, SP<Config::Values::IValue> value) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN || name.empty() || !value)
+        return 0;
+
+    if (const auto EFFECT = Desktop::Rule::layerEffects()->get(name); EFFECT.has_value()) {
+        if (std::ranges::find(PLUGIN->m_registeredLayerEffects, *EFFECT) == PLUGIN->m_registeredLayerEffects.end()) {
+            LOG(Log::ERR, "failed to add plugin layer effect \"{}\": name taken", name);
+            return 0;
+        }
+
+        Desktop::Rule::layerEffects()->registerEffect(std::string{name}, std::move(value));
+        return *EFFECT;
+    }
+
+    const auto IDX = Desktop::Rule::layerEffects()->registerEffect(std::string{name}, std::move(value));
+    if (!IDX)
+        return 0;
+
+    PLUGIN->m_registeredLayerEffects.emplace_back(IDX);
+
+    return IDX;
+}
+
+APICALL bool HyprlandAPI::removeWindowEffect(HANDLE handle, uint16_t idx) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return false;
+
+    if (std::ranges::find(PLUGIN->m_registeredWindowEffects, idx) == PLUGIN->m_registeredWindowEffects.end())
+        return false;
+
+    Desktop::Rule::windowEffects()->unregisterEffect(idx);
+    std::erase(PLUGIN->m_registeredWindowEffects, idx);
+    return true;
+}
+
+APICALL bool HyprlandAPI::removeLayerEffect(HANDLE handle, uint16_t idx) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return false;
+
+    if (std::ranges::find(PLUGIN->m_registeredLayerEffects, idx) == PLUGIN->m_registeredLayerEffects.end())
+        return false;
+
+    Desktop::Rule::layerEffects()->unregisterEffect(idx);
+    std::erase(PLUGIN->m_registeredLayerEffects, idx);
+    return true;
+}
+
 APICALL bool HyprlandAPI::addEvent(HANDLE handle, SP<Event::CEventBus::CCustomEvent> event) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 

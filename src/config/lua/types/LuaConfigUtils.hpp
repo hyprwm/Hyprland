@@ -5,5 +5,5 @@
 #include "../../values/types/IValue.hpp"
 
 namespace Config::Lua {
-    UP<ILuaConfigValue> fromGenericValue(SP<Config::Values::IValue> v);
+    SP<ILuaConfigValue> fromGenericValue(SP<Config::Values::IValue> v);
 };

@@ -43,8 +43,8 @@ class CRedirectableConfigValueTest : public testing::Test {
         Config::mgr()     = std::move(manager);
         CConfigValueBase::flushCaches();
 
-        m_manager->m_configValues.emplace(TARGET, makeUnique<CLuaConfigInt>(10, 0, 100));
-        m_manager->m_configValues.emplace(FALLBACK, makeUnique<CLuaConfigInt>(20, 0, 100));
+        m_manager->m_configValues.emplace(TARGET, makeShared<CLuaConfigInt>(10, 0, 100));
+        m_manager->m_configValues.emplace(FALLBACK, makeShared<CLuaConfigInt>(20, 0, 100));
     }
 
     void TearDown() override {
@@ -132,8 +132,8 @@ TEST_F(CRedirectableConfigValueTest, explicitDefaultAndZeroOverrideFallback) {
 }
 
 TEST_F(CRedirectableConfigValueTest, explicitFalseOverridesFallbackIncludingIntegerCompatibility) {
-    m_manager->m_configValues.at(TARGET)   = makeUnique<CLuaConfigBool>(false);
-    m_manager->m_configValues.at(FALLBACK) = makeUnique<CLuaConfigBool>(true);
+    m_manager->m_configValues.at(TARGET)   = makeShared<CLuaConfigBool>(false);
+    m_manager->m_configValues.at(FALLBACK) = makeShared<CLuaConfigBool>(true);
 
     const CRedirectableConfigValue<Config::BOOL>    boolean(TARGET, FALLBACK);
     const CRedirectableConfigValue<Config::INTEGER> integer(TARGET, FALLBACK);
@@ -147,8 +147,8 @@ TEST_F(CRedirectableConfigValueTest, explicitFalseOverridesFallbackIncludingInte
 }
 
 TEST_F(CRedirectableConfigValueTest, explicitEmptyStringOverridesFallback) {
-    m_manager->m_configValues.at(TARGET)   = makeUnique<CLuaConfigString>("");
-    m_manager->m_configValues.at(FALLBACK) = makeUnique<CLuaConfigString>("legacy");
+    m_manager->m_configValues.at(TARGET)   = makeShared<CLuaConfigString>("");
+    m_manager->m_configValues.at(FALLBACK) = makeShared<CLuaConfigString>("legacy");
 
     const CRedirectableConfigValue<Config::STRING> value(TARGET, FALLBACK);
     EXPECT_EQ(*value, "legacy");
@@ -228,8 +228,8 @@ TEST_F(CRedirectableConfigValueTest, cacheFlushRefreshesDataAndExplicitnessForBo
     // Keep the old allocations alive so a stale flag fails deterministically, not through a dangling pointer.
     auto oldTarget                         = std::move(m_manager->m_configValues.at(TARGET));
     auto oldFallback                       = std::move(m_manager->m_configValues.at(FALLBACK));
-    m_manager->m_configValues.at(TARGET)   = makeUnique<CLuaConfigInt>(8);
-    m_manager->m_configValues.at(FALLBACK) = makeUnique<CLuaConfigInt>(9);
+    m_manager->m_configValues.at(TARGET)   = makeShared<CLuaConfigInt>(8);
+    m_manager->m_configValues.at(FALLBACK) = makeShared<CLuaConfigInt>(9);
     CConfigValueBase::flushCaches();
 
     EXPECT_FALSE(target.setByUser());

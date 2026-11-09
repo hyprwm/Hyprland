@@ -46,10 +46,10 @@ static std::expected<int64_t, std::string> parseAboveLock(const std::string& raw
 }
 
 static std::expected<LayerRuleEffectValue, std::string> parseLayerRuleEffect(CLayerRuleEffectContainer::storageType e, const std::string& raw) {
-    if (layerEffects()->isEffectDynamic(e))
-        return std::string{raw};
-
     const auto EFFECT_NAME = layerEffects()->get(e);
+
+    if (layerEffects()->isEffectDynamic(e))
+        return std::unexpected(std::format("{} is a dynamic rule effect and requires a typed value", EFFECT_NAME));
 
     switch (e) {
         default: return std::unexpected(std::format("unknown layer rule effect {}", e));

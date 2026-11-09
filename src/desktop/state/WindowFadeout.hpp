@@ -18,16 +18,16 @@ namespace Desktop {
       private:
         CWindowFadeout() = default;
 
-        PHLMONITORREF     m_monitor;
-        eFadeoutPlane     m_plane  = FADEOUT_PLANE_WINDOW_TILED;
-        int               m_zIndex = 0;
-        Vector2D          m_sourcePos;
-        Vector2D          m_sourceSize;
-        PHLANIMVAR<float> m_alpha;
+        PHLMONITORREF      m_monitor;
+        eFadeoutPlane      m_plane  = FADEOUT_PLANE_WINDOW_TILED;
+        int                m_zIndex = 0;
+        Vector2D           m_sourcePos;
+        Vector2D           m_sourceSize;
+        PHLANIMVAR<float>  m_alpha;
 
-        bool              m_blur          = false;
-        bool              m_blurXray      = false;
-        int               m_rounding      = 0;
-        float             m_roundingPower = 2.F;
+        bool               m_blur     = false;
+        bool               m_blurXray = false;
+        Math::SCornerRadii m_rounding;
+        float              m_roundingPower = 2.F;
     };
 }

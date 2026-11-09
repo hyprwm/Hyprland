@@ -30,13 +30,13 @@ uniform vec3 tint;
 #endif
 
 #if USE_ROUNDING
-uniform float radius;
+uniform vec4  radius;
 uniform float roundingPower;
 uniform vec2  topLeft;
 uniform vec2  fullSize;
 #include "rounding.glsl"
 #else
-const float radius        = 0.0;
+const vec4  radius        = vec4(0.0);
 const float roundingPower = 2.0;
 #endif
 

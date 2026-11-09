@@ -2,6 +2,7 @@
 
 #include <config/lua/types/LuaConfigBool.hpp>
 #include <config/lua/types/LuaConfigColor.hpp>
+#include <config/lua/types/LuaConfigCorners.hpp>
 #include <config/lua/types/LuaConfigCssGap.hpp>
 #include <config/lua/types/LuaConfigFloat.hpp>
 #include <config/lua/types/LuaConfigFontWeight.hpp>
@@ -12,6 +13,7 @@
 
 #include <config/values/types/BoolValue.hpp>
 #include <config/values/types/ColorValue.hpp>
+#include <config/values/types/CornersValue.hpp>
 #include <config/values/types/CssGapValue.hpp>
 #include <config/values/types/FloatValue.hpp>
 #include <config/values/types/FontWeightValue.hpp>
@@ -119,6 +121,55 @@ TEST(ConfigLuaUtils, fromGenericValueReturnsNullForUnsupportedType) {
     EXPECT_EQ(out.get(), nullptr);
 }
 
+TEST(ConfigLuaUtils, cornersDispatchUsesTypeAndCopiesArbitraryBounds) {
+    CLuaState  state;
+    const auto lua     = state.get();
+    const auto refresh = Supplementary::REFRESH_WINDOW_STATES | Supplementary::REFRESH_BLUR_FB;
+    const auto source  = makeShared<Values::CCornersValue>("arbitrary:corners", "", -10, Values::SCornersValueOptions{.min = -20, .max = 200, .refresh = refresh});
+    const auto out     = fromGenericValue(source);
+    ASSERT_NE(out.get(), nullptr);
+    const auto value = dynamic_cast<CLuaConfigCorners*>(out.get());
+    ASSERT_NE(value, nullptr);
+    EXPECT_EQ(out->refreshBits(), refresh);
+    EXPECT_EQ(*out->underlying(), typeid(CCornersData));
+
+    for (const auto bound : {-20, 200}) {
+        lua_pushinteger(lua, bound);
+        ASSERT_EQ(value->parse(lua).errorCode, PARSE_ERROR_OK);
+        EXPECT_TRUE(value->parsed().isUniform());
+        EXPECT_EQ(value->parsed().m_topLeft, bound);
+        EXPECT_EQ(lua_gettop(lua), 1);
+        lua_pop(lua, 1);
+    }
+
+    ASSERT_EQ(luaL_dostring(lua, "return {top_left = -20, top_right = 200, bottom_right = -10, bottom_left = 150}"), LUA_OK);
+    ASSERT_EQ(value->parse(lua).errorCode, PARSE_ERROR_OK);
+    lua_pop(lua, 1);
+    EXPECT_EQ(value->toString(), "-20 200 -10 150");
+
+    for (const auto bound : {-21, 201}) {
+        lua_pushinteger(lua, bound);
+        EXPECT_EQ(value->parse(lua).errorCode, PARSE_ERROR_OUT_OF_RANGE);
+        EXPECT_EQ(lua_gettop(lua), 1);
+        EXPECT_EQ(value->toString(), "-20 200 -10 150");
+        lua_pop(lua, 1);
+
+        for (const auto field : {"top_left", "top_right", "bottom_right", "bottom_left"}) {
+            SCOPED_TRACE(field);
+            ASSERT_EQ(luaL_dostring(lua, std::format("return {{{} = {}}}", field, bound).c_str()), LUA_OK);
+            EXPECT_EQ(value->parse(lua).errorCode, PARSE_ERROR_OUT_OF_RANGE);
+            EXPECT_EQ(lua_gettop(lua), 1);
+            EXPECT_EQ(value->toString(), "-20 200 -10 150");
+            lua_pop(lua, 1);
+        }
+    }
+
+    value->reset();
+    value->push(lua);
+    EXPECT_TRUE(lua_isinteger(lua, -1));
+    EXPECT_EQ(lua_tointeger(lua, -1), -10);
+}
+
 TEST(ConfigLuaUtils, fromGenericValueCopiesRefreshBits) {
     const auto REFRESH = Config::Supplementary::REFRESH_LAYOUTS | Config::Supplementary::REFRESH_WINDOW_STATES;
 
@@ -138,6 +189,7 @@ TEST(ConfigValues, valueOptionsCopyDeprecationNotice) {
 
     checkNotice(*makeShared<Values::CBoolValue>("a", "", false, Values::SBoolValueOptions{.deprecationNotice = NOTICE}));
     checkNotice(*makeShared<Values::CColorValue>("a", "", 0, Values::SColorValueOptions{.deprecationNotice = NOTICE}));
+    checkNotice(*makeShared<Values::CCornersValue>("a", "", 0, Values::SCornersValueOptions{.deprecationNotice = NOTICE}));
     checkNotice(*makeShared<Values::CCssGapValue>("a", "", 0, Values::SCssGapValueOptions{.deprecationNotice = NOTICE}));
     checkNotice(*makeShared<Values::CFloatValue>("a", "", 0.F, Values::SFloatValueOptions{.deprecationNotice = NOTICE}));
     checkNotice(*makeShared<Values::CFontWeightValue>("a", "", 400, Values::SFontWeightValueOptions{.deprecationNotice = NOTICE}));

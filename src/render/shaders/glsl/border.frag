@@ -8,7 +8,7 @@ in vec2       v_texcoord;
 uniform mat3  targetPrimariesXYZ;
 
 uniform vec2  fullSizeUntransformed;
-uniform float radiusOuter;
+uniform vec4  radiusOuter;
 uniform float thick;
 
 // Gradients are in OkLabA!!!! {l, a, b, alpha}
@@ -21,7 +21,7 @@ uniform float angle2;
 uniform float gradientLerp;
 uniform float alpha;
 
-uniform float radius;
+uniform vec4  radius;
 uniform float roundingPower;
 uniform vec2  topLeft;
 uniform vec2  fullSize;

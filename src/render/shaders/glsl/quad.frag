@@ -9,7 +9,7 @@ in vec4   v_color;
 
 uniform vec4 colorSRGB;
 #if USE_ROUNDING
-uniform float radius;
+uniform vec4  radius;
 uniform float roundingPower;
 uniform vec2  topLeft;
 uniform vec2  fullSize;

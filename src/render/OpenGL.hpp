@@ -5,6 +5,7 @@
 #include "../helpers/Color.hpp"
 #include "../helpers/time/Timer.hpp"
 #include "../helpers/math/Math.hpp"
+#include "../helpers/math/CornerRadii.hpp"
 #include "../helpers/Format.hpp"
 #include "../helpers/DeformableMesh.hpp"
 #include "../helpers/sync/SyncTimeline.hpp"
@@ -135,8 +136,8 @@ namespace Render::GL {
         ~CHyprOpenGLImpl();
 
         struct SRectRenderData {
-            const CRegion*                    damage        = nullptr;
-            int                               round         = 0;
+            const CRegion*                    damage = nullptr;
+            Math::SCornerRadii                round;
             float                             roundingPower = 2.F;
             bool                              blur          = false;
             float                             blurA         = 1.F;
@@ -153,10 +154,10 @@ namespace Render::GL {
             bool                   blockBlurOptimization = false;
             SP<ITexture>           blurredBG;
             SP<ITexture>           blurAlphaMatte;
-            const CRegion*         damage           = nullptr;
-            SP<CWLSurfaceResource> surface          = nullptr;
-            float                  a                = 1.F;
-            int                    round            = 0;
+            const CRegion*         damage  = nullptr;
+            SP<CWLSurfaceResource> surface = nullptr;
+            float                  a       = 1.F;
+            Math::SCornerRadii     round;
             float                  roundingPower    = 2.F;
             bool                   blurProportional = false;
             bool                   discardActive    = false;
@@ -180,11 +181,11 @@ namespace Render::GL {
         };
 
         struct SBorderRenderData {
-            int   round         = 0;
-            float roundingPower = 2.F;
-            int   borderSize    = 1;
-            float a             = 1.0;
-            int   outerRound    = -1; /* use round */
+            Math::SCornerRadii round         = 0;
+            float              roundingPower = 2.F;
+            int                borderSize    = 1;
+            float              a             = 1.0;
+            Math::SCornerRadii outerRound    = -1; /* use round */
         };
 
         void makeEGLCurrent();
@@ -195,12 +196,13 @@ namespace Render::GL {
         void renderRect(CRenderContext& ctx, const CBox&, const CHyprColor&, SRectRenderData data);
         void renderTexture(CRenderContext& ctx, SP<ITexture>, const CBox&, STextureRenderData data);
         void renderTextureMesh(CRenderContext& ctx, SP<ITexture>, const CBox&, const std::vector<SMeshRenderVertex>& vertices, STextureRenderData data);
-        void renderRoundedShadow(CRenderContext& ctx, const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a,
+        void renderRoundedShadow(CRenderContext& ctx, const CBox&, Math::SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& color, float a,
                                  const Render::SWindowRenderPresentation& presentation);
-        void renderRoundedShadow(CRenderContext& ctx, const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
+        void renderRoundedShadow(CRenderContext& ctx, const CBox&, Math::SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& grad1,
                                  const Config::CGradientValueData& grad2, float lerp, float a, const Render::SWindowRenderPresentation& presentation);
-        void renderInnerGlow(CRenderContext& ctx, const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& color, int glowPower, float a = 1.0);
-        void renderInnerGlow(CRenderContext& ctx, const CBox&, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
+        void renderInnerGlow(CRenderContext& ctx, const CBox&, Math::SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& color, int glowPower,
+                             float a = 1.0);
+        void renderInnerGlow(CRenderContext& ctx, const CBox&, Math::SCornerRadii round, float roundingPower, int range, const Config::CGradientValueData& grad1,
                              const Config::CGradientValueData& grad2, float lerp, int glowPower, float a = 1.0);
         void renderBorder(CRenderContext& ctx, const CBox&, const Config::CGradientValueData&, SBorderRenderData data);
         void renderBorder(CRenderContext& ctx, const CBox&, const Config::CGradientValueData&, const Config::CGradientValueData&, float lerp, SBorderRenderData data);

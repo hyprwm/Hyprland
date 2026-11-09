@@ -2213,12 +2213,10 @@ void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
         return;
     }
 
-    static auto PEXTENDBORDERGRAB = CConfigValue<Config::INTEGER>("general:extend_border_grab_area");
-    const int   BORDERSIZE        = w->presentation().borderSize();
-    const int   ROUNDING          = w->presentation().rounding();
+    static auto          PEXTENDBORDERGRAB = CConfigValue<Config::INTEGER>("general:extend_border_grab_area");
+    const int            BORDERSIZE        = w->presentation().borderSize();
+    const auto           ROUNDING          = w->presentation().rounding();
 
-    // give a small leeway (10 px) for corner icon
-    const auto           CORNER           = ROUNDING + BORDERSIZE + 10;
     const auto           mouseCoords      = getMouseCoordsInternal();
     CBox                 box              = w->getWindowMainSurfaceBox();
     eBorderIconDirection direction        = BORDERICON_NONE;
@@ -2245,46 +2243,8 @@ void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
 
         if (onDeco)
             direction = BORDERICON_NONE;
-        else {
-            if (box.containsPoint(mouseCoords)) {
-                if (!w->presentation().isInCurvedCorner(mouseCoords.x, mouseCoords.y)) {
-                    direction = BORDERICON_NONE;
-                } else {
-                    if (mouseCoords.y < box.y + CORNER) {
-                        if (mouseCoords.x < box.x + CORNER)
-                            direction = BORDERICON_UP_LEFT;
-                        else
-                            direction = BORDERICON_UP_RIGHT;
-                    } else {
-                        if (mouseCoords.x < box.x + CORNER)
-                            direction = BORDERICON_DOWN_LEFT;
-                        else
-                            direction = BORDERICON_DOWN_RIGHT;
-                    }
-                }
-            } else {
-                if (mouseCoords.y < box.y + CORNER) {
-                    if (mouseCoords.x < box.x + CORNER)
-                        direction = BORDERICON_UP_LEFT;
-                    else if (mouseCoords.x > box.x + box.width - CORNER)
-                        direction = BORDERICON_UP_RIGHT;
-                    else
-                        direction = BORDERICON_UP;
-                } else if (mouseCoords.y > box.y + box.height - CORNER) {
-                    if (mouseCoords.x < box.x + CORNER)
-                        direction = BORDERICON_DOWN_LEFT;
-                    else if (mouseCoords.x > box.x + box.width - CORNER)
-                        direction = BORDERICON_DOWN_RIGHT;
-                    else
-                        direction = BORDERICON_DOWN;
-                } else {
-                    if (mouseCoords.x < box.x + CORNER)
-                        direction = BORDERICON_LEFT;
-                    else if (mouseCoords.x > box.x + box.width - CORNER)
-                        direction = BORDERICON_RIGHT;
-                }
-            }
-        }
+        else if (!box.containsPoint(mouseCoords) || w->presentation().isInCurvedCorner(mouseCoords.x, mouseCoords.y))
+            direction = Input::borderIconDirection(mouseCoords - box.pos(), box.size(), ROUNDING, BORDERSIZE);
     }
 
     if (direction == m_borderIconDirection)

@@ -220,8 +220,6 @@ void CDefaultFloatingAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> tar
 
     if (g_layoutManager->dragController()->target() == target)
         target->warpPositionSize();
-
-    updateTarget(target);
 }
 
 void CDefaultFloatingAlgorithm::moveTarget(const Vector2D& Δ, SP<ITarget> target) {
@@ -231,8 +229,6 @@ void CDefaultFloatingAlgorithm::moveTarget(const Vector2D& Δ, SP<ITarget> targe
 
     if (g_layoutManager->dragController()->target() == target)
         target->warpPositionSize();
-
-    updateTarget(target);
 }
 
 void CDefaultFloatingAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
@@ -240,6 +236,7 @@ void CDefaultFloatingAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
     setPositionGlobal(a, b->position());
     setPositionGlobal(b, posABackup);
 
+    // Keep explicit cache updates: positioning happens before swaps update floating state and space ownership.
     updateTarget(a);
     updateTarget(b);
 }
@@ -259,8 +256,6 @@ void CDefaultFloatingAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDire
     }
 
     setPositionGlobal(t, pos);
-
-    updateTarget(t);
 }
 
 void CDefaultFloatingAlgorithm::recenter(SP<ITarget> t) {
@@ -274,8 +269,6 @@ void CDefaultFloatingAlgorithm::recenter(SP<ITarget> t) {
 
 void CDefaultFloatingAlgorithm::setTargetGeom(const CBox& geom, SP<ITarget> target) {
     setPositionGlobal(target, geom);
-
-    updateTarget(target);
 }
 
 void CDefaultFloatingAlgorithm::updateTarget(SP<ITarget> t) {

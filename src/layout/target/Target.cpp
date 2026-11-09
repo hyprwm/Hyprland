@@ -1,5 +1,8 @@
 #include "Target.hpp"
 #include "../space/Space.hpp"
+#include "../algorithm/Algorithm.hpp"
+#include "../algorithm/FloatingAlgorithm.hpp"
+#include "../../managers/fullscreen/handler/FullscreenHandler.hpp"
 #include "../../debug/log/Logger.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -8,9 +11,24 @@ using namespace Layout;
 using namespace Hyprutils::Utils;
 
 void ITarget::setPositionGlobal(const STargetBox& box, uint8_t) {
-    m_box = box;
+    const auto PREVIOUS = m_box.logicalBox;
+    m_box               = box;
     m_box.logicalBox.round();
     m_box.visualBox.round();
+
+    // Recalculating unchanged fullscreen geometry during exit must not replace the saved box.
+    if (m_box.logicalBox == PREVIOUS || m_ghostSpace || !floating() || !m_space || !m_space->algorithm())
+        return;
+
+    const auto& FLOATING = m_space->algorithm()->floatingAlgo();
+    if (!FLOATING)
+        return;
+
+    const auto SELF = m_self.lock();
+    if (const auto HANDLER = FLOATING->getFSHandler(); HANDLER && HANDLER->isFullscreen(SELF))
+        return;
+
+    FLOATING->updateTarget(SELF);
 }
 
 void ITarget::setPositionGlobal(const CBox& box, uint8_t flags) {

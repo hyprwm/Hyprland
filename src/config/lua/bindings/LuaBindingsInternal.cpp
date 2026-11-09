@@ -1,5 +1,7 @@
 #include "LuaBindingsInternal.hpp"
 
+#include "../types/LuaConfigUtils.hpp"
+
 #include "../../../desktop/rule/windowRule/WindowRule.hpp"
 #include "../../../state/MonitorState.hpp"
 #include "../../../state/WorkspaceState.hpp"
@@ -505,20 +507,19 @@ int Internal::dispatcherError(lua_State* L, std::string s, CA::eActionErrorLevel
     return Internal::pushErrorResult(L, error);
 }
 
-std::expected<std::string, std::string> Internal::ruleValueToString(lua_State* L) {
-    if (lua_type(L, -1) == LUA_TBOOLEAN)
-        return lua_toboolean(L, -1) ? "true" : "false";
+std::expected<std::string, std::string> Internal::ruleValueToString(lua_State* L, SP<Config::Values::IValue> value) {
+    if (!value)
+        return std::unexpected("rule effect has no typed value");
 
-    if (lua_isinteger(L, -1))
-        return std::to_string(lua_tointeger(L, -1));
+    auto val = fromGenericValue(value);
+    if (!val)
+        return std::unexpected("rule effect has an unsupported typed value");
 
-    if (lua_isnumber(L, -1))
-        return std::to_string(lua_tonumber(L, -1));
+    auto err = val->parse(L);
+    if (err.errorCode != PARSE_ERROR_OK)
+        return std::unexpected(err.message);
 
-    if (lua_isstring(L, -1))
-        return std::string(lua_tostring(L, -1));
-
-    return std::unexpected("value must be a string, bool, or number");
+    return val->toString();
 }
 
 std::expected<void, std::string> Internal::addWindowRuleEffectFromLua(lua_State* L, const SWindowRuleEffectDesc& desc, const SP<Desktop::Rule::CWindowRule>& rule) {
@@ -571,7 +572,7 @@ std::expected<SP<Desktop::Rule::CWindowRule>, int> Internal::buildRuleFromTable(
                     return std::unexpected(Internal::configError(L, "buildRuleFromTable: unknown effect '{}'", key));
                 }
 
-                auto val = ruleValueToString(L);
+                auto val = ruleValueToString(L, Desktop::Rule::windowEffects()->getLuaValue(*dynamicEffect));
                 if (!val) {
                     lua_pop(L, 1);
                     return std::unexpected(Internal::configError(L, "buildRuleFromTable: effect '{}': {}", key, val.error()));

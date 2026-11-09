@@ -150,7 +150,7 @@ namespace Config::Lua::Bindings::Internal {
     double                                             requireTableFieldNum(lua_State* L, int idx, const char* field, const char* fnName);
     Config::Actions::eTogglableAction                  tableToggleAction(lua_State* L, int idx, const char* field = "action");
 
-    std::expected<std::string, std::string>            ruleValueToString(lua_State* L);
+    std::expected<std::string, std::string>            ruleValueToString(lua_State* L, SP<Config::Values::IValue> value);
     std::expected<void, std::string>                   addWindowRuleEffectFromLua(lua_State* L, const SWindowRuleEffectDesc& desc, const SP<Desktop::Rule::CWindowRule>& rule);
     std::expected<SP<Desktop::Rule::CWindowRule>, int> buildRuleFromTable(lua_State* L, int idx);
 

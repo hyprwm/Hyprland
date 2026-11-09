@@ -1222,7 +1222,7 @@ static int hlWindowRule(lua_State* L) {
                 continue;
             }
 
-            auto val = Internal::ruleValueToString(L);
+            auto val = Internal::ruleValueToString(L, Desktop::Rule::windowEffects()->getLuaValue(*dynamicEffect));
             if (!val)
                 self->addError(std::format("{}: hl.window_rule: field '{}': {}", sourceInfo, key, val.error()));
             else {
@@ -1330,7 +1330,7 @@ static int hlLayerRule(lua_State* L) {
                 continue;
             }
 
-            auto val = Internal::ruleValueToString(L);
+            auto val = Internal::ruleValueToString(L, Desktop::Rule::layerEffects()->getLuaValue(*dynamicEffect));
             if (!val)
                 self->addError(std::format("{}: hl.layer_rule: field '{}': {}", sourceInfo, key, val.error()));
             else {

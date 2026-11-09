@@ -30,6 +30,8 @@ class CPlugin {
     std::vector<WP<IPC::Socket1::SCommand>> m_registeredHyprctlCommands;
     std::vector<std::string>                m_registeredAlgos;
     std::vector<WP<Config::Values::IValue>> m_registeredApiValues;
+    std::vector<uint16_t>                   m_registeredWindowEffects;
+    std::vector<uint16_t>                   m_registeredLayerEffects;
 };
 
 class CPluginSystem {

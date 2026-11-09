@@ -25,6 +25,7 @@
 #include <src/output/Monitor.hpp>
 #include <src/desktop/rule/windowRule/WindowRuleEffectContainer.hpp>
 #include <src/desktop/rule/layerRule/LayerRuleEffectContainer.hpp>
+#include <src/config/values/types/StringValue.hpp>
 #include <src/desktop/rule/windowRule/WindowRuleApplicator.hpp>
 #include <src/desktop/view/LayerSurface.hpp>
 #include <src/desktop/view/window/WindowFullscreenPolicy.hpp>
@@ -1354,11 +1355,15 @@ static SDispatchResult checkKeyboardFocusLayer(std::string in) {
 
 static Desktop::Rule::CWindowRuleEffectContainer::storageType windowRuleIDX = 0;
 
+static SP<Config::Values::IValue>                             pluginRuleValue() {
+    return makeShared<Config::Values::CStringValue>("plugin_rule", "", "");
+}
+
 //
 static SDispatchResult addWindowRule(std::string in) {
-    windowRuleIDX = Desktop::Rule::windowEffects()->registerEffect("plugin_rule");
+    windowRuleIDX = Desktop::Rule::windowEffects()->registerEffect("plugin_rule", pluginRuleValue());
 
-    if (Desktop::Rule::windowEffects()->registerEffect("plugin_rule") != windowRuleIDX)
+    if (Desktop::Rule::windowEffects()->registerEffect("plugin_rule", pluginRuleValue()) != windowRuleIDX)
         return {.success = false, .error = "re-registering returned a different id?"};
     return {};
 }
@@ -1381,9 +1386,9 @@ static SDispatchResult checkWindowRule(std::string in) {
 static Desktop::Rule::CLayerRuleEffectContainer::storageType layerRuleIDX = 0;
 
 static SDispatchResult                                       addLayerRule(std::string in) {
-    layerRuleIDX = Desktop::Rule::layerEffects()->registerEffect("plugin_rule");
+    layerRuleIDX = Desktop::Rule::layerEffects()->registerEffect("plugin_rule", pluginRuleValue());
 
-    if (Desktop::Rule::layerEffects()->registerEffect("plugin_rule") != layerRuleIDX)
+    if (Desktop::Rule::layerEffects()->registerEffect("plugin_rule", pluginRuleValue()) != layerRuleIDX)
         return {.success = false, .error = "re-registering returned a different id?"};
     return {};
 }

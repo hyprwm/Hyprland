@@ -7,6 +7,8 @@
 #include <Compositor.hpp>
 
 #include <config/lua/types/LuaConfigInt.hpp>
+#include <config/values/types/CssGapValue.hpp>
+#include <config/values/types/StringValue.hpp>
 #include <config/values/types/IntValue.hpp>
 
 #include <gtest/gtest.h>
@@ -632,6 +634,35 @@ TEST(ConfigLuaBindingsInternal, deprecationNoticesOnlyIncludeUsedDeprecatedValue
     const auto notices = mgr.deprecationNotices();
     ASSERT_EQ(notices.size(), 1);
     EXPECT_EQ(notices.front(), "test.deprecated: use replacement");
+}
+
+TEST(ConfigLuaBindingsInternal, dynamicRuleValueUsesTypedFactory) {
+    CLuaState  S;
+    const auto L = S.get();
+
+    lua_createtable(L, 0, 4);
+    lua_pushinteger(L, 1);
+    lua_setfield(L, -2, "top");
+    lua_pushinteger(L, 2);
+    lua_setfield(L, -2, "right");
+    lua_pushinteger(L, 3);
+    lua_setfield(L, -2, "bottom");
+    lua_pushinteger(L, 4);
+    lua_setfield(L, -2, "left");
+
+    const auto RESULT = Internal::ruleValueToString(L, makeShared<Config::Values::CCssGapValue>("test", "", 0));
+    ASSERT_TRUE(RESULT.has_value()) << RESULT.error();
+    EXPECT_EQ(*RESULT, "1 2 3 4");
+    lua_pop(L, 1);
+
+    lua_pushstring(L, "hello");
+    const auto STRING = Internal::ruleValueToString(L, makeShared<Config::Values::CStringValue>("test", "", ""));
+    ASSERT_TRUE(STRING.has_value()) << STRING.error();
+    EXPECT_EQ(*STRING, "hello");
+    lua_pop(L, 1);
+
+    const auto NOVALUE = Internal::ruleValueToString(L, nullptr);
+    EXPECT_FALSE(NOVALUE.has_value());
 }
 
 TEST(ConfigLuaBindingsInternal, pluginLuaFnIsUnloadedWithoutDanglingCall) {

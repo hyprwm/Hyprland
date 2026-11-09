@@ -113,6 +113,7 @@ void CDefaultFloatingAlgorithm::newTarget(SP<ITarget> target) {
             PWINDOW->acknowledgeClientGeometry(PWINDOW->geometricBox(Desktop::View::IGeometric::GEOMETRIC_GOAL));
     }
 
+    // Ensure that the target is in the datas map in case setting geometry didn't trigger an update
     updateTarget(target);
 }
 
@@ -128,6 +129,7 @@ void CDefaultFloatingAlgorithm::movedTarget(SP<ITarget> target, std::optional<Ve
         const auto THIS_BOX = m_parent->space()->workspace()->m_monitor->logicalBox();
 
         if (!THIS_BOX.intersection(BOX).empty()) {
+            // Update the m_datas cache without repositioning
             updateTarget(target);
             return;
         }
@@ -170,6 +172,7 @@ void CDefaultFloatingAlgorithm::movedTarget(SP<ITarget> target, std::optional<Ve
 
     setPositionGlobal(target, wantPos);
 
+    // Update the m_datas cache even if the geometry didn't change
     updateTarget(target);
 }
 
@@ -235,10 +238,6 @@ void CDefaultFloatingAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
     auto posABackup = a->position();
     setPositionGlobal(a, b->position());
     setPositionGlobal(b, posABackup);
-
-    // Keep explicit cache updates: positioning happens before swaps update floating state and space ownership.
-    updateTarget(a);
-    updateTarget(b);
 }
 
 void CDefaultFloatingAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent) {

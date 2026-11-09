@@ -200,7 +200,9 @@ eBindMatch CBind::matches(const SBindEventContext& ctx) const {
     if (!boundSidedMods.empty() && matchKeySets(boundSidedMods, heldSidedMods) != BIND_MATCH_FULL)
         return BIND_MATCH_NONE;
 
-    const auto KEY_MATCH = boundKeys.size() > 1 && ctx.trigger && !ctx.trigger->modifier ? matchKeyChord(boundKeys, heldKeys, *ctx.trigger) : matchKeySets(boundKeys, heldKeys);
+    const auto KEY_MATCH       = boundKeys.empty() ?
+        BIND_MATCH_FULL :
+        (boundKeys.size() > 1 && ctx.trigger && !ctx.trigger->modifier ? matchKeyChord(boundKeys, heldKeys, *ctx.trigger) : matchKeySets(boundKeys, heldKeys));
     const bool TRIGGER_MATCHES = ctx.trigger && !m_keys.empty() && m_keys.back().matches(*ctx.trigger);
     const bool TRIGGER_ONLY    = boundKeys.size() == 1 || ((m_flags & BIND_FLAG_RELEASE) && (boundKeys.empty() || !ctx.pressed));
 

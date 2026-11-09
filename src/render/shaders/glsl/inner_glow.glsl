@@ -32,13 +32,34 @@ vec4[2]
 #else
 vec4
 #endif
-    getInnerGlow(vec4 pixColor, vec4 colorSRGB, vec2 v_texcoord, float radius, float roundingPower, vec2 topLeft, vec2 fullSize, float range, float glowPower, vec2 bottomRight,
-                 int gradientLength, vec4 gradient[10], float angle, int gradient2Length, vec4 gradient2[10], float angle2, float gradientLerp, float alpha) {
+    getInnerGlow(vec4 pixColor, vec2 v_texcoord, float radius, float roundingPower, vec2 topLeft, vec2 fullSize, float range, float glowPower, vec2 bottomRight, int gradientLength,
+                 vec4 gradient[10], float angle, int gradient2Length, vec4 gradient2[10], float angle2, float gradientLerp, float alpha
+#if USE_CM
+                 ,
+                 int sourceTF, int targetTF, mat3 convertMatrix, vec2 srcTFRange, vec2 dstTFRange
+#if USE_ICC
+                 ,
+                 highp sampler3D iccLut3D, float iccLutSize
+#else
+#if USE_TONEMAP || USE_SDR_MOD
+                 ,
+                 mat3 targetPrimariesXYZ
+#endif
+#if USE_TONEMAP
+                 ,
+                 float maxLuminance, float dstMaxLuminance, float dstRefLuminance, float srcRefLuminance, int tonemapMode
+#endif
+#if USE_SDR_MOD
+                 ,
+                 float sdrSaturation, float sdrBrightnessMultiplier
+#endif
+#endif
+#endif
+    ) {
     vec2 pixCoord = fullSize * v_texcoord;
 
     if (gradientLength > 0 || gradient2Length > 0)
         pixColor = getColorForCoord(v_texcoord, gradientLength, gradient, angle, gradient2Length, gradient2, angle2, gradientLerp);
-    pixColor.a *= alpha;
 
     // clip to the rounded rectangle shape using actual SDF
     vec2  center  = fullSize * 0.5;
@@ -57,26 +78,46 @@ vec4
     float distL = pixCoord.x;
     float distR = fullSize.x - pixCoord.x;
 
-    float k = range;
+    float k            = range;
     float distFromEdge = innerGlowSmin(innerGlowSmin(distT, distB, k), innerGlowSmin(distL, distR, k), k);
 
-    pixColor[3] = pixColor[3] * innerGlowAlpha(distFromEdge, range, glowPower);
+    float additionalAlpha = alpha * innerGlowAlpha(distFromEdge, range, glowPower);
 
-    if (pixColor[3] == 0.0) 
+    if (pixColor.a * additionalAlpha == 0.0)
         discard;
 
     // premultiply
     pixColor.rgb *= pixColor[3];
 
+#if USE_CM
+    return doColorManagement(pixColor, additionalAlpha, sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange, 0.0
+#if USE_ICC
+                             ,
+                             iccLut3D, iccLutSize
+#else
+#if USE_TONEMAP || USE_SDR_MOD
+                             ,
+                             targetPrimariesXYZ
+#endif
+#if USE_TONEMAP
+                             ,
+                             maxLuminance, dstMaxLuminance, dstRefLuminance, srcRefLuminance, tonemapMode
+#endif
+#if USE_SDR_MOD
+                             ,
+                             sdrSaturation, sdrBrightnessMultiplier
+#endif
+#endif
+    );
+#endif
+
 #if USE_MIRROR
     vec4[2] pixColors;
-    pixColors[0] = pixColor;
-    pixColors[1] = colorSRGB;
-    pixColors[1].a = pixColor.a;
-    pixColors[1].rgb *= pixColors[1].a;
+    pixColors[0] = pixColor * additionalAlpha;
+    pixColors[1] = pixColors[0];
     return pixColors;
 #else
-    return pixColor;
+    return pixColor * additionalAlpha;
 #endif
 }
 #endif

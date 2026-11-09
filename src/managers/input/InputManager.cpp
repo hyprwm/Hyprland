@@ -1771,7 +1771,7 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
 }
 
 void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
-    static auto PSENDMOD = CConfigValue<Hyprlang::INT>("input-capture:capture_modifiers");
+    static auto PSENDMOD = CConfigValue<Config::INTEGER>("input-capture:capture_modifiers");
     if (!pKeyboard->m_enabled)
         return;
 

@@ -7,7 +7,6 @@
 namespace Config {
     class ICustomConfigValueData;
 
-    // LEGACY: remove when hyprlang gone
     struct SVec2 {
         float x = 0, y = 0;
     };

@@ -63,7 +63,7 @@ void IElementRenderer::calculateUVForSurface(CRenderContext& ctx, PHLWINDOW pWin
     auto& m_renderData = ctx.m_data;
 
     if (!pWindow || !pWindow->backend().isX11()) {
-        static auto PEXPANDEDGES = CConfigValue<Hyprlang::INT>("render:expand_undersized_textures");
+        static auto PEXPANDEDGES = CConfigValue<Config::INTEGER>("render:expand_undersized_textures");
 
         Vector2D    uvTL;
         Vector2D    uvBR = Vector2D(1, 1);

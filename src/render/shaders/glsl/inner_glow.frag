@@ -8,7 +8,7 @@ precision     highp float;
 in vec4       v_color;
 in vec2       v_texcoord;
 
-uniform vec4  colorSRGB;
+uniform mat3  targetPrimariesXYZ;
 uniform vec2  topLeft;
 uniform vec2  bottomRight;
 uniform vec2  fullSize;
@@ -27,6 +27,10 @@ uniform float angle2;
 uniform float gradientLerp;
 uniform float alpha;
 
+const int     sourceTF = SOURCE_TF;
+const int     targetTF = TARGET_TF;
+
+#include "CM.glsl"
 #include "inner_glow.glsl"
 
 layout(location = 0) out vec4 fragColor;
@@ -40,8 +44,30 @@ void main() {
 #else
     fragColor =
 #endif
-    getInnerGlow(pixColor, colorSRGB, v_texcoord, radius, roundingPower, topLeft, fullSize, range, shadowPower, bottomRight,
-                 gradientLength, gradient, angle, gradient2Length, gradient2, angle2, gradientLerp, alpha);
+        getInnerGlow(pixColor, v_texcoord, radius, roundingPower, topLeft, fullSize, range, shadowPower, bottomRight, gradientLength, gradient, angle, gradient2Length, gradient2,
+                     angle2, gradientLerp, alpha
+#if USE_CM
+                     ,
+                     sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange
+#if USE_ICC
+                     ,
+                     iccLut3D, iccLutSize
+#else
+#if USE_TONEMAP || USE_SDR_MOD
+                     ,
+                     targetPrimariesXYZ
+#endif
+#if USE_TONEMAP
+                     ,
+                     maxLuminance, dstMaxLuminance, dstRefLuminance, srcRefLuminance, tonemapMode
+#endif
+#if USE_SDR_MOD
+                     ,
+                     sdrSaturation, sdrBrightnessMultiplier
+#endif
+#endif
+#endif
+        );
 #if USE_MIRROR
     fragColor   = pixColors[0];
     mirrorColor = pixColors[1];

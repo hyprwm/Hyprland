@@ -2006,11 +2006,9 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(CRenderContext& ctx, SP<ITex
 }
 
 static SShaderVariant getDecoVariant(CRenderContext& ctx) {
-    const bool         IS_ICC          = g_pHyprRenderer->workBufferImageDescription(ctx)->value().icc.present;
-    const auto         settings        = g_pHyprRenderer->getCMSettings(ctx, g_pHyprRenderer->workBufferImageDescription(ctx), getDefaultImageDescription(), nullptr, true,
-                                                                        ctx.m_data.pMonitor->m_sdrMinLuminance, ctx.m_data.pMonitor->m_sdrMaxLuminance);
-    const auto         uniformSettings = g_pHyprRenderer->getCMSettings(ctx, getDefaultImageDescription(), g_pHyprRenderer->workBufferImageDescription(ctx), nullptr, true,
-                                                                        ctx.m_data.pMonitor->m_sdrMinLuminance, ctx.m_data.pMonitor->m_sdrMaxLuminance);
+    const bool         IS_ICC   = g_pHyprRenderer->workBufferImageDescription(ctx)->value().icc.present;
+    const auto         settings = g_pHyprRenderer->getCMSettings(ctx, getDefaultImageDescription(), g_pHyprRenderer->workBufferImageDescription(ctx), nullptr, true,
+                                                                 ctx.m_data.pMonitor->m_sdrMinLuminance, ctx.m_data.pMonitor->m_sdrMaxLuminance);
 
     ShaderFeatureFlags features = SH_FEAT_ROUNDING | SH_FEAT_CM | globalFeatures(ctx);
     if (IS_ICC)
@@ -2024,7 +2022,7 @@ static SShaderVariant getDecoVariant(CRenderContext& ctx) {
         if (settings.needsSDRmod)
             features |= SH_FEAT_SDR_MOD;
     }
-    return {.features = features, .sourceTF = uniformSettings.sourceTF, .targetTF = uniformSettings.targetTF};
+    return {.features = features, .sourceTF = settings.sourceTF, .targetTF = settings.targetTF};
 }
 
 void CHyprOpenGLImpl::renderBorder(CRenderContext& ctx, const CBox& box, const Config::CGradientValueData& grad, SBorderRenderData data) {

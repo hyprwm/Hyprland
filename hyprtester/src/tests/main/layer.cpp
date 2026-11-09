@@ -84,6 +84,13 @@ TEST_CASE(plugin_layerrules) {
     Tests::waitUntilLayersN(2);
 
     OK(getFromSocket("/eval hl.plugin.test.check_layer_rule()"));
+
+    OK(getFromSocket("/eval hl.plugin.test.add_typed_layer_rule()"));
+    OK(getFromSocket("/reload"));
+
+    OK(getFromSocket("/eval hl.layer_rule({ match = { namespace = 'rule-layer' }, plugin_typed_rule = { top = 1, right = 2, bottom = 3, left = 4 } })"));
+
+    OK(getFromSocket("/eval hl.plugin.test.check_typed_layer_rule()"));
 }
 
 TEST_CASE(layerPointerFocusPreservedOnKeyboardRefocus) {

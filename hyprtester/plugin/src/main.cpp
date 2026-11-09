@@ -25,6 +25,8 @@
 #include <src/output/Monitor.hpp>
 #include <src/desktop/rule/windowRule/WindowRuleEffectContainer.hpp>
 #include <src/desktop/rule/layerRule/LayerRuleEffectContainer.hpp>
+#include <src/config/lua/types/LuaConfigCssGap.hpp>
+#include <src/config/lua/types/LuaConfigString.hpp>
 #include <src/config/values/types/StringValue.hpp>
 #include <src/desktop/rule/windowRule/WindowRuleApplicator.hpp>
 #include <src/desktop/view/LayerSurface.hpp>
@@ -46,6 +48,7 @@
 #undef protected
 
 #include <src/config/ConfigValue.hpp>
+#include <src/config/values/types/CssGapValue.hpp>
 #include <src/config/shared/animation/AnimationTree.hpp>
 #include <src/animation/AnimationManager.hpp>
 #include <src/render/WindowRenderPresentation.hpp>
@@ -1355,16 +1358,51 @@ static SDispatchResult checkKeyboardFocusLayer(std::string in) {
 
 static Desktop::Rule::CWindowRuleEffectContainer::storageType windowRuleIDX = 0;
 
-static SP<Config::Values::IValue>                             pluginRuleValue() {
-    return makeShared<Config::Values::CStringValue>("plugin_rule", "", "");
+static SP<Config::Values::IValue>                             luaCssGapValue() {
+    return makeShared<Config::Values::CCssGapValue>("plugin_typed_rule", "", 0);
 }
 
 //
 static SDispatchResult addWindowRule(std::string in) {
-    windowRuleIDX = Desktop::Rule::windowEffects()->registerEffect("plugin_rule", pluginRuleValue());
+    windowRuleIDX = Desktop::Rule::windowEffects()->registerEffect("plugin_rule", makeShared<Config::Values::CStringValue>("plugin_rule", "", ""));
 
-    if (Desktop::Rule::windowEffects()->registerEffect("plugin_rule", pluginRuleValue()) != windowRuleIDX)
+    if (Desktop::Rule::windowEffects()->registerEffect("plugin_rule", makeShared<Config::Values::CStringValue>("plugin_rule", "", "")) != windowRuleIDX)
         return {.success = false, .error = "re-registering returned a different id?"};
+    return {};
+}
+
+static SDispatchResult addTypedWindowRule(std::string in) {
+    const auto IDX = HyprlandAPI::addWindowEffect(PHANDLE, "plugin_typed_rule", ::luaCssGapValue());
+    if (!IDX)
+        return {.success = false, .error = "failed to register typed window rule"};
+
+    if (HyprlandAPI::addWindowEffect(PHANDLE, "plugin_typed_rule", ::luaCssGapValue()) != IDX)
+        return {.success = false, .error = "re-registering typed rule returned a different id?"};
+
+    return {};
+}
+
+static SDispatchResult checkTypedWindowRule(std::string in) {
+    const auto PLASTWINDOW = Desktop::focusState()->window();
+
+    if (!PLASTWINDOW)
+        return {.success = false, .error = "No window"};
+
+    const auto IDX = Desktop::Rule::windowEffects()->get("plugin_typed_rule");
+    if (!IDX.has_value())
+        return {.success = false, .error = "Typed rule is not registered"};
+
+    if (!PLASTWINDOW->m_ruleApplicator->m_otherProps.props.contains(*IDX))
+        return {.success = false, .error = "No typed rule"};
+
+    const auto& PROPS = PLASTWINDOW->m_ruleApplicator->m_otherProps.props[*IDX];
+    const auto  GAP   = dynamicPointerCast<Config::Lua::CLuaConfigCssGap>(PROPS->value.parsed);
+    if (!GAP)
+        return {.success = false, .error = "Typed effect has no css_gap value"};
+
+    if (GAP->parsed().m_top != 1 || GAP->parsed().m_right != 2 || GAP->parsed().m_bottom != 3 || GAP->parsed().m_left != 4)
+        return {.success = false, .error = std::format("Typed effect is '{}', expected '1 2 3 4'", GAP->toString())};
+
     return {};
 }
 
@@ -1377,7 +1415,9 @@ static SDispatchResult checkWindowRule(std::string in) {
     if (!PLASTWINDOW->m_ruleApplicator->m_otherProps.props.contains(windowRuleIDX))
         return {.success = false, .error = "No rule"};
 
-    if (PLASTWINDOW->m_ruleApplicator->m_otherProps.props[windowRuleIDX]->effect != "effect")
+    const auto& PROPS = PLASTWINDOW->m_ruleApplicator->m_otherProps.props[windowRuleIDX];
+    const auto  STR   = dynamicPointerCast<Config::Lua::CLuaConfigString>(PROPS->value.parsed);
+    if (!STR || STR->parsed() != "effect")
         return {.success = false, .error = "Effect isn't \"effect\""};
 
     return {};
@@ -1386,9 +1426,9 @@ static SDispatchResult checkWindowRule(std::string in) {
 static Desktop::Rule::CLayerRuleEffectContainer::storageType layerRuleIDX = 0;
 
 static SDispatchResult                                       addLayerRule(std::string in) {
-    layerRuleIDX = Desktop::Rule::layerEffects()->registerEffect("plugin_rule", pluginRuleValue());
+    layerRuleIDX = Desktop::Rule::layerEffects()->registerEffect("plugin_rule", makeShared<Config::Values::CStringValue>("plugin_rule", "", ""));
 
-    if (Desktop::Rule::layerEffects()->registerEffect("plugin_rule", pluginRuleValue()) != layerRuleIDX)
+    if (Desktop::Rule::layerEffects()->registerEffect("plugin_rule", makeShared<Config::Values::CStringValue>("plugin_rule", "", "")) != layerRuleIDX)
         return {.success = false, .error = "re-registering returned a different id?"};
     return {};
 }
@@ -1403,7 +1443,9 @@ static SDispatchResult checkLayerRule(std::string in) {
             if (!layer->m_ruleApplicator->m_otherProps.props.contains(layerRuleIDX))
                 return {.success = false, .error = "No rule"};
 
-            if (layer->m_ruleApplicator->m_otherProps.props[layerRuleIDX]->effect != "effect")
+            const auto& PROPS = layer->m_ruleApplicator->m_otherProps.props[layerRuleIDX];
+            const auto  STR   = dynamicPointerCast<Config::Lua::CLuaConfigString>(PROPS->value.parsed);
+            if (!STR || STR->parsed() != "effect")
                 return {.success = false, .error = "Effect isn't \"effect\""};
 
         } else if (layer->m_namespace == "norule-layer") {
@@ -1414,6 +1456,46 @@ static SDispatchResult checkLayerRule(std::string in) {
         } else
             return {.success = false, .error = "Unrecognized layer"};
     }
+
+    return {};
+}
+
+static SDispatchResult addTypedLayerRule(std::string in) {
+    const auto IDX = HyprlandAPI::addLayerEffect(PHANDLE, "plugin_typed_rule", ::luaCssGapValue());
+    if (!IDX)
+        return {.success = false, .error = "failed to register typed layer rule"};
+
+    if (HyprlandAPI::addLayerEffect(PHANDLE, "plugin_typed_rule", ::luaCssGapValue()) != IDX)
+        return {.success = false, .error = "re-registering typed layer rule returned a different id?"};
+
+    return {};
+}
+
+static SDispatchResult checkTypedLayerRule(std::string in) {
+    const auto IDX = Desktop::Rule::layerEffects()->get("plugin_typed_rule");
+    if (!IDX.has_value())
+        return {.success = false, .error = "Typed layer rule is not registered"};
+
+    bool found = false;
+    for (const auto& layer : Desktop::layerState()->layers()) {
+        if (layer->m_namespace != "rule-layer")
+            continue;
+
+        found = true;
+        if (!layer->m_ruleApplicator->m_otherProps.props.contains(*IDX))
+            return {.success = false, .error = "No typed layer rule"};
+
+        const auto& PROPS = layer->m_ruleApplicator->m_otherProps.props[*IDX];
+        const auto  GAP   = dynamicPointerCast<Config::Lua::CLuaConfigCssGap>(PROPS->value.parsed);
+        if (!GAP)
+            return {.success = false, .error = "Typed layer effect has no css_gap value"};
+
+        if (GAP->parsed().m_top != 1 || GAP->parsed().m_right != 2 || GAP->parsed().m_bottom != 3 || GAP->parsed().m_left != 4)
+            return {.success = false, .error = std::format("Typed layer effect is '{}', expected '1 2 3 4'", GAP->toString())};
+    }
+
+    if (!found)
+        return {.success = false, .error = "Layers under test not here"};
 
     return {};
 }
@@ -1809,12 +1891,28 @@ static int luaCheckWindowRule(lua_State* L) {
     return luaResult(L, ::checkWindowRule(""));
 }
 
+static int luaAddTypedWindowRule(lua_State* L) {
+    return luaResult(L, ::addTypedWindowRule(""));
+}
+
+static int luaCheckTypedWindowRule(lua_State* L) {
+    return luaResult(L, ::checkTypedWindowRule(""));
+}
+
 static int luaAddLayerRule(lua_State* L) {
     return luaResult(L, ::addLayerRule(""));
 }
 
 static int luaCheckLayerRule(lua_State* L) {
     return luaResult(L, ::checkLayerRule(""));
+}
+
+static int luaAddTypedLayerRule(lua_State* L) {
+    return luaResult(L, ::addTypedLayerRule(""));
+}
+
+static int luaCheckTypedLayerRule(lua_State* L) {
+    return luaResult(L, ::checkTypedLayerRule(""));
 }
 
 static int luaCheckPointerFocusWindow(lua_State* L) {
@@ -1894,8 +1992,12 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     addLuaFn("check_keyboard_focus_none", ::luaCheckKeyboardFocusNone);
     addLuaFn("add_window_rule", ::luaAddWindowRule);
     addLuaFn("check_window_rule", ::luaCheckWindowRule);
+    addLuaFn("add_typed_window_rule", ::luaAddTypedWindowRule);
+    addLuaFn("check_typed_window_rule", ::luaCheckTypedWindowRule);
     addLuaFn("add_layer_rule", ::luaAddLayerRule);
     addLuaFn("check_layer_rule", ::luaCheckLayerRule);
+    addLuaFn("add_typed_layer_rule", ::luaAddTypedLayerRule);
+    addLuaFn("check_typed_layer_rule", ::luaCheckTypedLayerRule);
     addLuaFn("check_pointer_focus_window", ::luaCheckPointerFocusWindow);
     addLuaFn("check_pointer_focus_layer", ::luaCheckPointerFocusLayer);
     addLuaFn("check_pointer_focus_none", ::luaCheckPointerFocusNone);

@@ -64,19 +64,11 @@ namespace {
         bool (*apply)(ILuaConfigValue*, CMonitorRuleParser&);
     };
 
-    struct SLayerRuleEffectDesc {
-        const char* name;
-        ILuaConfigValue* (*factory)();
-        uint16_t effect;
-    };
-
     struct SWorkspaceRuleFieldDesc {
         const char* name;
         ILuaConfigValue* (*factory)();
         void (*apply)(ILuaConfigValue*, Config::CWorkspaceRule&);
     };
-
-    using LE = Desktop::Rule::eLayerRuleEffect;
 
     inline constexpr SMonitorFieldDesc MONITOR_FIELDS[] = {
         {"mode", []() -> ILuaConfigValue* { return new CLuaConfigString("preferred"); },
@@ -176,23 +168,6 @@ namespace {
              return true;
          }},
     };
-
-    static_assert(sizeof(Internal::WINDOW_RULE_EFFECT_DESCS) / sizeof(Internal::SWindowRuleEffectDesc) == Internal::WE::WINDOW_RULE_EFFECT_LAST_STATIC - 1);
-
-    inline constexpr SLayerRuleEffectDesc LAYER_RULE_EFFECT_DESCS[] = {
-        {"no_anim", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, LE::LAYER_RULE_EFFECT_NO_ANIM},
-        {"blur", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, LE::LAYER_RULE_EFFECT_BLUR},
-        {"blur_popups", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, LE::LAYER_RULE_EFFECT_BLUR_POPUPS},
-        {"ignore_alpha", []() -> ILuaConfigValue* { return new CLuaConfigFloat(0.F, 0.F, 1.F); }, LE::LAYER_RULE_EFFECT_IGNORE_ALPHA},
-        {"dim_around", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, LE::LAYER_RULE_EFFECT_DIM_AROUND},
-        {"xray", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, LE::LAYER_RULE_EFFECT_XRAY},
-        {"animation", []() -> ILuaConfigValue* { return new CLuaConfigString(STRVAL_EMPTY); }, LE::LAYER_RULE_EFFECT_ANIMATION},
-        {"order", []() -> ILuaConfigValue* { return new CLuaConfigInt(0); }, LE::LAYER_RULE_EFFECT_ORDER},
-        {"above_lock", []() -> ILuaConfigValue* { return new CLuaConfigInt(0, 0, 2); }, LE::LAYER_RULE_EFFECT_ABOVE_LOCK},
-        {"no_screen_share", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, LE::LAYER_RULE_EFFECT_NO_SCREEN_SHARE},
-    };
-
-    static_assert(sizeof(LAYER_RULE_EFFECT_DESCS) / sizeof(SLayerRuleEffectDesc) == LE::LAYER_RULE_EFFECT_LAST_STATIC - 1);
 
     inline constexpr SWorkspaceRuleFieldDesc WORKSPACE_RULE_FIELDS[] = {
         {"monitor", []() -> ILuaConfigValue* { return new CLuaConfigString(STRVAL_EMPTY); },
@@ -1059,7 +1034,7 @@ static int hlDevice(lua_State* L) {
             continue;
         }
 
-        auto val = UP<ILuaConfigValue>(desc->factory());
+        auto val = SP<ILuaConfigValue>(desc->factory());
         auto err = val->parse(L);
         if (err.errorCode != PARSE_ERROR_OK)
             self->addError(std::format("{}: hl.device: field '{}': {}", sourceInfo, key, err.message));
@@ -1213,29 +1188,14 @@ static int hlWindowRule(lua_State* L) {
             continue;
         }
 
-        const auto* desc = Internal::findDescByName(Internal::WINDOW_RULE_EFFECT_DESCS, key);
-        if (!desc) {
-            const auto dynamicEffect = Desktop::Rule::windowEffects()->get(key);
-            if (!dynamicEffect.has_value()) {
-                self->addError(std::format("{}: hl.window_rule: unknown field '{}'", sourceInfo, key));
-                lua_pop(L, 1);
-                continue;
-            }
-
-            auto val = Internal::ruleValueToString(L, Desktop::Rule::windowEffects()->getLuaValue(*dynamicEffect));
-            if (!val)
-                self->addError(std::format("{}: hl.window_rule: field '{}': {}", sourceInfo, key, val.error()));
-            else {
-                auto res = rule->addEffect(*dynamicEffect, *val);
-                if (!res)
-                    self->addError(std::format("{}: hl.window_rule: field '{}': {}", sourceInfo, key, res.error()));
-            }
-
+        const auto effect = Desktop::Rule::windowEffects()->get(key);
+        if (!effect.has_value()) {
+            self->addError(std::format("{}: hl.window_rule: unknown field '{}'", sourceInfo, key));
             lua_pop(L, 1);
             continue;
         }
 
-        auto res = Internal::addWindowRuleEffectFromLua(L, *desc, rule);
+        auto res = Internal::addWindowRuleEffectFromLua(L, *effect, rule);
         if (!res)
             self->addError(std::format("{}: hl.window_rule: field '{}': {}", sourceInfo, key, res.error()));
 
@@ -1321,35 +1281,23 @@ static int hlLayerRule(lua_State* L) {
             continue;
         }
 
-        const auto* desc = Internal::findDescByName(LAYER_RULE_EFFECT_DESCS, key);
-        if (!desc) {
-            const auto dynamicEffect = Desktop::Rule::layerEffects()->get(key);
-            if (!dynamicEffect.has_value()) {
-                self->addError(std::format("{}: hl.layer_rule: unknown field '{}'", sourceInfo, key));
-                lua_pop(L, 1);
-                continue;
-            }
-
-            auto val = Internal::ruleValueToString(L, Desktop::Rule::layerEffects()->getLuaValue(*dynamicEffect));
-            if (!val)
-                self->addError(std::format("{}: hl.layer_rule: field '{}': {}", sourceInfo, key, val.error()));
-            else {
-                auto res = rule->addEffect(*dynamicEffect, *val);
-                if (!res)
-                    self->addError(std::format("{}: hl.layer_rule: field '{}': {}", sourceInfo, key, res.error()));
-            }
-
+        const auto effect = Desktop::Rule::layerEffects()->get(key);
+        if (!effect.has_value()) {
+            self->addError(std::format("{}: hl.layer_rule: unknown field '{}'", sourceInfo, key));
             lua_pop(L, 1);
             continue;
         }
 
-        auto val = UP<ILuaConfigValue>(desc->factory());
-        auto err = val->parse(L);
-        if (err.errorCode != PARSE_ERROR_OK)
-            self->addError(std::format("{}: hl.layer_rule: field '{}': {}", sourceInfo, key, err.message));
-        else {
-            auto str = val->toString();
-            auto res = rule->addEffect(desc->effect, str);
+        const auto TYPE = Desktop::Rule::layerEffects()->getLuaValue(*effect);
+        auto       val  = Internal::parseRuleValue(L, TYPE);
+        if (!val)
+            self->addError(std::format("{}: hl.layer_rule: field '{}': {}", sourceInfo, key, val.error()));
+        else if (Desktop::Rule::layerEffects()->isEffectDynamic(*effect)) {
+            auto res = rule->addEffect(*effect, Desktop::Rule::STypedRuleValue{.type = TYPE, .parsed = *val});
+            if (!res)
+                self->addError(std::format("{}: hl.layer_rule: field '{}': {}", sourceInfo, key, res.error()));
+        } else {
+            auto res = rule->addEffect(*effect, (*val)->toString());
             if (!res)
                 self->addError(std::format("{}: hl.layer_rule: field '{}': {}", sourceInfo, key, res.error()));
         }

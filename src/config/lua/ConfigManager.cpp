@@ -406,7 +406,7 @@ CConfigManager::SDeviceConfig::SDeviceConfig() {
     }
 
     // emplace the special keybinds one
-    values.emplace("keybinds", makeUnique<CLuaConfigBool>(true));
+    values.emplace("keybinds", makeShared<CLuaConfigBool>(true));
 }
 
 CConfigManager::CConfigManager() : m_mainConfigPath(Supplementary::Jeremy::getMainConfigPath()->path) {
@@ -459,7 +459,7 @@ eConfigManagerType CConfigManager::type() {
     return CONFIG_LUA;
 }
 
-void CConfigManager::registerValue(const char* name, UP<ILuaConfigValue>&& val) {
+void CConfigManager::registerValue(const char* name, SP<ILuaConfigValue>&& val) {
     m_configValues.emplace(name, std::move(val));
 }
 

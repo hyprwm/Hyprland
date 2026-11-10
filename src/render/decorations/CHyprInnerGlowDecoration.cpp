@@ -81,7 +81,7 @@ void CHyprInnerGlowDecoration::damageEntire() {
 
     CBox       windowBox = PWINDOW->getWindowMainSurfaceBox();
 
-    const auto PWORKSPACE = PWINDOW->m_workspace;
+    const auto PWORKSPACE = PWINDOW->presentation().workspace();
     if (PWORKSPACE && PWORKSPACE->m_renderOffset->isBeingAnimated() && !(PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED))
         windowBox.translate(PWORKSPACE->m_renderOffset->value());
     windowBox.translate(PWINDOW->presentation().floatingOffset());

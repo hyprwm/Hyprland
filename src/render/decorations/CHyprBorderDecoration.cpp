@@ -39,7 +39,8 @@ void CHyprBorderDecoration::onPositioningReply(const SDecorationPositioningReply
 }
 
 CBox CHyprBorderDecoration::assignedBoxGlobal() {
-    return assignedBoxGlobal(m_window->presentation().renderPresentation());
+    const auto PRESENTATION = m_window->presentation().renderPresentation();
+    return assignedBoxGlobal(PRESENTATION).translate(PRESENTATION.floatingOffset);
 }
 
 CBox CHyprBorderDecoration::assignedBoxGlobal(const Render::SWindowRenderPresentation& presentation) {
@@ -50,7 +51,8 @@ CBox CHyprBorderDecoration::assignedBoxGlobal(const Render::SWindowRenderPresent
 }
 
 void CHyprBorderDecoration::draw(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a, const Render::SWindowRenderPresentation& presentation) {
-    if (doesntWantBorders())
+    const auto borderSize = renderBorderSize();
+    if (borderSize == 0)
         return;
 
     if (m_assignedGeometry.width < m_extents.topLeft.x + 1 || m_assignedGeometry.height < m_extents.topLeft.y + 1)
@@ -62,7 +64,6 @@ void CHyprBorderDecoration::draw(Render::CRenderContext& ctx, PHLMONITOR pMonito
         return;
 
     const auto                      GRADIENT         = m_gradient.renderState();
-    int                             borderSize       = this->borderSize();
     const auto                      ROUNDINGBASE     = m_window->presentation().rounding();
     const auto                      ROUNDING         = ROUNDINGBASE * pMonitor->m_scale;
     const auto                      ROUNDINGPOWER    = m_window->presentation().roundingPower();
@@ -105,15 +106,17 @@ void CHyprBorderDecoration::updateWindow(PHLWINDOW) {
 }
 
 void CHyprBorderDecoration::damageEntire() {
-    if (!validMapped(m_window) || Fullscreen::controller()->getFullscreenModes(m_window.lock()).internal == Fullscreen::FSMODE_FULLSCREEN)
+    if (!validMapped(m_window) || m_window->presentation().fullscreenModes().internal == Fullscreen::FSMODE_FULLSCREEN)
         return;
 
-    const auto GLOBAL_BOX = assignedBoxGlobal();
+    const auto PMONITOR   = m_window->presentation().monitor();
+    const auto EXTENT     = Render::borderExtentInLogical(renderBorderSize(), PMONITOR ? PMONITOR->m_scale : 1.F);
+    const auto GLOBAL_BOX = assignedBoxGlobal().expand(EXTENT - m_extents.topLeft.x);
     if (GLOBAL_BOX.w <= 0 || GLOBAL_BOX.h <= 0)
         return;
 
     const auto ROUNDING   = m_window->presentation().rounding();
-    const auto BORDERSIZE = borderSize() + 1;
+    const auto BORDERSIZE = EXTENT + 1;
 
     CRegion    borderRegion(GLOBAL_BOX);
     borderRegion.subtract(GLOBAL_BOX.copy().expand(-(BORDERSIZE + ROUNDING)));
@@ -223,6 +226,16 @@ int CHyprBorderDecoration::borderSize() const {
 
 void CHyprBorderDecoration::invalidateBorderSize() {
     m_borderSizeCacheDirty = true;
+}
+
+int CHyprBorderDecoration::renderBorderSize() const {
+    const auto PWINDOW = m_window.lock();
+    if (!PWINDOW || PWINDOW->backend().traits().suggestsNoBorder || !PWINDOW->m_ruleApplicator->decorate().valueOrDefault() ||
+        (PWINDOW->presentation().workspace() && PWINDOW->presentation().fullscreenModes().internal == Fullscreen::FSMODE_FULLSCREEN))
+        return 0;
+
+    static auto PBORDERSIZE = CConfigValue<Config::INTEGER>("general:border_size");
+    return PWINDOW->m_ruleApplicator->borderSize().valueOr(*PBORDERSIZE);
 }
 
 double CHyprBorderDecoration::borderExtent() const {

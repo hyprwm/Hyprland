@@ -321,7 +321,7 @@ ActionResult Actions::pinWindow(eTogglableAction action, std::optional<PHLWINDOW
         window->m_state &= ~Desktop::View::WINDOW_STATE_PINNED;
     window->stateTracker().scheduleUpdate();
     window->updateFullscreenInputState();
-    *window->presentation().alpha(Desktop::View::WINDOW_ALPHA_FULLSCREEN) = window->isBlockedByFullscreen() ? 0.F : 1.F;
+    window->presentation().setFullscreenAlpha(window->isBlockedByFullscreen() ? 0.F : 1.F);
 
     LAYOUTTARGET->assignToSpace(TARGETWORKSPACE->space());
     window->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_PINNED);

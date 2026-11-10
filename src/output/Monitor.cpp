@@ -1697,7 +1697,13 @@ void CMonitor::setCTM(const Mat3x3& ctm_) {
 }
 
 uint32_t CMonitor::isSolitaryBlocked(bool full) {
-    uint32_t   reasons = 0;
+    uint32_t reasons = 0;
+
+    if (m_windowTransaction && m_windowTransaction->hasPendingPresentation()) {
+        reasons |= SC_TRANSFORM;
+        if (!full)
+            return reasons;
+    }
 
     const auto PWORKSPACE = m_activeWorkspace;
     if (!PWORKSPACE) {
@@ -1906,6 +1912,12 @@ uint16_t CMonitor::isDSBlocked(bool full) {
     static auto PDIRECTSCANOUT = CConfigValue<Config::INTEGER>("render:direct_scanout");
     static auto PNONSHADER     = CConfigValue<Config::INTEGER>("render:non_shader_cm");
     const auto  PWORKSPACE     = m_activeWorkspace;
+
+    if (m_windowTransaction && m_windowTransaction->hasPendingPresentation()) {
+        reasons |= DS_BLOCK_TRANSFORM;
+        if (!full)
+            return reasons;
+    }
 
     // Fast reject for the hot render path; full=true callers still collect
     // the remaining blockers for hyprctl/debug output below.

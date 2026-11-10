@@ -54,7 +54,7 @@ void CWindowState::moveToZ(PHLWINDOW w, bool top) {
 
     w->fullscreenPolicy().setAllowedOverFullscreen(top);
     w->updateFullscreenInputState();
-    *w->presentation().alpha(View::WINDOW_ALPHA_FULLSCREEN) = w->isBlockedByFullscreen() ? 0.F : 1.F;
+    w->presentation().setFullscreenAlpha(w->isBlockedByFullscreen() ? 0.F : 1.F);
 
     if (w == (top ? m_windows.back() : m_windows.front()))
         return;

@@ -6,6 +6,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../desktop/view/window/Window.hpp"
 #include "../desktop/view/window/WindowEffectsController.hpp"
+#include "../desktop/view/window/WindowPresentation.hpp"
 #include "../render/decorations/IHyprWindowDecoration.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
@@ -98,7 +99,7 @@ static void preDamageWorkspace(PHLWORKSPACE pWorkspace, PHLMONITOR pMonitor) {
 
     // TODO: just make this into a damn callback already vax...
     for (auto const& w : Desktop::windowState()->windows()) {
-        if (!w->mapped() || w->isHidden() || w->m_workspace != pWorkspace)
+        if (!w->mapped() || w->isHidden() || w->presentation().workspace() != pWorkspace)
             continue;
 
         if (w->isFloating() && !(w->m_state & Desktop::View::WINDOW_STATE_PINNED)) {
@@ -116,7 +117,7 @@ static void preDamageWorkspace(PHLWORKSPACE pWorkspace, PHLMONITOR pMonitor) {
 
     // damage any workspace window that is on any monitor
     for (auto const& w : Desktop::windowState()->windows()) {
-        if (!validMapped(w) || w->m_workspace != pWorkspace || (w->m_state & Desktop::View::WINDOW_STATE_PINNED))
+        if (!validMapped(w) || w->presentation().workspace() != pWorkspace || (w->m_state & Desktop::View::WINDOW_STATE_PINNED))
             continue;
 
         g_pHyprRenderer->damageWindow(w);
@@ -128,7 +129,7 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
     bool animationsDisabled = warp;
 
     if (auto w = av.m_Context.pWindow.lock()) {
-        if (!w->m_monitor.lock())
+        if (!w->presentation().monitor())
             return;
         animationsDisabled = w->m_ruleApplicator->noAnim().valueOr(animationsDisabled);
     } else if (auto ws = av.m_Context.pWorkspace.lock()) {
@@ -197,7 +198,7 @@ void CHyprAnimationManager::tick() {
                 }
             }
             if (!owner) {
-                auto monitor = w->m_monitor.lock();
+                auto monitor = w->presentation().monitor();
                 if (!monitor)
                     continue;
                 owners.emplace_back(SDamageOwner{.window = w, .monitor = monitor});
@@ -312,7 +313,7 @@ void CHyprAnimationManager::tick() {
         else if (owner.workspace) {
             if (owner.entire) {
                 for (auto const& w : Desktop::windowState()->windows()) {
-                    if (!validMapped(w) || w->m_workspace != owner.workspace || (w->m_state & Desktop::View::WINDOW_STATE_PINNED))
+                    if (!validMapped(w) || w->presentation().workspace() != owner.workspace || (w->m_state & Desktop::View::WINDOW_STATE_PINNED))
                         continue;
 
                     g_pHyprRenderer->damageWindow(w);
@@ -329,7 +330,9 @@ void CHyprAnimationManager::tick() {
             }
         }
 
-        if (!Fullscreen::controller()->hasFullscreen(owner.monitor))
+        const auto WORKSPACE = owner.monitor->getCurrentWorkspace();
+        if (!Fullscreen::controller()->getPresentedFullscreenWindow(WORKSPACE) ||
+            Fullscreen::controller()->getPresentedFullscreenModes(WORKSPACE).internal != Fullscreen::FSMODE_FULLSCREEN)
             owner.monitor->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_ANIMATION);
     }
 

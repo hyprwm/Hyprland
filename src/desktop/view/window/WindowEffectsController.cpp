@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "Window.hpp"
+#include "WindowPresentation.hpp"
 #include "../../../managers/input/InputManager.hpp"
 #include "../../../render/Renderer.hpp"
 #include "../../../render/transformer/MotionBlurTransformer.hpp"
@@ -57,7 +58,7 @@ void CWindowEffectsController::recordMotionBlur(const CBox& previous, const CBox
 
     constexpr double MIN_EDGE_DELTA_PX = 2.0;
 
-    const auto       PMONITOR = m_window.m_monitor.lock();
+    const auto       PMONITOR = m_window.presentation().monitor();
     const double     SCALE    = PMONITOR ? PMONITOR->m_scale : 1.0;
     const double     DELTA    = std::max({std::abs(previous.x - current.x), std::abs(previous.y - current.y), std::abs(previous.x + previous.w - current.x - current.w),
                                           std::abs(previous.y + previous.h - current.y - current.h)}) *

@@ -32,6 +32,7 @@ class CHyprBorderDecoration : public IHyprWindowDecoration {
     virtual void                       onWindowFocus() override;
 
     int                                borderSize() const;
+    int                                renderBorderSize() const;
     double                             borderExtent() const;
     void                               invalidateBorderSize();
 

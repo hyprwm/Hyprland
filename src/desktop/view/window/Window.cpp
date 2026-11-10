@@ -250,10 +250,10 @@ std::optional<CBox> CWindow::surfaceLogicalBox() const {
 }
 
 SBoxExtents CWindow::getFullWindowExtents() const {
-    const int BORDERSIZE = m_presentation->borderSize();
+    const int BORDERSIZE = m_presentation->renderBorderSize();
 
     if (m_ruleApplicator->dimAround().valueOrDefault()) {
-        if (const auto PMONITOR = m_monitor.lock(); PMONITOR)
+        if (const auto PMONITOR = m_presentation->monitor(); PMONITOR)
             return {.topLeft     = {m_realPosition->value().x - PMONITOR->m_position.x, m_realPosition->value().y - PMONITOR->m_position.y},
                     .bottomRight = {PMONITOR->m_size.x - (m_realPosition->value().x - PMONITOR->m_position.x),
                                     PMONITOR->m_size.y - (m_realPosition->value().y - PMONITOR->m_position.y)}};
@@ -290,7 +290,7 @@ SBoxExtents CWindow::getFullWindowExtents() const {
 
 CBox CWindow::getFullWindowBoundingBox() const {
     if (m_ruleApplicator->dimAround().valueOrDefault()) {
-        if (const auto PMONITOR = m_monitor.lock(); PMONITOR)
+        if (const auto PMONITOR = m_presentation->monitor(); PMONITOR)
             return {PMONITOR->m_position.x, PMONITOR->m_position.y, PMONITOR->m_size.x, PMONITOR->m_size.y};
     }
 
@@ -458,20 +458,13 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
     static auto PCLOSEONLASTSPECIAL = CConfigValue<Config::INTEGER>("misc:close_special_on_empty");
 
     const auto  OLDWORKSPACE = m_workspace;
-
-    if (OLDWORKSPACE->visible()) {
-        m_presentation->alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE)->setValueAndWarp(1.F);
-        *m_presentation->alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE) = 0.F;
-        m_presentation->alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE)->setCallbackOnEnd([this](auto) {
-            m_presentation->alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE)->setValueAndWarp(1.F);
-            m_presentation->resetMonitorMovedFrom();
-        });
-        m_presentation->setMonitorMovedFrom(OLDWORKSPACE ? OLDWORKSPACE->monitorID() : -1);
-    }
+    const bool  WASVISIBLE   = OLDWORKSPACE && OLDWORKSPACE->visible();
+    m_presentation->stageWorkspace();
 
     m_workspace = pWorkspace;
+    m_presentation->animateWorkspaceMove(OLDWORKSPACE, WASVISIBLE);
     updateFullscreenInputState();
-    *m_presentation->alpha(WINDOW_ALPHA_FULLSCREEN) = isBlockedByFullscreen() ? 0.F : 1.F;
+    m_presentation->setFullscreenAlpha(isBlockedByFullscreen() ? 0.F : 1.F);
 
     m_presentation->setAnimationsToMove();
 

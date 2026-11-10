@@ -6,6 +6,14 @@
 #include <config/shared/inotify/ConfigWatcher.hpp>
 #include <desktop/view/window/WaylandBackend.hpp>
 #include <desktop/view/window/Window.hpp>
+#include <desktop/view/window/WindowPresentation.hpp>
+#include <desktop/state/WindowState.hpp>
+#include <layout/algorithm/Algorithm.hpp>
+#include <layout/algorithm/TiledAlgorithm.hpp>
+#include <layout/target/WindowTarget.hpp>
+#include <managers/fullscreen/FullscreenController.hpp>
+#include <managers/fullscreen/handler/FullscreenHandler.hpp>
+#include <animation/WorkspaceAnimationController.hpp>
 #include <event/EventBus.hpp>
 #include <managers/eventLoop/EventLoopManager.hpp>
 #include <output/Monitor.hpp>
@@ -18,6 +26,10 @@
 #include <render/SyncFDManager.hpp>
 #include <render/decorations/DecorationPositioner.hpp>
 #include <state/MonitorState.hpp>
+#include <ipc/s2/S2.hpp>
+#include <render/WindowRenderPresentation.hpp>
+#include <workspace/HLWorkspace.hpp>
+#include <workspace/RegularWorkspace.hpp>
 
 #include <gtest/gtest.h>
 
@@ -29,6 +41,13 @@
 
 using namespace Desktop::View;
 using namespace std::chrono_literals;
+
+class CTransactionTestWorkspace : public Workspace::CHLWorkspace {
+  public:
+    explicit CTransactionTestWorkspace(PHLMONITOR monitor) : CHLWorkspace(Workspace::SWorkspaceNumberedID{1}, monitor, "transaction", "1", Workspace::eWorkspaceType::NORMAL) {
+        ;
+    }
+};
 
 class CTransactionTestOutput : public Aquamarine::IOutput {
   public:
@@ -207,6 +226,7 @@ class CMonitorWindowTransactionTest : public ::testing::Test {
         m_previousEventLoop          = std::move(g_pEventLoopManager);
         m_previousRenderer           = std::move(g_pHyprRenderer);
         m_previousMonitors           = std::move(State::monitorState());
+        m_previousWindows            = std::move(Desktop::windowState());
         m_previousBus                = std::move(Event::bus());
         m_previousWatcher            = std::move(Config::watcher());
         m_previousConfig             = std::move(Config::mgr());
@@ -217,11 +237,12 @@ class CMonitorWindowTransactionTest : public ::testing::Test {
         m_previousPresentation       = std::move(PROTO::presentation);
         m_previousXDG                = std::move(PROTO::xdgShell);
 
-        Event::bus()          = makeUnique<Event::CEventBus>();
-        State::monitorState() = makeUnique<State::CMonitorStateTracker>();
-        g_pCompositor         = makeUnique<CCompositor>(true);
-        Config::watcher()     = makeUnique<Config::CConfigWatcher>();
-        Config::mgr()         = makeUnique<Config::Lua::CConfigManager>();
+        Event::bus()           = makeUnique<Event::CEventBus>();
+        Desktop::windowState() = makeUnique<Desktop::CWindowState>();
+        State::monitorState()  = makeUnique<State::CMonitorStateTracker>();
+        g_pCompositor          = makeUnique<CCompositor>(true);
+        Config::watcher()      = makeUnique<Config::CConfigWatcher>();
+        Config::mgr()          = makeUnique<Config::Lua::CConfigManager>();
         CConfigValueBase::flushCaches();
         // Create animations before the event loop so timer expiry cannot tick them.
         Animation::mgr()        = makeUnique<Animation::CHyprAnimationManager>();
@@ -230,9 +251,12 @@ class CMonitorWindowTransactionTest : public ::testing::Test {
 
         m_display.reset(wl_display_create());
         ASSERT_TRUE(m_display);
-        g_pCompositor->m_wlDisplay   = m_display.get();
-        g_pCompositor->m_wlEventLoop = wl_display_get_event_loop(m_display.get());
-        g_pCompositor->m_drm.fd      = -1;
+        g_pCompositor->m_wlDisplay    = m_display.get();
+        g_pCompositor->m_wlEventLoop  = wl_display_get_event_loop(m_display.get());
+        g_pCompositor->m_drm.fd       = -1;
+        g_pCompositor->m_instancePath = std::string(128, 'x');
+        m_previousSocket2             = std::move(IPC::Socket2::sock());
+        IPC::Socket2::sock()          = makeUnique<IPC::Socket2::CSocket2>();
         Aquamarine::SBackendImplementationOptions backend;
         backend.backendType        = Aquamarine::AQ_BACKEND_NULL;
         g_pCompositor->m_aqBackend = Aquamarine::CBackend::create({backend}, Aquamarine::SBackendOptions{});
@@ -256,10 +280,12 @@ class CMonitorWindowTransactionTest : public ::testing::Test {
     }
 
     void TearDown() override {
+        Desktop::windowState()->clear();
         m_monitor.reset();
         if (m_display)
             wl_display_destroy_clients(m_display.get());
         m_clients.clear();
+        IPC::Socket2::sock()    = std::move(m_previousSocket2);
         PROTO::xdgShell         = std::move(m_previousXDG);
         PROTO::presentation     = std::move(m_previousPresentation);
         PROTO::compositor       = std::move(m_previousCompositorProtocol);
@@ -272,9 +298,10 @@ class CMonitorWindowTransactionTest : public ::testing::Test {
         Config::watcher()       = std::move(m_previousWatcher);
         if (Config::mgr())
             CConfigValueBase::flushCaches();
-        g_pEventLoopManager = std::move(m_previousEventLoop);
-        g_pCompositor       = std::move(m_previousCompositor);
-        Event::bus()        = std::move(m_previousBus);
+        g_pEventLoopManager    = std::move(m_previousEventLoop);
+        g_pCompositor          = std::move(m_previousCompositor);
+        Event::bus()           = std::move(m_previousBus);
+        Desktop::windowState() = std::move(m_previousWindows);
     }
 
     PHLMONITOR makeMonitor() {
@@ -284,14 +311,16 @@ class CMonitorWindowTransactionTest : public ::testing::Test {
         return monitor;
     }
 
-    PHLWINDOW makeWindow(const CBox& box = {10, 20, 100, 80}) {
+    PHLWINDOW makeWindow(const CBox& box = {10, 20, 100, 80}, bool registered = false) {
         auto surface            = makeShared<CWLSurfaceResource>(makeShared<CWlSurface>(m_client, 6, m_nextID++));
         surface->m_self         = surface;
         auto xdg                = makeShared<CXDGSurfaceResource>(makeShared<CXdgSurface>(m_client, 6, m_nextID++), nullptr, surface);
         xdg->m_self             = xdg;
         xdg->m_current.geometry = {{}, box.size()};
         auto window             = CWindow::create(makeUnique<CWaylandBackend>(xdg));
-        window->m_monitor       = m_monitor;
+        if (!registered)
+            Desktop::windowState()->removeSafe(window);
+        window->m_monitor = m_monitor;
         window->positionAnimation()->setValueAndWarp(box.pos());
         window->sizeAnimation()->setValueAndWarp(box.size());
         window->m_isMapped = true;
@@ -301,6 +330,22 @@ class CMonitorWindowTransactionTest : public ::testing::Test {
         window->m_backendListeners.commit.reset();
         m_clients.push_back({surface, xdg});
         return window;
+    }
+
+    PHLWORKSPACE makeWorkspace(bool visible, PHLMONITOR monitor = nullptr) {
+        auto workspace    = makeShared<CTransactionTestWorkspace>(monitor ? monitor : m_monitor);
+        workspace->m_self = workspace;
+        workspace->setVisible(visible);
+        Animation::mgr()->createAnimation(Vector2D{}, workspace->m_renderOffset, Config::animationTree()->getAnimationPropertyConfig("workspacesIn"), workspace, AVARDAMAGE_ENTIRE);
+        Animation::mgr()->createAnimation(1.F, workspace->m_alpha, Config::animationTree()->getAnimationPropertyConfig("workspacesIn"), workspace, AVARDAMAGE_ENTIRE);
+        return workspace;
+    }
+
+    void stageWorkspace(PHLWINDOW window, PHLWORKSPACE workspace) {
+        window->m_monitor->m_enabled = true;
+        window->presentation().stageWorkspace();
+        window->m_workspace = workspace;
+        window->m_monitor   = workspace->m_monitor;
     }
 
     void commit(PHLWINDOW window, const Vector2D& geometry, const Vector2D& acknowledged, bool newBuffer = true, bool withBuffer = true, bool withTexture = true,
@@ -374,6 +419,8 @@ class CMonitorWindowTransactionTest : public ::testing::Test {
     UP<CWLCompositorProtocol>                                  m_previousCompositorProtocol;
     UP<CPresentationProtocol>                                  m_previousPresentation;
     UP<CXDGShellProtocol>                                      m_previousXDG;
+    UP<IPC::Socket2::CSocket2>                                 m_previousSocket2;
+    UP<Desktop::CWindowState>                                  m_previousWindows;
 };
 
 TEST_F(CMonitorWindowTransactionTest, CoalescesMovesAndPublishesGoalsBeforeApplyingTheBatch) {
@@ -893,8 +940,13 @@ TEST_F(CMonitorWindowTransactionTest, DestructionDiscardsGoalsAndCancelsExternal
 }
 
 TEST_F(CMonitorWindowTransactionTest, ReentrantAnimationCallbackQueuesANewBatchWithoutApplyingItEarly) {
-    auto       first  = makeWindow();
-    auto       second = makeWindow();
+    auto       first     = makeWindow();
+    auto       second    = makeWindow();
+    const auto workspace = makeWorkspace(true);
+    first->m_workspace = second->m_workspace = workspace;
+    m_monitor->m_enabled                     = true;
+    first->presentation().stageFullscreen();
+    second->presentation().stageFullscreen();
     const auto before = appliedGoal(second);
     const CBox firstGoal{30, 40, 100, 80}, latest{70, 80, 100, 80};
     auto&      transaction = *m_monitor->m_windowTransaction;
@@ -911,10 +963,12 @@ TEST_F(CMonitorWindowTransactionTest, ReentrantAnimationCallbackQueuesANewBatchW
     EXPECT_EQ(appliedGoal(second), before);
     EXPECT_EQ(second->geometricBox(IGeometric::GEOMETRIC_GOAL), latest);
     EXPECT_TRUE(ownedBy(second, m_monitor));
+    EXPECT_TRUE(workspace->m_fullscreenPresentation);
     transaction.onPostRender();
     transaction.onPreRender();
     EXPECT_EQ(appliedGoal(second), latest);
     EXPECT_FALSE(pending(second));
+    EXPECT_FALSE(workspace->m_fullscreenPresentation);
     transaction.onPostRender();
 }
 
@@ -934,4 +988,311 @@ TEST_F(CMonitorWindowTransactionTest, DestructionDuringApplyDiscardsTheRestOfThe
     EXPECT_FALSE(pending(second));
     EXPECT_EQ(appliedGoal(first), goal);
     EXPECT_EQ(second->geometricBox(IGeometric::GEOMETRIC_GOAL), secondBefore);
+}
+
+TEST_F(CMonitorWindowTransactionTest, IncomingWorkspaceAndBothTileSizesPublishTogether) {
+    for (const int order : {0, 1, 2}) {
+        SCOPED_TRACE(order);
+        const auto active   = makeWorkspace(true);
+        const auto hidden   = makeWorkspace(false);
+        auto       first    = makeWindow({0, 0, 400, 300});
+        auto       second   = makeWindow({0, 0, 400, 300});
+        first->m_workspace  = active;
+        second->m_workspace = hidden;
+        m_monitor->m_size   = {400, 300};
+        second->presentation().alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE)->setConfig(Config::animationTree()->getAnimationPropertyConfig("borderangle"));
+
+        stageWorkspace(second, active);
+        const CBox firstGoal{0, 0, 200, 300}, secondGoal{200, 0, 200, 300};
+        auto&      transaction = *m_monitor->m_windowTransaction;
+        transaction.queue(first, firstGoal);
+        transaction.queue(second, secondGoal);
+        first->finishAnimation();
+        second->finishAnimation();
+        commit(order == 1 ? second : first, {200, 300}, {200, 300});
+        transaction.onPreRender();
+        EXPECT_EQ(second->m_workspace, active);
+        EXPECT_FALSE(g_pHyprRenderer->shouldRenderWindow(second, m_monitor));
+        EXPECT_EQ(first->size(IGeometric::GEOMETRIC_CURRENT), Vector2D(400, 300));
+        transaction.onPostRender();
+
+        if (order == 2)
+            expire(m_monitor);
+        else
+            commit(order == 1 ? first : second, {200, 300}, {200, 300});
+        transaction.onPreRender();
+        EXPECT_TRUE(g_pHyprRenderer->shouldRenderWindow(second, m_monitor));
+        EXPECT_EQ(first->geometricBox(IGeometric::GEOMETRIC_CURRENT), firstGoal);
+        EXPECT_EQ(second->geometricBox(IGeometric::GEOMETRIC_CURRENT), secondGoal);
+        EXPECT_FLOAT_EQ(second->presentation().alphaValue(WINDOW_ALPHA_MOVE_FROM_WORKSPACE), 1.F);
+        transaction.onPostRender();
+    }
+}
+
+TEST_F(CMonitorWindowTransactionTest, SameBoxWorkspaceChangeWaitsForTheBatchWithoutAnotherBuffer) {
+    const auto active     = makeWorkspace(true);
+    const auto hidden     = makeWorkspace(false);
+    auto       incoming   = makeWindow();
+    auto       resized    = makeWindow();
+    incoming->m_workspace = hidden;
+    stageWorkspace(incoming, active);
+    const auto before = appliedGoal(incoming);
+    const CBox goal{0, 0, 200, 160};
+    auto&      transaction = *m_monitor->m_windowTransaction;
+    transaction.queue(resized, goal);
+    transaction.onPreRender();
+    EXPECT_EQ(incoming->presentation().workspace(), hidden);
+    transaction.onPostRender();
+    commit(resized, goal.size(), goal.size());
+    EXPECT_EQ(incoming->presentation().workspace(), active);
+    EXPECT_EQ(appliedGoal(incoming), before);
+    EXPECT_FALSE(pending(incoming));
+}
+
+TEST_F(CMonitorWindowTransactionTest, WorkspaceSupersessionAndMonitorTransferRetainThePresentedSource) {
+    auto       hidden       = makeWorkspace(false);
+    const auto intermediate = makeWorkspace(true);
+    const auto nextMonitor  = makeMonitor();
+    const auto destination  = makeWorkspace(true, nextMonitor);
+    auto       window       = makeWindow();
+    window->m_workspace     = hidden;
+    PHLWORKSPACEREF source  = hidden;
+    stageWorkspace(window, intermediate);
+    stageWorkspace(window, destination);
+    const CBox goal{20, 30, 300, 240};
+    nextMonitor->m_windowTransaction->queue(window, goal);
+    hidden.reset();
+    EXPECT_TRUE(source);
+    EXPECT_EQ(window->presentation().workspace(), source.lock());
+    EXPECT_EQ(window->presentation().monitor(), m_monitor);
+    m_monitor->m_windowTransaction->clear();
+    EXPECT_EQ(window->presentation().workspace(), source.lock());
+    expire(nextMonitor);
+    EXPECT_EQ(window->presentation().workspace(), destination);
+    EXPECT_EQ(window->presentation().monitor(), nextMonitor);
+    EXPECT_TRUE(source.expired());
+    EXPECT_EQ(appliedGoal(window), goal);
+}
+
+TEST_F(CMonitorWindowTransactionTest, FullscreenClassificationAndPeerOpacityWaitForGeometry) {
+    using namespace Fullscreen;
+    *CConfigValue<Config::FLOAT>("decoration:fullscreen_opacity").ptr() = 0.4F;
+    for (const bool entering : {false, true}) {
+        SCOPED_TRACE(entering);
+        const auto workspace = Workspace::CRegularWorkspace::create(Workspace::SWorkspaceNumberedID{9}, m_monitor, "transaction");
+        workspace->setVisible(true);
+        m_monitor->m_enabled         = true;
+        m_monitor->m_size            = {400, 300};
+        m_monitor->m_activeWorkspace = workspace;
+        // Register these windows so the real fullscreen fade visits the peer.
+        auto window = makeWindow({10, 20, 100, 80}, true);
+        auto peer   = makeWindow({10, 20, 100, 80}, true);
+        for (const auto& w : {window, peer}) {
+            w->m_workspace = workspace;
+            w->windowTarget()->setSpaceGhost(workspace->space());
+            w->presentation().alpha(WINDOW_ALPHA_FULLSCREEN)->setConfig(Config::animationTree()->getAnimationPropertyConfig("borderangle"));
+        }
+        const auto handler    = workspace->space()->algorithm()->tiledAlgo()->getFSHandler();
+        const auto beforeMode = entering ? FSMODE_NONE : FSMODE_FULLSCREEN;
+        const auto afterMode  = entering ? FSMODE_FULLSCREEN : FSMODE_NONE;
+        handler->setTargetFullscreenModeInternal(window->windowTarget(), beforeMode);
+        handler->setNoMembersAboveFullscreen();
+        Animation::Workspace::applyFullscreenFade(workspace);
+        window->presentation().alpha(WINDOW_ALPHA_ACTIVE)->setConfig(Config::animationTree()->getAnimationPropertyConfig("borderangle"));
+        window->presentation().refreshValues();
+        window->presentation().alpha(WINDOW_ALPHA_ACTIVE)->warp();
+        const auto before = appliedGoal(window);
+        const CBox goal   = entering ? CBox{0, 0, 400, 300} : CBox{20, 30, 200, 160};
+
+        window->presentation().stageFullscreen();
+        handler->setTargetFullscreenModeInternal(window->windowTarget(), afterMode);
+        handler->setNoMembersAboveFullscreen();
+        Animation::Workspace::setFullscreenFadeAnimation(workspace, entering ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
+        m_monitor->m_windowTransaction->queue(window, goal);
+        window->finishAnimation();
+        m_monitor->m_windowTransaction->onPreRender();
+        EXPECT_EQ(controller()->getFullscreenModes(window).internal, afterMode);
+        EXPECT_EQ(window->presentation().fullscreenModes().internal, beforeMode);
+        EXPECT_EQ(controller()->getPresentedFullscreenModes(workspace).internal, beforeMode);
+        EXPECT_EQ(window->geometricBox(IGeometric::GEOMETRIC_CURRENT), before);
+        EXPECT_FLOAT_EQ(peer->presentation().alphaValue(WINDOW_ALPHA_FULLSCREEN), entering ? 1.F : 0.F);
+        EXPECT_FLOAT_EQ(window->presentation().alphaValue(WINDOW_ALPHA_ACTIVE), entering ? 1.F : 0.4F);
+        EXPECT_EQ(window->presentation().renderBorderSize() > 0, entering);
+        commit(window, goal.size(), goal.size());
+        EXPECT_EQ(window->presentation().fullscreenModes().internal, beforeMode);
+        m_monitor->m_windowTransaction->onPostRender();
+        EXPECT_EQ(window->geometricBox(IGeometric::GEOMETRIC_CURRENT), goal);
+        EXPECT_EQ(window->presentation().fullscreenModes().internal, afterMode);
+        EXPECT_EQ(controller()->getPresentedFullscreenModes(workspace).internal, afterMode);
+        EXPECT_FLOAT_EQ(peer->presentation().alphaValue(WINDOW_ALPHA_FULLSCREEN), entering ? 0.F : 1.F);
+        EXPECT_FLOAT_EQ(window->presentation().alphaValue(WINDOW_ALPHA_ACTIVE), entering ? 0.4F : 1.F);
+        EXPECT_EQ(window->presentation().renderBorderSize() > 0, !entering);
+        Desktop::windowState()->clear();
+    }
+}
+
+TEST_F(CMonitorWindowTransactionTest, WorkspaceFadeCompletesBeforeReturningFromAHiddenWorkspace) {
+    m_monitor->m_id = 1;
+    for (const bool animated : {false, true}) {
+        SCOPED_TRACE(animated);
+        const auto active   = makeWorkspace(true);
+        const auto hidden   = makeWorkspace(false);
+        auto       window   = makeWindow();
+        window->m_workspace = active;
+        auto& presentation  = window->presentation();
+        for (const auto channel : {WINDOW_ALPHA_MOVE_TO_WORKSPACE, WINDOW_ALPHA_MOVE_FROM_WORKSPACE})
+            presentation.alpha(channel)->setConfig(Config::animationTree()->getAnimationPropertyConfig(animated ? "fade" : "borderangle"));
+
+        stageWorkspace(window, hidden);
+        auto& transaction = *m_monitor->m_windowTransaction;
+        transaction.onPreRender();
+        transaction.onPostRender();
+        if (animated) {
+            EXPECT_TRUE(presentation.movingFromMonitor());
+            EXPECT_FLOAT_EQ(presentation.alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE)->goal(), 0.F);
+            presentation.alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE)->warp();
+        }
+        EXPECT_FALSE(presentation.movingFromMonitor());
+        EXPECT_FLOAT_EQ(presentation.alphaValue(WINDOW_ALPHA_MOVE_TO_WORKSPACE), 1.F);
+
+        stageWorkspace(window, active);
+        EXPECT_EQ(presentation.workspace(), hidden);
+        transaction.onPreRender();
+        transaction.onPostRender();
+        presentation.alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE)->warp();
+        EXPECT_EQ(presentation.workspace(), active);
+        EXPECT_FLOAT_EQ(presentation.alphaValue(WINDOW_ALPHA_MOVE_FROM_WORKSPACE), 1.F);
+        EXPECT_FLOAT_EQ(presentation.alphaValue(WINDOW_ALPHA_MOVE_TO_WORKSPACE), 1.F);
+    }
+}
+
+TEST_F(CMonitorWindowTransactionTest, TransferredFullscreenHoldsWaitForBothBatchesWithoutTakingUnrelatedWorkspaces) {
+    for (const bool destinationFirst : {false, true}) {
+        SCOPED_TRACE(destinationFirst);
+        const auto source      = makeWorkspace(true);
+        const auto unrelated   = makeWorkspace(false);
+        const auto nextMonitor = makeMonitor();
+        const auto destination = makeWorkspace(true, nextMonitor);
+        auto       moved       = makeWindow({10, 20, 100, 80}, true);
+        auto       peer        = makeWindow({10, 20, 100, 80}, true);
+        auto       other       = makeWindow({10, 20, 100, 80}, true);
+        moved->m_workspace = peer->m_workspace = source;
+        other->m_workspace                     = unrelated;
+        m_monitor->m_enabled = nextMonitor->m_enabled = true;
+        moved->presentation().stageFullscreen();
+        other->presentation().stageFullscreen();
+        stageWorkspace(moved, destination);
+        const CBox goal{10, 20, 200, 160};
+        nextMonitor->m_windowTransaction->queue(moved, goal);
+        m_monitor->m_windowTransaction->queue(peer, goal);
+        m_monitor->m_windowTransaction->queue(other, goal);
+
+        expire(destinationFirst ? nextMonitor : m_monitor);
+        EXPECT_TRUE(source->m_fullscreenPresentation);
+        EXPECT_EQ(!!unrelated->m_fullscreenPresentation, destinationFirst);
+        expire(destinationFirst ? m_monitor : nextMonitor);
+        EXPECT_FALSE(source->m_fullscreenPresentation);
+        EXPECT_FALSE(unrelated->m_fullscreenPresentation);
+        EXPECT_EQ(moved->presentation().workspace(), destination);
+        EXPECT_EQ(appliedGoal(moved), goal);
+        EXPECT_EQ(appliedGoal(peer), goal);
+        Desktop::windowState()->clear();
+    }
+}
+
+TEST_F(CMonitorWindowTransactionTest, FullscreenGestureFlushPublishesPeerPresentationToo) {
+    const auto workspace = makeWorkspace(true);
+    auto       window    = makeWindow({10, 20, 100, 80}, true);
+    auto       peer      = makeWindow({10, 20, 100, 80}, true);
+    window->m_workspace = peer->m_workspace = workspace;
+    m_monitor->m_enabled                    = true;
+    window->presentation().stageFullscreen();
+    const CBox goal{0, 0, 200, 160};
+    m_monitor->m_windowTransaction->queue(window, goal);
+    window->flushPendingGeometry();
+    EXPECT_FALSE(workspace->m_fullscreenPresentation);
+    EXPECT_FALSE(window->presentation().hasPendingState());
+    EXPECT_FALSE(peer->presentation().hasPendingState());
+    EXPECT_EQ(appliedGoal(window), goal);
+    EXPECT_FALSE(timer(m_monitor)->armed());
+}
+
+TEST_F(CMonitorWindowTransactionTest, CancellationReleasesHeldWorkspaceAndFullscreenState) {
+    for (const bool clear : {false, true}) {
+        SCOPED_TRACE(clear);
+        auto       source      = makeWorkspace(false);
+        const auto destination = makeWorkspace(true);
+        auto       window      = makeWindow();
+        window->m_workspace    = source;
+        m_monitor->m_enabled   = true;
+        window->presentation().stageFullscreen();
+        stageWorkspace(window, destination);
+        const PHLWORKSPACEREF previous = source;
+        source.reset();
+        if (clear)
+            m_monitor->m_windowTransaction->clear();
+        else {
+            unmap(window);
+            m_monitor->m_windowTransaction->remove(window);
+        }
+        EXPECT_TRUE(previous.expired());
+        EXPECT_FALSE(window->presentation().hasPendingState());
+        EXPECT_FALSE(pending(window));
+        EXPECT_EQ(window->presentation().workspace(), destination);
+        EXPECT_FALSE(timer(m_monitor)->armed());
+    }
+}
+
+TEST_F(CMonitorWindowTransactionTest, NestedReleasePublishesTheLastSharedFullscreenHold) {
+    const auto source      = makeWorkspace(true);
+    const auto unrelated   = makeWorkspace(false);
+    const auto nextMonitor = makeMonitor();
+    const auto destination = makeWorkspace(true, nextMonitor);
+    auto       moved       = makeWindow({10, 20, 100, 80}, true);
+    auto       peer        = makeWindow({10, 20, 100, 80}, true);
+    auto       other       = makeWindow({10, 20, 100, 80}, true);
+    moved->m_workspace = peer->m_workspace = source;
+    other->m_workspace                     = unrelated;
+    m_monitor->m_enabled = nextMonitor->m_enabled = true;
+    for (const auto& window : {peer, other})
+        window->presentation().alpha(WINDOW_ALPHA_FULLSCREEN)->setValueAndWarp(0.F);
+    moved->presentation().stageFullscreen();
+    other->presentation().stageFullscreen();
+    stageWorkspace(moved, destination);
+    const CBox goal{10, 20, 200, 160};
+    nextMonitor->m_windowTransaction->queue(moved, goal);
+    int callbacks = 0;
+    other->presentation().alpha(WINDOW_ALPHA_FULLSCREEN)->setCallbackOnBegin([&](auto) {
+        ++callbacks;
+        nextMonitor->m_windowTransaction->clear();
+    });
+    expire(m_monitor);
+    EXPECT_EQ(callbacks, 1);
+    EXPECT_FALSE(source->m_fullscreenPresentation);
+    EXPECT_FALSE(unrelated->m_fullscreenPresentation);
+    EXPECT_FLOAT_EQ(peer->presentation().alpha(WINDOW_ALPHA_FULLSCREEN)->goal(), 1.F);
+}
+
+TEST_F(CMonitorWindowTransactionTest, ClearingPreservesADeadlineQueuedByDeferredAlpha) {
+    const auto workspace = makeWorkspace(true);
+    auto       window    = makeWindow({10, 20, 100, 80}, true);
+    window->m_workspace  = workspace;
+    m_monitor->m_enabled = true;
+    window->presentation().stageFullscreen();
+    window->presentation().setFullscreenAlpha(0.5F);
+    const CBox goal{10, 20, 200, 160};
+    int        callbacks = 0;
+    window->presentation().alpha(WINDOW_ALPHA_FULLSCREEN)->setCallbackOnBegin([&](auto) {
+        if (++callbacks == 1)
+            m_monitor->m_windowTransaction->queue(window, goal);
+    });
+    m_monitor->m_windowTransaction->clear();
+    EXPECT_EQ(callbacks, 1);
+    EXPECT_TRUE(pending(window));
+    EXPECT_TRUE(timer(m_monitor)->armed());
+    EXPECT_TRUE(workspace->m_fullscreenPresentation);
+    expire(m_monitor);
+    EXPECT_EQ(appliedGoal(window), goal);
+    EXPECT_FALSE(pending(window));
+    EXPECT_FALSE(workspace->m_fullscreenPresentation);
 }

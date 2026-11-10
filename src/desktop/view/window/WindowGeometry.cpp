@@ -76,9 +76,10 @@ bool CWindow::canStageGeometry() const {
 }
 
 void CWindow::flushPendingGeometry() {
-    const auto PENDING = m_pendingGeometry;
-    cancelPendingGeometry();
-    m_pendingGeometry = PENDING;
+    if (m_geometryTransaction) {
+        m_geometryTransaction->flush(m_self.lock());
+        return;
+    }
     applyPendingGeometry();
 }
 
@@ -88,8 +89,10 @@ bool CWindow::pendingGeometryResizes() const {
 
 void CWindow::applyPendingGeometry() {
     const auto PENDING = std::exchange(m_pendingGeometry, std::nullopt);
-    if (!PENDING || !mapped())
+    if (!PENDING || !mapped()) {
+        presentation().discardPendingState();
         return;
+    }
 
     const auto SELF = m_self.lock();
     g_pHyprRenderer->damageWindow(SELF);
@@ -105,12 +108,15 @@ void CWindow::applyPendingGeometry() {
     if (WARP_SIZE)
         m_realSize->warp();
 
+    if (!m_pendingGeometry)
+        presentation().applyPendingState();
     presentation().updateDecorations();
     g_pHyprRenderer->damageWindow(SELF);
 }
 
 void CWindow::discardPendingGeometry() {
     m_pendingGeometry.reset();
+    presentation().discardPendingState();
 }
 
 void CWindow::cancelPendingGeometry() {

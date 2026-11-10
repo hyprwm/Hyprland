@@ -72,7 +72,9 @@ void CWindow::stageGeometry(const CBox& box) {
 }
 
 bool CWindow::canStageGeometry() const {
-    return mapped() && !m_geometryTransactionsBlocked && !backend().traits().overrideRedirect;
+    static const auto PTIMEOUT = CConfigValue<Config::INTEGER>("misc:transaction_timeout");
+    // Keep in-flight presentation changes until the existing batch can publish safely.
+    return (*PTIMEOUT > 0 || m_pendingGeometry) && mapped() && !m_geometryTransactionsBlocked && !backend().traits().overrideRedirect;
 }
 
 void CWindow::flushPendingGeometry() {

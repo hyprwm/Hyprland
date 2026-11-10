@@ -475,6 +475,154 @@ class CMonitorWindowTransactionTest : public ::testing::Test {
     UP<Desktop::CFadingOutState>                               m_previousFadeouts;
 };
 
+TEST_F(CMonitorWindowTransactionTest, ZeroTimeoutAppliesLayoutGeometryAndWorkspaceWithoutWaiting) {
+    *CConfigValue<Config::INTEGER>("misc:transaction_timeout").ptr() = 0;
+    const auto workspace                                             = Workspace::CRegularWorkspace::create(Workspace::SWorkspaceNumberedID{9}, m_monitor, "transaction");
+    auto       window                                                = makeWindow();
+    window->m_workspace                                              = workspace;
+    m_monitor->m_enabled                                             = true;
+    window->windowTarget()->setSpaceGhost(workspace->space());
+    window->windowTarget()->setFloatingInitial(true);
+    const CBox goal{30, 40, 200, 160};
+
+    window->windowTarget()->setPositionGlobal(goal);
+    EXPECT_EQ(appliedGoal(window), goal);
+    EXPECT_FALSE(pending(window));
+    EXPECT_FALSE(timer(m_monitor)->armed());
+
+    const auto destination = makeWorkspace(true);
+    stageWorkspace(window, destination);
+    EXPECT_EQ(window->presentation().workspace(), destination);
+    EXPECT_FALSE(window->presentation().hasPendingState());
+    EXPECT_FALSE(pending(window));
+    EXPECT_FALSE(timer(m_monitor)->armed());
+}
+
+TEST_F(CMonitorWindowTransactionTest, ZeroTimeoutPublishesFullscreenAndPeerOpacityWithoutWaiting) {
+    using namespace Fullscreen;
+    *CConfigValue<Config::INTEGER>("misc:transaction_timeout").ptr() = 0;
+    *CConfigValue<Config::BOOL>("animations:enabled").ptr()          = false;
+    const auto workspace                                             = Workspace::CRegularWorkspace::create(Workspace::SWorkspaceNumberedID{9}, m_monitor, "transaction");
+    workspace->setVisible(true);
+    m_monitor->m_enabled         = true;
+    m_monitor->m_activeWorkspace = workspace;
+    auto window                  = makeWindow({10, 20, 100, 80}, true);
+    auto peer                    = makeWindow({10, 20, 100, 80}, true);
+    for (const auto& w : {window, peer}) {
+        w->m_workspace = workspace;
+        w->windowTarget()->setSpaceGhost(workspace->space());
+    }
+    const auto handler = workspace->space()->algorithm()->tiledAlgo()->getFSHandler();
+
+    for (const auto mode : {FSMODE_FULLSCREEN, FSMODE_NONE}) {
+        SCOPED_TRACE(mode);
+        window->presentation().stageFullscreen();
+        handler->setTargetFullscreenModeInternal(window->windowTarget(), mode);
+        handler->setNoMembersAboveFullscreen();
+        Animation::Workspace::setFullscreenFadeAnimation(workspace, mode == FSMODE_FULLSCREEN ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
+
+        EXPECT_EQ(window->presentation().fullscreenModes().internal, mode);
+        EXPECT_EQ(controller()->getPresentedFullscreenModes(workspace).internal, mode);
+        EXPECT_FLOAT_EQ(peer->presentation().alphaValue(WINDOW_ALPHA_FULLSCREEN), mode == FSMODE_FULLSCREEN ? 0.F : 1.F);
+        EXPECT_FALSE(workspace->m_fullscreenPresentation);
+        EXPECT_FALSE(window->presentation().hasPendingState());
+        EXPECT_FALSE(peer->presentation().hasPendingState());
+        EXPECT_FALSE(pending(window));
+        EXPECT_FALSE(timer(m_monitor)->armed());
+    }
+}
+
+TEST_F(CMonitorWindowTransactionTest, SwitchingToZeroReleasesPendingPresentationAtASafeBoundary) {
+    *CConfigValue<Config::BOOL>("animations:enabled").ptr() = false;
+    for (const bool rendering : {false, true}) {
+        SCOPED_TRACE(rendering);
+        *CConfigValue<Config::INTEGER>("misc:transaction_timeout").ptr() = 50;
+        const auto workspace                                             = makeWorkspace(true);
+        auto       window                                                = makeWindow({0, 0, 100, 80}, true);
+        auto       peer                                                  = makeWindow({100, 0, 100, 80}, true);
+        auto       closed                                                = makeWindow({200, 0, 100, 80});
+        window->m_workspace = peer->m_workspace = closed->m_workspace = workspace;
+        m_monitor->m_enabled                                          = true;
+        window->presentation().stageFullscreen();
+        auto&      transaction = *m_monitor->m_windowTransaction;
+        const CBox goal{0, 0, 200, 160}, peerGoal{200, 0, 200, 160};
+        transaction.queue(window, goal);
+        transaction.queue(peer, peerGoal);
+        const auto before  = appliedGoal(window);
+        const auto fadeout = closeSnapshot(closed);
+        ASSERT_TRUE(fadeout);
+        ASSERT_TRUE(workspace->m_fullscreenPresentation);
+        ASSERT_FALSE(fadeout->done());
+
+        if (rendering)
+            transaction.onPreRender();
+        else
+            transaction.beginLayoutUpdate();
+        *CConfigValue<Config::INTEGER>("misc:transaction_timeout").ptr() = 0;
+        // Only one participant commits; zero must release the other without bypassing the active guard.
+        commit(window, goal.size(), goal.size());
+        EXPECT_EQ(appliedGoal(window), before);
+        EXPECT_TRUE(pending(peer));
+        EXPECT_TRUE(workspace->m_fullscreenPresentation);
+        EXPECT_FALSE(fadeout->done());
+
+        if (rendering)
+            transaction.onPostRender();
+        else
+            transaction.endLayoutUpdate();
+        EXPECT_EQ(appliedGoal(window), goal);
+        EXPECT_EQ(appliedGoal(peer), peerGoal);
+        EXPECT_FALSE(pending(window));
+        EXPECT_FALSE(pending(peer));
+        EXPECT_FALSE(window->presentation().hasPendingState());
+        EXPECT_FALSE(peer->presentation().hasPendingState());
+        EXPECT_FALSE(workspace->m_fullscreenPresentation);
+        EXPECT_FALSE(transaction.hasPendingPresentation());
+        EXPECT_TRUE(fadeout->done());
+        EXPECT_FALSE(timer(m_monitor)->armed());
+        Desktop::windowState()->clear();
+    }
+}
+
+TEST_F(CMonitorWindowTransactionTest, RelayoutAfterSwitchingToZeroPreservesPendingFullscreenPresentation) {
+    using namespace Fullscreen;
+    *CConfigValue<Config::FLOAT>("decoration:fullscreen_opacity").ptr() = 0.4F;
+    *CConfigValue<Config::BOOL>("animations:enabled").ptr()             = false;
+    const auto workspace                                                = Workspace::CRegularWorkspace::create(Workspace::SWorkspaceNumberedID{9}, m_monitor, "transaction");
+    workspace->setVisible(true);
+    m_monitor->m_enabled         = true;
+    m_monitor->m_activeWorkspace = workspace;
+    auto window                  = makeWindow({0, 0, 400, 300}, true);
+    window->m_workspace          = workspace;
+    window->windowTarget()->setSpaceGhost(workspace->space());
+    const auto handler = workspace->space()->algorithm()->tiledAlgo()->getFSHandler();
+    handler->setTargetFullscreenModeInternal(window->windowTarget(), FSMODE_FULLSCREEN);
+    window->presentation().refreshValues();
+    window->presentation().alpha(WINDOW_ALPHA_ACTIVE)->warp();
+    ASSERT_FLOAT_EQ(window->presentation().alphaValue(WINDOW_ALPHA_ACTIVE), 0.4F);
+
+    window->presentation().stageFullscreen();
+    handler->setTargetFullscreenModeInternal(window->windowTarget(), FSMODE_NONE);
+    auto& transaction = *m_monitor->m_windowTransaction;
+    transaction.queue(window, {10, 20, 200, 160});
+    *CConfigValue<Config::INTEGER>("misc:transaction_timeout").ptr() = 0;
+    const CBox latest{20, 30, 220, 180};
+    window->setBox(latest);
+    window->presentation().updateDecorations();
+    EXPECT_TRUE(pending(window));
+    EXPECT_TRUE(window->presentation().hasPendingState());
+    transaction.onPreRender();
+    transaction.onPostRender();
+
+    EXPECT_EQ(appliedGoal(window), latest);
+    EXPECT_EQ(window->presentation().fullscreenModes().internal, FSMODE_NONE);
+    EXPECT_FLOAT_EQ(window->presentation().alphaValue(WINDOW_ALPHA_ACTIVE), 1.F);
+    EXPECT_FALSE(window->presentation().hasPendingState());
+    EXPECT_FALSE(workspace->m_fullscreenPresentation);
+    EXPECT_FALSE(pending(window));
+    EXPECT_FALSE(timer(m_monitor)->armed());
+}
+
 TEST_F(CMonitorWindowTransactionTest, CoalescesMovesAndPublishesGoalsBeforeApplyingTheBatch) {
     auto       first        = makeWindow();
     auto       second       = makeWindow({120, 20, 100, 80});

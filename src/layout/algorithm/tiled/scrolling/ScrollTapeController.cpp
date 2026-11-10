@@ -43,7 +43,7 @@ void CScrollTapeController::setOffset(double offset) {
         m_offset = getScrollInhibitor().offsetWhenInhibited;
         LOG(Log::DEBUG, "m_offset not set - scrolling inhibited");
     } else
-        m_offset = offset;
+        m_offset = std::clamp<double>(offset, 0, std::numeric_limits<double>::max());
 }
 
 void CScrollTapeController::adjustOffset(double delta) {

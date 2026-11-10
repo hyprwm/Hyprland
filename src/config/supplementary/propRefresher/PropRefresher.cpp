@@ -80,7 +80,7 @@ void CPropRefresher::refreshProp(const bool execdAsScheduled) {
         g_pHyprRenderer->refreshBlurProvider();
 
         for (auto const& m : State::monitorState()->monitors()) {
-            if (!m)
+            if (!m || m->m_transformedSize.x <= 0 || m->m_transformedSize.y <= 0)
                 continue;
 
             m->resources()->refreshBlurFB();

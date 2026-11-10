@@ -6,6 +6,7 @@
 #include <config/lua/ConfigManager.hpp>
 #include <config/shared/animation/AnimationTree.hpp>
 #include <config/shared/inotify/ConfigWatcher.hpp>
+#include <config/supplementary/propRefresher/PropRefresher.hpp>
 #include <event/EventBus.hpp>
 #include <managers/eventLoop/EventLoopManager.hpp>
 #include <output/MonitorResources.hpp>
@@ -13,6 +14,7 @@
 #include <render/SceneResources.hpp>
 #include <render/SyncFDManager.hpp>
 #include <render/Renderbuffer.hpp>
+#include <state/MonitorState.hpp>
 
 #include <gtest/gtest.h>
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -637,11 +639,13 @@ class CLifecycleRenderer : public CDMABUFTestRenderer {
     };
     eFailure                                m_failure = NONE;
     int                                     m_inits = 0, m_begins = 0, m_fakeBegins = 0, m_unbinds = 0;
+    int                                     m_framebuffers = 0;
     WP<Render::IRenderbuffer>               m_renderbuffer;
     std::array<WP<Render::IFramebuffer>, 3> m_targets;
     WP<Render::ITexture>                    m_passTexture;
 
     SP<Render::IFramebuffer>                createFB(const std::string&) override {
+        ++m_framebuffers;
         return makeShared<CLifecycleFramebuffer>();
     }
     SP<Render::ITexture> createStencilTexture(int w, int h) override {
@@ -774,6 +778,58 @@ class CRenderLifecycleTest : public CDMABUFBufferTest {
     UP<Config::IConfigManager>           m_previousConfig;
     UP<Config::CConfigWatcher>           m_previousWatcher;
 };
+
+TEST_F(CRenderLifecycleTest, BlurRefreshSkipsModelessMonitorsUntilTheyHaveDimensions) {
+    auto                                previousMonitors  = std::move(State::monitorState());
+    auto                                previousRefresher = std::move(Config::Supplementary::refresher());
+    const Hyprutils::Utils::CScopeGuard restoreGlobals{[&] {
+        State::monitorState()              = std::move(previousMonitors);
+        Config::Supplementary::refresher() = std::move(previousRefresher);
+    }};
+    State::monitorState()              = makeUnique<State::CMonitorStateTracker>();
+    Config::Supplementary::refresher() = makeUnique<Config::Supplementary::CPropRefresher>();
+
+    auto output = makeShared<CLifecycleOutput>();
+    output->state->setFormat(DRM_FORMAT_XRGB8888);
+    auto modeless       = makeShared<Monitor::CMonitor>(output);
+    modeless->m_self    = modeless;
+    modeless->m_enabled = m_monitor->m_enabled = true;
+    Event::bus()->m_events.monitor.added.emit(modeless);
+    Event::bus()->m_events.monitor.added.emit(m_monitor);
+
+    const auto                 validResources = m_monitor->resources();
+    const auto                 framebuffers   = renderer().m_framebuffers;
+    CConfigValue<Config::BOOL> enabled{"decoration:blur:enabled"};
+    for (const bool blurEnabled : {true, false}) {
+        SCOPED_TRACE(blurEnabled);
+        *enabled.ptr() = blurEnabled;
+        for (const auto& size : std::array<Vector2D, 5>{{{0, 0}, {0, 48}, {64, 0}, {-1, 48}, {64, -1}}}) {
+            SCOPED_TRACE(std::format("{:X0}", size));
+            modeless->m_transformedSize = size;
+            modeless->m_blurFBDirty = m_monitor->m_blurFBDirty = false;
+            modeless->m_forceFullFrames = m_monitor->m_forceFullFrames = 0;
+
+            Config::Supplementary::refresher()->scheduleRefresh(Config::Supplementary::REFRESH_BLUR_FB);
+            ASSERT_EQ(Config::Supplementary::refresher()->executeScheduledRefreshImmediately(), 0);
+
+            EXPECT_EQ(renderer().m_framebuffers, framebuffers);
+            EXPECT_FALSE(modeless->m_blurFBDirty);
+            EXPECT_EQ(modeless->m_forceFullFrames, 0);
+            EXPECT_EQ(m_monitor->m_blurFBDirty, blurEnabled);
+            EXPECT_EQ(m_monitor->m_forceFullFrames, blurEnabled ? 2 : 0);
+            EXPECT_EQ(validResources->m_blurFB->m_size, blurEnabled ? m_monitor->m_transformedSize : Vector2D(1, 1));
+        }
+    }
+
+    *enabled.ptr()              = true;
+    modeless->m_transformedSize = {640, 480};
+    Config::Supplementary::refresher()->scheduleRefresh(Config::Supplementary::REFRESH_BLUR_FB);
+    ASSERT_EQ(Config::Supplementary::refresher()->executeScheduledRefreshImmediately(), 0);
+    EXPECT_EQ(renderer().m_framebuffers, framebuffers + 1);
+    EXPECT_EQ(modeless->resources()->m_blurFB->m_size, Vector2D(640, 480));
+    EXPECT_TRUE(modeless->m_blurFBDirty);
+    EXPECT_EQ(modeless->m_forceFullFrames, 2);
+}
 
 TEST_F(CRenderLifecycleTest, IsolatedBlurSelectionNeverReadsOrCompletesMonitorBlur) {
     const auto monitorResources = m_monitor->resources();

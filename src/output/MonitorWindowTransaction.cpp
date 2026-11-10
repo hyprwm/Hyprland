@@ -214,7 +214,8 @@ bool CMonitorWindowTransaction::onlyMoves() const {
 }
 
 bool CMonitorWindowTransaction::ready() const {
-    if (m_timedOut)
+    static const auto PTIMEOUT = CConfigValue<Config::INTEGER>("misc:transaction_timeout");
+    if (m_timedOut || *PTIMEOUT == 0)
         return true;
 
     // Do not make transactions when we are dragging, this is terrible UX.

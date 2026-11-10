@@ -60,6 +60,7 @@ void CMoveTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) {
 
     const auto GOAL = m_window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
 
+    m_window->flushPendingGeometry();
     m_window->positionAnimation()->setValueAndWarp(WINDOWPOS);
     m_window->move(GOAL);
 

@@ -23,6 +23,8 @@
 #include "../surfaceTree/SubsurfaceOwner.hpp"
 #include "WindowBackend.hpp"
 
+class CMonitorWindowTransactionTest;
+
 namespace Config {
     class CWorkspaceRule;
 }
@@ -34,6 +36,10 @@ namespace Render {
 namespace Layout {
     class ITarget;
     class CWindowTarget;
+}
+
+namespace Monitor {
+    class CMonitorWindowTransaction;
 }
 
 namespace Desktop {
@@ -150,6 +156,15 @@ namespace Desktop::View {
 
         virtual eViewType                                         type() const override;
         virtual bool                                              mapped() const override;
+        Vector2D                                                  position(eGeometricValueType type) const override;
+        Vector2D                                                  size(eGeometricValueType type) const override;
+        CBox                                                      geometricBox(eGeometricValueType type) const override;
+        void                                                      move(const Vector2D& position) override;
+        void                                                      resize(const Vector2D& size) override;
+        void                                                      setBox(const CBox& box) override;
+        void                                                      finishAnimation() override;
+        bool                                                      canStageGeometry() const;
+        void                                                      flushPendingGeometry();
         virtual bool                                              focusAvailable() const override;
         virtual std::optional<CBox>                               logicalBox() const override;
         virtual bool                                              desktopComponent() const override;
@@ -265,6 +280,24 @@ namespace Desktop::View {
         PHLWINDOWREF m_self;
 
       private:
+        struct SPendingGeometry {
+            CBox box;
+            bool warp  = false;
+            bool ready = false;
+        };
+
+        void                                   stageGeometry(const CBox& box);
+        bool                                   pendingGeometryResizes() const;
+        void                                   applyPendingGeometry();
+        void                                   discardPendingGeometry();
+        void                                   cancelPendingGeometry();
+        std::optional<SPendingGeometry>        m_pendingGeometry;
+        WP<Monitor::CMonitorWindowTransaction> m_geometryTransaction;
+        bool                                   m_geometryTransactionsBlocked = false;
+
+        friend class Monitor::CMonitorWindowTransaction;
+        friend class ::CMonitorWindowTransactionTest;
+
         void         initialize();
         void         attachBackendListeners();
         void         mapWindow();

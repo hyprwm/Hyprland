@@ -34,6 +34,7 @@ void CCloseTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin&
     if (!m_window)
         return;
 
+    m_window->flushPendingGeometry();
     m_alphaFrom = m_window->presentation().alphaGoal(WINDOW_ALPHA_FADE);
     m_posFrom   = m_window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
     m_sizeFrom  = m_window->size(Desktop::View::IGeometric::GEOMETRIC_GOAL);

@@ -41,6 +41,7 @@ namespace Monitor {
     class CMonitorResources;
     class CMonitorFrameScheduler;
     class COutputCommitCoordinator;
+    class CMonitorWindowTransaction;
     class CMonitor;
 
     class CMonitorState {
@@ -138,6 +139,7 @@ namespace Monitor {
 
         UP<CMonitorFrameScheduler>     m_frameScheduler;
         UP<COutputCommitCoordinator>   m_commitCoordinator;
+        UP<CMonitorWindowTransaction>  m_windowTransaction;
 
         // mirroring
         PHLMONITORREF              m_mirrorOf;

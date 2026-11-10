@@ -665,6 +665,9 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
     if (!state.updated.all && m_mapped)
         return;
 
+    if (m_mapped && m_current.texture && state.updated.bits.buffer && !state.buffer)
+        m_events.preUnmap.emit();
+
     auto lastTexture = m_current.texture;
     m_current.updateFrom(state);
 

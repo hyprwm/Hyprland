@@ -8,6 +8,8 @@
 #include <desktop/view/window/Window.hpp>
 #include <desktop/view/window/WindowPresentation.hpp>
 #include <desktop/state/WindowState.hpp>
+#include <desktop/state/WindowFadeout.hpp>
+#include <desktop/state/FadingOutState.hpp>
 #include <layout/algorithm/Algorithm.hpp>
 #include <layout/algorithm/TiledAlgorithm.hpp>
 #include <layout/target/WindowTarget.hpp>
@@ -22,6 +24,7 @@
 #include <protocols/XDGShell.hpp>
 #include <protocols/core/Compositor.hpp>
 #include <render/ElementRenderer.hpp>
+#include <render/Framebuffer.hpp>
 #include <render/Renderer.hpp>
 #include <render/SyncFDManager.hpp>
 #include <render/decorations/DecorationPositioner.hpp>
@@ -219,6 +222,29 @@ class CTransactionTestBuffer : public IHLBuffer {
     }
 };
 
+class CTransactionTestFramebuffer : public Render::IFramebuffer {
+  public:
+    void release() override {
+        ;
+    }
+    bool readPixels(CHLBufferReference, uint32_t, uint32_t, uint32_t, uint32_t) override {
+        ADD_FAILURE() << "Unexpected snapshot readback";
+        return false;
+    }
+    void bind() override {
+        ADD_FAILURE() << "Unexpected snapshot bind";
+    }
+    void addStencil(SP<Render::ITexture>) override {
+        ADD_FAILURE() << "Unexpected stencil allocation";
+    }
+
+  private:
+    bool internalAlloc(int, int, DRMFormat) override {
+        ADD_FAILURE() << "Unexpected snapshot allocation";
+        return false;
+    }
+};
+
 class CMonitorWindowTransactionTest : public ::testing::Test {
   protected:
     void SetUp() override {
@@ -227,6 +253,7 @@ class CMonitorWindowTransactionTest : public ::testing::Test {
         m_previousRenderer           = std::move(g_pHyprRenderer);
         m_previousMonitors           = std::move(State::monitorState());
         m_previousWindows            = std::move(Desktop::windowState());
+        m_previousFadeouts           = std::move(Desktop::fadingOutState());
         m_previousBus                = std::move(Event::bus());
         m_previousWatcher            = std::move(Config::watcher());
         m_previousConfig             = std::move(Config::mgr());
@@ -237,12 +264,13 @@ class CMonitorWindowTransactionTest : public ::testing::Test {
         m_previousPresentation       = std::move(PROTO::presentation);
         m_previousXDG                = std::move(PROTO::xdgShell);
 
-        Event::bus()           = makeUnique<Event::CEventBus>();
-        Desktop::windowState() = makeUnique<Desktop::CWindowState>();
-        State::monitorState()  = makeUnique<State::CMonitorStateTracker>();
-        g_pCompositor          = makeUnique<CCompositor>(true);
-        Config::watcher()      = makeUnique<Config::CConfigWatcher>();
-        Config::mgr()          = makeUnique<Config::Lua::CConfigManager>();
+        Event::bus()              = makeUnique<Event::CEventBus>();
+        Desktop::windowState()    = makeUnique<Desktop::CWindowState>();
+        Desktop::fadingOutState() = makeUnique<Desktop::CFadingOutState>();
+        State::monitorState()     = makeUnique<State::CMonitorStateTracker>();
+        g_pCompositor             = makeUnique<CCompositor>(true);
+        Config::watcher()         = makeUnique<Config::CConfigWatcher>();
+        Config::mgr()             = makeUnique<Config::Lua::CConfigManager>();
         CConfigValueBase::flushCaches();
         // Create animations before the event loop so timer expiry cannot tick them.
         Animation::mgr()        = makeUnique<Animation::CHyprAnimationManager>();
@@ -280,6 +308,7 @@ class CMonitorWindowTransactionTest : public ::testing::Test {
     }
 
     void TearDown() override {
+        Desktop::fadingOutState()->clear();
         Desktop::windowState()->clear();
         m_monitor.reset();
         if (m_display)
@@ -298,10 +327,11 @@ class CMonitorWindowTransactionTest : public ::testing::Test {
         Config::watcher()       = std::move(m_previousWatcher);
         if (Config::mgr())
             CConfigValueBase::flushCaches();
-        g_pEventLoopManager    = std::move(m_previousEventLoop);
-        g_pCompositor          = std::move(m_previousCompositor);
-        Event::bus()           = std::move(m_previousBus);
-        Desktop::windowState() = std::move(m_previousWindows);
+        g_pEventLoopManager       = std::move(m_previousEventLoop);
+        g_pCompositor             = std::move(m_previousCompositor);
+        Event::bus()              = std::move(m_previousBus);
+        Desktop::windowState()    = std::move(m_previousWindows);
+        Desktop::fadingOutState() = std::move(m_previousFadeouts);
     }
 
     PHLMONITOR makeMonitor() {
@@ -384,6 +414,27 @@ class CMonitorWindowTransactionTest : public ::testing::Test {
         window->m_isMapped = false;
     }
 
+    SP<Desktop::CWindowFadeout> closeSnapshot(PHLWINDOW window) {
+        unmap(window);
+        auto fadeout = Desktop::CWindowFadeout::create(window, makeShared<CTransactionTestFramebuffer>(), 1.F);
+        Desktop::fadingOutState()->add(fadeout);
+        return fadeout;
+    }
+
+    void prepareNullBufferUnmap(PHLWINDOW window) {
+        // Exercise the actual surface/XDG/backend ordering without desktop focus
+        // and layout teardown, which the remaining transaction tests drive directly.
+        window->m_backendListeners.unmap.reset();
+        const auto client = std::ranges::find_if(m_clients, [&](const auto& client) { return client.surface == window->backend().surface(); });
+        ASSERT_NE(client, m_clients.end());
+        client->xdg->m_mapped = true;
+        client->surface->map();
+    }
+
+    bool capturedCloseSnapshot(PHLWINDOW window) {
+        return window->m_closeSnapshots.has_value();
+    }
+
     SP<CEventLoopTimer> timer(PHLMONITOR monitor) {
         return monitor->m_windowTransaction->m_timeout;
     }
@@ -421,6 +472,7 @@ class CMonitorWindowTransactionTest : public ::testing::Test {
     UP<CXDGShellProtocol>                                      m_previousXDG;
     UP<IPC::Socket2::CSocket2>                                 m_previousSocket2;
     UP<Desktop::CWindowState>                                  m_previousWindows;
+    UP<Desktop::CFadingOutState>                               m_previousFadeouts;
 };
 
 TEST_F(CMonitorWindowTransactionTest, CoalescesMovesAndPublishesGoalsBeforeApplyingTheBatch) {
@@ -1295,4 +1347,254 @@ TEST_F(CMonitorWindowTransactionTest, ClearingPreservesADeadlineQueuedByDeferred
     EXPECT_EQ(appliedGoal(window), goal);
     EXPECT_FALSE(pending(window));
     EXPECT_FALSE(workspace->m_fullscreenPresentation);
+}
+
+TEST_F(CMonitorWindowTransactionTest, DisabledCloseWaitsForReplacementGeometryWithoutAnExtraAnimationTick) {
+    for (const int disabledBy : {0, 1, 2}) {
+        for (const bool timeout : {false, true}) {
+            SCOPED_TRACE(::testing::Message() << "disabledBy=" << disabledBy << ", timeout=" << timeout);
+            *CConfigValue<Config::BOOL>("animations:enabled").ptr() = disabledBy != 0;
+            Config::animationTree()->setConfigForNode("windows", disabledBy != 2, 8.F, "default");
+            Config::animationTree()->setConfigForNode("fadeOut", disabledBy != 2, 8.F, "default");
+            const auto workspace = makeWorkspace(true);
+            auto       closed    = makeWindow({200, 0, 200, 300});
+            auto       survivor  = makeWindow({0, 0, 200, 300});
+            closed->m_workspace = survivor->m_workspace = workspace;
+            if (disabledBy == 1) {
+                closed->m_ruleApplicator->noAnim().set(true, Desktop::Types::PRIORITY_SET_PROP);
+                survivor->m_ruleApplicator->noAnim().set(true, Desktop::Types::PRIORITY_SET_PROP);
+            }
+            const auto oldBox = appliedGoal(survivor);
+            const CBox goal{0, 0, 400, 300};
+            auto&      transaction = *m_monitor->m_windowTransaction;
+            transaction.queue(survivor, goal);
+            if (timeout)
+                timer(m_monitor)->updateTimeout(-1ms);
+            auto fadeout = closeSnapshot(closed);
+            ASSERT_TRUE(fadeout);
+            const auto                     snapshotBox = fadeout->geometricBox(IGeometric::GEOMETRIC_CURRENT);
+            const WP<Render::IFramebuffer> snapshot    = fadeout->framebuffer();
+            const PHLWINDOWREF             closedRef   = closed;
+            closed.reset();
+            EXPECT_TRUE(closedRef.expired());
+
+            Animation::mgr()->tick();
+            Desktop::fadingOutState()->cleanupForMonitor(m_monitor);
+            transaction.onPreRender();
+            EXPECT_EQ(survivor->geometricBox(IGeometric::GEOMETRIC_CURRENT), oldBox);
+            EXPECT_EQ(fadeout->geometricBox(IGeometric::GEOMETRIC_CURRENT), snapshotBox);
+            EXPECT_FLOAT_EQ(fadeout->alpha(), 1.F);
+            EXPECT_FALSE(fadeout->done());
+            EXPECT_TRUE(transaction.hasPendingPresentation());
+            EXPECT_EQ(Desktop::fadingOutState()->fadeouts().size(), 1U);
+            if (timeout) {
+                EXPECT_TRUE(timer(m_monitor)->passed());
+                g_pEventLoopManager->onTimerFire();
+            } else
+                commit(survivor, goal.size(), goal.size());
+            EXPECT_FLOAT_EQ(fadeout->alpha(), 1.F);
+            transaction.onPostRender();
+            EXPECT_EQ(survivor->geometricBox(IGeometric::GEOMETRIC_CURRENT), goal);
+            EXPECT_TRUE(fadeout->done());
+            EXPECT_FLOAT_EQ(fadeout->alpha(), 0.F);
+            EXPECT_FALSE(transaction.hasPendingPresentation());
+            EXPECT_FALSE(timer(m_monitor)->armed());
+            Desktop::fadingOutState()->cleanupForMonitor(m_monitor);
+            fadeout.reset();
+            EXPECT_TRUE(snapshot.expired());
+        }
+    }
+}
+
+TEST_F(CMonitorWindowTransactionTest, CloseWithoutAReplacementResizeDoesNotWaitOnOtherWorkspacesOrMoves) {
+    *CConfigValue<Config::BOOL>("animations:enabled").ptr() = false;
+    const auto workspace                                    = makeWorkspace(true);
+    const auto unrelated                                    = makeWorkspace(false);
+    auto       closed                                       = makeWindow();
+    auto       moved                                        = makeWindow();
+    auto       resized                                      = makeWindow();
+    closed->m_workspace = moved->m_workspace = workspace;
+    resized->m_workspace                     = unrelated;
+    auto& transaction                        = *m_monitor->m_windowTransaction;
+    transaction.queue(moved, {30, 40, 100, 80});
+    transaction.queue(resized, {0, 0, 200, 160});
+    const auto fadeout = closeSnapshot(closed);
+    ASSERT_TRUE(fadeout);
+    EXPECT_TRUE(fadeout->done());
+    EXPECT_TRUE(Desktop::fadingOutState()->fadeouts().empty());
+    EXPECT_FALSE(transaction.hasPendingPresentation());
+    EXPECT_TRUE(pending(resized));
+}
+
+TEST_F(CMonitorWindowTransactionTest, ConsecutiveClosesKeepTheirSnapshotsAndTheOriginalDeadline) {
+    *CConfigValue<Config::BOOL>("animations:enabled").ptr() = false;
+    const auto workspace                                    = makeWorkspace(true);
+    auto       first                                        = makeWindow();
+    auto       second                                       = makeWindow();
+    auto       survivor                                     = makeWindow();
+    first->m_workspace = second->m_workspace = survivor->m_workspace = workspace;
+    auto& transaction                                                = *m_monitor->m_windowTransaction;
+    transaction.queue(second, {0, 0, 200, 160});
+    const auto firstFadeout = closeSnapshot(first);
+    timer(m_monitor)->updateTimeout(-1ms);
+    transaction.beginLayoutUpdate();
+    transaction.remove(second);
+    EXPECT_FLOAT_EQ(firstFadeout->alpha(), 1.F);
+    EXPECT_TRUE(timer(m_monitor)->passed());
+    const CBox goal{0, 0, 400, 160};
+    transaction.queue(survivor, goal);
+    const auto secondFadeout = closeSnapshot(second);
+    transaction.endLayoutUpdate();
+    EXPECT_TRUE(timer(m_monitor)->passed());
+    EXPECT_FLOAT_EQ(firstFadeout->alpha(), 1.F);
+    EXPECT_FLOAT_EQ(secondFadeout->alpha(), 1.F);
+    g_pEventLoopManager->onTimerFire();
+    EXPECT_EQ(appliedGoal(survivor), goal);
+    EXPECT_TRUE(firstFadeout->done());
+    EXPECT_TRUE(secondFadeout->done());
+}
+
+TEST_F(CMonitorWindowTransactionTest, RemovingTheLastMatchingResizeReleasesCloseEvenWithOtherPendingWork) {
+    *CConfigValue<Config::BOOL>("animations:enabled").ptr() = false;
+    const auto workspace                                    = makeWorkspace(true);
+    auto       closed                                       = makeWindow();
+    auto       survivor                                     = makeWindow();
+    auto       unrelated                                    = makeWindow();
+    closed->m_workspace = survivor->m_workspace = workspace;
+    unrelated->m_workspace                      = makeWorkspace(false);
+    auto&      transaction                      = *m_monitor->m_windowTransaction;
+    const CBox goal{0, 0, 200, 160};
+    transaction.queue(survivor, goal);
+    transaction.queue(unrelated, goal);
+    const auto fadeout = closeSnapshot(closed);
+    transaction.remove(survivor);
+    EXPECT_TRUE(fadeout->done());
+    EXPECT_TRUE(pending(unrelated));
+    EXPECT_TRUE(timer(m_monitor)->armed());
+}
+
+TEST_F(CMonitorWindowTransactionTest, CancelledOrDestroyedTransactionsDiscardTheirCloseSnapshots) {
+    for (const int cancellation : {0, 1, 2}) {
+        SCOPED_TRACE(cancellation);
+        const auto monitor   = makeMonitor();
+        const auto workspace = makeWorkspace(true, monitor);
+        auto       closed    = makeWindow();
+        auto       survivor  = makeWindow();
+        closed->m_monitor = survivor->m_monitor = monitor;
+        closed->m_workspace = survivor->m_workspace = workspace;
+        const auto before                           = appliedGoal(survivor);
+        const CBox goal{0, 0, 200, 160};
+        monitor->m_windowTransaction->queue(survivor, goal);
+        const auto fadeout = closeSnapshot(closed);
+        ASSERT_FALSE(fadeout->done());
+        if (cancellation == 2) {
+            survivor->positionAnimation()->setCallbackOnBegin([&](auto) { monitor->m_windowTransaction.reset(); });
+            expire(monitor);
+        } else if (cancellation == 1)
+            monitor->m_windowTransaction.reset();
+        else
+            monitor->m_windowTransaction->clear();
+        EXPECT_TRUE(fadeout->done());
+        EXPECT_FLOAT_EQ(fadeout->alpha(), 0.F);
+        EXPECT_EQ(appliedGoal(survivor), cancellation == 2 ? goal : before);
+        Desktop::fadingOutState()->cleanupForMonitor(monitor);
+        EXPECT_TRUE(Desktop::fadingOutState()->fadeouts().empty());
+    }
+}
+
+TEST_F(CMonitorWindowTransactionTest, RequeuedReplacementRetainsTheCloseSnapshotUntilItsNextBatch) {
+    *CConfigValue<Config::BOOL>("animations:enabled").ptr() = false;
+    const auto workspace                                    = makeWorkspace(true);
+    auto       closed                                       = makeWindow();
+    auto       first                                        = makeWindow();
+    auto       second                                       = makeWindow();
+    closed->m_workspace = first->m_workspace = second->m_workspace = workspace;
+    auto&      transaction                                         = *m_monitor->m_windowTransaction;
+    const CBox goal{30, 40, 200, 160}, latest{40, 50, 300, 240};
+    transaction.queue(first, goal);
+    transaction.queue(second, goal);
+    const auto fadeout = closeSnapshot(closed);
+    first->positionAnimation()->setCallbackOnBegin([&](auto) { transaction.queue(second, latest); });
+    expire(m_monitor);
+    EXPECT_TRUE(pending(second));
+    EXPECT_FLOAT_EQ(fadeout->alpha(), 1.F);
+    EXPECT_FALSE(fadeout->done());
+    commit(second, latest.size(), latest.size());
+    EXPECT_EQ(appliedGoal(second), latest);
+    EXPECT_TRUE(fadeout->done());
+}
+
+TEST_F(CMonitorWindowTransactionTest, AnimatedCloseHoldsCapturedGeometryBeforeStartingItsExitStyle) {
+    const auto workspace = makeWorkspace(true);
+    auto       closed    = makeWindow();
+    auto       survivor  = makeWindow();
+    closed->m_workspace = survivor->m_workspace = workspace;
+    closed->m_ruleApplicator->animationStyle().set("slide right", Desktop::Types::PRIORITY_SET_PROP);
+    *closed->sizeAnimation() = Vector2D{200, 160};
+    const auto capturedBox   = closed->geometricBox(IGeometric::GEOMETRIC_CURRENT);
+    const CBox goal{0, 0, 400, 300};
+    m_monitor->m_windowTransaction->queue(survivor, goal);
+    const auto fadeout = closeSnapshot(closed);
+    closed.reset();
+    Animation::mgr()->tick();
+    EXPECT_EQ(fadeout->geometricBox(IGeometric::GEOMETRIC_CURRENT), capturedBox);
+    EXPECT_EQ(fadeout->geometricBox(IGeometric::GEOMETRIC_GOAL), capturedBox);
+    EXPECT_FLOAT_EQ(fadeout->alpha(), 1.F);
+    commit(survivor, goal.size(), goal.size());
+    EXPECT_EQ(fadeout->geometricBox(IGeometric::GEOMETRIC_CURRENT), capturedBox);
+    EXPECT_NE(fadeout->geometricBox(IGeometric::GEOMETRIC_GOAL), capturedBox);
+    EXPECT_FALSE(fadeout->done());
+}
+
+TEST_F(CMonitorWindowTransactionTest, NullBufferUnmapCapturesBeforeLosingTheLastSurfaceImage) {
+    auto window         = makeWindow();
+    window->m_workspace = makeWorkspace(true);
+    window->m_ruleApplicator->noAnim().set(true, Desktop::Types::PRIORITY_SET_PROP);
+    commit(window, {100, 80}, {100, 80});
+    prepareNullBufferUnmap(window);
+    const auto surface = window->backend().surface();
+    const auto texture = surface->m_current.texture;
+    ASSERT_TRUE(texture);
+    EXPECT_FALSE(capturedCloseSnapshot(window));
+    int           captures = 0, unmaps = 0;
+    auto          before = surface->m_events.preUnmap.listen([&] {
+        ++captures;
+        EXPECT_EQ(surface->m_current.texture, texture);
+        EXPECT_TRUE(capturedCloseSnapshot(window));
+    });
+    auto          after  = window->backend().m_events.unmap.listen([&] {
+        ++unmaps;
+        EXPECT_EQ(captures, 1);
+        EXPECT_FALSE(surface->m_current.texture);
+        EXPECT_TRUE(capturedCloseSnapshot(window));
+    });
+    SSurfaceState detach;
+    detach.updated.bits.buffer = true;
+    surface->commitState(detach);
+    EXPECT_EQ(captures, 1);
+    EXPECT_EQ(unmaps, 1);
+    surface->commitState(detach);
+    EXPECT_EQ(captures, 1);
+    EXPECT_EQ(unmaps, 1);
+}
+
+TEST_F(CMonitorWindowTransactionTest, ClosingTheLastReplacementRetiresSnapshotsWhenLayoutUpdateFinishes) {
+    *CConfigValue<Config::BOOL>("animations:enabled").ptr() = false;
+    const auto workspace                                    = makeWorkspace(true);
+    auto       closed                                       = makeWindow();
+    auto       survivor                                     = makeWindow();
+    closed->m_workspace = survivor->m_workspace = workspace;
+    auto& transaction                           = *m_monitor->m_windowTransaction;
+    transaction.queue(survivor, {0, 0, 200, 160});
+    const auto fadeout = closeSnapshot(closed);
+    transaction.beginLayoutUpdate();
+    transaction.beginLayoutUpdate();
+    transaction.remove(survivor);
+    expire(m_monitor);
+    transaction.endLayoutUpdate();
+    EXPECT_FALSE(fadeout->done());
+    transaction.endLayoutUpdate();
+    EXPECT_TRUE(fadeout->done());
+    EXPECT_FALSE(timer(m_monitor)->armed());
+    EXPECT_FALSE(transaction.hasPendingPresentation());
 }

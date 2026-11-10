@@ -95,6 +95,7 @@ class CWLSurfaceResource {
         CSignalT<WP<SSurfaceState>>         stateCommit;  // when placing state in queue
         CSignalT<WP<SSurfaceState>>         stateCommit2; // when placing state in queue used for commit timing so we apply fifo/fences first.
         CSignalT<>                          commit;       // after commit
+        CSignalT<>                          preUnmap;     // before applying a null buffer, while the last image is still available
         CSignalT<>                          map;
         CSignalT<>                          unmap;
         CSignalT<SP<CWLSubsurfaceResource>> newSubsurface;

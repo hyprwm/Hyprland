@@ -1,7 +1,9 @@
 #include "../shared.hpp"
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
+#include <format>
 #include <string>
+#include <utility>
 #include <vector>
 #include "tests.hpp"
 
@@ -39,6 +41,21 @@ TEST_CASE(monocleWorkspaceRule) {
         EXPECT_CONTAINS(str, "class: angry_cat")
         EXPECT_CONTAINS(str, "size: 1836,996")
         EXPECT_CONTAINS(str, "at: 42,42")
+    }
+
+    // Cover both cycle directions and wraparounds, preserving focus history for the closing checks.
+    for (const auto& [command, windowClass] : {
+             std::pair{"cyclenext", "neutral_cat"},
+             std::pair{"cycleprev", "angry_cat"},
+             std::pair{"cycleprev", "happy_cat"},
+             std::pair{"cyclenext", "angry_cat"},
+         }) {
+        OK(getFromSocket(std::format("/dispatch hl.dsp.layout('{}')", command)));
+
+        const auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, std::format("class: {}", windowClass));
+        EXPECT_CONTAINS(str, "size: 1836,996");
+        EXPECT_CONTAINS(str, "at: 42,42");
     }
 
     // try closing a window, fallback window should be compliant

@@ -1,6 +1,7 @@
 #include "Pass.hpp"
 #include "../SceneResources.hpp"
 #include "../OpenGL.hpp"
+#include "../transformer/Transformer.hpp"
 #include <algorithm>
 #include <ranges>
 #include "../../Compositor.hpp"
@@ -58,7 +59,7 @@ void CRenderPass::simplify(CRenderContext& ctx, bool willBlur, const CRegion& li
             continue;
         }
 
-        auto bb = bb1->scale(pMonitor->m_scale);
+        const auto bb = pixelBoxForLogical(*bb1, pMonitor->m_scale);
 
         // drop if empty
         if (CRegion copy = newDamage.copy(); copy.intersect(bb).empty()) {
@@ -105,7 +106,7 @@ void CRenderPass::simplify(CRenderContext& ctx, bool willBlur, const CRegion& li
             const auto BB = el2.element->boundingBox(ctx);
             RASSERT(BB, "No bounding box for an element with live blur is illegal");
 
-            m_totalLiveBlurRegion.add(BB->copy().scale(pMonitor->m_scale));
+            m_totalLiveBlurRegion.add(pixelBoxForLogical(*BB, pMonitor->m_scale));
         }
     }
 }
@@ -156,7 +157,7 @@ CRegion CRenderPass::render(CRenderContext& ctx, const CRegion& damage_) {
             willBlur      = true;
             const auto BB = el.element->boundingBox(ctx);
             RASSERT(BB, "No bounding box for an element with live blur is illegal");
-            blurRegion.add(*BB);
+            blurRegion.add(pixelBoxForLogical(*BB, pMonitor->m_scale));
         }
 
         if (el.element->needsPrecomputeBlurCached)
@@ -203,8 +204,6 @@ CRegion CRenderPass::render(CRenderContext& ctx, const CRegion& damage_) {
     // precompute the expanded live blur region for simplify() to use
     CRegion liveBlurRegion;
     if (willBlur && !*PDEBUGPASS) {
-        blurRegion.scale(pMonitor->m_scale);
-
         // save a copy for simplify's occlusion test before we mutate for damage expansion
         liveBlurRegion = blurRegion.copy();
         g_pHyprRenderer->expandBlurDamage(liveBlurRegion, 2.F);
@@ -262,7 +261,7 @@ CRegion CRenderPass::render(CRenderContext& ctx, const CRegion& damage_) {
         else {
             auto box = BB->copy().scale(pMonitor->m_scale);
             ctx.m_data.renderModif.applyToBox(box);
-            animatedBlurDamage.add(box);
+            animatedBlurDamage.add(pixelBoxForLogical(box, 1.0));
         }
 
         usesPrecomputedBlur = usesPrecomputedBlur || el.element->needsPrecomputeBlurCached;

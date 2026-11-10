@@ -1,4 +1,5 @@
 #include "WLSurface.hpp"
+#include "../../render/SurfaceDamage.hpp"
 #include "LayerSurface.hpp"
 #include "window/Window.hpp"
 #include "../../protocols/core/Compositor.hpp"
@@ -132,7 +133,7 @@ CRegion CWLSurface::computeDamage(const std::optional<CBox>& box) const {
     damage.scale(SURFSIZE / BUFSIZE);
 
     if (boxSize)
-        damage.intersect(CBox{{}, boxSize.value()});
+        Render::clipSurfaceDamage(damage, *boxSize);
 
     return damage;
 }

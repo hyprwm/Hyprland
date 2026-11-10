@@ -236,8 +236,8 @@ void CDefaultFloatingAlgorithm::moveTarget(const Vector2D& Δ, SP<ITarget> targe
 
 void CDefaultFloatingAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
     auto posABackup = a->position();
-    setPositionGlobal(a, b->position());
-    setPositionGlobal(b, posABackup);
+    setPositionGlobal(a, b->position(), TARGET_UPDATE_NO_UPDATE_RESTORE_CACHE);
+    setPositionGlobal(b, posABackup, TARGET_UPDATE_NO_UPDATE_RESTORE_CACHE);
 }
 
 void CDefaultFloatingAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent) {
@@ -274,7 +274,7 @@ void CDefaultFloatingAlgorithm::updateTarget(SP<ITarget> t) {
     m_datas[t] = {.lastBox = t->position()};
 }
 
-CBox CDefaultFloatingAlgorithm::setPositionGlobal(SP<ITarget> t, const CBox& box) {
+CBox CDefaultFloatingAlgorithm::setPositionGlobal(SP<ITarget> t, const CBox& box, uint8_t flags) {
     CBox        adjustedBox;
 
     static auto PFORCEONSCREEN = CConfigValue<Config::INTEGER>("misc:float_force_onscreen");
@@ -290,6 +290,6 @@ CBox CDefaultFloatingAlgorithm::setPositionGlobal(SP<ITarget> t, const CBox& box
         case 2: adjustedBox = fitBoxInWorkArea(box, t, true); break;
     }
 
-    t->setPositionGlobal(adjustedBox);
+    t->setPositionGlobal(adjustedBox, flags);
     return adjustedBox;
 }

@@ -2,33 +2,31 @@
 #include "../space/Space.hpp"
 #include "../algorithm/Algorithm.hpp"
 #include "../algorithm/FloatingAlgorithm.hpp"
-#include "../../managers/fullscreen/handler/FullscreenHandler.hpp"
 #include "../../debug/log/Logger.hpp"
+#include "managers/fullscreen/FullscreenController.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 
 using namespace Layout;
 using namespace Hyprutils::Utils;
 
-void ITarget::setPositionGlobal(const STargetBox& box, uint8_t) {
-    const auto PREVIOUS = m_box.logicalBox;
-    m_box               = box;
+void ITarget::setPositionGlobal(const STargetBox& box, uint8_t flags) {
+    m_box = box;
     m_box.logicalBox.round();
     m_box.visualBox.round();
 
-    // Recalculating unchanged fullscreen geometry during exit must not replace the saved box.
-    if (m_box.logicalBox == PREVIOUS || m_ghostSpace || !floating() || !m_space || !m_space->algorithm())
+    if ((flags & Layout::TARGET_UPDATE_NO_UPDATE_RESTORE_CACHE) || m_ghostSpace || !floating() || !m_space || !m_space->algorithm())
         return;
 
-    const auto& FLOATING = m_space->algorithm()->floatingAlgo();
-    if (!FLOATING)
+    const auto& FLOAT_ALGO = m_space->algorithm()->floatingAlgo();
+    if (!FLOAT_ALGO)
         return;
 
     const auto SELF = m_self.lock();
-    if (const auto HANDLER = FLOATING->getFSHandler(); HANDLER && HANDLER->isFullscreen(SELF))
+    if (Fullscreen::controller()->isFullscreen(SELF->window()))
         return;
 
-    FLOATING->updateTarget(SELF);
+    FLOAT_ALGO->updateTarget(SELF);
 }
 
 void ITarget::setPositionGlobal(const CBox& box, uint8_t flags) {
@@ -92,7 +90,8 @@ Vector2D ITarget::lastFloatingSize() const {
 }
 
 void ITarget::recalc() {
-    setPositionGlobal(m_box);
+    // Reapply existing geometry without updating the restore cache
+    setPositionGlobal(m_box, TARGET_UPDATE_NO_UPDATE_RESTORE_CACHE);
 }
 
 void ITarget::setPseudo(bool x) {

@@ -1,4 +1,5 @@
 #include "WindowTarget.hpp"
+#include "WindowGeometry.hpp"
 #include "../../desktop/view/window/Window.hpp"
 #include "../../desktop/view/window/WindowPresentation.hpp"
 #include "../../desktop/view/window/WindowStateTracker.hpp"
@@ -89,6 +90,15 @@ void CWindowTarget::updatePos(uint8_t flags) {
         return;
     }
 
+    const auto pixelAlignedBorder = [&](PHLWINDOW window) { return std::floor(PMONITOR->m_scale) != PMONITOR->m_scale && window->presentation().borderExtent() > 0; };
+    const auto contentBox         = [&](const CBox& allocation, PHLWINDOW window) {
+        const auto RESERVED = window->getFullWindowReservedArea();
+        if (pixelAlignedBorder(window))
+            return windowContentBox(allocation, RESERVED, PMONITOR->m_position, PMONITOR->m_scale);
+
+        return CBox{allocation.pos() + RESERVED.topLeft, allocation.size() - RESERVED.topLeft - RESERVED.bottomRight};
+    };
+
     /* FS Handling */
 
     // prevent re-setting a covering FS window's pos after it is set by the FS calls
@@ -111,9 +121,7 @@ void CWindowTarget::updatePos(uint8_t flags) {
 
             // Reserved area must be updated before this is called
             // Reserved area for all windows in a group are owned by the leading window. Other windows are hidden anyway so this simply ensures their sizes are uniform when FSed
-            const auto RESERVED = effectiveWindow()->getFullWindowReservedArea();
-
-            m_window->setBox({visualBox.pos() + RESERVED.topLeft, visualBox.size() - (RESERVED.topLeft + RESERVED.bottomRight)});
+            m_window->setBox(contentBox(visualBox, effectiveWindow()));
         }
 
         m_window->presentation().updateDecorations();
@@ -136,8 +144,7 @@ void CWindowTarget::updatePos(uint8_t flags) {
 
             // Reserved area must be updated before this is called
             // Reserved area for all windows in a group are owned by the leading window. Other windows are hidden anyway so this simply ensures their sizes are uniform when FSed
-            const auto RESERVED = effectiveWindow()->getFullWindowReservedArea();
-            m_window->setBox({visualBox.pos() + RESERVED.topLeft, visualBox.size() - (RESERVED.topLeft + RESERVED.bottomRight)});
+            m_window->setBox(contentBox(visualBox, effectiveWindow()));
         }
 
         m_window->presentation().updateDecorations();
@@ -228,9 +235,9 @@ void CWindowTarget::updatePos(uint8_t flags) {
         }
     }
 
-    const auto RESERVED = m_window->getFullWindowReservedArea();
-    calcPos             = calcPos + RESERVED.topLeft;
-    calcSize            = calcSize - (RESERVED.topLeft + RESERVED.bottomRight);
+    const auto CONTENT_BOX = contentBox({calcPos, calcSize}, m_window.lock());
+    calcPos                = CONTENT_BOX.pos();
+    calcSize               = CONTENT_BOX.size();
 
     Vector2D    availableSpace = calcSize;
 
@@ -248,7 +255,8 @@ void CWindowTarget::updatePos(uint8_t flags) {
     }
 
     CBox wb = {calcPos, calcSize};
-    wb.round(); // avoid rounding mess
+    if (!pixelAlignedBorder(m_window.lock()))
+        wb.round();
 
     m_window->setBox(wb);
 

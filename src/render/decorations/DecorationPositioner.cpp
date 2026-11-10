@@ -149,7 +149,7 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
     CBox wb = pWindow->getWindowMainSurfaceBox();
 
     // calc reserved
-    float reservedXL = 0, reservedYT = 0, reservedXR = 0, reservedYB = 0;
+    double reservedXL = 0, reservedYT = 0, reservedXR = 0, reservedYB = 0;
     for (size_t i = 0; i < datas.size(); ++i) {
         auto* const wd = datas[i];
 
@@ -173,7 +173,7 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
 
     WINDOWDATA->reserved = {{reservedXL, reservedYT}, {reservedXR, reservedYB}};
 
-    float stickyOffsetXL = 0, stickyOffsetYT = 0, stickyOffsetXR = 0, stickyOffsetYB = 0;
+    double stickyOffsetXL = 0, stickyOffsetYT = 0, stickyOffsetXR = 0, stickyOffsetYB = 0;
 
     for (size_t i = 0; i < datas.size(); ++i) {
         auto* const wd = datas[i];

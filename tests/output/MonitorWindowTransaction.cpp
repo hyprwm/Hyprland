@@ -446,17 +446,96 @@ TEST_F(CMonitorWindowTransactionTest, ResizeHoldsMovesUntilTheFiftyMillisecondDe
     EXPECT_FALSE(timer(m_monitor)->armed());
 }
 
-TEST_F(CMonitorWindowTransactionTest, AMatchingNewBufferReleasesAllWindowsInTheBatch) {
+TEST_F(CMonitorWindowTransactionTest, EveryResizeMustCommitBeforeTheBatchIsReleased) {
+    for (const bool reverse : {false, true}) {
+        for (const bool rendering : {false, true}) {
+            SCOPED_TRACE(::testing::Message() << "reverse=" << reverse << ", rendering=" << rendering);
+            auto       first  = makeWindow();
+            auto       second = makeWindow();
+            const auto before = appliedGoal(first);
+            const CBox firstGoal{10, 20, 200, 160}, secondGoal{210, 20, 300, 240};
+            auto&      transaction = *m_monitor->m_windowTransaction;
+            transaction.queue(first, firstGoal);
+            transaction.queue(second, secondGoal);
+            if (rendering)
+                transaction.onPreRender();
+
+            commit(reverse ? second : first, reverse ? secondGoal.size() : firstGoal.size(), reverse ? secondGoal.size() : firstGoal.size());
+            if (rendering)
+                transaction.onPostRender();
+            EXPECT_EQ(appliedGoal(first), before);
+            EXPECT_EQ(appliedGoal(second), before);
+            EXPECT_TRUE(timer(m_monitor)->armed());
+
+            transaction.onPreRender();
+            EXPECT_EQ(appliedGoal(first), before);
+            EXPECT_EQ(appliedGoal(second), before);
+            transaction.onPostRender();
+
+            commit(reverse ? first : second, reverse ? firstGoal.size() : secondGoal.size(), reverse ? firstGoal.size() : secondGoal.size());
+            EXPECT_EQ(appliedGoal(first), firstGoal);
+            EXPECT_EQ(appliedGoal(second), secondGoal);
+            EXPECT_FALSE(pending(first));
+            EXPECT_FALSE(pending(second));
+            EXPECT_FALSE(timer(m_monitor)->armed());
+        }
+    }
+}
+
+TEST_F(CMonitorWindowTransactionTest, PartiallyReadyBatchStillAppliesAtTheOriginalDeadline) {
     auto       first  = makeWindow();
     auto       second = makeWindow();
-    const CBox firstGoal{10, 20, 200, 160}, secondGoal{210, 20, 300, 240};
-    m_monitor->m_windowTransaction->queue(first, firstGoal);
-    m_monitor->m_windowTransaction->queue(second, secondGoal);
-    commit(first, firstGoal.size(), firstGoal.size());
-    EXPECT_EQ(appliedGoal(first), firstGoal);
-    EXPECT_EQ(appliedGoal(second), secondGoal);
-    EXPECT_FALSE(pending(second));
+    const auto before = appliedGoal(first);
+    const CBox goal{10, 20, 200, 160};
+    auto&      transaction = *m_monitor->m_windowTransaction;
+    transaction.queue(first, goal);
+    transaction.queue(second, goal);
+    timer(m_monitor)->updateTimeout(-1ms);
+    commit(first, goal.size(), goal.size());
+    EXPECT_EQ(appliedGoal(first), before);
+    EXPECT_TRUE(timer(m_monitor)->passed());
+    g_pEventLoopManager->onTimerFire();
+    EXPECT_EQ(appliedGoal(first), goal);
+    EXPECT_EQ(appliedGoal(second), goal);
     EXPECT_FALSE(timer(m_monitor)->armed());
+}
+
+TEST_F(CMonitorWindowTransactionTest, MovesDoNotRequireACommitAlongsideAReadyResize) {
+    auto       resized = makeWindow();
+    auto       moved   = makeWindow();
+    const CBox resize{10, 20, 200, 160}, move{210, 20, 100, 80};
+    auto&      transaction = *m_monitor->m_windowTransaction;
+    transaction.queue(resized, resize);
+    transaction.queue(moved, move);
+    commit(resized, resize.size(), resize.size());
+    EXPECT_EQ(appliedGoal(resized), resize);
+    EXPECT_EQ(appliedGoal(moved), move);
+    EXPECT_FALSE(timer(m_monitor)->armed());
+}
+
+TEST_F(CMonitorWindowTransactionTest, RemovingOrUnmappingTheLastBlockerReleasesReadyResizes) {
+    for (const bool unmapped : {false, true}) {
+        SCOPED_TRACE(unmapped);
+        auto       ready   = makeWindow();
+        auto       waiting = makeWindow();
+        const auto before  = appliedGoal(ready);
+        const CBox goal{10, 20, 200, 160};
+        auto&      transaction = *m_monitor->m_windowTransaction;
+        transaction.queue(ready, goal);
+        transaction.queue(waiting, goal);
+        commit(ready, goal.size(), goal.size());
+        EXPECT_EQ(appliedGoal(ready), before);
+        if (unmapped)
+            unmap(waiting);
+        else
+            transaction.remove(waiting);
+
+        transaction.onPreRender();
+        EXPECT_EQ(appliedGoal(ready), goal);
+        EXPECT_EQ(appliedGoal(waiting), before);
+        EXPECT_FALSE(timer(m_monitor)->armed());
+        transaction.onPostRender();
+    }
 }
 
 TEST_F(CMonitorWindowTransactionTest, AckOnlyWrongGeometryAndMissingBufferOrTextureDoNotRelease) {

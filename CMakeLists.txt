@@ -100,6 +100,11 @@ include_directories(. "src/" "protocols/")
 
 set(CMAKE_CXX_STANDARD 26)
 set(CXX_STANDARD_REQUIRED ON)
+
+# disable module scanning as Hyprland doesn't use C++ modules and the flags
+# added by scanning prevent GCC from using precompiled headers
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+
 add_compile_options(
   -Wall
   -Wextra

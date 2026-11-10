@@ -35,6 +35,10 @@ namespace Fullscreen {
         /// @warning Will return the modes of the TOPMOST Covering FS Window if there are several
         SFullscreenMode getFullscreenModes(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
 
+        // Topmost covering fullscreen state published with the workspace's geometry.
+        PHLWINDOW       getPresentedFullscreenWindow(const PHLWORKSPACE workspace);
+        SFullscreenMode getPresentedFullscreenModes(const PHLWORKSPACE workspace);
+
         // Monitor
         // FS windows must be fullscreen (FSMODE_FULLSCREEN) to be considered as FS by monitor
 

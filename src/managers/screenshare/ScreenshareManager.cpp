@@ -2,6 +2,7 @@
 #include "../../render/Renderer.hpp"
 #include "../../Compositor.hpp"
 #include "../../desktop/view/window/Window.hpp"
+#include "../../desktop/view/window/WindowPresentation.hpp"
 #include "../../protocols/core/Seat.hpp"
 #include "../../state/MonitorState.hpp"
 #include "WorkspaceCaptureSource.hpp"
@@ -249,7 +250,7 @@ bool CScreenshareManager::needsWorkspaceCaptureSnapshot(PHLWINDOW window) const 
     if (!window || !window->mapped() || window->isHidden() || (window->m_ruleApplicator && window->m_ruleApplicator->noScreenShare().valueOrDefault()))
         return false;
 
-    const auto MONITOR = window->m_monitor.lock();
+    const auto MONITOR = window->presentation().monitor();
     if (!MONITOR)
         return false;
 
@@ -261,7 +262,7 @@ bool CScreenshareManager::needsWorkspaceCaptureSnapshot(PHLWINDOW window) const 
         if (!WORKSPACE || session->monitor() != MONITOR)
             return false;
 
-        if (window->m_workspace != WORKSPACE &&
+        if (window->presentation().workspace() != WORKSPACE &&
             !(session->m_workspace->mode() == HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_EVERYTHING &&
               (window->m_state & Desktop::View::WINDOW_STATE_PINNED) && window->isFloating()))
             return false;

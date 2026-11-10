@@ -23,6 +23,7 @@
 #include "../helpers/string/StringUtils.hpp"
 #include "OpenGL.hpp"
 #include "Renderer.hpp"
+#include "WindowRenderPresentation.hpp"
 #include "./gl/GLElementRenderer.hpp"
 #include "./gl/GLFramebuffer.hpp"
 #include "./gl/GLTexture.hpp"
@@ -400,14 +401,14 @@ void CHyprGLRenderer::preRender(PHLMONITOR pMonitor) {
         return;
 
     auto windowShouldBeBlurred = [](PHLWINDOW pWindow) -> bool {
-        if (!pWindow || pWindow->m_ruleApplicator->noBlur().valueOrDefault())
+        if (!pWindow || !pWindow->wlSurface() || !pWindow->wlSurface()->resource() || pWindow->m_ruleApplicator->noBlur().valueOrDefault())
             return false;
 
         if (pWindow->wlSurface()->small() && !pWindow->wlSurface()->m_fillIgnoreSmall)
             return true;
 
         const auto  PSURFACE   = pWindow->wlSurface()->resource();
-        const auto  PWORKSPACE = pWindow->m_workspace;
+        const auto  PWORKSPACE = pWindow->presentation().workspace();
         const float A          = pWindow->presentation().alphaValue(Desktop::View::WINDOW_ALPHA_FADE) * pWindow->presentation().alphaValue(Desktop::View::WINDOW_ALPHA_FULLSCREEN) *
             pWindow->presentation().alphaValue(Desktop::View::WINDOW_ALPHA_LAYOUT) * pWindow->presentation().alphaValue(Desktop::View::WINDOW_ALPHA_ACTIVE) *
             PWORKSPACE->m_alpha->value();
@@ -426,9 +427,10 @@ void CHyprGLRenderer::preRender(PHLMONITOR pMonitor) {
     for (const auto& w : Desktop::windowState()->windows()) {
         const auto& XRAY_RULE           = w->m_ruleApplicator->xray();
         const bool  XRAY                = XRAY_RULE.hasValue() ? XRAY_RULE.valueOrDefault() : *PBLURXRAY;
-        const bool  ON_ACTIVE_WORKSPACE = w->m_workspace && (w->m_workspace == pMonitor->m_activeWorkspace || w->m_workspace == pMonitor->m_activeSpecialWorkspace);
-        if (!ON_ACTIVE_WORKSPACE || !w->mapped() || !w->acceptsInput() || !w->alphaNonZero() || ((w->isFloating() || w->onSpecialWorkspace()) && !XRAY) ||
-            !windowShouldBeBlurred(w))
+        const auto  PWORKSPACE          = w->presentation().workspace();
+        const bool  ON_ACTIVE_WORKSPACE = PWORKSPACE && (PWORKSPACE == pMonitor->m_activeWorkspace || PWORKSPACE == pMonitor->m_activeSpecialWorkspace);
+        if (!ON_ACTIVE_WORKSPACE || !w->mapped() || w->isHidden() || !w->presentation().renderPresentation().alphaVisible || !shouldRenderWindow(w, pMonitor) ||
+            ((w->isFloating() || w->presentation().onSpecialWorkspace()) && !XRAY) || !windowShouldBeBlurred(w))
             continue;
 
         hasWindows = true;

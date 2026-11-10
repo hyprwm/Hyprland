@@ -1,4 +1,5 @@
 #include "FullscreenController.hpp"
+#include "FullscreenPresentation.hpp"
 
 #include "../../managers/fullscreen/handler/FullscreenHandler.hpp"
 #include "../../ipc/s2/S2.hpp"
@@ -208,6 +209,26 @@ SFullscreenMode CFullscreenController::getFullscreenModes(const PHLWORKSPACE wor
     return returnModesAfterErrorCorrection(HANDLERS.TILED_FS_HANDLER, FSTARGET);
 }
 
+PHLWINDOW CFullscreenController::getPresentedFullscreenWindow(const PHLWORKSPACE workspace) {
+    if (!workspace)
+        return nullptr;
+
+    if (const auto PRESENTATION = workspace->m_fullscreenPresentation.lock())
+        return PRESENTATION->window.lock();
+
+    return getFullscreenWindow(workspace);
+}
+
+SFullscreenMode CFullscreenController::getPresentedFullscreenModes(const PHLWORKSPACE workspace) {
+    if (!workspace)
+        return {};
+
+    if (const auto PRESENTATION = workspace->m_fullscreenPresentation.lock())
+        return PRESENTATION->modes;
+
+    return getFullscreenModes(workspace);
+}
+
 bool CFullscreenController::hasFullscreen(const PHLMONITOR monitor, const std::optional<bool> covering) {
     if (!monitor)
         return false;
@@ -349,6 +370,8 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
 
         /* Remove Window from Old handler */
 
+        window->presentation().stageFullscreen();
+
         if (WANT_SYNC) {
             setWindowFullscreenModeClient(window, FSMODE_NONE, WAS_LAYOUT_HANDLED);
             setWindowFullscreenModeInternal(window, FSMODE_NONE, WAS_LAYOUT_HANDLED, context);
@@ -399,6 +422,9 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
 
     if (HANDLE_PINNED_WINDOW) {
 
+        if (stateChanged && pinnedWindowRequetsInternalFS.has_value())
+            window->presentation().stageFullscreen();
+
         if (pinnedWindowRequetsInternalFS.value_or(false)) {
             window->m_state &= ~Desktop::View::WINDOW_STATE_PINNED;
             window->fullscreenPolicy().setPinFullscreened(true);
@@ -416,6 +442,7 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, std::optio
     }
 
     if (stateChanged) {
+        window->presentation().stageFullscreen();
         setWindowFullscreenModeClient(window, targetClientMode, layoutAware.value_or(WAS_LAYOUT_HANDLED));
         setWindowFullscreenModeInternal(window, targetInternalMode, layoutAware.value_or(WAS_LAYOUT_HANDLED), context);
     }

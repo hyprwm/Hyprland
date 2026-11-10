@@ -46,7 +46,7 @@ void Animation::Workspace::startAnimation(PHLWORKSPACE ws, eAnimationType type, 
             return;
 
         for (auto const& w : Desktop::windowState()->windows()) {
-            if (!validMapped(w) || w->m_workspace != weak)
+            if (!validMapped(w) || w->presentation().workspace() != weak)
                 continue;
 
             w->presentation().onWorkspaceAnimUpdate();
@@ -151,55 +151,78 @@ void Animation::Workspace::startAnimation(PHLWORKSPACE ws, eAnimationType type, 
     }
 }
 
-void Animation::Workspace::setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnimationType type) {
-    if (!ws)
+static void setFullscreenLayerAlpha(PHLLS layer, float alpha) {
+    if (!layer)
         return;
 
-    const auto FULLSCREEN                 = type == ANIMATION_TYPE_IN;
-    const auto TOPMOST_COVERING_FS_WINDOW = Fullscreen::controller()->getFullscreenWindow(ws, true);
-    for (auto const& w : Desktop::windowState()->windows()) {
-        if (w->m_workspace != ws)
-            continue;
+    static auto PANIMENABLED = CConfigValue<Config::INTEGER>("animations:enabled");
+    const auto& ALPHA        = layer->alpha()[LS_ALPHA_FADE];
 
-        w->updateFullscreenInputState();
+    if (!*PANIMENABLED || !ALPHA->enabled())
+        ALPHA->setValueAndWarp(alpha);
+    else
+        *ALPHA = alpha;
+}
+
+static void applyFullscreenFadeState(PHLWORKSPACE ws, bool fullscreen, bool updateInput) {
+    const auto TOPMOST_COVERING_FS_WINDOW = Fullscreen::controller()->getPresentedFullscreenWindow(ws);
+    for (auto const& w : Desktop::windowState()->windows()) {
+        if (updateInput && w->m_workspace == ws)
+            w->updateFullscreenInputState();
+
+        if (ws->m_fullscreenPresentation || w->presentation().workspace() != ws)
+            continue;
 
         if (w->m_state & WINDOW_STATE_PINNED)
             continue;
 
         // If there are several covering FS windows layered ontop of each other, needed to ensure FS windows are not stuck being invisible below the topmost
         if (TOPMOST_COVERING_FS_WINDOW == w) {
-            *w->presentation().alpha(WINDOW_ALPHA_FULLSCREEN) = 1.F;
+            w->presentation().setFullscreenAlpha(1.F);
             continue;
         }
 
-        if (!FULLSCREEN)
-            *w->presentation().alpha(WINDOW_ALPHA_FULLSCREEN) = 1.F;
+        if (!fullscreen)
+            w->presentation().setFullscreenAlpha(1.F);
         else if (TOPMOST_COVERING_FS_WINDOW != w)
-            *w->presentation().alpha(WINDOW_ALPHA_FULLSCREEN) = w->isAllowedOverFullscreen() ? 1.F : 0.F;
+            w->presentation().setFullscreenAlpha(w->presentation().isAllowedOverFullscreen() ? 1.F : 0.F);
     }
 
     const auto PMONITOR = ws->m_monitor.lock();
-    if (!PMONITOR)
+    if (!PMONITOR || ws->m_fullscreenPresentation)
         return;
 
     if (ws == PMONITOR->m_activeWorkspace || ws == PMONITOR->m_activeSpecialWorkspace) {
-        const auto FSWINDOW         = Fullscreen::controller()->getFullscreenWindow(ws, true);
-        const auto FS_MODE_INTERNAL = FSWINDOW ? Fullscreen::controller()->getFullscreenModes(FSWINDOW).internal : Fullscreen::FSMODE_NONE;
+        const auto FS_MODE_INTERNAL = Fullscreen::controller()->getPresentedFullscreenModes(ws).internal;
         for (auto const& ls : PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
             // We have an FS window - if LAYER_FLAG_ABOVE_FULLSCREEN is set, the layer is allowed above fullscreen window (maximised too in any case)
             if (!(ls->m_flags & LAYER_FLAG_ABOVE_FULLSCREEN))
-                *ls->alpha()[LS_ALPHA_FADE] = (FULLSCREEN && FS_MODE_INTERNAL != Fullscreen::FSMODE_MAXIMIZED) ? 0.F : 1.F;
+                setFullscreenLayerAlpha(ls.lock(), (fullscreen && FS_MODE_INTERNAL != Fullscreen::FSMODE_MAXIMIZED) ? 0.F : 1.F);
             else
-                *ls->alpha()[LS_ALPHA_FADE] = 1.F;
+                setFullscreenLayerAlpha(ls.lock(), 1.F);
         }
     }
+}
+
+void Animation::Workspace::setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnimationType type) {
+    if (!ws)
+        return;
+
+    applyFullscreenFadeState(ws, type == ANIMATION_TYPE_IN, true);
+}
+
+void Animation::Workspace::applyFullscreenFade(PHLWORKSPACE ws) {
+    if (!ws || ws->m_fullscreenPresentation)
+        return;
+
+    applyFullscreenFadeState(ws, !!Fullscreen::controller()->getPresentedFullscreenWindow(ws), false);
 }
 
 void Animation::Workspace::setFullscreenFloatingFade(PHLWINDOW pWindow, float fade) {
     if (!pWindow || !pWindow->isFloating())
         return;
 
-    *pWindow->presentation().alpha(WINDOW_ALPHA_FULLSCREEN) = fade;
+    pWindow->presentation().setFullscreenAlpha(fade);
     pWindow->updateFullscreenInputState();
 }
 
@@ -217,17 +240,17 @@ void Animation::Workspace::overrideFullscreenFadeAmount(PHLWORKSPACE ws, float f
         if ((w->m_state & WINDOW_STATE_PINNED) || Fullscreen::controller()->isFullscreen(w))
             continue;
 
-        *w->presentation().alpha(WINDOW_ALPHA_FULLSCREEN) = fade;
+        w->presentation().setFullscreenAlpha(fade);
         w->updateFullscreenInputState();
     }
 
     const auto PMONITOR = ws->m_monitor.lock();
-    if (!PMONITOR)
+    if (!PMONITOR || ws->m_fullscreenPresentation)
         return;
 
     if (ws == PMONITOR->m_activeWorkspace || ws == PMONITOR->m_activeSpecialWorkspace) {
         for (auto const& ls : PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-            *ls->alpha()[LS_ALPHA_FADE] = fade;
+            setFullscreenLayerAlpha(ls.lock(), fade);
         }
     }
 }

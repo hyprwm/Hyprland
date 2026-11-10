@@ -90,7 +90,7 @@ void CHyprDropShadowDecoration::damageEntire() {
 
     CBox       shadowBox = {pos.x - m_extents.topLeft.x, pos.y - m_extents.topLeft.y, pos.x + size.x + m_extents.bottomRight.x, pos.y + size.y + m_extents.bottomRight.y};
 
-    const auto PWORKSPACE  = PWINDOW->m_workspace;
+    const auto PWORKSPACE  = PWINDOW->presentation().workspace();
     const auto applyOffset = [&](CBox& b) {
         if (PWORKSPACE && PWORKSPACE->m_renderOffset->isBeingAnimated() && !(PWINDOW->m_state & Desktop::View::WINDOW_STATE_PINNED))
             b.translate(PWORKSPACE->m_renderOffset->value());

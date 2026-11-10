@@ -1,6 +1,7 @@
 #pragma once
 
 #include <any>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -9,6 +10,7 @@
 #include "../../types/MultiAnimatedVariable.hpp"
 #include "../animationControllers/WindowAnimationController.hpp"
 #include "FloatingOffset.hpp"
+#include "../../../managers/fullscreen/FullscreenTypes.hpp"
 
 class CHyprBorderDecoration;
 class CHyprDropShadowDecoration;
@@ -59,6 +61,7 @@ namespace Desktop::View {
         float                                             alphaTotalGoal() const;
 
         int                                               borderSize() const;
+        int                                               renderBorderSize() const;
         double                                            borderExtent() const;
         void                                              invalidateBorderSize();
         bool                                              opaque() const;
@@ -66,6 +69,21 @@ namespace Desktop::View {
         Render::SWindowRenderPresentation                 renderPresentation() const;
         Render::SWindowRenderPresentation                 renderPresentation(Render::eSceneMode mode) const;
         Render::SWindowRenderPresentation                 renderPresentation(const SP<Workspace::CWorkspacePresentable>& presentation) const;
+        PHLWORKSPACE                                      workspace() const;
+        PHLMONITOR                                        monitor() const;
+        bool                                              onSpecialWorkspace() const;
+        bool                                              hasPendingState() const;
+        void                                              stageWorkspace();
+        void                                              stageFullscreen();
+        Fullscreen::SFullscreenMode                       fullscreenModes() const;
+        bool                                              isFullscreen() const;
+        bool                                              isAllowedOverFullscreen() const;
+        bool                                              isFadingOutUnderFullscreen() const;
+        bool                                              shouldRenderOverFullscreen() const;
+        void                                              setFullscreenAlpha(float alpha);
+        void                                              applyPendingState();
+        void                                              discardPendingState();
+        void                                              animateWorkspaceMove(PHLWORKSPACE source, bool wasVisible);
         float                                             rounding();
         float                                             roundingPower();
         bool                                              isInCurvedCorner(double x, double y);
@@ -98,6 +116,21 @@ namespace Desktop::View {
         void                                              applyAnimateIn() const;
 
       private:
+        struct SPendingWorkspace {
+            PHLWORKSPACE  workspace;
+            PHLMONITORREF monitor;
+            bool          wasVisible = false;
+        };
+
+        struct SPendingFullscreen {
+            Fullscreen::SFullscreenMode modes;
+            bool                        allowedOverFullscreen = false;
+        };
+
+        std::optional<SPendingWorkspace>           m_pendingWorkspace;
+        std::optional<SPendingFullscreen>          m_pendingFullscreen;
+        std::optional<float>                       m_pendingFullscreenAlpha;
+        void                                       applyFullscreenAlpha(float alpha);
         Render::SWindowPresentationState           renderPresentationState(const SP<Workspace::CWorkspacePresentable>& presentation) const;
         void                                       addDecorationInternal(const SP<IHyprWindowDecoration>& decoration);
 

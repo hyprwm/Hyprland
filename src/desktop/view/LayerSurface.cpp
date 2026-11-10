@@ -174,7 +174,8 @@ void CLayerSurface::onDestroy() {
 
 // Monitor only recognises a window as FS if it is FSMODE_FULLSCREEN so that's guaranteed here
 bool CLayerSurface::isHiddenByFullscreen(const PHLMONITOR& monitor) const {
-    return m_layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP && !(m_flags & LAYER_FLAG_ABOVE_FULLSCREEN) && Fullscreen::controller()->hasFullscreen(monitor, true);
+    return monitor && m_layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP && !(m_flags & LAYER_FLAG_ABOVE_FULLSCREEN) &&
+        Fullscreen::controller()->getPresentedFullscreenModes(monitor->getCurrentWorkspace()).internal == Fullscreen::FSMODE_FULLSCREEN;
 }
 
 void CLayerSurface::onMap() {

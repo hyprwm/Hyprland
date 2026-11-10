@@ -12,6 +12,8 @@
 #include "../protocols/core/Compositor.hpp"
 #include "../render/Renderer.hpp"
 #include "../workspace/HLWorkspace.hpp"
+#include "../config/ConfigValue.hpp"
+#include "../config/shared/Types.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 
@@ -82,8 +84,10 @@ bool CMonitorWindowTransaction::queue(PHLWINDOW window, const CBox& box, bool fo
     window->m_pendingGeometry->warp = WARP;
 
     if (!QUEUED) {
+        static const auto PTIMEOUT = CConfigValue<Config::INTEGER>("misc:transaction_timeout");
+
         if (m_pending.empty() && !m_timeout->armed() && !m_timedOut)
-            m_timeout->updateTimeout(std::chrono::milliseconds(50));
+            m_timeout->updateTimeout(std::chrono::milliseconds(*PTIMEOUT));
 
         m_pending.emplace_back(window);
         window->m_geometryTransaction = WP<CMonitorWindowTransaction>(m_monitor->m_windowTransaction);

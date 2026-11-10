@@ -307,12 +307,12 @@ void CWaylandBackend::configure(const CBox& logicalBox, PHLMONITOR preferredMoni
     if (!TOPLEVEL)
         return;
 
-    const auto CLIENT_BOX = logicalToClient(logicalBox, preferredMonitor);
-    if (!force && m_pendingReportedSize == CLIENT_BOX.size())
+    const auto CLIENT_SIZE = logicalToClient(logicalBox, preferredMonitor).size().floor();
+    if (!force && m_pendingReportedSize == CLIENT_SIZE)
         return;
 
-    m_pendingReportedSize = CLIENT_BOX.size();
-    m_configureAcks.add(TOPLEVEL->setSize(CLIENT_BOX.size()), CLIENT_BOX.size().floor());
+    m_pendingReportedSize = CLIENT_SIZE;
+    m_configureAcks.add(TOPLEVEL->setSize(CLIENT_SIZE), CLIENT_SIZE);
 }
 
 void CWaylandBackend::acknowledgeConfigure(const CBox& clientBox) {

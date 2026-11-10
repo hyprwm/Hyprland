@@ -213,6 +213,10 @@ int CWindowPresentation::borderSize() const {
     return m_borderDecoration->borderSize();
 }
 
+double CWindowPresentation::borderExtent() const {
+    return m_borderDecoration->borderExtent();
+}
+
 void CWindowPresentation::invalidateBorderSize() {
     m_borderDecoration->invalidateBorderSize();
 }

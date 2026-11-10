@@ -12,6 +12,7 @@
 #include "../desktop/view/window/WindowPresentation.hpp"
 #include "Renderer.hpp"
 #include "SceneResources.hpp"
+#include "decorations/BorderGeometry.hpp"
 #include "../Compositor.hpp"
 #include "../helpers/MiscFunctions.hpp"
 #include "../helpers/Format.hpp"
@@ -2043,7 +2044,7 @@ void CHyprOpenGLImpl::renderBorder(CRenderContext& ctx, const CBox& box, const C
     if (data.borderSize < 1)
         return;
 
-    int scaledBorderSize = std::round(data.borderSize * m_renderData.pMonitor->m_scale);
+    int scaledBorderSize = borderSizeInPixels(data.borderSize, m_renderData.pMonitor->m_scale);
     scaledBorderSize     = std::round(scaledBorderSize * ctx.m_data.renderModif.combinedScale());
 
     // adjust box
@@ -2126,7 +2127,7 @@ void CHyprOpenGLImpl::renderBorder(CRenderContext& ctx, const CBox& box, const C
     if (data.borderSize < 1)
         return;
 
-    int scaledBorderSize = std::round(data.borderSize * m_renderData.pMonitor->m_scale);
+    int scaledBorderSize = borderSizeInPixels(data.borderSize, m_renderData.pMonitor->m_scale);
     scaledBorderSize     = std::round(scaledBorderSize * ctx.m_data.renderModif.combinedScale());
 
     // adjust box

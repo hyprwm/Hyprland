@@ -59,6 +59,7 @@ namespace Desktop::View {
         float                                             alphaTotalGoal() const;
 
         int                                               borderSize() const;
+        double                                            borderExtent() const;
         void                                              invalidateBorderSize();
         bool                                              opaque() const;
         bool                                              opaque(const Render::SWindowRenderPresentation& presentation) const;

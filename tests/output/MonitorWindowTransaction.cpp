@@ -272,6 +272,7 @@ class CMonitorWindowTransactionTest : public ::testing::Test {
         Config::watcher()         = makeUnique<Config::CConfigWatcher>();
         Config::mgr()             = makeUnique<Config::Lua::CConfigManager>();
         CConfigValueBase::flushCaches();
+        *CConfigValue<Config::INTEGER>("misc:transaction_timeout").ptr() = 50;
         // Create animations before the event loop so timer expiry cannot tick them.
         Animation::mgr()        = makeUnique<Animation::CHyprAnimationManager>();
         Config::animationTree() = makeUnique<Config::CAnimationTreeController>();

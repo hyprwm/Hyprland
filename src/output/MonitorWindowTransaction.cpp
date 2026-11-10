@@ -80,13 +80,25 @@ void CMonitorWindowTransaction::clear() {
 }
 
 bool CMonitorWindowTransaction::onlyMoves() const {
-    return std::ranges::all_of(m_pending, [](const auto& window) { return !window || !window->pendingGeometryResizes(); });
+    return std::ranges::all_of(m_pending, [](const auto& window) { return !window || !window->mapped() || !window->pendingGeometryResizes(); });
 }
 
 bool CMonitorWindowTransaction::ready() const {
-    return m_timedOut || std::ranges::any_of(m_pending, [this](const auto& window) {
-               return window && window->m_pendingGeometry && window->m_pendingGeometry->ready && matchesPendingResize(window.lock());
-           });
+    if (m_timedOut)
+        return true;
+
+    bool hasResize = false;
+    for (const auto& window : m_pending) {
+        if (!window || !window->mapped() || !window->pendingGeometryResizes())
+            continue;
+
+        hasResize = true;
+        if (!window->m_pendingGeometry->ready || !matchesPendingResize(window.lock()))
+            return false;
+    }
+
+    // Move-only batches are applied at pre-render, not from commit callbacks.
+    return hasResize;
 }
 
 void CMonitorWindowTransaction::onPreRender() {
@@ -135,7 +147,7 @@ bool CMonitorWindowTransaction::matchesPendingResize(PHLWINDOW window) const {
 }
 
 void CMonitorWindowTransaction::requestApply() {
-    if (!m_rendering && !m_applying)
+    if (!m_rendering && !m_applying && ready())
         apply();
 }
 

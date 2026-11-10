@@ -11,6 +11,7 @@
 #include <hyprutils/math/Box.hpp>
 #include <hyprutils/math/Vector2D.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
+#include <cmath>
 using namespace Hyprutils::Utils;
 
 CSurfacePassElement::CSurfacePassElement(const CSurfacePassElement::SRenderData& data_) : m_data(data_) {
@@ -126,14 +127,50 @@ CRegion CSurfacePassElement::opaqueRegion(Render::CRenderContext& ctx) {
     if (ALPHA < 1.F)
         return {};
 
+    const auto opaqueBox = [this](CBox box) -> CBox {
+        box.expand(-m_data.rounding);
+
+        // Only claim fully covered logical pixels, after all fractional transforms.
+        const double left = std::ceil(box.x), top = std::ceil(box.y);
+        const double right = std::floor(box.x + box.w), bottom = std::floor(box.y + box.h);
+        if (right > left && bottom > top)
+            return {left, top, right - left, bottom - top};
+        return {};
+    };
+
     if (m_data.surface && m_data.surface->m_current.size == Vector2D{m_data.w, m_data.h}) {
-        CRegion    opaqueSurf = m_data.surface->m_current.opaque.copy().intersect(CBox{{}, {m_data.w, m_data.h}});
-        const auto texBox     = getTexBox();
-        opaqueSurf.scale(texBox.size() / Vector2D{m_data.w, m_data.h});
-        return opaqueSurf.translate(m_data.pos + m_data.localPos - m_data.pMonitor->m_position).expand(-m_data.rounding);
+        if (m_data.w <= 0 || m_data.h <= 0)
+            return {};
+
+        const auto texBox = getTexBox();
+        const auto size   = Vector2D{m_data.w, m_data.h};
+        const auto scale  = texBox.size() / size;
+        auto       rects  = m_data.surface->m_current.opaque.getRects();
+        size_t     count  = 0;
+        for (const auto& rect : rects) {
+            auto box = CBox(rect.x1, rect.y1, rect.x2 - rect.x1, rect.y2 - rect.y1).intersection(CBox{{}, size});
+            box      = opaqueBox(box.scale(scale).translate(texBox.pos()));
+            if (box.empty())
+                continue;
+
+            rects[count++] = {
+                .x1 = sc<int32_t>(box.x),
+                .y1 = sc<int32_t>(box.y),
+                .x2 = sc<int32_t>(box.x + box.w),
+                .y2 = sc<int32_t>(box.y + box.h),
+            };
+        }
+
+        if (count == 0)
+            return {};
+
+        pixman_region32_t opaque = {};
+        const bool        valid  = pixman_region32_init_rects(&opaque, rects.data(), sc<int>(count));
+        CScopeGuard       cleanup{[&opaque] { pixman_region32_fini(&opaque); }};
+        return valid ? CRegion{&opaque} : CRegion{};
     }
 
-    return m_data.texture && m_data.texture->m_opaque ? boundingBox(ctx)->expand(-m_data.rounding) : CRegion{};
+    return m_data.texture && m_data.texture->m_opaque ? CRegion{opaqueBox(*boundingBox(ctx))} : CRegion{};
 }
 
 CRegion CSurfacePassElement::visibleRegion(Render::CRenderContext& ctx, bool& cancel) {
@@ -173,7 +210,7 @@ CRegion CSurfacePassElement::visibleRegion(Render::CRenderContext& ctx, bool& ca
     texBox.round();
 
     visibleRegion.scale((Vector2D(1, 1) / (uvBR - uvTL)) * (texBox.size() / bufferSize));
-    visibleRegion.translate((m_data.pos + m_data.localPos - m_data.pMonitor->m_position) * m_data.pMonitor->m_scale);
+    visibleRegion.translate(texBox.pos());
 
     return visibleRegion;
 }

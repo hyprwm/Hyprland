@@ -303,6 +303,7 @@ void CScreenshareFrame::renderMonitor(Render::CRenderContext& ctx) {
         const auto noScreenShareBox = CBox{REALPOS.x, REALPOS.y, std::max(REALSIZE.x, 5.0), std::max(REALSIZE.y, 5.0)}
                                           .translate(-PMONITOR->m_position)
                                           .scale(PMONITOR->m_scale)
+                                          .round()
                                           .translate(-m_session->m_captureBox.pos());
 
         // seems like rounding doesn't play well with how we manipulate the box position to render regions causing the window to leak through

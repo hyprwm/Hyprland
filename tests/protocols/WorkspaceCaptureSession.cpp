@@ -184,6 +184,14 @@ class CSessionTestElements : public Render::IElementRenderer {
         CBox                   box;
     };
     std::vector<STexture> m_textures;
+    struct SRectangle {
+        CBox       box;
+        CHyprColor color;
+        int        round = 0;
+        CRegion    damage;
+    };
+    bool                    m_recordRectangles = false;
+    std::vector<SRectangle> m_rectangles;
 
   protected:
     void draw(Render::CRenderContext& ctx, WP<CClearPassElement> element, const CRegion& damage) override {
@@ -200,8 +208,12 @@ class CSessionTestElements : public Render::IElementRenderer {
     void draw(Render::CRenderContext&, WP<CPreBlurElement>, const CRegion&) override {
         ADD_FAILURE() << "Unexpected blur draw";
     }
-    void draw(Render::CRenderContext&, WP<CRectPassElement>, const CRegion&) override {
-        ADD_FAILURE() << "Unexpected rectangle draw";
+    void draw(Render::CRenderContext&, WP<CRectPassElement> element, const CRegion& damage) override {
+        if (!m_recordRectangles) {
+            ADD_FAILURE() << "Unexpected rectangle draw";
+            return;
+        }
+        m_rectangles.push_back({element->m_data.box, element->m_data.color, element->m_data.round, damage});
     }
     void draw(Render::CRenderContext&, WP<CShadowPassElement>, const CRegion&) override {
         ADD_FAILURE() << "Unexpected shadow draw";
@@ -1452,6 +1464,67 @@ struct SSnapshotTestMappedAccess {
 };
 
 template struct SSnapshotTestMappedAccess<&Desktop::View::CWindow::m_isMapped>;
+
+// Enter the real monitor masking path with a metadata-only mirror framebuffer,
+// without importing a buffer or starting the output-copy lifecycle.
+static void renderSessionTestMonitor(Screenshare::CScreenshareFrame& frame, Render::CRenderContext& ctx, SP<Render::IFramebuffer> mirror);
+
+template <auto RenderMonitor, auto MirrorFramebuffer>
+struct SSessionTestMonitorRenderAccess {
+    friend void renderSessionTestMonitor(Screenshare::CScreenshareFrame& frame, Render::CRenderContext& ctx, SP<Render::IFramebuffer> mirror) {
+        ctx.m_data.pMonitor->resources().get()->*MirrorFramebuffer = mirror;
+        (frame.*RenderMonitor)(ctx);
+    }
+};
+
+template struct SSessionTestMonitorRenderAccess<&Screenshare::CScreenshareFrame::renderMonitor, &Monitor::CMonitorResources::m_monitorMirrorFB>;
+
+TEST_F(CWorkspaceCaptureSceneTest, FractionalMonitorPrivacyMaskCoversEveryRenderedPixelInRegionCapture) {
+    m_monitor->m_scale     = 1.5F;
+    m_monitor->m_position  = {1920, 120};
+    m_monitor->m_pixelSize = m_monitor->m_transformedSize = {3840, 2160};
+    m_monitor->m_size                                     = m_monitor->m_pixelSize / m_monitor->m_scale;
+    m_monitor->m_transform                                = WL_OUTPUT_TRANSFORM_NORMAL;
+    m_workspace->m_forceRendering                         = true;
+
+    auto                      window = Desktop::View::CWindow::create(makeUnique<Desktop::View::CWaylandBackend>(nullptr));
+    const Render::CScopeGuard removeWindow([&] { Desktop::windowState()->removeSafe(window); });
+    window->m_workspace        = m_workspace;
+    window->m_monitor          = m_monitor;
+    snapshotTestMapped(window) = true;
+    window->positionAnimation()->setValueAndWarp(m_monitor->m_position + Vector2D{2.0 / 1.5, 2.0 / 1.5});
+    window->sizeAnimation()->setValueAndWarp({3836.0 / 1.5, 2156.0 / 1.5});
+    window->m_ruleApplicator->noScreenShare().set(true, Desktop::Types::PRIORITY_SET_PROP);
+
+    auto session = Screenshare::mgr()->newSession(m_client, m_monitor, CBox{1.0 / 1.5, 1.0 / 1.5, 3838.0 / 1.5, 2158.0 / 1.5});
+    ASSERT_TRUE(session);
+    auto frame = session->nextFrame(false);
+    ASSERT_FALSE(frame->done());
+    auto mirror = popupSnapshot();
+    ASSERT_TRUE(mirror->getTexture());
+
+    Render::CRenderContext ctx;
+    ASSERT_TRUE(ctx.begin(makeShared<Render::CSceneResources>(SP<Render::IFramebuffer>{})));
+    ctx.m_data.pMonitor                       = m_monitor;
+    ctx.m_data.currentFB                      = mirror;
+    ctx.m_data.blockScreenShader              = true;
+    ctx.m_renderingCapture                    = true;
+    ctx.m_blockSurfaceFeedback                = true;
+    renderer().m_elements->m_recordRectangles = true;
+    renderSessionTestMonitor(*frame, ctx, mirror);
+
+    ASSERT_EQ(renderer().m_elements->m_rectangles.size(), 1U);
+    const auto& mask = renderer().m_elements->m_rectangles.front();
+    // The surface renders at integer pixel edges; the capture starts one pixel
+    // before it. In particular, 3836 / 1.5 * 1.5 must not lose the last column
+    // when the mask's damage is converted to an integer scissor region.
+    const CBox renderedBox{1, 1, 3836, 2156};
+    EXPECT_EQ(mask.box, renderedBox);
+    EXPECT_EQ(mask.color, Colors::BLACK);
+    EXPECT_EQ(mask.round, 0);
+    EXPECT_TRUE(CRegion{renderedBox}.subtract(mask.damage).empty());
+    EXPECT_TRUE(mask.damage.copy().subtract(CRegion{renderedBox}).empty());
+}
 
 static PHLWINDOW makeSnapshotTestWindow(PHLWORKSPACE workspace) {
     auto window = Desktop::View::CWindow::create(makeUnique<Desktop::View::CWaylandBackend>(nullptr));

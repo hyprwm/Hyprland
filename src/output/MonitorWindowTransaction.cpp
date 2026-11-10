@@ -14,6 +14,7 @@
 #include "../workspace/HLWorkspace.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../config/shared/Types.hpp"
+#include "../layout/LayoutManager.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 
@@ -214,6 +215,10 @@ bool CMonitorWindowTransaction::onlyMoves() const {
 
 bool CMonitorWindowTransaction::ready() const {
     if (m_timedOut)
+        return true;
+
+    // Do not make transactions when we are dragging, this is terrible UX.
+    if (g_layoutManager && g_layoutManager->dragController()->target())
         return true;
 
     bool hasResize = false;

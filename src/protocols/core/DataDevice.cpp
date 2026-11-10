@@ -25,6 +25,11 @@ CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataS
     if UNLIKELY (!good())
         return;
 
+    m_legacy = m_resource->version() < 3;
+
+    if (m_source)
+        m_sourceDestroy = m_source->m_events.destroy.listen([this] { m_dead = true; });
+
     m_resource->setDestroy([this](CWlDataOffer* r) { PROTO::data->destroyResource(this); });
     m_resource->setOnDestroy([this](CWlDataOffer* r) { PROTO::data->destroyResource(this); });
 
@@ -68,7 +73,9 @@ CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataS
     });
 
     m_resource->setSetActions([this](CWlDataOffer* r, uint32_t actions, uint32_t preferred) {
-        if (!m_source || !m_source->hasDnd()) {
+        if (m_dead || !m_source)
+            return;
+        if (!m_source->hasDnd()) {
             r->error(WL_DATA_OFFER_ERROR_INVALID_OFFER, "set_actions is only valid for drag-and-drop offers");
             return;
         }
@@ -80,8 +87,6 @@ CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataS
             r->error(WL_DATA_OFFER_ERROR_INVALID_ACTION, "Preferred action must be a single supported action");
             return;
         }
-        if (m_dead)
-            return;
         if (m_dropped && !m_inAsk)
             return;
         if (m_inAsk && preferred && !(preferred & m_source->actions())) {
@@ -95,8 +100,9 @@ CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataS
     });
 
     m_resource->setFinish([this](CWlDataOffer* r) {
-        if (!m_source || !m_source->hasDnd() || m_dead || !m_dropped || !m_accepted || m_action == WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE ||
-            m_action == WL_DATA_DEVICE_MANAGER_DND_ACTION_ASK) {
+        if (m_dead || !m_source)
+            return;
+        if (!m_source->hasDnd() || !m_dropped || !m_accepted || m_action == WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE || m_action == WL_DATA_DEVICE_MANAGER_DND_ACTION_ASK) {
             r->error(WL_DATA_OFFER_ERROR_INVALID_FINISH, "Offer cannot be finished before an accepted drop and a final action");
             return;
         }
@@ -104,7 +110,7 @@ CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataS
         if (m_inAsk)
             m_source->sendDndAction(m_action);
         m_dead = true;
-        PROTO::data->completeDrag();
+        m_source->sendDndFinished();
     });
 }
 
@@ -474,10 +480,16 @@ void CWLDataDeviceProtocol::destroyResource(CWLDataSourceResource* resource) {
 void CWLDataDeviceProtocol::destroyResource(CWLDataOfferResource* resource) {
     // refocusing below can destroy the offer
     const auto OFFER = resource->m_self.lock();
-    if (OFFER && m_dnd.currentOffer == OFFER && !OFFER->m_dead) {
-        if (OFFER->m_dropped && OFFER->m_resource->version() < 3)
-            completeDrag();
-        else
+    if (OFFER && !OFFER->m_dead) {
+        if (OFFER->m_dropped) {
+            OFFER->m_dead = true;
+            if (OFFER->m_source) {
+                if (OFFER->m_legacy)
+                    OFFER->m_source->sendDndFinished();
+                else
+                    OFFER->m_source->cancelled();
+            }
+        } else if (m_dnd.currentOffer == OFFER)
             abortDrag();
     }
     std::erase_if(m_offers, [&](const auto& other) { return other.get() == resource; });
@@ -602,9 +614,6 @@ void CWLDataDeviceProtocol::onKeyboardFocus() {
 }
 
 void CWLDataDeviceProtocol::onDndPointerFocus() {
-    if (m_dnd.currentOffer && m_dnd.currentOffer->m_dropped)
-        return;
-
     updateDrag();
 }
 
@@ -775,30 +784,14 @@ void CWLDataDeviceProtocol::updateDrag() {
     m_dnd.focusedDevice->sendEnter(wl_display_next_serial(g_pCompositor->m_wlDisplay), surface, surface->m_current.size / 2.F, offer);
 }
 
-void CWLDataDeviceProtocol::cleanupDndState(bool resetDevice, bool resetSource, bool simulateInput) {
-    m_dnd.dndSurface.reset();
-    m_dnd.dndSurfaceCommit.reset();
-    m_dnd.dndSurfaceDestroy.reset();
-    m_dnd.mouseButton.reset();
-    m_dnd.mouseMove.reset();
-    m_dnd.touchUp.reset();
-    m_dnd.touchMove.reset();
-    m_dnd.touchPos.reset();
-    m_dnd.tabletTip.reset();
+void CWLDataDeviceProtocol::cleanupDndState() {
+    if (m_dnd.overriddenCursor)
+        Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_DND);
 
-    if (resetDevice)
-        m_dnd.focusedDevice.reset();
-    if (resetSource) {
-        if (m_dnd.currentOffer)
-            m_dnd.currentOffer->m_dead = true;
-        m_dnd.currentOffer.reset();
-        m_dnd.currentSource.reset();
-    }
+    m_dnd = {};
 
-    if (simulateInput) {
-        g_pInputManager->simulateMouseMovement();
-        g_pSeatManager->resendEnterEvents();
-    }
+    g_pInputManager->simulateMouseMovement();
+    g_pSeatManager->resendEnterEvents();
 }
 
 void CWLDataDeviceProtocol::dropDrag() {
@@ -816,18 +809,8 @@ void CWLDataDeviceProtocol::dropDrag() {
     m_dnd.focusedDevice->sendDrop();
 
     m_dnd.focusedDevice->sendLeave();
-    if (m_dnd.overriddenCursor)
-        Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_DND);
-    m_dnd.overriddenCursor = false;
-
-#ifndef NO_XWAYLAND
-    if (m_dnd.focusedDevice->getX11()) {
-        cleanupDndState(true, true, true);
-        return;
-    }
-#endif
-
-    cleanupDndState(false, false, false);
+    // end the input drag, the offer can still be used after drop
+    cleanupDndState();
 }
 
 bool CWLDataDeviceProtocol::canDrop() {
@@ -849,23 +832,7 @@ bool CWLDataDeviceProtocol::canDrop() {
     return false;
 }
 
-void CWLDataDeviceProtocol::completeDrag() {
-    if (!m_dnd.focusedDevice && !m_dnd.currentSource)
-        return;
-
-    if (m_dnd.currentSource)
-        m_dnd.currentSource->sendDndFinished();
-
-    cleanupDndState(true, true, true);
-}
-
 void CWLDataDeviceProtocol::abortDrag() {
-    cleanupDndState(false, false, false);
-
-    if (m_dnd.overriddenCursor)
-        Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_DND);
-    m_dnd.overriddenCursor = false;
-
     if (!m_dnd.focusedDevice && !m_dnd.currentSource)
         return;
 
@@ -877,17 +844,12 @@ void CWLDataDeviceProtocol::abortDrag() {
         m_dnd.focusedDevice->sendLeave();
     }
 
+    if (m_dnd.currentOffer)
+        m_dnd.currentOffer->m_dead = true;
     if (m_dnd.currentSource)
         m_dnd.currentSource->cancelled();
 
-    if (m_dnd.currentOffer)
-        m_dnd.currentOffer->m_dead = true;
-    m_dnd.currentOffer.reset();
-    m_dnd.focusedDevice.reset();
-    m_dnd.currentSource.reset();
-
-    g_pInputManager->simulateMouseMovement();
-    g_pSeatManager->resendEnterEvents();
+    cleanupDndState();
 }
 
 void CWLDataDeviceProtocol::renderDND(Render::CRenderContext& ctx, PHLMONITOR pMonitor, const Time::steady_tp& when) {

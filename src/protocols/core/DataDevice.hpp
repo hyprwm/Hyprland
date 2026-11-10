@@ -54,9 +54,11 @@ class CWLDataOfferResource : public IDataOffer {
     void                              updateAction();
 
     SP<CWlDataOffer>                  m_resource;
+    CHyprSignalListener               m_sourceDestroy;
     uint32_t                          m_destinationActions = 0;
     uint32_t                          m_preferredAction    = 0;
     wl_data_device_manager_dnd_action m_action             = WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE;
+    bool                              m_legacy             = false;
     bool                              m_dropped            = false;
     bool                              m_inAsk              = false;
 
@@ -204,8 +206,7 @@ class CWLDataDeviceProtocol : public IWaylandProtocol {
     void initiateDrag(WP<CWLDataSourceResource> currentSource, SP<CWLSurfaceResource> dragSurface, SP<CWLSurfaceResource> origin);
     void updateDrag();
     void dropDrag();
-    void completeDrag();
-    void cleanupDndState(bool resetDevice, bool resetSource, bool simulateInput);
+    void cleanupDndState();
     bool canDrop();
 
     //

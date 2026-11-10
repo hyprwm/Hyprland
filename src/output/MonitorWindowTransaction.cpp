@@ -4,6 +4,7 @@
 #include "../desktop/view/window/Window.hpp"
 #include "../desktop/view/window/WindowPresentation.hpp"
 #include "../desktop/state/WindowState.hpp"
+#include "../desktop/state/WindowFadeout.hpp"
 #include "../animation/WorkspaceAnimationController.hpp"
 #include "../managers/fullscreen/FullscreenController.hpp"
 #include "../managers/fullscreen/FullscreenPresentation.hpp"
@@ -33,6 +34,15 @@ static void releaseFullscreen(std::vector<SP<Fullscreen::SFullscreenPresentation
         Animation::Workspace::applyFullscreenFade(WORKSPACE);
         if (g_pHyprRenderer && WORKSPACE->m_monitor)
             g_pHyprRenderer->damageMonitor(WORKSPACE->m_monitor.lock());
+    }
+}
+
+static void releaseClosingWindows(WP<CMonitorWindowTransaction> transaction, std::vector<SP<Desktop::CWindowFadeout>> fadeouts) {
+    for (const auto& fadeout : fadeouts) {
+        if (!transaction)
+            fadeout->discard();
+        else if (!transaction->holdClosingWindow(fadeout))
+            fadeout->startAnimation();
     }
 }
 
@@ -72,7 +82,7 @@ bool CMonitorWindowTransaction::queue(PHLWINDOW window, const CBox& box, bool fo
     window->m_pendingGeometry->warp = WARP;
 
     if (!QUEUED) {
-        if (m_pending.empty())
+        if (m_pending.empty() && !m_timeout->armed() && !m_timedOut)
             m_timeout->updateTimeout(std::chrono::milliseconds(50));
 
         m_pending.emplace_back(window);
@@ -84,6 +94,12 @@ bool CMonitorWindowTransaction::queue(PHLWINDOW window, const CBox& box, bool fo
 }
 
 void CMonitorWindowTransaction::remove(PHLWINDOW window, bool discard) {
+    std::vector<SP<Desktop::CWindowFadeout>> closingWindows;
+    if (!m_layoutUpdateDepth)
+        closingWindows = std::exchange(m_closingWindows, {});
+    const Hyprutils::Utils::CScopeGuard closingGuard([self = WP<CMonitorWindowTransaction>(m_monitor->m_windowTransaction), fadeouts = std::move(closingWindows)]() mutable {
+        releaseClosingWindows(self, std::move(fadeouts));
+    });
     std::erase_if(m_pending, [&window](const auto& pending) { return !pending || pending == window; });
 
     if (window->m_geometryTransaction.get() == this) {
@@ -92,15 +108,35 @@ void CMonitorWindowTransaction::remove(PHLWINDOW window, bool discard) {
             window->discardPendingGeometry();
     }
 
-    if (m_pending.empty()) {
+    if (m_pending.empty() && !m_layoutUpdateDepth) {
         m_timeout->updateTimeout(std::nullopt);
         m_timedOut = false;
         releaseFullscreen(std::exchange(m_fullscreen, {}));
     }
 }
 
+void CMonitorWindowTransaction::beginLayoutUpdate() {
+    ++m_layoutUpdateDepth;
+}
+
+void CMonitorWindowTransaction::endLayoutUpdate() {
+    if (--m_layoutUpdateDepth)
+        return;
+
+    const auto                          SELF = WP<CMonitorWindowTransaction>(m_monitor->m_windowTransaction);
+    const Hyprutils::Utils::CScopeGuard closingGuard([SELF, fadeouts = std::exchange(m_closingWindows, {})]() mutable { releaseClosingWindows(SELF, std::move(fadeouts)); });
+    if (m_pending.empty()) {
+        m_timeout->updateTimeout(std::nullopt);
+        m_timedOut = false;
+        releaseFullscreen(std::exchange(m_fullscreen, {}));
+    }
+    if (SELF)
+        requestApply();
+}
+
 void CMonitorWindowTransaction::clear() {
-    auto fullscreen = std::exchange(m_fullscreen, {});
+    auto fullscreen     = std::exchange(m_fullscreen, {});
+    auto closingWindows = std::exchange(m_closingWindows, {});
     if (!m_timeout->cancelled())
         m_timeout->updateTimeout(std::nullopt);
     m_timedOut = false;
@@ -114,6 +150,17 @@ void CMonitorWindowTransaction::clear() {
     }
 
     releaseFullscreen(std::move(fullscreen));
+    releaseClosingWindows(nullptr, std::move(closingWindows));
+}
+
+bool CMonitorWindowTransaction::holdClosingWindow(SP<Desktop::CWindowFadeout> fadeout) {
+    if (!fadeout || fadeout->alpha() <= 0.F || !fadeout->workspace() || fadeout->monitor() != m_monitor || !std::ranges::any_of(m_pending, [&](const auto& window) {
+            return window && window->mapped() && window->m_workspace == fadeout->workspace() && window->pendingGeometryResizes();
+        }))
+        return false;
+
+    m_closingWindows.emplace_back(std::move(fadeout));
+    return true;
 }
 
 void CMonitorWindowTransaction::holdFullscreen(PHLWORKSPACE workspace) {
@@ -141,14 +188,14 @@ void CMonitorWindowTransaction::holdFullscreen(PHLWORKSPACE workspace) {
 }
 
 bool CMonitorWindowTransaction::hasPendingPresentation() const {
-    return !m_fullscreen.empty() || (m_monitor && m_monitor->m_activeWorkspace && m_monitor->m_activeWorkspace->m_fullscreenPresentation) ||
+    return !m_closingWindows.empty() || !m_fullscreen.empty() || (m_monitor && m_monitor->m_activeWorkspace && m_monitor->m_activeWorkspace->m_fullscreenPresentation) ||
         (m_monitor && m_monitor->m_activeSpecialWorkspace && m_monitor->m_activeSpecialWorkspace->m_fullscreenPresentation) ||
         std::ranges::any_of(m_pending, [](const auto& window) { return window && window->presentation().hasPendingState(); });
 }
 
 void CMonitorWindowTransaction::flush(PHLWINDOW window) {
     // Interactive fullscreen changes also take over the peers' presentation.
-    if (!m_fullscreen.empty()) {
+    if (!m_fullscreen.empty() || !m_closingWindows.empty()) {
         apply();
         return;
     }
@@ -230,7 +277,7 @@ void CMonitorWindowTransaction::requestApply() {
 }
 
 void CMonitorWindowTransaction::apply() {
-    if (m_pending.empty() || m_applying)
+    if (m_pending.empty() || m_applying || m_layoutUpdateDepth)
         return;
 
     const auto SELF = WP<CMonitorWindowTransaction>(m_monitor->m_windowTransaction);
@@ -239,6 +286,7 @@ void CMonitorWindowTransaction::apply() {
     m_timeout->updateTimeout(std::nullopt);
 
     auto                                pending = std::exchange(m_pending, {});
+    const Hyprutils::Utils::CScopeGuard closingGuard([SELF, fadeouts = std::exchange(m_closingWindows, {})]() mutable { releaseClosingWindows(SELF, std::move(fadeouts)); });
     const Hyprutils::Utils::CScopeGuard fullscreenGuard([snapshots = std::exchange(m_fullscreen, {})]() mutable { releaseFullscreen(std::move(snapshots)); });
 
     // Detach the entire batch before animation/decorations callbacks can queue another one.

@@ -8,11 +8,13 @@
 #include "../../animation/AnimationManager.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../../output/Monitor.hpp"
+#include "../../output/MonitorWindowTransaction.hpp"
 #include "../../render/Framebuffer.hpp"
 #include "../../render/Renderer.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 using namespace Desktop;
 using namespace Desktop::View;
@@ -85,10 +87,15 @@ SP<CWindowFadeout> CWindowFadeout::create(PHLWINDOW window, SP<Render::IFramebuf
     if (*PDIMAROUND && window->m_ruleApplicator->dimAround().valueOrDefault())
         fadeout->m_effects.dimAroundAlpha = *PDIMAROUND;
 
-    const auto ANIMCTX = window->presentation().animateOut();
+    const auto ANIMCTX        = window->presentation().animateOut();
+    fadeout->m_animationGoal  = CBox{ANIMCTX.pos.to, ANIMCTX.size.to};
+    fadeout->m_noAnim         = window->m_ruleApplicator->noAnim().valueOrDefault();
+    fadeout->m_noGeometryAnim = window->backend().traits().suggestsNoBorder;
 
-    Animation::mgr()->createAnimation(ANIMCTX.pos.from, fadeout->m_realPosition, Config::animationTree()->getAnimationPropertyConfig("windowsOut"), AVARDAMAGE_NONE);
-    Animation::mgr()->createAnimation(ANIMCTX.size.from, fadeout->m_realSize, Config::animationTree()->getAnimationPropertyConfig("windowsOut"), AVARDAMAGE_NONE);
+    Animation::mgr()->createAnimation(window->position(IGeometric::GEOMETRIC_CURRENT), fadeout->m_realPosition, Config::animationTree()->getAnimationPropertyConfig("windowsOut"),
+                                      AVARDAMAGE_NONE);
+    Animation::mgr()->createAnimation(window->size(IGeometric::GEOMETRIC_CURRENT), fadeout->m_realSize, Config::animationTree()->getAnimationPropertyConfig("windowsOut"),
+                                      AVARDAMAGE_NONE);
     Animation::mgr()->createAnimation(sourceAlpha, fadeout->m_alpha, Config::animationTree()->getAnimationPropertyConfig("fadeOut"), AVARDAMAGE_NONE);
 
     const WP<CWindowFadeout> WEAK = fadeout;
@@ -96,20 +103,41 @@ SP<CWindowFadeout> CWindowFadeout::create(PHLWINDOW window, SP<Render::IFramebuf
     fadeout->m_realSize->setUpdateCallback([WEAK](auto) { damageWeakFadeout(WEAK); });
     fadeout->m_alpha->setUpdateCallback([WEAK](auto) { damageWeakFadeout(WEAK); });
 
-    fadeout->m_realPosition->setValueAndWarp(ANIMCTX.pos.from);
-    fadeout->m_realSize->setValueAndWarp(ANIMCTX.size.from);
-    fadeout->m_alpha->setValueAndWarp(sourceAlpha);
+    if (!window->isFloating() && MONITOR->m_windowTransaction && MONITOR->m_windowTransaction->holdClosingWindow(fadeout))
+        return fadeout;
 
-    *fadeout->m_realPosition = ANIMCTX.pos.to;
-    *fadeout->m_realSize     = ANIMCTX.size.to;
-    *fadeout->m_alpha        = ANIMCTX.alpha.to;
-
-    if (window->backend().traits().suggestsNoBorder) {
-        fadeout->m_realPosition->warp();
-        fadeout->m_realSize->warp();
-    }
+    fadeout->startAnimation();
 
     return fadeout;
+}
+
+void CWindowFadeout::startAnimation() {
+    const auto GOAL = std::exchange(m_animationGoal, std::nullopt);
+    if (!GOAL)
+        return;
+
+    *m_realPosition = GOAL->pos();
+    *m_realSize     = GOAL->size();
+    *m_alpha        = 0.F;
+
+    // Publication happens after the animation tick: disabled channels must not
+    // leave the old snapshot over the replacement geometry for another frame.
+    static auto PANIMATIONS = CConfigValue<Config::INTEGER>("animations:enabled");
+    if (m_noAnim || !*PANIMATIONS || m_noGeometryAnim || !m_realPosition->enabled())
+        m_realPosition->warp();
+    if (m_noAnim || !*PANIMATIONS || m_noGeometryAnim || !m_realSize->enabled())
+        m_realSize->warp();
+    if (m_noAnim || !*PANIMATIONS || !m_alpha->enabled())
+        m_alpha->warp();
+    damageFadeoutMonitor(m_monitor);
+}
+
+void CWindowFadeout::discard() {
+    m_animationGoal.reset();
+    m_alpha->setValueAndWarp(0.F);
+    m_realPosition->warp();
+    m_realSize->warp();
+    damageFadeoutMonitor(m_monitor);
 }
 
 PHLMONITORREF CWindowFadeout::monitor() const {
@@ -141,7 +169,7 @@ float CWindowFadeout::alpha() const {
 }
 
 bool CWindowFadeout::done() const {
-    return m_alpha->value() == 0.F && !m_alpha->isBeingAnimated() && !m_realPosition->isBeingAnimated() && !m_realSize->isBeingAnimated();
+    return !m_animationGoal && m_alpha->value() == 0.F && !m_alpha->isBeingAnimated() && !m_realPosition->isBeingAnimated() && !m_realSize->isBeingAnimated();
 }
 
 SFadeoutRenderEffects CWindowFadeout::effects() const {

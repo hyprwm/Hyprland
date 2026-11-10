@@ -31,6 +31,7 @@ namespace Config {
 
 namespace Render {
     struct SWindowRenderPresentation;
+    class IFramebuffer;
 }
 
 namespace Layout {
@@ -295,6 +296,13 @@ namespace Desktop::View {
         WP<Monitor::CMonitorWindowTransaction> m_geometryTransaction;
         bool                                   m_geometryTransactionsBlocked = false;
 
+        struct SCloseSnapshots {
+            SP<Render::IFramebuffer> monitor;
+            SP<Render::IFramebuffer> workspace;
+        };
+        std::optional<SCloseSnapshots> m_closeSnapshots;
+        void                           captureCloseSnapshots();
+
         friend class Monitor::CMonitorWindowTransaction;
         friend class ::CMonitorWindowTransactionTest;
 
@@ -340,6 +348,7 @@ namespace Desktop::View {
         struct {
             CHyprSignalListener map;
             CHyprSignalListener unmap;
+            CHyprSignalListener preUnmap;
             CHyprSignalListener commit;
             CHyprSignalListener destroy;
             CHyprSignalListener surfaceChanged;

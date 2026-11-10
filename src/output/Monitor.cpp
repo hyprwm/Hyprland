@@ -1389,7 +1389,8 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
                     pWindow = pWorkspace->getFocusCandidate();
             }
 
-            Desktop::focusState()->fullWindowFocus(pWindow, Desktop::FOCUS_REASON_WORKSPACE_CHANGE);
+            if (pWindow)
+                Desktop::focusState()->fullWindowFocus(pWindow, Desktop::FOCUS_REASON_WORKSPACE_CHANGE);
         }
 
         if (!noMouseMove)

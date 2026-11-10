@@ -137,9 +137,9 @@ void ITarget::swap(SP<ITarget> b) {
         onUpdateSpace();
 
         // Update the restore caches after floating states and space ownership have been swapped
-        if (IS_FLOATING_B)
+        if (IS_FLOATING_B && space())
             space()->algorithm()->floatingAlgo()->updateTarget(m_self.lock());
-        if (IS_FLOATING)
+        if (IS_FLOATING && b->space())
             b->space()->algorithm()->floatingAlgo()->updateTarget(b);
     });
 

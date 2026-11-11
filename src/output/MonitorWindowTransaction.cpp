@@ -99,12 +99,11 @@ bool CMonitorWindowTransaction::queue(PHLWINDOW window, const CBox& box, bool fo
 }
 
 void CMonitorWindowTransaction::remove(PHLWINDOW window, bool discard) {
+    const auto                               SELF = WP<CMonitorWindowTransaction>(m_monitor->m_windowTransaction);
     std::vector<SP<Desktop::CWindowFadeout>> closingWindows;
     if (!m_layoutUpdateDepth)
         closingWindows = std::exchange(m_closingWindows, {});
-    const Hyprutils::Utils::CScopeGuard closingGuard([self = WP<CMonitorWindowTransaction>(m_monitor->m_windowTransaction), fadeouts = std::move(closingWindows)]() mutable {
-        releaseClosingWindows(self, std::move(fadeouts));
-    });
+    const Hyprutils::Utils::CScopeGuard closingGuard([SELF, fadeouts = std::move(closingWindows)]() mutable { releaseClosingWindows(SELF, std::move(fadeouts)); });
     std::erase_if(m_pending, [&window](const auto& pending) { return !pending || pending == window; });
 
     if (window->m_geometryTransaction.get() == this) {
@@ -112,6 +111,9 @@ void CMonitorWindowTransaction::remove(PHLWINDOW window, bool discard) {
         if (discard)
             window->discardPendingGeometry();
     }
+
+    if (!SELF)
+        return;
 
     if (m_pending.empty() && !m_layoutUpdateDepth) {
         m_timeout->updateTimeout(std::nullopt);

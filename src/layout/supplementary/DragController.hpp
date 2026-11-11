@@ -6,6 +6,8 @@
 
 #include <optional>
 
+class CMonitorWindowTransactionTest;
+
 namespace Layout {
     enum eRectCorner : uint8_t;
 }
@@ -45,6 +47,8 @@ namespace Layout::Supplementary {
         } m_events;
 
       private:
+        friend class ::CMonitorWindowTransactionTest;
+
         WP<ITarget>                        m_target;
 
         eMouseBindMode                     m_dragMode             = MBIND_INVALID;

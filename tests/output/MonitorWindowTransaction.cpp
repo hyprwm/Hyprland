@@ -7,12 +7,16 @@
 #include <desktop/view/window/WaylandBackend.hpp>
 #include <desktop/view/window/Window.hpp>
 #include <desktop/view/window/WindowPresentation.hpp>
+#include <desktop/view/Group.hpp>
 #include <desktop/state/WindowState.hpp>
 #include <desktop/state/WindowFadeout.hpp>
 #include <desktop/state/FadingOutState.hpp>
 #include <layout/algorithm/Algorithm.hpp>
 #include <layout/algorithm/FloatingAlgorithm.hpp>
 #include <layout/algorithm/TiledAlgorithm.hpp>
+#include <layout/LayoutManager.hpp>
+#include <layout/space/Space.hpp>
+#include <layout/target/WindowGroupTarget.hpp>
 #include <layout/target/WindowTarget.hpp>
 #include <managers/fullscreen/FullscreenController.hpp>
 #include <managers/fullscreen/handler/FullscreenHandler.hpp>
@@ -282,6 +286,7 @@ class CMonitorWindowTransactionTest : public ::testing::Test {
         m_previousCompositorProtocol = std::move(PROTO::compositor);
         m_previousPresentation       = std::move(PROTO::presentation);
         m_previousXDG                = std::move(PROTO::xdgShell);
+        m_previousLayout             = std::move(g_layoutManager);
 
         Event::bus()              = makeUnique<Event::CEventBus>();
         Desktop::windowState()    = makeUnique<Desktop::CWindowState>();
@@ -296,6 +301,7 @@ class CMonitorWindowTransactionTest : public ::testing::Test {
         Animation::mgr()        = makeUnique<Animation::CHyprAnimationManager>();
         Config::animationTree() = makeUnique<Config::CAnimationTreeController>();
         g_pDecorationPositioner = makeUnique<CDecorationPositioner>();
+        g_layoutManager         = makeUnique<Layout::CLayoutManager>();
 
         m_display.reset(wl_display_create());
         ASSERT_TRUE(m_display);
@@ -352,6 +358,7 @@ class CMonitorWindowTransactionTest : public ::testing::Test {
         Event::bus()              = std::move(m_previousBus);
         Desktop::windowState()    = std::move(m_previousWindows);
         Desktop::fadingOutState() = std::move(m_previousFadeouts);
+        g_layoutManager           = std::move(m_previousLayout);
     }
 
     PHLMONITOR makeMonitor() {
@@ -430,6 +437,26 @@ class CMonitorWindowTransactionTest : public ::testing::Test {
         return window->m_geometryTransaction.get() == monitor->m_windowTransaction.get();
     }
 
+    void stageDrag(SP<Layout::ITarget> target) {
+        // Exercise the real release boundary without pointer input, hit testing, or layout setup.
+        // The default invalid mode skips the input-specific drop hooks.
+        g_layoutManager->dragController()->m_target = target;
+    }
+
+    SP<CGroup> makeDragGroup(PHLWINDOW first, PHLWINDOW second) {
+        *CConfigValue<Config::BOOL>("group:groupbar:enabled").ptr() = false;
+        // A temporary space lets the public group constructor swap its target without a layout.
+        const auto workspace = Workspace::CRegularWorkspace::create(Workspace::SWorkspaceNumberedID{9}, m_monitor, "transaction");
+        workspace->space()->setAlgorithmProvider(nullptr);
+        first->windowTarget()->setSpaceGhost(workspace->space());
+        auto group = CGroup::create({first, second});
+        for (const auto& window : {first, second}) {
+            window->windowTarget()->setSpaceGhost(nullptr);
+        }
+        group->target()->setSpaceGhost(nullptr);
+        return group;
+    }
+
     void unmap(PHLWINDOW window) {
         window->m_isMapped = false;
     }
@@ -499,6 +526,7 @@ class CMonitorWindowTransactionTest : public ::testing::Test {
     UP<IPC::Socket2::CSocket2>                                 m_previousSocket2;
     UP<Desktop::CWindowState>                                  m_previousWindows;
     UP<Desktop::CFadingOutState>                               m_previousFadeouts;
+    UP<Layout::CLayoutManager>                                 m_previousLayout;
 };
 
 TEST_F(CMonitorWindowTransactionTest, ZeroTimeoutAppliesLayoutGeometryAndWorkspaceWithoutWaiting) {
@@ -1010,6 +1038,97 @@ TEST_F(CMonitorWindowTransactionTest, FinishAnimationDefersWarpAndPreservesItAcr
     EXPECT_EQ(window->geometricBox(IGeometric::GEOMETRIC_CURRENT), latest);
     EXPECT_FALSE(window->positionAnimation()->isBeingAnimated());
     EXPECT_FALSE(window->sizeAnimation()->isBeingAnimated());
+}
+
+TEST_F(CMonitorWindowTransactionTest, DragReleaseConsumesMotionWarpBeforeDropGeometry) {
+    for (const bool grouped : {false, true}) {
+        for (const bool renderBeforeRelease : {false, true}) {
+            SCOPED_TRACE(std::format("grouped={}, renderBeforeRelease={}", grouped, renderBeforeRelease));
+            const CBox             initial{10, 20, 100, 80};
+            const CBox             motion{70, 90, 100, 80};
+            const CBox             drop{30, 40, 200, 160};
+            std::vector<PHLWINDOW> windows{makeWindow(initial)};
+            SP<CGroup>             group;
+            SP<Layout::ITarget>    target = windows.front()->windowTarget();
+
+            if (grouped) {
+                windows.emplace_back(makeWindow(initial));
+                group  = makeDragGroup(windows.front(), windows.back());
+                target = group->target();
+            }
+
+            auto& transaction = *m_monitor->m_windowTransaction;
+            for (const auto& window : windows) {
+                window->positionAnimation()->setValueAndWarp(initial.pos());
+                window->sizeAnimation()->setValueAndWarp(initial.size());
+                transaction.queue(window, motion);
+            }
+            stageDrag(target);
+            target->warpPositionSize();
+
+            if (renderBeforeRelease) {
+                transaction.onPreRender();
+                transaction.onPostRender();
+            }
+
+            const auto peer       = makeWindow();
+            const auto peerBefore = appliedGoal(peer);
+            transaction.queue(peer, drop);
+
+            ASSERT_TRUE(g_layoutManager->endDragTarget());
+            EXPECT_FALSE(g_layoutManager->dragController()->target());
+            for (const auto& window : windows) {
+                EXPECT_FALSE(pending(window));
+                EXPECT_FALSE(ownedBy(window, m_monitor));
+                EXPECT_EQ(window->geometricBox(IGeometric::GEOMETRIC_CURRENT), motion);
+                EXPECT_EQ(appliedGoal(window), motion);
+                transaction.queue(window, drop);
+            }
+            EXPECT_TRUE(pending(peer));
+            EXPECT_EQ(appliedGoal(peer), peerBefore);
+
+            expire(m_monitor);
+            for (const auto& window : windows) {
+                EXPECT_EQ(appliedGoal(window), drop);
+                EXPECT_EQ(window->geometricBox(IGeometric::GEOMETRIC_CURRENT), motion);
+                EXPECT_TRUE(window->positionAnimation()->isBeingAnimated());
+                EXPECT_TRUE(window->sizeAnimation()->isBeingAnimated());
+            }
+        }
+    }
+}
+
+TEST_F(CMonitorWindowTransactionTest, ReentrantDragReleaseDoesNotFlushNewDropGeometry) {
+    const auto first  = makeWindow();
+    const auto second = makeWindow();
+    const auto group  = makeDragGroup(first, second);
+    const CBox motion{70, 90, 100, 80};
+    const CBox drop{30, 40, 200, 160};
+    auto&      transaction = *m_monitor->m_windowTransaction;
+    transaction.queue(first, motion);
+    transaction.queue(second, motion);
+    stageDrag(group->target());
+    group->target()->warpPositionSize();
+
+    int  ended    = 0;
+    auto listener = g_layoutManager->dragController()->m_events.ended.listen([&] { ++ended; });
+    first->positionAnimation()->setCallbackOnEnd([&](auto) {
+        EXPECT_TRUE(g_layoutManager->endDragTarget());
+        transaction.queue(second, drop);
+    });
+
+    EXPECT_TRUE(g_layoutManager->endDragTarget());
+    EXPECT_EQ(ended, 1);
+    EXPECT_FALSE(g_layoutManager->dragController()->target());
+    EXPECT_TRUE(pending(second));
+    EXPECT_EQ(appliedGoal(second), motion);
+    EXPECT_EQ(second->geometricBox(IGeometric::GEOMETRIC_CURRENT), motion);
+
+    expire(m_monitor);
+    EXPECT_EQ(appliedGoal(second), drop);
+    EXPECT_EQ(second->geometricBox(IGeometric::GEOMETRIC_CURRENT), motion);
+    EXPECT_TRUE(second->positionAnimation()->isBeingAnimated());
+    EXPECT_TRUE(second->sizeAnimation()->isBeingAnimated());
 }
 
 TEST_F(CMonitorWindowTransactionTest, DisabledAnimationWarpsOnlyItsOwnGeometryVariable) {

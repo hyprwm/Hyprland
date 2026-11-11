@@ -136,6 +136,10 @@ WP<CScreenshareSession> CScreenshareManager::getManagedSession(eScreenshareType 
     if (type == SHARE_NONE)
         return {};
 
+    CBox normalizedCaptureBox = captureBox;
+    if (type == SHARE_REGION && monitor)
+        normalizedCaptureBox.scale(monitor->m_scale).round();
+
     auto it = std::ranges::find_if(m_managedSessions, [&](const auto& session) {
         if (session->m_session->m_client != client || session->m_session->m_type != type)
             return false;
@@ -144,7 +148,7 @@ WP<CScreenshareSession> CScreenshareManager::getManagedSession(eScreenshareType 
             case SHARE_MONITOR: return session->m_session->m_monitor == monitor;
             case SHARE_WINDOW: return session->m_session->m_window == window;
             case SHARE_WORKSPACE: return session->m_session->m_workspace == ws;
-            case SHARE_REGION: return session->m_session->m_monitor == monitor && session->m_session->m_captureBox == captureBox;
+            case SHARE_REGION: return session->m_session->m_monitor == monitor && session->m_session->m_captureBox == normalizedCaptureBox;
             case SHARE_NONE:
             default: return false;
         }

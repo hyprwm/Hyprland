@@ -106,7 +106,7 @@ void CHyprBorderDecoration::updateWindow(PHLWINDOW) {
 }
 
 void CHyprBorderDecoration::damageEntire() {
-    if (!validMapped(m_window) || m_window->presentation().fullscreenModes().internal == Fullscreen::FSMODE_FULLSCREEN)
+    if (!validMapped(m_window) || Fullscreen::controller()->isPresentedFullscreen(m_window.lock(), Fullscreen::FSMODE_FULLSCREEN))
         return;
 
     const auto PMONITOR   = m_window->presentation().monitor();
@@ -231,7 +231,7 @@ void CHyprBorderDecoration::invalidateBorderSize() {
 int CHyprBorderDecoration::renderBorderSize() const {
     const auto PWINDOW = m_window.lock();
     if (!PWINDOW || PWINDOW->backend().traits().suggestsNoBorder || !PWINDOW->m_ruleApplicator->decorate().valueOrDefault() ||
-        (PWINDOW->presentation().workspace() && PWINDOW->presentation().fullscreenModes().internal == Fullscreen::FSMODE_FULLSCREEN))
+        (PWINDOW->presentation().workspace() && Fullscreen::controller()->isPresentedFullscreen(PWINDOW, Fullscreen::FSMODE_FULLSCREEN)))
         return 0;
 
     static auto PBORDERSIZE = CConfigValue<Config::INTEGER>("general:border_size");

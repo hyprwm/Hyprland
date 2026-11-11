@@ -647,16 +647,7 @@ void CWindow::onInputBlockStateUpdated(bool blocked) {
 }
 
 bool CWindow::isAllowedOverFullscreen() const {
-
-    if (!m_workspace)
-        return false;
-
-    const auto FSWINDOW = Fullscreen::controller()->getFullscreenWindow(m_workspace);
-    return m_fullscreenPolicy->effectiveAllowedOverFullscreen({
-        .isFullscreenWindow    = m_self == Fullscreen::controller()->getFullscreenWindow(m_workspace, true),
-        .pinned                = sc<bool>(m_state & WINDOW_STATE_PINNED),
-        .groupedWithFullscreen = FSWINDOW && FSWINDOW->grouping().group() && FSWINDOW->grouping().group()->has(m_self.lock()),
-    });
+    return Fullscreen::controller()->isAllowedOverFullscreen(m_self.lock());
 }
 
 bool CWindow::isBlockedByFullscreen() const {

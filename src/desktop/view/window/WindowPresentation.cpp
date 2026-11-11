@@ -1,9 +1,6 @@
 #include "WindowPresentation.hpp"
 
 #include "Window.hpp"
-#include "WindowFullscreenPolicy.hpp"
-#include "WindowGroupMembership.hpp"
-#include "../Group.hpp"
 #include "../../../animation/AnimationManager.hpp"
 #include "../../../config/ConfigValue.hpp"
 #include "../../../config/shared/animation/AnimationTree.hpp"
@@ -311,41 +308,27 @@ void CWindowPresentation::stageFullscreen() {
 }
 
 void CWindowPresentation::holdFullscreenState() {
-    if (!m_heldFullscreen)
-        m_heldFullscreen = SHeldFullscreen{.modes = fullscreenModes(), .allowedOverFullscreen = isAllowedOverFullscreen()};
-}
-
-Fullscreen::SFullscreenMode CWindowPresentation::fullscreenModes() const {
-    return m_heldFullscreen ? m_heldFullscreen->modes : Fullscreen::controller()->getFullscreenModes(m_window.m_self.lock());
-}
-
-bool CWindowPresentation::isFullscreen() const {
-    return fullscreenModes().internal != Fullscreen::FSMODE_NONE;
-}
-
-bool CWindowPresentation::isAllowedOverFullscreen() const {
     if (m_heldFullscreen)
-        return m_heldFullscreen->allowedOverFullscreen;
+        return;
 
-    const auto WORKSPACE = workspace();
-    if (!WORKSPACE)
-        return false;
+    const auto WINDOW = m_window.m_self.lock();
+    m_heldFullscreen  = Fullscreen::SWindowFullscreenPresentation{
+        .modes                 = Fullscreen::controller()->getPresentedFullscreenModes(WINDOW),
+        .allowedOverFullscreen = Fullscreen::controller()->isAllowedOverPresentedFullscreen(WINDOW),
+    };
+}
 
-    const auto FULLSCREEN = Fullscreen::controller()->getPresentedFullscreenWindow(WORKSPACE);
-    return m_window.fullscreenPolicy().effectiveAllowedOverFullscreen({
-        .isFullscreenWindow    = m_window.m_self == FULLSCREEN,
-        .pinned                = sc<bool>(m_window.m_state & WINDOW_STATE_PINNED),
-        .groupedWithFullscreen = FULLSCREEN && FULLSCREEN->grouping().group() && FULLSCREEN->grouping().group()->has(m_window.m_self.lock()),
-    });
+const std::optional<Fullscreen::SWindowFullscreenPresentation>& CWindowPresentation::heldFullscreenState() const {
+    return m_heldFullscreen;
 }
 
 bool CWindowPresentation::isFadingOutUnderFullscreen() const {
-    return Fullscreen::controller()->getPresentedFullscreenWindow(workspace()) && !isAllowedOverFullscreen() && alpha(WINDOW_ALPHA_FULLSCREEN)->isBeingAnimated() &&
-        alphaValue(WINDOW_ALPHA_FULLSCREEN) > 0.F;
+    return Fullscreen::controller()->getPresentedFullscreenWindow(workspace()) && !Fullscreen::controller()->isAllowedOverPresentedFullscreen(m_window.m_self.lock()) &&
+        alpha(WINDOW_ALPHA_FULLSCREEN)->isBeingAnimated() && alphaValue(WINDOW_ALPHA_FULLSCREEN) > 0.F;
 }
 
 bool CWindowPresentation::shouldRenderOverFullscreen() const {
-    return isAllowedOverFullscreen() || !isFadingOutUnderFullscreen();
+    return Fullscreen::controller()->isAllowedOverPresentedFullscreen(m_window.m_self.lock()) || !isFadingOutUnderFullscreen();
 }
 
 void CWindowPresentation::setFullscreenAlpha(float value) {
@@ -642,7 +625,7 @@ void CWindowPresentation::refreshValues() {
 
     const bool  IS_SHADOWED_BY_MODAL = m_window.backend().traits().hasModalChild;
 
-    if (fullscreenModes().internal == Fullscreen::FSMODE_FULLSCREEN)
+    if (Fullscreen::controller()->isPresentedFullscreen(m_window.m_self.lock(), Fullscreen::FSMODE_FULLSCREEN))
         *alpha(WINDOW_ALPHA_ACTIVE) = m_window.m_ruleApplicator->alphaFullscreen().valueOrDefault().applyAlpha(*PFULLSCREENALPHA);
     else if (m_window.m_self == Desktop::focusState()->window())
         *alpha(WINDOW_ALPHA_ACTIVE) = m_window.m_ruleApplicator->alpha().valueOrDefault().applyAlpha(*PACTIVEALPHA);

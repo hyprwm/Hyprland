@@ -2378,14 +2378,24 @@ std::optional<NColorManagement::PImageDescription> CMonitor::getFSImageDescripti
 std::optional<NColorManagement::PImageDescription> CMonitor::getAutoHDRImageDescription(const SP<CWLSurfaceResource>& surface) {
     static const auto PAUTOHDR = CConfigValue<Config::INTEGER>("render:cm_auto_hdr");
 
-    if (!*PAUTOHDR || !supportsHDR() || !m_activeMonitorRule.m_iccFile.empty() || m_cmType == NCMType::CM_HDR || m_cmType == NCMType::CM_HDR_EDID)
-        return {};
-
-    const auto FS_WINDOW = Fullscreen::controller()->getFullscreenWindow(m_self.lock());
-    if (!FS_WINDOW || FS_WINDOW->wlSurface()->resource() != surface || !g_pCompositor->shouldPreferHDR(FS_WINDOW) || FS_WINDOW->m_ruleApplicator->noAutoHDR().valueOrDefault())
+    if (const auto WINDOW = getAutoHDRPreferWindow(); !WINDOW || WINDOW->wlSurface()->resource() != surface)
         return {};
 
     return getHDRImageDescription(*PAUTOHDR == 2 ? NCMType::CM_HDR_EDID : NCMType::CM_HDR);
+}
+
+// the fullscreen window that gets auto HDR's description as its preferred one, or nullptr if none should
+PHLWINDOW CMonitor::getAutoHDRPreferWindow() {
+    static const auto PAUTOHDR = CConfigValue<Config::INTEGER>("render:cm_auto_hdr");
+
+    if (!*PAUTOHDR || !supportsHDR() || !m_activeMonitorRule.m_iccFile.empty() || m_cmType == NCMType::CM_HDR || m_cmType == NCMType::CM_HDR_EDID)
+        return nullptr;
+
+    const auto FS_WINDOW = Fullscreen::controller()->getFullscreenWindow(m_self.lock());
+    if (!FS_WINDOW || !g_pCompositor->shouldPreferHDR(FS_WINDOW) || FS_WINDOW->m_ruleApplicator->noAutoHDR().valueOrDefault())
+        return nullptr;
+
+    return FS_WINDOW;
 }
 
 NColorManagement::SPCPRimaries CMonitor::getMasteringPrimaries() {

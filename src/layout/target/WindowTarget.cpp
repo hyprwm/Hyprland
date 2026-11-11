@@ -217,7 +217,14 @@ void CWindowTarget::updatePos(uint8_t flags) {
         }
     }
 
-    const auto CONTENT_BOX = contentBox({calcPos, calcSize}, m_window.lock());
+    auto MERGED_BORDER = m_space->mergedBorderSize();
+    // Inactive group members can have different rules from the participating, current member.
+    if (MERGED_BORDER && (m_window->presentation().borderSize() != *MERGED_BORDER || m_window->presentation().borderExtent() <= 0))
+        MERGED_BORDER.reset();
+
+    const auto CONTENT_BOX = MERGED_BORDER ?
+        mergedWindowContentBox({calcPos, calcSize}, m_window->getFullWindowReservedArea(), m_box.edges, *MERGED_BORDER, PMONITOR->m_position, PMONITOR->m_scale) :
+        contentBox({calcPos, calcSize}, m_window.lock());
     calcPos                = CONTENT_BOX.pos();
     calcSize               = CONTENT_BOX.size();
 
@@ -237,7 +244,7 @@ void CWindowTarget::updatePos(uint8_t flags) {
     }
 
     CBox wb = {calcPos, calcSize};
-    if (!pixelAlignedBorder(m_window.lock()))
+    if (!MERGED_BORDER && !pixelAlignedBorder(m_window.lock()))
         wb.round();
 
     updateWindowGeometry(wb, flags);
@@ -290,6 +297,9 @@ void CWindowTarget::setFloating(bool x) {
     m_cantLockCursor = false;
 
     m_floating = x;
+    if (m_space)
+        m_space->invalidateMergedBorders();
+
     m_window->m_state &= ~Desktop::View::WINDOW_STATE_PINNED;
     m_window->stateTracker().scheduleUpdate();
 

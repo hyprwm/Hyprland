@@ -129,9 +129,9 @@ TEST(WindowGeometry, MergedBordersOverlapExactlyAcrossScalesAndPixelPhases) {
                 const CBox     LEFT     = CBox{offset, 31, 801, 600}.translate(MONITOR);
                 const CBox     RIGHT    = CBox{offset + 801, 31, 799, 600}.translate(MONITOR);
                 const auto     RESERVED = borderExtents(border, scale);
-                const auto L = pixelBox(Layout::windowContentBox(LEFT, Layout::mergedBorderReserved(RESERVED, {.right = INNER}, border, scale), MONITOR, scale), scale, MONITOR);
-                const auto R = pixelBox(Layout::windowContentBox(RIGHT, Layout::mergedBorderReserved(RESERVED, {.left = INNER}, border, scale), MONITOR, scale), scale, MONITOR);
-                const auto WIDTH = Render::borderSizeInPixels(border, scale);
+                const auto     L        = pixelBox(Layout::mergedWindowContentBox(LEFT, RESERVED, {.right = INNER}, border, MONITOR, scale), scale, MONITOR);
+                const auto     R        = pixelBox(Layout::mergedWindowContentBox(RIGHT, RESERVED, {.left = INNER}, border, MONITOR, scale), scale, MONITOR);
+                const auto     WIDTH    = Render::borderSizeInPixels(border, scale);
 
                 EXPECT_EQ(R.x - (L.x + L.w), WIDTH);
                 EXPECT_EQ(L.x - WIDTH, pixelBox(LEFT, scale, MONITOR).x);
@@ -149,7 +149,7 @@ TEST(WindowGeometry, MergedBordersMeetAtTJunctionsAndGridCorners) {
             const auto RESERVED = borderExtents(border, scale);
             const auto WIDTH    = Render::borderSizeInPixels(border, scale);
             const auto content  = [&](const CBox& box, const Layout::STargetEdges& edges) {
-                return pixelBox(Layout::windowContentBox(box, Layout::mergedBorderReserved(RESERVED, edges, border, scale), {}, scale), scale);
+                return pixelBox(Layout::mergedWindowContentBox(box, RESERVED, edges, border, {}, scale), scale);
             };
             const auto LEFT         = content({0, 0, 401, 602}, {.right = INNER});
             const auto TOP_RIGHT    = content({401, 0, 399, 301}, {.bottom = INNER, .left = INNER});
@@ -182,4 +182,32 @@ TEST(WindowGeometry, MergingPreservesOuterEdgesAndOtherReservations) {
     EXPECT_DOUBLE_EQ(MERGED.topLeft.y - MERGED_BORDER.topLeft.y, 24);
     EXPECT_EQ(MERGED.topLeft.x, MERGED_BORDER.topLeft.x);
     EXPECT_EQ(MERGED.bottomRight, MERGED_BORDER.bottomRight);
+}
+
+TEST(WindowGeometry, MergedBordersShareNegativeHalfCoordinateBoundaries) {
+    using enum Layout::eTargetEdge;
+    for (const float scale : {0.5F, 1.F, 1.25F, 1.5F, 2.F}) {
+        for (const double seam : {-959.5, -959.0, -0.5, 0.5, 959.5}) {
+            for (const Vector2D monitor : {Vector2D{}, Vector2D{-1920, -1080}}) {
+                for (const bool snapTarget : {false, true}) {
+                    SCOPED_TRACE(::testing::Message() << "scale=" << scale << " seam=" << seam << " snapTarget=" << snapTarget);
+                    const auto WIDTH   = Render::borderSizeInPixels(3, scale);
+                    const auto content = [&](CBox box, const Layout::STargetEdges& edges) {
+                        if (snapTarget)
+                            box = Layout::roundTargetBox(box);
+                        return pixelBox(Layout::mergedWindowContentBox(box, borderExtents(3, scale), edges, 3, monitor, scale), scale, monitor);
+                    };
+                    const auto LEFT         = content({seam - 801, seam - 301, 801, 602}, {.right = INNER});
+                    const auto TOP_RIGHT    = content({seam, seam - 301, 799, 301}, {.bottom = INNER, .left = INNER});
+                    const auto BOTTOM_RIGHT = content({seam, seam, 799, 301}, {.top = INNER, .left = INNER});
+
+                    EXPECT_EQ(TOP_RIGHT.x - (LEFT.x + LEFT.w), WIDTH);
+                    EXPECT_EQ(BOTTOM_RIGHT.x - (LEFT.x + LEFT.w), WIDTH);
+                    EXPECT_EQ(BOTTOM_RIGHT.y - (TOP_RIGHT.y + TOP_RIGHT.h), WIDTH);
+                    EXPECT_TRUE(LEFT.copy().expand(WIDTH).intersection(TOP_RIGHT).empty());
+                    EXPECT_TRUE(TOP_RIGHT.copy().expand(WIDTH).intersection(BOTTOM_RIGHT).empty());
+                }
+            }
+        }
+    }
 }

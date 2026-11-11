@@ -1,6 +1,7 @@
 #include "Space.hpp"
 
 #include "../target/Target.hpp"
+#include "../target/WindowTarget.hpp"
 #include "../algorithm/Algorithm.hpp"
 
 #include "../../debug/log/Logger.hpp"
@@ -9,6 +10,10 @@
 #include "../../config/ConfigValue.hpp"
 #include "../../event/EventBus.hpp"
 #include "../../output/Monitor.hpp"
+#include "../../desktop/view/window/Window.hpp"
+#include "../../desktop/view/window/WindowPresentation.hpp"
+#include "../../managers/eventLoop/EventLoopManager.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 
 using namespace Layout;
 
@@ -75,6 +80,8 @@ void CSpace::setAlgorithmProvider(SP<CAlgorithm> algo) {
 }
 
 void CSpace::recheckWorkArea() {
+    m_mergedBordersDirty = true;
+
     if (!m_parent || !m_parent->m_monitor) {
         LOG(Log::ERR, "CSpace: recheckWorkArea on no parent / mon?!");
         return;
@@ -111,9 +118,73 @@ const CBox& CSpace::workArea(bool floating) const {
 }
 
 Config::CCssGapData CSpace::gapsIn() const {
+    static auto PMERGE = CConfigValue<Config::BOOL>("general:merge_borders");
+    if (*PMERGE)
+        return Config::CCssGapData{0, 0, 0, 0};
+
     static auto PGAPSIN = CConfigValue<Config::IComplexConfigValue>("general:gaps_in");
     const auto  RULE    = Config::workspaceRuleMgr()->getWorkspaceRuleFor(m_parent.lock());
     return RULE && RULE->m_gapsIn ? *RULE->m_gapsIn : *sc<Config::CCssGapData*>(PGAPSIN.ptr());
+}
+
+std::optional<int> CSpace::mergedBorderSize() {
+    if (!m_mergedBordersDirty)
+        return m_mergedBorderSize;
+
+    m_mergedBordersDirty = false;
+    m_mergedBorderSize.reset();
+
+    static auto PMERGE = CConfigValue<Config::BOOL>("general:merge_borders");
+    static auto PCLAMP = CConfigValue<Config::BOOL>("misc:size_limits_tiled");
+    if (!*PMERGE || *PCLAMP)
+        return std::nullopt;
+
+    std::optional<int> width;
+    for (const auto& target : m_targets) {
+        if (!target || target->floating())
+            continue;
+
+        const auto WINDOW = target->window();
+        if (!validMapped(WINDOW))
+            continue;
+
+        if (target->isPseudo() || WINDOW->windowTarget()->isPseudo() || Fullscreen::controller()->getFullscreenModes(WINDOW).internal != Fullscreen::FSMODE_NONE)
+            return std::nullopt;
+
+        const auto BORDER = WINDOW->presentation().borderSize();
+        const auto EXTENT = WINDOW->presentation().borderExtent();
+        // Additional decorations and non-filling targets need neighbor information to merge safely.
+        // Keep this first implementation conservative across the entire workspace.
+        if (EXTENT <= 0 || WINDOW->getFullWindowReservedArea() != SBoxExtents{{EXTENT, EXTENT}, {EXTENT, EXTENT}} || (width && *width != BORDER))
+            return std::nullopt;
+
+        width = BORDER;
+    }
+
+    m_mergedBorderSize = width;
+    return m_mergedBorderSize;
+}
+
+void CSpace::invalidateMergedBorders() {
+    m_mergedBordersDirty = true;
+
+    static auto PMERGE = CConfigValue<Config::BOOL>("general:merge_borders");
+    if (!*PMERGE || m_mergedBordersUpdateScheduled)
+        return;
+
+    m_mergedBordersUpdateScheduled = true;
+    g_pEventLoopManager->doLater([self = m_self] {
+        const auto SPACE = self.lock();
+        if (!SPACE)
+            return;
+
+        SPACE->m_mergedBordersUpdateScheduled = false;
+        if (!SPACE->m_parent || !SPACE->m_parent->m_monitor)
+            return;
+
+        // Width and decoration changes affect every tile, not just the window that changed.
+        SPACE->recalculate(RECALCULATE_REASON_INVALIDATE_MONITOR_GEOMETRIES);
+    });
 }
 
 PHLWORKSPACE CSpace::workspace() const {
@@ -174,6 +245,8 @@ std::optional<Vector2D> CSpace::predictSizeForNewTiledTarget() {
 }
 
 void CSpace::swap(SP<ITarget> a, SP<ITarget> b) {
+    m_mergedBordersDirty = true;
+
     for (auto& t : m_targets) {
         if (t == a)
             t = b;

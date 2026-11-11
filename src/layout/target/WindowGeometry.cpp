@@ -15,8 +15,19 @@ static double canonicalDimension(double value) {
     return std::abs(value - INTEGER) <= TOLERANCE ? INTEGER : value;
 }
 
-CBox Layout::windowContentBox(const CBox& allocation, const SBoxExtents& reserved, const Vector2D& monitorPosition, double scale) {
-    const auto OUTER        = allocation.copy().translate(-monitorPosition).scale(scale).round();
+CBox Layout::roundTargetBox(const CBox& box) {
+    auto result = box;
+    result.x    = std::round(box.x);
+    result.y    = std::round(box.y);
+    // Round absolute endpoints identically on both sides of a shared edge, including negative halves.
+    result.w = std::round(box.x + box.w) - result.x;
+    result.h = std::round(box.y + box.h) - result.y;
+    return result;
+}
+
+static CBox windowContentBoxImpl(const CBox& allocation, const SBoxExtents& reserved, const Vector2D& monitorPosition, double scale, bool sharedEdges) {
+    const auto PHYSICAL     = allocation.copy().translate(-monitorPosition).scale(scale);
+    const auto OUTER        = sharedEdges ? Layout::roundTargetBox(PHYSICAL) : PHYSICAL.copy().round();
     const auto TOP_LEFT     = (reserved.topLeft * scale).round();
     const auto BOTTOM_RIGHT = (reserved.bottomRight * scale).round();
 
@@ -32,6 +43,14 @@ CBox Layout::windowContentBox(const CBox& allocation, const SBoxExtents& reserve
         logical = canonical;
 
     return logical.translate(monitorPosition);
+}
+
+CBox Layout::windowContentBox(const CBox& allocation, const SBoxExtents& reserved, const Vector2D& monitorPosition, double scale) {
+    return windowContentBoxImpl(allocation, reserved, monitorPosition, scale, false);
+}
+
+CBox Layout::mergedWindowContentBox(const CBox& allocation, const SBoxExtents& reserved, const STargetEdges& edges, int borderSize, const Vector2D& monitorPosition, float scale) {
+    return windowContentBoxImpl(allocation, mergedBorderReserved(reserved, edges, borderSize, scale), monitorPosition, scale, true);
 }
 
 SBoxExtents Layout::mergedBorderReserved(const SBoxExtents& reserved, const STargetEdges& edges, int borderSize, float scale) {

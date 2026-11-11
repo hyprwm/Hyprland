@@ -58,7 +58,9 @@ namespace Layout {
         std::optional<Vector2D>         predictSizeForNewTiledTarget();
 
         const CBox&                     workArea(bool floating = false) const;
-        Config::CCssGapData              gapsIn() const;
+        Config::CCssGapData             gapsIn() const;
+        std::optional<int>              mergedBorderSize();
+        void                            invalidateMergedBorders();
         PHLWORKSPACE                    workspace() const;
         CBox                            targetPositionLocal(SP<ITarget> t) const;
 
@@ -80,7 +82,11 @@ namespace Layout {
         PHLWORKSPACEREF          m_parent;
 
         // work area is in global coords
-        CBox m_workArea, m_floatingWorkArea;
+        CBox               m_workArea, m_floatingWorkArea;
+
+        std::optional<int> m_mergedBorderSize;
+        bool               m_mergedBordersDirty           = true;
+        bool               m_mergedBordersUpdateScheduled = false;
 
         // for recalc
         CHyprSignalListener m_geomUpdateCallback;

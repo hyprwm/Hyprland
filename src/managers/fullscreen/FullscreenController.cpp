@@ -12,8 +12,10 @@
 #include "../../layout/target/WindowTarget.hpp"
 
 #include "../../desktop/DesktopTypes.hpp"
+#include "../../desktop/view/Group.hpp"
 #include "../../desktop/view/window/Window.hpp"
 #include "../../desktop/view/window/WindowFullscreenPolicy.hpp"
+#include "../../desktop/view/window/WindowGroupMembership.hpp"
 #include "../../desktop/view/window/WindowPresentation.hpp"
 #include "../../desktop/view/window/WindowStateTracker.hpp"
 
@@ -88,6 +90,51 @@ SFullscreenMode CFullscreenController::getFullscreenModes(const PHLWINDOW window
     }
 
     return fsModes;
+}
+
+SFullscreenMode CFullscreenController::getPresentedFullscreenModes(const PHLWINDOW window) {
+    if (!window)
+        return {};
+
+    const auto& HELD = window->presentation().heldFullscreenState();
+    return HELD ? HELD->modes : getFullscreenModes(window);
+}
+
+bool CFullscreenController::isPresentedFullscreen(const PHLWINDOW window, const std::optional<eFullscreenMode> mode) {
+    if (!window)
+        return false;
+
+    const auto INTERNAL_MODE = getPresentedFullscreenModes(window).internal;
+    return mode ? INTERNAL_MODE == *mode : INTERNAL_MODE != FSMODE_NONE;
+}
+
+static bool allowedOverFullscreen(PHLWINDOW window, PHLWINDOW fullscreen) {
+    return window->fullscreenPolicy().effectiveAllowedOverFullscreen({
+        .isFullscreenWindow    = window == fullscreen,
+        .pinned                = sc<bool>(window->m_state & Desktop::View::WINDOW_STATE_PINNED),
+        .groupedWithFullscreen = fullscreen && fullscreen->grouping().group() && fullscreen->grouping().group()->has(window),
+    });
+}
+
+bool CFullscreenController::isAllowedOverFullscreen(const PHLWINDOW window) {
+    if (!window || !window->m_workspace)
+        return false;
+
+    return allowedOverFullscreen(window, getFullscreenWindow(window->m_workspace));
+}
+
+bool CFullscreenController::isAllowedOverPresentedFullscreen(const PHLWINDOW window) {
+    if (!window)
+        return false;
+
+    if (const auto& HELD = window->presentation().heldFullscreenState(); HELD)
+        return HELD->allowedOverFullscreen;
+
+    const auto WORKSPACE = window->presentation().workspace();
+    if (!WORKSPACE)
+        return false;
+
+    return allowedOverFullscreen(window, getPresentedFullscreenWindow(WORKSPACE));
 }
 
 bool CFullscreenController::layoutManagedFS(const PHLWINDOW window) {

@@ -7,6 +7,7 @@
 #include "../../desktop/view/window/WindowPresentation.hpp"
 #include "../../desktop/state/WindowState.hpp"
 #include "../../event/EventBus.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../../output/Monitor.hpp"
 #include "../../animation/AnimationManager.hpp"
 #include "../OpenGL.hpp"
@@ -50,7 +51,7 @@ bool CWobbleTransformer::shouldEnable(PHLWINDOW window) {
     if (window->m_ruleApplicator->noWobble().valueOrDefault())
         return false;
 
-    return *PENABLED && !window->presentation().isFullscreen();
+    return *PENABLED && !Fullscreen::controller()->isPresentedFullscreen(window);
 }
 
 void CWobbleTransformer::ensureTickListener() {

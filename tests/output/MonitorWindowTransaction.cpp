@@ -546,7 +546,7 @@ TEST_F(CMonitorWindowTransactionTest, ZeroTimeoutPublishesFullscreenAndPeerOpaci
         handler->setNoMembersAboveFullscreen();
         Animation::Workspace::setFullscreenFadeAnimation(workspace, mode == FSMODE_FULLSCREEN ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
 
-        EXPECT_EQ(window->presentation().fullscreenModes().internal, mode);
+        EXPECT_EQ(controller()->getPresentedFullscreenModes(window).internal, mode);
         EXPECT_EQ(controller()->getPresentedFullscreenModes(workspace).internal, mode);
         EXPECT_FLOAT_EQ(peer->presentation().alphaValue(WINDOW_ALPHA_FULLSCREEN), mode == FSMODE_FULLSCREEN ? 0.F : 1.F);
         EXPECT_FALSE(workspace->m_fullscreenPresentation);
@@ -640,7 +640,7 @@ TEST_F(CMonitorWindowTransactionTest, RelayoutAfterSwitchingToZeroPreservesPendi
     transaction.onPostRender();
 
     EXPECT_EQ(appliedGoal(window), latest);
-    EXPECT_EQ(window->presentation().fullscreenModes().internal, FSMODE_NONE);
+    EXPECT_EQ(controller()->getPresentedFullscreenModes(window).internal, FSMODE_NONE);
     EXPECT_FLOAT_EQ(window->presentation().alphaValue(WINDOW_ALPHA_ACTIVE), 1.F);
     EXPECT_FALSE(window->presentation().hasPendingState());
     EXPECT_FALSE(workspace->m_fullscreenPresentation);
@@ -1365,9 +1365,13 @@ TEST_F(CMonitorWindowTransactionTest, PresentedFullscreenModeFilterSurvivesPubli
     m_monitor->m_enabled = true;
     const auto handler   = workspace->space()->algorithm()->tiledAlgo()->getFSHandler();
     const auto check     = [&](eFullscreenMode mode) {
+        EXPECT_EQ(controller()->getPresentedFullscreenModes(window).internal, mode);
+        EXPECT_EQ(controller()->isPresentedFullscreen(window), mode != FSMODE_NONE);
         EXPECT_EQ(controller()->getPresentedFullscreenWindow(workspace), mode == FSMODE_NONE ? nullptr : window);
-        for (const auto filter : {FSMODE_MAXIMIZED, FSMODE_FULLSCREEN})
+        for (const auto filter : {FSMODE_MAXIMIZED, FSMODE_FULLSCREEN}) {
             EXPECT_EQ(controller()->getPresentedFullscreenWindow(workspace, filter), mode == filter ? window : nullptr);
+            EXPECT_EQ(controller()->isPresentedFullscreen(window, filter), mode == filter);
+        }
     };
 
     check(FSMODE_NONE);
@@ -1420,17 +1424,23 @@ TEST_F(CMonitorWindowTransactionTest, FullscreenClassificationAndPeerOpacityWait
         window->finishAnimation();
         m_monitor->m_windowTransaction->onPreRender();
         EXPECT_EQ(controller()->getFullscreenModes(window).internal, afterMode);
-        EXPECT_EQ(window->presentation().fullscreenModes().internal, beforeMode);
+        EXPECT_EQ(controller()->getPresentedFullscreenModes(window).internal, beforeMode);
+        EXPECT_EQ(controller()->isPresentedFullscreen(window), !entering);
+        EXPECT_EQ(controller()->isAllowedOverFullscreen(peer), !entering);
+        EXPECT_EQ(controller()->isAllowedOverPresentedFullscreen(peer), entering);
+        EXPECT_EQ(peer->isBlockedByFullscreen(), entering);
         EXPECT_EQ(controller()->getPresentedFullscreenModes(workspace).internal, beforeMode);
         EXPECT_EQ(window->geometricBox(IGeometric::GEOMETRIC_CURRENT), before);
         EXPECT_FLOAT_EQ(peer->presentation().alphaValue(WINDOW_ALPHA_FULLSCREEN), entering ? 1.F : 0.F);
         EXPECT_FLOAT_EQ(window->presentation().alphaValue(WINDOW_ALPHA_ACTIVE), entering ? 1.F : 0.4F);
         EXPECT_EQ(window->presentation().renderBorderSize() > 0, entering);
         commit(window, goal.size(), goal.size());
-        EXPECT_EQ(window->presentation().fullscreenModes().internal, beforeMode);
+        EXPECT_EQ(controller()->getPresentedFullscreenModes(window).internal, beforeMode);
         m_monitor->m_windowTransaction->onPostRender();
         EXPECT_EQ(window->geometricBox(IGeometric::GEOMETRIC_CURRENT), goal);
-        EXPECT_EQ(window->presentation().fullscreenModes().internal, afterMode);
+        EXPECT_EQ(controller()->getPresentedFullscreenModes(window).internal, afterMode);
+        EXPECT_EQ(controller()->isPresentedFullscreen(window), entering);
+        EXPECT_EQ(controller()->isAllowedOverPresentedFullscreen(peer), !entering);
         EXPECT_EQ(controller()->getPresentedFullscreenModes(workspace).internal, afterMode);
         EXPECT_FLOAT_EQ(peer->presentation().alphaValue(WINDOW_ALPHA_FULLSCREEN), entering ? 0.F : 1.F);
         EXPECT_FLOAT_EQ(window->presentation().alphaValue(WINDOW_ALPHA_ACTIVE), entering ? 0.4F : 1.F);

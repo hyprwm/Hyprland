@@ -185,7 +185,7 @@ static void applyFullscreenFadeState(PHLWORKSPACE ws, bool fullscreen, bool upda
         if (!fullscreen)
             w->presentation().setFullscreenAlpha(1.F);
         else if (TOPMOST_COVERING_FS_WINDOW != w)
-            w->presentation().setFullscreenAlpha(w->presentation().isAllowedOverFullscreen() ? 1.F : 0.F);
+            w->presentation().setFullscreenAlpha(Fullscreen::controller()->isAllowedOverPresentedFullscreen(w) ? 1.F : 0.F);
     }
 
     const auto PMONITOR = ws->m_monitor.lock();

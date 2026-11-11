@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../helpers/memory/Memory.hpp"
-#include "desktop/DesktopTypes.hpp"
+#include "../../desktop/DesktopTypes.hpp"
 #include "FullscreenTypes.hpp"
 #include <optional>
 
@@ -21,6 +21,12 @@ namespace Fullscreen {
         bool            isFullscreen(const PHLWINDOW window, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = std::nullopt);
 
         SFullscreenMode getFullscreenModes(const PHLWINDOW window);
+
+        // Per-window state published with geometry, including noncovering and maximized windows.
+        SFullscreenMode getPresentedFullscreenModes(const PHLWINDOW window);
+        bool            isPresentedFullscreen(const PHLWINDOW window, const std::optional<eFullscreenMode> mode = std::nullopt);
+        bool            isAllowedOverFullscreen(const PHLWINDOW window);
+        bool            isAllowedOverPresentedFullscreen(const PHLWINDOW window);
 
         bool            layoutManagedFS(const PHLWINDOW window);
 

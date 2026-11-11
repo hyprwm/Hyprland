@@ -10,7 +10,7 @@
 #include "../../types/MultiAnimatedVariable.hpp"
 #include "../animationControllers/WindowAnimationController.hpp"
 #include "FloatingOffset.hpp"
-#include "../../../managers/fullscreen/FullscreenTypes.hpp"
+#include "../../../managers/fullscreen/FullscreenPresentation.hpp"
 
 class CHyprBorderDecoration;
 class CHyprDropShadowDecoration;
@@ -75,9 +75,6 @@ namespace Desktop::View {
         bool                                              hasPendingState() const;
         void                                              stageWorkspace();
         void                                              stageFullscreen();
-        Fullscreen::SFullscreenMode                       fullscreenModes() const;
-        bool                                              isFullscreen() const;
-        bool                                              isAllowedOverFullscreen() const;
         bool                                              isFadingOutUnderFullscreen() const;
         bool                                              shouldRenderOverFullscreen() const;
         void                                              setFullscreenAlpha(float alpha);
@@ -115,6 +112,9 @@ namespace Desktop::View {
         Animation::SViewAnimationContext                  animateOut() const;
         void                                              applyAnimateIn() const;
 
+        // Read-only held state for the fullscreen controller.
+        const std::optional<Fullscreen::SWindowFullscreenPresentation>& heldFullscreenState() const;
+
       private:
         struct SHeldWorkspace {
             PHLWORKSPACE  workspace;
@@ -122,31 +122,26 @@ namespace Desktop::View {
             bool          wasVisible = false;
         };
 
-        struct SHeldFullscreen {
-            Fullscreen::SFullscreenMode modes;
-            bool                        allowedOverFullscreen = false;
-        };
+        std::optional<SHeldWorkspace>                            m_heldWorkspace;
+        std::optional<Fullscreen::SWindowFullscreenPresentation> m_heldFullscreen;
+        std::optional<float>                                     m_pendingFullscreenAlpha;
+        void                                                     holdFullscreenState();
+        void                                                     applyFullscreenAlpha(float alpha);
+        Render::SWindowPresentationState                         renderPresentationState(const SP<Workspace::CWorkspacePresentable>& presentation) const;
+        void                                                     addDecorationInternal(const SP<IHyprWindowDecoration>& decoration);
 
-        std::optional<SHeldWorkspace>              m_heldWorkspace;
-        std::optional<SHeldFullscreen>             m_heldFullscreen;
-        std::optional<float>                       m_pendingFullscreenAlpha;
-        void                                       holdFullscreenState();
-        void                                       applyFullscreenAlpha(float alpha);
-        Render::SWindowPresentationState           renderPresentationState(const SP<Workspace::CWorkspacePresentable>& presentation) const;
-        void                                       addDecorationInternal(const SP<IHyprWindowDecoration>& decoration);
-
-        CWindow&                                   m_window;
-        std::vector<SP<IHyprWindowDecoration>>     m_windowDecorations;
-        std::vector<IHyprWindowDecoration*>        m_decosToRemove;
-        SP<CHyprDropShadowDecoration>              m_shadowDecoration;
-        SP<CHyprBorderDecoration>                  m_borderDecoration;
-        SP<CHyprInnerGlowDecoration>               m_glowDecoration;
-        Types::CMultiAVarContainer<float, uint8_t> m_alpha;
-        PHLANIMVAR<float>                          m_dimPercent;
-        PHLANIMVAR<float>                          m_notRespondingTint;
-        CFloatingOffset                            m_floatingOffset;
-        int                                        m_monitorMovedFrom = -1;
-        bool                                       m_animatingIn      = false;
-        CWindowAnimationController                 m_animationController;
+        CWindow&                                                 m_window;
+        std::vector<SP<IHyprWindowDecoration>>                   m_windowDecorations;
+        std::vector<IHyprWindowDecoration*>                      m_decosToRemove;
+        SP<CHyprDropShadowDecoration>                            m_shadowDecoration;
+        SP<CHyprBorderDecoration>                                m_borderDecoration;
+        SP<CHyprInnerGlowDecoration>                             m_glowDecoration;
+        Types::CMultiAVarContainer<float, uint8_t>               m_alpha;
+        PHLANIMVAR<float>                                        m_dimPercent;
+        PHLANIMVAR<float>                                        m_notRespondingTint;
+        CFloatingOffset                                          m_floatingOffset;
+        int                                                      m_monitorMovedFrom = -1;
+        bool                                                     m_animatingIn      = false;
+        CWindowAnimationController                               m_animationController;
     };
 }

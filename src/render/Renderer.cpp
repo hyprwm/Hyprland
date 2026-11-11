@@ -255,7 +255,7 @@ bool IHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
             return true;
 
         // if hidden behind fullscreen
-        if (Fullscreen::controller()->getPresentedFullscreenWindow(PWINDOWWORKSPACE) && !pWindow->presentation().isAllowedOverFullscreen() &&
+        if (Fullscreen::controller()->getPresentedFullscreenWindow(PWINDOWWORKSPACE) && !Fullscreen::controller()->isAllowedOverPresentedFullscreen(pWindow) &&
             pWindow->presentation().alphaValue(WINDOW_ALPHA_FADE) * pWindow->presentation().alphaValue(WINDOW_ALPHA_FULLSCREEN) == 0)
             return false;
 
@@ -271,7 +271,7 @@ bool IHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
 
     // if not, check if it maybe is active on a different monitor.
     if (PWINDOWWORKSPACE->visible() && pWindow->isFloating() /* tiled windows can't be multi-ws */)
-        return !pWindow->presentation().isFullscreen(); // Do not draw fullscreen windows on other monitors
+        return !Fullscreen::controller()->isPresentedFullscreen(pWindow); // Do not draw fullscreen windows on other monitors
 
     if (pMonitor->m_activeSpecialWorkspace == PWINDOWWORKSPACE)
         return true;
@@ -374,7 +374,7 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
         if (w->presentation().alphaValue(WINDOW_ALPHA_FADE) * w->presentation().alphaValue(WINDOW_ALPHA_FULLSCREEN) == 0.f)
             continue;
 
-        if (w->presentation().isFullscreen())
+        if (Fullscreen::controller()->isPresentedFullscreen(w))
             continue;
 
         windows.emplace_back(w);
@@ -417,7 +417,7 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
 
         const auto PWORKSPACE = w->presentation().workspace();
 
-        if (PWORKSPACE != pWorkspace || !w->presentation().isFullscreen()) {
+        if (PWORKSPACE != pWorkspace || !Fullscreen::controller()->isPresentedFullscreen(w)) {
             if (mode != eSceneMode::MONITOR)
                 continue;
 
@@ -428,7 +428,7 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
                 continue;
         }
 
-        if (!w->presentation().isFullscreen())
+        if (!Fullscreen::controller()->isPresentedFullscreen(w))
             continue;
 
         if (w->presentation().monitor() == pWorkspace->m_monitor && SPECIAL != w->presentation().onSpecialWorkspace())
@@ -453,7 +453,7 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
             continue;
 
         const bool shouldSkipWindow = w->presentation().workspace() != pWorkspaceWindow->presentation().workspace() || !w->isFloating() ||
-            !w->presentation().shouldRenderOverFullscreen() || !w->mapped() || w->presentation().isFullscreen();
+            !w->presentation().shouldRenderOverFullscreen() || !w->mapped() || Fullscreen::controller()->isPresentedFullscreen(w);
 
         if (shouldSkipWindow)
             continue;
@@ -614,7 +614,7 @@ static bool popupInputAllowsRendering(WP<Desktop::View::CPopup> popup) {
     if (popup->isInputBlocked() || !WINDOW->mapped() || !WINDOW->focusAvailable() || WINDOW->hasInputBlockedReasonsBesides(Desktop::View::FOCUS_BLOCK_BELOW_FULLSCREEN))
         return false;
 
-    if (Fullscreen::controller()->getPresentedFullscreenWindow(WINDOW->presentation().workspace()) && !WINDOW->presentation().isAllowedOverFullscreen())
+    if (Fullscreen::controller()->getPresentedFullscreenWindow(WINDOW->presentation().workspace()) && !Fullscreen::controller()->isAllowedOverPresentedFullscreen(WINDOW))
         return false;
 
     return g_pHyprRenderer->shouldRenderWindow(WINDOW);
@@ -675,12 +675,12 @@ void IHyprRenderer::renderWindow(CRenderContext& ctx, PHLWINDOW pWindow, PHLMONI
     if (standalone)
         decorate = false;
 
-    renderdata.surface       = pWindow->wlSurface()->resource();
-    renderdata.dontRound     = pWindow->presentation().fullscreenModes().internal == Fullscreen::FSMODE_FULLSCREEN;
-    renderdata.fadeAlpha     = presentation.fadeAlpha;
-    renderdata.alpha         = presentation.alpha;
-    renderdata.decorate      = decorate && !pWindow->backend().traits().suggestsNoBorder && pWindow->presentation().fullscreenModes().internal != Fullscreen::FSMODE_FULLSCREEN;
-    renderdata.rounding      = standalone || renderdata.dontRound ? 0 : pWindow->presentation().rounding() * pMonitor->m_scale;
+    renderdata.surface   = pWindow->wlSurface()->resource();
+    renderdata.dontRound = Fullscreen::controller()->isPresentedFullscreen(pWindow, Fullscreen::FSMODE_FULLSCREEN);
+    renderdata.fadeAlpha = presentation.fadeAlpha;
+    renderdata.alpha     = presentation.alpha;
+    renderdata.decorate  = decorate && !pWindow->backend().traits().suggestsNoBorder && !Fullscreen::controller()->isPresentedFullscreen(pWindow, Fullscreen::FSMODE_FULLSCREEN);
+    renderdata.rounding  = standalone || renderdata.dontRound ? 0 : pWindow->presentation().rounding() * pMonitor->m_scale;
     renderdata.roundingPower = standalone || renderdata.dontRound ? 2.0f : pWindow->presentation().roundingPower();
     renderdata.blur          = !standalone && !ctx.m_renderingSnapshot && pWindow->shouldBlur(presentation);
     renderdata.pWindow       = pWindow;
@@ -714,7 +714,8 @@ void IHyprRenderer::renderWindow(CRenderContext& ctx, PHLWINDOW pWindow, PHLMONI
     renderdata.pos += FLOATINGOFFSET;
 
     // if window is floating and we have a slide animation, clip it to its full bb
-    if (!ignorePosition && pWindow->isFloating() && !pWindow->presentation().isFullscreen() && presentation.workspaceOffsetAnimating && !(pWindow->m_state & WINDOW_STATE_PINNED)) {
+    if (!ignorePosition && pWindow->isFloating() && !Fullscreen::controller()->isPresentedFullscreen(pWindow) && presentation.workspaceOffsetAnimating &&
+        !(pWindow->m_state & WINDOW_STATE_PINNED)) {
         CRegion rg         = pWindow->getFullWindowBoundingBox().translate(-pMonitor->m_position + WORKSPACEOFFSET + FLOATINGOFFSET).scale(pMonitor->m_scale).round();
         renderdata.clipBox = rg.getExtents();
     }

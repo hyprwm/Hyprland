@@ -572,7 +572,7 @@ void CWindowPresentation::setAnimationsToMove() {
 }
 
 void CWindowPresentation::onWorkspaceAnimUpdate() {
-    if (!m_window.isFloating() || (m_window.m_state & WINDOW_STATE_PINNED) || Fullscreen::controller()->isFullscreen(m_window.m_self.lock())) {
+    if (!m_window.isFloating() || (m_window.m_state & WINDOW_STATE_PINNED) || Fullscreen::controller()->isPresentedFullscreen(m_window.m_self.lock())) {
         clearFloatingOffset();
         return;
     }

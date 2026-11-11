@@ -3,7 +3,7 @@
   deadnix,
   statix,
   nixfmt,
-  llvmPackages_19,
+  llvmPackages_23,
   fd,
 }:
 writeShellApplication {
@@ -12,7 +12,7 @@ writeShellApplication {
     deadnix
     statix
     nixfmt
-    llvmPackages_19.clang-tools
+    llvmPackages_23.clang-tools
     fd
   ];
   text = ''

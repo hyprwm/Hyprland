@@ -194,6 +194,10 @@ void CMonitorWindowTransaction::holdFullscreen(PHLWORKSPACE workspace) {
     }
 }
 
+bool CMonitorWindowTransaction::hasPendingChanges() const {
+    return m_applying || !m_pending.empty() || hasPendingPresentation();
+}
+
 bool CMonitorWindowTransaction::hasPendingPresentation() const {
     return !m_closingWindows.empty() || !m_fullscreen.empty() || (m_monitor && m_monitor->m_activeWorkspace && m_monitor->m_activeWorkspace->m_fullscreenPresentation) ||
         (m_monitor && m_monitor->m_activeSpecialWorkspace && m_monitor->m_activeSpecialWorkspace->m_fullscreenPresentation) ||

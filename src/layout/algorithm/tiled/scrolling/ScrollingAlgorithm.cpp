@@ -3,6 +3,7 @@
 #include "../../../../desktop/view/window/WindowGroupMembership.hpp"
 #include "../../../../desktop/view/window/WindowPresentation.hpp"
 #include "ScrollTapeController.hpp"
+#include "ScrollingEdges.hpp"
 
 #include "../../Algorithm.hpp"
 #include "../../../space/Space.hpp"
@@ -551,10 +552,14 @@ void SScrollingData::recalculate(bool forceInstant) {
                 TDATA->layoutBox = controller->calculateTargetBox(i, j, USABLE, WORKAREA.pos(), *PFSONONE);
 
             if (TDATA->target) {
+                auto targetBox = targetBoxWithGaps(TDATA->layoutBox, i, j, COL_HAS_FS_TARGET && TARGET_FS_MODE == Fullscreen::FSMODE_FULLSCREEN);
+                if (!COL_HAS_FS_TARGET)
+                    targetBox.edges = scrollingTargetEdges(i, columns.size(), j, COL->targetDatas.size(), controller->isPrimaryHorizontal(), controller->isReversed());
+
                 if (targetIsCoveringFullscreen)
                     Fullscreen::controller()->m_windowPosSettingQueued = true;
                 // must set pos of the highest level target (i.e. if target a part of a group, must set that group's pos which will set the pos of all member targets)
-                TDATA->target->setPositionGlobal(targetBoxWithGaps(TDATA->layoutBox, i, j, COL_HAS_FS_TARGET && TARGET_FS_MODE == Fullscreen::FSMODE_FULLSCREEN));
+                TDATA->target->setPositionGlobal(targetBox);
                 Fullscreen::controller()->m_windowPosSettingQueued = false;
             }
 

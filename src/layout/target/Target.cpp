@@ -3,7 +3,7 @@
 #include "../algorithm/Algorithm.hpp"
 #include "../algorithm/FloatingAlgorithm.hpp"
 #include "../../debug/log/Logger.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 
@@ -15,15 +15,16 @@ void ITarget::setPositionGlobal(const STargetBox& box, uint8_t flags) {
     m_box.logicalBox.round();
     m_box.visualBox.round();
 
-    if ((flags & Layout::TARGET_UPDATE_NO_UPDATE_RESTORE_CACHE) || m_ghostSpace || !floating() || !m_space || !m_space->algorithm())
+    // Update floating window target's m_datas
+
+    const auto SELF = m_self.lock();
+
+    if ((flags & Layout::TARGET_UPDATE_NO_UPDATE_RESTORE_CACHE) || m_ghostSpace || !floating() || !m_space || !m_space->algorithm() || !SELF ||
+        Fullscreen::controller()->isFullscreen(SELF->window()))
         return;
 
     const auto& FLOAT_ALGO = m_space->algorithm()->floatingAlgo();
     if (!FLOAT_ALGO)
-        return;
-
-    const auto SELF = m_self.lock();
-    if (Fullscreen::controller()->isFullscreen(SELF->window()))
         return;
 
     FLOAT_ALGO->updateTarget(SELF);
@@ -123,9 +124,7 @@ void ITarget::swap(SP<ITarget> b) {
 
     // Keep workspaces alive during a swap: moving one window will unref the ws
 
-    // NOLINTNEXTLINE
-    const auto PWS1 = workspace();
-    // NOLINTNEXTLINE
+    const auto  PWS1 = workspace();
     const auto  PWS2 = b->workspace();
 
     CScopeGuard x([&] {

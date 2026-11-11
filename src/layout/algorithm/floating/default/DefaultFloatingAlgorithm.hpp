@@ -24,7 +24,7 @@ namespace Layout::Floating {
         virtual void swapTargets(SP<ITarget> a, SP<ITarget> b);
         virtual void moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
 
-        void         updateTarget(SP<ITarget> target) override;
+        virtual void updateTarget(SP<ITarget> target) override;
 
         virtual void recenter(SP<ITarget> t);
 

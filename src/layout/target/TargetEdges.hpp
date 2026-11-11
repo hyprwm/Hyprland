@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 
 namespace Layout {
@@ -17,4 +18,7 @@ namespace Layout {
 
         bool        operator==(const STargetEdges&) const = default;
     };
+
+    // Children are ordered left/right when sideBySide, otherwise top/bottom.
+    std::array<STargetEdges, 2> splitTargetEdges(const STargetEdges& edges, bool sideBySide);
 }

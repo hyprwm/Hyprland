@@ -255,6 +255,24 @@ bool CDragStateController::dragEnd() {
     if (!draggingTarget)
         return false;
 
+    // Consume the last motion's deferred warp before drop handling can replace its geometry.
+    if (const auto WINDOW = draggingTarget->window(); validMapped(WINDOW)) {
+        if (const auto GROUP = WINDOW->grouping().group()) {
+            const auto WINDOWS = GROUP->windows();
+            for (const auto& member : WINDOWS) {
+                if (const auto W = member.lock(); validMapped(W))
+                    W->flushPendingGeometry();
+
+                if (m_target.lock() != draggingTarget)
+                    return true;
+            }
+        } else
+            WINDOW->flushPendingGeometry();
+    }
+
+    if (m_target.lock() != draggingTarget)
+        return true;
+
     Hyprutils::Utils::CScopeGuard notifyEnded([this] { m_events.ended.emit(); });
 
     m_mouseMoveEventCount = 1;

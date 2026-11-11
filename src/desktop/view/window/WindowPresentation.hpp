@@ -116,20 +116,21 @@ namespace Desktop::View {
         void                                              applyAnimateIn() const;
 
       private:
-        struct SPendingWorkspace {
+        struct SHeldWorkspace {
             PHLWORKSPACE  workspace;
             PHLMONITORREF monitor;
             bool          wasVisible = false;
         };
 
-        struct SPendingFullscreen {
+        struct SHeldFullscreen {
             Fullscreen::SFullscreenMode modes;
             bool                        allowedOverFullscreen = false;
         };
 
-        std::optional<SPendingWorkspace>           m_pendingWorkspace;
-        std::optional<SPendingFullscreen>          m_pendingFullscreen;
+        std::optional<SHeldWorkspace>              m_heldWorkspace;
+        std::optional<SHeldFullscreen>             m_heldFullscreen;
         std::optional<float>                       m_pendingFullscreenAlpha;
+        void                                       holdFullscreenState();
         void                                       applyFullscreenAlpha(float alpha);
         Render::SWindowPresentationState           renderPresentationState(const SP<Workspace::CWorkspacePresentable>& presentation) const;
         void                                       addDecorationInternal(const SP<IHyprWindowDecoration>& decoration);

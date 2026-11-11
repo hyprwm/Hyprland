@@ -24,7 +24,6 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <ranges>
 #include <utility>
 
 using namespace Desktop;
@@ -269,11 +268,11 @@ Render::SWindowRenderPresentation CWindowPresentation::renderPresentation(Render
 }
 
 PHLWORKSPACE CWindowPresentation::workspace() const {
-    return m_pendingWorkspace ? m_pendingWorkspace->workspace : m_window.m_workspace;
+    return m_heldWorkspace ? m_heldWorkspace->workspace : m_window.m_workspace;
 }
 
 PHLMONITOR CWindowPresentation::monitor() const {
-    return m_pendingWorkspace ? m_pendingWorkspace->monitor.lock() : m_window.m_monitor.lock();
+    return m_heldWorkspace ? m_heldWorkspace->monitor.lock() : m_window.m_monitor.lock();
 }
 
 bool CWindowPresentation::onSpecialWorkspace() const {
@@ -282,19 +281,18 @@ bool CWindowPresentation::onSpecialWorkspace() const {
 }
 
 bool CWindowPresentation::hasPendingState() const {
-    return m_pendingWorkspace.has_value() || m_pendingFullscreen.has_value();
+    return m_heldWorkspace.has_value() || m_heldFullscreen.has_value();
 }
 
 void CWindowPresentation::stageWorkspace() {
     const auto MONITOR = m_window.m_monitor.lock();
-    if (m_pendingWorkspace || !m_window.canStageGeometry() || !MONITOR || !MONITOR->m_enabled || !MONITOR->m_windowTransaction)
+    if (m_heldWorkspace || !m_window.canStageGeometry() || !MONITOR || !MONITOR->m_enabled || !MONITOR->m_windowTransaction)
         return;
 
     // Some assignment paths have already changed m_monitor, but not m_workspace.
     const auto WORKSPACE = m_window.m_workspace;
-    if (!m_pendingFullscreen)
-        m_pendingFullscreen = SPendingFullscreen{.modes = fullscreenModes(), .allowedOverFullscreen = isAllowedOverFullscreen()};
-    m_pendingWorkspace = SPendingWorkspace{
+    holdFullscreenState();
+    m_heldWorkspace = SHeldWorkspace{
         .workspace  = WORKSPACE,
         .monitor    = WORKSPACE ? WORKSPACE->m_monitor : m_window.m_monitor,
         .wasVisible = WORKSPACE && WORKSPACE->visible(),
@@ -307,14 +305,18 @@ void CWindowPresentation::stageFullscreen() {
     if (!m_window.canStageGeometry() || !MONITOR || !MONITOR->m_enabled || !MONITOR->m_windowTransaction)
         return;
 
-    if (!m_pendingFullscreen)
-        m_pendingFullscreen = SPendingFullscreen{.modes = fullscreenModes(), .allowedOverFullscreen = isAllowedOverFullscreen()};
+    holdFullscreenState();
     MONITOR->m_windowTransaction->holdFullscreen(m_window.m_workspace);
     MONITOR->m_windowTransaction->queue(m_window.m_self.lock(), m_window.geometricBox(IGeometric::GEOMETRIC_GOAL), true);
 }
 
+void CWindowPresentation::holdFullscreenState() {
+    if (!m_heldFullscreen)
+        m_heldFullscreen = SHeldFullscreen{.modes = fullscreenModes(), .allowedOverFullscreen = isAllowedOverFullscreen()};
+}
+
 Fullscreen::SFullscreenMode CWindowPresentation::fullscreenModes() const {
-    return m_pendingFullscreen ? m_pendingFullscreen->modes : Fullscreen::controller()->getFullscreenModes(m_window.m_self.lock());
+    return m_heldFullscreen ? m_heldFullscreen->modes : Fullscreen::controller()->getFullscreenModes(m_window.m_self.lock());
 }
 
 bool CWindowPresentation::isFullscreen() const {
@@ -322,8 +324,8 @@ bool CWindowPresentation::isFullscreen() const {
 }
 
 bool CWindowPresentation::isAllowedOverFullscreen() const {
-    if (m_pendingFullscreen)
-        return m_pendingFullscreen->allowedOverFullscreen;
+    if (m_heldFullscreen)
+        return m_heldFullscreen->allowedOverFullscreen;
 
     const auto WORKSPACE = workspace();
     if (!WORKSPACE)
@@ -363,8 +365,8 @@ void CWindowPresentation::applyFullscreenAlpha(float value) {
 }
 
 void CWindowPresentation::applyPendingState() {
-    const auto WORKSPACE  = std::exchange(m_pendingWorkspace, std::nullopt);
-    const auto FULLSCREEN = std::exchange(m_pendingFullscreen, std::nullopt);
+    const auto WORKSPACE  = std::exchange(m_heldWorkspace, std::nullopt);
+    const auto FULLSCREEN = std::exchange(m_heldFullscreen, std::nullopt);
     const auto ALPHA      = std::exchange(m_pendingFullscreenAlpha, std::nullopt);
     if (ALPHA)
         applyFullscreenAlpha(*ALPHA);
@@ -385,8 +387,8 @@ void CWindowPresentation::discardPendingState() {
     const auto SELF = m_window.m_self.lock();
     if (g_pHyprRenderer && SELF)
         g_pHyprRenderer->damageWindow(SELF);
-    const auto WORKSPACE = std::exchange(m_pendingWorkspace, std::nullopt);
-    m_pendingFullscreen.reset();
+    const auto WORKSPACE = std::exchange(m_heldWorkspace, std::nullopt);
+    m_heldFullscreen.reset();
     const auto ALPHA = std::exchange(m_pendingFullscreenAlpha, std::nullopt);
     if (ALPHA)
         applyFullscreenAlpha(*ALPHA);
@@ -395,7 +397,7 @@ void CWindowPresentation::discardPendingState() {
 }
 
 void CWindowPresentation::animateWorkspaceMove(PHLWORKSPACE source, bool wasVisible) {
-    if (m_pendingWorkspace)
+    if (m_heldWorkspace)
         return;
 
     static auto PANIMATIONS = CConfigValue<Config::INTEGER>("animations:enabled");

@@ -363,6 +363,7 @@ namespace Monitor {
         PHLWINDOWREF                        m_autoHDRWindow;
         bool                                m_needsHDRupdate         = false;
         bool                                m_hdrMetadataFromSurface = false;
+        PHLWINDOWREF                        m_hdrMetadataWindow;
 
         std::optional<dev_t>                m_cachedAllocatorDRMDev;
         std::optional<dev_t>                m_cachedCompositorDRMDev;

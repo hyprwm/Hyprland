@@ -110,6 +110,12 @@ const CBox& CSpace::workArea(bool floating) const {
     return floating ? m_floatingWorkArea : m_workArea;
 }
 
+Config::CCssGapData CSpace::gapsIn() const {
+    static auto PGAPSIN = CConfigValue<Config::IComplexConfigValue>("general:gaps_in");
+    const auto  RULE    = Config::workspaceRuleMgr()->getWorkspaceRuleFor(m_parent.lock());
+    return RULE && RULE->m_gapsIn ? *RULE->m_gapsIn : *sc<Config::CCssGapData*>(PGAPSIN.ptr());
+}
+
 PHLWORKSPACE CSpace::workspace() const {
     return m_parent.lock();
 }

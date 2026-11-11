@@ -8,7 +8,7 @@
 #include "../algorithm/Algorithm.hpp"
 
 #include "../../protocols/core/Compositor.hpp"
-#include "../../config/shared/workspace/WorkspaceRuleManager.hpp"
+#include "../../config/ConfigValue.hpp"
 #include "../../output/Monitor.hpp"
 #include "../../output/MonitorWindowTransaction.hpp"
 #include "../../Compositor.hpp"
@@ -65,12 +65,7 @@ void CWindowTarget::updatePos(uint8_t flags) {
         return;
 
     const auto PMONITOR         = m_space->workspace()->m_monitor;
-    const auto PWORKSPACE       = m_space->workspace();
     const auto MONITOR_WORKAREA = m_space->workArea();
-
-    // get specific gaps and rules for this workspace,
-    // if user specified them in config
-    const auto WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(PWORKSPACE);
 
     if (!validMapped(m_window)) {
         if (m_window)
@@ -165,9 +160,7 @@ void CWindowTarget::updatePos(uint8_t flags) {
         const bool        DISPLAYINVERSELEFT  = STICKS(m_box.logicalBox.x, MONITOR_WORKAREA.x + MONITOR_WORKAREA.w);
         const bool        DISPLAYINVERSERIGHT = STICKS(m_box.logicalBox.x + m_box.logicalBox.w, MONITOR_WORKAREA.x);
 
-        static auto       PGAPSINDATA = CConfigValue<Config::IComplexConfigValue>("general:gaps_in");
-        auto* const       PGAPSIN     = sc<Config::CCssGapData*>((PGAPSINDATA.ptr()));
-        auto              gapsIn      = (WORKSPACERULE && WORKSPACERULE->m_gapsIn.has_value()) ? WORKSPACERULE->m_gapsIn.value() : *PGAPSIN;
+        const auto        gapsIn = m_space->gapsIn();
 
         const static auto REQUESTEDRATIO          = CConfigValue<Config::VEC2>("layout:single_window_aspect_ratio");
         const static auto REQUESTEDRATIOTOLERANCE = CConfigValue<Config::FLOAT>("layout:single_window_aspect_ratio_tolerance");

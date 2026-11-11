@@ -448,10 +448,7 @@ void SScrollingData::recalculate(bool forceInstant) {
     const auto        WORKAREA = algorithm->m_parent->space()->workArea();
     const CBox        MONBOX   = MONITOR->logicalBox();
 
-    const auto        WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(WORKSPACE);
-    static auto       PGAPSINDATA   = CConfigValue<Config::IComplexConfigValue>("general:gaps_in");
-    auto* const       PGAPSIN       = sc<Config::CCssGapData*>((PGAPSINDATA.ptr()));
-    const auto        GAPSIN        = (WORKSPACERULE && WORKSPACERULE->m_gapsIn.has_value()) ? WORKSPACERULE->m_gapsIn.value() : *PGAPSIN;
+    const auto        GAPSIN = algorithm->m_parent->space()->gapsIn();
 
     // If there is a default covering fullscreen window (tiled or floating)
     if (const auto FULLSCREEN_WINDOW = Fullscreen::controller()->getFullscreenWindow(WORKSPACE, true);

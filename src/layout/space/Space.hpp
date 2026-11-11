@@ -11,6 +11,10 @@
 #include <optional>
 #include <expected>
 
+namespace Config {
+    class CCssGapData;
+}
+
 namespace Layout {
 
     enum eRecalculateReason : uint8_t {
@@ -54,6 +58,7 @@ namespace Layout {
         std::optional<Vector2D>         predictSizeForNewTiledTarget();
 
         const CBox&                     workArea(bool floating = false) const;
+        Config::CCssGapData              gapsIn() const;
         PHLWORKSPACE                    workspace() const;
         CBox                            targetPositionLocal(SP<ITarget> t) const;
 

@@ -708,12 +708,10 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
 }
 
 PImageDescription CWLSurfaceResource::getPreferredImageDescription() {
-    static const auto PFORCE_HDR = CConfigValue<Config::INTEGER>("quirks:prefer_hdr");
-    const auto        WINDOW     = m_hlSurface ? Desktop::View::CWindow::fromView(m_hlSurface->view()) : nullptr;
+    const auto WINDOW     = m_hlSurface ? Desktop::View::CWindow::fromView(m_hlSurface->view()) : nullptr;
+    const bool PREFER_HDR = g_pCompositor->shouldPreferHDR(WINDOW);
 
-    if (*PFORCE_HDR == 1 || (*PFORCE_HDR == 2 && m_hlSurface && WINDOW && WINDOW->metadata().appID() == "gamescope"))
-        return g_pCompositor->getHDRImageDescription();
-
+    // subsurfaces follow their toplevel surface
     auto parent = m_self;
     if (parent->m_role->role() == SURFACE_ROLE_SUBSURFACE) {
         const auto subsurface = sc<CSubsurfaceRole*>(parent->m_role.get())->m_subsurface.lock();
@@ -726,10 +724,10 @@ PImageDescription CWLSurfaceResource::getPreferredImageDescription() {
         monitor = WINDOW->m_monitor;
 
     if (!monitor)
-        return g_pCompositor->getPreferredImageDescription();
+        return PREFER_HDR ? g_pCompositor->getHDRImageDescription() : g_pCompositor->getPreferredImageDescription();
 
-    // auto HDR only switches once a fullscreen client submits HDR content, so offer it the description it would switch to
-    return monitor->getAutoHDRImageDescription(parent.lock()).value_or(monitor->m_imageDescription);
+    // with prefer_hdr, offer the fullscreen surface the exact description auto HDR would switch its monitor to
+    return monitor->getAutoHDRImageDescription(parent.lock()).value_or(PREFER_HDR ? g_pCompositor->getHDRImageDescription() : monitor->m_imageDescription);
 }
 
 void CWLSurfaceResource::sortSubsurfaces() {

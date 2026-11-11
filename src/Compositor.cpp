@@ -1008,6 +1008,13 @@ PImageDescription CCompositor::getHDRImageDescription() {
         DEFAULT_HDR_IMAGE_DESCRIPTION;
 }
 
+// whether quirks:prefer_hdr applies to window, which is nullptr for surfaces without one
+bool CCompositor::shouldPreferHDR(PHLWINDOW window) {
+    static const auto PPREFERHDR = CConfigValue<Config::INTEGER>("quirks:prefer_hdr");
+
+    return *PPREFERHDR == 1 || (*PPREFERHDR == 2 && window && window->metadata().appID() == "gamescope");
+}
+
 bool CCompositor::shouldChangePreferredImageDescription() {
     LOG(Log::WARN, "FIXME: color management protocol is enabled and outputs changed, check preferred image description changes");
     return false;

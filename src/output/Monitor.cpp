@@ -2382,7 +2382,7 @@ std::optional<NColorManagement::PImageDescription> CMonitor::getAutoHDRImageDesc
         return {};
 
     const auto FS_WINDOW = Fullscreen::controller()->getFullscreenWindow(m_self.lock());
-    if (!FS_WINDOW || FS_WINDOW->wlSurface()->resource() != surface || FS_WINDOW->m_ruleApplicator->noAutoHDR().valueOrDefault())
+    if (!FS_WINDOW || FS_WINDOW->wlSurface()->resource() != surface || !g_pCompositor->shouldPreferHDR(FS_WINDOW) || FS_WINDOW->m_ruleApplicator->noAutoHDR().valueOrDefault())
         return {};
 
     return getHDRImageDescription(*PAUTOHDR == 2 ? NCMType::CM_HDR_EDID : NCMType::CM_HDR);

@@ -84,6 +84,7 @@ class CCompositor {
 
     NColorManagement::PImageDescription getPreferredImageDescription();
     NColorManagement::PImageDescription getHDRImageDescription();
+    bool                                shouldPreferHDR(PHLWINDOW window);
     bool                                shouldChangePreferredImageDescription();
 
     bool                                supportsDrmSyncobjTimeline() const;

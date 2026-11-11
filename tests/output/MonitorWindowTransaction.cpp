@@ -11,6 +11,7 @@
 #include <desktop/state/WindowFadeout.hpp>
 #include <desktop/state/FadingOutState.hpp>
 #include <layout/algorithm/Algorithm.hpp>
+#include <layout/algorithm/FloatingAlgorithm.hpp>
 #include <layout/algorithm/TiledAlgorithm.hpp>
 #include <layout/target/WindowTarget.hpp>
 #include <managers/fullscreen/FullscreenController.hpp>
@@ -1446,6 +1447,51 @@ TEST_F(CMonitorWindowTransactionTest, FullscreenClassificationAndPeerOpacityWait
         EXPECT_FLOAT_EQ(window->presentation().alphaValue(WINDOW_ALPHA_ACTIVE), entering ? 0.4F : 1.F);
         EXPECT_EQ(window->presentation().renderBorderSize() > 0, !entering);
         Desktop::windowState()->clear();
+    }
+}
+
+TEST_F(CMonitorWindowTransactionTest, WorkspaceOffsetUsesFullscreenStatePublishedWithGeometry) {
+    using namespace Fullscreen;
+    for (const bool entering : {false, true}) {
+        SCOPED_TRACE(entering);
+        const auto workspace = Workspace::CRegularWorkspace::create(Workspace::SWorkspaceNumberedID{9}, m_monitor, "transaction");
+        workspace->setVisible(true);
+        workspace->m_renderOffset->setValueAndWarp({200, 0});
+        m_monitor->m_enabled         = true;
+        m_monitor->m_size            = {400, 300};
+        m_monitor->m_activeWorkspace = workspace;
+        auto window                  = makeWindow({-20, 20, 100, 80});
+        window->m_workspace          = workspace;
+        window->windowTarget()->setSpaceGhost(workspace->space());
+        window->windowTarget()->setFloatingInitial(true);
+        auto& presentation = window->presentation();
+        presentation.onWorkspaceAnimUpdate();
+        ASSERT_GT(presentation.floatingOffset().x, 0);
+        const auto handler = workspace->space()->algorithm()->floatingAlgo()->getFSHandler();
+        handler->setTargetFullscreenModeInternal(window->windowTarget(), entering ? FSMODE_NONE : FSMODE_FULLSCREEN);
+        presentation.onWorkspaceAnimUpdate();
+        const auto before = presentation.floatingOffset();
+
+        presentation.stageFullscreen();
+        handler->setTargetFullscreenModeInternal(window->windowTarget(), entering ? FSMODE_FULLSCREEN : FSMODE_NONE);
+        auto&      transaction = *m_monitor->m_windowTransaction;
+        const CBox goal{-20, 20, 200, 160};
+        transaction.queue(window, goal);
+        window->finishAnimation();
+        transaction.onPreRender();
+        presentation.onWorkspaceAnimUpdate();
+        EXPECT_EQ(presentation.floatingOffset(), before);
+        commit(window, goal.size(), goal.size());
+        presentation.onWorkspaceAnimUpdate();
+        EXPECT_EQ(presentation.floatingOffset(), before);
+        transaction.onPostRender();
+
+        presentation.onWorkspaceAnimUpdate();
+        EXPECT_EQ(window->geometricBox(IGeometric::GEOMETRIC_CURRENT), goal);
+        if (entering)
+            EXPECT_EQ(presentation.floatingOffset(), Vector2D{});
+        else
+            EXPECT_GT(presentation.floatingOffset().x, 0);
     }
 }
 

@@ -1191,6 +1191,63 @@ TEST_F(CMonitorWindowTransactionTest, DestructionDuringApplyDiscardsTheRestOfThe
     EXPECT_EQ(second->geometricBox(IGeometric::GEOMETRIC_GOAL), secondBefore);
 }
 
+TEST_F(CMonitorWindowTransactionTest, DestructionDuringRemovalReleasesRemainingGeometryAndCloseHolds) {
+    const auto workspace = makeWorkspace(true);
+    auto       removed   = makeWindow();
+    auto       survivor  = makeWindow();
+    auto       closed    = makeWindow();
+    removed->m_workspace = survivor->m_workspace = closed->m_workspace = workspace;
+    m_monitor->m_enabled                                               = true;
+    removed->presentation().stageFullscreen();
+    removed->presentation().setFullscreenAlpha(0.5F);
+    m_monitor->m_windowTransaction->queue(survivor, {10, 20, 200, 160});
+    const auto fadeout = closeSnapshot(closed);
+    const auto timeout = timer(m_monitor);
+    ASSERT_TRUE(fadeout);
+    ASSERT_FALSE(fadeout->done());
+    int callbacks = 0;
+    removed->presentation().alpha(WINDOW_ALPHA_FULLSCREEN)->setCallbackOnBegin([&](auto) {
+        ++callbacks;
+        m_monitor->m_windowTransaction.reset();
+    });
+
+    m_monitor->m_windowTransaction->remove(removed);
+    EXPECT_EQ(callbacks, 1);
+    EXPECT_FALSE(m_monitor->m_windowTransaction);
+    EXPECT_TRUE(timeout->cancelled());
+    EXPECT_FALSE(pending(removed));
+    EXPECT_FALSE(pending(survivor));
+    EXPECT_FALSE(workspace->m_fullscreenPresentation);
+    EXPECT_TRUE(fadeout->done());
+}
+
+TEST_F(CMonitorWindowTransactionTest, RemovalPreservesReplacementBatchQueuedByDeferredAlpha) {
+    const auto workspace = makeWorkspace(true);
+    auto       removed   = makeWindow();
+    auto       next      = makeWindow();
+    removed->m_workspace = next->m_workspace = workspace;
+    m_monitor->m_enabled                     = true;
+    removed->presentation().stageFullscreen();
+    removed->presentation().setFullscreenAlpha(0.5F);
+    const CBox goal{10, 20, 200, 160};
+    int        callbacks = 0;
+    removed->presentation().alpha(WINDOW_ALPHA_FULLSCREEN)->setCallbackOnBegin([&](auto) {
+        ++callbacks;
+        m_monitor->m_windowTransaction->queue(next, goal);
+    });
+
+    m_monitor->m_windowTransaction->remove(removed);
+    EXPECT_EQ(callbacks, 1);
+    EXPECT_FALSE(pending(removed));
+    EXPECT_TRUE(ownedBy(next, m_monitor));
+    EXPECT_TRUE(timer(m_monitor)->armed());
+    EXPECT_TRUE(workspace->m_fullscreenPresentation);
+    expire(m_monitor);
+    EXPECT_EQ(appliedGoal(next), goal);
+    EXPECT_FALSE(pending(next));
+    EXPECT_FALSE(workspace->m_fullscreenPresentation);
+}
+
 TEST_F(CMonitorWindowTransactionTest, IncomingWorkspaceAndBothTileSizesPublishTogether) {
     for (const int order : {0, 1, 2}) {
         SCOPED_TRACE(order);

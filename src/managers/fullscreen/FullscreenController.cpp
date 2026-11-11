@@ -209,14 +209,21 @@ SFullscreenMode CFullscreenController::getFullscreenModes(const PHLWORKSPACE wor
     return returnModesAfterErrorCorrection(HANDLERS.TILED_FS_HANDLER, FSTARGET);
 }
 
-PHLWINDOW CFullscreenController::getPresentedFullscreenWindow(const PHLWORKSPACE workspace) {
+PHLWINDOW CFullscreenController::getPresentedFullscreenWindow(const PHLWORKSPACE workspace, const std::optional<eFullscreenMode> mode) {
     if (!workspace)
         return nullptr;
 
-    if (const auto PRESENTATION = workspace->m_fullscreenPresentation.lock())
+    if (const auto PRESENTATION = workspace->m_fullscreenPresentation.lock()) {
+        if (mode.has_value() && *mode != PRESENTATION->modes.internal)
+            return nullptr;
         return PRESENTATION->window.lock();
+    }
 
-    return getFullscreenWindow(workspace);
+    const auto WINDOW = getFullscreenWindow(workspace);
+    if (mode && getFullscreenModes(WINDOW).internal != *mode)
+        return nullptr;
+
+    return WINDOW;
 }
 
 SFullscreenMode CFullscreenController::getPresentedFullscreenModes(const PHLWORKSPACE workspace) {

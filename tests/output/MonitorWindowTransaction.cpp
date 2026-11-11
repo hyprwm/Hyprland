@@ -1275,6 +1275,32 @@ TEST_F(CMonitorWindowTransactionTest, WorkspaceSupersessionAndMonitorTransferRet
     EXPECT_EQ(appliedGoal(window), goal);
 }
 
+TEST_F(CMonitorWindowTransactionTest, PresentedFullscreenModeFilterSurvivesPublication) {
+    using namespace Fullscreen;
+    const auto workspace = Workspace::CRegularWorkspace::create(Workspace::SWorkspaceNumberedID{9}, m_monitor, "transaction");
+    auto       window    = makeWindow();
+    window->m_workspace  = workspace;
+    window->windowTarget()->setSpaceGhost(workspace->space());
+    m_monitor->m_enabled = true;
+    const auto handler   = workspace->space()->algorithm()->tiledAlgo()->getFSHandler();
+    const auto check     = [&](eFullscreenMode mode) {
+        EXPECT_EQ(controller()->getPresentedFullscreenWindow(workspace), mode == FSMODE_NONE ? nullptr : window);
+        for (const auto filter : {FSMODE_MAXIMIZED, FSMODE_FULLSCREEN})
+            EXPECT_EQ(controller()->getPresentedFullscreenWindow(workspace, filter), mode == filter ? window : nullptr);
+    };
+
+    check(FSMODE_NONE);
+    for (const auto mode : {FSMODE_FULLSCREEN, FSMODE_MAXIMIZED, FSMODE_NONE}) {
+        SCOPED_TRACE(mode);
+        const auto beforeMode = controller()->getFullscreenModes(window).internal;
+        window->presentation().stageFullscreen();
+        handler->setTargetFullscreenModeInternal(window->windowTarget(), mode);
+        check(beforeMode);
+        expire(m_monitor);
+        check(mode);
+    }
+}
+
 TEST_F(CMonitorWindowTransactionTest, FullscreenClassificationAndPeerOpacityWaitForGeometry) {
     using namespace Fullscreen;
     *CConfigValue<Config::FLOAT>("decoration:fullscreen_opacity").ptr() = 0.4F;

@@ -36,7 +36,7 @@ namespace Fullscreen {
         SFullscreenMode getFullscreenModes(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
 
         // Topmost covering fullscreen state published with the workspace's geometry.
-        PHLWINDOW       getPresentedFullscreenWindow(const PHLWORKSPACE workspace);
+        PHLWINDOW       getPresentedFullscreenWindow(const PHLWORKSPACE workspace, const std::optional<eFullscreenMode> mode = std::nullopt);
         SFullscreenMode getPresentedFullscreenModes(const PHLWORKSPACE workspace);
 
         // Monitor

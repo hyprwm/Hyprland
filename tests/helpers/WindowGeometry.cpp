@@ -1,4 +1,5 @@
 #include <layout/target/WindowGeometry.hpp>
+#include <layout/target/TargetEdges.hpp>
 #include <render/decorations/BorderGeometry.hpp>
 
 #include <gtest/gtest.h>
@@ -116,4 +117,69 @@ TEST(WindowGeometry, ReservedBordersUseTheRenderersFloatRounding) {
         const auto CONTENT    = Layout::windowContentBox(ALLOCATION, borderExtents(border, scale), {}, scale);
         EXPECT_EQ(pixelBox(CONTENT, scale).expand(expected), pixelBox(ALLOCATION, scale));
     }
+}
+
+TEST(WindowGeometry, MergedBordersOverlapExactlyAcrossScalesAndPixelPhases) {
+    using enum Layout::eTargetEdge;
+    for (const float scale : {1.F, 1.2F, 1.25F, 1.5F, 1.75F, 2.F, 3.F}) {
+        for (const int border : {0, 1, 2, 3, 5}) {
+            for (const int offset : {0, 1, 2, 3}) {
+                SCOPED_TRACE(::testing::Message() << "scale=" << scale << " border=" << border << " offset=" << offset);
+                const Vector2D MONITOR  = {-2048, 137};
+                const CBox     LEFT     = CBox{offset, 31, 801, 600}.translate(MONITOR);
+                const CBox     RIGHT    = CBox{offset + 801, 31, 799, 600}.translate(MONITOR);
+                const auto     RESERVED = borderExtents(border, scale);
+                const auto L = pixelBox(Layout::windowContentBox(LEFT, Layout::mergedBorderReserved(RESERVED, {.right = INNER}, border, scale), MONITOR, scale), scale, MONITOR);
+                const auto R = pixelBox(Layout::windowContentBox(RIGHT, Layout::mergedBorderReserved(RESERVED, {.left = INNER}, border, scale), MONITOR, scale), scale, MONITOR);
+                const auto WIDTH = Render::borderSizeInPixels(border, scale);
+
+                EXPECT_EQ(R.x - (L.x + L.w), WIDTH);
+                EXPECT_EQ(L.x - WIDTH, pixelBox(LEFT, scale, MONITOR).x);
+                EXPECT_EQ(R.x + R.w + WIDTH, pixelBox(RIGHT, scale, MONITOR).x + pixelBox(RIGHT, scale, MONITOR).w);
+                EXPECT_EQ(L.y - WIDTH, pixelBox(LEFT, scale, MONITOR).y);
+            }
+        }
+    }
+}
+
+TEST(WindowGeometry, MergedBordersMeetAtTJunctionsAndGridCorners) {
+    using enum Layout::eTargetEdge;
+    for (const float scale : {1.F, 1.25F, 1.5F, 2.F}) {
+        for (const int border : {1, 2, 3}) {
+            const auto RESERVED = borderExtents(border, scale);
+            const auto WIDTH    = Render::borderSizeInPixels(border, scale);
+            const auto content  = [&](const CBox& box, const Layout::STargetEdges& edges) {
+                return pixelBox(Layout::windowContentBox(box, Layout::mergedBorderReserved(RESERVED, edges, border, scale), {}, scale), scale);
+            };
+            const auto LEFT         = content({0, 0, 401, 602}, {.right = INNER});
+            const auto TOP_RIGHT    = content({401, 0, 399, 301}, {.bottom = INNER, .left = INNER});
+            const auto BOTTOM_RIGHT = content({401, 301, 399, 301}, {.top = INNER, .left = INNER});
+
+            EXPECT_EQ(TOP_RIGHT.x - (LEFT.x + LEFT.w), WIDTH);
+            EXPECT_EQ(BOTTOM_RIGHT.x - (LEFT.x + LEFT.w), WIDTH);
+            EXPECT_EQ(BOTTOM_RIGHT.y - (TOP_RIGHT.y + TOP_RIGHT.h), WIDTH);
+
+            const auto TOP_LEFT    = content({0, 0, 401, 301}, {.right = INNER, .bottom = INNER});
+            const auto BOTTOM_LEFT = content({0, 301, 401, 301}, {.top = INNER, .right = INNER});
+            EXPECT_EQ(BOTTOM_LEFT.y - (TOP_LEFT.y + TOP_LEFT.h), WIDTH);
+            EXPECT_EQ(TOP_LEFT.y + TOP_LEFT.h, TOP_RIGHT.y + TOP_RIGHT.h);
+            EXPECT_EQ(BOTTOM_LEFT.y, BOTTOM_RIGHT.y);
+            EXPECT_TRUE(TOP_LEFT.copy().expand(WIDTH).intersection(BOTTOM_RIGHT).empty());
+        }
+    }
+}
+
+TEST(WindowGeometry, MergingPreservesOuterEdgesAndOtherReservations) {
+    using enum Layout::eTargetEdge;
+    const auto BORDER   = borderExtents(3, 1.5F);
+    auto       reserved = BORDER;
+    reserved.topLeft.y += 24;
+    EXPECT_EQ(Layout::mergedBorderReserved(reserved, {}, 3, 1.5F), reserved);
+
+    const Layout::STargetEdges EDGES         = {.top = INNER, .right = INNER, .bottom = INNER, .left = INNER};
+    const auto                 MERGED        = Layout::mergedBorderReserved(reserved, EDGES, 3, 1.5F);
+    const auto                 MERGED_BORDER = Layout::mergedBorderReserved(BORDER, EDGES, 3, 1.5F);
+    EXPECT_DOUBLE_EQ(MERGED.topLeft.y - MERGED_BORDER.topLeft.y, 24);
+    EXPECT_EQ(MERGED.topLeft.x, MERGED_BORDER.topLeft.x);
+    EXPECT_EQ(MERGED.bottomRight, MERGED_BORDER.bottomRight);
 }

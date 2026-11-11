@@ -1,8 +1,13 @@
 #include "WindowGeometry.hpp"
+#include "TargetEdges.hpp"
+#include "../../render/decorations/BorderGeometry.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <hyprutils/memory/Casts.hpp>
+
+using namespace Hyprutils::Memory;
 
 static double canonicalDimension(double value) {
     const auto INTEGER   = std::round(value);
@@ -27,4 +32,23 @@ CBox Layout::windowContentBox(const CBox& allocation, const SBoxExtents& reserve
         logical = canonical;
 
     return logical.translate(monitorPosition);
+}
+
+SBoxExtents Layout::mergedBorderReserved(const SBoxExtents& reserved, const STargetEdges& edges, int borderSize, float scale) {
+    const auto PIXELS = Render::borderSizeInPixels(borderSize, scale);
+    // Opposing edges must reclaim complementary halves, including odd physical widths.
+    const auto LOW    = (PIXELS / 2) / sc<double>(scale);
+    const auto HIGH   = (PIXELS - PIXELS / 2) / sc<double>(scale);
+    auto       result = reserved;
+
+    if (edges.left == eTargetEdge::INNER)
+        result.topLeft.x -= LOW;
+    if (edges.top == eTargetEdge::INNER)
+        result.topLeft.y -= LOW;
+    if (edges.right == eTargetEdge::INNER)
+        result.bottomRight.x -= HIGH;
+    if (edges.bottom == eTargetEdge::INNER)
+        result.bottomRight.y -= HIGH;
+
+    return result;
 }

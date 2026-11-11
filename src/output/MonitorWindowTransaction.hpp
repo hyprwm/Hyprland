@@ -29,6 +29,7 @@ namespace Monitor {
         void holdFullscreen(PHLWORKSPACE workspace);
         bool holdClosingWindow(SP<Desktop::CWindowFadeout> fadeout);
         void flush(PHLWINDOW window);
+        bool hasPendingChanges() const;
         bool hasPendingPresentation() const;
         void beginLayoutUpdate();
         void endLayoutUpdate();

@@ -125,11 +125,12 @@ class CTransactionTestRenderer : public Render::IHyprRenderer {
     std::vector<uint64_t> getDRMFormatModifiers(DRMFormat) override {
         return {};
     }
-    SP<Render::IFramebuffer> createFB(const std::string&) override {
-        ADD_FAILURE() << "Unexpected framebuffer allocation";
-        return nullptr;
-    }
-    void disableScissor() override {
+    SP<Render::IFramebuffer> createFB(const std::string&) override;
+
+    bool                     m_observeSnapshotAllocations = false;
+    size_t                   m_snapshotAllocationAttempts = 0;
+
+    void                     disableScissor() override {
         ;
     }
     void blend(bool) override {
@@ -224,6 +225,10 @@ class CTransactionTestBuffer : public IHLBuffer {
 
 class CTransactionTestFramebuffer : public Render::IFramebuffer {
   public:
+    explicit CTransactionTestFramebuffer(bool allowAllocationFailure = false) : m_allowAllocationFailure(allowAllocationFailure) {
+        ;
+    }
+
     void release() override {
         ;
     }
@@ -240,10 +245,23 @@ class CTransactionTestFramebuffer : public Render::IFramebuffer {
 
   private:
     bool internalAlloc(int, int, DRMFormat) override {
-        ADD_FAILURE() << "Unexpected snapshot allocation";
+        if (!m_allowAllocationFailure)
+            ADD_FAILURE() << "Unexpected snapshot allocation";
         return false;
     }
+
+    bool m_allowAllocationFailure = false;
 };
+
+SP<Render::IFramebuffer> CTransactionTestRenderer::createFB(const std::string&) {
+    if (!m_observeSnapshotAllocations) {
+        ADD_FAILURE() << "Unexpected framebuffer allocation";
+        return nullptr;
+    }
+
+    ++m_snapshotAllocationAttempts;
+    return makeShared<CTransactionTestFramebuffer>(true);
+}
 
 class CMonitorWindowTransactionTest : public ::testing::Test {
   protected:
@@ -434,6 +452,12 @@ class CMonitorWindowTransactionTest : public ::testing::Test {
 
     bool capturedCloseSnapshot(PHLWINDOW window) {
         return window->m_closeSnapshots.has_value();
+    }
+
+    void captureWithGeometryBlocked(PHLWINDOW window) {
+        window->m_geometryTransactionsBlocked = true;
+        window->captureCloseSnapshots();
+        window->m_geometryTransactionsBlocked = false;
     }
 
     SP<CEventLoopTimer> timer(PHLMONITOR monitor) {
@@ -1776,6 +1800,85 @@ TEST_F(CMonitorWindowTransactionTest, AnimatedCloseHoldsCapturedGeometryBeforeSt
     EXPECT_EQ(fadeout->geometricBox(IGeometric::GEOMETRIC_CURRENT), capturedBox);
     EXPECT_NE(fadeout->geometricBox(IGeometric::GEOMETRIC_GOAL), capturedBox);
     EXPECT_FALSE(fadeout->done());
+}
+
+TEST_F(CMonitorWindowTransactionTest, CloseSnapshotAllocationRespectsTransactionEligibility) {
+    auto& renderer                        = sc<CTransactionTestRenderer&>(*g_pHyprRenderer);
+    renderer.m_observeSnapshotAllocations = true;
+    m_monitor->m_size = m_monitor->m_pixelSize = m_monitor->m_transformedSize = {400, 300};
+    const auto workspace                                                      = makeWorkspace(true);
+    m_monitor->m_activeWorkspace                                              = workspace;
+
+    struct SCase {
+        int    timeout     = 0;
+        bool   noAnim      = true;
+        bool   pending     = false;
+        bool   blocked     = false;
+        size_t allocations = 0;
+    };
+    for (const auto& scenario : {
+             SCase{},
+             SCase{.timeout = 50, .allocations = 1},
+             SCase{.noAnim = false, .allocations = 1},
+             SCase{.pending = true, .allocations = 1},
+             SCase{.timeout = 50, .blocked = true, .allocations = 1},
+         }) {
+        SCOPED_TRACE(::testing::Message() << "timeout=" << scenario.timeout << ", noAnim=" << scenario.noAnim << ", pending=" << scenario.pending
+                                          << ", blocked=" << scenario.blocked);
+        auto closed         = makeWindow();
+        auto peer           = makeWindow();
+        closed->m_workspace = peer->m_workspace = workspace;
+        closed->m_ruleApplicator->noAnim().set(scenario.noAnim, Desktop::Types::PRIORITY_SET_PROP);
+        commit(closed, {100, 80}, {100, 80});
+        prepareNullBufferUnmap(closed);
+        auto& transaction = *m_monitor->m_windowTransaction;
+        transaction.beginLayoutUpdate();
+        const CBox goal{10, 20, 200, 160};
+        if (scenario.pending) {
+            *CConfigValue<Config::INTEGER>("misc:transaction_timeout").ptr() = 50;
+            transaction.queue(peer, goal);
+            ASSERT_TRUE(pending(peer));
+            ASSERT_FALSE(transaction.hasPendingPresentation());
+        }
+
+        *CConfigValue<Config::INTEGER>("misc:transaction_timeout").ptr() = scenario.timeout;
+        renderer.m_snapshotAllocationAttempts                            = 0;
+        if (scenario.blocked)
+            captureWithGeometryBlocked(closed);
+        else {
+            SSurfaceState detach;
+            detach.updated.bits.buffer = true;
+            closed->backend().surface()->commitState(detach);
+        }
+        EXPECT_TRUE(capturedCloseSnapshot(closed));
+        EXPECT_EQ(renderer.m_snapshotAllocationAttempts, scenario.allocations);
+        EXPECT_EQ(pending(peer), scenario.pending);
+        transaction.endLayoutUpdate();
+        if (scenario.pending) {
+            EXPECT_FALSE(pending(peer));
+            EXPECT_EQ(appliedGoal(peer), goal);
+        }
+    }
+}
+
+TEST_F(CMonitorWindowTransactionTest, CloseSnapshotStillCapturesDuringDetachedBatchPublication) {
+    auto& renderer                        = sc<CTransactionTestRenderer&>(*g_pHyprRenderer);
+    renderer.m_observeSnapshotAllocations = true;
+    m_monitor->m_size = m_monitor->m_pixelSize = m_monitor->m_transformedSize = {400, 300};
+    const auto workspace                                                      = makeWorkspace(true);
+    m_monitor->m_activeWorkspace                                              = workspace;
+    auto closed                                                               = makeWindow();
+    auto peer                                                                 = makeWindow();
+    closed->m_workspace = peer->m_workspace = workspace;
+    closed->m_ruleApplicator->noAnim().set(true, Desktop::Types::PRIORITY_SET_PROP);
+    m_monitor->m_windowTransaction->queue(peer, {30, 40, 200, 160});
+    *CConfigValue<Config::INTEGER>("misc:transaction_timeout").ptr() = 0;
+    peer->positionAnimation()->setCallbackOnBegin([&](auto) { captureWithGeometryBlocked(closed); });
+    m_monitor->m_windowTransaction->onPreRender();
+    EXPECT_TRUE(capturedCloseSnapshot(closed));
+    EXPECT_EQ(renderer.m_snapshotAllocationAttempts, 1U);
+    EXPECT_FALSE(pending(peer));
+    m_monitor->m_windowTransaction->onPostRender();
 }
 
 TEST_F(CMonitorWindowTransactionTest, NullBufferUnmapCapturesBeforeLosingTheLastSurfaceImage) {

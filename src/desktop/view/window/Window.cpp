@@ -1618,7 +1618,8 @@ void CWindow::captureCloseSnapshots() {
 
     // A tiled close may need its last image until the remaining tiles resize,
     // even when close animations are disabled.
-    const bool FOR_TRANSACTION = !m_target->floating() && m_monitor && m_monitor->m_windowTransaction;
+    static const auto PTIMEOUT = CConfigValue<Config::INTEGER>("misc:transaction_timeout");
+    const bool FOR_TRANSACTION = !m_target->floating() && m_monitor && m_monitor->m_windowTransaction && (*PTIMEOUT > 0 || m_monitor->m_windowTransaction->hasPendingChanges());
     const bool WANT_SNAPSHOT   = FOR_TRANSACTION || !m_ruleApplicator->noAnim().valueOrDefault();
     m_closeSnapshots           = SCloseSnapshots{
         .monitor   = WANT_SNAPSHOT && g_pHyprRenderer->shouldRenderWindow(m_self.lock()) ? g_pHyprRenderer->makeSnapshotFB(m_self.lock()) : nullptr,

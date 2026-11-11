@@ -18,9 +18,14 @@ CWindowHistoryTracker::CWindowHistoryTracker() {
     });
 
     static auto P1 = Event::bus()->m_events.window.active.listen([this](PHLWINDOW window, uint8_t reason) { track(window); });
+
+    static auto P2 = Event::bus()->m_events.window.close.listen([this](PHLWINDOW window) { std::erase(m_history, window); });
 }
 
 void CWindowHistoryTracker::track(PHLWINDOW w) {
+    if (!w)
+        return;
+
     std::erase(m_history, w);
     m_history.emplace_back(w);
 }

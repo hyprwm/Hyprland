@@ -1,6 +1,6 @@
 <div align = center>
 
-<img src="https://raw.githubusercontent.com/hyprwm/Hyprland/main/assets/header.svg" width="750" height="300" alt="banner">
+<img src="https://raw.githubusercontent.com/hyprwm/Hyprland/main/assets/logo/header.svg" width="750" height="300" alt="banner">
 
 <br>
 

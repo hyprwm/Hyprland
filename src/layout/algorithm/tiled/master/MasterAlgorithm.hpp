@@ -1,4 +1,5 @@
 #include "../../TiledAlgorithm.hpp"
+#include "MasterEdges.hpp"
 
 #include <hyprutils/string/VarList2.hpp>
 
@@ -20,15 +21,6 @@ namespace Layout::Tiled {
         bool        operator==(const SMasterNodeData& rhs) const {
             return pTarget.lock() == rhs.pTarget.lock();
         }
-    };
-
-    //orientation determines which side of the screen the master area resides
-    enum eOrientation : uint8_t {
-        ORIENTATION_LEFT = 0,
-        ORIENTATION_TOP,
-        ORIENTATION_RIGHT,
-        ORIENTATION_BOTTOM,
-        ORIENTATION_CENTER
     };
 
     struct SMasterWorkspaceData {

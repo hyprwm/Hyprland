@@ -41,7 +41,7 @@ const mat3 ICtCpPQInv = mat3(                                                //
 // ) / 4096.0);
 // const mat3 ICtCpHLGInv = inverse(ICtCpHLG);
 
-vec4 tonemap(vec4 color, mat3 dstXYZ, float maxLuminance, float dstMaxLuminance, float dstRefLuminance, float srcRefLuminance, int tonemapMode) {
+vec4 tonemap(vec4 color, mat3 dstXYZ, float maxLuminance, float dstMaxLuminance, float dstRefLuminance, int tonemapMode) {
     if (maxLuminance < dstMaxLuminance * 1.01 || tonemapMode == 2)
         return vec4(clamp(color.rgb, vec3(0.0), vec3(dstMaxLuminance)), color[3]);
 

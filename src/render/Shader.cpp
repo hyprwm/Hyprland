@@ -135,7 +135,6 @@ void CShader::getUniformLocations() {
     m_uniformLocations[SHADER_DST_TF_RANGE]         = getUniform("dstTFRange");
     m_uniformLocations[SHADER_TARGET_PRIMARIES_XYZ] = getUniform("targetPrimariesXYZ");
     m_uniformLocations[SHADER_MAX_LUMINANCE]        = getUniform("maxLuminance");
-    m_uniformLocations[SHADER_SRC_REF_LUMINANCE]    = getUniform("srcRefLuminance");
     m_uniformLocations[SHADER_DST_MAX_LUMINANCE]    = getUniform("dstMaxLuminance");
     m_uniformLocations[SHADER_DST_REF_LUMINANCE]    = getUniform("dstRefLuminance");
     m_uniformLocations[SHADER_SDR_SATURATION]       = getUniform("sdrSaturation");

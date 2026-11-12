@@ -486,7 +486,7 @@ static RGBAColor saturate(RGBAColor color, std::array<std::array<double, 3>, 3> 
     return color;
 }
 
-static RGBAColor tonemap(RGBAColor color, std::array<std::array<double, 3>, 3> dstXYZ, float maxLuminance, float dstMaxLuminance, float dstRefLuminance, float srcRefLuminance) {
+static RGBAColor tonemap(RGBAColor color, std::array<std::array<double, 3>, 3> dstXYZ, float maxLuminance, float dstMaxLuminance, float dstRefLuminance) {
     // TODO source color is expected to be in sRGB colorspace and tonemapping shouldn't be needed
     return color;
 }
@@ -507,7 +507,7 @@ RGBAColor NColorManagement::convertColor(RGBAColor color, PImageDescription srcD
             color = toNit(color, settings.srcTFRange);
         color *= color.c.a;
         if (settings.needsTonemap)
-            color = tonemap(color, settings.dstPrimaries2XYZ, settings.maxLuminance, settings.dstMaxLuminance, settings.dstRefLuminance, settings.srcRefLuminance);
+            color = tonemap(color, settings.dstPrimaries2XYZ, settings.maxLuminance, settings.dstMaxLuminance, settings.dstRefLuminance);
 
         color = fromLinearNit(color, dstDesc->value().transferFunction, settings.dstTFRange);
         if (settings.needsSDRmod) {

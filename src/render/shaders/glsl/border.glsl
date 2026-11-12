@@ -28,7 +28,7 @@ vec4
 #endif
 #if USE_TONEMAP
               ,
-              float maxLuminance, float dstMaxLuminance, float dstRefLuminance, float srcRefLuminance, int tonemapMode
+              float maxLuminance, float dstMaxLuminance, float dstRefLuminance, int tonemapMode
 #endif
 #if USE_SDR_MOD
               ,
@@ -113,7 +113,7 @@ vec4
 #endif
 #if USE_TONEMAP
                              ,
-                             maxLuminance, dstMaxLuminance, dstRefLuminance, srcRefLuminance, tonemapMode
+                             maxLuminance, dstMaxLuminance, dstRefLuminance, tonemapMode
 #endif
 #if USE_SDR_MOD
                              ,

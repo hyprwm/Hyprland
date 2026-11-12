@@ -2201,13 +2201,25 @@ SCMSettings IHyprRenderer::getCMSettings(CRenderContext& ctx, const NColorManage
         ((ctx.m_data.pMonitor->m_sdrSaturation > 0 && ctx.m_data.pMonitor->m_sdrSaturation != 1.0f) ||
          (ctx.m_data.pMonitor->m_sdrBrightness > 0 && ctx.m_data.pMonitor->m_sdrBrightness != 1.0f));
 
-    const bool needsTonemap = maxLuminance >= dstMaxLuminance * 1.01;
+    const float srcTFMin = imageDescription->value().getTFMinLuminance(needsSDRmod ? sdrMinLuminance : -1);
+    const float srcTFMax = imageDescription->value().getTFMaxLuminance(needsSDRmod ? sdrMaxLuminance : -1);
 
-    auto       result = SCMSettings{
+    // in HDR, we need to map the sources reference white onto the target by scaling srcTFRange
+    const bool SRC_IS_HDR = srcTF == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ || srcTF == NColorManagement::CM_TRANSFER_FUNCTION_HLG ||
+        srcTF == NColorManagement::CM_TRANSFER_FUNCTION_EXT_LINEAR;
+    // extended sRGB keeps its 80-nit encoding range, but carries a declared reference white like other HDR TFs
+    const bool  SRC_HAS_DECLARED_REF = SRC_IS_HDR || srcTF == NColorManagement::CM_TRANSFER_FUNCTION_EXT_SRGB;
+    const float SRC_REF            = SRC_HAS_DECLARED_REF ? sc<float>(std::max(1U, imageDescription->value().luminances.reference)) : imageDescription->value().getTFRefLuminance();
+    const float REF_SCALE          = needsSDRmod ? 1.F : sc<float>(targetImageDescription->value().luminances.reference) / SRC_REF;
+    const float SRC_MAX            = SRC_IS_HDR ? maxLuminance : (srcTF == NColorManagement::CM_TRANSFER_FUNCTION_EXT_SRGB ? std::max(srcTFMax, maxLuminance) : srcTFMax);
+    const float scaledMaxLuminance = SRC_MAX * REF_SCALE;
+
+    const bool  needsTonemap = scaledMaxLuminance >= dstMaxLuminance * 1.01;
+
+    auto        result = SCMSettings{
         .sourceTF        = srcTF,
         .targetTF        = targetImageDescription->value().transferFunction,
-        .srcTFRange      = {.min = imageDescription->value().getTFMinLuminance(needsSDRmod ? sdrMinLuminance : -1),
-                            .max = imageDescription->value().getTFMaxLuminance(needsSDRmod ? sdrMaxLuminance : -1)},
+        .srcTFRange      = {.min = srcTFMin * REF_SCALE, .max = srcTFMax * REF_SCALE},
         .dstTFRange      = {.min = targetImageDescription->value().getTFMinLuminance(needsSDRmod ? sdrMinLuminance : -1),
                             .max = targetImageDescription->value().getTFMaxLuminance(needsSDRmod ? sdrMaxLuminance : -1)},
         .srcRefLuminance = imageDescription->value().luminances.reference,
@@ -2216,8 +2228,7 @@ SCMSettings IHyprRenderer::getCMSettings(CRenderContext& ctx, const NColorManage
 
         .needsTonemap            = tonemapMode != 0 && needsTonemap,
         .tonemapMode             = tonemapMode,
-        .maxLuminance            = needsTonemap && tonemapMode == 2 ? dstMaxLuminance :
-                                                                      maxLuminance * targetImageDescription->value().luminances.reference / imageDescription->value().luminances.reference,
+        .maxLuminance            = needsTonemap && tonemapMode == 2 ? dstMaxLuminance : scaledMaxLuminance,
         .dstMaxLuminance         = dstMaxLuminance,
         .dstPrimaries2XYZ        = toXYZ.mat(),
         .needsSDRmod             = needsMod,

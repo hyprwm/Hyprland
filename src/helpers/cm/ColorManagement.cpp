@@ -8,6 +8,7 @@
 #include <map>
 #include <vector>
 #include <numeric>
+#include <algorithm>
 #include <numbers>
 
 using namespace NColorManagement;
@@ -175,6 +176,14 @@ static std::optional<Mat3x3> invertMat3(const Mat3x3& m) {
 static std::array<float, 3> matByVec(const Mat3x3& M, const std::array<float, 3>& v) {
     const auto ARR = M.getMatrix();
     return {ARR[0] * v[0] + ARR[1] * v[1] + ARR[2] * v[2], ARR[3] * v[0] + ARR[4] * v[1] + ARR[5] * v[2], ARR[6] * v[0] + ARR[7] * v[1] + ARR[8] * v[2]};
+}
+
+float NColorManagement::SImageDescription::getContentMaxLuminance(float fallback) const {
+    if (maxCLL > 0)
+        return std::min(sc<float>(maxCLL), fallback);
+    if (masteringLuminances.max > 0)
+        return std::min(sc<float>(masteringLuminances.max), fallback);
+    return fallback;
 }
 
 std::optional<Mat3x3> NColorManagement::rgbToXYZFromPrimaries(SPCPRimaries pr) {

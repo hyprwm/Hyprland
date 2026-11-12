@@ -156,7 +156,12 @@ class COutputManagementProtocol : public IWaylandProtocol {
     // doesn't have to return one
     SP<SWlrManagerSavedOutputState> getOutputStateFor(PHLMONITOR pMonitor);
 
-    void                            sendPendingSuccessEvents();
+    // erase any cached wlr-output-management state for this output across all
+    // managers. used so that a freshly-written `monitor=` rule isn't shadowed
+    // by stale state from a wlr-output-management client (e.g. kanshi).
+    void forgetMonitor(const std::string& name);
+
+    void sendPendingSuccessEvents();
 
   private:
     void destroyResource(COutputManager* resource);

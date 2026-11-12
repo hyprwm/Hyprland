@@ -1681,7 +1681,7 @@ ActionResult Actions::sendKeyState(Input::ModifierMask modMask, uint32_t key, ui
     return result;
 }
 
-ActionResult Actions::global(const std::string& action) {
+ActionResult Actions::global(const std::string& action, const std::optional<bool> event) {
     const auto COLONPOS = action.find_first_of(':');
     if (COLONPOS == std::string::npos)
         return {};
@@ -1695,7 +1695,11 @@ ActionResult Actions::global(const std::string& action) {
     if (!PROTO::globalShortcuts->isTaken(APPID, NAME))
         return {};
 
-    PROTO::globalShortcuts->sendGlobalShortcutEvent(APPID, NAME, Config::Actions::state()->m_passPressed);
+    bool pressed = Config::Actions::state()->m_passPressed;
+    if (event.has_value())
+        pressed = event.value();
+
+    PROTO::globalShortcuts->sendGlobalShortcutEvent(APPID, NAME, pressed);
 
     return {};
 }

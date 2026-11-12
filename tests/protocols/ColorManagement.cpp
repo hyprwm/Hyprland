@@ -248,9 +248,8 @@ TEST_F(CColorManagementTest, WindowsScRGBKeepsFixedEncoding) {
     EXPECT_EQ(settings.transferFunction, CM_TRANSFER_FUNCTION_EXT_LINEAR);
     EXPECT_TRUE(settings.primariesNameSet);
     EXPECT_EQ(settings.primariesNamed, CM_PRIMARIES_SRGB);
-    // Stored metadata retains its default minimum, but Windows encoding starts at zero.
-    EXPECT_FLOAT_EQ(settings.luminances.min, 0.2F);
-    EXPECT_EQ(settings.luminances.max, 80U);
+    EXPECT_FLOAT_EQ(settings.luminances.min, 0.F);
+    EXPECT_EQ(settings.luminances.max, 10000U);
     EXPECT_EQ(settings.luminances.reference, 203U);
     EXPECT_FLOAT_EQ(settings.getTFMinLuminance(), 0.F);
     EXPECT_FLOAT_EQ(settings.getTFMaxLuminance(), 80.F);

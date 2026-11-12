@@ -355,7 +355,7 @@ TEST_F(CConfigLuaDispatchers, enforcesFactoryArgumentLimits) {
         {"layout", "'test'"},
         {"dpms", "{}"},
         {"event", "'test'"},
-        {"global", "'test:shortcut'"},
+        {"global", "'test:shortcut', nil", 2},
         {"force_renderer_reload", "", 0},
         {"force_idle", "1"},
         {"release_input_capture", "", 0},
@@ -396,9 +396,16 @@ TEST_F(CConfigLuaDispatchers, preservesOptionalFactoryArguments) {
             assert(type(factory()) == 'userdata')
             assert(type(factory(nil)) == 'userdata')
         end
-        assert(type(hl.dsp.exec_cmd('true')) == 'userdata')
-        assert(type(hl.dsp.exec_cmd('true', nil)) == 'userdata')
-        assert(type(hl.dsp.exec_raw(123)) == 'userdata')
+        local multiarg_factories = {
+            { [hl.dsp.exec_cmd] = { { 'true' }, { 'true', nil } }},
+            { [hl.dsp.exec_raw] = { { 123 } }},
+            { [hl.dsp.global]   = { { 'asdf' }, { 'asdf', nil }, { 'asdf', true } }},
+        }
+        for factory, args in pairs(multiarg_factories) do
+            for _, arg in ipairs(args) do
+                assert(type(factory(table.unpack(arg))) == 'userdata')
+            end
+        end
     )");
     EXPECT_FALSE(result.has_value()) << result.value_or("");
     EXPECT_EQ(lua_gettop(m_lua), 0);

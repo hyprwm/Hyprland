@@ -594,6 +594,9 @@ def generate_stub(root: Path) -> str:
             "main": ("boolean", True),
             "belongs_to": ("{address:string, name:string}", True),
         },
+        "HL.Window" : {
+            "normal_geometry": ("HL.Box", True),
+            }
     }
 
     lines: list[str] = []

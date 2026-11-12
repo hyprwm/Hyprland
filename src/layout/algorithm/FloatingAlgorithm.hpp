@@ -4,6 +4,8 @@
 #include "../../helpers/memory/Memory.hpp"
 
 #include "ModeAlgorithm.hpp"
+#include <hyprutils/math/Box.hpp>
+#include <optional>
 
 namespace Layout {
 
@@ -21,11 +23,13 @@ namespace Layout {
         virtual void setTargetGeom(const CBox& geom, SP<ITarget> target) = 0;
 
         // Update cached geometry after geometry changes/initialization/transfers/swaps; implementations must not move the target.
-        virtual void updateTarget(SP<ITarget> target);
+        virtual void                updateTarget(SP<ITarget> target);
 
-        virtual void recenter(SP<ITarget> t);
+        virtual void                recenter(SP<ITarget> t);
 
-        virtual void recalculate(eRecalculateReason reason = RECALCULATE_REASON_UNKNOWN);
+        virtual void                recalculate(eRecalculateReason reason = RECALCULATE_REASON_UNKNOWN);
+
+        virtual std::optional<CBox> getNormalGeometry(SP<ITarget> target) const;
 
       protected:
         IFloatingAlgorithm() = default;

@@ -14,6 +14,90 @@
 
 using namespace Hyprutils::Utils;
 
+TEST_CASE(luaWindowNormalGeometry) {
+    CScopeGuard guard = {[&]() { getFromSocket("/eval normalGeometryWindow = nil; normalGeometrySaved = nil"); }};
+
+    SPAWN_KITTY("normal-geometry");
+    ASSERT(getFromSocket("/repl hl.get_active_window().normal_geometry"), "nil");
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'on' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.resize({ x = 600, y = 400, relative = false })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 150, y = 160, relative = false })"));
+    OK(getFromSocket(R"(/eval do
+        normalGeometryWindow = hl.get_active_window()
+        normalGeometrySaved = assert(normalGeometryWindow.normal_geometry)
+        local w, g = normalGeometryWindow, normalGeometrySaved
+        assert(g.x == w.at.x and g.y == w.at.y and g.w == w.size.x and g.h == w.size.y)
+        local copy = w.normal_geometry
+        copy.x = copy.x + 100
+        assert(w.normal_geometry.x == g.x)
+    end)"));
+
+    SPAWN_KITTY("normal-geometry-swap");
+    ASSERT(getFromSocket("/repl hl.get_active_window().normal_geometry"), "nil");
+    OK(getFromSocket("/dispatch hl.dsp.window.swap({ target = 'class:normal-geometry' })"));
+    OK(getFromSocket(R"(/eval do
+        assert(normalGeometryWindow.normal_geometry == nil)
+        normalGeometryWindow = hl.get_active_window()
+        local g, saved = assert(normalGeometryWindow.normal_geometry), normalGeometrySaved
+        assert(g.x == saved.x and g.y == saved.y and g.w == saved.w and g.h == saved.h)
+    end)"));
+
+    for (const auto* mode : {"fullscreen", "maximized"}) {
+        OK(getFromSocket(std::format("/dispatch hl.dsp.window.fullscreen({{ mode = '{}', action = 'set' }})", mode)));
+        OK(getFromSocket(R"(/eval do
+            local w, saved = normalGeometryWindow, normalGeometrySaved
+            local g = assert(w.normal_geometry)
+            assert(g.x == saved.x and g.y == saved.y and g.w == saved.w and g.h == saved.h)
+            assert(w.size.x ~= g.w or w.size.y ~= g.h)
+        end)"));
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', action = 'unset' })"));
+    OK(getFromSocket(R"(/eval do
+        local w, g = normalGeometryWindow, normalGeometrySaved
+        assert(w.at.x == g.x and w.at.y == g.y and w.size.x == g.w and w.size.y == g.h)
+    end)"));
+
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'on' })"));
+    OK(getFromSocket(R"(/eval do
+        assert(normalGeometryWindow.group ~= nil)
+        local g = assert(normalGeometryWindow.normal_geometry)
+        assert(type(g.x) == "number" and type(g.y) == "number")
+        assert(g.w > 0 and g.h > 0)
+        normalGeometrySaved = g
+    end)"));
+
+    for (const auto* mode : {"fullscreen", "maximized"}) {
+        OK(getFromSocket(std::format("/dispatch hl.dsp.window.fullscreen({{ mode = '{}', action = 'set' }})", mode)));
+        OK(getFromSocket(R"(/eval do
+            local w, saved = normalGeometryWindow, normalGeometrySaved
+            assert(w.group ~= nil)
+            local g = assert(w.normal_geometry)
+            assert(g.x == saved.x and g.y == saved.y and g.w == saved.w and g.h == saved.h)
+            assert(w.size.x ~= g.w or w.size.y ~= g.h)
+        end)"));
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', action = 'unset' })"));
+    OK(getFromSocket(R"(/eval do
+        local g, saved = assert(normalGeometryWindow.normal_geometry), normalGeometrySaved
+        assert(g.x == saved.x and g.y == saved.y and g.w == saved.w and g.h == saved.h)
+    end)"));
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+    OK(getFromSocket(R"(/eval do
+        assert(normalGeometryWindow.group == nil)
+        assert(normalGeometryWindow.normal_geometry ~= nil)
+    end)"));
+
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'off' })"));
+    ASSERT(getFromSocket("/repl normalGeometryWindow.normal_geometry"), "nil");
+    OK(getFromSocket("/dispatch hl.dsp.window.kill({ window = 'activewindow' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.kill({ window = 'class:normal-geometry' })"));
+    Tests::waitUntilWindowsN(0);
+    ASSERT(getFromSocket("/repl normalGeometryWindow.normal_geometry"), "nil");
+}
+
 TEST_CASE(luaRequire) {
     constexpr auto EXPECTED = "absolute:relative:a:b";
 

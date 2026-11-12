@@ -15,8 +15,12 @@ static SCMSettings blurIntermediateCMSettings(CRenderContext& ctx, bool toInterm
     const auto WORKBUFFER   = g_pHyprRenderer->workBufferImageDescription(ctx);
     const auto INTERMEDIATE = getDefaultImageDescription();
 
+    const auto SOURCE = toIntermediate ? WORKBUFFER : INTERMEDIATE;
+
     auto       settings = toIntermediate ? g_pHyprRenderer->getCMSettings(ctx, WORKBUFFER, INTERMEDIATE) : g_pHyprRenderer->getCMSettings(ctx, INTERMEDIATE, WORKBUFFER);
-    auto&      range    = toIntermediate ? settings.dstTFRange : settings.srcTFRange;
+
+    settings.srcTFRange = {.min = SOURCE->value().getTFMinLuminance(), .max = SOURCE->value().getTFMaxLuminance()};
+    auto& range         = toIntermediate ? settings.dstTFRange : settings.srcTFRange;
     range.max           = std::max(range.max, sc<float>(WORKBUFFER->value().luminances.max));
     return settings;
 }

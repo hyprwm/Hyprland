@@ -391,6 +391,10 @@ bool CXWaylandServer::start() {
         _exit(0);
     }
 
+    // Only XWayland should retain the child ends of these sockets.
+    m_waylandFDs[1].reset();
+    m_xwmFDs[1].reset();
+
     return true;
 }
 

@@ -280,6 +280,8 @@ namespace NColorManagement {
             return primaries;
         }
 
+        float getContentMaxLuminance(float fallback) const;
+
         float getTFMinLuminance(float sdrMinLuminance = -1.0f) const {
             switch (transferFunction) {
                 case CM_TRANSFER_FUNCTION_EXT_LINEAR: return isWindows ? 0.0f : luminances.min;

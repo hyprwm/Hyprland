@@ -567,7 +567,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
             return; // setGrab will refocus
         } else {
             // we need to grab the last surface.
-            foundSurface = g_pSeatManager->m_state.pointerFocus.lock();
+            foundSurface       = g_pSeatManager->m_state.pointerFocus.lock();
+            pFoundWindow       = nullptr;
+            pFoundLayerSurface = nullptr;
 
             auto HLSurface = Desktop::View::CWLSurface::fromResource(foundSurface);
 

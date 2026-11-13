@@ -24,6 +24,8 @@
 
 #include "../../../../managers/fullscreen/FullscreenController.hpp"
 #include "../../../../layout/algorithm/tiled/scrolling/ScrollingFullscreenHandler.hpp"
+#include "config/shared/Types.hpp"
+#include "desktop/DesktopTypes.hpp"
 
 #include <hyprutils/string/VarList2.hpp>
 #include <hyprutils/string/VarList.hpp>
@@ -1170,6 +1172,21 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
 
     const auto ARGS = CVarList(std::string{sv}, 0, ' ');
     if (ARGS[0] == "move") {
+
+        static auto PFOLLOWMOUSE = CConfigValue<Config::INTEGER>("input:follow_mouse");
+        static auto PNOWARPS     = CConfigValue<Config::BOOL>("cursor:no_warps");
+
+
+        const auto warpCursor = [&](PHLWINDOW windowToChangeTo){
+                Pointer::pointerController()->warpTo(windowToChangeTo->middle());
+                // This must be the same as switchToWindow()'s cursor warp code!
+                if (*PNOWARPS == 0 || *PFOLLOWMOUSE < 2) {
+                    g_pInputManager->m_forcedFocus = windowToChangeTo;
+                    g_pInputManager->simulateMouseMovement();
+                    g_pInputManager->m_forcedFocus.reset();
+                }
+        };
+        
         if (ARGS[1] == "+col" || ARGS[1] == "col") {
             const auto TDATA = dataFor(Desktop::focusState()->window() ? Desktop::focusState()->window()->layoutTarget() : nullptr);
             if (!TDATA)
@@ -1190,7 +1207,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
 
             focusTargetUpdate(COL->targetDatas.front()->target.lock());
             if (COL->targetDatas.front()->target->window())
-                Pointer::pointerController()->warpTo(COL->targetDatas.front()->target->window()->middle());
+                warpCursor(COL->targetDatas.front()->target->window());
 
             return {};
         } else if (ARGS[1] == "-col") {
@@ -1201,7 +1218,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
                     m_scrollingData->recalculate();
                     focusTargetUpdate((m_scrollingData->columns.back()->targetDatas.back())->target.lock());
                     if (m_scrollingData->columns.back()->targetDatas.back()->target->window())
-                        Pointer::pointerController()->warpTo((m_scrollingData->columns.back()->targetDatas.back())->target->window()->middle());
+                        warpCursor(m_scrollingData->columns.back()->targetDatas.back()->target->window());
                 }
 
                 return {};
@@ -1216,7 +1233,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
 
             focusTargetUpdate(COL->targetDatas.back()->target.lock());
             if (COL->targetDatas.front()->target->window())
-                Pointer::pointerController()->warpTo(COL->targetDatas.front()->target->window()->middle());
+                warpCursor(COL->targetDatas.front()->target->window());
 
             return {};
         }
@@ -1468,6 +1485,21 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
         if (!TDATA || ARGS[1].empty())
             return noTarget("no window to focus");
 
+        static auto PFOLLOWMOUSE = CConfigValue<Config::INTEGER>("input:follow_mouse");
+        static auto PNOWARPS     = CConfigValue<Config::BOOL>("cursor:no_warps");
+
+
+        const auto warpCursor = [&](PHLWINDOW windowToChangeTo){
+                Pointer::pointerController()->warpTo(windowToChangeTo->middle());
+                // This must be the same as switchToWindow()'s cursor warp code!
+                if (*PNOWARPS == 0 || *PFOLLOWMOUSE < 2) {
+                    g_pInputManager->m_forcedFocus = windowToChangeTo;
+                    g_pInputManager->simulateMouseMovement();
+                    g_pInputManager->m_forcedFocus.reset();
+                }
+        };
+
+
         // Determine if we're in vertical scroll mode (strips are horizontal)
         const bool isVerticalScroll = (getDynamicDirection() == SCROLL_DIR_DOWN || getDynamicDirection() == SCROLL_DIR_UP);
 
@@ -1494,7 +1526,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
 
             focusTargetUpdate(PREV->target.lock());
             if (PREV->target->window())
-                Pointer::pointerController()->warpTo(PREV->target->window()->middle());
+                warpCursor(PREV->target->window());
         } else if (isNextInStrip) {
             // Move to next target within current strip
             auto NEXT = TDATA->column->next(TDATA);
@@ -1507,7 +1539,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
 
             focusTargetUpdate(NEXT->target.lock());
             if (NEXT->target->window())
-                Pointer::pointerController()->warpTo(NEXT->target->window()->middle());
+                warpCursor(NEXT->target->window());
         } else if (isPrevStrip) {
             // Move to previous strip
             auto PREV = m_scrollingData->prev(TDATA->column.lock());
@@ -1516,7 +1548,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
                     m_scrollingData->centerOrFitCol(TDATA->column.lock());
                     m_scrollingData->recalculate();
                     if (TDATA->target->window())
-                        Pointer::pointerController()->warpTo(TDATA->target->window()->middle());
+                        warpCursor(TDATA->target->window());
                     return {};
                 } else
                     PREV = (*PCONFWRAPFOCUS == 1) ? m_scrollingData->columns.back() : m_scrollingData->columns.front();
@@ -1528,7 +1560,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
                 m_scrollingData->centerOrFitCol(PREV);
                 m_scrollingData->recalculate();
                 if (pTargetData->target->window())
-                    Pointer::pointerController()->warpTo(pTargetData->target->window()->middle());
+                    warpCursor(pTargetData->target->window());
             }
         } else if (isNextStrip) {
             // Move to next strip
@@ -1538,7 +1570,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
                     m_scrollingData->centerOrFitCol(TDATA->column.lock());
                     m_scrollingData->recalculate();
                     if (TDATA->target->window())
-                        Pointer::pointerController()->warpTo(TDATA->target->window()->middle());
+                        warpCursor(TDATA->target->window());
                     return {};
                 } else
                     NEXT = (*PCONFWRAPFOCUS == 1) ? m_scrollingData->columns.front() : m_scrollingData->columns.back();
@@ -1550,7 +1582,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
                 m_scrollingData->centerOrFitCol(NEXT);
                 m_scrollingData->recalculate();
                 if (pTargetData->target->window())
-                    Pointer::pointerController()->warpTo(pTargetData->target->window()->middle());
+                    warpCursor(pTargetData->target->window());
             }
         }
     } else if (ARGS[0] == "promote" || ARGS[0] == "consume" || ARGS[0] == "expel" || ARGS[0] == "consume_or_expel") {

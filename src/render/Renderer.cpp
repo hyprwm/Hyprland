@@ -2278,21 +2278,21 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     // Hooks outside a render session must not re-enter monitor orchestration.
     m_renderingMonitor = true;
-    const CScopeGuard                                     monitorRenderGuard([this] { m_renderingMonitor = false; });
+    const CScopeGuard                            monitorRenderGuard([this] { m_renderingMonitor = false; });
 
-    static std::chrono::high_resolution_clock::time_point renderStart        = std::chrono::high_resolution_clock::now();
-    static std::chrono::high_resolution_clock::time_point renderStartOverlay = std::chrono::high_resolution_clock::now();
-    static std::chrono::high_resolution_clock::time_point endRenderOverlay   = std::chrono::high_resolution_clock::now();
+    static std::chrono::steady_clock::time_point renderStart        = std::chrono::steady_clock::now();
+    static std::chrono::steady_clock::time_point renderStartOverlay = std::chrono::steady_clock::now();
+    static std::chrono::steady_clock::time_point endRenderOverlay   = std::chrono::steady_clock::now();
 
-    static auto                                           PDEBUGOVERLAY       = CConfigValue<Config::INTEGER>("debug:overlay");
-    static auto                                           PDAMAGETRACKINGMODE = CConfigValue<Config::INTEGER>("debug:damage_tracking");
-    static auto                                           PDAMAGEBLINK        = CConfigValue<Config::INTEGER>("debug:damage_blink");
-    static auto                                           PSOLDAMAGE          = CConfigValue<Config::INTEGER>("debug:render_solitary_wo_damage");
-    static auto                                           PVFR                = CConfigValue<Config::INTEGER>("debug:vfr");
+    static auto                                  PDEBUGOVERLAY       = CConfigValue<Config::INTEGER>("debug:overlay");
+    static auto                                  PDAMAGETRACKINGMODE = CConfigValue<Config::INTEGER>("debug:damage_tracking");
+    static auto                                  PDAMAGEBLINK        = CConfigValue<Config::INTEGER>("debug:damage_blink");
+    static auto                                  PSOLDAMAGE          = CConfigValue<Config::INTEGER>("debug:render_solitary_wo_damage");
+    static auto                                  PVFR                = CConfigValue<Config::INTEGER>("debug:vfr");
 
-    static int                                            damageBlinkCleanup = 0; // because double-buffered
+    static int                                   damageBlinkCleanup = 0; // because double-buffered
 
-    const float                                           ZOOMFACTOR = pMonitor->m_cursorZoom->value();
+    const float                                  ZOOMFACTOR = pMonitor->m_cursorZoom->value();
 
     if (pMonitor->m_pixelSize.x < 1 || pMonitor->m_pixelSize.y < 1) {
         LOG(Log::ERR, "Refusing to render a monitor because of an invalid pixel size: {}", pMonitor->m_pixelSize);
@@ -2303,7 +2303,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         damageBlinkCleanup = 0;
 
     if (*PDEBUGOVERLAY == 1)
-        renderStart = std::chrono::high_resolution_clock::now();
+        renderStart = std::chrono::steady_clock::now();
 
     if (!g_pCompositor->m_sessionActive)
         return;
@@ -2461,9 +2461,9 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
             // for drawing the debug overlay
             if (!State::monitorState()->monitors().empty() && pMonitor == State::monitorState()->monitors().front() && *PDEBUGOVERLAY == 1) {
-                renderStartOverlay = std::chrono::high_resolution_clock::now();
+                renderStartOverlay = std::chrono::steady_clock::now();
                 Debug::overlay()->draw(ctx);
-                endRenderOverlay = std::chrono::high_resolution_clock::now();
+                endRenderOverlay = std::chrono::steady_clock::now();
             }
 
             if (*PDAMAGEBLINK && damageBlinkCleanup == 0) {
@@ -2539,7 +2539,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     pMonitor->m_pendingFrame = false;
 
     if (*PDEBUGOVERLAY == 1) {
-        const float durationUs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - renderStart).count() / 1000.f;
+        const float durationUs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - renderStart).count() / 1000.f;
         Debug::overlay()->renderData(pMonitor, durationUs);
 
         if (pMonitor == State::monitorState()->monitors().front()) {

@@ -345,8 +345,7 @@ void CMonitor::onConnect(bool noRule) {
     if (!isMirror())
         State::Workspace::monitorConnected(m_self.lock());
 
-    m_forceFullFrames = 3; // force 3 full frames to make sure there is no blinking due to double-buffering.
-    //
+    m_forceFullFrames = std::max(m_forceFullFrames, 3); // force at least 3 full frames to make sure there is no blinking due to double-buffering.
 
     if (!m_activeMonitorRule.m_mirrorOf.empty())
         setMirror(m_activeMonitorRule.m_mirrorOf);

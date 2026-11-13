@@ -18,6 +18,7 @@
 #include "../../shared/monitor/MonitorRuleManager.hpp"
 #include "../../shared/inotify/ConfigWatcher.hpp"
 #include "../../../event/EventBus.hpp"
+#include <algorithm>
 
 using namespace Config;
 using namespace Config::Supplementary;
@@ -87,7 +88,7 @@ void CPropRefresher::refreshProp(const bool execdAsScheduled) {
 
             if (*PBLURENABLED) {
                 m->m_blurFBDirty     = true;
-                m->m_forceFullFrames = 2;
+                m->m_forceFullFrames = std::max(m->m_forceFullFrames, 2);
                 m->scheduleFrame();
             }
         }
@@ -114,7 +115,7 @@ void CPropRefresher::refreshProp(const bool execdAsScheduled) {
             if (!m)
                 continue;
 
-            m->m_forceFullFrames = 2;
+            m->m_forceFullFrames = std::max(m->m_forceFullFrames, 2);
             g_pHyprRenderer->damageMonitor(m);
             m->scheduleFrame();
         }

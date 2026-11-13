@@ -149,7 +149,7 @@ void CMonitorOverlay::frameData(PHLMONITOR pMonitor) {
 
     m_monitor = pMonitor;
 
-    const auto NOW = std::chrono::high_resolution_clock::now();
+    const auto NOW = std::chrono::steady_clock::now();
     if (m_lastFrame.time_since_epoch().count() != 0)
         m_lastFrametimes.emplace_back(std::chrono::duration_cast<std::chrono::microseconds>(NOW - m_lastFrame).count() / 1000.F);
 

@@ -1,35 +1,16 @@
 #include "Time.hpp"
 
-#define chr                   std::chrono
-#define TIMESPEC_NSEC_PER_SEC 1000000000L
+#define chr std::chrono
 
 using s_ns = std::pair<uint64_t, uint64_t>;
 
-static s_ns timediff(const s_ns& a, const s_ns& b) {
-    s_ns d;
+static std::pair<Time::steady_tp, timespec> sampleClocks() {
+    const auto before = Time::steadyNow();
+    timespec   mono{};
+    clock_gettime(CLOCK_MONOTONIC, &mono);
+    const auto after = Time::steadyNow();
 
-    d.first = a.first - b.first;
-    if (a.second >= b.second)
-        d.second = a.second - b.second;
-    else {
-        d.second = (TIMESPEC_NSEC_PER_SEC + a.second) - b.second;
-        d.first -= 1;
-    }
-
-    return d;
-}
-
-static s_ns timeadd(const s_ns& a, const s_ns& b) {
-    s_ns d;
-
-    d.first = a.first + b.first;
-    if (a.second + b.second >= TIMESPEC_NSEC_PER_SEC) {
-        d.second = a.second + b.second - TIMESPEC_NSEC_PER_SEC;
-        d.first += 1;
-    } else
-        d.second = a.second + b.second;
-
-    return d;
+    return {before + (after - before) / 2, mono};
 }
 
 Time::steady_tp Time::steadyNow() {
@@ -60,86 +41,27 @@ s_ns Time::secNsec(const system_tp& tp) {
     return {sec, chr::duration_cast<chr::nanoseconds>(nsecdur).count()};
 }
 
-// TODO: this is a mess, but C++ doesn't define what steady_clock is.
-// At least on Linux, system_clock == CLOCK_REALTIME
-// and steady_clock == CLOCK_MONOTONIC,
-// or at least it seems so with gcc and gcc's stl.
-// but, since we can't *ever* be sure, we have to guess.
-// In general, this may shift the time around by a couple hundred ns. Doesn't matter, realistically.
-
 Time::steady_tp Time::fromTimespec(const timespec* ts) {
-    timespec mono{}, real{};
-    clock_gettime(CLOCK_MONOTONIC, &mono);
-    clock_gettime(CLOCK_REALTIME, &real);
-    auto now    = Time::steadyNow();
-    auto nowSys = Time::systemNow();
-    s_ns stdSteady, stdReal;
-    stdSteady = Time::secNsec(now);
-    stdReal   = Time::secNsec(nowSys);
+    const auto [steady, mono] = sampleClocks();
+    const auto diff           = chr::seconds(ts->tv_sec - mono.tv_sec) + chr::nanoseconds(ts->tv_nsec - mono.tv_nsec);
 
-    // timespec difference, REAL - MONO
-    s_ns diff;
-    diff.first = real.tv_sec - mono.tv_sec;
-    if (real.tv_nsec >= mono.tv_nsec)
-        diff.second = real.tv_nsec - mono.tv_nsec;
-    else {
-        diff.second = TIMESPEC_NSEC_PER_SEC + real.tv_nsec - mono.tv_nsec;
-        diff.first -= 1;
-    }
-
-    // STD difference, REAL - MONO
-    s_ns diff2 = timediff(stdReal, stdSteady);
-
-    s_ns diffFinal;
-    s_ns monotime = {ts->tv_sec, ts->tv_nsec};
-
-    if (diff.first >= diff2.first || (diff.first == diff2.first && diff.second >= diff2.second))
-        diffFinal = timediff(diff, diff2);
-    else
-        diffFinal = timediff(diff2, diff);
-
-    auto sum = timeadd(monotime, diffFinal);
-    return chr::steady_clock::time_point(std::chrono::seconds(sum.first)) + chr::nanoseconds(sum.second);
+    return steady + chr::duration_cast<steady_tp::duration>(diff);
 }
 
 struct timespec Time::toTimespec(const steady_tp& tp) {
-    timespec mono{}, real{};
-    clock_gettime(CLOCK_MONOTONIC, &mono);
-    clock_gettime(CLOCK_REALTIME, &real);
-    Time::steady_tp now    = Time::steadyNow();
-    Time::system_tp nowSys = Time::systemNow();
-    s_ns            stdSteady, stdReal;
-    stdSteady = Time::secNsec(now);
-    stdReal   = Time::secNsec(nowSys);
+    const auto [steady, mono] = sampleClocks();
+    const auto time           = chr::seconds(mono.tv_sec) + chr::nanoseconds(mono.tv_nsec) + chr::duration_cast<chr::nanoseconds>(tp - steady);
+    const auto sec            = chr::floor<chr::seconds>(time);
 
-    // timespec difference, REAL - MONO
-    s_ns diff;
-    diff.first = real.tv_sec - mono.tv_sec;
-    if (real.tv_nsec >= mono.tv_nsec)
-        diff.second = real.tv_nsec - mono.tv_nsec;
-    else {
-        diff.second = TIMESPEC_NSEC_PER_SEC + real.tv_nsec - mono.tv_nsec;
-        diff.first -= 1;
-    }
-
-    // STD difference, REAL - MONO
-    s_ns diff2 = timediff(stdReal, stdSteady);
-
-    s_ns diffFinal;
-    s_ns tpTime = secNsec(tp);
-
-    if (diff.first >= diff2.first || (diff.first == diff2.first && diff.second >= diff2.second))
-        diffFinal = timediff(diff, diff2);
-    else
-        diffFinal = timediff(diff2, diff);
-
-    auto sum = timeadd(tpTime, diffFinal);
-    return timespec{.tv_sec = sum.first, .tv_nsec = sum.second};
+    return timespec{
+        .tv_sec  = static_cast<time_t>(sec.count()),
+        .tv_nsec = static_cast<long>(chr::duration_cast<chr::nanoseconds>(time - sec).count()),
+    };
 }
 
 Time::steady_dur Time::till(const timespec& ts) {
     timespec mono{};
     clock_gettime(CLOCK_MONOTONIC, &mono);
-    const auto delay = (ts.tv_sec - mono.tv_sec) * 1000000000 + (ts.tv_nsec - mono.tv_nsec);
-    return std::chrono::nanoseconds(delay);
+
+    return chr::seconds(ts.tv_sec - mono.tv_sec) + chr::nanoseconds(ts.tv_nsec - mono.tv_nsec);
 }

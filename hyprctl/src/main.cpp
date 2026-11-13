@@ -343,7 +343,7 @@ int requestHyprsunset(std::string_view arg) {
     return requestIPC(".hyprsunset.sock", arg);
 }
 
-void batchRequest(std::string_view arg, bool json) {
+int batchRequest(std::string_view arg, bool json) {
     std::string commands(arg.substr(arg.find_first_of(' ') + 1));
 
     if (json) {
@@ -352,7 +352,7 @@ void batchRequest(std::string_view arg, bool json) {
     }
 
     std::string rq = std::format("[[BATCH]]{}", commands);
-    request(rq);
+    return request(rq);
 }
 
 void instancesRequest(bool json) {
@@ -378,7 +378,8 @@ void instancesRequest(bool json) {
                                   el.id, el.time, el.pid, el.wlSocket);
         }
 
-        result.pop_back();
+        if (!inst.empty())
+            result.pop_back();
         result += "\n]";
     }
 
@@ -484,15 +485,16 @@ int main(int argc, char** argv) {
 
     fullRequest.pop_back(); // remove trailing space
 
-    fullRequest = std::format("{}/{}", fullArgs, fullRequest);
+    const auto COMMAND = fullRequest.substr(0, fullRequest.find(' '));
+    fullRequest        = std::format("{}/{}", fullArgs, fullRequest);
 
     // instances is HIS-independent
-    if (fullRequest.contains("/instances")) {
+    if (COMMAND == "instances") {
         instancesRequest(json);
         return 0;
     }
 
-    if (needRoll && !fullRequest.contains("/rollinglog")) {
+    if (needRoll && COMMAND != "rollinglog") {
         log("only 'rollinglog' command supports '--follow' option");
         return 1;
     }
@@ -528,42 +530,43 @@ int main(int argc, char** argv) {
 
     int exitStatus = 0;
 
-    if (fullRequest.contains("/--batch"))
-        batchRequest(fullRequest, json);
-    else if (fullRequest.contains("/hyprpaper")) {
+    if (COMMAND == "--batch")
+        exitStatus = batchRequest(fullRequest, json);
+    else if (COMMAND == "hyprpaper") {
         auto result = Hyprpaper::makeHyprpaperRequest(fullRequest);
         if (!result)
             log(std::format("error: {}", result.error()));
         exitStatus = !result;
-    } else if (fullRequest.contains("/hyprsunset"))
+    } else if (COMMAND == "hyprsunset")
         exitStatus = requestHyprsunset(fullRequest);
-    else if (fullRequest.contains("/switchxkblayout"))
+    else if (COMMAND == "switchxkblayout")
         exitStatus = request(fullRequest, 2);
-    else if (fullRequest.contains("/seterror"))
+    else if (COMMAND == "seterror")
         exitStatus = request(fullRequest, 1);
-    else if (fullRequest.contains("/setprop"))
+    else if (COMMAND == "setprop")
         exitStatus = request(fullRequest, 3);
-    else if (fullRequest.contains("/plugin"))
+    else if (COMMAND == "plugin")
         exitStatus = request(fullRequest, 1);
-    else if (fullRequest.contains("/dismissnotify"))
+    else if (COMMAND == "dismissnotify")
         exitStatus = request(fullRequest, 0);
-    else if (fullRequest.contains("/notify"))
+    else if (COMMAND == "notify")
         exitStatus = request(fullRequest, 2);
-    else if (fullRequest.contains("/output"))
+    else if (COMMAND == "output")
         exitStatus = request(fullRequest, 2);
-    else if (fullRequest.contains("/setcursor"))
+    else if (COMMAND == "setcursor")
         exitStatus = request(fullRequest, 1);
-    else if (fullRequest.contains("/dispatch"))
+    else if (COMMAND == "dispatch")
         exitStatus = request(fullRequest, 1);
-    else if (fullRequest.contains("/decorations"))
+    else if (COMMAND == "decorations")
         exitStatus = request(fullRequest, 1);
-    else if (fullRequest.contains("/eval"))
+    else if (COMMAND == "eval")
         exitStatus = request(fullRequest, 1);
-    else if (fullRequest.contains("/--help"))
+    else if (COMMAND == "--help")
         std::println("{}", USAGE);
-    else if (fullRequest.contains("/rollinglog") && needRoll)
+    else if (COMMAND == "rollinglog" && needRoll)
         exitStatus = request(fullRequest, 0, true);
-    else if (auto pos = fullRequest.find("/repl"); pos != std::string::npos) {
+    else if (COMMAND == "repl") {
+        const auto pos = fullRequest.find('/');
         if (fullRequest.length() > pos + 5) {
             // single command with output
             exitStatus = request(fullRequest, 1);

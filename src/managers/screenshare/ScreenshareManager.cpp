@@ -35,7 +35,7 @@ void CScreenshareManager::onOutputCommit(PHLMONITOR monitor, bool copyFBPrepared
         if (frame->m_session->monitor() != monitor)
             return;
 
-        if (!copyFBPrepared && frame->m_session->m_type != SHARE_WORKSPACE)
+        if (!copyFBPrepared && (frame->m_session->m_type == SHARE_MONITOR || frame->m_session->m_type == SHARE_REGION))
             return;
 
         if (frame->m_session->m_type == SHARE_WINDOW) {
@@ -237,9 +237,6 @@ CScreenshareManager::SOutputCopyFBState CScreenshareManager::outputCopyFBState(P
         } else if (frame->m_session->m_type == SHARE_REGION) {
             state.pendingFrames++;
             state.pendingRegionFrames++;
-        } else if (frame->m_session->m_type == SHARE_WINDOW) {
-            state.pendingFrames++;
-            state.pendingWindowFrames++;
         }
     }
 

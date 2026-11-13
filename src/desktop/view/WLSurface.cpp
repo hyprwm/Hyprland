@@ -58,31 +58,14 @@ bool CWLSurface::small() const {
 }
 
 Vector2D CWLSurface::correctSmallVec() const {
-    if (!m_view || m_view->type() != VIEW_TYPE_WINDOW || !exists() || !small() || !m_fillIgnoreSmall)
+    if (!m_view || m_view->type() != VIEW_TYPE_WINDOW || !exists() || !small() || m_fillIgnoreSmall)
         return {};
 
-    const auto SIZE = getViewporterCorrectedSize();
+    const auto SIZE = m_resource->m_current.size;
     const auto O    = dynamicPointerCast<CWindow>(m_view.lock());
     const auto REP  = O->backend().reportedSize();
 
     return Vector2D{(REP.x - SIZE.x) / 2, (REP.y - SIZE.y) / 2}.clamp({}, {INFINITY, INFINITY}) * (O->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT) / REP);
-}
-
-Vector2D CWLSurface::correctSmallVecBuf() const {
-    if (!exists() || !small() || m_fillIgnoreSmall || !m_resource->m_current.texture)
-        return {};
-
-    const auto SIZE = getViewporterCorrectedSize();
-    const auto BS   = m_resource->m_current.bufferSize;
-
-    return Vector2D{(BS.x - SIZE.x) / 2, (BS.y - SIZE.y) / 2}.clamp({}, {INFINITY, INFINITY});
-}
-
-Vector2D CWLSurface::getViewporterCorrectedSize() const {
-    if (!exists() || !m_resource->m_current.texture)
-        return {};
-
-    return m_resource->m_current.viewport.hasDestination ? m_resource->m_current.viewport.destination : m_resource->m_current.bufferSize;
 }
 
 CRegion CWLSurface::computeDamage(const std::optional<CBox>& box) const {
@@ -118,19 +101,23 @@ CRegion CWLSurface::computeDamage(const std::optional<CBox>& box) const {
             return {};
     }
 
-    const auto CORRECTVEC = correctSmallVecBuf();
-
-    CRegion    damage = m_resource->m_current.accumulateBufferDamage();
+    CRegion damage = m_resource->m_current.accumulateBufferDamage();
     damage.transform(Math::wlTransformToHyprutils(m_resource->m_current.transform), BUFSIZE.x, BUFSIZE.y);
 
     if (m_resource->m_current.viewport.hasSource)
         damage.intersect(m_resource->m_current.viewport.source);
 
-    damage.scale({BUFSIZE.x / SCALEDSRCSIZE.x, BUFSIZE.y / SCALEDSRCSIZE.y});
-    damage.translate(CORRECTVEC);
+    // Convert buffer damage to logical coordinates
+    damage.scale(SURFSIZE / SCALEDSRCSIZE);
 
-    // go from buffer coords in the damage to hl logical
-    damage.scale(SURFSIZE / BUFSIZE);
+    // Center damage within the reported window size
+    if (m_view && m_view->type() == VIEW_TYPE_WINDOW && small() && !m_fillIgnoreSmall) {
+        const auto WINDOW = dynamicPointerCast<CWindow>(m_view.lock());
+        if (WINDOW) {
+            const auto REP = WINDOW->backend().reportedSize();
+            damage.translate(((REP - SURFSIZE) / 2.0).clamp({}, {INFINITY, INFINITY}));
+        }
+    }
 
     if (boxSize)
         Render::clipSurfaceDamage(damage, *boxSize);

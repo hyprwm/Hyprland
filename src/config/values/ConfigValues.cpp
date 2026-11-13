@@ -428,7 +428,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
          * input:touchdevice:
          */
 
-        MS<Int>("input:touchdevice:transform", "Transform the input from touchdevices.", 0, {.min = 0, .max = 6, .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
+        MS<Int>("input:touchdevice:transform", "Transform the input from touchdevices.", 0, {.min = 0, .max = 7, .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<String>("input:touchdevice:output", "The monitor to bind touch devices.", "[[Auto]]", {.refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<Bool>("input:touchdevice:enabled", "Whether input is enabled for touch devices.", true, {.refresh = Supplementary::REFRESH_INPUT_DEVICES}),
 
@@ -446,7 +446,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
          */
 
         MS<Bool>("input:tablet:enabled", "Whether input is enabled for tablets.", true, {.refresh = Supplementary::REFRESH_INPUT_DEVICES}),
-        MS<Int>("input:tablet:transform", "transform the input from tablets.", 0, {.min = 0, .max = 6, .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
+        MS<Int>("input:tablet:transform", "transform the input from tablets.", 0, {.min = 0, .max = 7, .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<String>("input:tablet:output", "the monitor to bind tablets.", STRVAL_EMPTY, {.refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<Vec2>("input:tablet:region_position", "position of the mapped region in monitor layout.", Config::VEC2{},
                  {.validator = vec2Range(-100000, -100000, 100000, 100000), .refresh = Supplementary::REFRESH_INPUT_DEVICES}),

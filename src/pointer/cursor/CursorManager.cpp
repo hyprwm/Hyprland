@@ -8,6 +8,7 @@
 #include "../../event/EventBus.hpp"
 #include "../../state/MonitorState.hpp"
 #include <map>
+#include <algorithm>
 
 using namespace Pointer;
 using namespace Pointer::Cursor;
@@ -348,7 +349,7 @@ void CCursorManager::updateTheme() {
     m_cursorScale = highestScale;
 
     if (*PUSEHYPRCURSOR) {
-        m_currentStyleInfo.size = std::round(m_size * highestScale);
+        m_currentStyleInfo.size = sc<unsigned int>(m_size);
 
         // Retain the representative style for XWayland even if all outputs are below 1x.
         m_styles.push_back(m_currentStyleInfo);
@@ -365,7 +366,7 @@ void CCursorManager::updateTheme() {
     }
 
     for (auto const& m : State::monitorState()->monitors()) {
-        m->m_forceFullFrames = 5;
+        m->m_forceFullFrames = std::max(m->m_forceFullFrames, 5);
         m->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_SHAPE);
     }
     if (RESTORE_CURSOR)

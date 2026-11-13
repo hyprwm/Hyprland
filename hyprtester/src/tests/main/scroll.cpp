@@ -3863,3 +3863,70 @@ TEST_CASE(getSetOffsetLuaHelpers) {
     ASSERT_CONTAINS(getFromSocket("/repl hl.set_scrolling_offset(200.0)"), "true");
     ASSERT_CONTAINS(getFromSocket("/repl hl.get_scrolling_offset()"), "200.0");
 }
+
+TEST_CASE(scrollMoveWindowToOtherMonitorRetilesSource) {
+    /*
+     Moving a window from monitor A to monitor B with a directional move (window_direction_monitor_fallback)
+     must re-tile the scrolling workspace it left on A.
+
+     The assertions are on the window that STAYS on A: once its neighbour is gone, its geometry must be the
+     same as it had as the first of two columns (viewport at the start of the tape).
+
+     The reference geometry is deliberately taken while TWO columns are open. A lone column is placed by the
+     same viewport code this test exercises (CScrollTapeController::calculateCameraOffset), so a reference
+     taken from a lone column would shift together with it.
+
+     A = HEADLESS-2 (left), B = HEADLESS-3 (created here, placed to the right of A by `auto-right`)
+    */
+
+    static constexpr const char* MON_A = "HEADLESS-2";
+    static constexpr const char* MON_B = "HEADLESS-3";
+
+    OK(getFromSocket(
+        "r/eval hl.config({ general = { layout = 'scrolling' }, scrolling = { fullscreen_on_one_column = false }, binds = { window_direction_monitor_fallback = true } })"));
+
+    if (getFromSocket("/monitors all").contains(MON_B))
+        OK(getFromSocket(std::format("/output remove {}", MON_B)));
+
+    OK(getFromSocket(std::format("/output create headless {}", MON_B)));
+    CScopeGuard guard([&] {
+        if (getFromSocket("/monitors all").contains(MON_B))
+            OK(getFromSocket(std::format("/output remove {}", MON_B)));
+    });
+
+    const auto  clientAttr = [&](const std::string& cls, const std::string& attr) { return Tests::getAttribute(getClientBlock(getFromSocket("/clients"), cls), attr); };
+
+    // a window is on a monitor if its `monitor:` ID in /clients is the ID /monitors lists for that monitor ("Monitor <name> (ID <id>):")
+    const auto isOnMonitor = [&](const std::string& cls, const std::string& monitor) -> bool {
+        return getFromSocket("/monitors").contains(std::format("Monitor {} (ID {}):", monitor, clientAttr(cls, "monitor")));
+    };
+
+    OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ monitor = '{}' }})", MON_A)));
+
+    // two columns on A
+    SPAWN_KITTY("col_moved");
+    ASSERT(isOnMonitor("col_moved", MON_A), true);
+
+    SPAWN_KITTY("col_stays");
+    ASSERT(isOnMonitor("col_stays", MON_A), true);
+
+    // the first column is the leftmost one on A
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:col_moved' })"));
+
+    const auto REF_AT   = clientAttr("col_moved", "at");
+    const auto REF_SIZE = clientAttr("col_moved", "size");
+
+    // 1: into the column of the second window
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ direction = 'right' })"));
+    // 2: out of that column, into a new one on its right
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ direction = 'right' })"));
+    // 3: nothing further right on A, so the monitor fallback moves it to B
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ direction = 'right' })"));
+
+    ASSERT(isOnMonitor("col_moved", MON_B), true);
+
+    // A must have re-tiled around the remaining window
+    ASSERT(isOnMonitor("col_stays", MON_A), true);
+    ASSERT(clientAttr("col_stays", "at"), REF_AT);
+    ASSERT(clientAttr("col_stays", "size"), REF_SIZE);
+}

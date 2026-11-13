@@ -4,6 +4,8 @@
 #include "../../helpers/memory/Memory.hpp"
 
 #include "ModeAlgorithm.hpp"
+#include <hyprutils/math/Box.hpp>
+#include <optional>
 
 namespace Layout {
 
@@ -18,11 +20,13 @@ namespace Layout {
         virtual void moveTarget(const Vector2D& Δ, SP<ITarget> target) = 0;
 
         // a target is moved to a pos x size
-        virtual void setTargetGeom(const CBox& geom, SP<ITarget> target) = 0;
+        virtual void                setTargetGeom(const CBox& geom, SP<ITarget> target) = 0;
 
-        virtual void recenter(SP<ITarget> t);
+        virtual void                recenter(SP<ITarget> t);
 
-        virtual void recalculate(eRecalculateReason reason = RECALCULATE_REASON_UNKNOWN);
+        virtual void                recalculate(eRecalculateReason reason = RECALCULATE_REASON_UNKNOWN);
+
+        virtual std::optional<CBox> getNormalGeometry(SP<ITarget> target) const;
 
       protected:
         IFloatingAlgorithm() = default;

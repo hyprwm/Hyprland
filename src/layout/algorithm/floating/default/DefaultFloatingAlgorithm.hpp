@@ -12,19 +12,21 @@ namespace Layout::Floating {
         CDefaultFloatingAlgorithm()          = default;
         virtual ~CDefaultFloatingAlgorithm() = default;
 
-        virtual void newTarget(SP<ITarget> target);
-        virtual void movedTarget(SP<ITarget> target, std::optional<Vector2D> focalPoint = std::nullopt);
-        virtual void removeTarget(SP<ITarget> target);
+        virtual void                newTarget(SP<ITarget> target);
+        virtual void                movedTarget(SP<ITarget> target, std::optional<Vector2D> focalPoint = std::nullopt);
+        virtual void                removeTarget(SP<ITarget> target);
 
-        virtual void resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
-        virtual void moveTarget(const Vector2D& Δ, SP<ITarget> target);
+        virtual void                resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
+        virtual void                moveTarget(const Vector2D& Δ, SP<ITarget> target);
 
-        virtual void setTargetGeom(const CBox& geom, SP<ITarget> target);
+        virtual void                setTargetGeom(const CBox& geom, SP<ITarget> target);
 
-        virtual void swapTargets(SP<ITarget> a, SP<ITarget> b);
-        virtual void moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
+        virtual void                swapTargets(SP<ITarget> a, SP<ITarget> b);
+        virtual void                moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
 
-        virtual void recenter(SP<ITarget> t);
+        virtual void                recenter(SP<ITarget> t);
+
+        virtual std::optional<CBox> getNormalGeometry(SP<ITarget> target) const override;
 
       private:
         CBox fitBoxInWorkArea(const CBox& box, SP<ITarget> t, bool fully = true);

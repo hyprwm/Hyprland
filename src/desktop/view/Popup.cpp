@@ -323,7 +323,7 @@ void CPopup::onCommit(bool ignoreSiblings) {
         if (PREV_SIZE != m_lastSize)
             invalidateTreeExtentsCache();
 
-        static auto PLOGDAMAGE = CConfigValue<Config::INTEGER>("debug:log_damage");
+        static auto PLOGDAMAGE = CConfigValue<Config::BOOL>("debug:log_damage");
         if (*PLOGDAMAGE)
             LOG(Log::DEBUG, "Refusing to commit damage from a subsurface of {} because it's invisible.", m_windowOwner.lock());
         return;
@@ -734,8 +734,8 @@ std::optional<uint8_t> CPopup::alphaGenericToKey(eAlphaModifiableProp p) {
 }
 
 bool CPopup::shouldBlur() const {
-    static CConfigValue PBLURPOPUPS = CConfigValue<Config::INTEGER>("decoration:blur:popups");
-    static CConfigValue PBLUR       = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
+    static CConfigValue PBLURPOPUPS = CConfigValue<Config::BOOL>("decoration:blur:popups");
+    static CConfigValue PBLUR       = CConfigValue<Config::BOOL>("decoration:blur:enabled");
 
     return *PBLURPOPUPS && *PBLUR;
 }

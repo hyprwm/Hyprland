@@ -25,7 +25,7 @@ static int layerZIndex(PHLLS layer) {
 }
 
 static bool shouldBlurLayer(PHLLS layer) {
-    static auto PBLUR = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
+    static auto PBLUR = CConfigValue<Config::BOOL>("decoration:blur:enabled");
     if (!*PBLUR)
         return false;
 

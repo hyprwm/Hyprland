@@ -456,7 +456,7 @@ static SDispatchResult probeWorkspaceBackground(Render::CRenderContext& ctx, PHL
     });
     renderer.renderAllClientsForWorkspace(ctx, monitor, withWorkspace ? monitor->m_activeWorkspace : nullptr, Time::steadyNow());
 
-    const bool                WALLPAPER = !withWorkspace || !*CConfigValue<Config::INTEGER>("render:xp_mode");
+    const bool                WALLPAPER = !withWorkspace || !*CConfigValue<Config::BOOL>("render:xp_mode");
     std::vector<eRenderStage> expected;
     if (WALLPAPER)
         expected.emplace_back(RENDER_POST_WALLPAPER);

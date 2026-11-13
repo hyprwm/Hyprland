@@ -2663,7 +2663,7 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
             const bool HDR_CHANGED = pMonitor->inHDR() != wantHDR;
 
             if (HDR_CHANGED && *PAUTOHDR && !(pMonitor->inHDR() && configuredHDR)) {
-                const auto targetCM      = wantHDR ? (*PAUTOHDR == 2 ? NCMType::CM_HDR_EDID : NCMType::CM_HDR) : pMonitor->m_cmType;
+                const auto targetCM      = wantHDR ? pMonitor->getAutoHDRType() : pMonitor->m_cmType;
                 const auto targetSDREOTF = pMonitor->m_sdrEotf;
                 LOG(Log::INFO, "[CM] Auto HDR: changing monitor cm to {}", sc<uint8_t>(targetCM));
                 pMonitor->applyCMType(targetCM, targetSDREOTF);
@@ -2761,10 +2761,13 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
         pMonitor->m_output->state->setCTM(pMonitor->m_ctm);
     }
 
-    // the fullscreen surface's preferred description depends on the fullscreen window, see getPreferredImageDescription()
-    if (*PAUTOHDR && PROTO::colorManagement && pMonitor->supportsHDR() && FULLSCREEN_WINDOW != pMonitor->m_autoHDRWindow) {
-        pMonitor->m_autoHDRWindow = FULLSCREEN_WINDOW;
-        PROTO::colorManagement->recheckFeedbacks();
+    // the fullscreen surface's preferred description depends on prefersHDRFor(), see getPreferredImageDescription()
+    if (PROTO::colorManagement) {
+        const auto AUTO_HDR_WINDOW = pMonitor->prefersHDRFor(FULLSCREEN_WINDOW) ? FULLSCREEN_WINDOW : nullptr;
+        if (AUTO_HDR_WINDOW != pMonitor->m_autoHDRWindow) {
+            pMonitor->m_autoHDRWindow = AUTO_HDR_WINDOW;
+            PROTO::colorManagement->recheckFeedbacks();
+        }
     }
 
     pMonitor->m_previousFSWindow = FULLSCREEN_WINDOW;

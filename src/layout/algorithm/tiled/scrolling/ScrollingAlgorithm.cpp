@@ -8,7 +8,6 @@
 #include "../../../space/Space.hpp"
 #include "../../../LayoutManager.hpp"
 #include "../../../target/WindowTarget.hpp"
-#include "../../../target/WindowGeometry.hpp"
 
 #include "../../../../Compositor.hpp"
 #include "../../../../desktop/state/FocusState.hpp"
@@ -494,13 +493,10 @@ void SScrollingData::recalculate(bool forceInstant) {
         const bool GAP_TOP    = !PRIMARY_HORIZ || TARGET_NOT_TOP;
         const bool GAP_BOTTOM = !PRIMARY_HORIZ || TARGET_NOT_BOTTOM;
 
-        const auto GAPS =
-            gapExtentsInPixels({{GAP_LEFT ? GAPSIN.m_left : 0, GAP_TOP ? GAPSIN.m_top : 0}, {GAP_RIGHT ? GAPSIN.m_right : 0, GAP_BOTTOM ? GAPSIN.m_bottom : 0}}, MONITOR->m_scale);
-        auto visual = boxWithPixelGaps(logical, GAPS, MONITOR->m_position, MONITOR->m_scale);
-        visual.w    = std::max(1.0, visual.w);
-        visual.h    = std::max(1.0, visual.h);
-
-        return {.logicalBox = logical, .visualBox = visual};
+        return {
+            .logicalBox = logical,
+            .visualGaps = SBoxExtents{{GAP_LEFT ? GAPSIN.m_left : 0, GAP_TOP ? GAPSIN.m_top : 0}, {GAP_RIGHT ? GAPSIN.m_right : 0, GAP_BOTTOM ? GAPSIN.m_bottom : 0}},
+        };
     };
 
     SP<SScrollingTargetData> currentCoveringFsTdata = nullptr;

@@ -4,6 +4,7 @@
 
 #include <unordered_map>
 #include <array>
+#include <cmath>
 
 using namespace Math;
 
@@ -98,4 +99,9 @@ Vector2D Math::transformNormalized(const Vector2D& point, wl_output_transform tr
 
 Vector2D Math::mapNormalizedToBox(const Vector2D& point, const CBox& box, wl_output_transform transform) {
     return box.pos() + box.size() * transformNormalized(point, transform);
+}
+
+double Math::scaledPixelLength(double length, float scale) {
+    // Keep signed gap lengths and rendered border widths on the same rounding convention.
+    return std::round(sc<float>(length) * scale);
 }

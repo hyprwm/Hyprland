@@ -6,6 +6,7 @@
 
 #include <expected>
 #include <cstdint>
+#include <optional>
 
 namespace Layout {
     enum eTargetType : uint8_t {
@@ -33,6 +34,8 @@ namespace Layout {
     struct STargetBox {
         CBox logicalBox;
         CBox visualBox;
+        // Logical insets resolved against the current window border, rather than cached pixel gaps.
+        std::optional<SBoxExtents> visualGaps;
     };
 
     class ITarget {

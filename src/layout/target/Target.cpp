@@ -9,8 +9,10 @@ using namespace Hyprutils::Utils;
 
 void ITarget::setPositionGlobal(const STargetBox& box, uint8_t) {
     m_box = box;
-    m_box.logicalBox.round();
-    m_box.visualBox.round();
+    if (floating()) {
+        m_box.logicalBox.round();
+        m_box.visualBox.round();
+    }
 }
 
 void ITarget::setPositionGlobal(const CBox& box, uint8_t flags) {

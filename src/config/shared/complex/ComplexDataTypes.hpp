@@ -8,6 +8,8 @@
 #include <format>
 #include <map>
 #include <algorithm>
+#include <cmath>
+#include <stdexcept>
 
 namespace Config {
 
@@ -80,46 +82,51 @@ namespace Config {
     class CCssGapData : public IComplexConfigValue {
       public:
         CCssGapData() : m_top(0), m_right(0), m_bottom(0), m_left(0) {};
-        CCssGapData(int64_t global) : m_top(global), m_right(global), m_bottom(global), m_left(global) {};
-        CCssGapData(int64_t vertical, int64_t horizontal) : m_top(vertical), m_right(horizontal), m_bottom(vertical), m_left(horizontal) {};
-        CCssGapData(int64_t top, int64_t horizontal, int64_t bottom) : m_top(top), m_right(horizontal), m_bottom(bottom), m_left(horizontal) {};
-        CCssGapData(int64_t top, int64_t right, int64_t bottom, int64_t left) : m_top(top), m_right(right), m_bottom(bottom), m_left(left) {};
+        CCssGapData(double global) : m_top(global), m_right(global), m_bottom(global), m_left(global) {};
+        CCssGapData(double vertical, double horizontal) : m_top(vertical), m_right(horizontal), m_bottom(vertical), m_left(horizontal) {};
+        CCssGapData(double top, double horizontal, double bottom) : m_top(top), m_right(horizontal), m_bottom(bottom), m_left(horizontal) {};
+        CCssGapData(double top, double right, double bottom, double left) : m_top(top), m_right(right), m_bottom(bottom), m_left(left) {};
 
         /* Css like directions */
-        int64_t m_top;
-        int64_t m_right;
-        int64_t m_bottom;
-        int64_t m_left;
+        double m_top;
+        double m_right;
+        double m_bottom;
+        double m_left;
 
-        void    parseGapData(Hyprutils::String::CVarList2 varlist) {
-            const auto toInt = [](std::string_view string) -> int { return std::stoi(std::string(string)); };
+        void   parseGapData(Hyprutils::String::CVarList2 varlist) {
+            const auto toNumber = [](std::string_view string) -> double {
+                const auto VALUE = std::stod(std::string(string));
+                if (!std::isfinite(VALUE))
+                    throw std::invalid_argument("gap must be finite");
+                return VALUE;
+            };
 
             switch (varlist.size()) {
                 case 1: {
-                    *this = CCssGapData(toInt(varlist[0]));
+                    *this = CCssGapData(toNumber(varlist[0]));
                     break;
                 }
                 case 2: {
-                    *this = CCssGapData(toInt(varlist[0]), toInt(varlist[1]));
+                    *this = CCssGapData(toNumber(varlist[0]), toNumber(varlist[1]));
                     break;
                 }
                 case 3: {
-                    *this = CCssGapData(toInt(varlist[0]), toInt(varlist[1]), toInt(varlist[2]));
+                    *this = CCssGapData(toNumber(varlist[0]), toNumber(varlist[1]), toNumber(varlist[2]));
                     break;
                 }
                 case 4: {
-                    *this = CCssGapData(toInt(varlist[0]), toInt(varlist[1]), toInt(varlist[2]), toInt(varlist[3]));
+                    *this = CCssGapData(toNumber(varlist[0]), toNumber(varlist[1]), toNumber(varlist[2]), toNumber(varlist[3]));
                     break;
                 }
                 default: {
                     LOG(Log::WARN, "Too many arguments provided for gaps.");
-                    *this = CCssGapData(toInt(varlist[0]), toInt(varlist[1]), toInt(varlist[2]), toInt(varlist[3]));
+                    *this = CCssGapData(toNumber(varlist[0]), toNumber(varlist[1]), toNumber(varlist[2]), toNumber(varlist[3]));
                     break;
                 }
             }
         }
 
-        void reset(int64_t global) {
+        void reset(double global) {
             m_top    = global;
             m_right  = global;
             m_bottom = global;

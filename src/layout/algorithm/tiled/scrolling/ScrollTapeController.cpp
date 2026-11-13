@@ -230,7 +230,7 @@ double CScrollTapeController::calculateCameraOffset(const CBox& usableArea, bool
 
     // if the content fits in viewport, center it
     if (maxExtent < usablePrimary)
-        setOffset(std::round((maxExtent - usablePrimary) / 2.0));
+        setOffset((maxExtent - usablePrimary) / 2.0);
 
     // if the offset is negative but we already extended and fit method is not center, reset offset to 0
     static const auto PFITMETHOD = CConfigValue<Config::INTEGER>("scrolling:focus_fit_method");

@@ -55,6 +55,8 @@ struct SDecorationPositioningReply {
 };
 
 class CDecorationPositioner {
+    friend class CWindowGeometryTest;
+
   public:
     CDecorationPositioner();
 

@@ -120,3 +120,18 @@ TEST(ColorManagement, NativeLinearConversionPreservesExtendedRange) {
     EXPECT_NEAR(color.c.b, 12500.0, 0.0001);
     EXPECT_DOUBLE_EQ(color.c.a, 1.0);
 }
+
+TEST(ColorManagement, ContentMaxLuminancePrefersMetadata) {
+    SImageDescription description;
+    EXPECT_FLOAT_EQ(description.getContentMaxLuminance(10000.F), 10000.F);
+
+    description.masteringLuminances = {.min = 0.005F, .max = 1000};
+    EXPECT_FLOAT_EQ(description.getContentMaxLuminance(10000.F), 1000.F);
+
+    description.maxCLL = 600;
+    EXPECT_FLOAT_EQ(description.getContentMaxLuminance(10000.F), 600.F);
+
+    // Metadata can't push the peak past what the encoding can carry.
+    description.maxCLL = 4000;
+    EXPECT_FLOAT_EQ(description.getContentMaxLuminance(1000.F), 1000.F);
+}

@@ -280,6 +280,8 @@ namespace NColorManagement {
             return primaries;
         }
 
+        float getContentMaxLuminance(float fallback) const;
+
         float getTFMinLuminance(float sdrMinLuminance = -1.0f) const {
             switch (transferFunction) {
                 case CM_TRANSFER_FUNCTION_EXT_LINEAR: return isWindows ? 0.0f : luminances.min;
@@ -418,7 +420,7 @@ namespace NColorManagement {
         .primariesNameSet = true,
         .primariesNamed   = NColorManagement::CM_PRIMARIES_SRGB,
         .primaries        = NColorPrimaries::BT709,
-        .luminances       = {.reference = 203},
+        .luminances       = {.min = 0, .max = 10000, .reference = 203},
     });
 
     inline const auto BT2100_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
@@ -427,7 +429,7 @@ namespace NColorManagement {
         .primariesNameSet = true,
         .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
         .primaries        = NColorPrimaries::BT2020,
-        .luminances       = {.reference = 203},
+        .luminances       = {.min = HDR_MIN_LUMINANCE, .max = 10000, .reference = 203},
     });
 
     inline const auto LINEAR_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{

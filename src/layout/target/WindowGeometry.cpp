@@ -30,6 +30,27 @@ SBoxExtents Layout::gapExtentsInPixels(const SBoxExtents& gaps, float scale) {
     };
 }
 
+double Layout::innerGapPairInPixels(double gap, int borderSize, float scale) {
+    if (gap >= 0 || borderSize <= 0)
+        return 2 * Math::scaledPixelLength(gap, scale);
+
+    const auto BORDER = Math::scaledPixelLength(borderSize, scale);
+    if (BORDER == 0)
+        return 2 * Math::scaledPixelLength(gap, scale);
+
+    // Negative gaps describe overlap relative to the rendered border: half a border on each
+    // side overlaps one border, while a full border on each side makes the content edges meet.
+    return std::round(2 * (gap / borderSize) * BORDER);
+}
+
+SBoxExtents Layout::innerGapExtentsInPixels(const SBoxExtents& gaps, int borderSize, float scale) {
+    // Assign an odd overlap pixel to left/top edges, independently of focus or scrolling direction.
+    return {
+        {std::floor(innerGapPairInPixels(gaps.topLeft.x, borderSize, scale) / 2), std::floor(innerGapPairInPixels(gaps.topLeft.y, borderSize, scale) / 2)},
+        {std::ceil(innerGapPairInPixels(gaps.bottomRight.x, borderSize, scale) / 2), std::ceil(innerGapPairInPixels(gaps.bottomRight.y, borderSize, scale) / 2)},
+    };
+}
+
 CBox Layout::boxWithPixelGaps(const CBox& allocation, const SBoxExtents& pixelGaps, const Vector2D& monitorPosition, double scale) {
     const auto OUTER = pixelBox(allocation, monitorPosition, scale);
     // Apply whole-pixel offsets only after snapping the common allocation edges.

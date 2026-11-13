@@ -7,12 +7,15 @@
 #include "../../desktop/state/FocusState.hpp"
 #include "../../desktop/state/WindowState.hpp"
 #include "../../desktop/view/Group.hpp"
+#include "../../layout/target/Target.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../pass/BorderPassElement.hpp"
 #include "../Renderer.hpp"
 #include "../WindowRenderPresentation.hpp"
 #include "../../state/MonitorState.hpp"
+
+#include <hyprutils/utils/ScopeGuard.hpp>
 
 CHyprBorderDecoration::CHyprBorderDecoration(PHLWINDOW pWindow) :
     IHyprWindowDecoration(pWindow), m_window(pWindow), m_gradient(Config::CGradientValueData{CHyprColor(sc<uint64_t>(0))}) {
@@ -95,10 +98,22 @@ eDecorationType CHyprBorderDecoration::getDecorationType() {
 }
 
 void CHyprBorderDecoration::updateWindow(PHLWINDOW) {
-    const auto EXTENT = borderExtent();
+    const auto EXTENT       = borderExtent();
+    const auto SIZE         = borderSize();
+    const bool SIZE_CHANGED = SIZE != m_lastBorderSize;
+    m_lastBorderSize        = SIZE;
 
-    if (EXTENT == m_lastBorderExtent)
+    if (EXTENT == m_lastBorderExtent) {
+        // Two logical border sizes can render to the same width, but imply different negative gaps.
+        if (SIZE_CHANGED && EXTENT > 0 && !m_window->layoutTarget()->floating()) {
+            // Recompute the existing allocation even for a covering scrolling-maximized window.
+            const auto                          WAS_QUEUED = Fullscreen::controller()->m_windowPosSettingQueued;
+            const Hyprutils::Utils::CScopeGuard RESTORE([WAS_QUEUED] { Fullscreen::controller()->m_windowPosSettingQueued = WAS_QUEUED; });
+            Fullscreen::controller()->m_windowPosSettingQueued = true;
+            m_window->layoutTarget()->recalc();
+        }
         return;
+    }
 
     m_lastBorderExtent = EXTENT;
 

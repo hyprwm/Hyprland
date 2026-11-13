@@ -349,7 +349,7 @@ void CCursorManager::updateTheme() {
     m_cursorScale = highestScale;
 
     if (*PUSEHYPRCURSOR) {
-        m_currentStyleInfo.size = std::round(m_size * highestScale);
+        m_currentStyleInfo.size = sc<unsigned int>(m_size);
 
         // Retain the representative style for XWayland even if all outputs are below 1x.
         m_styles.push_back(m_currentStyleInfo);

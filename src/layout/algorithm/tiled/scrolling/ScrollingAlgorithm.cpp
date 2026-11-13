@@ -8,6 +8,7 @@
 #include "../../../space/Space.hpp"
 #include "../../../LayoutManager.hpp"
 #include "../../../target/WindowTarget.hpp"
+#include "../../../target/WindowGeometry.hpp"
 
 #include "../../../../Compositor.hpp"
 #include "../../../../desktop/state/FocusState.hpp"
@@ -483,7 +484,6 @@ void SScrollingData::recalculate(bool forceInstant) {
         if (fullscreenOrHidden)
             return {.logicalBox = logical, .visualBox = logical};
 
-        CBox       visual        = logical;
         const bool PRIMARY_HORIZ = controller->isPrimaryHorizontal();
 
         const bool TARGET_NOT_TOP    = controller->isReversed() ? targetIdx + 1 < columns[colIdx]->targetDatas.size() : targetIdx > 0;
@@ -494,13 +494,11 @@ void SScrollingData::recalculate(bool forceInstant) {
         const bool GAP_TOP    = !PRIMARY_HORIZ || TARGET_NOT_TOP;
         const bool GAP_BOTTOM = !PRIMARY_HORIZ || TARGET_NOT_BOTTOM;
 
-        const auto GAPOFFSETTOPLEFT     = Vector2D(sc<double>(GAP_LEFT ? GAPSIN.m_left : 0), sc<double>(GAP_TOP ? GAPSIN.m_top : 0));
-        const auto GAPOFFSETBOTTOMRIGHT = Vector2D(sc<double>(GAP_RIGHT ? GAPSIN.m_right : 0), sc<double>(GAP_BOTTOM ? GAPSIN.m_bottom : 0));
-
-        visual.x += GAPOFFSETTOPLEFT.x;
-        visual.y += GAPOFFSETTOPLEFT.y;
-        visual.w = std::max(1.0, visual.w - GAPOFFSETTOPLEFT.x - GAPOFFSETBOTTOMRIGHT.x);
-        visual.h = std::max(1.0, visual.h - GAPOFFSETTOPLEFT.y - GAPOFFSETBOTTOMRIGHT.y);
+        const auto GAPS =
+            gapExtentsInPixels({{GAP_LEFT ? GAPSIN.m_left : 0, GAP_TOP ? GAPSIN.m_top : 0}, {GAP_RIGHT ? GAPSIN.m_right : 0, GAP_BOTTOM ? GAPSIN.m_bottom : 0}}, MONITOR->m_scale);
+        auto visual = boxWithPixelGaps(logical, GAPS, MONITOR->m_position, MONITOR->m_scale);
+        visual.w    = std::max(1.0, visual.w);
+        visual.h    = std::max(1.0, visual.h);
 
         return {.logicalBox = logical, .visualBox = visual};
     };

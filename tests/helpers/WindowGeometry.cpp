@@ -2,6 +2,7 @@
 #include <render/decorations/BorderGeometry.hpp>
 
 #include <gtest/gtest.h>
+#include <cmath>
 #include <tuple>
 
 static SBoxExtents borderExtents(int borderSize, float scale) {
@@ -115,5 +116,116 @@ TEST(WindowGeometry, ReservedBordersUseTheRenderersFloatRounding) {
         const CBox ALLOCATION = {0, 0, 800, 600};
         const auto CONTENT    = Layout::windowContentBox(ALLOCATION, borderExtents(border, scale), {}, scale);
         EXPECT_EQ(pixelBox(CONTENT, scale).expand(expected), pixelBox(ALLOCATION, scale));
+    }
+}
+
+TEST(WindowGeometry, NegativeGapsCancelBordersAcrossSplitPhases) {
+    for (const float scale : {1.F, 1.25F, 1.5F, 1.75F, 2.F, 1.3F, 7.F / 6.F}) {
+        for (const int border : {1, 3, 5}) {
+            const auto GAPS     = Layout::gapExtentsInPixels({{-border, -border}, {-border, -border}}, scale);
+            const auto RESERVED = borderExtents(border, scale);
+            const auto PIXELS   = Render::borderSizeInPixels(border, scale);
+            EXPECT_EQ(GAPS.topLeft, Vector2D(-PIXELS, -PIXELS));
+            EXPECT_EQ(GAPS.bottomRight, GAPS.topLeft);
+
+            for (const double split : {-2., -1.5, -0.5, 0., 0.5, 1.5, 100., 100.25, 100.5, 100.75}) {
+                for (const Vector2D origin : {Vector2D{}, Vector2D{-2048, 137}}) {
+                    SCOPED_TRACE(::testing::Message() << "scale=" << scale << " border=" << border << " split=" << split);
+                    const CBox LEFT             = CBox{-200, -200, split + 200, split + 200}.translate(origin);
+                    const CBox RIGHT            = CBox{split, split, 200, 200}.translate(origin);
+                    const auto LEFT_ALLOCATION  = Layout::boxWithPixelGaps(LEFT, GAPS, origin, scale);
+                    const auto RIGHT_ALLOCATION = Layout::boxWithPixelGaps(RIGHT, GAPS, origin, scale);
+                    const auto LEFT_CONTENT     = pixelBox(Layout::windowContentBox(LEFT_ALLOCATION, RESERVED, origin, scale), scale, origin);
+                    const auto RIGHT_CONTENT    = pixelBox(Layout::windowContentBox(RIGHT_ALLOCATION, RESERVED, origin, scale), scale, origin);
+                    const auto EDGE             = std::round(split * scale);
+
+                    EXPECT_EQ(LEFT_CONTENT.pos() + LEFT_CONTENT.size(), Vector2D(EDGE, EDGE));
+                    EXPECT_EQ(RIGHT_CONTENT.pos(), Vector2D(EDGE, EDGE));
+                    const auto LEFT_PIXELS  = pixelBox(LEFT_ALLOCATION, scale, origin);
+                    const auto RIGHT_PIXELS = pixelBox(RIGHT_ALLOCATION, scale, origin);
+                    EXPECT_EQ(LEFT_PIXELS.x + LEFT_PIXELS.w - RIGHT_PIXELS.x, 2 * PIXELS);
+                }
+            }
+        }
+    }
+}
+
+TEST(WindowGeometry, GapLengthsAreRoundedPerSide) {
+    const auto GAPS = Layout::gapExtentsInPixels({{2.0, 2.5}, {-0.5, 0.25}}, 1.25F);
+    EXPECT_EQ(GAPS.topLeft, Vector2D(3, 3));
+    EXPECT_EQ(GAPS.bottomRight, Vector2D(-1, 0));
+
+    const auto LEFT  = Layout::boxWithPixelGaps({0, 0, 100.5, 100}, GAPS, {}, 1.25);
+    const auto RIGHT = Layout::boxWithPixelGaps({100.5, 0, 100, 100}, GAPS, {}, 1.25);
+    EXPECT_EQ(pixelBox(RIGHT, 1.25).x - (pixelBox(LEFT, 1.25).x + pixelBox(LEFT, 1.25).w), 2);
+
+    const auto SYMMETRIC = Layout::gapExtentsInPixels({{2, 2}, {2, 2}}, 1.25F);
+    const auto A         = pixelBox(Layout::boxWithPixelGaps({0, 0, 100.5, 100}, SYMMETRIC, {}, 1.25), 1.25);
+    const auto B         = pixelBox(Layout::boxWithPixelGaps({100.5, 0, 100, 100}, SYMMETRIC, {}, 1.25), 1.25);
+    EXPECT_EQ(B.x - (A.x + A.w), 6);
+}
+
+TEST(WindowGeometry, FractionalAllocationsAndGapsSurviveIntegerScale) {
+    const CBox ALLOCATION = {10.25, 20.25, 100.5, 50.5};
+    const auto GAPS       = Layout::gapExtentsInPixels({{0.5, 1.5}, {2.5, 0.0}}, 2.F);
+    const auto GAPPED     = Layout::boxWithPixelGaps(ALLOCATION, GAPS, {}, 2);
+    EXPECT_EQ(pixelBox(GAPPED, 2), CBox(22, 44, 195, 98));
+    EXPECT_EQ(Layout::windowContentBox(GAPPED, {}, {}, 2), GAPPED);
+}
+
+TEST(WindowGeometry, NegativeHalfPixelEndpointsShareOneBoundary) {
+    const auto LEFT  = Layout::windowContentBox({-10, 0, 8.5, 10}, {}, {}, 1);
+    const auto RIGHT = Layout::windowContentBox({-1.5, 0, 10, 10}, {}, {}, 1);
+    EXPECT_EQ(LEFT.x + LEFT.w, -2);
+    EXPECT_EQ(RIGHT.x, -2);
+}
+
+TEST(WindowGeometry, CenteredScrollingColumnsSharePixelEdges) {
+    constexpr float SCALE = 1.25F;
+    for (const Vector2D origin : {Vector2D{}, Vector2D{-2048, 137}}) {
+        const auto OUTER  = Layout::gapExtentsInPixels({{5, 5}, {5, 5}}, SCALE);
+        const auto AREA   = Layout::boxWithPixelGaps(CBox{origin, {1536, 864}}, OUTER, origin, SCALE);
+        const auto WIDTH  = AREA.w * 0.25F;
+        double     extent = 0;
+        for (int i = 0; i < 3; ++i) {
+            extent += WIDTH;
+        }
+        const auto OFFSET = (extent - AREA.w) / 2.0;
+        // Match consecutive centered scrolling columns: the shared edge becomes 721.5 on one
+        // side and 721.4999999999999 on the other before device-pixel snapping.
+        const CBox LEFT  = {Vector2D{-OFFSET, 0.0} + AREA.pos(), {WIDTH, AREA.h}};
+        const CBox RIGHT = {Vector2D{WIDTH - OFFSET, 0.0} + AREA.pos(), {WIDTH, AREA.h}};
+        for (const double gap : {0.0, 5.0, -1.0}) {
+            const auto GAPS = Layout::gapExtentsInPixels({{gap, gap}, {gap, gap}}, SCALE);
+            const auto A    = pixelBox(Layout::boxWithPixelGaps(LEFT, GAPS, origin, SCALE), SCALE, origin);
+            const auto B    = pixelBox(Layout::boxWithPixelGaps(RIGHT, GAPS, origin, SCALE), SCALE, origin);
+            EXPECT_EQ(A.x + A.w + GAPS.bottomRight.x, 722);
+            EXPECT_EQ(B.x - GAPS.topLeft.x, 722);
+            EXPECT_EQ(B.x - (A.x + A.w), GAPS.bottomRight.x + GAPS.topLeft.x);
+        }
+    }
+}
+
+TEST(WindowGeometry, HalfTiesAccountForMonitorOriginCancellation) {
+    constexpr double SCALE = 1.25;
+    for (const double origin : {-4096.0, 0.0, 4096.0}) {
+        for (const double half : {-1.5, -0.5, 0.5, 1.5}) {
+            for (const double direction : {-1.0, 1.0}) {
+                const auto POSITION  = origin + half / SCALE;
+                const auto PERTURBED = std::nextafter(POSITION, POSITION + direction);
+                const auto CONTENT   = Layout::windowContentBox({PERTURBED, PERTURBED, 80, 80}, {}, {origin, origin}, SCALE);
+                EXPECT_EQ(pixelBox(CONTENT, SCALE, {origin, origin}).pos(), Vector2D(std::round(half), std::round(half)));
+            }
+        }
+    }
+}
+
+TEST(WindowGeometry, CoordinatesOutsideHalfTieToleranceKeepNormalRounding) {
+    for (const double half : {-1.5, -0.5, 0.5, 1.5}) {
+        for (const double delta : {-1e-6, 1e-6}) {
+            const auto VALUE   = half + delta;
+            const auto CONTENT = Layout::windowContentBox({VALUE, VALUE, 80, 80}, {}, {}, 1);
+            EXPECT_EQ(CONTENT.pos(), Vector2D(std::round(VALUE), std::round(VALUE)));
+        }
     }
 }

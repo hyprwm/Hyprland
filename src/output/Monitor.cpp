@@ -2390,14 +2390,22 @@ std::optional<NColorManagement::PImageDescription> CMonitor::getFSImageDescripti
 std::optional<NColorManagement::PImageDescription> CMonitor::getAutoHDRImageDescription(const SP<CWLSurfaceResource>& surface) {
     static const auto PAUTOHDR = CConfigValue<Config::INTEGER>("render:cm_auto_hdr");
 
-    if (!*PAUTOHDR || !supportsHDR() || !m_activeMonitorRule.m_iccFile.empty() || m_cmType == NCMType::CM_HDR || m_cmType == NCMType::CM_HDR_EDID)
+    // only prefer_hdr and prefer_hdredid make it the preferred description, the other values wait for the app to pick HDR itself
+    if (*PAUTOHDR < 3 || !supportsHDR() || !m_activeMonitorRule.m_iccFile.empty() || m_cmType == NCMType::CM_HDR || m_cmType == NCMType::CM_HDR_EDID)
         return {};
 
     const auto FS_WINDOW = Fullscreen::controller()->getFullscreenWindow(m_self.lock());
     if (!FS_WINDOW || FS_WINDOW->wlSurface()->resource() != surface || FS_WINDOW->m_ruleApplicator->noAutoHDR().valueOrDefault())
         return {};
 
-    return getHDRImageDescription(*PAUTOHDR == 2 ? NCMType::CM_HDR_EDID : NCMType::CM_HDR);
+    return getHDRImageDescription(getAutoHDRType());
+}
+
+// CM type auto HDR switches to, EDID primaries for hdredid and prefer_hdredid
+NCMType::eCMType CMonitor::getAutoHDRType() {
+    static const auto PAUTOHDR = CConfigValue<Config::INTEGER>("render:cm_auto_hdr");
+
+    return *PAUTOHDR == 2 || *PAUTOHDR == 4 ? NCMType::CM_HDR_EDID : NCMType::CM_HDR;
 }
 
 NColorManagement::SPCPRimaries CMonitor::getMasteringPrimaries() {

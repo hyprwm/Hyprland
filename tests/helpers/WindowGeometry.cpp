@@ -121,8 +121,8 @@ TEST(WindowGeometry, ReservedBordersUseTheRenderersFloatRounding) {
 
 TEST(WindowGeometry, NegativeGapsCancelBordersAcrossSplitPhases) {
     for (const float scale : {1.F, 1.25F, 1.5F, 1.75F, 2.F, 1.3F, 7.F / 6.F}) {
-        for (const int border : {1, 3, 5}) {
-            const auto GAPS     = Layout::gapExtentsInPixels({{-border, -border}, {-border, -border}}, scale);
+        for (const int border : {1, 2, 3, 5}) {
+            const auto GAPS     = Layout::innerGapExtentsInPixels({{-border, -border}, {-border, -border}}, border, scale);
             const auto RESERVED = borderExtents(border, scale);
             const auto PIXELS   = Render::borderSizeInPixels(border, scale);
             EXPECT_EQ(GAPS.topLeft, Vector2D(-PIXELS, -PIXELS));
@@ -165,6 +165,70 @@ TEST(WindowGeometry, GapLengthsAreRoundedPerSide) {
     EXPECT_EQ(B.x - (A.x + A.w), 6);
 }
 
+TEST(WindowGeometry, HalfBorderGapsMakeFacingBorderStripsCoincide) {
+    for (const float scale : {1.F, 1.25F, 1.5F, 1.75F, 2.F, 1.3F, 7.F / 6.F}) {
+        for (const int border : {1, 2, 3, 5}) {
+            const double GAP      = -border / 2.0;
+            const auto   GAPS     = Layout::innerGapExtentsInPixels({{GAP, GAP}, {GAP, GAP}}, border, scale);
+            const auto   RESERVED = borderExtents(border, scale);
+            const auto   PIXELS   = Render::borderSizeInPixels(border, scale);
+            EXPECT_EQ(GAPS.topLeft + GAPS.bottomRight, Vector2D(-PIXELS, -PIXELS));
+
+            for (const double split : {-2., -1.5, -0.5, 0., 0.5, 1.5, 100., 100.25, 100.5, 100.75}) {
+                for (const Vector2D origin : {Vector2D{}, Vector2D{-2048, 137}}) {
+                    SCOPED_TRACE(::testing::Message() << "scale=" << scale << " border=" << border << " split=" << split);
+                    const auto content = [&](CBox allocation) {
+                        allocation.translate(origin);
+                        const auto GAPPED = Layout::boxWithPixelGaps(allocation, GAPS, origin, scale);
+                        return pixelBox(Layout::windowContentBox(GAPPED, RESERVED, origin, scale), scale, origin);
+                    };
+                    const auto LEFT   = content({-200, -200, split + 200, 400});
+                    const auto RIGHT  = content({split, -200, 200, 400});
+                    const auto TOP    = content({-200, -200, 400, split + 200});
+                    const auto BOTTOM = content({-200, split, 400, 200});
+
+                    EXPECT_EQ(CBox(LEFT.x + LEFT.w, LEFT.y, PIXELS, LEFT.h), CBox(RIGHT.x - PIXELS, RIGHT.y, PIXELS, RIGHT.h));
+                    EXPECT_EQ(CBox(TOP.x, TOP.y + TOP.h, TOP.w, PIXELS), CBox(BOTTOM.x, BOTTOM.y - PIXELS, BOTTOM.w, PIXELS));
+                    EXPECT_EQ(RIGHT.x - (LEFT.x + LEFT.w), PIXELS);
+                    EXPECT_EQ(BOTTOM.y - (TOP.y + TOP.h), PIXELS);
+                }
+            }
+        }
+    }
+}
+
+TEST(WindowGeometry, InnerGapRoundingPreservesPositiveAndBorderlessGaps) {
+    const SBoxExtents POSITIVE = {{0.0, 2.5}, {0.5, 2.0}};
+    const SBoxExtents MIXED    = {{-0.5, 2.5}, {-2.5, 0.0}};
+    for (const float scale : {1.F, 1.25F, 1.5F, 2.F}) {
+        const auto EXPECTED = Layout::gapExtentsInPixels(POSITIVE, scale);
+        for (const int border : {0, 1, 2, 3}) {
+            const auto ACTUAL = Layout::innerGapExtentsInPixels(POSITIVE, border, scale);
+            EXPECT_EQ(ACTUAL.topLeft, EXPECTED.topLeft);
+            EXPECT_EQ(ACTUAL.bottomRight, EXPECTED.bottomRight);
+        }
+        const auto BORDERLESS = Layout::innerGapExtentsInPixels(MIXED, 0, scale);
+        const auto OLD        = Layout::gapExtentsInPixels(MIXED, scale);
+        EXPECT_EQ(BORDERLESS.topLeft, OLD.topLeft);
+        EXPECT_EQ(BORDERLESS.bottomRight, OLD.bottomRight);
+    }
+
+    const auto INVISIBLE = Layout::innerGapExtentsInPixels(MIXED, 1, 0.25F);
+    const auto OLD       = Layout::gapExtentsInPixels(MIXED, 0.25F);
+    EXPECT_EQ(INVISIBLE.topLeft, OLD.topLeft);
+    EXPECT_EQ(INVISIBLE.bottomRight, OLD.bottomRight);
+}
+
+TEST(WindowGeometry, IntermediateNegativeGapsAssignOddPixelsToLeadingEdges) {
+    for (const auto& [gap, leading, trailing] : {std::tuple{-0.25, -1, 0}, std::tuple{-0.5, -1, -1}, std::tuple{-1.0, -2, -1}, std::tuple{-1.5, -3, -2}}) {
+        SCOPED_TRACE(gap);
+        const auto GAPS = Layout::innerGapExtentsInPixels({{gap, gap}, {gap, gap}}, 2, 1.25F);
+        EXPECT_EQ(GAPS.topLeft, Vector2D(leading, leading));
+        EXPECT_EQ(GAPS.bottomRight, Vector2D(trailing, trailing));
+        EXPECT_EQ(Layout::innerGapPairInPixels(gap, 2, 1.25F), leading + trailing);
+    }
+}
+
 TEST(WindowGeometry, FractionalAllocationsAndGapsSurviveIntegerScale) {
     const CBox ALLOCATION = {10.25, 20.25, 100.5, 50.5};
     const auto GAPS       = Layout::gapExtentsInPixels({{0.5, 1.5}, {2.5, 0.0}}, 2.F);
@@ -195,13 +259,16 @@ TEST(WindowGeometry, CenteredScrollingColumnsSharePixelEdges) {
         // side and 721.4999999999999 on the other before device-pixel snapping.
         const CBox LEFT  = {Vector2D{-OFFSET, 0.0} + AREA.pos(), {WIDTH, AREA.h}};
         const CBox RIGHT = {Vector2D{WIDTH - OFFSET, 0.0} + AREA.pos(), {WIDTH, AREA.h}};
-        for (const double gap : {0.0, 5.0, -1.0}) {
-            const auto GAPS = Layout::gapExtentsInPixels({{gap, gap}, {gap, gap}}, SCALE);
+        for (const double gap : {0.0, 5.0, -1.0, -0.5}) {
+            const auto GAPS = Layout::innerGapExtentsInPixels({{gap, gap}, {gap, gap}}, 1, SCALE);
             const auto A    = pixelBox(Layout::boxWithPixelGaps(LEFT, GAPS, origin, SCALE), SCALE, origin);
             const auto B    = pixelBox(Layout::boxWithPixelGaps(RIGHT, GAPS, origin, SCALE), SCALE, origin);
             EXPECT_EQ(A.x + A.w + GAPS.bottomRight.x, 722);
             EXPECT_EQ(B.x - GAPS.topLeft.x, 722);
             EXPECT_EQ(B.x - (A.x + A.w), GAPS.bottomRight.x + GAPS.topLeft.x);
+            if (gap != -0.5)
+                continue;
+            EXPECT_EQ(B.x - (A.x + A.w), -1);
         }
     }
 }

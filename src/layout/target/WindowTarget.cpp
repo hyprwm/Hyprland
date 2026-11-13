@@ -88,6 +88,18 @@ void CWindowTarget::updatePos(uint8_t flags) {
     const auto contentBox = [&](const CBox& allocation, PHLWINDOW window) {
         return windowContentBox(allocation, window->getFullWindowReservedArea(), PMONITOR->m_position, PMONITOR->m_scale);
     };
+    const auto visualAllocation = [&](PHLWINDOW window) {
+        auto allocation = m_box.visualBox.empty() ? m_box.logicalBox : m_box.visualBox;
+        if (!m_box.visualGaps)
+            return allocation;
+
+        const auto BORDER = window->presentation().borderExtent() > 0 ? window->presentation().borderSize() : 0;
+        const auto GAPS   = innerGapExtentsInPixels(*m_box.visualGaps, BORDER, PMONITOR->m_scale);
+        allocation        = boxWithPixelGaps(allocation, GAPS, PMONITOR->m_position, PMONITOR->m_scale);
+        allocation.w      = std::max(1.0, allocation.w);
+        allocation.h      = std::max(1.0, allocation.h);
+        return allocation;
+    };
 
     /* FS Handling */
 
@@ -104,11 +116,9 @@ void CWindowTarget::updatePos(uint8_t flags) {
             updateWindowGeometry(m_box.logicalBox.copy().round(), flags);
 
         } else if (FSMODES.internal == Fullscreen::FSMODE_MAXIMIZED) {
-            const auto& visualBox = m_box.visualBox.empty() ? m_box.logicalBox : m_box.visualBox;
-
             // Reserved area must be updated before this is called
             // Reserved area for all windows in a group are owned by the leading window. Other windows are hidden anyway so this simply ensures their sizes are uniform when FSed
-            updateWindowGeometry(contentBox(visualBox, effectiveWindow()), flags);
+            updateWindowGeometry(contentBox(visualAllocation(effectiveWindow()), effectiveWindow()), flags);
         }
 
         return;
@@ -125,7 +135,7 @@ void CWindowTarget::updatePos(uint8_t flags) {
 
             // Reserved area must be updated before this is called
             // Reserved area for all windows in a group are owned by the leading window. Other windows are hidden anyway so this simply ensures their sizes are uniform when FSed
-            updateWindowGeometry(contentBox(visualBox, effectiveWindow()), flags);
+            updateWindowGeometry(contentBox(visualAllocation(effectiveWindow()), effectiveWindow()), flags);
         }
 
         return;
@@ -135,10 +145,11 @@ void CWindowTarget::updatePos(uint8_t flags) {
 
     g_pHyprRenderer->damageWindow(window());
 
-    auto calcPos  = m_box.visualBox.pos();
-    auto calcSize = m_box.visualBox.size();
+    const auto VISUAL_BOX = visualAllocation(m_window.lock());
+    auto       calcPos    = VISUAL_BOX.pos();
+    auto       calcSize   = VISUAL_BOX.size();
 
-    if (m_box.visualBox.empty()) {
+    if (m_box.visualBox.empty() && !m_box.visualGaps) {
         // for gaps outer
         const bool DISPLAYLEFT   = STICKS(m_box.logicalBox.x, MONITOR_WORKAREA.x);
         const bool DISPLAYRIGHT  = STICKS(m_box.logicalBox.x + m_box.logicalBox.w, MONITOR_WORKAREA.x + MONITOR_WORKAREA.w);
@@ -177,10 +188,12 @@ void CWindowTarget::updatePos(uint8_t flags) {
             }
         }
 
-        const auto        GAPS    = gapExtentsInPixels({{gapsIn.m_left, gapsIn.m_top}, {gapsIn.m_right, gapsIn.m_bottom}}, PMONITOR->m_scale);
+        const auto        BORDER  = m_window->presentation().borderExtent() > 0 ? m_window->presentation().borderSize() : 0;
+        const auto        GAPS    = innerGapExtentsInPixels({{gapsIn.m_left, gapsIn.m_top}, {gapsIn.m_right, gapsIn.m_bottom}}, BORDER, PMONITOR->m_scale);
         const SBoxExtents OFFSETS = {
-            {DISPLAYLEFT ? 0 : (DISPLAYINVERSELEFT ? 2 * GAPS.topLeft.x : GAPS.topLeft.x), DISPLAYTOP ? 0 : GAPS.topLeft.y},
-            {DISPLAYRIGHT ? 0 : (DISPLAYINVERSERIGHT ? 2 * GAPS.bottomRight.x : GAPS.bottomRight.x), DISPLAYBOTTOM ? 0 : GAPS.bottomRight.y},
+            {DISPLAYLEFT ? 0 : (DISPLAYINVERSELEFT ? innerGapPairInPixels(gapsIn.m_left, BORDER, PMONITOR->m_scale) : GAPS.topLeft.x), DISPLAYTOP ? 0 : GAPS.topLeft.y},
+            {DISPLAYRIGHT ? 0 : (DISPLAYINVERSERIGHT ? innerGapPairInPixels(gapsIn.m_right, BORDER, PMONITOR->m_scale) : GAPS.bottomRight.x),
+             DISPLAYBOTTOM ? 0 : GAPS.bottomRight.y},
         };
         const auto GAPPED = boxWithPixelGaps(m_box.logicalBox, OFFSETS, PMONITOR->m_position, PMONITOR->m_scale);
 

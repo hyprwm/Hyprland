@@ -9,15 +9,15 @@
 
 namespace Config::Values {
     struct SCssGapValueOptions {
-        std::optional<int64_t>         min               = std::nullopt;
-        std::optional<int64_t>         max               = std::nullopt;
+        std::optional<double>          min               = std::nullopt;
+        std::optional<double>          max               = std::nullopt;
         Supplementary::PropRefreshBits refresh           = 0;
         const char*                    deprecationNotice = nullptr;
     };
 
     class CCssGapValue : public IValue {
       public:
-        CCssGapValue(const char* name, const char* description, Config::INTEGER def, SCssGapValueOptions&& options = {});
+        CCssGapValue(const char* name, const char* description, double def, SCssGapValueOptions&& options = {});
 
         virtual ~CCssGapValue() = default;
 
@@ -27,7 +27,7 @@ namespace Config::Values {
         const Config::CCssGapData&    value() const;
         const Config::CCssGapData&    defaultVal() const;
 
-        const std::optional<int64_t>  m_min, m_max;
+        const std::optional<double>   m_min, m_max;
 
       private:
         CConfigValue<Config::IComplexConfigValue> m_val;

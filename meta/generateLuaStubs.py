@@ -243,7 +243,7 @@ def lua_type_from_config_ctor(ctor: str) -> str:
         "CLuaConfigString": "string",
         "CLuaConfigColor": "string",
         "CLuaConfigVec2": "HL.Vec2Like",
-        "CLuaConfigCssGap": "integer|HL.CssGap",
+        "CLuaConfigCssGap": "number|HL.CssGap",
         "CLuaConfigFontWeight": "integer|string",
         "CLuaConfigGradient": "string|HL.Gradient",
     }
@@ -262,7 +262,7 @@ def parse_config_values(root: Path) -> dict[str, str]:
         "String": "string",
         "Color": "string",
         "Vec2": "HL.Vec2Like",
-        "CssGap": "integer|HL.CssGap",
+        "CssGap": "number|HL.CssGap",
         "FontWeight": "integer|string",
         "Gradient": "string|HL.Gradient",
     }
@@ -610,7 +610,7 @@ def generate_stub(root: Path) -> str:
     lines.append("---@alias HL.WorkspaceSelector string|integer|HL.Workspace")
     lines.append("---@alias HL.WindowSelector string|integer|HL.Window")
     lines.append("---@alias HL.Vec2Like HL.Vec2|{x:number, y:number}|{number, number}|string")
-    lines.append("---@alias HL.CssGap integer|{top?:integer, right?:integer, bottom?:integer, left?:integer}")
+    lines.append("---@alias HL.CssGap number|{top?:number, right?:number, bottom?:number, left?:number}")
     lines.append("---@alias HL.Gradient string|{colors:string[], angle?:number}")
     lines.append("")
     lines.append("---@class HL.Dispatcher")

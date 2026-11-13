@@ -214,13 +214,22 @@ TEST(ConfigLuaUtils, fromGenericValueCopiesValidationMetadata) {
     }
 
     {
-        auto out   = fromGenericValue(makeShared<Values::CCssGapValue>("a", "", 1, Values::SCssGapValueOptions{.min = 0, .max = 2}));
+        auto out   = fromGenericValue(makeShared<Values::CCssGapValue>("a", "", 1.25, Values::SCssGapValueOptions{.min = -0.5, .max = 2.5}));
         auto value = dynamic_cast<CLuaConfigCssGap*>(out.get());
         ASSERT_NE(value, nullptr);
 
-        lua_pushinteger(lua, 3);
-        EXPECT_EQ(value->parse(lua).errorCode, PARSE_ERROR_OUT_OF_RANGE);
-        lua_pop(lua, 1);
+        EXPECT_DOUBLE_EQ(value->parsed().m_top, 1.25);
+        for (const double gap : {-0.5, 2.5}) {
+            lua_pushnumber(lua, gap);
+            EXPECT_EQ(value->parse(lua).errorCode, PARSE_ERROR_OK);
+            lua_pop(lua, 1);
+            EXPECT_DOUBLE_EQ(value->parsed().m_top, gap);
+        }
+        for (const double gap : {-0.75, 2.75}) {
+            lua_pushnumber(lua, gap);
+            EXPECT_EQ(value->parse(lua).errorCode, PARSE_ERROR_OUT_OF_RANGE);
+            lua_pop(lua, 1);
+        }
     }
 }
 

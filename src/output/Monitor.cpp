@@ -2168,6 +2168,10 @@ void CMonitor::handleDSleave() {
     m_drmFormat   = m_prevDrmFormat;
     m_blurFBDirty = true;
     m_damage.damageEntire();
+
+    // if swapchain in DS is an 8-bit format whilst we are configured for 10-bit, we may see a visible flicker
+    // when leaving DS. Update the swapchain format here before any further rendering to avoid that
+    m_state.updateSwapchain();
 }
 
 bool CMonitor::canAttemptDirectScanoutFast() const {

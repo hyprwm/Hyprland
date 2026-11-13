@@ -216,7 +216,7 @@ namespace Monitor {
             DS_BLOCK_FAILED    = (1 << 11),
             DS_BLOCK_CM        = (1 << 12),
 
-            DS_CHECKS_COUNT = 14,
+            DS_CHECKS_COUNT = 13,
         };
 
         // keep in sync with socket1 output

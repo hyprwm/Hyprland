@@ -820,7 +820,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
                  {.refresh = Supplementary::REFRESH_LAYOUTS}),
         MS<Float>("scrolling:column_width", "the default width of a column.", 0.5, {.min = 0.1, .max = 1.0}),
         MS<Int>("scrolling:focus_fit_method", "When a column is focused, what method should be used to bring it into view", 1,
-                {.min = 0, .max = 1, .map = OptionMap{{"center", 0}, {"fit", 1}}}),
+                {.min = 0, .max = 2, .map = OptionMap{{"center", 0}, {"fit", 1}, {"clamped_center", 2}}}),
         MS<Int>("scrolling:follow_focus",
                 "Behaviour of the scrolling tape when a window is in focus. 0: Focus doesn't cause tape move. 1: Focus may cause tape move, mouse click always moves the tape. 2: "
                 "Focus may cause tape move.",

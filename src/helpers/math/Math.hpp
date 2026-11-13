@@ -18,4 +18,5 @@ namespace Math {
     eTransform               composeTransform(eTransform a, eTransform b);
     Vector2D                 transformNormalized(const Vector2D& point, wl_output_transform transform);
     Vector2D                 mapNormalizedToBox(const Vector2D& point, const CBox& box, wl_output_transform transform = WL_OUTPUT_TRANSFORM_NORMAL);
+    double                   scaledPixelLength(double length, float scale);
 }

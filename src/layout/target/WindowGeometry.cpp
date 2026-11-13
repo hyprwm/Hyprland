@@ -4,6 +4,39 @@
 #include <cmath>
 #include <limits>
 
+static double roundPixelCoordinate(double value, double magnitude) {
+    const auto HALF      = std::floor(value) + 0.5;
+    const auto TOLERANCE = 8 * std::numeric_limits<double>::epsilon() * std::max(1.0, magnitude);
+    return std::round(std::abs(value - HALF) <= TOLERANCE ? HALF : value);
+}
+
+static CBox pixelBox(const CBox& allocation, const Vector2D& monitorPosition, double scale) {
+    const auto START = (allocation.pos() - monitorPosition) * scale;
+    const auto END   = (allocation.pos() - monitorPosition + allocation.size()) * scale;
+
+    // Equivalent shared edges can differ by roundoff at half-pixel ties. Include the source magnitudes
+    // in the allowance, since subtracting the monitor origin can leave a near-zero local coordinate.
+    const auto     X_MAGNITUDE  = (std::abs(allocation.x) + std::abs(monitorPosition.x) + std::abs(allocation.w)) * scale;
+    const auto     Y_MAGNITUDE  = (std::abs(allocation.y) + std::abs(monitorPosition.y) + std::abs(allocation.h)) * scale;
+    const Vector2D TOP_LEFT     = {roundPixelCoordinate(START.x, X_MAGNITUDE), roundPixelCoordinate(START.y, Y_MAGNITUDE)};
+    const Vector2D BOTTOM_RIGHT = {roundPixelCoordinate(END.x, X_MAGNITUDE), roundPixelCoordinate(END.y, Y_MAGNITUDE)};
+    return {TOP_LEFT, BOTTOM_RIGHT - TOP_LEFT};
+}
+
+SBoxExtents Layout::gapExtentsInPixels(const SBoxExtents& gaps, float scale) {
+    return {
+        {Math::scaledPixelLength(gaps.topLeft.x, scale), Math::scaledPixelLength(gaps.topLeft.y, scale)},
+        {Math::scaledPixelLength(gaps.bottomRight.x, scale), Math::scaledPixelLength(gaps.bottomRight.y, scale)},
+    };
+}
+
+CBox Layout::boxWithPixelGaps(const CBox& allocation, const SBoxExtents& pixelGaps, const Vector2D& monitorPosition, double scale) {
+    const auto OUTER = pixelBox(allocation, monitorPosition, scale);
+    // Apply whole-pixel offsets only after snapping the common allocation edges.
+    CBox gapped = {OUTER.pos() + pixelGaps.topLeft, OUTER.size() - pixelGaps.topLeft - pixelGaps.bottomRight};
+    return gapped.scale(1.0 / scale).translate(monitorPosition);
+}
+
 static double canonicalDimension(double value) {
     const auto INTEGER   = std::round(value);
     const auto TOLERANCE = std::numeric_limits<float>::epsilon() * std::max(1.0, std::abs(value));
@@ -11,7 +44,7 @@ static double canonicalDimension(double value) {
 }
 
 CBox Layout::windowContentBox(const CBox& allocation, const SBoxExtents& reserved, const Vector2D& monitorPosition, double scale) {
-    const auto OUTER        = allocation.copy().translate(-monitorPosition).scale(scale).round();
+    const auto OUTER        = pixelBox(allocation, monitorPosition, scale);
     const auto TOP_LEFT     = (reserved.topLeft * scale).round();
     const auto BOTTOM_RIGHT = (reserved.bottomRight * scale).round();
 
@@ -23,7 +56,7 @@ CBox Layout::windowContentBox(const CBox& allocation, const SBoxExtents& reserve
     auto canonical = logical;
     canonical.w    = canonicalDimension(logical.w);
     canonical.h    = canonicalDimension(logical.h);
-    if (canonical.copy().scale(scale).round() == INNER)
+    if (pixelBox(canonical, {}, scale) == INNER)
         logical = canonical;
 
     return logical.translate(monitorPosition);

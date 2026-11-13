@@ -2,7 +2,7 @@
 
 using namespace Config::Values;
 
-CCssGapValue::CCssGapValue(const char* name, const char* description, Config::INTEGER def, SCssGapValueOptions&& options) :
+CCssGapValue::CCssGapValue(const char* name, const char* description, double def, SCssGapValueOptions&& options) :
     IValue(options.refresh, options.deprecationNotice), m_min(options.min), m_max(options.max), m_default(def) {
     m_name        = name;
     m_description = description;

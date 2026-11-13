@@ -8,7 +8,7 @@
 namespace Config::Lua {
     class CLuaConfigCssGap : public ILuaConfigValue {
       public:
-        CLuaConfigCssGap(Config::INTEGER def, std::optional<int64_t> min = std::nullopt, std::optional<int64_t> max = std::nullopt);
+        CLuaConfigCssGap(double def, std::optional<double> min = std::nullopt, std::optional<double> max = std::nullopt);
         virtual ~CLuaConfigCssGap() = default;
 
         virtual SParseError           parse(lua_State* s);
@@ -21,8 +21,8 @@ namespace Config::Lua {
         const CCssGapData&            parsed();
 
       private:
-        Config::INTEGER        m_default = 0;
-        CCssGapData            m_data;
-        std::optional<int64_t> m_min, m_max;
+        double                m_default = 0;
+        CCssGapData           m_data;
+        std::optional<double> m_min, m_max;
     };
 };

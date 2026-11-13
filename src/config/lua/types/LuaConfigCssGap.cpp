@@ -1,13 +1,17 @@
 #include "LuaConfigCssGap.hpp"
 
+#include <cmath>
+
 using namespace Config;
 using namespace Config::Lua;
 
-CLuaConfigCssGap::CLuaConfigCssGap(Config::INTEGER def, std::optional<int64_t> min, std::optional<int64_t> max) : m_default(def), m_data(def), m_min(min), m_max(max) {
+CLuaConfigCssGap::CLuaConfigCssGap(double def, std::optional<double> min, std::optional<double> max) : m_default(def), m_data(def), m_min(min), m_max(max) {
     ;
 }
 
-static std::string checkRange(int64_t v, const std::string& field, std::optional<int64_t> min, std::optional<int64_t> max) {
+static std::string checkRange(double v, const std::string& field, std::optional<double> min, std::optional<double> max) {
+    if (!std::isfinite(v))
+        return std::format("gap \"{}\" must be finite", field);
     if (min.has_value() && v < *min)
         return std::format("gap \"{}\" value {} is less than the minimum of {}", field, v, *min);
     if (max.has_value() && v > *max)
@@ -16,10 +20,10 @@ static std::string checkRange(int64_t v, const std::string& field, std::optional
 }
 
 SParseError CLuaConfigCssGap::parse(lua_State* s) {
-    // accept a plain integer
+    // accept a plain number
     if (lua_isinteger(s, -1) || lua_isnumber(s, -1)) {
-        int64_t v = sc<int64_t>(lua_tonumber(s, -1));
-        auto    e = checkRange(v, "global", m_min, m_max);
+        double v = lua_tonumber(s, -1);
+        auto   e = checkRange(v, "global", m_min, m_max);
         if (!e.empty())
             return {.errorCode = PARSE_ERROR_OUT_OF_RANGE, .message = e};
         m_data.reset(v);
@@ -28,17 +32,17 @@ SParseError CLuaConfigCssGap::parse(lua_State* s) {
     }
 
     if (!lua_istable(s, -1))
-        return {.errorCode = PARSE_ERROR_BAD_TYPE, .message = "css_gap type requires an integer or a table with optional \"top\", \"right\", \"bottom\", \"left\" fields"};
+        return {.errorCode = PARSE_ERROR_BAD_TYPE, .message = "css_gap type requires a number or a table with optional \"top\", \"right\", \"bottom\", \"left\" fields"};
 
-    const auto readField = [&](const char* name, int64_t fallback) -> std::expected<int64_t, SParseError> {
+    const auto readField = [&](const char* name, double fallback) -> std::expected<double, SParseError> {
         lua_getfield(s, -1, name);
-        int64_t val = fallback;
+        double val = fallback;
         if (!lua_isnil(s, -1)) {
             if (!lua_isinteger(s, -1) && !lua_isnumber(s, -1)) {
                 lua_pop(s, 1);
-                return std::unexpected(SParseError{.errorCode = PARSE_ERROR_BAD_TYPE, .message = std::format("css_gap \"{}\" must be an integer", name)});
+                return std::unexpected(SParseError{.errorCode = PARSE_ERROR_BAD_TYPE, .message = std::format("css_gap \"{}\" must be a number", name)});
             }
-            val    = sc<int64_t>(lua_tointeger(s, -1));
+            val    = lua_tonumber(s, -1);
             auto e = checkRange(val, name, m_min, m_max);
             if (!e.empty()) {
                 lua_pop(s, 1);
@@ -82,16 +86,16 @@ std::string CLuaConfigCssGap::toString() {
 void CLuaConfigCssGap::push(lua_State* s) {
     lua_createtable(s, 0, 4);
 
-    lua_pushinteger(s, m_data.m_top);
+    lua_pushnumber(s, m_data.m_top);
     lua_setfield(s, -2, "top");
 
-    lua_pushinteger(s, m_data.m_right);
+    lua_pushnumber(s, m_data.m_right);
     lua_setfield(s, -2, "right");
 
-    lua_pushinteger(s, m_data.m_bottom);
+    lua_pushnumber(s, m_data.m_bottom);
     lua_setfield(s, -2, "bottom");
 
-    lua_pushinteger(s, m_data.m_left);
+    lua_pushnumber(s, m_data.m_left);
     lua_setfield(s, -2, "left");
 }
 

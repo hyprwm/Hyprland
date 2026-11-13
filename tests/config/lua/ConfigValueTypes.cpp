@@ -14,6 +14,7 @@
 #include <gtest/gtest.h>
 
 #include <numbers>
+#include <limits>
 
 extern "C" {
 #include <lualib.h>
@@ -337,6 +338,76 @@ TEST(ConfigLuaValueTypes, cssGapParseFormsAndRange) {
     err = value.parse(L);
     lua_pop(L, 1);
     EXPECT_EQ(err.errorCode, PARSE_ERROR_BAD_TYPE);
+}
+
+TEST(ConfigLuaValueTypes, cssGapPreservesFractionsAndRoundTrips) {
+    CLuaState        S;
+    const auto       L = S.get();
+    CLuaConfigCssGap value(1.25);
+
+    for (const double gap : {2.5, -0.8, -1.25}) {
+        lua_pushnumber(L, gap);
+        ASSERT_EQ(value.parse(L).errorCode, PARSE_ERROR_OK);
+        lua_pop(L, 1);
+        EXPECT_DOUBLE_EQ(value.parsed().m_top, gap);
+        EXPECT_DOUBLE_EQ(value.parsed().m_right, gap);
+        EXPECT_DOUBLE_EQ(value.parsed().m_bottom, gap);
+        EXPECT_DOUBLE_EQ(value.parsed().m_left, gap);
+    }
+
+    lua_createtable(L, 0, 2);
+    lua_pushnumber(L, 2.5);
+    lua_setfield(L, -2, "top");
+    lua_pushnumber(L, -0.8);
+    lua_setfield(L, -2, "left");
+    ASSERT_EQ(value.parse(L).errorCode, PARSE_ERROR_OK);
+    lua_pop(L, 1);
+
+    value.push(L);
+    CLuaConfigCssGap roundTrip(0);
+    ASSERT_EQ(roundTrip.parse(L).errorCode, PARSE_ERROR_OK);
+    lua_pop(L, 1);
+    EXPECT_DOUBLE_EQ(roundTrip.parsed().m_top, 2.5);
+    EXPECT_DOUBLE_EQ(roundTrip.parsed().m_right, 0);
+    EXPECT_DOUBLE_EQ(roundTrip.parsed().m_bottom, 0);
+    EXPECT_DOUBLE_EQ(roundTrip.parsed().m_left, -0.8);
+    EXPECT_EQ(roundTrip.toString(), "2.5 0 0 -0.8");
+
+    value.reset();
+    EXPECT_EQ(value.toString(), "1.25 1.25 1.25 1.25");
+}
+
+TEST(ConfigLuaValueTypes, cssGapRejectsNonfiniteValuesWithoutChangingStoredData) {
+    CLuaState        S;
+    const auto       L = S.get();
+    CLuaConfigCssGap value(2.5);
+
+    for (const double invalid : {std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity(), std::numeric_limits<double>::quiet_NaN()}) {
+        lua_pushnumber(L, invalid);
+        EXPECT_EQ(value.parse(L).errorCode, PARSE_ERROR_OUT_OF_RANGE);
+        lua_pop(L, 1);
+
+        lua_createtable(L, 0, 2);
+        lua_pushnumber(L, 1.25);
+        lua_setfield(L, -2, "top");
+        lua_pushnumber(L, invalid);
+        lua_setfield(L, -2, "left");
+        EXPECT_EQ(value.parse(L).errorCode, PARSE_ERROR_OUT_OF_RANGE);
+        lua_pop(L, 1);
+
+        EXPECT_EQ(value.toString(), "2.5 2.5 2.5 2.5");
+        EXPECT_EQ(lua_gettop(L), 0);
+    }
+}
+
+TEST(ConfigLuaValueTypes, cssGapTextShorthandPreservesFractions) {
+    CCssGapData value;
+    value.parseGapData(Hyprutils::String::CVarList2("2.5 -0.8", 0, ' '));
+    EXPECT_EQ(value.toString(), "2.5 -0.8 2.5 -0.8");
+    value.parseGapData(Hyprutils::String::CVarList2("1.25 2.5 3.75 -1", 0, ' '));
+    EXPECT_EQ(value.toString(), "1.25 2.5 3.75 -1");
+    EXPECT_THROW(value.parseGapData(Hyprutils::String::CVarList2("nan", 0, ' ')), std::invalid_argument);
+    EXPECT_THROW(value.parseGapData(Hyprutils::String::CVarList2("inf", 0, ' ')), std::invalid_argument);
 }
 
 TEST(ConfigLuaValueTypes, fontWeightParse) {

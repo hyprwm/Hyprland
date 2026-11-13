@@ -94,7 +94,7 @@ namespace Config::Actions {
     ActionResult setSubmap(const std::string& submap);
     ActionResult dpms(eTogglableAction action, std::optional<PHLMONITOR> mon);
     ActionResult forceIdle(float seconds);
-    ActionResult global(const std::string& action);
+    ActionResult global(const std::string& action, const std::optional<bool> event = std::nullopt);
     ActionResult event(const std::string& data);
 
     ActionResult mouse(const std::string& action);

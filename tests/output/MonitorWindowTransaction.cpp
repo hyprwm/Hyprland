@@ -3,7 +3,9 @@
 #include <config/ConfigValue.hpp>
 #include <config/lua/ConfigManager.hpp>
 #include <config/shared/animation/AnimationTree.hpp>
+#include <config/shared/complex/ComplexDataTypes.hpp>
 #include <config/shared/inotify/ConfigWatcher.hpp>
+#include <desktop/rule/windowRule/WindowRuleApplicator.hpp>
 #include <desktop/view/window/WaylandBackend.hpp>
 #include <desktop/view/window/Window.hpp>
 #include <desktop/view/window/WindowPresentation.hpp>
@@ -16,8 +18,10 @@
 #include <layout/algorithm/TiledAlgorithm.hpp>
 #include <layout/LayoutManager.hpp>
 #include <layout/space/Space.hpp>
+#include <layout/target/WindowGeometry.hpp>
 #include <layout/target/WindowGroupTarget.hpp>
 #include <layout/target/WindowTarget.hpp>
+#include <protocols/FractionalScale.hpp>
 #include <managers/fullscreen/FullscreenController.hpp>
 #include <managers/fullscreen/handler/FullscreenHandler.hpp>
 #include <animation/WorkspaceAnimationController.hpp>
@@ -528,6 +532,249 @@ class CMonitorWindowTransactionTest : public ::testing::Test {
     UP<Desktop::CFadingOutState>                               m_previousFadeouts;
     UP<Layout::CLayoutManager>                                 m_previousLayout;
 };
+
+class CWindowGeometryTest : public CMonitorWindowTransactionTest {
+  protected:
+    void SetUp() override {
+        CMonitorWindowTransactionTest::SetUp();
+        ASSERT_FALSE(HasFatalFailure());
+        m_previousFractional = std::move(PROTO::fractional);
+        PROTO::fractional    = makeUnique<CFractionalScaleProtocol>(&wp_fractional_scale_manager_v1_interface, 1, "geometry-fractional-scale-test");
+        *CConfigValue<Config::INTEGER>("misc:transaction_timeout").ptr()       = 0;
+        *CConfigValue<Config::INTEGER>("general:border_size").ptr()            = 1;
+        *CConfigValue<Config::INTEGER>("misc:size_limits_tiled").ptr()         = 0;
+        *CConfigValue<Config::VEC2>("layout:single_window_aspect_ratio").ptr() = {};
+        *CConfigValue<Config::BOOL>("group:groupbar:enabled").ptr()            = false;
+        setGaps("general:gaps_in", {-1});
+        setGaps("general:gaps_out", {0});
+        m_monitor->m_scale    = 1.25F;
+        m_monitor->m_size     = {800, 600};
+        m_monitor->m_position = {-123.36, 81.12};
+        m_monitor->m_enabled  = true;
+    }
+
+    void TearDown() override {
+        PROTO::fractional = std::move(m_previousFractional);
+        CMonitorWindowTransactionTest::TearDown();
+    }
+
+    void setGaps(const char* name, const Config::CCssGapData& gaps) {
+        *sc<Config::CCssGapData*>(CConfigValue<Config::IComplexConfigValue>(name).ptr()) = gaps;
+    }
+
+    PHLWORKSPACE makeGeometryWorkspace() {
+        return Workspace::CRegularWorkspace::create(Workspace::SWorkspaceNumberedID{9}, m_monitor, "geometry");
+    }
+
+    PHLWINDOW makeTiledWindow(PHLWORKSPACE workspace) {
+        auto window         = makeWindow();
+        window->m_workspace = workspace;
+        window->windowTarget()->setSpaceGhost(workspace->space());
+        window->windowTarget()->setFloatingInitial(false);
+        g_pDecorationPositioner->onWindowMap(window);
+        window->presentation().invalidateBorderSize();
+        window->presentation().updateDecorations();
+        return window;
+    }
+
+    CBox physicalBox(const CBox& box) {
+        return box.copy().translate(-m_monitor->m_position).scale(m_monitor->m_scale);
+    }
+
+    void expectBoxNear(const CBox& actual, const CBox& expected) {
+        EXPECT_NEAR(actual.x, expected.x, 1e-9);
+        EXPECT_NEAR(actual.y, expected.y, 1e-9);
+        EXPECT_NEAR(actual.x + actual.w, expected.x + expected.w, 1e-9);
+        EXPECT_NEAR(actual.y + actual.h, expected.y + expected.h, 1e-9);
+    }
+
+  private:
+    UP<CFractionalScaleProtocol> m_previousFractional;
+};
+
+TEST_F(CWindowGeometryTest, NegativeInnerGapsShareTheFractionalSplitAcrossMonitorOrigins) {
+    for (const auto& origin : {Vector2D{}, Vector2D{-123.36, 81.12}}) {
+        SCOPED_TRACE(::testing::Message() << "origin=" << origin.x << "," << origin.y);
+        m_monitor->m_position = origin;
+        const auto workspace  = makeGeometryWorkspace();
+        const auto left       = makeTiledWindow(workspace);
+        const auto right      = makeTiledWindow(workspace);
+        for (const auto& window : {left, right}) {
+            const auto reserved = window->getFullWindowReservedArea();
+            ASSERT_EQ(reserved.topLeft, Vector2D(0.8, 0.8));
+            ASSERT_EQ(reserved.bottomRight, Vector2D(0.8, 0.8));
+        }
+
+        // 400.48 maps to pixel 501; rounding the logical split first incorrectly gives 500.
+        const CBox leftAllocation{origin, {400.48, 600.0}};
+        const CBox rightAllocation{origin + Vector2D{400.48, 0.0}, {399.52, 600.0}};
+        left->windowTarget()->setPositionGlobal(leftAllocation);
+        right->windowTarget()->setPositionGlobal(rightAllocation);
+
+        EXPECT_EQ(left->windowTarget()->position(), leftAllocation);
+        EXPECT_EQ(right->windowTarget()->position(), rightAllocation);
+        expectBoxNear(physicalBox(appliedGoal(left)), {1, 1, 500, 748});
+        expectBoxNear(physicalBox(appliedGoal(right)), {501, 1, 498, 748});
+        const auto leftDecorated  = physicalBox(appliedGoal(left).addExtents(left->getFullWindowReservedArea()));
+        const auto rightDecorated = physicalBox(appliedGoal(right).addExtents(right->getFullWindowReservedArea()));
+        EXPECT_NEAR(leftDecorated.x + leftDecorated.w - rightDecorated.x, 2, 1e-9);
+        EXPECT_FALSE(pending(left));
+        EXPECT_FALSE(pending(right));
+    }
+}
+
+TEST_F(CWindowGeometryTest, BorderlessIntegerScaleRetainsHalfLogicalPixelGaps) {
+    m_monitor->m_scale                                          = 2.F;
+    *CConfigValue<Config::INTEGER>("general:border_size").ptr() = 0;
+    setGaps("general:gaps_in", {0.5});
+    const auto workspace = makeGeometryWorkspace();
+    const auto left      = makeTiledWindow(workspace);
+    const auto right     = makeTiledWindow(workspace);
+    ASSERT_EQ(left->getFullWindowReservedArea().topLeft, Vector2D());
+    ASSERT_EQ(right->getFullWindowReservedArea().bottomRight, Vector2D());
+
+    left->windowTarget()->setPositionGlobal(CBox{m_monitor->m_position, {400.48, 600.0}});
+    right->windowTarget()->setPositionGlobal(CBox{m_monitor->m_position + Vector2D{400.48, 0.0}, {399.52, 600.0}});
+
+    expectBoxNear(physicalBox(appliedGoal(left)), {0, 0, 800, 1200});
+    expectBoxNear(physicalBox(appliedGoal(right)), {802, 0, 798, 1200});
+}
+
+TEST_F(CWindowGeometryTest, PreGappedVisualBoxIsNotGappedAgainOnRecalc) {
+    setGaps("general:gaps_in", {1.6, 2.4, 0.8, 3.2});
+    const auto workspace = makeGeometryWorkspace();
+    const auto window    = makeTiledWindow(workspace);
+    const CBox allocation{m_monitor->m_position + Vector2D{100.24, 40.32}, {400.48, 300.16}};
+    const auto gaps = Layout::gapExtentsInPixels({{3.2, 1.6}, {2.4, 0.8}}, m_monitor->m_scale);
+    // Scrolling supplies an already-gapped visual box alongside the original allocation.
+    const Layout::STargetBox box{
+        .logicalBox = allocation,
+        .visualBox  = Layout::boxWithPixelGaps(allocation, gaps, m_monitor->m_position, m_monitor->m_scale).translate({0.8, 0.8}),
+    };
+
+    window->windowTarget()->setPositionGlobal(box);
+    expectBoxNear(physicalBox(appliedGoal(window)), {131, 54, 492, 371});
+    window->windowTarget()->recalc();
+    EXPECT_EQ(window->windowTarget()->position(), allocation);
+    expectBoxNear(physicalBox(appliedGoal(window)), {131, 54, 492, 371});
+}
+
+TEST_F(CWindowGeometryTest, GroupForwardingAndRecalcPreserveLogicalAndVisualFractions) {
+    const auto workspace = makeGeometryWorkspace();
+    const auto first     = makeTiledWindow(workspace);
+    const auto second    = makeTiledWindow(workspace);
+    const auto group     = makeDragGroup(first, second);
+    group->target()->setSpaceGhost(workspace->space());
+    for (const auto& window : {first, second}) {
+        window->m_workspace = workspace;
+        window->windowTarget()->setSpaceGhost(workspace->space());
+        window->windowTarget()->setFloatingInitial(false);
+    }
+
+    const CBox allocation{m_monitor->m_position, {400.48, 600.0}};
+    for (const bool visual : {false, true}) {
+        SCOPED_TRACE(visual);
+        Layout::STargetBox box{.logicalBox = allocation};
+        if (visual)
+            box.visualBox = Layout::boxWithPixelGaps(allocation, {{1, 0}, {-1, 0}}, m_monitor->m_position, m_monitor->m_scale);
+        const CBox EXPECTED = visual ? CBox{2, 1, 499, 748} : CBox{1, 1, 500, 748};
+        group->target()->setPositionGlobal(box);
+        for (const auto& window : {first, second}) {
+            expectBoxNear(physicalBox(appliedGoal(window)), EXPECTED);
+        }
+        group->target()->recalc();
+        EXPECT_EQ(group->target()->position(), allocation);
+        for (const auto& window : {first, second}) {
+            EXPECT_EQ(window->windowTarget()->position(), allocation);
+            expectBoxNear(physicalBox(appliedGoal(window)), EXPECTED);
+        }
+    }
+    // Detach ghost spaces while all group members still have live targets.
+    first->windowTarget()->setSpaceGhost(nullptr);
+    second->windowTarget()->setSpaceGhost(nullptr);
+    group->target()->setSpaceGhost(nullptr);
+}
+
+TEST_F(CWindowGeometryTest, OuterGapsSnapAfterReservationsAndKeepFloatingFallbackLogical) {
+    m_monitor->m_reservedArea = Desktop::CReservedArea{0.24, 0.32, 0.16, 0.48};
+    setGaps("general:gaps_out", {0.5, 1.25, 2.4, 0.8});
+    setGaps("general:float_gaps", {-1});
+    const auto workspace = makeGeometryWorkspace();
+    const auto space     = workspace->space();
+    space->recheckWorkArea();
+
+    expectBoxNear(physicalBox(space->workArea()), {2, 1, 996, 746});
+    expectBoxNear(space->workArea(true), CBox{1.28, 0.74, 797.15, 596.7}.translate(m_monitor->m_position));
+    const auto window = makeTiledWindow(workspace);
+    window->windowTarget()->setPositionGlobal(space->workArea());
+    expectBoxNear(physicalBox(appliedGoal(window)), {3, 2, 994, 744});
+
+    // Negative outer gaps still clamp to zero; the floating sentinel still uses logical gaps_out.
+    setGaps("general:gaps_out", {-0.5, 1.25, -2.4, 0.8});
+    space->recheckWorkArea();
+    expectBoxNear(physicalBox(space->workArea()), {2, 0, 996, 750});
+    expectBoxNear(space->workArea(true), CBox{1.28, 0.24, 797.15, 599.6}.translate(m_monitor->m_position));
+    window->windowTarget()->setPositionGlobal(space->workArea());
+    expectBoxNear(physicalBox(appliedGoal(window)), {3, 1, 994, 748});
+}
+
+TEST_F(CWindowGeometryTest, MaximizedGeometryAndSyncUseTheSameFractionalWorkArea) {
+    m_monitor->m_position = {};
+    setGaps("general:gaps_out", {1.25, 0.5, 2.4, 1.25});
+    const auto workspace = makeGeometryWorkspace();
+    const auto window    = makeTiledWindow(workspace);
+    const auto handler   = workspace->space()->algorithm()->tiledAlgo()->getFSHandler();
+    handler->setTargetFullscreenModeInternal(window->windowTarget(), Fullscreen::FSMODE_MAXIMIZED);
+    window->presentation().invalidateBorderSize();
+    window->presentation().updateDecorations();
+    handler->setTargetSizeAndPosition(window->windowTarget());
+
+    EXPECT_EQ(window->windowTarget()->position(), workspace->space()->workArea());
+    expectBoxNear(physicalBox(appliedGoal(window)), {3, 3, 995, 743});
+    const auto LEGACY_BOX = Layout::windowContentBox(workspace->space()->workArea().copy().round(), window->getFullWindowReservedArea(), m_monitor->m_position, m_monitor->m_scale);
+    ASSERT_NE(LEGACY_BOX, appliedGoal(window));
+    window->setBox(LEGACY_BOX);
+    handler->syncTargetSizeAndPosition();
+    expectBoxNear(physicalBox(appliedGoal(window)), {3, 3, 995, 743});
+    handler->syncTargetSizeAndPosition();
+    expectBoxNear(physicalBox(appliedGoal(window)), {3, 3, 995, 743});
+    EXPECT_FALSE(pending(window));
+}
+
+TEST_F(CWindowGeometryTest, SizeLimitedTilesStayOnTheDeviceGridAfterCentering) {
+    *CConfigValue<Config::INTEGER>("misc:size_limits_tiled").ptr() = 1;
+    setGaps("general:gaps_in", {0});
+    m_monitor->m_position = {};
+    m_monitor->m_size     = {503, 503};
+    for (const float scale : {1.F, 1.25F}) {
+        SCOPED_TRACE(scale);
+        m_monitor->m_scale   = scale;
+        const auto workspace = makeGeometryWorkspace();
+        const auto window    = makeTiledWindow(workspace);
+        window->m_ruleApplicator->maxSize().set(Vector2D{400, 400}, Desktop::Types::PRIORITY_SET_PROP);
+        window->windowTarget()->setPositionGlobal(workspace->space()->workArea());
+        const auto OFFSET = scale == 1.F ? 52.0 : 65.0;
+        expectBoxNear(physicalBox(appliedGoal(window)), {OFFSET, OFFSET, 400 * scale, 400 * scale});
+    }
+}
+
+TEST_F(CWindowGeometryTest, OrdinaryFloatingAndFullscreenKeepLogicalRounding) {
+    m_monitor->m_size    = {800.48, 600.64};
+    const auto workspace = makeGeometryWorkspace();
+    const auto window    = makeTiledWindow(workspace);
+    const CBox floating{m_monitor->m_position + Vector2D{10.24, 20.48}, {100.48, 80.64}};
+    window->windowTarget()->setFloatingInitial(true);
+    window->windowTarget()->setPositionGlobal(floating);
+    EXPECT_EQ(appliedGoal(window), floating.copy().round());
+
+    window->windowTarget()->setFloatingInitial(false);
+    const auto handler = workspace->space()->algorithm()->tiledAlgo()->getFSHandler();
+    handler->setTargetFullscreenModeInternal(window->windowTarget(), Fullscreen::FSMODE_FULLSCREEN);
+    handler->setTargetSizeAndPosition(window->windowTarget());
+    EXPECT_EQ(appliedGoal(window), m_monitor->logicalBox().round());
+    handler->syncTargetSizeAndPosition();
+    EXPECT_EQ(appliedGoal(window), m_monitor->logicalBox().round());
+}
 
 TEST_F(CMonitorWindowTransactionTest, ZeroTimeoutAppliesLayoutGeometryAndWorkspaceWithoutWaiting) {
     *CConfigValue<Config::INTEGER>("misc:transaction_timeout").ptr() = 0;

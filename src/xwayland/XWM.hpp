@@ -119,6 +119,7 @@ class CXWM {
     SP<CX11DataDevice> getDataDevice();
     SP<IDataOffer>     createX11DataOffer(SP<CWLSurfaceResource> surf, SP<IDataSource> source);
     void               updateWorkArea(int x, int y, int w, int h);
+    int32_t            applyScale(double val);
 
   private:
     void                 setCursor(unsigned char* pixData, uint32_t stride, const Vector2D& size, const Vector2D& hotspot);
@@ -182,12 +183,15 @@ class CXWM {
 
     SXSelection* getSelection(xcb_atom_t atom);
 
+    int32_t      applyUnScale(double val);
+
     //
     UP<CXCBConnection>                        m_connection;
     xcb_errors_context_t*                     m_errors = nullptr;
     xcb_screen_t*                             m_screen = nullptr;
 
     xcb_window_t                              m_wmWindow;
+    double                                    m_scale = 1.0;
 
     wl_event_source*                          m_eventSource = nullptr;
 

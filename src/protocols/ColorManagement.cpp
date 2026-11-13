@@ -577,6 +577,9 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
                 .reference = m_settings.getTFRefLuminance(),
             };
         }
+        // "With transfer_function.st2084_pq the given 'max_lum' value is ignored, and 'max_lum' is taken as 'min_lum' + 10000 cd/m²."
+        if ((m_valuesSet & PC_LUMINANCES) && m_settings.transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ)
+          m_settings.luminances.max = sc<uint32_t>(m_settings.luminances.min + HDR_MAX_LUMINANCE);
 
         RESOURCE->m_self     = RESOURCE;
         RESOURCE->m_settings = CImageDescription::from(m_settings);

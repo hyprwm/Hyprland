@@ -24,14 +24,14 @@ namespace Layout::Floating {
         virtual void swapTargets(SP<ITarget> a, SP<ITarget> b);
         virtual void moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
 
+        virtual void updateTarget(SP<ITarget> target) override;
+
         virtual void recenter(SP<ITarget> t);
 
       private:
         CBox fitBoxInWorkArea(const CBox& box, SP<ITarget> t, bool fully = true);
 
-        void updateTarget(SP<ITarget>);
-
-        CBox setPositionGlobal(SP<ITarget> t, const CBox& box);
+        CBox setPositionGlobal(SP<ITarget> t, const CBox& box, uint8_t flags = TARGET_UPDATE_NONE);
 
         struct SWindowData {
             CBox lastBox;

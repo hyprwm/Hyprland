@@ -17,6 +17,10 @@ void IFloatingAlgorithm::recalculate(eRecalculateReason reason) {
     }
 }
 
+void IFloatingAlgorithm::updateTarget(SP<ITarget> target) {
+    ;
+}
+
 void IFloatingAlgorithm::recenter(SP<ITarget> t) {
     const auto LAST = t->lastFloatingSize();
 

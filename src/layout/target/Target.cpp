@@ -1,16 +1,33 @@
 #include "Target.hpp"
 #include "../space/Space.hpp"
+#include "../algorithm/Algorithm.hpp"
+#include "../algorithm/FloatingAlgorithm.hpp"
 #include "../../debug/log/Logger.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 
 using namespace Layout;
 using namespace Hyprutils::Utils;
 
-void ITarget::setPositionGlobal(const STargetBox& box, uint8_t) {
+void ITarget::setPositionGlobal(const STargetBox& box, uint8_t flags) {
     m_box = box;
     m_box.logicalBox.round();
     m_box.visualBox.round();
+
+    // Update floating window target's m_datas
+
+    const auto SELF = m_self.lock();
+
+    if ((flags & Layout::TARGET_UPDATE_NO_UPDATE_RESTORE_CACHE) || m_ghostSpace || !floating() || !m_space || !m_space->algorithm() || !SELF ||
+        Fullscreen::controller()->isFullscreen(SELF->window()))
+        return;
+
+    const auto& FLOAT_ALGO = m_space->algorithm()->floatingAlgo();
+    if (!FLOAT_ALGO)
+        return;
+
+    FLOAT_ALGO->updateTarget(SELF);
 }
 
 void ITarget::setPositionGlobal(const CBox& box, uint8_t flags) {
@@ -74,7 +91,8 @@ Vector2D ITarget::lastFloatingSize() const {
 }
 
 void ITarget::recalc() {
-    setPositionGlobal(m_box);
+    // Reapply existing geometry without updating the restore cache
+    setPositionGlobal(m_box, TARGET_UPDATE_NO_UPDATE_RESTORE_CACHE);
 }
 
 void ITarget::setPseudo(bool x) {
@@ -106,9 +124,7 @@ void ITarget::swap(SP<ITarget> b) {
 
     // Keep workspaces alive during a swap: moving one window will unref the ws
 
-    // NOLINTNEXTLINE
-    const auto PWS1 = workspace();
-    // NOLINTNEXTLINE
+    const auto  PWS1 = workspace();
     const auto  PWS2 = b->workspace();
 
     CScopeGuard x([&] {
@@ -118,6 +134,12 @@ void ITarget::swap(SP<ITarget> b) {
         // update the spaces
         b->onUpdateSpace();
         onUpdateSpace();
+
+        // Update the restore caches after floating states and space ownership have been swapped
+        if (IS_FLOATING_B && space())
+            space()->algorithm()->floatingAlgo()->updateTarget(m_self.lock());
+        if (IS_FLOATING && b->space())
+            b->space()->algorithm()->floatingAlgo()->updateTarget(b);
     });
 
     if (b->space() == m_space) {

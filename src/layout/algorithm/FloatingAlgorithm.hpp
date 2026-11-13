@@ -20,6 +20,9 @@ namespace Layout {
         // a target is moved to a pos x size
         virtual void setTargetGeom(const CBox& geom, SP<ITarget> target) = 0;
 
+        // Update cached geometry after geometry changes/initialization/transfers/swaps; implementations must not move the target.
+        virtual void updateTarget(SP<ITarget> target);
+
         virtual void recenter(SP<ITarget> t);
 
         virtual void recalculate(eRecalculateReason reason = RECALCULATE_REASON_UNKNOWN);

@@ -913,6 +913,8 @@ ActionResult Actions::setProp(const std::string& PROP, const std::string& VAL, s
             parsePropTrivial(PWINDOW->m_ruleApplicator->noWobble(), VAL);
         else if (PROP == "no_shortcuts_inhibit")
             parsePropTrivial(PWINDOW->m_ruleApplicator->noShortcutsInhibit(), VAL);
+        else if (PROP == "shortcuts_inhibit")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->shortcutsInhibit(), VAL);
         else if (PROP == "dim_around")
             parsePropTrivial(PWINDOW->m_ruleApplicator->dimAround(), VAL);
         else if (PROP == "opaque")

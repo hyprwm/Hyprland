@@ -1,6 +1,7 @@
 #include "Space.hpp"
 
 #include "../target/Target.hpp"
+#include "../target/WindowGeometry.hpp"
 #include "../algorithm/Algorithm.hpp"
 
 #include "../../debug/log/Logger.hpp"
@@ -100,10 +101,9 @@ void CSpace::recheckWorkArea() {
     auto                   floatWorkArea = workArea;
 
     reservedFloatGaps.applyip(floatWorkArea);
-    reservedGaps.applyip(workArea);
-
-    m_workArea         = workArea;
-    m_floatingWorkArea = floatWorkArea;
+    const auto PIXEL_GAPS = gapExtentsInPixels({{reservedGaps.left(), reservedGaps.top()}, {reservedGaps.right(), reservedGaps.bottom()}}, m_parent->m_monitor->m_scale);
+    m_workArea            = boxWithPixelGaps(workArea, PIXEL_GAPS, m_parent->m_monitor->m_position, m_parent->m_monitor->m_scale);
+    m_floatingWorkArea    = floatWorkArea;
 }
 
 const CBox& CSpace::workArea(bool floating) const {

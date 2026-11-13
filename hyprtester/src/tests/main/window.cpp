@@ -1314,6 +1314,17 @@ TEST_CASE(windows) {
     SPAWN_KITTY("plugin_kitty");
 
     OK(getFromSocket("/eval hl.plugin.test.check_window_rule()"));
+
+    Tests::killAllWindows();
+
+    OK(getFromSocket("/eval hl.plugin.test.add_typed_window_rule()"));
+    OK(getFromSocket("/reload"));
+
+    OK(getFromSocket("/eval hl.window_rule({ match = { class = 'plugin_typed_kitty' }, plugin_typed_rule = { top = 1, right = 2, bottom = 3, left = 4 } })"));
+
+    SPAWN_KITTY("plugin_typed_kitty");
+
+    OK(getFromSocket("/eval hl.plugin.test.check_typed_window_rule()"));
 }
 
 TEST_CASE(cycle_nextTiled) {

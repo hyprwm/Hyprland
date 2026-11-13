@@ -3,6 +3,7 @@
 #include "LayerRuleEffectContainer.hpp"
 #include "../../DesktopTypes.hpp"
 #include "../Rule.hpp"
+#include "../RuleWithEffects.hpp"
 #include "../../types/OverridableVar.hpp"
 #include "../../../helpers/math/Math.hpp"
 #include "../../../config/shared/complex/ComplexDataTypes.hpp"
@@ -25,7 +26,7 @@ namespace Desktop::Rule {
         struct SCustomPropContainer {
             CLayerRuleEffectContainer::storageType idx      = LAYER_RULE_EFFECT_NONE;
             std::underlying_type_t<eRuleProperty>  propMask = RULE_PROP_NONE;
-            std::string                            effect;
+            STypedRuleValue                        value;
         };
 
         // This struct holds props that were dynamically registered. Plugins may read this.

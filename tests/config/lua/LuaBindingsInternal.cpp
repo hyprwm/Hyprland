@@ -6,8 +6,15 @@
 
 #include <Compositor.hpp>
 
+#include <config/lua/types/LuaConfigCssGap.hpp>
 #include <config/lua/types/LuaConfigInt.hpp>
+#include <config/lua/types/LuaConfigString.hpp>
+#include <config/values/types/CssGapValue.hpp>
+#include <config/values/types/StringValue.hpp>
 #include <config/values/types/IntValue.hpp>
+
+#include <desktop/rule/windowRule/WindowRuleEffectContainer.hpp>
+#include <desktop/rule/layerRule/LayerRuleEffectContainer.hpp>
 
 #include <gtest/gtest.h>
 
@@ -632,6 +639,60 @@ TEST(ConfigLuaBindingsInternal, deprecationNoticesOnlyIncludeUsedDeprecatedValue
     const auto notices = mgr.deprecationNotices();
     ASSERT_EQ(notices.size(), 1);
     EXPECT_EQ(notices.front(), "test.deprecated: use replacement");
+}
+
+TEST(ConfigLuaBindingsInternal, dynamicRuleValueUsesTypedFactory) {
+    CLuaState  S;
+    const auto L = S.get();
+
+    lua_createtable(L, 0, 4);
+    lua_pushinteger(L, 1);
+    lua_setfield(L, -2, "top");
+    lua_pushinteger(L, 2);
+    lua_setfield(L, -2, "right");
+    lua_pushinteger(L, 3);
+    lua_setfield(L, -2, "bottom");
+    lua_pushinteger(L, 4);
+    lua_setfield(L, -2, "left");
+
+    const auto RESULT = Internal::parseRuleValue(L, makeShared<Config::Values::CCssGapValue>("test", "", 0));
+    ASSERT_TRUE(RESULT.has_value()) << RESULT.error();
+    const auto GAP = dynamicPointerCast<CLuaConfigCssGap>(*RESULT);
+    ASSERT_TRUE(GAP);
+    EXPECT_EQ(GAP->parsed().m_top, 1);
+    EXPECT_EQ(GAP->parsed().m_right, 2);
+    EXPECT_EQ(GAP->parsed().m_bottom, 3);
+    EXPECT_EQ(GAP->parsed().m_left, 4);
+    lua_pop(L, 1);
+
+    lua_pushstring(L, "hello");
+    const auto STRING = Internal::parseRuleValue(L, makeShared<Config::Values::CStringValue>("test", "", ""));
+    ASSERT_TRUE(STRING.has_value()) << STRING.error();
+    const auto STR = dynamicPointerCast<CLuaConfigString>(*STRING);
+    ASSERT_TRUE(STR);
+    EXPECT_EQ(STR->parsed(), "hello");
+    lua_pop(L, 1);
+
+    const auto NOVALUE = Internal::parseRuleValue(L, nullptr);
+    EXPECT_FALSE(NOVALUE.has_value());
+}
+
+TEST(ConfigLuaBindingsInternal, everyStaticRuleEffectHasATypedValue) {
+    CScopedCompositor compositor;
+
+    using WE = Desktop::Rule::eWindowRuleEffect;
+    for (auto i = static_cast<WE>(1); i < WE::WINDOW_RULE_EFFECT_LAST_STATIC; i = static_cast<WE>(static_cast<int>(i) + 1)) {
+        const auto& name = Desktop::Rule::windowEffects()->get(i);
+        EXPECT_TRUE(Desktop::Rule::windowEffects()->getLuaValue(i)) << name;
+        EXPECT_FALSE(Desktop::Rule::windowEffects()->isEffectDynamic(i)) << name;
+    }
+
+    using LE = Desktop::Rule::eLayerRuleEffect;
+    for (auto i = static_cast<LE>(1); i < LE::LAYER_RULE_EFFECT_LAST_STATIC; i = static_cast<LE>(static_cast<int>(i) + 1)) {
+        const auto& name = Desktop::Rule::layerEffects()->get(i);
+        EXPECT_TRUE(Desktop::Rule::layerEffects()->getLuaValue(i)) << name;
+        EXPECT_FALSE(Desktop::Rule::layerEffects()->isEffectDynamic(i)) << name;
+    }
 }
 
 TEST(ConfigLuaBindingsInternal, pluginLuaFnIsUnloadedWithoutDanglingCall) {

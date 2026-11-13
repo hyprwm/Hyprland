@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <optional>
 #include <algorithm>
+#include "../../../config/values/types/IValue.hpp"
 
 namespace Desktop::Rule {
     template <typename T>
@@ -21,16 +22,23 @@ namespace Desktop::Rule {
         using storageType = std::conditional_t<(sizeof(std::underlying_type_t<T>) >= 2), std::underlying_type_t<T>, uint16_t>;
 
         IEffectContainer(std::vector<std::string>&& defaultKeys) : m_keys(std::move(defaultKeys)), m_originalSize(m_keys.size()) {
-            ;
+            m_luaValues.resize(m_originalSize);
         }
         virtual ~IEffectContainer() = default;
 
-        virtual storageType registerEffect(std::string&& name) {
-            if (m_keys.size() >= std::numeric_limits<storageType>::max())
+        virtual storageType registerEffect(std::string&& name, SP<Config::Values::IValue> value) {
+            if (!value || m_keys.size() >= std::numeric_limits<storageType>::max())
                 return 0;
-            if (auto it = std::ranges::find(m_keys, name); it != m_keys.end())
-                return it - m_keys.begin();
+            if (auto it = std::ranges::find(m_keys, name); it != m_keys.end()) {
+                const auto IDX = sc<storageType>(it - m_keys.begin());
+                if (!isEffectDynamic(IDX))
+                    return 0;
+
+                m_luaValues[IDX] = std::move(value);
+                return IDX;
+            }
             m_keys.emplace_back(std::move(name));
+            m_luaValues.emplace_back(std::move(value));
             return m_keys.size() - 1;
         }
 
@@ -39,15 +47,24 @@ namespace Desktop::Rule {
                 return;
 
             m_keys[id] = DEFAULT_MISSING_KEY;
+            if (id < m_luaValues.size())
+                m_luaValues[id] = nullptr;
         }
 
         virtual void unregisterEffect(const std::string& name) {
-            for (auto& key : m_keys) {
-                if (key == name) {
-                    key = DEFAULT_MISSING_KEY;
+            for (storageType i = 0; i < m_keys.size(); ++i) {
+                if (m_keys[i] == name) {
+                    unregisterEffect(i);
                     break;
                 }
             }
+        }
+
+        virtual SP<Config::Values::IValue> getLuaValue(storageType id) const {
+            if (id >= m_luaValues.size())
+                return nullptr;
+
+            return m_luaValues[id];
         }
 
         virtual const std::string& get(storageType idx) {
@@ -76,7 +93,17 @@ namespace Desktop::Rule {
         }
 
       protected:
-        std::vector<std::string> m_keys;
-        size_t                   m_originalSize = 0;
+        // Static effects are registered by their derived container during construction.
+        // Dynamic effects are registered through registerEffect().
+        void registerStaticEffect(storageType id, SP<Config::Values::IValue> value) {
+            if (!value || id == 0 || id >= m_originalSize)
+                return;
+
+            m_luaValues[id] = std::move(value);
+        }
+
+        std::vector<std::string>                m_keys;
+        std::vector<SP<Config::Values::IValue>> m_luaValues;
+        size_t                                  m_originalSize = 0;
     };
 };

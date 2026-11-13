@@ -2,6 +2,7 @@
 #include "../../desktop/view/window/Window.hpp"
 #include "../../desktop/view/window/WindowPresentation.hpp"
 #include "../../layout/target/Target.hpp"
+#include "../../layout/space/Space.hpp"
 #include "../../event/EventBus.hpp"
 
 CDecorationPositioner::CDecorationPositioner() {
@@ -276,6 +277,8 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
 
     if (WINDOWDATA->extents != SBoxExtents{{stickyOffsetXL + reservedXL, stickyOffsetYT + reservedYT}, {stickyOffsetXR + reservedXR, stickyOffsetYB + reservedYB}}) {
         WINDOWDATA->extents = {{stickyOffsetXL + reservedXL, stickyOffsetYT + reservedYT}, {stickyOffsetXR + reservedXR, stickyOffsetYB + reservedYB}};
+        if (const auto SPACE = pWindow->layoutTarget()->space(); SPACE)
+            SPACE->invalidateMergedBorders();
         pWindow->layoutTarget()->recalc();
     }
 

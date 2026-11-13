@@ -2,6 +2,7 @@
 
 namespace Layout {
     class CAlgorithm;
+    struct STargetEdges;
 }
 
 namespace Layout::Tiled {
@@ -23,6 +24,10 @@ namespace Layout::Tiled {
         }
 
         void recalcSizePosRecursive(bool force = false, bool horizontalOverride = false, bool verticalOverride = false);
+
+      private:
+        STargetEdges targetEdges() const;
+        void         recalcSizePosRecursive(const STargetEdges& edges, bool force, bool horizontalOverride = false, bool verticalOverride = false);
     };
 
     class CDwindleAlgorithm : public ITiledAlgorithm {

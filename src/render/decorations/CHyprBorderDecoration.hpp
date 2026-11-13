@@ -45,6 +45,7 @@ class CHyprBorderDecoration : public IHyprWindowDecoration {
     CBox                        m_assignedGeometry = {0};
 
     double                      m_lastBorderExtent = -1;
+    int                         m_lastBorderSize   = -1;
 
     CAnimatedDecorationGradient m_gradient;
     mutable int                 m_cachedBorderSize     = -1;

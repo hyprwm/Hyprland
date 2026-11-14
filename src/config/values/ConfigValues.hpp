@@ -32,11 +32,15 @@ namespace Config::Values {
 
     // Takes a list of string choices for values.
     // putting * at the end makes it a prefix.
+    // an empty choice allows the empty string.
     inline auto strChoice(std::vector<std::string> rawVec) {
         return [vec = std::move(rawVec)](const Config::STRING& v) -> std::expected<void, std::string> {
             for (const auto& e : vec) {
-                if (e.empty())
+                if (e.empty()) {
+                    if (v.empty())
+                        return {}; // pass
                     continue;
+                }
 
                 if (e.back() == '*') {
                     if (v.starts_with(std::string_view{e}.substr(0, e.length() - 1)))

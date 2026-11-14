@@ -7,7 +7,6 @@
 uniform vec2  srcTFRange;
 uniform vec2  dstTFRange;
 
-uniform float srcRefLuminance;
 uniform mat3  convertMatrix;
 
 #if USE_ICC

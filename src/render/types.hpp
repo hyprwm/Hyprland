@@ -130,7 +130,6 @@ namespace Render {
         NColorManagement::eTransferFunction  targetTF = NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22;
         STFRange                             srcTFRange;
         STFRange                             dstTFRange;
-        float                                srcRefLuminance = 80;
         float                                dstRefLuminance = 80;
         std::array<std::array<double, 3>, 3> convertMatrix;
 

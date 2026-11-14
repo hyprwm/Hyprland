@@ -17,7 +17,7 @@ namespace Render {
         SH_FEAT_DISCARD           = (1 << 1),  // RGBA/RGBX texture sampling
         SH_FEAT_TINT              = (1 << 2),  // uniforms: tint; condition: applyTint
         SH_FEAT_ROUNDING          = (1 << 3),  // uniforms: radius, roundingPower, topLeft, fullSize; condition: radius > 0
-        SH_FEAT_CM                = (1 << 4),  // uniforms: srcTFRange, dstTFRange, srcRefLuminance, convertMatrix; condition: !skipCM
+        SH_FEAT_CM                = (1 << 4),  // uniforms: srcTFRange, dstTFRange, convertMatrix; condition: !skipCM
         SH_FEAT_TONEMAP           = (1 << 5),  // uniforms: maxLuminance, dstMaxLuminance, dstRefLuminance; condition: maxLuminance < dstMaxLuminance * 1.01
         SH_FEAT_SDR_MOD           = (1 << 6),  // uniforms: sdrSaturation, sdrBrightnessMultiplier; condition: SDR <-> HDR && (sdrSaturation != 1 || sdrBrightnessMultiplier != 1)
         SH_FEAT_BLUR              = (1 << 7),  // condition: render:use_shader_blur_blend

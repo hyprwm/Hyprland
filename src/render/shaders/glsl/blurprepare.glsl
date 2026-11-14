@@ -14,7 +14,7 @@
 vec4 blurPrepare(vec4 pixColor, float contrast, float brightness
 #if USE_CM
                  ,
-                 int sourceTF, int targetTF, mat3 convertMatrix, vec2 srcTFRange, vec2 dstTFRange, float srcRefLuminance, float sdrBrightnessMultiplier
+                 int sourceTF, int targetTF, mat3 convertMatrix, vec2 srcTFRange, vec2 dstTFRange, float sdrBrightnessMultiplier
 #endif
 ) {
     if (pixColor.a <= 0.0)

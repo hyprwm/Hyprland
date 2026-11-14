@@ -2606,6 +2606,36 @@ static bool hdrMetadataEqual(const hdr_output_metadata& a, const hdr_output_meta
     return std::memcmp(&a.hdmi_metadata_type1, &b.hdmi_metadata_type1, sizeof(a.hdmi_metadata_type1)) == 0;
 }
 
+static void applySurfaceHDRMetadata(SP<CWLSurfaceResource> surf, PHLMONITOR pMonitor, bool force) {
+    const auto& CM = surf->m_colorManagement;
+
+    if (CM->needsHdrMetadataUpdate()) {
+        LOG(Log::INFO, "[CM] Recreating HDR metadata for surface");
+        CM->setHDRMetadata(createHDRMetadata(CM->imageDescription(), pMonitor));
+        force = true;
+    }
+
+    // changing blob causes a modeset, so try and skip it in cases where surface metadata is already applied
+    if (force && !hdrMetadataEqual(CM->hdrMetadata(), pMonitor->m_output->state->state().hdrMetadata)) {
+        LOG(Log::INFO, "[CM] Updating HDR metadata from surface");
+        pMonitor->m_output->state->setHDRMetadata(CM->hdrMetadata());
+    }
+}
+
+static void applyAutoHDR(PHLMONITOR pMonitor, bool wantHDR, bool configuredHDR) {
+    static auto PAUTOHDR = CConfigValue<Config::INTEGER>("render:cm_auto_hdr");
+
+    const auto  DESC_TF     = pMonitor->m_imageDescription->value().transferFunction;
+    const bool  DESC_IS_HDR = DESC_TF == CM_TRANSFER_FUNCTION_ST2084_PQ || DESC_TF == CM_TRANSFER_FUNCTION_EXT_LINEAR;
+    if (!*PAUTOHDR || DESC_IS_HDR == wantHDR || (DESC_IS_HDR && configuredHDR))
+        return;
+
+    const auto targetCM = wantHDR ? (*PAUTOHDR == 2 ? NCMType::CM_HDR_EDID : NCMType::CM_HDR) : pMonitor->m_cmType;
+    LOG(Log::INFO, "[CM] Auto HDR: changing monitor cm to {}", sc<uint8_t>(targetCM));
+    pMonitor->applyCMType(targetCM, pMonitor->m_sdrEotf);
+    pMonitor->m_previousFSWindow.reset(); // trigger CTM update
+}
+
 void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
     static auto PCT        = CConfigValue<Config::INTEGER>("render:send_content_type");
     static auto PAUTOHDR   = CConfigValue<Config::INTEGER>("render:cm_auto_hdr");
@@ -2625,32 +2655,26 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
         // HDR scRGB - monitor settings
         // HDR PQ surface & DS is active - surface settings
 
-        bool hdrIsHandled = false;
-        if (FULLSCREEN_WINDOW) {
-            const auto ROOT_SURF = FULLSCREEN_WINDOW->wlSurface()->resource();
-            const auto SURF      = ROOT_SURF->findWithCM();
+        bool       hdrIsHandled = false;
+        const auto SURF         = FULLSCREEN_WINDOW ? FULLSCREEN_WINDOW->wlSurface()->resource()->findWithCM() : nullptr;
+        const bool SURF_HAS_CM  = SURF && SURF->m_colorManagement.valid() && SURF->m_colorManagement->hasImageDescription();
 
+        if (FULLSCREEN_WINDOW) {
             // we have a surface with image description
-            if (SURF && SURF->m_colorManagement.valid() && SURF->m_colorManagement->hasImageDescription()) {
+            if (SURF_HAS_CM) {
                 const bool surfaceIsHDR = SURF->m_colorManagement->isHDR();
                 wantHDR                 = *PAUTOHDR && surfaceIsHDR;
                 if (FULLSCREEN_WINDOW && FULLSCREEN_WINDOW->m_ruleApplicator->noAutoHDR().valueOrDefault())
                     wantHDR = configuredHDR;
                 if (surfaceIsHDR && !SURF->m_colorManagement->isWindowsScRGB() && !pMonitor->m_lastScanout.expired()) {
                     // DS HDR
-                    bool needsHdrMetadataUpdate =
-                        SURF->m_colorManagement->needsHdrMetadataUpdate() || pMonitor->m_previousFSWindow != FULLSCREEN_WINDOW || pMonitor->m_needsHDRupdate;
-                    if (SURF->m_colorManagement->needsHdrMetadataUpdate()) {
-                        LOG(Log::INFO, "[CM] Recreating HDR metadata for surface");
-                        SURF->m_colorManagement->setHDRMetadata(createHDRMetadata(SURF->m_colorManagement->imageDescription(), pMonitor));
-                    }
-                    if (needsHdrMetadataUpdate) {
-                        LOG(Log::INFO, "[CM] Updating HDR metadata from surface");
-                        pMonitor->m_output->state->setHDRMetadata(SURF->m_colorManagement->hdrMetadata());
-                        pMonitor->m_hdrMetadataFromSurface = true;
-                    }
-                    hdrIsHandled               = true;
-                    pMonitor->m_needsHDRupdate = false;
+                    // switch the monitor description now, otherwise the first composited frame after DS is rendered as sdr
+                    applyAutoHDR(pMonitor, wantHDR, configuredHDR);
+                    applySurfaceHDRMetadata(SURF, pMonitor, pMonitor->m_previousFSWindow != FULLSCREEN_WINDOW || pMonitor->m_needsHDRupdate);
+                    pMonitor->m_hdrMetadataFromSurface = true;
+                    pMonitor->m_hdrMetadataWindow      = FULLSCREEN_WINDOW;
+                    hdrIsHandled                       = true;
+                    pMonitor->m_needsHDRupdate         = false;
                 }
             }
         }
@@ -2662,25 +2686,28 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
         if (!hdrIsHandled) {
             const bool HDR_CHANGED = pMonitor->inHDR() != wantHDR;
 
-            if (HDR_CHANGED && *PAUTOHDR && !(pMonitor->inHDR() && configuredHDR)) {
-                const auto targetCM      = wantHDR ? (*PAUTOHDR == 2 ? NCMType::CM_HDR_EDID : NCMType::CM_HDR) : pMonitor->m_cmType;
-                const auto targetSDREOTF = pMonitor->m_sdrEotf;
-                LOG(Log::INFO, "[CM] Auto HDR: changing monitor cm to {}", sc<uint8_t>(targetCM));
-                pMonitor->applyCMType(targetCM, targetSDREOTF);
-                pMonitor->m_previousFSWindow.reset(); // trigger CTM update
-            }
+            applyAutoHDR(pMonitor, wantHDR, configuredHDR);
 
-            const auto WANTED  = wantHDR ? createHDRMetadata(pMonitor->m_imageDescription->value(), pMonitor) : NO_HDR_METADATA;
-            const auto CURRENT = pMonitor->m_output->state->state().hdrMetadata;
+            const bool KEEP_SURFACE_METADATA =
+                pMonitor->m_hdrMetadataFromSurface && wantHDR && pMonitor->inHDR() && FULLSCREEN_WINDOW && pMonitor->m_hdrMetadataWindow == FULLSCREEN_WINDOW && SURF_HAS_CM;
 
-            // Required in order to clear stale HDR metadata
-            const bool INITIAL_SDR          = !pMonitor->m_needsHDRupdate && !wantHDR;
-            const bool HDR_METADATA_CHANGED = wantHDR && !hdrMetadataEqual(WANTED, CURRENT);
+            // keep surface metadata across DS drop-outs, but follow the surface if its image description changes meanwhile
+            if (KEEP_SURFACE_METADATA)
+                applySurfaceHDRMetadata(SURF, pMonitor, false);
+            else {
+                const auto WANTED  = wantHDR ? createHDRMetadata(pMonitor->m_imageDescription->value(), pMonitor) : NO_HDR_METADATA;
+                const auto CURRENT = pMonitor->m_output->state->state().hdrMetadata;
 
-            if (HDR_CHANGED || INITIAL_SDR || pMonitor->m_hdrMetadataFromSurface || HDR_METADATA_CHANGED) {
-                LOG(Log::INFO, wantHDR ? "[CM] Updating HDR metadata from monitor" : "[CM] Restoring SDR mode");
-                pMonitor->m_output->state->setHDRMetadata(WANTED);
-                pMonitor->m_hdrMetadataFromSurface = false;
+                // Required in order to clear stale HDR metadata
+                const bool INITIAL_SDR          = !pMonitor->m_needsHDRupdate && !wantHDR;
+                const bool HDR_METADATA_CHANGED = wantHDR && !hdrMetadataEqual(WANTED, CURRENT);
+
+                if (HDR_CHANGED || INITIAL_SDR || pMonitor->m_hdrMetadataFromSurface || HDR_METADATA_CHANGED) {
+                    LOG(Log::INFO, wantHDR ? "[CM] Updating HDR metadata from monitor" : "[CM] Restoring SDR mode");
+                    pMonitor->m_output->state->setHDRMetadata(WANTED);
+                    pMonitor->m_hdrMetadataFromSurface = false;
+                    pMonitor->m_hdrMetadataWindow.reset();
+                }
             }
 
             pMonitor->m_needsHDRupdate = true;

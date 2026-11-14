@@ -553,8 +553,10 @@ void IHyprRenderer::renderWorkspaceWindows(CRenderContext& ctx, PHLMONITOR pMoni
             continue;
 
         // some things may force us to ignore the special/not special disparity
-        const auto PWORKSPACE           = w->presentation().workspace();
-        const bool IGNORE_SPECIAL_CHECK = w->presentation().movingFromMonitor() && (PWORKSPACE && !PWORKSPACE->visible());
+        const auto PWORKSPACE = w->presentation().workspace();
+        const bool IGNORE_SPECIAL_CHECK = (w->presentation().movingFromMonitor() && (PWORKSPACE && !PWORKSPACE->visible()))
+            // If the window is currently on a special workspace but is visible on this normal workspace, we should render it in this workspace as well
+            || (!SPECIAL && PWORKSPACE->m_monitor != pMonitor && w->m_workspace->type() == Workspace::eWorkspaceType::SPECIAL && shouldRenderWindow(w.lock(), pMonitor));
 
         if (!IGNORE_SPECIAL_CHECK && SPECIAL != w->presentation().onSpecialWorkspace())
             continue;
@@ -1309,7 +1311,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR
     // special
     if (mode == eSceneMode::MONITOR) {
         for (auto const& ws : State::Workspace::state()->workspaces()) {
-            if (ws->m_alpha->value() <= 0.F || ws->type() != Workspace::eWorkspaceType::SPECIAL || pMonitor->m_activeSpecialWorkspace != ws)
+            if (!ws || ws->m_alpha->value() <= 0.F || ws->type() != Workspace::eWorkspaceType::SPECIAL || ws->m_monitor != pMonitor)
                 continue;
 
             if (Fullscreen::controller()->getPresentedFullscreenWindow(ws.lock()))

@@ -1526,8 +1526,8 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(CRenderContext& ctx, SP<ITexture
         shaderFeatures |= SH_FEAT_CM;
 
         // the unmodified SDR copy of HDR content always needs an HDR -> SDR tonemap, even if the main target doesn't
-        const bool SRC_IS_HDR = settings.sourceTF == CM_TRANSFER_FUNCTION_ST2084_PQ || settings.sourceTF == CM_TRANSFER_FUNCTION_HLG ||
-            settings.sourceTF == CM_TRANSFER_FUNCTION_EXT_LINEAR;
+        const bool SRC_IS_HDR =
+            settings.sourceTF == CM_TRANSFER_FUNCTION_ST2084_PQ || settings.sourceTF == CM_TRANSFER_FUNCTION_HLG || settings.sourceTF == CM_TRANSFER_FUNCTION_EXT_LINEAR;
         const bool MIRROR_ONLY_TONEMAP = !TARGET_IMAGE_DESCRIPTION->value().icc.present && !settings.needsTonemap && SRC_IS_HDR && (globalFeatures(ctx) & SH_FEAT_MIRROR) &&
             (settings.tonemapMode == 1 || settings.tonemapMode == 3);
 

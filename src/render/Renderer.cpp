@@ -2214,10 +2214,10 @@ SCMSettings IHyprRenderer::getCMSettings(CRenderContext& ctx, const NColorManage
     const float srcTFMax = imageDescription->value().getTFMaxLuminance(needsSDRmod ? sdrMaxLuminance : -1);
 
     // in HDR, we need to map the sources reference white onto the target by scaling srcTFRange
-    const bool  SRC_IS_HDR = srcTF == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ || srcTF == NColorManagement::CM_TRANSFER_FUNCTION_HLG ||
+    const bool SRC_IS_HDR = srcTF == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ || srcTF == NColorManagement::CM_TRANSFER_FUNCTION_HLG ||
         srcTF == NColorManagement::CM_TRANSFER_FUNCTION_EXT_LINEAR;
-    const float SRC_REF   = SRC_IS_HDR ? sc<float>(std::max(1U, imageDescription->value().luminances.reference)) : imageDescription->value().getTFRefLuminance();
-    const float REF_SCALE = needsSDRmod ? 1.F : sc<float>(targetImageDescription->value().luminances.reference) / SRC_REF;
+    const float SRC_REF            = SRC_IS_HDR ? sc<float>(std::max(1U, imageDescription->value().luminances.reference)) : imageDescription->value().getTFRefLuminance();
+    const float REF_SCALE          = needsSDRmod ? 1.F : sc<float>(targetImageDescription->value().luminances.reference) / SRC_REF;
     const float scaledMaxLuminance = (SRC_IS_HDR ? maxLuminance : srcTFMax) * REF_SCALE;
 
     const bool  needsTonemap = scaledMaxLuminance >= dstMaxLuminance * 1.01;

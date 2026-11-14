@@ -463,8 +463,6 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
         if (mismatchedSpecialWorkspace)
             continue;
 
-        const bool specialWorkspaceOnDifferentMonitor = SPECIAL && w->presentation().monitor() != pWorkspace->m_monitor;
-
         renderWindow(ctx, w, pMonitor, w->presentation().renderPresentation(mode), time, true, RENDER_PASS_ALL);
     }
     renderFadeouts(ctx, pMonitor, Desktop::FADEOUT_PLANE_WINDOW_OVER_FULLSCREEN, pWorkspace, mode);

@@ -400,9 +400,6 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
         if (w->presentation().monitor() == pWorkspace->m_monitor && SPECIAL != w->presentation().onSpecialWorkspace())
             continue;
 
-        if (SPECIAL && w->presentation().monitor() != pWorkspace->m_monitor)
-            continue; // special on another are rendered as a part of the base pass
-
         if (w->presentation().isFadingOutUnderFullscreen())
             continue; // render these over fullscreen so the fade-out is visible
 
@@ -465,11 +462,6 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
 
         if (mismatchedSpecialWorkspace)
             continue;
-
-        const bool specialWorkspaceOnDifferentMonitor = SPECIAL && w->presentation().monitor() != pWorkspace->m_monitor;
-
-        if (specialWorkspaceOnDifferentMonitor)
-            continue; // special on another are rendered as a part of the base pass
 
         renderWindow(ctx, w, pMonitor, w->presentation().renderPresentation(mode), time, true, RENDER_PASS_ALL);
     }
@@ -562,13 +554,12 @@ void IHyprRenderer::renderWorkspaceWindows(CRenderContext& ctx, PHLMONITOR pMoni
 
         // some things may force us to ignore the special/not special disparity
         const auto PWORKSPACE           = w->presentation().workspace();
-        const bool IGNORE_SPECIAL_CHECK = w->presentation().movingFromMonitor() && (PWORKSPACE && !PWORKSPACE->visible());
+        const bool IGNORE_SPECIAL_CHECK = (w->presentation().movingFromMonitor() && (PWORKSPACE && !PWORKSPACE->visible()))
+            // If the window is currently on a special workspace but is visible on this normal workspace, we should render it in this workspace as well
+            || (!SPECIAL && PWORKSPACE->m_monitor != pMonitor && w->m_workspace->type() == Workspace::eWorkspaceType::SPECIAL && shouldRenderWindow(w.lock(), pMonitor));
 
         if (!IGNORE_SPECIAL_CHECK && SPECIAL != w->presentation().onSpecialWorkspace())
             continue;
-
-        if (SPECIAL && w->presentation().monitor() != pWorkspace->m_monitor)
-            continue; // special on another are rendered as a part of the base pass
 
         // render the bad boy
         renderWindow(ctx, w.lock(), pMonitor, w->presentation().renderPresentation(mode), time, true, RENDER_PASS_ALL);
@@ -1320,7 +1311,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR
     // special
     if (mode == eSceneMode::MONITOR) {
         for (auto const& ws : State::Workspace::state()->workspaces()) {
-            if (ws->m_alpha->value() <= 0.F || ws->type() != Workspace::eWorkspaceType::SPECIAL)
+            if (!ws || ws->m_alpha->value() <= 0.F || ws->type() != Workspace::eWorkspaceType::SPECIAL || ws->m_monitor != pMonitor)
                 continue;
 
             if (Fullscreen::controller()->getPresentedFullscreenWindow(ws.lock()))

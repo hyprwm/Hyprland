@@ -331,6 +331,13 @@ Vector2D CX11Backend::bufferToSurfaceLocal(const Vector2D& buffer) const {
     return buffer / surfaceScale();
 }
 
+Vector2D CX11Backend::globalToBuffer(const Vector2D& pos, const Vector2D& origin) const {
+    // X11 lays monitors out in its own coordinate space, with per-monitor scales under force_zero_scaling,
+    // so a point on another monitor can't be reached by scaling its offset from the surface.
+    // Map both through the monitors they belong to and take the difference in X11 space.
+    return g_pXWaylandManager->waylandToXWaylandCoords(pos) - g_pXWaylandManager->waylandToXWaylandCoords(origin, preferredMonitor(nullptr));
+}
+
 void CX11Backend::configure(const CBox& logicalBox, PHLMONITOR preferredMonitor_, bool force) {
     const auto SURFACE = m_xwaylandSurface.lock();
     if (!SURFACE)

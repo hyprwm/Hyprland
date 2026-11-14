@@ -245,14 +245,28 @@ vec4
         pixColor = toNit(pixColor, srcTFRange);
     pixColor.a   = finalAlpha;
     pixColor.rgb *= pixColor.a;
+#if USE_MIRROR
+    vec4 mirrorColor = pixColor;
+#endif
 #if USE_TONEMAP
-    pixColor = tonemap(pixColor, dstxyz, maxLuminance, dstMaxLuminance, dstRefLuminance, tonemapMode);
+    // negative tonemapMode means that only the mirror needs to be tonemapped
+    if (tonemapMode > 0)
+        pixColor = tonemap(pixColor, dstxyz, maxLuminance, dstMaxLuminance, dstRefLuminance, tonemapMode);
 #endif
 
 #if USE_MIRROR
-    // TODO HDR -> SDR tonemap
-    vec4 mirrorColor = fromLinearNit(pixColor, CM_TRANSFER_FUNCTION_SRGB,
-                                     srcTF == CM_TRANSFER_FUNCTION_GAMMA22 || srcTF == CM_TRANSFER_FUNCTION_SRGB ? srcTFRange : vec2(SDR_MIN_LUMINANCE, SDR_MAX_LUMINANCE));
+    if (srcTF != CM_TRANSFER_FUNCTION_ST2084_PQ && srcTF != CM_TRANSFER_FUNCTION_HLG && srcTF != CM_TRANSFER_FUNCTION_EXT_LINEAR)
+        mirrorColor = fromLinearNit(pixColor, CM_TRANSFER_FUNCTION_SRGB, srcTFRange);
+    else {
+#if USE_TONEMAP
+        // HDR -> SDR: map the targets reference white to our SDR white, and tonemap the rest (see getCMSettings)
+        mirrorColor.rgb *= SDR_MAX_LUMINANCE / dstRefLuminance;
+        mirrorColor = tonemap(mirrorColor, dstxyz, maxLuminance * SDR_MAX_LUMINANCE / dstRefLuminance, SDR_MAX_LUMINANCE, SDR_MAX_LUMINANCE, abs(tonemapMode));
+#else
+        mirrorColor = pixColor;
+#endif
+        mirrorColor = fromLinearNit(mirrorColor, CM_TRANSFER_FUNCTION_SRGB, vec2(SDR_MIN_LUMINANCE, SDR_MAX_LUMINANCE));
+    }
 #endif
     pixColor = fromLinearNit(pixColor, dstTF, dstTFRange);
 #if USE_SDR_MOD

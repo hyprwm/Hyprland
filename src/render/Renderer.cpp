@@ -553,7 +553,7 @@ void IHyprRenderer::renderWorkspaceWindows(CRenderContext& ctx, PHLMONITOR pMoni
             continue;
 
         // some things may force us to ignore the special/not special disparity
-        const auto PWORKSPACE = w->presentation().workspace();
+        const auto PWORKSPACE           = w->presentation().workspace();
         const bool IGNORE_SPECIAL_CHECK = (w->presentation().movingFromMonitor() && (PWORKSPACE && !PWORKSPACE->visible()))
             // If the window is currently on a special workspace but is visible on this normal workspace, we should render it in this workspace as well
             || (!SPECIAL && PWORKSPACE->m_monitor != pMonitor && w->m_workspace->type() == Workspace::eWorkspaceType::SPECIAL && shouldRenderWindow(w.lock(), pMonitor));

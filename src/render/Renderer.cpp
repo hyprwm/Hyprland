@@ -400,9 +400,6 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
         if (w->presentation().monitor() == pWorkspace->m_monitor && SPECIAL != w->presentation().onSpecialWorkspace())
             continue;
 
-        if (SPECIAL && w->presentation().monitor() != pWorkspace->m_monitor)
-            continue; // special on another are rendered as a part of the base pass
-
         if (w->presentation().isFadingOutUnderFullscreen())
             continue; // render these over fullscreen so the fade-out is visible
 
@@ -467,9 +464,6 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(CRenderContext& ctx, PHLMON
             continue;
 
         const bool specialWorkspaceOnDifferentMonitor = SPECIAL && w->presentation().monitor() != pWorkspace->m_monitor;
-
-        if (specialWorkspaceOnDifferentMonitor)
-            continue; // special on another are rendered as a part of the base pass
 
         renderWindow(ctx, w, pMonitor, w->presentation().renderPresentation(mode), time, true, RENDER_PASS_ALL);
     }
@@ -566,9 +560,6 @@ void IHyprRenderer::renderWorkspaceWindows(CRenderContext& ctx, PHLMONITOR pMoni
 
         if (!IGNORE_SPECIAL_CHECK && SPECIAL != w->presentation().onSpecialWorkspace())
             continue;
-
-        if (SPECIAL && w->presentation().monitor() != pWorkspace->m_monitor)
-            continue; // special on another are rendered as a part of the base pass
 
         // render the bad boy
         renderWindow(ctx, w.lock(), pMonitor, w->presentation().renderPresentation(mode), time, true, RENDER_PASS_ALL);
@@ -1320,7 +1311,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR
     // special
     if (mode == eSceneMode::MONITOR) {
         for (auto const& ws : State::Workspace::state()->workspaces()) {
-            if (ws->m_alpha->value() <= 0.F || ws->type() != Workspace::eWorkspaceType::SPECIAL)
+            if (ws->m_alpha->value() <= 0.F || ws->type() != Workspace::eWorkspaceType::SPECIAL || pMonitor->m_activeSpecialWorkspace != ws)
                 continue;
 
             if (Fullscreen::controller()->getPresentedFullscreenWindow(ws.lock()))

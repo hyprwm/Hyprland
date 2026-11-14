@@ -2622,6 +2622,20 @@ static void applySurfaceHDRMetadata(SP<CWLSurfaceResource> surf, PHLMONITOR pMon
     }
 }
 
+static void applyAutoHDR(PHLMONITOR pMonitor, bool wantHDR, bool configuredHDR) {
+    static auto PAUTOHDR = CConfigValue<Config::INTEGER>("render:cm_auto_hdr");
+
+    const auto  DESC_TF     = pMonitor->m_imageDescription->value().transferFunction;
+    const bool  DESC_IS_HDR = DESC_TF == CM_TRANSFER_FUNCTION_ST2084_PQ || DESC_TF == CM_TRANSFER_FUNCTION_EXT_LINEAR;
+    if (!*PAUTOHDR || DESC_IS_HDR == wantHDR || (DESC_IS_HDR && configuredHDR))
+        return;
+
+    const auto targetCM = wantHDR ? (*PAUTOHDR == 2 ? NCMType::CM_HDR_EDID : NCMType::CM_HDR) : pMonitor->m_cmType;
+    LOG(Log::INFO, "[CM] Auto HDR: changing monitor cm to {}", sc<uint8_t>(targetCM));
+    pMonitor->applyCMType(targetCM, pMonitor->m_sdrEotf);
+    pMonitor->m_previousFSWindow.reset(); // trigger CTM update
+}
+
 void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
     static auto PCT        = CConfigValue<Config::INTEGER>("render:send_content_type");
     static auto PAUTOHDR   = CConfigValue<Config::INTEGER>("render:cm_auto_hdr");
@@ -2654,6 +2668,8 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
                     wantHDR = configuredHDR;
                 if (surfaceIsHDR && !SURF->m_colorManagement->isWindowsScRGB() && !pMonitor->m_lastScanout.expired()) {
                     // DS HDR
+                    // switch the monitor description now, otherwise the first composited frame after DS is rendered as sdr
+                    applyAutoHDR(pMonitor, wantHDR, configuredHDR);
                     applySurfaceHDRMetadata(SURF, pMonitor, pMonitor->m_previousFSWindow != FULLSCREEN_WINDOW || pMonitor->m_needsHDRupdate);
                     pMonitor->m_hdrMetadataFromSurface = true;
                     pMonitor->m_hdrMetadataWindow      = FULLSCREEN_WINDOW;
@@ -2670,15 +2686,7 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
         if (!hdrIsHandled) {
             const bool HDR_CHANGED = pMonitor->inHDR() != wantHDR;
 
-            const auto DESC_TF     = pMonitor->m_imageDescription->value().transferFunction;
-            const bool DESC_IS_HDR = DESC_TF == CM_TRANSFER_FUNCTION_ST2084_PQ || DESC_TF == CM_TRANSFER_FUNCTION_EXT_LINEAR;
-            if (*PAUTOHDR && DESC_IS_HDR != wantHDR && !(DESC_IS_HDR && configuredHDR)) {
-                const auto targetCM      = wantHDR ? (*PAUTOHDR == 2 ? NCMType::CM_HDR_EDID : NCMType::CM_HDR) : pMonitor->m_cmType;
-                const auto targetSDREOTF = pMonitor->m_sdrEotf;
-                LOG(Log::INFO, "[CM] Auto HDR: changing monitor cm to {}", sc<uint8_t>(targetCM));
-                pMonitor->applyCMType(targetCM, targetSDREOTF);
-                pMonitor->m_previousFSWindow.reset(); // trigger CTM update
-            }
+            applyAutoHDR(pMonitor, wantHDR, configuredHDR);
 
             const bool KEEP_SURFACE_METADATA =
                 pMonitor->m_hdrMetadataFromSurface && wantHDR && pMonitor->inHDR() && FULLSCREEN_WINDOW && pMonitor->m_hdrMetadataWindow == FULLSCREEN_WINDOW && SURF_HAS_CM;

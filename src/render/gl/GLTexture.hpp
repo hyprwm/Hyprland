@@ -16,7 +16,7 @@ namespace Render::GL {
         CGLTexture(const CGLTexture&)  = delete;
 
         CGLTexture(bool opaque = false);
-        CGLTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false, bool opaque = false);
+        CGLTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool opaque = false);
         CGLTexture(const Aquamarine::SDMABUFAttrs&, void* image, bool opaque = false);
         CGLTexture(std::span<const float> lut3D, size_t N);
         ~CGLTexture();

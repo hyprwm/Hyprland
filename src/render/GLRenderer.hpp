@@ -21,7 +21,7 @@ namespace Render::GL {
         UP<ISyncFDManager>      createSyncFDManager() override;
         SP<ITexture>            createStencilTexture(const int width, const int height) override;
         SP<ITexture>            createTexture(bool opaque = false) override;
-        SP<ITexture>            createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false, bool opaque = false) override;
+        SP<ITexture>            createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool opaque = false) override;
         SP<ITexture>            createTexture(const Aquamarine::SDMABUFAttrs&, bool opaque = false) override;
         SP<ITexture>            createTexture(const int width, const int height, unsigned char* const data) override;
         SP<ITexture>            createTexture(cairo_surface_t* cairo) override;

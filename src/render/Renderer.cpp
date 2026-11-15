@@ -1005,7 +1005,7 @@ bool IHyprRenderer::preBlurQueued(CRenderContext& ctx) {
     return *PBLUR && resources->blurDirty() && resources->canPrecomputeBlur();
 }
 
-SP<ITexture> IHyprRenderer::createTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) {
+SP<ITexture> IHyprRenderer::createTexture(const SP<Aquamarine::IBuffer> buffer) {
     if (!buffer)
         return createTexture();
 
@@ -1022,7 +1022,7 @@ SP<ITexture> IHyprRenderer::createTexture(const SP<Aquamarine::IBuffer> buffer, 
 
         auto [pixelData, fmt, bufLen] = buffer->beginDataPtr(0);
 
-        return createTexture(fmt, pixelData, bufLen, shm.size, keepDataCopy, buffer->opaque);
+        return createTexture(fmt, pixelData, bufLen, shm.size, buffer->opaque);
     }
 
     auto tex = createTexture(attrs, buffer->opaque);

@@ -141,12 +141,21 @@ bool CGLFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uin
     }
 
     auto [pixelData, fmt, bufLen] = buffer->beginDataPtr(0); // no need for end, cuz it's shm
+
+    return readPixelsTo({.data = pixelData, .length = bufLen, .format = shm.format, .stride = sc<uint32_t>(std::max(shm.stride, 0)), .size = shm.size}, offsetX, offsetY, width,
+                        height);
+}
+
+bool CGLFramebuffer::readPixelsTo(const SPixelReadTarget& target, uint32_t offsetX, uint32_t offsetY, uint32_t width, uint32_t height) {
+    const auto pixelData = target.data;
+    const auto bufLen    = target.length;
+
     if (!pixelData) {
-        LOG(Log::ERR, "Can't copy: failed to get shm data pointer");
+        LOG(Log::ERR, "Can't copy: no destination data pointer");
         return false;
     }
 
-    const auto PFORMAT = getPixelFormatFromDRM(shm.format);
+    const auto PFORMAT = getPixelFormatFromDRM(target.format);
     if (!PFORMAT) {
         LOG(Log::ERR, "Can't copy: failed to find a pixel format");
         return false;
@@ -157,8 +166,8 @@ bool CGLFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uin
     const auto readWidth  = width > 0 ? width : fbWidth;
     const auto readHeight = height > 0 ? height : fbHeight;
 
-    if (readWidth == 0 || readHeight == 0 || shm.stride <= 0) {
-        LOG(Log::ERR, "Can't copy: invalid shm read dimensions");
+    if (readWidth == 0 || readHeight == 0 || target.stride == 0) {
+        LOG(Log::ERR, "Can't copy: invalid read dimensions");
         return false;
     }
 
@@ -167,37 +176,37 @@ bool CGLFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uin
         return false;
     }
 
-    const auto shmWidth  = sc<uint32_t>(shm.size.x);
-    const auto shmHeight = sc<uint32_t>(shm.size.y);
-    if (offsetX > shmWidth || offsetY > shmHeight || readWidth > shmWidth - offsetX || readHeight > shmHeight - offsetY) {
-        LOG(Log::ERR, "Can't copy: read rect exceeds shm buffer");
+    const auto dstWidth  = sc<uint32_t>(target.size.x);
+    const auto dstHeight = sc<uint32_t>(target.size.y);
+    if (offsetX > dstWidth || offsetY > dstHeight || readWidth > dstWidth - offsetX || readHeight > dstHeight - offsetY) {
+        LOG(Log::ERR, "Can't copy: read rect exceeds destination buffer");
         return false;
     }
 
-    const auto strideBytes = sc<size_t>(shm.stride);
+    const auto strideBytes = sc<size_t>(target.stride);
     const auto rowOffset   = sc<size_t>(minStride(PFORMAT, offsetX));
     const auto rowBytes    = sc<size_t>(minStride(PFORMAT, readWidth));
 
     if (rowBytes == 0) {
-        LOG(Log::ERR, "Can't copy: invalid shm row size");
+        LOG(Log::ERR, "Can't copy: invalid row size");
         return false;
     }
 
     if (rowOffset > std::numeric_limits<size_t>::max() - rowBytes || rowOffset + rowBytes > strideBytes) {
-        LOG(Log::ERR, "Can't copy: shm stride is too small");
+        LOG(Log::ERR, "Can't copy: destination stride is too small");
         return false;
     }
 
     const auto lastRow = sc<size_t>(offsetY) + sc<size_t>(readHeight) - 1;
     if (strideBytes > 0 && lastRow > std::numeric_limits<size_t>::max() / strideBytes) {
-        LOG(Log::ERR, "Can't copy: shm row offset overflows");
+        LOG(Log::ERR, "Can't copy: destination row offset overflows");
         return false;
     }
 
     const auto lastRowStart = lastRow * strideBytes;
     const auto rowEnd       = rowOffset + rowBytes;
     if (lastRowStart > std::numeric_limits<size_t>::max() - rowEnd || lastRowStart + rowEnd > bufLen) {
-        LOG(Log::ERR, "Can't copy: shm buffer is too small");
+        LOG(Log::ERR, "Can't copy: destination buffer is too small");
         return false;
     }
 
@@ -220,7 +229,7 @@ bool CGLFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uin
         else if (stripSwizzleAlpha(*PFORMAT->swizzle) == stripSwizzleAlpha(SWIZZLE_BGRA))
             glFormat = GL_BGRA_EXT;
         else {
-            LOG(Log::ERR, "Copied frame via shm might be broken or color flipped");
+            LOG(Log::ERR, "Copied frame might be broken or color flipped");
             glFormat = GL_RGBA;
         }
     } else if (glFormat == GL_RGBA)

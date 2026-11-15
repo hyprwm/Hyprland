@@ -10,6 +10,15 @@
 class CHLBufferReference;
 
 namespace Render {
+    // a CPU-mapped destination for IFramebuffer::readPixelsTo
+    struct SPixelReadTarget {
+        uint8_t*  data   = nullptr;
+        size_t    length = 0; // bytes
+        DRMFormat format = DRM_FORMAT_INVALID;
+        uint32_t  stride = 0; // bytes
+        Vector2D  size;
+    };
+
     class IFramebuffer {
       public:
         IFramebuffer() = default;
@@ -19,6 +28,8 @@ namespace Render {
         virtual bool                        alloc(int w, int h, DRMFormat format = DRM_FORMAT_ARGB8888);
         virtual void                        release()                                                                                                                  = 0;
         virtual bool                        readPixels(CHLBufferReference buffer, uint32_t offsetX = 0, uint32_t offsetY = 0, uint32_t width = 0, uint32_t height = 0) = 0;
+
+        virtual bool                        readPixelsTo(const SPixelReadTarget& target, uint32_t offsetX = 0, uint32_t offsetY = 0, uint32_t width = 0, uint32_t height = 0);
 
         virtual void                        bind() = 0;
 

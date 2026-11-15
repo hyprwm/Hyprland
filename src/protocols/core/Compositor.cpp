@@ -674,11 +674,6 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
     if (m_current.buffer) {
         if (m_current.buffer->isSynchronous())
             m_current.updateSynchronousTexture(lastTexture);
-
-        // if the surface is a cursor, update the shm buffer
-        // TODO: don't update the entire texture
-        if (m_role->role() == SURFACE_ROLE_CURSOR)
-            updateCursorShm(m_current.accumulateBufferDamage());
     }
 
     if (m_current.texture)
@@ -795,48 +790,6 @@ bool CWLSurfaceResource::isTearing() {
         }
     }
     return false;
-}
-
-void CWLSurfaceResource::updateCursorShm(CRegion damage) {
-    if (damage.empty())
-        return;
-
-    auto buf = m_current.buffer ? m_current.buffer : SP<IHLBuffer>{};
-
-    if UNLIKELY (!buf)
-        return;
-
-    auto& shmData  = CCursorSurfaceRole::cursorPixelData(m_self.lock());
-    auto  shmAttrs = buf->shm();
-
-    if (!shmAttrs.success) {
-        LOG(Log::TRACE, "updateCursorShm: ignoring, not a shm buffer");
-        return;
-    }
-
-    damage.intersect(CBox{0, 0, buf->size.x, buf->size.y});
-
-    // no need to end, shm.
-    auto [pixelData, fmt, bufLen] = buf->beginDataPtr(0);
-
-    shmData.resize(bufLen);
-
-    int         rectsNum = 0;
-    const auto* rects    = pixman_region32_rectangles(damage.pixman(), &rectsNum);
-
-    if (rectsNum == 1 && rects[0].x2 == buf->size.x && rects[0].y2 == buf->size.y)
-        memcpy(shmData.data(), pixelData, bufLen);
-    else {
-        const auto stride = shmAttrs.stride;
-        damage.forEachRect([&pixelData, &shmData, stride](const auto& box) {
-            for (auto y = box.y1; y < box.y2; ++y) {
-                // bpp is 32 INSALLAH
-                auto begin = y * stride + 4 * box.x1;
-                auto len   = 4 * (box.x2 - box.x1);
-                memcpy(shmData.data() + begin, pixelData + begin, len);
-            }
-        });
-    }
 }
 
 void CWLSurfaceResource::presentFeedback(const Time::steady_tp& when, PHLMONITOR pMonitor, bool discarded) {

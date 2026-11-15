@@ -29,8 +29,7 @@ CGLTexture::~CGLTexture() {
     m_cachedStates.fill(std::nullopt);
 }
 
-CGLTexture::CGLTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size_, bool keepDataCopy, bool opaque) :
-    ITexture(drmFormat, pixels, stride, size_, keepDataCopy, opaque) {
+CGLTexture::CGLTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size_, bool opaque) : ITexture(drmFormat, pixels, stride, size_, opaque) {
 
     g_pHyprOpenGL->makeEGLCurrent();
 
@@ -160,11 +159,6 @@ void CGLTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, co
     GLCALL(glPixelStorei(GL_UNPACK_SKIP_ROWS_EXT, 0));
 
     unbind();
-
-    if (m_keepDataCopy) {
-        m_dataCopy.resize(stride * m_size.y);
-        memcpy(m_dataCopy.data(), pixels, stride * m_size.y);
-    }
 }
 
 void CGLTexture::allocate(const Vector2D& size, uint32_t drmFormat) {

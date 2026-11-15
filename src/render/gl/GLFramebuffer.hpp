@@ -15,6 +15,7 @@ namespace Render::GL {
         void   addStencil(SP<ITexture> tex) override;
         void   release() override;
         bool   readPixels(CHLBufferReference buffer, uint32_t offsetX = 0, uint32_t offsetY = 0, uint32_t width = 0, uint32_t height = 0) override;
+        bool   readPixelsTo(const SPixelReadTarget& target, uint32_t offsetX = 0, uint32_t offsetY = 0, uint32_t width = 0, uint32_t height = 0) override;
 
         void   bind() override;
         void   unbind();

@@ -242,9 +242,9 @@ SP<ITexture> CHyprGLRenderer::createTexture(bool opaque) {
     return makeShared<CGLTexture>(opaque);
 }
 
-SP<ITexture> CHyprGLRenderer::createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy, bool opaque) {
+SP<ITexture> CHyprGLRenderer::createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool opaque) {
     g_pHyprOpenGL->makeEGLCurrent();
-    return makeShared<CGLTexture>(drmFormat, pixels, stride, size, keepDataCopy, opaque);
+    return makeShared<CGLTexture>(drmFormat, pixels, stride, size, opaque);
 }
 
 SP<ITexture> CHyprGLRenderer::createTexture(const Aquamarine::SDMABUFAttrs& attrs, bool opaque) {

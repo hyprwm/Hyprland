@@ -13,13 +13,13 @@ namespace Render {
 #include "../helpers/sync/SyncTimeline.hpp"
 #include "../helpers/time/Time.hpp"
 #include "../helpers/signal/Signal.hpp"
-#include <cairo/cairo.h>
 #include <tuple>
 #include <vector>
 
 class IHID;
 namespace Render {
     class ITexture;
+    class IFramebuffer;
 }
 
 AQUAMARINE_FORWARD(IBuffer);
@@ -100,7 +100,6 @@ namespace Pointer {
             Vector2D                outputSize(float outputScale) const;
             Vector2D                planeSize(float outputScale, wl_output_transform transform) const;
             Vector2D                planeHotspot(float outputScale, wl_output_transform transform, const Vector2D& planeSize) const;
-            cairo_matrix_t          cairoMatrix(const Vector2D& textureSize, float outputScale, wl_output_transform transform, const Vector2D& planeSize) const;
         };
 
         struct SCursorImage : SCursorImageData {
@@ -213,6 +212,9 @@ namespace Pointer {
             CBox                    swRenderedBox; // logical, monitor local. valid only when swRendered
 
             SP<Aquamarine::IBuffer> cursorFrontBuffer;
+
+            // offscreen target for cursor:use_cpu_buffer, read back into the dumb buffer
+            SP<Render::IFramebuffer> cpuCursorFB;
         };
 
         std::vector<SP<SMonitorPointerState>> m_monitorStates;

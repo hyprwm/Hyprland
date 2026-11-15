@@ -185,28 +185,28 @@ namespace Render {
         virtual void              bindFB(CRenderContext& ctx, SP<IFramebuffer> fb);
         // Restores currentFB and physical bindings/viewport only, not other draw state.
         [[nodiscard]] CTempFramebufferScope bindTempFB(CRenderContext& ctx, SP<IFramebuffer> fb);
-        virtual UP<ISyncFDManager>          createSyncFDManager()                                                                                                      = 0;
-        virtual WP<IElementRenderer>        elementRenderer()                                                                                                          = 0;
-        virtual SP<ITexture>                createStencilTexture(const int width, const int height)                                                                    = 0;
-        virtual SP<ITexture>                createTexture(bool opaque = false)                                                                                         = 0;
-        virtual SP<ITexture> createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false, bool opaque = false) = 0;
-        virtual SP<ITexture> createTexture(const Aquamarine::SDMABUFAttrs&, bool opaque = false)                                                                       = 0;
-        virtual SP<ITexture> createTexture(const int width, const int height, unsigned char* const)                                                                    = 0;
-        virtual SP<ITexture> createTexture(cairo_surface_t* cairo)                                                                                                     = 0;
-        virtual SP<ITexture> createTexture(std::span<const float> lut3D, size_t N)                                                                                     = 0;
-        virtual SP<ITexture> createTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy = false);
-        virtual SP<ITexture> renderText(const std::string& text, CHyprColor col, int pt, bool italic = false, const std::string& fontFamily = "", int maxWidth = 0,
-                                        int weight = 400);
-        virtual SP<ITexture> renderText(Hyprgraphics::CTextResource::STextResourceData&& data);
-        SP<ITexture>         loadAsset(const std::string& filename);
-        virtual bool         shouldUseNewBlurOptimizations(CRenderContext& ctx, PHLLS pLayer, PHLWINDOW pWindow);
-        virtual bool         explicitSyncSupported()                                                                                                                         = 0;
-        virtual bool         fp16Supported()                                                                                                                                 = 0;
-        virtual std::vector<SDRMFormat> getDRMFormats()                                                                                                                      = 0;
-        virtual std::vector<uint64_t>   getDRMFormatModifiers(DRMFormat format)                                                                                              = 0;
-        virtual SP<IFramebuffer>        createFB(const std::string& name = "")                                                                                               = 0;
-        virtual void                    disableScissor()                                                                                                                     = 0;
-        virtual void                    blend(bool enabled)                                                                                                                  = 0;
+        virtual UP<ISyncFDManager>          createSyncFDManager()                                                                                          = 0;
+        virtual WP<IElementRenderer>        elementRenderer()                                                                                              = 0;
+        virtual SP<ITexture>                createStencilTexture(const int width, const int height)                                                        = 0;
+        virtual SP<ITexture>                createTexture(bool opaque = false)                                                                             = 0;
+        virtual SP<ITexture>                createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool opaque = false) = 0;
+        virtual SP<ITexture>                createTexture(const Aquamarine::SDMABUFAttrs&, bool opaque = false)                                            = 0;
+        virtual SP<ITexture>                createTexture(const int width, const int height, unsigned char* const)                                         = 0;
+        virtual SP<ITexture>                createTexture(cairo_surface_t* cairo)                                                                          = 0;
+        virtual SP<ITexture>                createTexture(std::span<const float> lut3D, size_t N)                                                          = 0;
+        virtual SP<ITexture>                createTexture(const SP<Aquamarine::IBuffer> buffer);
+        virtual SP<ITexture>                renderText(const std::string& text, CHyprColor col, int pt, bool italic = false, const std::string& fontFamily = "", int maxWidth = 0,
+                                                       int weight = 400);
+        virtual SP<ITexture>                renderText(Hyprgraphics::CTextResource::STextResourceData&& data);
+        SP<ITexture>                        loadAsset(const std::string& filename);
+        virtual bool                        shouldUseNewBlurOptimizations(CRenderContext& ctx, PHLLS pLayer, PHLWINDOW pWindow);
+        virtual bool                        explicitSyncSupported()                                                                                                          = 0;
+        virtual bool                        fp16Supported()                                                                                                                  = 0;
+        virtual std::vector<SDRMFormat>     getDRMFormats()                                                                                                                  = 0;
+        virtual std::vector<uint64_t>       getDRMFormatModifiers(DRMFormat format)                                                                                          = 0;
+        virtual SP<IFramebuffer>            createFB(const std::string& name = "")                                                                                           = 0;
+        virtual void                        disableScissor()                                                                                                                 = 0;
+        virtual void                        blend(bool enabled)                                                                                                              = 0;
         virtual void             drawShadow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a,
                                             const SWindowRenderPresentation& presentation)                                                                                   = 0;
         virtual void             drawShadow(CRenderContext& ctx, const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,

@@ -236,15 +236,20 @@ static SDispatchResult probeCursorRender(Render::CRenderContext& ctx, PHLMONITOR
     if (DATA.tex != pointer.cursorTextureForImage(image))
         return {.success = false, .error = "Cursor render did not use the output's resolved texture"};
 
-    // Cairo ARGB32, copied by createTexture(..., true). Check every pixel so
+    // Cairo ARGB32, the buffer the texture was uploaded from. Check every pixel so
     // matching dimensions alone cannot disguise the wrong theme or a resample.
-    const auto& BYTES = DATA.tex->dataCopy();
-    const auto  COLOR = pixels == 24 ? 0xFFFF0000U : 0xFF00FF00U;
-    if (BYTES.size() != sc<size_t>(pixels * pixels * 4))
-        return {.success = false, .error = "Cursor texture has no complete CPU data copy"};
-    for (size_t i = 0; i < BYTES.size(); i += 4) {
+    const auto COLOR = pixels == 24 ? 0xFFFF0000U : 0xFF00FF00U;
+    const auto SHM   = image.pBuffer ? image.pBuffer->shm() : Aquamarine::SSHMAttrs{};
+    if (!SHM.success || SHM.size != SIZE || SHM.stride != pixels * 4)
+        return {.success = false, .error = "Cursor image has no complete CPU buffer"};
+    const auto   BYTES  = std::get<0>(image.pBuffer->beginDataPtr(0));
+    const size_t LENGTH = sc<size_t>(pixels) * pixels * 4;
+    image.pBuffer->endDataPtr();
+    if (!BYTES)
+        return {.success = false, .error = "Cursor image has no complete CPU buffer"};
+    for (size_t i = 0; i < LENGTH; i += 4) {
         uint32_t pixel = 0;
-        std::memcpy(&pixel, BYTES.data() + i, sizeof(pixel));
+        std::memcpy(&pixel, BYTES + i, sizeof(pixel));
         if (pixel != COLOR)
             return {.success = false, .error = std::format("{}: unexpected cursor pixel {:#x}, expected {:#x}", monitor->m_name, pixel, COLOR)};
     }

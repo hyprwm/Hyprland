@@ -27,23 +27,21 @@ namespace Render {
 
         virtual ~ITexture() = default;
 
-        virtual void                setTexParameter(GLenum pname, GLint param)                                          = 0;
-        virtual void                allocate(const Vector2D& size, uint32_t drmFormat = 0)                              = 0;
-        virtual void                update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const CRegion& damage) = 0;
-        virtual void                bind() {};
-        virtual void                unbind() {};
-        virtual bool                ok();
-        virtual bool                isDMA();
+        virtual void setTexParameter(GLenum pname, GLint param)                                          = 0;
+        virtual void allocate(const Vector2D& size, uint32_t drmFormat = 0)                              = 0;
+        virtual void update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const CRegion& damage) = 0;
+        virtual void bind() {};
+        virtual void unbind() {};
+        virtual bool ok();
+        virtual bool isDMA();
 
-        const std::vector<uint8_t>& dataCopy();
+        eTextureType m_type      = TEXTURE_RGBA;
+        Vector2D     m_size      = {};
+        eTransform   m_transform = HYPRUTILS_TRANSFORM_NORMAL;
+        bool         m_opaque    = false;
 
-        eTextureType                m_type      = TEXTURE_RGBA;
-        Vector2D                    m_size      = {};
-        eTransform                  m_transform = HYPRUTILS_TRANSFORM_NORMAL;
-        bool                        m_opaque    = false;
-
-        uint32_t                    m_drmFormat     = 0; // for shm
-        bool                        m_isSynchronous = false;
+        uint32_t     m_drmFormat     = 0; // for shm
+        bool         m_isSynchronous = false;
 
         // CM
         NColorManagement::PImageDescription m_imageDescription;
@@ -55,10 +53,7 @@ namespace Render {
 
       protected:
         ITexture() = default;
-        ITexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false, bool opaque = false);
+        ITexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool opaque = false);
         ITexture(std::span<const float> lut3D, size_t N);
-
-        bool                 m_keepDataCopy = false;
-        std::vector<uint8_t> m_dataCopy;
     };
 }

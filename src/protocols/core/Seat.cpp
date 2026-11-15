@@ -129,10 +129,8 @@ CWLPointerResource::CWLPointerResource(SP<CWlPointer> resource_, SP<CWLSeatResou
             return;
         }
 
-        if (surfResource && surfResource->m_role->role() != SURFACE_ROLE_CURSOR) {
+        if (surfResource && surfResource->m_role->role() != SURFACE_ROLE_CURSOR)
             surfResource->m_role = makeShared<CCursorSurfaceRole>();
-            surfResource->updateCursorShm();
-        }
 
         g_pSeatManager->onSetCursor(m_owner.lock(), serial, surfResource, {hotX, hotY});
     });
@@ -618,11 +616,4 @@ SP<CWLSeatResource> CWLSeatProtocol::seatResourceForClient(wl_client* client) {
     }
 
     return nullptr;
-}
-
-std::vector<uint8_t>& CCursorSurfaceRole::cursorPixelData(SP<CWLSurfaceResource> surface) {
-    RASSERT(surface->m_role->role() == SURFACE_ROLE_CURSOR, "cursorPixelData called on a non-cursor surface");
-
-    auto role = sc<CCursorSurfaceRole*>(surface->m_role.get());
-    return role->m_cursorShmPixelData;
 }

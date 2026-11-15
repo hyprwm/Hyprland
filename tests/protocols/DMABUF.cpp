@@ -326,7 +326,7 @@ class CDMABUFTestRenderer : public Render::IHyprRenderer {
     SP<Render::ITexture> createTexture(bool) override {
         return nullptr;
     }
-    SP<Render::ITexture> createTexture(uint32_t, uint8_t*, uint32_t, const Vector2D&, bool, bool) override {
+    SP<Render::ITexture> createTexture(uint32_t, uint8_t*, uint32_t, const Vector2D&, bool) override {
         return nullptr;
     }
     SP<Render::ITexture> createTexture(int, int, unsigned char*) override {

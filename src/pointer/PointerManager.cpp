@@ -26,7 +26,6 @@
 #include <climits>
 #include <cstring>
 #include <gbm.h>
-#include <cairo/cairo.h>
 #include <hyprutils/math/Region.hpp>
 #include <hyprutils/math/Vector2D.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -59,29 +58,6 @@ Vector2D CPointerManager::SCursorImageData::planeSize(float outputScale, wl_outp
 Vector2D CPointerManager::SCursorImageData::planeHotspot(float outputScale, wl_output_transform transform, const Vector2D& planeSize) const {
     const auto SIZE = transform % 2 == 1 ? Vector2D{planeSize.y, planeSize.x} : planeSize;
     return CBox{hotspot * outputScale, {0, 0}}.transform(Math::wlTransformToHyprutils(Math::invertTransform(transform)), SIZE.x, SIZE.y).pos();
-}
-
-cairo_matrix_t CPointerManager::SCursorImageData::cairoMatrix(const Vector2D& textureSize, float outputScale, wl_output_transform transform, const Vector2D& planeSize) const {
-    const auto     SCALE = textureSize / outputSize(outputScale);
-    const auto     SX = SCALE.x, SY = SCALE.y;
-    const auto     BW = planeSize.x, BH = planeSize.y;
-    cairo_matrix_t matrix = {};
-
-    // Cairo maps plane coordinates back to the source. Match the GL projection,
-    // including its rounded destination and the padding of a non-square plane.
-    switch (transform) {
-        case WL_OUTPUT_TRANSFORM_NORMAL:
-        default: cairo_matrix_init(&matrix, SX, 0, 0, SY, 0, 0); break;
-        case WL_OUTPUT_TRANSFORM_90: cairo_matrix_init(&matrix, 0, SY, -SX, 0, SX * BH, 0); break;
-        case WL_OUTPUT_TRANSFORM_180: cairo_matrix_init(&matrix, -SX, 0, 0, -SY, SX * BW, SY * BH); break;
-        case WL_OUTPUT_TRANSFORM_270: cairo_matrix_init(&matrix, 0, -SY, SX, 0, 0, SY * BW); break;
-        case WL_OUTPUT_TRANSFORM_FLIPPED: cairo_matrix_init(&matrix, -SX, 0, 0, SY, SX * BW, 0); break;
-        case WL_OUTPUT_TRANSFORM_FLIPPED_90: cairo_matrix_init(&matrix, 0, SY, SX, 0, 0, 0); break;
-        case WL_OUTPUT_TRANSFORM_FLIPPED_180: cairo_matrix_init(&matrix, SX, 0, 0, -SY, 0, SY * BH); break;
-        case WL_OUTPUT_TRANSFORM_FLIPPED_270: cairo_matrix_init(&matrix, 0, -SY, -SX, 0, SX * BH, SY * BW); break;
-    }
-
-    return matrix;
 }
 
 CPointerManager::CPointerManager() {
@@ -616,94 +592,36 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         return nullptr;
     }
 
+    SP<Render::IRenderbuffer> RBO;
+    SP<Render::IFramebuffer>  FB;
+
     if (shouldUseCpuBuffer) {
-        // get the texture data if available.
-        auto texData = texture->dataCopy();
-        if (texData.empty()) {
-            if (m_currentCursorImage.surface && m_currentCursorImage.surface->resource()->m_role->role() == SURFACE_ROLE_CURSOR) {
-                const auto SURFACE   = m_currentCursorImage.surface->resource();
-                auto&      shmBuffer = CCursorSurfaceRole::cursorPixelData(SURFACE);
+        // dumb buffers can't be rendered to by the GPU, so we render offscreen and read the result back
+        const auto DMABUF = buf->dmabuf();
 
-                bool       flipRB = false;
+        if (!state->cpuCursorFB)
+            state->cpuCursorFB = g_pHyprRenderer->createFB("cursor cpu buffer");
 
-                if (SURFACE->m_current.texture) {
-                    LOG(Log::TRACE, "Cursor CPU surface: format {}, expecting AR24", NFormatUtils::drmFormatName(SURFACE->m_current.texture->m_drmFormat));
-                    if (!SURFACE->m_current.texture->m_drmFormat)
-                        SURFACE->m_current.texture->m_drmFormat = DRM_FORMAT_ARGB8888; // FIXME assumes DRM_FORMAT_ARGB8888
-                    if (SURFACE->m_current.texture->m_drmFormat == DRM_FORMAT_ABGR8888) {
-                        LOG(Log::TRACE, "Cursor CPU surface format AB24, will flip. WARNING: this will break on big endian!");
-                        flipRB = true;
-                    } else if (SURFACE->m_current.texture->m_drmFormat != DRM_FORMAT_ARGB8888) {
-                        LOG(Log::TRACE, "Cursor CPU surface format rejected, falling back to sw");
-                        return nullptr;
-                    }
-                }
-
-                if (shmBuffer.data())
-                    texData = shmBuffer;
-                else {
-                    texData.resize(texture->m_size.x * 4 * texture->m_size.y);
-                    memset(texData.data(), 0x00, texData.size());
-                }
-
-                if (flipRB) {
-                    for (size_t i = 0; i < shmBuffer.size(); i += 4) {
-                        std::swap(shmBuffer[i], shmBuffer[i + 2]); // little-endian!!!!!!
-                    }
-                }
-            } else {
-                LOG(Log::TRACE, "Cannot use dumb copy on dmabuf cursor buffers");
-                return nullptr;
-            }
+        if (!state->cpuCursorFB || !state->cpuCursorFB->alloc(DMABUF.size.x, DMABUF.size.y, DMABUF.format)) {
+            LOG(Log::TRACE, "Failed to allocate a cursor FB with format {}", NFormatUtils::drmFormatName(DMABUF.format));
+            return nullptr;
         }
 
-        // then, we just yeet it into the dumb buffer
+        FB = state->cpuCursorFB;
+    } else {
+        state->cpuCursorFB.reset();
 
-        const auto DMABUF      = buf->dmabuf();
-        auto [data, fmt, size] = buf->beginDataPtr(0);
+        RBO = g_pHyprRenderer->getOrCreateRenderbuffer(buf, state->monitor->m_cursorSwapchain->currentOptions().format);
+        if (!RBO) {
+            LOG(Log::TRACE, "Failed to create cursor RB with format {}, mod {}", buf->dmabuf().format, buf->dmabuf().modifier);
+            return nullptr;
+        }
 
-        auto CAIROSURFACE     = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, DMABUF.size.x, DMABUF.size.y);
-        auto CAIRODATASURFACE = cairo_image_surface_create_for_data(texData.data(), CAIRO_FORMAT_ARGB32, texture->m_size.x, texture->m_size.y, texture->m_size.x * 4);
-
-        auto CAIRO = cairo_create(CAIROSURFACE);
-
-        cairo_set_operator(CAIRO, CAIRO_OPERATOR_SOURCE);
-        cairo_set_source_rgba(CAIRO, 0, 0, 0, 0);
-        cairo_rectangle(CAIRO, 0, 0, texture->m_size.x, texture->m_size.y);
-        cairo_fill(CAIRO);
-
-        const auto PATTERNPRE = cairo_pattern_create_for_surface(CAIRODATASURFACE);
-        cairo_pattern_set_filter(PATTERNPRE, CAIRO_FILTER_BILINEAR);
-        const auto matrixPre = image.cairoMatrix(texture->m_size, state->monitor->m_scale, state->monitor->m_transform, DMABUF.size);
-
-        cairo_pattern_set_matrix(PATTERNPRE, &matrixPre);
-        cairo_set_source(CAIRO, PATTERNPRE);
-        cairo_paint(CAIRO);
-
-        cairo_surface_flush(CAIROSURFACE);
-
-        cairo_pattern_destroy(PATTERNPRE);
-
-        memcpy(data, cairo_image_surface_get_data(CAIROSURFACE), sc<size_t>(cairo_image_surface_get_height(CAIROSURFACE)) * cairo_image_surface_get_stride(CAIROSURFACE));
-
-        cairo_destroy(CAIRO);
-        cairo_surface_destroy(CAIROSURFACE);
-        cairo_surface_destroy(CAIRODATASURFACE);
-
-        buf->endDataPtr();
-
-        return buf;
-    }
-
-    auto RBO = g_pHyprRenderer->getOrCreateRenderbuffer(buf, state->monitor->m_cursorSwapchain->currentOptions().format);
-    if (!RBO) {
-        LOG(Log::TRACE, "Failed to create cursor RB with format {}, mod {}", buf->dmabuf().format, buf->dmabuf().modifier);
-        return nullptr;
+        FB = RBO->getFB();
     }
 
     // the cursor plane is blended after the FB is encoded into the output's colour space,
     // so tag it - otherwise a raw sRGB cursor gets reinterpreted there, blinding on PQ
-    const auto FB = RBO->getFB();
     FB->setImageDescription(state->monitor->m_imageDescription);
 
     CRegion damageRegion = {0, 0, INT_MAX, INT_MAX};
@@ -729,6 +647,18 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
     finishing = true;
     g_pHyprRenderer->endRender();
+
+    if (shouldUseCpuBuffer) {
+        const auto DMABUF        = buf->dmabuf();
+        auto [data, fmt, bufLen] = buf->beginDataPtr(0);
+        const bool READ          = data && FB->readPixelsTo({.data = data, .length = bufLen, .format = fmt, .stride = DMABUF.strides.at(0), .size = DMABUF.size});
+        buf->endDataPtr();
+
+        if (!READ) {
+            LOG(Log::TRACE, "Failed to read the cursor back into the dumb buffer");
+            return nullptr;
+        }
+    }
 
     return buf;
 }
@@ -1061,7 +991,7 @@ CPointerManager::SCursorImageData& CPointerManager::cursorImageForMonitor(PHLMON
 SP<Render::ITexture> CPointerManager::cursorTextureForImage(SCursorImageData& image) {
     if (image.pBuffer) {
         if (!image.bufferTex)
-            image.bufferTex = g_pHyprRenderer->createTexture(image.pBuffer, true);
+            image.bufferTex = g_pHyprRenderer->createTexture(image.pBuffer);
         return image.bufferTex;
     }
 

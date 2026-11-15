@@ -24,6 +24,10 @@ bool IFramebuffer::alloc(int w, int h, DRMFormat format) {
     return m_fbAllocated;
 }
 
+bool IFramebuffer::readPixelsTo(const SPixelReadTarget& target, uint32_t offsetX, uint32_t offsetY, uint32_t width, uint32_t height) {
+    return false;
+}
+
 bool IFramebuffer::isAllocated() {
     return m_fbAllocated && m_tex;
 }

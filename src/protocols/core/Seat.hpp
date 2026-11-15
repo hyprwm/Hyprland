@@ -33,13 +33,6 @@ class CCursorSurfaceRole : public ISurfaceRole {
     virtual eSurfaceRole role() {
         return SURFACE_ROLE_CURSOR;
     }
-
-    // gets the current pixel data from a shm surface
-    // will assert if the surface is not a cursor
-    static std::vector<uint8_t>& cursorPixelData(SP<CWLSurfaceResource> surface);
-
-  private:
-    std::vector<uint8_t> m_cursorShmPixelData;
 };
 
 class CWLTouchResource {

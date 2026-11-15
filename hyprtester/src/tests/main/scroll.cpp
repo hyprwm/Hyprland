@@ -253,9 +253,9 @@ TEST_CASE(scrollWindowRule) {
 
 /*
     Fullscreen Tests
-    
+
     Tests with `Shared test among all default handled FS` comment are duplicated among all layouts to test each layout individually
-    
+
     Scroll has layout handled fullscreen so it will have scrolling-specific FS tests in addition to shared Default Handled Tests
 
 */
@@ -724,15 +724,46 @@ TEST_CASE(scroll_LAYOUT_HANDLED_fullscreenRetainsGeometryWhileScrolling) {
     }
 }
 
+TEST_CASE(scroll_LAYOUT_HANDLED_clientFullscreenLayoutSwitch) {
+    OK(getFromSocket("/eval hl.config({ general = { layout = 'scrolling' } })"));
+    OK(getFromSocket("/eval hl.window_rule({ match = { class = '^scroll_layout_switch_.*$' }, sync_fullscreen = false })"));
+
+    SPAWN_KITTY("scroll_layout_switch_a");
+    SPAWN_KITTY("scroll_layout_switch_b");
+
+    // Client-only entries survive removeTarget(), leaving multiple entries for the handler destructor to clean up.
+    for (const auto& cls : {"scroll_layout_switch_a", "scroll_layout_switch_b"}) {
+        OK(getFromSocket(std::format("/dispatch hl.dsp.window.fullscreen_state({{ internal = 0, client = 2, action = 'set', window = 'class:{}' }})", cls)));
+    }
+
+    for (const auto& cls : {"scroll_layout_switch_a", "scroll_layout_switch_b"}) {
+        const auto WINDOW = getClientBlock(getFromSocket("/clients"), cls);
+        ASSERT_CONTAINS(WINDOW, "fullscreen: 0");
+        ASSERT_CONTAINS(WINDOW, "fullscreenClient: 2");
+        ASSERT_CONTAINS(WINDOW, "fullscreenHandler: scrolling");
+    }
+
+    OK(getFromSocket("/eval hl.workspace_rule({ workspace = tostring(hl.get_active_workspace().id), layout = 'master' })"));
+    Tests::sync();
+
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "tiledLayout: master");
+    ASSERT(Tests::windowCount(), 2);
+    for (const auto& cls : {"scroll_layout_switch_a", "scroll_layout_switch_b"}) {
+        const auto WINDOW = getClientBlock(getFromSocket("/clients"), cls);
+        ASSERT_CONTAINS(WINDOW, "mapped: 1");
+        ASSERT_CONTAINS(WINDOW, "hidden: 0");
+    }
+}
+
 TEST_CASE(scroll_LAYOUT_HANDLED_floatingWindowHiding) {
 
     /*
-    
+
         Scrolling layout allows floating FS windows to 'layer over' tiled FS window.
 
         If a floating window was open before a tiled window was FSed, hide it
         If a floating window was opened after a tiled window was FSed, show it
-        
+
         If a floating window was FSed ontop of the tiled window, hide all floating windows that were visible over the tiled FS window
         If this floating window is unFSed, all floating windows that were ontop of the tiled FS window as well as the floating window that was just FS-unFSed must still show ontop of the tiled FS window
         If we scroll onto another tiled FS window, hide them all. Scrolling back onto the prev tiled FS window doesn't cause them to reappear
@@ -2144,10 +2175,10 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenPinnedWindows) {
     // Shared test among all default handled FS
 
     /*
-    
+
     allow_pin_fullscreen -> Allow internal FSing a pinned window at all?
 
-    if true: FSed pinned window doesn't behave as pinned while it is FS but continues to behave as pinned when it's unFS 
+    if true: FSed pinned window doesn't behave as pinned while it is FS but continues to behave as pinned when it's unFS
     if false: doesn't allow FSing it at all (client can be set if de-syncing internal and client)
 
     */
@@ -2322,7 +2353,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_FullscreenNonInterference) {
     // Shared test among all default handled FS
 
     /*
-    
+
     When a tiled/floating window is default handled FSed, it must not cause the windows under it to have moved/resized after it is unFSed
 
     also tests if floating pos/size is properly restored after fS-unfs
@@ -2565,7 +2596,7 @@ TEST_CASE(scroll_DEFAULT_HANDLED_posAndSizeSyncWhileFS) {
 TEST_CASE(scroll_DEFAULT_HANDLED_layerVisibilityOnFs) {
 
     /*
-    
+
         A copy of the test from other, deafult handled FS only, layouts - tested in scrolling default handled FS
 
     */
@@ -3427,7 +3458,7 @@ TEST_CASE(testScrollingViewBehaviourScheduledPropRefresh) {
 
     /*
     Test that hl.exec_scheduled_prop_refresh_immediately() should immediately execute prop refresh. This is tested via inhibiting scrollin during helper functs dispatch; if it works, the viewport
-    should not move when a new workspace rule is created. If it doesn't, dispatch will miss because the refresh will be executed as another event 
+    should not move when a new workspace rule is created. If it doesn't, dispatch will miss because the refresh will be executed as another event
     --------------------------------------------------------------------------------------------------------------------------------------
     */
 
@@ -3554,7 +3585,7 @@ TEST_CASE(layoutRuleExpand) {
 }
 TEST_CASE(scrollTapeOnClickOutOfWindow) {
     /*
-     * Do not move tape on click in the direction, but out of the window  
+     * Do not move tape on click in the direction, but out of the window
      */
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));

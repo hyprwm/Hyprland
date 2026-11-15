@@ -41,7 +41,8 @@ CScrollingFullscreenHandler::~CScrollingFullscreenHandler() {
 
     for (auto it = m_fsTargets.begin(); it != m_fsTargets.end();) {
         const auto NEXT = std::next(it); // save next before removeFsTarget invalidates it
-        removeFsTarget(it->first.lock());
+        // Synchronization can erase other entries, including NEXT, during layout teardown.
+        removeFsTarget(it->first.lock(), true);
         it = NEXT;
     }
     updateFullscreenFade(false);

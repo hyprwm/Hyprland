@@ -40,6 +40,7 @@ namespace Desktop::View {
 
         Vector2D                       coordsRelativeToParent() const;
         Vector2D                       coordsGlobal() const;
+        Vector2D                       renderScale() const;
         size_t                         allChildrenCount() const;
         size_t                         allMappedChildrenCount() const;
 

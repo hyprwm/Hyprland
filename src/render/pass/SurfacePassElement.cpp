@@ -7,6 +7,7 @@
 #include "../../managers/input/InputManager.hpp"
 #include "../../layout/LayoutManager.hpp"
 #include "../Renderer.hpp"
+#include "../SurfaceGeometry.hpp"
 
 #include <hyprutils/math/Box.hpp>
 #include <hyprutils/math/Vector2D.hpp>
@@ -28,6 +29,7 @@ CBox CSurfacePassElement::getTexBox() {
     auto         PSURFACE                    = Desktop::View::CWLSurface::fromResource(m_data.surface);
 
     CBox         windowBox;
+    auto         localPos = m_data.localPos;
     if (m_data.surface && m_data.mainSurface) {
         windowBox = {sc<int>(outputX) + m_data.pos.x + m_data.localPos.x, sc<int>(outputY) + m_data.pos.y + m_data.localPos.y, m_data.w, m_data.h};
 
@@ -57,22 +59,20 @@ CBox CSurfacePassElement::getTexBox() {
 
         windowBox = {sc<int>(outputX) + m_data.pos.x + m_data.localPos.x, sc<int>(outputY) + m_data.pos.y + m_data.localPos.y, std::max(sc<float>(SURFSIZE.x), 2.F),
                      std::max(sc<float>(SURFSIZE.y), 2.F)};
-        if (m_data.pWindow && m_data.pWindow->sizeAnimation()->isBeingAnimated() && m_data.surface && !m_data.mainSurface && m_data.squishOversized /* subsurface */) {
-            // adjust subsurfaces to the window
-            const auto REPORTED = m_data.pWindow->backend().reportedSize();
-            if (REPORTED.x != 0 && REPORTED.y != 0) {
-                const auto REALSIZE = m_data.pWindow->size(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
-                windowBox.width     = (windowBox.width / REPORTED.x) * REALSIZE.x;
-                windowBox.height    = (windowBox.height / REPORTED.y) * REALSIZE.y;
-            }
+        if (m_data.pWindow && m_data.squishOversized && !m_data.popup) {
+            const auto SCALE = Render::windowSubsurfaceScale(m_data.pWindow);
+            localPos         = m_data.localPos * SCALE;
+            windowBox.translate(localPos - m_data.localPos);
+            windowBox.w *= SCALE.x;
+            windowBox.h *= SCALE.y;
         }
     }
 
     if (m_data.squishOversized) {
-        if (m_data.localPos.x + windowBox.width > m_data.w)
-            windowBox.width = m_data.w - m_data.localPos.x;
-        if (m_data.localPos.y + windowBox.height > m_data.h)
-            windowBox.height = m_data.h - m_data.localPos.y;
+        if (localPos.x + windowBox.width > m_data.w)
+            windowBox.width = m_data.w - localPos.x;
+        if (localPos.y + windowBox.height > m_data.h)
+            windowBox.height = m_data.h - localPos.y;
     }
 
     m_cachedTexBox = windowBox;

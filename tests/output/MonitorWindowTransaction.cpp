@@ -42,6 +42,7 @@
 #include <state/MonitorState.hpp>
 #include <ipc/s2/S2.hpp>
 #include <render/WindowRenderPresentation.hpp>
+#include <render/pass/SurfacePassElement.hpp>
 #include <workspace/HLWorkspace.hpp>
 #include <workspace/RegularWorkspace.hpp>
 
@@ -535,6 +536,57 @@ class CMonitorWindowTransactionTest : public ::testing::Test {
     UP<Desktop::CFadingOutState>                               m_previousFadeouts;
     UP<Layout::CLayoutManager>                                 m_previousLayout;
 };
+
+TEST_F(CMonitorWindowTransactionTest, SettledSubsurfacesCoverFractionalWindowContent) {
+    m_monitor->m_position = {};
+    for (const float scale : {1.33333F, 4.F / 3.F, 1.25F, 1.5F, 2.F}) {
+        m_monitor->m_scale = scale;
+        for (const int width : {1438, 1439, 2878}) {
+            SCOPED_TRACE(::testing::Message() << "scale=" << scale << " width=" << width);
+            const CBox content = CBox{1, 1, width, 1918}.scale(1.0 / scale);
+            const auto window  = makeWindow(content);
+            const auto client  = content.size().floor();
+            commit(window, client, client);
+
+            CSurfacePassElement::SRenderData data;
+            data.pMonitor    = m_monitor;
+            data.pos         = content.pos();
+            data.surface     = window->backend().surface();
+            data.mainSurface = false;
+            data.w           = content.w;
+            data.h           = content.h;
+            data.pWindow     = window;
+            EXPECT_FALSE(window->sizeAnimation()->isBeingAnimated());
+            CSurfacePassElement full{data};
+            EXPECT_EQ(full.getTexBox().scale(scale).round(), content.copy().scale(scale).round());
+
+            // The accumulated offset also represents a nested subsurface at the bottom right.
+            data.localPos                = {17, 23};
+            data.surface->m_current.size = client - data.localPos;
+            CSurfacePassElement inset{data};
+            const auto          box = inset.getTexBox().scale(scale).round();
+            EXPECT_EQ(box.pos() + box.size(), ((content.pos() + content.size()) * scale).round());
+
+            data.squishOversized = false;
+            data.popup           = true;
+            CSurfacePassElement popup{data};
+            EXPECT_EQ(popup.getTexBox(), CBox(content.pos() + data.localPos, client - data.localPos));
+
+            data.popup                   = false;
+            data.squishOversized         = true;
+            data.surface->m_current.size = client + Vector2D{10, 10};
+            CSurfacePassElement clipped{data};
+            const auto          clippedBox = clipped.getTexBox().scale(scale).round();
+            EXPECT_EQ(clippedBox.pos() + clippedBox.size(), ((content.pos() + content.size()) * scale).round());
+
+            data.localPos                = {};
+            data.surface->m_current.size = {100, 80};
+            CSurfacePassElement small{data};
+            EXPECT_LT(small.getTexBox().w, 101);
+            EXPECT_LT(small.getTexBox().h, 81);
+        }
+    }
+}
 
 class CWindowGeometryTest : public CMonitorWindowTransactionTest {
   protected:

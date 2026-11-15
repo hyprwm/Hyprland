@@ -43,7 +43,7 @@ if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
   set(CMAKE_EXECUTABLE_ENABLE_EXPORTS TRUE)
 endif()
 
-if(BUILD_TESTING OR WITH_TESTS)
+if(BUILD_TESTING)
   enable_testing()
   if(NOT Python3_Interpreter_FOUND)
     find_package(Python3 COMPONENTS Interpreter REQUIRED)

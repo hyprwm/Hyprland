@@ -19,8 +19,9 @@ namespace Layout {
     };
 
     enum eTargetUpdateFlags : uint8_t {
-        TARGET_UPDATE_NONE                = 0,
-        TARGET_UPDATE_NO_CLIENT_CONFIGURE = 1 << 0,
+        TARGET_UPDATE_NONE                    = 0,
+        TARGET_UPDATE_NO_CLIENT_CONFIGURE     = 1 << 0,
+        TARGET_UPDATE_NO_UPDATE_RESTORE_CACHE = 1 << 1,
     };
 
     class CSpace;

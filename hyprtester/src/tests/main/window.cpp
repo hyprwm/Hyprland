@@ -126,6 +126,77 @@ TEST_CASE(swapWindow) {
     }
 }
 
+TEST_CASE(swapFloatingTiledPreservesRestoreGeometry) {
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:swap-restore' })"));
+    SPAWN_KITTY("kitty_A");
+    SPAWN_KITTY("kitty_B");
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_A' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.resize({ x = 600, y = 400, relative = false })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 150, y = 160, relative = false })"));
+    const auto BEFORE   = getFromSocket("/activewindow");
+    const auto POSITION = Tests::getAttribute(BEFORE, "at");
+    const auto SIZE     = Tests::getAttribute(BEFORE, "size");
+
+    // Exercise both argument orders: A floats first, then B floats on the return swap.
+    for (const auto* FLOATING_WINDOW : {"kitty_B", "kitty_A"}) {
+        const auto* TILED_WINDOW = std::string_view(FLOATING_WINDOW) == "kitty_B" ? "kitty_A" : "kitty_B";
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_A' })"));
+        OK(getFromSocket("/dispatch hl.dsp.window.swap({ target = 'class:kitty_B' })"));
+        OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ window = 'class:{}' }})", TILED_WINDOW)));
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "floating"), "0");
+        OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ window = 'class:{}' }})", FLOATING_WINDOW)));
+        EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "floating"), "1");
+
+        for (const auto* MODE : {"fullscreen", "maximized"}) {
+            OK(getFromSocket(std::format("/dispatch hl.dsp.window.fullscreen({{ mode = '{}', action = 'set' }})", MODE)));
+            EXPECT_NOT(Tests::getAttribute(getFromSocket("/activewindow"), "fullscreen"), "0");
+            OK(getFromSocket(std::format("/dispatch hl.dsp.window.fullscreen({{ mode = '{}', action = 'unset' }})", MODE)));
+            EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "fullscreen"), "0");
+            EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "at"), POSITION);
+            EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "size"), SIZE);
+        }
+    }
+}
+
+TEST_CASE(swapFloatingAcrossWorkspacesPreservesRestoreGeometry) {
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:swap-restore-a' })"));
+    SPAWN_KITTY("kitty_A");
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.resize({ x = 600, y = 400, relative = false })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 150, y = 160, relative = false })"));
+    const auto WORKSPACE_A = Tests::getAttribute(getFromSocket("/activewindow"), "workspace");
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:swap-restore-b' })"));
+    SPAWN_KITTY("kitty_B");
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.resize({ x = 800, y = 500, relative = false })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 350, y = 200, relative = false })"));
+    const auto WORKSPACE_B = Tests::getAttribute(getFromSocket("/activewindow"), "workspace");
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_A' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.swap({ target = 'class:kitty_B' })"));
+
+    for (const auto* WINDOW : {"kitty_A", "kitty_B"}) {
+        OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ window = 'class:{}' }})", WINDOW)));
+        const auto SWAPPED  = getFromSocket("/activewindow");
+        const auto POSITION = Tests::getAttribute(SWAPPED, "at");
+        const auto SIZE     = Tests::getAttribute(SWAPPED, "size");
+        EXPECT(Tests::getAttribute(SWAPPED, "workspace"), std::string_view(WINDOW) == "kitty_A" ? WORKSPACE_B : WORKSPACE_A);
+        EXPECT(Tests::getAttribute(SWAPPED, "floating"), "1");
+
+        for (const auto* MODE : {"fullscreen", "maximized"}) {
+            OK(getFromSocket(std::format("/dispatch hl.dsp.window.fullscreen({{ mode = '{}', action = 'set' }})", MODE)));
+            EXPECT_NOT(Tests::getAttribute(getFromSocket("/activewindow"), "fullscreen"), "0");
+            OK(getFromSocket(std::format("/dispatch hl.dsp.window.fullscreen({{ mode = '{}', action = 'unset' }})", MODE)));
+            EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "fullscreen"), "0");
+            EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "at"), POSITION);
+            EXPECT(Tests::getAttribute(getFromSocket("/activewindow"), "size"), SIZE);
+        }
+    }
+}
+
 TEST_CASE(windowGroupRules) {
     OK(getFromSocket("/eval hl.config({ general = { border_size = 8 } })"));
     OK(getFromSocket("/eval hl.workspace_rule({ workspace = 'w[tv1]', border_size = 0 })"));

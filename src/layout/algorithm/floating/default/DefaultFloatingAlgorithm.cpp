@@ -113,6 +113,7 @@ void CDefaultFloatingAlgorithm::newTarget(SP<ITarget> target) {
             PWINDOW->acknowledgeClientGeometry(PWINDOW->geometricBox(Desktop::View::IGeometric::GEOMETRIC_GOAL));
     }
 
+    // Ensure that the target is in the datas map in case setting geometry didn't trigger an update
     updateTarget(target);
 }
 
@@ -128,6 +129,7 @@ void CDefaultFloatingAlgorithm::movedTarget(SP<ITarget> target, std::optional<Ve
         const auto THIS_BOX = m_parent->space()->workspace()->m_monitor->logicalBox();
 
         if (!THIS_BOX.intersection(BOX).empty()) {
+            // Update the m_datas cache without repositioning
             updateTarget(target);
             return;
         }
@@ -170,6 +172,7 @@ void CDefaultFloatingAlgorithm::movedTarget(SP<ITarget> target, std::optional<Ve
 
     setPositionGlobal(target, wantPos);
 
+    // Update the m_datas cache even if the geometry didn't change
     updateTarget(target);
 }
 
@@ -220,8 +223,6 @@ void CDefaultFloatingAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> tar
 
     if (g_layoutManager->dragController()->target() == target)
         target->warpPositionSize();
-
-    updateTarget(target);
 }
 
 void CDefaultFloatingAlgorithm::moveTarget(const Vector2D& Δ, SP<ITarget> target) {
@@ -231,17 +232,12 @@ void CDefaultFloatingAlgorithm::moveTarget(const Vector2D& Δ, SP<ITarget> targe
 
     if (g_layoutManager->dragController()->target() == target)
         target->warpPositionSize();
-
-    updateTarget(target);
 }
 
 void CDefaultFloatingAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
     auto posABackup = a->position();
-    setPositionGlobal(a, b->position());
-    setPositionGlobal(b, posABackup);
-
-    updateTarget(a);
-    updateTarget(b);
+    setPositionGlobal(a, b->position(), TARGET_UPDATE_NO_UPDATE_RESTORE_CACHE);
+    setPositionGlobal(b, posABackup, TARGET_UPDATE_NO_UPDATE_RESTORE_CACHE);
 }
 
 void CDefaultFloatingAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent) {
@@ -259,8 +255,6 @@ void CDefaultFloatingAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDire
     }
 
     setPositionGlobal(t, pos);
-
-    updateTarget(t);
 }
 
 void CDefaultFloatingAlgorithm::recenter(SP<ITarget> t) {
@@ -274,15 +268,13 @@ void CDefaultFloatingAlgorithm::recenter(SP<ITarget> t) {
 
 void CDefaultFloatingAlgorithm::setTargetGeom(const CBox& geom, SP<ITarget> target) {
     setPositionGlobal(target, geom);
-
-    updateTarget(target);
 }
 
 void CDefaultFloatingAlgorithm::updateTarget(SP<ITarget> t) {
     m_datas[t] = {.lastBox = t->position()};
 }
 
-CBox CDefaultFloatingAlgorithm::setPositionGlobal(SP<ITarget> t, const CBox& box) {
+CBox CDefaultFloatingAlgorithm::setPositionGlobal(SP<ITarget> t, const CBox& box, uint8_t flags) {
     CBox        adjustedBox;
 
     static auto PFORCEONSCREEN = CConfigValue<Config::INTEGER>("misc:float_force_onscreen");
@@ -298,6 +290,6 @@ CBox CDefaultFloatingAlgorithm::setPositionGlobal(SP<ITarget> t, const CBox& box
         case 2: adjustedBox = fitBoxInWorkArea(box, t, true); break;
     }
 
-    t->setPositionGlobal(adjustedBox);
+    t->setPositionGlobal(adjustedBox, flags);
     return adjustedBox;
 }

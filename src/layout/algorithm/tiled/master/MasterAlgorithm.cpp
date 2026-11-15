@@ -26,15 +26,6 @@ using namespace Layout;
 using namespace Layout::Tiled;
 using namespace Hyprutils::String;
 
-// Center-master slaves alternate left/right columns starting on the fallback side, so an odd
-// count puts the extra slave there: left by default, right when extraToRight. calculateWorkspace
-// and resizeTarget must both split via this or they disagree for odd counts. Returns {left, right}.
-static std::pair<int, int> centerSlaveColumns(int slaveCount, bool extraToRight) {
-    const int LARGER  = 1 + (slaveCount - 1) / 2; // ceil, holds the odd one
-    const int SMALLER = slaveCount - LARGER;
-    return extraToRight ? std::pair{SMALLER, LARGER} : std::pair{LARGER, SMALLER};
-}
-
 void CMasterAlgorithm::newTarget(SP<ITarget> target) {
     addTarget(target, true);
 }
@@ -1074,6 +1065,10 @@ void CMasterAlgorithm::calculateWorkspace() {
         }
     }
 
+    const auto targetEdges = [orientation, MASTERS, STACKWINDOWS](bool isMaster, int index) {
+        return masterTargetEdges(orientation, isMaster, index, MASTERS, STACKWINDOWS, *CMFALLBACK == "right");
+    };
+
     const float totalSize             = (orientation == ORIENTATION_TOP || orientation == ORIENTATION_BOTTOM) ? WORKAREA.w : WORKAREA.h;
     const float masterAverageSize     = totalSize / MASTERS;
     const float slaveAverageSize      = totalSize / STACKWINDOWS;
@@ -1110,7 +1105,10 @@ void CMasterAlgorithm::calculateWorkspace() {
             PMASTERNODE->position = WORKAREA.pos();
         }
 
-        PMASTERNODE->pTarget->setPositionGlobal({PMASTERNODE->position, PMASTERNODE->size});
+        PMASTERNODE->pTarget->setPositionGlobal({
+            .logicalBox = CBox{PMASTERNODE->position, PMASTERNODE->size},
+            .edges      = targetEdges(true, 0),
+        });
         return;
     } else if (orientation == ORIENTATION_TOP || orientation == ORIENTATION_BOTTOM) {
         const float HEIGHT      = STACKWINDOWS != 0 ? WORKAREA.h * PMASTERNODE->percMaster : WORKAREA.h;
@@ -1137,7 +1135,10 @@ void CMasterAlgorithm::calculateWorkspace() {
 
             nd->size     = Vector2D(WIDTH, HEIGHT);
             nd->position = WORKAREA.pos() + Vector2D(nextX, nextY);
-            nd->pTarget->setPositionGlobal({nd->position, nd->size});
+            nd->pTarget->setPositionGlobal({
+                .logicalBox = CBox{nd->position, nd->size},
+                .edges      = targetEdges(true, MASTERS - mastersLeft),
+            });
 
             mastersLeft--;
             widthLeft -= WIDTH;
@@ -1174,7 +1175,10 @@ void CMasterAlgorithm::calculateWorkspace() {
 
             nd->size     = Vector2D(WIDTH, HEIGHT);
             nd->position = (*PIGNORERESERVED && centerMasterWindow ? WORKAREA.pos() - Vector2D(reservedLeft, 0.0) : WORKAREA.pos()) + Vector2D(nextX, nextY);
-            nd->pTarget->setPositionGlobal({nd->position, nd->size});
+            nd->pTarget->setPositionGlobal({
+                .logicalBox = CBox{nd->position, nd->size},
+                .edges      = targetEdges(true, MASTERS - mastersLeft),
+            });
 
             mastersLeft--;
             heightLeft -= HEIGHT;
@@ -1211,7 +1215,10 @@ void CMasterAlgorithm::calculateWorkspace() {
 
             nd->size     = Vector2D(WIDTH, HEIGHT);
             nd->position = WORKAREA.pos() + Vector2D(nextX, nextY);
-            nd->pTarget->setPositionGlobal({nd->position, nd->size});
+            nd->pTarget->setPositionGlobal({
+                .logicalBox = CBox{nd->position, nd->size},
+                .edges      = targetEdges(false, STACKWINDOWS - slavesLeft),
+            });
 
             slavesLeft--;
             widthLeft -= WIDTH;
@@ -1241,7 +1248,10 @@ void CMasterAlgorithm::calculateWorkspace() {
 
             nd->size     = Vector2D(WIDTH, HEIGHT);
             nd->position = WORKAREA.pos() + Vector2D(nextX, nextY);
-            nd->pTarget->setPositionGlobal({nd->position, nd->size});
+            nd->pTarget->setPositionGlobal({
+                .logicalBox = CBox{nd->position, nd->size},
+                .edges      = targetEdges(false, STACKWINDOWS - slavesLeft),
+            });
 
             slavesLeft--;
             heightLeft -= HEIGHT;
@@ -1312,7 +1322,10 @@ void CMasterAlgorithm::calculateWorkspace() {
 
             nd->size     = Vector2D(*PIGNORERESERVED ? (WIDTH - (onRight ? reservedRight : reservedLeft)) : WIDTH, HEIGHT);
             nd->position = WORKAREA.pos() + Vector2D(nextX, nextY);
-            nd->pTarget->setPositionGlobal({nd->position, nd->size});
+            nd->pTarget->setPositionGlobal({
+                .logicalBox = CBox{nd->position, nd->size},
+                .edges      = targetEdges(false, STACKWINDOWS - slavesLeftL - slavesLeftR),
+            });
 
             if (onRight) {
                 heightLeftR -= HEIGHT;

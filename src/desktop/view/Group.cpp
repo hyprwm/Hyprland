@@ -412,6 +412,9 @@ void CGroup::removeWindowDecos(PHLWINDOW x) {
 }
 
 void CGroup::updateWindowVisibility() {
+    if (const auto SPACE = m_target->space(); SPACE)
+        SPACE->invalidateMergedBorders();
+
     for (size_t i = 0; i < m_windows.size(); ++i) {
         if (i == m_current) {
             auto& x = m_windows.at(i);

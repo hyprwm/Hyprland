@@ -25,7 +25,19 @@ using namespace Layout::Tiled;
 
 using namespace Hyprutils::String;
 
+STargetEdges SDwindleNodeData::targetEdges() const {
+    if (!pParent)
+        return {};
+
+    return splitTargetEdges(pParent->targetEdges(), !pParent->splitTop)[pParent->children[0].get() == this ? 0 : 1];
+}
+
 void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverride, bool verticalOverride) {
+    // Subtree recalculations must inherit the current ancestor splits, even after reparenting.
+    recalcSizePosRecursive(targetEdges(), force, horizontalOverride, verticalOverride);
+}
+
+void SDwindleNodeData::recalcSizePosRecursive(const STargetEdges& edges, bool force, bool horizontalOverride, bool verticalOverride) {
     if (children[0]) {
         static auto PSMARTSPLIT       = CConfigValue<Config::INTEGER>("dwindle:smart_split");
         static auto PPRESERVESPLIT    = CConfigValue<Config::INTEGER>("dwindle:preserve_split");
@@ -54,10 +66,14 @@ void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverrid
             children[1]->box      = CBox{box.x, box.y + FIRSTSIZE, box.w, box.h - FIRSTSIZE}.noNegativeSize();
         }
 
-        children[0]->recalcSizePosRecursive(force);
-        children[1]->recalcSizePosRecursive(force);
+        const auto CHILD_EDGES = splitTargetEdges(edges, SPLITSIDE);
+        children[0]->recalcSizePosRecursive(CHILD_EDGES[0], force);
+        children[1]->recalcSizePosRecursive(CHILD_EDGES[1], force);
     } else if (!pTarget.expired())
-        pTarget->setPositionGlobal(box);
+        pTarget->setPositionGlobal(STargetBox{
+            .logicalBox = box,
+            .edges      = edges,
+        });
 }
 
 void CDwindleAlgorithm::newTarget(SP<ITarget> target) {
@@ -129,7 +145,7 @@ void CDwindleAlgorithm::addTarget(SP<ITarget> target) {
     // if it's the first, it's easy. Make it maximise-sized.
     if (!OPENINGON || OPENINGON->pTarget.lock() == target) {
         PNODE->box = WORK_AREA;
-        PNODE->pTarget->setPositionGlobal(PNODE->box);
+        PNODE->recalcSizePosRecursive();
         return;
     }
 

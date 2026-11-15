@@ -1,5 +1,7 @@
 #include "Target.hpp"
+#include "WindowGeometry.hpp"
 #include "../space/Space.hpp"
+#include "../../config/ConfigValue.hpp"
 #include "../../debug/log/Logger.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -9,6 +11,14 @@ using namespace Hyprutils::Utils;
 
 void ITarget::setPositionGlobal(const STargetBox& box, uint8_t) {
     m_box = box;
+
+    static auto PMERGE = CConfigValue<Config::BOOL>("general:merge_borders");
+    if (*PMERGE && !floating()) {
+        m_box.logicalBox = roundTargetBox(m_box.logicalBox);
+        m_box.visualBox  = roundTargetBox(m_box.visualBox);
+        return;
+    }
+
     m_box.logicalBox.round();
     m_box.visualBox.round();
 }
@@ -82,6 +92,9 @@ void ITarget::setPseudo(bool x) {
         return;
 
     m_pseudo = x;
+
+    if (m_space)
+        m_space->invalidateMergedBorders();
 
     recalc();
 }

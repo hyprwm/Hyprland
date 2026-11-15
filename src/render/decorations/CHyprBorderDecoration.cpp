@@ -13,6 +13,8 @@
 #include "../Renderer.hpp"
 #include "../WindowRenderPresentation.hpp"
 #include "../../state/MonitorState.hpp"
+#include "../../layout/target/Target.hpp"
+#include "../../layout/space/Space.hpp"
 
 CHyprBorderDecoration::CHyprBorderDecoration(PHLWINDOW pWindow) :
     IHyprWindowDecoration(pWindow), m_window(pWindow), m_gradient(Config::CGradientValueData{CHyprColor(sc<uint64_t>(0))}) {
@@ -95,6 +97,13 @@ eDecorationType CHyprBorderDecoration::getDecorationType() {
 }
 
 void CHyprBorderDecoration::updateWindow(PHLWINDOW) {
+    const auto SIZE = borderSize();
+    if (SIZE != m_lastBorderSize) {
+        m_lastBorderSize = SIZE;
+        if (const auto TARGET = m_window->layoutTarget(); TARGET && TARGET->space())
+            TARGET->space()->invalidateMergedBorders();
+    }
+
     const auto EXTENT = borderExtent();
 
     if (EXTENT == m_lastBorderExtent)

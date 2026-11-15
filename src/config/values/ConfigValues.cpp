@@ -167,6 +167,8 @@ std::vector<SP<IValue>> Values::getConfigValues() {
          */
 
         MS<Int>("general:border_size", "size of the border around windows", 1, {.min = 0, .max = 20, .refresh = Supplementary::REFRESH_WINDOW_STATES}),
+        MS<Bool>("general:merge_borders", "overlap borders on compatible, uniform-border tiled workspaces; forces inner gaps to zero", false,
+                 {.refresh = Supplementary::REFRESH_LAYOUTS}),
         MS<CssGap>("general:gaps_in", "gaps between windows", 5, {.refresh = Supplementary::REFRESH_LAYOUTS}),
         MS<CssGap>("general:gaps_out", "gaps between windows and monitor edges", 20, {.refresh = Supplementary::REFRESH_LAYOUTS}),
         MS<CssGap>("general:float_gaps", "gaps between windows and monitor edges for floating windows", 0, {.refresh = Supplementary::REFRESH_LAYOUTS}),
@@ -605,7 +607,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Int>("misc:anr_missed_pings", "number of missed pings before showing the ANR dialog", 5, {.min = 1, .max = 20}),
         MS<Bool>("misc:screencopy_force_8b", "forces 8 bit screencopy", true),
         MS<Bool>("misc:disable_scale_notification", "disables notification popup when a monitor fails to set a suitable scale", false),
-        MS<Bool>("misc:size_limits_tiled", "whether to apply minsize and maxsize rules to tiled windows", false),
+        MS<Bool>("misc:size_limits_tiled", "whether to apply minsize and maxsize rules to tiled windows", false, {.refresh = Supplementary::REFRESH_LAYOUTS}),
         MS<String>("misc:bell_sound", "path to custom wav/ogg system bell. `none` or an empty string mute it. `default` uses the system's current one.", "default"),
         MS<Int>("misc:new_float_force_onscreen", "whether new floating windows must be placed fully/partially on-screen", 2),
         MS<Int>("misc:float_force_onscreen", "whether existing floating windows must remain fully/partially on-screen", 0),

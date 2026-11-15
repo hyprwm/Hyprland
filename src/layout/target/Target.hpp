@@ -1,5 +1,6 @@
 #pragma once
 
+#include "TargetEdges.hpp"
 #include "../../helpers/math/Math.hpp"
 #include "../../helpers/memory/Memory.hpp"
 #include "../../workspace/HLWorkspace.hpp"
@@ -31,8 +32,9 @@ namespace Layout {
     };
 
     struct STargetBox {
-        CBox logicalBox;
-        CBox visualBox;
+        CBox         logicalBox;
+        CBox         visualBox;
+        STargetEdges edges;
     };
 
     class ITarget {

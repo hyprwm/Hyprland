@@ -849,15 +849,18 @@ void CScrollingAlgorithm::resizeTarget(const Vector2D& delta, SP<ITarget> target
     if (!DATA->column || !DATA->column->scrollingData)
         return;
 
-    static const auto PFSONONE = CConfigValue<Config::INTEGER>("scrolling:fullscreen_on_one_column");
+    static const auto PFSONONE               = CConfigValue<Config::INTEGER>("scrolling:fullscreen_on_one_column");
+    static auto       PANIMATE_MANUAL_RESIZE = CConfigValue<Config::INTEGER>("misc:animate_manual_resizes");
+    // FIX: ugly hack to see if it's a mouse or trackpad resize. Dragcontroller needs to either stop doing things or do ALL the things before this can be redone.
+    const bool    FORCEINSTANT = (corner != CORNER_NONE) && !*PANIMATE_MANUAL_RESIZE;
 
-    const auto        ADJUSTED_DELTA = m_scrollingData->controller->isPrimaryHorizontal() ? delta : Vector2D{delta.y, delta.x};
-    const auto        USABLE         = usableArea();
-    const auto        DELTA_AS_PERC  = ADJUSTED_DELTA / USABLE.size();
-    Vector2D          modDelta       = ADJUSTED_DELTA;
+    const auto    ADJUSTED_DELTA = m_scrollingData->controller->isPrimaryHorizontal() ? delta : Vector2D{delta.y, delta.x};
+    const auto    USABLE         = usableArea();
+    const auto    DELTA_AS_PERC  = ADJUSTED_DELTA / USABLE.size();
+    Vector2D      modDelta       = ADJUSTED_DELTA;
 
-    const auto        CURR_COLUMN = DATA->column.lock();
-    const int64_t     COL_IDX     = m_scrollingData->idx(CURR_COLUMN);
+    const auto    CURR_COLUMN = DATA->column.lock();
+    const int64_t COL_IDX     = m_scrollingData->idx(CURR_COLUMN);
 
     if (COL_IDX < 0)
         return;
@@ -954,7 +957,7 @@ void CScrollingAlgorithm::resizeTarget(const Vector2D& delta, SP<ITarget> target
         }
     }
 
-    m_scrollingData->recalculate(true);
+    m_scrollingData->recalculate(FORCEINSTANT);
 }
 
 void CScrollingAlgorithm::recalculate(eRecalculateReason reason) {

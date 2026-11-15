@@ -249,7 +249,11 @@ static int dsp_event(lua_State* L) {
 }
 
 static int dsp_global(lua_State* L) {
-    return requestBindRelease(L, Internal::checkResult(L, CA::global(lua_tostring(L, lua_upvalueindex(1)))));
+    std::optional<bool> event = std::nullopt;
+    auto                i     = lua_upvalueindex(2);
+    if (lua_isboolean(L, i))
+        event = lua_toboolean(L, i);
+    return requestBindRelease(L, Internal::checkResult(L, CA::global(lua_tostring(L, lua_upvalueindex(1)), event)));
 }
 
 static int dsp_forceRendererReload(lua_State* L) {
@@ -363,9 +367,14 @@ static int hlGlobal(lua_State* L) {
     auto str = Check::string(L, 1);
     if (!str)
         return Internal::configError(L, std::format("global: bad argument 1: {}", str.error()));
+    auto activate = Check::boolean(L, 2);
 
     lua_pushstring(L, str->c_str());
-    lua_pushcclosure(L, dsp_global, 1);
+    if (activate.has_value())
+        lua_pushboolean(L, activate.value());
+    else
+        lua_pushnil(L);
+    lua_pushcclosure(L, dsp_global, 2);
     return 1;
 }
 
@@ -1400,7 +1409,7 @@ void Internal::registerDispatcherBindings(lua_State* L) {
         Internal::setDispatcherFn(L, "layout", hlLayout, 1);
         Internal::setDispatcherFn(L, "dpms", hlDpms, 1);
         Internal::setDispatcherFn(L, "event", hlEvent, 1);
-        Internal::setDispatcherFn(L, "global", hlGlobal, 1);
+        Internal::setDispatcherFn(L, "global", hlGlobal, 2);
         Internal::setDispatcherFn(L, "force_renderer_reload", hlForceRendererReload, 0);
         Internal::setDispatcherFn(L, "force_idle", hlForceIdle, 1);
         Internal::setDispatcherFn(L, "release_input_capture", hlReleaseInputCapture, 0);

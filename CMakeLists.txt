@@ -9,6 +9,16 @@ project(
   DESCRIPTION "A Modern C++ Wayland Compositor"
   VERSION ${VER})
 
+set(HYPRLAND_TESTS_DEFAULT OFF)
+if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
+  set(HYPRLAND_TESTS_DEFAULT ON)
+endif()
+option(BUILD_TESTING "Build tests" ${HYPRLAND_TESTS_DEFAULT})
+# WITH_TESTS is the project-specific override for CTest's BUILD_TESTING option.
+if(DEFINED WITH_TESTS)
+  set(BUILD_TESTING "${WITH_TESTS}" CACHE BOOL "Build tests" FORCE)
+endif()
+
 include(CTest)
 include(CheckIncludeFile)
 include(GNUInstallDirs)
@@ -87,11 +97,9 @@ message(
 if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
   message(STATUS "Configuring Hyprland in Debug with CMake")
   add_compile_definitions(HYPRLAND_DEBUG)
-  set(BUILD_TESTING ON)
 else()
   add_compile_options(-O3)
   message(STATUS "Configuring Hyprland in Release with CMake")
-  set(BUILD_TESTING OFF)
 endif()
 
 add_compile_definitions(HYPRLAND_VERSION="${HYPRLAND_VERSION}")
@@ -704,7 +712,7 @@ install(
   PATTERN "*.hpp"
   PATTERN "*.inc")
 
-if(BUILD_TESTING OR WITH_TESTS)
+if(BUILD_TESTING)
   message(STATUS "Building tests")
 
   # hyprtester

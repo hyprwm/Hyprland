@@ -1237,6 +1237,7 @@ void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
     const auto ENABLED    = HASCONFIG && Config::mgr()->deviceConfigExplicitlySet(devname, "enabled") ? Config::mgr()->getDeviceInt(devname, "enabled") : true;
     const auto ALLOWBINDS = HASCONFIG && Config::mgr()->deviceConfigExplicitlySet(devname, "keybinds") ? Config::mgr()->getDeviceInt(devname, "keybinds") : true;
 
+    pKeyboard->m_deviceTags.clear();
     for (const auto& tagString : CVarList2(Config::mgr()->getDeviceString(devname, "tags"))) {
         pKeyboard->m_deviceTags.emplace(std::string_view(tagString));
     }
@@ -1358,6 +1359,7 @@ void CInputManager::setPointerConfigs() {
 
         const auto HASCONFIG = Config::mgr()->deviceConfigExists(devname);
 
+        m->m_deviceTags.clear();
         if (HASCONFIG) {
             const auto ENABLED = HASCONFIG && Config::mgr()->deviceConfigExplicitlySet(devname, "enabled") ? Config::mgr()->getDeviceInt(devname, "enabled") : true;
             if (ENABLED && !m->m_connected) {

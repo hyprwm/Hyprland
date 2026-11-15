@@ -192,7 +192,8 @@ void CWLPointerResource::sendLeave() {
     // release all buttons unless we have a dnd going on in which case
     // the events shall be lost.
     if (!PROTO::data->dndActive()) {
-        for (auto const& b : m_pressedButtons) {
+        const auto PRESSED_BUTTONS = m_pressedButtons;
+        for (auto const& b : PRESSED_BUTTONS) {
             sendButton(Time::millis(Time::steadyNow()), b, WL_POINTER_BUTTON_STATE_RELEASED);
         }
     }

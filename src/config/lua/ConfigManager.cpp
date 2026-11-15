@@ -859,7 +859,9 @@ std::optional<std::string> CConfigManager::eval(const std::string& code, bool re
     m_isEvaluating = true;
     m_isREPL       = repl;
 
-    Hyprutils::Utils::CScopeGuard x([this] {
+    const int                     STACK_BASE = lua_gettop(m_lua);
+    Hyprutils::Utils::CScopeGuard x([this, STACK_BASE] {
+        lua_settop(m_lua, STACK_BASE);
         m_isEvaluating = false;
         m_isREPL       = false;
     });
@@ -875,18 +877,27 @@ std::optional<std::string> CConfigManager::eval(const std::string& code, bool re
     }
 
     if (m_caller->guardedPCall(m_lua, 0, LUA_MULTRET, 0, CLuaCaller::LUA_TIMEOUT_EVAL_MS, "hyprctl eval") != LUA_OK) {
-        std::string err = lua_tostring(m_lua, -1);
+        std::string err = m_caller->errorToString(m_lua, -1);
         lua_pop(m_lua, 1);
         return std::format("error: {}", err);
-    } else if (lua_gettop(m_lua) > 0) {
+    } else if (lua_gettop(m_lua) > STACK_BASE) {
         // print returned values to repl
         int         nstack = lua_gettop(m_lua);
         std::string out;
-        for (int i = 1; i <= nstack; ++i) {
-            out += std::format("{}\t", luaL_tolstring(m_lua, i, nullptr));
+        for (int i = STACK_BASE + 1; i <= nstack; ++i) {
+            lua_pushcfunction(m_lua, [](lua_State* L) {
+                luaL_tolstring(L, 1, nullptr);
+                return 1;
+            });
+            lua_pushvalue(m_lua, i);
+
+            if (m_caller->guardedPCall(m_lua, 1, 1, 0, CLuaCaller::LUA_TIMEOUT_EVAL_MS, "hyprctl eval __tostring") != LUA_OK)
+                return std::format("error: {}", m_caller->errorToString(m_lua, -1));
+
+            out += std::format("{}\t", lua_tostring(m_lua, -1));
             lua_pop(m_lua, 1);
         }
-        lua_pop(m_lua, nstack);
+        lua_pop(m_lua, nstack - STACK_BASE);
         out.pop_back();
         m_prints.emplace_back(out);
     }

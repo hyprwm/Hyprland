@@ -18,6 +18,7 @@ option(BUILD_TESTING "Build tests" ${HYPRLAND_TESTS_DEFAULT})
 if(DEFINED WITH_TESTS)
   set(BUILD_TESTING "${WITH_TESTS}" CACHE BOOL "Build tests" FORCE)
 endif()
+option(WITH_COVERAGE "Enable coverage instrumentation when building tests" ON)
 
 include(CTest)
 include(CheckIncludeFile)
@@ -723,8 +724,6 @@ if(BUILD_TESTING)
   include(GoogleTest)
   file(GLOB_RECURSE TESTFILES "tests/*.cpp")
   add_executable(hyprland_gtests ${TESTFILES})
-  target_compile_options(hyprland_gtests PRIVATE --coverage)
-  target_link_options(hyprland_gtests PRIVATE --coverage)
   target_include_directories(
     hyprland_gtests
     PUBLIC "./include"
@@ -734,15 +733,20 @@ if(BUILD_TESTING)
 
   gtest_discover_tests(hyprland_gtests)
 
-  # Enable coverage in main hyprland lib
-  target_compile_options(hyprland_lib PRIVATE --coverage)
-  target_link_options(hyprland_lib PRIVATE --coverage)
-  target_link_libraries(hyprland_lib PUBLIC gcov)
+  if(WITH_COVERAGE)
+    target_compile_options(hyprland_gtests PRIVATE --coverage)
+    target_link_options(hyprland_gtests PRIVATE --coverage)
 
-  # Enable coverage in hyprland exe
-  target_compile_options(Hyprland PRIVATE --coverage)
-  target_link_options(Hyprland PRIVATE --coverage)
-  target_link_libraries(Hyprland gcov)
+    # Enable coverage in main hyprland lib
+    target_compile_options(hyprland_lib PRIVATE --coverage)
+    target_link_options(hyprland_lib PRIVATE --coverage)
+    target_link_libraries(hyprland_lib PUBLIC gcov)
+
+    # Enable coverage in hyprland exe
+    target_compile_options(Hyprland PRIVATE --coverage)
+    target_link_options(Hyprland PRIVATE --coverage)
+    target_link_libraries(Hyprland gcov)
+  endif()
 endif()
 
 if(BUILD_TESTING)

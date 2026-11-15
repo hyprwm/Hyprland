@@ -120,6 +120,7 @@ namespace Desktop::View {
         virtual CBox                   logicalToClient(const CBox& box, PHLMONITOR preferredMonitor) const = 0;
         virtual Vector2D               surfaceLocalToBuffer(const Vector2D& local) const                   = 0;
         virtual Vector2D               bufferToSurfaceLocal(const Vector2D& buffer) const                  = 0;
+        virtual Vector2D               globalToBuffer(const Vector2D& pos, const Vector2D& origin) const   = 0;
 
         virtual void                   configure(const CBox& logicalBox, PHLMONITOR preferredMonitor, bool force = false) = 0;
         virtual void                   acknowledgeConfigure(const CBox& clientBox)                                        = 0;

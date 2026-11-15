@@ -1,4 +1,5 @@
 #include "Renderer.hpp"
+#include "../desktop/view/Subsurface.hpp"
 #include "SurfaceDamage.hpp"
 #include "../Compositor.hpp"
 #include "../helpers/math/Math.hpp"
@@ -3036,8 +3037,17 @@ void IHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
     if (scale != 1.0)
         damageBox.scale(scale);
 
-    const Vector2D POSITION = {x, y};
-    const auto     EXTENTS  = damageBox.getExtents().translate(POSITION);
+    Vector2D position = {x, y};
+    if (const auto SUBSURFACE = Desktop::View::CSubsurface::fromView(WLSURF->view())) {
+        const auto PROJECTION = SUBSURFACE->renderScale();
+        if (PROJECTION != Vector2D{1, 1}) {
+            // Match the window-local offset and size used by CSurfacePassElement.
+            position += SUBSURFACE->coordsRelativeToParent() * (PROJECTION - Vector2D{1, 1});
+            damageBox.scale(PROJECTION);
+            clipSurfaceDamage(damageBox, pSurface->m_current.size * PROJECTION);
+        }
+    }
+    const auto EXTENTS = damageBox.getExtents().translate(position);
 
     for (auto const& m : State::monitorState()->monitors()) {
         if (!m->m_output)
@@ -3045,7 +3055,7 @@ void IHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
         if (!EXTENTS.overlaps(m->logicalBox()))
             continue;
 
-        m->addDamage(surfaceDamageToPixels(damageBox, POSITION - m->m_position, m->m_scale));
+        m->addDamage(surfaceDamageToPixels(damageBox, position - m->m_position, m->m_scale));
     }
 
     static auto PLOGDAMAGE = CConfigValue<Config::INTEGER>("debug:log_damage");

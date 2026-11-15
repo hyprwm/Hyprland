@@ -1,4 +1,5 @@
 #include "Subsurface.hpp"
+#include "../../render/SurfaceGeometry.hpp"
 #include "../state/FocusState.hpp"
 #include "window/Window.hpp"
 #include "../../config/ConfigValue.hpp"
@@ -332,6 +333,10 @@ Vector2D CSubsurface::coordsGlobal() const {
         coords += m_layerSurfaceParent->position(Desktop::View::IGeometric::GEOMETRIC_CURRENT);
 
     return coords;
+}
+
+Vector2D CSubsurface::renderScale() const {
+    return Render::windowSubsurfaceScale(m_windowParent.lock());
 }
 
 void CSubsurface::initExistingSubsurfaces(SP<CWLSurfaceResource> pSurface) {

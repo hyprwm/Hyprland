@@ -1,0 +1,104 @@
+name: Commit Title Check
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: commit-title-check-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      # Only inspect API data; never check out or execute code from the MR.
+      - name: Warn once about invalid commit titles
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+            const marker = '<!-- hyprland-commit-title-warning -->';
+
+            for await (const { data: comments } of github.paginate.iterator(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number,
+              per_page: 100,
+            })) {
+              if (comments.some(comment => comment.user?.login === 'github-actions[bot]' &&
+                  comment.user?.type === 'Bot' && comment.body?.includes(marker)))
+                return;
+            }
+
+            // GraphQL pagination avoids the REST MR-commits endpoint's 250-commit cap.
+            const query = `query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
+              repository(owner: $owner, name: $repo) {
+                pullRequest(number: $number) {
+                  headRefOid
+                  commits(first: 100, after: $cursor) {
+                    nodes { commit { oid message } }
+                    pageInfo { hasNextPage endCursor }
+                  }
+                }
+              }
+            }`;
+            let cursor = null;
+            let head = null;
+            let invalidCount = 0;
+            const invalid = [];
+
+            do {
+              const result = await github.graphql(query, { owner, repo, number: issue_number, cursor });
+              const pr = result.repository.pullRequest;
+              if (head !== null && head !== pr.headRefOid) {
+                core.info('MR changed during pagination; the next push run will check it.');
+                return;
+              }
+              head = pr.headRefOid;
+
+              for (const { commit } of pr.commits.nodes) {
+                const title = commit.message.split(/\r?\n/, 1)[0];
+                const prefix = title.match(/^([^\s/:]+(?:\/[^\s/:]+){0,2}): /u)?.[1];
+                const reasons = [];
+                if (!prefix || prefix !== prefix.toLowerCase())
+                  reasons.push('expected a lowercase component with zero to two slashes, followed by `: `');
+                if ([...title].length > 72)
+                  reasons.push('title exceeds 72 characters');
+                if (!reasons.length)
+                  continue;
+
+                invalidCount++;
+                // Keep the comment bounded and avoid reproducing user-controlled titles or mentions.
+                if (invalid.length < 20)
+                  invalid.push(`- ${commit.oid}: ${reasons.join('; ')}`);
+              }
+
+              cursor = pr.commits.pageInfo.hasNextPage ? pr.commits.pageInfo.endCursor : null;
+            } while (cursor !== null);
+
+            if (!invalidCount)
+              return;
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number,
+              body: [
+                marker,
+                'Some commit titles do not follow the naming convention.',
+                '',
+                'Please use `component: description` or `thing/component: description`.',
+                'Component segments must be nonempty and lowercase, with at most two slashes. The entire title must be at most 72 characters.',
+                '',
+                ...invalid,
+                ...(invalidCount > invalid.length ? [`- …and ${invalidCount - invalid.length} more invalid commit titles.`] : []),
+                '',
+                'Please rebase badly named commits and rename them.'
+              ].join('\n'),
+            });

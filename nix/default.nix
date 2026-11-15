@@ -271,6 +271,7 @@ customStdenv.mkDerivation (finalAttrs: {
       install hyprtester/xdg-activation -t $out/bin
       install hyprtester/xdg-initial-maximize -t $out/bin
       install hyprtester/popup-render -t $out/bin
+      install hyprtester/fractional-subsurface -t $out/bin
       install hyprtester/wlr-foreign-toplevel -t $out/bin
       install hyprtester/toplevel-capture -t $out/bin
       install hyprland_gtests -t $out/bin

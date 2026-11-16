@@ -62,7 +62,7 @@ namespace Fullscreen::ScrollingFullscreenHandler {
 
         virtual void setNoMembersAboveFullscreen(const std::optional<SP<Layout::ITarget>> coveringFsTarget = std::nullopt);
         virtual void syncFullscreenTargets();
-        virtual void removeFsTarget(SP<Layout::ITarget> target, const bool recursionGuard = false);
+        virtual void removeFsTarget(SP<Layout::ITarget> target);
 
         // Misc
 

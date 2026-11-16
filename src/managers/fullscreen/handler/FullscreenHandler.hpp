@@ -66,7 +66,7 @@ namespace Fullscreen {
 
         virtual void syncFullscreenTargets();
 
-        virtual void removeFsTarget(SP<Layout::ITarget> target, const bool recursionGuard = false);
+        virtual void removeFsTarget(SP<Layout::ITarget> target);
 
         // Misc.
 

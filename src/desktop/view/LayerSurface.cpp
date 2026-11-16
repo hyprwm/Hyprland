@@ -336,10 +336,11 @@ void CLayerSurface::onCommit() {
     if (m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
         PMONITOR->m_blurFBDirty = true;
 
-    CBox geomFixed = {m_geometry.x, m_geometry.y, m_geometry.width, m_geometry.height};
-    g_pHyprRenderer->damageBox(geomFixed);
+    CBox          geomFixed       = {m_geometry.x, m_geometry.y, m_geometry.width, m_geometry.height};
+    const uint8_t layoutCommitted = m_layerSurface->m_current.committed & ~CLayerShellResource::eCommittedState::STATE_KEYBOARD_INTERACTIVITY;
+    if (layoutCommitted != 0) {
+        g_pHyprRenderer->damageBox(geomFixed);
 
-    if (m_layerSurface->m_current.committed != 0) {
         if (m_layerSurface->m_current.committed & CLayerShellResource::eCommittedState::STATE_LAYER && m_layerSurface->m_current.layer != m_layer) {
 
             const auto NEW_LAYER = std::clamp(m_layerSurface->m_current.layer, ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND, ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY);
@@ -386,6 +387,11 @@ void CLayerSurface::onCommit() {
         } else {
             // this is because some apps like e.g. rofi-lbonn can't fucking use the protocol correctly.
             m_geometry = {m_geometry.pos(), m_layerSurface->m_surface->m_current.size};
+        }
+
+        if (m_geometry != geomFixed) {
+            g_pHyprRenderer->damageBox(geomFixed);
+            g_pHyprRenderer->damageBox(m_geometry);
         }
     }
 

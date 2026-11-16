@@ -2907,9 +2907,9 @@ void IHyprRenderer::arrangeLayerArray(PHLMONITOR pMonitor, const std::vector<PHL
         else
             bounds = *usableArea;
 
-        const Vector2D OLDSIZE = {ls->m_geometry.width, ls->m_geometry.height};
+        const CBox OLD_GEOM = ls->m_geometry;
 
-        CBox           box = {{}, PSTATE->desiredSize};
+        CBox       box = {{}, PSTATE->desiredSize};
         // Horizontal axis
         const uint32_t both_horiz = ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT;
         if (box.width == 0)
@@ -2966,9 +2966,14 @@ void IHyprRenderer::arrangeLayerArray(PHLMONITOR pMonitor, const std::vector<PHL
 
         ls->m_geometry = box;
 
+        if (ls->m_geometry != OLD_GEOM) {
+            damageBox(OLD_GEOM);
+            damageBox(ls->m_geometry);
+        }
+
         applyExclusive(*usableArea, PSTATE->anchor, PSTATE->exclusive, PSTATE->exclusiveEdge, PSTATE->margin.top, PSTATE->margin.right, PSTATE->margin.bottom, PSTATE->margin.left);
 
-        if (Vector2D{box.width, box.height} != OLDSIZE)
+        if (Vector2D{box.width, box.height} != OLD_GEOM.size())
             ls->m_layerSurface->configure(box.size());
 
         ls->setBox(box);
@@ -2980,6 +2985,8 @@ void IHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
 
     if (!PMONITOR || PMONITOR->m_size.x <= 0 || PMONITOR->m_size.y <= 0)
         return;
+
+    const CBox OLD_USABLE_AREA = PMONITOR->logicalBoxMinusReserved();
 
     // Reset the reserved
     PMONITOR->m_reservedArea.resetType(Desktop::RESERVED_DYNAMIC_TYPE_LS);
@@ -3000,8 +3007,9 @@ void IHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
 
     PMONITOR->m_reservedArea.addType(Desktop::RESERVED_DYNAMIC_TYPE_LS, Desktop::CReservedArea{ORIGINAL_USABLE_AREA, usableArea});
 
-    // damage the monitor if can
-    damageMonitor(PMONITOR);
+    // Damage the monitor only if reserved area changed (affecting tiled windows).
+    if (usableArea != OLD_USABLE_AREA)
+        damageMonitor(PMONITOR);
 
     g_layoutManager->invalidateMonitorGeometries(PMONITOR);
 }
@@ -3113,6 +3121,28 @@ void IHyprRenderer::damageBox(const int& x, const int& y, const int& w, const in
 
 void IHyprRenderer::damageRegion(const CRegion& rg) {
     rg.forEachRect([this](const auto& RECT) { damageBox(RECT.x1, RECT.y1, RECT.x2 - RECT.x1, RECT.y2 - RECT.y1); });
+}
+
+void IHyprRenderer::damageRegionDiff(const CRegion& oldRegion, const CRegion& newRegion, const CBox& surfaceBox, const Vector2D& scale, const std::optional<CBox>& clipBox) {
+    if (pixman_region32_equal(oldRegion.pixman(), newRegion.pixman()))
+        return;
+
+    CRegion changedRegion = oldRegion.copy();
+    changedRegion.subtract(newRegion);
+    CRegion addedRegion = newRegion.copy();
+    addedRegion.subtract(oldRegion);
+    changedRegion.add(addedRegion);
+
+    if (changedRegion.empty())
+        return;
+
+    const CBox clip = clipBox.value_or(CBox{{}, surfaceBox.size()});
+    changedRegion.forEachRect([this, &surfaceBox, &scale, &clip](const auto& rect) {
+        const CBox scaled{rect.x1 * scale.x, rect.y1 * scale.y, (rect.x2 - rect.x1) * scale.x, (rect.y2 - rect.y1) * scale.y};
+        auto       clipped = scaled.intersection(clip);
+        if (!clipped.empty())
+            damageBox(clipped.translate(surfaceBox.pos()));
+    });
 }
 
 void IHyprRenderer::damageMirrorsWith(PHLMONITOR pMonitor, const CRegion& pRegion) {

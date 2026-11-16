@@ -41,8 +41,7 @@ CScrollingFullscreenHandler::~CScrollingFullscreenHandler() {
 
     for (auto it = m_fsTargets.begin(); it != m_fsTargets.end();) {
         const auto NEXT = std::next(it); // save next before removeFsTarget invalidates it
-        // Synchronization can erase other entries, including NEXT, during layout teardown.
-        removeFsTarget(it->first.lock(), true);
+        removeFsTarget(it->first.lock());
         it = NEXT;
     }
     updateFullscreenFade(false);
@@ -465,7 +464,7 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
 
     const auto                    removeFsTargetAndreturnNextIter = [&](auto& it, const auto& TARGET) {
         const auto NEXT = std::next(it);
-        removeFsTarget(TARGET, true);
+        removeFsTarget(TARGET);
         return NEXT;
     };
 
@@ -510,7 +509,7 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
                 toInsert.clear();
                 controller()->setFullscreenMode(TARGET_WINDOW, FSMODE_NONE, std::nullopt, true);
                 if (getFullscreenModes(TARGET).internal != FSMODE_NONE)
-                    removeFsTarget(TARGET, true);
+                    removeFsTarget(TARGET);
                 it = m_fsTargets.begin();
                 continue;
             }
@@ -551,7 +550,7 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
     }
 }
 
-void CScrollingFullscreenHandler::removeFsTarget(SP<Layout::ITarget> target, const bool recursionGuard) {
+void CScrollingFullscreenHandler::removeFsTarget(SP<Layout::ITarget> target) {
 
     // This should not be done because if there are 2 expired elements in the list, this will remove one of them with little guarantee as to which and the caller is preumsably looking forward and getting the next
     // iterator in the list; which would corrupt the map if that next iter is also nullptr. We let this go through on the offchance that there is Ǝ! expired entries or the erase hits the right expired target but it is
@@ -580,9 +579,6 @@ void CScrollingFullscreenHandler::removeFsTarget(SP<Layout::ITarget> target, con
     if (target->window())
         target->window()->windowTarget()->setCantLockCursor(false);
     m_fsTargets.erase(ITR);
-
-    if (!recursionGuard)
-        syncFullscreenTargets();
 }
 
 eFullscreenHandler CScrollingFullscreenHandler::getFullscreenHandlerName() const {

@@ -308,7 +308,7 @@ void IFullscreenHandler::syncFullscreenTargets() {
 
     const auto removeFsTargetAndreturnNextIter = [&](auto& it, const auto& TARGET) {
         const auto NEXT = std::next(it);
-        removeFsTarget(TARGET, true);
+        removeFsTarget(TARGET);
         return NEXT;
     };
 
@@ -358,7 +358,7 @@ void IFullscreenHandler::syncFullscreenTargets() {
     }
 }
 
-void IFullscreenHandler::removeFsTarget(SP<Layout::ITarget> target, const bool recursionGuard) {
+void IFullscreenHandler::removeFsTarget(SP<Layout::ITarget> target) {
 
     // This should not be done because if there are 2 expired elements in the list, this will remove one of them with little guarantee as to which and the caller is preumsably looking forward and getting the next
     // iterator in the list; which would corrupt the map if that next iter is also nullptr. We let this go through on the offchance that there is Ǝ! expired entries or the erase hits the right expired target but it is
@@ -369,9 +369,6 @@ void IFullscreenHandler::removeFsTarget(SP<Layout::ITarget> target, const bool r
             "IFullscreenHandler::removeFsTarget() called with target = nullptr. This is possibly non-deterministic and should NOT happen. This is a bug and should be reported!");
 
     m_fsTargets.erase(target);
-
-    if (!recursionGuard)
-        syncFullscreenTargets();
 }
 
 eFullscreenHandler IFullscreenHandler::getFullscreenHandlerName() const {

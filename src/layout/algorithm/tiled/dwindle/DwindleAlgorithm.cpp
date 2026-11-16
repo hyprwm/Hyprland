@@ -367,6 +367,17 @@ void CDwindleAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRe
                 break;
         }
 
+        if (!edgeLeft(corner) && !edgeRight(corner)) {
+            allowedMovement.x = 0;
+            if (DISPLAYBOTTOM && edgeBottom(corner) || DISPLAYTOP && edgeTop(corner))
+                allowedMovement.y = 0;
+        }
+        if (!edgeTop(corner) && !edgeBottom(corner)) {
+            allowedMovement.y = 0;
+            if (DISPLAYLEFT && edgeLeft(corner) || DISPLAYRIGHT && edgeRight(corner))
+                allowedMovement.x = 0;
+        }
+
         if (PHOUTER) {
             PHOUTER->pParent->splitRatio = std::clamp(PHOUTER->pParent->splitRatio + allowedMovement.x * 2.f / PHOUTER->pParent->box.w, 0.1, 1.9);
 

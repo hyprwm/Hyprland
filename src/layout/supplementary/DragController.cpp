@@ -28,7 +28,7 @@ static bool isResizeMode(eMouseBindMode mode) {
     return mode == MBIND_RESIZE || mode == MBIND_RESIZE_FORCE_RATIO || mode == MBIND_RESIZE_BLOCK_RATIO;
 }
 
-static std::string_view cursorForRESIZEEDGE_ENABLE(eRectCorner edge) {
+static std::string_view cursorForResizeEdge(eRectCorner edge) {
     if (edgeTop(edge) && edgeLeft(edge))
         return "nw-resize";
     if (edgeTop(edge) && edgeRight(edge))
@@ -192,6 +192,16 @@ void CDragStateController::dragBegin(SP<ITarget> target, eMouseBindMode mode, st
     // get the grab corner
     static auto RESIZECORNER      = CConfigValue<Config::INTEGER>("general:resize_corner");
     static auto RESIZEEDGE_ENABLE = CConfigValue<Config::BOOL>("general:resize_edge");
+    static auto RESIZEEDGE_DEPTH  = CConfigValue<Config::INTEGER>("general:resize_edge_depth");
+    static auto RESIZEEDGE_WIDTH  = CConfigValue<Config::INTEGER>("general:resize_edge_width");
+
+    const int   EDGE_DEPTH            = std::clamp(static_cast<int>(*RESIZEEDGE_DEPTH), 0, 50);
+    const int   EDGE_WIDTH            = std::clamp(static_cast<int>(*RESIZEEDGE_WIDTH), 0, 100 - 2 * EDGE_DEPTH);
+    const float EDGE_DEPTH_RATIO      = EDGE_DEPTH / 100.F;
+    const float SELECTION_WIDTH_RATIO = EDGE_WIDTH / 200.F;
+    const float EDGE_SELECTION_START  = 0.5F - SELECTION_WIDTH_RATIO;
+    const float EDGE_SELECTION_END    = 0.5F + SELECTION_WIDTH_RATIO;
+
     if (m_forcedGrabbedCorner && *m_forcedGrabbedCorner != CORNER_NONE) {
         m_grabbedCorner = *m_forcedGrabbedCorner;
     } else if (*RESIZECORNER != 0 && *RESIZECORNER <= 8 && (*RESIZECORNER <= 4 || *RESIZEEDGE_ENABLE) && DRAGGINGTARGET->floating()) {
@@ -205,52 +215,34 @@ void CDragStateController::dragBegin(SP<ITarget> target, eMouseBindMode mode, st
             case 7: m_grabbedCorner = CORNER_BOTTOM; break;
             case 8: m_grabbedCorner = CORNER_LEFT; break;
         }
+    } else if (*RESIZEEDGE_ENABLE && m_beginDragXY.x < m_beginDragPositionXY.x + m_beginDragSizeXY.x * EDGE_DEPTH_RATIO &&
+               m_beginDragXY.y > m_beginDragPositionXY.y + m_beginDragSizeXY.y * EDGE_SELECTION_START &&
+               m_beginDragXY.y < m_beginDragPositionXY.y + m_beginDragSizeXY.y * EDGE_SELECTION_END) {
+        m_grabbedCorner = CORNER_LEFT;
+    } else if (*RESIZEEDGE_ENABLE && m_beginDragXY.x > m_beginDragPositionXY.x + m_beginDragSizeXY.x * (1.F - EDGE_DEPTH_RATIO) &&
+               m_beginDragXY.y > m_beginDragPositionXY.y + m_beginDragSizeXY.y * EDGE_SELECTION_START &&
+               m_beginDragXY.y < m_beginDragPositionXY.y + m_beginDragSizeXY.y * EDGE_SELECTION_END) {
+        m_grabbedCorner = CORNER_RIGHT;
+    } else if (*RESIZEEDGE_ENABLE && m_beginDragXY.y < m_beginDragPositionXY.y + m_beginDragSizeXY.y * EDGE_DEPTH_RATIO &&
+               m_beginDragXY.x > m_beginDragPositionXY.x + m_beginDragSizeXY.x * EDGE_SELECTION_START &&
+               m_beginDragXY.x < m_beginDragPositionXY.x + m_beginDragSizeXY.x * EDGE_SELECTION_END) {
+        m_grabbedCorner = CORNER_TOP;
+    } else if (*RESIZEEDGE_ENABLE && m_beginDragXY.y > m_beginDragPositionXY.y + m_beginDragSizeXY.y * (1.F - EDGE_DEPTH_RATIO) &&
+               m_beginDragXY.x > m_beginDragPositionXY.x + m_beginDragSizeXY.x * EDGE_SELECTION_START &&
+               m_beginDragXY.x < m_beginDragPositionXY.x + m_beginDragSizeXY.x * EDGE_SELECTION_END) {
+        m_grabbedCorner = CORNER_BOTTOM;
     } else if (m_beginDragXY.x < m_beginDragPositionXY.x + m_beginDragSizeXY.x / 2.F) {
-        if (m_beginDragXY.y < m_beginDragPositionXY.y + m_beginDragSizeXY.y / 2.F) {
-            if (*RESIZEEDGE_ENABLE && m_beginDragXY.x < m_beginDragPositionXY.x + m_beginDragSizeXY.x / 4.F &&
-                m_beginDragXY.y > m_beginDragPositionXY.y + m_beginDragSizeXY.y / 4.F) {
-                m_grabbedCorner = CORNER_LEFT;
-            } else if (*RESIZEEDGE_ENABLE && m_beginDragXY.x > m_beginDragPositionXY.x + m_beginDragSizeXY.x / 4.F &&
-                       m_beginDragXY.y < m_beginDragPositionXY.y + m_beginDragSizeXY.y / 4.F) {
-                m_grabbedCorner = CORNER_TOP;
-            } else {
-                m_grabbedCorner = CORNER_TOPLEFT;
-            }
-        } else {
-            if (*RESIZEEDGE_ENABLE && m_beginDragXY.x < m_beginDragPositionXY.x + m_beginDragSizeXY.x / 4.F &&
-                m_beginDragXY.y < m_beginDragPositionXY.y + 3 * m_beginDragSizeXY.y / 4.F) {
-                m_grabbedCorner = CORNER_LEFT;
-            } else if (*RESIZEEDGE_ENABLE && m_beginDragXY.x > m_beginDragPositionXY.x + m_beginDragSizeXY.x / 4.F &&
-                       m_beginDragXY.y > m_beginDragPositionXY.y + 3 * m_beginDragSizeXY.y / 4.F) {
-                m_grabbedCorner = CORNER_BOTTOM;
-            } else {
-                m_grabbedCorner = CORNER_BOTTOMLEFT;
-            }
-        }
+        if (m_beginDragXY.y < m_beginDragPositionXY.y + m_beginDragSizeXY.y / 2.F)
+            m_grabbedCorner = CORNER_TOPLEFT;
+        else
+            m_grabbedCorner = CORNER_BOTTOMLEFT;
     } else {
-        if (m_beginDragXY.y < m_beginDragPositionXY.y + m_beginDragSizeXY.y / 2.F) {
-            if (*RESIZEEDGE_ENABLE && m_beginDragXY.x < m_beginDragPositionXY.x + 3 * m_beginDragSizeXY.x / 4.F &&
-                m_beginDragXY.y < m_beginDragPositionXY.y + m_beginDragSizeXY.y / 4.F) {
-                m_grabbedCorner = CORNER_TOP;
-            } else if (*RESIZEEDGE_ENABLE && m_beginDragXY.x > m_beginDragPositionXY.x + 3 * m_beginDragSizeXY.x / 4.F &&
-                       m_beginDragXY.y > m_beginDragPositionXY.y + m_beginDragSizeXY.y / 4.F) {
-                m_grabbedCorner = CORNER_RIGHT;
-            } else {
-                m_grabbedCorner = CORNER_TOPRIGHT;
-            }
-        } else {
-            if (*RESIZEEDGE_ENABLE && m_beginDragXY.x < m_beginDragPositionXY.x + 3 * m_beginDragSizeXY.x / 4.F &&
-                m_beginDragXY.y > m_beginDragPositionXY.y + 3 * m_beginDragSizeXY.y / 4.F) {
-                m_grabbedCorner = CORNER_BOTTOM;
-            } else if (*RESIZEEDGE_ENABLE && m_beginDragXY.x > m_beginDragPositionXY.x + 3 * m_beginDragSizeXY.x / 4.F &&
-                       m_beginDragXY.y < m_beginDragPositionXY.y + 3 * m_beginDragSizeXY.y / 4.F) {
-                m_grabbedCorner = CORNER_RIGHT;
-            } else {
-                m_grabbedCorner = CORNER_BOTTOMRIGHT;
-            }
-        }
+        if (m_beginDragXY.y < m_beginDragPositionXY.y + m_beginDragSizeXY.y / 2.F)
+            m_grabbedCorner = CORNER_TOPRIGHT;
+        else
+            m_grabbedCorner = CORNER_BOTTOMRIGHT;
     }
-    Pointer::Cursor::overrideController->setOverride(std::string{cursorForRESIZEEDGE_ENABLE(m_grabbedCorner)}, Pointer::Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
+    Pointer::Cursor::overrideController->setOverride(std::string{cursorForResizeEdge(m_grabbedCorner)}, Pointer::Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
 
     if (!isResizeMode(m_dragMode))
         Pointer::Cursor::overrideController->setOverride("grabbing", Pointer::Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);

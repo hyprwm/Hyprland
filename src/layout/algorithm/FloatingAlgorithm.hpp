@@ -29,7 +29,7 @@ namespace Layout {
 
         virtual void                recalculate(eRecalculateReason reason = RECALCULATE_REASON_UNKNOWN);
 
-        virtual std::optional<CBox> getNormalGeometry(SP<ITarget> target) const;
+        virtual std::optional<CBox> getFloatingRestoreBox(SP<ITarget> target) const;
 
       protected:
         IFloatingAlgorithm() = default;

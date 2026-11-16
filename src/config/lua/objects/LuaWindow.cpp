@@ -61,31 +61,34 @@ static int windowToString(lua_State* L) {
     return 1;
 }
 
-static void pushFloatingWindowNormalGeometry(lua_State* L, const PHLWINDOWREF& w) {
+static int windowGetFloatingRestoreBox(lua_State* L) {
+    const auto* ref = sc<PHLWINDOWREF*>(luaL_checkudata(L, 1, MT));
+    const auto  w   = *ref;
+
     if (!w || !w->mapped()) {
         lua_pushnil(L);
-        return;
+        return 1;
     }
     const auto target = w->layoutTarget();
     if (!target || !target->floating()) {
         lua_pushnil(L);
-        return;
+        return 1;
     }
     const auto space = target->space();
     const auto algo  = space ? space->algorithm() : nullptr;
     if (!algo) {
         lua_pushnil(L);
-        return;
+        return 1;
     }
     const auto& floatAlgo = algo->floatingAlgo();
     if (!floatAlgo) {
         lua_pushnil(L);
-        return;
+        return 1;
     }
-    const auto floatGeom = floatAlgo->getNormalGeometry(target);
+    const auto floatGeom = floatAlgo->getFloatingRestoreBox(target);
     if (!floatGeom.has_value()) {
         lua_pushnil(L);
-        return;
+        return 1;
     }
     lua_newtable(L);
     lua_pushinteger(L, sc<int>(floatGeom.value().x));
@@ -96,6 +99,7 @@ static void pushFloatingWindowNormalGeometry(lua_State* L, const PHLWINDOWREF& w
     lua_setfield(L, -2, "w");
     lua_pushinteger(L, sc<int>(floatGeom.value().height));
     lua_setfield(L, -2, "h");
+    return 1;
 }
 
 static int windowIndex(lua_State* L) {
@@ -125,8 +129,8 @@ static int windowIndex(lua_State* L) {
         lua_setfield(L, -2, "x");
         lua_pushinteger(L, sc<int>(w->position(Desktop::View::IGeometric::GEOMETRIC_GOAL).y));
         lua_setfield(L, -2, "y");
-    } else if (key == "normal_geometry") {
-        pushFloatingWindowNormalGeometry(L, w);
+    } else if (key == "get_floating_restore_box") {
+        lua_pushcfunction(L, windowGetFloatingRestoreBox);
     } else if (key == "size") {
         lua_newtable(L);
         lua_pushinteger(L, sc<int>(w->size(Desktop::View::IGeometric::GEOMETRIC_GOAL).x));

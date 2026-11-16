@@ -15,30 +15,30 @@
 using namespace Hyprutils::Utils;
 
 TEST_CASE(luaWindowNormalGeometry) {
-    CScopeGuard guard = {[&]() { getFromSocket("/eval normalGeometryWindow = nil; normalGeometrySaved = nil"); }};
+    CScopeGuard guard = {[&]() { getFromSocket("/eval normalGeometryWindow = nil; normalGeometrySaved = nil; normalGeometryGetter = nil"); }};
 
     SPAWN_KITTY("normal-geometry");
-    ASSERT(getFromSocket("/repl hl.get_active_window().normal_geometry"), "nil");
+    ASSERT(getFromSocket("/repl hl.get_active_window():get_floating_restore_box()"), "nil");
     OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'on' })"));
     OK(getFromSocket("/dispatch hl.dsp.window.resize({ x = 600, y = 400, relative = false })"));
     OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 150, y = 160, relative = false })"));
     OK(getFromSocket(R"(/eval do
         normalGeometryWindow = hl.get_active_window()
-        normalGeometrySaved = assert(normalGeometryWindow.normal_geometry)
+        normalGeometrySaved = assert(normalGeometryWindow:get_floating_restore_box())
         local w, g = normalGeometryWindow, normalGeometrySaved
         assert(g.x == w.at.x and g.y == w.at.y and g.w == w.size.x and g.h == w.size.y)
-        local copy = w.normal_geometry
+        local copy = w:get_floating_restore_box()
         copy.x = copy.x + 100
-        assert(w.normal_geometry.x == g.x)
+        assert(w:get_floating_restore_box().x == g.x)
     end)"));
 
     SPAWN_KITTY("normal-geometry-swap");
-    ASSERT(getFromSocket("/repl hl.get_active_window().normal_geometry"), "nil");
+    ASSERT(getFromSocket("/repl hl.get_active_window():get_floating_restore_box()"), "nil");
     OK(getFromSocket("/dispatch hl.dsp.window.swap({ target = 'class:normal-geometry' })"));
     OK(getFromSocket(R"(/eval do
-        assert(normalGeometryWindow.normal_geometry == nil)
+        assert(normalGeometryWindow:get_floating_restore_box() == nil)
         normalGeometryWindow = hl.get_active_window()
-        local g, saved = assert(normalGeometryWindow.normal_geometry), normalGeometrySaved
+        local g, saved = assert(normalGeometryWindow:get_floating_restore_box()), normalGeometrySaved
         assert(g.x == saved.x and g.y == saved.y and g.w == saved.w and g.h == saved.h)
     end)"));
 
@@ -46,7 +46,7 @@ TEST_CASE(luaWindowNormalGeometry) {
         OK(getFromSocket(std::format("/dispatch hl.dsp.window.fullscreen({{ mode = '{}', action = 'set' }})", mode)));
         OK(getFromSocket(R"(/eval do
             local w, saved = normalGeometryWindow, normalGeometrySaved
-            local g = assert(w.normal_geometry)
+            local g = assert(w:get_floating_restore_box())
             assert(g.x == saved.x and g.y == saved.y and g.w == saved.w and g.h == saved.h)
             assert(w.size.x ~= g.w or w.size.y ~= g.h)
         end)"));
@@ -62,7 +62,7 @@ TEST_CASE(luaWindowNormalGeometry) {
     OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'on' })"));
     OK(getFromSocket(R"(/eval do
         assert(normalGeometryWindow.group ~= nil)
-        local g = assert(normalGeometryWindow.normal_geometry)
+        local g = assert(normalGeometryWindow:get_floating_restore_box())
         assert(type(g.x) == "number" and type(g.y) == "number")
         assert(g.w > 0 and g.h > 0)
         normalGeometrySaved = g
@@ -73,7 +73,7 @@ TEST_CASE(luaWindowNormalGeometry) {
         OK(getFromSocket(R"(/eval do
             local w, saved = normalGeometryWindow, normalGeometrySaved
             assert(w.group ~= nil)
-            local g = assert(w.normal_geometry)
+            local g = assert(w:get_floating_restore_box())
             assert(g.x == saved.x and g.y == saved.y and g.w == saved.w and g.h == saved.h)
             assert(w.size.x ~= g.w or w.size.y ~= g.h)
         end)"));
@@ -81,21 +81,22 @@ TEST_CASE(luaWindowNormalGeometry) {
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', action = 'unset' })"));
     OK(getFromSocket(R"(/eval do
-        local g, saved = assert(normalGeometryWindow.normal_geometry), normalGeometrySaved
+        local g, saved = assert(normalGeometryWindow:get_floating_restore_box()), normalGeometrySaved
         assert(g.x == saved.x and g.y == saved.y and g.w == saved.w and g.h == saved.h)
     end)"));
     OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
     OK(getFromSocket(R"(/eval do
         assert(normalGeometryWindow.group == nil)
-        assert(normalGeometryWindow.normal_geometry ~= nil)
+        assert(normalGeometryWindow:get_floating_restore_box() ~= nil)
     end)"));
 
     OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'off' })"));
-    ASSERT(getFromSocket("/repl normalGeometryWindow.normal_geometry"), "nil");
+    ASSERT(getFromSocket("/repl normalGeometryWindow:get_floating_restore_box()"), "nil");
+    OK(getFromSocket("/eval normalGeometryGetter = assert(normalGeometryWindow.get_floating_restore_box)"));
     OK(getFromSocket("/dispatch hl.dsp.window.kill({ window = 'activewindow' })"));
     OK(getFromSocket("/dispatch hl.dsp.window.kill({ window = 'class:normal-geometry' })"));
     Tests::waitUntilWindowsN(0);
-    ASSERT(getFromSocket("/repl normalGeometryWindow.normal_geometry"), "nil");
+    ASSERT(getFromSocket("/repl normalGeometryGetter(normalGeometryWindow)"), "nil");
 }
 
 TEST_CASE(luaRequire) {

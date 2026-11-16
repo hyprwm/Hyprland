@@ -32,6 +32,6 @@ void IFloatingAlgorithm::recenter(SP<ITarget> t) {
     t->setPositionGlobal({m_parent->space()->workArea().middle() - LAST / 2.F, LAST});
 }
 
-std::optional<CBox> IFloatingAlgorithm::getNormalGeometry(SP<ITarget> target) const {
+std::optional<CBox> IFloatingAlgorithm::getFloatingRestoreBox(SP<ITarget> target) const {
     return std::nullopt;
 }

@@ -28,7 +28,7 @@ namespace Layout::Floating {
 
         virtual void                recenter(SP<ITarget> t);
 
-        virtual std::optional<CBox> getNormalGeometry(SP<ITarget> target) const override;
+        virtual std::optional<CBox> getFloatingRestoreBox(SP<ITarget> target) const override;
 
       private:
         CBox fitBoxInWorkArea(const CBox& box, SP<ITarget> t, bool fully = true);

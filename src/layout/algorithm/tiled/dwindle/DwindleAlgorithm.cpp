@@ -369,12 +369,12 @@ void CDwindleAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRe
 
         if (!edgeLeft(corner) && !edgeRight(corner)) {
             allowedMovement.x = 0;
-            if (DISPLAYBOTTOM && edgeBottom(corner) || DISPLAYTOP && edgeTop(corner))
+            if ((DISPLAYBOTTOM && edgeBottom(corner)) || (DISPLAYTOP && edgeTop(corner)))
                 allowedMovement.y = 0;
         }
         if (!edgeTop(corner) && !edgeBottom(corner)) {
             allowedMovement.y = 0;
-            if (DISPLAYLEFT && edgeLeft(corner) || DISPLAYRIGHT && edgeRight(corner))
+            if ((DISPLAYLEFT && edgeLeft(corner)) || (DISPLAYRIGHT && edgeRight(corner)))
                 allowedMovement.x = 0;
         }
 

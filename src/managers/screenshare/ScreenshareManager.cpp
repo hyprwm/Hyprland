@@ -278,5 +278,18 @@ bool CScreenshareManager::needsWorkspaceCaptureSnapshot(PHLWINDOW window) const 
 }
 
 CScreenshareManager::SManagedSession::SManagedSession(UP<CScreenshareSession>&& session) : m_session(std::move(session)) {
-    ;
+    // a new client can get a freed client's address and inherit its managed session.
+    // stop on client destroy so that we never inherit a stale one, as it won't block DS.
+    wl_list_init(&clientDestroyListener.link);
+    clientDestroyListener.notify = [](wl_listener* listener, void* data) {
+        SManagedSession* managed = wl_container_of(listener, managed, clientDestroyListener);
+        managed->m_session->stop();
+    };
+
+    if (m_session->m_client)
+        wl_client_add_destroy_listener(m_session->m_client, &clientDestroyListener);
+}
+
+CScreenshareManager::SManagedSession::~SManagedSession() {
+    wl_list_remove(&clientDestroyListener.link);
 }

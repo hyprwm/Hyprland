@@ -254,9 +254,11 @@ namespace Screenshare {
 
         struct SManagedSession {
             SManagedSession(UP<CScreenshareSession>&& session);
+            ~SManagedSession();
 
             UP<CScreenshareSession> m_session;
             CHyprSignalListener     stoppedListener;
+            wl_listener             clientDestroyListener = {};
         };
 
         std::vector<UP<SManagedSession>> m_managedSessions;

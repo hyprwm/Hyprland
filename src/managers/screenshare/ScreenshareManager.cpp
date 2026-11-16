@@ -194,10 +194,7 @@ bool CScreenshareManager::isOutputBeingSSd(PHLMONITOR monitor) {
 }
 
 bool CScreenshareManager::isOutputDSBlocked(PHLMONITOR monitor) {
-    if (std::ranges::any_of(m_pendingFrames, [monitor](const auto& frame) {
-            return frame && !frame->done() && frame->m_shared && (frame->m_session->m_type == SHARE_WINDOW || frame->m_session->m_type == SHARE_WORKSPACE) &&
-                frame->m_session->monitor() == monitor;
-        }))
+    if (std::ranges::any_of(m_pendingFrames, [monitor](const auto& frame) { return frame && !frame->done() && frame->m_shared && frame->m_session->monitor() == monitor; }))
         return true;
 
     return std::ranges::any_of(m_sessions, [monitor](const auto& s) {

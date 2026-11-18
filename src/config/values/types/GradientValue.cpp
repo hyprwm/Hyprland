@@ -3,7 +3,7 @@
 using namespace Config::Values;
 
 CGradientValue::CGradientValue(const char* name, const char* description, CHyprColor def, SGradientValueOptions&& options) :
-    IValue(options.refresh, options.deprecationNotice), m_default(def) {
+    IValue(options.refresh, options.deprecationNotice), m_default(def), m_supportsWholeMonitor(options.supportsWholeMonitor) {
     m_name        = name;
     m_description = description;
 }
@@ -25,4 +25,8 @@ const Config::CGradientValueData& CGradientValue::value() const {
 
 const Config::CGradientValueData& CGradientValue::defaultVal() const {
     return m_default;
+}
+
+bool CGradientValue::supportsWholeMonitor() const {
+    return m_supportsWholeMonitor;
 }

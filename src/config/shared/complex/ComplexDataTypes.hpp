@@ -77,6 +77,9 @@ namespace Config {
                 result += std::format("{:x} ", c.getAsHex());
             }
 
+            if (m_wholeMonitor)
+                result += "whole_monitor ";
+
             result += std::format("{}deg", sc<int>(m_angle * 180.0 / M_PI));
             return result;
         }

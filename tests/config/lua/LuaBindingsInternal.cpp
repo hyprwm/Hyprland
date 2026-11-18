@@ -8,6 +8,7 @@
 
 #include <config/lua/types/LuaConfigInt.hpp>
 #include <config/values/types/IntValue.hpp>
+#include <desktop/rule/windowRule/WindowRule.hpp>
 
 #include <gtest/gtest.h>
 
@@ -16,6 +17,7 @@
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <numbers>
 
 extern "C" {
 #include <lualib.h>
@@ -571,6 +573,153 @@ TEST(ConfigLuaBindingsInternal, parseTableFieldMissingFieldAndPrefixedErrors) {
     EXPECT_EQ(err.errorCode, PARSE_ERROR_BAD_TYPE);
     EXPECT_NE(err.message.find("field \"count\":"), std::string::npos);
     lua_pop(L, 1);
+}
+
+TEST(ConfigLuaBindingsInternal, borderColorRulePreservesLegacyEndpoints) {
+    struct SCase {
+        const char* raw           = nullptr;
+        bool        active        = false;
+        bool        inactive      = false;
+        int         activeAngle   = 0;
+        int         inactiveAngle = 0;
+    };
+
+    static constexpr SCase CASES[] = {
+        {"0xFF112233 0xFF445566", true, true},
+        {"0xFF112233", true, false},
+        {"0xFF112233 90deg", true, false, 90},
+        {"0deg 0xFF445566 90deg", false, true, 0, 90},
+    };
+
+    for (const auto& test : CASES) {
+        SCOPED_TRACE(test.raw);
+        Desktop::Rule::CWindowRule rule;
+        const auto                 result = rule.addEffect(Desktop::Rule::WINDOW_RULE_EFFECT_BORDER_COLOR, test.raw);
+        ASSERT_TRUE(result.has_value()) << result.error();
+        ASSERT_EQ(rule.effects().size(), 1);
+        const auto border = std::get_if<Desktop::Rule::SBorderColorRule>(&rule.effects().front().value);
+        ASSERT_NE(border, nullptr);
+        ASSERT_EQ(border->active.has_value(), test.active);
+        ASSERT_EQ(border->inactive.has_value(), test.inactive);
+
+        if (border->active) {
+            ASSERT_EQ(border->active->m_colors.size(), 1);
+            EXPECT_EQ(border->active->m_colors.front().getAsHex(), 0xFF112233);
+            EXPECT_NEAR(border->active->m_angle, test.activeAngle * std::numbers::pi / 180.0, 0.0001);
+            EXPECT_FALSE(border->active->m_wholeMonitor);
+        }
+        if (border->inactive) {
+            ASSERT_EQ(border->inactive->m_colors.size(), 1);
+            EXPECT_EQ(border->inactive->m_colors.front().getAsHex(), 0xFF445566);
+            EXPECT_NEAR(border->inactive->m_angle, test.inactiveAngle * std::numbers::pi / 180.0, 0.0001);
+            EXPECT_FALSE(border->inactive->m_wholeMonitor);
+        }
+    }
+}
+
+TEST(ConfigLuaBindingsInternal, borderColorRuleRoundTripsIndependentWholeMonitorEndpoints) {
+    CLuaState  state;
+    const auto lua  = state.get();
+    const auto desc = Internal::findDescByName(Internal::WINDOW_RULE_EFFECT_DESCS, "border_color");
+    ASSERT_NE(desc, nullptr);
+
+    for (const bool activeWholeMonitor : {false, true}) {
+        for (const bool inactiveWholeMonitor : {false, true}) {
+            auto       active       = UP<ILuaConfigValue>(desc->factory());
+            auto       inactive     = UP<ILuaConfigValue>(desc->factory());
+            const auto activeCode   = std::format("return {{ colors = {{ '0xFF112233', '0xFF445566' }}, angle = 90, whole_monitor = {} }}", activeWholeMonitor);
+            const auto inactiveCode = std::format("return {{ colors = {{ '0xFF778899', '0xFFAABBCC' }}, angle = 180, whole_monitor = {} }}", inactiveWholeMonitor);
+            ASSERT_EQ(luaL_dostring(lua, activeCode.c_str()), LUA_OK);
+            ASSERT_EQ(active->parse(lua).errorCode, PARSE_ERROR_OK);
+            lua_pop(lua, 1);
+            ASSERT_EQ(luaL_dostring(lua, inactiveCode.c_str()), LUA_OK);
+            ASSERT_EQ(inactive->parse(lua).errorCode, PARSE_ERROR_OK);
+            lua_pop(lua, 1);
+
+            const auto activeGradient   = dynamic_cast<CLuaConfigGradient*>(active.get());
+            const auto inactiveGradient = dynamic_cast<CLuaConfigGradient*>(inactive.get());
+            ASSERT_NE(activeGradient, nullptr);
+            ASSERT_NE(inactiveGradient, nullptr);
+
+            struct SCase {
+                std::string raw;
+                bool        active   = false;
+                bool        inactive = false;
+            };
+            const SCase CASES[] = {
+                {active->toString() + " " + inactive->toString(), true, true},
+                {active->toString(), true, false},
+                {"0deg " + inactive->toString(), false, true},
+            };
+
+            for (const auto& test : CASES) {
+                SCOPED_TRACE(test.raw);
+                Desktop::Rule::CWindowRule rule;
+                const auto                 result = rule.addEffect(desc->effect, test.raw);
+                ASSERT_TRUE(result.has_value()) << result.error();
+                ASSERT_EQ(rule.effects().size(), 1);
+                const auto border = std::get_if<Desktop::Rule::SBorderColorRule>(&rule.effects().front().value);
+                ASSERT_NE(border, nullptr);
+                ASSERT_EQ(border->active.has_value(), test.active);
+                ASSERT_EQ(border->inactive.has_value(), test.inactive);
+
+                if (border->active) {
+                    EXPECT_EQ(*border->active, activeGradient->parsed());
+                    EXPECT_EQ(border->active->m_wholeMonitor, activeWholeMonitor);
+                    EXPECT_EQ(border->active->m_colorsOkLabA, activeGradient->parsed().m_colorsOkLabA);
+                }
+                if (border->inactive) {
+                    EXPECT_EQ(*border->inactive, inactiveGradient->parsed());
+                    EXPECT_EQ(border->inactive->m_wholeMonitor, inactiveWholeMonitor);
+                    EXPECT_EQ(border->inactive->m_colorsOkLabA, inactiveGradient->parsed().m_colorsOkLabA);
+                }
+            }
+        }
+    }
+}
+
+TEST(ConfigLuaBindingsInternal, borderColorLuaTablePreservesWholeMonitorAndRejectsInvalidType) {
+    CLuaState  state;
+    const auto lua  = state.get();
+    const auto desc = Internal::findDescByName(Internal::WINDOW_RULE_EFFECT_DESCS, "border_color");
+    ASSERT_NE(desc, nullptr);
+    const auto rule = makeShared<Desktop::Rule::CWindowRule>();
+
+    ASSERT_EQ(luaL_dostring(lua, "return { colors = { '0xFF112233' }, angle = 90, whole_monitor = true }"), LUA_OK);
+    const auto result = Internal::addWindowRuleEffectFromLua(lua, *desc, rule);
+    ASSERT_TRUE(result.has_value()) << result.error();
+    lua_pop(lua, 1);
+    ASSERT_EQ(rule->effects().size(), 1);
+    const auto border = std::get_if<Desktop::Rule::SBorderColorRule>(&rule->effects().front().value);
+    ASSERT_NE(border, nullptr);
+    ASSERT_TRUE(border->active.has_value());
+    EXPECT_TRUE(border->active->m_wholeMonitor);
+    EXPECT_FALSE(border->inactive.has_value());
+    EXPECT_EQ(rule->effects().front().raw, "0xFF112233 whole_monitor 90deg");
+
+    ASSERT_EQ(luaL_dostring(lua, "return { colors = { '0xFF445566' }, whole_monitor = 1 }"), LUA_OK);
+    const auto invalid = Internal::addWindowRuleEffectFromLua(lua, *desc, rule);
+    ASSERT_FALSE(invalid.has_value());
+    EXPECT_NE(invalid.error().find("whole_monitor"), std::string::npos);
+    lua_pop(lua, 1);
+    EXPECT_EQ(rule->effects().size(), 1);
+    EXPECT_EQ(rule->effects().front().raw, "0xFF112233 whole_monitor 90deg");
+}
+
+TEST(ConfigLuaBindingsInternal, borderColorRuleRejectsInvalidGradientWithoutAddingEffect) {
+    Desktop::Rule::CWindowRule rule;
+    ASSERT_TRUE(rule.addEffect(Desktop::Rule::WINDOW_RULE_EFFECT_BORDER_COLOR, "0xFF112233 whole_monitor 90deg").has_value());
+
+    for (const auto* invalid : {"0xFF445566 whole_monitor baddeg", "0deg 0xFF445566 whole_monitor baddeg", "invalid whole_monitor 90deg", "whole_monitor 90deg"}) {
+        SCOPED_TRACE(invalid);
+        EXPECT_FALSE(rule.addEffect(Desktop::Rule::WINDOW_RULE_EFFECT_BORDER_COLOR, invalid).has_value());
+        ASSERT_EQ(rule.effects().size(), 1);
+        const auto border = std::get_if<Desktop::Rule::SBorderColorRule>(&rule.effects().front().value);
+        ASSERT_NE(border, nullptr);
+        ASSERT_TRUE(border->active.has_value());
+        EXPECT_TRUE(border->active->m_wholeMonitor);
+        EXPECT_EQ(rule.effects().front().raw, "0xFF112233 whole_monitor 90deg");
+    }
 }
 
 TEST(ConfigLuaBindingsInternal, pluginBindingIsTableWithLoadFunction) {

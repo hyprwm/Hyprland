@@ -611,7 +611,7 @@ def generate_stub(root: Path) -> str:
     lines.append("---@alias HL.WindowSelector string|integer|HL.Window")
     lines.append("---@alias HL.Vec2Like HL.Vec2|{x:number, y:number}|{number, number}|string")
     lines.append("---@alias HL.CssGap number|{top?:number, right?:number, bottom?:number, left?:number}")
-    lines.append("---@alias HL.Gradient string|{colors:string[], angle?:number}")
+    lines.append("---@alias HL.Gradient string|{colors:string[], angle?:number, whole_monitor?:boolean}")
     lines.append("")
     lines.append("---@class HL.Dispatcher")
     lines.append("local __HL_Dispatcher = {}")

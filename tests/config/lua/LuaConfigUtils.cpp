@@ -19,8 +19,11 @@
 #include <config/values/types/IntValue.hpp>
 #include <config/values/types/StringValue.hpp>
 #include <config/values/types/Vec2Value.hpp>
+#include <config/values/ConfigValues.hpp>
 
 #include <gtest/gtest.h>
+
+#include <algorithm>
 
 extern "C" {
 #include <lauxlib.h>
@@ -125,6 +128,74 @@ TEST(ConfigLuaUtils, fromGenericValueCopiesRefreshBits) {
     auto       out = fromGenericValue(makeShared<Values::CIntValue>("a", "", 1, Values::SIntValueOptions{.refresh = REFRESH}));
     ASSERT_NE(out.get(), nullptr);
     EXPECT_EQ(out->refreshBits(), REFRESH);
+}
+
+TEST(ConfigLuaUtils, fromGenericValuePropagatesWholeMonitorCapability) {
+    CLuaState  state;
+    const auto lua = state.get();
+
+    for (const bool supported : {false, true}) {
+        SCOPED_TRACE(supported);
+        auto out   = fromGenericValue(makeShared<Values::CGradientValue>("a", "", CHyprColor(0xFF112233), Values::SGradientValueOptions{.supportsWholeMonitor = supported}));
+        auto value = dynamic_cast<CLuaConfigGradient*>(out.get());
+        ASSERT_NE(value, nullptr);
+        const auto original = value->parsed();
+
+        ASSERT_EQ(luaL_dostring(lua, "return { colors = { '0xFF445566' }, angle = 90, whole_monitor = true }"), LUA_OK);
+        EXPECT_EQ(value->parse(lua).errorCode, supported ? PARSE_ERROR_OK : PARSE_ERROR_BAD_VALUE);
+        EXPECT_EQ(value->setByUser(), supported);
+        if (supported) {
+            EXPECT_TRUE(value->parsed().m_wholeMonitor);
+            EXPECT_EQ(value->toString(), "0xFF445566 whole_monitor 90deg");
+        } else {
+            EXPECT_EQ(value->parsed(), original);
+            EXPECT_EQ(value->parsed().m_colorsOkLabA, original.m_colorsOkLabA);
+        }
+
+        lua_pushboolean(lua, false);
+        lua_setfield(lua, -2, "whole_monitor");
+        EXPECT_EQ(value->parse(lua).errorCode, PARSE_ERROR_OK);
+        lua_pop(lua, 1);
+        EXPECT_FALSE(value->parsed().m_wholeMonitor);
+        EXPECT_EQ(value->toString(), "0xFF445566 90deg");
+    }
+}
+
+TEST(ConfigLuaUtils, wholeMonitorIsSupportedOnlyByBorderGradients) {
+    static constexpr std::string_view SUPPORTED[] = {
+        "general:col.active_border", "general:col.inactive_border", "general:col.nogroup_border",     "general:col.nogroup_border_active",
+        "group:col.border_active",   "group:col.border_inactive",   "group:col.border_locked_active", "group:col.border_locked_inactive",
+    };
+
+    CLuaState  state;
+    const auto lua            = state.get();
+    size_t     supportedCount = 0;
+
+    for (const auto& generic : Values::getConfigValues()) {
+        if (!dynamic_cast<Values::CGradientValue*>(generic.get()))
+            continue;
+
+        const std::string_view name = generic->name();
+        SCOPED_TRACE(name);
+        const bool supported = std::ranges::find(SUPPORTED, name) != std::end(SUPPORTED);
+        auto       out       = fromGenericValue(generic);
+        ASSERT_NE(out.get(), nullptr);
+        ASSERT_EQ(luaL_dostring(lua, "return { colors = { '0xFF112233', '0xFF445566' }, whole_monitor = true }"), LUA_OK);
+        EXPECT_EQ(out->parse(lua).errorCode, supported ? PARSE_ERROR_OK : PARSE_ERROR_BAD_VALUE);
+        lua_pop(lua, 1);
+
+        if (!supported)
+            continue;
+
+        ++supportedCount;
+        EXPECT_NE(out->refreshBits() & Supplementary::REFRESH_WINDOW_STATES, 0);
+        if (!name.starts_with("group:"))
+            continue;
+
+        EXPECT_NE(out->refreshBits() & Supplementary::REFRESH_GRADIENTS_GROUPBAR, 0);
+    }
+
+    EXPECT_EQ(supportedCount, std::size(SUPPORTED));
 }
 
 TEST(ConfigValues, valueOptionsCopyDeprecationNotice) {

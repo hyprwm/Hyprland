@@ -144,7 +144,7 @@ static std::expected<SBorderColorRule, std::string> parseBorderColorRule(const s
         bool                       active                 = true;
         CVarList                   colorsAndAngles        = CVarList(trim(raw), 0, 's', true);
 
-        if (colorsAndAngles.size() == 2 && !colorsAndAngles[1].contains("deg")) {
+        if (colorsAndAngles.size() == 2 && !colorsAndAngles[1].contains("deg") && colorsAndAngles[0] != "whole_monitor" && colorsAndAngles[1] != "whole_monitor") {
             auto activeColor = parseBorderColorToken(raw, colorsAndAngles[0]);
             if (!activeColor)
                 return std::unexpected(activeColor.error());
@@ -160,6 +160,11 @@ static std::expected<SBorderColorRule, std::string> parseBorderColorRule(const s
         }
 
         for (auto const& token : colorsAndAngles) {
+            if (token == "whole_monitor") {
+                (active ? activeBorderGradient : inactiveBorderGradient).m_wholeMonitor = true;
+                continue;
+            }
+
             if (active && token.contains("deg")) {
                 auto angle = strToNumber<int>(token.substr(0, token.size() - 3));
                 if (!angle)

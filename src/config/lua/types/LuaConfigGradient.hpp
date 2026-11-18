@@ -6,7 +6,7 @@
 namespace Config::Lua {
     class CLuaConfigGradient : public ILuaConfigValue {
       public:
-        CLuaConfigGradient(CHyprColor def);
+        CLuaConfigGradient(CHyprColor def, bool supportsWholeMonitor = false);
         virtual ~CLuaConfigGradient() = default;
 
         virtual SParseError           parse(lua_State* s);
@@ -21,5 +21,6 @@ namespace Config::Lua {
       private:
         CHyprColor         m_default;
         CGradientValueData m_data;
+        bool               m_supportsWholeMonitor = false;
     };
 };

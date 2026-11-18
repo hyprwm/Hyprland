@@ -14,7 +14,7 @@ static std::expected<CHyprColor, std::string> parseColorString(const std::string
     return CHyprColor(sc<uint64_t>(*result));
 }
 
-CLuaConfigGradient::CLuaConfigGradient(CHyprColor def) : m_default(def), m_data(def) {
+CLuaConfigGradient::CLuaConfigGradient(CHyprColor def, bool supportsWholeMonitor) : m_default(def), m_data(def), m_supportsWholeMonitor(supportsWholeMonitor) {
     ;
 }
 
@@ -31,7 +31,7 @@ SParseError CLuaConfigGradient::parse(lua_State* s) {
     }
 
     if (!lua_istable(s, -1))
-        return {.errorCode = PARSE_ERROR_BAD_TYPE, .message = R"(gradient type requires a color string or a table with "colors" and optional "angle")"};
+        return {.errorCode = PARSE_ERROR_BAD_TYPE, .message = R"(gradient type requires a color string or a table with "colors" and optional "angle" and "whole_monitor")"};
 
     // read colors array
     lua_getfield(s, -1, "colors");
@@ -77,8 +77,23 @@ SParseError CLuaConfigGradient::parse(lua_State* s) {
     }
     lua_pop(s, 1);
 
-    m_data.m_colors = std::move(colors);
-    m_data.m_angle  = angle;
+    bool wholeMonitor = false;
+    lua_getfield(s, -1, "whole_monitor");
+    if (!lua_isnil(s, -1)) {
+        if (!lua_isboolean(s, -1)) {
+            lua_pop(s, 1);
+            return {.errorCode = PARSE_ERROR_BAD_TYPE, .message = "gradient \"whole_monitor\" must be a boolean"};
+        }
+        wholeMonitor = lua_toboolean(s, -1);
+    }
+    lua_pop(s, 1);
+
+    if (wholeMonitor && !m_supportsWholeMonitor)
+        return {.errorCode = PARSE_ERROR_BAD_VALUE, .message = "gradient \"whole_monitor\" is not supported for this value"};
+
+    m_data.m_colors       = std::move(colors);
+    m_data.m_angle        = angle;
+    m_data.m_wholeMonitor = wholeMonitor;
     m_data.updateColorsOk();
     m_bSetByUser = true;
 
@@ -105,13 +120,16 @@ std::string CLuaConfigGradient::toString() {
     if (!result.empty())
         result += ' ';
 
+    if (m_data.m_wholeMonitor)
+        result += "whole_monitor ";
+
     result += std::format("{}deg", sc<int>(m_data.m_angle * 180.0 / std::numbers::pi_v<float>));
 
     return result;
 }
 
 void CLuaConfigGradient::push(lua_State* s) {
-    lua_createtable(s, 0, 2);
+    lua_createtable(s, 0, 3);
 
     lua_createtable(s, m_data.m_colors.size(), 0);
     for (size_t i = 0; i < m_data.m_colors.size(); ++i) {
@@ -123,6 +141,9 @@ void CLuaConfigGradient::push(lua_State* s) {
 
     lua_pushnumber(s, m_data.m_angle * 180.0 / std::numbers::pi);
     lua_setfield(s, -2, "angle");
+
+    lua_pushboolean(s, m_data.m_wholeMonitor);
+    lua_setfield(s, -2, "whole_monitor");
 }
 
 const CGradientValueData& CLuaConfigGradient::parsed() {

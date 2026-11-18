@@ -13,6 +13,7 @@
 
 #include <gtest/gtest.h>
 
+#include <format>
 #include <numbers>
 #include <limits>
 
@@ -477,4 +478,138 @@ TEST(ConfigLuaValueTypes, gradientParseAndPush) {
     err = value.parse(L);
     lua_pop(L, 1);
     EXPECT_EQ(err.errorCode, PARSE_ERROR_BAD_VALUE);
+}
+
+TEST(ConfigLuaValueTypes, gradientWholeMonitorRoundTrip) {
+    CLuaState  state;
+    const auto lua = state.get();
+
+    for (const bool wholeMonitor : {false, true}) {
+        SCOPED_TRACE(wholeMonitor);
+        CLuaConfigGradient value(CHyprColor(0xFF000000), true);
+        ASSERT_EQ(luaL_dostring(lua, "return { colors = { '0xFF112233', '0xFF445566' }, angle = 90 }"), LUA_OK);
+        lua_pushboolean(lua, wholeMonitor);
+        lua_setfield(lua, -2, "whole_monitor");
+        ASSERT_EQ(value.parse(lua).errorCode, PARSE_ERROR_OK);
+        lua_pop(lua, 1);
+
+        EXPECT_EQ(value.parsed().m_wholeMonitor, wholeMonitor);
+        EXPECT_EQ(value.toString(), wholeMonitor ? "0xFF112233 0xFF445566 whole_monitor 90deg" : "0xFF112233 0xFF445566 90deg");
+        auto data = value.parsed();
+        EXPECT_EQ(data.toString(), wholeMonitor ? "ff112233 ff445566 whole_monitor 90deg" : "ff112233 ff445566 90deg");
+
+        value.push(lua);
+        lua_getfield(lua, -1, "whole_monitor");
+        ASSERT_TRUE(lua_isboolean(lua, -1));
+        EXPECT_EQ(lua_toboolean(lua, -1), wholeMonitor);
+        lua_pop(lua, 1);
+
+        CLuaConfigGradient roundTripped(CHyprColor(0xFFFFFFFF), true);
+        ASSERT_EQ(roundTripped.parse(lua).errorCode, PARSE_ERROR_OK);
+        lua_pop(lua, 1);
+        EXPECT_EQ(roundTripped.parsed(), value.parsed());
+        EXPECT_EQ(roundTripped.parsed().m_colorsOkLabA, value.parsed().m_colorsOkLabA);
+        EXPECT_EQ(lua_gettop(lua), 0);
+    }
+}
+
+TEST(ConfigLuaValueTypes, gradientWholeMonitorRejectsInvalidTypesWithoutMutation) {
+    CLuaState  state;
+    const auto lua = state.get();
+
+    for (const bool supported : {false, true}) {
+        CLuaConfigGradient value(CHyprColor(0xFF000000), supported);
+        ASSERT_EQ(luaL_dostring(lua, "return { colors = { '0xFF112233', '0xFF445566' }, angle = 90 }"), LUA_OK);
+        lua_pushboolean(lua, supported);
+        lua_setfield(lua, -2, "whole_monitor");
+        ASSERT_EQ(value.parse(lua).errorCode, PARSE_ERROR_OK);
+        lua_pop(lua, 1);
+        const auto original = value.parsed();
+        value.resetSetByUser();
+
+        for (const auto* invalid : {"0", "1", "'true'", "'false'", "{}", "function() end"}) {
+            SCOPED_TRACE(std::format("supported={}, whole_monitor={}", supported, invalid));
+            const auto code = std::format("return {{ colors = {{ '0xFF778899' }}, angle = 180, whole_monitor = {} }}", invalid);
+            ASSERT_EQ(luaL_dostring(lua, code.c_str()), LUA_OK);
+            const auto err = value.parse(lua);
+            EXPECT_EQ(lua_gettop(lua), 1);
+            lua_pop(lua, 1);
+
+            EXPECT_EQ(err.errorCode, PARSE_ERROR_BAD_TYPE);
+            EXPECT_NE(err.message.find("whole_monitor"), std::string::npos);
+            EXPECT_NE(err.message.find("boolean"), std::string::npos);
+            EXPECT_EQ(value.parsed(), original);
+            EXPECT_EQ(value.parsed().m_colorsOkLabA, original.m_colorsOkLabA);
+            EXPECT_FALSE(value.setByUser());
+        }
+    }
+}
+
+TEST(ConfigLuaValueTypes, gradientWholeMonitorUnsupportedRejectsTrueAndAcceptsFalse) {
+    CLuaState          state;
+    const auto         lua = state.get();
+    CLuaConfigGradient value(CHyprColor(0xFF112233));
+    const auto         original = value.parsed();
+
+    ASSERT_EQ(luaL_dostring(lua, "return { colors = { '0xFF445566' }, angle = 90, whole_monitor = true }"), LUA_OK);
+    const auto err = value.parse(lua);
+    EXPECT_EQ(err.errorCode, PARSE_ERROR_BAD_VALUE);
+    EXPECT_NE(err.message.find("whole_monitor"), std::string::npos);
+    EXPECT_NE(err.message.find("not supported"), std::string::npos);
+    EXPECT_EQ(value.parsed(), original);
+    EXPECT_EQ(value.parsed().m_colorsOkLabA, original.m_colorsOkLabA);
+    EXPECT_FALSE(value.setByUser());
+    ASSERT_EQ(lua_gettop(lua), 1);
+
+    lua_pushboolean(lua, false);
+    lua_setfield(lua, -2, "whole_monitor");
+    ASSERT_EQ(value.parse(lua).errorCode, PARSE_ERROR_OK);
+    lua_pop(lua, 1);
+    EXPECT_EQ(value.toString(), "0xFF445566 90deg");
+    EXPECT_FALSE(value.parsed().m_wholeMonitor);
+    EXPECT_TRUE(value.setByUser());
+
+    value.push(lua);
+    CLuaConfigGradient roundTripped(CHyprColor(0xFF000000));
+    EXPECT_EQ(roundTripped.parse(lua).errorCode, PARSE_ERROR_OK);
+    lua_pop(lua, 1);
+    EXPECT_EQ(roundTripped.parsed(), value.parsed());
+}
+
+TEST(ConfigLuaValueTypes, gradientWholeMonitorReplacementAndReset) {
+    CLuaState          state;
+    const auto         lua = state.get();
+    CLuaConfigGradient value(CHyprColor(0xFF778899), true);
+
+    for (const auto* replacement : {"return { colors = { '0xFF112233' } }", "return { colors = { '0xFF112233' }, whole_monitor = false }", "return '0xFF112233'"}) {
+        SCOPED_TRACE(replacement);
+        ASSERT_EQ(luaL_dostring(lua, "return { colors = { '0xFF445566', '0xFF778899' }, angle = 90, whole_monitor = true }"), LUA_OK);
+        ASSERT_EQ(value.parse(lua).errorCode, PARSE_ERROR_OK);
+        lua_pop(lua, 1);
+        const auto original = value.parsed();
+
+        for (const auto* invalid : {"return { colors = { 'invalid' }, whole_monitor = false }", "return { colors = { '0xFF112233' }, angle = false }"}) {
+            ASSERT_EQ(luaL_dostring(lua, invalid), LUA_OK);
+            EXPECT_NE(value.parse(lua).errorCode, PARSE_ERROR_OK);
+            lua_pop(lua, 1);
+            EXPECT_EQ(value.parsed(), original);
+            EXPECT_EQ(value.parsed().m_colorsOkLabA, original.m_colorsOkLabA);
+        }
+
+        ASSERT_EQ(luaL_dostring(lua, replacement), LUA_OK);
+        ASSERT_EQ(value.parse(lua).errorCode, PARSE_ERROR_OK);
+        lua_pop(lua, 1);
+        EXPECT_EQ(value.parsed(), CGradientValueData(CHyprColor(0xFF112233)));
+        EXPECT_FALSE(value.parsed().m_wholeMonitor);
+        EXPECT_EQ(value.toString(), "0xFF112233 0deg");
+    }
+
+    ASSERT_EQ(luaL_dostring(lua, "return { colors = { '0xFF112233', '0xFF445566' }, angle = 90, whole_monitor = true }"), LUA_OK);
+    ASSERT_EQ(value.parse(lua).errorCode, PARSE_ERROR_OK);
+    lua_pop(lua, 1);
+    value.reset();
+    EXPECT_EQ(value.parsed(), CGradientValueData(CHyprColor(0xFF778899)));
+    EXPECT_FALSE(value.parsed().m_wholeMonitor);
+    EXPECT_EQ(value.toString(), "0xFF778899 0deg");
+    EXPECT_EQ(lua_gettop(lua), 0);
 }

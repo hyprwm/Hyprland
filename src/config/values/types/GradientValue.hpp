@@ -7,8 +7,9 @@
 
 namespace Config::Values {
     struct SGradientValueOptions {
-        Supplementary::PropRefreshBits refresh           = 0;
-        const char*                    deprecationNotice = nullptr;
+        Supplementary::PropRefreshBits refresh              = 0;
+        const char*                    deprecationNotice    = nullptr;
+        bool                           supportsWholeMonitor = false;
     };
 
     class CGradientValue : public IValue {
@@ -22,9 +23,11 @@ namespace Config::Values {
 
         const Config::CGradientValueData& value() const;
         const Config::CGradientValueData& defaultVal() const;
+        bool                              supportsWholeMonitor() const;
 
       private:
         CConfigValue<Config::IComplexConfigValue> m_val;
         Config::CGradientValueData                m_default;
+        bool                                      m_supportsWholeMonitor = false;
     };
 }

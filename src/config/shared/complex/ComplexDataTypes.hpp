@@ -32,7 +32,8 @@ namespace Config {
         void reset(CHyprColor col) {
             m_colors.clear();
             m_colors.emplace_back(col);
-            m_angle = 0;
+            m_angle        = 0;
+            m_wholeMonitor = false;
             updateColorsOk();
         }
 
@@ -56,9 +57,11 @@ namespace Config {
         /* Float corresponding to the angle (rad) */
         float m_angle = 0;
 
+        bool  m_wholeMonitor = false;
+
         //
         bool operator==(const CGradientValueData& other) const {
-            if (other.m_colors.size() != m_colors.size() || m_angle != other.m_angle)
+            if (other.m_colors.size() != m_colors.size() || m_angle != other.m_angle || m_wholeMonitor != other.m_wholeMonitor)
                 return false;
 
             for (size_t i = 0; i < m_colors.size(); ++i)

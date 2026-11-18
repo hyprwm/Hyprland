@@ -22,13 +22,21 @@ void CAnimatedDecorationGradient::setTarget(const Config::CGradientValueData& gr
     if (gradient == m_current)
         return;
 
-    if (!transition) {
-        m_current = gradient;
-        return;
-    }
+    const bool WAS_WHOLE_MONITOR = m_current.m_wholeMonitor;
+    if (transition)
+        m_previous = gradient.m_wholeMonitor && !WAS_WHOLE_MONITOR ? renderState().current : m_current;
 
-    m_previous = m_current;
-    m_current  = gradient;
+    m_current = gradient;
+
+    if (m_current.m_wholeMonitor && m_angleProgress) {
+        m_angleProgress->resetAllCallbacks();
+        m_angleProgress->warp(false);
+    } else if (WAS_WHOLE_MONITOR)
+        startAngleAnimation();
+
+    if (!transition)
+        return;
+
     m_fadeProgress->setValueAndWarp(0.F);
     *m_fadeProgress = 1.F;
 }
@@ -41,14 +49,14 @@ CAnimatedDecorationGradient::SRenderState CAnimatedDecorationGradient::renderSta
         .transitioning = m_fadeProgress->isBeingAnimated(),
     };
 
-    if (!m_angleProgress->enabled())
+    if (m_current.m_wholeMonitor || !m_angleProgress->enabled())
         return state;
 
     state.current.m_angle += m_angleProgress->value() * M_PI * 2;
     state.current.m_angle = normalizeAngleRad(state.current.m_angle);
 
     // Rotating gradients should fade colors without also interpolating their angles.
-    if (state.transitioning)
+    if (state.transitioning && !state.previous.m_wholeMonitor)
         state.previous.m_angle = state.current.m_angle;
 
     return state;
@@ -58,29 +66,29 @@ void CAnimatedDecorationGradient::onWindowMap() {
     m_fadeProgress->resetAllCallbacks();
     m_angleProgress->resetAllCallbacks();
 
-    if (!m_angleProgress->enabled())
+    startAngleAnimation();
+}
+
+void CAnimatedDecorationGradient::startAngleAnimation() {
+    if (!m_angleProgress || m_current.m_wholeMonitor || !m_angleProgress->enabled())
         return;
 
+    m_angleProgress->setCallbackOnEnd(nullptr);
     m_angleProgress->setValueAndWarp(0.F);
-    m_angleProgress->setCallbackOnEnd([this](WP<CBaseAnimatedVariable> animation) { onAngleAnimationEnd(animation); }, false);
     *m_angleProgress = 1.F;
+    m_angleProgress->setCallbackOnEnd([this](WP<CBaseAnimatedVariable> animation) { onAngleAnimationEnd(animation); }, false);
 }
 
 void CAnimatedDecorationGradient::onWindowFocus() {
-    if (!m_angleProgress->enabled() || m_angleProgress->isBeingAnimated())
+    if (m_angleProgress->isBeingAnimated())
         return;
 
-    m_angleProgress->setValueAndWarp(0.F);
-    *m_angleProgress = 1.F;
+    startAngleAnimation();
 }
 
 void CAnimatedDecorationGradient::onAngleAnimationEnd(WP<CBaseAnimatedVariable> animation) {
     if (!animation || animation->getStyle() != "loop" || !animation->enabled())
         return;
 
-    const auto ANIMATION = dc<CAnimatedVariable<float>*>(animation.get());
-    ANIMATION->setCallbackOnEnd(nullptr);
-    ANIMATION->setValueAndWarp(0.F);
-    *ANIMATION = 1.F;
-    ANIMATION->setCallbackOnEnd([this](WP<CBaseAnimatedVariable> animation) { onAngleAnimationEnd(animation); }, false);
+    startAngleAnimation();
 }

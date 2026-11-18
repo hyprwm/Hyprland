@@ -26,6 +26,7 @@ class CAnimatedDecorationGradient {
     void         onWindowFocus();
 
   private:
+    void                       startAngleAnimation();
     void                       onAngleAnimationEnd(WP<Hyprutils::Animation::CBaseAnimatedVariable> animation);
 
     Config::CGradientValueData m_current;

@@ -522,6 +522,30 @@ class CDataDeviceDragTest : public CDataDeviceTest {
         PROTO::data->m_dnd.currentSource = m_nextSource;
     }
 
+    void expectDropEvents() {
+        wl_client_flush(m_client);
+        std::array<uint32_t, 256> buffer = {};
+        const auto                size   = recv(m_socket.get(), buffer.data(), sizeof(buffer), MSG_DONTWAIT);
+        ASSERT_GT(size, 0);
+        ASSERT_EQ(size % sizeof(uint32_t), 0U);
+        std::vector<std::pair<uint32_t, uint32_t>> events;
+        for (size_t i = 0; i < sc<size_t>(size) / sizeof(uint32_t);) {
+            ASSERT_LT(i + 1, sc<size_t>(size) / sizeof(uint32_t));
+            const auto bytes = buffer[i + 1] >> 16;
+            ASSERT_GE(bytes, 8U);
+            ASSERT_EQ(bytes % sizeof(uint32_t), 0U);
+            ASSERT_LE(i + bytes / sizeof(uint32_t), sc<size_t>(size) / sizeof(uint32_t));
+            events.emplace_back(buffer[i], buffer[i + 1] & 0xffff);
+            i += bytes / sizeof(uint32_t);
+        }
+        const auto                                       deviceId = wl_resource_get_id(m_deviceWire->resource());
+        const std::vector<std::pair<uint32_t, uint32_t>> expected = {
+            {deviceId, WL_DATA_DEVICE_DROP},
+            {2, WL_DATA_SOURCE_DND_DROP_PERFORMED},
+        };
+        EXPECT_EQ(events, expected);
+    }
+
     void abortDrag() {
         PROTO::data->abortDrag();
     }
@@ -782,6 +806,22 @@ TEST_F(CDataDeviceDragTest, ModernSourceReceivesNegotiationDropAndFinish) {
     EXPECT_FALSE(PROTO::data->dndActive());
     request(3);
     expectSourceEvents({{WL_DATA_SOURCE_ACTION, COPY}, {WL_DATA_SOURCE_DND_DROP_PERFORMED, 0}, {WL_DATA_SOURCE_DND_FINISHED, 0}});
+}
+
+TEST_F(CDataDeviceDragTest, SameClientReceivesDropBeforeSourceNotification) {
+    // This order isn't required by the protocol. Match Weston, KWin and wlroots because Chromium
+    // clears its drop target on dnd_drop_performed and ignores a subsequent same-client drop.
+    realSource();
+    request(2, {MOVE}, 2);
+    realSourceOffer();
+    setActions(MOVE, MOVE);
+    accept();
+    expectSourceEvents({{WL_DATA_SOURCE_ACTION, MOVE}});
+
+    performDrop();
+    expectDropEvents();
+    request(3); // wl_data_offer.finish
+    expectSourceEvents({{WL_DATA_SOURCE_DND_FINISHED, 0}});
 }
 
 TEST_F(CDataDeviceDragTest, LegacySourceUsesCopyWithoutVersionThreeEvents) {

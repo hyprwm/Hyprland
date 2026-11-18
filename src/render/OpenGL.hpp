@@ -73,6 +73,7 @@ namespace Render::GL {
     };
 
     CBox resolveBlurUV(const CBox& destinationBox, const Vector2D& textureSize);
+    CBox resolveBorderGradientUV(const CBox& borderBox, const Vector2D& monitorSize, bool wholeMonitor, const Vector2D& monitorOffset = {});
 
     struct SVertex {
         float x, y; // position

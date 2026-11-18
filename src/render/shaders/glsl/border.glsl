@@ -14,7 +14,7 @@ vec4[2]
 vec4
 #endif
     getBorder(vec2 v_texcoord, float alpha, vec2 fullSizeUntransformed, float radiusOuter, float thick, float radius, float roundingPower, vec2 topLeft, vec2 fullSize,
-              int gradientLength, vec4 gradient[10], float angle, int gradient2Length, vec4 gradient2[10], float angle2, float gradientLerp
+              int gradientLength, vec4 gradient[10], float angle, int gradient2Length, vec4 gradient2[10], float angle2, float gradientLerp, vec4 gradientUV, vec4 gradient2UV
 #if USE_CM
               ,
               int sourceTF, int targetTF, mat3 convertMatrix, vec2 srcTFRange, vec2 dstTFRange
@@ -98,7 +98,8 @@ vec4
     if (additionalAlpha == 0.0)
         discard;
 
-    pixColor = getColorForCoord(v_texcoord, gradientLength, gradient, angle, gradient2Length, gradient2, angle2, gradientLerp);
+    pixColor = getColorForCoord(gradientUV.xy + v_texcoord * gradientUV.zw, gradient2UV.xy + v_texcoord * gradient2UV.zw, gradientLength, gradient, angle, gradient2Length,
+                                gradient2, angle2, gradientLerp);
     pixColor.rgb *= pixColor[3];
 
 #if USE_CM

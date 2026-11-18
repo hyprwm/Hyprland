@@ -76,6 +76,13 @@ CBox Render::GL::resolveBlurUV(const CBox& destinationBox, const Vector2D& textu
     return {destinationBox.x / textureSize.x, destinationBox.y / textureSize.y, destinationBox.w / textureSize.x, destinationBox.h / textureSize.y};
 }
 
+CBox Render::GL::resolveBorderGradientUV(const CBox& borderBox, const Vector2D& monitorSize, bool wholeMonitor, const Vector2D& monitorOffset) {
+    if (!wholeMonitor || monitorSize.x <= 0.0 || monitorSize.y <= 0.0)
+        return {0, 0, 1, 1};
+
+    return {(borderBox.x + monitorOffset.x) / monitorSize.x, (borderBox.y + monitorOffset.y) / monitorSize.y, borderBox.w / monitorSize.x, borderBox.h / monitorSize.y};
+}
+
 static inline void loadGLProc(void* pProc, const char* name) {
     void* proc = rc<void*>(eglGetProcAddress(name));
     if (proc == nullptr) {
@@ -2075,6 +2082,12 @@ void CHyprOpenGLImpl::renderBorder(CRenderContext& ctx, const CBox& box, const C
     shader->setUniformFloat(SHADER_ALPHA, data.a);
     shader->setUniformInt(SHADER_GRADIENT2_LENGTH, 0);
 
+    // Transformed sources are drawn into a cropped canvas, but the gradient stays monitor-relative.
+    const auto MONITOR_OFFSET = m_renderData.renderingTransformedSource ? box.pos() - innerBox.pos() : Vector2D{};
+    const auto GRADIENT_UV    = resolveBorderGradientUV(newBox, m_renderData.pMonitor->m_transformedSize, grad.m_wholeMonitor, MONITOR_OFFSET);
+    shader->setUniformFloat4(SHADER_GRADIENT_UV, GRADIENT_UV.x, GRADIENT_UV.y, GRADIENT_UV.w, GRADIENT_UV.h);
+    shader->setUniformFloat4(SHADER_GRADIENT2_UV, 0.F, 0.F, 1.F, 1.F);
+
     const auto TOPLEFT  = newBox.pos();
     const auto FULLSIZE = newBox.size();
 
@@ -2160,6 +2173,12 @@ void CHyprOpenGLImpl::renderBorder(CRenderContext& ctx, const CBox& box, const C
     shader->setUniformFloat(SHADER_ANGLE2, sc<int>(grad2.m_angle / (std::numbers::pi / 180.0)) % 360 * (std::numbers::pi / 180.0));
     shader->setUniformFloat(SHADER_ALPHA, data.a);
     shader->setUniformFloat(SHADER_GRADIENT_LERP, lerp);
+
+    const auto MONITOR_OFFSET = m_renderData.renderingTransformedSource ? box.pos() - innerBox.pos() : Vector2D{};
+    const auto GRADIENT_UV    = resolveBorderGradientUV(newBox, m_renderData.pMonitor->m_transformedSize, grad1.m_wholeMonitor, MONITOR_OFFSET);
+    const auto GRADIENT2_UV   = resolveBorderGradientUV(newBox, m_renderData.pMonitor->m_transformedSize, grad2.m_wholeMonitor, MONITOR_OFFSET);
+    shader->setUniformFloat4(SHADER_GRADIENT_UV, GRADIENT_UV.x, GRADIENT_UV.y, GRADIENT_UV.w, GRADIENT_UV.h);
+    shader->setUniformFloat4(SHADER_GRADIENT2_UV, GRADIENT2_UV.x, GRADIENT2_UV.y, GRADIENT2_UV.w, GRADIENT2_UV.h);
 
     const auto TOPLEFT  = newBox.pos();
     const auto FULLSIZE = newBox.size();

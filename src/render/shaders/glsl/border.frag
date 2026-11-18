@@ -19,6 +19,8 @@ uniform int   gradient2Length;
 uniform float angle;
 uniform float angle2;
 uniform float gradientLerp;
+uniform vec4  gradientUV;
+uniform vec4  gradient2UV;
 uniform float alpha;
 
 uniform float radius;
@@ -45,7 +47,7 @@ void main() {
     fragColor =
 #endif
         getBorder(v_texcoord, alpha, fullSizeUntransformed, radiusOuter, thick, radius, roundingPower, topLeft, fullSize, gradientLength, gradient, angle, gradient2Length,
-                  gradient2, angle2, gradientLerp
+                  gradient2, angle2, gradientLerp, gradientUV, gradient2UV
 #if USE_CM
                   ,
                   sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange

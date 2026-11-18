@@ -201,6 +201,8 @@ void CShader::getUniformLocations() {
     m_uniformLocations[SHADER_ANGLE]                       = getUniform("angle");
     m_uniformLocations[SHADER_ANGLE2]                      = getUniform("angle2");
     m_uniformLocations[SHADER_GRADIENT_LERP]               = getUniform("gradientLerp");
+    m_uniformLocations[SHADER_GRADIENT_UV]                 = getUniform("gradientUV");
+    m_uniformLocations[SHADER_GRADIENT2_UV]                = getUniform("gradient2UV");
     m_uniformLocations[SHADER_TIME]                        = getUniform("time");
     m_uniformLocations[SHADER_DISTORT]                     = getUniform("distort");
     m_uniformLocations[SHADER_WL_OUTPUT]                   = getUniform("wl_output");

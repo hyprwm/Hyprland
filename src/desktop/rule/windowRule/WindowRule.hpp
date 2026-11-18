@@ -31,8 +31,8 @@ namespace Desktop::Rule {
         std::optional<Config::CGradientValueData> inactive;
     };
 
-    using WindowRuleEffectValue =
-        std::variant<std::monostate, bool, int64_t, float, std::string, std::vector<std::string>, SFullscreenStateRule, SOpacityRule, SBorderColorRule, Math::SExpressionVec2>;
+    using WindowRuleEffectValue = std::variant<std::monostate, bool, int64_t, float, std::string, std::vector<std::string>, SFullscreenStateRule, SOpacityRule, SBorderColorRule,
+                                               Math::SExpressionVec2, STypedRuleValue>;
 
     struct SWindowRuleEffect {
         using storageType = CWindowRuleEffectContainer::storageType;

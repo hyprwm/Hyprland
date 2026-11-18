@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Rule.hpp"
+#include "../../config/lua/types/LuaConfigValue.hpp"
+#include "../../config/values/types/IValue.hpp"
 
 #include <expected>
 #include <string>
@@ -9,6 +11,11 @@
 #include <vector>
 
 namespace Desktop::Rule {
+    struct STypedRuleValue {
+        SP<Config::Values::IValue>       type;
+        SP<Config::Lua::ILuaConfigValue> parsed;
+    };
+
     template <typename TEffect, eRuleType RULE_TYPE>
     class CRuleWithEffects : public IRule {
       public:
@@ -26,6 +33,16 @@ namespace Desktop::Rule {
                 return std::unexpected(parsed.error());
 
             m_effects.emplace_back(TEffect{.key = e, .raw = result, .value = std::move(*parsed)});
+            m_effectSet.emplace(e);
+
+            return {};
+        }
+
+        std::expected<void, std::string> addEffect(storageType e, STypedRuleValue value) {
+            if (!value.type || !value.parsed)
+                return std::unexpected("dynamic rule effect has no typed value");
+
+            m_effects.emplace_back(TEffect{.key = e, .raw = {}, .value = std::move(value)});
             m_effectSet.emplace(e);
 
             return {};

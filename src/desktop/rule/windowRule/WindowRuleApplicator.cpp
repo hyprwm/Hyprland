@@ -115,18 +115,20 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                     break;
                 }
 
-                // custom type, add to our vec
+                // dynamic type, add to our vec
+                const auto& TYPED = std::get<STypedRuleValue>(value);
+
                 if (!m_otherProps.props.contains(key)) {
                     m_otherProps.props.emplace(key,
                                                makeUnique<SCustomPropContainer>(SCustomPropContainer{
                                                    .idx      = key,
                                                    .propMask = rule->getPropertiesMask(),
-                                                   .effect   = effect,
+                                                   .value    = TYPED,
                                                }));
                 } else {
                     auto& e = m_otherProps.props[key];
                     e->propMask |= rule->getPropertiesMask();
-                    e->effect = effect;
+                    e->value = TYPED;
                 }
 
                 break;

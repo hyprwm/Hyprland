@@ -215,10 +215,10 @@ static std::vector<std::string> parseStringList(const std::string& raw) {
 }
 
 static std::expected<WindowRuleEffectValue, std::string> parseWindowRuleEffect(CWindowRuleEffectContainer::storageType e, const std::string& raw) {
-    if (windowEffects()->isEffectDynamic(e))
-        return std::string{raw};
-
     const auto EFFECT_NAME = windowEffects()->get(e);
+
+    if (windowEffects()->isEffectDynamic(e))
+        return std::unexpected(std::format("{} is a dynamic rule effect and requires a typed value", EFFECT_NAME));
 
     switch (e) {
         default: return std::unexpected(std::format("unknown window rule effect {}", e));

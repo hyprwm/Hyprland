@@ -330,6 +330,38 @@ namespace HyprlandAPI {
     APICALL bool removeLuaFunction(HANDLE handle, const std::string& namespace_, const std::string& name);
 
     /*
+        Register a plugin-owned dynamic window rule effect.
+
+        Removed automatically on plugin unload.
+
+        returns: The effect storage index. 0 on failure.
+    */
+    APICALL uint16_t addWindowEffect(HANDLE handle, const std::string& name, SP<Config::Values::IValue> value);
+
+    /*
+        Register a plugin-owned dynamic layer rule effect.
+
+        Removed automatically on plugin unload.
+
+        returns: The effect storage index. 0 on failure.
+    */
+    APICALL uint16_t addLayerEffect(HANDLE handle, const std::string& name, SP<Config::Values::IValue> value);
+
+    /*
+        Unregister a window rule effect.
+
+        returns: true on success. False otherwise.
+    */
+    APICALL bool removeWindowEffect(HANDLE handle, uint16_t idx);
+
+    /*
+        Unregister a layer rule effect.
+
+        returns: true on success. False otherwise.
+    */
+    APICALL bool removeLayerEffect(HANDLE handle, uint16_t idx);
+
+    /*
         Add a plugin-owned event that can be used with hl.on("<name>", ...)
 
         returns: true on success. False otherwise.

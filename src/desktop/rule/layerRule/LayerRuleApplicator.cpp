@@ -39,9 +39,8 @@ void CLayerRuleApplicator::resetProps(std::underlying_type_t<eRuleProperty> prop
 
 void CLayerRuleApplicator::applyDynamicRule(const SP<CLayerRule>& rule) {
     for (const auto& effectData : rule->effects()) {
-        const auto  key    = effectData.key;
-        const auto& effect = effectData.raw;
-        const auto& value  = effectData.value;
+        const auto  key   = effectData.key;
+        const auto& value = effectData.value;
 
         switch (key) {
             default: {
@@ -50,18 +49,20 @@ void CLayerRuleApplicator::applyDynamicRule(const SP<CLayerRule>& rule) {
                     break;
                 }
 
-                // custom type, add to our vec
+                // dynamic type, add to our vec
+                const auto& TYPED = std::get<STypedRuleValue>(value);
+
                 if (!m_otherProps.props.contains(key)) {
                     m_otherProps.props.emplace(key,
                                                makeUnique<SCustomPropContainer>(SCustomPropContainer{
                                                    .idx      = key,
                                                    .propMask = rule->getPropertiesMask(),
-                                                   .effect   = effect,
+                                                   .value    = TYPED,
                                                }));
                 } else {
                     auto& e = m_otherProps.props[key];
                     e->propMask |= rule->getPropertiesMask();
-                    e->effect = effect;
+                    e->value = TYPED;
                 }
 
                 break;

@@ -805,8 +805,10 @@ void CWLDataDeviceProtocol::dropDrag() {
         m_dnd.currentOffer->m_dropped = true;
         m_dnd.currentOffer->m_inAsk   = m_dnd.currentOffer->m_action == WL_DATA_DEVICE_MANAGER_DND_ACTION_ASK;
     }
-    m_dnd.currentSource->sendDndDropPerformed();
+    // The protocol doesn't specify the order, but Weston, KWin and wlroots all send drop first.
+    // Chromium relies on this: dnd_drop_performed clears its drop target, losing same-client drops if sent first.
     m_dnd.focusedDevice->sendDrop();
+    m_dnd.currentSource->sendDndDropPerformed();
 
     m_dnd.focusedDevice->sendLeave();
     // end the input drag, the offer can still be used after drop

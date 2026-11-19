@@ -4,9 +4,17 @@
 
 #include "defines.h"
 
+#if USE_EXTERNAL
+#extension GL_OES_EGL_image_external_essl3 : require
+#endif
+
 precision         highp float;
 in vec2           v_texcoord;
+#if USE_EXTERNAL
+uniform samplerExternalOES tex;
+#else
 uniform sampler2D tex;
+#endif
 #if USE_BLUR
 uniform vec2      uvSize;
 uniform vec2      uvOffset;

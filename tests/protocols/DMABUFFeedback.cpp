@@ -142,6 +142,24 @@ TEST_F(CDMABUFFormatTableTest, FilteringWithoutMonitorsRetainsRendererFormats) {
                   });
 }
 
+TEST_F(CDMABUFFormatTableTest, YUVIsOnlyAdvertisedForRendering) {
+    const SDMABUFTranche renderer{
+        .device  = 1,
+        .formats = {{DRM_FORMAT_NV12, {I915_FORMAT_MOD_X_TILED}}},
+    };
+    std::vector<std::pair<PHLMONITORREF, SDMABUFTranche>> monitors;
+    monitors.emplace_back(PHLMONITORREF{},
+                          SDMABUFTranche{
+                              .device  = 1,
+                              .flags   = ZWP_LINUX_DMABUF_FEEDBACK_V1_TRANCHE_FLAGS_SCANOUT,
+                              .formats = {{DRM_FORMAT_NV12, {I915_FORMAT_MOD_X_TILED}}, {DRM_FORMAT_XRGB8888, {I915_FORMAT_MOD_X_TILED}}},
+                          });
+
+    const CDMABUFFormatTable table{renderer, monitors};
+    expectFormats(table, table.m_rendererTranche, {{DRM_FORMAT_NV12, I915_FORMAT_MOD_X_TILED}});
+    expectFormats(table, table.m_monitorTranches.front().second, {{DRM_FORMAT_XRGB8888, I915_FORMAT_MOD_X_TILED}});
+}
+
 class CDMABUFFeedbackOutput : public Aquamarine::IOutput {
   public:
     bool commit() override {

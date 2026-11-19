@@ -71,7 +71,7 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
     for (auto& [monitor, tranche] : m_monitorTranches) {
         tranche.indices.clear();
         for (auto const& fmt : tranche.formats) {
-            // Scanout feedback must not re-advertise unsupported YUV formats.
+            // YUV is never scanned out, see CMonitor::isDSBlocked
             if (NFormatUtils::isFormatYUV(fmt.drmFormat))
                 continue;
 

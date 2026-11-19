@@ -2,6 +2,7 @@
 #include "../desktop/view/window/WindowEffectsController.hpp"
 #include "../desktop/view/window/WindowPresentation.hpp"
 #include "../helpers/MiscFunctions.hpp"
+#include "../helpers/Format.hpp"
 #include "../macros.hpp"
 #include "SharedDefs.hpp"
 #include "../helpers/TransferFunction.hpp"
@@ -1988,9 +1989,9 @@ uint16_t CMonitor::isDSBlocked(bool full) {
             return reasons;
     }
 
-    // we can't scanout shm buffers.
+    // we can't scanout shm buffers, nor yuv, as we don't set the plane's color encoding.
     const auto params = PSURFACE->m_current.buffer->dmabuf();
-    if (!params.success || !PSURFACE->m_current.texture->isDMA() /* dmabuf */) {
+    if (!params.success || !PSURFACE->m_current.texture->isDMA() /* dmabuf */ || NFormatUtils::isFormatYUV(params.format)) {
         reasons |= DS_BLOCK_DMA;
         if (!full)
             return reasons;

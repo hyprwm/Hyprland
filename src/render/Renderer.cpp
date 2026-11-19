@@ -2647,7 +2647,8 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
         // HDR PQ surface & DS is active - surface settings
 
         bool       hdrIsHandled = false;
-        const auto SURF         = FULLSCREEN_WINDOW ? FULLSCREEN_WINDOW->wlSurface()->resource()->findWithCM() : nullptr;
+        const auto ROOT_SURF    = FULLSCREEN_WINDOW->wlSurface()->resource();
+        const auto SURF         = ROOT_SURF ? ROOT_SURF->findWithCM() : nullptr;
         const bool SURF_HAS_CM  = SURF && SURF->m_colorManagement.valid() && SURF->m_colorManagement->hasImageDescription();
         // we can't DS scRGB
         const bool SURF_HDR_PASSTHROUGH = SURF_HAS_CM && SURF->m_colorManagement->isHDR() && !SURF->m_colorManagement->isWindowsScRGB();

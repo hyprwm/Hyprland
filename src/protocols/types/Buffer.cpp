@@ -27,6 +27,10 @@ bool IHLBuffer::locked() {
     return m_locks > 0;
 }
 
+SP<Render::ITexture> IHLBuffer::textureFor(const NColorManagement::SColorRepresentation& representation) {
+    return m_texture;
+}
+
 void IHLBuffer::onBackendRelease(const std::function<void()>& fn) {
     if (m_hlEvents.backendRelease) {
         if (m_backendReleaseQueuedFn)

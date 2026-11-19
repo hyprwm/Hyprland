@@ -10,6 +10,10 @@
 class CSyncReleaser;
 class CHLBufferReference;
 
+namespace NColorManagement {
+    struct SColorRepresentation;
+}
+
 class IHLBuffer : public Aquamarine::IBuffer {
   public:
     virtual ~IHLBuffer();
@@ -22,6 +26,7 @@ class IHLBuffer : public Aquamarine::IBuffer {
     virtual void                                lock();
     virtual void                                unlock();
     virtual bool                                locked();
+    virtual SP<Render::ITexture>                textureFor(const NColorManagement::SColorRepresentation& representation); // what to sample with, given a color representation
 
     void                                        onBackendRelease(const std::function<void()>& fn);
     void                                        addReleasePoint(CDRMSyncPointState& point);

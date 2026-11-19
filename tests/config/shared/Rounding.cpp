@@ -32,32 +32,46 @@ TEST(ConfigRounding, rawParsingRejectsMalformedOrNegativeComponents) {
     }
 }
 
-TEST(ConfigRounding, setPropClampsOnlyNegativeComponents) {
-    const auto parsed = Rounding::parseProp("-1 200 -3 400", CCornersData(5));
+TEST(ConfigRounding, setPropRejectsOutOfRangeComponents) {
+    for (const auto raw : {"-1 20 -3 40", "-5", "101", "1 2 3 101"}) {
+        SCOPED_TRACE(raw);
+        EXPECT_FALSE(Rounding::parseProp(raw, CCornersData(5)).has_value());
+    }
+
+    const auto parsed = Rounding::parseProp("0 20 30 100", CCornersData(5));
     ASSERT_TRUE(parsed.has_value());
-    EXPECT_EQ(parsed->toString(), "0 200 0 400");
+    EXPECT_EQ(parsed->toString(), "0 20 30 100");
 }
 
-TEST(ConfigRounding, relativeSetPropBroadcastsRawSignedDelta) {
-    const auto increased = Rounding::parseProp("relative +5", CCornersData(1, 2, 30, 400));
+TEST(ConfigRounding, relativeSetPropClampsSignedDeltaToRange) {
+    const auto increased = Rounding::parseProp("relative +5", CCornersData(1, 2, 30, 98));
     ASSERT_TRUE(increased.has_value());
-    EXPECT_EQ(increased->toString(), "6 7 35 405");
+    EXPECT_EQ(increased->toString(), "6 7 35 100");
 
     const auto decreased = Rounding::parseProp("relative -8", *increased);
     ASSERT_TRUE(decreased.has_value());
-    EXPECT_EQ(decreased->toString(), "0 0 27 397");
+    EXPECT_EQ(decreased->toString(), "0 0 27 92");
 
-    const auto minimum = Rounding::parseProp("relative -9223372036854775808", CCornersData(std::numeric_limits<int64_t>::max()));
+    const auto minimum = Rounding::parseProp("relative -9223372036854775808", CCornersData(100));
     ASSERT_TRUE(minimum.has_value());
     EXPECT_EQ(minimum->toString(), "0");
+
+    const auto maximum = Rounding::parseProp("relative 9223372036854775807", CCornersData(0));
+    ASSERT_TRUE(maximum.has_value());
+    EXPECT_EQ(maximum->toString(), "100");
+
+    // window rules can carry radii above the set_prop range
+    const auto unbounded = Rounding::parseProp("relative 1", CCornersData(std::numeric_limits<int64_t>::max()));
+    ASSERT_TRUE(unbounded.has_value());
+    EXPECT_EQ(unbounded->toString(), "100");
 }
 
 TEST(ConfigRounding, setPropFailureLeavesAllComponentsUntouched) {
-    const CCornersData current(1, 2, 3, std::numeric_limits<int64_t>::max());
-    for (const auto raw : {"relative 1", "relative", "relative 1 2", "relative x", "relative 9223372036854775808", "1 2 3 invalid", "1 2 3 9223372036854775808"}) {
+    const CCornersData current(1, 2, 3, 4);
+    for (const auto raw : {"relative", "relative 1 2", "relative x", "relative 9223372036854775808", "1 2 3 invalid", "1 2 3 9223372036854775808"}) {
         SCOPED_TRACE(raw);
         EXPECT_FALSE(Rounding::parseProp(raw, current).has_value());
-        EXPECT_EQ(current.toString(), "1 2 3 9223372036854775807");
+        EXPECT_EQ(current.toString(), "1 2 3 4");
     }
 }
 

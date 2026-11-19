@@ -37,6 +37,7 @@ namespace Desktop::Rule {
                                                                                Types::eOverridePriority              prio = Types::PRIORITY_WINDOW_RULE);
         bool                                                        readStaticRules(bool preRead = false);
         void                                                        recheckStaticRules();
+        void                                                        removeCustomProp(CWindowRuleEffectContainer::storageType effect);
 
         // static props
         struct {

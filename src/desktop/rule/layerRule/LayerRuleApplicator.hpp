@@ -22,6 +22,7 @@ namespace Desktop::Rule {
 
         void propertiesChanged(std::underlying_type_t<eRuleProperty> props);
         void resetProps(std::underlying_type_t<eRuleProperty> props, Types::eOverridePriority prio = Types::PRIORITY_WINDOW_RULE);
+        void removeCustomProp(CLayerRuleEffectContainer::storageType effect);
 
         struct SCustomPropContainer {
             CLayerRuleEffectContainer::storageType idx      = LAYER_RULE_EFFECT_NONE;

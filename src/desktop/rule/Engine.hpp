@@ -14,6 +14,8 @@ namespace Desktop::Rule {
         void                          updateAllRules();
         void                          cleanExecRules();
         void                          clearAllRules();
+        void                          removePluginWindowEffect(uint16_t effect);
+        void                          removePluginLayerEffect(uint16_t effect);
         const std::vector<SP<IRule>>& rules();
 
       private:

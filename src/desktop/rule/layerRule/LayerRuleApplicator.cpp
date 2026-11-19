@@ -29,6 +29,10 @@ CLayerRuleApplicator::CLayerRuleApplicator(PHLLS ls) : m_ls(ls) {
     ;
 }
 
+void CLayerRuleApplicator::removeCustomProp(CLayerRuleEffectContainer::storageType effect) {
+    std::erase_if(m_otherProps.props, [effect](const auto& el) { return effect == el.first; });
+}
+
 void CLayerRuleApplicator::resetProps(std::underlying_type_t<eRuleProperty> props, Types::eOverridePriority prio) {
     std::apply([&](auto&... prop) { (resetRuleProp(prop, props, prio), ...); },
                std::forward_as_tuple(m_noanim, m_blur, m_blurPopups, m_dimAround, m_xray, m_noScreenShare, m_order, m_aboveLock, m_ignoreAlpha, m_animationStyle));

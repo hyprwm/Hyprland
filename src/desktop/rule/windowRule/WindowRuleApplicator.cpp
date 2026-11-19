@@ -36,6 +36,10 @@ CWindowRuleApplicator::CWindowRuleApplicator(PHLWINDOW w) : m_window(w) {
     ;
 }
 
+void CWindowRuleApplicator::removeCustomProp(CWindowRuleEffectContainer::storageType effect) {
+    std::erase_if(m_otherProps.props, [effect](const auto& el) { return effect == el.first; });
+}
+
 std::unordered_set<CWindowRuleEffectContainer::storageType> CWindowRuleApplicator::resetProps(std::underlying_type_t<eRuleProperty> props, Types::eOverridePriority prio) {
     std::unordered_set<CWindowRuleEffectContainer::storageType> effectsNuked;
 

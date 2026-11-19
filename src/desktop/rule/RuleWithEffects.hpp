@@ -56,6 +56,11 @@ namespace Desktop::Rule {
             return m_effectSet;
         }
 
+        void removeEffect(storageType effect) {
+            std::erase_if(m_effects, [effect](const auto& e) { return effect == e.key; });
+            std::erase_if(m_effectSet, [effect](const auto& e) { return effect == e; });
+        }
+
       protected:
         CRuleWithEffects(const std::string& name = "") : IRule(name) {}
 

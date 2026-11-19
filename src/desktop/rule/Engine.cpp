@@ -1,6 +1,9 @@
 #include "Engine.hpp"
 #include "Rule.hpp"
+#include "layerRule/LayerRule.hpp"
+#include "windowRule/WindowRule.hpp"
 #include "../view/LayerSurface.hpp"
+#include "../view/window/Window.hpp"
 #include "../../Compositor.hpp"
 
 using namespace Desktop;
@@ -49,6 +52,29 @@ void CRuleEngine::updateAllRules() {
 
 void CRuleEngine::clearAllRules() {
     std::erase_if(m_rules, [](const auto& e) { return !e->isExecRule() || e->execExpired(); });
+}
+
+void CRuleEngine::removePluginWindowEffect(uint16_t effect) {
+    for (const auto& r : m_rules) {
+        if (r->type() == RULE_TYPE_WINDOW)
+            reinterpretPointerCast<CWindowRule>(r)->removeEffect(effect);
+    }
+
+    for (const auto& w : Desktop::windowState()->windows()) {
+        if (w && w->m_ruleApplicator)
+            w->m_ruleApplicator->removeCustomProp(effect);
+    }
+}
+
+void CRuleEngine::removePluginLayerEffect(uint16_t effect) {
+    for (const auto& r : m_rules)
+        if (r->type() == RULE_TYPE_LAYER)
+            reinterpretPointerCast<CLayerRule>(r)->removeEffect(effect);
+
+    for (const auto& ls : Desktop::layerState()->layers()) {
+        if (ls && ls->m_ruleApplicator)
+            ls->m_ruleApplicator->removeCustomProp(effect);
+    }
 }
 
 const std::vector<SP<IRule>>& CRuleEngine::rules() {

@@ -962,7 +962,6 @@ const std::array<std::string, SH_FRAG_LAST> FRAG_SHADERS = {
     "quad.frag",
     "passthru.frag",
     "rgbamatte.frag",
-    "ext.frag",
     "blur1.frag",
     "blur2.frag",
     "blurprepare.frag",
@@ -1443,9 +1442,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(CRenderContext& ctx, SP<ITexture
     switch (texType) {
         case TEXTURE_RGBA: shaderFeatures |= SH_FEAT_RGBA; break;
         case TEXTURE_RGBX: shaderFeatures &= ~SH_FEAT_RGBA; break;
-
-        // TODO set correct features
-        case TEXTURE_EXTERNAL: shader = getShaderVariant(SH_FRAG_EXT, SH_FEAT_ROUNDING | SH_FEAT_DISCARD | SH_FEAT_TINT | globalFeatures(ctx)); break; // might be unused
+        case TEXTURE_EXTERNAL: shaderFeatures |= SH_FEAT_EXTERNAL | (tex->m_opaque ? 0 : SH_FEAT_RGBA); break;
         default: RASSERT(false, "tex->m_iTarget unsupported!");
     }
 

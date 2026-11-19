@@ -4,10 +4,8 @@
 #include "../../render/Renderer.hpp"
 #include "../../helpers/Format.hpp"
 #include "helpers/Drm.hpp"
-#include <hyprgraphics/egl/Egl.hpp>
 
 using namespace Hyprutils::OS;
-using namespace Hyprgraphics::Egl;
 
 CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, const Aquamarine::SDMABUFAttrs& attrs_, std::array<CFileDescriptor, 4> fds) : m_attrs(attrs_), m_fds(std::move(fds)) {
     for (size_t i = 0; i < m_fds.size(); ++i)
@@ -23,7 +21,7 @@ CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, const Aquamarine::SDMABUF
     if UNLIKELY (!m_resource->good())
         return;
 
-    m_opaque  = isDrmFormatOpaque(m_attrs.format);
+    m_opaque  = NFormatUtils::isFormatOpaque(m_attrs.format);
     m_texture = g_pHyprRenderer->createTexture(m_attrs, m_opaque); // texture takes ownership of the eglImage
 
     if UNLIKELY (!m_texture) {

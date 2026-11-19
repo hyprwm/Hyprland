@@ -2380,12 +2380,12 @@ bool CMonitor::inHDR() {
 std::optional<NColorManagement::PImageDescription> CMonitor::getFSImageDescription() {
 
     const auto FS_WINDOW = Fullscreen::controller()->getFullscreenWindow(m_self.lock());
+    const auto ROOT_SURF = FS_WINDOW ? FS_WINDOW->wlSurface()->resource() : nullptr;
 
-    if (!FS_WINDOW)
+    if (!ROOT_SURF)
         return {};
 
-    const auto ROOT_SURF = FS_WINDOW->wlSurface()->resource();
-    const auto SURF      = ROOT_SURF->findWithCM();
+    const auto SURF = ROOT_SURF->findWithCM();
     return SURF ? NColorManagement::CImageDescription::from(SURF->m_colorManagement->imageDescription()) : getDefaultImageDescription();
 }
 

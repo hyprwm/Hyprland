@@ -286,24 +286,25 @@ TEST_CASE(hyprctlRoundingOverrides) {
     // Raw values survive power adjustment and a window smaller than the requested radii.
     OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:kitty_rounding' })"));
     setWindowProp("class:kitty_rounding", "max_size", "40 40");
-    setWindowProp("class:kitty_rounding", "rounding", "100 200 300 400");
-    EXPECT(rounding(), "100 200 300 400");
-    EXPECT(getFromSocket("j/getprop class:kitty_rounding rounding"), R"({"rounding": [100,200,300,400]})");
+    setWindowProp("class:kitty_rounding", "rounding", "25 50 75 100");
+    EXPECT(rounding(), "25 50 75 100");
+    EXPECT(getFromSocket("j/getprop class:kitty_rounding rounding"), R"({"rounding": [25,50,75,100]})");
 
     OK(getFromSocket("r/eval hl.window_rule({ name = 'hyprtester-rounding', rounding = { top_right = 7 } })"));
-    EXPECT(rounding(), "100 200 300 400");
+    EXPECT(rounding(), "25 50 75 100");
     setWindowProp("class:kitty_rounding", "rounding", "unset");
     EXPECT(rounding(), "0 7 0 0");
     setWindowProp("class:kitty_rounding", "rounding", "relative -3");
     EXPECT(rounding(), "0 4 0 0");
-    setWindowProp("class:kitty_rounding", "rounding", "-1 202 -3 404");
-    EXPECT(rounding(), "0 202 0 404");
 
-    NOK(getFromSocket("/dispatch hl.dsp.window.set_prop({ window = 'class:kitty_rounding', prop = 'rounding', value = '1 2 3 bad' })"));
-    EXPECT(rounding(), "0 202 0 404");
-    setWindowProp("class:kitty_rounding", "rounding", "1 2 3 9223372036854775807");
-    NOK(getFromSocket("/dispatch hl.dsp.window.set_prop({ window = 'class:kitty_rounding', prop = 'rounding', value = 'relative 1' })"));
-    EXPECT(rounding(), "1 2 3 9223372036854775807");
+    for (const auto invalid : {"-1 20 -3 40", "-5", "101", "1 2 3 101", "1 2 3 bad"}) {
+        NOK(getFromSocket(std::format("/dispatch hl.dsp.window.set_prop({{ window = 'class:kitty_rounding', prop = 'rounding', value = '{}' }})", invalid)));
+        EXPECT(rounding(), "0 4 0 0");
+    }
+
+    setWindowProp("class:kitty_rounding", "rounding", "1 2 3 99");
+    setWindowProp("class:kitty_rounding", "rounding", "relative 5");
+    EXPECT(rounding(), "6 7 8 100");
 
     setWindowProp("class:kitty_rounding", "rounding", "unset");
     EXPECT(rounding(), "0 7 0 0");

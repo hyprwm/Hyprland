@@ -1,5 +1,6 @@
 #include "ConfigValues.hpp"
 #include "config/shared/Types.hpp"
+#include "../shared/rounding/Rounding.hpp"
 
 using namespace Config;
 using namespace Config::Values;
@@ -207,7 +208,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
          */
 
         MS<Corners>("decoration:rounding", "rounded corners' radii (in layout px), as a number or top_left/top_right/bottom_right/bottom_left fields", 0,
-                    {.min = 0, .max = 100, .refresh = Supplementary::REFRESH_WINDOW_STATES | Supplementary::REFRESH_BLUR_FB}),
+                    {.min = 0, .max = Rounding::MAX_RADIUS, .refresh = Supplementary::REFRESH_WINDOW_STATES | Supplementary::REFRESH_BLUR_FB}),
         MS<Float>("decoration:rounding_power", "rounding power of corners (2 is a circle)", 2,
                   {.min = 1, .max = 10, .refresh = Supplementary::REFRESH_WINDOW_STATES | Supplementary::REFRESH_BLUR_FB}),
         MS<Float>("decoration:active_opacity", "opacity of active windows.", 1, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_WINDOW_STATES}),

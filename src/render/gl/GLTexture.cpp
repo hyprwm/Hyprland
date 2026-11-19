@@ -72,7 +72,7 @@ CGLTexture::CGLTexture(const Aquamarine::SDMABUFAttrs& attrs, void* image, bool 
         return;
     }
 
-    m_opaque = isDrmFormatOpaque(attrs.format);
+    m_opaque = NFormatUtils::isFormatOpaque(attrs.format);
 
     // #TODO external only formats should be external as well.
     // also needs a separate color shader.
@@ -81,7 +81,7 @@ CGLTexture::CGLTexture(const Aquamarine::SDMABUFAttrs& attrs, void* image, bool 
         m_type   = TEXTURE_EXTERNAL;
     } else {*/
     m_target = GL_TEXTURE_2D;
-    m_type   = isDrmFormatOpaque(attrs.format) ? TEXTURE_RGBX : TEXTURE_RGBA;
+    m_type   = m_opaque ? TEXTURE_RGBX : TEXTURE_RGBA;
     //}
 
     allocate(attrs.size, attrs.format);

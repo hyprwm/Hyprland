@@ -111,6 +111,27 @@ bool NFormatUtils::isFormatYUV(uint32_t drmFormat) {
     }
 }
 
+static bool isFormatYUVWithAlpha(uint32_t drmFormat) {
+    switch (drmFormat & ~DRM_FORMAT_BIG_ENDIAN) {
+        case DRM_FORMAT_AYUV:
+        case DRM_FORMAT_AVUY8888:
+        case DRM_FORMAT_Y410:
+        case DRM_FORMAT_Y412:
+        case DRM_FORMAT_Y416:
+        case DRM_FORMAT_Y0L0:
+        case DRM_FORMAT_Y0L2: return true;
+        default: return false;
+    }
+}
+
+bool NFormatUtils::isFormatOpaque(DRMFormat drmFormat) {
+    // hyprgraphics doesn't know YUV formats, and treats unknown formats as having alpha
+    if (isFormatYUV(drmFormat))
+        return !isFormatYUVWithAlpha(drmFormat);
+
+    return isDrmFormatOpaque(drmFormat);
+}
+
 bool NFormatUtils::isShmBufferLayoutValid(DRMFormat drmFormat, const Vector2D& size, int32_t stride, int32_t offset, size_t poolSize) {
     if (offset < 0 || size.x <= 0 || size.y <= 0 || stride <= 0)
         return false;

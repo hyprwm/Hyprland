@@ -33,6 +33,17 @@ TEST(Helpers, formatIsFormatYUV) {
     EXPECT_FALSE(isFormatYUV(DRM_FORMAT_ARGB8888));
 }
 
+TEST(Helpers, formatIsFormatOpaqueYUV) {
+    EXPECT_TRUE(isFormatOpaque(DRM_FORMAT_NV12));
+    EXPECT_TRUE(isFormatOpaque(DRM_FORMAT_P010));
+    EXPECT_TRUE(isFormatOpaque(DRM_FORMAT_YUYV));
+    EXPECT_TRUE(isFormatOpaque(DRM_FORMAT_XYUV8888));
+    EXPECT_FALSE(isFormatOpaque(DRM_FORMAT_AYUV));
+    EXPECT_FALSE(isFormatOpaque(DRM_FORMAT_Y410));
+    EXPECT_TRUE(isFormatOpaque(DRM_FORMAT_XRGB8888));
+    EXPECT_FALSE(isFormatOpaque(DRM_FORMAT_ARGB8888));
+}
+
 TEST(Helpers, formatGetPixelFormatFromDRM) {
     const auto* xrgb = getPixelFormatFromDRM(DRM_FORMAT_XRGB8888);
     ASSERT_NE(xrgb, nullptr);

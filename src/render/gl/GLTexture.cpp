@@ -74,15 +74,14 @@ CGLTexture::CGLTexture(const Aquamarine::SDMABUFAttrs& attrs, void* image, bool 
 
     m_opaque = NFormatUtils::isFormatOpaque(attrs.format);
 
-    // #TODO external only formats should be external as well.
-    // also needs a separate color shader.
-    /*if (NFormatUtils::isFormatYUV(attrs.format)) {
+    // YUV has to be sampled externally for the driver to convert it to RGB
+    if (NFormatUtils::isFormatYUV(attrs.format)) {
         m_target = GL_TEXTURE_EXTERNAL_OES;
         m_type   = TEXTURE_EXTERNAL;
-    } else {*/
-    m_target = GL_TEXTURE_2D;
-    m_type   = m_opaque ? TEXTURE_RGBX : TEXTURE_RGBA;
-    //}
+    } else {
+        m_target = GL_TEXTURE_2D;
+        m_type   = m_opaque ? TEXTURE_RGBX : TEXTURE_RGBA;
+    }
 
     allocate(attrs.size, attrs.format);
     m_eglImage = image;

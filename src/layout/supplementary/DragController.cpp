@@ -190,46 +190,59 @@ void CDragStateController::dragBegin(SP<ITarget> target, eMouseBindMode mode, st
         return;
 
     // get the grab corner
-    static auto RESIZECORNER = CConfigValue<Config::INTEGER>("general:resize_corner");
+    static auto RESIZECORNER      = CConfigValue<Config::INTEGER>("general:resize_corner");
+    static auto RESIZEEDGE_ENABLE = CConfigValue<Config::BOOL>("general:resize_edge");
+    static auto RESIZEEDGE_DEPTH  = CConfigValue<Config::INTEGER>("general:resize_edge_depth");
+    static auto RESIZEEDGE_WIDTH  = CConfigValue<Config::INTEGER>("general:resize_edge_width");
+
+    const int   EDGE_DEPTH            = std::clamp(static_cast<int>(*RESIZEEDGE_DEPTH), 0, 50);
+    const int   EDGE_WIDTH            = std::clamp(static_cast<int>(*RESIZEEDGE_WIDTH), 0, 100 - 2 * EDGE_DEPTH);
+    const float EDGE_DEPTH_RATIO      = EDGE_DEPTH / 100.F;
+    const float SELECTION_WIDTH_RATIO = EDGE_WIDTH / 200.F;
+    const float EDGE_SELECTION_START  = 0.5F - SELECTION_WIDTH_RATIO;
+    const float EDGE_SELECTION_END    = 0.5F + SELECTION_WIDTH_RATIO;
+
     if (m_forcedGrabbedCorner && *m_forcedGrabbedCorner != CORNER_NONE) {
         m_grabbedCorner = *m_forcedGrabbedCorner;
-        Pointer::Cursor::overrideController->setOverride(std::string{cursorForResizeEdge(m_grabbedCorner)}, Pointer::Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
-    } else if (*RESIZECORNER != 0 && *RESIZECORNER <= 4 && DRAGGINGTARGET->floating()) {
+    } else if (*RESIZECORNER != 0 && *RESIZECORNER <= 8 && (*RESIZECORNER <= 4 || *RESIZEEDGE_ENABLE) && DRAGGINGTARGET->floating()) {
         switch (*RESIZECORNER) {
-            case 1:
-                m_grabbedCorner = CORNER_TOPLEFT;
-                Pointer::Cursor::overrideController->setOverride("nw-resize", Pointer::Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
-                break;
-            case 2:
-                m_grabbedCorner = CORNER_TOPRIGHT;
-                Pointer::Cursor::overrideController->setOverride("ne-resize", Pointer::Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
-                break;
-            case 3:
-                m_grabbedCorner = CORNER_BOTTOMRIGHT;
-                Pointer::Cursor::overrideController->setOverride("se-resize", Pointer::Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
-                break;
-            case 4:
-                m_grabbedCorner = CORNER_BOTTOMLEFT;
-                Pointer::Cursor::overrideController->setOverride("sw-resize", Pointer::Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
-                break;
+            case 1: m_grabbedCorner = CORNER_TOPLEFT; break;
+            case 2: m_grabbedCorner = CORNER_TOPRIGHT; break;
+            case 3: m_grabbedCorner = CORNER_BOTTOMRIGHT; break;
+            case 4: m_grabbedCorner = CORNER_BOTTOMLEFT; break;
+            case 5: m_grabbedCorner = CORNER_TOP; break;
+            case 6: m_grabbedCorner = CORNER_RIGHT; break;
+            case 7: m_grabbedCorner = CORNER_BOTTOM; break;
+            case 8: m_grabbedCorner = CORNER_LEFT; break;
         }
+    } else if (*RESIZEEDGE_ENABLE && m_beginDragXY.x < m_beginDragPositionXY.x + m_beginDragSizeXY.x * EDGE_DEPTH_RATIO &&
+               m_beginDragXY.y > m_beginDragPositionXY.y + m_beginDragSizeXY.y * EDGE_SELECTION_START &&
+               m_beginDragXY.y < m_beginDragPositionXY.y + m_beginDragSizeXY.y * EDGE_SELECTION_END) {
+        m_grabbedCorner = CORNER_LEFT;
+    } else if (*RESIZEEDGE_ENABLE && m_beginDragXY.x > m_beginDragPositionXY.x + m_beginDragSizeXY.x * (1.F - EDGE_DEPTH_RATIO) &&
+               m_beginDragXY.y > m_beginDragPositionXY.y + m_beginDragSizeXY.y * EDGE_SELECTION_START &&
+               m_beginDragXY.y < m_beginDragPositionXY.y + m_beginDragSizeXY.y * EDGE_SELECTION_END) {
+        m_grabbedCorner = CORNER_RIGHT;
+    } else if (*RESIZEEDGE_ENABLE && m_beginDragXY.y < m_beginDragPositionXY.y + m_beginDragSizeXY.y * EDGE_DEPTH_RATIO &&
+               m_beginDragXY.x > m_beginDragPositionXY.x + m_beginDragSizeXY.x * EDGE_SELECTION_START &&
+               m_beginDragXY.x < m_beginDragPositionXY.x + m_beginDragSizeXY.x * EDGE_SELECTION_END) {
+        m_grabbedCorner = CORNER_TOP;
+    } else if (*RESIZEEDGE_ENABLE && m_beginDragXY.y > m_beginDragPositionXY.y + m_beginDragSizeXY.y * (1.F - EDGE_DEPTH_RATIO) &&
+               m_beginDragXY.x > m_beginDragPositionXY.x + m_beginDragSizeXY.x * EDGE_SELECTION_START &&
+               m_beginDragXY.x < m_beginDragPositionXY.x + m_beginDragSizeXY.x * EDGE_SELECTION_END) {
+        m_grabbedCorner = CORNER_BOTTOM;
     } else if (m_beginDragXY.x < m_beginDragPositionXY.x + m_beginDragSizeXY.x / 2.F) {
-        if (m_beginDragXY.y < m_beginDragPositionXY.y + m_beginDragSizeXY.y / 2.F) {
+        if (m_beginDragXY.y < m_beginDragPositionXY.y + m_beginDragSizeXY.y / 2.F)
             m_grabbedCorner = CORNER_TOPLEFT;
-            Pointer::Cursor::overrideController->setOverride("nw-resize", Pointer::Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
-        } else {
+        else
             m_grabbedCorner = CORNER_BOTTOMLEFT;
-            Pointer::Cursor::overrideController->setOverride("sw-resize", Pointer::Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
-        }
     } else {
-        if (m_beginDragXY.y < m_beginDragPositionXY.y + m_beginDragSizeXY.y / 2.F) {
+        if (m_beginDragXY.y < m_beginDragPositionXY.y + m_beginDragSizeXY.y / 2.F)
             m_grabbedCorner = CORNER_TOPRIGHT;
-            Pointer::Cursor::overrideController->setOverride("ne-resize", Pointer::Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
-        } else {
+        else
             m_grabbedCorner = CORNER_BOTTOMRIGHT;
-            Pointer::Cursor::overrideController->setOverride("se-resize", Pointer::Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
-        }
     }
+    Pointer::Cursor::overrideController->setOverride(std::string{cursorForResizeEdge(m_grabbedCorner)}, Pointer::Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
 
     if (!isResizeMode(m_dragMode))
         Pointer::Cursor::overrideController->setOverride("grabbing", Pointer::Cursor::CURSOR_OVERRIDE_SPECIAL_ACTION);
@@ -465,10 +478,16 @@ void CDragStateController::mouseMove(const Vector2D& mousePos) {
                 else
                     MAXSIZE = Vector2D(MAXSIZE.y / RATIO, MAXSIZE.y);
 
-                if (newSize.x * RATIO > newSize.y)
-                    newSize = Vector2D(newSize.x, newSize.x * RATIO);
-                else
+                if (!edgeLeft(m_grabbedCorner) && !edgeRight(m_grabbedCorner)) {
                     newSize = Vector2D(newSize.y / RATIO, newSize.y);
+                } else if (!edgeTop(m_grabbedCorner) && !edgeBottom(m_grabbedCorner)) {
+                    newSize = Vector2D(newSize.x, newSize.x * RATIO);
+                } else {
+                    if (newSize.x * RATIO > newSize.y)
+                        newSize = Vector2D(newSize.x, newSize.x * RATIO);
+                    else
+                        newSize = Vector2D(newSize.y / RATIO, newSize.y);
+                }
             }
 
             newSize = newSize.clamp(MINSIZE, MAXSIZE);

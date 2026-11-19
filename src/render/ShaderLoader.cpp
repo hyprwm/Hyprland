@@ -8,56 +8,39 @@
 #include "shaders/Shaders.hpp"
 #include "../helpers/fs/FsUtils.hpp"
 #include "Renderer.hpp"
-#include <glslang/Public/resource_limits_c.h>
+#include <optional>
+#include <sstream>
 #include <string>
 #include <filesystem>
 
 using namespace Render;
 
+// guards against include cycles, which can't be detected without evaluating #ifndef guards
+static constexpr size_t MAX_INCLUDE_DEPTH = 16;
+
+// returns the file of an #include "file" directive
+static std::optional<std::string> includedFile(std::string_view line) {
+    line = Hyprutils::String::trim(line);
+    if (!line.starts_with("#include"))
+        return std::nullopt;
+
+    const auto BEGIN = line.find('"');
+    if (BEGIN == std::string_view::npos)
+        return std::nullopt;
+
+    const auto END = line.find('"', BEGIN + 1);
+    if (END == std::string_view::npos)
+        return std::nullopt;
+
+    return std::string{line.substr(BEGIN + 1, END - BEGIN - 1)};
+}
+
 CShaderLoader::CShaderLoader(const std::vector<std::string> includes, const std::array<std::string, SH_FRAG_LAST>& frags, const std::string shaderPath) : m_shaderPath(shaderPath) {
-    m_callbacks = glsl_include_callbacks_t{
-        .include_local =
-            [](void* ctx, const char* header_name, const char* includer_name, size_t include_depth) {
-                auto shaderLoader = sc<CShaderLoader*>(ctx);
-                auto res          = new glsl_include_result_t;
-                if (shaderLoader->m_overrideDefines.length() && std::string{header_name} == "defines.h") {
-                    res->header_name   = header_name;
-                    res->header_data   = shaderLoader->m_overrideDefines.c_str();
-                    res->header_length = shaderLoader->m_overrideDefines.length();
-                } else if (shaderLoader->includes().contains(header_name)) {
-                    res->header_name   = header_name;
-                    res->header_data   = shaderLoader->includes().at(header_name).c_str();
-                    res->header_length = shaderLoader->includes().at(header_name).length();
-                } else {
-                    res->header_name   = nullptr;
-                    res->header_data   = nullptr;
-                    res->header_length = 0;
-                }
-
-                shaderLoader->m_includeResults.push_back(res);
-                return res;
-            },
-        .free_include_result =
-            [](void* ctx, glsl_include_result_t* result) {
-                auto shaderLoader = sc<CShaderLoader*>(ctx);
-                std::erase(shaderLoader->m_includeResults, result);
-                delete result;
-                return 0;
-            },
-    };
-
     for (const auto& inc : includes) {
         include(inc);
     }
 
     std::ranges::transform(frags, m_fragFiles.begin(), [&](const auto& filename) { return loadShader(filename); });
-}
-
-CShaderLoader::~CShaderLoader() {
-    // glslFreeIncludeResult should leave it empty by this point
-    for (const auto& res : m_includeResults) {
-        delete res;
-    }
 }
 
 void CShaderLoader::include(const std::string& filename) {
@@ -95,50 +78,40 @@ std::string CShaderLoader::getDefines(const SShaderVariant& variant) {
     return res;
 }
 
-std::string CShaderLoader::processSource(const std::string& source, glslang_stage_t stage) {
-    const glslang_input_t input = {
-        .language                          = GLSLANG_SOURCE_GLSL,
-        .stage                             = stage,
-        .client                            = GLSLANG_CLIENT_NONE,
-        .target_language                   = GLSLANG_TARGET_NONE,
-        .code                              = source.c_str(),
-        .default_version                   = 100,
-        .default_profile                   = GLSLANG_NO_PROFILE,
-        .force_default_version_and_profile = false,
-        .forward_compatible                = false,
-        .messages                          = GLSLANG_MSG_DEFAULT_BIT,
-        .resource                          = glslang_default_resource(),
-        .callbacks                         = m_callbacks,
-        .callbacks_ctx                     = this,
-    };
-
-    glslang_shader_t* shader = glslang_shader_create(&input);
-
-    if (!glslang_shader_preprocess(shader, &input)) {
-        LOG(Log::ERR, "GLSL preprocessing failed");
-        LOG(Log::ERR, "{}", glslang_shader_get_info_log(shader));
-        LOG(Log::ERR, "{}", glslang_shader_get_info_debug_log(shader));
-        LOG(Log::ERR, "{}", input.code);
-        glslang_shader_delete(shader);
-        return source;
-    }
-
-    std::stringstream stream(glslang_shader_get_preprocessed_code(shader));
-    std::string       code = "";
+// expands includes in place, everything else (#if etc.) is left to the driver's preprocessor
+std::string CShaderLoader::processSource(const std::string& source, size_t depth) {
+    std::stringstream stream(source);
+    std::string       code;
     std::string       line;
 
     while (std::getline(stream, line)) {
-        if (!line.starts_with("#line "))
-            code += std::format("{}\n", line);
+        const auto INCLUDE = includedFile(line);
+
+        if (!INCLUDE) {
+            std::format_to(std::back_inserter(code), "{}\n", line);
+            continue;
+        }
+
+        if (*INCLUDE == "defines.h" && !m_overrideDefines.empty()) {
+            code += m_overrideDefines;
+            continue;
+        }
+
+        if (depth >= MAX_INCLUDE_DEPTH || !m_includes.contains(*INCLUDE)) {
+            // keep the directive, the driver will fail the compile on it
+            LOG(Log::ERR, "Shader include \"{}\" is missing or nested too deep", *INCLUDE);
+            std::format_to(std::back_inserter(code), "{}\n", line);
+            continue;
+        }
+
+        code += processSource(m_includes.at(*INCLUDE), depth + 1);
     }
 
-    glslang_shader_delete(shader);
     return code;
 }
 
 std::string CShaderLoader::process(const std::string& filename) {
-    auto source = loadShader(filename);
-    return processSource(source, filename.ends_with(".vert") ? GLSLANG_STAGE_VERTEX : GLSLANG_STAGE_FRAGMENT);
+    return processSource(loadShader(filename));
 }
 
 std::string CShaderLoader::process(const std::string& filename, const std::map<std::string, std::string>& defines) {

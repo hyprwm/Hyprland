@@ -23,6 +23,7 @@
 #include "../helpers/Drm.hpp"
 #include "../event/EventBus.hpp"
 #include "../state/MonitorState.hpp"
+#include <algorithm>
 #include <climits>
 #include <cstring>
 #include <gbm.h>
@@ -540,11 +541,33 @@ bool CPointerManager::setHWCursorBuffer(SP<SMonitorPointerState> state, SP<Aquam
     return true;
 }
 
+std::optional<Vector2D> CPointerManager::hwCursorBufferSize(const Vector2D& maxSize, const std::vector<Vector2D>& supportedSizes, const Vector2D& cursorSize) {
+    if (maxSize == Vector2D{} || cursorSize.x <= 0 || cursorSize.y <= 0)
+        return std::nullopt;
+
+    if (maxSize == Vector2D{-1, -1})
+        return cursorSize;
+
+    if (cursorSize.x > maxSize.x || cursorSize.y > maxSize.y)
+        return std::nullopt;
+
+    std::optional<Vector2D> best;
+    for (const auto& size : supportedSizes) {
+        if (size.x < cursorSize.x || size.y < cursorSize.y || size.x > maxSize.x || size.y > maxSize.y)
+            continue;
+
+        if (!best || size.x * size.y < best->x * best->y)
+            best = size;
+    }
+
+    return best.value_or(maxSize);
+}
+
 SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager::SMonitorPointerState> state, SP<Render::ITexture> texture) {
     if (g_pHyprRenderer->context().active())
         return nullptr;
 
-    auto        maxSize    = state->monitor->m_output->cursorPlaneSize();
+    const auto  maxSize    = state->monitor->m_output->cursorPlaneSize();
     auto const& image      = cursorImageForMonitor(state->monitor.lock());
     const auto  cursorSize = image.planeSize(state->monitor->m_scale, state->monitor->m_transform);
 
@@ -552,20 +575,15 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
     const bool  shouldUseCpuBuffer = *PCPUBUFFER == 1 || (*PCPUBUFFER != 0 && g_pHyprRenderer->isNvidia());
 
-    if (maxSize == Vector2D{} || cursorSize.x <= 0 || cursorSize.y <= 0) {
-        LOG(Log::TRACE, "hardware cursor has zero max size {}, current {}", maxSize, cursorSize);
+    const auto  bufferSizeOpt = hwCursorBufferSize(maxSize, state->monitor->m_output->cursorPlaneSizeHints().sizes, cursorSize);
+    if (!bufferSizeOpt) {
+        LOG(Log::TRACE, "hardware cursor doesn't fit the plane: max size {}, current {}", maxSize, cursorSize);
         return nullptr;
     }
 
-    if (maxSize != Vector2D{-1, -1}) {
-        if (cursorSize.x > maxSize.x || cursorSize.y > maxSize.y) {
-            LOG(Log::TRACE, "hardware cursor too big! {} > {}", cursorSize, maxSize);
-            return nullptr;
-        }
-    } else
-        maxSize = cursorSize;
+    const auto bufferSize = *bufferSizeOpt;
 
-    if (!state->monitor->m_cursorSwapchain || maxSize != state->monitor->m_cursorSwapchain->currentOptions().size ||
+    if (!state->monitor->m_cursorSwapchain || bufferSize != state->monitor->m_cursorSwapchain->currentOptions().size ||
         shouldUseCpuBuffer != (state->monitor->m_cursorSwapchain->getAllocator()->type() != Aquamarine::AQ_ALLOCATOR_TYPE_GBM)) {
 
         if (!state->monitor->m_cursorSwapchain || shouldUseCpuBuffer != (state->monitor->m_cursorSwapchain->getAllocator()->type() != Aquamarine::AQ_ALLOCATOR_TYPE_GBM)) {
@@ -586,7 +604,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         }
 
         auto options     = state->monitor->m_cursorSwapchain->currentOptions();
-        options.size     = maxSize;
+        options.size     = bufferSize;
         options.length   = 2;
         options.scanout  = true;
         options.cursor   = true;
@@ -684,7 +702,18 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
         cairo_pattern_destroy(PATTERNPRE);
 
-        memcpy(data, cairo_image_surface_get_data(CAIROSURFACE), sc<size_t>(cairo_image_surface_get_height(CAIROSURFACE)) * cairo_image_surface_get_stride(CAIROSURFACE));
+        const auto* SRC       = cairo_image_surface_get_data(CAIROSURFACE);
+        const auto  SRCSTRIDE = sc<size_t>(cairo_image_surface_get_stride(CAIROSURFACE));
+        const auto  DSTSTRIDE = sc<size_t>(DMABUF.strides[0]);
+        const auto  HEIGHT    = sc<size_t>(cairo_image_surface_get_height(CAIROSURFACE));
+
+        if (SRCSTRIDE == DSTSTRIDE)
+            memcpy(data, SRC, HEIGHT * SRCSTRIDE);
+        else {
+            for (size_t y = 0; y < HEIGHT; ++y) {
+                memcpy(data + (y * DSTSTRIDE), SRC + (y * SRCSTRIDE), std::min(SRCSTRIDE, DSTSTRIDE));
+            }
+        }
 
         cairo_destroy(CAIRO);
         cairo_surface_destroy(CAIROSURFACE);

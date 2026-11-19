@@ -7,6 +7,9 @@
 #include "../objects/LuaMonitor.hpp"
 #include "../objects/LuaWindow.hpp"
 #include "../objects/LuaWorkspace.hpp"
+#include "../objects/LuaWorkspaceRule.hpp"
+
+#include "../../shared/workspace/WorkspaceRuleManager.hpp"
 
 #include "../../../desktop/history/WindowHistoryTracker.hpp"
 #include "../../../desktop/history/WorkspaceHistoryTracker.hpp"
@@ -183,6 +186,19 @@ static int hlGetWorkspace(lua_State* L) {
     }
 
     Objects::CLuaWorkspace::push(L, PWORKSPACE);
+    return 1;
+}
+
+static int hlGetWorkspaceRules(lua_State* L) {
+    lua_newtable(L);
+    int i = 1;
+    for (const auto& rule : Config::workspaceRuleMgr()->getAllWorkspaceRules()) {
+        if (!rule)
+            continue;
+
+        Objects::CLuaWorkspaceRule::push(L, rule);
+        lua_rawseti(L, -2, i++);
+    }
     return 1;
 }
 
@@ -528,6 +544,7 @@ void Internal::registerQueryBindings(lua_State* L) {
     Internal::setFn(L, "get_urgent_window", hlGetUrgentWindow);
     Internal::setFn(L, "get_workspaces", hlGetWorkspaces);
     Internal::setFn(L, "get_workspace", hlGetWorkspace);
+    Internal::setFn(L, "get_workspace_rules", hlGetWorkspaceRules);
     Internal::setFn(L, "get_active_workspace", hlGetActiveWorkspace);
     Internal::setFn(L, "get_active_special_workspace", hlGetActiveSpecialWorkspace);
     Internal::setFn(L, "get_monitors", hlGetMonitors);

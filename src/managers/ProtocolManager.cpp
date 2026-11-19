@@ -38,6 +38,7 @@
 #include "../protocols/Viewporter.hpp"
 #include "../protocols/MesaDRM.hpp"
 #include "../protocols/LinuxDMABUF.hpp"
+#include "../protocols/ColorRepresentation.hpp"
 #include "../protocols/DRMLease.hpp"
 #include "../protocols/DRMSyncobj.hpp"
 #include "../protocols/Screencopy.hpp"
@@ -260,6 +261,9 @@ CProtocolManager::CProtocolManager() {
     if (!g_pHyprRenderer->getDRMFormats().empty()) {
         PROTO::mesaDRM  = makeUnique<CMesaDRMProtocol>(&wl_drm_interface, 2, "MesaDRM");
         PROTO::linuxDma = makeUnique<CLinuxDMABufV1Protocol>(&zwp_linux_dmabuf_v1_interface, 5, "LinuxDMABUF");
+
+        // yuv only comes in dmabufs
+        PROTO::colorRepresentation = makeUnique<CColorRepresentationProtocol>(&wp_color_representation_manager_v1_interface, 1, "ColorRepresentation");
     } else
         LOG(Log::WARN, "ProtocolManager: Not binding linux-dmabuf and MesaDRM: DMABUF not available");
 }
@@ -346,6 +350,7 @@ CProtocolManager::~CProtocolManager() {
     PROTO::sync.reset();
     PROTO::mesaDRM.reset();
     PROTO::linuxDma.reset();
+    PROTO::colorRepresentation.reset();
 }
 
 bool CProtocolManager::isGlobalPrivileged(const wl_global* global) {
@@ -399,6 +404,7 @@ bool CProtocolManager::isGlobalPrivileged(const wl_global* global) {
         PROTO::sync     ? PROTO::sync->getGlobal()      : nullptr,
         PROTO::mesaDRM  ? PROTO::mesaDRM->getGlobal()   : nullptr,
         PROTO::linuxDma ? PROTO::linuxDma->getGlobal()  : nullptr,
+        PROTO::colorRepresentation ? PROTO::colorRepresentation->getGlobal() : nullptr,
 	PROTO::colorManagement ? PROTO::colorManagement->getGlobal() : nullptr,
     };
     // clang-format on

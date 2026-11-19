@@ -659,6 +659,8 @@ bool CMonitor::applyMonitorRuleSoft(Config::CMonitorRule&& pMonitorRule) {
 
     setMirror(m_activeMonitorRule.m_mirrorOf);
 
+    m_events.modeChanged.emit();
+
     return true;
 }
 

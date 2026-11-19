@@ -642,8 +642,38 @@ void CHyprOpenGLImpl::initDRMFormats() {
         LOG(Log::WARN, "Your GPU does not support rendering to FP16 buffers, some effects and CM settings might be unavailable.");
 }
 
-EGLImageKHR CHyprOpenGLImpl::createEGLImage(const Aquamarine::SDMABUFAttrs& attrs) {
-    std::array<EGLint, 50> attribs;
+static std::vector<std::pair<EGLint, EGLint>> yuvHints(const SColorRepresentation& representation) {
+    std::vector<std::pair<EGLint, EGLint>> hints;
+
+    switch (representation.coefficients) {
+        case CM_YCBCR_COEFFICIENTS_BT601: hints.emplace_back(EGL_YUV_COLOR_SPACE_HINT_EXT, EGL_ITU_REC601_EXT); break;
+        case CM_YCBCR_COEFFICIENTS_BT709: hints.emplace_back(EGL_YUV_COLOR_SPACE_HINT_EXT, EGL_ITU_REC709_EXT); break;
+        case CM_YCBCR_COEFFICIENTS_BT2020: hints.emplace_back(EGL_YUV_COLOR_SPACE_HINT_EXT, EGL_ITU_REC2020_EXT); break;
+        case CM_YCBCR_COEFFICIENTS_UNSET: break;
+    }
+
+    switch (representation.range) {
+        case CM_YCBCR_RANGE_FULL: hints.emplace_back(EGL_SAMPLE_RANGE_HINT_EXT, EGL_YUV_FULL_RANGE_EXT); break;
+        case CM_YCBCR_RANGE_LIMITED: hints.emplace_back(EGL_SAMPLE_RANGE_HINT_EXT, EGL_YUV_NARROW_RANGE_EXT); break;
+        case CM_YCBCR_RANGE_UNSET: break;
+    }
+
+    if (representation.chromaLocation == CM_CHROMA_LOCATION_UNSET)
+        return hints;
+
+    // horizontally, types 0, 2 and 4 are cosited, 1, 3 and 5 are at the midpoint.
+    // vertically, types 0 and 1 are at the midpoint, 2 and 3 are cosited, 4 and 5 sit at 1.0, which EGL can't express.
+    const int TYPE = representation.chromaLocation - CM_CHROMA_LOCATION_TYPE_0;
+    hints.emplace_back(EGL_YUV_CHROMA_HORIZONTAL_SITING_HINT_EXT, TYPE % 2 == 0 ? EGL_YUV_CHROMA_SITING_0_EXT : EGL_YUV_CHROMA_SITING_0_5_EXT);
+
+    if (TYPE < 4)
+        hints.emplace_back(EGL_YUV_CHROMA_VERTICAL_SITING_HINT_EXT, TYPE < 2 ? EGL_YUV_CHROMA_SITING_0_5_EXT : EGL_YUV_CHROMA_SITING_0_EXT);
+
+    return hints;
+}
+
+EGLImageKHR CHyprOpenGLImpl::createEGLImage(const Aquamarine::SDMABUFAttrs& attrs, const SColorRepresentation& representation) {
+    std::array<EGLint, 64> attribs;
     size_t                 idx = 0;
 
     attribs[idx++] = EGL_WIDTH;
@@ -678,6 +708,13 @@ EGLImageKHR CHyprOpenGLImpl::createEGLImage(const Aquamarine::SDMABUFAttrs& attr
             attribs[idx++] = sc<uint32_t>(attrs.modifier & 0xFFFFFFFF);
             attribs[idx++] = attrNames[i].modhi;
             attribs[idx++] = sc<uint32_t>(attrs.modifier >> 32);
+        }
+    }
+
+    if (NFormatUtils::isFormatYUV(attrs.format)) {
+        for (const auto& [name, value] : yuvHints(representation)) {
+            attribs[idx++] = name;
+            attribs[idx++] = value;
         }
     }
 

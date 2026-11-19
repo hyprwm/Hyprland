@@ -32,6 +32,7 @@
 #include "../helpers/time/Timer.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../helpers/time/Time.hpp"
+#include "../helpers/cm/ColorRepresentation.hpp"
 #include "../../protocols/cursor-shape-v1.hpp"
 #include "desktop/view/Popup.hpp"
 #include "Framebuffer.hpp"
@@ -190,7 +191,7 @@ namespace Render {
         virtual SP<ITexture>                createStencilTexture(const int width, const int height)                                                                    = 0;
         virtual SP<ITexture>                createTexture(bool opaque = false)                                                                                         = 0;
         virtual SP<ITexture> createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false, bool opaque = false) = 0;
-        virtual SP<ITexture> createTexture(const Aquamarine::SDMABUFAttrs&, bool opaque = false)                                                                       = 0;
+        virtual SP<ITexture> createTexture(const Aquamarine::SDMABUFAttrs&, bool opaque = false, const NColorManagement::SColorRepresentation& representation = {})    = 0;
         virtual SP<ITexture> createTexture(const int width, const int height, unsigned char* const)                                                                    = 0;
         virtual SP<ITexture> createTexture(cairo_surface_t* cairo)                                                                                                     = 0;
         virtual SP<ITexture> createTexture(std::span<const float> lut3D, size_t N)                                                                                     = 0;

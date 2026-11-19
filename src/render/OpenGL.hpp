@@ -6,6 +6,7 @@
 #include "../helpers/time/Timer.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../helpers/Format.hpp"
+#include "../helpers/cm/ColorRepresentation.hpp"
 #include "../helpers/DeformableMesh.hpp"
 #include "../helpers/sync/SyncTimeline.hpp"
 #include <GLES3/gl32.h>
@@ -235,7 +236,7 @@ namespace Render::GL {
 
         std::vector<SDRMFormat>                   getDRMFormats();
         std::vector<uint64_t>                     getDRMFormatModifiers(DRMFormat format);
-        EGLImageKHR                               createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
+        EGLImageKHR                               createEGLImage(const Aquamarine::SDMABUFAttrs& attrs, const NColorManagement::SColorRepresentation& representation = {});
 
         bool                                      initShaders(const std::string& path = "");
 

@@ -114,7 +114,7 @@ class CTransactionTestRenderer : public Render::IHyprRenderer {
     SP<Render::ITexture> createTexture(uint32_t, uint8_t*, uint32_t, const Vector2D&, bool, bool) override {
         return nullptr;
     }
-    SP<Render::ITexture> createTexture(const Aquamarine::SDMABUFAttrs&, bool) override {
+    SP<Render::ITexture> createTexture(const Aquamarine::SDMABUFAttrs&, bool, const NColorManagement::SColorRepresentation&) override {
         return nullptr;
     }
     SP<Render::ITexture> createTexture(int, int, unsigned char*) override {

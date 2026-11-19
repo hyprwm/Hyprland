@@ -295,7 +295,7 @@ class CDMABUFTestRenderer : public Render::IHyprRenderer {
     bool                                  m_validTexture  = true;
     std::vector<Aquamarine::SDMABUFAttrs> m_imports;
 
-    SP<Render::ITexture>                  createTexture(const Aquamarine::SDMABUFAttrs& attrs, bool) override {
+    SP<Render::ITexture>                  createTexture(const Aquamarine::SDMABUFAttrs& attrs, bool, const NColorManagement::SColorRepresentation&) override {
         m_imports.push_back(attrs);
         for (int i = 0; i < attrs.planes; ++i)
             EXPECT_NE(fcntl(attrs.fds[i], F_GETFD), -1);

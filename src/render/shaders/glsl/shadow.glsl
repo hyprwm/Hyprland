@@ -26,10 +26,11 @@ float modifiedLength(vec2 a, float roundingPower) {
     return pow(pow(abs(a.x), roundingPower) + pow(abs(a.y), roundingPower), 1.0 / roundingPower);
 }
 
-bool pointInRoundedRect(vec2 pixCoord, vec2 tl, vec2 br, float radius, float roundingPower) {
+bool pointInRoundedRect(vec2 pixCoord, vec2 tl, vec2 br, vec4 radii, float roundingPower) {
     if (pixCoord.x < tl.x || pixCoord.x > br.x || pixCoord.y < tl.y || pixCoord.y > br.y)
         return false;
 
+    float radius = cornerRadius(radii, pixCoord - (tl + br) * 0.5);
     if (radius <= 0.0)
         return true;
 
@@ -56,20 +57,23 @@ vec4[2]
 #else
 vec4
 #endif
-    getShadow(vec4 pixColor, vec4 colorSRGB, vec2 v_texcoord, float borderRadius, float roundingPower, vec2 topLeft, vec2 fullSize, float range, float shadowPower,
-              vec2 bottomRight, vec2 windowTopLeft, vec2 windowBottomRight, float windowRadius, int gradientLength, vec4 gradient[10], float angle, int gradient2Length,
-              vec4 gradient2[10], float angle2, float gradientLerp, float alpha
+    getShadow(vec4 pixColor, vec4 colorSRGB, vec2 v_texcoord, vec4 borderRadii, float roundingPower, vec2 topLeft, vec2 fullSize, float range, float shadowPower, vec2 bottomRight,
+              vec2 windowTopLeft, vec2 windowBottomRight, vec4 windowRadius, int gradientLength, vec4 gradient[10], float angle, int gradient2Length, vec4 gradient2[10],
+              float angle2, float gradientLerp, float alpha
 #if USE_CM
               ,
               int srcTF
 #endif
     ) {
-    float radius        = range + borderRadius;
     float originalAlpha = pixColor[3];
 
     bool  done = false;
 
     vec2  pixCoord = fullSize * v_texcoord;
+    float borderRadius  = cornerRadius(borderRadii, pixCoord - (topLeft + bottomRight) * 0.5);
+    vec2  cornerTL      = topLeft + vec2(borderRadius);
+    vec2  cornerBR      = bottomRight - vec2(borderRadius);
+    float falloffRadius = range + borderRadius;
 
     if (gradientLength > 0 || gradient2Length > 0)
         pixColor = getColorForCoord(v_texcoord, gradientLength, gradient, angle, gradient2Length, gradient2, angle2, gradientLerp);
@@ -78,24 +82,24 @@ vec4
 
     // ok, now we check the distance to a border.
     // corners
-    if (pixCoord[0] < topLeft[0]) {
-        if (pixCoord[1] < topLeft[1]) {
+    if (pixCoord[0] < cornerTL[0]) {
+        if (pixCoord[1] < cornerTL[1]) {
             // top left
-            pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - topLeft, roundingPower), radius, range, shadowPower);
+            pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - cornerTL, roundingPower), falloffRadius, range, shadowPower);
             done        = true;
-        } else if (pixCoord[1] > bottomRight[1]) {
+        } else if (pixCoord[1] > cornerBR[1]) {
             // bottom left
-            pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - vec2(topLeft[0], bottomRight[1]), roundingPower), radius, range, shadowPower);
+            pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - vec2(cornerTL[0], cornerBR[1]), roundingPower), falloffRadius, range, shadowPower);
             done        = true;
         }
-    } else if (pixCoord[0] > bottomRight[0]) {
-        if (pixCoord[1] < topLeft[1]) {
+    } else if (pixCoord[0] > cornerBR[0]) {
+        if (pixCoord[1] < cornerTL[1]) {
             // top right
-            pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - vec2(bottomRight[0], topLeft[1]), roundingPower), radius, range, shadowPower);
+            pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - vec2(cornerBR[0], cornerTL[1]), roundingPower), falloffRadius, range, shadowPower);
             done        = true;
-        } else if (pixCoord[1] > bottomRight[1]) {
+        } else if (pixCoord[1] > cornerBR[1]) {
             // bottom right
-            pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - bottomRight, roundingPower), radius, range, shadowPower);
+            pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - cornerBR, roundingPower), falloffRadius, range, shadowPower);
             done        = true;
         }
     }

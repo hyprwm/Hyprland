@@ -7,6 +7,7 @@
 #include "../../helpers/time/Timer.hpp"
 #include "InputMethodRelay.hpp"
 #include "PointerConstraintController.hpp"
+#include "BorderIconDirection.hpp"
 #include "../../helpers/signal/Signal.hpp"
 #include "../../desktop/view/WLSurface.hpp"
 #include "../../devices/IPointer.hpp"
@@ -41,18 +42,6 @@ enum eMouseBindMode : int8_t {
     MBIND_RESIZE             = 1,
     MBIND_RESIZE_BLOCK_RATIO = 2,
     MBIND_RESIZE_FORCE_RATIO = 3
-};
-
-enum eBorderIconDirection : uint8_t {
-    BORDERICON_NONE = 0,
-    BORDERICON_UP,
-    BORDERICON_DOWN,
-    BORDERICON_LEFT,
-    BORDERICON_RIGHT,
-    BORDERICON_UP_LEFT,
-    BORDERICON_DOWN_LEFT,
-    BORDERICON_UP_RIGHT,
-    BORDERICON_DOWN_RIGHT,
 };
 
 struct STouchData {

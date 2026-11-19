@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "../../../helpers/AnimatedVariable.hpp"
+#include "../../../helpers/math/CornerRadii.hpp"
 #include "../../../render/decorations/IHyprWindowDecoration.hpp"
 #include "../../types/MultiAnimatedVariable.hpp"
 #include "../animationControllers/WindowAnimationController.hpp"
@@ -81,7 +82,7 @@ namespace Desktop::View {
         void                                              applyPendingState();
         void                                              discardPendingState();
         void                                              animateWorkspaceMove(PHLWORKSPACE source, bool wasVisible);
-        float                                             rounding();
+        Math::SCornerRadii                                rounding();
         float                                             roundingPower();
         bool                                              isInCurvedCorner(double x, double y);
         bool                                              visibleOnMonitor(PHLMONITOR monitor);

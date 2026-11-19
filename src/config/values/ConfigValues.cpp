@@ -1,5 +1,6 @@
 #include "ConfigValues.hpp"
 #include "config/shared/Types.hpp"
+#include "../shared/rounding/Rounding.hpp"
 
 using namespace Config;
 using namespace Config::Values;
@@ -67,6 +68,12 @@ static std::string jsonify(SP<IValue> v) {
         "max": {}
     }},)#",
             x->name(), x->description(), x->defaultVal(), x->value(), opt(x->m_min), opt(x->m_max));
+    }
+
+    if (auto x = dc<CCornersValue*>(v.get()); x) {
+        const auto serialize = [](const CCornersData& value) { return value.isUniform() ? value.toString() : std::format("\"{}\"", value.toString()); };
+        return std::format(R"({{"name": "{}", "description": "{}", "default": {}, "current": {}, "min": {}, "max": {}, "map": null}},)", x->name(), x->description(),
+                           serialize(x->defaultVal()), serialize(x->value()), opt(x->m_min), opt(x->m_max));
     }
 
     if (auto x = dc<CCssGapValue*>(v.get()); x) {
@@ -200,8 +207,8 @@ std::vector<SP<IValue>> Values::getConfigValues() {
          * decoration:
          */
 
-        MS<Int>("decoration:rounding", "rounded corners' radius (in layout px)", 0,
-                {.min = 0, .max = 100, .refresh = Supplementary::REFRESH_WINDOW_STATES | Supplementary::REFRESH_BLUR_FB}),
+        MS<Corners>("decoration:rounding", "rounded corners' radii (in layout px), as a number or top_left/top_right/bottom_right/bottom_left fields", 0,
+                    {.min = 0, .max = Rounding::MAX_RADIUS, .refresh = Supplementary::REFRESH_WINDOW_STATES | Supplementary::REFRESH_BLUR_FB}),
         MS<Float>("decoration:rounding_power", "rounding power of corners (2 is a circle)", 2,
                   {.min = 1, .max = 10, .refresh = Supplementary::REFRESH_WINDOW_STATES | Supplementary::REFRESH_BLUR_FB}),
         MS<Float>("decoration:active_opacity", "opacity of active windows.", 1, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_WINDOW_STATES}),

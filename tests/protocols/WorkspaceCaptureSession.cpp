@@ -185,10 +185,10 @@ class CSessionTestElements : public Render::IElementRenderer {
     };
     std::vector<STexture> m_textures;
     struct SRectangle {
-        CBox       box;
-        CHyprColor color;
-        int        round = 0;
-        CRegion    damage;
+        CBox               box;
+        CHyprColor         color;
+        Math::SCornerRadii round;
+        CRegion            damage;
     };
     bool                    m_recordRectangles = false;
     std::vector<SRectangle> m_rectangles;
@@ -335,17 +335,19 @@ class CSessionTestRenderer : public Render::IHyprRenderer {
     void blend(bool) override {
         ;
     }
-    void drawShadow(Render::CRenderContext&, const CBox&, int, float, int, const Config::CGradientValueData&, float, const Render::SWindowRenderPresentation&) override {
-        ;
-    }
-    void drawShadow(Render::CRenderContext&, const CBox&, int, float, int, const Config::CGradientValueData&, const Config::CGradientValueData&, float, float,
+    void drawShadow(Render::CRenderContext&, const CBox&, Math::SCornerRadii, float, int, const Config::CGradientValueData&, float,
                     const Render::SWindowRenderPresentation&) override {
         ;
     }
-    void drawGlow(Render::CRenderContext&, const CBox&, int, float, int, const Config::CGradientValueData&, float) override {
+    void drawShadow(Render::CRenderContext&, const CBox&, Math::SCornerRadii, float, int, const Config::CGradientValueData&, const Config::CGradientValueData&, float, float,
+                    const Render::SWindowRenderPresentation&) override {
         ;
     }
-    void drawGlow(Render::CRenderContext&, const CBox&, int, float, int, const Config::CGradientValueData&, const Config::CGradientValueData&, float, float) override {
+    void drawGlow(Render::CRenderContext&, const CBox&, Math::SCornerRadii, float, int, const Config::CGradientValueData&, float) override {
+        ;
+    }
+    void drawGlow(Render::CRenderContext&, const CBox&, Math::SCornerRadii, float, int, const Config::CGradientValueData&, const Config::CGradientValueData&, float,
+                  float) override {
         ;
     }
     void setViewport(int, int, int, int) override {

@@ -1,5 +1,6 @@
 #include "RectPassElement.hpp"
 #include "../Renderer.hpp"
+#include <cmath>
 
 CRectPassElement::CRectPassElement(const CRectPassElement::SRectData& data_) : m_data(data_) {
     ;
@@ -21,7 +22,7 @@ CRegion CRectPassElement::opaqueRegion(Render::CRenderContext& ctx) {
     if (m_data.color.a < 1.F)
         return CRegion{};
 
-    CRegion rg = boundingBox(ctx)->expand(-m_data.round);
+    CRegion rg = boundingBox(ctx)->expand(-std::ceil(std::max(0.F, m_data.round.max()) / ctx.m_data.pMonitor->m_scale));
 
     if (!m_data.clipBox.empty())
         rg.intersect(m_data.clipBox);

@@ -4,26 +4,20 @@
 
 using namespace Screenshare;
 
-CWorkspaceCaptureSource::CWorkspaceCaptureSource(PHLWORKSPACE workspace, uint32_t mode) : m_workspace(workspace), m_removed(!workspace), m_mode(mode) {
+CWorkspaceCaptureSource::CWorkspaceCaptureSource(PHLWORKSPACE workspace, uint32_t mode) : m_workspace(workspace), m_mode(mode) {
     if (!workspace)
         return;
 
     m_name = workspace->addressableName();
     updateMonitor();
 
-    m_listeners.destroy        = workspace->m_events.destroy.listen([this]() {
-        m_removed   = true;
-        m_workspace = nullptr;
-        m_listeners = {};
-        m_changed.emit();
-    });
     m_listeners.monitorChanged = workspace->m_events.monitorChanged.listen([this]() {
         updateMonitor();
         m_changed.emit();
     });
     const auto updateName      = [this]() {
-        if (const auto WORKSPACE = m_workspace.lock())
-            m_name = WORKSPACE->addressableName();
+        if (m_workspace)
+            m_name = m_workspace->addressableName();
         m_changed.emit();
     };
     m_listeners.renamed   = workspace->m_events.renamed.listen(updateName);
@@ -31,15 +25,11 @@ CWorkspaceCaptureSource::CWorkspaceCaptureSource(PHLWORKSPACE workspace, uint32_
 }
 
 PHLWORKSPACE CWorkspaceCaptureSource::workspace() const {
-    return m_removed ? nullptr : m_workspace.lock();
+    return m_workspace;
 }
 
 PHLMONITOR CWorkspaceCaptureSource::monitor() const {
-    if (m_removed)
-        return m_lastMonitor.lock();
-
-    const auto WORKSPACE = m_workspace.lock();
-    return WORKSPACE ? WORKSPACE->m_monitor.lock() : nullptr;
+    return m_workspace ? m_workspace->m_monitor.lock() : nullptr;
 }
 
 Vector2D CWorkspaceCaptureSource::bufferSize() const {
@@ -48,10 +38,6 @@ Vector2D CWorkspaceCaptureSource::bufferSize() const {
 
 const std::string& CWorkspaceCaptureSource::name() const {
     return m_name;
-}
-
-bool CWorkspaceCaptureSource::removed() const {
-    return m_removed;
 }
 
 uint32_t CWorkspaceCaptureSource::mode() const {
@@ -75,7 +61,7 @@ void CWorkspaceCaptureSource::updateMonitor() {
 
 void CWorkspaceCaptureSource::updateSize() {
     const auto MONITOR = monitor();
-    if (!MONITOR || m_removed)
+    if (!MONITOR)
         return;
 
     const auto SIZE = MONITOR->m_transformedSize;

@@ -606,37 +606,6 @@ TEST_F(CWorkspaceCaptureSessionTest, MoveReplacesDisconnectListenerEvenWhenSizeI
     EXPECT_EQ(stops, 1);
 }
 
-TEST_F(CWorkspaceCaptureSessionTest, RemovalRetainsConstraintsAndAllowsNewSessionsAndFrames) {
-    auto state   = source();
-    auto session = Screenshare::mgr()->newSession(nullptr, state);
-    ASSERT_TRUE(session);
-    int  changes = 0, stops = 0;
-    auto changed = session->m_events.constraintsChanged.listen([&] { ++changes; });
-    auto stopped = session->m_events.stopped.listen([&] { ++stops; });
-    auto frame   = session->nextFrame(false);
-    m_workspace.reset();
-    ASSERT_TRUE(state->removed());
-    m_monitor->m_transformedSize = {800, 600};
-    m_monitor->m_events.modeChanged.emit();
-    EXPECT_TRUE(session->isActive());
-    EXPECT_EQ(changes, 0);
-    EXPECT_EQ(stops, 0);
-    EXPECT_EQ(session->bufferSize(), Vector2D(1080, 1920));
-    EXPECT_EQ(session->allowedFormats(), (std::vector<DRMFormat>{DRM_FORMAT_ARGB8888}));
-    EXPECT_FALSE(frame->done());
-    EXPECT_FALSE(session->nextFrame(false)->done());
-    auto later = Screenshare::mgr()->newSession(nullptr, state);
-    ASSERT_TRUE(later);
-    EXPECT_TRUE(later->isActive());
-    EXPECT_EQ(later->bufferSize(), session->bufferSize());
-    EXPECT_EQ(later->allowedFormats(), session->allowedFormats());
-    m_monitor->m_events.disconnect.emit();
-    EXPECT_FALSE(session->isActive());
-    EXPECT_FALSE(later->isActive());
-    EXPECT_TRUE(frame->done());
-    EXPECT_EQ(stops, 1);
-}
-
 TEST_F(CWorkspaceCaptureSessionTest, MissingMonitorStopsOnceAndDoesNotResumeOnReattachment) {
     auto session = Screenshare::mgr()->newSession(nullptr, source());
     ASSERT_TRUE(session);
@@ -815,45 +784,40 @@ class CWorkspaceCaptureFrameTest : public CWorkspaceCaptureSessionTest {
     UP<Desktop::CFadingOutState>    m_previousFadeouts;
 };
 
-TEST_F(CWorkspaceCaptureFrameTest, EmptyAndRemovedFramesClearTransparentWithoutCopyFB) {
+TEST_F(CWorkspaceCaptureFrameTest, EmptyFramesClearTransparentWithoutCopyFB) {
     for (const auto mode : {0U, 1U}) {
         SCOPED_TRACE(mode);
         auto state   = source(mode);
         auto session = Screenshare::mgr()->newSession(m_client, state);
         ASSERT_TRUE(session);
         auto target = buffer(session->bufferSize());
-        for (const bool removed : {false, true}) {
-            SCOPED_TRACE(removed);
-            renderer().m_elements->m_clears.clear();
-            target->m_readbacks.clear();
-            std::vector<Screenshare::eScreenshareResult> results;
-            auto                                         frame = session->nextFrame(false);
-            ASSERT_EQ(frame->share(target, CRegion{-10, -10, 20, 20}, [&](auto result) { results.push_back(result); }), Screenshare::ERROR_NONE);
-            if (removed)
-                m_workspace->m_events.destroy.emit();
-            ASSERT_EQ(state->removed(), removed);
-            EXPECT_FALSE(frame->done());
-            EXPECT_FALSE(Screenshare::mgr()->outputNeedsCopyFB(m_monitor));
-            EXPECT_EQ(Screenshare::mgr()->outputCopyFBState(m_monitor).pendingFrames, 0U);
 
-            Screenshare::mgr()->onOutputCommit(m_monitor, false);
-            EXPECT_EQ(results, (std::vector<Screenshare::eScreenshareResult>{Screenshare::RESULT_TIMESTAMP, Screenshare::RESULT_COPIED}));
-            EXPECT_TRUE(frame->done());
-            EXPECT_TRUE(session->isActive());
-            EXPECT_FALSE(renderer().context().active());
-            // Everything additionally draws the fixture's transparent background.
-            ASSERT_EQ(renderer().m_elements->m_clears.size(), !removed && mode == HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_EVERYTHING ? 2U : 1U);
-            for (size_t i = 0; i < renderer().m_elements->m_clears.size(); ++i)
-                expectClear(i, CHyprColor{0, 0, 0, 0}, session->bufferSize());
-            EXPECT_EQ(target->m_readbacks, (std::vector<CBox>{CBox{{}, session->bufferSize()}}));
-            EXPECT_FALSE(m_monitor->resources()->hasMirrorFB());
-            Screenshare::mgr()->onOutputCommit(m_monitor, false);
-            EXPECT_EQ(results.size(), 2U);
-            EXPECT_EQ(target->m_readbacks.size(), 1U);
-        }
+        renderer().m_elements->m_clears.clear();
+        target->m_readbacks.clear();
+        std::vector<Screenshare::eScreenshareResult> results;
+        auto                                         frame = session->nextFrame(false);
+        ASSERT_EQ(frame->share(target, CRegion{-10, -10, 20, 20}, [&](auto result) { results.push_back(result); }), Screenshare::ERROR_NONE);
+        EXPECT_FALSE(frame->done());
+        EXPECT_FALSE(Screenshare::mgr()->outputNeedsCopyFB(m_monitor));
+        EXPECT_EQ(Screenshare::mgr()->outputCopyFBState(m_monitor).pendingFrames, 0U);
+
+        Screenshare::mgr()->onOutputCommit(m_monitor, false);
+        EXPECT_EQ(results, (std::vector<Screenshare::eScreenshareResult>{Screenshare::RESULT_TIMESTAMP, Screenshare::RESULT_COPIED}));
+        EXPECT_TRUE(frame->done());
+        EXPECT_TRUE(session->isActive());
+        EXPECT_FALSE(renderer().context().active());
+        // Everything additionally draws the fixture's transparent background.
+        ASSERT_EQ(renderer().m_elements->m_clears.size(), mode == HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_EVERYTHING ? 2U : 1U);
+        for (size_t i = 0; i < renderer().m_elements->m_clears.size(); ++i)
+            expectClear(i, CHyprColor{0, 0, 0, 0}, session->bufferSize());
+        EXPECT_EQ(target->m_readbacks, (std::vector<CBox>{CBox{{}, session->bufferSize()}}));
+        EXPECT_FALSE(m_monitor->resources()->hasMirrorFB());
+        Screenshare::mgr()->onOutputCommit(m_monitor, false);
+        EXPECT_EQ(results.size(), 2U);
+        EXPECT_EQ(target->m_readbacks.size(), 1U);
     }
-    EXPECT_EQ(renderer().m_begins, 4);
-    EXPECT_EQ(renderer().m_ends, 4);
+    EXPECT_EQ(renderer().m_begins, 2);
+    EXPECT_EQ(renderer().m_ends, 2);
 }
 
 TEST_F(CWorkspaceCaptureFrameTest, SubmissionRejectsMissingBufferWrongSizeFormatAndStaleConstraints) {
@@ -1254,7 +1218,7 @@ TEST_F(CWorkspaceCaptureSceneTest, DeferredSurfaceDrawAndDiscardDoNotConsumeFram
     }
 }
 
-TEST_F(CWorkspaceCaptureSceneTest, LockAndRemovalSuppressQueuedContentEvenWithLockXrayEnabled) {
+TEST_F(CWorkspaceCaptureSceneTest, LockSuppressQueuedContentEvenWithLockXrayEnabled) {
     auto shell         = layer(ZWLR_LAYER_SHELL_V1_LAYER_TOP);
     auto cursorSurface = surface({12, 16});
     auto cursor        = Desktop::View::CWLSurface::create();
@@ -1268,78 +1232,22 @@ TEST_F(CWorkspaceCaptureSceneTest, LockAndRemovalSuppressQueuedContentEvenWithLo
         ASSERT_TRUE(session);
         capture(*session, dma);
         ASSERT_FALSE(drawnSurfaces().empty());
-        for (const bool removed : {false, true}) {
-            auto frame = session->nextFrame(true);
-            ASSERT_EQ(frame->share(buffer(session->bufferSize(), DRM_FORMAT_ARGB8888, dma), {}, [](auto) { ; }), Screenshare::ERROR_NONE);
-            // State changes after submission must govern the copy, not its request.
-            if (removed)
-                m_workspace->m_events.destroy.emit();
-            else
-                PROTO::sessionLock->forceLock();
-            renderer().m_elements->m_clears.clear();
-            renderer().m_elements->m_textures.clear();
-            Screenshare::mgr()->onOutputCommit(m_monitor, false);
-            EXPECT_TRUE(frame->done());
-            EXPECT_TRUE(session->isActive());
-            EXPECT_TRUE(renderer().m_elements->m_textures.empty());
-            ASSERT_EQ(renderer().m_elements->m_clears.size(), 1U);
-            expectClear(0, {0, 0, 0, 0}, session->bufferSize());
-            expectUnpaced(shell->resource());
-            expectUnpaced(cursorSurface);
-            if (!removed)
-                PROTO::sessionLock->forceUnlock();
-        }
-    }
-}
 
-TEST_F(CWorkspaceCaptureSceneTest, RemovedSourceClearsResizedScratchAndPreservesFrozenExportDamage) {
-    auto shell   = layer(ZWLR_LAYER_SHELL_V1_LAYER_TOP);
-    auto state   = source(HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_EVERYTHING);
-    auto session = Screenshare::mgr()->newSession(m_client, state);
-    ASSERT_TRUE(session);
-    const auto    exportSize = session->bufferSize();
-    const CRegion exportDamage{CBox{{}, exportSize}};
-    int           changes = 0;
-    auto          changed = session->m_events.constraintsChanged.listen([&] { ++changes; });
-
-    capture(*session);
-    ASSERT_EQ(drawnSurfaces(), (std::vector<WP<CWLSurfaceResource>>{shell->resource()}));
-    m_workspace->m_events.destroy.emit();
-    ASSERT_TRUE(state->removed());
-
-    // The owner can grow or shrink after removal; exports keep their last size.
-    for (const auto& scratchSize : {Vector2D{1440, 2560}, Vector2D{640, 480}}) {
-        for (const bool dma : {false, true}) {
-            SCOPED_TRACE(::testing::Message() << scratchSize.x << "x" << scratchSize.y);
-            SCOPED_TRACE(dma);
-            std::vector<Screenshare::eScreenshareResult> results;
-            auto                                         target = buffer(exportSize, DRM_FORMAT_ARGB8888, dma);
-            auto                                         frame  = session->nextFrame(false);
-            ASSERT_EQ(frame->share(target, {-10, -10, 20, 20}, [&](auto result) { results.push_back(result); }), Screenshare::ERROR_NONE);
-            m_monitor->m_transformedSize = scratchSize;
-            m_monitor->m_pixelSize       = {scratchSize.y, scratchSize.x};
-            m_monitor->m_size            = scratchSize / m_monitor->m_scale;
-            m_monitor->m_events.modeChanged.emit();
-            EXPECT_EQ(changes, 0);
-            EXPECT_EQ(session->bufferSize(), exportSize);
-            EXPECT_EQ(frame->bufferSize(), exportSize);
-
-            renderer().m_elements->m_clears.clear();
-            renderer().m_elements->m_textures.clear();
-            Screenshare::mgr()->onOutputCommit(m_monitor, false);
-            EXPECT_TRUE(frame->done());
-            EXPECT_TRUE(session->isActive());
-            EXPECT_EQ(results, (std::vector<Screenshare::eScreenshareResult>{Screenshare::RESULT_TIMESTAMP, Screenshare::RESULT_COPIED}));
-            ASSERT_EQ(renderer().m_elements->m_clears.size(), 1U);
-            expectClear(0, {0, 0, 0, 0}, scratchSize);
-            EXPECT_EQ(renderer().m_elements->m_clears.front().exportSize, exportSize);
-            EXPECT_TRUE(renderer().m_elements->m_textures.empty());
-            EXPECT_TRUE(frame->damage().copy().subtract(exportDamage).empty());
-            EXPECT_TRUE(exportDamage.copy().subtract(frame->damage()).empty());
-            EXPECT_EQ(target->m_readbacks, (dma ? std::vector<CBox>{} : std::vector<CBox>{CBox{{}, exportSize}}));
-            EXPECT_FALSE(renderer().context().active());
-            expectUnpaced(shell->resource());
-        }
+        auto frame = session->nextFrame(true);
+        ASSERT_EQ(frame->share(buffer(session->bufferSize(), DRM_FORMAT_ARGB8888, dma), {}, [](auto) { ; }), Screenshare::ERROR_NONE);
+        // State changes after submission must govern the copy, not its request.
+        PROTO::sessionLock->forceLock();
+        renderer().m_elements->m_clears.clear();
+        renderer().m_elements->m_textures.clear();
+        Screenshare::mgr()->onOutputCommit(m_monitor, false);
+        EXPECT_TRUE(frame->done());
+        EXPECT_TRUE(session->isActive());
+        EXPECT_TRUE(renderer().m_elements->m_textures.empty());
+        ASSERT_EQ(renderer().m_elements->m_clears.size(), 1U);
+        expectClear(0, {0, 0, 0, 0}, session->bufferSize());
+        expectUnpaced(shell->resource());
+        expectUnpaced(cursorSurface);
+        PROTO::sessionLock->forceUnlock();
     }
 }
 
@@ -1677,11 +1585,6 @@ TEST_F(CWorkspaceCaptureFrameTest, SnapshotDemandRequiresLiveSourceAndMatchingWo
     EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
     window->m_monitor = otherMonitor;
     EXPECT_TRUE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
-
-    m_workspace->m_events.destroy.emit();
-    ASSERT_TRUE(state->removed());
-    ASSERT_TRUE(session->isActive());
-    EXPECT_FALSE(Screenshare::mgr()->needsWorkspaceCaptureSnapshot(window));
 }
 
 TEST_F(CWorkspaceCaptureFrameTest, SnapshotDemandIncludesOutputGlobalPinnedFloatersOnlyInEverythingMode) {

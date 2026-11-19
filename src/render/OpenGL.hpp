@@ -281,6 +281,7 @@ namespace Render::GL {
         struct {
             bool EXT_read_format_bgra               = false;
             bool EXT_color_buffer_half_float        = false;
+            bool OES_EGL_image_external_essl3       = false;
             bool EXT_image_dma_buf_import           = false;
             bool EXT_image_dma_buf_import_modifiers = false;
             bool KHR_context_flush_control          = false;

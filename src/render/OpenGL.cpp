@@ -463,9 +463,22 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >
     });
 
     m_finalScreenShader = makeShared<CShader>();
+
+    m_shaderCompilerReleaseTimer = makeShared<CEventLoopTimer>(
+        std::nullopt,
+        [this](SP<CEventLoopTimer> self, void* data) {
+            // lets the driver free its compiler state (e.g. mesa's GLSL builtins), it's rebuilt on the next compile
+            makeEGLCurrent();
+            glReleaseShaderCompiler();
+        },
+        nullptr);
+    g_pEventLoopManager->addTimer(m_shaderCompilerReleaseTimer);
 }
 
 CHyprOpenGLImpl::~CHyprOpenGLImpl() {
+    if (m_shaderCompilerReleaseTimer && g_pEventLoopManager)
+        g_pEventLoopManager->removeTimer(m_shaderCompilerReleaseTimer);
+
     m_monitorBGFBs.clear();
 
     if (m_eglDisplay && m_eglContext != EGL_NO_CONTEXT)
@@ -1050,6 +1063,8 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
     }
 
     std::string fragmentShader((std::istreambuf_iterator<char>(infile)), (std::istreambuf_iterator<char>()));
+
+    scheduleShaderCompilerRelease();
 
     if (!m_finalScreenShader->createProgram(              //
             fragmentShader.starts_with("#version 320 es") // do not break existing custom shaders
@@ -2623,6 +2638,8 @@ WP<CShader> CHyprOpenGLImpl::getShaderVariant(ePreparedFragmentShader frag, cons
 
         const auto fragSrc = g_pShaderLoader->getVariantSource(frag, variant);
 
+        scheduleShaderCompilerRelease();
+
         if (!shader->createProgram(m_shaders->TEXVERTSRC, fragSrc, true, true))
             LOG(Log::ERR, "shader features {} failed for {}", variant.features, FRAG_SHADERS[frag]);
 
@@ -2632,6 +2649,13 @@ WP<CShader> CHyprOpenGLImpl::getShaderVariant(ePreparedFragmentShader frag, cons
 
     ASSERT(it->second);
     return it->second;
+}
+
+static constexpr auto SHADER_COMPILER_RELEASE_DELAY = std::chrono::seconds(10);
+
+// compiles tend to come in bursts, release once they've settled
+void CHyprOpenGLImpl::scheduleShaderCompilerRelease() {
+    m_shaderCompilerReleaseTimer->updateTimeout(SHADER_COMPILER_RELEASE_DELAY);
 }
 
 std::vector<SDRMFormat> CHyprOpenGLImpl::getDRMFormats() {

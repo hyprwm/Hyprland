@@ -44,6 +44,7 @@
 #define GLFB(ifb) dc<CGLFramebuffer*>(ifb.get())
 
 struct gbm_device;
+class CEventLoopTimer;
 namespace Render {
     class IHyprRenderer;
 }
@@ -337,6 +338,9 @@ namespace Render::GL {
         SP<CShader>             m_finalScreenShader;
         GLuint                  m_currentProgram;
 
+        SP<CEventLoopTimer>     m_shaderCompilerReleaseTimer;
+
+        void                    scheduleShaderCompilerRelease();
         void                    initDRMFormats();
         void                    initEGL(bool gbm);
         EGLDeviceEXT            eglDeviceFromDRMFD(int drmFD);

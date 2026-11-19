@@ -39,6 +39,7 @@ namespace Desktop::Rule {
         bool                                                        readStaticRules(bool preRead = false);
         void                                                        recheckStaticRules();
         Config::CCornersData                                        roundingValue() const;
+        void                                                        removeCustomProp(CWindowRuleEffectContainer::storageType effect);
 
         // static props
         struct {

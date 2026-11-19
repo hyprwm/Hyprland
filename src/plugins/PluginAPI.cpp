@@ -1,5 +1,6 @@
 #include "PluginAPI.hpp"
 #include "../helpers/MiscFunctions.hpp"
+#include "../desktop/rule/Engine.hpp"
 #include "../desktop/view/window/WindowPresentation.hpp"
 #include "../Compositor.hpp"
 #include "../ipc/s1/S1.hpp"
@@ -474,6 +475,7 @@ APICALL bool HyprlandAPI::removeWindowEffect(HANDLE handle, uint16_t idx) {
     if (std::ranges::find(PLUGIN->m_registeredWindowEffects, idx) == PLUGIN->m_registeredWindowEffects.end())
         return false;
 
+    Desktop::Rule::ruleEngine()->removePluginWindowEffect(idx);
     Desktop::Rule::windowEffects()->unregisterEffect(idx);
     std::erase(PLUGIN->m_registeredWindowEffects, idx);
     return true;
@@ -488,6 +490,7 @@ APICALL bool HyprlandAPI::removeLayerEffect(HANDLE handle, uint16_t idx) {
     if (std::ranges::find(PLUGIN->m_registeredLayerEffects, idx) == PLUGIN->m_registeredLayerEffects.end())
         return false;
 
+    Desktop::Rule::ruleEngine()->removePluginLayerEffect(idx);
     Desktop::Rule::layerEffects()->unregisterEffect(idx);
     std::erase(PLUGIN->m_registeredLayerEffects, idx);
     return true;

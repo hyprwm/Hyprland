@@ -3,6 +3,7 @@
 #include <dlfcn.h>
 #include <ranges>
 #include "../config/ConfigManager.hpp"
+#include "../desktop/rule/Engine.hpp"
 #include "../desktop/rule/layerRule/LayerRuleEffectContainer.hpp"
 #include "../desktop/rule/windowRule/WindowRuleEffectContainer.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
@@ -158,10 +159,14 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
     }
 
     for (const auto e : plugin->m_registeredWindowEffects) {
+        // Plugin-backed rule values may hold copies of plugin code (e.g. validators).
+        // Drop them before unloading the library.
+        Desktop::Rule::ruleEngine()->removePluginWindowEffect(e);
         Desktop::Rule::windowEffects()->unregisterEffect(e);
     }
 
     for (const auto e : plugin->m_registeredLayerEffects) {
+        Desktop::Rule::ruleEngine()->removePluginLayerEffect(e);
         Desktop::Rule::layerEffects()->unregisterEffect(e);
     }
 

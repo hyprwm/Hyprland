@@ -247,9 +247,9 @@ SP<ITexture> CHyprGLRenderer::createTexture(uint32_t drmFormat, uint8_t* pixels,
     return makeShared<CGLTexture>(drmFormat, pixels, stride, size, keepDataCopy, opaque);
 }
 
-SP<ITexture> CHyprGLRenderer::createTexture(const Aquamarine::SDMABUFAttrs& attrs, bool opaque) {
+SP<ITexture> CHyprGLRenderer::createTexture(const Aquamarine::SDMABUFAttrs& attrs, bool opaque, const NColorManagement::SColorRepresentation& representation) {
     g_pHyprOpenGL->makeEGLCurrent();
-    const auto image = g_pHyprOpenGL->createEGLImage(attrs);
+    const auto image = g_pHyprOpenGL->createEGLImage(attrs, representation);
     if (!image)
         return nullptr;
     return makeShared<CGLTexture>(attrs, image, opaque);

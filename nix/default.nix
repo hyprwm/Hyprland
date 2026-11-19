@@ -12,7 +12,6 @@
   epoll-shim,
   git,
   glaze-hyprland,
-  glslang,
   gtest,
   hyprcursor,
   hyprgraphics,
@@ -180,7 +179,6 @@ customStdenv.mkDerivation (finalAttrs: {
       cairo
       git
       glaze-hyprland
-      glslang
       gtest
       hyprcursor
       hyprgraphics

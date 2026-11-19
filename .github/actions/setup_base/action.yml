@@ -22,7 +22,6 @@ runs:
           git \
           glaze \
           glm \
-          glslang \
           go \
           gtest \
           hyprcursor \

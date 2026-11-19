@@ -140,7 +140,6 @@ find_package(Threads REQUIRED)
 
 set(GLES_VERSION "GLES3")
 find_package(OpenGL REQUIRED COMPONENTS ${GLES_VERSION})
-find_package(glslang CONFIG REQUIRED)
 
 find_package(glaze QUIET)
 if(NOT CMAKE_SYSTEM_NAME MATCHES "OpenBSD")
@@ -542,9 +541,9 @@ function(protocolWayland)
 endfunction()
 
 if(TARGET OpenGL::GL)
-  target_link_libraries(hyprland_lib PUBLIC OpenGL::EGL OpenGL::GL glslang::glslang glslang::glslang-default-resource-limits glslang::SPIRV Threads::Threads)
+  target_link_libraries(hyprland_lib PUBLIC OpenGL::EGL OpenGL::GL Threads::Threads)
 else()
-  target_link_libraries(hyprland_lib PUBLIC OpenGL::EGL OpenGL::GLES3 glslang::glslang glslang::glslang-default-resource-limits glslang::SPIRV Threads::Threads)
+  target_link_libraries(hyprland_lib PUBLIC OpenGL::EGL OpenGL::GLES3 Threads::Threads)
 endif()
 
 pkg_check_modules(hyprland_protocols_dep REQUIRED hyprland-protocols>=0.8.0)

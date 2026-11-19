@@ -156,21 +156,20 @@ std::string CShaderLoader::getVariantSource(ePreparedFragmentShader frag, SShade
     if (!*PCM)
         variant.features &= ~(SH_FEAT_CM | SH_FEAT_TONEMAP | SH_FEAT_ALT_TONEMAP | SH_FEAT_SDR_MOD);
 
-    // without CM the transfer functions are unused, keep them at the default so we don't cache
-    // several variants of identical source
+    // without CM the transfer functions are unused, keep them at the default so identical
+    // shaders end up with identical source
     if (!(variant.features & SH_FEAT_CM)) {
         variant.sourceTF = SHADER_DEFAULT_TF;
         variant.targetTF = SHADER_DEFAULT_TF;
     }
 
-    if (!m_fragVariants[frag].contains(variant)) {
-        ASSERT(m_fragFiles[frag].length());
-        m_overrideDefines             = getDefines(variant);
-        m_fragVariants[frag][variant] = processSource(m_fragFiles[frag]);
-        m_overrideDefines             = "";
-    }
+    ASSERT(m_fragFiles[frag].length());
 
-    return m_fragVariants[frag][variant];
+    m_overrideDefines = getDefines(variant);
+    auto source       = processSource(m_fragFiles[frag]);
+    m_overrideDefines = "";
+
+    return source;
 }
 
 const std::map<std::string, std::string>& CShaderLoader::includes() {

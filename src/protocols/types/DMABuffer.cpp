@@ -77,6 +77,24 @@ void CDMABuffer::endDataPtr() {
     // FIXME:
 }
 
+SP<Render::ITexture> CDMABuffer::textureFor(const NColorManagement::SColorRepresentation& representation) {
+    if (!NFormatUtils::isFormatYUV(m_attrs.format) || representation == NColorManagement::SColorRepresentation{})
+        return m_texture;
+
+    if (m_representedTexture && m_representation == representation)
+        return m_representedTexture;
+
+    auto texture = g_pHyprRenderer->createTexture(m_attrs, m_opaque, representation);
+    if UNLIKELY (!texture || !texture->ok()) {
+        LOG(Log::ERR, "CDMABuffer: failed to import with a color representation, using driver defaults");
+        return m_texture;
+    }
+
+    m_representedTexture = texture;
+    m_representation     = representation;
+    return m_representedTexture;
+}
+
 bool CDMABuffer::good() {
     return m_success;
 }

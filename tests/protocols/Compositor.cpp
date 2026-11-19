@@ -55,8 +55,12 @@ class CCommitTestBuffer : public IHLBuffer {
         ++m_releases;
         IHLBuffer::sendRelease();
     }
+    SP<Render::ITexture> textureFor(const NColorManagement::SColorRepresentation& representation) override {
+        return representation == NColorManagement::SColorRepresentation{} ? m_texture : m_representedTexture;
+    }
 
-    int m_releases = 0;
+    int                  m_releases           = 0;
+    SP<Render::ITexture> m_representedTexture = makeShared<CCommitTestTexture>();
 };
 
 // Dispatch real surface requests on an isolated server, without a renderer or GPU.
@@ -200,6 +204,27 @@ TEST_F(CSurfaceCommitTest, NullBufferAfterRoleRemovalAllowsEmptyInitialCommit) {
     // A recreated role must receive its initial commit even with no new surface state.
     commit(surf);
     EXPECT_EQ(commits, 2);
+}
+
+TEST_F(CSurfaceCommitTest, ColorRepresentationOnlyCommitReselectsTexture) {
+    auto surf = surface();
+    auto buf  = buffer();
+    attach(surf, buf);
+    ASSERT_EQ(surf->m_current.texture, buf->m_texture);
+
+    // the new representation applies to the current contents, without a new buffer
+    surf->m_pending.colorRepresentation = {
+        .coefficients = NColorManagement::CM_YCBCR_COEFFICIENTS_BT709,
+        .range        = NColorManagement::CM_YCBCR_RANGE_LIMITED,
+    };
+    surf->m_pending.updated.bits.colorRepresentation = true;
+    commit(surf);
+    EXPECT_EQ(surf->m_current.texture, buf->m_representedTexture);
+
+    surf->m_pending.colorRepresentation              = {};
+    surf->m_pending.updated.bits.colorRepresentation = true;
+    commit(surf);
+    EXPECT_EQ(surf->m_current.texture, buf->m_texture);
 }
 
 TEST_F(CSurfaceCommitTest, SynchronizedNullBufferUnmapsOnlyOnParentCommit) {

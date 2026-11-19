@@ -674,6 +674,8 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
     if (m_current.buffer) {
         if (m_current.buffer->isSynchronous())
             m_current.updateSynchronousTexture(lastTexture);
+        else if (state.updated.bits.buffer || state.updated.bits.colorRepresentation)
+            m_current.texture = m_current.buffer->textureFor(m_current.colorRepresentation);
 
         // if the surface is a cursor, update the shm buffer
         // TODO: don't update the entire texture

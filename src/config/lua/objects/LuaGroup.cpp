@@ -147,9 +147,9 @@ static int groupIndex(lua_State* L) {
     const std::string_view key = luaL_checkstring(L, 2);
 
     if (key == "add")
-        lua_pushcfunction(L, groupAdd);
+        pushFn(L, groupAdd, FORBIDDEN_IN_PREDICATE);
     else if (key == "remove")
-        lua_pushcfunction(L, groupRemove);
+        pushFn(L, groupRemove, FORBIDDEN_IN_PREDICATE);
     else if (key == "locked")
         lua_pushboolean(L, group->locked());
     else if (key == "denied")

@@ -87,11 +87,11 @@ static int timerIndex(lua_State* L) {
     const std::string_view key = luaL_checkstring(L, 2);
 
     if (key == "set_enabled")
-        lua_pushcfunction(L, timerSetEnabled);
+        pushFn(L, timerSetEnabled, ALLOWED_IN_PREDICATE);
     else if (key == "is_enabled")
-        lua_pushcfunction(L, timerIsEnabled);
+        pushFn(L, timerIsEnabled, ALLOWED_IN_PREDICATE);
     else if (key == "set_timeout")
-        lua_pushcfunction(L, timerSetTimeout);
+        pushFn(L, timerSetTimeout, ALLOWED_IN_PREDICATE);
     else
         lua_pushnil(L);
 

@@ -77,8 +77,8 @@ static int dispatcherFactory(lua_State* L) {
     return nresults;
 }
 
-void Internal::setFn(lua_State* L, const char* name, lua_CFunction fn) {
-    lua_pushcfunction(L, fn);
+void Internal::setFn(lua_State* L, const char* name, lua_CFunction fn, ePredicateAccess access) {
+    pushFn(L, fn, access);
     lua_setfield(L, -2, name);
 }
 

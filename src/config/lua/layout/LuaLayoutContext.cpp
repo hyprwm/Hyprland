@@ -165,12 +165,8 @@ void Config::Lua::Layouts::pushLayoutContext(lua_State* L, const std::vector<SP<
     }
     lua_setfield(L, -2, "targets");
 
-    lua_pushcfunction(L, ctxGridCell);
-    lua_setfield(L, -2, "grid_cell");
-    lua_pushcfunction(L, ctxColumn);
-    lua_setfield(L, -2, "column");
-    lua_pushcfunction(L, ctxRow);
-    lua_setfield(L, -2, "row");
-    lua_pushcfunction(L, ctxSplit);
-    lua_setfield(L, -2, "split");
+    Bindings::Internal::setFn(L, "grid_cell", ctxGridCell, ALLOWED_IN_PREDICATE);
+    Bindings::Internal::setFn(L, "column", ctxColumn, ALLOWED_IN_PREDICATE);
+    Bindings::Internal::setFn(L, "row", ctxRow, ALLOWED_IN_PREDICATE);
+    Bindings::Internal::setFn(L, "split", ctxSplit, ALLOWED_IN_PREDICATE);
 }

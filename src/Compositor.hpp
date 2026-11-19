@@ -87,6 +87,7 @@ class CCompositor {
     bool                                shouldChangePreferredImageDescription();
 
     bool                                supportsDrmSyncobjTimeline() const;
+    bool                                shouldManageSdEnv() const;
     std::string                         m_explicitConfigPath;
 
   private:

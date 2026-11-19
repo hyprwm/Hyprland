@@ -179,6 +179,16 @@ bool CCompositor::supportsDrmSyncobjTimeline() const {
     return m_drm.syncobjSupport || m_drmRenderNode.syncObjSupport;
 }
 
+bool CCompositor::shouldManageSdEnv() const {
+    return
+        /* Session-less Hyprland usually means a nest, don't update the env in that case */
+        m_aqBackend->hasSession() &&
+        /* Activation environment management is not disabled */
+        !Env::envEnabled("HYPRLAND_NO_SD_VARS") &&
+        /* Being executed under systemd */
+        !getenv("MANAGERPID");
+}
+
 void CCompositor::setMallocThreshold() {
 #ifdef M_TRIM_THRESHOLD
     // The default is 128 pages,
@@ -543,7 +553,7 @@ void CCompositor::cleanEnvironment() {
     if (m_desktopEnvSet)
         unsetenv("XDG_CURRENT_DESKTOP");
 
-    if (m_aqBackend->hasSession() && !Env::envEnabled("HYPRLAND_NO_SD_VARS") && !getenv("MANAGERPID")) {
+    if (shouldManageSdEnv()) {
 #ifdef USES_SYSTEMD
         if (m_sdSessionTarget)
             // stopping hyprland-session doesn't wait for dependent services; this does
@@ -794,13 +804,7 @@ void CCompositor::removeLockFile() {
 void CCompositor::startCompositor() {
     signal(SIGPIPE, SIG_IGN);
 
-    if (
-        /* Session-less Hyprland usually means a nest, don't update the env in that case */
-        m_aqBackend->hasSession() &&
-        /* Activation environment management is not disabled */
-        !Env::envEnabled("HYPRLAND_NO_SD_VARS") &&
-        /* Being executed under systemd */
-        !getenv("MANAGERPID")) {
+    if (shouldManageSdEnv()) {
         const auto CMD =
 #ifdef USES_SYSTEMD
             "systemctl --user import-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS && hash "

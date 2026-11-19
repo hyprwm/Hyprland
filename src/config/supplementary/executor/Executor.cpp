@@ -28,7 +28,7 @@ CExecutor::CExecutor() {
         m_isLaunchingExecOnce = true;
 
         // update dbus env
-        if (g_pCompositor->m_aqBackend->hasSession())
+        if (g_pCompositor->shouldManageSdEnv())
             spawnRaw(
 #ifdef USES_SYSTEMD
                 "systemctl --user import-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS && hash "

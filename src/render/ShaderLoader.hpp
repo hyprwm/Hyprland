@@ -101,13 +101,12 @@ namespace Render {
         std::string processSource(const std::string& source, glslang_stage_t stage = GLSLANG_STAGE_FRAGMENT);
 
         //
-        std::string                                                     m_shaderPath;
-        std::array<std::string, SH_FRAG_LAST>                           m_fragFiles;
-        std::array<std::map<SShaderVariant, std::string>, SH_FRAG_LAST> m_fragVariants;
-        std::map<std::string, std::string>                              m_includes;
+        std::string                           m_shaderPath;
+        std::array<std::string, SH_FRAG_LAST> m_fragFiles;
+        std::map<std::string, std::string>    m_includes;
 
-        std::string                                                     m_overrideDefines;
-        glsl_include_callbacks_t                                        m_callbacks;
+        std::string                           m_overrideDefines;
+        glsl_include_callbacks_t              m_callbacks;
     };
 
     inline UP<CShaderLoader> g_pShaderLoader;

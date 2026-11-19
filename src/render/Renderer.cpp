@@ -2619,7 +2619,7 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
         bool hdrIsHandled = false;
         if (FULLSCREEN_WINDOW) {
             const auto ROOT_SURF = FULLSCREEN_WINDOW->wlSurface()->resource();
-            const auto SURF      = ROOT_SURF->findWithCM();
+            const auto SURF      = ROOT_SURF ? ROOT_SURF->findWithCM() : nullptr;
 
             // we have a surface with image description
             if (SURF && SURF->m_colorManagement.valid() && SURF->m_colorManagement->hasImageDescription()) {

@@ -106,6 +106,7 @@ namespace Desktop::Rule {
         DEFINE_PROP(bool, noGlow, false, WINDOW_RULE_EFFECT_NO_GLOW)
         DEFINE_PROP(bool, noWobble, false, WINDOW_RULE_EFFECT_NO_WOBBLE)
         DEFINE_PROP(bool, noShortcutsInhibit, false, WINDOW_RULE_EFFECT_NO_SHORTCUTS_INHIBIT)
+        DEFINE_PROP(bool, shortcutsInhibit, false, WINDOW_RULE_EFFECT_SHORTCUTS_INHIBIT)
         DEFINE_PROP(bool, opaque, false, WINDOW_RULE_EFFECT_OPAQUE)
         DEFINE_PROP(bool, dimAround, false, WINDOW_RULE_EFFECT_DIM_AROUND)
         DEFINE_PROP(bool, RGBX, false, WINDOW_RULE_EFFECT_FORCE_RGBX)

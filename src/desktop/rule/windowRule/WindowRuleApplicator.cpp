@@ -57,6 +57,7 @@ std::unordered_set<CWindowRuleEffectContainer::storageType> CWindowRuleApplicato
                                std::pair{std::ref(m_noGlow), [this] { return noGlowEffect(); }},
                                std::pair{std::ref(m_noWobble), [this] { return noWobbleEffect(); }},
                                std::pair{std::ref(m_noShortcutsInhibit), [this] { return noShortcutsInhibitEffect(); }},
+                               std::pair{std::ref(m_shortcutsInhibit), [this] { return shortcutsInhibitEffect(); }},
                                std::pair{std::ref(m_opaque), [this] { return opaqueEffect(); }},
                                std::pair{std::ref(m_dimAround), [this] { return dimAroundEffect(); }},
                                std::pair{std::ref(m_RGBX), [this] { return RGBXEffect(); }},
@@ -350,6 +351,11 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
             case WINDOW_RULE_EFFECT_NO_SHORTCUTS_INHIBIT: {
                 m_noShortcutsInhibit.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_noShortcutsInhibit.second |= rule->getPropertiesMask();
+                break;
+            }
+            case WINDOW_RULE_EFFECT_SHORTCUTS_INHIBIT: {
+                m_shortcutsInhibit.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
+                m_shortcutsInhibit.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_OPAQUE: {

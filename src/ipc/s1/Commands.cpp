@@ -1680,6 +1680,8 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
         return windowPropToString(PWINDOW->m_ruleApplicator->noWobble());
     else if (PROP == "no_shortcuts_inhibit")
         return windowPropToString(PWINDOW->m_ruleApplicator->noShortcutsInhibit());
+    else if (PROP == "shortcuts_inhibit")
+        return windowPropToString(PWINDOW->m_ruleApplicator->shortcutsInhibit());
     else if (PROP == "opaque")
         return windowPropToString(PWINDOW->m_ruleApplicator->opaque());
     else if (PROP == "dim_around")

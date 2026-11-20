@@ -222,6 +222,8 @@ bool CWLDataSourceResource::good() {
 }
 
 void CWLDataSourceResource::accepted(const std::string& mime) {
+    if (!good())
+        return;
     if (mime.empty()) {
         m_resource->sendTarget(nullptr);
         return;
@@ -240,6 +242,8 @@ std::vector<std::string> CWLDataSourceResource::mimes() {
 }
 
 void CWLDataSourceResource::send(const std::string& mime, CFileDescriptor fd) {
+    if (!good())
+        return;
     if (std::ranges::find(m_mimeTypes, mime) == m_mimeTypes.end()) {
         LOG(Log::ERR, "Compositor/App bug: CWLDataSourceResource::sendAskSend with non-existent mime");
         return;
@@ -249,6 +253,8 @@ void CWLDataSourceResource::send(const std::string& mime, CFileDescriptor fd) {
 }
 
 void CWLDataSourceResource::cancelled() {
+    if (!good())
+        return;
     m_resource->sendCancelled();
 }
 
@@ -261,24 +267,26 @@ bool CWLDataSourceResource::dndDone() {
 }
 
 void CWLDataSourceResource::error(uint32_t code, const std::string& msg) {
+    if (!good())
+        return;
     m_resource->error(code, msg);
 }
 
 void CWLDataSourceResource::sendDndDropPerformed() {
-    if (m_resource->version() < 3)
+    if (!good() || m_resource->version() < 3)
         return;
     m_resource->sendDndDropPerformed();
     m_dropped = true;
 }
 
 void CWLDataSourceResource::sendDndFinished() {
-    if (m_resource->version() < 3)
+    if (!good() || m_resource->version() < 3)
         return;
     m_resource->sendDndFinished();
 }
 
 void CWLDataSourceResource::sendDndAction(wl_data_device_manager_dnd_action a) {
-    if (m_resource->version() < 3)
+    if (!good() || m_resource->version() < 3)
         return;
     m_resource->sendAction(a);
 }

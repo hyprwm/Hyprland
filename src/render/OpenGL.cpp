@@ -1352,7 +1352,6 @@ void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const NColorManagement:
                                      const SCMSettings& settings) {
     shader->setUniformFloat2(SHADER_SRC_TF_RANGE, settings.srcTFRange.min, settings.srcTFRange.max);
     shader->setUniformFloat2(SHADER_DST_TF_RANGE, settings.dstTFRange.min, settings.dstTFRange.max);
-    shader->setUniformFloat(SHADER_SRC_REF_LUMINANCE, settings.srcRefLuminance);
     shader->setUniformFloat(SHADER_DST_REF_LUMINANCE, settings.dstRefLuminance);
     shader->setUniformFloat(SHADER_MAX_LUMINANCE, settings.maxLuminance);
     shader->setUniformFloat(SHADER_DST_MAX_LUMINANCE, settings.dstMaxLuminance);
@@ -1586,12 +1585,19 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(CRenderContext& ctx, SP<ITexture
 
         shaderFeatures |= SH_FEAT_CM;
 
+        // the unmodified SDR copy of HDR content always needs an HDR -> SDR tonemap, even if the main target doesn't
+        const bool SRC_IS_HDR = settings.sourceTF == CM_TRANSFER_FUNCTION_ST2084_PQ || settings.sourceTF == CM_TRANSFER_FUNCTION_HLG ||
+            settings.sourceTF == CM_TRANSFER_FUNCTION_EXT_LINEAR || settings.sourceTF == CM_TRANSFER_FUNCTION_EXT_SRGB;
+        const bool MIRROR_ONLY_TONEMAP = !TARGET_IMAGE_DESCRIPTION->value().icc.present && !settings.needsTonemap && SRC_IS_HDR && (globalFeatures(ctx) & SH_FEAT_MIRROR);
+        // tonemap = off only applies to the main target, the mirror falls back to the default tonemapper
+        const int MIRROR_TONEMAP_MODE = settings.tonemapMode == 0 ? 1 : settings.tonemapMode;
+
         if (TARGET_IMAGE_DESCRIPTION->value().icc.present)
             shaderFeatures |= SH_FEAT_ICC;
         else {
-            if (settings.needsTonemap) {
+            if (settings.needsTonemap || MIRROR_ONLY_TONEMAP) {
                 shaderFeatures |= SH_FEAT_TONEMAP;
-                if (settings.tonemapMode == 3)
+                if ((MIRROR_ONLY_TONEMAP ? MIRROR_TONEMAP_MODE : settings.tonemapMode) == 3)
                     shaderFeatures |= SH_FEAT_ALT_TONEMAP;
             }
 
@@ -1604,6 +1610,10 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(CRenderContext& ctx, SP<ITexture
         shader = useShader(shader);
 
         passCMUniforms(shader, SOURCE_IMAGE_DESCRIPTION, TARGET_IMAGE_DESCRIPTION, true, ctx.m_data.pMonitor->m_sdrMinLuminance, ctx.m_data.pMonitor->m_sdrMaxLuminance, settings);
+
+        // negative mode tells the shader to skip the main tonemap and only tonemap the mirror
+        if (MIRROR_ONLY_TONEMAP)
+            shader->setUniformInt(SHADER_TONEMAP_MODE, -MIRROR_TONEMAP_MODE);
     } else {
         if (!shader)
             shader = getShaderVariant(SH_FRAG_SURFACE, shaderFeatures | globalFeatures(ctx));

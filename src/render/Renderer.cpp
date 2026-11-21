@@ -3155,6 +3155,28 @@ void IHyprRenderer::damageRegion(const CRegion& rg) {
     rg.forEachRect([this](const auto& RECT) { damageBox(RECT.x1, RECT.y1, RECT.x2 - RECT.x1, RECT.y2 - RECT.y1); });
 }
 
+void IHyprRenderer::damageRegionDiff(const CRegion& oldRegion, const CRegion& newRegion, const CBox& surfaceBox, const Vector2D& scale, const std::optional<CBox>& clipBox) {
+    if (pixman_region32_equal(oldRegion.pixman(), newRegion.pixman()))
+        return;
+
+    CRegion changedRegion = oldRegion.copy();
+    changedRegion.subtract(newRegion);
+    CRegion addedRegion = newRegion.copy();
+    addedRegion.subtract(oldRegion);
+    changedRegion.add(addedRegion);
+
+    if (changedRegion.empty())
+        return;
+
+    const CBox clip = clipBox.value_or(CBox{{}, surfaceBox.size()});
+    changedRegion.forEachRect([this, &surfaceBox, &scale, &clip](const auto& rect) {
+        const CBox scaled{rect.x1 * scale.x, rect.y1 * scale.y, (rect.x2 - rect.x1) * scale.x, (rect.y2 - rect.y1) * scale.y};
+        auto       clipped = scaled.intersection(clip);
+        if (!clipped.empty())
+            damageBox(clipped.translate(surfaceBox.pos()));
+    });
+}
+
 void IHyprRenderer::damageMirrorsWith(PHLMONITOR pMonitor, const CRegion& pRegion) {
     for (auto const& mirror : pMonitor->m_mirrors) {
 

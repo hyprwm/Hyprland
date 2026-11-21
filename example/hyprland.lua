@@ -28,7 +28,13 @@ hl.monitor({
 ---------------------
 
 -- Set programs that you use
-local terminal    = "kitty"
+local terminal    = [[
+    for term in xdg-terminal-exec kitty alacritty foot wezterm gnome-terminal xterm; do
+        if command -v "$term" >/dev/null; then
+            exec "$term"
+        fi
+    done
+]]
 local fileManager = "dolphin"
 local menu        = "hyprlauncher"
 

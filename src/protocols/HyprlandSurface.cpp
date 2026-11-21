@@ -41,33 +41,57 @@ void CHyprlandSurface::setResource(SP<CHyprlandSurfaceV1> resource) {
 
     m_resource->setSetVisibleRegion([this](CHyprlandSurfaceV1* resource, wl_resource* region) {
         if (!region) {
-            if (!m_visibleRegion.empty())
-                m_visibleRegionChanged = true;
-
             m_visibleRegion.clear();
             markPending();
             return;
         }
 
-        m_visibleRegionChanged = true;
-        m_visibleRegion        = CWLRegionResource::fromResource(region)->m_region;
+        m_visibleRegion = CWLRegionResource::fromResource(region)->m_region;
         markPending();
     });
 
     m_listeners.surfaceCommitted = m_surface->m_events.commit.listen([this] {
         auto surface = Desktop::View::CWLSurface::fromResource(m_surface.lock());
+        if (!surface)
+            return;
 
-        if (surface && (surface->m_overallOpacity != m_opacity || m_visibleRegionChanged)) {
-            surface->m_overallOpacity = m_opacity;
-            surface->m_visibleRegion  = m_visibleRegion;
-            auto box                  = surface->getSurfaceBoxGlobal();
+        const bool opacityChanged = surface->m_overallOpacity != m_opacity;
+        const bool regionChanged  = !pixman_region32_equal(surface->m_visibleRegion.pixman(), m_visibleRegion.pixman());
 
+        surface->m_overallOpacity = m_opacity;
+
+        const auto box = surface->getSurfaceBoxGlobal();
+        if (opacityChanged) {
+            surface->m_visibleRegion = m_visibleRegion;
             if (box.has_value())
                 g_pHyprRenderer->damageBox(*box);
+        } else if (regionChanged && box.has_value()) {
+            const auto& cur = m_surface->m_current;
 
-            if (!m_resource)
-                PROTO::hyprlandSurface->destroySurface(this);
+            // It has to be expanded to the full buffer before the difference is computed,
+            // otherwise switching between a restricted and an unrestricted region would not damage
+            // the pixels that became visible or hidden.
+            const CBox bufferBox{Vector2D(), cur.bufferSize};
+
+            CRegion    oldRegion = surface->m_visibleRegion.copy();
+            if (oldRegion.empty())
+                oldRegion = bufferBox;
+
+            CRegion newRegion = m_visibleRegion.copy();
+            if (newRegion.empty())
+                newRegion = bufferBox;
+
+            surface->m_visibleRegion = m_visibleRegion;
+
+            const double sx = cur.bufferSize.x > 0 ? cur.size.x / cur.bufferSize.x : 1.0;
+            const double sy = cur.bufferSize.y > 0 ? cur.size.y / cur.bufferSize.y : 1.0;
+            g_pHyprRenderer->damageRegionDiff(oldRegion, newRegion, *box, {sx, sy}, CBox{{}, cur.size});
+        } else {
+            surface->m_visibleRegion = m_visibleRegion;
         }
+
+        if (!m_resource)
+            PROTO::hyprlandSurface->destroySurface(this);
     });
 
     m_listeners.surfaceDestroyed = m_surface->m_events.destroy.listen([this] {
@@ -79,9 +103,6 @@ void CHyprlandSurface::setResource(SP<CHyprlandSurfaceV1> resource) {
 void CHyprlandSurface::destroy() {
     m_resource.reset();
     m_opacity = 1.F;
-
-    if (!m_visibleRegion.empty())
-        m_visibleRegionChanged = true;
 
     m_visibleRegion.clear();
     markPending();

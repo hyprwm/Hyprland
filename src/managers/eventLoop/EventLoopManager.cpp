@@ -1,6 +1,7 @@
 #include "EventLoopManager.hpp"
 #include "../../debug/log/Logger.hpp"
 #include "../../Compositor.hpp"
+#include "../ActorManager.hpp"
 #include "../../config/shared/inotify/ConfigWatcher.hpp"
 
 #include <algorithm>
@@ -48,7 +49,20 @@ CEventLoopManager::~CEventLoopManager() {
         wl_event_source_remove(m_configWatcherInotifySource);
 }
 
+// deferred work runs as the actor that deferred it, while devices, timers and config changes run as the human
+static std::function<void()> asCurrentActor(std::function<void()> fn) {
+    if (!Actor::mgr())
+        return fn;
+
+    return [fn = std::move(fn), actor = WP<Actor::CActor>{Actor::mgr()->current()}] {
+        Actor::CScope scope{actor.lock()};
+        fn();
+    };
+}
+
 static int timerWrite(int fd, uint32_t mask, void* data) {
+    Actor::CScope scope{Actor::mgr()->human()};
+
     if (!CFileDescriptor::isReadable(fd))
         LOG(Log::ERR, "timerWrite: triggered a non readable event on fd : {}", fd);
     else {
@@ -62,12 +76,16 @@ static int timerWrite(int fd, uint32_t mask, void* data) {
 }
 
 static int aquamarineFDWrite(int fd, uint32_t mask, void* data) {
-    auto POLLFD = sc<Aquamarine::SPollFD*>(data);
+    Actor::CScope scope{Actor::mgr()->human()};
+
+    auto          POLLFD = sc<Aquamarine::SPollFD*>(data);
     POLLFD->onSignal();
     return 0;
 }
 
 static int configWatcherWrite(int fd, uint32_t mask, void* data) {
+    Actor::CScope scope{Actor::mgr()->human()};
+
     Config::watcher()->onInotifyEvent();
     return 0;
 }
@@ -215,7 +233,7 @@ void CEventLoopManager::nudgeTimers() {
 uint64_t CEventLoopManager::doLater(const std::function<void()>& fn) {
     const uint64_t NEW_SEQ = ++LAST_DO_LATER_SEQ;
 
-    m_idle.fns.emplace_back(NEW_SEQ, fn);
+    m_idle.fns.emplace_back(NEW_SEQ, asCurrentActor(fn));
 
     if (m_idle.eventSource)
         return NEW_SEQ;
@@ -256,7 +274,7 @@ WP<SReadableWaiter> CEventLoopManager::doOnReadable(CFileDescriptor fd, std::fun
         return nullptr;
     }
 
-    auto& waiter   = m_readableWaiters.emplace_back(makeUnique<SReadableWaiter>(nullptr, std::move(fd), std::move(fn)));
+    auto& waiter   = m_readableWaiters.emplace_back(makeUnique<SReadableWaiter>(nullptr, std::move(fd), asCurrentActor(std::move(fn))));
     waiter->source = wl_event_loop_add_fd(g_pEventLoopManager->m_wayland.loop, waiter->fd.get(), WL_EVENT_READABLE, ::handleWaiterFD, waiter.get());
 
     return waiter;

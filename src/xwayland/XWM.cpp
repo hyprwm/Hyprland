@@ -16,6 +16,7 @@
 #include "../Compositor.hpp"
 #include "../protocols/core/Seat.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
+#include "../managers/ActorManager.hpp"
 #include "../managers/SeatManager.hpp"
 #include "../helpers/env/Env.hpp"
 #include "../helpers/string/StringUtils.hpp"
@@ -31,6 +32,7 @@ using namespace Hyprutils::OS;
 constexpr size_t INCR_CHUNK_SIZE = 64ul * 1024;
 
 static int       onX11Event(int fd, uint32_t mask, void* data) {
+    Actor::CScope scope{Actor::mgr()->human()};
     return g_pXWayland->m_wm->onEvent(fd, mask);
 }
 
@@ -1469,6 +1471,10 @@ SP<IDataOffer> CXWM::createX11DataOffer(SP<CWLSurfaceResource> surf, SP<IDataSou
 }
 
 void SXSelection::onSelection() {
+    // X11 clients are the human's
+    if (!Actor::mgr()->current()->isHuman())
+        return;
+
     const bool isClipboard = this == &g_pXWayland->m_wm->m_clipboard;
     const bool isPrimary   = this == &g_pXWayland->m_wm->m_primarySelection;
 

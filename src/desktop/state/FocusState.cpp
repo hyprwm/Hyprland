@@ -7,6 +7,7 @@
 #include "../../render/Renderer.hpp"
 #include "../../ipc/s2/S2.hpp"
 #include "../../managers/input/InputManager.hpp"
+#include "../../managers/ActorManager.hpp"
 #include "../../managers/SeatManager.hpp"
 #include "animation/WorkspaceAnimationController.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
@@ -20,11 +21,20 @@ using namespace Desktop;
 #define COMMA ,
 
 SP<CFocusState> Desktop::focusState() {
+    return Actor::mgr() ? Actor::mgr()->current()->m_focus : humanFocusState();
+}
+
+SP<CFocusState> Desktop::humanFocusState() {
     static SP<CFocusState> state = makeShared<CFocusState>();
     return state;
 }
 
 Desktop::CFocusState::CFocusState() = default;
+
+// an actor focuses only the surfaces of its own clients
+static bool currentActorOwns(SP<CWLSurfaceResource> surface) {
+    return !surface || Actor::mgr()->current()->owns(surface->client());
+}
 
 struct SFullscreenWorkspaceFocusResult {
     PHLWINDOW overrideFocusWindow = nullptr;
@@ -100,6 +110,9 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLS
     static auto PSPECIALFALLTHROUGH = CConfigValue<Config::INTEGER>("input:special_fallthrough");
 
     if (pWindow == m_focusWindow && surface == m_focusSurface && m_focusSurface)
+        return;
+
+    if (pWindow && !currentActorOwns(pWindow->wlSurface()->resource()))
         return;
 
     if (!pWindow || !pWindow->priorityFocus()) {
@@ -229,6 +242,9 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLS
 }
 
 void CFocusState::rawSurfaceFocus(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWindowOwner) {
+    if (!currentActorOwns(pSurface))
+        return;
+
     if (g_pSeatManager->m_state.keyboardFocus == pSurface || (pWindowOwner && g_pSeatManager->m_state.keyboardFocus == pWindowOwner->wlSurface()->resource()))
         return; // Don't focus when already focused on this.
 

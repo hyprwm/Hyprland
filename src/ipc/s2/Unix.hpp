@@ -30,10 +30,12 @@ namespace IPC::Socket2 {
 
     class CUnixImpl : public IImplementation {
       public:
-        CUnixImpl();
+        // listens on path, or on the instance's .socket2.sock for none
+        explicit CUnixImpl(const std::string& path = "");
         virtual ~CUnixImpl();
 
         virtual bool send(std::string&& x) override;
+        bool         listening() const;
 
         int          onServerEvent(int fd, uint32_t mask);
         int          onClientEvent(int fd, uint32_t mask);

@@ -599,7 +599,8 @@ void CWLSeatProtocol::updateKeymap() {
         return;
 
     for (auto const& k : m_keyboards) {
-        k->sendKeymap(g_pSeatManager->m_keyboard.lock());
+        if (!k->m_owner || g_pSeatManager->serves(k->m_owner->client()))
+            k->sendKeymap(g_pSeatManager->m_keyboard.lock());
     }
 }
 
@@ -608,7 +609,8 @@ void CWLSeatProtocol::updateRepeatInfo(uint32_t rate, uint32_t delayMs) {
         return;
 
     for (auto const& k : m_keyboards) {
-        k->repeatInfo(rate, delayMs);
+        if (!k->m_owner || g_pSeatManager->serves(k->m_owner->client()))
+            k->repeatInfo(rate, delayMs);
     }
 }
 

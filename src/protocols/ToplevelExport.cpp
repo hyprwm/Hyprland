@@ -1,5 +1,6 @@
 #include "ToplevelExport.hpp"
 #include "../Compositor.hpp"
+#include "../managers/ActorManager.hpp"
 #include "ForeignToplevelWlr.hpp"
 #include "../managers/screenshare/ScreenshareManager.hpp"
 #include "../helpers/Format.hpp"
@@ -28,7 +29,7 @@ CToplevelExportClient::CToplevelExportClient(SP<CHyprlandToplevelExportManagerV1
 }
 
 void CToplevelExportClient::captureToplevel(uint32_t frame, int32_t overlayCursor_, PHLWINDOW handle) {
-    if UNLIKELY (!handle) {
+    if UNLIKELY (!handle || Actor::mgr()->hides(m_resource->client(), handle)) {
         LOG(Log::ERR, "Couldn't capture (window doesn't exist)");
         return;
     }

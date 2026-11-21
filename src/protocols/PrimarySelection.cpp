@@ -1,5 +1,6 @@
 #include "PrimarySelection.hpp"
 #include <algorithm>
+#include "../managers/ActorManager.hpp"
 #include "../managers/SeatManager.hpp"
 #include "core/Seat.hpp"
 #include "../config/ConfigValue.hpp"
@@ -271,7 +272,7 @@ void CPrimarySelectionProtocol::sendSelectionToDevice(SP<CPrimarySelectionDevice
 
 void CPrimarySelectionProtocol::setSelection(SP<IDataSource> source) {
     for (auto const& o : m_offers) {
-        if (o->m_source && o->m_source->hasDnd())
+        if (o->m_source && (o->m_source->hasDnd() || Actor::mgr()->isOthersSelection(o->m_source.lock())))
             continue;
         o->m_dead = true;
     }
@@ -322,6 +323,8 @@ void CPrimarySelectionProtocol::updateSelection() {
 
 void CPrimarySelectionProtocol::onPointerFocus() {
     for (auto const& o : m_offers) {
+        if (o->m_source && Actor::mgr()->isOthersSelection(o->m_source.lock()))
+            continue;
         o->m_dead = true;
     }
 

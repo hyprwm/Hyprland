@@ -115,6 +115,12 @@ class CSeatManager {
 
     SP<CWLSeatResource> seatResourceForClient(wl_client* client);
 
+    // whether the client belongs to this seat's actor
+    bool serves(wl_client* client);
+
+    // the keys this seat's apps see pressed, so one actor's keys never release another's
+    std::vector<uint32_t> m_pressedKeys;
+
     struct {
         WP<CWLSurfaceResource> keyboardFocus;
         WP<CWLSeatResource>    keyboardFocusResource;
@@ -133,7 +139,8 @@ class CSeatManager {
         Vector2D               hotspot;
     };
 
-    struct {
+    // every actor's seat emits these, so a listener reads g_pSeatManager, the seat that emitted
+    static inline struct {
         CSignalT<>                keyboardFocusChange;
         CSignalT<>                pointerFocusChange;
         CSignalT<>                dndPointerFocusChange;
@@ -200,4 +207,9 @@ class CSeatManager {
     friend class CSeatGrab;
 };
 
-inline UP<CSeatManager> g_pSeatManager;
+// the seat of the current actor, see ActorManager.hpp
+struct SCurrentSeat {
+    CSeatManager* operator->() const;
+};
+
+inline SCurrentSeat g_pSeatManager;

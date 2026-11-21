@@ -4,6 +4,7 @@
 #include "../../animation/WorkspaceAnimationController.hpp"
 #include "../../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../../debug/log/Logger.hpp"
+#include "../../managers/ActorManager.hpp"
 #include "../../workspace/HLWorkspace.hpp"
 #include "../../output/Monitor.hpp"
 #include "../MonitorState.hpp"
@@ -85,7 +86,8 @@ class CHyprlandPolicyContext final : public IPolicyContext {
         if (!MONITOR)
             return std::nullopt;
 
-        const auto CONFIGURED = Config::workspaceRuleMgr()->getDefaultWorkspaceFor(*MONITOR);
+        // an agent's monitor starts on the agent's workspace
+        const auto CONFIGURED = Actor::mgr()->workspaceFor(MONITOR).value_or(Config::workspaceRuleMgr()->getDefaultWorkspaceFor(*MONITOR));
         if (CONFIGURED.empty())
             return std::nullopt;
 

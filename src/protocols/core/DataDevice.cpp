@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <array>
 #include <bit>
+#include "../../managers/ActorManager.hpp"
 #include "../../managers/SeatManager.hpp"
 #include "../../pointer/PointerManager.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
@@ -551,7 +552,7 @@ void CWLDataDeviceProtocol::onDestroyDataSource(WP<CWLDataSourceResource> source
 
 void CWLDataDeviceProtocol::setSelection(SP<IDataSource> source) {
     for (auto const& o : m_offers) {
-        if (o->m_source && o->m_source->hasDnd())
+        if (o->m_source && (o->m_source->hasDnd() || Actor::mgr()->isOthersSelection(o->m_source.lock())))
             continue;
         o->m_dead = true;
     }
@@ -605,7 +606,7 @@ void CWLDataDeviceProtocol::updateSelection() {
 
 void CWLDataDeviceProtocol::onKeyboardFocus() {
     for (auto const& o : m_offers) {
-        if (o->m_source && o->m_source->hasDnd())
+        if (o->m_source && (o->m_source->hasDnd() || Actor::mgr()->isOthersSelection(o->m_source.lock())))
             continue;
         o->m_dead = true;
     }

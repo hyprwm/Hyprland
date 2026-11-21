@@ -3,6 +3,7 @@
 #include "Commands.hpp"
 #include "Unix.hpp"
 #include "../../debug/log/Logger.hpp"
+#include "../../managers/ActorManager.hpp"
 
 #include <algorithm>
 #include <optional>
@@ -38,7 +39,11 @@ UP<CSocket1>& IPC::Socket1::sock() {
 
 CSocket1::CSocket1() : m_impl(makeUnique<CUnixImpl>()) {
     registerBuiltinCommands(*this);
-    m_impl->start([this](std::string&& request, pid_t pid) { return dispatch(std::move(request), pid); });
+    // this socket serves the human, an agent has its own, see Actor::CActor
+    m_impl->start([this](std::string&& request, pid_t pid) {
+        Actor::CScope scope{Actor::mgr()->human()};
+        return dispatch(std::move(request), pid);
+    });
 }
 
 CSocket1::~CSocket1() = default;

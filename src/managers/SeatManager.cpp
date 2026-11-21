@@ -7,6 +7,7 @@
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/InputCapture.hpp"
+#include "ActorManager.hpp"
 #include "../Compositor.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../devices/IKeyboard.hpp"
@@ -88,8 +89,19 @@ void CKeyboardEventHandlerStack::pruneHandlers() {
     std::erase_if(m_handlers, [](const auto& handler) { return handler.expired(); });
 }
 
+CSeatManager* SCurrentSeat::operator->() const {
+    return Actor::mgr()->current()->m_seat.get();
+}
+
 CSeatManager::CSeatManager() {
-    m_listeners.newSeatResource = PROTO::seat->m_events.newSeatResource.listen([this](const auto& resource) { onNewSeatResource(resource); });
+    m_listeners.newSeatResource = PROTO::seat->m_events.newSeatResource.listen([this](const auto& resource) {
+        if (serves(resource->client()))
+            onNewSeatResource(resource);
+    });
+}
+
+bool CSeatManager::serves(wl_client* client) {
+    return Actor::mgr()->actorFor(client)->m_seat.get() == this;
 }
 
 CSeatManager::SSeatResourceContainer::SSeatResourceContainer(SP<CWLSeatResource> res) : resource(res) {
@@ -220,6 +232,10 @@ void CSeatManager::setKeyboard(SP<IKeyboard> KEEB) {
     if (m_keyboard == KEEB)
         return;
 
+    // a seat without a keyboard can't follow its actor's focus, so it forgets it, and its first keyboard enters what
+    // its actor focuses. Apps may bind keyboards before then, as the capabilities cover every actor's keyboards
+    const bool FIRST = !m_keyboard;
+
     if (m_keyboard)
         m_keyboard->m_active = false;
     m_keyboard = KEEB;
@@ -228,6 +244,11 @@ void CSeatManager::setKeyboard(SP<IKeyboard> KEEB) {
         KEEB->m_active = true;
 
     updateActiveKeyboardData();
+
+    if (!KEEB)
+        m_state.keyboardFocus.reset();
+    else if (FIRST)
+        setKeyboardFocus(Desktop::focusState()->surface());
 }
 
 void CSeatManager::updateActiveKeyboardData() {
@@ -251,7 +272,7 @@ void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {
     // Don't gate leave on m_state.keyboardFocusResource — the WP can
     // be stale. sendLeave no-ops on keyboards without m_currentSurface.
     for (auto const& k : PROTO::seat->m_keyboards) {
-        if (!k)
+        if (!k || (k->m_owner && !serves(k->m_owner->client())))
             continue;
 
         k->sendMods(0, m_keyboard->m_modifiersState.latched, m_keyboard->m_modifiersState.locked, m_keyboard->m_modifiersState.group);
@@ -372,7 +393,7 @@ void CSeatManager::setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& 
     g_pInputManager->pointerConstraints().release();
 
     for (auto const& p : PROTO::seat->m_pointers) {
-        if (!p)
+        if (!p || (p->m_owner && !serves(p->m_owner->client())))
             continue;
 
         p->sendLeave();

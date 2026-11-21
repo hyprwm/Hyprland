@@ -5,6 +5,7 @@
 #include "../../desktop/view/window/WindowSwallowController.hpp"
 #include "../../output/Monitor.hpp"
 #include "../../pointer/PointerManager.hpp"
+#include "../../managers/ActorManager.hpp"
 #include "workspace/AbstractWorkspace.hpp"
 
 #include <algorithm>
@@ -390,6 +391,9 @@ static std::string monitorsRequest(eHyprCtlOutputFormat format, std::string requ
         result += "[";
 
         for (auto const& m : allMonitors ? State::monitorState()->allMonitors() : State::monitorState()->monitors()) {
+            if (!Actor::mgr()->current()->owns(m))
+                continue;
+
             result += CCommandFormatter::getMonitorData(m, format);
         }
 
@@ -398,7 +402,7 @@ static std::string monitorsRequest(eHyprCtlOutputFormat format, std::string requ
         result += "]";
     } else {
         for (auto const& m : allMonitors ? State::monitorState()->allMonitors() : State::monitorState()->monitors()) {
-            if (!m->m_output || m->m_id == -1)
+            if (!m->m_output || m->m_id == -1 || !Actor::mgr()->current()->owns(m))
                 continue;
 
             result += CCommandFormatter::getMonitorData(m, format);
@@ -573,7 +577,7 @@ static std::string clientsRequest(const SRequest& request) {
         result += "[";
 
         for (auto const& w : Desktop::windowState()->windows()) {
-            if (!w->mapped() && !request.all)
+            if ((!w->mapped() && !request.all) || !Actor::mgr()->current()->owns(w))
                 continue;
 
             result += CCommandFormatter::getWindowData(w, format);
@@ -584,7 +588,7 @@ static std::string clientsRequest(const SRequest& request) {
         result += "]";
     } else {
         for (auto const& w : Desktop::windowState()->windows()) {
-            if (!w->mapped() && !request.all)
+            if ((!w->mapped() && !request.all) || !Actor::mgr()->current()->owns(w))
                 continue;
 
             result += CCommandFormatter::getWindowData(w, format);
@@ -713,6 +717,9 @@ static std::string workspacesRequest(eHyprCtlOutputFormat format, std::string re
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
         for (auto const& w : State::Workspace::state()->workspaces()) {
+            if (!Actor::mgr()->current()->owns(w.lock()))
+                continue;
+
             result += CCommandFormatter::getWorkspaceData(w.lock(), format);
             result += ",";
         }
@@ -721,6 +728,9 @@ static std::string workspacesRequest(eHyprCtlOutputFormat format, std::string re
         result += "]";
     } else {
         for (auto const& w : State::Workspace::state()->workspaces()) {
+            if (!Actor::mgr()->current()->owns(w.lock()))
+                continue;
+
             result += CCommandFormatter::getWorkspaceData(w.lock(), format);
         }
     }
@@ -1389,7 +1399,7 @@ static std::string splashRequest(eHyprCtlOutputFormat format, std::string reques
 }
 
 static std::string cursorPosRequest(eHyprCtlOutputFormat format, std::string request) {
-    const auto CURSORPOS = Pointer::mgr()->untransformedPosition().floor();
+    const auto CURSORPOS = Actor::mgr()->current()->cursor().floor();
 
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
         return std::format("{}, {}", sc<int>(CURSORPOS.x), sc<int>(CURSORPOS.y));

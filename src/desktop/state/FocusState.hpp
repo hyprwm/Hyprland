@@ -62,4 +62,6 @@ namespace Desktop {
     };
 
     SP<CFocusState> focusState();
+    // the human's, which exists before the actors, as the config loads before them
+    SP<CFocusState> humanFocusState();
 };

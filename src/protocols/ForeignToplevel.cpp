@@ -1,5 +1,6 @@
 #include "ForeignToplevel.hpp"
 #include "../Compositor.hpp"
+#include "../managers/ActorManager.hpp"
 #include "../event/EventBus.hpp"
 
 CForeignToplevelHandle::CForeignToplevelHandle(SP<CExtForeignToplevelHandleV1> resource_, PHLWINDOW pWindow_) : m_resource(resource_), m_window(pWindow_) {
@@ -42,7 +43,7 @@ CForeignToplevelList::CForeignToplevelList(SP<CExtForeignToplevelListV1> resourc
 }
 
 void CForeignToplevelList::onMap(PHLWINDOW pWindow) {
-    if UNLIKELY (m_finished)
+    if UNLIKELY (m_finished || Actor::mgr()->hides(m_resource->client(), pWindow))
         return;
 
     // check if the window already had a handle in the past

@@ -1,6 +1,7 @@
 #include "PointerManager.hpp"
 #include "PointerTransformer.hpp"
 #include "../Compositor.hpp"
+#include "../managers/ActorManager.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../config/shared/actions/ConfigActions.hpp"
 #include "../config/ConfigManager.hpp"
@@ -1030,7 +1031,8 @@ void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev, WP<Aquamarine::IO
 void CPointerManager::onMonitorLayoutChange() {
     m_currentMonitorLayout.monitorBoxes.clear();
     for (auto const& m : State::monitorState()->monitors()) {
-        if (m->isMirror() || !m->m_enabled || !m->m_output)
+        // this cursor is the human's, so it stays off the agents' monitors
+        if (m->isMirror() || !m->m_enabled || !m->m_output || !Actor::mgr()->actorFor(m)->isHuman())
             continue;
 
         m_currentMonitorLayout.monitorBoxes.emplace_back(m->m_position, m->m_size);
@@ -1071,6 +1073,11 @@ SP<Render::ITexture> CPointerManager::cursorTextureForImage(SCursorImageData& im
 void CPointerManager::attachPointer(SP<IPointer> pointer) {
     if (!pointer)
         return;
+
+    if (const auto ACTOR = Actor::mgr()->current(); !ACTOR->isHuman()) {
+        ACTOR->attachPointer(pointer);
+        return;
+    }
 
     static auto PMOUSEDPMS = CConfigValue<Config::INTEGER>("misc:mouse_move_enables_dpms");
 

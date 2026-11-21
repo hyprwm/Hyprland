@@ -1,5 +1,6 @@
 #include "ExtDataDevice.hpp"
 #include <algorithm>
+#include "../managers/ActorManager.hpp"
 #include "../managers/SeatManager.hpp"
 #include "core/Seat.hpp"
 using namespace Hyprutils::OS;
@@ -260,6 +261,10 @@ void CExtDataDeviceProtocol::destroyResource(CExtDataOffer* resource) {
 }
 
 void CExtDataDeviceProtocol::sendSelectionToDevice(SP<CExtDataDevice> dev, SP<IDataSource> sel, bool primary) {
+    // a selection reaches only the actor that set it
+    if (!g_pSeatManager->serves(dev->client()))
+        return;
+
     if (!sel) {
         if (primary)
             dev->m_resource->sendPrimarySelectionRaw(nullptr);
@@ -290,7 +295,7 @@ void CExtDataDeviceProtocol::sendSelectionToDevice(SP<CExtDataDevice> dev, SP<ID
 
 void CExtDataDeviceProtocol::setSelection(SP<IDataSource> source, bool primary) {
     for (auto const& o : m_offers) {
-        if (o->m_source && o->m_source->hasDnd())
+        if (o->m_source && (o->m_source->hasDnd() || Actor::mgr()->isOthersSelection(o->m_source.lock())))
             continue;
         if (o->m_primary != primary)
             continue;

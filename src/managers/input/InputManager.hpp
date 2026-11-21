@@ -331,11 +331,10 @@ class CInputManager {
         uint32_t lastEventTime     = 0;
         uint32_t accumulatedScroll = 0;
     } m_scrollWheelState;
-    bool                  m_pointerAxisFramePending = false;
+    bool     m_pointerAxisFramePending = false;
 
     bool                  shareKeyFromAllKBs(uint32_t key, bool pressed);
     Input::ModifierMask   shareModsFromAllKBs(Input::ModifierMask mask);
-    std::vector<uint32_t> m_pressed;
     Input::ModifierMask   m_lastMods = Input::HL_MODIFIER_NONE;
 
     friend class Desktop::View::CWLSurface;

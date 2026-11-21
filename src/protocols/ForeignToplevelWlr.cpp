@@ -2,6 +2,7 @@
 #include "core/Output.hpp"
 #include <algorithm>
 #include "../Compositor.hpp"
+#include "../managers/ActorManager.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../managers/fullscreen/FullscreenController.hpp"
 #include "../desktop/state/FocusState.hpp"
@@ -210,7 +211,7 @@ CForeignToplevelWlrManager::CForeignToplevelWlrManager(SP<CZwlrForeignToplevelMa
 }
 
 void CForeignToplevelWlrManager::onMap(PHLWINDOW pWindow) {
-    if UNLIKELY (m_finished)
+    if UNLIKELY (m_finished || Actor::mgr()->hides(m_resource->client(), pWindow))
         return;
 
     const auto NEWHANDLE = PROTO::foreignToplevelWlr->m_handles.emplace_back(

@@ -2,6 +2,7 @@
 
 #include "../../../event/EventBus.hpp"
 #include "../../../Compositor.hpp"
+#include "../../../managers/ActorManager.hpp"
 #include "../../../managers/input/InputManager.hpp"
 #include "../../../desktop/rule/windowRule/WindowRule.hpp"
 #include "../../../desktop/rule/Engine.hpp"
@@ -175,6 +176,12 @@ std::optional<uint64_t> CExecutor::spawnRawProc(const std::string& args, PHLWORK
 
     const auto HLENV = getHyprlandLaunchEnv(pInitialWorkspace);
 
+    // the app joins the actor that starts it
+    const auto ACTOR     = Actor::mgr() ? Actor::mgr()->current() : nullptr;
+    const auto AGENT     = ACTOR && !ACTOR->isHuman();
+    const auto DISPLAY   = ACTOR ? ACTOR->display() : g_pCompositor->m_wlDisplaySocket;
+    const auto SIGNATURE = ACTOR ? ACTOR->signature() : g_pCompositor->m_instanceSignature;
+
     pid_t      child = fork();
     if (child < 0) {
         LOG(Log::DEBUG, "Fail to fork");
@@ -191,7 +198,10 @@ std::optional<uint64_t> CExecutor::spawnRawProc(const std::string& args, PHLWORK
         for (auto const& e : HLENV) {
             setenv(e.first.c_str(), e.second.c_str(), 1);
         }
-        setenv("WAYLAND_DISPLAY", g_pCompositor->m_wlDisplaySocket.c_str(), 1);
+        setenv("WAYLAND_DISPLAY", DISPLAY.c_str(), 1);
+        setenv("HYPRLAND_INSTANCE_SIGNATURE", SIGNATURE.c_str(), 1);
+        if (AGENT)
+            unsetenv("DISPLAY");
         if (!execRuleToken.empty())
             setenv(Desktop::Rule::EXEC_RULE_ENV_NAME, execRuleToken.c_str(), true);
 

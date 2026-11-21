@@ -16,6 +16,7 @@
 #include "pointer/cursor/CursorManager.hpp"
 #include "managers/TokenManager.hpp"
 #include "pointer/PointerManager.hpp"
+#include "managers/ActorManager.hpp"
 #include "managers/SeatManager.hpp"
 #include "managers/VersionKeeperManager.hpp"
 #include "managers/DonationNagManager.hpp"
@@ -277,6 +278,9 @@ static std::vector<SP<Aquamarine::IOutput>> pendingOutputs;
 //
 
 static bool filterGlobals(const wl_client* client, const wl_global* global, void* data) {
+    if (Actor::mgr() && Actor::mgr()->hides(client, global))
+        return false;
+
     if (!PROTO::securityContext->isClientSandboxed(client))
         return true;
 
@@ -328,12 +332,23 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
     option.backendType        = Aquamarine::eBackendType::AQ_BACKEND_HEADLESS;
     option.backendRequestMode = Aquamarine::eBackendRequestMode::AQ_BACKEND_REQUEST_MANDATORY;
     implementations.emplace_back(option);
-    option.backendType        = Aquamarine::eBackendType::AQ_BACKEND_DRM;
-    option.backendRequestMode = Aquamarine::eBackendRequestMode::AQ_BACKEND_REQUEST_IF_AVAILABLE;
-    implementations.emplace_back(option);
-    option.backendType        = Aquamarine::eBackendType::AQ_BACKEND_WAYLAND;
-    option.backendRequestMode = Aquamarine::eBackendRequestMode::AQ_BACKEND_REQUEST_FALLBACK;
-    implementations.emplace_back(option);
+    // HYPRLAND_HEADLESS_ONLY: no display, only headless outputs. It never
+    // touches the seat, so it can run beside a session. It connects to the
+    // parent compositor, if there is one, without opening a window there; an
+    // output made with `hyprctl output create wayland` shows it in one.
+    if (Env::envEnabled("HYPRLAND_HEADLESS_ONLY")) {
+        setenv("AQ_WAYLAND_NO_INITIAL_OUTPUT", "1", true);
+        option.backendType        = Aquamarine::eBackendType::AQ_BACKEND_WAYLAND;
+        option.backendRequestMode = Aquamarine::eBackendRequestMode::AQ_BACKEND_REQUEST_IF_AVAILABLE;
+        implementations.emplace_back(option);
+    } else {
+        option.backendType        = Aquamarine::eBackendType::AQ_BACKEND_DRM;
+        option.backendRequestMode = Aquamarine::eBackendRequestMode::AQ_BACKEND_REQUEST_IF_AVAILABLE;
+        implementations.emplace_back(option);
+        option.backendType        = Aquamarine::eBackendType::AQ_BACKEND_WAYLAND;
+        option.backendRequestMode = Aquamarine::eBackendRequestMode::AQ_BACKEND_REQUEST_FALLBACK;
+        implementations.emplace_back(option);
+    }
 
     m_aqBackend = CBackend::create(implementations, options);
 
@@ -354,6 +369,9 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
             "Wayland session, NOT an X11 one.");
         throwError("CBackend::create() failed!");
     }
+
+    // For aquamarine's start only, not for the apps this Hyprland starts.
+    unsetenv("AQ_WAYLAND_NO_INITIAL_OUTPUT");
 
     m_initialized = true;
 
@@ -643,7 +661,7 @@ void CCompositor::cleanup() {
     ErrorOverlay::overlay().reset();
     g_pXWaylandManager.reset();
     Pointer::mgr().reset();
-    g_pSeatManager.reset();
+    Actor::mgr().reset();
     IPC::Socket1::sock().reset();
     g_pEventLoopManager.reset();
     g_pVersionKeeperMgr.reset();
@@ -720,8 +738,8 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             LOG(Log::DEBUG, "Creating the ProtocolManager!");
             g_pProtocolManager = makeUnique<CProtocolManager>();
 
-            LOG(Log::DEBUG, "Creating the SeatManager!");
-            g_pSeatManager = makeUnique<CSeatManager>();
+            LOG(Log::DEBUG, "Creating the ActorManager!");
+            Actor::mgr() = makeUnique<Actor::CActorManager>();
 
             LOG(Log::DEBUG, "Creating the SessionLockManager!");
             g_pSessionLockManager = makeUnique<CSessionLockManager>();
@@ -821,6 +839,17 @@ void CCompositor::startCompositor() {
     }
 
     LOG(Log::DEBUG, "Running on WAYLAND_DISPLAY: {}", m_wlDisplaySocket);
+
+    // Headless-only starts with one headless monitor, as a session starts with
+    // its displays, so clients have somewhere to map.
+    if (Env::envEnabled("HYPRLAND_HEADLESS_ONLY")) {
+        for (auto const& impl : m_aqBackend->getImplementations()) {
+            if (impl->type() == Aquamarine::AQ_BACKEND_HEADLESS) {
+                impl->createOutput();
+                break;
+            }
+        }
+    }
 
     g_pHyprRenderer->setCursorFromName("left_ptr");
 

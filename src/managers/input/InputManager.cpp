@@ -1,6 +1,7 @@
 #include "InputManager.hpp"
 #include "../../desktop/view/window/WindowPresentation.hpp"
 #include "../../Compositor.hpp"
+#include "../ActorManager.hpp"
 #include <aquamarine/output/Output.hpp>
 #include <cstdint>
 #include <hyprutils/math/Vector2D.hpp>
@@ -67,7 +68,7 @@ using namespace Hyprutils::String;
 
 CInputManager::CInputManager() {
     m_listeners.setCursorShape = PROTO::cursorShape->m_events.setShape.listen([this](const CCursorShapeProtocol::SSetShapeEvent& event) {
-        if (!g_pSeatManager->m_state.pointerFocusResource)
+        if (!g_pSeatManager->m_state.pointerFocusResource || !Actor::mgr()->current()->isHuman())
             return;
 
         if (wl_resource_get_client(event.pMgr->resource()) != g_pSeatManager->m_state.pointerFocusResource->client())
@@ -250,7 +251,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     if (!pointerOnly)
         m_lastInputMouse = mouse;
 
-    if (g_pCompositor->m_isShuttingDown)
+    // this cursor is the human's, so it moves only the human's focus
+    if (g_pCompositor->m_isShuttingDown || !Actor::mgr()->current()->isHuman())
         return;
 
     Vector2D const mouseCoords        = overridePos.value_or(getMouseCoordsInternal());
@@ -783,6 +785,10 @@ void CInputManager::onMouseButton(IPointer::SButtonEvent e, SP<IPointer> mouse) 
 }
 
 void CInputManager::processMouseRequest(const CSeatManager::SSetCursorEvent& event) {
+    // the cursor image is the human's, so an agent's apps can't set it
+    if (!Actor::mgr()->current()->isHuman())
+        return;
+
     LOG(Log::DEBUG, "cursorImage request: surface {:x}", rc<uintptr_t>(event.surf.get()));
 
     if (event.surf != m_cursorSurfaceInfo.wlSurface->resource()) {
@@ -1563,7 +1569,7 @@ void CInputManager::destroyKeyboard(SP<IKeyboard> pKeyboard) {
     if (!m_keyboards.empty()) {
         bool found = false;
         for (auto const& k : m_keyboards | std::views::reverse) {
-            if (!k)
+            if (!k || !Actor::mgr()->current()->owns(k->getClient()))
                 continue;
 
             g_pSeatManager->setKeyboard(k);
@@ -1716,7 +1722,8 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
     if (!pKeyboard->m_enabled || !pKeyboard->m_allowed)
         return;
 
-    const bool           DISALLOWACTION = pKeyboard->isVirtual() && shouldIgnoreVirtualKeyboard(pKeyboard);
+    // keybinds and the input method are the human's, so an agent's keys go straight to its apps
+    const bool           DISALLOWACTION = !Actor::mgr()->current()->isHuman() || (pKeyboard->isVirtual() && shouldIgnoreVirtualKeyboard(pKeyboard));
 
     const auto           IME    = m_relay.m_inputMethod.lock();
     const bool           HASIME = IME && IME->hasGrab();
@@ -1765,7 +1772,8 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
         IME->setKeyboard(pKeyboard);
         IME->sendKey(event.timeMs, event.keycode, state);
     } else {
-        const auto CONTAINS = std::ranges::contains(m_pressed, event.keycode);
+        auto&      pressedKeys = g_pSeatManager->m_pressedKeys;
+        const auto CONTAINS    = std::ranges::contains(pressedKeys, event.keycode);
 
         if (CONTAINS && pressed)
             return;
@@ -1773,9 +1781,9 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
             return;
 
         if (CONTAINS)
-            std::erase(m_pressed, event.keycode);
+            std::erase(pressedKeys, event.keycode);
         else
-            m_pressed.emplace_back(event.keycode);
+            pressedKeys.emplace_back(event.keycode);
 
         g_pSeatManager->setKeyboard(pKeyboard);
         g_pSeatManager->sendKeyboardKey(event.timeMs, event.keycode, state);
@@ -1789,7 +1797,7 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
     if (!pKeyboard->m_enabled)
         return;
 
-    const bool DISALLOWACTION = pKeyboard->isVirtual() && shouldIgnoreVirtualKeyboard(pKeyboard);
+    const bool DISALLOWACTION = !Actor::mgr()->current()->isHuman() || (pKeyboard->isVirtual() && shouldIgnoreVirtualKeyboard(pKeyboard));
 
     const auto IME               = m_relay.m_inputMethod.lock();
     const bool HASIME            = IME && IME->hasGrab();
@@ -1954,7 +1962,7 @@ void CInputManager::updateCapabilities() {
 }
 
 const std::vector<uint32_t>& CInputManager::getKeysFromAllKBs() {
-    return m_pressed;
+    return g_pSeatManager->m_pressedKeys;
 }
 
 Input::ModifierMask CInputManager::getModsFromAllKBs() {
@@ -1968,7 +1976,7 @@ bool CInputManager::shareKeyFromAllKBs(uint32_t key, bool pressed) {
         return finalState;
 
     for (auto const& kb : m_keyboards) {
-        if (!kb->shareStates())
+        if (!kb->shareStates() || !Actor::mgr()->current()->owns(kb->getClient()))
             continue;
 
         if (kb->isVirtual() && shouldIgnoreVirtualKeyboard(kb))
@@ -1989,7 +1997,7 @@ Input::ModifierMask CInputManager::shareModsFromAllKBs(Input::ModifierMask mask)
     Input::ModifierMask finalMask = mask;
 
     for (auto const& kb : m_keyboards) {
-        if (!kb->shareStates())
+        if (!kb->shareStates() || !Actor::mgr()->current()->owns(kb->getClient()))
             continue;
 
         if (kb->isVirtual() && shouldIgnoreVirtualKeyboard(kb))

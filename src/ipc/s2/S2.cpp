@@ -1,6 +1,7 @@
 #include "S2.hpp"
 
 #include "Unix.hpp"
+#include "../../managers/ActorManager.hpp"
 
 using namespace IPC;
 using namespace IPC::Socket2;
@@ -24,5 +25,13 @@ static std::string formatEvent(SEvent&& event) {
 
 void CSocket2::postEvent(SEvent&& event) {
     auto str = formatEvent(std::move(event));
+
+    // an event reaches only the actor it happened to
+    if (const auto ACTOR = Actor::mgr() ? Actor::mgr()->current() : nullptr; ACTOR && !ACTOR->isHuman()) {
+        if (ACTOR->m_events)
+            ACTOR->m_events->send(std::move(str));
+        return;
+    }
+
     m_impl->send(std::move(str));
 }

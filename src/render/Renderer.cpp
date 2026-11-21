@@ -2,6 +2,7 @@
 #include "../desktop/view/Subsurface.hpp"
 #include "SurfaceDamage.hpp"
 #include "../Compositor.hpp"
+#include "../managers/ActorManager.hpp"
 #include "../helpers/math/Math.hpp"
 #include <algorithm>
 #include <aquamarine/output/Output.hpp>
@@ -2264,6 +2265,9 @@ void IHyprRenderer::renderMirrored(CRenderContext& ctx) {
 }
 
 void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
+    // a monitor renders as its actor, so it shows that actor's focus
+    Actor::CScope scope{Actor::mgr()->actorFor(pMonitor)};
+
     if (m_renderingMonitor || m_context.active() || !pMonitor)
         return;
 

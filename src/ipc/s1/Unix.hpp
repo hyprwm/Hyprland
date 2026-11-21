@@ -63,10 +63,12 @@ namespace IPC::Socket1 {
 
     class CUnixImpl : public IImplementation {
       public:
-        CUnixImpl();
+        // listens on path, or on the instance's .socket.sock for none
+        explicit CUnixImpl(std::string path = "");
         virtual ~CUnixImpl();
 
         virtual void start(FRequestHandler&& handler) override;
+        bool         listening() const;
 
         int          onServerEvent(uint32_t mask);
         int          onClientEvent(int fd, uint32_t mask);

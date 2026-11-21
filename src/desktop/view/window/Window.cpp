@@ -1696,7 +1696,13 @@ void CWindow::unmapWindow() {
         if (m_self.lock() == Desktop::focusState()->window())
             Desktop::focusState()->resetWindowFocus();
 
-        g_pInputManager->releaseAllMouseButtons();
+        // An X11 client can destroy the window that holds its press and keep the drag going in another
+        // window (Unreal Editor does this when a lone tab is dragged). Xwayland gets the real release later,
+        // releasing here would end the drag.
+        if (m_backend->isX11() && wlSurface()->resource() && g_pSeatManager->heldPressBelongsTo(wlSurface()->resource()->client()))
+            LOG(Log::DEBUG, "{:c} unmapped with buttons held by its X11 client, not releasing them", m_self.lock());
+        else
+            g_pInputManager->releaseAllMouseButtons();
     }
 
     if (layoutTarget() == g_layoutManager->dragController()->target())

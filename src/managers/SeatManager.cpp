@@ -436,7 +436,16 @@ void CSeatManager::sendPointerMotion(uint32_t timeMs, const Vector2D& local) {
     m_lastLocalCoords = local;
 }
 
+bool CSeatManager::heldPressBelongsTo(wl_client* client) {
+    return client && m_state.pointerPressResource && m_state.pointerPressResource->client() == client && g_pInputManager->hasHeldButtons();
+}
+
 void CSeatManager::sendPointerButton(uint32_t timeMs, uint32_t key, wl_pointer_button_state state_) {
+    if (state_ == WL_POINTER_BUTTON_STATE_PRESSED)
+        m_state.pointerPressResource = m_state.pointerFocusResource;
+    else if (!g_pInputManager->hasHeldButtons())
+        m_state.pointerPressResource.reset();
+
     if (!m_state.pointerFocusResource || (PROTO::data && PROTO::data->dndActive()))
         return;
 

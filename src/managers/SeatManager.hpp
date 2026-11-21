@@ -115,6 +115,9 @@ class CSeatManager {
 
     SP<CWLSeatResource> seatResourceForClient(wl_client* client);
 
+    // true while mouse buttons are held and the last press went to this client
+    bool heldPressBelongsTo(wl_client* client);
+
     struct {
         WP<CWLSurfaceResource> keyboardFocus;
         WP<CWLSeatResource>    keyboardFocusResource;
@@ -126,6 +129,9 @@ class CSeatManager {
         WP<CWLSeatResource>    touchFocusResource;
 
         WP<CWLSurfaceResource> dndPointerFocus;
+
+        // seat resource that got the last button press
+        WP<CWLSeatResource> pointerPressResource;
     } m_state;
 
     struct SSetCursorEvent {

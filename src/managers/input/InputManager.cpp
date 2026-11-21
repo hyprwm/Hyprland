@@ -209,6 +209,12 @@ void CInputManager::sendMotionEventsToFocused() {
         // currently under the cursor. Keyboard focus changes should not steal it.
         if (POINTERHLSURF && (!POINTERHLSURF->view() || POINTERHLSURF->view()->type() != Desktop::View::VIEW_TYPE_WINDOW))
             return;
+
+        // While buttons are held the pointer stays with the surface that got the press (implicit grab).
+        // Moving it on a keyboard focus change (a window mapped and activated mid-drag) sends leave and
+        // enter, and Xwayland answers an enter by releasing every held button.
+        if (hasHeldButtons())
+            return;
     }
 
     const auto SURF = Desktop::focusState()->surface();

@@ -6,6 +6,8 @@
 #include "../../managers/SeatManager.hpp"
 #include "../../helpers/time/Time.hpp"
 #include "../../config/ConfigValue.hpp"
+#include "../../managers/input/InputManager.hpp"
+#include "../../xwayland/XWayland.hpp"
 #include <algorithm>
 
 #include <fcntl.h>
@@ -182,6 +184,14 @@ void CWLPointerResource::sendEnter(SP<CWLSurfaceResource> surface, const Vector2
     m_resource->sendEnter(g_pSeatManager->nextSerial(m_owner.lock(), true), surface->getResource().get(), wl_fixed_from_double(fixedLocal.x), wl_fixed_from_double(fixedLocal.y));
 }
 
+static bool isXWaylandClient(wl_client* client) {
+#ifndef NO_XWAYLAND
+    return client && g_pXWayland && g_pXWayland->m_server && client == g_pXWayland->m_server->m_xwaylandClient;
+#else
+    return false;
+#endif
+}
+
 void CWLPointerResource::sendLeave() {
     if (!m_owner || !m_currentSurface || !m_currentSurface->getResource()->resource())
         return;
@@ -189,16 +199,23 @@ void CWLPointerResource::sendLeave() {
     if (!(PROTO::seat->m_currentCaps & eHIDCapabilityType::HID_INPUT_CAPABILITY_POINTER))
         return;
 
-    // release all buttons unless we have a dnd going on in which case
-    // the events shall be lost.
-    if (!PROTO::data->dndActive()) {
-        const auto PRESSED_BUTTONS = m_pressedButtons;
-        for (auto const& b : PRESSED_BUTTONS) {
-            sendButton(Time::millis(Time::steadyNow()), b, WL_POINTER_BUTTON_STATE_RELEASED);
+    // Xwayland has one wl_pointer for all X11 windows. A leave on it while the buttons are still physically
+    // held means an X11 client destroyed or replaced the window holding its press mid-drag, not that the press
+    // ended. Keep the buttons marked as pressed: the real release reaches Xwayland later through this pointer.
+    if (!m_pressedButtons.empty() && isXWaylandClient(m_owner->client()) && g_pInputManager->hasHeldButtons())
+        LOG(Log::DEBUG, "wl_pointer.leave to Xwayland with buttons held, not releasing them");
+    else {
+        // release all buttons unless we have a dnd going on in which case
+        // the events shall be lost.
+        if (!PROTO::data->dndActive()) {
+            const auto PRESSED_BUTTONS = m_pressedButtons;
+            for (auto const& b : PRESSED_BUTTONS) {
+                sendButton(Time::millis(Time::steadyNow()), b, WL_POINTER_BUTTON_STATE_RELEASED);
+            }
         }
-    }
 
-    m_pressedButtons.clear();
+        m_pressedButtons.clear();
+    }
 
     m_resource->sendLeave(g_pSeatManager->nextSerial(m_owner.lock()), m_currentSurface->getResource().get());
     m_currentSurface.reset();
@@ -228,8 +245,16 @@ void CWLPointerResource::sendButton(uint32_t timeMs, uint32_t button, wl_pointer
         LOG(Log::ERR, "sendButton release on a non-pressed button");
         return;
     } else if (state == WL_POINTER_BUTTON_STATE_PRESSED && std::ranges::find(m_pressedButtons, button) != m_pressedButtons.end()) {
-        LOG(Log::ERR, "sendButton press on a non-pressed button");
-        return;
+        if (!m_owner || !isXWaylandClient(m_owner->client())) {
+            LOG(Log::ERR, "sendButton press on a non-pressed button");
+            return;
+        }
+
+        // A press kept across a leave (see sendLeave) whose release went nowhere because nothing had pointer focus
+        // when the button came up. Drop the stale entry and send the new press, Xwayland sends the missing X11
+        // release itself.
+        LOG(Log::DEBUG, "sendButton: Xwayland press for a button kept as pressed, dropping the stale entry");
+        std::erase(m_pressedButtons, button);
     }
 
     if (state == WL_POINTER_BUTTON_STATE_RELEASED)

@@ -3,7 +3,7 @@
 namespace Config::Lua {
     constexpr const char* EMERGENCY_PCALL = R"#(
 hl.bind("SUPER + Q", hl.dsp.exec_cmd [[
-    for term in kitty alacritty foot wezterm gnome-terminal xterm; do
+    for term in xdg-terminal-exec kitty alacritty foot wezterm gnome-terminal xterm; do
         if command -v "$term" >/dev/null; then
             exec "$term"
         fi

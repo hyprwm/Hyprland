@@ -32,7 +32,7 @@ void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverrid
         static auto PFLMULT           = CConfigValue<Config::FLOAT>("dwindle:split_width_multiplier");
         static auto PPRECISEMOUSEMOVE = CConfigValue<Config::BOOL>("dwindle:precise_mouse_move");
 
-        if (*PPRESERVESPLIT == 0 && *PSMARTSPLIT == 0 && *PPRECISEMOUSEMOVE == 0)
+        if (!(*PPRESERVESPLIT) && !(*PSMARTSPLIT) && !(*PPRECISEMOUSEMOVE))
             splitTop = box.h * *PFLMULT > box.w;
 
         if (verticalOverride)

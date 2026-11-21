@@ -17,13 +17,13 @@
 void CInputManager::onTouchDown(ITouch::SDownEvent e) {
     m_lastInputTouch = true;
 
-    static auto PSWIPETOUCH  = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_touch");
+    static auto PSWIPETOUCH  = CConfigValue<Config::BOOL>("gestures:workspace_swipe_touch");
     static auto PGAPSOUTDATA = CConfigValue<Config::IComplexConfigValue>("general:gaps_out");
     auto* const PGAPSOUT     = sc<Config::CCssGapData*>((PGAPSOUTDATA.ptr()));
     // TODO: WORKSPACERULE.gapsOut.value_or()
     auto                 gapsOut     = *PGAPSOUT;
     static auto          PBORDERSIZE = CConfigValue<Config::INTEGER>("general:border_size");
-    static auto          PSWIPEINVR  = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_touch_invert");
+    static auto          PSWIPEINVR  = CConfigValue<Config::BOOL>("gestures:workspace_swipe_touch_invert");
 
     Event::SCallbackInfo info;
     Event::bus()->m_events.input.touch.down.emit(e, info);
@@ -219,7 +219,7 @@ void CInputManager::onTouchMove(ITouch::SMotionEvent e, SP<ITouch> device) {
 
         const auto   ANIMSTYLE     = g_pUnifiedWorkspaceSwipe->m_workspaceBegin->m_renderOffset->getStyle();
         const bool   VERTANIMS     = ANIMSTYLE == "slidevert" || ANIMSTYLE.starts_with("slidefadevert");
-        static auto  PSWIPEINVR    = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_touch_invert");
+        static auto  PSWIPEINVR    = CConfigValue<Config::BOOL>("gestures:workspace_swipe_touch_invert");
         static auto  PSWIPEDIST    = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_distance");
         const auto   SWIPEDISTANCE = std::clamp(*PSWIPEDIST, sc<int64_t>(1LL), sc<int64_t>(UINT32_MAX));
         const double POSITION      = VERTANIMS ? e.pos.y : e.pos.x;

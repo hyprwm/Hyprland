@@ -347,7 +347,7 @@ namespace SpecialWorkspaceGestures {
     }
 
     static int luaSettle(lua_State* L) {
-        if (*CConfigValue<Config::INTEGER>("animations:enabled"))
+        if (*CConfigValue<Config::BOOL>("animations:enabled"))
             return luaL_error(L, "Synchronous settling requires disabled animations");
         Animation::mgr()->tick();
         return 0;

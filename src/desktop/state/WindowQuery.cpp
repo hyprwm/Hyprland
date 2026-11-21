@@ -55,7 +55,7 @@ PHLWINDOW CWindowQuery::inDirection(const SWindowDirectionQuery& query) const {
 
     // 0 -> history, 1 -> shared length
     static auto PMETHOD          = CConfigValue<Config::INTEGER>("binds:focus_preferred_method");
-    static auto PMONITORFALLBACK = CConfigValue<Config::INTEGER>("binds:window_direction_monitor_fallback");
+    static auto PMONITORFALLBACK = CConfigValue<Config::BOOL>("binds:window_direction_monitor_fallback");
 
     const auto  POSA  = query.origin.pos();
     const auto  SIZEA = query.origin.size();

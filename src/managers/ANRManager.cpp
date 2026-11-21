@@ -73,7 +73,7 @@ CANRManager::CANRManager() {
 }
 
 void CANRManager::onTick() {
-    static auto PENABLEANR    = CConfigValue<Config::INTEGER>("misc:enable_anr_dialog");
+    static auto PENABLEANR    = CConfigValue<Config::BOOL>("misc:enable_anr_dialog");
     static auto PANRTHRESHOLD = CConfigValue<Config::INTEGER>("misc:anr_missed_pings");
 
     if (!*PENABLEANR) {

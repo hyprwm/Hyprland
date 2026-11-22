@@ -1232,9 +1232,9 @@ void IHyprRenderer::renderAllClientsForWorkspace(CRenderContext& ctx, PHLMONITOR
         return;
 
     if UNLIKELY (g_pSessionLockManager->isSessionLocked() && !*PSESSIONLOCKXRAY) {
-        // We stop to render workspaces as soon as the lockscreen was sent the "locked" or "finished" (aka denied) event.
+        // We stop to render workspaces as soon as the lockscreen was sent the "locked" event.
         // In addition we make sure to stop rendering workspaces after misc:lockdead_screen_delay has passed.
-        if (g_pSessionLockManager->shallConsiderLockMissing() || g_pSessionLockManager->clientLocked() || g_pSessionLockManager->clientDenied())
+        if (g_pSessionLockManager->shallConsiderLockMissing() || g_pSessionLockManager->clientLocked())
             return;
     }
 
@@ -1810,12 +1810,12 @@ void IHyprRenderer::renderLockscreen(CRenderContext& ctx, PHLMONITOR pMonitor, c
         return;
     }
 
-    const bool RENDERPRIMER = g_pSessionLockManager->shallConsiderLockMissing() || g_pSessionLockManager->clientLocked() || g_pSessionLockManager->clientDenied();
+    const bool RENDERPRIMER = g_pSessionLockManager->shallConsiderLockMissing() || g_pSessionLockManager->clientLocked();
     if (RENDERPRIMER)
         renderSessionLockPrimer(ctx, pMonitor);
 
     const auto PSLS              = g_pSessionLockManager->getSessionLockSurfaceForMonitor(pMonitor->m_id);
-    const bool RENDERLOCKMISSING = (PSLS.expired() || g_pSessionLockManager->clientDenied()) && g_pSessionLockManager->shallConsiderLockMissing();
+    const bool RENDERLOCKMISSING = PSLS.expired() && g_pSessionLockManager->shallConsiderLockMissing();
 
     ensureLockTexturesRendered(RENDERLOCKMISSING);
 

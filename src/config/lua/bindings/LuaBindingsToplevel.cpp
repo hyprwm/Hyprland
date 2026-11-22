@@ -317,7 +317,7 @@ static int hlClearCrashedLockscreen(lua_State* L) {
     if (!g_pSessionLockManager->isSessionLocked())
         return Internal::configError(L, "hl.clear_crashed_lockscreen: session is not locked");
 
-    if (g_pSessionLockManager->clientLocked() || g_pSessionLockManager->clientDenied())
+    if (g_pSessionLockManager->clientLocked())
         return Internal::configError(L, "hl.clear_crashed_lockscreen: session is locked with a client, refusing to unlock");
 
     g_pSessionLockManager->forceUnlock();

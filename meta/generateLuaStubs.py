@@ -713,6 +713,7 @@ def generate_stub(root: Path) -> str:
     lines.append("--- A decoration on a window. `root` is a hyprtoolkit element, build the decoration's widgets in it.")
     lines.append("--- Subscribe to events with `deco:on()` instead of `hl.on()`: its subscriptions are removed with the decoration.")
     lines.append("--- `hl.on()` subscriptions would outlive it, and keep its widgets alive until the config is reloaded.")
+    lines.append("--- `deco:drag()` moves the window once the pointer moves, call it from a left press on the decoration.")
     lines.extend(
         emit_class_block(
             "HL.Decoration",
@@ -721,6 +722,7 @@ def generate_stub(root: Path) -> str:
                 ("name", "string", False),
                 ("root", "any", False),
                 ("on", "fun(self: HL.Decoration, event: HL.EventName, cb: fun(...)): HL.EventSubscription", False),
+                ("drag", "fun(self: HL.Decoration): nil", False),
             ],
         )
     )

@@ -29,21 +29,24 @@ using namespace Config::Lua::Decorations;
 static constexpr const char* CLIENT_HANDLE_MT = "hl_decoration_client";
 
 namespace Config::Lua::Decorations {
-    // owns what deco:on() subscribed to
+    // backs deco:on() and deco:drag(), owns what deco:on() subscribed to
     class CLuaDecorationClient : public IToolkitDecorationClient {
       public:
-        CLuaDecorationClient(WP<CLuaEventHandler> handler);
+        CLuaDecorationClient(WP<CLuaEventHandler> handler, WP<CHyprToolkitDecoration> decoration);
         virtual ~CLuaDecorationClient();
 
-        void track(uint64_t subscription);
+        void                       track(uint64_t subscription);
+        SP<CHyprToolkitDecoration> decoration() const;
 
       private:
-        WP<CLuaEventHandler>  m_handler;
-        std::vector<uint64_t> m_subscriptions;
+        WP<CLuaEventHandler>       m_handler;
+        WP<CHyprToolkitDecoration> m_decoration;
+        std::vector<uint64_t>      m_subscriptions;
     };
 }
 
-CLuaDecorationClient::CLuaDecorationClient(WP<CLuaEventHandler> handler) : m_handler(std::move(handler)) {
+CLuaDecorationClient::CLuaDecorationClient(WP<CLuaEventHandler> handler, WP<CHyprToolkitDecoration> decoration) :
+    m_handler(std::move(handler)), m_decoration(std::move(decoration)) {
     ;
 }
 
@@ -58,6 +61,10 @@ CLuaDecorationClient::~CLuaDecorationClient() {
 
 void CLuaDecorationClient::track(uint64_t subscription) {
     m_subscriptions.emplace_back(subscription);
+}
+
+SP<CHyprToolkitDecoration> CLuaDecorationClient::decoration() const {
+    return m_decoration.lock();
 }
 
 static std::optional<eDecorationEdges> edgeFromString(std::string_view edge) {
@@ -209,7 +216,19 @@ static int decorationOn(lua_State* L) {
     return 1;
 }
 
-// { window, name, root, on }
+static int decorationDrag(lua_State* L) {
+    auto* client = sc<WP<CLuaDecorationClient>*>(lua_touserdata(L, lua_upvalueindex(1)));
+
+    if (!*client)
+        return Bindings::Internal::configError(L, "deco:drag: the decoration no longer exists");
+
+    if (const auto DECORATION = (*client)->decoration())
+        DECORATION->beginDrag();
+
+    return 0;
+}
+
+// { window, name, root, on, drag }
 static void pushDecoration(lua_State* L, const SP<CHyprToolkitDecoration>& decoration, const std::string& name, const WP<CLuaDecorationClient>& client) {
     lua_newtable(L);
 
@@ -227,10 +246,16 @@ static void pushDecoration(lua_State* L, const SP<CHyprToolkitDecoration>& decor
     }
     lua_setfield(L, -2, "root");
 
+    // shared by both methods
     new (lua_newuserdata(L, sizeof(WP<CLuaDecorationClient>))) WP<CLuaDecorationClient>(client);
     luaL_setmetatable(L, CLIENT_HANDLE_MT);
+
+    lua_pushvalue(L, -1);
     lua_pushcclosure(L, decorationOn, 1);
-    lua_setfield(L, -2, "on");
+    lua_setfield(L, -3, "on");
+
+    lua_pushcclosure(L, decorationDrag, 1);
+    lua_setfield(L, -2, "drag");
 }
 
 CLuaDecorationProvider::CLuaDecorationProvider(CConfigManager* manager, std::string name, const SToolkitDecorationSpec& spec, CLuaRef&& create) :
@@ -250,7 +275,7 @@ UP<IToolkitDecorationClient> CLuaDecorationProvider::createClient(const SP<CHypr
     if (!decoration || !decoration->surface() || !m_manager->m_eventHandler)
         return nullptr;
 
-    auto                     client = makeUnique<CLuaDecorationClient>(m_manager->m_eventHandler);
+    auto                     client = makeUnique<CLuaDecorationClient>(m_manager->m_eventHandler, decoration);
     WP<CLuaDecorationClient> weak   = client;
 
     // errors are reported by the caller

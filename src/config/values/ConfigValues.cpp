@@ -388,7 +388,8 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Int>("input:focus_on_close", "Controls the window focus behavior when a window is closed.", 0,
                 {.min = 0, .max = 2, .map = OptionMap{{"next", 0}, {"cursor", 1}, {"mru", 2}}, .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         // TODO in 0.59 - Remove this config option entirely
-        MS<Bool>("input:mouse_refocus", "if disabled, mouse focus won't switch to the hovered window unless the mouse crosses a window boundary when follow_mouse=1.", true, {.deprecationNotice = "mouse_refocus is deprecated. Use follow_mouse_threshold = 0.0 instead"}),
+        MS<Bool>("input:mouse_refocus", "if disabled, mouse focus won't switch to the hovered window unless the mouse crosses a window boundary when follow_mouse=1.", true,
+                 {.deprecationNotice = "mouse_refocus is deprecated. Use follow_mouse_threshold = 0.0 instead"}),
         MS<Int>("input:float_switch_override_focus",
                 "If enabled (1 or 2), focus will change to the window under the cursor when changing from tiled-to-floating and vice versa. If 2, focus will also follow mouse on "
                 "float-to-float switches.",

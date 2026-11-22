@@ -58,8 +58,16 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
         return;
     }
 
-    if (m_sessionLock && !clientDenied() && !clientLocked())
-        return; // Not allowing to relock in case the old lock is still in a limbo
+    if (m_sessionLock && !clientDenied() && !clientLocked()) {
+        // Not allowing to relock in case the old lock is still in a limbo
+        LOG(Log::DEBUG, "Denying session lock, the current one is still in a limbo");
+        pLock->sendDenied();
+        return;
+    }
+
+    // the superseded lock must not be able to unlock the session anymore
+    if (m_sessionLock && m_sessionLock->lock)
+        m_sessionLock->lock->sendDenied();
 
     LOG(Log::DEBUG, "Session got locked by {:x}", (uintptr_t)pLock.get());
 

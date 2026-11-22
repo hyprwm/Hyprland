@@ -162,6 +162,9 @@ bool CSessionLock::good() {
 }
 
 void CSessionLock::sendDenied() {
+    if (m_inert)
+        return;
+
     m_inert = true;
     m_resource->sendFinished();
 }

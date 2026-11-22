@@ -75,6 +75,16 @@ CBox CImageCaptureSource::logicalBox() {
     return CBox();
 }
 
+PHLMONITOR CImageCaptureSource::monitor() {
+    if (!m_monitor.expired())
+        return m_monitor.lock();
+
+    if (!m_window.expired())
+        return m_window->m_monitor.lock();
+
+    return nullptr;
+}
+
 COutputImageCaptureSourceProtocol::COutputImageCaptureSourceProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     ;
 }

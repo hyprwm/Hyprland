@@ -25,6 +25,7 @@ class CImageCaptureSource {
     std::string             getName();
     std::string             getTypeName();
     CBox                    logicalBox();
+    PHLMONITOR              monitor();
 
     WP<CImageCaptureSource> m_self;
 

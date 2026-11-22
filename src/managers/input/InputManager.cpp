@@ -193,8 +193,10 @@ void CInputManager::onMouseWarp(IPointer::SMotionAbsoluteEvent e) {
 }
 
 void CInputManager::simulateMouseMovement() {
-    m_lastCursorPosFloored = m_lastCursorPosFloored - Vector2D(1, 1); // hack: force the mouseMoveUnified to report without making this a refocus.
+    m_lastCursorPosFloored    = m_lastCursorPosFloored - Vector2D(1, 1); // hack: force the mouseMoveUnified to report without making this a refocus.
+    m_simulatingMouseMovement = true;
     mouseMoveUnified(Time::millis(Time::steadyNow()));
+    m_simulatingMouseMovement = false;
 }
 
 void CInputManager::sendMotionEventsToFocused() {
@@ -259,21 +261,20 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     if (MOUSECOORDSFLOORED == m_lastCursorPosFloored && !refocus && !pointerOnly)
         return;
 
-    static auto PFOLLOWMOUSE          = CConfigValue<Config::INTEGER>("input:follow_mouse");
-    static auto PFOLLOWMOUSETHRESHOLD = CConfigValue<Config::FLOAT>("input:follow_mouse_threshold");
-    static auto PMOUSEREFOCUS         = CConfigValue<Config::INTEGER>("input:mouse_refocus");
-    static auto PFOLLOWONDND          = CConfigValue<Config::INTEGER>("misc:always_follow_on_dnd");
-    static auto PFLOATBEHAVIOR        = CConfigValue<Config::INTEGER>("input:float_switch_override_focus");
-    static auto PMOUSEFOCUSMON        = CConfigValue<Config::INTEGER>("misc:mouse_move_focuses_monitor");
-    static auto PRESIZEONBORDER       = CConfigValue<Config::INTEGER>("general:resize_on_border");
-    static auto PRESIZECURSORICON     = CConfigValue<Config::INTEGER>("general:hover_icon_on_border");
+    static auto  PFOLLOWMOUSE          = CConfigValue<Config::INTEGER>("input:follow_mouse");
+    static auto  PFOLLOWMOUSETHRESHOLD = CConfigValue<Config::FLOAT>("input:follow_mouse_threshold");
+    static auto  PMOUSEREFOCUS         = CConfigValue<Config::INTEGER>("input:mouse_refocus");
+    static auto  PFOLLOWONDND          = CConfigValue<Config::INTEGER>("misc:always_follow_on_dnd");
+    static auto  PFLOATBEHAVIOR        = CConfigValue<Config::INTEGER>("input:float_switch_override_focus");
+    static auto  PMOUSEFOCUSMON        = CConfigValue<Config::INTEGER>("misc:mouse_move_focuses_monitor");
+    static auto  PRESIZEONBORDER       = CConfigValue<Config::INTEGER>("general:resize_on_border");
+    static auto  PRESIZECURSORICON     = CConfigValue<Config::INTEGER>("general:hover_icon_on_border");
 
-    const auto  FOLLOWMOUSE = *PFOLLOWONDND && PROTO::data->dndActive() ? 1 : *PFOLLOWMOUSE;
+    const auto   FOLLOWMOUSE  = *PFOLLOWONDND && PROTO::data->dndActive() ? 1 : *PFOLLOWMOUSE;
+    const double CURSOR_DELTA = (!pointerOnly && !m_simulatingMouseMovement) ? MOUSECOORDSFLOORED.distance(m_lastCursorPosFloored) : 0.0;
 
     if (!pointerOnly) {
-        if (FOLLOWMOUSE == 1 && m_lastCursorMovement.getSeconds() < 0.5)
-            m_mousePosDelta += MOUSECOORDSFLOORED.distance(m_lastCursorPosFloored);
-        else
+        if (FOLLOWMOUSE != 1 || m_lastCursorMovement.getSeconds() >= 0.5)
             m_mousePosDelta = 0;
 
         m_foundSurfaceToFocus.reset();
@@ -676,27 +677,50 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
             if (g_pSeatManager->m_state.pointerFocus == foundSurface && !m_pointerConstraints.apply(time, mouseCoords))
                 g_pSeatManager->sendPointerMotion(time, surfaceLocal);
 
+            m_mousePosDelta = 0;
+            m_lastThresholdWindow.reset();
             m_lastFocusOnLS = false;
             return; // don't enter any new surfaces
         } else {
-            auto lastFocus = m_lastMouseFocus.lock();
+            auto       lastFocus           = m_lastMouseFocus.lock();
+            const bool NEEDS_WINDOW_FOCUS  = Desktop::focusState()->window() != pFoundWindow;
+            const bool NEEDS_SURFACE_FOCUS = Desktop::focusState()->surface() != foundSurface;
+
+            if (!NEEDS_WINDOW_FOCUS && !NEEDS_SURFACE_FOCUS) {
+                m_mousePosDelta = 0;
+                m_lastThresholdWindow.reset();
+            }
 
             if (allowKeyboardRefocus && ((FOLLOWMOUSE != 3 && (*PMOUSEREFOCUS || lastFocus != pFoundWindow)) || refocus)) {
-                if (lastFocus != pFoundWindow || Desktop::focusState()->window() != pFoundWindow || Desktop::focusState()->surface() != foundSurface || refocus) {
+                if (lastFocus != pFoundWindow || NEEDS_WINDOW_FOCUS || NEEDS_SURFACE_FOCUS || refocus) {
+                    if (FOLLOWMOUSE == 1 && (NEEDS_WINDOW_FOCUS || NEEDS_SURFACE_FOCUS)) {
+                        if (m_lastThresholdWindow.lock() != pFoundWindow) {
+                            m_lastThresholdWindow = pFoundWindow;
+                            m_mousePosDelta       = 0;
+                        }
+                        m_mousePosDelta += CURSOR_DELTA;
+                    }
 
-                    m_lastMouseFocus = pFoundWindow;
+                    const bool PASSED_THRESHOLD = *PFOLLOWMOUSETHRESHOLD <= 0 || m_mousePosDelta >= *PFOLLOWMOUSETHRESHOLD;
 
-                    // TODO: this looks wrong. When over a popup, it constantly is switching.
-                    // Temp fix until that's figured out. Otherwise spams windowrule lookups and other shit.
-                    if (m_lastMouseFocus.lock() != pFoundWindow || Desktop::focusState()->window() != pFoundWindow) {
-                        if (m_mousePosDelta > *PFOLLOWMOUSETHRESHOLD || refocus) {
+                    if (PASSED_THRESHOLD || refocus || (!NEEDS_WINDOW_FOCUS && !NEEDS_SURFACE_FOCUS)) {
+                        m_lastMouseFocus = pFoundWindow;
+
+                        // TODO: this looks wrong. When over a popup, it constantly is switching.
+                        // Temp fix until that's figured out. Otherwise spams windowrule lookups and other shit.
+                        if (NEEDS_WINDOW_FOCUS) {
                             const bool hasNoFollowMouse = pFoundWindow && pFoundWindow->m_ruleApplicator->noFollowMouse().valueOrDefault();
 
                             if (refocus || !hasNoFollowMouse)
                                 Desktop::focusState()->rawWindowFocus(pFoundWindow, FOCUS_REASON, foundSurface);
+                        } else if (NEEDS_SURFACE_FOCUS)
+                            Desktop::focusState()->rawSurfaceFocus(foundSurface, pFoundWindow);
+
+                        if (NEEDS_WINDOW_FOCUS || NEEDS_SURFACE_FOCUS) {
+                            m_mousePosDelta = 0;
+                            m_lastThresholdWindow.reset();
                         }
-                    } else
-                        Desktop::focusState()->rawSurfaceFocus(foundSurface, pFoundWindow);
+                    }
                 }
             }
         }
@@ -706,6 +730,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
         m_lastFocusOnLS = false;
     } else {
+        m_mousePosDelta = 0;
+        m_lastThresholdWindow.reset();
+
         if (*PRESIZEONBORDER && *PRESIZECURSORICON && m_borderIconDirection != BORDERICON_NONE) {
             m_borderIconDirection = BORDERICON_NONE;
             Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_WINDOW_EDGE);

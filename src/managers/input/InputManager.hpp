@@ -284,9 +284,11 @@ class CInputManager {
     PHLWINDOWREF           m_foundWindowToFocus;
 
     // used for warping back after non-mouse input
-    Vector2D m_lastMousePos   = {};
-    double   m_mousePosDelta  = 0;
-    bool     m_lastInputMouse = true;
+    Vector2D     m_lastMousePos  = {};
+    double       m_mousePosDelta = 0;
+    PHLWINDOWREF m_lastThresholdWindow;
+    bool         m_simulatingMouseMovement = false;
+    bool         m_lastInputMouse          = true;
 
     // for holding focus on buttons held
     bool m_focusHeldByButtons   = false;

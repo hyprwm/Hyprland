@@ -161,11 +161,15 @@ set(AQUAMARINE_MINIMUM_VERSION 0.15.0)
 set(HYPRCURSOR_MINIMUM_VERSION 0.1.7)
 set(HYPRUTILS_MINIMUM_VERSION 0.14.3)
 set(HYPRGRAPHICS_MINIMUM_VERSION 0.5.1)
+set(HYPRTOOLKIT_MINIMUM_VERSION 0.6.0)
+set(HYPRTOOLKIT_LUA_MINIMUM_VERSION 0.1.0)
 
 pkg_check_modules(aquamarine_dep REQUIRED IMPORTED_TARGET aquamarine>=${AQUAMARINE_MINIMUM_VERSION})
 pkg_check_modules(hyprcursor_dep REQUIRED IMPORTED_TARGET hyprcursor>=${HYPRCURSOR_MINIMUM_VERSION})
 pkg_check_modules(hyprutils_dep REQUIRED IMPORTED_TARGET hyprutils>=${HYPRUTILS_MINIMUM_VERSION})
 pkg_check_modules(hyprgraphics_dep REQUIRED IMPORTED_TARGET hyprgraphics>=${HYPRGRAPHICS_MINIMUM_VERSION})
+pkg_check_modules(hyprtoolkit_dep REQUIRED IMPORTED_TARGET hyprtoolkit>=${HYPRTOOLKIT_MINIMUM_VERSION})
+pkg_check_modules(hyprtoolkit_lua_dep REQUIRED IMPORTED_TARGET hyprtoolkit-lua>=${HYPRTOOLKIT_LUA_MINIMUM_VERSION})
 
 string(REPLACE "." ";" AQ_VERSION_LIST ${aquamarine_dep_VERSION})
 list(GET AQ_VERSION_LIST 0 AQ_VERSION_MAJOR)
@@ -458,6 +462,8 @@ target_link_libraries(
   PkgConfig::hyprutils_dep
   PkgConfig::hyprcursor_dep
   PkgConfig::hyprgraphics_dep
+  PkgConfig::hyprtoolkit_dep
+  PkgConfig::hyprtoolkit_lua_dep
   PkgConfig::deps
   PkgConfig::LUA
 )

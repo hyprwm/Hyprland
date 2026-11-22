@@ -33,6 +33,7 @@ in
     inputs.hyprland-protocols.overlays.default
     inputs.hyprland-guiutils.overlays.default
     inputs.hyprtoolkit.overlays.default
+    inputs.hyprtoolkit-lua.overlays.default
     inputs.hyprlang.overlays.default
     inputs.hyprutils.overlays.default
     inputs.hyprwayland-scanner.overlays.default

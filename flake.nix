@@ -65,6 +65,18 @@
       inputs.hyprwayland-scanner.follows = "hyprwayland-scanner";
     };
 
+    hyprtoolkit-lua = {
+      url = "github:hyprwm/hyprtoolkit-lua";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "systems";
+      inputs.aquamarine.follows = "aquamarine";
+      inputs.hyprgraphics.follows = "hyprgraphics";
+      inputs.hyprlang.follows = "hyprlang";
+      inputs.hyprtoolkit.follows = "hyprtoolkit";
+      inputs.hyprutils.follows = "hyprutils";
+      inputs.hyprwayland-scanner.follows = "hyprwayland-scanner";
+    };
+
     hyprutils = {
       url = "github:hyprwm/hyprutils";
       inputs.nixpkgs.follows = "nixpkgs";

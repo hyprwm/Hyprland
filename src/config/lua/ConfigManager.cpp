@@ -1,5 +1,6 @@
 #include "ConfigManager.hpp"
 #include "LuaCaller.hpp"
+#include "LuaToolkit.hpp"
 #include "../../desktop/view/window/WindowPresentation.hpp"
 #include "LuaBindings.hpp"
 #include "DefaultConfig.hpp"
@@ -427,6 +428,7 @@ CConfigManager::~CConfigManager() {
 
     cleanTimers();
     clearLuaLayoutProviders();
+    m_toolkit.reset();
 
     if (m_luaStateLifetime)
         m_luaStateLifetime->state = nullptr;
@@ -476,6 +478,9 @@ void CConfigManager::reinitLuaState() {
 
     cleanTimers();
     clearLuaLayoutProviders();
+
+    // toolkit bindings have to retire before lua_close
+    m_toolkit.reset();
 
     if (m_luaStateLifetime)
         m_luaStateLifetime->state = nullptr;
@@ -527,6 +532,8 @@ void CConfigManager::reinitLuaState() {
         lua_setglobal(m_lua, "require"); // safe require as `require`
     } else
         lua_pop(m_lua, 1);
+
+    m_toolkit = makeUnique<CLuaToolkit>(m_lua, *m_caller, [this](std::string&& e) { addError(std::move(e)); });
 
     Bindings::registerBindings(m_lua, this);
 

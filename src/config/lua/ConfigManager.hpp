@@ -37,6 +37,7 @@ namespace Config::Lua {
     class CConfigManager;
     class CConfigManagerPluginLuaTestAccessor;
     class CLuaCaller;
+    class CLuaToolkit;
 }
 
 namespace Config::Lua::Layouts {
@@ -150,6 +151,7 @@ namespace Config::Lua {
         bool                                         m_ownsLuaState = false;
         SP<SLuaStateLifetime>                        m_luaStateLifetime;
         UP<CLuaCaller>                               m_caller;
+        UP<CLuaToolkit>                              m_toolkit;
 
         bool                                         m_lastConfigVerificationWasSuccessful = true;
         bool                                         m_isFirstLaunch                       = true;

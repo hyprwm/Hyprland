@@ -895,6 +895,10 @@ def generate_stub(root: Path) -> str:
     emit_namespace(api_tree, [])
 
     lines.append('---@overload fun(event: "window.update_state", cb: fun(window: HL.Window|nil, changes: HL.WindowStateUpdate)): HL.EventSubscription')
+    lines.append('---@overload fun(event: "decoration.pointer_move", cb: fun(window: HL.Window|nil, name: string, x: number, y: number)): HL.EventSubscription')
+    lines.append(
+        '---@overload fun(event: "decoration.pointer_button", cb: fun(window: HL.Window|nil, name: string, button: integer, pressed: boolean, x: number, y: number)): HL.EventSubscription'
+    )
     lines.append("---@param event HL.EventName")
     lines.append("---@param cb fun(...)")
     lines.append("---@return HL.EventSubscription")

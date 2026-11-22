@@ -100,6 +100,25 @@ CLuaEventHandler::CLuaEventHandler(CLuaCaller& caller) : m_caller(caller) {
         });
     }));
 
+    m_listeners.push_back(bus()->m_events.decoration.pointerMove.listen([this](PHLWINDOW w, const std::string& name, Vector2D pos) {
+        dispatch("decoration.pointer_move", 4, [&](lua_State* L) {
+            CLuaWindow::push(L, w);
+            lua_pushstring(L, name.c_str());
+            lua_pushnumber(L, pos.x);
+            lua_pushnumber(L, pos.y);
+        });
+    }));
+    m_listeners.push_back(bus()->m_events.decoration.pointerButton.listen([this](PHLWINDOW w, const std::string& name, uint32_t button, bool pressed, Vector2D pos) {
+        dispatch("decoration.pointer_button", 6, [&](lua_State* L) {
+            CLuaWindow::push(L, w);
+            lua_pushstring(L, name.c_str());
+            lua_pushinteger(L, button);
+            lua_pushboolean(L, pressed);
+            lua_pushnumber(L, pos.x);
+            lua_pushnumber(L, pos.y);
+        });
+    }));
+
     m_listeners.push_back(bus()->m_events.layer.opened.listen([this](PHLLS ls) { dispatch("layer.opened", 1, [&](lua_State* L) { CLuaLayerSurface::push(L, ls); }); }));
     m_listeners.push_back(bus()->m_events.layer.closed.listen([this](PHLLS ls) { dispatch("layer.closed", 1, [&](lua_State* L) { CLuaLayerSurface::push(L, ls); }); }));
 
@@ -266,6 +285,8 @@ std::unordered_set<std::string> CLuaEventHandler::knownEvents() {
         "window.move_to_workspace",
         "window.bell",
         "window.minimize",
+        "decoration.pointer_move",
+        "decoration.pointer_button",
         "layer.opened",
         "layer.closed",
         "monitor.added",

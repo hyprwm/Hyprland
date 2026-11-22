@@ -67,6 +67,7 @@
 #include "layout/LayoutManager.hpp"
 #include "event/EventBus.hpp"
 #include "hyprtoolkit/Host.hpp"
+#include "render/decorations/ToolkitDecorationController.hpp"
 
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/string/VarList2.hpp>
@@ -639,6 +640,7 @@ void CCompositor::cleanup() {
     Render::g_pShaderLoader.reset();
     Keybinds::mgr().reset();
     Config::mgr().reset();
+    Toolkit::decorations().reset();
     g_layoutManager.reset();
     ErrorOverlay::overlay().reset();
     g_pXWaylandManager.reset();

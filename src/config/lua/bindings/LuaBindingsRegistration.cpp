@@ -43,6 +43,7 @@ void Internal::registerBindingsImpl(lua_State* L, CConfigManager* mgr) {
     Internal::registerConfigRuleBindings(L, mgr);
     Internal::registerToplevelBindings(L, mgr);
     Internal::registerLayoutBindings(L, mgr);
+    Internal::registerDecorationBindings(L, mgr);
     Internal::registerQueryBindings(L);
     Internal::registerDispatcherBindings(L);
     Internal::registerNotificationBindings(L);

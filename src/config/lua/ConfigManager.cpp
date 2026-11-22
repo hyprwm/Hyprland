@@ -424,6 +424,8 @@ CConfigManager::CConfigManager() : m_mainConfigPath(Supplementary::Jeremy::getMa
 }
 
 CConfigManager::~CConfigManager() {
+    // decorations hold event subscriptions
+    clearLuaDecorationProviders();
     m_eventHandler.reset();
 
     cleanTimers();
@@ -474,6 +476,8 @@ void CConfigManager::cleanTimers() {
 }
 
 void CConfigManager::reinitLuaState() {
+    // decorations hold event subscriptions
+    clearLuaDecorationProviders();
     m_eventHandler.reset();
 
     cleanTimers();
@@ -686,6 +690,7 @@ void CConfigManager::reload() {
     g_pTrackpadGestures->clearGestures();
     cleanTimers();
     clearLuaLayoutProviders();
+    clearLuaDecorationProviders();
     clearDeprecations();
     m_luaWindowRules.clear();
     m_luaLayerRules.clear();

@@ -98,6 +98,7 @@ namespace Config::Lua {
         void                                     addEvalIssue(const Config::SConfigError& err);
 
         std::expected<void, std::string>         registerLuaLayoutProvider(std::string name, lua_State* L, int providerTableIdx);
+        std::expected<void, std::string>         registerLuaDecorationProvider(std::string name, lua_State* L, int specIdx);
         SP<SLuaStateLifetime>                    luaStateLifetime() const;
         CLuaCaller&                              caller();
 
@@ -141,6 +142,7 @@ namespace Config::Lua {
         void                                         registerValue(const char* name, UP<ILuaConfigValue>&& val);
         void                                         cleanTimers();
         void                                         clearLuaLayoutProviders();
+        void                                         clearLuaDecorationProviders();
         std::string                                  luaConfigValueName(const std::string& s);
         std::expected<void, std::string>             registerPluginLuaFunctionInState(uint64_t id, const std::string& namespace_, const std::string& name);
         std::expected<void, std::string>             unregisterPluginLuaFunctionInState(const std::string& namespace_, const std::string& name);
@@ -163,6 +165,7 @@ namespace Config::Lua {
         std::string                                  m_mainConfigPath;
 
         std::vector<SP<Layouts::SLuaLayoutProvider>> m_luaLayoutProviders;
+        std::vector<std::string>                     m_luaDecorations; // registered by this config
 
         // additional deprecation notices, added at runtime
         std::vector<std::pair<std::string, std::string>> m_extraDeprecations;

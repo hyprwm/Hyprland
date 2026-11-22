@@ -47,7 +47,6 @@ struct SSessionLock {
     } listeners;
 
     bool                         hasSentLocked = false;
-    bool                         hasSentDenied = false;
     std::unordered_set<uint64_t> lockedMonitors;
 };
 
@@ -60,7 +59,6 @@ class CSessionLockManager {
 
     bool                    isSessionLocked();
     bool                    clientLocked();
-    bool                    clientDenied();
     bool                    isSurfaceSessionLock(SP<CWLSurfaceResource>);
     bool                    anySessionLockSurfacesPresent();
 

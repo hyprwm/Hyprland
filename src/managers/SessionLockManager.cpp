@@ -58,7 +58,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
         return;
     }
 
-    if (m_sessionLock && !clientDenied() && !clientLocked()) {
+    if (m_sessionLock && !clientLocked()) {
         // Not allowing to relock in case the old lock is still in a limbo
         LOG(Log::DEBUG, "Denying session lock, the current one is still in a limbo");
         pLock->sendDenied();
@@ -124,7 +124,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
         // Previously we sent denied after this timeout, but that forcefully makes the client exit and the protocol doesn't require that anyways.
         std::chrono::seconds(5),
         [](auto, auto) {
-            if (!g_pSessionLockManager || g_pSessionLockManager->clientLocked() || g_pSessionLockManager->clientDenied())
+            if (!g_pSessionLockManager || g_pSessionLockManager->clientLocked())
                 return;
 
             if (!g_pSessionLockManager->m_sessionLock || !g_pSessionLockManager->m_sessionLock->lock)
@@ -169,7 +169,7 @@ WP<SSessionLockSurface> CSessionLockManager::getSessionLockSurfaceForMonitor(uin
 }
 
 void CSessionLockManager::onLockscreenRenderedOnMonitor(uint64_t id) {
-    if (!m_sessionLock || m_sessionLock->hasSentLocked || m_sessionLock->hasSentDenied)
+    if (!m_sessionLock || m_sessionLock->hasSentLocked)
         return;
 
     m_sessionLock->lockedMonitors.emplace(id);
@@ -222,10 +222,6 @@ void CSessionLockManager::removeSessionLockSurface(SSessionLockSurface* pSLS) {
 
 bool CSessionLockManager::clientLocked() {
     return m_sessionLock && m_sessionLock->hasSentLocked;
-}
-
-bool CSessionLockManager::clientDenied() {
-    return m_sessionLock && m_sessionLock->hasSentDenied;
 }
 
 void CSessionLockManager::clearSessionLock() {

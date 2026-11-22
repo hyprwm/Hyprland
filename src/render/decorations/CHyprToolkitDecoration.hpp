@@ -42,6 +42,9 @@ class CHyprToolkitDecoration : public IHyprWindowDecoration {
     // renders the widgets into the decoration's buffer if anything changed. Requires the GL context.
     void renderIfNeeded();
 
+    // moves the window once the pointer moves. Only while the left button is held on the decoration.
+    void beginDrag();
+
     // in global coordinates
     void                              pointerMotion(const Vector2D& coords);
     void                              pointerLeave();
@@ -54,6 +57,7 @@ class CHyprToolkitDecoration : public IHyprWindowDecoration {
     CBox                              renderBox(const Render::SWindowRenderPresentation& presentation) const;
     Vector2D                          toLocal(const Vector2D& coords);
     bool                              updateSize();
+    void                              startPendingDrag();
     void                              onFrameRequested();
     void                              onDamage(const CRegion& damage);
     void                              onCursorChanged(Hyprtoolkit::ePointerShape shape);
@@ -73,6 +77,8 @@ class CHyprToolkitDecoration : public IHyprWindowDecoration {
     bool                              m_rendered    = false;
     bool                              m_hovered     = false;
     bool                              m_cursorSet   = false;
+    bool                              m_leftPressed = false;
+    bool                              m_dragPending = false;
 
     struct {
         CHyprSignalListener frameRequested;

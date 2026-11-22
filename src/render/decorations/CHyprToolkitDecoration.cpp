@@ -19,6 +19,8 @@
 #include "../../devices/IPointer.hpp"
 #include "../../event/EventBus.hpp"
 #include "../../hyprtoolkit/Host.hpp"
+#include "../../layout/LayoutManager.hpp"
+#include "../../layout/supplementary/DragController.hpp"
 #include "../../output/Monitor.hpp"
 #include "../../pointer/cursor/CursorShapeOverrideController.hpp"
 #include "../Framebuffer.hpp"
@@ -70,6 +72,7 @@ CHyprToolkitDecoration::CHyprToolkitDecoration(PHLWINDOW window, SP<IToolkitDeco
 }
 
 CHyprToolkitDecoration::~CHyprToolkitDecoration() {
+    m_dragPending = false;
     pointerLeave();
     releaseClient();
 }
@@ -219,6 +222,7 @@ void CHyprToolkitDecoration::pointerMotion(const Vector2D& coords) {
     }
 
     m_surface->pointerMotion(LOCAL);
+    startPendingDrag();
 
     if (const auto WINDOW = window())
         Event::bus()->m_events.decoration.pointerMove.emit(WINDOW, m_provider->name(), LOCAL);
@@ -228,7 +232,11 @@ void CHyprToolkitDecoration::pointerLeave() {
     if (!m_hovered)
         return;
 
-    m_hovered = false;
+    // a quick first motion may leave the decoration right away
+    startPendingDrag();
+
+    m_hovered     = false;
+    m_leftPressed = false;
 
     if (m_cursorSet) {
         Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_DECORATION);
@@ -237,6 +245,21 @@ void CHyprToolkitDecoration::pointerLeave() {
 
     if (m_surface)
         m_surface->pointerLeave();
+}
+
+void CHyprToolkitDecoration::beginDrag() {
+    m_dragPending = m_leftPressed;
+}
+
+void CHyprToolkitDecoration::startPendingDrag() {
+    if (!m_dragPending)
+        return;
+
+    // only on motion, a plain click shouldn't pick up the window. CKeybindManager::onMouseEvent ends it on release.
+    m_dragPending = false;
+
+    if (const auto WINDOW = window(); WINDOW && WINDOW->layoutTarget() && !g_layoutManager->dragController()->target())
+        g_layoutManager->beginDragTarget(WINDOW->layoutTarget(), MBIND_MOVE);
 }
 
 PHLWINDOW CHyprToolkitDecoration::window() const {
@@ -327,6 +350,12 @@ bool CHyprToolkitDecoration::onButton(const Vector2D& coords, const std::any& da
 
     if (!m_hovered)
         pointerMotion(coords);
+
+    // before the callbacks below, they may begin a drag
+    if (EVENT.button == BTN_LEFT) {
+        m_leftPressed = PRESSED;
+        m_dragPending = false;
+    }
 
     if (const auto WINDOW = window())
         Event::bus()->m_events.decoration.pointerButton.emit(WINDOW, m_provider->name(), EVENT.button, PRESSED, toLocal(coords));

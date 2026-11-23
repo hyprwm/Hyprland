@@ -8,6 +8,10 @@ CWorkspaceCaptureSource::CWorkspaceCaptureSource(PHLWORKSPACE workspace, uint32_
     if (!workspace)
         return;
 
+    // hold onto a shared pointer to prevent workspace destruction
+    if (persist)
+        m_lockedWorkspace = workspace;
+
     m_name = workspace->addressableName();
     updateMonitor();
 

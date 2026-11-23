@@ -25,6 +25,7 @@ namespace Screenshare {
 
       private:
         PHLWORKSPACEREF m_workspace;
+        PHLWORKSPACE    m_lockedWorkspace = nullptr;
         PHLMONITORREF   m_lastMonitor;
         Vector2D        m_bufferSize = {0, 0};
         std::string     m_name;

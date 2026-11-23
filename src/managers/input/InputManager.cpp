@@ -261,7 +261,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
     static auto PFOLLOWMOUSE          = CConfigValue<Config::INTEGER>("input:follow_mouse");
     static auto PFOLLOWMOUSETHRESHOLD = CConfigValue<Config::FLOAT>("input:follow_mouse_threshold");
-    static auto PMOUSEREFOCUS         = CConfigValue<Config::BOOL>("input:mouse_refocus");
     static auto PFOLLOWONDND          = CConfigValue<Config::BOOL>("misc:always_follow_on_dnd");
     static auto PFLOATBEHAVIOR        = CConfigValue<Config::INTEGER>("input:float_switch_override_focus");
     static auto PMOUSEFOCUSMON        = CConfigValue<Config::BOOL>("misc:mouse_move_focuses_monitor");
@@ -681,7 +680,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
         } else {
             auto lastFocus = m_lastMouseFocus.lock();
 
-            if (allowKeyboardRefocus && ((FOLLOWMOUSE != 3 && (*PMOUSEREFOCUS || lastFocus != pFoundWindow)) || refocus)) {
+            if (allowKeyboardRefocus && ((FOLLOWMOUSE != 3 && (lastFocus != pFoundWindow)) || refocus)) {
                 if (lastFocus != pFoundWindow || Desktop::focusState()->window() != pFoundWindow || Desktop::focusState()->surface() != foundSurface || refocus) {
 
                     m_lastMouseFocus = pFoundWindow;

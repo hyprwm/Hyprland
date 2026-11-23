@@ -617,6 +617,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Int>("misc:float_force_onscreen", "whether existing floating windows must remain fully/partially on-screen", 0),
         MS<Int>("misc:transaction_timeout", "in ms, how long to wait for when layout gets updated for the clients to update before forcing the new layout. 0 disables transactions",
                 50, {.min = 0, .max = 250}),
+        MS<Bool>("misc:workspace_persist_shared", "whether to automatically persist workspaces that are being screenshared", true),
 
         /*
          * layer:

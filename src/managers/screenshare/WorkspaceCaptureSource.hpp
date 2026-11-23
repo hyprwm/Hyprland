@@ -10,7 +10,7 @@
 namespace Screenshare {
     class CWorkspaceCaptureSource {
       public:
-        CWorkspaceCaptureSource(PHLWORKSPACE workspace, uint32_t mode);
+        CWorkspaceCaptureSource(PHLWORKSPACE workspace, uint32_t mode, bool persist = false);
         CWorkspaceCaptureSource(const CWorkspaceCaptureSource&) = delete;
         CWorkspaceCaptureSource(CWorkspaceCaptureSource&&)      = delete;
 

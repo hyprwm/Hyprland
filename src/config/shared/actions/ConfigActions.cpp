@@ -522,13 +522,12 @@ ActionResult Actions::moveFocus(Math::eDirection dir) {
         default: break;
     }
 
-    const auto PWINDOWCANDIDATE =
-        Desktop::windowState()->query().inDirection({.origin             = box,
-                                                     .workspace          = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace,
-                                                     .direction          = dir,
-                                                     .floatingPreference = PLASTWINDOW->isFloating(),
-                                                     .ignoreWindow       = PLASTWINDOW,
-                                                     .useVectorAngles    = PLASTWINDOW->isFloating()});
+    const auto PWINDOWCANDIDATE = Desktop::windowState()->query().inDirection({.origin             = box,
+                                                                               .workspace          = PMONITOR->getCurrentWorkspace(),
+                                                                               .direction          = dir,
+                                                                               .floatingPreference = PLASTWINDOW->isFloating(),
+                                                                               .ignoreWindow       = PLASTWINDOW,
+                                                                               .useVectorAngles    = PLASTWINDOW->isFloating()});
     if (PWINDOWCANDIDATE)
         switchToWindow(PWINDOWCANDIDATE);
 

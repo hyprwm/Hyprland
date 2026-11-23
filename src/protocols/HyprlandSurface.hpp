@@ -20,8 +20,7 @@ class CHyprlandSurface {
   private:
     SP<CHyprlandSurfaceV1> m_resource;
     WP<CWLSurfaceResource> m_surface;
-    float                  m_opacity              = 1.0;
-    bool                   m_visibleRegionChanged = false;
+    float                  m_opacity = 1.0;
     CRegion                m_visibleRegion;
 
     void                   destroy();

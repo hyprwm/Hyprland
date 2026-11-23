@@ -273,7 +273,7 @@ SP<CWLSurfaceResource> CViewHitTester::windowSurfaceAt(const Vector2D& pos, PHLW
     RASSERT(!window->backend().isX11(), "Cannot call windowSurfaceAt on an X11 window!");
 
     // try popups first
-    const auto PPOPUP = window->popupHead()->at(pos);
+    const auto PPOPUP = window->popupHead()->at(pos, true);
 
     if (PPOPUP) {
         const auto OFF = PPOPUP->coordsRelativeToParent();
@@ -297,8 +297,8 @@ Vector2D CViewHitTester::surfaceLocalAt(const Vector2D& pos, PHLWINDOW window, S
     if (window->backend().isX11())
         return pos - window->position(Desktop::View::IGeometric::GEOMETRIC_GOAL);
 
-    const auto PPOPUP = window->popupHead()->at(pos);
-    if (PPOPUP)
+    const auto PPOPUP = window->popupHead()->at(pos, true);
+    if (PPOPUP && PPOPUP->wlSurface()->resource() == surface)
         return pos - PPOPUP->coordsGlobal();
 
     std::tuple<SP<CWLSurfaceResource>, Vector2D> iterData = {surface, {-1337, -1337}};

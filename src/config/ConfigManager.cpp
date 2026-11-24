@@ -3,9 +3,12 @@
 #include "lua/ConfigManager.hpp"
 #include "../debug/log/Logger.hpp"
 #include "values/ConfigValues.hpp"
+#include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
+#include "../state/workspace/State.hpp"
 
 #include <hyprutils/path/Path.hpp>
 #include <filesystem>
+#include <cstdlib>
 
 using namespace Config;
 
@@ -35,6 +38,13 @@ bool Config::initConfigManager() {
     }
 
     RASSERT(g_mgr, "failed to create a suitable config manager");
+
+    // If something exit()s without going through cleanup() (e.g. libseat's forked builtin seatd),
+    // static destruction would destroy us after the singletons our destructor uses.
+    // Making sure they exist before registering this guarantees it runs before they're destroyed.
+    Layout::Supplementary::algoMatcher();
+    State::Workspace::state();
+    std::atexit([] { mgr().reset(); });
 
     std::error_code ec;
     if (!std::filesystem::exists(filePath, ec) || ec) {

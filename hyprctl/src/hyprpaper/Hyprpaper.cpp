@@ -14,7 +14,7 @@ using namespace Hyprutils::String;
 constexpr const char*          SOCKET_NAME = ".hyprpaper.sock";
 static SP<CCHyprpaperCoreImpl> g_coreImpl;
 
-constexpr const uint32_t       PROTOCOL_VERSION_SUPPORTED = 2;
+constexpr const uint32_t       PROTOCOL_VERSION_SUPPORTED = 3;
 
 //
 static hyprpaperCoreWallpaperFitMode fitFromString(const std::string_view& sv) {
@@ -58,6 +58,7 @@ static std::expected<void, std::string> doWallpaper(const std::string_view& RHS)
     const std::string MONITOR  = std::string{args[0]};
     const auto&       PATH_RAW = args[1];
     const auto&       FIT      = args[2];
+    const auto        SHADER   = args.size() > 3 ? args[3] : std::string_view{};
 
     if (PATH_RAW.empty())
         return std::unexpected("not enough args");
@@ -77,6 +78,13 @@ static std::expected<void, std::string> doWallpaper(const std::string_view& RHS)
     if (!PATH)
         return std::unexpected(std::format("bad path: {}", PATH_RAW));
 
+    std::expected<std::string, std::string> shaderPath;
+    if (!SHADER.empty()) {
+        shaderPath = getFullPath(SHADER);
+        if (!shaderPath)
+            return std::unexpected(std::format("bad shader path: {}", SHADER));
+    }
+
     auto socketPath = std::format("{}/hypr/{}/{}", RTDIR, HIS, SOCKET_NAME);
 
     auto socket = Hyprwire::IClientSocket::open(socketPath);
@@ -95,6 +103,9 @@ static std::expected<void, std::string> doWallpaper(const std::string_view& RHS)
 
     if (!spec)
         return std::unexpected("can't send: hyprpaper doesn't have the spec?!");
+
+    if (!SHADER.empty() && spec->specVer() < 3)
+        return std::unexpected("can't send: hyprpaper is too old for transition shaders (needs hyprpaper_core v3)");
 
     auto manager = makeShared<CCHyprpaperCoreManagerObject>(socket->bindProtocol(g_coreImpl->protocol(), std::min(PROTOCOL_VERSION_SUPPORTED, spec->specVer())));
 
@@ -123,6 +134,8 @@ static std::expected<void, std::string> doWallpaper(const std::string_view& RHS)
     wallpaper->sendMonitorName(MONITOR.c_str());
     if (!FIT.empty())
         wallpaper->sendFitMode(fitFromString(FIT));
+    if (!SHADER.empty())
+        wallpaper->sendShaderPath(shaderPath->c_str());
 
     wallpaper->sendApply();
 

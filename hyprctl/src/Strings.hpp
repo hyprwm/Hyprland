@@ -77,7 +77,7 @@ const std::string_view HYPRPAPER_HELP = R"#(usage: hyprctl [flags] hyprpaper <re
 
 requests:
     wallpaper       → Issue a wallpaper to call a config wallpaper dynamically.
-                      Arguments are [mon],[path],[fit_mode]. Fit mode is optional.
+                      Arguments are [mon],[path],[fit_mode],[shader]. Fit mode and shader are optional.
 
 flags:
     See 'hyprctl --help')#";

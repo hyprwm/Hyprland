@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<protocol name="hyprpaper_core" version="2">
+<protocol name="hyprpaper_core" version="3">
   <copyright>
     BSD 3-Clause License
 
@@ -88,7 +88,7 @@
     <value idx="2" name="unknown_error" description="unknown error"/>
   </enum>
 
-  <object name="hyprpaper_wallpaper" version="1">
+  <object name="hyprpaper_wallpaper" version="3">
     <description summary="wallpaper object">
       This is an object describing a wallpaper
     </description>
@@ -146,6 +146,14 @@
       <description summary="Destroy this object">
         Destroys this object.
       </description>
+    </c2s>
+
+    <c2s name="shader_path">
+      <description summary="Set a custom transition shader">
+        Set a custom fragment shader used for the wallpaper transition animation.
+        If unset, hyprpaper's configured transition_shader is used (empty: built-in crossfade).
+      </description>
+      <arg name="shader_path" type="varchar" summary="absolute path to a .frag shader file, resolved by the client"/>
     </c2s>
   </object>
 

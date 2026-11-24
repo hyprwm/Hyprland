@@ -2,6 +2,7 @@
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
 #include <cstdint>
+#include <filesystem>
 #include <string>
 #include <format>
 #include <hyprutils/os/Process.hpp>
@@ -466,4 +467,25 @@ world ]
 
 no open windows)";
     EXPECT(getFromSocket(command), expected);
+}
+
+TEST_CASE(hyprctlHyprpaperShaderArgument) {
+    const std::string DIR         = std::filesystem::temp_directory_path() / std::format("hyprtester-hyprpaper-{}", HIS);
+    const std::string CONNECT_ERR = "error: can't send: failed to connect to hyprpaper (is it running?)";
+
+    std::filesystem::create_directories(DIR);
+    CScopeGuard cleanup([&] { std::filesystem::remove_all(DIR); });
+
+    ASSERT(Tests::writeFile(DIR + "/img.png", "x"), true);
+    ASSERT(Tests::writeFile(DIR + "/shader.frag", "x"), true);
+
+    // no hyprpaper runs under hyprtester, so a command that passes all argument checks ends at the connect error
+    EXPECT(getCommandStdOut(std::format("hyprctl hyprpaper wallpaper ',{}/img.png,cover'", DIR)), CONNECT_ERR);
+    EXPECT(getCommandStdOut(std::format("hyprctl hyprpaper wallpaper ',{}/img.png,cover,'", DIR)), CONNECT_ERR);
+    EXPECT(getCommandStdOut(std::format("hyprctl hyprpaper wallpaper ',{}/img.png,cover,{}/shader.frag'", DIR, DIR)), CONNECT_ERR);
+    EXPECT(getCommandStdOut(std::format("cd {} && hyprctl hyprpaper wallpaper ',img.png,cover,shader.frag'", DIR)), CONNECT_ERR);
+    EXPECT(getCommandStdOut(std::format("hyprctl hyprpaper wallpaper ',{}/img.png,cover,{}/missing.frag'", DIR, DIR)), std::format("error: bad shader path: {}/missing.frag", DIR));
+    EXPECT(getCommandStdOut(std::format("hyprctl hyprpaper wallpaper ',{}/img.png,cover,~/hyprtester-hyprpaper-{}-missing.frag'", DIR, HIS)),
+           std::format("error: bad shader path: ~/hyprtester-hyprpaper-{}-missing.frag", HIS));
+    EXPECT(getCommandStdOut(std::format("hyprctl hyprpaper wallpaper ',{}/missing.png,cover,{}/shader.frag'", DIR, DIR)), std::format("error: bad path: {}/missing.png", DIR));
 }

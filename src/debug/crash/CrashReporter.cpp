@@ -160,6 +160,10 @@ void CrashReporter::createAndSaveCrash(int sig) {
 #endif
     finalCrashReport += "\n";
 
+    // Flush after every section, so that if the reporter itself crashes or hangs,
+    // everything gathered up to that point is kept.
+    finalCrashReport.flush();
+
     if (g_pPluginSystem && g_pPluginSystem->pluginCount() > 0) {
         finalCrashReport += "Hyprland seems to be running with plugins. This crash might not be Hyprland's fault.\nPlugins:\n";
 
@@ -181,6 +185,8 @@ void CrashReporter::createAndSaveCrash(int sig) {
         finalCrashReport += "\n\n";
     }
 
+    finalCrashReport.flush();
+
     finalCrashReport += "System info:\n";
 
     {
@@ -198,6 +204,8 @@ void CrashReporter::createAndSaveCrash(int sig) {
         finalCrashReport += "\n\n";
     }
 
+    finalCrashReport.flush();
+
     finalCrashReport += "GPU:\n\t";
 #if defined(__DragonFly__) || defined(__FreeBSD__)
     finalCrashReport.writeCmdOutput("pciconf -lv | grep -F -A4 vga");
@@ -205,8 +213,12 @@ void CrashReporter::createAndSaveCrash(int sig) {
     finalCrashReport.writeCmdOutput("lspci -vnn | grep -E '(VGA|Display|3D)'");
 #endif
 
+    finalCrashReport.flush();
+
     finalCrashReport += "\n\nos-release:\n";
     finalCrashReport.writeCmdOutput("cat /etc/os-release | sed 's/^/\t/'");
+
+    finalCrashReport.flush();
 
     finalCrashReport += '\n';
     finalCrashReport += getBuiltSystemLibraryNames();
@@ -282,6 +294,8 @@ void CrashReporter::createAndSaveCrash(int sig) {
         std::getline(ssin, fileLineInfo);
         finalCrashReport += std::format("\n\t\t{}\n\t\t{}\n", functionInfo, fileLineInfo);
     }
+
+    finalCrashReport.flush();
 
     finalCrashReport += "\n\nLog tail:\n";
 

@@ -120,7 +120,9 @@ static void handleUnrecoverableSignal(int sig) {
 
     CrashReporter::createAndSaveCrash(sig, __builtin_return_address(0));
 
-    abort();
+    // Re-raise with the default handler. The signal is blocked until we return, so it's delivered at the original crash site,
+    // which gives core dumps the original signal and a clean stack.
+    raise(sig);
 }
 
 static void handleUserSignal(int sig) {

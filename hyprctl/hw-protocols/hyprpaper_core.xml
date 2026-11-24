@@ -139,7 +139,7 @@
       <description summary="Operation failed">
         Wallpaper was not applied. See the error field for more information.
       </description>
-      <arg name="error" type="enum" interface="hyprpaper_wallpaper_application_error" summary="path"/>
+      <arg name="error" type="enum" interface="applying_error" summary="path"/>
     </s2c>
 
     <c2s name="destroy" destructor="true">
@@ -153,7 +153,7 @@
     <description summary="status object">
       This is an object which will emit various status updates.
     </description>
-    
+
     <s2c name="active_wallpaper">
       <description summary="Active wallpaper state">
         Sends the active wallpaper for a given monitor. This will be emitted

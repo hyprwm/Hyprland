@@ -104,11 +104,17 @@ static int handleCritSignal(int signo, void* data) {
     return 0;
 }
 
+// libwayland chains its SIGBUS handler (for client shm buffers) to whatever was installed before its first shm access,
+// so ours must be installed before the display runs, and must not be reset while it runs.
+static constexpr std::array UNRECOVERABLE_SIGNALS = {SIGSEGV, SIGABRT, SIGBUS, SIGILL, SIGFPE};
+
+//
 static void handleUnrecoverableSignal(int sig) {
 
     // remove our handlers
-    signal(SIGABRT, SIG_DFL);
-    signal(SIGSEGV, SIG_DFL);
+    for (const auto& s : UNRECOVERABLE_SIGNALS) {
+        signal(s, SIG_DFL);
+    }
 
     // Kill the program if the crash-reporter is caught in a deadlock.
     signal(SIGALRM, [](int _) {
@@ -305,8 +311,9 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
     m_critSigSource = wl_event_loop_add_signal(m_wlEventLoop, SIGTERM, handleCritSignal, nullptr);
 
     if (!Env::envEnabled("HYPRLAND_NO_CRASHREPORTER")) {
-        signal(SIGSEGV, handleUnrecoverableSignal);
-        signal(SIGABRT, handleUnrecoverableSignal);
+        for (const auto& s : UNRECOVERABLE_SIGNALS) {
+            signal(s, handleUnrecoverableSignal);
+        }
     }
     signal(SIGUSR1, handleUserSignal);
 
@@ -583,8 +590,13 @@ void CCompositor::cleanup() {
 
     writeWatchdogFd("end");
 
-    signal(SIGABRT, SIG_DFL);
-    signal(SIGSEGV, SIG_DFL);
+    for (const auto& s : UNRECOVERABLE_SIGNALS) {
+        // this could replace libwayland's handler, which is still needed while we clean up
+        if (s == SIGBUS)
+            continue;
+
+        signal(s, SIG_DFL);
+    }
 
     removeLockFile();
 

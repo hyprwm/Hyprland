@@ -98,8 +98,13 @@ using namespace Render::GL;
 static int handleCritSignal(int signo, void* data) {
     LOG(Log::DEBUG, "Hyprland received signal {}", signo);
 
-    if (signo == SIGTERM || signo == SIGINT || signo == SIGKILL)
+    if (signo == SIGTERM || signo == SIGINT || signo == SIGKILL) {
+        // run hyprland.shutdown hooks
+        if (!g_pCompositor->m_isShuttingDown)
+            Event::bus()->m_events.exit.emit();
+
         g_pCompositor->stopCompositor();
+    }
 
     return 0;
 }

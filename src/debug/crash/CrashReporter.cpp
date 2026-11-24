@@ -63,6 +63,9 @@ static char const* const MESSAGES[] = {
 // set before raising SIGABRT, only read in the signal handler
 static std::string assertReason;
 
+// captured at startup. Forked children (e.g. libseat's builtin seatd) inherit it, but have a different pid
+static const pid_t HYPRLAND_PID = getpid();
+
 // <random> is not async-signal-safe, fake it with time(NULL) instead
 static char const* getRandomMessage() {
     return MESSAGES[time(nullptr) % std::size(MESSAGES)];
@@ -81,6 +84,10 @@ void CrashReporter::setAssertReason(std::string_view reason) {
 }
 
 void CrashReporter::createAndSaveCrash(int sig) {
+    // a forked child crashed while running our code (e.g. our exit handlers), this isn't a Hyprland crash
+    if (getpid() != HYPRLAND_PID)
+        return;
+
     int reportFd = -1;
 
     // We're in the signal handler, so we *only* have stack memory.

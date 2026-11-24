@@ -160,7 +160,7 @@ namespace SignalSafe {
                 failmsg += "<execv(";
                 failmsg += cmd;
                 failmsg += ") resulted in errno ";
-                failmsg.write(errno);
+                failmsg.writeNum(errno);
                 failmsg += ">\n";
                 close(pipefd[1]);
                 abort();

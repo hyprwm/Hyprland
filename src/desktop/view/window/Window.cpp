@@ -1821,8 +1821,6 @@ void CWindow::commitWindow(bool initialCommit) {
     if (!m_workspace->visible())
         return;
 
-    const auto PMONITOR = m_monitor.lock();
-
     // damageSurface consumes damage, so snapshot it for the tearing check below
     const bool HADDAMAGE = !wlSurface()->resource()->m_current.damage.empty() || !wlSurface()->resource()->m_current.bufferDamage.empty();
 
@@ -1835,15 +1833,21 @@ void CWindow::commitWindow(bool initialCommit) {
     }
 
     // tearing: if solitary, redraw it. This still might be a single surface window
-    if (PMONITOR && PMONITOR->m_solitaryClient.lock() == m_self.lock() && canBeTorn() && PMONITOR->m_tearingState.canTear && wlSurface()->resource()->m_current.texture &&
-        HADDAMAGE) {
+    tearOnSurfaceCommit(wlSurface()->resource(), HADDAMAGE);
+}
 
-        if (PMONITOR->m_tearingState.busy)
-            PMONITOR->m_tearingState.frameScheduledWhileBusy = true;
-        else {
-            PMONITOR->m_tearingState.nextRenderTorn = true;
-            g_pHyprRenderer->renderMonitor(PMONITOR);
-        }
+void CWindow::tearOnSurfaceCommit(SP<CWLSurfaceResource> surface, bool hadDamage) {
+    const auto PMONITOR = m_monitor.lock();
+
+    if (!hadDamage || !surface || !PMONITOR || PMONITOR->m_solitaryClient.lock() != m_self.lock() || !canBeTorn() || !PMONITOR->m_tearingState.canTear ||
+        !surface->m_current.texture)
+        return;
+
+    if (PMONITOR->m_tearingState.busy)
+        PMONITOR->m_tearingState.frameScheduledWhileBusy = true;
+    else {
+        PMONITOR->m_tearingState.nextRenderTorn = true;
+        g_pHyprRenderer->renderMonitor(PMONITOR);
     }
 }
 

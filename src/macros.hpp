@@ -41,11 +41,12 @@
 
 template <typename... Args>
 [[gnu::noinline]] [[gnu::cold]] void assertImpl(int line, std::string_view filename, std::format_string<Args...> reason, Args&&... args) {
-    const auto MSG = std::format(reason, std::forward<Args>(args)...);
+    const auto MSG    = std::format(reason, std::forward<Args>(args)...);
+    const auto REASON = std::format("{} (at line {} in {})", MSG, line, filename);
     LOG(Log::CRIT, "\n==========================================================================================\nASSERTION FAILED! \n\n{}\n\nat: line {} in {}", MSG, line,
         filename);
-    CrashReporter::setAssertReason(std::format("{} (at line {} in {})", MSG, line, filename));
-    std::print("Assertion failed! See the log in /tmp/hypr/hyprland.log for more info.");
+    CrashReporter::setAssertReason(REASON);
+    std::println(stderr, "Assertion failed: {}", REASON);
     raise(SIGABRT);
 }
 

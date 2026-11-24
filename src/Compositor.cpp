@@ -118,7 +118,7 @@ static void handleUnrecoverableSignal(int sig) {
     });
     alarm(15);
 
-    CrashReporter::createAndSaveCrash(sig);
+    CrashReporter::createAndSaveCrash(sig, __builtin_return_address(0));
 
     abort();
 }

@@ -37,6 +37,9 @@ static char const* const MESSAGES[] = {
     "Have you tried asking Hyprland politely not to crash?",
 };
 
+// set before raising SIGABRT, only read in the signal handler
+static std::string assertReason;
+
 // <random> is not async-signal-safe, fake it with time(NULL) instead
 static char const* getRandomMessage() {
     return MESSAGES[time(nullptr) % std::size(MESSAGES)];
@@ -48,6 +51,10 @@ static char const* getRandomMessage() {
     // because if the crash-handler already crashed, it can't get any worse.
     perror("");
     abort();
+}
+
+void CrashReporter::setAssertReason(std::string_view reason) {
+    assertReason = reason;
 }
 
 void CrashReporter::createAndSaveCrash(int sig) {
@@ -107,7 +114,15 @@ void CrashReporter::createAndSaveCrash(int sig) {
     finalCrashReport.writeNum(sig);
     finalCrashReport += '(';
     finalCrashReport += SignalSafe::strsignal(sig);
-    finalCrashReport += ")\nVersion: ";
+    finalCrashReport += ")\n";
+
+    if (!assertReason.empty()) {
+        finalCrashReport += "Assertion failed: ";
+        finalCrashReport += assertReason;
+        finalCrashReport += '\n';
+    }
+
+    finalCrashReport += "Version: ";
     finalCrashReport += GIT_COMMIT_HASH;
     finalCrashReport += "\nTag: ";
     finalCrashReport += GIT_TAG;

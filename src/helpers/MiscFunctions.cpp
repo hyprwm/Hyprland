@@ -1,6 +1,7 @@
 #include "MiscFunctions.hpp"
 #include "../defines.hpp"
 #include <algorithm>
+#include <array>
 #include "../Compositor.hpp"
 #include "../managers/TokenManager.hpp"
 #include "fs/FsUtils.hpp"
@@ -424,7 +425,8 @@ std::string deviceNameToInternalString(const std::string& in) {
     return result | std::ranges::to<std::string>();
 }
 
-static const std::vector<const char*> PKGCONF_PATHS = {"/usr/lib/pkgconfig", "/usr/local/lib/pkgconfig", "/usr/lib64/pkgconfig"};
+// constexpr, so it's never destroyed: the crash reporter can read this during static destruction
+static constexpr std::array<const char*, 3> PKGCONF_PATHS = {"/usr/lib/pkgconfig", "/usr/local/lib/pkgconfig", "/usr/lib64/pkgconfig"};
 
 //
 std::string getSystemLibraryVersion(const std::string& name) {

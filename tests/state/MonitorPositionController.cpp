@@ -243,6 +243,19 @@ TEST(MonitorPositionController, autoCenterUpCentersHorizontally) {
     EXPECT_EQ(autoM->m_position, Vector2D(30, -50));
 }
 
+TEST(MonitorPositionController, autoPlacementIgnoresListOrder) {
+    const auto main = testMonitor(0, "main", {100, 100});
+    const auto side = testMonitor(1, "side", {50, 40});
+
+    side->m_autoDirection = Config::DIR_AUTO_CENTER_LEFT;
+
+    // a reconnected monitor is appended to the list, after monitors placed relative to it
+    arrange({side, main});
+
+    EXPECT_EQ(main->m_position, Vector2D(0, 0));
+    EXPECT_EQ(side->m_position, Vector2D(-50, 30));
+}
+
 TEST(MonitorPositionController, xwaylandPositionsUseLogicalSizeByDefault) {
     const auto first  = testMonitor(0, "first", {100, 100});
     const auto second = testMonitor(1, "second", {50, 50});

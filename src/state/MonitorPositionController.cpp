@@ -37,6 +37,10 @@ void CMonitorPositionController::arrange(std::span<const SP<Monitor::IMonitorArr
         ++it;
     }
 
+    // keep auto placement stable across hotplugs: reconnected monitors are appended to the list,
+    // which would otherwise change what relative rules (e.g. auto-center-*) are placed against
+    std::ranges::stable_sort(toArrange, {}, [](const auto& m) { return m->id(); });
+
     // Variables to store the max and min values of monitors on each axis.
     int  maxXOffsetRight = 0;
     int  maxXOffsetLeft  = 0;

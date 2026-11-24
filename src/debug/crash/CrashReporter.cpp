@@ -85,7 +85,7 @@ void CrashReporter::setAssertReason(std::string_view reason) {
     assertReason = reason;
 }
 
-void CrashReporter::createAndSaveCrash(int sig) {
+void CrashReporter::createAndSaveCrash(int sig, const void* sigReturnAddr) {
     // a forked child crashed while running our code (e.g. our exit handlers), this isn't a Hyprland crash
     if (getpid() != HYPRLAND_PID)
         return;
@@ -273,14 +273,20 @@ void CrashReporter::createAndSaveCrash(int sig) {
     std::map<std::string, std::vector<size_t>> framesByObject;
 
     for (size_t i = 0; i < CALLSTACK.size(); ++i) {
+        // Return addresses point after the call, which can be on another line, or even in the next function
+        // if the call was the last instruction. Look up the call instead.
+        // The signal trampoline and the frame interrupted by the signal (right after it) aren't return addresses, leave them be.
+        const bool  EXACT = CALLSTACK[i].adr == sigReturnAddr || (i > 0 && CALLSTACK[i - 1].adr == sigReturnAddr);
+        const auto  PC    = rc<size_t>(CALLSTACK[i].adr) - (EXACT ? 0 : 1);
+
         std::string object = FPATH.string();
-        frameAddrs[i]      = rc<size_t>(CALLSTACK[i].adr);
+        frameAddrs[i]      = PC;
 #ifdef __GLIBC__
         // convert in memory address to VMA address
         Dl_info          info;
         struct link_map* linkMap;
-        if (dladdr1(CALLSTACK[i].adr, &info, rc<void**>(&linkMap), RTLD_DL_LINKMAP)) {
-            frameAddrs[i] = rc<size_t>(CALLSTACK[i].adr) - linkMap->l_addr;
+        if (dladdr1(rc<void*>(PC), &info, rc<void**>(&linkMap), RTLD_DL_LINKMAP)) {
+            frameAddrs[i] = PC - linkMap->l_addr;
 
             // the main executable has an empty name
             if (linkMap->l_name && linkMap->l_name[0] != '\0')

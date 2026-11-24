@@ -219,6 +219,30 @@ TEST(MonitorPositionController, autoCenterDownCentersHorizontally) {
     EXPECT_EQ(autoM->m_position, Vector2D(30, 100));
 }
 
+TEST(MonitorPositionController, autoCenterLeftCentersVertically) {
+    const auto explicitM = testMonitor(0, "explicit", {100, 100});
+    const auto autoM     = testMonitor(1, "auto", {50, 40});
+
+    explicitM->m_explicitPosition = Vector2D{0, 0};
+    autoM->m_autoDirection        = Config::DIR_AUTO_CENTER_LEFT;
+
+    arrange({explicitM, autoM});
+
+    EXPECT_EQ(autoM->m_position, Vector2D(-50, 30));
+}
+
+TEST(MonitorPositionController, autoCenterUpCentersHorizontally) {
+    const auto explicitM = testMonitor(0, "explicit", {100, 100});
+    const auto autoM     = testMonitor(1, "auto", {40, 50});
+
+    explicitM->m_explicitPosition = Vector2D{0, 0};
+    autoM->m_autoDirection        = Config::DIR_AUTO_CENTER_UP;
+
+    arrange({explicitM, autoM});
+
+    EXPECT_EQ(autoM->m_position, Vector2D(30, -50));
+}
+
 TEST(MonitorPositionController, xwaylandPositionsUseLogicalSizeByDefault) {
     const auto first  = testMonitor(0, "first", {100, 100});
     const auto second = testMonitor(1, "second", {50, 50});

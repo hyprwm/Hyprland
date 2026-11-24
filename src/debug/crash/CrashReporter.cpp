@@ -6,6 +6,8 @@
 #include <cerrno>
 #include <sys/stat.h>
 #include <filesystem>
+#include <map>
+#include <hyprutils/os/Process.hpp>
 #include "../../helpers/MiscFunctions.hpp"
 
 #include "../../plugins/PluginSystem.hpp"
@@ -266,40 +268,61 @@ void CrashReporter::createAndSaveCrash(int sig) {
     const auto FPATH = std::filesystem::canonical("/proc/self/exe");
 #endif
 
-    std::string addrs = "";
+    // every frame has to be symbolized against the object it's in: Hyprland, a library, a plugin...
+    std::vector<size_t>                        frameAddrs(CALLSTACK.size());
+    std::map<std::string, std::vector<size_t>> framesByObject;
+
     for (size_t i = 0; i < CALLSTACK.size(); ++i) {
-        size_t vmaAddr = (size_t)CALLSTACK[i].adr;
+        std::string object = FPATH.string();
+        frameAddrs[i]      = rc<size_t>(CALLSTACK[i].adr);
 #ifdef __GLIBC__
         // convert in memory address to VMA address
         Dl_info          info;
         struct link_map* linkMap;
-        if (dladdr1(CALLSTACK[i].adr, &info, rc<void**>(&linkMap), RTLD_DL_LINKMAP))
-            vmaAddr = rc<size_t>(CALLSTACK[i].adr) - linkMap->l_addr;
+        if (dladdr1(CALLSTACK[i].adr, &info, rc<void**>(&linkMap), RTLD_DL_LINKMAP)) {
+            frameAddrs[i] = rc<size_t>(CALLSTACK[i].adr) - linkMap->l_addr;
+
+            // the main executable has an empty name
+            if (linkMap->l_name && linkMap->l_name[0] != '\0')
+                object = linkMap->l_name;
+        }
 #else
         // musl doesn't define dladdr1
 #endif
-        addrs += std::format("0x{:x} ", vmaAddr);
+        framesByObject[object].emplace_back(i);
     }
+
+    // function and file:line of every frame
+    std::vector<std::pair<std::string, std::string>> symbols(CALLSTACK.size());
+
+    for (const auto& [object, frames] : framesByObject) {
+        std::vector<std::string> args = {"-e", object, "-Cf"};
+        for (const auto& i : frames) {
+            args.emplace_back(std::format("0x{:x}", frameAddrs[i]));
+        }
+
 #ifdef __clang__
-    const auto CMD = std::format("llvm-addr2line -e {} -Cf {}", FPATH.c_str(), addrs);
+        Hyprutils::OS::CProcess addr2line("llvm-addr2line", args);
 #else
-    const auto CMD = std::format("addr2line -e {} -Cf {}", FPATH.c_str(), addrs);
+        Hyprutils::OS::CProcess addr2line("addr2line", args);
 #endif
 
-    const auto        ADDR2LINE = execAndGet(CMD.c_str());
+        if (!addr2line.runSync())
+            continue;
 
-    std::stringstream ssin(ADDR2LINE);
+        std::stringstream ssin(addr2line.stdOut());
+        for (const auto& i : frames) {
+            std::getline(ssin, symbols[i].first);
+            std::getline(ssin, symbols[i].second);
+        }
+    }
 
     for (size_t i = 0; i < CALLSTACK.size(); ++i) {
         finalCrashReport += "\t#";
         finalCrashReport.writeNum(i);
         finalCrashReport += " | ";
         finalCrashReport += CALLSTACK[i].desc;
-        std::string functionInfo;
-        std::string fileLineInfo;
-        std::getline(ssin, functionInfo);
-        std::getline(ssin, fileLineInfo);
-        finalCrashReport += std::format("\n\t\t{}\n\t\t{}\n", functionInfo, fileLineInfo);
+        finalCrashReport += std::format("\n\t\t{}\n\t\t{}\n", symbols[i].first, symbols[i].second);
     }
 
     finalCrashReport.flush();

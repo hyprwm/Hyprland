@@ -7,6 +7,9 @@
 #include <sys/stat.h>
 #include <filesystem>
 #include <map>
+#include <unordered_map>
+#include <optional>
+#include <charconv>
 #include <hyprutils/os/Process.hpp>
 #include "../../helpers/MiscFunctions.hpp"
 
@@ -298,11 +301,11 @@ void CrashReporter::createAndSaveCrash(int sig, const void* sigReturnAddr) {
         framesByObject[object].emplace_back(i);
     }
 
-    // function and file:line of every frame
-    std::vector<std::pair<std::string, std::string>> symbols(CALLSTACK.size());
+    // locations of every frame, innermost first, followed by the ones it's inlined in
+    std::vector<std::vector<std::string>> symbols(CALLSTACK.size());
 
     for (const auto& [object, frames] : framesByObject) {
-        std::vector<std::string> args = {"-e", object, "-Cf"};
+        std::vector<std::string> args = {"-e", object, "-apiCf"};
         for (const auto& i : frames) {
             args.emplace_back(std::format("0x{:x}", frameAddrs[i]));
         }
@@ -316,10 +319,35 @@ void CrashReporter::createAndSaveCrash(int sig, const void* sigReturnAddr) {
         if (!addr2line.runSync())
             continue;
 
-        std::stringstream ssin(addr2line.stdOut());
+        // every address is echoed, followed by its location and the ones it's inlined in:
+        // 0x1234: func at file:line
+        //  (inlined by) caller at file:line
+        std::unordered_map<size_t, std::vector<std::string>> locations;
+        std::optional<size_t>                                currentAddr;
+        std::stringstream                                    ssin(addr2line.stdOut());
+
+        for (std::string line; std::getline(ssin, line);) {
+            const auto COLON = line.find(": ");
+
+            if (line.starts_with("0x") && COLON != std::string::npos) {
+                size_t addr = 0;
+                if (std::from_chars(line.data() + 2, line.data() + COLON, addr, 16).ec != std::errc{}) {
+                    currentAddr.reset();
+                    continue;
+                }
+
+                currentAddr = addr;
+                locations[addr].emplace_back(line.substr(COLON + 2));
+                continue;
+            }
+
+            if (currentAddr)
+                locations[*currentAddr].emplace_back(line);
+        }
+
         for (const auto& i : frames) {
-            std::getline(ssin, symbols[i].first);
-            std::getline(ssin, symbols[i].second);
+            if (const auto it = locations.find(frameAddrs[i]); it != locations.end())
+                symbols[i] = it->second;
         }
     }
 
@@ -328,7 +356,16 @@ void CrashReporter::createAndSaveCrash(int sig, const void* sigReturnAddr) {
         finalCrashReport.writeNum(i);
         finalCrashReport += " | ";
         finalCrashReport += CALLSTACK[i].desc;
-        finalCrashReport += std::format("\n\t\t{}\n\t\t{}\n", symbols[i].first, symbols[i].second);
+        finalCrashReport += '\n';
+
+        if (symbols[i].empty())
+            finalCrashReport += "\t\t??\n";
+
+        for (const auto& location : symbols[i]) {
+            finalCrashReport += "\t\t";
+            finalCrashReport += location;
+            finalCrashReport += '\n';
+        }
     }
 
     finalCrashReport.flush();

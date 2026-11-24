@@ -2,6 +2,8 @@
 
 #include "Unix.hpp"
 
+#include <algorithm>
+
 using namespace IPC;
 using namespace IPC::Socket2;
 

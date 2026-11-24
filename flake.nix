@@ -212,8 +212,33 @@
 
       formatter = eachSystem (system: pkgsFor.${system}.callPackage ./nix/formatter.nix { });
 
-      nixosModules.default = import ./nix/module.nix inputs;
-      homeManagerModules.default = import ./nix/hm-module.nix self;
+      nixosModules.default = {
+        assertions = [
+          {
+            assertion = false;
+            message = ''
+              The Hyprland flake no longer provides a NixOS module.
+              Remove `hyprland.nixosModules.default` from your imports and use the
+              `programs.hyprland` module from nixpkgs instead. Set
+              `programs.hyprland.package` to use the package from this flake.
+            '';
+          }
+        ];
+      };
+
+      homeManagerModules.default = {
+        assertions = [
+          {
+            assertion = false;
+            message = ''
+              The Hyprland flake no longer provides a Home Manager module.
+              Remove `hyprland.homeManagerModules.default` from your imports and use the
+              `wayland.windowManager.hyprland` module from Home Manager instead. Set
+              `wayland.windowManager.hyprland.package` to use the package from this flake.
+            '';
+          }
+        ];
+      };
 
       # Hydra build jobs
       # Recent versions of Hydra can aggregate jobsets from 'hydraJobs' instead of a release.nix

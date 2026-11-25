@@ -272,12 +272,12 @@ class CInputManager {
 
     uint32_t           m_capabilities = 0;
 
-    void            mouseMoveUnified(uint32_t time, bool force_refocus = false, bool mouse = false, std::optional<Vector2D> overridePos = std::nullopt, bool pointerOnly = false);
-    void            recheckMouseWarpOnMouseInput();
+    void               mouseMoveUnified(const uint32_t time, const bool force_refocus = false, const bool mouse_input = false, const bool pointerOnly = false, const bool simulated = false, const std::optional<Vector2D> overridePos = std::nullopt);
+    void               recheckMouseWarpOnMouseInput();
 
-    SP<CTabletTool> ensureTabletToolPresent(SP<Aquamarine::ITabletTool>);
+    SP<CTabletTool>    ensureTabletToolPresent(SP<Aquamarine::ITabletTool>);
 
-    void            applyConfigToKeyboard(SP<IKeyboard>);
+    void               applyConfigToKeyboard(SP<IKeyboard>);
 
     // this will be set after a refocus()
     WP<CWLSurfaceResource> m_foundSurfaceToFocus;

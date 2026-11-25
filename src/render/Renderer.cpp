@@ -1,6 +1,7 @@
 #include "Renderer.hpp"
 #include "../desktop/view/Subsurface.hpp"
 #include "SurfaceDamage.hpp"
+#include "transformer/Transformer.hpp"
 #include "../Compositor.hpp"
 #include "../helpers/math/Math.hpp"
 #include <algorithm>
@@ -3179,12 +3180,26 @@ void IHyprRenderer::damageRegionDiff(const CRegion& oldRegion, const CRegion& ne
     if (changedRegion.empty())
         return;
 
-    const CBox clip = clipBox.value_or(CBox{{}, surfaceBox.size()});
-    changedRegion.forEachRect([this, &surfaceBox, &scale, &clip](const auto& rect) {
+    static auto PLOGDAMAGE = CConfigValue<Config::INTEGER>("debug:log_damage");
+    const CBox  clip       = clipBox.value_or(CBox{{}, surfaceBox.size()});
+    changedRegion.forEachRect([&surfaceBox, &scale, &clip](const auto& rect) {
         const CBox scaled{rect.x1 * scale.x, rect.y1 * scale.y, (rect.x2 - rect.x1) * scale.x, (rect.y2 - rect.y1) * scale.y};
         auto       clipped = scaled.intersection(clip);
-        if (!clipped.empty())
-            damageBox(clipped.translate(surfaceBox.pos()));
+        if (clipped.empty())
+            return;
+
+        clipped.translate(surfaceBox.pos());
+        for (auto const& m : State::monitorState()->monitors()) {
+            if (m->isMirror())
+                continue;
+
+            const CBox damageBox = pixelBoxForLogical(clipped.copy().translate(-m->m_position), m->m_scale);
+            if (!damageBox.empty())
+                m->addDamage(damageBox);
+        }
+
+        if (*PLOGDAMAGE)
+            LOG(Log::DEBUG, "Damage: Box: xy: {}, {} wh: {}, {}", clipped.x, clipped.y, clipped.w, clipped.h);
     });
 }
 

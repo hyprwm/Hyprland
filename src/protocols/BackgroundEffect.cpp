@@ -42,8 +42,11 @@ void CBackgroundEffect::setResource(SP<CExtBackgroundEffectSurfaceV1> resource) 
     m_listeners.surfaceCommitted = m_surface->m_events.commit.listen([this] {
         auto hlSurface = Desktop::View::CWLSurface::fromResource(m_surface.lock());
 
-        if (!hlSurface)
+        if (!hlSurface) {
+            if (!m_resource)
+                PROTO::backgroundEffect->destroyEffect(this);
             return;
+        }
 
         if (!m_resource) {
             // effect was destroyed, clear state on commit per spec

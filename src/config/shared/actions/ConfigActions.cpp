@@ -1085,10 +1085,8 @@ ActionResult Actions::changeWorkspace(PHLWORKSPACE ws, bool noFocus) {
         Pointer::pointerController()->warpTo(middle);
     }
 
-    if (!g_pInputManager->m_lastFocusOnLS) {
-        if (Desktop::focusState()->surface())
-            g_pInputManager->sendMotionEventsToFocused();
-    }
+    if (Desktop::focusState()->surface())
+        g_pInputManager->sendMotionEventsToFocused();
 
     const static auto PWARPONWORKSPACECHANGE = CConfigValue<Config::INTEGER>("cursor:warp_on_change_workspace");
     const static auto PWARPONMONITORCHANGE   = CConfigValue<Config::INTEGER>("cursor:warp_on_monitor_change");

@@ -113,6 +113,81 @@ TEST_CASE(layerPointerFocusPreservedOnKeyboardRefocus) {
     OK(getFromSocket("/eval hl.plugin.test.check_keyboard_focus_window('pointer_focus_ws2')"));
 }
 
+// A wallpaper-like layer: full screen on the background layer, no exclusive zone.
+static bool spawnBackgroundLayer(const std::string& namespace_) {
+    if (!spawnLayer(namespace_, {"--edge=center", "--layer=background", "--focus-policy=not-allowed"}))
+        return false;
+
+    Tests::waitUntilLayersN(1);
+    return true;
+}
+
+// Moves the cursor 1px so the hit test lands pointer focus on the layer under it.
+static std::string pointPointerAtLayer(const std::string& namespace_) {
+    if (const auto RESULT = getFromSocket("/dispatch hl.dsp.cursor.move({ x = 961, y = 540 })"); RESULT != "ok")
+        return RESULT;
+
+    return waitForFocusCheck(std::format("hl.plugin.test.check_pointer_focus_layer('{}')", namespace_));
+}
+
+TEST_CASE(mappedWindowTakesPointerFocusFromBackgroundLayer) {
+    static constexpr const char* LAYER_NAMESPACE = "pointer-focus-wallpaper";
+
+    ASSERT(spawnBackgroundLayer(LAYER_NAMESPACE), true);
+    OK(pointPointerAtLayer(LAYER_NAMESPACE));
+
+    // the tiled window covers the cursor, it has to get pointer focus without any motion
+    SPAWN_KITTY("pointer_focus_mapped");
+    OK(waitForFocusCheck("hl.plugin.test.check_pointer_focus_window('pointer_focus_mapped')"));
+}
+
+TEST_CASE(mappedWindowKeepsBackgroundLayerPointerFocusWhenNotCovered) {
+    static constexpr const char* LAYER_NAMESPACE = "pointer-focus-wallpaper";
+
+    OK(getFromSocket("/eval hl.window_rule({ match = { class = '^pointer_focus_uncovered$' }, float = true, size = {400, 300}, move = {100, 100} })"));
+
+    ASSERT(spawnBackgroundLayer(LAYER_NAMESPACE), true);
+    OK(pointPointerAtLayer(LAYER_NAMESPACE));
+
+    // the floating window is away from the cursor, the layer is still what's under it
+    SPAWN_KITTY("pointer_focus_uncovered");
+    OK(getFromSocket("/eval hl.plugin.test.check_keyboard_focus_window('pointer_focus_uncovered')"));
+    OK(getFromSocket(std::format("/eval hl.plugin.test.check_pointer_focus_layer('{}')", LAYER_NAMESPACE)));
+}
+
+TEST_CASE(workspaceChangeTakesPointerFocusFromBackgroundLayer) {
+    static constexpr const char* LAYER_NAMESPACE = "pointer-focus-wallpaper";
+
+    SPAWN_KITTY("pointer_focus_ws1");
+    ASSERT(spawnBackgroundLayer(LAYER_NAMESPACE), true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2' })"));
+    ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "workspace 2 (2)");
+    OK(pointPointerAtLayer(LAYER_NAMESPACE));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+    OK(waitForWindowFocus("pointer_focus_ws1"));
+}
+
+TEST_CASE(bottomLayerBarKeepsPointerFocusOnWorkspaceChange) {
+    static constexpr const char* LAYER_NAMESPACE = "pointer-focus-bottom-bar";
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2' })"));
+    SPAWN_KITTY("pointer_focus_ws2");
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+
+    // the bar reserves its area, so windows never cover it
+    ASSERT(spawnLayer(LAYER_NAMESPACE, {"--edge=top", "--layer=bottom", "--lines=48px", "--focus-policy=not-allowed"}), true);
+    Tests::waitUntilLayersN(1);
+
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 960, y = 10 })"));
+    OK(waitForFocusCheck(std::format("hl.plugin.test.check_pointer_focus_layer('{}')", LAYER_NAMESPACE)));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2' })"));
+    OK(getFromSocket("/eval hl.plugin.test.check_keyboard_focus_window('pointer_focus_ws2')"));
+    OK(getFromSocket(std::format("/eval hl.plugin.test.check_pointer_focus_layer('{}')", LAYER_NAMESPACE)));
+}
+
 TEST_CASE(exclusiveLayerTakesPointerFocusFromRuleConfinedWindow) {
     static constexpr const char* WINDOW_CLASS    = "layer_confined_window";
     static constexpr const char* LAYER_NAMESPACE = "exclusive-confined-layer";

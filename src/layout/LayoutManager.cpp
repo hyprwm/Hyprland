@@ -65,8 +65,12 @@ void CLayoutManager::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectC
         auto fixedΔ = Δ;
         if (edgeLeft(corner))
             fixedΔ.x = -fixedΔ.x;
+        else if (!edgeRight(corner))
+            fixedΔ.x = 0;
         if (edgeTop(corner))
             fixedΔ.y = -fixedΔ.y;
+        else if (!edgeBottom(corner))
+            fixedΔ.y = 0;
 
         auto       newPseudoSize    = target->pseudoSize() + fixedΔ;
         const auto TARGET_TILE_SIZE = target->position().size();

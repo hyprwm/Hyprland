@@ -3,6 +3,8 @@
 #include "../space/Space.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../../managers/fullscreen/handler/FullscreenHandler.hpp"
+#include <hyprutils/math/Box.hpp>
+#include <optional>
 
 using namespace Layout;
 
@@ -28,4 +30,8 @@ void IFloatingAlgorithm::recenter(SP<ITarget> t) {
         return;
 
     t->setPositionGlobal({m_parent->space()->workArea().middle() - LAST / 2.F, LAST});
+}
+
+std::optional<CBox> IFloatingAlgorithm::getFloatingRestoreBox(SP<ITarget> target) const {
+    return std::nullopt;
 }

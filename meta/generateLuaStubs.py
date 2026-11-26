@@ -575,6 +575,7 @@ def generate_stub(root: Path) -> str:
     object_method_signatures: dict[tuple[str, str], str] = {
         ("HL.Group", "add"): "fun(self: HL.Group, window: HL.Window, index?: integer)",
         ("HL.Group", "remove"): "fun(self: HL.Group, window_or_index: HL.Window|integer)",
+        ("HL.Window", "get_floating_restore_box"): "fun(self: HL.Window): HL.Box|nil",
     }
 
     # Helper-based __index implementations need explicit field types and optionality.
@@ -596,7 +597,7 @@ def generate_stub(root: Path) -> str:
             "num_lock": ("boolean", True),
             "main": ("boolean", True),
             "belongs_to": ("{address:string, name:string}", True),
-        },
+        }
     }
 
     lines: list[str] = []

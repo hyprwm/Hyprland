@@ -293,3 +293,9 @@ CBox CDefaultFloatingAlgorithm::setPositionGlobal(SP<ITarget> t, const CBox& box
     t->setPositionGlobal(adjustedBox, flags);
     return adjustedBox;
 }
+
+std::optional<CBox> CDefaultFloatingAlgorithm::getFloatingRestoreBox(SP<ITarget> target) const {
+    if (!m_datas.contains(target))
+        return std::nullopt;
+    return m_datas.at(target).lastBox;
+}

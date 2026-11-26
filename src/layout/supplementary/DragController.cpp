@@ -504,7 +504,7 @@ void CDragStateController::mouseMove(const Vector2D& mousePos) {
     const auto PMONITOR = State::monitorState()->query().vec(middle).run();
 
     if (PMONITOR && PMONITOR->m_activeWorkspace && DRAGGINGTARGET->floating() /* If we're resizing a tiled target, don't do this */) {
-        const auto WS = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
+        const auto WS = PMONITOR->getCurrentWorkspace();
         DRAGGINGTARGET->assignToSpace(WS->space());
     }
 

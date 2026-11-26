@@ -193,8 +193,7 @@ void CInputManager::onMouseWarp(IPointer::SMotionAbsoluteEvent e) {
 }
 
 void CInputManager::simulateMouseMovement() {
-    m_lastCursorPosFloored = m_lastCursorPosFloored - Vector2D(1, 1); // hack: force the mouseMoveUnified to report without making this a refocus.
-    mouseMoveUnified(Time::millis(Time::steadyNow()));
+    mouseMoveUnified(Time::millis(Time::steadyNow()), false, false, false, true);
 }
 
 void CInputManager::sendMotionEventsToFocused() {
@@ -246,9 +245,9 @@ void CInputManager::sendMotionEventsToFocused() {
     g_pSeatManager->setPointerFocus(surface, local);
 }
 
-void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, std::optional<Vector2D> overridePos, bool pointerOnly) {
+void CInputManager::mouseMoveUnified(const uint32_t time, const bool force_refocus, const bool mouse_input, const bool pointerOnly, const bool simulated, const std::optional<Vector2D> overridePos) {
     if (!pointerOnly)
-        m_lastInputMouse = mouse;
+        m_lastInputMouse = mouse_input;
 
     if (g_pCompositor->m_isShuttingDown)
         return;
@@ -256,12 +255,11 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     Vector2D const mouseCoords        = overridePos.value_or(getMouseCoordsInternal());
     auto const     MOUSECOORDSFLOORED = mouseCoords.floor();
 
-    if (MOUSECOORDSFLOORED == m_lastCursorPosFloored && !refocus && !pointerOnly)
+    if ((!simulated && MOUSECOORDSFLOORED == m_lastCursorPosFloored) && !force_refocus && !pointerOnly)
         return;
 
     static auto PFOLLOWMOUSE          = CConfigValue<Config::INTEGER>("input:follow_mouse");
     static auto PFOLLOWMOUSETHRESHOLD = CConfigValue<Config::FLOAT>("input:follow_mouse_threshold");
-    static auto PMOUSEREFOCUS         = CConfigValue<Config::BOOL>("input:mouse_refocus");
     static auto PFOLLOWONDND          = CConfigValue<Config::BOOL>("misc:always_follow_on_dnd");
     static auto PFLOATBEHAVIOR        = CConfigValue<Config::INTEGER>("input:float_switch_override_focus");
     static auto PMOUSEFOCUSMON        = CConfigValue<Config::BOOL>("misc:mouse_move_focuses_monitor");
@@ -271,11 +269,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     const auto  FOLLOWMOUSE = *PFOLLOWONDND && PROTO::data->dndActive() ? 1 : *PFOLLOWMOUSE;
 
     if (!pointerOnly) {
-        if (FOLLOWMOUSE == 1 && m_lastCursorMovement.getSeconds() < 0.5)
-            m_mousePosDelta += MOUSECOORDSFLOORED.distance(m_lastCursorPosFloored);
-        else
-            m_mousePosDelta = 0;
-
         m_foundSurfaceToFocus.reset();
         m_foundLSToFocus.reset();
         m_foundWindowToFocus.reset();
@@ -286,7 +279,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     std::optional<CBox>    heldSurfaceBox;
     PHLWINDOW              pFoundWindow;
     PHLLS                  pFoundLayerSurface;
-    const auto             FOCUS_REASON = refocus ? Desktop::FOCUS_REASON_CLICK : Desktop::FOCUS_REASON_FFM;
+    const auto             FOCUS_REASON            = force_refocus ? Desktop::FOCUS_REASON_CLICK : Desktop::FOCUS_REASON_FFM;
+    const auto             PREV_CURSOR_POS_FLOORED = m_lastCursorPosFloored;
 
     if (!pointerOnly) {
         Event::SCallbackInfo info;
@@ -319,7 +313,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     if (!pointerOnly && m_pointerConstraints.apply(time, mouseCoords))
         return;
 
-    if (!pointerOnly && PMONITOR != Desktop::focusState()->monitor() && (*PMOUSEFOCUSMON || refocus) && m_forcedFocus.expired())
+    if (!pointerOnly && PMONITOR != Desktop::focusState()->monitor() && (*PMOUSEFOCUSMON || force_refocus) && m_forcedFocus.expired())
         Desktop::focusState()->rawMonitorFocus(PMONITOR);
 
     // IME popups essentially always exist on the top - they are transient,
@@ -361,7 +355,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
             foundSurface  = foundLockSurface;
         }
 
-        if (refocus) {
+        if (force_refocus) {
             m_foundLSToFocus      = pFoundLayerSurface;
             m_foundWindowToFocus  = pFoundWindow;
             m_foundSurfaceToFocus = foundSurface;
@@ -401,7 +395,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
         if (foundPopup) {
             surfacePos             = foundPopup->globalBox().pos();
             m_focusHeldByButtons   = true;
-            m_refocusHeldByButtons = refocus;
+            m_refocusHeldByButtons = force_refocus;
         } else {
             auto HLSurface = Desktop::View::CWLSurface::fromResource(foundSurface);
 
@@ -437,18 +431,18 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     if (!foundSurface)
         foundSurface = Desktop::viewState()->hitTest().layerPopupSurfaceAt(mouseCoords, PMONITOR, &surfaceCoords, &pFoundLayerSurface);
 
-    // overlays are above fullscreen
+    // overlays are above fullscreen if exists
     if (!foundSurface)
         foundSurface =
             Desktop::viewState()->hitTest().layerSurfaceAt(mouseCoords, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY], &surfaceCoords, &pFoundLayerSurface);
 
-    // also top layers
+    // top layers also if they are allowed to be. Even if they are not, we check with this order in case if they are (just ordering anyway)
     if (!foundSurface)
         foundSurface =
             Desktop::viewState()->hitTest().layerSurfaceAt(mouseCoords, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP], &surfaceCoords, &pFoundLayerSurface);
 
-    // then, we check if the workspace doesn't have a fullscreen window
-    const auto PWORKSPACE = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
+    // then, we check if the workspace has a FS window
+    const auto PWORKSPACE = PMONITOR->getCurrentWorkspace();
 
     bool       windowIdealQueried = false;
     PHLWINDOW  pWindowIdeal;
@@ -464,7 +458,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
     const bool HAS_EXCLUSIVE_FULLSCREEN =
         (Fullscreen::controller()->hasFullscreen(PWORKSPACE) && Fullscreen::controller()->getFullscreenModes(PWORKSPACE).internal == Fullscreen::FSMODE_FULLSCREEN) ||
-        (Fullscreen::controller()->hasFullscreen(PMONITOR) && Fullscreen::controller()->getFullscreenModes(PMONITOR).internal == Fullscreen::FSMODE_FULLSCREEN);
+        // Monitor only considers a window FS if it is FSMODE_FULLSCREEN
+        Fullscreen::controller()->hasFullscreen(PMONITOR);
 
     if (HAS_EXCLUSIVE_FULLSCREEN) {
         const auto IS_LS_UNFOCUSABLE = pFoundLayerSurface &&
@@ -562,7 +557,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     // FIXME: This will be disabled during DnD operations because we do not exactly follow the spec
     // xdg-popup grabs should be keyboard-only, while they are absolute in our case...
     if (g_pSeatManager->m_seatGrab && !g_pSeatManager->m_seatGrab->accepts(foundSurface) && !PROTO::data->dndActive()) {
-        if (!pointerOnly && (m_hardInput || refocus)) {
+        if (!pointerOnly && (m_hardInput || force_refocus)) {
             g_pSeatManager->setGrab(nullptr);
             return; // setGrab will refocus
         } else {
@@ -590,7 +585,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
         g_pSeatManager->setPointerFocus(nullptr, {});
 
-        if (!pointerOnly && (refocus || !Desktop::focusState()->window())) // if we are forcing a refocus, and we don't find a surface, clear the kb focus too!
+        if (!pointerOnly && (force_refocus || !Desktop::focusState()->window())) // if we are forcing a refocus, and we don't find a surface, clear the kb focus too!
             Desktop::focusState()->rawWindowFocus(nullptr, FOCUS_REASON);
 
         return;
@@ -616,7 +611,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
     bool allowKeyboardRefocus = true;
 
-    if (!refocus && Desktop::focusState()->surface()) {
+    if (!force_refocus && Desktop::focusState()->surface()) {
         const auto PLS = Desktop::viewState()->query().type(Desktop::View::VIEW_TYPE_LAYER_SURFACE).surface(Desktop::focusState()->surface()).runLayer();
 
         if (PLS && PLS->m_layerSurface->m_current.keyboardInteractivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE)
@@ -624,7 +619,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     }
 
     // set the values for use
-    if (refocus) {
+    if (force_refocus) {
         m_foundLSToFocus      = pFoundLayerSurface;
         m_foundWindowToFocus  = pFoundWindow;
         m_foundSurfaceToFocus = foundSurface;
@@ -657,53 +652,61 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
             Pointer::Cursor::overrideController->unsetOverride(Pointer::Cursor::CURSOR_OVERRIDE_WINDOW_EDGE);
         }
 
-        if (FOLLOWMOUSE != 1 && !refocus) {
-            if (pFoundWindow != Desktop::focusState()->window() && Desktop::focusState()->window() &&
-                ((pFoundWindow->isFloating() && *PFLOATBEHAVIOR == 2) || (Desktop::focusState()->window()->isFloating() != pFoundWindow->isFloating() && *PFLOATBEHAVIOR != 0))) {
-                // enter if change floating style
-                if (FOLLOWMOUSE != 3 && allowKeyboardRefocus)
-                    Desktop::focusState()->rawWindowFocus(pFoundWindow, FOCUS_REASON, foundSurface);
-                g_pSeatManager->setPointerFocus(foundSurface, surfaceLocal);
-            } else if (FOLLOWMOUSE == 2 || FOLLOWMOUSE == 3)
-                g_pSeatManager->setPointerFocus(foundSurface, surfaceLocal);
+        // If we are simulating mouse move, don't assume we went mouse to refocus the window/surface under it
+        if (!simulated || force_refocus) {
+            if (FOLLOWMOUSE != 1 && !force_refocus) {
+                if (pFoundWindow != Desktop::focusState()->window() && Desktop::focusState()->window() &&
+                    ((pFoundWindow->isFloating() && *PFLOATBEHAVIOR == 2) || (Desktop::focusState()->window()->isFloating() != pFoundWindow->isFloating() && *PFLOATBEHAVIOR != 0))) {
+                    // enter if change floating style
+                    if (FOLLOWMOUSE != 3 && allowKeyboardRefocus)
+                        Desktop::focusState()->rawWindowFocus(pFoundWindow, FOCUS_REASON, foundSurface);
+                    g_pSeatManager->setPointerFocus(foundSurface, surfaceLocal);
+                } else if (FOLLOWMOUSE == 2 || FOLLOWMOUSE == 3)
+                    g_pSeatManager->setPointerFocus(foundSurface, surfaceLocal);
 
-            if (pFoundWindow == Desktop::focusState()->window())
-                g_pSeatManager->setPointerFocus(foundSurface, surfaceLocal);
+                if (FOLLOWMOUSE != 0 || pFoundWindow == Desktop::focusState()->window())
+                    g_pSeatManager->setPointerFocus(foundSurface, surfaceLocal);
 
-            if (FOLLOWMOUSE != 0 || pFoundWindow == Desktop::focusState()->window())
-                g_pSeatManager->setPointerFocus(foundSurface, surfaceLocal);
+                if (g_pSeatManager->m_state.pointerFocus == foundSurface && !m_pointerConstraints.apply(time, mouseCoords))
+                    g_pSeatManager->sendPointerMotion(time, surfaceLocal);
 
-            if (g_pSeatManager->m_state.pointerFocus == foundSurface && !m_pointerConstraints.apply(time, mouseCoords))
-                g_pSeatManager->sendPointerMotion(time, surfaceLocal);
+                m_lastFocusOnLS = false;
+                return; // don't enter any new surfaces
+            } else if (allowKeyboardRefocus && (force_refocus || FOLLOWMOUSE != 3)) {
 
-            m_lastFocusOnLS = false;
-            return; // don't enter any new surfaces
-        } else {
-            auto lastFocus = m_lastMouseFocus.lock();
+                const bool FOLLOW_MOUSE_THRESHOLD_ENFORCING = (FOLLOWMOUSE == 1) && (*PFOLLOWMOUSETHRESHOLD > 0.0);
 
-            if (allowKeyboardRefocus && ((FOLLOWMOUSE != 3 && (*PMOUSEREFOCUS || lastFocus != pFoundWindow)) || refocus)) {
-                if (lastFocus != pFoundWindow || Desktop::focusState()->window() != pFoundWindow || Desktop::focusState()->surface() != foundSurface || refocus) {
+                if (pFoundWindow == m_lastMouseFocus || pFoundWindow == Desktop::focusState()->window()) {
+                    m_mouseFocusCandidate = nullptr;
+                    m_mousePosDelta       = 0;
+                } else {
+                    // new candidate
+                    if (m_mouseFocusCandidate != pFoundWindow) {
+                        m_mouseFocusCandidate = pFoundWindow;
+                        m_mousePosDelta       = 0;
+                    }
+                    m_mousePosDelta += MOUSECOORDSFLOORED.distance(PREV_CURSOR_POS_FLOORED);
+                }
 
-                    m_lastMouseFocus = pFoundWindow;
+                if (force_refocus ||
+                    ((m_lastMouseFocus.lock() != pFoundWindow || Desktop::focusState()->window() != pFoundWindow) &&
+                    (!FOLLOW_MOUSE_THRESHOLD_ENFORCING || (m_mouseFocusCandidate == pFoundWindow && m_mousePosDelta > *PFOLLOWMOUSETHRESHOLD)))) {
+                    const bool hasNoFollowMouse = pFoundWindow && pFoundWindow->m_ruleApplicator->noFollowMouse().valueOrDefault();
 
-                    // TODO: this looks wrong. When over a popup, it constantly is switching.
-                    // Temp fix until that's figured out. Otherwise spams windowrule lookups and other shit.
-                    if (m_lastMouseFocus.lock() != pFoundWindow || Desktop::focusState()->window() != pFoundWindow) {
-                        if (m_mousePosDelta > *PFOLLOWMOUSETHRESHOLD || refocus) {
-                            const bool hasNoFollowMouse = pFoundWindow && pFoundWindow->m_ruleApplicator->noFollowMouse().valueOrDefault();
-
-                            if (refocus || !hasNoFollowMouse)
-                                Desktop::focusState()->rawWindowFocus(pFoundWindow, FOCUS_REASON, foundSurface);
-                        }
-                    } else
+                    if (force_refocus || !hasNoFollowMouse ||
+                        // if mouse and keyboard are out of sync when follow_mouse = 1, correct this
+                        ((*PFOLLOWMOUSE == 1) && Desktop::focusState()->window() != pFoundWindow)) {
+                        Desktop::focusState()->rawWindowFocus(pFoundWindow, FOCUS_REASON, foundSurface);
+                        m_lastMouseFocus = pFoundWindow;
+                    }
+                    if (Desktop::focusState()->surface() != foundSurface)
                         Desktop::focusState()->rawSurfaceFocus(foundSurface, pFoundWindow);
                 }
             }
+
+            if (g_pSeatManager->m_state.keyboardFocus == nullptr)
+                Desktop::focusState()->rawWindowFocus(pFoundWindow, FOCUS_REASON, foundSurface);
         }
-
-        if (g_pSeatManager->m_state.keyboardFocus == nullptr)
-            Desktop::focusState()->rawWindowFocus(pFoundWindow, FOCUS_REASON, foundSurface);
-
         m_lastFocusOnLS = false;
     } else {
         if (*PRESIZEONBORDER && *PRESIZECURSORICON && m_borderIconDirection != BORDERICON_NONE) {
@@ -1854,14 +1857,14 @@ bool CInputManager::shouldIgnoreVirtualKeyboard(SP<IKeyboard> pKeyboard) {
 }
 
 void CInputManager::refocus(std::optional<Vector2D> overridePos) {
-    mouseMoveUnified(0, true, false, overridePos);
+    mouseMoveUnified(0, true, false, false, false, overridePos);
 }
 
 void CInputManager::refocusPointer() {
     if (!anyHidHasCap(HID_INPUT_CAPABILITY_POINTER))
         return;
 
-    mouseMoveUnified(Time::millis(Time::steadyNow()), false, false, std::nullopt, true);
+    mouseMoveUnified(Time::millis(Time::steadyNow()), false, false, true);
 }
 
 bool CInputManager::refocusLastWindow(PHLMONITOR pMonitor) {

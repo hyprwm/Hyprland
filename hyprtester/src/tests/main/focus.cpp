@@ -7,6 +7,7 @@
 #include "../shared.hpp"
 
 #include <chrono>
+#include <string>
 #include <thread>
 
 using namespace Hyprutils::OS;
@@ -164,4 +165,65 @@ TEST_CASE(crossMonitorEmptyWorkspaceUnfocusesWindow) {
     }
 
     ASSERT(getFromSocket("/activewindow"), "Invalid");
+}
+
+TEST_CASE(followMouseThreshold) {
+
+    // follow_mouse = 1 + follow_mouse_threshold = 100:
+    // the window under the cursor must NOT get focus until the cursor has travelled the threshold, and must get focus once it has.
+    NLog::log("{}Testing follow_mouse_threshold", Colors::GREEN);
+
+    const auto activeClass = [&]() -> std::string { return Tests::getAttribute(getFromSocket("/activewindow"), "class"); };
+
+    const auto waitForActiveClass = [&](const std::string& class_, int maxTries = 50) -> bool {
+        for (int i = 0; i < maxTries; ++i) {
+            if (activeClass() == class_)
+                return true;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+        return activeClass() == class_;
+    };
+
+    getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:follow_mouse_threshold' })");
+
+    OK(getFromSocket("/eval hl.config({ input = { follow_mouse = 1 } })"));
+    OK(getFromSocket("/eval hl.config({ input = { follow_mouse_threshold = 100 } })"));
+
+    // Two floating windows with a 20px gap, side by side
+    // fmt_a: position (100,100), size 400x400 -> hitbox [100,499] x [100,499]
+    SPAWN_KITTY("fmt_a");
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.resize({ x = 400, y = 400 })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 100, y = 100 })"));
+
+    // fmt_b: position (520,100), size 400x400 -> hitbox [520,919] x [100,499]
+    SPAWN_KITTY("fmt_b");
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.resize({ x = 400, y = 400 })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 520, y = 100 })"));
+
+    // Start state: fmt_a focused, cursor inside fmt_a right next to fmt_b.
+    // Focusing may warp the cursor, so place the cursor explicitly afterwards.
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:fmt_a' })"));
+    ASSERT(waitForActiveClass("fmt_a"), true);
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 490, y = 300 })"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    ASSERT(activeClass(), "fmt_a");
+
+    // The cursor moves right in 40px steps, entering fmt_b on the first one.
+    // Travelled so far, from x = 490:
+
+    NLog::log("{}Cursor travelled 40px (< 100), now over fmt_b: focus must stay on fmt_a", Colors::GREEN);
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 530, y = 300 })"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    ASSERT(activeClass(), "fmt_a");
+
+    NLog::log("{}Cursor travelled 80px (< 100), still over fmt_b: focus must stay on fmt_a", Colors::GREEN);
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 570, y = 300 })"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    ASSERT(activeClass(), "fmt_a");
+
+    NLog::log("{}Cursor travelled 120px (> 100), still over fmt_b: focus must switch to fmt_b", Colors::GREEN);
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 610, y = 300 })"));
+    ASSERT(waitForActiveClass("fmt_b"), true);
 }

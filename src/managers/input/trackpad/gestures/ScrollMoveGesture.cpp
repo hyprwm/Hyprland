@@ -23,7 +23,7 @@ static Layout::Tiled::CScrollingAlgorithm* currentScrollingLayout() {
     if (!PMONITOR)
         return nullptr;
 
-    const auto PWORKSPACE = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
+    const auto PWORKSPACE = PMONITOR->getCurrentWorkspace();
     if (!PWORKSPACE || !PWORKSPACE->space())
         return nullptr;
 

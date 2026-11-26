@@ -223,6 +223,7 @@ class CInputManager {
     bool m_lastInputTablet = false;
 
     // for tracking mouse refocus
+    PHLWINDOWREF m_mouseFocusCandidate;
     PHLWINDOWREF m_lastMouseFocus;
 
     //
@@ -260,7 +261,7 @@ class CInputManager {
 
     uint32_t           m_capabilities = 0;
 
-    void               mouseMoveUnified(uint32_t, bool refocus = false, bool mouse = false, std::optional<Vector2D> overridePos = std::nullopt, bool pointerOnly = false);
+    void               mouseMoveUnified(const uint32_t time, const bool force_refocus = false, const bool mouse_input = false, const bool pointerOnly = false, const bool simulated = false, const std::optional<Vector2D> overridePos = std::nullopt);
     void               recheckMouseWarpOnMouseInput();
 
     SP<CTabletTool>    ensureTabletToolPresent(SP<Aquamarine::ITabletTool>);

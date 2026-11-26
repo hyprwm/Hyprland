@@ -1167,7 +1167,7 @@ void CWindow::mapWindow() {
         LOG(Log::ERR, "mapWindow: no valid monitor/workspace, aborting map for {:x}", (uintptr_t)this);
         return;
     }
-    auto PWORKSPACE = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
+    auto PWORKSPACE = PMONITOR->getCurrentWorkspace();
     m_monitor       = PMONITOR;
     m_workspace     = PWORKSPACE;
     m_isMapped      = true;
@@ -1262,7 +1262,7 @@ void CWindow::mapWindow() {
 
                     PMONITOR = PMONITORFROMID;
 
-                    m_workspace = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
+                    m_workspace = PMONITOR->getCurrentWorkspace();
                     PWORKSPACE  = m_workspace;
 
                     LOG(Log::DEBUG, "Rule monitor, applying to {:mw}", m_self.lock());
@@ -1420,7 +1420,7 @@ void CWindow::mapWindow() {
             Config::Actions::focusMonitor(PMONITORFROMID);
             PMONITOR = PMONITORFROMID;
         }
-        m_workspace = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
+        m_workspace = PMONITOR->getCurrentWorkspace();
         PWORKSPACE  = m_workspace;
 
         LOG(Log::DEBUG, "Requested monitor, applying to {:mw}", m_self.lock());

@@ -98,8 +98,13 @@ using namespace Render::GL;
 static int handleCritSignal(int signo, void* data) {
     LOG(Log::DEBUG, "Hyprland received signal {}", signo);
 
-    if (signo == SIGTERM || signo == SIGINT || signo == SIGKILL)
+    if (signo == SIGTERM || signo == SIGINT || signo == SIGKILL) {
+        // run hyprland.shutdown hooks
+        if (!g_pCompositor->m_isShuttingDown)
+            Event::bus()->m_events.exit.emit();
+
         g_pCompositor->stopCompositor();
+    }
 
     return 0;
 }
@@ -563,8 +568,9 @@ void CCompositor::cleanEnvironment() {
     if (shouldManageSdEnv()) {
 #ifdef USES_SYSTEMD
         if (m_sdSessionTarget)
-            // stopping hyprland-session doesn't wait for dependent services; this does
-            Config::Supplementary::executor()->spawn("systemctl --user stop graphical-session.target");
+            // stopping hyprland-session doesn't wait for dependent services; this does.
+            // run it synchronously so session services exit before their wayland clients are destroyed
+            execAndGet("systemctl --user stop graphical-session.target");
 #endif
         const auto CMD =
 #ifdef USES_SYSTEMD

@@ -345,7 +345,7 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen(const std::optiona
 
         for (auto const& w : Desktop::windowState()->windows()) {
             if (w && w->m_workspace == getSpace()->workspace() && !isFullscreen(w->windowTarget()) && !(w->m_state & Desktop::View::WINDOW_STATE_PINNED)) {
-                w->fullscreenPolicy().setAllowedOverFullscreen(!SET);
+                w->fullscreenPolicy().setAllowedOverFullscreen(w->isFloating() || !SET);
                 w->updateFullscreenInputState();
             }
         }

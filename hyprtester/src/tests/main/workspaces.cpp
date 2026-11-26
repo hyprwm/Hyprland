@@ -1113,6 +1113,37 @@ TEST_CASE(windowAtExplicitWorkspace) {
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
 }
 
+TEST_CASE(borderGrabBandDoesNotStealOverlappingWindowHit) {
+    // resize_on_border is off in the test config. Enable a deterministic band:
+    // border_size 2 + extend 50 = 52px around each floating window.
+    OK(getFromSocket("/eval hl.config({ general = { resize_on_border = true, border_size = 2, extend_border_grab_area = 50 } })"));
+
+    CScopeGuard guard = {[&]() {
+        OK(getFromSocket("/eval hl.config({ general = { resize_on_border = false, extend_border_grab_area = 15 } })"));
+        Tests::killAllWindows();
+        OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+    }};
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '5307' })"));
+    SPAWN_KITTY("band_lower");
+    SPAWN_KITTY("band_upper");
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:band_lower' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:band_upper' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.resize({ x = 400, y = 400, window = 'class:band_lower' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 100, y = 100, window = 'class:band_lower' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.resize({ x = 400, y = 400, window = 'class:band_upper' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 520, y = 100, window = 'class:band_upper' })"));
+
+    // band_upper's grab band starts at x=468, band_lower's real box ends at x=500.
+    // (480, 300) is inside the band but outside band_upper's real box, and inside
+    // band_lower's real box: the lower window must win the hit.
+    OK(getFromSocket("/eval hl.plugin.test.expect_window_at_workspace('5307', 480, 300, 'band_lower')"));
+
+    // A pure band hit over empty space must still hit the window so that
+    // resize-on-border keeps working.
+    OK(getFromSocket("/eval hl.plugin.test.expect_window_at_workspace('5307', 510, 60, 'band_upper')"));
+}
+
 TEST_CASE(workspaceChangeIDUpdatesRules) {
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = \"200\" })"));
 

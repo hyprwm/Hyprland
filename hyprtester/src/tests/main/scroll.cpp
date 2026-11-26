@@ -4008,3 +4008,26 @@ TEST_CASE(scrollMoveWindowToOtherMonitorRetilesSource) {
     ASSERT(clientAttr("col_stays", "at"), REF_AT);
     ASSERT(clientAttr("col_stays", "size"), REF_SIZE);
 }
+
+TEST_CASE(scrollFloatingStaysAllowedOverDefaultHandledFloatingFullscreen) {
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
+    CScopeGuard guard = {[&]() {
+        Tests::killAllWindows();
+        OK(getFromSocket("r/eval hl.config({ general = { layout = 'dwindle' } })"));
+    }};
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '5306' })"));
+    SPAWN_KITTY("scroll_float");
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:scroll_float' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.resize({ x = 300, y = 300, window = 'class:scroll_float' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 300, y = 300, window = 'class:scroll_float' })"));
+
+    // A floating fullscreen window is default-handled; the scrolling handler
+    // recovers through setNoMembersAboveFS_layoutUnaware(true), which must keep
+    // non-fullscreen floating windows allowed over it.
+    SPAWN_KITTY("scroll_fs");
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:scroll_fs' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set', layout_aware = false, window = 'class:scroll_fs' })"));
+
+    OK(getFromSocket("/eval hl.plugin.test.expect_window_at_workspace('5306', 450, 450, 'scroll_float')"));
+}

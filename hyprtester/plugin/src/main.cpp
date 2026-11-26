@@ -1503,6 +1503,29 @@ static SDispatchResult floatingFocusOnFullscreen(std::string in) {
     return {};
 }
 
+// Policy-level counterpart of expectWindowAtWorkspace: a window pushed below a fullscreen
+// window must actually lose the over-fullscreen policy and the input slot. Hit-testing alone
+// cannot see that, because once the window stops being floating the fullscreen short-circuit
+// answers for it regardless of the stale policy. Only synchronous state is asserted here:
+// the fullscreen alpha goes through setFullscreenAlpha, which is deferred while a
+// presentation transaction holds the window (see CMonitorWindowTransaction::holdFullscreen).
+static SDispatchResult expectBlockedByFullscreen(const std::string& cls) {
+    const auto WINDOW = windowByClass(cls);
+    if (!WINDOW)
+        return {.success = false, .error = std::format("No window with class '{}'", cls)};
+
+    if (WINDOW->fullscreenPolicy().allowedOverFullscreen())
+        return {.success = false, .error = std::format("window '{}' is still flagged allowedOverFullscreen", cls)};
+
+    if (!WINDOW->isBlockedByFullscreen())
+        return {.success = false, .error = std::format("window '{}' is not blocked by fullscreen", cls)};
+
+    if (!WINDOW->isInputBlockedReasonAnyOf(Desktop::View::FOCUS_BLOCK_BELOW_FULLSCREEN))
+        return {.success = false, .error = std::format("window '{}' is not input-blocked below fullscreen", cls)};
+
+    return {};
+}
+
 static SDispatchResult expectWorkspaceLifecycleState(std::string monitorName) {
     const auto MONITOR = std::ranges::find(State::monitorState()->monitors(), monitorName, &Monitor::CMonitor::m_name);
     if (MONITOR == State::monitorState()->monitors().end() || !(*MONITOR)->m_activeWorkspace)
@@ -1834,6 +1857,10 @@ static int luaFloatingFocusOnFullscreen(lua_State* L) {
     return luaResult(L, ::floatingFocusOnFullscreen(""));
 }
 
+static int luaExpectBlockedByFullscreen(lua_State* L) {
+    return luaResult(L, ::expectBlockedByFullscreen(std::string{luaL_checkstring(L, 1)}));
+}
+
 static int luaExpectWorkspaceLifecycleState(lua_State* L) {
     return luaResult(L, ::expectWorkspaceLifecycleState(luaL_checkstring(L, 1)));
 }
@@ -1899,6 +1926,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     addLuaFn("set_pointer_focus_layer", ::luaSetPointerFocusLayer);
     addLuaFn("window_soft_focus", ::luaSoftFocusWindowByClass);
     addLuaFn("floating_focus_on_fullscreen", ::luaFloatingFocusOnFullscreen);
+    addLuaFn("expect_blocked_by_fullscreen", ::luaExpectBlockedByFullscreen);
     addLuaFn("expect_workspace_lifecycle_state", ::luaExpectWorkspaceLifecycleState);
     addLuaFn("expect_no_maximize_echo", ::luaExpectNoMaximizeEcho);
     WorkspaceGestures::registerFunctions();

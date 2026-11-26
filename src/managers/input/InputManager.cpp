@@ -201,16 +201,6 @@ void CInputManager::sendMotionEventsToFocused() {
     if (!Desktop::focusState()->surface() || isConstrained())
         return;
 
-    const auto POINTERSURF = g_pSeatManager->m_state.pointerFocus.lock();
-    if (POINTERSURF) {
-        const auto POINTERHLSURF = Desktop::View::CWLSurface::fromResource(POINTERSURF);
-
-        // Keep pointer focus on desktop components such as bars or popups that are
-        // currently under the cursor. Keyboard focus changes should not steal it.
-        if (POINTERHLSURF && (!POINTERHLSURF->view() || POINTERHLSURF->view()->type() != Desktop::View::VIEW_TYPE_WINDOW))
-            return;
-    }
-
     const auto SURF = Desktop::focusState()->surface();
 
     if (!SURF)
@@ -230,6 +220,21 @@ void CInputManager::sendMotionEventsToFocused() {
 
     if (!BOX)
         return;
+
+    if (const auto POINTERHLSURF = Desktop::View::CWLSurface::fromResource(g_pSeatManager->m_state.pointerFocus.lock()); POINTERHLSURF) {
+        const auto POINTERVIEW = POINTERHLSURF->view();
+        const auto POINTERLS   = Desktop::View::CLayerSurface::fromView(POINTERVIEW);
+        const auto PWINDOW     = Desktop::View::CWindow::fromView(VIEW);
+        // use the goal box, a window that was just mapped or moved may still be animating
+        const auto TARGETBOX = PWINDOW ? PWINDOW->geometricBox(Desktop::View::IGeometric::GEOMETRIC_GOAL) : *BOX;
+
+        // Keep pointer focus on desktop components such as bars or popups that are
+        // currently under the cursor. Keyboard focus changes should not steal it.
+        // Background and bottom layers don't count if the focused surface now covers the cursor.
+        const bool COVERED = POINTERLS && POINTERLS->m_layer <= ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM && TARGETBOX.containsPoint(getMouseCoordsInternal());
+        if ((!POINTERVIEW || POINTERVIEW->type() != Desktop::View::VIEW_TYPE_WINDOW) && !COVERED)
+            return;
+    }
 
     m_emptyFocusCursorSet = false;
 

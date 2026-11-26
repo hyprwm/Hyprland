@@ -54,15 +54,19 @@ PHLWINDOW CViewHitTester::windowAtInternal(const Vector2D& pos, uint16_t propert
 
     const auto  isShadowedByModal = [](PHLWINDOW w) -> bool { return *PMODALPARENTBLOCKING && !w->backend().isX11() && w->backend().traits().hasModalChild; };
 
-    const auto  realBoxAt = [&]() -> bool {
+    // band-only matches are for gaps: a real box under the cursor wins over a grab band
+    const bool REAL_BOX_AT = BORDER_GRAB_AREA > 0 && [&]() -> bool {
         for (auto const& w : WINDOWS) {
             if (!w->mapped() || !w->acceptsInput() || !w->m_workspace || !w->m_workspace->visible())
+                continue;
+            // windows the scans below can never return must not suppress the band hit
+            if (w == ignoreWindow || w->m_ruleApplicator->noFocus().valueOrDefault())
                 continue;
             if (w->getWindowBoxUnified(properties).containsPoint(pos))
                 return true;
         }
         return false;
-    };
+    }();
 
     // pinned windows on top of floating regardless
     if (properties & ALLOW_FLOATING) {
@@ -76,7 +80,7 @@ PHLWINDOW CViewHitTester::windowAtInternal(const Vector2D& pos, uint16_t propert
                 CBox       box = BB.copy().expand(!w->backend().traits().overrideRedirect ? BORDER_GRAB_AREA : 0);
                 if (HITBOX_SHRINK > 0 && w != LASTFOCUSED)
                     box = box.copy().expand(-HITBOX_SHRINK);
-                if (box.containsPoint(pos) && (BB.containsPoint(pos) || !realBoxAt()))
+                if (box.containsPoint(pos) && (BB.containsPoint(pos) || !REAL_BOX_AT))
                     return w;
 
                 if (!w->backend().isX11()) {
@@ -125,7 +129,7 @@ PHLWINDOW CViewHitTester::windowAtInternal(const Vector2D& pos, uint16_t propert
                         CBox       box = BB.copy().expand(!w->backend().traits().overrideRedirect ? BORDER_GRAB_AREA : 0);
                         if (HITBOX_SHRINK > 0 && w != LASTFOCUSED)
                             box = box.copy().expand(-HITBOX_SHRINK);
-                        if (box.containsPoint(pos) && (BB.containsPoint(pos) || !realBoxAt())) {
+                        if (box.containsPoint(pos) && (BB.containsPoint(pos) || !REAL_BOX_AT)) {
                             if (w->backend().isX11()) {
                                 const auto TRAITS = w->backend().traits();
                                 if (TRAITS.overrideRedirect && !TRAITS.wantsFocus) {
@@ -148,6 +152,7 @@ PHLWINDOW CViewHitTester::windowAtInternal(const Vector2D& pos, uint16_t propert
                 return nullptr;
             };
 
+            // non-fullscreen floating render above fullscreen, so hit them first
             if (aboveFullscreen) {
                 if (const auto OVER = scan(false); OVER)
                     return OVER;

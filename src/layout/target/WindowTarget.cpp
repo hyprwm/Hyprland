@@ -4,6 +4,7 @@
 #include "../../desktop/view/window/WindowFullscreenPolicy.hpp"
 #include "../../desktop/view/window/WindowPresentation.hpp"
 #include "../../desktop/view/window/WindowStateTracker.hpp"
+#include "../../managers/fullscreen/FullscreenController.hpp"
 
 #include "../space/Space.hpp"
 #include "../algorithm/Algorithm.hpp"
@@ -304,6 +305,12 @@ void CWindowTarget::setFloating(bool x) {
         m_window->fullscreenPolicy().setAllowedOverFullscreen(true);
         m_window->updateFullscreenInputState();
         *m_window->presentation().alpha(Desktop::View::WINDOW_ALPHA_FULLSCREEN) = 1.F;
+    } else {
+        // undo the policy granted on float so a tiled window drops back below fullscreen
+        const auto WORKSPACE = m_window->m_workspace;
+        m_window->fullscreenPolicy().setAllowedOverFullscreen(!WORKSPACE || !Fullscreen::controller()->hasFullscreen(WORKSPACE));
+        m_window->updateFullscreenInputState();
+        m_window->presentation().setFullscreenAlpha(m_window->isBlockedByFullscreen() ? 0.F : 1.F);
     }
 
     m_window->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FLOATING);

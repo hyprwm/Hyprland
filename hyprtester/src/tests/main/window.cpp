@@ -438,6 +438,99 @@ TEST_CASE(floatingFocusOnFullscreen) {
     OK(getFromSocket("/eval hl.plugin.test.floating_focus_on_fullscreen()"));
 }
 
+TEST_CASE(floatWindowAfterFullscreenStaysFocusable) {
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '5302' })"));
+    CScopeGuard guard = {[&]() {
+        Tests::killAllWindows();
+        OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+    }};
+
+    // This window is still tiled when the other one enters fullscreen, so the
+    // default handler pushes it below the fullscreen window (input blocked).
+    SPAWN_KITTY("fs_float_target");
+    SPAWN_KITTY("fs_blocker");
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:fs_blocker' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set' })"));
+
+    // Floating it afterwards must restore the over-fullscreen policy and input.
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:fs_float_target' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.resize({ x = 300, y = 300, window = 'class:fs_float_target' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 300, y = 300, window = 'class:fs_float_target' })"));
+
+    OK(getFromSocket("/eval hl.plugin.test.expect_window_at_workspace('5302', 450, 450, 'fs_float_target')"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:fs_float_target' })"));
+    OK(getFromSocket("/eval hl.plugin.test.floating_focus_on_fullscreen()"));
+}
+
+TEST_CASE(floatWindowBeforeFullscreenStaysFocusable) {
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '5303' })"));
+    CScopeGuard guard = {[&]() {
+        Tests::killAllWindows();
+        OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+    }};
+
+    SPAWN_KITTY("fs_under_float");
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:fs_under_float' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.resize({ x = 300, y = 300, window = 'class:fs_under_float' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 300, y = 300, window = 'class:fs_under_float' })"));
+
+    SPAWN_KITTY("fs_blocker2");
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:fs_blocker2' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set' })"));
+
+    OK(getFromSocket("/eval hl.plugin.test.expect_window_at_workspace('5303', 450, 450, 'fs_under_float')"));
+}
+
+TEST_CASE(nonFullscreenFloatingHitsBeforeFullscreenFloating) {
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '5304' })"));
+    CScopeGuard guard = {[&]() {
+        Tests::killAllWindows();
+        OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+    }};
+
+    SPAWN_KITTY("over_fs_plain");
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:over_fs_plain' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.resize({ x = 300, y = 300, window = 'class:over_fs_plain' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 300, y = 300, window = 'class:over_fs_plain' })"));
+
+    // This window is floating and fullscreen, and spawned later so it is higher
+    // in the stack. Non-fullscreen floating windows render above it regardless.
+    SPAWN_KITTY("over_fs_floating");
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:over_fs_floating' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set', window = 'class:over_fs_floating' })"));
+
+    OK(getFromSocket("/eval hl.plugin.test.expect_window_at_workspace('5304', 450, 450, 'over_fs_plain')"));
+}
+
+TEST_CASE(unfloatedWindowGoesBackBelowFullscreen) {
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '5305' })"));
+    CScopeGuard guard = {[&]() {
+        Tests::killAllWindows();
+        OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+    }};
+
+    // Unfloat restores the original tiled box, which covers most of the monitor,
+    // so (450,450) stays a valid probe point across both states.
+    SPAWN_KITTY("unfloat_target");
+    SPAWN_KITTY("unfloat_fs");
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:unfloat_fs' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'set' })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:unfloat_target' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.resize({ x = 300, y = 300, window = 'class:unfloat_target' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 300, y = 300, window = 'class:unfloat_target' })"));
+    OK(getFromSocket("/eval hl.plugin.test.expect_window_at_workspace('5305', 450, 450, 'unfloat_target')"));
+
+    // Un-floating while the fullscreen window is still active must push it back down.
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'unset', window = 'class:unfloat_target' })"));
+    OK(getFromSocket("/eval hl.plugin.test.expect_window_at_workspace('5305', 450, 450, 'unfloat_fs')"));
+    // The hit test above cannot see the policy revoke on its own: once un-floated the window
+    // is no longer a floating candidate, so the fullscreen short-circuit answers for it either
+    // way. Assert the policy and input block directly.
+    OK(getFromSocket("/eval hl.plugin.test.expect_blocked_by_fullscreen('unfloat_target')"));
+}
+
 TEST_CASE(groupFallbackFocus) {
     SPAWN_KITTY("kitty_A");
 

@@ -109,6 +109,8 @@ namespace Pointer {
             CHyprSignalListener           commitSurface;
         };
 
+        static std::optional<Vector2D> hwCursorBufferSize(const Vector2D& maxSize, const std::vector<Vector2D>& supportedSizes, const Vector2D& cursorSize);
+
         // One image per output scale; the highest scale is the representative for monitor-independent APIs.
         void                 setCursorBuffers(const std::vector<SCursorImageData>& images);
         const SCursorImage&  currentCursorImage();

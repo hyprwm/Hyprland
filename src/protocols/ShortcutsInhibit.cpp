@@ -74,6 +74,9 @@ bool CKeyboardShortcutsInhibitProtocol::isInhibited() {
     if (const auto PWINDOW = Desktop::viewState()->query().type(Desktop::View::VIEW_TYPE_WINDOW).surface(Desktop::focusState()->surface()).runWindow();
         PWINDOW && PWINDOW->m_ruleApplicator->noShortcutsInhibit().valueOrDefault())
         return false;
+    else if (const auto PWINDOW = Desktop::viewState()->query().type(Desktop::View::VIEW_TYPE_WINDOW).surface(Desktop::focusState()->surface()).runWindow();
+             PWINDOW && PWINDOW->m_ruleApplicator->shortcutsInhibit().valueOrDefault())
+        return true;
 
     for (auto const& in : m_inhibitors) {
         if (in->surface() != Desktop::focusState()->surface())

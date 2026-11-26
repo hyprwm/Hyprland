@@ -109,11 +109,11 @@ static int keybindIndex(lua_State* L) {
     const std::string_view key     = luaL_checkstring(L, 2);
 
     if (key == "set_enabled")
-        lua_pushcfunction(L, keybindSetEnabled);
+        pushFn(L, keybindSetEnabled, FORBIDDEN_IN_PREDICATE);
     else if (key == "is_enabled")
-        lua_pushcfunction(L, keybindIsEnabled);
+        pushFn(L, keybindIsEnabled, ALLOWED_IN_PREDICATE);
     else if (key == "remove" || key == "unbind")
-        lua_pushcfunction(L, keybindRemove);
+        pushFn(L, keybindRemove, FORBIDDEN_IN_PREDICATE);
     else if (!keybind)
         lua_pushnil(L);
     else if (key == "enabled")

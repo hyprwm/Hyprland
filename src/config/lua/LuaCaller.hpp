@@ -13,6 +13,8 @@ namespace Config::Lua {
     class CLuaCaller {
       public:
         using FErrorCallback = std::function<void(std::string&&)>;
+        using FPushArgs      = std::function<int(lua_State*)>;
+        using FReadResult    = std::function<std::expected<void, std::string>(lua_State*)>;
 
         CLuaCaller(lua_State* L, FErrorCallback&& onError);
         ~CLuaCaller();
@@ -22,9 +24,11 @@ namespace Config::Lua {
 
         int                              guardedPCall(lua_State* L, int nargs, int nresults, int errfunc, int timeoutMs, std::string_view context);
 
-        std::expected<void, std::string> call(const CLuaRef& fn, int timeoutMs, std::string_view context, const std::function<int(lua_State*)>& pushArgs = {},
-                                              const std::function<void(lua_State*)>& readResult = {});
-        std::expected<void, std::string> callPushed(int nargs, int timeoutMs, std::string_view context, const std::function<void(lua_State*)>& readResult = {});
+        std::expected<void, std::string> call(const CLuaRef& fn, int timeoutMs, std::string_view context, const FPushArgs& pushArgs = {}, const FReadResult& readResult = {});
+        std::expected<void, std::string> callPushed(int nargs, int timeoutMs, std::string_view context, const FReadResult& readResult = {});
+
+        bool                             predicate(const CLuaRef& fn, std::string_view context, const FPushArgs& pushArgs = {});
+        bool                             inPredicate() const;
 
         std::string                      errorToString(lua_State* L, int idx);
 
@@ -40,6 +44,7 @@ namespace Config::Lua {
         static constexpr int             LUA_TIMEOUT_LAYOUT_CALLBACK_MS    = 50;
         static constexpr int             LUA_TIMEOUT_EVAL_MS               = 250;
         static constexpr int             LUA_TIMEOUT_DISPATCH_MS           = 100;
+        static constexpr int             LUA_TIMEOUT_PREDICATE_MS          = 50;
 
         static constexpr size_t          MAX_CALL_DEPTH = 32;
 
@@ -56,5 +61,6 @@ namespace Config::Lua {
         std::string_view                      m_watchdogContext;
 
         std::vector<const void*>              m_running;
+        bool                                  m_inPredicate = false;
     };
 }

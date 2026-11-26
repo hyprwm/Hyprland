@@ -1364,21 +1364,21 @@ static int hlLayerRule(lua_State* L) {
 }
 
 void Internal::registerConfigRuleBindings(lua_State* L, CConfigManager* mgr) {
-    Internal::setMgrFn(L, mgr, "config", hlConfig);
-    Internal::setMgrFn(L, mgr, "get_config", hlGetConfig);
-    Internal::setMgrFn(L, mgr, "device", hlDevice);
-    Internal::setMgrFn(L, mgr, "monitor", hlMonitor);
-    Internal::setMgrFn(L, mgr, "window_rule", hlWindowRule);
-    Internal::setMgrFn(L, mgr, "layer_rule", hlLayerRule);
-    Internal::setMgrFn(L, mgr, "workspace_rule", hlWorkspaceRule);
-    Internal::setMgrFn(L, mgr, "env", hlEnv);
-    Internal::setMgrFn(L, mgr, "permission", hlPermission);
+    setMgrFn(L, mgr, "config", hlConfig, FORBIDDEN_IN_PREDICATE);
+    setMgrFn(L, mgr, "get_config", hlGetConfig, ALLOWED_IN_PREDICATE);
+    setMgrFn(L, mgr, "device", hlDevice, FORBIDDEN_IN_PREDICATE);
+    setMgrFn(L, mgr, "monitor", hlMonitor, FORBIDDEN_IN_PREDICATE);
+    setMgrFn(L, mgr, "window_rule", hlWindowRule, FORBIDDEN_IN_PREDICATE);
+    setMgrFn(L, mgr, "layer_rule", hlLayerRule, FORBIDDEN_IN_PREDICATE);
+    setMgrFn(L, mgr, "workspace_rule", hlWorkspaceRule, FORBIDDEN_IN_PREDICATE);
+    setMgrFn(L, mgr, "env", hlEnv, FORBIDDEN_IN_PREDICATE);
+    setMgrFn(L, mgr, "permission", hlPermission, FORBIDDEN_IN_PREDICATE);
 
     lua_newtable(L);
-    Internal::setMgrFn(L, mgr, "load", hlPluginLoad);
+    setMgrFn(L, mgr, "load", hlPluginLoad, FORBIDDEN_IN_PREDICATE);
     lua_setfield(L, -2, "plugin");
 
-    Internal::setFn(L, "gesture", hlGesture);
-    Internal::setFn(L, "curve", hlCurve);
-    Internal::setFn(L, "animation", hlAnimation);
+    setFn(L, "gesture", hlGesture, FORBIDDEN_IN_PREDICATE);
+    setFn(L, "curve", hlCurve, FORBIDDEN_IN_PREDICATE);
+    setFn(L, "animation", hlAnimation, FORBIDDEN_IN_PREDICATE);
 }

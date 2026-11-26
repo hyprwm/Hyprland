@@ -66,6 +66,8 @@
 #include "i18n/Engine.hpp"
 #include "layout/LayoutManager.hpp"
 #include "event/EventBus.hpp"
+#include "hyprtoolkit/Host.hpp"
+#include "render/decorations/ToolkitDecorationController.hpp"
 
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/string/VarList2.hpp>
@@ -645,12 +647,14 @@ void CCompositor::cleanup() {
     Debug::overlay().reset();
     IPC::Socket2::sock().reset();
     g_pSessionLockManager.reset();
+    Toolkit::host().reset();
     g_pHyprRenderer.reset();
     g_pProtocolManager.reset();
     g_pHyprOpenGL.reset();
     Render::g_pShaderLoader.reset();
     Keybinds::mgr().reset();
     Config::mgr().reset();
+    Toolkit::decorations().reset();
     g_layoutManager.reset();
     ErrorOverlay::overlay().reset();
     g_pXWaylandManager.reset();
@@ -728,6 +732,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             LOG(Log::DEBUG, "Creating the HyprRenderer!");
             g_pHyprRenderer = makeUnique<CHyprGLRenderer>();
+
+            LOG(Log::DEBUG, "Creating the hyprtoolkit host!");
+            Toolkit::host()->init();
 
             LOG(Log::DEBUG, "Creating the ProtocolManager!");
             g_pProtocolManager = makeUnique<CProtocolManager>();

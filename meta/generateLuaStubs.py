@@ -560,6 +560,7 @@ def generate_stub(root: Path) -> str:
         "hl.notification.create": "fun(opts?: HL.NotificationOptions): HL.Notification",
         "hl.notification.get": "fun(): HL.Notification[]",
         "hl.layout.register": "fun(name: string, provider: HL.LayoutProvider): nil",
+        "hl.decoration.register": "fun(name: string, spec: HL.DecorationSpec): nil",
         "hl.exec_cmd": "fun(cmd: string, rules?: table<string, string|number|boolean>): nil",
         "hl.get_loaded_plugins": "fun(): HL.Plugin[]",
         "hl.is_key_down": "fun(key: number|string): boolean",
@@ -691,6 +692,41 @@ def generate_stub(root: Path) -> str:
             [
                 ("recalculate", "fun(ctx: HL.LayoutContext): nil", False),
                 ("layout_msg", "fun(ctx: HL.LayoutContext, msg: string): boolean|string|nil", True),
+            ],
+        )
+    )
+    lines.append("")
+
+    lines.append("--- A window decoration built with hyprtoolkit. Windows get it through the `decorations` window rule.")
+    lines.extend(
+        emit_class_block(
+            "HL.DecorationSpec",
+            [
+                ("edge", '"top"|"bottom"|"left"|"right"', False),
+                ("size", "integer", False),
+                ("priority", "integer", True),
+                ("reserved", "boolean", True),
+                ("layer", '"bottom"|"under"|"over"|"overlay"', True),
+                ("input", "boolean", True),
+                ("create", "fun(deco: HL.Decoration): nil", False),
+            ],
+        )
+    )
+    lines.append("")
+
+    lines.append("--- A decoration on a window. `root` is a hyprtoolkit element, build the decoration's widgets in it.")
+    lines.append("--- Subscribe to events with `deco:on()` instead of `hl.on()`: its subscriptions are removed with the decoration.")
+    lines.append("--- `hl.on()` subscriptions would outlive it, and keep its widgets alive until the config is reloaded.")
+    lines.append("--- `deco:drag()` moves the window once the pointer moves, call it from a left press on the decoration.")
+    lines.extend(
+        emit_class_block(
+            "HL.Decoration",
+            [
+                ("window", "HL.Window", False),
+                ("name", "string", False),
+                ("root", "any", False),
+                ("on", "fun(self: HL.Decoration, event: HL.EventName, cb: fun(...)): HL.EventSubscription", False),
+                ("drag", "fun(self: HL.Decoration): nil", False),
             ],
         )
     )
@@ -865,6 +901,10 @@ def generate_stub(root: Path) -> str:
     emit_namespace(api_tree, [])
 
     lines.append('---@overload fun(event: "window.update_state", cb: fun(window: HL.Window|nil, changes: HL.WindowStateUpdate)): HL.EventSubscription')
+    lines.append('---@overload fun(event: "decoration.pointer_move", cb: fun(window: HL.Window|nil, name: string, x: number, y: number)): HL.EventSubscription')
+    lines.append(
+        '---@overload fun(event: "decoration.pointer_button", cb: fun(window: HL.Window|nil, name: string, button: integer, pressed: boolean, x: number, y: number)): HL.EventSubscription'
+    )
     lines.append("---@param event HL.EventName")
     lines.append("---@param cb fun(...)")
     lines.append("---@return HL.EventSubscription")

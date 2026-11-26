@@ -114,6 +114,13 @@ namespace Event {
             } window;
 
             struct {
+                // window, decoration name, position local to the decoration
+                Event<PHLWINDOW, std::string, Vector2D> pointerMove;
+                // window, decoration name, button, pressed, position local to the decoration
+                Event<PHLWINDOW, std::string, uint32_t, bool, Vector2D> pointerButton;
+            } decoration;
+
+            struct {
                 Event<PHLLS> opened;
                 Event<PHLLS> closed;
                 Event<PHLLS> updateRules;

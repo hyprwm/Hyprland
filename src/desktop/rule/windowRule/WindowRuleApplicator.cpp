@@ -84,6 +84,7 @@ std::unordered_set<CWindowRuleEffectContainer::storageType> CWindowRuleApplicato
                                std::pair{std::ref(m_scrollMouse), [this] { return scrollMouseEffect(); }},
                                std::pair{std::ref(m_scrollTouchpad), [this] { return scrollTouchpadEffect(); }},
                                std::pair{std::ref(m_animationStyle), [this] { return animationStyleEffect(); }},
+                               std::pair{std::ref(m_decorations), [this] { return decorationsEffect(); }},
                                std::pair{std::ref(m_maxSize), [this] { return maxSizeEffect(); }},
                                std::pair{std::ref(m_minSize), [this] { return minSizeEffect(); }},
                                std::pair{std::ref(m_activeBorderColor), [this] { return activeBorderColorEffect(); }},
@@ -159,6 +160,11 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
             case WINDOW_RULE_EFFECT_ANIMATION: {
                 m_animationStyle.first.set(std::get<std::string>(value), Types::PRIORITY_WINDOW_RULE);
                 m_animationStyle.second |= rule->getPropertiesMask();
+                break;
+            }
+            case WINDOW_RULE_EFFECT_DECORATIONS: {
+                m_decorations.first.set(std::get<std::string>(value), Types::PRIORITY_WINDOW_RULE);
+                m_decorations.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_BORDER_COLOR: {

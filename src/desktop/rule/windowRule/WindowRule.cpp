@@ -290,6 +290,7 @@ static std::expected<WindowRuleEffectValue, std::string> parseWindowRuleEffect(C
         case WINDOW_RULE_EFFECT_WORKSPACE:
         case WINDOW_RULE_EFFECT_GROUP:
         case WINDOW_RULE_EFFECT_ANIMATION:
+        case WINDOW_RULE_EFFECT_DECORATIONS:
         case WINDOW_RULE_EFFECT_TAG: return std::string{raw};
 
         case WINDOW_RULE_EFFECT_SUPPRESSEVENT: return parseStringList(raw);

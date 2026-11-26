@@ -38,6 +38,7 @@ namespace Config::Lua {
         static constexpr int             LUA_TIMEOUT_KEYBIND_CALLBACK_MS   = 100;
         static constexpr int             LUA_TIMEOUT_TIMER_CALLBACK_MS     = 50;
         static constexpr int             LUA_TIMEOUT_LAYOUT_CALLBACK_MS    = 50;
+        static constexpr int             LUA_TIMEOUT_TOOLKIT_CALLBACK_MS   = 50;
         static constexpr int             LUA_TIMEOUT_EVAL_MS               = 250;
         static constexpr int             LUA_TIMEOUT_DISPATCH_MS           = 100;
 

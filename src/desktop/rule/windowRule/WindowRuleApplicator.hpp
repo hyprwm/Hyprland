@@ -135,6 +135,8 @@ namespace Desktop::Rule {
         DEFINE_PROP(Config::FLOAT, scrollTouchpad, {std::string("input:touchpad:scroll_factor")}, WINDOW_RULE_EFFECT_SCROLL_TOUCHPAD)
 
         DEFINE_PROP(std::string, animationStyle, std::string(""), WINDOW_RULE_EFFECT_ANIMATION)
+        // space-separated toolkit decoration names
+        DEFINE_PROP(std::string, decorations, std::string(""), WINDOW_RULE_EFFECT_DECORATIONS)
 
         DEFINE_PROP(Vector2D, maxSize, Vector2D{}, WINDOW_RULE_EFFECT_MAX_SIZE)
         DEFINE_PROP(Vector2D, minSize, Vector2D{}, WINDOW_RULE_EFFECT_MIN_SIZE)

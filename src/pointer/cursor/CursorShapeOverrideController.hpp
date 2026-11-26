@@ -10,6 +10,8 @@ namespace Pointer::Cursor {
     enum eCursorShapeOverrideGroup : uint8_t {
         // unknown group - lowest priority
         CURSOR_OVERRIDE_UNKNOWN = 0,
+        // widgets in toolkit decorations
+        CURSOR_OVERRIDE_DECORATION,
         // window edges for resizing from edge
         CURSOR_OVERRIDE_WINDOW_EDGE,
         // Drag and drop

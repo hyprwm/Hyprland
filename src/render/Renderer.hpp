@@ -99,6 +99,8 @@ namespace Render {
         void                            damageBox(const CBox&, bool skipFrameSchedule = false);
         void                            damageBox(const int& x, const int& y, const int& w, const int& h);
         void                            damageRegion(const CRegion&);
+        void                            damageRegionDiff(const CRegion& oldRegion, const CRegion& newRegion, const CBox& surfaceBox, const Vector2D& scale = {1.0, 1.0},
+                                                         const std::optional<CBox>& clipBox = std::nullopt);
         void                            damageMonitor(PHLMONITOR);
         void                            damageMirrorsWith(PHLMONITOR, const CRegion&);
         bool                            shouldRenderWindow(PHLWINDOW, PHLMONITOR);

@@ -42,26 +42,35 @@ void CBackgroundEffect::setResource(SP<CExtBackgroundEffectSurfaceV1> resource) 
     m_listeners.surfaceCommitted = m_surface->m_events.commit.listen([this] {
         auto hlSurface = Desktop::View::CWLSurface::fromResource(m_surface.lock());
 
-        if (!hlSurface)
+        if (!hlSurface) {
+            if (!m_resource)
+                PROTO::backgroundEffect->destroyEffect(this);
             return;
+        }
 
         if (!m_resource) {
             // effect was destroyed, clear state on commit per spec
-            hlSurface->m_hasBackgroundEffect = false;
-            hlSurface->m_blurRegion.clear();
-            auto box = hlSurface->getSurfaceBoxGlobal();
-            if (box.has_value())
-                g_pHyprRenderer->damageBox(*box);
+            if (hlSurface->m_hasBackgroundEffect) {
+                hlSurface->m_hasBackgroundEffect = false;
+                hlSurface->m_blurRegion.clear();
+                const auto box = hlSurface->getSurfaceBoxGlobal();
+                if (box.has_value())
+                    g_pHyprRenderer->damageBox(*box);
+            }
             PROTO::backgroundEffect->destroyEffect(this);
             return;
         }
 
+        const auto box = hlSurface->getSurfaceBoxGlobal();
+        if (box.has_value()) {
+            if (!hlSurface->m_hasBackgroundEffect)
+                g_pHyprRenderer->damageBox(*box);
+            else
+                g_pHyprRenderer->damageRegionDiff(hlSurface->m_blurRegion, m_blurRegion, *box);
+        }
+
         hlSurface->m_hasBackgroundEffect = true;
         hlSurface->m_blurRegion          = m_blurRegion;
-        auto box                         = hlSurface->getSurfaceBoxGlobal();
-
-        if (box.has_value())
-            g_pHyprRenderer->damageBox(*box);
     });
 
     m_listeners.surfaceDestroyed = m_surface->m_events.destroy.listen([this] {
@@ -132,7 +141,5 @@ void CBackgroundEffectProtocol::getBackgroundEffect(CExtBackgroundEffectManagerV
         return;
     }
 
-    auto hlSurface = Desktop::View::CWLSurface::fromResource(surface);
-    if (hlSurface)
-        hlSurface->m_hasBackgroundEffect = true;
+    effect->markPending();
 }

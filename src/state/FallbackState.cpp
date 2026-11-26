@@ -7,6 +7,7 @@
 #include "../managers/eventLoop/EventLoopManager.hpp"
 
 #include <aquamarine/backend/Headless.hpp>
+#include <algorithm>
 
 using namespace State;
 
@@ -92,8 +93,6 @@ void CFallbackStateKeeper::initSignals() {
 
         g_pEventLoopManager->removeTimer(m_launchTimer);
         m_launchTimer = nullptr;
-
-        g_pEventLoopManager->doLater([this] { setFallbackActive(false); });
     });
 }
 
@@ -118,6 +117,9 @@ void CFallbackStateKeeper::initOutput() {
 void CFallbackStateKeeper::setFallbackActive(bool enabled) {
     if (enabled == m_fallbackActive)
         return;
+
+    if (!enabled)
+        RASSERT(std::ranges::any_of(State::monitorState()->monitors(), [this](const auto& m) { return m != m_fallbackOutput; }), "Tried to leave fallback without a monitor");
 
     m_fallbackActive = enabled;
 

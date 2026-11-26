@@ -1321,7 +1321,7 @@ TEST_CASE(luaSetWorkspace) {
     SPAWN_KITTY("ws1");
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "monitor: 1");
+        ASSERT_CONTAINS(str, "monitor: 2");
         ASSERT_CONTAINS(str, "workspace: 1 (1)");
     }
 

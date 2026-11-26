@@ -41,11 +41,16 @@ static void help() {
     --locked-cmd [COMMAND]       - Launches locker on startup via the provided command)#");
 }
 
-static void reapZombieChildrenAutomatically() {
+static void reapAvailableChildren(int sig) {
+    int status;
+    while (waitpid(-1, &status, WNOHANG) > 0) {}
+}
+
+static void reapChildrenAutomatically() {
     struct sigaction act;
-    act.sa_handler = SIG_DFL;
+    act.sa_handler = reapAvailableChildren;
     sigemptyset(&act.sa_mask);
-    act.sa_flags = SA_NOCLDWAIT;
+    act.sa_flags = 0;
 #ifdef SA_RESTORER
     act.sa_restorer = NULL;
 #endif
@@ -268,7 +273,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    reapZombieChildrenAutomatically();
+    reapChildrenAutomatically();
 
     bool watchdogOk = watchdogFd > 0;
 

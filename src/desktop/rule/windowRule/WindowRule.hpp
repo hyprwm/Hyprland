@@ -33,7 +33,7 @@ namespace Desktop::Rule {
     };
 
     using WindowRuleEffectValue = std::variant<std::monostate, bool, int64_t, float, std::string, std::vector<std::string>, SFullscreenStateRule, SOpacityRule, SBorderColorRule,
-                                               Math::SExpressionVec2, Config::CCornersData>;
+                                               Math::SExpressionVec2, Config::CCornersData, STypedRuleValue>;
 
     struct SWindowRuleEffect {
         using storageType = CWindowRuleEffectContainer::storageType;

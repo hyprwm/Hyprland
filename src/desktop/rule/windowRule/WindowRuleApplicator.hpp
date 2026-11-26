@@ -6,6 +6,7 @@
 #include "WindowRuleEffectContainer.hpp"
 #include "../../DesktopTypes.hpp"
 #include "../Rule.hpp"
+#include "../RuleWithEffects.hpp"
 #include "../../types/OverridableVar.hpp"
 #include "../../../helpers/math/Math.hpp"
 #include "../../../helpers/math/Expression.hpp"
@@ -38,6 +39,7 @@ namespace Desktop::Rule {
         bool                                                        readStaticRules(bool preRead = false);
         void                                                        recheckStaticRules();
         Config::CCornersData                                        roundingValue() const;
+        void                                                        removeCustomProp(CWindowRuleEffectContainer::storageType effect);
 
         // static props
         struct {
@@ -65,7 +67,7 @@ namespace Desktop::Rule {
         struct SCustomPropContainer {
             CWindowRuleEffectContainer::storageType idx      = WINDOW_RULE_EFFECT_NONE;
             std::underlying_type_t<eRuleProperty>   propMask = RULE_PROP_NONE;
-            std::string                             effect;
+            STypedRuleValue                         value;
         };
 
         // This struct holds props that were dynamically registered. Plugins may read this.

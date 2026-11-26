@@ -41,6 +41,10 @@ Config::CCornersData CWindowRuleApplicator::roundingValue() const {
     return m_rounding.first.valueOr(*sc<Config::CCornersData*>(PROUNDING.ptr()));
 }
 
+void CWindowRuleApplicator::removeCustomProp(CWindowRuleEffectContainer::storageType effect) {
+    std::erase_if(m_otherProps.props, [effect](const auto& el) { return effect == el.first; });
+}
+
 std::unordered_set<CWindowRuleEffectContainer::storageType> CWindowRuleApplicator::resetProps(std::underlying_type_t<eRuleProperty> props, Types::eOverridePriority prio) {
     std::unordered_set<CWindowRuleEffectContainer::storageType> effectsNuked;
 
@@ -120,18 +124,20 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                     break;
                 }
 
-                // custom type, add to our vec
+                // dynamic type, add to our vec
+                const auto& TYPED = std::get<STypedRuleValue>(value);
+
                 if (!m_otherProps.props.contains(key)) {
                     m_otherProps.props.emplace(key,
                                                makeUnique<SCustomPropContainer>(SCustomPropContainer{
                                                    .idx      = key,
                                                    .propMask = rule->getPropertiesMask(),
-                                                   .effect   = effect,
+                                                   .value    = TYPED,
                                                }));
                 } else {
                     auto& e = m_otherProps.props[key];
                     e->propMask |= rule->getPropertiesMask();
-                    e->effect = effect;
+                    e->value = TYPED;
                 }
 
                 break;

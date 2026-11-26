@@ -29,6 +29,10 @@ CLayerRuleApplicator::CLayerRuleApplicator(PHLLS ls) : m_ls(ls) {
     ;
 }
 
+void CLayerRuleApplicator::removeCustomProp(CLayerRuleEffectContainer::storageType effect) {
+    std::erase_if(m_otherProps.props, [effect](const auto& el) { return effect == el.first; });
+}
+
 void CLayerRuleApplicator::resetProps(std::underlying_type_t<eRuleProperty> props, Types::eOverridePriority prio) {
     std::apply([&](auto&... prop) { (resetRuleProp(prop, props, prio), ...); },
                std::forward_as_tuple(m_noanim, m_blur, m_blurPopups, m_dimAround, m_xray, m_noScreenShare, m_order, m_aboveLock, m_ignoreAlpha, m_animationStyle));
@@ -39,9 +43,8 @@ void CLayerRuleApplicator::resetProps(std::underlying_type_t<eRuleProperty> prop
 
 void CLayerRuleApplicator::applyDynamicRule(const SP<CLayerRule>& rule) {
     for (const auto& effectData : rule->effects()) {
-        const auto  key    = effectData.key;
-        const auto& effect = effectData.raw;
-        const auto& value  = effectData.value;
+        const auto  key   = effectData.key;
+        const auto& value = effectData.value;
 
         switch (key) {
             default: {
@@ -50,18 +53,20 @@ void CLayerRuleApplicator::applyDynamicRule(const SP<CLayerRule>& rule) {
                     break;
                 }
 
-                // custom type, add to our vec
+                // dynamic type, add to our vec
+                const auto& TYPED = std::get<STypedRuleValue>(value);
+
                 if (!m_otherProps.props.contains(key)) {
                     m_otherProps.props.emplace(key,
                                                makeUnique<SCustomPropContainer>(SCustomPropContainer{
                                                    .idx      = key,
                                                    .propMask = rule->getPropertiesMask(),
-                                                   .effect   = effect,
+                                                   .value    = TYPED,
                                                }));
                 } else {
                     auto& e = m_otherProps.props[key];
                     e->propMask |= rule->getPropertiesMask();
-                    e->effect = effect;
+                    e->value = TYPED;
                 }
 
                 break;

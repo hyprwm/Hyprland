@@ -31,10 +31,12 @@ CExecutor::CExecutor() {
         if (g_pCompositor->shouldManageSdEnv())
             spawnRaw(
 #ifdef USES_SYSTEMD
-                "systemctl --user import-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS && hash "
+                "systemctl --user import-environment DISPLAY WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP "
+                "XDG_SESSION_TYPE QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS && hash "
                 "dbus-update-activation-environment 2>/dev/null && "
 #endif
-                "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS");
+                "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP "
+                "XDG_SESSION_TYPE HYPRLAND_INSTANCE_SIGNATURE QT_QPA_PLATFORMTHEME PATH XDG_DATA_DIRS");
 
         m_firstExecDispatched = true;
 

@@ -336,10 +336,9 @@ void CLayerSurface::onCommit() {
     if (m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
         PMONITOR->m_blurFBDirty = true;
 
-    CBox geomFixed = {m_geometry.x, m_geometry.y, m_geometry.width, m_geometry.height};
-    g_pHyprRenderer->damageBox(geomFixed);
-
-    if (m_layerSurface->m_current.committed != 0) {
+    CBox           geomFixed       = {m_geometry.x, m_geometry.y, m_geometry.width, m_geometry.height};
+    const uint32_t layoutCommitted = m_layerSurface->m_current.committed & ~CLayerShellResource::eCommittedState::STATE_KEYBOARD_INTERACTIVITY;
+    if (layoutCommitted != 0) {
         if (m_layerSurface->m_current.committed & CLayerShellResource::eCommittedState::STATE_LAYER && m_layerSurface->m_current.layer != m_layer) {
 
             const auto NEW_LAYER = std::clamp(m_layerSurface->m_current.layer, ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND, ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY);
@@ -353,6 +352,11 @@ void CLayerSurface::onCommit() {
             }
 
             m_layer = NEW_LAYER;
+
+            if (m_ruleApplicator->dimAround().valueOrDefault())
+                g_pHyprRenderer->damageMonitor(PMONITOR);
+            else
+                g_pHyprRenderer->damageBox(geomFixed);
 
             static auto PALLOWNEWTOPOVERFULLSCREEN = CConfigValue<Config::BOOL>("layers:allow_new_top_layers_over_existing_fullscreen");
 
@@ -377,8 +381,6 @@ void CLayerSurface::onCommit() {
 
         PMONITOR->m_scheduledRecalc = true;
     } else {
-        m_position = Vector2D(m_geometry.x, m_geometry.y);
-
         // update geom if it changed
         if (m_layerSurface->m_surface->m_current.scale == 1 && PMONITOR->m_scale != 1.f && m_layerSurface->m_surface->m_current.viewport.hasDestination) {
             // fractional scaling. Dirty hack.
@@ -387,7 +389,14 @@ void CLayerSurface::onCommit() {
             // this is because some apps like e.g. rofi-lbonn can't fucking use the protocol correctly.
             m_geometry = {m_geometry.pos(), m_layerSurface->m_surface->m_current.size};
         }
+
+        if (m_geometry != geomFixed) {
+            g_pHyprRenderer->damageBox(geomFixed);
+            g_pHyprRenderer->damageBox(m_geometry);
+        }
     }
+
+    m_position = Vector2D(m_geometry.x, m_geometry.y);
 
     if (m_realPosition->goal() != m_geometry.pos()) {
         if (m_realPosition->isBeingAnimated())

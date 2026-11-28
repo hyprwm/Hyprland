@@ -2949,9 +2949,9 @@ void IHyprRenderer::arrangeLayerArray(PHLMONITOR pMonitor, const std::vector<PHL
         else
             bounds = *usableArea;
 
-        const Vector2D OLDSIZE = {ls->m_geometry.width, ls->m_geometry.height};
+        const CBox OLD_GEOM = ls->m_geometry;
 
-        CBox           box = {{}, PSTATE->desiredSize};
+        CBox       box = {{}, PSTATE->desiredSize};
         // Horizontal axis
         const uint32_t both_horiz = ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT;
         if (box.width == 0)
@@ -3008,9 +3008,15 @@ void IHyprRenderer::arrangeLayerArray(PHLMONITOR pMonitor, const std::vector<PHL
 
         ls->m_geometry = box;
 
+        if (ls->mapped() && ls->m_geometry != OLD_GEOM) {
+            if (!OLD_GEOM.empty())
+                damageBox(OLD_GEOM);
+            damageBox(ls->m_geometry);
+        }
+
         applyExclusive(*usableArea, PSTATE->anchor, PSTATE->exclusive, PSTATE->exclusiveEdge, PSTATE->margin.top, PSTATE->margin.right, PSTATE->margin.bottom, PSTATE->margin.left);
 
-        if (Vector2D{box.width, box.height} != OLDSIZE)
+        if (Vector2D{box.width, box.height} != OLD_GEOM.size())
             ls->m_layerSurface->configure(box.size());
 
         ls->setBox(box);
@@ -3023,6 +3029,8 @@ void IHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
     if (!PMONITOR || PMONITOR->m_size.x <= 0 || PMONITOR->m_size.y <= 0)
         return;
 
+    const CBox OLD_USABLE_AREA = PMONITOR->logicalBoxMinusReserved();
+
     // Reset the reserved
     PMONITOR->m_reservedArea.resetType(Desktop::RESERVED_DYNAMIC_TYPE_LS);
 
@@ -3030,8 +3038,23 @@ void IHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
     CBox       usableArea           = ORIGINAL_USABLE_AREA;
 
     for (auto& la : PMONITOR->m_layerSurfaceLayers) {
+        const auto PREV_ORDER = la;
         std::ranges::stable_sort(
             la, [](const PHLLSREF& a, const PHLLSREF& b) { return a->m_ruleApplicator->order().valueOrDefault() > b->m_ruleApplicator->order().valueOrDefault(); });
+
+        for (size_t i = 0; i < la.size(); ++i) {
+            if (la[i] == PREV_ORDER[i])
+                continue;
+
+            const auto LS = la[i].lock();
+            if (!LS || !LS->mapped())
+                continue;
+
+            if (LS->m_ruleApplicator->dimAround().valueOrDefault())
+                damageMonitor(PMONITOR);
+            else if (!LS->m_geometry.empty())
+                damageBox(LS->m_geometry);
+        }
     }
 
     for (auto const& la : PMONITOR->m_layerSurfaceLayers)
@@ -3042,8 +3065,9 @@ void IHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
 
     PMONITOR->m_reservedArea.addType(Desktop::RESERVED_DYNAMIC_TYPE_LS, Desktop::CReservedArea{ORIGINAL_USABLE_AREA, usableArea});
 
-    // damage the monitor if can
-    damageMonitor(PMONITOR);
+    // Damage the monitor only if reserved area changed (affecting tiled windows).
+    if (usableArea != OLD_USABLE_AREA)
+        damageMonitor(PMONITOR);
 
     g_layoutManager->invalidateMonitorGeometries(PMONITOR);
 }

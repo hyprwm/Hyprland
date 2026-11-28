@@ -158,11 +158,13 @@ void COverlay::createQueued() {
 }
 
 void COverlay::updateReservedArea(PHLMONITOR monitor) {
-    static auto BAR_POSITION = CConfigValue<Config::INTEGER>("debug:error_position");
+    static auto                              BAR_POSITION = CConfigValue<Config::INTEGER>("debug:error_position");
 
-    const bool  TOPBAR = *BAR_POSITION == 0;
+    const bool                               TOPBAR = *BAR_POSITION == 0;
 
+    std::vector<std::pair<PHLMONITOR, CBox>> oldUsableAreas;
     for (const auto& m : State::monitorState()->monitors()) {
+        oldUsableAreas.emplace_back(m, m->logicalBoxMinusReserved());
         m->m_reservedArea.resetType(Desktop::RESERVED_DYNAMIC_TYPE_ERROR_BAR);
     }
 
@@ -171,7 +173,10 @@ void COverlay::updateReservedArea(PHLMONITOR monitor) {
         monitor->m_reservedArea.addType(Desktop::RESERVED_DYNAMIC_TYPE_ERROR_BAR, Vector2D{0.0, TOPBAR ? RESERVED : 0.0}, Vector2D{0.0, !TOPBAR ? RESERVED : 0.0});
     }
 
-    for (const auto& m : State::monitorState()->monitors()) {
+    for (const auto& [m, oldUsable] : oldUsableAreas) {
+        if (m->logicalBoxMinusReserved() != oldUsable)
+            g_pHyprRenderer->damageMonitor(m);
+
         g_pHyprRenderer->arrangeLayersForMonitor(m->m_id);
     }
 }

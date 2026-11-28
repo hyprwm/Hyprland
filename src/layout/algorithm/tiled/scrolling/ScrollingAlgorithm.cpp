@@ -641,7 +641,8 @@ CScrollingAlgorithm::CScrollingAlgorithm() : m_scrollingFullscreenHandler(makeUn
         static const auto PFOLLOW_FOCUS = CConfigValue<Config::INTEGER>("scrolling:follow_focus");
 
         // click-down shouldn't cause viewport moves
-        if (*PFOLLOW_FOCUS && e.state == WL_POINTER_BUTTON_STATE_RELEASED && Desktop::focusState()->window())
+        // only move viewport of clicked on a window, not a layer above a window
+        if (*PFOLLOW_FOCUS && e.state == WL_POINTER_BUTTON_STATE_RELEASED && (Desktop::focusState()->window() && !g_pInputManager->m_lastFocusOnLS))
             focusOnInput(Desktop::focusState()->window()->layoutTarget(), (*PFOLLOW_FOCUS == 1) ? INPUT_MODE_CLICK : INPUT_MODE_SOFT);
     });
 

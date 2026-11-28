@@ -30,7 +30,12 @@ void CLayoutManager::removeTarget(SP<ITarget> target) {
 }
 
 void CLayoutManager::changeFloatingMode(SP<ITarget> target) {
-    if (!target->space())
+    const auto SPACE = target->space();
+    if (!SPACE)
+        return;
+
+    const auto WORKSPACE = SPACE->workspace();
+    if (!WORKSPACE)
         return;
 
     auto pastFsMode = Fullscreen::FSMODE_NONE;
@@ -40,7 +45,7 @@ void CLayoutManager::changeFloatingMode(SP<ITarget> target) {
         Fullscreen::controller()->setFullscreenMode(target->window(), Fullscreen::FSMODE_NONE);
     }
 
-    target->space()->toggleTargetFloating(target);
+    SPACE->toggleTargetFloating(target);
 
     if (pastFsMode != Fullscreen::FSMODE_NONE)
         Fullscreen::controller()->setFullscreenMode(target->window(), pastFsMode);

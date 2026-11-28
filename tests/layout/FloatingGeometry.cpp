@@ -1,3 +1,4 @@
+#include <layout/LayoutManager.hpp>
 #include <layout/algorithm/Algorithm.hpp>
 #include <layout/algorithm/floating/default/DefaultFloatingAlgorithm.hpp>
 #include <layout/algorithm/tiled/dwindle/DwindleAlgorithm.hpp>
@@ -72,6 +73,18 @@ class FloatingGeometry : public ::testing::Test {
     SP<CAlgorithm>      m_algorithm = CAlgorithm::create(makeUnique<Tiled::CDwindleAlgorithm>(), makeUnique<Floating::CDefaultFloatingAlgorithm>(), m_space);
     SP<CGeometryTarget> m_target    = CGeometryTarget::create(m_space);
 };
+
+TEST_F(FloatingGeometry, FloatingToggleLeavesTargetInPlaceWithoutAWorkspace) {
+    CLayoutManager manager;
+    ASSERT_TRUE(m_target->space());
+    ASSERT_FALSE(m_space->workspace());
+    ASSERT_TRUE(m_target->floating());
+
+    manager.changeFloatingMode(m_target);
+
+    EXPECT_TRUE(m_target->floating());
+    EXPECT_EQ(m_target->space(), m_space);
+}
 
 TEST_F(FloatingGeometry, DirectClientGeometryChangesUpdateTheRestoreBox) {
     m_target->setPositionGlobal(CBox{150, 160, 600, 400});

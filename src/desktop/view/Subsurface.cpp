@@ -225,6 +225,9 @@ void CSubsurface::onCommit() {
 
     const auto COORDS = coordsGlobal();
 
+    // damageSurface consumes damage, so snapshot it for the tearing check below
+    const bool HADDAMAGE = !m_wlSurface->resource()->m_current.damage.empty() || !m_wlSurface->resource()->m_current.bufferDamage.empty();
+
     g_pHyprRenderer->damageSurface(m_wlSurface->resource(), COORDS.x, COORDS.y);
 
     if (m_popupParent && !m_popupParent->inert() && m_popupParent->wlSurface())
@@ -240,6 +243,10 @@ void CSubsurface::onCommit() {
         m_lastSize     = m_wlSurface->resource()->m_current.size;
         m_lastPosition = m_subsurface->m_position;
     }
+
+    // tearing: if we are the solitary resource (e.g. wine wayland), our commits drive torn repaints
+    if (const auto PWINDOW = m_windowParent.lock(); PWINDOW && PWINDOW->getSolitaryResource() == m_wlSurface->resource())
+        PWINDOW->tearOnSurfaceCommit(m_wlSurface->resource(), HADDAMAGE);
 }
 
 void CSubsurface::onDestroy() {

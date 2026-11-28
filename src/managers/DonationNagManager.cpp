@@ -18,11 +18,13 @@ constexpr const char* LAST_NAG_FILE_NAME = "lastNag";
 constexpr uint64_t    DAY_IN_SECONDS     = 3600ULL * 24;
 constexpr uint64_t    MONTH_IN_SECONDS   = DAY_IN_SECONDS * 30;
 
-struct SNagDatePoint {
-    // Counted from 1, as in Jan 1st is 1, 1
-    // No month-boundaries because I am lazy
-    uint8_t month = 0, dayStart = 0, dayEnd = 0;
-};
+namespace {
+    struct SNagDatePoint {
+        // Counted from 1, as in Jan 1st is 1, 1
+        // No month-boundaries because I am lazy
+        uint8_t month = 0, dayStart = 0, dayEnd = 0;
+    };
+}
 
 // clang-format off
 const std::vector<SNagDatePoint> NAG_DATE_POINTS = {
@@ -30,7 +32,7 @@ const std::vector<SNagDatePoint> NAG_DATE_POINTS = {
         7, 20, 31,
     },
     SNagDatePoint {
-        12, 1, 28
+        12, 1, 28,
     },
 };
 // clang-format on
@@ -78,11 +80,11 @@ CDonationNagManager::CDonationNagManager() {
         return;
     }
 
-    auto       tt    = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    auto       local = *localtime(&tt);
+    auto          tt    = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    auto          local = *localtime(&tt);
 
-    const auto MONTH = local.tm_mon + 1;
-    const auto DAY   = local.tm_mday;
+    const uint8_t MONTH = local.tm_mon + 1;
+    const uint8_t DAY   = local.tm_mday;
 
     for (const auto& nagPoint : NAG_DATE_POINTS) {
         if (MONTH != nagPoint.month)

@@ -23,12 +23,12 @@ namespace Config {
         CGradientValueData(std::vector<CHyprColor>&& cols, float ang) : m_colors(std::move(cols)), m_angle(ang) {
             updateColorsOk();
         };
-        CGradientValueData(CGradientValueData&&)      = default;
-        CGradientValueData(const CGradientValueData&) = default;
-        CGradientValueData& operator=(CGradientValueData&&) = default;
+        CGradientValueData(CGradientValueData&&)                 = default;
+        CGradientValueData(const CGradientValueData&)            = default;
+        CGradientValueData& operator=(CGradientValueData&&)      = default;
         CGradientValueData& operator=(const CGradientValueData&) = default;
 
-        virtual ~CGradientValueData()                 = default;
+        virtual ~CGradientValueData() = default;
 
         virtual eConfigValueDataTypes getDataType() {
             return CVD_TYPE_GRADIENT;

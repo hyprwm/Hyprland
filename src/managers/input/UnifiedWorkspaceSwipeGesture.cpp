@@ -1,11 +1,10 @@
 #include "UnifiedWorkspaceSwipeGesture.hpp"
 
-#include "../../Compositor.hpp"
-#include "../../state/WorkspaceState.hpp"
+#include "InputManager.hpp"
 #include "../../state/workspace/Resolver.hpp"
+#include "../../state/workspace/State.hpp"
 #include "../../desktop/state/FocusState.hpp"
 #include "../../render/Renderer.hpp"
-#include "InputManager.hpp"
 #include "../../layout/space/Space.hpp"
 #include "../../layout/algorithm/Algorithm.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
@@ -235,7 +234,7 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
     const double d             = m_delta - delta;
     m_delta                    = delta;
 
-    m_avgSpeed = (m_avgSpeed * m_speedPoints + abs(d)) / (m_speedPoints + 1);
+    m_avgSpeed = ((m_avgSpeed * m_speedPoints) + abs(d)) / (m_speedPoints + 1);
     m_speedPoints++;
 
     auto workspaceLeft  = State::Workspace::resolver()->getWorkspaceTargetFromString((*PSWIPEUSER ? "r-1" : "m-1"), m_monitor.lock());
@@ -295,10 +294,10 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
         setPreviewAlpha(PWORKSPACE, 1.f);
 
         if (VERTANIMS) {
-            setPreviewOffset(PWORKSPACE, Vector2D(0.0, ((-m_delta) / SWIPEDISTANCE) * YDISTANCE - YDISTANCE));
+            setPreviewOffset(PWORKSPACE, Vector2D(0.0, (((-m_delta) / SWIPEDISTANCE) * YDISTANCE) - YDISTANCE));
             setPreviewOffset(m_workspaceBegin, Vector2D(0.0, ((-m_delta) / SWIPEDISTANCE) * YDISTANCE));
         } else {
-            setPreviewOffset(PWORKSPACE, Vector2D(((-m_delta) / SWIPEDISTANCE) * XDISTANCE - XDISTANCE, 0.0));
+            setPreviewOffset(PWORKSPACE, Vector2D((((-m_delta) / SWIPEDISTANCE) * XDISTANCE) - XDISTANCE, 0.0));
             setPreviewOffset(m_workspaceBegin, Vector2D(((-m_delta) / SWIPEDISTANCE) * XDISTANCE, 0.0));
         }
 
@@ -325,10 +324,10 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
         setPreviewAlpha(PWORKSPACE, 1.f);
 
         if (VERTANIMS) {
-            setPreviewOffset(PWORKSPACE, Vector2D(0.0, ((-m_delta) / SWIPEDISTANCE) * YDISTANCE + YDISTANCE));
+            setPreviewOffset(PWORKSPACE, Vector2D(0.0, (((-m_delta) / SWIPEDISTANCE) * YDISTANCE) + YDISTANCE));
             setPreviewOffset(m_workspaceBegin, Vector2D(0.0, ((-m_delta) / SWIPEDISTANCE) * YDISTANCE));
         } else {
-            setPreviewOffset(PWORKSPACE, Vector2D(((-m_delta) / SWIPEDISTANCE) * XDISTANCE + XDISTANCE, 0.0));
+            setPreviewOffset(PWORKSPACE, Vector2D((((-m_delta) / SWIPEDISTANCE) * XDISTANCE) + XDISTANCE, 0.0));
             setPreviewOffset(m_workspaceBegin, Vector2D(((-m_delta) / SWIPEDISTANCE) * XDISTANCE, 0.0));
         }
 

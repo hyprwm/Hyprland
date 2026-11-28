@@ -869,7 +869,7 @@ void CWLDataDeviceProtocol::renderDND(Render::CRenderContext& ctx, PHLMONITOR pM
     CTexPassElement::SRenderData data;
     data.tex = m_dnd.dndSurface->m_current.texture;
     data.box = box;
-    g_pHyprRenderer->addPassElement(ctx, makeUnique<CTexPassElement>(std::move(data)));
+    Render::IHyprRenderer::addPassElement(ctx, makeUnique<CTexPassElement>(std::move(data)));
 
     CBox damageBox = CBox{surfacePos, m_dnd.dndSurface->m_current.size}.expand(5);
     g_pHyprRenderer->damageBox(damageBox);

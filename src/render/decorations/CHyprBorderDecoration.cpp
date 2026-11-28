@@ -1,14 +1,14 @@
 #include "CHyprBorderDecoration.hpp"
 #include "BorderGeometry.hpp"
+
 #include "../../desktop/view/window/WindowGroupMembership.hpp"
 #include "../../desktop/view/window/WindowPresentation.hpp"
-#include "../../Compositor.hpp"
-#include "../../config/ConfigValue.hpp"
-#include "../../desktop/state/FocusState.hpp"
+#include "../../desktop/view/window/Window.hpp"
 #include "../../desktop/state/WindowState.hpp"
 #include "../../desktop/view/Group.hpp"
+#include "../../config/ConfigValue.hpp"
+#include "../../desktop/state/FocusState.hpp"
 #include "../../layout/target/Target.hpp"
-#include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../managers/fullscreen/FullscreenController.hpp"
 #include "../pass/BorderPassElement.hpp"
 #include "../Renderer.hpp"
@@ -90,7 +90,7 @@ void CHyprBorderDecoration::draw(Render::CRenderContext& ctx, PHLMONITOR pMonito
         data.lerp     = GRADIENT.progress;
     }
 
-    g_pHyprRenderer->addPassElement(ctx, makeUnique<CBorderPassElement>(data));
+    Render::IHyprRenderer::addPassElement(ctx, makeUnique<CBorderPassElement>(data));
 }
 
 eDecorationType CHyprBorderDecoration::getDecorationType() {

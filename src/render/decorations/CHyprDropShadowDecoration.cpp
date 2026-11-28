@@ -131,7 +131,7 @@ void CHyprDropShadowDecoration::draw(Render::CRenderContext& ctx, PHLMONITOR pMo
     data.deco         = SELF;
     data.a            = a;
     data.presentation = presentation;
-    g_pHyprRenderer->addPassElement(ctx, makeUnique<CShadowPassElement>(data));
+    Render::IHyprRenderer::addPassElement(ctx, makeUnique<CShadowPassElement>(data));
 }
 
 bool CHyprDropShadowDecoration::canRender(PHLMONITOR pMonitor) {

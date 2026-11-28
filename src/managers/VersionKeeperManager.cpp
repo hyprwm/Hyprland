@@ -1,18 +1,13 @@
 #include "VersionKeeperManager.hpp"
 #include "../debug/log/Logger.hpp"
-#include "../macros.hpp"
-#include "../version.h"
-#include "../helpers/MiscFunctions.hpp"
-#include "../helpers/varlist/VarList.hpp"
 #include "eventLoop/EventLoopManager.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../helpers/fs/FsUtils.hpp"
 
-#include <filesystem>
-#include <fstream>
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/os/Process.hpp>
+#include <hyprutils/string/VarList.hpp>
 
 using namespace Hyprutils::String;
 using namespace Hyprutils::OS;

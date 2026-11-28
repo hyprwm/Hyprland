@@ -19,7 +19,7 @@ class CImageCaptureSource {
   public:
     CImageCaptureSource(SP<CExtImageCaptureSourceV1> resource, PHLMONITOR pMonitor);
     CImageCaptureSource(SP<CExtImageCaptureSourceV1> resource, PHLWINDOW pWindow);
-    CImageCaptureSource(SP<CExtImageCaptureSourceV1> resource, PHLWORKSPACE pWorkspace, uint32_t mode);
+    CImageCaptureSource(SP<CExtImageCaptureSourceV1> resource, PHLWORKSPACE pWorkspace, uint32_t mode, bool persist = false);
 
     bool                    good();
     std::string             getName();
@@ -56,14 +56,17 @@ class CToplevelImageCaptureSourceProtocol : public IWaylandProtocol {
 
 class CHyprlandWorkspaceCaptureSourceProtocol : public IWaylandProtocol {
   public:
-    CHyprlandWorkspaceCaptureSourceProtocol(const wl_interface* iface, const int& ver, const std::string& name);
+    CHyprlandWorkspaceCaptureSourceProtocol(const wl_interface* iface, const int& ver, const std::string& name, bool persist = false);
 
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+
+  private:
+    bool m_persist = false;
 };
 
 class CImageCaptureSourceProtocol {
   public:
-    CImageCaptureSourceProtocol();
+    CImageCaptureSourceProtocol(bool persistWorkspaces = false);
 
     SP<CImageCaptureSource> sourceFromResource(wl_resource* resource);
 

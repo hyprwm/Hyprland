@@ -276,6 +276,22 @@ TEST_F(CWorkspaceCaptureSourceTest, SurvivesWorkspaceDestructionWithoutOwningWor
     EXPECT_EQ(changes, 1);
 }
 
+TEST_F(CWorkspaceCaptureSourceTest, PreventsWorkspaceDestruction) {
+    auto            source    = makeShared<Screenshare::CWorkspaceCaptureSource>(m_workspace, 0, true);
+    PHLWORKSPACEREF workspace = m_workspace;
+    PHLMONITORREF   monitor   = m_monitor;
+    int             changes   = 0;
+    auto            listener  = source->m_changed.listen([&] { ++changes; });
+
+    EXPECT_EQ(source->workspace(), m_workspace);
+    m_workspace.reset();
+    EXPECT_FALSE(workspace.expired());
+    EXPECT_TRUE(source->workspace());
+    EXPECT_FALSE(source->removed());
+    EXPECT_EQ(source->name(), "73");
+    EXPECT_EQ(changes, 0);
+}
+
 TEST_F(CWorkspaceCaptureSourceTest, NullWorkspaceAndInitiallyMissingMonitor) {
     Screenshare::CWorkspaceCaptureSource removed{nullptr, 1};
     EXPECT_TRUE(removed.removed());

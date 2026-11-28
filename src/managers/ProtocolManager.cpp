@@ -133,10 +133,11 @@ void CProtocolManager::onMonitorModeChange(PHLMONITOR pMonitor) {
 
 CProtocolManager::CProtocolManager() {
 
-    static const auto PENABLECM = CConfigValue<Config::BOOL>("render:cm_enabled");
-    static const auto PDEBUGCM  = CConfigValue<Config::BOOL>("debug:full_cm_proto");
-    static const auto PCMV1_2   = CConfigValue<Config::BOOL>("experimental:wp_cm_1_2");
-    static const auto PENABLECT = CConfigValue<Config::BOOL>("render:commit_timing_enabled");
+    static const auto PENABLECM  = CConfigValue<Config::BOOL>("render:cm_enabled");
+    static const auto PDEBUGCM   = CConfigValue<Config::BOOL>("debug:full_cm_proto");
+    static const auto PCMV1_2    = CConfigValue<Config::BOOL>("experimental:wp_cm_1_2");
+    static const auto PENABLECT  = CConfigValue<Config::BOOL>("render:commit_timing_enabled");
+    static const auto PWSPERSIST = CConfigValue<Config::BOOL>("misc:workspace_persist_shared");
 
     // Outputs are a bit dumb, we have to agree.
     static auto P = Event::bus()->m_events.monitor.added.listen([this](PHLMONITOR M) {
@@ -231,7 +232,7 @@ CProtocolManager::CProtocolManager() {
     // Screensharing Protocols
     PROTO::screencopy         = makeUnique<CScreencopyProtocol>(&zwlr_screencopy_manager_v1_interface, 3, "Screencopy");
     PROTO::toplevelExport     = makeUnique<CToplevelExportProtocol>(&hyprland_toplevel_export_manager_v1_interface, 2, "ToplevelExport");
-    PROTO::imageCaptureSource = makeUnique<CImageCaptureSourceProtocol>(); // ctor inits actual protos, output and toplevel
+    PROTO::imageCaptureSource = makeUnique<CImageCaptureSourceProtocol>(*PWSPERSIST); // ctor inits actual protos, output and toplevel
     PROTO::imageCopyCapture   = makeUnique<CImageCopyCaptureProtocol>(&ext_image_copy_capture_manager_v1_interface, 1, "ImageCopyCapture");
 
     if (*PENABLECM)

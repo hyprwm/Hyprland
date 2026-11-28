@@ -4,9 +4,13 @@
 
 using namespace Screenshare;
 
-CWorkspaceCaptureSource::CWorkspaceCaptureSource(PHLWORKSPACE workspace, uint32_t mode) : m_workspace(workspace), m_removed(!workspace), m_mode(mode) {
+CWorkspaceCaptureSource::CWorkspaceCaptureSource(PHLWORKSPACE workspace, uint32_t mode, bool persist) : m_workspace(workspace), m_removed(!workspace), m_mode(mode) {
     if (!workspace)
         return;
+
+    // hold onto a shared pointer to prevent workspace destruction
+    if (persist)
+        m_lockedWorkspace = workspace;
 
     m_name = workspace->addressableName();
     updateMonitor();

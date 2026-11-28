@@ -10,7 +10,7 @@
 namespace Screenshare {
     class CWorkspaceCaptureSource {
       public:
-        CWorkspaceCaptureSource(PHLWORKSPACE workspace, uint32_t mode);
+        CWorkspaceCaptureSource(PHLWORKSPACE workspace, uint32_t mode, bool persist = false);
         CWorkspaceCaptureSource(const CWorkspaceCaptureSource&) = delete;
         CWorkspaceCaptureSource(CWorkspaceCaptureSource&&)      = delete;
 
@@ -25,6 +25,7 @@ namespace Screenshare {
 
       private:
         PHLWORKSPACEREF m_workspace;
+        PHLWORKSPACE    m_lockedWorkspace = nullptr;
         PHLMONITORREF   m_lastMonitor;
         Vector2D        m_bufferSize = {0, 0};
         std::string     m_name;

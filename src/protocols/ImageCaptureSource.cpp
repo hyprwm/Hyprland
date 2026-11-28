@@ -26,11 +26,11 @@ CImageCaptureSource::CImageCaptureSource(SP<CExtImageCaptureSourceV1> resource, 
     m_resource->setOnDestroy([this](CExtImageCaptureSourceV1* pMgr) { PROTO::imageCaptureSource->destroyResource(this); });
 }
 
-CImageCaptureSource::CImageCaptureSource(SP<CExtImageCaptureSourceV1> resource, PHLWORKSPACE pWorkspace, uint32_t mode) : m_resource(resource) {
+CImageCaptureSource::CImageCaptureSource(SP<CExtImageCaptureSourceV1> resource, PHLWORKSPACE pWorkspace, uint32_t mode, bool persist) : m_resource(resource) {
     if UNLIKELY (!good())
         return;
 
-    m_workspace = makeShared<Screenshare::CWorkspaceCaptureSource>(pWorkspace, mode);
+    m_workspace = makeShared<Screenshare::CWorkspaceCaptureSource>(pWorkspace, mode, persist);
     m_resource->setData(this);
     m_resource->setDestroy([this](CExtImageCaptureSourceV1* pMgr) { PROTO::imageCaptureSource->destroyResource(this); });
     m_resource->setOnDestroy([this](CExtImageCaptureSourceV1* pMgr) { PROTO::imageCaptureSource->destroyResource(this); });
@@ -154,8 +154,8 @@ void CToplevelImageCaptureSourceProtocol::bindManager(wl_client* client, void* d
     });
 }
 
-CHyprlandWorkspaceCaptureSourceProtocol::CHyprlandWorkspaceCaptureSourceProtocol(const wl_interface* iface, const int& ver, const std::string& name) :
-    IWaylandProtocol(iface, ver, name) {
+CHyprlandWorkspaceCaptureSourceProtocol::CHyprlandWorkspaceCaptureSourceProtocol(const wl_interface* iface, const int& ver, const std::string& name, bool persist) :
+    IWaylandProtocol(iface, ver, name), m_persist(persist) {
     ;
 }
 
@@ -170,37 +170,39 @@ void CHyprlandWorkspaceCaptureSourceProtocol::bindManager(wl_client* client, voi
 
     RESOURCE->setDestroy([](CHyprlandWorkspaceImageCaptureSourceManagerV1* pMgr) { PROTO::imageCaptureSource->destroyResource(pMgr); });
     RESOURCE->setOnDestroy([](CHyprlandWorkspaceImageCaptureSourceManagerV1* pMgr) { PROTO::imageCaptureSource->destroyResource(pMgr); });
-    RESOURCE->setCreateSource([](CHyprlandWorkspaceImageCaptureSourceManagerV1* pMgr, uint32_t id, wl_resource* res, hyprlandWorkspaceImageCaptureSourceManagerV1CaptureMode mode) {
-        if (mode != HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_WINDOWS_ONLY &&
-            mode != HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_EVERYTHING) {
-            pMgr->error(HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_ERROR_INVALID_MODE, "invalid workspace capture mode");
-            return;
-        }
+    RESOURCE->setCreateSource(
+        [this](CHyprlandWorkspaceImageCaptureSourceManagerV1* pMgr, uint32_t id, wl_resource* res, hyprlandWorkspaceImageCaptureSourceManagerV1CaptureMode mode) {
+            if (mode != HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_WINDOWS_ONLY &&
+                mode != HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_CAPTURE_MODE_EVERYTHING) {
+                pMgr->error(HYPRLAND_WORKSPACE_IMAGE_CAPTURE_SOURCE_MANAGER_V1_ERROR_INVALID_MODE, "invalid workspace capture mode");
+                return;
+            }
 
-        const auto WS = PROTO::extWorkspace->workspaceFromHandle(res);
-        if (!WS) {
-            LOG(Log::ERR, "Client tried to create source from invalid workspace handle resource");
-            pMgr->error(-1, "invalid workspace resource");
-            return;
-        }
+            const auto WS = PROTO::extWorkspace->workspaceFromHandle(res);
+            if (!WS) {
+                LOG(Log::ERR, "Client tried to create source from invalid workspace handle resource");
+                pMgr->error(-1, "invalid workspace resource");
+                return;
+            }
 
-        auto PSOURCE =
-            PROTO::imageCaptureSource->m_sources.emplace_back(makeShared<CImageCaptureSource>(makeShared<CExtImageCaptureSourceV1>(pMgr->client(), pMgr->version(), id), WS, mode));
-        if UNLIKELY (!PSOURCE->good()) {
-            pMgr->noMemory();
-            PROTO::imageCaptureSource->m_sources.pop_back();
-            return;
-        }
-        PSOURCE->m_self = PSOURCE;
+            auto PSOURCE = PROTO::imageCaptureSource->m_sources.emplace_back(
+                makeShared<CImageCaptureSource>(makeShared<CExtImageCaptureSourceV1>(pMgr->client(), pMgr->version(), id), WS, mode, m_persist));
+            if UNLIKELY (!PSOURCE->good()) {
+                pMgr->noMemory();
+                PROTO::imageCaptureSource->m_sources.pop_back();
+                return;
+            }
+            PSOURCE->m_self = PSOURCE;
 
-        LOG(Log::INFO, "New capture source for workspace: {}", WS->addressableName());
-    });
+            LOG(Log::INFO, "New capture source for workspace: {}", WS->addressableName());
+        });
 }
 
-CImageCaptureSourceProtocol::CImageCaptureSourceProtocol() {
+CImageCaptureSourceProtocol::CImageCaptureSourceProtocol(bool persistWorkspaces) {
     m_output    = makeUnique<COutputImageCaptureSourceProtocol>(&ext_output_image_capture_source_manager_v1_interface, 1, "OutputImageCaptureSource");
     m_toplevel  = makeUnique<CToplevelImageCaptureSourceProtocol>(&ext_foreign_toplevel_image_capture_source_manager_v1_interface, 1, "ForeignToplevelImageCaptureSource");
-    m_workspace = makeUnique<CHyprlandWorkspaceCaptureSourceProtocol>(&hyprland_workspace_image_capture_source_manager_v1_interface, 1, "HyprlandWorkspaceImageCaptureSource");
+    m_workspace = makeUnique<CHyprlandWorkspaceCaptureSourceProtocol>(&hyprland_workspace_image_capture_source_manager_v1_interface, 1, "HyprlandWorkspaceImageCaptureSource",
+                                                                      persistWorkspaces);
 }
 
 SP<CImageCaptureSource> CImageCaptureSourceProtocol::sourceFromResource(wl_resource* res) {

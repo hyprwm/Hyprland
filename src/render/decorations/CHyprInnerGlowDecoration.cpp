@@ -1,11 +1,9 @@
 #include "CHyprInnerGlowDecoration.hpp"
 #include "../../desktop/view/window/WindowPresentation.hpp"
 
-#include <algorithm>
-
 #include "../../config/ConfigValue.hpp"
-#include "../../Compositor.hpp"
 #include "../../desktop/state/FocusState.hpp"
+#include "../../desktop/view/window/Window.hpp"
 #include "../pass/InnerGlowPassElement.hpp"
 #include "../Renderer.hpp"
 #include "../WindowRenderPresentation.hpp"
@@ -104,7 +102,7 @@ void CHyprInnerGlowDecoration::draw(Render::CRenderContext& ctx, PHLMONITOR pMon
     data.deco         = SELF;
     data.a            = a;
     data.presentation = presentation;
-    g_pHyprRenderer->addPassElement(ctx, makeUnique<CInnerGlowPassElement>(data));
+    Render::IHyprRenderer::addPassElement(ctx, makeUnique<CInnerGlowPassElement>(data));
 }
 
 void CHyprInnerGlowDecoration::render(Render::CRenderContext& ctx, PHLMONITOR pMonitor, float const& a, const Render::SWindowRenderPresentation& presentation) {

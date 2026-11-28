@@ -32,7 +32,7 @@ class CXCursorManager {
   private:
     SP<SXCursors>              createCursor(std::string const& shape, void* /* XcursorImages* */ xImages);
     std::set<std::string>      themePaths(std::string const& theme);
-    std::string                getLegacyShapeName(std::string const& shape);
+    std::string_view           getLegacyShapeName(std::string const& shape);
     std::vector<SP<SXCursors>> loadStandardCursors(std::string const& name, int size);
     std::vector<SP<SXCursors>> loadAllFromDir(std::string const& path, int size);
 

@@ -326,9 +326,9 @@ std::set<std::string> CXCursorManager::themePaths(std::string const& theme) {
     return paths;
 }
 
-std::string CXCursorManager::getLegacyShapeName(std::string const& shape) {
+std::string_view CXCursorManager::getLegacyShapeName(std::string const& shape) {
     if (shape == "invalid")
-        return std::string();
+        return {};
     else if (shape == "default")
         return "left_ptr";
     else if (shape == "context-menu")
@@ -402,7 +402,7 @@ std::string CXCursorManager::getLegacyShapeName(std::string const& shape) {
     else if (shape == "all-resize")
         return "fleur";
 
-    return std::string();
+    return {};
 };
 
 // Taken from https://gitlab.freedesktop.org/xorg/lib/libxcursor/-/blob/master/src/library.c

@@ -764,7 +764,7 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
         // Try to find the parent window or layer surface from the grab
         PHLWINDOW parentWindow;
         PHLLS     parentLayer;
-        if (oldGrab && oldGrab->m_surfs.size()) {
+        if (oldGrab && !oldGrab->m_surfs.empty()) {
             // Try to find the surface that had focus when the grab ended
             SP<CWLSurfaceResource> focusedSurf;
             auto                   keyboardFocus = m_state.keyboardFocus.lock();
@@ -891,7 +891,7 @@ void CSeatGrab::remove(SP<CWLSurfaceResource> surf) {
 }
 
 void CSeatGrab::setCallback(std::function<void()> onEnd_) {
-    m_onEnd = onEnd_;
+    m_onEnd = std::move(onEnd_);
 }
 
 void CSeatGrab::clear() {
